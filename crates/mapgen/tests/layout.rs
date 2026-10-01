@@ -65,6 +65,42 @@ fn built(settlement: &mapgen::SettlementPlan) -> f64 {
         .sum()
 }
 
+fn segment_distance(a: [f64; 2], b: [f64; 2], p: [f64; 2]) -> f64 {
+    let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
+    let t = (((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy)).clamp(0.0, 1.0);
+    (a[0] + dx * t - p[0]).hypot(a[1] + dy * t - p[1])
+}
+
+/// Inside the ring or within a metre of its edge: a town's edge is often a
+/// road, and a point of that road is the town's.
+fn on_ground(ring: &[[f64; 2]], p: [f64; 2]) -> bool {
+    contract::ground::polygon_contains(ring, p)
+        || contract::ground::edges(ring).any(|(a, b)| segment_distance(*a, *b, p) <= 1.0)
+}
+
+/// The convex hull of a ring, counter-clockwise.
+fn hull(ring: &[[f64; 2]]) -> Vec<[f64; 2]> {
+    let mut sorted = ring.to_vec();
+    sorted.sort_by(|a, b| a[0].total_cmp(&b[0]).then(a[1].total_cmp(&b[1])));
+    let mut hull: Vec<[f64; 2]> = Vec::new();
+    for pass in 0..2 {
+        let floor = hull.len();
+        for p in &sorted {
+            while hull.len() >= floor + 2
+                && contract::ground::cross(hull[hull.len() - 2], hull[hull.len() - 1], *p) <= 0.0
+            {
+                hull.pop();
+            }
+            hull.push(*p);
+        }
+        hull.pop();
+        if pass == 0 {
+            sorted.reverse();
+        }
+    }
+    hull
+}
+
 fn road_runs(plan: &MapPlan) -> impl Iterator<Item = (SurfaceKind, &[[f64; 2]])> {
     plan.surfaces.iter().map(|area| match &area.shape {
         GroundShape::Stroke { centerline, .. } => (area.kind, centerline.control_points()),
@@ -110,34 +146,55 @@ fn one_seed_gives_each_type_and_size_its_own_layout() {
                 .filter(|p| p.iter().any(|v| *v == 0.0 || *v == plan.size[0]))
                 .map(|p| p.map(|v| (v / plan.size[0] * 1e4) as i64))
                 .collect();
-            assert!(exits.len() >= 4);
+            // At least the road in from the bottom and the one from the top.
+            assert!(exits.len() >= 2);
             assert!(!skeletons.contains(&exits), "{map_type:?} {size:?}");
             skeletons.push(exits);
         }
     }
 }
 
-/// M05: a bigger map has more places, not bigger ones.
+/// M05: a bigger map has more places, not bigger ones. A settlement's
+/// districts stand on its class's ground, whatever the map's size, and a
+/// class's settlements are as large on a Large map as on a Small one.
 #[test]
 fn a_bigger_map_adds_settlements_and_keeps_their_dimensions() {
     let presets = presets();
+    // Each class's outlines, in hectares, by map size.
+    let mut sizes: std::collections::BTreeMap<String, [Vec<f64>; 3]> = Default::default();
     for map_type in [MapType::Open, MapType::Mixed] {
         for seed in SEEDS {
             let plans = SIZES.map(|size| plan(map_type, size, seed));
             assert!(plans[0].settlements.len() < plans[1].settlements.len());
             assert!(plans[1].settlements.len() < plans[2].settlements.len());
-            for plan in &plans {
+            for (size, plan) in plans.iter().enumerate() {
                 for settlement in &plan.settlements {
-                    let [low, high] = presets.classes[&settlement.class].area_ha.unwrap();
+                    let [_, high] = presets.classes[&settlement.class].area_ha.unwrap();
                     let hectares = ring_area(&settlement.outline) / 1e4;
                     assert!(
-                        hectares > low * 0.97 && hectares < high * 1.03,
-                        "{} is {hectares} ha, outside {low}..{high}",
+                        hectares < high * 1.03,
+                        "{} is {hectares} ha, above its class's {high}",
                         settlement.class
                     );
+                    sizes.entry(settlement.class.clone()).or_default()[size].push(hectares);
                 }
             }
         }
+    }
+    // The classes every size has many of: villages and hamlets.
+    for class in ["village", "hamlet"] {
+        let medians = sizes[class].clone().map(|mut hectares| {
+            hectares.sort_by(f64::total_cmp);
+            hectares[hectares.len() / 2]
+        });
+        let (least, most) = (
+            medians.iter().copied().fold(f64::INFINITY, f64::min),
+            medians.iter().copied().fold(0.0, f64::max),
+        );
+        assert!(
+            most < 1.4 * least,
+            "{class}: median hectares by size {medians:?}"
+        );
     }
     // Road widths are the other dimension a size must not scale.
     let widths = SIZES.map(|size| {
@@ -188,23 +245,14 @@ fn mixed_has_one_clearly_larger_town() {
     for size in SIZES {
         for seed in SEEDS {
             let plan = plan(MapType::Mixed, size, seed);
-            // Larger in the ground it covers and in what is built on it.
-            for (measure, margin) in [(ring_area as fn(&[[f64; 2]]) -> f64, 2.0), (|_| 0.0, 0.0)] {
-                let mut areas: Vec<f64> = plan
-                    .settlements
-                    .iter()
-                    .map(|s| {
-                        if margin > 0.0 {
-                            measure(&s.outline)
-                        } else {
-                            built(s)
-                        }
-                    })
-                    .collect();
-                let margin = if margin > 0.0 { margin } else { 1.5 };
+            // Half as large again as the next, in the ground it covers and
+            // in what is built on it: the least the preset sizes allow.
+            let outline = |s: &mapgen::SettlementPlan| ring_area(&s.outline);
+            for measure in [outline as fn(&mapgen::SettlementPlan) -> f64, built] {
+                let mut areas: Vec<f64> = plan.settlements.iter().map(measure).collect();
                 areas.sort_by(|a, b| b.total_cmp(a));
                 assert!(
-                    areas[0] > margin * areas[1],
+                    areas[0] > 1.5 * areas[1],
                     "{size:?} {seed}: {} against {}",
                     areas[0],
                     areas[1]
@@ -270,45 +318,123 @@ fn every_plan_is_connected_fair_approachable_and_quick_to_cross() {
                 "{name}: no {half:?} approach to the main settlement"
             );
         }
-        assert_eq!(metrics.transit.len(), 4, "{name}");
-        for edge in &metrics.transit {
-            // Every edge reaches the centre by road inside the presets' limit.
-            assert!(edge.elapsed_s <= presets.transit.max_s, "{name}: {edge:?}");
-            assert!(edge.connector_m <= 100.0, "{name}: {edge:?}");
+        // M22: the two sides start at the top and the bottom. Each of those
+        // edges reaches the main junction, by the map's centre, inside the
+        // presets' limit, and a road joins the two edges.
+        let transit = &metrics.transit;
+        for journey in [&transit.top, &transit.bottom] {
+            let journey = journey
+                .as_ref()
+                .unwrap_or_else(|| panic!("{name}: {transit:?}"));
+            assert!(
+                journey.elapsed_s <= presets.transit.max_s,
+                "{name}: {transit:?}"
+            );
         }
+        assert!(transit.centre_m <= 500.0, "{name}: {transit:?}");
+        let through = transit
+            .top_bottom
+            .as_ref()
+            .unwrap_or_else(|| panic!("{name}: {transit:?}"));
+        assert!(through.route_m >= plan.size[1], "{name}: {transit:?}");
     });
 }
 
+/// M22: a road across the middle from side to side is optional. A share of
+/// maps has one and a share has none, at every size.
+#[test]
+fn a_share_of_maps_has_a_road_from_side_to_side_and_a_share_has_none() {
+    let presets = presets();
+    for (map_type, size) in [
+        (MapType::Open, MapSize::Small),
+        (MapType::Mixed, MapSize::Medium),
+        (MapType::Metro, MapSize::Large),
+    ] {
+        let seeds = 40;
+        let with = (1..=seeds)
+            .filter(|seed| {
+                measure(&plan(map_type, size, *seed), &presets)
+                    .transit
+                    .east_west
+                    .is_some()
+            })
+            .count();
+        // The presets draw one on half of maps; forty seeds stray from that
+        // by eight maps, one time in a hundred.
+        assert!(
+            (12..=28).contains(&with),
+            "{map_type:?} {size:?}: {with} of {seeds} maps have a road from side to side"
+        );
+    }
+}
+
+/// M21, M22: the main roads do not meet in the same crossroads on every
+/// map, on a Large map no more than on a Small one.
+#[test]
+fn main_roads_meet_in_a_crossroads_on_some_maps_and_fork_on_others() {
+    let presets = presets();
+    for map_type in TYPES {
+        for size in SIZES {
+            let crossroads = (1..=30)
+                .filter(|seed| {
+                    measure(&plan(map_type, size, *seed), &presets)
+                        .roads
+                        .centre_roads
+                        >= 4
+                })
+                .count();
+            assert!(
+                (1..=24).contains(&crossroads),
+                "{map_type:?} {size:?}: {crossroads} of 30 maps have a central crossroads"
+            );
+        }
+    }
+}
+
+/// An approach is a corridor of open ground: along any of its bearings,
+/// past the last of the settlement's own ground inside the corridor, no
+/// settlement and no forest stands across the stated front for the stated
+/// depth.
 #[test]
 fn an_approach_in_the_plan_is_really_open_ground() {
     every_cell(|_, _, _, plan| {
         for approach in &plan.approaches {
             let settlement = &plan.settlements[approach.settlement];
-            let middle = (approach.from_rad + approach.to_rad) / 2.0;
-            let direction = [libm::cos(middle), libm::sin(middle)];
-            // Walk the wedge's middle ray: past the settlement's own edge it
-            // meets no other settlement and no forest for the stated depth.
-            let mut inside = true;
-            let mut open = 0.0;
-            let mut distance = 0.0;
-            while open < approach.depth_m - 30.0 {
-                distance += 10.0;
-                let point = [
-                    settlement.center[0] + direction[0] * distance,
-                    settlement.center[1] + direction[1] * distance,
-                ];
-                if inside {
-                    inside = contract::ground::polygon_contains(&settlement.outline, point);
-                    continue;
+            // The first and the last bearing of the run are ones it measured.
+            for bearing in [approach.from_rad, approach.to_rad] {
+                let toward = [libm::cos(bearing), libm::sin(bearing)];
+                let aside = [-toward[1], toward[0]];
+                let at = |along: f64, across: f64| {
+                    [
+                        settlement.center[0] + toward[0] * along + aside[0] * across,
+                        settlement.center[1] + toward[1] * along + aside[1] * across,
+                    ]
+                };
+                let lanes = [-approach.front_m / 2.0, 0.0, approach.front_m / 2.0];
+                // The settlement's edge: the last of its ground along any
+                // lane of the corridor, to the metre.
+                let edge = (0..=approach.front_m as usize / 10)
+                    .map(|lane| lane as f64 * 10.0 - approach.front_m / 2.0)
+                    .flat_map(|across| (0..600).map(move |step| (f64::from(step) * 10.0, across)))
+                    .filter(|(along, across)| {
+                        contract::ground::polygon_contains(&settlement.outline, at(*along, *across))
+                    })
+                    .map(|(along, _)| along)
+                    .fold(0.0, f64::max);
+                for across in lanes {
+                    let mut open = 20.0;
+                    while open < approach.depth_m - 20.0 {
+                        let point = at(edge + open, across);
+                        assert!((0.0..=plan.size[0]).contains(&point[0]));
+                        assert!((0.0..=plan.size[1]).contains(&point[1]));
+                        assert!(!plan
+                            .settlements
+                            .iter()
+                            .any(|s| contract::ground::polygon_contains(&s.outline, point)));
+                        assert!(!plan.forests.iter().any(|f| f.shape.contains(point, 0.0)));
+                        open += 10.0;
+                    }
                 }
-                open += 10.0;
-                assert!((0.0..=plan.size[0]).contains(&point[0]));
-                assert!((0.0..=plan.size[1]).contains(&point[1]));
-                assert!(!plan
-                    .settlements
-                    .iter()
-                    .any(|s| contract::ground::polygon_contains(&s.outline, point)));
-                assert!(!plan.forests.iter().any(|f| f.shape.contains(point, 0.0)));
             }
         }
     });
@@ -325,7 +451,9 @@ fn districts_are_single_use_addressable_pieces_of_their_settlement() {
             assert!(!settlement.districts.is_empty());
             assert!(built(settlement) <= ring_area(&settlement.outline) * 1.001);
             for (index, district) in settlement.districts.iter().enumerate() {
-                contract::ground::validate_ring(&district.ring).unwrap();
+                contract::ground::validate_ring(&district.ring).unwrap_or_else(|error| {
+                    panic!("{}: {error}: {:?}", district.id, district.ring)
+                });
                 assert!(ids.insert((map_type, size, seed, district.id.clone())));
                 assert!(district.id.starts_with(&settlement.id));
                 assert!((district.area_m2 - ring_area(&district.ring)).abs() <= 0.5);
@@ -358,7 +486,9 @@ fn districts_are_single_use_addressable_pieces_of_their_settlement() {
 }
 
 /// A larger settlement is a loose group of districts with fields and woods
-/// reaching in between them, not a filled disc.
+/// reaching in between them, not a filled shape: its districts cover only
+/// part of the ground they span (their hull), and a wood often reaches
+/// into that ground.
 #[test]
 fn larger_settlements_leave_green_gaps_and_woods_reach_into_them() {
     let mut shares = Vec::new();
@@ -367,51 +497,106 @@ fn larger_settlements_leave_green_gaps_and_woods_reach_into_them() {
         for seed in 1..=12 {
             let plan = plan(map_type, MapSize::Medium, seed);
             let main = &plan.settlements[0];
-            shares.push(built(main) / ring_area(&main.outline));
-            let near = |ring: &[[f64; 2]]| {
+            let span = hull(&main.outline);
+            shares.push(built(main) / ring_area(&span));
+            let among = |ring: &[[f64; 2]]| {
                 ring.iter()
-                    .all(|p| contract::ground::polygon_contains(&main.outline, *p))
+                    .any(|p| contract::ground::polygon_contains(&span, *p))
             };
             wooded += usize::from(plan.forests.iter().any(|forest| match &forest.shape {
-                GroundShape::Polygon { ring } => near(ring),
+                GroundShape::Polygon { ring } => among(ring),
                 GroundShape::Stroke { .. } => false,
             }));
         }
     }
     let mean = shares.iter().sum::<f64>() / shares.len() as f64;
     assert!((0.55..0.92).contains(&mean), "built shares {shares:?}");
-    assert!(shares.iter().all(|share| *share < 0.999), "{shares:?}");
-    // Not every seed: a wood needs an open sector and room in its half.
+    // One that grew evenly all round nearly fills the ground it spans.
+    let loose = shares.iter().filter(|share| **share < 0.92).count();
+    assert!(loose >= 18, "{loose} of 24 are loose: {shares:?}");
+    // Not every seed: a wood needs an open block and room in its half.
     assert!(wooded >= 8, "{wooded} of 24 main settlements hold a wood");
 }
 
-/// A settlement a country road serves is strung on it: the road runs on
-/// through the settlement as its main street, rather than ending in its
-/// middle or touching its edge.
+/// A settlement a country road serves is strung on it: country road runs
+/// through it or along its districts as its main street, for a hundred and
+/// fifty metres or more, rather than ending at its edge.
 #[test]
 fn a_road_runs_through_every_settlement_it_serves() {
     let presets = presets();
     every_cell(|map_type, size, seed, plan| {
+        let roads: Vec<&[[f64; 2]]> = plan
+            .surfaces
+            .iter()
+            .filter(|area| area.kind == SurfaceKind::CountryRoad)
+            .map(|area| match &area.shape {
+                GroundShape::Stroke { centerline, .. } => centerline.samples(),
+                GroundShape::Polygon { .. } => panic!("a road is a stroke"),
+            })
+            .collect();
         for settlement in &plan.settlements {
             if presets.classes[&settlement.class].road != SurfaceKind::CountryRoad {
                 continue;
             }
-            let inside = |p: &[f64; 2]| contract::ground::polygon_contains(&settlement.outline, *p);
-            // Either one road has authored points on both sides of one inside
-            // the settlement, or two roads leave its centre.
-            let through = road_runs(plan).any(|(kind, points)| {
-                kind == SurfaceKind::CountryRoad && points[1..points.len() - 1].iter().any(inside)
-            });
-            let leaving = road_runs(plan)
-                .filter(|(kind, points)| {
-                    *kind == SurfaceKind::CountryRoad && points[0] == settlement.center
-                })
-                .count();
+            let [x0, y0, x1, y1] = contract::ground::limits(&settlement.outline, 300.0);
+            // Walked ten metres at a time, where the road is near at all.
+            let mut metres = 0.0;
+            for run in roads.iter().flat_map(|road| road.windows(2)) {
+                let near = |p: [f64; 2]| p[0] >= x0 && p[0] <= x1 && p[1] >= y0 && p[1] <= y1;
+                if !near(run[0]) && !near(run[1]) {
+                    continue;
+                }
+                let length = (run[1][0] - run[0][0]).hypot(run[1][1] - run[0][1]);
+                let steps = (length / 10.0).ceil().max(1.0);
+                for step in 0..steps as usize {
+                    let share = (step as f64 + 0.5) / steps;
+                    let p = [
+                        run[0][0] + (run[1][0] - run[0][0]) * share,
+                        run[0][1] + (run[1][1] - run[0][1]) * share,
+                    ];
+                    if on_ground(&settlement.outline, p) {
+                        metres += length / steps;
+                    }
+                }
+            }
             assert!(
-                through || leaving >= 2,
-                "{map_type:?} {size:?} {seed}: {} is a dead end",
+                metres >= 150.0,
+                "{map_type:?} {size:?} {seed}: {metres:.0} m of country road serve {}",
                 settlement.id
             );
+        }
+    });
+}
+
+/// A country road or a track does not double back: where it leaves a
+/// settlement's main street for the network, or carries on from another
+/// road's end, it turns no more sharply than a driver could take.
+#[test]
+fn no_road_turns_back_on_itself() {
+    every_cell(|map_type, size, seed, plan| {
+        for (kind, points) in road_runs(plan) {
+            if kind == SurfaceKind::Road {
+                continue;
+            }
+            for bend in points.windows(3) {
+                // A bridge crosses its river square, whatever turn that
+                // asks of the road at its ends.
+                let on_bridge = plan.bridges.iter().any(|bridge| {
+                    (bend[1][0] - bridge.center[0]).hypot(bend[1][1] - bridge.center[1])
+                        <= bridge.half_extents[0] + 15.0
+                });
+                if on_bridge {
+                    continue;
+                }
+                let heading = |a: [f64; 2], b: [f64; 2]| (b[1] - a[1]).atan2(b[0] - a[0]);
+                let turn = (heading(bend[1], bend[2]) - heading(bend[0], bend[1])).abs();
+                let turn = turn.min(std::f64::consts::TAU - turn).to_degrees();
+                assert!(
+                    turn <= 90.0,
+                    "{map_type:?} {size:?} {seed}: a {kind:?} turns {turn:.0}° at {:?}",
+                    bend[1]
+                );
+            }
         }
     });
 }
@@ -460,6 +645,13 @@ fn industry_gathers_along_main_roads() {
                 .filter(|(kind, _)| *kind == SurfaceKind::CountryRoad)
                 .flat_map(|(_, points)| points.windows(2).map(|run| [run[0], run[1]]))
                 .collect();
+            // A road bounds a district as often as it crosses one.
+            let along = |a: [f64; 2], b: [f64; 2]| {
+                let middle = [(a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0];
+                roads
+                    .iter()
+                    .any(|road| segment_distance(road[0], road[1], middle) <= 1.0)
+            };
             // Where a town has districts to choose between: not its one
             // centre, and not a village that is all one district.
             let choices = plan
@@ -468,8 +660,9 @@ fn industry_gathers_along_main_roads() {
                 .filter(|s| s.districts.len() > 1)
                 .flat_map(|s| &s.districts[1..]);
             for district in choices {
-                let on_road = contract::ground::edges(&district.ring)
-                    .any(|(a, b)| roads.iter().any(|road| crosses(*road, [*a, *b])));
+                let on_road = contract::ground::edges(&district.ring).any(|(a, b)| {
+                    along(*a, *b) || roads.iter().any(|road| crosses(*road, [*a, *b]))
+                });
                 let row = &mut counts[usize::from(!on_road)];
                 row[0] += usize::from(district.kind == "industrial");
                 row[1] += 1;
@@ -603,7 +796,7 @@ fn a_plan_over_the_callers_ground_allowance_is_refused() {
 fn presets_that_break_a_map_rule_are_refused_at_load() {
     // M07: Open may not reach a highrise through any of its districts.
     let errors = presets_with(|source| {
-        source["classes"]["village"]["bands"][0]["districts"] = serde_json::json!({ "core": 1 });
+        source["classes"]["village"]["zones"][0]["districts"] = serde_json::json!({ "core": 1 });
     })
     .unwrap_err();
     assert!(errors.contains("highrise"), "{errors}");
@@ -611,8 +804,19 @@ fn presets_that_break_a_map_rule_are_refused_at_load() {
         ("/fairness/town/rel", serde_json::json!(-0.1)),
         ("/approach/depth_m", serde_json::json!(0)),
         ("/classes/town/area_ha", serde_json::json!([200, 100])),
-        ("/classes/town/bands/1/to", serde_json::json!(0.9)),
-        ("/classes/town/bands/0/open", serde_json::json!(0.5)),
+        ("/classes/town/zones/1/to", serde_json::json!(0.9)),
+        ("/classes/town/built_share", serde_json::json!([0.5, 1.2])),
+        // A block too shallow for any of the class's parcels.
+        ("/classes/town/block/depth_m", serde_json::json!([20, 40])),
+        ("/districts/farm/ground_m", serde_json::json!([60, 0])),
+        (
+            "/districts/farm/streets/surface",
+            serde_json::json!("sidewalk"),
+        ),
+        ("/roads/cross_road_chance", serde_json::json!(1.5)),
+        // A main junction drawn farther out than the centre reaches.
+        ("/transit/centre_reach_m", serde_json::json!(100)),
+        ("/towns/growth_noise", serde_json::json!(1)),
         (
             "/districts/centre/mix",
             serde_json::json!({ "attached_home": 1, "industry": 1, "farmstead": 1 }),

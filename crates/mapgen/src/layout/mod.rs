@@ -10,9 +10,13 @@ mod rivers;
 pub(crate) mod rng;
 mod roads;
 mod sites;
+mod towns;
 pub(crate) mod water;
 
-pub use measure::{measure, EdgeTransit, HalfSplit, LayoutMetrics, RiverMetrics, RoadMetrics};
+pub use measure::{
+    corridor_start, measure, HalfSplit, Journey, LayoutMetrics, RiverMetrics, RoadMetrics,
+    TransitMetrics,
+};
 pub use presets::*;
 
 use crate::{CompileLimits, CompileRequest, Diagnostic, DiagnosticCode, MapPlan};
@@ -21,7 +25,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// A request pins this; a change that moves any generated point renames it.
-pub const GENERATOR_VERSION: &str = "layout-3";
+pub const GENERATOR_VERSION: &str = "layout-4";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -185,7 +189,7 @@ pub fn generate_layout(
     let mut source = rivers::Source::new(&context, &skeleton);
     let (placed, rivers) = sites::place(&context, &skeleton, &mut source)?;
     let water = water::Water::new(&rivers, [context.extent; 2]);
-    let (surfaces, bridges) = roads::build(
+    let (roads, bridges) = roads::build(
         &context,
         &skeleton,
         &placed.sites,
@@ -193,12 +197,21 @@ pub fn generate_layout(
         richness,
         road_draws,
     )?;
-    let forests = forests::grow(&context, &placed, &water, woodland);
+    // A settlement grows from the roads across its ground.
+    let towns = towns::grow(&context, &placed.sites, &roads)?;
+    let forests = forests::grow(&context, &towns, &placed.reserved, &water, woodland);
+    let mut surfaces = roads
+        .iter()
+        .enumerate()
+        .map(|(index, road)| roads::surface(&context, index, road))
+        .collect::<Result<Vec<_>, _>>()?;
+    surfaces.extend(towns::surfaces(&context, &towns)?);
     let settlements = placed
         .sites
         .iter()
+        .zip(&towns)
         .enumerate()
-        .map(|(index, site)| sites::settlement(&context, index, site, &surfaces))
+        .map(|(index, (site, town))| towns::settlement(&context, index, site, town))
         .collect();
     let mut plan = MapPlan {
         size: [context.extent; 2],
@@ -274,16 +287,21 @@ fn verify(context: &Context, plan: &MapPlan) -> Result<(), Vec<Diagnostic>> {
             presets.approach.depth_m, presets.approach.front_m
         ),
     );
+    let transit = &metrics.transit;
+    let in_time = |journey: &Option<Journey>| {
+        journey
+            .as_ref()
+            .is_some_and(|journey| journey.elapsed_s <= presets.transit.max_s)
+    };
     check(
-        metrics.transit.len() == 4
-            && metrics
-                .transit
-                .iter()
-                .all(|edge| edge.elapsed_s <= presets.transit.max_s),
+        in_time(&transit.top)
+            && in_time(&transit.bottom)
+            && transit.top_bottom.is_some()
+            && transit.centre_m <= presets.transit.centre_reach_m,
         "transit",
         format!(
-            "an edge has no road to the centre within {} s: {:?}",
-            presets.transit.max_s, metrics.transit
+            "the top and bottom edges have no road to the centre and each other within {} s: {transit:?}",
+            presets.transit.max_s
         ),
     );
     check(

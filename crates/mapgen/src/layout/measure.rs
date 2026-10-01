@@ -3,7 +3,7 @@
 //! generator holds its own output to the presets with these numbers, and the
 //! sweep and the inspection picture report them.
 use super::geometry::{
-    add, area, area_above, direction, distance, ray_crossings, scale, segment_bounds,
+    add, area, area_above, direction, distance, dot, ray_crossings, scale, segment_bounds,
     segment_crossing, sub, Grid, Point, TAU,
 };
 use super::presets::PresetDefinitions;
@@ -30,15 +30,17 @@ pub struct RoadMetrics {
     /// In-town streets, and how much of them no road joins to the centre.
     pub street_km: f64,
     pub unconnected_street_km: f64,
-    /// Settlements with no road from inside their outline to the centre.
+    /// Settlements with no road from their ground to the centre.
     pub unconnected_settlements: usize,
-    /// Independent loops in the network: none for a tree of corridors.
+    /// Independent loops in the network of country roads and tracks: none
+    /// for a tree of corridors. Streets are not counted.
     pub loops: usize,
     /// Places a road leaves the playable area.
     pub edge_exits: usize,
-    /// Roads that meet at the junction nearest the centre: four or more is a
-    /// central crossroads, fewer means an edge road joined another on its way.
-    pub hub_roads: usize,
+    /// The most country roads that meet at one junction in the centre: four
+    /// or more is a central crossroads, fewer means the main roads fork or
+    /// pass through.
+    pub centre_roads: usize,
     /// Runs of road that enter water off any deck. Nothing drives them, so
     /// no journey and no settlement's road to the centre uses one.
     pub unbridged: usize,
@@ -61,16 +63,30 @@ pub struct RiverMetrics {
     pub bridges_bottom: usize,
 }
 
-/// The fastest road journey from the middle stretch of one edge to the centre.
+/// The fastest road journey between two places.
 #[derive(Clone, Debug, Serialize)]
-pub struct EdgeTransit {
-    pub edge: &'static str,
+pub struct Journey {
     pub route_m: f64,
     pub drive_s: f64,
     /// Driving time plus the preset allowance for planning and turns.
     pub elapsed_s: f64,
-    /// From the exact centre to the nearest road.
-    pub connector_m: f64,
+}
+
+/// The road journeys the two sides make (M22). They start at the top and
+/// the bottom edge; an edge is left by the middle stretch of it.
+#[derive(Clone, Debug, Serialize)]
+pub struct TransitMetrics {
+    /// From the top edge, and from the bottom, to the main junction by the
+    /// map's centre. `None` when no road makes the journey.
+    pub top: Option<Journey>,
+    pub bottom: Option<Journey>,
+    /// From the exact centre to that junction.
+    pub centre_m: f64,
+    /// From the bottom edge to the top, through any bridges on the way.
+    pub top_bottom: Option<Journey>,
+    /// From the left edge to the right: `Some` on a map with a road across
+    /// the middle from side to side.
+    pub east_west: Option<Journey>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -86,7 +102,7 @@ pub struct LayoutMetrics {
     pub woods: usize,
     pub river: RiverMetrics,
     pub roads: RoadMetrics,
-    pub transit: Vec<EdgeTransit>,
+    pub transit: TransitMetrics,
     pub approaches_top: usize,
     pub approaches_bottom: usize,
     /// The approach rule: the main settlement has one in each half.
@@ -254,12 +270,44 @@ impl<'a> Obstacle<'a> {
     }
 }
 
-/// Every open approach to a settlement whose class measures them: rays leave
-/// the settlement's centre a hundred metres apart at full depth; a run of
-/// neighbouring rays in one half, each open for the preset depth past the
-/// settlement's edge, is an approach when its front is wide enough. Open
-/// ground is ground a force can advance over: a settlement, a wood and water
-/// each end it.
+/// Where a corridor `front_m` wide that runs out from `center` along the
+/// unit vector `toward` leaves the ground of `outline`, as a distance from
+/// `center`: the farthest the outline reaches along the bearing inside the
+/// corridor, by each of its edges cut to the corridor's width.
+pub fn corridor_start(outline: &[Point], center: Point, toward: Point, front_m: f64) -> f64 {
+    let aside = [-toward[1], toward[0]];
+    let place = |p: Point| {
+        let offset = sub(p, center);
+        [dot(offset, toward), dot(offset, aside)]
+    };
+    let half_front = front_m / 2.0;
+    let mut edge: f64 = 0.0;
+    for (a, b) in contract::ground::edges(outline) {
+        let (a, b) = (place(*a), place(*b));
+        let (low, high) = if a[1] <= b[1] { (a, b) } else { (b, a) };
+        if high[1] < -half_front || low[1] > half_front {
+            continue;
+        }
+        for side in [low[1].max(-half_front), high[1].min(half_front)] {
+            let share = if high[1] > low[1] {
+                (side - low[1]) / (high[1] - low[1])
+            } else {
+                0.0
+            };
+            edge = edge.max(low[0] + (high[0] - low[0]) * share);
+        }
+    }
+    edge
+}
+
+/// Every open approach to a settlement whose class measures them. An
+/// approach is a corridor of open ground as wide as the preset front and as
+/// deep as the preset depth, running out from the settlement's edge along one
+/// bearing: its edge there is the farthest its outline reaches along that
+/// bearing inside the corridor. Bearings are tried a hundred metres apart at
+/// full depth, and a run of neighbouring bearings in one half whose
+/// corridors are open is one approach. Open ground is ground a force can
+/// advance over: a settlement, a wood and water each end it.
 pub fn approaches(plan: &MapPlan, presets: &PresetDefinitions) -> Vec<ApproachPlan> {
     let rule = presets.approach;
     let water = super::water::rings(&plan.rivers);
@@ -271,6 +319,9 @@ pub fn approaches(plan: &MapPlan, presets: &PresetDefinitions) -> Vec<ApproachPl
         .chain(water.iter().map(Vec::as_slice))
         .map(Obstacle::new)
         .collect();
+    // The corridor's lanes: lines along the bearing, at most a hundred
+    // metres apart, from one side of the front to the other.
+    let lanes = (libm::ceil(rule.front_m / 100.0) as usize).max(1);
     let mut found = Vec::new();
     for (index, settlement) in plan.settlements.iter().enumerate() {
         if !presets
@@ -281,98 +332,94 @@ pub fn approaches(plan: &MapPlan, presets: &PresetDefinitions) -> Vec<ApproachPl
             continue;
         }
         let center = settlement.center;
-        let reach = obstacles[index].reach;
-        let rays = (libm::ceil(TAU * (reach + rule.depth_m) / 100.0) as usize).clamp(64, 720);
-        let step = TAU / rays as f64;
-        // What stands near enough for one of its rays to reach: a ray runs to
-        // its edge and the depth beyond, and an obstacle a ray meets has its
-        // middle within its own reach of that ray.
         let farthest = settlement
             .outline
             .iter()
             .map(|p| distance(center, *p))
             .fold(0.0, f64::max);
+        let bearings =
+            (libm::ceil(TAU * (farthest + rule.depth_m) / 100.0) as usize).clamp(64, 720);
+        let step = TAU / bearings as f64;
+        // What stands near enough for a corridor to reach.
         let near: Vec<&Obstacle> = obstacles
             .iter()
             .enumerate()
             .filter(|(other, obstacle)| {
                 *other != index
                     && distance(obstacle.center, center)
-                        <= farthest + rule.depth_m + 2.0 * obstacle.reach
+                        <= farthest + rule.depth_m + rule.front_m + obstacle.reach
             })
             .map(|(_, obstacle)| obstacle)
             .collect();
-        // Per ray: the settlement's own edge, and the half its open run lies
-        // in when that run is deep enough.
-        let cast: Vec<(f64, Option<Half>)> = (0..rays)
-            .map(|ray| {
-                let toward = direction(step * ray as f64);
-                let edge = ray_crossings(center, toward, &settlement.outline).fold(0.0, f64::max);
-                let mut open_to = (0..2)
-                    .map(|axis| {
-                        if toward[axis] > 0.0 {
-                            (plan.size[axis] - center[axis]) / toward[axis]
-                        } else if toward[axis] < 0.0 {
-                            -center[axis] / toward[axis]
-                        } else {
-                            f64::INFINITY
-                        }
-                    })
-                    .fold(f64::INFINITY, f64::min);
-                for obstacle in &near {
-                    let offset = sub(obstacle.center, center);
-                    let along = offset[0] * toward[0] + offset[1] * toward[1];
-                    let aside = (toward[0] * offset[1] - toward[1] * offset[0]).abs();
-                    if aside > obstacle.reach
-                        || along < edge - obstacle.reach
-                        || along > edge + rule.depth_m + obstacle.reach
-                    {
-                        continue;
-                    }
-                    open_to = ray_crossings(center, toward, obstacle.ring)
-                        .filter(|hit| *hit > edge)
-                        .fold(open_to, f64::min);
-                }
+        // Per bearing: the half its corridor lies in, when it is open.
+        let open: Vec<Option<Half>> = (0..bearings)
+            .map(|bearing| {
+                let toward = direction(step * bearing as f64);
+                let aside = [-toward[1], toward[0]];
+                let place = |p: Point| {
+                    let offset = sub(p, center);
+                    [
+                        offset[0] * toward[0] + offset[1] * toward[1],
+                        offset[0] * aside[0] + offset[1] * aside[1],
+                    ]
+                };
+                let edge = corridor_start(&settlement.outline, center, toward, rule.front_m);
+                let clear = (0..=lanes).all(|lane| {
+                    let across = rule.front_m * (lane as f64 / lanes as f64 - 0.5);
+                    let from = add(center, add(scale(toward, edge), scale(aside, across)));
+                    let to = add(from, scale(toward, rule.depth_m));
+                    let inside = [from, to]
+                        .iter()
+                        .all(|p| (0..2).all(|axis| p[axis] >= 0.0 && p[axis] <= plan.size[axis]));
+                    inside
+                        && near.iter().all(|obstacle| {
+                            let [along, off] = place(obstacle.center);
+                            if (off - across).abs() > obstacle.reach
+                                || along < edge - obstacle.reach
+                                || along > edge + rule.depth_m + obstacle.reach
+                            {
+                                return true;
+                            }
+                            !polygon_contains(obstacle.ring, from)
+                                && ray_crossings(from, toward, obstacle.ring)
+                                    .all(|hit| hit > rule.depth_m)
+                        })
+                });
                 let half_way = center[1] + toward[1] * (edge + rule.depth_m / 2.0);
-                let half = if half_way >= plan.size[1] / 2.0 {
+                clear.then_some(if half_way >= plan.size[1] / 2.0 {
                     Half::Top
                 } else {
                     Half::Bottom
-                };
-                (edge, (open_to - edge >= rule.depth_m).then_some(half))
+                })
             })
             .collect();
-        // Walk the circle from a ray where the label changes, so a run that
-        // wraps past the last ray stays one run.
-        let start = (0..rays)
-            .find(|ray| cast[*ray].1 != cast[(*ray + rays - 1) % rays].1)
+        // Walk the circle from a bearing where the label changes, so a run
+        // that wraps past the last bearing stays one run.
+        let start = (0..bearings)
+            .find(|bearing| open[*bearing] != open[(*bearing + bearings - 1) % bearings])
             .unwrap_or(0);
-        let mut ray = 0;
-        while ray < rays {
-            let first = start + ray;
-            let Some(half) = cast[first % rays].1 else {
-                ray += 1;
+        let mut bearing = 0;
+        while bearing < bearings {
+            let first = start + bearing;
+            let Some(half) = open[first % bearings] else {
+                bearing += 1;
                 continue;
             };
-            let mut front = 0.0;
             let mut last = first;
-            while ray < rays && cast[(start + ray) % rays].1 == Some(half) {
-                last = start + ray;
-                front += step * (cast[last % rays].0 + rule.depth_m / 2.0);
-                ray += 1;
+            while bearing < bearings && open[(start + bearing) % bearings] == Some(half) {
+                last = start + bearing;
+                bearing += 1;
             }
-            if front >= rule.front_m {
-                found.push(ApproachPlan {
-                    settlement: index,
-                    half,
-                    // Microradians: a few millimetres at this range, and
-                    // short enough for any JSON reader to read back exactly.
-                    from_rad: libm::round(step * first as f64 * 1e6) / 1e6,
-                    to_rad: libm::round(step * last as f64 * 1e6) / 1e6,
-                    depth_m: rule.depth_m,
-                    front_m: libm::round(front),
-                });
-            }
+            found.push(ApproachPlan {
+                settlement: index,
+                half,
+                // Microradians: a few millimetres at this range, and short
+                // enough for any JSON reader to read back exactly.
+                from_rad: libm::round(step * first as f64 * 1e6) / 1e6,
+                to_rad: libm::round(step * last as f64 * 1e6) / 1e6,
+                depth_m: rule.depth_m,
+                front_m: rule.front_m,
+            });
         }
     }
     found
@@ -398,7 +445,7 @@ impl Ord for Seconds {
 /// roads that cross share a node at the crossing, because their surfaces
 /// overlap there. A run of road in the water is driven only where a deck
 /// carries it.
-fn roads(plan: &MapPlan, presets: &PresetDefinitions) -> (RoadMetrics, Vec<EdgeTransit>) {
+fn roads(plan: &MapPlan, presets: &PresetDefinitions) -> (RoadMetrics, TransitMetrics) {
     let water = Water::new(&plan.rivers, plan.size);
     let on_deck = |p: Point| {
         plan.bridges.iter().any(|bridge| {
@@ -482,6 +529,9 @@ fn roads(plan: &MapPlan, presets: &PresetDefinitions) -> (RoadMetrics, Vec<EdgeT
     let mut km = [0.0; 3];
     // Each link's kind beside it, to total what the hub cannot reach.
     let mut streets: Vec<(usize, f64)> = Vec::new();
+    // Links of road and track, and of country road alone, by their ends.
+    let mut country: Vec<[usize; 2]> = Vec::new();
+    let mut main_ends: Vec<usize> = Vec::new();
     let mps = presets.transit.road_mps();
     for ((a, b, kind), mut cuts) in segments.into_iter().zip(splits) {
         cuts.sort_by(|x, y| x.0.total_cmp(&y.0));
@@ -520,6 +570,11 @@ fn roads(plan: &MapPlan, presets: &PresetDefinitions) -> (RoadMetrics, Vec<EdgeT
             }
             if kind == SurfaceKind::Road {
                 streets.push((ends[0], metres));
+            } else {
+                country.push(ends);
+            }
+            if kind == SurfaceKind::CountryRoad {
+                main_ends.extend(ends);
             }
             links[ends[0]].push((ends[1], metres, metres / speed));
             links[ends[1]].push((ends[0], metres, metres / speed));
@@ -533,93 +588,141 @@ fn roads(plan: &MapPlan, presets: &PresetDefinitions) -> (RoadMetrics, Vec<EdgeT
         unconnected_settlements: plan.settlements.len(),
         loops: 0,
         edge_exits: 0,
-        hub_roads: 0,
+        centre_roads: 0,
         unbridged,
     };
-    // The hub is an authored point: the main junction, not whichever point
-    // of a bend happens to lie nearer the middle.
+    let mut transit = TransitMetrics {
+        top: None,
+        bottom: None,
+        centre_m: f64::INFINITY,
+        top_bottom: None,
+        east_west: None,
+    };
+    // The hub is the main junction: the authored point of a country road
+    // nearest the main settlement's centre, which stands on it. (Nearest the
+    // map's middle on a plan without settlements.)
     let centre = [plan.size[0] / 2.0, plan.size[1] / 2.0];
+    let main =
+        main_settlement(plan, presets).map_or(centre, |index| plan.settlements[index].center);
     let authored = centrelines
+        .filter(|(_, kind)| *kind == SurfaceKind::CountryRoad)
         .flat_map(|(line, _)| line.control_points())
         .filter_map(|p| ids.get(&p.map(f64::to_bits)).copied());
     let Some(hub) =
-        authored.min_by(|a, b| distance(nodes[*a], centre).total_cmp(&distance(nodes[*b], centre)))
+        authored.min_by(|a, b| distance(nodes[*a], main).total_cmp(&distance(nodes[*b], main)))
     else {
-        return (metrics, Vec::new());
+        return (metrics, transit);
     };
-    // Fastest journey from the hub to every node: (seconds, metres).
-    let mut best: Vec<Option<(f64, f64)>> = vec![None; nodes.len()];
-    let mut queue = BinaryHeap::from([Reverse((Seconds(0.0), hub))]);
-    best[hub] = Some((0.0, 0.0));
-    while let Some(Reverse((Seconds(seconds), node))) = queue.pop() {
-        let Some((known, travelled)) = best[node] else {
-            continue;
-        };
-        if known < seconds {
-            continue;
+    // Fastest journey to every node from the nearest of `from`:
+    // (seconds, metres).
+    let fastest = |from: &[usize]| {
+        let mut best: Vec<Option<(f64, f64)>> = vec![None; nodes.len()];
+        let mut queue = BinaryHeap::new();
+        for node in from {
+            best[*node] = Some((0.0, 0.0));
+            queue.push(Reverse((Seconds(0.0), *node)));
         }
-        for (next, metres, time) in &links[node] {
-            let arrival = seconds + time;
-            if best[*next].is_none_or(|(known, _)| arrival < known) {
-                best[*next] = Some((arrival, travelled + metres));
-                queue.push(Reverse((Seconds(arrival), *next)));
+        while let Some(Reverse((Seconds(seconds), node))) = queue.pop() {
+            let Some((known, travelled)) = best[node] else {
+                continue;
+            };
+            if known < seconds {
+                continue;
+            }
+            for (next, metres, time) in &links[node] {
+                let arrival = seconds + time;
+                if best[*next].is_none_or(|(known, _)| arrival < known) {
+                    best[*next] = Some((arrival, travelled + metres));
+                    queue.push(Reverse((Seconds(arrival), *next)));
+                }
             }
         }
-    }
-    let reached = best.iter().filter(|b| b.is_some()).count();
-    // Loops of the hub's network: edges beyond a spanning tree's.
-    let reached_edges: usize = (0..nodes.len())
-        .filter(|node| best[*node].is_some())
-        .map(|node| links[node].len())
-        .sum::<usize>()
-        / 2;
-    metrics.loops = reached_edges + 1 - reached;
+        best
+    };
+    let best = fastest(&[hub]);
+    // Loops of the hub's network of roads and tracks: links beyond a
+    // spanning tree's.
+    let reached: Vec<[usize; 2]> = country
+        .into_iter()
+        .filter(|ends| best[ends[0]].is_some())
+        .collect();
+    let mut joined: Vec<usize> = reached.iter().flatten().copied().collect();
+    joined.sort_unstable();
+    joined.dedup();
+    metrics.loops = (reached.len() + 1).saturating_sub(joined.len());
     metrics.unconnected_street_km = streets
         .iter()
         .filter(|(node, _)| best[*node].is_none())
         .map(|(_, metres)| metres / 1000.0)
         .sum();
-    metrics.hub_roads = links[hub].len();
+    main_ends.sort_unstable();
+    metrics.centre_roads = main_ends
+        .chunk_by(|a, b| a == b)
+        .filter(|ends| distance(nodes[ends[0]], centre) <= presets.transit.centre_reach_m)
+        .map(|ends| ends.len())
+        .max()
+        .unwrap_or(0);
     metrics.edge_exits = nodes
         .iter()
         .filter(|p| (0..2).any(|axis| p[axis] == 0.0 || p[axis] == plan.size[axis]))
         .count();
+    // A road serves a settlement when it runs through its outline or along
+    // its edge: a town's edge is often a road.
     metrics.unconnected_settlements = plan
         .settlements
         .iter()
         .filter(|settlement| {
+            let ring = &settlement.outline;
+            let [x0, y0, x1, y1] = contract::ground::limits(ring, 1.0);
+            let near = |a: Point, b: Point| {
+                a[0].min(b[0]) <= x1
+                    && a[0].max(b[0]) >= x0
+                    && a[1].min(b[1]) <= y1
+                    && a[1].max(b[1]) >= y0
+            };
             !(0..nodes.len()).any(|node| {
-                best[node].is_some() && polygon_contains(&settlement.outline, nodes[node])
+                best[node].is_some()
+                    && links[node].iter().any(|(next, ..)| {
+                        let (a, b) = (nodes[node], nodes[*next]);
+                        near(a, b)
+                            && (polygon_contains(ring, a)
+                                || contract::ground::edges(ring).any(|(c, d)| {
+                                    segment_crossing(a, b, *c, *d).is_some()
+                                        || super::geometry::segment_distance(a, b, *c) <= 1.0
+                                }))
+                    })
             })
         })
         .count();
+    // Where roads leave each edge by its middle stretch: north, east,
+    // south, west.
     let window = presets.transit.exit_window;
-    let transit = [
-        ("north", 1, 1.0),
-        ("east", 0, 1.0),
-        ("south", 1, 0.0),
-        ("west", 0, 0.0),
-    ]
-    .into_iter()
-    .filter_map(|(edge, axis, side)| {
-        let across = 1 - axis;
-        (0..nodes.len())
-            .filter(|node| {
-                let p = nodes[*node];
-                p[axis] == side * plan.size[axis]
-                    && (p[across] - plan.size[across] / 2.0).abs()
-                        <= window * plan.size[across] / 2.0
-            })
-            .filter_map(|node| best[node])
+    let [north, east, south, west] =
+        [(1, 1.0), (0, 1.0), (1, 0.0), (0, 0.0)].map(|(axis, side)| {
+            let across = 1 - axis;
+            (0..nodes.len())
+                .filter(|node| {
+                    let p = nodes[*node];
+                    p[axis] == side * plan.size[axis]
+                        && (p[across] - plan.size[across] / 2.0).abs()
+                            <= window * plan.size[across] / 2.0
+                })
+                .collect::<Vec<usize>>()
+        });
+    let journey = |best: &[Option<(f64, f64)>], to: &[usize]| {
+        to.iter()
+            .filter_map(|node| best[*node])
             .min_by(|a, b| a.0.total_cmp(&b.0))
-            .map(|(drive_s, route_m)| EdgeTransit {
-                edge,
+            .map(|(drive_s, route_m)| Journey {
                 route_m,
                 drive_s,
                 elapsed_s: drive_s + presets.transit.allowance_s,
-                connector_m: distance(nodes[hub], centre),
             })
-    })
-    .collect();
+    };
+    transit.top = journey(&best, &north);
+    transit.bottom = journey(&best, &south);
+    transit.centre_m = distance(nodes[hub], centre);
+    transit.top_bottom = journey(&fastest(&south), &north);
+    transit.east_west = journey(&fastest(&west), &east);
     (metrics, transit)
 }

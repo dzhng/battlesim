@@ -1,7 +1,8 @@
 //! A picture of a plan's layers for a person to review: one SVG unit is one
 //! metre, north is up. The whole map, or one settlement or district of it.
 //! Tooling only; nothing here reaches the map.
-use crate::layout::geometry::{add, direction, ray_crossings, scale, Point};
+use crate::layout::corridor_start;
+use crate::layout::geometry::{add, direction, scale, sub, Point};
 use crate::layout::LayoutMetrics;
 use crate::MapPlan;
 use contract::ground::GroundShape;
@@ -101,7 +102,7 @@ pub fn svg(
     let detail = width <= DETAIL_VIEW_M;
     // Text and line weights follow the view's size so every picture reads alike.
     let unit = width / 100.0;
-    let header = 11.0 * unit;
+    let header = 13.0 * unit;
     let footer = 11.0 * unit;
     let mut out = String::new();
     let path = |points: &[Point], close: bool| {
@@ -143,37 +144,44 @@ pub fn svg(
             path(&settlement.outline, true)
         );
     }
-    // Open approaches under everything they lead to: the main settlement's
-    // filled, the others' in outline so that they do not bury the map.
-    for approach in &plan.approaches {
+    // The widest open approach in each half to the first settlement (the
+    // main one of a generated plan), under everything it leads to: the
+    // corridor along its middle bearing, from where `measure` starts it.
+    // The rest are counted in the header and not drawn: they would bury the
+    // map.
+    let widest = |half: crate::Half| {
+        plan.approaches
+            .iter()
+            .filter(|a| a.settlement == 0 && a.half == half)
+            .max_by(|a, b| (a.to_rad - a.from_rad).total_cmp(&(b.to_rad - b.from_rad)))
+    };
+    for approach in [crate::Half::Top, crate::Half::Bottom]
+        .into_iter()
+        .filter_map(widest)
+    {
         let settlement = &plan.settlements[approach.settlement];
-        let steps = (((approach.to_rad - approach.from_rad) / 0.03) as usize).max(1);
-        let rays: Vec<(Point, f64)> = (0..=steps)
-            .map(|step| {
-                let angle = approach.from_rad
-                    + (approach.to_rad - approach.from_rad) * step as f64 / steps as f64;
-                let toward = direction(angle);
-                let edge = ray_crossings(settlement.center, toward, &settlement.outline)
-                    .fold(0.0, f64::max);
-                (toward, edge)
-            })
-            .collect();
-        let near = rays
-            .iter()
-            .map(|(toward, edge)| add(settlement.center, scale(*toward, *edge)));
-        let far = rays
-            .iter()
-            .rev()
-            .map(|(toward, edge)| add(settlement.center, scale(*toward, edge + approach.depth_m)));
-        let wedge: Vec<Point> = near.chain(far).collect();
-        let main = approach.settlement == 0;
+        let toward = direction((approach.from_rad + approach.to_rad) / 2.0);
+        let aside = scale([-toward[1], toward[0]], approach.front_m / 2.0);
+        let edge = corridor_start(
+            &settlement.outline,
+            settlement.center,
+            toward,
+            approach.front_m,
+        );
+        let near = add(settlement.center, scale(toward, edge));
+        let far = add(near, scale(toward, approach.depth_m));
+        let corridor = [
+            sub(near, aside),
+            add(near, aside),
+            add(far, aside),
+            sub(far, aside),
+        ];
         let _ = write!(
             out,
-            r##"<path d="{}" fill="{APPROACH}" fill-opacity="{}" stroke="{APPROACH}" stroke-opacity="{}" stroke-width="{}"/>"##,
-            path(&wedge, true),
-            if main { 0.22 } else { 0.0 },
-            if main { 0.9 } else { 0.3 },
-            unit * if main { 0.12 } else { 0.06 }
+            r##"<path d="{}" fill="{APPROACH}" fill-opacity="0.05" stroke="{APPROACH}" stroke-opacity="0.45" stroke-width="{}" stroke-dasharray="{dash} {dash}"/>"##,
+            path(&corridor, true),
+            unit * 0.08,
+            dash = unit * 0.5
         );
     }
     for forest in &plan.forests {
@@ -398,14 +406,10 @@ pub fn svg(
         label(&mut out, &mut x, 0.0, text);
     }
     let water = [(WATER, 1.0, "river"), (DECK, 1.0, "bridge")];
-    for (fill, opacity, text) in [
-        (FOREST, 1.0, "forest"),
-        (FIELD, 1.0, "settlement field"),
-        (APRON, 1.0, "paved apron"),
-        (APPROACH, 0.22, "open approach"),
-    ]
-    .into_iter()
-    .chain(water.into_iter().filter(|_| !plan.rivers.is_empty()))
+    for (fill, opacity, text) in [(FOREST, 1.0, "forest"), (APPROACH, 0.22, "open approach")]
+        .into_iter()
+        .chain(Some((APRON, 1.0, "apron")).filter(|_| detail))
+        .chain(water.into_iter().filter(|_| !plan.rivers.is_empty()))
     {
         block(&mut out, x, 0.0, fill, opacity);
         label(&mut out, &mut x, 0.0, text);
@@ -448,11 +452,12 @@ pub fn svg(
         .iter()
         .map(|(class, count)| format!("{count} {}", class.replace('_', " ")))
         .collect();
-    let transit = metrics
-        .transit
-        .iter()
-        .map(|edge| edge.elapsed_s)
-        .fold(0.0, f64::max);
+    let seconds = |journey: &Option<crate::layout::Journey>| {
+        journey.as_ref().map_or("no road".into(), |journey| {
+            format!("{:.0} s", journey.elapsed_s)
+        })
+    };
+    let transit = &metrics.transit;
     let fair = |fair: bool| if fair { "fair" } else { "UNFAIR" };
     let lines = [
         title.to_string(),
@@ -465,7 +470,7 @@ pub fn svg(
             metrics.main_settlement_share * 100.0
         ),
         format!(
-            "top/bottom: built {:.2}/{:.2} km² ({}), forest {:.2}/{:.2} km² ({}), approaches {}/{}  |  roads {:.0} km, tracks {:.0} km, loops {}, edge exits {}  |  slowest edge to centre {:.0} s",
+            "top/bottom: built {:.2}/{:.2} km² ({}), forest {:.2}/{:.2} km² ({}), approaches {}/{}  |  roads {:.0} km, tracks {:.0} km, loops {}, exits {}",
             km2(metrics.town.top_m2),
             km2(metrics.town.bottom_m2),
             fair(metrics.town.fair),
@@ -477,8 +482,14 @@ pub fn svg(
             metrics.roads.country_road_km,
             metrics.roads.dirt_track_km,
             metrics.roads.loops,
-            metrics.roads.edge_exits,
-            transit
+            metrics.roads.edge_exits
+        ),
+        format!(
+            "by road to the centre: from the top {}, from the bottom {}  |  bottom to top {}  |  side to side {}",
+            seconds(&transit.top),
+            seconds(&transit.bottom),
+            seconds(&transit.top_bottom),
+            seconds(&transit.east_west)
         ),
         format!(
             "whole map: {} buildings on {} parcels  |  streets {:.0} km  |  river {:.1} km, {} bridges  |  this view is {:.0} m wide",

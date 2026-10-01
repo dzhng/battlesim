@@ -1,10 +1,13 @@
-//! The road network: a main road in from the middle of each edge, every
-//! settlement joined to it, and as many extra links as the seed's richness.
-//! Where a river runs, each road keeps to its bank and crosses by a bridge.
+//! The road network: a main road from the bottom edge to the top through
+//! the main junction, on some maps another across the middle from side to
+//! side, every settlement joined to them, and as many extra links as the
+//! seed's richness. A road crosses a settlement's ground in a straight line
+//! and turns outside it. Where a river runs, each road keeps to its bank and
+//! crosses by a bridge.
 use super::crossings::{Crossings, Span};
 use super::geometry::{
-    add, bearing, cross, direction, distance, length, round_cm, scale, segment_crossing, sub,
-    Point, PI, TAU,
+    add, bearing, cross, direction, distance, dot, length, ray_exit, ring_distance, round_cm,
+    scale, segment_crossing, segment_distance, sub, turn, Point, PI, TAU,
 };
 use super::rng::Stream;
 use super::sites::Site;
@@ -14,49 +17,139 @@ use crate::Diagnostic;
 use contract::ground::{polygon_contains, GroundShape};
 use contract::map::{Bridge, SurfaceArea, SurfaceKind};
 
+/// A point this near a settlement's limit stands on its ground.
+const ON_GROUND_M: f64 = 0.5;
+/// Two points nearer than this are one place: no road runs between them.
+const SAME_PLACE_M: f64 = 1.0;
+/// A stretch of road whose points lie this near one line is straight.
+const STRAIGHT_M: f64 = 0.25;
+
 /// The straight line one edge's main road follows: from its exit to the hub
 /// (the main junction, by the map's centre), or to a junction on an earlier
 /// arm. Fixed before any settlement is sited, so that settlements can be
 /// strung along it.
 pub struct Arm {
+    /// North, east, south, west: 0 to 3.
+    edge: usize,
     pub exit: Point,
     pub target: Point,
     /// Straight-line road distance from `target` on to the hub.
     tail: f64,
-    /// Where later arms join this one, and the exit each comes from.
-    joins: Vec<(Point, Point)>,
+    /// Where later arms join this one.
+    joins: Vec<Join>,
+    /// Whether its edge's journey to the hub is held to the transit time:
+    /// the top and the bottom edge, where the two sides start (M22).
+    timed: bool,
 }
 
-/// Each edge's road runs to the hub, or joins an earlier edge road on the way
-/// when the journey still fits the transit time: a small map has slack for
-/// T-junctions and forks, a large one has little.
-pub fn skeleton(context: &Context, rng: &mut Stream) -> Vec<Arm> {
+struct Join {
+    at: Point,
+    /// The exit of the arm that joins here, and whether that arm is timed.
+    exit: Point,
+    timed: bool,
+}
+
+/// The main roads' lines, the bottom and top edges' first.
+pub struct Skeleton {
+    /// The main junction. The main settlement stands on it.
+    pub hub: Point,
+    pub arms: Vec<Arm>,
+}
+
+/// A road from the bottom edge and one from the top always run to the hub or
+/// join another arm near it, inside the transit time. A road across the
+/// middle from side to side is drawn on a share of maps; the others have one
+/// side road or none. Two arms that meet at the hub from opposite edges are
+/// one straight line through it.
+pub fn skeleton(context: &Context, rng: &mut Stream) -> Skeleton {
     let presets = context.presets;
     let roads = &presets.roads;
     let extent = context.extent;
-    let jitter = |rng: &mut Stream| (2.0 * rng.unit() - 1.0) * roads.hub_jitter_m;
-    let hub = round_cm([extent / 2.0 + jitter(rng), extent / 2.0 + jitter(rng)]);
+    let offset = roads
+        .hub_offset_m
+        .map(|reach| (2.0 * rng.unit() - 1.0) * reach);
+    let hub = round_cm([extent / 2.0 + offset[0], extent / 2.0 + offset[1]]);
     let budget = presets.transit.budget_m();
-    let mut edges = [0, 1, 2, 3];
-    for last in (1..4).rev() {
-        edges.swap(last, rng.below(last as u64 + 1) as usize);
-    }
-    let mut arms: Vec<Arm> = Vec::new();
-    for edge in edges {
-        // North, east, south, west: the axis the edge runs along, and its side.
-        let (axis, side) = [(0, extent), (1, extent), (0, 0.0), (1, 0.0)][edge];
-        // Leave within the window about the midpoint, and no farther along
-        // the edge than a straight road to the hub can afford.
+    let either = |rng: &mut Stream, pair: [usize; 2]| {
+        if rng.chance(0.5) {
+            pair
+        } else {
+            [pair[1], pair[0]]
+        }
+    };
+    let spine = either(rng, [0, 2]);
+    let sides = either(rng, [1, 3]);
+    let through = rng.chance(roads.cross_road_chance);
+    let lone = rng.chance(roads.side_road_chance);
+    // (edge, timed, the share of the edge it may leave by). The road across
+    // the middle comes first, so the spine may fork onto it.
+    let window = presets.transit.exit_window;
+    let order: Vec<(usize, bool, f64)> = if through {
+        vec![
+            (sides[0], false, window),
+            (sides[1], false, window),
+            (spine[0], true, window),
+            (spine[1], true, window),
+        ]
+    } else {
+        let mut order = vec![(spine[0], true, window), (spine[1], true, window)];
+        if lone {
+            order.push((sides[0], false, roads.side_exit_window));
+        }
+        order
+    };
+    // The axis an edge runs along, and its side: north, east, south, west.
+    let place = |edge: usize| [(0, extent), (1, extent), (0, 0.0), (1, 0.0)][edge];
+    // Where along its edge an arm may leave: within the window about the
+    // midpoint and, when timed, no farther along the edge than a straight
+    // road to the hub can afford.
+    let span_of = |edge: usize, timed: bool, window: f64| {
+        let (axis, side) = place(edge);
         let across = (side - hub[1 - axis]).abs();
-        let reach = libm::sqrt((budget * budget - across * across).max(0.0));
-        let half_window = presets.transit.exit_window * extent / 2.0;
-        let along = rng.range([
+        let reach = if timed {
+            libm::sqrt((budget * budget - across * across).max(0.0))
+        } else {
+            f64::INFINITY
+        };
+        let half_window = window * extent / 2.0;
+        [
             (extent / 2.0 - half_window).max(hub[axis] - reach),
             (extent / 2.0 + half_window).min(hub[axis] + reach),
-        ]);
-        let mut exit = [side; 2];
-        exit[axis] = along;
-        let exit = round_cm(exit);
+        ]
+    };
+    // Where the straight line from `along` on one edge through the hub
+    // meets the opposite edge.
+    let through_hub = |edge: usize, along: f64| {
+        let (axis, side) = place(edge);
+        let (_, far) = place((edge + 2) % 4);
+        hub[axis] + (hub[axis] - along) * (far - hub[1 - axis]) / (hub[1 - axis] - side)
+    };
+    let mut arms: Vec<Arm> = Vec::new();
+    for (place_in_order, (edge, timed, window)) in order.iter().copied().enumerate() {
+        let (axis, side) = place(edge);
+        let mut span = span_of(edge, timed, window);
+        // An arm whose opposite arm comes later leaves where that arm can
+        // carry its line straight on through the hub.
+        if let Some((other, timed, window)) = order[place_in_order + 1..]
+            .iter()
+            .copied()
+            .find(|(other, ..)| *other == (edge + 2) % 4)
+        {
+            let ends = span_of(other, timed, window).map(|along| through_hub(other, along));
+            let carried = [
+                span[0].max(ends[0].min(ends[1])),
+                span[1].min(ends[0].max(ends[1])),
+            ];
+            if carried[0] <= carried[1] {
+                span = carried;
+            }
+        }
+        let on_edge = |along: f64| {
+            let mut exit = [side; 2];
+            exit[axis] = along;
+            round_cm(exit)
+        };
+        let mut exit = on_edge(rng.range(span));
         // One possible junction on each earlier arm, at least a road step
         // from that arm's own end and from any other junction on it.
         let options: Vec<(usize, Point, f64)> = arms
@@ -79,33 +172,52 @@ pub fn skeleton(context: &Context, rng: &mut Stream) -> Vec<Arm> {
                     && arm
                         .joins
                         .iter()
-                        .all(|(join, _)| distance(*join, point) >= roads.bend_step_m)
+                        .all(|join| distance(join.at, point) >= roads.bend_step_m)
                     && same_side
-                    && distance(exit, point) + tail <= budget)
+                    && (!timed || distance(exit, point) + tail <= budget))
                     .then_some((index, point, tail))
             })
             .collect();
         let (join, pick) = (rng.chance(roads.junction_chance), rng.unit());
         let (target, tail) = match options.get((pick * options.len() as f64) as usize) {
             Some((index, point, tail)) if join => {
-                arms[*index].joins.push((*point, exit));
+                arms[*index].joins.push(Join {
+                    at: *point,
+                    exit,
+                    timed,
+                });
                 (*point, *tail)
             }
-            _ => (hub, 0.0),
+            _ => {
+                // The arm from the opposite edge, when it too ends at the
+                // hub, is carried straight on through it.
+                let opposite = arms
+                    .iter()
+                    .find(|arm| arm.edge == (edge + 2) % 4 && arm.target == hub);
+                if let Some(opposite) = opposite {
+                    let along = through_hub(opposite.edge, opposite.exit[axis]);
+                    exit = on_edge(along.clamp(span[0], span[1]));
+                }
+                (hub, 0.0)
+            }
         };
         arms.push(Arm {
+            edge,
             exit,
             target,
             tail,
             joins: Vec::new(),
+            timed,
         });
     }
-    arms
+    Skeleton { hub, arms }
 }
 
 struct Network<'a> {
     context: &'a Context<'a>,
     water: &'a Water<'a>,
+    /// The settlements whose ground roads cross in a straight line.
+    sites: &'a [Site],
     crossings: Crossings<'a>,
     roads: Vec<(SurfaceKind, Vec<Point>)>,
     /// Every authored point a later road may join.
@@ -127,11 +239,20 @@ struct Bend {
     phase: f64,
 }
 
+/// A place a main road runs through: a point, or the centre of the
+/// settlement `through` whose ground it crosses.
+#[derive(Clone, Copy, PartialEq)]
+struct Stop {
+    at: Point,
+    through: Option<usize>,
+}
+
 impl<'a> Network<'a> {
-    fn new(context: &'a Context<'a>, water: &'a Water<'a>) -> Self {
+    fn new(context: &'a Context<'a>, water: &'a Water<'a>, sites: &'a [Site]) -> Self {
         Self {
             context,
             water,
+            sites,
             crossings: Crossings::new(context, water),
             roads: Vec::new(),
             vertices: Vec::new(),
@@ -146,8 +267,74 @@ impl<'a> Network<'a> {
         }
     }
 
+    /// The road `points` with every stretch across a settlement's ground
+    /// made one straight line, from where it enters to where it leaves (or
+    /// to its own end there). A stretch already straight is left alone, and
+    /// so is one that turns at a point of `pins`, which other roads meet.
+    fn straightened(&self, mut points: Vec<Point>, pins: &[Point]) -> Vec<Point> {
+        for site in self.sites {
+            let ring = &site.outline.ring;
+            let count = points.len();
+            let inside: Vec<bool> = points.iter().map(|p| polygon_contains(ring, *p)).collect();
+            // Where along the run from `a` to `b` it crosses the ring.
+            let crossings = |a: Point, b: Point| {
+                contract::ground::edges(ring)
+                    .filter_map(move |(c, d)| segment_crossing(a, b, *c, *d))
+                    .map(|(share, _)| share)
+            };
+            let touches = |run: &usize| {
+                inside[*run]
+                    || inside[run + 1]
+                    || crossings(points[*run], points[run + 1]).next().is_some()
+            };
+            let (Some(first), Some(last)) = (
+                (0..count - 1).find(touches),
+                (0..count - 1).rfind(|run| touches(run)),
+            ) else {
+                continue;
+            };
+            let at = |run: usize, share: f64| {
+                add(points[run], scale(sub(points[run + 1], points[run]), share))
+            };
+            let entry = if inside[first] {
+                points[first]
+            } else {
+                let share = crossings(points[first], points[first + 1]).fold(1.0, f64::min);
+                round_cm(at(first, share))
+            };
+            let exit = if inside[last + 1] {
+                points[last + 1]
+            } else {
+                let share = crossings(points[last], points[last + 1]).fold(0.0, f64::max);
+                round_cm(at(last, share))
+            };
+            let between = &points[first + 1..=last];
+            if entry == exit
+                || between
+                    .iter()
+                    .all(|p| segment_distance(entry, exit, *p) <= STRAIGHT_M)
+                || between.iter().any(|p| pins.contains(p))
+            {
+                continue;
+            }
+            let mut straight = points[..=first].to_vec();
+            straight.extend([entry, exit]);
+            straight.extend(&points[last + 1..]);
+            straight.dedup();
+            points = straight;
+        }
+        points
+    }
+
     /// Add a road, and build the bridges of `planned` it crosses by.
-    fn add(&mut self, kind: SurfaceKind, points: Vec<Point>, planned: Vec<Span>) {
+    fn add(&mut self, kind: SurfaceKind, points: Vec<Point>, planned: Vec<Span>, pins: &[Point]) {
+        let points = self.straightened(points, pins);
+        self.lay(kind, points, planned);
+    }
+
+    /// Record the finished road `points` with the bridges of `planned` it
+    /// crosses by.
+    fn lay(&mut self, kind: SurfaceKind, points: Vec<Point>, planned: Vec<Span>) {
         self.crossings.build(planned, &points);
         let vertices: Vec<Vertex> = points.iter().map(|p| self.vertex(*p, kind)).collect();
         self.vertices.extend(vertices);
@@ -157,7 +344,8 @@ impl<'a> Network<'a> {
     /// Add a road that ends where it first meets a road at least as good as
     /// itself, in a T-junction both roads share as an authored point. It
     /// still crosses lesser roads.
-    fn join(&mut self, kind: SurfaceKind, mut points: Vec<Point>, planned: Vec<Span>) {
+    fn join(&mut self, kind: SurfaceKind, points: Vec<Point>, planned: Vec<Span>, pins: &[Point]) {
+        let mut points = self.straightened(points, pins);
         // (run of the new road, share along it, road met, its run, share along that)
         let mut meeting: Option<(usize, f64, usize, usize, f64)> = None;
         for (run, ends) in points.windows(2).enumerate() {
@@ -202,8 +390,15 @@ impl<'a> Network<'a> {
                 points.push(point);
             }
         }
-        if points.len() >= 2 {
-            self.add(kind, points, planned);
+        // A road cut back to the road it set out from goes nowhere, and one
+        // that ends on the road it left only doubles a stretch of it.
+        let ends = [points[0], points[points.len() - 1]];
+        let doubles = self
+            .roads
+            .iter()
+            .any(|(_, other)| ends.iter().all(|end| other.contains(end)));
+        if points.len() >= 2 && !doubles {
+            self.lay(kind, points, planned);
         }
     }
 
@@ -262,34 +457,160 @@ impl<'a> Network<'a> {
         points
     }
 
-    /// A swung road of `kind` from `a` to `b`, carried over any river
-    /// between them, with the bridges it would build.
-    fn bent(
+    /// The settlement whose ground `p` stands on, by its place in `sites`.
+    fn ground(&self, p: Point) -> Option<usize> {
+        self.sites
+            .iter()
+            .position(|site| ring_distance(&site.outline.ring, p) <= ON_GROUND_M)
+    }
+
+    /// Where a road that leaves `from`, on `site`'s ground, along the unit
+    /// vector `toward` turns: a margin past the ground's edge, or nearer it
+    /// where a river leaves a road less room than that.
+    fn gate(&self, site: &Site, from: Point, toward: Point) -> Point {
+        let presets = self.context.presets;
+        let clear = presets.rivers.road_gap_m;
+        let edge = ray_exit(&site.outline.ring, from, toward);
+        let at = |margin: f64| {
+            round_cm(add(from, scale(toward, edge + margin)))
+                .map(|v| v.clamp(0.0, self.context.extent))
+        };
+        [1.0, 0.5]
+            .into_iter()
+            .map(|share| at(share * presets.roads.gate_margin_m))
+            .find(|gate| self.water.gap(*gate, clear) >= clear)
+            .unwrap_or(at(0.0))
+    }
+
+    /// A road of `kind` from `a` to `b`, carried over any river between
+    /// them, with the bridges it would build. It runs straight across the
+    /// ground of a settlement either end stands on and swings between.
+    fn route(
         &self,
         kind: SurfaceKind,
         a: Point,
         b: Point,
         rng: &mut Stream,
     ) -> Result<(Vec<Point>, Vec<Span>), Vec<Diagnostic>> {
-        let bend = self.bend(a, b, rng);
+        if a == b {
+            return Ok((vec![a], Vec::new()));
+        }
+        let toward = scale(sub(b, a), 1.0 / distance(a, b));
+        let (home, away) = (self.ground(a), self.ground(b));
+        let leave = home.map_or(a, |site| self.gate(&self.sites[site], a, toward));
+        let enter = away.map_or(b, |site| {
+            self.gate(&self.sites[site], b, scale(toward, -1.0))
+        });
+        // The gates stand in order along the way, with a road between them.
+        let apart = dot(sub(enter, leave), toward);
+        let mut points = if (home.is_some() && home == away) || apart <= SAME_PLACE_M {
+            vec![a, b]
+        } else {
+            let bend = self.bend(leave, enter, rng);
+            let mut points = vec![a];
+            points.extend(self.run(leave, enter, &bend, 1.0));
+            points.push(b);
+            points
+        };
+        points.dedup();
         let mut planned = Vec::new();
-        let points = self.carried(kind, self.run(a, b, &bend, 1.0), &mut planned)?;
+        let points = self.carried(kind, points, &mut planned)?;
         Ok((points, planned))
     }
 
-    /// Lay the main road of every arm of the skeleton, and say whether every
-    /// edge's journey to the hub fits the transit time. With `swing`, a road
-    /// runs through the settlements of `sites` near its line that the
+    /// Whether a road from `from` may end on the road point `p`, and then
+    /// how awkwardly (0 or 1). It may not where roads already meet (no more
+    /// than a crossroads forms anywhere) or where a road leaves the map. It
+    /// joins easily where a road passes and it does not come in alongside,
+    /// or on a road's end that it carries on from without a sharp turn.
+    fn joins(&self, from: Point, p: Point) -> Option<u8> {
+        let sharpest = self.context.presets.roads.turn_max_deg.to_radians();
+        let arriving = bearing(from, p);
+        let mut legs = 0;
+        let mut easy = true;
+        for (_, points) in &self.roads {
+            let last = points.len() - 1;
+            for (index, _) in points.iter().enumerate().filter(|(_, q)| **q == p) {
+                let end = index == 0 || index == last;
+                legs += if end { 1 } else { 2 };
+                let before = index.checked_sub(1).map(|at| points[at]);
+                for onward in before.into_iter().chain(points.get(index + 1).copied()) {
+                    let turn = turn(arriving, bearing(p, onward));
+                    easy &= turn <= sharpest || (!end && turn <= PI - sharpest);
+                }
+            }
+        }
+        let extent = self.context.extent;
+        let inside = p.iter().all(|v| *v > 0.0 && *v < extent);
+        (legs <= 2 && inside).then_some(u8::from(!easy))
+    }
+
+    /// The point a road to settlement `index` from `from` ends on: the
+    /// nearest point of the roads already on its ground that serve it and
+    /// that it may join, one it joins easily before any other, or its
+    /// centre when none is.
+    fn approach(&self, index: usize, from: Point) -> Point {
+        let site = &self.sites[index];
+        let kind = self.context.presets.class(&site.class_id).road;
+        let margin = self.context.presets.roads.gate_margin_m + SAME_PLACE_M;
+        self.vertices
+            .iter()
+            .filter(|vertex| {
+                vertex.kind <= kind
+                    && distance(vertex.at, site.outline.center) <= site.outline.reach + margin
+                    && ring_distance(&site.outline.ring, vertex.at) <= margin
+            })
+            .filter_map(|vertex| {
+                let awkward = self.joins(from, vertex.at)?;
+                Some((awkward, distance(from, vertex.at), vertex.at))
+            })
+            .min_by(|a, b| a.0.cmp(&b.0).then(a.1.total_cmp(&b.1)))
+            .map_or(site.outline.center, |(_, _, at)| at)
+    }
+
+    /// The authored line through `stops`: a settlement's centre between the
+    /// two gates the road crosses its ground by, in a straight line. Beside
+    /// each point, whether the road runs straight on to the next.
+    fn gated(&self, stops: &[Stop], straight_from: Option<Point>) -> Vec<(Point, bool)> {
+        let mut line: Vec<(Point, bool)> = Vec::new();
+        let mut straight = false;
+        for (index, stop) in stops.iter().enumerate() {
+            straight |= Some(stop.at) == straight_from;
+            let site = stop.through.map(|site| &self.sites[site]);
+            match (site, index.checked_sub(1), stops.get(index + 1)) {
+                (Some(site), Some(before), Some(after)) => {
+                    let (before, after) = (stops[before].at, after.at);
+                    let toward = scale(sub(after, before), 1.0 / distance(before, after));
+                    let gates = [-1.0, 1.0].map(|way| self.gate(site, stop.at, scale(toward, way)));
+                    // A gate past the neighbouring stop is left out.
+                    if distance(stop.at, gates[0]) < distance(stop.at, before) {
+                        line.push((gates[0], true));
+                    }
+                    let leaves = distance(stop.at, gates[1]) < distance(stop.at, after);
+                    line.push((stop.at, leaves || straight));
+                    if leaves {
+                        line.push((gates[1], straight));
+                    }
+                }
+                _ => line.push((stop.at, straight)),
+            }
+        }
+        line
+    }
+
+    /// Lay the main road of every arm of the skeleton, and say whether the
+    /// top and bottom edges' journeys to the hub fit the transit time. With
+    /// `swing`, a road runs through the settlements near its line that the
     /// journey has time for (marking them `joined`) and is swung between its
     /// stops; without, it runs straight from stop to stop.
     fn arms(
         &mut self,
-        skeleton: &[Arm],
-        sites: &[Site],
+        skeleton: &Skeleton,
         joined: &mut [bool],
         mut swing: Option<&mut Stream>,
     ) -> Result<bool, Vec<Diagnostic>> {
         let presets = self.context.presets;
+        let sites = self.sites;
         let class_of = |index: usize| presets.class(&sites[index].class_id);
         let centre_of = |index: usize| sites[index].outline.center;
         let budget = presets.transit.budget_m();
@@ -297,7 +618,7 @@ impl<'a> Network<'a> {
         let mut in_time = true;
         // Road distance to the hub from each junction, along the roads as built.
         let mut to_hub: Vec<(Point, f64)> = Vec::new();
-        for arm in skeleton {
+        for arm in &skeleton.arms {
             let tail = to_hub
                 .iter()
                 .find(|(point, _)| *point == arm.target)
@@ -314,15 +635,18 @@ impl<'a> Network<'a> {
             };
             // In time for its own edge, and for every arm that joins it: that
             // arm comes straight from its exit, by this road's bridges where
-            // one is near.
+            // one is near. Only the top and bottom edges are timed.
             let fits = |points: &[Point], planned: &[Span]| {
                 for (point, left) in measured(points) {
                     let come = if point == arm.exit {
+                        if !arm.timed {
+                            continue;
+                        }
                         0.0
-                    } else if let Some((join, exit)) =
-                        arm.joins.iter().find(|(join, _)| *join == point)
+                    } else if let Some(join) =
+                        arm.joins.iter().find(|join| join.at == point && join.timed)
                     {
-                        let straight = vec![*exit, *join];
+                        let straight = vec![join.exit, join.at];
                         let road = self.carried(
                             SurfaceKind::CountryRoad,
                             straight,
@@ -344,20 +668,33 @@ impl<'a> Network<'a> {
                 let offset = sub(point, arm.exit);
                 (offset[0] * line[0] + offset[1] * line[1]) / (span * span)
             };
-            // The road stops at its junctions and runs through the centre of
-            // every settlement on or near its line that the journey has time
-            // for, largest first.
-            let mut stops: Vec<Point> = [arm.exit, arm.target]
+            // The road stops at its junctions and, where it ends at the hub,
+            // at the gate of the main settlement, from which it runs
+            // straight in. It also runs through every settlement on or near
+            // its line that the journey has time for, largest first.
+            let fixed = |at: Point| Stop { at, through: None };
+            let mut stops: Vec<Stop> = [arm.exit, arm.target]
                 .into_iter()
-                .chain(arm.joins.iter().map(|(join, _)| *join))
+                .chain(arm.joins.iter().map(|join| join.at))
+                .map(fixed)
                 .collect();
-            stops.sort_by(|a, b| share(*a).total_cmp(&share(*b)));
-            let mut near: Vec<(usize, f64)> = (0..sites.len())
+            let main_gate = sites
+                .first()
+                .filter(|main| arm.target == skeleton.hub && main.outline.center == arm.target)
+                .map(|main| self.gate(main, arm.target, scale(line, -1.0 / span)))
+                .filter(|gate| (0.02..0.98).contains(&share(*gate)));
+            stops.extend(main_gate.map(fixed));
+            stops.sort_by(|a, b| share(a.at).total_cmp(&share(b.at)));
+            let mut near: Vec<(usize, f64)> = (1..sites.len())
                 .filter_map(|index| {
                     let aside = (cross(line, sub(centre_of(index), arm.exit)) / span).abs();
-                    ((0.05..=0.95).contains(&share(centre_of(index)))
+                    let ring = &sites[index].outline.ring;
+                    // One main road through a settlement: a second would
+                    // meet the first in its middle.
+                    (!joined[index]
+                        && (0.05..=0.95).contains(&share(centre_of(index)))
                         && aside <= presets.roads.waypoint_reach_m
-                        && !stops.contains(&centre_of(index)))
+                        && !stops.iter().any(|stop| polygon_contains(ring, stop.at)))
                     .then_some((index, aside))
                 })
                 .collect();
@@ -369,13 +706,15 @@ impl<'a> Network<'a> {
             });
             // The road through `stops` as it runs with the river there: swung
             // leg by leg by `bends`, or straight where there are none.
-            let through = |stops: &[Point], bends: &[Bend], strength: f64| {
+            let through = |stops: &[Stop], bends: &[Bend], strength: f64| {
+                let line = self.gated(stops, main_gate);
                 let mut planned = Vec::new();
-                let mut points = vec![stops[0]];
-                for (leg, ends) in stops.windows(2).enumerate() {
+                let mut points = vec![line[0].0];
+                for (leg, ends) in line.windows(2).enumerate() {
+                    let ((from, straight), (to, _)) = (ends[0], ends[1]);
                     let run = match bends.get(leg) {
-                        Some(bend) => self.run(ends[0], ends[1], bend, strength),
-                        None => ends.to_vec(),
+                        Some(bend) if !straight => self.run(from, to, bend, strength),
+                        _ => vec![from, to],
                     };
                     let run = self.carried(SurfaceKind::CountryRoad, run, &mut planned)?;
                     points.extend(run.into_iter().skip(1));
@@ -383,16 +722,19 @@ impl<'a> Network<'a> {
                 Ok::<_, Vec<Diagnostic>>((points, planned))
             };
             // How many times a road through these stops changes bank.
-            let crossings = |stops: &[Point]| {
+            let crossings = |stops: &[Stop]| {
                 let changes = stops
                     .windows(2)
-                    .filter(|leg| self.water.bank(leg[0]) != self.water.bank(leg[1]));
+                    .filter(|leg| self.water.bank(leg[0].at) != self.water.bank(leg[1].at));
                 changes.count()
             };
             for (index, _) in near {
                 let mut longer = stops.clone();
-                longer.push(centre_of(index));
-                longer.sort_by(|a, b| share(*a).total_cmp(&share(*b)));
+                longer.push(Stop {
+                    at: centre_of(index),
+                    through: Some(index),
+                });
+                longer.sort_by(|a, b| share(a.at).total_cmp(&share(b.at)));
                 // A settlement across the water from the road is not on its
                 // way: the road would cross to it and back.
                 if crossings(&longer) > crossings(&stops) {
@@ -404,11 +746,14 @@ impl<'a> Network<'a> {
                     joined[index] = true;
                 }
             }
+            // One bend for each leg of the gated line: at most three legs a stop.
             let bends: Vec<Bend> = match swing.as_deref_mut() {
-                Some(rng) => stops
-                    .windows(2)
-                    .map(|leg| self.bend(leg[0], leg[1], rng))
-                    .collect(),
+                Some(rng) => {
+                    let line = self.gated(&stops, main_gate);
+                    line.windows(2)
+                        .map(|leg| self.bend(leg[0].0, leg[1].0, rng))
+                        .collect()
+                }
                 None => Vec::new(),
             };
             // Straighten until the journey fits; the straight road is the
@@ -427,9 +772,10 @@ impl<'a> Network<'a> {
             to_hub.extend(
                 junctions
                     .into_iter()
-                    .filter(|(point, _)| arm.joins.iter().any(|(join, _)| join == point)),
+                    .filter(|(point, _)| arm.joins.iter().any(|join| join.at == *point)),
             );
-            self.add(SurfaceKind::CountryRoad, points, planned);
+            let pins: Vec<Point> = stops.iter().map(|stop| stop.at).collect();
+            self.add(SurfaceKind::CountryRoad, points, planned, &pins);
         }
         Ok(in_time)
     }
@@ -472,32 +818,35 @@ fn driven(points: &[Point], width: f64) -> Vec<f64> {
     }
 }
 
-/// Whether, with this water on the map, a straight main road in from every
-/// edge still reaches the hub within the transit time: what a river's course
-/// is held to before anything is placed beside it.
-pub fn in_time(context: &Context, skeleton: &[Arm], water: &Water) -> bool {
-    Network::new(context, water)
-        .arms(skeleton, &[], &mut [], None)
+/// Whether, with this water on the map, a straight main road in from the top
+/// and the bottom edge still reaches the hub within the transit time: what a
+/// river's course is held to before anything is placed beside it.
+pub fn in_time(context: &Context, skeleton: &Skeleton, water: &Water) -> bool {
+    Network::new(context, water, &[])
+        .arms(skeleton, &mut [], None)
         .unwrap_or(false)
 }
+
+/// One of the map's roads: its kind and its authored points.
+pub type Road = (SurfaceKind, Vec<Point>);
 
 /// The map's roads and the bridges they cross its rivers by.
 pub fn build(
     context: &Context,
-    skeleton: &[Arm],
+    skeleton: &Skeleton,
     sites: &[Site],
     water: &Water,
     richness: f64,
     mut rng: Stream,
-) -> Result<(Vec<SurfaceArea>, Vec<Bridge>), Vec<Diagnostic>> {
+) -> Result<(Vec<Road>, Vec<Bridge>), Vec<Diagnostic>> {
     let presets = context.presets;
     let roads = &presets.roads;
     let extent = context.extent;
-    let mut network = Network::new(context, water);
+    let mut network = Network::new(context, water, sites);
     let class_of = |index: usize| presets.class(&sites[index].class_id);
     let centre_of = |index: usize| sites[index].outline.center;
     let mut joined = vec![false; sites.len()];
-    network.arms(skeleton, sites, &mut joined, Some(&mut rng))?;
+    network.arms(skeleton, &mut joined, Some(&mut rng))?;
 
     // Every other settlement joins the nearest road good enough for it,
     // largest first, so a town never hangs off a track. `SurfaceKind` orders
@@ -506,60 +855,85 @@ pub fn build(
     order.sort_by_key(|index| core::cmp::Reverse(class_of(*index).rank));
     for index in order {
         let kind = class_of(index).road;
+        let outline = &sites[index].outline;
         let serves = |vertex: &Vertex| vertex.kind <= kind;
+        // A road good enough for it that passes by the middle of its ground
+        // is its main street already.
+        let from = centre_of(index);
         let on_road = joined[index]
-            || network.vertices.iter().any(|vertex| {
-                serves(vertex) && polygon_contains(&sites[index].outline.ring, vertex.at)
-            });
+            || network
+                .roads
+                .iter()
+                .filter(|(other, _)| *other <= kind)
+                .flat_map(|(_, points)| points.windows(2))
+                .any(|run| {
+                    segment_distance(run[0], run[1], from) <= outline.reach * roads.through_reach
+                });
         if on_road {
             joined[index] = true;
             continue;
         }
-        let from = centre_of(index);
         let bank = water.bank(from);
         let target = network
             .vertices
             .iter()
             .filter(|vertex| serves(vertex) && vertex.at != from)
-            .map(|vertex| {
-                // A neighbour's centre is a better junction than a point on
-                // the open road beside it, and a road on its own bank than
-                // one a bridge away.
-                let neighbour =
-                    (0..sites.len()).any(|other| joined[other] && centre_of(other) == vertex.at);
-                let weight = if neighbour { 0.85 } else { 1.0 };
+            .filter_map(|vertex| {
+                let awkward = network.joins(from, vertex.at)?;
+                // A road on its own bank is nearer than one a bridge away.
                 let crossing = if vertex.bank == bank {
                     0.0
                 } else {
                     presets.rivers.bridge.worth_m
                 };
-                (distance(from, vertex.at) * weight + crossing, vertex.at)
+                Some((awkward, distance(from, vertex.at) + crossing, vertex.at))
             })
-            .min_by(|a, b| a.0.total_cmp(&b.0));
-        let Some((_, target)) = target else {
+            .min_by(|a, b| a.0.cmp(&b.0).then(a.1.total_cmp(&b.1)));
+        let Some((_, _, target)) = target else {
             return Err(context.fail(
                 &format!("settlement-{index}"),
                 "no road for it to join".into(),
             ));
         };
-        let (points, planned) = network.bent(kind, from, target, &mut rng)?;
-        // The road carries straight on through the centre to the far side,
-        // as the settlement's main street, rather than ending in its middle.
-        let onward = bearing(points[1], from);
-        let far = sites[index].outline.edge(onward) * roads.main_street_reach;
-        let street = vec![from, round_cm(add(from, scale(direction(onward), far)))];
-        network.join(kind, points, planned);
-        network.add(kind, street, Vec::new());
+        // Its main street runs the length of its ground, through the centre,
+        // and the road turns for the network past the end nearer to it. A
+        // road that would have to turn sharply there runs straight for the
+        // network from the centre instead.
+        let along = if turn(outline.axis, bearing(from, target)) <= PI / 2.0 {
+            outline.axis
+        } else {
+            outline.axis + PI
+        };
+        let end = network.gate(&sites[index], from, direction(along));
+        let easy = turn(along, bearing(end, target)) <= roads.turn_max_deg.to_radians();
+        let heading = if easy { along } else { bearing(from, target) };
+        let gate = network.gate(&sites[index], from, direction(heading));
+        let (mut points, planned) = network.route(kind, gate, target, &mut rng)?;
+        points.insert(0, from);
+        let far = outline.edge(heading + PI) * roads.main_street_reach;
+        let far = round_cm(add(from, scale(direction(heading + PI), far)));
+        network.join(kind, points, planned, &[from, gate]);
+        // The road carries straight on past the centre as the settlement's
+        // main street: one road, so parcels front it without a break there.
+        let street = network.vertex(far, kind);
+        match network.roads.last_mut() {
+            Some((_, points)) if points[0] == from => {
+                points.insert(0, far);
+                network.vertices.push(street);
+            }
+            _ => network.add(kind, vec![far, from], Vec::new(), &[]),
+        }
         joined[index] = true;
     }
 
     // A richer network links neighbours directly (Gabriel pairs: no third
     // settlement inside the circle on the pair's diameter), unless one road
     // already runs through both. The main settlement has the edge roads.
+    let reach = roads.gate_margin_m + SAME_PLACE_M;
     let within = |index: usize, points: &[Point]| {
         points
             .iter()
-            .any(|p| polygon_contains(&sites[index].outline.ring, *p))
+            .any(|p| ring_distance(&sites[index].outline.ring, *p) <= reach)
     };
     for a in 1..sites.len() {
         for b in a + 1..sites.len() {
@@ -579,10 +953,17 @@ pub fn build(
             if linked {
                 continue;
             }
-            // The rougher of the two settlements' roads.
+            // The rougher of the two settlements' roads, between the points
+            // of their own roads that lie nearest each other.
             let kind = class_of(a).road.max(class_of(b).road);
-            let (points, planned) = network.bent(kind, pa, pb, &mut rng)?;
-            network.join(kind, points, planned);
+            let from = network.approach(a, pb);
+            let to = network.approach(b, from);
+            // Two settlements that already share a road's point are linked.
+            if distance(from, to) < SAME_PLACE_M {
+                continue;
+            }
+            let (points, planned) = network.route(kind, from, to, &mut rng)?;
+            network.join(kind, points, planned, &[]);
         }
     }
 
@@ -617,30 +998,40 @@ pub fn build(
         else {
             continue;
         };
+        // A road comes in from its edge: it is not laid to a settlement it
+        // would have to run along the edge to reach.
+        let inward = [-PI / 2.0, PI, PI / 2.0, 0.0][edge as usize];
+        let ahead = |index: &usize| {
+            turn(inward, bearing(exit, centre_of(*index))) <= roads.turn_max_deg.to_radians()
+        };
         let target = (1..sites.len())
             .filter(|index| class_of(*index).road == SurfaceKind::CountryRoad)
-            .map(centre_of)
-            .min_by(|a, b| distance(exit, *a).total_cmp(&distance(exit, *b)));
+            .filter(ahead)
+            .min_by(|a, b| distance(exit, centre_of(*a)).total_cmp(&distance(exit, centre_of(*b))));
         if let Some(target) = target {
-            let (points, planned) =
-                network.bent(SurfaceKind::CountryRoad, exit, target, &mut rng)?;
-            network.join(SurfaceKind::CountryRoad, points, planned);
+            let to = network.approach(target, exit);
+            if distance(exit, to) < SAME_PLACE_M {
+                continue;
+            }
+            let (points, planned) = network.route(SurfaceKind::CountryRoad, exit, to, &mut rng)?;
+            network.join(SurfaceKind::CountryRoad, points, planned, &[]);
         }
     }
+    Ok((network.roads, network.crossings.bridges()))
+}
 
-    let surfaces = network
-        .roads
-        .into_iter()
-        .enumerate()
-        .map(|(index, (kind, points))| {
-            let width = roads.width_m(kind);
-            let ends = vec![points[0], points[points.len() - 1]];
-            // A bend the shared centreline refuses falls back to the straight road.
-            GroundShape::stroke(points, width)
-                .or_else(|_| GroundShape::stroke(ends, width))
-                .map(|shape| SurfaceArea { kind, shape })
-                .map_err(|message| context.fail(&format!("road-{index}"), message))
-        })
-        .collect::<Result<_, _>>()?;
-    Ok((surfaces, network.crossings.bridges()))
+/// A road's surface: its rounded line at its kind's width.
+pub fn surface(
+    context: &Context,
+    index: usize,
+    road: &Road,
+) -> Result<SurfaceArea, Vec<Diagnostic>> {
+    let (kind, points) = road;
+    let width = context.presets.roads.width_m(*kind);
+    let ends = vec![points[0], points[points.len() - 1]];
+    // A bend the shared centreline refuses falls back to the straight road.
+    GroundShape::stroke(points.clone(), width)
+        .or_else(|_| GroundShape::stroke(ends, width))
+        .map(|shape| SurfaceArea { kind: *kind, shape })
+        .map_err(|message| context.fail(&format!("road-{index}"), message))
 }

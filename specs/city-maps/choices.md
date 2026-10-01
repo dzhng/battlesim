@@ -946,6 +946,8 @@ keeps storage addresses independent of physical identity and encounter naming.
 
 ### The approach rule is measured on the main settlement, and the generator reserves the ground for it
 
+**Superseded in part** by [Town model and edge roads](#town-model-and-edge-roads): the rule still holds for the main settlement in each half, but an approach is now a corridor measured from where the districts end, not a fan of rays from the centre.
+
 **Choice:** A plan passes when its main settlement (the highest class; the city in Metro) has, in the top half and in the bottom half, a wedge of ground open for 1,800 m beyond its edge across a front of 400 m. The generator picks one bearing in each half where such a wedge fits between the settlement and the playable edge, and keeps later settlements and woods out of it. The finished plan is then measured the way S7 measured: rays from the settlement, a hundred metres apart at full depth, stopped by other settlements, forests and the map edge.
 
 **Gap:** M19 says "open approaches … to settlements in both halves" without saying which settlements. Counting any village would let Metro pass on a satellite's field while the city had none, which is what M18 was written to prevent.
@@ -962,6 +964,8 @@ keeps storage addresses independent of physical identity and encounter naming.
 
 ### The transit rule is a time, 183 s, and it fixes the Large crossroads
 
+**Superseded** by the 215 s entry below and by [Town model and edge roads](#town-model-and-edge-roads): only the top and bottom edges are held to a road, and Large maps vary.
+
 **Choice:** Every plan must have, from the middle fifth of each edge, a road journey to the centre of at most 183 s at 110 km/h, of which 15 s is an allowance for planning and turns. Edge roads are built to that budget: each runs to the main junction by the centre or, when time allows, joins an earlier edge road up to 1.5 km out.
 
 **Gap:** The target is "about three minutes" on Large, and M21 asks for road patterns that are not the same crossroads every time. 183 s is the worst case S7 measured and the user accepted with M20.
@@ -969,6 +973,8 @@ keeps storage addresses independent of physical identity and encounter naming.
 **Verdict:** sound as a rule, but it does not deliver M21 on Large. The budget is 5.13 km of road for a 5 km line, so on Large every plan has four roads meeting at the centre; only their skew, the settlements on them and the secondary network vary. On Small and Medium 22–41% of plans are a central crossroads and the rest fork or meet in T-junctions. **Confidence:** high on the arithmetic. The user's dial is `transit.max_s`: about 200 s would allow forks 600 m from the centre on Large.
 
 ### A town is rings of sectors, each one district of one use, with some left open
+
+**Superseded** by [Town model and edge roads](#town-model-and-edge-roads): a district is a block cut along the settlement's roads. One use per district, the ids, areas and anchors, the open ground and the woods on it all remain.
 
 **Choice:** A settlement's outline is cut into bands from the centre out and each band into sectors. A sector is one district with one dominant building category and at most one minor one (a garden suburb is 90% detached homes; an industrial district is all industry). In the outer band of a town or city some sectors are left unbuilt and the built ones stop at different depths, so fields reach in between districts; a wood stands on up to half of those open sectors. A sector that a main road enters the town through picks from a second set of weights that favours industry. Each district has an id (`settlement-3/district-2`), its area and an anchor point inside it.
 
@@ -978,6 +984,8 @@ keeps storage addresses independent of physical identity and encounter naming.
 
 ### "Built ground" is the districts; a settlement's size class is its envelope
 
+**Superseded in part** by [Town model and edge roads](#town-model-and-edge-roads): built ground is still the districts. A class's size is now the ground the settlement may build on, and its outline is the edge of what it built.
+
 **Choice:** Fairness, the urban share and "the main settlement holds N% of the built ground" count district area only. A class's size in hectares is the envelope's, so a town is the same footprint at every map size (M05) however many of its sectors are open.
 
 **Gap:** Once towns have fields inside them, "town area" has two meanings.
@@ -986,6 +994,8 @@ keeps storage addresses independent of physical identity and encounter naming.
 
 ### Settlements stand on the main roads; a road that reaches a settlement carries on through it
 
+**Superseded in part** by [Town model and edge roads](#town-model-and-edge-roads): the main settlement now stands on the main junction, a road crosses a settlement in a straight line between gates, and a joining road ends only where it makes a plain junction.
+
 **Choice:** The straight lines of the edge roads are fixed first. Each settlement is then sited on one of those lines (40–55% of attempts, by type), beside the main settlement (10–30%), or anywhere, and the edge road is built through the centre of every settlement on or near its line. Any other settlement is joined to the nearest road good enough for its class, and that road continues straight through its centre to the far edge as a main street. A road that joins stops at the first road at least as good as itself, in a T-junction.
 
 **Gap:** S7 joined every settlement to the nearest road and noted towns hanging off tracks, stubs and a fixed crossroads. The references asked for towns strung on a road.
@@ -993,6 +1003,8 @@ keeps storage addresses independent of physical identity and encounter naming.
 **Verdict:** sound. A town never hangs off a track, and no joining road crosses a better one. The main street reads as a stub on the picture until C53 gives the settlement streets. **Confidence:** medium.
 
 ### Fairness is built in, then checked
+
+**Superseded in part** by [Town model and edge roads](#town-model-and-edge-roads): the forest half of this stands. Built ground is now balanced in three places, since districts exist only after the roads do.
 
 **Choice:** Each settlement goes in the half with less built ground, and when that half is behind by an amount its class can make up it is drawn at that size. A town's open sectors are taken turn about from its north and south sides. Each half is given the same forest target and filled to it. A few settlements or woods sized to the remaining difference close what is left. The finished plan is measured against S7's tolerances and refused if it fails.
 
@@ -1042,6 +1054,8 @@ keeps storage addresses independent of physical identity and encounter naming.
 
 ### Edge-to-centre by road within 215 seconds, so Large maps can vary their roads
 
+**Superseded in part** by [Town model and edge roads](#town-model-and-edge-roads): 215 s stands, and now binds the top and bottom edges only.
+
 **Choice:** `transit.max_s` in `fixtures/map-presets.json` is 215 (revision `layout-presets-2`), up from 183.
 
 **Gap:** The "about three minutes" target allows 5.13 km of road for a 5 km line on Large, so every Large plan had four roads meeting at the centre, against M21's varied road patterns. The user said the numbers are guesses to tune unless called hard requirements.
@@ -1069,6 +1083,8 @@ keeps storage addresses independent of physical identity and encounter naming.
 **Verdict:** sound: over eighteen maps every district kind's dominant category holds within fifteen points of its share of the built ground. **Confidence:** medium; the catalogue's mix of sizes moves it.
 
 ### Streets are a grid in the district's own frame; parcels front every carriageway
+
+**Superseded in part** by [Town model and edge roads](#town-model-and-edge-roads): the grid, its bends and the parcels stand. The frame no longer runs out from the settlement's centre: it runs with the settlement's main street.
 
 **Choice:** Each district gets long streets `block_depth_m` apart and cross streets every `block_length_m`, laid in a frame that runs out from the settlement's centre (the central district's runs with the road through it). A district kind may bend both families with a sine swing (garden suburbs, villages and farms do; centres, apartments, the core and industry are straight) and may leave out cross streets at random. A stretch of street that would run within half a block of an existing carriageway and within 30° of it is dropped, so no street doubles the main road. Parcels are then cut along every carriageway in the district, the country road or track included.
 
@@ -1767,3 +1783,139 @@ What was built, the tuning values and the measurements are in the [C57 outcome](
 **Gap:** The slice asks for hidden versus observed destruction to respect knowledge.
 
 **Verdict:** Enough for the lab. The boundary itself is tested where it lives, in the list both read (`knownStanding`): an unseen fall is no entry, so nothing changes. No scene shells a building and watches the camera through a real battle. **Confidence:** Medium.
+
+## Town model and edge roads
+
+The layout generator's roads and settlements were reworked for M22 (a road from the bottom edge to the top) and M23 (a town is not a dartboard). The model as it stands, the seam and the measurements are in the [C52](slices/C52-procedural-generator.md#outcome) and [C53](slices/C53-parcels-and-buildings.md#outcome) outcomes and the [crate guide](../../crates/mapgen/README.md). Generator `layout-4`, presets `layout-presets-6`. Every share below was measured over 100 seeds for each type and size, 900 maps through the parcel pass and the compiler, none refused.
+
+### Only the top and bottom edges are held to a road; a road across the middle is drawn on half of maps
+
+**Choice:** A road runs from the bottom edge and one from the top to the main junction by the map's centre, each inside `transit.max_s` (215 s), and so from one edge to the other. `roads.cross_road_chance` (0.5) draws a road from the left edge to the right through the junction. On the other maps `roads.side_road_chance` (0.6) draws one road in from the left or the right, leaving its edge anywhere in the middle 70%; the rest have no side road. The extra edge roads a rich network adds still come in from any edge.
+
+**Gap:** M22 says a side-to-side road is optional and "not every map", without a share, and says left and right exits vary.
+
+**Verdict:** sound. 40–63% of maps in a cell have a road from the middle of the left edge to the middle of the right, and 18–30% have four roads meeting at the centre, Large included. **Confidence:** medium. The two chances are guesses; each is one number.
+
+### Two main roads that meet at the main junction from opposite edges are one straight line through it
+
+**Choice:** When the bottom and top roads both end at the main junction, the second leaves its edge where the first's line through the junction arrives. The same holds for the left and right roads. A road that forks onto another before the junction is free.
+
+**Gap:** None in the brief. Two roads that met at the junction a few degrees off straight left a sliver of ground between one road and the line of the other, which no block can be cut from.
+
+**Verdict:** sound, and it costs some variety: a through road cannot dog-leg at the junction itself. It can still fork onto the cross road up to 1.5 km away, which is the staggered crossing M22 describes. **Confidence:** high.
+
+### The main settlement stands on the main junction
+
+**Choice:** The junction is drawn up to 450 m east or west of the exact centre and up to 80 m north or south (`roads.hub_offset_m`), and the main settlement is centred on it. `measure` times the top and bottom journeys to the junction, which must lie within `transit.centre_reach_m` (500 m) of the exact centre.
+
+**Gap:** C52 offset the main settlement from the centre and left the junction at the centre, so the main roads crossed the town off to one side. A town that grows from its roads has to have them through its middle.
+
+**Verdict:** sound for the town, and it fixes the template: every map has its largest settlement in the middle with a road through it from top to bottom. M22 asks for that road; nothing asks for the settlement to sit on it. **Confidence:** high on the rule, low on whether every map should look like this.
+
+### A settlement's ground is cut along its roads into blocks, and a block is a district
+
+**Choice:** A site is the ground a settlement may build on: a convex shape with a few straight sides. Once the roads are laid, that ground is cut along every road that crosses it, each piece is cut into a row a block deep behind the road it fronts (`classes.<class>.block.depth_m`), and each row across into blocks (`block.length_m`). A cut between blocks turns up to 8° off square (`towns.block_skew_deg`). Each block is one district of one use. A hamlet's blocks are 65–85 m deep, so it is one row of lots each side of its lane; a city's are 220–380 m deep.
+
+**Gap:** M23 asks for irregular blocks laid out along the town's roads. It does not say how they are cut.
+
+**Verdict:** sound. Every block is a convex polygon bounded by roads, streets and the settlement's edge, so no two overlap and each has a middle to anchor on. A town on one straight road is still a patchwork on that road's axis: 8° is enough to stop it reading as one grid and not enough to hide the axis. **Confidence:** medium on the look; high on the geometry.
+
+### A road crosses a settlement's ground in a straight line and turns outside it
+
+**Choice:** A main road that runs through a settlement enters by a gate 30 m past its limit (`roads.gate_margin_m`), runs straight through its centre and leaves by another. A settlement that no main road runs through gets a main street along the long axis of its ground, and the road that joins it to the network leaves by the end of that street, unless it would have to turn more than 50° there (`roads.turn_max_deg`): then the main street runs straight toward the network instead. A road that only passes over a settlement's ground is straightened across it.
+
+**Gap:** None in the brief. A road that bends inside a town cannot be a block's edge.
+
+**Verdict:** sound. A road is still ruler-straight inside a settlement and bends at its edge, which shows on a zoom. **Confidence:** medium.
+
+### A road ends on another only where the two make a plain junction
+
+**Choice:** A main road runs through a settlement only if no other already does. A road that ends at a settlement, or joins the network, ends on a point where another road passes, coming in at 50° or more to it, or on a road's end that it carries on from with a turn of 50° or less (the same `roads.turn_max_deg`). It never ends where three roads already meet, nor at the map's edge. Where no such point is in reach it takes the nearest point with fewer than three roads. A road whose two ends would lie on one road is not laid, and an extra road in from an edge is laid only to a settlement that lies ahead of it, within 50° of square to that edge.
+
+**Gap:** The user's picture had every road converge on one centre point. An unprimed review then found hairpins at settlements' ends, roads running beside each other and a road along the map's edge.
+
+**Verdict:** sound. No more than a crossroads forms anywhere; a test holds that from a settlement's centre district edges run out along four bearings at most. Near-parallel pairs and acute joins still occur where the fallback is taken and where a track is led to a bridge. **Confidence:** medium.
+
+### A settlement grows outward from where its roads meet, along its roads first, farther one way than another
+
+**Choice:** The blocks about the point where a settlement's roads come nearest the middle of its ground are built first. After that the nearest block is built next, where "nearest" is the distance from that centre, drawn up to 60% longer or shorter for each patch of ground three blocks across (`towns.growth_noise`, `growth_patch_blocks`), plus the distance from the nearest road times `classes.<class>.ribbon`. Growth stops at the class's `built_share` of the ground: 35–50% for a hamlet, 58–80% for a town or city. A block is built only if a road or the edge of a block already built leads to it, and never so that it touches the built ground at a corner only. What is left open is field.
+
+**Gap:** M23 asks for a ragged outline with fields and woods pushing in between districts, and larger towns looser than small ones.
+
+**Verdict:** sound. The outline is whatever the built blocks make, with lobes and bays. A city is still a compact mass about its crossroads. **Confidence:** medium; `ribbon`, the noise and the shares are guesses.
+
+### Blocks take their use a few at a time, and zones are counted in the town's own distance
+
+**Choice:** A class's `zones` say what its blocks are from the centre out, by share of built ground: a city's first 6% is core, its next quarter an even mix of apartments, terraces and suburb, the rest mostly suburb. Blocks are counted outward in the same stretched distance the settlement grew by, so a zone reaches out where the town did. A block draws its kind with a few neighbours (`classes.<class>.neighbourhood`, 4–8 blocks in a city), so uses come in patches. A block at the settlement's edge on a country road draws from the zone's `roadside` weights, which is where industry is.
+
+**Gap:** M23 asks for one dominant category per district, a centre of a few blocks where the main streets meet, industry on a road at the edge, and a Metro city with a clear core.
+
+**Verdict:** provisional. Unprimed reviews of the pictures first found rings (a core, a band of apartments, a rim of suburb), which mixing the middle zone and counting in the town's own distance removed. The last still calls a city a disc with a core bullseye and patches of other uses round it. A core in the middle is what M23 asks of Metro, so part of that is the brief. Uses are now patchy more than graded: apartments can stand on the outer edge with suburb nearer in. Industry is thin: many cities and large towns draw none. **Confidence:** low on the weights.
+
+### A settlement's outline is the edge of its districts
+
+**Choice:** `SettlementPlan.outline` is the boundary of the built blocks and of any open ground they enclose. It is a simple ring, and a ray from the centre may cross it more than once. `SettlementPlan.center` is the point of the settlement's roads nearest the middle of its ground, and `districts` are listed nearest the centre first.
+
+**Gap:** C52's outline was an envelope drawn before the districts; M23 says the outline follows the districts.
+
+**Verdict:** sound. A class's `area_ha` is the ground a settlement may build on, and the outline is smaller than it. Mixed's main town is at least half as large again as the next settlement, in outline and in built ground (it was twice on the envelopes; the sizes allow 1.55). **Confidence:** high.
+
+### Streets run between blocks; the edge of town is a street only where a block needs one
+
+**Choice:** The layout writes an avenue (`towns.avenue_width_m`, 10 m; a dirt lane in a hamlet) along every block edge shared by two built blocks that no road already covers. An edge that faces open ground gets one only if a street between blocks can be reached no other way, or the block would otherwise have no frontage wide enough for a parcel. A street that would end in the fields is dropped where nothing needs it.
+
+**Gap:** M23 says districts are bounded by roads and streets. Ringing every block with a street put a paved road round the whole town.
+
+**Verdict:** sound. Avenues are surfaces of kind `road` in the plan, so `measure` counts them as streets and the parcel pass builds along them. **Confidence:** medium.
+
+### A district kind says how much ground it needs, and a block that cannot hold it is left open
+
+**Choice:** `districts.<kind>.ground_m` is the rectangle of ground, against a street, that the kind's largest parcel takes. A block is built only if one of its class's kinds fits on a stretch of its edge that carries a road or an avenue, and it takes a kind that fits. A block with a corner sharper than 50° is left open (`towns.corner_min_deg`). In the parcel pass a district's first parcel is always built on; `coverage` applies to the rest.
+
+**Gap:** C53 refuses a request when a district takes no parcel. Districts used to be large enough that this never happened; a block can be small or a triangle.
+
+**Verdict:** sound: no request in the sweep was refused. The numbers must be kept in step with the catalogue by hand: nothing checks `ground_m` against the templates, and the one refusal met on the way was a triangle of 1.8 ha that the rectangle test passed and the parcel pass could not build. **Confidence:** medium.
+
+### The approach rule is a corridor, measured from where the districts end
+
+**Choice:** An approach is a corridor of open ground 400 m wide and 1,800 m deep along one bearing, starting at the last of the settlement's own ground inside the corridor. The generator keeps a corridor 650 m wide clear from the main settlement's centre to 1,920 m past the limit of its ground, in each half. `ApproachPlan` keeps its fields; `from_rad`..`to_rad` is a run of bearings whose corridors are open and `front_m` is the corridor's width.
+
+**Gap:** C52 measured a fan of rays from the settlement's centre, 400 m wide half-way out. With an outline that follows the districts, the same open ground measured narrower the nearer the town's edge lay to its centre, and the fan a town of any shape needs was too wide for a Small Metro map.
+
+**Verdict:** sound. It is M19's own wording (a front of 400 m, 1,800 m deep) and stricter than the fan at the town's edge. Counts of approaches are not comparable with C52's. **Confidence:** medium.
+
+### Fairness is steered in three places, then checked
+
+**Choice:** Sites are placed to balance the built ground each is expected to have (its ground times its class's mean `built_share`). A settlement that straddles the midline grows on whichever side has less of its built ground. Last, settlements build or leave open up to four blocks at a time (`retries.repair_blocks`) until the halves agree to half the tolerance. The finished plan is measured against the tolerance and refused if it fails.
+
+**Gap:** C52 balanced exact sector areas at placement. Districts now exist only after the roads do.
+
+**Verdict:** sound: every plan in the sweep is fair. **Confidence:** high.
+
+### A district's streets run with the settlement's main street
+
+**Choice:** The parcel pass lays each district's grid along one of the district's edges: the edge that runs longest in the direction of the carriageway through the settlement's centre. A carriageway within its own half width of a district's edge counts as frontage for that district.
+
+**Gap:** C53 ran every grid out from the settlement's centre. Running each along its own longest edge turned the grid 90° from one block to the next.
+
+**Verdict:** sound as a rule. Neighbouring grids run the same way; their streets still do not join across the avenue between them. **Confidence:** medium.
+
+### A hamlet's lanes are dirt tracks
+
+**Choice:** `districts.<kind>.streets.surface` is `road` or `dirt_track`. The farm district's is `dirt_track`, and a hamlet's avenues are tracks too.
+
+**Gap:** C53 listed paved 7 m streets in hamlets as wrong.
+
+**Verdict:** sound. A village's streets are still paved. **Confidence:** high.
+
+### A wood beside a town is a wood of its own shape
+
+**Choice:** On half of the blocks a settlement leaves open beside its districts (`forests.infill_chance`) a wood is tried, up to six times (`retries.infill`): a wood of the usual shape, half to 1.6 times the block's size (`forests.infill_cover`), set about the block and kept only if it stands 25 m clear of every district, as any wood does.
+
+**Gap:** M23 asks for woods pushing in between districts. Clipping a wood to its block gave green chips with straight edges.
+
+**Verdict:** provisional. The woods are whole shapes and some reach into a town's bays, but every review still says woods never touch a settlement: the 25 m gap and the bare field round it read as a halo. **Confidence:** low.
+
+### Not done
+
+Apartment slabs still stand along their streets, not in ranked rows across a lawn. An industrial district is one block on a road at the town's edge with streets of its own, but still one shed to a parcel. A town centre has no square; its main street is the country road or a 10 m avenue. Near-duplicate bridges and sharp turns onto a bridge are as they were. Open ground has no field pattern, and every map has its main settlement in the middle.

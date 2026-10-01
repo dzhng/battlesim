@@ -164,7 +164,7 @@ impl<'a> Ground<'a> {
                         add(a, scale(sub(b, a), share))
                     }
                 };
-                for [from, to] in clip(a, b, &district.ring) {
+                for [from, to] in clip(a, b, &district.ring, way.half_width) {
                     let (p, q) = (at(from), at(to));
                     match runs.last_mut() {
                         Some(run) if run[run.len() - 1] == p => run.push(q),
@@ -217,7 +217,10 @@ impl<'a> Ground<'a> {
                     id: id.clone(),
                     ring: lot.rect.corners().map(round_cm).to_vec(),
                 });
-                if rng.chance(rule.coverage) {
+                // A district is built ground: its first parcel always is, and
+                // the rest by the district's coverage.
+                let first = self.plan_lots.len() - self.first_lot == 1;
+                if rng.chance(rule.coverage) || first {
                     self.build(id, &lot, fit, rule, parcels.verge_m, &parcels.prop_kind);
                 }
                 break;
