@@ -1,0 +1,30 @@
+| stage | wall ms | instructions G | RSS MiB | note |
+|---|---|---|---|---|
+| parse map | 35 | 0.67 | 23 | 9485 KiB; 8000 × 8000 m; 612 surfaces, 51 forests, 3134 buildings |
+| world build | 229 | 3.85 | 68 | 130243 props (trees included) |
+| map grid (alone) | 991 | 18.38 | 202 | 18299 pages of 256 cells hold a body, a road, a wood or a slope |
+| road graph (alone) | 9 | 0.15 | 202 |  |
+| scenario | 51 | 0.85 | 236 |  |
+| battle build | 1250 | 22.51 | 297 |  |
+| crossing 300 s | 15491 | 367.0 | 326 | tick p50 0.23 ms, p95 2.86, p99 3.27, max 5 (tick 6084); 0 ticks over 33 ms; the costliest tick retired 76.0 M instructions (tick 8574) |
+process CPU: maximum tick 4.15 ms (tick 7284); wall time includes scheduling delays
+planning: 1722493 work in all, 4086 in the busiest tick (allowance 4000); 0 ticks over 33 ms did any
+knowledge: a side's planning picture changed 0 times, taken in over 0 ticks; 0 of those ran over 33 ms; the costliest retired 0.0 M instructions (tick 0); 0 grid cells worked out again, 0 in the busiest tick
+slow tick 6084: 4.5 ms wall, 4.10 ms CPU, 57.3 M instructions, 0 planning work
+slow tick 5934: 4.5 ms wall, 4.01 ms CPU, 58.0 M instructions, 0 planning work
+slow tick 6036: 4.5 ms wall, 4.02 ms CPU, 56.1 M instructions, 0 planning work
+slow tick 5826: 4.4 ms wall, 3.95 ms CPU, 55.8 M instructions, 0 planning work
+slow tick 5772: 4.3 ms wall, 3.87 ms CPU, 55.2 M instructions, 0 planning work
+blue jeep: held 13.33 s for routes, set off at 2.00 s, within 10 m of its goal at never, Some(Moving) at Some((3112.0, 4280.0))
+blue tank: held 1.93 s for routes, set off at 1.97 s, within 10 m of its goal at never, Some(Moving) at Some((2288.0, 3870.0))
+blue rifle: held 0.97 s for routes, set off at 1.00 s, within 10 m of its goal at never, Some(Moving) at Some((1004.0, 4096.0))
+blue jeep: held 1.10 s for routes, set off at 1.13 s, within 10 m of its goal at never, Some(Moving) at Some((6369.0, 4436.0))
+blue tank: held 1.40 s for routes, set off at 1.43 s, within 10 m of its goal at never, Some(Moving) at Some((2639.0, 3821.0))
+blue rifle: held 1.30 s for routes, set off at 1.33 s, within 10 m of its goal at never, Some(Moving) at Some((1015.0, 5368.0))
+red jeep: held 1.77 s for routes, set off at 1.80 s, within 10 m of its goal at never, Some(Moving) at Some((6413.0, 4441.0))
+red tank: held 1.57 s for routes, set off at 1.60 s, within 10 m of its goal at never, Some(Moving) at Some((6334.0, 4439.0))
+red rifle: held 0.93 s for routes, set off at 0.97 s, within 10 m of its goal at never, Some(Moving) at Some((7126.0, 4350.0))
+red jeep: held 2.60 s for routes, set off at 1.27 s, within 10 m of its goal at never, Some(Moving) at Some((3118.0, 4281.0))
+red tank: held 1.57 s for routes, set off at 1.53 s, within 10 m of its goal at never, Some(Moving) at Some((5105.0, 4477.0))
+red rifle: held 1.77 s for routes, set off at 1.80 s, within 10 m of its goal at never, Some(Moving) at Some((7138.0, 5059.0))
+digest 358f32f007c2c7a5

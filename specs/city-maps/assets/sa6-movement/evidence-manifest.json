@@ -1,0 +1,142 @@
+{
+  "movement_production_commit": "8aa6c2c6e617eec6dd95197f5d414470a40004ba",
+  "integrated_head": "be7255b0",
+  "integrated_rust_code_equivalent": "15a690ea",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "3c8d2e2c2819bfaf6d3c64dbe22cc987f782779342d19df6b7e179d63800d6c1",
+      "bytes": 2512
+    },
+    {
+      "path": "baseline-harness.patch",
+      "sha256": "5f054df22d36f47bca8c7b39870dc5743e465e45bb132ffddf17bd845940036b",
+      "bytes": 8948
+    },
+    {
+      "path": "compare-metrics.json",
+      "sha256": "082e932bf9fa8223aa01edc637558c6469f1740963f205774d5d99b76833db24",
+      "bytes": 1981
+    },
+    {
+      "path": "diagnostic-harness.patch",
+      "sha256": "acb958712ab314970019fb7760efebf0deeaa2640fe861efd1d85bf91f85b35a",
+      "bytes": 773
+    },
+    {
+      "path": "fresh-visual-critique.md",
+      "sha256": "246cff7c230965c22bf970b4abf3b34742070beeaea0217679c98ee0bddea415",
+      "bytes": 7615
+    },
+    {
+      "path": "integrated-force-manifest.json",
+      "sha256": "28be6023eb93c5df39664c00c38491dfd223d08666bcaced824adbe8c7c1b589",
+      "bytes": 2815
+    },
+    {
+      "path": "integrated-matrix-manifest.json",
+      "sha256": "2178830dcf516b38ef0d9c73765a8e35c7169d9cb796aebd070e10f7e793ef6a",
+      "bytes": 4830
+    },
+    {
+      "path": "integrated-movement-summary.json",
+      "sha256": "f6c0bcaff0952f0ce88e7f9ef864bc8be2b9edcc0d1ec21999eee8919bbb9f8a",
+      "bytes": 15922
+    },
+    {
+      "path": "metro-large-s4.100side.city.txt",
+      "sha256": "44ce3379c1a815bf8c92ab89bf0b68e72ee2acf1a2a83fef75d18574a1fd2fa7",
+      "bytes": 27145
+    },
+    {
+      "path": "metro-large-s4.city.txt",
+      "sha256": "2205a19ed4ff4fb171390354af14472dfc27c3ec4f477c1972e2939e758e951e",
+      "bytes": 2983
+    },
+    {
+      "path": "mixed-large-s35.city.txt",
+      "sha256": "7090473a44b99e94a11be3578219193cfddb21056b45416a87837d2ef354e811",
+      "bytes": 2992
+    },
+    {
+      "path": "mixed-medium-s2.city.txt",
+      "sha256": "73d24549a34754b3c3b87f629c99381adcbe60ccfe07a416fa47d8f88f05e784",
+      "bytes": 2981
+    },
+    {
+      "path": "mixed-small-s4.100side.city.txt",
+      "sha256": "f2378daa7ec18c26dc932acd4b15fbafb4b6d011587cc9108b3a08e278d7e917",
+      "bytes": 27093
+    },
+    {
+      "path": "mixed-small-s4.city.txt",
+      "sha256": "4d8cf41fe14e5105b99e80d2dc2f07bee11c9f0d7f6a90d812a3b098584f4dbb",
+      "bytes": 2993
+    },
+    {
+      "path": "movement-c69.log",
+      "sha256": "87d014bb9748157514bef1d9a05001358e0633f29f07ef07ce0c0c93e6032b42",
+      "bytes": 1192
+    },
+    {
+      "path": "movement-other.log",
+      "sha256": "a9a2af2ec2b58d969789aa2b4f67625adbee1d321901b3b8aaa26f6cc728df3d",
+      "bytes": 2275
+    },
+    {
+      "path": "navigation-quality-worst.log",
+      "sha256": "508b7aa653d8ae958a9da1e64fca2201fbb651ccf971bb7d3a7503fe45d9414e",
+      "bytes": 9837
+    },
+    {
+      "path": "navigation-quality.json",
+      "sha256": "9600d5b7f03fec953e46253b373eac2ed8a79a8e59040c406335899ffdbc40e9",
+      "bytes": 370
+    },
+    {
+      "path": "open-medium-s1.city.txt",
+      "sha256": "9ed5a1b7c1f2be4a3d43907c97c7622da16423ac53d21c2dffe9a12ec588e045",
+      "bytes": 2995
+    },
+    {
+      "path": "open-small-s3.city.txt",
+      "sha256": "5772eed060081ae5859d03980ca3cf6677d0042cd21c3e9e50bac8f088b2404c",
+      "bytes": 2964
+    },
+    {
+      "path": "source-manifest.json",
+      "sha256": "8247938bdea366564770f60238950a85f0c64d2ffb3af833290ca2f4b1389fa0",
+      "bytes": 1116
+    },
+    {
+      "path": "supplement-after.log",
+      "sha256": "681d0c5dffee3de8dda4a4a6bb9b3b3d89204aeaa5c9012bb18abeaaf237db07",
+      "bytes": 3599
+    },
+    {
+      "path": "supplement-before.log",
+      "sha256": "53d0d4bcd1ba093acb5c81fa7092ac477663fb496a1ad65cb0374a91b0e3d140",
+      "bytes": 1064
+    },
+    {
+      "path": "supplement-compare-metrics.json",
+      "sha256": "0ffe1e2f99d870c25bed93b35cd4fa00983f8823f6190b990d8571647d8a475a",
+      "bytes": 2012
+    },
+    {
+      "path": "supplement-harness.patch",
+      "sha256": "89d8fbebe554ca26a249e6e9c383bd920e393182177fc439c0a25f65c31a258f",
+      "bytes": 2346
+    },
+    {
+      "path": "supplement-manifest.json",
+      "sha256": "91b25b9681a871d8bb6f7f39075a67514b72f25d3b676f9407ba0d0c994d9812",
+      "bytes": 1559
+    },
+    {
+      "path": "visual-review.md",
+      "sha256": "f58ce6b21c24a6658023fc737d3ddce349b0b8a9e38e571edfb4189af6232597",
+      "bytes": 2540
+    }
+  ]
+}
