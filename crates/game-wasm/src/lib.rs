@@ -126,8 +126,12 @@ impl WorldView {
         self.world.export_props()
     }
 
-    pub fn water(&self) -> Vec<f32> {
-        self.world.export_water()
+    pub fn rivers(&self) -> Vec<f32> {
+        self.world.export_rivers()
+    }
+
+    pub fn river_runs(&self) -> Vec<f32> {
+        self.world.export_river_runs()
     }
 
     pub fn forests(&self) -> Vec<f32> {

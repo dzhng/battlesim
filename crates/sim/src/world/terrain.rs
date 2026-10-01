@@ -2,7 +2,10 @@
 //! south-west → north-east diagonal of every cell. Height queries, normals and
 //! ray hits interpolate these exact triangles. The public export keeps local
 //! detail and coalesces only all-zero rectangles into equivalent flat triangles.
-use crate::math::{v3, V3};
+//! A sample is the land's relief as rivers and bridges carve it (`carve.rs`).
+use super::carve::Carve;
+use super::surfaces::SurfaceIndex;
+use crate::math::{v2, v3, V3};
 use contract::map::{MapDefinition, Relief};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::OnceLock;
@@ -18,7 +21,6 @@ pub struct HeightField {
     pages: HashMap<usize, Box<[f64; PAGE_SAMPLES]>>,
     mesh: OnceLock<(Vec<V3>, Vec<u32>)>,
     samples: OnceLock<(Vec<u32>, Vec<f32>)>,
-    water_regions: Vec<[f64; 4]>,
     /// The highest sample: no point of the surface stands above it.
     top: f64,
     bottom: f64,
@@ -40,11 +42,15 @@ fn cell_triangles(f: &HeightField, i: usize, j: usize) -> [[V3; 3]; 2] {
 }
 
 impl HeightField {
-    pub fn build(map: &MapDefinition) -> Self {
+    /// `ground` holds the map's rivers.
+    pub fn build(map: &MapDefinition, ground: &SurfaceIndex) -> Self {
         let spacing = map.height_grid_m;
         let nx = (map.size[0] / spacing).round() as usize + 1;
         let ny = (map.size[1] / spacing).round() as usize + 1;
-        let variation_regions = variation_regions(map);
+        let relief = relief_bounds(map);
+        let carve = Carve::new(map, ground, &relief);
+        let mut variation_regions: Vec<_> = relief.iter().map(|(rect, _)| *rect).collect();
+        variation_regions.extend_from_slice(carve.regions());
         let page_cols = nx.div_ceil(HEIGHT_PAGE_SIZE);
         let mut candidates = BTreeSet::new();
         for r in &variation_regions {
@@ -75,16 +81,7 @@ impl HeightField {
             for j in j0..(j0 + HEIGHT_PAGE_SIZE).min(ny) {
                 for i in i0..(i0 + HEIGHT_PAGE_SIZE).min(nx) {
                     let (x, y) = (i as f64 * spacing, j as f64 * spacing);
-                    let mut h = map
-                        .relief
-                        .iter()
-                        .map(|r| relief_height(r, x, y))
-                        .sum::<f64>();
-                    for w in &map.water {
-                        if in_rect(w.rect, x, y) {
-                            h = h.min(w.bed_z);
-                        }
-                    }
+                    let h = carve.height(map.relief_height(x, y), v2(x, y));
                     page[(j - j0) * HEIGHT_PAGE_SIZE + i - i0] = h;
                     top = top.max(h);
                     bottom = bottom.min(h);
@@ -110,7 +107,6 @@ impl HeightField {
             variation_regions,
             mesh: OnceLock::new(),
             samples: OnceLock::new(),
-            water_regions: map.water.iter().map(|w| w.rect).collect(),
         }
     }
 
@@ -307,7 +303,7 @@ impl HeightField {
     pub fn mesh(&self) -> &(Vec<V3>, Vec<u32>) {
         self.mesh.get_or_init(|| {
             let cols = self.nx.div_ceil(HEIGHT_PAGE_SIZE);
-            let mut regions: Vec<[usize; 4]> = self
+            let regions: Vec<[usize; 4]> = self
                 .pages
                 .keys()
                 .map(|id| {
@@ -323,14 +319,6 @@ impl HeightField {
                     ]
                 })
                 .collect();
-            regions.extend(self.water_regions.iter().map(|r| {
-                [
-                    (r[0] / self.spacing).floor().max(0.0) as usize,
-                    (r[1] / self.spacing).floor().max(0.0) as usize,
-                    ((r[0] + r[2]) / self.spacing).ceil().max(0.0) as usize,
-                    ((r[1] + r[3]) / self.spacing).ceil().max(0.0) as usize,
-                ]
-            }));
             let mut vertices = Vec::new();
             let mut indices = Vec::new();
             let mut ids = BTreeMap::new();
@@ -405,7 +393,9 @@ impl HeightField {
     }
 }
 
-fn variation_regions(map: &MapDefinition) -> Vec<[f64; 4]> {
+/// Each relief feature's box, where the land can differ from flat, and the
+/// most it adds to the land.
+fn relief_bounds(map: &MapDefinition) -> Vec<([f64; 4], f64)> {
     let grow = |r: [f64; 4], reach: f64| {
         [
             r[0] - reach,
@@ -414,70 +404,42 @@ fn variation_regions(map: &MapDefinition) -> Vec<[f64; 4]> {
             r[3] + 2.0 * reach,
         ]
     };
-    let mut regions: Vec<_> = map
-        .relief
+    map.relief
         .iter()
         .map(|r| {
-            let rect = match *r {
+            let (rect, peak) = match *r {
                 Relief::Ridge {
-                    center, radius_m, ..
-                } => [
-                    center[0] - radius_m,
-                    center[1] - radius_m,
-                    2.0 * radius_m,
-                    2.0 * radius_m,
-                ],
+                    center,
+                    radius_m,
+                    peak_m,
+                } => (
+                    [
+                        center[0] - radius_m,
+                        center[1] - radius_m,
+                        2.0 * radius_m,
+                        2.0 * radius_m,
+                    ],
+                    peak_m,
+                ),
                 Relief::Mesa {
                     rect,
                     height_m,
                     side_degrees,
                 } => {
                     let slope = side_degrees.to_radians().tan();
-                    if slope > 0.0 {
+                    let rect = if slope > 0.0 {
                         grow(rect, height_m.max(0.0) / slope)
                     } else {
                         // A non-falling authored mesa may affect every sample.
                         [0.0, 0.0, map.size[0], map.size[1]]
-                    }
+                    };
+                    (rect, height_m)
                 }
             };
             // A sampled contribution affects the adjacent triangle cell too.
-            grow(rect, map.height_grid_m)
+            (grow(rect, map.height_grid_m), peak)
         })
-        .collect();
-    regions.extend(map.water.iter().map(|w| grow(w.rect, map.height_grid_m)));
-    regions
-}
-
-pub fn in_rect(r: [f64; 4], x: f64, y: f64) -> bool {
-    x >= r[0] && x <= r[0] + r[2] && y >= r[1] && y <= r[1] + r[3]
-}
-
-fn relief_height(relief: &Relief, x: f64, y: f64) -> f64 {
-    match *relief {
-        Relief::Ridge {
-            center,
-            peak_m,
-            radius_m,
-        } => {
-            let d = (x - center[0]).hypot(y - center[1]);
-            if d >= radius_m {
-                0.0
-            } else {
-                let q = 1.0 - (d / radius_m).powi(2);
-                peak_m * q * q
-            }
-        }
-        Relief::Mesa {
-            rect,
-            height_m,
-            side_degrees,
-        } => {
-            let dx = (rect[0] - x).max(x - (rect[0] + rect[2])).max(0.0);
-            let dy = (rect[1] - y).max(y - (rect[1] + rect[3])).max(0.0);
-            (height_m - dx.hypot(dy) * side_degrees.to_radians().tan()).max(0.0)
-        }
-    }
+        .collect()
 }
 
 /// Möller–Trumbore, two-sided. Returns t ≥ 0.

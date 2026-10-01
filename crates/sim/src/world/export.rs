@@ -23,6 +23,10 @@ pub const AREA_STRIDE: usize = 5;
 pub const SURFACE_STROKE_STRIDE: usize = 6;
 pub const SURFACE_TRIANGLE_STRIDE: usize = 7;
 pub const SURFACE_BOUNDARY_STRIDE: usize = 5;
+/// One stretch of a river between two rounded samples: end a, end b, the
+/// water's half width at each, the bank's grade at each, how high the land
+/// stands above the water at the edge at each, the surface height.
+pub const RIVER_STRIDE: usize = 11;
 
 fn surface_tag(kind: SurfaceKind) -> u8 {
     SURFACE_KINDS.iter().position(|k| *k == kind).unwrap() as u8
@@ -79,6 +83,10 @@ pub fn layout_json(types: &PropCatalog) -> String {
         "surfaceTriangleFields": ["ax", "ay", "bx", "by", "cx", "cy", "kind"],
         "surfaceBoundaryStride": SURFACE_BOUNDARY_STRIDE,
         "surfaceBoundaryFields": ["ax", "ay", "bx", "by", "kind"],
+        "riverStride": RIVER_STRIDE,
+        "riverFields": ["ax", "ay", "bx", "by", "halfA", "halfB", "gradeA", "gradeB", "bankA", "bankB", "surfaceZ"],
+        "riverRunStride": 4,
+        "riverRunFields": ["ax", "ay", "bx", "by"],
         "forestTrunkRangeStride": 2,
         "forestTrunkRangeFields": ["firstProp", "onePastProp"],
         "forestMetadataStride": 3,
@@ -175,14 +183,61 @@ impl WorldGeometry {
         })).collect::<Vec<_>>()}).to_string()
     }
 
-    /// Water rects with their surface height.
-    pub fn export_water(&self) -> Vec<f32> {
-        self.water()
-            .iter()
-            .flat_map(|w| {
-                [w.rect[0], w.rect[1], w.rect[2], w.rect[3], w.surface_z].map(|v| v as f32)
-            })
-            .collect()
+    /// Every river's rounded stretches: ax, ay, bx, by, the water's half
+    /// width at each end, the bank's grade at each end, the height of the
+    /// land above the water at the edge at each end (the lower of the two
+    /// banks), the surface height.
+    /// A point's distance inside the water is the half width at the closest
+    /// point of a stretch less its distance to it, the deepest over stretches
+    /// (`contract::river::section`): the drawing's edge is the rule's. The
+    /// grade and the bank's height say how the ground was cut, for shading
+    /// that follows the cross-section and not the grid's triangles.
+    pub fn export_rivers(&self) -> Vec<f32> {
+        let mut out = Vec::new();
+        for river in self.rivers() {
+            for p in river.samples().windows(2) {
+                let bank = |t: f64| {
+                    contract::river::edges(&p[0], &p[1], t)
+                        .map(|edge| contract::map::relief_height(&self.relief, edge[0], edge[1]))
+                        .into_iter()
+                        .fold(f64::INFINITY, f64::min)
+                        - river.surface_z()
+                };
+                out.extend(
+                    [
+                        p[0].xy[0],
+                        p[0].xy[1],
+                        p[1].xy[0],
+                        p[1].xy[1],
+                        p[0].half_width_m,
+                        p[1].half_width_m,
+                        p[0].depth_m / p[0].half_width_m,
+                        p[1].depth_m / p[1].half_width_m,
+                        bank(0.0),
+                        bank(1.0),
+                        river.surface_z(),
+                    ]
+                    .map(|v| v as f32),
+                );
+            }
+        }
+        out
+    }
+
+    /// The long runs of every river: ax, ay, bx, by. A field is cut along
+    /// these, as along a road's. They join authored points, leaving out
+    /// those that stray from the run by less than half the river's narrowest
+    /// water: a meander authored point by point then cuts fields along a few
+    /// long chords that stay in its water, not into a fan of slivers.
+    pub fn export_river_runs(&self) -> Vec<f32> {
+        let mut out = Vec::new();
+        for river in self.rivers() {
+            let points: Vec<[f64; 2]> = river.points().iter().map(|p| p.xy).collect();
+            for p in long_runs(&points, river.narrowest_width_m() / 2.0).windows(2) {
+                out.extend([p[0][0], p[0][1], p[1][0], p[1][1]].map(|v| v as f32));
+            }
+        }
+        out
     }
 
     /// The authored control runs of every road stroke: ax, ay, bx, by. A
@@ -344,6 +399,36 @@ impl WorldGeometry {
         );
         out
     }
+}
+
+/// `line` without the points that lie within `tolerance` of the run joining
+/// the points kept either side (Ramer–Douglas–Peucker): its ends stay.
+fn long_runs(line: &[[f64; 2]], tolerance: f64) -> Vec<[f64; 2]> {
+    let mut keep = vec![false; line.len()];
+    keep[0] = true;
+    keep[line.len() - 1] = true;
+    let mut spans = vec![(0, line.len() - 1)];
+    while let Some((first, last)) = spans.pop() {
+        let farthest = (first + 1..last)
+            .map(|i| {
+                (
+                    i,
+                    contract::ground::segment_distance(line[first], line[last], line[i]),
+                )
+            })
+            .max_by(|a, b| a.1.total_cmp(&b.1).then(b.0.cmp(&a.0)));
+        if let Some((i, distance)) = farthest {
+            if distance > tolerance {
+                keep[i] = true;
+                spans.push((first, i));
+                spans.push((i, last));
+            }
+        }
+    }
+    line.iter()
+        .zip(keep)
+        .filter_map(|(p, kept)| kept.then_some(*p))
+        .collect()
 }
 
 /// `[z, nx, ny, nz, slope_deg, kind, forest, traversable]`, or empty out of bounds.

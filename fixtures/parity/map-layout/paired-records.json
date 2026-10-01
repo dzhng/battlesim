@@ -25,7 +25,7 @@
       "name": "metro small compiled into a map",
       "command": "generate-map",
       "request_json": "{\"generator_version\":\"layout-1\",\"preset_revision\":\"layout-presets-2\",\"seed\":\"3\",\"template_catalog_hash\":\"4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945\",\"type\":\"metro\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":0,\"max_bay_positions\":0,\"max_ground_points\":200000}}",
-      "native_sha256": "ae3d34919f8d5bc23b8990ac48b5100d7a7523f8cbba0f72dcab9e279c3d46e4",
+      "native_sha256": "7b3d7ae53ac4db16364ce87e6ca80ed4102d862fd361766cc447cb78d164b2c5",
       "exit_code": 0
     },
     {

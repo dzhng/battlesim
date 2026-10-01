@@ -84,8 +84,9 @@ fn main() {
  {"kind":"crate","center":[side-20.0,side*0.85],"yaw":-0.4,"half_extents":[3,3,2]}]);
     }
     if arm == "bridge" || arm == "disconnected" {
-        input["water"] =
-            serde_json::json!([{ "rect":[side*0.5-10.0,0,20,side],"bed_z":-2,"surface_z":-0.5}]);
+        let point = |y: f64| serde_json::json!({"xy":[side * 0.5, y],"width_m":20,"depth_m":1.5});
+        input["rivers"] =
+            serde_json::json!([{ "points":[point(0.0), point(side)],"surface_z":-0.5}]);
     }
     if arm == "bridge" {
         input["bridges"] = serde_json::json!([{ "deck":"bridge_deck","center":[side*0.5,side*0.2],"half_extents":[16,5],"yaw":0,"deck_z":0.1,"thickness_m":0.8}]);

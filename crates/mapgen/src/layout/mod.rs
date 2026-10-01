@@ -196,6 +196,7 @@ pub fn generate_layout(
         buildings: Vec::new(),
         surfaces,
         forests,
+        rivers: Vec::new(),
         settlements,
         approaches: Vec::new(),
         unsupported_fields: BTreeMap::new(),

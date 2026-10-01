@@ -8,7 +8,15 @@
     { "kind": "mesa", "rect": [230, 40, 20, 20], "height_m": 10, "side_degrees": 20 },
     { "kind": "mesa", "rect": [320, 40, 20, 20], "height_m": 10, "side_degrees": 45 }
   ],
-  "water": [{ "rect": [180, 100, 24, 120], "bed_z": -2, "surface_z": -1.5 }],
+  "rivers": [
+    {
+      "points": [
+        { "xy": [192, 112], "width_m": 24, "depth_m": 2 },
+        { "xy": [192, 208], "width_m": 24, "depth_m": 2 }
+      ],
+      "surface_z": -0.5
+    }
+  ],
   "surfaces": [
     {
       "kind": "road",

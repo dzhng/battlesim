@@ -31,8 +31,8 @@ extents, which are a user decision (M04 in the [map brief](../../specs/city-maps
   category), each with a stable id, an area and an anchor point. `MapPlan.approaches`
   holds the measured wedges of open ground. Neither reaches the map: the parcel pass
   (C53) turns districts into `buildings`, and the encounter planner reads both.
-- **Rivers are not generated.** The compiler does not admit them yet (C69). They
-  belong after sites and before roads, on a stream of their own.
+- **Rivers are not generated.** The compiler admits them (below), but no layout
+  writes one yet. They belong after sites and before roads, on a stream of their own.
 
 What the presets mean, and why they hold the values they do, is in the
 [C52 slice](../../specs/city-maps/slices/C52-procedural-generator.md) and its
@@ -52,12 +52,14 @@ whitespace and object-key order do not change identity. Version labels are suppl
 by preparation callers, so this is content identity rather than verified source provenance.
 
 The compiler admits physical buildings, ordinary authored bodies, and ground: roads,
-tracks, sidewalks and forests in the contract's shared shapes, which pass into the map
-unchanged. Explicit body IDs enter the contract-owned dense namespace. A ground shape's
-authored points must lie inside the playable rectangle (a stroke may overhang the edge
-by its width). Rivers, land regions and source/art fit remain prerequisites for their
-compiler arms; a requested unsupported feature produces a named error rather than
-disappearing from output.
+tracks, sidewalks, forests and rivers in the contract's shared shapes, which pass into
+the map unchanged. Explicit body IDs enter the contract-owned dense namespace. A ground
+shape's authored points must lie inside the playable rectangle (a stroke or a river may
+overhang the edge by its width). A river the terrain cannot carry is refused as
+`invalid_river`, by the one rule the world loads maps with (`contract::river::validate`).
+A river's rounded samples count toward `max_ground_points` with the strokes'. Land
+regions and source/art fit remain prerequisites for their compiler arms; a requested
+unsupported feature produces a named error rather than disappearing from output.
 
 `MapPlan.size` is the playable rectangle. Admission follows the architecture envelope
 in the city-map scale policy; it defines no rendered surroundings.

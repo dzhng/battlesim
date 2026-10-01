@@ -126,7 +126,7 @@ fn one_slope_cutoff_blocks_everyone_and_routes_go_around() {
 #[test]
 fn water_is_crossed_only_by_the_bridge() {
     let w = world(
-        r#","water":[{"rect":[190,0,20,200],"bed_z":-2,"surface_z":-0.5}],
+        r#","rivers":[{"points":[{"xy":[200,0],"width_m":20,"depth_m":1.5},{"xy":[200,200],"width_m":20,"depth_m":1.5}],"surface_z":-0.5}],
            "bridges":[{"deck":"bridge_deck","center":[200,40],"half_extents":[16,5],"yaw":0,"deck_z":0.1,"thickness_m":0.8}]"#,
     );
     let mut g = grid(&w);
@@ -325,7 +325,9 @@ fn empty_ground_does_not_allocate_navigation_per_square_metre() {
 
 #[test]
 fn an_unbroken_water_strip_proves_no_route_without_exploring_a_map_half() {
-    let w = world(r#","water":[{"rect":[190,0,20,200],"bed_z":-2,"surface_z":-0.5}]"#);
+    let w = world(
+        r#","rivers":[{"points":[{"xy":[200,0],"width_m":20,"depth_m":1.5},{"xy":[200,200],"width_m":20,"depth_m":1.5}],"surface_z":-0.5}]"#,
+    );
     let mut g = grid(&w);
     let plan = g.plan(
         v2(40.0, 100.0),
@@ -344,7 +346,7 @@ fn an_unbroken_water_strip_proves_no_route_without_exploring_a_map_half() {
 #[test]
 fn a_bridge_search_bounds_work_without_changing_the_crossing() {
     let w = world(
-        r#", "water":[{"rect":[190,0,20,200],"bed_z":-2,"surface_z":-0.5}],
+        r#", "rivers":[{"points":[{"xy":[200,0],"width_m":20,"depth_m":1.5},{"xy":[200,200],"width_m":20,"depth_m":1.5}],"surface_z":-0.5}],
         "bridges":[{"deck":"bridge_deck","center":[200,40],"half_extents":[16,5],"yaw":0,"deck_z":0.1,"thickness_m":0.8}]"#,
     );
     for m in [&TANK, &INFANTRY] {
@@ -359,6 +361,41 @@ fn a_bridge_search_bounds_work_without_changing_the_crossing() {
                 "{:?}: {:?}",
                 policy,
                 g.storage()
+            );
+        }
+    }
+}
+
+/// The river lab's meander lies between each start and its goal: a squad and
+/// a tank both go round by the country road's bridge, up its ramp and over
+/// its deck, and no step of either route is on water.
+#[test]
+fn a_meandering_river_is_crossed_by_its_bridge_by_squads_and_tanks() {
+    let map: MapDefinition =
+        serde_json::from_str(include_str!("../../../fixtures/river-lab.json")).unwrap();
+    let w = WorldGeometry::new(&map, &crate::common::rules());
+    let river = &w.rivers()[0];
+    for m in [&TANK, &INFANTRY] {
+        for (from, to) in [
+            (v2(125.0, 195.0), v2(125.0, 300.0)),
+            (v2(450.0, 176.0), v2(420.0, 300.0)),
+            (v2(60.0, 185.0), v2(60.0, 310.0)),
+        ] {
+            let mut g = grid(&w);
+            let r = route(g.plan(from, to, m, RoutePolicy::Shortest));
+            assert_eq!(r.last(), Some(&to));
+            assert!(g.route_fits(from, &r, m));
+            let crossed = std::cell::Cell::new(false);
+            assert!(all_along(from, &r, |p| {
+                let s = w.surface_at(p.x, p.y).unwrap();
+                // Wherever the route is over the river's water it is on the deck.
+                let over_water = river.inside([p.x, p.y]) >= 0.0;
+                crossed.set(crossed.get() || over_water);
+                s.traversable && (!over_water || s.kind == sim::world::SurfaceKind::Bridge)
+            }));
+            assert!(
+                crossed.get(),
+                "the route from {from:?} never crossed the river"
             );
         }
     }

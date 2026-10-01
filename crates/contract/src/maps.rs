@@ -166,6 +166,11 @@ pub fn resolve(
             message: error.message.into(),
         });
     }
+    crate::river::validate(&definition).map_err(|message| ResolveError {
+        code: ResolveCode::InvalidMap,
+        location: "map.json".into(),
+        message,
+    })?;
     let sources: MapSources =
         serde_json::from_str(sources_json).map_err(|e: serde_json::Error| ResolveError {
             code: ResolveCode::InvalidSources,

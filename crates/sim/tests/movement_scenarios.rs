@@ -59,6 +59,12 @@ pub enum CheckKind {
     SoldiersClearOfProps,
     /// No vehicle hull ever overlaps a prop that blocks vehicles.
     VehiclesClearOfProps,
+    /// No living soldier and no vehicle's centre ever stands on water (the
+    /// points the rule reads): a river is crossed on a deck or not at all.
+    NeverInWater,
+    /// No hull corner over water ever hangs more than `max_m` off the deck
+    /// that carries the hull.
+    HullsOverWater { max_m: f64 },
     /// At the end, every squad's soldiers stand at least `min_m` apart.
     Spacing { min_m: f64 },
     /// Soldiers of different squads never come closer than `min_m`.
@@ -375,7 +381,15 @@ fn order(order: Value) -> Value {
 pub fn scenarios() -> Vec<Scenario> {
     let mut all = authored();
     for s in &mut all {
-        s.checks.push(check(NO_TWITCH));
+        // A scenario that names the check itself carries it as written
+        // (pending on the slice that owes the behaviour).
+        if !s
+            .checks
+            .iter()
+            .any(|c| matches!(c.kind, CheckKind::NoTwitch { .. }))
+        {
+            s.checks.push(check(NO_TWITCH));
+        }
     }
     all
 }
@@ -1851,6 +1865,84 @@ fn authored() -> Vec<Scenario> {
                 check(VehiclesClearOfProps),
             ],
         },
+        // The river lab: a squad and a tank on the country road are ordered
+        // up it, over the bridge that carries it across 12 m of water.
+        Scenario {
+            name: "c69-river-bridge",
+            caption: "a squad and a tank go up the road and over the river by its bridge",
+            map: serde_json::from_str(include_str!("../../../fixtures/river-lab.json")).unwrap(),
+            units: json!([
+                rifle("blue", [60.0, 185.0]),
+                vehicle("blue", "tank", [60.0, 150.0], 1.57),
+            ]),
+            events: none.clone(),
+            scripts: json!([go(0, [60.0, 300.0]), go(1, [60.0, 335.0])]),
+            rules: json!({}),
+            seconds: 70.0,
+            seed: 1,
+            checks: vec![
+                check(Arrive {
+                    unit: 0,
+                    at: [60.0, 300.0],
+                    within_m: 1.5,
+                }),
+                check(Arrive {
+                    unit: 1,
+                    at: [60.0, 335.0],
+                    within_m: 1.5,
+                }),
+                check(NeverInWater),
+                check(HullsOverWater { max_m: 0.5 }),
+                check(VehiclesClearOfProps),
+                pending(
+                    "SA2: a squad's files are not fitted to a deck's width; the outer soldiers jostle at its edges (34 reversals)",
+                    NO_TWITCH,
+                ),
+            ],
+        },
+        // The same river from 70 m east of the bridge: the straight line to
+        // each goal lies across the water, so both go round by the bridge
+        // and come back along the far bank. Their routes hug the deck's
+        // near edge, which the checks pending on SA2 measure.
+        Scenario {
+            name: "c69-river-around",
+            caption: "a squad and a tank ordered straight across the river go round by the bridge",
+            map: serde_json::from_str(include_str!("../../../fixtures/river-lab.json")).unwrap(),
+            units: json!([
+                rifle("blue", [125.0, 195.0]),
+                vehicle("blue", "tank", [150.0, 180.0], 1.57),
+            ]),
+            events: none.clone(),
+            scripts: json!([go(0, [125.0, 300.0]), go(1, [150.0, 320.0])]),
+            rules: json!({}),
+            seconds: 110.0,
+            seed: 1,
+            checks: vec![
+                pending(
+                    "SA2: the squad's route runs along the deck's edge, so half its files lie over the water; those soldiers stop on the bank",
+                    Arrive {
+                        unit: 0,
+                        at: [125.0, 300.0],
+                        within_m: 1.5,
+                    },
+                ),
+                check(Arrive {
+                    unit: 1,
+                    at: [150.0, 320.0],
+                    within_m: 1.5,
+                }),
+                check(NeverInWater),
+                pending(
+                    "SA2: the tank's route clips the deck's corner; a hull corner swings 1.9 m off the deck as it turns on",
+                    HullsOverWater { max_m: 0.5 },
+                ),
+                check(VehiclesClearOfProps),
+                pending(
+                    "SA2: the soldiers stopped on the bank keep trying for files over the water",
+                    NO_TWITCH,
+                ),
+            ],
+        },
     ]
 }
 
@@ -2161,6 +2253,53 @@ impl Judge {
                         }
                     }
                 }
+            }
+            CheckKind::NeverInWater => {
+                let wet = |p: V2| {
+                    b.world()
+                        .surface_at(p.x, p.y)
+                        .is_none_or(|s| s.kind == sim::world::SurfaceKind::Water)
+                };
+                for u in units(b).filter(|u| u.alive() && !u.garrisoned()) {
+                    let points: Vec<V2> = match u.hull_box() {
+                        Some(hull) => vec![hull.center],
+                        None => u.member_positions().map(|p| p.xy()).collect(),
+                    };
+                    for p in points {
+                        if wet(p) {
+                            self.note(-1.0, b, || {
+                                format!("unit {} in the water at ({:.1}, {:.1})", u.id.0, p.x, p.y)
+                            });
+                        }
+                    }
+                }
+                self.worst = self.worst.min(0.0);
+            }
+            CheckKind::HullsOverWater { max_m } => {
+                for u in units(b).filter(|u| u.alive()) {
+                    let Some(hull) = u.hull_box() else { continue };
+                    for (x, y) in [(1.0, 1.0), (1.0, -1.0), (-1.0, 1.0), (-1.0, -1.0)] {
+                        let p =
+                            hull.center + v2(hull.half.x * x, hull.half.y * y).rotated(hull.yaw);
+                        let on_water = b
+                            .world()
+                            .surface_at(p.x, p.y)
+                            .is_some_and(|s| s.kind == sim::world::SurfaceKind::Water);
+                        let off_deck = b
+                            .world()
+                            .props_near(p, 40.0)
+                            .iter()
+                            .filter(|q| b.world().types().id(q.kind) == "bridge_deck")
+                            .map(|q| distance_to_box(&q.footprint(), p))
+                            .fold(f64::INFINITY, f64::min);
+                        if on_water {
+                            self.note(max_m - off_deck, b, || {
+                                format!("unit {} corner at ({:.1}, {:.1})", u.id.0, p.x, p.y)
+                            });
+                        }
+                    }
+                }
+                self.worst = self.worst.min(*max_m);
             }
             CheckKind::SquadsNeverOverlap { min_m } => {
                 let squads: Vec<_> = units(b).filter(|u| !u.is_vehicle()).collect();
@@ -2631,6 +2770,10 @@ impl Judge {
                 let label = match kind {
                     CheckKind::SoldiersClearOfProps => "no soldier inside a body".into(),
                     CheckKind::VehiclesClearOfProps => "no hull inside a blocking body".into(),
+                    CheckKind::NeverInWater => "nobody ever stands in water".into(),
+                    CheckKind::HullsOverWater { max_m } => {
+                        format!("no hull corner more than {max_m} m off its deck over water")
+                    }
                     CheckKind::SquadsNeverOverlap { min_m } => {
                         format!("squads' soldiers never within {min_m} m")
                     }

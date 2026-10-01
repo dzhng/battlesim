@@ -293,6 +293,18 @@ fn recomputing_content_hash_cannot_admit_invalid_physical_headers() {
 }
 
 #[test]
+fn recomputing_content_hash_cannot_admit_a_river_the_terrain_cannot_carry() {
+    let mut map: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/geometry-lab.json")).unwrap();
+    map["rivers"][0]["surface_z"] = json!(5.0);
+    let definition: MapDefinition = serde_json::from_value(map).unwrap();
+    let error = admitted(&definition, &sources(&definition))
+        .expect_err("a content hash is not river validation");
+    assert_eq!(serde_json::to_value(&error).unwrap()["code"], "invalid_map");
+    assert!(error.message.contains("above its bank"), "{error}");
+}
+
+#[test]
 fn catalogue_references_refuse_paths_before_source_io() {
     for id in [
         "../village",
