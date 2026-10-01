@@ -3328,6 +3328,12 @@ async function panelLayoutTour(ctx) {
     (await page.locator(selector).getAttribute("data-zoom")) === "default",
   );
   await shot(ctx, page, "panels-hover-card");
+  await page.mouse.click(r.x + 10, r.y + r.height - 5);
+  await lab(page, () => window.__lab.frame());
+  ctx.check(
+    "clicking a hovered card keeps its detail open while the cursor rests there",
+    (await page.locator(selector).getAttribute("data-zoom")) === "default",
+  );
   await page.mouse.move(1885, 25);
   await page.waitForFunction(
     (s) => document.querySelector(s)?.dataset.zoom === "compressed",

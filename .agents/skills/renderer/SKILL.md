@@ -316,4 +316,4 @@ do not care about order, so the pixels stay byte-identical
 
 - **Interactive callouts share the viewport's gesture owner.** A DOM panel above the canvas needs native pointer handling for hover, while click and drag must reach the same capture/release path as battlefield picks. Verify dragging from a panel as well as dragging across one, and test the drawn panel bounds rather than the unit anchor.
 
-- **Held destination previews use the captured press ray.** Camera movement during a drag must not move its destination. Refresh facing through the pointer paint feed, independently of observation ticks, and use the committed order marker geometry so preview and result agree.
+- **Held destination previews use the captured press ray.** Camera movement during a drag must not move its destination. Refresh facing through the pointer paint feed, independently of observation ticks, and use the committed order marker geometry so preview and result agree. Normal pointer-capture release must preserve stationary hover; only an interrupted active gesture cancels it.

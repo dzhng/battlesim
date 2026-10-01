@@ -818,7 +818,16 @@ export function LabViewport({
         canvas.addEventListener("pointerup", onUp, { signal });
         canvas.addEventListener("pointerleave", onLeave, { signal });
         canvas.addEventListener("pointercancel", cancelGesture, { signal });
-        canvas.addEventListener("lostpointercapture", cancelGesture, { signal });
+        canvas.addEventListener(
+          "lostpointercapture",
+          () => {
+            // Normal release ends the gesture, not the stationary pointer's hover.
+            if (rightPress || press || orbit) cancelGesture();
+            else if (pointer)
+              pointerOnCanvas = document.elementFromPoint(pointer.x, pointer.y) === canvas;
+          },
+          { signal },
+        );
         window.addEventListener("blur", cancelGesture, { signal });
         window.addEventListener(
           "keydown",
