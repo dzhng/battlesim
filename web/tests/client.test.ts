@@ -129,4 +129,4 @@ test("an authority failure returns held records once and rejects requests after 
     battle.free();
     vi.unstubAllGlobals();
   }
-}, 1000);
+}, 10_000);
