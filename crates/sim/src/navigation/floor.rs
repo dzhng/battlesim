@@ -117,6 +117,8 @@ mod tests {
     #[test]
     fn a_prop_only_catalog_has_no_required_infantry_or_jeep_kind() {
         let mut input = crate::fixtures::village();
+        input["forests"]["rule"]["logs_per_ha"] = serde_json::json!(5);
+        input["forests"]["rule"]["boulders_per_ha"] = serde_json::json!(3);
         for document in input["catalog"].as_array_mut().unwrap() {
             document.as_object_mut().unwrap().remove("units");
         }
