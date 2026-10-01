@@ -3,7 +3,7 @@
   "preset_revision": "physical-proof-v1",
   "seed": "18446744073709551615",
   "template_catalog_hash": "e429206a4d185397b3e31d9ad30e75e9069407afab8487c6a4ba8105b61cd1d0",
-  "limits": { "max_authored_parts": 3, "max_bay_positions": 32 },
+  "limits": { "max_authored_parts": 3, "max_bay_positions": 32, "max_ground_points": 4096 },
   "plan": {
     "size": [140.0000000001688, 128],
     "fog_cell_m": 40.000000000168804,
