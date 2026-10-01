@@ -166,6 +166,30 @@ fn a_stroke_that_curls_back_past_its_own_start_still_covers_that_ground() {
 }
 
 #[test]
+fn a_bend_close_behind_an_end_does_not_round_past_it() {
+    // A lane 8 m wide whose first run is 2 m long: every sample of the line
+    // for its first 4 m is nearer the end than half the width, and a round
+    // joint at any of them would bulge out past the end's face.
+    for lane in [
+        stroke(&[[0.0, 0.0], [2.0, 0.0], [40.0, 6.0]], 8.0),
+        // The same end in pieces along one straight line.
+        stroke(
+            &[[0.0, 0.0], [1.0, 0.0], [2.0, 0.0], [3.0, 0.0], [40.0, 0.0]],
+            8.0,
+        ),
+    ] {
+        for across in [-3.5, -1.0, 0.0, 1.0, 3.5] {
+            assert!(
+                !lane.contains([-0.05, across], 0.0),
+                "5 cm behind the end, {across} m across it"
+            );
+            assert!(lane.contains([0.0, across], 0.0), "on the end's face");
+        }
+        assert!(lane.contains([1.0, 3.9], 0.0) && lane.contains([30.0, 2.0], 0.0));
+    }
+}
+
+#[test]
 fn a_stroke_stays_round_at_a_bend() {
     // A right-angle turn. On the outside of the bend the paving runs round
     // the corner: the rounded line passes through the control point, so the

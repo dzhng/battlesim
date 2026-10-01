@@ -2224,6 +2224,14 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 
 **Verdict:** sound. One rule, no per-kind exception and no schema field. Tree lines: no saved map and no generator output has a stroke forest today; a square-ended strip is what a hedgerow or shelter belt is. **Confidence:** high.
 
+### Stretches close behind an end are cut too
+
+**Choice:** A stroke is tested stretch by stretch between its rounded samples. The first stretch is cut at the stroke's first point and the last at its last; and every stretch that starts within half the width of the first point, measured along the line, is cut square at its own start, and likewise at the other end (`contract::ground::stretches`).
+
+**Gap:** Cutting only the first and last stretch is not enough. The round joint between two stretches is a disc of half the width, so a bend, or just a second sample, within half a width of the end bulges out past the end's face. The GPU check found it on a ground whose samples are 2 m apart under roads 6 to 12 m wide: no end there read differently from a round cap.
+
+**Verdict:** sound. Every saved and generated road's first bend is farther than half a width from its end, so only their first and last stretches are cut and no saved digest or oracle moved. Where a stroke does bend that close behind its end, the outside of the bend there has small wedges between stretches in place of a bulge. **Confidence:** medium.
+
 ### Rivers keep their round ends
 
 **Choice:** A river is not a ground stroke. It has its own contract (`contract::river`), whose one distance also sets the height the bed and bank are carved to. That distance still clamps to its end points.
@@ -2244,7 +2252,7 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 
 **Choice:** `surfaceStrokeFields` and `forestStrokeFields` gain a last column, `cuts` (stride 6 to 7), and the layout a `strokeCuts` entry naming its two bits. The renderer reads the stretch through one module (`terrain/strokes.ts`), on the CPU and in WGSL.
 
-**Gap:** A stretch between two samples cannot know it is its stroke's first or last.
+**Gap:** A stretch between two samples cannot know how near its stroke's end it is.
 
 **Verdict:** sound. The alternative, a flag packed into the sign of the half width, hides a contract in an encoding. **Confidence:** high.
 
@@ -2304,11 +2312,11 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 
 **Verdict:** provisional. It removed about half of those steps and made more streets carry through. **Confidence:** medium.
 
-### What is left: 1.3 ends in a thousand
+### What is left: 1.1 ends in a thousand
 
 **Choice:** `tests/road_ends.rs` allows 2 ends in a thousand to be a bite or a step in a joint, and none to be a gap before a road, a face at the map's edge or a road stranded in open ground.
 
-**Gap:** Three joints are not closed: two roads of one width that fork at less than about 70° (two rectangles cannot fill that point, and a weld would be a hairpin); three ends that stand a few metres apart round one junction; two streets of one width laid side by side for a few metres. A wider road that ends on narrower ones shows its shoulders and is counted sound: the road narrows there.
+**Gap:** Two kinds of joint are not closed: three or more roads of one width that meet at a point at sharp angles, or whose ends stand a few metres apart round one junction; and two streets of one width laid side by side for a few metres. (Two roads that fork alone, too sharply to be one road, are closed: the first runs on over the second one's end. The unprimed critique found that fork as a stepped tip before this.) A wider road that ends on narrower ones shows its shoulders and is counted sound: the road narrows there.
 
 **Verdict:** provisional. The bound is a measured count, to be lowered as those are closed and never raised. **Confidence:** medium.
 

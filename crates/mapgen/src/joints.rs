@@ -19,11 +19,11 @@
 //! A wider road that ends on a narrower one shows its shoulders, which is
 //! what a road that narrows looks like.
 //!
-//! Not closed yet, and counted by `tests/road_ends.rs`: two roads of one
-//! width that fork at less than about 70°, which leave a bite between their
-//! ends; three roads whose ends stand a few metres apart round one junction;
-//! and two streets of one width laid side by side, which leave a step where
-//! one stops.
+//! Not closed yet, and counted by `tests/road_ends.rs`: three or more roads
+//! of one width that meet at a point at sharp angles, or whose ends stand a
+//! few metres apart round one junction, which leave a bite between their
+//! ends; and two streets of one width laid side by side, which leave a step
+//! where one stops.
 //!
 //! The plan's road graph joins two roads where their centrelines cross
 //! (`layout::measure`), so no step here may leave an end touching a line
@@ -707,7 +707,9 @@ fn weld(ways: Vec<Way>) -> Vec<Way> {
 ///   shoulder either side of it: the road narrows;
 /// - otherwise the wider way runs on until the narrower one leaves through
 ///   its side: the corner is the wider road's, its own end is the corner's
-///   outer edge, and the narrower one's end lies under it.
+///   outer edge, and the narrower one's end lies under it. Two of one width
+///   that meet alone and fork too sharply to be one road are closed the
+///   same way: the first runs on over the second one's end.
 ///
 /// Returns the ends it moved. Every end at such a place moves, or none
 /// does: an end left on the point the others ran on from would touch lines
@@ -770,10 +772,17 @@ fn corner(ways: &mut [Way]) -> Vec<End> {
             let (at, out_of) = ways[from.0].end(from.1);
             let b = ways[from.0].half();
             let normal = [-out_of[1], out_of[0]];
-            // Over every narrower end here that does not fit inside this one.
+            // Over every narrower end here that does not fit inside this one;
+            // and, of two of one width that meet alone and fork (each turns
+            // back past a right angle into the other), the first over the
+            // second.
             for &to in &node {
                 let a = ways[to.0].half();
-                if to.0 == from.0 || a >= b || inside(to, from).is_some() {
+                let forks = a == b
+                    && dot(out_of, ways[to.0].end(to.1).1) > 0.0
+                    && from < to
+                    && node.len() == 2;
+                if to.0 == from.0 || !(a < b || forks) || inside(to, from).is_some() {
                     continue;
                 }
                 let Some(theirs) = own(to) else { continue };
@@ -1092,6 +1101,45 @@ mod tests {
                     "{name}: {road:?} at {p:?}"
                 );
             }
+        }
+    }
+
+    #[test]
+    fn two_tracks_that_fork_sharply_leave_no_bite_between_their_ends() {
+        // Both leave (400, 400), 30° apart: too sharp a turn from one into
+        // the other to be one track.
+        let closed = close(
+            vec![
+                way(
+                    SurfaceKind::DirtTrack,
+                    4.0,
+                    &[[400.0, 400.0], [600.0, 400.0]],
+                ),
+                way(
+                    SurfaceKind::DirtTrack,
+                    4.0,
+                    &[[400.0, 400.0], [573.21, 500.0]],
+                ),
+            ],
+            SIZE,
+            &[],
+        );
+        assert_eq!(closed.len(), 2);
+        // Each end's face is wholly under the other track or wholly clear of
+        // it: a face half covered is a bite between the two.
+        for (own, line) in lines(&closed).iter().enumerate() {
+            let out_of = scale(sub(line[0], line[1]), 1.0 / distance(line[0], line[1]));
+            let under = [-1.0, -0.5, 0.0, 0.5, 1.0]
+                .into_iter()
+                .filter(|share| {
+                    let p = add(line[0], scale([-out_of[1], out_of[0]], 2.0 * share));
+                    closed[1 - own].shape.contains(p, FLUSH_M)
+                })
+                .count();
+            assert!(
+                under == 0 || under == 5,
+                "way {own}: {under} of 5: {line:?}"
+            );
         }
     }
 

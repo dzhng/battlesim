@@ -469,11 +469,11 @@ test("mixed forest exports retain authored IDs and real concave and square-ended
     [2, 130, 50, 9],
     [2, 100, 80, -Math.SQRT2 * 30 + 9],
     // The strip ends square across its first point (100, 20): behind it, just
-    // inside it, and off its corner at (93.64, 26.36): 3.73 m aside of the
+    // inside it, and off its corner at (106.36, 13.64): 3.73 m aside of the
     // strip's width and 1.41 m past its end.
     [2, 100, 10, -Math.hypot(5, 5)],
     [2, 101, 21, Math.SQRT2],
-    [2, 90, 28, -Math.hypot(18 / Math.SQRT2 - 9, Math.SQRT2)],
+    [2, 108, 10, -Math.hypot(18 / Math.SQRT2 - 9, Math.SQRT2)],
   ]) {
     expect(forestInside(shapes[id], x, y)).toBeCloseTo(distance, 10);
     expect(shapes.some((shape) => forestInside(shape, x, y) >= 0)).toBe(

@@ -127,10 +127,11 @@ impl End {
 }
 
 /// Of every thousand road ends, at most this many may be a bite or a step
-/// in a joint: the three joints the joint pass does not close yet (two roads
-/// of one width that fork sharply, three ends a few metres apart round one
-/// junction, and two streets laid side by side where one stops). Measured
-/// at 1.3 over this sweep; lower it as those are closed, never raise it.
+/// in a joint: the joints the joint pass does not close yet (three or more
+/// roads of one width meeting at sharp angles or with their ends a few
+/// metres apart, and two streets laid side by side where one stops).
+/// Measured at 1.1 over this sweep; lower it as those are closed, never
+/// raise it.
 const BITES_PER_THOUSAND: usize = 2;
 
 /// Every carriageway stroke end of `plan`: what it is, where, and whose.

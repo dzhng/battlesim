@@ -18,7 +18,7 @@
       "name": "metro large",
       "command": "generate",
       "request_json": "{\"generator_version\":\"layout-5\",\"preset_revision\":\"layout-presets-6\",\"seed\":\"7\",\"template_catalog_hash\":\"ed9981b358116490fd50585874a615ac427af819628e097cc2bf4216cda4f2cb\",\"type\":\"metro\",\"size\":\"large\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
-      "native_sha256": "7dbc1fa6c84da2eff083fb37dcca93d0bca9a4db4012c29bab6d059890b1eb1b",
+      "native_sha256": "23f2989620c5c5960777c780a5cec0314164b820227fec9dd0fc00a372182b57",
       "exit_code": 0
     },
     {

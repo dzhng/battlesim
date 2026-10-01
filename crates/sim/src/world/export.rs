@@ -20,8 +20,8 @@ pub const PROP_STRIDE: usize = 10;
 /// min x, min y, width, height, z.
 pub const AREA_STRIDE: usize = 5;
 /// One stretch of a stroke between two rounded samples: end a, end b, half
-/// width, surface tag, and which of its ends are the stroke's own, cut square
-/// (`contract::ground::CUT_A | CUT_B`).
+/// width, surface tag, and which of its ends are cut square
+/// (`contract::ground::CUT_A | CUT_B`, from `contract::ground::stretches`).
 pub const SURFACE_STROKE_STRIDE: usize = 7;
 /// A forest stroke's stretch: as a surface's, with the forest's id for the tag.
 pub const FOREST_STROKE_STRIDE: usize = 7;
@@ -274,7 +274,8 @@ impl WorldGeometry {
             } = &area.shape
             {
                 let kind = surface_area_tag(area.kind) as f64;
-                for (a, b, cuts) in contract::ground::stretches(centerline.samples()) {
+                for (a, b, cuts) in contract::ground::stretches(centerline.samples(), width_m / 2.0)
+                {
                     out.extend(
                         [a[0], a[1], b[0], b[1], width_m / 2.0, kind, cuts as f64]
                             .map(|v| v as f32),
@@ -353,7 +354,8 @@ impl WorldGeometry {
                 width_m,
             } = &f.shape
             {
-                for (a, b, cuts) in contract::ground::stretches(centerline.samples()) {
+                for (a, b, cuts) in contract::ground::stretches(centerline.samples(), width_m / 2.0)
+                {
                     out.extend(
                         [
                             a[0],

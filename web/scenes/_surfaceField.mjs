@@ -177,6 +177,8 @@ export async function surfaceFieldAgreement(ctx) {
               ay = records[o + 1],
               dx = records[o + 2] - ax,
               dy = records[o + 3] - ay;
+            // The dense ground pins a few stretches against the map's edge.
+            if (dx === 0 && dy === 0) continue;
             const t = Math.min(
               1,
               Math.max(0, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)),

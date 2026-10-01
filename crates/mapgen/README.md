@@ -114,7 +114,8 @@ cut along them. After it, a road's end is one of these, and
   narrower one's end. A narrower road that carries nearly straight on runs back
   into the wider one instead, and the wider one's end shows a shoulder either
   side: the road narrows. A wider road that comes onto a narrower one at a slant
-  crosses it whole.
+  crosses it whole. Two roads of one width that fork too sharply to be one road
+  are closed like unlike ones: the first runs on over the second one's end.
 - **Square on the map's edge.** A road that leaves the map at a slant turns
   square to the edge over its last two widths, so its end lies along the edge.
 - **At the last block it serves.** A road that runs out past the last block on
@@ -128,9 +129,9 @@ itself the same way. Whatever two roads' centrelines crossed before, they cross
 after or are one road; where a change would break that, the roads concerned are
 left exactly as they were laid and the rest are closed round them.
 
-Not closed yet, and counted by the test (1.3 in a thousand ends): two roads of
-one width that fork sharply, three ends a few metres apart round one junction,
-and two streets laid side by side where one stops.
+Not closed yet, and counted by the test (1.1 in a thousand ends): three or more
+roads of one width that meet at sharp angles or with their ends a few metres
+apart, and two streets laid side by side where one stops.
 
 ## Parcels and buildings (`parcels`)
 

@@ -89,7 +89,7 @@ export async function forestExportAgreement(ctx) {
       { name: "just inside the strip's square end", xy: [101, 21], distance: Math.SQRT2 },
       {
         name: "off the corner of the strip's square end",
-        xy: [90, 28],
+        xy: [108, 10],
         distance: -Math.hypot(18 / Math.SQRT2 - 9, Math.SQRT2),
       },
     ];

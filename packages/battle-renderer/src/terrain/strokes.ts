@@ -12,7 +12,8 @@ import { segment2 } from "math/shapes";
 export const STROKE_FLOATS = 7;
 /** Where a stretch's cut ends are in its record. */
 export const STROKE_CUTS = 6;
-/** The stretch's end `a` (`b`) is its stroke's first (last) point. */
+/** The stretch is cut square at its end `a` (`b`): its stroke ends there, or
+ *  within half its width of there. */
 export const CUT_A = 1;
 export const CUT_B = 2;
 
