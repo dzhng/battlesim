@@ -1858,3 +1858,13 @@ frame. This is a scoped systems decision, not a source-art acceptance.
 **Reach:** These are measurement seams, not production telemetry or game settings. The measured city runs are crossings and controlled body churn, not accepted generated encounters or a rendered-frame gate. The separate endurance battle covers sustained combat.
 
 **Verdict:** sound. Both time measures stay visible, and the instruction count remains the comparison authority. **Confidence:** high.
+
+
+### C80 fresh critique follow-up
+
+An unprimed review subsequently became available and confirmed the grass-only
+shots cannot measure world height or certify blade appearance. Pixel differences
+are real but the small verge change is not perceptually persuasive. Keep the
+validator/scales on the physical proof; retain pixelated silhouettes, diagonal
+repetition and ambiguous dark-region cues as specialist appearance work. No
+source or look gate is reblessed by this systems pass.

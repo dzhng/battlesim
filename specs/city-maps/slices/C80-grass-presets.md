@@ -71,3 +71,12 @@ open with the specialist. The scoped validator decision stands on actual vertex
 bounds, the shared renderer multipliers, adversarial failures and production
 pixel-difference evidence. A later fresh critique may add appearance findings;
 this pass does not accept the broader grass look.
+
+Fresh critique follow-up: once a slot became available, an unprimed agent
+inspected all four full/detail images. It saw no perceptible improvement between
+the matched frames despite the measured pixel difference, described pixelated
+flecks/tangled fine strands and patterned diagonal repetition, and found the
+left dark region ambiguous between shadow and fog. Neither view provides a
+world-height reference. These baseline appearance findings remain in the visual
+pass; no grass-look acceptance is claimed. The effective-height guard and lower
+scales remain justified by the physical bound and actual production execution.
