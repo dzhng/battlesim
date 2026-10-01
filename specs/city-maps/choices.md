@@ -1701,7 +1701,238 @@ The layout generator now writes a river and its bridges. The seam and the measur
 **Verdict:** open, in two parts. Planning: six units a side were sent across six river maps for 300 s. On the 8 km and 10 km maps two units were refused a route and two were still planning at the end, and three ticks on one map retired about 1.0 G instructions each; none of that happened on the same seeds without a river. Jamming: given 900 s, seven of eight vehicles crossed Mixed Small, but on Open Small only three of eight did, because four vehicles of one side stood waiting behind one of the other side on a road 700 m from the water. Without the river seven of eight arrived. A river sends both sides down the few roads that lead to a bridge. **Confidence:** high that both are the simulation and not the map: units do cross by the decks, a test proves each deck can be walked onto and across, and the jam was on dry ground. Low on how often the jam happens: it was one map of two, and an earlier run of the same seed had six of eight arrive.
 
 
-## C44 street bodies — physical catalog pass (2026-10-01)
+## Simulation lane decisions
+
+Review first: the provisional building HP coefficient, legacy source-fact bridge,
+and the bridge-approach tradeoff below. This section supersedes the earlier
+map-lane decision to leave river planning limits unchanged; the simulation lane
+now owns those mechanics. Art acceptance and complete G0 remain separate work.
+
+### Sound, with provisional values or a retained source gap
+
+#### C42/C43 — bulk integrity has a provisional coefficient
+
+When two building parts overlap, their shared ground area counts once toward
+integrity. The coefficient multiplies that union footprint by the first three
+floor bands, the same band policy used for fighting seats. Computing area once
+from immutable source geometry avoids changing bulk when a damaged shell loses
+height. Summing part rectangles would give overlapping compounds extra HP.
+The coefficient is currently one in the rules fixture; C50 owns final balance.
+**Confidence:** high on area/ownership, medium on that starting balance value.
+
+#### C40 — preserve only the identified legacy source bridge
+
+Old authored box fixtures have no authoritative floor heights or bay positions.
+They keep one ground band with approximately three-metre facade spacing.
+Integrity and collapse classification also use the one-band legacy fallback;
+this is a compatibility policy, not a claim that the source has one floor. Once
+floor heights are supplied, an unresolved bay list supplies no seats: the
+simulation cannot invent upper-floor windows. Resolved facades remain usable.
+Removing the bridge today would remove fighting positions from those frozen
+inputs; extending it to known floors would create a competing facade owner.
+Remove it when preparation supplies complete physical facts. **Confidence:**
+high on preserving those inputs, low on their eventual source-window fit.
+
+#### SA6 — prefer a finishable aligned bridge approach
+
+A move whose direct terrain leg crosses water asks the road graph for a bridge,
+even under shortest policy. It joins and leaves through authored road approaches,
+rather than cutting diagonally onto a deck where the formation or turning hull
+cannot finish. Shortest compares distance; fastest compares travel time. The
+unbuilt alternative is a more globally optimal approach that still satisfies
+those physical constraints. This can make a cross-river route longer than a dense
+planner's route; it does not redefine ordinary shortest moves or relax body fit.
+**Confidence:** high on physical completion, medium on global optimality.
+
+#### C77 — density is a sparse candidate ceiling
+
+Logs and boulders each use an independently seeded jittered lattice. Candidates
+that cannot fit are omitted without retrying or moving a trunk. Logs are placed
+first, boulders second, after all existing trunks. A narrow or densely planted
+wood may admit no floor bodies. The alternative, hunting until an exact count
+fits, would add unbounded startup work and disturb the established tree layout.
+Configured densities are candidate ceilings, with a hard admission cap of
+100 per hectare to preserve sparse startup work. **Confidence:** medium;
+actual density depends on the available physical gaps.
+
+#### SA5 — direct page lookup spends directory memory
+
+A terrain or foliage sample addresses a directory of sparse pages. Missing
+terrain pages mean exactly flat ground; missing foliage pages mean open ground.
+Existing samples, interpolation and clearing remain authoritative. Keeping the
+old tree/hash lookup at every ray sample would spend less directory memory but
+repeat more work. A larger extent or finer cells must measure this trade again;
+empty height fields allocate no directory. **Confidence:** medium on the memory
+trade, high on preserving sample semantics.
+
+### Sound owner and behavior decisions
+
+#### C40/C41 — one occupied seat plan supplies eyes and muzzles
+
+The capped plan distributes seats across building-frame directions and samples
+physical bay lists evenly, highest eligible band first. Each direction sees
+from its highest occupied living seat, with stable seat-index ties. Weapon
+assessment uses actual living carriers' muzzles; launch owns window-swap delay.
+A hypothetical nearest vacant window could allow a shot no participating soldier
+can fire. Whole-squad admission is checked again when entry finishes because
+supply may replenish the squad during its entry timer. **Confidence:** high.
+
+#### C40 — replacement height clips seats without revealing hidden changes
+
+An optional holdable damaged shell reuses only source bays below its remembered
+remaining height. Physical entry checks the live shell. Original authored IDs
+retain their source plan while remembered, so an unseen collapse cannot change
+command admission. Holdable replacement states share one height across parts;
+full per-part heights belong to terminal ungarrisonable gutted shells. The
+alternative, reading live replacement height at command time, leaks hidden
+changes. **Confidence:** high.
+
+#### C42/C43 — building policy belongs in catalog data
+
+An explicit HP-scaling enum is independent of permission to garrison. The
+optional building-remains policy supplies the collapse fraction, cap, floor
+threshold and terminal gutted kind. Ordinary props retain fixed HP and ordinary
+destruction chains. A per-kind simulation branch would split the catalog owner
+and make new building types require code. Aggregate replacement states remain
+immovable until one owner can move a whole compound coherently. **Confidence:**
+high.
+
+#### C42/C43 — placement owns the whole destruction chain
+
+A catalog row may be usable in a building aggregate but cannot be spawned as an
+ordinary crate, trunk, deck or vehicle wreck if any later state needs building
+seats or scaled HP. One catalog traversal checks the ordinary/aggregate placement
+context for every declared state. Boot validates actual bindings; dynamic births
+validate their own context; a replacement inherits its old body's retained
+geometry owner. This replaces separate guards and closes the later-state hole
+without adding a serialized field, cache or recurring movement check. Unused
+aggregate-capable rows can remain in the same catalog. **Confidence:** high.
+
+#### C42/C43 — retain floor ownership after an occupant dies
+
+A soldier who dies on an elevated fighting floor retains that floor's building
+owner even after the entire squad dies and releases its hold. When support is
+removed, existing and new deaths settle on the existing ground/deck surface at
+their XY position. The tall gutted exterior also loses fighting floors. Identity
+and facing remain; settling does not reroll survival. Keeping only the live
+squad's hold would strand previously dead occupants in the air. This is internal
+simulation state, with no new public corpse fields. **Confidence:** high.
+
+#### C42/C43 — a corpse position follows side knowledge
+
+The observing side remembers a movable floor corpse's last-seen pose. A hidden
+collapse updates its own casualties immediately but cannot move a remembered
+enemy corpse until sight returns. Ordinary ground deaths retain their immutable
+pose path and original digest bytes. The existing knowledge owner stores these
+conditional snapshots; a separate corpse-knowledge subsystem would duplicate
+that owner. The renderer refreshes dying, resting and fading anchors without
+restarting death or bringing a faded body back. **Confidence:** high.
+
+#### SA5 — reuse indexes and invalidate only visited occlusion tiles
+
+Eyes query existing body/forest buckets; a visited four-by-four fog-cell tile
+rasterizes the same cell centres as before. An obstacle revision invalidates
+cached tops, but only subsequently visited tiles rebuild. Forest candidates are
+sorted before unchanged span integration. Each side indexes its authoritative
+remembered bodies through the same two mutation owners; a read-only accessor
+prevents unsynchronized writes. A second sweep-only copy or whole-map rebuild
+would add another authority or repeated global work. **Confidence:** high.
+
+#### SA5 — omit only rays proven unable to add visibility
+
+A ray skips physical sampling only after proving every cell it could visit is
+already in that side's visible union. Checking the farthest cells first changes
+proof cost, not the answer. Eye order, shape and cadence remain unchanged.
+Learning a visible building part still reveals all current live parts, and uses
+immutable historical identities to remove far remembered replacements. Nearby
+index discovery cannot turn an aggregate into independently learned pieces.
+**Confidence:** high.
+
+#### SA5 — reports distinguish work from scheduling delay
+
+The city report can repeat its existing unit mix to a hundred units per side;
+its original six-unit scenario remains unchanged. It reports process CPU time
+beside wall time and retired instructions. A tick delayed by other work remains
+a delayed wall-time tick; CPU time only helps attribute the delay. Reports are
+measurement seams rather than production telemetry or new game settings.
+**Confidence:** high.
+
+#### SA6 — public terrain can prove disconnection, removable bodies cannot
+
+Connected terrain row runs are built before stamping bodies. Different component
+labels prove an impossible crossing; equal labels merely admit physical search.
+Repeated identical row intervals share a query band. Long terrain probes and
+route revalidation keep cursors across scheduler steps instead of scanning a
+whole leg in one tick. A removable or unseen wreck cannot establish permanent
+river disconnection. **Confidence:** high.
+
+#### SA6 — road-access discovery belongs to each endpoint
+
+If nearby road accesses are absent or all physically inaccessible, search arcs
+incrementally for the nearest terrain-legal access at that endpoint. Retain the
+existing access-radius band beyond the nearest candidate. Discovering a start
+access cannot suppress a later goal search. Rejecting one connector leaves the
+road arc usable by other journeys. Soldiers share the squad's global corridor
+and test terrain for their local lanes, avoiding eight independent global
+searches. **Confidence:** high.
+
+#### SA6 — stalled followers may make room
+
+Every stalled vehicle may try a local detour, and a newly committed route clears
+an obsolete reversing manoeuvre. Straight followers reserve turning room; that
+extra longitudinal reserve is removed while reversing, turning or approaching a
+corner. Arc probes stop at the remaining heading error and may not create or
+deepen hull overlap. Numeric unit priority alone could keep the rear vehicle
+from yielding forever while its leader needs room to reverse. **Confidence:**
+high on the defined physical moments; dense traffic still relies on local yielding.
+
+#### C77 — conservative placement preserves routes
+
+A body's bounding circle must fit inside forest/map boundaries and remain clear
+of roads, water, trunks and other bodies. A diagonal log cannot poke onto a road
+merely because its centre fits. A bounded local navigation check then preserves
+each old component and its open boundary for the actual catalog movement
+profiles. Rejected candidates roll back. One temporary shared grid is built only
+for active floor density; an influence window over 4096 cells per fit pattern omits the candidate.
+Sampling a few routes would not prove that no enclosed pocket was introduced.
+Conservative rejection may reduce density. **Confidence:** high.
+
+#### C77 — default activation waits for drawing
+
+Missing optional floor fields mean zero density, preserving frozen inputs. The
+playable village also keeps zero density until accepted log/boulder drawing
+exists; explicit systems trials use five log and three boulder candidates per
+hectare. Pending art resolves to no model, so default activation would create invisible blockers.
+Dynamic felled trees retain the existing cleared-ground lifecycle; this does not
+add a separate tree-to-log rule. **Confidence:** high.
+
+#### C44/C77 — unfinished art is represented explicitly
+
+New physical catalog rows carry `appearance.status: systems_only` and their
+intended scenery name. A bench cannot silently borrow crate art and claim a
+fitted source. Ordinary appearance checks remain strict, and pending rows must
+have no accepted binding. C45/C78 supply and fit real art before removing that
+status. **Confidence:** high.
+
+#### C80 — the bound includes all geometry and runtime multipliers
+
+The validator measures actual vertices at every LOD and composes both runtime
+height maxima. Horizontal ribbon width permits only bake roundoff. Wheat scale is reduced to 0.65 and verge scale to one to meet the 0.9 m
+effective field-height cap. Testing only LOD0 or
+individual multipliers would miss a taller far tier or an excessive product.
+This accepts a physical bound, while silhouette, shadow/fog cues and appearance
+remain specialist work. **Confidence:** high.
+
+#### C86 — tree lines consume the existing forest owner
+
+A tree line is the shared Stroke forest shape with ordinary trunks, canopy and
+foliage. A narrow strip can conceal distant identification while remaining
+transparent at close range. Its canopy extends past the authored ground strip
+using real trunk radii. A second always-opaque hedgerow mechanic would change
+sight and duplicate the geometry contract. The village gains no tree lines.
+**Confidence:** high.
+
+### Delegated starting physical values — C44/C77
 
 ### Per-kind war-film audit (delegated values)
 
@@ -1735,321 +1966,8 @@ The HP and weight values in the catalog are starting physical values, not a
 balance claim. The closed storage cabin avoids turning a street prop into a
 second garrison representation; a future occupied cabin must be a C01 aggregate.
 
-### Unaccepted art is explicit in the prop appearance contract
-
-**Choice:** Each new physical row carries `appearance.status: systems_only` and
-its intended scenery name. For example a bench participates in collision and
-cover, but it cannot claim the existing crate art as a fitted bench. The asset
-coverage gate still requires every ordinary row to have an accepted binding;
-systems-only rows are checked to have no accepted binding, and the playable
-village's authored objects and their remains must keep accepted bindings.
-
-**Gap:** The required prop appearance field had no way to distinguish a physical
-row awaiting art from a released binding, while this pass explicitly defers art.
-**Reach:** C45/C78 must supply and fit the actual art and remove the status; adding
-art under a systems-only name deliberately makes the gate red until that handoff.
-**Verdict:** sound: this represents the existing systems/art boundary without a
-fake source or weakening ordinary appearance checks. **Confidence:** high.
-
-
-## C40/C41 occupied floor bands and eyes (2026-10-01)
-
-**Choice:** Allocate the capped seats round-robin across facade directions and
-sample their physical bay lists evenly, ordered from the highest eligible band.
-Publish the highest occupied seat per direction, with stable seat-index ties.
-Assessment checks real weapon participants, while launch owns window-swap delay.
-**Gap:** The spec fixed physical bays, three floors, 32 seats and at most four
-occupied eyes, but not selection/tie policy. **Verdict:** sound; one physical seat
-plan owns occupancy, vision and firing origins. **Confidence:** high.
-
-**Choice:** Authored legacy boxes with absent floor/bay metadata retain one
-ground band and approximately three-metre bay spacing. **Gap:** Existing frozen
-fixtures predate physical source authoring. **Verdict:** provisional, scoped to
-those inputs. It cannot certify source window fit or actual floor count. Remove
-it when the preparation lane supplies complete facts. **Confidence:** high on
-compatibility, low on visual fit. Complete generated descriptors stay strict.
-Once floor facts exist, an unresolved bay list supplies no seats; otherwise an
-upper floor could gain invented windows. Resolved facades remain usable. The
-alternative was extending the legacy lattice onto source-authored floors, which
-would give simulation a competing facade owner.
-
-**Choice:** Recheck whole-squad admission at entry completion, using the same
-immutable capacity as command admission. **Gap:** Supply can replenish a squad
-during its entry timer. **Verdict:** sound; no partial admission or empty seats
-for newly living members. **Confidence:** high from red/green battle evidence.
-
-**Choice:** A holdable replacement clips original floor bays to its observed
-remaining shell height. When a squad enters a damaged two-metre shell, it cannot
-stand at the destroyed building's three-metre floor. Command admission uses the
-side's remembered body; entry uses the actual live state. Original authored IDs
-retain source capacity even after a hidden collapse. **Gap:** The contract kept
-immutable source bays but did not say how an optional holdable replacement loses
-floors. **Reach:** Holdable `into` states share one height across their parts;
-terminal per-part-height gutted states remain ungarrisonable. No extra snapshot
-or live-world command API is required. **Verdict:** sound; capacity follows known
-physical height without exposing hidden changes. **Confidence:** high.
-
-## C42/C43 building integrity and terminal remains (2026-10-01)
-
-**Choice:** HP floor bands share the seating owner's first-three-floor count;
-coefficient 1 lives in fixture data pending C50. Footprint means the union of
-part rectangles, cached once with immutable source facts. **Gap:** The spec
-names banded floors and delegates the initial coefficient but leaves compound
-area semantics implicit. **Verdict:** sound owner/area semantics; provisional
-balance value. Overlap must not create extra bulk. **Confidence:** high on
-geometry and ownership; final balance needs C50.
-
-**Choice:** Optional destroyed-row building policy contains the height fraction,
-maximum ruin height, six-floor threshold and terminal kind. HP scaling is an
-explicit body enum independent of garrison permission, admitted only on a
-building aggregate. **Gap:** Ordinary props and authored destruction chains
-already use the same catalog. **Verdict:** sound; ordinary fixed HP/destruction
-stays representable without per-kind simulation branches. **Confidence:** high.
-
-**Choice:** Enforce the aggregate's immovable-body boundary through its declared
-remains chain and gutted alternative when loading the map. A building cannot
-collapse into separate shoveable crates while its immutable source bays still
-claim one fixed structure. Ordinary prop chains continue to permit movement.
-**Gap:** Initial aggregate bodies were constrained, but replacement rows were
-not. **Reach:** Composite building motion remains an unbuilt feature; every
-future state must respect that boundary until one owner can move the compound.
-**Verdict:** sound; the load boundary prevents an actual valid-catalog hole
-without adding a runtime special case. **Confidence:** high.
-
-## C80 effective field height (2026-10-01)
-
-**Choice:** Measure all actual LOD vertices and compose both 1.2 runtime maxima;
-require horizontal ribbon width, tolerating only 1e-6 bake roundoff. Lower wheat
-scale to 0.65 and verge to 1 so existing assets meet 0.9 m. **Gap:** Individual
-multipliers looked safe while their product exceeded the field contract, and a
-far tier can exceed LOD0. **Verdict:** sound physical bound; field appearance
-remains a specialist decision. **Confidence:** high from falsified checks.
-
-
-C80 checkpoint disposition: the five-minute non-blocking Preview review received
-no response. Keep the effective-height correction, supported by the composed
-vertex bound and production pixel difference; leave silhouette, shadow/fog cue
-and full preset appearance acceptance open. The all-slots-busy adversarial visual
-critique found no basis to certify world height from this unrulered grass-only
-frame. This is a scoped systems decision, not a source-art acceptance.
-
-
-## SA5: reach-local sight and fog
-
-### Direct page directories trade a small fixed memory cost for cheap repeated reads
-
-**When:** SA5, 2026-10-01.
-
-**Choice:** A fog ray looking up ground or foliage first addresses a small directory of pages. A missing height page means exactly flat ground; a missing foliage page means open ground. Only populated pages hold samples. Heights retain their sampled triangles, and foliage and clearing use the existing lossless page owner. An open foliage cell needs no clearing-mask query, since clearing cannot add foliage. The alternative was keeping hash/tree lookup at every sample, or adding a second sweep-only copy beside the world.
-
-**Gap:** The slice specified exact results and reach-local cost, but not the lookup representation.
-
-**Reach:** The world's queries and exports continue reading one authority. Directory memory grows with the possible page count, while sample storage stays sparse; a larger extent or finer cell size must measure that trade again. Empty height fields allocate no directory. This is runtime lookup work in the map-owned world files, not a map-loading or generation change.
-
-**Verdict:** sound. The common case performs fewer reads without changing interpolation, cell boundaries, export ordering, or clearing. **Confidence:** medium; sparse directories spend some memory on absent pages to avoid repeated searches.
-
-### Reuse the world's body and forest buckets, and rasterize occluders only where eyes look
-
-**When:** SA5, 2026-10-01. The index selection and tile size are explicitly delegated by the slice.
-
-**Choice:** When a ray first visits a four-by-four fog-cell tile, the world’s existing body buckets supply the bodies nearby, and the tile rasterizes the same cell centres as before. Its cached tops carry the world's obstacle revision; after an add, move or removal, only subsequently visited tiles rebuild. At the usual eight-metre fog cell this is a 32 m tile. Identification lines reuse the forest's existing 64 m buckets, widened to include canopy reach. Candidate forest IDs are sorted before the unchanged span integration, so even its rounding and overlapping-span behavior remain identical.
-
-**Gap:** The slice did not choose an index or rebuild unit.
-
-**Reach:** The physical world and forest reuse their existing indexes. Each side separately indexes the authoritative snapshots in its remembered-standing map; its two mutation owners insert, replace and remove those entries. The map is private with a read-only accessor, so a reader cannot bypass index synchronization. A moved body anywhere invalidates the cache cheaply, but it does not cause a whole-map raster rebuild. Forest ground membership still tests the exact authored shape; wider buckets add candidates, never forest ground. The conservative index includes both exact shape limits and the canopy bounds that the existing span sampler computes.
-
-**Verdict:** sound. Cache invalidation and canopy-edge mistakes were independently falsified in tests; restoring the implementation restores the exact results. **Confidence:** high.
-
-### Skip only rays that cannot add a visibility bit, and retain whole-building revelation
-
-**When:** SA5, 2026-10-01.
-
-**Choice:** If previous eyes already marked every cell a ray could visit, that ray cannot add anything to the side's union of visible ground and skips its terrain and foliage work. The proof checks farthest cells first: unseen ends often reject it immediately, while reversing the complete membership check cannot change its answer. A temporary endurance attribution found the forward order exceeded 33 ms and the reverse order stayed below it. Otherwise it runs the original sweep. Learning bodies starts with the existing body index around each eye, including a margin for the last ray step and its fog cell. If a near building part is visible, learning still includes every live part of that building, even a far replacement outside the eye's reach. Clearing remembered bodies likewise uses the building's immutable historical IDs, including far snapshots, while ordinary remembered-body discovery queries the side's spatial index. Live parts are looked up by the building's immutable identity, distinct from the current integrity owner.
-
-**Gap:** The contract preserved what the side learns but left repeated work and aggregate candidate discovery unspecified.
-
-**Reach:** Eye order, sight shape, fog cadence, identification cadence and learning order remain unchanged. The small world seam for current and historical building parts replaces the unused map-wide state iterator. SideGeometry owns its snapshot index and its lifetime; the shared navigation base supplies only the grid extent. The dense 32 m snapshot buckets add about 4.5 MiB across both sides on a 10 km map. Looking up the old structure owner's parts would silently miss far replacements; the wide-compound regression proves the difference.
-
-**Verdict:** sound. The preflight checks the entire ray; checking just its first cell fails the union test. The wider building test fails with historical parts and passes with live parts. **Confidence:** high.
-
-### Measure a real force and expose scheduling delay separately
-
-**When:** SA5, 2026-10-01.
-
-**Choice:** The city report accepts a hundred units per side, repeating its existing vehicle/squad mix on parallel lanes. Its original six-unit input keeps the same positions and script. Native reports retain wall time and retired instructions; the city report also prints process CPU time, converted from macOS Mach time using the system's timebase. A delayed 52 ms tick that used 20 ms of CPU remains a 52 ms wall-time result, rather than being hidden by the cost measure.
-
-**Gap:** The tool capped forces at six, and wall time alone could not distinguish simulation work from this shared machine's scheduling delays.
-
-**Reach:** These are measurement seams, not production telemetry or game settings. The measured city runs are crossings and controlled body churn, not accepted generated encounters or a rendered-frame gate. The separate endurance battle covers sustained combat.
-
-**Verdict:** sound. Both time measures stay visible, and the instruction count remains the comparison authority. **Confidence:** high.
-
-
-### C80 fresh critique follow-up
-
-An unprimed review subsequently became available and confirmed the grass-only
-shots cannot measure world height or certify blade appearance. Pixel differences
-are real but the small verge change is not perceptually persuasive. Keep the
-validator/scales on the physical proof; retain pixelated silhouettes, diagonal
-repetition and ambiguous dark-region cues as specialist appearance work. No
-source or look gate is reblessed by this systems pass.
-## SA6: bridge corridors, impossible orders and passing columns
-
-### Public terrain proves disconnection; bodies do not
-
-**Choice:** Build connected horizontal runs from public terrain before stamping bodies. Different component labels prove an impossible crossing immediately; equal labels only admit physical search. Adjacent rows with identical open intervals share a query band. Straight-leg queries intersect those intervals exactly, reading at most 128 bands per scheduler step; road connectors retain their cursor. Completed routes rechecked after knowledge changes also retain a segment cursor and use the stricter no-shove rule.
-
-**Gap:** Search exhaustion was being used to discover two disconnected river banks, and whole-leg terrain or revision scans could burst through the tick allowance.
-
-**Verdict:** sound. An unbridged 2.8 km move is refused on tick 1 and never plans again. The long revision check and both uniform and irregular diagonal allowance-1 tests pass. The topology ignores removable bodies and conservatively admits diagonal terrain connections; it cannot use an unseen wreck as a disconnection proof. Construction visits stored pages and row intervals, not every implicit open cell. **Confidence:** high.
-
-### A river journey joins a bridge on its authored approach
-
-**Choice:** When the straight leg crosses blocked public terrain, ask the road graph even for shortest moves, accepting that alternative only when it crosses a physical bridge. Disable joining/leaving slants for that journey: a tank aligns on the deck rather than cutting from the bank. Soldiers still share one squad corridor; their local lane candidates additionally respect terrain. If a blocked straight leg has no road within the configured access radius of an endpoint, discover terrain-reachable roads one arc per scheduler step, retaining the existing access-radius band beyond the nearest legal road, then perform the same footprint refinement. This discovery also starts when every nearby access is on the wrong bank. Discovery bookkeeping belongs to each endpoint independently: finding a missing start access cannot suppress the later search for a legal goal access. A failed physical connector rejects that endpoint access, leaving its road arc usable by other journeys. Shortest ranks connectors, arcs and its graph heuristic in metres; Fastest ranks them in estimated seconds. A faster paved bridge cannot outweigh a shorter dirt crossing for Shortest. The usual legal off-road fallback remains.
-
-**Gap:** The graph could join a nearby road across the river, cut a bridge approach, or never be asked because a dry goal lay beyond the access radius.
-
-**Verdict:** a named route-quality tradeoff, accepted under `scale-direction.md`. The dense oracle's physical-fit and reachability assertions remain unchanged. At e931971d, before the final policy-unit correction, across 12,064 cases, shortest mean ratio changes from 1.003865 to 1.006525, worst from 1.078079 to 1.316296 (70 of 4,867 routes exceed 10%); fastest mean changes from 1.004325 to 1.005874, worst from 1.096532 to 1.195372 (30 of 4,757 exceed 10%). The concrete worst shortest case is infantry `[15,2]` to `[60,44]` beside the corpus river/bridge: 82.90 m along aligned road access versus the dense planner's 62.98 m. This preserves shortest intent on ordinary terrain and trades some cross-river optimality for an approach the full formation and turning hull can finish. No oracle or movement tolerance was relaxed. **Confidence:** high on physical behavior, medium on global optimality.
-
-### A stalled column can make room for the vehicle ahead
-
-**Choice:** Every stalled vehicle may seek a local detour; numeric unit priority does not forbid the rear vehicle from moving aside. A newly committed route replaces its old reversing manoeuvre. Forward straight followers reserve the larger of turning radius and hull half-length; that extra longitudinal reserve is disabled while reversing, turning, manoeuvring, or approaching a route corner within turning radius plus hull half-length whose angle exceeds the existing turning threshold. Static and live-traffic arc probes compare overlap depth against the initial hull, and a committed move may not create or deepen physical overlap.
-
-**Gap:** A front vehicle needed room to reverse while its rear follower could not yield; old yaw comparisons admitted overlap, and full-curvature prediction overshot a jeep's small remaining turn around a wreck.
-
-**Verdict:** sound. All eight opposing vehicles finish the unchanged bridge-column scenario with no hull overlap, water standing or turning-radius violation. The wreck jeep reaches its goal instead of issuing the same route repeatedly. The lookahead bends only through the remaining heading error. These are named mechanic and digest changes, rather than a performance-only claim. **Confidence:** high for the pinned moments; broader dense traffic remains dependent on local yielding.
-## C77 forest bodies — physical core (2026-10-01)
-
-### Per-kind war-film audit (delegated values)
-
-A fallen log stops intersecting rounds and is medium infantry cover. Its medium
-weight stops a jeep but allows a tank to shove it; sustained damage removes it.
-It never topples again, clears ground or adds foliage. A boulder is immovable
-heavy cover: a jeep must drive around it, ordinary fire cannot destroy it, and
-its small footprint does not turn into a fog-cell wall. Both block infantry,
-who walk around them, and vehicles. The starting log HP is 120; physical half
-sizes are `[2.2, 0.35, 0.35]` m and `[1, 0.8, 0.75]` m respectively.
-The systems floor placement inputs are 5 logs and 3 boulders per hectare before rejection; default playable densities remain zero.
-These are delegated physical starting values, not balance tuning.
-
-### Density means a sparse candidate ceiling
-
-**Choice:** A log candidate starts in each cell of an independent jittered
-lattice with the configured per-hectare density. If it overlaps a tree's gap,
-a road, water, another body or the forest edge, it is omitted. For example a
-small wood with no suitable gap can produce no logs rather than moving a tree
-or searching indefinitely. The boulder lattice has its own seed and applies the
-same checks after logs. Existing forest jitter controls both new lattices.
-
-**Gap:** The spec specified sparse density but not retries, exact counts or gap
-failure behavior. **Reach:** Density tuning changes candidate opportunities;
-accepted density can be lower, especially in narrow strips or dense woods.
-**Verdict:** sound: deterministic bounded work preserves trunks and omits cover
-that cannot physically fit. **Confidence:** medium.
-
-### The entire body footprint must fit and leave clearance
-
-**Choice:** Placement reserves the body's bounding circle inside the forest and
-map, away from roads and water, and at least the existing trunk clearance from
-other bodies. A long diagonal log cannot poke onto a road just because its center
-fits. This is conservative: some edge spots whose actual rectangle fits will
-still be rejected. **Gap:** The spec named trunk-free gaps but did not say how
-rotated bodies fit the boundary. **Reach:** C78 art must fit the configured body;
-it cannot make a wider fallen trunk occupy a corridor reserved by placement.
-**Verdict:** sound: shared distance/shape queries keep physical clearance honest.
-**Confidence:** high.
-
-### Frozen inputs retain a disabled floor, and live inputs are admitted at load
-
-**Choice:** Missing floor densities and dimensions are zero and missing catalog
-references are absent. Old frozen parity scenarios therefore stand the same
-trunks with no new floor bodies. The live village explicitly supplies both types
-and both dimensions, but leaves default densities zero until real drawing is
-accepted. Systems trials explicitly use 5/3 candidates per hectare. A positive density requires a valid
-ordinary catalog body, finite positive dimensions and finite lattice spacing;
-entries with garrison, toppling or foliage properties are refused. Each density
-is capped at 100 candidates per hectare (one per 100 square metres) to preserve
-sparse startup work on large maps. **Gap:** Frozen rules predate the floor fields,
-and admission bounds were unspecified. **Reach:** Increasing density past this
-ceiling needs a measured admission change; art-only species cannot add physical
-floor rules. **Verdict:** sound: identified frozen consumers retain behavior and
-unbounded density cannot silently become map-scale work. **Confidence:** medium.
-
-Dynamic felled trees retain the existing cleared-ground lifecycle. This pass
-adds real generated fallen logs, not a new tree-to-log destruction mechanic.
-The systems-only appearance boundary remains unaccepted: these physical bodies
-affect explicit native systems trials before their models exist. Default playable
-placement waits for accepted drawing, so C78 visual acceptance and GIFs stay open.
-
-
-## C86 tree lines — simulation contract (2026-10-01)
-
-### Reuse the forest shape and rule already in production
-
-**Choice:** A tree line is the existing shared `GroundShape::Stroke` forest,
-including rounded/densified control runs, ordinary trunk placement and ordinary
-foliage. For example a far-field recon squad is identified on open ground but
-loses identification through the strip; a closer squad is still visible through
-the same thin line. No extra opaque-hedgerow rule is introduced. Crown coverage
-follows the real trunk's canopy radius past the narrow authored strip boundary.
-
-**Gap:** The original slice proposed a separate Rect/Stroke forest enum, but the
-shared Polygon/Stroke contract already implemented that physical capability.
-**Reach:** The farmland/plot/art pass must consume this existing geometry and
-public canopy rather than adding a second tree-line interpretation. The village
-map receives no tree lines. **Verdict:** sound: one forest rule governs the strip
-without creating an exaggerated always-opaque barrier or duplicated shape.
-**Confidence:** high.
-
-
-## C77 route-preserving admission (2026-10-01)
-
-**Choice:** Sparse geometric spacing remains a cheap first filter, followed by a
-bounded shared-navigation connectivity guard for every candidate. It preserves
-each old component's surviving cells in the influence window and its open
-boundary. The graph uses the same fits/crossings as route planning, with current
-catalog mobility deduplicated by mover class, push class and width. This proves preservation by splicing unchanged
-outside routes through the retained boundary; three sampled forests alone cannot
-prove it. Rejected trials are rolled back, accepted trials retained. **Gap:** The
-spec required no enclosed gaps but did not prescribe the proof or placement cost.
-**Reach:** One temporary navigation base/grid is built when floor density is
-nonzero; admission uses incremental body updates, not per-candidate grid rebuilds.
-The guarded window is capped at 4096 cells per distinct fit pattern; extreme imported floor dimensions
-are omitted rather than causing unbounded startup work. Existing per-hectare
-candidate ceiling and no-retry semantics remain. The guard preserves all actual catalog movement profiles rather than requiring named rifle/jeep types; a prop-only catalog has no fictitious movers. **Verdict:** sound; conservative
-rejection can reduce actual floor density but cannot close an existing route or
-create a pocket. **Confidence:** high on route correctness; startup cost must be
-measured before calling the systems slice green.
-
-### Default activation waits for accepted drawing
-
-The canonical playable village retains zero floor densities. The 5 log/3
-boulder candidates per hectare are explicit systems test/measurement inputs,
-not active production placement. Pending `systems_only` bindings resolve to no
-model; ordinary generated props are not building-part massing. Enabling them by
-default would create invisible blockers. A strict release regression now refuses
-active village floor density without accepted drawing, first red on the active
-pending log and then green with default activation deferred. C78 must install
-real accepted models/drawing before enabling the default. Prototype massing in
-explicit systems lab evidence certifies only native geometry/state, never art.
-
-
-### Paired rule-change evidence does not certify a timing budget
-
-**Choice:** Measure the same final SA5+C40–43 source with default 0/0 and explicit
-systems 5/3 floor densities. Count accepted and rejected candidates as well as
-complete-battle instructions, outcomes, digests, startup and RSS. The village
-systems arm admits ten bodies without moving its 687 trunks; startup costs an
-extra 144.2 million instructions and about 1.1 MiB peak RSS. Whole-battle work is
-1150→1109 G in six quick trials and 1451.6→1449.9 G in five-minute endurance.
-These are changed physical battles: one flank capture moves earlier and the
-endurance has two additional soldier casualties. **Gap:** Candidate density
-alone cannot demonstrate that useful cover exists or isolate runtime cost.
-**Reach:** Native physical/resource evidence is complete, while default drawing
-and timing acceptance stay explicit gates. The host was busy and even the zero
-control exceeds 33 ms; process CPU maxima are 52.33→71.60 ms, so the run neither
-certifies a timing pass nor isolates a worst-tick regression. Default activation
-remains deferred rather than claiming pending models or timing passed.
-**Verdict:** sound disclosure; measured instruction/resources are useful across
-changed battles, while the timing limitation stays visible. **Confidence:** high
-on recorded behavior and costs; unresolved on active-variant quiescent timing.
+A log is destructible medium cover that stops intersecting rounds; a tank can
+shove it but a jeep cannot. A boulder is immovable heavy cover and routes traffic
+around its footprint. Their initial dimensions/HP and street-row values are
+physical starting values, not a final balance claim. Placement and accepted art
+remain owned by their later slices.
