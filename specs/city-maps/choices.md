@@ -1733,6 +1733,15 @@ inputs; extending it to known floors would create a competing facade owner.
 Remove it when preparation supplies complete physical facts. **Confidence:**
 high on preserving those inputs, low on their eventual source-window fit.
 
+#### C40 — demonstrate the firing seam with the existing rifle squad
+
+The catalog has no dedicated infantry MG unit. The physical recording therefore
+uses its existing rifle squad firing from floor three over a five-metre obstacle;
+the gun-agnostic seat/muzzle contract is exercised without inventing a new unit
+or borrowing a weapon model. The exact MG/window visual moment remains a later
+unit/source presentation task. **Confidence:** high on the physical seam, medium
+on substituting this demonstration for the slice's named MG shot.
+
 #### SA6 — prefer a finishable aligned bridge approach
 
 A move whose direct terrain leg crosses water asks the road graph for a bridge,
@@ -1742,6 +1751,8 @@ cannot finish. Shortest compares distance; fastest compares travel time. The
 unbuilt alternative is a more globally optimal approach that still satisfies
 those physical constraints. This can make a cross-river route longer than a dense
 planner's route; it does not redefine ordinary shortest moves or relax body fit.
+The worst observed routes in the frozen corpus cost about 20% more than the
+dense planner's route; this is an observed tradeoff, not a universal error bound.
 **Confidence:** high on physical completion, medium on global optimality.
 
 #### C77 — density is a sparse candidate ceiling
