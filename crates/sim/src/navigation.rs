@@ -20,6 +20,7 @@ use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap};
 use std::ops::{Index, IndexMut};
+use std::sync::Arc;
 
 use contract::command::RoutePolicy;
 use contract::map::MoverClass;
@@ -198,6 +199,8 @@ pub struct NavGrid {
     scratch: Scratch,
     /// Conservative rectangles containing every nonuniform surface or known body.
     regions: Regions,
+    /// What each mover and policy planned with so far makes of the whole map.
+    totals: RefCell<Vec<(TotalsKey, Arc<MoverTotals>)>>,
     queued: usize,
     heap_peak: usize,
     expanded: usize,
@@ -264,6 +267,30 @@ struct SearchBound {
     target: usize,
     nx: usize,
 }
+/// Everything about a mover and policy that [`MoverTotals`] reads.
+type TotalsKey = (MoverClass, PushClass, [u64; 3], RoutePolicy);
+
+/// What the whole map holds for one mover and policy, whatever the route:
+/// the map-wide parts of the planner's shortcut proofs, worked out once.
+struct MoverTotals {
+    /// Cells the mover cannot enter, by column and by row.
+    closed_columns: Vec<u32>,
+    closed_rows: Vec<u32>,
+    /// Some cell the mover enters has a cost that is not positive and
+    /// finite, or not positive and normal.
+    unbounded_cost: bool,
+    abnormal_cost: bool,
+    /// Some cell, entered or not, is faster than open ground.
+    faster_than_open: bool,
+    /// The cheapest cell the mover enters (infinite when it enters none).
+    minimum_cost: f64,
+    /// How much cheaper than open ground every faster cell is, summed in
+    /// cell order.
+    discount: f64,
+    /// The cells cheaper than open ground lie within `[x0, y0, x1, y1]`.
+    faster_bounds: Option<[usize; 4]>,
+}
+
 /// The nonuniform rectangles, bucketed so a cell asks only about those near
 /// it: a full-size map has one for every tree. A query sees exactly the
 /// rectangles within [`Regions::REACH_M`] of its point, plus every irregular
@@ -686,6 +713,7 @@ impl NavGrid {
             avoid: Vec::new(),
             scratch: Scratch::new(nx),
             regions: Regions::new(regions, world.width(), world.depth()),
+            totals: RefCell::default(),
             queued: 0,
             heap_peak: 0,
             expanded: 0,
@@ -1023,7 +1051,8 @@ impl NavGrid {
         self.heap_peak = 0;
         self.expanded = 0;
         self.stale = 0;
-        if self.separated(start, target, m) {
+        let totals = self.totals(m, policy);
+        if self.separated(start, target, &totals) {
             return Plan::Blocked(BlockReason::NoRoute);
         }
         if self.uniform_segment(from, goal, start, target, m, policy) {
@@ -1037,7 +1066,7 @@ impl NavGrid {
         let h = |k: usize, nx: usize| {
             (cell_center(k % nx, k / nx) - target_center).length() / heuristic_speed
         };
-        let bound = self.search_bound(start, target, m, policy);
+        let bound = self.search_bound(start, target, m, policy, &totals);
         let implicit_costs = [
             Self::cell_cost(&self.cells.implicit[3], m, policy, NAV_CELL_M),
             Self::cell_cost(
@@ -1280,33 +1309,30 @@ impl NavGrid {
         Some(total)
     }
 
-    fn search_cut(&self, start: usize, target: usize, m: &Mobility) -> Option<SearchCut> {
-        let mut counts = [HashMap::<usize, usize>::new(), HashMap::new()];
-        for (&k, c) in &self.cells.changed {
-            let enters = match m.class {
-                MoverClass::Infantry => c.infantry,
-                MoverClass::Vehicle => Self::vehicle_enters(c, m.push),
-            };
-            if !enters {
-                *counts[0].entry(k % self.nx).or_default() += 1;
-                *counts[1].entry(k / self.nx).or_default() += 1;
-            }
-        }
+    fn search_cut(
+        &self,
+        start: usize,
+        target: usize,
+        m: &Mobility,
+        totals: &MoverTotals,
+    ) -> Option<SearchCut> {
+        let counts = [&totals.closed_columns, &totals.closed_rows];
         let mut best = None;
         for (axis, columns) in counts.iter().enumerate() {
             let vertical = axis == 0;
             let coordinate = |k| if vertical { k % self.nx } else { k / self.nx };
             let (a, b) = (coordinate(start), coordinate(target));
             let extent = if vertical { self.ny } else { self.nx };
-            let candidates: Vec<_> = columns
-                .iter()
-                .filter(|&(at, count)| *at > a.min(b) && *at < a.max(b) && *count > extent / 2)
+            // The lines strictly between the endpoints that are mostly closed.
+            let candidates: Vec<(usize, usize)> = (a.min(b) + 1..a.max(b))
+                .map(|at| (at, columns[at] as usize))
+                .filter(|&(_, count)| count > extent / 2)
                 .collect();
-            let Some((&at, &count)) = candidates.iter().copied().max_by_key(|&(at, count)| {
+            let Some(&(at, count)) = candidates.iter().max_by_key(|&&(at, count)| {
                 (
-                    *count,
-                    std::cmp::Reverse((2 * *at).abs_diff(a + b)),
-                    std::cmp::Reverse(*at),
+                    count,
+                    std::cmp::Reverse((2 * at).abs_diff(a + b)),
+                    std::cmp::Reverse(at),
                 )
             }) else {
                 continue;
@@ -1316,8 +1342,8 @@ impl NavGrid {
             if extent - count > 64 {
                 continue;
             }
-            let low = candidates.iter().map(|(at, _)| **at).min().unwrap();
-            let high = candidates.iter().map(|(at, _)| **at).max().unwrap();
+            let low = candidates.first().unwrap().0;
+            let high = candidates.last().unwrap().0;
             let portals: Vec<_> = (0..extent)
                 .map(|other| {
                     if vertical {
@@ -1359,6 +1385,7 @@ impl NavGrid {
         target: usize,
         m: &Mobility,
         policy: RoutePolicy,
+        totals: &MoverTotals,
     ) -> Option<SearchBound> {
         let unit = match policy {
             RoutePolicy::Shortest => 1.0,
@@ -1367,36 +1394,13 @@ impl NavGrid {
         if !unit.is_normal() || unit <= 0.0 {
             return None;
         }
-        let mut minimum_unit = unit;
-        let mut discount = 0.0;
-        let mut rectangle_discount = f64::INFINITY;
-        let mut faster_bounds: Option<[usize; 4]> = None;
-        for (&k, c) in &self.cells.changed {
-            let enters = match m.class {
-                MoverClass::Infantry => c.infantry,
-                MoverClass::Vehicle => Self::vehicle_enters(c, m.push),
-            };
-            if !enters {
-                continue;
-            }
-            let cost = self.cost(k, m, policy, 1.0);
-            if !cost.is_normal() || cost <= 0.0 {
-                return None;
-            }
-            minimum_unit = minimum_unit.min(cost);
-            // In a simple route a cell contributes at most two half-diagonal
-            // steps. Discount every faster cell once, including cells the
-            // actual route never reaches: this can only lower the estimate.
-            discount += (unit - cost).max(0.0) * NAV_CELL_M * std::f64::consts::SQRT_2;
-            if cost < unit {
-                let (x, y) = (k % self.nx, k / self.nx);
-                faster_bounds = Some(match faster_bounds {
-                    None => [x, y, x, y],
-                    Some([x0, y0, x1, y1]) => [x0.min(x), y0.min(y), x1.max(x), y1.max(y)],
-                });
-            }
+        if totals.abnormal_cost {
+            return None;
         }
-        if let Some([x0, y0, x1, y1]) = faster_bounds {
+        let minimum_unit = unit.min(totals.minimum_cost);
+        let discount = totals.discount;
+        let mut rectangle_discount = f64::INFINITY;
+        if let Some([x0, y0, x1, y1]) = totals.faster_bounds {
             // Relax all faster-cell half-edges to a convex rectangle at the
             // fastest cost. A minimum-cost relaxed path visits that rectangle
             // once: an excursion can be replaced inside it by the octile
@@ -1426,7 +1430,7 @@ impl NavGrid {
         if rounding >= 0.001 {
             return None;
         }
-        let cut = self.search_cut(start, target, m);
+        let cut = self.search_cut(start, target, m, totals);
         let mut upper = self
             .walk_bound(start, target, m, policy, 0.0)
             .unwrap_or(f64::INFINITY);
@@ -1490,38 +1494,85 @@ impl NavGrid {
         })
     }
 
-    /// A closed row or column across the grid is a cut in the existing
-    /// eight-neighbour graph. This certifies disconnection without a flood fill.
-    fn separated(&self, start: usize, target: usize, m: &Mobility) -> bool {
-        let (sx, sy) = (start % self.nx, start / self.nx);
-        let (tx, ty) = (target % self.nx, target / self.nx);
-        let mut columns = HashMap::<usize, usize>::new();
-        let mut rows = HashMap::<usize, usize>::new();
-        for (&at, c) in &self.cells.changed {
-            let enters = match m.class {
-                MoverClass::Infantry => c.infantry,
-                MoverClass::Vehicle => Self::vehicle_enters(c, m.push),
-            };
-            if enters {
+    fn enters(c: &Cell, m: &Mobility) -> bool {
+        match m.class {
+            MoverClass::Infantry => c.infantry,
+            MoverClass::Vehicle => Self::vehicle_enters(c, m.push),
+        }
+    }
+
+    /// The map-wide totals for this mover and policy: one pass over the
+    /// cells that differ from open ground, in cell order (so the sums are
+    /// the same on every run and build), then kept for the grid's life.
+    fn totals(&self, m: &Mobility, policy: RoutePolicy) -> Arc<MoverTotals> {
+        let key: TotalsKey = (
+            m.class,
+            m.push,
+            [m.off_road_mps, m.road_mps, m.forest_multiplier].map(f64::to_bits),
+            policy,
+        );
+        if let Some((_, totals)) = self.totals.borrow().iter().find(|(k, _)| *k == key) {
+            return totals.clone();
+        }
+        let unit = match policy {
+            RoutePolicy::Shortest => 1.0,
+            RoutePolicy::Fastest => 1.0 / m.off_road_mps,
+        };
+        let mut totals = MoverTotals {
+            closed_columns: vec![0; self.nx],
+            closed_rows: vec![0; self.ny],
+            unbounded_cost: false,
+            abnormal_cost: false,
+            faster_than_open: false,
+            minimum_cost: f64::INFINITY,
+            discount: 0.0,
+            faster_bounds: None,
+        };
+        let mut order: Vec<usize> = self.cells.changed.keys().copied().collect();
+        order.sort_unstable();
+        for k in order {
+            let c = &self.cells.changed[&k];
+            let (x, y) = (k % self.nx, k / self.nx);
+            totals.faster_than_open |=
+                m.speed(c.road_factor, c.forest, c.slope_deg) > m.off_road_mps;
+            if !Self::enters(c, m) {
+                totals.closed_columns[x] += 1;
+                totals.closed_rows[y] += 1;
                 continue;
             }
-            let (x, y) = (at % self.nx, at / self.nx);
-            if x > sx.min(tx) && x < sx.max(tx) {
-                let count = columns.entry(x).or_default();
-                *count += 1;
-                if *count == self.ny {
-                    return true;
-                }
-            }
-            if y > sy.min(ty) && y < sy.max(ty) {
-                let count = rows.entry(y).or_default();
-                *count += 1;
-                if *count == self.nx {
-                    return true;
-                }
+            let cost = Self::cell_cost(c, m, policy, 1.0);
+            totals.unbounded_cost |= !cost.is_finite() || cost <= 0.0;
+            totals.abnormal_cost |= !cost.is_normal() || cost <= 0.0;
+            totals.minimum_cost = totals.minimum_cost.min(cost);
+            // In a simple route a cell contributes at most two half-diagonal
+            // steps. Discount every faster cell once, including cells the
+            // actual route never reaches: this can only lower the estimate.
+            totals.discount += (unit - cost).max(0.0) * NAV_CELL_M * std::f64::consts::SQRT_2;
+            if cost < unit {
+                totals.faster_bounds = Some(match totals.faster_bounds {
+                    None => [x, y, x, y],
+                    Some([x0, y0, x1, y1]) => [x0.min(x), y0.min(y), x1.max(x), y1.max(y)],
+                });
             }
         }
-        false
+        let totals = Arc::new(totals);
+        self.totals.borrow_mut().push((key, totals.clone()));
+        totals
+    }
+
+    /// A closed row or column across the grid is a cut in the existing
+    /// eight-neighbour graph. This certifies disconnection without a flood fill.
+    fn separated(&self, start: usize, target: usize, totals: &MoverTotals) -> bool {
+        let (sx, sy) = (start % self.nx, start / self.nx);
+        let (tx, ty) = (target % self.nx, target / self.nx);
+        let closed = |counts: &[u32], a: usize, b: usize, full: usize| {
+            counts[a.min(b)..a.max(b)]
+                .iter()
+                .skip(1)
+                .any(|&count| count as usize == full)
+        };
+        closed(&totals.closed_columns, sx, tx, self.ny)
+            || closed(&totals.closed_rows, sy, ty, self.nx)
     }
 
     /// In a uniform, open endpoint rectangle every optimal grid path is
@@ -1540,6 +1591,7 @@ impl NavGrid {
         if self.nx < 2 || !self.fits_at(from, m) {
             return false;
         }
+        let totals = self.totals(m, policy);
         if policy == RoutePolicy::Fastest {
             let diagonal = Self::cell_cost(
                 &self.cells.implicit[3],
@@ -1554,28 +1606,11 @@ impl NavGrid {
                 || m.max_speed() <= 0.0
                 || !(1.0 / m.off_road_mps).is_normal()
                 || !ceiling.is_finite()
-                || self.cells.changed.iter().any(|(&k, c)| {
-                    let enters = match m.class {
-                        MoverClass::Infantry => c.infantry,
-                        MoverClass::Vehicle => Self::vehicle_enters(c, m.push),
-                    };
-                    enters && {
-                        let cost = self.cost(k, m, policy, 1.0);
-                        !cost.is_finite() || cost <= 0.0
-                    }
-                })
+                || totals.unbounded_cost
+                || totals.faster_than_open
             {
                 return false;
             }
-        }
-        if policy == RoutePolicy::Fastest
-            && self
-                .cells
-                .changed
-                .values()
-                .any(|c| m.speed(c.road_factor, c.forest, c.slope_deg) > m.off_road_mps)
-        {
-            return false;
         }
         let a = cell_center(start % self.nx, start / self.nx);
         let b = cell_center(target % self.nx, target / self.nx);
@@ -1585,19 +1620,40 @@ impl NavGrid {
         let y1 = from.y.max(goal.y).max(a.y).max(b.y);
         // This halo also certifies the clearance of every monotonic grid path.
         let halo = MAX_CLEARANCE_M + NAV_CELL_M;
-        if self.cells.changed.iter().any(|(&k, c)| {
+        let exceptional = |k: usize, c: &Cell| {
             let p = cell_center(k % self.nx, k / self.nx);
-            let exceptional = !c.ground
+            (!c.ground
                 || c.heaviest != NO_BODY
                 || (m.class == MoverClass::Infantry && c.free != ALL_FREE)
                 || (policy == RoutePolicy::Fastest
-                    && m.speed(c.road_factor, c.forest, c.slope_deg) != m.off_road_mps);
-            exceptional
+                    && m.speed(c.road_factor, c.forest, c.slope_deg) != m.off_road_mps))
                 && p.x <= x1 + halo
                 && p.x >= x0 - halo
                 && p.y <= y1 + halo
                 && p.y >= y0 - halo
-        }) {
+        };
+        // Read whichever is fewer: the cells the rectangle can hold (a cell
+        // either side covers the rounding of its edges) or every cell that
+        // differs from open ground.
+        let (i0, j0) = cell_of(v2(x0 - halo, y0 - halo));
+        let (i1, j1) = cell_of(v2(x1 + halo, y1 + halo));
+        let columns = (i0 - 1).max(0) as usize..=((i1 + 1).max(0) as usize).min(self.nx - 1);
+        let rows = (j0 - 1).max(0) as usize..=((j1 + 1).max(0) as usize).min(self.ny - 1);
+        let within = columns.clone().count().saturating_mul(rows.clone().count());
+        let found = if within <= self.cells.changed.len() {
+            rows.into_iter().any(|j| {
+                columns.clone().any(|i| {
+                    let k = j * self.nx + i;
+                    self.cells
+                        .changed
+                        .get(&k)
+                        .is_some_and(|c| exceptional(k, c))
+                })
+            })
+        } else {
+            self.cells.changed.iter().any(|(&k, c)| exceptional(k, c))
+        };
+        if found {
             return false;
         }
         if self.avoid.iter().any(|b| {

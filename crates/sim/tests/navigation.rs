@@ -411,3 +411,45 @@ fn polygon_road_costs_are_shared_by_navigation_while_sidewalks_cost_ground() {
         ground.route_time(from, &[to], &TANK)
     );
 }
+
+/// One grid serves every mover and policy of its side: what an earlier plan
+/// worked out about the whole map must not answer for a different mover.
+#[test]
+fn a_grid_plans_each_mover_and_policy_as_a_fresh_grid_would() {
+    // A road that pays for vehicles, and a line of teeth only infantry pass.
+    let teeth: Vec<String> = (0..100)
+        .map(|k| {
+            format!(
+                r#"{{"kind":"wall","center":[200,{}],"yaw":0,"half_extents":[0.4,0.4,0.6]}}"#,
+                1.0 + 2.0 * k as f64
+            )
+        })
+        .collect();
+    let w = world(&format!(
+        r#","surfaces":[{{"kind":"road","shape":{{"kind":"stroke","points":[[20,20],[20,160],[180,160],[180,20]],"width_m":10}}}}],"props":[{}]"#,
+        teeth.join(",")
+    ));
+    let jeep = Mobility {
+        off_road_mps: 9.0,
+        road_mps: 30.0,
+        ..TANK
+    };
+    let legs = [
+        (v2(20.0, 20.0), v2(180.0, 20.0)),
+        (v2(150.0, 100.0), v2(250.0, 100.0)),
+        (v2(230.0, 30.0), v2(380.0, 170.0)),
+    ];
+    let mut shared = grid(&w);
+    for m in [&TANK, &INFANTRY, &jeep, &TANK] {
+        for policy in [RoutePolicy::Fastest, RoutePolicy::Shortest] {
+            for (from, to) in legs {
+                assert_eq!(
+                    shared.plan(from, to, m, policy),
+                    grid(&w).plan(from, to, m, policy),
+                    "{:?} {policy:?} {from:?} to {to:?}",
+                    m.class
+                );
+            }
+        }
+    }
+}
