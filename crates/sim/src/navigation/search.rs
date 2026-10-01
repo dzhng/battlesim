@@ -1,9 +1,11 @@
 //! One route search over a side's grid, taken a few steps at a time: A*
-//! over octile moves without corner cutting, then string-pulling where that
-//! keeps the cost. A battle spends a share of each tick's planning allowance
-//! on it ([`crate::route_planner`]); [`NavGrid::plan`] runs one to its end.
-//! A search owns its bookkeeping and only reads the grid, so one grid serves
-//! many searches at once.
+//! over octile moves without corner cutting, steered by the cost of the
+//! straight way over open ground, then string-pulling where that keeps the
+//! cost. It gives up at a limit of cells rather than search a whole map.
+//! Roads are not its business: a leg that should go by road is a
+//! [`super::Journey`], which uses these searches for the stretches off the
+//! road. A search owns its bookkeeping and only reads the grid, so one grid
+//! serves many searches at once.
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap};
 
@@ -11,7 +13,7 @@ use contract::command::RoutePolicy;
 use contract::map::MoverClass;
 
 use super::{
-    cell_center, BlockReason, Mobility, Mover, NavGrid, Plan, SearchBound, CELLS_PER_WORK,
+    cell_center, octile, BlockReason, Mobility, Mover, NavGrid, Plan, Probe, CELLS_PER_WORK,
     NAV_CELL_M, START_REACH_M, TILE_SAMPLES, TILE_SIDE,
 };
 use crate::digest::Digest;
@@ -28,7 +30,9 @@ struct Reached {
 struct SearchTile {
     g: [f64; TILE_SAMPLES],
     parent: [u32; TILE_SAMPLES],
+    /// The generation that reached the cell, and the one that expanded it.
     stamp: [u32; TILE_SAMPLES],
+    expanded: [u32; TILE_SAMPLES],
 }
 
 /// The cells one search has reached, in tiles that outlive it: a finished or
@@ -62,6 +66,7 @@ impl Scratch {
         if self.generation == 0 {
             for tile in self.tiles.values_mut() {
                 tile.stamp.fill(0);
+                tile.expanded.fill(0);
             }
             self.generation = 1;
         }
@@ -75,34 +80,36 @@ impl Scratch {
             parent: tile.parent[at],
         })
     }
-    /// One tile lookup for admission and the accepted cost/parent update.
-    fn relax(&mut self, k: usize, value: Reached, admit: impl FnOnce() -> bool) -> bool {
-        use std::collections::hash_map::Entry;
+    /// Settle `k` for expansion: false if it already was.
+    fn settle(&mut self, k: usize) -> bool {
         let (key, at) = self.location(k);
-        let tile = match self.tiles.entry(key) {
-            Entry::Occupied(entry) => {
-                let tile = entry.get();
-                let improves = tile.stamp[at] != self.generation || value.g < tile.g[at];
-                if !improves {
-                    return false;
-                }
-                if !admit() {
-                    return false;
-                }
-                entry.into_mut()
-            }
-            Entry::Vacant(entry) => {
-                if !admit() {
-                    return false;
-                }
-                entry.insert(Box::new(SearchTile {
-                    g: [0.0; TILE_SAMPLES],
-                    parent: [0; TILE_SAMPLES],
-                    stamp: [0; TILE_SAMPLES],
-                }))
-            }
-        };
-        if tile.stamp[at] != self.generation {
+        let tile = self.tiles.get_mut(&key).expect("a queued cell has a tile");
+        let first = tile.expanded[at] != self.generation;
+        tile.expanded[at] = self.generation;
+        first
+    }
+
+    /// Reach `k` at `value` if that is its first or a cheaper way there.
+    fn relax(&mut self, k: usize, value: Reached) -> bool {
+        let (key, at) = self.location(k);
+        let tile = self.tiles.entry(key).or_insert_with(|| {
+            Box::new(SearchTile {
+                g: [0.0; TILE_SAMPLES],
+                parent: [0; TILE_SAMPLES],
+                stamp: [0; TILE_SAMPLES],
+                expanded: [0; TILE_SAMPLES],
+            })
+        });
+        let first = tile.stamp[at] != self.generation;
+        // A cell is settled once it is expanded (the estimate is not exact
+        // enough for a later, cheaper way to it to be worth the work of
+        // expanding it again). Until then only a cost that is less counts.
+        let settled = tile.expanded[at] == self.generation;
+        let cheaper = value.g.partial_cmp(&tile.g[at]) == Some(Ordering::Less);
+        if settled || (!first && !cheaper) {
+            return false;
+        }
+        if first {
             self.visited += 1;
         }
         tile.g[at] = value.g;
@@ -110,18 +117,14 @@ impl Scratch {
         tile.stamp[at] = self.generation;
         true
     }
-    pub(super) fn len(&self) -> usize {
-        self.visited
-    }
-    pub(super) fn capacity(&self) -> usize {
-        self.tiles.len() * TILE_SAMPLES
-    }
 }
 
+/// An entry of a best-first queue: a cell (or a road node) and the
+/// estimated cost of the whole way through it.
 #[derive(PartialEq)]
-struct Open {
-    f: f64,
-    cell: u32,
+pub(super) struct Open {
+    pub(super) f: f64,
+    pub(super) cell: u32,
 }
 impl Eq for Open {}
 impl Ord for Open {
@@ -137,8 +140,10 @@ impl PartialOrd for Open {
 }
 
 /// What a search has cost so far.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize)]
 pub struct SearchWork {
+    /// Cells the search has reached.
+    pub cells: usize,
     pub queued: usize,
     /// Peak capacity of the open queue, in entries.
     pub heap_peak: usize,
@@ -157,19 +162,37 @@ const STEPS: [(isize, isize); 8] = [
     (-1, -1),
 ];
 
+/// Of the many cells that look equally good across open ground, the search
+/// takes the one nearer the goal: the estimate is stretched by this share,
+/// so it walks one line instead of every equal one. A route may cost this
+/// share more than the best.
+const NEARER_FIRST: f64 = 1.0 / 1024.0;
+
 /// The A* frontier and what it measures cells against.
 struct Expanding {
     open: BinaryHeap<Open>,
-    bound: Option<SearchBound>,
     /// An open-ground cell's orthogonal and diagonal step costs.
     implicit_costs: [f64; 2],
-    heuristic_speed: f64,
-    target_center: V2,
+    target: usize,
 }
 
 impl Expanding {
-    fn h(&self, k: usize, nx: usize) -> f64 {
-        (cell_center(k % nx, k / nx) - self.target_center).length() / self.heuristic_speed
+    /// The estimated cost of the way still to go from cell `k`: the walk to
+    /// the target over open ground, and for the fastest policy at the pace
+    /// the ground straight ahead allows (a wood or a hillside on the line
+    /// is slow going, so a way round it is worth looking at). A road on
+    /// the way is taken for what it saves, but none is looked for far off
+    /// the line.
+    fn h(&self, grid: &NavGrid, m: &Mobility, policy: RoutePolicy, k: usize) -> f64 {
+        let walk = octile(k, self.target, grid.nx) * (1.0 + NEARER_FIRST);
+        match policy {
+            RoutePolicy::Shortest => walk,
+            RoutePolicy::Fastest => {
+                let center = |k: usize| cell_center(k % grid.nx, k / grid.nx);
+                let (here, there) = (center(k), center(self.target));
+                walk / (there - here).length().max(NAV_CELL_M) * grid.across(here, there, m)
+            }
+        }
     }
 }
 
@@ -177,8 +200,10 @@ impl Expanding {
 /// point, jump to the furthest later turn whose straight segment fits and
 /// costs no more than the grid path it replaces. Scanning stops at the
 /// first segment that does not fit, so long open runs stay cheap. One step
-/// costs one segment.
+/// reads one stretch of one segment.
 struct Smoothing {
+    /// The segment being costed.
+    reading: Option<Probe>,
     points: Vec<V2>,
     turns: Vec<usize>,
     /// Grid-path cost between consecutive turns (straight runs of cells).
@@ -204,6 +229,7 @@ impl Smoothing {
         }
         turns.push(points.len() - 1);
         Smoothing {
+            reading: None,
             points,
             turns,
             run_costs: Vec::new(),
@@ -215,15 +241,33 @@ impl Smoothing {
         }
     }
 
+    /// Read the next stretch of the segment between two turns: `None` while
+    /// there is more of it, then its cost (`None` if it does not fit).
+    fn cost(
+        &mut self,
+        grid: &NavGrid,
+        who: Mover,
+        policy: RoutePolicy,
+        (from, to): (usize, usize),
+    ) -> Option<Option<f64>> {
+        let point = |turn: usize| self.points[self.turns[turn]];
+        let mut probe = self
+            .reading
+            .take()
+            .unwrap_or_else(|| Probe::new(point(from), point(to), who.m));
+        let cost = grid.read(&mut probe, who, policy);
+        if cost.is_none() {
+            self.reading = Some(probe);
+        }
+        cost
+    }
+
     /// The smoothed route once the last turn is kept.
     fn step(&mut self, grid: &NavGrid, who: Mover, policy: RoutePolicy) -> Option<Vec<V2>> {
-        let point = |turn: usize| self.points[self.turns[turn]];
         if self.run_costs.len() + 1 < self.turns.len() {
             let run = self.run_costs.len();
-            let cost = grid
-                .segment_cost(point(run), point(run + 1), who, policy)
-                .unwrap_or(f64::INFINITY);
-            self.run_costs.push(cost);
+            let cost = self.cost(grid, who, policy, (run, run + 1))?;
+            self.run_costs.push(cost.unwrap_or(f64::INFINITY));
             return None;
         }
         grid.spend(1);
@@ -236,8 +280,9 @@ impl Smoothing {
             self.trying = self.at + 2;
         }
         if self.trying < self.turns.len() {
+            let direct = self.cost(grid, who, policy, (self.at, self.trying))?;
             self.path_cost += self.run_costs[self.trying - 1];
-            match grid.segment_cost(point(self.at), point(self.trying), who, policy) {
+            match direct {
                 Some(direct) if direct <= self.path_cost + 1e-9 => self.next = self.trying,
                 Some(_) => {}
                 None => self.trying = self.turns.len() - 1,
@@ -245,11 +290,22 @@ impl Smoothing {
             self.trying += 1;
             return None;
         }
-        self.out.push(point(self.next));
+        self.out.push(self.points[self.turns[self.next]]);
         self.at = self.next;
         self.trying = 0;
         None
     }
+}
+
+/// What a route is asked for: a way for `m` from `from` to `goal` by
+/// `policy`, as if the `avoid` footprints were solid.
+#[derive(Clone, Copy)]
+pub struct Leg<'a> {
+    pub from: V2,
+    pub goal: V2,
+    pub m: &'a Mobility,
+    pub policy: RoutePolicy,
+    pub avoid: &'a [Obb2],
 }
 
 enum Stage {
@@ -271,34 +327,28 @@ pub struct RouteSearch {
     scratch: Scratch,
     stage: Stage,
     work: SearchWork,
+    /// The cells it may expand before it gives the route up.
+    limit: usize,
 }
 
 impl RouteSearch {
-    /// Start a search from `from` to `goal` for `m`, as if the `avoid`
-    /// footprints were solid. `scratch` is a finished search's bookkeeping
-    /// to reuse.
-    pub fn new(
-        grid: &NavGrid,
-        scratch: Option<Scratch>,
-        from: V2,
-        goal: V2,
-        m: &Mobility,
-        policy: RoutePolicy,
-        avoid: &[Obb2],
-    ) -> Self {
+    /// Start the search for `leg`, to be given up once `limit` cells are
+    /// expanded. `scratch` is a finished search's bookkeeping to reuse.
+    pub fn new(grid: &NavGrid, scratch: Option<Scratch>, leg: Leg, limit: usize) -> Self {
         let mut scratch = scratch.unwrap_or_else(|| Scratch::new(grid.nx));
         scratch.clear();
         let mut search = RouteSearch {
-            m: *m,
-            policy,
-            avoid: avoid.to_vec(),
-            from,
-            goal,
+            m: *leg.m,
+            policy: leg.policy,
+            avoid: leg.avoid.to_vec(),
+            from: leg.from,
+            goal: leg.goal,
             start: 0,
             target: 0,
             scratch,
             stage: Stage::Done(Plan::Blocked(BlockReason::NoRoute)),
             work: SearchWork::default(),
+            limit,
         };
         search.stage = search.begin(grid);
         search
@@ -320,26 +370,14 @@ impl RouteSearch {
             self.goal = grid.waypoint(target, m);
         }
         (self.start, self.target) = (start, target);
-        let totals = grid.totals(m, policy);
-        if grid.separated(start, target, &totals) {
-            return Stage::Done(Plan::Blocked(BlockReason::NoRoute));
-        }
-        if grid.uniform_segment(self.from, self.goal, start, target, who, policy) {
-            return Stage::Done(Plan::Route(vec![self.goal]));
-        }
         let implicit = &grid.cells.implicit[3];
         let mut expanding = Expanding {
             open: BinaryHeap::new(),
-            bound: grid.search_bound(start, target, who, policy, &totals),
             implicit_costs: [
                 NavGrid::cell_cost(implicit, m, policy, NAV_CELL_M),
                 NavGrid::cell_cost(implicit, m, policy, NAV_CELL_M * std::f64::consts::SQRT_2),
             ],
-            heuristic_speed: match policy {
-                RoutePolicy::Shortest => 1.0,
-                RoutePolicy::Fastest => m.max_speed(),
-            },
-            target_center: cell_center(target % grid.nx, target / grid.nx),
+            target,
         };
         self.scratch.relax(
             start,
@@ -347,10 +385,9 @@ impl RouteSearch {
                 g: 0.0,
                 parent: start as u32,
             },
-            || true,
         );
         expanding.open.push(Open {
-            f: expanding.h(start, grid.nx),
+            f: expanding.h(grid, m, policy, start),
             cell: start as u32,
         });
         self.work.queued = 1;
@@ -377,7 +414,10 @@ impl RouteSearch {
     }
 
     pub fn work(&self) -> SearchWork {
-        self.work
+        SearchWork {
+            cells: self.scratch.visited,
+            ..self.work
+        }
     }
 
     /// The plan if the search reached one, and its bookkeeping for the next
@@ -396,7 +436,11 @@ impl RouteSearch {
     pub fn digest(&self, d: &mut Digest) {
         let stage = match &self.stage {
             Stage::Expanding(e) => [0, e.open.len(), 0],
-            Stage::Smoothing(s) => [1, s.at, s.trying],
+            Stage::Smoothing(s) => [
+                1,
+                s.run_costs.len() + s.at + s.trying,
+                s.reading.as_ref().map_or(0, |probe| probe.next),
+            ],
             Stage::Done(_) => [2, 0, 0],
         };
         for v in stage
@@ -430,7 +474,10 @@ impl RouteSearch {
                             (self.goal, self.target),
                         ))))
                     }
-                    Some(Open { f, cell }) => {
+                    Some(_) if self.work.expanded >= self.limit => {
+                        Some(Stage::Done(Plan::Blocked(BlockReason::SearchLimit)))
+                    }
+                    Some(Open { cell, .. }) => {
                         expand(
                             grid,
                             &mut self.scratch,
@@ -438,7 +485,7 @@ impl RouteSearch {
                             expanding,
                             who,
                             self.policy,
-                            (f, cell as usize),
+                            cell as usize,
                         );
                         None
                     }
@@ -451,7 +498,7 @@ impl RouteSearch {
     }
 }
 
-/// Relax the neighbours of the cell popped at priority `f`.
+/// Relax the neighbours of a cell that has come off the queue.
 fn expand(
     grid: &NavGrid,
     scratch: &mut Scratch,
@@ -459,14 +506,15 @@ fn expand(
     expanding: &mut Expanding,
     who: Mover,
     policy: RoutePolicy,
-    (f, cell): (f64, usize),
+    cell: usize,
 ) {
     let m = who.m;
-    let g = scratch.get(cell).expect("a queued cell has a cost").g;
-    if f > g + expanding.h(cell, grid.nx) {
+    // Each cell is expanded once, the first time it comes off the queue.
+    if !scratch.settle(cell) {
         work.stale += 1;
-        return; // stale entry
+        return;
     }
+    let g = scratch.get(cell).expect("a queued cell has a cost").g;
     work.expanded += 1;
     let (ci, cj) = ((cell % grid.nx) as isize, (cell / grid.nx) as isize);
     // Geometry is fixed for the search. Classify each neighbour once;
@@ -518,17 +566,13 @@ fn expand(
         };
         let step = (costs[usize::from(diagonal)] + next_cost) / 2.0;
         let tentative = g + step;
-        let bound = &expanding.bound;
-        if scratch.relax(
-            next,
-            Reached {
-                g: tentative,
-                parent: cell as u32,
-            },
-            || !bound.as_ref().is_some_and(|b| b.rejects(next, tentative)),
-        ) {
+        let reached = Reached {
+            g: tentative,
+            parent: cell as u32,
+        };
+        if scratch.relax(next, reached) {
             expanding.open.push(Open {
-                f: tentative + expanding.h(next, grid.nx),
+                f: tentative + expanding.h(grid, m, policy, next),
                 cell: next as u32,
             });
             work.queued += 1;

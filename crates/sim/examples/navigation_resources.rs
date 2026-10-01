@@ -72,7 +72,7 @@ fn main() {
     use contract::map::MoverClass;
     use contract::scenario::PushClass;
     use sim::math::v2;
-    use sim::navigation::{Mobility, NavGrid, Plan};
+    use sim::navigation::{Leg, Mobility, NavGrid, Plan, RoadNet};
     let args: Vec<_> = std::env::args().collect();
     let side: f64 = args[1].parse().unwrap();
     let arm = args.get(2).map(String::as_str).unwrap_or("empty");
@@ -96,8 +96,9 @@ fn main() {
         serde_json::json!({"side_m":side,"arm":arm,"heap_ceiling_bytes":4u64*1024*1024*1024,"resource_exit":70})
     );
     let w = stage("world", || WorldGeometry::new(&map, &rules));
-    let mut a = stage("blue_grid", || NavGrid::build(&w, w.props().cloned(), 0.3));
-    let mut b = stage("red_grid", || NavGrid::build(&w, w.props().cloned(), 0.3));
+    let a = stage("blue_grid", || NavGrid::build(&w, w.props().cloned(), 0.3));
+    let b = stage("red_grid", || NavGrid::build(&w, w.props().cloned(), 0.3));
+    let roads = stage("roads", || RoadNet::build(&w));
     let from = v2(side * 0.05, side * 0.35);
     let to = v2(side * 0.95, side * 0.65);
     for class in [MoverClass::Infantry, MoverClass::Vehicle] {
@@ -115,8 +116,17 @@ fn main() {
                 push: PushClass::Heavy,
                 drive: None,
             };
-            for (name, g, from, to) in [("blue", &mut a, from, to), ("red", &mut b, to, from)] {
-                let p = stage("route", || g.plan(from, to, &m, policy));
+            for (name, g, from, to) in [("blue", &a, from, to), ("red", &b, to, from)] {
+                let leg = Leg {
+                    from,
+                    goal: to,
+                    m: &m,
+                    policy,
+                    avoid: &[],
+                };
+                let (p, work) = stage("route", || {
+                    sim::navigation::plan(g, &roads, leg, &rules.navigation)
+                });
                 if arm == "disconnected" {
                     assert!(matches!(p, Plan::Blocked(_)));
                 } else {
@@ -128,7 +138,7 @@ fn main() {
                 }
                 println!(
                     "{}",
-                    serde_json::json!({"side":name,"mover":format!("{class:?}"),"policy":format!("{policy:?}"),"storage":g.storage(),"route":format!("{p:?}")})
+                    serde_json::json!({"side":name,"mover":format!("{class:?}"),"policy":format!("{policy:?}"),"storage":g.storage(),"search":work,"route":format!("{p:?}")})
                 );
             }
         }

@@ -9,10 +9,16 @@ use sim::battle::Battle;
 
 use crate::common;
 
-/// Open ground 400 × 200 m with a 90 m wall across the middle of it:
+/// Open ground 400 × 200 m with a wall across the middle, open at its ends:
 /// a route from one side to the other has to be searched for.
 const WALLED: &str = r#"{"size":[400,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
-    "props":[{"kind":"wall","center":[200,100],"yaw":0,"half_extents":[0.4,45,0.6]}]}"#;
+    "props":[{"kind":"wall","center":[200,100],"yaw":0,"half_extents":[0.4,80,0.6]}]}"#;
+const POST: &str = r#"{"size":[400,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+    "props":[{"kind":"wall","center":[200,100],"yaw":0,"half_extents":[0.4,10,0.6]}]}"#;
+/// The same ground with nothing on it, and with the wall closed end to end.
+const OPEN: &str = r#"{"size":[400,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#;
+const CLOSED: &str = r#"{"size":[400,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+    "props":[{"kind":"wall","center":[200,100],"yaw":0,"half_extents":[0.4,100,0.6]}]}"#;
 
 /// The shipped rules with `work` planning work a tick, so a test decides how
 /// many ticks a search takes whatever the shipped allowance is.
@@ -92,6 +98,58 @@ fn a_unit_holds_where_it_is_while_its_route_is_planned_then_drives_it() {
         }
     }
     assert!(dist(xy(&own(&b, 0)), [300.0, 100.0]) < 1.0);
+}
+
+/// The planning work a lone tank's order costs until it sets off or gives up.
+fn work_to_plan(
+    map: &str,
+    goal: [f64; 2],
+    rules: impl FnOnce(&mut ScenarioDefinition),
+) -> (u64, MoveState) {
+    let mut setup = scenario(map, one_tank(), 100);
+    rules(&mut setup);
+    let mut b = Battle::new(&setup, 1);
+    send(&mut b, 1, go(&[0], goal));
+    let mut work = 0;
+    for _ in 0..3000 {
+        b.step();
+        work += b.load().planning_work;
+        if own(&b, 0).state != MoveState::Planning {
+            return (work, own(&b, 0).state);
+        }
+    }
+    panic!("planning never finished");
+}
+
+#[test]
+fn a_search_stays_near_the_line_it_is_asked_to_cross() {
+    // Across open ground the search walks the line: 190 cells of it here.
+    let (open, state) = work_to_plan(OPEN, [380.0, 180.0], |_| {});
+    assert_eq!(state, MoveState::Moving);
+    assert!(open < 1000, "open ground cost {open}");
+    // A 20 m wall on the line costs the pocket in front of it and the
+    // clearance round it: nothing like the map's 20,000 cells.
+    let (post, state) = work_to_plan(POST, [380.0, 100.0], |_| {});
+    assert_eq!(state, MoveState::Moving);
+    assert!(post < 4000, "the short wall cost {post}");
+}
+
+#[test]
+fn a_search_gives_up_at_its_limit_and_reports_the_route_blocked() {
+    // No way across: the whole near half (10,000 cells) could be searched.
+    let (exhaustive, state) = work_to_plan(CLOSED, [300.0, 100.0], |_| {});
+    assert_eq!(state, MoveState::RouteBlocked);
+    assert!(exhaustive > 5000, "it looked everywhere: {exhaustive}");
+    // The rules bound how far a search looks: 4 cells a metre of its line.
+    let (bounded, state) = work_to_plan(CLOSED, [300.0, 100.0], |setup| {
+        setup.rules.navigation.search_cells_base = 200;
+        setup.rules.navigation.search_cells_per_m = 4;
+    });
+    assert_eq!(state, MoveState::RouteBlocked);
+    assert!(
+        (1000..3000).contains(&bounded),
+        "200 + 4 × 200 m cells, and the clearance worked out on the way: {bounded}"
+    );
 }
 
 #[test]
@@ -281,7 +339,7 @@ fn a_route_searched_while_the_side_learns_of_a_body_fits_what_it_now_knows() {
         goal,
         mobility: tank,
         policy: RoutePolicy::Shortest,
-        detour: None,
+        detour: Vec::new(),
         kept: None,
         new_goal: true,
     };
@@ -289,13 +347,21 @@ fn a_route_searched_while_the_side_learns_of_a_body_fits_what_it_now_knows() {
         Plan::Route(route) => grid.route_fits(from, route, m),
         Plan::Blocked(_) => false,
     };
+    let roads = sim::navigation::RoadNet::default();
     // How many 40-work ticks the search takes on the first picture.
+    let slow = contract::scenario::NavigationRules {
+        work_per_tick: 40,
+        ..rules.navigation
+    };
     let mut twin = RoutePlanner::default();
     twin.submit(UnitId(0), request());
     let mut ticks = 0;
     let old = loop {
         ticks += 1;
-        if let Some((_, _, plan)) = twin.advance(40, [Some((&before, 1)), None]).pop() {
+        if let Some((_, _, plan)) = twin
+            .advance(&slow, &roads, [Some((&before, 1)), None])
+            .pop()
+        {
             break plan;
         }
     };
@@ -310,10 +376,15 @@ fn a_route_searched_while_the_side_learns_of_a_body_fits_what_it_now_knows() {
     let mut planner = RoutePlanner::default();
     planner.submit(UnitId(0), request());
     for _ in 1..ticks {
-        assert!(planner.advance(40, [Some((&before, 1)), None]).is_empty());
+        assert!(planner
+            .advance(&slow, &roads, [Some((&before, 1)), None])
+            .is_empty());
     }
     let plan = loop {
-        if let Some((_, _, plan)) = planner.advance(40, [Some((&after, 2)), None]).pop() {
+        if let Some((_, _, plan)) = planner
+            .advance(&slow, &roads, [Some((&after, 2)), None])
+            .pop()
+        {
             break plan;
         }
     };

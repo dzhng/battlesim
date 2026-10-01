@@ -213,6 +213,27 @@ impl WorldGeometry {
         world
     }
 
+    /// Every road authored as a stroke: its centreline's samples, its width
+    /// and its kind's share of road speed.
+    pub fn road_strokes(&self) -> impl Iterator<Item = (&[[f64; 2]], f64, f64)> {
+        self.surfaces.areas().iter().filter_map(|area| {
+            let contract::ground::GroundShape::Stroke {
+                centerline,
+                width_m,
+            } = &area.shape
+            else {
+                return None;
+            };
+            area.kind.is_road().then(|| {
+                (
+                    centerline.samples(),
+                    *width_m,
+                    self.surface_factors[area.kind as usize],
+                )
+            })
+        })
+    }
+
     /// Conservative areas where the surface can differ from open, flat ground.
     pub fn navigation_regions(&self) -> Vec<[f64; 4]> {
         let mut regions = self.field.variation_regions().to_vec();

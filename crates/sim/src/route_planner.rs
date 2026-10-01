@@ -1,16 +1,17 @@
 //! The battle's one route planner. A unit that needs a route asks for one
 //! and holds where it is; the planner spends each tick's allowance of work
-//! (`navigation.work_per_tick`) across every waiting unit, and hands back
-//! each route on the tick it is whole. Nothing here reads the clock: a
+//! (`navigation.work_per_tick`) across every waiting unit's [`Journey`], and
+//! hands back each route on the tick it is whole. Nothing here reads the clock: a
 //! route's tick follows from the work counted, so a replay plans the same.
 use std::collections::BTreeMap;
 
 use contract::command::RoutePolicy;
 use contract::ids::{Side, UnitId};
+use contract::scenario::NavigationRules;
 
 use crate::digest::Digest;
 use crate::math::{Obb2, V2};
-use crate::navigation::{Mobility, NavGrid, Plan, RouteSearch, Scratch};
+use crate::navigation::{Journey, Leg, Mobility, NavGrid, Plan, RoadNet, Scratch};
 
 /// One unit's request for a route, and what its mover needs back with it.
 #[derive(Clone, Debug)]
@@ -20,8 +21,9 @@ pub struct Request {
     pub goal: V2,
     pub mobility: Mobility,
     pub policy: RoutePolicy,
-    /// A way round this footprint: a vehicle it has waited on too long.
-    pub detour: Option<Obb2>,
+    /// A way round these footprints: the vehicles it has waited among too
+    /// long. Empty for an ordinary request.
+    pub detour: Vec<Obb2>,
     /// The route a detour replaces if one is found, and resumes if not.
     pub kept: Option<Vec<V2>>,
     /// The goal is not the one the unit last planned to.
@@ -30,9 +32,9 @@ pub struct Request {
 
 struct Job {
     request: Request,
-    /// The side's knowledge revision the search started against.
+    /// The side's knowledge revision the journey started against.
     revision: u64,
-    search: Option<RouteSearch>,
+    journey: Option<Journey>,
     /// Work spent on this request so far, restarts included.
     spent: u64,
 }
@@ -42,8 +44,8 @@ impl Job {
     /// stands at `revision`: the work spent, and the plan once it stands.
     fn advance(
         &mut self,
-        grid: &NavGrid,
-        revision: u64,
+        (rules, roads): (&NavigationRules, &RoadNet),
+        (grid, revision): (&NavGrid, u64),
         spare: &mut Vec<Scratch>,
         allowance: u64,
     ) -> (u64, Option<Plan>) {
@@ -51,35 +53,35 @@ impl Job {
         let plan = loop {
             let left = allowance.saturating_sub(grid.work() - before);
             let r = &self.request;
-            let search = match &mut self.search {
-                Some(search) => search,
+            let journey = match &mut self.journey {
+                Some(journey) => journey,
                 None if left == 0 => break None,
                 None => {
                     self.revision = revision;
-                    self.search.insert(RouteSearch::new(
-                        grid,
-                        spare.pop(),
-                        r.from,
-                        r.goal,
-                        &r.mobility,
-                        r.policy,
-                        r.detour.as_slice(),
-                    ))
+                    let leg = Leg {
+                        from: r.from,
+                        goal: r.goal,
+                        m: &r.mobility,
+                        policy: r.policy,
+                        avoid: &r.detour,
+                    };
+                    self.journey
+                        .insert(Journey::new(grid, roads, spare.pop(), leg, rules))
                 }
             };
-            search.advance(grid, left);
-            let Some(plan) = search.plan() else {
+            journey.advance(grid, roads, left);
+            let Some(plan) = journey.plan() else {
                 break None;
             };
-            // The side learned something while this was searched. A route
+            // The side learned something while this was worked out. A route
             // that still fits what it now knows stands; anything else is
-            // searched again on what it now knows.
+            // worked out again on what it now knows.
             let stands = self.revision == revision
                 || matches!(plan, Plan::Route(route)
                     if grid.route_fits(r.from, route, &r.mobility)
                         && !grid.route_pushes(r.from, route, &r.mobility));
-            let (plan, scratch) = self.search.take().expect("a search").finish();
-            spare.push(scratch);
+            let (plan, scratch) = self.journey.take().expect("a journey").finish();
+            spare.extend(scratch);
             if stands {
                 break plan;
             }
@@ -115,7 +117,7 @@ impl RoutePlanner {
             Job {
                 request,
                 revision: 0,
-                search: None,
+                journey: None,
                 spent: 0,
             },
         );
@@ -123,8 +125,8 @@ impl RoutePlanner {
 
     /// Drop `unit`'s request, if it has one: its route will never arrive.
     pub fn cancel(&mut self, unit: UnitId) {
-        if let Some(search) = self.jobs.remove(&unit).and_then(|job| job.search) {
-            self.spare.push(search.finish().1);
+        if let Some(journey) = self.jobs.remove(&unit).and_then(|job| job.journey) {
+            self.spare.extend(journey.finish().1);
         }
     }
 
@@ -148,16 +150,18 @@ impl RoutePlanner {
         self.spent
     }
 
-    /// Spend one tick's `allowance` across the waiting units, in equal
-    /// shares, round and round in unit order from where the last tick
-    /// stopped. `grids` holds each side's grid and knowledge revision (for
-    /// every side with a unit waiting). Returns the routes that are whole,
-    /// in unit order.
+    /// Spend one tick's allowance (`rules.work_per_tick`) across the waiting
+    /// units, in equal shares, round and round in unit order from where the
+    /// last tick stopped. `grids` holds each side's grid and knowledge
+    /// revision (for every side with a unit waiting); `roads` is the map's
+    /// road graph. Returns the routes that are whole, in unit order.
     pub fn advance(
         &mut self,
-        allowance: u64,
+        rules: &NavigationRules,
+        roads: &RoadNet,
         grids: [Option<(&NavGrid, u64)>; 2],
     ) -> Vec<(UnitId, Request, Plan)> {
+        let allowance = rules.work_per_tick as u64;
         let mut left = allowance.saturating_sub(self.overdraft);
         self.overdraft = self.overdraft.saturating_sub(allowance);
         self.spent = 0;
@@ -180,9 +184,9 @@ impl RoutePlanner {
                     continue;
                 }
                 let job = self.jobs.get_mut(&id).expect("a waiting unit has a job");
-                let (grid, revision) =
-                    grids[job.request.side.index()].expect("a grid for every side waiting");
-                let (spent, plan) = job.advance(grid, revision, &mut self.spare, share.min(left));
+                let grid = grids[job.request.side.index()].expect("a grid for every side waiting");
+                let (spent, plan) =
+                    job.advance((rules, roads), grid, &mut self.spare, share.min(left));
                 self.spent += spent;
                 self.overdraft += spent.saturating_sub(left);
                 left = left.saturating_sub(spent);
@@ -223,8 +227,8 @@ impl RoutePlanner {
                 .f64(r.goal.y)
                 .u64(r.policy as u64)
                 .u64(r.new_goal as u64);
-            d.u64(r.detour.is_some() as u64);
-            if let Some(b) = &r.detour {
+            d.u64(r.detour.len() as u64);
+            for b in &r.detour {
                 d.f64(b.center.x)
                     .f64(b.center.y)
                     .f64(b.yaw)
@@ -236,9 +240,9 @@ impl RoutePlanner {
                 d.f64(p.x).f64(p.y);
             }
             d.u64(job.revision).u64(job.spent);
-            d.u64(job.search.is_some() as u64);
-            if let Some(search) = &job.search {
-                search.digest(d);
+            d.u64(job.journey.is_some() as u64);
+            if let Some(journey) = &job.journey {
+                journey.digest(d);
             }
         }
     }

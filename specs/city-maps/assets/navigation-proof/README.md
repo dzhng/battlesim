@@ -1,8 +1,11 @@
 # Navigation representation proof
 
 The original dense planner is frozen in
-[`dense.rs`](../../../../crates/sim/examples/navigation_equivalence/dense.rs). It is the
-executable oracle for the `navigation_equivalence` example, never a production backend.
+[`dense.rs`](../../../../crates/sim/examples/navigation_quality/dense.rs). It was the
+executable oracle of the `navigation_equivalence` example while the planner had to
+reproduce its routes exactly. Since SA2's counted planner (a named route change) the
+example is `navigation_quality`: it asserts what must still agree and measures how far
+the new routes' costs are from the dense planner's. It is never a production backend.
 Raw evidence: tag `city-maps-evidence-2026-09-30`.
 
 ## Proved scope
@@ -71,8 +74,8 @@ was reverted.
 
 ## Reproduction and what is open
 
-`cargo run -p sim --release --example navigation_equivalence` runs the dense oracle; the
-`4096` argument adds only the long Shortest cases. `navigation_resources <extent>
+`cargo run -p sim --release --example navigation_quality` runs the comparison with the
+dense planner; the `4096` argument adds only the long Shortest cases. `navigation_resources <extent>
 <empty|sparse|bridge|disconnected>` produces allocator and route rows.
 
 Full opposing-edge moving-unit native/wasm parity waits on the integrated

@@ -327,7 +327,11 @@
     "yield_margin_m": 1
   },
   "navigation": {
-    "work_per_tick": 4000
+    "work_per_tick": 4000,
+    "search_cells_base": 20000,
+    "search_cells_per_m": 200,
+    "road_leg_m": 2000,
+    "road_access_m": 1000
   },
   "movement": {
     "forest_infantry_multiplier": 0.7,

@@ -30,6 +30,7 @@ use crate::hearing;
 use crate::knowledge::SideKnowledge;
 use crate::math::{v2, v3, Obb2, V2, V3};
 use crate::movement::{self, MovementContext, SideGeometry};
+use crate::navigation::RoadNet;
 use crate::rng::Rng;
 use crate::route_planner::RoutePlanner;
 use crate::sensing::{self, Sighting};
@@ -191,6 +192,9 @@ pub struct Battle {
     /// Props authored with the map (ids below this) are known to every side.
     authored_props: PropId,
     sides: [SideGeometry; 2],
+    /// The map's road graph, built once: public terrain, the same for both
+    /// sides.
+    roads: RoadNet,
     /// Every unit's route request in progress.
     planner: RoutePlanner,
     events: VecDeque<ScenarioEvent>,
@@ -367,6 +371,7 @@ impl Battle {
         crate::cover::validate(&rules);
         flight::validate_guided(&rules.guided);
         let world = WorldGeometry::new(&setup.map, &rules);
+        let roads = RoadNet::build(&world);
         let arsenal = Arsenal::new(&rules);
         supply::validate(&arsenal, &rules);
         for e in &setup.events {
@@ -492,6 +497,7 @@ impl Battle {
             tick: 0,
             units,
             sides: Default::default(),
+            roads,
             planner: RoutePlanner::default(),
             events: events.into(),
             scripts: scripts.into(),
@@ -535,6 +541,10 @@ impl Battle {
         for side in Side::ALL {
             battle.sense(side, true);
             battle.sweep_fog(side);
+            // Each side's planning grid is built with the battle, at load:
+            // the first order must not pay for it in its tick.
+            let radius = battle.rules.physics.soldier_radius_m;
+            battle.sides[side.index()].grid(&battle.world, battle.authored_props, radius);
         }
         battle.observe_all();
         battle
@@ -827,6 +837,7 @@ impl Battle {
         let treads = self.treads();
         let ctx = MovementContext {
             world: &self.world,
+            roads: &self.roads,
             ground: &self.ground,
             ground_rules: &self.rules.ground,
             authored: self.authored_props,

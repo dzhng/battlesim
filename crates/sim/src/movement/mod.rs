@@ -18,7 +18,7 @@ use contract::scenario::InfantryMovementRules;
 use crate::arrangement;
 use crate::ground::GroundLayer;
 use crate::math::{v2, Obb2, V2};
-use crate::navigation::{NavGrid, Plan};
+use crate::navigation::{NavGrid, Plan, RoadNet};
 use crate::route_planner::{Request, RoutePlanner};
 use crate::units::Unit;
 use crate::world::{Prop, PropId, WorldGeometry};
@@ -40,6 +40,9 @@ const GOAL_REPLAN_M: f64 = 5.0;
 const STALL_REPLAN_S: f64 = 2.0;
 /// Progress shorter than this does not reset the stall watch.
 const PROGRESS_EPSILON_M: f64 = 0.5;
+/// A vehicle planning its way out of a traffic knot plans round every
+/// vehicle within this distance of it.
+const KNOT_M: f64 = 40.0;
 /// Extra room vehicles keep from other bodies.
 const TRAFFIC_MARGIN_M: f64 = 0.4;
 /// A unit learns of an obstacle within this distance of its footprint.
@@ -249,6 +252,8 @@ impl SideGeometry {
 
 pub struct MovementContext<'a> {
     pub world: &'a WorldGeometry,
+    /// The map's road graph: the same for both sides.
+    pub roads: &'a RoadNet,
     pub ground: &'a GroundLayer,
     pub ground_rules: &'a contract::scenario::GroundRules,
     /// Props with ids below this were authored with the map and are known to all.
@@ -328,6 +333,7 @@ fn request_route(
     footprints: &[Option<Obb2>],
     planner: &mut RoutePlanner,
 ) {
+    prefer_roads(ctx, unit);
     let Some((goal, policy)) = unit.movement_goal() else {
         planner.cancel(unit.id);
         unit.route = None;
@@ -354,12 +360,21 @@ fn request_route(
     let stall_ticks = (STALL_REPLAN_S * ctx.tick_hz as f64) as u64;
     let stalled = unit.route.is_some() && ctx.tick.saturating_sub(unit.progress.1) > stall_ticks;
     // Deadlocked vehicles: the lower-priority one (higher id) plans around
-    // the one it waits for; the other keeps its route and proceeds when clear.
-    let detour = match (unit.state, unit.blocker) {
+    // the one it waits for, and every other vehicle standing in the knot
+    // with it (two columns that meet are more than a pair); the other keeps
+    // its route and proceeds when clear.
+    let detour: Vec<Obb2> = match (unit.state, unit.blocker) {
         (MoveState::Waiting, Some(b)) if stalled && unit.is_vehicle() && unit.id > b => {
-            footprints[b.0 as usize]
+            let here = unit.position.xy();
+            footprints
+                .iter()
+                .enumerate()
+                .filter(|(k, _)| *k != unit.id.0 as usize)
+                .filter_map(|(_, hull)| *hull)
+                .filter(|hull| (hull.center - here).length() <= KNOT_M)
+                .collect()
         }
-        _ => None,
+        _ => Vec::new(),
     };
     let needs = match (&unit.route, unit.state) {
         _ if goal_moved => true,
@@ -389,7 +404,7 @@ fn request_route(
     side.searches += 1;
     unit.planned_goal = Some(goal);
     // It holds without a route while it waits; a detour keeps the one it has.
-    let kept = unit.route.take().filter(|_| detour.is_some());
+    let kept = unit.route.take().filter(|_| !detour.is_empty());
     unit.state = MoveState::Planning;
     planner.submit(
         unit.id,
@@ -404,6 +419,22 @@ fn request_route(
             new_goal: goal_moved,
         },
     );
+}
+
+/// A long ordered leg goes by road: a move or attack-move leg strictly over
+/// `navigation.road_leg_m` from where the unit stands when the leg starts
+/// takes the fastest policy, and keeps it however short the leg has become
+/// when it plans again. Pursuit and a building's approach are never legs.
+fn prefer_roads(ctx: &MovementContext, unit: &mut Unit) {
+    if unit.planned_goal.is_some() || unit.garrison.is_some() {
+        return;
+    }
+    let from = route_start(unit);
+    if let Some(leg) = unit.orders.front_mut().and_then(|o| o.movement_mut()) {
+        if (leg.destination - from).length() > ctx.rules.navigation.road_leg_m {
+            leg.policy = contract::command::RoutePolicy::Fastest;
+        }
+    }
 }
 
 /// Spend this tick's planning work, and give every unit whose route is
@@ -424,7 +455,8 @@ fn plan_routes(
     }
     let [blue, red] = &mut *sides;
     let ready = planner.advance(
-        ctx.rules.navigation.work_per_tick as u64,
+        &ctx.rules.navigation,
+        ctx.roads,
         [
             waiting[0].then(|| known(ctx, blue)),
             waiting[1].then(|| known(ctx, red)),
@@ -451,7 +483,7 @@ fn take_route(
     let from = request.from;
     unit.planned_revision = side.revision;
     unit.progress = (f64::INFINITY, ctx.tick);
-    if request.detour.is_some() {
+    if !request.detour.is_empty() {
         // No way round keeps it waiting on the route it had; it may try
         // again after another stall.
         unit.route = match plan {

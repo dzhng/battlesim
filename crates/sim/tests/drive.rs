@@ -153,20 +153,21 @@ fn a_seen_enemy_reversing_is_published_to_the_observer() {
 }
 
 /// Metres a vehicle covers in one second at cruising speed along a straight
-/// 12 m strip of `surface` (open ground when `None`).
+/// 12 m strip of `surface` (open ground when `None`): the 21st second of a
+/// 860 m move, well clear of where it joins and leaves its side of a road.
 fn cruise(kind: &str, surface: Option<&str>) -> f64 {
     let surfaces = surface.map_or(json!([]), |kind| {
-        json!([{ "kind": kind, "shape": { "kind": "stroke", "points": [[0, 60], [700, 60]], "width_m": 12 } }])
+        json!([{ "kind": kind, "shape": { "kind": "stroke", "points": [[0, 60], [900, 60]], "width_m": 12 } }])
     });
     let setup: ScenarioDefinition = serde_json::from_value(json!({
-        "map": { "size": [700, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+        "map": { "size": [900, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
                  "surfaces": surfaces },
         "rules": rules(),
         "units": [{ "side": "blue", "kind": kind, "position": [20, 60], "yaw": 0.0,
                     "engagement": "return_fire_only" }],
         "events": [],
         "scripts": [{ "tick": 1, "side": "blue", "order": { "kind": "move", "units": [0],
-            "gesture": 1, "goal": [680, 60], "route": "fastest", "direction": "forward" } }],
+            "gesture": 1, "goal": [880, 60], "route": "fastest", "direction": "forward" } }],
     }))
     .unwrap();
     let mut b = Battle::new(&setup, 1);
