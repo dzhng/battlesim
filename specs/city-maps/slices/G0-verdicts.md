@@ -58,7 +58,7 @@ complete city tick reports include it. The narrower passing bracket cannot be
 used as a whole-simulation 33 ms verdict.
 
 The remaining sim owners have individually scoped verdicts below. Their exact
-source and combined gates are pinned by [the closeout manifest](../assets/sim-lane-closeout/manifest.json).
+source and combined gates are pinned by [the closeout manifest](../assets/sim-lane-closeout/README.md).
 These rows grant no complete G0 or map/art acceptance.
 
 | Decision | Physical/resource contract | Evidence | Verdict |

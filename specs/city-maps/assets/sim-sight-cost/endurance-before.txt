@@ -1,6 +1,0 @@
-200 units set up in 384 ms; host macos aarch64
-| minutes | tick p50 ms | p95 | p99 | max | ticks > 33 ms | living units | soldiers | corpses | wrecks | projectiles in flight (peak) | projectiles launched per sim-second (peak) | path searches | ground KiB | learned ground KiB (both sides) | blue publication B/tick p50 / p95 / max | ground patch B/tick p50 / p95 / max | step instructions G | RSS MiB |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 5 | 3.9 | 299.7 | 503.2 | 974 | 3062 | 178 | 951 | 1 | 22 | 28 | 28 | 1539 | 5526 | 12545 | 60524 / 66728 / 82932 | 0 / 5696 / 13856 | 8581.9 | 261 |
-
-Whole run: p50 3.9 ms, p95 299.7, p99 503.2, max 974; 381 rounds launched; 8581.9 G step instructions; digest ce696ab655fff2d4.
