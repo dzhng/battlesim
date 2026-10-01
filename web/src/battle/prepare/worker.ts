@@ -1,8 +1,8 @@
 /** Preparation worker entry: one request, its stages, one answer. Generation
- *  never runs on the page's thread, and the page closes this worker after
+ *  and encounter planning never run on the page's thread, and the page closes this worker after
  *  the answer (or to cancel), which frees everything generation allocated. */
 import init, * as wasm from "@wasm/game_wasm.js";
-import { MapRefused, prepareGeneratedBattle } from "./generatedBattle";
+import { PreparationRefused, prepareGeneratedBattle } from "./generatedBattle";
 import type { PrepareReply, PrepareRequest } from "./protocol";
 
 interface WorkerScope {
@@ -21,8 +21,8 @@ scope.addEventListener("message", (event) => {
     })
     .catch((error: unknown) =>
       scope.postMessage(
-        error instanceof MapRefused
-          ? { type: "refused", diagnostics: error.diagnostics }
+        error instanceof PreparationRefused
+          ? { type: "refused", stage: error.stage, diagnostics: error.diagnostics }
           : { type: "error", message: error instanceof Error ? error.message : String(error) },
       ),
     );
