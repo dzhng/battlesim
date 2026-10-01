@@ -22,7 +22,7 @@ fn base_tank() -> Value {
                 "ricochet": { "front": 0.5, "side": 0.3, "rear": 0.2, "roof": 0.6 } },
             "weight_class": "heavy", "push_class": "heavy", "wreck": "tank_wreck"
         } },
-        "mobility": { "tracked": { "mps": 6, "road_mps": 12, "turn_deg_s": 45, "reverse_fraction": 0.4 } },
+        "mobility": { "tracked": { "offroad_kmh": 22, "road_kmh": 43, "turn_deg_s": 45, "reverse_fraction": 0.4 } },
         "sensors": { "ground_m": 350, "sight_shape": { "front": 1, "side": 0.5, "rear": 0.3 }, "on": "cannon" },
         "mounts": [
             { "name": "cannon", "weapons": ["ap", "he"], "turret": true, "pivot_m": [0, 0, 1.45], "muzzle_m": [5.9, 0, 0.55] },
@@ -81,7 +81,7 @@ fn a_variant_gives_only_what_differs_and_inherits_the_rest() {
     );
     assert_eq!(m1a1.mounts[1], m1.mounts[1]);
     assert_eq!(m1a1.name, "M1A1");
-    assert!(matches!(m1a1.mobility, Mobility::Tracked { mps, .. } if mps == 6.0));
+    assert!(matches!(m1a1.mobility, Mobility::Tracked { offroad_kmh, .. } if offroad_kmh == 22.0));
 }
 
 #[test]
@@ -117,7 +117,7 @@ fn a_squad_carries_its_soldiers_mounts_by_slot() {
         "name": "Team", "description": "", "faction": "test", "family": "infantry",
         "roles": ["infantry"], "cost": 100,
         "body": { "squad": { "slots": ["rifleman", "gunner", "rifleman"] } },
-        "mobility": { "foot": { "mps": 3, "road_multiplier": 1.3 } },
+        "mobility": { "foot": { "offroad_kmh": 11, "road_kmh": 14 } },
         "sensors": { "ground_m": 600, "sight_shape": { "front": 1, "side": 1, "rear": 1 } },
         "sound": { "profile": "infantry", "loudness_m": 200 }
     } }));
@@ -315,10 +315,7 @@ fn a_structurally_broken_type_fails_at_load_naming_it() {
         rule("its wreck \"light_wreck\" gives light cover, not its heavy weight's heavy (Q24)")
     );
     let stopped = json!({ "mobility": { "tracked": { "turn_deg_s": 0 } } });
-    assert_eq!(
-        tank(stopped),
-        rule("mobility: speeds and turn_deg_s must be positive")
-    );
+    assert_eq!(tank(stopped), rule("mobility: turn_deg_s must be positive"));
     let hollow = json!({ "body": { "hull": { "hp": 0 } } });
     assert_eq!(
         tank(hollow),
@@ -377,7 +374,7 @@ fn a_variant_adds_parts_and_swaps_a_component_variant() {
         "base": base_tank(),
         "m1": { "extends": "base", "parts": ["era"] },
         "m1a2": { "extends": "m1", "parts": ["aps"],
-            "mobility": { "wheeled": { "mps": 9, "road_mps": 20, "turn_deg_s": 40,
+            "mobility": { "wheeled": { "offroad_kmh": 32, "road_kmh": 72, "turn_deg_s": 40,
                                        "turning_radius_m": 8, "reverse_fraction": 0.3 } } },
     }));
     docs.push(parts);
@@ -386,7 +383,7 @@ fn a_variant_adds_parts_and_swaps_a_component_variant() {
     assert_eq!(a2.parts, ["era", "aps"]);
     assert_eq!((a2.cost, a2.hull().unwrap().hp), (230, 120.0));
     assert!(
-        matches!(a2.mobility, Mobility::Wheeled { mps, .. } if mps == 9.0),
+        matches!(a2.mobility, Mobility::Wheeled { offroad_kmh, .. } if offroad_kmh == 32.0),
         "{:?}",
         a2.mobility
     );
@@ -405,4 +402,22 @@ fn a_key_repeated_in_one_document_is_refused() {
     assert!(e.to_string().contains("\"tank\""), "{e}");
     let fine = contract::catalog::parse_document("{ \"units\": { \"a\": [1, {\"b\": 2}] } }");
     assert_eq!(fine.unwrap(), json!({ "units": { "a": [1, { "b": 2 }] } }));
+}
+
+/// Every mover names its own off-road and road top speeds, in km/h, and no
+/// type may be faster than the 130 km/h cap or slower on a road than off it.
+#[test]
+fn a_mover_states_two_top_speeds_within_the_cap() {
+    let load = |offroad: f64, road: f64| {
+        let mut tank = base_tank();
+        tank.as_object_mut().unwrap().remove("abstract");
+        tank["mobility"] = json!({ "tracked": { "offroad_kmh": offroad, "road_kmh": road,
+            "turn_deg_s": 45, "reverse_fraction": 0.4 } });
+        resolve(&units(json!({ "t": tank })))
+    };
+    assert!(load(22.0, 43.0).is_ok());
+    assert!(load(32.0, 130.0).is_ok());
+    assert!(load(32.0, 131.0).is_err(), "over the cap");
+    assert!(load(40.0, 30.0).is_err(), "a road slower than open ground");
+    assert!(load(0.0, 30.0).is_err(), "no off-road speed");
 }

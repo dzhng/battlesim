@@ -859,3 +859,11 @@ keeps storage addresses independent of physical identity and encounter naming.
 **Gap:** The existing test pinned one owner's wording.
 
 **Verdict:** sound. **Confidence:** high.
+
+### Every mover states `offroad_kmh` and `road_kmh`
+
+**Choice:** The catalog's mobility rows read the same for foot, tracked and wheeled movers: two top speeds in km/h. Vehicles no longer use `mps`/`road_mps`, and infantry no longer uses a speed and a `road_multiplier`. The catalog refuses a type faster than 130 km/h or slower on a road than off it. Values: rifle squad 11/14, tank 22/43, supply truck 25/76, jeep 32/110.
+
+**Gap:** The user found the two schemas odd and set the 130 km/h cap and the jeep's 110.
+
+**Verdict:** sound. Rounding to whole km/h moved each speed by up to 2%, so every village digest changes; captures stay 2/3 (flank) and 0/3 (ambush), while losses over three seeds swing (flank 790 → 175, ambush 120 → 200), which is seed noise C50 should average over more seeds. **Confidence:** high for the schema; tank and truck values are today's, not yet checked against real vehicles.

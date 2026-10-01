@@ -249,8 +249,9 @@ pub struct Unit {
 /// How a unit of type `t` moves: on foot, or by its drive (Q29, Q30).
 pub fn mobility(t: &UnitType, rules: &Rules) -> Mobility {
     let m = &rules.movement;
-    let vehicle = |mps, road_mps, drive| Mobility {
-        off_road_mps: mps,
+    let (off_road_mps, road_mps) = t.mobility.speeds_mps();
+    let vehicle = |drive| Mobility {
+        off_road_mps,
         road_mps,
         forest_multiplier: m.forest_vehicle_multiplier,
         half_width_m: t.hull().expect("a vehicle has a hull").half_extents_m[1],
@@ -259,12 +260,9 @@ pub fn mobility(t: &UnitType, rules: &Rules) -> Mobility {
         drive: Some(drive),
     };
     match t.mobility {
-        Moves::Foot {
-            mps,
-            road_multiplier,
-        } => Mobility {
-            off_road_mps: mps,
-            road_mps: mps * road_multiplier,
+        Moves::Foot { .. } => Mobility {
+            off_road_mps,
+            road_mps,
             forest_multiplier: m.forest_infantry_multiplier,
             half_width_m: rules.infantry_movement.path_clearance_m,
             class: MoverClass::Infantry,
@@ -272,38 +270,28 @@ pub fn mobility(t: &UnitType, rules: &Rules) -> Mobility {
             drive: None,
         },
         Moves::Tracked {
-            mps,
-            road_mps,
             turn_deg_s,
             reverse_fraction,
-        } => vehicle(
-            mps,
-            road_mps,
-            crate::navigation::Drive {
-                tracked: true,
-                turn_rad_s: turn_deg_s.to_radians(),
-                radius_m: 0.0,
-                reverse_fraction,
-                feel: m.drive,
-            },
-        ),
+            ..
+        } => vehicle(crate::navigation::Drive {
+            tracked: true,
+            turn_rad_s: turn_deg_s.to_radians(),
+            radius_m: 0.0,
+            reverse_fraction,
+            feel: m.drive,
+        }),
         Moves::Wheeled {
-            mps,
-            road_mps,
             turn_deg_s,
             turning_radius_m,
             reverse_fraction,
-        } => vehicle(
-            mps,
-            road_mps,
-            crate::navigation::Drive {
-                tracked: false,
-                turn_rad_s: turn_deg_s.to_radians(),
-                radius_m: turning_radius_m,
-                reverse_fraction,
-                feel: m.drive,
-            },
-        ),
+            ..
+        } => vehicle(crate::navigation::Drive {
+            tracked: false,
+            turn_rad_s: turn_deg_s.to_radians(),
+            radius_m: turning_radius_m,
+            reverse_fraction,
+            feel: m.drive,
+        }),
     }
 }
 
