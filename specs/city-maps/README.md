@@ -44,11 +44,10 @@ A slice marked "physical" has its systems half done; its look waits for the visu
 **Done**
 - [x] Scale: [S0](spikes/S0.md) · SA1 terrain/export · SA4 fog delivery · SA3 sparse ground (storage) · [S7 composition](spikes/S7.md) · [S1 first pass](spikes/S1.md)
 - [x] Map and sim: C00 physical templates · C01 buildings aggregate · C02 fog cell · C03 surfaces · C72 one forest rule · C64 road kinds (physical) · C65 round centerlines (physical) · C63 surface index
-- [x] Generation: C04 compiler (buildings, roads, forests) · [C52 layout generator](slices/C52-procedural-generator.md)
+- [x] Generation: C04 compiler (buildings, roads, forests) · [C52 layout generator](slices/C52-procedural-generator.md) · [C53 parcels and buildings](slices/C53-parcels-and-buildings.md) over a labelled prototype template catalogue
 
 **In flight (one branch each)**
 - [ ] [SA2 navigation at full extent](slices/SA2-counted-route-integration.md): `city-maps/sa2-navigation`
-- [ ] [C53 parcels and buildings](slices/C53-parcels-and-buildings.md), with a labelled prototype template catalogue: `city-maps/c53-parcels`
 - [ ] [C69 rivers contract](slices/C69-rivers-contract.md): `city-maps/c69-rivers`
 
 **Next, systems**

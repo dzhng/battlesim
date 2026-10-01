@@ -1,5 +1,5 @@
 {
-  "revision": "layout-presets-3",
+  "revision": "layout-presets-4",
   "terrain": { "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
   "approach": {
     "depth_m": 1800,
@@ -84,7 +84,7 @@
       "lots": { "front_m": 16, "side_m": 10, "rear_m": 14, "coverage": 0.9, "apron_m": 12 }
     },
     "core": {
-      "mix": { "highrise": 75, "urban_apartment": 25 },
+      "mix": { "urban_apartment": 85, "highrise": 15 },
       "streets": { "block_depth_m": 120, "block_length_m": 150, "cross_skip": 0 },
       "lots": { "front_m": 10, "side_m": 9, "rear_m": 10, "coverage": 0.9, "apron_m": 0 }
     },

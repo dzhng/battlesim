@@ -1147,3 +1147,11 @@ keeps storage addresses independent of physical identity and encounter naming.
 **Gap:** C00's proofs placed buildings near the origin. On a 10 km map a turned building far along X and near the origin in Y was refused as "off its facade": 3,477 of 4,000 placements of the asymmetric fixture.
 
 **Verdict:** sound; a contract defect the first full-size town exposed. **Confidence:** high.
+
+### Metro's core is apartment blocks with a few towers
+
+**Choice:** The `core` district's mix is 85 apartments to 15 highrise (presets revision `layout-presets-4`), from 75 highrise to 25 apartments.
+
+**Gap:** C52 chose the first mix. On Metro Large it stood about 100 towers in a field; the Broken Arrow reference has one tower among apartment slabs.
+
+**Verdict:** sound. Seed 1 of Metro Large now has 21 towers among 9,276 buildings. Highrises remain Metro-only. **Confidence:** medium until real tower art exists.
