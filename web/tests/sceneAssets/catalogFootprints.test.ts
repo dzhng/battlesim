@@ -12,12 +12,12 @@ import { UnitCatalog, type CatalogView } from "@packages/scene-assets/src/units.
 
 const read = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8"));
 const catalog = read("../../../assets/catalog.json") as Catalog;
-const village = read("../../../fixtures/village.json");
+const game = read("../../../fixtures/game.json");
 const same = (a: readonly number[], b: readonly number[]) =>
   a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) < 1e-9);
 
 const buildings = (
-  village.map.buildings as { geometry: { parts: { half_extents: number[] }[] } }[]
+  game.map.buildings as { geometry: { parts: { half_extents: number[] }[] } }[]
 ).flatMap((b) => b.geometry.parts.map((p) => p.half_extents));
 /** Every unit type with a hull leaves a wreck on its hull box. */
 const units = new UnitCatalog(read("../../../fixtures/catalog.json") as CatalogView);
@@ -107,7 +107,7 @@ test("which prop types a scenery kind draws is the prop catalog's drawn_by, both
 });
 
 test("the building appearances' one ruin state refuses remains of differing heights", () => {
-  const fixture = { physics: village.physics, forests: village.forests };
+  const fixture = { physics: game.physics, forests: game.forests };
   expect(fixtureAuthority(fixture, units).ruin_height_m).toBe(ruinHalf * 2);
   const building = units.view.props.building;
   const keep = { ...building, destroyed: { into: { prop: "ruin", height_m: ruinHalf * 2 + 1 } } };
@@ -155,8 +155,8 @@ test("systems-only bodies have no accepted appearance binding", () => {
 
 test("the playable village's authored props and their remains have accepted bindings", () => {
   const placed = [
-    ...village.map.props.map((p: { kind: string }) => p.kind),
-    ...village.map.buildings.map((b: { kind: string }) => b.kind),
+    ...game.map.props.map((p: { kind: string }) => p.kind),
+    ...game.map.buildings.map((b: { kind: string }) => b.kind),
   ];
   for (let i = 0; i < placed.length; i++) {
     const id = placed[i];
@@ -172,8 +172,8 @@ test("the playable village enables generated floor blockers only with accepted d
     ["log", "logs_per_ha"],
     ["boulder", "boulders_per_ha"],
   ]) {
-    if (village.forests.rule[densityField] <= 0) continue;
-    const kind = village.forests[kindField];
+    if (game.forests.rule[densityField] <= 0) continue;
+    const kind = game.forests[kindField];
     const t = units.view.props[kind];
     expect(t.appearance.status, `${kind}: active generated cover must draw`).toBeUndefined();
     expect(

@@ -41,7 +41,7 @@ fn fight(
     struck: impl Fn(Struck) -> bool,
     seconds: u64,
 ) -> Fight {
-    let mut rules = common::village();
+    let mut rules = common::game();
     sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
     units.insert(
         0,
@@ -200,7 +200,7 @@ fn nobody_leans_round_a_trunk_when_neither_edge_gives_a_line() {
     // A tall wall a step east of the trunk shadows both its edges from red:
     // a man behind the trunk has no line either way, so no one leans round
     // it, and nobody stays behind it (the cover search rejects the spot).
-    let mut rules = common::village();
+    let mut rules = common::game();
     sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
     let setup = serde_json::from_value(json!({
         "map": { "size": [160, 110], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
@@ -245,7 +245,7 @@ fn a_squad_holding_through_a_long_firefight_keeps_its_anchor_and_area() {
     // fire at will; shells land round blue and a wall is removed, so the
     // squad re-resolves again and again. Nothing it does moves its anchor,
     // and no soldier leaves the area round it (no drift).
-    let mut rules = common::village();
+    let mut rules = common::game();
     sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
     sim::fixtures::patch_catalog(
         &mut rules,
@@ -322,7 +322,7 @@ fn a_squad_holding_through_a_long_firefight_keeps_its_anchor_and_area() {
 
 #[test]
 fn a_fight_from_leaning_positions_replays_to_the_same_digest() {
-    let mut rules = common::village();
+    let mut rules = common::game();
     sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
     let setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
         "map": { "size": [160, 110], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
@@ -361,7 +361,7 @@ fn a_fight_from_leaning_positions_replays_to_the_same_digest() {
 fn a_lean_is_published_for_its_own_side_and_for_an_enemy_that_sees_him() {
     // Own: every leaning soldier, with his side and lean point. Enemy: the
     // same lean for each seen soldier, beside his tucked-in position.
-    let mut rules = common::village();
+    let mut rules = common::game();
     sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
     let setup = serde_json::from_value(json!({
         "map": { "size": [160, 110], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
@@ -418,7 +418,7 @@ fn a_soldier_leans_out_for_a_burst_then_tucks_back_in() {
     // The film's picture: out past the tree, a burst, back behind it,
     // and out again. No stretch out lasts longer than a burst, and he stays
     // tucked in for the spell between.
-    let mut rules = common::village();
+    let mut rules = common::game();
     sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
     let burst = rules["cover"]["lean_burst_s"].as_f64().unwrap();
     let tuck = rules["cover"]["lean_tuck_s"].as_f64().unwrap();

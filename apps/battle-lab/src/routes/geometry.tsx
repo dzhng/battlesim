@@ -9,10 +9,10 @@ import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import geometryMap from "@fixtures/geometry-lab.json";
 import { LabViewport, type LabPick } from "../LabViewport";
 import { useStaticWorld, type WorldView } from "../useStaticWorld";
-import { villageBiome } from "../villageBiome";
-import { useVillageAppearances } from "../villageAppearances";
+import { gameBiome } from "../gameBiome";
+import { useGameAppearances } from "../gameAppearances";
 import { useFeed } from "../feed";
-import { villageCamera } from "../villageCamera";
+import { gameCamera } from "../gameCamera";
 
 interface Probe {
   point: [number, number, number];
@@ -28,7 +28,7 @@ const GEOMETRY_CAMERA: Camera3DParams = {
   distance: 420,
   pitch: 0.82,
   yaw: -1.25,
-  ...villageCamera.lens,
+  ...gameCamera.lens,
 };
 
 /** Probe the authoritative surface under a camera ray. */
@@ -55,7 +55,7 @@ export default function Geometry() {
   const world = useStaticWorld(geometryMap);
   const [overlay, setOverlay] = useState<WorldOverlay>("surface");
   const [showTrees, setShowTrees] = useState(true);
-  const appearances = useVillageAppearances();
+  const appearances = useGameAppearances();
   const [probed, setProbed] = useState<Probe | null>(null);
 
   const meshes = useMemo(() => {
@@ -63,7 +63,7 @@ export default function Geometry() {
     const built = buildWorldLayers(
       world.exports,
       world.layout,
-      villageBiome,
+      gameBiome,
       overlay,
       [],
       appearances,

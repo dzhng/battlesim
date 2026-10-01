@@ -18,7 +18,7 @@ const FLAT: &str =
     r#"{ "size": [2600, 2600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 }"#;
 
 fn rules() -> Rules {
-    serde_json::from_value(common::village()).unwrap()
+    serde_json::from_value(common::game()).unwrap()
 }
 
 fn battle(map: &str, units: serde_json::Value) -> Battle {
@@ -174,7 +174,7 @@ fn sight_shape_consumers_agree() {
     let rules = rules();
     let yaw = 0.4;
     let centre = [1300.0, 1300.0];
-    let cell = common::village()["map"]["fog_cell_m"].as_f64().unwrap();
+    let cell = common::game()["map"]["fog_cell_m"].as_f64().unwrap();
     let observer = battle(
         FLAT,
         json!([{ "side": "blue", "kind": "tank", "position": centre, "yaw": yaw }]),
@@ -229,7 +229,7 @@ fn a_garrison_sees_from_one_eye_per_facade_it_holds() {
             { "side": "blue", "kind": "tank", "position": [200, 250] },
         ]),
     );
-    let eye = |key: &str| common::village()["physics"][key].as_f64().unwrap();
+    let eye = |key: &str| common::game()["physics"][key].as_f64().unwrap();
     let tank = own(&b, Side::Blue, 1);
     assert_eq!(
         tank.sight.eyes,
@@ -262,7 +262,7 @@ fn a_garrison_sees_from_one_eye_per_facade_it_holds() {
     }
     let squad = own(&b, Side::Blue, 0);
     assert!(squad.garrison.is_some());
-    let standoff = common::village()["garrison"]["slot_standoff_m"]
+    let standoff = common::game()["garrison"]["slot_standoff_m"]
         .as_f64()
         .unwrap();
     let out = 12.0 + standoff;
@@ -322,7 +322,7 @@ fn a_turning_turret_replays_to_identical_digests() {
 #[test]
 fn a_jeeps_sight_turns_with_its_hmg_only_when_its_sensors_sit_on_it() {
     let run = |on: Option<&str>| {
-        let mut rules = common::village();
+        let mut rules = common::game();
         if let Some(on) = on {
             sim::fixtures::patch_catalog(
                 &mut rules,

@@ -7,7 +7,7 @@ A second session works this lane in parallel with the map lane. It is simulation
 | This lane owns | The map lane owns (stay out) |
 |---|---|
 | `crates/sim/src/` except `world/` map loading | `crates/mapgen/`, `fixtures/map-presets.json`, `fixtures/prototype-building-templates.json` |
-| Rules data in `fixtures/village.json`, `fixtures/props/`, `fixtures/units/` | `apps/`, `packages/`, `web/src/`, `web/scenes/` except scenes for this lane's labs |
+| Rules data in `fixtures/game.json`, `fixtures/props/`, `fixtures/units/` | `apps/`, `packages/`, `web/src/`, `web/scenes/` except scenes for this lane's labs |
 | `crates/sim/tests/`, `crates/sim/examples/` | Map acquisition and preparation: C09, C60, C33, C55, C58, C59 |
 | This file's Status section | `README.md`'s Next Agent Prompt and TODO |
 

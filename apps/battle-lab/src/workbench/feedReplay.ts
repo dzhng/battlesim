@@ -11,7 +11,7 @@
 // never as a formation, so the replay exercises per-soldier posing.
 
 import { clamp, lerp } from "math";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import type {
   FeedFrame,
   FeedMount,
@@ -20,7 +20,7 @@ import type {
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import type { MountRole } from "@packages/scene-assets/src/units";
 
-export const TICK_HZ = village.tick_hz;
+export const TICK_HZ = game.tick_hz;
 
 /** The unit the replay drives: its type, and how the model on the bench
  *  draws each of its mounts (`mountRoles`). */

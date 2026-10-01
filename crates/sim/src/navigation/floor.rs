@@ -120,7 +120,7 @@ mod tests {
 
     #[test]
     fn a_prop_only_catalog_has_no_required_infantry_or_jeep_kind() {
-        let mut input = crate::fixtures::village();
+        let mut input = crate::fixtures::game();
         input["forests"]["rule"]["logs_per_ha"] = serde_json::json!(5);
         input["forests"]["rule"]["boulders_per_ha"] = serde_json::json!(3);
         for document in input["catalog"].as_array_mut().unwrap() {
@@ -142,7 +142,7 @@ mod tests {
 
     #[test]
     fn isolated_cover_is_admitted_with_routes_around_it() {
-        let rules: Rules = serde_json::from_value(crate::fixtures::village()).unwrap();
+        let rules: Rules = serde_json::from_value(crate::fixtures::game()).unwrap();
         let map: MapDefinition = serde_json::from_value(serde_json::json!({
             "size":[100,100], "fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
             "props":[{"kind":"boulder","center":[50,50],"yaw":0,"half_extents":[2,1,1]}]
@@ -180,7 +180,7 @@ mod tests {
         }))
         .unwrap();
         for (half_width, accepted) in [(1.0, true), (4.0, false)] {
-            let mut input = crate::fixtures::village();
+            let mut input = crate::fixtures::game();
             for document in input["catalog"].as_array_mut().unwrap() {
                 if let Some(jeep) = document
                     .get_mut("units")
@@ -208,7 +208,7 @@ mod tests {
 
     #[test]
     fn floor_admission_rejects_a_new_pocket_and_retains_the_route() {
-        let rules: Rules = serde_json::from_value(crate::fixtures::village()).unwrap();
+        let rules: Rules = serde_json::from_value(crate::fixtures::game()).unwrap();
         let map: MapDefinition = serde_json::from_value(serde_json::json!({
             "size":[200,200], "fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
             "props":[

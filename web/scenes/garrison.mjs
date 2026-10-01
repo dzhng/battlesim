@@ -3,11 +3,11 @@
 import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, obs, advance, until, openBattle } from "./_lab.mjs";
-import { propType, village } from "./_units.mjs";
+import { propType, game } from "./_units.mjs";
 
 const CENTRE = [360, 250];
 const HALF = 12;
-const STANDOFF = village.garrison.slot_standoff_m;
+const STANDOFF = game.garrison.slot_standoff_m;
 
 const demo = (page, name) => lab(page, (n) => window.__lab.route.demo(n), name);
 const squad = (o, id) => o.own.find((u) => u.id === id);
@@ -297,7 +297,7 @@ export async function run(ctx) {
   // battle's default camera distance and far out.
   await lab(page, () => window.__lab.route.select([0]));
   for (const [name, distance] of [
-    ["default", village.presentation.camera.default.distance],
+    ["default", game.presentation.camera.default.distance],
     ["far", 600],
   ]) {
     await lab(page, (v) => window.__lab.setCamera({ ...window.__lab.camera(), ...v }), {

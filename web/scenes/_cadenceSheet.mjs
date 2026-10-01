@@ -1,7 +1,7 @@
 // Opt-in real-battle filmstrip: timing and tracer readability amid unit readouts.
 import { writeFile } from "node:fs/promises";
 import { openBattle, obs, advance, aim, snapshot } from "./_lab.mjs";
-import { curvePitch, village } from "./_units.mjs";
+import { curvePitch, game } from "./_units.mjs";
 
 export async function cadenceTour(ctx) {
   const page = await openBattle(ctx, {
@@ -15,7 +15,7 @@ export async function cadenceTour(ctx) {
   await aim(page, [squad.position[0] + 25, squad.position[1], squad.position[2]], {
     distance: 65,
     pitch: curvePitch(65),
-    yaw: village.presentation.camera.default.yaw,
+    yaw: game.presentation.camera.default.yaw,
   });
   const frames = [];
   for (let i = 0; i < Number(process.env.CADENCE_FRAMES ?? 24); i++) {

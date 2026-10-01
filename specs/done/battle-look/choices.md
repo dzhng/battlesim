@@ -197,7 +197,7 @@ Taste, product direction or external cost: only you can settle these. Each carri
 
 ***needs-user** · confidence **medium** · **provisional** · Light, terrain, grass and trees · from Slice 19*
 
-**The choice.** WARNO-style maps have tree lines along roads and hedgerows between fields. Here, a drawn tree line inside the map that the simulation does not know would hide units the simulation says are visible. So today no tree stands inside the map except in the simulation's forests. Hedgerows (shrubs 4.2 m apart with trees 6–22 m apart in them) and copses stand only past the map, from `trees.backdrop.clear_m` (12 m) off it out to `reach_m` (1,500 m), on the patchwork's plot edges. The alternative is authoring in-map tree lines as real simulation forests (rect volumes in `village.json`), which changes sensing and balance.
+**The choice.** WARNO-style maps have tree lines along roads and hedgerows between fields. Here, a drawn tree line inside the map that the simulation does not know would hide units the simulation says are visible. So today no tree stands inside the map except in the simulation's forests. Hedgerows (shrubs 4.2 m apart with trees 6–22 m apart in them) and copses stand only past the map, from `trees.backdrop.clear_m` (12 m) off it out to `reach_m` (1,500 m), on the patchwork's plot edges. The alternative is authoring in-map tree lines as real simulation forests (rect volumes in `game.json`), which changes sensing and balance.
 
 **The gap.** The plan asked for WARNO's tree lines without deciding whether they are simulated.
 
@@ -227,7 +227,7 @@ Taste, product direction or external cost: only you can settle these. Each carri
 
 **The reach.** Look only; two fixture numbers. With order marks on the overlay layer under `yellow-orders`, this mainly affects the amber selection paint and other painted ground marks.
 
-**Verdict.** needs-user. Provisional: short root glow with clean stroke edges. To reverse, raise `presentation.overlay.paint.grass_falloff_m` in `fixtures/village.json` (for example to a blade's height) and accept a fringe.
+**Verdict.** needs-user. Provisional: short root glow with clean stroke edges. To reverse, raise `presentation.overlay.paint.grass_falloff_m` in `fixtures/game.json` (for example to a blade's height) and accept a fringe.
 
 ### The fog's ruled lines are fixed to the screen, not the ground
 
@@ -274,7 +274,7 @@ A screen-space cleanup would also erase true thin seen features. The fog-look ch
 
 ***needs-user** · confidence **medium** · **provisional** · Effects and sound · from Slice 25*
 
-**The choice.** Every look number lives in `presentation.effects` in `fixtures/village.json`: tracers (rifle 14 m × 0.07 m, HMG 18 × 0.10, AP 30 × 0.15, HE 20 × 0.14, grenade 2.5 × 0.08 dim, ATGM 3 × 0.35), flashes (rifle 0.25 m for 0.05 s; cannon 1.8 m with a 3.5 m fireball over 0.35 s; no star on muzzle glows, the tongue along the bore gives direction), impact puffs scaled by round kind, ten sparks per ricochet, and a blast fireball 0.9 × its radius (at least 3 m) over 1.6 s with a short compact flash and 32 sparks. Colours are HDR multipliers tuned under this lighting.
+**The choice.** Every look number lives in `presentation.effects` in `fixtures/game.json`: tracers (rifle 14 m × 0.07 m, HMG 18 × 0.10, AP 30 × 0.15, HE 20 × 0.14, grenade 2.5 × 0.08 dim, ATGM 3 × 0.35), flashes (rifle 0.25 m for 0.05 s; cannon 1.8 m with a 3.5 m fireball over 0.35 s; no star on muzzle glows, the tongue along the bore gives direction), impact puffs scaled by round kind, ten sparks per ricochet, and a blast fireball 0.9 × its radius (at least 3 m) over 1.6 s with a short compact flash and 32 sparks. Colours are HDR multipliers tuned under this lighting.
 
 **The gap.** All curves were delegated.
 
@@ -366,7 +366,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · **provisional** · Simulation rules · from Slice 00*
 
-**The choice.** A tank fires HE (high-explosive) at another tank. HE's penetration (30) is far below any tank face's armour, so it never pierces. Today it still does damage: the weapon row's `armor_fraction` (0.15) times its damage (80), so 12 hit points a hit, against AP's 40 when AP pierces. The row is `weapons.tank_he.armor_fraction` in `fixtures/village.json`, read in `damage.rs`. The alternative, a fraction of 0, would make a tank that ran out of AP harmless to other tanks.
+**The choice.** A tank fires HE (high-explosive) at another tank. HE's penetration (30) is far below any tank face's armour, so it never pierces. Today it still does damage: the weapon row's `armor_fraction` (0.15) times its damage (80), so 12 hit points a hit, against AP's 40 when AP pierces. The row is `weapons.tank_he.armor_fraction` in `fixtures/game.json`, read in `damage.rs`. The alternative, a fraction of 0, would make a tank that ran out of AP harmless to other tanks.
 
 **The gap.** The user said HE on armour is "partial, not nearly as effective as AP" but gave no number.
 
@@ -396,7 +396,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 **The reach.** Where stray rounds go after hitting armour.
 
-**Verdict.** sound, provisional — every number is in `village.json` (`ricochet`) and each hull's `armor.ricochet`.
+**Verdict.** sound, provisional — every number is in `game.json` (`ricochet`) and each hull's `armor.ricochet`.
 
 ### Crater and scorch size scale with the weapon's blast radius
 
@@ -414,7 +414,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · **provisional** · Simulation rules · from Slice 33; Slice 34*
 
-**The choice.** `cover.tiers` in `fixtures/village.json` holds light 1.4, medium 1.8, heavy 2.4: a round aimed at a soldier behind heavy cover scatters 2.4× as wide. Heavy stays under a garrisoned building's 3×. A prop's tier is its catalog body row's `cover_tier` (`fixtures/props/`: crate and fence light; trunk, sandbags and tooth medium; wall, ruin and building heavy; rubble light; bridge deck none). A vehicle, live or wrecked, takes its tier from its weight class (light/medium/heavy). A crater at least half full is light. `cover::validate` refuses tiers that do not widen the spread, heavier tiers that are narrower, and a wreck row whose tier differs from its vehicle's.
+**The choice.** `cover.tiers` in `fixtures/game.json` holds light 1.4, medium 1.8, heavy 2.4: a round aimed at a soldier behind heavy cover scatters 2.4× as wide. Heavy stays under a garrisoned building's 3×. A prop's tier is its catalog body row's `cover_tier` (`fixtures/props/`: crate and fence light; trunk, sandbags and tooth medium; wall, ruin and building heavy; rubble light; bridge deck none). A vehicle, live or wrecked, takes its tier from its weight class (light/medium/heavy). A crater at least half full is light. `cover::validate` refuses tiers that do not widen the spread, heavier tiers that are narrower, and a wreck row whose tier differs from its vehicle's.
 
 **The gap.** The spec named tiers, not numbers or where each body's tier lives.
 
@@ -480,7 +480,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 **The reach.** A battle much denser than 100 units a side, or a smaller tile size, could hit the cap silently.
 
-**Verdict.** sound, provisional — the numbers are tunable; to reverse, raise `tile_eyes_max` or `rebuild_eyes_per_frame` in `fixtures/village.json`.
+**Verdict.** sound, provisional — the numbers are tunable; to reverse, raise `tile_eyes_max` or `rebuild_eyes_per_frame` in `fixtures/game.json`.
 
 ### Model detail tiers are chosen by projected height; casters draw one tier coarser
 
@@ -810,7 +810,7 @@ The architecture you now own. Within a confidence, provisional numbers come firs
 
 ***sound** · confidence **medium** · Simulation rules · from Slice 37; Slice 27a*
 
-**The choice.** `fixtures/village.json` `map.props` places, after the three houses (so building indices don't move):
+**The choice.** `fixtures/game.json` `map.props` places, after the three houses (so building indices don't move):
 - A road block of 20 dragon's teeth across the main road at the village's west entrance (x 895, y 767–813, 2.4 m pitch, one-man gaps). Vehicles leave the road round either end, and squads thread through.
 - Sandbags on the north house's west face (three sections and a return arm, x 947, y 737–752).
 - Sandbags on the square facing the road's end (two sections and an arm, x 1012, y 790–800). The sections abut, so the corners close.
@@ -918,7 +918,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Simulation rules · from Sim lane (review fixes, props catalog)*
 
-**The choice.** A number that changes how the battle plays is a fixture row in `fixtures/village.json`: `cover.{lean_hold_s, lean_max_m, lean_clear_m, lean_apart_m, standoff_m, away_cos, search_slack_m}`; `movement.drive.*`, carried on each vehicle's drive; `ground.{track_gauge, lane_margin_m}`; `physics.{infantry_aim_m, infantry_center_m}`; `infantry_movement.path_clearance_m`. A number that is only a sampling step or float tolerance stays a code constant: `lean::GRAZE_M`, `lean::AT_PLACE_M`, `cover::STEP_RING_M`, `cover::FAR_M`, `drive::PROBE_M`, `take_cover::IN_PLACE_M`. A squad's footprint adds `soldier_radius_m`, and route clearance is its own `path_clearance_m`, rather than one half-width constant meaning both. The alternative was leaving behaviour numbers as code constants.
+**The choice.** A number that changes how the battle plays is a fixture row in `fixtures/game.json`: `cover.{lean_hold_s, lean_max_m, lean_clear_m, lean_apart_m, standoff_m, away_cos, search_slack_m}`; `movement.drive.*`, carried on each vehicle's drive; `ground.{track_gauge, lane_margin_m}`; `physics.{infantry_aim_m, infantry_center_m}`; `infantry_movement.path_clearance_m`. A number that is only a sampling step or float tolerance stays a code constant: `lean::GRAZE_M`, `lean::AT_PLACE_M`, `cover::STEP_RING_M`, `cover::FAR_M`, `drive::PROBE_M`, `take_cover::IN_PLACE_M`. A squad's footprint adds `soldier_radius_m`, and route clearance is its own `path_clearance_m`, rather than one half-width constant meaning both. The alternative was leaving behaviour numbers as code constants.
 
 **The gap.** The review said "tuning belongs in the fixture". It did not draw the line.
 
@@ -1386,7 +1386,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **medium** · Renderer frame · from Slice 18; Slice 19b*
 
-**The choice.** A new route builds its battle world. `buildWorldLayers` (`battle-renderer/src/worldMesh.ts`) fills `WorldLayers.grass` with the installed catalog's grass appearances, beside the trees' `scenery`, and only when the route passes appearances from the one loader (`villageAppearances()`). So grass and trees follow one path from the catalog to the frame. Every route with appearances draws grass: the battle routes, ballistics, geometry's surface view. Some pass `null`: the foundation patch, the workbench's ground, and the fog lab (`routes/fog.tsx`), because blades in unseen ground stand up over the seen field behind and move the sight-edge line its checks trace by blade heights. The fog-look lab has a grass toggle: its gate frames draw grass, as the village does, and its pixel-identity and rim checks use bare ground, since dense grass flips a stray pixel now and then. The alternative was a second grass-only loader in the battle view.
+**The choice.** A new route builds its battle world. `buildWorldLayers` (`battle-renderer/src/worldMesh.ts`) fills `WorldLayers.grass` with the installed catalog's grass appearances, beside the trees' `scenery`, and only when the route passes appearances from the one loader (`gameAppearances()`). So grass and trees follow one path from the catalog to the frame. Every route with appearances draws grass: the battle routes, ballistics, geometry's surface view. Some pass `null`: the foundation patch, the workbench's ground, and the fog lab (`routes/fog.tsx`), because blades in unseen ground stand up over the seen field behind and move the sight-edge line its checks trace by blade heights. The fog-look lab has a grass toggle: its gate frames draw grass, as the village does, and its pixel-identity and rim checks use bare ground, since dense grass flips a stray pixel now and then. The alternative was a second grass-only loader in the battle view.
 
 **The gap.** The spec did not say how grass kinds reach the frame, nor which labs draw grass.
 
@@ -2501,7 +2501,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Simulation rules · from Slice 38*
 
-**The choice.** An anti-tank missile is steered by its launcher while the launcher stands still, lives and sees the target. When that support ends (the user's rule), the missile flies straight on for a short "coast", then goes to ground. The coast time is `guided.release_coast_s` (0.5 s), a new top-level section in `fixtures/village.json`, parsed as `contract::ballistics::GuidedRules`. It is not a field on the `atgm` weapon row, because it describes what any guided round does once released, not one launcher. `flight::validate_guided` refuses zero, negative or non-finite values at battle setup: at zero the aim point would sit right under the missile and it would circle.
+**The choice.** An anti-tank missile is steered by its launcher while the launcher stands still, lives and sees the target. When that support ends (the user's rule), the missile flies straight on for a short "coast", then goes to ground. The coast time is `guided.release_coast_s` (0.5 s), a new top-level section in `fixtures/game.json`, parsed as `contract::ballistics::GuidedRules`. It is not a field on the `atgm` weapon row, because it describes what any guided round does once released, not one launcher. `flight::validate_guided` refuses zero, negative or non-finite values at battle setup: at zero the aim point would sit right under the missile and it would circle.
 
 **The gap.** The spec named `guided.release_coast_s` but not where it lives or what values are legal.
 
@@ -2741,7 +2741,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Simulation rules · from Slice 34c; Slice 27c*
 
-**The choice.** The village weapons (`fixtures/village.json` `weapons`) set `structural_damage`: tank HE 100, ATGM 100 (a warhead wrecks structures like a shell), tank AP 10, grenade 10, HMG 4 per round, rifle 0.25 per round. Trunk hp is 100, so one HE shell or one missile fells a tree. Sustained HMG fire fells one in about 10 s, and a squad's rifles in about 19–22 s at 30 m. Each is pinned by a test within ±30%. The user set these: a rifle value of 0.5 read as "mowing down trees". The alternative was rifles and HMGs with no structural damage.
+**The choice.** The village weapons (`fixtures/game.json` `weapons`) set `structural_damage`: tank HE 100, ATGM 100 (a warhead wrecks structures like a shell), tank AP 10, grenade 10, HMG 4 per round, rifle 0.25 per round. Trunk hp is 100, so one HE shell or one missile fells a tree. Sustained HMG fire fells one in about 10 s, and a squad's rifles in about 19–22 s at 30 m. Each is pinned by a test within ±30%. The user set these: a rifle value of 0.5 read as "mowing down trees". The alternative was rifles and HMGs with no structural damage.
 
 **The gap.** Rifles and HMGs had no structural damage.
 
@@ -3401,7 +3401,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Contracts and seams · from Slice 37b (sim)*
 
-**The choice.** `fixtures/village.json` `spawn` rows are `[type, x, y]` or `[type, x, y, engagement]`, where engagement is `fire_at_will` or `return_fire_only` (`sim::village::SpawnRow`). Without the column, the side's default holds: red AT teams hold fire, and everyone else fires at will. With it, the row wins, on red too, since a row that says so means it. An unknown value, a short row or a fifth element fails the load. A custom deserializer keeps the error exact. No row sets it today.
+**The choice.** `fixtures/game.json` `spawn` rows are `[type, x, y]` or `[type, x, y, engagement]`, where engagement is `fire_at_will` or `return_fire_only` (`sim::village::SpawnRow`). Without the column, the side's default holds: red AT teams hold fire, and everyone else fires at will. With it, the row wins, on red too, since a row that says so means it. An unknown value, a short row or a fifth element fails the load. A custom deserializer keeps the error exact. No row sets it today.
 
 **The gap.** The handoff didn't say whether an explicit column overrides red's AT default.
 
@@ -3425,7 +3425,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Contracts and seams · from Sim lane (review fixes, props catalog)*
 
-**The choice.** Grid cell sizes come from the rules, so `WorldGeometry::new(map, &Rules)` takes the whole rules object. The wasm `world_layout`, `WorldView` and `FlightLab` take a scenario's rules JSON (`VILLAGE_RULES` in the lab) instead of separate props, forests, physics and ricochet sections. The prop catalog travels through the same seam unchanged.
+**The choice.** Grid cell sizes come from the rules, so `WorldGeometry::new(map, &Rules)` takes the whole rules object. The wasm `world_layout`, `WorldView` and `FlightLab` take a scenario's rules JSON (`GAME_RULES` in the lab) instead of separate props, forests, physics and ricochet sections. The prop catalog travels through the same seam unchanged.
 
 **The gap.** The review found the world rebuilt parts of rules piecemeal.
 
@@ -3557,7 +3557,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Camera and controls · from Slice 09; Slice 13*
 
-**The choice.** Labs (the `/lab/*` debug routes) have no presentation block of their own. Today `LabViewport` takes the village fixture's `presentation.camera` (`villageCamera.ts`) and `presentation.light` (`villageLight.ts`) unless a lab passes its own. So lab wheels clamp to 25–2000 m and labs are lit like the battle. Cameras that a scene or lab places directly are not clamped. The alternative, a camera and light per lab, would drift apart from the real battle.
+**The choice.** Labs (the `/lab/*` debug routes) have no presentation block of their own. Today `LabViewport` takes the village fixture's `presentation.camera` (`gameCamera.ts`) and `presentation.light` (`gameLight.ts`) unless a lab passes its own. So lab wheels clamp to 25–2000 m and labs are lit like the battle. Cameras that a scene or lab places directly are not clamped. The alternative, a camera and light per lab, would drift apart from the real battle.
 
 **The gap.** Labs had no presentation numbers.
 
@@ -3581,7 +3581,7 @@ Where the operator fires it from is the operator-muzzle entry.
 
 ***sound** · confidence **high** · Camera and controls · from Slice 39*
 
-**The choice.** `controls` in `fixtures/village.json` (`reverse_zone_length_m` 30, `reverse_zone_margin_m` 2) is read only by the web (`web/src/battle/input/reverseZone.ts`). With one vehicle selected, a right-click in the strip behind its hull, from the rear face back 30 m and the hull's half width plus 2 m each side, is a reverse move.
+**The choice.** `controls` in `fixtures/game.json` (`reverse_zone_length_m` 30, `reverse_zone_margin_m` 2) is read only by the web (`web/src/battle/input/reverseZone.ts`). With one vehicle selected, a right-click in the strip behind its hull, from the rear face back 30 m and the hull's half width plus 2 m each side, is a reverse move.
 
 **The gap.** Where control tuning lives.
 
@@ -3919,7 +3919,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · Light, terrain, grass and trees · from Slice 12; Slice 13*
 
-**The choice.** The battle has one light. `presentation.light` in `fixtures/village.json` holds the sun (azimuth, elevation, intensity), `shadow_floor`, `sky {turbidity, radiance, fill}`, `haze`, `backdrop`, `exposure`, `grade`, `bloom` and `cascades`, more than the six fields the seam named, because the sky, fill and haze are light too and every look number lives in the fixture. `light/sceneLight.ts` validates it by field name and owns `sunDirection`, the one sun vector everything derives from. `EnvironmentFrame` (`frame/environmentFrame.ts`) builds the sky, the environment map, the sun and the cascades once and hands every world material the same shading. There are no named light presets (golden, dusk, noon, overcast) in code. The world is lit with the full ported environment (physically based shading, sky, cascaded sun shadow, aerial haze, bloom, AgX tone mapping). The alternative was a set of named presets switched in code.
+**The choice.** The battle has one light. `presentation.light` in `fixtures/game.json` holds the sun (azimuth, elevation, intensity), `shadow_floor`, `sky {turbidity, radiance, fill}`, `haze`, `backdrop`, `exposure`, `grade`, `bloom` and `cascades`, more than the six fields the seam named, because the sky, fill and haze are light too and every look number lives in the fixture. `light/sceneLight.ts` validates it by field name and owns `sunDirection`, the one sun vector everything derives from. `EnvironmentFrame` (`frame/environmentFrame.ts`) builds the sky, the environment map, the sun and the cascades once and hands every world material the same shading. There are no named light presets (golden, dusk, noon, overcast) in code. The world is lit with the full ported environment (physically based shading, sky, cascaded sun shadow, aerial haze, bloom, AgX tone mapping). The alternative was a set of named presets switched in code.
 
 **The gap.** The seam listed fewer fields and left presets open.
 
@@ -4351,7 +4351,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · In-world UI and HUD · from Slice 27e; Slice 27e (follow-ups)*
 
-**The choice.** The player sees supply rings, suppression and impact rings, the objective zone, order marks, the x-ray and glows. `presentation.overlay` in the fixture holds every one of their colours: `supply { ready, idle, serving, waiting }`, `consequences { suppression, impact }`, `zone`, `orders`, `xray`, `glow` and `paint`; `presentation.hud` holds the HUD theme (font, accent, enemy, text colours, glass). Each is validated at load (`validateSupplyStyle`, `validateConsequenceStyle`, `validateZoneColor`, `validateOrderStyle`, `validateHudTheme`, `validateCalloutGlow`), with `mesh.ts` `isRgba` as the one colour check, and builders take their colours as arguments. The lab reads them through `apps/battle-lab/src/villageOverlay.ts`. The lab tracer colours (a diagnostic) stay in `battleOverlay.ts`. The alternative was colour constants kept in each mark's own module.
+**The choice.** The player sees supply rings, suppression and impact rings, the objective zone, order marks, the x-ray and glows. `presentation.overlay` in the fixture holds every one of their colours: `supply { ready, idle, serving, waiting }`, `consequences { suppression, impact }`, `zone`, `orders`, `xray`, `glow` and `paint`; `presentation.hud` holds the HUD theme (font, accent, enemy, text colours, glass). Each is validated at load (`validateSupplyStyle`, `validateConsequenceStyle`, `validateZoneColor`, `validateOrderStyle`, `validateHudTheme`, `validateCalloutGlow`), with `mesh.ts` `isRgba` as the one colour check, and builders take their colours as arguments. The lab reads them through `apps/battle-lab/src/gameOverlay.ts`. The lab tracer colours (a diagnostic) stay in `battleOverlay.ts`. The alternative was colour constants kept in each mark's own module.
 
 **The gap.** "Every colour in the fixture" was said for what was being restyled, not the supply, suppression and zone marks.
 
@@ -4363,7 +4363,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · In-world UI and HUD · from Slice 27e; Post-close review (presentation)*
 
-**The choice.** A selected squad walks behind a house. Its bodies are never tinted while visible; the selection shows as the amber circle painted on the ground under it, the colour scheme's `selected` role (see the colour-roles entry). The parts the house hides are drawn through it as the x-ray, a flat silhouette of the player's own hidden units (see the x-ray entry). A selected unit's x-ray takes the same `selected` colour: `villageOverlay.ts` reads it from `resolveOrderScheme` (which turns the fixture's chosen scheme into the style order marks are drawn with), and the fixture keeps only its opacity, `presentation.overlay.xray.selected_alpha` (0.62). The HUD follows the same role: `hudProperties` sets the CSS variable `--hud-selected` from it, and a selected unit's leader line (the line from the unit to its readout callout) is stroked in it. A selected vehicle's travel chevrons are always paint in `selected`, glowed by `selected_glow`. The alternative, a separate x-ray colour key in the fixture, was how it was first built. That key stayed the order yellow when the scheme moved the selection to amber, so a player asking "is that my selected unit behind the house?" saw the colour of routes and destinations.
+**The choice.** A selected squad walks behind a house. Its bodies are never tinted while visible; the selection shows as the amber circle painted on the ground under it, the colour scheme's `selected` role (see the colour-roles entry). The parts the house hides are drawn through it as the x-ray, a flat silhouette of the player's own hidden units (see the x-ray entry). A selected unit's x-ray takes the same `selected` colour: `gameOverlay.ts` reads it from `resolveOrderScheme` (which turns the fixture's chosen scheme into the style order marks are drawn with), and the fixture keeps only its opacity, `presentation.overlay.xray.selected_alpha` (0.62). The HUD follows the same role: `hudProperties` sets the CSS variable `--hud-selected` from it, and a selected unit's leader line (the line from the unit to its readout callout) is stroked in it. A selected vehicle's travel chevrons are always paint in `selected`, glowed by `selected_glow`. The alternative, a separate x-ray colour key in the fixture, was how it was first built. That key stayed the order yellow when the scheme moved the selection to amber, so a player asking "is that my selected unit behind the house?" saw the colour of routes and destinations.
 
 **The gap.** The x-ray and HUD colours were chosen while the selection was yellow, and nothing tied them to the scheme's `selected` role.
 
@@ -4375,7 +4375,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · The catalog · from Slice 16*
 
-**The choice.** Changing field colours or tree species should be a data edit. Today `summer.json` holds `{seed, palettes, plots, field_rules, verge, road, shore, forest_floor, trees, grass, scars}`: named sRGB palettes, plot kinds (name, palette, weight, furrow, mottle, roughness), and the rules for fields, trees and grass. `water_bed`, `water` and `distant` palettes are required. `validateBiome` rejects a bad field by name. Every lab route reads it through `apps/battle-lab/src/villageBiome.ts`.
+**The choice.** Changing field colours or tree species should be a data edit. Today `summer.json` holds `{seed, palettes, plots, field_rules, verge, road, shore, forest_floor, trees, grass, scars}`: named sRGB palettes, plot kinds (name, palette, weight, furrow, mottle, roughness), and the rules for fields, trees and grass. `water_bed`, `water` and `distant` palettes are required. `validateBiome` rejects a bad field by name. Every lab route reads it through `apps/battle-lab/src/gameBiome.ts`.
 
 **The gap.** The seam named only the top-level keys.
 
@@ -4423,7 +4423,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · The catalog · from Slice 27f*
 
-**The choice.** A scenario's `rules.catalog` is a list of JSON documents in which types can `extends` other types. The resolver that flattens them lives in the `contract` crate, which gained a `serde_json` dependency for the merge. Rules resolve the catalog as they deserialize, so the simulation only ever sees a flat catalog. Native tools gather `fixtures/units/**` and `fixtures/props/**` through `sim::fixtures`. The browser's scenarios carry the generated view's `documents` (`VILLAGE_RULES` in `apps/battle-lab/src/scenarios.ts`), which resolve inside wasm when the rules deserialize, like any other rules. The wasm export `resolve_catalog` is used only by tests that resolve a catalog of their own. The slice had named a `sim::catalog` "exposed through the contract". Putting it in `contract` makes resolution part of parsing rules.
+**The choice.** A scenario's `rules.catalog` is a list of JSON documents in which types can `extends` other types. The resolver that flattens them lives in the `contract` crate, which gained a `serde_json` dependency for the merge. Rules resolve the catalog as they deserialize, so the simulation only ever sees a flat catalog. Native tools gather `fixtures/units/**` and `fixtures/props/**` through `sim::fixtures`. The browser's scenarios carry the generated view's `documents` (`GAME_RULES` in `apps/battle-lab/src/scenarios.ts`), which resolve inside wasm when the rules deserialize, like any other rules. The wasm export `resolve_catalog` is used only by tests that resolve a catalog of their own. The slice had named a `sim::catalog` "exposed through the contract". Putting it in `contract` makes resolution part of parsing rules.
 
 **The gap.** The slice said where the resolver would be exposed, not where it would live.
 
@@ -4435,7 +4435,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · The catalog · from Slice 27f; Sim lane (review fixes, props catalog); Post-close review (sim)*
 
-**The choice.** Many TypeScript readers need a unit type's numbers synchronously when a module loads: the reverse zone, picking, readouts, the Node asset CLI. Wasm starts asynchronously in the browser, so it cannot answer at import time. The simulation's own resolver (`Catalog::view`) therefore writes `fixtures/catalog.json`, holding every unit and prop type already flattened, and `village.json`'s weapon rows with their `extends` resolved (`weapons`, written by `sim::fixtures::catalog_view`). `scene-assets` exports those rows as `WEAPONS`, and the weapons, ballistics and supply labs read them, never the raw rows. A Rust test (`crates/sim/tests/catalog.rs`) fails when the file is stale, and `BLESS_CATALOG=1` rewrites it. Test-only catalogs still resolve through wasm `resolve_catalog`. The preferred route, wasm in Node too, was not taken.
+**The choice.** Many TypeScript readers need a unit type's numbers synchronously when a module loads: the reverse zone, picking, readouts, the Node asset CLI. Wasm starts asynchronously in the browser, so it cannot answer at import time. The simulation's own resolver (`Catalog::view`) therefore writes `fixtures/catalog.json`, holding every unit and prop type already flattened, and `game.json`'s weapon rows with their `extends` resolved (`weapons`, written by `sim::fixtures::catalog_view`). `scene-assets` exports those rows as `WEAPONS`, and the weapons, ballistics and supply labs read them, never the raw rows. A Rust test (`crates/sim/tests/catalog.rs`) fails when the file is stale, and `BLESS_CATALOG=1` rewrites it. Test-only catalogs still resolve through wasm `resolve_catalog`. The preferred route, wasm in Node too, was not taken.
 
 **The gap.** The user preferred wasm everywhere. Synchronous module-scope readers made that awkward.
 
@@ -4507,11 +4507,11 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · The catalog · from Post-close review (sim)*
 
-**The choice.** An author defines `"tank"` twice in one units file. Plain JSON parsing keeps the last one silently. `contract::catalog::parse_document` refuses the first key written twice in any object instead, returning `CatalogError::DuplicateKey { key, line, column }`; a syntax error is `CatalogError::Syntax`. It is a serde seed, so the document is read once. `sim::fixtures::catalog_documents` (the catalog files) and the wasm `resolve_catalog` read through it. `village.json` is still read with plain `serde_json`: the finding named the catalog.
+**The choice.** An author defines `"tank"` twice in one units file. Plain JSON parsing keeps the last one silently. `contract::catalog::parse_document` refuses the first key written twice in any object instead, returning `CatalogError::DuplicateKey { key, line, column }`; a syntax error is `CatalogError::Syntax`. It is a serde seed, so the document is read once. `sim::fixtures::catalog_documents` (the catalog files) and the wasm `resolve_catalog` read through it. `game.json` is still read with plain `serde_json`: the finding named the catalog.
 
 **The gap.** The finding named duplicate catalog keys. Where to catch them and whether the rules file counts were open.
 
-**The reach.** Catalog files can't hide a shadowed entry. A duplicate key in `village.json` still wins silently.
+**The reach.** Catalog files can't hide a shadowed entry. A duplicate key in `game.json` still wins silently.
 
 **Verdict.** sound.
 
@@ -4519,7 +4519,7 @@ From `~/dev/game` it takes the technique only: GPU routing into tiers, a shading
 
 ***sound** · confidence **high** · The catalog · from Post-close review (sim)*
 
-**The choice.** A new vehicle's HMG row names a weapon row `village.json` lacks, or puts its muzzle on a mount that doesn't carry it. The rules fail to load, naming the entry, instead of the battle panicking at setup. `catalog::check` holds each hull mount to the hull or an earlier turret mount, with a `muzzle_m`, and neither `squad` nor `special`; a wreck to its vehicle's cover tier (`WeightClass::cover_tier`, now in `contract`); and every speed, turn, reverse fraction, turning radius, sight, loudness and deploy range. `check_soldier` holds each soldier kind to positive hit points and hand weapons: no `turret`, `on`, non-zero `pivot_m` or `muzzle_m`, and not both `squad` and `special`. A soldier mount with a muzzle would fire from mount geometry about the squad's middle. Weapon rows live in a different section from the catalog, so they are checked where the whole rules load: `Rules` deserializes through a private mirror of its fields (`#[serde(try_from = "UncheckedRules")]`), and `Catalog::check_weapons` names the unit type (`CatalogError::Rule`) or soldier kind (`CatalogError::Invalid`) whose mount names a missing row. What remains of `units::validate_types` is the drive rules, `validate_drive`, and `Arsenal::new`'s two panics are `expect`s the load checks guarantee. Rejected: checking in `Battle::new` (the finding's complaint) and a hand-written `Deserialize` (more code than the mirror).
+**The choice.** A new vehicle's HMG row names a weapon row `game.json` lacks, or puts its muzzle on a mount that doesn't carry it. The rules fail to load, naming the entry, instead of the battle panicking at setup. `catalog::check` holds each hull mount to the hull or an earlier turret mount, with a `muzzle_m`, and neither `squad` nor `special`; a wreck to its vehicle's cover tier (`WeightClass::cover_tier`, now in `contract`); and every speed, turn, reverse fraction, turning radius, sight, loudness and deploy range. `check_soldier` holds each soldier kind to positive hit points and hand weapons: no `turret`, `on`, non-zero `pivot_m` or `muzzle_m`, and not both `squad` and `special`. A soldier mount with a muzzle would fire from mount geometry about the squad's middle. Weapon rows live in a different section from the catalog, so they are checked where the whole rules load: `Rules` deserializes through a private mirror of its fields (`#[serde(try_from = "UncheckedRules")]`), and `Catalog::check_weapons` names the unit type (`CatalogError::Rule`) or soldier kind (`CatalogError::Invalid`) whose mount names a missing row. What remains of `units::validate_types` is the drive rules, `validate_drive`, and `Arsenal::new`'s two panics are `expect`s the load checks guarantee. Rejected: checking in `Battle::new` (the finding's complaint) and a hand-written `Deserialize` (more code than the mirror).
 
 **The gap.** The finding said structural checks ran too late. Which checks and where they go were open.
 

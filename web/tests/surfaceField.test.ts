@@ -3,7 +3,7 @@
 // through the bucket index is the same signed distance wherever a consumer
 // reads it, on the simulation's own exports and on a map dense enough that
 // the index matters.
-import { VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
+import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
 import { readFileSync } from "node:fs";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { vec2, type Vec2 } from "math";
@@ -32,7 +32,7 @@ import {
 } from "@packages/battle-renderer/src/terrain/surfaceField.ts";
 import { CURATED_GROUND, denseGround } from "./surfaceGrounds";
 import summer from "@fixtures/biomes/summer.json";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import geometry from "@fixtures/geometry-lab.json";
 
 const biome = validateBiome(summer as unknown as Biome);
@@ -43,11 +43,11 @@ afterEach(() => {
 });
 beforeAll(() => {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
-  layout = JSON.parse(world_layout(JSON.stringify(VILLAGE_RULES))) as WorldLayout;
+  layout = JSON.parse(world_layout(JSON.stringify(GAME_RULES))) as WorldLayout;
 });
 
 function siteOf(map: unknown): TerrainSite {
-  const view = new WorldView(JSON.stringify(map), JSON.stringify(VILLAGE_RULES));
+  const view = new WorldView(JSON.stringify(map), JSON.stringify(GAME_RULES));
   views.push(view);
   return buildTerrainSurface(readWorldExports(view), layout, biome).site;
 }
@@ -221,7 +221,7 @@ test("a field lookup is the all-primitives distance wherever a consumer reads it
 });
 
 test("the shipped maps' fields match their all-primitives distances", () => {
-  expect(expectFieldMatches(siteOf(village.map), 2000, 1).exactToM).toBe(Infinity);
+  expect(expectFieldMatches(siteOf(game.map), 2000, 1).exactToM).toBe(Infinity);
   expect(expectFieldMatches(siteOf(geometry), 2000, 2).exactToM).toBe(Infinity);
 });
 

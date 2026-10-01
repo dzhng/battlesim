@@ -1,5 +1,5 @@
 //! The shipped fixtures as native tools (tests, reports, the shot runner)
-//! read them: `fixtures/village.json` with the catalog's documents, every
+//! read them: `fixtures/game.json` with the catalog's documents, every
 //! `fixtures/units/**/*.json` and `fixtures/props/**/*.json`, as its
 //! `catalog`. The browser gets the same catalog, resolved, from
 //! `fixtures/catalog.json`, which [`catalog_view`] writes and a test
@@ -49,21 +49,21 @@ pub fn catalog_documents() -> Vec<Value> {
         .collect()
 }
 
-/// The village fixture with the unit catalog: what `Rules` and the village
+/// The game fixture with the unit catalog: what `Rules` and the village
 /// and endurance scenarios read.
-pub fn village() -> Value {
-    let mut fixture = read(&dir().join("village.json"));
+pub fn game() -> Value {
+    let mut fixture = read(&dir().join("game.json"));
     fixture["catalog"] = Value::Array(catalog_documents());
     fixture
 }
 
 /// The resolved catalog's view (`Catalog::view`) as `fixtures/catalog.json`
-/// holds it, with `weapons`: `village.json`'s weapon rows, `extends`
+/// holds it, with `weapons`: `game.json`'s weapon rows, `extends`
 /// resolved, as the mounts name them.
 pub fn catalog_view() -> String {
     let catalog = contract::catalog::resolve(&catalog_documents())
         .unwrap_or_else(|e| panic!("the unit catalog: {e}"));
-    let rows = read(&dir().join("village.json"))["weapons"].take();
+    let rows = read(&dir().join("game.json"))["weapons"].take();
     let weapons =
         contract::weapons::resolve_weapons(rows).unwrap_or_else(|e| panic!("the weapon rows: {e}"));
     let mut view = catalog.view();

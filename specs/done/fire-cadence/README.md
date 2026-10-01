@@ -14,7 +14,7 @@ Infantry fire should read as soldiers fighting individually, not a synchronized 
 
 ## Owners
 
-[`WeaponDefinition`](../../../crates/contract/src/weapons.rs) owns the optional magazine contract; [`SuppressionTierRules`](../../../crates/contract/src/scenario.rs) owns the scatter multiplier. Values belong to [`village.json`](../../../fixtures/village.json). [`Cycle`](../../../crates/sim/src/weapons/cycle.rs) owns physical weapon timing; [`weapons`](../../../crates/sim/src/weapons.rs) owns shared targeting and launch eligibility. The packed observation adds a `primaryLabel` flag per contact so presentation shows one report label per enemy, preferring visual memory to hearing without exporting hidden identity. Replay/digest state includes each physical cycle.
+[`WeaponDefinition`](../../../crates/contract/src/weapons.rs) owns the optional magazine contract; [`SuppressionTierRules`](../../../crates/contract/src/scenario.rs) owns the scatter multiplier. Values belong to [`game.json`](../../../fixtures/game.json). [`Cycle`](../../../crates/sim/src/weapons/cycle.rs) owns physical weapon timing; [`weapons`](../../../crates/sim/src/weapons.rs) owns shared targeting and launch eligibility. The packed observation adds a `primaryLabel` flag per contact so presentation shows one report label per enemy, preferring visual memory to hearing without exporting hidden identity. Replay/digest state includes each physical cycle.
 
 Tracer world widths and pixel floors are distinct controls. Each core/glow layer owns its floor, so thinning rifles need not change HMGs or other effects. Matched native tactical/close captures and a crowded gameplay filmstrip judge readability; enlargements expose residual diagonal raster aliasing without confusing it with native visibility.
 

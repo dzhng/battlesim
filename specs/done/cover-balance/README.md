@@ -43,7 +43,7 @@ layout. Appearance source names are provenance, separate from gameplay IDs.
 
 ## Code and evidence
 
-- `fixtures/village.json` owns spread and building exposure tuning.
+- `fixtures/game.json` owns spread and building exposure tuning.
 - `crates/sim/src/cover.rs` owns directional cover eligibility and body tiers;
   `crates/sim/src/weapons.rs` applies incoming spread.
 - `crates/sim/src/damage.rs::shelter_spread` and `fragment_exposure` own the

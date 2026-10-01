@@ -3,7 +3,7 @@
 // selected), the contact glyphs drawn over fog, and the border that marks
 // the playable area (drawn sight runs on past it). Every lab route draws
 // with them.
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import {
   validateFogGeometry,
   type FogGeometryPresentation,
@@ -22,25 +22,25 @@ import {
   type FogPresentation,
   type FogStyle,
 } from "@packages/battle-renderer/src/frame/fogStyle";
-import { villageHud } from "@web/battle/present/hudTheme";
+import { gameHud } from "@web/battle/present/hudTheme";
 
-export const villageFogGeometry: FogGeometryPresentation = validateFogGeometry(
-  village.presentation.fog_geometry as unknown as FogGeometryPresentation,
+export const gameFogGeometry: FogGeometryPresentation = validateFogGeometry(
+  game.presentation.fog_geometry as unknown as FogGeometryPresentation,
 );
 
-export const villageFogPresentation: FogPresentation = validateFogPresentation(
-  village.presentation.fog as unknown as FogPresentation,
+export const gameFogPresentation: FogPresentation = validateFogPresentation(
+  game.presentation.fog as unknown as FogPresentation,
 );
 
 /** The unseen look the fixture selects. */
-export const villageFogStyle: FogStyle = selectedFogStyle(villageFogPresentation);
+export const gameFogStyle: FogStyle = selectedFogStyle(gameFogPresentation);
 
 /** Contact glyphs, in the HUD's enemy colour. */
-export const villageContactStyle: ContactGlyphStyle = validateContactGlyphStyle({
-  ...(village.presentation.contacts as unknown as Omit<ContactGlyphStyle, "color">),
-  color: villageHud.enemy,
+export const gameContactStyle: ContactGlyphStyle = validateContactGlyphStyle({
+  ...(game.presentation.contacts as unknown as Omit<ContactGlyphStyle, "color">),
+  color: gameHud.enemy,
 });
 
-export const villageMapBorder: MapBorderStyle = validateMapBorder(
-  village.presentation.map_border as unknown as MapBorderStyle,
+export const gameMapBorder: MapBorderStyle = validateMapBorder(
+  game.presentation.map_border as unknown as MapBorderStyle,
 );

@@ -21,7 +21,7 @@ from mathutils import Matrix, Quaternion, Vector
 import packs
 from common import bone_parent, empty, reparent_keep, reset
 
-SIM_HEIGHT = 1.70  # fixtures/village.json physics.soldier_height_m
+SIM_HEIGHT = 1.70  # fixtures/game.json physics.soldier_height_m
 BODY_TOP = 1.81  # the UBC male's height in its own units
 SCALE = SIM_HEIGHT / BODY_TOP
 FPS = 30

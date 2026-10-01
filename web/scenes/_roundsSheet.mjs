@@ -17,12 +17,12 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { lab, advance, openBattle, aim } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
-import { village, curvePitch } from "./_units.mjs";
+import { game, curvePitch } from "./_units.mjs";
 
-const CAMERA = village.presentation.camera;
+const CAMERA = game.presentation.camera;
 /** Every round kind, or ROUNDS_KINDS (comma-separated) while iterating. */
-const KINDS = process.env.ROUNDS_KINDS?.split(",") ?? Object.keys(village.weapons);
-const TICK_HZ = village.tick_hz;
+const KINDS = process.env.ROUNDS_KINDS?.split(",") ?? Object.keys(game.weapons);
+const TICK_HZ = game.tick_hz;
 /** The scan starts here, whatever tick the page paused at, so its samples repeat. */
 const START = Number(process.env.ROUNDS_TICK ?? 30);
 /** The battle's length: a kind never fired by then is reported missing. */
@@ -50,7 +50,7 @@ const CLOSE_PITCH = 0.55;
 /** The busy moment: this many round kinds in flight at once. */
 const BUSY_KINDS = 3;
 /** Whether a kind's rounds leave a smoke trail (its tracer row's `smoke`). */
-const TRAILS = (kind) => !!village.presentation.effects.tracers[kind]?.smoke;
+const TRAILS = (kind) => !!game.presentation.effects.tracers[kind]?.smoke;
 /** A trail is framed this long after its round strikes, seconds. */
 const AFTER_S = 4;
 /** Each shot's row: a kind, and a trail's launch and aftermath around it. */
@@ -213,7 +213,7 @@ async function scan(page, wanted, last, shots, seen, wantBusy) {
       if (shots[kind] || !wanted.includes(kind)) continue;
       const r = now.find((q) => q.kind === kind && q.hit === "none");
       if (!r) continue;
-      const w = village.weapons[kind];
+      const w = game.weapons[kind];
       // Far enough into its flight for its trail to show; ATGMs and shells longest.
       const lead = Math.round(Math.min(1, (0.3 * w.range_m) / w.speed_mps) * TICK_HZ);
       const trails = TRAILS(kind);

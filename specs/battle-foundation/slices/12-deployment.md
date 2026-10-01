@@ -111,6 +111,6 @@ The camera was reframed twice. The first frames had the moved truck partly off t
 
 - **Preview-shots:** not offered; the run is unattended.
 - **New published names:** the `packing` movement state, the own-unit fields `deployProgress`/`deployTarget`, and the layout's `postures` list.
-- **New code:** `Rules.service` (`ServiceRules`, reading `deploy_and_pack_s`), `Battle::unit(id)` for tests and later owners, and the lab map `fixtures/deployment-lab.json`. No `village.json` value was added.
+- **New code:** `Rules.service` (`ServiceRules`, reading `deploy_and_pack_s`), `Battle::unit(id)` for tests and later owners, and the lab map `fixtures/deployment-lab.json`. No `game.json` value was added.
 - **Not done:** no weapon needs deployment yet, so the "deploying" action reason and deployment-gated fire are not implemented.
 - The implementation choices are recorded in choices.md (entries marked "When: slice 12").

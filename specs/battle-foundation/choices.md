@@ -9,7 +9,7 @@ These are the decisions the build made where the spec was silent or contradicted
 - **The choice:** encounter.md asks the village to show at least one tank lost to a prepared crossfire of two AT teams. Across the ten comparison seeds, that loss never happens. The scripted tanks turn back when the red tank first hits them from long range, which is about 400 m before either AT team can join in. The target is recorded as unmet. The crossfire mechanic is still shown in slice 10's ambush lab, where a crossfire beats a prompt escape. No spawn point was moved just to manufacture a loss.
 - **Why / the gap:** encounter.md asks for the loss, and slice 15 allows a failing mechanic to be split out rather than forced.
 - **The reach:** whether the village battle alone shows a crossfire at all.
-- **Provisional call:** accept the split. **To reverse:** move the red tank (or the AT teams) in `fixtures/village.json` so the tanks reach the crossfire, then rerun the village report.
+- **Provisional call:** accept the split. **To reverse:** move the red tank (or the AT teams) in `fixtures/game.json` so the tanks reach the crossfire, then rerun the village report.
 - **Confidence:** low.
 
 
@@ -582,7 +582,7 @@ These are the decisions the build made where the spec was silent or contradicted
 
 ### Weapons are authored as named groups of ammunition kinds
 - **When:** slice 08.
-- **The choice:** In `village.json`, each weapon a unit carries is a record, a "mount". For example, the tank's `cannon` holds `tank_ap` and `tank_he`, which share one aim and one reload, and there is a separate HMG. A record also says whether it's a squad weapon and whether it sits on a turret, which turns at the fixture's turret rate. Weapon rows can be flagged anti-armour (never engages infantry) or armour-piercing (never fired at an area). The row flagged `default` is the unit's unlimited everyday gun.
+- **The choice:** In `game.json`, each weapon a unit carries is a record, a "mount". For example, the tank's `cannon` holds `tank_ap` and `tank_he`, which share one aim and one reload, and there is a separate HMG. A record also says whether it's a squad weapon and whether it sits on a turret, which turns at the fixture's turret rate. Weapon rows can be flagged anti-armour (never engages infantry) or armour-piercing (never fired at an area). The row flagged `default` is the unit's unlimited everyday gun.
 - **Why / the gap:** the fixture listed weapons as loose strings such as "cannon: tank_ap | tank_he".
 - **The reach:** everything that reads weapons: missiles, supply, readouts.
 - **Confidence:** high.

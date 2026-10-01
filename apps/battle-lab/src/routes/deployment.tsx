@@ -11,7 +11,7 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
 import { useFeed } from "../feed";
-import { villageCamera } from "../villageCamera";
+import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
 
 // One supply truck on a road. It sets up where it stands (a stopped supply
@@ -27,7 +27,7 @@ const DEPLOYMENT_CAMERA: Camera3DParams = {
   distance: 46,
   pitch: 0.95,
   yaw: -1.57,
-  ...villageCamera.lens,
+  ...gameCamera.lens,
 };
 
 /** Reference commands, exactly as a player would send them. */

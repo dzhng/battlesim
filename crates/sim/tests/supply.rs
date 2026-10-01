@@ -39,7 +39,7 @@ fn run(b: &mut Battle, ticks: u64) {
 }
 
 fn service() -> Value {
-    common::village()["service"].clone()
+    common::game()["service"].clone()
 }
 
 /// Ticks until a freshly placed supply truck is fully deployed.
@@ -163,7 +163,7 @@ fn casualties_are_replaced_by_new_soldiers_and_the_fallen_stay() {
         "replacements do not enlarge the squad area"
     );
     // Replacements join on free ground, spaced from their squadmates.
-    let spacing = common::village()["infantry_movement"]["spacing_m"]
+    let spacing = common::game()["infantry_movement"]["spacing_m"]
         .as_f64()
         .unwrap();
     for (i, p) in squad.members.iter().enumerate() {
@@ -196,9 +196,7 @@ fn a_garrisoned_squad_is_reinforced_inside_its_building() {
     let scripts = json!([{ "tick": 1, "side": "blue", "order": { "kind": "garrison", "units": [1], "building": 0 } }]);
     let mut b = Battle::new(&common::scenario_with(&map, units, json!([]), scripts), 4);
     let every = service()["soldier_replacement_s"].as_f64().unwrap();
-    let enter = common::village()["garrison"]["enter_exit_s"]
-        .as_f64()
-        .unwrap();
+    let enter = common::game()["garrison"]["enter_exit_s"].as_f64().unwrap();
     run(
         &mut b,
         deploy_ticks().max((enter * 30.0) as u64 + 30) + (every * 30.0) as u64 * 2 + 30,

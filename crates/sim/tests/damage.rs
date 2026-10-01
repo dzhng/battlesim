@@ -36,7 +36,7 @@ fn run(b: &mut Battle, ticks: u64) {
 }
 
 fn rules() -> Value {
-    common::village()
+    common::game()
 }
 
 /// A squad's hidden suppression level, as the authority holds it.

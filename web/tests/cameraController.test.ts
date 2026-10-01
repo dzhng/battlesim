@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
-import { villageCamera } from "@apps/battle-lab/src/villageCamera";
+import { gameCamera } from "@apps/battle-lab/src/gameCamera";
 import { mat4, type Vec3 } from "math";
 import {
   createProjectedPoint,
@@ -31,7 +31,7 @@ const CONFIG: CameraPresentation = {
   rotate_speed: 1.2,
   zoom_speed: 0.001,
   orbit_speed: 2.5,
-  clearance: villageCamera.config.clearance,
+  clearance: gameCamera.config.clearance,
 };
 
 const CAM: Camera3DParams = {
@@ -49,8 +49,8 @@ const ndc = (c: Camera3DParams, p: Vec3) =>
   projectPoint(createProjectedPoint(), viewProjMatrix(mat4.create(), c), p).ndc;
 
 test("the fixture's pitch curve rises with zoom and stays within the pitch limits", () => {
-  const rig = new CameraController(villageCamera.config);
-  const { zoom_min, zoom_max } = villageCamera.config;
+  const rig = new CameraController(gameCamera.config);
+  const { zoom_min, zoom_max } = gameCamera.config;
   let last = -Infinity;
   for (let k = 0; k <= 200; k++) {
     const d = zoom_min * (zoom_max / zoom_min) ** (k / 200);

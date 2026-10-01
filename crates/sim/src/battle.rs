@@ -2482,7 +2482,7 @@ mod tests {
                 "forests": [{ "shape": { "kind": "polygon",
                     "ring": [[100, 50], [200, 50], [200, 150], [100, 150]] } }],
                 "props": props },
-            "rules": crate::fixtures::village(),
+            "rules": crate::fixtures::game(),
             "units": [
                 { "side": "blue", "kind": "tank", "position": [40, 100], "yaw": 0.0,
                   "engagement": "return_fire_only" },
@@ -2598,7 +2598,7 @@ mod tests {
                 yaw: 0.0,
             })
             .unwrap();
-        let mut rules = crate::fixtures::village();
+        let mut rules = crate::fixtures::game();
         crate::fixtures::patch_catalog(
             &mut rules,
             "units",
@@ -2650,7 +2650,7 @@ mod tests {
                 })
                 .unwrap();
             geometry.floor_z = Some(vec![0.0, 3.0, 6.0]);
-            let mut rules = crate::fixtures::village();
+            let mut rules = crate::fixtures::game();
             crate::fixtures::patch_catalog(
                 &mut rules,
                 "units",

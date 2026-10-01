@@ -2,7 +2,7 @@
 // The pose driver seam: feed frames (what the simulation published) in, one
 // pose per soldier and one articulation per vehicle out. Per soldier, never
 // per formation.
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import { expect, test } from "vitest";
 import type { Vec3 } from "math";
 import {
@@ -15,7 +15,7 @@ import {
   type PoseFeel,
   type PoseFrame,
 } from "@packages/battle-renderer/src/models/poseDriver";
-import { villagePose as FEEL } from "@apps/battle-lab/src/poseFeed";
+import { gamePose as FEEL } from "@apps/battle-lab/src/poseFeed";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { UnitCatalog } from "@packages/scene-assets/src/units";
 import { shippedMounts } from "./shippedMounts";
@@ -40,7 +40,7 @@ const driver = () =>
     mounts: shippedMounts,
     clip: (_kind, name) => CLIPS[name] ?? null,
     feel: FEEL,
-    leanHold: village.cover.lean_hold_s,
+    leanHold: game.cover.lean_hold_s,
   });
 
 const squad = (
@@ -367,7 +367,7 @@ test("an HMG yaws relative to the mount its catalog row rides (`on`), else the h
     mounts: shippedMounts,
     clip: (_kind, name) => CLIPS[name] ?? null,
     feel: FEEL,
-    leanHold: village.cover.lean_hold_s,
+    leanHold: game.cover.lean_hold_s,
   });
   const a = d.update(frame(0, [tank(0, 0.5, 1.5, 1.0)])).vehicles[0].articulation;
   expect(a.turret_yaw).toBeCloseTo(1, 6);
@@ -378,7 +378,7 @@ test("a soldier's shot is timed once per rise of his shot count, not every frame
   // The feed counts each soldier's launches; a count that holds over many
   // render frames is one shot, so his firing pose ends `leanHold` after it.
   const d = driver();
-  const hold = village.cover.lean_hold_s;
+  const hold = game.cover.lean_hold_s;
   const at = (time: number, shots: number) =>
     d.update(
       frame(time, [squad([], { soldiers: [{ id: 1, slot: 0, position: [0, 0, 0], shots }] })]),
@@ -409,7 +409,7 @@ const capped = (corpses: PoseFeel["corpses"]) =>
     mounts: shippedMounts,
     clip: (_kind, name) => CLIPS[name] ?? null,
     feel: { ...FEEL, corpses },
-    leanHold: village.cover.lean_hold_s,
+    leanHold: game.cover.lean_hold_s,
   });
 
 const lying = (f: PoseFrame) => f.corpses.map((c) => c.soldier);

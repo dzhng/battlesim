@@ -13,11 +13,11 @@ import {
 import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/observation";
 import { GroundView } from "../src/battle/sim/ground";
 import { sightMultiplier } from "@packages/battle-renderer/src/sightOverlay";
-import { labScenario, VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
+import { labScenario, GAME_RULES } from "@apps/battle-lab/src/scenarios";
 import sensors from "@fixtures/sensors-lab.json";
 import weaponsMap from "@fixtures/weapons-lab.json";
 import deploymentMap from "@fixtures/deployment-lab.json";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import type { Order } from "../src/battle/sim/protocol";
 
 // Whole battles run to a late state; under a loaded `bun run check` they
@@ -41,7 +41,7 @@ function published(battle: Battle, layout: ObservationLayout, side: "blue" | "re
 }
 
 test("packed twin launchers keep separate readiness through to the panel rows", () => {
-  const rules = structuredClone(VILLAGE_RULES);
+  const rules = structuredClone(GAME_RULES);
   const docs = rules.catalog as Array<{ units?: Record<string, Record<string, unknown>> }>;
   const at = docs.find((d) => d.units?.at)?.units?.at;
   if (!at) throw new Error("no authored AT team");
@@ -244,8 +244,8 @@ test("deployment progress, its target and the packing state decode", () => {
   const send = (seq: number, order: Order) =>
     JSON.parse(battle.accept(JSON.stringify({ side: "blue", seq, order, queued: false })));
   const timing = UNITS.type("supply").capabilities.deploy!;
-  const ticks = timing.seconds * village.tick_hz;
-  const packTicks = (timing.pack_seconds ?? timing.seconds) * village.tick_hz;
+  const ticks = timing.seconds * game.tick_hz;
+  const packTicks = (timing.pack_seconds ?? timing.seconds) * game.tick_hz;
   for (let t = 0; t < ticks / 2; t++) battle.step();
   let [supply, tank] = decode().own;
   // A stopped supply unit sets up where it stands; a tank never deploys.
@@ -343,7 +343,7 @@ test("the encounter status decodes, and is absent outside an encounter", () => {
   lab.step();
   expect(published(lab, layout).encounter).toBeNull();
   lab.free();
-  const battle = new Battle(village_scenario(JSON.stringify(VILLAGE_RULES), "ordinary"), 1);
+  const battle = new Battle(village_scenario(JSON.stringify(GAME_RULES), "ordinary"), 1);
   battle.step();
   expect(published(battle, layout, "red").encounter).toEqual({ heldS: 0, result: "running" });
   expect(layout.encounterResults).toEqual(["running", "captured", "defeated", "inconclusive"]);
@@ -528,7 +528,7 @@ test("every frozen animation field and ground value decodes, integers exact past
     },
   ]);
   // Round kinds are the fixture's weapon rows, in name order.
-  expect(layout.roundKinds).toEqual(Object.keys(village.weapons).sort());
+  expect(layout.roundKinds).toEqual(Object.keys(game.weapons).sort());
 });
 
 test("a live battle publishes poses, soldier ids, tracer kinds and blasts", () => {
@@ -549,7 +549,7 @@ test("a live battle publishes poses, soldier ids, tracer kinds and blasts", () =
     blast ??= frame.blasts.find((b) => b.kind === "tank_he") ?? null;
   }
   expect(kinds.has("rifle")).toBe(true);
-  expect(blast?.radius).toBe(village.weapons.tank_he.blast_radius_m);
+  expect(blast?.radius).toBe(game.weapons.tank_he.blast_radius_m);
   const tank = frame.own[0];
   expect(tank.weaponPoses.map((p) => p.mount)).toEqual([0, 1]);
   expect(tank.weaponPoses[0].shots).toBeGreaterThan(0);
@@ -572,12 +572,12 @@ test("packed forest concealment reaches the shared info panel and clears in the 
     const frame = published(battle, layout);
     expect(frame.own.map((u) => u.concealed)).toEqual([true, false]);
     expect(
-      ownPanel(frame.own[0], frame.own, VILLAGE_RULES as unknown as PanelRules).states.map(
+      ownPanel(frame.own[0], frame.own, GAME_RULES as unknown as PanelRules).states.map(
         (r) => r.word,
       ),
     ).toContain("HIDDEN");
     expect(
-      ownPanel(frame.own[1], frame.own, VILLAGE_RULES as unknown as PanelRules).states.map(
+      ownPanel(frame.own[1], frame.own, GAME_RULES as unknown as PanelRules).states.map(
         (r) => r.word,
       ),
     ).not.toContain("HIDDEN");

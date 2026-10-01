@@ -123,7 +123,7 @@ fn compound_with_descriptor(
             yaw: 0.0,
         })
         .unwrap();
-    let mut rules = crate::common::village();
+    let mut rules = crate::common::game();
     sim::fixtures::patch_catalog(
         &mut rules,
         "props",
@@ -1269,7 +1269,7 @@ fn upper_floor_collapse_deaths_land_on_the_remaining_physical_surface() {
 
 #[test]
 fn ordinary_destruction_cannot_enter_an_aggregate_only_state() {
-    let mut raw = crate::common::village();
+    let mut raw = crate::common::game();
     sim::fixtures::patch_catalog(
         &mut raw,
         "props",
@@ -1339,7 +1339,7 @@ fn generated_tree_and_bridge_bodies_cannot_require_building_bulk() {
     sim::world::WorldGeometry::new(&map, &ordinary_rules);
     let mut wrongly_accepted = Vec::new();
     for kind in [ordinary_rules.forests.tree.as_str(), "bridge_deck"] {
-        let mut raw = crate::common::village();
+        let mut raw = crate::common::game();
         sim::fixtures::patch_catalog(
             &mut raw,
             "props",

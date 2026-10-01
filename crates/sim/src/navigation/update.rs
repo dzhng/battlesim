@@ -295,7 +295,7 @@ mod tests {
 
     #[test]
     fn a_grid_updated_body_by_body_is_the_grid_built_whole_from_the_same_knowledge() {
-        let rules: Rules = serde_json::from_value(crate::fixtures::village()).expect("rules");
+        let rules: Rules = serde_json::from_value(crate::fixtures::game()).expect("rules");
         let mut world = world(&rules);
         let authored = world.props().count() as PropId;
         let base = Arc::new(NavBase::build(&world, world.props(), SOLDIER_M));

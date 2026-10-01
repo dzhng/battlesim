@@ -454,7 +454,7 @@ fn foliage_line_depth_keeps_its_exact_spans_across_bucket_edges_and_canopies() {
             forest([-30.0,50.0,12.0,20.0]), forest([96.0,92.0,12.0,12.0])]
     }))
     .unwrap();
-    let mut rules = common::village();
+    let mut rules = common::game();
     sim::fixtures::patch_catalog(
         &mut rules,
         "props",
@@ -511,7 +511,7 @@ fn sparse_floor_bodies_leave_every_trunk_and_foliage_cell_unchanged() {
         "forests":[forest([0.0,0.0,220.0,220.0]),forest([100.0,50.0,180.0,180.0])]
     }))
     .unwrap();
-    let mut raw = common::village();
+    let mut raw = common::game();
     // Deliberately provide broad navigable gaps for every catalog mover;
     // overlapping dense woods may correctly admit no floor cover.
     raw["forests"]["rule"]["trunk_spacing_m"] = json!(18);
@@ -589,7 +589,7 @@ fn floor_bodies_give_real_cover_without_creating_foliage() {
 
 #[test]
 fn invalid_floor_generation_rules_fail_during_rule_loading() {
-    let mut raw = common::village();
+    let mut raw = common::game();
     raw["forests"]["log"] = json!("log");
     raw["forests"]["rule"]["logs_per_ha"] = json!(5);
     raw["forests"]["rule"]["log_half_extents_m"] = json!([2.2, 0.35, 0.35]);
@@ -765,7 +765,7 @@ fn tree_line_foliage_follows_trunk_crowns_beyond_the_authored_strip_edge() {
 
 #[test]
 fn forest_floor_scaled_integrity_is_refused_without_an_aggregate() {
-    let mut raw = common::village();
+    let mut raw = common::game();
     sim::fixtures::patch_catalog(
         &mut raw,
         "props",

@@ -5,7 +5,7 @@ import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { GroundView } from "@web/battle/sim/ground";
 import type { ObservationView } from "@web/battle/sim/observation";
 import type { SideName } from "@web/battle/sim/protocol";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import groundMap from "@fixtures/ground-lab.json";
 import { BattleMemory, orderLayer, remainsLayer, tracerLayer } from "../battleOverlay";
 import {
@@ -19,8 +19,8 @@ import { channels } from "@web/battle/present/hudTheme";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { useBuiltScenario } from "../useBuiltScenario";
-import { villageCamera } from "../villageCamera";
-import { labScenario, type LabEvent, type LabScript, VILLAGE_RULES } from "../scenarios";
+import { gameCamera } from "../gameCamera";
+import { labScenario, type LabEvent, type LabScript, GAME_RULES } from "../scenarios";
 import { useFeed } from "../feed";
 
 // The ground layer, as each side learns it. The lab field: two tanks race
@@ -117,12 +117,12 @@ const GROUND_CAMERA: Camera3DParams = {
   distance: 470,
   pitch: 1.05,
   yaw: -1.57,
-  ...villageCamera.lens,
+  ...gameCamera.lens,
 };
 /** The village inspector: the supported attack two minutes in, paused. */
 const VILLAGE_SCRIPT = "scout-suppress-flank";
-const VILLAGE_WARM_TICKS = 120 * village.tick_hz;
-const VILLAGE_INSPECT_CAMERA: Camera3DParams = { ...villageCamera.opening(), distance: 900 };
+const VILLAGE_WARM_TICKS = 120 * game.tick_hz;
+const VILLAGE_INSPECT_CAMERA: Camera3DParams = { ...gameCamera.opening(), distance: 900 };
 /** Ticks between rebuilds of the cell view while the battle runs. */
 const REFRESH_TICKS = 10;
 
@@ -138,7 +138,7 @@ function LabFieldGround() {
       scenario={SCENARIO}
       seed={SEED}
       camera={GROUND_CAMERA}
-      legend={`the lab field (${village.ground.cell_m} m cells)`}
+      legend={`the lab field (${game.ground.cell_m} m cells)`}
       extra={(observation) => {
         const own = observation?.own ?? [];
         const x = (id: number) => own.find((u) => u.id === id)?.position[0];
@@ -164,7 +164,7 @@ function LabFieldGround() {
 
 function VillageGround() {
   const built = useBuiltScenario("ordinary", (wasm, v) =>
-    wasm.village_scenario(JSON.stringify(VILLAGE_RULES), v),
+    wasm.village_scenario(JSON.stringify(GAME_RULES), v),
   );
   if (!built) return null;
   if (typeof built !== "string")
@@ -175,9 +175,9 @@ function VillageGround() {
     );
   return (
     <GroundInspector
-      map={village.map}
+      map={game.map}
       scenario={built}
-      seed={village.seed}
+      seed={game.seed}
       camera={VILLAGE_INSPECT_CAMERA}
       script={VILLAGE_SCRIPT}
       legend={`the village, ${VILLAGE_SCRIPT} from tick ${VILLAGE_WARM_TICKS}, paused`}
@@ -383,10 +383,9 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
           Flat cells {side} has learned on {legend}: only ground its fog has shown, as it was when
           last seen. Stronger marks are more opaque; a cell shows its first shown channel.
           <br />
-          Craters: {village.cover.crater} cover for infantry once{" "}
-          {village.cover.crater_min_fill * 100}% full · vehicles ×
-          {village.ground.crater_vehicle_mult} over a full crater. Scorch, tracks and trampling
-          change nothing.
+          Craters: {game.cover.crater} cover for infantry once {game.cover.crater_min_fill * 100}%
+          full · vehicles ×{game.ground.crater_vehicle_mult} over a full crater. Scorch, tracks and
+          trampling change nothing.
         </div>
         {extra?.(observation)}
       </aside>

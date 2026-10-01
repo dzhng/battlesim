@@ -30,7 +30,7 @@ Read before changing anything:
 - `packages/scene-assets` holds the bundle codec, the validator, the loader, the appearance catalog and `blender/`.
 - `apps/battle-lab/src` holds the feeds that turn an observation into the renderer's inputs (`poseFeed`, `effectFeed`, `soundFeed`, fog and ground inputs). It also holds the `/workbench` route.
 - `web/scenes/` holds the browser scene checks; `web/scenes/_lab.mjs` has the helpers.
-- `fixtures/village.json` `presentation` holds every look number: light, fog styles, models' `lod_px`, effects, pose feel, camera, audio. Each block is validated by its owner.
+- `fixtures/game.json` `presentation` holds every look number: light, fog styles, models' `lod_px`, effects, pose feel, camera, audio. Each block is validated by its owner.
 - `fixtures/biomes/*.json` holds the biome palette.
 
 ## The seams you must not cross

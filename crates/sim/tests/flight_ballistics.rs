@@ -1,6 +1,6 @@
 //! Launch solving and flight against closed-form ballistics: gravity endpoints,
 //! analytic elevations, lead, evasion, reach, arc choice, and the flight
-//! bounds. Village weapon rows supply speeds; the expectations are physics.
+//! bounds. Game weapon rows supply speeds; the expectations are physics.
 
 use crate::common::*;
 use contract::ballistics::{FlightRules, Trajectory, WeaponBallistics};

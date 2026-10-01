@@ -4,7 +4,7 @@
 // side sees, and the wrecks it knows, which smoke), and an `EffectFrame`
 // for a battle's tick rate, from the fixture's `presentation.effects`. The
 // unit catalog gives each type's hull, mounts and wreck.
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import {
   EffectFrame,
   validateEffects,
@@ -20,8 +20,8 @@ import type { UnitCatalog, UnitType } from "@packages/scene-assets/src/units";
 import type { SideName } from "@web/battle/sim/protocol";
 import type { ObservationView, WeaponPoseView } from "@web/battle/sim/observation";
 
-export const villageEffects: EffectPresentation = validateEffects(
-  village.presentation.effects as unknown as EffectPresentation,
+export const gameEffects: EffectPresentation = validateEffects(
+  game.presentation.effects as unknown as EffectPresentation,
 );
 
 /** The prop kinds that are wrecks (some hull's `wreck`), per catalog, read once. */
@@ -43,7 +43,7 @@ function muzzlesOf(t: UnitType): (MountMuzzle | null)[] {
 
 /** An `EffectFrame` for a battle run under `presentation.effects`. */
 export function createEffectFrame(tickHz: number): EffectFrame {
-  return new EffectFrame({ tickHz, presentation: villageEffects });
+  return new EffectFrame({ tickHz, presentation: gameEffects });
 }
 
 function shooter(

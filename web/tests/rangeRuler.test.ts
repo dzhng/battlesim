@@ -2,7 +2,7 @@
 // The range ruler's pure parts: which selected unit it measures from, the
 // distance as the range check measures it, and where each reach ends.
 import { expect, test } from "vitest";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
 import {
@@ -13,28 +13,27 @@ import {
 import { circleReach } from "@packages/battle-renderer/src/orderOverlay";
 import { strokeWidth, validateStrokeRule } from "@packages/battle-renderer/src/strokeWidth";
 import { rulerLine } from "@apps/battle-lab/src/pointerPaint";
-import { villageRulerStyle } from "@apps/battle-lab/src/villageOverlay";
+import { gameRulerStyle } from "@apps/battle-lab/src/gameOverlay";
 import { closestUnit, rangeRuler, type RulerRules } from "../src/battle/present/rangeRuler";
 
 /** The marks' stroke widths where one pixel spans `m` metres. */
-const stroke = (m: number) =>
-  strokeWidth(validateStrokeRule(village.presentation.overlay.stroke), m);
+const stroke = (m: number) => strokeWidth(validateStrokeRule(game.presentation.overlay.stroke), m);
 
 // Reach geometry is independent of the live balance table. Distinct reaches
 // and a shared AP/HE reach exercise both ruler paths under any tuning.
 const rules: RulerRules = {
-  physics: village.physics,
+  physics: game.physics,
   weapons: {
-    ...village.weapons,
-    rifle: { ...village.weapons.rifle, range_m: 400 },
-    grenade: { ...village.weapons.grenade, range_m: 200 },
-    hmg: { ...village.weapons.hmg, range_m: 500 },
-    tank_ap: { ...village.weapons.tank_ap, range_m: 900 },
-    tank_he: { ...village.weapons.tank_he, range_m: 900 },
+    ...game.weapons,
+    rifle: { ...game.weapons.rifle, range_m: 400 },
+    grenade: { ...game.weapons.grenade, range_m: 200 },
+    hmg: { ...game.weapons.hmg, range_m: 500 },
+    tank_ap: { ...game.weapons.tank_ap, range_m: 900 },
+    tank_he: { ...game.weapons.tank_he, range_m: 900 },
   },
 };
-const { infantry_muzzle_m: muzzle, infantry_aim_m: aim } = village.physics;
-const range = (row: keyof typeof village.weapons) => rules.weapons[row].range_m;
+const { infantry_muzzle_m: muzzle, infantry_aim_m: aim } = game.physics;
+const range = (row: keyof typeof game.weapons) => rules.weapons[row].range_m;
 const at = (kind: string, position: [number, number, number], id = 1) => ({ id, kind, position });
 
 test("the ruler measures from the selected unit nearest the cursor across the ground", () => {
@@ -65,7 +64,7 @@ test("the ruler estimates 3D reach from the first mount's height to the aim poin
 test("each reach of the unit's weapons is one mark, nearest first; rows sharing a range share it", () => {
   const ruler = rangeRuler(at("tank", [0, 0, 0]), [1000, 0, 0], rules, UNITS);
   expect(ruler.marks.map((m) => [m.names, m.range_m])).toEqual([
-    [[village.weapons.hmg.name], range("hmg")],
+    [[game.weapons.hmg.name], range("hmg")],
     [[UNITS.type("tank").mounts[0].name], range("tank_ap")],
   ]);
   expect(rangeRuler(at("supply", [0, 0, 0]), [10, 0, 0], rules, UNITS).marks).toEqual([]);
@@ -106,7 +105,7 @@ test("the painted line is lit up to the farthest reach short of the cursor, a ti
 });
 
 test("the ruler's paint lies on the ground, in the reach colour up to the reach and beyond it after", () => {
-  const style = villageRulerStyle;
+  const style = gameRulerStyle;
   expect(() =>
     validateRulerStyle({ ...style, beyond: [1, 0, 0] } as unknown as RulerStyle),
   ).toThrow(/beyond/);
@@ -157,7 +156,7 @@ test("the painted line leaves the unit's circle at its border, whatever the circ
 });
 
 test("the painted line never enters the unit's circle or the ring at the cursor", () => {
-  const style = villageRulerStyle;
+  const style = gameRulerStyle;
   const flat = () => 0;
   const metresPerPx = 0.05;
   const line = {

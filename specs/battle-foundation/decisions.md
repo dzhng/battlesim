@@ -23,7 +23,7 @@ Last updated 2026-09-25. This file owns spec-authored choices and implementation
 
 | Map item | Current resolution and owner | Remaining work |
 |---|---|---|
-| O01 balance/scales | fixtures/village.json and encounter.md fix provisional starting values; slices 17–22 own later-unit values | Tune with paired seeds; 1.5 s grace stays selected |
+| O01 balance/scales | fixtures/game.json and encounter.md fix provisional starting values; slices 17–22 own later-unit values | Tune with paired seeds; 1.5 s grace stays selected |
 | O02 geometry/collision | contracts.md fixes primitives, triangle owner, sweeps, garrison representation and blast rules | Reproduction 02/07; focused garrison verdict 11 |
 | O03 information | contracts.md fixes evidence/contact identity/stability, audio, tracer and dynamic-prop publication | Metamorphic gates 05/06; future aerial extensions retain boundary |
 | O04 guidance | contracts.md fixes village own-lock launch/support, one slot and last-ground-point behavior; slice 19 fixes seeker-loss default, 20 sortie | Tune turn/flight values and verify air variants in continuation |

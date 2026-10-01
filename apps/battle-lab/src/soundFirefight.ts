@@ -9,7 +9,7 @@
 // a guided missile late on. Red's identified tank fires AP, HE and HMG
 // bursts from the far side; a round glances off it. A wreck burns. An
 // unseen red truck and unseen riflemen are heard only as cues.
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { vec3 } from "math";
 import type { AudioPresentation, Bus } from "@packages/battle-audio/src/audioPresentation";
@@ -30,11 +30,11 @@ import type {
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
 import { sideKey } from "@packages/battle-renderer/src/sideKey";
 import { mountMuzzles } from "@packages/scene-assets/src/mountMuzzle";
-import { villageEffects } from "./effectFeed";
-import { villageAudio } from "./soundFeed";
+import { gameEffects } from "./effectFeed";
+import { gameAudio } from "./soundFeed";
 
 export const FIREFIGHT_S = 8;
-const HZ = village.tick_hz;
+const HZ = game.tick_hz;
 const DT = 1 / HZ;
 /** The tank's mounts' muzzles: the cannon's and the roof HMG's. */
 const [CANNON, HMG] = mountMuzzles(UNITS.type("tank").mounts);
@@ -311,16 +311,16 @@ export interface FirefightRender {
   dropped: number;
 }
 
-/** The village's sound rendered offline for `seconds` at 48 kHz stereo:
+/** The game's sound rendered offline for `seconds` at 48 kHz stereo:
  *  the context, its sink with the bank loaded, and the frame that plays
  *  into it. `solo` keeps one bus and mutes the others. */
 function offlineSound(seconds: number, solo?: Bus) {
   const sampleRate = 48000;
   const ctx = new OfflineAudioContext(2, Math.round(seconds * sampleRate), sampleRate);
-  const { buses } = villageAudio;
+  const { buses } = gameAudio;
   const presentation: AudioPresentation = solo
     ? {
-        ...villageAudio,
+        ...gameAudio,
         buses: {
           master: buses.master,
           units: solo === "units" ? buses.units : 0,
@@ -328,13 +328,10 @@ function offlineSound(seconds: number, solo?: Bus) {
           ambience: solo === "ambience" ? buses.ambience : 0,
         },
       }
-    : villageAudio;
+    : gameAudio;
   const sink = new OfflineSink(ctx, presentation);
   sink.bank.preload();
-  const frame = new SoundFrame(
-    { tickHz: HZ, presentation, smokeTimes: villageEffects.smoke },
-    sink,
-  );
+  const frame = new SoundFrame({ tickHz: HZ, presentation, smokeTimes: gameEffects.smoke }, sink);
   return { sampleRate, ctx, sink, frame };
 }
 
@@ -494,7 +491,7 @@ async function renderShot(listener: Listener, at: number[]): Promise<Float32Arra
  *  and far cutoff the sound scene measures them against. */
 export async function renderDistanceProbe() {
   const at = [0, 0, 1];
-  const cam = village.presentation.camera;
+  const cam = game.presentation.camera;
   const far = cameraListener(
     {
       target: vec3.fromValues(at[0], at[1], 0),
@@ -502,7 +499,7 @@ export async function renderDistanceProbe() {
       pitch: cam.pitch_curve[cam.pitch_curve.length - 1][1],
       yaw: cam.default.yaw,
     },
-    villageAudio.listener_eye_share,
+    gameAudio.listener_eye_share,
   );
   const close: Listener = { position: [0, -4, 3], forward: [0, 1, 0] };
   return {
@@ -510,7 +507,7 @@ export async function renderDistanceProbe() {
     near: await renderShot(close, at),
     far: await renderShot(far, at),
     farDistanceM: Math.hypot(far.position[0], far.position[1], far.position[2] - at[2]),
-    floor: villageAudio.distance.floor,
-    farHz: villageAudio.air.far_hz,
+    floor: gameAudio.distance.floor,
+    farHz: gameAudio.air.far_hz,
   };
 }

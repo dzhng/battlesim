@@ -4,7 +4,7 @@
 import { writeFile } from "node:fs/promises";
 import { anyNear, decode, writeCrop } from "./_png.mjs";
 import { checkOverlayIsolation } from "./_overlays.mjs";
-import { village } from "./_units.mjs";
+import { game } from "./_units.mjs";
 
 const END_TICK = 300;
 
@@ -69,7 +69,7 @@ export async function run(ctx) {
   await ctx.openLab(page);
   await page.evaluate(() => window.__lab.route.reset(false));
   ctx.check(
-    "village gravity needs one chord per 30 Hz tick within 2 cm",
+    "game gravity needs one chord per 30 Hz tick within 2 cm",
     (await page.evaluate(() => window.__lab.route.subsegments())) === 1,
   );
 
@@ -125,7 +125,7 @@ export async function run(ctx) {
   ctx.check(
     "a fast round leads the 0.3 m sliding board and hits its face mid-chord",
     hmg?.struck === "body:1" &&
-      hmg.tick === Math.ceil(boardArrival * village.tick_hz) &&
+      hmg.tick === Math.ceil(boardArrival * game.tick_hz) &&
       Math.abs(hmg.point[0] - 149.85) < 1e-6,
     JSON.stringify(hmg),
   );

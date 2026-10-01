@@ -1,6 +1,6 @@
 # Fixtures
 
-`village.json` is the one owner of the game's rules and look numbers. Labs and scenes reuse it. `map-presets.json` holds the map generator's presets (layout, and each district kind's streets and parcels) and `prototype-building-templates.json` the placeholder physical templates it builds towns from; [`crates/mapgen`](../crates/mapgen/README.md) reads and validates both. `generated-lab.json` holds what the lab's generated-map route adds to a request: the compiler's limits, the developer encounter laid on the map and the overview camera. `building-templates.json` is the physical library the authored maps pin, and stays apart from the prototypes because its hash is their identity. `units/` and `props/` are the catalog: every unit type, soldier kind, role and upgrade part, and every prop type. `biomes/` holds the terrain palettes. A number that changes how the battle plays or looks belongs here, validated by the module that reads it, never as a constant in code.
+`game.json` is the one owner of the game's rules and look numbers. Labs and scenes reuse it. `map-presets.json` holds the map generator's presets (layout, and each district kind's streets and parcels) and `prototype-building-templates.json` the placeholder physical templates it builds towns from; [`crates/mapgen`](../crates/mapgen/README.md) reads and validates both. `generated-lab.json` holds what the lab's generated-map route adds to a request: the compiler's limits, the developer encounter laid on the map and the overview camera. `building-templates.json` is the physical library the authored maps pin, and stays apart from the prototypes because its hash is their identity. `units/` and `props/` are the catalog: every unit type, soldier kind, role and upgrade part, and every prop type. `biomes/` holds the terrain palettes. A number that changes how the battle plays or looks belongs here, validated by the module that reads it, never as a constant in code.
 
 ## The unit catalog
 
@@ -17,7 +17,7 @@ A unit type is **one catalog entry**, addressed by its string id (`"tank"`, late
   - `capabilities`: optional abilities such as `deploy` and `supply`;
   - `roles` (what scripts and the AI select by), `cost`, `sound`, `name`, `description`, `faction`, `family`, and a hull's `appearance`.
 - **Soldier kinds** are a catalog of their own: `hp`, the `appearance` set a soldier of the kind wears (one picked per soldier), and the `mounts` he carries. A `special` mount passes to the next living soldier when its carrier falls; any other is lost with him. A squad's slots name soldier kinds, so hundreds of squads reuse a few kinds.
-- **A variant is `extends` plus overrides.** `"m1a1": { "extends": "m1", "body": { "hull": { "armor": { "front": 180 } } } }` inherits everything else. An `abstract` entry only exists to be extended. Weapon rows in `village.json` extend the same way. The merge:
+- **A variant is `extends` plus overrides.** `"m1a1": { "extends": "m1", "body": { "hull": { "armor": { "front": 180 } } } }` inherits everything else. An `abstract` entry only exists to be extended. Weapon rows in `game.json` extend the same way. The merge:
   - objects merge key by key, and a list of named objects (mounts) merges by name, a new name appended;
   - a unit's one-key variant component (`body`, `mobility`) written as another variant replaces the parent's: `"mobility": { "wheeled": … }` over a tracked parent is wheeled;
   - a unit's `parts` gather along the chain, the parent's first;
@@ -27,9 +27,9 @@ A unit type is **one catalog entry**, addressed by its string id (`"tank"`, late
 - **Resolution happens once, in the simulation** (`contract::catalog`), and a broken catalog fails at load with an error naming the entry:
   - a key written twice inside one file;
   - cycles, unknown parents, roles, soldiers or parts, and incomplete types;
-  - structure: a hull mount on anything but the hull or an earlier turret mount, or without its `muzzle_m`; a soldier's mount with `turret`, `on`, `pivot_m` or `muzzle_m`, or both `squad` and `special`; a mount naming a weapon row `village.json` lacks; a wreck whose cover tier isn't its vehicle's;
+  - structure: a hull mount on anything but the hull or an earlier turret mount, or without its `muzzle_m`; a soldier's mount with `turret`, `on`, `pivot_m` or `muzzle_m`, or both `squad` and `special`; a mount naming a weapon row `game.json` lacks; a wreck whose cover tier isn't its vehicle's;
   - numbers out of range: speeds, turning, sight, hit points.
-- **The browser reads the resolved view,** `catalog.json`, which also carries `village.json`'s weapon rows resolved (`weapons`); presentation reads rows there, never the raw ones. After editing the catalog, regenerate it: `BLESS_CATALOG=1 cargo test -p sim --test sim catalog::` (the test fails while it is stale). Then regenerate the icons (each type's silhouette is rendered from its baked model): `bun run --cwd web asset -- icons`.
+- **The browser reads the resolved view,** `catalog.json`, which also carries `game.json`'s weapon rows resolved (`weapons`); presentation reads rows there, never the raw ones. After editing the catalog, regenerate it: `BLESS_CATALOG=1 cargo test -p sim --test sim catalog::` (the test fails while it is stale). Then regenerate the icons (each type's silhouette is rendered from its baked model): `bun run --cwd web asset -- icons`.
 
 ## Weapon cycles
 
@@ -65,7 +65,7 @@ Add one entry. A variant is an `extends` and what differs. Code learns nothing a
 
 ## The prop catalog
 
-A prop type (a house, a wall, a tree, a wreck, rubble) is **one entry** of a `props` section, in `props/<faction>/<family>.json`, addressed by its string id. No code lists prop types, and no rule asks which one a prop is. A map's props, a forest's trees (`forests.tree` in `village.json`), a bridge's deck (`deck` on each map bridge) and a vehicle's wreck all name types by id; the world layout and the publication send the id list (`propKinds`) and each prop's index into it.
+A prop type (a house, a wall, a tree, a wreck, rubble) is **one entry** of a `props` section, in `props/<faction>/<family>.json`, addressed by its string id. No code lists prop types, and no rule asks which one a prop is. A map's props, a forest's trees (`forests.tree` in `game.json`), a bridge's deck (`deck` on each map bridge) and a vehicle's wreck all name types by id; the world layout and the publication send the id list (`propKinds`) and each prop's index into it.
 
 - **A type is its body row, its destroyed state and its appearance binding:**
   - `body`: `blocks` (per mover class), `stops_rounds`, `occludes`, `weight_class`, `cover_tier`, `lifetime_s` (a transient body, like smoke), `conceals` (foliage), `hp` and `armor` (integrity), `topples` (falls rather than slides: a tree) and `garrison` (a squad can hold it from inside). Each column has its own readers; a rule reads columns, never the id.
@@ -86,10 +86,10 @@ Add one entry. A mechanic comes from the body's columns, so a new obstacle needs
 
 ## Surface speeds
 
-Every mover states its own two top speeds in its `mobility` row, in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road (at most 130, and never below the off-road speed). `village.json`'s `surfaces` table has one row per surface kind a map may pave (`road`, `country_road`, `dirt_track`, `sidewalk`). A row's `speed_factor` scales each unit type's own road speed on that surface, never below its off-road speed: 1 is a full road, 0 is no road at all. A new surface kind is a new row plus its variant in `contract::map::SurfaceKind`.
+Every mover states its own two top speeds in its `mobility` row, in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road (at most 130, and never below the off-road speed). `game.json`'s `surfaces` table has one row per surface kind a map may pave (`road`, `country_road`, `dirt_track`, `sidewalk`). A row's `speed_factor` scales each unit type's own road speed on that surface, never below its off-road speed: 1 is a full road, 0 is no road at all. A new surface kind is a new row plus its variant in `contract::map::SurfaceKind`.
 
 Vehicle surface speeds are targets, not instantaneous velocity. The drive settings in
-[`village.json`](village.json) express acceleration and braking as time from rest to
+[`game.json`](game.json) express acceleration and braking as time from rest to
 full road speed and back; each vehicle's own top speed sets the rate. This keeps
 road entry gradual without reducing the road advantage. Surface and shove limits
 act on the target speed so slowdown does not compound every tick. The follower

@@ -517,7 +517,7 @@ pub struct ServiceRules {
     pub stock_per_soldier: u32,
 }
 
-/// The game's rules (`fixtures/village.json` with its catalog). Loading
+/// The game's rules (`fixtures/game.json` with its catalog). Loading
 /// them checks what crosses sections: every mount names a weapon row.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(try_from = "UncheckedRules")]

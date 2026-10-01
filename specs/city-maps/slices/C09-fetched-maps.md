@@ -8,7 +8,7 @@ Can saved and eventual generated sources feed one compiled-map initialization co
 ## Contract it unlocks
 `MapSource` and `ResolvedMap { definition, identity }` establish one resolution seam. Saved scenarios initially use the catalogue variant; C55 implements the generated-request variant through the same owner. Every saved map moves to `fixtures/maps/<id>/map.json` in this cutover: village, lab fixtures and endurance, with the actual inventory checked rather than a stale count. Rust and browser resolution load the same contract; the sim receives only the resolved definition.
 
-Static consumers of village map data read the resolved public geometry instead of importing it from village.json. C60 adds saved metadata; runtime sources later keep equivalent identity in memory/replay and require no catalogue folder. No map is bundled in the JS entry point; no second loader or alias remains.
+Static consumers of village map data read the resolved public geometry instead of importing it from game.json. C60 adds saved metadata; runtime sources later keep equivalent identity in memory/replay and require no catalogue folder. No map is bundled in the JS entry point; no second loader or alias remains.
 
 ## API seam
 `contract::scenario` map source/identity, browser map resolver and wasm preparation, native map resolution. C55 adds generation acquisition here without altering downstream battle/renderer consumers.

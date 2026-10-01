@@ -7,7 +7,7 @@ import { initSync, Battle, WorldView } from "@wasm/game_wasm.js";
 import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/observation";
 import { cellPatchRuns, canonicalGround } from "./groundRuns";
 import { GroundView } from "../src/battle/sim/ground";
-import { VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
+import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
 import ordered from "../../fixtures/parity/ground/ordered-patches.json";
 import foliage from "../../fixtures/parity/ground/foliage.json";
 import foliageMaps from "../../fixtures/parity/buildings/foliage-cutover-inputs.json";
@@ -75,7 +75,7 @@ test("sparse foliage exports preserve original static and side-cleared cells", (
   for (const original of foliage) {
     const world = new WorldView(
       JSON.stringify(foliageMaps[original.id as keyof typeof foliageMaps]),
-      JSON.stringify(VILLAGE_RULES),
+      JSON.stringify(GAME_RULES),
     );
     const rows = (f: Float32Array) => ({
       header: [...f.subarray(0, 3)],

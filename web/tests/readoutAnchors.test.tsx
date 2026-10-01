@@ -2,7 +2,7 @@
 import { createRef } from "react";
 import { render, cleanup } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import { ReadoutLayer, type ReadoutLayerHandle } from "../src/battle/present/readouts";
 import type { ContactView } from "../src/battle/sim/observation";
 import type { PanelRules } from "../src/battle/present/panelRows";
@@ -31,7 +31,7 @@ test("contact leaders stay on the reported ground center as radius and camera ch
     kind: null,
     heard: ["rifle"],
   };
-  const props = { own: [], selected: [], handle, rules: village as unknown as PanelRules };
+  const props = { own: [], selected: [], handle, rules: game as unknown as PanelRules };
   const view = render(<ReadoutLayer {...props} contacts={[contact]} />);
   for (const radius of [0, 20, 80]) {
     view.rerender(<ReadoutLayer {...props} contacts={[{ ...contact, radius }]} />);
@@ -64,7 +64,7 @@ test("only the preferred contact report gets a label", () => {
       own={[]}
       selected={[]}
       handle={handle}
-      rules={village as unknown as PanelRules}
+      rules={game as unknown as PanelRules}
       contacts={[base, { ...base, id: 2, source: "firing", kind: null, primaryLabel: false }]}
     />,
   );
@@ -95,7 +95,7 @@ test("own callout bounds are selectable, including rectangle overlap, but hidden
       own={[unit]}
       selected={[]}
       handle={handle}
-      rules={village as unknown as PanelRules}
+      rules={game as unknown as PanelRules}
     />,
   );
   const node = view.container.querySelector("[data-unit]") as HTMLDivElement;
@@ -128,7 +128,7 @@ test("panels show name and health until details are requested", () => {
       own={units}
       selected={[]}
       handle={handle}
-      rules={village as unknown as PanelRules}
+      rules={game as unknown as PanelRules}
     />,
   );
   handle.current!.place((x, y) => [x, y], camera);
@@ -167,7 +167,7 @@ test("held details reach nearby cards with only one card moved", () => {
       own={units}
       selected={[0]}
       handle={handle}
-      rules={village as unknown as PanelRules}
+      rules={game as unknown as PanelRules}
     />,
   );
   const layer = view.container.querySelector(".ro-layer") as HTMLElement;
@@ -211,7 +211,7 @@ test("detail priority follows the actual camera eye rather than its orbit target
       own={units}
       selected={[1]}
       handle={handle}
-      rules={village as unknown as PanelRules}
+      rules={game as unknown as PanelRules}
     />,
   );
   const cards = [...view.container.querySelectorAll<HTMLDivElement>(".ro-unit")];

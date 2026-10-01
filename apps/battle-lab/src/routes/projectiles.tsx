@@ -8,7 +8,7 @@ import { useFeed } from "../feed";
 import { STREET_CAMERA, STREET_SEED } from "../streetScenario";
 import { REVIEW_LANES, buildProjectileReview, reviewLanePositions } from "../projectileReview";
 import { TickStatus } from "../TickStatus";
-import { villageEffects } from "../effectFeed";
+import { gameEffects } from "../effectFeed";
 
 const _projectiles_xy: Vec2 = [0, 0];
 function near(position: Vec3, at: Vec2) {
@@ -88,7 +88,7 @@ function Review({ scenario }: { scenario: string }) {
           show,
           lanes: () =>
             REVIEW_LANES.map((lane, index) => {
-              const glow = villageEffects.tracers[lane.weapon].glow;
+              const glow = gameEffects.tracers[lane.weapon].glow;
               return {
                 ...lane,
                 ...reviewLanePositions(index),

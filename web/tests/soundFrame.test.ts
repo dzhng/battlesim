@@ -7,7 +7,7 @@
 // new battle clear everything; the side's own sounds stay heard at the
 // farthest zoom, coloured far.
 import { expect, test } from "vitest";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import type { AudioPresentation } from "@packages/battle-audio/src/audioPresentation";
 import { cameraListener } from "@packages/battle-audio/src/battleAudio";
 import {
@@ -28,8 +28,8 @@ import type {
 
 const HZ = 30;
 const DT = 1 / HZ;
-const AUDIO = village.presentation.audio as unknown as AudioPresentation;
-const SMOKE = (village.presentation.effects as unknown as EffectPresentation).smoke;
+const AUDIO = game.presentation.audio as unknown as AudioPresentation;
+const SMOKE = (game.presentation.effects as unknown as EffectPresentation).smoke;
 const LISTENER: Listener = { position: [0, -20, 20], forward: [0, 1, 0] };
 const STILL: SoundMotion = { vehicles: [], soldiers: [] };
 
@@ -297,7 +297,7 @@ test("a known wreck burns, then smoulders quieter, then falls silent", () => {
 
 /** The camera at its farthest zoom, looking at `target` (the fixture's rig). */
 function farthestCamera(target: number[]) {
-  const cam = village.presentation.camera;
+  const cam = game.presentation.camera;
   const pitch = cam.pitch_curve[cam.pitch_curve.length - 1][1];
   return { target: [target[0], target[1], 0], distance: cam.zoom_max, pitch, yaw: -1.57 };
 }

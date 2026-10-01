@@ -11,10 +11,10 @@ import {
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
 import type { ObservationView } from "@web/battle/sim/observation";
 import { contactLayer } from "@apps/battle-lab/src/battleOverlay";
-import { villageContactStyle } from "@apps/battle-lab/src/villageFog";
+import { gameContactStyle } from "@apps/battle-lab/src/gameFog";
 
 const flat = () => 0;
-const style = villageContactStyle;
+const style = gameContactStyle;
 
 function vertices(mesh: Float32Array) {
   const out: { x: number; y: number; rgba: number[] }[] = [];

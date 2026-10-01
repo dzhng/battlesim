@@ -3,13 +3,13 @@
 // ground and one row over grass; `?scale=` zooms the page. No 3D scene: the
 // panels are DOM over the battlefield. The scene (`web/scenes/panels.mjs`)
 // shoots the contact sheet.
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import { InfoPanel, PanelCallout } from "@web/battle/present/infoPanel";
 import type { PanelRules } from "@web/battle/present/panelRows";
 import { useEffect } from "react";
 import { panelSpecimens, type Specimen } from "../panelSpecimens";
 
-const RULES = village as unknown as PanelRules;
+const RULES = game as unknown as PanelRules;
 
 /** The specimens shown again over grass: one of each kind of panel. */
 const OVER_GRASS = [

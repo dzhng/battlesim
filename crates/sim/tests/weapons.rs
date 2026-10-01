@@ -1123,7 +1123,7 @@ fn an_attack_on_a_contact_carries_over_to_its_cause_once_identified() {
 #[test]
 fn an_attack_on_a_contact_that_expires_unidentified_ends() {
     let mut b = attack_on_a_hidden_shooter(false);
-    let lifetime = common::village()["sensors"]["contact_lifetime_s"]
+    let lifetime = common::game()["sensors"]["contact_lifetime_s"]
         .as_f64()
         .unwrap();
     for _ in 0..ticks(lifetime - 1.0) {
@@ -1480,9 +1480,7 @@ fn first_launch(
     seconds: f64,
     when: impl Fn(&[f64]) -> bool,
 ) -> ([f64; 3], Vec<f64>) {
-    let g = common::village()["physics"]["gravity_mps2"]
-        .as_f64()
-        .unwrap();
+    let g = common::game()["physics"]["gravity_mps2"].as_f64().unwrap();
     let mut seen: BTreeSet<ProjectileId> = b.rounds().map(|(p, _)| p.id).collect();
     for _ in 0..ticks(seconds) {
         b.step();

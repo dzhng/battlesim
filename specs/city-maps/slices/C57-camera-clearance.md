@@ -49,7 +49,7 @@ Jarring recovery changes bounded tuning or candidate order within the accepted n
 
 **The policy as built.** In order: the pose asked for when clear; the smallest clear lift up the orbit arc; the smallest clear slide round the target; pushback, which pushes the eye out of the box it is in through the side it is already on. Three things were added to make that smooth and are recorded in [`choices.md`](../choices.md#c57-camera-clearance): the policy looks 0.75 s ahead along the camera's own motion; a building in the way is gone over when its roof is within the lift's reach and cut past, with the cut reported, when it is not; and a goal keeps `release_m` more clearance than a drawn pose needs. The eye eases to its goal as a critically damped spring and is pushed out of whatever the easing would carry it into, so every pose emitted is clear.
 
-**Tuning** (`fixtures/village.json`, `presentation.camera.clearance`). The lab's eight trajectories at 60 frames a second chose them. "Pressed" is how long the eye is held against a wall; "extra" is the most the drawn eye outruns the eye asked for.
+**Tuning** (`fixtures/game.json`, `presentation.camera.clearance`). The lab's eight trajectories at 60 frames a second chose them. "Pressed" is how long the eye is held against a wall; "extra" is the most the drawn eye outruns the eye asked for.
 
 | Number | Value | Alternatives measured |
 |---|---|---|

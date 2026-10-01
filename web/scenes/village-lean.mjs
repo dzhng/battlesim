@@ -4,9 +4,9 @@
 // out on his lean, and shoots him at the ground camera (`lean-out`), then
 // again once he has tucked back in (`tucked`), each also HUD-free.
 import { lab, obs, advance, snapshot, openBattle } from "./_lab.mjs";
-import { village, curvePitch } from "./_units.mjs";
+import { game, curvePitch } from "./_units.mjs";
 
-const CAMERA = village.presentation.camera;
+const CAMERA = game.presentation.camera;
 const VIEWPORT = { width: 1920, height: 1080 };
 const HIDE_HUD = ".ro-unit, [data-testid=battle-panel] { display: none !important; }";
 

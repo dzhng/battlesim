@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { readFileSync } from "node:fs";
-import { VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
+import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
 import { beforeAll, expect, test } from "vitest";
 import {
   initSync,
@@ -94,7 +94,7 @@ test("materialization and the public loader admit the same representable part po
         },
       ],
     }),
-    JSON.stringify(VILLAGE_RULES),
+    JSON.stringify(GAME_RULES),
   );
   try {
     expect(world.props()[5]).toBe(Math.fround(1.1));

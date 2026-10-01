@@ -13,7 +13,7 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario, type LabEvent } from "../scenarios";
 import { useFeed } from "../feed";
-import { villageCamera } from "../villageCamera";
+import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
 
 // Blue's tank and rifle squad face a red tank shuttling past a short wall and
@@ -58,7 +58,7 @@ const WEAPONS_CAMERA: Camera3DParams = {
   distance: 300,
   pitch: 0.95,
   yaw: -1.57,
-  ...villageCamera.lens,
+  ...gameCamera.lens,
 };
 
 /** Reference commands, exactly as a player would send them. */

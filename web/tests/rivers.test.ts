@@ -2,7 +2,7 @@
 // Rivers at the renderer's seam: the export follows its published layout, the
 // water surface covers the water once, and fields are cut along the authored
 // runs.
-import { VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
+import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
 import { readFileSync } from "node:fs";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { initSync, WorldView, world_layout } from "@wasm/game_wasm.js";
@@ -20,7 +20,7 @@ import {
 import { plotAt } from "@packages/battle-renderer/src/terrain/plots.ts";
 import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
 import summer from "@fixtures/biomes/summer.json";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import riverLab from "@fixtures/river-lab.json";
 
 const biome = validateBiome(summer as unknown as Biome);
@@ -33,11 +33,11 @@ afterEach(() => {
 });
 beforeAll(() => {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
-  layout = JSON.parse(world_layout(JSON.stringify(VILLAGE_RULES))) as WorldLayout;
+  layout = JSON.parse(world_layout(JSON.stringify(GAME_RULES))) as WorldLayout;
 });
 
 function exportsOf(map: unknown) {
-  const view = new WorldView(JSON.stringify(map), JSON.stringify(VILLAGE_RULES));
+  const view = new WorldView(JSON.stringify(map), JSON.stringify(GAME_RULES));
   views.push(view);
   return readWorldExports(view);
 }
@@ -77,7 +77,7 @@ test("the river export follows its published layout", () => {
     }
   }
   // A map without water exports none.
-  const dry = exportsOf(village.map);
+  const dry = exportsOf(game.map);
   expect(dry.rivers.length + dry.riverRuns.length).toBe(0);
 });
 

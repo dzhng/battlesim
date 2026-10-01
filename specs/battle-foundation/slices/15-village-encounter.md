@@ -50,7 +50,7 @@ If village is not replayably interesting, revise scenario/config or split the fa
 **Result: accepted as the village checkpoint, with one encounter target unmet and split out** (see below and decisions.md "15 — Village tuning log").
 
 **What was built:**
-- `sim::village` builds the authored scenario from `village.json` for either variant. Ordinary drops red spawn 4; crossfire keeps it.
+- `sim::village` builds the authored scenario from `game.json` for either variant. Ordinary drops red spawn 4; crossfire keeps it.
   - `Defender` is the red policy. It reads only red's `ObservationFrame` and issues ordinary commands through `Battle::accept`: garrisons on the first tick, one own-optics AT attack, and a single retreat per unit.
   - `Referee` judges the hold from authoritative state and publishes `ObservationFrame.encounter` (seconds held, verdict).
   - `trial` runs a script against the defender.

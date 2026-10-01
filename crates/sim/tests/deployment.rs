@@ -19,7 +19,7 @@ fn duration() -> u32 {
 }
 
 fn setup() -> contract::scenario::ScenarioDefinition {
-    let mut fixture = common::village();
+    let mut fixture = common::game();
     sim::fixtures::patch_catalog(
         &mut fixture,
         "units",
@@ -437,7 +437,7 @@ fn deployment_replays_to_identical_digests_and_enters_the_digest() {
 
 #[test]
 fn asymmetric_setup_packs_in_one_second_and_reverses_from_remaining_progress() {
-    let mut fixture = common::village();
+    let mut fixture = common::game();
     sim::fixtures::patch_catalog(
         &mut fixture,
         "units",
