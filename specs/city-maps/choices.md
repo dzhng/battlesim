@@ -1974,3 +1974,23 @@ public canopy rather than adding a second tree-line interpretation. The village
 map receives no tree lines. **Verdict:** sound: one forest rule governs the strip
 without creating an exaggerated always-opaque barrier or duplicated shape.
 **Confidence:** high.
+
+
+## C77 route-preserving admission (2026-10-01)
+
+**Choice:** Sparse geometric spacing remains a cheap first filter, followed by a
+bounded shared-navigation connectivity guard for every candidate. It preserves
+each old component's surviving cells in the influence window and its open
+boundary. The graph uses the same fits/crossings as route planning, with current
+catalog mobility deduplicated by mover class, push class and width. This proves preservation by splicing unchanged
+outside routes through the retained boundary; three sampled forests alone cannot
+prove it. Rejected trials are rolled back, accepted trials retained. **Gap:** The
+spec required no enclosed gaps but did not prescribe the proof or placement cost.
+**Reach:** One temporary navigation base/grid is built when floor density is
+nonzero; admission uses incremental body updates, not per-candidate grid rebuilds.
+The guarded window is capped at 4096 cells per distinct fit pattern; extreme imported floor dimensions
+are omitted rather than causing unbounded startup work. Existing per-hectare
+candidate ceiling and no-retry semantics remain. The guard preserves all actual catalog movement profiles rather than requiring named rifle/jeep types; a prop-only catalog has no fictitious movers. **Verdict:** sound; conservative
+rejection can reduce actual floor density but cannot close an existing route or
+create a pocket. **Confidence:** high on route correctness; startup cost must be
+measured before calling the systems slice green.

@@ -218,6 +218,30 @@ impl WorldGeometry {
         }
         // Floor cover follows every forest's trunks, so it cannot displace a
         // later forest's trees or change their immutable source ID ranges.
+        let mut floor_nav = (forests.rule.logs_per_ha > 0.0 || forests.rule.boulders_per_ha > 0.0)
+            .then(|| {
+                crate::navigation::NavGrid::new(std::sync::Arc::new(
+                    crate::navigation::NavBase::build(
+                        &world,
+                        world.props(),
+                        rules.physics.soldier_radius_m,
+                    ),
+                ))
+            });
+        let floor_movers = floor_nav.as_ref().map(|_| {
+            let mut movers: Vec<crate::navigation::Mobility> = Vec::new();
+            for kind in rules.catalog.indices() {
+                let mover = crate::units::mobility(rules.catalog.get(kind), rules);
+                if !movers.iter().any(|m| {
+                    m.class == mover.class
+                        && m.push == mover.push
+                        && m.half_width_m == mover.half_width_m
+                }) {
+                    movers.push(mover);
+                }
+            }
+            movers
+        });
         for (index, forest) in map.forests.iter().enumerate() {
             for (kind, density, half, salt) in [
                 (
@@ -237,10 +261,14 @@ impl WorldGeometry {
                     world.place_forest_bodies(
                         index,
                         forest,
-                        kind.as_deref().expect("validated floor kind"),
-                        density,
-                        half,
-                        salt,
+                        forest::FloorBody {
+                            kind: kind.as_deref().expect("validated floor kind"),
+                            density,
+                            half,
+                            salt,
+                        },
+                        floor_nav.as_mut().expect("enabled floor grid"),
+                        floor_movers.as_ref().expect("enabled floor movers"),
                     );
                 }
             }
@@ -643,11 +671,21 @@ impl WorldGeometry {
     }
 
     pub fn add_prop(&mut self, def: &PropDefinition) -> PropId {
+        let prop = self.placed_prop(def);
+        let id = prop.id;
+        self.index.insert(&prop);
+        self.props.push(Some(prop));
+        self.revision += 1;
+        self.touched.push(id);
+        id
+    }
+
+    fn placed_prop(&self, def: &PropDefinition) -> Prop {
         let id = u32::try_from(self.props.len()).expect("world exceeds u32 prop IDs");
         let center = v2(def.center[0], def.center[1]);
         let base_z = def.base_z.unwrap_or_else(|| self.standing_z(center));
         let kind = self.types.kind(&def.kind);
-        let prop = Prop {
+        Prop {
             id,
             kind,
             center,
@@ -661,12 +699,7 @@ impl WorldGeometry {
             forest_tree: false,
             known_to_all: false,
             body: self.types.get(kind).body,
-        };
-        self.index.insert(&prop);
-        self.props.push(Some(prop));
-        self.revision += 1;
-        self.touched.push(id);
-        id
+        }
     }
 
     /// Every side plans with `id` from now on ([`Prop::known_to_all`]).

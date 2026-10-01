@@ -197,6 +197,13 @@ fn forest_seed(index: usize, forest: &Forest) -> u64 {
     }
 }
 
+pub(super) struct FloorBody<'a> {
+    pub kind: &'a str,
+    pub density: f64,
+    pub half: [f64; 3],
+    pub salt: u64,
+}
+
 impl WorldGeometry {
     /// Where `forest`'s trunks stand (Q16): a grid at the rule's spacing,
     /// each trunk jittered off its cell's centre, none near a road or
@@ -251,11 +258,16 @@ impl WorldGeometry {
         &mut self,
         index: usize,
         forest: &Forest,
-        kind: &str,
-        density: f64,
-        half: [f64; 3],
-        salt: u64,
+        placement: FloorBody<'_>,
+        nav: &mut crate::navigation::NavGrid,
+        movers: &[crate::navigation::Mobility],
     ) {
+        let FloorBody {
+            kind,
+            density,
+            half,
+            salt,
+        } = placement;
         let step = (10_000.0 / density).sqrt();
         let [x0, y0, max_x, max_y] = forest.shape.limits();
         assert!(
@@ -299,13 +311,16 @@ impl WorldGeometry {
                         .iter()
                         .all(|q| q.footprint().distance(p) >= radius + clearance);
                 if clear {
-                    self.add_prop(&contract::map::PropDefinition {
+                    let def = contract::map::PropDefinition {
                         kind: kind.into(),
                         center: [p.x, p.y],
                         yaw,
                         half_extents: half,
                         base_z: None,
-                    });
+                    };
+                    if nav.admit_floor_body(self, self.placed_prop(&def), movers) {
+                        self.add_prop(&def);
+                    }
                 }
                 x += step;
             }

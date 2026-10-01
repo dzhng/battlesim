@@ -39,6 +39,7 @@ use crate::world::PropId;
 mod base;
 mod cells;
 mod check;
+mod floor;
 mod journey;
 mod regions;
 mod roads;

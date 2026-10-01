@@ -61,3 +61,22 @@ calling the systems slice green. C78 models, cover GIFs and visual acceptance
 remain open. Manual shape/diff/docs review and choices audit passed; the default
 CLI second review is unavailable because its configured model is unsupported.
 Integrated independent review and whole-repo gates remain with the orchestrator.
+
+
+### Route-preserving admission follow-up
+
+The spacing samples are regression evidence, not a universal connectivity proof.
+Each candidate now enters one temporary shared navigation grid. Within its full
+body-stamp/clearance influence window, every surviving cell of an old connected
+component must remain connected and every previously open boundary cell must
+remain open. The graph uses navigation's actual cell fit and infantry edge
+crossings, with all actual catalog movers derived from current rules/catalog. A
+rejected candidate is rolled back before the next candidate. This preserves
+existing routes and cannot create an isolated pocket, even in a narrow corridor.
+
+Generation builds the temporary grid once only when floor density is positive;
+no full-grid flood or rebuild runs per candidate. A window exceeding 4096 cells
+is rejected. Narrow-corridor rejection was first red with no guard, then green;
+changed jeep hull width was deliberately falsified with a forced 1 m mover,
+confirmed red, and restored. Accepted isolated cover and rollback tests also
+pass. The overlapping-forest parity fixture explicitly supplies broader trunk spacing so accepted cover exercises both new kinds under all catalog mover patterns; dense overlaps may correctly admit no cover. A prop-only catalog test also passes without requiring named unit kinds. Startup instruction evidence remains part of the pending paired gate.

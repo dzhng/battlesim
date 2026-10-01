@@ -512,6 +512,9 @@ fn sparse_floor_bodies_leave_every_trunk_and_foliage_cell_unchanged() {
     }))
     .unwrap();
     let mut raw = common::village();
+    // Deliberately provide broad navigable gaps for every catalog mover;
+    // overlapping dense woods may correctly admit no floor cover.
+    raw["forests"]["rule"]["trunk_spacing_m"] = json!(18);
     raw["forests"]["rule"]["logs_per_ha"] = json!(5);
     raw["forests"]["rule"]["boulders_per_ha"] = json!(3);
     raw["forests"]["rule"]["log_half_extents_m"] = json!([2.2, 0.35, 0.35]);
