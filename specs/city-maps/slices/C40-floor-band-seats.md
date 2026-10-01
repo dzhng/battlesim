@@ -60,3 +60,11 @@ Existing authored boxes lack floor/bay facts and retain a documented ground-floo
 bridge. Source window fit, final tall-source authoring and the framed visual
 moment remain specialist/map-lane work. Whole-repo and report gates are pending
 integration; this is a physical implementation checkpoint.
+
+Holdable replacement shells reuse source bay positions only below their observed
+remaining height. Command admission reads the remembered shell; physical entry
+checks the live shell. Original IDs retain the full remembered source plan, so
+an unseen collapse cannot leak through a changed capacity. A two-metre damaged
+shell regression first failed on inherited upper-floor seats, then passed with
+only surviving ground bays. Holdable `into` states emit uniform part heights;
+per-part full heights belong only to ungarrisonable terminal gutted states.

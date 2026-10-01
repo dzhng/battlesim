@@ -95,17 +95,33 @@ pub(crate) fn floor_band_count(geometry: &contract::templates::MaterializedBuild
 /// Seats at exposed physical bays on the bottom three floor bands. The
 /// gameplay cap reserves places round the four building-frame directions.
 pub fn building_seats(building: &contract::map::BuildingDefinition, rules: &Rules) -> SeatPlan {
-    let geometry = &building.geometry;
+    seat_plan(&building.geometry, rules, None)
+}
+
+/// A remembered or live replacement keeps the source bays but loses floors
+/// above its remaining shell. Initial-part IDs retain the complete source plan.
+fn seats_for_state(world: &WorldGeometry, prop: &Prop, rules: &Rules) -> SeatPlan {
+    let definition = world.building(prop.id).expect("building geometry");
+    // Into states give every part the same height. Gutted parts may differ,
+    // but the catalog forbids garrisoning those terminal shells.
+    let remaining_height =
+        (!definition.parts.iter().any(|p| p.prop == prop.id)).then_some(prop.half.z * 2.0);
+    seat_plan(&definition.geometry, rules, remaining_height)
+}
+
+fn seat_plan(
+    geometry: &contract::templates::MaterializedBuilding,
+    rules: &Rules,
+    remaining_height: Option<f64>,
+) -> SeatPlan {
     let mut groups: [Vec<SeatSlot>; 4] = Default::default();
     let ground = [geometry.frame.translation[2]];
     let floors = geometry.floor_z.as_deref().unwrap_or(&ground);
     for &z in floors.iter().take(floor_band_count(geometry)).rev() {
-        for (ordinal, edge) in geometry
-            .edges
-            .iter()
-            .enumerate()
-            .filter(|(_, e)| e.exposed && z >= e.base_z && z < e.top_z)
-        {
+        for (ordinal, edge) in geometry.edges.iter().enumerate().filter(|(_, e)| {
+            let top = remaining_height.map_or(e.top_z, |h| e.top_z.min(e.base_z + h));
+            e.exposed && z >= e.base_z && z < top
+        }) {
             let part = geometry
                 .parts
                 .iter()
@@ -262,13 +278,7 @@ pub fn validate(
     let target_prop = target
         .filter(|p| p.body.garrison)
         .ok_or(OrderError::NotABuilding)?;
-    let capacity = building_seats(
-        world
-            .building(target_prop.id)
-            .expect("known building geometry"),
-        rules,
-    )
-    .len();
+    let capacity = seats_for_state(world, &target_prop, rules).len();
     let target = target_prop.id;
     // The command already checked each named unit is the side's own and alive.
     let [id] = ordered else {
@@ -507,10 +517,7 @@ pub fn advance(
                 }
                 let entry = units[i].garrison.as_ref().unwrap().entry;
                 let prop = building(world, b).expect("standing building");
-                let slots = building_seats(
-                    world.building(prop.id).expect("occupied building geometry"),
-                    rules,
-                );
+                let slots = seats_for_state(world, prop, rules);
                 // Supply may restore soldiers during the entry timer. Admission
                 // still belongs to the whole living squad when it takes seats.
                 if units[i].members.iter().filter(|s| s.alive()).count() > slots.len() {

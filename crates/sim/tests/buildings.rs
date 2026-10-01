@@ -696,10 +696,6 @@ fn a_holdable_replacement_uses_current_parts_and_its_fresh_owner() {
     setup.rules = serde_json::from_value(rules).unwrap();
     setup.units=serde_json::from_value(json!([{"side":"blue","kind":"rifle","position":[425,301],"engagement":"return_fire_only"}])).unwrap();
     let mut b = Battle::new(&setup, 11);
-    let expected = sim::garrison::building_seats(b.world().building(0).unwrap(), &setup.rules)
-        .iter()
-        .map(|s| s.position)
-        .collect::<Vec<_>>();
     for _ in 0..12 {
         b.step();
     }
@@ -721,16 +717,24 @@ fn a_holdable_replacement_uses_current_parts_and_its_fresh_owner() {
     }
     let unit = b.unit(contract::ids::UnitId(0)).unwrap();
     assert!(unit.garrisoned());
-    assert_eq!(
+    assert!(
         unit.garrison
             .as_ref()
             .unwrap()
             .slots
             .iter()
-            .map(|s| s.position)
-            .collect::<Vec<_>>(),
-        expected,
-        "an admitted replacement cannot enter an empty garrison"
+            .all(|s| s.position.z < b.world().prop(3).unwrap().top_z()),
+        "a holdable replacement cannot seat soldiers above its live roof"
+    );
+
+    assert!(
+        unit.garrison
+            .as_ref()
+            .unwrap()
+            .slots
+            .iter()
+            .all(|s| s.position.z == 0.0),
+        "only the original ground-floor bays remain below this two-metre shell"
     );
     assert_eq!(
         b.observe(Side::Blue).own[0]

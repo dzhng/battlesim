@@ -1774,6 +1774,17 @@ immutable capacity as command admission. **Gap:** Supply can replenish a squad
 during its entry timer. **Verdict:** sound; no partial admission or empty seats
 for newly living members. **Confidence:** high from red/green battle evidence.
 
+**Choice:** A holdable replacement clips original floor bays to its observed
+remaining shell height. When a squad enters a damaged two-metre shell, it cannot
+stand at the destroyed building's three-metre floor. Command admission uses the
+side's remembered body; entry uses the actual live state. Original authored IDs
+retain source capacity even after a hidden collapse. **Gap:** The contract kept
+immutable source bays but did not say how an optional holdable replacement loses
+floors. **Reach:** Holdable `into` states share one height across their parts;
+terminal per-part-height gutted states remain ungarrisonable. No extra snapshot
+or live-world command API is required. **Verdict:** sound; capacity follows known
+physical height without exposing hidden changes. **Confidence:** high.
+
 ## C42/C43 building integrity and terminal remains (2026-10-01)
 
 **Choice:** HP floor bands share the seating owner's first-three-floor count;
