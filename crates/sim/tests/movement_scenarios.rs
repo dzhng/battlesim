@@ -31,7 +31,7 @@ pub struct Scenario {
     pub events: Value,
     /// Orders (`contract::scenario::ScriptedOrder` rows).
     pub scripts: Value,
-    /// Merged over the village rules (JSON merge): per-scenario rule numbers.
+    /// Merged over the game rules (JSON merge): per-scenario rule numbers.
     /// Its `catalog` holds patches by section and id, merged into the unit
     /// catalog's entries (`sim::fixtures::patch_catalog`).
     pub rules: Value,
@@ -47,6 +47,8 @@ pub struct Check {
 }
 
 pub enum CheckKind {
+    /// An impossible order is refused by this time and never plans again.
+    Refused { unit: u32, by_s: f64 },
     /// Unit ends idle within `within_m` of `at`: a vehicle's centre, a
     /// squad's anchor (its soldiers spread over the area round it).
     Arrive {
@@ -290,8 +292,7 @@ fn forest(rect: [f64; 4]) -> Value {
 /// its props whose centre lies inside `window` (`[x0, y0, x1, y1]`), so the
 /// drawing frames that corner of the encounter.
 fn village(window: [f64; 4]) -> Value {
-    let fixture: Value =
-        serde_json::from_str(include_str!("../../../fixtures/village.json")).unwrap();
+    let fixture: Value = serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
     let mut map = fixture["map"].clone();
     let props: Vec<Value> = map["props"]
         .as_array()
@@ -1867,6 +1868,59 @@ fn authored() -> Vec<Scenario> {
         // The river lab: a squad and a tank on the country road are ordered
         // up it, over the bridge that carries it across 12 m of water.
         Scenario {
+            name: "sa6-columns-through-bridge",
+            caption: "opposing columns pass on the road through a river bridge",
+            map: serde_json::from_str(include_str!("../../../fixtures/river-lab.json")).unwrap(),
+            units: json!((0..8).map(|i| vehicle(if i < 4 { "blue" } else { "red" },
+                if i % 2 == 0 { "jeep" } else { "tank" },
+                [60.0, if i < 4 { 100.0 + i as f64 * 20.0 } else { 380.0 - (i-4) as f64 * 20.0 }],
+                if i < 4 { std::f64::consts::FRAC_PI_2 } else { -std::f64::consts::FRAC_PI_2 })).collect::<Vec<_>>()),
+            events: none.clone(),
+            scripts: json!((0..8).map(|i| drive(if i < 4 { "blue" } else { "red" },i,
+                [60.0, if i < 4 { 380.0 - i as f64 * 20.0 } else { 100.0 + (i-4) as f64 * 20.0 }])).collect::<Vec<_>>()),
+            rules: json!({}), seconds: 100.0, seed: 1,
+            checks: (0..8).map(|i| check(Arrive { unit: i,
+                at: [60.0, if i < 4 { 380.0 - i as f64 * 20.0 } else { 100.0 + (i-4) as f64 * 20.0 }], within_m: 1.5 }))
+                .chain([check(VehiclesNeverOverlap),check(NeverInWater),check(HullsOverWater { max_m: 0.5 })]).collect(),
+        },
+        Scenario {
+            name: "sa6-unbridged-river",
+            caption: "a jeep refuses an unbridged river crossing without repeated searches",
+            map: flat([3000.0, 6000.0], json!({ "rivers": [{ "points": [
+                {"xy":[1500,0],"width_m":20,"depth_m":1.5},
+                {"xy":[1500,6000],"width_m":20,"depth_m":1.5}],"surface_z":-0.5 }] })),
+            units: json!([vehicle("blue","jeep",[100.0,5600.0],0.0)]),
+            events: none.clone(), scripts: json!([go(0,[2900.0,5600.0])]),
+            rules: json!({}), seconds: 10.0, seed: 1,
+            checks: vec![check(Refused { unit:0, by_s:0.5 }),check(NeverInWater)],
+        },
+        Scenario {
+            name: "sa6-distant-bridge",
+            caption: "a jeep takes a bridge 5.4km away rather than search the unbroken bank",
+            map: flat([3000.0, 6000.0], json!({ "rivers": [{ "points": [
+                {"xy":[1500,0],"width_m":20,"depth_m":1.5},
+                {"xy":[1500,6000],"width_m":20,"depth_m":1.5}],"surface_z":-0.5 }],
+                "bridges": [{"deck":"bridge_deck","center":[1500,200],"half_extents":[16,6],"yaw":0,"deck_z":0.1,"thickness_m":0.8}],
+                "surfaces": [{"kind":"road","shape":{"kind":"stroke","points":[[100,5800],[100,200],[2900,200],[2900,5800]],"width_m":8}}] })),
+            units: json!([vehicle("blue","jeep",[100.0,5600.0],0.0)]),
+            events: none.clone(), scripts: json!([go(0,[2900.0,5600.0])]),
+            rules: json!({}), seconds: 600.0, seed: 1,
+            checks: vec![check(Arrive { unit:0,at:[2900.0,5600.0],within_m:1.5 }),check(NeverInWater),check(WithinRadius {unit:0}),check(HullsOverWater {max_m:0.5})],
+        },
+        Scenario {
+            name: "sa6-jeep-round-wreck",
+            caption: "a jeep passes a heavy wreck lying across an eight metre road",
+            map: flat([120.0, 80.0], json!({
+                "surfaces": [{ "kind": "road", "shape": { "kind": "stroke", "points": [[10,40],[110,40]], "width_m": 8 } }],
+                "props": [wreck("heavy_wreck", [57.0,40.0], 0.0)]
+            })),
+            units: json!([vehicle("blue", "jeep", [15.0,40.0], 0.0)]),
+            events: none.clone(), scripts: json!([drive("blue", 0, [100.0,40.0])]),
+            rules: json!({}), seconds: 60.0, seed: 1,
+            checks: vec![check(Arrive { unit: 0, at: [100.0,40.0], within_m: 1.5 }),
+                check(VehiclesClearOfProps), check(WithinRadius { unit: 0 })],
+        },
+        Scenario {
             name: "c69-river-bridge",
             caption: "a squad and a tank go up the road and over the river by its bridge",
             map: serde_json::from_str(include_str!("../../../fixtures/river-lab.json")).unwrap(),
@@ -1893,10 +1947,7 @@ fn authored() -> Vec<Scenario> {
                 check(NeverInWater),
                 check(HullsOverWater { max_m: 0.5 }),
                 check(VehiclesClearOfProps),
-                pending(
-                    "SA2: a squad's files are not fitted to a deck's width; the outer soldiers jostle at its edges (34 reversals)",
-                    NO_TWITCH,
-                ),
+                check(NO_TWITCH),
             ],
         },
         // The same river from 70 m east of the bridge: the straight line to
@@ -1917,29 +1968,20 @@ fn authored() -> Vec<Scenario> {
             seconds: 110.0,
             seed: 1,
             checks: vec![
-                pending(
-                    "SA2: the squad's route runs along the deck's edge, so half its files lie over the water; those soldiers stop on the bank",
-                    Arrive {
+                check(Arrive {
                         unit: 0,
                         at: [125.0, 300.0],
                         within_m: 1.5,
-                    },
-                ),
+                    }),
                 check(Arrive {
                     unit: 1,
                     at: [150.0, 320.0],
                     within_m: 1.5,
                 }),
                 check(NeverInWater),
-                pending(
-                    "SA2: the tank's route clips the deck's corner; a hull corner swings 1.9 m off the deck as it turns on",
-                    HullsOverWater { max_m: 0.5 },
-                ),
+                check(HullsOverWater { max_m: 0.5 }),
                 check(VehiclesClearOfProps),
-                pending(
-                    "SA2: the soldiers stopped on the bank keep trying for files over the water",
-                    NO_TWITCH,
-                ),
+                check(NO_TWITCH),
             ],
         },
     ]
@@ -1967,7 +2009,7 @@ fn merge(base: &mut Value, patch: &Value) {
 }
 
 pub fn definition(s: &Scenario) -> ScenarioDefinition {
-    let mut rules = sim::fixtures::village();
+    let mut rules = sim::fixtures::game();
     let mut patch = s.rules.clone();
     if let Some(Value::Object(sections)) = patch.as_object_mut().and_then(|p| p.remove("catalog")) {
         for (section, entries) in sections {
@@ -2064,6 +2106,8 @@ pub fn cover_tier(b: &Battle, p: V2, threat: V2) -> Option<sim::cover::Tier> {
 struct Judge {
     worst: f64,
     at: String,
+    refused_at: Option<u64>,
+    replanned_after_refusal: bool,
     /// Distance to the goal when the unit first halted.
     halted_short: Option<f64>,
     prop: Option<(u32, V2)>,
@@ -2146,6 +2190,8 @@ impl Judge {
         let mut j = Judge {
             worst: f64::INFINITY,
             at: String::new(),
+            refused_at: None,
+            replanned_after_refusal: false,
             halted_short: None,
             prop,
             health: units(b)
@@ -2184,6 +2230,15 @@ impl Judge {
 
     fn watch(&mut self, kind: &CheckKind, b: &Battle) {
         match kind {
+            CheckKind::Refused { unit, .. } => {
+                let state = b.unit(UnitId(*unit)).unwrap().state;
+                if state == MoveState::RouteBlocked {
+                    self.refused_at.get_or_insert(b.tick());
+                }
+                if self.refused_at.is_some() && state == MoveState::Planning {
+                    self.replanned_after_refusal = true;
+                }
+            }
             CheckKind::NoTwitch { .. } => {
                 let tick = b.tick();
                 for u in units(b).filter(|u| !u.is_vehicle() && !u.garrisoned()) {
@@ -2463,6 +2518,21 @@ impl Judge {
 
     fn verdict(self, c: &Check, b: &Battle) -> Outcome {
         let (label, passed, detail) = match &c.kind {
+            CheckKind::Refused { unit, by_s } => {
+                let state = b.unit(UnitId(*unit)).unwrap().state;
+                (
+                    format!("unit {unit} refuses an impossible order by {by_s}s"),
+                    self.refused_at
+                        .is_some_and(|t| t as f64 <= by_s * b.rules().tick_hz as f64)
+                        && state == MoveState::RouteBlocked
+                        && !self.replanned_after_refusal,
+                    format!(
+                        "refused at tick {:?}, ends {state:?}, planned again: {}",
+                        self.refused_at, self.replanned_after_refusal
+                    ),
+                )
+            }
+
             CheckKind::NoTwitch {
                 max_reversals,
                 max_still_s,
@@ -2830,8 +2900,16 @@ fn the_window_producer_preserves_original_physical_bodies_and_dense_ids() {
     let expected: Vec<contract::map::AuthoredPropDefinition> =
         serde_json::from_value(receipt["props"].clone()).unwrap();
     assert_eq!(json!(actual), serde_json::to_value(expected).unwrap());
-    let rules = serde_json::from_value(sim::fixtures::village()).unwrap();
+    let rules = serde_json::from_value(sim::fixtures::game()).unwrap();
     let world = sim::world::WorldGeometry::new(&map, &rules);
     assert_eq!(world.building_of(0), Some(0));
     assert_eq!(world.structure_owner(0), Some(0));
+}
+#[test]
+fn a_jeep_passes_a_wreck_across_the_road() {
+    assert_scenario(&scenario("sa6-jeep-round-wreck"));
+}
+#[test]
+fn opposing_bridge_columns_finish_after_the_lead_vehicles_park() {
+    assert_scenario(&scenario("sa6-columns-through-bridge"));
 }

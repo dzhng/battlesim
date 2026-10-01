@@ -3,9 +3,10 @@
 // squads garrison the three buildings). Same unit count and order as the
 // village, so red's ids and garrisons are unchanged.
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { VILLAGE_RULES } from "./scenarios";
+import { GAME_RULES } from "./scenarios";
 import { useBuiltScenario } from "./useBuiltScenario";
-import { villageCamera } from "./villageCamera";
+import { gameCamera } from "./gameCamera";
+import type { Wasm } from "@web/battle/sim/module";
 
 /** Blue's nine units, in the village's blue order. */
 const STREET: { kind: string; position: [number, number]; yaw: number }[] = [
@@ -27,22 +28,23 @@ export const STREET_CAMERA: Camera3DParams = {
   distance: 150,
   pitch: 0.9076,
   yaw: 3.752,
-  ...villageCamera.lens,
+  ...gameCamera.lens,
 };
 
 type UnitSetup = { side: string; kind: string; position: [number, number]; yaw: number };
 
 /** The street's scenario JSON, as `useBuiltScenario` reports it. */
 export function useStreetScenario() {
-  return useBuiltScenario({ variant: "ordinary" }, (wasm, o) => {
-    const s = JSON.parse(wasm.village_scenario(JSON.stringify(VILLAGE_RULES), o.variant)) as {
-      units: UnitSetup[];
-    };
-    const blue = s.units.filter((u) => u.side === "blue");
-    if (blue.length !== STREET.length)
-      throw new Error("the street places the village's blue units");
-    let b = 0;
-    s.units = s.units.map((u) => (u.side === "blue" ? { ...u, ...STREET[b++] } : u));
-    return JSON.stringify(s);
-  });
+  return useBuiltScenario({}, (wasm) => buildStreetScenario(wasm));
+}
+
+export function buildStreetScenario(wasm: Pick<Wasm, "village_scenario">, rules = GAME_RULES) {
+  const s = JSON.parse(wasm.village_scenario(JSON.stringify(rules), "ordinary")) as {
+    units: UnitSetup[];
+  };
+  const blue = s.units.filter((u) => u.side === "blue");
+  if (blue.length !== STREET.length) throw new Error("the street places the village's blue units");
+  let b = 0;
+  s.units = s.units.map((u) => (u.side === "blue" ? { ...u, ...STREET[b++] } : u));
+  return JSON.stringify(s);
 }

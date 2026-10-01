@@ -32,7 +32,7 @@ fn map(props: Value, relief: Value) -> String {
 }
 
 fn battle(map: String, blue: Value) -> Battle {
-    battle_with(common::village(), map, blue)
+    battle_with(common::game(), map, blue)
 }
 
 fn battle_with(rules: Value, map: String, blue: Value) -> Battle {
@@ -51,10 +51,10 @@ fn battle_with(rules: Value, map: String, blue: Value) -> Battle {
     Battle::new(&setup, 1)
 }
 
-/// The village rules with the HMG doing no structural damage, so a tank's
+/// The game rules with the HMG doing no structural damage, so a tank's
 /// cannon is the only mount that wears what stands on its line.
 fn cannon_only() -> Value {
-    let mut rules = common::village();
+    let mut rules = common::game();
     rules["weapons"]["hmg"]["structural_damage"] = json!(0);
     rules
 }
@@ -110,7 +110,7 @@ fn a_tank_shells_a_house_through_the_sandbags_in_front_of_it() {
     // the tank's line to the house's centre. Spread may carry a round over
     // them, so the claim is only that the tank fires, the sandbags fall, and
     // the house is still shelled once they have.
-    let blast = common::village()["weapons"]["tank_he"]["blast_radius_m"]
+    let blast = common::game()["weapons"]["tank_he"]["blast_radius_m"]
         .as_f64()
         .unwrap();
     let sandbags = [HOUSE[0] - 40.0, HOUSE[1]];
@@ -191,8 +191,10 @@ fn a_tank_holds_fire_for_what_its_rounds_cannot_break() {
 fn a_gun_without_structural_damage_holds_fire_behind_sandbags() {
     // The rifle row with no structural damage: its rounds cannot break
     // the sandbags on the line, so the rifles hold. (Grenades lob over.)
-    let mut rules = common::village();
+    let mut rules = common::game();
     rules["weapons"]["rifle"]["structural_damage"] = json!(0);
+    // Keep range outside this trajectory-blocking experiment.
+    rules["weapons"]["rifle"]["range_m"] = json!(450);
     let mut setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
         "map": serde_json::from_str::<Value>(&map(
             json!([house(), prop("sandbags", BLOCKER, [0.4, 4.0, 0.5])]),
@@ -223,7 +225,7 @@ fn a_gun_without_structural_damage_holds_fire_behind_sandbags() {
 fn a_gun_holds_fire_when_its_rounds_left_cannot_break_the_blocker() {
     // The same tank and sandbags with one HE round or two: one direct hit
     // cannot bring the sandbags down, two can.
-    let rules = common::village();
+    let rules = common::game();
     let per_round = rules["weapons"]["tank_he"]["structural_damage"]
         .as_f64()
         .unwrap();
@@ -342,10 +344,15 @@ fn a_tank_never_fires_through_a_house_at_ground_beyond_it() {
         queued: false,
     });
     assert_eq!(ack.error, None);
+    let hp_before = house_hp(&b, 0);
     let fired = until(&mut b, 60, |b| b.rounds().any(|(_, r)| r.unit == UnitId(0)));
     assert!(!fired);
     assert_eq!(reasons(&b)[0], ActionReason::BlockedTrajectory);
-    assert_eq!(house_hp(&b, 0), common::props().by_id("building").body.hp);
+    assert_eq!(
+        house_hp(&b, 0),
+        hp_before,
+        "holding fire leaves integrity unchanged"
+    );
 }
 
 #[test]
@@ -461,7 +468,7 @@ fn firefight_from_trunks(seconds: u64) -> Trunks {
     let trunks: Vec<Value> = (0..7)
         .map(|k| prop("trunk", [64.0, 39.0 + 2.0 * k as f64], [0.35, 0.35, 6.0]))
         .collect();
-    let mut rules = common::village();
+    let mut rules = common::game();
     sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
     let setup = serde_json::from_value(json!({
         "map": { "size": [140, 90], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,

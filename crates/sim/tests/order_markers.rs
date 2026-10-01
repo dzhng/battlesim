@@ -11,7 +11,7 @@ use sim::math::wrap_angle;
 use sim::publication::Publisher;
 
 fn rules() -> Value {
-    sim::fixtures::village()
+    sim::fixtures::game()
 }
 
 fn setup(size: [f64; 2], props: Value, units: Value, scripts: Value) -> ScenarioDefinition {

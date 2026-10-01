@@ -153,6 +153,8 @@ export interface TracerStyle {
   chance?: number;
   /** A sharp line of this screen width, with no world-space width or soft halo. */
   line_px?: number;
+  /** Light energy retained at the rear, relative to the head. Default: zero. */
+  tail_brightness?: number;
   /** The tail is where the round was over the last `tail_s` seconds, so a
    *  fast round draws a long bolt and a slow one a short point; held within
    *  `tail_m` [least, most] metres. */
@@ -201,6 +203,8 @@ export interface ImpactStyle {
   opacity: number;
   size_m: number;
   duration_s: number;
+  /** Per-round overrides of size scale and duration multiplier for this hit surface. */
+  round_scale?: Record<string, { size: number; duration: number }>;
   /** Sparks thrown off the surface, and a hot flash's intensity (0 for none). */
   sparks: number;
   flash: number;
@@ -349,6 +353,16 @@ export function validateEffects(p: EffectPresentation): EffectPresentation {
   for (const [k, i] of Object.entries(p.impacts))
     if (i.cast && i.cast.duration_s > i.duration_s)
       throw new Error(`presentation.effects.impacts.${k}.cast outlives its impact`);
+  for (const [hit, i] of Object.entries(p.impacts))
+    for (const [kind, scale] of Object.entries(i.round_scale ?? {})) {
+      const at = `presentation.effects.impacts.${hit}.round_scale.${kind}`;
+      if (!(Number.isFinite(scale.size) && scale.size > 0))
+        throw new Error(`${at}.size must be finite and positive`);
+      if (!(Number.isFinite(scale.duration) && scale.duration > 0))
+        throw new Error(`${at}.duration must be finite and positive`);
+      if (i.cast && i.cast.duration_s > i.duration_s * scale.duration)
+        throw new Error(`${at}.duration ends before the impact's cast light`);
+    }
   if (p.blast.cast.duration_s > p.blast.duration_s)
     throw new Error("presentation.effects.blast.cast outlives its blast");
   if (!Number.isFinite(maxEffectLifetime(p)))
@@ -365,6 +379,11 @@ function validateTracer(kind: string, t: TracerStyle) {
     throw new Error(`${at}.chance must be in [0, 1]`);
   if (t.line_px !== undefined && !(Number.isFinite(t.line_px) && t.line_px > 0))
     throw new Error(`${at}.line_px must be finite and positive`);
+  if (
+    t.tail_brightness !== undefined &&
+    !(Number.isFinite(t.tail_brightness) && t.tail_brightness >= 0 && t.tail_brightness <= 1)
+  )
+    throw new Error(`${at}.tail_brightness must be in [0, 1]`);
   if (!(t.tail_s > 0 && t.tail_s <= TRACER_TAIL_MAX_S))
     throw new Error(`${at}.tail_s must be in (0, ${TRACER_TAIL_MAX_S}]`);
   if (!(t.tail_m[0] > 0 && t.tail_m[1] >= t.tail_m[0]))
@@ -406,7 +425,11 @@ export function maxEffectLifetime(p: EffectPresentation): number {
   );
   for (const f of Object.values(p.flashes))
     longest = Math.max(longest, f.duration_s, f.fireball_s, f.cast?.duration_s ?? 0);
-  for (const i of Object.values(p.impacts)) longest = Math.max(longest, i.duration_s);
+  for (const i of Object.values(p.impacts)) {
+    longest = Math.max(longest, i.duration_s);
+    for (const scale of Object.values(i.round_scale ?? {}))
+      longest = Math.max(longest, i.duration_s * scale.duration);
+  }
   for (const s of Object.values(p.smoke))
     longest = Math.max(longest, s.flame.life_s, s.smoke.life_s, s.smoulder.life_s);
   // A round's smoke trail is born by the end of its tick.
@@ -496,6 +519,10 @@ function put(
   d[o + 13] = s1;
   d[o + 14] = s2;
   d[o + 15] = s3;
+}
+
+function tracerAmplitude(u: number, retained: number) {
+  return retained ? Math.sqrt(retained + (1 - retained) * u * u) : u;
 }
 
 /** A streak from a (tail, `alongA` of the way to the head) to b (`alongB`),
@@ -1213,13 +1240,14 @@ export class EffectFrame {
     rng: ReturnType<typeof mulberry32.create>,
   ) {
     const style = pick(this.p.impacts, hit);
-    const e = this.push(IMPACT, at, at + style.duration_s);
+    const scale = style.round_scale?.[kind];
+    const e = this.push(IMPACT, at, at + style.duration_s * (scale?.duration ?? 1));
     e.impact = style;
     e.cause = `impact:${hit}`;
     vec3.set(e.p, point[0], point[1], point[2]);
     if (normal) vec3.set(e.n, normal[0], normal[1], normal[2]);
     else vec3.set(e.n, 0, 0, 1);
-    e.size = style.size_m * pick(this.p.impact_scale, kind);
+    e.size = style.size_m * (scale?.size ?? pick(this.p.impact_scale, kind));
     e.rotation = mulberry32.sample(rng) * Math.PI * 2;
     e.path.push(mulberry32.sample(rng)); // the puff's first frame
     if (style.sparks > 0) this.addSparks(at, point, e.n, e.n, style.sparks, rng);
@@ -1392,6 +1420,9 @@ export class EffectFrame {
     const tail = head - length;
     const path = e.path;
     const cum = e.cum;
+    const retained = e.tracer?.tail_brightness ?? 0;
+    // The effect pass squares the packed amplitude. Preserve the original
+    // fade verbatim when no brightness floor is authored.
     for (let i = 0; i + 1 < cum.length; i++) {
       const c0 = cum[i];
       const c1 = cum[i + 1];
@@ -1417,8 +1448,8 @@ export class EffectFrame {
         minPx,
         light.color,
         light.intensity,
-        (lo - tail) / length,
-        (hi - tail) / length,
+        tracerAmplitude((lo - tail) / length, retained),
+        tracerAmplitude((hi - tail) / length, retained),
         soft,
       );
     }

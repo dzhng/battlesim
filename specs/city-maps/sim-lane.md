@@ -7,7 +7,7 @@ A second session works this lane in parallel with the map lane. It is simulation
 | This lane owns | The map lane owns (stay out) |
 |---|---|
 | `crates/sim/src/` except `world/` map loading | `crates/mapgen/`, `fixtures/map-presets.json`, `fixtures/prototype-building-templates.json` |
-| Rules data in `fixtures/village.json`, `fixtures/props/`, `fixtures/units/` | `apps/`, `packages/`, `web/src/`, `web/scenes/` except scenes for this lane's labs |
+| Rules data in `fixtures/game.json`, `fixtures/props/`, `fixtures/units/` | `apps/`, `packages/`, `web/src/`, `web/scenes/` except scenes for this lane's labs |
 | `crates/sim/tests/`, `crates/sim/examples/` | Map acquisition and preparation: C09, C60, C33, C55, C58, C59 |
 | This file's Status section | `README.md`'s Next Agent Prompt and TODO |
 
@@ -34,4 +34,47 @@ Use [implement-spec](../../.agents/skills/implement-spec/SKILL.md). Branch from 
 
 ## Status
 
-Not started. Update this section, not the README, at the end of each pass: what landed, what is next, and anything the map lane needs to know.
+**Complete (2026-10-01), branch `codex/city-sim-lane`.**
+All lane physical code is implemented and independently reviewed. Main's later
+camera/group-formation owners were integrated in `3c3752d8`. The requested town
+and edge-road main revision `f303c07c` is merged in `1360ac1d`; documentation-only
+main `9b75acf8` is merged in `67a5a37e`. Map-owned inputs match incoming main.
+The final complete check passes (492 simulation tests, 616 web tests), and the
+held-source browser gate exits 0 with ALL CHECKS PASSED. Frozen native reports,
+structure/movement recordings, comparisons and unprimed critiques are complete.
+[Closeout evidence](assets/sim-lane-closeout/README.md) pins sources, scopes and
+raw-log hashes. Closeout uses a fast-forward into local main, followed by removal of this
+lane's worktrees/build output. The parent spec stays active.
+
+**Next pickup belongs to the parent map/art lane.** Complete G0, source/facade,
+MG firing presentation, rubble/gutted art and balance acceptance remain open;
+do not archive the parent spec. Optional forest-floor density remains zero until
+accepted C78 drawing; its active-variant timing gate did not pass. The final
+browser stress checks pass their existing execution/reset assertions at
+24.4 Hz initially and 12.4 Hz late; they do not admit the whole active world
+against the stronger 30 Hz/33 ms budget.
+
+Individual `G0-SIM-*` rows disclose physical/resource unlocks in the shared gate
+and decision ledger. SA5 preserves matched battle identities; its attributed
+bracket excludes sight snapshotting. SA6's twelve-thousand-case physical oracle
+passes, with the observed approach-cost tradeoff retained. None grants complete
+active-world admission or art acceptance.
+
+**Named outside-column seams:** C44 adds explicit `appearance.status: systems_only` without fitted art (`789e8f4b`). Building policy/scaled-integrity schema and cached immutable aggregate area are isolated in `9fdcdf5b`; TypeScript mirrors the JSON seam. SA5 changes runtime height/foliage lookup and aggregate discovery, without changing map loading. C77 adds optional forest-rule fields and bounded admission in the world builder. C80 shares effective-height constants with the renderer/culling bound and lowers two biome scales to satisfy the cap. Aggregate loading also rejects movable replacement states, preserving the existing no-composite-motion boundary. The generator and map preparation remain untouched.
+
+Placement-context validation (`15a690ea`) adds a runtime-only catalog enum and
+one chain checker, used by actual bindings/births and inherited replacement
+ownership; the root README records that principle. Corpse support (`c920fe81`)
+uses existing knowledge and observation owners without public layout changes;
+its necessary renderer consumer refreshes dying, resting and fading anchors.
+The matching shared renderer lesson is `37a4c0e` in the skills repository.
+
+The necessary test-only closeout seam (`1ac913a7`) caches fixed rotations in the existing
+full grass-prop oracle; all points, full scans, precision, comparisons and the
+original deadline remain. It has no production consumer or schema change.
+
+The second requested main update (`9b75acf8`, merged in `67a5a37e`) changes only
+AGENTS/README organization. Combined check at `1360ac1d` remains valid; the
+interrupted browser attempt is retained, and final verification at `67a5a37e`
+passes with identical production inputs. Runtime changes require restarting held-source
+verification; future documentation-only pulls can preserve an active run.

@@ -13,7 +13,7 @@ use crate::common;
 /// The shipped fixture with the M1 family's catalog document and the
 /// weapon row its M1A1 swaps in (a row that `extends` the tank's sabot).
 fn with_m1_family() -> Value {
-    let mut fixture = common::village();
+    let mut fixture = common::game();
     let family: Value = serde_json::from_str(include_str!("fixtures/m1-family.json")).unwrap();
     fixture["catalog"].as_array_mut().unwrap().push(family);
     fixture["weapons"]["m829"] = json!({
@@ -72,7 +72,7 @@ fn the_m1_family_resolves_its_variants_from_one_base() {
 #[test]
 fn a_mount_naming_no_weapon_row_fails_at_load() {
     let load = |section: &str, id: &str, patch: Value| {
-        let mut fixture = common::village();
+        let mut fixture = common::game();
         sim::fixtures::patch_catalog(&mut fixture, section, id, patch);
         serde_json::from_value::<Rules>(fixture)
             .unwrap_err()
@@ -104,7 +104,7 @@ fn a_mount_naming_no_weapon_row_fails_at_load() {
 #[test]
 fn a_fallen_carriers_weapon_is_lost_unless_it_is_special() {
     for special in [true, false] {
-        let mut fixture = common::village();
+        let mut fixture = common::game();
         let patch = |f: &mut Value, section, id, p| sim::fixtures::patch_catalog(f, section, id, p);
         // The grenadier in the squad's last slot, so its one casualty is him.
         let slots = json!({ "body": { "squad": { "slots": [
@@ -215,4 +215,17 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
         }
     }
     assert!(failures.is_empty(), "{failures:#?}");
+}
+#[test]
+fn vehicle_wrecks_cannot_require_missing_building_facts() {
+    let mut raw = crate::common::game();
+    sim::fixtures::patch_catalog(
+        &mut raw,
+        "props",
+        "light_wreck",
+        serde_json::json!({"body":{"hp_scale":"building_floor_bands"}}),
+    );
+    let error = serde_json::from_value::<contract::scenario::Rules>(raw)
+        .expect_err("vehicle wreck births have no placed aggregate");
+    assert!(error.to_string().contains("wreck"), "{error}");
 }

@@ -366,11 +366,11 @@ The original brief is retained in [assets/original-brief.txt](assets/original-br
 
 ## P05
 
-**Decision:** ATGMs require stationary launchers and the launcher’s own visual identification to sustain guidance; shared identification cannot sustain it.
+**Decision:** ATGMs acquire targets identified by any friendly unit, while requiring the stationary launcher’s own clear physical line of sight for both acquisition and guidance. Spotting range does not limit this sight-line check.
 
 **Why:** Breaking launcher sightlines has tactical value.
 
-**Owner:** slices 10. **Authority:** user brief/interview.
+**Owner:** slices 10. **Authority:** user clarification, 2026-10-01.
 
 ## P06
 
@@ -674,7 +674,7 @@ The user will hand this spec to another implementation session. No gameplay rule
 
 Infantry consists of squads: fragile exposed or suppressed, survivable through plentiful concealment/cover and disengagement. Tanks have large weapon range but weak optics; they outrange most ground weapons except artillery, resist normal guns, and need recon/infantry support against scarce anti-tank weapons. Specialist AT/AA squads are smaller and weaker against infantry, carry limited missiles, and have long aim/reload. Vehicles are fast and fragile; armored carriers trade speed against protection. Helicopters favor quick strikes and withdrawal; jets are deliberately powerful without radar AA opposition, while AA operates far behind the line.
 
-The original approximate kill counts (tanks about 2–3 ATGMs or 4–5 rockets; armored carriers about 1 ATGM or 2–3 rockets; helicopters and jets about 2–3 relevant missiles), concealment of 50–90% reduced detection distance, ~100 m contact radius, ~10% uncertain-fire accuracy, and 50% moving-fire accuracy penalty are **tuning intent**, not historical realism or frozen final values. Initial fixture choices belong only in `fixtures/village.json`. No physical-simulation detail overrides the explicit cover/garrison/infantry-replacement abstractions.
+The original approximate kill counts (tanks about 2–3 ATGMs or 4–5 rockets; armored carriers about 1 ATGM or 2–3 rockets; helicopters and jets about 2–3 relevant missiles), concealment of 50–90% reduced detection distance, ~100 m contact radius, ~10% uncertain-fire accuracy, and 50% moving-fire accuracy penalty are **tuning intent**, not historical realism or frozen final values. Initial fixture choices belong only in `fixtures/game.json`. No physical-simulation detail overrides the explicit cover/garrison/infantry-replacement abstractions.
 
 ## Superseded alternatives
 

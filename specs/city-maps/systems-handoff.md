@@ -39,4 +39,4 @@ The registry currently cross-checks route IDs against harness scenes with no mis
 
 Foundation and workbench generate render-only terrain rather than MapDefinition today; panels/sound have no physical map. C56 must explicitly account for those tool producers and preserve their measurement frames when attaching the common public geometry/surroundings path. They are not silently marked cut over or exempted by the absence of a catalogue file. Pure unit geometry probes remain API inputs under the accepted catalogue-boundary scope.
 
-Deleting village.map must also move asset-fit authority, workbench footprint/canopy inputs, native reports/test fixtures and browser tests/scenes to resolved geometry. A compatibility alias in village.json is not the cutover.
+Deleting village.map must also move asset-fit authority, workbench footprint/canopy inputs, native reports/test fixtures and browser tests/scenes to resolved geometry. A compatibility alias in game.json is not the cutover.

@@ -8,7 +8,7 @@
 use std::collections::BTreeSet;
 
 use crate::math::{v2, V2};
-use crate::world::WorldGeometry;
+use crate::world::{SurfaceKind, WorldGeometry};
 
 use super::NAV_CELL_M;
 
@@ -30,6 +30,8 @@ pub struct Arc {
     pub factor: f64,
     /// Half the road's width.
     pub half_width: f64,
+    /// Its road runs over a physical bridge deck.
+    pub bridge: bool,
 }
 
 /// A point of an arc near a place off the road.
@@ -116,6 +118,7 @@ impl RoadNet {
                     length: gap,
                     factor,
                     half_width,
+                    bridge: false,
                 });
             }
         }
@@ -132,16 +135,23 @@ impl RoadNet {
                         length: (run[1].0 - run[0].0) * length,
                         factor: piece.factor,
                         half_width: piece.half_width,
+                        bridge: false,
                     });
                 }
             }
         }
-        arcs.retain(|arc| {
-            carried(
+        arcs.retain_mut(|arc| {
+            match carried(
                 world,
                 nodes[arc.ends[0] as usize],
                 nodes[arc.ends[1] as usize],
-            )
+            ) {
+                Some(bridge) => {
+                    arc.bridge = bridge;
+                    true
+                }
+                None => false,
+            }
         });
         let mut net = RoadNet {
             nodes,
@@ -194,6 +204,22 @@ impl RoadNet {
     }
 
     /// The nearest point of every arc within `radius` of `p`, in arc order.
+    pub(super) fn arc_count(&self) -> usize {
+        self.arcs.len()
+    }
+
+    pub(super) fn access(&self, arc: u32, p: V2) -> Access {
+        let ends = self.arcs[arc as usize].ends.map(|n| self.node(n));
+        let share = project(ends, p);
+        let at = lerp(ends, share);
+        Access {
+            arc,
+            at,
+            along: share * self.arcs[arc as usize].length,
+            distance: (at - p).length(),
+        }
+    }
+
     pub fn near(&self, p: V2, radius: f64) -> Vec<Access> {
         if self.is_empty() {
             return Vec::new();
@@ -210,16 +236,8 @@ impl RoadNet {
         }
         ids.into_iter()
             .filter_map(|arc| {
-                let ends = self.arcs[arc as usize].ends.map(|n| self.node(n));
-                let share = project(ends, p);
-                let at = lerp(ends, share);
-                let distance = (at - p).length();
-                (distance <= radius).then_some(Access {
-                    arc,
-                    at,
-                    along: share * self.arcs[arc as usize].length,
-                    distance,
-                })
+                let access = self.access(arc, p);
+                (access.distance <= radius).then_some(access)
             })
             .collect()
     }
@@ -351,10 +369,16 @@ fn cut(piece: &mut Piece, share: f64, nodes: &mut Vec<V2>, shared: Option<u32>) 
 }
 
 /// Whether the terrain carries a mover all the way from `a` to `b`.
-fn carried(world: &WorldGeometry, a: V2, b: V2) -> bool {
+fn carried(world: &WorldGeometry, a: V2, b: V2) -> Option<bool> {
     let steps = ((b - a).length() / NAV_CELL_M).ceil().max(1.0) as usize;
-    (0..=steps).all(|k| {
+    let mut bridge = false;
+    for k in 0..=steps {
         let p = lerp([a, b], k as f64 / steps as f64);
-        world.traversable_at(p.x, p.y)
-    })
+        let surface = world.surface_at(p.x, p.y)?;
+        if !surface.traversable {
+            return None;
+        }
+        bridge |= surface.kind == SurfaceKind::Bridge;
+    }
+    Some(bridge)
 }

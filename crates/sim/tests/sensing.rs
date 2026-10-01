@@ -228,7 +228,7 @@ fn a_brief_loss_of_sight_keeps_the_identification_handle() {
         [1100.0, 270.0],
         &[[1100.0, 330.0]],
     ));
-    let grace = (common::village()["sensors"]["acquisition_grace_s"]
+    let grace = (common::game()["sensors"]["acquisition_grace_s"]
         .as_f64()
         .unwrap()
         * 30.0) as usize;

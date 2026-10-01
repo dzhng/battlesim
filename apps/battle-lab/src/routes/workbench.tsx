@@ -45,8 +45,8 @@ import {
   sideTint,
   type LoadedModel,
 } from "../workbench/sources";
-import { villagePose } from "../poseFeed";
-import village from "@fixtures/village.json";
+import { gamePose } from "../poseFeed";
+import game from "@fixtures/game.json";
 import {
   WORKBENCH_CAMERA,
   WORKBENCH_VIEWS,
@@ -195,8 +195,8 @@ export default function Workbench() {
     return new PoseDriver({
       units: UNITS,
       mounts: () => mounts,
-      feel: villagePose,
-      leanHold: village.cover.lean_hold_s,
+      feel: gamePose,
+      leanHold: game.cover.lean_hold_s,
       clip: (_kind, name) => {
         const clip = facts?.clips.find((c) => c.name === name);
         return clip

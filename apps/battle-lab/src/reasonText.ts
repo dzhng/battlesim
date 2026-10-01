@@ -16,7 +16,7 @@ export const REASON_TEXT: Record<string, string> = {
   out_of_ammo: "out of ammunition",
   tracking_last_sighting: "tracking last sighting",
   guiding: "guiding a missile",
-  no_own_sight: "needs its own sight of the target",
+  no_own_sight: "needs a clear line of sight to the target",
   no_facing_slot: "no firing position facing the target",
   changing_position: "entering or leaving a building",
 };

@@ -42,6 +42,7 @@ export const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   "village-watch": lazy(() => import("./routes/villageWatch")),
   "village-lean": lazy(() => import("./routes/villageLean")),
   fog: lazy(() => import("./routes/fog")),
+  projectiles: lazy(() => import("./routes/projectiles")),
   workbench: lazy(() => import("./routes/workbench")),
   "fog-look": lazy(() => import("./routes/fogLook")),
   sound: lazy(() => import("./routes/sound")),

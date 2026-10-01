@@ -46,11 +46,11 @@ import {
   isVehicle,
   unitType,
   vehicleAppearances,
-  village,
+  game,
 } from "./_units.mjs";
 
-const CAMERA = village.presentation.camera;
-const roadStrokes = village.map.surfaces
+const CAMERA = game.presentation.camera;
+const roadStrokes = game.map.surfaces
   .filter((s) => s.kind === "road" && s.shape.kind === "stroke")
   .map((s) => s.shape);
 /** Every mark, paint or overlay, lies on the ground itself (the ground and
@@ -142,7 +142,7 @@ const insideForest = (point, forest) => {
   return point[0] > a[0] && point[0] < c[0] && point[1] > a[1] && point[1] < c[1];
 };
 const underProp = (p) =>
-  [...village.map.props, ...village.map.buildings.flatMap((b) => b.geometry.parts)].some(
+  [...game.map.props, ...game.map.buildings.flatMap((b) => b.geometry.parts)].some(
     ({ center: [cx, cy], yaw, half_extents: [hx, hy] }) => {
       const [dx, dy] = [p[0] - cx, p[1] - cy];
       const [c, s] = [Math.cos(yaw), Math.sin(yaw)];
@@ -167,7 +167,7 @@ async function checkGrass(ctx, page, name, minRelief = 0) {
     (c) =>
       offRoad(c.root) < 0 ||
       underProp(c.root) ||
-      village.map.forests.some((f) => insideForest(c.root, f)),
+      game.map.forests.some((f) => insideForest(c.root, f)),
   );
   const tiers = [0, 1].map((t) => clumps.filter((c) => c.tier === t).length);
   const relief = clumps.reduce((m, c) => Math.max(m, c.root[2]), 0);
@@ -519,7 +519,7 @@ async function treeTour(ctx) {
   });
   const top = decode(await snapshot(ctx, page, "trees-top-check-1920x1080.png"));
   await hud.evaluate((e) => e.remove());
-  const [x0, y0] = village.map.forests[0].shape.ring[0];
+  const [x0, y0] = game.map.forests[0].shape.ring[0];
   const luminance = async (x, y) => {
     const css = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2]), [
       x,
@@ -633,7 +633,7 @@ async function soldierTour(ctx) {
   ctx.check(
     "clicking a soldier picks his box",
     picked >= 0 &&
-      box.half[0] === village.physics.soldier_radius_m &&
+      box.half[0] === game.physics.soldier_radius_m &&
       Math.hypot(box.x - m[0], box.y - m[1]) < 1.5,
     JSON.stringify({ picked, box, member: m }),
   );
@@ -766,7 +766,7 @@ async function vehicleTour(ctx) {
   );
   // The fences and sandbags are drawn apart too (bodies a vehicle
   // can shove), so the houses are the structures standing on a house's box.
-  const houses = village.map.buildings.flatMap((b) => b.geometry.parts);
+  const houses = game.map.buildings.flatMap((b) => b.geometry.parts);
   const structures = (await lab(page, () => window.__lab.route.structures())).filter((s) =>
     houses.some((h) => s.position[0] === h.center[0] && s.position[1] === h.center[1]),
   );
@@ -853,7 +853,7 @@ async function effectTour(ctx) {
   });
   await advance(page, 600 - (await lab(page, () => window.__lab.route.tick())));
   // The first burst in the open: one under a wood's canopy is hidden by the crowns.
-  const open = (b) => !village.map.forests.some((f) => insideForest(b.point, f));
+  const open = (b) => !game.map.forests.some((f) => insideForest(b.point, f));
   const o = await until(page, (f) => f.blasts.some(open), 30 * 60, 1);
   if (!o) {
     ctx.check("a burst in the firefight is drawn as a fireball", false, "no blast by tick 2400");
@@ -1122,8 +1122,8 @@ function yellowInk(png) {
  *  none. Holding Space shows the same marks, pixel for pixel. A queued
  *  (Shift) order flashes too. */
 async function orderFlashTour(ctx) {
-  const { flash } = village.presentation.overlay.orders;
-  const tickHz = village.tick_hz;
+  const { flash } = game.presentation.overlay.orders;
+  const tickHz = game.tick_hz;
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
   const o = await obs(page);
   const rifle = o.own.find((u) => u.kind === "rifle");
@@ -1681,7 +1681,7 @@ async function orderTour(ctx) {
     // The route runs from the edge of the circle the squad stands in to the
     // edge of its area ring (both drawn at the fixture's scale):
     // sample only the line between them.
-    const scale = village.presentation.overlay.orders.area_draw_scale;
+    const scale = game.presentation.overlay.orders.area_draw_scale;
     const here = Math.max(
       ...u.members.map((m) => Math.hypot(m[0] - u.position[0], m[1] - u.position[1])),
     );
@@ -1876,7 +1876,7 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   const squad = o.own.find((u) => u.id === squadId);
   const vehicle = o.own.find((u) => u.id === vehicleId);
   const { area_draw_scale: scale, vehicle_marker_margin_m: margin } =
-    village.presentation.overlay.orders;
+    game.presentation.overlay.orders;
   const vehicleR = hullOf(vehicle.kind).half_extents_m[0] + margin;
   // The paint (the orders and the selection), each mark in its own colour.
   const paint = await orderPaint(ctx, page, "orders-selected");
@@ -2025,7 +2025,7 @@ async function checkRimJoin(ctx, page, squadId) {
     }
     return c;
   };
-  const { color, selected: amberRgb, glow } = village.presentation.overlay.orders;
+  const { color, selected: amberRgb, glow } = game.presentation.overlay.orders;
   const Y = color.map((v) => v * glow.order);
   const A = amberRgb.map((v) => v * glow.selected);
   const det = A[0] * Y[1] - A[1] * Y[0];
@@ -2102,7 +2102,7 @@ async function checkPaintedLight(ctx, page, vehicleId) {
   await lab(page, () => window.__lab.frame());
   const r =
     hullOf(vehicle.kind).half_extents_m[0] +
-    village.presentation.overlay.orders.vehicle_marker_margin_m;
+    game.presentation.overlay.orders.vehicle_marker_margin_m;
   const at = [];
   for (let k = 0; k < 64; k++) {
     const a = (k / 64) * 2 * Math.PI;
@@ -2339,7 +2339,7 @@ const WORKS = {
 
 async function worksTour(ctx) {
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
-  const { distance, yaw } = village.presentation.camera.default;
+  const { distance, yaw } = game.presentation.camera.default;
   for (const [name, at] of Object.entries(WORKS)) {
     await aim(page, at, { distance, pitch: 0.85, yaw });
     await snapshot(ctx, page, `works-${name}-1920x1080.png`);
@@ -2352,7 +2352,7 @@ async function worksTour(ctx) {
   // Modular kinds draw one model per module along the box, so a body is
   // drawn when a model of its appearance stands inside its footprint.
   const look = { tooth: "dragon_tooth", fence: "fence", sandbags: "sandbags" };
-  const works = village.map.props.filter((p) => look[p.kind]);
+  const works = game.map.props.filter((p) => look[p.kind]);
   const drawn = works.map((p) =>
     apart.some(
       (s) =>
@@ -2723,8 +2723,8 @@ async function rulerTour(ctx) {
     const [first] = unitType(unit.kind).mounts;
     const muzzle = first?.muzzle_m
       ? first.pivot_m[2] + first.muzzle_m[2]
-      : village.physics.infantry_muzzle_m;
-    const dz = (await surface(p)) + village.physics.infantry_aim_m - (unit.position[2] + muzzle);
+      : game.physics.infantry_muzzle_m;
+    const dz = (await surface(p)) + game.physics.infantry_aim_m - (unit.position[2] + muzzle);
     return Math.hypot(p[0] - unit.position[0], p[1] - unit.position[1], dz);
   };
   const frames = async () => {
@@ -2814,7 +2814,7 @@ async function rulerTour(ctx) {
   await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id]);
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
   // Toward the map's middle, so the far points stay on the map.
-  const [mx, my] = village.map.size.map((v) => v / 2);
+  const [mx, my] = game.map.size.map((v) => v / 2);
   const inward = (u) => Math.atan2(my - u.position[1], mx - u.position[0]);
   const far = [
     rifle.position[0] + Math.cos(inward(rifle)) * 750,
@@ -2903,7 +2903,7 @@ async function rulerTour(ctx) {
 }
 
 /** The HUD's enemy red, as CSS computes it. */
-const ENEMY_RGB = `rgb(${village.presentation.hud.enemy.map((v) => Math.round(v * 255)).join(", ")})`;
+const ENEMY_RGB = `rgb(${game.presentation.hud.enemy.map((v) => Math.round(v * 255)).join(", ")})`;
 
 /** One panel as drawn: shown, its name, every state row (state, word, ring
  *  progress) and every weapon tag. `attr` is `unit`, `enemy` or `contact`. */
@@ -3157,7 +3157,7 @@ async function panelTour(ctx) {
     await look([c.center[0], c.center[1], 0]);
     const p = await panelOf(page, "contact", c.id);
     const ago = Number(p?.states.at(-1)?.word.match(word)?.[1]);
-    const expected = Math.floor((o.tick - c.evidenceTick) / village.tick_hz);
+    const expected = Math.floor((o.tick - c.evidenceTick) / game.tick_hz);
     const named =
       source === "last_seen"
         ? !!c.kind && p?.name === unitType(c.kind).name.toUpperCase()
@@ -3252,7 +3252,7 @@ async function panelTour(ctx) {
       .filter((b) => a.x0 < b.x1 && b.x0 < a.x1)
       .map((b) => Math.max(b.y0 - a.y1, a.y0 - b.y1)),
   );
-  const wantGap = village.presentation.hud.panel_gap_px;
+  const wantGap = game.presentation.hud.panel_gap_px;
   ctx.check(
     `stacked panels keep at least the fixture's ${wantGap} px between them`,
     gaps.length > 0 && gaps.every((g) => g >= wantGap - 0.5),

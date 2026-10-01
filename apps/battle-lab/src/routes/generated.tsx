@@ -2,9 +2,9 @@
 // `?size=small|medium|large` and `?seed=<u64>` choose the map (mixed, small,
 // 1 by default). A preparation worker generates it with the simulation's own
 // generator and lays the developer encounter on it (`fixtures/generated-lab.json`);
-// the battle then runs under the village's rules, as the village does.
+// the battle then runs under the game's rules, as the village does.
 import { useEffect, useMemo, useRef, useState } from "react";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import lab from "@fixtures/generated-lab.json";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
@@ -19,8 +19,8 @@ import {
 } from "@web/battle/prepare/protocol";
 import { BattleView, type BattleLoadStage } from "../BattleView";
 import { LoadingScreen, type LoadingStage } from "../LoadingScreen";
-import { VILLAGE_RULES } from "../scenarios";
-import { villageCamera } from "../villageCamera";
+import { GAME_RULES } from "../scenarios";
+import { gameCamera } from "../gameCamera";
 
 const DEFAULT: MapChoice = { type: "mixed", size: "small", seed: "1" };
 const U64_MAX = 2n ** 64n - 1n;
@@ -48,15 +48,15 @@ const STAGES: readonly (LoadingStage & { id: Stage })[] = [
   { id: "renderer", label: "Starting the battle" },
 ];
 
-/** The camera rig for a map `size` metres across: the village's, with the
+/** The camera rig for a map `size` metres across: the game's, with the
  *  wheel reaching far enough out, and tilting far enough down, to take the
  *  whole map in. */
 function mapCamera(size: [number, number]): CameraPresentation {
-  const far = Math.max(villageCamera.config.zoom_max, Math.max(...size) * lab.camera.overview_span);
+  const far = Math.max(gameCamera.config.zoom_max, Math.max(...size) * lab.camera.overview_span);
   return {
-    ...villageCamera.config,
+    ...gameCamera.config,
     zoom_max: far,
-    pitch_curve: [...villageCamera.config.pitch_curve, [far, lab.camera.overview_pitch]],
+    pitch_curve: [...gameCamera.config.pitch_curve, [far, lab.camera.overview_pitch]],
   };
 }
 
@@ -89,7 +89,7 @@ export default function GeneratedBattle() {
         presets,
         templates,
         limits: lab.limits,
-        rules: JSON.stringify(VILLAGE_RULES),
+        rules: JSON.stringify(GAME_RULES),
         encounter: lab.encounter,
       },
       setStage,
@@ -129,7 +129,7 @@ export default function GeneratedBattle() {
     () =>
       prepared && {
         camera: {
-          ...villageCamera.opening(),
+          ...gameCamera.opening(),
           target: [prepared.report.anchors.blue[0], prepared.report.anchors.blue[1], 0] as [
             number,
             number,
@@ -145,7 +145,7 @@ export default function GeneratedBattle() {
     <BattleView
       fixture="generated"
       scenario={prepared.scenario}
-      seed={village.seed}
+      seed={game.seed}
       camera={view.camera}
       cameraConfig={view.cameraConfig}
       cover={cover}
@@ -154,7 +154,7 @@ export default function GeneratedBattle() {
         if (loaded === "world") setStage("renderer");
       }}
       status={({ sim }) => {
-        const s = (sim.observation?.tick ?? 0) / village.tick_hz;
+        const s = (sim.observation?.tick ?? 0) / game.tick_hz;
         return (
           <>
             <span className="hud-objective" data-testid="map">

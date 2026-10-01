@@ -12,8 +12,8 @@ import { advance, lab, obs, presented } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
 import { flyTown } from "./_cameraClearance.mjs";
 
-const village = JSON.parse(readFileSync(new URL("../../fixtures/village.json", import.meta.url)));
-const TICK_HZ = village.tick_hz;
+const game = JSON.parse(readFileSync(new URL("../../fixtures/game.json", import.meta.url)));
+const TICK_HZ = game.tick_hz;
 const MAP = { type: "mixed", size: "small", seed: "1" };
 const QUERY = `?type=${MAP.type}&size=${MAP.size}&seed=${MAP.seed}`;
 const HIDE_HUD = "[data-testid=battle-panel], .ro-layer { display: none !important; }";

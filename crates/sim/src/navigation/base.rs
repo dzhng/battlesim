@@ -150,6 +150,7 @@ pub(super) fn body_buckets(stamp: &Stamp, nx: usize) -> impl Iterator<Item = usi
 /// put them.
 pub struct NavBase {
     pub(super) cells: Cells,
+    pub(super) terrain: super::terrain::Terrain,
     /// Infantry's free sub-cells on the bare ground, for the cells where
     /// they are neither all free nor none: those beside ground nobody
     /// crosses.
@@ -169,6 +170,14 @@ pub struct NavBase {
 }
 
 impl NavBase {
+    /// The ground covered by the grid, in metres.
+    pub(crate) fn extent(&self) -> [f64; 2] {
+        [
+            self.cells.nx as f64 * NAV_CELL_M,
+            self.cells.ny as f64 * NAV_CELL_M,
+        ]
+    }
+
     /// The grid of `world`'s surfaces with `bodies` standing on them.
     /// `soldier_radius` sizes infantry's sub-cell gaps.
     pub fn build<'a>(
@@ -251,6 +260,7 @@ impl NavBase {
                 cells[at].free = free;
             }
         }
+        let terrain = super::terrain::Terrain::new(&cells);
         let mut bodies: Vec<(PropId, Body)> = bodies
             .filter_map(|prop| Some((prop.id, Body::of(prop)?)))
             .collect();
@@ -296,6 +306,7 @@ impl NavBase {
             .collect();
         settle(&mut cells, &laid);
         NavBase {
+            terrain,
             slow: SlowGround::new(&cells),
             cells,
             shores,

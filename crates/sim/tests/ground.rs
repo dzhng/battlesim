@@ -8,11 +8,11 @@ use sim::battle::Battle;
 use crate::common;
 
 fn rules() -> Rules {
-    serde_json::from_value(common::village()).unwrap()
+    serde_json::from_value(common::game()).unwrap()
 }
 
 fn num(section: &str, key: &str) -> f64 {
-    common::village()[section][key].as_f64().unwrap()
+    common::game()[section][key].as_f64().unwrap()
 }
 
 /// A flat 600 × 400 field with a forest block in its north-east corner.
@@ -317,7 +317,7 @@ fn channels_saturate_and_storage_stays_within_the_map_bound() {
 
 #[test]
 fn the_endurance_battle_keeps_the_layer_within_its_bound() {
-    let s = sim::endurance::scenario(&common::village(), 1, false).unwrap();
+    let s = sim::endurance::scenario(&common::game(), 1, false).unwrap();
     let mut b = Battle::new(&s, 1);
     let bound = b.ground().bound_bytes();
     let cell = s.rules.ground.cell_m;

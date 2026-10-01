@@ -31,9 +31,9 @@ import {
   knownOf,
 } from "@packages/battle-renderer/src/buildingObstacles";
 import { INSTANCE_FLOATS } from "@packages/battle-renderer/src/scenery/lod";
-import { villageBiome } from "./villageBiome";
-import { villageMassing } from "./villageMassing";
-import { useVillageAppearances } from "./villageAppearances";
+import { gameBiome } from "./gameBiome";
+import { gameMassing } from "./gameMassing";
+import { useGameAppearances } from "./gameAppearances";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
@@ -45,7 +45,7 @@ import {
   type ResolveAppearance,
   type XrayOf,
 } from "@packages/battle-renderer/src/models/modelInstances";
-import { villageOrderFlash, villageXray, villageOrderStyle } from "./villageOverlay";
+import { gameOrderFlash, gameXray, gameOrderStyle } from "./gameOverlay";
 import {
   NOTHING_REVEALED,
   OrderReveal,
@@ -62,12 +62,7 @@ import { pickedUnit, pickToPointer, sideInstances, type DrawnInstances } from ".
 import { createPoseDriver, ObservationFeed, type PoseRules } from "./poseFeed";
 import { DrawnMuzzles } from "@packages/battle-renderer/src/models/drawnMuzzles";
 import { useSimSession, type ScriptedSim } from "./useSimSession";
-import {
-  createEffectFrame,
-  drawnMuzzleSource,
-  effectPublication,
-  villageEffects,
-} from "./effectFeed";
+import { createEffectFrame, drawnMuzzleSource, effectPublication, gameEffects } from "./effectFeed";
 import {
   createEffectBatch,
   EFFECT_FLOATS,
@@ -131,7 +126,7 @@ export function useBattleSession({
   // Combat effects: every decoded publication noted (the frame dedupes),
   // drawn at each animation frame's presentation clock.
   const effects = useMemo(() => createEffectFrame(rules.tick_hz), [rules.tick_hz]);
-  const effectBatch = useMemo(() => createEffectBatch(villageEffects.capacity), []);
+  const effectBatch = useMemo(() => createEffectBatch(gameEffects.capacity), []);
   // Sound reads the same publication, plus the side's hearing cues.
   const audio = useMemo(
     () => (sound ? createBattleAudio(rules.tick_hz) : null),
@@ -157,7 +152,7 @@ export function useBattleSession({
   const drawnTick = useRef<number | null>(null);
   // Which units' order marks show (Space, or an order's flash), refreshed
   // each frame and kept as state only when it changes.
-  const orderReveal = useMemo(() => new OrderReveal(villageOrderFlash), []);
+  const orderReveal = useMemo(() => new OrderReveal(gameOrderFlash), []);
   /** Bridge the released preview until the publication contains its order. */
   const pendingMove = useRef<Extract<Order, { kind: "move" }> | null>(null);
   const [revealed, setRevealed] = useState<RevealedOrders>(NOTHING_REVEALED);
@@ -176,7 +171,7 @@ export function useBattleSession({
     pendingMove.current = null;
   }, [sim.client, orderReveal]);
 
-  const appearances = useVillageAppearances();
+  const appearances = useGameAppearances();
   // Props that can move (shoved) or be destroyed ("apart") are drawn from
   // what the side knows, apart from the world.
   const apart = useMemo(
@@ -187,7 +182,7 @@ export function useBattleSession({
     () =>
       world &&
       appearances &&
-      buildWorldLayers(world.exports, world.layout, villageBiome, "surface", apart, appearances),
+      buildWorldLayers(world.exports, world.layout, gameBiome, "surface", apart, appearances),
     [world, apart, appearances],
   );
   // What the side knows stands, rebuilt only when knowledge changes: the
@@ -211,7 +206,7 @@ export function useBattleSession({
   // the side has seen fall, are boxes in the scenery's static chunks, and no
   // model stands for either.
   const massingOf = useMemo(
-    () => world && massingParts(world.exports.buildings, villageMassing),
+    () => world && massingParts(world.exports.buildings, gameMassing),
     [world],
   );
   const structures = useMemo(() => {
@@ -233,7 +228,7 @@ export function useBattleSession({
             props.map,
             JSON.parse(knownKey) as KnownPropView[],
             massingOf,
-            villageMassing,
+            gameMassing,
           )
         : null,
     [props, massingOf, knownKey],
@@ -316,11 +311,7 @@ export function useBattleSession({
   // the selection's marker is on the ground.
   const xrayOf = useRef<XrayOf>(() => null);
   xrayOf.current = (unitSide, unit) =>
-    unitSide !== side
-      ? null
-      : control.selected.includes(unit)
-        ? villageXray.selected
-        : villageXray.own;
+    unitSide !== side ? null : control.selected.includes(unit) ? gameXray.selected : gameXray.own;
 
   // The models layer installs only what the battle draws as models: its
   // soldiers and vehicles, the appearance each of the map's props takes, and
@@ -452,7 +443,7 @@ export function useBattleSession({
               pose.position = drawnPose.position;
               pose.members = drawnPose.members;
             }
-            const circle = unitCircle(pose, villageOrderStyle);
+            const circle = unitCircle(pose, gameOrderStyle);
             if (circle && circleContains(circle, [ground[0], ground[1]])) {
               pointer.unit = u.id;
               break;
@@ -583,7 +574,14 @@ export function useBattleSession({
     effectInstances: () =>
       Array.from({ length: effectBatch.count }, (_, i) => {
         const d = effectBatch.data.subarray(i * EFFECT_FLOATS, (i + 1) * EFFECT_FLOATS);
-        return { shape: d[12], at: [d[0], d[1], d[2]], size: d[3], rays: d[6] };
+        return {
+          shape: d[12],
+          at: [d[0], d[1], d[2]],
+          to: [d[4], d[5], d[6]],
+          rgb: [d[8], d[9], d[10]],
+          size: d[3],
+          rays: d[6],
+        };
       }),
     /** The lights the effects cast last frame (`light/castLights.ts`): where,
      *  how far, their colour × intensity, and what cast each. */

@@ -1,9 +1,13 @@
 {
   "props": {
     "building": {
-      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": true, "weight_class": "immovable", "cover_tier": "heavy", "hp": 400, "garrison": true},
-      "destroyed": {"into": {"prop": "ruin", "height_m": 2}},
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": true, "weight_class": "immovable", "cover_tier": "heavy", "hp": 1, "hp_scale": "building_floor_bands", "garrison": true},
+      "destroyed": {"into": {"prop": "ruin", "height_m": 2, "building": {"height_fraction": 0.25, "max_height_m": 6, "collapse_max_floors": 6, "gutted_prop": "gutted"}}},
       "appearance": {"drawn_by": "building", "map_only": true}
+    },
+    "gutted": {
+      "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": true, "weight_class": "immovable", "cover_tier": "medium"},
+      "appearance": {"drawn_by": "gutted", "status": "systems_only", "map_only": true}
     },
     "ruin": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": true, "weight_class": "immovable", "cover_tier": "heavy"},

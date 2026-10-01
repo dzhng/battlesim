@@ -2,7 +2,7 @@
 // Renderer fog's CPU seam: the mirrors of Rust's sight
 // shape, the map word, the static world fog reads, and what reaches the GPU
 // from a side's knowledge. The GPU half runs in the `fog` scene.
-import { VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
+import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import {
@@ -38,7 +38,7 @@ import {
 } from "@packages/battle-renderer/src/worldMesh";
 import { labScenario, type LabEvent } from "@apps/battle-lab/src/scenarios";
 import sensors from "@fixtures/sensors-lab.json";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 
 let memory: WebAssembly.Memory;
 beforeAll(() => {
@@ -48,12 +48,12 @@ beforeAll(() => {
 });
 
 function staticWorld(map: unknown): { exports: WorldExports; layout: WorldLayout } {
-  const view = new WorldView(JSON.stringify(map), JSON.stringify(VILLAGE_RULES));
+  const view = new WorldView(JSON.stringify(map), JSON.stringify(GAME_RULES));
   const exports = readWorldExports(view);
   view.free();
   return {
     exports,
-    layout: JSON.parse(world_layout(JSON.stringify(VILLAGE_RULES))) as WorldLayout,
+    layout: JSON.parse(world_layout(JSON.stringify(GAME_RULES))) as WorldLayout,
   };
 }
 
@@ -83,7 +83,7 @@ test("a map word keeps its horizon to f16, its jump to 1/255 and foliage depth t
 
 test("fog reads the simulation's terrain grid and the foliage its trees give", () => {
   const { exports } = staticWorld(sensors);
-  const w = fogWorld(exports, village.sensors);
+  const w = fogWorld(exports, game.sensors);
   expect(w.spacing).toBe(sensors.height_grid_m);
   expect((w.nx - 1) * w.spacing).toBe(sensors.size[0]);
   expect((w.ny - 1) * w.spacing).toBe(sensors.size[1]);
@@ -102,7 +102,7 @@ test("fog reads the simulation's terrain grid and the foliage its trees give", (
   for (let i = 5; i < w.foliage.length; i += 4) if (w.foliage[i] > 0) canopied++;
   expect(canopied).toBeGreaterThan(0);
   // Foliage is stored in 8 bits: a full block past that is refused.
-  expect(() => fogWorld(exports, { ...village.sensors, foliage_full_block: 2 })).toThrow(
+  expect(() => fogWorld(exports, { ...game.sensors, foliage_full_block: 2 })).toThrow(
     /foliage_full_block/,
   );
 });
@@ -149,7 +149,7 @@ test("a prop the side has not learned never reaches fog (metamorphic)", () => {
 });
 
 test("a fallen building leaves fog's occluders and its known ruin takes its place", () => {
-  const { exports, layout } = staticWorld(village.map);
+  const { exports, layout } = staticWorld(game.map);
   const firstId =
     exports.props[layout.propFields.indexOf("idLo")] +
     exports.props[layout.propFields.indexOf("idHi")] * 2 ** layout.limbBits;

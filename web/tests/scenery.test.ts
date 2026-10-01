@@ -4,7 +4,7 @@
 // under its canopy over the simulation's ground, the shape's foliage covered
 // by crowns, the simulation's trunks each a drawn tree), and scenery past the
 // map stays off it.
-import { VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
+import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { initSync, WorldView, world_layout } from "@wasm/game_wasm.js";
@@ -24,7 +24,7 @@ import {
   type SceneryPlacement,
 } from "@packages/battle-renderer/src/scenery/placement.ts";
 import summer from "@fixtures/biomes/summer.json";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 
 const biome = validateBiome(summer as unknown as Biome);
 /** Unscaled appearance sizes: the loader reads them from the bundles. */
@@ -42,8 +42,8 @@ let placement: SceneryPlacement;
 
 beforeAll(() => {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
-  layout = JSON.parse(world_layout(JSON.stringify(VILLAGE_RULES))) as WorldLayout;
-  view = new WorldView(JSON.stringify(village.map), JSON.stringify(VILLAGE_RULES));
+  layout = JSON.parse(world_layout(JSON.stringify(GAME_RULES))) as WorldLayout;
+  view = new WorldView(JSON.stringify(game.map), JSON.stringify(GAME_RULES));
   exports = readWorldExports(view);
   const site = scenerySite(exports, layout, buildTerrainSurface(exports, layout, biome));
   placement = placeScenery(site, biome, SIZES);
@@ -72,14 +72,14 @@ function trees(data: Float32Array): Tree[] {
 }
 const ground = (x: number, y: number) => view.surface_at(x, y)[0];
 const forests = () =>
-  village.map.forests.map((f) => ({
+  game.map.forests.map((f) => ({
     rect: [
       f.shape.ring[0][0],
       f.shape.ring[0][1],
       f.shape.ring[1][0] - f.shape.ring[0][0],
       f.shape.ring[2][1] - f.shape.ring[1][1],
     ] as [number, number, number, number],
-    canopy: village.forests.rule.canopy_height_m,
+    canopy: game.forests.rule.canopy_height_m,
   }));
 
 test("every forest tree's crown stays inside a forest shape, under its canopy over the simulation's ground", () => {
@@ -227,7 +227,7 @@ test("overlapping polygon and strip draw each original native-owned trunk exactl
         }),
       ],
     }),
-    JSON.stringify(VILLAGE_RULES),
+    JSON.stringify(GAME_RULES),
   );
   try {
     const exported = readWorldExports(overlap);

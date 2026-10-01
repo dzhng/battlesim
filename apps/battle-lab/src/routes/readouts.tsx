@@ -9,7 +9,7 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { labScenario } from "../scenarios";
 import { useFeed } from "../feed";
-import { villageCamera } from "../villageCamera";
+import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
 
 // A tank (cannon with AP/HE, and an HMG), an AT team, a rifle squad and a
@@ -28,7 +28,7 @@ const READOUTS_CAMERA: Camera3DParams = {
   distance: 400,
   pitch: 0.95,
   yaw: -1.57,
-  ...villageCamera.lens,
+  ...gameCamera.lens,
 };
 
 export default function Readouts() {

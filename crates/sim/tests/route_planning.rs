@@ -505,3 +505,184 @@ fn rules_without_planning_work_are_refused_at_load() {
     let error = serde_json::from_value::<contract::scenario::Rules>(rules).unwrap_err();
     assert!(error.to_string().contains("work_per_tick"), "{error}");
 }
+
+#[test]
+fn checking_a_long_route_after_learning_stays_inside_the_tick_allowance() {
+    use sim::math::v2;
+    use sim::navigation::{Mobility, NavBase, NavGrid, RoadNet};
+    use sim::route_planner::{Request, RoutePlanner};
+    use sim::world::WorldGeometry;
+    let rules = common::rules();
+    let map = serde_json::from_value(json!({"size":[10000,10000],"fog_cell_m":8,
+        "height_grid_m":4,"slope_cutoff_deg":35}))
+    .unwrap();
+    let world = WorldGeometry::new(&map, &rules);
+    let known = NavGrid::new(std::sync::Arc::new(NavBase::build(
+        &world,
+        world.props(),
+        0.3,
+    )));
+    let mut planner = RoutePlanner::default();
+    let m: Mobility = sim::units::mobility(rules.catalog.by_id("tank"), &rules);
+    let (from, goal) = (v2(100.0, 100.0), v2(9900.0, 100.0));
+    let slow = contract::scenario::NavigationRules {
+        work_per_tick: 40,
+        ..rules.navigation
+    };
+    planner.submit(
+        UnitId(0),
+        Request {
+            side: Side::Blue,
+            from,
+            goal,
+            mobility: m,
+            policy: RoutePolicy::Shortest,
+            detour: vec![],
+            kept: None,
+            new_goal: true,
+        },
+    );
+    assert!(planner
+        .advance(&slow, &RoadNet::default(), [Some((&known, 1)), None])
+        .is_empty());
+    for _ in 0..10000 {
+        let plans = planner.advance(&slow, &RoadNet::default(), [Some((&known, 2)), None]);
+        assert!(
+            planner.spent() <= 40 + sim::navigation::LARGEST_STEP,
+            "revision validation spent {} work in one tick",
+            planner.spent()
+        );
+        if let Some((_, _, plan)) = plans.first() {
+            let sim::navigation::Plan::Route(route) = plan else {
+                panic!("{plan:?}");
+            };
+            assert_eq!(route.last(), Some(&goal));
+            assert!(known.route_fits(from, route, &m));
+            return;
+        }
+    }
+    panic!("revision validation never finished");
+}
+
+#[test]
+fn initial_long_open_orders_do_not_sample_every_half_metre() {
+    use sim::math::v2;
+    use sim::navigation::{NavBase, NavGrid, RoadNet};
+    use sim::route_planner::{Request, RoutePlanner};
+    use sim::world::WorldGeometry;
+    let rules = common::rules();
+    let map = serde_json::from_value(
+        json!({"size":[10000,10000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}),
+    )
+    .unwrap();
+    let world = WorldGeometry::new(&map, &rules);
+    let grid = NavGrid::new(std::sync::Arc::new(NavBase::build(
+        &world,
+        world.props(),
+        0.3,
+    )));
+    let m = sim::units::mobility(rules.catalog.by_id("tank"), &rules);
+    let budget = contract::scenario::NavigationRules {
+        work_per_tick: 1,
+        ..rules.navigation
+    };
+    let initial = |goal| {
+        let mut p = RoutePlanner::default();
+        p.submit(
+            UnitId(0),
+            Request {
+                side: Side::Blue,
+                from: v2(100.0, 100.0),
+                goal,
+                mobility: m,
+                policy: RoutePolicy::Fastest,
+                detour: vec![],
+                kept: None,
+                new_goal: true,
+            },
+        );
+        assert!(p
+            .advance(&budget, &RoadNet::default(), [Some((&grid, 0)), None])
+            .is_empty());
+        p.spent()
+    };
+    let short = initial(v2(200.0, 100.0));
+    let long = initial(v2(9900.0, 100.0));
+    let diagonal = initial(v2(9900.0, 9900.0));
+    assert!(
+        diagonal <= short + 4,
+        "one open terrain band at any bearing: {diagonal} vs {short}"
+    );
+    assert!(
+        long <= short + 4,
+        "one open terrain run, not metre samples: {long} vs {short}"
+    );
+}
+
+#[test]
+fn an_irregular_diagonal_terrain_probe_yields_within_a_tiny_allowance() {
+    use sim::math::v2;
+    use sim::navigation::{NavBase, NavGrid, RoadNet};
+    use sim::route_planner::{Request, RoutePlanner};
+    use sim::world::WorldGeometry;
+    let rules = common::rules();
+    let points: Vec<_> = (0..=500)
+        .map(|k| json!({"xy":[30,k*20],"width_m":if k%2==0 {16} else {32},"depth_m":1.5}))
+        .collect();
+    let map=serde_json::from_value(json!({"size":[10000,10000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"rivers":[{"points":points,"surface_z":-0.5}]})).unwrap();
+    let world = WorldGeometry::new(&map, &rules);
+    let grid = NavGrid::new(std::sync::Arc::new(NavBase::build(
+        &world,
+        world.props(),
+        0.3,
+    )));
+    let m = sim::units::mobility(rules.catalog.by_id("tank"), &rules);
+    let budget = contract::scenario::NavigationRules {
+        work_per_tick: 1,
+        ..rules.navigation
+    };
+    let mut p = RoutePlanner::default();
+    p.submit(
+        UnitId(0),
+        Request {
+            side: Side::Blue,
+            from: v2(100.0, 100.0),
+            goal: v2(9900.0, 9900.0),
+            mobility: m,
+            policy: RoutePolicy::Fastest,
+            detour: vec![],
+            kept: None,
+            new_goal: true,
+        },
+    );
+    for tick in 0..4 {
+        assert!(p
+            .advance(&budget, &RoadNet::default(), [Some((&grid, 0)), None])
+            .is_empty());
+        assert_eq!(
+            p.spent(),
+            1,
+            "tick {tick}: terrain work resumes before constructing a physical route search"
+        );
+    }
+    let roads = RoadNet::default();
+    let mut finished = None;
+    for _ in 0..10000 {
+        let plans = p.advance(
+            &contract::scenario::NavigationRules {
+                work_per_tick: 4000,
+                ..rules.navigation
+            },
+            &roads,
+            [Some((&grid, 0)), None],
+        );
+        if let Some((_, _, plan)) = plans.into_iter().next() {
+            finished = Some(plan);
+            break;
+        }
+    }
+    assert!(
+        matches!(finished, Some(sim::navigation::Plan::Route(_))),
+        "the clear diagonal eventually commits"
+    );
+}

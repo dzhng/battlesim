@@ -9,9 +9,9 @@
 // burning.
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, snapshot, until, openMenu, restart } from "./_lab.mjs";
-import { village } from "./_units.mjs";
+import { game } from "./_units.mjs";
 
-const CORPSE_CAP = village.presentation.pose.corpses.max;
+const CORPSE_CAP = game.presentation.pose.corpses.max;
 
 const SECONDS = Number(process.env.ENDURANCE_S ?? 60);
 const LATE_SECONDS = Number(process.env.ENDURANCE_LATE_S ?? 60);

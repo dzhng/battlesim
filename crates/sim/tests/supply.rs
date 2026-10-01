@@ -12,10 +12,16 @@ fn battle(units: Value, seed: u64) -> Battle {
     let map =
         json!({ "size": [800, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] })
             .to_string();
-    Battle::new(
-        &common::scenario_with(&map, units, json!([]), json!([])),
-        seed,
-    )
+    let mut setup = common::scenario_with(&map, units, json!([]), json!([]));
+    // Service tests exercise a sustained fight, independently of range tuning.
+    setup
+        .rules
+        .weapons
+        .get_mut("rifle")
+        .unwrap()
+        .ballistics
+        .range_m = 450.0;
+    Battle::new(&setup, seed)
 }
 
 fn own(b: &Battle, side: Side, id: u32) -> Option<OwnUnit> {
@@ -33,7 +39,7 @@ fn run(b: &mut Battle, ticks: u64) {
 }
 
 fn service() -> Value {
-    common::village()["service"].clone()
+    common::game()["service"].clone()
 }
 
 /// Ticks until a freshly placed supply truck is fully deployed.
@@ -157,7 +163,7 @@ fn casualties_are_replaced_by_new_soldiers_and_the_fallen_stay() {
         "replacements do not enlarge the squad area"
     );
     // Replacements join on free ground, spaced from their squadmates.
-    let spacing = common::village()["infantry_movement"]["spacing_m"]
+    let spacing = common::game()["infantry_movement"]["spacing_m"]
         .as_f64()
         .unwrap();
     for (i, p) in squad.members.iter().enumerate() {
@@ -190,9 +196,7 @@ fn a_garrisoned_squad_is_reinforced_inside_its_building() {
     let scripts = json!([{ "tick": 1, "side": "blue", "order": { "kind": "garrison", "units": [1], "building": 0 } }]);
     let mut b = Battle::new(&common::scenario_with(&map, units, json!([]), scripts), 4);
     let every = service()["soldier_replacement_s"].as_f64().unwrap();
-    let enter = common::village()["garrison"]["enter_exit_s"]
-        .as_f64()
-        .unwrap();
+    let enter = common::game()["garrison"]["enter_exit_s"].as_f64().unwrap();
     run(
         &mut b,
         deploy_ticks().max((enter * 30.0) as u64 + 30) + (every * 30.0) as u64 * 2 + 30,
@@ -288,10 +292,16 @@ fn incoming_fire_does_not_stop_service() {
     ]);
     let mut judged = 0;
     for seed in 1..=8 {
-        let mut b = Battle::new(
-            &common::scenario_with(&map, units.clone(), json!([]), json!([])),
-            seed,
-        );
+        let mut setup = common::scenario_with(&map, units.clone(), json!([]), json!([]));
+        // Incoming fire is the control input; weapon balance is not under test.
+        setup
+            .rules
+            .weapons
+            .get_mut("tank_he")
+            .unwrap()
+            .ballistics
+            .range_m = 1500.0;
+        let mut b = Battle::new(&setup, seed);
         run(&mut b, deploy_ticks());
         let (mut under_fire, mut served_under_fire) = (false, false);
         for _ in 0..600 {

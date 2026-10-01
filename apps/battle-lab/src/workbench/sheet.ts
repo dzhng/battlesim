@@ -23,14 +23,10 @@ import {
   type SkeletonClips,
   type TextureChannel,
 } from "@packages/scene-assets/src/schema";
-import { villageLight } from "../villageLight";
-import { villageFogGeometry, villageFogStyle } from "../villageFog";
-import {
-  villageOverlayGlow,
-  villagePaint,
-  villageXrayMinHiddenFragmentFraction,
-} from "../villageOverlay";
-import { villageModelDetail } from "../villageModels";
+import { gameLight } from "../gameLight";
+import { gameFogGeometry, gameFogStyle } from "../gameFog";
+import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "../gameOverlay";
+import { gameModelDetail } from "../gameModels";
 import { benchOverlay, benchWorld, posedSockets } from "./benchWorld";
 import { sideTint, type LoadedModel } from "./sources";
 import { SURFACE_VIEWS, WORKBENCH_VIEWS, viewCamera, type SheetView } from "./views";
@@ -198,13 +194,13 @@ export class SheetRenderer {
 
   static async create(device: GPUDevice, format: GPUTextureFormat, model: LoadedModel) {
     const frame = await createBattleFrame(device, format, {
-      light: villageLight,
-      fogGeometry: villageFogGeometry,
-      fogStyle: villageFogStyle,
-      overlayGlow: villageOverlayGlow,
-      paint: villagePaint,
-      xrayMinHiddenFragmentFraction: villageXrayMinHiddenFragmentFraction,
-      models: villageModelDetail,
+      light: gameLight,
+      fogGeometry: gameFogGeometry,
+      fogStyle: gameFogStyle,
+      overlayGlow: gameOverlayGlow,
+      paint: gamePaint,
+      xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
+      models: gameModelDetail,
       world: benchWorld(null),
       instances: [],
       width: TILE,

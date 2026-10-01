@@ -10,9 +10,9 @@ import { AckLog } from "../AckLog";
 import { BattleMemory, guidanceLayer, remainsLayer, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
-import { labScenario, VILLAGE_RULES, type LabScript, type LabUnit } from "../scenarios";
+import { labScenario, GAME_RULES, type LabScript, type LabUnit } from "../scenarios";
 import { useFeed } from "../feed";
-import { villageCamera } from "../villageCamera";
+import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
 
 // Red's first tank stands in the open beside a building it can duck behind;
@@ -73,10 +73,10 @@ type Variant = keyof typeof VARIANTS;
 const SEED = 10;
 // Guidance compares controlled LOS crossings, independent of vehicle startup time.
 const AMBUSH_RULES = {
-  ...VILLAGE_RULES,
+  ...GAME_RULES,
   movement: {
-    ...VILLAGE_RULES.movement,
-    drive: { ...VILLAGE_RULES.movement.drive, acceleration_s: 1e-6, braking_s: 1e-6 },
+    ...GAME_RULES.movement,
+    drive: { ...GAME_RULES.movement.drive, acceleration_s: 1e-6, braking_s: 1e-6 },
   },
 };
 
@@ -85,7 +85,7 @@ const AMBUSH_CAMERA: Camera3DParams = {
   distance: 640,
   pitch: 0.95,
   yaw: 3.14,
-  ...villageCamera.lens,
+  ...gameCamera.lens,
 };
 
 const LAUNCHER_MARK = [0.95, 0.95, 0.95, 1] as const;
@@ -267,5 +267,5 @@ export default function Ambush() {
 function describeLauncher(m: MountView): string {
   if (m.guiding) return "guiding a missile (the next one waits)";
   const reason = REASON_TEXT[m.reason] ?? m.reason;
-  return m.reason === "no_own_sight" ? `${reason} (a scout's is not enough)` : reason;
+  return m.reason === "no_own_sight" ? `${reason} (the launcher's view is obstructed)` : reason;
 }

@@ -3,9 +3,9 @@
 // ground under the fixture's own camera numbers.
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
-import village from "@fixtures/village.json";
-import { VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
-import { villageCamera } from "@apps/battle-lab/src/villageCamera";
+import game from "@fixtures/game.json";
+import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
+import { gameCamera } from "@apps/battle-lab/src/gameCamera";
 import {
   buildingObstacles,
   buildingPartProps,
@@ -24,8 +24,8 @@ let rig: CameraController;
 
 beforeAll(() => {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
-  const rules = JSON.stringify(VILLAGE_RULES);
-  const world = new WorldView(JSON.stringify(village.map), rules);
+  const rules = JSON.stringify(GAME_RULES);
+  const world = new WorldView(JSON.stringify(game.map), rules);
   const exports = readWorldExports(world);
   const ground = (x: number, y: number) => world.surface_at(x, y)[0] ?? 0;
   obstacles = buildingObstacles(
@@ -34,7 +34,7 @@ beforeAll(() => {
     buildingPartProps(exports.buildings),
     ground,
   );
-  rig = new CameraController(villageCamera.config, ground);
+  rig = new CameraController(gameCamera.config, ground);
 });
 
 test("the village's buildings are the camera's obstacles", () => {
@@ -45,7 +45,7 @@ test("the village's buildings are the camera's obstacles", () => {
 
 test("the benchmark tour is drawn as flown: clearance moves none of its frames", () => {
   const { tour, durationMs } = VILLAGE_CONTACT;
-  const lens = { ...villageCamera.opening(), aspect: 16 / 9 };
+  const lens = { ...gameCamera.opening(), aspect: 16 / 9 };
   for (const hz of [30, 120]) {
     const state = createClearanceState();
     let asked = lens;
@@ -58,6 +58,6 @@ test("the benchmark tour is drawn as flown: clearance moves none of its frames",
 });
 
 test("the village's opening framing is drawn as authored", () => {
-  const opening = { ...villageCamera.opening(), aspect: 16 / 9 };
+  const opening = { ...gameCamera.opening(), aspect: 16 / 9 };
   expect(rig.resolve(createClearanceState(), opening, 0, obstacles)).toBe(opening);
 });

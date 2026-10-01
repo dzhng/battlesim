@@ -57,7 +57,7 @@
   {
     "id": "ambush",
     "route": "/lab/ambush",
-    "describe": "Supported AT guidance: an AT team launches only on its own sight (a scout's is not enough), guides one missile at a time, and releases it at once on moving, Stop or losing sight; the released missile flies on to its fixed last point. Variants: late escape, prompt escape, prepared crossfire."
+    "describe": "Supported AT guidance: an AT team acquires shared identified targets only with its own clear line of sight, guides one missile at a time, and releases it at once on moving, Stop or losing sight; the released missile flies on to its fixed last point. Variants: late escape, prompt escape, prepared crossfire."
   },
   {
     "id": "garrison",
@@ -120,6 +120,11 @@
     "id": "fog",
     "route": "/lab/fog",
     "describe": "Sight-light fog over the village street: blue's eyes cut by the terrain and the buildings it knows, per pixel; the live frame or a seen/unseen mask; agreement with the simulation's 8 m sweep, the GPU lookup against its oracle vectors, a turned turret and a garrison's eyes."
+  },
+  {
+    "id": "projectiles",
+    "route": "/lab/projectiles",
+    "describe": "Projectile review with the fog-lit village close fight and range-limit rifle, HMG, AP, HE and ATGM lanes; gameplay flight, unlimited reserves and nonlethal rounds."
   },
   {
     "id": "workbench",

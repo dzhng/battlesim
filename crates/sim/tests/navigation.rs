@@ -394,10 +394,7 @@ fn an_unbroken_water_strip_leaves_no_route() {
         RoutePolicy::Shortest,
     );
     assert_eq!(plan, Plan::Blocked(BlockReason::NoRoute));
-    assert!(
-        cells < 10_000,
-        "the near bank is all there is to search: {cells}"
-    );
+    assert_eq!(cells, 0, "public terrain proves the banks disconnected");
 }
 
 #[test]

@@ -11,7 +11,7 @@ use contract::scenario::NavigationRules;
 
 use crate::digest::Digest;
 use crate::math::{Obb2, V2};
-use crate::navigation::{Journey, Leg, Mobility, NavGrid, Plan, RoadNet, Scratch};
+use crate::navigation::{Journey, Leg, Mobility, NavGrid, Plan, RoadNet, RouteCheck, Scratch};
 
 /// One unit's request for a route, and what its mover needs back with it.
 #[derive(Clone, Debug)]
@@ -34,14 +34,18 @@ struct Job {
     request: Request,
     /// The side's knowledge revision the journey started against.
     revision: u64,
-    journey: Option<Journey>,
+    stage: Stage,
     /// Work spent on this request so far, restarts included.
     spent: u64,
 }
 
+enum Stage {
+    Planning(Option<Box<Journey>>),
+    Checking(Box<RouteCheck>),
+}
+
 impl Job {
-    /// Spend up to `allowance` on the request against the side's grid as it
-    /// stands at `revision`: the work spent, and the plan once it stands.
+    /// Spend the allowance on searching and checking against new knowledge.
     fn advance(
         &mut self,
         (rules, roads): (&NavigationRules, &RoadNet),
@@ -52,38 +56,71 @@ impl Job {
         let before = grid.work();
         let plan = loop {
             let left = allowance.saturating_sub(grid.work() - before);
-            let r = &self.request;
-            let journey = match &mut self.journey {
-                Some(journey) => journey,
-                None if left == 0 => break None,
-                None => {
-                    self.revision = revision;
-                    let leg = Leg {
-                        from: r.from,
-                        goal: r.goal,
-                        m: &r.mobility,
-                        policy: r.policy,
-                        avoid: &r.detour,
-                    };
-                    self.journey
-                        .insert(Journey::new(grid, roads, spare.pop(), leg, rules))
-                }
-            };
-            journey.advance(grid, roads, left);
-            let Some(plan) = journey.plan() else {
+            if left == 0 {
                 break None;
-            };
-            // The side learned something while this was worked out. A route
-            // that still fits what it now knows stands; anything else is
-            // worked out again on what it now knows.
-            let stands = self.revision == revision
-                || matches!(plan, Plan::Route(route)
-                    if grid.route_fits(r.from, route, &r.mobility)
-                        && !grid.route_pushes(r.from, route, &r.mobility));
-            let (plan, scratch) = self.journey.take().expect("a journey").finish();
-            spare.extend(scratch);
-            if stands {
-                break plan;
+            }
+            let r = &self.request;
+            match &mut self.stage {
+                Stage::Planning(held) => {
+                    let journey = held.get_or_insert_with(|| {
+                        self.revision = revision;
+                        Box::new(Journey::new(
+                            grid,
+                            roads,
+                            spare.pop(),
+                            Leg {
+                                from: r.from,
+                                goal: r.goal,
+                                m: &r.mobility,
+                                policy: r.policy,
+                                avoid: &r.detour,
+                            },
+                            rules,
+                        ))
+                    });
+                    journey.advance(grid, roads, allowance.saturating_sub(grid.work() - before));
+                    if journey.plan().is_none() {
+                        break None;
+                    }
+                    let (plan, scratch) = held.take().expect("a journey").finish();
+                    spare.extend(scratch);
+                    let plan = plan.expect("a completed journey");
+                    if self.revision == revision {
+                        break Some(plan);
+                    }
+                    self.revision = revision;
+                    if let Plan::Route(route) = plan {
+                        self.stage =
+                            Stage::Checking(Box::new(RouteCheck::new(r.from, route, r.mobility)));
+                    }
+                }
+                Stage::Checking(check) => {
+                    if self.revision != revision {
+                        let Stage::Checking(check) =
+                            std::mem::replace(&mut self.stage, Stage::Planning(None))
+                        else {
+                            unreachable!()
+                        };
+                        self.revision = revision;
+                        self.stage = Stage::Checking(Box::new(RouteCheck::new(
+                            r.from,
+                            check.finish(),
+                            r.mobility,
+                        )));
+                        continue;
+                    }
+                    let Some(safe) = check.step(grid) else {
+                        continue;
+                    };
+                    let Stage::Checking(check) =
+                        std::mem::replace(&mut self.stage, Stage::Planning(None))
+                    else {
+                        unreachable!()
+                    };
+                    if safe {
+                        break Some(Plan::Route(check.finish()));
+                    }
+                }
             }
         };
         let spent = grid.work() - before;
@@ -117,7 +154,7 @@ impl RoutePlanner {
             Job {
                 request,
                 revision: 0,
-                journey: None,
+                stage: Stage::Planning(None),
                 spent: 0,
             },
         );
@@ -125,7 +162,11 @@ impl RoutePlanner {
 
     /// Drop `unit`'s request, if it has one: its route will never arrive.
     pub fn cancel(&mut self, unit: UnitId) {
-        if let Some(journey) = self.jobs.remove(&unit).and_then(|job| job.journey) {
+        if let Some(Job {
+            stage: Stage::Planning(Some(journey)),
+            ..
+        }) = self.jobs.remove(&unit)
+        {
             self.spare.extend(journey.finish().1);
         }
     }
@@ -240,9 +281,18 @@ impl RoutePlanner {
                 d.f64(p.x).f64(p.y);
             }
             d.u64(job.revision).u64(job.spent);
-            d.u64(job.journey.is_some() as u64);
-            if let Some(journey) = &job.journey {
-                journey.digest(d);
+            match &job.stage {
+                Stage::Planning(None) => {
+                    d.u64(0);
+                }
+                Stage::Planning(Some(journey)) => {
+                    d.u64(1);
+                    journey.digest(d);
+                }
+                Stage::Checking(check) => {
+                    d.u64(2);
+                    check.digest(d);
+                }
             }
         }
     }

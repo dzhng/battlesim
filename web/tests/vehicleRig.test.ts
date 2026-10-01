@@ -4,7 +4,7 @@
 // through the pose driver and the articulation onto the bundle's nodes. The
 // gun and HMG point where the published poses say, elevation eases in, a
 // shot recoils the gun, and the running gear rolls with ground covered.
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import { expect, test } from "vitest";
 import { vec3, type Vec3 } from "math";
 import {
@@ -23,7 +23,7 @@ import {
   type FeedMount,
   type FeedUnit,
 } from "@packages/battle-renderer/src/models/poseDriver.ts";
-import { villagePose } from "@apps/battle-lab/src/poseFeed";
+import { gamePose } from "@apps/battle-lab/src/poseFeed";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { shippedMounts } from "./shippedMounts";
 import {
@@ -55,11 +55,11 @@ const driver = () =>
     units: UNITS,
     mounts: shippedMounts,
     clip: () => null,
-    feel: villagePose,
-    leanHold: village.cover.lean_hold_s,
+    feel: gamePose,
+    leanHold: game.cover.lean_hold_s,
   });
 
-const MOUNT_FEEL = villagePose.mount;
+const MOUNT_FEEL = gamePose.mount;
 
 const tank = (x: number, yaw: number, gun: FeedMount, hmg: FeedMount): FeedUnit => ({
   id: 7,

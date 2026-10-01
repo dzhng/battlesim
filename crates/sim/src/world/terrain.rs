@@ -7,7 +7,7 @@ use super::carve::Carve;
 use super::surfaces::SurfaceIndex;
 use crate::math::{v2, v3, V3};
 use contract::map::{MapDefinition, Relief};
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::OnceLock;
 
 pub const HEIGHT_PAGE_SIZE: usize = 16;
@@ -18,7 +18,7 @@ pub struct HeightField {
     /// Samples per axis (cells + 1).
     pub(crate) nx: usize,
     pub(crate) ny: usize,
-    pages: HashMap<usize, Box<[f64; PAGE_SAMPLES]>>,
+    pages: Vec<Option<Box<[f64; PAGE_SAMPLES]>>>,
     mesh: OnceLock<(Vec<V3>, Vec<u32>)>,
     samples: OnceLock<(Vec<u32>, Vec<f32>)>,
     /// The highest sample: no point of the surface stands above it.
@@ -67,7 +67,15 @@ impl HeightField {
                 }
             }
         }
-        let mut pages = HashMap::new();
+        // A compact directory keeps only nonzero sample pages allocated, while
+        // height queries address their page without hashing.
+        let mut pages: Vec<_> = if candidates.is_empty() {
+            Vec::new()
+        } else {
+            std::iter::repeat_with(|| None)
+                .take(page_cols * ny.div_ceil(HEIGHT_PAGE_SIZE))
+                .collect()
+        };
         let mut top = f64::NEG_INFINITY;
         let mut bottom = f64::INFINITY;
         let mut nonzero = 0;
@@ -90,7 +98,7 @@ impl HeightField {
                 }
             }
             if populated {
-                pages.insert(id, page);
+                pages[id] = Some(page);
             }
         }
         if nonzero < nx * ny {
@@ -121,9 +129,12 @@ impl HeightField {
             return 0.0;
         }
         let id = (j / HEIGHT_PAGE_SIZE) * self.nx.div_ceil(HEIGHT_PAGE_SIZE) + i / HEIGHT_PAGE_SIZE;
-        self.pages.get(&id).map_or(0.0, |p| {
-            p[(j % HEIGHT_PAGE_SIZE) * HEIGHT_PAGE_SIZE + i % HEIGHT_PAGE_SIZE]
-        })
+        self.pages
+            .get(id)
+            .and_then(Option::as_deref)
+            .map_or(0.0, |p| {
+                p[(j % HEIGHT_PAGE_SIZE) * HEIGHT_PAGE_SIZE + i % HEIGHT_PAGE_SIZE]
+            })
     }
 
     /// The highest ground height anywhere on the field.
@@ -180,17 +191,44 @@ impl HeightField {
         if !self.contains(x, y) {
             return None;
         }
+        if self.pages.is_empty() {
+            return Some((0.0, 0.0, 0.0));
+        }
         let (i, j, u, v) = self.locate(x, y);
-        let h00 = self.sample(i, j);
-        let h11 = self.sample(i + 1, j + 1);
+        // Most triangles lie in one page; a missing page is exactly flat.
+        let (h00, h11, third) = if i % HEIGHT_PAGE_SIZE < HEIGHT_PAGE_SIZE - 1
+            && j % HEIGHT_PAGE_SIZE < HEIGHT_PAGE_SIZE - 1
+        {
+            let id =
+                (j / HEIGHT_PAGE_SIZE) * self.nx.div_ceil(HEIGHT_PAGE_SIZE) + i / HEIGHT_PAGE_SIZE;
+            let Some(page) = self.pages[id].as_ref() else {
+                return Some((0.0, 0.0, 0.0));
+            };
+            let at = (j % HEIGHT_PAGE_SIZE) * HEIGHT_PAGE_SIZE + i % HEIGHT_PAGE_SIZE;
+            (
+                page[at],
+                page[at + HEIGHT_PAGE_SIZE + 1],
+                page[at + if u >= v { 1 } else { HEIGHT_PAGE_SIZE }],
+            )
+        } else {
+            (
+                self.sample(i, j),
+                self.sample(i + 1, j + 1),
+                if u >= v {
+                    self.sample(i + 1, j)
+                } else {
+                    self.sample(i, j + 1)
+                },
+            )
+        };
         Some(if u >= v {
             // Triangle A (SW, SE, NE).
-            let h10 = self.sample(i + 1, j);
+            let h10 = third;
             let (rise_x, rise_y) = (h10 - h00, h11 - h10);
             (h00 + u * rise_x + v * rise_y, rise_x, rise_y)
         } else {
             // Triangle B (SW, NE, NW).
-            let h01 = self.sample(i, j + 1);
+            let h01 = third;
             let (rise_x, rise_y) = (h11 - h01, h01 - h00);
             (h00 + v * rise_y + u * rise_x, rise_x, rise_y)
         })
@@ -307,7 +345,9 @@ impl HeightField {
             let cols = self.nx.div_ceil(HEIGHT_PAGE_SIZE);
             let regions: Vec<[usize; 4]> = self
                 .pages
-                .keys()
+                .iter()
+                .enumerate()
+                .filter_map(|(id, page)| page.as_ref().map(|_| id))
                 .map(|id| {
                     let (i, j) = (
                         (id % cols) * HEIGHT_PAGE_SIZE,
@@ -384,11 +424,15 @@ impl HeightField {
 
     pub fn export_samples(&self) -> &(Vec<u32>, Vec<f32>) {
         self.samples.get_or_init(|| {
-            let mut ids: Vec<_> = self.pages.keys().copied().collect();
-            ids.sort_unstable();
+            let ids: Vec<_> = self
+                .pages
+                .iter()
+                .enumerate()
+                .filter_map(|(id, page)| page.as_ref().map(|_| id))
+                .collect();
             let heights = ids
                 .iter()
-                .flat_map(|id| self.pages[id].iter().map(|h| *h as f32))
+                .flat_map(|id| self.pages[*id].as_ref().unwrap().iter().map(|h| *h as f32))
                 .collect();
             (ids.into_iter().map(|id| id as u32).collect(), heights)
         })

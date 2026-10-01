@@ -12,10 +12,10 @@ export async function groundFilterAdmission(ctx) {
       await Promise.all([
         import(file("packages/battle-renderer/src/frame/battleFrame.ts")),
         import(file("packages/battle-renderer/src/worldMesh.ts")),
-        import(file("apps/battle-lab/src/villageLight.ts")),
-        import(file("apps/battle-lab/src/villageFog.ts")),
-        import(file("apps/battle-lab/src/villageOverlay.ts")),
-        import(file("apps/battle-lab/src/villageModels.ts")),
+        import(file("apps/battle-lab/src/gameLight.ts")),
+        import(file("apps/battle-lab/src/gameFog.ts")),
+        import(file("apps/battle-lab/src/gameOverlay.ts")),
+        import(file("apps/battle-lab/src/gameModels.ts")),
         import(file("apps/battle-lab/src/scenarios.ts")),
         import(file("fixtures/biomes/summer.json")),
         import("/src/wasm/game_wasm.js"),
@@ -24,23 +24,23 @@ export async function groundFilterAdmission(ctx) {
     await wasm.default();
     const view = new wasm.WorldView(
       JSON.stringify({ size: [32, 32], height_grid_m: 4, fog_cell_m: 8, slope_cutoff_deg: 35 }),
-      JSON.stringify(rules.VILLAGE_RULES),
+      JSON.stringify(rules.GAME_RULES),
     );
     const adapter = await navigator.gpu.requestAdapter();
     const device = await adapter.requestDevice();
     const live = allocations.trackGpuAllocations(device);
     const baseline = live();
     const options = {
-      light: light.villageLight,
-      fogGeometry: fog.villageFogGeometry,
-      fogStyle: fog.villageFogStyle,
-      overlayGlow: overlay.villageOverlayGlow,
-      paint: overlay.villagePaint,
-      xrayMinHiddenFragmentFraction: overlay.villageXrayMinHiddenFragmentFraction,
-      models: models.villageModelDetail,
+      light: light.gameLight,
+      fogGeometry: fog.gameFogGeometry,
+      fogStyle: fog.gameFogStyle,
+      overlayGlow: overlay.gameOverlayGlow,
+      paint: overlay.gamePaint,
+      xrayMinHiddenFragmentFraction: overlay.gameXrayMinHiddenFragmentFraction,
+      models: models.gameModelDetail,
       world: mesh.buildWorldLayers(
         mesh.readWorldExports(view),
-        JSON.parse(wasm.world_layout(JSON.stringify(rules.VILLAGE_RULES))),
+        JSON.parse(wasm.world_layout(JSON.stringify(rules.GAME_RULES))),
         biome.default,
         "surface",
       ),

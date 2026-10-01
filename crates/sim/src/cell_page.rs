@@ -15,13 +15,13 @@ pub(crate) enum Page<T> {
     Dense(Box<[T; CELLS]>),
 }
 
-impl<T: Copy + Eq + Default> Default for Page<T> {
+impl<T: Copy + PartialEq + Default> Default for Page<T> {
     fn default() -> Self {
         Self::Uniform(T::default())
     }
 }
 
-impl<T: Copy + Eq + Default> Page<T> {
+impl<T: Copy + PartialEq + Default> Page<T> {
     pub fn uniform(&self) -> Option<T> {
         if let Self::Uniform(value) = self {
             Some(*value)
@@ -106,7 +106,7 @@ impl<T: Copy + Eq + Default> Page<T> {
 
     /// Map values without expanding a uniform source. Learning uses this to
     /// stamp exactly the nonblank cells of a newly shared truth page.
-    pub fn map_values<U: Copy + Eq + Default>(&self, map: impl Fn(T) -> U) -> Page<U> {
+    pub fn map_values<U: Copy + PartialEq + Default>(&self, map: impl Fn(T) -> U) -> Page<U> {
         match self {
             Self::Uniform(value) => Page::Uniform(map(*value)),
             Self::Runs(source) => {

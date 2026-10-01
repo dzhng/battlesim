@@ -1,6 +1,6 @@
 # Fixtures
 
-`village.json` is the one owner of the game's rules and look numbers. Labs and scenes reuse it. `map-presets.json` holds the map generator's presets (layout, and each district kind's streets and parcels) and `prototype-building-templates.json` the placeholder physical templates it builds towns from; [`crates/mapgen`](../crates/mapgen/README.md) reads and validates both. `generated-lab.json` holds what the lab's generated-map route adds to a request: the compiler's limits, the developer encounter laid on the map and the overview camera. `building-templates.json` is the physical library the authored maps pin, and stays apart from the prototypes because its hash is their identity. `units/` and `props/` are the catalog: every unit type, soldier kind, role and upgrade part, and every prop type. `biomes/` holds the terrain palettes. A number that changes how the battle plays or looks belongs here, validated by the module that reads it, never as a constant in code.
+`game.json` is the one owner of the game's rules and look numbers. Labs and scenes reuse it. `map-presets.json` holds the map generator's presets (layout, and each district kind's streets and parcels) and `prototype-building-templates.json` the placeholder physical templates it builds towns from; [`crates/mapgen`](../crates/mapgen/README.md) reads and validates both. `generated-lab.json` holds what the lab's generated-map route adds to a request: the compiler's limits, the developer encounter laid on the map and the overview camera. `building-templates.json` is the physical library the authored maps pin, and stays apart from the prototypes because its hash is their identity. `units/` and `props/` are the catalog: every unit type, soldier kind, role and upgrade part, and every prop type. `biomes/` holds the terrain palettes. A number that changes how the battle plays or looks belongs here, validated by the module that reads it, never as a constant in code.
 
 ## The unit catalog
 
@@ -17,7 +17,7 @@ A unit type is **one catalog entry**, addressed by its string id (`"tank"`, late
   - `capabilities`: optional abilities such as `deploy` and `supply`;
   - `roles` (what scripts and the AI select by), `cost`, `sound`, `name`, `description`, `faction`, `family`, and a hull's `appearance`.
 - **Soldier kinds** are a catalog of their own: `hp`, the `appearance` set a soldier of the kind wears (one picked per soldier), and the `mounts` he carries. A `special` mount passes to the next living soldier when its carrier falls; any other is lost with him. A squad's slots name soldier kinds, so hundreds of squads reuse a few kinds.
-- **A variant is `extends` plus overrides.** `"m1a1": { "extends": "m1", "body": { "hull": { "armor": { "front": 180 } } } }` inherits everything else. An `abstract` entry only exists to be extended. Weapon rows in `village.json` extend the same way. The merge:
+- **A variant is `extends` plus overrides.** `"m1a1": { "extends": "m1", "body": { "hull": { "armor": { "front": 180 } } } }` inherits everything else. An `abstract` entry only exists to be extended. Weapon rows in `game.json` extend the same way. The merge:
   - objects merge key by key, and a list of named objects (mounts) merges by name, a new name appended;
   - a unit's one-key variant component (`body`, `mobility`) written as another variant replaces the parent's: `"mobility": { "wheeled": … }` over a tracked parent is wheeled;
   - a unit's `parts` gather along the chain, the parent's first;
@@ -27,9 +27,9 @@ A unit type is **one catalog entry**, addressed by its string id (`"tank"`, late
 - **Resolution happens once, in the simulation** (`contract::catalog`), and a broken catalog fails at load with an error naming the entry:
   - a key written twice inside one file;
   - cycles, unknown parents, roles, soldiers or parts, and incomplete types;
-  - structure: a hull mount on anything but the hull or an earlier turret mount, or without its `muzzle_m`; a soldier's mount with `turret`, `on`, `pivot_m` or `muzzle_m`, or both `squad` and `special`; a mount naming a weapon row `village.json` lacks; a wreck whose cover tier isn't its vehicle's;
+  - structure: a hull mount on anything but the hull or an earlier turret mount, or without its `muzzle_m`; a soldier's mount with `turret`, `on`, `pivot_m` or `muzzle_m`, or both `squad` and `special`; a mount naming a weapon row `game.json` lacks; a wreck whose cover tier isn't its vehicle's;
   - numbers out of range: speeds, turning, sight, hit points.
-- **The browser reads the resolved view,** `catalog.json`, which also carries `village.json`'s weapon rows resolved (`weapons`); presentation reads rows there, never the raw ones. After editing the catalog, regenerate it: `BLESS_CATALOG=1 cargo test -p sim --test sim catalog::` (the test fails while it is stale). Then regenerate the icons (each type's silhouette is rendered from its baked model): `bun run --cwd web asset -- icons`.
+- **The browser reads the resolved view,** `catalog.json`, which also carries `game.json`'s weapon rows resolved (`weapons`); presentation reads rows there, never the raw ones. After editing the catalog, regenerate it: `BLESS_CATALOG=1 cargo test -p sim --test sim catalog::` (the test fails while it is stale). Then regenerate the icons (each type's silhouette is rendered from its baked model): `bun run --cwd web asset -- icons`.
 
 ## Weapon cycles
 
@@ -38,6 +38,8 @@ A weapon row's `ammo` is total carried rounds, including loaded magazines; `"unl
 The nominal vehicle aim height comes from its body, with a fixture-owned fraction allowing fire into both the upper body and hull. Direct-fire scatter stays at or below that aim point. A round that survives to its aim plane falls under stronger downward gravity, chosen at launch to reach even the lowest ground within the authored fall-time limit. Its horizontal flight and its position and velocity at the join stay intact. Both legs use ordinary swept collision: intervening bodies still decide the first impact. A ricochet cancels that fall and keeps its deflected direction under ordinary gravity; its remaining lifetime is capped from the first bounce, without restarting on later bounces. Guided fire keeps its own guidance, and indirect fire keeps its ballistic arc.
 
 Tracer frequency and shape belong to presentation. A round's sampled visibility persists across its observed flight; it does not flicker with each publication. Small-arms traces use a fixed screen-width line, while muzzle flashes, ricochet sparks and ground impacts still show their own published causes. Hiding a tracer never hides its physical impact or changes the shot.
+
+Impact puffs keep the material of the surface they strike, with per-round size and lifetime overrides inside that surface's style. Heavy rounds can leave larger, longer-lived dirt clouds without extending armour flashes or explosion smoke; the effect owner's lifetime bound includes those overrides.
 
 Each physical weapon owns its targeting, ammunition and firing cycle. Identical special weapons stay separate, so their rows can show different rounds and reload progress. Ammo quantities are authored per mount: adding another identical gun adds another authored load. The only shared row is infantry's default gun (`squad` in the soldier's mount), whose copies keep independent firing cycles and have no reload pause. Its readout stays loaded while any surviving carrier is loaded. Suppression's tier widens launch scatter as well as slowing cycle progress; those penalties compose with movement and cover.
 
@@ -63,12 +65,13 @@ Add one entry. A variant is an `extends` and what differs. Code learns nothing a
 
 ## The prop catalog
 
-A prop type (a house, a wall, a tree, a wreck, rubble) is **one entry** of a `props` section, in `props/<faction>/<family>.json`, addressed by its string id. No code lists prop types, and no rule asks which one a prop is. A map's props, a forest's trees (`forests.tree` in `village.json`), a bridge's deck (`deck` on each map bridge) and a vehicle's wreck all name types by id; the world layout and the publication send the id list (`propKinds`) and each prop's index into it.
+A prop type (a house, a wall, a tree, a wreck, rubble) is **one entry** of a `props` section, in `props/<faction>/<family>.json`, addressed by its string id. No code lists prop types, and no rule asks which one a prop is. A map's props, a forest's trees (`forests.tree` in `game.json`), a bridge's deck (`deck` on each map bridge) and a vehicle's wreck all name types by id; the world layout and the publication send the id list (`propKinds`) and each prop's index into it.
 
 - **A type is its body row, its destroyed state and its appearance binding:**
   - `body`: `blocks` (per mover class), `stops_rounds`, `occludes`, `weight_class`, `cover_tier`, `lifetime_s` (a transient body, like smoke), `conceals` (foliage), `hp` and `armor` (integrity), `topples` (falls rather than slides: a tree) and `garrison` (a squad can hold it from inside). Each column has its own readers; a rule reads columns, never the id.
   - `destroyed`, with `hp` and only with it: `"removed"`, `"cleared"` (open ground, for a toppling body) or `{ "into": { "prop": <id>, "height_m": h } }`, remains on the same plan. Chains end: heavier remains degrade to lighter categories before disappearing. Wreck category names describe their body and protection, not the vehicle model used to draw them.
   - `appearance`: what draws it. `drawn_by` names the asset catalog's scenery kind whose appearances are fitted to its box (`building` for the building appearances, `forest` for the trees a forest draws itself); `modular` repeats a module along the box instead of stretching it; `map_only` marks a type a battle never leaves or places, so only the appearances a map uses load; `remains_state` draws remains as the body they replace, in that state (a building's ruin).
+- **Systems-only physical rows** carry `appearance.status: "systems_only"` until their actual scenery is fitted and accepted. They name the intended scenery, never borrow a released asset to pass validation. Removing that status restores the ordinary appearance gate; the systems marker is not an art acceptance.
 - **A variant is `extends` plus overrides,** as for units: `wrecks.json` shares one abstract `wreck` frame.
 - **Resolution happens once, in the simulation,** with the units: unknown or looping destroyed states, `hp` without `destroyed`, a cleared state on a body that doesn't topple, and a unit's wreck that names no prop type fail at load, naming the entry. The exported WASM catalog resolver accepts supplied documents through the same validation path; shipped-fixture tests therefore do not replace load-time validation. Regenerate `catalog.json` after editing, as for the units above.
 
@@ -83,10 +86,10 @@ Add one entry. A mechanic comes from the body's columns, so a new obstacle needs
 
 ## Surface speeds
 
-Every mover states its own two top speeds in its `mobility` row, in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road (at most 130, and never below the off-road speed). `village.json`'s `surfaces` table has one row per surface kind a map may pave (`road`, `country_road`, `dirt_track`, `sidewalk`). A row's `speed_factor` scales each unit type's own road speed on that surface, never below its off-road speed: 1 is a full road, 0 is no road at all. A new surface kind is a new row plus its variant in `contract::map::SurfaceKind`.
+Every mover states its own two top speeds in its `mobility` row, in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road (at most 130, and never below the off-road speed). `game.json`'s `surfaces` table has one row per surface kind a map may pave (`road`, `country_road`, `dirt_track`, `sidewalk`). A row's `speed_factor` scales each unit type's own road speed on that surface, never below its off-road speed: 1 is a full road, 0 is no road at all. A new surface kind is a new row plus its variant in `contract::map::SurfaceKind`.
 
 Vehicle surface speeds are targets, not instantaneous velocity. The drive settings in
-[`village.json`](village.json) express acceleration and braking as time from rest to
+[`game.json`](game.json) express acceleration and braking as time from rest to
 full road speed and back; each vehicle's own top speed sets the rate. This keeps
 road entry gradual without reducing the road advantage. Surface and shove limits
 act on the target speed so slowdown does not compound every tick. The follower
@@ -115,3 +118,14 @@ A map's water is its `rivers`: each a line of points with the water's `width_m` 
 ## Parity oracles
 
 `parity/` holds frozen inputs and expected outputs that the native tests and the web tests both read, so the Rust simulation and its WebAssembly build are held to the same answer: building aggregates, fog delivery, ground learning and transport, the map compiler, physical templates (including the rejected descriptors that must keep failing), terrain queries and the rounded samples of roads and rivers. A file changes only with a named behaviour change, and every test that reads it changes in the same commit.
+
+
+## Forest floor cover
+
+The one `forests.rule` controls sparse log and boulder candidate density and
+physical size. The forest's catalog references select their body properties.
+The world places floor cover after all trunks with independent seeds, so changing
+floor density cannot shift any trunk or its published source range. Candidates
+that conflict with trees, roads, water, bodies or the forest boundary are omitted;
+per-hectare densities are placement ceilings, not guaranteed counts. The floor
+adds no concealment: trunk crowns remain the single foliage authority.

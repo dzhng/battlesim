@@ -12,9 +12,9 @@ import { simModule } from "../src/battle/sim/module";
 import { MAX_CATCHUP_TICKS, PUBLICATION_POOL } from "../src/battle/sim/timing";
 import type { CommandEnvelope, SimReply, SimRequest } from "../src/battle/sim/protocol";
 import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/observation";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import geometry from "@fixtures/geometry-lab.json";
-import { labScenario, VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
+import { labScenario, GAME_RULES } from "@apps/battle-lab/src/scenarios";
 
 let sim: SimModule;
 const authorities: Authority[] = [];
@@ -32,7 +32,7 @@ const scenario = labScenario(geometry, [
   { side: "blue", kind: "tank", position: [40, 150] },
   { side: "red", kind: "rifle", position: [360, 150] },
 ]);
-const TICK_MS = 1000 / village.tick_hz;
+const TICK_MS = 1000 / game.tick_hz;
 
 /** A host with a hand-driven clock that really detaches transferred buffers. */
 function harness(load: () => Promise<SimModule> = async () => sim) {
@@ -281,7 +281,7 @@ test("the ground streams as deltas, and a side switch reopens it with a full sna
 });
 
 test("a scripted blue commands like a player: recorded, replayable, timed per step", async () => {
-  const setup = village_scenario(JSON.stringify(VILLAGE_RULES), "ordinary");
+  const setup = village_scenario(JSON.stringify(GAME_RULES), "ordinary");
   const run = async (init: SimRequest) => {
     const h = harness();
     h.authority.handle(init);

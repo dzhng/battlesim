@@ -39,10 +39,10 @@ import { useFeed } from "../feed";
 import { LabViewport, type ViewportPilot } from "../LabViewport";
 import { useBuiltScenario } from "../useBuiltScenario";
 import { useStaticWorld } from "../useStaticWorld";
-import { useVillageAppearances } from "../villageAppearances";
-import { villageBiome } from "../villageBiome";
-import { villageCamera } from "../villageCamera";
-import { villageMassing } from "../villageMassing";
+import { useGameAppearances } from "../gameAppearances";
+import { gameBiome } from "../gameBiome";
+import { gameCamera } from "../gameCamera";
+import { gameMassing } from "../gameMassing";
 
 /** The eye path asked for: amber, red where it runs inside the clearance. */
 const ASKED: Rgba = [1, 0.66, 0.2, 1];
@@ -103,7 +103,7 @@ export default function CameraLab() {
 
 function Arena({ map }: { map: string }) {
   const world = useStaticWorld(useMemo(() => JSON.parse(map) as unknown, [map]));
-  const appearances = useVillageAppearances();
+  const appearances = useGameAppearances();
   const [trajectory, setTrajectory] = useState(TRAJECTORIES[0]);
   const [riding, setRiding] = useState(false);
   const [fallen, setFallen] = useState(false);
@@ -126,7 +126,7 @@ function Arena({ map }: { map: string }) {
       buildWorldLayers(
         world.exports,
         world.layout,
-        villageBiome,
+        gameBiome,
         "surface",
         apartKinds(world.layout, true),
         appearances,
@@ -149,8 +149,8 @@ function Arena({ map }: { map: string }) {
       massing: massingInstances(
         props,
         known,
-        massingParts(world.exports.buildings, villageMassing),
-        villageMassing,
+        massingParts(world.exports.buildings, gameMassing),
+        gameMassing,
       ),
       obstacles: buildingObstacles(props, known, parts, surfaceZ),
     };
@@ -160,9 +160,9 @@ function Arena({ map }: { map: string }) {
 
   // The flight: the trajectory through the same rig numbers, obstacles and
   // lens the viewport uses.
-  const rig = useMemo(() => new CameraController(villageCamera.config, surfaceZ), [surfaceZ]);
+  const rig = useMemo(() => new CameraController(gameCamera.config, surfaceZ), [surfaceZ]);
   const lens = useMemo(
-    () => ({ ...villageCamera.opening(), aspect: window.innerWidth / window.innerHeight }),
+    () => ({ ...gameCamera.opening(), aspect: window.innerWidth / window.innerHeight }),
     [],
   );
   const fly = useCallback(
@@ -178,7 +178,7 @@ function Arena({ map }: { map: string }) {
   const pathHalf = (watchingPose(trajectory).distance * PATH_WIDTH) / 2;
   const paths = useMemo(() => {
     if (!flight || !standing) return EMPTY_MESH;
-    const clearance = nearEnvelope(lens) + villageCamera.config.clearance.margin_m;
+    const clearance = nearEnvelope(lens) + gameCamera.config.clearance.margin_m;
     return pathMesh(flight, pathHalf, (eye) => !standing.obstacles.clear(eye, clearance));
   }, [flight, standing, lens, pathHalf]);
   // Watching: the two eyes move along their paths.
@@ -251,7 +251,7 @@ function Arena({ map }: { map: string }) {
         /** The near plane's envelope and the clear space kept beyond it. */
         clearance: () => ({
           envelope: nearEnvelope(lens),
-          margin: villageCamera.config.clearance.margin_m,
+          margin: gameCamera.config.clearance.margin_m,
         }),
         /** A trajectory flown frame by frame: the eye asked for and drawn. */
         flight: (id: string) =>

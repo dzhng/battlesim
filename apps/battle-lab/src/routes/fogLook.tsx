@@ -19,14 +19,14 @@ import {
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { FrameView, WorldMeshes } from "@packages/battle-renderer/src/scene";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { contactLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { STREET_CAMERA, STREET_SEED, useStreetScenario } from "../streetScenario";
-import { villageContactStyle, villageFogPresentation } from "../villageFog";
-import { villageLight } from "../villageLight";
+import { gameContactStyle, gameFogPresentation } from "../gameFog";
+import { gameLight } from "../gameLight";
 import { useFeed } from "../feed";
 import { TickStatus } from "../TickStatus";
 
@@ -38,9 +38,9 @@ type Sun = "fixture" | "low";
  *  scene's pixel identity check (bloom spreads unseen's dimming a little
  *  into seen pixels). */
 const lightFor = (sun: Sun, bloom: boolean): LightPresentation => ({
-  ...villageLight,
-  sun_elevation: sun === "low" ? LOW_SUN_ELEVATION : villageLight.sun_elevation,
-  bloom: bloom ? villageLight.bloom : { ...villageLight.bloom, strength: 0 },
+  ...gameLight,
+  sun_elevation: sun === "low" ? LOW_SUN_ELEVATION : gameLight.sun_elevation,
+  bloom: bloom ? gameLight.bloom : { ...gameLight.bloom, strength: 0 },
 });
 
 /** A contact's radius as the simulation sizes it (`Unit::contact_radius`):
@@ -48,12 +48,12 @@ const lightFor = (sun: Sun, bloom: boolean): LightPresentation => ({
  *  half-diagonal or half a full squad's spread plus a soldier's body. */
 function contactRadius(kind: string): number {
   const hull = UNITS.hull(kind);
-  const m = village.infantry_movement;
+  const m = game.infantry_movement;
   const footprint = hull
     ? Math.hypot(hull.half_extents_m[0], hull.half_extents_m[1])
     : (m.spread_m * Math.sqrt(UNITS.slots(kind).length / m.spread_squad_size)) / 2 +
-      village.physics.soldier_radius_m;
-  return village.sensors.contact_radius_factor * footprint;
+      game.physics.soldier_radius_m;
+  return game.sensors.contact_radius_factor * footprint;
 }
 
 /** Specimens beside the street, at the simulation's contact radius: a
@@ -122,9 +122,9 @@ function FogLookLab({ scenario }: { scenario: string }) {
   const { meshes, sim, surfaceZ } = session;
   const { observation } = sim;
   const [styles, setStyles] = useState<FogPresentation["styles"]>(() =>
-    structuredClone(villageFogPresentation.styles),
+    structuredClone(gameFogPresentation.styles),
   );
-  const [name, setName] = useState(villageFogPresentation.style);
+  const [name, setName] = useState(gameFogPresentation.style);
   const [sun, setSun] = useState<Sun>("low");
   const [bloom, setBloom] = useState(true);
   const [fogOn, setFogOn] = useState(true);
@@ -156,7 +156,7 @@ function FogLookLab({ scenario }: { scenario: string }) {
   const overlay = useMemo<WorldMeshes | undefined>(() => {
     if (!observation) return undefined;
     const battle = contactLayer(observation, surfaceZ);
-    const shown = specimens ? buildContactGlyphs(SPECIMENS, surfaceZ, villageContactStyle) : null;
+    const shown = specimens ? buildContactGlyphs(SPECIMENS, surfaceZ, gameContactStyle) : null;
     return {
       opaque: battle.opaque,
       translucent: concatMeshes(
@@ -427,7 +427,7 @@ function FogLookLab({ scenario }: { scenario: string }) {
         </div>
         <TickStatus tick={observation?.tick} status={sim.status.status} />
         <strong>Fixture block</strong>
-        <div className="lab-hint">Paste over `presentation.fog` in fixtures/village.json.</div>
+        <div className="lab-hint">Paste over `presentation.fog` in fixtures/game.json.</div>
         <textarea
           data-testid="fog-block"
           readOnly

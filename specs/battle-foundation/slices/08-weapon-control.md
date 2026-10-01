@@ -118,7 +118,7 @@ Every other scene stays green. `bun run check` is green.
 **Deviations:**
 
 - `MoveState::Halted` is new.
-- The mount records in `village.json`, and the `moving_scatter_multiplier` and `friendly_prefire_margin_m` physics keys, are new (see choices.md).
+- The mount records in `game.json`, and the `moving_scatter_multiplier` and `friendly_prefire_margin_m` physics keys, are new (see choices.md).
 - Lab fixture: `fixtures/weapons-lab.json`.
 - **Deferred to slice 09 (both delivered there):**
   - the suppression transition row (reload scaled by suppression);

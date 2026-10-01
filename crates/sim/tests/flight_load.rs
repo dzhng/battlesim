@@ -32,12 +32,12 @@ fn percentile(sorted: &[f64], p: f64) -> f64 {
 
 /// `rate_scale` multiplies every weapon's fire rate (1 = authored cycles).
 fn run(rate_scale: f64, seconds: f64) {
-    let village = village();
-    let map: MapDefinition = serde_json::from_value(village["map"].clone()).unwrap();
+    let game = game();
+    let map: MapDefinition = serde_json::from_value(game["map"].clone()).unwrap();
     let world = WorldGeometry::new(&map, &common::rules());
     let config = config();
     let dt = config.tick_s();
-    let cycle = |name: &str| village["weapons"][name]["reload_s"].as_f64().unwrap() / rate_scale;
+    let cycle = |name: &str| game["weapons"][name]["reload_s"].as_f64().unwrap() / rate_scale;
     let mut rng = Rng::new(20260925);
     let mut emitters = Vec::new();
     let mut id = 0;

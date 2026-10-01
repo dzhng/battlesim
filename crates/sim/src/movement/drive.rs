@@ -151,7 +151,14 @@ fn blocked(world: &WorldGeometry, unit: &Unit, center: V2, yaw: f64) -> bool {
 
 /// Whether the hull, rolling `length` from where it stands in `gear` and
 /// turning `turn` radians per metre, stays clear, sampled every metre.
-fn arc_clear(world: &WorldGeometry, unit: &Unit, gear: f64, turn: f64, length: f64) -> bool {
+fn arc_clear(
+    world: &WorldGeometry,
+    unit: &Unit,
+    gear: f64,
+    turn: f64,
+    length: f64,
+    traffic: &[Option<Obb2>],
+) -> bool {
     let mut at = unit.position.xy();
     let mut yaw = unit.yaw;
     let pieces = (length / PROBE_M).ceil().max(1.0) as usize;
@@ -160,7 +167,20 @@ fn arc_clear(world: &WorldGeometry, unit: &Unit, gear: f64, turn: f64, length: f
         let dyaw = turn * piece;
         at = at + dir(travel(yaw, gear) + dyaw / 2.0) * piece;
         yaw += dyaw;
-        if blocked(world, unit, at, yaw) {
+        let before = unit.hull_box().expect("a vehicle has a hull");
+        let after = Obb2 {
+            center: at,
+            yaw,
+            half: before.half,
+        };
+        let into_traffic = traffic.iter().enumerate().any(|(id, other)| {
+            id != unit.id.0 as usize
+                && other.is_some_and(|other| {
+                    let depth = |h: &Obb2| h.separation(&other).map_or(0.0, |v| v.length());
+                    depth(&after) > depth(&before) + 1e-9
+                })
+        });
+        if blocked(world, unit, at, yaw) || into_traffic {
             return false;
         }
     }
@@ -182,7 +202,14 @@ pub fn give_space(unit: &Unit, speed: f64, dt: f64) -> Motion {
 }
 
 /// This tick's motion toward `target`, at surface speed `speed`.
-pub fn steer(world: &WorldGeometry, unit: &mut Unit, target: V2, speed: f64, dt: f64) -> Motion {
+pub fn steer(
+    world: &WorldGeometry,
+    unit: &mut Unit,
+    target: V2,
+    speed: f64,
+    dt: f64,
+    traffic: &[Option<Obb2>],
+) -> Motion {
     let drive = unit.mobility.drive.expect("a vehicle has a drive");
     let gear = gear_sign(unit.direction());
     let here = unit.position.xy();
@@ -247,7 +274,7 @@ pub fn steer(world: &WorldGeometry, unit: &mut Unit, target: V2, speed: f64, dt:
                     target,
                     -drive.feel.circle_margin_m,
                 )
-                && arc_clear(world, unit, gear, side / radius, sweep));
+                && arc_clear(world, unit, gear, side / radius, sweep, traffic));
         if done {
             unit.manoeuvre = None;
         }
@@ -257,7 +284,7 @@ pub fn steer(world: &WorldGeometry, unit: &mut Unit, target: V2, speed: f64, dt:
         let v = accelerate(unit, speed_in(&drive, back, speed), back, dt);
         let step = v * dt;
         let turn = m.turn * curvature(v);
-        if arc_clear(world, unit, back, turn, PROBE_M) {
+        if arc_clear(world, unit, back, turn, PROBE_M, traffic) {
             let dyaw = turn * step;
             return Motion {
                 yaw: unit.yaw + dyaw,
@@ -281,8 +308,9 @@ pub fn steer(world: &WorldGeometry, unit: &mut Unit, target: V2, speed: f64, dt:
         world,
         unit,
         gear,
-        dyaw.signum() * curvature(v),
+        error.clamp(-curvature(v) * PROBE_M, curvature(v) * PROBE_M) / PROBE_M,
         PROBE_M.min((distance - super::PROGRESS_EPSILON_M).max(0.0)),
+        traffic,
     ) {
         // The forward arc runs into a solid: back up, still turning the same way.
         unit.manoeuvre = Some(Manoeuvre {

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
-import { VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
+import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
 import { buildingUnderRay } from "@apps/battle-lab/src/useStaticWorld";
 import {
   initSync,
@@ -59,11 +59,14 @@ test("the public picker and delivered replacements share one physical building o
     ],
     props: [{ id: 2, kind: "tooth", center: [700, 550], yaw: 0, half_extents: [0.6, 0.6, 0.6] }],
   };
-  const rules = structuredClone(VILLAGE_RULES);
-  const body = (rules.catalog as { props?: Record<string, { body: { hp: number } }> }[]).find(
-    (d) => d.props?.building,
-  )!.props!.building.body;
+  const rules = structuredClone(GAME_RULES);
+  const body = (
+    rules.catalog as {
+      props?: Record<string, { body: { hp: number; hp_scale?: "fixed" | "building_floor_bands" } }>;
+    }[]
+  ).find((d) => d.props?.building)!.props!.building.body;
   body.hp = 1000;
+  body.hp_scale = "fixed";
   rules.weapons.tank_he.structural_damage = 100;
   rules.weapons.tank_he.blast_radius_m = 20;
   const view = new WorldView(JSON.stringify(map), JSON.stringify(rules));

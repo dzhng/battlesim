@@ -4,7 +4,7 @@
 import { decode, pixel, writeCrop } from "./_png.mjs";
 import { lab, obs, advance, snapshot, until, openBattle } from "./_lab.mjs";
 import { paintOnly } from "./_overlays.mjs";
-import { hull, village } from "./_units.mjs";
+import { hull, game } from "./_units.mjs";
 
 /** The rings on screen, read back from the DOM. */
 const rings = (page) =>
@@ -105,7 +105,7 @@ export async function run(ctx) {
       }
       return null;
     },
-    village.presentation.overlay.orders.area_draw_scale,
+    game.presentation.overlay.orders.area_draw_scale,
   );
   ctx.check(
     "the infantry picking probe is inside its circle and clear of bodies and panels",
@@ -371,7 +371,7 @@ export async function run(ctx) {
   // A leader is one line everywhere: solid, one width, in its panel's
   // colour (the HUD accent for own units, selected or not); amber belongs to
   // the ground markers alone. Selection dims or lifts it with its panel.
-  const want = village.presentation.hud.accent.map((v) => Math.round(v * 255));
+  const want = game.presentation.hud.accent.map((v) => Math.round(v * 255));
   const leaders = await page.evaluate(() =>
     [...document.querySelectorAll(".ro-leader.ro-own")].map((l) => {
       const cs = getComputedStyle(l);
@@ -616,7 +616,7 @@ async function vehicleMarker(ctx) {
     TANK,
   );
   const radius =
-    hull("tank").half_extents_m[0] + village.presentation.overlay.orders.vehicle_marker_margin_m;
+    hull("tank").half_extents_m[0] + game.presentation.overlay.orders.vehicle_marker_margin_m;
   // Ground paint lies on the ground itself.
   const place = (target, yaw) =>
     lab(

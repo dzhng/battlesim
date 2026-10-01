@@ -13,9 +13,9 @@ import {
   type FogPresentation,
   type FogStyle,
 } from "@packages/battle-renderer/src/frame/fogStyle";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 
-const fixture = village.presentation.fog as unknown as FogPresentation;
+const fixture = game.presentation.fog as unknown as FogPresentation;
 const base = (): FogStyle => structuredClone(selectedFogStyle(fixture));
 
 test("the fixture's styles are all drawable and one is selected", () => {

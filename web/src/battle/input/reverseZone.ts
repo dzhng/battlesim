@@ -3,11 +3,11 @@
  *  move. The strip runs from the rear face up to `reverse_zone_length_m`
  *  back, and is the hull's width plus `reverse_zone_margin_m` each side. */
 import { vec2, type Vec2 } from "math";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import type { OwnUnitView } from "../sim/observation";
 
-const { reverse_zone_length_m: LENGTH_M, reverse_zone_margin_m: MARGIN_M } = village.controls;
+const { reverse_zone_length_m: LENGTH_M, reverse_zone_margin_m: MARGIN_M } = game.controls;
 
 const _zone_local: Vec2 = [0, 0];
 const _zone_origin: Vec2 = [0, 0];

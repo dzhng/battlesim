@@ -2,7 +2,7 @@
 // The pose driver seam: feed frames (what the simulation published) in, one
 // pose per soldier and one articulation per vehicle out. Per soldier, never
 // per formation.
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import { expect, test } from "vitest";
 import type { Vec3 } from "math";
 import {
@@ -15,7 +15,7 @@ import {
   type PoseFeel,
   type PoseFrame,
 } from "@packages/battle-renderer/src/models/poseDriver";
-import { villagePose as FEEL } from "@apps/battle-lab/src/poseFeed";
+import { gamePose as FEEL } from "@apps/battle-lab/src/poseFeed";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { UnitCatalog } from "@packages/scene-assets/src/units";
 import { shippedMounts } from "./shippedMounts";
@@ -40,7 +40,7 @@ const driver = () =>
     mounts: shippedMounts,
     clip: (_kind, name) => CLIPS[name] ?? null,
     feel: FEEL,
-    leanHold: village.cover.lean_hold_s,
+    leanHold: game.cover.lean_hold_s,
   });
 
 const squad = (
@@ -367,7 +367,7 @@ test("an HMG yaws relative to the mount its catalog row rides (`on`), else the h
     mounts: shippedMounts,
     clip: (_kind, name) => CLIPS[name] ?? null,
     feel: FEEL,
-    leanHold: village.cover.lean_hold_s,
+    leanHold: game.cover.lean_hold_s,
   });
   const a = d.update(frame(0, [tank(0, 0.5, 1.5, 1.0)])).vehicles[0].articulation;
   expect(a.turret_yaw).toBeCloseTo(1, 6);
@@ -378,7 +378,7 @@ test("a soldier's shot is timed once per rise of his shot count, not every frame
   // The feed counts each soldier's launches; a count that holds over many
   // render frames is one shot, so his firing pose ends `leanHold` after it.
   const d = driver();
-  const hold = village.cover.lean_hold_s;
+  const hold = game.cover.lean_hold_s;
   const at = (time: number, shots: number) =>
     d.update(
       frame(time, [squad([], { soldiers: [{ id: 1, slot: 0, position: [0, 0, 0], shots }] })]),
@@ -409,7 +409,7 @@ const capped = (corpses: PoseFeel["corpses"]) =>
     mounts: shippedMounts,
     clip: (_kind, name) => CLIPS[name] ?? null,
     feel: { ...FEEL, corpses },
-    leanHold: village.cover.lean_hold_s,
+    leanHold: game.cover.lean_hold_s,
   });
 
 const lying = (f: PoseFrame) => f.corpses.map((c) => c.soldier);
@@ -480,4 +480,44 @@ test("presentation.pose.corpses is checked: a whole positive cap, a positive fad
   expect(bad({ ...FEEL.corpses, max: 2.5 })).toThrow(/corpses\.max/);
   expect(bad({ ...FEEL.corpses, fade_s: 0 })).toThrow(/corpses\.fade_s/);
   expect(bad({ ...FEEL.corpses, sink_m: -1 })).toThrow(/corpses\.sink_m/);
+});
+
+test("changed corpse support moves both dying and static bodies without replaying death", () => {
+  const d = driver();
+  d.update(frame(0, [squad([{ id: 1, x: 0, y: 0 }])]));
+  const first = {
+    soldier: 1,
+    position: [0, 0, 6] as Vec3,
+    yaw: 2,
+    kind: "rifle" as const,
+    slot: 0,
+    side: "blue" as const,
+  };
+  d.update(frame(1, [squad([])], [first]));
+  const dropped = { ...first, position: [0, 0, 0] as Vec3 };
+  const moving = d.update(frame(2, [squad([])], [dropped]));
+  expect(moving.soldiers[0].position).toEqual([0, 0, 0]);
+  expect(moving.soldiers[0].phase).toBeCloseTo(0.5, 5);
+  const resting = d.update(frame(3.1, [squad([])], [dropped]));
+  const version = resting.corpsesVersion;
+  const settled = { ...dropped, position: [0, 0, -1] as Vec3 };
+  const changed = d.update(frame(4, [squad([])], [settled]));
+  expect(changed.soldiers).toEqual([]);
+  expect(changed.corpses[0].position).toEqual([0, 0, -1]);
+  expect(changed.corpsesVersion).toBeGreaterThan(version);
+});
+
+test("support changes preserve an already fading corpse's age and disappearance", () => {
+  const d = capped({ max: 1, fade_s: 2, sink_m: 0.5 });
+  const original = downed([1]);
+  d.update(frame(0, [], original));
+  const more = downed([1, 2]);
+  d.update(frame(1, [], more));
+  const dropped = more.map((f) => ({ ...f, position: [f.position[0], 0, -1] as Vec3 }));
+  const mid = d.update(frame(2, [], dropped));
+  expect(mid.fading[0].corpse.position).toEqual([1, 0, -1]);
+  expect(mid.fading[0].since).toBe(1);
+  expect(mid.fading[0].sink).toBeGreaterThan(0);
+  expect(d.update(frame(3, [], dropped)).fading).toEqual([]);
+  expect(lying(d.update(frame(4, [], dropped)))).toEqual([2]);
 });

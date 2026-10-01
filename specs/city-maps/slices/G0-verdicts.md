@@ -49,3 +49,21 @@ The user's deferred 3D-design/model instruction is recorded in [systems-handoff.
 | SA4 exact incremental visibility delivery and retained observations | [SA4](../spikes/SA4.md) | Owner unlocked and integrated with SA1; full active delivery admission remains open |
 | SA3 exact run publication and paired consumer cursors | [transport](../spikes/SA3-transport.md) | Owner unlocked; complete active delivery/resource admission remains open |
 | SA3 changed-tile/visibility-word learning | [learning evidence](../assets/ground-learning-work/README.md) | Exact semantics and uniform native recurring work pass at 12/15/18 km; broad churn, entropy and active-world admission remain open |
+| G0-SIM-SIGHT: exact reach-local sensing and fog | [Frozen paired source and evidence](../assets/sim-sight-cost/README.md), manifest SHA-256 `456fdf64e134e064cac2f92731c0591d8d74d7804d0db4205c951d82817b7580` | SA5 owner unlocked. Matched 6/10 km hundred-per-side runs retain digests; attributed endurance sensing/fog work passes. Complete active-world, rendering and whole-simulation timing admission remain separate gates. |
+
+The SA5 manifest pins the before/final source revisions, generated map bytes,
+canonical report outputs and the temporary attribution patch. Failed timing arms
+remain in the bundle. Its attributed bracket excludes `sight::snapshot`; the
+complete city tick reports include it. The narrower passing bracket cannot be
+used as a whole-simulation 33 ms verdict.
+
+The remaining sim owners have individually scoped verdicts below. Their exact
+source and combined gates are pinned by [the closeout manifest](../assets/sim-lane-closeout/README.md).
+These rows grant no complete G0 or map/art acceptance.
+
+| Decision | Physical/resource contract | Evidence | Verdict |
+|---|---|---|---|
+| G0-SIM-STRUCTURES | Resolved floor-band seats and occupied facade eyes; footprint/floor-band integrity; atomic low-rise ruin/tall gutted transition and side-owned corpse support | [Structure systems packet](../assets/sim-structures/README.md), focused regressions and [integrated gates](../assets/sim-lane-closeout/README.md) | Physical owners C40–43 unlocked. Legacy missing-fact policy and provisional coefficient remain disclosed; MG presentation, source windows and terminal art remain open. |
+| G0-SIM-MOVEMENT | Connected terrain proof, resumable route revalidation, shared bridge approaches and contextual traffic recovery | [Movement packet](../assets/sa6-movement/README.md), manifest SHA-256 `3c04fa1015a946305aea1b868f773eb3d9571787a415a54a99c765afe84c443f`, plus final merged clocks in [closeout](../assets/sim-lane-closeout/README.md) | SA6 physical owner unlocked with named mechanic identities and observed route-cost tradeoff. Dense-unit cost is not completion or whole-world admission. |
+| G0-SIM-BODIES | Ordinary street catalog rows and optional seeded route-preserving forest-floor admission | [C44](C44-street-bodies.md), [C77 paired evidence](../assets/sim-forest-bodies/README.md), [integrated gates](../assets/sim-lane-closeout/README.md) | Physical owners unlocked. Street placement/models remain C45/C46; forest default stays zero, active timing and C78 drawing remain open. |
+| G0-SIM-GROUND | All-LOD effective grass height at most 0.9 m; existing physical tree-line semantics | [C80](C80-grass-presets.md), [C86](C86-tree-lines.md), [integrated gates](../assets/sim-lane-closeout/README.md) | Validator/tree-line simulation scope unlocked; wider presets, grass look and new art are unaccepted. |

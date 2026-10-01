@@ -4,6 +4,7 @@
 // covers any point of the cell; the answer is then the one a walk over every
 // prop gives, whatever the map's size.
 import { expect, test } from "vitest";
+import { mat2, vec2, type Mat2, type Vec2 } from "math";
 import { mulberry32, random } from "math/random";
 import { packGrassProps } from "@packages/battle-renderer/src/terrain/grassField.ts";
 
@@ -30,14 +31,24 @@ function footprints(count: number, seed: number): Float32Array {
   return out;
 }
 
-/** Whether (x, y) is on any footprint widened by the margin: every prop asked. */
-function covered(props: Float32Array, x: number, y: number): boolean {
+function oracleFootprints(props: Float32Array) {
+  const boxes = [];
   for (let o = 0; o < props.length; o += 5) {
     const [px, py, yaw, hx, hy] = props.subarray(o, o + 5);
-    const [dx, dy] = [x - px, y - py];
-    const [c, s] = [Math.cos(yaw), Math.sin(yaw)];
-    if (Math.abs(dx * c + dy * s) < hx + MARGIN && Math.abs(-dx * s + dy * c) < hy + MARGIN)
-      return true;
+    const toLocal: Mat2 = [0, 0, 0, 0];
+    mat2.fromRotation(toLocal, -yaw);
+    boxes.push({ px, py, hx: hx + MARGIN, hy: hy + MARGIN, toLocal });
+  }
+  return boxes;
+}
+
+/** Full independent footprint scan, retaining double precision and strict edges.
+ * Fixed rotations are prepared once rather than allocated for every query. */
+function covered(props: ReturnType<typeof oracleFootprints>, x: number, y: number, local: Vec2) {
+  for (const p of props) {
+    vec2.set(local, x - p.px, y - p.py);
+    vec2.transformMat2(local, local, p.toLocal);
+    if (Math.abs(local[0]) < p.hx && Math.abs(local[1]) < p.hy) return true;
   }
   return false;
 }
@@ -70,6 +81,8 @@ function lookup(table: Float32Array, x: number, y: number) {
 test("a point's cell lists every prop that could cover it, and few others", () => {
   const props = footprints(4000, 7);
   const table = packGrassProps(props, MARGIN);
+  const oracle = oracleFootprints(props);
+  const local: Vec2 = [0, 0];
   const state = mulberry32.create(11);
   const rng = () => mulberry32.sample(state);
   let hits = 0;
@@ -83,7 +96,7 @@ test("a point's cell lists every prop that could cover it, and few others", () =
     const x = near ? props[o] + random.float(rng, -reach, reach) : random.float(rng, 0, 4000);
     const y = near ? props[o + 1] + random.float(rng, -reach, reach) : random.float(rng, 0, 4000);
     const got = lookup(table, x, y);
-    expect(got.hit, `at ${x}, ${y}`).toBe(covered(props, x, y));
+    expect(got.hit, `at ${x}, ${y}`).toBe(covered(oracle, x, y, local));
     hits += got.hit ? 1 : 0;
     asked += got.asked;
   }

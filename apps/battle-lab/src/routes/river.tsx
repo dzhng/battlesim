@@ -12,8 +12,8 @@ import { LabViewport } from "../LabViewport";
 import { labScenario } from "../scenarios";
 import { useBattleSession } from "../useBattleSession";
 import { useFeed } from "../feed";
-import { villageBiome } from "../villageBiome";
-import { villageCamera } from "../villageCamera";
+import { gameBiome } from "../gameBiome";
+import { gameCamera } from "../gameCamera";
 
 /** Where units stand and are sent: named so the scene and the panel agree. */
 const STATIONS = {
@@ -45,7 +45,7 @@ const RIVER_CAMERA: Camera3DParams = {
   distance: 430,
   pitch: 0.95,
   yaw: -Math.PI / 2,
-  ...villageCamera.lens,
+  ...gameCamera.lens,
 };
 
 const send = (units: number[], gesture: number, goal: readonly [number, number]): Order => ({
@@ -77,7 +77,7 @@ export default function River() {
   const [view, setView] = useState<GroundView>("surface");
   const drawn = useMemo(() => {
     if (view === "surface" || !world) return meshes;
-    const layers = buildWorldLayers(world.exports, world.layout, villageBiome, "traversal");
+    const layers = buildWorldLayers(world.exports, world.layout, gameBiome, "traversal");
     if (view === "traversal") return layers;
     // One tint over every triangle: what is left is the ground's shading.
     const mesh = layers.terrain.mesh.slice();

@@ -12,8 +12,8 @@ import { CaptionList, useCaptions } from "@web/battle/present/captions";
 import { buildBattleOverlay, type BattleOverlayScenario } from "./battleOverlay";
 import { borderWidthM, buildMapBorder } from "@packages/battle-renderer/src/playAreaOverlay";
 import { metresPerPxAt } from "@packages/renderer-core/src/camera3d";
-import { villageMapBorder } from "./villageFog";
-import { villageStroke } from "./villageOverlay";
+import { gameMapBorder } from "./gameFog";
+import { gameStroke } from "./gameOverlay";
 import { LabViewport } from "./LabViewport";
 import { MenuButton, PauseMenu, usePauseMenu } from "./PauseMenu";
 import { useBattleSession, type BattleSession } from "./useBattleSession";
@@ -61,7 +61,7 @@ export function BattleView({
    *  camera is the player's (watching the script play). */
   scripted?: ScriptedSim & { pilot?: ViewportPilot };
   camera: Camera3DParams;
-  /** The camera rig's numbers; the village's when omitted. */
+  /** The camera rig's numbers; the game's when omitted. */
   cameraConfig?: CameraPresentation;
   /** The top bar's readout: what the player tracks while playing. */
   status: (session: BattleSession) => ReactNode;
@@ -126,8 +126,8 @@ export function BattleView({
       world
         ? buildMapBorder(
             parsed.size,
-            villageMapBorder,
-            borderWidthM(villageMapBorder, villageStroke(metresPerPx)),
+            gameMapBorder,
+            borderWidthM(gameMapBorder, gameStroke(metresPerPx)),
             surfaceZ,
           )
         : null,

@@ -323,7 +323,7 @@ fn wear(unit: &mut Unit, c: &UnitCondition, arsenal: &Arsenal, rules: &Rules) {
     let n = unit.members.len();
     for k in n.saturating_sub(c.casualties as usize)..n {
         let at = unit.members[k].position;
-        unit.members[k].fall(at, unit.yaw);
+        unit.members[k].fall(at, unit.yaw, None);
     }
     if !unit.members.is_empty() {
         unit.suppression = c.suppression.clamp(0.0, 1.0);
@@ -759,6 +759,7 @@ impl Battle {
                         && matches!(c.command.order, Order::Garrison { building: b, .. } if self.world.remembered_structure_owner(b) == self.world.remembered_structure_owner(*building))
                 });
                 return garrison::validate(
+                    &self.world,
                     &self.units,
                     command.side,
                     units,
@@ -1082,18 +1083,36 @@ impl Battle {
             }
             Destroyed::Into {
                 prop: remains,
-                height_m,
+                mut height_m,
+                building,
             } => {
+                let mut remains = remains;
+                if let Some(rule) = building {
+                    if let Some(definition) = self.world.building(id) {
+                        let geometry = &definition.geometry;
+                        let floors = geometry.floor_z.as_ref().map_or(1, Vec::len);
+                        if floors > rule.collapse_max_floors {
+                            remains = rule.gutted_prop;
+                            height_m = 2.0 * prop.half.z;
+                        } else {
+                            height_m = (geometry.height_m * rule.height_fraction)
+                                .clamp(height_m, rule.max_height_m);
+                        }
+                    }
+                }
                 self.world.remove_prop(id);
-                let remains = self.add_prop(&PropDefinition {
-                    kind: remains,
-                    center: [prop.center.x, prop.center.y],
-                    yaw: prop.yaw,
-                    half_extents: [prop.half.x, prop.half.y, height_m / 2.0],
-                    base_z: Some(prop.base_z),
-                });
+                let remains = self.world.add_replacement(
+                    &PropDefinition {
+                        kind: remains,
+                        center: [prop.center.x, prop.center.y],
+                        yaw: prop.yaw,
+                        half_extents: [prop.half.x, prop.half.y, height_m / 2.0],
+                        base_z: Some(prop.base_z),
+                    },
+                    id,
+                );
+                self.schedule_expiry(remains);
                 self.structures.note_replaced(remains, id);
-                self.world.note_replacement(remains, id);
                 // Remains that still close an authored body's footprint to
                 // every mover it stopped are planned with by every side, as
                 // the body was: a fall a side never saw cannot open a route.
@@ -1495,7 +1514,8 @@ impl Battle {
 
     /// Guided missiles (P05, P06): a launcher supports its missile while it
     /// stands still, has a living operator (including a survivor who takes
-    /// over the launcher) and identifies the target with its own sensors, and
+    /// over the launcher), its side identifies the target, and its operator
+    /// has physical line of sight independent of spotting range. It
     /// steers it at the target's observed position. Losing any of these (or a
     /// Stop, which drops the mount's support) releases it at once and for good:
     /// the missile coasts straight on for `guided.release_coast_s`, then goes
@@ -1516,15 +1536,23 @@ impl Battle {
         for (i, unit) in self.units.iter_mut().enumerate() {
             weapons::assign_operators(&self.arsenal, unit);
             let knowledge = &self.knowledge[unit.side.index()];
-            for mount in &mut unit.mounts {
+            for m in 0..unit.mounts.len() {
+                let mount = &unit.mounts[m];
                 let Some(s) = mount.support else { continue };
                 let target = match s.target {
                     Target::Unit(t) => Some(t),
                     _ => None,
                 };
                 let sighting = target
-                    .filter(|&t| alive[t.0 as usize] && knowledge.own_sees(unit.id, t))
-                    .and_then(|t| knowledge.track(t).map(|tr| (t, tr.position)));
+                    .filter(|&t| alive[t.0 as usize])
+                    // Guidance precedes this tick's sensing and reads the
+                    // previous completed observation, as before.
+                    .and_then(|t| {
+                        knowledge
+                            .track(t)
+                            .filter(|tr| tr.last_seen + 1 == self.tick)
+                            .map(|tr| tr.position + v3(0.0, 0.0, aim_z[t.0 as usize]))
+                    });
                 // Entering or leaving a building is a transition that releases too.
                 let settled = unit
                     .garrison
@@ -1535,13 +1563,14 @@ impl Battle {
                     && settled
                     && (unit.hull.is_some() || mount.operator.is_some())
                     && self.projectiles.get(s.projectile).is_some();
-                match sighting.filter(|_| keep) {
-                    Some((t, at)) => {
-                        self.projectiles
-                            .steer(s.projectile, at + v3(0.0, 0.0, aim_z[t.0 as usize]));
+                match sighting.filter(|&at| {
+                    keep && weapons::guidance_clear(&self.world, &self.rules, unit, mount, at)
+                }) {
+                    Some(at) => {
+                        self.projectiles.steer(s.projectile, at);
                         supported.insert(s.projectile);
                     }
-                    None => mount.support = None,
+                    None => unit.mounts[m].support = None,
                 }
             }
         }
@@ -1653,14 +1682,28 @@ impl Battle {
 
     /// Recompute what ground this side sees, and learn any new obstacle in view.
     fn sweep_fog(&mut self, side: Side) {
-        self.occlusion.refresh(&self.world);
         let mut field = self.occlusion.field();
+        let mut candidates = Vec::new();
+        let mut remembered = Vec::new();
         for unit in self.units.iter().filter(|u| u.side == side && u.alive()) {
             let sight = sight::of(unit, &self.rules);
             for eye in sensing::eyes(unit, &self.rules) {
+                // A ray can step one cell past its reach, and the marked cell
+                // can contain a footprint sample a diagonal farther away.
+                candidates.extend(
+                    self.world
+                        .props_near(eye.xy(), sight.max_range() + 3.0 * field.cell_m)
+                        .into_iter()
+                        .map(|p| p.id),
+                );
+                self.sides[side.index()].standing_near(
+                    eye.xy(),
+                    sight.max_range() + 3.0 * field.cell_m,
+                    &mut remembered,
+                );
                 visibility::sweep(
                     &self.world,
-                    &self.occlusion,
+                    &mut self.occlusion,
                     &self.rules.sensors,
                     eye,
                     &sight,
@@ -1668,39 +1711,48 @@ impl Battle {
                 );
             }
         }
+        candidates.sort_unstable();
+        candidates.dedup();
         // Enemy fallen in view are remembered, and the ground in view learned.
         let knowledge = &mut self.knowledge[side.index()];
         knowledge.learn_ground(&self.ground, &field);
         for u in self.units.iter().filter(|u| u.side != side) {
             for s in &u.members {
-                if s.corpse.is_some_and(|f| field.visible(f.at.x, f.at.y)) {
-                    knowledge.note_corpse(s.id);
+                if let Some(fallen) = s.corpse.filter(|f| field.visible(f.at.x, f.at.y)) {
+                    knowledge.note_corpse(s.id, fallen);
                 }
             }
         }
         // Bodies in view are learned where they stand: new ones, and known
         // ones seen moved (L1, L2); trees seen fallen are gone (Q16).
         let known = &mut self.sides[side.index()];
-        let revealed: std::collections::BTreeSet<_> = self
-            .world
-            .building_states()
-            .filter(|(_, history, current)| {
-                history.iter().any(|id| {
-                    known
-                        .standing
-                        .get(id)
-                        .is_some_and(|p| footprint_seen(&field, p))
-                }) || current.iter().any(|&id| {
-                    self.world
-                        .prop(id)
-                        .is_some_and(|p| footprint_seen(&field, p))
-                })
-            })
-            .map(|(id, _, _)| id)
+        let revealed: std::collections::BTreeSet<_> = candidates
+            .iter()
+            .filter_map(|&id| self.world.prop(id))
+            .chain(remembered.iter().filter_map(|id| known.standing().get(id)))
+            .filter_map(|p| self.world.building_of(p.id).map(|owner| (owner, p)))
+            .filter(|(_, p)| footprint_seen(&field, p))
+            .map(|(owner, _)| owner)
             .collect();
-        let fallen: Vec<PropId> = known
-            .standing
-            .values()
+        // Seeing one physical part reveals the entire aggregate, including
+        // parts beyond the eye's reach. Keep learning in ascending prop order.
+        candidates.extend(
+            revealed
+                .iter()
+                .flat_map(|&owner| self.world.current_building_parts(owner).iter().copied()),
+        );
+        candidates.sort_unstable();
+        candidates.dedup();
+        remembered.extend(
+            revealed
+                .iter()
+                .flat_map(|&owner| self.world.historical_building_parts(owner).iter().copied()),
+        );
+        remembered.sort_unstable();
+        remembered.dedup();
+        let fallen: Vec<PropId> = remembered
+            .into_iter()
+            .filter_map(|id| known.standing().get(&id))
             .filter(|p| {
                 footprint_seen(&field, p)
                     || self
@@ -1714,7 +1766,7 @@ impl Battle {
             known.saw_fallen(id);
         }
         let relearn = self.rules.pushing.relearn_m;
-        for prop in self.world.props() {
+        for prop in candidates.into_iter().filter_map(|id| self.world.prop(id)) {
             if (prop.id >= self.authored_props || known.seen.contains_key(&prop.id))
                 && (footprint_seen(&field, prop)
                     || self
@@ -2085,7 +2137,7 @@ impl Battle {
             let removed = self
                 .structures
                 .removed()
-                .filter(|p| p.id < self.authored_props && !known.standing.contains_key(&p.id))
+                .filter(|p| p.id < self.authored_props && !known.standing().contains_key(&p.id))
                 .map(|p| (p.clone(), Some(p.id), true));
             for (p, replaces, destroyed) in remembered.chain(removed) {
                 let building = self.world.building_of(p.id);
@@ -2256,7 +2308,14 @@ impl Battle {
             for u in &self.units {
                 for s in &u.members {
                     let own = u.side == side;
-                    if let (Some(f), true) = (s.corpse, own || knowledge.knows_corpse(s.id)) {
+                    let fallen = s.corpse.and_then(|actual| {
+                        if own {
+                            Some(actual)
+                        } else {
+                            knowledge.corpse(s.id, actual)
+                        }
+                    });
+                    if let Some(f) = fallen {
                         frame.corpses.push(Corpse {
                             position: [f.at.x, f.at.y, f.at.z],
                             own,
@@ -2423,7 +2482,7 @@ mod tests {
                 "forests": [{ "shape": { "kind": "polygon",
                     "ring": [[100, 50], [200, 50], [200, 150], [100, 150]] } }],
                 "props": props },
-            "rules": crate::fixtures::village(),
+            "rules": crate::fixtures::game(),
             "units": [
                 { "side": "blue", "kind": "tank", "position": [40, 100], "yaw": 0.0,
                   "engagement": "return_fire_only" },
@@ -2517,5 +2576,243 @@ mod tests {
         );
         assert_eq!(pieces[1].hit, SegmentHit::Ground, "its end is seen");
         assert!(pieces.iter().all(|p| !p.own && p.kind == 0));
+    }
+    #[test]
+    fn seeing_one_remain_clears_far_historical_building_snapshots() {
+        let mut descriptor: contract::templates::BuildingTemplateDescriptor = serde_json::from_str(
+            include_str!("../../../fixtures/parity/templates/asymmetric.json"),
+        )
+        .unwrap();
+        descriptor.parts[0].half_extents[0] = 50.0;
+        descriptor.parts[1].center[0] = 52.0;
+        for edge in &mut descriptor.edges {
+            if edge.id == "main-north" || edge.id == "main-south" {
+                edge.span_m = [-50.0, 50.0];
+            }
+        }
+        let catalogue =
+            contract::templates::TemplateGeometryCatalog::new(vec![descriptor.clone()]).unwrap();
+        let geometry = descriptor
+            .materialize(contract::templates::PlacementFrame {
+                translation: [400.0, 300.0, 0.0],
+                yaw: 0.0,
+            })
+            .unwrap();
+        let mut rules = crate::fixtures::game();
+        crate::fixtures::patch_catalog(
+            &mut rules,
+            "units",
+            "rifle",
+            serde_json::json!({"sensors":{"ground_m":30}}),
+        );
+        let setup = serde_json::from_value(serde_json::json!({
+            "map":{"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+                "template_catalog_hash":catalogue.hash(),
+                "buildings":[{"owner":0,"kind":"building","category":descriptor.category,"regional_family":descriptor.regional_family,"parts":[{"part":"main","prop":0},{"part":"wing","prop":1}],"geometry":geometry}]},
+            "rules":rules,"units":[{"side":"blue","kind":"rifle","position":[250,100],"engagement":"return_fire_only"}],"events":[],"scripts":[]
+        })).unwrap();
+        let mut battle = Battle::new(&setup, 11);
+        battle.destroy_prop(0);
+        assert!(
+            battle.sides[0].standing().contains_key(&1),
+            "unseen wing remains remembered"
+        );
+        let delta = crate::math::v3(78.0, 200.0, 0.0);
+        battle.units[0].position = battle.units[0].position + delta;
+        for member in &mut battle.units[0].members {
+            member.position = member.position + delta;
+        }
+        battle.sweep_fog(Side::Blue);
+        assert!(
+            !battle.fog[0].visible(452.0, 301.0),
+            "far wing stays fogged"
+        );
+        assert!(!battle.sides[0].standing().contains_key(&0));
+        assert!(
+            !battle.sides[0].standing().contains_key(&1),
+            "whole aggregate's historical snapshots are cleared"
+        );
+    }
+    #[test]
+    fn corpse_support_loss_is_physical_but_enemy_memory_waits_for_sight() {
+        for whole_squad in [false, true] {
+            let descriptor: contract::templates::BuildingTemplateDescriptor = serde_json::from_str(
+                include_str!("../../../fixtures/parity/templates/asymmetric.json"),
+            )
+            .unwrap();
+            let catalogue =
+                contract::templates::TemplateGeometryCatalog::new(vec![descriptor.clone()])
+                    .unwrap();
+            let mut geometry = descriptor
+                .materialize(contract::templates::PlacementFrame {
+                    translation: [400.0, 300.0, 0.0],
+                    yaw: 0.0,
+                })
+                .unwrap();
+            geometry.floor_z = Some(vec![0.0, 3.0, 6.0]);
+            let mut rules = crate::fixtures::game();
+            crate::fixtures::patch_catalog(
+                &mut rules,
+                "units",
+                "rifle",
+                serde_json::json!({"sensors":{"ground_m":60}}),
+            );
+            rules["weapons"]["rifle"]["damage"] = serde_json::json!(1e6);
+            rules["garrison"]["survival_probability_on_collapse"] = serde_json::json!(0);
+            let setup = serde_json::from_value(serde_json::json!({
+                "map":{"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+                    "template_catalog_hash":catalogue.hash(),
+                    "buildings":[{"owner":0,"kind":"building","category":descriptor.category,"regional_family":descriptor.regional_family,
+                        "parts":[{"part":"main","prop":0},{"part":"wing","prop":1}],"geometry":geometry}]},
+                "rules":rules,"units":[
+                    {"side":"red","kind":"rifle","position":[380,300],"engagement":"return_fire_only"},
+                    {"side":"blue","kind":"rifle","position":[350,300],"engagement":"return_fire_only"}
+                ],"events":[],"scripts":[]
+            })).unwrap();
+            let mut battle = Battle::new(&setup, 11);
+            let ack = battle.accept(CommandEnvelope {
+                side: Side::Red,
+                seq: 1,
+                queued: false,
+                order: Order::Garrison {
+                    units: vec![UnitId(0)],
+                    building: 0,
+                },
+            });
+            assert_eq!(ack.error, None);
+            for _ in 0..300 {
+                battle.step();
+            }
+            assert!(battle.units[0].garrisoned());
+            let upper = battle.units[0]
+                .members
+                .iter()
+                .find(|s| s.position.z == 6.0 && battle.fog[0].visible(s.position.x, s.position.y))
+                .unwrap()
+                .clone();
+            let targets: Vec<_> = battle.units[0]
+                .members
+                .iter()
+                .filter(|s| whole_squad || s.id == upper.id)
+                .map(|s| (s.id, s.position))
+                .collect();
+            let weapon = battle
+                .arsenal
+                .weapons
+                .iter()
+                .position(|w| w.id == "rifle")
+                .unwrap();
+            // Feed physical hit events at damage's boundary: stochastic aiming
+            // is not the support or knowledge contract under test.
+            let mut rounds = BTreeMap::new();
+            let events: Vec<_> = targets
+                .iter()
+                .enumerate()
+                .map(|(i, (id, at))| {
+                    let projectile = ProjectileId(i as u64);
+                    rounds.insert(
+                        projectile,
+                        Round {
+                            weapon,
+                            unit: UnitId(1),
+                            side: Side::Blue,
+                        },
+                    );
+                    FlightEvent::Impact(flight::Impact {
+                        projectile,
+                        struck: flight::Struck::Body(flight::BodyId(*id)),
+                        point: *at,
+                        normal: v3(1.0, 0.0, 0.0),
+                        velocity: v3(100.0, 0.0, 0.0),
+                        time: 0.0,
+                        bounces: 0,
+                        pose: None,
+                        detonated: false,
+                    })
+                })
+                .collect();
+            damage::resolve(
+                &DamageContext {
+                    world: &battle.world,
+                    ground: &battle.ground,
+                    arsenal: &battle.arsenal,
+                    rules: &battle.rules,
+                    tick: battle.tick,
+                },
+                &events,
+                &rounds,
+                &mut battle.suppressed,
+                &mut battle.units,
+                &mut battle.damage_rng,
+            );
+            assert_eq!(battle.units[0].alive(), !whole_squad);
+            assert_eq!(battle.units[0].garrison.is_none(), whole_squad);
+            battle.sweep_fog(Side::Blue);
+            battle.observe_all();
+            let remembered = battle
+                .observe(Side::Blue)
+                .corpses
+                .iter()
+                .find(|f| f.soldier == upper.id)
+                .unwrap()
+                .clone();
+            assert_eq!(remembered.position[2], 6.0);
+            let delta = v3(-300.0, -250.0, 0.0);
+            battle.units[1].position = battle.units[1].position + delta;
+            for member in &mut battle.units[1].members {
+                member.position = member.position + delta;
+            }
+            battle.sweep_fog(Side::Blue);
+            assert!(!battle.fog[0].visible(upper.position.x, upper.position.y));
+            battle.destroy_prop(0);
+            battle.observe_all();
+            let physical = battle
+                .observe(Side::Red)
+                .corpses
+                .iter()
+                .find(|f| f.soldier == upper.id)
+                .unwrap();
+            let z = battle
+                .world
+                .surface_at(upper.position.x, upper.position.y)
+                .unwrap()
+                .z;
+            assert_eq!(physical.position, [upper.position.x, upper.position.y, z]);
+            assert_eq!(
+                battle
+                    .observe(Side::Blue)
+                    .corpses
+                    .iter()
+                    .find(|f| f.soldier == upper.id)
+                    .unwrap()
+                    .position,
+                remembered.position,
+                "an unseen collapse cannot move a remembered enemy corpse"
+            );
+            let mut unchanged = battle.damage_rng.clone();
+            battle.destroy_prop(0);
+            assert_eq!(
+                battle.damage_rng.unit(),
+                unchanged.unit(),
+                "no second survival roll"
+            );
+            battle.units[1].position = battle.units[1].position - delta;
+            for member in &mut battle.units[1].members {
+                member.position = member.position - delta;
+            }
+            battle.sweep_fog(Side::Blue);
+            assert!(battle.fog[0].visible(upper.position.x, upper.position.y));
+            battle.observe_all();
+            assert_eq!(
+                battle
+                    .observe(Side::Blue)
+                    .corpses
+                    .iter()
+                    .find(|f| f.soldier == upper.id)
+                    .unwrap()
+                    .position,
+                [upper.position.x, upper.position.y, z]
+            );
+        }
     }
 }

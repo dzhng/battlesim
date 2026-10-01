@@ -9,14 +9,14 @@ import type { FogEye, FogInput } from "@packages/battle-renderer/src/frame/fogIn
 import type { FogLookupParams, FogProbes } from "@packages/battle-renderer/src/frame/fogVisibility";
 import { oracleAnswers, oracleVectors } from "@packages/battle-renderer/src/frame/fogOracle";
 import type { FrameView } from "@packages/battle-renderer/src/scene";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import { loadWasm } from "@web/battle/sim/module";
 import type { ObservationView } from "@web/battle/sim/observation";
 import type { SideName } from "@web/battle/sim/protocol";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { STREET_CAMERA, STREET_SEED, useStreetScenario } from "../streetScenario";
-import { villageFogGeometry } from "../villageFog";
+import { gameFogGeometry } from "../gameFog";
 import { useFeed } from "../feed";
 import { TickStatus } from "../TickStatus";
 
@@ -108,10 +108,10 @@ async function lookupOracle(probes: FogProbes, seed: number) {
   const lookup: FogLookupParams = {
     azimuthBins: 64,
     radialBins: 16,
-    firstBinM: villageFogGeometry.first_bin_m,
-    targetHeightM: village.sensors.fog_target_height_m,
-    faceProbeM: villageFogGeometry.face_probe_m,
-    foliageFullBlock: village.sensors.foliage_full_block,
+    firstBinM: gameFogGeometry.first_bin_m,
+    targetHeightM: game.sensors.fog_target_height_m,
+    faceProbeM: gameFogGeometry.face_probe_m,
+    foliageFullBlock: game.sensors.foliage_full_block,
   };
   const vectors = oracleVectors(seed, lookup);
   const cpu = oracleAnswers(lookup, vectors);

@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import * as wasm from "@wasm/game_wasm.js";
 import lab from "@fixtures/generated-lab.json";
-import { VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
+import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
 import { MapRefused, prepareGeneratedBattle } from "../src/battle/prepare/generatedBattle";
 import type { PrepareRequest } from "../src/battle/prepare/protocol";
 import type { WorldLayout } from "@packages/battle-renderer/src/worldMesh";
@@ -18,7 +18,7 @@ beforeAll(() => {
   }).memory;
 });
 
-const rules = JSON.stringify(VILLAGE_RULES);
+const rules = JSON.stringify(GAME_RULES);
 const request = (over: Partial<PrepareRequest> = {}): PrepareRequest => ({
   type: "prepare",
   map: { type: "open", size: "small", seed: "1" },

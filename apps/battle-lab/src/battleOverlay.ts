@@ -28,14 +28,14 @@ import { buildZoneRing } from "@packages/battle-renderer/src/playAreaOverlay";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
 import type { ObservationView, OwnUnitView } from "@web/battle/sim/observation";
 import type { RevealedOrders } from "@web/battle/present/orderReveal";
-import { villageContactStyle } from "./villageFog";
+import { gameContactStyle } from "./gameFog";
 import {
   OPENING_METRES_PER_PX,
-  villageOrderStyle,
-  villageStroke,
-  villageSupplyStyle,
-  villageZone,
-} from "./villageOverlay";
+  gameOrderStyle,
+  gameStroke,
+  gameSupplyStyle,
+  gameZone,
+} from "./gameOverlay";
 
 type P3 = [number, number, number];
 // The labs' own marks: tracers (the battle draws flight as effects) and
@@ -95,7 +95,7 @@ export function contactLayer(o: ObservationView, z: SurfaceHeight): WorldMeshes 
       freshness: contactFreshness(c, o.tick),
     })),
     z,
-    villageContactStyle,
+    gameContactStyle,
   );
 }
 
@@ -168,8 +168,8 @@ export function supplyLayer(
       .filter((u) => (all || selected.includes(u.id)) && u.stock !== null && u.stock > 0)
       .map((u) => ({ center: [u.position[0], u.position[1]], radius })),
     z,
-    villageStroke(metresPerPx)(villageOrderStyle.line_px),
-    villageSupplyStyle,
+    gameStroke(metresPerPx)(gameOrderStyle.line_px),
+    gameSupplyStyle,
   );
 }
 
@@ -205,8 +205,8 @@ export function orderLayer(
       .filter((u) => selected.includes(u.id) || reveal.has(u.id))
       .map((u) => orderView(u, selected.includes(u.id), reveal.get(u.id))),
     z,
-    villageOrderStyle,
-    { stroke: villageStroke(metresPerPx) },
+    gameOrderStyle,
+    { stroke: gameStroke(metresPerPx) },
   );
 }
 
@@ -224,13 +224,13 @@ export function buildBattleOverlay(
   const orders = orderLayer(o, selected, reveal, z, metresPerPx);
   // The hold zone, a line of the orders' weight: dashed while blue is not
   // holding it. The zone and the border are paint, like the orders.
-  const line = villageStroke(metresPerPx)(villageOrderStyle.line_px);
+  const line = gameStroke(metresPerPx)(gameOrderStyle.line_px);
   const zone = scenario.zone
     ? buildZoneRing(
         scenario.zone.center,
         scenario.zone.radius,
         line,
-        villageZone,
+        gameZone,
         !!o.encounter && o.encounter.heldS > 0,
         z,
       )

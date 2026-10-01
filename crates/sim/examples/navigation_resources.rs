@@ -76,7 +76,7 @@ fn main() {
     let args: Vec<_> = std::env::args().collect();
     let side: f64 = args[1].parse().unwrap();
     let arm = args.get(2).map(String::as_str).unwrap_or("empty");
-    let rules: Rules = serde_json::from_value(sim::fixtures::village()).unwrap();
+    let rules: Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
     let mut input = serde_json::json!({"size":[side,side],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35});
     if arm == "sparse" {
         input["props"] = serde_json::json!([

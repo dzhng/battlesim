@@ -21,10 +21,10 @@ Walked with the user on 2026-09-28. Retained ground appearance/rule decisions ar
 - **Roads:** one flat pale grey-tan (sRGB [0.46, 0.43, 0.39]) with a ~0.2 m feather at the sim rule's edge (`:479-484`). Battle-look chose "pale, reads as a line like WARNO's" and removed ruts because they read as a ghost outline (`specs/done/battle-look/decisions.md:90, :93`).
 - **Grass:** GPU-compute clumps in 5 kinds (meadow, pasture, crop, wheat 0.95 m, stubble), 1–1.2 ms (`frame/grassPass.ts`, `terrain/grassField.ts`).
 - **Trees:** solid lobed crowns, 3 species plus a hedge (`packages/scene-assets/blender/trees.py:48-70`). Leaf cards were rejected: they shimmer under 4× MSAA and need a discarding prepass (`specs/done/battle-look/choices.md:1433-1441`). The forest floor is litter, moss and humus with a sun dapple. **No undergrowth, rocks or logs.**
-- **Forests in the sim:** each has `canopy_height_m` 12, `trunk_height_m` 10 and a density row (light, medium or dense: spacing 14/9/6 m, concealment, canopy radius) (`fixtures/village.json`).
+- **Forests in the sim:** each has `canopy_height_m` 12, `trunk_height_m` 10 and a density row (light, medium or dense: spacing 14/9/6 m, concealment, canopy radius) (`fixtures/game.json`).
 - **Water:** axis-aligned rects, impassable, crossed at bridges only (`crates/sim/src/world/mod.rs:221-238`). The village has none.
 - **Farms:** about 4,000 seeded split plots with palette jitter and crop rows (`terrain/plots.ts`). Only the summer biome exists.
-- **Maps:** no category field. The village is `fixtures/village.json`; there are 11 `fixtures/*-lab.json` files and 25 entries in `apps/battle-lab/src/fixtures.json`, and `MainMenu.tsx` hand-lists Play, Watch, Benchmark and Labs.
+- **Maps:** no category field. The village is `fixtures/game.json`; there are 11 `fixtures/*-lab.json` files and 25 entries in `apps/battle-lab/src/fixtures.json`, and `MainMenu.tsx` hand-lists Play, Watch, Benchmark and Labs.
 - **Every drawn thing is a workbench appearance** (renderer `SKILL.md:184`).
 
 ## 2. Known unknowns: decision ledger
@@ -65,7 +65,7 @@ Walked with the user on 2026-09-28. Retained ground appearance/rule decisions ar
 
 | # | Finding | Evidence | Status |
 |---|---|---|---|
-| L-G1 | Tree height and density are sim data, and art that differs lies about sight. | `village.json` `map.forests`, `forests.densities` | **Decided:** Q-G8b (one rule, one size) |
+| L-G1 | Tree height and density are sim data, and art that differs lies about sight. | `game.json` `map.forests`, `forests.densities` | **Decided:** Q-G8b (one rule, one size) |
 | L-G2 | A narrow creek on the 4 m grid comes out jagged, and steep banks go untraversable. | `height_grid_m` 4, `slope_cutoff_deg` 35 | **Decided:** Q-G5 (≥12 m, bridge ramps) |
 | L-G3 | The avoid-list bans a **dark wet shore** and a **darker, wider road verge**: they read as shadow or fog. | `.agents/skills/renderer/references/fog-and-light.md` ("Avoid these patterns") | Sharp edge: shoulder and mud at or above the grass's luminance, differing by hue. The standing critique question gates it |
 | L-G4 | Desaturating fields toward brown lowers luminance, which can break the "darkest seen ground stays lighter than, or apart in hue from, unseen ground" scene check. | `fog-and-light.md` (`light.shadow_floor`) | Sharp edge: that scene check gates C71 |

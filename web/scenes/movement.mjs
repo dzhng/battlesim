@@ -2,7 +2,7 @@
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, snapshot, groundCss, presented } from "./_lab.mjs";
 import { paintOnly } from "./_overlays.mjs";
-import { hull, village } from "./_units.mjs";
+import { hull, game } from "./_units.mjs";
 
 const unit = (page, id) =>
   lab(page, (i) => window.__lab.route.observation().own.find((u) => u.id === i), id);
@@ -317,7 +317,7 @@ async function paintOnDeckAndWater(ctx) {
   const onDeck =
     Math.abs(parked.position[0] - DECK[0]) < 12 && Math.abs(parked.position[1] - DECK[1]) < 3;
   const marker =
-    hull("tank").half_extents_m[0] + village.presentation.overlay.orders.vehicle_marker_margin_m;
+    hull("tank").half_extents_m[0] + game.presentation.overlay.orders.vehicle_marker_margin_m;
   const deck = await shown(await paintAt(parked.position, "deck"), ring(parked.position, marker));
   ctx.check(
     "ground paint shows on the water and on the bridge deck: a blocked route's dashes mid-river, a parked tank's ring",

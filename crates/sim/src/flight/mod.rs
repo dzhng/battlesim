@@ -298,7 +298,7 @@ pub fn validate_guided(rules: &GuidedRules) {
 }
 
 /// A guided round's steering: toward `point`, turning at most `turn_rad_s`.
-/// While `supported`, its launcher renews the point from its own sighting;
+/// While `supported`, its launcher renews the point from its side’s sighting;
 /// once released, the point is fixed for good, a coast ahead of where the
 /// release found it (P06: it never reacquires).
 #[derive(Clone, Copy, Debug, PartialEq)]

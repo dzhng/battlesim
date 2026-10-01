@@ -14,7 +14,7 @@ use crate::rng::Rng;
 
 use crate::math::{v2, V2, V3};
 use crate::sensing::Sighting;
-use crate::units::Unit;
+use crate::units::{Fallen, Unit};
 
 /// A side's standing knowledge of one enemy unit.
 #[derive(Clone, Debug)]
@@ -62,8 +62,9 @@ pub struct SideKnowledge {
     rng: Rng,
     /// Enemies this side watched die: their attacks are complete (W17).
     destroyed: BTreeSet<UnitId>,
-    /// Fallen soldiers (by soldier id) this side has seen; remembered for good.
-    corpses: BTreeSet<u32>,
+    /// Seen fallen, remembered for good. A fighting-floor corpse carries its
+    /// last observed pose; `None` is an ordinary corpse whose anchor never moves.
+    corpses: BTreeMap<u32, Option<Fallen>>,
     /// The ground as this side last saw it.
     ground: KnownGround,
 }
@@ -79,7 +80,7 @@ impl SideKnowledge {
             pending_fire: Vec::new(),
             rng: Rng::new(seed),
             destroyed: BTreeSet::new(),
-            corpses: BTreeSet::new(),
+            corpses: BTreeMap::new(),
             ground: KnownGround::new(ground),
         }
     }
@@ -109,12 +110,18 @@ impl SideKnowledge {
         self.destroyed.contains(&unit)
     }
 
-    pub fn note_corpse(&mut self, soldier: u32) {
-        self.corpses.insert(soldier);
+    pub fn note_corpse(&mut self, soldier: u32, fallen: Fallen) {
+        let remembered = self.corpses.entry(soldier).or_insert(None);
+        // Ordinary fallen never move; fighting-floor support can disappear.
+        if fallen.support_building.is_some() || remembered.is_some() {
+            *remembered = Some(fallen);
+        }
     }
 
-    pub fn knows_corpse(&self, soldier: u32) -> bool {
-        self.corpses.contains(&soldier)
+    pub fn corpse(&self, soldier: u32, actual: Fallen) -> Option<Fallen> {
+        self.corpses
+            .get(&soldier)
+            .map(|remembered| remembered.unwrap_or(actual))
     }
 
     /// An enemy fired: firing is disclosed map-wide, whatever the line of
@@ -374,13 +381,6 @@ impl SideKnowledge {
             })
     }
 
-    /// Whether `observer`'s own sensors identified `target` at the last sensing.
-    pub fn own_sees(&self, observer: UnitId, target: UnitId) -> bool {
-        self.own_sensors
-            .get(&observer)
-            .is_some_and(|seen| seen.contains(&target))
-    }
-
     /// The observed handles `observer`'s own sensors identify this tick.
     pub fn own_sensor(&self, observer: UnitId) -> Vec<ObservedTargetId> {
         self.own_sensors
@@ -421,8 +421,20 @@ impl SideKnowledge {
             d.u64(u.0 as u64);
         }
         d.u64(self.corpses.len() as u64);
-        for s in &self.corpses {
-            d.u64(*s as u64);
+        for (soldier, remembered) in &self.corpses {
+            d.u64(*soldier as u64);
+            if let Some(fallen) = remembered {
+                d.u64(u64::MAX)
+                    .f64(fallen.at.x)
+                    .f64(fallen.at.y)
+                    .f64(fallen.at.z)
+                    .f64(fallen.yaw)
+                    .u64(
+                        fallen
+                            .support_building
+                            .map_or(u64::MAX, |owner| owner as u64),
+                    );
+            }
         }
         self.ground.digest(d);
         // Guidance reads these a tick later, so they are carried state.

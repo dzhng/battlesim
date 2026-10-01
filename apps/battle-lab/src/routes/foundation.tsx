@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { MeshBuilder, type Rgba } from "@packages/battle-renderer/src/mesh";
@@ -10,10 +10,10 @@ import type { ModelInstance } from "@packages/battle-renderer/src/models/modelIn
 import { bodyBox, proxyPickBox, type PickBox } from "@packages/battle-renderer/src/picking";
 import { LabViewport } from "../LabViewport";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
-import { villageBiome } from "../villageBiome";
-import { useVillageAppearances } from "../villageAppearances";
+import { gameBiome } from "../gameBiome";
+import { useGameAppearances } from "../gameAppearances";
 import { useFeed } from "../feed";
-import { villageCamera } from "../villageCamera";
+import { gameCamera } from "../gameCamera";
 
 // Render-only fixture: a raised ground patch, a tank and a truck drawn as their
 // appearances, and hand-placed proxies (soldiers, a crate). It has no
@@ -84,7 +84,7 @@ function groundPatch(): WorldLayers {
   };
   return {
     // The checker patch is the tint alone: no grass over it.
-    terrain: terrainSurface(mesh.build(), site, villageBiome, null),
+    terrain: terrainSurface(mesh.build(), site, gameBiome, null),
     props: none,
     water: none,
     structures: [],
@@ -127,7 +127,7 @@ const hullOf = (kind: string) => (UNITS.has(kind) ? UNITS.hull(kind) : null);
 const FOUNDATION_TARGETS: PickBox[] = FOUNDATION.map((p) =>
   p.kind === "box"
     ? proxyPickBox({ ...p, kind: "box", color: [1, 1, 1] })
-    : { x: p.x, y: p.y, z: p.z, yaw: p.yaw, ...bodyBox(village.physics, hullOf(p.kind)) },
+    : { x: p.x, y: p.y, z: p.z, yaw: p.yaw, ...bodyBox(game.physics, hullOf(p.kind)) },
 );
 
 const FOUNDATION_CAMERA: Camera3DParams = {
@@ -135,14 +135,14 @@ const FOUNDATION_CAMERA: Camera3DParams = {
   distance: 38,
   pitch: 0.6,
   yaw: -1.1,
-  ...villageCamera.lens,
+  ...gameCamera.lens,
   near: 0.5,
 };
 
 export default function Foundation() {
   const world = useMemo(groundPatch, []);
   const worldFeed = useFeed(world);
-  const appearances = useVillageAppearances();
+  const appearances = useGameAppearances();
   const [selected, setSelected] = useState(-1);
   const instances = useMemo<SceneInstance[]>(
     () =>

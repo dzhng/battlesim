@@ -1,5 +1,5 @@
 // The workbench's named views: five studio views framed on the model's
-// bounds, and the battle camera at three zooms — the village rig's own pitch
+// bounds, and the battle camera at three zooms — the game rig's own pitch
 // curve and opening yaw, so a model is judged at the size and angle a player
 // sees it. Each view is a camera the shared rig could hold, never a private
 // projection.
@@ -9,7 +9,7 @@ import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { CameraPresentation } from "@packages/renderer-core/src/cameraController";
 import { CameraController } from "@packages/renderer-core/src/cameraController";
 import type { Bounds } from "@packages/scene-assets/src/schema";
-import { villageCamera } from "../villageCamera";
+import { gameCamera } from "../gameCamera";
 
 export const WORKBENCH_VIEWS = [
   "q-front",
@@ -43,18 +43,18 @@ const STUDIO: Record<string, { yaw: number; pitch: number; near?: number }> = {
 /** Battle zooms: the rig's closest distance, its opening distance, and a
  *  company-scale view. */
 export const BATTLE_DISTANCES: Record<string, number> = {
-  "battle-near": villageCamera.config.zoom_min,
-  "battle-mid": villageCamera.opening().distance,
+  "battle-near": gameCamera.config.zoom_min,
+  "battle-mid": gameCamera.opening().distance,
   "battle-far": 150,
 };
 
 const STUDIO_FOV = 0.6;
-const rig = new CameraController(villageCamera.config);
+const rig = new CameraController(gameCamera.config);
 
-/** The rig the workbench steers with: the village's feel, reaching in to a
+/** The rig the workbench steers with: the game's feel, reaching in to a
  *  metre and holding whatever tilt the user drags in. */
 export const WORKBENCH_CAMERA: CameraPresentation = {
-  ...villageCamera.config,
+  ...gameCamera.config,
   zoom_min: 0.8,
   zoom_max: 600,
   pitch_curve: [
@@ -86,7 +86,7 @@ export function viewCamera(
       near: 0.05,
     };
   }
-  const opening = villageCamera.opening();
+  const opening = gameCamera.opening();
   const distance = BATTLE_DISTANCES[view];
   return {
     ...opening,

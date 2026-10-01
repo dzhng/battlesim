@@ -22,7 +22,7 @@ use crate::math::{v2, Obb2, V2};
 use crate::navigation::{NavBase, NavGrid, Plan, RoadNet};
 use crate::route_planner::{Request, RoutePlanner};
 use crate::units::Unit;
-use crate::world::{Prop, PropId, WorldGeometry};
+use crate::world::{Prop, PropId, PropIndex, WorldGeometry, PROP_BUCKET_M};
 
 mod drive;
 mod final_leg;
@@ -93,7 +93,9 @@ pub struct SideGeometry {
     /// Bodies gone out of this side's sight (trees knocked down, props
     /// destroyed): it plans around them, and draws them, until it sees the
     /// ground where they stood (Q16, Q17, L1).
-    pub standing: BTreeMap<PropId, Prop>,
+    standing: BTreeMap<PropId, Prop>,
+    /// The same remembered snapshots, indexed for sight queries.
+    standing_index: PropIndex,
     pub revision: u64,
     /// Where each of the latest revisions changed the side's plan, oldest
     /// first, so a squad re-resolves only for changes within its reach.
@@ -117,9 +119,11 @@ const ROUTE_RECHECK_REACH_M: f64 = 24.0;
 impl SideGeometry {
     /// A side that knows the map as `base` has it, and nothing else.
     pub fn new(base: Arc<NavBase>) -> Self {
+        let [width, depth] = base.extent();
         SideGeometry {
             seen: BTreeMap::new(),
             standing: BTreeMap::new(),
+            standing_index: PropIndex::new(width, depth, PROP_BUCKET_M),
             revision: 0,
             changes: VecDeque::new(),
             grid: NavGrid::new(base),
@@ -240,12 +244,27 @@ impl SideGeometry {
     /// A body this side did not see go: it keeps planning around it.
     pub fn keep_standing(&mut self, prop: Prop) {
         self.stale.insert(prop.id);
+        if let Some(was) = self.standing.remove(&prop.id) {
+            self.standing_index.remove(&was);
+        }
+        self.standing_index.insert(&prop);
         self.standing.insert(prop.id, prop);
+    }
+
+    /// Read-only remembered snapshots; mutations keep the sight index in sync.
+    pub(crate) fn standing(&self) -> &BTreeMap<PropId, Prop> {
+        &self.standing
+    }
+
+    /// Remembered body candidates whose footprint may meet an eye's reach.
+    pub(crate) fn standing_near(&self, center: V2, radius: f64, out: &mut Vec<PropId>) {
+        self.standing_index.near(center, radius, out);
     }
 
     /// The side sees that a body it kept standing is gone.
     pub fn saw_fallen(&mut self, prop: PropId) {
         if let Some(gone) = self.standing.remove(&prop) {
+            self.standing_index.remove(&gone);
             let was = self.seen.remove(&prop).map(|s| s.center);
             self.stale.insert(prop);
             self.changed(span(&gone, was));
@@ -372,7 +391,7 @@ pub fn advance(
     sides: &mut [SideGeometry; 2],
     planner: &mut RoutePlanner,
 ) -> Vec<Shove> {
-    let footprints: Vec<Option<Obb2>> = units
+    let mut footprints: Vec<Option<Obb2>> = units
         .iter()
         .map(|u| u.hull_box().filter(|_| u.alive()))
         .collect();
@@ -401,7 +420,8 @@ pub fn advance(
             continue;
         }
         if units[i].is_vehicle() {
-            step_vehicle(ctx, units, i, sides, &mut shoves);
+            step_vehicle(ctx, units, i, sides, &mut shoves, &footprints);
+            footprints[i] = units[i].hull_box().filter(|_| units[i].alive());
             soldier::shove(ctx, units, i, &mut crowd);
         } else {
             let unit = &mut units[i];
@@ -452,12 +472,10 @@ fn request_route(
     let changed = unit.planned_revision != side.revision;
     let stall_ticks = (STALL_REPLAN_S * ctx.tick_hz as f64) as u64;
     let stalled = unit.route.is_some() && ctx.tick.saturating_sub(unit.progress.1) > stall_ticks;
-    // Deadlocked vehicles: the lower-priority one (higher id) plans around
-    // the one it waits for, and every other vehicle standing in the knot
-    // with it (two columns that meet are more than a pair); the other keeps
-    // its route and proceeds when clear.
+    // A stalled vehicle goes round the whole knot. A waiting rear vehicle
+    // must also move aside when the one in front needs room to reverse.
     let detour: Vec<Obb2> = match (unit.state, unit.blocker) {
-        (MoveState::Waiting, Some(b)) if stalled && unit.is_vehicle() && unit.id > b => {
+        (MoveState::Waiting, Some(_)) if stalled && unit.is_vehicle() => {
             let here = unit.position.xy();
             footprints
                 .iter()
@@ -583,6 +601,9 @@ fn take_route(
     let from = request.from;
     unit.planned_revision = side.revision;
     unit.progress = (f64::INFINITY, ctx.tick);
+    if matches!(plan, Plan::Route(_)) {
+        unit.manoeuvre = None;
+    }
     if !request.detour.is_empty() {
         // No way round keeps it waiting on the route it had; it may try
         // again after another stall.
@@ -674,6 +695,7 @@ fn step_vehicle(
     i: usize,
     sides: &mut [SideGeometry; 2],
     shoves: &mut Vec<Shove>,
+    traffic: &[Option<Obb2>],
 ) {
     let dt = 1.0 / ctx.tick_hz as f64;
     units[i].reversing = false;
@@ -708,7 +730,7 @@ fn step_vehicle(
     // Craters under the hull slow it slightly; never to a stop (Q8).
     let speed = speed * ctx.ground.vehicle_speed(here.x, here.y, ctx.ground_rules);
     let before_manoeuvre = unit.manoeuvre;
-    let mut motion = drive::steer(ctx.world, &mut units[i], target, speed, dt);
+    let mut motion = drive::steer(ctx.world, &mut units[i], target, speed, dt, traffic);
     let unit = &units[i];
     let mut next = here + motion.heading * motion.step;
     let half = unit.hull.expect("a vehicle has a hull").xy();
@@ -738,6 +760,7 @@ fn step_vehicle(
             target,
             speed * push.shove_speed(heaviest),
             dt,
+            traffic,
         );
         next = here + motion.heading * motion.step;
         met = push::meet(ctx.world, &hull_at(next, motion.yaw), &current, push);
@@ -894,15 +917,51 @@ fn rect_of(unit: &Unit, center: V2, yaw: f64, margin: f64) -> Option<Obb2> {
 /// Would this vehicle, moved to `next`, run into the vehicle `other`? Only a move that
 /// makes an existing overlap no worse is allowed, so touching units can part.
 fn vehicle_conflict(unit: &Unit, next: V2, yaw: f64, other: &Unit) -> bool {
-    let me = rect_of(unit, next, yaw, TRAFFIC_MARGIN_M).unwrap();
-    let hits = |at: V2| {
-        let probe = Obb2 { center: at, ..me };
-        rect_of(other, other.position.xy(), other.yaw, 0.0).is_some_and(|r| probe.overlaps(&r))
+    let other = other.hull_box().expect("a vehicle has a hull");
+    let turning = unit
+        .route
+        .as_ref()
+        .and_then(|r| r.first())
+        .is_some_and(|p| {
+            let to = *p - unit.position.xy();
+            unit.mobility.drive.is_some_and(|d| {
+                let threshold = d.feel.turning_deg.to_radians();
+                crate::math::wrap_angle(to.y.atan2(to.x) - unit.yaw).abs() > threshold
+                    || unit
+                        .route
+                        .as_ref()
+                        .and_then(|r| r.get(1))
+                        .is_some_and(|next| {
+                            let out = *next - *p;
+                            to.length() < d.radius_m + unit.hull.unwrap().x
+                                && crate::math::wrap_angle(out.y.atan2(out.x) - to.y.atan2(to.x))
+                                    .abs()
+                                    > threshold
+                        })
+            })
+        });
+    let following = !turning
+        && unit.manoeuvre.is_none()
+        && (next - unit.position.xy()).dot(v2(unit.yaw.cos(), unit.yaw.sin())) > 0.0
+        && crate::math::wrap_angle(unit.yaw - other.yaw).abs() < std::f64::consts::FRAC_PI_2
+        && (other.center - unit.position.xy()).dot(v2(unit.yaw.cos(), unit.yaw.sin())) > 0.0;
+    let room = if following {
+        unit.mobility
+            .drive
+            .map_or(TRAFFIC_MARGIN_M, |d| d.radius_m.max(unit.hull.unwrap().x))
+    } else {
+        TRAFFIC_MARGIN_M
     };
-    hits(next)
-        && !(hits(unit.position.xy())
-            && (other.position.xy() - next).length()
-                > (other.position.xy() - unit.position.xy()).length())
+    let padded = |center: V2, yaw: f64| {
+        let mut hull = rect_of(unit, center, yaw, TRAFFIC_MARGIN_M).unwrap();
+        hull.half.x += room - TRAFFIC_MARGIN_M;
+        hull
+    };
+    let depth = |hull: Obb2| hull.separation(&other).map_or(0.0, |v| v.length());
+    let before = padded(unit.position.xy(), unit.yaw);
+    let after = padded(next, yaw);
+    depth(after) > depth(before) + 1e-9
+        || depth(rect_of(unit, next, yaw, 0.0).unwrap()) > depth(unit.hull_box().unwrap()) + 1e-9
 }
 
 /// Draw each living soldier's spot around the end of the squad's route for
@@ -1017,4 +1076,45 @@ fn route_start(unit: &Unit) -> V2 {
         .map(|p| p.xy())
         .min_by(|a, b| (*a - middle).length().total_cmp(&(*b - middle).length()))
         .unwrap_or(middle)
+}
+
+#[cfg(test)]
+mod remembered_sight_tests {
+    use super::*;
+
+    #[test]
+    fn remembered_body_queries_follow_replacements_and_observed_removals() {
+        let rules = serde_json::from_value(crate::fixtures::game()).unwrap();
+        let map = serde_json::from_value(serde_json::json!({
+            "size":[256,256],"fog_cell_m":8,"height_grid_m":4,
+            "slope_cutoff_deg":35,"props":[{
+                "kind":"crate","center":[20,20],"yaw":0,
+                "half_extents":[0.8,0.8,0.6]
+            }]
+        }))
+        .unwrap();
+        let world = WorldGeometry::new(&map, &rules);
+        let base = NavBase::build(&world, world.props(), 0.3);
+        let mut side = SideGeometry::new(Arc::new(base));
+        let mut prop = world.prop(0).unwrap().clone();
+        let at = v2(20.0, 20.0);
+        side.keep_standing(prop.clone());
+        let mut nearby = Vec::new();
+        side.standing_near(at, 2.0, &mut nearby);
+        assert_eq!(nearby, vec![0]);
+        prop.center = v2(200.0, 200.0);
+        side.keep_standing(prop);
+        nearby.clear();
+        side.standing_near(at, 2.0, &mut nearby);
+        assert!(nearby.is_empty(), "replaced memory has no old footprint");
+        side.standing_near(v2(200.0, 200.0), 2.0, &mut nearby);
+        assert_eq!(nearby, vec![0]);
+        side.saw_fallen(0);
+        nearby.clear();
+        side.standing_near(v2(200.0, 200.0), 2.0, &mut nearby);
+        assert!(
+            nearby.is_empty(),
+            "observed removals leave no remembered body"
+        );
+    }
 }

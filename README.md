@@ -28,7 +28,7 @@ The simulation is the one authority; everything else observes it.
   - `scene-assets` owns appearance bundles: schema, validation, baking and the one loader. The art itself lives in [`assets/`](assets/README.md).
   - `battle-audio` owns the battle's sound: what is heard and when, from the same feed the effects and poses read, synthesised in code, and heard from the camera.
 - **`apps/battle-lab/`** — the lab app. Each lab route is a focused, deterministic fixture for one mechanic, and the village routes are the playable game. `src/fixtures.json` is the registry of lab routes.
-- **`fixtures/`** — authored maps, units and rule numbers. `village.json` is the one owner of the game's rules; labs reuse it. `fixtures/units/` and `fixtures/props/` are the catalog: every unit type and every prop type is one entry, a variant an `extends` of another, and behaviour comes from a type's components, never its id. Adding a unit or prop type starts there ([`fixtures/README.md`](fixtures/README.md)).
+- **`fixtures/`** — authored maps, units and rule numbers. `game.json` is the one owner of the game's rules; labs reuse it. `fixtures/units/` and `fixtures/props/` are the catalog: every unit type and every prop type is one entry, a variant an `extends` of another, and behaviour comes from a type's components, never its id. Adding a unit or prop type starts there ([`fixtures/README.md`](fixtures/README.md)).
 - **`web/scenes/`** — one headless browser scene per registered fixture. These scenes are the visual and behavioural checks, run by `web/scene.mjs`.
 
 ## Rules from first principles
@@ -48,6 +48,8 @@ The rules then follow from those properties alone:
 - **Holds fire:** a gun holds fire only for what its rounds can't break or can't see past, and fires into anything else on its line until it breaks.
 
 So there is no "wall", "road block" or "tank trap" in the code. Dragon's teeth are just small heavy bodies that block vehicles, and a squad takes cover behind each one because each is a body. Vehicles and props follow the same rules. A new obstacle is an entry in the prop catalog (`fixtures/props/`), not new code.
+
+A catalog row describes a body, while its placement supplies geometry ownership. Garrison seats and building-scaled integrity require a placed building aggregate; ordinary props, generated forest bodies, bridge decks and vehicle wrecks have no such owner. This constraint follows the body's destruction chain. Aggregate bodies remain immovable until the simulation supports moving all their parts together.
 
 It's a game, not a physics simulation. The target is **Hollywood realism**: the battle should look and behave the way a war film makes it look, not the way a ballistics table says. Keep what a viewer expects, even exaggerated, like cover blown apart, shells felling trees and sparks off armour. Drop what looks silly on screen, even when it's physically defensible, like a squad's stray rifle fire mowing down a forest. Sustained, aimed fire may fell one tree; incidental fire shouldn't clear woods. Use first principles where they stay simple, and hard-code a clear game rule where a principled version would be complex. Today's hard-coded rules:
 
@@ -70,15 +72,41 @@ Floating unit panels show name and health. Own-unit panels show a crossed-out ey
 
 A held right-click previews each selected unit’s destination and facing with the same markers shown after release. Dragging rotates about the clicked front center. The [group move placement rationale](specs/done/group-move-preview/README.md) explains its authority, spacing and partial-placement contracts.
 
+The [projectile review lab](apps/battle-lab/src/projectileReview.ts) keeps the fog-lit street fight running alongside firing lanes and midpoint recon teams. It uses gameplay flight and weapon cycles with private unlimited reserves and nonlethal rounds, so repeated visual review does not change gameplay rules. The [guided-fire contract](specs/battle-foundation/contracts.md#guided-flight) separates shared spotting from the launcher’s physical line of sight.
+
 ## Checks
 
 `package.json` names the gates:
 
 - `check` covers format, lint, typecheck and every Rust and web test.
-- `verify` runs every browser scene.
-- `bun run --cwd web scene -- <fixture-id>` runs one scene.
+- `verify` builds the WebAssembly and runs every browser scene.
 
-[`AGENTS.md`](AGENTS.md) says which runner to reach for while iterating. It also covers the worktree recipe (Git LFS, shared `node_modules` and build directory) that keeps parallel work from exhausting the machine.
+Both are slow closeout gates. While iterating, run the narrowest thing that covers the change:
+
+```bash
+cargo test -p sim --test sim village::a_replay_matches  # one test
+cargo test -p sim --test sim village::                  # one file (the sim tests are one binary)
+cargo test -p sim                                       # one crate
+bun run --cwd web test -- tests/observation.test.ts     # one web test file
+bun run --cwd web scene -- village                      # one browser scene
+bun run --cwd web scene -- --list                       # scene ids
+```
+
+Web tests and scenes need the WebAssembly built once first (`bun run build:wasm`). Scenes write their evidence into gitignored `throwaway/evidence/<fixture-id>/`.
+
+The simulation's reports are examples of the `sim` crate (`crates/sim/examples/`); each prints its own flags when given one it doesn't know. `village_report` plays blue's comparison scripts against the red defender and ends every row in the battle's digest. Its `--quick` mode is the feedback loop for a rule change, and `--compare main` sets a run beside main's. `endurance_report` prints instructions retired over a long battle.
+
+## Worktrees
+
+Large binaries (models, textures, reference images) are in Git LFS, set up once per clone so that checkouts get small pointer files:
+
+```bash
+git lfs install --local --skip-smudge
+git lfs pull                                 # in the main checkout only
+git lfs pull --include="<path>/**"           # in a worktree: only what the task needs
+```
+
+In a worktree, symlink `web/node_modules` to the main checkout's, and give it its own Rust build directory with `CARGO_TARGET_DIR`. Cargo leaves a workspace crate's path out of its build hash, so two worktrees sharing one `target/` overwrite each other's builds. Delete that directory with the worktree.
 
 ## Plans and decisions
 

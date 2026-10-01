@@ -17,7 +17,7 @@ const RED_AT: u32 = 12;
 const BLUE_TANKS: [u32; 2] = [4, 5];
 
 fn setup(variant: &str) -> ScenarioDefinition {
-    scenario(&common::village(), variant).unwrap()
+    scenario(&common::game(), variant).unwrap()
 }
 
 fn hz() -> u64 {
@@ -115,12 +115,12 @@ fn the_variants_differ_only_by_the_second_at_team() {
         let holding = u.engagement == Some(Engagement::ReturnFireOnly);
         assert_eq!(holding, u.side == Side::Red && u.kind == "at");
     }
-    assert!(scenario(&common::village(), "no_such_variant").is_err());
+    assert!(scenario(&common::game(), "no_such_variant").is_err());
 }
 
 #[test]
 fn a_spawn_row_may_set_its_units_engagement() {
-    let mut fixture = common::village();
+    let mut fixture = common::game();
     fixture["spawn"]["blue"][8] = serde_json::json!(["jeep", 125, 905, "return_fire_only"]);
     fixture["spawn"]["red"][3] = serde_json::json!(["at", 760, 886, "fire_at_will"]);
     let units = scenario(&fixture, "ordinary").unwrap().units;
@@ -145,7 +145,7 @@ fn a_spawn_row_may_set_its_units_engagement() {
         serde_json::json!(["jeep", 125, 905, "return_fire_only", 1]),
         serde_json::json!(["jeep", 125]),
     ] {
-        let mut fixture = common::village();
+        let mut fixture = common::game();
         fixture["spawn"]["blue"][8] = bad.clone();
         assert!(scenario(&fixture, "ordinary").is_err(), "{bad} loads");
     }
@@ -388,7 +388,7 @@ fn the_referee_counts_units_that_carry_weapons() {
 /// comparison is `cargo run -p sim --release --example village_report`).
 #[test]
 fn a_scripted_trial_repeats_from_its_seed() {
-    let fixture = common::village();
+    let fixture = common::game();
     let plan = Plan::ScoutSuppressFlank;
     let (a, b) = std::thread::scope(|s| {
         let a = s.spawn(|| trial(&fixture, "ordinary", plan, 5, 120.0));
@@ -424,7 +424,7 @@ fn smoke_is_presentation_only() {
         });
         (battle.digest(), wrecks)
     };
-    let plain = common::village();
+    let plain = common::game();
     let mut thick = plain.clone();
     let wreck = &mut thick["presentation"]["effects"]["smoke"]["wreck"];
     wreck["smoke"]["opacity"] = 1.0.into();
@@ -443,4 +443,24 @@ fn smoke_is_presentation_only() {
     assert!(plain.1.iter().any(|&n| n > 0), "the battle leaves a wreck");
     assert_eq!(thick, plain);
     assert_eq!(none, plain);
+}
+
+/// Catalog additions do not change an existing village battle. Prop ranks
+/// may move, but inactive physical rows are not authoritative battle state.
+#[test]
+fn unused_city_catalog_rows_do_not_change_village_digests() {
+    let full = common::game();
+    let mut without = full.clone();
+    without["catalog"]
+        .as_array_mut()
+        .unwrap()
+        .retain(|d| d["props"].get("lamp").is_none());
+    let a = scenario(&full, "ordinary").unwrap();
+    let b = scenario(&without, "ordinary").unwrap();
+    let (mut a, mut b) = (Battle::new(&a, 1), Battle::new(&b, 1));
+    for _ in 0..200 {
+        assert_eq!(a.digest(), b.digest());
+        a.step();
+        b.step();
+    }
 }

@@ -213,7 +213,7 @@ general portals remain separate proof owners; no old synchronous A* fallback qua
 
 ### The seams as built
 
-- **Rules** (`fixtures/village.json`, `navigation`, refused at load when out of range): `work_per_tick` 4,000, `search_cells_base` 20,000, `search_cells_per_m` 200, `road_leg_m` 2,000, `road_access_m` 1,000.
+- **Rules** (`fixtures/game.json`, `navigation`, refused at load when out of range): `work_per_tick` 4,000, `search_cells_base` 20,000, `search_cells_per_m` 200, `road_leg_m` 2,000, `road_access_m` 1,000.
 - **Observation:** `MoveState` gains `planning` (a unit holding for its route). The publication layout carries the name list, so the browser decodes it without a change; no panel row shows it yet. A long leg's `policy` reads `fastest` from the tick it starts.
 - **Commands:** unchanged. `applied_tick` still means the order was applied, not that a route is ready.
 - **`Battle::digest`:** folds the planner's pending state (each request, the work spent on it, its search's progress, the round-robin cursor and any overrun owed). A planner with nothing pending folds nothing. `Battle::from_replay` reproduces every tick's digest, mid-plan included.

@@ -30,7 +30,7 @@ Read before changing anything:
 - `packages/scene-assets` holds the bundle codec, the validator, the loader, the appearance catalog and `blender/`.
 - `apps/battle-lab/src` holds the feeds that turn an observation into the renderer's inputs (`poseFeed`, `effectFeed`, `soundFeed`, fog and ground inputs). It also holds the `/workbench` route.
 - `web/scenes/` holds the browser scene checks; `web/scenes/_lab.mjs` has the helpers.
-- `fixtures/village.json` `presentation` holds every look number: light, fog styles, models' `lod_px`, effects, pose feel, camera, audio. Each block is validated by its owner.
+- `fixtures/game.json` `presentation` holds every look number: light, fog styles, models' `lod_px`, effects, pose feel, camera, audio. Each block is validated by its owner.
 - `fixtures/biomes/*.json` holds the biome palette.
 
 ## The seams you must not cross
@@ -112,6 +112,7 @@ When a new need shows two passes owning one concept, refactor to the shared prim
 - **WGSL `let` is immutable.** A reassigned `let` invalidates the pipeline, and route stats stay healthy while the canvas goes black.
 - **WGSL reserves words it doesn't use yet** (`cast`, `meta`, `static`, `new`, …). An identifier named after one fails the module at parse time; name a varying for what it holds (`castLit`).
 - **Pad uniform structs to 16 B by hand** and group scalars into `vec4f` slots. Keep a byte constant beside each schema, and test the packer against it.
+- **Validate final field height, not just the source clump.** Compose biome scaling and every independent shader variation from shared bounds, inspect every drawn LOD, and use the same maximum for tile culling. Screen-width expansion must stay horizontal; wind and flattening must only lower the vertical bound.
 - **Bind limits are tight.** The grass build uses exactly the default 8 storage buffers. Count before adding a binding, and prefer vertex-only storage where the fragment stage already holds the fog groups.
 - **Fixed at module load:** the cascade count, bloom's numbers and the grade. Changing them means rebuilding the frame, not setting a uniform.
 - **`GPUSupportedLimits` exposes prototype getters,** so `Object.entries` returns nothing. Read the named limits. Passes read `GpuDeviceCaps`; they never re-probe the adapter.
@@ -243,6 +244,10 @@ When a world-space width change barely moves the screenshot, trace the full widt
 
 A fixed one-pixel diagonal needs analytic pixel coverage over a wider supporting quad. A one-pixel quad alone misses neighboring sample centers and stipples; its support width is not its visible width. Keep the authored line width in the coverage calculation, and check consecutive frames and both rifle and vehicle fire. A tracer's visibility choice belongs to the round's tracked continuation, never to each publication independently; sparks and impacts remain independent causes.
 
+A tracer brightness floor is authored as light energy. The effect pass squares packed endpoint amplitudes, so pack the square root of the desired energy; retain the original amplitude when no floor is authored.
+
+Projectile captures must match the drawn streak to its class, not merely a nearby flight path: crossing rifle fire can be framed as a tank round. Read the packed streak’s endpoints and light color, then frame that streak. Measure speed only on uninterrupted, full-tick paths; an impact-clipped path covers less than a tick.
+
 ## Repeating motion needs a full cycle
 
 For cadence or synchronization claims, capture startup and multiple complete work/rest cycles, including their longest pauses. Pair native motion frames with source-event timestamps per actor; overlapping visible trails do not prove simultaneous launches, and a short staggered opening does not prove sustained independence. Test random timing across several seeds and report measured gaps rather than promising uninterrupted activity.
@@ -371,6 +376,17 @@ inspector. Compare grass on/off at one exact paused camera and publication,
 and falsify the gate on the real posed model pass before accepting an isolated
 shader oracle.
 
+
+
+## Corpse identity does not freeze its anchor
+
+A falling or resting body's authority can change its support after a building
+collapses. Refresh the published position for the same corpse identity without
+restarting its death clip, changing its facing, or making a faded corpse return.
+A static anchor change must invalidate the corpse publication version; moving
+only the cached object leaves GPU instances at the old height. Enemy anchors
+come from the side's last observed corpse state, so rendering cannot infer an
+unseen collapse from the current physical world.
 ## Camera clearance
 
 The viewport holds two poses: the one asked for (input, a script's
@@ -412,3 +428,12 @@ not seen changes neither.
   clear and useless; requiring that the camera can get there (straight, or over
   something within a lift's reach) removed the side flips a memory of the
   slide's side was added for.
+
+## Keep scene inputs fixed throughout verification
+
+The full scene runner includes Vite development-server pages. Rebuilding Wasm
+can reload an active page even when the generated bytes are unchanged, removing
+`__lab` or destroying an evaluation context. Finish builds and checks before
+starting browser verification; do not merge source or rewrite built artifacts
+while it runs. The shared GPU lock serializes GPU callers, not filesystem writes.
+Retain interrupted producer logs as unaccepted evidence and rerun with held inputs.

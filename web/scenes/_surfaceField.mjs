@@ -55,11 +55,11 @@ export async function surfaceFieldAgreement(ctx) {
     const POINTS = 4000;
     const view = new wasm.WorldView(
       JSON.stringify(grounds.CURATED_GROUND),
-      JSON.stringify(rules.VILLAGE_RULES),
+      JSON.stringify(rules.GAME_RULES),
     );
     const grown = [];
     try {
-      const layout = JSON.parse(wasm.world_layout(JSON.stringify(rules.VILLAGE_RULES)));
+      const layout = JSON.parse(wasm.world_layout(JSON.stringify(rules.GAME_RULES)));
       const cases = [
         [
           "every shape",

@@ -1,12 +1,12 @@
-// Lab scenarios compose a map fixture with the one rules owner (village.json)
+// Lab scenarios compose a map fixture with the one rules owner (game.json)
 // and the unit catalog.
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import type { Engagement, Order, SideName } from "@web/battle/sim/protocol";
 
 /** Shared rules and resolved catalog. Focused labs may pin experiment controls;
  *  village and endurance builders use these gameplay defaults. */
-export const VILLAGE_RULES = { ...village, catalog: UNITS.documents };
+export const GAME_RULES = { ...game, catalog: UNITS.documents };
 
 export interface LabUnit {
   side: SideName;
@@ -55,7 +55,7 @@ export function labScenario(
   units: LabUnit[],
   events: LabEvent[] = [],
   scripts: LabScript[] = [],
-  rules = VILLAGE_RULES,
+  rules = GAME_RULES,
 ): string {
   return JSON.stringify({
     map,

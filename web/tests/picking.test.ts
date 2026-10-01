@@ -5,7 +5,7 @@
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import type { Vec3 } from "math";
 import { expect, test } from "vitest";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import {
   bodyBox,
   pickBox,
@@ -13,7 +13,7 @@ import {
   type PickBox,
 } from "@packages/battle-renderer/src/picking.ts";
 
-const bodies = village.physics;
+const bodies = game.physics;
 const at = (kind: string, x: number, yaw = 0): PickBox => ({
   x,
   y: 0,

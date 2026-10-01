@@ -6,8 +6,7 @@ use contract::templates::{
 use serde_json::{json, Value};
 
 fn village_house(index: usize) -> BuildingTemplateDescriptor {
-    let village: Value =
-        serde_json::from_str(include_str!("../../../fixtures/village.json")).unwrap();
+    let village: Value = serde_json::from_str(include_str!("../../../fixtures/game.json")).unwrap();
     let half = &village["map"]["buildings"][index]["geometry"]["parts"][0]["half_extents"];
     let (hx, hy, hz) = (
         half[0].as_f64().unwrap(),
