@@ -19,7 +19,7 @@ Generate seeded battle maps with urban areas and usable surrounding plains on **
 - [`research.md`](research.md): historical NYC data research and source evaluation; its real-data recommendation is superseded for this spec.
 - `slices/`: one file per slice, the contract you implement.
 - [`choices.md`](choices.md): the ledger of implementation choices the spec didn't make.
-- [`sim-lane.md`](sim-lane.md): the parallel lane of simulation rules and costs, with its own ownership table and status.
+- [`sim-lane.md`](sim-lane.md): the finished lane of simulation rules and costs, with what landed and what it left open.
 
 ## Next Agent Prompt
 
@@ -27,11 +27,11 @@ Generate seeded battle maps with urban areas and usable surrounding plains on **
 
 **The generator as it stands** (`layout-4`, presets `layout-presets-6`): a road runs from the bottom edge to the top through the main junction on every map, and a side-to-side road on about half ([M22](procedural-maps.md#closed-decisions)); a settlement is blocks cut along its roads and grown outward unevenly, one use to a block ([M23](procedural-maps.md#closed-decisions)). 900 of 900 swept maps generate. The seam and measurements are in the [C52](slices/C52-procedural-generator.md#outcome) and [C53](slices/C53-parcels-and-buildings.md#outcome) outcomes. Open on the look: a city still grows as a rough disc round one crossroads, a large town on a single road is a slab along it, every map puts its main settlement in the middle, and open ground has no fields.
 
-**Current pickup:** **from a generated map to a battle the player starts.** The simulation and the lab carry a full-size generated map (Metro Large, 10 km: battle build about 14 G instructions, no tick over 33 ms, at least 47 FPS in the lab). The lab's encounter is a developer placement written in TypeScript. Next, in order: the saved-map catalogue and the cutover of existing maps onto the resolver (C09/C60), public preparation with one world (C33), the encounter planner over a compiled map (C59, which replaces the developer placement), a saved fixed-seed Small encounter (C58), then runtime generation from the menu (C55). In parallel: the renderer at full extent (C22 placement chunks, C23 far tier, C20 fog at scale; maps now reach 16,000 buildings) and the [sim rules lane](sim-lane.md).
+**Current pickup:** **from a generated map to a battle the player starts.** The simulation and the lab carry a full-size generated map (Metro Large, 10 km: battle build about 14 G instructions, no tick over 33 ms, at least 47 FPS in the lab). The lab's encounter is a developer placement written in TypeScript. Next, in order: the saved-map catalogue and the cutover of existing maps onto the resolver (C09/C60), public preparation with one world (C33), the encounter planner over a compiled map (C59, which replaces the developer placement), a saved fixed-seed Small encounter (C58), then runtime generation from the menu (C55). In parallel: the renderer at full extent (C22 placement chunks, C23 far tier, C20 fog at scale; maps now reach 16,000 buildings) The [sim rules lane](sim-lane.md) is finished and merged: seats and facade eyes, the building lifecycle, movement gaps, sight cost, street and forest bodies, grass heights and tree lines. Its browser stress checks ran at 24 Hz early and 12 Hz late, under the 30 Hz budget, so whole-battle cost on a full generated map is still open. Its raw evidence under `assets/sim-*` and `assets/sa6-movement` is to be reduced to conclusions at closeout.
 
 You are implementing `city-maps`. Use [implement-spec](../../.agents/skills/implement-spec/SKILL.md), use the current extents in [M04](procedural-maps.md#closed-decisions) and [startup/transit policy](scale-direction.md), and read the [S0 verdict](spikes/S0.md) before allocating full-size arms. Earlier extent measurements remain evidence at their original sizes, not the current preset definitions.
 
-1. Work the pickup above in order, delegating independent lanes to worktrees. The map lane owns the generator, the lab, the renderer and map acquisition; the [sim rules lane](sim-lane.md) owns simulation rules and reports in its own Status section.
+1. Work the pickup above in order, delegating independent lanes to worktrees. There is one lane now: the sim rules lane has closed, and its ownership table no longer applies.
 2. Finish every nonvisual contract and leave a precise visual seam for the specialist ([systems handoff](systems-handoff.md)). Prototype art never stands in for accepted art.
 3. Full-size arms rejected by [S0](spikes/S0.md) stay rejected until their owner changes. Measure cost in instructions retired, on generated maps, with `city_report` ([S1](spikes/S1.md)).
 4. Before ending each committed pass, update this handoff, the owning slice's Outcome and `choices.md`. Keep one next pickup.
@@ -48,6 +48,7 @@ A slice marked "physical" has its systems half done; its look waits for the visu
 - [x] Scale: [S0](spikes/S0.md) · SA1 terrain/export · SA4 fog delivery · SA3 sparse ground (storage) · [S7 composition](spikes/S7.md) · [S1 first pass](spikes/S1.md) · [SA2 route planning and grid updates](slices/SA2-counted-route-integration.md)
 - [x] Map and sim: C00 physical templates · C01 buildings aggregate · C02 fog cell · C03 surfaces · C72 one forest rule · C64 road kinds (physical) · C65 round centerlines (physical) · C63 surface index · [C69 rivers](slices/C69-rivers-contract.md) (physical)
 - [x] Generation: C04 compiler (buildings, roads, forests, land regions) · [C52 layout generator](slices/C52-procedural-generator.md) with rivers, bridges and the M22/M23 town model · [C53 parcels and buildings](slices/C53-parcels-and-buildings.md) over a labelled prototype template catalogue
+- [x] Sim rules ([lane record](sim-lane.md)): C40 seats → C41 facade eyes · C42 low-rise lifecycle → C43 tall gutted · SA6 movement gaps · SA5 sight cost · C44 street bodies · C77 forest bodies · C80 effective-height validator · C86 tree lines (all physical)
 - [x] Lab: [C57 camera clearance](slices/C57-camera-clearance.md) · the generated-map lab route
 
 **In flight (one branch each)**
@@ -57,8 +58,8 @@ A slice marked "physical" has its systems half done; its look waits for the visu
 - [ ] A battle the player starts on a generated map: C09/C60 saved catalogue data and the cutover of existing maps onto the resolver → [C33 public preparation](slices/C33-battle-preparation.md) → [C59 encounter planner](slices/C59-encounter-planner.md) → [C58 fixed-seed encounter](slices/C58-offline-encounter.md) → [C55 runtime generation](slices/C55-runtime-generation.md)
 - [ ] Town look, second pass: cities that are not a disc round one crossroads, large towns on more than one road, main settlements off the middle, fields on open ground
 - [ ] Scale at full extent with buildings: S1 on generated towns (tens of thousands of buildings), browser startup and memory, rendered surroundings, C06 scale passes* · C07 publication* · C20 fog at scale · C22 placement chunks → C23 far tier
-- [ ] **[Sim rules lane](sim-lane.md)** (a second session, in parallel): C40 → C41 · C42 → C43 · SA6 movement gaps · SA5 sight cost · C44 street bodies · C77 forest bodies · C80 effective-height validator · C86 tree lines. Its status lives in that file.
-- [ ] C46 street placement in generated towns (after C44)
+- [ ] C46 street placement in generated towns
+- [ ] Whole-battle cost on a full generated map against the 30 Hz budget (the sim lane's stress checks ran under it)
 - [ ] Existing maps: [C56 reservations](slices/C56-fixture-surroundings.md) → C34 village · C35 labs · C36 benchmarks → [C54 integrated seed gate](slices/C54-generation-gate.md)
 - [ ] C05 measuring tools (`city_report` is its first piece) · C10 provenance · C13/C32 template source and library schema · C21 material transport
 - [ ] Completion: C50 durability balance → C51 playable generated encounter (requires C54 and C87)
