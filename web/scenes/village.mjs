@@ -3196,15 +3196,10 @@ const TOURS = {
   smoke: smokeTour,
   woods: woodsTour,
   cleanup: cleanupTour,
+  play: playTour,
 };
 
-export async function run(ctx) {
-  const only = process.env.VILLAGE_TOURS?.split(",");
-  if (only) {
-    for (const name of only) await TOURS[name](ctx);
-    return;
-  }
-  for (const visit of Object.values(TOURS)) await visit(ctx);
+async function playTour(ctx) {
   const page = await openBattle(ctx);
   await shot(ctx, page, "start-1280x800");
   const opened = await chosenVariant(page);
@@ -3402,4 +3397,13 @@ export async function run(ctx) {
     crossfire.variant === "Prepared crossfire",
     JSON.stringify(crossfire),
   );
+}
+
+export async function run(ctx) {
+  const only = process.env.VILLAGE_TOURS?.split(",");
+  if (only) {
+    for (const name of only) await TOURS[name](ctx);
+    return;
+  }
+  for (const visit of Object.values(TOURS)) await visit(ctx);
 }
