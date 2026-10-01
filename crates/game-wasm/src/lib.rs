@@ -46,6 +46,13 @@ pub fn generate_map(
     mapgen::generate_map_json(request_json, presets_json, descriptors_json).map_err(js_error)
 }
 
+/// The generator version a generation request pins: a request naming another
+/// is refused, so a caller that wants this build's maps asks here.
+#[wasm_bindgen]
+pub fn map_generator_version() -> String {
+    mapgen::layout::GENERATOR_VERSION.into()
+}
+
 /// Validate and canonically identify physical templates, independent of art.
 #[wasm_bindgen]
 pub fn template_catalogue_json(descriptors_json: &str) -> Result<String, JsError> {

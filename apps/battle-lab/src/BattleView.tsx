@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { RejectedOrder } from "@web/battle/present/rejectedOrder";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
+import type { CameraPresentation } from "@packages/renderer-core/src/cameraController";
 import { CommandBar, ReadoutLayer, SelectionCard } from "@web/battle/present/readouts";
 import { CaptionList, useCaptions } from "@web/battle/present/captions";
 import { buildBattleOverlay, type BattleOverlayScenario } from "./battleOverlay";
@@ -25,6 +26,11 @@ import {
   type RangeRulerLabelsHandle,
 } from "@web/battle/present/rangeRulerLabels";
 
+/** What has finished loading: the static world's meshes are built
+ *  (`world`), the viewport has drawn its first frame (`renderer`), and the
+ *  battle's first observation has arrived (`playable`). */
+export type BattleLoadStage = "world" | "renderer" | "playable";
+
 /** Zoom steps for the marks whose strokes are sized on screen (the border,
  *  the orders, the ruler): distance = ZOOM_BASE ** step. */
 const ZOOM_BASE = 1.25;
@@ -37,9 +43,12 @@ export function BattleView({
   replay,
   scripted,
   camera,
+  cameraConfig,
   status,
   menu,
   diagnostics,
+  cover,
+  onLoadStage,
 }: {
   fixture: string;
   /** The scenario JSON the authority runs; the view draws its map. */
@@ -52,12 +61,18 @@ export function BattleView({
    *  camera is the player's (watching the script play). */
   scripted?: ScriptedSim & { pilot?: ViewportPilot };
   camera: Camera3DParams;
+  /** The camera rig's numbers; the village's when omitted. */
+  cameraConfig?: CameraPresentation;
   /** The top bar's readout: what the player tracks while playing. */
   status: (session: BattleSession) => ReactNode;
   /** The route's own pause menu items. */
   menu?: (session: BattleSession) => ReactNode;
   /** Route-specific lab probes, merged into the shared ones. */
   diagnostics?: (session: BattleSession) => Record<string, unknown>;
+  /** A loading screen shown over the view until the battle is playable. */
+  cover?: ReactNode;
+  /** Each stage of loading, once, as it completes. */
+  onLoadStage?: (stage: BattleLoadStage) => void;
 }) {
   const parsed = useMemo(() => {
     const s = JSON.parse(scenario) as {
@@ -145,7 +160,23 @@ export function BattleView({
   );
   const overlayFeed = useFeed(overlay);
 
-  if (!meshes) return null;
+  // Loading: the static world's meshes, then the viewport's first frame, then
+  // the battle's first observation, which is when the player can act.
+  const [viewportReady, setViewportReady] = useState(false);
+  const loadStage: BattleLoadStage | null = !meshes
+    ? null
+    : !viewportReady
+      ? "world"
+      : !observation
+        ? "renderer"
+        : "playable";
+  const onLoadStageRef = useRef(onLoadStage);
+  onLoadStageRef.current = onLoadStage;
+  useEffect(() => {
+    if (loadStage) onLoadStageRef.current?.(loadStage);
+  }, [loadStage]);
+
+  if (!meshes) return cover ?? null;
   return (
     <>
       <LabViewport
@@ -158,10 +189,14 @@ export function BattleView({
         frame={session.frame}
         appearances={session.appearances}
         initialCamera={camera}
+        cameraConfig={cameraConfig}
         groundAt={surfaceZ}
         onPick={scripted ? undefined : session.onPick}
         onBox={scripted ? undefined : session.onBox}
-        onReady={session.onReady}
+        onReady={(gpu) => {
+          session.onReady(gpu);
+          setViewportReady(true);
+        }}
         pilot={scripted?.pilot}
         onFrame={(project, view, pointer) => {
           session.hear(view);
@@ -234,6 +269,7 @@ export function BattleView({
         <CaptionList captions={cues} />
       </div>
       {input && <RejectedOrder acks={control.acks} />}
+      {loadStage !== "playable" && cover}
       {pause.open && (
         <PauseMenu
           onClose={() => pause.show(false)}

@@ -1,0 +1,20 @@
+{
+  "limits": { "max_authored_parts": 60000, "max_bay_positions": 600000, "max_ground_points": 200000 },
+  "encounter": {
+    "blue": {
+      "column": ["recon", "jeep", "tank", "tank", "rifle", "rifle", "rifle", "at", "supply"],
+      "edge_inset_m": 150,
+      "spacing_m": 30
+    },
+    "red": [
+      { "kind": "rifle", "garrison": true, "standoff_m": 4 },
+      { "kind": "rifle", "garrison": true, "standoff_m": 4 },
+      { "kind": "rifle", "garrison": true, "standoff_m": 4 },
+      { "kind": "at", "garrison": false, "standoff_m": 4 },
+      { "kind": "tank", "garrison": false, "standoff_m": 10 },
+      { "kind": "jeep", "garrison": false, "standoff_m": 10 }
+    ],
+    "zone_radius_m": 150
+  },
+  "camera": { "overview_span": 1.5, "overview_pitch": 1.3 }
+}
