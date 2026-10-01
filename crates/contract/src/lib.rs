@@ -6,6 +6,7 @@ pub mod ballistics;
 pub mod catalog;
 pub mod command;
 pub mod curve;
+pub mod encounter;
 pub mod ground;
 pub mod identity;
 pub mod ids;

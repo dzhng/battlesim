@@ -27,6 +27,11 @@ fn finish(
         let directory = Path::new(path);
         std::fs::create_dir_all(directory)?;
         std::fs::write(directory.join("map.json"), serde_json::to_vec(&result.map)?)?;
+        // What the encounter planner reads beside the map.
+        std::fs::write(
+            directory.join("sites.json"),
+            serde_json::to_vec(&result.sites)?,
+        )?;
         std::fs::write(
             directory.join("SOURCES.json"),
             serde_json::to_vec(&MapSources {

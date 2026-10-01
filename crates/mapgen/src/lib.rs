@@ -125,34 +125,38 @@ pub struct CategoryShare {
     pub weight: f64,
 }
 
-/// The half of the playable area north (`Top`) or south of its midline.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Half {
-    Top,
-    Bottom,
-}
+/// The contract's half and measured open approach: the layout writes them,
+/// and the encounter planner reads them (`MapPlan::sites`).
+pub use contract::encounter::{Approach as ApproachPlan, Half};
 
-/// Open ground beside a settlement, with no settlement, forest or water on
-/// it. Along every bearing from `from_rad` to `to_rad` (counter-clockwise
-/// from +X) a corridor `front_m` wide about the line from the settlement's
-/// centre is open for `depth_m`, from the last of the settlement's own
-/// ground inside the corridor.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ApproachPlan {
-    /// Index into `settlements`.
-    pub settlement: usize,
-    pub half: Half,
-    #[serde(deserialize_with = "contract::numbers::scalar")]
-    pub from_rad: f64,
-    #[serde(deserialize_with = "contract::numbers::scalar")]
-    pub to_rad: f64,
-    #[serde(deserialize_with = "contract::numbers::scalar")]
-    pub depth_m: f64,
-    /// The corridor's width.
-    #[serde(deserialize_with = "contract::numbers::scalar")]
-    pub front_m: f64,
+impl MapPlan {
+    /// What the encounter planner reads of a plan: where its settlements
+    /// and their districts stand, and the measured open approaches. The
+    /// compiled map carries neither.
+    pub fn sites(&self) -> contract::encounter::EncounterSites {
+        use contract::encounter::{DistrictSite, EncounterSites, SettlementSite};
+        EncounterSites {
+            settlements: self
+                .settlements
+                .iter()
+                .map(|s| SettlementSite {
+                    id: s.id.clone(),
+                    center: s.center,
+                    outline: s.outline.clone(),
+                    districts: s
+                        .districts
+                        .iter()
+                        .map(|d| DistrictSite {
+                            id: d.id.clone(),
+                            ring: d.ring.clone(),
+                            area_m2: d.area_m2,
+                        })
+                        .collect(),
+                })
+                .collect(),
+            approaches: self.approaches.clone(),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
@@ -214,6 +218,9 @@ pub struct GeneratedMap {
     pub map: MapDefinition,
     pub identity: GenerationIdentity,
     pub report: CompileReport,
+    /// Where the plan's settlements and open approaches are, for the
+    /// encounter planner: the map itself carries neither.
+    pub sites: contract::encounter::EncounterSites,
 }
 
 /// The native and WASM preparation boundaries emit this same result record.
@@ -661,6 +668,7 @@ pub fn lower(
             ground_points,
             limits: request.limits,
         },
+        sites: request.plan.sites(),
     })
 }
 
