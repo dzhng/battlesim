@@ -42,8 +42,8 @@ enum Via {
 /// A whole way by road, start to goal.
 #[derive(Clone, Copy)]
 struct Way {
-    /// Its estimated time: straight to the road, along it, straight off it.
-    time: f64,
+    /// Its estimated cost: straight to the road, along it, straight off it.
+    cost: f64,
     /// The last node before the road is left, and where it is left. No
     /// node: on at `start` and off at `goal` along one arc.
     end: Option<u32>,
@@ -51,21 +51,21 @@ struct Way {
     goal: usize,
 }
 
-/// The quickest way over the road graph, a node a step.
+/// The best road journey under the requested policy, a node a step.
 struct RoadSearch {
     /// Where the road can be joined near the start, and left near the goal.
     starts: Vec<Access>,
     goals: Vec<Access>,
     open: BinaryHeap<Open>,
-    /// Each node's time from the start and how it was reached.
+    /// Each node's cost from the start and how it was reached.
     reached: BTreeMap<u32, (f64, Via)>,
-    /// Each node the road can be left after: the time on to the goal, and
+    /// Each node the road can be left after: the cost on to the goal, and
     /// where it is left.
     exits: BTreeMap<u32, (f64, usize)>,
     best: Option<Way>,
     initializing: usize,
     left_at: BTreeMap<u32, usize>,
-    goal_times: Vec<f64>,
+    goal_costs: Vec<f64>,
     across: f64,
     connector: Option<super::terrain::Probe>,
     /// Arc cursor and nearest access at each missing endpoint. A missing
@@ -194,9 +194,19 @@ impl AccessSearch {
     }
 }
 
-/// Seconds a metre of `arc` takes `m`.
-fn pace(roads: &RoadNet, arc: u32, m: &Mobility) -> f64 {
-    1.0 / m.speed(roads.arc(arc).factor, false, 0.0)
+/// A metre's cost on this arc, in metres or seconds by the requested policy.
+fn pace(roads: &RoadNet, arc: u32, leg: Leg) -> f64 {
+    match leg.policy {
+        RoutePolicy::Shortest => 1.0,
+        RoutePolicy::Fastest => 1.0 / leg.m.speed(roads.arc(arc).factor, false, 0.0),
+    }
+}
+
+fn over_ground(grid: &NavGrid, a: V2, b: V2, leg: Leg) -> f64 {
+    match leg.policy {
+        RoutePolicy::Shortest => (b - a).length(),
+        RoutePolicy::Fastest => grid.across(a, b, leg.m),
+    }
 }
 
 impl RoadSearch {
@@ -232,7 +242,7 @@ impl RoadSearch {
             .then(|| AccessSearch::new(needed, rules.road_access_m));
         let found_alternatives = needed;
         Some(RoadSearch {
-            goal_times: vec![f64::INFINITY; goals.len()],
+            goal_costs: vec![f64::INFINITY; goals.len()],
             starts,
             goals,
             open: BinaryHeap::new(),
@@ -271,7 +281,7 @@ impl RoadSearch {
         }
         let ends = |access: &Access| {
             let arc = roads.arc(access.arc);
-            let pace = pace(roads, access.arc, leg.m);
+            let pace = pace(roads, access.arc, leg);
             [
                 (arc.ends[0], access.along * pace),
                 (arc.ends[1], (arc.length - access.along) * pace),
@@ -279,27 +289,27 @@ impl RoadSearch {
         };
         if k < self.goals.len() {
             let access = self.goals[k];
-            let leave = grid.across(access.at, leg.goal, leg.m);
-            self.goal_times[k] = leave;
+            let leave = over_ground(grid, access.at, leg.goal, leg);
+            self.goal_costs[k] = leave;
             self.left_at.insert(access.arc, k);
-            for (node, time) in ends(&access) {
-                let time = time + leave;
-                if self.exits.get(&node).is_none_or(|(t, _)| time < *t) {
-                    self.exits.insert(node, (time, k));
+            for (node, cost) in ends(&access) {
+                let cost = cost + leave;
+                if self.exits.get(&node).is_none_or(|(t, _)| cost < *t) {
+                    self.exits.insert(node, (cost, k));
                 }
             }
         } else {
             let start = k - self.goals.len();
             let access = self.starts[start];
-            let join = grid.across(leg.from, access.at, leg.m);
-            for (node, time) in ends(&access) {
-                self.reach(roads, leg, node, join + time, Via::Start(start));
+            let join = over_ground(grid, leg.from, access.at, leg);
+            for (node, cost) in ends(&access) {
+                self.reach(roads, leg, node, join + cost, Via::Start(start));
             }
             if let Some(&goal) = self.left_at.get(&access.arc) {
                 let exit = self.goals[goal];
-                let along = (exit.along - access.along).abs() * pace(roads, access.arc, leg.m);
+                let along = (exit.along - access.along).abs() * pace(roads, access.arc, leg);
                 self.offer(Way {
-                    time: join + along + self.goal_times[goal],
+                    cost: join + along + self.goal_costs[goal],
                     end: None,
                     start,
                     goal,
@@ -309,24 +319,28 @@ impl RoadSearch {
     }
 
     fn offer(&mut self, way: Way) {
-        if self.best.is_none_or(|best| way.time < best.time) {
+        if self.best.is_none_or(|best| way.cost < best.cost) {
             self.best = Some(way);
         }
     }
 
-    /// No way on from `node` is quicker than the straight line at the
-    /// mover's best speed.
+    /// A lower bound on remaining distance, or time at the mover's best
+    /// speed, under the requested policy.
     fn on(roads: &RoadNet, leg: Leg, node: u32) -> f64 {
-        (roads.node(node) - leg.goal).length() / leg.m.max_speed()
+        let distance = (roads.node(node) - leg.goal).length();
+        match leg.policy {
+            RoutePolicy::Shortest => distance,
+            RoutePolicy::Fastest => distance / leg.m.max_speed(),
+        }
     }
 
-    fn reach(&mut self, roads: &RoadNet, leg: Leg, node: u32, time: f64, via: Via) {
-        if self.reached.get(&node).is_some_and(|(t, _)| *t <= time) {
+    fn reach(&mut self, roads: &RoadNet, leg: Leg, node: u32, cost: f64, via: Via) {
+        if self.reached.get(&node).is_some_and(|(t, _)| *t <= cost) {
             return;
         }
-        self.reached.insert(node, (time, via));
+        self.reached.insert(node, (cost, via));
         self.open.push(Open {
-            f: time + Self::on(roads, leg, node),
+            f: cost + Self::on(roads, leg, node),
             cell: node,
         });
     }
@@ -353,7 +367,7 @@ impl RoadSearch {
             if finding.needed[1] {
                 self.goals = std::mem::take(&mut finding.selected[1]);
             }
-            self.goal_times.resize(self.goals.len(), f64::INFINITY);
+            self.goal_costs.resize(self.goals.len(), f64::INFINITY);
             self.initializing = 0;
         }
         if self.initializing < self.starts.len() + self.goals.len() {
@@ -376,17 +390,17 @@ impl RoadSearch {
         let Some(Open { f, cell: node }) = self.open.pop() else {
             return Some(self.best);
         };
-        if self.best.is_some_and(|best| best.time <= f) {
+        if self.best.is_some_and(|best| best.cost <= f) {
             return Some(self.best);
         }
-        let (time, _) = self.reached[&node];
-        if f > time + Self::on(roads, leg, node) {
-            return None; // reached more quickly since it was queued
+        let (cost, _) = self.reached[&node];
+        if f > cost + Self::on(roads, leg, node) {
+            return None; // reached at lower cost since it was queued
         }
         if let Some(&(exit, goal)) = self.exits.get(&node) {
             let start = self.start_of(roads, node);
             self.offer(Way {
-                time: time + exit,
+                cost: cost + exit,
                 end: Some(node),
                 start,
                 goal,
@@ -398,8 +412,8 @@ impl RoadSearch {
             }
             let ends = roads.arc(arc).ends;
             let next = if ends[0] == node { ends[1] } else { ends[0] };
-            let time = time + roads.arc(arc).length * pace(roads, arc, leg.m);
-            self.reach(roads, leg, next, time, Via::Arc(arc));
+            let cost = cost + roads.arc(arc).length * pace(roads, arc, leg);
+            self.reach(roads, leg, next, cost, Via::Arc(arc));
         }
         None
     }
@@ -623,7 +637,7 @@ impl Journey {
     /// Ask the road graph, if this leg goes by road at all.
     fn by_road(&mut self, grid: &NavGrid, roads: &RoadNet, direct: bool) -> Stage {
         let across = if direct {
-            grid.across(self.from, self.goal, &self.m)
+            over_ground(grid, self.from, self.goal, self.leg())
         } else {
             f64::INFINITY
         };
@@ -789,12 +803,11 @@ impl Journey {
                 match search.step(grid, roads, self.leg(), &self.closed, &self.rejected) {
                     None => Stage::Roads(search),
                     Some(way) => {
-                        // By road only if that beats the straight line
-                        // across country, both judged as the crow flies
-                        // over the ground they cross.
+                        // Compare both candidates under the same policy.
+                        // Blocked straight terrain has infinite baseline cost.
                         let across = search.across;
                         match way.filter(|way| {
-                            way.time < across
+                            way.cost < across
                                 && (self.policy == RoutePolicy::Fastest
                                     || search.crosses_bridge(roads, *way))
                         }) {
