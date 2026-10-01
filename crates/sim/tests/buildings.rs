@@ -916,10 +916,19 @@ fn a_third_floor_garrison_sees_over_a_two_storey_obstacle() {
     let mut fired = false;
     for _ in 0..400 {
         b.step();
-        fired |= b.rounds().any(|(_, round)| {
+        if b.rounds().any(|(flight, round)| {
             round.unit == contract::ids::UnitId(0)
                 && b.arsenal().weapons[round.weapon].id == "rifle"
-        });
+                && flight.position.z > 6.0
+        }) {
+            assert_eq!(
+                b.world().prop(3).unwrap().top_z(),
+                5.0,
+                "the shop still stands when the upper-floor rifle fires"
+            );
+            fired = true;
+            break;
+        }
     }
     assert!(
         fired,

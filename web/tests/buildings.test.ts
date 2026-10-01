@@ -64,6 +64,7 @@ test("the public picker and delivered replacements share one physical building o
     (d) => d.props?.building,
   )!.props!.building.body;
   body.hp = 1000;
+  body.hp_scale = "fixed";
   rules.weapons.tank_he.structural_damage = 100;
   rules.weapons.tank_he.blast_radius_m = 20;
   const view = new WorldView(JSON.stringify(map), JSON.stringify(rules));
