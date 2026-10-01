@@ -11,6 +11,7 @@ export async function run(ctx) {
   await ctx.openLab(page, battle);
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
   await lab(page, () => window.__lab.route.pause());
+  await page.waitForFunction(() => window.__lab.route.status().status === "paused");
   const o = await lab(page, () => window.__lab.route.observation());
   const tanks = o.own.filter((u) => u.kind === "tank").map((u) => u.id);
   await lab(page, (ids) => window.__lab.route.select(ids), tanks);
@@ -29,7 +30,12 @@ export async function run(ctx) {
     const digests = [];
     for (const tick of probes) {
       await advance(page, tick - (await ticks(page)));
-      digests.push(await lab(page, () => window.__lab.route.digest()));
+      digests.push(
+        await lab(page, () => ({
+          tick: window.__lab.route.tick(),
+          digest: window.__lab.route.digest(),
+        })),
+      );
     }
     return digests;
   };
@@ -40,10 +46,12 @@ export async function run(ctx) {
   await ctx.openLab(page);
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 30000 });
   await lab(page, () => window.__lab.route.pause());
+  await page.waitForFunction(() => window.__lab.route.status().status === "paused");
   const got = await checkpoints();
   ctx.check(
     "the replay reaches the same digests as the played battle",
-    want.every((d) => d) && want.join() === got.join(),
+    want.every((p, k) => p.tick === probes[k] && p.digest) &&
+      got.every((p, k) => p.tick === probes[k] && p.digest === want[k].digest),
     JSON.stringify({ probes, want, got }),
   );
   ctx.check(
