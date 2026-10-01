@@ -1492,6 +1492,34 @@ fn authored() -> Vec<Scenario> {
             ],
         },
         Scenario {
+            name: "t3-jeep-takes-a-road-bend-at-speed",
+            caption: "a jeep at full road speed takes a right-angle bend: it slows for the corner, stays near the road and reaches the far end",
+            map: flat(
+                [360.0, 260.0],
+                json!({ "surfaces": [
+                    { "kind": "country_road", "shape": { "kind": "stroke", "points": [[0, 30], [300, 30], [300, 260]], "width_m": 8 } },
+                ] }),
+            ),
+            units: json!([vehicle("blue", "jeep", [20.0, 30.0], 0.0)]),
+            events: none.clone(),
+            scripts: json!([drive("blue", 0, [300.0, 240.0])]),
+            rules: json!({}),
+            seconds: 30.0,
+            seed: 1,
+            checks: vec![
+                check(FastThrough {
+                    unit: 0,
+                    rect: [60.0, 0.0, 240.0, 60.0],
+                    min_mps: 26.0,
+                }),
+                check(Arrive {
+                    unit: 0,
+                    at: [300.0, 240.0],
+                    within_m: 2.0,
+                }),
+            ],
+        },
+        Scenario {
             name: "t1-spotted-open-vs-forest",
             caption: "a squad walks toward two hidden squads: it spots the one on open ground from far farther than the one in the forest",
             map: flat(

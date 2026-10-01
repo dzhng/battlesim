@@ -49,4 +49,6 @@ A forest that implies a different density rule by species reopens shared coverag
 
 **Measured shift (balance waits for C50).** `village_report --quick` against main: every digest moved, as named. The flank script captures 2 of 3 seeds in 600 s where it captured 3 (seed 1 took 540 s before and now runs out the clock), and blue's cost lost rises 728 → 790. The ambush script is unchanged at 0 of 3 with 120 lost.
 
+Main's first ten minutes cost 23,579 G; this slice's cost 25,215 G (+6.9%, the denser wood).
+
 **Endurance baseline (60 minutes, step instructions in billions per five minutes):** 10,853 · 14,362 · 9,536 · 3,807 · 1,615 · 1,562 · 1,552 · 1,556 · 1,550 · 1,557 · 1,551 · 1,557.

@@ -613,7 +613,7 @@
             "wheeled": {
               "mps": 9.0,
               "reverse_fraction": 0.4,
-              "road_mps": 18.0,
+              "road_mps": 27.0,
               "turn_deg_s": 60.0,
               "turning_radius_m": 6.0
             }
@@ -783,7 +783,7 @@
             "wheeled": {
               "mps": 7.0,
               "reverse_fraction": 0.35,
-              "road_mps": 14.0,
+              "road_mps": 21.0,
               "turn_deg_s": 40.0,
               "turning_radius_m": 9.0
             }
@@ -1566,7 +1566,7 @@
         "wheeled": {
           "mps": 9.0,
           "reverse_fraction": 0.4,
-          "road_mps": 18.0,
+          "road_mps": 27.0,
           "turn_deg_s": 60.0,
           "turning_radius_m": 6.0
         }
@@ -1811,7 +1811,7 @@
         "wheeled": {
           "mps": 7.0,
           "reverse_fraction": 0.35,
-          "road_mps": 14.0,
+          "road_mps": 21.0,
           "turn_deg_s": 40.0,
           "turning_radius_m": 9.0
         }

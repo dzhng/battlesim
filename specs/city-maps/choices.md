@@ -823,3 +823,13 @@ keeps storage addresses independent of physical identity and encounter naming.
 **Gap:** The slice did not say how overlapping kinds resolve or whether the renderer needs the kind yet.
 
 **Verdict:** sound for the physical half; C66 adds a per-kind exported tag when the look needs it. **Confidence:** high.
+
+## Scale direction: wheeled road speeds
+
+### Wheeled vehicles do three times their off-road speed on roads
+
+**Choice:** The jeep's road speed is 27 m/s (97 km/h, from 18) and the supply truck's 21 m/s (76 km/h, from 14), three times their off-road speeds. Tracked vehicles stay at twice. Each unit type keeps its own two speeds in the catalog; there is no shared multiplier.
+
+**Gap:** The user asked for wheeled vehicles to gain more from roads than tracked ones, "maybe 3x". `scale-direction.md` caps light vehicles at 110 km/h and wants a Large map's centre reached from an edge in about three minutes.
+
+**Verdict:** sound; reversible data. One of six quick village trials changes digest, with the same outcomes and losses. `t3-jeep-takes-a-road-bend-at-speed` holds 27 m/s on the straight and rounds a right-angle bend about a metre wide of the road. **Confidence:** medium until the transit proof runs on a generated map.
