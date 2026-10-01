@@ -2084,7 +2084,7 @@
       "damage": 40.0,
       "default": false,
       "description": "Armour-piercing sabot: the tank gun's answer to armour.",
-      "gravity_scale": 0.7148,
+      "gravity_scale": 1.7651,
       "icon": "ap_shell",
       "lifetime_s": null,
       "magazine": null,

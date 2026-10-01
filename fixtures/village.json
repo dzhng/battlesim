@@ -425,7 +425,7 @@
       "stationary": false,
       "range_m": 950,
       "speed_mps": 500,
-      "gravity_scale": 0.7148,
+      "gravity_scale": 1.7651,
       "aim_s": 2,
       "reload_s": 6,
       "ammo": 20,
