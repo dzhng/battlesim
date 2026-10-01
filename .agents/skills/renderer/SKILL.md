@@ -180,6 +180,7 @@ When a new need shows two passes owning one concept, refactor to the shared prim
 - **A probe reads the last frame drawn.** After advancing a paused battle, draw a frame (`__lab.frame()`) before reading `castLights`, `effectInstances` or `stats()`, or you read the previous tick's state: a flash still alive there is already dead in the capture.
 - **Judge a light by a paired frame at one tick:** the same tick and camera with the switch on and off (`suppressCastLights`), so the before/after isolates the light and nothing else moved.
 - **Debug views** (`setFrameView`, one per `FrameView` in `scene.ts`) isolate a stage; `window.__lab` has `suppress*` switches and probes. Readbacks are lab-only, never inside a frame.
+- **Don't save a source file while a scene runs.** Scenes run against Vite's development server, so a save under `web/`, `apps/`, `packages/` or `fixtures/` reloads the page mid-check and the scene waits on a battle that is gone, holding the GPU lock until it times out. Write notes and specs meanwhile; they are not served.
 - **Stats aren't pixels.** Pair every instance or draw count with a crop or content probe. Make sure the capture frames its subject: derive the camera from live anchors (`projectToCss`, `surfaceZ`), not hand-picked coordinates.
 - **Checks derive from contracts:**
   - overlay isolation by compositing algebra;
@@ -229,6 +230,8 @@ Three of the four things that broke on a 6 to 10 km generated map were loops ove
 - **Per clump:** the grass build asked every prop on the map whether it covered each clump (94,000 props; 100 ms frames whenever the ground changed). It now asks its grid cell's list (`packGrassProps`).
 - **Per plot:** the patchwork tested every road against every plot it split (19 s of a 22 s start). A plot now keeps only the roads whose box meets its own, and passes that list to the plots split from it; the tree is byte-identical.
 - **Per leaf:** every plot asked every building whether it stood nearby; now a grid.
+
+The ground mask (`setFrameView("ground-mask")`) is the cheap proof that such a thing is drawn where the map puts it: black at a box's roof or a tree's crown, white on the ground beside it, from straight above so nothing hides the ground. It is the fog mask's channel, so read it with fog on.
 
 Before trusting a full-size number, drive it: a paused battle regrows no grass and rebuilds no sight map. Order units to move, wait out their planning, then read the GPU time; and split it with the lab's `suppress*` switches before guessing which pass it is.
 
