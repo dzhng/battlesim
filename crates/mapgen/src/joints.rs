@@ -1,21 +1,23 @@
 //! Road ends. A stroke is cut square across its first and last point
 //! (`contract::ground`), so the flat face of an end shows wherever no other
 //! paving covers it. Both generation steps hand their carriageways to
-//! [`close`], which leaves every end one of three things:
+//! [`close`], which leaves every end one of these:
 //!
 //! - **part of a through road.** Carriageways of one kind and width that meet
 //!   end to end become one stroke through the point they shared, so the bend
 //!   there is the centreline's own rounded one;
 //! - **under the road it joins.** An end that touches another carriageway
 //!   stops just past that carriageway's middle, where its face lies inside
-//!   the other's width. Where unlike roads meet at a corner, the wider one
-//!   runs on over the narrower one's end, and its own end is the corner's
-//!   outer edge;
-//! - **square on the map's edge**, where a road leaves the map.
+//!   the other's width;
+//! - **the outer edge of a corner.** Where unlike roads meet at a corner, the
+//!   wider one runs on over the narrower one's end, and its own end is the
+//!   corner's outer edge;
+//! - **square on the map's edge**, where a road leaves the map;
+//! - **at the last block it serves.** A road that ran on past it into open
+//!   country is cut back to it.
 //!
-//! Any other end is one the step meant: a lane that stops at the last lot it
-//! serves. A wider road that ends on a narrower one shows its shoulders,
-//! which is what a road that narrows looks like.
+//! A wider road that ends on a narrower one shows its shoulders, which is
+//! what a road that narrows looks like.
 //!
 //! Not closed yet, and counted by `tests/road_ends.rs`: two roads of one
 //! width that fork at less than about 70°, which leave a bite between their
