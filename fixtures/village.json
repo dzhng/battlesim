@@ -326,6 +326,14 @@
     "yield_horizon_s": 2,
     "yield_margin_m": 1
   },
+  "formation": {
+    "min_radius_m": 40,
+    "spacing_m": 1,
+    "fill_ratio": 0.6,
+    "growth_factor": 1.5,
+    "candidate_checks": 32768,
+    "max_expansions": 8
+  },
   "navigation": {
     "work_per_tick": 4000,
     "search_cells_base": 20000,
@@ -377,7 +385,7 @@
       "default": true,
       "stationary": false,
       "range_m": 400,
-      "speed_mps": 510,
+      "speed_mps": 1000,
       "gravity_scale": 0.09,
       "aim_s": 0.8,
       "reload_s": 0,
@@ -416,7 +424,7 @@
       "icon": "ap_shell",
       "stationary": false,
       "range_m": 950,
-      "speed_mps": 930,
+      "speed_mps": 500,
       "gravity_scale": 0.7148,
       "aim_s": 2,
       "reload_s": 6,
@@ -437,7 +445,7 @@
       "armor_fraction": 0.15,
       "stationary": false,
       "range_m": 950,
-      "speed_mps": 930,
+      "speed_mps": 500,
       "gravity_scale": 1.7651,
       "aim_s": 2,
       "reload_s": 6,
@@ -457,7 +465,7 @@
       "default": true,
       "stationary": false,
       "range_m": 550,
-      "speed_mps": 540,
+      "speed_mps": 1000,
       "gravity_scale": 0.09,
       "aim_s": 1,
       "reload_s": 5,
@@ -478,8 +486,8 @@
       "stationary": true,
       "range_m": 1200,
       "speed_mps": 50,
-      "accel_mps2": 280,
-      "top_speed_mps": 1000,
+      "accel_mps2": 140,
+      "top_speed_mps": 200,
       "aim_s": 3,
       "reload_s": 9,
       "ammo": 4,
@@ -792,6 +800,20 @@
         ],
         "distance": 65,
         "yaw": -1.57
+      },
+      "clearance": {
+        "margin_m": 0.5,
+        "release_m": 0.75,
+        "lift_max_m": 16,
+        "lift_steps": 4,
+        "slide_max_m": 16,
+        "slide_max_rad": 0.6,
+        "slide_steps": 4,
+        "refine_steps": 6,
+        "smoothing_s": 0.35,
+        "lookahead_s": 0.75,
+        "sweep_step_m": 1,
+        "sweep_max_steps": 32
       }
     },
     "light": {

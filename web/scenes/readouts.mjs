@@ -222,6 +222,14 @@ export async function run(ctx) {
   await page.waitForFunction(
     () => document.querySelector('.ro-unit[data-unit="1"]').dataset.zoom === "default",
   );
+  // A backing is translucent: absolute pixel losses over a changing
+  // battlefield are not a stable contrast experiment. Keep the real callout
+  // and its layout, and measure its core and tail over one neutral field.
+  await snapshot(ctx, page, "backing-world.png");
+  const neutralField = await page.addStyleTag({
+    content:
+      "div:has(> canvas) { background: rgb(100,100,100) !important; } canvas { visibility: hidden !important; }",
+  });
   const atPanel = await page.locator('.ro-unit[data-unit="1"]').boundingBox();
   const backed = decode(await snapshot(ctx, page, "backing-on.png"));
   const noBacking = await page.addStyleTag({
@@ -251,6 +259,7 @@ export async function run(ctx) {
     lineLoss <= 8 && spill <= 8 && shadeAboveLine >= 15,
     JSON.stringify({ lineLoss, spill, shadeAboveLine, atPanel }),
   );
+  await neutralField.evaluate((node) => node.remove());
   const smallLayout = await page.locator("[data-testid=readouts] .ro-unit").evaluateAll((nodes) => {
     const boxes = nodes
       .filter((n) => n.style.display !== "none")

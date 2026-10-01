@@ -1245,6 +1245,89 @@ async function orderFlashTour(ctx) {
   await page.close();
 }
 
+/** Held group destinations use the same individual markers as confirmation. */
+async function groupPreviewTour(ctx, rotate = true) {
+  const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
+  const before = await obs(page);
+  const tank = before.own.find((u) => u.kind === "tank");
+  const rifle = before.own.find((u) => u.kind === "rifle");
+  const ids = [tank.id, rifle.id];
+  await lab(page, (ids) => window.__lab.route.select(ids), ids);
+  await page.waitForFunction(
+    (ids) => JSON.stringify(window.__lab.route.selected()) === JSON.stringify(ids),
+    ids,
+  );
+  const goal = [tank.position[0] + 55, tank.position[1] + 15];
+  await aim(page, goal, { distance: 220, pitch: 0.85, yaw: CAMERA.default.yaw });
+  await lab(page, () => window.__lab.frame());
+  const press = await groundCss(page, goal);
+  const n = await lab(page, () => window.__lab.route.acks().length);
+  const to = await groundCss(page, [goal[0], goal[1] + 20]);
+  await page.mouse.move(...press);
+  await page.mouse.down({ button: "right" });
+  if (rotate) await page.mouse.move(...to, { steps: 6 });
+  await page.waitForFunction((rotate) => {
+    const p = window.__lab.route.movePreview();
+    const marks = p;
+    return marks.length && (!rotate || marks.every((m) => Math.abs(m.facing - Math.PI / 2) < 0.05));
+  }, rotate);
+  const label = rotate ? "group-preview" : "group-preview-plain";
+  ctx.check(
+    "pressing and orienting a move never issues an order",
+    (await lab(page, () => window.__lab.route.acks().length)) === n,
+  );
+  await shot(ctx, page, `${label}-held`);
+  const raw = await lab(page, () => window.__lab.route.movePreview());
+  const marks = raw;
+  ctx.check(
+    "held group move draws one distinct destination per selected unit",
+    marks.length === ids.length &&
+      ids.every((id) => marks.some((m) => m.unit === id)) &&
+      Math.hypot(marks[0].c[0] - marks[1].c[0], marks[0].c[1] - marks[1].c[1]) > 5,
+    JSON.stringify(marks),
+  );
+  if (marks.length !== ids.length) {
+    await page.mouse.up({ button: "right" });
+    await page.close();
+    return;
+  }
+  await page.mouse.up({ button: "right" });
+  await page.waitForFunction((n) => window.__lab.route.acks().length > n, n);
+  await page.waitForFunction(() => window.__lab.route.movePreview().length > 0);
+  ctx.check(
+    "released markers remain until the committed publication takes over",
+    (await lab(page, () => window.__lab.route.movePreview())).length === ids.length,
+  );
+  await shot(ctx, page, `${label}-released`);
+  await advance(page, 2);
+  const committed = (await obs(page)).own.filter((u) => ids.includes(u.id));
+  ctx.check(
+    "held markers match each committed destination and facing",
+    marks.length === ids.length &&
+      marks.every((m) => {
+        const u = committed.find((u) => u.id === m.unit);
+        const c = u?.area?.anchor ?? u?.goal;
+        return (
+          c &&
+          Math.hypot(m.c[0] - c[0], m.c[1] - c[1]) < 0.01 &&
+          Math.abs(wrap(m.facing - u.finalFacing)) < 0.01
+        );
+      }),
+    JSON.stringify({
+      marks,
+      committed: committed.map((u) => ({
+        id: u.id,
+        goal: u.goal,
+        area: u.area,
+        facing: u.finalFacing,
+      })),
+    }),
+  );
+  await page.waitForFunction(() => window.__lab.route.movePreview().length === 0);
+  await shot(ctx, page, `${label}-committed`);
+  await page.close();
+}
+
 /** Total War markers (D2), the Space overlay (D2+), right-drag
  *  facing (Q9) and a reverse move's marker (Q31), own units only. */
 async function orderTour(ctx) {
@@ -1264,12 +1347,12 @@ async function orderTour(ctx) {
   const release = await groundCss(page, [goal[0] + 10, goal[1] + 10]);
   await page.mouse.move(press[0], press[1]);
   await page.mouse.down({ button: "right" });
-  await page.waitForFunction(() => window.__lab.route.facingPreview() !== null);
+  await page.waitForFunction(() => window.__lab.route.movePreview().length > 0);
   await page.mouse.move(release[0], release[1], { steps: 6 });
   await page.waitForFunction(
-    () => Math.abs(window.__lab.route.facingPreview()?.facing - Math.PI / 4) < 0.25,
+    () => Math.abs(window.__lab.route.movePreview()[0]?.facing - Math.PI / 4) < 0.25,
   );
-  const preview = await lab(page, () => window.__lab.route.facingPreview());
+  const [preview] = await lab(page, () => window.__lab.route.movePreview());
   ctx.check(
     "the held facing marker keeps the press destination while its arrow turns",
     Math.hypot(preview.c[0] - goal[0], preview.c[1] - goal[1]) < 1,
@@ -1277,7 +1360,6 @@ async function orderTour(ctx) {
   );
   await shot(ctx, page, "held-facing");
   await page.mouse.up({ button: "right" });
-  await page.waitForFunction(() => window.__lab.route.facingPreview() === null);
   o = await until(page, (x) => x.own.find((u) => u.id === rifle.id)?.goal, 60, 1);
   const moving = o?.own.find((u) => u.id === rifle.id);
   const wanted = Math.PI / 4;
@@ -3386,6 +3468,8 @@ const TOURS = {
   ruler: rulerTour,
   selection: selectionTour,
   orders: orderTour,
+  "group-preview": groupPreviewTour,
+  "group-preview-plain": (ctx) => groupPreviewTour(ctx, false),
   orderFlash: orderFlashTour,
   muzzle: muzzleTour,
   works: worksTour,

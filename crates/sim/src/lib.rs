@@ -11,6 +11,7 @@ pub mod endurance;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod fixtures;
 pub mod flight;
+pub mod formation;
 pub mod garrison;
 pub mod ground;
 pub mod hearing;

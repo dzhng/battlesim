@@ -10,7 +10,7 @@
 import { color } from "math/color";
 import { mulberry32, random } from "math/random";
 import { pick } from "@packages/renderer-core/src/kindTable";
-import type { KnownProp, MapProp } from "../models/propAppearance";
+import { knownStanding, type KnownProp, type MapProp } from "../models/propAppearance";
 import type { PublicBuildings } from "../worldMesh";
 import { createPlacedInstances, INSTANCE_FLOATS, type PlacedInstances } from "./lod";
 
@@ -64,22 +64,13 @@ export function massingInstances(
   parts: ReadonlyMap<number, string>,
   style: MassingStyle,
 ): PlacedInstances {
-  const replaced = new Map<number, KnownProp>();
-  for (const k of known)
-    if (k.authoredProp !== null && parts.has(k.authoredProp)) replaced.set(k.authoredProp, k);
-  const boxes: { box: MapProp | KnownProp; tint: Rgb; id: number }[] = [];
-  for (const prop of props) {
-    const category = parts.get(prop.id);
-    if (category === undefined) continue;
-    const remains = replaced.get(prop.id);
-    if (!remains) boxes.push({ box: prop, tint: pick(style.tints, category), id: prop.id });
-    else if (!remains.destroyed) boxes.push({ box: remains, tint: style.ruin, id: prop.id });
-  }
+  const boxes = knownStanding(props, known, parts);
   const out = createPlacedInstances(boxes.length);
-  boxes.forEach(({ box, tint, id }, i) => {
+  boxes.forEach(({ prop, box, fallen }, i) => {
+    const tint: Rgb = fallen ? style.ruin : pick(style.tints, parts.get(prop.id)!);
     const [hx, hy, hz] = box.half;
     // The part's own value, from its id: the same standing, fallen and next battle.
-    const seeded = mulberry32.create(id);
+    const seeded = mulberry32.create(prop.id);
     const value = 1 + random.float(() => mulberry32.sample(seeded), -1, 1) * style.tint_jitter;
     color.setFromSRGB(_massing_tint, [tint[0], tint[1], tint[2]]);
     color.multiplyScalar(_massing_tint, _massing_tint, value);

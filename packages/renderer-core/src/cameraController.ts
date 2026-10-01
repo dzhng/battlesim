@@ -3,12 +3,23 @@
 // step turns it, with elapsed time and the fixture's `presentation.camera`,
 // into the next camera3d parameter set. Pure and GPU-free.
 //
+// `step` and `place` give the pose asked for; `resolve` gives the pose to
+// draw for it, clear of buildings and the ground (cameraClearance.ts). Every
+// playable and scripted camera path draws the resolved pose.
+//
 // Scene-authored framings go through the viewport's raw `setCamera`, which
 // never passes through here, so they may sit outside the zoom and pitch
-// limits. Only the wheel links pitch to zoom.
+// limits, or inside a building. Only the wheel links pitch to zoom.
 
 import { clamp } from "math";
 import type { Camera3DParams } from "./camera3d";
+import {
+  resolveClearance,
+  validateClearanceTuning,
+  type ClearanceState,
+  type ClearanceTuning,
+} from "./cameraClearance";
+import type { CameraObstacles } from "./cameraObstacles";
 
 /** `presentation.camera` in the fixture. */
 export interface CameraPresentation {
@@ -29,6 +40,8 @@ export interface CameraPresentation {
   zoom_speed: number;
   /** Middle-drag turn, radians per viewport height dragged. */
   orbit_speed: number;
+  /** How the drawn pose keeps clear of buildings and the ground. */
+  clearance: ClearanceTuning;
 }
 
 /** What the player asks of the camera since the last step. Every field is optional. */
@@ -93,6 +106,7 @@ export class CameraController {
       throw new Error("camera pitch_curve must cover the zoom range zoom_min..zoom_max");
     if (!(config.fov_y > 0 && config.fov_y < Math.PI && config.near_m > 0))
       throw new Error("camera fov_y must be in (0, π) and near_m positive");
+    validateClearanceTuning(config.clearance);
     this.config = config;
     this.groundAt = groundAt;
   }
@@ -124,6 +138,18 @@ export class CameraController {
       pitch: clamp(pose.pitch, PITCH_LIMITS[0], PITCH_LIMITS[1]),
       yaw: pose.yaw,
     };
+  }
+
+  /** The pose to draw for `desired` (from `step` or `place`), `dt` seconds
+   *  after the last call with this `state`: `desired` itself when it is clear
+   *  of `obstacles`, else lifted, slid or pushed clear of them. */
+  resolve(
+    state: ClearanceState,
+    desired: Camera3DParams,
+    dt: number,
+    obstacles: CameraObstacles,
+  ): Camera3DParams {
+    return resolveClearance(state, desired, dt, obstacles, this.config.clearance, PITCH_LIMITS[1]);
   }
 
   /** The next camera after `dt` seconds of `intent`; the same object when

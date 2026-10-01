@@ -338,13 +338,19 @@ pub fn steer(
 /// facing (Q9) where it can take it, else the way it travels along the
 /// route's last leg (held facing on a reverse, Q31). Wheels never pivot,
 /// so a wheeled vehicle ends facing its travel.
-pub fn final_yaw(unit: &Unit, facing: Option<f64>, from: V2, end: V2) -> Option<f64> {
+pub fn final_yaw(
+    unit: &Unit,
+    facing: Option<f64>,
+    from: V2,
+    end: V2,
+    direction: MoveDirection,
+) -> Option<f64> {
     let tracked = unit.mobility.drive.is_some_and(|d| d.tracked);
     if let Some(f) = facing.filter(|_| tracked || !unit.is_vehicle()) {
         return Some(f);
     }
     let leg = end - from;
-    (leg.length() > 1e-6).then(|| travel(leg.y.atan2(leg.x), gear_sign(unit.direction())))
+    (leg.length() > 1e-6).then(|| travel(leg.y.atan2(leg.x), gear_sign(direction)))
 }
 
 /// A tracked vehicle at rest pivots toward its ordered facing (Q9), at its

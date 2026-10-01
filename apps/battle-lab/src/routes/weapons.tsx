@@ -128,6 +128,7 @@ export default function Weapons() {
         fixture="weapons"
         world={worldFeed}
         structures={session.structures}
+        obstacles={session.cameraObstaclesFeed}
         massing={session.massingFeed}
         overlay={overlayFeed}
         fog={session.fogFeed}

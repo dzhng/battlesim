@@ -29,7 +29,8 @@ test("a rejected worker record returns credits and fails every pending request",
   const command = client.command({ kind: "stop", units: [1] });
   const advance = client.advance(1);
   const replay = client.replay();
-  const outcomes = Promise.allSettled([client.ready, command, advance, replay]);
+  const preview = client.previewMove({ units: [1], goal: [100, 100], facing: 0 });
+  const outcomes = Promise.allSettled([client.ready, command, advance, replay, preview]);
   try {
     const buffer = new ArrayBuffer(4);
     expect(() =>
@@ -129,4 +130,4 @@ test("an authority failure returns held records once and rejects requests after 
     battle.free();
     vi.unstubAllGlobals();
   }
-}, 1000);
+});

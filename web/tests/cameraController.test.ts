@@ -31,6 +31,7 @@ const CONFIG: CameraPresentation = {
   rotate_speed: 1.2,
   zoom_speed: 0.001,
   orbit_speed: 2.5,
+  clearance: villageCamera.config.clearance,
 };
 
 const CAM: Camera3DParams = {

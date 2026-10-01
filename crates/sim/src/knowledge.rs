@@ -188,7 +188,7 @@ impl SideKnowledge {
             .collect();
         self.contacts.retain(|c| !seen.contains(&c.emitter));
         for (shooter, at, heard) in std::mem::take(&mut self.pending_fire) {
-            if seen.contains(&shooter) {
+            if seen.contains(&shooter) || self.destroyed.contains(&shooter) {
                 continue;
             }
             // One report per firing episode: refresh while the shooter stays

@@ -241,6 +241,39 @@ export function mapProps(exports: WorldExports, layout: WorldLayout): MapProp[] 
   return out;
 }
 
+/** A map prop as a side knows it: standing as authored, or the remains the
+ *  side has seen take its place. */
+export interface KnownStanding {
+  prop: MapProp;
+  box: PropBox;
+  fallen: boolean;
+}
+
+/**
+ * What a side knows stands of the map props `among` holds: each one it has not
+ * seen replaced, as authored, and the remains of each it has; nothing for one
+ * it saw destroyed with nothing left. A fall the side has not seen leaves the
+ * prop standing. Massing draws these and the camera keeps clear of them, so
+ * what is drawn and what blocks the camera cannot part.
+ */
+export function knownStanding(
+  props: readonly MapProp[],
+  known: readonly KnownProp[],
+  among: { has(prop: number): boolean },
+): KnownStanding[] {
+  const replaced = new Map<number, KnownProp>();
+  for (const k of known)
+    if (k.authoredProp !== null && among.has(k.authoredProp)) replaced.set(k.authoredProp, k);
+  const out: KnownStanding[] = [];
+  for (const prop of props) {
+    if (!among.has(prop.id)) continue;
+    const remains = replaced.get(prop.id);
+    if (!remains) out.push({ prop, box: prop, fallen: false });
+    else if (!remains.destroyed) out.push({ prop, box: remains, fallen: true });
+  }
+  return out;
+}
+
 /**
  * What a side draws of the props: every map prop `keep` accepts, less those a
  * known prop replaces, plus every known prop — a building's ruin as that

@@ -49,6 +49,21 @@ export interface CommandEnvelope {
   queued: boolean;
 }
 
+export interface MovePreviewRequest {
+  units: number[];
+  goal: [number, number];
+  facing?: number;
+  direction?: MoveDirection;
+}
+
+/** The same per-unit destinations used when the move is committed. */
+export interface MoveDestination {
+  unit: number;
+  goal: [number, number];
+  facing: number;
+  placed: boolean;
+}
+
 export interface OrderError {
   reason: string;
   [detail: string]: unknown;
@@ -58,6 +73,7 @@ export interface CommandAck {
   seq: number;
   applied_tick: number;
   error: OrderError | null;
+  placement?: { gesture: number; destinations: MoveDestination[] };
 }
 
 export type AuthorityStatus =
@@ -85,6 +101,7 @@ export type SimRequest =
   /** The battle is on screen: nothing ticks before this. */
   | { type: "start" }
   | { type: "command"; command: CommandEnvelope }
+  | { type: "move_preview"; id: number; side: SideName; move: MovePreviewRequest }
   /** A consumed publication buffer returned to the producer. */
   | { type: "credit"; buffer: ArrayBuffer }
   | { type: "pause" }
@@ -101,6 +118,7 @@ export type SimRequest =
 export type SimReply =
   | { type: "ready"; layout: string; tickHz: number; tick: number }
   | { type: "ack"; ack: CommandAck }
+  | { type: "move_preview"; id: number; destinations: MoveDestination[] }
   | {
       type: "publication";
       tick: number;

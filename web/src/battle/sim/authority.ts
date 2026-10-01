@@ -22,6 +22,7 @@ export interface SimBattle {
   /** The publication layout: offsets, tags and this battle's round kinds. */
   observation_layout(): string;
   accept(commandJson: string): string;
+  preview_move(side: string, moveJson: string): string;
   step(): number;
   tick(): number;
   digest(): string;
@@ -193,6 +194,15 @@ export function createAuthority(host: AuthorityHost): Authority {
           host.post({
             type: "ack",
             ack: JSON.parse(battle!.accept(JSON.stringify(request.command))),
+          });
+          return;
+        case "move_preview":
+          host.post({
+            type: "move_preview",
+            id: request.id,
+            destinations: JSON.parse(
+              battle!.preview_move(request.side, JSON.stringify(request.move)),
+            ),
           });
           return;
         case "credit":

@@ -85,6 +85,11 @@
     "describe": "Weapon readouts: each unit's info panel with a row per weapon (rounds left, \u221e unlimited; aim and reload rings round the weapon's icon while they run; the guidance mark) and its states; the unit card (the selection's info panels) stays when zoomed out; the command bar exposes the selection's actions (X attack-move, G attack ground, Backspace stop, F fire policy)."
   },
   {
+    "id": "camera",
+    "route": "/lab/camera",
+    "describe": "Camera clearance: scripted camera trajectories round a wall, a tower, a corner of two tall slabs, a courtyard block and a concave compound (prototype buildings as massing). Watch from outside, with the eye path asked for (amber, red inside a building's clearance) beside the eye path drawn (cyan), or ride the camera as the viewport flies it; a switch makes blue see the tower fall."
+  },
+  {
     "id": "village",
     "route": "/battle/village",
     "describe": "The village encounter: blue attacks the defended village (red defender policy on its own observation), with the production readouts, command bar, and a pause menu (variant, restart, replay export, sound); ?seed= sets the seed for testing."

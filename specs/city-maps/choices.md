@@ -1700,6 +1700,74 @@ The layout generator now writes a river and its bridges. The seam and the measur
 
 **Verdict:** open, in two parts. Planning: six units a side were sent across six river maps for 300 s. On the 8 km and 10 km maps two units were refused a route and two were still planning at the end, and three ticks on one map retired about 1.0 G instructions each; none of that happened on the same seeds without a river. Jamming: given 900 s, seven of eight vehicles crossed Mixed Small, but on Open Small only three of eight did, because four vehicles of one side stood waiting behind one of the other side on a road 700 m from the water. Without the river seven of eight arrived. A river sends both sides down the few roads that lead to a bridge. **Confidence:** high that both are the simulation and not the map: units do cross by the decks, a test proves each deck can be walked onto and across, and the jam was on dry ground. Low on how often the jam happens: it was one map of two, and an earlier run of the same seed had six of eight arrive.
 
+## C57 camera clearance
+
+What was built, the tuning values and the measurements are in the [C57 outcome](slices/C57-camera-clearance.md#outcome).
+
+### The eye moves; the point looked at never does
+
+**Choice:** Clearance changes only where the camera's eye is. The drawn pose always looks at the target the player or the script asked for; its distance, pitch and yaw are whatever looks at that target from the clear eye.
+
+**Gap:** The slice says "nearby pose" and "pushback" without saying which part of the pose may give.
+
+**Verdict:** Sound. Panning, picking and the screen's centre keep meaning what the player set, and the drawn pose is still an ordinary orbit pose for the one projection owner. The cost is that a held camera's view turns to follow its target, and its distance and pitch can leave the wheel's limits while it is held. **Confidence:** High.
+
+### Pushback pushes the eye out of the building, on the side it is on
+
+**Choice:** When no lift or slide is clear, the eye is pushed out of the box it is in through one of its four sides or its roof: the one nearest where the camera already is, so it slides along a wall and over a roof edge. A camera placed by a cut has no side yet and comes out on the side its target is on, so it sees it.
+
+**Gap:** "Smoothly pushes to a safe pose" does not say along what. The first version pushed along the view ray, toward the target or away from it.
+
+**Verdict:** Sound, chosen on the lab's trajectories. Along the ray, an eye that grazes a tower sideways is centimetres from clear space and a tower's depth from it along the ray: the eye jumped 17 m in one frame on the tower pass and 58 m in the corner. Pushed out through the nearest side, the same trajectories never move the eye more than 25 m/s faster than it was asked to move. **Confidence:** High.
+
+### A building in the way is gone over if a lift could reach, and cut past if not
+
+**Choice:** A camera held at a wall, whose goal is on the other side, rises over the building when its roof is within the lift's reach (16 m) above the eye, and otherwise cuts straight to the goal. The cut is reported (`ClearanceState.cut`), and a lift or slide is only taken if the camera can get to it the same way.
+
+**Gap:** The slice asks for no unsafe pose and for smooth recovery; it does not say what happens when the only way to the pose asked for is through a tower.
+
+**Verdict:** Sound, with a visible cost. In the lab, the only cuts are one past the 60 m tower on each of the two trajectories that send the eye through it, and the placement trajectory's own five. Until it cuts, the camera waits at the tower's wall for 1.0 to 1.5 s with the wall filling much of the view. Going round the back was tried by accident (the ray version did it) and whipped the eye 16 m in 0.15 s. **Confidence:** Medium. A player who dislikes the wait would want the cut sooner, or a slide wide enough to pass a tower (it cannot be: at the closest zoom the eye's orbit is 29 m wide and the tower 32 m).
+
+### The camera looks 0.75 s ahead along its own motion
+
+**Choice:** The policy tests each candidate pose where the camera is and along the straight line to where the same motion puts it 0.75 s later, for buildings only. A lift therefore starts before the wall. It applies to motion with a rate: held keys, the screen edge and scripts. A wheel notch or a drag has none and is not looked ahead for.
+
+**Gap:** Not in the slice. Without it the eye reaches a wall, stops, and climbs it.
+
+**Verdict:** Sound, bounded by the benchmark. With no lookahead the eye is pressed against the lab's wall for 0.70 s (and against the courtyard block for 1.4 s); with 0.5 s for 0.35 s; with 0.75 s for 0.27 s; with 1.25 s for 0.05 s. But a straight-line guess overshoots an eased scripted swoop: from 1.0 s the benchmark tour's approach to the village at 51 s of its 60 predicts an eye in a house it never reaches, and the tour is lifted off its keyframes. 0.9 s leaves the tour untouched; 0.75 s was chosen for the room. Looking ahead for the ground was dropped for the same reason: it put the tour's swoop at 31 s under the terrain. **Confidence:** Medium on the number.
+
+### A goal keeps the release margin more than a drawn pose needs
+
+**Choice:** A drawn pose keeps 1.82 m from every building (the near plane's 1.32 m envelope plus `margin_m`); a goal the camera heads for keeps `release_m` (0.75 m) more, and the camera is released back to the pose asked for only when that pose is clear by the same.
+
+**Gap:** The slice names hysteresis and leaves its form open.
+
+**Verdict:** Sound. One number does two jobs: a pose grazing a roof line no longer switches the adjustment on and off (the test's wobbling pan switches once with it and more than twenty times without), and the eye, which closes on its goal like a spring, reaches clear space in finite time instead of creeping up to a roof edge for ever. **Confidence:** High.
+
+### Buildings and the ground block the camera, as the side draws them
+
+**Choice:** The obstacles are the ground and every part of every building on the map, as the side knows it: standing where it has not seen it fall, its remains' box where it has, nothing where it saw nothing left. They are the same list massing draws. Trees, walls, fences, wrecks and units do not block. A box is grown by the clearance on each axis, so corners keep a little more than faces.
+
+**Gap:** The slice says "public authored building/terrain geometry plus changes learned by the viewing side".
+
+**Verdict:** Sound. A building with art and a building drawn as massing block alike, and what blocks is what is drawn. A ruin blocks as a 2 to 6 m box, which the eye rises over. **Confidence:** High.
+
+### The harness's raw framing keeps the name `__lab.setCamera`
+
+**Choice:** `window.__lab.setCamera` draws exactly the camera it is given, through neither the rig's limits nor clearance; its doc says so. `placeCamera` is the scripted path through both. No playable or benchmark path calls `setCamera`.
+
+**Gap:** The slice allows a raw framing API if it is "explicitly named".
+
+**Verdict:** Kept under its old name rather than renamed. About a hundred scene calls use it, in files two other sessions are editing; a rename would break their branches at run time with no type error. **Confidence:** Medium. Renaming it `setRawCamera` in a quiet moment is mechanical.
+
+### The lab has no battle; its tower falls by a switch
+
+**Choice:** `/lab/camera` draws a compiled map of prototype buildings with no simulation. "Blue has seen the tower fall" hands the same known-prop list to massing and to the camera's obstacles.
+
+**Gap:** The slice asks for hidden versus observed destruction to respect knowledge.
+
+**Verdict:** Enough for the lab. The boundary itself is tested where it lives, in the list both read (`knownStanding`): an unseen fall is no entry, so nothing changes. No scene shells a building and watches the camera through a real battle. **Confidence:** Medium.
+
 
 ## Simulation lane decisions
 

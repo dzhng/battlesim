@@ -1,11 +1,16 @@
 // A battle on a generated map: the map the URL asks for is the one the
 // preparation worker made, a loading screen covers the wait, the battle on it
 // runs, and its buildings (massing), trees and roads are drawn where the
-// static map says they are, with fog over what blue does not see.
+// static map says they are, with fog over what blue does not see. The camera
+// flown through its main town never enters a building.
+//
+// `CAMERA_MAP=metro:large:1` flies the camera through that map's main town
+// instead, and reports what clearance costs there.
 import { writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import { advance, lab, obs, presented } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
+import { flyTown } from "./_cameraClearance.mjs";
 
 const village = JSON.parse(readFileSync(new URL("../../fixtures/village.json", import.meta.url)));
 const TICK_HZ = village.tick_hz;
@@ -71,7 +76,60 @@ const look = (page, at, distance, pitch = 0.85) =>
 
 const project = (page, p) => lab(page, (q) => window.__lab.projectToCss(q[0], q[1], q[2]), p);
 
+/** Fly the camera through the main town of the paused battle on `page`, and
+ *  check that no eye drawn, by the viewport's camera or by its rig over the
+ *  whole of each move, comes inside a building. */
+async function cameraKeepsOut(ctx, page, town, options) {
+  const boxes = await lab(page, () => window.__lab.route.massing());
+  const flown = await flyTown(ctx, page, town, boxes, options);
+  const view = await lab(page, () => window.__lab.route.cameraObstacles());
+  const moves = Object.entries(flown.moves);
+  ctx.check(
+    "scripted camera moves through the main town never put the eye inside a building: its near plane stays out of every box drawn",
+    view.boxes === boxes.length &&
+      moves.every(
+        ([, m]) =>
+          m.askedInside > 0 &&
+          m.liveFrames > 100 &&
+          m.flownGap >= flown.envelope &&
+          m.drawnGap >= flown.envelope &&
+          m.moved === 0 &&
+          m.blocked === 0,
+      ),
+    moves
+      .map(
+        ([name, m]) =>
+          `${name}: ${m.askedInside} of ${m.poses} poses asked for an eye inside a building, drawn never nearer than ${Math.min(m.flownGap, m.drawnGap).toFixed(2)} m (envelope ${flown.envelope.toFixed(2)}; nearest at live frame ${m.nearest.frame} of ${m.liveFrames}, ${m.nearest.hold}), ${m.cuts} cuts, ${m.holds.join("+")}`,
+      )
+      .join("; "),
+  );
+  for (const [name, m] of moves)
+    console.log(
+      `METRIC generated camera ${name}: ${m.usPerFrame.toFixed(1)} µs and ${m.boxTestsPerFrame.toFixed(1)} box tests a frame of ${boxes.length} boxes; the obstacle view built in ${view.buildMs.toFixed(1)} ms (development build)`,
+    );
+  return { ...flown, view };
+}
+
+/** `CAMERA_MAP`: the camera through another map's main town, and its cost. */
+async function cameraOnMap(ctx, spec) {
+  const [type, size, seed] = spec.split(":");
+  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
+  await page.goto(`${ctx.url}?type=${type}&size=${size}&seed=${seed}`);
+  await playable(page, 300000);
+  await lab(page, () => window.__lab.route.pause());
+  await page.waitForFunction(() => window.__lab.route.status().status === "paused");
+  await page.addStyleTag({ content: HIDE_HUD });
+  const generated = await lab(page, () => window.__lab.route.generated());
+  const flown = await cameraKeepsOut(ctx, page, generated.anchors.town, { reps: 200 });
+  await ctx.writeEvidence(`camera-${type}-${size}-${seed}.json`, {
+    map: generated.map,
+    counts: generated.counts,
+    ...flown,
+  });
+}
+
 export async function run(ctx) {
+  if (process.env.CAMERA_MAP) return cameraOnMap(ctx, process.env.CAMERA_MAP);
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
   const warnings = [];
   page.on("console", (m) => {
@@ -201,6 +259,9 @@ export async function run(ctx) {
       ground: pixel(buildingShot, ...groundPx),
     }),
   );
+
+  // The camera, flown through the town.
+  const camera = await cameraKeepsOut(ctx, page, generated.anchors.town);
 
   // A tree: the trunk nearest the town, its crown over the trunk.
   const [trunk] = await lab(
@@ -381,6 +442,7 @@ export async function run(ctx) {
     dpr: 1,
     generated,
     startup,
+    camera,
   });
 
   // A request the generator cannot serve says so, and starts no battle.

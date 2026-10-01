@@ -69,6 +69,7 @@ export type CommandMode =
 export interface AckEntry {
   seq: number;
   label: string;
+  order: Order;
   ack: CommandAck;
 }
 
@@ -84,7 +85,7 @@ export function useUnitControl(
   onIssueRef.current = onIssue;
   const [selected, setSelection] = useState<number[]>([]);
   const selectedUnits = useMemo(
-    () => (observation?.own ?? []).filter((u) => selected.includes(u.id)),
+    () => selected.flatMap((id) => observation?.own.find((u) => u.id === id) ?? []),
     [observation, selected],
   );
   // Reconcile before committing handlers: a casualty cannot poison the survivors' orders.
@@ -172,7 +173,7 @@ export function useUnitControl(
       onIssueRef.current?.(order);
       const label = describe(order, queued);
       const ack = await client.command(order, queued);
-      setAcks((log) => [{ seq: ack.seq, label, ack }, ...log].slice(0, LOG_LENGTH));
+      setAcks((log) => [{ seq: ack.seq, label, order, ack }, ...log].slice(0, LOG_LENGTH));
       return ack;
     },
     [client, describe],

@@ -9,6 +9,8 @@ import type {
   AuthorityStatus,
   CommandAck,
   Order,
+  MovePreviewRequest,
+  MoveDestination,
   SideName,
   SimReply,
   SimRequest,
@@ -47,6 +49,7 @@ export interface SimClient {
   readonly paused: boolean;
   start(): void;
   command(order: Order, queued?: boolean): Promise<CommandAck>;
+  previewMove(move: MovePreviewRequest): Promise<MoveDestination[]>;
   onPublication(consumer: (publication: Publication) => void): void;
   onStatus(listener: (status: AuthorityStatus, slow: boolean) => void): void;
   pause(): void;
@@ -127,6 +130,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
   let paused = false;
   let seq = 0;
   let nextAdvance = 1;
+  let nextPreview = 1;
   let disposed = false;
   let failure: Error | null = null;
   const heldBuffers = new Set<ArrayBuffer>();
@@ -135,6 +139,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
   type Pending<T> = { resolve: (value: T) => void; reject: (error: Error) => void };
   const pendingAcks = new Map<number, Pending<CommandAck>>();
   const advances = new Map<number, Pending<number>>();
+  const previews = new Map<number, Pending<MoveDestination[]>>();
   const advanceTargets = new Map<number, number>();
   const statusListeners: ((status: AuthorityStatus, slow: boolean) => void)[] = [];
   let consumer: ((publication: Publication) => void) | null = null;
@@ -166,9 +171,11 @@ export function createSimClient(options: SimClientOptions): SimClient {
     rejectReady(failure);
     for (const pending of pendingAcks.values()) pending.reject(failure);
     for (const pending of advances.values()) pending.reject(failure);
+    for (const pending of previews.values()) pending.reject(failure);
     replayWaiter?.reject(failure);
     pendingAcks.clear();
     advances.clear();
+    previews.clear();
     advanceTargets.clear();
     replayWaiter = null;
     setStatus("failed");
@@ -206,6 +213,10 @@ export function createSimClient(options: SimClientOptions): SimClient {
         case "ack":
           pendingAcks.get(reply.ack.seq)?.resolve(reply.ack);
           pendingAcks.delete(reply.ack.seq);
+          break;
+        case "move_preview":
+          previews.get(reply.id)?.resolve(reply.destinations);
+          previews.delete(reply.id);
           break;
         case "publication": {
           const buffer = reply.buffer;
@@ -290,6 +301,15 @@ export function createSimClient(options: SimClientOptions): SimClient {
         channel.send({ type: "command", command });
       });
     },
+    previewMove(move) {
+      if (failure || disposed)
+        return Promise.reject(failure ?? new Error("simulation client disposed"));
+      const id = nextPreview++;
+      return new Promise<MoveDestination[]>((resolve, reject) => {
+        previews.set(id, { resolve, reject });
+        channel.send({ type: "move_preview", id, side: options.side, move });
+      });
+    },
     onPublication(next) {
       consumer = next;
     },
@@ -331,6 +351,9 @@ export function createSimClient(options: SimClientOptions): SimClient {
     dispose() {
       if (disposed) return;
       disposed = true;
+      for (const pending of previews.values())
+        pending.reject(new Error("simulation client disposed"));
+      previews.clear();
       if (typeof document !== "undefined")
         document.removeEventListener("visibilitychange", onVisibility);
       channel.close();
