@@ -284,6 +284,24 @@ pub fn approaches(plan: &MapPlan, presets: &PresetDefinitions) -> Vec<ApproachPl
         let reach = obstacles[index].reach;
         let rays = (libm::ceil(TAU * (reach + rule.depth_m) / 100.0) as usize).clamp(64, 720);
         let step = TAU / rays as f64;
+        // What stands near enough for one of its rays to reach: a ray runs to
+        // its edge and the depth beyond, and an obstacle a ray meets has its
+        // middle within its own reach of that ray.
+        let farthest = settlement
+            .outline
+            .iter()
+            .map(|p| distance(center, *p))
+            .fold(0.0, f64::max);
+        let near: Vec<&Obstacle> = obstacles
+            .iter()
+            .enumerate()
+            .filter(|(other, obstacle)| {
+                *other != index
+                    && distance(obstacle.center, center)
+                        <= farthest + rule.depth_m + 2.0 * obstacle.reach
+            })
+            .map(|(_, obstacle)| obstacle)
+            .collect();
         // Per ray: the settlement's own edge, and the half its open run lies
         // in when that run is deep enough.
         let cast: Vec<(f64, Option<Half>)> = (0..rays)
@@ -301,12 +319,11 @@ pub fn approaches(plan: &MapPlan, presets: &PresetDefinitions) -> Vec<ApproachPl
                         }
                     })
                     .fold(f64::INFINITY, f64::min);
-                for (other, obstacle) in obstacles.iter().enumerate() {
+                for obstacle in &near {
                     let offset = sub(obstacle.center, center);
                     let along = offset[0] * toward[0] + offset[1] * toward[1];
                     let aside = (toward[0] * offset[1] - toward[1] * offset[0]).abs();
-                    if other == index
-                        || aside > obstacle.reach
+                    if aside > obstacle.reach
                         || along < edge - obstacle.reach
                         || along > edge + rule.depth_m + obstacle.reach
                     {
