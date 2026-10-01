@@ -114,7 +114,7 @@ pub struct Fallen {
     pub at: V3,
     pub yaw: f64,
     /// Fighting-floor owner retained even after the whole squad dies.
-    pub support_building: Option<PropId>,
+    pub(crate) support_building: Option<PropId>,
 }
 
 impl Soldier {
