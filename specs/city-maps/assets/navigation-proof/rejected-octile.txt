@@ -1,9 +1,0 @@
-   Compiling sim v0.1.0 (/Users/david/.codex/worktrees/map-navigation/battlegame/crates/sim)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.07s
-     Running `/Users/david/dev/battlegame/target/wt/map-navigation/debug/examples/navigation_equivalence`
-
-thread 'main' (2870739) panicked at crates/sim/examples/navigation_equivalence.rs:41:65:
-assertion `left == right` failed: route , "roads":[{"points":[[4,8],[60,8]],"width_m":4}] Mobility { off_road_mps: 6.0, road_mps: 12.0, forest_multiplier: 0.4, half_width_m: 0.5, class: Infantry, push: None, drive: None } V2 { x: 2.0, y: 2.0 } V2 { x: 60.0, y: 44.0 } Fastest
-  left: [V2 { x: 7.0, y: 7.0 }, V2 { x: 24.0, y: 9.0 }, V2 { x: 27.0, y: 11.0 }, V2 { x: 60.0, y: 44.0 }]
- right: [V2 { x: 9.0, y: 9.0 }, V2 { x: 24.0, y: 9.0 }, V2 { x: 27.0, y: 11.0 }, V2 { x: 60.0, y: 44.0 }]
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

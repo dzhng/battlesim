@@ -13,7 +13,7 @@ Can one placed building own physical parts and template geometry with one integr
 - Hits wear the owner; destruction replaces every part atomically, including side-known replacement identities.
 - Slots use exposed geometry only; band/cap changes wait for C40.
 - Prop export gains owner/template reference data, and the browser decoder cuts over in the same commit.
-- Existing map fixtures migrate to aggregates in this commit. Their original house geometry/appearance gets a legal descriptor; C13 later bakes reusable placements and C32/C22 resolve them. No per-building GLB or duplicate fact table is introduced.
+- Existing map fixtures cut over to aggregates in this commit. Their original house geometry/appearance gets a legal descriptor; C13 later bakes reusable placements and C32/C22 resolve them. No per-building GLB or duplicate fact table is introduced.
 
 ## API seam
 `contract::map`, `sim::world`, `structures`, `garrison`, world export and observation decoder. C04 consumes C00 descriptor types without importing scene-assets implementation.

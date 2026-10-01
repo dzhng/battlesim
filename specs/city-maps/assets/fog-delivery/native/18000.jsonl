@@ -1,7 +1,0 @@
-{"fog_cell_m":8.0,"ground_cell_m":1.0,"mode":"battle","pointer_bytes":8,"side_m":18000.0,"v3_bytes":24}
-{"before_bytes":395029,"live_bytes":547256630,"ms":28.390417,"stage":"battle","stage_peak_bytes":547256630}
-{"before_bytes":547256630,"live_bytes":549658918,"ms":0.611833,"stage":"initial_publication","stage_peak_bytes":549658918}
-{"before_bytes":549658918,"live_bytes":580033918,"ms":2.34075,"stage":"tick","stage_peak_bytes":580666734}
-{"before_bytes":580033918,"live_bytes":580033918,"ms":0.31625000000000003,"stage":"steady_publication","stage_peak_bytes":580033918}
-{"before_bytes":580033918,"live_bytes":580033918,"ms":0.46945800000000004,"stage":"side_switch_publication","stage_peak_bytes":580033918}
-{"digest":"3dea8a578eccf1cc","initial_bytes":1265740,"ne_height":0.0,"red_bytes":1265740,"steady_bytes":108,"sw_height":0.0}

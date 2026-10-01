@@ -33,7 +33,7 @@
 | M13 | Camera resolution first tries a nearby clear pose by lifting/sliding, then uses smooth pushback. Zoom, pan, orbit and scripted placement must keep the eye outside buildings. | Dense streets and towers must remain navigable with the camera. | User |
 | M14 | Runtime selects **pre-baked, varied building templates**, each assembled from shared instanced modules. No runtime Blender or geometry-node evaluator port. | Runtime seeds must work without a per-map art job. | User |
 | M15 | Focused labs and benchmarks retain their test/measurement arena and receive real town/plain surroundings outside it. Their bounds remain purpose-appropriate; primary generated battles use player size presets. Surroundings remain normal sim geometry and draw cost. | Preserve focused checks while satisfying the all-map rule. | User, final A choice; diagnostic bounds scoped by agent |
-| M16 | Retain hard schema cutovers; no compatibility shims or migration scaffolding. Name intentional map/config/digest changes when surroundings or rules change. | One contract and one loader are easier to verify. | User, earlier interview |
+| M16 | Retain hard schema cutovers; no compatibility shims or cutover scaffolding. Name intentional map/config/digest changes when surroundings or rules change. | One contract and one loader are easier to verify. | User, earlier interview |
 | M17 | Building categories do not change the accepted combat rules: bottom three garrison bands, one integrity owner, collapse at ≤6 floors and standing gutting above 6. | The 9+ highrise category is an art/layout distinction, not a new destruction threshold. | Earlier user decisions retained |
 
 ### Building categories
@@ -131,7 +131,7 @@ The systematic sweep covered the map contract, terrain/nav/fog/foliage/export/pu
 
 **Why it bites:** surrounding urban bodies may change rays, routes, IDs, digests and frame cost even outside a screenshot crop.
 
-**Changes the plan:** C56 proves the reservation contract on one arena; C34/C35/C36 migrate village/labs/benchmarks with declared protected bounds and behavior probes. Inventory every shipped/catalogued world, including synthetic benchmark worlds. Name geometry/config/digest changes; rebaseline whole-map costs only after arena behavior is proved. Low-level geometry probes remain probes of the geometry API; the composition gate belongs at the catalogued-map boundary.
+**Changes the plan:** C56 proves the reservation contract on one arena; C34/C35/C36 cut over village/labs/benchmarks with declared protected bounds and behavior probes. Inventory every shipped/catalogued world, including synthetic benchmark worlds. Name geometry/config/digest changes; rebaseline whole-map costs only after arena behavior is proved. Low-level geometry probes remain probes of the geometry API; the composition gate belongs at the catalogued-map boundary.
 
 ### L08 — Coverage fairness is not tactical parity — SHARP EDGE
 
@@ -200,7 +200,7 @@ Template geometry types belong to `contract`; their art codec belongs to `scene-
 ## Confirm before coding
 
 - Inventory dense permanent/temporary allocations and wasm/browser transfer copies before attempting full-size builds; S0 owns the safe experiment limits.
-- Find every map/fixture/benchmark producer before declaring the all-map migration complete; C56 owns the inventory and arena bounds.
+- Find every map/fixture/benchmark producer before declaring the all-map cutover complete; C56 owns the inventory and arena bounds.
 - Confirm graph inputs, legal dimensions, floor heights, pre-realize instance taps, class coverage and attribution under the pinned Blender version; S2 owns the matrix.
 - Freeze accepted prototype inputs, dependency versions, canonical outputs and evidence by immutable hash; G0 maps each proven behavior to its production owner and parity check.
 - Choose and record numerical OPEN outputs at their named gates; do not let provisional values become defaults by omission.

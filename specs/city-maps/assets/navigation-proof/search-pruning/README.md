@@ -121,28 +121,19 @@ cell may be reconsidered with a genuinely lower cost; no resource cap returns No
 
 ## Measured gate and remaining cost
 
-All eight complete 4 km bridge routes match the selected original route strings, including
-the red vehicle's Shortest intermediate `(1451,829)`. The first candidate reduced eight-route
-instructions from 150.27 billion to 17.75 billion but took 92–149 ms per route. Analytical
-opening evaluation plus the implicit stencil reduced this to 7.69 billion instructions
-and 31.5–46.8 ms per route. Requested peak heap is 31.43 MB, including the unchanged 18.4 MB
-world owner; the preceding candidate was 116.52 MB. The measured source, native binary and
-evidence are pinned by `identity.json`; its `candidate.patch` is relative to the recorded
-base. That patch precedes the raw-input fallback guard and clone cleanup; the retained
-source has a separate identity. The first arm is labelled exploratory rather than given
-the final measured candidate's identity.
-Both source patches use zero context and require `git apply --unidiff-zero`; their
-reconstructed source byte hashes are verified separately from the patch encoding.
+All eight 4 km bridge routes match the original route strings, including red vehicle
+Shortest's intermediate `(1451,829)`. The first candidate cut eight-route instructions
+from 150.27 to 17.75 billion but took 92–149 ms per route. Analytical opening evaluation
+plus the implicit stencil brought it to 7.69 billion instructions and 31.5–46.8 ms per
+route. Peak requested heap is 31.43 MB (including the 18.4 MB world), down from 116.52 MB.
 
-The final arm still exceeds the 33 ms maximum and cannot meet the 16 ms p95 target. No
-repeat distribution or full-size bridge arm was admitted after that failure. Source/oracle
-parity makes this a separately reviewable pruning/lookup improvement, not a full SA2 pass.
+That still exceeds the 33 ms maximum and cannot meet the 16 ms p95 target, so no repeat
+distribution or full-size bridge arm was run. This is a reviewable pruning/lookup
+improvement, not a full SA2 pass.
 
-Cost bounds cannot reject a cell that lies on an equal-cost completion. Broad uniform
-rectangles contain many permutations of orthogonal and diagonal steps; the original
-Euclidean queue can expand an area of such cells before its goal. A passed corpus proves
-observed parity; it does not remove this potential quadratic work or replace the bound
-argument. The first resource gate is the safe 4 km bridge: p95 first route at most 16 ms,
-no completed-tick route work above 33 ms, with grid construction reported separately.
-Only a passed gate admits full extents. Async tick scheduling and route-changing priority
-are outside this proof.
+Cost bounds cannot reject a cell on an equal-cost completion. Broad uniform rectangles
+hold many orderings of orthogonal and diagonal steps, and the Euclidean queue can expand
+an area of them before the goal. Passing the corpus does not remove that potential
+quadratic work. The first resource gate is the safe 4 km bridge: p95 first route at most
+16 ms, no completed-tick route work above 33 ms, grid construction reported separately.
+Only a passed gate admits full extents.

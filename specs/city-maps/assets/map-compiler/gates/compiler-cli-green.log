@@ -1,9 +1,0 @@
-   Compiling mapgen v0.1.0 (/Users/david/.codex/worktrees/map-delivery/battlegame/crates/mapgen)
-    Finished `test` profile [optimized + debuginfo] target(s) in 2.23s
-     Running tests/compiler.rs (/Users/david/dev/battlegame/target/wt/map-delivery/debug/deps/compiler-67a18505deb7e6a2)
-
-running 1 test
-test native_cli_saves_the_same_physical_map_and_lossless_identity ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.14s
-

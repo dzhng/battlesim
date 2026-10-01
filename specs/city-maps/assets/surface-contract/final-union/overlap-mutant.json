@@ -1,5 +1,0 @@
-{
-  "cause": "covered polygon-interior edge retained",
-  "source_original_sha256": "8a24745a0f369ad409582e880ce23b9fe6617e68cab035b78392da551935fd86",
-  "source_mutant_sha256": "2dbc83ca80539b07874bb955252e4f0af2d741b6ae69f52ff918d19933ad0759"
-}

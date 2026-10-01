@@ -1,7 +1,0 @@
-{"fog_cell_m":8.0,"ground_cell_m":1.0,"mode":"world","pointer_bytes":8,"side_m":12000.0,"v3_bytes":24}
-{"before_bytes":374601,"live_bytes":165800003,"ms":11.896791,"stage":"world","stage_peak_bytes":165800003}
-{"before_bytes":165800003,"live_bytes":273872015,"ms":53.941375,"stage":"terrain_positions","stage_peak_bytes":597944027}
-{"before_bytes":273872015,"live_bytes":489872015,"ms":38.882332999999996,"stage":"terrain_indices","stage_peak_bytes":706016039}
-{"before_bytes":489872015,"live_bytes":525872015,"ms":202.45925,"stage":"terrain_surfaces","stage_peak_bytes":958016039}
-{"before_bytes":525872015,"live_bytes":551037839,"ms":13.976,"stage":"foliage","stage_peak_bytes":625287839}
-{"foliage_bytes":18000012,"indices_bytes":216000000,"ne_height":0.0,"positions_bytes":108072012,"surface_bytes":36000000,"sw_height":0.0}

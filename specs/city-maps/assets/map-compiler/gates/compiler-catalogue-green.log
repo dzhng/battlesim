@@ -1,9 +1,0 @@
-   Compiling mapgen v0.1.0 (/Users/david/.codex/worktrees/map-delivery/battlegame/crates/mapgen)
-    Finished `test` profile [optimized + debuginfo] target(s) in 0.38s
-     Running tests/compiler.rs (/Users/david/dev/battlegame/target/wt/map-delivery/debug/deps/compiler-dc46eee42e6bce8a)
-
-running 1 test
-test the_requested_catalogue_identity_is_verified_before_compiling ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
-

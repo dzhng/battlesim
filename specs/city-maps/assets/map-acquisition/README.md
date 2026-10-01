@@ -1,42 +1,31 @@
 # Map acquisition core evidence
 
-This checkpoint proves the pure contract resolver and the compiler's saved-source
-record. It does not complete C09/C60: no fixture moved and no native filesystem,
-browser HTTP/WASM, asset-tool adapter or catalogue metadata was implemented.
-Production scenarios still use their existing factories.
+This checkpoint proves the pure contract resolver and the compiler's saved-source record. It does not complete C09/C60: no fixture moved, and no native filesystem, browser HTTP/Wasm, asset-tool adapter or catalogue metadata exists yet. Production scenarios still use their existing factories.
 
-`receipt.json` pins the original source revision, evidence hashes and claim bounds.
-The red logs precede their corresponding corrections; the final resolver and CLI
-logs each contain the focused complete test result. The CLI test writes real files
-and resolves them through the common contract, while its existing frozen stdout
-corpus remains unchanged. The single-template mutant deliberately ignores the
-selection; its refusal proves why one shared physical library needs explicit IDs.
-Its SHA receipt records exact restoration of that intermediate source, not the
-later final source hash. All output lines and original paths are retained. Repeated
-terminal blank newlines are removed where necessary for the whitespace gate;
-`receipt.json` records both original and stored hashes for each such log.
+## What is proven
 
-The immutable producer inventory is a migration baseline. Recover exact source
-bytes with `git show <baseline_revision>:<path>` and check their recorded SHA256.
-`probe-inventory.py` performs that check and compares the original route registry
-with original scene modules. The physical-source summary and discovery logs are
-observations at that revision, not a second live registry or schema.
-
-The resolver proves typed content identity, catalogue selection/materialization,
-authored IDs, header validity and the caller's narrow part/bay allowance. Nonempty
-shape admission must consume C72's shared owner. C33 still owns complete
-rules/body/tree/raster/resource preparation. Receipt syntax does not authenticate
-an unavailable historical revision, recipe or art source.
-
-Reproduce the narrow gates with the worktree's isolated `CARGO_TARGET_DIR`:
+The resolver proves typed content identity, catalogue selection and materialization, authored IDs, header validity and the caller's narrow part/bay allowance. The CLI test writes real files and resolves them through the common contract, and the frozen stdout corpus is unchanged. A mutant that ignores the template selection is refused, which shows why one shared physical library needs explicit IDs. No new Wasm/browser parity is claimed.
 
 ```sh
 cargo test -p contract --test maps
 cargo test -p mapgen --test compiler
-cargo clippy -p contract -p mapgen --all-targets -- -D warnings
-python3 specs/city-maps/assets/map-acquisition/probe-inventory.py
 ```
 
-No new WASM/browser parity claim is made by this checkpoint. The configured Codex
-CLI review was unavailable; the coordinating agent's independent source review
-is recorded separately. Original native/WASM/compiler evidence stays unchanged.
+Nonempty shape admission must consume C72's shared owner. C33 still owns complete rules, body, tree, raster and resource preparation. A recorded revision does not authenticate an unavailable historical recipe or art source.
+
+## Producers to cut over
+
+At the baseline revision every route had a scene module and every scene a route; the live route registry is `apps/battle-lab/src/fixtures.json`. Each physical map splits into a saved **source** and per-route **encounter** composition (units, orders, scripts, events):
+
+- **Village** (village, replay, watch, benchmark, fog, lean, ground's village mode): `crates/sim/src/village/mod.rs` composes the fixture map with deployment; `crates/sim/src/village/scripts.rs` discovers buildings for comparison scripts.
+- **The labs** (geometry, sensors, movement, weapons, consequences, deployment, ambush, garrison, supply, ground, readouts): one saved physical arena each; `apps/battle-lab/src/scenarios.ts` and the scenario owners supply encounter state.
+- **Endurance**: `crates/sim/src/endurance.rs` owns a code-built field and house base. Seeded late wrecks are physical augmentation. Its separate wave/remains RNG streams and the wreck-to-corpse draw continuation must survive extraction.
+- **Foundation and workbench**: render-only ground at negative coordinates in `apps/battle-lab/src/routes/foundation.tsx` and `apps/battle-lab/src/workbench/benchWorld.ts`. `MapDefinition` cannot express them exactly; they stay pending under C56 and are not counted as cut over.
+
+Consumers that bypass acquisition today: `apps/battle-lab/src/useStaticWorld.ts` builds a second main-thread query world from the same map (removing that is C33), and asset-fit inputs (`packages/scene-assets/src/authority.ts`, `web/asset.mjs`, `benchWorld.ts`) read fixture-derived geometry. They must receive resolved geometry through the built-Wasm prerequisite, without adding IO or Wasm to scene-assets.
+
+## Open cutover risks
+
+No caller has been cut over. Prepared f64 values, unit IDs, seeded draw order, scripts, replay outcomes and scene checks all need factory-level preservation. A Value/JSON/factory/decoder round trip is a different numeric boundary from raw saved-token decoding, and the earlier publication corpus does not prove every shipping village prop bit. The ground-scene drift seen after C01 came from a missed scripted building-discovery consumer, not this boundary, so it does not show the boundary is harmless.
+
+Raw evidence (receipts, logs, inventory probe): tag `city-maps-evidence-2026-09-30`.

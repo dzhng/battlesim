@@ -1,9 +1,0 @@
-   Compiling contract v0.1.0 (/Users/david/.codex/worktrees/map-delivery/battlegame/crates/contract)
-    Finished `test` profile [optimized + debuginfo] target(s) in 3.73s
-     Running tests/maps.rs (/Users/david/dev/battlegame/target/wt/map-delivery/debug/deps/maps-af651e7eee770e26)
-
-running 2 tests
-test altered_map_is_refused_against_saved_content_identity ... ok
-test saved_geometry_resolves_complete_physical_definition_and_identity ... ok
-
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

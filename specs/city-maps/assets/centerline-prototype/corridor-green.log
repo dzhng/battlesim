@@ -1,9 +1,0 @@
-   Compiling contract v0.1.0 (/Users/david/.codex/worktrees/procedural-map-systems/battlegame/crates/contract)
-    Finished `test` profile [optimized + debuginfo] target(s) in 0.88s
-     Running tests/curves.rs (/Users/david/dev/battlegame/target/wt/procedural-map-systems/debug/deps/curves-211a6fa265e9e48d)
-
-running 1 test
-test curved_samples_stay_inside_the_authored_run_corridor ... ok
-
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
-

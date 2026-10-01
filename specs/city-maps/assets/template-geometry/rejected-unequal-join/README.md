@@ -1,5 +1,5 @@
-# Rejected unequal-height join arm
+# Rejected unequal-height join
 
-The original labelled compound joined an 8 m box to a 6 m box while representing a facade as exposed or internal over its entire height. It incorrectly hid the taller box's upper wall. The current contract rejects that declaration; these immutable inputs, output and source snapshots preserve the failed arm rather than repinning it as a pass. They are never current expected production geometry or source-fit approval.
+The original labelled compound joined an 8 m box to a 6 m box while marking a facade exposed or internal over its whole height. That hid the taller box's upper wall. The contract now rejects the declaration. The inputs in [`fixtures/parity/templates/rejected-unequal-join/`](../../../../../fixtures/parity/templates/rejected-unequal-join/) preserve the failed arm; they are never expected production geometry or source-fit approval.
 
-The saved source snapshots reproduce the old output with the template report example and the pinned dependency/tool identity. The reproduction after freezing is byte-identical. Source snapshots are evidence only and are not imported by any runtime or test consumer.
+The original source snapshots reproduced the old output byte-for-byte. Raw evidence: tag `city-maps-evidence-2026-09-30`.

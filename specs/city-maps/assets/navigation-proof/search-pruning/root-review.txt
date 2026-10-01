@@ -1,7 +1,0 @@
-Integrating root independent source/proof review (reported in this run):
-- No source finding in SearchBound, optional pruning assumptions or queue/winner retention.
-- Exhausted 876,096 small integer convex-opening minimizer cases against scanning every opening point; all matched within 1e-12.
-- Positive normal step additions cannot reduce an ancestor cost, supporting the simple improving-chain argument.
-- Approved retaining the focused exact pruning/lookup improvement with the 4 km work gate explicitly failed. Larger arms remain unrun.
-
-CLI review was attempted on the substantive diff but rejected the configured model before analysis. cli-review-unavailable.txt preserves that result; no model/configuration override or independent CLI pass is claimed.

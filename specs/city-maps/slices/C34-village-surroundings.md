@@ -1,6 +1,6 @@
 # C34: village surroundings
 
-**Depends on:** C56, C37 and C33. **Kind:** migration slice.
+**Depends on:** C56, C37 and C33. **Kind:** cutover slice.
 
 ## Question
 Can the village encounter and its replay/benchmark routes adopt the common composition/template path while preserving its protected behavior?
@@ -9,7 +9,7 @@ Can the village encounter and its replay/benchmark routes adopt the common compo
 The village encounter and its replay/benchmark routes consume C56's reservation/composition seam and C09's resolver. Surrounding towns/plains are normal physical geometry. Preserve original geometry and protected encounter stimuli before the named surroundings change. C37 has already unified existing house appearance without moving geometry. This slice changes only the village surroundings and their named map/digest/cost baseline.
 
 ## API seam
-Existing fixture/scenario/catalogue producer → ArenaReservation + surroundings input → shared compiled map/public preparation/appearance owners. No migration compatibility wrapper survives.
+Existing fixture/scenario/catalogue producer → ArenaReservation + surroundings input → shared compiled map/public preparation/appearance owners. No compatibility wrapper survives.
 
 ## What the human can run or see
 Before/after protected-arena and whole-map overlays, the original routes, and a named identity/cost report.

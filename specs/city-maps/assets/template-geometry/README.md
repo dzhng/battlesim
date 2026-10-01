@@ -1,21 +1,19 @@
 # Physical template evidence
 
-These labelled asymmetric descriptors are API stimuli, not release sources or appearance. The [C00 proof](../../spikes/C00.md) owns their conclusions and limits. The village preservation test reads existing dimensions directly; floors, entrance data and bay phase absent from that source remain unresolved.
+The labelled asymmetric descriptors in [`fixtures/parity/templates/`](../../../../fixtures/parity/templates/) are API stimuli, not release sources or appearance. The [C00 proof](../../spikes/C00.md) owns their conclusions and limits. The village preservation test reads existing dimensions directly; floors, entrance data and bay phase absent from that source remain unresolved.
 
-The current reports freeze native catalogue identity and complete materialization for equal-height compound, rotated and precise-f64 cases. The wasm test consumes the same inputs/reports and compares every emitted value. The rejected unequal-height arm has separate immutable evidence and never supplies a current expected result.
-
-Run the small report from the checkout root with an isolated `CARGO_TARGET_DIR`:
+The reports freeze native catalogue identity and complete materialization for the equal-height compound, rotated (yaw −0.62) and precise-f64 (identity frame) cases. The Wasm test consumes the same inputs and compares every emitted value. These proofs do not replace real-source geometry and appearance fit or full-extent resource admission.
 
 ```sh
-cargo run -p contract --example template_report -- specs/city-maps/assets/template-geometry/asymmetric.json '{"translation":[10,20,5],"yaw":0.37}'
+cargo run -p contract --example template_report -- fixtures/parity/templates/asymmetric.json '{"translation":[10,20,5],"yaw":0.37}'
 cargo test -p contract --test templates
-bun run --cwd web test -- tests/templates.test.ts
+bun run --cwd web test -- tests/templates.test.ts   # build the Wasm first
 ```
 
-Build wasm before the web gate. Rotated uses frame `{ "translation": [10,20,5], "yaw": -0.62 }`; precise-f64 uses the identity frame. `identity.json` pins the original inputs, reports, implementation and compiled wasm. `numeric-correction.json` pins the corrected admission proof; valid reports are unchanged. Rejected numeric inputs and original outputs have their own immutable receipt under `rejected-numeric/`. The SVG draws the materializer's emitted records, never independently derived physical geometry. These proofs do not replace real-source geometry/appearance fit or full-extent resource admission.
+Three rejected arms keep their original outputs as failures, never as current expectations:
 
+- [Rejected numeric geometry](rejected-numeric/README.md): offsets and float lattices that slipped malformed geometry past admission.
+- [Rejected unequal-height join](rejected-unequal-join/README.md): a facade join that hid the taller box's upper wall.
+- [Runtime rotation](runtime-rotation/README.md): native and Wasm normals that differed by one ULP, fixed with a shared software evaluator.
 
-The [runtime rotation correction](runtime-rotation/README.md) owns the wider canonical
-native/wasm numeric proof and its deliberately changed derived values. Its rejected arm
-and corrected paired records have separate identities; the small reports above remain
-unchanged.
+Raw evidence (identities, numeric-correction proof, overlay SVG): tag `city-maps-evidence-2026-09-30`.

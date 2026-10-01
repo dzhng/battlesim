@@ -1,15 +1,14 @@
-# Ground representation seam evidence
+# Ground representation seams
 
-The native ground and browser receiver preserve exact cell values while choosing short runs or dense pages according to their contents. Native learned pages may share truth only after exact equality across all 256 cells; the first later truth edit copies the page, so hidden edits cannot alter learned values. Learning stamps and fog synchronization hints also use lossless pages. Truth, learned cells and their ordering remain authoritative; GPU residency does not own that knowledge.
+Native ground and the browser receiver keep exact cell values while storing each tile as short runs or a dense page, whichever its contents need. Native learned pages share truth only after all 256 cells are equal; the first later truth edit copies the page, so hidden edits cannot change learned values. Learning stamps and fog synchronization hints use the same lossless pages. Truth, learned cells and their order stay authoritative; GPU residency owns none of that knowledge.
 
-The frozen oracle beside this report pins original digests, every ordered ground patch, and public/side-cleared foliage. The first sparse wasm candidate matched all frozen outputs. Subsequent native run-iterator and receiver changes pass focused ground delivery and receiver tests; the integrated candidate wasm now passes the frozen observations and foliage proof. Full resource evidence remains required.
+The first sparse wasm candidate matched the [frozen oracle](README.md); the integrated candidate still passes it.
 
-Meaningful red/green cuts:
+What the red/green cuts showed:
 
-- Original untouched 18 km native ground indexes allocated 30,375,000 payload bytes; the sparse-owner test now requires under 4,096 bytes and preserves the northeast blank query.
-- Original untouched browser ground allocated 1,620,000,000 payload bytes; the receiver now stores only touched pages.
-- Disabling native page compression fails the uniform learned-page memory test. Reintroducing dense writes before the seal fails the transient-memory test on the first edited cell. Exact values, hidden edits and a one-cell reveal delta remain green.
-- A full uniform browser tile plus the opposite map corner stay below 128 payload bytes. A changed cell splits the learned run without altering its neighbors; side replacement removes the previous side and invalidation frees the pages.
-- Native full-page changes become one run; only small oracle tests expand runs in the original tile/local order. Production has one allocation-free run iterator and no cell-list delivery path. Eight ground-delivery contracts pass through the publication serializer.
+- Untouched 18 km native ground indexes fell from 30,375,000 payload bytes to under 4,096; untouched browser ground fell from 1,620,000,000 bytes to only the touched pages.
+- Disabling page compression fails the uniform learned-page memory test; reintroducing dense writes before the seal fails the transient-memory test on the first edited cell.
+- A full uniform browser tile plus the opposite map corner stays below 128 payload bytes. A changed cell splits a run without touching its neighbors.
+- Production has one allocation-free run iterator and no cell-list delivery path; only small oracle tests expand runs back to cell order.
 
-The complete resource verdict remains open. Arbitrary high-entropy pages need dense exact bytes; compression is not a waiver of their bound. The old full snapshot at 18 km would collect about 3.888 GB of native cell patches and then write 5.184 GB of wire floats. The coordinated run transport must remove both intermediates, and its receiver must retain compressed pages. Full-size allocator/heap peaks, churn, publication admission, full overview sampling and frame cost remain required evidence. Complete G0 and deferred artwork acceptance stay open.
+Open: high-entropy pages still need dense exact bytes, so compression does not waive their bound. The old full snapshot at 18 km would have gathered about 3.9 GB of native cell patches and written 5.2 GB of wire floats; the run transport must remove both. Full-size heap peaks, churn, publication admission, overview sampling and frame cost were left to later evidence, as were G0 and artwork acceptance.

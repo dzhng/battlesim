@@ -6,7 +6,7 @@
 Can the manifest record the vendored sources honestly?
 
 ## Contract it unlocks
-- `reuse-manifest.json` `files[]` entries name their `source_repo`, revision, licence and kept notice (L10). The existing `../game` records migrate (hard cutover).
+- `reuse-manifest.json` `files[]` entries name their `source_repo`, revision, licence and kept notice (L10). The existing `../game` records are rewritten in place (hard cutover).
 - The three `.blend` files go in Git LFS under `packages/scene-assets/blender/vendor/procedural-buildings/`, as source of truth (Q-F′).
 - ambientCG sets at ≤1K go under `packs/` with `source_url`.
 - A test **refuses** the two unknown-source atlases by hash.
