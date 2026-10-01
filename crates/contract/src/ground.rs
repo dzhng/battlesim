@@ -215,6 +215,11 @@ pub fn limits(points: &[[f64; 2]], margin: f64) -> [f64; 4] {
 pub fn polygon_contains(ring: &[[f64; 2]], p: [f64; 2]) -> bool {
     let mut inside = false;
     for (a, b) in edges(ring) {
+        // An edge wholly above or below the point neither holds it nor is
+        // crossed by its ray.
+        if (a[1] < p[1] && b[1] < p[1]) || (a[1] > p[1] && b[1] > p[1]) {
+            continue;
+        }
         let turn = cross(*a, *b, p);
         if turn == 0.0 && on_segment(*a, *b, p) {
             return true;
