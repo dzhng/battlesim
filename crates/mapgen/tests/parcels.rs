@@ -1,0 +1,840 @@
+//! The parcel pass, judged on the compiled map: what a battle would load.
+//! Geometry here is checked with its own arithmetic, not the generator's.
+use contract::ground::{polygon_contains, GroundShape};
+use contract::map::{BuildingDefinition, MapDefinition, SurfaceKind};
+use contract::templates::{
+    BuildingCategory, BuildingTemplateDescriptor, MaterializedPart, TemplateGeometryCatalog,
+};
+use mapgen::layout::{generate_layout, GenerationRequest, MapSize, MapType, PresetDefinitions};
+use mapgen::parcels::fill_districts;
+use mapgen::{CompileLimits, Diagnostic, DiagnosticCode, DistrictPlan, MapPlan};
+use std::collections::{BTreeMap, BTreeSet};
+use std::sync::{Arc, Mutex, OnceLock};
+
+const PRESETS: &str = include_str!("../../../fixtures/map-presets.json");
+const TEMPLATES: &str = include_str!("../../../fixtures/prototype-building-templates.json");
+const TYPES: [MapType; 3] = [MapType::Open, MapType::Mixed, MapType::Metro];
+const SIZES: [MapSize; 3] = [MapSize::Small, MapSize::Medium, MapSize::Large];
+/// Every cell runs these seeds: a claim about the pass is a claim about all
+/// of them, not one lucky town.
+const SEEDS: [u64; 2] = [1, u64::MAX];
+
+type Point = [f64; 2];
+
+fn presets() -> PresetDefinitions {
+    PresetDefinitions::from_json(PRESETS).unwrap()
+}
+
+fn catalogue() -> TemplateGeometryCatalog {
+    TemplateGeometryCatalog::new(serde_json::from_str(TEMPLATES).unwrap()).unwrap()
+}
+
+fn request(map_type: MapType, size: MapSize, seed: u64) -> GenerationRequest {
+    GenerationRequest {
+        generator_version: mapgen::layout::GENERATOR_VERSION.into(),
+        preset_revision: presets().revision,
+        seed: seed.into(),
+        template_catalog_hash: catalogue().hash().into(),
+        map_type,
+        size,
+        limits: CompileLimits {
+            max_authored_parts: 60_000,
+            max_bay_positions: 600_000,
+            max_ground_points: 200_000,
+        },
+    }
+}
+
+fn fill(
+    request: &GenerationRequest,
+    presets: &PresetDefinitions,
+    catalogue: &TemplateGeometryCatalog,
+) -> Result<MapPlan, Vec<Diagnostic>> {
+    fill_districts(
+        generate_layout(request, presets)?,
+        request,
+        catalogue,
+        presets,
+    )
+}
+
+/// A generated plan and the map it compiles into.
+struct Town {
+    plan: MapPlan,
+    map: MapDefinition,
+}
+
+impl Town {
+    fn district_of(&self, building: usize) -> &DistrictPlan {
+        let id = &self.plan.buildings[building].id;
+        self.plan
+            .settlements
+            .iter()
+            .flat_map(|settlement| &settlement.districts)
+            .find(|district| id.starts_with(&format!("{}/", district.id)))
+            .unwrap_or_else(|| panic!("{id} names no district"))
+    }
+}
+
+/// Each cell is generated once, whichever tests ask for it.
+fn town(map_type: MapType, size: MapSize, seed: u64) -> Arc<Town> {
+    type Towns = BTreeMap<(MapType, MapSize, u64), Arc<Town>>;
+    static TOWNS: OnceLock<Mutex<Towns>> = OnceLock::new();
+    let towns = TOWNS.get_or_init(Default::default);
+    if let Some(town) = towns.lock().unwrap().get(&(map_type, size, seed)) {
+        return town.clone();
+    }
+    let request = request(map_type, size, seed);
+    let plan = fill(&request, &presets(), &catalogue())
+        .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} seed {seed}: {errors:?}"));
+    let compiled = mapgen::lower(&request.compile_request(plan.clone()), &catalogue())
+        .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} seed {seed}: {errors:?}"));
+    let town = Arc::new(Town {
+        plan,
+        map: compiled.map,
+    });
+    towns
+        .lock()
+        .unwrap()
+        .insert((map_type, size, seed), town.clone());
+    town
+}
+
+fn every_cell(mut check: impl FnMut(&str, MapType, &Town)) {
+    for map_type in TYPES {
+        for size in SIZES {
+            for seed in SEEDS {
+                let name = format!("{map_type:?} {size:?} seed {seed}");
+                check(&name, map_type, &town(map_type, size, seed));
+            }
+        }
+    }
+}
+
+fn corners(part: &MaterializedPart) -> [Point; 4] {
+    let (sin, cos) = part.yaw.sin_cos();
+    [[-1.0, -1.0], [1.0, -1.0], [1.0, 1.0], [-1.0, 1.0]].map(|[u, v]| {
+        let (x, y) = (u * part.half_extents[0], v * part.half_extents[1]);
+        [
+            part.center[0] + cos * x - sin * y,
+            part.center[1] + sin * x + cos * y,
+        ]
+    })
+}
+
+fn segment_gap(a: Point, b: Point, p: Point) -> f64 {
+    contract::ground::segment_distance(a, b, p)
+}
+
+fn segments_cross(a: [Point; 2], b: [Point; 2]) -> bool {
+    let side = |p: Point, q: Point, r: Point| contract::ground::cross(p, q, r);
+    side(a[0], a[1], b[0]) * side(a[0], a[1], b[1]) < 0.0
+        && side(b[0], b[1], a[0]) * side(b[0], b[1], a[1]) < 0.0
+}
+
+/// The gap between a convex ring and a segment; zero when they meet.
+fn ring_segment_gap(ring: &[Point], a: Point, b: Point) -> f64 {
+    if polygon_contains(ring, a) || polygon_contains(ring, b) {
+        return 0.0;
+    }
+    let mut gap = f64::INFINITY;
+    for (p, q) in contract::ground::edges(ring) {
+        if segments_cross([*p, *q], [a, b]) {
+            return 0.0;
+        }
+        gap = gap
+            .min(segment_gap(a, b, *p))
+            .min(segment_gap(*p, *q, a))
+            .min(segment_gap(*p, *q, b));
+    }
+    gap
+}
+
+/// How deep two convex rings overlap: the least depth over their edge
+/// normals, negative when an edge separates them.
+fn overlap_depth(a: &[Point], b: &[Point]) -> f64 {
+    let mut depth = f64::INFINITY;
+    for (ring, other) in [(a, b), (b, a)] {
+        for (p, q) in contract::ground::edges(ring) {
+            let length = segment_gap(*p, *p, *q);
+            let normal = [(q[1] - p[1]) / length, (p[0] - q[0]) / length];
+            let span = |points: &[Point]| {
+                let along = points.iter().map(|v| v[0] * normal[0] + v[1] * normal[1]);
+                along.fold((f64::INFINITY, f64::NEG_INFINITY), |(low, high), v| {
+                    (low.min(v), high.max(v))
+                })
+            };
+            let ((a0, a1), (b0, b1)) = (span(ring), span(other));
+            depth = depth.min(a1.min(b1) - a0.max(b0));
+        }
+    }
+    depth
+}
+
+fn floors(building: &BuildingDefinition) -> usize {
+    building.geometry.floor_z.as_ref().unwrap().len()
+}
+
+#[test]
+fn a_fixed_request_gives_the_same_plan_and_map_bytes_every_run() {
+    let (presets, catalogue) = (presets(), catalogue());
+    for map_type in TYPES {
+        let bytes = |seed: u64| {
+            let request = request(map_type, MapSize::Small, seed);
+            let plan = fill(&request, &presets, &catalogue).unwrap();
+            let map = mapgen::lower(&request.compile_request(plan.clone()), &catalogue).unwrap();
+            (
+                serde_json::to_string(&plan).unwrap(),
+                serde_json::to_string(&map.map).unwrap(),
+                map.identity.map_hash,
+            )
+        };
+        assert_eq!(bytes(7), bytes(7));
+        assert_ne!(bytes(7).2, bytes(8).2, "the seed must move the town");
+    }
+}
+
+/// A building's id names its district and its parcel, no two share one, and
+/// its parts take the map's prop ids in order with none left over.
+#[test]
+fn buildings_are_named_for_their_districts_and_fill_the_prop_ids() {
+    every_cell(|name, _, town| {
+        assert!(!town.plan.buildings.is_empty(), "{name}");
+        let lots: BTreeSet<&str> = town.plan.lots.iter().map(|lot| lot.id.as_str()).collect();
+        assert_eq!(
+            lots.len(),
+            town.plan.lots.len(),
+            "{name}: a parcel id repeats"
+        );
+        let mut next = 0;
+        for (index, building) in town.plan.buildings.iter().enumerate() {
+            let district = town.district_of(index);
+            assert!(building.id.starts_with(&format!("{}/lot-", district.id)));
+            assert!(
+                lots.contains(building.id.as_str()),
+                "{name}: {}",
+                building.id
+            );
+            assert_eq!(building.owner, next, "{name}: {}", building.id);
+            for part in &building.parts {
+                assert_eq!(part.prop, next, "{name}: {}", building.id);
+                next += 1;
+            }
+        }
+        let props = town.map.authored_props().unwrap();
+        assert_eq!(props.len(), next as usize, "{name}");
+        // Every district of every settlement is built on.
+        let built: BTreeSet<&str> = (0..town.plan.buildings.len())
+            .map(|index| town.district_of(index).id.as_str())
+            .collect();
+        for district in town.plan.settlements.iter().flat_map(|s| &s.districts) {
+            assert!(
+                built.contains(district.id.as_str()),
+                "{name}: {} is empty",
+                district.id
+            );
+        }
+    });
+}
+
+/// Placed geometry is the descriptor's own, moved and turned: nothing is
+/// stretched to fill a parcel.
+#[test]
+fn a_placed_template_is_its_descriptor_under_a_rigid_transform() {
+    let catalogue = catalogue();
+    let by_id: BTreeMap<&str, &BuildingTemplateDescriptor> = catalogue
+        .templates()
+        .iter()
+        .map(|template| (template.id.as_str(), template))
+        .collect();
+    every_cell(|name, _, town| {
+        for building in &town.map.buildings {
+            let template = by_id[building.geometry.template_id.as_str()];
+            let frame = building.geometry.frame;
+            let (sin, cos) = frame.yaw.sin_cos();
+            assert_eq!(building.geometry.height_m, template.height_m());
+            assert_eq!(building.geometry.parts.len(), template.parts.len());
+            for (placed, source) in building.geometry.parts.iter().zip(&template.parts) {
+                assert_eq!(placed.id, source.id);
+                assert_eq!(placed.half_extents, source.half_extents, "{name}");
+                let expected = [
+                    frame.translation[0] + cos * source.center[0] - sin * source.center[1],
+                    frame.translation[1] + sin * source.center[0] + cos * source.center[1],
+                ];
+                for (placed, expected) in placed.center.iter().zip(expected) {
+                    assert!((placed - expected).abs() < 1e-6, "{name}");
+                }
+                assert!(
+                    (placed.yaw - frame.yaw - source.yaw).abs() < 1e-12,
+                    "{name}"
+                );
+            }
+        }
+    });
+}
+
+/// No building stands on another, on a road or a paved apron, in a forest,
+/// or outside the district it belongs to.
+#[test]
+fn buildings_keep_clear_of_each_other_roads_forests_and_district_edges() {
+    every_cell(|name, _, town| {
+        let map = &town.map;
+        // Every part with its ring and the circle round it.
+        let mut parts: Vec<(usize, [Point; 4], Point, f64)> = Vec::new();
+        for (index, building) in map.buildings.iter().enumerate() {
+            for part in &building.geometry.parts {
+                let reach = part.half_extents[0].hypot(part.half_extents[1]);
+                parts.push((index, corners(part), part.center, reach));
+            }
+        }
+        parts.sort_by(|a, b| a.2[0].total_cmp(&b.2[0]));
+        for (at, (index, ring, center, reach)) in parts.iter().enumerate() {
+            for (other, other_ring, other_center, other_reach) in &parts[at + 1..] {
+                // Sorted by X: past the widest part nothing later can touch.
+                if other_center[0] - center[0] > reach + 60.0 {
+                    break;
+                }
+                let apart = (center[0] - other_center[0]).hypot(center[1] - other_center[1]);
+                if other == index || apart > reach + other_reach {
+                    continue;
+                }
+                let depth = overlap_depth(ring, other_ring);
+                assert!(
+                    depth < 0.02,
+                    "{name}: {} and {} overlap by {depth} m",
+                    town.plan.buildings[*index].id,
+                    town.plan.buildings[*other].id
+                );
+            }
+            let id = &town.plan.buildings[*index].id;
+            let district = town.district_of(*index);
+            assert!(
+                ring.iter().all(|p| polygon_contains(&district.ring, *p)),
+                "{name}: {id} leaves its district"
+            );
+            for forest in &map.forests {
+                let wooded = ring.iter().any(|p| forest.shape.contains(*p, 0.0))
+                    || forest.shape.contains(*center, 0.0);
+                assert!(!wooded, "{name}: {id} stands in a forest");
+            }
+        }
+        // Roads, by the samples their surfaces are made of.
+        for area in &map.surfaces {
+            let [x0, y0, x1, y1] = area.shape.limits();
+            let near: Vec<_> = parts
+                .iter()
+                .filter(|(_, _, c, r)| {
+                    c[0] + r > x0 && c[0] - r < x1 && c[1] + r > y0 && c[1] - r < y1
+                })
+                .collect();
+            for (index, ring, ..) in near {
+                let id = &town.plan.buildings[*index].id;
+                match &area.shape {
+                    GroundShape::Stroke {
+                        centerline,
+                        width_m,
+                    } => {
+                        for pair in centerline.samples().windows(2) {
+                            let gap = ring_segment_gap(ring, pair[0], pair[1]);
+                            assert!(
+                                gap >= width_m / 2.0,
+                                "{name}: {id} is {gap} m from the middle of a {:?}",
+                                area.kind
+                            );
+                        }
+                    }
+                    GroundShape::Polygon { ring: apron } => {
+                        let depth = overlap_depth(ring, apron);
+                        assert!(depth < 0.02, "{name}: {id} stands {depth} m into an apron");
+                    }
+                }
+            }
+        }
+    });
+}
+
+/// Every door opens toward paved ground a short walk away, with no building
+/// in between.
+#[test]
+fn every_entrance_faces_a_street_or_apron_within_a_short_walk() {
+    const WALK_M: f64 = 40.0;
+    every_cell(|name, _, town| {
+        let map = &town.map;
+        let rings: Vec<([Point; 4], Point, f64)> = map
+            .buildings
+            .iter()
+            .flat_map(|building| &building.geometry.parts)
+            .map(|part| {
+                let reach = part.half_extents[0].hypot(part.half_extents[1]);
+                (corners(part), part.center, reach)
+            })
+            .collect();
+        let paved: Vec<(&GroundShape, [f64; 4])> = map
+            .surfaces
+            .iter()
+            .filter(|area| area.kind.is_road())
+            .map(|area| (&area.shape, area.shape.limits()))
+            .collect();
+        for (index, building) in map.buildings.iter().enumerate() {
+            let entrances = building.geometry.entrances.as_ref().unwrap();
+            assert!(!entrances.is_empty());
+            for entrance in entrances {
+                let door = [entrance.position[0], entrance.position[1]];
+                let near: Vec<&GroundShape> = paved
+                    .iter()
+                    .filter(|(_, [x0, y0, x1, y1])| {
+                        door[0] + WALK_M > *x0
+                            && door[0] - WALK_M < *x1
+                            && door[1] + WALK_M > *y0
+                            && door[1] - WALK_M < *y1
+                    })
+                    .map(|(shape, _)| *shape)
+                    .collect();
+                // Walk straight out from the door until paved ground.
+                let reached = (1..=(WALK_M as u32) * 2)
+                    .map(|step| 0.5 * f64::from(step))
+                    .find(|reach| {
+                        let p = [
+                            door[0] + entrance.normal[0] * reach,
+                            door[1] + entrance.normal[1] * reach,
+                        ];
+                        near.iter().any(|shape| shape.contains(p, 0.0))
+                    });
+                let id = &town.plan.buildings[index].id;
+                let reach = reached.unwrap_or_else(|| {
+                    panic!(
+                        "{name}: {id} {} has no street within {WALK_M} m",
+                        entrance.id
+                    )
+                });
+                let end = [
+                    door[0] + entrance.normal[0] * reach,
+                    door[1] + entrance.normal[1] * reach,
+                ];
+                // Start just outside the door's own wall.
+                let start = [
+                    door[0] + entrance.normal[0] * 0.05,
+                    door[1] + entrance.normal[1] * 0.05,
+                ];
+                let blocked = rings.iter().any(|(ring, center, radius)| {
+                    segment_gap(start, end, *center) <= *radius
+                        && ring_segment_gap(ring, start, end) == 0.0
+                });
+                assert!(
+                    !blocked,
+                    "{name}: {id} {} opens onto a building",
+                    entrance.id
+                );
+            }
+        }
+    });
+}
+
+/// Vehicles can cross town into the plain: every street's pavement is joined,
+/// surface to surface, to the road network that reaches the map's edges.
+#[test]
+fn every_street_is_paved_through_to_the_roads_that_leave_the_map() {
+    for map_type in TYPES {
+        for seed in SEEDS {
+            let town = town(map_type, MapSize::Small, seed);
+            let map = &town.map;
+            // Each carriageway's samples and half width; aprons are not ways.
+            let ways: Vec<(SurfaceKind, &[Point], f64, [f64; 4])> = map
+                .surfaces
+                .iter()
+                .filter_map(|area| match &area.shape {
+                    GroundShape::Stroke {
+                        centerline,
+                        width_m,
+                    } => Some((
+                        area.kind,
+                        centerline.samples(),
+                        width_m / 2.0,
+                        area.shape.limits(),
+                    )),
+                    GroundShape::Polygon { .. } => None,
+                })
+                .collect();
+            let touches = |a: usize, b: usize| {
+                let ((_, pa, ha, la), (_, pb, hb, lb)) = (&ways[a], &ways[b]);
+                if la[0] > lb[2] || lb[0] > la[2] || la[1] > lb[3] || lb[1] > la[3] {
+                    return false;
+                }
+                pa.windows(2).any(|s| {
+                    pb.windows(2).any(|t| {
+                        segments_cross([s[0], s[1]], [t[0], t[1]])
+                            || [(s, t), (t, s)].iter().any(|(u, v)| {
+                                u.iter().any(|p| segment_gap(v[0], v[1], *p) < ha + hb)
+                            })
+                    })
+                })
+            };
+            // Flood from every road that leaves the map.
+            let mut joined: Vec<bool> = ways
+                .iter()
+                .map(|(_, points, ..)| {
+                    points
+                        .iter()
+                        .any(|p| p.iter().any(|v| *v == 0.0 || *v == map.size[0]))
+                })
+                .collect();
+            let mut queue: Vec<usize> = (0..ways.len()).filter(|way| joined[*way]).collect();
+            assert!(!queue.is_empty());
+            while let Some(at) = queue.pop() {
+                for (other, joined) in joined.iter_mut().enumerate() {
+                    if !*joined && touches(at, other) {
+                        *joined = true;
+                        queue.push(other);
+                    }
+                }
+            }
+            let streets = ways.iter().filter(|way| way.0 == SurfaceKind::Road).count();
+            assert!(streets > 10, "{map_type:?} {seed}: {streets} streets");
+            let stranded = (0..ways.len()).filter(|way| !joined[*way]).count();
+            assert_eq!(
+                stranded,
+                0,
+                "{map_type:?} seed {seed}: of {} ways",
+                ways.len()
+            );
+        }
+    }
+}
+
+/// M07: a rural map cannot acquire a tower or a seven-storey block, a highrise
+/// stands only in Metro, and a district holds only what it is zoned for.
+#[test]
+fn types_keep_their_floor_limits_and_districts_their_categories() {
+    let mut highrises = BTreeMap::new();
+    let mut tall_apartments = BTreeMap::new();
+    every_cell(|name, map_type, town| {
+        for (index, building) in town.map.buildings.iter().enumerate() {
+            let district = town.district_of(index);
+            assert!(
+                district
+                    .categories
+                    .iter()
+                    .any(|share| share.category == building.category),
+                "{name}: {:?} in a {}",
+                building.category,
+                district.kind
+            );
+            let most = match map_type {
+                MapType::Open => 6,
+                MapType::Mixed => 8,
+                MapType::Metro => usize::MAX,
+            };
+            assert!(
+                floors(building) <= most,
+                "{name}: {} floors",
+                floors(building)
+            );
+            let highrise = building.category == BuildingCategory::Highrise;
+            assert_eq!(highrise, floors(building) >= 9, "{name}");
+            *highrises.entry(map_type).or_insert(0) += usize::from(highrise);
+            *tall_apartments.entry(map_type).or_insert(0) += usize::from(
+                building.category == BuildingCategory::UrbanApartment && floors(building) >= 7,
+            );
+        }
+    });
+    assert_eq!(highrises[&MapType::Open] + highrises[&MapType::Mixed], 0);
+    assert!(highrises[&MapType::Metro] > 0);
+    assert_eq!(tall_apartments[&MapType::Open], 0);
+    // Where seven and eight floors are allowed, they are built.
+    assert!(tall_apartments[&MapType::Mixed] > 0 && tall_apartments[&MapType::Metro] > 0);
+}
+
+/// The shipped Open presets zone no apartments at all, so the floor limit
+/// is proved on presets that do: an Open town centre of apartment blocks
+/// has them, and none above six floors.
+#[test]
+fn an_open_map_zoned_for_apartments_builds_none_above_six_floors() {
+    let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
+    source["districts"]["small_centre"]["mix"] =
+        serde_json::json!({ "urban_apartment": 85, "attached_home": 15 });
+    source["districts"]["small_centre"]["lots"] = source["districts"]["apartments"]["lots"].clone();
+    source["districts"]["small_centre"]["streets"] =
+        source["districts"]["apartments"]["streets"].clone();
+    let presets = PresetDefinitions::from_json(&source.to_string()).unwrap();
+    let catalogue = catalogue();
+    let mut apartments = 0;
+    for seed in 1..=6 {
+        let request = request(MapType::Open, MapSize::Small, seed);
+        let plan = fill(&request, &presets, &catalogue).unwrap();
+        let map = mapgen::lower(&request.compile_request(plan), &catalogue)
+            .unwrap()
+            .map;
+        for building in &map.buildings {
+            assert!(
+                floors(building) <= 6,
+                "seed {seed}: {} floors",
+                floors(building)
+            );
+            apartments += usize::from(building.category == BuildingCategory::UrbanApartment);
+        }
+    }
+    assert!(
+        apartments >= 12,
+        "{apartments} apartment blocks over six seeds"
+    );
+}
+
+/// A district's categories take the shares of its built ground the plan
+/// gives them: the dominant one most of it, the minor one some.
+#[test]
+fn a_districts_built_ground_follows_its_category_shares() {
+    // kind → parcel ground under its first and second category
+    let mut ground: BTreeMap<String, [f64; 2]> = BTreeMap::new();
+    let mut wanted: BTreeMap<String, f64> = BTreeMap::new();
+    every_cell(|_, _, town| {
+        let lots: BTreeMap<&str, f64> = town
+            .plan
+            .lots
+            .iter()
+            .map(|lot| {
+                (
+                    lot.id.as_str(),
+                    contract::ground::polygon_area(&lot.ring).abs() / 2.0,
+                )
+            })
+            .collect();
+        for (index, building) in town.map.buildings.iter().enumerate() {
+            let district = town.district_of(index);
+            let total: f64 = district.categories.iter().map(|share| share.weight).sum();
+            wanted.insert(district.kind.clone(), district.categories[0].weight / total);
+            let dominant = building.category == district.categories[0].category;
+            ground.entry(district.kind.clone()).or_default()[usize::from(!dominant)] +=
+                lots[town.plan.buildings[index].id.as_str()];
+        }
+    });
+    assert!(ground.len() >= 8, "{ground:?}");
+    for (kind, [dominant, minor]) in ground {
+        let share = dominant / (dominant + minor);
+        // Within fifteen points: the larger templates fit fewer places.
+        assert!(
+            (share - wanted[&kind]).abs() <= 0.15,
+            "{kind}: {share:.2} of its built ground against {:.2}",
+            wanted[&kind]
+        );
+    }
+}
+
+/// M08: one map, one regional family, whichever the seed draws.
+#[test]
+fn every_building_of_a_map_is_of_one_regional_family() {
+    // A second family beside the prototype: the same shapes under other ids.
+    let mut templates: Vec<BuildingTemplateDescriptor> = serde_json::from_str(TEMPLATES).unwrap();
+    let other = templates.clone().into_iter().map(|mut template| {
+        template.id = template.id.replace("prototype", "other");
+        template.regional_family = "other".into();
+        template
+    });
+    templates.extend(other.collect::<Vec<_>>());
+    let catalogue = TemplateGeometryCatalog::new(templates).unwrap();
+    let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
+    source["parcels"]["regional_families"] = serde_json::json!(["prototype", "other"]);
+    let presets = PresetDefinitions::from_json(&source.to_string()).unwrap();
+    let mut drawn = BTreeSet::new();
+    for seed in 1..=8 {
+        let mut request = request(MapType::Mixed, MapSize::Small, seed);
+        request.template_catalog_hash = catalogue.hash().into();
+        let plan = fill(&request, &presets, &catalogue).unwrap();
+        let map = mapgen::lower(&request.compile_request(plan), &catalogue)
+            .unwrap()
+            .map;
+        let families: BTreeSet<&str> = map
+            .buildings
+            .iter()
+            .map(|building| building.regional_family.as_str())
+            .collect();
+        assert_eq!(families.len(), 1, "seed {seed}: {families:?}");
+        drawn.extend(families.into_iter().map(str::to_string));
+    }
+    assert_eq!(drawn.len(), 2, "eight seeds drew only {drawn:?}");
+}
+
+/// M05: a bigger map has more town, not bigger town. Streets are one width,
+/// and a district kind is built as densely on a Large map as on a Small one.
+#[test]
+fn towns_keep_their_metre_dimensions_at_every_map_size() {
+    let density = |size: MapSize| {
+        // kind → (buildings, hectares, metres of street)
+        let mut rows: BTreeMap<String, [f64; 2]> = BTreeMap::new();
+        let mut widths = BTreeSet::new();
+        for map_type in TYPES {
+            for seed in SEEDS {
+                let town = town(map_type, size, seed);
+                for district in town.plan.settlements.iter().flat_map(|s| &s.districts) {
+                    rows.entry(district.kind.clone()).or_default()[1] += district.area_m2 / 1e4;
+                }
+                for index in 0..town.plan.buildings.len() {
+                    rows.get_mut(&town.district_of(index).kind).unwrap()[0] += 1.0;
+                }
+                for area in &town.map.surfaces {
+                    if let (SurfaceKind::Road, GroundShape::Stroke { width_m, .. }) =
+                        (area.kind, &area.shape)
+                    {
+                        widths.insert(width_m.to_bits());
+                    }
+                }
+            }
+        }
+        (rows, widths)
+    };
+    let (small, small_widths) = density(MapSize::Small);
+    let (large, large_widths) = density(MapSize::Large);
+    assert_eq!(small_widths.len(), 1);
+    assert_eq!(small_widths, large_widths);
+    for (kind, [buildings, hectares]) in &small {
+        let [large_buildings, large_hectares] = large[kind];
+        let (a, b) = (buildings / hectares, large_buildings / large_hectares);
+        // Districts differ in shape, so their fill does by a few per cent.
+        assert!(
+            (a - b).abs() <= 0.2 * a.max(b),
+            "{kind}: {a:.2} buildings per hectare on Small, {b:.2} on Large"
+        );
+    }
+}
+
+/// A tuning change to one district kind's parcels leaves the layout, every
+/// street and every other kind's buildings where they were.
+#[test]
+fn one_kinds_parcel_presets_do_not_move_the_rest_of_the_map() {
+    let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
+    source["districts"]["industrial"]["lots"]["front_m"] = serde_json::json!(12);
+    let changed = PresetDefinitions::from_json(&source.to_string()).unwrap();
+    let request = request(MapType::Mixed, MapSize::Medium, 3);
+    let before = fill(&request, &presets(), &catalogue()).unwrap();
+    let after = fill(&request, &changed, &catalogue()).unwrap();
+    let json = |value: &dyn erased::Json| value.json();
+    assert_eq!(json(&before.settlements), json(&after.settlements));
+    assert_eq!(json(&before.forests), json(&after.forests));
+    let strokes = |plan: &MapPlan| {
+        let strokes = plan
+            .surfaces
+            .iter()
+            .filter(|area| matches!(area.shape, GroundShape::Stroke { .. }));
+        json(&strokes.collect::<Vec<_>>())
+    };
+    assert_eq!(strokes(&before), strokes(&after));
+    // (parcels, buildings) of the industrial districts, or of all the others.
+    let cut = |plan: &MapPlan, industrial: bool| -> (Vec<String>, Vec<String>) {
+        let kinds: BTreeMap<&str, &str> = plan
+            .settlements
+            .iter()
+            .flat_map(|s| &s.districts)
+            .map(|d| (d.id.as_str(), d.kind.as_str()))
+            .collect();
+        let chosen =
+            |id: &str| (kinds[id.rsplit_once('/').unwrap().0] == "industrial") == industrial;
+        let lots = plan.lots.iter().filter(|lot| chosen(&lot.id));
+        let buildings = plan
+            .buildings
+            .iter()
+            .filter(|building| chosen(&building.id));
+        (
+            lots.map(|lot| json(lot)).collect(),
+            buildings
+                .map(|building| json(&(&building.id, &building.template_id, &building.frame)))
+                .collect(),
+        )
+    };
+    assert_eq!(cut(&before, false), cut(&after, false));
+    assert_ne!(cut(&before, true).0, cut(&after, true).0);
+}
+
+mod erased {
+    pub trait Json {
+        fn json(&self) -> String;
+    }
+    impl<T: serde::Serialize> Json for T {
+        fn json(&self) -> String {
+            serde_json::to_string(self).unwrap()
+        }
+    }
+}
+
+/// What the presets or the catalogue cannot build ends in a named refusal,
+/// quickly, never in an emptier town.
+#[test]
+fn what_cannot_be_built_ends_in_a_named_diagnostic() {
+    let request = request(MapType::Mixed, MapSize::Small, 5);
+    // Setbacks no district can hold.
+    let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
+    source["districts"]["garden_suburb"]["lots"]["front_m"] = serde_json::json!(900);
+    let deep = PresetDefinitions::from_json(&source.to_string()).unwrap();
+    let started = std::time::Instant::now();
+    let errors = fill(&request, &deep, &catalogue()).unwrap_err();
+    assert!(started.elapsed().as_secs() < 20);
+    assert_eq!(errors[0].code, DiagnosticCode::GenerationFailed);
+    assert_eq!(errors[0].location, "$.presets.districts.garden_suburb");
+    let feature = errors[0].feature.as_deref().unwrap();
+    assert!(
+        feature.starts_with("settlement-") && feature.contains("/district-"),
+        "{feature}"
+    );
+    assert!(
+        errors[0].message.contains("seed 5"),
+        "{}",
+        errors[0].message
+    );
+
+    // A catalogue with no industry: the industrial district names what it lacks.
+    let templates: Vec<BuildingTemplateDescriptor> = serde_json::from_str(TEMPLATES).unwrap();
+    let no_industry = TemplateGeometryCatalog::new(
+        templates
+            .into_iter()
+            .filter(|template| template.category != BuildingCategory::Industry)
+            .collect(),
+    )
+    .unwrap();
+    let mut pinned = request.clone();
+    pinned.template_catalog_hash = no_industry.hash().into();
+    let errors = fill(&pinned, &presets(), &no_industry).unwrap_err();
+    assert_eq!(errors[0].code, DiagnosticCode::MissingTemplate);
+    assert!(
+        errors[0].message.contains("Industry"),
+        "{}",
+        errors[0].message
+    );
+
+    // The request pins the catalogue it was made for.
+    let errors = fill(&request, &presets(), &no_industry).unwrap_err();
+    assert_eq!(errors[0].code, DiagnosticCode::InvalidCatalogue);
+    assert_eq!(errors[0].location, "$.template_catalog_hash");
+
+    // And the caller's ground allowance covers the streets too.
+    let mut tight = request.clone();
+    tight.limits.max_ground_points = 4_000;
+    let errors = fill(&tight, &presets(), &catalogue()).unwrap_err();
+    assert_eq!(errors[0].code, DiagnosticCode::ComplexityLimit);
+    assert_eq!(errors[0].location, "$.limits.max_ground_points");
+}
+
+/// The compiled map is what a battle loads: it reads back as the contract's
+/// map, with every building's facts resolved against the catalogue.
+#[test]
+fn every_generated_map_loads_as_the_contracts_map() {
+    let library = catalogue().canonical_json().unwrap();
+    every_cell(|name, _, town| {
+        let saved = serde_json::to_string(&town.map).unwrap();
+        let loaded: MapDefinition = serde_json::from_str(&saved).unwrap();
+        assert_eq!(loaded.buildings.len(), town.plan.buildings.len(), "{name}");
+        assert_eq!(serde_json::to_string(&loaded).unwrap(), saved, "{name}");
+        let sources = serde_json::json!({
+            "identity": {
+                "kind": "authored",
+                "map_hash": contract::identity::json_hash(&loaded).unwrap(),
+                "template_catalog_hash": loaded.template_catalog_hash,
+            },
+            "catalogue": { "template_ids": null },
+            "inputs": [{ "kind": "supplied", "label": "request", "sha256": "0".repeat(64) }],
+        });
+        let admission = contract::maps::MapAdmission {
+            max_authored_parts: 60_000,
+            max_bay_positions: 600_000,
+        };
+        contract::maps::resolve(&saved, &sources.to_string(), &library, admission)
+            .unwrap_or_else(|error| panic!("{name}: {error}"));
+    });
+}

@@ -1,0 +1,460 @@
+//! A picture of a plan's layers for a person to review: one SVG unit is one
+//! metre, north is up. The whole map, or one settlement or district of it.
+//! Tooling only; nothing here reaches the map.
+use crate::layout::geometry::{add, direction, ray_crossings, scale, Point};
+use crate::layout::LayoutMetrics;
+use crate::MapPlan;
+use contract::ground::GroundShape;
+use contract::map::SurfaceKind;
+use contract::templates::{BuildingCategory, TemplateGeometryCatalog};
+use std::collections::BTreeMap;
+use std::fmt::Write;
+
+/// District colours, by the ids the shipped presets use; an id this table
+/// does not know draws grey rather than failing.
+const DISTRICTS: [(&str, &str); 8] = [
+    ("farm", "#c9b27c"),
+    ("village", "#dcc06a"),
+    ("garden_suburb", "#f0a85e"),
+    ("small_centre", "#c96a8c"),
+    ("centre", "#d2452c"),
+    ("apartments", "#8c2f3f"),
+    ("core", "#4b2a6b"),
+    ("industrial", "#6f8196"),
+];
+/// Building colours by category, dark enough to read on a district's tint.
+const CATEGORIES: [(BuildingCategory, &str, &str); 6] = [
+    (BuildingCategory::Farmstead, "farmstead", "#6b4423"),
+    (BuildingCategory::DetachedHome, "detached home", "#c2410c"),
+    (BuildingCategory::AttachedHome, "attached home", "#9d174d"),
+    (BuildingCategory::UrbanApartment, "apartment", "#5b21b6"),
+    (BuildingCategory::Highrise, "highrise", "#0f172a"),
+    (BuildingCategory::Industry, "industry", "#1d4ed8"),
+];
+const PLAIN: &str = "#efe9d3";
+const FIELD: &str = "#dfe3b4";
+const FOREST: &str = "#6f9e63";
+const APPROACH: &str = "#3f8fd0";
+const ROAD: &str = "#1c1c1c";
+const TRACK: &str = "#7a5a2e";
+const STREET: &str = "#4a4a4a";
+const APRON: &str = "#a9a9a9";
+const ENTRANCE: &str = "#ffd43b";
+/// Parcels and entrances are drawn when the view is at most this wide: on a
+/// whole map they are below a pixel.
+const DETAIL_VIEW_M: f64 = 2_600.0;
+
+/// The part of the map a picture shows, `[min_x, min_y, width, height]`: the
+/// ground about the settlement or district `crop` names, the rectangle it
+/// spells (`x,y,width,height`), or the whole map.
+fn view(plan: &MapPlan, crop: Option<&str>) -> Result<[f64; 4], String> {
+    let Some(crop) = crop else {
+        return Ok([0.0, 0.0, plan.size[0], plan.size[1]]);
+    };
+    let numbers: Vec<f64> = crop.split(',').filter_map(|v| v.parse().ok()).collect();
+    if let [x, y, width, height] = numbers[..] {
+        if width > 0.0 && height > 0.0 {
+            return Ok([x, y, width, height]);
+        }
+    }
+    let ring = plan
+        .settlements
+        .iter()
+        .find_map(|settlement| {
+            if settlement.id == crop {
+                return Some(&settlement.outline);
+            }
+            let district = settlement.districts.iter().find(|d| d.id == crop)?;
+            Some(&district.ring)
+        })
+        .ok_or_else(|| format!("{crop:?} is no settlement, district or x,y,width,height"))?;
+    let [x0, y0, x1, y1] = contract::ground::limits(ring, 0.0);
+    // A square view with a margin, so the neighbours show.
+    let side = 1.25 * (x1 - x0).max(y1 - y0);
+    Ok([(x0 + x1 - side) / 2.0, (y0 + y1 - side) / 2.0, side, side])
+}
+
+pub fn svg(
+    plan: &MapPlan,
+    catalogue: &TemplateGeometryCatalog,
+    title: &str,
+    metrics: &LayoutMetrics,
+    crop: Option<&str>,
+) -> Result<String, String> {
+    let [left, bottom, width, height] = view(plan, crop)?;
+    // North is up: the picture's Y runs down from the view's top edge.
+    let top = bottom + height;
+    let detail = width <= DETAIL_VIEW_M;
+    // Text and line weights follow the view's size so every picture reads alike.
+    let unit = width / 100.0;
+    let header = 11.0 * unit;
+    let footer = 11.0 * unit;
+    let mut out = String::new();
+    let path = |points: &[Point], close: bool| {
+        let mut d = String::new();
+        for (index, p) in points.iter().enumerate() {
+            let _ = write!(
+                d,
+                "{}{:.1} {:.1}",
+                if index == 0 { "M" } else { "L" },
+                p[0] - left,
+                top - p[1]
+            );
+        }
+        if close {
+            d.push('Z');
+        }
+        d
+    };
+    let shown = |p: Point, margin: f64| {
+        p[0] >= left - margin
+            && p[0] <= left + width + margin
+            && p[1] >= bottom - margin
+            && p[1] <= top + margin
+    };
+    let _ = write!(
+        out,
+        r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="{x} {y} {w} {h}" font-family="Helvetica, Arial, sans-serif"><rect x="{x}" y="{y}" width="{w}" height="{h}" fill="#ffffff"/><clipPath id="view"><rect width="{width}" height="{height}"/></clipPath><g clip-path="url(#view)"><rect width="{width}" height="{height}" fill="{PLAIN}"/>"##,
+        x = -unit,
+        y = -header,
+        w = width + 2.0 * unit,
+        h = height + header + footer
+    );
+    // What a settlement's outline holds beyond its districts is field, unless
+    // a wood stands there.
+    for settlement in &plan.settlements {
+        let _ = write!(
+            out,
+            r##"<path d="{}" fill="{FIELD}"/>"##,
+            path(&settlement.outline, true)
+        );
+    }
+    // Open approaches under everything they lead to: the main settlement's
+    // filled, the others' in outline so that they do not bury the map.
+    for approach in &plan.approaches {
+        let settlement = &plan.settlements[approach.settlement];
+        let steps = (((approach.to_rad - approach.from_rad) / 0.03) as usize).max(1);
+        let rays: Vec<(Point, f64)> = (0..=steps)
+            .map(|step| {
+                let angle = approach.from_rad
+                    + (approach.to_rad - approach.from_rad) * step as f64 / steps as f64;
+                let toward = direction(angle);
+                let edge = ray_crossings(settlement.center, toward, &settlement.outline)
+                    .fold(0.0, f64::max);
+                (toward, edge)
+            })
+            .collect();
+        let near = rays
+            .iter()
+            .map(|(toward, edge)| add(settlement.center, scale(*toward, *edge)));
+        let far = rays
+            .iter()
+            .rev()
+            .map(|(toward, edge)| add(settlement.center, scale(*toward, edge + approach.depth_m)));
+        let wedge: Vec<Point> = near.chain(far).collect();
+        let main = approach.settlement == 0;
+        let _ = write!(
+            out,
+            r##"<path d="{}" fill="{APPROACH}" fill-opacity="{}" stroke="{APPROACH}" stroke-opacity="{}" stroke-width="{}"/>"##,
+            path(&wedge, true),
+            if main { 0.22 } else { 0.0 },
+            if main { 0.9 } else { 0.3 },
+            unit * if main { 0.12 } else { 0.06 }
+        );
+    }
+    for forest in &plan.forests {
+        if let GroundShape::Polygon { ring } = &forest.shape {
+            let _ = write!(out, r##"<path d="{}" fill="{FOREST}"/>"##, path(ring, true));
+        }
+    }
+    let colour = |kind: &str| {
+        DISTRICTS
+            .iter()
+            .find(|(known, _)| *known == kind)
+            .map_or("#999999", |(_, fill)| fill)
+    };
+    // A district is a tint once it is built on, so its buildings read.
+    let tint = if plan.buildings.is_empty() { 1.0 } else { 0.3 };
+    for settlement in &plan.settlements {
+        for district in &settlement.districts {
+            let _ = write!(
+                out,
+                r##"<path d="{}" fill="{}" fill-opacity="{tint}" stroke="#3a2f2a" stroke-width="{}"/>"##,
+                path(&district.ring, true),
+                colour(&district.kind),
+                unit * 0.06
+            );
+        }
+        let _ = write!(
+            out,
+            r##"<path d="{}" fill="none" stroke="#6b5d3a" stroke-width="{}" stroke-dasharray="{dash} {dash}"/>"##,
+            path(&settlement.outline, true),
+            unit * 0.05,
+            dash = unit * 0.3
+        );
+    }
+    if detail {
+        for lot in plan.lots.iter().filter(|lot| shown(lot.ring[0], 200.0)) {
+            let _ = write!(
+                out,
+                r##"<path d="{}" fill="#ffffff" fill-opacity="0.35" stroke="#5c5346" stroke-width="{}"/>"##,
+                path(&lot.ring, true),
+                unit * 0.04
+            );
+        }
+    }
+    for area in &plan.surfaces {
+        if let GroundShape::Polygon { ring } = &area.shape {
+            let _ = write!(out, r##"<path d="{}" fill="{APRON}"/>"##, path(ring, true));
+        }
+    }
+    // Tracks under roads under streets. Each is drawn at its own width, or
+    // wider when that would be too thin to read at this scale.
+    let track_dash = format!(r#" stroke-dasharray="{} {}""#, unit * 0.6, unit * 0.4);
+    let marks = [
+        (
+            SurfaceKind::DirtTrack,
+            TRACK,
+            0.16,
+            track_dash.as_str(),
+            "dirt track",
+        ),
+        (SurfaceKind::CountryRoad, ROAD, 0.3, "", "country road"),
+        (SurfaceKind::Road, STREET, 0.1, "", "street"),
+    ];
+    for (kind, stroke, weight, dash, _) in marks {
+        for area in plan.surfaces.iter().filter(|area| area.kind == kind) {
+            if let GroundShape::Stroke {
+                centerline,
+                width_m,
+            } = &area.shape
+            {
+                let _ = write!(
+                    out,
+                    r##"<path d="{}" fill="none" stroke="{stroke}" stroke-width="{}" stroke-linejoin="round"{dash}/>"##,
+                    path(centerline.samples(), false),
+                    width_m.max(unit * weight)
+                );
+            }
+        }
+    }
+    let mut built: BTreeMap<&str, usize> = BTreeMap::new();
+    for building in &plan.buildings {
+        let template = catalogue
+            .templates()
+            .iter()
+            .find(|template| template.id == building.template_id)
+            .ok_or_else(|| format!("the catalogue has no template {}", building.template_id))?;
+        let (_, name, fill) = CATEGORIES
+            .iter()
+            .find(|(category, ..)| *category == template.category)
+            .ok_or("a category without a colour")?;
+        *built.entry(name).or_default() += 1;
+        let [x, y, _] = building.frame.translation;
+        if !shown([x, y], 200.0) {
+            continue;
+        }
+        let placed = template.materialize(building.frame)?;
+        for part in &placed.parts {
+            let along = direction(part.yaw);
+            let across = [-along[1], along[0]];
+            let corners = [[-1.0, -1.0], [1.0, -1.0], [1.0, 1.0], [-1.0, 1.0]].map(|[u, v]| {
+                add(
+                    part.center,
+                    add(
+                        scale(along, u * part.half_extents[0]),
+                        scale(across, v * part.half_extents[1]),
+                    ),
+                )
+            });
+            let _ = write!(
+                out,
+                r##"<path d="{}" fill="{fill}"/>"##,
+                path(&corners, true)
+            );
+        }
+        if detail {
+            // An entrance is a tick out from its door.
+            for entrance in placed.entrances.iter().flatten() {
+                let door = [entrance.position[0], entrance.position[1]];
+                let _ = write!(
+                    out,
+                    r##"<path d="{}" stroke="{ENTRANCE}" stroke-width="{}"/>"##,
+                    path(&[door, add(door, scale(entrance.normal, 3.0))], false),
+                    unit * 0.12
+                );
+            }
+        }
+    }
+    let _ = write!(
+        out,
+        r##"</g><rect width="{width}" height="{height}" fill="none" stroke="#111111" stroke-width="{}"/>"##,
+        unit * 0.3,
+    );
+    if crop.is_none() {
+        let _ = write!(
+            out,
+            r##"<path d="M0 {mid}H{width}" stroke="#111111" stroke-opacity="0.35" stroke-width="{}" stroke-dasharray="{unit} {unit}"/><circle cx="{}" cy="{mid}" r="{}" fill="#d0021b"/>"##,
+            unit * 0.08,
+            width / 2.0,
+            unit * 0.45,
+            mid = height / 2.0
+        );
+    }
+
+    // Below the map: what each mark means, then a scale bar and the district
+    // kinds and building categories this plan uses.
+    let row = |line: f64| height + unit * (2.6 + 2.6 * line);
+    let bar = [50.0, 100.0, 200.0, 500.0, 1000.0]
+        .into_iter()
+        .rfind(|metres| *metres <= width / 6.0)
+        .unwrap_or(50.0);
+    let _ = write!(
+        out,
+        r##"<path d="M0 {y}h{bar}" stroke="#111111" stroke-width="{}"/><text x="{}" y="{}" font-size="{}">{}</text>"##,
+        unit * 0.4,
+        bar + unit,
+        row(1.0) + 0.6 * unit,
+        unit * 1.8,
+        if bar >= 1000.0 {
+            "1 km".to_string()
+        } else {
+            format!("{bar} m")
+        },
+        y = row(1.0)
+    );
+    let label = |out: &mut String, x: &mut f64, line: f64, text: &str| {
+        let _ = write!(
+            out,
+            r##"<text x="{}" y="{}" font-size="{}">{text}</text>"##,
+            *x + unit * 2.4,
+            row(line) + 0.55 * unit,
+            unit * 1.5
+        );
+        *x += unit * (4.2 + 0.8 * text.len() as f64);
+    };
+    let block = |out: &mut String, x: f64, line: f64, fill: &str, opacity: f64| {
+        let _ = write!(
+            out,
+            r##"<rect x="{x}" y="{}" width="{}" height="{}" fill="{fill}" fill-opacity="{opacity}" stroke="#3a2f2a" stroke-width="{}"/>"##,
+            row(line) - 0.8 * unit,
+            unit * 1.8,
+            unit * 1.6,
+            unit * 0.05
+        );
+    };
+    let mut x = 0.0;
+    for (_, stroke, weight, dash, text) in marks.iter().rev() {
+        let _ = write!(
+            out,
+            r##"<path d="M{x} {}h{}" stroke="{stroke}" stroke-width="{}"{dash}/>"##,
+            row(0.0),
+            unit * 1.8,
+            unit * weight.max(0.2)
+        );
+        label(&mut out, &mut x, 0.0, text);
+    }
+    for (fill, opacity, text) in [
+        (FOREST, 1.0, "forest"),
+        (FIELD, 1.0, "settlement field"),
+        (APRON, 1.0, "paved apron"),
+        (APPROACH, 0.22, "open approach"),
+    ] {
+        block(&mut out, x, 0.0, fill, opacity);
+        label(&mut out, &mut x, 0.0, text);
+    }
+    if detail {
+        let _ = write!(
+            out,
+            r##"<path d="M{x} {}h{}" stroke="{ENTRANCE}" stroke-width="{}"/>"##,
+            row(0.0),
+            unit * 1.8,
+            unit * 0.3
+        );
+        label(&mut out, &mut x, 0.0, "entrance");
+    }
+    let mut x = bar + 9.0 * unit;
+    for (kind, fill) in DISTRICTS {
+        let used = plan
+            .settlements
+            .iter()
+            .flat_map(|settlement| &settlement.districts)
+            .any(|district| district.kind == kind);
+        if used {
+            // The tint as it is drawn: over a settlement's field.
+            block(&mut out, x, 1.0, FIELD, 1.0);
+            block(&mut out, x, 1.0, fill, tint);
+            label(&mut out, &mut x, 1.0, &kind.replace('_', " "));
+        }
+    }
+    let mut x = 0.0;
+    for (_, name, fill) in CATEGORIES {
+        if let Some(count) = built.get(name) {
+            block(&mut out, x, 2.0, fill, 1.0);
+            label(&mut out, &mut x, 2.0, &format!("{count} {name}"));
+        }
+    }
+
+    let km2 = |m2: f64| m2 / 1e6;
+    let classes: Vec<String> = metrics
+        .settlements
+        .iter()
+        .map(|(class, count)| format!("{count} {}", class.replace('_', " ")))
+        .collect();
+    let transit = metrics
+        .transit
+        .iter()
+        .map(|edge| edge.elapsed_s)
+        .fold(0.0, f64::max);
+    let fair = |fair: bool| if fair { "fair" } else { "UNFAIR" };
+    let lines = [
+        title.to_string(),
+        format!(
+            "built {:.1}%  forest {:.1}%  open {:.1}%  |  {}  |  main settlement {:.0}% of built ground",
+            metrics.urban_share * 100.0,
+            metrics.forest_share * 100.0,
+            metrics.plain_share * 100.0,
+            classes.join(", "),
+            metrics.main_settlement_share * 100.0
+        ),
+        format!(
+            "top/bottom: built {:.2}/{:.2} km² ({}), forest {:.2}/{:.2} km² ({}), approaches {}/{}  |  roads {:.0} km, tracks {:.0} km, loops {}, edge exits {}  |  slowest edge to centre {:.0} s",
+            km2(metrics.town.top_m2),
+            km2(metrics.town.bottom_m2),
+            fair(metrics.town.fair),
+            km2(metrics.forest.top_m2),
+            km2(metrics.forest.bottom_m2),
+            fair(metrics.forest.fair),
+            metrics.approaches_top,
+            metrics.approaches_bottom,
+            metrics.roads.country_road_km,
+            metrics.roads.dirt_track_km,
+            metrics.roads.loops,
+            metrics.roads.edge_exits,
+            transit
+        ),
+        format!(
+            "whole map: {} buildings on {} parcels  |  streets {:.0} km  |  this view is {:.0} m wide",
+            plan.buildings.len(),
+            plan.lots.len(),
+            metrics.roads.street_km,
+            width
+        ),
+    ];
+    for (index, line) in lines.iter().enumerate() {
+        let _ = write!(
+            out,
+            r##"<text x="0" y="{}" font-size="{}"{}>{}</text>"##,
+            -header + unit * (3.2 + 2.1 * index as f64),
+            unit * if index == 0 { 3.2 } else { 1.4 },
+            if index == 0 {
+                r#" font-weight="bold""#
+            } else {
+                ""
+            },
+            line.replace('&', "&amp;").replace('<', "&lt;")
+        );
+    }
+    out.push_str("</svg>\n");
+    Ok(out)
+}

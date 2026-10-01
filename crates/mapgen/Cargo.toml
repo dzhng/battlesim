@@ -7,3 +7,4 @@ edition = "2021"
 contract = { path = "../contract" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
+libm = { version = "=0.2.16", default-features = false }
