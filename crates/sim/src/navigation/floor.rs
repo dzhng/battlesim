@@ -114,6 +114,10 @@ mod tests {
     use contract::{map::MapDefinition, scenario::Rules};
     use std::sync::Arc;
 
+    fn floor_movers(rules: &Rules) -> [Mobility; 2] {
+        ["rifle", "jeep"].map(|id| crate::units::mobility(rules.catalog.by_id(id), rules))
+    }
+
     #[test]
     fn a_prop_only_catalog_has_no_required_infantry_or_jeep_kind() {
         let mut input = crate::fixtures::village();
@@ -231,9 +235,4 @@ mod tests {
             "rejected candidate cannot alter the held navigation grid"
         );
     }
-}
-
-#[cfg(test)]
-fn floor_movers(rules: &contract::scenario::Rules) -> [Mobility; 2] {
-    ["rifle", "jeep"].map(|id| crate::units::mobility(rules.catalog.by_id(id), rules))
 }
