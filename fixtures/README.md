@@ -85,6 +85,21 @@ Add one entry. A mechanic comes from the body's columns, so a new obstacle needs
 
 Every mover states its own two top speeds in its `mobility` row, in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road (at most 130, and never below the off-road speed). `village.json`'s `surfaces` table has one row per surface kind a map may pave (`road`, `country_road`, `dirt_track`, `sidewalk`). A row's `speed_factor` scales each unit type's own road speed on that surface, never below its off-road speed: 1 is a full road, 0 is no road at all. A new surface kind is a new row plus its variant in `contract::map::SurfaceKind`.
 
+Vehicle surface speeds are targets, not instantaneous velocity. The drive settings in
+[`village.json`](village.json) express acceleration and braking as time from rest to
+full road speed and back; each vehicle's own top speed sets the rate. This keeps
+road entry gradual without reducing the road advantage. Surface and shove limits
+act on the target speed so slowdown does not compound every tick. The follower
+brakes on the incoming leg of a planned bend, using its turning radius and yaw rate to
+choose a corner speed. A tracked pivot blocked by traffic backs up when it needs room.
+Stops, collisions and gear changes discard momentum. Infantry retain their own
+pace; their yield horizon follows a vehicle's accepted velocity, including reverse
+movement. Once clear of that path, a soldier waits rather than stepping back
+into it. Accepted vehicle speed participates in replay digests but adds no
+observation or command fields. Frozen parity inputs without these timing settings
+use the contract's defaults. Focused mechanic labs may pin unrelated timing to
+isolate their experiment; playable battles use the shared gameplay settings.
+
 ## Rivers
 
 A map's water is its `rivers`: each a line of points with the water's `width_m` and its `depth_m` at the middle there, and one `surface_z` for the whole river. The line is rounded like a road's, and width and depth run evenly between points.

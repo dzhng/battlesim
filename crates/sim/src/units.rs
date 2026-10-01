@@ -242,6 +242,8 @@ pub struct Unit {
     /// The vehicle drove backwards this tick: an ordered reverse move or a
     /// three-point turn's reversing leg (the reverse whine's cue).
     pub reversing: bool,
+    /// Actual accepted hull speed; negative while reversing.
+    pub drive_speed_mps: f64,
     /// A tracked vehicle's ordered facing (Q9), still to pivot to at rest.
     pub turn_to: Option<f64>,
 }
@@ -299,6 +301,13 @@ pub fn mobility(t: &UnitType, rules: &Rules) -> Mobility {
 /// type's own numbers are the catalog's checks, at load.)
 pub fn validate_drive(rules: &Rules) {
     let d = &rules.movement.drive;
+    assert!(
+        d.acceleration_s.is_finite()
+            && d.acceleration_s > 0.0
+            && d.braking_s.is_finite()
+            && d.braking_s > 0.0,
+        "movement.drive acceleration and braking times must be finite and positive"
+    );
     for (name, v) in [
         ("turn_in_place_deg", d.turn_in_place_deg),
         ("abeam_m", d.abeam_m),
@@ -401,6 +410,9 @@ impl Unit {
             .f64(self.position.z)
             .f64(self.yaw);
         d.u64(self.state as u64).u64(self.reversing as u64);
+        if self.is_vehicle() {
+            d.f64(self.drive_speed_mps);
+        }
         d.opt_f64(self.turn_to);
         match self.manoeuvre {
             Some(m) => d.u64(1).f64(m.turn).f64(m.driven_m),

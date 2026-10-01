@@ -10,7 +10,7 @@ import { AckLog } from "../AckLog";
 import { BattleMemory, guidanceLayer, remainsLayer, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
-import { labScenario, type LabScript, type LabUnit } from "../scenarios";
+import { labScenario, VILLAGE_RULES, type LabScript, type LabUnit } from "../scenarios";
 import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
 import { TickStatus } from "../TickStatus";
@@ -71,6 +71,14 @@ const VARIANTS = {
 } as const;
 type Variant = keyof typeof VARIANTS;
 const SEED = 10;
+// Guidance compares controlled LOS crossings, independent of vehicle startup time.
+const AMBUSH_RULES = {
+  ...VILLAGE_RULES,
+  movement: {
+    ...VILLAGE_RULES.movement,
+    drive: { ...VILLAGE_RULES.movement.drive, acceleration_s: 1e-6, braking_s: 1e-6 },
+  },
+};
 
 const AMBUSH_CAMERA: Camera3DParams = {
   target: [300, 290, 0],
@@ -86,7 +94,14 @@ const SCOUT_MARK = [0.55, 0.75, 1.0, 1] as const;
 export default function Ambush() {
   const [variant, setVariant] = useState<Variant>("prompt");
   const scenario = useMemo(
-    () => labScenario(ambushMap, [...VARIANTS[variant].units], [], [...VARIANTS[variant].scripts]),
+    () =>
+      labScenario(
+        ambushMap,
+        [...VARIANTS[variant].units],
+        [],
+        [...VARIANTS[variant].scripts],
+        AMBUSH_RULES,
+      ),
     [variant],
   );
   // Own strikes (kept 3 s) and each missile's path, for replaying it to its last point.
