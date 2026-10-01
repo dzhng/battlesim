@@ -71,7 +71,7 @@ struct RoadSearch {
     /// Arc cursor and nearest access at each missing endpoint. A missing
     /// nearby road cannot send a river crossing straight back to the grid.
     finding: Option<AccessSearch>,
-    found_alternatives: bool,
+    found_alternatives: [bool; 2],
     access_reach: f64,
 }
 
@@ -230,7 +230,7 @@ impl RoadSearch {
             .iter()
             .any(|needed| *needed)
             .then(|| AccessSearch::new(needed, rules.road_access_m));
-        let found_alternatives = finding.is_some();
+        let found_alternatives = needed;
         Some(RoadSearch {
             goal_times: vec![f64::INFINITY; goals.len()],
             starts,
@@ -360,10 +360,15 @@ impl RoadSearch {
             self.initialize(grid, roads, leg);
             return None;
         }
-        if !self.found_alternatives && !self.across.is_finite() && self.best.is_none() {
-            let needed = [self.reached.is_empty(), self.exits.is_empty()];
+        if !self.across.is_finite() && self.best.is_none() {
+            let needed = [
+                !self.found_alternatives[0] && self.reached.is_empty(),
+                !self.found_alternatives[1] && self.exits.is_empty(),
+            ];
             if needed.iter().any(|needed| *needed) {
-                self.found_alternatives = true;
+                for (found, needed) in self.found_alternatives.iter_mut().zip(needed) {
+                    *found |= needed;
+                }
                 self.finding = Some(AccessSearch::new(needed, self.access_reach));
                 return None;
             }
@@ -734,7 +739,9 @@ impl Journey {
                     probe.digest(d);
                 }
                 d.u64(search.finding.is_some() as u64);
-                d.u64(search.found_alternatives as u64);
+                for found in search.found_alternatives {
+                    d.u64(found as u64);
+                }
                 if let Some(finding) = &search.finding {
                     finding.digest(d);
                 }
