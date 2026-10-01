@@ -88,17 +88,33 @@ Wall times describe this machine under concurrent load, not simulation speed.
 | Baseline position / fragment study | 719 |
 | Final rifle / HMG position studies | 220 / 197 |
 | Expanded fragment confirmation | 408 |
+| Full village baseline / tuned comparison | 4682 / 4276 |
 
 ## Closeout evidence
 
 Matched production frames passed the bounded trajectory-plausibility question;
 [visual provenance](visual/README.md) records unchanged presentation debt.
-The default Rust check passes, including both report tests. All 533 web tests
-pass with one worker and unchanged timeout limits. One frozen decoder regression
-was corrected to pair historical bytes with their own historical layout rather
-than current catalog indices. Browser verification and full village comparison
-are pending completion; the user-reported rifle-muzzle check is being examined
-separately from protection tuning.
+The integrated native checks pass, including both report regressions. All 545
+web tests pass with one worker and unchanged timeout limits. The map-parity
+catalog checks now run as eleven independently named cases rather than one
+aggregate case; every expected hash remains unchanged. One frozen decoder
+regression was corrected to pair historical bytes with their historical layout.
+The full village comparison is complete: flank remains 8/10 captures and the
+frontal plan changes 5/10 to 4/10 with lower aggregate blue losses. Native
+instruction totals are 63293 G → 62908 G; changed battle digests make this a
+rule-change measurement, not an unchanged-behavior performance claim.
+
+The final full browser run passes every fixture except a ground harness factory
+that omitted the new required xray threshold. Adding that presentation option
+makes the focused ground rerun pass, including admission and cleanup checks.
+The complete default village scene passes within its unchanged deadline;
+benchmark, endurance and allocation-reset checks also pass. Earlier timeout and
+diagnostic failures are superseded by these checks, not counted as passes.
+The user-reported rifle-muzzle discrepancy was a scene-oracle error:
+nearest-socket matching chose a neighbor. The inspector now identifies the
+firing model first; attachment and brightness tolerances remain unchanged.
+Original matching fails around 23 pixels; the corrected original case passes
+at 0.000278 pixels. Rendering is unchanged by that diagnostic repair.
 
 ## Mechanics review
 

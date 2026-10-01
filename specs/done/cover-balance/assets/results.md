@@ -84,7 +84,25 @@ applied once; it is separate from the roughly 70% direct-fire target.
 
 The quick village check preserves 2/3 flank captures and 0/3 ambush captures
 from the completed-main quick baseline; neither run loses a tank. Flank blue
-cost lost totals 1197.5 → 1147.5 across three seeds. Full comparison is pending.
+cost lost totals 1197.5 → 1147.5 across three seeds.
+
+The full comparison pairs the same ten seeds per plan for up to 900 seconds.
+Only the three exterior scatter factors change between these cohorts.
+
+| Plan | Captures, baseline → tuned | Blue cost lost | Tanks lost | Rejoined |
+| --- | --- | --- | --- | --- |
+| frontal push | 5/10 → 4/10 | 800 → 600 | 4 → 3 | 0 → 0 |
+| flank | 8/10 → 8/10 | 3692.5 → 3455 | 0 → 0 | 9 → 8 |
+| ambush, 0.75 s | 0/10 → 0/10 | 200 → 200 | 1 → 1 | 0 → 0 |
+| ambush, 3 s | 0/10 → 0/10 | 600 → 600 | 3 → 3 | 0 → 0 |
+| crossfire | 0/10 → 0/10 | 200 → 200 | 1 → 1 | 0 → 0 |
+
+Neither cohort rejects commands. Twenty-nine paired battles retain identical
+digests; twenty-one change, as expected from changed launch spread. Flank remains
+the strongest tested plan. The frontal plan loses one capture despite lower
+aggregate casualties; tuning does not promise equal outcomes in every seed.
+[Full baseline](village-baseline.json) and [full tuned results](village-final.json)
+retain all fifty rows, including capture times and final digests.
 
 [Visual evidence](visual/README.md) compares production-renderer frames and
 records the final unprimed critique, including unchanged dust/occlusion debt.
