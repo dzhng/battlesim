@@ -38,24 +38,35 @@ You are implementing `city-maps`. Use [implement-spec](../../.agents/skills/impl
 **Known retained rule:** the sim does not limit gun elevation; do not fix it in this spec.
 
 ### TODO
-- [x] [S0 current-path inventory and failed-arm verdict](spikes/S0.md)
-- [x] Individual representation owners: [SA1 terrain/export](slices/SA1-bounded-terrain.md), [SA4 fog delivery](slices/SA4-incremental-fog.md)
-- [ ] Required remaining full-extent proofs: [SA2 navigation](slices/SA2-spatial-navigation.md), [SA3 ground/clearing](slices/SA3-sparse-ground.md), integrated active battle/frame admission
-- [ ] Phase 0: [S0 full extents](slices/S0-full-extents.md) → S7 composition · S1 active battle scale · S2 template export · S3 frame/startup · S4 renderer fog · S5 template seams · [S6 generation parity](slices/S6-template-generation-parity.md) → G0
-- [ ] Phase G: SG1 tree and dressing cost · SG2 river on grid · SG3 road wear read · SG4 palette vs shadow floor · SG5 distance field · SG6 catalogue dry run → GG
-- [ ] Map/sim: required G0 architecture slices → [C00 physical templates](slices/C00-template-geometry.md) → C01 buildings aggregate → C02 fog cell → C03 surfaces; C65/C69/C72 structural ground → [C04 compiler](slices/C04-map-compiler.md) → [C52 plots/roads](slices/C52-procedural-generator.md) → [C53 template parcels](slices/C53-parcels-and-buildings.md); C09 common resolution → C05 tools → C06 scale passes* · C07 publication*
-- [ ] Early play: [C33 public preparation](slices/C33-battle-preparation.md) → [C58 full Small fixed-seed encounter](slices/C58-offline-encounter.md), after selected-template art, required rules/scale and [C57 clearance](slices/C57-camera-clearance.md)
-- [ ] Appearance cutover: [C37 shared houses](slices/C37-house-appearance.md) deletes the temporary house draw branch after every existing consumer moves
-- [ ] Delivery: [C59 encounter planning](slices/C59-encounter-planner.md) → [C55 runtime generation](slices/C55-runtime-generation.md) after C58; [C56 reservations](slices/C56-fixture-surroundings.md) → [C34 village](slices/C34-village-surroundings.md) · [C35 labs](slices/C35-lab-surroundings.md) · [C36 benchmarks](slices/C36-benchmark-surroundings.md) → [C54 integrated seed gate](slices/C54-generation-gate.md)
-- [ ] Assets: C10 → C11/C12 → C13 source export → [C32 library/fit/resolver](slices/C32-template-library.md) → C14 damage templates; [C16 farmstead](slices/C16-farmstead.md) · [C17 detached home](slices/C17-detached-home.md) · [C18 tower](slices/C18-tower.md) · [C19 industry](slices/C19-industry.md) incrementally complete release coverage; C15 interior atlas
-- [ ] Renderer: C20 fog at scale · C21 material transport · C22 placement chunks → C23 far tier · C24 cutout → C25 glass → C26 interiors · C27 ruin and gutted art · C28 pavement (after C63) → C29 curbs · C30 markings · C31 urban/plain composition
-- [ ] Rules: C40 floor-band seats → C41 facade eyes · C42 low-rise lifecycle → C43 tall buildings gutted
-- [ ] Streets: C44 street bodies → C45 street models · C46 street placement
-- [ ] Ground, catalogue: C60 catalogue data → C61 listings → C62 evidence rig
-- [ ] Ground, roads and rivers: C63 surface distance field → C64 road kinds → C65 round centerlines → C66 road core → C67 shoulder → C68 ruts · C69 rivers contract → C70 bank bands → C71 bank roundness
-- [ ] Ground, forests: C72 one forest rule · C73 tree skeleton → C74 species → C75 mix and colour → C76 canopy closure · C77 forest bodies → C78 body models → C79 dressing
-- [ ] Ground, fields: C80 grass presets → C81 wild grass → C82 within-field variation → C83 crops → C84 field palette → C85 field texture · C86 tree lines · C87 ground composition gate
+
+A slice marked "physical" has its systems half done; its look waits for the visual pass ([systems handoff](systems-handoff.md)).
+
+**Done**
+- [x] Scale: [S0](spikes/S0.md) · SA1 terrain/export · SA4 fog delivery · SA3 sparse ground (storage) · [S7 composition](spikes/S7.md) · [S1 first pass](spikes/S1.md)
+- [x] Map and sim: C00 physical templates · C01 buildings aggregate · C02 fog cell · C03 surfaces · C72 one forest rule · C64 road kinds (physical) · C65 round centerlines (physical) · C63 surface index
+- [x] Generation: C04 compiler (buildings, roads, forests) · [C52 layout generator](slices/C52-procedural-generator.md)
+
+**In flight (one branch each)**
+- [ ] [SA2 navigation at full extent](slices/SA2-counted-route-integration.md): `city-maps/sa2-navigation`
+- [ ] [C53 parcels and buildings](slices/C53-parcels-and-buildings.md), with a labelled prototype template catalogue: `city-maps/c53-parcels`
+- [ ] [C69 rivers contract](slices/C69-rivers-contract.md): `city-maps/c69-rivers`
+
+**Next, systems**
+- [ ] Rivers and bridges in the layout generator (after C69 and C53); land regions in the compiler
+- [ ] A generated Small map playable in the lab: C09/C60 saved catalogue data and the cutover of existing maps onto the resolver → [C33 public preparation](slices/C33-battle-preparation.md) → [C58 fixed-seed encounter](slices/C58-offline-encounter.md) → [C59 encounter planner](slices/C59-encounter-planner.md) → [C55 runtime generation](slices/C55-runtime-generation.md)
+- [ ] Scale at full extent with buildings: S1 on generated towns (tens of thousands of buildings), browser startup and memory, rendered surroundings, C06 scale passes* · C07 publication* · C20 fog at scale · C22 placement chunks → C23 far tier
+- [ ] [C57 camera clearance](slices/C57-camera-clearance.md)
+- [ ] Rules: C40 floor-band seats → C41 facade eyes · C42 low-rise lifecycle → C43 tall buildings gutted · C44 street bodies · C46 street placement · C77 forest bodies · C80 effective-height validator · C86 tree lines
+- [ ] Existing maps: [C56 reservations](slices/C56-fixture-surroundings.md) → C34 village · C35 labs · C36 benchmarks → [C54 integrated seed gate](slices/C54-generation-gate.md)
+- [ ] C05 measuring tools (`city_report` is its first piece) · C10 provenance · C13/C32 template source and library schema · C21 material transport
 - [ ] Completion: C50 durability balance → C51 playable generated encounter (requires C54 and C87)
+
+**Waiting for the visual pass**
+- [ ] Gates G0 and GG; spikes S2–S6 and SG1–SG6 where they judge art
+- [ ] Assets: C11/C12 · C14 · C15 · C16 farmstead · C17 detached home · C18 tower · C19 industry · C37 shared houses
+- [ ] Renderer look: C24 cutout → C25 glass → C26 interiors · C27 ruin and gutted art · C28 pavement → C29 curbs · C30 markings · C31 urban/plain composition · C45 street models
+- [ ] Ground look: C66 road core → C67 shoulder → C68 ruts · C70 bank bands → C71 bank roundness · C73–C76 trees · C78 body models → C79 dressing · C81–C85 fields · C87 ground composition gate · C61 listings · C62 evidence rig
+- [ ] The looks of C64 (per-kind road rows) and C65 (the bend)
 
 `*` = conditional on measured full-extent results. It closes without code if its spike or measuring-tool numbers are under budget; resolution alone cannot exempt C07.
 
