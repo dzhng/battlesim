@@ -15,11 +15,13 @@ order is meaningful because implicit IDs occupy the remaining dense namespace. I
 whitespace and object-key order do not change identity. Version labels are supplied
 by preparation callers, so this is content identity rather than verified source provenance.
 
-This first pass admits physical buildings and ordinary authored bodies. Their explicit
-IDs enter the existing contract-owned dense namespace. Shared surface admission,
-river/forest schemas, layout generation and source/art fit remain prerequisites for
-their corresponding compiler arms; requested unsupported features produce named
-errors rather than disappearing from output.
+The compiler admits physical buildings, ordinary authored bodies, and ground: roads,
+tracks, sidewalks and forests in the contract's shared shapes, which pass into the map
+unchanged. Explicit body IDs enter the contract-owned dense namespace. A ground shape's
+authored points must lie inside the playable rectangle (a stroke may overhang the edge
+by its width). Rivers, land regions, layout generation and source/art fit remain
+prerequisites for their compiler arms; a requested unsupported feature produces a named
+error rather than disappearing from output.
 
 `MapPlan.size` is the playable rectangle. Admission follows the architecture envelope
 in the city-map scale policy; it defines no release presets or rendered surroundings.
@@ -31,6 +33,7 @@ diagnostics and no map. Successful file preparation writes the final map and the
 shared `MapSources` envelope. Supplied request/catalogue receipts hash exactly the
 bytes compiled and assert no Git history; generation identity and stdout outcomes
 are unchanged. Acquisition and catalogue publication belong to C09/C60. The required
-execution limits cover authored parts and emitted bay positions before materialization.
+execution limits cover authored parts, emitted bay positions and ground points (polygon
+vertices plus rounded stroke samples) before materialization.
 They do not claim a bound on all input bytes, terrain, navigation, runtime trees or
 the complete battle's memory.

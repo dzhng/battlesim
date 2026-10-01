@@ -14,6 +14,8 @@ const empty: PlotSite = {
   map: [0, 0, 100, 100],
   buildings: [],
   surfaceStrokeStride: 6,
+  surfaceRunStride: 4,
+  surfaceRuns: new Float32Array(0),
   surfaceTriangleStride: 7,
   surfaceBoundaryStride: 5,
   surfaceStrokes: new Float32Array(0),
@@ -25,6 +27,7 @@ function paving(kind: number): PlotSite {
   return {
     ...empty,
     surfaceStrokes: Float32Array.of(0, 50, 100, 50, 2, kind),
+    surfaceRuns: kind === 1 ? Float32Array.of(0, 50, 100, 50) : new Float32Array(0),
     surfaceTriangles: Float32Array.of(0, 40, 100, 40, 100, 60, kind, 0, 40, 100, 60, 0, 60, kind),
     surfaceBoundaries: Float32Array.of(
       0,
@@ -59,7 +62,11 @@ test("sidewalk paving leaves fields unchanged while roads guide their boundaries
 });
 
 test("road polygon guides use only the ring, never the triangulation diagonal", () => {
-  const polygon = { ...paving(1), surfaceStrokes: new Float32Array(0) };
+  const polygon = {
+    ...paving(1),
+    surfaceStrokes: new Float32Array(0),
+    surfaceRuns: new Float32Array(0),
+  };
   const fields = generatePlots(polygon, biome);
   expect(plotAt(fields, 50, 50)!.edge).toBe(10);
   expect(plotAt(fields, 50, 40)!.edge).toBe(0);

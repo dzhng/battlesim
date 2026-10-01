@@ -39,6 +39,8 @@ const layout: WorldLayout = {
   areaFields: ["x", "y", "w", "h", "z"],
   surfaceStrokeStride: 6,
   surfaceStrokeFields: ["ax", "ay", "bx", "by", "halfWidth", "kind"],
+  surfaceRunStride: 4,
+  surfaceRunFields: ["ax", "ay", "bx", "by"],
   surfaceTriangleStride: 7,
   surfaceBoundaryStride: 5,
   surfaceTriangleFields: ["ax", "ay", "bx", "by", "cx", "cy", "kind"],
@@ -88,6 +90,7 @@ const exports = {
   forestBoundaries: new Float32Array(0),
   foliage: new Float32Array(0),
   surfaceStrokes: new Float32Array(0),
+  surfaceRuns: new Float32Array(0),
   surfaceTriangles: new Float32Array(0),
   surfaceBoundaries: new Float32Array(0),
 };

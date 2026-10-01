@@ -177,6 +177,10 @@ impl WorldView {
         self.world.export_surface_strokes()
     }
 
+    pub fn surface_runs(&self) -> Vec<f32> {
+        self.world.export_surface_runs()
+    }
+
     pub fn surface_triangles(&self) -> Vec<f32> {
         self.world.export_surface_triangles()
     }

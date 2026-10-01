@@ -834,6 +834,50 @@ keeps storage addresses independent of physical identity and encounter naming.
 
 **Verdict:** sound; reversible data. One of six quick village trials changes digest, with the same outcomes and losses. `t3-jeep-takes-a-road-bend-at-speed` holds 27 m/s on the straight and rounds a right-angle bend about a metre wide of the road. **Confidence:** medium until the transit proof runs on a generated map.
 
+## C65 round centerlines
+
+### Sample only the bends; a straight stretch stays one segment
+
+**Choice:** The curve emits points at most 2 m apart inside a bend and nothing between bends. A 5 km straight road is one segment, not 2,500.
+
+**Gap:** The slice said the loader densifies strokes "to points ≤2 m apart". Subdividing a straight line changes no geometry, and every consumer (the sim's surface index, the exports, the terrain shader until C63 lands) pays per segment.
+
+**Verdict:** sound. **Confidence:** high. Rivers whose width varies along a straight reach may need their own samples in C69.
+
+### Round each corner through its control point, inside the stroke's own corridor
+
+**Choice:** Paired cubic Béziers meet at the authored corner with the bisector's tangent. The bend reaches at most half the stroke's width from the authored runs and a third of the shorter adjacent run.
+
+**Gap:** The slice delegated the spline family after centripetal Catmull–Rom wandered up to 70 m from the village's road. The prototype's local Bézier was the tested alternative.
+
+**Verdict:** provisional on looks. The road swings about 2 m to the outside of a right-angle turn instead of cutting the inside, as a real fillet would; a fillet would leave the authored corner point off the road. The visual pass decides. **Confidence:** high for the physics, medium for the look.
+
+### Refusal messages are not the contract
+
+**Choice:** A degenerate stroke (zero-length or unrepresentable runs) may be refused by the centreline or by the stroke check; the test asserts the refusal, not which message.
+
+**Gap:** The existing test pinned one owner's wording.
+
+**Verdict:** sound. **Confidence:** high.
+
+### Every mover states `offroad_kmh` and `road_kmh`
+
+**Choice:** The catalog's mobility rows read the same for foot, tracked and wheeled movers: two top speeds in km/h. Vehicles no longer use `mps`/`road_mps`, and infantry no longer uses a speed and a `road_multiplier`. The catalog refuses a type faster than 130 km/h or slower on a road than off it. Values: rifle squad 11/14, tank 22/43, supply truck 25/76, jeep 32/110.
+
+**Gap:** The user found the two schemas odd and set the 130 km/h cap and the jeep's 110.
+
+**Verdict:** sound. Rounding to whole km/h moved each speed by up to 2%, so every village digest changes; captures stay 2/3 (flank) and 0/3 (ambush), while losses over three seeds swing (flank 790 → 175, ambush 120 → 200), which is seed noise C50 should average over more seeds. **Confidence:** high for the schema; tank and truck values are today's, not yet checked against real vehicles.
+
+## C04 pass 2: ground in the compiler
+
+### Bound ground by authored points inside the map and one point allowance
+
+**Choice:** A road or forest is refused if any authored point lies outside the playable rectangle; a stroke's width may overhang the edge. One caller limit, `max_ground_points`, counts polygon vertices plus rounded stroke samples across surfaces and forests.
+
+**Gap:** C04 named "bounded-complexity failures" without saying what is counted, and did not say whether a road may touch or cross the map edge.
+
+**Verdict:** sound for now. Generated roads end at the playable edge; scenery beyond it is a later rendered-surroundings contract. The limit does not bound trees a forest stands at load, which the scale work owns. **Confidence:** medium.
+
 ## C63 surface distance field
 
 ### An exact bucket index, without running SG5

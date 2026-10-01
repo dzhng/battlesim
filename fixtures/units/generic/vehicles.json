@@ -25,7 +25,7 @@
         }
       },
       "mobility": {
-        "wheeled": { "mps": 7, "road_mps": 21, "turn_deg_s": 40, "turning_radius_m": 9, "reverse_fraction": 0.35 }
+        "wheeled": { "offroad_kmh": 25, "road_kmh": 76, "turn_deg_s": 40, "turning_radius_m": 9, "reverse_fraction": 0.35 }
       },
       "sensors": { "ground_m": 300, "sight_shape": { "front": 1.0, "side": 0.5, "rear": 0.3 } },
       "capabilities": { "deploy": { "seconds": 15 }, "supply": { "stock": 600 } },
@@ -57,7 +57,7 @@
         }
       },
       "mobility": {
-        "wheeled": { "mps": 9, "road_mps": 27, "turn_deg_s": 60, "turning_radius_m": 6, "reverse_fraction": 0.4 }
+        "wheeled": { "offroad_kmh": 32, "road_kmh": 110, "turn_deg_s": 60, "turning_radius_m": 6, "reverse_fraction": 0.4 }
       },
       "sensors": { "ground_m": 450, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
       "mounts": [

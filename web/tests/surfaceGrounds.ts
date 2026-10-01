@@ -211,6 +211,9 @@ export function denseGround(sizeM: number, roads: number, woods: number): Terrai
     map: [0, 0, sizeM, sizeM],
     surfaceStrokes: Float32Array.from(strokes),
     surfaceStrokeStride: 6,
+    // No authored runs: the field plots are not what these grounds test.
+    surfaceRuns: new Float32Array(0),
+    surfaceRunStride: 4,
     surfaceTriangles: new Float32Array(0),
     surfaceTriangleStride: 7,
     surfaceBoundaries: new Float32Array(0),

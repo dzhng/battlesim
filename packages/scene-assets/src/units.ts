@@ -29,12 +29,19 @@ export interface Hull {
 export type Body = { squad: { slots: string[] } } | { hull: Hull };
 
 export type Mobility =
-  | { foot: { mps: number; road_multiplier: number } }
-  | { tracked: { mps: number; road_mps: number; turn_deg_s: number; reverse_fraction: number } }
+  | { foot: { offroad_kmh: number; road_kmh: number } }
+  | {
+      tracked: {
+        offroad_kmh: number;
+        road_kmh: number;
+        turn_deg_s: number;
+        reverse_fraction: number;
+      };
+    }
   | {
       wheeled: {
-        mps: number;
-        road_mps: number;
+        offroad_kmh: number;
+        road_kmh: number;
         turn_deg_s: number;
         turning_radius_m: number;
         reverse_fraction: number;

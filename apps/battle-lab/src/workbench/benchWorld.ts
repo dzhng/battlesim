@@ -96,6 +96,8 @@ function benchTerrain(): TerrainSurface {
       map: [-h, -h, h, h],
       surfaceStrokes: NONE,
       surfaceStrokeStride: 6,
+      surfaceRuns: NONE,
+      surfaceRunStride: 4,
       surfaceTriangles: NONE,
       surfaceBoundaries: NONE,
       surfaceTriangleStride: 7,

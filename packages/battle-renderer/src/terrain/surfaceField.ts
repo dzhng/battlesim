@@ -69,9 +69,19 @@ export const SURFACE_CELL_FOOTPRINTS = 4;
 /** The finest level never holds more cells than this; a larger map doubles
  *  its cell instead, so the index is bounded by this and not by the map. */
 export const SURFACE_MAX_CELLS = 1 << 18;
-/** The ladder stops before a level whose cells list more records than this
- *  on average: no pixel, however wide, pays for the whole of a dense map. */
-export const SURFACE_LIST_BUDGET = 64;
+/** The ladder stops before a level whose cells list more records on average
+ *  than `surfaceListBudget` allows: no pixel, however wide, pays for the whole
+ *  of a dense map. This is the finest level's allowance. */
+export const SURFACE_LIST_BUDGET = 24;
+
+/** The mean records a cell of `level` may list. Wider pixels are fewer: in a
+ *  ground view the rows whose pixels are `F` metres wide thin as 1 / sqrt(F),
+ *  so each level may list sqrt(2) times the one below for the same cost a
+ *  frame (a few hundred records a screen column, against the thousand rows
+ *  below the horizon that read one or two each). */
+export function surfaceListBudget(level: number): number {
+  return SURFACE_LIST_BUDGET * Math.SQRT2 ** level;
+}
 /** Cells are grown by this share of the largest coordinate when records are
  *  listed, so a point the GPU's f32 arithmetic puts a hair into the next
  *  cell still finds its primitives there. 64 f32 steps of that coordinate. */
@@ -343,7 +353,7 @@ export function buildSurfaceField(
       levelCounts[slot]++;
       entries++;
     });
-    if (level > 0 && entries > cells * SURFACE_LIST_BUDGET) {
+    if (level > 0 && entries > cells * surfaceListBudget(level)) {
       exactToM = SURFACE_FOOTPRINT_M * 2 ** (level - 1);
       break;
     }

@@ -634,3 +634,27 @@ fn overlapping_polygon_boundaries_clip_covered_edges_and_keep_one_exterior() {
     assert_eq!(nearest, 5.0);
     assert_eq!(perimeter, 50.0);
 }
+
+/// C65: a rounded stroke's samples are the same bits in every runtime. The
+/// web test holds Wasm to this file's native samples.
+#[test]
+fn rounded_strokes_match_the_parity_oracle() {
+    let oracle: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../fixtures/parity/ground/curve-strokes.json"
+    ))
+    .unwrap();
+    let map: MapDefinition = serde_json::from_value(oracle["map"].clone()).unwrap();
+    let w = WorldGeometry::new(&map, &crate::common::rules());
+    let strokes: Vec<String> = w
+        .export_surface_strokes()
+        .iter()
+        .map(|v| format!("{:08x}", v.to_bits()))
+        .collect();
+    assert!(strokes.len() / 6 > 40, "the bends were not rounded");
+    let mut blessed = oracle.clone();
+    blessed["strokes"] = serde_json::json!(strokes);
+    if crate::common::bless_parity("ground/curve-strokes.json", &blessed) {
+        return;
+    }
+    assert_eq!(serde_json::json!(strokes), oracle["strokes"]);
+}

@@ -22,7 +22,7 @@ import {
   buildSurfaceField,
   forestDistance,
   pavedDistance,
-  SURFACE_LIST_BUDGET,
+  surfaceListBudget,
   SURFACE_MAX_CELLS,
   surfaceCell,
   waterDistance,
@@ -240,8 +240,12 @@ test("on a dense map a lookup still matches, and visits what is near instead of 
   // The budget is a mean over a level's cells and this a mean over points,
   // which weigh the border's part cells differently: hence the half over.
   expect(field.exactToM).toBeLessThan(Infinity);
-  for (const footprint of [8, 64, 1e9])
-    expect(visited(footprint)).toBeLessThan(SURFACE_LIST_BUDGET * 1.5);
+  expect(visited(1e9)).toBeLessThan(records / 20);
+  for (const [footprint, level] of [
+    [8, 2],
+    [1e9, field.levels - 1],
+  ])
+    expect(visited(footprint)).toBeLessThan(surfaceListBudget(level) * 1.5);
 });
 
 test("a stroke through its cells' corners is found in every cell it crosses", () => {

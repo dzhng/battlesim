@@ -172,7 +172,8 @@ combat. Distinguish cruising speed from complete journey time: acceleration, tur
 traffic and road detours reduce the end-to-end gain. The trigger chooses a route;
 it does not grant a second speed bonus on top of the road mobility data.
 
-**Vehicle speeds:** cap light vehicles at **110 km/h** road speed (30.56 m/s).
+**Vehicle speeds:** light wheeled vehicles do **110 km/h** on roads (30.56 m/s), and
+no mover exceeds **130 km/h** (M20; the catalog refuses a faster type at load).
 Use Broken Arrow's unit-specific road/off-road speeds as tuning references, with
 heavier vehicles slower as appropriate; do not turn the light cap into every
 vehicle's default. The cap takes precedence over the earlier provisional ratio
