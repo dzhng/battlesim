@@ -7,7 +7,9 @@
 // and no class or coverage mask stands in for a distance. The field only says
 // which primitives a point has to look at:
 //
-// - `records` holds every primitive once, eight floats each;
+// - `records` holds every primitive once, eight floats each: a river
+//   stretch is a stroke whose half width runs from one end to the other,
+//   followed by a record of its bank;
 // - `index` holds a ladder of grids over the ground. A cell lists the records
 //   whose shape, grown by the level's reach, touches the cell: paved, then
 //   forest, then water.
@@ -35,10 +37,13 @@ import {
   FOREST_STROKE_FLOATS,
   FOREST_TRIANGLE_FLOATS,
 } from "./forestShapes";
+import { RIVER_BANK, RIVER_FLOATS, stretchInside } from "./rivers";
 import { RECT_FLOATS, type TerrainSite } from "./terrainSurface";
 
 /** Floats per record: a stroke `a, b, half width`; a triangle `a, b, c`; an
- *  exposed boundary edge `a, b`; a rect `min, max`. */
+ *  exposed boundary edge `a, b`; a rect `min, max`. A river's stretch is two
+ *  records: `a, b`, the half width at `a` and at `b`, the bank's grade at
+ *  each; then the bank's height at each, which no cell lists. */
 export const SURFACE_FLOATS = 8;
 
 /** An index entry: the record's kind in the top two bits, then whether it
@@ -97,7 +102,7 @@ export interface SurfaceReach {
 export interface SurfaceField {
   /** `SURFACE_FLOATS` per record: paved strokes, triangles and boundary
    *  edges; each non-rectangle forest's strokes, triangles and edges; forest
-   *  rects; water rects. */
+   *  rects; river stretches. */
   records: Float32Array;
   /** `SURFACE_LEVEL_WORDS` per level; then, per level, its cells' headers
    *  (`SURFACE_CELL_WORDS` each, one closing word) and their entries. Every
@@ -176,7 +181,7 @@ export function buildSurfaceField(
         shape.strokes.length / FOREST_STROKE_FLOATS +
         shape.triangles.length / FOREST_TRIANGLE_FLOATS +
         shape.boundaries.length / FOREST_BOUNDARY_FLOATS;
-  count += (site.forests.length + site.water.length) / RECT_FLOATS;
+  count += site.forests.length / RECT_FLOATS + (site.rivers.length / RIVER_FLOATS) * 2;
   if (count > SURFACE_RECORD_MASK) throw new Error("surface field: too many ground primitives");
 
   // A storage binding cannot be empty: the table holds a record at least.
@@ -237,15 +242,20 @@ export function buildSurfaceField(
       shapes[put(shape.boundaries, o, FOREST_BOUNDARY_FLOATS, SURFACE_EDGE, FOREST, 2)] = shapeId;
     shapeId++;
   }
-  [site.forests, site.water].forEach((list, k) => {
-    for (let o = 0; o < list.length; o += RECT_FLOATS) {
-      _rect[0] = list[o];
-      _rect[1] = list[o + 1];
-      _rect[2] = list[o] + list[o + 2];
-      _rect[3] = list[o + 1] + list[o + 3];
-      put(_rect, 0, 4, SURFACE_RECT, k === 0 ? FOREST : WATER, 2);
-    }
-  });
+  for (let o = 0; o < site.forests.length; o += RECT_FLOATS) {
+    _rect[0] = site.forests[o];
+    _rect[1] = site.forests[o + 1];
+    _rect[2] = site.forests[o] + site.forests[o + 2];
+    _rect[3] = site.forests[o + 1] + site.forests[o + 3];
+    put(_rect, 0, 4, SURFACE_RECT, FOREST, 2);
+  }
+  // A river stretch's first eight floats are a stroke with a half width and
+  // a grade at each end; its bank's heights follow in a record of their own,
+  // read through the stretch's.
+  for (let o = 0; o < site.rivers.length; o += RIVER_FLOATS) {
+    put(site.rivers, o, SURFACE_FLOATS, SURFACE_STROKE, WATER, 2);
+    listed[put(site.rivers, o + RIVER_BANK, 2, SURFACE_STROKE, WATER, 0)] = 0;
+  }
 
   // The grid covers the map and every primitive, so a point past it is
   // nearer the border cell it clamps to than to anything listed elsewhere.
@@ -286,11 +296,15 @@ export function buildSurfaceField(
       const kind = kinds[record],
         rule = rules[record];
       // A triangle is membership: only the cells it touches. A stroke is read
-      // out to its half width and the reach; an edge and a rect to the reach.
-      const grow =
-        (kind === SURFACE_TRIANGLE
+      // out to its half width (a river's wider end) and the reach; an edge
+      // and a rect to the reach.
+      const half =
+        kind !== SURFACE_STROKE
           ? 0
-          : reaches[rule] + (kind === SURFACE_STROKE ? records[o + 4] : 0)) + pad;
+          : rule === WATER
+            ? Math.max(records[o + 4], records[o + 5])
+            : records[o + 4];
+      const grow = (kind === SURFACE_TRIANGLE ? 0 : reaches[rule] + half) + pad;
       let lowX = records[o],
         lowY = records[o + 1],
         highX = records[o + 2],
@@ -521,7 +535,8 @@ export function forestDistance(
   return Math.max(forest, distance, inside ? nearest : -nearest);
 }
 
-/** How far `(x, y)` lies inside the deepest water rect (negative outside). */
+/** How far `(x, y)` lies inside the water's edge (negative outside): the
+ *  deepest any river stretch puts it. */
 export function waterDistance(
   field: SurfaceField,
   x: number,
@@ -534,7 +549,7 @@ export function waterDistance(
   for (let e = _cell[2]; e < _cell[3]; e++)
     bed = Math.max(
       bed,
-      insideRect(records, (index[e] & SURFACE_RECORD_MASK) * SURFACE_FLOATS, x, y),
+      stretchInside(records, (index[e] & SURFACE_RECORD_MASK) * SURFACE_FLOATS, x, y),
     );
   return bed;
 }

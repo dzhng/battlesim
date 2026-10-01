@@ -80,6 +80,7 @@ import {
   groundDapple,
   groundScarsSeen,
   groundSite,
+  groundBank,
   groundWater,
   scarRegionContains,
   scarredNormal,
@@ -201,7 +202,14 @@ export async function createWorldPass(
     const biome = 1 - v.color.w;
     const scar = groundScarsSeen(v.world, eye, footprint);
     const surface = std.mix(plain, scarredSurface(plain, scar), biome);
-    const shading = std.normalize(std.mix(n, scarredNormal(n, scar), biome));
+    // A river's bank is lit as the cross-section it was cut to and its bed
+    // flat, not as the grid's triangles (`groundBank`).
+    const bank = groundBank(v.world.xy, cell, footprint);
+    let ground = d.vec3f(n);
+    if (bank.z > 0) {
+      ground = std.normalize(std.mix(n, std.normalize(d.vec3f(-bank.x, -bank.y, 1)), bank.z));
+    }
+    const shading = std.normalize(std.mix(ground, scarredNormal(ground, scar), biome));
     // The ground paint on it (its layer is painted).
     const paint = groundPaint(v.world);
     // Sun flecks through the crowns lift the canopy's whole shadow.
@@ -251,7 +259,7 @@ export async function createWorldPass(
     "use gpu";
     const eye = typegpuCameraLayout.$.cam.eye;
     const footprint = std.length(std.fwidth(v.world.xy));
-    const surface = waterSurface(v.world.xy);
+    const surface = waterSurface(v.world.xy, footprint);
     const n = waterNormal(v.world.xy, footprint);
     const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
     const paint = groundPaint(v.world);

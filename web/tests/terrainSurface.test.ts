@@ -25,6 +25,7 @@ import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain
 import summer from "@fixtures/biomes/summer.json";
 import village from "@fixtures/village.json";
 import geometry from "@fixtures/geometry-lab.json";
+import riverLab from "@fixtures/river-lab.json";
 import { groundHeight } from "@packages/battle-renderer/src/terrain/terrainGrid";
 import { packTerrainHeights } from "@packages/battle-renderer/src/frame/terrainHeights";
 
@@ -122,14 +123,22 @@ test("sampled pages preserve terrain across joins and partial edge pages", () =>
     height_grid_m: 4,
     slope_cutoff_deg: 35,
     relief: [{ kind: "ridge", center: [64, 64], radius_m: 28, peak_m: 12 }],
-    water: [{ rect: [96, 92, 36, 48], surface_z: 0, bed_z: -5 }],
+    rivers: [
+      {
+        points: [
+          { xy: [116, 100], width_m: 32, depth_m: 4 },
+          { xy: [116, 140], width_m: 32, depth_m: 4 },
+        ],
+        surface_z: 0,
+      },
+    ],
   });
   const grid = exports.terrain;
   for (const x of [0, 31.3, 60, 63.9, 64, 64.1, 92, 96, 127.9, 128, 132]) {
     for (const y of [0, 33.7, 60, 63.9, 64, 64.1, 92, 127.9, 128, 140])
       expect(groundHeight(grid, x, y), `${x},${y}`).toBeCloseTo(view.height_at(x, y)!, 5);
   }
-  expect(grid.minHeight).toBe(-5);
+  expect(grid.minHeight).toBe(-4);
   const packed = packTerrainHeights(grid);
   const size = packed[0],
     cols = packed[1],
@@ -186,7 +195,26 @@ test("heights and normals where props stand are WorldView's", () => {
 });
 
 test("the material's road, forest and water masks are the simulation's surface rules", () => {
-  for (const map of [geometry, village.map]) {
+  // How far inside the water's edge: the half width at the closest point of
+  // a stretch less the distance to it, the deepest over stretches.
+  const waterInside = (rivers: Float32Array, x: number, y: number) => {
+    let inside = -Infinity;
+    for (let r = 0; r < rivers.length; r += layout.riverStride) {
+      const [ax, ay, bx, by, halfA, halfB] = rivers.subarray(r, r + 6);
+      const t = Math.min(
+        1,
+        Math.max(
+          0,
+          ((x - ax) * (bx - ax) + (y - ay) * (by - ay)) / ((bx - ax) ** 2 + (by - ay) ** 2),
+        ),
+      );
+      const half = halfA + (halfB - halfA) * t;
+      inside = Math.max(inside, half - Math.hypot(x - ax - (bx - ax) * t, y - ay - (by - ay) * t));
+    }
+    return inside;
+  };
+  let wet = 0;
+  for (const map of [geometry, village.map, riverLab]) {
     const { view, exports } = world(map);
     const { site } = buildTerrainSurface(exports, layout, biome);
     const inRect = (rects: Float32Array, x: number, y: number) => {
@@ -221,16 +249,24 @@ test("the material's road, forest and water masks are the simulation's surface r
         const surfaceKind = layout.surfaceKinds[kind];
         // A bridge deck hides the ground kind beneath it (road or river).
         if (surfaceKind === "bridge") continue;
-        const water = inRect(site.water, x, y);
-        if (water !== (surfaceKind === "water")) wrong.push(`water at (${x}, ${y})`);
+        // The exported stretches are f32: a point within a millimetre of
+        // the edge may fall either side of the simulation's f64 edge.
+        const inside = waterInside(site.rivers, x, y);
+        const water = inside >= 0;
+        if (Math.abs(inside) > 1e-3 && water !== (surfaceKind === "water"))
+          wrong.push(`water at (${x}, ${y})`);
+        if (water) wet++;
         if (!water && onRoad(x, y) !== (surfaceKind === "road")) wrong.push(`road at (${x}, ${y})`);
-        if (inRect(site.forests, x, y) !== (forest === 1)) wrong.push(`forest at (${x}, ${y})`);
+        // Water is neither road nor forest, whatever is authored over it.
+        if (!water && inRect(site.forests, x, y) !== (forest === 1))
+          wrong.push(`forest at (${x}, ${y})`);
         if (surfaceKind === "road") roads++;
       }
     }
     expect(wrong).toEqual([]);
     expect(roads).toBeGreaterThan(100);
   }
+  expect(wet).toBeGreaterThan(2000);
 });
 
 test("rounded strokes are the native samples, bit for bit", () => {
@@ -239,14 +275,16 @@ test("rounded strokes are the native samples, bit for bit", () => {
       new URL("../../fixtures/parity/ground/curve-strokes.json", import.meta.url),
       "utf8",
     ),
-  ) as { map: unknown; strokes: string[] };
+  ) as { map: unknown; strokes: string[]; rivers: string[] };
   const { exports } = world(oracle.map);
-  const bits = new Uint32Array(
-    exports.surfaceStrokes.buffer,
-    exports.surfaceStrokes.byteOffset,
-    exports.surfaceStrokes.length,
-  );
-  expect(Array.from(bits, (v) => v.toString(16).padStart(8, "0"))).toEqual(oracle.strokes);
+  const hex = (floats: Float32Array) =>
+    Array.from(new Uint32Array(floats.buffer, floats.byteOffset, floats.length), (v) =>
+      v.toString(16).padStart(8, "0"),
+    );
+  expect(hex(exports.surfaceStrokes)).toEqual(oracle.strokes);
+  // A river's rounded stretches, with the width and grade at each end (C69).
+  expect(oracle.rivers.length).toBeGreaterThan(40 * layout.riverStride);
+  expect(hex(exports.rivers)).toEqual(oracle.rivers);
 });
 
 test("roads split the patchwork: fields meet a road edge-on, never across it", () => {

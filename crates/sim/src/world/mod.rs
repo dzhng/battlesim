@@ -2,6 +2,7 @@
 //! bridges, forest volumes and solid props. Collision, sight, routing and the
 //! renderer all read these same surfaces.
 mod buildings;
+mod carve;
 pub mod export;
 mod forest;
 mod props;
@@ -12,11 +13,12 @@ pub use forest::Foliage;
 pub(crate) use props::ray_box;
 use props::PropIndex;
 pub use props::{Prop, PropId, Slot};
-use terrain::{in_rect, HeightField};
+use terrain::HeightField;
 
 use crate::math::{v2, v3, Obb2, V2, V3};
 use contract::catalog::{PropBody, PropCatalog, PropKind, PropType};
-use contract::map::{Bridge, Forest, MapDefinition, PropDefinition, Water};
+use contract::map::{Bridge, Forest, MapDefinition, PropDefinition};
+use contract::river::River;
 use contract::scenario::Rules;
 
 /// The prop index's bucket. Line tests measured this against 8, 16 and 64 m
@@ -76,8 +78,10 @@ pub struct Hit {
 
 pub struct WorldGeometry {
     field: HeightField,
+    /// The land's authored relief, before any river is carved into it.
+    relief: Vec<contract::map::Relief>,
     slope_cutoff_deg: f64,
-    water: Vec<Water>,
+    /// The paving and the rivers: what the ground is at a point.
     surfaces: surfaces::SurfaceIndex,
     /// Each surface kind's speed factor, by `contract::map::SurfaceKind` order.
     surface_factors: [f64; contract::map::SurfaceKind::ALL.len()],
@@ -138,13 +142,15 @@ impl WorldGeometry {
                 "garrison-capable aggregates require an exposed physical span"
             );
         }
+        contract::river::validate(map).expect("invalid rivers or bridges");
         let forests = &rules.forests;
-        let field = HeightField::build(map);
+        let surfaces = surfaces::SurfaceIndex::new(&map.surfaces, &map.rivers, map.size);
+        let field = HeightField::build(map, &surfaces);
         let index = PropIndex::new(field.width(), field.depth(), PROP_BUCKET_M);
         let mut world = WorldGeometry {
+            relief: map.relief.clone(),
             slope_cutoff_deg: map.slope_cutoff_deg,
-            water: map.water.clone(),
-            surfaces: surfaces::SurfaceIndex::new(&map.surfaces, map.size),
+            surfaces,
             surface_factors: contract::map::SurfaceKind::ALL
                 .map(|kind| rules.surfaces[&kind].speed_factor),
             bridges: map.bridges.clone(),
@@ -237,7 +243,6 @@ impl WorldGeometry {
     /// Conservative areas where the surface can differ from open, flat ground.
     pub fn navigation_regions(&self) -> Vec<[f64; 4]> {
         let mut regions = self.field.variation_regions().to_vec();
-        regions.extend(self.water.iter().map(|w| w.rect));
         regions.extend(self.forests.iter().map(|f| f.shape.bounds()));
         regions.extend_from_slice(self.forest.bounds());
         regions.extend(self.surfaces.navigation_regions());
@@ -387,7 +392,7 @@ impl WorldGeometry {
         };
         self.bridges.iter().any(|b| bridge_contains(b, v2(x, y)))
             || (normal.z.clamp(-1.0, 1.0).acos().to_degrees() < self.slope_cutoff_deg
-                && !self.water.iter().any(|w| in_rect(w.rect, x, y)))
+                && !self.surfaces.water_at(v2(x, y)))
     }
 
     /// The ground triangle at (x, y), ignoring any bridge above it.
@@ -396,7 +401,7 @@ impl WorldGeometry {
         let p = v2(x, y);
         let slope_deg = normal.z.clamp(-1.0, 1.0).acos().to_degrees();
         let paved = self.surfaces.at(p);
-        let kind = if self.water.iter().any(|w| in_rect(w.rect, x, y)) {
+        let kind = if self.surfaces.water_at(p) {
             SurfaceKind::Water
         } else {
             paved.map_or(SurfaceKind::Ground, SurfaceKind::of)
@@ -411,7 +416,8 @@ impl WorldGeometry {
             slope_deg,
             kind,
             road_factor,
-            forest: self.forest_ground(x, y),
+            // Water is neither road nor forest, whatever is authored over it.
+            forest: kind != SurfaceKind::Water && self.forest_ground(x, y),
             traversable: kind != SurfaceKind::Water && slope_deg < self.slope_cutoff_deg,
         })
     }
@@ -482,15 +488,17 @@ impl WorldGeometry {
         skip: Option<PropId>,
         admits: impl Fn(&PropBody) -> bool,
     ) -> Option<Hit> {
-        let mut best: Option<Hit> = self
-            .field
-            .raycast(origin, dir, max_t)
-            .map(|(t, normal)| Hit {
-                t,
-                point: origin + dir * t,
-                normal,
-                collider: Collider::Terrain,
-            });
+        let ground = self.field.raycast(origin, dir, max_t);
+        let water = self
+            .water_hit(origin, dir, max_t)
+            .filter(|&t| ground.is_none_or(|(ground, _)| t < ground))
+            .map(|t| (t, v3(0.0, 0.0, 1.0)));
+        let mut best: Option<Hit> = water.or(ground).map(|(t, normal)| Hit {
+            t,
+            point: origin + dir * t,
+            normal,
+            collider: Collider::Terrain,
+        });
         let mut ids = Vec::new();
         self.index
             .along(origin.xy(), (origin + dir * max_t).xy(), &mut ids);
@@ -563,15 +571,37 @@ impl WorldGeometry {
                 && admits(&prop.body)
                 && prop.raycast(origin, dir, max_t).is_some()
         });
-        by_prop || self.field.raycast(origin, dir, max_t).is_some()
+        by_prop
+            || self.field.raycast(origin, dir, max_t).is_some()
+            || self.water_hit(origin, dir, max_t).is_some()
+    }
+
+    /// Where a line falling along `origin + dir * t`, t ∈ [0, max_t], meets a
+    /// river's surface: water stops a round as the ground does, so a shell
+    /// bursts on the river, not on its bed.
+    fn water_hit(&self, origin: V3, dir: V3, max_t: f64) -> Option<f64> {
+        if dir.z >= 0.0 {
+            return None;
+        }
+        self.surfaces
+            .rivers()
+            .iter()
+            .enumerate()
+            .filter_map(|(river, definition)| {
+                let t = (definition.surface_z() - origin.z) / dir.z;
+                let p = origin + dir * t;
+                ((0.0..=max_t).contains(&t)
+                    && self.field.contains(p.x, p.y)
+                    && self.surfaces.in_river(river, p.xy()))
+                .then_some(t)
+            })
+            .min_by(f64::total_cmp)
     }
 
     pub fn add_prop(&mut self, def: &PropDefinition) -> PropId {
         let id = u32::try_from(self.props.len()).expect("world exceeds u32 prop IDs");
         let center = v2(def.center[0], def.center[1]);
-        let base_z = def
-            .base_z
-            .unwrap_or_else(|| self.height_at(center.x, center.y).unwrap_or(0.0));
+        let base_z = def.base_z.unwrap_or_else(|| self.standing_z(center));
         let kind = self.types.kind(&def.kind);
         let prop = Prop {
             id,
@@ -608,15 +638,21 @@ impl WorldGeometry {
         Some(prop)
     }
 
+    /// The height a body at `p` stands at: the walkable surface there, a
+    /// bridge's deck where one spans and the ground (a river's bed) elsewhere.
+    fn standing_z(&self, p: V2) -> f64 {
+        self.surface_at(p.x, p.y).map_or(0.0, |s| s.z)
+    }
+
     /// Shove a prop to a new pose at `tick` (Q2): it keeps its id and kind,
-    /// stands on the ground there, and the obstacle revision bumps.
+    /// stands on the surface there (pushed off a deck, it drops to the bed),
+    /// and the obstacle revision bumps.
     pub fn move_prop(&mut self, id: PropId, center: V2, yaw: f64, tick: u64) {
         let Some(mut prop) = self.props.get_mut(id as usize).and_then(Option::take) else {
             return;
         };
         self.index.remove(&prop);
-        let ground = |p: V2| self.height_at(p.x, p.y).unwrap_or(0.0);
-        prop.base_z += ground(center) - ground(prop.center);
+        prop.base_z += self.standing_z(center) - self.standing_z(prop.center);
         prop.center = center;
         prop.yaw = yaw;
         self.index.insert(&prop);
@@ -670,8 +706,8 @@ impl WorldGeometry {
         &self.forests
     }
 
-    pub fn water(&self) -> &[Water] {
-        &self.water
+    pub fn rivers(&self) -> &[River] {
+        self.surfaces.rivers()
     }
 
     /// The exact ground triangles, for rendering and diagnostics.

@@ -1,6 +1,7 @@
 //! Authored map geometry. Metres; origin at the map's south-west corner; XY
 //! ground, +Z up. Rectangles are `[min_x, min_y, width, height]`.
 use crate::ground::GroundShape;
+use crate::river::River;
 use serde::{Deserialize, Serialize};
 
 pub type Rect = [f64; 4];
@@ -59,8 +60,9 @@ pub struct MapDefinition {
     pub slope_cutoff_deg: f64,
     #[serde(default)]
     pub relief: Vec<Relief>,
-    #[serde(default)]
-    pub water: Vec<Water>,
+    /// Impassable water, crossed at bridges.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub rivers: Vec<River>,
     #[serde(default)]
     pub surfaces: Vec<SurfaceArea>,
     #[serde(default)]
@@ -94,12 +96,34 @@ pub enum Relief {
     },
 }
 
-/// Impassable water: ground inside is lowered to `bed_z`; the surface sits at `surface_z`.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Water {
-    pub rect: Rect,
-    pub bed_z: f64,
-    pub surface_z: f64,
+impl Relief {
+    /// This feature's height at (x, y).
+    pub fn height_at(&self, x: f64, y: f64) -> f64 {
+        match *self {
+            Relief::Ridge {
+                center,
+                peak_m,
+                radius_m,
+            } => {
+                let d = (x - center[0]).hypot(y - center[1]);
+                if d >= radius_m {
+                    0.0
+                } else {
+                    let q = 1.0 - (d / radius_m).powi(2);
+                    peak_m * q * q
+                }
+            }
+            Relief::Mesa {
+                rect,
+                height_m,
+                side_degrees,
+            } => {
+                let dx = (rect[0] - x).max(x - (rect[0] + rect[2])).max(0.0);
+                let dy = (rect[1] - y).max(y - (rect[1] + rect[3])).max(0.0);
+                (height_m - dx.hypot(dy) * side_degrees.to_radians().tan()).max(0.0)
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -145,6 +169,22 @@ pub struct Bridge {
     pub yaw: f64,
     pub deck_z: f64,
     pub thickness_m: f64,
+}
+
+impl Bridge {
+    /// The deck's two end edges, where movers step on and off it.
+    pub fn ends(&self) -> [[[f64; 2]; 2]; 2] {
+        let (s, c) = libm::sincos(self.yaw);
+        let [length, width] = self.half_extents;
+        [-1.0, 1.0].map(|end| {
+            [-1.0, 1.0].map(|side| {
+                [
+                    self.center[0] + c * length * end - s * width * side,
+                    self.center[1] + s * length * end + c * width * side,
+                ]
+            })
+        })
+    }
 }
 
 /// Authoring input only (Q16, Q21): a forest is its shape. It generates its
@@ -303,7 +343,18 @@ impl BuildingDefinition {
     }
 }
 
+/// The height of land shaped by `relief` at (x, y), before any river is
+/// carved into it.
+pub fn relief_height(relief: &[Relief], x: f64, y: f64) -> f64 {
+    relief.iter().map(|r| r.height_at(x, y)).sum()
+}
+
 impl MapDefinition {
+    /// The land's height at (x, y) before any river is carved into it.
+    pub fn relief_height(&self, x: f64, y: f64) -> f64 {
+        relief_height(&self.relief, x, y)
+    }
+
     /// Validate global IDs before allocating indexed storage. Sparse or repeated
     /// explicit IDs cannot request an unbounded vector or overwrite a body.
     pub fn authored_props(&self) -> Result<Vec<(u32, PropDefinition)>, String> {

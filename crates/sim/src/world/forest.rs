@@ -188,14 +188,15 @@ impl WorldGeometry {
                 let jx = (rng.unit() * 2.0 - 1.0) * d.trunk_jitter * step;
                 let jy = (rng.unit() * 2.0 - 1.0) * d.trunk_jitter * step;
                 let p = v2(x + jx, y + jy);
-                let near_road = self.surfaces.road_near(p, d.trunk_clearance_m);
+                let near_open = self.surfaces.road_near(p, d.trunk_clearance_m)
+                    || self.surfaces.water_near(p, d.trunk_clearance_m);
                 // The prop index, not every prop: a full-size map stands tens
                 // of thousands of trunks, each already a prop.
                 let near_prop = self.props_near(p, d.trunk_clearance_m).iter().any(|prop| {
                     !prop.forest_tree && prop.footprint().contains(p, d.trunk_clearance_m)
                 });
                 if forest.shape.contains([p.x, p.y], 0.0)
-                    && !near_road
+                    && !near_open
                     && !near_prop
                     && self.field.contains(p.x, p.y)
                 {

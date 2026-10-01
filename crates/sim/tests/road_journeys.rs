@@ -25,7 +25,7 @@ fn two_bridges() -> Value {
         "half_extents": [16, 6], "yaw": 0, "deck_z": 0.1, "thickness_m": 0.8 })
     };
     json!({ "size": [3000, 800], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
-        "water": [{ "rect": [1490, 0, 20, 800], "bed_z": -2, "surface_z": -0.5 }],
+        "rivers": [{ "points": [{ "xy": [1500, 0], "width_m": 20, "depth_m": 1.5 }, { "xy": [1500, 800], "width_m": 20, "depth_m": 1.5 }], "surface_z": -0.5 }],
         "bridges": [bridge(200.0), bridge(600.0)],
         "surfaces": [
             road([[20, 200], [2980, 200]]),

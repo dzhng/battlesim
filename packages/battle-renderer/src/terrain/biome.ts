@@ -66,9 +66,8 @@ export interface Verge {
   feather_m: number;
 }
 
-/** The water's edge: wet, bare soil on the banks round every water rect,
- *  out to about `width_m` from the water with a ragged line, where no grass
- *  grows. */
+/** The water's edge: wet, bare soil on the banks along every river, out to
+ *  `width_m` from the water, where no grass grows. */
 export interface Shore {
   palette: string;
   width_m: number;

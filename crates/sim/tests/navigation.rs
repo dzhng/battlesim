@@ -100,6 +100,14 @@ fn route(plan: Plan) -> Vec<V2> {
 }
 
 /// Every point along the route (sampled) satisfies `ok`.
+/// Whether a footprint could stand in the middle of the cell `p` lies in:
+/// the room every step of a route is judged by. (A point off its cell's
+/// middle has less room, which `route_fits` accounts for along a segment.)
+fn cell_fits(g: &NavGrid, p: V2, m: &Mobility) -> bool {
+    let middle = |v: f64| (v / 2.0).floor() * 2.0 + 1.0;
+    g.fits_at(v2(middle(p.x), middle(p.y)), m)
+}
+
 fn all_along(from: V2, r: &[V2], ok: impl Fn(V2) -> bool) -> bool {
     let mut a = from;
     r.iter().all(|&b| {
@@ -169,7 +177,7 @@ fn one_slope_cutoff_blocks_everyone_and_routes_go_around() {
 #[test]
 fn water_is_crossed_only_by_the_bridge() {
     let w = world(
-        r#","water":[{"rect":[190,0,20,200],"bed_z":-2,"surface_z":-0.5}],
+        r#","rivers":[{"points":[{"xy":[200,0],"width_m":20,"depth_m":1.5},{"xy":[200,200],"width_m":20,"depth_m":1.5}],"surface_z":-0.5}],
            "bridges":[{"deck":"bridge_deck","center":[200,40],"half_extents":[16,5],"yaw":0,"deck_z":0.1,"thickness_m":0.8}]"#,
     );
     let g = grid(&w);
@@ -220,7 +228,8 @@ fn a_gap_admits_infantry_but_not_a_tank() {
         tank.iter().any(|p| p.y > 170.0),
         "the tank detours to the wide opening"
     );
-    assert!(all_along(from, &tank, |p| g.fits_at(p, &TANK)));
+    assert!(g.route_fits(from, &tank, &TANK));
+    assert!(all_along(from, &tank, |p| cell_fits(&g, p, &TANK)));
 }
 
 /// Q27: every solid body stops infantry too. A solid line of tank wrecks
@@ -242,7 +251,8 @@ fn a_line_of_wrecks_stops_squads_and_tanks_alike() {
     for m in [&INFANTRY, &TANK] {
         let r = route(g.plan(from, to, m, RoutePolicy::Shortest));
         assert!(r.iter().any(|p| p.y > 170.0), "{:?} goes round", m.class);
-        assert!(all_along(from, &r, |p| g.fits_at(p, m)));
+        assert!(g.route_fits(from, &r, m));
+        assert!(all_along(from, &r, |p| cell_fits(&g, p, m)));
     }
 }
 
@@ -371,7 +381,9 @@ fn empty_ground_does_not_allocate_navigation_per_square_metre() {
 
 #[test]
 fn an_unbroken_water_strip_leaves_no_route() {
-    let w = world(r#","water":[{"rect":[190,0,20,200],"bed_z":-2,"surface_z":-0.5}]"#);
+    let w = world(
+        r#","rivers":[{"points":[{"xy":[200,0],"width_m":20,"depth_m":1.5},{"xy":[200,200],"width_m":20,"depth_m":1.5}],"surface_z":-0.5}]"#,
+    );
     let g = grid(&w);
     let (plan, cells) = g.search(
         v2(40.0, 100.0),
@@ -389,7 +401,7 @@ fn an_unbroken_water_strip_leaves_no_route() {
 #[test]
 fn a_bridge_search_bounds_work_without_changing_the_crossing() {
     let w = world(
-        r#", "water":[{"rect":[190,0,20,200],"bed_z":-2,"surface_z":-0.5}],
+        r#", "rivers":[{"points":[{"xy":[200,0],"width_m":20,"depth_m":1.5},{"xy":[200,200],"width_m":20,"depth_m":1.5}],"surface_z":-0.5}],
         "bridges":[{"deck":"bridge_deck","center":[200,40],"half_extents":[16,5],"yaw":0,"deck_z":0.1,"thickness_m":0.8}]"#,
     );
     for m in [&TANK, &INFANTRY] {
@@ -401,6 +413,41 @@ fn a_bridge_search_bounds_work_without_changing_the_crossing() {
             assert_eq!(r.last(), Some(&to));
             assert!(g.route_fits(from, &r, m));
             assert!(cells < 8_000, "{policy:?}: {cells}");
+        }
+    }
+}
+
+/// The river lab's meander lies between each start and its goal: a squad and
+/// a tank both go round by the country road's bridge, up its ramp and over
+/// its deck, and no step of either route is on water.
+#[test]
+fn a_meandering_river_is_crossed_by_its_bridge_by_squads_and_tanks() {
+    let map: MapDefinition =
+        serde_json::from_str(include_str!("../../../fixtures/river-lab.json")).unwrap();
+    let w = WorldGeometry::new(&map, &crate::common::rules());
+    let river = &w.rivers()[0];
+    for m in [&TANK, &INFANTRY] {
+        for (from, to) in [
+            (v2(125.0, 195.0), v2(125.0, 300.0)),
+            (v2(450.0, 176.0), v2(420.0, 300.0)),
+            (v2(60.0, 185.0), v2(60.0, 310.0)),
+        ] {
+            let g = grid(&w);
+            let r = route(g.plan(from, to, m, RoutePolicy::Shortest));
+            assert_eq!(r.last(), Some(&to));
+            assert!(g.route_fits(from, &r, m));
+            let crossed = std::cell::Cell::new(false);
+            assert!(all_along(from, &r, |p| {
+                let s = w.surface_at(p.x, p.y).unwrap();
+                // Wherever the route is over the river's water it is on the deck.
+                let over_water = river.inside([p.x, p.y]) >= 0.0;
+                crossed.set(crossed.get() || over_water);
+                s.traversable && (!over_water || s.kind == sim::world::SurfaceKind::Bridge)
+            }));
+            assert!(
+                crossed.get(),
+                "the route from {from:?} never crossed the river"
+            );
         }
     }
 }

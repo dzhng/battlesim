@@ -1030,10 +1030,16 @@ impl NavGrid {
             let Some(cell) = self.index(i, j) else {
                 return Some(None);
             };
-            // How far the segment passes from the middle of the cell.
+            // How far the segment passes from the middle of the cell. Past
+            // half a cell it only clips the cell's corner: the footprint is
+            // then centred in a neighbour (which its own samples judge), and
+            // this cell need only be one a mover could stand in, the rule a
+            // diagonal step is held to in the search. Otherwise the search
+            // could emit a diagonal that this check refuses.
             let off = (cell_center(cell % self.nx, cell / self.nx) - a)
                 .cross(along)
                 .abs();
+            let off = if off > NAV_CELL_M / 2.0 { 0.0 } else { off };
             if !self.fits_off_centre(cell, who, off)
                 || (infantry && self.cells[cell].free & (1 << sub_of(p)) == 0)
             {

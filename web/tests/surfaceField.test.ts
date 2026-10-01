@@ -17,6 +17,7 @@ import {
   type TerrainSite,
 } from "@packages/battle-renderer/src/terrain/terrainSurface.ts";
 import { forestInside, type ForestShape } from "@packages/battle-renderer/src/terrain/forestShapes";
+import { RIVER_FLOATS, stretchInside } from "@packages/battle-renderer/src/terrain/rivers";
 import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
 import {
   buildSurfaceField,
@@ -104,6 +105,12 @@ function rectsEverywhere(rects: Float32Array, x: number, y: number): number {
   }
   return inside;
 }
+function waterEverywhere(site: TerrainSite, x: number, y: number): number {
+  let inside = -1e9;
+  for (let o = 0; o < site.rivers.length; o += RIVER_FLOATS)
+    inside = Math.max(inside, stretchInside(site.rivers, o, x, y));
+  return inside;
+}
 function forestEverywhere(site: TerrainSite, x: number, y: number): number {
   let forest = rectsEverywhere(site.forests, x, y);
   for (const shape of site.forestShapes)
@@ -133,9 +140,14 @@ function probes(site: TerrainSite, field: SurfaceField, count: number, seed: num
     take(shape.strokes, 6, 2);
     take(shape.boundaries, 5, 2);
   }
-  for (const rects of [site.forests, site.water])
-    for (let o = 0; o < rects.length; o += RECT_FLOATS)
-      anchors.push(rects[o], rects[o + 1], rects[o] + rects[o + 2], rects[o + 1] + rects[o + 3]);
+  take(site.rivers, RIVER_FLOATS, 2);
+  for (let o = 0; o < site.forests.length; o += RECT_FLOATS)
+    anchors.push(
+      site.forests[o],
+      site.forests[o + 1],
+      site.forests[o] + site.forests[o + 2],
+      site.forests[o + 1] + site.forests[o + 3],
+    );
   for (let i = 0; i < count && anchors.length > 0; i++) {
     const at = Math.floor(next() * (anchors.length / 2)) * 2;
     const spread = next() < 0.5 ? 3 : 30;
@@ -169,7 +181,7 @@ function expectFieldMatches(site: TerrainSite, count: number, seed: number) {
     const exact = {
       paved: pavedEverywhere(site, x, y),
       forest: forestEverywhere(site, x, y),
-      water: rectsEverywhere(site.water, x, y),
+      water: waterEverywhere(site, x, y),
     };
     for (const footprint of FOOTPRINTS) {
       // Past the ladder's last level a pixel reads that level's reach.
@@ -202,7 +214,8 @@ test("a field lookup is the all-primitives distance wherever a consumer reads it
     "rectangle",
     "stroke",
   ]);
-  expect(site.water.length).toBe(2 * RECT_FLOATS);
+  // Two rivers, one with its bend rounded into many stretches.
+  expect(site.rivers.length / RIVER_FLOATS).toBeGreaterThan(15);
   // Sparse ground keeps the whole-map level: exact at any pixel width.
   expect(expectFieldMatches(site, 3000, 63).exactToM).toBe(Infinity);
 });
@@ -263,12 +276,14 @@ test("a stroke through its cells' corners is found in every cell it crosses", ()
     surfaceStrokes: Float32Array.of(8, 8, 72, 72, 3, 1),
     forests: new Float32Array(0),
     forestShapes: [strip],
-    water: new Float32Array(0),
+    // A river along the other diagonal, widening as it goes.
+    rivers: Float32Array.of(24, 200, 88, 136, 6, 10, 0.25, 0.25, 1, 1, -1),
   };
   const field = buildSurfaceField(site, reach);
   for (let k = 0.5; k < 64; k += 1) {
     expect(pavedDistance(field, 8 + k, 8 + k, 0.08)).toBe(3);
     expect(forestDistance(field, 96 + k, 16 + k, 0.08)).toBe(9);
+    expect(waterDistance(field, 24 + k, 200 - k, 0.08)).toBeCloseTo(6 + (4 * k) / 64, 5);
   }
 });
 

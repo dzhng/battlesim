@@ -21,6 +21,8 @@ const empty: PlotSite = {
   surfaceStrokes: new Float32Array(0),
   surfaceTriangles: new Float32Array(0),
   surfaceBoundaries: new Float32Array(0),
+  riverRuns: new Float32Array(0),
+  riverRunStride: 4,
 };
 
 function paving(kind: number): PlotSite {
@@ -59,6 +61,17 @@ test("sidewalk paving leaves fields unchanged while roads guide their boundaries
   expect(generatePlots(paving(4), biome)).toEqual(untouched);
   const road = generatePlots(paving(1), biome);
   expect(plotAt(road, 50, 30)!.plot).not.toBe(plotAt(road, 50, 70)!.plot);
+});
+
+test("a river's authored run guides field boundaries as a road's does", () => {
+  const river = generatePlots({ ...empty, riverRuns: Float32Array.of(0, 50, 100, 50) }, biome);
+  expect(plotAt(river, 50, 30)!.plot).not.toBe(plotAt(river, 50, 70)!.plot);
+  // The cut runs along the river: both banks' fields end on its centreline.
+  expect(plotAt(river, 50, 44)!.edge).toBeCloseTo(6, 9);
+  expect(plotAt(river, 20, 57)!.edge).toBeCloseTo(7, 9);
+  expect(plotAt(generatePlots(empty, biome), 50, 30)!.plot).toBe(
+    plotAt(generatePlots(empty, biome), 50, 70)!.plot,
+  );
 });
 
 test("road polygon guides use only the ring, never the triangulation diagonal", () => {

@@ -239,8 +239,7 @@
     ],
     "slope_cutoff_deg": 35.0,
     "surfaces": [],
-    "template_catalog_hash": "b8e66feaa153422abb6590e6607d1b161d44e4d469bea4c3df398a36b80b2cc3",
-    "water": []
+    "template_catalog_hash": "b8e66feaa153422abb6590e6607d1b161d44e4d469bea4c3df398a36b80b2cc3"
   },
   "village": {
     "bridges": [],
@@ -1613,7 +1612,6 @@
         }
       }
     ],
-    "template_catalog_hash": "997791ad3783c4cdbf65c994f4d6ffe92d2fc4923d9586d24be3bd34c2983120",
-    "water": []
+    "template_catalog_hash": "997791ad3783c4cdbf65c994f4d6ffe92d2fc4923d9586d24be3bd34c2983120"
   }
 }

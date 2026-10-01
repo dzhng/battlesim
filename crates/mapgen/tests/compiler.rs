@@ -126,22 +126,93 @@ fn the_plan_refuses_unowned_features_and_outside_physical_bounds_explicitly() {
     let error = lower(&input, &catalogue()).unwrap_err();
     assert_eq!(error[0].code, mapgen::DiagnosticCode::InvalidBounds);
     assert_eq!(error[0].feature.as_deref(), Some("compound"));
-    for field in ["land_regions", "rivers"] {
-        input = request();
-        input
-            .plan
-            .unsupported_fields
-            .insert(field.into(), json!([]));
-        let error = lower(&input, &catalogue()).unwrap_err();
-        assert_eq!(
-            error,
-            vec![mapgen::Diagnostic {
-                code: mapgen::DiagnosticCode::UnsupportedPlanField,
-                feature: None,
-                location: format!("$.plan.{field}"),
-                message: format!("{field} has no admitted compiler geometry owner in this pass"),
-            }]
-        );
+    input = request();
+    input
+        .plan
+        .unsupported_fields
+        .insert("land_regions".into(), json!([]));
+    let error = lower(&input, &catalogue()).unwrap_err();
+    assert_eq!(
+        error,
+        vec![mapgen::Diagnostic {
+            code: mapgen::DiagnosticCode::UnsupportedPlanField,
+            feature: None,
+            location: "$.plan.land_regions".into(),
+            message: "land_regions has no admitted compiler geometry owner in this pass".into(),
+        }]
+    );
+}
+
+fn river_request(points: Value, surface_z: f64) -> CompileRequest {
+    let mut input = serde_json::to_value(request()).unwrap();
+    input["plan"]["rivers"] = json!([{ "points": points, "surface_z": surface_z }]);
+    serde_json::from_value(input).unwrap()
+}
+
+#[test]
+fn a_river_is_lowered_into_the_map_and_its_rounded_samples_are_counted() {
+    let points = json!([
+        {"xy":[0.0,64.0],"width_m":12.0,"depth_m":1.5},
+        {"xy":[60.0,64.0],"width_m":14.0,"depth_m":1.75},
+        {"xy":[128.0,110.0],"width_m":16.0,"depth_m":2.0}
+    ]);
+    let input = river_request(points.clone(), -0.5);
+    let generated = lower(&input, &catalogue()).unwrap();
+    assert_eq!(
+        serde_json::to_value(&generated.map.rivers).unwrap(),
+        json!([{ "points": points, "surface_z": -0.5 }])
+    );
+    // The bend is rounded: the samples every consumer walks, not the three
+    // authored points, are what the allowance counts.
+    let samples = generated.map.rivers[0].samples().len() as u64;
+    assert!(samples > 10, "{samples} samples");
+    assert_eq!(generated.report.ground_points, samples);
+    let mut tight = input.clone();
+    tight.limits.max_ground_points = samples - 1;
+    let error = lower(&tight, &catalogue()).unwrap_err();
+    assert_eq!(error[0].code, mapgen::DiagnosticCode::ComplexityLimit);
+    assert_eq!(error[0].location, "$.limits.max_ground_points");
+    // The map loads as the world reads it.
+    let saved = serde_json::to_string(&generated.map).unwrap();
+    let loaded: contract::map::MapDefinition = serde_json::from_str(&saved).unwrap();
+    assert_eq!(
+        loaded.rivers[0].samples(),
+        generated.map.rivers[0].samples()
+    );
+}
+
+#[test]
+fn a_river_outside_the_map_or_one_the_terrain_cannot_carry_is_refused() {
+    let point = |x: f64, y: f64, width: f64, depth: f64| json!({"xy":[x,y],"width_m":width,"depth_m":depth});
+    for (points, surface_z, code, location) in [
+        (
+            json!([point(0.0, 64.0, 12.0, 1.5), point(128.5, 64.0, 12.0, 1.5)]),
+            -0.5,
+            mapgen::DiagnosticCode::InvalidBounds,
+            "$.plan.rivers[0]",
+        ),
+        (
+            json!([point(0.0, 64.0, 11.0, 1.5), point(128.0, 64.0, 12.0, 1.5)]),
+            -0.5,
+            mapgen::DiagnosticCode::InvalidRiver,
+            "$.plan.rivers",
+        ),
+        (
+            json!([point(0.0, 64.0, 12.0, 4.0), point(128.0, 64.0, 12.0, 1.5)]),
+            -0.5,
+            mapgen::DiagnosticCode::InvalidRiver,
+            "$.plan.rivers",
+        ),
+        (
+            json!([point(0.0, 64.0, 12.0, 1.5), point(128.0, 64.0, 12.0, 1.5)]),
+            0.5,
+            mapgen::DiagnosticCode::InvalidRiver,
+            "$.plan.rivers",
+        ),
+    ] {
+        let error = lower(&river_request(points, surface_z), &catalogue()).unwrap_err();
+        assert_eq!(error[0].code, code, "{}", error[0].message);
+        assert_eq!(error[0].location, location);
     }
 }
 
