@@ -1,6 +1,7 @@
-//! A district's streets: a grid in the district's own frame, bent where the
-//! preset says, kept where it lies inside the district and joins the roads
-//! the settlement already has. No street crosses water: a street joins the
+//! A district's streets: a grid along the edge of the district that runs
+//! longest with the settlement's main street, bent where the preset says,
+//! kept where it lies inside the district and joins the roads the
+//! settlement already has. No street crosses water: a street joins the
 //! nearest road it can reach on its own bank.
 use super::space::Rect;
 use super::Pass;
@@ -106,7 +107,7 @@ impl<'a> Network<'a> {
             let mut best: Option<(f64, Nearest)> = None;
             let bounds = [p[0] - reach, p[1] - reach, p[0] + reach, p[1] + reach];
             self.grid.any(bounds, |item| {
-                let (a, b, _) = self.segments[item as usize];
+                let (a, b, half_width) = self.segments[item as usize];
                 let ab = sub(b, a);
                 let t = ((p[0] - a[0]) * ab[0] + (p[1] - a[1]) * ab[1])
                     / (ab[0] * ab[0] + ab[1] * ab[1]);
@@ -121,7 +122,13 @@ impl<'a> Network<'a> {
                 let away = distance(p, point);
                 if best.as_ref().is_none_or(|(known, _)| away < *known) && self.dry(p, point) {
                     let along = bearing(a, b);
-                    best = Some((away, Nearest { point, end, along }));
+                    let nearest = Nearest {
+                        point,
+                        end,
+                        along,
+                        half_width,
+                    };
+                    best = Some((away, nearest));
                 }
                 false
             });
@@ -195,60 +202,74 @@ struct Nearest {
     point: Point,
     /// Whether it is the end of a centreline segment, not a point within one.
     end: bool,
-    /// The carriageway's bearing there.
+    /// The bearing of the centreline there.
     along: f64,
+    /// Half the carriageway's width.
+    half_width: f64,
 }
 
 /// Lay every district's streets, nearest the settlement's roads first, so
 /// each district joins a network that already reaches the main road. A
-/// district's streets are a grid in its own frame, bent where its preset
-/// says.
+/// district's streets are a grid along one of its edges, bent where its
+/// preset says: the edge that runs longest with the settlement's main
+/// street, so neighbouring districts' long streets run the same way.
 pub fn lay(
     pass: &Pass,
     network: &mut Network,
     settlement: &SettlementPlan,
     surfaces: &mut Vec<SurfaceArea>,
 ) -> Result<(), Vec<Diagnostic>> {
-    // (distance to the nearest road, that road's bearing, district)
-    let mut order: Vec<(f64, f64, usize)> = Vec::new();
+    // The main street is the carriageway through the settlement's centre.
+    let main = network
+        .nearest(settlement.center)
+        .ok_or_else(|| pass.fail(&settlement.id, "$.plan.surfaces", "the map has no road"))?
+        .along;
+    // (distance to the nearest road, district)
+    let mut order: Vec<(f64, usize)> = Vec::new();
     for (index, district) in settlement.districts.iter().enumerate() {
         let road = network
             .nearest(district.anchor)
             .ok_or_else(|| pass.fail(&settlement.id, "$.plan.surfaces", "the map has no road"))?;
-        order.push((distance(district.anchor, road.point), road.along, index));
+        order.push((distance(district.anchor, road.point), index));
     }
     order.sort_by(|a, b| a.0.total_cmp(&b.0));
-    let mut lay = |network: &mut Network, points: Vec<Point>, feature: &str| {
-        let shape = GroundShape::stroke(points, pass.presets.parcels.street_width_m)
+    let mut lay = |network: &mut Network, points: Vec<Point>, kind: SurfaceKind, feature: &str| {
+        let width = match kind {
+            SurfaceKind::DirtTrack => pass.presets.roads.dirt_track_width_m,
+            _ => pass.presets.parcels.street_width_m,
+        };
+        let shape = GroundShape::stroke(points, width)
             .map_err(|message| pass.fail(feature, "$.presets.parcels", &message))?;
         network.add(&shape);
-        surfaces.push(SurfaceArea {
-            kind: SurfaceKind::Road,
-            shape,
-        });
+        surfaces.push(SurfaceArea { kind, shape });
         Ok::<(), Vec<Diagnostic>>(())
     };
     let mut dead_ends: Vec<DeadEnd> = Vec::new();
-    for (_, along, index) in order {
+    // The surface of the street each dead end belongs to.
+    let mut ends_of: Vec<SurfaceKind> = Vec::new();
+    for (_, index) in order {
         let district = &settlement.districts[index];
-        // The central district's long streets run with the road through it;
-        // any other's run out from the centre.
-        let axis = if district.anchor == settlement.center {
-            along
-        } else {
-            bearing(settlement.center, district.anchor)
+        let surface = pass.district(district)?.streets.surface;
+        // Its long streets run with the edge that goes farthest the main
+        // street's way.
+        let with_main = |(a, b): &(&Point, &Point)| {
+            distance(**a, **b) * libm::fabs(libm::cos(bearing(**a, **b) - main))
         };
-        let lattice = Lattice::cut(pass, network, district, axis)?;
+        let frontage = contract::ground::edges(&district.ring)
+            .max_by(|a, b| with_main(a).total_cmp(&with_main(b)))
+            .map_or(0.0, |(a, b)| bearing(*a, *b));
+        let lattice = Lattice::cut(pass, network, district, frontage)?;
         for points in lattice.streets(network, district, &mut dead_ends) {
-            lay(network, points, &district.id)?;
+            lay(network, points, surface, &district.id)?;
         }
+        ends_of.resize(dead_ends.len(), surface);
     }
     // A street that stops within a block of another carriageway runs on to
     // it, so districts' grids meet each other and the roads beside them.
     // The run-on starts on the street's own last point.
-    for end in dead_ends {
+    for (end, surface) in dead_ends.into_iter().zip(ends_of) {
         if let Some(met) = network.ahead(end.at, end.toward, end.reach) {
-            lay(network, vec![end.at, met], &settlement.id)?;
+            lay(network, vec![end.at, met], surface, &settlement.id)?;
         }
     }
     Ok(())
@@ -366,8 +387,12 @@ impl Lattice {
             block_depth: pattern.block_depth_m,
         };
         let clearance = pattern.block_depth_m / 2.0;
+        // A district no larger than one block of its own pattern is that
+        // block: it has no streets but the carriageways that bound it.
+        let one_block = high[0] - low[0] - 2.0 * amplitude <= pattern.block_length_m
+            && high[1] - low[1] - 2.0 * amplitude <= pattern.block_depth_m;
         let consider = |lattice: &mut Self, i: usize, j: usize| {
-            if !inside[i] || !inside[j] {
+            if one_block || !inside[i] || !inside[j] {
                 return;
             }
             let (repeats, crosses) =
@@ -438,8 +463,13 @@ impl Lattice {
             Some(vec![from, if to.end { to.point } else { round_cm(target) }])
         };
         // A district too small for a grid has a lane from its anchor to the
-        // nearest road, unless a road already runs through it.
-        let served = |to: Nearest| polygon_contains(&district.ring, to.point);
+        // nearest road, unless a road already runs through it or along its
+        // edge (within its own half width of it, as its parcels front it).
+        let served = |to: Nearest| {
+            polygon_contains(&district.ring, to.point)
+                || contract::ground::edges(&district.ring)
+                    .any(|(a, b)| segment_distance(*a, *b, to.point) <= to.half_width)
+        };
         if self.edges.is_empty() && !network.nearest(district.anchor).is_some_and(served) {
             streets.extend(link(district.anchor));
         }

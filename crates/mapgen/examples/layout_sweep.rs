@@ -38,6 +38,15 @@ fn span(values: impl Iterator<Item = f64>, digits: usize) -> String {
     }
 }
 
+/// The slower of the top and bottom edges' journeys to the centre.
+fn to_centre(metrics: &LayoutMetrics) -> f64 {
+    let transit = &metrics.transit;
+    [&transit.top, &transit.bottom]
+        .into_iter()
+        .map(|journey| journey.as_ref().map_or(f64::INFINITY, |j| j.elapsed_s))
+        .fold(0.0, f64::max)
+}
+
 fn median(values: &mut [f64]) -> f64 {
     values.sort_by(f64::total_cmp);
     values.get(values.len() / 2).copied().unwrap_or(0.0)
@@ -98,10 +107,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let mut layout_table = String::from(
-        "| cell | ok | refused | settlements | urban % | main % of urban | forest % | forest km² | woods | road km | track km | loops | exits | central crossroads | worst transit s | approaches top/bottom | ground points | ms median/max |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
+        "| cell | ok | refused | settlements | urban % | main % of urban | forest % | forest km² | woods | road km | track km | loops | exits | central crossroads | side-to-side road | top or bottom to centre s | bottom to top s | bottom to top km | approaches top/bottom | ground points | ms median/max |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
     );
     let mut river_table = String::from(
-        "| cell | ok | refused | with a river | river km | water width m | bridges | bridges top/bottom | connected | fair | approach in both halves | worst transit s, river / none | layout instructions M median, river / none |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
+        "| cell | ok | refused | with a river | river km | water width m | bridges | bridges top/bottom | connected | fair | approach in both halves | slowest top or bottom to centre s, river / none | layout instructions M median, river / none |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
     );
     let mut scale_table = String::from(
         "| cell | ok | refused | buildings | parts (props) | bay positions | street km | street strokes | ground points | built ground % | generate ms median/max | generate + compile instructions G median/max | map.json MiB |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
@@ -208,12 +217,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 )
                             };
                             std::fs::write(out.join(format!("{name}.svg")), picture(None)?)?;
-                            // The first bridge, and the settlement nearest the water.
+                            // The first bridge, where a road crosses, and the settlement
+                            // nearest the water.
                             if let Some(river) = plan.rivers.first() {
-                                std::fs::write(
-                                    out.join(format!("{name}-bridge-0.svg")),
-                                    picture(Some("bridge-0"))?,
-                                )?;
+                                if !plan.bridges.is_empty() {
+                                    std::fs::write(
+                                        out.join(format!("{name}-bridge-0.svg")),
+                                        picture(Some("bridge-0"))?,
+                                    )?;
+                                }
                                 let from_water = |settlement: &mapgen::SettlementPlan| {
                                     settlement
                                         .outline
@@ -284,7 +296,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             };
             writeln!(
                 layout_table,
-                "| {cell} | {}/{seeds} | {refusals} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {:.0}% | {} | {} / {} | {} | {:.1}/{:.1} |",
+                "| {cell} | {}/{seeds} | {refusals} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {:.0}% | {:.0}% | {} | {} | {} | {} / {} | {} | {:.1}/{:.1} |",
                 passed.len(),
                 each(|m| m.settlements.values().sum::<usize>() as f64, 0),
                 each(|m| m.urban_share * 100.0, 1),
@@ -296,9 +308,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 each(|m| m.roads.dirt_track_km, 0),
                 each(|m| m.roads.loops as f64, 0),
                 each(|m| m.roads.edge_exits as f64, 0),
-                100.0 * passed.iter().filter(|m| m.roads.hub_roads >= 4).count() as f64
+                100.0 * passed.iter().filter(|m| m.roads.centre_roads >= 4).count() as f64
                     / passed.len().max(1) as f64,
-                each(|m| m.transit.iter().map(|e| e.elapsed_s).fold(0.0, f64::max), 0),
+                100.0 * passed.iter().filter(|m| m.transit.east_west.is_some()).count() as f64
+                    / passed.len().max(1) as f64,
+                each(to_centre, 0),
+                each(|m| m.transit.top_bottom.as_ref().map_or(f64::INFINITY, |j| j.elapsed_s), 0),
+                each(|m| m.transit.top_bottom.as_ref().map_or(f64::INFINITY, |j| j.route_m / 1000.0), 1),
                 each(|m| m.approaches_top as f64, 0),
                 each(|m| m.approaches_bottom as f64, 0),
                 each(|m| m.ground_points as f64, 0),
@@ -333,13 +349,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 })
             };
-            let transit = by_river(
-                &|index| {
-                    let edges = passed[index].transit.iter();
-                    edges.map(|e| e.elapsed_s).fold(0.0, f64::max)
-                },
-                false,
-            );
+            let transit = by_river(&|index| to_centre(&passed[index]), false);
             let work = by_river(&|index| layout_work[index], true);
             writeln!(
                 river_table,

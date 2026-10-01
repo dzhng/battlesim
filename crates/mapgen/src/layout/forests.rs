@@ -1,11 +1,11 @@
 //! Woods: the seed sets how much of the map they cover, each half gets the
 //! same share, and none stands on built ground, a reserved approach or a
-//! river's bank. They may come right up to a town and fill the ground it
+//! river's bank. They may come right up to a town and stand on the blocks it
 //! leaves open.
-use super::geometry::{add, area, area_above, distance, scale, Outline, Point, PI};
-use super::presets::OutlineShape;
+use super::geometry::{add, area, area_above, centroid, distance, scale, Outline, Point, PI};
 use super::rng::Stream;
-use super::sites::Placed;
+use super::sites::Corridor;
+use super::towns::Town;
 use super::water::Water;
 use super::Context;
 use crate::Half;
@@ -14,7 +14,8 @@ use contract::map::Forest;
 
 struct Woods<'a> {
     context: &'a Context<'a>,
-    placed: &'a Placed,
+    towns: &'a [Town],
+    reserved: &'a [Corridor],
     water: &'a Water<'a>,
     rng: Stream,
     /// Each wood's bounding circle, to keep later woods off it.
@@ -25,7 +26,13 @@ struct Woods<'a> {
     bottom: f64,
 }
 
-pub fn grow(context: &Context, placed: &Placed, water: &Water, woodland: f64) -> Vec<Forest> {
+pub fn grow(
+    context: &Context,
+    towns: &[Town],
+    reserved: &[Corridor],
+    water: &Water,
+    woodland: f64,
+) -> Vec<Forest> {
     let rules = &context.presets.forests;
     let extent = context.extent;
     let [low, high] = context.preset.forest_share;
@@ -35,9 +42,11 @@ pub fn grow(context: &Context, placed: &Placed, water: &Water, woodland: f64) ->
     let large_chance =
         rules.large_chance[0] + (rules.large_chance[1] - rules.large_chance[0]) * woodland;
     let least = PI * rules.min_radius_m * rules.min_radius_m;
+    let bank = context.presets.rivers.forest_gap_m;
     let mut woods = Woods {
         context,
-        placed,
+        towns,
+        reserved,
         water,
         rng: context.stream("forests"),
         circles: Vec::new(),
@@ -45,16 +54,50 @@ pub fn grow(context: &Context, placed: &Placed, water: &Water, woodland: f64) ->
         top: 0.0,
         bottom: 0.0,
     };
-    // Woods first take some of the ground settlements left open between
-    // their districts, where both halves still have room for them.
-    for sector in placed.sites.iter().flat_map(|site| &site.sectors) {
-        if sector.built || !woods.rng.chance(rules.infill_chance) {
-            continue;
-        }
-        let above = area_above(&sector.ring, extent / 2.0);
-        let below = area(&sector.ring) - above;
-        if woods.top + above <= half_target && woods.bottom + below <= half_target {
-            woods.claim(&sector.ring);
+    // Woods first stand on some of the blocks settlements left open beside
+    // and among their districts, where both halves still have room for them:
+    // a wood of its own shape about the block, wherever one fits clear of
+    // the districts around it.
+    let shape = rules.shape();
+    for town in towns {
+        for block in &town.greens {
+            if !woods.rng.chance(rules.infill_chance) {
+                continue;
+            }
+            let middle = centroid(block);
+            let across = libm::sqrt(area(block));
+            for _ in 0..context.presets.retries.infill {
+                let aspect = woods.rng.range(rules.aspect);
+                let rotation = woods.rng.range([0.0, PI]);
+                let size = woods.rng.range(rules.infill_cover) * area(block);
+                let shift = [0.0; 2].map(|_: f64| (woods.rng.unit() - 0.5) * across);
+                let wood = Outline::draw(shape, size, aspect, rotation, &mut woods.rng)
+                    .at(add(middle, shift));
+                let ring = &wood.ring;
+                let clear = ring
+                    .iter()
+                    .all(|p| p.iter().all(|v| *v >= 0.0 && *v <= extent))
+                    && towns
+                        .iter()
+                        .all(|town| town.clear_of(ring, rules.settlement_gap_m))
+                    && !reserved
+                        .iter()
+                        .any(|corridor| corridor.blocks(wood.center, wood.reach))
+                    && woods.circles.iter().all(|(center, other)| {
+                        distance(*center, wood.center) >= other + wood.reach + rules.forest_gap_m
+                    })
+                    && water.ring_gap(ring, bank) >= bank;
+                let above = area_above(ring, extent / 2.0);
+                let below = area(ring) - above;
+                if clear
+                    && area(ring) >= least
+                    && woods.top + above <= half_target
+                    && woods.bottom + below <= half_target
+                    && woods.claim(ring)
+                {
+                    break;
+                }
+            }
         }
     }
     for _ in 0..rules.max_woods {
@@ -122,11 +165,7 @@ impl Woods<'_> {
         let context = self.context;
         let rules = &context.presets.forests;
         let extent = context.extent;
-        let shape = OutlineShape {
-            exponent: 2.0,
-            noise: rules.outline_noise,
-            points: rules.outline_points,
-        };
+        let shape = rules.shape();
         for _ in 0..context.presets.retries.forest {
             let rotation = self.rng.range([0.0, PI]);
             let outline = Outline::draw(shape, size, aspect, rotation, &mut self.rng);
@@ -137,15 +176,13 @@ impl Woods<'_> {
             let p = [self.rng.range([0.0, extent]), self.rng.range(y)];
             let reach = outline.reach;
             let clear = self
-                .placed
-                .sites
+                .towns
                 .iter()
-                .all(|site| site.built_gap_to(p, reach) >= rules.settlement_gap_m)
+                .all(|town| town.built_gap_to(p, reach) >= rules.settlement_gap_m)
                 && !self
-                    .placed
                     .reserved
                     .iter()
-                    .any(|wedge| wedge.blocks(p, reach))
+                    .any(|corridor| corridor.blocks(p, reach))
                 && self.circles.iter().all(|(center, other)| {
                     distance(*center, p) >= other + reach + rules.forest_gap_m
                 });

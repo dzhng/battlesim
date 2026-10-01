@@ -7,7 +7,7 @@ use super::geometry::{
     Point, TAU,
 };
 use super::rng::Stream;
-use super::roads::{self, Arm};
+use super::roads::{self, Skeleton};
 use super::water::Water;
 use super::Context;
 use contract::river::{River, RiverPoint};
@@ -16,13 +16,13 @@ use contract::river::{River, RiverPoint};
 /// presets say how often), and the stream its courses are drawn from.
 pub struct Source<'a> {
     context: &'a Context<'a>,
-    skeleton: &'a [Arm],
+    skeleton: &'a Skeleton,
     rng: Stream,
     wanted: bool,
 }
 
 impl<'a> Source<'a> {
-    pub fn new(context: &'a Context<'a>, skeleton: &'a [Arm]) -> Self {
+    pub fn new(context: &'a Context<'a>, skeleton: &'a Skeleton) -> Self {
         let mut rng = context.stream("rivers");
         let wanted = rng.chance(context.preset.river_chance);
         Self {
@@ -47,7 +47,12 @@ impl<'a> Source<'a> {
 }
 
 /// One drawn course, or `None` when it runs where a river may not.
-fn course(context: &Context, skeleton: &[Arm], main: &Outline, rng: &mut Stream) -> Option<River> {
+fn course(
+    context: &Context,
+    skeleton: &Skeleton,
+    main: &Outline,
+    rng: &mut Stream,
+) -> Option<River> {
     let rules = &context.presets.rivers;
     let extent = context.extent;
     let widest = rules.width_m[1] / 2.0;
@@ -159,7 +164,7 @@ fn course(context: &Context, skeleton: &[Arm], main: &Outline, rng: &mut Stream)
 
     // A main road's line crosses the river once at most: a river that
     // wound back and forth over it would be bridged again and again.
-    let winds = skeleton.iter().any(|arm| {
+    let winds = skeleton.arms.iter().any(|arm| {
         let crossings = points
             .windows(2)
             .filter(|run| segment_crossing(arm.exit, arm.target, run[0].xy, run[1].xy).is_some());
@@ -168,7 +173,7 @@ fn course(context: &Context, skeleton: &[Arm], main: &Outline, rng: &mut Stream)
     if winds {
         return None;
     }
-    let junctions = || skeleton.iter().flat_map(|arm| [arm.exit, arm.target]);
+    let junctions = || skeleton.arms.iter().flat_map(|arm| [arm.exit, arm.target]);
     let mut halves = [0.0, 0.0];
     for (index, point) in points.iter().enumerate() {
         let (p, half) = (point.xy, point.width_m / 2.0);

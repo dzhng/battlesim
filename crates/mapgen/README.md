@@ -29,16 +29,48 @@ extents, which are a user decision (M04 in the [map brief](../../specs/city-maps
   steers toward each rule as it builds, then holds its output to `measure` and
   refuses a plan that fails. Steer by the geometry `measure` reads: a main road is
   timed along its rounded line, which is longer than the runs between its points.
+- **The two sides start at the top and the bottom, so those two edges are the ones
+  held to a road** (`roads`, M22). A road runs from each to the main junction by
+  the map's centre inside the transit time, and so from one to the other. A road
+  across the middle from side to side is drawn on a preset share of maps; the rest
+  have one side road or none. `measure` reports the two journeys, the bottom-to-top
+  journey and whether a side-to-side road exists (`transit`).
 - **A search that runs out is a named refusal.** The diagnostic names the feature,
   the preset cell and the seed. The generator never tries another seed and never
   returns a thinner map than the presets describe. Within the one seed, the main
   settlement and the river are drawn again, a bounded number of times, when the
   rest of the map does not fit beside them.
+- **A settlement grows from its roads** (`towns`, M23). A site is only the ground a
+  settlement may build on. Once the roads are laid, that ground is cut along them,
+  each piece is cut into blocks a road's depth deep, a few degrees off square, and
+  the settlement is built block by block outward from where its roads meet, farther
+  in some directions than in others, until it covers its class's share of the
+  ground. A block is one district of one use, bounded by roads, streets and the
+  settlement's edge, and blocks take their use a few neighbours at a time. The
+  settlement's outline is the edge of its blocks, and the cuts between blocks are
+  its avenues: surfaces the layout writes itself. A block is built only where a
+  road or an avenue leads to it and one of its class's district kinds has room for
+  a parcel on that frontage (`districts.<kind>.ground_m`), so the parcel pass never
+  meets a district it cannot build on.
+- **A road crosses a settlement's ground in a straight line and turns outside it.**
+  That is what lets a road be a block's edge. A main road through a settlement
+  enters and leaves by gates past its limit. A settlement off the main roads has a
+  main street along its ground, and the road that joins it to the network leaves by
+  the street's end unless that would be a sharp turn (`roads.turn_max_deg`).
+- **A road ends on another where the two make a plain junction**: on a point where a
+  road passes, coming in across it and not alongside, or on a road's end that it
+  carries straight on from. Never where three roads already meet, and never at the
+  map's edge. A road whose two ends would lie on one road is not laid.
+- **Fields and woods reach in beside a settlement.** The blocks it leaves open are
+  fields, and a wood is tried on some of them (`forests.infill_chance`): a wood of
+  its own shape that keeps the same distance from the districts as any other.
 - **Settlements are plan-level.** `MapPlan.settlements` holds each settlement's
-  outline and its districts: single-use pieces of ground (one dominant building
-  category), each with a stable id, an area and an anchor point. `MapPlan.approaches`
-  holds the measured wedges of open ground. Neither reaches the map: the parcel pass
-  turns districts into `buildings`, and the encounter planner reads both.
+  outline, its centre (where its main streets meet) and its districts, nearest the
+  centre first, each with a stable id, an area and an anchor point.
+  `MapPlan.approaches` holds the measured corridors of open ground: the front's
+  width of ground, open for the rule's depth past the last of the settlement's own
+  ground along a bearing. Neither reaches the map: the parcel pass turns districts
+  into `buildings`, and the encounter planner reads both.
 - **A river is a hard feature everything else is placed beside.** A seed-chosen
   share of each type's maps has one river (`rivers`, on a stream of its own, so a
   seed without one is the map it was before rivers existed). It runs from the north
@@ -73,21 +105,27 @@ A district kind's streets and setbacks are rows of the same presets file.
   type's floor limit and it belongs to the one regional family the seed drew for the
   map.
 - **Parcels front every carriageway, not only the streets the pass lays.** The
-  country road or track through a village is its main street.
+  country road or track through a village is its main street, and a district's edge
+  is a road or an avenue as often as not: a carriageway within its own half width of
+  the edge fronts the district.
 - **Every street is joined to the settlement's road.** A district's streets are a
-  grid in its own frame. A piece of that grid no road crosses gets one link to the
-  nearest street, so no pavement is stranded, and a street that stops within a block
-  of another carriageway runs on to it. No street crosses water: the nearest street
-  is the nearest it can reach on its own bank. `measure` then confirms on the
-  finished plan that every street has a way to the centre. (A link that ends on another street's
-  rounded bend takes that sample's exact coordinates: the one place a plan
-  coordinate is not a whole centimetre.)
+  grid along one of its edges: the edge that runs longest with the settlement's
+  main street, so neighbouring grids run the same way and meet on the avenue
+  between them. A district kind's streets are
+  paved, or dirt lanes (`streets.surface`). A piece of that grid no road crosses
+  gets one link to the nearest street, so no pavement is stranded, and a street that
+  stops within a block of another carriageway runs on to it. No street crosses
+  water: the nearest street is the nearest it can reach on its own bank. `measure`
+  then confirms on the finished plan that every street has a way to the centre. (A
+  link that ends on another street's rounded bend takes that sample's exact
+  coordinates: the one place a plan coordinate is not a whole centimetre.)
 - **Ids are derived, not counted across the map.** A parcel is
   `<district id>/lot-<n>` and the building on it has the same id, so tuning one
   district kind renames nothing elsewhere. Building parts take the plan's prop ids
   in order.
 - **An empty district is a refusal**, like any other search that runs out: the
-  diagnostic names the district and its preset row.
+  diagnostic names the district and its preset row. A district's first parcel is
+  always built on; the kind's `coverage` applies to the rest.
 
 The catalogue is a list of physical descriptors. [`fixtures/prototype-building-templates.json`](../../fixtures/prototype-building-templates.json)
 is the one the generator is proved with: placeholder boxes at believable metre scale
