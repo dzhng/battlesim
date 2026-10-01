@@ -72,14 +72,14 @@ fn every_forest_conceals_alike() {
         forest([0.0, 0.0, 120.0, 120.0]),
         forest([150.0, 0.0, 120.0, 120.0])
     ]));
-    // Averaged over the forests' interiors: a single point may sit in a gap.
+    // Forest ground grants the same bonus regardless of tree crown coverage.
     let mean = |x0: f64, infantry: bool| {
         let mut sum = 0.0;
         let mut n = 0.0;
         for i in 0..20 {
             for j in 0..20 {
                 let p = v2(x0 + 20.0 + 4.0 * i as f64, 20.0 + 4.0 * j as f64);
-                sum += w.foliage_at(p.x, p.y).concealment(infantry);
+                sum += w.forest_concealment(infantry, p.x, p.y);
                 n += 1.0;
             }
         }
@@ -91,7 +91,7 @@ fn every_forest_conceals_alike() {
     }
     // Infantry hides more than a vehicle in the same foliage (the class rule).
     assert!(mean(150.0, true) < mean(150.0, false));
-    assert_eq!(w.foliage_at(135.0, 60.0).concealment(true), 1.0);
+    assert_eq!(w.forest_concealment(true, 135.0, 60.0), 1.0);
     assert!(!w.surface_at(135.0, 60.0).unwrap().forest);
     assert!(w.surface_at(210.0, 60.0).unwrap().forest);
 }

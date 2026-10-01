@@ -319,7 +319,7 @@ fn each_observer_identifies_on_alternate_ticks_and_never_more_than_one_tick_late
 }
 
 #[test]
-fn own_concealment_reports_a_bonus_without_claiming_invisibility() {
+fn enemy_identification_removes_hidden_even_with_full_concealment() {
     let b = battle(json!([
         { "side": "blue", "kind": "rifle", "position": [480, 300] },
         { "side": "blue", "kind": "tank", "position": [480, 300] },
@@ -327,11 +327,211 @@ fn own_concealment_reports_a_bonus_without_claiming_invisibility() {
         { "side": "red", "kind": "recon", "position": [480, 310] },
     ]));
     let own = serde_json::to_value(&b.observe(Side::Blue).own).unwrap();
-    assert_eq!(own[0]["concealed"], json!(true));
-    assert_eq!(own[1]["concealed"], json!(true));
+    assert_eq!(own[0]["concealed"], json!(false));
+    assert_eq!(own[1]["concealed"], json!(false));
     assert_eq!(own[2]["concealed"], json!(false));
     assert!(
         !b.observe(Side::Red).identified.is_empty(),
         "concealed units can still be identified up close"
+    );
+    let safe = battle(json!([
+        { "side": "blue", "kind": "rifle", "position": [480, 300] },
+        { "side": "blue", "kind": "tank", "position": [480, 300] }
+    ]));
+    assert!(safe.observe(Side::Blue).own.iter().all(|u| u.concealed));
+}
+
+#[test]
+fn squad_identification_requires_twenty_percent_of_living_members() {
+    let b = battle(json!([
+        { "side": "blue", "kind": "recon", "position": [20, 580] },
+        { "side": "red", "kind": "rifle", "position": [100, 580] },
+    ]));
+    let mut units: Vec<_> = (0..2).map(|i| b.unit(UnitId(i)).unwrap().clone()).collect();
+    for member in &mut units[1].members {
+        member.position = sim::math::v3(1200.0, 580.0, 0.0);
+    }
+    units[1].members[0].position = sim::math::v3(100.0, 580.0, 0.0);
+    let seen = |units: &[sim::units::Unit]| {
+        sim::sensing::evaluate(b.world(), units, b.rules(), Side::Blue, |_| true)
+    };
+    assert!(
+        seen(&units).is_empty(),
+        "one of eight must not reveal the squad"
+    );
+    units[1].members[1].position = sim::math::v3(100.0, 580.0, 0.0);
+    assert_eq!(seen(&units)[0].members, vec![0, 1]);
+    units[1].members[1].position = sim::math::v3(1200.0, 580.0, 0.0);
+    for member in &mut units[1].members[5..] {
+        member.hp = 0.0;
+    }
+    assert_eq!(
+        seen(&units)[0].members,
+        vec![0],
+        "one of five meets exactly twenty percent"
+    );
+}
+
+#[test]
+fn forest_concealment_is_binary_even_between_tree_crowns() {
+    let mut rules = common::rules();
+    rules.forests.rule.canopy_radius_m = 0.1;
+    rules.forests.rule.concealment_infantry = 0.25;
+    let map = serde_json::from_value(json!({
+        "size": [200, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+        "forests": [{"shape": {"kind": "polygon", "ring": [[80,0],[180,0],[180,120],[80,120]]}}]
+    }))
+    .unwrap();
+    let world = sim::world::WorldGeometry::new(&map, &rules);
+    assert_eq!(
+        sim::sensing::concealment_multiplier(true, &world, sim::math::v3(81.0, 60.0, 0.0)),
+        0.25
+    );
+    assert_eq!(
+        sim::sensing::concealment_multiplier(true, &world, sim::math::v3(79.0, 60.0, 0.0)),
+        1.0
+    );
+    let sight = sim::sight::Sight {
+        forward: 0.0,
+        range: 350.0,
+        shape: contract::scenario::SightShape {
+            front: 1.0,
+            side: 0.5,
+            rear: 0.3,
+        },
+    };
+    let target = sim::math::v3(81.0, 60.0, 1.0);
+    let sees = |distance| {
+        sim::sensing::sees_point(
+            &world,
+            sim::math::v3(81.0 - distance, 60.0, 1.0),
+            target,
+            &sight,
+            sim::sensing::concealment_multiplier(true, &world, target),
+            &rules.sensors,
+        )
+    };
+    assert!(!sees(100.0));
+    assert!(sees(80.0));
+}
+
+#[test]
+fn squad_hidden_requires_more_than_eighty_percent_of_living_members() {
+    let b = battle(json!([{ "side": "blue", "kind": "rifle", "position": [480, 300] }]));
+    let mut squad = b.unit(UnitId(0)).unwrap().clone();
+    for m in &mut squad.members {
+        m.position = sim::math::v3(480.0, 300.0, 0.0);
+    }
+    for m in &mut squad.members[6..] {
+        m.position = sim::math::v3(240.0, 300.0, 0.0);
+    }
+    assert!(
+        !sim::sensing::concealed(b.world(), &squad, b.rules()),
+        "six of eight is not hidden"
+    );
+    squad.members[6].position = sim::math::v3(480.0, 300.0, 0.0);
+    assert!(
+        sim::sensing::concealed(b.world(), &squad, b.rules()),
+        "seven of eight is hidden"
+    );
+    for m in &mut squad.members[5..] {
+        m.hp = 0.0;
+    }
+    squad.members[4].position = sim::math::v3(240.0, 300.0, 0.0);
+    assert!(
+        !sim::sensing::concealed(b.world(), &squad, b.rules()),
+        "exactly eighty percent is not hidden"
+    );
+    squad.members[4].position = sim::math::v3(480.0, 300.0, 0.0);
+    assert!(sim::sensing::concealed(b.world(), &squad, b.rules()));
+    for m in &mut squad.members {
+        m.hp = 0.0;
+    }
+    assert!(
+        !sim::sensing::concealed(b.world(), &squad, b.rules()),
+        "no living soldiers is not hidden"
+    );
+}
+
+fn scout_watching_from_forest() -> contract::scenario::ScenarioDefinition {
+    let mut scenario = common::scenario(
+        MAP,
+        json!([
+            { "side": "blue", "kind": "rifle", "position": [100,580] },
+            { "side": "red", "kind": "recon", "position": [300,580] }
+        ]),
+        json!([]),
+    );
+    scenario.rules.forests.rule.attenuation_per_m = 0.0;
+    scenario.map.forests = serde_json::from_value(json!([
+        {"shape":{"kind":"polygon","ring":[[0,0],[1400,0],[1400,640],[0,640]]}}
+    ]))
+    .unwrap();
+    scenario
+}
+
+#[test]
+fn an_unseen_scout_cannot_disclose_its_sighting_through_hidden() {
+    let b = Battle::new(&scout_watching_from_forest(), 1);
+    assert!(
+        b.observe(Side::Blue).identified.is_empty(),
+        "the scout is beyond rifle spotting range in forest"
+    );
+    assert_eq!(
+        b.observe(Side::Red).identified.len(),
+        1,
+        "the scout identifies the rifle squad"
+    );
+    assert!(
+        b.observe(Side::Blue).own[0].concealed,
+        "an unseen scout must not remove HIDDEN"
+    );
+}
+
+#[test]
+fn incoming_engagement_removes_hidden_without_identifying_the_attacker() {
+    let mut b = Battle::new(&scout_watching_from_forest(), 1);
+    assert!(b.observe(Side::Blue).own[0].concealed);
+    for _ in 0..300 {
+        b.step();
+        if !b.unit(UnitId(0)).unwrap().attackers.is_empty() {
+            break;
+        }
+    }
+    assert!(
+        b.unit(UnitId(0)).unwrap().attackers.contains(&UnitId(1)),
+        "the scout engaged the squad"
+    );
+    assert!(
+        b.observe(Side::Blue).identified.is_empty(),
+        "only a firing contact is available"
+    );
+    assert!(
+        !b.observe(Side::Blue).own[0].concealed,
+        "incoming engagement removes HIDDEN"
+    );
+}
+
+#[test]
+fn an_unrelated_firing_contact_does_not_remove_hidden() {
+    let mut scenario = scout_watching_from_forest();
+    scenario.units[1].engagement = Some(contract::command::Engagement::ReturnFireOnly);
+    scenario.events.push(contract::scenario::ScenarioEvent {
+        tick: 1,
+        action: contract::scenario::EventAction::Fire { unit: UnitId(1) },
+    });
+    let mut b = Battle::new(&scenario, 1);
+    b.step();
+    assert!(
+        !b.observe(Side::Blue).contacts.is_empty(),
+        "the enemy firing report is public"
+    );
+    assert!(
+        b.unit(UnitId(0)).unwrap().attackers.is_empty(),
+        "the squad was not engaged"
+    );
+    assert!(
+        b.observe(Side::Blue).own[0].concealed,
+        "unrelated enemy fire does not remove HIDDEN"
     );
 }

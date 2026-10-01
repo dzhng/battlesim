@@ -693,7 +693,8 @@ fn authored() -> Vec<Scenario> {
             ]),
             events: none.clone(),
             scripts: none.clone(),
-            rules: json!({ "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
+            // Pin acquisition so this experiment judges stepping out, not squad spotting thresholds.
+            rules: json!({ "sensors": { "squad_identification_fraction": 0.125 }, "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
             seconds: 30.0,
             seed: 1,
             checks: vec![

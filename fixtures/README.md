@@ -128,4 +128,4 @@ The world places floor cover after all trunks with independent seeds, so changin
 floor density cannot shift any trunk or its published source range. Candidates
 that conflict with trees, roads, water, bodies or the forest boundary are omitted;
 per-hectare densities are placement ceilings, not guaranteed counts. The floor
-adds no concealment: trunk crowns remain the single foliage authority.
+adds no concealment. Uncleared forest ground owns the binary concealment bonus; trunk crowns own sight-line attenuation.

@@ -359,6 +359,8 @@
     }
   },
   "sensors": {
+    "squad_identification_fraction": 0.2,
+    "squad_hidden_fraction": 0.8,
     "contact_radius_factor": 3,
     "contact_lifetime_s": 30,
     "acquisition_grace_s": 1.5,
@@ -610,7 +612,7 @@
     "tree": "trunk",
     "log": "log",
     "boulder": "boulder",
-    "rule": { "trunk_spacing_m": 9, "trunk_jitter": 0.3, "concealment_infantry": 0.45, "concealment_vehicle": 0.7, "attenuation_per_m": 0.011, "canopy_radius_m": 6.5, "canopy_height_m": 12, "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2, "logs_per_ha": 0, "boulders_per_ha": 0, "log_half_extents_m": [2.2, 0.35, 0.35], "boulder_half_extents_m": [1, 0.8, 0.75] }
+    "rule": { "trunk_spacing_m": 9, "trunk_jitter": 0.3, "concealment_infantry": 0.25, "concealment_vehicle": 0.7, "attenuation_per_m": 0.011, "canopy_radius_m": 6.5, "canopy_height_m": 12, "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2, "logs_per_ha": 0, "boulders_per_ha": 0, "log_half_extents_m": [2.2, 0.35, 0.35], "boulder_half_extents_m": [1, 0.8, 0.75] }
   },
   "variants": {
     "ordinary": {

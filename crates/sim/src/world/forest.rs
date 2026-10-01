@@ -6,10 +6,10 @@
 //!
 //! - **Foliage** is precomputed per fog cell (`map.fog_cell_m`) from the concealing bodies
 //!   whose crown covers the cell's centre: strength `1 − Π(1 − conceals)`,
-//!   scaling the densest covering forest's concealment and attenuation.
+//!   scaling sight-line attenuation.
 //!   Removing a trunk refreshes the cells its crown reached.
 //! - **Forest ground** is the ground the forests were authored over, less
-//!   cleared ground: forest speed applies there, and the forest floor is
+//!   cleared ground: forest speed and concealment apply there, and the forest floor is
 //!   drawn there. A knocked tree takes its foliage but not the ground; only
 //!   a cleared lane is open ground again.
 //! - **Cleared** ground is a mask of ground cells (`ground.cell_m`): where a vehicle knocked its way
@@ -36,9 +36,6 @@ pub struct Foliage {
     pub canopy_m: f64,
     /// Foliage depth per metre a sight line crosses below the canopy.
     pub depth_per_m: f64,
-    /// Detection-range multipliers for a target standing here, by class.
-    pub infantry: f64,
-    pub vehicle: f64,
 }
 
 impl Foliage {
@@ -46,23 +43,11 @@ impl Foliage {
         Foliage {
             canopy_m: 0.0,
             depth_per_m: 0.0,
-            infantry: 1.0,
-            vehicle: 1.0,
         }
     }
 
     pub fn is_open(&self) -> bool {
         self.canopy_m <= 0.0
-    }
-
-    /// The detection-range multiplier for a target of this class here: the
-    /// per-class strength is the game rule (Q21).
-    pub fn concealment(&self, infantry: bool) -> f64 {
-        if infantry {
-            self.infantry
-        } else {
-            self.vehicle
-        }
     }
 }
 
@@ -385,8 +370,6 @@ impl WorldGeometry {
         Foliage {
             canopy_m: d.canopy_height_m,
             depth_per_m: d.attenuation_per_m * s,
-            infantry: 1.0 + (d.concealment_infantry - 1.0) * s,
-            vehicle: 1.0 + (d.concealment_vehicle - 1.0) * s,
         }
     }
 
@@ -424,6 +407,19 @@ impl WorldGeometry {
             None => (0..f.ground_regions.len()).any(within),
         };
         forested && !self.cleared(x, y)
+    }
+
+    /// Forest concealment is a binary ground property, independent of crown coverage.
+    pub fn forest_concealment(&self, infantry: bool, x: f64, y: f64) -> f64 {
+        if !self.forest_ground(x, y) || self.surfaces.water_at(v2(x, y)) {
+            return 1.0;
+        }
+        let rule = self.forest.rule;
+        if infantry {
+            rule.concealment_infantry
+        } else {
+            rule.concealment_vehicle
+        }
     }
 
     /// The foliage over (x, y): its fog cell's, or open ground where the

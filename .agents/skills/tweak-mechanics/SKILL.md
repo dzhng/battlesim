@@ -39,3 +39,5 @@ description: Change or add a game mechanic or rule — who can shoot, see, move,
 - **Give each real-world effect one mechanism.** If two columns both model "hard to hit behind this", decide which one owns it.
 - **A hold rule needs an exit.** Any "don't act because X" must name what clears X.
 - **The user's "but what about…" belonged in step 3.** When it happens, add the moment you missed to your picture of the battle.
+
+- For squad spotting thresholds, use living soldiers as the denominator in both fresh and retained sightings. Keep the unit's HIDDEN publication distinct from physical concealment: only a currently visible observer or known engagement clears the readout, while an unseen scout or stale acquisition-grace observer track does not. Reuse return-fire attacker memory for engagement rather than adding another timer. Forest ground owns the binary concealment bonus; tree crowns only attenuate sight lines.

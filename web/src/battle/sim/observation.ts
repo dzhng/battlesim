@@ -118,7 +118,7 @@ export interface OwnUnitView {
   /** How suppressed the squad is, by the rules' thresholds (the sim owns
    *  them; the hidden level is never published). Vehicles are "none". */
   suppression: SuppressionTier;
-  /** A foliage or shelter concealment bonus; not a promise of invisibility. */
+  /** Enough forest or shelter concealment, with no visible enemy observer spotting it or known engagement. */
   concealed: boolean;
   /** Setup progress for units that deploy in place; null for the rest. */
   deployment: DeploymentView | null;

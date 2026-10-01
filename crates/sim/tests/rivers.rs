@@ -270,6 +270,8 @@ fn water_is_neither_forest_nor_road_and_no_trunk_stands_in_it() {
     let in_wood_and_water = w.ground_surface_at(500.0, 237.0).unwrap();
     assert_eq!(in_wood_and_water.kind, SurfaceKind::Water);
     assert!(!in_wood_and_water.forest);
+    assert_eq!(w.forest_concealment(true, 500.0, 237.0), 1.0);
+    assert_eq!(w.forest_concealment(false, 500.0, 237.0), 1.0);
     assert!(w.ground_surface_at(500.0, 300.0).unwrap().forest);
     let trunks: Vec<_> = w
         .props()
