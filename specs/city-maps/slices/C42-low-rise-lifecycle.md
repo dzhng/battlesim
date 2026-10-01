@@ -54,3 +54,29 @@ chain was first accepted incorrectly, then refused after the guard; ordinary
 movable crates still load and move. This preserves the existing no-composite-motion
 boundary rather than leaving immutable source seats attached to independently
 shoved parts. All 25 aggregate-building regressions pass on the integrated source.
+
+Fallen occupants retain the owner of an elevated fighting floor after death,
+even when the whole squad has relinquished its hold. The owner's terminal
+transition removes that support: new collapse deaths and previously fallen
+occupants settle at the existing walkable surface at their XY position, including
+raised terrain and bridge decks. Identity and fall facing survive; settling adds
+no survival roll. This private `Fallen.support_building` fact and optional observed
+corpse snapshots enter the digest only when present, preserving ordinary-death
+parity. The public corpse observation layout is unchanged.
+
+Each side owns the enemy corpse pose it last observed. Own fallen follow the
+physical support change immediately; an enemy body remembered above an unseen
+collapse remains at its last observed height until sight returns. Once a floor
+corpse has a remembered pose, it keeps that snapshot mode after physical support
+is cleared. The pose driver refreshes animated, resting and fading anchors
+without restarting death or bringing a faded body back; resting changes invalidate
+its static publication version.
+
+Native proof covers new elevated deaths on raised terrain, existing deaths in
+surviving and wholly dead squads, hidden collapse and subsequent sight, and no
+second survival roll. Deliberately omitting corpse settling fails at six metres
+versus ground; publishing the live enemy pose fails the hidden-memory assertion.
+The nearby 26 building tests retain the frozen parity oracles, and 33 pose driver
+and feed tests pass, including anchor changes during death, rest and fading.
+These are systems contracts; the pending prototype captures cannot certify
+source-window fit or accepted building art.

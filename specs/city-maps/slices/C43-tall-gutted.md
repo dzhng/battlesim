@@ -45,3 +45,9 @@ occupant exit and rejection of another transition or garrison order.
 The gutted appearance explicitly awaits art. Legacy boxes without source floor
 facts cannot certify the tall threshold. Specialist art/GIF gates and integrated
 checks remain open.
+
+A terminal shell's retained exterior height does not retain fighting-floor
+support. Fallen occupants use the same support-loss and side-specific corpse
+memory contract as [C42](C42-low-rise-lifecycle.md); the visual body follows the
+published pose without replaying its death. This does not certify a charred
+exterior, window geometry or accepted tall-building source.
