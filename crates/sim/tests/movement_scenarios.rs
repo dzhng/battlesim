@@ -1154,11 +1154,10 @@ fn authored() -> Vec<Scenario> {
         },
         Scenario {
             name: "t3-tanks-meet-head-on",
-            caption: "a blue and a red tank meet head-on on a road: one waits, one detours, neither overlaps",
-            map: flat(
-                [160.0, 60.0],
-                json!({ "surfaces":[{"kind":"road","shape":{"kind":"stroke","points":[[0,30],[160,30]],"width_m":10}}] }),
-            ),
+            caption: "a blue and a red tank meet head-on in the open: one waits, one detours, neither overlaps",
+            // Open ground: on a road each keeps to its right and they pass
+            // (`road_journeys`), so the wait and the detour are met here.
+            map: flat([160.0, 60.0], json!({})),
             units: json!([
                 vehicle("blue", "tank", [15.0, 30.0], 0.0),
                 vehicle("red", "tank", [145.0, 30.0], std::f64::consts::PI),

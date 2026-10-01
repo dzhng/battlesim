@@ -80,3 +80,16 @@ test("clearing (a new battle) forgets every flash", () => {
   reveal.clear();
   expect(reveal.at(5, false, OWN).size).toBe(0);
 });
+
+test("a unit whose route turns out blocked flashes its order marks when that is found", () => {
+  const reveal = new OrderReveal(FLASH);
+  reveal.noteOrder(move([2]), 20);
+  const own = (state: string) => [{ id: 1 }, { id: 2, state }, { id: 3 }];
+  // Still planning when the order's own flash has gone.
+  expect(reveal.at(22, false, own("planning")).size).toBe(0);
+  // The verdict arrives: the marks (the blocked warning among them) show.
+  expect([...reveal.at(25, false, own("route_blocked"))]).toEqual([[2, 1]]);
+  expect([...reveal.at(25.9, false, own("route_blocked"))]).toEqual([[2, 1]]);
+  // It flashes once, not for as long as the route stays blocked.
+  expect(reveal.at(27, false, own("route_blocked")).size).toBe(0);
+});

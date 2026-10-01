@@ -206,3 +206,54 @@ replay must agree mid-retirement and across Native/Wasm. Calibrate tree-operatio
 allocator work and physical-page disposal before calling the combined tick budget green.
 The required source/snapshot preparation, side-known invalidation, polygon roads and
 general portals remain separate proof owners; no old synchronous A* fallback qualifies.
+
+## Outcome
+
+**Landed 2026-10-01** on `city-maps/sa2-navigation`: the counted planner is in `Battle`, long legs go by road, and planning no longer stalls a tick at either probe size. The ledger of decisions is [choices.md](../choices.md#sa2-navigation-at-full-extent). What follows replaces the proposal above where they differ.
+
+### The seams as built
+
+- **Rules** (`fixtures/village.json`, `navigation`, refused at load when out of range): `work_per_tick` 4,000, `search_cells_base` 20,000, `search_cells_per_m` 200, `road_leg_m` 2,000, `road_access_m` 1,000.
+- **Observation:** `MoveState` gains `planning` (a unit holding for its route). The publication layout carries the name list, so the browser decodes it without a change; no panel row shows it yet. A long leg's `policy` reads `fastest` from the tick it starts.
+- **Commands:** unchanged. `applied_tick` still means the order was applied, not that a route is ready.
+- **`Battle::digest`:** folds the planner's pending state (each request, the work spent on it, its search's progress, the round-robin cursor and any overrun owed). A planner with nothing pending folds nothing. `Battle::from_replay` reproduces every tick's digest, mid-plan included.
+- **`RoutePlanner`** (`crates/sim/src/route_planner.rs`), owned by `Battle`, driven by movement: `submit(unit, Request)`, `cancel(unit)`, `pending(unit)`, `advance(&NavigationRules, &RoadNet, [each side's grid and knowledge revision]) -> finished (unit, Request, Plan)`. One request per unit; submitting replaces. `Battle::load()` reports `routes_pending` and `planning_work`.
+- **Navigation** (`crates/sim/src/navigation.rs` and `navigation/`): `NavGrid` is what a route is checked on; `RoadNet::build(&WorldGeometry)` is the map's road graph, built once at load and shared by both sides; a `Journey` is one leg's route in progress (road graph, then the grid); `navigation::plan` runs one to its end for tools and tests. `NavGrid::plan` and the exact planner's start-up proofs are gone.
+
+### Measured
+
+`city_report` on the probe maps (`throwaway/city`, and a 10 km variant with a road through the edge midpoint and the centre), on the development machine at load 12 to 23. Instructions are the comparable number.
+
+| Run | Units hold for a route | Planning work | Busiest tick's planning | Slowest tick, ticks over 33 ms | Arrivals |
+|---|---|---|---|---|---|
+| 6 km, twelve 900 m fast moves, 120 s | 0.13–0.27 s | 30,739 units | 4,019 (allowance 4,000) | 5 ms, none | jeeps 100.7 s, tanks 80–116 s; one jeep still threading a wood |
+| 6 km, twelve edge-to-edge (5.5 km), 500 s | 0.7–1.5 s (one jeep in a wood 8.3 s over several plans) | 1,733,501 | 4,074 | 9 ms, none | tanks 468 s; one jeep 378 s, one within 10 m at 499 s |
+| 10 km, twelve edge-to-edge (9.2 km), 800 s | 1.0–2.2 s (one jeep in a wood 35 s over several plans) | 5,476,652 | 4,060 | 23 ms, none | two jeeps 594 s and 632 s; tanks still on the road |
+| 10 km, one jeep, edge midpoint to centre by road | 0.07 s (2 ticks) | 6,763 | 4,076 | 5 ms, none | **165.4 s** |
+| 10 km lattice probe, same order, start 830 m from any road | 0.10 s | 9,758 | 4,056 | 43 ms, one (no planning in it) | 369.1 s |
+| 6 km, one jeep, edge midpoint to centre (3 km, 750 m from roads) | 0.07 s | 5,002 | 4,010 | 2 ms, none | 278.8 s |
+
+- **No tick's planning exceeds the allowance by more than one step** (576 units): the busiest tick in any run did 4,076. A full planning tick costs about 25 to 35 million instructions (8 to 15 thousand a unit of work).
+- **No tick over 33 ms traces to planning.** Tick p50 is 0.04 to 0.31 ms and p95 0.7 to 4.8 ms across the runs. On the same machine at load 35 to 90 the same runs showed hundreds of ticks over 33 ms; the slowest carried 60 to 100 million instructions and no planning work (the fog sweep and soldiers' own routes among 63,000 to 180,000 trees, which S1 already listed).
+- **Load:** building a side's planning grid costs 10.5 G instructions on the 6 km map and about 31 G on the 10 km one. Both are now built with the battle (6 km battle build 22.3 G, 1.5 s, 267 MB resident; 10 km 65 to 67 G, 4.5 to 5 s, about 550 MB), not in the first order's tick.
+- **Route quality** against the frozen exact planner (`navigation_quality`, 12,064 cases): shortest routes 0.41% longer on average, worst 7.8%; fastest routes 0.50% slower on average, 15 of 4,757 over 10%, worst 17%. Every route fits the dense grid; no leg has a route in one planner and none in the other. 1,670 goals within a cell of a body or the map edge are moved to the middle of their cell.
+- **Village, quick report** (named digest changes): flank 3/3 captured at 431, 430 and 568 s, 225 lost (before: 2/3, 175 lost); ambush 0/3 captured, 60 lost, no tank lost (before: 0/3, 200 lost, one tank). 5,250 G instructions against 5,148 G.
+
+### Tests that pinned the old planner
+
+- `navigation::an_unbroken_water_strip_proves_no_route_without_exploring_a_map_half` asserted the separating-line proof (zero cells searched). The proof is deleted; the test is now `an_unbroken_water_strip_leaves_no_route`: no route, and no more than the near bank searched.
+- `movement_scenarios` `t3-tanks-meet-head-on` put the two tanks on a road to make them meet. On a road they now keep right and pass, so the scenario runs in the open, where the wait and the detour it checks still happen.
+- `drive::each_road_kind_carries_its_own_speed` measured cruise in the last 50 m of its strip, where a vehicle now moves back to the middle of the road to leave it; the strip is 200 m longer.
+- The dense-planner oracle `navigation_equivalence` asserted identical routes. It is now `navigation_quality` and measures the difference.
+- `web/scenes/movement.mjs` checked a blocked order five ticks after giving it; it now waits for planning to finish.
+- `web/scenes/_battleLook.mjs`'s walk into the west wood (a live village battle, already retuned twice for earlier rule changes) keeps 40 m south of the wood instead of 110 m: in the battle as it now plays the squad was pinned at the corner.
+
+### What is still open
+
+1. **A side's planning grid is rebuilt whole when its knowledge changes** (a tank fells or shoves a tree, a wreck appears, a body is destroyed): 10.5 G instructions on the 6 km map, 31 G on the 10 km one, in one tick. None of the probe runs triggered it; a real battle will. The grid samples the terrain again every time though only bodies changed; the fix is to keep the terrain layer and re-lay only the bodies near the change (cleared forest ground needs a change feed first). **This is the next blocker for a full-size battle.**
+2. **Vehicles among trees.** The grid judges a vehicle as a disc on 2 m cells; a trunk at a cell corner blocks no cell, and a hull is longer than it is wide. A jeep sent into or through a wood can stop against a trunk and plan the same route again every two seconds (one jeep did in each 12-unit run, and a jeep sent to a point among trees stops a metre short of it). The off-centre rule fixed the cases the tests met, not the general one.
+3. **Unreachable goals cost the whole search limit** before the unit reports blocked (about 5 s for a 2.8 km leg across an unbridged river).
+4. **Two columns head-on on a forest track** have nowhere to pull off; in the open they pass or drive round each other.
+5. **Roads authored as polygons** are not in the road graph.
+6. **The client:** `planning` has no panel row. The order marks now flash again when a route turns out blocked (the order's own flash is over by then); that wants a look in the UI pass.
+7. **Native/Wasm digest agreement at full extent** was not run. The planner reads no hash-map order and no wall time, and the web suite and the movement and village scenes pass on the Wasm build.
