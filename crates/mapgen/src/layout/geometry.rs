@@ -28,6 +28,10 @@ pub fn distance(a: Point, b: Point) -> f64 {
 pub fn direction(angle: f64) -> Point {
     [libm::cos(angle), libm::sin(angle)]
 }
+pub fn dot(a: Point, b: Point) -> f64 {
+    a[0] * b[0] + a[1] * b[1]
+}
+
 pub fn bearing(from: Point, to: Point) -> f64 {
     libm::atan2(to[1] - from[1], to[0] - from[0])
 }
@@ -124,6 +128,52 @@ pub fn ray_crossings<'a>(
     })
 }
 
+/// How far the ray from `origin` along the unit `direction` runs before it
+/// last leaves the ring; zero when it never meets it.
+pub fn ray_exit(ring: &[Point], origin: Point, direction: Point) -> f64 {
+    ray_crossings(origin, direction, ring).fold(0.0, f64::max)
+}
+
+/// The centroid of a ring's area.
+pub fn centroid(ring: &[Point]) -> Point {
+    let (mut twice, mut sum) = (0.0, [0.0, 0.0]);
+    for i in 0..ring.len() {
+        let (a, b) = (ring[i], ring[(i + 1) % ring.len()]);
+        let weight = cross(a, b);
+        twice += weight;
+        sum = add(sum, scale(add(a, b), weight));
+    }
+    scale(sum, 1.0 / (3.0 * twice))
+}
+
+/// The convex hull of `points`, counter-clockwise, with no three of its
+/// corners in a line (Andrew's monotone chain).
+pub fn convex_hull(points: &[Point]) -> Vec<Point> {
+    let mut sorted = points.to_vec();
+    sorted.sort_by(|a, b| a[0].total_cmp(&b[0]).then(a[1].total_cmp(&b[1])));
+    sorted.dedup();
+    let mut hull: Vec<Point> = Vec::with_capacity(sorted.len() + 1);
+    for pass in 0..2 {
+        let floor = hull.len();
+        for p in &sorted {
+            while hull.len() >= floor + 2
+                && cross(
+                    sub(hull[hull.len() - 1], hull[hull.len() - 2]),
+                    sub(*p, hull[hull.len() - 1]),
+                ) <= 0.0
+            {
+                hull.pop();
+            }
+            hull.push(*p);
+        }
+        hull.pop();
+        if pass == 0 {
+            sorted.reverse();
+        }
+    }
+    hull
+}
+
 /// Where segments `ab` and `cd` cross, as shares along each.
 pub fn segment_crossing(a: Point, b: Point, c: Point, d: Point) -> Option<(f64, f64)> {
     let (r, s) = (sub(b, a), sub(d, c));
@@ -150,14 +200,16 @@ pub fn turn(a: f64, b: f64) -> f64 {
 }
 
 /// An irregular closed outline, star-shaped about its centre: a superellipse
-/// whose radius a few low harmonics push in and out. Settlements and woods
-/// are both this shape.
+/// whose radius a few low harmonics push in and out. A wood is this shape;
+/// a settlement's ground is its hull.
 #[derive(Clone, Debug)]
 pub struct Outline {
     pub center: Point,
     pub ring: Vec<Point>,
     /// Farthest vertex from the centre.
     pub reach: f64,
+    /// Bearing of its long axis.
+    pub axis: f64,
 }
 
 impl Outline {
@@ -175,9 +227,12 @@ impl Outline {
             (amplitude, k, rng.range([0.0, TAU]))
         });
         let count = shape.points as usize;
+        // The first point falls anywhere in its step: an outline with few
+        // points has no corner fixed on its long axis.
+        let phase = rng.unit();
         let unit: Vec<Point> = (0..count)
             .map(|i| {
-                let angle = TAU * i as f64 / count as f64;
+                let angle = TAU * (i as f64 + phase) / count as f64;
                 let (c, s) = (libm::cos(angle), libm::sin(angle));
                 let base = libm::pow(
                     libm::pow(c.abs(), shape.exponent)
@@ -198,6 +253,29 @@ impl Outline {
             center: [0.0, 0.0],
             ring,
             reach,
+            axis: rotation,
+        }
+    }
+
+    /// The outline's convex hull, grown or shrunk about the centre to the
+    /// area the outline has: a few straight sides, with no bay for a
+    /// neighbour to stand in.
+    pub fn hull(&self) -> Self {
+        let offsets: Vec<Point> = self.ring.iter().map(|p| sub(*p, self.center)).collect();
+        let hull = convex_hull(&offsets);
+        let grow = libm::sqrt(area(&self.ring) / area(&hull));
+        let ring: Vec<Point> = hull
+            .into_iter()
+            .map(|p| add(self.center, scale(p, grow)))
+            .collect();
+        Self {
+            center: self.center,
+            reach: ring
+                .iter()
+                .map(|p| distance(*p, self.center))
+                .fold(0.0, f64::max),
+            ring,
+            axis: self.axis,
         }
     }
 
@@ -212,6 +290,7 @@ impl Outline {
                 .map(|p| round_cm(add(*p, center)))
                 .collect(),
             reach: self.reach,
+            axis: self.axis,
         }
     }
 
@@ -238,12 +317,13 @@ impl Outline {
             center: self.center,
             ring,
             reach: self.reach,
+            axis: self.axis,
         }
     }
 
     /// Distance from the centre to the outline's edge along `angle`.
     pub fn edge(&self, angle: f64) -> f64 {
-        ray_crossings(self.center, direction(angle), &self.ring).fold(0.0, f64::max)
+        ray_exit(&self.ring, self.center, direction(angle))
     }
 
     /// Open ground between this outline and a circle of `radius` about `p`.

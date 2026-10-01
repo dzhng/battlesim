@@ -99,7 +99,7 @@ fn request(directory: &std::path::Path) -> PathBuf {
     let path = directory.join("request.json");
     let request = serde_json::json!({
         "generator_version": mapgen::layout::GENERATOR_VERSION,
-        "preset_revision": "layout-presets-5",
+        "preset_revision": "layout-presets-6",
         "seed": "11",
         "template_catalog_hash": catalogue().hash(),
         "type": "mixed",
@@ -165,7 +165,8 @@ fn a_generated_plan_file_compiles_and_draws() {
     let layers =
         districts + plan.surfaces.len() + plan.forests.len() + plan.approaches.len() + parts;
     assert!(drawn >= layers, "{drawn} paths for {layers} features");
-    assert!(svg.contains("1 km") && svg.contains("detached home"));
+    // The scale bar's own label: the header's road lengths end in "km" too.
+    assert!(svg.contains(">1 km<") && svg.contains("detached home"));
     let metrics: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
     assert_eq!(metrics["roads"]["unconnected_settlements"], 0);
     assert_eq!(metrics["roads"]["unconnected_street_km"], 0.0);
@@ -184,7 +185,7 @@ fn a_generated_plan_file_compiles_and_draws() {
     assert!(crop.contains("#ffd43b"), "no entrance is drawn");
     assert!(!svg.contains("#ffd43b") && !svg.contains("#5c5346"));
     assert!(svg.contains("this view is 6000 m wide"));
-    assert!(!crop.contains("this view is 6000 m wide") && !crop.contains("1 km"));
+    assert!(!crop.contains("this view is 6000 m wide") && !crop.contains(">1 km<"));
     // A crop that names nothing in the plan is refused.
     let process = mapgen(&[
         "inspect".as_ref(),

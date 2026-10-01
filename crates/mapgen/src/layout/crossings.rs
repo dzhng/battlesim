@@ -262,12 +262,19 @@ impl<'a> Crossings<'a> {
             }
         }
         let ends = [-1.0, 1.0].map(|end| round_cm(at(end * (half_length + rule.approach_m), 0.0)));
+        // The whole deck and the road onto it stand on the map.
         let extent = self.context.extent;
-        let dry = ends.iter().all(|end| {
-            end.iter().all(|v| *v >= 0.0 && *v <= extent)
-                && self.water.gap(*end, rule.landing_m) >= rule.landing_m
+        let on_map = [-1.0, 1.0].iter().all(|end| {
+            [-half_width, half_width].iter().all(|across| {
+                at(end * (half_length + rule.approach_m), *across)
+                    .iter()
+                    .all(|v| *v >= 0.0 && *v <= extent)
+            })
         });
-        dry.then(|| Span {
+        let dry = ends
+            .iter()
+            .all(|end| self.water.gap(*end, rule.landing_m) >= rule.landing_m);
+        (on_map && dry).then(|| Span {
             bridge: Bridge {
                 deck: rule.deck.clone(),
                 center,

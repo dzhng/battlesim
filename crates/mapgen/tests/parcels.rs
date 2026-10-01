@@ -45,6 +45,21 @@ fn request(map_type: MapType, size: MapSize, seed: u64) -> GenerationRequest {
     }
 }
 
+/// The first seed whose map of this type and size has an industrial
+/// district: not every map has one.
+fn seed_with_industry(map_type: MapType, size: MapSize) -> u64 {
+    (1..=40)
+        .find(|seed| {
+            generate_layout(&request(map_type, size, *seed), &presets()).is_ok_and(|plan| {
+                plan.settlements
+                    .iter()
+                    .flat_map(|settlement| &settlement.districts)
+                    .any(|district| district.kind == "industrial")
+            })
+        })
+        .expect("a map with industry among forty seeds")
+}
+
 fn fill(
     request: &GenerationRequest,
     presets: &PresetDefinitions,
@@ -653,8 +668,9 @@ fn every_building_of_a_map_is_of_one_regional_family() {
     assert_eq!(drawn.len(), 2, "eight seeds drew only {drawn:?}");
 }
 
-/// M05: a bigger map has more town, not bigger town. Streets are one width,
-/// and a district kind is built as densely on a Large map as on a Small one.
+/// M05: a bigger map has more town, not bigger town. Streets and avenues
+/// are the widths they are on a Small map, and a district kind is built as
+/// densely on a Large map as on a Small one.
 #[test]
 fn towns_keep_their_metre_dimensions_at_every_map_size() {
     let density = |size: MapSize| {
@@ -683,14 +699,16 @@ fn towns_keep_their_metre_dimensions_at_every_map_size() {
     };
     let (small, small_widths) = density(MapSize::Small);
     let (large, large_widths) = density(MapSize::Large);
-    assert_eq!(small_widths.len(), 1);
+    // A street's width and an avenue's.
+    assert_eq!(small_widths.len(), 2);
     assert_eq!(small_widths, large_widths);
     for (kind, [buildings, hectares]) in &small {
         let [large_buildings, large_hectares] = large[kind];
         let (a, b) = (buildings / hectares, large_buildings / large_hectares);
-        // Districts differ in shape, so their fill does by a few per cent.
+        // Districts differ in shape, so their fill does by a few per cent,
+        // and by more for a kind with only a few districts to count.
         assert!(
-            (a - b).abs() <= 0.2 * a.max(b),
+            (a - b).abs() <= 0.25 * a.max(b),
             "{kind}: {a:.2} buildings per hectare on Small, {b:.2} on Large"
         );
     }
@@ -703,7 +721,8 @@ fn one_kinds_parcel_presets_do_not_move_the_rest_of_the_map() {
     let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
     source["districts"]["industrial"]["lots"]["front_m"] = serde_json::json!(12);
     let changed = PresetDefinitions::from_json(&source.to_string()).unwrap();
-    let request = request(MapType::Mixed, MapSize::Medium, 3);
+    let seed = seed_with_industry(MapType::Mixed, MapSize::Medium);
+    let request = request(MapType::Mixed, MapSize::Medium, seed);
     let before = fill(&request, &presets(), &catalogue()).unwrap();
     let after = fill(&request, &changed, &catalogue()).unwrap();
     let json = |value: &dyn erased::Json| value.json();
@@ -740,6 +759,7 @@ fn one_kinds_parcel_presets_do_not_move_the_rest_of_the_map() {
         )
     };
     assert_eq!(cut(&before, false), cut(&after, false));
+    assert!(!cut(&before, true).0.is_empty());
     assert_ne!(cut(&before, true).0, cut(&after, true).0);
 }
 
@@ -758,7 +778,8 @@ mod erased {
 /// quickly, never in an emptier town.
 #[test]
 fn what_cannot_be_built_ends_in_a_named_diagnostic() {
-    let request = request(MapType::Mixed, MapSize::Small, 5);
+    let seed = seed_with_industry(MapType::Mixed, MapSize::Small);
+    let request = request(MapType::Mixed, MapSize::Small, seed);
     // Setbacks no district can hold.
     let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
     source["districts"]["garden_suburb"]["lots"]["front_m"] = serde_json::json!(900);
@@ -772,7 +793,7 @@ fn what_cannot_be_built_ends_in_a_named_diagnostic() {
         "{feature}"
     );
     assert!(
-        errors[0].message.contains("seed 5"),
+        errors[0].message.contains(&format!("seed {seed}")),
         "{}",
         errors[0].message
     );
@@ -835,4 +856,91 @@ fn every_generated_map_loads_as_the_contracts_map() {
         contract::maps::resolve(&saved, &sources.to_string(), &library, admission)
             .unwrap_or_else(|error| panic!("{name}: {error}"));
     });
+}
+
+/// A hamlet is lots along a lane: its streets are dirt tracks, never paved.
+#[test]
+fn a_hamlets_lanes_are_dirt_tracks() {
+    let mut lanes = 0;
+    every_cell(|name, _, town| {
+        for hamlet in town.plan.settlements.iter().filter(|s| s.class == "hamlet") {
+            for area in &town.plan.surfaces {
+                let GroundShape::Stroke { centerline, .. } = &area.shape else {
+                    continue;
+                };
+                let points = centerline.control_points();
+                let middle = [
+                    (points[0][0] + points[points.len() - 1][0]) / 2.0,
+                    (points[0][1] + points[points.len() - 1][1]) / 2.0,
+                ];
+                if !polygon_contains(&hamlet.outline, middle) {
+                    continue;
+                }
+                assert_ne!(
+                    area.kind,
+                    SurfaceKind::Road,
+                    "{name}: {} has a paved street at {middle:?}",
+                    hamlet.id
+                );
+                lanes += usize::from(area.kind == SurfaceKind::DirtTrack);
+            }
+        }
+    });
+    assert!(lanes >= 40, "{lanes} lanes in all the hamlets");
+}
+
+/// A district's parcels front its own streets, which run with the road or
+/// avenue it stands on: they do not all turn to face the middle of the
+/// town. In the larger towns, well under half of the districts have their
+/// parcels squared to the bearing from the town's centre.
+#[test]
+fn a_districts_parcels_square_to_its_streets_not_to_the_towns_centre() {
+    let (mut squared, mut all) = (0, 0);
+    every_cell(|_, _, town| {
+        let larger = town
+            .plan
+            .settlements
+            .iter()
+            .filter(|settlement| settlement.districts.len() >= 8);
+        for settlement in larger {
+            for district in &settlement.districts {
+                // The bearing its parcels' street fronts run on, four times
+                // over, so that fronts square to each other agree.
+                let (mut sin, mut cos) = (0.0_f64, 0.0_f64);
+                let prefix = format!("{}/", district.id);
+                let lots = town
+                    .plan
+                    .lots
+                    .iter()
+                    .filter(|lot| lot.id.starts_with(&prefix));
+                for lot in lots {
+                    let (a, b) = (lot.ring[0], lot.ring[1]);
+                    let bearing = (b[1] - a[1]).atan2(b[0] - a[0]);
+                    sin += (4.0 * bearing).sin();
+                    cos += (4.0 * bearing).cos();
+                }
+                let from_centre = [
+                    district.anchor[0] - settlement.center[0],
+                    district.anchor[1] - settlement.center[1],
+                ];
+                // Districts with parcels, far enough out to have a bearing.
+                if sin.hypot(cos) < 1.0 || from_centre[0].hypot(from_centre[1]) < 150.0 {
+                    continue;
+                }
+                let fronts = sin.atan2(cos) / 4.0;
+                let radial = from_centre[1].atan2(from_centre[0]);
+                // Their difference, folded into the 45° either side of square.
+                let quarter = core::f64::consts::FRAC_PI_2;
+                let off = ((fronts - radial).rem_euclid(quarter) + quarter / 2.0) % quarter
+                    - quarter / 2.0;
+                all += 1;
+                squared += usize::from(off.abs() <= 10.0_f64.to_radians());
+            }
+        }
+    });
+    assert!(all >= 100, "{all} districts");
+    assert!(
+        squared * 2 < all,
+        "{squared} of {all} districts have parcels squared to the town's centre"
+    );
 }

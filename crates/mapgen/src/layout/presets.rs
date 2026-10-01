@@ -24,6 +24,7 @@ pub struct PresetDefinitions {
     pub transit: Transit,
     pub roads: Roads,
     pub sites: Sites,
+    pub towns: Towns,
     pub forests: Forests,
     pub rivers: Rivers,
     pub retries: Retries,
@@ -45,16 +46,17 @@ pub struct Terrain {
 }
 
 /// The one open-approach rule (M19): the main settlement has, in each half,
-/// ground open for `depth_m` beyond its edge across a front of `front_m`.
+/// a corridor of open ground `front_m` wide for `depth_m` beyond its edge.
 #[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Approach {
     pub depth_m: f64,
     pub front_m: f64,
-    /// What the generator keeps clear so the measured wedge meets the rule.
+    /// What the generator keeps clear so the measured corridor meets the
+    /// rule: a wider front, and a margin past the depth.
     pub reserve_front_m: f64,
     pub reserve_margin_m: f64,
-    /// Bearings tried in each half for the reserved wedge.
+    /// Bearings tried in each half for the reserved corridor.
     pub bearing_candidates: u32,
 }
 
@@ -85,7 +87,8 @@ pub struct Fairness {
     pub river: Tolerance,
 }
 
-/// A light vehicle's road journey from the middle of each edge to the centre.
+/// A light vehicle's road journey from the middle of the top edge and of the
+/// bottom edge, where the two sides start, to the centre (M22).
 #[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Transit {
@@ -93,8 +96,11 @@ pub struct Transit {
     /// Planning, turns and slower stretches, added to the driving time.
     pub allowance_s: f64,
     pub max_s: f64,
-    /// The share of an edge, centred on its midpoint, a main road may leave by.
+    /// The share of an edge, centred on its midpoint, a main road leaves by.
     pub exit_window: f64,
+    /// The centre is reached at the road junction within this of the map's
+    /// middle.
+    pub centre_reach_m: f64,
 }
 
 impl Transit {
@@ -119,8 +125,17 @@ pub struct Roads {
     /// How far a road may swing off its straight line, as a share of its length.
     pub bend_amplitude: f64,
     pub bend_max_m: f64,
-    /// How far the main junction may sit from the exact centre.
-    pub hub_jitter_m: f64,
+    /// How far the main junction, and the main settlement about it, may sit
+    /// from the exact centre along X and Y. Y stays small so the two halves
+    /// share it.
+    pub hub_offset_m: [f64; 2],
+    /// The share of maps with a road across the middle from side to side.
+    pub cross_road_chance: f64,
+    /// On the other maps, how often one road comes in from the left or the
+    /// right edge,
+    pub side_road_chance: f64,
+    /// and the share of that edge, centred on its midpoint, it may leave by.
+    pub side_exit_window: f64,
     /// An edge road may join an earlier one this far, by road, from the main
     /// junction,
     pub junction_reach_m: f64,
@@ -131,6 +146,17 @@ pub struct Roads {
     /// How far past its centre, as a share of the way to its edge, the road
     /// that joins a settlement carries on as its main street.
     pub main_street_reach: f64,
+    /// A road runs straight across a settlement's ground, and turns this far
+    /// outside it.
+    pub gate_margin_m: f64,
+    /// The sharpest turn a road makes where it leaves a settlement's main
+    /// street or carries on from another road's end. It is also the least
+    /// angle at which a road joins a road that passes, and the farthest off
+    /// square to its edge that an extra road in from the edge sets out.
+    pub turn_max_deg: f64,
+    /// A road that passes this near a settlement's centre, as a share of
+    /// its ground's reach, is its main street already.
+    pub through_reach: f64,
     /// Longest link between neighbouring settlements.
     pub link_max_m: f64,
     /// Most extra roads in from the edges, on the richest network.
@@ -154,6 +180,32 @@ pub struct Sites {
     pub cluster_reach_m: f64,
 }
 
+/// How a settlement grows over the blocks its ground is cut into. Every
+/// length is metres, the same at every map size.
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Towns {
+    /// The street laid along a block's edge where no road runs.
+    pub avenue_width_m: f64,
+    /// How unevenly a settlement grows: the share by which a block's
+    /// distance from the centre is drawn longer or shorter, one draw for
+    /// each patch of ground this many of its longest blocks across.
+    pub growth_noise: f64,
+    pub growth_patch_blocks: f64,
+    /// The fewest such patches a settlement's ground has.
+    pub growth_patches_min: u32,
+    /// A piece of ground with a corner sharper than this is left open.
+    pub corner_min_deg: f64,
+    /// Where a row of up to two blocks is cut across, as a share of its
+    /// length.
+    pub block_split: Range,
+    /// The most a cut between blocks turns off square, either way.
+    pub block_skew_deg: f64,
+    /// How many times its length an edge on a road counts for, when a
+    /// piece of ground picks the edge it fronts.
+    pub road_frontage: f64,
+}
+
 #[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Forests {
@@ -170,9 +222,10 @@ pub struct Forests {
     /// How far measured coverage may fall outside a type's `forest_share`.
     pub share_tolerance: f64,
     pub max_woods: u32,
-    /// Chance that ground a settlement leaves open between its districts is
-    /// wooded rather than field.
+    /// Chance that a wood is tried on a block a settlement leaves open
+    /// beside its districts, and the wood's size as a share of the block's.
     pub infill_chance: f64,
+    pub infill_cover: Range,
 }
 
 /// A river: a meandering line of water from the north edge to the south, and
@@ -202,6 +255,17 @@ pub struct Rivers {
     pub road_gap_m: f64,
     pub junction_gap_m: f64,
     pub bridge: BridgeRule,
+}
+
+impl Forests {
+    /// A wood's shape: an ellipse with its edge drawn in and out.
+    pub fn shape(&self) -> OutlineShape {
+        OutlineShape {
+            exponent: 2.0,
+            noise: self.outline_noise,
+            points: self.outline_points,
+        }
+    }
 }
 
 impl Rivers {
@@ -270,6 +334,12 @@ pub struct Retries {
     pub river: u32,
     pub repair_settlements: u32,
     pub repair_woods: u32,
+    /// The most blocks one settlement builds or leaves open at a time to
+    /// even out the two halves.
+    pub repair_blocks: u32,
+    /// Woods drawn for one open block of a settlement before it is left a
+    /// field.
+    pub infill: u32,
     /// Templates tried at one place along a street before it is left open.
     pub fit: u32,
 }
@@ -283,6 +353,10 @@ pub struct DistrictPreset {
     /// kept dominant first.
     #[serde(deserialize_with = "mix")]
     pub mix: Mix,
+    /// The least ground it is built on: a rectangle this long against a
+    /// street and this deep from it, room for its largest parcel. A block
+    /// that cannot hold it is another kind, or open.
+    pub ground_m: [f64; 2],
     pub streets: StreetPattern,
     pub lots: LotRule,
 }
@@ -292,6 +366,8 @@ pub struct DistrictPreset {
 #[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct StreetPattern {
+    /// What its streets are: paved `road`, or `dirt_track` for a lane.
+    pub surface: SurfaceKind,
     pub block_depth_m: f64,
     pub block_length_m: f64,
     /// Swings both street families off their straight lines; absent is a
@@ -373,34 +449,43 @@ pub struct SettlementClass {
     pub road: SurfaceKind,
     /// Whether open approaches to it are measured.
     pub approach: bool,
-    /// Rings of districts from the centre out; the last reaches the edge.
-    pub bands: Vec<Band>,
+    /// The share of its ground (the class's size) that is built on. The rest is
+    /// field or wood beside and between its districts.
+    pub built_share: Range,
+    pub block: BlockRule,
+    /// How much a block's distance from the nearest road counts against its
+    /// distance from the centre when the settlement grows: 0 grows a compact
+    /// town, more strings it along its roads.
+    pub ribbon: f64,
+    /// How many blocks side by side take one district kind together.
+    pub neighbourhood: [u32; 2],
+    /// What its blocks are, from the centre out; the last zone reaches the
+    /// edge.
+    pub zones: Vec<Zone>,
+}
+
+/// A block is one district: ground bounded by roads, streets and the
+/// settlement's edge, this deep from the road it fronts and this long
+/// along it.
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BlockRule {
+    pub depth_m: Range,
+    pub length_m: Range,
 }
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Band {
-    /// Outer limit as a share of the distance from centre to edge.
+pub struct Zone {
+    /// Outer limit as a share of the settlement's built ground, counted
+    /// block by block from the centre out.
     pub to: f64,
-    pub sectors: u32,
-    /// District id to the weight a sector picks it with.
+    /// District id to the weight a block picks it with.
     pub districts: BTreeMap<String, f64>,
-    /// The weights a sector on a main road picks with instead, so that
-    /// industry, say, lines the road.
+    /// The weights a block at the settlement's edge on a country road picks
+    /// with instead, so that industry stands where the road comes in.
     #[serde(default)]
     pub roadside: Option<BTreeMap<String, f64>>,
-    /// Share of the band's sectors left unbuilt: field or wood reaching into
-    /// the town. The innermost band is always built.
-    #[serde(default)]
-    pub open: f64,
-    /// A built sector stops at a seed-drawn share of the band's depth, from
-    /// this up to 1, so the town's edge is uneven.
-    #[serde(default = "full")]
-    pub ragged: f64,
-}
-
-fn full() -> f64 {
-    1.0
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -420,13 +505,11 @@ pub struct TypePreset {
     pub sizes: BTreeMap<MapSize, SizePreset>,
 }
 
+/// The main settlement: it stands on the main junction.
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Centre {
     pub class: String,
-    /// How far its centre may sit from the map's, as shares of the extent
-    /// along X and Y. Y stays small so the two halves share it.
-    pub offset: [f64; 2],
 }
 
 /// How often a settlement is sited on a main road's line, beside the main
@@ -519,9 +602,10 @@ impl PresetDefinitions {
                 && t.allowance_s >= 0.0
                 && t.max_s.is_finite()
                 && t.max_s > t.allowance_s
-                && share(t.exit_window),
+                && share(t.exit_window)
+                && positive(t.centre_reach_m),
             "transit".into(),
-            "transit needs a road speed, a time above its allowance and an exit window",
+            "transit needs a road speed, a time above its allowance, an exit window and a centre",
         );
         let r = &self.roads;
         check(
@@ -532,14 +616,21 @@ impl PresetDefinitions {
                 && (0.0..=0.5).contains(&r.bend_amplitude)
                 && r.bend_max_m >= 0.0
                 && r.bend_max_m.is_finite()
-                && r.hub_jitter_m >= 0.0
-                && r.hub_jitter_m.is_finite()
+                && r.hub_offset_m.iter().all(|v| length(*v))
+                // The main junction is the centre a journey is timed to.
+                && libm::hypot(r.hub_offset_m[0], r.hub_offset_m[1]) <= t.centre_reach_m
+                && (0.0..=1.0).contains(&r.cross_road_chance)
+                && (0.0..=1.0).contains(&r.side_road_chance)
+                && share(r.side_exit_window)
+                && length(r.gate_margin_m)
+                && (0.0..=90.0).contains(&r.turn_max_deg)
                 && r.junction_reach_m >= 0.0
                 && r.junction_reach_m.is_finite()
                 && (0.0..=1.0).contains(&r.junction_chance)
                 && r.waypoint_reach_m >= 0.0
                 && r.waypoint_reach_m.is_finite()
                 && share(r.main_street_reach)
+                && share(r.through_reach)
                 && positive(r.link_max_m),
             "roads".into(),
             "road widths, bends and junction spreads must be finite and nonnegative",
@@ -550,6 +641,22 @@ impl PresetDefinitions {
                 && positive(self.sites.cluster_reach_m),
             "sites".into(),
             "sites need a nonnegative edge margin and a cluster reach",
+        );
+        let towns = &self.towns;
+        check(
+            positive(towns.avenue_width_m)
+                && (0.0..1.0).contains(&towns.growth_noise)
+                && positive(towns.growth_patch_blocks)
+                && towns.growth_patches_min >= 1
+                && (0.0..90.0).contains(&towns.corner_min_deg)
+                && range(towns.block_split)
+                && towns.block_split[0] > 0.0
+                && towns.block_split[1] < 1.0
+                && (0.0..=20.0).contains(&towns.block_skew_deg)
+                && towns.road_frontage.is_finite()
+                && towns.road_frontage >= 1.0,
+            "towns".into(),
+            "towns need an avenue width, a growth noise below 1 in one or more patches of a positive size, a sharpest corner below 90°, a block split inside a row, a skew of 20° at most and a road frontage of 1 or more",
         );
         let f = &self.forests;
         check(
@@ -569,6 +676,7 @@ impl PresetDefinitions {
                 && f.forest_gap_m.is_finite()
                 && (0.0..1.0).contains(&f.share_tolerance)
                 && (0.0..=1.0).contains(&f.infill_chance)
+                && positive_range(f.infill_cover)
                 && f.max_woods > 0,
             "forests".into(),
             "forest sizes, outline and gaps must be finite, ordered and positive",
@@ -649,7 +757,7 @@ impl PresetDefinitions {
         );
         let n = &self.retries;
         check(
-            n.centre > 0 && n.site > 0 && n.forest > 0 && n.river > 0 && n.fit > 0,
+            n.centre > 0 && n.site > 0 && n.forest > 0 && n.river > 0 && n.fit > 0 && n.infill > 0,
             "retries".into(),
             "every search needs at least one attempt",
         );
@@ -672,11 +780,17 @@ impl PresetDefinitions {
                 format!("districts.{id}.mix"),
                 "a district is one building category, or one with a minor second, by positive weight",
             );
+            check(
+                district.ground_m.iter().all(|v| positive(*v)),
+                format!("districts.{id}.ground_m"),
+                "a district needs a positive length and depth of ground",
+            );
             let streets = &district.streets;
             // A block must hold a street and its verges with ground to spare.
             let least = p.street_width_m + 2.0 * p.verge_m;
             check(
-                streets.block_depth_m.is_finite()
+                matches!(streets.surface, SurfaceKind::Road | SurfaceKind::DirtTrack)
+                    && streets.block_depth_m.is_finite()
                     && streets.block_length_m.is_finite()
                     && streets.block_depth_m > least
                     && streets.block_length_m > least
@@ -688,7 +802,7 @@ impl PresetDefinitions {
                             && bend.amplitude_m * core::f64::consts::TAU / bend.wavelength_m <= 0.5
                     }),
                 format!("districts.{id}.streets"),
-                "blocks must be wider than a street, cross_skip a chance below 1, and a bend gentle",
+                "streets are road or dirt_track, blocks wider than a street, cross_skip a chance below 1, and a bend gentle",
             );
             let lots = &district.lots;
             check(
@@ -730,14 +844,43 @@ impl PresetDefinitions {
                 at("road"),
                 "a settlement joins the network by a carriageway",
             );
+            check(
+                positive_range(class.built_share) && class.built_share[1] <= 1.0,
+                at("built_share"),
+                "built_share is an ordered range of shares",
+            );
+            check(
+                positive_range(class.block.depth_m) && positive_range(class.block.length_m),
+                at("block"),
+                "a block's depth and length are ordered ranges of metres",
+            );
+            check(length(class.ribbon), at("ribbon"), "ribbon is nonnegative");
+            check(
+                class.neighbourhood[0] >= 1 && class.neighbourhood[0] <= class.neighbourhood[1],
+                at("neighbourhood"),
+                "a neighbourhood is an ordered count of blocks from 1",
+            );
+            // A block cut to the class's least depth still holds one of its
+            // kinds' parcels, behind the widest carriageway and its verge.
+            let setback = self.setback_m();
+            let shallowest = class
+                .zones
+                .iter()
+                .flat_map(|zone| zone.districts.keys())
+                .filter_map(|kind| self.districts.get(kind))
+                .map(|district| district.ground_m[1])
+                .fold(f64::INFINITY, f64::min);
+            check(
+                class.block.depth_m[0] >= shallowest + setback,
+                at("block.depth_m"),
+                "a block is at least as deep as the ground its shallowest district kind needs, behind a street's half width and verge",
+            );
             let mut from = 0.0;
-            for (index, band) in class.bands.iter().enumerate() {
-                let sectors_ok = band.sectors >= if from > 0.0 { 2 } else { 1 }
-                    && band.sectors * 2 <= class.outline.points;
+            for (index, zone) in class.zones.iter().enumerate() {
                 check(
-                    band.to > from && band.to <= 1.0 && sectors_ok,
-                    at(&format!("bands[{index}]")),
-                    "bands grow outward to 1; a ring needs 2 or more sectors, each two outline points wide",
+                    zone.to > from && zone.to <= 1.0,
+                    at(&format!("zones[{index}]")),
+                    "zones grow outward to 1",
                 );
                 let picks = |weights: &BTreeMap<String, f64>| {
                     !weights.is_empty()
@@ -746,23 +889,16 @@ impl PresetDefinitions {
                             .all(|(d, w)| self.districts.contains_key(d) && positive(*w))
                 };
                 check(
-                    picks(&band.districts) && band.roadside.as_ref().is_none_or(picks),
-                    at(&format!("bands[{index}].districts")),
-                    "a band picks known districts with positive weights",
+                    picks(&zone.districts) && zone.roadside.as_ref().is_none_or(picks),
+                    at(&format!("zones[{index}].districts")),
+                    "a zone picks known districts with positive weights",
                 );
-                check(
-                    (0.0..1.0).contains(&band.open)
-                        && share(band.ragged)
-                        && (index > 0 || band.open == 0.0),
-                    at(&format!("bands[{index}].open")),
-                    "open is a share below 1, zero at the centre, and ragged a share of the band's depth",
-                );
-                from = band.to;
+                from = zone.to;
             }
             check(
                 from == 1.0,
-                at("bands"),
-                "the last band must reach the settlement's edge (to: 1)",
+                at("zones"),
+                "the last zone must reach the settlement's edge (to: 1)",
             );
         }
         for map_type in MapType::ALL {
@@ -777,10 +913,9 @@ impl PresetDefinitions {
             };
             let at = |field: &str| format!("types.{name}.{field}");
             check(
-                self.classes.contains_key(&preset.centre.class)
-                    && preset.centre.offset.iter().all(|v| (0.0..0.5).contains(v)),
+                self.classes.contains_key(&preset.centre.class),
                 at("centre"),
-                "the centre names a known class and an offset below half the map",
+                "the centre names a known class",
             );
             check(
                 preset.siting.on_road >= 0.0
@@ -839,11 +974,11 @@ impl PresetDefinitions {
                     .classes
                     .get(class)
                     .into_iter()
-                    .flat_map(|class| &class.bands)
-                    .flat_map(|band| {
-                        band.districts
+                    .flat_map(|class| &class.zones)
+                    .flat_map(|zone| {
+                        zone.districts
                             .keys()
-                            .chain(band.roadside.iter().flatten().map(|(d, _)| d))
+                            .chain(zone.roadside.iter().flatten().map(|(d, _)| d))
                     });
                 for district in districts {
                     let mix = self.districts.get(district).map(|d| &d.mix);
@@ -863,6 +998,26 @@ impl PresetDefinitions {
             }
         }
         errors
+    }
+
+    /// The streets the layout lays between the blocks of a settlement whose
+    /// own road is `road`: their surface and width. Lanes where that road
+    /// is a dirt track, avenues elsewhere.
+    pub fn avenue(&self, road: SurfaceKind) -> (SurfaceKind, f64) {
+        match road {
+            SurfaceKind::DirtTrack => (SurfaceKind::DirtTrack, self.roads.dirt_track_width_m),
+            _ => (SurfaceKind::Road, self.towns.avenue_width_m),
+        }
+    }
+
+    /// From a carriageway's middle to the front of the parcels along it,
+    /// at most: half the widest carriageway and the verge.
+    pub fn setback_m(&self) -> f64 {
+        self.towns
+            .avenue_width_m
+            .max(self.roads.country_road_width_m)
+            / 2.0
+            + self.parcels.verge_m
     }
 
     pub fn class(&self, id: &str) -> &SettlementClass {
