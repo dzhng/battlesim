@@ -687,3 +687,58 @@ fn river_presets_the_terrain_or_a_road_cannot_carry_are_refused_at_load() {
         );
     }
 }
+
+/// A road that follows the bank is authored as any road is: by the points
+/// its line needs, not by one for every point of the river beside it. No
+/// point of a road beside the water could be dropped and leave the road
+/// within a couple of metres of where it ran.
+#[test]
+fn a_road_along_the_bank_is_authored_no_more_densely_than_its_line_needs() {
+    let (mut beside, mut idle) = (0, 0);
+    every_river_map(1..=8, |_, plan| {
+        let river = &plan.rivers[0];
+        let near = near_water(river);
+        for area in plan.surfaces.iter().filter(|area| area.kind.is_road()) {
+            let GroundShape::Stroke { centerline, .. } = &area.shape else {
+                continue;
+            };
+            for run in centerline.control_points().windows(3) {
+                // A bridge's straight run of road is authored point for
+                // point; this is about the road beside the water.
+                let bridged = plan.bridges.iter().any(|bridge| {
+                    let [along, across] = on_deck(bridge, run[1]);
+                    along.abs() < bridge.half_extents[0] + 40.0 && across.abs() < 40.0
+                });
+                if bridged || !run.iter().all(|p| near.contains(&square(*p))) {
+                    continue;
+                }
+                beside += 1;
+                // The middle point, against the straight line its
+                // neighbours would make without it.
+                let off = contract::ground::segment_distance(run[0], run[2], run[1]);
+                idle += usize::from(off < 0.5);
+            }
+        }
+    });
+    assert!(beside >= 60, "{beside} road points beside a river");
+    assert!(
+        idle * 10 < beside,
+        "{idle} of {beside} road points beside a river sit on the line their neighbours make"
+    );
+}
+
+/// A main road is timed along its rounded line, the one `measure` drives. A
+/// corner onto a bridge or along a bank makes that line longer than the
+/// straight runs between its points: on this seed by 23 cm, which put the
+/// east edge 3 cm over the limit.
+#[test]
+fn a_main_road_with_corners_at_the_river_is_timed_along_its_rounded_line() {
+    let presets = presets(1.0);
+    let plan = generate(&presets, MapType::Mixed, MapSize::Medium, 115)
+        .unwrap_or_else(|errors| panic!("{errors:?}"));
+    let metrics = measure(&plan, &presets);
+    assert_eq!(metrics.transit.len(), 4);
+    for edge in &metrics.transit {
+        assert!(edge.elapsed_s <= presets.transit.max_s, "{edge:?}");
+    }
+}

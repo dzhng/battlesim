@@ -293,6 +293,7 @@ impl<'a> Network<'a> {
         let class_of = |index: usize| presets.class(&sites[index].class_id);
         let centre_of = |index: usize| sites[index].outline.center;
         let budget = presets.transit.budget_m();
+        let width = presets.roads.width_m(SurfaceKind::CountryRoad);
         let mut in_time = true;
         // Road distance to the hub from each junction, along the roads as built.
         let mut to_hub: Vec<(Point, f64)> = Vec::new();
@@ -303,13 +304,13 @@ impl<'a> Network<'a> {
                 .map_or(0.0, |(_, tail)| *tail);
             // Road distance to the hub from every point of a candidate road.
             let measured = |points: &[Point]| {
-                let mut left = tail;
-                let mut each = vec![(points[points.len() - 1], left)];
-                for run in points.windows(2).rev() {
-                    left += distance(run[0], run[1]);
-                    each.push((run[0], left));
-                }
-                each
+                let driven = driven(points, width);
+                let whole = driven[points.len() - 1];
+                points
+                    .iter()
+                    .zip(driven)
+                    .map(|(point, run)| (*point, tail + whole - run))
+                    .collect::<Vec<_>>()
             };
             // In time for its own edge, and for every arm that joins it: that
             // arm comes straight from its exit, by this road's bridges where
@@ -322,10 +323,12 @@ impl<'a> Network<'a> {
                         arm.joins.iter().find(|(join, _)| *join == point)
                     {
                         let straight = vec![*exit, *join];
-                        self.carried(SurfaceKind::CountryRoad, straight, &mut planned.to_vec())?
-                            .windows(2)
-                            .map(|run| distance(run[0], run[1]))
-                            .sum()
+                        let road = self.carried(
+                            SurfaceKind::CountryRoad,
+                            straight,
+                            &mut planned.to_vec(),
+                        )?;
+                        driven(&road, width)[road.len() - 1]
                     } else {
                         continue;
                     };
@@ -429,6 +432,43 @@ impl<'a> Network<'a> {
             self.add(SurfaceKind::CountryRoad, points, planned);
         }
         Ok(in_time)
+    }
+}
+
+/// How far a road of `width` has run at each of its authored points, along
+/// the rounded centreline its surface is made on: the line `measure` drives.
+/// A corner's curve through its point is longer than the two straight runs it
+/// rounds. (The straight runs themselves for points the shared centreline
+/// refuses, which then becomes the straight road.)
+fn driven(points: &[Point], width: f64) -> Vec<f64> {
+    let straight = || {
+        let mut run = vec![0.0];
+        for pair in points.windows(2) {
+            run.push(run[run.len() - 1] + distance(pair[0], pair[1]));
+        }
+        run
+    };
+    let Ok(GroundShape::Stroke { centerline, .. }) = GroundShape::stroke(points.to_vec(), width)
+    else {
+        return straight();
+    };
+    // The rounded line passes through every authored point, in order.
+    let mut run = Vec::with_capacity(points.len());
+    let (mut length, mut next) = (0.0, 0);
+    let samples = centerline.samples();
+    for (index, sample) in samples.iter().enumerate() {
+        if index > 0 {
+            length += distance(samples[index - 1], *sample);
+        }
+        if points.get(next) == Some(sample) {
+            run.push(length);
+            next += 1;
+        }
+    }
+    if run.len() == points.len() {
+        run
+    } else {
+        straight()
     }
 }
 

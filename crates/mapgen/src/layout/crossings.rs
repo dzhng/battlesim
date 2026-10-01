@@ -7,7 +7,7 @@
 //! different banks crosses once.
 use super::geometry::{
     add, bearing, direction, distance, round_cm, scale, segment_bounds, segment_crossing, sub,
-    turn, Grid, Point, PI,
+    thinned, turn, Grid, Point, PI,
 };
 use super::water::{Crossing, Water};
 use super::Context;
@@ -285,6 +285,10 @@ impl<'a> Crossings<'a> {
     /// taken along the line beside the water instead.
     fn keep(&self, points: &[Point]) -> Vec<Point> {
         let rules = &self.context.presets.rivers;
+        // A road is beside the water when it is within half a bank's width
+        // of the line: a point of the line itself is a road's clearance
+        // from the water, give or take the rounding of a bend.
+        let margin = rules.bank_m() / 2.0;
         let bank = self.water.bank(points[0]);
         let last = points.len() - 1;
         let mut run_start = vec![0.0];
@@ -299,9 +303,7 @@ impl<'a> Crossings<'a> {
             let share = (along - run_start[run]) / (run_start[run + 1] - run_start[run]);
             let p = add(points[run], scale(sub(points[run + 1], points[run]), share));
             self.water.bank(p) != bank
-                // A point of the line itself is a road's clearance from the
-                // water, give or take the rounding of a bend.
-                || self.water.gap(p, rules.road_gap_m) < rules.road_gap_m - rules.bank_m() / 2.0
+                || self.water.gap(p, rules.road_gap_m) < rules.road_gap_m - margin
         };
         // The side whose line lies on this road's bank.
         let side = usize::from(self.water.bank(self.beside[0][self.beside[0].len() / 2]) != bank);
@@ -322,24 +324,38 @@ impl<'a> Crossings<'a> {
         let mut stations = vec![end(points[0], 0, 0.0)];
         stations.extend(self.meetings(points, &run_start, side));
         stations.push(end(points[last], last - 1, run_start[last]));
+        // Whether the road strays between each station and the next.
+        let astray: Vec<bool> = stations
+            .windows(2)
+            .map(|pair| strays((pair[0].along + pair[1].along) / 2.0))
+            .collect();
         let mut out = vec![points[0]];
-        for pair in stations.windows(2) {
+        for (stretch, pair) in stations.windows(2).enumerate() {
             let (from, to) = (&pair[0], &pair[1]);
-            if strays((from.along + to.along) / 2.0) {
-                // The line's own points between the two stations.
+            if astray[stretch] {
+                // The line between the two stations, by as few of its points
+                // as keep the road within the same margin of it.
                 let (low, high) = (from.beside.min(to.beside), from.beside.max(to.beside));
                 let between = libm::ceil(low) as usize..=libm::floor(high) as usize;
-                if to.beside >= from.beside {
-                    out.extend(between.map(|i| line[i]));
-                } else {
-                    out.extend(between.rev().map(|i| line[i]));
+                let mut along: Vec<Point> = between.map(|i| line[i]).collect();
+                if to.beside < from.beside {
+                    along.reverse();
                 }
+                along.insert(0, from.at);
+                along.push(to.at);
+                let followed = thinned(&along, margin);
+                out.extend(&followed[1..followed.len() - 1]);
             } else {
                 // The road's own points between them: after the run the
                 // first is on, up to the run the second is on.
                 out.extend(&points[from.run + 1..to.run + 1]);
             }
-            out.push(to.at);
+            // A meeting is a point of the road only where the road takes to
+            // the line or leaves it there.
+            let next = astray.get(stretch + 1);
+            if astray[stretch] || next.is_none_or(|astray| *astray) {
+                out.push(to.at);
+            }
         }
         out.into_iter().map(round_cm).collect()
     }
