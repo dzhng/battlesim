@@ -715,6 +715,7 @@ export async function createModelLayer(
   let skinnedCount = 0;
   let paletteUsed = 1;
   let drawnCount = 0;
+  let hasXrayMeshes = false;
 
   let units: readonly ModelInstance[] = [];
   let statics: readonly ModelInstance[] = [];
@@ -1176,6 +1177,7 @@ export async function createModelLayer(
   /** Choose, sort and upload this frame's draws. With `view` null every
    *  model draws at its own tier (0 unless given) and nothing is culled. */
   function pack(view: DetailView | null) {
+    hasXrayMeshes = false;
     const unitCount = units.length;
     const total = unitCount + statics.length;
     /** The i-th model: the units, then the statics. */
@@ -1389,6 +1391,7 @@ export async function createModelLayer(
         scrollL = scroll.left;
         scrollR = scroll.right;
       }
+      if (choice % FOG_CLASSES === UNITS && (inst.xray?.[3] ?? 0) > 0) hasXrayMeshes = true;
       writeRecord(recordStaging, bucketCursor[choice]++, inst, base, scrollL, scrollR, -1);
     }
     if (corpses)
@@ -1590,6 +1593,10 @@ export async function createModelLayer(
     setCorpses(list: readonly CorpseInstance[]) {
       corpseList = list;
       rechunk();
+    },
+    /** Whether the packed unit mesh draws contain an eligible x-ray subject. */
+    get hasXrayMeshes(): boolean {
+      return hasXrayMeshes;
     },
     /** Mesh record count, including every instance-index address drawn. */
     get drawnInstances(): number {

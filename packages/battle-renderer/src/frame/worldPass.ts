@@ -630,7 +630,7 @@ export async function createWorldPass(
         xrayCountGroup = countGroupFor(targets.overlayDepth);
         xrayReadGroup = readGroupFor();
       }
-      if (xrayCoverageEnabled) {
+      if (xrayCoverageEnabled && models.hasXrayMeshes) {
         // Preserve world-only depth before the units and grass add theirs.
         raw.copyTextureToTexture({ texture: targets.depth }, { texture: targets.overlayDepth }, [
           targets.width,
