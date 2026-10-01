@@ -110,6 +110,10 @@ pub struct SideGeometry {
     pub searches: u64,
 }
 
+/// A change farther than this from a unit's route cannot put a body in
+/// its way: the widest clearance a footprint is judged by, and a cell more.
+const ROUTE_RECHECK_REACH_M: f64 = 24.0;
+
 impl SideGeometry {
     /// A side that knows the map as `base` has it, and nothing else.
     pub fn new(base: Arc<NavBase>) -> Self {
@@ -187,6 +191,37 @@ impl SideGeometry {
             .rev()
             .take_while(|c| c.revision > since)
             .any(|c| (c.at - at).length() <= reach + c.radius)
+    }
+
+    /// Whether any change after revision `since` came within `reach` of
+    /// the way from `from` along `route`: always, once the log no longer
+    /// reaches back that far.
+    pub fn changed_along(&self, since: u64, from: V2, route: &[V2], reach: f64) -> bool {
+        if since >= self.revision {
+            return false;
+        }
+        if self.changes.front().is_none_or(|c| c.revision > since + 1) {
+            return true;
+        }
+        self.changes
+            .iter()
+            .rev()
+            .take_while(|c| c.revision > since)
+            .any(|c| {
+                let mut a = from;
+                route.iter().any(|&b| {
+                    let ab = b - a;
+                    let len2 = ab.dot(ab);
+                    let t = if len2 > 0.0 {
+                        ((c.at - a).dot(ab) / len2).clamp(0.0, 1.0)
+                    } else {
+                        0.0
+                    };
+                    let near = (a + ab * t - c.at).length() <= reach + c.radius;
+                    a = b;
+                    near
+                })
+            })
     }
 
     /// `prop` is about to be shoved: an authored body the side has not seen
@@ -448,11 +483,18 @@ fn request_route(
             // a pusher's route that now shoves one, so A* weighs the shove
             // against a detour (Q13).
             stalled
-                || (changed && {
-                    let grid = side.grid(ctx.world, ctx.authored);
-                    !grid.route_fits(from, route, &unit.mobility)
-                        || grid.route_pushes(from, route, &unit.mobility)
-                })
+                || (changed
+                    && side.changed_along(
+                        unit.planned_revision,
+                        from,
+                        route,
+                        ROUTE_RECHECK_REACH_M,
+                    )
+                    && {
+                        let grid = side.grid(ctx.world, ctx.authored);
+                        !grid.route_fits(from, route, &unit.mobility)
+                            || grid.route_pushes(from, route, &unit.mobility)
+                    })
         }
     };
     unit.planned_revision = side.revision;
