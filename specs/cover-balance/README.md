@@ -2,20 +2,20 @@
 
 ## Next Agent Prompt
 
-Status: planned, not implemented. Updated 2026-09-30.
+Status: implementing after the completed main pass at `3e512a1`; the measurement baseline includes the behavior-preserving name cleanup at `4dad9b0`.
 
-**Only do this after the main session is done with everything else already in progress, including its validation and closeout. Do not interrupt or expand that pass for this spec.** Earlier side-conversation messages are superseded by the decisions here.
+Current pickup: validate the corrected effects report, commit the measurement pass, then promote the scatter candidate only after the expanded matrix and fresh seeds confirm it. Wreck naming is integrated. Weapon ranges, aim heights, projectile fall, targeting and body schemas remain frozen.
 
-The user reports explicitly telling the main session to stop. This document is a queued handoff, not an instruction to resume stopped work. Preserve that stop. When the user resumes the main session, finish its earlier work before starting this spec. If any earlier cover messages already caused edits, audit those edits against this complete final plan rather than assuming the earlier requests remain valid.
-
-When the current pass is complete, read the repo README and AGENTS.md, then reconcile this plan against the completed code. Start with [01: establish the measurement](slices/01-measurement.md), then [02: tune protection](slices/02-protection.md), then [03: clarify wreck names](slices/03-wrecks.md). Reuse existing helpers, fixtures and tests. Do not implement architecture proposals that this conversation rejected. Update this handoff and the checklist before ending each pass.
+Priority: measurement → scatter confirmation → full village comparison and visual evidence → whole-spec review and archive. The baseline village run is still active; detailed experiments and costs live in [research](assets/research.md), with raw paired samples beside it.
 
 - [ ] Establish paired cover measurements and baseline evidence: [01](slices/01-measurement.md).
 - [ ] Tune light, medium, heavy and building protection: [02](slices/02-protection.md).
-- [ ] Rename wreck categories without changing their behavior: [03](slices/03-wrecks.md).
-- [ ] Complete relevant battle reports, closeout checks and documentation.
+- [x] Rename wreck categories without changing their behavior: [03](slices/03-wrecks.md).
+- [ ] Complete battle reports, closeout checks and documentation.
 
-No implementation blocker is known. Medium's exact target and acceptance tolerances below are recommended implementation starting points, not independently confirmed numeric user requirements. Runtime-validator removal and improved wreck destruction art are not authorized changes in this plan.
+Controlled scatter is per soldier; real exterior obstacle rows use eight-member squads. Building protection is measured at one occupied garrison firing position because multi-façade target centroids can suppress incoming fire. This existing targeting issue must stay visible as a measurement limit, rather than being scored as protection. Explosive rows use real ground-directed grenades and exclude direct hits.
+
+No implementation blocker is known. Medium's proposed 30% target and five-point tolerance remain the implementation starting points. No damage fallback has been needed. Runtime-validator removal and wreck destruction art are outside this pass.
 
 ## Scope and intent
 
@@ -94,7 +94,7 @@ Earlier comparisons: [CoH3 rifle statistics](https://coh3stats.com/explorer/race
 
 Do not implement: ruins at 25%; heavy trees; an explicit new live-hull cover field; deleting prop `cover_tier`; deriving live cover from the referenced wreck; inheriting cover into a wreck instance; changing omission to weight-derived prop cover; generic shared-body refactoring; automatic runtime-validator removal. The final choice is the current simple model with clearer wreck category names.
 
-This plan was authored without agents or implementation edits because the side conversation prohibits sub-agents and the user assigned implementation to the main session. Its architecture review follows refactor-clean: reuse existing owners and avoid adding a second cover or object system.
+Implementation follows the user-invoked implement-spec workflow, including parallel independent passes. Architecture remains confined to existing owners; no second cover or object system is introduced.
 
 ## Coverage of earlier messages to the main session
 
