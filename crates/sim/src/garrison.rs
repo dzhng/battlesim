@@ -122,6 +122,9 @@ fn seat_plan(
             let top = remaining_height.map_or(e.top_z, |h| e.top_z.min(e.base_z + h));
             e.exposed && z >= e.base_z && z < top
         }) {
+            if geometry.floor_z.is_some() && edge.bays.is_none() {
+                continue;
+            }
             let part = geometry
                 .parts
                 .iter()
@@ -131,8 +134,8 @@ fn seat_plan(
             let group = ((direction.y.atan2(direction.x) / std::f64::consts::FRAC_PI_2).round()
                 as i32)
                 .rem_euclid(4) as usize;
-            // Authored box maps retain ground fighting positions until their
-            // source descriptors supply bays. Generated templates require bays.
+            // Legacy boxes without floor/bay facts retain ground positions;
+            // known-floor descriptors cannot invent unresolved source bays.
             let bays = edge.bays.clone().unwrap_or_else(|| {
                 let count = ((edge.span_m[1] - edge.span_m[0]) / 3.0).floor() as usize;
                 let (normal, along, reach, _) = edge.facade.axes(part.half_extents);

@@ -61,6 +61,11 @@ bridge. Source window fit, final tall-source authoring and the framed visual
 moment remain specialist/map-lane work. Whole-repo and report gates are pending
 integration; this is a physical implementation checkpoint.
 
+Once source floors are present, an unresolved facade bay list supplies no seats:
+only resolved physical bays can create fighting positions. The legacy lattice
+is limited to descriptors without floor facts. A mixed resolved/unresolved
+facade regression rejects invented windows while retaining real seats elsewhere.
+
 Holdable replacement shells reuse source bay positions only below their observed
 remaining height. Command admission reads the remembered shell; physical entry
 checks the live shell. Original IDs retain the full remembered source plan, so

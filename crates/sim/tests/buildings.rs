@@ -801,6 +801,31 @@ fn floor_band_seats_follow_exposed_bays_and_stop_at_the_third_floor() {
 }
 
 #[test]
+fn known_floor_geometry_does_not_invent_unresolved_facade_bays() {
+    let mut setup = compound_setup(json!([]));
+    let geometry = &mut setup.map.buildings[0].geometry;
+    geometry.floor_z = Some(vec![0.0, 3.0, 6.0]);
+    let unresolved = geometry
+        .edges
+        .iter()
+        .enumerate()
+        .filter(|(_, e)| e.exposed)
+        .max_by(|(_, a), (_, b)| {
+            (a.span_m[1] - a.span_m[0]).total_cmp(&(b.span_m[1] - b.span_m[0]))
+        })
+        .unwrap()
+        .0;
+    geometry.edges[unresolved].bays = None;
+    let b = Battle::new(&setup, 11);
+    let seats = sim::garrison::building_seats(b.world().building(0).unwrap(), &setup.rules);
+    assert!(!seats.is_empty(), "resolved facades still supply seats");
+    assert!(
+        seats.iter().all(|s| s.edge != unresolved),
+        "unresolved bays cannot supply physical seats"
+    );
+}
+
+#[test]
 fn abundant_facade_bays_never_admit_more_than_32_seats() {
     let mut setup = compound_setup(json!([]));
     setup.rules.buildings.capacity_soldiers = 100;

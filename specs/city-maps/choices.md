@@ -1768,6 +1768,10 @@ fixtures predate physical source authoring. **Verdict:** provisional, scoped to
 those inputs. It cannot certify source window fit or actual floor count. Remove
 it when the preparation lane supplies complete facts. **Confidence:** high on
 compatibility, low on visual fit. Complete generated descriptors stay strict.
+Once floor facts exist, an unresolved bay list supplies no seats; otherwise an
+upper floor could gain invented windows. Resolved facades remain usable. The
+alternative was extending the legacy lattice onto source-authored floors, which
+would give simulation a competing facade owner.
 
 **Choice:** Recheck whole-squad admission at entry completion, using the same
 immutable capacity as command admission. **Gap:** Supply can replenish a squad
