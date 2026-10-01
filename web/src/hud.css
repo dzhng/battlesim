@@ -443,6 +443,14 @@
   margin-right: 3px;
   vertical-align: -1px;
 }
+.ro-hidden-icon {
+  display: flex;
+  margin-left: 5px;
+}
+.ro-hidden-icon svg {
+  width: 12px;
+  height: 12px;
+}
 /* The weapons, then the states, a little apart. */
 .ro-section {
   display: flex;

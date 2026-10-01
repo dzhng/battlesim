@@ -180,6 +180,9 @@ export function InfoPanel({ panel, zoom }: { panel: Panel; zoom?: PanelZoom }) {
       <span className="ro-name">
         {panel.mark && <Icon path={panel.mark} className="ro-name-icon" />}
         <span className="ro-name-word">{panel.name}</span>
+        {panel.states.some((row) => row.state === "hidden") && (
+          <Icon path={stateIcon("hidden")} className="ro-hidden-icon" title="Hidden" />
+        )}
         <Pips fill={panel.strength} />
       </span>
       {panel.weapons.length > 0 && (

@@ -65,7 +65,7 @@ bun run dev     # build the WebAssembly, start the lab app
 
 `/` is the main menu: play the village or watch a replay; behind its developer link, run the benchmark or open the lab index at `/labs`, which links every route. The benchmark (`/benchmark`) is the one frame-cost measure.
 
-Floating unit panels show name and health. Expanded own-unit panels show HIDDEN while foliage or garrison shelter grants a concealment bonus to the hull or at least one living soldier; it does not guarantee enemies cannot identify the unit. Space prioritizes the closest 30% of visible units from the camera's actual position; farther cards expand where room remains. Hovering a unit or its card always reveals its detail. Placement tries expansion in place, then the fewest card shifts, favoring shorter shifts when the counts tie.
+Floating unit panels show name and health. Own-unit panels show a crossed-out eye beside the name, plus HIDDEN in expanded detail, while foliage or garrison shelter grants a concealment bonus to the hull or at least one living soldier; it does not guarantee enemies cannot identify the unit. Space prioritizes the closest 30% of visible units from the camera's actual position; farther cards expand where room remains. Hovering a unit or its card always reveals its detail. Placement tries expansion in place, then the fewest card shifts, favoring shorter shifts when the counts tie.
 
 A held right-click previews destination and facing before release commits the move. Group facing rotates the formation around that destination from the first selected unit's heading; navigation still finds standing room and vehicles keep their normal steering constraints.
 
