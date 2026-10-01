@@ -2,7 +2,7 @@
 // simulation's own triangles (exported vertices in exported index order,
 // flat-shaded, never resampled or exaggerated: landmine 11) plus what the
 // biome material needs to paint them: the plot split, and the roads, forests
-// and water exactly as the simulation's surface rules define them, so a road
+// and rivers exactly as the simulation's surface rules define them, so a road
 // is drawn precisely where units find road.
 //
 // Rewritten (reuse manifest, technique) from reading ~/dev/game
@@ -18,6 +18,7 @@ import type { SurfaceGeometry } from "./surfaces";
 import type { Biome } from "./biome";
 import { generatePlots, type PlotTree } from "./plots";
 import { buildForestShapes, type ForestShape } from "./forestShapes";
+import { RIVER_FIELDS, RIVER_FLOATS } from "./rivers";
 import type { TerrainGrid } from "./terrainGrid";
 
 /** Rects `x, y, w, h` per record. */
@@ -29,13 +30,17 @@ export const FOOTPRINT_FLOATS = 5;
 export interface TerrainSite extends SurfaceGeometry {
   /** Map box `[minX, minY, maxX, maxY]`. */
   map: readonly [number, number, number, number];
+  /** The height samples' spacing in metres: the ground's triangles are this
+   *  wide. */
+  gridM: number;
   /** Exact rectangle fast-path forests (`RECT_FLOATS` each): the forest floor,
    *  as the simulation's forest ground (less its cleared lanes, drawn as
    *  crushed ground). */
   forests: Float32Array;
   /** Authored-order primitives and canopy metadata; also used to fit tree crowns. */
   forestShapes: readonly ForestShape[];
-  water: Float32Array;
+  /** Every river's rounded stretches (`RIVER_FLOATS` each, `terrain/rivers.ts`). */
+  rivers: Float32Array;
   buildings: readonly Vec2[];
   /** Every static prop's footprint (`FOOTPRINT_FLOATS` each), where no grass grows. */
   footprints: Float32Array;
@@ -77,6 +82,17 @@ function rects(area: Float32Array, layout: WorldLayout): Float32Array {
     for (let k = 0; k < RECT_FLOATS; k++)
       out[r * RECT_FLOATS + k] = area[r * layout.areaStride + at[k]];
   return out;
+}
+
+/** The exported river stretches, which must be the fields the water's
+ *  distance reads, in its order. */
+function rivers(exports: WorldExports, layout: WorldLayout): Float32Array {
+  if (
+    layout.riverStride !== RIVER_FLOATS ||
+    RIVER_FIELDS.some((field, k) => layout.riverFields[k] !== field)
+  )
+    throw new Error("river stretch fields differ from the water distance's records");
+  return exports.rivers;
 }
 
 /** The ground of the exported world under `biome`; the traversal view tints
@@ -133,6 +149,7 @@ export function buildTerrainSurface(
     mesh,
     {
       map: [0, 0, maxX, maxY],
+      gridM: exports.terrain.spacing,
       surfaceStrokes: exports.surfaceStrokes,
       surfaceStrokeStride: layout.surfaceStrokeStride,
       surfaceRuns: exports.surfaceRuns,
@@ -143,7 +160,9 @@ export function buildTerrainSurface(
       surfaceBoundaryStride: layout.surfaceBoundaryStride,
       forests: rects(exports.forests, layout),
       forestShapes: buildForestShapes(exports, layout),
-      water: rects(exports.water, layout),
+      rivers: rivers(exports, layout),
+      riverRuns: exports.riverRuns,
+      riverRunStride: layout.riverRunStride,
       buildings,
       footprints,
     },

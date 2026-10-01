@@ -50,7 +50,6 @@ export async function surfaceFieldAgreement(ctx) {
 
     const FOOTPRINTS = [0.1, 3, 12, 40, 1e9];
     const POINTS = 4000;
-    const reach = (footprint) => terrain.groundReach(biome.default, footprint);
     const view = new wasm.WorldView(
       JSON.stringify(grounds.CURATED_GROUND),
       JSON.stringify(rules.VILLAGE_RULES),
@@ -104,7 +103,7 @@ export async function surfaceFieldAgreement(ctx) {
       });
       for (const [name, surfaceOf] of cases) {
         const site = surfaceOf.site;
-        const field = fields.buildSurfaceField(site, reach);
+        const field = fields.buildSurfaceField(site, terrain.terrainReach(surfaceOf));
         source.set(surfaceOf);
         // Seeded points over the map and a margin past it, as f32.
         let seed = 63;

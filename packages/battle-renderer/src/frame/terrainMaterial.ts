@@ -19,7 +19,7 @@
 import { tgpu, d, std } from "typegpu";
 import { pcgHash } from "../shaders/pcgHash";
 import { MAX_PLOT_DEPTH, NODE_FLOATS, type PlotTree } from "../terrain/plots";
-import type { TerrainSurface } from "../terrain/terrainSurface";
+import type { TerrainSite, TerrainSurface } from "../terrain/terrainSurface";
 import {
   buildSurfaceField,
   SURFACE_CELL_WORDS,
@@ -34,6 +34,7 @@ import {
   type SurfaceReach,
 } from "../terrain/surfaceField";
 import { GRASS_EDGE_M } from "../terrain/grassField";
+import { longestBank } from "../terrain/rivers";
 import { SCAR_CHANNELS, type Biome, type ForestFloor, type ScarMark } from "../terrain/biome";
 import type { Rgb } from "../light/sceneLight";
 import type { GpuRegistry, GpuSlot } from "./registry";
@@ -77,6 +78,8 @@ const TerrainParams = d.struct({
   forestVerge: d.vec4f,
   /** 1 / fleck size, fleck share, the sun a fleck lets through, unused. */
   forestDapple: d.vec4f,
+  /** The water bed's colour (linear rgb), and how far past a bank's top a
+   *  ground triangle can carry its tilt, in metres: a triangle's diagonal. */
   waterBed: d.vec4f,
   /** The water surface's colour (linear rgb) over deep water, and its opacity there. */
   water: d.vec4f,
@@ -491,8 +494,11 @@ export const groundSite = tgpu.fn(
   return d.vec4f(d.f32(leaf), edge, pavedSurfaceDistance(xy, cell), groundForest(xy, cell));
 });
 
-/** How far `xy` lies inside the deepest water rect of `cell`, its
- *  `groundCell` (negative outside). */
+/** How far `xy` lies inside the water's edge (negative outside): the deepest
+ *  any river stretch of `cell`, its `groundCell`, puts it. A stretch's half
+ *  width runs linearly between its ends; the point reads it at the closest
+ *  point of the centreline (`terrain/rivers.ts` `stretchInside`, and the
+ *  simulation's `contract::river::section`). */
 export const groundWater = tgpu
   .fn(
     [d.vec2f, d.vec4u],
@@ -500,27 +506,87 @@ export const groundWater = tgpu
   )(/* wgsl */ `(xy:vec2f,cell:vec4u)->f32 {
  var bed=-1e9;
  for(var i=cell.z;i<cell.w;i++){
-  bed=max(bed,rectInside(xy,terrainLayout.$.surfaces[terrainLayout.$.surfaceIndex[i]&${SURFACE_RECORD_MASK}u].ends));
+  let stretch=terrainLayout.$.surfaces[terrainLayout.$.surfaceIndex[i]&${SURFACE_RECORD_MASK}u];
+  let a=stretch.ends.xy;let ab=stretch.ends.zw-a;let len2=dot(ab,ab);
+  var t=0.0;if(len2>0.0){t=clamp(dot(xy-a,ab)/len2,0.0,1.0);}
+  let half=stretch.detail.x+(stretch.detail.y-stretch.detail.x)*t;
+  bed=max(bed,half-length(xy-(a+ab*t)));
  }
  return bed;
 }`)
-  .$uses({ terrainLayout, rectInside });
+  .$uses({ terrainLayout });
 
-/** The wet bank's reach as shares of the biome's shore width: the least, and
- *  how much more its ragged line adds. */
-const SHORE_REACH = [0.55, 0.6] as const;
+/** The bank's shading ends over at least this far either side of its top, and
+ *  gives way to the bed's this far inside the waterline, so neither is a
+ *  ruled crease. */
+const BANK_EASE_M = 0.75;
+/** Stretches share the shading by how far inside each puts the point: one
+ *  that puts it this many metres farther out counts 1/e as much. The nearest
+ *  stretch alone would turn the bank's face at a stroke along the line where
+ *  two stretches are as near, on the inside of every bend. */
+const BANK_BLEND_M = 0.7;
+/** A stretch's weight stops changing this far inside or outside its water's
+ *  edge: beyond it `exp` leaves what a 32-bit float holds, on a river wider
+ *  than 120 m or a bank cut longer than 70 m. */
+const BANK_BLEND_REACH_M = 50;
 
-/** How wet and bare the bank at `xy` is (`water` its `groundWater`): 1 at the
- *  water's edge, fading out across the biome's shore width along a ragged line;
- *  0 farther out. The terrain paints it wet soil, and grass leaves it bare. */
+/** How the ground at `xy` was cut for a river, as shading reads it: the
+ *  bank's slope there (`xy`: rise per metre east and north), and how much the
+ *  cut decides the shading normal (`z`: 1 on the bed, on the bank and as far
+ *  past its top as a triangle that straddles the top reaches; 0 beyond).
+ *  Only the bank slopes: the bed is lit flat, since through the water a bed
+ *  lit as the V it is reads as one bright half and one dark, and past the
+ *  bank's top the land is lit flat too.
+ *  The grid's triangles cannot draw a bank a few metres wide, and lit by
+ *  their own normals they read as steps along the river; lit by this, the
+ *  bank is the round band the distance says. Shading only: the ground's
+ *  height stays the simulation's, and the water's edge stays the nearest
+ *  stretch's. `cell` is the point's `groundCell`, `footprint` the metres a
+ *  pixel spans. */
+export const groundBank = tgpu
+  .fn(
+    [d.vec2f, d.vec4u, d.f32],
+    d.vec3f,
+  )(/* wgsl */ `(xy:vec2f,cell:vec4u,footprint:f32)->vec3f {
+ var sum=vec4f(0.0);
+ for(var i=cell.z;i<cell.w;i++){
+  let at=terrainLayout.$.surfaceIndex[i]&${SURFACE_RECORD_MASK}u;
+  let stretch=terrainLayout.$.surfaces[at];
+  let a=stretch.ends.xy;let ab=stretch.ends.zw-a;let len2=dot(ab,ab);
+  var t=0.0;if(len2>0.0){t=clamp(dot(xy-a,ab)/len2,0.0,1.0);}
+  let away=xy-(a+ab*t);let off=length(away);
+  let half=stretch.detail.x+(stretch.detail.y-stretch.detail.x)*t;
+  let inside=half-off;
+  let grade=stretch.detail.z+(stretch.detail.w-stretch.detail.z)*t;
+  let heights=terrainLayout.$.surfaces[at+1u].ends.xy;
+  let run=(heights.x+(heights.y-heights.x)*t)/max(grade,1e-4);
+  let ease=max(footprint,${BANK_EASE_M});
+  let sloped=(1.0-smoothstep(run-ease,run+ease,-inside))*(1.0-smoothstep(0.0,ease,inside));
+  let top=run+terrainLayout.$.params.waterBed.w;
+  let weight=exp(clamp(inside,-${BANK_BLEND_REACH_M},${BANK_BLEND_REACH_M})/${BANK_BLEND_M});
+  sum+=vec4f(away/max(off,1e-4)*grade*sloped,1.0-smoothstep(top,top+2.0*ease,-inside),1.0)*weight;
+ }
+ if(sum.w<=0.0){return vec3f(0.0);}
+ return sum.xyz/sum.w;
+}`)
+  .$uses({ terrainLayout });
+
+/** The wet bank is whole out to this share of the biome's shore width, and
+ *  fades from there to the width's end. */
+const SHORE_WHOLE = 0.55;
+
+/** How wet and bare a bank is `water` metres inside the water's edge (its
+ *  `groundWater`: negative on the bank): 1 at the edge, fading out by the
+ *  biome's shore width; 0 farther out. The band follows the water's edge and
+ *  nothing else, so it is as round as the river. The terrain paints it wet
+ *  soil, and grass leaves it bare. */
 export const groundShore = tgpu.fn(
-  [d.vec2f, d.f32],
+  [d.f32],
   d.f32,
-)((xy, water) => {
+)((water) => {
   "use gpu";
-  const params = terrainLayout.$.params;
-  const reach = params.shore.w * (SHORE_REACH[0] + SHORE_REACH[1] * valueNoise(std.mul(xy, 0.4)));
-  return 1 - std.smoothstep(reach * 0.55, reach, -water);
+  const reach = terrainLayout.$.params.shore.w;
+  return 1 - std.smoothstep(reach * SHORE_WHOLE, reach, -water);
 });
 
 /** The verge's weight at a site, 1 on it: along every plot edge and beside
@@ -587,7 +653,7 @@ export const groundColour = tgpu.fn(
   }
 
   // The banks' wet soil, round the water.
-  const wet = groundShore(xy, water);
+  const wet = groundShore(water);
   albedo = std.mix(albedo, std.mul(params.shore.xyz, 1 + 0.15 * noise), wet);
   roughness = std.mix(roughness, 0.6, wet);
 
@@ -598,19 +664,19 @@ export const groundColour = tgpu.fn(
   albedo = std.mix(albedo, surface, onRoad);
   roughness = std.mix(roughness, params.road.w, onRoad);
 
-  // The water bed, under the simulation's water rects (water wins over road).
+  // The water bed, under the simulation's rivers (water wins over road).
   const bed = std.smoothstep(-aa, aa, water);
   albedo = std.mix(albedo, params.waterBed.xyz, bed);
   return d.vec4f(std.max(albedo, d.vec3f(0)), roughness);
 });
 
 // The water surface's look (presentation, not rules): opaque over deep water,
-// the bed showing through at the shore; the shore's reach in metres from the
-// rect's edge (negative: out over the flooded bank); smooth enough that sky
-// and sun reflect in it, broken by two octaves of ripples.
+// the bed showing through for the first metres inside the edge; smooth enough
+// that sky and sun reflect in it, broken by two octaves of ripples. The
+// surface ends on the simulation's water edge, feathered over a pixel: the
+// ground meets the surface there, so nothing hides it and nothing steps.
 const WATER_OPACITY = 0.78;
 const WATER_SHORE_OPACITY = 0.35;
-const WATER_SHORE_OUT_M = -2.5;
 const WATER_SHORE_IN_M = 3;
 export const WATER_ROUGHNESS = 0.14;
 /** How much of its light water keeps in a shadow: the murk in it is lit by the
@@ -634,18 +700,19 @@ const rippleHeight = tgpu.fn(
 });
 
 /** The water surface at `xy`: linear colour and opacity (clear at the shore,
- *  murky out in the channel, `groundWater` giving how far in it lies). */
+ *  murky out in the channel, `groundWater` giving how far in it lies), none
+ *  outside the water's edge. `footprint` is the metres one pixel spans. */
 export const waterSurface = tgpu.fn(
-  [d.vec2f],
+  [d.vec2f, d.f32],
   d.vec4f,
-)((xy) => {
+)((xy, footprint) => {
   "use gpu";
   const params = terrainLayout.$.params;
-  // The shore's band is a fixed width, whatever the pixel: the finest level.
-  const water = groundWater(xy, groundCell(xy, 0));
-  const deep = std.smoothstep(WATER_SHORE_OUT_M, WATER_SHORE_IN_M, water);
+  const water = groundWater(xy, groundCell(xy, footprint));
+  const deep = std.smoothstep(0, WATER_SHORE_IN_M, water);
   const colour = std.mix(std.mul(params.waterBed.xyz, 0.55), params.water.xyz, deep);
-  return d.vec4f(colour, std.mix(WATER_SHORE_OPACITY, params.water.w, deep));
+  const edge = std.smoothstep(-footprint * 0.5, footprint * 0.5, water);
+  return d.vec4f(colour, std.mix(WATER_SHORE_OPACITY, params.water.w, deep) * edge);
 });
 
 /** The water's normal at `xy`: small ripples, fading out where a pixel spans
@@ -1076,7 +1143,7 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
       const { plots: tree, site, biome } = surface;
       nodes.set(nodeBuffer(tree.nodes.length / NODE_FLOATS)).write(packNodes(tree));
       plots.set(plotBuffer(tree.plots.length)).write(packPlots(surface));
-      const field = buildSurfaceField(site, (footprint) => groundReach(biome, footprint));
+      const field = buildSurfaceField(site, terrainReach(surface));
       surfaces
         .set(surfaceBuffer(field.records.length / SURFACE_FLOATS))
         .write(field.records.buffer as ArrayBuffer);
@@ -1103,7 +1170,7 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
         road: d.vec4f(...one(biome.road.palette), biome.road.roughness),
         roadDetail: d.vec4f(biome.road.mottle, 0, 0, 0),
         ...forestParams(biome.forest_floor, biome.palettes[biome.forest_floor.palette]),
-        waterBed: d.vec4f(...one("water_bed"), 0),
+        waterBed: d.vec4f(...one("water_bed"), triangleReach(site)),
         water: d.vec4f(...one("water"), WATER_OPACITY),
         shore: d.vec4f(...linear(biome.palettes[biome.shore.palette][0]), biome.shore.width_m),
         distant: d.vec4f(...one("distant"), 0),
@@ -1128,6 +1195,20 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
 }
 export type TerrainSource = ReturnType<typeof createTerrainSource>;
 
+/** How far past a bank's top a ground triangle that straddles it carries its
+ *  tilt: a triangle's diagonal. */
+function triangleReach(site: TerrainSite): number {
+  return site.gridM * Math.SQRT2;
+}
+
+/** How far each ground rule of `surface` is read at a pixel `footprint`
+ *  metres wide: what its surface field is built with. The material and any
+ *  check of its lookups both build from this. */
+export function terrainReach({ site, biome }: TerrainSurface) {
+  const bankM = longestBank(site.rivers) + triangleReach(site);
+  return (footprint: number) => groundReach(biome, footprint, bankM);
+}
+
 /** How far from its edge each ground rule is read by a pixel `footprint`
  *  metres wide, in metres: the surface field lists what lies within it, and a
  *  distance past it only keeps its side. Each term is one reader:
@@ -1139,9 +1220,11 @@ export type TerrainSource = ReturnType<typeof createTerrainSource>;
  *    by up to the verge and its warp, `forestFloorWeight` feathers it by a
  *    pixel at least), which `groundDapple` and the grass read too, the grass
  *    thinning past its margin;
- *  - water: the wet bank (`groundShore`), the bed's pixel-wide edge, the
- *    water surface's shore band (`waterSurface`), and the grass's margin. */
-export function groundReach(biome: Biome, footprint: number): SurfaceReach {
+ *  - water: the wet bank (`groundShore`), the bed's and the water surface's
+ *    pixel-wide edge, the surface's shore band (`waterSurface`), the grass's
+ *    margin, and the bank's shading (`groundBank`) out to `bankM` from the
+ *    water: the ground's longest bank and a triangle past its top. */
+export function groundReach(biome: Biome, footprint: number, bankM = 0): SurfaceReach {
   const floor = biome.forest_floor;
   const grass = biome.grass.clear_m;
   return {
@@ -1155,10 +1238,10 @@ export function groundReach(biome: Biome, footprint: number): SurfaceReach {
       floor.verge_warp_m +
       Math.max(footprint, floor.verge_m * FOREST_FEATHER, grass.area + GRASS_EDGE_M),
     water: Math.max(
-      biome.shore.width_m * (SHORE_REACH[0] + SHORE_REACH[1]),
+      biome.shore.width_m,
       footprint / 2,
-      -WATER_SHORE_OUT_M,
       WATER_SHORE_IN_M,
+      bankM + 2 * Math.max(footprint, BANK_EASE_M),
       grass.area + GRASS_EDGE_M,
     ),
   };

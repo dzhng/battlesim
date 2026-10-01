@@ -7,7 +7,7 @@
   {
     "id": "geometry",
     "route": "/lab/geometry",
-    "describe": "Authoritative terrain and obstacles: ridge, slope threshold, forest volume, road, water with bridge, low/tall/thin walls; click probes the exported surface; overlay toggles."
+    "describe": "Authoritative terrain and obstacles: ridge, slope threshold, forest volume, road, a river with a bridge, low/tall/thin walls; click probes the exported surface; overlay toggles."
   },
   {
     "id": "authority",
@@ -18,6 +18,11 @@
     "id": "movement",
     "route": "/lab/movement",
     "describe": "Routing and group intent: shortest vs fastest routes, group destinations, friendly traffic, a wall injected at tick 150, route-blocked destinations; select/drag, right-click, double right-click, Shift queue, S stop."
+  },
+  {
+    "id": "river",
+    "route": "/lab/river",
+    "describe": "A river as one distance: a meander that widens from the 12 m minimum to a 30 m stretch, carved into the ground with gentle banks, crossed by a country road's bridge, a dirt track beside it and a wood over one bank. A squad and a tank on the road cross by its bridge; sent into the water, their route is blocked. The traversable-ground toggle shows what blocks and how the banks' facets shade."
   },
   {
     "id": "sensors",

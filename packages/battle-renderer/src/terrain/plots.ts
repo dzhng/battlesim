@@ -10,7 +10,7 @@ import { polygon2 } from "math/shapes";
 import { mulberry32, random, type RandomGenerator } from "math/random";
 import type { Rgb } from "../light/sceneLight";
 import type { Biome } from "./biome";
-import { roadPlotEdges, type SurfaceGeometry } from "./surfaces";
+import { plotGuideEdges, type SurfaceGeometry } from "./surfaces";
 
 /** A leaf of the split: one field, meadow or ploughed plot. */
 export interface Plot {
@@ -160,7 +160,7 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
   const totalWeight = biome.plots.reduce((s, p) => s + p.weight, 0);
   const settlement = biome.plots.findIndex((p) => p.name === rules.settlement_kind);
   const settlementSq = rules.settlement_m ** 2;
-  const roadEdges = roadPlotEdges(site);
+  const roadEdges = plotGuideEdges(site);
   const roadCount = roadEdges.length / 4;
   let depth = 0;
 

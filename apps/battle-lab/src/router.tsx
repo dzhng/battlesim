@@ -20,6 +20,7 @@ export const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   geometry: lazy(() => import("./routes/geometry")),
   authority: lazy(() => import("./routes/authority")),
   movement: lazy(() => import("./routes/movement")),
+  river: lazy(() => import("./routes/river")),
   sensors: lazy(() => import("./routes/sensors")),
   ballistics: lazy(() => import("./routes/ballistics")),
   contacts: lazy(() => import("./routes/contacts")),

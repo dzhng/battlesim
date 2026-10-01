@@ -94,6 +94,7 @@ function benchTerrain(): TerrainSurface {
     benchGround(),
     {
       map: [-h, -h, h, h],
+      gridM: 2 * h,
       surfaceStrokes: NONE,
       surfaceStrokeStride: 6,
       surfaceRuns: NONE,
@@ -104,7 +105,9 @@ function benchTerrain(): TerrainSurface {
       surfaceBoundaryStride: 5,
       forests: NONE,
       forestShapes: [],
-      water: NONE,
+      rivers: NONE,
+      riverRuns: NONE,
+      riverRunStride: 4,
       buildings: [],
       footprints: NONE,
     },
