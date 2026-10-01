@@ -1994,7 +1994,7 @@ The planner, its seam, rules and measurements are in the [C59 outcome](slices/C5
 
 **Gap:** C59 wants the encounter to use an 1,800 m approach. The plan's `half` says which half a corridor lies in, which is not the side it is approached from once a settlement is off-centre.
 
-**Verdict:** provisional. With the approach first, the AT team on three of nine maps watched a field while the column came in by another road. With sight as a hard rule, a road through a hamlet left the road unwatched. The shipped roster's one post therefore watches the road; an open approach is covered from the second overwatch row on. Nothing here judges cover: a post may stand in an open field. **Confidence:** medium.
+**Verdict:** provisional. With the approach first, the AT team on Metro Small 3 and Open Large 1 watched a field while the column came in by another road. With sight as a hard rule, a road through a hamlet left the road unwatched. The shipped roster's one post therefore watches the road; an open approach is covered from the second overwatch row on. Nothing here judges cover: a post may stand in an open field. **Confidence:** medium.
 
 ### What stands where: the footprint rules
 
