@@ -359,3 +359,102 @@ fn a_jeeps_sight_turns_with_its_hmg_only_when_its_sensors_sit_on_it() {
         "the sight swung north with the HMG toward the squad: {forward}"
     );
 }
+
+/// Ground visibility follows live body changes even when a previously visited
+/// tile is used again, and when the changed footprint crosses a tile boundary.
+#[test]
+fn a_fog_sweep_tracks_added_moved_and_removed_occluders() {
+    use sim::math::{v2, v3};
+    use sim::visibility::{self, OcclusionGrid};
+    let mut world = common::flat([200.0; 2], "");
+    let rules = common::rules();
+    let mut grid = OcclusionGrid::new(&world, 8.0);
+    let sight = sim::sight::Sight {
+        forward: 0.0,
+        shape: contract::scenario::SightShape {
+            front: 1.0,
+            side: 1.0,
+            rear: 1.0,
+        },
+        range: 160.0,
+    };
+    let sweep = |world: &sim::world::WorldGeometry, grid: &mut OcclusionGrid| {
+        let mut field = grid.field();
+        visibility::sweep(
+            world,
+            grid,
+            &rules.sensors,
+            v3(32.0, 100.0, 1.8),
+            &sight,
+            &mut field,
+        );
+        field
+    };
+    assert!(sweep(&world, &mut grid).visible(120.0, 100.0));
+    let prop = world.add_prop(
+        &serde_json::from_value(json!({
+            "kind": "wall", "center": [68, 100], "yaw": 0,
+            "half_extents": [8, 24, 6]
+        }))
+        .unwrap(),
+    );
+    assert!(!sweep(&world, &mut grid).visible(120.0, 100.0));
+    world.move_prop(prop, v2(68.0, 180.0), 0.4, 1);
+    assert!(sweep(&world, &mut grid).visible(120.0, 100.0));
+    world.move_prop(prop, v2(100.0, 100.0), 0.2, 2);
+    let blocked = sweep(&world, &mut grid);
+    assert!(!blocked.visible(160.0, 100.0));
+    assert_eq!(
+        blocked.bits,
+        sweep(&world, &mut OcclusionGrid::new(&world, 8.0)).bits
+    );
+    world.remove_prop(prop);
+    assert!(sweep(&world, &mut grid).visible(160.0, 100.0));
+}
+
+#[test]
+fn overlapping_eyes_mark_exactly_the_union_of_their_separate_fog_sweeps() {
+    use sim::math::v3;
+    use sim::visibility::{self, OcclusionGrid};
+    let world = common::flat(
+        [400.0; 2],
+        r#",
+        "relief":[{"kind":"ridge","center":[280,160],"radius_m":60,"peak_m":10}],
+        "forests":[{"shape":{"kind":"polygon","ring":[[160,200],[240,200],[240,300],[160,300]]}}],
+        "props":[{"kind":"wall","center":[100,120],"yaw":0.2,"half_extents":[8,30,4]}]"#,
+    );
+    let rules = common::rules();
+    let mut grid = OcclusionGrid::new(&world, 8.0);
+    let mut joint = grid.field();
+    let mut union = grid.field();
+    for (at, forward) in [
+        ([60.0, 80.0], 0.0),
+        ([92.0, 88.0], 0.4),
+        ([150.0, 240.0], -0.5),
+    ] {
+        let sight = sim::sight::Sight {
+            forward,
+            shape: contract::scenario::SightShape {
+                front: 1.0,
+                side: 0.7,
+                rear: 0.4,
+            },
+            range: 120.0,
+        };
+        let eye = v3(at[0], at[1], world.height_at(at[0], at[1]).unwrap() + 1.8);
+        let mut separate = grid.field();
+        visibility::sweep(
+            &world,
+            &mut grid,
+            &rules.sensors,
+            eye,
+            &sight,
+            &mut separate,
+        );
+        for (bits, own) in union.bits.iter_mut().zip(separate.bits) {
+            *bits |= own;
+        }
+        visibility::sweep(&world, &mut grid, &rules.sensors, eye, &sight, &mut joint);
+    }
+    assert_eq!(joint.bits, union.bits);
+}

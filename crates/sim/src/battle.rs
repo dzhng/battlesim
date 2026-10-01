@@ -1665,14 +1665,22 @@ impl Battle {
 
     /// Recompute what ground this side sees, and learn any new obstacle in view.
     fn sweep_fog(&mut self, side: Side) {
-        self.occlusion.refresh(&self.world);
         let mut field = self.occlusion.field();
+        let mut candidates = Vec::new();
         for unit in self.units.iter().filter(|u| u.side == side && u.alive()) {
             let sight = sight::of(unit, &self.rules);
             for eye in sensing::eyes(unit, &self.rules) {
+                // A ray can step one cell past its reach, and the marked cell
+                // can contain a footprint sample a diagonal farther away.
+                candidates.extend(
+                    self.world
+                        .props_near(eye.xy(), sight.max_range() + 3.0 * field.cell_m)
+                        .into_iter()
+                        .map(|p| p.id),
+                );
                 visibility::sweep(
                     &self.world,
-                    &self.occlusion,
+                    &mut self.occlusion,
                     &self.rules.sensors,
                     eye,
                     &sight,
@@ -1680,6 +1688,8 @@ impl Battle {
                 );
             }
         }
+        candidates.sort_unstable();
+        candidates.dedup();
         // Enemy fallen in view are remembered, and the ground in view learned.
         let knowledge = &mut self.knowledge[side.index()];
         knowledge.learn_ground(&self.ground, &field);
@@ -1693,23 +1703,23 @@ impl Battle {
         // Bodies in view are learned where they stand: new ones, and known
         // ones seen moved (L1, L2); trees seen fallen are gone (Q16).
         let known = &mut self.sides[side.index()];
-        let revealed: std::collections::BTreeSet<_> = self
-            .world
-            .building_states()
-            .filter(|(_, history, current)| {
-                history.iter().any(|id| {
-                    known
-                        .standing
-                        .get(id)
-                        .is_some_and(|p| footprint_seen(&field, p))
-                }) || current.iter().any(|&id| {
-                    self.world
-                        .prop(id)
-                        .is_some_and(|p| footprint_seen(&field, p))
-                })
-            })
-            .map(|(id, _, _)| id)
+        let revealed: std::collections::BTreeSet<_> = candidates
+            .iter()
+            .filter_map(|&id| self.world.prop(id))
+            .chain(known.standing.values())
+            .filter_map(|p| self.world.building_of(p.id).map(|owner| (owner, p)))
+            .filter(|(_, p)| footprint_seen(&field, p))
+            .map(|(owner, _)| owner)
             .collect();
+        // Seeing one physical part reveals the entire aggregate, including
+        // parts beyond the eye's reach. Keep learning in ascending prop order.
+        candidates.extend(
+            revealed
+                .iter()
+                .flat_map(|&owner| self.world.current_building_parts(owner).iter().copied()),
+        );
+        candidates.sort_unstable();
+        candidates.dedup();
         let fallen: Vec<PropId> = known
             .standing
             .values()
@@ -1726,7 +1736,7 @@ impl Battle {
             known.saw_fallen(id);
         }
         let relearn = self.rules.pushing.relearn_m;
-        for prop in self.world.props() {
+        for prop in candidates.into_iter().filter_map(|id| self.world.prop(id)) {
             if (prop.id >= self.authored_props || known.seen.contains_key(&prop.id))
                 && (footprint_seen(&field, prop)
                     || self

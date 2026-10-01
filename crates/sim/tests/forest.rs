@@ -148,7 +148,7 @@ fn a_cleared_lane_reads_as_open_ground() {
     let ground = sim::ground::GroundLayer::new(w.width(), w.depth(), &rules.ground);
     assert!(sim::cover::at(&w, &ground, &hulls, &rules, on, threat).is_none());
     // Fog: an eye at the lane's mouth sees down it, not through the trees.
-    let grid = OcclusionGrid::new(&w, 8.0);
+    let mut grid = OcclusionGrid::new(&w, 8.0);
     let mut field = grid.field();
     let sight = sim::sight::Sight {
         forward: 0.0,
@@ -161,7 +161,7 @@ fn a_cleared_lane_reads_as_open_ground() {
     };
     visibility::sweep(
         &w,
-        &grid,
+        &mut grid,
         &rules.sensors,
         v3(30.0, 60.0, 1.8),
         &sight,
@@ -171,7 +171,7 @@ fn a_cleared_lane_reads_as_open_ground() {
     let mut beside = grid.field();
     visibility::sweep(
         &w,
-        &grid,
+        &mut grid,
         &rules.sensors,
         v3(30.0, 80.0, 1.8),
         &sight,
@@ -444,4 +444,60 @@ fn stroke_forest_uses_capsule_membership_instead_of_its_bounds() {
         let nearest = ((p.x - 20.0) + (p.y - 20.0)).clamp(0.0, 120.0) / 120.0;
         assert!((p.x - (20.0 + 60.0 * nearest)).hypot(p.y - (20.0 + 60.0 * nearest)) <= 9.0);
     }
+}
+
+#[test]
+fn foliage_line_depth_keeps_its_exact_spans_across_bucket_edges_and_canopies() {
+    let map: contract::map::MapDefinition = serde_json::from_value(json!({
+        "size":[300,300], "fog_cell_m":8, "height_grid_m":4, "slope_cutoff_deg":35,
+        "forests":[forest([66.0,58.0,12.0,12.0]), forest([74.0,62.0,12.0,12.0]),
+            forest([-30.0,50.0,12.0,20.0]), forest([96.0,92.0,12.0,12.0])]
+    }))
+    .unwrap();
+    let mut rules = common::village();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "props",
+        "trunk",
+        json!({"body":{"conceals":1.0}}),
+    );
+    let mut rules: contract::scenario::Rules = serde_json::from_value(rules).unwrap();
+    rules.forests.rule.trunk_spacing_m = 12.0;
+    rules.forests.rule.trunk_jitter = 0.0;
+    rules.forests.rule.canopy_radius_m = 16.0;
+    rules.forests.rule.canopy_height_m = 6.0;
+    rules.forests.rule.attenuation_per_m = 0.03;
+    let world = WorldGeometry::new(&map, &rules);
+    let lines = [
+        ([40.0, 60.0, 1.5], [120.0, 60.0, 1.5]),
+        ([63.99999999, 0.0, 1.5], [63.99999999, 120.0, 1.5]),
+        ([63.99999999, 70.0, 1.5], [63.99999999, 85.0, 1.5]),
+        ([77.0, 0.0, 1.5], [77.0, 120.0, 1.5]),
+        ([-40.0, 62.0, 1.5], [110.0, 62.0, 1.5]),
+        ([150.0, 200.0, 1.5], [100.0, 102.0, 1.5]),
+        ([200.0, 200.0, 1.5], [280.0, 260.0, 1.5]),
+        ([62.0, 62.0, 50.0], [102.0, 98.0, 50.0]),
+    ];
+    let depths: Vec<_> = lines
+        .into_iter()
+        .map(|(a, b)| {
+            world
+                .foliage_depth(v3(a[0], a[1], a[2]), v3(b[0], b[1], b[2]))
+                .to_bits()
+        })
+        .collect();
+    // Exact span integration from the exhaustive forest walk, with fixed inputs.
+    assert_eq!(
+        depths,
+        vec![
+            0x3ff3333333333337,
+            0x3fdeb851eb851ebc,
+            0x3faeb851eb851eb8,
+            0x3feeb851eb851ebe,
+            0x3ff317e4b17e4b1b,
+            0x3fd62ba122893e40,
+            0x0,
+            0x0
+        ]
+    );
 }

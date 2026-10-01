@@ -106,6 +106,13 @@ fn compound_setup(events: Value) -> ScenarioDefinition {
         include_str!("../../../fixtures/parity/templates/asymmetric.json"),
     )
     .unwrap();
+    compound_with_descriptor(descriptor, events)
+}
+
+fn compound_with_descriptor(
+    descriptor: contract::templates::BuildingTemplateDescriptor,
+    events: Value,
+) -> ScenarioDefinition {
     let catalogue =
         contract::templates::TemplateGeometryCatalog::new(vec![descriptor.clone()]).unwrap();
     let geometry = descriptor
@@ -1089,4 +1096,56 @@ fn a_squad_reinforced_during_entry_never_enters_only_partly_seated() {
     );
     assert!(!u.garrisoned(), "the whole reinforced squad no longer fits");
     assert!(u.orders.is_empty(), "refusal ends the entry attempt");
+}
+
+#[test]
+fn seeing_the_near_part_learns_replacements_beyond_the_eyes_reach() {
+    let mut descriptor: contract::templates::BuildingTemplateDescriptor = serde_json::from_str(
+        include_str!("../../../fixtures/parity/templates/asymmetric.json"),
+    )
+    .unwrap();
+    descriptor.parts[0].half_extents[0] = 50.0;
+    descriptor.parts[1].center[0] = 52.0;
+    for edge in &mut descriptor.edges {
+        if edge.id == "main-north" || edge.id == "main-south" {
+            edge.span_m = [-50.0, 50.0];
+        }
+    }
+    let mut setup = compound_with_descriptor(
+        descriptor,
+        json!((1..=12)
+            .map(|tick| json!({"tick":tick,"burst":{"point":[409,301],"weapon":"tank_he"}}))
+            .collect::<Vec<_>>()),
+    );
+    setup.units = serde_json::from_value(json!([{
+        "side":"blue","kind":"rifle","position":[328,300],
+        "engagement":"return_fire_only"
+    }]))
+    .unwrap();
+    let mut rules = serde_json::to_value(&setup.rules).unwrap();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "rifle",
+        json!({"sensors":{"ground_m":30}}),
+    );
+    setup.rules = serde_json::from_value(rules).unwrap();
+    let mut b = Battle::new(&setup, 11);
+    for _ in 0..18 {
+        b.step();
+    }
+    assert!(b.world().prop(0).is_none());
+    assert!(!b
+        .observe(Side::Blue)
+        .ground_visibility
+        .visible(452.0, 301.0));
+    assert_eq!(
+        b.observe(Side::Blue)
+            .known_props
+            .iter()
+            .map(|p| p.replaces)
+            .collect::<Vec<_>>(),
+        vec![Some(0), Some(1)],
+        "the whole building's remains are learned"
+    );
 }

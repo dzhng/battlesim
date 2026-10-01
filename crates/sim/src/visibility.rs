@@ -16,49 +16,62 @@ pub struct OcclusionGrid {
     nx: usize,
     ny: usize,
     top: Vec<f64>,
-    revision: u64,
+    /// Four-by-four fog cells per tile; entries are rebuilt only on demand.
+    tile_revisions: Vec<u64>,
 }
 
 impl OcclusionGrid {
     pub fn new(world: &WorldGeometry, cell: f64) -> Self {
         let nx = (world.width() / cell).ceil() as usize;
         let ny = (world.depth() / cell).ceil() as usize;
-        let mut grid = OcclusionGrid {
+        OcclusionGrid {
             cell,
             nx,
             ny,
-            top: Vec::new(),
-            revision: u64::MAX,
-        };
-        grid.refresh(world);
-        grid
+            top: vec![f64::NEG_INFINITY; nx * ny],
+            tile_revisions: vec![u64::MAX; nx.div_ceil(4) * ny.div_ceil(4)],
+        }
     }
 
-    /// Rebuild when the world's obstacles changed.
-    pub fn refresh(&mut self, world: &WorldGeometry) {
-        if self.revision == world.obstacle_revision() {
-            return;
-        }
-        self.revision = world.obstacle_revision();
-        self.top = vec![f64::NEG_INFINITY; self.nx * self.ny];
-        for prop in world.props().filter(|p| p.body.occludes) {
-            let r = prop.footprint_radius();
-            let i0 = ((prop.center.x - r) / self.cell).floor().max(0.0) as usize;
-            let j0 = ((prop.center.y - r) / self.cell).floor().max(0.0) as usize;
-            let i1 = (((prop.center.x + r) / self.cell).floor() as usize).min(self.nx - 1);
-            let j1 = (((prop.center.y + r) / self.cell).floor() as usize).min(self.ny - 1);
-            for j in j0..=j1 {
-                for i in i0..=i1 {
-                    let c = v2((i as f64 + 0.5) * self.cell, (j as f64 + 0.5) * self.cell);
-                    if prop.footprint().contains(c, 0.0) {
-                        let top = &mut self.top[j * self.nx + i];
-                        *top = top.max(prop.top_z());
+    fn top(&mut self, world: &WorldGeometry, i: usize, j: usize) -> f64 {
+        let tile = (j / 4) * self.nx.div_ceil(4) + i / 4;
+        if self.tile_revisions[tile] != world.obstacle_revision() {
+            let (i0, j0) = (i / 4 * 4, j / 4 * 4);
+            let (i1, j1) = ((i0 + 4).min(self.nx), (j0 + 4).min(self.ny));
+            for y in j0..j1 {
+                self.top[y * self.nx + i0..y * self.nx + i1].fill(f64::NEG_INFINITY);
+            }
+            let center = v2(
+                (i0 + i1) as f64 * 0.5 * self.cell,
+                (j0 + j1) as f64 * 0.5 * self.cell,
+            );
+            let radius = ((i1 - i0) as f64).hypot((j1 - j0) as f64) * 0.5 * self.cell;
+            // The world's footprint index already contains every body touching
+            // this tile. Test the same fog-cell centres as the solid raster.
+            for prop in world
+                .props_near(center, radius)
+                .into_iter()
+                .filter(|p| p.body.occludes)
+            {
+                let r = prop.footprint_radius();
+                let x0 = (((prop.center.x - r) / self.cell).floor().max(0.0) as usize).max(i0);
+                let y0 = (((prop.center.y - r) / self.cell).floor().max(0.0) as usize).max(j0);
+                let x1 = (((prop.center.x + r) / self.cell).floor() as usize).min(i1 - 1);
+                let y1 = (((prop.center.y + r) / self.cell).floor() as usize).min(j1 - 1);
+                for y in y0..=y1 {
+                    for x in x0..=x1 {
+                        let c = v2((x as f64 + 0.5) * self.cell, (y as f64 + 0.5) * self.cell);
+                        if prop.footprint().contains(c, 0.0) {
+                            let top = &mut self.top[y * self.nx + x];
+                            *top = top.max(prop.top_z());
+                        }
                     }
                 }
             }
+            self.tile_revisions[tile] = world.obstacle_revision();
         }
+        self.top[j * self.nx + i]
     }
-
     pub fn field(&self) -> VisibilityField {
         VisibilityField {
             cell_m: self.cell,
@@ -73,7 +86,7 @@ impl OcclusionGrid {
 /// Each ray runs only as far as the shape reaches along it.
 pub fn sweep(
     world: &WorldGeometry,
-    grid: &OcclusionGrid,
+    grid: &mut OcclusionGrid,
     s: &SensorRules,
     eye: V3,
     sight: &Sight,
@@ -96,6 +109,15 @@ pub fn sweep(
         let dir = v2(angle.cos(), angle.sin());
         let range = sight.range_at(angle);
         let steps = (range / cell).ceil() as usize;
+        // A side's field is the union of every eye. When earlier eyes marked
+        // every cell this ray could reach, its terrain and foliage work cannot
+        // contribute another bit, whatever would block it.
+        if (1..=steps).all(|k| {
+            let p = eye.xy() + dir * (k as f64 * cell);
+            field.visible(p.x, p.y)
+        }) {
+            continue;
+        }
         // Once the horizon is steeper than any later cell's target could be,
         // the rest of the ray marks nothing: stop it there. (Only the result
         // is the same; a slope bound, not a rule.)
@@ -133,7 +155,7 @@ pub fn sweep(
             if !f.is_open() && sight_z < ground + f.canopy_m {
                 foliage += f.depth_per_m * cell;
             }
-            let occluder = ground.max(grid.top[j * grid.nx + i]);
+            let occluder = ground.max(grid.top(world, i, j));
             horizon = horizon.max((occluder - eye.z) / dist);
             let steepest_later = rise / if rise >= 0.0 { dist + cell } else { far };
             if horizon > steepest_later {

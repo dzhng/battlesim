@@ -44,12 +44,18 @@ fn main() {
     let (mut record_bytes, mut patch_bytes) = (Vec::new(), Vec::new());
     let (mut peak_active, mut peak_rate, mut second_start) = (0, 0, 0);
     let (mut window_instructions, mut run_instructions) = (0u64, 0u64);
+    let mut max_cpu_ms = 0.0f64;
     for t in 1..=minutes * 60 * hz {
-        let before = instructions();
+        let before = resources();
         let start = Instant::now();
         battle.step();
         let ms = start.elapsed().as_secs_f64() * 1000.0;
-        let stepped = instructions().zip(before).map_or(0, |(a, b)| a - b);
+        let after = resources();
+        let stepped = after.zip(before).map_or(0, |(a, b)| a.0 - b.0);
+        let cpu_ms = after
+            .zip(before)
+            .map_or(0.0, |(a, b)| (a.1 - b.1) as f64 / 1e6);
+        max_cpu_ms = max_cpu_ms.max(cpu_ms);
         window_instructions += stepped;
         run_instructions += stepped;
         window.push(ms);
@@ -85,6 +91,11 @@ fn main() {
             peak_rate = 0;
         }
     }
+    if resources().is_some() {
+        println!(
+            "Process CPU: maximum tick {max_cpu_ms:.2} ms; wall times include scheduling delays."
+        );
+    }
     let q = quantiles(&mut all);
     println!(
         "\nWhole run: p50 {:.1} ms, p95 {:.1}, p99 {:.1}, max {:.0}; {} rounds launched; {} G step instructions; digest {:016x}.",
@@ -117,7 +128,7 @@ fn rss_mib() -> u64 {
 
 #[path = "common/instructions.rs"]
 mod instructions;
-use instructions::instructions;
+use instructions::{instructions, resources};
 
 /// A count in billions, or a dash where the platform gives none.
 fn billions(n: u64) -> String {

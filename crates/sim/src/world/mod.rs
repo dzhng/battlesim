@@ -304,8 +304,9 @@ impl WorldGeometry {
     pub(crate) fn digest_buildings(&self, d: &mut crate::digest::Digest) {
         self.buildings.digest(d)
     }
-    pub(crate) fn building_states(&self) -> impl Iterator<Item = (PropId, &[PropId], &[PropId])> {
-        self.buildings.states()
+    /// Live parts of an authored building, keyed by its immutable identity.
+    pub(crate) fn current_building_parts(&self, identity: PropId) -> &[PropId] {
+        self.buildings.current_parts(identity)
     }
     fn skips_structure(&self, id: PropId, skip: Option<PropId>) -> bool {
         skip.is_some_and(|s| self.structure_owner(id) == self.structure_owner(s))

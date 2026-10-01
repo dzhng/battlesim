@@ -137,10 +137,10 @@ impl Buildings {
                 .collect()
         })
     }
-    pub fn states(&self) -> impl Iterator<Item = (PropId, &[PropId], &[PropId])> {
+    pub fn current_parts(&self, identity: PropId) -> &[PropId] {
         self.facts
-            .iter()
-            .map(|(&id, b)| (id, b.history.as_slice(), b.parts.as_slice()))
+            .get(&identity)
+            .map_or(&[], |b| b.parts.as_slice())
     }
     /// New bodies share a fresh integrity owner, while facts and the source part
     /// they replace retain their original identity through arbitrary chains.
