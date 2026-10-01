@@ -833,3 +833,65 @@ keeps storage addresses independent of physical identity and encounter naming.
 **Gap:** The user asked for wheeled vehicles to gain more from roads than tracked ones, "maybe 3x". `scale-direction.md` caps light vehicles at 110 km/h and wants a Large map's centre reached from an edge in about three minutes.
 
 **Verdict:** sound; reversible data. One of six quick village trials changes digest, with the same outcomes and losses. `t3-jeep-takes-a-road-bend-at-speed` holds 27 m/s on the straight and rounds a right-angle bend about a metre wide of the road. **Confidence:** medium until the transit proof runs on a generated map.
+
+## C63 surface distance field
+
+### An exact bucket index, without running SG5
+
+**Choice:** The field is a segment-bucket index over the simulation's exported primitives, read with the distance functions the terrain material already had. Nothing is baked or resampled. SG5 was not run as a separate spike.
+
+**Gap:** The slice waits on SG5 to choose between a signed-distance bake and an exact index. The work was started with the index already chosen.
+
+**Verdict:** sound. The index keeps every village terrain pixel byte-identical, which a bake cannot, and its error at joins and width changes is zero by construction, so SG5's error tables have nothing left to measure for this arm. SG5's cost and memory questions are answered in the slice's Outcome. **Confidence:** high for exactness; medium for cost at 6–10 km until a generated map exists.
+
+### A ladder of grids by pixel width, because the reach grows with the pixel
+
+**Choice:** The index is a ladder of grids. Each level serves pixels up to twice as wide as the level below and lists primitives out to that pixel's reach. `groundCell(xy, footprint)` picks the level; `groundSite`, `groundWater` and `groundDapple` take the cell it returns.
+
+**Gap:** The slice asks for one reach `R`. But every reader feathers over "a pixel at least" (the road's edge, the verge, the forest floor, the water bed), and a pixel's footprint has no upper bound: ground seen edge-on a kilometre off spans hundreds of metres. One fixed reach either changes those pixels or lists far too much for every other pixel.
+
+**Verdict:** sound. `groundReach` in `terrainMaterial.ts` names each reader and how far it reads, from the biome's numbers. **Confidence:** high.
+
+### On a dense map the ladder stops at a list budget
+
+**Choice:** The ladder ends before a level whose cells would list more than 64 records on average. A wider pixel reads the last level, and so no farther than that level's reach. On a sparse map (the village, every lab) the ladder runs to a single cell that lists everything, so every pixel reads exactly and nothing moved.
+
+**Gap:** An exact answer for a pixel 500 m wide reads every primitive within 500 m. On a 4,300-record town the seven rows of pixels under the horizon would cost more than the rest of the frame. The slice's bar is cost bounded by what is near the fragment.
+
+**Reach:** On a dense map, ground seen edge-on from far away loses the forest floor and verge smeared in from farther than about 35 m; the road's own edge stays exact to twice that. No shipped map is dense enough to stop its ladder, so no accepted pixel changed. The first generated town is where to judge it.
+
+**Verdict:** provisional: the budget (64) and where it bites are untested on real generated ground. **Confidence:** medium.
+
+### Finest cells of 8 m, serving pixels to 2 m; at most 262,144 cells
+
+**Choice:** Level 0 has 8 m cells and serves pixels up to 2 m wide. A level's cell is at least four of its footprints. A map too large for 262,144 finest cells doubles its cell (16 m at 6 km, 32 m at 10 km).
+
+**Gap:** Delegated: resolution and packing.
+
+**Verdict:** sound; measured in the slice's Outcome. Halving the cell-to-footprint ratio would halve the records wide pixels visit for 1.7× the index. **Confidence:** medium.
+
+### Beyond its reach a distance keeps only its side
+
+**Choice:** A point farther outside than the reach reads a large negative; a point deeper inside a polygon than the reach reads at least the reach. Rects and strokes stay exact inside.
+
+**Gap:** The slice says "exact-enough" without saying what a reader may assume far from an edge.
+
+**Reach:** The two GPU distance probes in the ground scene asserted exact distances 5 to 30 m from an edge. They now ask twice: at a pixel as wide as the map, where the original exact assertions hold unchanged, and at a play-camera pixel, where the distance must be exact within the reach and on the right side beyond it.
+
+**Verdict:** sound. **Confidence:** high.
+
+### Rects moved into the records table
+
+**Choice:** Forest and water rects are records beside the strokes, triangles and edges. The index takes the binding the rect table had.
+
+**Gap:** The grass build is at the default limit of eight storage buffers, so a fifth terrain table was not available.
+
+**Verdict:** sound. **Confidence:** high.
+
+### Mixed stroke and polygon joins are still the larger of the two distances
+
+**Choice:** Not changed. Where a stroke meets a paved polygon the field returns the maximum of the stroke's distance and the polygon union's, as before.
+
+**Gap:** C03's ledger left "correct or admit mixed joins" to C63. This slice was scoped to the same distance functions and unchanged village pixels, and a corrected join moves pixels.
+
+**Verdict:** open. It needs its own decision before generated streets mix strokes and polygons. **Confidence:** high that it is still open.
