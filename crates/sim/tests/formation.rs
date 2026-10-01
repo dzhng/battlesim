@@ -1,0 +1,259 @@
+//! Group destinations reserve settled footprints and rotate about their front.
+use contract::ids::UnitId;
+use contract::scenario::FormationRules;
+use sim::formation::{self, Member};
+use sim::math::v2;
+
+#[test]
+fn crowded_mixed_groups_place_every_unit_without_overlapping() {
+    let members: Vec<_> = (0..100)
+        .map(|id| Member {
+            id: UnitId(id),
+            position: v2(20.0, 20.0),
+            radius: if id % 2 == 0 { 14.0 } else { 4.0 },
+            yaw: 0.0,
+        })
+        .collect();
+    let rules = FormationRules::default();
+    let plan = formation::place(
+        &members,
+        v2(500.0, 500.0),
+        Some(0.0),
+        &rules,
+        2000.0,
+        |_, p| (p.x >= 0.0 && p.y >= 0.0 && p.x <= 1000.0 && p.y <= 1000.0).then_some(p),
+    );
+    assert!(
+        plan.slots.iter().all(|s| s.point.is_some()),
+        "an open field fits the full group: failed {:?}, checks {}, extent {}",
+        plan.slots
+            .iter()
+            .filter(|s| s.point.is_none())
+            .map(|s| s.id)
+            .collect::<Vec<_>>(),
+        plan.checks,
+        plan.radius_m
+    );
+    assert_eq!(plan.slots.len(), 100);
+    for (i, a) in plan.slots.iter().enumerate() {
+        for b in &plan.slots[i + 1..] {
+            let radius =
+                members[a.id.0 as usize].radius + members[b.id.0 as usize].radius + rules.spacing_m;
+            assert!(
+                (a.point.unwrap() - b.point.unwrap()).length() + 1e-9 >= radius,
+                "{} overlaps {}",
+                a.id.0,
+                b.id.0
+            );
+        }
+    }
+    assert!(plan.radius_m > 40.0);
+    assert!(plan.checks <= members.len() + rules.candidate_checks as usize);
+}
+
+#[test]
+fn an_obstructed_destination_expands_past_the_old_snap_reach() {
+    let members = [Member {
+        id: UnitId(0),
+        position: v2(20.0, 20.0),
+        radius: 4.0,
+        yaw: 0.0,
+    }];
+    let plan = formation::place(
+        &members,
+        v2(500.0, 500.0),
+        None,
+        &FormationRules::default(),
+        1500.0,
+        |_, p| (p.x < 450.0 && p.x >= 0.0 && p.y >= 0.0 && p.y <= 1000.0).then_some(p),
+    );
+    let point = plan.slots[0]
+        .point
+        .expect("the bank behind the obstruction has room");
+    assert!(point.x < 450.0);
+    assert!(
+        (point - v2(500.0, 500.0)).length() < 100.0,
+        "nearby usable bank, not a distant scan artifact: {point:?}"
+    );
+    assert!(plan.radius_m > 40.0);
+}
+
+#[test]
+fn a_failed_member_does_not_discard_the_members_that_fit() {
+    let members = [
+        Member {
+            id: UnitId(7),
+            position: v2(20.0, 20.0),
+            radius: 4.0,
+            yaw: 0.0,
+        },
+        Member {
+            id: UnitId(9),
+            position: v2(20.0, 40.0),
+            radius: 4.0,
+            yaw: 0.0,
+        },
+    ];
+    let plan = formation::place(
+        &members,
+        v2(500.0, 500.0),
+        None,
+        &FormationRules::default(),
+        1500.0,
+        |id, p| (id == UnitId(7)).then_some(p),
+    );
+    assert_eq!(plan.slots[0].point, Some(v2(496.0, 490.0)));
+    assert_eq!(plan.slots[1].id, UnitId(9));
+    assert_eq!(plan.slots[1].point, None);
+    assert!(plan.checks <= members.len() + FormationRules::default().candidate_checks as usize);
+}
+
+#[test]
+fn a_partial_order_moves_the_units_that_fit_and_holds_the_others() {
+    use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy};
+    use contract::ids::Side;
+    use sim::battle::Battle;
+    let map = serde_json::json!({"size": [300, 300], "fog_cell_m": 8,
+        "height_grid_m": 4, "slope_cutoff_deg": 35, "props": []});
+    let mut setup = crate::common::scenario(
+        &map.to_string(),
+        serde_json::json!([
+            {"side": "blue", "kind": "tank", "position": [30, 100]},
+            {"side": "blue", "kind": "rifle", "position": [30, 130]}
+        ]),
+        serde_json::json!([]),
+    );
+    let mut rules = crate::common::scenario_rules();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "tank",
+        serde_json::json!({
+            "body": {"hull": {"half_extents_m": [2, 200, 2]}}
+        }),
+    );
+    setup.rules = serde_json::from_value(rules).unwrap();
+    let mut battle = Battle::new(&setup, 1);
+    let order = Order::Move {
+        units: vec![UnitId(0), UnitId(1)],
+        gesture: 3,
+        goal: [200.0, 150.0],
+        route: RoutePolicy::Shortest,
+        direction: MoveDirection::Forward,
+        facing: None,
+    };
+    let ack = battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        seq: 1,
+        order,
+        queued: false,
+    });
+    assert_eq!(ack.error, None);
+    let accepted = ack.placement.unwrap().destinations;
+    assert!(
+        !accepted[0].placed,
+        "the oversized tank cannot stand anywhere on this map"
+    );
+    assert!(accepted[1].placed, "the squad still gets a destination");
+    assert_eq!(
+        accepted[0].goal,
+        [30.0, 100.0],
+        "an unplaced unit previews holding its position"
+    );
+    assert_eq!(accepted[0].facing, 0.0);
+    battle.step();
+    let observed = battle.observe(Side::Blue);
+    assert_eq!(observed.own[0].goal, None);
+    assert_eq!(observed.own[1].goal, Some(accepted[1].goal));
+}
+
+#[test]
+fn preview_queries_cannot_change_later_navigation_or_replay() {
+    use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy};
+    use contract::ids::Side;
+    use sim::battle::Battle;
+    let setup = crate::common::scenario(
+        crate::common::GEOMETRY_LAB,
+        serde_json::json!([
+            {"side": "blue", "kind": "tank", "position": [30, 150]}
+        ]),
+        serde_json::json!([]),
+    );
+    let mut queried = Battle::new(&setup, 1);
+    let mut quiet = Battle::new(&setup, 1);
+    let command = CommandEnvelope {
+        side: Side::Blue,
+        seq: 1,
+        queued: false,
+        order: Order::Move {
+            units: vec![UnitId(0)],
+            gesture: 1,
+            goal: [270.0, 150.0],
+            route: RoutePolicy::Shortest,
+            direction: MoveDirection::Forward,
+            facing: None,
+        },
+    };
+    for _ in 0..3 {
+        queried
+            .preview_move(
+                Side::Blue,
+                &[UnitId(0)],
+                [170.0, 160.0],
+                None,
+                MoveDirection::Forward,
+            )
+            .unwrap();
+    }
+    assert_eq!(queried.accept(command.clone()), quiet.accept(command));
+    for _ in 0..500 {
+        queried
+            .preview_move(
+                Side::Blue,
+                &[UnitId(0)],
+                [170.0, 160.0],
+                None,
+                MoveDirection::Forward,
+            )
+            .unwrap();
+        queried.step();
+        quiet.step();
+        assert_eq!(queried.digest(), quiet.digest());
+    }
+    let mut replay = Battle::from_replay(&setup, &queried.replay()).unwrap();
+    for _ in 0..500 {
+        replay.step();
+    }
+    assert_eq!(replay.digest(), queried.digest());
+}
+
+#[test]
+fn partial_placement_keeps_moving_destinations_clear_of_units_that_hold() {
+    let members = [
+        Member {
+            id: UnitId(7),
+            position: v2(500.0, 500.0),
+            radius: 4.0,
+            yaw: 0.0,
+        },
+        Member {
+            id: UnitId(9),
+            position: v2(500.0, 510.0),
+            radius: 4.0,
+            yaw: 0.0,
+        },
+    ];
+    let rules = FormationRules::default();
+    let plan = formation::place(&members, v2(504.0, 515.0), None, &rules, 1500.0, |id, p| {
+        (id == UnitId(7)).then_some(p)
+    });
+    let goal = plan.slots[0]
+        .point
+        .expect("there is room for the unit that can move");
+    assert_eq!(plan.slots[1].point, None);
+    assert!(
+        (goal - members[1].position).length() >= 9.0,
+        "the other unit holds, so its footprint is still occupied: {goal:?}"
+    );
+    assert!(plan.checks <= members.len() + rules.candidate_checks as usize);
+}

@@ -214,8 +214,8 @@ impl NavGrid {
             };
             for at in 0..kept.nx * kept.ny {
                 assert_eq!(
-                    kept.clearance_at(push, at),
-                    fresh.clearance_at(push, at),
+                    kept.clearance_at(push, at, true),
+                    fresh.clearance_at(push, at, true),
                     "{step}: {push:?} clearance at cell {at}"
                 );
                 for m in [&vehicle, &squad] {

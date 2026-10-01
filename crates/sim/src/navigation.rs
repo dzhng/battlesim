@@ -391,7 +391,7 @@ impl NavGrid {
 
     /// Capping the transform means a source beyond eight cells cannot affect
     /// the tile. Evaluate the same two passes over a tile plus that finite halo.
-    fn clearance_at(&self, push: PushClass, at: usize) -> f64 {
+    fn clearance_at(&self, push: PushClass, at: usize, paid: bool) -> f64 {
         let stop = self.stopping(push);
         let (i, j) = (at % self.nx, at / self.nx);
         let tile = (j / TILE_SIDE) * self.nx.div_ceil(TILE_SIDE) + i / TILE_SIDE;
@@ -411,13 +411,15 @@ impl NavGrid {
         // A search pays to read a tile once each time its side has learned
         // something, whether or not the tile had to be worked out again.
         if let Some(Some(held)) = self.clearance[usize::from(stop)].borrow_mut().get_mut(tile) {
-            if held.paid != self.knowledge {
+            if paid && held.paid != self.knowledge {
                 held.paid = self.knowledge;
                 self.spend(TILE_WORK);
             }
             return held.values[local];
         }
-        self.spend(TILE_WORK);
+        if paid {
+            self.spend(TILE_WORK);
+        }
         let (tx, ty) = (i / TILE_SIDE * TILE_SIDE, j / TILE_SIDE * TILE_SIDE);
         let (x0, y0) = (
             tx.saturating_sub(CLEARANCE_HALO),
@@ -498,7 +500,11 @@ impl NavGrid {
         }
         tiles[tile] = Some(Clearance {
             values,
-            paid: self.knowledge,
+            paid: if paid {
+                self.knowledge
+            } else {
+                self.knowledge.wrapping_sub(1)
+            },
         });
         d
     }
@@ -532,13 +538,13 @@ impl NavGrid {
 
     /// Whether a footprint fits with its centre in this cell.
     fn fits(&self, cell: usize, who: Mover) -> bool {
-        self.fits_off_centre(cell, who, 0.0)
+        self.fits_off_centre(cell, who, 0.0, true)
     }
 
     /// Whether a footprint fits passing `off` metres from this cell's
     /// centre. A cell's room is measured from its centre, so a vehicle
     /// passing to one side of it has that much less.
-    fn fits_off_centre(&self, cell: usize, who: Mover, off: f64) -> bool {
+    fn fits_off_centre(&self, cell: usize, who: Mover, off: f64, paid: bool) -> bool {
         let m = who.m;
         let c = &self.cells[cell];
         // The nearest blocked cell's centre is `clearance` away; its near edge
@@ -548,7 +554,8 @@ impl NavGrid {
             MoverClass::Infantry => c.infantry,
             MoverClass::Vehicle => {
                 Self::vehicle_enters(c, m.push)
-                    && self.clearance_at(m.push, cell) - NAV_CELL_M / 2.0 - off >= m.half_width_m
+                    && self.clearance_at(m.push, cell, paid) - NAV_CELL_M / 2.0 - off
+                        >= m.half_width_m
             }
         };
         enters
@@ -629,13 +636,40 @@ impl NavGrid {
         self.stands(p, Mover::free(m))
     }
 
+    /// Placement may warm clearance values, but must not pay a later route's work.
+    pub fn placement_fits(&self, p: V2, m: &Mobility) -> bool {
+        self.stands_with_cost(p, Mover::free(m), false)
+    }
+
+    /// Resolve cell-edge conservatism locally before the formation searches farther.
+    pub fn placement_point(&self, p: V2, m: &Mobility) -> Option<V2> {
+        if self.placement_fits(p, m) {
+            return Some(p);
+        }
+        let (i, j) = cell_of(p);
+        let mut nearby: Vec<_> = (-1..=1)
+            .flat_map(|dx| {
+                (-1..=1).filter_map(move |dy| {
+                    self.index(i + dx, j + dy)
+                        .map(|k| cell_center(k % self.nx, k / self.nx))
+                })
+            })
+            .collect();
+        nearby.sort_by(|a, b| (*a - p).length().total_cmp(&(*b - p).length()));
+        nearby.into_iter().find(|&q| self.placement_fits(q, m))
+    }
+
     fn stands(&self, p: V2, who: Mover) -> bool {
+        self.stands_with_cost(p, who, true)
+    }
+
+    fn stands_with_cost(&self, p: V2, who: Mover, paid: bool) -> bool {
         let (i, j) = cell_of(p);
         self.index(i, j).is_some_and(|k| {
             // A vehicle standing off the middle of its cell has that much
             // less of the cell's room.
             let off = (cell_center(k % self.nx, k / self.nx) - p).length();
-            self.fits_off_centre(k, who, off)
+            self.fits_off_centre(k, who, off, paid)
                 && (who.m.class != MoverClass::Infantry
                     || self.cells[k].free & (1 << sub_of(p)) != 0)
         })
@@ -824,7 +858,7 @@ impl NavGrid {
                         .cross(along)
                         .abs();
                     let off = if off > NAV_CELL_M / 2.0 { 0.0 } else { off };
-                    let fits = self.fits_off_centre(cell, who, off);
+                    let fits = self.fits_off_centre(cell, who, off, true);
                     let cost = self.cost(cell, m, policy, piece);
                     crossing = Some((cell, fits, cost));
                     (fits, cost)

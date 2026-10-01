@@ -569,6 +569,9 @@ fn cover_lowers_losses_to_the_same_fire_over_many_seeds() {
             json!([]),
         );
         let mut rules = common::scenario_rules();
+        // Compare cover tiers at one incoming trajectory. Projectile tuning
+        // otherwise changes how much of the fire the low wall physically screens.
+        rules["weapons"]["rifle"]["speed_mps"] = json!(510.0);
         sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
         setup.rules = serde_json::from_value(rules).unwrap();
         if !tiers {
