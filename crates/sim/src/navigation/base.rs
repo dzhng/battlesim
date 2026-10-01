@@ -169,6 +169,14 @@ pub struct NavBase {
 }
 
 impl NavBase {
+    /// The ground covered by the grid, in metres.
+    pub(crate) fn extent(&self) -> [f64; 2] {
+        [
+            self.cells.nx as f64 * NAV_CELL_M,
+            self.cells.ny as f64 * NAV_CELL_M,
+        ]
+    }
+
     /// The grid of `world`'s surfaces with `bodies` standing on them.
     /// `soldier_radius` sizes infantry's sub-cell gaps.
     pub fn build<'a>(

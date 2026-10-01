@@ -10,8 +10,7 @@ mod surfaces;
 mod terrain;
 
 pub use forest::Foliage;
-pub(crate) use props::ray_box;
-use props::PropIndex;
+pub(crate) use props::{ray_box, PropIndex};
 pub use props::{Prop, PropId, Slot};
 use terrain::HeightField;
 
@@ -23,7 +22,7 @@ use contract::scenario::Rules;
 
 /// The prop index's bucket. Line tests measured this against 8, 16 and 64 m
 /// buckets (27 perf): 32 and 64 tie, finer is dearer.
-const PROP_BUCKET_M: f64 = 32.0;
+pub(crate) const PROP_BUCKET_M: f64 = 32.0;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SurfaceKind {
@@ -307,6 +306,10 @@ impl WorldGeometry {
     /// Live parts of an authored building, keyed by its immutable identity.
     pub(crate) fn current_building_parts(&self, identity: PropId) -> &[PropId] {
         self.buildings.current_parts(identity)
+    }
+    /// Every physical part ever belonging to the immutable building identity.
+    pub(crate) fn historical_building_parts(&self, identity: PropId) -> &[PropId] {
+        self.buildings.historical_parts(identity)
     }
     fn skips_structure(&self, id: PropId, skip: Option<PropId>) -> bool {
         skip.is_some_and(|s| self.structure_owner(id) == self.structure_owner(s))

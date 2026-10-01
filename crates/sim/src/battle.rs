@@ -1667,6 +1667,7 @@ impl Battle {
     fn sweep_fog(&mut self, side: Side) {
         let mut field = self.occlusion.field();
         let mut candidates = Vec::new();
+        let mut remembered = Vec::new();
         for unit in self.units.iter().filter(|u| u.side == side && u.alive()) {
             let sight = sight::of(unit, &self.rules);
             for eye in sensing::eyes(unit, &self.rules) {
@@ -1677,6 +1678,11 @@ impl Battle {
                         .props_near(eye.xy(), sight.max_range() + 3.0 * field.cell_m)
                         .into_iter()
                         .map(|p| p.id),
+                );
+                self.sides[side.index()].standing_near(
+                    eye.xy(),
+                    sight.max_range() + 3.0 * field.cell_m,
+                    &mut remembered,
                 );
                 visibility::sweep(
                     &self.world,
@@ -1706,7 +1712,7 @@ impl Battle {
         let revealed: std::collections::BTreeSet<_> = candidates
             .iter()
             .filter_map(|&id| self.world.prop(id))
-            .chain(known.standing.values())
+            .chain(remembered.iter().filter_map(|id| known.standing.get(id)))
             .filter_map(|p| self.world.building_of(p.id).map(|owner| (owner, p)))
             .filter(|(_, p)| footprint_seen(&field, p))
             .map(|(owner, _)| owner)
@@ -1720,9 +1726,16 @@ impl Battle {
         );
         candidates.sort_unstable();
         candidates.dedup();
-        let fallen: Vec<PropId> = known
-            .standing
-            .values()
+        remembered.extend(
+            revealed
+                .iter()
+                .flat_map(|&owner| self.world.historical_building_parts(owner).iter().copied()),
+        );
+        remembered.sort_unstable();
+        remembered.dedup();
+        let fallen: Vec<PropId> = remembered
+            .into_iter()
+            .filter_map(|id| known.standing.get(&id))
             .filter(|p| {
                 footprint_seen(&field, p)
                     || self
@@ -2464,5 +2477,61 @@ mod tests {
         );
         assert_eq!(pieces[1].hit, SegmentHit::Ground, "its end is seen");
         assert!(pieces.iter().all(|p| !p.own && p.kind == 0));
+    }
+    #[test]
+    fn seeing_one_remain_clears_far_historical_building_snapshots() {
+        let mut descriptor: contract::templates::BuildingTemplateDescriptor = serde_json::from_str(
+            include_str!("../../../fixtures/parity/templates/asymmetric.json"),
+        )
+        .unwrap();
+        descriptor.parts[0].half_extents[0] = 50.0;
+        descriptor.parts[1].center[0] = 52.0;
+        for edge in &mut descriptor.edges {
+            if edge.id == "main-north" || edge.id == "main-south" {
+                edge.span_m = [-50.0, 50.0];
+            }
+        }
+        let catalogue =
+            contract::templates::TemplateGeometryCatalog::new(vec![descriptor.clone()]).unwrap();
+        let geometry = descriptor
+            .materialize(contract::templates::PlacementFrame {
+                translation: [400.0, 300.0, 0.0],
+                yaw: 0.0,
+            })
+            .unwrap();
+        let mut rules = crate::fixtures::village();
+        crate::fixtures::patch_catalog(
+            &mut rules,
+            "units",
+            "rifle",
+            serde_json::json!({"sensors":{"ground_m":30}}),
+        );
+        let setup = serde_json::from_value(serde_json::json!({
+            "map":{"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+                "template_catalog_hash":catalogue.hash(),
+                "buildings":[{"owner":0,"kind":"building","category":descriptor.category,"regional_family":descriptor.regional_family,"parts":[{"part":"main","prop":0},{"part":"wing","prop":1}],"geometry":geometry}]},
+            "rules":rules,"units":[{"side":"blue","kind":"rifle","position":[250,100],"engagement":"return_fire_only"}],"events":[],"scripts":[]
+        })).unwrap();
+        let mut battle = Battle::new(&setup, 11);
+        battle.destroy_prop(0);
+        assert!(
+            battle.sides[0].standing.contains_key(&1),
+            "unseen wing remains remembered"
+        );
+        let delta = crate::math::v3(78.0, 200.0, 0.0);
+        battle.units[0].position = battle.units[0].position + delta;
+        for member in &mut battle.units[0].members {
+            member.position = member.position + delta;
+        }
+        battle.sweep_fog(Side::Blue);
+        assert!(
+            !battle.fog[0].visible(452.0, 301.0),
+            "far wing stays fogged"
+        );
+        assert!(!battle.sides[0].standing.contains_key(&0));
+        assert!(
+            !battle.sides[0].standing.contains_key(&1),
+            "whole aggregate's historical snapshots are cleared"
+        );
     }
 }

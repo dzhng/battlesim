@@ -22,7 +22,7 @@ use crate::math::{v2, Obb2, V2};
 use crate::navigation::{NavBase, NavGrid, Plan, RoadNet};
 use crate::route_planner::{Request, RoutePlanner};
 use crate::units::Unit;
-use crate::world::{Prop, PropId, WorldGeometry};
+use crate::world::{Prop, PropId, PropIndex, WorldGeometry, PROP_BUCKET_M};
 
 mod drive;
 mod final_leg;
@@ -94,6 +94,8 @@ pub struct SideGeometry {
     /// destroyed): it plans around them, and draws them, until it sees the
     /// ground where they stood (Q16, Q17, L1).
     pub standing: BTreeMap<PropId, Prop>,
+    /// The same remembered snapshots, indexed for sight queries.
+    standing_index: PropIndex,
     pub revision: u64,
     /// Where each of the latest revisions changed the side's plan, oldest
     /// first, so a squad re-resolves only for changes within its reach.
@@ -117,9 +119,11 @@ const ROUTE_RECHECK_REACH_M: f64 = 24.0;
 impl SideGeometry {
     /// A side that knows the map as `base` has it, and nothing else.
     pub fn new(base: Arc<NavBase>) -> Self {
+        let [width, depth] = base.extent();
         SideGeometry {
             seen: BTreeMap::new(),
             standing: BTreeMap::new(),
+            standing_index: PropIndex::new(width, depth, PROP_BUCKET_M),
             revision: 0,
             changes: VecDeque::new(),
             grid: NavGrid::new(base),
@@ -240,12 +244,22 @@ impl SideGeometry {
     /// A body this side did not see go: it keeps planning around it.
     pub fn keep_standing(&mut self, prop: Prop) {
         self.stale.insert(prop.id);
+        if let Some(was) = self.standing.remove(&prop.id) {
+            self.standing_index.remove(&was);
+        }
+        self.standing_index.insert(&prop);
         self.standing.insert(prop.id, prop);
+    }
+
+    /// Remembered body candidates whose footprint may meet an eye's reach.
+    pub(crate) fn standing_near(&self, center: V2, radius: f64, out: &mut Vec<PropId>) {
+        self.standing_index.near(center, radius, out);
     }
 
     /// The side sees that a body it kept standing is gone.
     pub fn saw_fallen(&mut self, prop: PropId) {
         if let Some(gone) = self.standing.remove(&prop) {
+            self.standing_index.remove(&gone);
             let was = self.seen.remove(&prop).map(|s| s.center);
             self.stale.insert(prop);
             self.changed(span(&gone, was));
@@ -1017,4 +1031,45 @@ fn route_start(unit: &Unit) -> V2 {
         .map(|p| p.xy())
         .min_by(|a, b| (*a - middle).length().total_cmp(&(*b - middle).length()))
         .unwrap_or(middle)
+}
+
+#[cfg(test)]
+mod remembered_sight_tests {
+    use super::*;
+
+    #[test]
+    fn remembered_body_queries_follow_replacements_and_observed_removals() {
+        let rules = serde_json::from_value(crate::fixtures::village()).unwrap();
+        let map = serde_json::from_value(serde_json::json!({
+            "size":[256,256],"fog_cell_m":8,"height_grid_m":4,
+            "slope_cutoff_deg":35,"props":[{
+                "kind":"crate","center":[20,20],"yaw":0,
+                "half_extents":[0.8,0.8,0.6]
+            }]
+        }))
+        .unwrap();
+        let world = WorldGeometry::new(&map, &rules);
+        let base = NavBase::build(&world, world.props(), 0.3);
+        let mut side = SideGeometry::new(Arc::new(base));
+        let mut prop = world.prop(0).unwrap().clone();
+        let at = v2(20.0, 20.0);
+        side.keep_standing(prop.clone());
+        let mut nearby = Vec::new();
+        side.standing_near(at, 2.0, &mut nearby);
+        assert_eq!(nearby, vec![0]);
+        prop.center = v2(200.0, 200.0);
+        side.keep_standing(prop);
+        nearby.clear();
+        side.standing_near(at, 2.0, &mut nearby);
+        assert!(nearby.is_empty(), "replaced memory has no old footprint");
+        side.standing_near(v2(200.0, 200.0), 2.0, &mut nearby);
+        assert_eq!(nearby, vec![0]);
+        side.saw_fallen(0);
+        nearby.clear();
+        side.standing_near(v2(200.0, 200.0), 2.0, &mut nearby);
+        assert!(
+            nearby.is_empty(),
+            "observed removals leave no remembered body"
+        );
+    }
 }

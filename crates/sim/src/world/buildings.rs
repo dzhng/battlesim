@@ -142,6 +142,11 @@ impl Buildings {
             .get(&identity)
             .map_or(&[], |b| b.parts.as_slice())
     }
+    pub fn historical_parts(&self, identity: PropId) -> &[PropId] {
+        self.facts
+            .get(&identity)
+            .map_or(&[], |b| b.history.as_slice())
+    }
     /// New bodies share a fresh integrity owner, while facts and the source part
     /// they replace retain their original identity through arbitrary chains.
     pub fn replace(&mut self, owner: PropId, replacements: &[(PropId, PropId)]) {
