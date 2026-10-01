@@ -175,6 +175,12 @@ pub struct MovementRules {
 /// and turning.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DriveRules {
+    /// Seconds to accelerate from rest to the vehicle's full road speed.
+    #[serde(default = "default_acceleration_s")]
+    pub acceleration_s: f64,
+    /// Seconds to brake from full road speed to rest.
+    #[serde(default = "default_braking_s")]
+    pub braking_s: f64,
     /// Tracks turn in place beyond this heading error.
     pub turn_in_place_deg: f64,
     /// A wheeled vehicle reaches a waypoint it passes abeam within this.
@@ -185,11 +191,20 @@ pub struct DriveRules {
     pub min_leg_m: f64,
     /// The waypoint must lie this far outside the turning circle to end a leg.
     pub circle_margin_m: f64,
-    /// Beyond this heading error a wheeled turn counts as a manoeuvre: it
-    /// probes ahead, and its progress is not a stall.
+    /// Beyond this heading error a wheeled turn counts as progress rather
+    /// than a stall while it swings away from the waypoint.
     pub turning_deg: f64,
-    /// A wheeled vehicle slows to this fraction of its speed at full lock.
+    /// Maximum speed fraction during a manoeuvre; the turning radius and
+    /// yaw rate can impose a lower limit.
     pub turn_slow: f64,
+}
+
+// Frozen parity inputs predate these optional tuning fields.
+fn default_acceleration_s() -> f64 {
+    4.5
+}
+fn default_braking_s() -> f64 {
+    1.5
 }
 
 /// How a squad's soldiers spread out where a move ends (D1, Q7): each move

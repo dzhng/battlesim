@@ -1,4 +1,4 @@
-//! Ground movement each tick: plan when needed, follow the route at surface
+//! Ground movement each tick: plan when needed, follow the route toward surface
 //! speed, and learn obstacles by running into them. A vehicle drives its route
 //! as one hull, waits for every other vehicle whatever its side (Q14), never
 //! for soldiers, and shoves bodies lighter than its push class aside
@@ -457,6 +457,7 @@ fn arrive(unit: &mut Unit) {
     unit.route = None;
     unit.planned_goal = None;
     unit.manoeuvre = None;
+    unit.drive_speed_mps = 0.0;
     unit.state = if unit.orders.is_empty() {
         MoveState::Idle
     } else {
@@ -474,6 +475,7 @@ fn step_vehicle(
     let dt = 1.0 / ctx.tick_hz as f64;
     units[i].reversing = false;
     if !may_advance(ctx, &mut units[i]) {
+        units[i].drive_speed_mps = 0.0;
         units[i].manoeuvre = None;
         if units[i].route.is_none() && units[i].turn_to.is_some() {
             let before = units[i].yaw;
@@ -502,35 +504,10 @@ fn step_vehicle(
     });
     // Craters under the hull slow it slightly; never to a stop (Q8).
     let speed = speed * ctx.ground.vehicle_speed(here.x, here.y, ctx.ground_rules);
-    let motion = drive::steer(ctx.world, &mut units[i], target, speed, dt);
+    let before_manoeuvre = unit.manoeuvre;
+    let mut motion = drive::steer(ctx.world, &mut units[i], target, speed, dt);
     let unit = &units[i];
-    // Tracks turn standing still; wheels turn only as they roll (Q29).
-    let pivots = unit.mobility.drive.is_some_and(|d| d.tracked);
-    let held_yaw = if pivots { motion.yaw } else { unit.yaw };
-    let yaw = motion.yaw;
-    let heading = motion.heading;
-    let mut step = motion.step;
-
-    // Traffic, whatever its side (Q14): a vehicle waits for whatever it
-    // would run into; live vehicles are never shoved (Q15).
-    let mut next = here + heading * step;
-    let blocker = units.iter().enumerate().find_map(|(j, other)| {
-        (j != i && other.is_vehicle() && other.alive() && vehicle_conflict(unit, next, yaw, other))
-            .then_some(other.id)
-    });
-
-    let unit = &mut units[i];
-    if let Some(b) = blocker {
-        unit.state = MoveState::Waiting;
-        unit.blocker = Some(b);
-        unit.yaw = held_yaw;
-        return;
-    }
-    unit.state = MoveState::Moving;
-    unit.blocker = None;
-
-    // True geometry decides; an obstacle met here becomes known to the side.
-    let radius = unit.footprint_radius(ctx.soldier_radius_m);
+    let mut next = here + motion.heading * motion.step;
     let half = unit.hull.expect("a vehicle has a hull").xy();
     let current = Obb2 {
         center: here,
@@ -538,6 +515,79 @@ fn step_vehicle(
         half,
     };
     let push = unit.mobility.push;
+    // Box against box (L8): a body it cannot shove stops it; the bodies it
+    // can shove slow it by the heaviest's class ratio and slide aside (Q2).
+    let hull_at = |center: V2, yaw: f64| Obb2 { center, yaw, half };
+    let mut met = push::meet(ctx.world, &hull_at(next, motion.yaw), &current, push);
+    if met.solid.is_none() && !met.shoved.is_empty() {
+        let heaviest = met
+            .shoved
+            .iter()
+            .map(|p| p.body.weight_class.rank())
+            .max()
+            .unwrap_or(0);
+        // Shoving limits the target speed, not the already ramped velocity:
+        // multiplying carried speed every tick would compound the slowdown.
+        units[i].manoeuvre = before_manoeuvre;
+        motion = drive::steer(
+            ctx.world,
+            &mut units[i],
+            target,
+            speed * push.shove_speed(heaviest),
+            dt,
+        );
+        next = here + motion.heading * motion.step;
+        met = push::meet(ctx.world, &hull_at(next, motion.yaw), &current, push);
+    }
+    // Traffic, whatever its side (Q14): a vehicle waits for whatever it
+    // would run into; live vehicles are never shoved (Q15).
+    let unit = &units[i];
+    let mut blocker = units.iter().enumerate().find_map(|(j, other)| {
+        (j != i
+            && other.is_vehicle()
+            && other.alive()
+            && vehicle_conflict(unit, next, motion.yaw, other))
+        .then_some(other.id)
+    });
+
+    // A detouring tank must not pivot through its neighbour. Give the turn
+    // room instead of deadlocking nose-to-nose.
+    if blocker.is_some()
+        && unit.mobility.drive.is_some_and(|d| d.tracked)
+        && motion.yaw != unit.yaw
+        && stationary_yaw(ctx.world, units, i, motion.yaw) == unit.yaw
+    {
+        let back = drive::give_space(unit, speed, dt);
+        let at = here + back.heading * back.step;
+        let behind = push::meet(ctx.world, &hull_at(at, back.yaw), &current, push);
+        let traffic = units.iter().enumerate().any(|(j, other)| {
+            j != i
+                && other.is_vehicle()
+                && other.alive()
+                && vehicle_conflict(unit, at, back.yaw, other)
+        });
+        if behind.solid.is_none() && behind.shoved.is_empty() && !traffic {
+            motion = back;
+            next = at;
+            met = behind;
+            blocker = None;
+        }
+    }
+    if let Some(b) = blocker {
+        let held_yaw = stationary_yaw(ctx.world, units, i, motion.yaw);
+        let unit = &mut units[i];
+        unit.state = MoveState::Waiting;
+        unit.blocker = Some(b);
+        unit.yaw = held_yaw;
+        unit.drive_speed_mps = 0.0;
+        return;
+    }
+    let unit = &mut units[i];
+    unit.state = MoveState::Moving;
+    unit.blocker = None;
+
+    // True geometry decides; an obstacle met here becomes known to the side.
+    let radius = unit.footprint_radius(ctx.soldier_radius_m);
     let side = &mut sides[unit.side.index()];
     for prop in ctx.world.props_near(next, radius + ENCOUNTER_RANGE_M) {
         if prop.blocks(MoverClass::Vehicle)
@@ -547,21 +597,6 @@ fn step_vehicle(
             side.learn(prop, ctx.authored, ctx.rules.pushing.relearn_m, resting);
         }
     }
-    // Box against box (L8): a body it cannot shove stops it; the bodies it
-    // can shove slow it by the heaviest's class ratio and slide aside (Q2).
-    let hull_at = |center: V2, yaw: f64| Obb2 { center, yaw, half };
-    let mut met = push::meet(ctx.world, &hull_at(next, yaw), &current, push);
-    if met.solid.is_none() && !met.shoved.is_empty() {
-        let heaviest = met
-            .shoved
-            .iter()
-            .map(|p| p.body.weight_class.rank())
-            .max()
-            .unwrap_or(0);
-        step *= push.shove_speed(heaviest);
-        next = here + heading * step;
-        met = push::meet(ctx.world, &hull_at(next, yaw), &current, push);
-    }
     let turn = ctx.rules.pushing.turn_deg_per_m.to_radians();
     let mut shoved = Vec::new();
     let mut solid = met.solid.is_some();
@@ -570,8 +605,8 @@ fn step_vehicle(
             ctx.world,
             units,
             i,
-            &hull_at(next, yaw),
-            heading,
+            &hull_at(next, motion.yaw),
+            motion.heading,
             prop,
             turn,
         ) {
@@ -579,35 +614,35 @@ fn step_vehicle(
             None => solid = true,
         }
     }
-    let unit = &mut units[i];
-    let Some(ground) = ctx
+    let ground = ctx
         .world
         .surface_at(next.x, next.y)
-        .filter(|s| s.traversable)
-    else {
+        .filter(|s| s.traversable);
+    if solid || ground.is_none() {
+        let held_yaw = stationary_yaw(ctx.world, units, i, motion.yaw);
+        let unit = &mut units[i];
         unit.yaw = held_yaw;
-        return;
-    };
-    if solid {
-        unit.yaw = held_yaw;
+        unit.drive_speed_mps = 0.0;
         return;
     }
+    let ground = ground.expect("traversable ground checked above");
+    let unit = &mut units[i];
     shoves.extend(shoved);
-    unit.yaw = yaw;
+    unit.yaw = motion.yaw;
     unit.position = next.with_z(ground.z);
-    unit.reversing = motion.backwards && step > 0.0;
+    unit.reversing = motion.backwards && motion.step > 0.0;
+    unit.drive_speed_mps = motion.step / dt * if motion.backwards { -1.0 } else { 1.0 };
     if let Some(m) = unit.manoeuvre.as_mut() {
-        m.driven_m += step;
+        m.driven_m += motion.step;
     }
-    // A wheeled turn swings away from its waypoint before closing on it:
-    // that is progress, not a stall.
-    if motion.turning && step > 0.0 {
+    // Turning or making room can move away from the waypoint without stalling.
+    if motion.manoeuvring && motion.step > 0.0 {
         unit.progress.1 = ctx.tick;
     }
 
     let route = unit.route.as_mut().unwrap();
     let left = (route[0] - next).length();
-    if left < PROGRESS_EPSILON_M.min(step + 1e-9) || left < 1e-6 {
+    if left < PROGRESS_EPSILON_M.min(motion.step + 1e-9) || left < 1e-6 {
         route.remove(0);
         unit.progress = (f64::INFINITY, ctx.tick);
         if route.is_empty() {
@@ -615,6 +650,32 @@ fn step_vehicle(
         }
     } else if left < unit.progress.0 - PROGRESS_EPSILON_M {
         unit.progress = (left, ctx.tick);
+    }
+}
+
+/// A rejected step may still let tracks pivot, but only into a clear pose.
+fn stationary_yaw(world: &WorldGeometry, units: &[Unit], i: usize, yaw: f64) -> f64 {
+    let unit = &units[i];
+    if yaw == unit.yaw || !unit.mobility.drive.is_some_and(|d| d.tracked) {
+        return unit.yaw;
+    }
+    let here = unit.hull_box().expect("a vehicle has a hull");
+    let turned = Obb2 { yaw, ..here };
+    let met = push::meet(world, &turned, &here, unit.mobility.push);
+    // A stationary pivot checks true hulls; translation's traffic buffer
+    // would forbid using the clearance reserved by the stopped approach.
+    let occupied = met.solid.is_some()
+        || !met.shoved.is_empty()
+        || units.iter().enumerate().any(|(j, other)| {
+            j != i
+                && other.is_vehicle()
+                && other.alive()
+                && turned.overlaps(&other.hull_box().expect("a vehicle has a hull"))
+        });
+    if occupied {
+        unit.yaw
+    } else {
+        yaw
     }
 }
 

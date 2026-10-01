@@ -332,6 +332,8 @@
     "turret_turn_deg_s": 60,
     "bearing_tolerance_deg": 2,
     "drive": {
+      "acceleration_s": 4.5,
+      "braking_s": 1.5,
       "turn_in_place_deg": 60,
       "abeam_m": 1.5,
       "abeam_deg": 60,

@@ -85,6 +85,20 @@ Add one entry. A mechanic comes from the body's columns, so a new obstacle needs
 
 Every mover states its own two top speeds in its `mobility` row, in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road (at most 130, and never below the off-road speed). `village.json`'s `surfaces` table has one row per surface kind a map may pave (`road`, `country_road`, `dirt_track`, `sidewalk`). A row's `speed_factor` scales each unit type's own road speed on that surface, never below its off-road speed: 1 is a full road, 0 is no road at all. A new surface kind is a new row plus its variant in `contract::map::SurfaceKind`.
 
+Vehicle surface speeds are targets, not instantaneous velocity. The drive settings in
+[`village.json`](village.json) express acceleration and braking as time from rest to
+full road speed and back; each vehicle's own top speed sets the rate. This keeps
+road entry gradual without reducing the road advantage. Surface and shove limits
+act on the target speed so slowdown does not compound every tick. The follower
+brakes on the incoming leg of a planned bend, using its turning radius and yaw rate to
+choose a corner speed. A blocked tracked pivot backs up when it needs room.
+Stops, collisions and gear changes discard momentum. Infantry retain their own
+pace; their yield horizon follows a vehicle's accepted velocity, including reverse
+movement. Once clear of that path, a soldier waits rather than stepping back
+into it. Accepted vehicle speed participates in replay digests but adds no
+observation or command fields. Frozen parity inputs without these timing settings
+use the contract's defaults.
+
 ## Parity oracles
 
 `parity/` holds frozen inputs and expected outputs that the native tests and the web tests both read, so the Rust simulation and its WebAssembly build are held to the same answer: building aggregates, fog delivery, ground learning and transport, the map compiler, physical templates (including the rejected descriptors that must keep failing) and terrain queries. A file changes only with a named behaviour change, and every test that reads it changes in the same commit.

@@ -165,10 +165,15 @@ impl Threat {
             return None;
         }
         let here = unit.position.xy();
-        let speed = ctx.world.surface_at(here.x, here.y).map_or(0.0, |s| {
-            unit.mobility.speed(s.road_factor, s.forest, s.slope_deg)
-        });
-        let mut left = speed * ctx.infantry.yield_horizon_s + hull.half.x;
+        let speed = unit.drive_speed_mps;
+        let mut left = speed.abs() * ctx.infantry.yield_horizon_s + hull.half.x;
+        if speed < 0.0 {
+            let backwards = v2(-1.0, 0.0).rotated(unit.yaw);
+            return Some(Threat {
+                half_width: hull.half.y,
+                path: vec![here, here + backwards * left],
+            });
+        }
         let mut path = vec![here];
         let mut at = here;
         for &w in route {
@@ -695,9 +700,18 @@ pub(super) fn step_squad(
             velocity = velocity * (speed / velocity.length());
         }
         let wanted = here.xy() + velocity * dt;
-        let next = walk(ctx, side, &around, here, wanted)
-            .map(|p| keep_apart(ctx, crowd, id, &around, here, p))
-            .unwrap_or(here);
+        let clear_by = ctx.soldier_radius_m + ctx.infantry.yield_margin_m;
+        let enters_traffic = threats
+            .iter()
+            .any(|t| t.dodge(here.xy(), clear_by).is_none() && t.dodge(wanted, clear_by).is_some());
+        // Once clear, wait rather than stepping back into the approaching hull's path.
+        let next = if enters_traffic {
+            here
+        } else {
+            walk(ctx, side, &around, here, wanted)
+                .map(|p| keep_apart(ctx, crowd, id, &around, here, p))
+                .unwrap_or(here)
+        };
         let s = &mut unit.members[k];
         s.velocity = (next.xy() - here.xy()) * (1.0 / dt);
         s.position = next;

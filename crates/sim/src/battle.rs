@@ -462,6 +462,7 @@ impl Battle {
                     }),
                     manoeuvre: None,
                     reversing: false,
+                    drive_speed_mps: 0.0,
                     turn_to: None,
                 }
             })
@@ -1800,6 +1801,7 @@ impl Battle {
                     unit.planned_goal = None;
                     unit.pursuit = None;
                     unit.state = MoveState::Idle;
+                    unit.drive_speed_mps = 0.0;
                     unit.blocker = None;
                     unit.turn_to = None;
                     for mount in &mut unit.mounts {

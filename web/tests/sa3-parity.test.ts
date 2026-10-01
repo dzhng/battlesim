@@ -40,6 +40,11 @@ test("sparse native truth preserves original digests and every ordered learned p
     if (t % 7 === 3) continue;
     const original = ordered.results[next++];
     const p = record(battle, layout, "blue");
+    // Named simulation changes update digests and the ground their movement marks.
+    if (process.env.BLESS_PARITY) {
+      const { side: _side, ...ground } = canonicalGround(p, layout.ground.cols);
+      Object.assign(original, { digest: battle.digest(), ...ground });
+    }
     expect({
       tick: t + 1,
       digest: battle.digest(),
@@ -50,9 +55,20 @@ test("sparse native truth preserves original digests and every ordered learned p
     });
   }
   battle.resync_observation();
-  expect(canonicalGround(record(battle, layout, "blue"), layout.ground.cols)).toEqual(ordered.blue);
-  expect(canonicalGround(record(battle, layout, "red"), layout.ground.cols)).toEqual(ordered.red);
+  const blue = canonicalGround(record(battle, layout, "blue"), layout.ground.cols);
+  const red = canonicalGround(record(battle, layout, "red"), layout.ground.cols);
+  if (process.env.BLESS_PARITY) {
+    Object.assign(ordered.blue, blue);
+    Object.assign(ordered.red, red);
+  }
+  expect(blue).toEqual(ordered.blue);
+  expect(red).toEqual(ordered.red);
   battle.free();
+  if (process.env.BLESS_PARITY)
+    writeFileSync(
+      new URL("../../fixtures/parity/ground/ordered-patches.json", import.meta.url),
+      JSON.stringify(ordered),
+    );
 }, 30000);
 test("sparse foliage exports preserve original static and side-cleared cells", () => {
   for (const original of foliage) {

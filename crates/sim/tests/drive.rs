@@ -22,9 +22,20 @@ fn battle(
     direction: &str,
     props: Value,
 ) -> Battle {
+    let mut fixture = rules();
+    fixture["movement"]["drive"]["acceleration_s"] = json!(4.5);
+    fixture["movement"]["drive"]["braking_s"] = json!(1.5);
+    sim::fixtures::patch_catalog(
+        &mut fixture,
+        "units",
+        "supply",
+        json!({
+            "capabilities": { "deploy": { "pack_seconds": 1 } }
+        }),
+    );
     let setup: ScenarioDefinition = serde_json::from_value(json!({
         "map": { "size": [160, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props },
-        "rules": rules(),
+        "rules": fixture,
         "units": [{ "side": "blue", "kind": kind, "position": at, "yaw": yaw,
                     "engagement": "return_fire_only" }],
         "events": [],
@@ -54,11 +65,11 @@ fn drive(b: &mut Battle, seconds: f64) -> Vec<(sim::math::V2, f64, bool)> {
     poses
 }
 
-/// Metres covered over the second second of a straight drive.
+/// Metres covered at cruise, after the fixed acceleration and packing windows.
 fn pace(kind: &str, yaw: f64, direction: &str) -> f64 {
     let mut b = battle(kind, [20.0, 60.0], yaw, [140.0, 60.0], direction, json!([]));
-    let poses = drive(&mut b, 3.0);
-    (poses[60].0 - poses[30].0).length()
+    let poses = drive(&mut b, 8.0);
+    (poses[210].0 - poses[180].0).length()
 }
 
 #[test]
