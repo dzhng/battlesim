@@ -189,6 +189,8 @@ fn main() {
     let mut reached: Vec<Option<f64>> = vec![None; rows.len()];
     let (start, before) = (Instant::now(), instructions());
     let mut worst = (0.0, 0);
+    // The tick that retired the most instructions: (instructions, tick).
+    let mut dearest = (0u64, 0u64);
     // Planning work: the run's total, the busiest tick's, and the ticks
     // over 33 ms that did any.
     let (mut work, mut busiest, mut slow_planning) = (0u64, 0u64, 0usize);
@@ -221,6 +223,7 @@ fn main() {
         if ms > worst.0 {
             worst = (ms, t);
         }
+        dearest = dearest.max((cost, t));
         ticks.push(ms);
         let load = battle.load();
         most_relaid = most_relaid.max(load.grid_cells_relaid - relaid);
@@ -251,7 +254,7 @@ fn main() {
     ticks.sort_by(|a, b| a.total_cmp(b));
     let at = |q: f64| ticks[((ticks.len() - 1) as f64 * q).round() as usize];
     println!(
-        "| crossing {seconds} s | {:.0} | {:.1} | {} | tick p50 {:.2} ms, p95 {:.2}, p99 {:.2}, max {:.0} (tick {}); {} ticks over 33 ms |",
+        "| crossing {seconds} s | {:.0} | {:.1} | {} | tick p50 {:.2} ms, p95 {:.2}, p99 {:.2}, max {:.0} (tick {}); {} ticks over 33 ms; the costliest tick retired {:.1} M instructions (tick {}) |",
         start.elapsed().as_secs_f64() * 1000.0,
         spent as f64 / 1e9,
         rss_mib(),
@@ -261,6 +264,8 @@ fn main() {
         worst.0,
         worst.1,
         ticks.iter().filter(|ms| **ms > 33.0).count(),
+        dearest.0 as f64 / 1e6,
+        dearest.1,
     );
     println!(
         "planning: {work} work in all, {busiest} in the busiest tick (allowance {}); {slow_planning} ticks over 33 ms did any",

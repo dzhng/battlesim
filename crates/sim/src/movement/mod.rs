@@ -267,6 +267,26 @@ impl SideGeometry {
         &self.grid
     }
 
+    /// The side's grid as it stands once it has taken in everything the
+    /// side believes now, beside a grid built whole from those beliefs.
+    #[cfg(test)]
+    pub(crate) fn grid_beside_whole_build(
+        &mut self,
+        world: &WorldGeometry,
+        authored: PropId,
+        soldier_radius: f64,
+    ) -> (&NavGrid, NavGrid) {
+        let believed: Vec<Prop> = world
+            .props()
+            .chain(self.standing.values())
+            .filter_map(|p| self.belief(p, authored))
+            .collect();
+        let whole = NavBase::build(world, believed.iter(), soldier_radius);
+        // A revision the side never reaches, so the grid looks again.
+        self.grid_revision = u64::MAX;
+        (self.grid(world, authored), NavGrid::new(Arc::new(whole)))
+    }
+
     /// Fold the side's planning knowledge into a digest.
     pub fn digest(&self, d: &mut crate::digest::Digest) {
         d.u64(self.revision).u64(self.seen.len() as u64);

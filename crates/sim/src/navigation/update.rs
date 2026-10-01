@@ -165,64 +165,15 @@ impl NavGrid {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::navigation::regions::Regions;
-    use crate::navigation::{Mobility, Mover, PUSH_CLASSES};
-    use crate::rng::Rng;
-    use contract::map::{MapDefinition, MoverClass, PropDefinition};
-    use contract::scenario::{PushClass, Rules};
-
-    const SOLDIER_M: f64 = 0.3;
-
-    /// A small map with everything a grid reads: a hill, water under a
-    /// bridge, a road, a wood, a building and loose bodies of every weight.
-    fn world(rules: &Rules) -> WorldGeometry {
-        let map: MapDefinition = serde_json::from_value(serde_json::json!({
-            "size": [320, 256], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
-            "relief": [{ "kind": "ridge", "center": [250, 200], "radius_m": 60, "peak_m": 30 }],
-            "water": [{ "rect": [150, 0, 12, 256], "bed_z": -2, "surface_z": -0.5 }],
-            "bridges": [{ "deck": "bridge_deck", "center": [156, 100], "half_extents": [12, 4],
-                "yaw": 0, "deck_z": 0.1, "thickness_m": 0.8 }],
-            "surfaces": [{ "kind": "road", "shape": { "kind": "stroke",
-                "points": [[4, 100], [150, 100], [300, 60]], "width_m": 8 } }],
-            "forests": [{ "shape": { "kind": "polygon",
-                "ring": [[20, 120], [130, 120], [130, 230], [20, 230]] } }],
-            "props": [
-                { "kind": "ruin", "center": [60, 60], "yaw": 0.3, "half_extents": [6, 5, 3] },
-                { "kind": "wall", "center": [220, 120], "yaw": 1.1, "half_extents": [0.4, 14, 1] },
-                { "kind": "crate", "center": [100, 90], "yaw": 0.2, "half_extents": [1, 1, 1] },
-                { "kind": "tooth", "center": [200, 96], "yaw": 0, "half_extents": [0.6, 0.6, 0.6] }
-            ]
-        }))
-        .expect("a map");
-        WorldGeometry::new(&map, rules)
-    }
-
-    /// What a side of this test believes: the bodies it places somewhere
-    /// (learned, or the map's where it last saw them), and the map's bodies
-    /// it believes gone.
-    #[derive(Default)]
-    struct Belief {
-        placed: std::collections::BTreeMap<PropId, Prop>,
-        gone: std::collections::BTreeSet<PropId>,
-    }
-
-    impl Belief {
-        fn of(&self, world: &WorldGeometry, authored: PropId, id: PropId) -> Option<Prop> {
-            if self.gone.contains(&id) {
-                return None;
-            }
-            self.placed
-                .get(&id)
-                .cloned()
-                .or_else(|| world.prop(id).filter(|p| p.id < authored).cloned())
-        }
-    }
-
+impl NavGrid {
     /// Every field of two grids over the same knowledge agrees, and so does
     /// every answer a search reads from them.
-    fn assert_same(step: &str, kept: &NavGrid, fresh: &NavGrid) {
+    pub(crate) fn assert_same(&self, step: &str, fresh: &NavGrid) {
+        use crate::navigation::regions::Regions;
+        use crate::navigation::{Mobility, Mover};
+        use contract::map::MoverClass;
+        use contract::scenario::PushClass;
+        let kept = self;
         assert_eq!((kept.nx, kept.ny), (fresh.nx, fresh.ny));
         for at in 0..kept.nx * kept.ny {
             let cell = kept.cells[at];
@@ -284,6 +235,62 @@ mod tests {
             }
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::navigation::PUSH_CLASSES;
+    use crate::rng::Rng;
+    use contract::map::{MapDefinition, PropDefinition};
+    use contract::scenario::Rules;
+
+    const SOLDIER_M: f64 = 0.3;
+
+    /// A small map with everything a grid reads: a hill, water under a
+    /// bridge, a road, a wood, a building and loose bodies of every weight.
+    fn world(rules: &Rules) -> WorldGeometry {
+        let map: MapDefinition = serde_json::from_value(serde_json::json!({
+            "size": [320, 256], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+            "relief": [{ "kind": "ridge", "center": [250, 200], "radius_m": 60, "peak_m": 30 }],
+            "water": [{ "rect": [150, 0, 12, 256], "bed_z": -2, "surface_z": -0.5 }],
+            "bridges": [{ "deck": "bridge_deck", "center": [156, 100], "half_extents": [12, 4],
+                "yaw": 0, "deck_z": 0.1, "thickness_m": 0.8 }],
+            "surfaces": [{ "kind": "road", "shape": { "kind": "stroke",
+                "points": [[4, 100], [150, 100], [300, 60]], "width_m": 8 } }],
+            "forests": [{ "shape": { "kind": "polygon",
+                "ring": [[20, 120], [130, 120], [130, 230], [20, 230]] } }],
+            "props": [
+                { "kind": "ruin", "center": [60, 60], "yaw": 0.3, "half_extents": [6, 5, 3] },
+                { "kind": "wall", "center": [220, 120], "yaw": 1.1, "half_extents": [0.4, 14, 1] },
+                { "kind": "crate", "center": [100, 90], "yaw": 0.2, "half_extents": [1, 1, 1] },
+                { "kind": "tooth", "center": [200, 96], "yaw": 0, "half_extents": [0.6, 0.6, 0.6] }
+            ]
+        }))
+        .expect("a map");
+        WorldGeometry::new(&map, rules)
+    }
+
+    /// What a side of this test believes: the bodies it places somewhere
+    /// (learned, or the map's where it last saw them), and the map's bodies
+    /// it believes gone.
+    #[derive(Default)]
+    struct Belief {
+        placed: std::collections::BTreeMap<PropId, Prop>,
+        gone: std::collections::BTreeSet<PropId>,
+    }
+
+    impl Belief {
+        fn of(&self, world: &WorldGeometry, authored: PropId, id: PropId) -> Option<Prop> {
+            if self.gone.contains(&id) {
+                return None;
+            }
+            self.placed
+                .get(&id)
+                .cloned()
+                .or_else(|| world.prop(id).filter(|p| p.id < authored).cloned())
+        }
+    }
 
     #[test]
     fn a_grid_updated_body_by_body_is_the_grid_built_whole_from_the_same_knowledge() {
@@ -297,7 +304,7 @@ mod tests {
         let mut taken = 0;
         // Read every clearance tile before any change, so a tile left
         // standing when a body under it changes shows.
-        assert_same("built", &kept, &NavGrid::new(Arc::clone(&kept.base)));
+        kept.assert_same("built", &NavGrid::new(Arc::clone(&kept.base)));
         let kinds = [
             "crate",
             "tooth",
@@ -383,7 +390,7 @@ mod tests {
                 .filter_map(|id| belief.of(&world, authored, id))
                 .collect();
             let fresh = NavGrid::new(Arc::new(NavBase::build(&world, known.iter(), SOLDIER_M)));
-            assert_same(&format!("step {step} ({what})"), &kept, &fresh);
+            kept.assert_same(&format!("step {step} ({what})"), &fresh);
         }
         assert!(PUSH_CLASSES > 1 && !belief.gone.is_empty() && taken > 0);
     }
