@@ -150,6 +150,7 @@ dependencies = [
  "libm",
  "serde",
  "serde_json",
+ "sim",
 ]
 
 [[package]]

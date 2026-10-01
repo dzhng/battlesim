@@ -8,3 +8,7 @@ contract = { path = "../contract" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
 libm = { version = "=0.2.16", default-features = false }
+
+[dev-dependencies]
+# A generated map is loaded into the world a battle moves in (tests/river_world.rs).
+sim = { path = "../sim" }
