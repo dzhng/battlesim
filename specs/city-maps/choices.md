@@ -1807,3 +1807,54 @@ vertex bound and production pixel difference; leave silhouette, shadow/fog cue
 and full preset appearance acceptance open. The all-slots-busy adversarial visual
 critique found no basis to certify world height from this unrulered grass-only
 frame. This is a scoped systems decision, not a source-art acceptance.
+
+
+## SA5: reach-local sight and fog
+
+### Direct page directories trade a small fixed memory cost for cheap repeated reads
+
+**When:** SA5, 2026-10-01.
+
+**Choice:** A fog ray looking up ground or foliage first addresses a small directory of pages. A missing height page means exactly flat ground; a missing foliage page means open ground. Only populated pages hold samples. Heights retain their sampled triangles, and foliage and clearing use the existing lossless page owner. An open foliage cell needs no clearing-mask query, since clearing cannot add foliage. The alternative was keeping hash/tree lookup at every sample, or adding a second sweep-only copy beside the world.
+
+**Gap:** The slice specified exact results and reach-local cost, but not the lookup representation.
+
+**Reach:** The world's queries and exports continue reading one authority. Directory memory grows with the possible page count, while sample storage stays sparse; a larger extent or finer cell size must measure that trade again. Empty height fields allocate no directory. This is runtime lookup work in the map-owned world files, not a map-loading or generation change.
+
+**Verdict:** sound. The common case performs fewer reads without changing interpolation, cell boundaries, export ordering, or clearing. **Confidence:** medium; sparse directories spend some memory on absent pages to avoid repeated searches.
+
+### Reuse the world's body and forest buckets, and rasterize occluders only where eyes look
+
+**When:** SA5, 2026-10-01. The index selection and tile size are explicitly delegated by the slice.
+
+**Choice:** When a ray first visits a four-by-four fog-cell tile, the world’s existing body buckets supply the bodies nearby, and the tile rasterizes the same cell centres as before. Its cached tops carry the world's obstacle revision; after an add, move or removal, only subsequently visited tiles rebuild. At the usual eight-metre fog cell this is a 32 m tile. Identification lines reuse the forest's existing 64 m buckets, widened to include canopy reach. Candidate forest IDs are sorted before the unchanged span integration, so even its rounding and overlapping-span behavior remain identical.
+
+**Gap:** The slice did not choose an index or rebuild unit.
+
+**Reach:** The physical world and forest reuse their existing indexes. Each side separately indexes the authoritative snapshots in its remembered-standing map; its two mutation owners insert, replace and remove those entries. The map is private with a read-only accessor, so a reader cannot bypass index synchronization. A moved body anywhere invalidates the cache cheaply, but it does not cause a whole-map raster rebuild. Forest ground membership still tests the exact authored shape; wider buckets add candidates, never forest ground. The conservative index includes both exact shape limits and the canopy bounds that the existing span sampler computes.
+
+**Verdict:** sound. Cache invalidation and canopy-edge mistakes were independently falsified in tests; restoring the implementation restores the exact results. **Confidence:** high.
+
+### Skip only rays that cannot add a visibility bit, and retain whole-building revelation
+
+**When:** SA5, 2026-10-01.
+
+**Choice:** If previous eyes already marked every cell a ray could visit, that ray cannot add anything to the side's union of visible ground and skips its terrain and foliage work. The proof checks farthest cells first: unseen ends often reject it immediately, while reversing the complete membership check cannot change its answer. A temporary endurance attribution found the forward order exceeded 33 ms and the reverse order stayed below it. Otherwise it runs the original sweep. Learning bodies starts with the existing body index around each eye, including a margin for the last ray step and its fog cell. If a near building part is visible, learning still includes every live part of that building, even a far replacement outside the eye's reach. Clearing remembered bodies likewise uses the building's immutable historical IDs, including far snapshots, while ordinary remembered-body discovery queries the side's spatial index. Live parts are looked up by the building's immutable identity, distinct from the current integrity owner.
+
+**Gap:** The contract preserved what the side learns but left repeated work and aggregate candidate discovery unspecified.
+
+**Reach:** Eye order, sight shape, fog cadence, identification cadence and learning order remain unchanged. The small world seam for current and historical building parts replaces the unused map-wide state iterator. SideGeometry owns its snapshot index and its lifetime; the shared navigation base supplies only the grid extent. The dense 32 m snapshot buckets add about 4.5 MiB across both sides on a 10 km map. Looking up the old structure owner's parts would silently miss far replacements; the wide-compound regression proves the difference.
+
+**Verdict:** sound. The preflight checks the entire ray; checking just its first cell fails the union test. The wider building test fails with historical parts and passes with live parts. **Confidence:** high.
+
+### Measure a real force and expose scheduling delay separately
+
+**When:** SA5, 2026-10-01.
+
+**Choice:** The city report accepts a hundred units per side, repeating its existing vehicle/squad mix on parallel lanes. Its original six-unit input keeps the same positions and script. Native reports retain wall time and retired instructions; the city report also prints process CPU time, converted from macOS Mach time using the system's timebase. A delayed 52 ms tick that used 20 ms of CPU remains a 52 ms wall-time result, rather than being hidden by the cost measure.
+
+**Gap:** The tool capped forces at six, and wall time alone could not distinguish simulation work from this shared machine's scheduling delays.
+
+**Reach:** These are measurement seams, not production telemetry or game settings. The measured city runs are crossings and controlled body churn, not accepted generated encounters or a rendered-frame gate. The separate endurance battle covers sustained combat.
+
+**Verdict:** sound. Both time measures stay visible, and the instruction count remains the comparison authority. **Confidence:** high.
