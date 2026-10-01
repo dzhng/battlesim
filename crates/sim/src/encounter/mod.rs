@@ -11,8 +11,9 @@
 //! the side with the longer drive starts further up its road. The objective
 //! is a settlement's centre. The defender's garrison rows stand at the doors
 //! of buildings round it, each squad whole within its building's seats, and
-//! its overwatch rows at the settlement's edge, looking down the open
-//! approaches of the attacker's half.
+//! its overwatch rows at the settlement's edge, looking down the ways in:
+//! the road the attacker drives in by, and the measured open approaches on
+//! the attacker's side.
 //!
 //! Every place is asked of the same world and navigation a battle runs on
 //! ([`legality`]): no rule here says what blocks what. Each search tries a
@@ -384,8 +385,19 @@ impl<'a> Planner<'a> {
         }
     }
 
+    /// Whether an open approach lies on the attacker's side of its
+    /// settlement: its bearing points toward the edge the attacker starts on.
+    fn faces_attacker(&self, approach: &contract::encounter::Approach) -> bool {
+        let north = heading(approach_bearing(approach.from_rad, approach.to_rad))[1];
+        match self.recipe.attacker_edge {
+            Half::Bottom => north < 0.0,
+            Half::Top => north > 0.0,
+        }
+    }
+
     /// The settlements in the order they are tried as the objective: the
-    /// recipe's preference first, then the largest, then plan order.
+    /// recipe's preference first, then those with a measured open approach
+    /// on the attacker's side, then the largest, then plan order.
     fn objective_order(&self) -> Vec<usize> {
         let settlements = &self.q.sites.settlements;
         let attacker = self.recipe.attacker_edge;
@@ -394,10 +406,18 @@ impl<'a> Planner<'a> {
             SettlementPreference::AttackerHalf => self.half_of(settlements[i].center) == attacker,
             SettlementPreference::DefenderHalf => self.half_of(settlements[i].center) != attacker,
         };
+        let open = |i: usize| {
+            self.q
+                .sites
+                .approaches
+                .iter()
+                .any(|a| a.settlement == i && self.faces_attacker(a))
+        };
         let mut order: Vec<usize> = (0..settlements.len()).collect();
         order.sort_by(|&a, &b| {
             preferred(b)
                 .cmp(&preferred(a))
+                .then(open(b).cmp(&open(a)))
                 .then(
                     settlements[b]
                         .area_m2()
@@ -711,11 +731,11 @@ impl<'a> Planner<'a> {
         let centre = at(site.center);
         let (attacker, defender) = (recipe.attacker, recipe.defender());
 
-        // The measured open approaches of the attacker's half.
+        // The measured open approaches on the attacker's side.
         let approaches: Vec<usize> = (0..self.q.sites.approaches.len())
             .filter(|&a| {
                 let approach = &self.q.sites.approaches[a];
-                approach.settlement == settlement && approach.half == recipe.attacker_edge
+                approach.settlement == settlement && self.faces_attacker(approach)
             })
             .collect();
         if approaches.is_empty() && recipe.objective.open_approach == Requirement::Required {
@@ -723,7 +743,7 @@ impl<'a> Planner<'a> {
                 Code::NoOpenApproach,
                 Some("objective.open_approach".to_string()),
                 format!(
-                    "{} has no measured open approach in the {:?} half",
+                    "{} has no measured open approach toward the {:?} edge",
                     site.id, recipe.attacker_edge
                 ),
             )]);
@@ -768,8 +788,9 @@ impl<'a> Planner<'a> {
             return Err(problems);
         }
 
-        let garrisons = self.garrisons(settlement, defender, &mut stations, &mut taken)?;
         let avenues = self.avenues(settlement, &approaches, attack.as_ref());
+        let front = self.attack_point(settlement, attack.as_ref()) - centre;
+        let garrisons = self.garrisons(settlement, defender, front, &mut stations, &mut taken)?;
         let overwatch =
             self.overwatch(settlement, defender, &avenues, &mut stations, &mut taken)?;
 
@@ -881,11 +902,13 @@ impl<'a> Planner<'a> {
     /// reach of the objective, in one of the settlement's districts, with a
     /// seat for every soldier, apart from the others chosen, and with legal
     /// ground at a door from which the squad can walk into the zone. The
-    /// encounter seed orders the buildings tried.
+    /// buildings on the side of the centre the attack comes from (`front`)
+    /// are tried first, and the encounter seed orders them within each side.
     fn garrisons(
         &mut self,
         settlement: usize,
         defender: Side,
+        front: V2,
         stations: &mut [Option<Station>],
         taken: &mut Vec<Footprint>,
     ) -> Result<Vec<GarrisonPost>, Vec<EncounterDiagnostic>> {
@@ -932,6 +955,8 @@ impl<'a> Planner<'a> {
             let j = (rng.next_u64() % (i as u64 + 1)) as usize;
             candidates.swap(i, j);
         }
+        // The buildings on the attacker's side of the centre come first.
+        candidates.sort_by_key(|c| (c.centre - centre).dot(front) < 0.0);
 
         let mut chosen: Vec<usize> = Vec::new();
         let mut posts = Vec::new();
@@ -1034,10 +1059,26 @@ impl<'a> Planner<'a> {
         }
     }
 
+    /// Where the attack comes at the settlement from: the point of its edge
+    /// the attacker's column drives in across; failing that the head of the
+    /// column, or the middle of the attacker's map edge.
+    fn attack_point(&self, settlement: usize, attack: Option<&Column>) -> V2 {
+        let site = &self.q.sites.settlements[settlement];
+        let road = attack.and_then(|column| road_entry(&site.outline, &column.route.points));
+        match (road, attack) {
+            (Some((entry, _)), _) => entry,
+            (None, Some(column)) => column.stations[0].at,
+            (None, None) => match self.recipe.attacker_edge {
+                Half::Bottom => v2(site.center[0], 0.0),
+                Half::Top => v2(site.center[0], self.q.world.depth()),
+            },
+        }
+    }
+
     /// The ways into the settlement the defender watches, the likeliest
     /// first: the road the attacker's column drives in by, where it crosses
-    /// the settlement's edge, then the open approaches of the attacker's
-    /// half, nearest that road first. With neither, the bearing the
+    /// the settlement's edge, then the open approaches on the attacker's
+    /// side, nearest that road first. With neither, the bearing the
     /// attacker's edge lies on.
     fn avenues(
         &self,
@@ -1048,14 +1089,7 @@ impl<'a> Planner<'a> {
         let site = &self.q.sites.settlements[settlement];
         let centre = at(site.center);
         let road = attack.and_then(|column| road_entry(&site.outline, &column.route.points));
-        let toward = match (road, attack) {
-            (Some((entry, _)), _) => entry,
-            (None, Some(column)) => column.stations[0].at,
-            (None, None) => match self.recipe.attacker_edge {
-                Half::Bottom => v2(centre.x, 0.0),
-                Half::Top => v2(centre.x, self.q.world.depth()),
-            },
-        };
+        let toward = self.attack_point(settlement, attack);
         let attack_bearing = bearing(xy(toward - centre));
         let mut avenues = Vec::new();
         if let Some((entry, outward)) = road {
@@ -1129,6 +1163,17 @@ impl<'a> Planner<'a> {
                 let avenue = &avenues[lane];
                 let direction = at(heading(avenue.yaw));
                 let across = v2(-direction.y, direction.x);
+                // An approach's line starts at the centre. A road's entry is
+                // on the edge already, so its neighbours' lines start far
+                // enough back to cross the whole settlement.
+                let behind = if avenue.road {
+                    site.outline
+                        .iter()
+                        .map(|&p| distance(avenue.from, at(p)))
+                        .fold(0.0, f64::max)
+                } else {
+                    0.0
+                };
                 // The legal place that sees farthest down the avenue; the
                 // first of those that see equally far.
                 let mut best: Option<(u32, Station, Footprint)> = None;
@@ -1137,17 +1182,13 @@ impl<'a> Planner<'a> {
                     let slot = next_slot[lane];
                     next_slot[lane] += 1;
                     let sign = if slot % 2 == 1 { 1.0 } else { -1.0 };
+                    // The line of this place: parallel to the avenue, from
+                    // behind the settlement out through its edge.
                     let from = avenue.from
-                        + across * (sign * slot.div_ceil(2) as f64 * recipe.overwatch.apart_m);
-                    // A road's entry is already on the settlement's edge; an
-                    // approach's line runs out from the centre to it.
-                    let edge = if avenue.road {
-                        0.0
-                    } else {
-                        match ring_exit(&site.outline, from, direction) {
-                            Some(edge) => edge,
-                            None => continue,
-                        }
+                        + across * (sign * slot.div_ceil(2) as f64 * recipe.overwatch.apart_m)
+                        - direction * behind;
+                    let Some(edge) = ring_exit(&site.outline, from, direction) else {
+                        continue;
                     };
                     let wanted = from + direction * (edge + recipe.overwatch.standoff_m);
                     let Some(p) = self.q.grid.snap(wanted, &m, recipe.overwatch.standoff_m) else {

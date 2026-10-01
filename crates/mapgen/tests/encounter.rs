@@ -94,11 +94,18 @@ fn native_planning_replays_the_frozen_encounter_records() {
             continue;
         }
         assert_eq!(status, record.status, "{}: {outcome:.600}", record.name);
-        assert_eq!(hash, record.native_sha256, "{}: {outcome:.600}", record.name);
+        assert_eq!(
+            hash, record.native_sha256,
+            "{}: {outcome:.600}",
+            record.name
+        );
         // The same inputs plan the same bytes again.
         assert_eq!(outcome, self::outcome(record), "{}", record.name);
         if let EncounterOutcome::Ok { encounter } = parsed {
-            assert_eq!(encounter.encounter_seed.value().to_string(), record.encounter_seed);
+            assert_eq!(
+                encounter.encounter_seed.value().to_string(),
+                record.encounter_seed
+            );
             // The sides start at opposite edges of the map.
             let depth = 6000.0;
             for d in &encounter.placement.deployments {

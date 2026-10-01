@@ -143,7 +143,7 @@ pub enum Post {
     Garrison,
     /// At the objective settlement's edge on a way in the attacker may
     /// take, facing down it: the road the attacker's column drives in by
-    /// first, then the open approaches of the attacker's half.
+    /// first, then the open approaches on the attacker's side.
     Overwatch,
 }
 
@@ -183,7 +183,8 @@ pub enum Requirement {
 pub struct ObjectiveRecipe {
     pub settlement: SettlementPreference,
     /// Whether the objective settlement must have a measured open approach
-    /// in the attacker's half: the ground the defender's overwatch covers.
+    /// on the attacker's side (one whose bearing points toward the
+    /// attacker's edge): open ground the attacker may cross at range.
     pub open_approach: Requirement,
     /// The capture zone, about the settlement's centre.
     pub zone_radius_m: f64,
@@ -567,7 +568,7 @@ pub enum EncounterDiagnosticCode {
     /// No settlement can be the objective; the reasons follow, one per
     /// settlement tried.
     NoObjective,
-    /// The settlement has no measured open approach in the attacker's half.
+    /// The settlement has no measured open approach on the attacker's side.
     NoOpenApproach,
     /// No road meets the side's map edge.
     NoEdgeRoad,

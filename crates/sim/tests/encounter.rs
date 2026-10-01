@@ -71,23 +71,33 @@ fn road(from_y: f64, to_y: f64) -> Value {
 /// The town's sites: one settlement about `centre_y` with one district, an
 /// open approach due south and one due north.
 fn town_sites(centre_y: f64) -> EncounterSites {
-    let ring = [
-        [ROAD_X - 150.0, centre_y - 150.0],
-        [ROAD_X + 150.0, centre_y - 150.0],
-        [ROAD_X + 150.0, centre_y + 150.0],
-        [ROAD_X - 150.0, centre_y + 150.0],
-    ];
+    sites_of(&[("town", centre_y)])
+}
+
+/// One settlement per name, each 300 m square about its place on the road,
+/// with one district and an open approach due south and due north of it.
+fn sites_of(towns: &[(&str, f64)]) -> EncounterSites {
     let south = -std::f64::consts::FRAC_PI_2;
-    let approach = |half: &str, bearing: f64| {
-        json!({ "settlement": 0, "half": half, "from_rad": bearing - 0.1, "to_rad": bearing + 0.1,
-            "depth_m": 400, "front_m": 200 })
-    };
-    serde_json::from_value(json!({
-        "settlements": [{ "id": "town", "center": [ROAD_X, centre_y], "outline": ring,
-            "districts": [{ "id": "town/district-0", "ring": ring, "area_m2": 90000 }] }],
-        "approaches": [approach("bottom", south), approach("top", -south)],
-    }))
-    .unwrap()
+    let mut settlements = Vec::new();
+    let mut approaches = Vec::new();
+    for (i, (id, centre_y)) in towns.iter().enumerate() {
+        let ring = [
+            [ROAD_X - 150.0, centre_y - 150.0],
+            [ROAD_X + 150.0, centre_y - 150.0],
+            [ROAD_X + 150.0, centre_y + 150.0],
+            [ROAD_X - 150.0, centre_y + 150.0],
+        ];
+        settlements.push(
+            json!({ "id": id, "center": [ROAD_X, centre_y], "outline": ring,
+            "districts": [{ "id": format!("{id}/district-0"), "ring": ring, "area_m2": 90000 }] }),
+        );
+        for (half, bearing) in [("bottom", south), ("top", -south)] {
+            approaches.push(json!({ "settlement": i, "half": half,
+                "from_rad": bearing - 0.1, "to_rad": bearing + 0.1,
+                "depth_m": 400, "front_m": 200 }));
+        }
+    }
+    serde_json::from_value(json!({ "settlements": settlements, "approaches": approaches })).unwrap()
 }
 
 /// The shipped assault recipe, scaled to the test town.
@@ -260,6 +270,11 @@ fn the_assault_recipe_puts_a_column_at_each_edge_and_the_garrison_round_the_obje
             .expect("a garrison names one of the map's buildings");
         let [bx, by, _] = building.geometry.frame.translation;
         assert!((bx - ROAD_X).hypot(by - 800.0) <= recipe.garrison.reach_m);
+        // Blue comes from the south: the garrison holds the near side.
+        assert!(
+            by <= 800.0,
+            "the building at {bx}, {by} is behind the centre"
+        );
         assert!(g.seats >= g.soldiers && g.soldiers == 8);
         assert_eq!(g.district, "town/district-0");
         let squad = units[g.unit as usize].position;
@@ -478,7 +493,8 @@ fn a_map_without_a_settlement_or_its_open_approach_has_no_objective() {
     let none = EncounterSites::default();
     assert_eq!(codes(&plan(&map, &none, &recipe)), vec![Code::NoObjective]);
 
-    // The recipe requires an open approach in the attacker's half.
+    // The recipe requires an open approach on the attacker's side: one
+    // whose bearing points toward the attacker's edge.
     let mut closed = town_sites(800.0);
     closed.approaches.remove(0);
     assert_eq!(
@@ -493,7 +509,7 @@ fn a_map_without_a_settlement_or_its_open_approach_has_no_objective() {
 }
 
 #[test]
-fn a_second_overwatch_post_covers_the_open_approach_of_the_attackers_half() {
+fn a_second_overwatch_post_covers_the_open_approach_on_the_attackers_side() {
     let (map, sites, mut recipe) = (town_map(800.0, json!({})), town_sites(800.0), recipe());
     recipe.forces.red.push(contract::encounter::RosterRow {
         kind: "at".into(),
@@ -510,6 +526,38 @@ fn a_second_overwatch_post_covers_the_open_approach_of_the_attackers_half() {
     // On the approach's own line, just beyond the town's southern edge.
     assert_eq!(posts[1].at[0], ROAD_X);
     assert!(posts[1].at[1] < 650.0 && posts[1].at[1] > 630.0);
+}
+
+#[test]
+fn the_objective_goes_on_the_settlement_the_recipe_prefers() {
+    // The main town in the bottom half, and a second one in the top half.
+    let north: Vec<Value> = BUILDINGS[..4]
+        .iter()
+        .map(|[dx, dy]| {
+            json!({ "kind": "building", "center": [ROAD_X + dx, 1150.0 + dy], "yaw": 0,
+                "half_extents": BUILDING_HALF })
+        })
+        .collect();
+    let map = town_map(700.0, json!({ "props": north }));
+    let sites = sites_of(&[("town", 700.0), ("north", 1150.0)]);
+    let objective = |preference: contract::encounter::SettlementPreference| {
+        let mut recipe = recipe();
+        recipe.objective.settlement = preference;
+        recipe.deployment.max_advance_m = 600.0;
+        let encounter = plan(&map, &sites, &recipe).unwrap();
+        assert_stands_clear(&map, &encounter);
+        // The garrison holds buildings of the objective's own settlement.
+        for g in &encounter.placement.garrisons {
+            assert!(g
+                .district
+                .starts_with(&encounter.placement.objective.settlement));
+        }
+        encounter.placement.objective.settlement
+    };
+    use contract::encounter::SettlementPreference::{AttackerHalf, DefenderHalf, Main};
+    assert_eq!(objective(Main), "town");
+    assert_eq!(objective(AttackerHalf), "town");
+    assert_eq!(objective(DefenderHalf), "north");
 }
 
 #[test]
