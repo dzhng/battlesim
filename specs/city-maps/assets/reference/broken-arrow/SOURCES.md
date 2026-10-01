@@ -1,6 +1,11 @@
 # Broken Arrow composition references
 
-Two screenshots of a Mixed-style map in Broken Arrow, shared by the user on 2026-09-30 as inspiration for map composition. **For judging our layouts only: never ship, bake or trace them.** The images belong to Slitherine / Steel Balalaika. The files themselves are not in the repo yet; drop them here (`town-districts.jpg`, `town-overview.jpg`) if they should be kept.
+Two screenshots of **one Mixed-style map in Broken Arrow, at two camera angles and zooms**, shared by the user on 2026-09-30 as inspiration for map composition. **For judging our layouts only: never ship, bake or trace them.** The images belong to Slitherine / Steel Balalaika.
+
+| File | View |
+|---|---|
+| `town-districts.jpg` | Low oblique over the town, close enough to read each district |
+| `town-overview.jpg` | The same town from higher and farther, with its surrounding country |
 
 ## What they show
 
