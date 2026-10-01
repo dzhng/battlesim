@@ -2358,6 +2358,7 @@ async function muzzleTour(ctx) {
       yaw: CAMERA.default.yaw,
     });
     const slug = name.replace(/[^a-z]+/gi, "-").toLowerCase();
+    await presented(page);
     const lit = decode(await snapshot(ctx, page, `muzzle-${slug}-1920x1080.png`));
     const drawn = await lab(page, () => ({
       sockets: window.__lab.route.muzzleSockets(),
