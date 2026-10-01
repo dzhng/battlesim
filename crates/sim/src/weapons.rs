@@ -742,21 +742,43 @@ fn assess(
     } else {
         ActionReason::NoCompatibleTarget
     })?;
-    // A guided launcher needs its own identification, not the team's (P05).
-    if ctx.arsenal.weapons[spec.kinds[k]]
+    // Shared identification supplies the target; the launcher still needs
+    // a physical sight line to acquire and support it (P05).
+    let guided = ctx.arsenal.weapons[spec.kinds[k]]
         .profile
         .turn_rad_s
-        .is_some()
+        .is_some();
+    if guided
+        && (!matches!(target, Target::Unit(_))
+            || !r.current
+            || !guidance_clear(ctx.world, ctx.rules, unit, mount, r.point))
     {
-        let own = match target {
-            Target::Unit(u) => ctx.knowledge[unit.side.index()].own_sees(unit.id, u),
-            _ => false,
-        };
-        if !own {
-            return Err(ActionReason::NoOwnSight);
-        }
+        return Err(ActionReason::NoOwnSight);
     }
     engage(ctx, unit, units, mount, spec, k, target, r).map(|_| k)
+}
+
+/// Optical support is physical LOS from the operator, independent of spotting
+/// range or concealment. Opaque terrain/props and fully blocking foliage stop it.
+pub fn guidance_clear(
+    world: &WorldGeometry,
+    rules: &Rules,
+    unit: &Unit,
+    mount: &Mount,
+    target: V3,
+) -> bool {
+    let eye = if unit.hull.is_some() {
+        crate::sensing::eye(unit, rules)
+    } else {
+        let Some(k) = operator(unit, mount) else {
+            return false;
+        };
+        // Garrison occupants stand on their assigned facade/floor seat,
+        // the same physical anchor their launch muzzle uses.
+        unit.members[k].position + v3(0.0, 0.0, rules.physics.infantry_eye_m)
+    };
+    world.sight_clear(eye, target)
+        && world.foliage_depth(eye, target) < rules.sensors.foliage_full_block
 }
 
 /// Whether an identified enemy the unit may fire at stands within reach of

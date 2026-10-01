@@ -244,6 +244,10 @@ When a world-space width change barely moves the screenshot, trace the full widt
 
 A fixed one-pixel diagonal needs analytic pixel coverage over a wider supporting quad. A one-pixel quad alone misses neighboring sample centers and stipples; its support width is not its visible width. Keep the authored line width in the coverage calculation, and check consecutive frames and both rifle and vehicle fire. A tracer's visibility choice belongs to the round's tracked continuation, never to each publication independently; sparks and impacts remain independent causes.
 
+A tracer brightness floor is authored as light energy. The effect pass squares packed endpoint amplitudes, so pack the square root of the desired energy; retain the original amplitude when no floor is authored.
+
+Projectile captures must match the drawn streak to its class, not merely a nearby flight path: crossing rifle fire can be framed as a tank round. Read the packed streak’s endpoints and light color, then frame that streak. Measure speed only on uninterrupted, full-tick paths; an impact-clipped path covers less than a tick.
+
 ## Repeating motion needs a full cycle
 
 For cadence or synchronization claims, capture startup and multiple complete work/rest cycles, including their longest pauses. Pair native motion frames with source-event timestamps per actor; overlapping visible trails do not prove simultaneous launches, and a short staggered opening does not prove sustained independence. Test random timing across several seeds and report measured gaps rather than promising uninterrupted activity.

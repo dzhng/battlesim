@@ -1,4 +1,4 @@
-//! Supported AT guidance (slice 10): own-sight launch and support, immediate
+//! Supported AT guidance: shared identification with operator LOS, immediate
 //! release on move/Stop/lost sight, no reacquisition. A released missile
 //! coasts straight on, then goes to ground.
 use contract::command::{Order, RoutePolicy};
@@ -479,7 +479,47 @@ fn the_launcher_dying_releases_its_missile() {
 }
 
 #[test]
-fn team_identification_is_not_enough_to_launch() {
+fn shared_identification_supports_a_missile_beyond_the_launchers_sensor_range() {
+    let mut b = quick(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "at", "position": [100, 300] },
+            { "side": "blue", "kind": "recon", "position": [450, 320] },
+            { "side": "red", "kind": "tank", "position": [800, 300], "engagement": "return_fire_only" },
+        ]),
+        2,
+        |r| {
+            sim::fixtures::patch_catalog(
+                r,
+                "units",
+                "at",
+                json!({ "sensors": { "ground_m": 100 } }),
+            );
+            r["weapons"]["atgm"]["range_m"] = json!(900);
+            for w in r["weapons"].as_object_mut().unwrap().values_mut() {
+                w["damage"] = json!(0);
+            }
+        },
+    );
+    b.step();
+    assert!(own(&b, Side::Blue, 0).unwrap().sees.is_empty());
+    assert!(!b.observe(Side::Blue).identified.is_empty());
+    until_launch(&mut b);
+    let mut flight_ticks = 0;
+    while let Some(m) = missile(&b) {
+        assert!(m.supported, "clear physical LOS supports the full flight");
+        b.step();
+        flight_ticks += 1;
+        assert!(flight_ticks < 400, "flight terminates");
+    }
+    assert!(
+        flight_ticks > 30,
+        "guidance lasted beyond the acquisition tick"
+    );
+}
+
+#[test]
+fn shared_spotting_cannot_launch_through_an_obstruction() {
     // The AT team is walled off from the tank; a scout sees it for the team.
     let mut b = battle(
         json!([{ "kind": "wall", "center": [140, 300], "yaw": 0, "half_extents": [0.5, 40, 5] }]),
@@ -492,7 +532,7 @@ fn team_identification_is_not_enough_to_launch() {
     );
     for _ in 0..300 {
         b.step();
-        assert!(missile(&b).is_none(), "never launched on shared sight");
+        assert!(missile(&b).is_none(), "never launched through the wall");
     }
     assert!(
         !b.observe(Side::Blue).identified.is_empty(),
@@ -500,6 +540,49 @@ fn team_identification_is_not_enough_to_launch() {
     );
     let atgm = &own(&b, Side::Blue, 0).unwrap().mounts[1];
     assert_eq!(atgm.reason, ActionReason::NoOwnSight);
+}
+
+#[test]
+fn a_screen_breaks_guidance_even_while_the_scout_keeps_the_target_identified() {
+    let map = json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] }).to_string();
+    let units = json!([
+        { "side": "blue", "kind": "at", "position": [100, 300] },
+        { "side": "blue", "kind": "recon", "position": [450, 320] },
+        { "side": "red", "kind": "tank", "position": [800, 300], "engagement": "return_fire_only" },
+    ]);
+    let setup = |events| {
+        let mut s = common::scenario_with(&map, units.clone(), events, json!([]));
+        let mut r = common::village();
+        sim::fixtures::patch_catalog(
+            &mut r,
+            "units",
+            "at",
+            json!({ "sensors": { "ground_m": 100 } }),
+        );
+        r["weapons"]["atgm"]["range_m"] = json!(900);
+        for w in r["weapons"].as_object_mut().unwrap().values_mut() {
+            w["damage"] = json!(0);
+        }
+        s.rules = serde_json::from_value(r).unwrap();
+        s
+    };
+    let launch = until_launch(&mut Battle::new(&setup(json!([])), 2));
+    // Let the missile pass the screen; this isolates guidance loss from
+    // the round physically striking the newly inserted wall.
+    let screen_tick = launch + 30;
+    let events = json!([{ "tick": screen_tick, "add_prop": { "kind": "wall", "center": [140, 300], "yaw": 0, "half_extents": [0.5, 60, 5] } }]);
+    let mut b = Battle::new(&setup(events), 2);
+    while b.tick() < screen_tick {
+        b.step();
+    }
+    let view = b.observe(Side::Blue);
+    assert!(!view.identified.is_empty(), "recon still spots the target");
+    assert!(
+        !missile(&b)
+            .expect("the released missile still flies")
+            .supported,
+        "the operator's blocked LOS releases guidance immediately"
+    );
 }
 
 #[test]

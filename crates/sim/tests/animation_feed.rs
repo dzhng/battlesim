@@ -40,8 +40,8 @@ fn weapon_index(b: &Battle, name: &str) -> usize {
 fn shot_counters_and_elevation_move_only_when_a_round_leaves() {
     // Blue's tank (cannon and HMG) and rifle squad (rifles and grenades)
     // against a red tank and squad that only answer.
-    let mut b = battle(
-        json!([]),
+    let mut setup = common::scenario_with(
+        &map(json!([])),
         json!([
             { "side": "blue", "kind": "tank", "position": [100, 250] },
             { "side": "blue", "kind": "rifle", "position": [100, 350] },
@@ -49,8 +49,17 @@ fn shot_counters_and_elevation_move_only_when_a_round_leaves() {
             { "side": "red", "kind": "rifle", "position": [400, 350], "engagement": "return_fire_only" },
         ]),
         json!([]),
-        4,
+        json!([]),
     );
+    // Pose publication is independent of the live balance range.
+    setup
+        .rules
+        .weapons
+        .get_mut("rifle")
+        .unwrap()
+        .ballistics
+        .range_m = 450.0;
+    let mut b = Battle::new(&setup, 4);
     let mut seen: BTreeSet<ProjectileId> = BTreeSet::new();
     let mut before: BTreeMap<(u32, usize), (f64, f64, u32)> = BTreeMap::new();
     let mut fired_mounts = BTreeSet::new();

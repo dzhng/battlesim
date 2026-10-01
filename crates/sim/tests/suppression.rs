@@ -328,10 +328,13 @@ fn a_suppressed_battle_replays_identically() {
 fn suppression_widens_actual_launch_directions_at_each_tier() {
     let spread = |level: f64| {
         (1..=16).map(|seed| {
-            let mut b = Battle::new(&setup(json!([
+            let mut setup = setup(json!([
                 { "side": "blue", "kind": "rifle", "position": [100, 300], "condition": { "suppression": level } },
                 { "side": "red", "kind": "tank", "position": [1150, 550], "engagement": "return_fire_only" }
-            ])), seed);
+            ]));
+            // Pin reach so only the suppression tier changes launch scatter.
+            setup.rules.weapons.get_mut("rifle").unwrap().ballistics.range_m = 450.0;
+            let mut b = Battle::new(&setup, seed);
             common::order(&mut b, Side::Blue, 1, Order::Attack { units: vec![UnitId(0)],
                 target: TargetRef::Ground { point: [400.0, 300.0, 0.0] } });
             for _ in 0..90 {

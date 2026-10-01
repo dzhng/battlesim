@@ -38,6 +38,46 @@ const MUZZLE = [CANNON!.muzzle[0], CANNON!.muzzle[1], CANNON!.pivot[2] + CANNON!
 
 const frame = () => new EffectFrame({ tickHz: HZ, presentation: PRESENTATION });
 
+test("a tracer can retain brightness at its rear without changing its flight or width", () => {
+  const f = new EffectFrame({
+    tickHz: HZ,
+    presentation: {
+      ...PRESENTATION,
+      tracers: {
+        ...PRESENTATION.tracers,
+        rifle: {
+          ...PRESENTATION.tracers.default,
+          chance: 1,
+          line_px: 0.65,
+          tail_s: DT,
+          tail_m: [1, 10],
+          tail_brightness: 0.25,
+          core: undefined,
+          body: undefined,
+          cast: undefined,
+        },
+      },
+    },
+  });
+  f.note(
+    pub(1, {
+      segments: [
+        segment([
+          [0, 0, 2],
+          [20, 0, 2],
+        ]),
+      ],
+    }),
+  );
+  const [i] = drawn(f, DT * 0.75);
+  expect(i.a.slice(0, 3)).toEqual([5, 0, 2]);
+  expect(i.b.slice(0, 3)).toEqual([15, 0, 2]);
+  expect(i.a[3]).toBeCloseTo(-0.65);
+  // The pass squares these endpoint amplitudes to get light energy.
+  expect(i.misc[1] ** 2).toBeCloseTo(0.25);
+  expect(i.misc[2] ** 2).toBeCloseTo(1);
+});
+
 test("a screen-width tracer emits only a thin line, without a projectile head", () => {
   const f = new EffectFrame({
     tickHz: HZ,

@@ -10,7 +10,7 @@ User requirements owned or exercised: P05, P06. Read their canonical entries in 
 
 ## API seam and ownership
 
-`sim::flight::GuidanceSupport { launcher, target_observation, last_point }`; own sensor feed from sensing, support slots from weapon state.
+`sim::weapons::Support { projectile, target }` is the launching mount’s support slot. Shared identification comes from side knowledge; acquisition and guidance use the operator’s physical sight line. See the current P05 entry in [requirements](../requirements.md).
 
 ## Runnable artifact
 
@@ -20,7 +20,7 @@ User requirements owned or exercised: P05, P06. Read their canonical entries in 
 
 ## Verification and verdict
 
-Own-ID launch and sustain; shared ID insufficient; movement/Stop/death/LOS releases support immediately; missile never reacquires; frozen point remains fixed despite hidden motion; stationary target at that point takes normal damage; same trajectory owner; bounded turn/lifetime; crew free despite missile still flying. Compare prompt/delayed retreat on fixed seeds.
+Shared-ID acquisition and support with the launcher’s own clear physical LOS; movement/Stop/death/LOS releases support immediately; missile never reacquires; frozen point remains fixed despite hidden motion; stationary target at that point takes normal damage; same trajectory owner; bounded turn/lifetime; crew free despite missile still flying. Compare prompt/delayed retreat on fixed seeds.
 
 Run relevant native Rust tests and browser/TypeScript seam tests; run typecheck/lint and the registered scene without console/GPU errors. Keep prior accepted slice contracts green. Source test names in [research](../research.md) are reuse references, not evidence that these new tests already exist. Record measured results and any scope deviation in this slice and the README handoff.
 
@@ -41,7 +41,9 @@ Delegated: Guidance steering numeric solver within configured turn limits. Also 
 
 Retreat always fails/succeeds regardless of geometry indicates tuning or state error; retain N03 tradeoff.
 
-## Verdict — 2026-09-25
+## Historical verdict — 2026-09-25
+
+P05’s current shared-spotting and physical-LOS rule supersedes this initial own-identification rule; see [requirements](../requirements.md#p05).
 
 **What was built:**
 - A weapon row with `turn_deg_s` is guided. `flight::Guidance { point, turn_rad_s, supported }` steers a gravity-free, constant-speed round within its turn limit. Launch solving, `predicted_path` and flight share `LaunchProfile::gravity`.

@@ -38,6 +38,8 @@ fn original_props(world: &sim::world::WorldGeometry) -> String {
 
 #[test]
 fn buildings_match_the_parity_oracle_observations_digests_queries_and_seats() {
+    // Frozen balance inputs still run the current acquisition/guidance rule:
+    // shared identification plus physical LOS, independent of sensor reach.
     let oracle: Value = serde_json::from_str(include_str!(
         "../../../fixtures/parity/buildings/oracle.json"
     ))

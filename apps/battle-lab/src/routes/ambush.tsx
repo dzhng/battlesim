@@ -267,5 +267,5 @@ export default function Ambush() {
 function describeLauncher(m: MountView): string {
   if (m.guiding) return "guiding a missile (the next one waits)";
   const reason = REASON_TEXT[m.reason] ?? m.reason;
-  return m.reason === "no_own_sight" ? `${reason} (a scout's is not enough)` : reason;
+  return m.reason === "no_own_sight" ? `${reason} (the launcher's view is obstructed)` : reason;
 }

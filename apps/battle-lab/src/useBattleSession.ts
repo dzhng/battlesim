@@ -583,7 +583,14 @@ export function useBattleSession({
     effectInstances: () =>
       Array.from({ length: effectBatch.count }, (_, i) => {
         const d = effectBatch.data.subarray(i * EFFECT_FLOATS, (i + 1) * EFFECT_FLOATS);
-        return { shape: d[12], at: [d[0], d[1], d[2]], size: d[3], rays: d[6] };
+        return {
+          shape: d[12],
+          at: [d[0], d[1], d[2]],
+          to: [d[4], d[5], d[6]],
+          rgb: [d[8], d[9], d[10]],
+          size: d[3],
+          rays: d[6],
+        };
       }),
     /** The lights the effects cast last frame (`light/castLights.ts`): where,
      *  how far, their colour × intensity, and what cast each. */

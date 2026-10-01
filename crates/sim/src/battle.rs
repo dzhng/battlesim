@@ -1514,7 +1514,8 @@ impl Battle {
 
     /// Guided missiles (P05, P06): a launcher supports its missile while it
     /// stands still, has a living operator (including a survivor who takes
-    /// over the launcher) and identifies the target with its own sensors, and
+    /// over the launcher), its side identifies the target, and its operator
+    /// has physical line of sight independent of spotting range. It
     /// steers it at the target's observed position. Losing any of these (or a
     /// Stop, which drops the mount's support) releases it at once and for good:
     /// the missile coasts straight on for `guided.release_coast_s`, then goes
@@ -1535,15 +1536,23 @@ impl Battle {
         for (i, unit) in self.units.iter_mut().enumerate() {
             weapons::assign_operators(&self.arsenal, unit);
             let knowledge = &self.knowledge[unit.side.index()];
-            for mount in &mut unit.mounts {
+            for m in 0..unit.mounts.len() {
+                let mount = &unit.mounts[m];
                 let Some(s) = mount.support else { continue };
                 let target = match s.target {
                     Target::Unit(t) => Some(t),
                     _ => None,
                 };
                 let sighting = target
-                    .filter(|&t| alive[t.0 as usize] && knowledge.own_sees(unit.id, t))
-                    .and_then(|t| knowledge.track(t).map(|tr| (t, tr.position)));
+                    .filter(|&t| alive[t.0 as usize])
+                    // Guidance precedes this tick's sensing and reads the
+                    // previous completed observation, as before.
+                    .and_then(|t| {
+                        knowledge
+                            .track(t)
+                            .filter(|tr| tr.last_seen + 1 == self.tick)
+                            .map(|tr| tr.position + v3(0.0, 0.0, aim_z[t.0 as usize]))
+                    });
                 // Entering or leaving a building is a transition that releases too.
                 let settled = unit
                     .garrison
@@ -1554,13 +1563,14 @@ impl Battle {
                     && settled
                     && (unit.hull.is_some() || mount.operator.is_some())
                     && self.projectiles.get(s.projectile).is_some();
-                match sighting.filter(|_| keep) {
-                    Some((t, at)) => {
-                        self.projectiles
-                            .steer(s.projectile, at + v3(0.0, 0.0, aim_z[t.0 as usize]));
+                match sighting.filter(|&at| {
+                    keep && weapons::guidance_clear(&self.world, &self.rules, unit, mount, at)
+                }) {
+                    Some(at) => {
+                        self.projectiles.steer(s.projectile, at);
                         supported.insert(s.projectile);
                     }
-                    None => mount.support = None,
+                    None => unit.mounts[m].support = None,
                 }
             }
         }

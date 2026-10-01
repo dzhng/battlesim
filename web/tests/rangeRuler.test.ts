@@ -20,9 +20,21 @@ import { closestUnit, rangeRuler, type RulerRules } from "../src/battle/present/
 const stroke = (m: number) =>
   strokeWidth(validateStrokeRule(village.presentation.overlay.stroke), m);
 
-const rules = village as unknown as RulerRules;
+// Reach geometry is independent of the live balance table. Distinct reaches
+// and a shared AP/HE reach exercise both ruler paths under any tuning.
+const rules: RulerRules = {
+  physics: village.physics,
+  weapons: {
+    ...village.weapons,
+    rifle: { ...village.weapons.rifle, range_m: 400 },
+    grenade: { ...village.weapons.grenade, range_m: 200 },
+    hmg: { ...village.weapons.hmg, range_m: 500 },
+    tank_ap: { ...village.weapons.tank_ap, range_m: 900 },
+    tank_he: { ...village.weapons.tank_he, range_m: 900 },
+  },
+};
 const { infantry_muzzle_m: muzzle, infantry_aim_m: aim } = village.physics;
-const range = (row: keyof typeof village.weapons) => village.weapons[row].range_m;
+const range = (row: keyof typeof village.weapons) => rules.weapons[row].range_m;
 const at = (kind: string, position: [number, number, number], id = 1) => ({ id, kind, position });
 
 test("the ruler measures from the selected unit nearest the cursor across the ground", () => {

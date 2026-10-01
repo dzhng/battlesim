@@ -381,13 +381,6 @@ impl SideKnowledge {
             })
     }
 
-    /// Whether `observer`'s own sensors identified `target` at the last sensing.
-    pub fn own_sees(&self, observer: UnitId, target: UnitId) -> bool {
-        self.own_sensors
-            .get(&observer)
-            .is_some_and(|seen| seen.contains(&target))
-    }
-
     /// The observed handles `observer`'s own sensors identify this tick.
     pub fn own_sensor(&self, observer: UnitId) -> Vec<ObservedTargetId> {
         self.own_sensors

@@ -193,6 +193,8 @@ fn a_gun_without_structural_damage_holds_fire_behind_sandbags() {
     // the sandbags on the line, so the rifles hold. (Grenades lob over.)
     let mut rules = common::village();
     rules["weapons"]["rifle"]["structural_damage"] = json!(0);
+    // Keep range outside this trajectory-blocking experiment.
+    rules["weapons"]["rifle"]["range_m"] = json!(450);
     let mut setup: contract::scenario::ScenarioDefinition = serde_json::from_value(json!({
         "map": serde_json::from_str::<Value>(&map(
             json!([house(), prop("sandbags", BLOCKER, [0.4, 4.0, 0.5])]),

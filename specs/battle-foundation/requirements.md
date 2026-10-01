@@ -366,11 +366,11 @@ The original brief is retained in [assets/original-brief.txt](assets/original-br
 
 ## P05
 
-**Decision:** ATGMs require stationary launchers and the launcher’s own visual identification to sustain guidance; shared identification cannot sustain it.
+**Decision:** ATGMs acquire targets identified by any friendly unit, while requiring the stationary launcher’s own clear physical line of sight for both acquisition and guidance. Spotting range does not limit this sight-line check.
 
 **Why:** Breaking launcher sightlines has tactical value.
 
-**Owner:** slices 10. **Authority:** user brief/interview.
+**Owner:** slices 10. **Authority:** user clarification, 2026-10-01.
 
 ## P06
 

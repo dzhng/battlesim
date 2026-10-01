@@ -198,7 +198,7 @@ pub enum ActionReason {
     TrackingLastSighting,
     /// The launcher is guiding a missile in flight; it cannot launch another.
     Guiding,
-    /// A guided launcher needs its own identification of the target (P05).
+    /// A guided launcher needs a current shared target and its own clear LOS (P05).
     NoOwnSight,
     /// Garrisoned: every perimeter slot facing the target is taken.
     NoFacingSlot,
