@@ -1,6 +1,6 @@
 # Fixtures
 
-`village.json` is the one owner of the game's rules and look numbers. Labs and scenes reuse it. `units/` and `props/` are the catalog: every unit type, soldier kind, role and upgrade part, and every prop type. `biomes/` holds the terrain palettes. A number that changes how the battle plays or looks belongs here, validated by the module that reads it, never as a constant in code.
+`village.json` is the one owner of the game's rules and look numbers. Labs and scenes reuse it. `map-presets.json` holds the map generator's layout presets; [`crates/mapgen`](../crates/mapgen/README.md) reads and validates it. `units/` and `props/` are the catalog: every unit type, soldier kind, role and upgrade part, and every prop type. `biomes/` holds the terrain palettes. A number that changes how the battle plays or looks belongs here, validated by the module that reads it, never as a constant in code.
 
 ## The unit catalog
 
