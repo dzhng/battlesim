@@ -222,6 +222,16 @@ Everything placed once and drawn many times (trees, hedgerow shrubs, a town's ma
 - **What the side knows changes the list, not the frame.** A building seen to fall rebuilds the massing list (`setMassing`), as `setStructures` does for models. Don't add a per-frame knowledge test to a static path.
 - **Buildings with no art are massing, by the catalogue's own label** (`presentation.massing.families`): a box a physical part at the simulation's size, tinted by category. Never stretch another building's art over a footprint it was not made for.
 
+## A full-size map costs what loops over the map
+
+Three of the four things that broke on a 6 to 10 km generated map were loops over an authored table that the village never noticed (the fourth was the forest's casters, above):
+
+- **Per clump:** the grass build asked every prop on the map whether it covered each clump (94,000 props; 100 ms frames whenever the ground changed). It now asks its grid cell's list (`packGrassProps`).
+- **Per plot:** the patchwork tested every road against every plot it split (19 s of a 22 s start). A plot now keeps only the roads whose box meets its own, and passes that list to the plots split from it; the tree is byte-identical.
+- **Per leaf:** every plot asked every building whether it stood nearby; now a grid.
+
+Before trusting a full-size number, drive it: a paused battle regrows no grass and rebuilds no sight map. Order units to move, wait out their planning, then read the GPU time; and split it with the lab's `suppress*` switches before guessing which pass it is.
+
 ## Width changes at tactical zoom
 
 When a world-space width change barely moves the screenshot, trace the full width path through screen-space minimums, core/glow layers and postprocessing before tuning again. Compare native tactical and close views with the same camera and event. For moving subpixel features, inspect consecutive frames in the crowded gameplay view as well as isolated crops; a thin still can conceal flicker or disappear against terrain.

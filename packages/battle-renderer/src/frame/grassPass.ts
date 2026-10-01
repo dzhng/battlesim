@@ -54,6 +54,7 @@ import {
   grassSides,
   grassWindow,
   metresPerPixel,
+  packGrassProps,
   packGrassShapes,
   type GrassAppearances,
   GRASS_EDGE_M,
@@ -106,7 +107,7 @@ const GrassParams = d
     tiers: d.vec4f,
     /** Bare margins: road, prop, forest and water; 0. */
     clear: d.vec4f,
-    /** The height grid's size, the prop count, 0. */
+    /** The height grid's size, 0, 0. */
     counts: d.vec4u,
     /** The height grid's spacing, then 0. */
     ground: d.vec4f,
@@ -153,7 +154,7 @@ export const grassBuildLayout = tgpu.bindGroupLayout({
     access: "readonly",
     visibility: ["compute"],
   },
-  /** Per prop: (x, y, cos yaw, sin yaw), (half extents with the margin, 0, 0). */
+  /** The prop footprints, bucketed by grid cell (`packGrassProps`). */
   props: {
     storage: (n: number) => d.arrayOf(d.vec4f, n),
     access: "readonly",
@@ -244,15 +245,25 @@ const grassDensity = tgpu
 }`)
   .$uses({ grassBuildLayout });
 
-/** Whether `p` lies on a prop's footprint (widened by its margin). */
+/** Whether `p` lies on a prop's footprint (widened by its margin): asked of
+ *  the props listed for `p`'s cell of the table alone. */
 const grassUnderProp = tgpu
   .fn(
     [d.vec2f],
     d.bool,
   )(/* wgsl */ `(p: vec2f) -> bool {
-  for (var i = 0u; i < grassBuildLayout.$.params.counts.z; i++) {
-    let a = grassBuildLayout.$.props[2u * i];
-    let b = grassBuildLayout.$.props[2u * i + 1u];
+  let grid = grassBuildLayout.$.props[0];
+  let size = bitcast<vec4u>(grassBuildLayout.$.props[1]);
+  let g = (p - grid.xy) / grid.z;
+  if (g.x < 0.0 || g.y < 0.0) { return false; }
+  let c = vec2u(g);
+  if (c.x >= size.x || c.y >= size.y) { return false; }
+  let cell = c.y * size.x + c.x;
+  let pair = bitcast<vec4u>(grassBuildLayout.$.props[2u + cell / 2u]);
+  let run = select(pair.xy, pair.zw, (cell & 1u) == 1u);
+  for (var i = 0u; i < run.y; i++) {
+    let a = grassBuildLayout.$.props[run.x + 2u * i];
+    let b = grassBuildLayout.$.props[run.x + 2u * i + 1u];
     let o = p - a.xy;
     if (abs(dot(o, a.zw)) < b.x && abs(dot(o, vec2f(-a.w, a.z))) < b.y) { return true; }
   }
@@ -692,14 +703,7 @@ export async function createGrassPass(
     const packed = packGrassShapes(kinds);
     kindNames = kinds.appearances.map((a) => a.name);
     lowest = grid.minHeight;
-    const footprints = surface.site.footprints;
-    const propCount = footprints.length / 5;
-    const props = new Float32Array(Math.max(1, propCount) * 8);
-    const margin = rules.clear_m.prop;
-    for (let i = 0; i < propCount; i++) {
-      const [x, y, yaw, hx, hy] = footprints.subarray(i * 5, i * 5 + 5);
-      props.set([x, y, Math.cos(yaw), Math.sin(yaw), hx + margin, hy + margin, 0, 0], i * 8);
-    }
+    const props = packGrassProps(surface.site.footprints, rules.clear_m.prop);
     slots.props.set(storage("grass-props", props.byteLength));
     device.queue.writeBuffer(slots.props.current!, 0, props);
     capacity = [rules.capacity[0], rules.capacity[1]];
@@ -742,7 +746,7 @@ export async function createGrassPass(
       ),
       tiers: d.vec4f(rules.near_tier_px, rules.min_blade_px, 0, 0),
       clear: d.vec4f(rules.clear_m.road, rules.clear_m.prop, rules.clear_m.area, 0),
-      counts: d.vec4u(grid.nx, grid.ny, propCount, 0),
+      counts: d.vec4u(grid.nx, grid.ny, 0, 0),
       ground: d.vec4f(grid.spacing, 0, 0, 0),
       wind: d.vec4f(Math.cos(heading), Math.sin(heading), wind.lean, wind.gust),
       gusts: d.vec4f(1 / wind.gust_m, wind.gust_mps, wind.flutter, wind.flutter_hz * 2 * Math.PI),

@@ -30,6 +30,86 @@ export const GRASS_MAX_KINDS = 16;
  *  each draws (4 and 2 segments a blade). */
 export const FIELD_LODS = [0, 2] as const;
 
+/** The prop table's grid: its smallest cell, metres, and most cells a side. */
+const PROP_CELL_M = 8;
+const PROP_GRID_MAX = 512;
+/** A prop is listed this far past its bounds, so a point the GPU puts in a
+ *  neighbouring cell (f32 against the table's f64) still finds it. */
+const PROP_PAD_M = 0.05;
+
+/** Where no grass grows: every static prop's footprint, widened by
+ *  `margin`, as the table the grass build reads. A clump asks only the
+ *  props listed for its own grid cell, so the build costs what is near a
+ *  clump, never the map's prop count. In `vec4f` elements:
+ *  - 0: the grid's origin, its cell's side, 0;
+ *  - 1 (as `u32`): cells across and up, 0, 0;
+ *  - then two cells an element, each (first record's element, record count);
+ *  - then the records, grouped by cell, two elements each:
+ *    (x, y, cos yaw, sin yaw), (half extents with the margin, 0, 0).
+ *  `footprints` holds `x, y, yaw, hx, hy` per prop. */
+export function packGrassProps(footprints: Float32Array, margin: number): Float32Array {
+  const count = footprints.length / 5;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  const bounds = new Float64Array(count * 4);
+  for (let i = 0; i < count; i++) {
+    const [x, y, yaw, hx, hy] = footprints.subarray(i * 5, i * 5 + 5);
+    const [c, s] = [Math.abs(Math.cos(yaw)), Math.abs(Math.sin(yaw))];
+    const ex = (hx + margin) * c + (hy + margin) * s + PROP_PAD_M;
+    const ey = (hx + margin) * s + (hy + margin) * c + PROP_PAD_M;
+    bounds.set([x - ex, y - ey, x + ex, y + ey], i * 4);
+    minX = Math.min(minX, x - ex);
+    minY = Math.min(minY, y - ey);
+    maxX = Math.max(maxX, x + ex);
+    maxY = Math.max(maxY, y + ey);
+  }
+  const cell = count
+    ? Math.max(PROP_CELL_M, Math.max(maxX - minX, maxY - minY) / PROP_GRID_MAX)
+    : PROP_CELL_M;
+  const nx = count ? Math.floor((maxX - minX) / cell) + 1 : 0;
+  const ny = count ? Math.floor((maxY - minY) / cell) + 1 : 0;
+  // Two passes: count each cell's props, then fill its run of records.
+  const counts = new Uint32Array(nx * ny);
+  const span = (i: number) => [
+    Math.floor((bounds[i * 4] - minX) / cell),
+    Math.floor((bounds[i * 4 + 1] - minY) / cell),
+    Math.floor((bounds[i * 4 + 2] - minX) / cell),
+    Math.floor((bounds[i * 4 + 3] - minY) / cell),
+  ];
+  let records = 0;
+  for (let i = 0; i < count; i++) {
+    const [i0, j0, i1, j1] = span(i);
+    for (let j = j0; j <= j1; j++) for (let k = i0; k <= i1; k++) counts[j * nx + k]++;
+    records += (i1 - i0 + 1) * (j1 - j0 + 1);
+  }
+  const cellElements = Math.ceil((nx * ny) / 2);
+  const recordsBase = 2 + cellElements;
+  const table = new Float32Array((recordsBase + records * 2) * 4);
+  const words = new Uint32Array(table.buffer);
+  table.set([count ? minX : 0, count ? minY : 0, cell, 0]);
+  words.set([nx, ny, 0, 0], 4);
+  const next = new Uint32Array(nx * ny);
+  let first = recordsBase;
+  for (let c = 0; c < nx * ny; c++) {
+    words.set([first, counts[c]], 8 + c * 2);
+    next[c] = first;
+    first += counts[c] * 2;
+  }
+  for (let i = 0; i < count; i++) {
+    const [x, y, yaw, hx, hy] = footprints.subarray(i * 5, i * 5 + 5);
+    const record = [x, y, Math.cos(yaw), Math.sin(yaw), hx + margin, hy + margin, 0, 0];
+    const [i0, j0, i1, j1] = span(i);
+    for (let j = j0; j <= j1; j++)
+      for (let k = i0; k <= i1; k++) {
+        table.set(record, next[j * nx + k] * 4);
+        next[j * nx + k] += 2;
+      }
+  }
+  return table;
+}
+
 /** Grass appearances (scenery kind "grass") by catalog name. */
 export type GrassAppearances = ReadonlyMap<string, StaticBundle>;
 
