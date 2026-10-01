@@ -278,6 +278,27 @@ export async function run(ctx) {
   );
   await lab(page, () => window.__lab.route.setFallen(false));
 
+  // `CAMERA_FILM=1`: the wall and the tower pass as the viewport's camera
+  // rides them, five frames a second, each frame reached by a ride from the
+  // trajectory's start.
+  if (process.env.CAMERA_FILM === "1")
+    for (const [id, from, to] of [
+      ["wall", 2.2, 5.2],
+      ["tower-pass", 2.2, 5.4],
+    ])
+      for (let s = from; s <= to + 1e-9; s += 0.2) {
+        await lab(
+          page,
+          async ([id, s]) => {
+            window.__lab.route.ride(id);
+            while (window.__lab.route.seconds() < s) await new Promise(requestAnimationFrame);
+            window.__lab.route.hold();
+          },
+          [id, s],
+        );
+        await shot(ctx, page, `film-${id}-${s.toFixed(1)}.png`);
+      }
+
   // What the resolver costs on these trajectories.
   const cost = await lab(page, () => {
     const poses = [];

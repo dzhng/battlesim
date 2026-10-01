@@ -94,6 +94,22 @@ export const flyLive = (page, poses, from = 0, to = poses.length - 1) =>
 const RUN_UP = 150;
 
 /**
+ * A film of `poses` flown live: the frame drawn at every `step`th pose from
+ * `from` to `to`, each reached by its own run-up, saved as
+ * `film-<name>-<pose>.png`. Motion is judged from these in order.
+ */
+export async function film(ctx, page, name, poses, from, to, step) {
+  for (let k = Math.max(0, from); k <= Math.min(to, poses.length - 1); k += step) {
+    await flyLive(page, poses, Math.max(0, k - RUN_UP), k);
+    await lab(page, () => window.__lab.frame());
+    await writeFile(
+      ctx.evidencePath(`film-${name}-${String(k).padStart(3, "0")}.png`),
+      await page.screenshot(),
+    );
+  }
+}
+
+/**
  * Fly the two town moves with the viewport's own camera over `boxes` (the
  * buildings drawn), in real time, and judge each drawn eye against every box.
  * Saves `shots` matched frames a move of the pose asked for (raw: the camera
@@ -211,6 +227,9 @@ export async function flyTown(ctx, page, town, boxes, { shots = 4, reps = 20 } =
       boxTestsPerFrame: flown.boxTestsPerFrame,
       shots: [...pick],
     };
+    // `CAMERA_FILM=1`: the stretch round the first building met, five frames a second.
+    if (process.env.CAMERA_FILM === "1")
+      await film(ctx, page, name, poses, marks[0] - 96, marks[0] + 144, 12);
   }
   await lab(page, (camera) => window.__lab.setCamera(camera), before);
   await lab(page, () => window.__lab.suppressFog(false));
