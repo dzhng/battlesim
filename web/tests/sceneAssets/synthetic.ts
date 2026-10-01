@@ -84,9 +84,15 @@ const hullType = (
  *  ("rifleman"), and a part `era` whose hardware is `era_*` nodes. `tank`
  *  overrides the tank type's fields. */
 export function syntheticUnits(tank: Partial<UnitType> = {}): UnitCatalog {
-  const tracked = { tracked: { mps: 1, road_mps: 1, turn_deg_s: 1, reverse_fraction: 1 } };
+  const tracked = { tracked: { offroad_kmh: 1, road_kmh: 1, turn_deg_s: 1, reverse_fraction: 1 } };
   const wheeled = {
-    wheeled: { mps: 1, road_mps: 1, turn_deg_s: 1, turning_radius_m: 1, reverse_fraction: 1 },
+    wheeled: {
+      offroad_kmh: 1,
+      road_kmh: 1,
+      turn_deg_s: 1,
+      turning_radius_m: 1,
+      reverse_fraction: 1,
+    },
   };
   return new UnitCatalog({
     documents: [],
@@ -104,7 +110,7 @@ export function syntheticUnits(tank: Partial<UnitType> = {}): UnitCatalog {
         capabilities: { deploy: { seconds: 1 } },
       }),
       {
-        ...hullType("rifle", "", [0, 0, 0], { foot: { mps: 1, road_multiplier: 1 } }),
+        ...hullType("rifle", "", [0, 0, 0], { foot: { offroad_kmh: 4, road_kmh: 4 } }),
         body: { squad: { slots: ["rifleman", "rifleman"] } },
         appearance: undefined,
       },

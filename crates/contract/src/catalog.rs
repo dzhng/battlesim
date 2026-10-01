@@ -94,30 +94,64 @@ pub struct Hull {
     pub wreck: String,
 }
 
-/// How a unit moves (Q29, Q30). Open to new variants (rotor, air).
+/// No mover's top speed may exceed this (light wheeled vehicles do 110).
+pub const MAX_SPEED_KMH: f64 = 130.0;
+
+/// How a unit moves (Q29, Q30). Open to new variants (rotor, air). Every
+/// mover has its own two top speeds, in km/h: `offroad_kmh` on open ground
+/// and `road_kmh` on a full road. A surface kind's `speed_factor` scales the
+/// road speed, never below the off-road one (`Rules::surfaces`).
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
 pub enum Mobility {
     Foot {
-        mps: f64,
-        road_multiplier: f64,
+        offroad_kmh: f64,
+        road_kmh: f64,
     },
     /// Tracks pivot on the spot.
     Tracked {
-        mps: f64,
-        road_mps: f64,
+        offroad_kmh: f64,
+        road_kmh: f64,
         turn_deg_s: f64,
         /// Reverse speed as a fraction of forward.
         reverse_fraction: f64,
     },
     /// Wheels hold a minimum turning radius and never pivot.
     Wheeled {
-        mps: f64,
-        road_mps: f64,
+        offroad_kmh: f64,
+        road_kmh: f64,
         turn_deg_s: f64,
         turning_radius_m: f64,
         reverse_fraction: f64,
     },
+}
+
+impl Mobility {
+    /// `(offroad_kmh, road_kmh)`.
+    pub fn speeds_kmh(&self) -> (f64, f64) {
+        match *self {
+            Mobility::Foot {
+                offroad_kmh,
+                road_kmh,
+            }
+            | Mobility::Tracked {
+                offroad_kmh,
+                road_kmh,
+                ..
+            }
+            | Mobility::Wheeled {
+                offroad_kmh,
+                road_kmh,
+                ..
+            } => (offroad_kmh, road_kmh),
+        }
+    }
+
+    /// `(off-road, road)` top speeds in metres per second.
+    pub fn speeds_mps(&self) -> (f64, f64) {
+        let (offroad, road) = self.speeds_kmh();
+        (offroad / 3.6, road / 3.6)
+    }
 }
 
 /// A unit's one sight.
@@ -1052,27 +1086,24 @@ fn check(
 /// A type's numbers in the ranges the simulation divides and eases by.
 fn ranges(t: &UnitType) -> Option<&'static str> {
     let s = t.sensors.sight_shape;
+    let (offroad_kmh, road_kmh) = t.mobility.speeds_kmh();
+    if !(offroad_kmh > 0.0 && road_kmh >= offroad_kmh && road_kmh <= MAX_SPEED_KMH) {
+        return Some("mobility: speeds must satisfy 0 < offroad_kmh <= road_kmh <= 130");
+    }
     let bad = match t.mobility {
-        Mobility::Foot {
-            mps,
-            road_multiplier,
-        } => (!(mps > 0.0 && road_multiplier > 0.0))
-            .then_some("mobility: foot speeds must be positive"),
+        Mobility::Foot { .. } => None,
         Mobility::Tracked {
-            mps,
-            road_mps,
             turn_deg_s,
             reverse_fraction,
+            ..
         }
         | Mobility::Wheeled {
-            mps,
-            road_mps,
             turn_deg_s,
             reverse_fraction,
             ..
         } => {
-            if !(mps > 0.0 && road_mps > 0.0 && turn_deg_s > 0.0) {
-                Some("mobility: speeds and turn_deg_s must be positive")
+            if turn_deg_s.is_nan() || turn_deg_s <= 0.0 {
+                Some("mobility: turn_deg_s must be positive")
             } else if !(reverse_fraction > 0.0 && reverse_fraction <= 1.0) {
                 Some("mobility.reverse_fraction must lie in (0, 1]")
             } else {

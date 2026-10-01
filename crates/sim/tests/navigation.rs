@@ -94,14 +94,14 @@ fn the_fastest_route_takes_the_road_and_the_shortest_does_not() {
 #[test]
 fn speed_follows_surface_and_slope() {
     assert_eq!(
-        TANK.speed(true, true, 0.0),
+        TANK.speed(1.0, true, 0.0),
         12.0,
         "roads take precedence over forest"
     );
-    assert!((TANK.speed(false, true, 0.0) - 2.4).abs() < 1e-12);
-    assert!((TANK.speed(false, false, 25.0) - 3.0).abs() < 1e-12);
+    assert!((TANK.speed(0.0, true, 0.0) - 2.4).abs() < 1e-12);
+    assert!((TANK.speed(0.0, false, 25.0) - 3.0).abs() < 1e-12);
     assert!(
-        (TANK.speed(false, false, 34.0) - 6.0 * 0.35).abs() < 1e-12,
+        (TANK.speed(0.0, false, 34.0) - 6.0 * 0.35).abs() < 1e-12,
         "floor near the cutoff"
     );
 }

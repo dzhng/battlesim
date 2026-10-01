@@ -10,10 +10,7 @@ import {
 } from "@wasm/game_wasm.js";
 
 const read = (name: string) =>
-  readFileSync(
-    new URL(`../../specs/city-maps/assets/template-geometry/${name}.json`, import.meta.url),
-    "utf8",
-  );
+  readFileSync(new URL(`../../fixtures/parity/templates/${name}.json`, import.meta.url), "utf8");
 /** Only C01's added owner-emitted local interval enriches the old output oracle. */
 function withLocalSpans(materialized: { edges: { id: string }[] }, descriptorJson: string) {
   const source = JSON.parse(descriptorJson).edges as { id: string; span_m: [number, number] }[];

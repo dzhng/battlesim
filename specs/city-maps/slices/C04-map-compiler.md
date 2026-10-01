@@ -17,6 +17,16 @@ land regions, overlap/composition validation and the inspect overlay remain late
 compiler arms. C09/C13/C32 own source provenance, selection readiness and appearance
 fit. This pass does not close the whole C04 or G0 source/art gate.
 
+## Pass 2: roads and forests
+
+`MapPlan.surfaces` and `MapPlan.forests` lower into the map in the contract's own
+shapes (C03, C64, C65, C72). Authored points must lie inside the playable bounds, and
+`limits.max_ground_points` bounds polygon vertices plus rounded stroke samples;
+`report.ground_points` states what was used. Native and Wasm agree on the complete
+records, including one accepted and two refused ground plans
+(`fixtures/parity/map-compiler/paired-records.json`). Rivers (C69), land regions,
+overlap/composition validation and the inspect overlay remain.
+
 ## Question
 Can one typed plan become authoritative compiled geometry and identity without a second interpretation by the battle or renderer?
 

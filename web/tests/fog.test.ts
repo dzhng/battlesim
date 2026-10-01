@@ -31,7 +31,11 @@ import {
   unpackFogWord,
 } from "@packages/battle-renderer/src/frame/fogOracle";
 import { groundHeight } from "@packages/battle-renderer/src/terrain/terrainGrid";
-import type { WorldExports, WorldLayout } from "@packages/battle-renderer/src/worldMesh";
+import {
+  readWorldExports,
+  type WorldExports,
+  type WorldLayout,
+} from "@packages/battle-renderer/src/worldMesh";
 import { labScenario, type LabEvent } from "@apps/battle-lab/src/scenarios";
 import sensors from "@fixtures/sensors-lab.json";
 import village from "@fixtures/village.json";
@@ -45,24 +49,7 @@ beforeAll(() => {
 
 function staticWorld(map: unknown): { exports: WorldExports; layout: WorldLayout } {
   const view = new WorldView(JSON.stringify(map), JSON.stringify(VILLAGE_RULES));
-  const exports = {
-    terrain: {
-      ...JSON.parse(view.terrain_grid()),
-      pageIds: view.terrain_page_ids(),
-      heights: view.terrain_heights(),
-    },
-    positions: view.terrain_positions(),
-    indices: view.terrain_indices(),
-    triangleSurfaces: view.terrain_triangle_surfaces(),
-    props: view.props(),
-    buildings: JSON.parse(view.buildings()),
-    water: view.water(),
-    forests: view.forests(),
-    foliage: view.foliage(),
-    surfaceStrokes: view.surface_strokes(),
-    surfaceTriangles: view.surface_triangles(),
-    surfaceBoundaries: view.surface_boundaries(),
-  };
+  const exports = readWorldExports(view);
   view.free();
   return {
     exports,

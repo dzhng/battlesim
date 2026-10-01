@@ -19,8 +19,7 @@ fn num(section: &str, key: &str) -> f64 {
 fn field() -> String {
     json!({
         "size": [600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [],
-        "forests": [{ "rect": [450, 250, 150, 150], "canopy_height_m": 12, "density": "light",
-            "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2 }]
+        "forests": [{ "shape":{"kind":"polygon","ring":[[450.0,250.0],[600.0,250.0],[600.0,400.0],[450.0,400.0]]}}]
     })
     .to_string()
 }

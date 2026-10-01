@@ -46,7 +46,7 @@ const HUE_MARGIN = 12;
 const MIN_GROUND = 2000;
 /** Channels within this of the graded black count as black. */
 const BLACK_TOLERANCE = 3;
-/** Looking into the wood west of the street (the fixture's medium forest;
+/** Looking into the wood west of the street (the fixture's forest;
  *  the orchard east of it is light, and the recon sees through it): canopy
  *  tops past the recon's sight. */
 const ORCHARD = { target: [790, 930], distance: 160, pitch: 0.85, yaw: 3.752 };

@@ -23,7 +23,7 @@
 | M03 | The player's composition controls are **Open / Mixed / Metro** and a separate **Small / Medium / Large** size. There is no coverage slider. Seed is a reproducibility input; polygon editing is a developer workbench surface. | Simple choices describe the kind of battle. | User; developer surface scoped by agent |
 | M04 | Playable area: Small = **6 × 6 km**, Medium = **8 × 8 km**, Large = **10 × 10 km**. The [rendered surroundings](scale-direction.md#playable-area-and-rendered-surroundings) extend beyond these bounds. These supersede the earlier selected playable extents; building/street dimensions and weapon ranges retain their metre scale. | The user reduced playable map sizes to improve travel pacing with Broken Arrow-like vehicle speeds; [the transit target](scale-direction.md#vehicle-transit-target) governs movement tuning. | User |
 | M05 | Building, street and ordinary town dimensions stay believable and similar across sizes. Larger maps add settlements rather than enlarging houses and streets. | A size preset changes the battlefield, not the scale of its contents. | User |
-| M06 | Metro has one dominant central city with smaller surrounding towns/districts and outskirts. Open uses small settlements on predominantly open country; Mixed sits between them. Metro may reach roughly 80% urban coverage. | The types must have visibly different composition. Exact shares remain OPEN below. | User |
+| M06 | Metro has one dominant central city with smaller surrounding towns/districts and outskirts. Open uses small settlements on predominantly open country; Mixed sits between them. Metro's urban share is set by M18. | The types must have visibly different composition. Exact shares remain OPEN below. | User |
 | M07 | Use the six building categories in the table below. Open forbids seven-storey and taller buildings; highrises belong to Metro. | A rural town cannot acquire a tower through an unlucky seed. | User; category boundaries proposed by agent and accepted |
 | M08 | Each map has one coherent regional family/palette. NYC, Paris and China remain art sources on invented geography; buildings do not choose unrelated regional styles independently. | Variety should look like a place, rather than an assortment of demos. | User |
 | M09 | Roads vary by seed, with accessible settlement streets and [the accepted long-move road coverage/connectivity rule](scale-direction.md#accepted-navigation-behavior). | Maps should not all share one highway arrangement; long journeys should usually have usable road access. | User |
@@ -33,8 +33,12 @@
 | M13 | Camera resolution first tries a nearby clear pose by lifting/sliding, then uses smooth pushback. Zoom, pan, orbit and scripted placement must keep the eye outside buildings. | Dense streets and towers must remain navigable with the camera. | User |
 | M14 | Runtime selects **pre-baked, varied building templates**, each assembled from shared instanced modules. No runtime Blender or geometry-node evaluator port. | Runtime seeds must work without a per-map art job. | User |
 | M15 | Focused labs and benchmarks retain their test/measurement arena and receive real town/plain surroundings outside it. Their bounds remain purpose-appropriate; primary generated battles use player size presets. Surroundings remain normal sim geometry and draw cost. | Preserve focused checks while satisfying the all-map rule. | User, final A choice; diagnostic bounds scoped by agent |
-| M16 | Retain hard schema cutovers; no compatibility shims or migration scaffolding. Name intentional map/config/digest changes when surroundings or rules change. | One contract and one loader are easier to verify. | User, earlier interview |
+| M16 | Retain hard schema cutovers; no compatibility shims or cutover scaffolding. Name intentional map/config/digest changes when surroundings or rules change. | One contract and one loader are easier to verify. | User, earlier interview |
 | M17 | Building categories do not change the accepted combat rules: bottom three garrison bands, one integrity owner, collapse at ≤6 floors and standing gutting above 6. | The 9+ highrise category is an art/layout distinction, not a new destruction threshold. | Earlier user decisions retained |
+| M18 | Metro's urban share is whatever still leaves an 1,800 m open approach at every size, Small included: S7 measured that 40–58% does not on Small, so the preset is tuned down until it does. "Up to roughly 80% urban" (M06) is withdrawn; Metro stays the type with one dominant city. | One approach criterion for every type and size, with no per-size exception. Also bounds Metro's building count, the main scale risk. | User, after S7 |
+| M19 | Every type and size offers open approaches of at least 1,800 m across a front of at least 400 m, to settlements in both halves. | Weapons reach 1,800 m; a map without such ground is a different game. | User, after S7 |
+| M20 | Light wheeled vehicles do 110 km/h on roads; no vehicle exceeds 130 km/h. | S7: edge-to-centre on Large takes 201–205 s at 97 km/h and 179–183 s at 110, against the three-minute target. Realistic, with everyone driving flat out. | User |
+| M21 | Mixed has one clearly larger town among its settlements, and road patterns vary by seed beyond a fixed central crossroads. | S7: Mixed Large had no dominant town and every map shared the same four-arm crossroads. | User, after S7 |
 
 ### Building categories
 
@@ -65,6 +69,7 @@ These are explicit spike outputs. Evidence can change the technical architecture
 
 ## 3. Unknown knowns: taste and tacit context extracted
 
+- **Mixed reads as a mosaic of districts** ([Broken Arrow references](assets/reference/broken-arrow/SOURCES.md)). A town is single-use districts side by side (garden suburb, apartment rows, a tower, an industrial compound with paved yards), loosely strung along a main road, with fields and woods pushing in between them and right up to the last houses. Objectives sit on districts. A compact blob of blended blocks is the wrong picture.
 - **Range changes composition.** The user's 1,800 m reminder rejected an attractive but physically cramped map. Review open approaches at tactical range as well as from an overview.
 - **Town size stays familiar.** Larger maps get more places to fight; houses and streets retain their dimensions.
 - **Fairness is approximate.** The user liked the sketches' top/bottom balance and specifically rejected a requirement for exact symmetry. Review area/count metrics alongside routes; geometry need not mirror.
@@ -131,7 +136,7 @@ The systematic sweep covered the map contract, terrain/nav/fog/foliage/export/pu
 
 **Why it bites:** surrounding urban bodies may change rays, routes, IDs, digests and frame cost even outside a screenshot crop.
 
-**Changes the plan:** C56 proves the reservation contract on one arena; C34/C35/C36 migrate village/labs/benchmarks with declared protected bounds and behavior probes. Inventory every shipped/catalogued world, including synthetic benchmark worlds. Name geometry/config/digest changes; rebaseline whole-map costs only after arena behavior is proved. Low-level geometry probes remain probes of the geometry API; the composition gate belongs at the catalogued-map boundary.
+**Changes the plan:** C56 proves the reservation contract on one arena; C34/C35/C36 cut over village/labs/benchmarks with declared protected bounds and behavior probes. Inventory every shipped/catalogued world, including synthetic benchmark worlds. Name geometry/config/digest changes; rebaseline whole-map costs only after arena behavior is proved. Low-level geometry probes remain probes of the geometry API; the composition gate belongs at the catalogued-map boundary.
 
 ### L08 — Coverage fairness is not tactical parity — SHARP EDGE
 
@@ -200,7 +205,7 @@ Template geometry types belong to `contract`; their art codec belongs to `scene-
 ## Confirm before coding
 
 - Inventory dense permanent/temporary allocations and wasm/browser transfer copies before attempting full-size builds; S0 owns the safe experiment limits.
-- Find every map/fixture/benchmark producer before declaring the all-map migration complete; C56 owns the inventory and arena bounds.
+- Find every map/fixture/benchmark producer before declaring the all-map cutover complete; C56 owns the inventory and arena bounds.
 - Confirm graph inputs, legal dimensions, floor heights, pre-realize instance taps, class coverage and attribution under the pinned Blender version; S2 owns the matrix.
 - Freeze accepted prototype inputs, dependency versions, canonical outputs and evidence by immutable hash; G0 maps each proven behavior to its production owner and parity check.
 - Choose and record numerical OPEN outputs at their named gates; do not let provisional values become defaults by omission.

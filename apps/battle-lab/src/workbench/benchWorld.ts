@@ -96,11 +96,14 @@ function benchTerrain(): TerrainSurface {
       map: [-h, -h, h, h],
       surfaceStrokes: NONE,
       surfaceStrokeStride: 6,
+      surfaceRuns: NONE,
+      surfaceRunStride: 4,
       surfaceTriangles: NONE,
       surfaceBoundaries: NONE,
       surfaceTriangleStride: 7,
       surfaceBoundaryStride: 5,
       forests: NONE,
+      forestShapes: [],
       water: NONE,
       buildings: [],
       footprints: NONE,
@@ -256,14 +259,12 @@ export function footprint(
     };
   }
   if (rule?.footprint.kind === "tree") {
-    const forest = village.map.forests[0];
-    const density =
-      village.forests.densities[forest.density as keyof typeof village.forests.densities];
-    cylinder(edges, forest.trunk_radius_m, 0, forest.trunk_height_m, 12);
-    cylinder(edges, density.canopy_radius_m, forest.canopy_height_m, forest.canopy_height_m, 24);
+    const tree = village.forests.rule;
+    cylinder(edges, tree.trunk_radius_m, 0, tree.trunk_height_m, 12);
+    cylinder(edges, tree.canopy_radius_m, tree.canopy_height_m, tree.canopy_height_m, 24);
     return {
       edges,
-      label: `forest tree (${forest.density}): trunk ${m(2 * forest.trunk_radius_m)} m × ${m(forest.trunk_height_m)} m, crown ${m(density.canopy_radius_m)} m, canopy at ${m(forest.canopy_height_m)} m, ${m(density.trunk_spacing_m)} m apart · trunks stop rounds and vehicles, not soldiers; a heavy vehicle knocks them down`,
+      label: `forest tree: trunk ${m(2 * tree.trunk_radius_m)} m × ${m(tree.trunk_height_m)} m, crown ${m(tree.canopy_radius_m)} m, canopy at ${m(tree.canopy_height_m)} m, ${m(tree.trunk_spacing_m)} m apart · trunks stop rounds and vehicles, not soldiers; a heavy vehicle knocks them down`,
     };
   }
   return { edges, label: scenery ? `${scenery}: no simulation body` : "no simulation body" };

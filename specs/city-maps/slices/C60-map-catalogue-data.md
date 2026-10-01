@@ -6,7 +6,7 @@
 Does every map live in one catalogue folder, validated and loaded by id (Q-G9)?
 
 ## Contract it unlocks
-- C09 already put every map at `fixtures/maps/<id>/map.json`. This slice adds `SOURCES.json`, `meta.json` and `encounters/<name>.json` to every saved map found by the migration inventory (endurance as `category: benchmark`), moving each lab's scenario into an encounter.
+- C09 already put every map at `fixtures/maps/<id>/map.json`. This slice adds `SOURCES.json`, `meta.json` and `encounters/<name>.json` to every saved map found by the cutover inventory (endurance as `category: benchmark`), moving each lab's scenario into an encounter.
 - `meta.json` holds Q-G9's saved-map fields; generated entries derive size/character/seed from canonical provenance and cross-check the compiled map hash/bounds. C55 transient maps use equivalent runtime/replay identity through the same resolver and need no persistent folder.
 - **Owner: a TypeScript module** (`web/src/maps/catalogue.ts`: `MapMeta`, a validator, `listMaps(filter)`). Only JavaScript reads `meta.json`; the sim reads `map.json` by id through C09's loader, and Rust tests get `maps::load(id)`.
 - The browser lists maps with a Vite glob, and `scene.mjs` reads the directory. **No committed generated index** (it would bring back the merge conflicts).

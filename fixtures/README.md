@@ -80,3 +80,11 @@ Add one entry. A mechanic comes from the body's columns, so a new obstacle needs
 - **A unit type's wreck is its own prop type.** At hundreds of vehicles, give each family's wreck an entry extending `wreck`, with the vehicle's weight class and cover tier (a wreck keeps its vehicle's tier, checked at load), `hp`, and a destroyed state that chains into a lighter wreck or goes.
 - **Every type needs an appearance that draws it:** a scenery kind in `packages/scene-assets` with a catalog appearance authored to a box the simulation places (the catalog footprint test holds every drawn kind to one), or `forest`. The renderer reads the binding from the world layout; it lists no prop types.
 - Then add it to the map or scenario that exercises it, and run the checks for what you changed (see [`AGENTS.md`](../AGENTS.md)).
+
+## Surface speeds
+
+Every mover states its own two top speeds in its `mobility` row, in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road (at most 130, and never below the off-road speed). `village.json`'s `surfaces` table has one row per surface kind a map may pave (`road`, `country_road`, `dirt_track`, `sidewalk`). A row's `speed_factor` scales each unit type's own road speed on that surface, never below its off-road speed: 1 is a full road, 0 is no road at all. A new surface kind is a new row plus its variant in `contract::map::SurfaceKind`.
+
+## Parity oracles
+
+`parity/` holds frozen inputs and expected outputs that the native tests and the web tests both read, so the Rust simulation and its WebAssembly build are held to the same answer: building aggregates, fog delivery, ground learning and transport, the map compiler, physical templates (including the rejected descriptors that must keep failing) and terrain queries. A file changes only with a named behaviour change, and every test that reads it changes in the same commit.

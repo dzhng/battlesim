@@ -42,6 +42,13 @@ pub fn span<'de, D: Deserializer<'de>>(de: D) -> Result<[[f64; 2]; 2], D::Error>
     Ok([array_from(a)?, array_from(b)?])
 }
 
+pub fn points<'de, D: Deserializer<'de>>(de: D) -> Result<Vec<[f64; 2]>, D::Error> {
+    Vec::<Vec<Number>>::deserialize(de)?
+        .into_iter()
+        .map(array_from)
+        .collect()
+}
+
 pub fn optional_points<'de, D: Deserializer<'de>>(
     de: D,
 ) -> Result<Option<Vec<[f64; 2]>>, D::Error> {

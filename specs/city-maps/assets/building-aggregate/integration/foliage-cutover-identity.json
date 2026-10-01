@@ -1,9 +1,0 @@
-{
-  "purpose": "Prepare original foliage map boxes through shared C00/C01 test authoring; original foliage and cleared-cell expected outputs unchanged.",
-  "sha256": {
-    "specs/city-maps/assets/ground-baseline/foliage.json": "ebc2ee35a58f71ce5d94e412ae7bff28c0c28919e214cfaf29d4de40eb83c40c",
-    "specs/city-maps/assets/building-aggregate/foliage-cutover-inputs.json": "7b2a8b1da00521e20d83948ebcc686047fe188f62a65e42b68fb01639c915cb6",
-    "crates/sim/tests/common/mod.rs": "d7f03331032deff418d07ec8cf65b6682d91c950900dbdca8328686185d5b14a",
-    "crates/sim/examples/foliage_cutover_probe.rs": "40c9404800613167a138ce2c46dc03543a5362ec206c8a8488400241c8ab6fee"
-  }
-}

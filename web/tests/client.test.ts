@@ -1,5 +1,4 @@
 // @vitest-environment node
-import { originalSurfaceInput } from "./originalSurfaces";
 import { expect, test, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { initSync, Battle } from "@wasm/game_wasm.js";
@@ -87,23 +86,14 @@ test("an authority failure returns held records once and rejects requests after 
     module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)),
   }).memory;
   const oracle = JSON.parse(
-    readFileSync(
-      new URL("../../specs/city-maps/assets/fog-delivery/oracle.json", import.meta.url),
-      "utf8",
-    ),
+    readFileSync(new URL("../../fixtures/parity/fog/oracle.json", import.meta.url), "utf8"),
   );
   oracle.scenario.map = JSON.parse(
     readFileSync(
-      new URL(
-        "../../specs/city-maps/assets/building-aggregate/cutover-inputs.json",
-        import.meta.url,
-      ),
+      new URL("../../fixtures/parity/buildings/cutover-inputs.json", import.meta.url),
       "utf8",
     ),
   ).fogDelivery;
-  oracle.scenario.map = originalSurfaceInput(oracle.scenario.map);
-  oracle.scenario.map.fog_cell_m = oracle.scenario.rules.sensors.fog_cell_m;
-  delete oracle.scenario.rules.sensors.fog_cell_m;
   const battle = new Battle(JSON.stringify(oracle.scenario), oracle.seed);
   const { requests, deliver } = workerSeam();
   const client = createSimClient({ scenario: "{}", seed: 1, side: "blue", transport: "worker" });

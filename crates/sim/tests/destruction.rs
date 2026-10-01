@@ -178,8 +178,7 @@ fn destroyed_props_become_their_rows_state() {
             prop("tank_wreck", at(500.0), [3.5, 1.8, 1.2]),
             prop("tooth", at(600.0), [0.6, 0.6, 0.6]),
         ]),
-        json!([{ "rect": [680, 280, 40, 40], "density": "medium", "canopy_height_m": 12,
-                 "trunk_radius_m": 0.35, "trunk_height_m": 6, "trunk_clearance_m": 1.5 }]),
+        json!([{ "shape":{"kind":"polygon","ring":[[680.0,280.0],[720.0,280.0],[720.0,320.0],[680.0,320.0]]}}]),
         far(),
         json!(events),
     );

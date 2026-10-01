@@ -1,4 +1,0 @@
-
-thread 'main' (5042708) panicked at throwaway/navigation-counted/red.rs:22:5:
-one credit cannot discover both endpoints and complete a nontrivial route
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

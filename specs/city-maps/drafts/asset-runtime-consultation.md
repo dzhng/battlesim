@@ -93,7 +93,7 @@ replay file            { PrepareBattleRequest, composite identity, Replay }
 
 **Runtime:** R1 `prepare_battle` in the worker (lands with P1) → C59 planner → C55 menu, request, cancel, replay.
 
-**Migration:** C09 resolver over catalogue sources →
+**Cutover:** C09 resolver over catalogue sources →
 - C56a: the reservation boundary plus geometry-lab;
 - C56b: the village (named digest change);
 - C56c: the remaining labs;
@@ -234,11 +234,11 @@ So play waits on roughly ten authored sources.
 
 ### 10. C01 has two questions and two owners
 
-**Evidence:** C01 covers contract descriptor types plus the sim aggregate, export, decoder and village migration (C01 lines 9-16).
+**Evidence:** C01 covers contract descriptor types plus the sim aggregate, export, decoder and village cutover (C01 lines 9-16).
 
 **Fix:** C01a is the contract descriptor types only (needs only G0-T). C01b is the sim aggregate cutover, with village parity.
 
-### 11. C56 migrates everything at once
+### 11. C56 cuts everything over at once
 
 **Evidence:** C56 bundles:
 - the reservation boundary;

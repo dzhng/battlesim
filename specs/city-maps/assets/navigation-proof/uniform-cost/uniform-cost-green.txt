@@ -1,1 +1,0 @@
-Uniform cost work is bounded by two per plan plus ordinary exceptional expansion work

@@ -30,8 +30,12 @@ pub struct MapPlan {
     pub props: Vec<AuthoredPropDefinition>,
     #[serde(default)]
     pub buildings: Vec<BuildingPlacement>,
+    /// Roads, tracks and sidewalks, in the contract's shared ground shapes.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub surfaces: Vec<SurfaceArea>,
+    /// Forest shapes; the one `forests.rule` stands their trees at load.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub forests: Vec<contract::map::Forest>,
     /// A requested feature without a shared physical owner cannot be discarded.
     #[serde(flatten)]
     pub unsupported_fields: BTreeMap<String, serde_json::Value>,
@@ -43,6 +47,8 @@ pub struct CompileLimits {
     /// Ordinary authored bodies plus materialized template parts only.
     pub max_authored_parts: u32,
     pub max_bay_positions: u64,
+    /// Polygon vertices plus rounded stroke samples, over surfaces and forests.
+    pub max_ground_points: u64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -79,6 +85,7 @@ pub struct Diagnostic {
 pub struct CompileReport {
     pub authored_parts: u32,
     pub bay_positions: u64,
+    pub ground_points: u64,
     pub limits: CompileLimits,
 }
 #[derive(Clone, Debug, Serialize)]
@@ -150,13 +157,30 @@ pub fn validate_plan(plan: &MapPlan) -> Result<(), Vec<Diagnostic>> {
             message: format!("{field} has no admitted compiler geometry owner in this pass"),
         })
         .collect();
-    if !plan.surfaces.is_empty() {
-        diagnostics.push(Diagnostic {
-            code: DiagnosticCode::UnsupportedPlanField,
-            feature: None,
-            location: "$.plan.surfaces".into(),
-            message: "surfaces require shared contract geometry admission in this pass".into(),
-        });
+    let shapes = plan
+        .surfaces
+        .iter()
+        .enumerate()
+        .map(|(i, area)| (format!("$.plan.surfaces[{i}]"), &area.shape))
+        .chain(
+            plan.forests
+                .iter()
+                .enumerate()
+                .map(|(i, forest)| (format!("$.plan.forests[{i}]"), &forest.shape)),
+        );
+    for (location, shape) in shapes {
+        // A stroke may overhang the edge by its width; its authored points may not.
+        let outside = shape_points(shape)
+            .iter()
+            .any(|p| p[0] < 0.0 || p[1] < 0.0 || p[0] > plan.size[0] || p[1] > plan.size[1]);
+        if outside {
+            diagnostics.push(Diagnostic {
+                code: DiagnosticCode::InvalidBounds,
+                feature: None,
+                location,
+                message: "ground shape has an authored point outside the map bounds".into(),
+            });
+        }
     }
     let mut feature_ids = BTreeSet::new();
     for (index, placement) in plan.buildings.iter().enumerate() {
@@ -293,6 +317,13 @@ pub fn lower(
             "compiled authored parts exceed admission",
         ));
     }
+    let ground_points = ground_points(&request.plan);
+    if ground_points > request.limits.max_ground_points {
+        return Err(complexity(
+            "$.limits.max_ground_points",
+            "compiled ground points exceed admission",
+        ));
+    }
     let mut map = MapDefinition {
         size: request.plan.size,
         fog_cell_m: request.plan.fog_cell_m,
@@ -300,9 +331,9 @@ pub fn lower(
         slope_cutoff_deg: request.plan.slope_cutoff_deg,
         relief: Vec::new(),
         water: Vec::new(),
-        surfaces: Vec::new(),
+        surfaces: request.plan.surfaces.clone(),
         bridges: Vec::new(),
-        forests: Vec::new(),
+        forests: request.plan.forests.clone(),
         props: request.plan.props.clone(),
         buildings: Vec::new(),
         template_catalog_hash: Some(catalogue.hash().into()),
@@ -387,9 +418,38 @@ pub fn lower(
         report: CompileReport {
             authored_parts: authored_parts as u32,
             bay_positions,
+            ground_points,
             limits: request.limits,
         },
     })
+}
+
+/// A shape's authored points: a polygon's ring or a stroke's controls.
+fn shape_points(shape: &contract::ground::GroundShape) -> &[[f64; 2]] {
+    match shape {
+        contract::ground::GroundShape::Polygon { ring } => ring,
+        contract::ground::GroundShape::Stroke { centerline, .. } => centerline.control_points(),
+    }
+}
+
+/// What the plan's ground costs every consumer: polygon vertices plus the
+/// rounded samples of each stroke.
+fn ground_points(plan: &MapPlan) -> u64 {
+    let count = |shape: &contract::ground::GroundShape| match shape {
+        contract::ground::GroundShape::Polygon { ring } => ring.len() as u64,
+        contract::ground::GroundShape::Stroke { centerline, .. } => {
+            centerline.samples().len() as u64
+        }
+    };
+    plan.surfaces
+        .iter()
+        .map(|area| count(&area.shape))
+        .sum::<u64>()
+        + plan
+            .forests
+            .iter()
+            .map(|forest| count(&forest.shape))
+            .sum::<u64>()
 }
 
 fn complexity(location: &str, message: &str) -> Vec<Diagnostic> {

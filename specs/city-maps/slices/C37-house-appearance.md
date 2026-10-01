@@ -29,4 +29,4 @@ Source/module grouping within the accepted house fit and C32 codec. Geometry cha
 Original physical outcomes, house visuals, learned damage timing and one template appearance path.
 
 ## Feedback that would change this slice
-An appearance/fit regression reopens its reusable source mapping before surroundings migration.
+An appearance/fit regression reopens its reusable source mapping before the surroundings cutover.

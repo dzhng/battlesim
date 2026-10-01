@@ -274,10 +274,10 @@ fn go_facing(unit: u32, goal: [f64; 2], deg: f64) -> Value {
     )
 }
 
-/// A forest of `density` over `rect` (`[x, y, w, h]`), as the maps author one.
-fn forest(rect: [f64; 4], density: &str) -> Value {
-    json!({ "rect": rect, "density": density, "canopy_height_m": 12, "trunk_radius_m": 0.35,
-            "trunk_height_m": 10, "trunk_clearance_m": 2 })
+/// A forest over `rect` (`[x, y, w, h]`), as the maps author one.
+fn forest(rect: [f64; 4]) -> Value {
+    let [x, y, w, h] = rect;
+    json!({ "shape": {"kind":"polygon","ring":[[x,y],[x+w,y],[x+w,y+h],[x,y+h]]}})
 }
 
 /// The village fixture's own map (its ground, roads and forests) with only
@@ -1387,8 +1387,8 @@ fn authored() -> Vec<Scenario> {
         },
         Scenario {
             name: "t3-tank-carves-lane",
-            caption: "a tank knocks a lane through medium forest; a jeep follows it at open-ground speed and the red squad down the lane spots it",
-            map: flat([220.0, 80.0], json!({ "forests": [forest([70.0, 0.0, 60.0, 80.0], "medium")] })),
+            caption: "a tank knocks a lane through the forest; a jeep follows it at open-ground speed and the red squad down the lane spots it",
+            map: flat([220.0, 80.0], json!({ "forests": [forest([70.0, 0.0, 60.0, 80.0])] })),
             units: json!([
                 vehicle("blue", "tank", [15.0, 40.0], 0.0),
                 vehicle("blue", "jeep", [12.0, 20.0], 0.0),
@@ -1430,9 +1430,9 @@ fn authored() -> Vec<Scenario> {
             ],
         },
         Scenario {
-            name: "t3-jeep-through-light-forest",
-            caption: "a jeep threads light forest between the trunks, knocking none",
-            map: flat([200.0, 80.0], json!({ "forests": [forest([60.0, 0.0, 80.0, 80.0], "light")] })),
+            name: "t3-jeep-through-forest",
+            caption: "a jeep threads the forest between the trunks, knocking none",
+            map: flat([200.0, 80.0], json!({ "forests": [forest([60.0, 0.0, 80.0, 80.0])] })),
             units: json!([vehicle("blue", "jeep", [15.0, 40.0], 0.0)]),
             events: none.clone(),
             scripts: json!([go(0, [185.0, 40.0])]),
@@ -1450,24 +1450,91 @@ fn authored() -> Vec<Scenario> {
             ],
         },
         Scenario {
-            name: "t1-spotted-light-vs-dense",
-            caption: "a squad walks toward two hidden squads: it spots the one in light forest from far farther than the one in dense",
+            name: "t3-jeeps-country-road-vs-dirt-track",
+            caption: "two jeeps race east, one on a country road and one on a dirt track: the road jeep pulls ahead at full road speed, the track jeep still beats open-ground pace",
             map: flat(
-                [400.0, 100.0],
-                json!({ "forests": [
-                    forest([300.0, 0.0, 60.0, 45.0], "light"),
-                    forest([300.0, 55.0, 60.0, 45.0], "dense"),
+                [600.0, 120.0],
+                json!({ "surfaces": [
+                    { "kind": "country_road", "shape": { "kind": "stroke", "points": [[0, 30], [600, 30]], "width_m": 8 } },
+                    { "kind": "dirt_track", "shape": { "kind": "stroke", "points": [[0, 90], [600, 90]], "width_m": 6 } },
                 ] }),
             ),
             units: json!([
-                rifle("red", [318.0, 22.0]),
-                rifle("red", [318.0, 78.0]),
+                vehicle("blue", "jeep", [20.0, 30.0], 0.0),
+                vehicle("blue", "jeep", [20.0, 90.0], 0.0),
+            ]),
+            events: none.clone(),
+            scripts: json!([go(0, [580.0, 30.0]), go(1, [580.0, 90.0])]),
+            rules: json!({}),
+            seconds: 48.0,
+            seed: 1,
+            checks: vec![
+                check(FastThrough {
+                    unit: 0,
+                    rect: [200.0, 0.0, 500.0, 60.0],
+                    min_mps: 17.5,
+                }),
+                check(FastThrough {
+                    unit: 1,
+                    rect: [200.0, 60.0, 500.0, 120.0],
+                    min_mps: 13.0,
+                }),
+                check(Arrive {
+                    unit: 0,
+                    at: [580.0, 30.0],
+                    within_m: 2.0,
+                }),
+                check(Arrive {
+                    unit: 1,
+                    at: [580.0, 90.0],
+                    within_m: 2.0,
+                }),
+            ],
+        },
+        Scenario {
+            name: "t3-jeep-takes-a-road-bend-at-speed",
+            caption: "a jeep at full road speed takes a right-angle bend: it slows for the corner, stays near the road and reaches the far end",
+            map: flat(
+                [360.0, 260.0],
+                json!({ "surfaces": [
+                    { "kind": "country_road", "shape": { "kind": "stroke", "points": [[0, 30], [300, 30], [300, 260]], "width_m": 8 } },
+                ] }),
+            ),
+            units: json!([vehicle("blue", "jeep", [20.0, 30.0], 0.0)]),
+            events: none.clone(),
+            scripts: json!([drive("blue", 0, [300.0, 240.0])]),
+            rules: json!({}),
+            seconds: 30.0,
+            seed: 1,
+            checks: vec![
+                check(FastThrough {
+                    unit: 0,
+                    rect: [60.0, 0.0, 240.0, 60.0],
+                    min_mps: 26.0,
+                }),
+                check(Arrive {
+                    unit: 0,
+                    at: [300.0, 240.0],
+                    within_m: 2.0,
+                }),
+            ],
+        },
+        Scenario {
+            name: "t1-spotted-open-vs-forest",
+            caption: "a squad walks toward two hidden squads: it spots the one on open ground from far farther than the one in the forest",
+            map: flat(
+                [800.0, 100.0],
+                json!({ "forests": [forest([700.0, 55.0, 60.0, 45.0])] }),
+            ),
+            units: json!([
+                rifle("red", [718.0, 22.0]),
+                rifle("red", [718.0, 78.0]),
                 rifle("blue", [40.0, 50.0]),
             ]),
             events: none.clone(),
-            scripts: json!([go(2, [290.0, 50.0])]),
+            scripts: json!([go(2, [690.0, 50.0])]),
             rules: json!({}),
-            seconds: 90.0,
+            seconds: 480.0,
             seed: 1,
             checks: vec![check(SpottedFarther {
                 first: 0,
@@ -1478,8 +1545,8 @@ fn authored() -> Vec<Scenario> {
         },
         Scenario {
             name: "t3-barrage-clears-forest",
-            caption: "a barrage of HE falls on medium forest: the trees in the patch fall and it reads as open ground",
-            map: flat([200.0, 80.0], json!({ "forests": [forest([60.0, 0.0, 80.0, 80.0], "medium")] })),
+            caption: "a barrage of HE falls on the forest: the trees in the patch fall and it reads as open ground",
+            map: flat([200.0, 80.0], json!({ "forests": [forest([60.0, 0.0, 80.0, 80.0])] })),
             units: json!([rifle("blue", [15.0, 40.0])]),
             events: json!(barrage([100.0, 40.0], 3, 7.0, &[20, 80])),
             scripts: none.clone(),
@@ -1564,9 +1631,9 @@ fn authored() -> Vec<Scenario> {
             ],
         },
         Scenario {
-            name: "t2-squad-crosses-medium-wood",
-            caption: "a squad walks across medium forest between the trunks, each soldier round every trunk (Q27)",
-            map: flat([220.0, 80.0], json!({ "forests": [forest([50.0, 0.0, 120.0, 80.0], "medium")] })),
+            name: "t2-squad-crosses-wood",
+            caption: "a squad walks across the forest between the trunks, each soldier round every trunk (Q27)",
+            map: flat([220.0, 80.0], json!({ "forests": [forest([50.0, 0.0, 120.0, 80.0])] })),
             units: json!([rifle("blue", [20.0, 40.0])]),
             events: none.clone(),
             scripts: json!([go(0, [200.0, 40.0])]),
@@ -2612,7 +2679,7 @@ fn every_movement_scenario() {
 #[test]
 fn the_window_producer_preserves_original_physical_bodies_and_dense_ids() {
     let receipt: Value = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/building-aggregate/window-producer.json"
+        "../../../fixtures/parity/buildings/window-producer.json"
     ))
     .unwrap();
     let window = serde_json::from_value(receipt["window"].clone()).unwrap();

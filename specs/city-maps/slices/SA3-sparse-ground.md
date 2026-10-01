@@ -14,7 +14,7 @@ GroundLayer truth + KnownGround revisions → ordered patches → sparse GroundV
 The agreed snapshot seam is an allocation-free native `change_runs_since(base)` iterator. Each changed run names a 16×16 tile, a local start and length, and exact five-byte ground values. Runs coalesce only equal values whose learning stamps exceed the cursor; local spans can cross a tile row. A four-f32 wire record carries tile ID, `start + length*256`, crater/scorch, and tracks/trampled/cleared. `GroundView.applyRuns` consumes those records directly. Canonical expansion in tests must retain the original tile/local order; production must not construct a flat cell list. Publication and decoder cutover are integrated with SA4; [transport evidence](../spikes/SA3-transport.md) owns that focused verdict.
 
 ## Candidate investigation
-Compare sparse native tile/stamp/sync indexes, sparse client tile reads and one bounded GPU scar page representation. Migrate scenery tree suppression, foliage clearing updates, crater inspection and ground inspector. Remove dense marks/cleared arrays, full foliage clones and world-sized ScarTexture allocations; do not re-expand them downstream.
+Compare sparse native tile/stamp/sync indexes, sparse client tile reads and one bounded GPU scar page representation. Cut over scenery tree suppression, foliage clearing updates, crater inspection and ground inspector. Remove dense marks/cleared arrays, full foliage clones and world-sized ScarTexture allocations; do not re-expand them downstream.
 
 ## What the human can run or see
 Matched original/candidate reports, focused neutral query/route/sampling overlays and fixed-extents resource rows. No new visual design/model is authored.

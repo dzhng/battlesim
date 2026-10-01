@@ -2,10 +2,6 @@
 
 **Depends on:** C64. **Kind:** slice.
 
-## Checkpoint (2026-09-30)
-
-The [unactivated prototype](../assets/centerline-prototype/README.md) preserves narrow native red/green research. The centripetal trial wandered outside the village road corridor, so the candidate uses local paired Bézier bends and leaves long straight approaches intact. Production still uses authored straight runs. Native/Wasm parity, consumer integration, the named outcome change and visual gates remain pending.
-
 ## Question
 Do roads (and later rivers) follow one round curve in the sim, the plot cutter and the shading (Q-G19)?
 
@@ -43,3 +39,14 @@ Other labs with straight roads.
 
 ## Feedback that would change this slice
 A curve that differs between physics and pixels reopens shared sampling parity before road/river consumers tune it.
+
+
+## Outcome
+
+**Physical half done; the visual gates wait for the specialist.** `contract::curve::Centerline` rounds each authored corner with a pair of cubic Béziers that meet at the control point. The line still passes through every control (so junctions stay where they were authored), never strays more than half the stroke's width from its authored runs, and takes at most a third of either adjacent run. Roads, forest strokes and (later) rivers all load through it, so the sim, the exports and the drawing share one line.
+
+- Only bends are sampled, at most 2 m apart. A straight stretch stays one segment: see `choices.md`.
+- The export carries the rounded strokes and, separately, the road strokes' control runs (`export_surface_runs`); `terrain/surfaces.ts` cuts fields along the runs.
+- Native and Wasm produce the same sample bits (`fixtures/parity/ground/curve-strokes.json`).
+- Named changes: the village's corners at (420,420) and (1150,420) and the labs' road corners round (the village's two roads go from 5 segments to 101). `village_report --quick`: one of six trials changes digest; outcomes and losses are the same.
+- Open: the visual verification list above, and the bend's look. Passing through the corner makes the road swing about 2 m to the outside of the turn rather than cut the inside.

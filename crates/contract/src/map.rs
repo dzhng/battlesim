@@ -1,5 +1,6 @@
 //! Authored map geometry. Metres; origin at the map's south-west corner; XY
 //! ground, +Z up. Rectangles are `[min_x, min_y, width, height]`.
+use crate::ground::GroundShape;
 use serde::{Deserialize, Serialize};
 
 pub type Rect = [f64; 4];
@@ -102,25 +103,35 @@ pub struct Water {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SurfaceArea {
     pub kind: SurfaceKind,
-    pub shape: SurfaceShape,
+    pub shape: GroundShape,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// What a paved or worn surface is. Its speed is a row of the rules'
+/// `surfaces` table; where kinds overlap, the earlier one here wins.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SurfaceKind {
     Road,
+    CountryRoad,
+    DirtTrack,
     Sidewalk,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case")]
-pub enum SurfaceShape {
-    /// Closed simple ring; either winding is accepted, without a repeated endpoint.
-    Polygon { ring: Vec<[f64; 2]> },
-    /// Union of closed capsules, using the physical segment distance rule.
-    Stroke { points: Vec<[f64; 2]>, width_m: f64 },
+impl SurfaceKind {
+    pub const ALL: [SurfaceKind; 4] = [
+        SurfaceKind::Road,
+        SurfaceKind::CountryRoad,
+        SurfaceKind::DirtTrack,
+        SurfaceKind::Sidewalk,
+    ];
+
+    /// A carriageway: trunks keep clear of it and it draws as a road.
+    pub fn is_road(self) -> bool {
+        self != SurfaceKind::Sidewalk
+    }
 }
 
 /// A traversable deck: an oriented box whose top is walkable ground.
@@ -136,20 +147,13 @@ pub struct Bridge {
     pub thickness_m: f64,
 }
 
-/// Authoring input only (Q16, Q21): a forest generates its trees (the
-/// fixture's `forests.tree` prop type), and at runtime it is those bodies
-/// plus the ground they leave cleared. `density` names a row of the
-/// fixture's `forests.densities` (spacing, jitter, concealment, attenuation,
-/// canopy).
+/// Authoring input only (Q16, Q21): a forest is its shape. It generates its
+/// trees (the fixture's `forests.tree` prop type) by the one `forests.rule`,
+/// and at runtime it is those bodies plus the ground they leave cleared.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Forest {
-    pub rect: Rect,
-    pub density: String,
-    pub canopy_height_m: f64,
-    pub trunk_radius_m: f64,
-    pub trunk_height_m: f64,
-    /// Trunks are omitted within this distance of roads and props.
-    pub trunk_clearance_m: f64,
+    pub shape: GroundShape,
 }
 
 /// What moves on the ground, as far as a body's `blocks` columns care:

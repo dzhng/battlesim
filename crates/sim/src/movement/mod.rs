@@ -498,12 +498,7 @@ fn step_vehicle(
     let here = unit.position.xy();
     let surface = ctx.world.surface_at(here.x, here.y);
     let speed = surface.map_or(0.0, |s| {
-        unit.mobility.speed(
-            s.kind == crate::world::SurfaceKind::Road
-                || s.kind == crate::world::SurfaceKind::Bridge,
-            s.forest,
-            s.slope_deg,
-        )
+        unit.mobility.speed(s.road_factor, s.forest, s.slope_deg)
     });
     // Craters under the hull slow it slightly; never to a stop (Q8).
     let speed = speed * ctx.ground.vehicle_speed(here.x, here.y, ctx.ground_rules);

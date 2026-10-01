@@ -1,6 +1,5 @@
 // @vitest-environment node
-import { originalSurfaceInput } from "./originalSurfaces";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { createSimClient } from "../src/battle/sim/client";
 import { GroundView } from "../src/battle/sim/ground";
@@ -14,21 +13,15 @@ import {
 import { originalObservation } from "./groundRuns";
 
 const oracle = JSON.parse(
-  readFileSync(
-    new URL("../../specs/city-maps/assets/fog-delivery/oracle.json", import.meta.url),
-    "utf8",
-  ),
+  readFileSync(new URL("../../fixtures/parity/fog/oracle.json", import.meta.url), "utf8"),
 );
 const prepared = JSON.parse(
   readFileSync(
-    new URL("../../specs/city-maps/assets/building-aggregate/cutover-inputs.json", import.meta.url),
+    new URL("../../fixtures/parity/buildings/cutover-inputs.json", import.meta.url),
     "utf8",
   ),
 );
-oracle.scenario.map = originalSurfaceInput(prepared.fogDelivery);
-// C02 relocates only the input field; frozen outputs remain the original oracle.
-oracle.scenario.map.fog_cell_m = oracle.scenario.rules.sensors.fog_cell_m;
-delete oracle.scenario.rules.sensors.fog_cell_m;
+oracle.scenario.map = prepared.fogDelivery;
 let memory: WebAssembly.Memory;
 beforeAll(() => {
   memory = initSync({
@@ -50,6 +43,9 @@ test("the incremental stream preserves every frozen observation and prior frame"
         new Float32Array(memory.buffer, battle.publication_ptr(), length),
       )!;
       expect(battle.digest(), `tick ${row.decoded.tick}`).toBe(row.digest);
+      // BLESS_PARITY=1 rewrites the decoded half after the native test has
+      // rewritten the digests (a named behaviour change only).
+      if (process.env.BLESS_PARITY) row.decoded = originalObservation(frame, layout);
       expect(originalObservation(frame, layout), `complete tick ${frame.tick}`).toEqual(
         row.decoded,
       );
@@ -60,6 +56,14 @@ test("the incremental stream preserves every frozen observation and prior frame"
         oracle.rows[i].decoded,
       ),
     );
+    if (process.env.BLESS_PARITY) {
+      const file = new URL("../../fixtures/parity/fog/oracle.json", import.meta.url);
+      const frozen = JSON.parse(readFileSync(file, "utf8"));
+      frozen.rows.forEach((row: { decoded: unknown }, i: number) => {
+        row.decoded = oracle.rows[i].decoded;
+      });
+      writeFileSync(file, JSON.stringify(frozen));
+    }
   } finally {
     battle.free();
   }

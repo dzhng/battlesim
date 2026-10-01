@@ -48,7 +48,7 @@ pub fn unit_kind(id: &str) -> contract::catalog::TypeIndex {
         .unwrap_or_else(|| panic!("no unit type {id:?}"))
 }
 
-/// The fixture's forest densities (`forests`).
+/// The fixture's one forest rule (`forests`).
 pub fn forest_rules() -> ForestRules {
     serde_json::from_value(village()["forests"].clone()).unwrap()
 }
@@ -414,21 +414,16 @@ impl Commander {
     }
 }
 
-/// Explicit input cutover for frozen pre-surface oracles; their output bytes
-/// remain the authority. This is deliberately absent from production loaders.
-pub fn migrate_original_surfaces(map: &mut serde_json::Value) {
-    if let Some(roads) = map.as_object_mut().unwrap().remove("roads") {
-        map["surfaces"] = serde_json::Value::Array(
-            roads
-                .as_array()
-                .unwrap()
-                .iter()
-                .map(|road| {
-                    let mut shape = road.clone();
-                    shape["kind"] = serde_json::json!("stroke");
-                    serde_json::json!({"kind":"road","shape":shape})
-                })
-                .collect(),
-        );
+/// `BLESS_PARITY=1` rewrites a `fixtures/parity/` oracle from this build
+/// instead of asserting it; only for a named behaviour change.
+pub fn bless_parity(path: &str, value: &serde_json::Value) -> bool {
+    if std::env::var_os("BLESS_PARITY").is_none() {
+        return false;
     }
+    let file = format!(
+        "{}/../../fixtures/parity/{path}",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    std::fs::write(file, serde_json::to_string(value).unwrap()).unwrap();
+    true
 }

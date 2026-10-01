@@ -9,12 +9,17 @@ import { afterEach, beforeAll, expect, test } from "vitest";
 import { polygon2 } from "math/shapes";
 import { initSync, WorldView, world_layout } from "@wasm/game_wasm.js";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh.ts";
-import type { WorldExports, WorldLayout } from "@packages/battle-renderer/src/worldMesh.ts";
+import {
+  readWorldExports,
+  type WorldExports,
+  type WorldLayout,
+} from "@packages/battle-renderer/src/worldMesh.ts";
 import {
   buildTerrainSurface,
   RECT_FLOATS,
   type TerrainSurface,
 } from "@packages/battle-renderer/src/terrain/terrainSurface.ts";
+import { forestInside } from "@packages/battle-renderer/src/terrain/forestShapes";
 import { plotAt } from "@packages/battle-renderer/src/terrain/plots.ts";
 import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
 import summer from "@fixtures/biomes/summer.json";
@@ -40,24 +45,7 @@ function world(map: unknown): { view: WorldView; exports: WorldExports } {
   views.push(view);
   return {
     view,
-    exports: {
-      terrain: {
-        ...JSON.parse(view.terrain_grid()),
-        pageIds: view.terrain_page_ids(),
-        heights: view.terrain_heights(),
-      },
-      positions: view.terrain_positions(),
-      indices: view.terrain_indices(),
-      triangleSurfaces: view.terrain_triangle_surfaces(),
-      props: view.props(),
-      buildings: JSON.parse(view.buildings()),
-      water: view.water(),
-      forests: view.forests(),
-      foliage: view.foliage(),
-      surfaceStrokes: view.surface_strokes(),
-      surfaceTriangles: view.surface_triangles(),
-      surfaceBoundaries: view.surface_boundaries(),
-    },
+    exports: readWorldExports(view),
   };
 }
 
@@ -208,10 +196,17 @@ test("the material's road, forest and water masks are the simulation's surface r
       }
       return false;
     };
+    const strokes = site.surfaceStrokes;
     const onRoad = (x: number, y: number) => {
-      for (let r = 0; r < site.surfaceStrokes.length; r += site.surfaceStrokeStride) {
-        const [ax, ay, bx, by, half] = site.surfaceStrokes.subarray(r, r + 5);
-        const [dx, dy] = [bx - ax, by - ay];
+      for (let r = 0; r < strokes.length; r += site.surfaceStrokeStride) {
+        const ax = strokes[r],
+          ay = strokes[r + 1];
+        const dx = strokes[r + 2] - ax,
+          dy = strokes[r + 3] - ay;
+        // Skip a segment whose box the point is outside: rounded bends add many.
+        const half = strokes[r + 4];
+        if (Math.abs(x - ax - dx / 2) > Math.abs(dx) / 2 + half) continue;
+        if (Math.abs(y - ay - dy / 2) > Math.abs(dy) / 2 + half) continue;
         const t = Math.min(1, Math.max(0, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)));
         if (Math.hypot(x - ax - dx * t, y - ay - dy * t) <= half) return true;
       }
@@ -236,6 +231,22 @@ test("the material's road, forest and water masks are the simulation's surface r
     expect(wrong).toEqual([]);
     expect(roads).toBeGreaterThan(100);
   }
+});
+
+test("rounded strokes are the native samples, bit for bit", () => {
+  const oracle = JSON.parse(
+    readFileSync(
+      new URL("../../fixtures/parity/ground/curve-strokes.json", import.meta.url),
+      "utf8",
+    ),
+  ) as { map: unknown; strokes: string[] };
+  const { exports } = world(oracle.map);
+  const bits = new Uint32Array(
+    exports.surfaceStrokes.buffer,
+    exports.surfaceStrokes.byteOffset,
+    exports.surfaceStrokes.length,
+  );
+  expect(Array.from(bits, (v) => v.toString(16).padStart(8, "0"))).toEqual(oracle.strokes);
 });
 
 test("roads split the patchwork: fields meet a road edge-on, never across it", () => {
@@ -307,4 +318,66 @@ test("the forest floor names a palette of litter, moss and humus, and its number
   expect(() => validateBiome(short as Biome, "summer")).toThrow(/summer\.forest_floor\.palette/);
   const flecks = { ...biome, forest_floor: { ...floor, dapple: { ...floor.dapple, sun: 2 } } };
   expect(() => validateBiome(flecks, "summer")).toThrow(/summer\.forest_floor\.dapple\.sun/);
+});
+
+test("mixed forest exports retain authored IDs and real concave/capsule membership", () => {
+  const forest = (shape: unknown) => ({ shape });
+  const { view, exports } = world({
+    size: [256, 128],
+    fog_cell_m: 8,
+    height_grid_m: 4,
+    slope_cutoff_deg: 35,
+    forests: [
+      forest({
+        kind: "polygon",
+        ring: [
+          [0, 0],
+          [90, 0],
+          [90, 27],
+          [27, 27],
+          [27, 90],
+          [0, 90],
+        ],
+      }),
+      forest({
+        kind: "polygon",
+        ring: [
+          [180, 0],
+          [240, 0],
+          [240, 60],
+          [180, 60],
+        ],
+      }),
+      forest({
+        kind: "stroke",
+        points: [
+          [100, 20],
+          [160, 80],
+        ],
+        width_m: 18,
+      }),
+    ],
+  });
+  const surface = buildTerrainSurface(exports, layout, biome);
+  const shapes = surface.site.forestShapes;
+  expect(Array.from(exports.forestRectIds)).toEqual([1]);
+  expect(Array.from(exports.forestMetadata)).toEqual([0, 12, 2, 1, 12, 0, 2, 12, 1]);
+  expect(shapes.map((shape) => [shape.canopy, shape.kind])).toEqual([
+    [12, "polygon"],
+    [12, "rectangle"],
+    [12, "stroke"],
+  ]);
+  for (const [id, x, y, distance] of [
+    [0, 10, 50, 10],
+    [0, 50, 50, -23],
+    [0, 27, 70, 0],
+    [1, 210, 30, 30],
+    [2, 130, 50, 9],
+    [2, 100, 80, -Math.SQRT2 * 30 + 9],
+  ]) {
+    expect(forestInside(shapes[id], x, y)).toBeCloseTo(distance, 10);
+    expect(shapes.some((shape) => forestInside(shape, x, y) >= 0)).toBe(
+      view.surface_at(x, y)[6] === 1,
+    );
+  }
 });

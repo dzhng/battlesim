@@ -151,3 +151,99 @@ fn a_seen_enemy_reversing_is_published_to_the_observer() {
     }
     assert!(seen_reversing, "red saw blue's tank backing up");
 }
+
+/// Metres a vehicle covers in one second at cruising speed along a straight
+/// 12 m strip of `surface` (open ground when `None`).
+fn cruise(kind: &str, surface: Option<&str>) -> f64 {
+    let surfaces = surface.map_or(json!([]), |kind| {
+        json!([{ "kind": kind, "shape": { "kind": "stroke", "points": [[0, 60], [700, 60]], "width_m": 12 } }])
+    });
+    let setup: ScenarioDefinition = serde_json::from_value(json!({
+        "map": { "size": [700, 120], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+                 "surfaces": surfaces },
+        "rules": rules(),
+        "units": [{ "side": "blue", "kind": kind, "position": [20, 60], "yaw": 0.0,
+                    "engagement": "return_fire_only" }],
+        "events": [],
+        "scripts": [{ "tick": 1, "side": "blue", "order": { "kind": "move", "units": [0],
+            "gesture": 1, "goal": [680, 60], "route": "fastest", "direction": "forward" } }],
+    }))
+    .unwrap();
+    let mut b = Battle::new(&setup, 1);
+    let poses = drive(&mut b, 22.0);
+    (poses[21 * 30].0 - poses[20 * 30].0).length()
+}
+
+/// Q-G4: each road kind carries its own data-driven speed. A country road is
+/// today's road, a dirt track is slower but still beats the field beside it,
+/// and a sidewalk is no road at all.
+#[test]
+fn each_road_kind_carries_its_own_speed() {
+    let rules: contract::scenario::Rules = serde_json::from_value(rules()).unwrap();
+    let factor = |kind| rules.surfaces[&kind].speed_factor;
+    for kind in ["jeep", "tank"] {
+        let (open, road) = (cruise(kind, None), cruise(kind, Some("road")));
+        assert!(
+            road > open * 1.5,
+            "{kind}: road {road:.2} vs open {open:.2}"
+        );
+        let country = cruise(kind, Some("country_road"));
+        assert!(
+            (country - road).abs() < 1e-9,
+            "{kind}: country road {country} vs {road}"
+        );
+        let dirt = cruise(kind, Some("dirt_track"));
+        let expected = road * factor(contract::map::SurfaceKind::DirtTrack);
+        assert!(
+            (dirt - expected).abs() < 1e-6,
+            "{kind}: dirt {dirt} vs {expected}"
+        );
+        assert!(
+            dirt > open && dirt < road,
+            "{kind}: dirt {dirt} between {open} and {road}"
+        );
+        let sidewalk = cruise(kind, Some("sidewalk"));
+        assert!(
+            (sidewalk - open).abs() < 1e-9,
+            "{kind}: sidewalk {sidewalk} vs {open}"
+        );
+    }
+}
+
+/// A surface never makes a mover slower than the open ground beside it: a
+/// squad on foot gains nothing from a dirt track, and loses nothing.
+#[test]
+fn a_slow_surface_is_never_slower_than_open_ground() {
+    let rules: contract::scenario::Rules = serde_json::from_value(rules()).unwrap();
+    let foot = sim::units::mobility(rules.catalog.by_id("rifle"), &rules);
+    let dirt = rules.surfaces[&contract::map::SurfaceKind::DirtTrack].speed_factor;
+    assert!(
+        foot.road_mps * dirt < foot.off_road_mps,
+        "the case this test needs"
+    );
+    assert_eq!(foot.speed(dirt, false, 0.0), foot.off_road_mps);
+    assert_eq!(foot.speed(1.0, false, 0.0), foot.road_mps);
+    assert_eq!(foot.speed(0.0, false, 0.0), foot.off_road_mps);
+}
+
+/// The rules name every surface kind, with a factor a route's best-case
+/// estimate can trust (never faster than the unit's road speed).
+#[test]
+fn the_surface_table_must_cover_every_kind_within_bounds() {
+    let load = |edit: &dyn Fn(&mut Value)| {
+        let mut raw = rules();
+        edit(&mut raw);
+        serde_json::from_value::<contract::scenario::Rules>(raw)
+    };
+    assert!(load(&|_| {}).is_ok());
+    assert!(load(&|r| {
+        r["surfaces"].as_object_mut().unwrap().remove("dirt_track");
+    })
+    .is_err());
+    for bad in [-0.1, 1.1] {
+        assert!(
+            load(&|r| r["surfaces"]["dirt_track"]["speed_factor"] = json!(bad)).is_err(),
+            "{bad}"
+        );
+    }
+}

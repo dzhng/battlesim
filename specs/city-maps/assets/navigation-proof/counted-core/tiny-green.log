@@ -1,9 +1,0 @@
-
-running 5 tests
-test intent::tests::queued_leg_decides_from_its_actual_activation_pose ... ok
-test intent::tests::accepted_threshold_is_strict_and_frozen_at_activation ... ok
-test two_requests_share_topology_without_sharing_labels ... ok
-test one_credit_does_not_complete_query_search_or_refinement ... ok
-test complete_trace_replays_and_quanta_preserve_output ... ok
-
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

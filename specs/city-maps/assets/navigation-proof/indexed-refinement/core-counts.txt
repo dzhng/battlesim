@@ -1,4 +1,0 @@
-roads=64 pair_tests=0 query_nodes=462 primitive_bounds=528 graph_nodes=130 relaxed=5
-roads=256 pair_tests=0 query_nodes=2838 primitive_bounds=2064 graph_nodes=514 relaxed=5
-roads=1024 pair_tests=0 query_nodes=15390 primitive_bounds=8208 graph_nodes=2050 relaxed=5
-grid_roads=82 pair_tests=1681 query_nodes=2136 primitive_bounds=4187 graph_nodes=1683 relaxed=4805

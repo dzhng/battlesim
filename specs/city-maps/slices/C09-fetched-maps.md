@@ -20,7 +20,7 @@ The physical contract owns `MapSource::Catalogue { id }` and
 adapters obtain the same documents and call one pure resolver. Resolution
 constructs no world; preparation can reuse the admitted definition without
 requiring an additional main-thread `WorldView`. The existing main-thread
-static-world construction is C33's separate migration.
+static-world construction is C33's separate cutover.
 
 `SOURCES.json` records an authored content identity or the existing
 `GenerationIdentity`, input receipts, and an explicit selection
@@ -94,7 +94,7 @@ world preparation and its complete resource/rules admission.
 
 No saved map moved, metadata was added to no production map, and no production
 adapter or generated-request placeholder ships in this checkpoint. The original
-registry inventory and source-byte freeze remain the migration starting evidence.
+registry inventory and source-byte freeze remain the cutover starting evidence.
 The earlier publication80 corpus covers geometry-lab via Value-to-typed setup,
 not every shipping Village ordinary-prop bit through factory serialization and
 Battle decoding; keep that numeric boundary gap separate from C01's corrected
@@ -119,4 +119,4 @@ Caching and internal resolver names. A second map format/source-specific battle 
 Original battle contracts and one compiled-map authority.
 
 ## Feedback that would change this slice
-A source consumer still bypassing the resolver blocks the cutover until it is migrated.
+A source consumer still bypassing the resolver blocks the cutover until it is moved onto the resolver.

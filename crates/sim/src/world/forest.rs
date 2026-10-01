@@ -1,6 +1,6 @@
-//! Forests as bodies (Q14, Q16, Q21). A forest rect and its density are only
-//! authoring input: they generate trunks, and at runtime a forest is those
-//! trunk bodies plus the ground a heavy vehicle has cleared.
+//! Forests as bodies (Q14, Q16, Q21). A forest's shape is only authoring
+//! input: the one `forests.rule` generates its trunks, and at runtime a forest
+//! is those trunk bodies plus the ground a heavy vehicle has cleared.
 //!
 //! - **Foliage** is precomputed per fog cell (`map.fog_cell_m`) from the concealing bodies
 //!   whose crown covers the cell's centre: strength `1 − Π(1 − conceals)`,
@@ -16,21 +16,14 @@
 //!   reads it.
 use std::collections::{BTreeMap, BTreeSet};
 
-use super::{in_rect, WorldGeometry};
+use super::WorldGeometry;
 use crate::cell_page::Page;
 use crate::math::{v2, Obb2, V2, V3};
 use contract::map::Forest;
-use contract::scenario::ForestDensity;
+use contract::scenario::ForestRule;
 
 /// Sight lines are sampled this often through foliage.
 const SAMPLE_M: f64 = 1.0;
-
-/// A tree's crown: which forest it stands in, and how tall its canopy is.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Canopy {
-    pub height_m: f64,
-    pub density: ForestDensity,
-}
 
 /// What a point's foliage does to sight: open ground is the default.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -74,9 +67,14 @@ pub(super) struct ForestState {
     foliage_m: f64,
     /// The cleared mask's cell: the ground layer's (`ground.cell_m`).
     cleared_m: f64,
-    /// Each forest's reach: its rect grown by its crowns, for clipping rays.
+    /// Each forest's conservative reach, grown by its crowns, for clipping rays.
     bounds: Vec<[f64; 4]>,
-    max_crown_m: f64,
+    /// Cached physical bounds and exact-rectangle flags; shape data stays authored.
+    ground_regions: Vec<([f64; 4], bool)>,
+    /// Immutable source associations; removals never recycle the original IDs.
+    trunk_ranges: Vec<[u32; 2]>,
+    /// The one rule every forest's trees follow.
+    pub(super) rule: ForestRule,
     nx: usize,
     ny: usize,
     cells: BTreeMap<usize, Foliage>,
@@ -86,7 +84,14 @@ pub(super) struct ForestState {
 }
 
 impl ForestState {
-    pub(super) fn new(width: f64, depth: f64, foliage_m: f64, cleared_m: f64) -> Self {
+    pub(super) fn new(
+        width: f64,
+        depth: f64,
+        foliage_m: f64,
+        cleared_m: f64,
+        forests: &[Forest],
+        rule: ForestRule,
+    ) -> Self {
         let nx = (width / foliage_m).ceil().max(1.0) as usize;
         let ny = (depth / foliage_m).ceil().max(1.0) as usize;
         let cleared_nx = (width / cleared_m).ceil().max(1.0) as usize;
@@ -95,7 +100,12 @@ impl ForestState {
             foliage_m,
             cleared_m,
             bounds: Vec::new(),
-            max_crown_m: 0.0,
+            ground_regions: forests
+                .iter()
+                .map(|f| (f.shape.limits(), f.shape.exact_rectangle().is_some()))
+                .collect(),
+            trunk_ranges: Vec::with_capacity(forests.len()),
+            rule,
             nx,
             ny,
             cells: BTreeMap::new(),
@@ -107,6 +117,10 @@ impl ForestState {
 
     pub(super) fn bounds(&self) -> &[[f64; 4]] {
         &self.bounds
+    }
+
+    pub(super) fn trunk_ranges(&self) -> &[[u32; 2]] {
+        &self.trunk_ranges
     }
 
     fn cleared_index(&self, x: f64, y: f64) -> Option<usize> {
@@ -122,43 +136,65 @@ impl ForestState {
     }
 }
 
-/// A forest's seed: its index and rect, so the world, the wasm view and the
-/// renderer all place the same trunks.
+/// A forest's jitter seed, from its index and its own geometry, so the same
+/// forest always stands the same trunks. A rectangle hashes its extent, which
+/// keeps the trunks of the maps authored as rectangles; polygons and strokes
+/// hash their vertices under their own salt.
 fn forest_seed(index: usize, forest: &Forest) -> u64 {
-    forest
-        .rect
-        .iter()
-        .fold(0x9e37_79b9_7f4a_7c15 ^ index as u64, |h, v| {
-            (h ^ v.to_bits()).wrapping_mul(0x100_0000_01b3)
-        })
+    let initial = 0x9e37_79b9_7f4a_7c15 ^ index as u64;
+    let hash = |h: u64, v: &f64| (h ^ v.to_bits()).wrapping_mul(0x100_0000_01b3);
+    if let Some(rect) = forest.shape.exact_rectangle() {
+        return rect.iter().fold(initial, hash);
+    }
+    match &forest.shape {
+        contract::ground::GroundShape::Polygon { ring } => {
+            ring.iter().flatten().fold(initial ^ 1, hash)
+        }
+        contract::ground::GroundShape::Stroke {
+            centerline,
+            width_m,
+        } => centerline
+            .control_points()
+            .iter()
+            .flatten()
+            .fold(hash(initial ^ 2, width_m), hash),
+    }
 }
 
 impl WorldGeometry {
-    /// Where `forest`'s trunks stand (Q16): a grid at its density's spacing,
+    /// Where `forest`'s trunks stand (Q16): a grid at the rule's spacing,
     /// each trunk jittered off its cell's centre, none near a road or
     /// another body, none off the map.
-    pub(super) fn trunk_positions(
-        &self,
-        index: usize,
-        forest: &Forest,
-        d: &ForestDensity,
-    ) -> Vec<V2> {
-        let [x0, y0, w, h] = forest.rect;
+    pub(super) fn trunk_positions(&self, index: usize, forest: &Forest) -> Vec<V2> {
+        let d = &self.forest.rule;
+        let [x0, y0, max_x, max_y] = forest.shape.limits();
         let step = d.trunk_spacing_m;
+        assert!(
+            step.is_finite() && step > 0.0,
+            "forest spacing must be finite and positive"
+        );
+        assert!(
+            [x0, y0, max_x, max_y]
+                .iter()
+                .all(|v| v.is_finite() && (v + step).is_finite() && v + step > *v),
+            "forest lattice spacing must advance at every coordinate bound"
+        );
         let mut rng = crate::rng::Rng::new(forest_seed(index, forest));
         let mut out = Vec::new();
         let mut y = y0 + step / 2.0;
-        while y <= y0 + h {
+        while y <= max_y {
             let mut x = x0 + step / 2.0;
-            while x <= x0 + w {
+            while x <= max_x {
                 let jx = (rng.unit() * 2.0 - 1.0) * d.trunk_jitter * step;
                 let jy = (rng.unit() * 2.0 - 1.0) * d.trunk_jitter * step;
                 let p = v2(x + jx, y + jy);
-                let near_road = self.surfaces.road_near(p, forest.trunk_clearance_m);
-                let near_prop = self.props().any(|prop| {
-                    prop.canopy.is_none() && prop.footprint().contains(p, forest.trunk_clearance_m)
+                let near_road = self.surfaces.road_near(p, d.trunk_clearance_m);
+                // The prop index, not every prop: a full-size map stands tens
+                // of thousands of trunks, each already a prop.
+                let near_prop = self.props_near(p, d.trunk_clearance_m).iter().any(|prop| {
+                    !prop.forest_tree && prop.footprint().contains(p, d.trunk_clearance_m)
                 });
-                if in_rect(forest.rect, p.x, p.y)
+                if forest.shape.contains([p.x, p.y], 0.0)
                     && !near_road
                     && !near_prop
                     && self.field.contains(p.x, p.y)
@@ -173,13 +209,13 @@ impl WorldGeometry {
     }
 
     /// Record a forest's reach once its trunks stand.
-    pub(super) fn note_forest(&mut self, forest: &Forest, d: &ForestDensity) {
-        let r = d.canopy_radius_m;
-        let [x, y, w, h] = forest.rect;
+    pub(super) fn note_forest(&mut self, forest: &Forest, range: [u32; 2]) {
+        self.forest.trunk_ranges.push(range);
+        let r = self.forest.rule.canopy_radius_m;
+        let [x, y, w, h] = forest.shape.bounds();
         self.forest
             .bounds
             .push([x - r, y - r, w + 2.0 * r, h + 2.0 * r]);
-        self.forest.max_crown_m = self.forest.max_crown_m.max(r);
         self.refresh_foliage(v2(x + w / 2.0, y + h / 2.0), w.hypot(h) / 2.0 + r);
     }
 
@@ -208,34 +244,29 @@ impl WorldGeometry {
     /// The foliage of the cell centred on `mid` (Q21), from the standing
     /// concealing bodies whose crown covers it, less those `gone` names.
     fn foliage_cell(&self, mid: V2, gone: impl Fn(&super::Prop) -> bool) -> Foliage {
+        let d = self.forest.rule;
         let mut transmit = 1.0;
-        let mut canopy_m: f64 = 0.0;
-        let mut densest: Option<ForestDensity> = None;
-        for prop in self.props_near(mid, self.forest.max_crown_m) {
-            let Some(crown) = prop.canopy else { continue };
-            if prop.body.conceals <= 0.0
-                || (prop.center - mid).length() > crown.density.canopy_radius_m
+        let mut crowned = false;
+        for prop in self.props_near(mid, d.canopy_radius_m) {
+            if !prop.forest_tree
+                || prop.body.conceals <= 0.0
+                || (prop.center - mid).length() > d.canopy_radius_m
                 || gone(prop)
             {
                 continue;
             }
             transmit *= 1.0 - prop.body.conceals;
-            canopy_m = canopy_m.max(crown.height_m);
-            if densest.is_none_or(|d| crown.density.attenuation_per_m > d.attenuation_per_m) {
-                densest = Some(crown.density);
-            }
+            crowned = true;
         }
-        match densest {
-            None => Foliage::open(),
-            Some(d) => {
-                let s = 1.0 - transmit;
-                Foliage {
-                    canopy_m,
-                    depth_per_m: d.attenuation_per_m * s,
-                    infantry: 1.0 + (d.concealment_infantry - 1.0) * s,
-                    vehicle: 1.0 + (d.concealment_vehicle - 1.0) * s,
-                }
-            }
+        if !crowned {
+            return Foliage::open();
+        }
+        let s = 1.0 - transmit;
+        Foliage {
+            canopy_m: d.canopy_height_m,
+            depth_per_m: d.attenuation_per_m * s,
+            infantry: 1.0 + (d.concealment_infantry - 1.0) * s,
+            vehicle: 1.0 + (d.concealment_vehicle - 1.0) * s,
         }
     }
 
@@ -253,7 +284,18 @@ impl WorldGeometry {
     /// Whether (x, y) is forest ground (forest speed): inside an authored
     /// forest, and not cleared since.
     pub fn forest_ground(&self, x: f64, y: f64) -> bool {
-        self.forests.iter().any(|f| in_rect(f.rect, x, y)) && !self.cleared(x, y)
+        self.forest
+            .ground_regions
+            .iter()
+            .enumerate()
+            .any(|(id, (bounds, rectangle))| {
+                x >= bounds[0]
+                    && x <= bounds[2]
+                    && y >= bounds[1]
+                    && y <= bounds[3]
+                    && (*rectangle || self.forests[id].shape.contains([x, y], 0.0))
+            })
+            && !self.cleared(x, y)
     }
 
     /// The foliage over (x, y): its fog cell's, or open ground where the
@@ -325,8 +367,8 @@ impl WorldGeometry {
     /// goes with it, and the obstacle revision bumps.
     pub fn knock_down(&mut self, id: super::PropId) -> Option<super::Prop> {
         let prop = self.remove_prop(id)?;
-        if let Some(crown) = prop.canopy {
-            let reach = crown.density.canopy_radius_m + self.forest.foliage_m;
+        if prop.forest_tree {
+            let reach = self.forest.rule.canopy_radius_m + self.forest.foliage_m;
             self.refresh_foliage(prop.center, reach);
         }
         Some(prop)
@@ -386,7 +428,7 @@ impl WorldGeometry {
         let standing: Vec<V2> = self
             .props_near(center, 2.0 * reach)
             .into_iter()
-            .filter(|p| p.canopy.is_some())
+            .filter(|p| p.forest_tree)
             .map(|p| p.center)
             .collect();
         let mut out = Vec::new();
@@ -422,10 +464,15 @@ impl WorldGeometry {
     /// Whether any forest ground lies within `r` of `center` (a cheap test
     /// before clearing).
     pub fn forest_near(&self, center: V2, r: f64) -> bool {
-        self.forests.iter().any(|f| {
-            let [x, y, w, h] = f.rect;
-            center.x + r >= x && center.x - r <= x + w && center.y + r >= y && center.y - r <= y + h
+        self.forest.ground_regions.iter().any(|(bounds, _)| {
+            let [x, y, max_x, max_y] = *bounds;
+            center.x + r >= x && center.x - r <= max_x && center.y + r >= y && center.y - r <= max_y
         })
+    }
+
+    /// The one rule every forest's trees follow.
+    pub fn forest_rule(&self) -> &ForestRule {
+        &self.forest.rule
     }
 
     /// The cleared mask's cell edge (`ground.cell_m`).
@@ -474,11 +521,11 @@ impl WorldGeometry {
         let c = f.foliage_m;
         let fallen: std::collections::BTreeSet<super::PropId> = self
             .props()
-            .filter(|p| p.canopy.is_some() && cleared(p.center.x, p.center.y))
+            .filter(|p| p.forest_tree && cleared(p.center.x, p.center.y))
             .map(|p| p.id)
             .collect();
         // Only the cells a fallen crown reached change.
-        let reach = f.max_crown_m + c;
+        let reach = f.rule.canopy_radius_m + c;
         let mut touched = BTreeSet::new();
         for id in &fallen {
             let p = self

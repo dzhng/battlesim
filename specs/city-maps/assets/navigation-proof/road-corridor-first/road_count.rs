@@ -1,2 +1,0 @@
-#[path="road-counted.rs.snapshot"]#[allow(dead_code)]mod core;
-fn main(){for n in [64,256,1024]{let roads:Vec<_>=(0..n).map(|i|core::Segment{a:core::Point(0.0,i as f64*100.0),b:core::Point(100000.0,i as f64*100.0)}).collect();let route=core::plan(&roads,core::Point(1.0,0.0),core::Point(99999.0,0.0),1.0,|a,b,_|Some(a.distance(b))).unwrap();let pairs=core::pairs();assert_eq!(pairs,n*(n-1)/2);println!("roads={n} actual_intersection_pair_tests={pairs} actual_intersections=0 graph_nodes={} relaxed={}",route.nodes,route.relaxed);}}

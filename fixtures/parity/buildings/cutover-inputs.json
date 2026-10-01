@@ -1,0 +1,2047 @@
+{
+  "chain": {
+    "bridges": [],
+    "buildings": [
+      {
+        "category": "farmstead",
+        "geometry": {
+          "edges": [
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "positive_x",
+              "id": "face-0",
+              "normal": [
+                1.0,
+                0.0
+              ],
+              "part": "body",
+              "span": [
+                [
+                  66.0,
+                  62.0
+                ],
+                [
+                  66.0,
+                  66.0
+                ]
+              ],
+              "span_m": [
+                -2.0,
+                2.0
+              ],
+              "top_z": 8.0
+            },
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "positive_y",
+              "id": "face-1",
+              "normal": [
+                0.0,
+                1.0
+              ],
+              "part": "body",
+              "span": [
+                [
+                  66.0,
+                  66.0
+                ],
+                [
+                  62.0,
+                  66.0
+                ]
+              ],
+              "span_m": [
+                -2.0,
+                2.0
+              ],
+              "top_z": 8.0
+            },
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "negative_x",
+              "id": "face-2",
+              "normal": [
+                -1.0,
+                0.0
+              ],
+              "part": "body",
+              "span": [
+                [
+                  62.0,
+                  66.0
+                ],
+                [
+                  62.0,
+                  62.0
+                ]
+              ],
+              "span_m": [
+                -2.0,
+                2.0
+              ],
+              "top_z": 8.0
+            },
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "negative_y",
+              "id": "face-3",
+              "normal": [
+                0.0,
+                -1.0
+              ],
+              "part": "body",
+              "span": [
+                [
+                  62.0,
+                  62.0
+                ],
+                [
+                  66.0,
+                  62.0
+                ]
+              ],
+              "span_m": [
+                -2.0,
+                2.0
+              ],
+              "top_z": 8.0
+            }
+          ],
+          "entrances": null,
+          "floor_z": null,
+          "frame": {
+            "translation": [
+              64.0,
+              64.0,
+              0.0
+            ],
+            "yaw": 0.0
+          },
+          "height_m": 8.0,
+          "parts": [
+            {
+              "base_z": 0.0,
+              "center": [
+                64.0,
+                64.0
+              ],
+              "half_extents": [
+                2.0,
+                2.0,
+                4.0
+              ],
+              "id": "body",
+              "yaw": 0.0
+            }
+          ],
+          "template_id": "api-box-2-2-4"
+        },
+        "kind": "building",
+        "owner": 0,
+        "parts": [
+          {
+            "part": "body",
+            "prop": 0
+          }
+        ],
+        "regional_family": "api_fixture"
+      }
+    ],
+    "forests": [],
+    "height_grid_m": 4.0,
+    "props": [],
+    "relief": [],
+    "size": [
+      128.0,
+      128.0
+    ],
+    "slope_cutoff_deg": 35.0,
+    "template_catalog_hash": "38c98a4a4a21bbe8a4784b121e5bde2a6a83f88d4c0370e5d13e20bb2643ede7",
+    "water": [],
+    "fog_cell_m": 8.0,
+    "surfaces": []
+  },
+  "fogDelivery": {
+    "bridges": [
+      {
+        "center": [
+          192.0,
+          160.0
+        ],
+        "deck": "bridge_deck",
+        "deck_z": 0.1,
+        "half_extents": [
+          18.0,
+          5.0
+        ],
+        "thickness_m": 0.8,
+        "yaw": 0.0
+      }
+    ],
+    "buildings": [
+      {
+        "category": "farmstead",
+        "geometry": {
+          "edges": [
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "positive_x",
+              "id": "face-0",
+              "normal": [
+                0.9689124217106447,
+                0.24740395925452294
+              ],
+              "part": "body",
+              "span": [
+                [
+                  353.85358469381845,
+                  104.24863571565847
+                ],
+                [
+                  349.40031342723705,
+                  121.68905930645008
+                ]
+              ],
+              "span_m": [
+                -9.0,
+                9.0
+              ],
+              "top_z": 8.0
+            },
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "positive_y",
+              "id": "face-1",
+              "normal": [
+                -0.24740395925452294,
+                0.9689124217106447
+              ],
+              "part": "body",
+              "span": [
+                [
+                  349.40031342723705,
+                  121.68905930645008
+                ],
+                [
+                  326.14641530618155,
+                  115.75136428434153
+                ]
+              ],
+              "span_m": [
+                -12.0,
+                12.0
+              ],
+              "top_z": 8.0
+            },
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "negative_x",
+              "id": "face-2",
+              "normal": [
+                -0.9689124217106447,
+                -0.24740395925452294
+              ],
+              "part": "body",
+              "span": [
+                [
+                  326.14641530618155,
+                  115.75136428434153
+                ],
+                [
+                  330.59968657276295,
+                  98.31094069354992
+                ]
+              ],
+              "span_m": [
+                -9.0,
+                9.0
+              ],
+              "top_z": 8.0
+            },
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "negative_y",
+              "id": "face-3",
+              "normal": [
+                0.24740395925452294,
+                -0.9689124217106447
+              ],
+              "part": "body",
+              "span": [
+                [
+                  330.59968657276295,
+                  98.31094069354992
+                ],
+                [
+                  353.85358469381845,
+                  104.24863571565847
+                ]
+              ],
+              "span_m": [
+                -12.0,
+                12.0
+              ],
+              "top_z": 8.0
+            }
+          ],
+          "entrances": null,
+          "floor_z": null,
+          "frame": {
+            "translation": [
+              340.0,
+              110.0,
+              0.0
+            ],
+            "yaw": 0.25
+          },
+          "height_m": 8.0,
+          "parts": [
+            {
+              "base_z": 0.0,
+              "center": [
+                340.0,
+                110.0
+              ],
+              "half_extents": [
+                12.0,
+                9.0,
+                4.0
+              ],
+              "id": "body",
+              "yaw": 0.25
+            }
+          ],
+          "template_id": "api-box-12-9-4"
+        },
+        "kind": "building",
+        "owner": 4,
+        "parts": [
+          {
+            "part": "body",
+            "prop": 4
+          }
+        ],
+        "regional_family": "api_fixture"
+      }
+    ],
+    "forests": [
+      {
+        "shape": {
+          "kind": "polygon",
+          "ring": [
+            [
+              260.0,
+              190.0
+            ],
+            [
+              350.0,
+              190.0
+            ],
+            [
+              350.0,
+              270.0
+            ],
+            [
+              260.0,
+              270.0
+            ]
+          ]
+        }
+      }
+    ],
+    "height_grid_m": 4.0,
+    "props": [
+      {
+        "base_z": null,
+        "center": [
+          60.0,
+          60.0
+        ],
+        "half_extents": [
+          10.0,
+          0.3,
+          0.5
+        ],
+        "id": 0,
+        "kind": "wall",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          60.0,
+          90.0
+        ],
+        "half_extents": [
+          10.0,
+          0.3,
+          2.0
+        ],
+        "id": 1,
+        "kind": "wall",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          140.0,
+          60.0
+        ],
+        "half_extents": [
+          0.15,
+          6.0,
+          2.0
+        ],
+        "id": 2,
+        "kind": "wall",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          100.0,
+          75.0
+        ],
+        "half_extents": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "id": 3,
+        "kind": "crate",
+        "yaw": 0.4
+      }
+    ],
+    "relief": [
+      {
+        "center": [
+          100.0,
+          210.0
+        ],
+        "kind": "ridge",
+        "peak_m": 20.0,
+        "radius_m": 80.0
+      },
+      {
+        "height_m": 10.0,
+        "kind": "mesa",
+        "rect": [
+          230.0,
+          40.0,
+          20.0,
+          20.0
+        ],
+        "side_degrees": 20.0
+      },
+      {
+        "height_m": 10.0,
+        "kind": "mesa",
+        "rect": [
+          320.0,
+          40.0,
+          20.0,
+          20.0
+        ],
+        "side_degrees": 45.0
+      }
+    ],
+    "size": [
+      400.0,
+      300.0
+    ],
+    "slope_cutoff_deg": 35.0,
+    "template_catalog_hash": "f125fbb06c347ce789d3de3b54892bcb11d1f516831dd9848f349151e3e39d5f",
+    "water": [
+      {
+        "bed_z": -2.0,
+        "rect": [
+          180.0,
+          100.0,
+          24.0,
+          120.0
+        ],
+        "surface_z": -1.5
+      }
+    ],
+    "fog_cell_m": 8,
+    "surfaces": [
+      {
+        "kind": "road",
+        "shape": {
+          "points": [
+            [
+              10.0,
+              160.0
+            ],
+            [
+              380.0,
+              160.0
+            ]
+          ],
+          "width_m": 8.0,
+          "kind": "stroke"
+        }
+      }
+    ]
+  },
+  "garrison-collapse": {
+    "bridges": [],
+    "buildings": [
+      {
+        "category": "farmstead",
+        "geometry": {
+          "edges": [
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "positive_x",
+              "id": "face-0",
+              "normal": [
+                0.9323273456060345,
+                0.361615431964962
+              ],
+              "part": "body",
+              "span": [
+                [
+                  414.4424670349571,
+                  295.94843907312526
+                ],
+                [
+                  407.9333892595878,
+                  312.7303312940339
+                ]
+              ],
+              "span_m": [
+                -9.0,
+                9.0
+              ],
+              "top_z": 8.0
+            },
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "positive_y",
+              "id": "face-1",
+              "normal": [
+                -0.361615431964962,
+                0.9323273456060345
+              ],
+              "part": "body",
+              "span": [
+                [
+                  407.9333892595878,
+                  312.7303312940339
+                ],
+                [
+                  385.5575329650429,
+                  304.05156092687474
+                ]
+              ],
+              "span_m": [
+                -12.0,
+                12.0
+              ],
+              "top_z": 8.0
+            },
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "negative_x",
+              "id": "face-2",
+              "normal": [
+                -0.9323273456060345,
+                -0.361615431964962
+              ],
+              "part": "body",
+              "span": [
+                [
+                  385.5575329650429,
+                  304.05156092687474
+                ],
+                [
+                  392.0666107404122,
+                  287.2696687059661
+                ]
+              ],
+              "span_m": [
+                -9.0,
+                9.0
+              ],
+              "top_z": 8.0
+            },
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "negative_y",
+              "id": "face-3",
+              "normal": [
+                0.361615431964962,
+                -0.9323273456060345
+              ],
+              "part": "body",
+              "span": [
+                [
+                  392.0666107404122,
+                  287.2696687059661
+                ],
+                [
+                  414.4424670349571,
+                  295.94843907312526
+                ]
+              ],
+              "span_m": [
+                -12.0,
+                12.0
+              ],
+              "top_z": 8.0
+            }
+          ],
+          "entrances": null,
+          "floor_z": null,
+          "frame": {
+            "translation": [
+              400.0,
+              300.0,
+              0.0
+            ],
+            "yaw": 0.37
+          },
+          "height_m": 8.0,
+          "parts": [
+            {
+              "base_z": 0.0,
+              "center": [
+                400.0,
+                300.0
+              ],
+              "half_extents": [
+                12.0,
+                9.0,
+                4.0
+              ],
+              "id": "body",
+              "yaw": 0.37
+            }
+          ],
+          "template_id": "api-box-12-9-4"
+        },
+        "kind": "building",
+        "owner": 0,
+        "parts": [
+          {
+            "part": "body",
+            "prop": 0
+          }
+        ],
+        "regional_family": "api_fixture"
+      }
+    ],
+    "forests": [],
+    "height_grid_m": 4.0,
+    "props": [],
+    "relief": [],
+    "size": [
+      800.0,
+      600.0
+    ],
+    "slope_cutoff_deg": 35.0,
+    "template_catalog_hash": "f125fbb06c347ce789d3de3b54892bcb11d1f516831dd9848f349151e3e39d5f",
+    "water": [],
+    "fog_cell_m": 8.0,
+    "surfaces": []
+  },
+  "village": {
+    "bridges": [],
+    "buildings": [
+      {
+        "category": "farmstead",
+        "geometry": {
+          "edges": [
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "positive_x",
+              "id": "face-0",
+              "normal": [
+                1.0,
+                0.0
+              ],
+              "part": "body",
+              "span": [
+                [
+                  990.0,
+                  740.0
+                ],
+                [
+                  990.0,
+                  764.0
+                ]
+              ],
+              "span_m": [
+                -12.0,
+                12.0
+              ],
+              "top_z": 8.0
+            },
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "positive_y",
+              "id": "face-1",
+              "normal": [
+                0.0,
+                1.0
+              ],
+              "part": "body",
+              "span": [
+                [
+                  990.0,
+                  764.0
+                ],
+                [
+                  960.0,
+                  764.0
+                ]
+              ],
+              "span_m": [
+                -15.0,
+                15.0
+              ],
+              "top_z": 8.0
+            },
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "negative_x",
+              "id": "face-2",
+              "normal": [
+                -1.0,
+                0.0
+              ],
+              "part": "body",
+              "span": [
+                [
+                  960.0,
+                  764.0
+                ],
+                [
+                  960.0,
+                  740.0
+                ]
+              ],
+              "span_m": [
+                -12.0,
+                12.0
+              ],
+              "top_z": 8.0
+            },
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "negative_y",
+              "id": "face-3",
+              "normal": [
+                0.0,
+                -1.0
+              ],
+              "part": "body",
+              "span": [
+                [
+                  960.0,
+                  740.0
+                ],
+                [
+                  990.0,
+                  740.0
+                ]
+              ],
+              "span_m": [
+                -15.0,
+                15.0
+              ],
+              "top_z": 8.0
+            }
+          ],
+          "entrances": null,
+          "floor_z": null,
+          "frame": {
+            "translation": [
+              975.0,
+              752.0,
+              0.0
+            ],
+            "yaw": 0.0
+          },
+          "height_m": 8.0,
+          "parts": [
+            {
+              "base_z": 0.0,
+              "center": [
+                975.0,
+                752.0
+              ],
+              "half_extents": [
+                15.0,
+                12.0,
+                4.0
+              ],
+              "id": "body",
+              "yaw": 0.0
+            }
+          ],
+          "template_id": "api-box-15-12-4"
+        },
+        "kind": "building",
+        "owner": 0,
+        "parts": [
+          {
+            "part": "body",
+            "prop": 0
+          }
+        ],
+        "regional_family": "api_fixture"
+      },
+      {
+        "category": "farmstead",
+        "geometry": {
+          "edges": [
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "positive_x",
+              "id": "face-0",
+              "normal": [
+                1.0,
+                0.0
+              ],
+              "part": "body",
+              "span": [
+                [
+                  1064.0,
+                  800.0
+                ],
+                [
+                  1064.0,
+                  828.0
+                ]
+              ],
+              "span_m": [
+                -14.0,
+                14.0
+              ],
+              "top_z": 8.0
+            },
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "positive_y",
+              "id": "face-1",
+              "normal": [
+                0.0,
+                1.0
+              ],
+              "part": "body",
+              "span": [
+                [
+                  1064.0,
+                  828.0
+                ],
+                [
+                  1030.0,
+                  828.0
+                ]
+              ],
+              "span_m": [
+                -17.0,
+                17.0
+              ],
+              "top_z": 8.0
+            },
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "negative_x",
+              "id": "face-2",
+              "normal": [
+                -1.0,
+                0.0
+              ],
+              "part": "body",
+              "span": [
+                [
+                  1030.0,
+                  828.0
+                ],
+                [
+                  1030.0,
+                  800.0
+                ]
+              ],
+              "span_m": [
+                -14.0,
+                14.0
+              ],
+              "top_z": 8.0
+            },
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "negative_y",
+              "id": "face-3",
+              "normal": [
+                0.0,
+                -1.0
+              ],
+              "part": "body",
+              "span": [
+                [
+                  1030.0,
+                  800.0
+                ],
+                [
+                  1064.0,
+                  800.0
+                ]
+              ],
+              "span_m": [
+                -17.0,
+                17.0
+              ],
+              "top_z": 8.0
+            }
+          ],
+          "entrances": null,
+          "floor_z": null,
+          "frame": {
+            "translation": [
+              1047.0,
+              814.0,
+              0.0
+            ],
+            "yaw": 0.0
+          },
+          "height_m": 8.0,
+          "parts": [
+            {
+              "base_z": 0.0,
+              "center": [
+                1047.0,
+                814.0
+              ],
+              "half_extents": [
+                17.0,
+                14.0,
+                4.0
+              ],
+              "id": "body",
+              "yaw": 0.0
+            }
+          ],
+          "template_id": "api-box-17-14-4"
+        },
+        "kind": "building",
+        "owner": 1,
+        "parts": [
+          {
+            "part": "body",
+            "prop": 1
+          }
+        ],
+        "regional_family": "api_fixture"
+      },
+      {
+        "category": "farmstead",
+        "geometry": {
+          "edges": [
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "positive_x",
+              "id": "face-0",
+              "normal": [
+                1.0,
+                0.0
+              ],
+              "part": "body",
+              "span": [
+                [
+                  996.0,
+                  860.0
+                ],
+                [
+                  996.0,
+                  882.0
+                ]
+              ],
+              "span_m": [
+                -11.0,
+                11.0
+              ],
+              "top_z": 8.0
+            },
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "positive_y",
+              "id": "face-1",
+              "normal": [
+                0.0,
+                1.0
+              ],
+              "part": "body",
+              "span": [
+                [
+                  996.0,
+                  882.0
+                ],
+                [
+                  970.0,
+                  882.0
+                ]
+              ],
+              "span_m": [
+                -13.0,
+                13.0
+              ],
+              "top_z": 8.0
+            },
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "negative_x",
+              "id": "face-2",
+              "normal": [
+                -1.0,
+                0.0
+              ],
+              "part": "body",
+              "span": [
+                [
+                  970.0,
+                  882.0
+                ],
+                [
+                  970.0,
+                  860.0
+                ]
+              ],
+              "span_m": [
+                -11.0,
+                11.0
+              ],
+              "top_z": 8.0
+            },
+            {
+              "base_z": 0.0,
+              "bays": null,
+              "exposed": true,
+              "facade": "negative_y",
+              "id": "face-3",
+              "normal": [
+                0.0,
+                -1.0
+              ],
+              "part": "body",
+              "span": [
+                [
+                  970.0,
+                  860.0
+                ],
+                [
+                  996.0,
+                  860.0
+                ]
+              ],
+              "span_m": [
+                -13.0,
+                13.0
+              ],
+              "top_z": 8.0
+            }
+          ],
+          "entrances": null,
+          "floor_z": null,
+          "frame": {
+            "translation": [
+              983.0,
+              871.0,
+              0.0
+            ],
+            "yaw": 0.0
+          },
+          "height_m": 8.0,
+          "parts": [
+            {
+              "base_z": 0.0,
+              "center": [
+                983.0,
+                871.0
+              ],
+              "half_extents": [
+                13.0,
+                11.0,
+                4.0
+              ],
+              "id": "body",
+              "yaw": 0.0
+            }
+          ],
+          "template_id": "api-box-13-11-4"
+        },
+        "kind": "building",
+        "owner": 2,
+        "parts": [
+          {
+            "part": "body",
+            "prop": 2
+          }
+        ],
+        "regional_family": "api_fixture"
+      }
+    ],
+    "forests": [
+      {
+        "shape": {
+          "kind": "polygon",
+          "ring": [
+            [
+              700.0,
+              880.0
+            ],
+            [
+              880.0,
+              880.0
+            ],
+            [
+              880.0,
+              1040.0
+            ],
+            [
+              700.0,
+              1040.0
+            ]
+          ]
+        }
+      },
+      {
+        "shape": {
+          "kind": "polygon",
+          "ring": [
+            [
+              1080.0,
+              600.0
+            ],
+            [
+              1240.0,
+              600.0
+            ],
+            [
+              1240.0,
+              780.0
+            ],
+            [
+              1080.0,
+              780.0
+            ]
+          ]
+        }
+      }
+    ],
+    "height_grid_m": 4.0,
+    "props": [
+      {
+        "base_z": null,
+        "center": [
+          895.0,
+          767.0
+        ],
+        "half_extents": [
+          0.6,
+          0.6,
+          0.6
+        ],
+        "id": 3,
+        "kind": "tooth",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          895.0,
+          769.4
+        ],
+        "half_extents": [
+          0.6,
+          0.6,
+          0.6
+        ],
+        "id": 4,
+        "kind": "tooth",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          895.0,
+          771.8
+        ],
+        "half_extents": [
+          0.6,
+          0.6,
+          0.6
+        ],
+        "id": 5,
+        "kind": "tooth",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          895.0,
+          774.2
+        ],
+        "half_extents": [
+          0.6,
+          0.6,
+          0.6
+        ],
+        "id": 6,
+        "kind": "tooth",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          895.0,
+          776.6
+        ],
+        "half_extents": [
+          0.6,
+          0.6,
+          0.6
+        ],
+        "id": 7,
+        "kind": "tooth",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          895.0,
+          779.0
+        ],
+        "half_extents": [
+          0.6,
+          0.6,
+          0.6
+        ],
+        "id": 8,
+        "kind": "tooth",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          895.0,
+          781.4
+        ],
+        "half_extents": [
+          0.6,
+          0.6,
+          0.6
+        ],
+        "id": 9,
+        "kind": "tooth",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          895.0,
+          783.8
+        ],
+        "half_extents": [
+          0.6,
+          0.6,
+          0.6
+        ],
+        "id": 10,
+        "kind": "tooth",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          895.0,
+          786.2
+        ],
+        "half_extents": [
+          0.6,
+          0.6,
+          0.6
+        ],
+        "id": 11,
+        "kind": "tooth",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          895.0,
+          788.6
+        ],
+        "half_extents": [
+          0.6,
+          0.6,
+          0.6
+        ],
+        "id": 12,
+        "kind": "tooth",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          895.0,
+          791.0
+        ],
+        "half_extents": [
+          0.6,
+          0.6,
+          0.6
+        ],
+        "id": 13,
+        "kind": "tooth",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          895.0,
+          793.4
+        ],
+        "half_extents": [
+          0.6,
+          0.6,
+          0.6
+        ],
+        "id": 14,
+        "kind": "tooth",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          895.0,
+          795.8
+        ],
+        "half_extents": [
+          0.6,
+          0.6,
+          0.6
+        ],
+        "id": 15,
+        "kind": "tooth",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          895.0,
+          798.2
+        ],
+        "half_extents": [
+          0.6,
+          0.6,
+          0.6
+        ],
+        "id": 16,
+        "kind": "tooth",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          895.0,
+          800.6
+        ],
+        "half_extents": [
+          0.6,
+          0.6,
+          0.6
+        ],
+        "id": 17,
+        "kind": "tooth",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          895.0,
+          803.0
+        ],
+        "half_extents": [
+          0.6,
+          0.6,
+          0.6
+        ],
+        "id": 18,
+        "kind": "tooth",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          895.0,
+          805.4
+        ],
+        "half_extents": [
+          0.6,
+          0.6,
+          0.6
+        ],
+        "id": 19,
+        "kind": "tooth",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          895.0,
+          807.8
+        ],
+        "half_extents": [
+          0.6,
+          0.6,
+          0.6
+        ],
+        "id": 20,
+        "kind": "tooth",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          895.0,
+          810.2
+        ],
+        "half_extents": [
+          0.6,
+          0.6,
+          0.6
+        ],
+        "id": 21,
+        "kind": "tooth",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          895.0,
+          812.6
+        ],
+        "half_extents": [
+          0.6,
+          0.6,
+          0.6
+        ],
+        "id": 22,
+        "kind": "tooth",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          947.0,
+          737.0
+        ],
+        "half_extents": [
+          0.4,
+          3.0,
+          0.5
+        ],
+        "id": 23,
+        "kind": "sandbags",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          947.0,
+          743.0
+        ],
+        "half_extents": [
+          0.4,
+          3.0,
+          0.5
+        ],
+        "id": 24,
+        "kind": "sandbags",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          947.0,
+          749.0
+        ],
+        "half_extents": [
+          0.4,
+          3.0,
+          0.5
+        ],
+        "id": 25,
+        "kind": "sandbags",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          949.6,
+          752.4
+        ],
+        "half_extents": [
+          3.0,
+          0.4,
+          0.5
+        ],
+        "id": 26,
+        "kind": "sandbags",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          1012.0,
+          794.0
+        ],
+        "half_extents": [
+          0.4,
+          3.0,
+          0.5
+        ],
+        "id": 27,
+        "kind": "sandbags",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          1012.0,
+          800.0
+        ],
+        "half_extents": [
+          0.4,
+          3.0,
+          0.5
+        ],
+        "id": 28,
+        "kind": "sandbags",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          1014.6,
+          790.6
+        ],
+        "half_extents": [
+          3.0,
+          0.4,
+          0.5
+        ],
+        "id": 29,
+        "kind": "sandbags",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          934.0,
+          905.0
+        ],
+        "half_extents": [
+          3.0,
+          0.1,
+          0.6
+        ],
+        "id": 30,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          940.2,
+          905.0
+        ],
+        "half_extents": [
+          3.0,
+          0.1,
+          0.6
+        ],
+        "id": 31,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          946.4,
+          905.0
+        ],
+        "half_extents": [
+          3.0,
+          0.1,
+          0.6
+        ],
+        "id": 32,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          952.6,
+          905.0
+        ],
+        "half_extents": [
+          3.0,
+          0.1,
+          0.6
+        ],
+        "id": 33,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          962.6,
+          905.0
+        ],
+        "half_extents": [
+          3.0,
+          0.1,
+          0.6
+        ],
+        "id": 34,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          968.8,
+          905.0
+        ],
+        "half_extents": [
+          3.0,
+          0.1,
+          0.6
+        ],
+        "id": 35,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          975.0,
+          905.0
+        ],
+        "half_extents": [
+          3.0,
+          0.1,
+          0.6
+        ],
+        "id": 36,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          981.2,
+          905.0
+        ],
+        "half_extents": [
+          3.0,
+          0.1,
+          0.6
+        ],
+        "id": 37,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          600.0,
+          872.2
+        ],
+        "half_extents": [
+          0.1,
+          3.0,
+          0.6
+        ],
+        "id": 38,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          600.0,
+          878.4
+        ],
+        "half_extents": [
+          0.1,
+          3.0,
+          0.6
+        ],
+        "id": 39,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          600.0,
+          884.6
+        ],
+        "half_extents": [
+          0.1,
+          3.0,
+          0.6
+        ],
+        "id": 40,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          600.0,
+          890.8
+        ],
+        "half_extents": [
+          0.1,
+          3.0,
+          0.6
+        ],
+        "id": 41,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          600.0,
+          903.0
+        ],
+        "half_extents": [
+          0.1,
+          3.0,
+          0.6
+        ],
+        "id": 42,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          600.0,
+          909.2
+        ],
+        "half_extents": [
+          0.1,
+          3.0,
+          0.6
+        ],
+        "id": 43,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          600.0,
+          915.4
+        ],
+        "half_extents": [
+          0.1,
+          3.0,
+          0.6
+        ],
+        "id": 44,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          600.0,
+          921.6
+        ],
+        "half_extents": [
+          0.1,
+          3.0,
+          0.6
+        ],
+        "id": 45,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          73.0,
+          768.0
+        ],
+        "half_extents": [
+          3.0,
+          0.1,
+          0.6
+        ],
+        "id": 46,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          79.2,
+          768.0
+        ],
+        "half_extents": [
+          3.0,
+          0.1,
+          0.6
+        ],
+        "id": 47,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          85.4,
+          768.0
+        ],
+        "half_extents": [
+          3.0,
+          0.1,
+          0.6
+        ],
+        "id": 48,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          91.6,
+          768.0
+        ],
+        "half_extents": [
+          3.0,
+          0.1,
+          0.6
+        ],
+        "id": 49,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          97.8,
+          768.0
+        ],
+        "half_extents": [
+          3.0,
+          0.1,
+          0.6
+        ],
+        "id": 50,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          104.0,
+          768.0
+        ],
+        "half_extents": [
+          3.0,
+          0.1,
+          0.6
+        ],
+        "id": 51,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          110.2,
+          768.0
+        ],
+        "half_extents": [
+          3.0,
+          0.1,
+          0.6
+        ],
+        "id": 52,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          116.4,
+          768.0
+        ],
+        "half_extents": [
+          3.0,
+          0.1,
+          0.6
+        ],
+        "id": 53,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          122.6,
+          768.0
+        ],
+        "half_extents": [
+          3.0,
+          0.1,
+          0.6
+        ],
+        "id": 54,
+        "kind": "fence",
+        "yaw": 0.0
+      },
+      {
+        "base_z": null,
+        "center": [
+          128.8,
+          768.0
+        ],
+        "half_extents": [
+          3.0,
+          0.1,
+          0.6
+        ],
+        "id": 55,
+        "kind": "fence",
+        "yaw": 0.0
+      }
+    ],
+    "relief": [
+      {
+        "center": [
+          700.0,
+          620.0
+        ],
+        "kind": "ridge",
+        "peak_m": 20.0,
+        "radius_m": 170.0
+      }
+    ],
+    "size": [
+      1600.0,
+      1600.0
+    ],
+    "slope_cutoff_deg": 35.0,
+    "template_catalog_hash": "997791ad3783c4cdbf65c994f4d6ffe92d2fc4923d9586d24be3bd34c2983120",
+    "water": [],
+    "fog_cell_m": 8.0,
+    "surfaces": [
+      {
+        "kind": "road",
+        "shape": {
+          "points": [
+            [
+              140.0,
+              780.0
+            ],
+            [
+              700.0,
+              780.0
+            ],
+            [
+              1000.0,
+              800.0
+            ]
+          ],
+          "width_m": 12.0,
+          "kind": "stroke"
+        }
+      },
+      {
+        "kind": "road",
+        "shape": {
+          "points": [
+            [
+              140.0,
+              780.0
+            ],
+            [
+              420.0,
+              420.0
+            ],
+            [
+              1150.0,
+              420.0
+            ],
+            [
+              1150.0,
+              800.0
+            ]
+          ],
+          "width_m": 12.0,
+          "kind": "stroke"
+        }
+      }
+    ]
+  }
+}

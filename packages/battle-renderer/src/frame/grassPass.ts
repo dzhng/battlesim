@@ -56,6 +56,7 @@ import {
   metresPerPixel,
   packGrassShapes,
   type GrassAppearances,
+  GRASS_EDGE_M,
 } from "../terrain/grassField";
 import type { GrassRules } from "../terrain/biome";
 import {
@@ -70,6 +71,7 @@ import {
   forestVergeInside,
   groundColour,
   groundScars,
+  groundCell,
   groundShore,
   groundSite,
   groundVerge,
@@ -194,8 +196,6 @@ const FLAT_SINK = 0.6;
 const GRASS_PATCH_M = 7;
 /** How far a clump strays from its sequence point, either way. */
 const GRASS_JITTER_M = 0.4;
-/** Grass thins and lowers over this far past a road's or a wood's margin. */
-const GRASS_EDGE_M = 1.2;
 /** R2's generator: the plastic number's reciprocals. */
 const R2 = [0.7548776662466927, 0.5698402909980532] as const;
 
@@ -329,8 +329,9 @@ const buildFn = tgpu
     let rank = (f32(j) + 0.5) / (T * T);
     let rho = grassDensity(dist, max(eye.z - z, 0.0));
     if (rank >= rho) { continue; }
-    let site = groundSite(p);
-    let water = groundWater(p);
+    let cell = groundCell(p, footprint);
+    let site = groundSite(p, cell);
+    let water = groundWater(p, cell);
     // Bare within the margins; thinner and lower for a metre beyond them, so
     // a field meets a road or a wood without a wall of blades.
     // A wood's edge is its rect or its floor's ragged verge, whichever lies
@@ -390,6 +391,7 @@ const buildFn = tgpu
     grassDensity,
     grassUnderProp,
     grassHash,
+    groundCell,
     groundSite,
     groundWater,
     groundShore,

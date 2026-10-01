@@ -1,6 +1,6 @@
 # C36: benchmark surroundings and rebaseline
 
-**Depends on:** C56, C32/C14, C22 and C33. **Kind:** migration slice.
+**Depends on:** C56, C32/C14, C22 and C33. **Kind:** cutover slice.
 
 ## Question
 Can every benchmark/endurance world producer from c56's inventory adopt the common composition/template path while preserving its protected behavior?
@@ -9,7 +9,7 @@ Can every benchmark/endurance world producer from c56's inventory adopt the comm
 Every benchmark/endurance world producer from C56's inventory consumes C56's reservation/composition seam and C09's resolver. Surrounding towns/plains are normal physical geometry. Preserve stimuli/roster/scripts and measure full-world allocation plus whole-frame/step cost, including new surroundings. Record the intended map/digest/performance baseline changes; avoid using a crop to hide the new cost.
 
 ## API seam
-Existing fixture/scenario/catalogue producer → ArenaReservation + surroundings input → shared compiled map/public preparation/appearance owners. No migration compatibility wrapper survives.
+Existing fixture/scenario/catalogue producer → ArenaReservation + surroundings input → shared compiled map/public preparation/appearance owners. No compatibility wrapper survives.
 
 ## What the human can run or see
 Before/after protected-arena and whole-map overlays, the original routes, and a named identity/cost report.

@@ -1,3 +1,4 @@
+import { forestInside, type ForestShape } from "../terrain/forestShapes";
 // SceneryPlacement: where every tree and hedgerow shrub stands. Placement is
 // code; the instanced unit is an appearance (`assets/catalog.json`, one
 // `tree` or `hedgerow` bundle per kind), sized here only by its unscaled
@@ -6,8 +7,8 @@
 // Two populations, drawn alike but owned differently:
 // - `forest`: the simulation's forests, drawn as trees: exactly one tree on
 //   each of the simulation's trunks (the bodies movement, cover and
-//   concealment meet, placed by the forest's density), and no
-//   other. Every crown lies inside its forest's rect and under its canopy
+//   concealment meet, placed by the one forest rule), and no
+//   other. Every crown fits its forest's physical shape and under its canopy
 //   over the simulation's own ground. A trunk knocked down is gone from the
 //   drawing where the side has seen the ground cleared (`treeCleared`).
 // - `backdrop`: scenery past the map edge, where nothing is simulated —
@@ -57,22 +58,16 @@ export interface SceneryPlacement {
   backdrop: Float32Array;
 }
 
-interface ForestVolume {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  canopy: number;
-}
-
 /** What placement reads of the static world, from the simulation's export. */
 export interface ScenerySite {
   ground: TerrainGrid;
   /** Map box `[minX, minY, maxX, maxY]`. */
   map: readonly [number, number, number, number];
-  forests: readonly ForestVolume[];
+  forests: readonly ForestShape[];
   /** The simulation's trunk props: `x, y` pairs. */
   trunks: Float32Array;
+  /** Original IDs in the native prop stream's ascending order. */
+  trunkIds: Uint32Array;
   /** Every other prop's footprint circle, `x, y, radius` triples: no drawn trunk inside. */
   obstacles: Float32Array;
   plots: PlotTree;
@@ -86,26 +81,17 @@ export function scenerySite(
   terrain: TerrainSurface,
 ): ScenerySite {
   const ground = exports.terrain;
-  const area = Object.fromEntries(layout.areaFields.map((f, i) => [f, i]));
-  const forests: ForestVolume[] = [];
-  for (let o = 0; o < exports.forests.length; o += layout.areaStride) {
-    const f = exports.forests;
-    forests.push({
-      x: f[o + area.x],
-      y: f[o + area.y],
-      w: f[o + area.w],
-      h: f[o + area.h],
-      canopy: f[o + area.z],
-    });
-  }
+  const forests = terrain.site.forestShapes;
   const at = Object.fromEntries(layout.propFields.map((f, i) => [f, i]));
   const trunks: number[] = [];
+  const trunkIds: number[] = [];
   const obstacles: number[] = [];
   const p = exports.props;
   for (let o = 0; o < p.length; o += layout.propStride) {
-    if (drawnBy(layout, layout.propKinds[p[o + at.kind]], "forest"))
+    if (drawnBy(layout, layout.propKinds[p[o + at.kind]], "forest")) {
       trunks.push(p[o + at.x], p[o + at.y]);
-    else obstacles.push(p[o + at.x], p[o + at.y], Math.hypot(p[o + at.hx], p[o + at.hy]));
+      trunkIds.push(p[o + at.idLo] + p[o + at.idHi] * 2 ** layout.limbBits);
+    } else obstacles.push(p[o + at.x], p[o + at.y], Math.hypot(p[o + at.hx], p[o + at.hy]));
   }
   const low = ground.minHeight;
   return {
@@ -113,6 +99,7 @@ export function scenerySite(
     map: terrain.site.map,
     forests,
     trunks: Float32Array.from(trunks),
+    trunkIds: Uint32Array.from(trunkIds),
     obstacles: Float32Array.from(obstacles),
     plots: terrain.plots,
     backdropZ: low,
@@ -212,13 +199,14 @@ function placeForests(
   const out = new Builder();
   const rules = trees.forest;
   const ground = (x: number, y: number) => groundHeight(site.ground, x, y);
+  let trunk = 0;
   for (const f of site.forests) {
-    /** Fit one tree at (x, y): scale it to its crown's room in the rect and
+    /** Fit one tree at (x, y): scale it to its crown's room inside the shape and
      *  its top under the canopy over the lowest ground its crown covers. */
     const plant = (x: number, y: number) => {
       const s = pick(rng);
       const kind = size[s.kind];
-      const edge = Math.min(x - f.x, f.x + f.w - x, y - f.y, f.y + f.h - y);
+      const edge = forestInside(f, x, y);
       let sz = (f.canopy * random.float(rng, rules.top[0], rules.top[1])) / kind.height;
       let sxy = Math.min(
         sz * random.float(rng, rules.girth[0], rules.girth[1]),
@@ -253,10 +241,13 @@ function placeForests(
         trees.colour_jitter,
       );
     };
-    // Each of the simulation's trunks is a drawn tree's trunk.
-    for (let i = 0; i < site.trunks.length; i += 2) {
-      const [x, y] = [site.trunks[i], site.trunks[i + 1]];
-      if (x >= f.x && x <= f.x + f.w && y >= f.y && y <= f.y + f.h) plant(x, y);
+    // Native source ranges and prop rows are ordered; each generated trunk is
+    // assigned once, even where authored shapes overlap.
+    const [first, end] = f.trunkRange;
+    while (trunk < site.trunkIds.length && site.trunkIds[trunk] < first) trunk++;
+    while (trunk < site.trunkIds.length && site.trunkIds[trunk] < end) {
+      plant(site.trunks[trunk * 2], site.trunks[trunk * 2 + 1]);
+      trunk++;
     }
   }
   return Float32Array.from(out.out);

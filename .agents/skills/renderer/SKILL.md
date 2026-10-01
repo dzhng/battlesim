@@ -275,6 +275,43 @@ the first failed production readback and its compiled source; a matching members
 flag does not resolve a failed distance oracle. At a stopping point, preserve an
 unactivated candidate and restore the runtime baseline instead of widening its bar.
 
+## Bucket per-fragment shape loops by reach
+
+A fragment that loops a table of authored shapes costs the map, not the view.
+Bound it with an index whose cells list the primitives within the reach its
+consumers read, and keep the per-primitive arithmetic verbatim: `max` and `min`
+do not care about order, so the pixels stay byte-identical
+(`terrain/surfaceField.ts`, C63).
+
+- **Derive the reach from the consumers, and prove they saturate beyond it.**
+  Write down every reader of the distance and how far it reads. A feather that
+  is "a pixel wide at least" makes the reach grow with the pixel's footprint,
+  so one grid is not enough: keep a ladder of levels by footprint, each with
+  its own reach and cell size.
+- **`length(fwidth(world.xy))` has no upper bound.** Ground seen edge-on a
+  kilometre off spans hundreds of metres a pixel. An exact answer there reads
+  the whole map, and those few rows can cost more than the rest of the frame.
+  Give the ladder a list budget that grows with the pixel (wide pixels are rare: rows thin as 1 / sqrt(F)), and say what a wider pixel reads instead.
+- **Fold tables instead of adding a binding.** The grass build sits at the
+  eight-storage-buffer limit, so the rects moved into the records table and
+  the index took their binding.
+- **Conservative listing needs a pad for f32.** The shader picks a cell in f32
+  and the builder in f64; grow each cell by a few dozen f32 steps of the
+  largest coordinate, or a point on a boundary misses its primitives.
+- **`polygon2.intersectsSegment` counts proper crossings only.** A segment
+  through a box's two opposite corners is missed: every 45° street on a square
+  grid. Clip the segment to the box's slabs instead.
+- **Falsify an index shader by breaking its data, never its addressing.** A
+  wrong offset turns a cell's list bounds into garbage; the loop then runs for
+  billions of steps and the scene hangs the GPU, holding the lock, until
+  someone kills it. Run a deliberately broken shader under `SCENE_TIMEOUT_S`.
+- **Judge "pixels unchanged" on the layers that are stable.** With grass,
+  models, fog, effects and paint suppressed, the terrain is byte-identical
+  between sessions. Grass frames are not (68 to 2,200 pixels differ between
+  two runs of the same build), so compare the grass build's clump readback
+  (`__lab.grass().clumps()`, sorted) and treat its frames as bounded by that
+  noise. Pin the tick exactly: a pause can land a tick late.
+
 - **Resource checks must control rendered view history.** A paused fast-forward can finish delivering data before the UI draws that publication. Await the last publication’s drawn tick and presentation clock before moving the camera. Otherwise a view-dependent retained buffer may see one extra detail tier on one reset and look like a leak. Attribute differences with actual allocation creation/destruction records before changing capacity policy or weakening byte assertions.
 
 - **Interactive callouts share the viewport's gesture owner.** A DOM panel above the canvas needs native pointer handling for hover, while click and drag must reach the same capture/release path as battlefield picks. Verify dragging from a panel as well as dragging across one, and test the drawn panel bounds rather than the unit anchor.

@@ -134,7 +134,11 @@ function offRoad(p) {
   return best;
 }
 
-const insideRect = (p, [x, y, w, h]) => p[0] > x && p[0] < x + w && p[1] > y && p[1] < y + h;
+const insideForest = (point, forest) => {
+  const [a, , c] = forest.shape.ring;
+  // These are the fixed rectangular Village stimuli, not renderer geometry.
+  return point[0] > a[0] && point[0] < c[0] && point[1] > a[1] && point[1] < c[1];
+};
 const underProp = (p) =>
   [...village.map.props, ...village.map.buildings.flatMap((b) => b.geometry.parts)].some(
     ({ center: [cx, cy], yaw, half_extents: [hx, hy] }) => {
@@ -161,7 +165,7 @@ async function checkGrass(ctx, page, name, minRelief = 0) {
     (c) =>
       offRoad(c.root) < 0 ||
       underProp(c.root) ||
-      village.map.forests.some((f) => insideRect(c.root, f.rect)),
+      village.map.forests.some((f) => insideForest(c.root, f)),
   );
   const tiers = [0, 1].map((t) => clumps.filter((c) => c.tier === t).length);
   const relief = clumps.reduce((m, c) => Math.max(m, c.root[2]), 0);
@@ -510,7 +514,7 @@ async function treeTour(ctx) {
   });
   const top = decode(await snapshot(ctx, page, "trees-top-check-1920x1080.png"));
   await hud.evaluate((e) => e.remove());
-  const [x0, y0] = village.map.forests[0].rect;
+  const [x0, y0] = village.map.forests[0].shape.ring[0];
   const luminance = async (x, y) => {
     const css = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2]), [
       x,
@@ -844,7 +848,7 @@ async function effectTour(ctx) {
   });
   await advance(page, 600 - (await lab(page, () => window.__lab.route.tick())));
   // The first burst in the open: one under a wood's canopy is hidden by the crowns.
-  const open = (b) => !village.map.forests.some((f) => insideRect(b.point, f.rect));
+  const open = (b) => !village.map.forests.some((f) => insideForest(b.point, f));
   const o = await until(page, (f) => f.blasts.some(open), 30 * 60, 1);
   if (!o) {
     ctx.check("a burst in the firefight is drawn as a fireball", false, "no blast by tick 2400");

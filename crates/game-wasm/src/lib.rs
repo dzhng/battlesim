@@ -117,6 +117,26 @@ impl WorldView {
         self.world.export_forests()
     }
 
+    pub fn forest_trunk_ranges(&self) -> Vec<u32> {
+        self.world.export_forest_trunk_ranges()
+    }
+
+    pub fn forest_rect_ids(&self) -> Vec<u32> {
+        self.world.export_forest_rect_ids()
+    }
+    pub fn forest_metadata(&self) -> Vec<f32> {
+        self.world.export_forest_metadata()
+    }
+    pub fn forest_strokes(&self) -> Vec<f32> {
+        self.world.export_forest_strokes()
+    }
+    pub fn forest_triangles(&self) -> Vec<f32> {
+        self.world.export_forest_triangles()
+    }
+    pub fn forest_boundaries(&self) -> Vec<f32> {
+        self.world.export_forest_boundaries()
+    }
+
     /// Sparse foliage: `[nx, ny, cell_m]`, then non-open
     /// `[column, row, canopy_m, depth_per_m]` records in row order.
     pub fn foliage(&self) -> Vec<f32> {
@@ -155,6 +175,10 @@ impl WorldView {
 
     pub fn surface_strokes(&self) -> Vec<f32> {
         self.world.export_surface_strokes()
+    }
+
+    pub fn surface_runs(&self) -> Vec<f32> {
+        self.world.export_surface_runs()
     }
 
     pub fn surface_triangles(&self) -> Vec<f32> {

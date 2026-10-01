@@ -1,8 +1,0 @@
-{
-  "base_commit": "979d93db8510277f70d698832a17444f469f0d8f",
-  "sha256": {
-    "paired-records.json": "437bde773b03e295769ff86869c100b3359627153a04260b129ceb60f65e9d9c",
-    "source.patch.snapshot": "a23b0c9367ca9830714d7cf3f03d03c7b5f7a37c025a7fcc2eada8c5dfef6ff4",
-    "capture-native.py.snapshot": "19e73b07be42b76b5cf863db05c9fec280b71bdb0d4abf61bd5956a689a84e13"
-  }
-}

@@ -1,14 +1,18 @@
 // @vitest-environment node
 // Scenery placement against the simulation's own geometry: the drawn forest
-// is the simulation's forest volume (every crown inside a forest rect and
-// under its canopy over the simulation's ground, the rect's foliage covered
+// is the simulation's forest volume (every crown inside a forest shape and
+// under its canopy over the simulation's ground, the shape's foliage covered
 // by crowns, the simulation's trunks each a drawn tree), and scenery past the
 // map stays off it.
 import { VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { initSync, WorldView, world_layout } from "@wasm/game_wasm.js";
-import type { WorldExports, WorldLayout } from "@packages/battle-renderer/src/worldMesh.ts";
+import {
+  readWorldExports,
+  type WorldExports,
+  type WorldLayout,
+} from "@packages/battle-renderer/src/worldMesh.ts";
 import { buildTerrainSurface } from "@packages/battle-renderer/src/terrain/terrainSurface.ts";
 import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
 import {
@@ -40,24 +44,7 @@ beforeAll(() => {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
   layout = JSON.parse(world_layout(JSON.stringify(VILLAGE_RULES))) as WorldLayout;
   view = new WorldView(JSON.stringify(village.map), JSON.stringify(VILLAGE_RULES));
-  exports = {
-    terrain: {
-      ...JSON.parse(view.terrain_grid()),
-      pageIds: view.terrain_page_ids(),
-      heights: view.terrain_heights(),
-    },
-    positions: view.terrain_positions(),
-    indices: view.terrain_indices(),
-    triangleSurfaces: view.terrain_triangle_surfaces(),
-    props: view.props(),
-    buildings: JSON.parse(view.buildings()),
-    water: view.water(),
-    forests: view.forests(),
-    foliage: view.foliage(),
-    surfaceStrokes: view.surface_strokes(),
-    surfaceTriangles: view.surface_triangles(),
-    surfaceBoundaries: view.surface_boundaries(),
-  };
+  exports = readWorldExports(view);
   const site = scenerySite(exports, layout, buildTerrainSurface(exports, layout, biome));
   placement = placeScenery(site, biome, SIZES);
 });
@@ -86,11 +73,16 @@ function trees(data: Float32Array): Tree[] {
 const ground = (x: number, y: number) => view.surface_at(x, y)[0];
 const forests = () =>
   village.map.forests.map((f) => ({
-    rect: f.rect as [number, number, number, number],
-    canopy: f.canopy_height_m,
+    rect: [
+      f.shape.ring[0][0],
+      f.shape.ring[0][1],
+      f.shape.ring[1][0] - f.shape.ring[0][0],
+      f.shape.ring[2][1] - f.shape.ring[1][1],
+    ] as [number, number, number, number],
+    canopy: village.forests.rule.canopy_height_m,
   }));
 
-test("every forest tree's crown stays inside a forest rect, under its canopy over the simulation's ground", () => {
+test("every forest tree's crown stays inside a forest shape, under its canopy over the simulation's ground", () => {
   const drawn = trees(placement.forest);
   expect(drawn.length).toBeGreaterThan(400);
   for (const t of drawn) {
@@ -183,4 +175,77 @@ test("placement refuses a species the catalog lacks, by name", () => {
   const sizes = new Map(SIZES);
   sizes.delete("tree_tall");
   expect(() => placeScenery(site, biome, sizes)).toThrow(/tree_tall/);
+});
+
+test("overlapping polygon and strip draw each original native-owned trunk exactly once", () => {
+  const forest = (shape: unknown) => ({ shape });
+  const overlap = new WorldView(
+    JSON.stringify({
+      size: [100, 100],
+      height_grid_m: 4,
+      fog_cell_m: 8,
+      slope_cutoff_deg: 35,
+      props: [{ kind: "trunk", center: [9, 9], yaw: 0, half_extents: [0.35, 0.35, 5] }],
+      bridges: [
+        {
+          deck: "bridge_deck",
+          center: [90, 10],
+          half_extents: [5, 5],
+          yaw: 0,
+          deck_z: 0.2,
+          thickness_m: 0.8,
+        },
+      ],
+      forests: [
+        forest({
+          kind: "polygon",
+          ring: [
+            [0, 0],
+            [72, 0],
+            [72, 36],
+            [36, 36],
+            [36, 72],
+            [0, 72],
+          ],
+        }),
+        forest({
+          kind: "stroke",
+          points: [
+            [18, 18],
+            [54, 54],
+          ],
+          width_m: 36,
+        }),
+        forest({
+          kind: "polygon",
+          ring: [
+            [90, 90],
+            [91, 90],
+            [91, 91],
+            [90, 91],
+          ],
+        }),
+      ],
+    }),
+    JSON.stringify(VILLAGE_RULES),
+  );
+  try {
+    const exported = readWorldExports(overlap);
+    const ranges = exported.forestTrunkRanges;
+    expect(Array.from(ranges.slice(0, 1))).toEqual([2]);
+    expect(ranges[4]).toBe(ranges[5]);
+    const at = Object.fromEntries(layout.propFields.map((field, i) => [field, i]));
+    const expected: number[][] = [];
+    for (let o = 0; o < exported.props.length; o += layout.propStride) {
+      const id = exported.props[o + at.idLo] + exported.props[o + at.idHi] * 2 ** layout.limbBits;
+      if (id >= ranges[0] && id < ranges[3])
+        expected.push([exported.props[o + at.x], exported.props[o + at.y]]);
+    }
+    expect(expected.length).toBeGreaterThan(30);
+    const site = scenerySite(exported, layout, buildTerrainSurface(exported, layout, biome));
+    const placed = placeScenery(site, biome, SIZES);
+    expect(trees(placed.forest).map((tree) => [tree.x, tree.y])).toEqual(expected);
+  } finally {
+    overlap.free();
+  }
 });

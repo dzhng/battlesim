@@ -8,13 +8,13 @@ Do offline/runtime generation and every catalogued map satisfy the accepted comp
 ## Contract it unlocks
 `mapgen validate <preset-set>` inspects compiled MapDefinition with shared sim geometry queries and reports exact extent, metre scale, town hierarchy/count/area, category/floor distribution, usable plains, roads/bridges, entrance access, forest area/count and top/bottom coverage differences. It includes physical infantry/vehicle routes and range/approach metrics independently of coverage fairness. C59's prepared encounters supply legal deployments, objectives, defender inputs and garrison references across the matrix.
 
-The generation/lowering owners already enforce their construction contracts; this gate verifies their integrated physical outputs and records evidence. It does not introduce another generator, duplicate geometry oracle or a battle format. Catalogue maps and runtime requests resolve through C09. Saved maps pin SOURCES.json; runtime results/replays pin equivalent generator/preset/physical-catalogue/map identity; appearance hash is separate. C56's migration inventory is part of this gate; pre-existing maps are not exempt.
+The generation/lowering owners already enforce their construction contracts; this gate verifies their integrated physical outputs and records evidence. It does not introduce another generator, duplicate geometry oracle or a battle format. Catalogue maps and runtime requests resolve through C09. Saved maps pin SOURCES.json; runtime results/replays pin equivalent generator/preset/physical-catalogue/map identity; appearance hash is separate. C56's cutover inventory is part of this gate; pre-existing maps are not exempt.
 
 ## API seam
 `mapgen::validation/report` over compiled geometry → CLI/workbench gallery and release verdict. C60 describes saved catalogue entries; transient generated seeds need no persistent catalogue folder. C51 owns encounter composition.
 
 ## What the human can run or see
-A gallery covering all nine type × size combinations, with at least ten fixed seeds per combination, plus an inventory of migrated village/lab/benchmark/test maps and their preserved arena checks. Show failed seeds with diagnostics; no substituted layouts.
+A gallery covering all nine type × size combinations, with at least ten fixed seeds per combination, plus an inventory of cut-over village/lab/benchmark/test maps and their preserved arena checks. Show failed seeds with diagnostics; no substituted layouts.
 
 ## Verification
 - Full canonical native/wasm map/encounter/rules/identity/diagnostic parity for matched inputs, including boundary seeds and failure cases.

@@ -1,8 +1,0 @@
-import {readFileSync,writeFileSync} from 'node:fs';
-import {createHash} from 'node:crypto';
-import {initSync,original_chain_trace} from '../../web/src/wasm/game_wasm.js';
-const input=JSON.parse(readFileSync('specs/city-maps/assets/building-aggregate/singleton-chain-wasm.json','utf8'));
-const wasm=readFileSync('web/src/wasm/game_wasm_bg.wasm');
-initSync({module:wasm});
-const rows=JSON.parse(original_chain_trace(JSON.stringify(input.scenario)));
-writeFileSync('throwaway/building-aggregate/matched-chain-wasm.json',JSON.stringify({source_commit:'94e969b',compiled_wasm_sha256:createHash('sha256').update(wasm).digest('hex'),instrumentation:'Transient read-only original_chain_trace export, removed from source after capture; calls production BattleHandle::new/step/digest and original sim observation',seed:11,scenario:input.scenario,rows})+'\n');

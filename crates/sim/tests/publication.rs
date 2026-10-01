@@ -271,19 +271,10 @@ fn uniform_learned_ground_is_delivered_without_one_record_per_cell() {
 }
 
 #[test]
-fn fog_delivery_preserves_the_frozen_complete_observation_and_digest() {
-    let oracle: Value = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/fog-delivery/oracle.json"
-    ))
-    .unwrap();
-    // C02 relocates only this input field; frozen observations stay untouched.
-    let mut scenario = oracle["scenario"].clone();
-    scenario["map"]["fog_cell_m"] = scenario["rules"]["sensors"]
-        .as_object_mut()
-        .unwrap()
-        .remove("fog_cell_m")
-        .unwrap();
-    crate::common::migrate_original_surfaces(&mut scenario["map"]);
+fn fog_delivery_matches_the_parity_oracle_observation_and_digest() {
+    let oracle: Value =
+        serde_json::from_str(include_str!("../../../fixtures/parity/fog/oracle.json")).unwrap();
+    let scenario = oracle["scenario"].clone();
     let mut setup: contract::scenario::ScenarioDefinition =
         serde_json::from_value(scenario).unwrap();
     setup.map = crate::common::physical_map(setup.map, &setup.rules);
@@ -294,6 +285,23 @@ fn fog_delivery_preserves_the_frozen_complete_observation_and_digest() {
     let mut bits = Vec::new();
     let mut snapshots = 0;
     let mut deltas = 0;
+    let mut blessed = oracle.clone();
+    if std::env::var_os("BLESS_PARITY").is_some() {
+        for row in blessed["rows"].as_array_mut().unwrap() {
+            battle.step();
+            let side: Side = serde_json::from_value(row["side"].clone()).unwrap();
+            if row["resync"].as_bool().unwrap() {
+                publisher.resync();
+            }
+            publisher.publish(&battle, side).unwrap();
+            let frame = battle.observe(side);
+            row["digest"] = json!(format!("{:016x}", battle.digest()));
+            row["authoritative"] =
+                json!({ "tick": frame.tick, "ground_visibility": frame.ground_visibility });
+        }
+        assert!(crate::common::bless_parity("fog/oracle.json", &blessed));
+        return;
+    }
     for row in oracle["rows"].as_array().unwrap() {
         battle.step();
         let side: Side = serde_json::from_value(row["side"].clone()).unwrap();
@@ -601,11 +609,11 @@ fn known_bodies_publish_exact_current_building_owner_and_authored_source_ids() {
 #[test]
 fn aggregate_codec_preserves_every_original_animation_word() {
     let original: Value = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/ground-transport/animation-codec-vectors.json"
+        "../../../fixtures/parity/ground/animation-codec-vectors.json"
     ))
     .unwrap();
     let receipt: Value = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/building-aggregate/animation-codec-vectors.json"
+        "../../../fixtures/parity/buildings/animation-codec-vectors.json"
     ))
     .unwrap();
     let layout = &receipt["layout"];

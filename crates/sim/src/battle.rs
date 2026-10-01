@@ -1024,9 +1024,11 @@ impl Battle {
             Destroyed::Cleared => {
                 self.world.knock_down(id);
                 // The tree's own share of the forest, out to its spacing.
-                let reach = prop
-                    .canopy
-                    .map_or(self.world.cleared_cell_m(), |c| c.density.trunk_spacing_m);
+                let reach = if prop.forest_tree {
+                    self.world.forest_rule().trunk_spacing_m
+                } else {
+                    self.world.cleared_cell_m()
+                };
                 for cell in self.world.clear_spot(prop.center, reach) {
                     self.ground.clear(cell);
                 }

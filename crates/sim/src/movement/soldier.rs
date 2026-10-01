@@ -166,11 +166,7 @@ impl Threat {
         }
         let here = unit.position.xy();
         let speed = ctx.world.surface_at(here.x, here.y).map_or(0.0, |s| {
-            let road = matches!(
-                s.kind,
-                crate::world::SurfaceKind::Road | crate::world::SurfaceKind::Bridge
-            );
-            unit.mobility.speed(road, s.forest, s.slope_deg)
+            unit.mobility.speed(s.road_factor, s.forest, s.slope_deg)
         });
         let mut left = speed * ctx.infantry.yield_horizon_s + hull.half.x;
         let mut path = vec![here];
@@ -667,11 +663,7 @@ pub(super) fn step_squad(
             continue;
         };
         let speed = ctx.world.surface_at(here.x, here.y).map_or(0.0, |g| {
-            let road = matches!(
-                g.kind,
-                crate::world::SurfaceKind::Road | crate::world::SurfaceKind::Bridge
-            );
-            mobility.speed(road, g.forest, g.slope_deg)
+            mobility.speed(g.road_factor, g.forest, g.slope_deg)
         }) * suppressed
             * pace;
         let to = target - here.xy();

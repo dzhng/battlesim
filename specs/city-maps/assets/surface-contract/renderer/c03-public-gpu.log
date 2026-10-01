@@ -1,6 +1,0 @@
-$ node scene.mjs ground
-PASS  ground: polygon paving preserves ring distance across diagonals and overlaps  ({"rows":[{"name":"shared diagonal centre","xy":[7,7],"distance":5,"actual":5},{"name":"across shared diagonal","xy":[7.25,7],"distance":4.75,"actual":4.75},{"name":"inside outer edge","xy":[2.25,7],"distance":0.25,"actual":0.25},{"name":"outside outer edge","xy":[1.75,7],"distance":-0.25,"actual":-0.25},{"name":"on outer edge","xy":[7,2],"distance":0,"actual":0},{"name":"first polygon interior on second boundary","xy":[7,7],"distance":5,"actual":5},{"name":"second polygon interior on first boundary","xy":[12,7],"distance":5,"actual":5},{"name":"overlap retains signed shape maximum","xy":[9.5,7],"distance":2.5,"actual":2.5}],"validation":[],"final":{"buffers":0,"textures":0,"bufferBytes":0,"textureBytes":0},"shaderHashes":["d11f7501edcf526ff649ed3ada1024ae87d064af12a2972e808fe25a870ca977","b145e17dd832fcfba0fe3af790dd04db4e45b0e51b20861154b787c6e5f00850"]})
-
-slowest scenes: ground 1 s
-
-ALL CHECKS PASSED

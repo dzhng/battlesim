@@ -1,19 +1,9 @@
 # Bounded ground sampling proof
 
-These immutable receipts distinguish exact source behavior from workload admission.
-The production query compares the actual sampler with original 2D hardware values;
-its coordinate mutant fails, the restored source passes, and a separate four-tap
-receipt isolates cubic contraction without changing normalization or coefficients.
-The rejected startup proxy is retained because a finite device profile must not be
-presented as a compiler guarantee.
+The production GPU sampler reproduces the original 2D hardware values exactly. A coordinate mutant fails, the restored source passes, and a separate four-tap check isolates cubic contraction without changing normalization or coefficients. A startup device probe was rejected as a compiler guarantee: a finite device check cannot certify other hardware.
 
-[Identity](identity.json) pins source, compiled kernels, probe inputs/runtime and
-independent review scope. Frozen probe text is evidence, not another production
-map producer. The [resource summary](resource-summary.json) accompanies raw measured
-rows: uniform learned clearing, local edits/missing tiles and 20k distributed
-single-edit pages at the fixed extents. It does not prove arbitrary all-cell entropy,
-active battle overlap or other hardware. Disposal/validation belongs to each row.
+The resource rows cover uniform learned clearing, local edits with a missing tile, and 20k distributed single-edit pages at the fixed extents. They do not prove arbitrary all-cell entropy, overlap with an active battle, or other hardware.
 
-The [capability report](../gpu-capability-evidence.md) explains the measured owner
-corrections and remaining gates. Original values/order/digests in the parent oracle
-remain unchanged; complete appearance acceptance stays with the later art pass.
+The [capability checkpoint](../gpu-capability-evidence.md) carries the numbers and the open gates. The [parent oracle](../README.md) is unchanged; appearance acceptance stays with the later art pass.
+
+Raw evidence: tag `city-maps-evidence-2026-09-30`.

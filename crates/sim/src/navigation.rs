@@ -26,7 +26,7 @@ use contract::map::MoverClass;
 use contract::scenario::PushClass;
 
 use crate::math::{v2, Obb2, V2};
-use crate::world::{Prop, SurfaceKind, WorldGeometry};
+use crate::world::{Prop, WorldGeometry};
 
 pub const NAV_CELL_M: f64 = 2.0;
 /// Sub-cells per cell side for infantry: 0.5 m.
@@ -72,11 +72,13 @@ pub struct Drive {
 }
 
 impl Mobility {
-    /// Travel speed on a surface: roads take precedence over forest; slopes
-    /// slow continuously up to the shared cutoff.
-    pub fn speed(&self, road: bool, forest: bool, slope_deg: f64) -> f64 {
-        let base = if road {
-            self.road_mps
+    /// Travel speed on a surface. A road (`road_factor` above 0, the surface
+    /// kind's share of road speed) takes precedence over forest and is never
+    /// slower than open ground; slopes slow continuously up to the shared
+    /// cutoff.
+    pub fn speed(&self, road_factor: f64, forest: bool, slope_deg: f64) -> f64 {
+        let base = if road_factor > 0.0 {
+            (self.road_mps * road_factor).max(self.off_road_mps)
         } else if forest {
             self.off_road_mps * self.forest_multiplier
         } else {
@@ -109,7 +111,8 @@ struct Cell {
     /// The heaviest known body stopping vehicles over the cell: its weight
     /// class's rank, or [`NO_BODY`].
     heaviest: u8,
-    road: bool,
+    /// `Surface::road_factor`: 0 off any road.
+    road_factor: f64,
     forest: bool,
     slope_deg: f64,
     /// Infantry's free sub-cells, bit `row * 4 + column` from the cell's
@@ -151,7 +154,7 @@ impl Cells {
                 ground: traversable,
                 infantry: traversable,
                 heaviest: NO_BODY,
-                road: false,
+                road_factor: 0.0,
                 forest: false,
                 slope_deg: 0.0,
                 free: if traversable { ALL_FREE } else { 0 },
@@ -194,7 +197,7 @@ pub struct NavGrid {
     /// Visited search bookkeeping retained between plans.
     scratch: Scratch,
     /// Conservative rectangles containing every nonuniform surface or known body.
-    regions: Vec<[f64; 4]>,
+    regions: Regions,
     queued: usize,
     heap_peak: usize,
     expanded: usize,
@@ -261,6 +264,83 @@ struct SearchBound {
     target: usize,
     nx: usize,
 }
+/// The nonuniform rectangles, bucketed so a cell asks only about those near
+/// it: a full-size map has one for every tree. A query sees exactly the
+/// rectangles within [`Regions::REACH_M`] of its point, plus every irregular
+/// one, so the answer is the same as scanning them all.
+struct Regions {
+    rects: Vec<[f64; 4]>,
+    /// Non-finite or negative-size rectangles: every query sees them.
+    irregular: Vec<[f64; 4]>,
+    nx: usize,
+    ny: usize,
+    /// Bucket `k` holds `items[starts[k]..starts[k + 1]]`, indices of `rects`.
+    starts: Vec<u32>,
+    items: Vec<u32>,
+}
+
+impl Regions {
+    const BUCKET_M: f64 = 32.0;
+    /// The widest halo a query tests a rectangle with.
+    const REACH_M: f64 = MAX_CLEARANCE_M + 4.0 * NAV_CELL_M;
+
+    fn new(all: Vec<[f64; 4]>, width: f64, depth: f64) -> Self {
+        let nx = (width / Self::BUCKET_M).ceil().max(1.0) as usize;
+        let ny = (depth / Self::BUCKET_M).ceil().max(1.0) as usize;
+        let (rects, irregular): (Vec<_>, Vec<_>) = all
+            .into_iter()
+            .partition(|r| r.iter().all(|v| v.is_finite()) && r[2] >= 0.0 && r[3] >= 0.0);
+        let span = |r: &[f64; 4]| {
+            let at = |v: f64, n: usize| ((v / Self::BUCKET_M).floor().max(0.0) as usize).min(n - 1);
+            (
+                at(r[0] - Self::REACH_M, nx)..=at(r[0] + r[2] + Self::REACH_M, nx),
+                at(r[1] - Self::REACH_M, ny)..=at(r[1] + r[3] + Self::REACH_M, ny),
+            )
+        };
+        let mut starts = vec![0u32; nx * ny + 1];
+        for r in &rects {
+            let (xs, ys) = span(r);
+            for j in ys {
+                for i in xs.clone() {
+                    starts[j * nx + i + 1] += 1;
+                }
+            }
+        }
+        for k in 0..nx * ny {
+            starts[k + 1] += starts[k];
+        }
+        let mut items = vec![0u32; starts[nx * ny] as usize];
+        let mut next = starts.clone();
+        for (id, r) in rects.iter().enumerate() {
+            let (xs, ys) = span(r);
+            for j in ys {
+                for i in xs.clone() {
+                    items[next[j * nx + i] as usize] = id as u32;
+                    next[j * nx + i] += 1;
+                }
+            }
+        }
+        Self {
+            rects,
+            irregular,
+            nx,
+            ny,
+            starts,
+            items,
+        }
+    }
+
+    /// Every rectangle that can lie within the reach of `p`.
+    fn near(&self, p: V2) -> impl Iterator<Item = &[f64; 4]> {
+        let at = |v: f64, n: usize| ((v / Self::BUCKET_M).floor().max(0.0) as usize).min(n - 1);
+        let k = at(p.y, self.ny) * self.nx + at(p.x, self.nx);
+        self.items[self.starts[k] as usize..self.starts[k + 1] as usize]
+            .iter()
+            .map(|&id| &self.rects[id as usize])
+            .chain(&self.irregular)
+    }
+}
+
 fn octile(a: usize, b: usize, nx: usize) -> f64 {
     let x = (a % nx).abs_diff(b % nx) as f64;
     let y = (a / nx).abs_diff(b / nx) as f64;
@@ -470,7 +550,7 @@ impl NavGrid {
                             ground: s.traversable,
                             infantry: s.traversable,
                             heaviest: NO_BODY,
-                            road: s.kind == SurfaceKind::Road || s.kind == SurfaceKind::Bridge,
+                            road_factor: s.road_factor,
                             forest: s.forest,
                             slope_deg: s.slope_deg,
                             free: if s.traversable { ALL_FREE } else { 0 },
@@ -605,7 +685,7 @@ impl NavGrid {
             weights,
             avoid: Vec::new(),
             scratch: Scratch::new(nx),
-            regions,
+            regions: Regions::new(regions, world.width(), world.depth()),
             queued: 0,
             heap_peak: 0,
             expanded: 0,
@@ -638,7 +718,7 @@ impl NavGrid {
         let tile = (j / TILE_SIDE) * self.nx.div_ceil(TILE_SIDE) + i / TILE_SIDE;
         let local = (j % TILE_SIDE) * TILE_SIDE + i % TILE_SIDE;
         let center = cell_center(i, j);
-        if !self.regions.iter().any(|&[x, y, w, h]| {
+        if !self.regions.near(center).any(|&[x, y, w, h]| {
             center.x + MAX_CLEARANCE_M + NAV_CELL_M >= x
                 && center.x - MAX_CLEARANCE_M - NAV_CELL_M <= x + w
                 && center.y + MAX_CLEARANCE_M + NAV_CELL_M >= y
@@ -768,7 +848,7 @@ impl NavGrid {
     fn cell_cost(c: &Cell, m: &Mobility, policy: RoutePolicy, length: f64) -> f64 {
         let base = match policy {
             RoutePolicy::Shortest => length,
-            RoutePolicy::Fastest => length / m.speed(c.road, c.forest, c.slope_deg),
+            RoutePolicy::Fastest => length / m.speed(c.road_factor, c.forest, c.slope_deg),
         };
         match (m.class, c.heaviest) {
             (MoverClass::Vehicle, NO_BODY) | (MoverClass::Infantry, _) => base,
@@ -1124,7 +1204,7 @@ impl NavGrid {
         let p = cell_center(x, y);
         // The cap plus neighbour reach, sampling border and crossing reach.
         let halo = MAX_CLEARANCE_M + 4.0 * NAV_CELL_M;
-        if self.regions.iter().any(|&[x, y, w, h]| {
+        if self.regions.near(p).any(|&[x, y, w, h]| {
             [x, y, w, h].iter().any(|v| !v.is_finite())
                 || w < 0.0
                 || h < 0.0
@@ -1493,7 +1573,7 @@ impl NavGrid {
                 .cells
                 .changed
                 .values()
-                .any(|c| m.speed(c.road, c.forest, c.slope_deg) > m.off_road_mps)
+                .any(|c| m.speed(c.road_factor, c.forest, c.slope_deg) > m.off_road_mps)
         {
             return false;
         }
@@ -1511,7 +1591,7 @@ impl NavGrid {
                 || c.heaviest != NO_BODY
                 || (m.class == MoverClass::Infantry && c.free != ALL_FREE)
                 || (policy == RoutePolicy::Fastest
-                    && m.speed(c.road, c.forest, c.slope_deg) != m.off_road_mps);
+                    && m.speed(c.road_factor, c.forest, c.slope_deg) != m.off_road_mps);
             exceptional
                 && p.x <= x1 + halo
                 && p.x >= x0 - halo

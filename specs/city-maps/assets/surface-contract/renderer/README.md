@@ -1,27 +1,11 @@
 # Polygon paving proof
 
-Polygon membership and feather distance are different contracts. Triangles tell
-whether a point is inside a polygon. Only exposed boundaries of the polygon union
-can tell how far that point lies inside continuous paving. The renderer consumes
-both from the native geometry owner, without reconstructing polygon rings.
+Polygon membership and feather distance are different contracts. Triangles say whether a point is inside a polygon; only the exposed boundary of the polygon union says how far the point lies inside continuous paving. The renderer reads both from the native geometry owner and never rebuilds polygon rings.
 
-The preserved diagonal and overlap traces establish the first export seam. The
-per-polygon distance maximum was rejected after the touching-edge trace showed a
-real material blend inside otherwise continuous pavement. That failed source,
-compiled shader and independent review remain evidence of why exposed union
-boundaries are necessary. The earlier public-export green trace does not prove
-the replacement boundary API.
+The per-polygon distance maximum was rejected after a touching-edge trace showed a material blend inside continuous pavement; that is why the export carries exposed union boundaries.
 
-The agricultural traces establish that road guides can divide fields, while
-sidewalks and triangulation diagonals cannot. Frozen map adapters relocate only
-the old road inputs into identical strokes; expected digests and captures remain
-unchanged.
+Road guides divide fields; sidewalks and triangulation diagonals do not. Frozen maps only relocate their old road inputs into identical strokes, so expected digests and captures are unchanged. The [village review](visual-review.md) found no paired difference.
 
-[Identity](identity.json) records source and receipt hashes. The union consumer review is a source review. [Final union receipts](final-union/)
-prove the actual native API and production material queries. [Village review](visual-review.md)
-records paired telemetry, retained limitations and the disclosed critic fallback.
+Union support does not give strokes and polygons a shared distance field. Mixed joins stay a C63 gate before generated streets use them, and no artwork or city-scale rendering acceptance follows from these probes.
 
-Polygon-union support does not establish a shared distance field for strokes and
-polygons. Stroke operation order preserves the Village baseline; mixed joins
-remain a C63 admission gate before generated streets consume them. No artwork or
-city-scale rendering acceptance follows from these seam probes.
+Raw evidence: tag `city-maps-evidence-2026-09-30`.

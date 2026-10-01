@@ -1,11 +1,22 @@
 # Aggregate frame proof
 
-This proof reaches the actual garrison route, authority, production decoder and renderer. The shipped singleton scene passes every existing check. The labelled asymmetric API fixture then holds the original two parts, collapses them together, holds the new parts under their fresh owner, and collapses again. Existing house and ruin bundles are reused without an art build; their fit to this prototype is not source/design acceptance.
+This proof drives the real garrison route, authority, production decoder and renderer. The shipped singleton scene passes every existing check. An asymmetric API fixture holds two original parts, collapses them together, holds the new parts under their fresh owner, and collapses again. Existing house and ruin bundles are reused without an art build, so their fit is not source or design acceptance.
 
-The [receipt](comparison.json) compares complete observations, battle digests, ticks and cameras across separately falsified owners. The footprint arm changes only the delivered centre/half extents; the appearance arm changes no simulation word. Temporary rule/fixture/source staging is restored byte-for-byte. [Identity](identity.json) pins source, WASM and every PNG; saved frames live outside the worktree in its stated evidence root.
+Two deliberately broken owners were compared against the real one, with identical simulation output in each arm:
 
-The ring's extent changes while the original or replacement state is held. Restoring immediate-predecessor appearance lookup leaves intact houses and extra default ruins after the second collapse; immutable authored-source lookup leaves the two original ruin appearances. Pixel differences locate these changes rather than declaring art quality: full-frame mismatch ratios are 0.00385/0.00433 for standing/held footprints and 0.01061 for second-generation appearance. Corresponding 2× crops are 0.01919/0.02158 and 0.05289. Small differences in unchanged states are capture noise; the matched complete physical observations stay exact.
+- **Footprint.** A ring sized from the removed first box leaves the attached wing and its seated soldiers outside. The real ring encloses both parts, standing and held. Full-frame mismatch is 0.00385 standing and 0.00433 held (2× crops 0.01919 and 0.02158).
+- **Terminal appearance.** Looking up the immediate predecessor's appearance redraws intact houses and blue roofs after the second collapse. Immutable authored-source lookup leaves only the two original ruins. Full-frame mismatch 0.01061 (crop 0.05289).
 
-The intended capability is one ring sized for the current aggregate and one drawn terminal state per original part. It does not certify roof joins, facade fit, source proportions, regional/category readiness, or final scene design. Complete template/source/art G0, C40/C43 interactions and the broader integrated visual matrix remain open.
+Pixel differences locate these changes; they do not grade art. Small differences in unchanged states are capture noise, and the complete physical observations stay exact.
 
-The [adversarial review](critique.md) records the unavailable-agent fallback explicitly; it does not claim a fresh agent reviewed these frames. The snapshots retain the disposable reproduction, not a shipped debug route or an alternate renderer/codec.
+The review was done by the implementing agent and by root separately, because no fresh agent was available; it is not an unprimed critique. Both accepted the footprint and terminal-appearance corrections with high confidence. Labels stay separate and readable, and the ring lies on the ground behind solid walls.
+
+## Open
+
+- The stretched house appearances read as unrelated tall blocks with a poor roof join, not a fitted compound. Source and model fit belong to C13/C32/G0.
+- The singleton's blue corrugated rear strip may read as a detached object; its source intent is unreviewed.
+- Tracers and blasts hide occupants and ruin edges in firefight frames.
+- Perimeter occupants stand at exterior edges while the readout says Inside. That convention is a C40 obligation.
+- Roof joins, facade fit, source proportions, regional/category readiness, C40/C43 interactions and the integrated visual matrix remain open.
+
+Raw evidence (frames, comparison and identity): tag `city-maps-evidence-2026-09-30`.

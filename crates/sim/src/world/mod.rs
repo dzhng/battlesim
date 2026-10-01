@@ -8,7 +8,7 @@ mod props;
 mod surfaces;
 mod terrain;
 
-pub use forest::{Canopy, Foliage};
+pub use forest::Foliage;
 pub(crate) use props::ray_box;
 use props::PropIndex;
 pub use props::{Prop, PropId, Slot};
@@ -32,12 +32,27 @@ pub enum SurfaceKind {
     Sidewalk,
 }
 
+impl SurfaceKind {
+    /// Every carriageway is a road here; its kind only sets its speed
+    /// (`Surface::road_factor`).
+    pub fn of(kind: contract::map::SurfaceKind) -> Self {
+        if kind.is_road() {
+            SurfaceKind::Road
+        } else {
+            SurfaceKind::Sidewalk
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Surface {
     pub z: f64,
     pub normal: V3,
     pub slope_deg: f64,
     pub kind: SurfaceKind,
+    /// The surface kind's `speed_factor` on a road's share of road speed
+    /// (the rules' `surfaces` table): 0 where the ground is no road.
+    pub road_factor: f64,
     /// Forest ground, not cleared (Q16): forest speed applies.
     pub forest: bool,
     /// Ground units may stand here: not water, and below the shared slope cutoff.
@@ -64,8 +79,10 @@ pub struct WorldGeometry {
     slope_cutoff_deg: f64,
     water: Vec<Water>,
     surfaces: surfaces::SurfaceIndex,
+    /// Each surface kind's speed factor, by `contract::map::SurfaceKind` order.
+    surface_factors: [f64; contract::map::SurfaceKind::ALL.len()],
     bridges: Vec<Bridge>,
-    /// Authoring rects, for drawing the forest floor only.
+    /// Authoritative authored shapes; generated trunks and cleared ground are runtime state.
     forests: Vec<Forest>,
     /// The forests at runtime: foliage per fog cell and the cleared mask.
     forest: forest::ForestState,
@@ -86,10 +103,14 @@ pub struct WorldGeometry {
 impl WorldGeometry {
     /// The map's ground and props, each prop with its type's body row from
     /// the rules' catalog (every type placed must be one), a bridge's deck
-    /// as its `deck` type, and each forest's trees (`forests.tree`) as its
-    /// density in the rules' `forests` places them. The foliage grid is the
+    /// as its `deck` type, and each forest's trees (`forests.tree`) where the
+    /// one `forests.rule` places them. The foliage grid is the
     /// fog's, the cleared mask the ground layer's.
     pub fn new(map: &MapDefinition, rules: &Rules) -> Self {
+        assert!(
+            map.forests.len() <= (1 << 24),
+            "forest IDs must fit exact public f32 indices"
+        );
         // The foliage and cleared grids are cut into cells of these.
         assert!(
             map.fog_cell_m.is_finite() && map.fog_cell_m > 0.0,
@@ -124,6 +145,8 @@ impl WorldGeometry {
             slope_cutoff_deg: map.slope_cutoff_deg,
             water: map.water.clone(),
             surfaces: surfaces::SurfaceIndex::new(&map.surfaces, map.size),
+            surface_factors: contract::map::SurfaceKind::ALL
+                .map(|kind| rules.surfaces[&kind].speed_factor),
             bridges: map.bridges.clone(),
             forests: map.forests.clone(),
             forest: forest::ForestState::new(
@@ -131,6 +154,8 @@ impl WorldGeometry {
                 field.depth(),
                 map.fog_cell_m,
                 rules.ground.cell_m,
+                &map.forests,
+                rules.forests.rule,
             ),
             props: Vec::new(),
             buildings: buildings::Buildings::new(&map.buildings, rules.catalog.props()),
@@ -160,31 +185,26 @@ impl WorldGeometry {
             });
         }
         for (index, forest) in map.forests.iter().enumerate() {
-            let density = *forests
-                .densities
-                .get(&forest.density)
-                .unwrap_or_else(|| panic!("forests.densities has no row {:?}", forest.density));
-            let canopy = Canopy {
-                height_m: forest.canopy_height_m,
-                density,
-            };
-            for p in world.trunk_positions(index, forest, &density) {
+            let rule = forests.rule;
+            let first = u32::try_from(world.props.len()).expect("world exceeds u32 prop IDs");
+            for p in world.trunk_positions(index, forest) {
                 let id = world.add_prop(&PropDefinition {
                     kind: forests.tree.clone(),
                     center: [p.x, p.y],
                     yaw: 0.0,
                     half_extents: [
-                        forest.trunk_radius_m,
-                        forest.trunk_radius_m,
-                        forest.trunk_height_m / 2.0,
+                        rule.trunk_radius_m,
+                        rule.trunk_radius_m,
+                        rule.trunk_height_m / 2.0,
                     ],
                     base_z: None,
                 });
                 if let Some(Some(prop)) = world.props.get_mut(id as usize) {
-                    prop.canopy = Some(canopy);
+                    prop.forest_tree = true;
                 }
             }
-            world.note_forest(forest, &density);
+            let end = u32::try_from(world.props.len()).expect("world exceeds u32 prop IDs");
+            world.note_forest(forest, [first, end]);
         }
         // Authored setup is revision 0; only later changes count.
         world.revision = 0;
@@ -197,7 +217,7 @@ impl WorldGeometry {
     pub fn navigation_regions(&self) -> Vec<[f64; 4]> {
         let mut regions = self.field.variation_regions().to_vec();
         regions.extend(self.water.iter().map(|w| w.rect));
-        regions.extend(self.forests.iter().map(|f| f.rect));
+        regions.extend(self.forests.iter().map(|f| f.shape.bounds()));
         regions.extend_from_slice(self.forest.bounds());
         regions.extend(self.surfaces.navigation_regions());
         for bridge in &self.bridges {
@@ -329,6 +349,7 @@ impl WorldGeometry {
                 normal: v3(0.0, 0.0, 1.0),
                 slope_deg: 0.0,
                 kind: SurfaceKind::Bridge,
+                road_factor: 1.0,
                 forest: ground.forest,
                 traversable: true,
             }),
@@ -353,20 +374,22 @@ impl WorldGeometry {
         let (z, normal) = self.field.height_normal(x, y)?;
         let p = v2(x, y);
         let slope_deg = normal.z.clamp(-1.0, 1.0).acos().to_degrees();
+        let paved = self.surfaces.at(p);
         let kind = if self.water.iter().any(|w| in_rect(w.rect, x, y)) {
             SurfaceKind::Water
         } else {
-            match self.surfaces.at(p) {
-                Some(contract::map::SurfaceKind::Road) => SurfaceKind::Road,
-                Some(contract::map::SurfaceKind::Sidewalk) => SurfaceKind::Sidewalk,
-                None => SurfaceKind::Ground,
-            }
+            paved.map_or(SurfaceKind::Ground, SurfaceKind::of)
+        };
+        let road_factor = match (kind, paved) {
+            (SurfaceKind::Water, _) | (_, None) => 0.0,
+            (_, Some(paved)) => self.surface_factors[paved as usize],
         };
         Some(Surface {
             z,
             normal,
             slope_deg,
             kind,
+            road_factor,
             forest: self.forest_ground(x, y),
             traversable: kind != SurfaceKind::Water && slope_deg < self.slope_cutoff_deg,
         })
@@ -540,7 +563,7 @@ impl WorldGeometry {
                 def.half_extents[2],
             ),
             base_z,
-            canopy: None,
+            forest_tree: false,
             known_to_all: false,
             body: self.types.get(kind).body,
         };

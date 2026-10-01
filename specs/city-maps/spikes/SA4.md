@@ -4,7 +4,7 @@
 
 ## Frozen preservation evidence
 
-[Oracle identity](../assets/fog-delivery/oracle-identity.json) pins the original publication/decoder sources at `b538ecd`. The [oracle](../assets/fog-delivery/oracle.json) contains the original complete decoded observations and authoritative frames/digests for moving units on the geometry lab, including occlusion, side changes and resynchronization. The current native test preserves every digest and visibility word; the wasm/browser decoder test preserves every complete decoded observation and retained earlier frame. Authoritative f64 state is pinned by its digest; canonical JSON readers can round an individual f64 value, so the JSON frame is not an exact floating-point oracle.
+The oracle identity file pinned the original publication/decoder sources at `b538ecd` (raw evidence: tag `city-maps-evidence-2026-09-30`). The [oracle](../../../fixtures/parity/fog/oracle.json) contains the original complete decoded observations and authoritative frames/digests for moving units on the geometry lab, including occlusion, side changes and resynchronization. The current native test preserves every digest and visibility word; the wasm/browser decoder test preserves every complete decoded observation and retained earlier frame. Authoritative f64 state is pinned by its digest; canonical JSON readers can round an individual f64 value, so the JSON frame is not an exact floating-point oracle.
 
 Falsifying the decoder's copy on changed visibility fails retained tick 1. Falsifying client epoch invalidation delivers an obsolete blue tick after switching to red and fails the race test. Both corrected paths pass. The original unchanged-field test failed with equal snapshot/steady sizes before implementation.
 
@@ -16,7 +16,7 @@ Falsifying the decoder's copy on changed visibility fails retained tick 1. Falsi
 | Prior observation lifetime? | Pass | Later changed fields copy; unchanged fields share; frozen retained frames and mutation falsification |
 | Side/resync/replacement and withheld credit? | Pass | One shared side/epoch with ground; races before/after the first callback return obsolete in-flight credit; existing authority tests preserve consecutive ticks and consumer stalls; a new decoder starts a replacement stream |
 | Padding and exact indices/revisions? | Pass | Word/revision limbs are exact; all fixed extents at 2/4/8 m encode within the declared bound; partial final words have zero padding; revisions above float32's exact integer range are decoded exactly; wasm32 dimension multiplication cannot wrap past the bound |
-| Initial snapshots versus steady delivery? | Pass in isolation | [Native stages](../assets/fog-delivery/native/) and [Chrome worker/decoder probe](../assets/fog-delivery/browser.json), below |
+| Initial snapshots versus steady delivery? | Pass in isolation | Native stages and the Chrome worker/decoder probe (`browser.json`), below |
 | Whole active-battle publication budget? | Open | The small frozen movement workload is under the provisional target. S1/C07 must measure the actual full-size active workload; an empty field cannot ratify 19.8 KB/tick |
 
 At the current 8 m fog profile:
@@ -27,7 +27,7 @@ At the current 8 m fog profile:
 | 15 km | 878,996 B | 879,020 / 108 B | 403,091,662 B | 373,489,664 B |
 | 18 km | 1,265,716 B | 1,265,740 / 108 B | 580,666,734 B | 538,247,168 B |
 
-The [active comparison](../assets/fog-delivery/active.json) reduces total wire bytes over the frozen run from 136,804 to 103,528. Four records open streams, 76 are deltas, 67 carry no fog payload; the largest sparse fog payload is 180 B. A high-churn change uses a snapshot within the same epoch when its indexed replacements would be larger. Snapshot headers add the cursor fields and whole-word padding; this accounts for the small initial-record increase.
+The active comparison (`active.json`) reduces total wire bytes over the frozen run from 136,804 to 103,528. Four records open streams, 76 are deltas, 67 carry no fog payload; the largest sparse fog payload is 180 B. A high-churn change uses a snapshot within the same epoch when its indexed replacements would be larger. Snapshot headers add the cursor fields and whole-word padding; this accounts for the small initial-record increase.
 
 Each full-size native arm was admitted against S0's 4 GiB ceiling using its frozen empty-Battle peak plus publication cursor, staging and credit overlap. The browser arm constructs only the worker Battle and production authority/decoder, with consecutive completed ticks and side switches. It does not construct a main-thread WorldView, GroundView, terrain mesh or GPU frame, so SA1/SA2/SA3 failures are still failures. Requested heap, wasm memory pages and elapsed time are distinct measurements; timings vary with machine load.
 

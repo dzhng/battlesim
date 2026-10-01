@@ -14,7 +14,7 @@ A frozen representation/equivalence/resource verdict and one owning production c
 HeightField queries → compact public sampled surface → public picking and bounded terrain/fog/grass height consumers. Preserve closed bounds, SW→NE interpolation, normals, ray first-hit ordering, water/road/bridge precedence and existing relief fixtures. Flat ground is implicit; local nonflat samples belong to the same representation. No renderer-owned resampling or second simulation world.
 
 ## Candidate investigation
-Compare implicit-flat/local-sample tiles with the frozen dense terrain oracle. Do not choose an approximation merely because it is cheap. Coalescing is permitted only on exactly planar sampled regions. Export once and migrate terrainGrid, terrainSurface, world bounds, fog height and grass height consumers; an unbounded consumer makes the proof fail.
+Compare implicit-flat/local-sample tiles with the frozen dense terrain oracle. Do not choose an approximation merely because it is cheap. Coalescing is permitted only on exactly planar sampled regions. Export once and cut over terrainGrid, terrainSurface, world bounds, fog height and grass height consumers; an unbounded consumer makes the proof fail.
 
 ## What the human can run or see
 Matched original/candidate reports, focused neutral query/route/sampling overlays and fixed-extents resource rows. No new visual design/model is authored.

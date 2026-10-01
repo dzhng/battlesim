@@ -38,17 +38,17 @@ Foliage and fog agreement (≥95%).
 A forest that implies a different density rule by species reopens shared coverage/scale before art tuning.
 
 
-## Stopping checkpoint
+## Outcome
 
-The [structural candidate](../assets/forest-shapes/README.md) is preserved as an
-**unactivated** source/evidence snapshot on Root baseline `27e03c4`. Production
-retains its current schema. Owned rectangle identity is independently proven:
-57 native producer records are byte-identical, and the source-range placement
-regression passes after a genuine duplicate-tree failure.
+**Done.** `Forest` is only a shape (`contract::map::Forest`; the shared polygon/stroke `GroundShape`), and `forests.rule` (`contract::scenario::ForestRule`) holds today's medium spacing, jitter, concealment, attenuation and crown plus the tree's size: canopy 12 m, trunk radius 0.35 m, height 10 m, clearance 2 m. `ForestDensity`, `densities` and the per-forest tree fields are gone, and a forest row carrying any of them is refused at load. The sim reads the rule from `ForestState`; a tree carries only a `canopy` flag.
 
-The seven-query GPU check remains red at a capsule endpoint (`-1` versus
-`-1.0000001192092896`). Exact acceptance was not relaxed. Source/visual review,
-paired pixels and remaining falsification gates are open. C65's sampled curves
-and this slice's named uniform-density pass were not activated. Resume those
-requirements after isolating the preserved GPU failure; this checkpoint does
-not mark C72 complete.
+- The shape cutover kept original trunk IDs (57 native producer records byte-identical at the candidate's baseline).
+- The GPU forest query matches the sim's inside/outside answer at every probe and its distance to 0.1 mm; see `choices.md`.
+- The named changes landed: the village east wood, endurance, the `sensors`, `geometry`, `consequences` and `movement` labs, and the workbench now all use the one rule. Frozen parity outputs that depended on light or dense woods were regenerated (`BLESS_PARITY=1`); everything else stayed byte-identical.
+- Movement scenarios: `t1-spotted-open-vs-forest` (open ground spotted at 598 m, the forest at 207 m) and `t3-jeep-through-forest` (a jeep still threads the forest, knocking nothing).
+
+**Measured shift (balance waits for C50).** `village_report --quick` against main: every digest moved, as named. The flank script captures 2 of 3 seeds in 600 s where it captured 3 (seed 1 took 540 s before and now runs out the clock), and blue's cost lost rises 728 → 790. The ambush script is unchanged at 0 of 3 with 120 lost.
+
+Main's first ten minutes cost 23,579 G; this slice's cost 25,215 G (+6.9%, the denser wood).
+
+**Endurance baseline (60 minutes, step instructions in billions per five minutes):** 10,853 · 14,362 · 9,536 · 3,807 · 1,615 · 1,562 · 1,552 · 1,556 · 1,550 · 1,557 · 1,551 · 1,557.

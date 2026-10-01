@@ -51,22 +51,16 @@ fn the_supported_attack_shells_the_first_public_building_owner() {
     // Freeze the original encounter so future fixture tuning does not change this
     // aggregate-ownership regression's opening.
     let oracle: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/building-aggregate/oracle.json"
+        "../../../fixtures/parity/buildings/oracle.json"
     ))
     .unwrap();
-    let mut input = oracle["arms"]
+    let input = oracle["arms"]
         .as_array()
         .unwrap()
         .iter()
         .find(|arm| arm["name"] == "village")
         .unwrap()["scenario"]
         .clone();
-    input["map"]["fog_cell_m"] = input["rules"]["sensors"]
-        .as_object_mut()
-        .unwrap()
-        .remove("fog_cell_m")
-        .unwrap();
-    common::migrate_original_surfaces(&mut input["map"]);
     let mut setup: ScenarioDefinition = serde_json::from_value(input).unwrap();
     setup.map = common::physical_map(setup.map, &setup.rules);
     let tick_hz = setup.rules.tick_hz as u64;

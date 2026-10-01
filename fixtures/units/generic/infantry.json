@@ -4,7 +4,7 @@
       "abstract": true,
       "faction": "generic",
       "family": "infantry",
-      "mobility": { "foot": { "mps": 3, "road_multiplier": 1.3 } },
+      "mobility": { "foot": { "offroad_kmh": 11, "road_kmh": 14 } },
       "sensors": { "ground_m": 600, "sight_shape": { "front": 1.0, "side": 1.0, "rear": 1.0 } },
       "sound": { "profile": "infantry", "loudness_m": 200 }
     },
