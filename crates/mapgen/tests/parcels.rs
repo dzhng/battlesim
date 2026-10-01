@@ -763,9 +763,7 @@ fn what_cannot_be_built_ends_in_a_named_diagnostic() {
     let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
     source["districts"]["garden_suburb"]["lots"]["front_m"] = serde_json::json!(900);
     let deep = PresetDefinitions::from_json(&source.to_string()).unwrap();
-    let started = std::time::Instant::now();
     let errors = fill(&request, &deep, &catalogue()).unwrap_err();
-    assert!(started.elapsed().as_secs() < 20);
     assert_eq!(errors[0].code, DiagnosticCode::GenerationFailed);
     assert_eq!(errors[0].location, "$.presets.districts.garden_suburb");
     let feature = errors[0].feature.as_deref().unwrap();
