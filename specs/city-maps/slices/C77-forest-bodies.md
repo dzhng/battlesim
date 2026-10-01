@@ -31,3 +31,33 @@ Nav through forests.
 
 ## Feedback that would change this slice
 A forest body that blocks or shelters unexpectedly reopens its physical property/placement rule before model polish.
+
+
+## Outcome — physical core (2026-10-01; performance gates pending)
+
+The log/boulder catalog rows, forest-rule type/density/dimension seam and bounded
+seeded placement are implemented. Floor bodies are appended after **all** trunks,
+so trunk IDs, source ranges, positions and foliage exports remain bit-identical
+when floor density changes. Logs are medium destructible cover a tank can shove;
+boulders are immovable heavy cover. Neither creates foliage or clears a lane.
+The existing dynamic tree-fall rule is retained. [Choices](../choices.md#c77-forest-bodies--physical-core-2026-10-01)
+records values and candidate-density semantics.
+
+Focused native tests pass: movement/round/cover properties; trunk and foliage
+parity with floor enabled/disabled; deterministic placement; load-time refusal
+of invalid rules; and flood traversal of every open 2 m navigation cell for
+infantry and jeep footprints on three forest geometries. The load-time regression
+was falsified by removing validation, confirmed red for accepting an unknown
+prop type, then restored green. The body shove matrix includes both floor kinds.
+The appearance gate passes with explicit systems-only status; this does **not**
+certify rendered playable cover.
+
+The village explicitly activates the shared densities, a **named C77 digest
+change**. Paired quick battle and endurance instruction evidence are pending the
+SA5 production winner. The preserved original quick baseline took 287.4 s and
+5026 G instructions; duplicating its slow sight path would obscure floor cost.
+The next pass measures the same SA5 build with and without floor bodies before
+calling the systems slice green. C78 models, cover GIFs and visual acceptance
+remain open. Manual shape/diff/docs review and choices audit passed; the default
+CLI second review is unavailable because its configured model is unsupported.
+Integrated independent review and whole-repo gates remain with the orchestrator.

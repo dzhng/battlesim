@@ -78,6 +78,8 @@ fn a_vehicle_shoves_only_bodies_strictly_lighter_than_its_push_class() {
             "pallet_stack",
             "site_cabin",
             "road_barrier",
+            "log",
+            "boulder",
         ] {
             // A wall across the map with a 9.6 m gate; the body fills most of it.
             let at = [55.0, 30.0];

@@ -1,0 +1,21 @@
+{
+  "props": {
+    "boulder": {
+      "body": {
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "stops_rounds": true,
+        "occludes": false,
+        "weight_class": "immovable",
+        "cover_tier": "heavy"
+      },
+      "appearance": {
+        "drawn_by": "boulder",
+        "status": "systems_only",
+        "map_only": true
+      }
+    }
+  }
+}

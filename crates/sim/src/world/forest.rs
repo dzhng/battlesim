@@ -1,6 +1,8 @@
 //! Forests as bodies (Q14, Q16, Q21). A forest's shape is only authoring
 //! input: the one `forests.rule` generates its trunks, and at runtime a forest
-//! is those trunk bodies plus the ground a heavy vehicle has cleared.
+//! is those trunk bodies plus the ground a heavy vehicle has cleared. Logs
+//! and boulders are ordinary cover bodies, placed after all trunks; they
+//! neither supply foliage nor clear forest ground when shoved.
 //!
 //! - **Foliage** is precomputed per fog cell (`map.fog_cell_m`) from the concealing bodies
 //!   whose crown covers the cell's centre: strength `1 − Π(1 − conceals)`,
@@ -241,6 +243,74 @@ impl WorldGeometry {
             y += step;
         }
         out
+    }
+
+    /// Independent jittered lattices place sparse floor bodies in gaps. A
+    /// rejected candidate stays rejected: no retries, and no trunks move.
+    pub(super) fn place_forest_bodies(
+        &mut self,
+        index: usize,
+        forest: &Forest,
+        kind: &str,
+        density: f64,
+        half: [f64; 3],
+        salt: u64,
+    ) {
+        let step = (10_000.0 / density).sqrt();
+        let [x0, y0, max_x, max_y] = forest.shape.limits();
+        assert!(
+            [x0, y0, max_x, max_y]
+                .iter()
+                .all(|v| (v + step).is_finite() && v + step > *v),
+            "forest floor lattice spacing must advance at every bound"
+        );
+        let radius = half[0].hypot(half[1]);
+        let clearance = self.forest.rule.trunk_clearance_m;
+        let mut rng = crate::rng::Rng::new(forest_seed(index, forest) ^ salt);
+        let mut y = y0 + step / 2.0;
+        while y <= max_y {
+            let mut x = x0 + step / 2.0;
+            while x <= max_x {
+                let p = v2(
+                    x + (rng.unit() * 2.0 - 1.0) * self.forest.rule.trunk_jitter * step,
+                    y + (rng.unit() * 2.0 - 1.0) * self.forest.rule.trunk_jitter * step,
+                );
+                let yaw = rng.unit() * std::f64::consts::TAU;
+                let inside = match &forest.shape {
+                    contract::ground::GroundShape::Polygon { ring } => {
+                        forest.shape.contains([p.x, p.y], 0.0)
+                            && contract::ground::edges(ring).all(|(a, b)| {
+                                contract::ground::segment_distance(*a, *b, [p.x, p.y]) >= radius
+                            })
+                    }
+                    contract::ground::GroundShape::Stroke { .. } => {
+                        forest.shape.contains([p.x, p.y], -radius)
+                    }
+                };
+                let clear = inside
+                    && p.x >= radius
+                    && p.y >= radius
+                    && p.x + radius <= self.field.width()
+                    && p.y + radius <= self.field.depth()
+                    && !self.surfaces.road_near(p, radius + clearance)
+                    && !self.surfaces.water_near(p, radius + clearance)
+                    && self
+                        .props_near(p, radius + clearance)
+                        .iter()
+                        .all(|q| q.footprint().distance(p) >= radius + clearance);
+                if clear {
+                    self.add_prop(&contract::map::PropDefinition {
+                        kind: kind.into(),
+                        center: [p.x, p.y],
+                        yaw,
+                        half_extents: half,
+                        base_z: None,
+                    });
+                }
+                x += step;
+            }
+            y += step;
+        }
     }
 
     /// Record a forest's reach once its trunks stand.

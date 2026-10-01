@@ -1893,3 +1893,64 @@ source or look gate is reblessed by this systems pass.
 **Gap:** A front vehicle needed room to reverse while its rear follower could not yield; old yaw comparisons admitted overlap, and full-curvature prediction overshot a jeep's small remaining turn around a wreck.
 
 **Verdict:** sound. All eight opposing vehicles finish the unchanged bridge-column scenario with no hull overlap, water standing or turning-radius violation. The wreck jeep reaches its goal instead of issuing the same route repeatedly. The lookahead bends only through the remaining heading error. These are named mechanic and digest changes, rather than a performance-only claim. **Confidence:** high for the pinned moments; broader dense traffic remains dependent on local yielding.
+## C77 forest bodies — physical core (2026-10-01)
+
+### Per-kind war-film audit (delegated values)
+
+A fallen log stops intersecting rounds and is medium infantry cover. Its medium
+weight stops a jeep but allows a tank to shove it; sustained damage removes it.
+It never topples again, clears ground or adds foliage. A boulder is immovable
+heavy cover: a jeep must drive around it, ordinary fire cannot destroy it, and
+its small footprint does not turn into a fog-cell wall. Both block infantry,
+who walk around them, and vehicles. The starting log HP is 120; physical half
+sizes are `[2.2, 0.35, 0.35]` m and `[1, 0.8, 0.75]` m respectively.
+The floor placement inputs are 5 logs and 3 boulders per hectare before rejection.
+These are delegated physical starting values, not balance tuning.
+
+### Density means a sparse candidate ceiling
+
+**Choice:** A log candidate starts in each cell of an independent jittered
+lattice with the configured per-hectare density. If it overlaps a tree's gap,
+a road, water, another body or the forest edge, it is omitted. For example a
+small wood with no suitable gap can produce no logs rather than moving a tree
+or searching indefinitely. The boulder lattice has its own seed and applies the
+same checks after logs. Existing forest jitter controls both new lattices.
+
+**Gap:** The spec specified sparse density but not retries, exact counts or gap
+failure behavior. **Reach:** Density tuning changes candidate opportunities;
+accepted density can be lower, especially in narrow strips or dense woods.
+**Verdict:** sound: deterministic bounded work preserves trunks and omits cover
+that cannot physically fit. **Confidence:** medium.
+
+### The entire body footprint must fit and leave clearance
+
+**Choice:** Placement reserves the body's bounding circle inside the forest and
+map, away from roads and water, and at least the existing trunk clearance from
+other bodies. A long diagonal log cannot poke onto a road just because its center
+fits. This is conservative: some edge spots whose actual rectangle fits will
+still be rejected. **Gap:** The spec named trunk-free gaps but did not say how
+rotated bodies fit the boundary. **Reach:** C78 art must fit the configured body;
+it cannot make a wider fallen trunk occupy a corridor reserved by placement.
+**Verdict:** sound: shared distance/shape queries keep physical clearance honest.
+**Confidence:** high.
+
+### Frozen inputs retain a disabled floor, and live inputs are admitted at load
+
+**Choice:** Missing floor densities and dimensions are zero and missing catalog
+references are absent. Old frozen parity scenarios therefore stand the same
+trunks with no new floor bodies. The live village explicitly supplies both types,
+both dimensions and both nonzero densities. A positive density requires a valid
+ordinary catalog body, finite positive dimensions and finite lattice spacing;
+entries with garrison, toppling or foliage properties are refused. Each density
+is capped at 100 candidates per hectare (one per 100 square metres) to preserve
+sparse startup work on large maps. **Gap:** Frozen rules predate the floor fields,
+and admission bounds were unspecified. **Reach:** Increasing density past this
+ceiling needs a measured admission change; art-only species cannot add physical
+floor rules. **Verdict:** sound: identified frozen consumers retain behavior and
+unbounded density cannot silently become map-scale work. **Confidence:** medium.
+
+Dynamic felled trees retain the existing cleared-ground lifecycle. This pass
+adds real generated fallen logs, not a new tree-to-log destruction mechanic.
+The systems-only appearance boundary remains unaccepted: these physical bodies
+can affect a native/playable battle before their models exist, so C78 visual
+acceptance and GIFs stay explicitly open.

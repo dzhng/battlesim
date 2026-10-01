@@ -116,3 +116,14 @@ A map's water is its `rivers`: each a line of points with the water's `width_m` 
 ## Parity oracles
 
 `parity/` holds frozen inputs and expected outputs that the native tests and the web tests both read, so the Rust simulation and its WebAssembly build are held to the same answer: building aggregates, fog delivery, ground learning and transport, the map compiler, physical templates (including the rejected descriptors that must keep failing), terrain queries and the rounded samples of roads and rivers. A file changes only with a named behaviour change, and every test that reads it changes in the same commit.
+
+
+## Forest floor cover
+
+The one `forests.rule` controls sparse log and boulder candidate density and
+physical size. The forest's catalog references select their body properties.
+The world places floor cover after all trunks with independent seeds, so changing
+floor density cannot shift any trunk or its published source range. Candidates
+that conflict with trees, roads, water, bodies or the forest boundary are omitted;
+per-hectare densities are placement ceilings, not guaranteed counts. The floor
+adds no concealment: trunk crowns remain the single foliage authority.

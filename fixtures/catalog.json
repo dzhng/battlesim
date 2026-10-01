@@ -75,6 +75,29 @@
           },
           "destroyed": "removed"
         },
+        "boulder": {
+          "appearance": {
+            "drawn_by": "boulder",
+            "map_only": true,
+            "status": "systems_only"
+          },
+          "body": {
+            "armor": 1.0,
+            "blocks": {
+              "infantry": true,
+              "vehicle": true
+            },
+            "conceals": 0.0,
+            "cover_tier": "heavy",
+            "garrison": false,
+            "hp": null,
+            "lifetime_s": null,
+            "occludes": false,
+            "stops_rounds": true,
+            "topples": false,
+            "weight_class": "immovable"
+          }
+        },
         "bridge_deck": {
           "appearance": {
             "drawn_by": "bridge_deck",
@@ -389,6 +412,30 @@
             "stops_rounds": true,
             "topples": false,
             "weight_class": "light"
+          },
+          "destroyed": "removed"
+        },
+        "log": {
+          "appearance": {
+            "drawn_by": "log",
+            "map_only": true,
+            "status": "systems_only"
+          },
+          "body": {
+            "armor": 1.0,
+            "blocks": {
+              "infantry": true,
+              "vehicle": true
+            },
+            "conceals": 0.0,
+            "cover_tier": "medium",
+            "garrison": false,
+            "hp": 120.0,
+            "lifetime_s": null,
+            "occludes": false,
+            "stops_rounds": true,
+            "topples": false,
+            "weight_class": "medium"
           },
           "destroyed": "removed"
         },
@@ -1475,6 +1522,29 @@
       },
       "destroyed": "removed"
     },
+    "boulder": {
+      "appearance": {
+        "drawn_by": "boulder",
+        "map_only": true,
+        "status": "systems_only"
+      },
+      "body": {
+        "armor": 1.0,
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "conceals": 0.0,
+        "cover_tier": "heavy",
+        "garrison": false,
+        "hp": null,
+        "lifetime_s": null,
+        "occludes": false,
+        "stops_rounds": true,
+        "topples": false,
+        "weight_class": "immovable"
+      }
+    },
     "bridge_deck": {
       "appearance": {
         "drawn_by": "bridge_deck",
@@ -1789,6 +1859,30 @@
         "stops_rounds": true,
         "topples": false,
         "weight_class": "light"
+      },
+      "destroyed": "removed"
+    },
+    "log": {
+      "appearance": {
+        "drawn_by": "log",
+        "map_only": true,
+        "status": "systems_only"
+      },
+      "body": {
+        "armor": 1.0,
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "conceals": 0.0,
+        "cover_tier": "medium",
+        "garrison": false,
+        "hp": 120.0,
+        "lifetime_s": null,
+        "occludes": false,
+        "stops_rounds": true,
+        "topples": false,
+        "weight_class": "medium"
       },
       "destroyed": "removed"
     },

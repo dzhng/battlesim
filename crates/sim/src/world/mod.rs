@@ -216,6 +216,35 @@ impl WorldGeometry {
             let end = u32::try_from(world.props.len()).expect("world exceeds u32 prop IDs");
             world.note_forest(forest, [first, end]);
         }
+        // Floor cover follows every forest's trunks, so it cannot displace a
+        // later forest's trees or change their immutable source ID ranges.
+        for (index, forest) in map.forests.iter().enumerate() {
+            for (kind, density, half, salt) in [
+                (
+                    &forests.log,
+                    forests.rule.logs_per_ha,
+                    forests.rule.log_half_extents_m,
+                    3,
+                ),
+                (
+                    &forests.boulder,
+                    forests.rule.boulders_per_ha,
+                    forests.rule.boulder_half_extents_m,
+                    4,
+                ),
+            ] {
+                if density > 0.0 {
+                    world.place_forest_bodies(
+                        index,
+                        forest,
+                        kind.as_deref().expect("validated floor kind"),
+                        density,
+                        half,
+                        salt,
+                    );
+                }
+            }
+        }
         // Authored setup is revision 0; only later changes count.
         world.revision = 0;
         world.touched.clear();
