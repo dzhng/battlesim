@@ -45,6 +45,9 @@ pub struct MapPlan {
     /// Rivers, in the contract's shared shape: impassable water.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub rivers: Vec<contract::river::River>,
+    /// Decks that carry movers over the rivers, in the contract's shape.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub bridges: Vec<contract::map::Bridge>,
     /// Where towns stand and what each district is built from, the main
     /// settlement first. Plan-only: the parcel pass turns them into
     /// `buildings`; nothing here reaches the map.
@@ -181,7 +184,8 @@ pub enum DiagnosticCode {
     InvalidBounds,
     InvalidPlacement,
     InvalidAuthoredIds,
-    /// A river the terrain cannot carry (`contract::river::validate`).
+    /// A river the terrain cannot carry, or a bridge whose ends no ramp
+    /// reaches (`contract::river::validate`).
     InvalidRiver,
     ComplexityLimit,
     InvalidPresets,
@@ -383,6 +387,27 @@ pub fn validate_plan(plan: &MapPlan) -> Result<(), Vec<Diagnostic>> {
             });
         }
     }
+    for (index, bridge) in plan.bridges.iter().enumerate() {
+        let sound = bridge
+            .half_extents
+            .iter()
+            .chain([&bridge.thickness_m])
+            .all(|v| v.is_finite() && *v > 0.0)
+            && bridge.yaw.is_finite()
+            && bridge.deck_z.is_finite();
+        let inside =
+            bridge.ends().iter().flatten().all(|p| {
+                p[0] >= 0.0 && p[1] >= 0.0 && p[0] <= plan.size[0] && p[1] <= plan.size[1]
+            });
+        if !sound || !inside {
+            diagnostics.push(Diagnostic {
+                code: DiagnosticCode::InvalidBounds,
+                feature: None,
+                location: format!("$.plan.bridges[{index}]"),
+                message: "a bridge deck is a finite positive box inside the map bounds".into(),
+            });
+        }
+    }
     let mut feature_ids = BTreeSet::new();
     for (index, placement) in plan.buildings.iter().enumerate() {
         if placement.id.is_empty() || !feature_ids.insert(&placement.id) {
@@ -539,14 +564,22 @@ pub fn lower(
         buildings: Vec::new(),
         template_catalog_hash: Some(catalogue.hash().into()),
     };
-    contract::river::validate(&map).map_err(|message| {
-        vec![Diagnostic {
-            code: DiagnosticCode::InvalidRiver,
-            feature: None,
-            location: "$.plan.rivers".into(),
-            message,
-        }]
-    })?;
+    let unsound = |location: String| {
+        move |message| {
+            vec![Diagnostic {
+                code: DiagnosticCode::InvalidRiver,
+                feature: None,
+                location,
+                message,
+            }]
+        }
+    };
+    contract::river::validate(&map).map_err(unsound("$.plan.rivers".into()))?;
+    for (index, bridge) in request.plan.bridges.iter().enumerate() {
+        contract::river::validate_bridge(&map, bridge)
+            .map_err(unsound(format!("$.plan.bridges[{index}]")))?;
+    }
+    map.bridges = request.plan.bridges.clone();
     for (placement, descriptor) in request.plan.buildings.iter().zip(descriptors) {
         let building = contract::map::BuildingDefinition::materialize(
             descriptor,

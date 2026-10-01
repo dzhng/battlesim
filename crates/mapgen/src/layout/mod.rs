@@ -200,6 +200,7 @@ pub fn generate_layout(
         surfaces,
         forests,
         rivers: Vec::new(),
+        bridges: Vec::new(),
         settlements,
         approaches: Vec::new(),
         lots: Vec::new(),
