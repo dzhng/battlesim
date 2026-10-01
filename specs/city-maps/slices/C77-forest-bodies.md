@@ -33,7 +33,7 @@ Nav through forests.
 A forest body that blocks or shelters unexpectedly reopens its physical property/placement rule before model polish.
 
 
-## Outcome — physical core (2026-10-01; performance gates pending)
+## Outcome — physical systems (2026-10-01)
 
 The log/boulder catalog rows, forest-rule type/density/dimension seam and bounded
 seeded placement are implemented. Floor bodies are appended after **all** trunks,
@@ -52,17 +52,27 @@ prop type, then restored green. The body shove matrix includes both floor kinds.
 The appearance gate passes with explicit systems-only status; this does **not**
 certify rendered playable cover.
 
-Explicit systems inputs activate the 5/3 candidate densities, a **named C77
-digest change**. The default village remains disabled pending real drawing.
-Paired quick battle and endurance instruction evidence are pending the
-SA5 production winner. The preserved original quick baseline took 287.4 s and
-5026 G instructions; duplicating its slow sight path would obscure floor cost.
-The next pass measures the same SA5 build with and without floor bodies before
-calling the systems slice green. C78 models, cover GIFs and visual acceptance
-remain open. Manual shape/diff/docs review and choices audit passed; the default
-CLI second review is unavailable because its configured model is unsupported.
-Integrated independent review and whole-repo gates remain with the orchestrator.
+Explicit systems inputs activate 5 log/3 boulder candidates per hectare, a
+**named C77 digest change**. The default village stays disabled pending real
+drawing. [Paired evidence](../assets/sim-forest-bodies/README.md) uses identical
+final SA5 and C40–43 source with densities 0/0 versus 5/3: four logs and six
+boulders are admitted, 40 candidates rejected, all 687 trunks retained. Startup
+rises from 162.4 to 306.6 million instructions and peak RSS from 8.98 to 10.05 MiB.
+The six-trial quick report is 1150→1109 G instructions; both arms capture all
+three flank trials and no ambush trials. Flank seed 3 captures about 11 seconds
+sooner; aggregate blue loss is 1662.5→1625 and rejoined soldiers 5→7. The five-minute
+endurance is 1451.6→1449.9 G instructions and 259→260 MiB RSS, with a named digest
+change and two additional soldier casualties. These are changed physical battles,
+not a pure performance parity claim or balance tuning.
 
+Both timing arms ran under substantial host load. The zero-floor control already
+exceeds 33 ms; its maximum process CPU tick is 52.33 ms, versus 71.60 ms with cover.
+The report therefore makes no 33 ms timing acceptance claim. Native instruction,
+resource, reachability and rule gates are measured; active-variant timing and C78
+models/cover GIFs/visual acceptance remain explicit follow-up gates. Manual
+shape/diff/docs review and choices audit passed. The default CLI second review is
+unavailable because its configured model is unsupported; independent guard review
+and integrated whole-repo gates remain with the orchestrator.
 
 ### Route-preserving admission follow-up
 
@@ -80,7 +90,7 @@ no full-grid flood or rebuild runs per candidate. A window exceeding 4096 cells
 is rejected. Narrow-corridor rejection was first red with no guard, then green;
 changed jeep hull width was deliberately falsified with a forced 1 m mover,
 confirmed red, and restored. Accepted isolated cover and rollback tests also
-pass. The overlapping-forest parity fixture explicitly supplies broader trunk spacing so accepted cover exercises both new kinds under all catalog mover patterns; dense overlaps may correctly admit no cover. A prop-only catalog test also passes without requiring named unit kinds. Startup instruction evidence remains part of the pending paired gate.
+pass. The overlapping-forest parity fixture explicitly supplies broader trunk spacing so accepted cover exercises both new kinds under all catalog mover patterns; dense overlaps may correctly admit no cover. A prop-only catalog test also passes without requiring named unit kinds. Paired startup instructions are recorded in the linked evidence; active-variant quiescent timing remains open.
 
 
 ### Default activation waits for accepted drawing

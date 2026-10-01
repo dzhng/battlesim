@@ -1,0 +1,1 @@
+floor=true startup_ms=14.767 resources=Some((306637393, 14625333)) logs=4 boulders=6 attempted_logs=32 attempted_boulders=18 rejected_logs=28 rejected_boulders=12 props=753 trunks=687 digest=f86e4e296c080825

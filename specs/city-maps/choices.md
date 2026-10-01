@@ -2008,3 +2008,23 @@ pending log and then green with default activation deferred. C78 must install
 real accepted models/drawing before enabling the default. Prototype massing in
 explicit systems lab evidence certifies only native geometry/state, never art.
 
+
+### Paired rule-change evidence does not certify a timing budget
+
+**Choice:** Measure the same final SA5+C40–43 source with default 0/0 and explicit
+systems 5/3 floor densities. Count accepted and rejected candidates as well as
+complete-battle instructions, outcomes, digests, startup and RSS. The village
+systems arm admits ten bodies without moving its 687 trunks; startup costs an
+extra 144.2 million instructions and about 1.1 MiB peak RSS. Whole-battle work is
+1150→1109 G in six quick trials and 1451.6→1449.9 G in five-minute endurance.
+These are changed physical battles: one flank capture moves earlier and the
+endurance has two additional soldier casualties. **Gap:** Candidate density
+alone cannot demonstrate that useful cover exists or isolate runtime cost.
+**Reach:** Native physical/resource evidence is complete, while default drawing
+and timing acceptance stay explicit gates. The host was busy and even the zero
+control exceeds 33 ms; process CPU maxima are 52.33→71.60 ms, so the run neither
+certifies a timing pass nor isolates a worst-tick regression. Default activation
+remains deferred rather than claiming pending models or timing passed.
+**Verdict:** sound disclosure; measured instruction/resources are useful across
+changed battles, while the timing limitation stays visible. **Confidence:** high
+on recorded behavior and costs; unresolved on active-variant quiescent timing.

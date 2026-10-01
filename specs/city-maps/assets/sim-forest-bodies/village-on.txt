@@ -1,0 +1,20 @@
+6 trials (6 run, 0 cached) in 99.5 s wall on 1 threads; a trial 8.2–29.8 s (mean 16.6); 1109 G instructions retired; load { 28.30 29.21 25.55 }
+(not cached: the simulation sources have uncommitted changes)
+| script | seed | result | captured s | blue cost lost | tanks lost | rejoined | digest |
+|---|---|---|---|---|---|---|---|
+| scout-suppress-flank | 1 | Captured | 582 | 732 | 0 | 3 | `e80cd57821b19162` |
+| scout-suppress-flank | 2 | Captured | 539 | 452 | 0 | 1 | `5ea90c55c1ba041f` |
+| scout-suppress-flank | 3 | Captured | 539 | 440 | 0 | 3 | `297b3033cec29fc6` |
+| **scout-suppress-flank** | all | **3/3 captured** | | **1625** | **0** (a tank survived in 3) | **7** | |
+| ordinary-ambush-retreat (0.75 s) | 1 | Running | — | 0 | 0 | 0 | `57c1a0a5f9e38ab1` |
+| ordinary-ambush-retreat (0.75 s) | 2 | Running | — | 0 | 0 | 0 | `a2fa9c12a453a6a6` |
+| ordinary-ambush-retreat (0.75 s) | 3 | Running | — | 200 | 1 | 0 | `dabf49126ed496d9` |
+| **ordinary-ambush-retreat (0.75 s)** | all | **0/3 captured** | | **200** | **1** (a tank survived in 3) | **0** | |
+saved 6 trials to /Users/david/.codex/worktrees/city-sim-bodies/throwaway/c77/village-on.jsonl
+
+Compared with /Users/david/.codex/worktrees/city-sim-bodies/throwaway/c77/village-off.jsonl (before → after):
+
+| script | trials | same digest | captured | blue cost lost | tanks lost | rejoined |
+|---|---|---|---|---|---|---|
+| scout-suppress-flank | 3 | 0/3 | 3 | 1662 → **1625** | 0 | 5 → **7** |
+| ordinary-ambush-retreat (0.75 s) | 3 | 0/3 | 0 | 200 | 1 | 0 |
