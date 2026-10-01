@@ -790,6 +790,20 @@
         ],
         "distance": 65,
         "yaw": -1.57
+      },
+      "clearance": {
+        "margin_m": 0.5,
+        "release_m": 0.75,
+        "lift_max_m": 16,
+        "lift_steps": 4,
+        "slide_max_m": 16,
+        "slide_max_rad": 0.6,
+        "slide_steps": 4,
+        "refine_steps": 6,
+        "smoothing_s": 0.35,
+        "lookahead_s": 0.75,
+        "sweep_step_m": 1,
+        "sweep_max_steps": 32
       }
     },
     "light": {

@@ -47,6 +47,7 @@ Read before changing anything:
 
 These owners are in the code; find them before adding a second:
 - projection: `camera3d.ts`, with reverse-Z and an infinite far plane;
+- the camera's pose: `cameraController.ts` turns input and scripts into the pose asked for, and `cameraClearance.ts` into the pose drawn, clear of buildings and the ground (see "Camera clearance" below);
 - the depth contract: `depthContract.ts`, plus `worldDepth.ts` for the access modes;
 - the camera uniform;
 - the environment: `environmentFrame.ts` gives every material the same light, shade and `sampleSunShadow`, and the effects' cast lights through that `shade`;
@@ -370,3 +371,44 @@ inspector. Compare grass on/off at one exact paused camera and publication,
 and falsify the gate on the real posed model pass before accepting an isolated
 shader oracle.
 
+## Camera clearance
+
+The viewport holds two poses: the one asked for (input, a script's
+`place`) and the one drawn, which `CameraController.resolve` makes clear of the
+side's known buildings and the ground. GPU packing, picking, DOM projection and
+sound all read the drawn pose; nothing else may place the camera. The obstacles
+are `knownStanding` over the map's building parts, the list massing draws, so
+what blocks the camera and what is drawn cannot part, and a fall the side has
+not seen changes neither.
+
+- **`__lab.setCamera` is the harness's raw framing**, drawn as given, inside a
+  building if a check wants that. `__lab.placeCamera` goes through the rig and
+  clearance and is drawn by the next frame. A scene that flies the camera puts
+  it back afterwards: later framings spread `camera()` and would inherit its
+  yaw.
+- **Fly scripted moves in real time.** Stepping a paused clock and waiting a
+  frame per step feeds the resolver a stop-start motion at the wrong speed, so
+  its lookahead misfires and the frames captured are ones no player sees
+  (`_cameraClearance.mjs` `flyLive`).
+- **A camera inside a box cannot be seen in pixels.** Back faces are culled, so
+  the frame from inside a building shows the town through its walls. Judge the
+  eye against the boxes drawn, by geometry apart from the resolver's own index.
+- **Push the eye out of the box, not along the view ray.** An eye that enters
+  sideways is centimetres from clear space, and tens of metres from it along
+  the ray: the ray gave 17 to 58 m jumps in one frame. Leaving by the side the
+  eye is already on makes it slide along a wall and over a roof edge.
+- **Ease the eye from where it is held.** An eased point that runs on through a
+  wall while the eye waits at its face leaves the eye a 15 m jump when the
+  point comes clear. The spring carries on from the held eye.
+- **A goal exactly at the clearance is never reached.** A critically damped
+  spring closes on it for ever, from below a roof line. Goals keep the release
+  margin more than emitted poses need.
+- **Lookahead is a straight line, and scripts are not.** Extrapolating an
+  eased swoop a second ahead puts the eye under the ground or through a house
+  it will never meet. Look ahead for buildings only, and keep the horizon
+  under what the benchmark tour tolerates (`cameraPaths.test.ts` holds the
+  tour to its keyframes).
+- **Reach decides more than hysteresis.** A candidate pose behind a tower is
+  clear and useless; requiring that the camera can get there (straight, or over
+  something within a lift's reach) removed the side flips a memory of the
+  slide's side was added for.
