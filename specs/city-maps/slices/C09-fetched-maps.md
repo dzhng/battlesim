@@ -79,6 +79,9 @@ physical map. Analytic unit/resource probes remain labelled API inputs.
 
 ## Current systems checkpoint
 
+This section records the reviewed core as it stood before any caller moved. The
+cutover has since landed: the [Outcome](#outcome) says what the seam is now.
+
 The pure source/content/catalogue resolver and the compiler's common saved-source
 envelope are implemented. Native contract refusals and actual compiler file
 write-to-resolver behavior are proven; the original compiler stdout corpus remains
@@ -120,3 +123,28 @@ Original battle contracts and one compiled-map authority.
 
 ## Feedback that would change this slice
 A source consumer still bypassing the resolver blocks the cutover until it is moved onto the resolver.
+
+## Outcome
+
+Every saved map is a folder of [`fixtures/maps/`](../../../fixtures/README.md#saved-maps), read by id through one resolver. The decisions the spec left open are in the [choices ledger](../choices.md#c09c60-saved-map-cutover).
+
+**The seam.**
+
+- **Resolver** (`contract::maps::resolve`, unchanged in what it admits). `MapAdmission::CATALOGUE` is the one allowance both catalogue adapters pass. `ResolveCode` gains the adapters' refusals: `invalid_id`, `missing_document` and `invalid_encounter`. An identity mismatch now states the hash the resolver computed. `ResolveOutcome` is the answer across a JSON boundary: `{ status: "ok", result: { definition, identity } }` or `{ status: "error", error: { code, location, message } }`.
+- **Native adapter** (`sim::maps`). `load(id) -> Result<ResolvedMap, ResolveError>` and `encounter(id, name) -> Result<EncounterDefinition, ResolveError>` read the shipped catalogue; `Catalogue { maps, library }` is the same over any directory, with `ids()` and `encounters(id)`. An address is checked before any read, and a refusal's location is prefixed with the map's folder (`geometry/SOURCES.json.identity.map_hash`).
+- **Wasm** (`resolve_saved_map(map_json, sources_json, library_json) -> String`) answers a `ResolveOutcome` under the same allowance.
+- **JavaScript** (`web/src/maps/`). `resolve.ts` holds the types (`MapDefinition`, `MapIdentity`, `ResolvedMap`, `Encounter`), `MapResolveError { code, location }` and `resolveSavedMap`. `browser.ts` is the HTTP adapter: `loadMap(id)` and `loadEncounter(id, name)` fetch the documents, each its own served file found by a Vite glob. `node.ts` is the same pair over files and the built Wasm, for tests, scenes and tools.
+- **Factories.** `sim::fixtures::village()` is the rules, the unit catalog and the village's resolved map under `map`: the village factory's input, natively and in the browser. `sim::endurance::scenario(field, fixture, seed, late)` takes its saved field; the Wasm `endurance_scenario(map_json, fixture_json, seed, late)` follows it. `village_scenario(fixture_json, variant)` is unchanged, and its fixture now carries the resolved map.
+
+**What moved.** The twelve lab maps moved byte for byte. The village's map was lifted out of `village.json` text for text. The endurance field is the map its code used to build, saved as that code printed it; its late wrecks are still added in code, in the same draw order and with the same ids. `village.json` now holds rules only. Fourteen folders serve the 29 registered routes: `geometry` serves geometry, authority and ballistics, `sensors` serves sensors and contacts, and `village` serves the village, replay, watch, lean, benchmark, fog and fog-look routes and the village mode of ground.
+
+**Consumers.** No script imports a map. Lab routes get theirs through `SavedMap` and `SavedEncounter` (`apps/battle-lab/src/savedMaps.tsx`), the village and endurance routes through `villageScenario` and `enduranceScenario` there. The workbench reads the village's placed boxes from the resolved map. Rust tests read `sim::maps::load(id)`; the test helper `common::saved_map(id)` is the resolved map as the JSON a scenario takes.
+
+**Not saved maps.** The camera lab's plan and the generated lab's request are compiled at run time and stay where they were; they join this seam with C55 and C58. Foundation's and the workbench's render-only grounds are C56's, as before.
+
+**Proof.** Captured before the cutover and compared after, with no difference:
+
+- natively, the typed scenario (sha256 of its JSON), scenario digest, config digest and battle digest of both village variants (600 ticks) and of endurance at seed 1, seed 1 late and seed 7;
+- through Wasm, the scenario digest, config digest and battle digest at tick 0 and after 300 ticks of all fifteen lab encounters, both village variants and the three endurance battles, and the lean firefight against its old composition.
+
+The config digest is `9349bc07e09ad210` before and after: no config identity moved. No `fixtures/parity/` file changed. `scene -- --list` is unchanged. The entry script went from 238,249 to 231,509 bytes (75,033 to 73,751 gzipped), because the village's map left it.
