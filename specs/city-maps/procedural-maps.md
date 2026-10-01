@@ -39,6 +39,8 @@
 | M19 | Every type and size offers open approaches of at least 1,800 m across a front of at least 400 m, to settlements in both halves. | Weapons reach 1,800 m; a map without such ground is a different game. | User, after S7 |
 | M20 | Light wheeled vehicles do 110 km/h on roads; no vehicle exceeds 130 km/h. | S7: edge-to-centre on Large takes 201–205 s at 97 km/h and 179–183 s at 110, against the three-minute target. Realistic, with everyone driving flat out. | User |
 | M21 | Mixed has one clearly larger town among its settlements, and road patterns vary by seed beyond a fixed central crossroads. | S7: Mixed Large had no dominant town and every map shared the same four-arm crossroads. | User, after S7 |
+| M22 | The two sides start at the top and the bottom of the map. Every map has a road connection from the bottom edge to the top edge; it may be several roads joined through the middle. A road across the middle from side to side is optional: some maps have one, not every map. | Each side needs a road toward the other and toward the centre. Requiring all four edges to reach the centre forced the same crossroads on every large map. | User, after seeing the layouts |
+| M23 | A town is not a dartboard. Districts are irregular blocks laid out along the town's roads, and the town's outline follows them; no round outline cut into pie slices that meet at one point, no wedge of forest sliced into the town. See the [Broken Arrow references](assets/reference/broken-arrow/SOURCES.md). | The ring-and-sector model reads as a diagram, not a place. | User, on a crop of a generated main town |
 
 ### Building categories
 
