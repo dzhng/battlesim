@@ -267,6 +267,9 @@ export function panelSpecimens(rules: PanelRules): Specimen[] {
   });
   add(s, "entering 50%", panelOf(own("rifle", inside("entering", 0.5) as Partial<OwnUnitView>)));
   add(s, "hidden in foliage", panelOf(own("rifle", { concealed: true })));
+  add(s, "hidden, compressed", panelOf(own("rifle", { concealed: true })), "own", {
+    zoom: "compressed",
+  });
   add(s, "in building", panelOf(own("rifle", inside("inside", 1) as Partial<OwnUnitView>)));
   add(s, "leaving 70%", panelOf(own("rifle", inside("exiting", 0.7) as Partial<OwnUnitView>)));
   add(s, "suppressed", panelOf(own("rifle", { suppression: "suppressed" })));

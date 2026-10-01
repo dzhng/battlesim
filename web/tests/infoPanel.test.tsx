@@ -2,9 +2,39 @@
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, expect, test } from "vitest";
 import { InfoPanel } from "../src/battle/present/infoPanel";
+import { stateIcon } from "@packages/scene-assets/src/icons";
 import { weaponRows, type Panel, type PanelRules } from "../src/battle/present/panelRows";
 
 afterEach(cleanup);
+
+test("concealment remains beside the name in every detail mode and clears with the bonus", () => {
+  const hidden: Panel = {
+    name: "RIFLE SQUAD",
+    strength: 1,
+    mark: null,
+    weapons: [],
+    states: [
+      {
+        state: "hidden",
+        icon: stateIcon("hidden"),
+        word: "HIDDEN",
+        progress: null,
+        fill: null,
+        lasting: true,
+        tone: null,
+      },
+    ],
+  };
+  const view = render(<InfoPanel panel={hidden} />);
+  for (const zoom of ["default", "far", "compressed"] as const) {
+    view.rerender(<InfoPanel panel={hidden} zoom={zoom} />);
+    const name = view.container.querySelector(".ro-name")!;
+    expect(name.querySelector('[title="Hidden"] svg')).not.toBeNull();
+    expect(name.textContent?.trim()).toBe("RIFLE SQUAD");
+  }
+  view.rerender(<InfoPanel panel={{ ...hidden, states: [] }} zoom="compressed" />);
+  expect(view.container.querySelector('.ro-name [title="Hidden"]')).toBeNull();
+});
 
 const rules: PanelRules = {
   tick_hz: 30,

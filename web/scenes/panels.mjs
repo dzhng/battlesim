@@ -94,7 +94,7 @@ const rowCentres = (page) =>
     let worst = { spread: 0, at: null, items: null };
     let rows = 0;
     for (const row of document.querySelectorAll(".ro-row")) {
-      if (getComputedStyle(row).display === "none") continue;
+      if (row.getClientRects().length === 0) continue;
       const items = [];
       const mark = row.querySelector(".ro-mark-icon svg");
       if (mark) items.push(["icon", inkBox([...mark.querySelectorAll("path, rect, circle")])]);
@@ -269,6 +269,8 @@ export async function run(ctx) {
   );
   await sheet(ctx, page, "sheet.png");
   for (const [id, file] of [
+    ["own states/hidden in foliage", "hidden-expanded.png"],
+    ["own states/hidden, compressed", "hidden-compact.png"],
     ["key cases/two launchers, separate reloads", "twin-launchers.png"],
     ["key cases/two launchers, enemy equipment", "twin-enemy.png"],
     ["key cases/turret and hull HMG", "twin-hmg.png"],

@@ -1,5 +1,5 @@
 // The production card reads the authority's bonus, including when nearby
-// enemies could still identify the unit. The compact name/health row stays compact.
+// enemies could still identify the unit. Its name-line icon survives compression.
 import { openBattle, aim, presented, obs, snapshot } from "./_lab.mjs";
 
 export async function concealmentTour(ctx) {
@@ -21,6 +21,14 @@ export async function concealmentTour(ctx) {
     await aim(page, unit.position, { distance: 65, pitch: 0.8, yaw: 0 });
     await presented(page);
     const card = page.locator(`.ro-unit[data-unit="${unit.id}"]`);
+    const nameIcon = card.locator('.ro-name [title="Hidden"] svg');
+    ctx.check(
+      "forest concealment stays visible beside the name in a compact card",
+      unit.concealed &&
+        (await nameIcon.isVisible()) &&
+        !(await card.locator('[data-state="hidden"]').isVisible()),
+    );
+    await snapshot(ctx, page, "concealment-compact.png");
     await card.hover();
     await page.waitForTimeout(200);
     await snapshot(ctx, page, "concealment-card.png");
