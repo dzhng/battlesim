@@ -36,6 +36,7 @@ export async function groundFilterAdmission(ctx) {
       fogStyle: fog.villageFogStyle,
       overlayGlow: overlay.villageOverlayGlow,
       paint: overlay.villagePaint,
+      xrayMinHiddenFragmentFraction: overlay.villageXrayMinHiddenFragmentFraction,
       models: models.villageModelDetail,
       world: mesh.buildWorldLayers(
         mesh.readWorldExports(view),

@@ -4,8 +4,8 @@ import village from "@fixtures/village.json";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import type { Engagement, Order, SideName } from "@web/battle/sim/protocol";
 
-/** The village fixture with the resolved unit catalog: the rules every
- *  scenario runs on, and what the village and endurance builders read. */
+/** Shared rules and resolved catalog. Focused labs may pin experiment controls;
+ *  village and endurance builders use these gameplay defaults. */
 export const VILLAGE_RULES = { ...village, catalog: UNITS.documents };
 
 export interface LabUnit {
@@ -55,11 +55,12 @@ export function labScenario(
   units: LabUnit[],
   events: LabEvent[] = [],
   scripts: LabScript[] = [],
+  rules = VILLAGE_RULES,
 ): string {
   return JSON.stringify({
     map,
     // The rules read the sections they own from the one fixture and ignore the rest.
-    rules: VILLAGE_RULES,
+    rules,
     units,
     events,
     scripts,

@@ -1,6 +1,6 @@
 # Fixtures
 
-`village.json` is the one owner of the game's rules and look numbers. Labs and scenes reuse it. `units/` and `props/` are the catalog: every unit type, soldier kind, role and upgrade part, and every prop type. `biomes/` holds the terrain palettes. A number that changes how the battle plays or looks belongs here, validated by the module that reads it, never as a constant in code.
+`village.json` is the one owner of the game's rules and look numbers. Labs and scenes reuse it. `map-presets.json` holds the map generator's presets (layout, and each district kind's streets and parcels) and `prototype-building-templates.json` the placeholder physical templates it builds towns from; [`crates/mapgen`](../crates/mapgen/README.md) reads and validates both. `building-templates.json` is the physical library the authored maps pin, and stays apart from the prototypes because its hash is their identity. `units/` and `props/` are the catalog: every unit type, soldier kind, role and upgrade part, and every prop type. `biomes/` holds the terrain palettes. A number that changes how the battle plays or looks belongs here, validated by the module that reads it, never as a constant in code.
 
 ## The unit catalog
 
@@ -91,13 +91,14 @@ full road speed and back; each vehicle's own top speed sets the rate. This keeps
 road entry gradual without reducing the road advantage. Surface and shove limits
 act on the target speed so slowdown does not compound every tick. The follower
 brakes on the incoming leg of a planned bend, using its turning radius and yaw rate to
-choose a corner speed. A blocked tracked pivot backs up when it needs room.
+choose a corner speed. A tracked pivot blocked by traffic backs up when it needs room.
 Stops, collisions and gear changes discard momentum. Infantry retain their own
 pace; their yield horizon follows a vehicle's accepted velocity, including reverse
 movement. Once clear of that path, a soldier waits rather than stepping back
 into it. Accepted vehicle speed participates in replay digests but adds no
 observation or command fields. Frozen parity inputs without these timing settings
-use the contract's defaults.
+use the contract's defaults. Focused mechanic labs may pin unrelated timing to
+isolate their experiment; playable battles use the shared gameplay settings.
 
 ## Parity oracles
 

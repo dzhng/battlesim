@@ -28,7 +28,7 @@ use crate::garrison;
 use crate::ground::{self, GroundLayer, KnownGround, Wear};
 use crate::hearing;
 use crate::knowledge::SideKnowledge;
-use crate::math::{v2, v3, Obb2, V2, V3};
+use crate::math::{v2, v3, Obb2, Rotation, V2, V3};
 use crate::movement::{self, MovementContext, SideGeometry};
 use crate::rng::Rng;
 use crate::sensing::{self, Sighting};
@@ -1715,14 +1715,16 @@ impl Battle {
                 direction,
                 facing,
             } => {
-                let destinations = self.group_destinations(side, &units, v2(goal[0], goal[1]));
+                let facing = facing.filter(|f| f.is_finite());
+                let destinations =
+                    self.group_destinations(side, &units, v2(goal[0], goal[1]), facing);
                 for (id, destination) in units.into_iter().zip(destinations) {
                     let order = UnitOrder::Move(MoveOrder {
                         destination,
                         policy: route,
                         gesture,
                         direction,
-                        facing: facing.filter(|f| f.is_finite()),
+                        facing,
                     });
                     push(&mut self.units[id.0 as usize], order);
                 }
@@ -1732,7 +1734,8 @@ impl Battle {
                 gesture,
                 goal,
             } => {
-                let destinations = self.group_destinations(side, &units, v2(goal[0], goal[1]));
+                let destinations =
+                    self.group_destinations(side, &units, v2(goal[0], goal[1]), None);
                 for (id, destination) in units.into_iter().zip(destinations) {
                     let unit = &mut self.units[id.0 as usize];
                     unit.engagement = Engagement::FireAtWill; // W14
@@ -1854,8 +1857,18 @@ impl Battle {
 
     /// Each unit keeps its place relative to the group where space permits:
     /// offsets from the group centre, compressed to a bounded spread and snapped
-    /// to standing room on the side's known map.
-    fn group_destinations(&mut self, side: Side, ids: &[UnitId], goal: V2) -> Vec<V2> {
+    /// to standing room on the side's known map. An explicit facing rotates the
+    /// arrangement from the first selected unit's heading to the requested one.
+    fn group_destinations(
+        &mut self,
+        side: Side,
+        ids: &[UnitId],
+        goal: V2,
+        facing: Option<f64>,
+    ) -> Vec<V2> {
+        let rotation = facing
+            .zip(ids.first())
+            .map(|(f, id)| Rotation::new(f - self.units[id.0 as usize].yaw));
         let positions: Vec<V2> = ids
             .iter()
             .map(|id| self.units[id.0 as usize].position.xy())
@@ -1876,7 +1889,8 @@ impl Battle {
         ids.iter()
             .zip(&positions)
             .map(|(id, &p)| {
-                let wanted = goal + (p - centre) * scale;
+                let offset = (p - centre) * scale;
+                let wanted = goal + rotation.map_or(offset, |r| r.apply(offset));
                 let mobility = self.units[id.0 as usize].mobility;
                 grid.snap(wanted, &mobility, DESTINATION_SNAP_M)
                     .unwrap_or(goal)

@@ -321,9 +321,7 @@ impl MaterializedBuilding {
                 let relative = [point[0] - edge.span[0][0], point[1] - edge.span[0][1]];
                 let t = (relative[0] * delta[0] + relative[1] * delta[1])
                     / (delta[0] * delta[0] + delta[1] * delta[1]);
-                if (0..2).any(|i| {
-                    !coordinate_equal(point[i], edge.span[0][i] + delta[i] * t, reach.max(half))
-                }) {
+                if !on_facade(*point, edge.span[0], delta, t, reach.max(half)) {
                     return bad("placed bay is off its facade");
                 }
             }
@@ -352,16 +350,12 @@ impl MaterializedBuilding {
                         entrance.position[1] - edge.span[0][1],
                     ];
                     let t = (relative[0] * delta[0] + relative[1] * delta[1]) / (length * length);
+                    let [x, y, z] = entrance.position;
                     t > 0.0
                         && t < 1.0
-                        && (0..2).all(|i| {
-                            coordinate_equal(
-                                entrance.position[i],
-                                edge.span[0][i] + delta[i] * t,
-                                length,
-                            ) && coordinate_equal(entrance.normal[i], edge.normal[i], 1.0)
-                        })
-                        && coordinate_equal(entrance.position[2], edge.base_z, self.height_m)
+                        && on_facade([x, y], edge.span[0], delta, t, length)
+                        && (0..2).all(|i| coordinate_equal(entrance.normal[i], edge.normal[i], 1.0))
+                        && coordinate_equal(z, edge.base_z, self.height_m)
                 }) {
                     return bad("placed entrance must lie inside an exposed facade");
                 }
@@ -375,19 +369,34 @@ impl MaterializedBuilding {
 // Admit four coordinate ULPs plus local rotation roundoff, not a tolerance
 // proportional to the absolute origin. Source catalogue joins remain stricter.
 fn coordinate_equal(a: f64, b: f64, local_scale: f64) -> bool {
-    if !a.is_finite() || !b.is_finite() {
+    equal_at(a, b, a.abs().max(b.abs()), local_scale)
+}
+
+/// `a` and `b` agree to the rounding of a world coordinate as large as `datum`.
+fn equal_at(a: f64, b: f64, datum: f64, local_scale: f64) -> bool {
+    if !a.is_finite() || !b.is_finite() || !datum.is_finite() {
         return false;
     }
-    let ulp = |x: f64| {
-        let x = x.abs();
-        let next = f64::from_bits(x.to_bits() + 1);
-        if next.is_finite() {
-            next - x
-        } else {
-            x - f64::from_bits(x.to_bits() - 1)
-        }
+    let next = f64::from_bits(datum.to_bits() + 1);
+    let ulp = if next.is_finite() {
+        next - datum
+    } else {
+        datum - f64::from_bits(datum.to_bits() - 1)
     };
-    (a - b).abs() <= 4.0 * ulp(a).max(ulp(b)) + 64.0 * f64::EPSILON * local_scale.max(1.0)
+    (a - b).abs() <= 4.0 * ulp + 64.0 * f64::EPSILON * local_scale.max(1.0)
+}
+
+/// Whether `point` is the point `t` of the way along a facade from `origin`.
+/// Projecting onto a turned facade mixes the two world coordinates, so each
+/// carries the rounding of the larger: a building far along X and near the
+/// origin in Y is still on its own walls.
+fn on_facade(point: [f64; 2], origin: [f64; 2], delta: [f64; 2], t: f64, local_scale: f64) -> bool {
+    let datum = point
+        .into_iter()
+        .chain(origin)
+        .map(f64::abs)
+        .fold(0.0, f64::max);
+    (0..2).all(|i| equal_at(point[i], origin[i] + delta[i] * t, datum, local_scale))
 }
 
 impl Facade {

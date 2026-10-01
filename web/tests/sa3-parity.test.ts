@@ -31,7 +31,7 @@ function record(b: Battle, layout: ObservationLayout, side: "blue" | "red") {
   expect(observation).not.toBeNull();
   return observation!.groundPatch;
 }
-test("sparse native truth preserves original digests and every ordered learned patch", () => {
+test("sparse native truth matches frozen digests and every ordered learned patch", () => {
   const battle = new Battle(JSON.stringify(ordered.scenario), ordered.seed);
   const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
   let next = 0;
@@ -42,7 +42,8 @@ test("sparse native truth preserves original digests and every ordered learned p
     const p = record(battle, layout, "blue");
     // Named simulation changes update digests and the ground their movement marks.
     if (process.env.BLESS_PARITY) {
-      const { side: _side, ...ground } = canonicalGround(p, layout.ground.cols);
+      const { side, ...ground } = canonicalGround(p, layout.ground.cols);
+      expect(side).toBe("blue");
       Object.assign(original, { digest: battle.digest(), ...ground });
     }
     expect({

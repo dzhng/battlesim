@@ -334,6 +334,9 @@
 .ro-callout.ro-selected {
   z-index: 1;
 }
+.ro-callout[data-hovered] {
+  z-index: 3;
+}
 .ro-leaders {
   z-index: 2;
   position: absolute;
@@ -907,7 +910,8 @@
   text-shadow: var(--hud-text-halo);
 }
 
-[data-zoom="compressed"] .ro-section {
+[data-zoom="compressed"] > .ro-body .ro-section,
+.ro-body[data-zoom="compressed"] .ro-section {
   display: none;
 }
 

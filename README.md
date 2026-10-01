@@ -12,6 +12,7 @@ The simulation is the one authority; everything else observes it.
   - `game-wasm` is the thin WebAssembly boundary.
 
   New battle state must enter `Battle::digest`, so replays and parity checks catch drift.
+
 - **`web/src/battle/`** — the browser side of that boundary:
   - the worker that runs the simulation (one authority, ordered commands, bounded publications);
   - decoding of the packed observation;
@@ -19,6 +20,7 @@ The simulation is the one authority; everything else observes it.
   - player readouts.
 
   Presentation reads only the observation, never simulation state.
+
 - **`packages/`** — the TypeGPU renderer and its assets.
   - `renderer-core` holds device, camera and projection primitives.
   - `battle-renderer` holds scene resources, meshes and overlays.
@@ -31,10 +33,12 @@ The simulation is the one authority; everything else observes it.
 ## Rules from first principles
 
 The simulation builds behaviour from low-level physical properties, never from named special cases.
+
 - **Obstacles are bodies:** a shape, a weight class, which mover classes it blocks, a cover tier, and integrity.
 - **Movers have a footprint and a push class.**
 
 The rules then follow from those properties alone:
+
 - **Can go here:** the footprint fits, judged by navigation's clearance field and then per-tick collision.
 - **Can clear it:** the mover's push class exceeds the body's weight class.
 - **Is cover:** a body stands between the soldier and the threat.
@@ -45,6 +49,7 @@ The rules then follow from those properties alone:
 So there is no "wall", "road block" or "tank trap" in the code. Dragon's teeth are just small heavy bodies that block vehicles, and a squad takes cover behind each one because each is a body. Vehicles and props follow the same rules. A new obstacle is an entry in the prop catalog (`fixtures/props/`), not new code.
 
 It's a game, not a physics simulation. The target is **Hollywood realism**: the battle should look and behave the way a war film makes it look, not the way a ballistics table says. Keep what a viewer expects, even exaggerated, like cover blown apart, shells felling trees and sparks off armour. Drop what looks silly on screen, even when it's physically defensible, like a squad's stray rifle fire mowing down a forest. Sustained, aimed fire may fell one tree; incidental fire shouldn't clear woods. Use first principles where they stay simple, and hard-code a clear game rule where a principled version would be complex. Today's hard-coded rules:
+
 - cover only helps infantry, and crouching is an animation;
 - garrisons are a named fighting-position mechanic;
 - a soldier's own rounds pass untouched through the tall cover he leans round to fire (he steps out past its edge, fires a burst and tucks back in); everyone else's rounds still hit it.
@@ -60,9 +65,12 @@ bun run dev     # build the WebAssembly, start the lab app
 
 `/` is the main menu: play the village or watch a replay; behind its developer link, run the benchmark or open the lab index at `/labs`, which links every route. The benchmark (`/benchmark`) is the one frame-cost measure.
 
+Floating unit panels show name and health. Space prioritizes the closest 30% of visible units from the camera's actual position; farther cards expand where room remains. Hovering a unit or its card always reveals its detail. Placement tries expansion in place, then the fewest card shifts, favoring shorter shifts when the counts tie. A held right-click previews destination and facing before release commits the move. Group facing rotates the formation around that destination from the first selected unit's heading; navigation still finds standing room and vehicles keep their normal steering constraints.
+
 ## Checks
 
 `package.json` names the gates:
+
 - `check` covers format, lint, typecheck and every Rust and web test.
 - `verify` runs every browser scene.
 - `bun run --cwd web scene -- <fixture-id>` runs one scene.
@@ -72,6 +80,7 @@ bun run dev     # build the WebAssembly, start the lab app
 ## Plans and decisions
 
 Work is planned as specs in [`specs/<feature>/`](specs/). Each spec has:
+
 - a README whose "Next Agent Prompt" is the live handoff;
 - a slice ladder;
 - `choices.md`, the ledger of decisions made where the spec was silent.

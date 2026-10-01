@@ -19,7 +19,7 @@ import { useBattleSession, type BattleSession } from "./useBattleSession";
 import type { ScriptedSim } from "./useSimSession";
 import type { ViewportPilot } from "./LabViewport";
 import { useFeed } from "./feed";
-import { RulerPaint, rulerAt } from "./rulerFeed";
+import { PointerPaint, rulerAt, facingPreviewAt } from "./pointerPaint";
 import {
   RangeRulerLabels,
   type RangeRulerLabelsHandle,
@@ -95,9 +95,8 @@ export function BattleView({
   const { world, meshes, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
-  // The range ruler (Space held with a selection): its paint and its text,
-  // both following the pointer every frame.
-  const [rulerPaint] = useState(() => new RulerPaint());
+  // Cursor paint updates independently of observations, including while paused.
+  const [pointerPaint] = useState(() => new PointerPaint());
   const rulerLabels = useRef<RangeRulerLabelsHandle>(null);
   const { clear: clearCues } = cues;
   const pause = usePauseMenu(sim.client);
@@ -154,7 +153,7 @@ export function BattleView({
         world={worldFeed}
         structures={session.structures}
         overlay={overlayFeed}
-        pointerMarks={rulerPaint.feed}
+        pointerMarks={pointerPaint.feed}
         fog={session.fogFeed}
         frame={session.frame}
         appearances={session.appearances}
@@ -164,12 +163,12 @@ export function BattleView({
         onBox={scripted ? undefined : session.onBox}
         onReady={session.onReady}
         pilot={scripted?.pilot}
-        onFrame={(project, view, pointerRay) => {
+        onFrame={(project, view, pointer) => {
           session.hear(view);
           const ruler =
             input && control.showOrders && world
               ? rulerAt(
-                  pointerRay(),
+                  pointer.ray,
                   world,
                   control.selectedUnits,
                   session.drawnAt.current,
@@ -177,20 +176,25 @@ export function BattleView({
                   surfaceZ,
                 )
               : null;
-          rulerPaint.update(ruler, surfaceZ, metresPerPx);
+          const preview =
+            input && control.mode === "move" && world
+              ? facingPreviewAt(pointer.rightPress, pointer.ray, world, control.selectedUnits)
+              : null;
+          pointerPaint.update(ruler, preview, surfaceZ, metresPerPx);
           rulerLabels.current?.place(project, ruler?.ruler ?? null);
           const step = zoomStep(view.distance);
           if (step !== zoomRef.current) {
             zoomRef.current = step;
             setZoom(step);
           }
-          session.placePanels(project, view.distance);
+          session.placePanels(project, view, pointer);
         }}
         diagnostics={{
           ...session.probes,
           audio: () => session.audio?.stats() ?? null,
           /** The range ruler shown last frame (Space held with a selection). */
-          ruler: () => rulerPaint.shown,
+          ruler: () => pointerPaint.shown,
+          facingPreview: () => pointerPaint.preview,
           ...diagnostics?.(session),
         }}
       />

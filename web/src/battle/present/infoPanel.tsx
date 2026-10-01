@@ -44,8 +44,8 @@ export const REASON_MARK: Record<string, string | null> = {
   changing_position: stateIcon("building"),
 };
 
-/** Far zoom compacts distinct icons; repeated icons retain named rows.
- *  The battle sets it on the callout layer. */
+/** Floating panels use compressed or default detail on their layer.
+ *  Cards and specimens can compact distinct icons with the far mode. */
 export type PanelZoom = "default" | "far" | "compressed";
 
 /** The activity currently represented by the single progress ring. */

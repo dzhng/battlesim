@@ -225,6 +225,8 @@ export interface BattleFrame {
   setOverlayGlow(glow: OverlayGlowStyle): void;
   /** Lab diagnostics: draw the painted ground marks or not (paired frames). */
   setPaintShown(on: boolean): void;
+  /** Diagnostic paired cost/falsification switch; ordinary frames keep coverage enabled. */
+  setXrayCoverageEnabled(on: boolean): void;
   /** Lab diagnostics: light the world by the effects' cast lights or not
    *  (paired frames and cost); the effects themselves still draw. */
   setCastLightsShown(on: boolean): void;

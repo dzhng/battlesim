@@ -941,3 +941,217 @@ keeps storage addresses independent of physical identity and encounter naming.
 **Gap:** C03's ledger left "correct or admit mixed joins" to C63. This slice was scoped to the same distance functions and unchanged village pixels, and a corrected join moves pixels.
 
 **Verdict:** open. It needs its own decision before generated streets mix strokes and polygons. **Confidence:** high that it is still open.
+
+## C52 layout generator
+
+### The approach rule is measured on the main settlement, and the generator reserves the ground for it
+
+**Choice:** A plan passes when its main settlement (the highest class; the city in Metro) has, in the top half and in the bottom half, a wedge of ground open for 1,800 m beyond its edge across a front of 400 m. The generator picks one bearing in each half where such a wedge fits between the settlement and the playable edge, and keeps later settlements and woods out of it. The finished plan is then measured the way S7 measured: rays from the settlement, a hundred metres apart at full depth, stopped by other settlements, forests and the map edge.
+
+**Gap:** M19 says "open approaches … to settlements in both halves" without saying which settlements. Counting any village would let Metro pass on a satellite's field while the city had none, which is what M18 was written to prevent.
+
+**Verdict:** sound. It is one rule for every type and size. On Small Metro the wedges often run toward a corner, where the city leaves the most room; they are still 1,800 m of open ground inside the playable area. **Confidence:** high for the rule, medium for whether a corner approach plays as well as one from an edge.
+
+### Metro's city covers 16–24% of the playable area at every size
+
+**Choice:** The city's envelope (its outline, fields between districts included) is a seed-drawn 16–24% of the map, the same range at Small, Medium and Large. Built ground on Small Metro comes to 11–22%.
+
+**Gap:** M18 says to tune Metro's share down until Small meets the approach rule, without a number, and does not say whether Medium and Large use the same share.
+
+**Verdict:** sound for Small; open for Large. Over 300 Small Metro seeds, a city of 24% or less passed every time; 28% passed 98%, 32% 95%, 36% 88%, 40% 59% and 45% under 1%. Past 24% the first failure is room for the satellite towns, not the approach. Medium and Large could hold a larger city and still pass (their edges are farther away), but one range keeps Metro's building count down, which M18 names as the main scale risk. **Confidence:** medium. Raising the share on Medium and Large is a one-line preset change if the user wants a bigger city there.
+
+### The transit rule is a time, 183 s, and it fixes the Large crossroads
+
+**Choice:** Every plan must have, from the middle fifth of each edge, a road journey to the centre of at most 183 s at 110 km/h, of which 15 s is an allowance for planning and turns. Edge roads are built to that budget: each runs to the main junction by the centre or, when time allows, joins an earlier edge road up to 1.5 km out.
+
+**Gap:** The target is "about three minutes" on Large, and M21 asks for road patterns that are not the same crossroads every time. 183 s is the worst case S7 measured and the user accepted with M20.
+
+**Verdict:** sound as a rule, but it does not deliver M21 on Large. The budget is 5.13 km of road for a 5 km line, so on Large every plan has four roads meeting at the centre; only their skew, the settlements on them and the secondary network vary. On Small and Medium 22–41% of plans are a central crossroads and the rest fork or meet in T-junctions. **Confidence:** high on the arithmetic. The user's dial is `transit.max_s`: about 200 s would allow forks 600 m from the centre on Large.
+
+### A town is rings of sectors, each one district of one use, with some left open
+
+**Choice:** A settlement's outline is cut into bands from the centre out and each band into sectors. A sector is one district with one dominant building category and at most one minor one (a garden suburb is 90% detached homes; an industrial district is all industry). In the outer band of a town or city some sectors are left unbuilt and the built ones stop at different depths, so fields reach in between districts; a wood stands on up to half of those open sectors. A sector that a main road enters the town through picks from a second set of weights that favours industry. Each district has an id (`settlement-3/district-2`), its area and an anchor point inside it.
+
+**Gap:** The slice asked for "settlement plots" with category mixes and left their shape to the implementer. S7's districts were a jittered grid, each a blend of three or four categories. The user's Broken Arrow references then asked for single-use districts, green gaps, a main-road spine with industry on it, and districts an encounter can address.
+
+**Verdict:** sound as zoning; provisional as a look. Sectors need no polygon clipping, never overlap and are cheap, but the picture reads as a dartboard. C53 cuts blocks and streets inside them and can replace the shapes without touching the rules. The anchor is a point half-way out along the sector's middle, not the centroid, because a ring sector's centroid can fall outside it. **Confidence:** medium.
+
+### "Built ground" is the districts; a settlement's size class is its envelope
+
+**Choice:** Fairness, the urban share and "the main settlement holds N% of the built ground" count district area only. A class's size in hectares is the envelope's, so a town is the same footprint at every map size (M05) however many of its sectors are open.
+
+**Gap:** Once towns have fields inside them, "town area" has two meanings.
+
+**Verdict:** sound. **Confidence:** high.
+
+### Settlements stand on the main roads; a road that reaches a settlement carries on through it
+
+**Choice:** The straight lines of the edge roads are fixed first. Each settlement is then sited on one of those lines (40–55% of attempts, by type), beside the main settlement (10–30%), or anywhere, and the edge road is built through the centre of every settlement on or near its line. Any other settlement is joined to the nearest road good enough for its class, and that road continues straight through its centre to the far edge as a main street. A road that joins stops at the first road at least as good as itself, in a T-junction.
+
+**Gap:** S7 joined every settlement to the nearest road and noted towns hanging off tracks, stubs and a fixed crossroads. The references asked for towns strung on a road.
+
+**Verdict:** sound. A town never hangs off a track, and no joining road crosses a better one. The main street reads as a stub on the picture until C53 gives the settlement streets. **Confidence:** medium.
+
+### Fairness is built in, then checked
+
+**Choice:** Each settlement goes in the half with less built ground, and when that half is behind by an amount its class can make up it is drawn at that size. A town's open sectors are taken turn about from its north and south sides. Each half is given the same forest target and filled to it. A few settlements or woods sized to the remaining difference close what is left. The finished plan is measured against S7's tolerances and refused if it fails.
+
+**Gap:** S7's balancing step passed 98.2% of layouts; the misses were Small maps where one large wood outweighed the repair.
+
+**Verdict:** sound: 2,700 of 2,700 plans pass, and the halves usually agree to within a few hundredths of a square kilometre. That is tighter than the tolerance asks and nothing mirrors. **Confidence:** high.
+
+### A search that runs out refuses the request
+
+**Choice:** If a settlement finds no site, the main settlement has no room for its approaches, or the finished plan fails a measured rule, generation returns a diagnostic naming the feature, the preset cell and the seed. It does not drop the settlement, shrink the town or try another seed.
+
+**Gap:** S7 left up to four Metro satellites unplaced and carried on.
+
+**Verdict:** sound. No seed in the sweep was refused with the shipped presets; the refusals appear when a preset asks for more than the map holds. **Confidence:** high.
+
+### The plan records approaches, not a plain polygon
+
+**Choice:** `MapPlan.approaches` lists each measured open wedge: the settlement, the half, the two bearings, the depth and the front. Open plain is whatever is neither district nor forest; no polygon for it is written.
+
+**Gap:** The slice asks for "connected traversable plains" in the plan. The compiler does not admit land regions yet.
+
+**Verdict:** sound for now. The approaches are what an encounter planner needs (where to deploy against a town). C54 can derive region polygons from the compiled map when land regions are admitted. **Confidence:** medium.
+
+### One seed is nine maps, and every number is a whole centimetre
+
+**Choice:** Each random stream is keyed by the seed, the map type, the size and the stream's name. Plan coordinates are rounded to centimetres and approach bearings to microradians.
+
+**Gap:** The slice named streams by purpose only. An unprimed review of the first gallery found that seed 3 gave Mixed and Metro the same road skeleton and Small and Large Metro the same city, scaled.
+
+**Verdict:** sound. Rounding keeps the plan short and lets any JSON reader read it back exactly; a centimetre is far below anything a parcel can tell apart. **Confidence:** high.
+
+### Settlement counts differ from S7's proposals
+
+**Choice:** Open has only villages and hamlets around its one small town (S7 had extra small towns on Medium and Large). Mixed has 1–2, 2–3 and 3–4 towns by size, against S7's 2, 4 and 6, and a larger main town (360–520 ha).
+
+**Gap:** S7 itself reported that Open Large read as a thin Mixed and that Mixed Large had no dominant town (M21).
+
+**Verdict:** sound: Mixed's main town holds 28–50% of the built ground on Large and is at least twice the footprint of any other settlement. **Confidence:** medium; these are the numbers most likely to change on review.
+
+### Parity records hold a hash of each outcome
+
+**Choice:** `fixtures/parity/map-layout/paired-records.json` stores each request and the SHA-256 of the native outcome. The web test hashes what Wasm returns.
+
+**Gap:** The compiler's records store whole outcomes, which are a few kilobytes. A generated plan is tens of kilobytes.
+
+**Verdict:** sound. A hash holds every byte to account; on a mismatch the two outcomes have to be regenerated to see where they differ. **Confidence:** high.
+
+### Edge-to-centre by road within 215 seconds, so Large maps can vary their roads
+
+**Choice:** `transit.max_s` in `fixtures/map-presets.json` is 215 (revision `layout-presets-2`), up from 183.
+
+**Gap:** The "about three minutes" target allows 5.13 km of road for a 5 km line on Large, so every Large plan had four roads meeting at the centre, against M21's varied road patterns. The user said the numbers are guesses to tune unless called hard requirements.
+
+**Evidence:** Over 100 seeds per Large cell, a central crossroads appears in 100% of plans at 183 s, about 60% at 200 s and 30–40% at 215 s, the range Small and Medium already had (22–41%). Nothing was refused at any value.
+
+**Verdict:** sound. One global number, no per-size exception. The worst edge on Large is now up to 215 s at 110 km/h including the 15 s allowance. **Confidence:** medium until a vehicle drives it in a battle (SA2).
+
+## C53 parcels and buildings
+
+### A parcel is its template's footprint plus the district's setbacks
+
+**Choice:** Walking along a street, the pass draws a template and cuts the parcel that template needs: its own footprint, a front setback from the street, a setback on each side and one at the rear. If that parcel would leave the district, touch a carriageway, a forest or another parcel, it tries up to two more templates of the same category and then moves 4 m on, leaving the gap as open ground. The template is placed whole, turned so its entrances face the street.
+
+**Gap:** The slice says "fit parcels to legal envelopes or choose another eligible template; never stretch", and leaves parcel subdivision to the implementer. Cutting blocks into fixed lots first and then looking for a template that fits each would leave most lots with the wrong shape for anything in the catalogue.
+
+**Verdict:** sound. Nothing is ever scaled, a building cannot stand on its neighbour because parcels do not overlap, and what does not fit shows as a yard. The cost is that blocks are not tiled edge to edge: corners and block ends stay open. **Confidence:** high.
+
+### A place along a street draws one category, then tries that category's templates
+
+**Choice:** At each place the pass draws a category by the district's weights and then tries up to three of that category's templates. A large template that does not fit gives way to another of its own category, not to the district's minor one.
+
+**Gap:** `DistrictPlan.categories` is documented as "shares of its ground" (C52). Redrawing the category on every failed fit let small homes take the places where farmsteads did not fit: a farm district zoned 80% farmstead came out 62%. Weighting the draw by each category's parcel size was tried as well and was no closer (within 13 points against 10).
+
+**Verdict:** sound: over eighteen maps every district kind's dominant category holds within fifteen points of its share of the built ground. **Confidence:** medium; the catalogue's mix of sizes moves it.
+
+### Streets are a grid in the district's own frame; parcels front every carriageway
+
+**Choice:** Each district gets long streets `block_depth_m` apart and cross streets every `block_length_m`, laid in a frame that runs out from the settlement's centre (the central district's runs with the road through it). A district kind may bend both families with a sine swing (garden suburbs, villages and farms do; centres, apartments, the core and industry are straight) and may leave out cross streets at random. A stretch of street that would run within half a block of an existing carriageway and within 30° of it is dropped, so no street doubles the main road. Parcels are then cut along every carriageway in the district, the country road or track included.
+
+**Gap:** The slice delegates subdivision. C52 left districts as sectors with a road through the settlement's centre and nothing else.
+
+**Verdict:** sound as a system, plain as a look. The patterns differ by numbers, not by code: a garden suburb is an 84 × 190 m grid swinging 16 m, an industrial estate a 210 × 280 m one. Every district is recognisably a grid; there are no crescents, squares or cul-de-sac loops. **Confidence:** medium.
+
+### Every piece of a district's grid is joined; pavement connectivity is measured on the finished plan
+
+**Choice:** Where a road or an earlier street crosses a district's grid, the grid is joined there. Any piece of grid that nothing crosses gets one straight link from its nearest node to the nearest street. `measure` then builds the road graph from the rounded centrelines the surfaces are made of and the plan is refused if any street has no way to the centre.
+
+**Gap:** The slice asks that "vehicles can cross town into plain". A grid clipped to a sector falls into pieces, and a road graph built from authored points (as C52's was) misses a street that meets a bend's rounded surface.
+
+**Verdict:** sound. A separate test floods the compiled map's surfaces from the roads that leave the map and reaches every street. The links are short diagonals that look improvised on the picture. **Confidence:** high for connectivity, low for the look of the links.
+
+### A street that stops within a block of another carriageway runs on to it
+
+**Choice:** After a settlement's streets are laid, each dead end is carried straight on for up to one block depth. If it crosses a carriageway in that distance (and not at a shallow angle) a short street joins the two.
+
+**Gap:** A grid is kept only inside its district, so every street stopped at the district's edge: a few metres short of the main road, or facing the next district's streets across a gap. An unprimed review of the first gallery named this the largest defect in the pictures.
+
+**Verdict:** sound. Districts now meet each other and the roads beside them at many points instead of one. A run-on may cross a field or a wood between two districts. **Confidence:** medium.
+
+### Aprons are paved polygons of kind `road`; nothing else in a parcel is drawn
+
+**Choice:** A district kind may pave the front of each built parcel: 12 m of parking before an apartment slab, the whole 30 m yard before a shed. The apron is a four-point polygon surface of kind `road`, as wide as the building, from the carriageway's edge. Lawns, gardens and courts are simply ground left open.
+
+**Gap:** The brief asks for aprons "if the surface contract supports it". It does, but C63's ledger still lists the look of a stroke meeting a polygon as open.
+
+**Verdict:** sound physically (a vehicle drives the yard at road speed, and no building stands on one); the drawn join is C63's open item. **Confidence:** medium.
+
+### A terrace is one template; separate buildings never share a wall
+
+**Choice:** Row houses and shop rows are single templates of three to five units joined by the descriptor's own declared joins. Two separate buildings always stand at least twice the side setback apart (1.5 m in a town centre).
+
+**Gap:** The slice says "terraces use only S5/C13's baked compatible edge variants". A wall shared between two placed buildings would be an exposed, bay-carrying facade on both, with seats facing a wall 0 m away.
+
+**Verdict:** sound. A terrace is one building with one integrity, which is the accepted rule for a compound. **Confidence:** high.
+
+### The prototype catalogue is a descriptor list, apart from the library the authored maps pin
+
+**Choice:** `fixtures/prototype-building-templates.json` is a list of 29 complete descriptors, regional family `prototype`, ids `prototype-…`: three farmsteads, five detached homes, five attached homes and shop rows, seven apartment blocks (4–8 floors), four highrises (10–20 floors) and five sheds. Every entrance is on one side. `mapgen catalogue` prints the list's canonical `{hash, templates}` form for a request to pin and the loader to resolve against.
+
+**Gap:** `fixtures/building-templates.json` is already a canonical library, but every authored map pins its hash, so adding to it would change their identity. The CLI and Wasm boundaries take a descriptor list.
+
+**Verdict:** sound for a systems proof. These are labelled boxes: they certify no real dimension, join or appearance, and the specialist's sources replace them through the same contract with a new hash. **Confidence:** high.
+
+### Every placed building is the prop type `building`
+
+**Choice:** `parcels.prop_kind` in the presets names one prop type for every category: today's garrisonable house body (400 hp).
+
+**Gap:** M17 says categories do not change combat rules. Nothing says a warehouse and a tower share a hit-point row.
+
+**Verdict:** open for C50 (durability balance). It is one preset string. **Confidence:** low that 400 hp is right for a twenty-floor tower.
+
+### An empty district refuses the request
+
+**Choice:** If no parcel fits anywhere in a district, generation fails with a diagnostic naming the district and its preset row.
+
+**Gap:** "If nothing fits, leave a yard" covers one parcel, not a whole district.
+
+**Verdict:** sound, by C52's rule that a search that runs out is a refusal and never a thinner map. No seed in the sweeps was refused with the shipped presets. **Confidence:** high.
+
+### `generate` takes the catalogue; the plan records its parcels
+
+**Choice:** The CLI's `generate` and the Wasm `generate_map_plan` now take the catalogue and return the whole plan: layout, streets, aprons, parcels (`lots`, plan-only) and buildings. A layout alone is the library's `generate_layout`. The generator is `layout-2` and the presets `layout-presets-3`, so an old request is refused. A building's id is its parcel's (`settlement-3/district-2/lot-14`).
+
+**Gap:** The slice names workbench layers for parcels and rejected fits. A place where nothing fitted is not a parcel, so it is not recorded.
+
+**Verdict:** sound; the rejected-fit layer is not built. **Confidence:** high.
+
+### The template contract refused most placements on a full-size map
+
+**Choice:** `contract::templates` now holds a placed bay or entrance to its facade with the rounding of the larger world coordinate, not each coordinate's own.
+
+**Gap:** C00's proofs placed buildings near the origin. On a 10 km map a turned building far along X and near the origin in Y was refused as "off its facade": 3,477 of 4,000 placements of the asymmetric fixture.
+
+**Verdict:** sound; a contract defect the first full-size town exposed. **Confidence:** high.
+
+### Metro's core is apartment blocks with a few towers
+
+**Choice:** The `core` district's mix is 85 apartments to 15 highrise (presets revision `layout-presets-4`), from 75 highrise to 25 apartments.
+
+**Gap:** C52 chose the first mix. On Metro Large it stood about 100 towers in a field; the Broken Arrow reference has one tower among apartment slabs.
+
+**Verdict:** sound. Seed 1 of Metro Large now has 21 towers among 9,276 buildings. Highrises remain Metro-only. **Confidence:** medium until real tower art exists.
