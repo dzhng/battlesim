@@ -113,6 +113,8 @@ impl Soldier {
 pub struct Fallen {
     pub at: V3,
     pub yaw: f64,
+    /// Fighting-floor owner retained even after the whole squad dies.
+    pub support_building: Option<PropId>,
 }
 
 impl Soldier {
@@ -121,12 +123,17 @@ impl Soldier {
     }
 
     /// The one way a soldier dies: no health left (a lethal hit's overkill is
-    /// kept) and a permanent record where it fell, facing `yaw`.
-    pub fn fall(&mut self, at: V3, yaw: f64) {
+    /// kept) and a persistent body record retaining its fall's facing.
+    /// Elevated fighting-floor support can later disappear.
+    pub fn fall(&mut self, at: V3, yaw: f64, support_building: Option<PropId>) {
         if self.hp > 0.0 {
             self.hp = 0.0;
         }
-        self.corpse = Some(Fallen { at, yaw });
+        self.corpse = Some(Fallen {
+            at,
+            yaw,
+            support_building,
+        });
     }
 }
 
@@ -496,8 +503,16 @@ impl Unit {
             }
             d.u64(s.lean_since).u64(s.leaning_until).u64(s.tucked_until);
             d.u64(s.corpse.is_some() as u64);
-            if let Some(Fallen { at: p, yaw }) = s.corpse {
+            if let Some(Fallen {
+                at: p,
+                yaw,
+                support_building,
+            }) = s.corpse
+            {
                 d.f64(p.x).f64(p.y).f64(p.z).f64(yaw);
+                if let Some(owner) = support_building {
+                    d.u64(u64::MAX).u64(owner as u64);
+                }
             }
         }
         d.u64(self.engagement as u64)

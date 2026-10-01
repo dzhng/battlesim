@@ -481,3 +481,43 @@ test("presentation.pose.corpses is checked: a whole positive cap, a positive fad
   expect(bad({ ...FEEL.corpses, fade_s: 0 })).toThrow(/corpses\.fade_s/);
   expect(bad({ ...FEEL.corpses, sink_m: -1 })).toThrow(/corpses\.sink_m/);
 });
+
+test("changed corpse support moves both dying and static bodies without replaying death", () => {
+  const d = driver();
+  d.update(frame(0, [squad([{ id: 1, x: 0, y: 0 }])]));
+  const first = {
+    soldier: 1,
+    position: [0, 0, 6] as Vec3,
+    yaw: 2,
+    kind: "rifle" as const,
+    slot: 0,
+    side: "blue" as const,
+  };
+  d.update(frame(1, [squad([])], [first]));
+  const dropped = { ...first, position: [0, 0, 0] as Vec3 };
+  const moving = d.update(frame(2, [squad([])], [dropped]));
+  expect(moving.soldiers[0].position).toEqual([0, 0, 0]);
+  expect(moving.soldiers[0].phase).toBeCloseTo(0.5, 5);
+  const resting = d.update(frame(3.1, [squad([])], [dropped]));
+  const version = resting.corpsesVersion;
+  const settled = { ...dropped, position: [0, 0, -1] as Vec3 };
+  const changed = d.update(frame(4, [squad([])], [settled]));
+  expect(changed.soldiers).toEqual([]);
+  expect(changed.corpses[0].position).toEqual([0, 0, -1]);
+  expect(changed.corpsesVersion).toBeGreaterThan(version);
+});
+
+test("support changes preserve an already fading corpse's age and disappearance", () => {
+  const d = capped({ max: 1, fade_s: 2, sink_m: 0.5 });
+  const original = downed([1]);
+  d.update(frame(0, [], original));
+  const more = downed([1, 2]);
+  d.update(frame(1, [], more));
+  const dropped = more.map((f) => ({ ...f, position: [f.position[0], 0, -1] as Vec3 }));
+  const mid = d.update(frame(2, [], dropped));
+  expect(mid.fading[0].corpse.position).toEqual([1, 0, -1]);
+  expect(mid.fading[0].since).toBe(1);
+  expect(mid.fading[0].sink).toBeGreaterThan(0);
+  expect(d.update(frame(3, [], dropped)).fading).toEqual([]);
+  expect(lying(d.update(frame(4, [], dropped)))).toEqual([2]);
+});

@@ -5,10 +5,12 @@
 //! per building-frame direction it holds, at a real seat on the highest occupied
 //! band ([`facade_eyes`]). Rounds that miss a slot meet the building's
 //! own shell, and any round toward something beyond it meets the shell too:
-//! no collider is ever switched off for a target. A collapse leaves a lower,
-//! permanent ruin; survivors escape on foot to legal ground nearby, heavily
-//! suppressed, or die where they stood. Slots are the one named exception to
-//! soldiers as free bodies (Q22): a seated soldier stands at his slot.
+//! no collider is ever switched off for a target. Collapse removes fighting
+//! floors: a low-rise leaves a lower ruin, while a tall terminal shell keeps
+//! its exterior height. Survivors escape on foot to legal ground nearby,
+//! heavily suppressed, or die on the remaining walkable surface. Slots are
+//! the one named exception to soldiers as free bodies (Q22): a seated soldier
+//! stands at his slot.
 //!
 //! Garrison state is the unit's own (`Unit::garrison`); the world owns the
 //! exposed physical geometry; this module seats squads and `structures` holds integrity, one row of every
@@ -779,6 +781,18 @@ pub fn collapse(
     let mut taken: Vec<V2> = Vec::new();
     let mut destroyed = Vec::new();
     for unit in units.iter_mut() {
+        // A whole squad may already be dead and have relinquished its hold.
+        // The fallen retain their floor's owner until that support disappears.
+        for member in &mut unit.members {
+            if let Some(fallen) = &mut member.corpse {
+                if fallen.support_building == Some(target) {
+                    fallen.at.z = world
+                        .surface_at(fallen.at.x, fallen.at.y)
+                        .map_or(0.0, |s| s.z);
+                    fallen.support_building = None;
+                }
+            }
+        }
         if unit.garrison.as_ref().is_none_or(|g| g.building != target) {
             continue;
         }
@@ -812,7 +826,12 @@ pub fn collapse(
                     out.push((k, p));
                 }
                 None => {
-                    unit.members[k].fall(at, unit.yaw);
+                    unit.members[k].fall(
+                        at.xy()
+                            .with_z(world.surface_at(at.x, at.y).map_or(0.0, |s| s.z)),
+                        unit.yaw,
+                        None,
+                    );
                 }
             }
         }

@@ -325,7 +325,7 @@ fn wear(unit: &mut Unit, c: &UnitCondition, arsenal: &Arsenal, rules: &Rules) {
     let n = unit.members.len();
     for k in n.saturating_sub(c.casualties as usize)..n {
         let at = unit.members[k].position;
-        unit.members[k].fall(at, unit.yaw);
+        unit.members[k].fall(at, unit.yaw, None);
     }
     if !unit.members.is_empty() {
         unit.suppression = c.suppression.clamp(0.0, 1.0);
@@ -1701,8 +1701,8 @@ impl Battle {
         knowledge.learn_ground(&self.ground, &field);
         for u in self.units.iter().filter(|u| u.side != side) {
             for s in &u.members {
-                if s.corpse.is_some_and(|f| field.visible(f.at.x, f.at.y)) {
-                    knowledge.note_corpse(s.id);
+                if let Some(fallen) = s.corpse.filter(|f| field.visible(f.at.x, f.at.y)) {
+                    knowledge.note_corpse(s.id, fallen);
                 }
             }
         }
@@ -2221,7 +2221,14 @@ impl Battle {
             for u in &self.units {
                 for s in &u.members {
                     let own = u.side == side;
-                    if let (Some(f), true) = (s.corpse, own || knowledge.knows_corpse(s.id)) {
+                    let fallen = s.corpse.and_then(|actual| {
+                        if own {
+                            Some(actual)
+                        } else {
+                            knowledge.corpse(s.id, actual)
+                        }
+                    });
+                    if let Some(f) = fallen {
                         frame.corpses.push(Corpse {
                             position: [f.at.x, f.at.y, f.at.z],
                             own,
@@ -2533,5 +2540,187 @@ mod tests {
             !battle.sides[0].standing().contains_key(&1),
             "whole aggregate's historical snapshots are cleared"
         );
+    }
+    #[test]
+    fn corpse_support_loss_is_physical_but_enemy_memory_waits_for_sight() {
+        for whole_squad in [false, true] {
+            let descriptor: contract::templates::BuildingTemplateDescriptor = serde_json::from_str(
+                include_str!("../../../fixtures/parity/templates/asymmetric.json"),
+            )
+            .unwrap();
+            let catalogue =
+                contract::templates::TemplateGeometryCatalog::new(vec![descriptor.clone()])
+                    .unwrap();
+            let mut geometry = descriptor
+                .materialize(contract::templates::PlacementFrame {
+                    translation: [400.0, 300.0, 0.0],
+                    yaw: 0.0,
+                })
+                .unwrap();
+            geometry.floor_z = Some(vec![0.0, 3.0, 6.0]);
+            let mut rules = crate::fixtures::village();
+            crate::fixtures::patch_catalog(
+                &mut rules,
+                "units",
+                "rifle",
+                serde_json::json!({"sensors":{"ground_m":60}}),
+            );
+            rules["weapons"]["rifle"]["damage"] = serde_json::json!(1e6);
+            rules["garrison"]["survival_probability_on_collapse"] = serde_json::json!(0);
+            let setup = serde_json::from_value(serde_json::json!({
+                "map":{"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+                    "template_catalog_hash":catalogue.hash(),
+                    "buildings":[{"owner":0,"kind":"building","category":descriptor.category,"regional_family":descriptor.regional_family,
+                        "parts":[{"part":"main","prop":0},{"part":"wing","prop":1}],"geometry":geometry}]},
+                "rules":rules,"units":[
+                    {"side":"red","kind":"rifle","position":[380,300],"engagement":"return_fire_only"},
+                    {"side":"blue","kind":"rifle","position":[350,300],"engagement":"return_fire_only"}
+                ],"events":[],"scripts":[]
+            })).unwrap();
+            let mut battle = Battle::new(&setup, 11);
+            let ack = battle.accept(CommandEnvelope {
+                side: Side::Red,
+                seq: 1,
+                queued: false,
+                order: Order::Garrison {
+                    units: vec![UnitId(0)],
+                    building: 0,
+                },
+            });
+            assert_eq!(ack.error, None);
+            for _ in 0..300 {
+                battle.step();
+            }
+            assert!(battle.units[0].garrisoned());
+            let upper = battle.units[0]
+                .members
+                .iter()
+                .find(|s| s.position.z == 6.0 && battle.fog[0].visible(s.position.x, s.position.y))
+                .unwrap()
+                .clone();
+            let targets: Vec<_> = battle.units[0]
+                .members
+                .iter()
+                .filter(|s| whole_squad || s.id == upper.id)
+                .map(|s| (s.id, s.position))
+                .collect();
+            let weapon = battle
+                .arsenal
+                .weapons
+                .iter()
+                .position(|w| w.id == "rifle")
+                .unwrap();
+            // Feed physical hit events at damage's boundary: stochastic aiming
+            // is not the support or knowledge contract under test.
+            let mut rounds = BTreeMap::new();
+            let events: Vec<_> = targets
+                .iter()
+                .enumerate()
+                .map(|(i, (id, at))| {
+                    let projectile = ProjectileId(i as u64);
+                    rounds.insert(
+                        projectile,
+                        Round {
+                            weapon,
+                            unit: UnitId(1),
+                            side: Side::Blue,
+                        },
+                    );
+                    FlightEvent::Impact(flight::Impact {
+                        projectile,
+                        struck: flight::Struck::Body(flight::BodyId(*id)),
+                        point: *at,
+                        normal: v3(1.0, 0.0, 0.0),
+                        velocity: v3(100.0, 0.0, 0.0),
+                        time: 0.0,
+                        bounces: 0,
+                        pose: None,
+                        detonated: false,
+                    })
+                })
+                .collect();
+            damage::resolve(
+                &DamageContext {
+                    world: &battle.world,
+                    ground: &battle.ground,
+                    arsenal: &battle.arsenal,
+                    rules: &battle.rules,
+                    tick: battle.tick,
+                },
+                &events,
+                &rounds,
+                &mut battle.suppressed,
+                &mut battle.units,
+                &mut battle.damage_rng,
+            );
+            assert_eq!(battle.units[0].alive(), !whole_squad);
+            assert_eq!(battle.units[0].garrison.is_none(), whole_squad);
+            battle.sweep_fog(Side::Blue);
+            battle.observe_all();
+            let remembered = battle
+                .observe(Side::Blue)
+                .corpses
+                .iter()
+                .find(|f| f.soldier == upper.id)
+                .unwrap()
+                .clone();
+            assert_eq!(remembered.position[2], 6.0);
+            let delta = v3(-300.0, -250.0, 0.0);
+            battle.units[1].position = battle.units[1].position + delta;
+            for member in &mut battle.units[1].members {
+                member.position = member.position + delta;
+            }
+            battle.sweep_fog(Side::Blue);
+            assert!(!battle.fog[0].visible(upper.position.x, upper.position.y));
+            battle.destroy_prop(0);
+            battle.observe_all();
+            let physical = battle
+                .observe(Side::Red)
+                .corpses
+                .iter()
+                .find(|f| f.soldier == upper.id)
+                .unwrap();
+            let z = battle
+                .world
+                .surface_at(upper.position.x, upper.position.y)
+                .unwrap()
+                .z;
+            assert_eq!(physical.position, [upper.position.x, upper.position.y, z]);
+            assert_eq!(
+                battle
+                    .observe(Side::Blue)
+                    .corpses
+                    .iter()
+                    .find(|f| f.soldier == upper.id)
+                    .unwrap()
+                    .position,
+                remembered.position,
+                "an unseen collapse cannot move a remembered enemy corpse"
+            );
+            let mut unchanged = battle.damage_rng.clone();
+            battle.destroy_prop(0);
+            assert_eq!(
+                battle.damage_rng.unit(),
+                unchanged.unit(),
+                "no second survival roll"
+            );
+            battle.units[1].position = battle.units[1].position - delta;
+            for member in &mut battle.units[1].members {
+                member.position = member.position - delta;
+            }
+            battle.sweep_fog(Side::Blue);
+            assert!(battle.fog[0].visible(upper.position.x, upper.position.y));
+            battle.observe_all();
+            assert_eq!(
+                battle
+                    .observe(Side::Blue)
+                    .corpses
+                    .iter()
+                    .find(|f| f.soldier == upper.id)
+                    .unwrap()
+                    .position,
+                [upper.position.x, upper.position.y, z]
+            );
+        }
     }
 }

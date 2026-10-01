@@ -1200,3 +1200,67 @@ fn seeing_the_near_part_learns_replacements_beyond_the_eyes_reach() {
         "the whole building's remains are learned"
     );
 }
+
+#[test]
+fn upper_floor_collapse_deaths_land_on_the_remaining_physical_surface() {
+    let mut setup = compound_setup(json!((400..=410)
+        .map(|tick| json!({"tick":tick,"burst":{"point":[409,301],"weapon":"tank_he"}}))
+        .collect::<Vec<_>>()));
+    setup.map.relief = vec![contract::map::Relief::Mesa {
+        rect: [0.0, 0.0, 800.0, 600.0],
+        height_m: 2.0,
+        side_degrees: 45.0,
+    }];
+    let geometry = &mut setup.map.buildings[0].geometry;
+    geometry.frame.translation[2] = 2.0;
+    geometry.floor_z = Some(vec![2.0, 5.0, 8.0]);
+    for part in &mut geometry.parts {
+        part.base_z += 2.0;
+    }
+    for edge in &mut geometry.edges {
+        edge.base_z += 2.0;
+        edge.top_z += 2.0;
+    }
+    for entrance in geometry.entrances.iter_mut().flatten() {
+        entrance.position[2] += 2.0;
+    }
+    setup.rules.garrison.survival_probability_on_collapse = 0.0;
+    setup.rules.weapons.get_mut("tank_he").unwrap().damage = 0.0;
+    setup.units = serde_json::from_value(json!([{"side":"blue","kind":"rifle","position":[380,300],"engagement":"return_fire_only"}])).unwrap();
+    let mut b = Battle::new(&setup, 11);
+    crate::common::order(
+        &mut b,
+        Side::Blue,
+        1,
+        contract::command::Order::Garrison {
+            units: vec![contract::ids::UnitId(0)],
+            building: 0,
+        },
+    );
+    while b.tick() < 390 {
+        b.step();
+    }
+    let seated = b.unit(contract::ids::UnitId(0)).unwrap();
+    assert!(seated.garrisoned());
+    assert!(seated.members.iter().any(|s| s.position.z == 8.0));
+    let positions: Vec<_> = seated
+        .members
+        .iter()
+        .map(|s| (s.id, s.position.xy()))
+        .collect();
+    while b.tick() < 410 {
+        b.step();
+    }
+    assert!(b.world().prop(0).is_none());
+    let observed = b.observe(Side::Blue);
+    assert_eq!(observed.corpses.len(), positions.len());
+    for (id, xy) in positions {
+        let fallen = observed.corpses.iter().find(|f| f.soldier == id).unwrap();
+        assert_eq!([fallen.position[0], fallen.position[1]], [xy.x, xy.y]);
+        assert_eq!(
+            fallen.position[2],
+            b.world().surface_at(xy.x, xy.y).unwrap().z,
+            "the old upper floor no longer supports soldier {id}"
+        );
+    }
+}
