@@ -1,6 +1,6 @@
 # Shared physical surfaces
 
-Road strokes keep the original capsule distance arithmetic. Polygon roads and sidewalks are one closed authored ring each in the simulation, with native triangles exported for drawing. Sidewalks keep ground movement cost. A road wins a sidewalk overlap; water and bridge rules keep precedence.
+Road strokes keep the original capsule distance arithmetic along their length and at their bends; since 2026-10-01 each is cut square across its first and last point (`choices.md`, "Road ends"). Polygon roads and sidewalks are one closed authored ring each in the simulation, with native triangles exported for drawing. Sidewalks keep ground movement cost. A road wins a sidewalk overlap; water and bridge rules keep precedence.
 
 The export has three streams: stroke rows, membership triangles, and exposed boundary segments of the polygon union. Native splitting removes covered fragments and shared interior edges; coincident exterior edges keep one copy, preferring the road. Drawing classifies any membership triangle, then signs distance to the exposed union boundary once, so triangulation diagonals never become material edges. Simple rings accept either winding and collinear vertices, without holes or a repeated endpoint.
 

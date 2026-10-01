@@ -13,7 +13,7 @@ const biome: Biome = {
 const empty: PlotSite = {
   map: [0, 0, 100, 100],
   buildings: [],
-  surfaceStrokeStride: 6,
+  surfaceStrokeStride: 7,
   surfaceRunStride: 4,
   surfaceRuns: new Float32Array(0),
   surfaceTriangleStride: 7,
@@ -28,7 +28,7 @@ const empty: PlotSite = {
 function paving(kind: number): PlotSite {
   return {
     ...empty,
-    surfaceStrokes: Float32Array.of(0, 50, 100, 50, 2, kind),
+    surfaceStrokes: Float32Array.of(0, 50, 100, 50, 2, kind, 3),
     surfaceRuns: kind === 1 ? Float32Array.of(0, 50, 100, 50) : new Float32Array(0),
     surfaceTriangles: Float32Array.of(0, 40, 100, 40, 100, 60, kind, 0, 40, 100, 60, 0, 60, kind),
     surfaceBoundaries: Float32Array.of(

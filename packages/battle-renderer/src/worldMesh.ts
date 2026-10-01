@@ -47,6 +47,9 @@ export interface WorldLayout {
   areaFields: string[];
   surfaceStrokeStride: number;
   surfaceStrokeFields: string[];
+  /** The bits of a stroke stretch's `cuts`: which of its ends is its
+   *  stroke's own, cut square. */
+  strokeCuts: { a: number; b: number };
   surfaceRunStride: number;
   surfaceRunFields: string[];
   surfaceTriangleStride: number;

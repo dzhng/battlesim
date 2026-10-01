@@ -49,4 +49,5 @@ A curve that differs between physics and pixels reopens shared sampling parity b
 - The export carries the rounded strokes and, separately, the road strokes' control runs (`export_surface_runs`); `terrain/surfaces.ts` cuts fields along the runs.
 - Native and Wasm produce the same sample bits (`fixtures/parity/ground/curve-strokes.json`).
 - Named changes: the village's corners at (420,420) and (1150,420) and the labs' road corners round (the village's two roads go from 5 segments to 101). `village_report --quick`: one of six trials changes digest; outcomes and losses are the same.
+- A stroke is round only at its bends. Its two ends are cut square across the first and last control point ("Road ends" in `choices.md`), so the rounded line's first and last sample each end a flat face, not a half-disc.
 - Open: the visual verification list above, and the bend's look. Passing through the corner makes the road swing about 2 m to the outside of the turn rather than cut the inside.

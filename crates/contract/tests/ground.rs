@@ -122,3 +122,68 @@ fn physical_shape_fields_and_source_work_have_bounded_admission() {
         .to_string();
     assert!(error.contains("2..=4096 control points"), "{error}");
 }
+
+fn stroke(points: &[[f64; 2]], width_m: f64) -> contract::ground::GroundShape {
+    contract::ground::GroundShape::stroke(points.to_vec(), width_m).unwrap()
+}
+
+#[test]
+fn a_stroke_ends_square_across_its_first_and_last_point() {
+    // A road 6 m wide that runs east from (10, 20) to (50, 20).
+    let road = stroke(&[[10.0, 20.0], [50.0, 20.0]], 6.0);
+    for (end, beyond) in [(10.0, -1.0), (50.0, 1.0)] {
+        for across in [-3.0, 0.0, 3.0] {
+            assert!(
+                road.contains([end, 20.0 + across], 0.0),
+                "the end face itself is road, {across} m across it at x = {end}"
+            );
+            assert!(
+                !road.contains([end + beyond * 0.01, 20.0 + across], 0.0),
+                "a centimetre past the end at x = {end} is open ground, {across} m across"
+            );
+        }
+        assert!(
+            !road.contains([end + beyond * 2.0, 20.0], 0.0),
+            "no half-disc caps the end at x = {end}"
+        );
+    }
+    assert!(road.contains([30.0, 23.0], 0.0) && !road.contains([30.0, 23.01], 0.0));
+}
+
+#[test]
+fn a_stroke_that_curls_back_past_its_own_start_still_covers_that_ground() {
+    // East along y = 0, north, then back west along y = 4: the last run
+    // passes 4 m from the first, 2 m behind where the stroke starts.
+    let lane = stroke(&[[0.0, 0.0], [40.0, 0.0], [40.0, 4.0], [-10.0, 4.0]], 6.0);
+    assert!(
+        lane.contains([-2.0, 1.5], 0.0),
+        "behind the start, but inside the returning run"
+    );
+    assert!(
+        !lane.contains([-2.0, -2.0], 0.0),
+        "behind the start and beside nothing else"
+    );
+}
+
+#[test]
+fn a_stroke_stays_round_at_a_bend() {
+    // A right-angle turn. On the outside of the bend the paving runs round
+    // the corner: the rounded line passes through the control point, so the
+    // ground half a width out along the bisector is paved.
+    let road = stroke(&[[0.0, 0.0], [50.0, 0.0], [50.0, 50.0]], 6.0);
+    let out = 3.0 * std::f64::consts::FRAC_1_SQRT_2;
+    assert!(road.contains([50.0 + out - 0.01, -out + 0.01], 0.0));
+    assert!(!road.contains([50.0 + out + 0.01, -out - 0.01], 0.0));
+}
+
+#[test]
+fn a_margin_grows_a_square_end_like_any_other_edge() {
+    let road = stroke(&[[10.0, 20.0], [50.0, 20.0]], 6.0);
+    assert!(road.contains([8.0, 20.0], 2.0), "2 m past the end face");
+    assert!(!road.contains([7.99, 20.0], 2.0));
+    assert!(road.contains([8.0, 23.0], 2.0), "2 m past the end's corner");
+    // Diagonally off the corner (10, 23): 2 m away is in, a little more is out.
+    let d = std::f64::consts::FRAC_1_SQRT_2;
+    assert!(road.contains([10.0 - 1.99 * d, 23.0 + 1.99 * d], 2.0));
+    assert!(!road.contains([10.0 - 2.01 * d, 23.0 + 2.01 * d], 2.0));
+}

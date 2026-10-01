@@ -38,10 +38,12 @@ import {
   FOREST_TRIANGLE_FLOATS,
 } from "./forestShapes";
 import { RIVER_BANK, RIVER_FLOATS, stretchInside } from "./rivers";
+import { STROKE_FLOATS, strokeInside } from "./strokes";
 import { RECT_FLOATS, type TerrainSite } from "./terrainSurface";
 
-/** Floats per record: a stroke `a, b, half width`; a triangle `a, b, c`; an
- *  exposed boundary edge `a, b`; a rect `min, max`. A river's stretch is two
+/** Floats per record: a stroke's stretch `a, b, half width`, its kind or
+ *  forest, and its cut ends (`strokes.ts`); a triangle `a, b, c`; an exposed
+ *  boundary edge `a, b`; a rect `min, max`. A river's stretch is two
  *  records: `a, b`, the half width at `a` and at `b`, the bank's grade at
  *  each; then the bank's height at each, which no cell lists. */
 export const SURFACE_FLOATS = 8;
@@ -220,7 +222,7 @@ export function buildSurfaceField(
     return next++;
   };
   for (let o = 0; o < site.surfaceStrokes.length; o += site.surfaceStrokeStride)
-    put(site.surfaceStrokes, o, FOREST_STROKE_FLOATS, SURFACE_STROKE, PAVED, 2);
+    put(site.surfaceStrokes, o, STROKE_FLOATS, SURFACE_STROKE, PAVED, 2);
   // Triangles only say which side of the exposed boundary a point is on:
   // with no boundary there is nothing for them to sign.
   for (let o = 0; o < site.surfaceTriangles.length; o += site.surfaceTriangleStride)
@@ -495,8 +497,7 @@ export function pavedDistance(
   for (let e = _cell[0]; e < _cell[1]; e++) {
     const o = (index[e] & SURFACE_RECORD_MASK) * SURFACE_FLOATS;
     const kind = index[e] >>> SURFACE_KIND_SHIFT;
-    if (kind === SURFACE_STROKE)
-      paved = Math.max(paved, records[o + 4] - segmentDistance(records, o));
+    if (kind === SURFACE_STROKE) paved = Math.max(paved, strokeInside(records, o, x, y));
     else if (kind === SURFACE_TRIANGLE) inside ||= insideTriangle(records, o);
     else nearest = Math.min(nearest, segmentDistance(records, o));
   }
@@ -527,8 +528,7 @@ export function forestDistance(
       nearest = 1e9;
     }
     if (kind === SURFACE_RECT) forest = Math.max(forest, insideRect(records, o, x, y));
-    else if (kind === SURFACE_STROKE)
-      distance = Math.max(distance, records[o + 4] - segmentDistance(records, o));
+    else if (kind === SURFACE_STROKE) distance = Math.max(distance, strokeInside(records, o, x, y));
     else if (kind === SURFACE_TRIANGLE) inside ||= insideTriangle(records, o);
     else nearest = Math.min(nearest, segmentDistance(records, o));
   }

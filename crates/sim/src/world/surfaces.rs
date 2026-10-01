@@ -3,8 +3,8 @@
 use std::collections::{BTreeSet, HashMap};
 
 use contract::ground::{
-    cross, edges, limits, polygon_area, polygon_contains, segment_distance, triangulate,
-    GroundShape,
+    cross, edges, limits, polygon_area, polygon_contains, segment_distance, stretch_contains,
+    stretch_cuts, triangulate, GroundShape,
 };
 use contract::map::{Rect, SurfaceArea, SurfaceKind};
 use contract::river::{section, River, Section};
@@ -344,8 +344,14 @@ impl SurfaceIndex {
                     unreachable!()
                 };
                 let points = centerline.samples();
-                segment_distance(points[*edge], points[*edge + 1], [p.x, p.y])
-                    <= width_m / 2.0 + margin
+                stretch_contains(
+                    points[*edge],
+                    points[*edge + 1],
+                    stretch_cuts(*edge, points.len()),
+                    width_m / 2.0,
+                    [p.x, p.y],
+                    margin,
+                )
             }
             Primitive::Polygon { area } => {
                 let GroundShape::Polygon { ring } = &self.areas[*area].shape else {

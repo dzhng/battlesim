@@ -83,7 +83,15 @@ export async function forestExportAgreement(ctx) {
       { name: "across polygon triangulation diagonal", xy: [13.5, 45], distance: 13.5 },
       { name: "mixed-ID exact rectangle", xy: [210, 30], distance: 30 },
       { name: "diagonal strip centre", xy: [130, 50], distance: 9 },
-      { name: "closed capsule endpoint outside", xy: [100, 10], distance: -1 },
+      // The strip is cut square across its first point: behind it the
+      // distance is to that flat end, not to a round cap (which gave -1).
+      { name: "behind the strip's square end", xy: [100, 10], distance: -Math.hypot(5, 5) },
+      { name: "just inside the strip's square end", xy: [101, 21], distance: Math.SQRT2 },
+      {
+        name: "off the corner of the strip's square end",
+        xy: [90, 28],
+        distance: -Math.hypot(18 / Math.SQRT2 - 9, Math.SQRT2),
+      },
     ];
     // Each case is read twice: by a pixel as wide as the map, which reads
     // every distance exactly, and by a play-camera pixel, which reads it
@@ -166,7 +174,7 @@ export async function forestExportAgreement(ctx) {
     await writeFile(ctx.evidencePath(`forest-query-${i}.wgsl`), compiled[i]);
   await writeFile(ctx.evidencePath("forest-query.json"), JSON.stringify(result, null, 2));
   ctx.check(
-    "forest floor uses native concave, capsule and explicit rectangle primitives",
+    "forest floor uses native concave, square-ended strip and explicit rectangle primitives",
     // WGSL's sqrt/length are not correctly rounded, so a GPU distance may sit a
     // few f32 steps off. Membership is the contract: the GPU's side of the
     // boundary must equal the sim's, and the distance must agree to 0.1 mm.
