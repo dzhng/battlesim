@@ -63,6 +63,135 @@ struct RoadSearch {
     /// where it is left.
     exits: BTreeMap<u32, (f64, usize)>,
     best: Option<Way>,
+    initializing: usize,
+    left_at: BTreeMap<u32, usize>,
+    goal_times: Vec<f64>,
+    across: f64,
+    connector: Option<super::terrain::Probe>,
+    /// Arc cursor and nearest access at each missing endpoint. A missing
+    /// nearby road cannot send a river crossing straight back to the grid.
+    finding: Option<AccessSearch>,
+    found_alternatives: bool,
+    access_reach: f64,
+}
+
+/// Discover the nearest terrain-reachable road for an exhausted endpoint.
+/// One arc/endpoint is admitted per step; its terrain probe also yields.
+struct AccessSearch {
+    arc: usize,
+    side: usize,
+    needed: [bool; 2],
+    nearest: [Option<Access>; 2],
+    candidates: [Vec<Access>; 2],
+    selected: [Vec<Access>; 2],
+    selecting: (usize, usize),
+    reach: f64,
+    probe: Option<(Access, super::terrain::Probe)>,
+}
+
+impl AccessSearch {
+    fn new(needed: [bool; 2], reach: f64) -> Self {
+        Self {
+            arc: 0,
+            side: 0,
+            needed,
+            nearest: [None, None],
+            candidates: Default::default(),
+            selected: Default::default(),
+            selecting: (0, 0),
+            reach,
+            probe: None,
+        }
+    }
+
+    fn next(&mut self) {
+        self.side += 1;
+        if self.side == 2 {
+            self.side = 0;
+            self.arc += 1;
+        }
+    }
+
+    fn step(
+        &mut self,
+        grid: &NavGrid,
+        roads: &RoadNet,
+        leg: Leg,
+        closed: &BTreeSet<u32>,
+        rejected: &[BTreeSet<u32>; 2],
+    ) -> bool {
+        if let Some((access, mut probe)) = self.probe.take() {
+            match grid.terrain_step(&mut probe) {
+                None => {
+                    self.probe = Some((access, probe));
+                    return false;
+                }
+                Some(true) => {
+                    if self.nearest[self.side].is_none_or(|old| access.distance < old.distance) {
+                        self.nearest[self.side] = Some(access);
+                    }
+                    self.candidates[self.side].push(access);
+                }
+                Some(false) => {}
+            }
+            self.next();
+            return false;
+        }
+        if self.arc == roads.arc_count() {
+            let (side, at) = self.selecting;
+            if side == 2 {
+                return true;
+            }
+            if let Some(&access) = self.candidates[side].get(at) {
+                if self.nearest[side]
+                    .is_some_and(|nearest| access.distance <= nearest.distance + self.reach)
+                {
+                    self.selected[side].push(access);
+                }
+                self.selecting.1 += 1;
+            } else {
+                self.selecting = (side + 1, 0);
+            }
+            return false;
+        }
+        let arc = self.arc as u32;
+        if !self.needed[self.side] || closed.contains(&arc) || rejected[self.side].contains(&arc) {
+            self.next();
+            return false;
+        }
+        let point = [leg.from, leg.goal][self.side];
+        let access = roads.access(arc, point);
+        if self.nearest[self.side].is_some_and(|old| old.distance + self.reach < access.distance) {
+            self.next();
+        } else {
+            self.probe = Some((access, super::terrain::Probe::new(point, access.at)));
+        }
+        false
+    }
+
+    fn digest(&self, d: &mut Digest) {
+        d.u64(self.arc as u64)
+            .u64(self.side as u64)
+            .u64(self.selecting.0 as u64)
+            .u64(self.selecting.1 as u64);
+        for accesses in self.candidates.iter().chain(&self.selected) {
+            d.u64(accesses.len() as u64);
+            for access in accesses {
+                d.u64(access.arc as u64);
+            }
+        }
+        for (needed, access) in self.needed.iter().zip(&self.nearest) {
+            d.u64(*needed as u64).u64(access.is_some() as u64);
+            if let Some(access) = access {
+                d.u64(access.arc as u64).f64(access.distance);
+            }
+        }
+        d.u64(self.probe.is_some() as u64);
+        if let Some((access, probe)) = &self.probe {
+            d.u64(access.arc as u64);
+            probe.digest(d);
+        }
+    }
 }
 
 /// Seconds a metre of `arc` takes `m`.
@@ -71,37 +200,75 @@ fn pace(roads: &RoadNet, arc: u32, m: &Mobility) -> f64 {
 }
 
 impl RoadSearch {
-    /// `None` when no open road lies within reach of both ends.
+    /// A blocked straight leg may need a road beyond the usual access
+    /// radius. Missing endpoint accesses are found one arc per step.
     fn new(
         grid: &NavGrid,
         roads: &RoadNet,
         leg: Leg,
         rules: &NavigationRules,
         closed: &BTreeSet<u32>,
+        rejected: &[BTreeSet<u32>; 2],
+        across: f64,
     ) -> Option<Self> {
-        let near = |p: V2| -> Vec<Access> {
+        let near = |p: V2, side: usize| -> Vec<Access> {
             roads
                 .near(p, rules.road_access_m)
                 .into_iter()
-                .filter(|access| !closed.contains(&access.arc))
+                .filter(|access| {
+                    !closed.contains(&access.arc) && !rejected[side].contains(&access.arc)
+                })
                 .collect()
         };
-        let (starts, goals) = (near(leg.from), near(leg.goal));
+        let (starts, goals) = (near(leg.from, 0), near(leg.goal, 1));
         grid.spend(1 + (starts.len() + goals.len()) as u64 / 8);
-        if starts.is_empty() || goals.is_empty() {
+        if roads.is_empty() || (across.is_finite() && (starts.is_empty() || goals.is_empty())) {
             return None;
         }
-        let join = |access: &Access| grid.across(leg.from, access.at, leg.m);
-        let leave = |access: &Access| grid.across(access.at, leg.goal, leg.m);
-        let mut search = RoadSearch {
+        let needed = [starts.is_empty(), goals.is_empty()];
+        let finding = needed
+            .iter()
+            .any(|needed| *needed)
+            .then(|| AccessSearch::new(needed, rules.road_access_m));
+        let found_alternatives = finding.is_some();
+        Some(RoadSearch {
+            goal_times: vec![f64::INFINITY; goals.len()],
             starts,
             goals,
             open: BinaryHeap::new(),
             reached: BTreeMap::new(),
             exits: BTreeMap::new(),
             best: None,
+            initializing: 0,
+            left_at: BTreeMap::new(),
+            across,
+            connector: None,
+            finding,
+            found_alternatives,
+            access_reach: rules.road_access_m,
+        })
+    }
+
+    /// Admit one endpoint connector per step. An inaccessible nearby road
+    /// cannot outrank a reachable bridge approach across the river.
+    fn initialize(&mut self, grid: &NavGrid, roads: &RoadNet, leg: Leg) {
+        let k = self.initializing;
+        let (a, b) = if k < self.goals.len() {
+            (self.goals[k].at, leg.goal)
+        } else {
+            (leg.from, self.starts[k - self.goals.len()].at)
         };
-        // The two ways along an arc from a point of it: to each end.
+        let probe = self
+            .connector
+            .get_or_insert_with(|| super::terrain::Probe::new(a, b));
+        let Some(clear) = grid.terrain_step(probe) else {
+            return;
+        };
+        self.connector = None;
+        self.initializing += 1;
+        if !clear {
+            return;
+        }
         let ends = |access: &Access| {
             let arc = roads.arc(access.arc);
             let pace = pace(roads, access.arc, leg.m);
@@ -110,36 +277,35 @@ impl RoadSearch {
                 (arc.ends[1], (arc.length - access.along) * pace),
             ]
         };
-        // Where each arc is left for the goal (an arc has one nearest point).
-        let mut left_at: BTreeMap<u32, usize> = BTreeMap::new();
-        for (g, access) in search.goals.iter().enumerate() {
-            left_at.insert(access.arc, g);
-            for (node, time) in ends(access) {
-                let time = time + leave(access);
-                if search.exits.get(&node).is_none_or(|(t, _)| time < *t) {
-                    search.exits.insert(node, (time, g));
+        if k < self.goals.len() {
+            let access = self.goals[k];
+            let leave = grid.across(access.at, leg.goal, leg.m);
+            self.goal_times[k] = leave;
+            self.left_at.insert(access.arc, k);
+            for (node, time) in ends(&access) {
+                let time = time + leave;
+                if self.exits.get(&node).is_none_or(|(t, _)| time < *t) {
+                    self.exits.insert(node, (time, k));
                 }
             }
-        }
-        for s in 0..search.starts.len() {
-            let access = search.starts[s];
-            let join = join(&access);
+        } else {
+            let start = k - self.goals.len();
+            let access = self.starts[start];
+            let join = grid.across(leg.from, access.at, leg.m);
             for (node, time) in ends(&access) {
-                search.reach(roads, leg, node, join + time, Via::Start(s));
+                self.reach(roads, leg, node, join + time, Via::Start(start));
             }
-            // Off again along the same arc, never reaching a node.
-            if let Some(&g) = left_at.get(&access.arc) {
-                let exit = search.goals[g];
+            if let Some(&goal) = self.left_at.get(&access.arc) {
+                let exit = self.goals[goal];
                 let along = (exit.along - access.along).abs() * pace(roads, access.arc, leg.m);
-                search.offer(Way {
-                    time: join + along + leave(&exit),
+                self.offer(Way {
+                    time: join + along + self.goal_times[goal],
                     end: None,
-                    start: s,
-                    goal: g,
+                    start,
+                    goal,
                 });
             }
         }
-        Some(search)
     }
 
     fn offer(&mut self, way: Way) {
@@ -173,8 +339,35 @@ impl RoadSearch {
         roads: &RoadNet,
         leg: Leg,
         closed: &BTreeSet<u32>,
+        rejected: &[BTreeSet<u32>; 2],
     ) -> Option<Option<Way>> {
         grid.spend(1);
+        if let Some(mut finding) = self.finding.take() {
+            if !finding.step(grid, roads, leg, closed, rejected) {
+                self.finding = Some(finding);
+                return None;
+            }
+            if finding.needed[0] {
+                self.starts = std::mem::take(&mut finding.selected[0]);
+            }
+            if finding.needed[1] {
+                self.goals = std::mem::take(&mut finding.selected[1]);
+            }
+            self.goal_times.resize(self.goals.len(), f64::INFINITY);
+            self.initializing = 0;
+        }
+        if self.initializing < self.starts.len() + self.goals.len() {
+            self.initialize(grid, roads, leg);
+            return None;
+        }
+        if !self.found_alternatives && !self.across.is_finite() && self.best.is_none() {
+            let needed = [self.reached.is_empty(), self.exits.is_empty()];
+            if needed.iter().any(|needed| *needed) {
+                self.found_alternatives = true;
+                self.finding = Some(AccessSearch::new(needed, self.access_reach));
+                return None;
+            }
+        }
         let Some(Open { f, cell: node }) = self.open.pop() else {
             return Some(self.best);
         };
@@ -230,12 +423,24 @@ impl RoadSearch {
         self.back(roads, node).0
     }
 
+    fn crosses_bridge(&self, roads: &RoadNet, way: Way) -> bool {
+        roads.arc(self.starts[way.start].arc).bridge
+            || roads.arc(self.goals[way.goal].arc).bridge
+            || way.end.is_some_and(|end| {
+                self.back(roads, end)
+                    .2
+                    .iter()
+                    .any(|arc| roads.arc(*arc).bridge)
+            })
+    }
+
     /// `way` as the runs to drive: each run's end and the arc it lies on,
     /// after the point the road is joined at. A mover joins and leaves the
     /// road at a slant: as far along it as the road was off to the side.
     /// And it keeps to the right of the road's middle, so two columns that
     /// meet on one road pass each other.
-    fn runs(&self, roads: &RoadNet, way: Way, m: &Mobility) -> (V2, Vec<(V2, u32)>) {
+    fn runs(&self, grid: &NavGrid, roads: &RoadNet, way: Way, leg: Leg) -> (V2, Vec<(V2, u32)>) {
+        let m = leg.m;
         let (on, off) = (self.starts[way.start], self.goals[way.goal]);
         let mut line: Vec<(V2, u32)> = vec![(on.at, on.arc)];
         if let Some(end) = way.end {
@@ -261,6 +466,12 @@ impl RoadSearch {
         let (first, exit) = (line[0].0, line[last].0);
         line[0].0 = slide(first, line[1].0, on.distance + MERGE_M);
         line[last].0 = slide(exit, line[last - 1].0, off.distance + MERGE_M);
+        if !self.across.is_finite() || !grid.terrain_clear(leg.from, line[0].0) {
+            line[0].0 = first;
+        }
+        if !self.across.is_finite() || !grid.terrain_clear(line[last].0, leg.goal) {
+            line[last].0 = exit;
+        }
         let mut middle: Vec<(V2, u32)> = vec![line[0]];
         for &(point, arc) in &line[1..] {
             if (point - middle[middle.len() - 1].0).length() > 1e-6 {
@@ -311,6 +522,7 @@ impl RoadSearch {
 struct Driving {
     /// Where the road is joined, then each run's end and arc.
     joined: V2,
+    accesses: [u32; 2],
     runs: Vec<(V2, u32)>,
     /// The route so far.
     out: Vec<V2>,
@@ -340,6 +552,7 @@ impl Driving {
 }
 
 enum Stage {
+    Terrain(super::terrain::Probe),
     Roads(RoadSearch),
     Driving(Driving),
     Direct(RouteSearch),
@@ -361,6 +574,8 @@ pub struct Journey {
     /// Arcs this journey found it cannot drive: a known body closes them
     /// for this mover and this side only.
     closed: BTreeSet<u32>,
+    /// Failed connector access at each endpoint; the road itself stays open.
+    rejected: [BTreeSet<u32>; 2],
     /// What its finished searches cost.
     work: SearchWork,
 }
@@ -369,13 +584,13 @@ impl Journey {
     /// Start working out `leg`. `scratch` is a finished journey's
     /// bookkeeping to reuse.
     pub fn new(
-        grid: &NavGrid,
-        roads: &RoadNet,
+        _grid: &NavGrid,
+        _roads: &RoadNet,
         scratch: Option<Scratch>,
         leg: Leg,
         rules: &NavigationRules,
     ) -> Self {
-        let mut journey = Journey {
+        Journey {
             from: leg.from,
             goal: leg.goal,
             m: *leg.m,
@@ -383,12 +598,11 @@ impl Journey {
             avoid: leg.avoid.to_vec(),
             rules: *rules,
             scratch,
-            stage: Stage::Done(Plan::Blocked(super::BlockReason::NoRoute)),
+            stage: Stage::Terrain(super::terrain::Probe::new(leg.from, leg.goal)),
             closed: BTreeSet::new(),
+            rejected: Default::default(),
             work: SearchWork::default(),
-        };
-        journey.stage = journey.by_road(grid, roads);
-        journey
+        }
     }
 
     fn leg(&self) -> Leg<'_> {
@@ -402,9 +616,24 @@ impl Journey {
     }
 
     /// Ask the road graph, if this leg goes by road at all.
-    fn by_road(&mut self, grid: &NavGrid, roads: &RoadNet) -> Stage {
-        let search = (self.policy == RoutePolicy::Fastest)
-            .then(|| RoadSearch::new(grid, roads, self.leg(), &self.rules, &self.closed))
+    fn by_road(&mut self, grid: &NavGrid, roads: &RoadNet, direct: bool) -> Stage {
+        let across = if direct {
+            grid.across(self.from, self.goal, &self.m)
+        } else {
+            f64::INFINITY
+        };
+        let search = (self.policy == RoutePolicy::Fastest || !direct)
+            .then(|| {
+                RoadSearch::new(
+                    grid,
+                    roads,
+                    self.leg(),
+                    &self.rules,
+                    &self.closed,
+                    &self.rejected,
+                    across,
+                )
+            })
             .flatten();
         match search {
             Some(search) => Stage::Roads(search),
@@ -472,7 +701,7 @@ impl Journey {
             Stage::Done(plan) => (Some(plan), None),
             Stage::Direct(search) => (None, Some(search.finish().1)),
             Stage::Driving(driving) => (None, driving.search.map(|s| s.finish().1)),
-            Stage::Roads(_) => (None, None),
+            Stage::Roads(_) | Stage::Terrain(_) => (None, None),
         };
         (plan, held.or(self.scratch))
     }
@@ -484,11 +713,31 @@ impl Journey {
         for arc in &self.closed {
             d.u64(*arc as u64);
         }
+        for rejected in &self.rejected {
+            d.u64(rejected.len() as u64);
+            for arc in rejected {
+                d.u64(*arc as u64);
+            }
+        }
         match &self.stage {
+            Stage::Terrain(probe) => {
+                d.u64(4);
+                probe.digest(d);
+            }
             Stage::Roads(search) => {
                 d.u64(0)
                     .u64(search.open.len() as u64)
-                    .u64(search.reached.len() as u64);
+                    .u64(search.reached.len() as u64)
+                    .u64(search.initializing as u64);
+                d.u64(search.connector.is_some() as u64);
+                if let Some(probe) = &search.connector {
+                    probe.digest(d);
+                }
+                d.u64(search.finding.is_some() as u64);
+                d.u64(search.found_alternatives as u64);
+                if let Some(finding) = &search.finding {
+                    finding.digest(d);
+                }
             }
             Stage::Driving(driving) => {
                 d.u64(1)
@@ -517,6 +766,10 @@ impl Journey {
         );
         self.stage = match stage {
             Stage::Done(plan) => Stage::Done(plan),
+            Stage::Terrain(mut probe) => match grid.terrain_step(&mut probe) {
+                Some(direct) => self.by_road(grid, roads, direct),
+                None => Stage::Terrain(probe),
+            },
             Stage::Direct(mut search) => {
                 search.advance(grid, 1);
                 if search.plan().is_some() {
@@ -526,18 +779,26 @@ impl Journey {
                 }
             }
             Stage::Roads(mut search) => {
-                match search.step(grid, roads, self.leg(), &self.closed) {
+                match search.step(grid, roads, self.leg(), &self.closed, &self.rejected) {
                     None => Stage::Roads(search),
                     Some(way) => {
                         // By road only if that beats the straight line
                         // across country, both judged as the crow flies
                         // over the ground they cross.
-                        let across = grid.across(self.from, self.goal, &self.m);
-                        match way.filter(|way| way.time < across) {
+                        let across = search.across;
+                        match way.filter(|way| {
+                            way.time < across
+                                && (self.policy == RoutePolicy::Fastest
+                                    || search.crosses_bridge(roads, *way))
+                        }) {
                             Some(way) => {
-                                let (joined, runs) = search.runs(roads, way, &self.m);
+                                let (joined, runs) = search.runs(grid, roads, way, self.leg());
                                 Stage::Driving(Driving {
                                     joined,
+                                    accesses: [
+                                        search.starts[way.start].arc,
+                                        search.goals[way.goal].arc,
+                                    ],
                                     runs,
                                     out: Vec::new(),
                                     piece: 0,
@@ -555,7 +816,7 @@ impl Journey {
     }
 
     /// One step of making the way by road physical.
-    fn drive(&mut self, grid: &NavGrid, roads: &RoadNet, mut driving: Driving) -> Stage {
+    fn drive(&mut self, grid: &NavGrid, _roads: &RoadNet, mut driving: Driving) -> Stage {
         let pieces = driving.runs.len() + 2;
         // Where the piece in hand starts and ends: a run of road, or the
         // way between the road and one end of the leg.
@@ -610,9 +871,13 @@ impl Journey {
                 // search the grid for the whole leg.
                 _ if on_road => {
                     self.closed.insert(driving.runs[driving.piece - 1].1);
-                    self.by_road(grid, roads)
+                    Stage::Terrain(super::terrain::Probe::new(self.from, self.goal))
                 }
-                _ => self.direct(grid),
+                _ => {
+                    let side = usize::from(driving.piece != 0);
+                    self.rejected[side].insert(driving.accesses[side]);
+                    Stage::Terrain(super::terrain::Probe::new(self.from, self.goal))
+                }
             };
         }
         if !on_road {

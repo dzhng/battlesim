@@ -499,3 +499,82 @@ fn a_fast_move_takes_the_road_round_a_wood_and_beats_the_straight_move_through_i
         "the fast move arrives first: {arrived:?}"
     );
 }
+
+#[test]
+fn a_bridge_detour_is_chosen_over_an_impossible_straight_crossing() {
+    let mut map = two_bridges();
+    map["size"] = json!([3000, 6000]);
+    map["rivers"][0]["points"][1]["xy"] = json!([1500, 6000]);
+    map["bridges"] = json!([map["bridges"][0].clone()]);
+    map["surfaces"] = json!([
+        road([[20, 200], [2980, 200]]),
+        road([[100, 200], [100, 5800]]),
+        road([[2900, 200], [2900, 5800]])
+    ]);
+    let mut b = Battle::new(&scenario(map, jeep([100.0, 5600.0]), json!([])), 1);
+    order(&mut b, 1, [2900.0, 5600.0]);
+    let unit = planned(&mut b);
+    assert_eq!(
+        unit.state,
+        MoveState::Moving,
+        "road graph connects the banks"
+    );
+    assert_eq!(unit.route.last(), Some(&[2900.0, 5600.0]));
+    assert!(
+        on_line(&unit, 200.0) >= 2,
+        "the route takes the distant bridge"
+    );
+}
+
+#[test]
+fn a_bridge_journey_reaches_a_goal_beyond_the_access_radius() {
+    let mut map = two_bridges();
+    map["size"] = json!([3000, 6000]);
+    map["rivers"][0]["points"][1]["xy"] = json!([1500, 6000]);
+    map["bridges"] = json!([map["bridges"][0].clone()]);
+    map["surfaces"] = json!([
+        road([[20, 200], [2980, 200]]),
+        road([[100, 200], [100, 5800]]),
+        road([[1800, 200], [1800, 5800]])
+    ]);
+    let mut b = Battle::new(&scenario(map, jeep([100.0, 5600.0]), json!([])), 1);
+    order(&mut b, 1, [2900.0, 5600.0]);
+    let unit = planned(&mut b);
+    assert_eq!(
+        unit.state,
+        MoveState::Moving,
+        "road graph connects the banks"
+    );
+    assert_eq!(unit.route.last(), Some(&[2900.0, 5600.0]));
+    assert!(
+        on_line(&unit, 200.0) >= 2,
+        "the route takes the distant bridge"
+    );
+}
+
+#[test]
+fn a_wrong_bank_access_does_not_hide_the_farther_legal_approach() {
+    let mut map = two_bridges();
+    map["size"] = json!([3000, 6000]);
+    map["rivers"][0]["points"][1]["xy"] = json!([1500, 6000]);
+    map["bridges"] = json!([map["bridges"][0].clone()]);
+    map["surfaces"] = json!([
+        road([[20, 200], [2980, 200]]),
+        road([[100, 200], [100, 5800]]),
+        road([[2900, 200], [2900, 5800]]),
+        road([[1400, 200], [1400, 5800]])
+    ]);
+    let mut b = Battle::new(&scenario(map, jeep([100.0, 5600.0]), json!([])), 1);
+    order(&mut b, 1, [1700.0, 5600.0]);
+    let unit = planned(&mut b);
+    assert_eq!(
+        unit.state,
+        MoveState::Moving,
+        "road graph connects the banks"
+    );
+    assert_eq!(unit.route.last(), Some(&[1700.0, 5600.0]));
+    assert!(
+        on_line(&unit, 200.0) >= 2,
+        "the route takes the distant bridge"
+    );
+}

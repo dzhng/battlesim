@@ -150,6 +150,7 @@ pub(super) fn body_buckets(stamp: &Stamp, nx: usize) -> impl Iterator<Item = usi
 /// put them.
 pub struct NavBase {
     pub(super) cells: Cells,
+    pub(super) terrain: super::terrain::Terrain,
     /// Infantry's free sub-cells on the bare ground, for the cells where
     /// they are neither all free nor none: those beside ground nobody
     /// crosses.
@@ -259,6 +260,7 @@ impl NavBase {
                 cells[at].free = free;
             }
         }
+        let terrain = super::terrain::Terrain::new(&cells);
         let mut bodies: Vec<(PropId, Body)> = bodies
             .filter_map(|prop| Some((prop.id, Body::of(prop)?)))
             .collect();
@@ -304,6 +306,7 @@ impl NavBase {
             .collect();
         settle(&mut cells, &laid);
         NavBase {
+            terrain,
             slow: SlowGround::new(&cells),
             cells,
             shores,

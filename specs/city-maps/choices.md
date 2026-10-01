@@ -1868,3 +1868,28 @@ are real but the small verge change is not perceptually persuasive. Keep the
 validator/scales on the physical proof; retain pixelated silhouettes, diagonal
 repetition and ambiguous dark-region cues as specialist appearance work. No
 source or look gate is reblessed by this systems pass.
+## SA6: bridge corridors, impossible orders and passing columns
+
+### Public terrain proves disconnection; bodies do not
+
+**Choice:** Build connected horizontal runs from public terrain before stamping bodies. Different component labels prove an impossible crossing immediately; equal labels only admit physical search. Adjacent rows with identical open intervals share a query band. Straight-leg queries intersect those intervals exactly, reading at most 128 bands per scheduler step; road connectors retain their cursor. Completed routes rechecked after knowledge changes also retain a segment cursor and use the stricter no-shove rule.
+
+**Gap:** Search exhaustion was being used to discover two disconnected river banks, and whole-leg terrain or revision scans could burst through the tick allowance.
+
+**Verdict:** sound. An unbridged 2.8 km move is refused on tick 1 and never plans again. The long revision check and both uniform and irregular diagonal allowance-1 tests pass. The topology ignores removable bodies and conservatively admits diagonal terrain connections; it cannot use an unseen wreck as a disconnection proof. Construction visits stored pages and row intervals, not every implicit open cell. **Confidence:** high.
+
+### A river journey joins a bridge on its authored approach
+
+**Choice:** When the straight leg crosses blocked public terrain, ask the road graph even for shortest moves, accepting that alternative only when it crosses a physical bridge. Disable joining/leaving slants for that journey: a tank aligns on the deck rather than cutting from the bank. Soldiers still share one squad corridor; their local lane candidates additionally respect terrain. If a blocked straight leg has no road within the configured access radius of an endpoint, discover terrain-reachable roads one arc per scheduler step, retaining the existing access-radius band beyond the nearest legal road, then perform the same footprint refinement. This discovery also starts when every nearby access is on the wrong bank. A failed physical connector rejects that endpoint access, leaving its road arc usable by other journeys. The usual legal off-road fallback remains.
+
+**Gap:** The graph could join a nearby road across the river, cut a bridge approach, or never be asked because a dry goal lay beyond the access radius.
+
+**Verdict:** a named route-quality tradeoff, accepted under `scale-direction.md`. The dense oracle's physical-fit and reachability assertions remain unchanged. Before the final alternative-access correction, across 12,064 cases, shortest mean ratio changes from 1.003865 to 1.006525, worst from 1.078079 to 1.316296 (70 of 4,867 routes exceed 10%); fastest mean changes from 1.004325 to 1.005874, worst from 1.096532 to 1.195372 (30 of 4,757 exceed 10%). The concrete worst shortest case is infantry `[15,2]` to `[60,44]` beside the corpus river/bridge: 82.90 m along aligned road access versus the dense planner's 62.98 m. This preserves shortest intent on ordinary terrain and trades some cross-river optimality for an approach the full formation and turning hull can finish. No oracle or movement tolerance was relaxed. **Confidence:** high on physical behavior, medium on global optimality.
+
+### A stalled column can make room for the vehicle ahead
+
+**Choice:** Every stalled vehicle may seek a local detour; numeric unit priority does not forbid the rear vehicle from moving aside. A newly committed route replaces its old reversing manoeuvre. Forward straight followers reserve the larger of turning radius and hull half-length; that extra longitudinal reserve is disabled while reversing, turning, manoeuvring, or approaching a route corner within turning radius plus hull half-length whose angle exceeds the existing turning threshold. Static and live-traffic arc probes compare overlap depth against the initial hull, and a committed move may not create or deepen physical overlap.
+
+**Gap:** A front vehicle needed room to reverse while its rear follower could not yield; old yaw comparisons admitted overlap, and full-curvature prediction overshot a jeep's small remaining turn around a wreck.
+
+**Verdict:** sound. All eight opposing vehicles finish the unchanged bridge-column scenario with no hull overlap, water standing or turning-radius violation. The wreck jeep reaches its goal instead of issuing the same route repeatedly. The lookahead bends only through the remaining heading error. These are named mechanic and digest changes, rather than a performance-only claim. **Confidence:** high for the pinned moments; broader dense traffic remains dependent on local yielding.

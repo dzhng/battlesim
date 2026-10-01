@@ -35,3 +35,13 @@ Route quality against the frozen planner (`navigation_quality` example); every m
 
 ## Feedback that would change this slice
 A fix that needs soldiers to path individually across the map, rather than follow a squad corridor, reopens squad movement as its own spec.
+
+## Outcome
+
+Implementation checkpoint; generated-map and integrated-clock closeout remain pending. Implemented the five movement moments through shared bridge corridors, local terrain-aware soldier lanes, bounded public-terrain proof and route revalidation, and traffic manoeuvres that make room for reversing vehicles. The ownership boundary remains movement/navigation/route planning; no map-generation, garrison, visibility or structure schema changed. `RouteCheck` is the navigation-to-planner owner for resumable no-shove validation; road arcs also retain whether they cross a physical deck.
+
+The unchanged movement checks now pass: all eight soldiers and the tank cross both C69 approaches; the jeep passes the road wreck; an impossible crossing is refused on tick 1 without replanning; a bridge 5.4 km outside the direct line is found; and all eight opposing vehicles finish. A missing-endpoint regression places the road 1.1 km from the goal without changing the 1 km access rule; a second red/green regression puts a nearer road on the wrong bank and a farther legal approach beyond the radius. Alternative access discovery and candidate filtering are resumable, and physical connector rejection stays local to its endpoint. Terrain and revision probes have explicit per-step limits, including an irregular 9.8 km diagonal with allowance 1.
+
+The full sim crate passed before the final resumable terrain/access stages; subsequent focused movement, navigation, road-journey and route-planning proofs cover those stages (51 tests), and clippy passes with warnings denied. Before the final alternative-access correction, dense-oracle physical fit and two-sided reachability pass over 12,064 cases; numerical quality changes are disclosed under SA6 in `../choices.md`. Independent `codex review` could not run with the configured model/account combination; manual shape, diff and documentation review was completed, with root's independent review of traffic and hull escape logic.
+
+Before/after GIFs and native frames are under `throwaway/sa6/{before,after}`. The generated-river corpus and integrated clock gate are still being finalized by the sim lane; do not read the earlier concurrent-load wall-clock report as a quiet-machine performance proof.
