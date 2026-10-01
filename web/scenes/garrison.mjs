@@ -223,6 +223,16 @@ export async function run(ctx) {
     );
     return page.close();
   }
+  const card = page.locator('.ro-unit[data-unit="2"]');
+  await card.hover();
+  await page.waitForTimeout(200);
+  ctx.check(
+    "a garrison concealment bonus appears as HIDDEN beside IN BUILDING",
+    squad(o, 2).concealed &&
+      (await card.locator('[data-state="hidden"]').isVisible()) &&
+      (await card.locator('[data-state="in_building"]').isVisible()),
+  );
+  await frame(ctx, page, "hidden-status");
   const occupants = squad(o, 2).members;
   const distinct = new Set(occupants.map((p) => `${p[0].toFixed(2)},${p[1].toFixed(2)}`));
   ctx.check(

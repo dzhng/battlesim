@@ -2112,6 +2112,7 @@ impl Battle {
                             .map(|s| s.hp)
                             .collect(),
                         suppression: self.rules.suppression.tier(u.suppression),
+                        concealed: sensing::concealed(&self.world, u, &self.rules),
                         stock: u.stock,
                         service: u.service,
                         garrison: garrison::state(&self.world, u, &self.rules),

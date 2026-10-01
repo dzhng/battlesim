@@ -38,6 +38,7 @@ import {
 import { anyNear, decode, pixel, writeCrop } from "./_png.mjs";
 import { checkOverlayIsolation, orderPaint, paintHue, paintOnly } from "./_overlays.mjs";
 import { xrayTour } from "./_xray.mjs";
+import { concealmentTour } from "./_concealment.mjs";
 import { cleanupTour, woodsTour } from "./_battleLook.mjs";
 import {
   hasRole,
@@ -1252,12 +1253,7 @@ async function orderTour(ctx) {
   // A real right-drag: press at the goal, release north-east of it.
   await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id]);
   await page.waitForFunction((id) => window.__lab.route.selected()[0] === id, rifle.id);
-  // Separate the squad's destination ring from the tank's marker: the route
-  // clipping check must not count another unit's area ring as this unit's route.
-  const goal = [
-    rifle.position[0] + 30,
-    rifle.position[1] + (tank.position[1] >= rifle.position[1] ? -10 : 10),
-  ];
+  const goal = [rifle.position[0] + 30, rifle.position[1]];
   const at = [goal[0] - 12, goal[1]];
   await aim(page, at, { distance: CAMERA.default.distance, pitch: 0.85, yaw: CAMERA.default.yaw });
   await lab(page, () => window.__lab.frame());
@@ -1677,6 +1673,26 @@ async function orderTour(ctx) {
   });
   await lab(page, () => window.__lab.frame());
   await snapshot(ctx, page, "orders-selected-default-1920x1080.png");
+  // Separate the destination ring only for route clipping; the preceding
+  // cover checks keep their covered destination.
+  await lab(
+    page,
+    (c) =>
+      window.__lab.route.command({
+        kind: "move",
+        units: [c.id],
+        gesture: 3503,
+        goal: c.goal,
+        route: "shortest",
+        facing: c.facing,
+      }),
+    {
+      id: rifle.id,
+      goal: [goal[0], goal[1] + (tank.position[1] >= rifle.position[1] ? -10 : 10)],
+      facing: wanted,
+    },
+  );
+  await advance(page, 3);
   // The selection's markers against its orders: Space held, so they show
   // (the pointer off the canvas, so the range ruler doesn't).
   await pointerOffCanvas(page);
@@ -3378,6 +3394,7 @@ const TOURS = {
   smoke: smokeTour,
   woods: woodsTour,
   xray: xrayTour,
+  concealment: concealmentTour,
   cleanup: cleanupTour,
   play: playTour,
 };

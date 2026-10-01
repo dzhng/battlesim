@@ -103,9 +103,10 @@ export function canonicalObservation(observation: ObservationView, layout: Obser
   );
 }
 
-/** Normalize only C01's deliberately added identity columns for old receipts. */
+/** Old receipts predate prop identity and the derived concealment readout. */
 export function originalObservation(observation: ObservationView, layout: ObservationLayout) {
   const canonical = canonicalObservation(observation, layout);
+  for (const unit of canonical.own) delete unit.concealed;
   canonical.knownProps = canonical.knownProps.map(
     ({
       id: _id,

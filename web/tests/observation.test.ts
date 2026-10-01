@@ -4,7 +4,12 @@ import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { initSync, Battle, resolve_catalog, village_scenario } from "@wasm/game_wasm.js";
 import type { CatalogView } from "@packages/scene-assets/src/units";
-import { weaponLabel, weaponRows, type PanelRules } from "../src/battle/present/panelRows";
+import {
+  ownPanel,
+  weaponLabel,
+  weaponRows,
+  type PanelRules,
+} from "../src/battle/present/panelRows";
 import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/observation";
 import { GroundView } from "../src/battle/sim/ground";
 import { sightMultiplier } from "@packages/battle-renderer/src/sightOverlay";
@@ -552,4 +557,31 @@ test("a live battle publishes poses, soldier ids, tracer kinds and blasts", () =
   expect(red.memberIds).toHaveLength(red.members.length);
   expect(new Set(red.memberIds).size).toBe(red.memberIds.length);
   battle.free();
+});
+
+test("packed forest concealment reaches the shared info panel and clears in the open", () => {
+  const battle = new Battle(
+    labScenario(sensors, [
+      { side: "blue", kind: "rifle", position: [480, 300] },
+      { side: "blue", kind: "rifle", position: [240, 300] },
+    ]),
+    1,
+  );
+  try {
+    const layout = JSON.parse(battle.observation_layout());
+    const frame = published(battle, layout);
+    expect(frame.own.map((u) => u.concealed)).toEqual([true, false]);
+    expect(
+      ownPanel(frame.own[0], frame.own, VILLAGE_RULES as unknown as PanelRules).states.map(
+        (r) => r.word,
+      ),
+    ).toContain("HIDDEN");
+    expect(
+      ownPanel(frame.own[1], frame.own, VILLAGE_RULES as unknown as PanelRules).states.map(
+        (r) => r.word,
+      ),
+    ).not.toContain("HIDDEN");
+  } finally {
+    battle.free();
+  }
 });

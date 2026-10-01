@@ -1325,3 +1325,14 @@ fn an_unseen_collapse_cannot_change_a_garrison_order_until_discovered() {
     );
     assert!(hit.unit(UnitId(0)).unwrap().garrison.is_none());
 }
+
+#[test]
+fn concealment_bonus_starts_inside_and_ends_after_leaving_the_building() {
+    let (mut b, mut c) = full_building(1);
+    assert!(own(&b, Side::Blue, 0).unwrap().concealed);
+    c.ok(&mut b, Side::Blue, exit(&[0]));
+    until(&mut b, 1200, "the squad outside", |b| {
+        phase(b, Side::Blue, 0).is_none()
+    });
+    assert!(!own(&b, Side::Blue, 0).unwrap().concealed);
+}

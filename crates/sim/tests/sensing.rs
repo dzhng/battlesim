@@ -317,3 +317,21 @@ fn each_observer_identifies_on_alternate_ticks_and_never_more_than_one_tick_late
     }
     assert!(lagged > 0, "identification runs on alternate ticks");
 }
+
+#[test]
+fn own_concealment_reports_a_bonus_without_claiming_invisibility() {
+    let b = battle(json!([
+        { "side": "blue", "kind": "rifle", "position": [480, 300] },
+        { "side": "blue", "kind": "tank", "position": [480, 300] },
+        { "side": "blue", "kind": "rifle", "position": [240, 300] },
+        { "side": "red", "kind": "recon", "position": [480, 310] },
+    ]));
+    let own = serde_json::to_value(&b.observe(Side::Blue).own).unwrap();
+    assert_eq!(own[0]["concealed"], json!(true));
+    assert_eq!(own[1]["concealed"], json!(true));
+    assert_eq!(own[2]["concealed"], json!(false));
+    assert!(
+        !b.observe(Side::Red).identified.is_empty(),
+        "concealed units can still be identified up close"
+    );
+}

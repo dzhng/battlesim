@@ -50,6 +50,8 @@ const WEAPON_ICONS: Record<string, string> = {
 const EYE =
   '<path d="M2 12c3-5 7-7 10-7s7 2 10 7c-3 5-7 7-10 7s-7-2-10-7z"/><circle cx="12" cy="12" r="3"/>';
 
+const CLOSED_EYE = `${EYE}<path d="M4 21L20 3"/>`;
+
 /** Each info panel state's mark on a 24 × 24 grid, drawn to sit inside a
  *  progress ring. The supply families differ by form: an arrow rising into a
  *  bar (being served), a ticked box (full), a crossed box (cannot). Waiting
@@ -69,6 +71,7 @@ const STATE_ICONS = {
   building: '<path d="M4 20V10l8-6 8 6v10z"/><path d="M10 20v-6h4v6"/>',
   waiting: '<path d="M9 6v12M15 6v12"/>',
   route_blocked: '<path d="M3 12h11"/><path d="M10 8l4 4-4 4"/><path d="M19 5v14"/>',
+  hidden: CLOSED_EYE,
   last_seen: EYE,
   heard:
     '<path d="M3 10v4h3l5 4V6l-5 4z"/><path d="M15 9a4 4 0 0 1 0 6"/><path d="M18 6a8 8 0 0 1 0 12"/>',
@@ -115,7 +118,7 @@ const HUD_ICONS = {
     '<circle cx="12" cy="12" r="3"/><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M18 2v5h-5"/>',
   must_stop: '<path d="M8.5 3h7L21 8.5v7L15.5 21h-7L3 15.5v-7z"/><path d="M8 12h8"/>',
   no_ammo: '<rect x="8" y="3" width="8" height="18"/><path d="M4 20L20 4"/>',
-  no_sight: `${EYE}<path d="M4 21L20 3"/>`,
+  no_sight: CLOSED_EYE,
 } as const;
 
 export type HudIcon = keyof typeof HUD_ICONS;

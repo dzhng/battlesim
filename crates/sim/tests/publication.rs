@@ -618,10 +618,26 @@ fn aggregate_codec_preserves_every_original_animation_word() {
     .unwrap();
     let layout = &receipt["layout"];
     let header = names(&layout["header"]);
+    let probe = Battle::new(
+        &common::scenario(
+            r#"{"size":[32,32],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#,
+            json!([]),
+            json!([]),
+        ),
+        1,
+    );
+    let current: Value = serde_json::from_str(&publication::layout_json(&probe)).unwrap();
+    let own_fields = names(&current["groups"][0]["fields"]);
+    assert_eq!(current["groups"][0]["name"], "own");
+    let concealed = own_fields.iter().position(|f| f == "concealed").unwrap();
     for phase in ["base", "entering", "inside", "exiting", "wide"] {
         let row = &receipt["vectors"][phase];
-        let frame: contract::observation::ObservationFrame =
-            serde_json::from_value(row["frame"].clone()).unwrap();
+        // Old synthetic frames have no concealment readout; keep the receipt frozen.
+        let mut input = row["frame"].clone();
+        for own in input["own"].as_array_mut().unwrap() {
+            own["concealed"] = json!(false);
+        }
+        let frame: contract::observation::ObservationFrame = serde_json::from_value(input).unwrap();
         let patch = &row["patch"];
         let runs = patch["cells"].as_array().unwrap().iter().map(|c| {
             let cell = c["cell"].as_u64().unwrap() as u32;
@@ -649,6 +665,22 @@ fn aggregate_codec_preserves_every_original_animation_word() {
         };
         let mut data = Vec::new();
         publication::pack(&frame, &ground, &full_fog(), runs, &mut data).unwrap();
+        // Compare every original word, excluding only the added own-unit column.
+        let mut historical = data[..header.len()].to_vec();
+        let mut cursor = header.len();
+        for _ in &frame.own {
+            assert_eq!(data[cursor + concealed].to_bits(), 0.0_f32.to_bits());
+            historical.extend(
+                data[cursor..cursor + own_fields.len()]
+                    .iter()
+                    .enumerate()
+                    .filter(|(i, _)| *i != concealed)
+                    .map(|(_, v)| *v),
+            );
+            cursor += own_fields.len();
+        }
+        historical.extend_from_slice(&data[cursor..]);
+        let data = historical;
         assert_eq!(
             data.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
             row["bits"]

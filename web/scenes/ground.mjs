@@ -285,36 +285,65 @@ async function villageScars(ctx, page, blue) {
 
 /** Only the observed side's learned ground is drawn: where one side has marks
  *  the other never saw, the ground differs between the two sides' views; where
- *  neither has a mark, it does not. Fog, grass and the lab's flat cell view
- *  are off, so scars are all that can differ. Called observing red. */
+ *  neither has a mark, it does not. Fog, grass, posed bodies, the lab's flat
+ *  cell view and combat effects/lights are off. Called observing red. */
 async function sidesDrawTheirOwnScars(ctx, page, blue, red) {
   const redKeys = new Set(red.cells.map(key));
   const strength = (m) => 2 * (m.crater + m.scorch) + m.tracks + m.trampled;
   const blueKeys = new Set(blue.cells.map(key));
-  const props = (await obs(page)).knownProps;
-  const exclusive = [
+  // Baked map buildings need not appear in knowledge or dynamic model lists.
+  const props = await page.evaluate(
+    async (repo) => {
+      const file = (p) => `/@fs/${repo}${p}`;
+      const [wasm, rules, { mapProps }, { readWorldExports }] = await Promise.all([
+        import("/src/wasm/game_wasm.js"),
+        import(file("apps/battle-lab/src/scenarios.ts")),
+        import(file("packages/battle-renderer/src/models/propAppearance.ts")),
+        import(file("packages/battle-renderer/src/worldMesh.ts")),
+      ]);
+      await wasm.default();
+      const setup = JSON.parse(
+        wasm.village_scenario(JSON.stringify(rules.VILLAGE_RULES), "ordinary"),
+      );
+      const ruleJson = JSON.stringify(setup.rules);
+      const view = new wasm.WorldView(JSON.stringify(setup.map), ruleJson);
+      try {
+        return mapProps(readWorldExports(view), JSON.parse(wasm.world_layout(ruleJson)));
+      } finally {
+        view.free();
+      }
+    },
+    new URL("../../", import.meta.url).pathname,
+  );
+  const clear = (x, y) =>
+    props.every(
+      (p) => Math.hypot(x - p.center[0], y - p.center[1]) > Math.hypot(p.half[0], p.half[1]) + 4,
+    );
+  const candidates = [
     ...blue.cells.filter((c) => !redKeys.has(key(c))),
     ...red.cells.filter((c) => !blueKeys.has(key(c))),
   ]
-    .filter(
-      (c) =>
-        c.marks.crater > 0 &&
-        props.every(
-          (p) =>
-            Math.hypot(c.x + 0.5 - p.center[0], c.y + 0.5 - p.center[1]) >
-            Math.hypot(p.half[0], p.half[1]) + 4,
-        ),
-    )
-    .sort((a, b) => strength(b.marks) - strength(a.marks))[0];
+    .filter((c) => c.marks.crater > 0 && clear(c.x + 0.5, c.y + 0.5))
+    .sort((a, b) => strength(b.marks) - strength(a.marks));
   const marked = new Set([...blue.cells, ...red.cells].map(key));
-  const offset = exclusive
-    ? [
-        [12, 0],
-        [-12, 0],
-        [0, 12],
-        [0, -12],
-      ].find(([dx, dy]) => !marked.has(key({ x: exclusive.x + dx, y: exclusive.y + dy })))
-    : null;
+  let exclusive = null,
+    offset = null;
+  for (const c of candidates) {
+    const next = [
+      [12, 0],
+      [-12, 0],
+      [0, 12],
+      [0, -12],
+    ].find(
+      ([dx, dy]) =>
+        !marked.has(key({ x: c.x + dx, y: c.y + dy })) && clear(c.x + 0.5 + dx, c.y + 0.5 + dy),
+    );
+    if (next) {
+      exclusive = c;
+      offset = next;
+      break;
+    }
+  }
   ctx.check(
     "one side holds a crater the other never saw, beside ground neither has marked",
     !!exclusive && !!offset,
@@ -325,6 +354,10 @@ async function sidesDrawTheirOwnScars(ctx, page, blue, red) {
   const blank = [at[0] + offset[0], at[1] + offset[1]];
   await lab(page, () => window.__lab.suppressGrass(true));
   await lab(page, () => window.__lab.suppressFog(true));
+  // A view switch can publish a new burst; its light is separate from its sprite.
+  await lab(page, () => window.__lab.suppressModels(true));
+  await lab(page, () => window.__lab.suppressEffects(true));
+  await lab(page, () => window.__lab.suppressCastLights(true));
   await lab(page, () => window.__lab.route.show([]));
   await cameraAt(page, { target: at, distance: 30, pitch: 1.3 });
   const [pc, pb] = [await groundCss(page, at), await groundCss(page, blank)];
@@ -342,6 +375,9 @@ async function sidesDrawTheirOwnScars(ctx, page, blue, red) {
     JSON.stringify({ marks: exclusive.marks, mark, bare, at, blank }),
   );
   await lab(page, (c) => window.__lab.route.show(c), CHANNELS);
+  await lab(page, () => window.__lab.suppressModels(false));
+  await lab(page, () => window.__lab.suppressEffects(false));
+  await lab(page, () => window.__lab.suppressCastLights(false));
   await lab(page, () => window.__lab.suppressFog(false));
   await lab(page, () => window.__lab.suppressGrass(false));
   await lab(page, () => window.__lab.route.observeAs("red"));

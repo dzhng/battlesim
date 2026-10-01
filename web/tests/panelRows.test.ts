@@ -40,6 +40,7 @@ const unit = (u: Partial<OwnUnitView>): OwnUnitView =>
     position: [0, 0, 0],
     state: "idle",
     suppression: "none",
+    concealed: false,
     deployment: null,
     garrison: null,
     stock: null,
@@ -350,4 +351,18 @@ test("an own weapon row carries its running timers and why it can't fire", () =>
     RULES,
   ).weapons;
   expect(out.live).toMatchObject({ aim: null, reload: null, reason: "out_of_range" });
+});
+
+test("concealment bonuses earn a HIDDEN row without replacing the building state", () => {
+  const hidden = unit({ concealed: true });
+  expect(words(hidden)).toEqual([["HIDDEN", null]]);
+  expect(words(unit({ concealed: false }))).toEqual([]);
+  expect(
+    words(
+      unit({ concealed: true, garrison: { phase: "inside", progress: 1 } } as Partial<OwnUnitView>),
+    ),
+  ).toEqual([
+    ["IN BUILDING", null],
+    ["HIDDEN", null],
+  ]);
 });

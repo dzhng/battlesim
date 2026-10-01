@@ -5,7 +5,7 @@
  *  word; the ground keeps only selection and movement marks.
  *  - An own unit's panel (`ownPanel`): its type's name, each weapon with
  *    its rounds left and live timers, and its state rows: deployment, a
- *    building, suppression, waiting, a truck's stock and its supplying, and a
+ *    building, concealment, suppression, waiting, a truck's stock and its supplying, and a
  *    unit's supply in a set-up truck's reach.
  *  - An identified enemy's panel (`enemyPanel`): its type's name and weapon
  *    types, never a count, health or anything else the side can't know.
@@ -36,6 +36,7 @@ export interface PanelRules {
 export const STATE_ROWS = {
   deployed: { icon: "deployed", word: () => "DEPLOYED", lasting: true },
   in_building: { icon: "building", word: () => "IN BUILDING", lasting: true },
+  hidden: { icon: "hidden", word: () => "HIDDEN", lasting: true },
   stock: { icon: "stock", word: (n: number) => `SUPPLY ${n}`, lasting: true },
   stock_empty: { icon: "stock", word: (n: number) => `SUPPLY ${n}`, lasting: true, tone: "warn" },
   deploying: { icon: "deploy", word: () => "DEPLOYING" },
@@ -152,6 +153,7 @@ export function ownStateRows(
 ): StateRow[] {
   const rows: (StateRow | null)[] = [deploymentRow(u.deployment)];
   if (u.garrison) rows.push(GARRISON_ROWS[u.garrison.phase]?.(u.garrison.progress) ?? null);
+  if (u.concealed) rows.push(row("hidden"));
   if (u.suppression !== "none") rows.push(row(u.suppression));
   // The published move state: `waiting` yields to friendly traffic in the
   // way; `route_blocked` has no known route (the order is kept and retried).

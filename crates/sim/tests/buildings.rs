@@ -9,6 +9,10 @@ fn original_setup(input: Value) -> ScenarioDefinition {
 }
 fn original_observation(frame: &contract::observation::ObservationFrame) -> String {
     let mut json = serde_json::to_string(frame).unwrap();
+    // This frozen oracle predates the derived own-unit concealment readout.
+    json = json
+        .replace(",\"concealed\":true", "")
+        .replace(",\"concealed\":false", "");
     for p in &frame.known_props {
         let optional = |id: Option<u32>| id.map_or_else(|| "null".into(), |id| id.to_string());
         let added = format!(
