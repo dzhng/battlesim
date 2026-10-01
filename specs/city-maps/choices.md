@@ -898,13 +898,15 @@ keeps storage addresses independent of physical identity and encounter naming.
 
 ### On a dense map the ladder stops at a list budget
 
-**Choice:** The ladder ends before a level whose cells would list more than 64 records on average. A wider pixel reads the last level, and so no farther than that level's reach. On a sparse map (the village, every lab) the ladder runs to a single cell that lists everything, so every pixel reads exactly and nothing moved.
+**Choice:** The ladder ends before a level whose cells would list more records on average than its budget: 24 at the finest level, growing by √2 a level (96 for 32 m pixels, 384 for 512 m). A wider pixel reads the last level, and so no farther than that level's reach. On a sparse map (the village with its 103 records, every lab) the ladder runs to a single cell that lists everything, so every pixel reads exactly and nothing moved.
 
-**Gap:** An exact answer for a pixel 500 m wide reads every primitive within 500 m. On a 4,300-record town the seven rows of pixels under the horizon would cost more than the rest of the frame. The slice's bar is cost bounded by what is near the fragment.
+**Gap:** An exact answer for a pixel 500 m wide reads every primitive within 500 m. On a 4,300-record town the few rows of pixels under the horizon would cost more than the rest of the frame. The slice's bar is cost bounded by what is near the fragment.
 
-**Reach:** On a dense map, ground seen edge-on from far away loses the forest floor and verge smeared in from farther than about 35 m; the road's own edge stays exact to twice that. No shipped map is dense enough to stop its ladder, so no accepted pixel changed. The first generated town is where to judge it.
+**Alternatives:** A flat budget of 64 was the first rule. C65's rounded bends took the village from 7 records to 103 and that rule stopped the village's own ladder at 256 m pixels. The budget grows with the pixel because wide pixels are rare: in a ground view the rows F metres wide thin as 1/√F, so √2 more records a level costs the same per frame, a few hundred records a screen column at most.
 
-**Verdict:** provisional: the budget (64) and where it bites are untested on real generated ground. **Confidence:** medium.
+**Reach:** On a dense map, ground seen edge-on from far away loses the forest floor and verge smeared in from farther than the last level's reach (about 35 m on the 4,300-record test town, 70 m on the 6 and 10 km ones); the road's own edge stays exact to twice that. No shipped map is dense enough to stop its ladder: the village has a margin of 3.7×. The first generated town is where to judge the look.
+
+**Verdict:** provisional: the budget and where it bites are untested on real generated ground. **Confidence:** medium.
 
 ### Finest cells of 8 m, serving pixels to 2 m; at most 262,144 cells
 

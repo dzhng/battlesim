@@ -289,7 +289,7 @@ do not care about order, so the pixels stay byte-identical
 - **`length(fwidth(world.xy))` has no upper bound.** Ground seen edge-on a
   kilometre off spans hundreds of metres a pixel. An exact answer there reads
   the whole map, and those few rows can cost more than the rest of the frame.
-  Give the ladder a list budget and say what a wider pixel reads instead.
+  Give the ladder a list budget that grows with the pixel (wide pixels are rare: rows thin as 1 / sqrt(F)), and say what a wider pixel reads instead.
 - **Fold tables instead of adding a binding.** The grass build sits at the
   eight-storage-buffer limit, so the rects moved into the records table and
   the index took their binding.
