@@ -1,0 +1,6 @@
+{"blue_cost_lost":90.0,"captured_s":456.46666666666664,"digest":"6573ea7d1371b840","max_s":600.0,"rejected":0,"rejoined":0,"result":"Captured","script":"flank","seed":1,"tanks":2,"tanks_lost":0}
+{"blue_cost_lost":387.5,"captured_s":442.5,"digest":"166d945d86586375","max_s":600.0,"rejected":0,"rejoined":2,"result":"Captured","script":"flank","seed":2,"tanks":2,"tanks_lost":0}
+{"blue_cost_lost":490.0,"captured_s":null,"digest":"624024027f8aace4","max_s":600.0,"rejected":0,"rejoined":0,"result":"Running","script":"flank","seed":3,"tanks":2,"tanks_lost":0}
+{"blue_cost_lost":0.0,"captured_s":null,"digest":"925bc58f64a04b3d","max_s":600.0,"rejected":0,"rejoined":0,"result":"Running","script":"ambush-0.75","seed":1,"tanks":2,"tanks_lost":0}
+{"blue_cost_lost":0.0,"captured_s":null,"digest":"36bf814ebc13e7bd","max_s":600.0,"rejected":0,"rejoined":0,"result":"Running","script":"ambush-0.75","seed":2,"tanks":2,"tanks_lost":0}
+{"blue_cost_lost":200.0,"captured_s":null,"digest":"94f5bbe67a5c2e2a","max_s":600.0,"rejected":0,"rejoined":0,"result":"Running","script":"ambush-0.75","seed":3,"tanks":2,"tanks_lost":1}

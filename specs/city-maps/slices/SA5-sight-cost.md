@@ -71,8 +71,9 @@ wall 29.766 ms; sensing alone 1.699 ms and fog alone 21.921 ms. Zero sight
 updates exceed 33 ms in either measure. A prior forward-preflight trial
 failed (36.330 ms sight CPU, 13 slow sight ticks); this prompted the measured
 ordering improvement rather than a relaxed gate. The temporary patch and
-per-tick logs are saved in `throwaway/sa5/sight-tail-attribution*`; its
-report helper reads macOS process counters. Instrumentation is removed from
+per-tick logs are frozen with the evidence; its report helper reads macOS
+process counters. The final bracket covers sensing and due fog/learning calls;
+sight-direction snapshotting, other battle stages and publication are outside it. Instrumentation is removed from
 production, and the final source's uninstrumented instruction counts are
 confirmed separately.
 Concurrent build load produced slower city results; the quiet repeats above
@@ -90,10 +91,11 @@ instructions, serial trials). The final follow-up also passes both city digests.
 Map JSON SHA-256 hashes: Mixed Small
 `59c0971dade907af209c4b9c57185f104abc2427ad119dbd54b85b680445c606`,
 Metro Large `f8079f26cf0b986f33b559a59063d0e58907a004d0e7e026f40a24762f9fff56`.
-Paired report evidence, temporary attribution patches and tick logs are
-preserved in the main checkout under `throwaway/city-maps-sa5/`. The report
-files name their source arm; `*-final-winner` is the uninstrumented final
-source through 21ec37fb. Earlier failed or loaded trials remain alongside it.
+The [frozen evidence](../assets/sim-sight-cost/README.md) contains paired reports,
+final per-tick attribution, failed timing arms and a SHA-256 manifest of outputs,
+map inputs and source identities. `*-final-winner` is uninstrumented source
+through 21ec37fb. The earlier complete scratch inventory remains in the main
+checkout under `throwaway/city-maps-sa5/`.
 
 Focused regressions falsified cache invalidation, incomplete union preflight,
 canopy bucket expansion, live aggregate identity lookup, stale remembered

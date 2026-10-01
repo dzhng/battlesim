@@ -1,0 +1,10 @@
+| script | seed | result | captured s | blue cost lost | tanks lost | rejoined | digest |
+|---|---|---|---|---|---|---|---|
+| scout-suppress-flank | 1 | Captured | 456 | 90 | 0 | 0 | `6573ea7d1371b840` |
+| scout-suppress-flank | 2 | Captured | 442 | 388 | 0 | 2 | `166d945d86586375` |
+| scout-suppress-flank | 3 | Running | — | 490 | 0 | 0 | `624024027f8aace4` |
+| **scout-suppress-flank** | all | **2/3 captured** | | **968** | **0** (a tank survived in 3) | **2** | |
+| ordinary-ambush-retreat (0.75 s) | 1 | Running | — | 0 | 0 | 0 | `925bc58f64a04b3d` |
+| ordinary-ambush-retreat (0.75 s) | 2 | Running | — | 0 | 0 | 0 | `36bf814ebc13e7bd` |
+| ordinary-ambush-retreat (0.75 s) | 3 | Running | — | 200 | 1 | 0 | `94f5bbe67a5c2e2a` |
+| **ordinary-ambush-retreat (0.75 s)** | all | **0/3 captured** | | **200** | **1** (a tank survived in 3) | **0** | |
