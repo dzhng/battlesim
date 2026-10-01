@@ -46,6 +46,28 @@ pub fn generate_map(
     mapgen::generate_map_json(request_json, presets_json, descriptors_json).map_err(js_error)
 }
 
+/// Plan one encounter recipe on a compiled map: the map and the sites
+/// `generate_map` hands out beside it, the rules a battle on it runs under,
+/// one recipe of `fixtures/encounters.json` and the encounter seed as
+/// canonical decimal text. Answers with the native planner's own outcome
+/// record: the legal encounter, or the diagnostics that refuse it.
+#[wasm_bindgen]
+pub fn plan_encounter(
+    map_json: &str,
+    sites_json: &str,
+    rules_json: &str,
+    recipe_json: &str,
+    encounter_seed: &str,
+) -> String {
+    sim::encounter::plan_encounter_json(
+        map_json,
+        sites_json,
+        rules_json,
+        recipe_json,
+        encounter_seed,
+    )
+}
+
 /// The generator version a generation request pins: a request naming another
 /// is refused, so a caller that wants this build's maps asks here.
 #[wasm_bindgen]

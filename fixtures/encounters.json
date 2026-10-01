@@ -1,0 +1,55 @@
+{
+  "revision": "encounters-1",
+  "recipes": {
+    "assault": {
+      "attacker": "blue",
+      "attacker_edge": "bottom",
+      "forces": {
+        "blue": [
+          { "kind": "jeep", "post": "column" },
+          { "kind": "recon", "post": "column" },
+          { "kind": "tank", "post": "column" },
+          { "kind": "tank", "post": "column" },
+          { "kind": "rifle", "post": "column" },
+          { "kind": "rifle", "post": "column" },
+          { "kind": "rifle", "post": "column" },
+          { "kind": "at", "post": "column" },
+          { "kind": "supply", "post": "column" }
+        ],
+        "red": [
+          { "kind": "rifle", "post": "garrison" },
+          { "kind": "rifle", "post": "garrison" },
+          { "kind": "rifle", "post": "garrison" },
+          { "kind": "at", "post": "overwatch", "engagement": "return_fire_only" },
+          { "kind": "jeep", "post": "column" },
+          { "kind": "tank", "post": "column" }
+        ]
+      },
+      "objective": {
+        "settlement": "main",
+        "open_approach": "required",
+        "zone_radius_m": 150,
+        "hold_s": 30,
+        "max_assessment_s": 900
+      },
+      "deployment": {
+        "edge_inset_m": 150,
+        "spacing_m": 30,
+        "step_m": 50,
+        "max_advance_m": 1500,
+        "pace": "jeep",
+        "max_route_difference_s": 15,
+        "defender_advances": true
+      },
+      "garrison": { "reach_m": 150, "apart_m": 60, "door_standoff_m": 4 },
+      "overwatch": { "standoff_m": 5, "apart_m": 25, "sight_m": 1000 },
+      "defender": {
+        "at_attack_range_m": 900,
+        "tank_retreat_hp_fraction": 0.35,
+        "infantry_retreat_survivor_fraction": 0.5
+      },
+      "clearance_m": 1,
+      "attempts": { "objectives": 3, "roads": 4, "buildings": 40, "posts": 12 }
+    }
+  }
+}

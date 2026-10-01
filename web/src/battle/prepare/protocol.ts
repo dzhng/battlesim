@@ -1,8 +1,9 @@
 /** The wire contract of battle preparation: one request to a preparation
- *  worker, which generates the map with the simulation's own generator, lays
- *  the developer encounter on it and hands back the scenario a battle runs.
- *  The worker is closed after its one answer, so everything generation
- *  allocated goes with it; closing it early cancels the request. */
+ *  worker, which generates the map with the simulation's own generator, has
+ *  the simulation's planner place the encounter on it and hands back the
+ *  scenario a battle runs. The worker is closed after its one answer, so
+ *  everything generation allocated goes with it; closing it early cancels
+ *  the request. */
 
 export type MapType = "open" | "mixed" | "metro";
 export type MapSize = "small" | "medium" | "large";
@@ -24,20 +25,6 @@ export interface CompileLimits {
   max_ground_points: number;
 }
 
-/** The developer encounter laid on a generated map (`developerEncounter`). */
-export interface EncounterRecipe {
-  /** Blue's force, a column on the country road that enters the map nearest
-   *  the main settlement, heading for it: its tail `edge_inset_m` in from the
-   *  edge, each unit `spacing_m` ahead of the next, the first row leading. */
-  blue: { column: string[]; edge_inset_m: number; spacing_m: number };
-  /** Red's force, one row per district of the main settlement in plan order:
-   *  each stands `standoff_m` outside an entrance of the building nearest
-   *  the district's anchor, and a `garrison` row is ordered into it. */
-  red: { kind: string; garrison: boolean; standoff_m: number }[];
-  /** The hold zone's radius, about the main settlement's centre. */
-  zone_radius_m: number;
-}
-
 export interface PrepareRequest {
   type: "prepare";
   map: MapChoice;
@@ -49,7 +36,13 @@ export interface PrepareRequest {
   /** The rules the battle runs under, as JSON text (the village's, with the
    *  resolved catalog). */
   rules: string;
-  encounter: EncounterRecipe;
+  /** One recipe of `fixtures/encounters.json` (`contract::encounter::
+   *  EncounterRecipe`), as JSON text: who attacks from which edge, each
+   *  side's roster and posts. It holds no coordinates. */
+  recipe: string;
+  /** The encounter seed, apart from the map's: a canonical u64 decimal
+   *  string. It chooses among the buildings a garrison may take. */
+  encounterSeed: string;
 }
 
 /** Mirrors `contract::identity::GenerationIdentity`. */
@@ -62,8 +55,9 @@ export interface GenerationIdentity {
   map_hash: string;
 }
 
-/** Mirrors `mapgen::Diagnostic`: why a request was refused. */
-export interface MapDiagnostic {
+/** Why a request was refused: mirrors `mapgen::Diagnostic` and
+ *  `contract::encounter::EncounterDiagnostic`, which share the shape. */
+export interface PrepareDiagnostic {
   code: string;
   feature: string | null;
   location: string;
@@ -71,6 +65,41 @@ export interface MapDiagnostic {
 }
 
 export type PrepareStage = "generating" | "placing";
+
+type Side = "blue" | "red";
+
+/** Mirrors `contract::encounter::Placement`: where the planner put the
+ *  encounter and why, for the camera, overlays and diagnostics. The battle
+ *  reads none of it. */
+export interface EncounterPlacement {
+  objective: { settlement: string; center: [number, number]; radius_m: number };
+  /** The attacker's column, then the defender's if it has one. */
+  deployments: {
+    side: Side;
+    edge: "top" | "bottom";
+    /** Unit ids, leader first. */
+    units: number[];
+    head: [number, number];
+    yaw: number;
+    /** How far the column was moved up its road to make the start fair. */
+    advance_m: number;
+    /** The pace unit's drive from `head` to the objective. */
+    route_s: number;
+    route_m: number;
+    route: [number, number][];
+  }[];
+  /** A squad and the building (its owner prop id) it is ordered into. */
+  garrisons: {
+    unit: number;
+    building: number;
+    district: string;
+    soldiers: number;
+    seats: number;
+  }[];
+  overwatch: { unit: number; at: [number, number]; yaw: number; approach: number | null }[];
+  /** Candidates tried, over every search. */
+  attempts: number;
+}
 
 /** What preparation made: the scenario JSON a battle authority runs
  *  (`ScenarioDefinition`), and what it is. */
@@ -85,8 +114,12 @@ export interface PreparationReport {
   /** The playable area, metres. */
   size: [number, number];
   counts: { buildings: number; parts: number; surfaces: number; forests: number };
+  /** The planned encounter's inputs: the recipe's content hash and the
+   *  encounter seed. */
+  encounter: { recipe_hash: string; encounter_seed: string };
+  placement: EncounterPlacement;
   /** Where the encounter stands, for the camera: the head of blue's column
-   *  and its heading, and the main settlement's centre. */
+   *  and its heading, and the objective's centre. */
   anchors: { blue: [number, number]; blueYaw: number; town: [number, number] };
   /** Worker wall time per stage, milliseconds. */
   timings: Record<PrepareStage, number>;
@@ -97,6 +130,7 @@ export interface PreparationReport {
 export type PrepareReply =
   | { type: "stage"; stage: PrepareStage }
   | { type: "prepared"; battle: PreparedBattle }
-  /** The generator or compiler refused the request: never another seed. */
-  | { type: "refused"; diagnostics: MapDiagnostic[] }
+  /** The generator or compiler refused the map, or the planner the
+   *  encounter (`stage` says which): never another seed. */
+  | { type: "refused"; stage: PrepareStage; diagnostics: PrepareDiagnostic[] }
   | { type: "error"; message: string };

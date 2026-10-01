@@ -1,11 +1,14 @@
 // /lab/generated: a battle on a generated map. `?type=open|mixed|metro`,
 // `?size=small|medium|large` and `?seed=<u64>` choose the map (mixed, small,
-// 1 by default). A preparation worker generates it with the simulation's own
-// generator and lays the developer encounter on it (`fixtures/generated-lab.json`);
-// the battle then runs under the village's rules, as the village does.
+// 1 by default); `?encounter=<u64>` is the encounter's own seed. A preparation
+// worker generates the map with the simulation's own generator and has the
+// simulation's planner place the lab's recipe on it (`fixtures/generated-lab.json`
+// names a recipe of `fixtures/encounters.json`); the battle then runs under
+// the village's rules, as the village does.
 import { useEffect, useMemo, useRef, useState } from "react";
 import village from "@fixtures/village.json";
 import lab from "@fixtures/generated-lab.json";
+import encounters from "@fixtures/encounters.json";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
 import type { CameraPresentation } from "@packages/renderer-core/src/cameraController";
@@ -25,20 +28,34 @@ import { villageCamera } from "../villageCamera";
 const DEFAULT: MapChoice = { type: "mixed", size: "small", seed: "1" };
 const U64_MAX = 2n ** 64n - 1n;
 
-/** The map the URL asks for, or which parameter it gets wrong. */
-function urlChoice(search: string): MapChoice | { error: string } {
+/** The battle the URL asks for: its map and its encounter seed. */
+interface Choice {
+  map: MapChoice;
+  encounterSeed: string;
+}
+
+/** The battle the URL asks for, or which parameter it gets wrong. */
+function urlChoice(search: string): Choice | { error: string } {
   const params = new URLSearchParams(search);
   const type = params.get("type") ?? DEFAULT.type;
   const size = params.get("size") ?? DEFAULT.size;
   const seed = params.get("seed") ?? DEFAULT.seed;
+  const encounterSeed = params.get("encounter") ?? lab.encounter.seed;
   const one = <T extends string>(value: string, of: readonly T[]): value is T =>
     (of as readonly string[]).includes(value);
+  const u64 = (value: string) => /^(0|[1-9]\d{0,19})$/.test(value) && BigInt(value) <= U64_MAX;
   if (!one(type, MAP_TYPES)) return { error: `type must be one of ${MAP_TYPES.join(", ")}` };
   if (!one(size, MAP_SIZES)) return { error: `size must be one of ${MAP_SIZES.join(", ")}` };
-  if (!/^(0|[1-9]\d{0,19})$/.test(seed) || BigInt(seed) > U64_MAX)
-    return { error: "seed must be a whole number from 0 to 18446744073709551615" };
-  return { type, size, seed };
+  if (!u64(seed)) return { error: "seed must be a whole number from 0 to 18446744073709551615" };
+  if (!u64(encounterSeed))
+    return { error: "encounter must be a whole number from 0 to 18446744073709551615" };
+  return { map: { type, size, seed }, encounterSeed };
 }
+
+/** The lab's recipe, as the planner reads it. */
+const RECIPE = JSON.stringify(
+  (encounters.recipes as Record<string, unknown>)[lab.encounter.recipe],
+);
 
 type Stage = PrepareStage | "world" | "renderer";
 const STAGES: readonly (LoadingStage & { id: Stage })[] = [
@@ -85,12 +102,13 @@ export default function GeneratedBattle() {
     const preparation = prepareBattle(
       {
         type: "prepare",
-        map: choice,
+        map: choice.map,
         presets,
         templates,
         limits: lab.limits,
         rules: JSON.stringify(VILLAGE_RULES),
-        encounter: lab.encounter,
+        recipe: RECIPE,
+        encounterSeed: choice.encounterSeed,
       },
       setStage,
     );
@@ -102,7 +120,10 @@ export default function GeneratedBattle() {
       },
       (error: unknown) =>
         setFailure({
-          message: "This map could not be generated.",
+          message:
+            error instanceof PreparationFailed && error.stage === "placing"
+              ? "No battle could be placed on this map."
+              : "This map could not be generated.",
           details:
             error instanceof PreparationFailed && error.diagnostics.length
               ? error.diagnostics.map((d) => `${d.code} at ${d.location}: ${d.message}`)
@@ -115,7 +136,7 @@ export default function GeneratedBattle() {
   const subject =
     "error" in choice
       ? "Generated map"
-      : `${choice.type} · ${choice.size} · seed ${choice.seed}`.toUpperCase();
+      : `${choice.map.type} · ${choice.map.size} · seed ${choice.map.seed}`.toUpperCase();
   const cover = (
     <LoadingScreen
       title="Deploying"
@@ -168,7 +189,7 @@ export default function GeneratedBattle() {
       }}
       diagnostics={() => ({
         /** What the preparation worker made: the map's identity, its counts,
-         *  where the encounter stands and what each stage cost. */
+         *  the planned encounter's placement and what each stage cost. */
         generated: () => prepared.report,
         /** When each loading stage finished, ms since navigation started. */
         startup: () => ({ ...marks.current }),

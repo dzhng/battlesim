@@ -70,7 +70,10 @@ extents, which are a user decision (M04 in the [map brief](../../specs/city-maps
   `MapPlan.approaches` holds the measured corridors of open ground: the front's
   width of ground, open for the rule's depth past the last of the settlement's own
   ground along a bearing. Neither reaches the map: the parcel pass turns districts
-  into `buildings`, and the encounter planner reads both.
+  into `buildings`. The encounter planner (`sim::encounter`) reads both as
+  `contract::encounter::EncounterSites`, which `MapPlan::sites` makes: generation's
+  outcome carries the sites beside the map, and `generate-map` saves them as
+  `sites.json`.
 - **A river is a hard feature everything else is placed beside.** A seed-chosen
   share of each type's maps has one river (`rivers`, on a stream of its own, so a
   seed without one is the map it was before rivers existed). It runs from the north
@@ -168,7 +171,7 @@ Simulation collision arithmetic and its remaining cross-runtime proof are indepe
 
 The library's complete outcome is shared by the CLI (`mapgen`, whose usage text lists
 its commands) and WASM. A refusal returns diagnostics and no plan or map. Successful
-file preparation writes the final map and the shared `MapSources` envelope. Supplied
+file preparation writes the final map, its sites and the shared `MapSources` envelope. Supplied
 request, preset and catalogue receipts hash exactly the bytes used and assert no Git
 history; generation identity and stdout outcomes are unchanged. Acquisition and
 catalogue publication belong to C09/C60. The required execution limits cover authored

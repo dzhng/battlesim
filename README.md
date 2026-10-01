@@ -8,14 +8,14 @@ The simulation is the one authority; everything else observes it.
 
 - **`crates/`** — the Rust side.
   - `contract` holds the shared data shapes: scenario, commands, and the per-side observation.
-  - `sim` owns every rule: movement, sight, sensing, knowledge, weapons, flight, damage, garrisons, supply and deployment.
+  - `sim` owns every rule: movement, sight, sensing, knowledge, weapons, flight, damage, garrisons, supply and deployment. It also places an encounter recipe on a compiled map (`sim::encounter`), by asking those same rules where units may stand.
   - `game-wasm` is the thin WebAssembly boundary.
 
   New battle state must enter `Battle::digest`, so replays and parity checks catch drift.
 
 - **`web/src/battle/`** — the browser side of that boundary:
   - the worker that runs the simulation (one authority, ordered commands, bounded publications);
-  - the worker that prepares a battle on a generated map (`prepare/`: the generator, then the encounter, off the page's thread);
+  - the worker that prepares a battle on a generated map (`prepare/`: the simulation's generator, then its encounter planner, off the page's thread);
   - decoding of the packed observation;
   - player input;
   - player readouts.

@@ -1,0 +1,63 @@
+{
+  "cases": [
+    {
+      "name": "mixed small, the lab's map",
+      "request_json": "{\"generator_version\":\"layout-4\",\"preset_revision\":\"layout-presets-6\",\"seed\":\"1\",\"template_catalog_hash\":\"ed9981b358116490fd50585874a615ac427af819628e097cc2bf4216cda4f2cb\",\"type\":\"mixed\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "recipe": "assault",
+      "encounter_seed": "1",
+      "native_sha256": "ec600adb79718c595f562b0e3c25e4004323274ef79ee3eb84903db8ec2ce3e6",
+      "status": "ok"
+    },
+    {
+      "name": "open small with a river",
+      "request_json": "{\"generator_version\":\"layout-4\",\"preset_revision\":\"layout-presets-6\",\"seed\":\"2\",\"template_catalog_hash\":\"ed9981b358116490fd50585874a615ac427af819628e097cc2bf4216cda4f2cb\",\"type\":\"open\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "recipe": "assault",
+      "encounter_seed": "1",
+      "native_sha256": "16c5836fa7763a6469dfbda6d5ebcf454ce6c10a483d58a0f5474cf22aded734",
+      "status": "ok"
+    },
+    {
+      "name": "metro small with a river, an encounter seed above the JavaScript integer range",
+      "request_json": "{\"generator_version\":\"layout-4\",\"preset_revision\":\"layout-presets-6\",\"seed\":\"3\",\"template_catalog_hash\":\"ed9981b358116490fd50585874a615ac427af819628e097cc2bf4216cda4f2cb\",\"type\":\"metro\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "recipe": "assault",
+      "encounter_seed": "18446744073709551615",
+      "native_sha256": "562123d83f3a6ca47b42de82a3c62e3b20a6ceab571fc9c55b03c7ba6d3effb5",
+      "status": "ok"
+    },
+    {
+      "name": "no building within reach of the objective",
+      "request_json": "{\"generator_version\":\"layout-4\",\"preset_revision\":\"layout-presets-6\",\"seed\":\"1\",\"template_catalog_hash\":\"ed9981b358116490fd50585874a615ac427af819628e097cc2bf4216cda4f2cb\",\"type\":\"mixed\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "recipe": "assault",
+      "recipe_patch": {
+        "garrison": {
+          "reach_m": 1
+        }
+      },
+      "encounter_seed": "1",
+      "native_sha256": "6e42f7919be6c5af1f6c6d2b27f4d65ccb5ac94d13ee1657dd82b8489f8c043b",
+      "status": "error"
+    },
+    {
+      "name": "a start that cannot be made fair",
+      "request_json": "{\"generator_version\":\"layout-4\",\"preset_revision\":\"layout-presets-6\",\"seed\":\"3\",\"template_catalog_hash\":\"ed9981b358116490fd50585874a615ac427af819628e097cc2bf4216cda4f2cb\",\"type\":\"metro\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "recipe": "assault",
+      "recipe_patch": {
+        "deployment": {
+          "max_advance_m": 100,
+          "max_route_difference_s": 1
+        }
+      },
+      "encounter_seed": "1",
+      "native_sha256": "a0e6e871be79a46c3712b8066eb0b0ac2d9ff2dcbbcdfa1a8bef4f4808d7a811",
+      "status": "error"
+    },
+    {
+      "name": "a seed that is not canonical decimal text",
+      "request_json": "{\"generator_version\":\"layout-4\",\"preset_revision\":\"layout-presets-6\",\"seed\":\"1\",\"template_catalog_hash\":\"ed9981b358116490fd50585874a615ac427af819628e097cc2bf4216cda4f2cb\",\"type\":\"mixed\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "recipe": "assault",
+      "encounter_seed": "01",
+      "native_sha256": "f9f2d069d0c30be88ec5162ae9172c0e0f7b3ca2fe2d52c5dc78b744e248fdf1",
+      "status": "error"
+    }
+  ]
+}

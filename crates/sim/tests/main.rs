@@ -14,6 +14,7 @@ mod damage;
 mod deployment;
 mod destruction;
 mod drive;
+mod encounter;
 mod endurance;
 mod fire_through;
 mod flight_ballistics;

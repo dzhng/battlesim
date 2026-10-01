@@ -1,18 +1,20 @@
 /** Main-thread side of battle preparation: one worker per request. */
 import type {
-  MapDiagnostic,
+  PrepareDiagnostic,
   PreparedBattle,
   PrepareReply,
   PrepareRequest,
   PrepareStage,
 } from "./protocol";
 
-/** Why preparation ended without a battle: the generator's refusal with its
- *  diagnostics, or a failure of the worker itself. */
+/** Why preparation ended without a battle: a refusal with its diagnostics
+ *  (the generator's when `stage` is `generating`, the encounter planner's
+ *  when `placing`), or a failure of the worker itself. */
 export class PreparationFailed extends Error {
   constructor(
     message: string,
-    readonly diagnostics: MapDiagnostic[] = [],
+    readonly diagnostics: PrepareDiagnostic[] = [],
+    readonly stage: PrepareStage | null = null,
   ) {
     super(message);
   }
@@ -41,6 +43,7 @@ export function prepareBattle(
           new PreparationFailed(
             reply.diagnostics.map((d) => d.message).join("; "),
             reply.diagnostics,
+            reply.stage,
           ),
         );
       else reject(new PreparationFailed(reply.message));
