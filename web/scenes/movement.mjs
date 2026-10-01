@@ -6,6 +6,16 @@ import { hull, village } from "./_units.mjs";
 
 const unit = (page, id) =>
   lab(page, (i) => window.__lab.route.observation().own.find((u) => u.id === i), id);
+/** Advance until `id` has its route, or knows it has none: a unit holds,
+ *  planning, for as many ticks as its route takes to work out. */
+async function planned(page, id) {
+  for (let i = 0; i < 200; i++) {
+    await lab(page, () => window.__lab.route.advance(5));
+    const u = await unit(page, id);
+    if (u.state !== "planning") return u;
+  }
+  throw new Error(`unit ${id} never finished planning`);
+}
 const pathLength = (u) => {
   let [x, y] = u.position;
   let total = 0;
@@ -111,9 +121,10 @@ export async function run(ctx) {
 
   // Onto the plateau top: blocked, destination kept, reason shown.
   await lab(page, () => window.__lab.route.demo("Onto the cliff top"));
-  await lab(page, () => window.__lab.route.advance(5));
-  const supply = await lab(page, () =>
-    window.__lab.route.observation().own.find((u) => u.kind === "supply"),
+  const supply = await planned(
+    page,
+    (await lab(page, () => window.__lab.route.observation().own.find((u) => u.kind === "supply")))
+      .id,
   );
   const panel = await page.getByTestId("selection").textContent();
   ctx.check(
@@ -279,8 +290,7 @@ async function paintOnDeckAndWater(ctx) {
   // the ground just before it: the water takes the paint as its surface, not
   // dimmed under it.
   await move(truck.id, CLIFF, 81);
-  await lab(page, () => window.__lab.route.advance(5));
-  const blocked = await unit(page, truck.id);
+  const blocked = await planned(page, truck.id);
   const from = blocked.position;
   const onLine = (x0, x1) => {
     const out = [];

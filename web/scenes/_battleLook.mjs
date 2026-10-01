@@ -206,8 +206,11 @@ export async function woodsTour(ctx) {
   // It walks holding fire: in the battle as it plays since the tank rounds
   // sped up, a walker firing at will draws the red rifles' return fire at
   // the wood's edge.
-  const approach = [wood[0] - 300, wood[1] + wood[3] + 110];
-  const corner = [wood[0] - 60, wood[1] + wood[3] + 110];
+  // It keeps 40 m south of the wood: in the battle as it plays since routes
+  // are planned over several ticks, a squad 110 m south is pinned at the
+  // corner.
+  const approach = [wood[0] - 300, wood[1] + wood[3] + 40];
+  const corner = [wood[0] - 60, wood[1] + wood[3] + 40];
   await lab(
     page,
     (c) => {
