@@ -52,8 +52,9 @@ prop type, then restored green. The body shove matrix includes both floor kinds.
 The appearance gate passes with explicit systems-only status; this does **not**
 certify rendered playable cover.
 
-The village explicitly activates the shared densities, a **named C77 digest
-change**. Paired quick battle and endurance instruction evidence are pending the
+Explicit systems inputs activate the 5/3 candidate densities, a **named C77
+digest change**. The default village remains disabled pending real drawing.
+Paired quick battle and endurance instruction evidence are pending the
 SA5 production winner. The preserved original quick baseline took 287.4 s and
 5026 G instructions; duplicating its slow sight path would obscure floor cost.
 The next pass measures the same SA5 build with and without floor bodies before
@@ -80,3 +81,16 @@ is rejected. Narrow-corridor rejection was first red with no guard, then green;
 changed jeep hull width was deliberately falsified with a forced 1 m mover,
 confirmed red, and restored. Accepted isolated cover and rollback tests also
 pass. The overlapping-forest parity fixture explicitly supplies broader trunk spacing so accepted cover exercises both new kinds under all catalog mover patterns; dense overlaps may correctly admit no cover. A prop-only catalog test also passes without requiring named unit kinds. Startup instruction evidence remains part of the pending paired gate.
+
+
+### Default activation waits for accepted drawing
+
+The canonical playable village retains zero floor densities. The 5 log/3
+boulder candidates per hectare are explicit systems test/measurement inputs,
+not active production placement. Pending `systems_only` bindings resolve to no
+model; ordinary generated props are not building-part massing. Enabling them by
+default would create invisible blockers. A strict release regression now refuses
+active village floor density without accepted drawing, first red on the active
+pending log and then green with default activation deferred. C78 must install
+real accepted models/drawing before enabling the default. Prototype massing in
+explicit systems lab evidence certifies only native geometry/state, never art.

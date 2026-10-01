@@ -218,7 +218,8 @@ impl WorldGeometry {
         }
         // Floor cover follows every forest's trunks, so it cannot displace a
         // later forest's trees or change their immutable source ID ranges.
-        let mut floor_nav = (forests.rule.logs_per_ha > 0.0 || forests.rule.boulders_per_ha > 0.0)
+        let mut floor_nav = (!map.forests.is_empty()
+            && (forests.rule.logs_per_ha > 0.0 || forests.rule.boulders_per_ha > 0.0))
             .then(|| {
                 crate::navigation::NavGrid::new(std::sync::Arc::new(
                     crate::navigation::NavBase::build(

@@ -1904,7 +1904,7 @@ heavy cover: a jeep must drive around it, ordinary fire cannot destroy it, and
 its small footprint does not turn into a fog-cell wall. Both block infantry,
 who walk around them, and vehicles. The starting log HP is 120; physical half
 sizes are `[2.2, 0.35, 0.35]` m and `[1, 0.8, 0.75]` m respectively.
-The floor placement inputs are 5 logs and 3 boulders per hectare before rejection.
+The systems floor placement inputs are 5 logs and 3 boulders per hectare before rejection; default playable densities remain zero.
 These are delegated physical starting values, not balance tuning.
 
 ### Density means a sparse candidate ceiling
@@ -1938,8 +1938,9 @@ it cannot make a wider fallen trunk occupy a corridor reserved by placement.
 
 **Choice:** Missing floor densities and dimensions are zero and missing catalog
 references are absent. Old frozen parity scenarios therefore stand the same
-trunks with no new floor bodies. The live village explicitly supplies both types,
-both dimensions and both nonzero densities. A positive density requires a valid
+trunks with no new floor bodies. The live village explicitly supplies both types
+and both dimensions, but leaves default densities zero until real drawing is
+accepted. Systems trials explicitly use 5/3 candidates per hectare. A positive density requires a valid
 ordinary catalog body, finite positive dimensions and finite lattice spacing;
 entries with garrison, toppling or foliage properties are refused. Each density
 is capped at 100 candidates per hectare (one per 100 square metres) to preserve
@@ -1952,8 +1953,8 @@ unbounded density cannot silently become map-scale work. **Confidence:** medium.
 Dynamic felled trees retain the existing cleared-ground lifecycle. This pass
 adds real generated fallen logs, not a new tree-to-log destruction mechanic.
 The systems-only appearance boundary remains unaccepted: these physical bodies
-can affect a native/playable battle before their models exist, so C78 visual
-acceptance and GIFs stay explicitly open.
+affect explicit native systems trials before their models exist. Default playable
+placement waits for accepted drawing, so C78 visual acceptance and GIFs stay open.
 
 
 ## C86 tree lines — simulation contract (2026-10-01)
@@ -1994,3 +1995,16 @@ candidate ceiling and no-retry semantics remain. The guard preserves all actual 
 rejection can reduce actual floor density but cannot close an existing route or
 create a pocket. **Confidence:** high on route correctness; startup cost must be
 measured before calling the systems slice green.
+
+### Default activation waits for accepted drawing
+
+The canonical playable village retains zero floor densities. The 5 log/3
+boulder candidates per hectare are explicit systems test/measurement inputs,
+not active production placement. Pending `systems_only` bindings resolve to no
+model; ordinary generated props are not building-part massing. Enabling them by
+default would create invisible blockers. A strict release regression now refuses
+active village floor density without accepted drawing, first red on the active
+pending log and then green with default activation deferred. C78 must install
+real accepted models/drawing before enabling the default. Prototype massing in
+explicit systems lab evidence certifies only native geometry/state, never art.
+
