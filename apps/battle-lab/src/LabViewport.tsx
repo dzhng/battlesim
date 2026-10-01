@@ -33,7 +33,11 @@ import type { Project } from "@web/battle/present/readouts";
 import { villageCamera } from "./villageCamera";
 import { villageLightFor } from "./villageLight";
 import { villageFogGeometry, villageFogStyle } from "./villageFog";
-import { villageOverlayGlow, villagePaint } from "./villageOverlay";
+import {
+  villageOverlayGlow,
+  villagePaint,
+  villageXrayMinHiddenFragmentFraction,
+} from "./villageOverlay";
 import { villageModelDetail } from "./villageModels";
 import type { FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
 import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
@@ -235,6 +239,8 @@ interface LabHandle {
   setOverlayGlowStrength?: (strength: number | null) => Promise<void>;
   /** Draw the painted ground marks or not (paired frames isolate them). */
   suppressPaint?: (on: boolean) => Promise<void>;
+  /** Disable the per-model x-ray coverage gate for paired verification/cost. */
+  suppressXrayCoverage?: (on: boolean) => Promise<void>;
   /** Draw the ground unmarked while on (paired frames and cost). */
   suppressScars?: (on: boolean) => Promise<void>;
   /** GPU time of one pose-kernel dispatch over the posed bodies drawn now. */
@@ -464,6 +470,7 @@ export function LabViewport({
             fogStyle: fogStyleRef.current ?? villageFogStyle,
             overlayGlow: villageOverlayGlow,
             paint: villagePaint,
+            xrayMinHiddenFragmentFraction: villageXrayMinHiddenFragmentFraction,
             models: villageModelDetail,
             world: worldRef.current.current!,
             instances: instancesRef.current,
@@ -677,6 +684,10 @@ export function LabViewport({
           },
           async suppressCastLights(on: boolean) {
             scene.setCastLightsShown(!on);
+            await nextFrame();
+          },
+          async suppressXrayCoverage(on: boolean) {
+            scene.setXrayCoverageEnabled(!on);
             await nextFrame();
           },
           async suppressPaint(on: boolean) {

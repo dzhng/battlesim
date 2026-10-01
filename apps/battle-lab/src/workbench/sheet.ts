@@ -25,7 +25,11 @@ import {
 } from "@packages/scene-assets/src/schema";
 import { villageLight } from "../villageLight";
 import { villageFogGeometry, villageFogStyle } from "../villageFog";
-import { villageOverlayGlow, villagePaint } from "../villageOverlay";
+import {
+  villageOverlayGlow,
+  villagePaint,
+  villageXrayMinHiddenFragmentFraction,
+} from "../villageOverlay";
 import { villageModelDetail } from "../villageModels";
 import { benchOverlay, benchWorld, posedSockets } from "./benchWorld";
 import { sideTint, type LoadedModel } from "./sources";
@@ -199,6 +203,7 @@ export class SheetRenderer {
       fogStyle: villageFogStyle,
       overlayGlow: villageOverlayGlow,
       paint: villagePaint,
+      xrayMinHiddenFragmentFraction: villageXrayMinHiddenFragmentFraction,
       models: villageModelDetail,
       world: benchWorld(null),
       instances: [],

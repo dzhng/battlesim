@@ -48,7 +48,9 @@ export interface FrameTargets {
    *  by the world colour pass (which adds the grass's blades). */
   depth: GPUTexture;
   /** The overlays' depth: the prepass's, copied before the grass writes its
-   *  blades, so ground cues lie over the grass and under every solid thing. */
+   *  blades, so ground cues lie over the grass and under every solid thing.
+   *  Before units enter depth it temporarily holds world-only depth for the
+   *  x-ray coverage count; the complete prepass restores it afterward. */
   overlayDepth: GPUTexture;
   /** Display-space overlays over a transparent clear (the units' x-ray first),
    *  resolved into `overlay` and composited over post's output. */
@@ -137,7 +139,7 @@ export function allocateFrameTargets(
       size,
       format: GPU_DEPTH_FORMAT,
       sampleCount: FRAME_MSAA,
-      usage: RENDER | COPY_DST,
+      usage: RENDER | SAMPLED | COPY_DST,
     }),
     overlayMsaa: scope.texture({
       label: "frame-overlay-msaa",

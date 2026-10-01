@@ -37,6 +37,7 @@ import {
 } from "./_lab.mjs";
 import { anyNear, decode, pixel, writeCrop } from "./_png.mjs";
 import { checkOverlayIsolation, orderPaint, paintHue, paintOnly } from "./_overlays.mjs";
+import { xrayTour } from "./_xray.mjs";
 import { cleanupTour, woodsTour } from "./_battleLook.mjs";
 import {
   hasRole,
@@ -3195,6 +3196,7 @@ const TOURS = {
   effects: effectTour,
   smoke: smokeTour,
   woods: woodsTour,
+  xray: xrayTour,
   cleanup: cleanupTour,
   play: playTour,
 };

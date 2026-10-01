@@ -34,6 +34,13 @@ History is in `specs/done/battle-look/spikes/02.md` (landmines) and that spec's 
 - **Fog extends past the playable area; the border marks it.** The backdrop past the map edge and the scenery on it call `FogTerm` like the map's ground and trees. The horizon maps already run on past the edge as open ground: no occluders or foliage, the running horizon held. So units see past the edge, and there is no seam or "outside is unseen" case. The playable area is marked instead by a red border (`playAreaOverlay.ts`, `presentation.map_border`, an overlay: never fogged, width in pixels by zoom step). This is presentation only: the simulation's knowledge stops at the map edge. An early "everything off-map is unseen" rule was rejected by the user, because it cut the sight shapes off at the edge.
 - **Overlays test against the prepass depth, copied before the grass draws** (`FrameTargets.overlayDepth`). Tested against the colour pass's depth, every grass blade punched a hole in route ribbons and rings, which read as speckle. The same prepass is split so the own units' x-ray (the unit-in-woods cue) draws against the world without units, with a depth bias of about 1/128 of the distance, so bodies touching the ground aren't flecked.
 
+Own-unit x-ray is a readability cue, so incidental hidden fragments do not
+justify it. `models/modelXray.ts` measures hidden rasterized surface coverage
+per drawn model, entirely on the GPU, before the frame admits the cue. Its
+fixture threshold is a heuristic: overlapping model surfaces weight the count.
+Judge posed soldiers across zoom levels and transitions, and keep substantial
+occlusion readable without an absolute pixel-size cutoff.
+
 ## Landmines already paid for
 
 - **Probe placement.** Probing above a surface lights roofs from afar, and probing inside it self-occludes. Probe 0.1 m out along the normal, and count only eyes in front of the face.

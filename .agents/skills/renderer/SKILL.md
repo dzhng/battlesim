@@ -325,3 +325,20 @@ drawn muzzle. Independent socket probes need a model origin or stable subject
 identity; nearest-socket matching alone can report a displaced flash that is
 correctly attached. Preserve the attachment and brightness thresholds, and
 falsify the repaired match with the known wrong owner selection.
+
+## Gate occlusion cues per drawn model
+
+A tiny hidden hand or ground-intersecting boot can carry a technically correct
+x-ray that harms readability. Gate that cue by the hidden fraction of each
+logical drawn model, rather than a whole squad or an absolute pixel minimum
+that would remove distant soldiers. A bounded GPU histogram of rasterized
+surface fragments is a coverage heuristic, not an exact silhouette-area test:
+overlapping triangles weight it, so validate actual poses, detail tiers and
+consecutive frames. Keep the threshold in validated presentation data.
+
+Read world-only depth before units and grass add theirs; preserve that existing
+separation when adding coverage preparation. Pixel probes must hide DOM leader
+lines as well as model panels: they share the cue's cyan and survive the frame
+inspector. Compare grass on/off at one exact paused camera and publication,
+and falsify the gate on the real posed model pass before accepting an isolated
+shader oracle.

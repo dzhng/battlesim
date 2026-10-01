@@ -60,6 +60,8 @@ export interface BattleFrameOptions {
   overlayGlow: OverlayGlowStyle;
   /** How the painted ground marks look. */
   paint: PaintStyle;
+  /** Minimum fraction of hidden rasterized surface fragments before a model receives its x-ray cue. */
+  xrayMinHiddenFragmentFraction: number;
   /** `presentation.models`: the models' detail tiers and impostor size. */
   models: ModelDetailPresentation;
   world: WorldLayers;
@@ -98,6 +100,7 @@ export async function createBattleFrame(
       options.fogGeometry,
       models,
       options.paint,
+      options.xrayMinHiddenFragmentFraction,
     );
     const fogMask = await createFogMaskPass(root, registry, displayFormat, options.fogStyle);
     const impostors = createImpostorBaker(root, registry, models, environment);
@@ -294,6 +297,9 @@ export async function createBattleFrame(
         },
         setCastLightsShown(on) {
           lightsShown = on;
+        },
+        setXrayCoverageEnabled(on) {
+          if (!disposed) world.setXrayCoverageEnabled(on);
         },
         setPaintShown(on) {
           if (!disposed) world.setPaintShown(on);
