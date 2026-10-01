@@ -543,3 +543,24 @@ fn a_grid_plans_each_mover_and_policy_as_a_fresh_grid_would() {
         }
     }
 }
+
+#[test]
+fn placement_does_not_spend_or_pre_pay_route_work() {
+    let w =
+        world(r#", "props":[{"kind":"wall","center":[200,100],"yaw":0,"half_extents":[1,30,2]}]"#);
+    let warm = grid(&w);
+    let cold = grid(&w);
+    let before = warm.work();
+    warm.placement_point(v2(193.0, 95.0), &TANK);
+    assert_eq!(warm.work(), before, "placement has no route-work charge");
+    let from = v2(180.0, 100.0);
+    let to = v2(220.0, 100.0);
+    let a = route(warm.plan(from, to, &TANK, RoutePolicy::Shortest));
+    let b = route(cold.plan(from, to, &TANK, RoutePolicy::Shortest));
+    assert_eq!(a, b);
+    assert_eq!(
+        warm.work() - before,
+        cold.work(),
+        "warming values must not make the later route cheaper to schedule"
+    );
+}

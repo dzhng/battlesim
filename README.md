@@ -68,7 +68,7 @@ bun run dev     # build the WebAssembly, start the lab app
 
 Floating unit panels show name and health. Own-unit panels show a crossed-out eye beside the name, plus HIDDEN in expanded detail, while foliage or garrison shelter grants a concealment bonus to the hull or at least one living soldier; it does not guarantee enemies cannot identify the unit. Space prioritizes the closest 30% of visible units from the camera's actual position; farther cards expand where room remains. Hovering a unit or its card always reveals its detail. Placement tries expansion in place, then the fewest card shifts, favoring shorter shifts when the counts tie.
 
-A held right-click previews destination and facing before release commits the move. Group facing rotates the formation around that destination from the first selected unit's heading; navigation still finds standing room and vehicles keep their normal steering constraints.
+A held right-click previews each selected unit’s destination and facing with the same markers shown after release. Dragging rotates about the clicked front center. The [group move placement rationale](specs/done/group-move-preview/README.md) explains its authority, spacing and partial-placement contracts.
 
 ## Checks
 

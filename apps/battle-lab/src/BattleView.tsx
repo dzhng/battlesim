@@ -20,7 +20,7 @@ import { useBattleSession, type BattleSession } from "./useBattleSession";
 import type { ScriptedSim } from "./useSimSession";
 import type { ViewportPilot } from "./LabViewport";
 import { useFeed } from "./feed";
-import { PointerPaint, rulerAt, facingPreviewAt } from "./pointerPaint";
+import { PointerPaint, rulerAt, movePreviewAt } from "./pointerPaint";
 import {
   RangeRulerLabels,
   type RangeRulerLabelsHandle,
@@ -212,10 +212,37 @@ export function BattleView({
                   surfaceZ,
                 )
               : null;
-          const preview =
+          const heldMove =
             input && control.mode === "move" && world
-              ? facingPreviewAt(pointer.rightPress, pointer.ray, world, control.selectedUnits)
+              ? movePreviewAt(
+                  pointer.rightPress,
+                  pointer.rightDragging ? pointer.ray : null,
+                  world,
+                  control.selectedUnits,
+                )
               : null;
+          const pending = session.pendingMove.current;
+          const accepted =
+            pending &&
+            control.acks.find(
+              ({ order }) => order.kind === "move" && order.gesture === pending.gesture,
+            )?.ack;
+          const awaiting = pending && !accepted;
+          const move = heldMove ?? (awaiting ? pending : null);
+          let preview = pointerPaint.resolveMove(
+            move,
+            control.selectedUnits,
+            session.sim.client,
+            observation?.tick ?? 0,
+          );
+          if (!heldMove && accepted?.placement) {
+            const applied = (observation?.tick ?? 0) >= accepted.applied_tick;
+            preview = pointerPaint.markers(
+              accepted.placement.destinations.filter((mark) => !applied || !mark.placed),
+              observation?.own ?? [],
+              session.revealed,
+            );
+          }
           pointerPaint.update(ruler, preview, surfaceZ, metresPerPx);
           rulerLabels.current?.place(project, ruler?.ruler ?? null);
           const step = zoomStep(view.distance);
@@ -230,7 +257,7 @@ export function BattleView({
           audio: () => session.audio?.stats() ?? null,
           /** The range ruler shown last frame (Space held with a selection). */
           ruler: () => pointerPaint.shown,
-          facingPreview: () => pointerPaint.preview,
+          movePreview: () => pointerPaint.preview,
           ...diagnostics?.(session),
         }}
       />

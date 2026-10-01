@@ -42,6 +42,32 @@ pub enum Engagement {
     ReturnFireOnly,
 }
 
+/// A side-scoped, read-only resolution of a proposed group move.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MoveDestination {
+    pub unit: UnitId,
+    pub goal: [f64; 2],
+    pub placed: bool,
+    /// An explicit facing is the arrival target for pivot-capable units.
+    /// Without one, and for wheels, routing may refine this approach estimate.
+    pub facing: f64,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MovePlacement {
+    pub gesture: u64,
+    pub destinations: Vec<MoveDestination>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct MovePreviewRequest {
+    pub units: Vec<UnitId>,
+    pub goal: [f64; 2],
+    pub facing: Option<f64>,
+    #[serde(default)]
+    pub direction: MoveDirection,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Order {
@@ -57,7 +83,8 @@ pub enum Order {
         /// A right-drag's facing (Q9): the world bearing (radians,
         /// counter-clockwise from +X) the units face once there. `None`: the
         /// direction of travel. Group offsets rotate from the first selected
-        /// unit's heading to this bearing. Wheeled vehicles keep their approach
+        /// unit's heading to this bearing, about the clicked front-center anchor.
+        /// Wheeled vehicles keep their approach
         /// heading; a seen or engaged enemy overrides ordered facing.
         #[serde(default)]
         facing: Option<f64>,
@@ -160,4 +187,6 @@ pub struct CommandAck {
     /// The tick whose step applies the command (accepted or not, the tick it was judged against).
     pub applied_tick: Tick,
     pub error: Option<OrderError>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub placement: Option<MovePlacement>,
 }

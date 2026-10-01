@@ -673,6 +673,24 @@ impl BattleHandle {
         serde_json::to_string(&self.battle.accept(command)).map_err(js_error)
     }
 
+    /// Resolve a proposed formation without accepting an order or advancing time.
+    pub fn preview_move(&mut self, side: &str, move_json: &str) -> Result<String, JsError> {
+        let side = parse_side(side)?;
+        let request: contract::command::MovePreviewRequest =
+            serde_json::from_str(move_json).map_err(js_error)?;
+        let marks = self
+            .battle
+            .preview_move(
+                side,
+                &request.units,
+                request.goal,
+                request.facing,
+                request.direction,
+            )
+            .unwrap_or_default();
+        serde_json::to_string(&marks).map_err(js_error)
+    }
+
     pub fn step(&mut self) -> f64 {
         if let Some(blue) = self.blue.as_mut() {
             blue.command(&mut self.battle);

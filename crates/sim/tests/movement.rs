@@ -122,6 +122,25 @@ fn a_right_drag_rotates_the_group_layout_around_its_destination() {
         serde_json::json!([]),
     );
     let mut b = Battle::new(&setup, 1);
+    let half = common::hull("tank").half_extents_m;
+    let front_y = 150.0 - half[0].hypot(half[1]);
+    let digest = b.digest();
+    let preview = b
+        .preview_move(
+            Side::Blue,
+            &[UnitId(0), UnitId(1)],
+            [150.0, 150.0],
+            Some(std::f64::consts::FRAC_PI_2),
+            contract::command::MoveDirection::Forward,
+        )
+        .unwrap();
+    assert_eq!(b.digest(), digest, "previewing must not change the battle");
+    assert_eq!(preview.len(), 2);
+    for (mark, (id, x)) in preview.iter().zip([(0, 160.0), (1, 140.0)]) {
+        assert_eq!(mark.unit, UnitId(id));
+        assert!((mark.goal[0] - x).abs() < 1.0 && (mark.goal[1] - front_y).abs() < 1.0);
+        assert_eq!(mark.facing, std::f64::consts::FRAC_PI_2);
+    }
     let mut orders = Orders { seq: 0 };
     orders.send(
         &mut b,
@@ -139,8 +158,12 @@ fn a_right_drag_rotates_the_group_layout_around_its_destination() {
     for (id, x) in [(0, 160.0), (1, 140.0)] {
         let unit = own(&b, id);
         let goal = unit.goal.unwrap();
+        assert_eq!(
+            goal, preview[id as usize].goal,
+            "preview and committed destination agree"
+        );
         assert!(
-            (goal[0] - x).abs() < 1.0 && (goal[1] - 150.0).abs() < 1.0,
+            (goal[0] - x).abs() < 1.0 && (goal[1] - front_y).abs() < 1.0,
             "unit {id}: {goal:?}"
         );
         assert!((unit.final_facing - std::f64::consts::FRAC_PI_2).abs() < 1e-6);
@@ -161,7 +184,7 @@ fn a_right_drag_rotates_the_group_layout_around_its_destination() {
     }
     for (id, x) in [(0, 160.0), (1, 140.0)] {
         let unit = own(&b, id);
-        assert!(dist(xy(&unit), [x, 150.0]) < 2.0);
+        assert!(dist(xy(&unit), [x, front_y]) < 2.0);
         assert!(
             (unit.yaw - std::f64::consts::FRAC_PI_2).abs() < 0.02,
             "unit {id}: yaw {}",

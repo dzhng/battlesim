@@ -173,6 +173,7 @@ export interface ViewportPointer {
   position: { x: number; y: number } | null;
   ray: WorldRay | null;
   rightPress: WorldRay | null;
+  rightDragging: boolean;
 }
 
 export interface LabPick {
@@ -605,6 +606,14 @@ export function LabViewport({
             position: pointer,
             ray: pointerRay(),
             rightPress: rightPress?.ray ?? null,
+            rightDragging: !!(
+              rightPress &&
+              pointer &&
+              Math.hypot(
+                pointer.x - rightPress.event.clientX,
+                pointer.y - rightPress.event.clientY,
+              ) > CLICK_SLOP_PX
+            ),
           });
           pilot?.frame({ now, cpuMs: performance.now() - started, camera });
           raf = requestAnimationFrame(loop);

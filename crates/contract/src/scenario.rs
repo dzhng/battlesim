@@ -460,6 +460,7 @@ pub struct Rules {
     pub tick_hz: u32,
     pub movement: MovementRules,
     pub navigation: NavigationRules,
+    pub formation: FormationRules,
     pub infantry_movement: InfantryMovementRules,
     pub physics: BodyRules,
     /// Every unit type and prop type (the catalog, `fixtures/units/` and
@@ -489,6 +490,8 @@ struct UncheckedRules {
     tick_hz: u32,
     movement: MovementRules,
     navigation: NavigationRules,
+    #[serde(default)]
+    formation: FormationRules,
     infantry_movement: InfantryMovementRules,
     physics: BodyRules,
     catalog: crate::catalog::Catalog,
@@ -516,6 +519,7 @@ impl TryFrom<UncheckedRules> for Rules {
         for (id, checked) in [
             ("suppression", r.suppression.check()),
             ("navigation", r.navigation.check()),
+            ("formation", r.formation.check()),
         ] {
             checked.map_err(|error| crate::catalog::CatalogError::Invalid {
                 section: "rules",
@@ -527,6 +531,7 @@ impl TryFrom<UncheckedRules> for Rules {
             tick_hz: r.tick_hz,
             movement: r.movement,
             navigation: r.navigation,
+            formation: r.formation,
             infantry_movement: r.infantry_movement,
             physics: r.physics,
             catalog: r.catalog,
@@ -544,6 +549,51 @@ impl TryFrom<UncheckedRules> for Rules {
             buildings: r.buildings,
             garrison: r.garrison,
         })
+    }
+}
+
+/// Joint group placement; radius grows with footprint demand and obstructions.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct FormationRules {
+    pub min_radius_m: f64,
+    pub spacing_m: f64,
+    pub fill_ratio: f64,
+    pub growth_factor: f64,
+    /// Alternative candidates across the entire selection; every unit still
+    /// gets its intended-point check, even when this allowance is exhausted.
+    pub candidate_checks: u32,
+    pub max_expansions: u32,
+}
+
+impl Default for FormationRules {
+    fn default() -> Self {
+        Self {
+            min_radius_m: 40.0,
+            spacing_m: 1.0,
+            fill_ratio: 0.6,
+            growth_factor: 1.5,
+            candidate_checks: 32768,
+            max_expansions: 8,
+        }
+    }
+}
+
+impl FormationRules {
+    fn check(&self) -> Result<(), String> {
+        if !(self.min_radius_m.is_finite()
+            && self.min_radius_m > 0.0
+            && self.spacing_m.is_finite()
+            && self.spacing_m >= 0.0
+            && self.fill_ratio > 0.0
+            && self.fill_ratio <= 1.0
+            && self.growth_factor.is_finite()
+            && self.growth_factor > 1.0
+            && self.candidate_checks > 0
+            && self.max_expansions <= 32)
+        {
+            return Err("positive finite extent, nonnegative spacing, fill in (0,1], growth > 1, positive search allowance and at most 32 expansions required".into());
+        }
+        Ok(())
     }
 }
 

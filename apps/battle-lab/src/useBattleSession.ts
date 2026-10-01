@@ -153,17 +153,23 @@ export function useBattleSession({
   // Which units' order marks show (Space, or an order's flash), refreshed
   // each frame and kept as state only when it changes.
   const orderReveal = useMemo(() => new OrderReveal(villageOrderFlash), []);
+  /** Bridge the released preview until the publication contains its order. */
+  const pendingMove = useRef<Extract<Order, { kind: "move" }> | null>(null);
   const [revealed, setRevealed] = useState<RevealedOrders>(NOTHING_REVEALED);
   const revealedRef = useRef(revealed);
   const noteOrder = useCallback(
     (order: Order) => {
+      pendingMove.current = order.kind === "move" ? order : null;
       if (drawnClock.current !== null) orderReveal.noteOrder(order, drawnClock.current);
     },
     [orderReveal],
   );
   const control = useUnitControl(replay || scripted ? null : sim.client, observation, noteOrder);
   // A new battle carries no flash over.
-  useEffect(() => orderReveal.clear(), [sim.client, orderReveal]);
+  useEffect(() => {
+    orderReveal.clear();
+    pendingMove.current = null;
+  }, [sim.client, orderReveal]);
 
   const appearances = useVillageAppearances();
   // Props that can move (shoved) or be destroyed ("apart") are drawn from
@@ -615,6 +621,7 @@ export function useBattleSession({
     /** Which own units' order marks show, at what opacity (`OrderReveal`):
      *  every unit's with Space held, an order's units' as it flashes. */
     revealed,
+    pendingMove,
     surfaceZ,
     /** The appearances the viewport's models layer installs. */
     appearances: modelAppearances,

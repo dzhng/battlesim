@@ -94,6 +94,46 @@ const move = (seq: number, units: number[]): CommandEnvelope => ({
   order: { kind: "move", units, gesture: seq, goal: [120, 150], route: "shortest" },
 });
 
+test("a paused formation preview returns only own destinations without issuing an order", async () => {
+  const h = harness();
+  await h.init();
+  h.authority.handle({ type: "start" });
+  h.authority.handle({ type: "pause" });
+  const count = h.publications().length;
+  const moveRequest = { units: [0], goal: [120, 150] as [number, number], facing: Math.PI / 2 };
+  h.authority.handle({ type: "move_preview", id: 1, side: "blue", move: moveRequest });
+  h.authority.handle({
+    type: "move_preview",
+    id: 2,
+    side: "blue",
+    move: { ...moveRequest, units: [1] },
+  });
+  expect(h.replies.filter((r) => r.type === "move_preview")).toEqual([
+    {
+      type: "move_preview",
+      id: 1,
+      destinations: [{ unit: 0, placed: true, goal: [120, 150], facing: Math.PI / 2 }],
+    },
+    { type: "move_preview", id: 2, destinations: [] },
+  ]);
+  expect(h.publications().length).toBe(count);
+  h.authority.handle({ type: "command", command: move(1, [0]) });
+  expect(h.replies.filter((r) => r.type === "ack")).toEqual([
+    {
+      type: "ack",
+      ack: {
+        seq: 1,
+        applied_tick: 2,
+        error: null,
+        placement: {
+          gesture: 1,
+          destinations: [{ unit: 0, placed: true, goal: [120, 150], facing: 0 }],
+        },
+      },
+    },
+  ]);
+});
+
 test("nothing ticks before start, then ticks follow the clock", async () => {
   const h = harness();
   await h.init();

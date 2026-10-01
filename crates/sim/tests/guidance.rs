@@ -755,13 +755,21 @@ fn screened_battle(screen_after: u64, seed: u64) -> (Battle, u64) {
     let map =
         json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] })
             .to_string();
-    let launch = until_launch(&mut Battle::new(
-        &common::scenario_with(&map, units.clone(), json!([]), json!([])),
-        seed,
-    ));
+    // Release timing is this experiment's input, independent of gameplay
+    // missile tuning: a roughly 300 m/s missile passes the screen before it rises.
+    let setup = |events| {
+        let mut setup = common::scenario_with(&map, units.clone(), events, json!([]));
+        let mut rules = common::scenario_rules();
+        rules["weapons"]["atgm"]["speed_mps"] = json!(300.0);
+        rules["weapons"]["atgm"]["top_speed_mps"] = json!(301.0);
+        rules["weapons"]["atgm"]["accel_mps2"] = json!(1.0);
+        setup.rules = serde_json::from_value(rules).unwrap();
+        setup
+    };
+    let launch = until_launch(&mut Battle::new(&setup(json!([])), seed));
     let screen = json!([{ "tick": launch + screen_after, "add_prop":
         { "kind": "wall", "center": [140, 300], "yaw": 0, "half_extents": [0.5, 60, 5] } }]);
-    let b = Battle::new(&common::scenario_with(&map, units, screen, json!([])), seed);
+    let b = Battle::new(&setup(screen), seed);
     (b, launch)
 }
 
@@ -831,7 +839,7 @@ fn a_close_missile_that_loses_sight_still_hits_a_still_target() {
         .as_f64()
         .unwrap();
     for seed in [21, 22] {
-        // About 70 m short of the tank at release, inside the coast distance.
+        // Release just before reaching the tank, inside the coast distance.
         let s = screened(46, seed);
         assert!(
             600.0 - s.released_at[0] < s.velocity[0] * coast_s(),

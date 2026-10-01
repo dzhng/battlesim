@@ -3,11 +3,13 @@
 import type { WorldRay } from "@packages/renderer-core/src/camera3d";
 import { EMPTY_MESH, concatMeshes, type Mesh } from "@packages/battle-renderer/src/mesh";
 import {
-  buildFacingPreview,
+  buildDestinationPreview,
   circleExit,
   unitCircle,
+  destinationCircle,
   type SurfaceHeight,
   type UnitCircle,
+  type DestinationMarker,
 } from "@packages/battle-renderer/src/orderOverlay";
 import { buildRangeRuler, type RulerLine } from "@packages/battle-renderer/src/rangeRulerOverlay";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
@@ -17,8 +19,11 @@ import {
   type RangeRuler,
   type RulerRules,
 } from "@web/battle/present/rangeRuler";
+import { inReverseZone } from "@web/battle/input/reverseZone";
 import { dragFacing } from "@web/battle/input/useUnitControl";
 import type { OwnUnitView } from "@web/battle/sim/observation";
+import type { SimClient } from "@web/battle/sim/client";
+import type { MovePreviewRequest, MoveDestination } from "@web/battle/sim/protocol";
 import type { Vec3 } from "math";
 import { orderView } from "./battleOverlay";
 import { Feed } from "./feed";
@@ -85,11 +90,91 @@ export class PointerPaint {
   /** The ruler last shown, for the lab's probes. */
   shown: RangeRuler | null = null;
 
-  preview: UnitCircle | null = null;
+  preview: readonly (DestinationMarker & { unit: number })[] = [];
+  private previewClient: Pick<SimClient, "previewMove"> | null = null;
+  private resolved = "";
+  private gesture = "";
+  private generation = 0;
+  private busy = false;
+  private destinations: MoveDestination[] = [];
+
+  /** At most one placement query is in flight; intermediate pointer updates
+   *  are coalesced, and a reply cannot restore a cancelled gesture. */
+  resolveMove(
+    move: MovePreviewRequest | null,
+    selected: readonly OwnUnitView[],
+    client: Pick<SimClient, "previewMove"> | null,
+    tick: number,
+  ) {
+    const gesture = move && client ? JSON.stringify([move.units, move.goal]) : "";
+    if (gesture !== this.gesture || client !== this.previewClient) {
+      this.generation += 1;
+      this.gesture = gesture;
+      this.previewClient = client;
+      this.destinations = [];
+      this.resolved = "";
+    }
+    const key = gesture && JSON.stringify([move, tick]);
+    const generation = this.generation;
+    if (move && client && key && !this.busy && key !== this.resolved) {
+      this.busy = true;
+      void client
+        .previewMove(move)
+        .then(
+          (marks) => {
+            if (this.generation === generation && this.previewClient === client) {
+              this.destinations = marks;
+              this.resolved = key;
+            }
+          },
+          () => {
+            if (this.generation === generation && this.previewClient === client) {
+              this.destinations = [];
+              this.resolved = key;
+            }
+          },
+        )
+        .finally(() => {
+          this.busy = false;
+        });
+    }
+    return this.markers(this.destinations, selected);
+  }
+
+  markers(
+    destinations: readonly MoveDestination[],
+    own: readonly OwnUnitView[],
+    opacity: ReadonlyMap<number, number> | null = null,
+  ) {
+    if (destinations.length === 0) return [];
+    const units = new Map(own.map((u) => [u.id, u]));
+    return destinations.flatMap((mark) => {
+      const u = units.get(mark.unit);
+      const alpha = opacity?.get(mark.unit) ?? (opacity ? 0 : 1);
+      if (!u || alpha <= 0) return [];
+      const view = orderView(u, true, 1);
+      return [
+        {
+          unit: u.id,
+          placed: mark.placed,
+          opacity: alpha,
+          ...destinationCircle(
+            {
+              ...view,
+              finalFacing: mark.facing,
+              area: u.area ? { ...u.area, anchor: mark.goal } : null,
+            },
+            mark.goal,
+            villageOrderStyle,
+          ),
+        },
+      ];
+    });
+  }
 
   update(
     shown: ShownRuler | null,
-    preview: UnitCircle | null,
+    preview: readonly (DestinationMarker & { unit: number })[],
     z: SurfaceHeight,
     metresPerPx: number,
   ) {
@@ -109,7 +194,9 @@ export class PointerPaint {
     const key =
       rulerKey +
       ":" +
-      (preview ? [...preview.c, preview.r, preview.facing ?? 0, metresPerPx].join() : "");
+      preview
+        .map((p) => [p.unit, ...p.c, p.r, p.facing ?? 0, p.placed, p.opacity, metresPerPx].join())
+        .join(";");
     if (key === this.key) return;
     this.key = key;
     this.feed.set(
@@ -123,8 +210,8 @@ export class PointerPaint {
               villageStroke(metresPerPx),
             )
           : EMPTY_MESH,
-        preview
-          ? buildFacingPreview(preview, z, villageOrderStyle, {
+        preview.length
+          ? buildDestinationPreview(preview, z, villageOrderStyle, {
               stroke: villageStroke(metresPerPx),
             })
           : EMPTY_MESH,
@@ -133,23 +220,22 @@ export class PointerPaint {
   }
 }
 
-/** One shared destination arrow commands the selected group. */
-export function facingPreviewAt(
+/** The gesture's shared goal and facing; the authority resolves each unit. */
+export function movePreviewAt(
   start: WorldRay | null,
   cursor: WorldRay | null,
   world: StaticWorld,
   selected: readonly OwnUnitView[],
-): UnitCircle | null {
+): MovePreviewRequest | null {
   if (!start || selected.length === 0) return null;
   const at = groundUnderRay(world.view, start);
   if (!at) return null;
   const to = cursor && groundUnderRay(world.view, cursor);
-  const fallback =
-    dragFacing({
-      ground: [selected[0].position[0], selected[0].position[1]],
-      facingTo: [at[0], at[1]],
-    }) ?? selected[0].yaw;
-  const facing = dragFacing({ ground: [at[0], at[1]], facingTo: to && [to[0], to[1]] }) ?? fallback;
-  const radii = selected.map((u) => unitCircle(orderView(u, true, 1), villageOrderStyle)?.r ?? 0);
-  return { c: [at[0], at[1]], r: Math.max(...radii), facing };
+  const facing = dragFacing({ ground: [at[0], at[1]], facingTo: to && [to[0], to[1]] });
+  return {
+    units: selected.map((u) => u.id),
+    goal: [at[0], at[1]],
+    ...(facing === undefined ? {} : { facing }),
+    direction: inReverseZone(selected, [at[0], at[1]]) ? "reverse" : "forward",
+  };
 }

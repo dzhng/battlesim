@@ -2,7 +2,9 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use contract::catalog::Destroyed;
-use contract::command::{CommandAck, CommandEnvelope, Engagement, Order, OrderError, TargetRef};
+use contract::command::{
+    CommandAck, CommandEnvelope, Engagement, MovePlacement, Order, OrderError, TargetRef,
+};
 use contract::ids::{Side, Tick, UnitId};
 use contract::map::{MoverClass, PropDefinition};
 use contract::observation::{
@@ -28,7 +30,7 @@ use crate::garrison;
 use crate::ground::{self, GroundLayer, KnownGround, Wear};
 use crate::hearing;
 use crate::knowledge::SideKnowledge;
-use crate::math::{v2, v3, Obb2, Rotation, V2, V3};
+use crate::math::{v2, v3, Obb2, V2, V3};
 use crate::movement::{self, MovementContext, SideGeometry};
 use crate::navigation::{NavBase, RoadNet};
 use crate::rng::Rng;
@@ -43,10 +45,6 @@ use crate::visibility::{self, OcclusionGrid};
 use crate::weapons::{self, Arsenal, FireContext, Support, Target, VEHICLE_BODY_BASE};
 use crate::world::{PropId, WorldGeometry};
 
-/// Group offsets are compressed to fit within this radius of the goal.
-const GROUP_SPREAD_M: f64 = 40.0;
-/// How far a group member's destination may move to find standing room.
-const DESTINATION_SNAP_M: f64 = 16.0;
 /// Ticks between ground-visibility sweeps for each side (sides alternate).
 /// Identification runs every [`sensing::SENSE_EVERY`] ticks per observer;
 /// the fog display lags by at most this many ticks.
@@ -240,7 +238,7 @@ pub struct Battle {
     /// The fixture's completion referee and its latest verdict.
     referee: Option<(EncounterRules, Referee)>,
     encounter: Option<EncounterStatus>,
-    pending: Vec<CommandEnvelope>,
+    pending: Vec<PreparedCommand>,
     accepted: Vec<(Tick, CommandEnvelope)>,
     /// Recorded commands still to apply when this battle is a replay.
     replaying: Option<VecDeque<(Tick, CommandEnvelope)>>,
@@ -692,19 +690,24 @@ impl Battle {
     /// ones rejected for their content, so a replay reproduces the same acks.
     pub fn accept(&mut self, command: CommandEnvelope) -> CommandAck {
         let applied_tick = self.tick + 1;
-        let ack = |error| CommandAck {
+        let ack = |error, placement| CommandAck {
             seq: command.seq,
             applied_tick,
             error,
+            placement,
         };
         if self.replaying.is_some() {
-            return ack(Some(OrderError::ReplayInProgress));
+            return ack(Some(OrderError::ReplayInProgress), None);
         }
         self.admit(command.clone(), applied_tick)
-            .map_or_else(|e| ack(Some(e)), |_| ack(None))
+            .map_or_else(|e| ack(Some(e), None), |placement| ack(None, placement))
     }
 
-    fn admit(&mut self, command: CommandEnvelope, applied_tick: Tick) -> Result<(), OrderError> {
+    fn admit(
+        &mut self,
+        command: CommandEnvelope,
+        applied_tick: Tick,
+    ) -> Result<Option<MovePlacement>, OrderError> {
         let side = command.side.index();
         if command.seq != self.next_seq[side] {
             return Err(OrderError::OutOfSequence {
@@ -713,9 +716,10 @@ impl Battle {
         }
         self.next_seq[side] += 1;
         self.accepted.push((applied_tick, command.clone()));
-        self.validate(&command)?;
-        self.pending.push(command);
-        Ok(())
+        let prepared = self.prepare(command)?;
+        let placement = prepared.placement.clone();
+        self.pending.push(prepared);
+        Ok(placement)
     }
 
     /// A side-scoped target reference as the sim's own target, if the side
@@ -751,8 +755,8 @@ impl Battle {
                 self.validate_units(command.side, units)?;
                 // A squad ordered in earlier this tick holds no order yet.
                 let claimed = self.pending.iter().any(|c| {
-                    c.side == command.side
-                        && matches!(c.order, Order::Garrison { building: b, .. } if self.world.remembered_structure_owner(b) == self.world.remembered_structure_owner(*building))
+                    c.command.side == command.side
+                        && matches!(c.command.order, Order::Garrison { building: b, .. } if self.world.remembered_structure_owner(b) == self.world.remembered_structure_owner(*building))
                 });
                 return garrison::validate(
                     &self.units,
@@ -829,8 +833,8 @@ impl Battle {
                 order: script.order,
                 queued: script.queued,
             };
-            if self.validate(&command).is_ok() {
-                self.pending.push(command);
+            if let Ok(prepared) = self.prepare(command) {
+                self.pending.push(prepared);
             }
         }
         for command in std::mem::take(&mut self.pending) {
@@ -1725,7 +1729,41 @@ impl Battle {
         self.fog[side.index()] = field;
     }
 
-    fn apply(&mut self, command: CommandEnvelope) {
+    fn prepare(&mut self, command: CommandEnvelope) -> Result<PreparedCommand, OrderError> {
+        self.validate(&command)?;
+        let placement = match &command.order {
+            Order::Move {
+                units,
+                gesture,
+                goal,
+                facing,
+                direction,
+                ..
+            } => Some(MovePlacement {
+                gesture: *gesture,
+                destinations: self.preview_move(command.side, units, *goal, *facing, *direction)?,
+            }),
+            Order::AttackMove {
+                units,
+                gesture,
+                goal,
+            } => Some(MovePlacement {
+                gesture: *gesture,
+                destinations: self.preview_move(
+                    command.side,
+                    units,
+                    *goal,
+                    None,
+                    contract::command::MoveDirection::Forward,
+                )?,
+            }),
+            _ => None,
+        };
+        Ok(PreparedCommand { command, placement })
+    }
+
+    fn apply(&mut self, prepared: PreparedCommand) {
+        let command = prepared.command;
         let side = command.side;
         let queued = command.queued;
         let push = |unit: &mut Unit, order: UnitOrder| {
@@ -1744,17 +1782,22 @@ impl Battle {
         };
         match command.order {
             Order::Move {
-                units,
+                units: _,
                 gesture,
-                goal,
+                goal: _,
                 route,
                 direction,
                 facing,
             } => {
-                let facing = facing.filter(|f| f.is_finite());
-                let destinations =
-                    self.group_destinations(side, &units, v2(goal[0], goal[1]), facing);
-                for (id, destination) in units.into_iter().zip(destinations) {
+                for slot in prepared.placement.unwrap().destinations {
+                    let unit = &mut self.units[slot.unit.0 as usize];
+                    if !slot.placed {
+                        if !queued {
+                            Self::hold_position(unit);
+                        }
+                        continue;
+                    }
+                    let destination = v2(slot.goal[0], slot.goal[1]);
                     let order = UnitOrder::Move(MoveOrder {
                         destination,
                         policy: route,
@@ -1762,18 +1805,19 @@ impl Battle {
                         direction,
                         facing,
                     });
-                    push(&mut self.units[id.0 as usize], order);
+                    push(unit, order);
                 }
             }
-            Order::AttackMove {
-                units,
-                gesture,
-                goal,
-            } => {
-                let destinations =
-                    self.group_destinations(side, &units, v2(goal[0], goal[1]), None);
-                for (id, destination) in units.into_iter().zip(destinations) {
-                    let unit = &mut self.units[id.0 as usize];
+            Order::AttackMove { gesture, .. } => {
+                for slot in prepared.placement.unwrap().destinations {
+                    let unit = &mut self.units[slot.unit.0 as usize];
+                    if !slot.placed {
+                        if !queued {
+                            Self::hold_position(unit);
+                        }
+                        continue;
+                    }
+                    let destination = v2(slot.goal[0], slot.goal[1]);
                     unit.engagement = Engagement::FireAtWill; // W14
                     let order = UnitOrder::AttackMove(MoveOrder {
                         destination,
@@ -1891,46 +1935,76 @@ impl Battle {
         }
     }
 
-    /// Each unit keeps its place relative to the group where space permits:
-    /// offsets from the group centre, compressed to a bounded spread and snapped
-    /// to standing room on the side's known map. An explicit facing rotates the
-    /// arrangement from the first selected unit's heading to the requested one.
-    fn group_destinations(
+    fn hold_position(unit: &mut Unit) {
+        unit.orders.clear();
+        unit.route = None;
+        unit.planned_goal = None;
+        unit.pursuit = None;
+        unit.state = MoveState::Idle;
+        unit.drive_speed_mps = 0.0;
+        unit.blocker = None;
+        unit.turn_to = None;
+    }
+
+    /// Preview placement on this side's known map without advancing time,
+    /// recording a command, or changing orders. Navigation caches may warm.
+    pub fn preview_move(
         &mut self,
         side: Side,
         ids: &[UnitId],
-        goal: V2,
+        goal: [f64; 2],
         facing: Option<f64>,
-    ) -> Vec<V2> {
-        let rotation = facing
-            .zip(ids.first())
-            .map(|(f, id)| Rotation::new(f - self.units[id.0 as usize].yaw));
-        let positions: Vec<V2> = ids
+        direction: contract::command::MoveDirection,
+    ) -> Result<Vec<contract::command::MoveDestination>, OrderError> {
+        self.validate_units(side, ids)?;
+        if self.world.height_at(goal[0], goal[1]).is_none()
+            || facing.is_some_and(|f| !f.is_finite())
+        {
+            return Err(OrderError::OutOfBounds);
+        }
+        let members: Vec<_> = ids
             .iter()
-            .map(|id| self.units[id.0 as usize].position.xy())
-            .collect();
-        let centre =
-            positions.iter().fold(v2(0.0, 0.0), |a, &p| a + p) * (1.0 / positions.len() as f64);
-        let spread = positions
-            .iter()
-            .map(|&p| (p - centre).length())
-            .fold(0.0, f64::max);
-        let scale = if spread > GROUP_SPREAD_M {
-            GROUP_SPREAD_M / spread
-        } else {
-            1.0
-        };
-        let grid = self.sides[side.index()].grid(&self.world, self.authored_props);
-        ids.iter()
-            .zip(&positions)
-            .map(|(id, &p)| {
-                let offset = (p - centre) * scale;
-                let wanted = goal + rotation.map_or(offset, |r| r.apply(offset));
-                let mobility = self.units[id.0 as usize].mobility;
-                grid.snap(wanted, &mobility, DESTINATION_SNAP_M)
-                    .unwrap_or(goal)
+            .map(|&id| {
+                let u = &self.units[id.0 as usize];
+                crate::formation::Member {
+                    id,
+                    position: u.position.xy(),
+                    yaw: u.yaw,
+                    radius: u.hull.map_or_else(
+                        || cover::area_radius(&self.rules, u),
+                        |half| half.xy().length(),
+                    ),
+                }
             })
-            .collect()
+            .collect();
+        let grid = self.sides[side.index()].grid(&self.world, self.authored_props);
+        let plan = crate::formation::place(
+            &members,
+            v2(goal[0], goal[1]),
+            facing,
+            &self.rules.formation,
+            self.world.width().hypot(self.world.depth()),
+            |id, p| grid.placement_point(p, &self.units[id.0 as usize].mobility),
+        );
+        Ok(plan
+            .slots
+            .into_iter()
+            .map(|slot| {
+                let u = &self.units[slot.id.0 as usize];
+                let goal = slot.point.unwrap_or(u.position.xy());
+                contract::command::MoveDestination {
+                    unit: slot.id,
+                    goal: [goal.x, goal.y],
+                    placed: slot.point.is_some(),
+                    facing: if slot.point.is_some() {
+                        movement::final_yaw(u, facing, u.position.xy(), goal, direction)
+                            .unwrap_or(u.yaw)
+                    } else {
+                        u.yaw
+                    },
+                }
+            })
+            .collect())
     }
 
     /// A soldier's resolved place and cover (D2+): his spot while moving, his
@@ -1976,7 +2050,7 @@ impl Battle {
             0 | 1 => u.position.xy(),
             n => route[n - 2],
         };
-        movement::final_yaw(u, facing, from, end).unwrap_or(u.yaw)
+        movement::final_yaw(u, facing, from, end, u.direction()).unwrap_or(u.yaw)
     }
 
     fn observe_all(&mut self) {
@@ -2293,6 +2367,11 @@ impl Battle {
             accepted: self.accepted.clone(),
         }
     }
+}
+
+struct PreparedCommand {
+    command: CommandEnvelope,
+    placement: Option<MovePlacement>,
 }
 
 #[cfg(test)]

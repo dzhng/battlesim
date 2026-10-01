@@ -532,7 +532,7 @@ export function unitCircle(
 
 /** The circle a unit's order ends in: a squad's area ring round its new
  *  anchor, a vehicle's marker at its goal, pointing the final facing. */
-function destinationCircle(
+export function destinationCircle(
   u: Pick<OrderView, "goal" | "area" | "members" | "hullHalfLength" | "finalFacing">,
   goal: P2,
   style: Pick<OrderStyle, "area_draw_scale" | "vehicle_marker_margin_m">,
@@ -553,15 +553,24 @@ function orderPen(z: SurfaceHeight, style: OrderStyle, stroke: StrokeWidth): Pen
   };
 }
 
+export interface DestinationMarker extends UnitCircle {
+  placed: boolean;
+  opacity: number;
+}
+
 /** A destination and its facing while the player holds a right-drag. */
-export function buildFacingPreview(
-  mark: UnitCircle,
+export function buildDestinationPreview(
+  marks: readonly DestinationMarker[],
   z: SurfaceHeight,
   style: OrderStyle,
   { stroke }: OrderOverlayOptions,
 ) {
   const mesh = new MeshBuilder();
-  circleMarker(mesh, orderPen(z, style, stroke), mark, glowing(style.color, style.glow.order));
+  const pen = orderPen(z, style, stroke);
+  for (const mark of marks) {
+    const color = glowing(mark.placed ? style.color : style.blocked, style.glow.order);
+    circleMarker(mesh, pen, mark, fadeAlpha(color, mark.opacity));
+  }
   return mesh.build();
 }
 

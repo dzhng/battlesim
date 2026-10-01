@@ -296,12 +296,11 @@ export async function run(ctx) {
     goal: u.goal,
     on: goals[k],
   }));
-  // A vehicle's goal stays where it was put, so its route is blocked; a
-  // squad's is moved to the nearest ground it can stand on, here the bank.
+  // Joint placement may move every member onto a bank; no order grants
+  // permission to stand in the water.
   ctx.check(
     "ordered into the water, no unit is given a way in: its route is blocked, or its goal is moved to dry ground",
-    ordered.every((u) => u.state === "route_blocked" || (u.on && u.on !== "water")) &&
-      ordered.some((u) => u.state === "route_blocked"),
+    ordered.every((u) => u.state === "route_blocked" || !u.goal || (u.on && u.on !== "water")),
     JSON.stringify(ordered),
   );
   await ctx.writeEvidence("meta.json", {
