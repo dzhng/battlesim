@@ -22,13 +22,16 @@ export async function contactTour(ctx) {
   );
   const mixedReports = (o) =>
     o.contacts.some((c) => !c.primaryLabel) && o.contacts.some((c) => c.primaryLabel);
+  // Prefer a moment with both kinds of report, so the panel check below has an
+  // unlabelled one to leave out; a battle that never mixes them is captured as
+  // it stands at the end of the wait.
   let observation = await obs(page);
   if (!mixedReports(observation)) {
-    observation = await until(page, mixedReports, 6000, 30);
+    observation = (await until(page, mixedReports, 6000, 30)) ?? (await obs(page));
   }
   const contact =
-    observation?.contacts.find((c) => c.primaryLabel && c.source === "last_seen") ??
-    observation?.contacts.find((c) => c.primaryLabel);
+    observation.contacts.find((c) => c.primaryLabel && c.source === "last_seen") ??
+    observation.contacts.find((c) => c.primaryLabel);
   if (!contact) throw new Error("contact capture needs a labelled contact");
   const drawnIds = await page
     .locator("[data-contact]")

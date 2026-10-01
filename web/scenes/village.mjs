@@ -2423,7 +2423,7 @@ async function muzzleTour(ctx) {
   ]);
   const found = {};
   let prev = await obs(page);
-  for (let t = 0; t < 30 * 120 && wanted.size > 0; t++) {
+  for (let t = 0; t < 30 * 180 && wanted.size > 0; t++) {
     await advance(page, 1);
     let o = await obs(page);
     let shot = null;
@@ -3626,7 +3626,16 @@ async function playTour(ctx) {
 
   // Sound: at a tick where blue hears something, the newest caption says
   // what, how far and from where, for the unit that heard it.
-  const heard = await until(page, (o) => o.audible.length > 0, 30 * 120, 1);
+  // Nobody fires until blue closes to weapon range, so send it into contact.
+  await lab(page, () =>
+    window.__lab.route.command({
+      kind: "attack_move",
+      units: window.__lab.route.observation().own.map((u) => u.id),
+      gesture: 9,
+      goal: [1000, 800],
+    }),
+  );
+  const heard = await until(page, (o) => o.audible.length > 0, 30 * 240, 1);
   const cue = heard?.audible.at(-1);
   const listener = cue && heard.own.find((u) => u.id === cue.listener);
   const caption = heard && (await text(page, "captions")).split("\n")[0];
