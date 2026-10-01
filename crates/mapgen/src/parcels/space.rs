@@ -151,19 +151,32 @@ impl Run {
     }
 }
 
-/// The parts of segment `ab` inside the ring, as shares along it.
-pub fn clip(a: Point, b: Point, ring: &[Point]) -> Vec<[f64; 2]> {
+/// The parts of segment `ab` inside the ring or within `reach` of its edge,
+/// as shares along it. A district's edge is a road or a street as often as
+/// not, and a road's rounded line strays from the edge it was cut along by
+/// less than its own half width: `reach` is that.
+pub fn clip(a: Point, b: Point, ring: &[Point], reach: f64) -> Vec<[f64; 2]> {
+    let on_edge =
+        |p: Point| contract::ground::edges(ring).any(|(c, d)| segment_distance(*c, *d, p) <= reach);
+    let step = sub(b, a);
+    let span = step[0] * step[0] + step[1] * step[1];
     let mut cuts = vec![0.0, 1.0];
     for (c, d) in contract::ground::edges(ring) {
         if let Some((t, _)) = crate::layout::geometry::segment_crossing(a, b, *c, *d) {
             cuts.push(t);
+        }
+        // A line along the edge crosses nothing: it comes to the ring where
+        // it passes a corner.
+        if segment_distance(a, b, *c) <= reach {
+            let offset = sub(*c, a);
+            cuts.push(((offset[0] * step[0] + offset[1] * step[1]) / span).clamp(0.0, 1.0));
         }
     }
     cuts.sort_by(f64::total_cmp);
     let mut inside: Vec<[f64; 2]> = Vec::new();
     for pair in cuts.windows(2) {
         let middle = add(a, scale(sub(b, a), (pair[0] + pair[1]) / 2.0));
-        if pair[1] > pair[0] && polygon_contains(ring, middle) {
+        if pair[1] > pair[0] && (polygon_contains(ring, middle) || on_edge(middle)) {
             match inside.last_mut() {
                 Some(last) if last[1] == pair[0] => last[1] = pair[1],
                 _ => inside.push([pair[0], pair[1]]),

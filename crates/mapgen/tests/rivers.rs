@@ -395,6 +395,10 @@ fn every_road_crosses_the_water_on_a_bridge_and_every_bridge_carries_a_road() {
                         river.inside(corner) < 0.0,
                         "{name}: a deck's corner over water"
                     );
+                    assert!(
+                        (0..2).all(|axis| corner[axis] >= 0.0 && corner[axis] <= plan.size[axis]),
+                        "{name}: a deck's corner off the map"
+                    );
                 }
             }
         }
@@ -429,7 +433,7 @@ fn crossings(river: &River, a: Point, b: Point) -> usize {
 #[test]
 fn a_river_map_is_connected_fair_and_quick_to_cross_through_its_bridges() {
     let presets = presets(1.0);
-    let mut cut_off = 0;
+    let (mut cut_off, mut severed) = (0, 0);
     every_river_map(1..=6, |name, plan| {
         let metrics = measure(plan, &presets);
         let river = &plan.rivers[0];
@@ -460,14 +464,33 @@ fn a_river_map_is_connected_fair_and_quick_to_cross_through_its_bridges() {
                 "{name}: {split:?}"
             );
         }
-        assert_eq!(metrics.transit.len(), 4, "{name}");
-        for edge in &metrics.transit {
-            assert!(edge.elapsed_s <= presets.transit.max_s, "{name}: {edge:?}");
+        // M22: the top and bottom edges reach the centre in time and each
+        // other by road, timed along the roads' rounded lines, corners at a
+        // bridge included.
+        let transit = &metrics.transit;
+        for journey in [&transit.top, &transit.bottom] {
+            let journey = journey
+                .as_ref()
+                .unwrap_or_else(|| panic!("{name}: {transit:?}"));
+            assert!(
+                journey.elapsed_s <= presets.transit.max_s,
+                "{name}: {transit:?}"
+            );
         }
+        let through = transit
+            .top_bottom
+            .as_ref()
+            .unwrap_or_else(|| panic!("{name}: {transit:?}"));
 
         let mut cut = plan.clone();
         cut.bridges.clear();
         let without = measure(&cut, &presets);
+        // Where that journey crossed the water, it did so by a deck: without
+        // the decks it is longer or gone.
+        match &without.transit.top_bottom {
+            Some(detour) => assert!(detour.route_m >= through.route_m - 0.01, "{name}"),
+            None => severed += 1,
+        }
         assert!(
             without.roads.unbridged >= plan.bridges.len(),
             "{name}: {} runs of road in the water for {} decks removed",
@@ -490,6 +513,10 @@ fn a_river_map_is_connected_fair_and_quick_to_cross_through_its_bridges() {
         cut_off += across;
     });
     assert!(cut_off >= 54, "{cut_off} settlements stand across a river");
+    assert!(
+        severed >= 1,
+        "no map's road from bottom to top crosses its river"
+    );
 }
 
 const TEMPLATES: &str = include_str!("../../../fixtures/prototype-building-templates.json");
@@ -725,20 +752,4 @@ fn a_road_along_the_bank_is_authored_no_more_densely_than_its_line_needs() {
         idle * 10 < beside,
         "{idle} of {beside} road points beside a river sit on the line their neighbours make"
     );
-}
-
-/// A main road is timed along its rounded line, the one `measure` drives. A
-/// corner onto a bridge or along a bank makes that line longer than the
-/// straight runs between its points: on this seed by 23 cm, which put the
-/// east edge 3 cm over the limit.
-#[test]
-fn a_main_road_with_corners_at_the_river_is_timed_along_its_rounded_line() {
-    let presets = presets(1.0);
-    let plan = generate(&presets, MapType::Mixed, MapSize::Medium, 115)
-        .unwrap_or_else(|errors| panic!("{errors:?}"));
-    let metrics = measure(&plan, &presets);
-    assert_eq!(metrics.transit.len(), 4);
-    for edge in &metrics.transit {
-        assert!(edge.elapsed_s <= presets.transit.max_s, "{edge:?}");
-    }
 }

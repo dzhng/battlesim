@@ -70,13 +70,15 @@ pub struct SettlementPlan {
     pub id: String,
     /// The preset size class it was drawn from (`village`, `town`, ...).
     pub class: String,
+    /// Where its main streets meet: a point of its roads, on its ground.
     #[serde(deserialize_with = "contract::numbers::array")]
     pub center: [f64; 2],
-    /// Its envelope: a simple ring, star-shaped about `center`.
+    /// The edge of its districts, and of any open ground they enclose: a
+    /// simple ring, which a ray from `center` may cross more than once.
     #[serde(deserialize_with = "contract::numbers::points")]
     pub outline: Vec<[f64; 2]>,
-    /// The built ground: simple rings inside the outline that do not overlap.
-    /// What the outline holds beyond them is field or wood.
+    /// The built ground, nearest `center` first: convex blocks bounded by
+    /// roads, streets and the settlement's edge, that do not overlap.
     pub districts: Vec<DistrictPlan>,
 }
 
@@ -91,8 +93,7 @@ pub struct DistrictPlan {
     pub ring: Vec<[f64; 2]>,
     #[serde(deserialize_with = "contract::numbers::scalar")]
     pub area_m2: f64,
-    /// A point inside the ring, near its middle, to place things on. (A ring
-    /// sector's centroid can fall outside it.)
+    /// A point inside the ring, at its middle, to place things on.
     #[serde(deserialize_with = "contract::numbers::array")]
     pub anchor: [f64; 2],
     /// Tallest building the map type admits here; absent means no limit.
@@ -132,9 +133,11 @@ pub enum Half {
     Bottom,
 }
 
-/// A wedge of ground with no settlement and no forest: every bearing from
-/// `from_rad` to `to_rad` (counter-clockwise from +X, about the settlement's
-/// centre) is open for `depth_m` beyond the settlement's edge.
+/// Open ground beside a settlement, with no settlement, forest or water on
+/// it. Along every bearing from `from_rad` to `to_rad` (counter-clockwise
+/// from +X) a corridor `front_m` wide about the line from the settlement's
+/// centre is open for `depth_m`, from the last of the settlement's own
+/// ground inside the corridor.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ApproachPlan {
@@ -147,7 +150,7 @@ pub struct ApproachPlan {
     pub to_rad: f64,
     #[serde(deserialize_with = "contract::numbers::scalar")]
     pub depth_m: f64,
-    /// Width across the wedge half-way out.
+    /// The corridor's width.
     #[serde(deserialize_with = "contract::numbers::scalar")]
     pub front_m: f64,
 }

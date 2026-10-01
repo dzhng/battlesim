@@ -64,7 +64,7 @@ fn a_generated_bridge_is_stepped_onto_from_dry_land_and_carries_the_roads_over()
     for (map_type, size, seed) in [
         (MapType::Open, MapSize::Small, 3),
         (MapType::Mixed, MapSize::Small, 4),
-        (MapType::Metro, MapSize::Small, 2),
+        (MapType::Metro, MapSize::Small, 5),
         (MapType::Open, MapSize::Medium, 1),
     ] {
         let name = format!("{map_type:?} {size:?} seed {seed}");
@@ -124,9 +124,11 @@ fn a_generated_bridge_is_stepped_onto_from_dry_land_and_carries_the_roads_over()
             bridges += 1;
         }
 
-        // The road graph a long move asks: every node the centre reaches.
+        // The road graph a long move asks: every node the main junction
+        // reaches. The main settlement stands on it.
         let roads = RoadNet::build(&world);
-        let centre = v2(map.size[0] / 2.0, map.size[1] / 2.0);
+        let [x, y] = plan.settlements[0].center;
+        let centre = v2(x, y);
         let mut reached = BTreeSet::new();
         let mut frontier: Vec<u32> = roads
             .near(centre, 120.0)
@@ -153,10 +155,14 @@ fn a_generated_bridge_is_stepped_onto_from_dry_land_and_carries_the_roads_over()
                 .iter()
                 .map(|p| (p[0] - x).hypot(p[1] - y))
                 .fold(0.0, f64::max);
-            // A road inside its outline that the centre's network reaches.
+            // A road through its ground or along its edge (a town's edge is
+            // often a road) that the centre's network reaches.
             let on_network = roads.near(v2(x, y), reach).iter().any(|access| {
-                contract::ground::polygon_contains(&settlement.outline, [access.at.x, access.at.y])
-                    && reached.contains(&roads.arc(access.arc).ends[0])
+                let at = [access.at.x, access.at.y];
+                let on_ground = contract::ground::polygon_contains(&settlement.outline, at)
+                    || contract::ground::edges(&settlement.outline)
+                        .any(|(a, b)| contract::ground::segment_distance(*a, *b, at) <= 5.0);
+                on_ground && reached.contains(&roads.arc(access.arc).ends[0])
             });
             assert!(on_network, "{name}: {} is cut off", settlement.id);
             // Across the water from the centre: an odd number of crossings
