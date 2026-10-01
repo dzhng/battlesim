@@ -5,7 +5,7 @@
  *  word; the ground keeps only selection and movement marks.
  *  - An own unit's panel (`ownPanel`): its type's name, each weapon with
  *    its rounds left and live timers, and its state rows: deployment, a
- *    building, suppression, waiting, a truck's stock and its supplying, and a
+ *    building, concealment, suppression, waiting, a truck's stock and its supplying, and a
  *    unit's supply in a set-up truck's reach.
  *  - An identified enemy's panel (`enemyPanel`): its type's name and weapon
  *    types, never a count, health or anything else the side can't know.

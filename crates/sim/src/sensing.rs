@@ -156,10 +156,8 @@ pub fn concealed(world: &WorldGeometry, target: &Unit, rules: &Rules) -> bool {
         target_concealment(world, target, target.position, rules) < 1.0
     } else {
         target
-            .members
-            .iter()
-            .filter(|m| m.alive())
-            .any(|m| target_concealment(world, target, m.position, rules) < 1.0)
+            .member_positions()
+            .any(|at| target_concealment(world, target, at, rules) < 1.0)
     }
 }
 
