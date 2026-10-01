@@ -33,7 +33,7 @@ One integrity owner; deterministic RNG order.
 An implausible collapse moment reopens the retained lifecycle contract only as a named game-rule decision.
 
 
-## Outcome — physical implementation checkpoint (2026-10-01)
+## Outcome — physical systems (2026-10-01)
 
 Building integrity is fixture coefficient × union footprint area × first-three
 floor bands. The immutable aggregate caches its union area, so overlap is counted
@@ -45,8 +45,9 @@ The destroyed row specifies 25% height clamped 2–6 metres. Existing shared dam
 atomic replacement and one occupant survival/escape path remain the lifecycle
 owners. Native checks exercise bulk HP, low-rise heights and aggregate collapse.
 Coefficient 1 is provisional for C50; village changes are named rule changes,
-not parity-preserving performance work. Quick-report and integration gates are
-pending. The collapse GIF and final source fit remain open.
+not parity-preserving performance work. Rule reports and integration gate scopes are recorded in
+[the closeout evidence](../assets/sim-lane-closeout/README.md). Prototype
+collapse recordings are complete; final source/art fit remains open.
 
 Aggregate loading enforces immovable bodies through every declared replacement
 state and its terminal gutted alternative. A catalog-valid building-to-crate
@@ -78,7 +79,7 @@ second survival roll. Deliberately omitting corpse settling fails at six metres
 versus ground; publishing the live enemy pose fails the hidden-memory assertion.
 The nearby 26 building tests retain the frozen parity oracles, and 33 pose driver
 and feed tests pass, including anchor changes during death, rest and fading.
-These are systems contracts; the pending prototype captures cannot certify
+These are systems contracts; prototype captures cannot certify
 source-window fit or accepted building art.
 
 [Structure systems evidence](../assets/sim-structures/README.md) preserves the

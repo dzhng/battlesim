@@ -30,7 +30,7 @@ Foliage and fog agreement; every existing sensing and fog test.
 A rule that has to change to make sight affordable is a mechanic change: stop and run tweak-mechanics, and name the digest change.
 
 
-## Outcome (SA5 implementation; integration gates pending)
+## Outcome — exact sensing/fog implementation
 
 Sight keeps the same rays, sampled terrain triangles, foliage spans, visibility
 union and learning order. Repeated lookups now address lossless sparse page
@@ -108,5 +108,5 @@ and body agent found no defect in the preserved winner; the coordinator
 reviewed the remembered-history follow-up, requested its map encapsulation,
 and reviewed the final exact tail-first proof. The requested local
 Codex CLI review could not run because its configured model is unsupported
-for this account; no model override was made. Shared `check` and `verify`
-belong to the coordinator's integration closeout.
+for this account; no model override was made. Shared `check` and `verify`, integrated movement clocks and named rule-report
+changes are recorded in [the closeout evidence](../assets/sim-lane-closeout/README.md).

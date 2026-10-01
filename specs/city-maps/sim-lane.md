@@ -34,13 +34,24 @@ Use [implement-spec](../../.agents/skills/implement-spec/SKILL.md). Branch from 
 
 ## Status
 
-**Closeout in progress (2026-10-01), branch `codex/city-sim-lane`.** All physical code is integrated, including observed-height seat clipping, corpse support/side memory, route-policy costs and placement-context validation. Whole-lane independent shape/diff review is clean. Combined `check` is running; `verify`, final rule reports and the integrated six-map timing matrix remain pending. SA5 retains exact battle identities and meets its attributed sensing/fog budget. SA6's final dense oracle passes physical fit and reachability in 12,064 cases; its aligned-approach quality tradeoff remains explicit. C77 paired active/disabled measurements are complete; default densities stay zero until C78 supplies accepted drawing. Grass appearance, facade/source fit and terminal art remain specialist work.
+**Final integration in progress (2026-10-01), branch `codex/city-sim-lane`.**
+All lane physical code is implemented and independently reviewed. Main's later
+camera/group-formation owners are integrated in `3c3752d8`, with a clean bounded
+merge review. The complete pre-merge check passed. The merged-source check and refreshed native reports pass. Final browser
+verification is queued on the shared GPU lock; source stays fixed while it runs. Frozen structure/movement recordings, comparisons and unprimed critiques
+are complete. Prototype pixels accept no facade/source/terminal art.
 
-**Next pickup:** finish combined gates and final native reports, complete systems recordings/fresh visual critiques, then merge this lane. Preserve measurement sources and evidence before cleaning worktrees. Parent map/art gates remain open; do not archive the parent spec.
+**Next pickup:** complete stable browser verification, freeze the final gate/report
+scopes in [closeout evidence](assets/sim-lane-closeout/README.md), then merge and
+remove lane worktrees/build output. Parent map/art work and complete G0 stay open;
+do not archive the parent spec. Optional forest-floor density remains zero until
+accepted C78 drawing; its active-variant timing gate did not pass.
 
-The named `G0-SIM-SIGHT` entry in the shared G0/decision ledger records SA5's
-individual resource unlock against its frozen manifest. It grants no complete
-G0, whole-simulation timing or art acceptance.
+Individual `G0-SIM-*` rows disclose physical/resource unlocks in the shared gate
+and decision ledger. SA5 preserves matched battle identities; its attributed
+bracket excludes sight snapshotting. SA6's twelve-thousand-case physical oracle
+passes, with the observed approach-cost tradeoff retained. None grants complete
+active-world admission or art acceptance.
 
 **Named outside-column seams:** C44 adds explicit `appearance.status: systems_only` without fitted art (`789e8f4b`). Building policy/scaled-integrity schema and cached immutable aggregate area are isolated in `9fdcdf5b`; TypeScript mirrors the JSON seam. SA5 changes runtime height/foliage lookup and aggregate discovery, without changing map loading. C77 adds optional forest-rule fields and bounded admission in the world builder. C80 shares effective-height constants with the renderer/culling bound and lowers two biome scales to satisfy the cap. Aggregate loading also rejects movable replacement states, preserving the existing no-composite-motion boundary. The generator and map preparation remain untouched.
 
@@ -50,3 +61,7 @@ ownership; the root README records that principle. Corpse support (`c920fe81`)
 uses existing knowledge and observation owners without public layout changes;
 its necessary renderer consumer refreshes dying, resting and fading anchors.
 The matching shared renderer lesson is `37a4c0e` in the skills repository.
+
+The necessary test-only closeout seam (`1ac913a7`) caches fixed rotations in the existing
+full grass-prop oracle; all points, full scans, precision, comparisons and the
+original deadline remain. It has no production consumer or schema change.

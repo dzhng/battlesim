@@ -40,7 +40,7 @@ seeded placement are implemented. Floor bodies are appended after **all** trunks
 so trunk IDs, source ranges, positions and foliage exports remain bit-identical
 when floor density changes. Logs are medium destructible cover a tank can shove;
 boulders are immovable heavy cover. Neither creates foliage or clears a lane.
-The existing dynamic tree-fall rule is retained. [Choices](../choices.md#c77-forest-bodies--physical-core-2026-10-01)
+The existing dynamic tree-fall rule is retained. [Choices](../choices.md#simulation-lane-decisions)
 records values and candidate-density semantics.
 
 Focused native tests pass: movement/round/cover properties; trunk and foliage
@@ -71,8 +71,8 @@ The report therefore makes no 33 ms timing acceptance claim. Native instruction,
 resource, reachability and rule gates are measured; active-variant timing and C78
 models/cover GIFs/visual acceptance remain explicit follow-up gates. Manual
 shape/diff/docs review and choices audit passed. The default CLI second review is
-unavailable because its configured model is unsupported; independent guard review
-and integrated whole-repo gates remain with the orchestrator.
+unavailable because its configured model is unsupported; independent guard and whole-lane reviews are clean. Integrated gate scopes
+are recorded in [the closeout evidence](../assets/sim-lane-closeout/README.md).
 
 ### Route-preserving admission follow-up
 

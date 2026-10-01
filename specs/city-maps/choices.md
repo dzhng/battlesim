@@ -2050,3 +2050,13 @@ shove it but a jeep cannot. A boulder is immovable heavy cover and routes traffi
 around its footprint. Their initial dimensions/HP and street-row values are
 physical starting values, not a final balance claim. Placement and accepted art
 remain owned by their later slices.
+
+#### C80 — keep the complete footprint oracle affordable
+
+The grass-prop test still scans every raw footprint for every sampled point.
+Its double-precision inverse rotations are prepared once, and one local vector
+is reused by the query. This removes repeated temporary allocation and fixed
+trigonometry without narrowing the sample set, copying production's spatial
+index, or changing strict footprint edges. Reducing cases or raising the test
+deadline would conceal the oracle's avoidable work. **Verdict: sound. Confidence:
+high; this changes test execution only.**

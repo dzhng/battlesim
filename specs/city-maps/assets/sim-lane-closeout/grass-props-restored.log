@@ -1,0 +1,10 @@
+$ vitest run tests/grassProps.test.ts "--maxWorkers=1"
+
+ RUN  v4.1.9 /Users/david/.codex/worktrees/7ee3/battlegame/web
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  12:31:03
+   Duration  391ms (transform 34ms, setup 0ms, import 49ms, tests 278ms, environment 0ms)
+

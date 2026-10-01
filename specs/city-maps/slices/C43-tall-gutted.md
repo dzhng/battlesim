@@ -33,7 +33,7 @@ Low-rise behaviour; knowledge isolation.
 A tall terminal shell that appears collapsed reopens state/body/appearance alignment; the standing-gutting threshold is retained.
 
 
-## Outcome — physical implementation checkpoint (2026-10-01)
+## Outcome — physical systems (2026-10-01)
 
 The fixture destruction policy chooses a terminal gutted state above six source
 floors. Every aggregate part retains its full source height; the body keeps
@@ -43,8 +43,8 @@ occupants once. A native battle checks the full-height terminal replacement,
 occupant exit and rejection of another transition or garrison order.
 
 The gutted appearance explicitly awaits art. Legacy boxes without source floor
-facts cannot certify the tall threshold. Specialist art/GIF gates and integrated
-checks remain open.
+facts cannot certify the tall threshold. Prototype systems recordings are complete; specialist art remains open.
+Integration gates are recorded in [the closeout evidence](../assets/sim-lane-closeout/README.md).
 
 A terminal shell's retained exterior height does not retain fighting-floor
 support. Fallen occupants use the same support-loss and side-specific corpse

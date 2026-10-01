@@ -45,7 +45,7 @@ Flat shelter; muzzles at seats.
 Seats that miss accepted facade bays reopen descriptor/seat fit; new bands or capacity rules need a named rule decision.
 
 
-## Outcome — physical implementation checkpoint (2026-10-01)
+## Outcome — physical systems (2026-10-01)
 
 Physical seats now come from exposed bays on the first three source floors,
 with at most 32 seats and balanced directional allocation. Whole squads are
@@ -58,8 +58,8 @@ window firing origin is removed. Seat positions enter the battle digest.
 
 Existing authored boxes lack floor/bay facts and retain a documented ground-floor
 bridge. Source window fit, final tall-source authoring and the framed visual
-moment remain specialist/map-lane work. Whole-repo and report gates are pending
-integration; this is a physical implementation checkpoint.
+moment remain specialist/map-lane work. The physical lane closeout and exact report scopes are recorded in
+[the integration evidence](../assets/sim-lane-closeout/README.md).
 
 Once source floors are present, an unresolved facade bay list supplies no seats:
 only resolved physical bays can create fighting positions. The legacy lattice

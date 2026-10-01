@@ -31,7 +31,7 @@ A street body with an implausible blocking/destruction effect reopens fixture-ow
 ## Outcome — physical catalog pass (2026-10-01)
 
 The physical catalog rows are implemented. The per-kind war-film audit and
-appearance boundary are recorded in [choices](../choices.md#c44-street-bodies--physical-catalog-pass-2026-10-01).
+appearance boundary are recorded in [choices](../choices.md#simulation-lane-decisions).
 Native checks exercise every row through world sight, projectile passage,
 blocking and cover queries; the shove battle matrix now includes every blocking
 street row. The paired village test removes the unused city document and proves
@@ -46,5 +46,5 @@ garrison; an occupied cabin would use a placed building aggregate.
 Closeout review: one catalog owns every property, no production id branches or
 new physical mechanics, and generated catalog output is regenerated. Independent
 CLI review could not run because the configured model was rejected as unsupported
-for this account; integrated second review and whole-repo gates belong to the
-orchestrator before merge.
+for this account; independent whole-lane review is clean. Whole-repo gate results are recorded
+in [the closeout evidence](../assets/sim-lane-closeout/README.md).

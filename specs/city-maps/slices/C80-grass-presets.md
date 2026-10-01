@@ -40,7 +40,7 @@ One indirect draw per tier; capacity bounds.
 Grass that implies cover above its physical cap changes effective-height presets before any downstream species tuning.
 
 
-## Outcome — physical implementation checkpoint (2026-10-01)
+## Outcome — physical systems (2026-10-01)
 
 The systems-only effective-height guard composes actual vertex height across
 all LODs, biome scale, clump variation and patch variation with f32 arithmetic.
@@ -56,7 +56,7 @@ show 59,492 changed pixels after lowering the verge scale; mean RGB channel
 difference is 0.384. Full shots and 3× grass crops are under
 `throwaway/sim-lane/grass-{before,after}*.png`. No actor or height ruler is in
 that framing, so it proves the field change reaches production rather than
-measuring world height from pixels. The visual fallback disposition is recorded below; integrated checks are pending.
+measuring world height from pixels. The visual fallback disposition is recorded below; integrated gate scopes are recorded in [the closeout evidence](../assets/sim-lane-closeout/README.md).
 The mathematical bound is pinned by the adversarial validator checks.
 
 Visual checkpoint: before/after full frames and 3× detail crops were opened in
