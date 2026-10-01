@@ -91,6 +91,7 @@ import {
   WATER_SHADOW,
 } from "./terrainMaterial";
 import { createSceneryLayer } from "./sceneryLayer";
+import type { PlacedInstances } from "../scenery/lod";
 import { createPaintedMarks, validatePaintStyle, type PaintStyle } from "./paintedMarks";
 import type { GroundMarks, ScarRegion } from "./scarTexture";
 import type { FogGeometryPresentation, FogInput } from "./fogInputs";
@@ -505,6 +506,9 @@ export async function createWorldPass(
     setStructures(next: readonly ModelInstance[]) {
       structures = next;
       setStatics();
+    },
+    setMassing(next: PlacedInstances | null) {
+      scenery.setMassing(next);
     },
     /** Follow the side's learned ground: uploads what changed, and regrows
      *  the grass and fells the cleared trees when anything did. */

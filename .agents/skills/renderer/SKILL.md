@@ -163,7 +163,7 @@ When a new need shows two passes owning one concept, refactor to the shared prim
 - **The prepass and colour pass must compute bit-identical depth.** That's the `@invariant` position and one shared vertex stage. A second single-sample depth or a previous-frame Hi-Z disagrees at edges.
 - **Instanced props need a base elevation.** Culling bounds must cover every reachable pose: the tank's bounds grow from 9.5×3.7 m to 12.1×12.1 m with the turret traversed.
 - **Casters can be coarser than what they cast for.** Trees cast from one tier coarser, because a cascade texel is coarser than leaf relief.
-- **Anything that casts into view from off screen is never culled by the view frustum** (the forest).
+- **Anything that casts into view from off screen is culled by its shadow, never by the view frustum alone.** The forest once drew every tree into every cascade, which is free in the village and 6.5 million triangles a pass on a 10 km map. Now a chunk out of view is a caster only if its box, swept along the fall of its tallest instance's shadow, meets the view within the shadows' reach (`scenery/lod.ts` `castsIntoView`); an off-screen caster draws at the coarsest tier.
 
 - **Composite each annotation as one group.** Its backing paints below its foreground strokes; selection priority moves the whole group. Fix occlusion through paint order, not by erasing intended backing coverage. Bound effect tails separately from stacking.
 
@@ -213,6 +213,14 @@ When a new need shows two passes owning one concept, refactor to the shared prim
 - **A perf "regression" with no plausible cause in the diff:** machine load or the wrong GPU. Rerun paired under the lock before reading the code.
 - **A private projection or camera struct beside the shared one,** or a pass-local constant for something the fixture owns.
 - **A visual fix that changes camera, light, geometry and pass order at once:** you won't know which one worked.
+
+## One static chunk path
+
+Everything placed once and drawn many times (trees, hedgerow shrubs, a town's massing boxes) goes through the scenery layer's chunk path (`frame/sceneryLayer.ts`, `scenery/lod.ts`): one instance record (pose, a scale per axis, a tint), bucketed in 128 m chunks, a static buffer in chunk order with merged draw ranges, and a per-tier staging list only for chunks near enough to need a finer mesh. A new population is a mesh table and a `PlacedInstances` list handed to `population()`; materials stay per pipeline.
+
+- **A population with one mesh never stages.** Massing passes tier thresholds of infinity, so every box draws from the static buffer at any distance and a view change costs a walk over chunks, never over boxes.
+- **What the side knows changes the list, not the frame.** A building seen to fall rebuilds the massing list (`setMassing`), as `setStructures` does for models. Don't add a per-frame knowledge test to a static path.
+- **Buildings with no art are massing, by the catalogue's own label** (`presentation.massing.families`): a box a physical part at the simulation's size, tinted by category. Never stretch another building's art over a footprint it was not made for.
 
 ## Width changes at tactical zoom
 

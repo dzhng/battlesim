@@ -1,9 +1,12 @@
-// The scenery layer: every placed tree and hedgerow shrub, instanced from its
-// appearance's tiers, in the frame's own passes. Opaque, so trees are in the
-// depth prepass (FogVisibility's tile cull reads them like any surface).
+// The scenery layer, the frame's one owner of static instanced drawing: every
+// placed tree and hedgerow shrub, instanced from its appearance's tiers, and
+// the massing boxes of buildings with no art, in the frame's own passes.
+// Opaque, so all of it is in the depth prepass (FogVisibility's tile cull
+// reads it like any surface).
 //
 // - The forest (the simulation's trunks, one tree each) casts sun shadows into every
-//   cascade, receives them, and takes FogTerm through the faces group. A
+//   cascade (the trees in view, and those whose shadow can land in it),
+//   receives them, and takes FogTerm through the faces group. A
 //   tree is seen or unseen whole: every fragment probes fog at its crown's
 //   heart with no facing test, as ground probes do. A crown is a porous
 //   volume inside the simulation's foliage, so the sweep's rule (sight into
@@ -21,6 +24,11 @@
 // vehicle knocked through) is not drawn: `setCleared` rebuilds
 // the forest without it.
 //
+// - Massing (`scenery/massing.ts`) is one unit box a part, scaled to the
+//   part's size: lit, shadowed and casting like the forest, and fogged per
+//   fragment as a face, so a building takes fog whole as every known
+//   occluder does. Every box draws from the static buffer, at any distance.
+//
 // Each frame `prepare` sorts trees into tiers by projected height
 // (`scenery/lod.ts`) and uploads the near trees' per-tier lists; far chunks
 // draw at tier 3 straight from a static buffer.
@@ -29,7 +37,7 @@ import { pcgHash } from "../shaders/pcgHash";
 import type { StaticBundle } from "@packages/scene-assets/src/schema";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { createDetailView, detailKey, setDetailView } from "./detailView";
-import { VERTEX_FLOATS } from "../mesh";
+import { MeshBuilder, VERTEX_FLOATS } from "../mesh";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth } from "../worldDepth";
 import type { WorldScenery } from "../scene";
@@ -39,6 +47,8 @@ import {
   INSTANCE_FLOATS,
   selectTiers,
   TIER_COUNT,
+  treeInstances,
+  type PlacedInstances,
   type TierPopulation,
   type TierView,
 } from "../scenery/lod";
@@ -53,34 +63,41 @@ import { TREE_FIELD, TREE_FLOATS } from "../scenery/placement";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
-/** One population's trees: placed, drawn per tier this frame (tier 3 counts
- *  the far chunks' too), and the triangles those draw per view pass. */
+/** One population's instances: placed, drawn per tier this frame (tier 3
+ *  counts the far chunks' too), the triangles those draw per view pass, and
+ *  how many are drawn into each of the sun's cascades. */
 export interface SceneryPopulationStats {
   placed: number;
   tiers: number[];
   triangles: number;
+  casters: number;
 }
 export interface SceneryStats {
   /** Appearances installed. */
   kinds: number;
   forest: SceneryPopulationStats;
   backdrop: SceneryPopulationStats;
+  /** The massing boxes (every one draws at the last tier). */
+  massing: SceneryPopulationStats;
   /** Draw calls in the last whole frame, over every pass. */
   draws: number;
 }
 
-const TreeInstance = d.unstruct({ pose: d.float32x4, shape: d.float32x4, tint: d.float32x4 });
-const treeInstanceLayout = tgpu.vertexLayout(d.disarrayOf(TreeInstance), "instance");
-const treeAttribs = { ...vertexLayout.attrib, ...treeInstanceLayout.attrib };
+const PlacedInstance = d.unstruct({ pose: d.float32x4, shape: d.float32x4, tint: d.float32x4 });
+const placedLayout = tgpu.vertexLayout(d.disarrayOf(PlacedInstance), "instance");
+const placedAttribs = { ...vertexLayout.attrib, ...placedLayout.attrib };
 type InstanceBuffer = ReturnType<typeof instanceBuffer>;
 function instanceBuffer(root: Root, capacity: number) {
-  return root
-    .createBuffer(treeInstanceLayout.schemaForCount(Math.max(1, capacity)))
-    .$usage("vertex");
+  return root.createBuffer(placedLayout.schemaForCount(Math.max(1, capacity))).$usage("vertex");
 }
 
-/** Square chunks trees are bucketed in for tier selection, metres. */
+/** Square chunks instances are bucketed in for tier selection, metres. */
 const CHUNK_M = 128;
+/** Massing has one mesh, so no box is ever sorted into a nearer tier: every
+ *  chunk draws from the static buffer. */
+const ALWAYS_FAR: TierView["lodPx"] = [Infinity, Infinity, Infinity];
+/** A massing wall: matt plaster. */
+const MASSING_ROUGHNESS = 0.9;
 /** Foliage roughness: leaves scatter; the environment's specular stays small. */
 const LEAF_ROUGHNESS = 0.85;
 const BARK_ROUGHNESS = 0.9;
@@ -88,7 +105,7 @@ const BARK_ROUGHNESS = 0.9;
  *  of the finest crowns cost more than the crowns themselves. */
 const CASTER_COARSER = 1;
 
-const treeVaryings = {
+const placedVaryings = {
   clip: d.builtin.position,
   world: d.vec3f,
   normal: d.vec3f,
@@ -97,9 +114,9 @@ const treeVaryings = {
   heart: d.vec3f,
 };
 
-/** Places the appearance: scale (horizontal, vertical), yaw about +Z, then the
- *  trunk's foot. Normals take the inverse scale. */
-const treeVertex = tgpu.vertexFn({
+/** Places the appearance: scale per axis, yaw about +Z, then the instance's
+ *  foot. Normals take the inverse scale. */
+const placedVertex = tgpu.vertexFn({
   in: {
     position: d.vec3f,
     normal: d.vec3f,
@@ -122,19 +139,19 @@ const treeVertex = tgpu.vertexFn({
   const c = std.cos(v.pose.w);
   const s = std.sin(v.pose.w);
   const lx = v.position.x * v.shape.x;
-  const ly = v.position.y * v.shape.x;
-  const lz = v.position.z * v.shape.y;
+  const ly = v.position.y * v.shape.y;
+  const lz = v.position.z * v.shape.z;
   const world = d.vec3f(lx * c - ly * s + v.pose.x, lx * s + ly * c + v.pose.y, lz + v.pose.z);
   const nx = v.normal.x / v.shape.x;
-  const ny = v.normal.y / v.shape.x;
-  const nz = v.normal.z / v.shape.y;
+  const ny = v.normal.y / v.shape.y;
+  const nz = v.normal.z / v.shape.z;
   const normal = std.normalize(d.vec3f(nx * c - ny * s, nx * s + ny * c, nz));
   return {
     clip: std.mul(typegpuCameraLayout.$.cam.viewProj, d.vec4f(world, 1)),
     world,
     normal,
     color: d.vec4f(std.mul(v.color.xyz, v.tint.xyz), v.color.w),
-    local: d.vec3f(lx + v.shape.z, ly, lz),
+    local: d.vec3f(lx + v.tint.w, ly, lz),
     heart: d.vec3f(v.pose.x, v.pose.y, v.pose.z + v.shape.w),
   };
 });
@@ -220,7 +237,7 @@ export async function createSceneryLayer(
     );
     return lit.xyz;
   });
-  const forestFragment = tgpu.fragmentFn({ in: treeVaryings, out: WORLD_OUT })((v) => {
+  const forestFragment = tgpu.fragmentFn({ in: placedVaryings, out: WORLD_OUT })((v) => {
     "use gpu";
     const n = std.normalize(v.normal);
     // The whole tree probes at its heart through FogTerm (and so fogSeenSurface):
@@ -234,7 +251,7 @@ export async function createSceneryLayer(
   });
   /** Scenery past the map: unshadowed, but fogged as a forest tree is (the
    *  sight maps run on past the edge over open ground). */
-  const backdropFragment = tgpu.fragmentFn({ in: treeVaryings, out: WORLD_OUT })((v) => {
+  const backdropFragment = tgpu.fragmentFn({ in: placedVaryings, out: WORLD_OUT })((v) => {
     "use gpu";
     const seen = fogTerm(v.heart, d.vec3f(0), v.clip.xy, false);
     return {
@@ -243,9 +260,31 @@ export async function createSceneryLayer(
     };
   });
 
+  /** A massing box: a plain lit wall in its instance's tint, fogged where
+   *  it stands (FogTerm takes a known occluder whole). */
+  const massingFragment = tgpu.fragmentFn({ in: placedVaryings, out: WORLD_OUT })((v) => {
+    "use gpu";
+    const n = std.normalize(v.normal);
+    const seen = fogTerm(v.world, n, v.clip.xy, false);
+    const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
+    const lit = environment.shade(
+      v.color.xyz,
+      d.vec3f(0),
+      MASSING_ROUGHNESS,
+      0,
+      0,
+      1,
+      n,
+      v.world,
+      sun,
+      typegpuCameraLayout.$.cam.eye,
+    );
+    return { color: d.vec4f(lit.xyz, 1), fog: fogCoverage(seen, 1) };
+  });
+
   const base = {
-    attribs: treeAttribs,
-    vertex: treeVertex,
+    attribs: placedAttribs,
+    vertex: placedVertex,
     primitive: { topology: "triangle-list", cullMode: "back" },
   } as const;
   const prepass = root.createRenderPipeline({
@@ -273,12 +312,27 @@ export async function createSceneryLayer(
     depthStencil: battleWorldDepth("prepassed"),
     multisample: { count: FRAME_MSAA },
   });
+  const massingColour = root.createRenderPipeline({
+    ...base,
+    fragment: massingFragment,
+    targets: worldTargets(),
+    depthStencil: battleWorldDepth("prepassed"),
+    multisample: { count: FRAME_MSAA },
+  });
   await Promise.all(
-    [prepass, caster, forestColour, backdropColour].map((pipeline) => pipeline.initAsync()),
+    [prepass, caster, forestColour, backdropColour, massingColour].map((pipeline) =>
+      pipeline.initAsync(),
+    ),
   );
 
+  /** A kind's vertices per tier. */
+  type TierMeshes = { buffer: VertexBuffer; vertices: number }[];
   interface Population {
     lod: TierPopulation;
+    /** Per kind and tier: the appearance's vertices. */
+    meshes: TierMeshes[];
+    /** Tier thresholds this population is sorted by, projected pixels. */
+    lodPx: TierView["lodPx"];
     /** Per kind: the static far buffer (every instance, chunk order). */
     far: InstanceBuffer[];
     /** Per kind and tier: this frame's near instances. */
@@ -286,8 +340,6 @@ export async function createSceneryLayer(
   }
   interface Loaded {
     scope: GpuRegistry;
-    /** Per kind and tier: the appearance's vertices. */
-    tiers: { buffer: VertexBuffer; vertices: number }[][];
     forest: Population;
     /** The forest's own scope, rebuilt when trees fall. */
     forestScope: GpuRegistry;
@@ -297,21 +349,44 @@ export async function createSceneryLayer(
     kept: number[] | null;
     sizes: ReturnType<typeof kindSize>[];
     backdrop: Population;
-    lodPx: readonly [number, number, number];
   }
   let loaded: Loaded | null = null;
+  // The massing's one mesh lives as long as the layer; its boxes are replaced
+  // whenever the side's knowledge of them changes.
+  const boxMesh = new MeshBuilder().orientedBox(0, 0, 0, [1, 1, 0.5], 0, [1, 1, 1, 0]).build();
+  const box = {
+    buffer: registry.own(vertexBuffer(root, boxMesh)),
+    vertices: boxMesh.length / VERTEX_FLOATS,
+  };
+  const boxTiers: TierMeshes[] = [Array.from({ length: TIER_COUNT }, () => box)];
+  let massing: { scope: GpuRegistry; pop: Population } | null = null;
   let viewKey = "";
-  const view: TierView = { ...createDetailView(), lodPx: [1, 1, 1] };
+  // Where the sun's shadows fall: away from the sun, a metre of height
+  // throwing `1 / tan(elevation)` metres of shadow. `prepare` sets the rest
+  // per view.
+  const { sun_azimuth, sun_elevation, cascades } = environment.light;
+  const throwM = 1 / Math.tan(sun_elevation);
+  const view: TierView = {
+    ...createDetailView(),
+    lodPx: [1, 1, 1],
+    shadow: {
+      fall: [-Math.cos(sun_azimuth) * throwM, -Math.sin(sun_azimuth) * throwM],
+      reach: 0,
+    },
+  };
 
   function population(
     scope: GpuRegistry,
-    placed: Float32Array,
-    sizes: ReturnType<typeof kindSize>[],
-    cull: boolean,
+    placed: PlacedInstances,
+    meshes: TierMeshes[],
+    lodPx: TierView["lodPx"],
+    casts: boolean,
   ): Population {
-    const lod = createTierPopulation(placed, sizes, CHUNK_M, cull);
+    const lod = createTierPopulation(placed, meshes.length, CHUNK_M, casts);
     return {
       lod,
+      meshes,
+      lodPx,
       far: lod.sorted.map((instances) => {
         const buffer = scope.own(instanceBuffer(root, instances.length / INSTANCE_FLOATS));
         if (instances.length) buffer.write(instances.buffer);
@@ -345,36 +420,42 @@ export async function createSceneryLayer(
   /** Anything a bound pipeline can draw instances through. */
   interface Drawable {
     with(layout: typeof vertexLayout, buffer: VertexBuffer): Drawable;
-    with(layout: typeof treeInstanceLayout, buffer: InstanceBuffer): Drawable;
+    with(layout: typeof placedLayout, buffer: InstanceBuffer): Drawable;
     draw(vertices: number, instances: number, firstVertex?: number, firstInstance?: number): void;
   }
   let draws = 0;
   let lastDraws = 0;
-  /** Draw a population; `coarser` draws each near tier with a coarser tier's mesh
-   *  (the shadow casters: a cascade texel is larger than the leaf relief). */
-  function drawPopulation(pop: Population, bound: Drawable, coarser = 0) {
-    if (!loaded) return;
+  /** Draw a population into the view, or with `casting` into a cascade: its
+   *  casters, each near tier with a mesh `coarser` tiers down (a cascade
+   *  texel is larger than the leaf relief). */
+  function drawPopulation(pop: Population, bound: Drawable, casting = false, coarser = 0) {
     for (let k = 0; k < pop.lod.kinds; k++) {
       for (let t = 0; t < TIER_COUNT; t++) {
         const count = pop.lod.counts[k][t];
         if (count === 0) continue;
-        const mesh = loaded.tiers[k][Math.min(t + coarser, TIER_COUNT - 1)];
+        const mesh = pop.meshes[k][Math.min(t + coarser, TIER_COUNT - 1)];
         bound
           .with(vertexLayout, mesh.buffer)
-          .with(treeInstanceLayout, pop.near[k][t].slot.current!)
+          .with(placedLayout, pop.near[k][t].slot.current!)
           .draw(mesh.vertices, count);
         draws++;
       }
-      const far = pop.lod.far[k];
+      const far = casting ? pop.lod.cast[k] : pop.lod.far[k];
       if (far.length === 0) continue;
-      const mesh = loaded.tiers[k][TIER_COUNT - 1];
-      const withMesh = bound.with(vertexLayout, mesh.buffer).with(treeInstanceLayout, pop.far[k]);
+      const mesh = pop.meshes[k][TIER_COUNT - 1];
+      const withMesh = bound.with(vertexLayout, mesh.buffer).with(placedLayout, pop.far[k]);
       for (let r = 0; r < far.length; r += 2) {
         withMesh.draw(mesh.vertices, far[r + 1], 0, far[r]);
         draws++;
       }
     }
   }
+
+  /** Every population drawn into the view. */
+  const populations = () => [
+    ...(loaded ? [loaded.forest, loaded.backdrop] : []),
+    ...(massing ? [massing.pop] : []),
+  ];
 
   return {
     /** The world's scenery (placement and appearances); `null` draws none. */
@@ -391,26 +472,37 @@ export async function createSceneryLayer(
       });
       const sizes = bundles.map(kindSize);
       const forestScope = scope.scope();
+      const tiers = bundles.map((bundle) =>
+        Array.from({ length: TIER_COUNT }, (_, t) => {
+          const mesh = tierMesh(bundle, t);
+          return {
+            buffer: scope.own(vertexBuffer(root, mesh)),
+            vertices: mesh.length / VERTEX_FLOATS,
+          };
+        }),
+      );
+      const trees = (within: GpuRegistry, placed: Float32Array, casts: boolean) =>
+        population(within, treeInstances(placed, sizes), tiers, next.lodPx, casts);
       loaded = {
         scope,
-        tiers: bundles.map((bundle) =>
-          Array.from({ length: TIER_COUNT }, (_, t) => {
-            const mesh = tierMesh(bundle, t);
-            return {
-              buffer: scope.own(vertexBuffer(root, mesh)),
-              vertices: mesh.length / VERTEX_FLOATS,
-            };
-          }),
-        ),
-        forest: population(forestScope, next.placement.forest, sizes, false),
+        forest: trees(forestScope, next.placement.forest, true),
         forestScope,
         placedForest: next.placement.forest,
         standing: next.placement.forest.length / TREE_FLOATS,
         kept: null,
         sizes,
-        backdrop: population(scope, next.placement.backdrop, sizes, true),
-        lodPx: next.lodPx,
+        backdrop: trees(scope, next.placement.backdrop, false),
       };
+    },
+    /** The massing boxes a side draws (`massingInstances`), replacing the
+     *  last; `null` draws none. */
+    setMassing(next: PlacedInstances | null) {
+      massing?.scope.release();
+      massing = null;
+      viewKey = "";
+      if (!next?.kinds.length) return;
+      const scope = registry.scope();
+      massing = { scope, pop: population(scope, next, boxTiers, ALWAYS_FAR, true) };
     },
     /** Draw only the trees whose trunk stands on ground `ground`'s side has
      *  not seen cleared; rebuilds the forest when that count changes. */
@@ -434,61 +526,59 @@ export async function createSceneryLayer(
       kept.forEach((o, k) => standing.set(all.subarray(o, o + TREE_FLOATS), k * TREE_FLOATS));
       loaded.forestScope.release();
       loaded.forestScope = loaded.scope.scope();
-      loaded.forest = population(loaded.forestScope, standing, loaded.sizes, false);
+      loaded.forest = population(
+        loaded.forestScope,
+        treeInstances(standing, loaded.sizes),
+        loaded.forest.meshes,
+        loaded.forest.lodPx,
+        true,
+      );
       loaded.standing = kept.length;
       loaded.kept = kept;
       viewKey = "";
     },
     /** Choose this frame's tiers for `camera` at a viewport `height` pixels tall. */
     prepare(camera: Camera3DParams, height: number) {
-      if (!loaded) return;
       const key = detailKey(camera, height);
       if (key === viewKey) return;
       viewKey = key;
       setDetailView(view, camera, height);
-      view.lodPx = loaded.lodPx;
-      for (const pop of [loaded.forest, loaded.backdrop]) {
+      // A shadow is received out to the reach in view depth: at the view's
+      // corners that is farther from the eye.
+      const tanV = Math.tan(camera.fovY / 2);
+      view.shadow.reach = cascades.max_far_m * Math.hypot(1, tanV, tanV * camera.aspect);
+      for (const pop of populations()) {
+        view.lodPx = pop.lodPx;
         selectTiers(pop.lod, view);
         upload(pop);
       }
     },
     /** The forest into one cascade (`bound` carries the cascade's camera). */
     encodeShadows(pass: TgpuRenderPass, cameraGroup: CameraGroup) {
-      if (loaded)
-        drawPopulation(
-          loaded.forest,
-          caster.with(pass).with(cameraGroup) as unknown as Drawable,
-          CASTER_COARSER,
-        );
+      const bound = caster.with(pass).with(cameraGroup) as unknown as Drawable;
+      if (loaded) drawPopulation(loaded.forest, bound, true, CASTER_COARSER);
+      if (massing) drawPopulation(massing.pop, bound, true);
     },
     encodeDepth(pass: TgpuRenderPass, cameraGroup: CameraGroup) {
-      if (!loaded) return;
       const bound = prepass.with(pass).with(cameraGroup) as unknown as Drawable;
-      drawPopulation(loaded.forest, bound);
-      drawPopulation(loaded.backdrop, bound);
+      for (const pop of populations()) drawPopulation(pop, bound);
     },
     encode(
       pass: TgpuRenderPass,
       cameraGroup: CameraGroup,
       fogFaces: ReturnType<FogVisibility["groups"]>["faces"],
     ) {
-      if (!loaded) return;
-      drawPopulation(
-        loaded.forest,
-        forestColour
+      const colour = (pipeline: typeof forestColour) =>
+        pipeline
           .with(pass)
           .with(cameraGroup)
           .with(environment.group)
-          .with(fogFaces) as unknown as Drawable,
-      );
-      drawPopulation(
-        loaded.backdrop,
-        backdropColour
-          .with(pass)
-          .with(cameraGroup)
-          .with(environment.group)
-          .with(fogFaces) as unknown as Drawable,
-      );
+          .with(fogFaces) as unknown as Drawable;
+      if (loaded) {
+        drawPopulation(loaded.forest, colour(forestColour));
+        drawPopulation(loaded.backdrop, colour(backdropColour));
+      }
+      if (massing) drawPopulation(massing.pop, colour(massingColour));
     },
     /** Starts a frame's draw count (the frame calls it before its shadows). */
     beginFrame() {
@@ -499,8 +589,9 @@ export async function createSceneryLayer(
       const population = (pop: Population | undefined) => {
         const tiers = Array.from({ length: TIER_COUNT }, () => 0);
         let placed = 0,
-          triangles = 0;
-        if (pop && loaded)
+          triangles = 0,
+          casters = 0;
+        if (pop)
           for (let k = 0; k < pop.lod.kinds; k++) {
             placed += pop.lod.sorted[k].length / INSTANCE_FLOATS;
             for (let t = 0; t < TIER_COUNT; t++) {
@@ -508,15 +599,18 @@ export async function createSceneryLayer(
               if (t === TIER_COUNT - 1)
                 for (let r = 1; r < pop.lod.far[k].length; r += 2) count += pop.lod.far[k][r];
               tiers[t] += count;
-              triangles += (count * loaded.tiers[k][t].vertices) / 3;
+              triangles += (count * pop.meshes[k][t].vertices) / 3;
+              if (pop.lod.casts && t < TIER_COUNT - 1) casters += count;
             }
+            for (let r = 1; r < pop.lod.cast[k].length; r += 2) casters += pop.lod.cast[k][r];
           }
-        return { placed, tiers, triangles };
+        return { placed, tiers, triangles, casters };
       };
       return {
-        kinds: loaded ? loaded.tiers.length : 0,
+        kinds: loaded ? loaded.forest.meshes.length : 0,
         forest: population(loaded?.forest),
         backdrop: population(loaded?.backdrop),
+        massing: population(massing?.pop),
         draws: lastDraws,
       };
     },

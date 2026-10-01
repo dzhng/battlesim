@@ -17,6 +17,7 @@ import type { ModelStats } from "./models/modelLayer";
 import type { ImpostorAtlas, ImpostorSpec } from "./models/impostor";
 import type { StaticBundle, TextureChannel } from "@packages/scene-assets/src/schema";
 import type { SceneryPlacement } from "./scenery/placement";
+import type { PlacedInstances } from "./scenery/lod";
 import type { SceneryStats } from "./frame/sceneryLayer";
 import type { GrassProbes, GrassStats } from "./frame/grassPass";
 import type { GrassAppearances } from "./terrain/grassField";
@@ -170,6 +171,12 @@ export interface BattleFrame {
    *  buildings the side knows stand and the ruins and wrecks it remembers.
    *  Lit, graded, shadow-casting and fogged like the world. */
   setStructures(structures: readonly ModelInstance[]): void;
+  /** Knowledge-drawn massing (`massingInstances`): the boxes of the artless
+   *  buildings the side knows stand and the remains of those it has seen
+   *  fall, replacing the last list. Lit, shadow-casting and fogged like the
+   *  world. Call when the list changes, not every frame: it is chunked.
+   *  `null` draws none. */
+  setMassing(massing: PlacedInstances | null): void;
   /** The observing side's learned ground (the client's `GroundView`), drawn
    *  as scars on the terrain and grass. Called every animation frame: a new
    *  view is uploaded whole, the same view only where it changed since the

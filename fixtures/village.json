@@ -980,6 +980,19 @@
       "lod_px": [150, 60, 24],
       "impostor_px": 10
     },
+    "massing": {
+      "families": ["prototype"],
+      "tints": {
+        "farmstead": [0.66, 0.56, 0.42],
+        "detached_home": [0.78, 0.7, 0.56],
+        "attached_home": [0.74, 0.52, 0.42],
+        "urban_apartment": [0.66, 0.68, 0.72],
+        "highrise": [0.5, 0.6, 0.72],
+        "industry": [0.52, 0.58, 0.5],
+        "default": [0.62, 0.62, 0.62]
+      },
+      "ruin": [0.36, 0.33, 0.3]
+    },
     "pose": {
       "gait": { "walk_mps": 0.25, "run_mps": 2.2, "fade_s": 0.25, "facing_mps": 0.3, "turn_rad_s": 6 },
       "rest": { "turn_rad": 1.0, "tempo": [0.8, 1.25], "watch_every": 4, "settle_s": [4, 6] },

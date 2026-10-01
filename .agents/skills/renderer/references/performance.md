@@ -44,6 +44,7 @@ The only gate is **30 FPS average at the default camera, 1920×1080**, measured 
 - **Install only what the battle draws:** soldiers' appearances only, not the whole catalog, cut 131 → 77 MiB.
 - **Coarser, fewer vertices for overlays that rebuild:** the contact glyph rebuild went from 10.9 ms of CPU to 3.6 ms, and the slow frames disappeared.
 - **A static far-chunk buffer drawn in chunk order,** with adjacent chunks merged into one draw range.
+- **Cull the view by the frustum and the casters by their shadows.** On a 10 km map this took the forest from 6.5 million triangles in each of six passes to what the camera sees: 14 ms to 3 ms at the tactical camera, 17 ms to 6 ms at the whole-map overview.
 
 ## Traps
 

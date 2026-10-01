@@ -128,6 +128,7 @@ export default function River() {
         fixture="river"
         world={worldFeed}
         structures={view === "surface" ? session.structures : undefined}
+        massing={view === "surface" ? session.massingFeed : undefined}
         overlay={overlayFeed}
         frame={session.frame}
         appearances={session.appearances}

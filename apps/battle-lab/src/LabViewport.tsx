@@ -50,6 +50,7 @@ import type {
   WorldMeshes,
 } from "@packages/battle-renderer/src/scene";
 import type { GroundMarks } from "@packages/battle-renderer/src/frame/scarTexture";
+import type { PlacedInstances } from "@packages/battle-renderer/src/scenery/lod";
 import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
 import { PassInspector } from "./PassInspector";
 import type { FeedSource } from "./feed";
@@ -69,6 +70,9 @@ interface LabViewportProps {
   /** Knowledge-drawn props as fitted appearances (standing buildings,
    *  remembered ruins and wrecks), lit and fogged with the world. */
   structures?: readonly ModelInstance[];
+  /** Knowledge-drawn massing boxes (buildings with no art), fed like the
+   *  overlay; omitted or null draws none. */
+  massing?: FeedSource<PlacedInstances | null>;
   /** Display-space marks drawn over the finished frame, fed through one
    *  stable object (`useFeed`): never a prop that changes with them. */
   overlay?: FeedSource<WorldMeshes | undefined>;
@@ -267,6 +271,7 @@ export function LabViewport({
   fixture,
   world,
   structures,
+  massing,
   overlay,
   pointerMarks,
   fog,
@@ -359,6 +364,16 @@ export function LabViewport({
   );
   const structuresRef = useRef(structures);
   structuresRef.current = structures;
+  const massingRef = useRef(massing);
+  massingRef.current = massing;
+  useEffect(
+    () =>
+      massing?.subscribe((boxes) => {
+        sceneRef.current?.setMassing(boxes);
+        redrawRef.current();
+      }),
+    [massing],
+  );
   const fogRef = useRef(fog);
   fogRef.current = fog;
   const fogStyleRef = useRef(fogStyle);
@@ -493,6 +508,7 @@ export function LabViewport({
           sceneRef.current = next;
           try {
             if (structuresRef.current) next.setStructures(structuresRef.current);
+            if (massingRef.current) next.setMassing(massingRef.current.current);
             const meshes = overlayRef.current?.current;
             if (meshes) next.setOverlay(meshes);
             const marks = pointerMarksRef.current?.current;

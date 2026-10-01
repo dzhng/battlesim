@@ -91,6 +91,7 @@ export default function Contacts() {
         fixture="contacts"
         world={worldFeed}
         structures={session.structures}
+        massing={session.massingFeed}
         overlay={overlayFeed}
         fog={session.fogFeed}
         frame={session.frame}
