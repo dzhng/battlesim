@@ -41,7 +41,7 @@ fn original_props(world: &sim::world::WorldGeometry) -> String {
 #[test]
 fn singleton_cutover_preserves_frozen_observations_digests_queries_and_seats() {
     let oracle: Value = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/building-aggregate/oracle.json"
+        "../../../fixtures/parity/buildings/oracle.json"
     ))
     .unwrap();
     for arm in oracle["arms"].as_array().unwrap() {
@@ -87,7 +87,7 @@ fn singleton_cutover_preserves_frozen_observations_digests_queries_and_seats() {
 
 fn compound_setup(events: Value) -> ScenarioDefinition {
     let descriptor: contract::templates::BuildingTemplateDescriptor = serde_json::from_str(
-        include_str!("../../../specs/city-maps/assets/template-geometry/asymmetric.json"),
+        include_str!("../../../fixtures/parity/templates/asymmetric.json"),
     )
     .unwrap();
     let catalogue =
@@ -173,7 +173,7 @@ fn owner_collapse_replaces_every_part_atomically() {
 #[test]
 fn singleton_destroyable_remains_keep_the_original_digest_trace() {
     let oracle: Value = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/building-aggregate/singleton-chain.json"
+        "../../../fixtures/parity/buildings/singleton-chain.json"
     ))
     .unwrap();
     let mut setup: ScenarioDefinition = original_setup(oracle["scenario"].clone());
@@ -216,7 +216,7 @@ fn singleton_destroyable_remains_keep_the_original_digest_trace() {
 #[test]
 fn compound_damageable_remains_have_one_fresh_integrity_per_state() {
     let oracle: Value = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/building-aggregate/singleton-chain.json"
+        "../../../fixtures/parity/buildings/singleton-chain.json"
     ))
     .unwrap();
     let mut setup = compound_setup(json!((1..=14)
@@ -563,7 +563,7 @@ fn aggregate_motion_is_rejected_while_ordinary_movable_bodies_keep_working() {
 #[test]
 fn ordinary_authored_remains_keep_their_source_while_dynamic_remains_have_none() {
     let original: Value = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/building-aggregate/singleton-chain.json"
+        "../../../fixtures/parity/buildings/singleton-chain.json"
     ))
     .unwrap();
     let mut rules = original["scenario"]["rules"].clone();
@@ -652,7 +652,7 @@ fn authored_parts_share_one_bounded_dense_namespace_with_ordinary_props() {
 #[test]
 fn a_holdable_replacement_uses_current_parts_and_its_fresh_owner() {
     let original: Value = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/building-aggregate/singleton-chain.json"
+        "../../../fixtures/parity/buildings/singleton-chain.json"
     ))
     .unwrap();
     let mut setup = compound_setup(json!((1..=11)

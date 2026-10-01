@@ -113,7 +113,7 @@ fn physical_identity_is_canonical_and_does_not_include_appearance_or_readiness()
 
 fn asymmetric() -> BuildingTemplateDescriptor {
     serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/template-geometry/asymmetric.json"
+        "../../../fixtures/parity/templates/asymmetric.json"
     ))
     .unwrap()
 }
@@ -279,7 +279,7 @@ fn vertically_disjoint_boxes_do_not_hide_each_others_facades() {
 #[test]
 fn unsupported_unequal_height_joins_cannot_hide_upper_exterior_walls() {
     let descriptor: BuildingTemplateDescriptor = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/template-geometry/rejected-unequal-join/descriptor.json"
+        "../../../fixtures/parity/templates/rejected-unequal-join/descriptor.json"
     ))
     .unwrap();
     assert!(descriptor.validate().is_err());
@@ -372,7 +372,7 @@ fn large_xy_translation_cannot_accept_a_real_join_gap() {
 #[test]
 fn unrepresentable_bay_lattice_is_rejected_before_materialization() {
     let descriptor: BuildingTemplateDescriptor = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/template-geometry/rejected-numeric/lattice.json"
+        "../../../fixtures/parity/templates/rejected-numeric/lattice.json"
     ))
     .unwrap();
     assert!(
@@ -391,7 +391,7 @@ fn unrepresentable_bay_lattice_is_rejected_before_materialization() {
 #[test]
 fn placement_cannot_collapse_distinct_bays_into_repeated_world_points() {
     let mut descriptor: BuildingTemplateDescriptor = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/template-geometry/rotated.json"
+        "../../../fixtures/parity/templates/rotated.json"
     ))
     .unwrap();
     for edge in &mut descriptor.edges {
@@ -439,11 +439,11 @@ fn rotation_materialization_uses_the_same_values_as_the_portable_runtime() {
         wasm: MaterializedBuilding,
     }
     let descriptor: BuildingTemplateDescriptor = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/template-geometry/rejected-runtime-rotation/descriptor.json"
+        "../../../fixtures/parity/templates/rejected-runtime-rotation/descriptor.json"
     )).unwrap();
     // The original report has no local-span metadata. Add only that owner
     // field without parsing/reprinting any original floating-point token.
-    let mut raw=include_str!("../../../specs/city-maps/assets/template-geometry/rejected-runtime-rotation/regression.json").to_string();
+    let mut raw=include_str!("../../../fixtures/parity/templates/rejected-runtime-rotation/regression.json").to_string();
     for edge in &descriptor.edges {
         let original = format!("\"id\": \"{}\",", edge.id);
         raw = raw.replace(

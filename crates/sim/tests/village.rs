@@ -51,7 +51,7 @@ fn the_supported_attack_shells_the_first_public_building_owner() {
     // Freeze the original encounter so future fixture tuning does not change this
     // aggregate-ownership regression's opening.
     let oracle: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/building-aggregate/oracle.json"
+        "../../../fixtures/parity/buildings/oracle.json"
     ))
     .unwrap();
     let mut input = oracle["arms"]

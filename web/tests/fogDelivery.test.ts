@@ -15,13 +15,13 @@ import { originalObservation } from "./groundRuns";
 
 const oracle = JSON.parse(
   readFileSync(
-    new URL("../../specs/city-maps/assets/fog-delivery/oracle.json", import.meta.url),
+    new URL("../../fixtures/parity/fog/oracle.json", import.meta.url),
     "utf8",
   ),
 );
 const prepared = JSON.parse(
   readFileSync(
-    new URL("../../specs/city-maps/assets/building-aggregate/cutover-inputs.json", import.meta.url),
+    new URL("../../fixtures/parity/buildings/cutover-inputs.json", import.meta.url),
     "utf8",
   ),
 );

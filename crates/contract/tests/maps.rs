@@ -133,7 +133,7 @@ fn bay_admission_counts_all_placements_before_verification_materializes_them() {
         BuildingTemplateDescriptor, PlacementFrame, TemplateGeometryCatalog,
     };
     let template: BuildingTemplateDescriptor = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/template-geometry/asymmetric.json"
+        "../../../fixtures/parity/templates/asymmetric.json"
     ))
     .unwrap();
     let catalogue = TemplateGeometryCatalog::new(vec![template.clone()]).unwrap();

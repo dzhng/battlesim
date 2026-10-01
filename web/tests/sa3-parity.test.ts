@@ -8,9 +8,9 @@ import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/ob
 import { cellPatchRuns, canonicalGround } from "./groundRuns";
 import { GroundView } from "../src/battle/sim/ground";
 import { VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
-import ordered from "../../specs/city-maps/assets/ground-baseline/ordered-patches.json";
-import foliage from "../../specs/city-maps/assets/ground-baseline/foliage.json";
-import foliageMaps from "../../specs/city-maps/assets/building-aggregate/foliage-cutover-inputs.json";
+import ordered from "../../fixtures/parity/ground/ordered-patches.json";
+import foliage from "../../fixtures/parity/ground/foliage.json";
+import foliageMaps from "../../fixtures/parity/buildings/foliage-cutover-inputs.json";
 let memory: WebAssembly.Memory;
 beforeAll(() => {
   memory = initSync({

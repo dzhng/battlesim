@@ -11,17 +11,17 @@ beforeAll(() => {
 
 test("the compiled artifact reaches the existing public world without a plan interpreter", () => {
   const request = readFileSync(
-    new URL("../../specs/city-maps/assets/map-compiler/request.json", import.meta.url),
+    new URL("../../fixtures/parity/map-compiler/request.json", import.meta.url),
     "utf8",
   );
   const descriptor = readFileSync(
-    new URL("../../specs/city-maps/assets/template-geometry/asymmetric.json", import.meta.url),
+    new URL("../../fixtures/parity/templates/asymmetric.json", import.meta.url),
     "utf8",
   );
   const original = JSON.parse(
     readFileSync(
       new URL(
-        "../../specs/city-maps/assets/template-geometry/native-asymmetric.json",
+        "../../fixtures/parity/templates/native-asymmetric.json",
         import.meta.url,
       ),
       "utf8",
@@ -89,11 +89,11 @@ test("the compiled artifact reaches the existing public world without a plan int
 
 test("implicit ground height cannot turn a finite input into an infinite physical box", () => {
   const request = readFileSync(
-    new URL("../../specs/city-maps/assets/map-compiler/request.json", import.meta.url),
+    new URL("../../fixtures/parity/map-compiler/request.json", import.meta.url),
     "utf8",
   ).replace("[0.6, 0.6, 0.6]", "[0.6, 0.6, 1e308]");
   const descriptor = readFileSync(
-    new URL("../../specs/city-maps/assets/template-geometry/asymmetric.json", import.meta.url),
+    new URL("../../fixtures/parity/templates/asymmetric.json", import.meta.url),
     "utf8",
   );
   expect(JSON.parse(compile_map(request, `[${descriptor}]`))).toEqual({
@@ -112,12 +112,12 @@ test("implicit ground height cannot turn a finite input into an infinite physica
 test("native CLI and WASM emit the same complete compiler records and refusals", () => {
   const cases: { name: string; request_json: string; native_outcome: string }[] = JSON.parse(
     readFileSync(
-      new URL("../../specs/city-maps/assets/map-compiler/paired-records.json", import.meta.url),
+      new URL("../../fixtures/parity/map-compiler/paired-records.json", import.meta.url),
       "utf8",
     ),
   ).cases;
   const descriptor = readFileSync(
-    new URL("../../specs/city-maps/assets/template-geometry/asymmetric.json", import.meta.url),
+    new URL("../../fixtures/parity/templates/asymmetric.json", import.meta.url),
     "utf8",
   );
   for (const record of cases) {

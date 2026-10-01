@@ -11,7 +11,7 @@ import {
 
 const read = (name: string) =>
   readFileSync(
-    new URL(`../../specs/city-maps/assets/template-geometry/${name}.json`, import.meta.url),
+    new URL(`../../fixtures/parity/templates/${name}.json`, import.meta.url),
     "utf8",
   );
 /** Only C01's added owner-emitted local interval enriches the old output oracle. */

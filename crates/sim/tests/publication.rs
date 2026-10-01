@@ -273,7 +273,7 @@ fn uniform_learned_ground_is_delivered_without_one_record_per_cell() {
 #[test]
 fn fog_delivery_preserves_the_frozen_complete_observation_and_digest() {
     let oracle: Value = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/fog-delivery/oracle.json"
+        "../../../fixtures/parity/fog/oracle.json"
     ))
     .unwrap();
     // C02 relocates only this input field; frozen observations stay untouched.
@@ -601,11 +601,11 @@ fn known_bodies_publish_exact_current_building_owner_and_authored_source_ids() {
 #[test]
 fn aggregate_codec_preserves_every_original_animation_word() {
     let original: Value = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/ground-transport/animation-codec-vectors.json"
+        "../../../fixtures/parity/ground/animation-codec-vectors.json"
     ))
     .unwrap();
     let receipt: Value = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/building-aggregate/animation-codec-vectors.json"
+        "../../../fixtures/parity/buildings/animation-codec-vectors.json"
     ))
     .unwrap();
     let layout = &receipt["layout"];

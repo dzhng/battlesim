@@ -7,7 +7,6 @@ use sim::navigation::{Mobility, NavGrid, Plan};
 pub use sim::{math, world};
 use world::WorldGeometry;
 #[allow(dead_code)]
-#[path = "../../../specs/city-maps/assets/navigation-proof/dense-navigation.rs"]
 mod dense;
 
 fn mobility(class: MoverClass, push: PushClass) -> Mobility {

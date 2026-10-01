@@ -88,14 +88,14 @@ test("an authority failure returns held records once and rejects requests after 
   }).memory;
   const oracle = JSON.parse(
     readFileSync(
-      new URL("../../specs/city-maps/assets/fog-delivery/oracle.json", import.meta.url),
+      new URL("../../fixtures/parity/fog/oracle.json", import.meta.url),
       "utf8",
     ),
   );
   oracle.scenario.map = JSON.parse(
     readFileSync(
       new URL(
-        "../../specs/city-maps/assets/building-aggregate/cutover-inputs.json",
+        "../../fixtures/parity/buildings/cutover-inputs.json",
         import.meta.url,
       ),
       "utf8",

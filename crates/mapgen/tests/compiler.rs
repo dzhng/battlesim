@@ -4,7 +4,7 @@ use serde_json::{json, Value};
 
 fn catalogue() -> TemplateGeometryCatalog {
     TemplateGeometryCatalog::new(vec![serde_json::from_str::<BuildingTemplateDescriptor>(
-        include_str!("../../../specs/city-maps/assets/template-geometry/asymmetric.json"),
+        include_str!("../../../fixtures/parity/templates/asymmetric.json"),
     )
     .unwrap()])
     .unwrap()
@@ -31,7 +31,7 @@ fn request() -> CompileRequest {
 fn lowering_materializes_the_frozen_compound_into_one_global_authored_namespace() {
     let generated = lower(&request(), &catalogue()).unwrap();
     let original: Value = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/template-geometry/native-asymmetric.json"
+        "../../../fixtures/parity/templates/native-asymmetric.json"
     ))
     .unwrap();
     #[derive(serde::Deserialize)]
@@ -39,7 +39,7 @@ fn lowering_materializes_the_frozen_compound_into_one_global_authored_namespace(
         materialized: Box<serde_json::value::RawValue>,
     }
     let raw: RawOriginal = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/template-geometry/native-asymmetric.json"
+        "../../../fixtures/parity/templates/native-asymmetric.json"
     ))
     .unwrap();
     // Add only C01's authoritative local intervals without re-parsing the old
@@ -215,7 +215,7 @@ fn native_cli_saves_the_same_physical_map_and_lossless_identity() {
     let catalogue_path = directory.join("catalogue.json");
     let output_path = directory.join("saved");
     let input: CompileRequest = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/map-compiler/request.json"
+        "../../../fixtures/parity/map-compiler/request.json"
     ))
     .unwrap();
     let expected = lower(&input, &catalogue()).unwrap();
@@ -324,7 +324,7 @@ fn native_cli_replays_the_frozen_acceptance_and_refusal_records() {
         exit_code: i32,
     }
     let corpus: Corpus = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/map-compiler/paired-records.json"
+        "../../../fixtures/parity/map-compiler/paired-records.json"
     ))
     .unwrap();
     let directory =
@@ -336,7 +336,7 @@ fn native_cli_replays_the_frozen_acceptance_and_refusal_records() {
         &catalogue_path,
         format!(
             "[{}]",
-            include_str!("../../../specs/city-maps/assets/template-geometry/asymmetric.json")
+            include_str!("../../../fixtures/parity/templates/asymmetric.json")
         ),
     )
     .unwrap();

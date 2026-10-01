@@ -2612,7 +2612,7 @@ fn every_movement_scenario() {
 #[test]
 fn the_window_producer_preserves_original_physical_bodies_and_dense_ids() {
     let receipt: Value = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/building-aggregate/window-producer.json"
+        "../../../fixtures/parity/buildings/window-producer.json"
     ))
     .unwrap();
     let window = serde_json::from_value(receipt["window"].clone()).unwrap();

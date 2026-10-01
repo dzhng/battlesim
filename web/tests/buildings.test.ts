@@ -23,7 +23,7 @@ beforeAll(() => {
 test("the public picker and delivered replacements share one physical building owner", () => {
   const descriptor = JSON.parse(
     readFileSync(
-      new URL("../../specs/city-maps/assets/template-geometry/asymmetric.json", import.meta.url),
+      new URL("../../fixtures/parity/templates/asymmetric.json", import.meta.url),
       "utf8",
     ),
   );

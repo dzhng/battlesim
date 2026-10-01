@@ -437,7 +437,7 @@ fn navigation_regions_cover_every_nonuniform_surface() {
 #[test]
 fn terrain_queries_match_the_frozen_dense_surface() {
     let reference: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../specs/city-maps/assets/terrain-baseline/queries.json"
+        "../../../fixtures/parity/terrain/queries.json"
     ))
     .unwrap();
     let mut input = reference["map"].clone();
