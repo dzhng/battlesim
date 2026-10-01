@@ -19,6 +19,7 @@ Generate seeded battle maps with urban areas and usable surrounding plains on **
 - [`research.md`](research.md): historical NYC data research and source evaluation; its real-data recommendation is superseded for this spec.
 - `slices/`: one file per slice, the contract you implement.
 - [`choices.md`](choices.md): the ledger of implementation choices the spec didn't make.
+- [`sim-lane.md`](sim-lane.md): the parallel lane of simulation rules and costs, with its own ownership table and status.
 
 ## Next Agent Prompt
 
@@ -54,7 +55,8 @@ A slice marked "physical" has its systems half done; its look waits for the visu
 - [ ] A generated Small map playable in the lab: C09/C60 saved catalogue data and the cutover of existing maps onto the resolver → [C33 public preparation](slices/C33-battle-preparation.md) → [C58 fixed-seed encounter](slices/C58-offline-encounter.md) → [C59 encounter planner](slices/C59-encounter-planner.md) → [C55 runtime generation](slices/C55-runtime-generation.md)
 - [ ] Scale at full extent with buildings: S1 on generated towns (tens of thousands of buildings), browser startup and memory, rendered surroundings, C06 scale passes* · C07 publication* · C20 fog at scale · C22 placement chunks → C23 far tier
 - [ ] [C57 camera clearance](slices/C57-camera-clearance.md)
-- [ ] Rules: C40 floor-band seats → C41 facade eyes · C42 low-rise lifecycle → C43 tall buildings gutted · C44 street bodies · C46 street placement · C77 forest bodies · C80 effective-height validator · C86 tree lines
+- [ ] **[Sim rules lane](sim-lane.md)** (a second session, in parallel): C40 → C41 · C42 → C43 · SA6 movement gaps · SA5 sight cost · C44 street bodies · C77 forest bodies · C80 effective-height validator · C86 tree lines. Its status lives in that file.
+- [ ] C46 street placement in generated towns (after C44)
 - [ ] Existing maps: [C56 reservations](slices/C56-fixture-surroundings.md) → C34 village · C35 labs · C36 benchmarks → [C54 integrated seed gate](slices/C54-generation-gate.md)
 - [ ] C05 measuring tools (`city_report` is its first piece) · C10 provenance · C13/C32 template source and library schema · C21 material transport
 - [ ] Completion: C50 durability balance → C51 playable generated encounter (requires C54 and C87)
