@@ -498,8 +498,9 @@ export function useBattleSession({
      *  how far, their colour × intensity, and what cast each. */
     castLights: () => offeredCastLights(effectBatch.lights),
     /** Every drawn model's muzzle sockets in the world, posed from the model
-     *  instances as drawn (the workbench's socket gizmos): what a flash must
-     *  sit on, measured apart from the flashes' own `DrawnMuzzles`. */
+     *  instances as drawn (the workbench's socket gizmos), with each model's
+     *  origin to select the firing body before its attachment is measured.
+     *  Computed apart from the flashes' own `DrawnMuzzles`. */
     muzzleSockets: () =>
       (posing?.models ?? []).flatMap((m) => {
         const bundle = appearances?.appearances.get(m.appearance)?.bundle;
@@ -511,6 +512,7 @@ export function useBattleSession({
           .filter((k) => k.name.endsWith("muzzle"))
           .map(({ name, frame: f }) => ({
             appearance: m.appearance,
+            origin: [m.x, m.y, m.z],
             name,
             at: [m.x + f[12] * c - f[13] * s, m.y + f[12] * s + f[13] * c, m.z + f[14]],
           }));

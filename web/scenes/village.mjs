@@ -2333,6 +2333,7 @@ async function muzzleTour(ctx) {
     // whose new round starts next tick (the simulation flies a round from
     // the tick after it fires).
     let near = unit.position;
+    let shooterAt = unit.position;
     let socket = shot.mount === 0 && unit.kind === "tank" ? "muzzle" : "hmg_muzzle";
     if (name === "rifle") {
       await advance(page, 1);
@@ -2349,6 +2350,7 @@ async function muzzleTour(ctx) {
       );
       if (!round) continue;
       near = round.path[0];
+      shooterAt = squad.members[squad.memberIds.indexOf(round.shooterMember)];
       socket = "muzzle";
     }
     wanted.delete(name);
@@ -2370,7 +2372,12 @@ async function muzzleTour(ctx) {
     const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], (a[2] ?? 0) - (b[2] ?? 0));
     const nearest = (list, p) => list.reduce((a, b) => (dist(b.at, p) < dist(a.at, p) ? b : a));
     const candidates = drawn.sockets.filter((s) => s.name === socket);
-    const muzzle = candidates.length ? nearest(candidates, near).at : null;
+    // Select the firing body first: a neighboring soldier's barrel can lie
+    // closer to the published launch point than this soldier's own muzzle.
+    const muzzle = candidates.length
+      ? candidates.reduce((a, b) => (dist(b.origin, shooterAt) < dist(a.origin, shooterAt) ? b : a))
+          .at
+      : null;
     const glow = muzzle && drawn.glows.length ? nearest(drawn.glows, muzzle).at : null;
     const px = (p) => p && lab(page, (q) => window.__lab.projectToCss(q[0], q[1], q[2]), p);
     const [muzzlePx, glowPx] = [await px(muzzle), await px(glow)];
