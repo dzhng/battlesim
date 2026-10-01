@@ -92,7 +92,7 @@
   {
     "id": "generated",
     "route": "/lab/generated",
-    "describe": "A battle on a generated map: ?type=open|mixed|metro, ?size=small|medium|large and ?seed= choose it (mixed, small, 1 by default). A preparation worker generates the map and lays a developer encounter on it (blue in a column on the road in, red at the main town's districts); a loading screen covers the wait."
+    "describe": "A battle on a generated map: ?type=open|mixed|metro, ?size=small|medium|large and ?seed= choose it (mixed, small, 1 by default). A preparation worker generates the map and lays a developer encounter on it (blue in a column on the road in, red at the main town's districts); a loading screen covers the wait. Buildings of the prototype catalogue draw as massing boxes tinted by category."
   },
   {
     "id": "benchmark",
