@@ -39,3 +39,27 @@ The village; rect-forest trunk parity.
 
 ## Feedback that would change this slice
 A tree line that falsely changes movement or sight reopens placement/body fit; colouring alone cannot mask it.
+
+
+## Outcome — simulation contract (2026-10-01)
+
+The simulation capability already exists in the shared Polygon/Stroke forest
+contract and rounded centerline loader; no redundant forest enum or second
+placement technique was added. New native battle evidence pairs the same units,
+seed and terrain with a strip versus open ground: the far-field recon squad is
+identified only in the open arm. A close arm remains identifiable through the
+thin line, preserving the ordinary forest attenuation rule. Existing analytic
+stroke membership checks prove every trunk lies inside the physical capsule.
+A new sparse-foliage export check proves every foliage-cell center is inside a
+real trunk's canopy radius, and canopy extends beyond the strip edge.
+
+Both new regressions were falsified: disabling stroke trunk placement made the
+far squad visible; clipping foliage to authored forest ground removed the
+required over-edge canopy. Both were restored green. Focused forest tests pass;
+this pass adds no production behavior and moves no rect forest or village trunk.
+Manual shape/diff/docs review and the choices audit found no second owner.
+
+Farmland catalogue/lab construction, plot cuts, fitted drawn crown coverage,
+the 40-strip rendered frame-cost row, WARNO comparison, screenshot critique and
+visual acceptance remain with the map/visual lane. This is native simulation
+verification, not a claim that the rendered hedgerow has passed its gate.

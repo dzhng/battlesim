@@ -1954,3 +1954,23 @@ adds real generated fallen logs, not a new tree-to-log destruction mechanic.
 The systems-only appearance boundary remains unaccepted: these physical bodies
 can affect a native/playable battle before their models exist, so C78 visual
 acceptance and GIFs stay explicitly open.
+
+
+## C86 tree lines — simulation contract (2026-10-01)
+
+### Reuse the forest shape and rule already in production
+
+**Choice:** A tree line is the existing shared `GroundShape::Stroke` forest,
+including rounded/densified control runs, ordinary trunk placement and ordinary
+foliage. For example a far-field recon squad is identified on open ground but
+loses identification through the strip; a closer squad is still visible through
+the same thin line. No extra opaque-hedgerow rule is introduced. Crown coverage
+follows the real trunk's canopy radius past the narrow authored strip boundary.
+
+**Gap:** The original slice proposed a separate Rect/Stroke forest enum, but the
+shared Polygon/Stroke contract already implemented that physical capability.
+**Reach:** The farmland/plot/art pass must consume this existing geometry and
+public canopy rather than adding a second tree-line interpretation. The village
+map receives no tree lines. **Verdict:** sound: one forest rule governs the strip
+without creating an exaggerated always-opaque barrier or duplicated shape.
+**Confidence:** high.

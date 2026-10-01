@@ -684,3 +684,78 @@ fn sparse_floor_cover_keeps_all_open_forest_cells_reachable() {
         }
     }
 }
+/// The tree-line contract uses the ordinary forest rule: a far-field recon
+/// squad loses identification through a real strip, with an open arm as control.
+#[test]
+fn a_real_tree_line_hides_a_recon_squad_from_the_far_field() {
+    let battle = |strips: bool, observer_x: f64, target_x: f64| {
+        let mut map =
+            json!({"size":[1200,300],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35});
+        if strips {
+            map["forests"] =
+                json!([{"shape":{"kind":"stroke","points":[[600,20],[600,280]],"width_m":24}}]);
+        }
+        let setup = common::scenario(
+            &map.to_string(),
+            json!([
+                {"side":"blue","kind":"recon","position":[observer_x,150],"engagement":"return_fire_only"},
+                {"side":"red","kind":"recon","position":[target_x,150],"engagement":"return_fire_only"}
+            ]),
+            json!([]),
+        );
+        let mut b = Battle::new(&setup, 1);
+        b.step();
+        b
+    };
+    let (strip, open) = (battle(true, 100.0, 950.0), battle(false, 100.0, 950.0));
+    assert!(
+        !open.observe(Side::Blue).identified.is_empty(),
+        "control identifies the squad"
+    );
+    assert!(
+        strip.observe(Side::Blue).identified.is_empty(),
+        "strip attenuates sight to the far squad"
+    );
+    let close = battle(true, 500.0, 700.0);
+    assert!(
+        !close.observe(Side::Blue).identified.is_empty(),
+        "a thin strip uses ordinary forest attenuation, not an opaque wall"
+    );
+}
+
+#[test]
+fn tree_line_foliage_follows_trunk_crowns_beyond_the_authored_strip_edge() {
+    let map: contract::map::MapDefinition = serde_json::from_value(json!({
+        "size":[300,240],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+        "forests":[{"shape":{"kind":"stroke","points":[[30,30],[150,60],[250,190]],"width_m":18}}]
+    }))
+    .unwrap();
+    let r = common::rules();
+    let w = WorldGeometry::new(&map, &r);
+    let trunks: Vec<_> = w
+        .props()
+        .filter(|p| p.forest_tree)
+        .map(|p| p.center)
+        .collect();
+    assert!(!trunks.is_empty());
+    let grid = w.export_foliage();
+    assert!(grid.len() > 3);
+    let mut over_edge = false;
+    for record in grid[3..].chunks_exact(4) {
+        let center = v2(
+            (record[0] as f64 + 0.5) * grid[2] as f64,
+            (record[1] as f64 + 0.5) * grid[2] as f64,
+        );
+        assert!(
+            trunks
+                .iter()
+                .any(|p| (*p - center).length() <= r.forests.rule.canopy_radius_m + 1e-9),
+            "foliage at {center:?} needs a real crown"
+        );
+        over_edge |= !w.forest_ground(center.x, center.y);
+    }
+    assert!(
+        over_edge,
+        "canopy reaches past the strip edge instead of being clipped to it"
+    );
+}
