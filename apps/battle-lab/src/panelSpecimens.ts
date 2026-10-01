@@ -69,6 +69,7 @@ function own(
     position: [0, 0, 0],
     state: "idle",
     suppression: "none",
+    concealed: false,
     deployment: t.capabilities?.deploy ? { progress: 0, target: "packed" } : null,
     garrison: null,
     stock: t.capabilities?.supply ? t.capabilities.supply.stock : null,
@@ -262,8 +263,10 @@ export function panelSpecimens(rules: PanelRules): Specimen[] {
   add(s, "cannot supply", panelOf(own("at", { service: "moving" })));
   const inside = (phase: string, progress: number) => ({
     garrison: { building: 3, phase, progress },
+    concealed: phase === "inside" || phase === "exiting",
   });
   add(s, "entering 50%", panelOf(own("rifle", inside("entering", 0.5) as Partial<OwnUnitView>)));
+  add(s, "hidden in foliage", panelOf(own("rifle", { concealed: true })));
   add(s, "in building", panelOf(own("rifle", inside("inside", 1) as Partial<OwnUnitView>)));
   add(s, "leaving 70%", panelOf(own("rifle", inside("exiting", 0.7) as Partial<OwnUnitView>)));
   add(s, "suppressed", panelOf(own("rifle", { suppression: "suppressed" })));

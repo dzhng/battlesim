@@ -222,7 +222,7 @@ const KNOWN_PROP_FIELDS: [&str; 19] = [
     "authoredPropLo",
     "authoredPropHi",
 ];
-const OWN_FIELDS: [&str; 43] = [
+const OWN_FIELDS: [&str; 44] = [
     "id",
     "kind",
     "x",
@@ -244,6 +244,7 @@ const OWN_FIELDS: [&str; 43] = [
     "mountCount",
     "hp",
     "suppression",
+    "concealed",
     "deployProgress",
     "deployTarget",
     "garrisonBuildingLo",
@@ -741,6 +742,7 @@ pub fn pack(
             u.mounts.len() as f32,
             u.hp as f32,
             tag(&SUPPRESSION_TIERS, &u.suppression),
+            u.concealed as u8 as f32,
             u.deployment.map_or(-1.0, |d| d.progress as f32),
             u.deployment.map_or(-1.0, |d| tag(&POSTURES, &d.target)),
             garrison_lo,

@@ -150,6 +150,19 @@ fn target_concealment(world: &WorldGeometry, target: &Unit, at: V3, rules: &Rule
         .min(1.0 + (s.building_range_multiplier - 1.0) * shelter)
 }
 
+/// Whether any living target sample benefits from the sensing rule's concealment.
+pub fn concealed(world: &WorldGeometry, target: &Unit, rules: &Rules) -> bool {
+    if target.hull.is_some() {
+        target_concealment(world, target, target.position, rules) < 1.0
+    } else {
+        target
+            .members
+            .iter()
+            .filter(|m| m.alive())
+            .any(|m| target_concealment(world, target, m.position, rules) < 1.0)
+    }
+}
+
 /// Sensor rules the geometry relies on (the fog sweep stops a ray once its
 /// reach has shrunk behind it).
 pub fn validate(s: &SensorRules) {
