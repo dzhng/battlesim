@@ -66,8 +66,12 @@ impl<'a> Water<'a> {
     /// zero or less when it meets the water; `within` when there is at least
     /// that much.
     pub fn segment_gap(&self, a: Point, b: Point, within: f64) -> f64 {
+        // Every road and street asks; a map without a river answers at once.
+        if self.is_empty() {
+            return within;
+        }
         let mut gap = within;
-        self.grid.any(segment_bounds(a, b, within), |id| {
+        self.grid.any_along(a, b, within, |id| {
             let [from, to] = self.stretch(id);
             let half = from.half_width_m.max(to.half_width_m);
             let apart = if segment_crossing(a, b, from.xy, to.xy).is_some() {
@@ -107,7 +111,7 @@ impl<'a> Water<'a> {
     /// it.
     pub fn crossings(&self, a: Point, b: Point) -> Vec<Crossing> {
         let mut ids = Vec::new();
-        self.grid.any(segment_bounds(a, b, 0.0), |id| {
+        self.grid.any_along(a, b, 0.0, |id| {
             ids.push(id);
             false
         });

@@ -280,6 +280,24 @@ impl Grid {
         self.span(bounds)
             .any(|bucket| self.buckets[bucket].iter().any(|item| test(*item)))
     }
+
+    /// Whether `test` holds for any item whose box may come within `margin`
+    /// of the segment `ab`. The segment is walked a bucket's width at a
+    /// time, so a long diagonal asks only of the strip it runs through.
+    pub fn any_along(
+        &self,
+        a: Point,
+        b: Point,
+        margin: f64,
+        mut test: impl FnMut(u32) -> bool,
+    ) -> bool {
+        let pieces = libm::ceil(distance(a, b) / self.cell).max(1.0);
+        (0..pieces as usize).any(|piece| {
+            let at = |share: f64| add(a, scale(sub(b, a), share / pieces));
+            let bounds = segment_bounds(at(piece as f64), at(piece as f64 + 1.0), margin);
+            self.any(bounds, &mut test)
+        })
+    }
 }
 
 /// The box of two points, grown by `margin`.

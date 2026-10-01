@@ -351,7 +351,7 @@ impl<'a> Crossings<'a> {
         let mut meetings = Vec::new();
         for (run, ends) in points.windows(2).enumerate() {
             let mut near = Vec::new();
-            self.grid.any(segment_bounds(ends[0], ends[1], 0.0), |id| {
+            self.grid.any_along(ends[0], ends[1], 0.0, |id| {
                 near.push(id as usize);
                 false
             });
