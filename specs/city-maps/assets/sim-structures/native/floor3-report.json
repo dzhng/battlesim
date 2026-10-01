@@ -1,0 +1,733 @@
+{
+  "moment": "floor3",
+  "scope": "Explicit systems prototype massing; no source/art acceptance",
+  "sourceFixture": {
+    "size": [
+      640,
+      480
+    ],
+    "fog_cell_m": 8,
+    "height_grid_m": 4,
+    "slope_cutoff_deg": 35,
+    "props": [
+      {
+        "id": 1,
+        "kind": "crate",
+        "center": [
+          300,
+          330
+        ],
+        "yaw": 0.3,
+        "half_extents": [
+          2,
+          2,
+          1
+        ]
+      },
+      {
+        "id": 2,
+        "kind": "crate",
+        "center": [
+          420,
+          170
+        ],
+        "yaw": -0.2,
+        "half_extents": [
+          2,
+          2,
+          1
+        ]
+      }
+    ],
+    "buildings": [
+      {
+        "owner": 0,
+        "kind": "building",
+        "category": "farmstead",
+        "regional_family": "prototype",
+        "parts": [
+          {
+            "part": "body",
+            "prop": 0
+          }
+        ],
+        "geometry": {
+          "template_id": "api-box-12-12-4",
+          "frame": {
+            "translation": [
+              360,
+              250,
+              0
+            ],
+            "yaw": 0
+          },
+          "parts": [
+            {
+              "id": "body",
+              "center": [
+                360,
+                250
+              ],
+              "yaw": 0,
+              "half_extents": [
+                12,
+                12,
+                4
+              ],
+              "base_z": 0
+            }
+          ],
+          "height_m": 8,
+          "floor_z": [
+            0,
+            3,
+            6
+          ],
+          "entrances": null,
+          "edges": [
+            {
+              "id": "face-0",
+              "part": "body",
+              "facade": "positive_x",
+              "span_m": [
+                -12,
+                12
+              ],
+              "span": [
+                [
+                  372,
+                  238
+                ],
+                [
+                  372,
+                  262
+                ]
+              ],
+              "normal": [
+                1,
+                0
+              ],
+              "base_z": 0,
+              "top_z": 8,
+              "exposed": true,
+              "bays": [
+                [
+                  372,
+                  250
+                ]
+              ]
+            },
+            {
+              "id": "face-1",
+              "part": "body",
+              "facade": "positive_y",
+              "span_m": [
+                -12,
+                12
+              ],
+              "span": [
+                [
+                  372,
+                  262
+                ],
+                [
+                  348,
+                  262
+                ]
+              ],
+              "normal": [
+                0,
+                1
+              ],
+              "base_z": 0,
+              "top_z": 8,
+              "exposed": true,
+              "bays": [
+                [
+                  360,
+                  262
+                ]
+              ]
+            },
+            {
+              "id": "face-2",
+              "part": "body",
+              "facade": "negative_x",
+              "span_m": [
+                -12,
+                12
+              ],
+              "span": [
+                [
+                  348,
+                  262
+                ],
+                [
+                  348,
+                  238
+                ]
+              ],
+              "normal": [
+                -1,
+                0
+              ],
+              "base_z": 0,
+              "top_z": 8,
+              "exposed": true,
+              "bays": [
+                [
+                  348,
+                  250
+                ]
+              ]
+            },
+            {
+              "id": "face-3",
+              "part": "body",
+              "facade": "negative_y",
+              "span_m": [
+                -12,
+                12
+              ],
+              "span": [
+                [
+                  348,
+                  238
+                ],
+                [
+                  372,
+                  238
+                ]
+              ],
+              "normal": [
+                0,
+                -1
+              ],
+              "base_z": 0,
+              "top_z": 8,
+              "exposed": true,
+              "bays": [
+                [
+                  360,
+                  238
+                ]
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "owner": 3,
+        "kind": "wall",
+        "category": "industry",
+        "regional_family": "prototype",
+        "parts": [
+          {
+            "part": "obstacle",
+            "prop": 3
+          }
+        ],
+        "geometry": {
+          "template_id": "systems-five-metre-obstacle",
+          "frame": {
+            "translation": [
+              420,
+              250,
+              0
+            ],
+            "yaw": 0
+          },
+          "parts": [
+            {
+              "id": "obstacle",
+              "center": [
+                420,
+                250
+              ],
+              "yaw": 0,
+              "half_extents": [
+                3,
+                20,
+                2.5
+              ],
+              "base_z": 0
+            }
+          ],
+          "height_m": 5,
+          "floor_z": null,
+          "entrances": null,
+          "edges": [
+            {
+              "id": "obstacle-0",
+              "part": "obstacle",
+              "facade": "positive_x",
+              "span_m": [
+                -20,
+                20
+              ],
+              "span": [
+                [
+                  423,
+                  230
+                ],
+                [
+                  423,
+                  270
+                ]
+              ],
+              "normal": [
+                1,
+                0
+              ],
+              "base_z": 0,
+              "top_z": 5,
+              "exposed": true,
+              "bays": [
+                [
+                  423,
+                  250
+                ]
+              ]
+            },
+            {
+              "id": "obstacle-1",
+              "part": "obstacle",
+              "facade": "positive_y",
+              "span_m": [
+                -3,
+                3
+              ],
+              "span": [
+                [
+                  423,
+                  270
+                ],
+                [
+                  417,
+                  270
+                ]
+              ],
+              "normal": [
+                0,
+                1
+              ],
+              "base_z": 0,
+              "top_z": 5,
+              "exposed": true,
+              "bays": [
+                [
+                  420,
+                  270
+                ]
+              ]
+            },
+            {
+              "id": "obstacle-2",
+              "part": "obstacle",
+              "facade": "negative_x",
+              "span_m": [
+                -20,
+                20
+              ],
+              "span": [
+                [
+                  417,
+                  270
+                ],
+                [
+                  417,
+                  230
+                ]
+              ],
+              "normal": [
+                -1,
+                0
+              ],
+              "base_z": 0,
+              "top_z": 5,
+              "exposed": true,
+              "bays": [
+                [
+                  417,
+                  250
+                ]
+              ]
+            },
+            {
+              "id": "obstacle-3",
+              "part": "obstacle",
+              "facade": "negative_y",
+              "span_m": [
+                -3,
+                3
+              ],
+              "span": [
+                [
+                  417,
+                  230
+                ],
+                [
+                  423,
+                  230
+                ]
+              ],
+              "normal": [
+                0,
+                -1
+              ],
+              "base_z": 0,
+              "top_z": 5,
+              "exposed": true,
+              "bays": [
+                [
+                  420,
+                  230
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "template_catalog_hash": "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13"
+  },
+  "scenarioSha256": "c8bd52c9f2f701a72cadab37a5a5b1e1f52bac869a65a27257ff0d57e2cd0ee5",
+  "adapter": {
+    "vendor": "apple",
+    "architecture": "metal-3",
+    "description": "",
+    "format": "bgra8unorm"
+  },
+  "browser": "148.0.7778.96",
+  "wasmSha256": "8b22beb49a1635f7f15223147298dd64e7ad7a750ec487e658949ed9cc0715d0",
+  "integratedSimCommit": "15a690ea",
+  "finalTick": 439,
+  "highShots": 19,
+  "crossingShots": 2,
+  "terminal": false,
+  "own": [
+    {
+      "id": 0,
+      "kind": "rifle",
+      "position": [
+        361.5562438964844,
+        248.44375610351562,
+        3.75
+      ],
+      "yaw": 0.10287025570869446,
+      "goal": null,
+      "policy": null,
+      "direction": null,
+      "reversing": false,
+      "state": "idle",
+      "blocker": null,
+      "route": [],
+      "queue": [],
+      "members": [
+        [
+          372.45001220703125,
+          250,
+          6
+        ],
+        [
+          372.45001220703125,
+          250,
+          0
+        ],
+        [
+          347.54998779296875,
+          250,
+          6
+        ],
+        [
+          360,
+          237.5500030517578,
+          6
+        ],
+        [
+          372.45001220703125,
+          250,
+          3
+        ],
+        [
+          360,
+          262.45001220703125,
+          3
+        ],
+        [
+          347.54998779296875,
+          250,
+          3
+        ],
+        [
+          360,
+          237.5500030517578,
+          3
+        ]
+      ],
+      "memberIds": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "memberSlots": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "memberOrders": [
+        {
+          "spot": [
+            372.45001220703125,
+            250
+          ],
+          "coverNow": null,
+          "coverThere": null
+        },
+        {
+          "spot": [
+            372.45001220703125,
+            250
+          ],
+          "coverNow": null,
+          "coverThere": null
+        },
+        {
+          "spot": [
+            347.54998779296875,
+            250
+          ],
+          "coverNow": null,
+          "coverThere": null
+        },
+        {
+          "spot": [
+            360,
+            237.5500030517578
+          ],
+          "coverNow": null,
+          "coverThere": null
+        },
+        {
+          "spot": [
+            372.45001220703125,
+            250
+          ],
+          "coverNow": null,
+          "coverThere": null
+        },
+        {
+          "spot": [
+            360,
+            262.45001220703125
+          ],
+          "coverNow": null,
+          "coverThere": null
+        },
+        {
+          "spot": [
+            347.54998779296875,
+            250
+          ],
+          "coverNow": null,
+          "coverThere": null
+        },
+        {
+          "spot": [
+            360,
+            237.5500030517578
+          ],
+          "coverNow": null,
+          "coverThere": null
+        }
+      ],
+      "memberLeans": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "area": {
+        "anchor": [
+          346,
+          250
+        ],
+        "radius": 14
+      },
+      "finalFacing": 0.10287025570869446,
+      "sees": [
+        1
+      ],
+      "engagement": "fire_at_will",
+      "mounts": [
+        {
+          "mount": 0,
+          "loaded": 0,
+          "ammo": [
+            null
+          ],
+          "aim": 1,
+          "reload": 0,
+          "target": {
+            "kind": "ground",
+            "point": [
+              580,
+              250,
+              0
+            ]
+          },
+          "reason": "firing",
+          "guiding": false,
+          "reloading": null
+        },
+        {
+          "mount": 1,
+          "loaded": null,
+          "ammo": [
+            7
+          ],
+          "aim": 1,
+          "reload": 0.30000001192092896,
+          "target": {
+            "kind": "ground",
+            "point": [
+              580,
+              250,
+              0
+            ]
+          },
+          "reason": "reloading",
+          "guiding": false,
+          "reloading": 0
+        }
+      ],
+      "weaponPoses": [
+        {
+          "mount": 0,
+          "bearing": 0.007124138996005058,
+          "elevation": -0.03527841344475746,
+          "shots": 4
+        },
+        {
+          "mount": 1,
+          "bearing": 0.007124138996005058,
+          "elevation": 0.1252961903810501,
+          "shots": 1
+        }
+      ],
+      "hp": 0,
+      "memberHp": [
+        1000000,
+        1000000,
+        1000000,
+        1000000,
+        1000000,
+        1000000,
+        1000000,
+        1000000
+      ],
+      "suppression": "none",
+      "concealed": true,
+      "deployment": null,
+      "garrison": {
+        "building": 0,
+        "phase": "inside",
+        "progress": 1,
+        "center": [
+          360,
+          250
+        ],
+        "half": [
+          12,
+          12
+        ]
+      },
+      "stock": null,
+      "service": "out_of_range",
+      "sight": {
+        "eyes": [
+          [
+            372.45001220703125,
+            250,
+            7.599999904632568
+          ],
+          [
+            360,
+            262.45001220703125,
+            4.599999904632568
+          ],
+          [
+            347.54998779296875,
+            250,
+            7.599999904632568
+          ],
+          [
+            360,
+            237.5500030517578,
+            7.599999904632568
+          ]
+        ],
+        "forward": 0.10287025570869446,
+        "shape": {
+          "front": 1,
+          "side": 1,
+          "rear": 1
+        },
+        "range": 600
+      }
+    }
+  ],
+  "knownProps": [],
+  "errors": [],
+  "counterMeaning": "Counts observed projectile segments, not distinct rounds or launches: highShots has first published path point above6m; crossingShots has any path point beyondx423 above5m.",
+  "stagedUnits": [
+    {
+      "side": "blue",
+      "kind": "rifle",
+      "position": [
+        320,
+        250
+      ],
+      "engagement": "return_fire_only"
+    },
+    {
+      "side": "red",
+      "kind": "tank",
+      "position": [
+        580,
+        250
+      ],
+      "yaw": 3.141592653589793,
+      "engagement": "return_fire_only"
+    }
+  ],
+  "scriptedOrders": [
+    {
+      "tick": 1,
+      "side": "blue",
+      "order": {
+        "kind": "garrison",
+        "units": [
+          0
+        ],
+        "building": 0
+      }
+    }
+  ],
+  "firstFrameTick": 352,
+  "entryTiming": "Entry is verified before standing.png; firstFrameTick is the loop observation, not the entry tick."
+}

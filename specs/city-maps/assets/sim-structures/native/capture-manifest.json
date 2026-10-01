@@ -1,0 +1,93 @@
+{
+  "integratedSimCommit": "15a690ea",
+  "wasmSha256": "8b22beb49a1635f7f15223147298dd64e7ad7a750ec487e658949ed9cc0715d0",
+  "scope": "Native systems and prototype physical projection; source windows and accepted art remain open",
+  "moments": [
+    {
+      "moment": "floor3",
+      "mapSha256": "387124a81fec64d641ed8737bb0aae1ed9fd35a6f391343e92b13f20c5f241fd",
+      "scenarioSha256": "c8bd52c9f2f701a72cadab37a5a5b1e1f52bac869a65a27257ff0d57e2cd0ee5",
+      "frames": 30,
+      "firstFrameTick": 352,
+      "finalTick": 439,
+      "terminal": false,
+      "firstTerminalFrame": null,
+      "errors": [],
+      "knownTerminal": [],
+      "highSegments": 19,
+      "crossingSegments": 2
+    },
+    {
+      "moment": "collapse",
+      "mapSha256": "07bdcb0263d3ef13625eea5adcaf95db00baf4090f511415501e15ca26fd8495",
+      "scenarioSha256": "ba0848a13da4fff85c314bd2589bd7cbf55d4fafee7967e172f0977159662a32",
+      "frames": 334,
+      "firstFrameTick": 1465,
+      "finalTick": 6280,
+      "terminal": true,
+      "firstTerminalFrame": 313,
+      "errors": [],
+      "knownTerminal": [
+        [
+          4,
+          "ruin",
+          [
+            12,
+            12,
+            1
+          ]
+        ],
+        [
+          5,
+          "ruin",
+          [
+            12,
+            12,
+            1
+          ]
+        ]
+      ],
+      "highSegments": 45,
+      "crossingSegments": 12
+    },
+    {
+      "moment": "gutted",
+      "mapSha256": "4c63fadd6e796c368ebbf75a23816dea2ad69c15e60e15ca0cbdfacb450e31ac",
+      "scenarioSha256": "bf238815c147c5038591cdc69ce4089d6b24a44b1ac7da88c89b890d8691fcf1",
+      "frames": 334,
+      "firstFrameTick": 1465,
+      "finalTick": 6280,
+      "terminal": true,
+      "firstTerminalFrame": 313,
+      "errors": [],
+      "knownTerminal": [
+        [
+          4,
+          "gutted",
+          [
+            12,
+            12,
+            16
+          ]
+        ],
+        [
+          5,
+          "gutted",
+          [
+            12,
+            12,
+            16
+          ]
+        ]
+      ],
+      "highSegments": 45,
+      "crossingSegments": 12
+    }
+  ],
+  "failedProducerSets": [
+    "floor3-modular-wall",
+    "failed-internal-bays",
+    "collapse-no-spotter"
+  ],
+  "postprocessing": "Five complete full-sequence GIF/contact sets and13detail crops generated; fresh pixel critique recorded. Prototype source/art and ambiguous clearance/storey/state cues remain unaccepted."
+}

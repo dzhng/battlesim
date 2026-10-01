@@ -1,0 +1,22 @@
+   Compiling typenum v1.20.1
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.1
+   Compiling cfg-if v1.0.4
+   Compiling serde_core v1.0.228
+   Compiling libc v0.2.189
+   Compiling zmij v1.0.21
+   Compiling libm v0.2.16
+   Compiling cpufeatures v0.2.17
+   Compiling generic-array v0.14.7
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling serde v1.0.228
+   Compiling serde_json v1.0.150
+   Compiling contract v0.1.0 (/Users/david/.codex/worktrees/city-sim-bodies/crates/contract)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.75s
+     Running `/Users/david/dev/battlegame/target/wt/city-sim-bodies/debug/examples/city_map_check throwaway/city-systems/floor3-map.json throwaway/city-systems/collapse-map.json throwaway/city-systems/gutted-map.json`
+throwaway/city-systems/floor3-map.json: admitted 4 physical props
+throwaway/city-systems/collapse-map.json: rejected api-box-12-12-4: placed bays exceed admission or occupy an internal edge
+throwaway/city-systems/gutted-map.json: rejected api-box-12-12-4: placed bays exceed admission or occupy an internal edge

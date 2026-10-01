@@ -1,0 +1,198 @@
+{
+  "kind": "screenshot-scene-metrics",
+  "generatedAt": "2026-10-01T18:50:22.828Z",
+  "note": "Absolute per-image telemetry, no reference involved. Low values locate flat, sparse, or empty captures; they never accept or reject an image on their own.",
+  "imageCount": 10,
+  "results": [
+    {
+      "id": "collapse-final",
+      "image": "throwaway/city-systems/metrics-inputs/collapse-final.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "sceneMetrics": {
+        "colorBuckets": 99,
+        "colorEntropyBits": 3.91414,
+        "edgeDensity": 0.21808,
+        "dominantColorShare": 0.20056,
+        "transparentShare": 0,
+        "luminanceMean": 81.71218,
+        "luminanceP5": 40.5278,
+        "luminanceP95": 103.3886,
+        "luminanceContrast": 62.8608
+      }
+    },
+    {
+      "id": "collapse-no-spotter-final",
+      "image": "throwaway/city-systems/metrics-inputs/collapse-no-spotter-final.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "sceneMetrics": {
+        "colorBuckets": 122,
+        "colorEntropyBits": 3.39151,
+        "edgeDensity": 0.06035,
+        "dominantColorShare": 0.26188,
+        "transparentShare": 0,
+        "luminanceMean": 88.85495,
+        "luminanceP5": 47.3578,
+        "luminanceP95": 114.6384,
+        "luminanceContrast": 67.2806
+      }
+    },
+    {
+      "id": "collapse-no-spotter-standing",
+      "image": "throwaway/city-systems/metrics-inputs/collapse-no-spotter-standing.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "sceneMetrics": {
+        "colorBuckets": 118,
+        "colorEntropyBits": 3.38947,
+        "edgeDensity": 0.05971,
+        "dominantColorShare": 0.26201,
+        "transparentShare": 0,
+        "luminanceMean": 88.83879,
+        "luminanceP5": 47.3578,
+        "luminanceP95": 114.6384,
+        "luminanceContrast": 67.2806
+      }
+    },
+    {
+      "id": "collapse-standing",
+      "image": "throwaway/city-systems/metrics-inputs/collapse-standing.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "sceneMetrics": {
+        "colorBuckets": 119,
+        "colorEntropyBits": 3.38913,
+        "edgeDensity": 0.06063,
+        "dominantColorShare": 0.2616,
+        "transparentShare": 0,
+        "luminanceMean": 88.84989,
+        "luminanceP5": 47.3578,
+        "luminanceP95": 114.6384,
+        "luminanceContrast": 67.2806
+      }
+    },
+    {
+      "id": "floor3-final",
+      "image": "throwaway/city-systems/metrics-inputs/floor3-final.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "sceneMetrics": {
+        "colorBuckets": 131,
+        "colorEntropyBits": 3.91795,
+        "edgeDensity": 0.14833,
+        "dominantColorShare": 0.19937,
+        "transparentShare": 0,
+        "luminanceMean": 85.39145,
+        "luminanceP5": 50.4312,
+        "luminanceP95": 107.9898,
+        "luminanceContrast": 57.5586
+      }
+    },
+    {
+      "id": "floor3-modular-wall-final",
+      "image": "throwaway/city-systems/metrics-inputs/floor3-modular-wall-final.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "sceneMetrics": {
+        "colorBuckets": 132,
+        "colorEntropyBits": 3.98727,
+        "edgeDensity": 0.29553,
+        "dominantColorShare": 0.21382,
+        "transparentShare": 0,
+        "luminanceMean": 80.57915,
+        "luminanceP5": 43.1708,
+        "luminanceP95": 107.9898,
+        "luminanceContrast": 64.819
+      }
+    },
+    {
+      "id": "floor3-modular-wall-standing",
+      "image": "throwaway/city-systems/metrics-inputs/floor3-modular-wall-standing.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "sceneMetrics": {
+        "colorBuckets": 120,
+        "colorEntropyBits": 3.89572,
+        "edgeDensity": 0.14805,
+        "dominantColorShare": 0.2016,
+        "transparentShare": 0,
+        "luminanceMean": 84.79543,
+        "luminanceP5": 50.4272,
+        "luminanceP95": 106.6408,
+        "luminanceContrast": 56.2136
+      }
+    },
+    {
+      "id": "floor3-standing",
+      "image": "throwaway/city-systems/metrics-inputs/floor3-standing.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "sceneMetrics": {
+        "colorBuckets": 117,
+        "colorEntropyBits": 3.89262,
+        "edgeDensity": 0.14303,
+        "dominantColorShare": 0.20153,
+        "transparentShare": 0,
+        "luminanceMean": 85.22299,
+        "luminanceP5": 50.4272,
+        "luminanceP95": 107.6408,
+        "luminanceContrast": 57.2136
+      }
+    },
+    {
+      "id": "gutted-final",
+      "image": "throwaway/city-systems/metrics-inputs/gutted-final.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "sceneMetrics": {
+        "colorBuckets": 98,
+        "colorEntropyBits": 4.05769,
+        "edgeDensity": 0.19893,
+        "dominantColorShare": 0.19674,
+        "transparentShare": 0,
+        "luminanceMean": 82.17084,
+        "luminanceP5": 40.5278,
+        "luminanceP95": 104.098,
+        "luminanceContrast": 63.5702
+      }
+    },
+    {
+      "id": "gutted-standing",
+      "image": "throwaway/city-systems/metrics-inputs/gutted-standing.png",
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "sceneMetrics": {
+        "colorBuckets": 118,
+        "colorEntropyBits": 3.53284,
+        "edgeDensity": 0.06515,
+        "dominantColorShare": 0.26056,
+        "transparentShare": 0,
+        "luminanceMean": 90.45551,
+        "luminanceP5": 47.3578,
+        "luminanceP95": 142.847,
+        "luminanceContrast": 95.4892
+      }
+    }
+  ]
+}

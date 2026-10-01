@@ -1,0 +1,5 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running `/Users/david/dev/battlegame/target/wt/city-sim-bodies/debug/examples/city_map_check throwaway/city-systems/floor3-map.json throwaway/city-systems/collapse-map.json throwaway/city-systems/gutted-map.json`
+throwaway/city-systems/floor3-map.json: admitted 4 physical props
+throwaway/city-systems/collapse-map.json: admitted 4 physical props
+throwaway/city-systems/gutted-map.json: admitted 4 physical props

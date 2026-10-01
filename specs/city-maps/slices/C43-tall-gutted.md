@@ -51,3 +51,9 @@ support. Fallen occupants use the same support-loss and side-specific corpse
 memory contract as [C42](C42-low-rise-lifecycle.md); the visual body follows the
 published pose without replaying its death. This does not certify a charred
 exterior, window geometry or accepted tall-building source.
+
+[The structure evidence](../assets/sim-structures/README.md) records actual
+full-height terminal rows and a prototype projection. Fresh eyes still read the
+opaque dark proxy as an intact block under changed visibility; a gutted interior
+or charred shell is not visually demonstrated. The real destruction-art gate
+remains open.

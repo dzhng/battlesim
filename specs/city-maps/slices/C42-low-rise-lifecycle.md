@@ -80,3 +80,9 @@ The nearby 26 building tests retain the frozen parity oracles, and 33 pose drive
 and feed tests pass, including anchor changes during death, rest and fading.
 These are systems contracts; the pending prototype captures cannot certify
 source-window fit or accepted building art.
+
+[Structure systems evidence](../assets/sim-structures/README.md) preserves the
+native support/knowledge proof, actual compound transition, complete raw-record
+location and unprimed pixel critique. The prototype loses height visibly, but
+its slab/rubble presentation, floor attachment, label overlaps and fog competition
+remain qualified visual findings; this is not accepted source or art coverage.
