@@ -10,7 +10,6 @@ use super::Context;
 use crate::Diagnostic;
 use contract::ground::{polygon_contains, GroundShape};
 use contract::map::{SurfaceArea, SurfaceKind};
-use std::collections::BTreeSet;
 
 /// The straight line one edge's main road follows: from its exit to the hub
 /// (the main junction, by the map's centre), or to a junction on an earlier
@@ -123,8 +122,8 @@ impl Network<'_> {
 
     /// Add a road that ends where it first meets a road at least as good as
     /// itself, in a T-junction both roads share as an authored point. It
-    /// still crosses lesser roads. Returns where it ended, if it was added.
-    fn join(&mut self, kind: SurfaceKind, mut points: Vec<Point>) -> Option<Point> {
+    /// still crosses lesser roads.
+    fn join(&mut self, kind: SurfaceKind, mut points: Vec<Point>) {
         // (run of the new road, share along it, road met, its run, share along that)
         let mut meeting: Option<(usize, f64, usize, usize, f64)> = None;
         for (run, ends) in points.windows(2).enumerate() {
@@ -168,12 +167,9 @@ impl Network<'_> {
                 points.push(point);
             }
         }
-        let end = *points.last()?;
-        if points.len() < 2 {
-            return None;
+        if points.len() >= 2 {
+            self.add(kind, points);
         }
-        self.add(kind, points);
-        Some(end)
     }
 
     fn bend(&self, a: Point, b: Point, rng: &mut Stream) -> Bend {
@@ -348,7 +344,6 @@ pub fn build(
     // better roads first.
     let mut order: Vec<usize> = (0..sites.len()).collect();
     order.sort_by_key(|index| core::cmp::Reverse(class_of(*index).rank));
-    let mut direct = BTreeSet::new();
     for index in order {
         let kind = class_of(index).road;
         let serves = |vertex: &(Point, SurfaceKind)| vertex.1 <= kind;
@@ -369,12 +364,12 @@ pub fn build(
                 // A neighbour's centre is a better junction than a point on
                 // the open road beside it.
                 let neighbour =
-                    (0..sites.len()).find(|other| joined[*other] && centre_of(*other) == vertex.0);
-                let weight = if neighbour.is_some() { 0.85 } else { 1.0 };
-                (distance(from, vertex.0) * weight, vertex.0, neighbour)
+                    (0..sites.len()).any(|other| joined[other] && centre_of(other) == vertex.0);
+                let weight = if neighbour { 0.85 } else { 1.0 };
+                (distance(from, vertex.0) * weight, vertex.0)
             })
             .min_by(|a, b| a.0.total_cmp(&b.0));
-        let Some((_, target, neighbour)) = target else {
+        let Some((_, target)) = target else {
             return Err(context.fail(
                 &format!("settlement-{index}"),
                 "no road for it to join".into(),
@@ -386,17 +381,19 @@ pub fn build(
         let onward = bearing(points[1], from);
         let far = sites[index].outline.edge(onward) * roads.main_street_reach;
         let street = vec![from, round_cm(add(from, scale(direction(onward), far)))];
-        let end = network.join(kind, points);
+        network.join(kind, points);
         network.add(kind, street);
-        if let Some(neighbour) = neighbour.filter(|_| end == Some(target)) {
-            direct.insert((index.min(neighbour), index.max(neighbour)));
-        }
         joined[index] = true;
     }
 
     // A richer network links neighbours directly (Gabriel pairs: no third
-    // settlement inside the circle on the pair's diameter). The main
-    // settlement already has the edge roads.
+    // settlement inside the circle on the pair's diameter), unless one road
+    // already runs through both. The main settlement has the edge roads.
+    let within = |index: usize, points: &[Point]| {
+        points
+            .iter()
+            .any(|p| polygon_contains(&sites[index].outline.ring, *p))
+    };
     for a in 1..sites.len() {
         for b in a + 1..sites.len() {
             let (pa, pb) = (centre_of(a), centre_of(b));
@@ -405,7 +402,14 @@ pub fn build(
             let neighbours = span <= roads.link_max_m
                 && (0..sites.len())
                     .all(|c| c == a || c == b || distance(centre_of(c), middle) >= span / 2.0);
-            if !neighbours || !rng.chance(richness) || direct.contains(&(a, b)) {
+            if !neighbours || !rng.chance(richness) {
+                continue;
+            }
+            let linked = network
+                .roads
+                .iter()
+                .any(|(_, points)| within(a, points) && within(b, points));
+            if linked {
                 continue;
             }
             // The rougher of the two settlements' roads.

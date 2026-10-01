@@ -490,14 +490,18 @@ fn road_patterns_vary_between_a_network_and_a_few_corridors() {
     ] {
         let mut exits = Vec::new();
         let mut loops = Vec::new();
-        for seed in 1..=12 {
+        for seed in 1..=30 {
             let metrics = measure(&plan(map_type, size, seed), &presets);
             exits.push(metrics.roads.edge_exits);
             loops.push(metrics.roads.loops);
         }
-        // A few corridors make few loops; a network makes many.
+        // A few corridors make few loops; a network makes many. Thirty seeds
+        // reach both ends of the range; the margins are a few loops wide.
         let (sparse, rich) = (loops.iter().min().unwrap(), loops.iter().max().unwrap());
-        assert!(*sparse <= 5 && *rich >= 15, "{map_type:?}: loops {loops:?}");
+        assert!(
+            *sparse <= 3 && *rich >= sparse + 10,
+            "{map_type:?}: loops {loops:?}"
+        );
         assert!(
             exits.iter().min() < exits.iter().max(),
             "{map_type:?}: exits {exits:?}"

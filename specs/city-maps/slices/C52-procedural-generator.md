@@ -46,17 +46,17 @@ Rejected composition updates versioned preset data and its evidence; it cannot s
 
 | | Settlements | Built ground | Main settlement's share of it | Forest | Country road km | Track km | Slowest edge to centre |
 |---|---|---|---|---|---|---|---|
-| Open Small | 8–10 | 2.0–4.7% | 24–56% | 4–22% | 12–30 | 2–22 | 114–175 s |
-| Open Medium | 15–19 | 1.9–4.4% | 14–38% | 4–22% | 20–44 | 6–48 | 147–183 s |
-| Open Large | 25–29 | 2.0–4.0% | 10–25% | 4–22% | 28–65 | 10–81 | 180–183 s |
+| Open Small | 8–10 | 2.0–4.7% | 24–56% | 4–22% | 12–28 | 2–22 | 114–175 s |
+| Open Medium | 15–19 | 1.9–4.4% | 14–38% | 4–22% | 20–41 | 5–47 | 147–183 s |
+| Open Large | 25–29 | 2.0–4.0% | 10–25% | 4–22% | 28–66 | 10–79 | 180–183 s |
 | Mixed Small | 7–10 | 9.6–19.3% | 48–78% | 4–17% | 12–32 | 0–16 | 114–175 s |
-| Mixed Medium | 13–17 | 7.4–13.4% | 38–64% | 4–17% | 20–48 | 3–32 | 147–183 s |
-| Mixed Large | 22–27 | 6.5–10.3% | 28–50% | 4–17% | 30–71 | 7–58 | 180–183 s |
+| Mixed Medium | 13–17 | 7.4–13.4% | 38–64% | 4–17% | 20–47 | 3–32 | 147–183 s |
+| Mixed Large | 22–27 | 6.5–10.3% | 28–50% | 4–17% | 30–68 | 7–59 | 180–183 s |
 | Metro Small | 3–7 | 11.3–22.0% | 69–97% | 2–8% | 12–27 | 0–9 | 114–176 s |
-| Metro Medium | 8–12 | 14.1–24.4% | 64–86% | 2–8% | 19–44 | 0–18 | 147–183 s |
-| Metro Large | 15–19 | 15.3–24.3% | 64–82% | 2–8% | 30–64 | 2–26 | 179–183 s |
+| Metro Medium | 8–12 | 14.1–24.4% | 64–86% | 2–8% | 19–44 | 0–17 | 147–183 s |
+| Metro Large | 15–19 | 15.3–24.3% | 64–82% | 2–8% | 31–63 | 1–25 | 179–183 s |
 
-Every accepted plan has all settlements road-connected, top/bottom built ground and forest inside S7's tolerances, an 1,800 m by 400 m open approach to the main settlement in each half, and each edge within 183 s of the centre by road at 110 km/h (15 s of that is the allowance for planning and turns). A plan takes 2–12 ms to generate natively (median by cell; no plan above 65 ms on a quiet machine, up to 430 ms while it was busy with other work) and has 800–6,800 ground points. Native and Wasm give the same bytes for seven recorded requests (`fixtures/parity/map-layout/`).
+Every accepted plan has all settlements road-connected, top/bottom built ground and forest inside S7's tolerances, an 1,800 m by 400 m open approach to the main settlement in each half, and each edge within 183 s of the centre by road at 110 km/h (15 s of that is the allowance for planning and turns). A plan takes 1–6 ms to generate natively (median by cell). The slowest single plan took 37 ms in a quiet run and 430 ms when the machine was busy with other work. A plan has 800–6,700 ground points. Native and Wasm give the same bytes for seven recorded requests (`fixtures/parity/map-layout/`).
 
 **Metro's urban share (M18).** The city's envelope is 16–24% of the playable area at every size; built ground on Small Metro comes to 11–22%. Small Metro then met the approach rule in 300 of 300 seeds. Holding the city at one share: 24% and below passed every seed, 28% passed 98%, 32% 95%, 36% 88%, 40% 59%, 45% under 1%. Above 24% the first thing to fail is room for the satellite towns; the approach itself starts failing at 40%.
 
@@ -64,7 +64,7 @@ Every accepted plan has all settlements road-connected, top/bottom built ground 
 
 **Still wrong or unfinished.**
 
-- **Large always has four roads meeting at the centre**, against M21. Within 183 s a road from the middle of an edge can reach the centre only by going nearly straight to it (5.13 km of road against 5 km in a line), so a fork more than about 130 m from the centre is out of time. Small and Medium have the slack and use it: an edge road joins an earlier one up to 1.5 km from the centre, and only 22–30% of Small plans and 38–41% of Medium plans are a four-way crossroads at the centre. Large is one in 100%. What varies there is the roads' skew (exits up to a kilometre off the midpoint), the settlements they run through, and the rest of the network (0–42 loops, 4–8 exits). Raising `transit.max_s` buys forks on Large: about 600 m out at 200 s.
+- **Large always has four roads meeting at the centre**, against M21. Within 183 s a road from the middle of an edge can reach the centre only by going nearly straight to it (5.13 km of road against 5 km in a line), so a fork more than about 130 m from the centre is out of time. Small and Medium have the slack and use it: an edge road joins an earlier one up to 1.5 km from the centre, and only 22–30% of Small plans and 38–41% of Medium plans are a four-way crossroads at the centre. Large is one in 100%. What varies there is the roads' skew (exits up to a kilometre off the midpoint), the settlements they run through, and the rest of the network (0–41 loops, 4–8 exits). Raising `transit.max_s` buys forks on Large: about 600 m out at 200 s.
 - **Districts are rings of radial sectors**, which reads as a dartboard on the picture. They are zoning for C53 to cut into blocks, not street patterns.
 - **Roads that join a settlement end at its far edge** as a short main street, which reads as a stub until C53 adds streets.
 - **Movement is not proved.** Connectivity and journey times are measured on the road graph of the plan. No generated map has been loaded into a battle here, so the slice's "infantry and vehicles reach the plain from towns" check is still open, as is the comparison against `visualizations/map-character.html`.
