@@ -201,6 +201,8 @@ export interface ImpactStyle {
   opacity: number;
   size_m: number;
   duration_s: number;
+  /** Per-round overrides of size scale and duration multiplier for this hit surface. */
+  round_scale?: Record<string, { size: number; duration: number }>;
   /** Sparks thrown off the surface, and a hot flash's intensity (0 for none). */
   sparks: number;
   flash: number;
@@ -349,6 +351,16 @@ export function validateEffects(p: EffectPresentation): EffectPresentation {
   for (const [k, i] of Object.entries(p.impacts))
     if (i.cast && i.cast.duration_s > i.duration_s)
       throw new Error(`presentation.effects.impacts.${k}.cast outlives its impact`);
+  for (const [hit, i] of Object.entries(p.impacts))
+    for (const [kind, scale] of Object.entries(i.round_scale ?? {})) {
+      const at = `presentation.effects.impacts.${hit}.round_scale.${kind}`;
+      if (!(Number.isFinite(scale.size) && scale.size > 0))
+        throw new Error(`${at}.size must be finite and positive`);
+      if (!(Number.isFinite(scale.duration) && scale.duration > 0))
+        throw new Error(`${at}.duration must be finite and positive`);
+      if (i.cast && i.cast.duration_s > i.duration_s * scale.duration)
+        throw new Error(`${at}.duration ends before the impact's cast light`);
+    }
   if (p.blast.cast.duration_s > p.blast.duration_s)
     throw new Error("presentation.effects.blast.cast outlives its blast");
   if (!Number.isFinite(maxEffectLifetime(p)))
@@ -406,7 +418,11 @@ export function maxEffectLifetime(p: EffectPresentation): number {
   );
   for (const f of Object.values(p.flashes))
     longest = Math.max(longest, f.duration_s, f.fireball_s, f.cast?.duration_s ?? 0);
-  for (const i of Object.values(p.impacts)) longest = Math.max(longest, i.duration_s);
+  for (const i of Object.values(p.impacts)) {
+    longest = Math.max(longest, i.duration_s);
+    for (const scale of Object.values(i.round_scale ?? {}))
+      longest = Math.max(longest, i.duration_s * scale.duration);
+  }
   for (const s of Object.values(p.smoke))
     longest = Math.max(longest, s.flame.life_s, s.smoke.life_s, s.smoulder.life_s);
   // A round's smoke trail is born by the end of its tick.
@@ -1213,13 +1229,14 @@ export class EffectFrame {
     rng: ReturnType<typeof mulberry32.create>,
   ) {
     const style = pick(this.p.impacts, hit);
-    const e = this.push(IMPACT, at, at + style.duration_s);
+    const scale = style.round_scale?.[kind];
+    const e = this.push(IMPACT, at, at + style.duration_s * (scale?.duration ?? 1));
     e.impact = style;
     e.cause = `impact:${hit}`;
     vec3.set(e.p, point[0], point[1], point[2]);
     if (normal) vec3.set(e.n, normal[0], normal[1], normal[2]);
     else vec3.set(e.n, 0, 0, 1);
-    e.size = style.size_m * pick(this.p.impact_scale, kind);
+    e.size = style.size_m * (scale?.size ?? pick(this.p.impact_scale, kind));
     e.rotation = mulberry32.sample(rng) * Math.PI * 2;
     e.path.push(mulberry32.sample(rng)); // the puff's first frame
     if (style.sparks > 0) this.addSparks(at, point, e.n, e.n, style.sparks, rng);
