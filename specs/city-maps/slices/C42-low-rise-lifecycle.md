@@ -47,3 +47,10 @@ owners. Native checks exercise bulk HP, low-rise heights and aggregate collapse.
 Coefficient 1 is provisional for C50; village changes are named rule changes,
 not parity-preserving performance work. Quick-report and integration gates are
 pending. The collapse GIF and final source fit remain open.
+
+Aggregate loading enforces immovable bodies through every declared replacement
+state and its terminal gutted alternative. A catalog-valid building-to-crate
+chain was first accepted incorrectly, then refused after the guard; ordinary
+movable crates still load and move. This preserves the existing no-composite-motion
+boundary rather than leaving immutable source seats attached to independently
+shoved parts. All 25 aggregate-building regressions pass on the integrated source.

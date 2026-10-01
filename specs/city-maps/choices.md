@@ -1802,6 +1802,16 @@ building aggregate. **Gap:** Ordinary props and authored destruction chains
 already use the same catalog. **Verdict:** sound; ordinary fixed HP/destruction
 stays representable without per-kind simulation branches. **Confidence:** high.
 
+**Choice:** Enforce the aggregate's immovable-body boundary through its declared
+remains chain and gutted alternative when loading the map. A building cannot
+collapse into separate shoveable crates while its immutable source bays still
+claim one fixed structure. Ordinary prop chains continue to permit movement.
+**Gap:** Initial aggregate bodies were constrained, but replacement rows were
+not. **Reach:** Composite building motion remains an unbuilt feature; every
+future state must respect that boundary until one owner can move the compound.
+**Verdict:** sound; the load boundary prevents an actual valid-catalog hole
+without adding a runtime special case. **Confidence:** high.
+
 ## C80 effective field height (2026-10-01)
 
 **Choice:** Measure all actual LOD vertices and compose both 1.2 runtime maxima;

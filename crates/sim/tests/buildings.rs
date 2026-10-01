@@ -575,6 +575,19 @@ fn aggregate_motion_is_rejected_while_ordinary_movable_bodies_keep_working() {
         std::panic::catch_unwind(|| Battle::new(&setup, 11)).is_err(),
         "a one-prop shove cannot tear apart a placed aggregate"
     );
+    let mut setup = compound_setup(json!([]));
+    let mut rows = serde_json::to_value(&setup.rules).unwrap();
+    sim::fixtures::patch_catalog(
+        &mut rows,
+        "props",
+        "building",
+        json!({"destroyed":{"into":{"prop":"crate"}}}),
+    );
+    setup.rules = serde_json::from_value(rows).unwrap();
+    assert!(
+        std::panic::catch_unwind(|| Battle::new(&setup, 11)).is_err(),
+        "a movable replacement cannot tear apart an aggregate after collapse"
+    );
     let world = crate::common::flat(
         [100.0, 100.0],
         r#","props":[{"kind":"crate","center":[50,50],"yaw":0,"half_extents":[1,1,1]}]"#,

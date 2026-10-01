@@ -134,12 +134,31 @@ impl WorldGeometry {
             );
         }
         for building in &map.buildings {
-            let body = rules.catalog.props().by_id(&building.kind).body;
-            assert_eq!(
-                body.weight_class,
-                contract::scenario::WeightClass::Immovable,
-                "placed aggregates require immovable bodies until composite motion exists"
-            );
+            let catalog = rules.catalog.props();
+            let mut state = catalog.by_id(&building.kind);
+            let body = state.body;
+            // A one-part shove cannot move an aggregate coherently. The
+            // catalog's validated acyclic chain includes every later shell.
+            loop {
+                assert_eq!(
+                    state.body.weight_class,
+                    contract::scenario::WeightClass::Immovable,
+                    "aggregate states require immovable bodies until composite motion exists"
+                );
+                let Some(contract::catalog::Destroyed::Into { prop, building, .. }) =
+                    &state.destroyed
+                else {
+                    break;
+                };
+                if let Some(policy) = building {
+                    assert_eq!(
+                        catalog.by_id(&policy.gutted_prop).body.weight_class,
+                        contract::scenario::WeightClass::Immovable,
+                        "aggregate gutted states require immovable bodies"
+                    );
+                }
+                state = catalog.by_id(prop);
+            }
             assert!(
                 !body.garrison || building.geometry.edges.iter().any(|e| e.exposed),
                 "garrison-capable aggregates require an exposed physical span"
