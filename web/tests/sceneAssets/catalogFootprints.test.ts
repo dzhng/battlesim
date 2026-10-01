@@ -18,9 +18,7 @@ const same = (a: readonly number[], b: readonly number[]) =>
   a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) < 1e-9);
 
 const villageMap = loadMap("village").definition;
-const buildings = villageMap.buildings!.flatMap((b) =>
-  b.geometry.parts.map((p) => p.half_extents),
-);
+const buildings = villageMap.buildings!.flatMap((b) => b.geometry.parts.map((p) => p.half_extents));
 /** Every unit type with a hull leaves a wreck on its hull box. */
 const units = new UnitCatalog(read("../../../fixtures/catalog.json") as CatalogView);
 const hulls = units.ids.flatMap((id) => {
