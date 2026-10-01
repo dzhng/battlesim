@@ -282,9 +282,16 @@ impl NavBase {
                 next[k] += 1;
             }
         }
+        // The ground layer wrote every cell as open to a squad wherever it
+        // is walkable. Where open flat ground is walkable too, that stands
+        // unless the cell or a neighbour is not wholly free.
+        let walkable = cells.implicit[0].ground;
         let laid: Vec<usize> = cells
             .stored()
-            .filter(|(at, cell)| **cell != cells.default_at(*at))
+            .filter(|(at, cell)| match walkable {
+                true => cell.free != ALL_FREE,
+                false => **cell != cells.default_at(*at),
+            })
             .map(|(at, _)| at)
             .collect();
         settle(&mut cells, &laid);

@@ -225,7 +225,16 @@ mod tests {
     fn assert_same(step: &str, kept: &NavGrid, fresh: &NavGrid) {
         assert_eq!((kept.nx, kept.ny), (fresh.nx, fresh.ny));
         for at in 0..kept.nx * kept.ny {
-            assert_eq!(kept.cells[at], fresh.cells[at], "{step}: cell {at}");
+            let cell = kept.cells[at];
+            assert_eq!(cell, fresh.cells[at], "{step}: cell {at}");
+            // What a squad may do in a cell follows from its free sub-cells
+            // and its neighbours', however the cell came to be written.
+            let one_gap = cell.free != 0 && crate::navigation::cells::one_gap(cell.free);
+            assert_eq!(
+                (cell.infantry, cell.open),
+                (one_gap, kept.cells.crossings(at)),
+                "{step}: cell {at}"
+            );
         }
         assert_eq!(kept.stopping, fresh.stopping, "{step}: stopping ranks");
         assert_eq!(kept.slow.forest, fresh.slow.forest, "{step}: forest tiles");
