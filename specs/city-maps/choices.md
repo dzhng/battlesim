@@ -1919,3 +1919,124 @@ The layout generator's roads and settlements were reworked for M22 (a road from 
 ### Not done
 
 Apartment slabs still stand along their streets, not in ranked rows across a lawn. An industrial district is one block on a road at the town's edge with streets of its own, but still one shed to a parcel. A town centre has no square; its main street is the country road or a 10 m avenue. Near-duplicate bridges and sharp turns onto a bridge are as they were. Open ground has no field pattern, and every map has its main settlement in the middle.
+
+## C59 encounter planner
+
+The planner, its seam, rules and measurements are in the [C59 outcome](slices/C59-encounter-planner.md#outcome). Recipe revision `encounters-1`.
+
+### Both sides have a column at their own edge, and the defender also holds the objective
+
+**Choice:** A roster row names its post. `column` rows stand on the road in from their side's edge: blue's at the bottom, red's at the top. `garrison` and `overwatch` rows are the defender's only and start at the objective. The shipped `assault` recipe gives red three rifle squads in buildings, an AT team on overwatch, and a tank and a jeep in a column at the top edge.
+
+**Gap:** M22 says the two sides start at the top and the bottom. C59 also asks for initial garrisons in real buildings, and the only opponent is the village's defender policy, which holds what it garrisons and never advances.
+
+**Verdict:** provisional. With every red row in the column, its squads would walk three to five kilometres to their buildings while blue's vehicles took an empty town. A recipe can say that (posts are per row), and it is the meeting engagement; it needs an opponent that attacks. **Confidence:** medium. This is the call most worth a second look.
+
+### The defender's column is ordered to the objective when the battle starts
+
+**Choice:** `deployment.defender_advances` writes one scripted move order (`ScenarioDefinition.scripts`) for red's column, to the objective by the fastest route, at tick 0.
+
+**Gap:** C59 says the planner derives defender waypoints from its anchors. The defender policy gives a unit no order unless it garrisons, sees a tank or is hurt.
+
+**Verdict:** sound. Without it red's reserve sits at the map's edge for the whole battle. It is an ordinary order through the existing script path, recorded and replayed like any other. **Confidence:** high.
+
+### A fair start is equal drives, and the farther column moves up its road
+
+**Choice:** The measure is the time a jeep (`deployment.pace`) takes from the head of each column to the objective by navigation's fastest route. The two must be within 15 s (`max_route_difference_s`). The side with the longer drive starts further up its own road, 50 m at a time, up to 1,500 m; past that the placement is refused as `unfair_deployment`.
+
+**Gap:** The task says the two deployments must be fair to each other. C59 names no measure, and L08 warns that equal coverage is not equal access.
+
+**Verdict:** sound. Two of the nine cells needed it (blue moved up 550 m and 850 m). It is measured on the simulation's routes, not on the plan's `transit` estimate, so it is true of the map the battle runs on. The 15 s and the jeep are guesses. **Confidence:** medium.
+
+### A column takes the edge road it drives soonest from
+
+**Choice:** Every road with an end on the side's edge is a candidate, up to `attempts.roads` (4), and the column stands on the one whose drive to the objective is shortest.
+
+**Gap:** M22 promises a road from each of the two edges to the centre without marking which road it is in the compiled map.
+
+**Verdict:** sound. No road is named or special; the spine wins because it is fastest. On Open Large seed 1 blue's fastest road enters the town from the east, and the overwatch post follows it there. **Confidence:** high.
+
+### Sites travel beside the map
+
+**Choice:** `contract::encounter::EncounterSites` holds each settlement's id, centre, outline and districts, and the measured approaches. `MapPlan::sites` makes it, `GeneratedMap` carries it, and `mapgen generate-map` writes `sites.json`. The contract owns `Half` and `Approach`; mapgen re-exports them under its old names.
+
+**Gap:** C59 says the planner reads compiled urban and plain geometry. The compiled map has no land regions yet, and the simulation may not read a plan.
+
+**Verdict:** sound for now. It replaces the lab's second generator call. Generation and compile outcomes grew a field, so the `map-layout` and `map-compiler` parity records were re-blessed; map hashes did not change. When land regions reach the map, the planner can read those and this record can go. **Confidence:** medium.
+
+### The planner is a new simulation module, beside the village's scenario builder
+
+**Choice:** `sim::encounter`, with its tests in a new file and its report a new example. It returns the same scenario fields `sim::village::scenario` builds.
+
+**Gap:** C59 says to extend the existing scenario builder. That builder reads the village fixture's coordinates, and its files belong to another lane this pass.
+
+**Verdict:** sound. Folding the village's builder and this one under one name is a rename for whoever next owns `village`. **Confidence:** medium.
+
+### A unit is reachable when navigation plans its route into the zone
+
+**Choice:** For each unit type of a column, each garrison squad and each overwatch post, `navigation::plan` must return a route whose last point is inside the capture zone. Only the pace unit's route is timed.
+
+**Gap:** C59 asks for required routes and objective reachability without saying how they are judged.
+
+**Verdict:** sound. `NavGrid::route_time` returns infinity for infantry routes that thread between buildings (it samples straight segments; the search steps through sub-cell gaps), so it cannot be the test for squads. That is noted for the navigation owner, not changed here. **Confidence:** high.
+
+### Garrison capacity is one question, and the seed chooses the buildings
+
+**Choice:** `garrison_seats` is the number of perimeter slots `garrison::slots` gives a building; a squad is admitted when it has a seat for every soldier. Candidates are the buildings within 150 m of the centre (the zone's radius) that stand in one of the settlement's districts. The encounter seed shuffles them, and those on the side of the centre the attack comes from go first; each garrison row takes the first that has the seats, stands 60 m from those already taken, has legal ground 4 m out from a door and a route into the zone. At most 40 are tried per row.
+
+**Gap:** C40's floor-band seats are being built in another lane. C59 says only that whole squads are admitted within capacity.
+
+**Verdict:** sound. When seats become floor bands, `garrison_seats` is the one line that changes. The encounter seed draws nothing else, so the same map gives the same columns and posts under every encounter seed. A first version drew from every building within 200 m; an unprimed reviewer saw the garrison behind the objective and outside the zone. **Confidence:** medium.
+
+### Overwatch watches the attacker's road first, then the open approaches on the attacker's side
+
+**Choice:** The ways in are the road the attacker's column drives in by, where it crosses the settlement's outline, then each measured approach whose bearing points toward the attacker's edge, nearest the road first. Overwatch rows take them in turn. A post stands 5 m beyond the settlement's last ground on a line parallel to its way in; the places tried are 25 m apart across it (the first 25 m to the side of a road, never on it), and of up to 12 the post takes the one that sees farthest down its way, up to 1,000 m. `objective.open_approach` says whether the objective must have such an approach at all.
+
+**Gap:** C59 wants the encounter to use an 1,800 m approach. The plan's `half` says which half a corridor lies in, which is not the side it is approached from once a settlement is off-centre.
+
+**Verdict:** provisional. With the approach first, the AT team on three of nine maps watched a field while the column came in by another road. With sight as a hard rule, a road through a hamlet left the road unwatched. The shipped roster's one post therefore watches the road; an open approach is covered from the second overwatch row on. Nothing here judges cover: a post may stand in an open field. **Confidence:** medium.
+
+### What stands where: the footprint rules
+
+**Choice:** A hull is tested at its centre, corners and edge middles for ground, against every body that stops vehicles, and against navigation's clearance. A squad needs its middle clear and, on a lattice at the squad's spacing over its spread, one standing place per soldier reachable on foot from the middle. Footprints keep 1 m (`clearance_m`) apart.
+
+**Gap:** C59 says footprints are clear of bodies, water and other units and names the queries, not the test.
+
+**Verdict:** sound. Every question is the world's or navigation's own; the planner adds only the list of points asked. A battle draws each squad's own arrangement from its seed, so the lattice says there is room, not where each soldier stands. **Confidence:** medium.
+
+### The recipe carries the opponent's thresholds and the hold times
+
+**Choice:** `defender.*` and `objective.hold_s` / `max_assessment_s` are recipe fields. The planner sets both fallback points to the objective's centre.
+
+**Gap:** The stand-in read them from the village fixture's `defender_policy` and `encounter` sections, which are the village encounter's own data and not part of `Rules`.
+
+**Verdict:** sound. The shipped recipe holds the village's values. **Confidence:** high.
+
+### A mission or variant is a recipe row
+
+**Choice:** `fixtures/encounters.json` is a table of named recipes under one revision. There is no mission enum and no variant list: another mission is another row with other posts, sides or preferences.
+
+**Gap:** C59 lists "mission/variant" among the recipe's contents.
+
+**Verdict:** sound while there is one mission (hold a zone). **Confidence:** medium.
+
+### Results are rounded, and bearings use one software evaluator
+
+**Choice:** Positions are whole centimetres, headings millionths of a radian, times milliseconds. Headings and bearing vectors come from `libm` through `contract::encounter`. Distances the planner compares are square roots.
+
+**Gap:** The simulation's own geometry uses the platform's `sin`, `cos` and `hypot`, which native and Wasm do not promise to round alike.
+
+**Verdict:** sound: six records agree to the byte. A comparison that falls within a rounding of its threshold could still differ between targets; none was seen. **Confidence:** medium.
+
+### Planning builds a world, and the battle builds its own
+
+**Choice:** `plan_encounter_json`, and so the Wasm export and the preparation worker, builds the world, navigation grid and road graph for the map, plans, and drops them. `plan_encounter` itself borrows them.
+
+**Gap:** C59 says to reuse the prepared geometry owner and not hold a second world. C33, which makes that owner, is not built.
+
+**Verdict:** a known cost, not a design. The build is 5.6 to 26.6 G instructions natively against 0.16 to 0.48 G for planning, and the battle worker repeats it. C33 passes its one world to `MapQueries` and the cost goes. **Confidence:** high.
+
+### Not done
+
+The planner has not run on the C58 map, which does not exist yet. No authored-encounter checker was built: `legality::stands` and `apart` are public for the one C58 needs. The lab draws no placement overlay; the pictures come from `encounter_report`. Cover and concealment are not judged anywhere. A refusal tries no other encounter seed and no other recipe.
+
