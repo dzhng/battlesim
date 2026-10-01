@@ -984,14 +984,15 @@
     "massing": {
       "families": ["prototype"],
       "tints": {
-        "farmstead": [0.66, 0.56, 0.42],
-        "detached_home": [0.78, 0.7, 0.56],
-        "attached_home": [0.74, 0.52, 0.42],
-        "urban_apartment": [0.66, 0.68, 0.72],
-        "highrise": [0.5, 0.6, 0.72],
-        "industry": [0.52, 0.58, 0.5],
+        "farmstead": [0.58, 0.5, 0.44],
+        "detached_home": [0.86, 0.84, 0.8],
+        "attached_home": [0.66, 0.42, 0.38],
+        "urban_apartment": [0.7, 0.71, 0.74],
+        "highrise": [0.5, 0.6, 0.74],
+        "industry": [0.44, 0.5, 0.56],
         "default": [0.62, 0.62, 0.62]
       },
+      "tint_jitter": 0.08,
       "ruin": [0.36, 0.33, 0.3]
     },
     "pose": {

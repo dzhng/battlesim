@@ -22,6 +22,7 @@ import type { PublicBuildings } from "@packages/battle-renderer/src/worldMesh";
 const style: MassingStyle = validateMassingStyle({
   families: ["prototype"],
   tints: { highrise: [0.2, 0.4, 0.8], default: [0.5, 0.5, 0.5] },
+  tint_jitter: 0,
   ruin: [0.3, 0.3, 0.3],
 });
 const building = (owner: number, family: string, category: string, props: number[]) => ({
@@ -93,6 +94,23 @@ test("each standing part is one box at its own size, tinted by its building's ca
   tower.tint.forEach((c, k) => expect(c).toBeCloseTo(linear([0.2, 0.4, 0.8])[k], 6));
   // A category the style does not list takes the default tint.
   placed[2].tint.forEach((c, k) => expect(c).toBeCloseTo(linear([0.5, 0.5, 0.5])[k], 6));
+});
+
+test("boxes of one category differ a little in value, each the same every time", () => {
+  const parts = massingParts(buildings, style);
+  const jittered = { ...style, tint_jitter: 0.1 };
+  const placed = boxes(massingInstances(props, [], parts, jittered));
+  const again = boxes(massingInstances(props, [], parts, jittered));
+  const want = linear([0.2, 0.4, 0.8]);
+  // The tower's two parts: the category's hue, each within the jitter of its value.
+  const scales = [placed[0], placed[1]].map((box) => {
+    const k = box.tint[0] / want[0];
+    box.tint.forEach((c, i) => expect(c / want[i]).toBeCloseTo(k, 5));
+    return k;
+  });
+  for (const k of scales) expect(Math.abs(k - 1)).toBeLessThanOrEqual(0.1 + 1e-6);
+  expect(scales[0]).not.toBeCloseTo(scales[1], 4);
+  expect(again.map((b) => b.tint)).toEqual(placed.map((b) => b.tint));
 });
 
 test("a part the side has seen fall is drawn as its remains, or not at all", () => {

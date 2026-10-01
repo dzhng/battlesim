@@ -1591,3 +1591,11 @@ keeps storage addresses independent of physical identity and encounter naming.
 **Gap:** C55 keeps the two seeds apart and gives no player control for the second.
 
 **Verdict:** Sound for a lab route. **Confidence:** High.
+
+### Massing tints stay off the fields' palette, and each box has its own value
+
+**Choice:** Brick for attached homes, off-white for detached, greys for apartments and industry, blue-grey for highrises, taupe for farmsteads. Each box's value strays up to 8% from its tint, seeded by its prop id, so it is the same standing, fallen and in the next battle.
+
+**Gap:** Massing only had to be "tinted by category". The first tints put an orange on terraces that the straw fields also wear, and one flat colour a category made a row of terraces one slab.
+
+**Verdict:** A readability fix after an unprimed critique, not art: the numbers are guesses in `presentation.massing`. **Confidence:** Medium.

@@ -8,6 +8,7 @@
 // What a side draws is what it knows, as for every structure: a part it has
 // seen fall is drawn as its remains' box, or not at all when nothing was left.
 import { color } from "math/color";
+import { mulberry32, random } from "math/random";
 import { pick } from "@packages/renderer-core/src/kindTable";
 import type { KnownProp, MapProp } from "../models/propAppearance";
 import type { PublicBuildings } from "../worldMesh";
@@ -21,6 +22,9 @@ export interface MassingStyle {
   families: readonly string[];
   /** A building category's wall colour (sRGB), with a `default`. */
   tints: Record<string, Rgb>;
+  /** Each box's value strays this far from its tint, either way, so
+   *  neighbours of one category part at their shared walls. */
+  tint_jitter: number;
   /** A fallen part's remains (sRGB). */
   ruin: Rgb;
 }
@@ -31,6 +35,8 @@ export function validateMassingStyle(style: MassingStyle): MassingStyle {
   if (!Array.isArray(style.families) || style.families.some((f) => typeof f !== "string"))
     throw new Error("presentation.massing.families: a list of regional family names");
   if (!style.tints?.default) throw new Error("presentation.massing.tints needs a default");
+  if (!(style.tint_jitter >= 0 && style.tint_jitter <= 0.5))
+    throw new Error("presentation.massing.tint_jitter must be within [0, 0.5]");
   for (const [name, tint] of Object.entries({ ...style.tints, ruin: style.ruin }))
     if (!rgb(tint)) throw new Error(`presentation.massing: ${name} must be [r, g, b] in [0, 1]`);
   return style;
@@ -61,18 +67,22 @@ export function massingInstances(
   const replaced = new Map<number, KnownProp>();
   for (const k of known)
     if (k.authoredProp !== null && parts.has(k.authoredProp)) replaced.set(k.authoredProp, k);
-  const boxes: { box: MapProp | KnownProp; tint: Rgb }[] = [];
+  const boxes: { box: MapProp | KnownProp; tint: Rgb; id: number }[] = [];
   for (const prop of props) {
     const category = parts.get(prop.id);
     if (category === undefined) continue;
     const remains = replaced.get(prop.id);
-    if (!remains) boxes.push({ box: prop, tint: pick(style.tints, category) });
-    else if (!remains.destroyed) boxes.push({ box: remains, tint: style.ruin });
+    if (!remains) boxes.push({ box: prop, tint: pick(style.tints, category), id: prop.id });
+    else if (!remains.destroyed) boxes.push({ box: remains, tint: style.ruin, id: prop.id });
   }
   const out = createPlacedInstances(boxes.length);
-  boxes.forEach(({ box, tint }, i) => {
+  boxes.forEach(({ box, tint, id }, i) => {
     const [hx, hy, hz] = box.half;
+    // The part's own value, from its id: the same standing, fallen and next battle.
+    const seeded = mulberry32.create(id);
+    const value = 1 + random.float(() => mulberry32.sample(seeded), -1, 1) * style.tint_jitter;
     color.setFromSRGB(_massing_tint, [tint[0], tint[1], tint[2]]);
+    color.multiplyScalar(_massing_tint, _massing_tint, value);
     out.heights[i] = 2 * hz;
     out.reaches[i] = Math.hypot(hx, hy);
     out.records.set(
