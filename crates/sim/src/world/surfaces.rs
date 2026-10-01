@@ -26,6 +26,9 @@ impl Primitive {
 pub(super) struct SurfaceIndex {
     areas: Vec<SurfaceArea>,
     primitives: Vec<Primitive>,
+    /// Each primitive's limits `[x, y, max_x, max_y]`: a point outside
+    /// them, by more than rounding, is outside the primitive.
+    limits: Vec<[f64; 4]>,
     buckets: HashMap<(i32, i32), Vec<usize>>,
     last: [i32; 2],
     triangles: Vec<f32>,
@@ -37,6 +40,7 @@ impl SurfaceIndex {
         let mut index = Self {
             areas: areas.to_vec(),
             primitives: Vec::new(),
+            limits: Vec::new(),
             buckets: HashMap::new(),
             last: size.map(|v| (v / BUCKET_M).floor() as i32),
             triangles: Vec::new(),
@@ -80,6 +84,7 @@ impl SurfaceIndex {
     fn insert(&mut self, primitive: Primitive, bounds: [f64; 4]) {
         let id = self.primitives.len();
         self.primitives.push(primitive);
+        self.limits.push(bounds);
         let [x0, y0, x1, y1] = self.bucket_bounds(bounds);
         for j in y0..=y1 {
             for i in x0..=x1 {
@@ -222,7 +227,14 @@ impl SurfaceIndex {
             (p.y / BUCKET_M).floor() as i32,
         );
         let mut result = None;
+        // Far more than the rounding of a containment test.
+        const HAIR_M: f64 = 1e-6;
         for &id in self.buckets.get(&key)? {
+            let [x, y, max_x, max_y] = self.limits[id];
+            if p.x < x - HAIR_M || p.x > max_x + HAIR_M || p.y < y - HAIR_M || p.y > max_y + HAIR_M
+            {
+                continue;
+            }
             let primitive = &self.primitives[id];
             if self.contains(primitive, p, 0.0) {
                 let kind = self.areas[primitive.area()].kind;
