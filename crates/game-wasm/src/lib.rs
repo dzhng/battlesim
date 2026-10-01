@@ -25,6 +25,23 @@ pub fn compile_map(request_json: &str, descriptors_json: &str) -> Result<String,
     mapgen::compile_json(request_json, descriptors_json).map_err(js_error)
 }
 
+/// Generate a seeded layout plan: the same record the CLI's `generate` prints.
+#[wasm_bindgen]
+pub fn generate_map_plan(request_json: &str, presets_json: &str) -> Result<String, JsError> {
+    mapgen::layout::generate_plan_json(request_json, presets_json).map_err(js_error)
+}
+
+/// Generate a layout and compile it into a map, as the CLI's `generate-map` does.
+#[wasm_bindgen]
+pub fn generate_map(
+    request_json: &str,
+    presets_json: &str,
+    descriptors_json: &str,
+) -> Result<String, JsError> {
+    mapgen::layout::generate_map_json(request_json, presets_json, descriptors_json)
+        .map_err(js_error)
+}
+
 /// Validate and canonically identify physical templates, independent of art.
 #[wasm_bindgen]
 pub fn template_catalogue_json(descriptors_json: &str) -> Result<String, JsError> {
