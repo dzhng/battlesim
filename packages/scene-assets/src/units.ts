@@ -120,11 +120,26 @@ export interface PropType {
     lifetime_s: number | null;
     conceals: number;
     hp: number | null;
+    hp_scale?: "fixed" | "building_floor_bands";
     armor: number;
     topples: boolean;
     garrison: boolean;
   };
-  destroyed?: "removed" | "cleared" | { into: { prop: string; height_m: number } };
+  destroyed?:
+    | "removed"
+    | "cleared"
+    | {
+        into: {
+          prop: string;
+          height_m: number;
+          building?: {
+            height_fraction: number;
+            max_height_m: number;
+            collapse_max_floors: number;
+            gutted_prop: string;
+          };
+        };
+      };
   appearance: {
     drawn_by: string;
     status?: "systems_only";

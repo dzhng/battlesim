@@ -128,9 +128,10 @@ impl WorldGeometry {
             .authored_props()
             .expect("invalid authored map IDs or buildings");
         for prop in &map.props {
+            let body = rules.catalog.props().by_id(&prop.kind).body;
             assert!(
-                !rules.catalog.props().by_id(&prop.kind).body.garrison,
-                "garrison-capable authored bodies require a placed aggregate"
+                !body.garrison && body.hp_scale != contract::catalog::HpScale::BuildingFloorBands,
+                "garrison or building-scaled integrity requires a placed aggregate"
             );
         }
         for building in &map.buildings {
@@ -268,6 +269,11 @@ impl WorldGeometry {
 
     pub fn building(&self, owner: PropId) -> Option<&contract::map::BuildingDefinition> {
         self.buildings.definition(owner)
+    }
+
+    /// Immutable union area, computed once for each authored aggregate.
+    pub(crate) fn building_footprint_area(&self, part: PropId) -> Option<f64> {
+        self.buildings.footprint_area(part)
     }
 
     /// The current live state's one integrity/garrison prop owner.
