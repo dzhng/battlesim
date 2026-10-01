@@ -1450,6 +1450,48 @@ fn authored() -> Vec<Scenario> {
             ],
         },
         Scenario {
+            name: "t3-jeeps-country-road-vs-dirt-track",
+            caption: "two jeeps race east, one on a country road and one on a dirt track: the road jeep pulls ahead at full road speed, the track jeep still beats open-ground pace",
+            map: flat(
+                [600.0, 120.0],
+                json!({ "surfaces": [
+                    { "kind": "country_road", "shape": { "kind": "stroke", "points": [[0, 30], [600, 30]], "width_m": 8 } },
+                    { "kind": "dirt_track", "shape": { "kind": "stroke", "points": [[0, 90], [600, 90]], "width_m": 6 } },
+                ] }),
+            ),
+            units: json!([
+                vehicle("blue", "jeep", [20.0, 30.0], 0.0),
+                vehicle("blue", "jeep", [20.0, 90.0], 0.0),
+            ]),
+            events: none.clone(),
+            scripts: json!([go(0, [580.0, 30.0]), go(1, [580.0, 90.0])]),
+            rules: json!({}),
+            seconds: 48.0,
+            seed: 1,
+            checks: vec![
+                check(FastThrough {
+                    unit: 0,
+                    rect: [200.0, 0.0, 500.0, 60.0],
+                    min_mps: 17.5,
+                }),
+                check(FastThrough {
+                    unit: 1,
+                    rect: [200.0, 60.0, 500.0, 120.0],
+                    min_mps: 13.0,
+                }),
+                check(Arrive {
+                    unit: 0,
+                    at: [580.0, 30.0],
+                    within_m: 2.0,
+                }),
+                check(Arrive {
+                    unit: 1,
+                    at: [580.0, 90.0],
+                    within_m: 2.0,
+                }),
+            ],
+        },
+        Scenario {
             name: "t1-spotted-open-vs-forest",
             caption: "a squad walks toward two hidden squads: it spots the one on open ground from far farther than the one in the forest",
             map: flat(

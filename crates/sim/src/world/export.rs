@@ -29,10 +29,7 @@ fn surface_tag(kind: SurfaceKind) -> u8 {
 }
 
 pub(super) fn surface_area_tag(kind: contract::map::SurfaceKind) -> f32 {
-    surface_tag(match kind {
-        contract::map::SurfaceKind::Road => SurfaceKind::Road,
-        contract::map::SurfaceKind::Sidewalk => SurfaceKind::Sidewalk,
-    }) as f32
+    surface_tag(SurfaceKind::of(kind)) as f32
 }
 
 /// The layout, with the prop types' `blocks`, `occludes` and weight

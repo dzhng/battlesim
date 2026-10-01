@@ -98,6 +98,35 @@ impl Blocks {
     }
 }
 
+/// One surface kind's row. A mover on the surface travels at its road speed
+/// times `speed_factor`, never slower than on open ground: 1 is a full road,
+/// 0 no road at all.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SurfaceRule {
+    pub speed_factor: f64,
+}
+
+/// Every kind has a row, and no row is faster than a road: route planning's
+/// best-case estimate is the unit's road speed.
+fn surface_table<'de, D: serde::Deserializer<'de>>(
+    d: D,
+) -> Result<std::collections::BTreeMap<crate::map::SurfaceKind, SurfaceRule>, D::Error> {
+    use serde::de::Error;
+    let table = std::collections::BTreeMap::<crate::map::SurfaceKind, SurfaceRule>::deserialize(d)?;
+    for kind in crate::map::SurfaceKind::ALL {
+        let row = table
+            .get(&kind)
+            .ok_or_else(|| D::Error::custom(format!("surfaces has no row for {kind:?}")))?;
+        if !(0.0..=1.0).contains(&row.speed_factor) {
+            return Err(D::Error::custom(format!(
+                "surfaces.{kind:?}.speed_factor must be within 0..=1"
+            )));
+        }
+    }
+    Ok(table)
+}
+
 /// The fixture's `forests` section: one rule every forest plays by (Q-G8b),
 /// so a forest's art can never imply a different sight or movement rule.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -370,6 +399,8 @@ pub struct Rules {
     pub sensors: SensorRules,
     /// The one forest rule (Q16, Q-G8b).
     pub forests: ForestRules,
+    /// How fast each surface kind is (Q-G4): one row per kind.
+    pub surfaces: std::collections::BTreeMap<crate::map::SurfaceKind, SurfaceRule>,
     /// The weapon rows, `extends` resolved (`weapons::resolve_weapons`).
     pub weapons: crate::weapons::WeaponRules,
     pub service: ServiceRules,
@@ -393,6 +424,8 @@ struct UncheckedRules {
     guided: crate::ballistics::GuidedRules,
     sensors: SensorRules,
     forests: ForestRules,
+    #[serde(deserialize_with = "surface_table")]
+    surfaces: std::collections::BTreeMap<crate::map::SurfaceKind, SurfaceRule>,
     #[serde(deserialize_with = "crate::weapons::resolve_weapons")]
     weapons: crate::weapons::WeaponRules,
     service: ServiceRules,
@@ -425,6 +458,7 @@ impl TryFrom<UncheckedRules> for Rules {
             guided: r.guided,
             sensors: r.sensors,
             forests: r.forests,
+            surfaces: r.surfaces,
             weapons: r.weapons,
             service: r.service,
             suppression: r.suppression,

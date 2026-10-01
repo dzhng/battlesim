@@ -109,11 +109,29 @@ pub struct SurfaceArea {
     pub shape: GroundShape,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// What a paved or worn surface is. Its speed is a row of the rules'
+/// `surfaces` table; where kinds overlap, the earlier one here wins.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SurfaceKind {
     Road,
+    CountryRoad,
+    DirtTrack,
     Sidewalk,
+}
+
+impl SurfaceKind {
+    pub const ALL: [SurfaceKind; 4] = [
+        SurfaceKind::Road,
+        SurfaceKind::CountryRoad,
+        SurfaceKind::DirtTrack,
+        SurfaceKind::Sidewalk,
+    ];
+
+    /// A carriageway: trunks keep clear of it and it draws as a road.
+    pub fn is_road(self) -> bool {
+        self != SurfaceKind::Sidewalk
+    }
 }
 
 /// A traversable deck: an oriented box whose top is walkable ground.

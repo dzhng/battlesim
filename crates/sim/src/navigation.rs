@@ -26,7 +26,7 @@ use contract::map::MoverClass;
 use contract::scenario::PushClass;
 
 use crate::math::{v2, Obb2, V2};
-use crate::world::{Prop, SurfaceKind, WorldGeometry};
+use crate::world::{Prop, WorldGeometry};
 
 pub const NAV_CELL_M: f64 = 2.0;
 /// Sub-cells per cell side for infantry: 0.5 m.
@@ -72,11 +72,13 @@ pub struct Drive {
 }
 
 impl Mobility {
-    /// Travel speed on a surface: roads take precedence over forest; slopes
-    /// slow continuously up to the shared cutoff.
-    pub fn speed(&self, road: bool, forest: bool, slope_deg: f64) -> f64 {
-        let base = if road {
-            self.road_mps
+    /// Travel speed on a surface. A road (`road_factor` above 0, the surface
+    /// kind's share of road speed) takes precedence over forest and is never
+    /// slower than open ground; slopes slow continuously up to the shared
+    /// cutoff.
+    pub fn speed(&self, road_factor: f64, forest: bool, slope_deg: f64) -> f64 {
+        let base = if road_factor > 0.0 {
+            (self.road_mps * road_factor).max(self.off_road_mps)
         } else if forest {
             self.off_road_mps * self.forest_multiplier
         } else {
@@ -109,7 +111,8 @@ struct Cell {
     /// The heaviest known body stopping vehicles over the cell: its weight
     /// class's rank, or [`NO_BODY`].
     heaviest: u8,
-    road: bool,
+    /// `Surface::road_factor`: 0 off any road.
+    road_factor: f64,
     forest: bool,
     slope_deg: f64,
     /// Infantry's free sub-cells, bit `row * 4 + column` from the cell's
@@ -151,7 +154,7 @@ impl Cells {
                 ground: traversable,
                 infantry: traversable,
                 heaviest: NO_BODY,
-                road: false,
+                road_factor: 0.0,
                 forest: false,
                 slope_deg: 0.0,
                 free: if traversable { ALL_FREE } else { 0 },
@@ -470,7 +473,7 @@ impl NavGrid {
                             ground: s.traversable,
                             infantry: s.traversable,
                             heaviest: NO_BODY,
-                            road: s.kind == SurfaceKind::Road || s.kind == SurfaceKind::Bridge,
+                            road_factor: s.road_factor,
                             forest: s.forest,
                             slope_deg: s.slope_deg,
                             free: if s.traversable { ALL_FREE } else { 0 },
@@ -768,7 +771,7 @@ impl NavGrid {
     fn cell_cost(c: &Cell, m: &Mobility, policy: RoutePolicy, length: f64) -> f64 {
         let base = match policy {
             RoutePolicy::Shortest => length,
-            RoutePolicy::Fastest => length / m.speed(c.road, c.forest, c.slope_deg),
+            RoutePolicy::Fastest => length / m.speed(c.road_factor, c.forest, c.slope_deg),
         };
         match (m.class, c.heaviest) {
             (MoverClass::Vehicle, NO_BODY) | (MoverClass::Infantry, _) => base,
@@ -1493,7 +1496,7 @@ impl NavGrid {
                 .cells
                 .changed
                 .values()
-                .any(|c| m.speed(c.road, c.forest, c.slope_deg) > m.off_road_mps)
+                .any(|c| m.speed(c.road_factor, c.forest, c.slope_deg) > m.off_road_mps)
         {
             return false;
         }
@@ -1511,7 +1514,7 @@ impl NavGrid {
                 || c.heaviest != NO_BODY
                 || (m.class == MoverClass::Infantry && c.free != ALL_FREE)
                 || (policy == RoutePolicy::Fastest
-                    && m.speed(c.road, c.forest, c.slope_deg) != m.off_road_mps);
+                    && m.speed(c.road_factor, c.forest, c.slope_deg) != m.off_road_mps);
             exceptional
                 && p.x <= x1 + halo
                 && p.x >= x0 - halo

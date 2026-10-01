@@ -32,12 +32,27 @@ pub enum SurfaceKind {
     Sidewalk,
 }
 
+impl SurfaceKind {
+    /// Every carriageway is a road here; its kind only sets its speed
+    /// (`Surface::road_factor`).
+    pub fn of(kind: contract::map::SurfaceKind) -> Self {
+        if kind.is_road() {
+            SurfaceKind::Road
+        } else {
+            SurfaceKind::Sidewalk
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Surface {
     pub z: f64,
     pub normal: V3,
     pub slope_deg: f64,
     pub kind: SurfaceKind,
+    /// The surface kind's `speed_factor` on a road's share of road speed
+    /// (the rules' `surfaces` table): 0 where the ground is no road.
+    pub road_factor: f64,
     /// Forest ground, not cleared (Q16): forest speed applies.
     pub forest: bool,
     /// Ground units may stand here: not water, and below the shared slope cutoff.
@@ -64,6 +79,8 @@ pub struct WorldGeometry {
     slope_cutoff_deg: f64,
     water: Vec<Water>,
     surfaces: surfaces::SurfaceIndex,
+    /// Each surface kind's speed factor, by `contract::map::SurfaceKind` order.
+    surface_factors: [f64; contract::map::SurfaceKind::ALL.len()],
     bridges: Vec<Bridge>,
     /// Authoritative authored shapes; generated trunks and cleared ground are runtime state.
     forests: Vec<Forest>,
@@ -128,6 +145,8 @@ impl WorldGeometry {
             slope_cutoff_deg: map.slope_cutoff_deg,
             water: map.water.clone(),
             surfaces: surfaces::SurfaceIndex::new(&map.surfaces, map.size),
+            surface_factors: contract::map::SurfaceKind::ALL
+                .map(|kind| rules.surfaces[&kind].speed_factor),
             bridges: map.bridges.clone(),
             forests: map.forests.clone(),
             forest: forest::ForestState::new(
@@ -325,6 +344,7 @@ impl WorldGeometry {
                 normal: v3(0.0, 0.0, 1.0),
                 slope_deg: 0.0,
                 kind: SurfaceKind::Bridge,
+                road_factor: 1.0,
                 forest: ground.forest,
                 traversable: true,
             }),
@@ -349,20 +369,22 @@ impl WorldGeometry {
         let (z, normal) = self.field.height_normal(x, y)?;
         let p = v2(x, y);
         let slope_deg = normal.z.clamp(-1.0, 1.0).acos().to_degrees();
+        let paved = self.surfaces.at(p);
         let kind = if self.water.iter().any(|w| in_rect(w.rect, x, y)) {
             SurfaceKind::Water
         } else {
-            match self.surfaces.at(p) {
-                Some(contract::map::SurfaceKind::Road) => SurfaceKind::Road,
-                Some(contract::map::SurfaceKind::Sidewalk) => SurfaceKind::Sidewalk,
-                None => SurfaceKind::Ground,
-            }
+            paved.map_or(SurfaceKind::Ground, SurfaceKind::of)
+        };
+        let road_factor = match (kind, paved) {
+            (SurfaceKind::Water, _) | (_, None) => 0.0,
+            (_, Some(paved)) => self.surface_factors[paved as usize],
         };
         Some(Surface {
             z,
             normal,
             slope_deg,
             kind,
+            road_factor,
             forest: self.forest_ground(x, y),
             traversable: kind != SurfaceKind::Water && slope_deg < self.slope_cutoff_deg,
         })

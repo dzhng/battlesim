@@ -75,6 +75,10 @@ Add one entry. A mechanic comes from the body's columns, so a new obstacle needs
 - **Every type needs an appearance that draws it:** a scenery kind in `packages/scene-assets` with a catalog appearance authored to a box the simulation places (the catalog footprint test holds every drawn kind to one), or `forest`. The renderer reads the binding from the world layout; it lists no prop types.
 - Then add it to the map or scenario that exercises it, and run the checks for what you changed (see [`AGENTS.md`](../AGENTS.md)).
 
+## Surface speeds
+
+`village.json`'s `surfaces` table has one row per surface kind a map may pave (`road`, `country_road`, `dirt_track`, `sidewalk`). A row's `speed_factor` scales each unit type's own road speed on that surface, never below its off-road speed: 1 is a full road, 0 is no road at all. A new surface kind is a new row plus its variant in `contract::map::SurfaceKind`.
+
 ## Parity oracles
 
 `parity/` holds frozen inputs and expected outputs that the native tests and the web tests both read, so the Rust simulation and its WebAssembly build are held to the same answer: building aggregates, fog delivery, ground learning and transport, the map compiler, physical templates (including the rejected descriptors that must keep failing) and terrain queries. A file changes only with a named behaviour change, and every test that reads it changes in the same commit.

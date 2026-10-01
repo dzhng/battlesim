@@ -797,3 +797,29 @@ keeps storage addresses independent of physical identity and encounter naming.
 **Gap:** Trimming them changes the export layout and its renderer readers for no behaviour change, and the rectangle path exists to keep the village's float order.
 
 **Verdict:** provisional; collapse them when C77/C78 next touch the forest export. **Confidence:** medium.
+
+## C64 road kinds
+
+### A dirt track is three quarters of road speed
+
+**Choice:** `surfaces.dirt_track.speed_factor` is 0.75: a jeep does 13.5 m/s on a track against 18 on a road and 9 across a field; a tank 9 against 12 and 6.
+
+**Gap:** The slice delegated the factor.
+
+**Verdict:** sound for now; C50 owns tuning. **Confidence:** medium.
+
+### A surface is never slower than the open ground beside it
+
+**Choice:** Speed on a road kind is the unit's road speed times the factor, floored at its off-road speed. A squad on foot (road speed 1.3× its walk) gains nothing from a dirt track and loses nothing; a sidewalk's factor of 0 means "not a road".
+
+**Gap:** The slice said the factor multiplies road speed. Taken literally, infantry would walk slower on a track than in the field next to it, and a sidewalk could not be given one number that suits every unit.
+
+**Verdict:** sound. **Confidence:** high.
+
+### Every carriageway is one kind to the sim; only its speed differs
+
+**Choice:** The sim's own surface kinds stay ground, road, water, bridge and sidewalk. A country road and a dirt track are both "road" for trunk clearance, navigation regions and the exported tag, and differ only in `road_factor`. Where kinds overlap, the earlier kind in `SurfaceKind` wins (road, country road, dirt track, sidewalk).
+
+**Gap:** The slice did not say how overlapping kinds resolve or whether the renderer needs the kind yet.
+
+**Verdict:** sound for the physical half; C66 adds a per-kind exported tag when the look needs it. **Confidence:** high.

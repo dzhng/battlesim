@@ -31,3 +31,12 @@ Village speeds and outcomes.
 
 ## Feedback that would change this slice
 An implausible surface speed difference reopens the fixture-owned kind table through the rules workflow.
+
+
+## Outcome
+
+**Physical half done; the look rows wait.** `contract::map::SurfaceKind` is `road | country_road | dirt_track | sidewalk`, and the rules' `surfaces` table (`contract::scenario::SurfaceRule`) gives each a `speed_factor`: road and country road 1, dirt track 0.75, sidewalk 0. The rules refuse a missing row or a factor outside 0..=1. The world's surface query carries the factor (`Surface::road_factor`), and navigation and both movers read that one value: a mover travels at its own road speed times the factor, never slower than on open ground.
+
+- Village outcome digests are identical (`village_report --quick`, all six trials); the rules gained a section, so `config_digest` changes. Total instructions 5,251 G against 5,246 G.
+- `t3-jeeps-country-road-vs-dirt-track`: 18.0 m/s on the road, 13.5 m/s on the track.
+- Still open for the visual pass: the biome's `roads.<kind>` look rows (C66), and a distinct exported tag per road kind. Every carriageway exports as a road today.

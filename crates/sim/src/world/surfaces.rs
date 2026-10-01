@@ -213,7 +213,9 @@ impl SurfaceIndex {
         ids.into_iter().collect()
     }
 
-    /// A road wins a sidewalk overlap; water/bridges are resolved by the world.
+    /// Where kinds overlap the earliest `SurfaceKind` wins (a road over a
+    /// track, any carriageway over a sidewalk); water and bridges are
+    /// resolved by the world.
     pub fn at(&self, p: V2) -> Option<SurfaceKind> {
         let key = (
             (p.x / BUCKET_M).floor() as i32,
@@ -227,7 +229,7 @@ impl SurfaceIndex {
                 if kind == SurfaceKind::Road {
                     return Some(kind);
                 }
-                result = Some(kind);
+                result = Some(result.map_or(kind, |best: SurfaceKind| best.min(kind)));
             }
         }
         result
@@ -241,7 +243,7 @@ impl SurfaceIndex {
                 if self.buckets.get(&(i, j)).is_some_and(|ids| {
                     ids.iter().any(|&id| {
                         let primitive = &self.primitives[id];
-                        self.areas[primitive.area()].kind == SurfaceKind::Road
+                        self.areas[primitive.area()].kind.is_road()
                             && self.contains(primitive, p, margin)
                     })
                 }) {
@@ -280,7 +282,7 @@ impl SurfaceIndex {
     pub fn navigation_regions(&self) -> Vec<Rect> {
         self.primitives
             .iter()
-            .filter(|primitive| self.areas[primitive.area()].kind == SurfaceKind::Road)
+            .filter(|primitive| self.areas[primitive.area()].kind.is_road())
             .map(|primitive| match primitive {
                 Primitive::Segment { area, edge } => {
                     let GroundShape::Stroke {
@@ -349,5 +351,5 @@ fn split_edge(a: [f64; 2], b: [f64; 2], c: [f64; 2], d: [f64; 2], cuts: &mut Vec
 }
 
 fn boundary_order(kind: SurfaceKind, id: usize) -> (u8, usize) {
-    (u8::from(kind == SurfaceKind::Sidewalk), id)
+    (u8::from(!kind.is_road()), id)
 }
