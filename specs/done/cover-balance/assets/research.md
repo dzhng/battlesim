@@ -94,8 +94,11 @@ Wall times describe this machine under concurrent load, not simulation speed.
 
 Matched production frames passed the bounded trajectory-plausibility question;
 [visual provenance](visual/README.md) records unchanged presentation debt.
-The integrated native checks pass, including both report regressions. All 545
-web tests pass with one worker and unchanged timeout limits. The map-parity
+The integrated native checks pass, including both report regressions. All 552
+web tests pass with one worker and unchanged timeout limits after integrating
+main’s panel and formation-preview changes. The parallel run timed out on one
+map-parity case; its serial rerun retains the same assertions and five-second
+limit. The map-parity
 catalog checks now run as eleven independently named cases rather than one
 aggregate case; every expected hash remains unchanged. One frozen decoder
 regression was corrected to pair historical bytes with their historical layout.
@@ -108,7 +111,9 @@ The final full browser run passes every fixture except a ground harness factory
 that omitted the new required xray threshold. Adding that presentation option
 makes the focused ground rerun pass, including admission and cleanup checks.
 The complete default village scene passes within its unchanged deadline;
-benchmark, endurance and allocation-reset checks also pass. Earlier timeout and
+benchmark, endurance and allocation-reset checks also pass. After the final main
+integration, readouts and the affected village panel, selection, order, muzzle,
+woods, xray and cleanup tours pass together. Earlier timeout and
 diagnostic failures are superseded by these checks, not counted as passes.
 The user-reported rifle-muzzle discrepancy was a scene-oracle error:
 nearest-socket matching chose a neighbor. The inspector now identifies the
