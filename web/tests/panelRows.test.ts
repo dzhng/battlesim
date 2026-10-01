@@ -64,19 +64,18 @@ test("any unit that deploys shows the row from its published deployment, never i
   expect(words(gun(0, "packed"))).toEqual([]);
 });
 
-test("a unit in a set-up truck's reach says whether it is served, full or cannot be", () => {
+test("only active resupply earns a service row", () => {
   const at = (service: string) => words(unit({ service })).map(([w]) => w);
   expect(at("serving")).toEqual(["RESUPPLYING"]);
-  expect(at("full")).toEqual(["SUPPLY FULL"]);
-  for (const s of ["moving", "firing", "no_stock"]) expect(at(s), s).toEqual(["CANNOT SUPPLY"]);
-  // Out of reach, or the truck isn't set up yet: no row.
-  expect(at("out_of_range")).toEqual([]);
-  expect(at("source_not_deployed")).toEqual([]);
-  // The three families differ by their mark, not only their colour.
-  const icons = ["serving", "full", "no_stock"].map(
-    (service) => ownStateRows(unit({ service }), [], RULES)[0].icon,
-  );
-  expect(new Set(icons).size).toBe(3);
+  for (const state of [
+    "full",
+    "moving",
+    "firing",
+    "no_stock",
+    "out_of_range",
+    "source_not_deployed",
+  ])
+    expect(at(state), state).toEqual([]);
 });
 
 test("a truck shows its stock, and supplying while set up with a unit in reach being served", () => {

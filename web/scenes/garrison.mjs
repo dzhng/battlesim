@@ -3,7 +3,7 @@
 import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, obs, advance, until, openBattle } from "./_lab.mjs";
-import { propType, soldierHp, unitType, village } from "./_units.mjs";
+import { propType, village } from "./_units.mjs";
 
 const CENTRE = [360, 250];
 const HALF = 12;
@@ -315,13 +315,14 @@ export async function run(ctx) {
     ownOnWall = 0,
     enemyOnWall = 0,
     shot = null;
+  const initial = squad(o, 0);
+  const initialHp = new Map(initial.memberIds.map((id, k) => [id, initial.memberHp[k]]));
   const hurt = () => {
     const u = squad(o, 0);
-    const slots = unitType(u?.kind ?? "rifle").body.squad.slots;
     return (
       !u ||
-      u.members.length < slots.length ||
-      u.memberHp.some((hp, k) => hp < soldierHp(slots[u.memberSlots[k]]))
+      u.members.length < initial.members.length ||
+      u.memberHp.some((hp, k) => hp < initialHp.get(u.memberIds[k]))
     );
   };
   // The last frame with occupants inside, before the fall: the shelling can
@@ -370,12 +371,15 @@ export async function run(ctx) {
   await cropBuilding(ctx, page, firefight, "crop-perimeter-slots-2x.png");
 
   // The tank keeps shelling until the building falls.
+  let lastShelling = o;
   o = fallen(o)
     ? o
     : await until(page, fallen, 4500, 3, (f) => {
+        lastShelling = f;
         if (inside(f)) before = f;
       });
   const ruin = o?.knownProps.find((p) => p.kind === "ruin");
+  if (!ruin) await ctx.writeEvidence("collapse-timeout.json", lastShelling);
   ctx.check(
     "the building collapses into a lower ruin on its footprint",
     !!ruin &&
@@ -385,6 +389,7 @@ export async function run(ctx) {
       Math.abs(ruin.half[2] * 2 - propType("building").destroyed.into.height_m) < 1e-6,
     JSON.stringify(ruin),
   );
+  if (!ruin) return page.close();
   const occupantsBefore = before
     ? (squad(before, 0)?.garrison?.phase === "inside" && squad(before, 0).members) || []
     : [];

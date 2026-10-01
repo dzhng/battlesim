@@ -9,11 +9,20 @@ const SVG = import.meta.glob("../../../../assets/icons/**/*.svg", {
 /** The icon at `path` under `assets/icons/` (e.g. `weapons/rifle.svg`), an
  *  `ro-icon` plus any `className`; none when it is missing (the icons test
  *  fails first). */
-export function Icon({ path, className }: { path: string; className?: string }) {
+export function Icon({
+  path,
+  className,
+  title,
+}: {
+  path: string;
+  className?: string;
+  title?: string;
+}) {
   const svg = SVG[`../../../../assets/icons/${path}`];
   return svg ? (
     <span
       className={className ? `ro-icon ${className}` : "ro-icon"}
+      title={title}
       aria-hidden="true"
       dangerouslySetInnerHTML={{ __html: svg }}
     />

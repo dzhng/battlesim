@@ -330,6 +330,11 @@ impl WorldGeometry {
         self.field.top()
     }
 
+    /// Lowest possible ground height, used to bound the fall time of stray rounds.
+    pub fn lowest_ground_height(&self) -> f64 {
+        self.field.bottom()
+    }
+
     /// Ground triangle height; `None` outside the closed bounds.
     pub fn height_at(&self, x: f64, y: f64) -> Option<f64> {
         self.field.height(x, y)

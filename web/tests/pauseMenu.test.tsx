@@ -1,7 +1,13 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, render, renderHook } from "@testing-library/react";
 import { expect, test } from "vitest";
-import { usePauseMenu } from "@apps/battle-lab/src/PauseMenu";
+import { PauseMenu, usePauseMenu } from "@apps/battle-lab/src/PauseMenu";
 import type { SimClient } from "../src/battle/sim/client";
+
+test("the paused battle offers a return to the game's main menu", () => {
+  const view = render(<PauseMenu onClose={() => {}} />);
+  expect(view.getByRole("link", { name: "Main menu" }).getAttribute("href")).toBe("/");
+  view.unmount();
+});
 
 test("the menu pauses a stalled battle until closed, and preserves an existing pause", () => {
   let paused = false;

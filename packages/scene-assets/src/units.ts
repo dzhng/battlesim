@@ -78,7 +78,7 @@ export interface UnitType {
     on?: string;
   };
   mounts: MountRow[];
-  capabilities: { deploy?: { seconds: number }; supply?: { stock: number } };
+  capabilities: { deploy?: { seconds: number; pack_seconds?: number }; supply?: { stock: number } };
   sound: { profile: "infantry" | "vehicle"; loudness_m: number };
   /** A hull's model; a squad draws its soldiers' appearance sets. */
   appearance?: string;

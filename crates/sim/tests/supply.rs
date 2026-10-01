@@ -272,7 +272,7 @@ fn moving_or_firing_recipients_wait() {
 
 #[test]
 fn incoming_fire_does_not_stop_service() {
-    // A red scout spots for a red tank shelling blue's squad from 970 m; the
+    // A red scout spots for a red tank shelling blue's squad from 930 m; the
     // squad holds fire and could not reach anyway. Whenever the truck lives
     // through the shelling, the squad under fire is still reinforced. Where
     // the shells fall is chance, so the claim holds over several seeds.
@@ -282,7 +282,7 @@ fn incoming_fire_does_not_stop_service() {
     let units = json!([
         truck(None),
         // 70 m from the truck: inside its reach.
-        holding("rifle", 170.0, json!({ "casualties": 3 })),
+        holding("rifle", 170.0, json!({ "casualties": 7 })),
         { "side": "red", "kind": "recon", "position": [700, 260], "engagement": "return_fire_only" },
         { "side": "red", "kind": "tank", "position": [1100, 200] },
     ]);

@@ -247,6 +247,9 @@ pub struct BodyRules {
     pub infantry_muzzle_m: f64,
     /// Where rounds aim on a soldier, above his feet.
     pub infantry_aim_m: f64,
+    /// Nominal aim height as a fraction of a vehicle body's full height.
+    #[serde(default = "middle_aim")]
+    pub vehicle_aim_height_fraction: f64,
     /// A soldier's middle, above his feet: where blast and near misses
     /// reach him.
     pub infantry_center_m: f64,
@@ -256,6 +259,10 @@ pub struct BodyRules {
     pub friendly_prefire_margin_m: f64,
     #[serde(flatten)]
     pub flight: crate::ballistics::FlightRules,
+}
+
+fn middle_aim() -> f64 {
+    0.5
 }
 
 /// Armour by impacted face (P10).

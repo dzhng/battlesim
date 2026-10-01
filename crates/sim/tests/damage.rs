@@ -562,20 +562,24 @@ fn cover_lowers_losses_to_the_same_fire_over_many_seeds() {
                 json!([]),
             ),
             json!([
-                { "side": "blue", "kind": "rifle", "position": [460, 275] },
+                { "side": "blue", "kind": "rifle", "position": [650, 275] },
                 { "side": "red", "kind": "rifle", "position": [375, 275], "engagement": "return_fire_only" },
             ]),
             json!([]),
             json!([]),
         );
+        let mut rules = common::scenario_rules();
+        sim::fixtures::patch_catalog(&mut rules, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
+        setup.rules = serde_json::from_value(rules).unwrap();
         if !tiers {
             let t = &mut setup.rules.cover.tiers;
             (t.light, t.medium, t.heavy) = (1.0, 1.0, 1.0);
         }
         let mut b = Battle::new(&setup, seed);
-        // Short of wiping either squad out, so the comparison does not saturate.
+        // Keep every operator alive so this compares loss rates without wipeout saturation.
+        let full: f64 = own(&b, Side::Red, 1).unwrap().member_hp.iter().sum();
         run(&mut b, 600);
-        own(&b, Side::Red, 1).map_or(800.0, |u| 800.0 - u.member_hp.iter().sum::<f64>())
+        full - own(&b, Side::Red, 1).unwrap().member_hp.iter().sum::<f64>()
     };
     let (mut open, mut covered) = (0.0, 0.0);
     for seed in 0..16 {

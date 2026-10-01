@@ -89,8 +89,9 @@ fn fight(
             let Some(s) = squad.members.iter().find(|s| s.id == shooter.body.0) else {
                 continue;
             };
-            // Rounds of soldiers taking cover: his cover is theirs to spare.
-            if s.cover.is_some() {
+            // Track rounds actually fired past this claimed lean body. A standing
+            // soldier receiving a cover tier can still scatter into a nearby hull.
+            if shooter.cover.is_some_and(&struck) {
                 blue_rounds.insert(p.id);
             }
             let origin: V2 = (p.position - p.velocity * p.age_s).xy();

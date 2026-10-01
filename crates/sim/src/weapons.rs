@@ -403,7 +403,9 @@ fn resolve(ctx: &FireContext, side: Side, target: Target, units: &[Unit]) -> Opt
         Target::Unit(u) => {
             let track = knowledge.track(u)?;
             let unit = &units[u.0 as usize];
-            let height = unit.hull.map_or(ctx.rules.physics.infantry_aim_m, |h| h.z);
+            let height = unit.hull.map_or(ctx.rules.physics.infantry_aim_m, |h| {
+                2.0 * h.z * ctx.rules.physics.vehicle_aim_height_fraction
+            });
             Some(Resolved {
                 point: track.position + v3(0.0, 0.0, height),
                 velocity: track.velocity.with_z(0.0),
@@ -1402,6 +1404,7 @@ fn fire(
             }
         }
         if let Ok((launch, _)) = launch_along(
+            ctx.world,
             &ctx.arsenal.config,
             &weapon.profile,
             &aim,

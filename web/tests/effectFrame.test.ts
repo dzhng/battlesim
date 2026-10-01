@@ -38,6 +38,121 @@ const MUZZLE = [CANNON!.muzzle[0], CANNON!.muzzle[1], CANNON!.pivot[2] + CANNON!
 
 const frame = () => new EffectFrame({ tickHz: HZ, presentation: PRESENTATION });
 
+test("a screen-width tracer emits only a thin line, without a projectile head", () => {
+  const f = new EffectFrame({
+    tickHz: HZ,
+    presentation: {
+      ...PRESENTATION,
+      tracers: {
+        ...PRESENTATION.tracers,
+        rifle: {
+          ...PRESENTATION.tracers.default,
+          chance: 1,
+          line_px: 1,
+          core: undefined,
+          body: undefined,
+          cast: undefined,
+        },
+      },
+    },
+  });
+  f.note(
+    pub(1, {
+      segments: [
+        segment([
+          [0, 0, 2],
+          [10, 0, 2],
+        ]),
+      ],
+    }),
+  );
+  const instances = drawn(f, DT * 0.5);
+  expect(instances.length).toBeGreaterThan(0);
+  for (const i of instances) {
+    expect(i.shape).toBe(SHAPE.streak);
+    expect(i.a[3]).toBe(-1); // fixed screen width in the effect-pass packing contract
+    expect(i.b[3]).toBe(1);
+  }
+});
+
+test("tracer sampling chooses one in five rounds once and carries that choice through flight", () => {
+  const f = new EffectFrame({
+    tickHz: HZ,
+    presentation: {
+      ...PRESENTATION,
+      tracers: {
+        ...PRESENTATION.tracers,
+        rifle: { ...PRESENTATION.tracers.rifle, chance: 0.2 },
+      },
+    },
+  });
+  let selected: number[] | undefined;
+  for (let tick = 1; tick <= 3; tick++) {
+    f.note(
+      pub(tick, {
+        segments: Array.from({ length: 400 }, (_, id) =>
+          segment([
+            [(tick - 1) * 10, id * 5, 2],
+            [tick * 10, id * 5, 2],
+          ]),
+        ),
+      }),
+    );
+    const visible = [
+      ...new Set(
+        drawn(f, (tick - 0.5) * DT)
+          .filter((i) => i.shape === SHAPE.streak)
+          .map((i) => i.a[1]),
+      ),
+    ].sort((a, b) => a - b);
+    expect(visible.length).toBeGreaterThanOrEqual(60);
+    expect(visible.length).toBeLessThanOrEqual(100);
+    if (selected) expect(visible).toEqual(selected);
+    selected = visible;
+  }
+});
+
+test("coincident rounds retain independent tracer choices when their paths separate", () => {
+  const f = new EffectFrame({
+    tickHz: HZ,
+    presentation: {
+      ...PRESENTATION,
+      tracers: {
+        ...PRESENTATION.tracers,
+        rifle: {
+          ...PRESENTATION.tracers.rifle,
+          chance: 0.2,
+        },
+      },
+    },
+  });
+  f.note(
+    pub(1, {
+      segments: Array.from({ length: 400 }, () =>
+        segment([
+          [0, 0, 2],
+          [10, 0, 2],
+        ]),
+      ),
+    }),
+  );
+  const first = drawn(f, DT * 0.9).filter((i) => i.shape === SHAPE.streak).length;
+  expect(first).toBeGreaterThanOrEqual(60);
+  expect(first).toBeLessThanOrEqual(100);
+  f.note(
+    pub(2, {
+      segments: Array.from({ length: 400 }, (_, id) =>
+        segment([
+          [10, 0, 2],
+          [20, id, 2],
+        ]),
+      ),
+    }),
+  );
+  const second = drawn(f, DT * 1.9).filter((i) => i.shape === SHAPE.streak && i.b[0] > 18);
+  expect(second.length).toBe(first);
+});
+
 const pub = (tick: number, p: Partial<EffectPublication> = {}): EffectPublication => ({
   tick,
   segments: [],
@@ -308,7 +423,7 @@ test("a tracer never leaves its published stretch, corners included", () => {
   f.note(pub(1));
   f.note(
     pub(2, {
-      segments: [segment(path, { kind: "hmg", ricochets: [{ point: 1, normal: [-1, 0, 0] }] })],
+      segments: [segment(path, { kind: "tank_ap", ricochets: [{ point: 1, normal: [-1, 0, 0] }] })],
     }),
   );
   const onPath = (p: number[]) =>
@@ -321,7 +436,7 @@ test("a tracer never leaves its published stretch, corners included", () => {
       return u >= -1e-4 && u <= 1 + 1e-4 && Math.hypot(...q.map((v, i) => v - p[i])) < 1e-3;
     });
   // The round's streaks (glow and core): its kind's colours.
-  const { glow, core } = PRESENTATION.tracers.hmg;
+  const { glow, core } = PRESENTATION.tracers.tank_ap;
   const tint = (l: { color: number[]; intensity: number }) => Math.fround(l.color[1] * l.intensity);
   const streakTints = [tint(glow), tint(core!)];
   let streaks = 0;
@@ -750,7 +865,7 @@ test("past the smoke budget every wreck thins alike, and none goes missing", () 
 });
 
 test("tracer core and glow retain their own pixel widths", () => {
-  const rifle = PRESENTATION.tracers.rifle;
+  const rifle = PRESENTATION.tracers.default;
   const f = new EffectFrame({
     tickHz: HZ,
     presentation: {

@@ -51,6 +51,75 @@ export async function run(ctx) {
   await lab(page, () => window.__lab.route.select([0, 1, 2, 3]));
   await page.waitForFunction(() => window.__lab.route.selected().length === 4);
 
+  // Panels use the same selection path as bodies, including drag gestures.
+  const truckPanel = page.locator('[data-testid=readouts] .ro-unit[data-unit="3"]');
+  const panelBox = await truckPanel.boundingBox();
+  await page.mouse.click(panelBox.x + panelBox.width / 2, panelBox.y + panelBox.height / 2);
+  await page.waitForFunction(() => window.__lab.route.selected().join(",") === "3");
+  ctx.check("clicking a floating panel selects its unit", true);
+  await lab(page, () => window.__lab.route.select([]));
+  await page.mouse.move(panelBox.x - 2, panelBox.y - 2);
+  await page.mouse.down();
+  await page.mouse.move(panelBox.x + panelBox.width + 2, panelBox.y + panelBox.height + 2, {
+    steps: 4,
+  });
+  await page.mouse.up();
+  await page.waitForFunction(() => window.__lab.route.selected().includes(3));
+  ctx.check("dragging a rectangle over a floating panel selects its unit", true);
+  await lab(page, () => window.__lab.route.select([]));
+  await page.mouse.move(panelBox.x + 4, panelBox.y + 4);
+  await page.mouse.down();
+  await page.mouse.move(panelBox.x + panelBox.width + 2, panelBox.y + panelBox.height + 2, {
+    steps: 4,
+  });
+  await page.mouse.up();
+  await page.waitForFunction(() => window.__lab.route.selected().includes(3));
+  ctx.check("a selection drag can start inside a floating panel", true);
+
+  // Pick empty ground inside the rifle squad's circle, away from each body and panel.
+  const interior = await lab(
+    page,
+    (scale) => {
+      const u = window.__lab.route.observation().own.find((u) => u.id === 2);
+      const boxes = [...document.querySelectorAll(".ro-unit")]
+        .filter((n) => n.style.display !== "none")
+        .map((n) => n.getBoundingClientRect());
+      for (let k = 0; k < 32; k++) {
+        const angle = (k * Math.PI) / 16;
+        const radius = u.area.radius * scale * 0.75;
+        const p = [
+          u.area.anchor[0] + Math.cos(angle) * radius,
+          u.area.anchor[1] + Math.sin(angle) * radius,
+        ];
+        if (u.members.some((m) => Math.hypot(m[0] - p[0], m[1] - p[1]) < 2)) continue;
+        const q = window.__lab.projectToCss(...p, window.__lab.route.surfaceZ(...p));
+        if (
+          q &&
+          q[0] > 10 &&
+          q[1] > 10 &&
+          q[0] < innerWidth - 10 &&
+          q[1] < innerHeight - 10 &&
+          !boxes.some((b) => q[0] >= b.left && q[0] <= b.right && q[1] >= b.top && q[1] <= b.bottom)
+        )
+          return q;
+      }
+      return null;
+    },
+    village.presentation.overlay.orders.area_draw_scale,
+  );
+  ctx.check(
+    "the infantry picking probe is inside its circle and clear of bodies and panels",
+    !!interior,
+    JSON.stringify(interior),
+  );
+  if (interior) {
+    await page.mouse.click(...interior);
+    await page.waitForFunction(() => window.__lab.route.selected().join(",") === "2");
+    ctx.check("clicking empty ground inside the infantry circle selects the squad", true);
+  }
+  await lab(page, () => window.__lab.route.select([0, 1, 2, 3]));
+  await page.waitForFunction(() => window.__lab.route.selected().length === 4);
+
   // Right-click an identified enemy: attack it.
   let o0 = await obs(page);
   const enemy = o0.identified[0];

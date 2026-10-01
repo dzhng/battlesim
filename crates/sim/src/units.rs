@@ -500,6 +500,9 @@ impl Unit {
             d.u64(dep.current as u64)
                 .u64(dep.duration as u64)
                 .u64(dep.stationary as u64);
+            if dep.deploy_step != dep.pack_step {
+                d.u64(dep.deploy_step as u64).u64(dep.pack_step as u64);
+            }
         }
         d.u64(self.mounts.len() as u64);
         for m in &self.mounts {

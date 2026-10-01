@@ -28,7 +28,7 @@
         "wheeled": { "offroad_kmh": 25, "road_kmh": 76, "turn_deg_s": 40, "turning_radius_m": 9, "reverse_fraction": 0.35 }
       },
       "sensors": { "ground_m": 300, "sight_shape": { "front": 1.0, "side": 0.5, "rear": 0.3 } },
-      "capabilities": { "deploy": { "seconds": 15 }, "supply": { "stock": 600 } },
+      "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 }, "supply": { "stock": 600 } },
       "sound": { "profile": "vehicle", "loudness_m": 650 },
       "appearance": "supply_truck"
     },

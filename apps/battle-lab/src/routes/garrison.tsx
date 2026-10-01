@@ -32,7 +32,7 @@ import { TickStatus } from "../TickStatus";
 const BUILDING = 0;
 /** The tick red's tank switches to fire at will: after every entry. */
 const TANK_OPENS_FIRE = 1500;
-const SCENARIO = labScenario(
+const staged = labScenario(
   garrisonMap,
   [
     { side: "blue", kind: "rifle", position: [290, 250], engagement: "return_fire_only" },
@@ -50,6 +50,14 @@ const SCENARIO = labScenario(
     },
   ],
 );
+// Keep direct fire from eliminating the occupants before the house falls;
+// collapse itself still decides which soldiers escape.
+const durable = JSON.parse(staged) as {
+  rules: { catalog: { soldiers?: Record<string, { hp: number }> }[] };
+};
+for (const doc of durable.rules.catalog)
+  for (const soldier of Object.values(doc.soldiers ?? {})) soldier.hp = 1.0e6;
+const SCENARIO = JSON.stringify(durable);
 const SEED = 11;
 
 const GARRISON_CAMERA: Camera3DParams = {

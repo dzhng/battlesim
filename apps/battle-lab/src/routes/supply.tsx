@@ -150,8 +150,8 @@ export default function Supply() {
         </div>
         <div className="lab-legend">
           A selected truck&apos;s reach: <span className="lab-swatch lab-swatch-reach" />
-          <br />A unit in a set-up truck's reach says RESUPPLYING, SUPPLY FULL or CANNOT SUPPLY in
-          its panel; why it waits, below. A truck's set-up progress is its panel's.
+          <br />A unit receiving supplies shows RESUPPLYING in its panel; why it waits, below. A
+          truck's set-up progress is its panel's.
         </div>
         <ul className="lab-log lab-list" data-testid="stock">
           {own

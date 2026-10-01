@@ -72,17 +72,19 @@ test("a weapon the cursor is past ends on the line where its 3D range runs out; 
     const dz = (cursor[2] + aim - (from[2] + muzzle)) * t;
     expect(Math.hypot(mark.along_m!, dz)).toBeCloseTo(mark.range_m, 6);
   }
-  const inside = rangeRuler(at("rifle", from), [500, 0, 20], rules, UNITS);
+  const between = (range("rifle") + range("grenade")) / 2;
+  const inside = rangeRuler(at("rifle", from), [between, 0, 20], rules, UNITS);
   expect(inside.marks.map((m) => [m.inRange, m.along_m])).toEqual([
-    [false, expect.closeTo((500 * range("grenade")) / inside.distance_m, 6)],
+    [false, expect.closeTo((between * range("grenade")) / inside.distance_m, 6)],
     [true, null],
   ]);
 });
 
 test("the painted line is lit up to the farthest reach short of the cursor, a tick where each ends", () => {
-  // The tank's cannon reaches 1000 m, its HMG does not: lit all the way, one tick.
-  const tank = rulerLine(rangeRuler(at("tank", [0, 0, 0]), [1000, 0, 0], rules, UNITS), null);
-  expect(tank.reach_m).toBeCloseTo(1000, 6);
+  // Between the two ranges, the cannon reaches and the HMG does not.
+  const between = (range("hmg") + range("tank_ap")) / 2;
+  const tank = rulerLine(rangeRuler(at("tank", [0, 0, 0]), [between, 0, 0], rules, UNITS), null);
+  expect(tank.reach_m).toBeCloseTo(between, 6);
   expect(tank.ticks).toHaveLength(1);
   expect(tank.ticks[0]).toBeGreaterThan(range("hmg") - 1);
   expect(tank.ticks[0]).toBeLessThan(range("hmg"));

@@ -1,6 +1,6 @@
 // Slice 04: predictable routes, group intent, gestures, traffic and blockage.
 import { decode, writeCrop } from "./_png.mjs";
-import { lab, snapshot, groundCss } from "./_lab.mjs";
+import { lab, snapshot, groundCss, presented } from "./_lab.mjs";
 import { paintOnly } from "./_overlays.mjs";
 import { hull, village } from "./_units.mjs";
 
@@ -221,6 +221,7 @@ async function paintOnDeckAndWater(ctx) {
   const tank = own.find((u) => u.kind === "tank");
   const truck = own.find((u) => u.kind === "supply");
   await lab(page, (ids) => window.__lab.route.select(ids), [tank.id, truck.id]);
+  await page.waitForFunction(() => window.__lab.route.selected().length === 2);
   const move = (id, goal, gesture) =>
     lab(
       page,
@@ -280,6 +281,7 @@ async function paintOnDeckAndWater(ctx) {
   // dimmed under it.
   await move(truck.id, CLIFF, 81);
   await lab(page, () => window.__lab.route.advance(5));
+  await presented(page);
   const blocked = await unit(page, truck.id);
   const from = blocked.position;
   const onLine = (x0, x1) => {

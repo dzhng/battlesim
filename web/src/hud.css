@@ -665,12 +665,13 @@
 }
 .hud-panel.hud-menu-button {
   position: fixed;
+  z-index: 3;
   top: 10px;
   right: 12px;
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 44px;
+  height: 44px;
   padding: 0;
 }
 .hud-menu-button .ro-icon {
@@ -904,4 +905,13 @@
   white-space: nowrap;
   color: rgb(var(--hud-text) / 0.9);
   text-shadow: var(--hud-text-halo);
+}
+
+[data-zoom="compressed"] .ro-section {
+  display: none;
+}
+
+.ro-layer .ro-unit {
+  pointer-events: auto;
+  cursor: pointer;
 }

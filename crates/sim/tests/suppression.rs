@@ -333,14 +333,14 @@ fn suppression_widens_actual_launch_directions_at_each_tier() {
                 { "side": "red", "kind": "tank", "position": [1150, 550], "engagement": "return_fire_only" }
             ])), seed);
             common::order(&mut b, Side::Blue, 1, Order::Attack { units: vec![UnitId(0)],
-                target: TargetRef::Ground { point: [500.0, 300.0, 0.0] } });
+                target: TargetRef::Ground { point: [400.0, 300.0, 0.0] } });
             for _ in 0..90 {
                 b.step();
                 for (p,r) in b.rounds() {
                     if r.unit != UnitId(0) || b.arsenal().weapons[r.weapon].id != "rifle" { continue; }
                     let body = p.shooter.unwrap().body;
                     let soldier = b.unit(UnitId(0)).unwrap().members.iter().find(|s| s.id == body.0).unwrap();
-                    let expected = (300.0-soldier.position.y).atan2(500.0-soldier.position.x);
+                    let expected = (300.0-soldier.position.y).atan2(400.0-soldier.position.x);
                     let actual = p.velocity.y.atan2(p.velocity.x);
                     return (actual-expected).powi(2);
                 }

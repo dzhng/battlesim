@@ -11,6 +11,35 @@ use sim::flight::{FlightEvent, ProjectileId};
 
 use crate::common::{self, Commander};
 
+// Range controls isolate weapon control and timing from live balance tuning.
+const RANGES: [(&str, f64); 6] = [
+    ("rifle", 600.0),
+    ("grenade", 450.0),
+    ("tank_ap", 1400.0),
+    ("tank_he", 1400.0),
+    ("hmg", 800.0),
+    ("atgm", 1800.0),
+];
+fn rules() -> Value {
+    let mut rules = common::scenario_rules();
+    for (id, range) in RANGES {
+        rules["weapons"][id]["range_m"] = json!(range);
+    }
+    rules
+}
+fn scenario_with(
+    map: &str,
+    units: Value,
+    events: Value,
+    scripts: Value,
+) -> contract::scenario::ScenarioDefinition {
+    let mut setup = common::scenario_with(map, units, events, scripts);
+    for (id, range) in RANGES {
+        setup.rules.weapons.get_mut(id).unwrap().ballistics.range_m = range;
+    }
+    setup
+}
+
 /// A flat 1200 × 600 map plus extra props.
 fn map(props: Value) -> String {
     json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props })
@@ -18,10 +47,7 @@ fn map(props: Value) -> String {
 }
 
 fn battle(props: Value, units: Value, events: Value, scripts: Value) -> Battle {
-    Battle::new(
-        &common::scenario_with(&map(props), units, events, scripts),
-        5,
-    )
+    Battle::new(&scenario_with(&map(props), units, events, scripts), 5)
 }
 
 fn own(b: &Battle, side: Side, id: u32) -> OwnUnit {
@@ -73,13 +99,13 @@ fn ticks(seconds: f64) -> u64 {
 }
 
 fn weapon(name: &str) -> Value {
-    common::village()["weapons"][name].clone()
+    rules()["weapons"][name].clone()
 }
 
 #[test]
 fn every_mount_aims_and_reloads_independently_and_aims_once_per_target() {
     // A rifle squad against an enemy rifle squad 400 m away, which only answers.
-    let mut setup = common::scenario_with(
+    let mut setup = scenario_with(
         &map(json!([])),
         json!([
             { "side": "blue", "kind": "rifle", "position": [100, 300] },
@@ -266,7 +292,7 @@ fn the_default_gun_fires_at_what_it_cannot_hurt_but_specialists_do_not() {
 #[test]
 fn a_default_gun_with_a_finite_supply_keeps_it_for_what_it_can_hurt() {
     // The same squad and tank as above, but the rifles carry a counted supply.
-    let mut rules = common::scenario_rules();
+    let mut rules = rules();
     rules["weapons"]["rifle"]["ammo"] = json!(200);
     rules["service"]["round_costs"]["rifle"] = json!(1);
     let map: Value = serde_json::from_str(&map(json!([]))).unwrap();
@@ -544,7 +570,25 @@ fn return_fire_only_answers_only_its_own_attacker() {
         json!([]),
         json!([]),
     );
-    let shots = run(&mut b, 200);
+    let mut shots = Vec::new();
+    let mut answered_attacker = false;
+    for _ in 0..200 {
+        shots.extend(run(&mut b, 1));
+        if let Some(target) = mount(&b, Side::Blue, 0, 0).target {
+            let answered: BTreeSet<_> = b
+                .observe(Side::Blue)
+                .identified
+                .iter()
+                .filter(|e| e.kind == common::unit_kind("recon"))
+                .map(|e| e.id)
+                .collect();
+            assert!(
+                matches!(target, TargetRef::Identified { id } if answered.contains(&id)),
+                "only at the attacker: {target:?}"
+            );
+            answered_attacker = true;
+        }
+    }
     assert!(
         shots_by(&shots, 1, "rifle").is_empty(),
         "the holding red squad stays silent"
@@ -554,18 +598,7 @@ fn return_fire_only_answers_only_its_own_attacker() {
         !blue.is_empty(),
         "blue answers the recon that attacks it (W13)"
     );
-    let answered: BTreeSet<_> = b
-        .observe(Side::Blue)
-        .identified
-        .iter()
-        .filter(|e| e.kind == common::unit_kind("recon"))
-        .map(|e| e.id)
-        .collect();
-    let target = mount(&b, Side::Blue, 0, 0).target;
-    assert!(
-        matches!(target, Some(TargetRef::Identified { id }) if answered.contains(&id)),
-        "only at the attacker: {target:?}"
-    );
+    assert!(answered_attacker, "blue acquired its attacker");
 }
 
 #[test]
@@ -738,7 +771,7 @@ fn friendly_vehicles_in_the_line_withhold_fire_but_infantry_do_not() {
 #[test]
 fn rounds_hit_whatever_they_meet_including_friendly_soldiers() {
     // Near the target, the descending HMG rounds cross the friendly soldiers' height.
-    let mut setup = common::scenario_with(
+    let mut setup = scenario_with(
         &map(json!([])),
         json!([
             { "side": "blue", "kind": "tank", "position": [100, 300] },
@@ -828,7 +861,7 @@ fn cannon_rounds_swap_by_target_without_losing_any() {
 
 #[test]
 fn combat_replays_to_identical_digests() {
-    let setup = common::scenario_with(
+    let setup = scenario_with(
         &map(json!([])),
         json!([
             { "side": "blue", "kind": "rifle", "position": [100, 300] },
@@ -1114,7 +1147,9 @@ fn area_fire_at_a_contact_comes_down_within_its_area() {
     // onto it. With launch spread off, each round passes a standing
     // soldier's middle exactly at its sampled aim point: every one inside the
     // squad-sized area, spread across it rather than piled at its centre.
-    let mut rules = common::scenario_rules();
+    // This probe owns contact sampling, independently of the cinematic miss tail.
+    let mut rules = rules();
+    rules["physics"]["miss_fall_max_s"] = json!(0.0);
     rules["physics"]["min_spread_at_max_range_m"] = json!(0.0);
     for row in rules["weapons"].as_object_mut().unwrap().values_mut() {
         row["scatter_mrad"] = json!(0.0);
@@ -1620,7 +1655,7 @@ fn a_tank_roof_hmg_holds_fire_over_a_friendly_jeep_parked_alongside() {
 fn a_tank_firing_both_mounts_apart_replays_to_the_same_digests() {
     // The cannon on a tank ahead, the roof HMG on a squad behind: each
     // mount's muzzle follows its own bearing, and the replay matches.
-    let setup = common::scenario_with(
+    let setup = scenario_with(
         &map(json!([])),
         json!([
             { "side": "blue", "kind": "tank", "position": [300, 300] },
@@ -1686,7 +1721,7 @@ fn rifles_and_hmgs_fire_bursts_then_reload_only_empty_magazines() {
         ("tank", "hmg", 5),
         ("tank", "hmg", 19),
     ] {
-        let mut setup = common::scenario_with(
+        let mut setup = scenario_with(
             &map(json!([])),
             json!([
                 { "side": "blue", "kind": kind, "position": [100, 300] },
@@ -1789,7 +1824,7 @@ fn rifles_and_hmgs_fire_bursts_then_reload_only_empty_magazines() {
 #[test]
 fn orders_preserve_partial_magazines_and_finite_ammo_counts_actual_rounds() {
     for (kind, weapon, index) in [("tank", "hmg", 1), ("rifle", "rifle", 0)] {
-        let mut setup = common::scenario_with(
+        let mut setup = scenario_with(
             &map(json!([])),
             json!([
                 { "side": "blue", "kind": kind, "position": [100, 300] },
@@ -1859,7 +1894,7 @@ fn orders_preserve_partial_magazines_and_finite_ammo_counts_actual_rounds() {
 
 #[test]
 fn zero_reload_rifles_keep_loaded_readiness_across_magazines() {
-    let mut setup = common::scenario_with(
+    let mut setup = scenario_with(
         &map(json!([])),
         json!([
             { "side": "blue", "kind": "rifle", "position": [100, 300] },

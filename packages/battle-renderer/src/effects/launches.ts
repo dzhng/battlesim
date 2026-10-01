@@ -12,6 +12,8 @@
 // rises once more.
 import { muzzleOffset } from "@packages/scene-assets/src/mountMuzzle";
 import { vec3 } from "math";
+import { mulberry32 } from "math/random";
+import { hashString } from "@packages/renderer-core/src/math";
 import type { EffectPublication, EffectSegment, EffectShooter } from "./effectFrame";
 
 type P3 = readonly [number, number, number] | readonly number[];
@@ -39,6 +41,7 @@ export interface Launch {
 }
 
 const endKey = (p: P3) => `${p[0]},${p[1]},${p[2]}`;
+const flightKey = (s: EffectSegment, p: P3) => `${s.kind}:${s.shooter}:${endKey(p)}`;
 
 const _launch_offset = vec3.create();
 
@@ -46,7 +49,9 @@ export class LaunchTracker {
   /** Shot counters by shooter key, as last published. */
   private counters = new Map<number, number[]>();
   /** Where the last publication's still-flying stretches ended. */
-  private flying = new Set<string>();
+  private flying = new Map<string, boolean[]>();
+  /** This publication's stretches whose round was chosen as a tracer. */
+  readonly tracers = new Set<EffectSegment>();
   /** Squads' rises in the last publication, by shooter key and mount: the
    *  rounds owed to this publication's new stretches. */
   private owed = new Map<number, number[]>();
@@ -54,17 +59,18 @@ export class LaunchTracker {
   reset() {
     this.counters.clear();
     this.flying.clear();
+    this.tracers.clear();
     this.owed.clear();
   }
 
   /** The launches `pub` shows. Call once per publication, in order; `gap`
    *  says ticks were skipped since the last one. */
-  note(pub: EffectPublication, gap: boolean): Launch[] {
+  note(pub: EffectPublication, gap: boolean, chance?: (kind: string) => number): Launch[] {
     const out: Launch[] = [];
     const starts = new Map<number, EffectSegment[]>();
     for (const s of pub.segments) {
       if (s.shooter === null || s.path.length < 2) continue;
-      if (!gap && this.flying.has(endKey(s.path[0]))) continue; // a round still flying
+      if (!gap && this.flying.has(flightKey(s, s.path[0]))) continue; // a round still flying
       const list = starts.get(s.shooter);
       if (list) list.push(s);
       else starts.set(s.shooter, [s]);
@@ -120,10 +126,31 @@ export class LaunchTracker {
     this.owed = owed;
     // Units no longer seen start over when they are seen again.
     for (const key of this.counters.keys()) if (!seen.has(key)) this.counters.delete(key);
-    this.flying = new Set();
-    for (const s of pub.segments)
-      if (s.path.length >= 2 && s.hit === "none")
-        this.flying.add(endKey(s.path[s.path.length - 1]));
+    const flying = new Map<string, boolean[]>();
+    this.tracers.clear();
+    for (const [index, s] of pub.segments.entries()) {
+      if (s.path.length < 2) continue;
+      const probability = chance?.(s.kind) ?? 1;
+      // The authority publishes in round order. A queue preserves separate
+      // choices when even the same weapon's paths share an exact endpoint.
+      const previous = gap ? undefined : this.flying.get(flightKey(s, s.path[0]))?.shift();
+      const visible =
+        previous ??
+        (probability >= 1 ||
+          mulberry32.sample(
+            mulberry32.create(
+              hashString(`${pub.tick}:${index}:${s.kind}:${s.shooter}:${endKey(s.path[0])}`),
+            ),
+          ) < probability);
+      if (visible) this.tracers.add(s);
+      if (s.hit === "none") {
+        const key = flightKey(s, s.path[s.path.length - 1]);
+        const choices = flying.get(key);
+        if (choices) choices.push(visible);
+        else flying.set(key, [visible]);
+      }
+    }
+    this.flying = flying;
     return out;
   }
 

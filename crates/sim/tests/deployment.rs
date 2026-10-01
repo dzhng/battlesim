@@ -13,28 +13,31 @@ use crate::common;
 const SUPPLY: UnitId = UnitId(0);
 const TANK: UnitId = UnitId(1);
 
-/// Deployment duration in ticks, from the one fixture owner.
+// Symmetric timing control for the reversal and movement matrix.
 fn duration() -> u32 {
-    let rules = common::rules();
-    let seconds = rules
-        .catalog
-        .by_id("supply")
-        .capabilities
-        .deploy
-        .unwrap()
-        .seconds;
-    (seconds * rules.tick_hz as f64).round() as u32
+    450
+}
+
+fn setup() -> contract::scenario::ScenarioDefinition {
+    let mut fixture = common::village();
+    sim::fixtures::patch_catalog(
+        &mut fixture,
+        "units",
+        "supply",
+        json!({
+            "capabilities": { "deploy": { "seconds": 15, "pack_seconds": 15 } }
+        }),
+    );
+    serde_json::from_value(json!({
+        "map": { "size": [600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": fixture,
+        "units": [{ "side": "blue", "kind": "supply", "position": [100, 200] }, { "side": "blue", "kind": "tank", "position": [100, 300] }],
+        "events": []
+    })).unwrap()
 }
 
 fn battle() -> Battle {
-    let map =
-        json!({ "size": [600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 })
-            .to_string();
-    let units = json!([
-        { "side": "blue", "kind": "supply", "position": [100, 200] },
-        { "side": "blue", "kind": "tank", "position": [100, 300] },
-    ]);
-    Battle::new(&common::scenario(&map, units, json!([])), 12)
+    Battle::new(&setup(), 12)
 }
 
 struct Commander {
@@ -127,6 +130,8 @@ fn the_seam_reverses_from_current_progress_with_one_duration() {
     let at = |current| Deployment {
         current,
         duration: n,
+        deploy_step: 1,
+        pack_step: 1,
         stationary: Posture::Deployed,
     };
     let step = |current, target| {
@@ -422,18 +427,43 @@ fn deployment_replays_to_identical_digests_and_enters_the_digest() {
     c.stop(&mut b, SUPPLY);
     run(&mut b, 40);
     let replay = b.replay();
-    let setup = common::scenario(
-        &json!({ "size": [600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 })
-            .to_string(),
-        json!([
-            { "side": "blue", "kind": "supply", "position": [100, 200] },
-            { "side": "blue", "kind": "tank", "position": [100, 300] },
-        ]),
-        json!([]),
-    );
-    let mut again = Battle::from_replay(&setup, &replay).unwrap();
+    let mut again = Battle::from_replay(&setup(), &replay).unwrap();
     while again.tick() < b.tick() {
         again.step();
     }
     assert_eq!(again.digest(), b.digest());
+}
+
+#[test]
+fn asymmetric_setup_packs_in_one_second_and_reverses_from_remaining_progress() {
+    let mut fixture = common::village();
+    sim::fixtures::patch_catalog(
+        &mut fixture,
+        "units",
+        "supply",
+        json!({
+            "capabilities": { "deploy": { "seconds": 3, "pack_seconds": 1 } }
+        }),
+    );
+    let setup = serde_json::from_value(json!({
+        "map": { "size": [600, 400], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+        "rules": fixture, "units": [{ "side": "blue", "kind": "supply", "position": [100, 200] }], "events": []
+    })).unwrap();
+    let mut b = Battle::new(&setup, 12);
+    run(&mut b, 90);
+    assert_eq!(own(&b, SUPPLY).deployment.unwrap().progress, 1.0);
+    let mut c = Commander::new();
+    c.deploy(&mut b, SUPPLY, false);
+    run(&mut b, 15);
+    assert_eq!(own(&b, SUPPLY).deployment.unwrap().progress, 0.5);
+    c.deploy(&mut b, SUPPLY, true);
+    run(&mut b, 44);
+    assert!(own(&b, SUPPLY).deployment.unwrap().progress < 1.0);
+    b.step();
+    assert_eq!(own(&b, SUPPLY).deployment.unwrap().progress, 1.0);
+    c.deploy(&mut b, SUPPLY, false);
+    run(&mut b, 29);
+    assert!(own(&b, SUPPLY).deployment.unwrap().progress > 0.0);
+    b.step();
+    assert_eq!(own(&b, SUPPLY).deployment.unwrap().progress, 0.0);
 }

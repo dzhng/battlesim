@@ -35,6 +35,10 @@ export interface HudTheme {
   /** The least space between a callout and another callout, a unit's anchor
    *  or a HUD bar, in CSS pixels: stacked panels never touch. */
   panel_gap_px: number;
+  /** Crowd limit for the name-and-health-only form. */
+  panel_compress_above: number;
+  /** Hide anchors this near the viewport edge. */
+  panel_edge_hide_px: number;
 }
 
 /** How strongly the callouts (leader lines, rings, names) glow, 1 their
@@ -60,7 +64,9 @@ export function validateHudTheme(theme: HudTheme): HudTheme {
     !COLOURS.every((k) => unit(theme[k], 3)) ||
     !unit(theme.glass, 4) ||
     !(theme.glow_px >= 0) ||
-    !(theme.panel_gap_px >= 0)
+    !(theme.panel_gap_px >= 0) ||
+    !(Number.isInteger(theme.panel_compress_above) && theme.panel_compress_above >= 1) ||
+    !(theme.panel_edge_hide_px >= 0)
   )
     throw new Error(
       `presentation.hud: font, rgb in [0, 1] for ${COLOURS.join(", ")}, rgba glass, glow_px ≥ 0, panel_gap_px ≥ 0`,

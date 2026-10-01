@@ -12,7 +12,7 @@
 use contract::ballistics::Trajectory;
 
 use super::{
-    chords, FlightConfig, Guidance, Launch, LaunchProfile, Motor, Shooter, TIME_EPSILON_S,
+    chords, FlightConfig, Guidance, Launch, LaunchProfile, MissFall, Motor, Shooter, TIME_EPSILON_S,
 };
 use crate::math::{v3, V3};
 use crate::rng::Rng;
@@ -371,14 +371,25 @@ pub fn prepare_launch(
             _ => None,
         }),
     )?;
-    launch_along(config, profile, aim, &intended, scatter_mrad, rng, shooter)
+    launch_along(
+        world,
+        config,
+        profile,
+        aim,
+        &intended,
+        scatter_mrad,
+        rng,
+        shooter,
+    )
 }
 
 /// Launch a round on an arc already solved for `aim` (clear, or blocked by a
 /// body the caller fires into): sample spread once, solve the scattered aim
 /// on the same arc, and build the launch. `scatter_mrad` is the effective
 /// one-axis σ after the caller's movement and cover multipliers.
+#[allow(clippy::too_many_arguments)]
 pub fn launch_along(
+    world: &WorldGeometry,
     config: &FlightConfig,
     profile: &LaunchProfile,
     aim: &Aim,
@@ -387,14 +398,34 @@ pub fn launch_along(
     rng: &mut Rng,
     shooter: Option<Shooter>,
 ) -> Result<(Launch, FiringSolution), NoSolution> {
-    let scattered = Aim {
-        target: scatter_aim(aim.origin, aim.target, scatter_mrad, rng),
-        ..*aim
-    };
+    let mut target = scatter_aim(aim.origin, aim.target, scatter_mrad, rng);
+    let bounded = config.miss_fall_max_s > 0.0
+        && profile.turn_rad_s.is_none()
+        && profile.trajectory == Trajectory::Direct;
+    if bounded {
+        target.z = target.z.min(aim.target.z);
+    }
+    let scattered = Aim { target, ..*aim };
     let fired = intercepts(config, profile, &scattered)
         .into_iter()
         .find(|s| s.arc == intended.arc)
         .ok_or(NoSolution::OutOfReach)?;
+    let fall = if bounded {
+        let velocity = fired.velocity + profile.gravity(config) * fired.time_of_flight_s;
+        let duration = config.miss_fall_max_s;
+        let height = (fired.intercept.z - world.lowest_ground_height()).max(0.0);
+        // Bound the descent even over lower terrain, without changing horizontal flight.
+        let needed = 2.0 * (height + velocity.z * duration) / (duration * duration);
+        let gravity = needed
+            .max(config.gravity.length() * config.miss_gravity_multiplier)
+            .max(-profile.gravity(config).z);
+        Some(MissFall {
+            gravity_scale: gravity / config.gravity.length(),
+            after_s: fired.time_of_flight_s,
+        })
+    } else {
+        None
+    };
     Ok((
         Launch {
             origin: aim.origin,
@@ -411,6 +442,7 @@ pub fn launch_along(
                 supported: true,
             }),
             motor: profile.motor,
+            fall,
         },
         fired,
     ))

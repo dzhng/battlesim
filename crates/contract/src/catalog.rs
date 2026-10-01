@@ -182,7 +182,9 @@ pub struct Capabilities {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Deploy {
-    /// One duration for deploying and for packing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pack_seconds: Option<f64>,
+    /// Full setup duration. Packing uses this unless `pack_seconds` is authored.
     pub seconds: f64,
 }
 
@@ -1128,8 +1130,10 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
     .or_else(|| {
         t.capabilities
             .deploy
-            .is_some_and(|d| !at_least_zero(d.seconds))
-            .then_some("capabilities.deploy.seconds must not be negative")
+            .is_some_and(|d| {
+                !at_least_zero(d.seconds) || d.pack_seconds.is_some_and(|s| !at_least_zero(s))
+            })
+            .then_some("capabilities.deploy durations must not be negative")
     })
 }
 

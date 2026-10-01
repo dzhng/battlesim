@@ -46,7 +46,7 @@ export const REASON_MARK: Record<string, string | null> = {
 
 /** Far zoom compacts distinct icons; repeated icons retain named rows.
  *  The battle sets it on the callout layer. */
-export type PanelZoom = "default" | "far";
+export type PanelZoom = "default" | "far" | "compressed";
 
 /** The activity currently represented by the single progress ring. */
 interface Timer {
@@ -147,7 +147,7 @@ function WeaponRowView({ w }: { w: WeaponRow }) {
       <Mark icon={w.icon} timer={timer} className="ro-weapon-mark" />
       <span className="ro-word">{w.name}</span>
       {live?.guiding && <Icon path={hudIcon("guiding")} className="ro-guide" />}
-      {mark && <Icon path={mark} className="ro-badge" />}
+      {mark && <Icon path={mark} className="ro-badge" title={live?.reason.replaceAll("_", " ")} />}
       <WeaponCounts w={w} />
       <Pips fill={w.fill} reserve={!!live} />
     </div>

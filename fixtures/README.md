@@ -4,6 +4,8 @@
 
 ## The unit catalog
 
+Deployment preserves one reversible progress value. Setup and packing may have different durations; the integer progress lattice makes both directions and partial reversals deterministic. Movement waits for packing to finish, and supply waits for setup to finish.
+
 A unit type is **one catalog entry**, addressed by its string id (`"tank"`, later `"m1a2_sepv3"`). No code lists unit types. Scenarios, spawn rows and commands name types by id; the publication sends the id list (`unitKinds`) and each unit's index into it.
 
 - **Files:** `units/<faction>/<family>.json`, one family per file, plus `units/roles.json` (the role registry) and, when parts exist, a parts file. Each file is an object with any of five sections: `roles`, `parts`, `soldiers`, `units` and `props` (the prop types, under `props/`). An id is defined once across all files.
@@ -32,6 +34,10 @@ A unit type is **one catalog entry**, addressed by its string id (`"tank"`, late
 ## Weapon cycles
 
 A weapon row's `ammo` is total carried rounds, including loaded magazines; `"unlimited"` means unlimited reserves. `magazine` adds a physical gun's capacity and interval between shots, while `reload_s` is the pause to replace its magazine or belt. An optional `burst` groups rapid shots, with a fresh independently sampled aim delay before each burst. A burst pause keeps the magazine loaded; only an empty magazine starts a reload. A zero `reload_s` refills immediately without showing unloaded readiness, as used for infantry rifles. The physical shot interval remains a lower bound even when the sampled aim delay is zero. Without `magazine`, the gun reloads after each round. Intervals complete on the next simulation tick.
+
+The nominal vehicle aim height comes from its body, with a fixture-owned fraction allowing fire into both the upper body and hull. Direct-fire scatter stays at or below that aim point. A round that survives to its aim plane falls under stronger downward gravity, chosen at launch to reach even the lowest ground within the authored fall-time limit. Its horizontal flight and its position and velocity at the join stay intact. Both legs use ordinary swept collision: intervening bodies still decide the first impact. A ricochet cancels that fall and keeps its deflected direction under ordinary gravity; its remaining lifetime is capped from the first bounce, without restarting on later bounces. Guided fire keeps its own guidance, and indirect fire keeps its ballistic arc.
+
+Tracer frequency and shape belong to presentation. A round's sampled visibility persists across its observed flight; it does not flicker with each publication. Small-arms traces use a fixed screen-width line, while muzzle flashes, ricochet sparks and ground impacts still show their own published causes. Hiding a tracer never hides its physical impact or changes the shot.
 
 Each physical weapon owns its targeting, ammunition and firing cycle. Identical special weapons stay separate, so their rows can show different rounds and reload progress. Ammo quantities are authored per mount: adding another identical gun adds another authored load. The only shared row is infantry's default gun (`squad` in the soldier's mount), whose copies keep independent firing cycles and have no reload pause. Its readout stays loaded while any surviving carrier is loaded. Suppression's tier widens launch scatter as well as slowing cycle progress; those penalties compose with movement and cover.
 

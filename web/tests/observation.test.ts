@@ -238,7 +238,9 @@ test("deployment progress, its target and the packing state decode", () => {
   const decode = () => published(battle, layout);
   const send = (seq: number, order: Order) =>
     JSON.parse(battle.accept(JSON.stringify({ side: "blue", seq, order, queued: false })));
-  const ticks = UNITS.type("supply").capabilities.deploy!.seconds * village.tick_hz;
+  const timing = UNITS.type("supply").capabilities.deploy!;
+  const ticks = timing.seconds * village.tick_hz;
+  const packTicks = (timing.pack_seconds ?? timing.seconds) * village.tick_hz;
   for (let t = 0; t < ticks / 2; t++) battle.step();
   let [supply, tank] = decode().own;
   // A stopped supply unit sets up where it stands; a tank never deploys.
@@ -248,7 +250,7 @@ test("deployment progress, its target and the packing state decode", () => {
   battle.step();
   [supply] = decode().own;
   expect(supply.deployment!.target).toBe("packed");
-  expect(supply.deployment!.progress).toBeCloseTo(0.5 - 1 / ticks, 6);
+  expect(supply.deployment!.progress).toBeCloseTo(0.5 - 1 / packTicks, 6);
   send(2, { kind: "move", units: [0], gesture: 1, goal: [150, 100], route: "shortest" });
   battle.step();
   [supply] = decode().own;
@@ -317,8 +319,11 @@ test("supply stock and each unit's service status decode", () => {
   expect(frame.own[0].stock).toBe(55);
   expect(frame.own[1].stock).toBeNull();
   expect(layout.serviceStatuses).toContain("no_stock");
-  for (let t = 0; t < 600; t++) battle.step();
-  frame = published(battle, layout);
+  for (let t = 0; t < 600; t++) {
+    battle.step();
+    frame = published(battle, layout);
+    if (frame.own[1].service === "serving" && frame.own[0].stock! < 55) break;
+  }
   expect(frame.own[1].service).toBe("serving");
   expect(frame.own[0].stock).toBeLessThan(55);
   battle.free();

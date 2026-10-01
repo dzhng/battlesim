@@ -21,6 +21,7 @@ fn round(origin: V3, velocity: V3, suppression_radius_m: f64) -> Launch {
         shooter: None,
         guidance: None,
         motor: None,
+        fall: None,
     }
 }
 

@@ -48,8 +48,6 @@ export const STATE_ROWS = {
   route_blocked: { icon: "route_blocked", word: () => "ROUTE BLOCKED", tone: "warn" },
   supplying: { icon: "resupply", word: () => "SUPPLYING" },
   resupplying: { icon: "resupply", word: () => "RESUPPLYING" },
-  supply_full: { icon: "supply_full", word: () => "SUPPLY FULL" },
-  cannot_supply: { icon: "supply_blocked", word: () => "CANNOT SUPPLY", tone: "warn" },
   last_seen: { icon: "last_seen", word: (n: number) => `LAST SEEN ${n} s AGO` },
   heard: { icon: "heard", word: (n: number) => `HEARD ${n} s AGO` },
 } satisfies Record<string, StateRowKind>;
@@ -120,22 +118,9 @@ function deploymentRow(d: OwnUnitView["deployment"]): StateRow | null {
   return d.progress > 0 ? row("packing", { progress: 1 - d.progress }) : null;
 }
 
-/** A unit's supply row while a set-up truck has it in reach: RESUPPLYING,
- *  SUPPLY FULL or CANNOT SUPPLY (moving, firing, or the truck can't pay).
- *  Nothing out of reach or before the truck is set up. */
+/** Only active service is shown; full and unavailable states stay silent. */
 function serviceRow(service: string): StateRow | null {
-  switch (service) {
-    case "serving":
-      return row("resupplying");
-    case "full":
-      return row("supply_full");
-    case "moving":
-    case "firing":
-    case "no_stock":
-      return row("cannot_supply");
-    default:
-      return null;
-  }
+  return service === "serving" ? row("resupplying") : null;
 }
 
 const GARRISON_ROWS: Record<string, (progress: number) => StateRow> = {
