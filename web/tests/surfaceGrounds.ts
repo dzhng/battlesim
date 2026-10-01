@@ -1,0 +1,224 @@
+/** Test-only grounds for the surface field: one that holds every shape the
+ *  export has, and one dense enough that an index matters. The unit test
+ *  (`surfaceField.test.ts`) and the GPU check (`scenes/_surfaceField.mjs`)
+ *  read the same two. */
+import type { Vec2 } from "math";
+import { mulberry32 } from "math/random";
+import type { ForestShape } from "@packages/battle-renderer/src/terrain/forestShapes";
+import type { TerrainSite } from "@packages/battle-renderer/src/terrain/terrainSurface.ts";
+
+const road = (points: number[][], width_m: number, kind = "road") => ({
+  kind,
+  shape: { kind: "stroke", points, width_m },
+});
+const paving = (ring: number[][], kind = "road") => ({ kind, shape: { kind: "polygon", ring } });
+const wood = (shape: unknown) => ({ shape });
+
+/** Joins, a width change, overlapping and touching paving, a square larger
+ *  than any reach, and every forest and water shape the export has. */
+export const CURATED_GROUND = {
+  size: [512, 384],
+  fog_cell_m: 8,
+  height_grid_m: 4,
+  slope_cutoff_deg: 35,
+  surfaces: [
+    road(
+      [
+        [20, 40],
+        [160, 40],
+        [220, 110],
+        [220, 200],
+      ],
+      8,
+    ),
+    road(
+      [
+        [160, 40],
+        [300, 20],
+      ],
+      14,
+    ),
+    road(
+      [
+        [220, 110],
+        [221, 111],
+        [223, 112],
+        [300, 150],
+      ],
+      5,
+    ),
+    paving([
+      [20, 220],
+      [60, 220],
+      [60, 260],
+      [20, 260],
+    ]),
+    paving([
+      [40, 240],
+      [80, 240],
+      [80, 280],
+      [40, 280],
+    ]),
+    paving([
+      [80, 240],
+      [120, 250],
+      [110, 300],
+      [80, 280],
+    ]),
+    paving([
+      [300, 200],
+      [480, 200],
+      [480, 360],
+      [300, 360],
+    ]),
+    paving([
+      [214, 190],
+      [226, 190],
+      [226, 215],
+      [214, 215],
+    ]),
+  ],
+  forests: [
+    wood({
+      kind: "polygon",
+      ring: [
+        [20, 300],
+        [110, 300],
+        [110, 327],
+        [47, 327],
+        [47, 380],
+        [20, 380],
+      ],
+    }),
+    wood({
+      kind: "polygon",
+      ring: [
+        [60, 310],
+        [150, 320],
+        [140, 370],
+        [70, 360],
+      ],
+    }),
+    wood({
+      kind: "polygon",
+      ring: [
+        [330, 20],
+        [500, 20],
+        [500, 180],
+        [330, 180],
+      ],
+    }),
+    wood({
+      kind: "stroke",
+      points: [
+        [230, 240],
+        [270, 300],
+        [260, 370],
+      ],
+      width_m: 18,
+    }),
+    wood({
+      kind: "polygon",
+      ring: [
+        [400, 150],
+        [470, 160],
+        [440, 230],
+      ],
+    }),
+  ],
+  water: [
+    { rect: [130, 100, 24, 120], bed_z: -2, surface_z: -1.5 },
+    { rect: [140, 200, 60, 30], bed_z: -2, surface_z: -1.5 },
+  ],
+};
+
+/** A regular `sides`-gon forest: a triangle fan and its ring. */
+function polygonForest(cx: number, cy: number, radius: number, sides: number): ForestShape {
+  const ring: Vec2[] = [];
+  for (let k = 0; k < sides; k++) {
+    const turn = (k / sides) * Math.PI * 2;
+    ring.push([cx + Math.cos(turn) * radius, cy + Math.sin(turn) * radius]);
+  }
+  const triangles: number[] = [],
+    boundaries: number[] = [];
+  for (let k = 0; k < sides; k++) {
+    const a = ring[k],
+      b = ring[(k + 1) % sides];
+    boundaries.push(a[0], a[1], b[0], b[1], 0);
+    if (k > 0 && k < sides - 1) triangles.push(ring[0][0], ring[0][1], a[0], a[1], b[0], b[1], 0);
+  }
+  return {
+    canopy: 12,
+    trunkRange: [0, 0],
+    kind: "polygon",
+    strokes: new Float32Array(0),
+    triangles: Float32Array.from(triangles),
+    boundaries: Float32Array.from(boundaries),
+  };
+}
+
+/** A town-sized ground: curved roads cut to 2 m segments, polygon and strip
+ *  woods, and a river of rects. */
+export function denseGround(sizeM: number, roads: number, woods: number): TerrainSite {
+  const random = mulberry32.create(7);
+  const next = () => mulberry32.sample(random);
+  const strokes: number[] = [];
+  for (let r = 0; r < roads; r++) {
+    let x = next() * sizeM,
+      y = next() * sizeM,
+      heading = next() * Math.PI * 2;
+    const half = 3 + Math.floor(next() * 3) * 1.5;
+    for (let s = 0; s < 300; s++) {
+      heading += (next() - 0.5) * 0.12;
+      const nx = Math.min(sizeM, Math.max(0, x + Math.cos(heading) * 2)),
+        ny = Math.min(sizeM, Math.max(0, y + Math.sin(heading) * 2));
+      strokes.push(x, y, nx, ny, half, 1);
+      x = nx;
+      y = ny;
+    }
+  }
+  const forestShapes: ForestShape[] = [];
+  for (let w = 0; w < woods; w++) {
+    const shape = polygonForest(
+      40 + next() * (sizeM - 80),
+      40 + next() * (sizeM - 80),
+      15 + next() * 25,
+      24,
+    );
+    forestShapes.push(shape);
+  }
+  const strip: number[] = [];
+  for (let s = 0; s < 60; s++)
+    strip.push(
+      100 + s * 4,
+      900 + Math.sin(s / 6) * 30,
+      104 + s * 4,
+      900 + Math.sin((s + 1) / 6) * 30,
+      9,
+      0,
+    );
+  forestShapes.push({
+    canopy: 12,
+    trunkRange: [0, 0],
+    kind: "stroke",
+    strokes: Float32Array.from(strip),
+    triangles: new Float32Array(0),
+    boundaries: new Float32Array(0),
+  });
+  const water: number[] = [];
+  for (let s = 0; s < 40; s++) water.push(s * 40, 500 + Math.sin(s / 5) * 60, 44, 18);
+  return {
+    map: [0, 0, sizeM, sizeM],
+    surfaceStrokes: Float32Array.from(strokes),
+    surfaceStrokeStride: 6,
+    surfaceTriangles: new Float32Array(0),
+    surfaceTriangleStride: 7,
+    surfaceBoundaries: new Float32Array(0),
+    surfaceBoundaryStride: 5,
+    forests: Float32Array.of(1200, 1200, 300, 240, 1350, 1300, 200, 200),
+    forestShapes,
+    water: Float32Array.from(water),
+    buildings: [],
+    footprints: new Float32Array(0),
+  };
+}

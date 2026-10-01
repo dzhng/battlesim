@@ -11,11 +11,12 @@ export async function surfaceExportAgreement(ctx) {
     const terrainPath = file("packages/battle-renderer/src/frame/terrainMaterial.ts");
     const terrainText = await (await fetch(terrainPath)).text();
     const gpuUrl = terrainText.match(/from ["']([^"']*typegpu[^"']*)["']/)[1];
-    const [{ tgpu, d }, { GpuRegistry }, terrain, mesh, rules, biome, wasm, allocations] =
+    const [{ tgpu, d }, { GpuRegistry }, terrain, field, mesh, rules, biome, wasm, allocations] =
       await Promise.all([
         import(gpuUrl),
         import(file("packages/battle-renderer/src/frame/registry.ts")),
         import(terrainPath),
+        import(file("packages/battle-renderer/src/terrain/surfaceField.ts")),
         import(file("packages/battle-renderer/src/worldMesh.ts")),
         import(file("apps/battle-lab/src/scenarios.ts")),
         import(file("fixtures/biomes/summer.json")),
@@ -90,6 +91,14 @@ export async function surfaceExportAgreement(ctx) {
       { name: "left of touching polygon edge", xy: [11.75, 45], distance: 5 },
       { name: "right of touching polygon edge", xy: [12.25, 45], distance: 5 },
     ];
+    // Each case is read twice: by a pixel as wide as the map, which reads
+    // every distance exactly, and by a play-camera pixel, which reads it
+    // exactly as far as its feathers reach and keeps its side beyond.
+    const queries = [
+      ...cases.map((c) => ({ ...c, footprint: 1e9 })),
+      ...cases.map((c) => ({ ...c, footprint: 0.1 })),
+    ];
+    const reach = terrain.groundReach(biome.default, field.SURFACE_FOOTPRINT_M).paved;
     let rows;
     try {
       const exported = mesh.readWorldExports(view);
@@ -99,43 +108,48 @@ export async function surfaceExportAgreement(ctx) {
       await source.ready();
       source.set(world.terrain);
       const queryLayout = tgpu.bindGroupLayout({
-        points: { storage: (n) => d.arrayOf(d.vec2f, n), access: "readonly" },
+        points: { storage: (n) => d.arrayOf(d.vec4f, n), access: "readonly" },
         output: { storage: (n) => d.arrayOf(d.vec4f, n), access: "mutable" },
       });
       const groundSite = terrain.groundSite;
+      const groundCell = terrain.groundCell;
       const groundColour = terrain.groundColour;
       const kernel = tgpu
         .computeFn({ in: { gid: d.builtin.globalInvocationId }, workgroupSize: [1] })(`{
-        let xy=queryLayout.$.points[gid.x];let site=groundSite(xy);let actual=groundColour(xy,0.1,site,-1e9);let interior=groundColour(xy,0.1,vec4f(site.xy,5.0,site.w),-1e9);queryLayout.$.output[gid.x]=vec4f(site.z,actual.w,interior.w,site.w);
+        let query=queryLayout.$.points[gid.x];let xy=query.xy;let site=groundSite(xy,groundCell(xy,query.z));let actual=groundColour(xy,0.1,site,-1e9);let interior=groundColour(xy,0.1,vec4f(site.xy,5.0,site.w),-1e9);queryLayout.$.output[gid.x]=vec4f(site.z,actual.w,interior.w,site.w);
       }`)
-        .$uses({ queryLayout, groundSite, groundColour });
+        .$uses({ queryLayout, groundSite, groundCell, groundColour });
       const pipeline = root.createComputePipeline({ compute: kernel });
       await pipeline.initAsync();
       const input = registry.buffer({
-        size: cases.length * 8,
+        size: queries.length * 16,
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
       });
       const output = registry.buffer({
-        size: cases.length * 16,
+        size: queries.length * 16,
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
       });
       const read = registry.buffer({
-        size: cases.length * 16,
+        size: queries.length * 16,
         usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
       });
-      device.queue.writeBuffer(input, 0, Float32Array.from(cases.flatMap((c) => c.xy)));
+      device.queue.writeBuffer(
+        input,
+        0,
+        Float32Array.from(queries.flatMap((c) => [...c.xy, c.footprint, 0])),
+      );
       const encoder = root["~unstable"].createCommandEncoder();
       pipeline
         .with(source.group)
         .with(root.createBindGroup(queryLayout, { points: input, output }))
         .with(encoder)
-        .dispatchWorkgroups(cases.length);
-      root.unwrap(encoder).copyBufferToBuffer(output, 0, read, 0, cases.length * 16);
+        .dispatchWorkgroups(queries.length);
+      root.unwrap(encoder).copyBufferToBuffer(output, 0, read, 0, queries.length * 16);
       encoder.submit();
       await read.mapAsync(GPUMapMode.READ);
       try {
         const values = new Float32Array(read.getMappedRange());
-        rows = cases.map((c, i) => ({
+        rows = queries.map((c, i) => ({
           ...c,
           actual: values[i * 4],
           roughness: values[i * 4 + 1],
@@ -151,7 +165,7 @@ export async function surfaceExportAgreement(ctx) {
     }
     const final = live();
     device.destroy();
-    return { rows, validation, final, compiled };
+    return { rows, reach, validation, final, compiled };
   }, repo);
   const compiled = result.compiled;
   delete result.compiled;
@@ -162,8 +176,13 @@ export async function surfaceExportAgreement(ctx) {
   ctx.check(
     "polygon paving uses exposed union boundaries across diagonals, overlaps and touching edges",
     result.rows.every(
-      (r) => r.actual === r.distance && (r.distance !== 5 || r.roughness === r.interiorRoughness),
+      (r) =>
+        (r.footprint > 1 || Math.abs(r.distance) <= result.reach
+          ? r.actual === r.distance
+          : r.actual >= r.distance) &&
+        (r.distance !== 5 || r.roughness === r.interiorRoughness),
     ) &&
+      result.rows.some((r) => r.footprint < 1 && Math.abs(r.distance) <= result.reach) &&
       result.validation.length === 0 &&
       Object.values(result.final).every((value) => value === 0),
     JSON.stringify(result),

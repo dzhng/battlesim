@@ -22,6 +22,8 @@ export const GRASS_TILE_M = 4;
 export const GRASS_MAX_TILES = 256;
 /** Plot kinds the GPU growth table holds; the last row is the verge. */
 export const GRASS_GROWTH_ROWS = 16;
+/** Grass thins and lowers over this far past a road's or a wood's margin. */
+export const GRASS_EDGE_M = 1.2;
 /** Grass appearances one field draws. */
 export const GRASS_MAX_KINDS = 16;
 /** The field's two tiers, near then far: which of a grass kind's LOD tiers
