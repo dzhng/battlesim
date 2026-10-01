@@ -10,7 +10,7 @@ import {
 import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import type { MapDefinition } from "@web/maps/resolve";
 import { SavedMap } from "../savedMaps";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
 import type { WeaponRow } from "@packages/scene-assets/src/units";
 import { LabViewport, type ViewportFrame } from "../LabViewport";
@@ -20,17 +20,17 @@ import {
   type EffectPublication,
   type EffectSegment,
 } from "@packages/battle-renderer/src/effects/effectFrame";
-import { createEffectFrame, villageEffects } from "../effectFeed";
+import { createEffectFrame, gameEffects } from "../effectFeed";
 import { useStaticWorld, type WorldView } from "../useStaticWorld";
-import { VILLAGE_RULES } from "../scenarios";
-import { villageBiome } from "../villageBiome";
-import { useVillageAppearances } from "../villageAppearances";
+import { GAME_RULES } from "../scenarios";
+import { gameBiome } from "../gameBiome";
+import { useGameAppearances } from "../gameAppearances";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
 import { useFeed } from "../feed";
-import { villageCamera } from "../villageCamera";
+import { gameCamera } from "../gameCamera";
 
 // Flight reproduction bench. Scripted bodies move at constant velocity (one
-// reverses after launch); emitters fire the village weapon rows through the
+// reverses after launch); emitters fire the game weapon rows through the
 // same solve → spread → launch path weapons use, all at tick 0. Nothing here
 // decides a hit: the Rust store reports every event, judging armoured bodies
 // by the battle's hull policy, so failed penetrations may glance off.
@@ -39,7 +39,7 @@ import { villageCamera } from "../villageCamera";
 // ricochets and impact, blasts, and each emitter's launch.
 
 const SEED = 20260925;
-const TICK_HZ = village.tick_hz;
+const TICK_HZ = game.tick_hz;
 // The weapon rows as the simulation resolved them (`extends` applied), at
 // the real rounds' speeds. The game flies a gun round at a fraction of its
 // real speed under that fraction squared of gravity (`gravity_scale`): the
@@ -52,8 +52,8 @@ const W: Record<string, WeaponRow> = Object.fromEntries(
     return [name, { ...row, speed_mps: row.speed_mps / Math.sqrt(g), gravity_scale: 1 }];
   }),
 );
-const P = village.physics;
-// No village weapon has indirect-fire capability yet; this lab-only row
+const P = game.physics;
+// No game weapon has indirect-fire capability yet; this lab-only row
 // exercises the opt-in high arc with a slow round whose apex fits the frame.
 const LAB_MORTAR = {
   speed_mps: 45,
@@ -62,7 +62,7 @@ const LAB_MORTAR = {
   suppression_radius_m: 10,
   trajectory: "indirect",
 };
-// The oblique-AP preset: village AP pierces every face of the tank, so this
+// The oblique-AP preset: game AP pierces every face of the tank, so this
 // lab-only row is a spent AP round (penetration below the front plate) whose
 // failed penetrations may glance off.
 const LAB_SPENT_AP = { ...W.tank_ap, penetration: 120 };
@@ -254,7 +254,7 @@ const BALLISTICS_CAMERA: Camera3DParams = {
   distance: 380,
   pitch: 0.62,
   yaw: -1.3,
-  ...villageCamera.lens,
+  ...gameCamera.lens,
 };
 
 type Lab = InstanceType<Wasm["FlightLab"]>;
@@ -333,7 +333,7 @@ function packBodies(view: WorldView, k: number): Float64Array {
 function startRun(wasm: Wasm, map: MapDefinition, view: WorldView, spread: boolean): Run {
   const lab = new wasm.FlightLab(
     JSON.stringify(map),
-    JSON.stringify(VILLAGE_RULES),
+    JSON.stringify(GAME_RULES),
     JSON.stringify(UNITS.hull("tank")!.armor),
     SEED,
   );
@@ -536,12 +536,12 @@ export default function Ballistics() {
 
 function BallisticsLab({ map }: { map: MapDefinition }) {
   const world = useStaticWorld(map);
-  const appearances = useVillageAppearances();
+  const appearances = useGameAppearances();
   const meshes = useMemo(
     () =>
       world &&
       appearances &&
-      buildWorldLayers(world.exports, world.layout, villageBiome, "surface", [], appearances),
+      buildWorldLayers(world.exports, world.layout, gameBiome, "surface", [], appearances),
     [world, appearances],
   );
   const worldFeed = useFeed(meshes);
@@ -556,7 +556,7 @@ function BallisticsLab({ map }: { map: MapDefinition }) {
   // Combat effects: each step noted as a publication, drawn at the clock of
   // the tick shown (the lab steps whole ticks, so its clock does too).
   const effects = useMemo(() => createEffectFrame(TICK_HZ), []);
-  const effectBatch = useMemo(() => createEffectBatch(villageEffects.capacity), []);
+  const effectBatch = useMemo(() => createEffectBatch(gameEffects.capacity), []);
 
   useEffect(() => {
     void loadWasm().then(setWasm);

@@ -20,15 +20,15 @@ import {
 } from "../../packages/battle-renderer/src/playAreaOverlay";
 import { strokeWidth, validateStrokeRule } from "../../packages/battle-renderer/src/strokeWidth";
 import { dragFacing } from "../src/battle/input/useUnitControl";
-import { villageOrderStyle } from "@apps/battle-lab/src/villageOverlay";
-import village from "../../fixtures/village.json";
+import { gameOrderStyle } from "@apps/battle-lab/src/gameOverlay";
+import game from "../../fixtures/game.json";
 
 const flat = () => 0;
-const STROKE_RULE = validateStrokeRule(village.presentation.overlay.stroke);
+const STROKE_RULE = validateStrokeRule(game.presentation.overlay.stroke);
 /** The stroke widths where one pixel spans `m` metres. */
 const at = (m: number) => ({ stroke: strokeWidth(STROKE_RULE, m) });
 /** The fixture's orders, with the HUD's "can't" colour for a blocked route. */
-const STYLE = villageOrderStyle;
+const STYLE = gameOrderStyle;
 /** The cover pips as painted: their colours past full value by `cover_glow`. */
 const glowing = (c: Rgba, g: number): Rgba => [c[0] * g, c[1] * g, c[2] * g, c[3]];
 const COVER_COLORS = {
@@ -604,18 +604,18 @@ test("every order mark is paint: the orders in their colour, the selection in it
 test("paint lies on the ground: no style carries a mark height, and every mark sits on the surface", () => {
   // One owner of how a mark clears the ground: its raster (the paint's pull,
   // the overlay's depth bias), never a lift in a style or a mesh.
-  const authored = village.presentation.overlay as unknown as {
+  const authored = game.presentation.overlay as unknown as {
     orders: Record<string, unknown>;
     paint: Record<string, number>;
     glow: { ground: number };
   };
   expect(authored.orders).not.toHaveProperty("lift_m");
-  expect(village.presentation.map_border).not.toHaveProperty("lift_m");
+  expect(game.presentation.map_border).not.toHaveProperty("lift_m");
   expect(() =>
     validatePaintStyle({ emissive: authored.glow.ground, ...authored.paint } as PaintStyle),
   ).not.toThrow();
   expect(() =>
-    validateMapBorder(village.presentation.map_border as unknown as MapBorderStyle),
+    validateMapBorder(game.presentation.map_border as unknown as MapBorderStyle),
   ).not.toThrow();
   // On a slope, every vertex of every mark lies on it, but for the few
   // centimetres an arrowhead or chevron stacks over the ring it meets.
@@ -631,7 +631,7 @@ test("paint lies on the ground: no style carries a mark height, and every mark s
   expect(Math.max(...rise)).toBeLessThan(0.05);
   const border = buildMapBorder(
     [100, 100],
-    village.presentation.map_border as unknown as MapBorderStyle,
+    game.presentation.map_border as unknown as MapBorderStyle,
     1,
     slope,
   );

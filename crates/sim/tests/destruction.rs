@@ -15,7 +15,7 @@ use sim::math::v2;
 use crate::common;
 
 fn rules() -> Value {
-    common::village()
+    common::game()
 }
 
 fn row(kind: &str) -> contract::catalog::PropBody {

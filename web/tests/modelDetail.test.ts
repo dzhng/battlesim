@@ -4,7 +4,7 @@
 // group it binds; and corpses as static instances, chunked for the thousands.
 import { expect, test } from "vitest";
 import { frustum } from "math/shapes";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { createDetailView, setDetailView } from "@packages/battle-renderer/src/frame/detailView";
 import {
@@ -26,7 +26,7 @@ import {
 } from "@packages/battle-renderer/src/models/modelInstances";
 import type { PoseFrame } from "@packages/battle-renderer/src/models/poseDriver";
 
-const DETAIL = validateModelDetail(village.presentation.models as ModelDetailPresentation);
+const DETAIL = validateModelDetail(game.presentation.models as ModelDetailPresentation);
 const HEIGHT = 1080;
 /** The village's default framing: 65 m from a target on the ground, looking north. */
 const camera = (

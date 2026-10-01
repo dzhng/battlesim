@@ -420,7 +420,7 @@ fn an_objective_the_column_cannot_reach_is_refused() {
 fn a_squad_is_garrisoned_only_where_every_soldier_has_a_seat() {
     let (map, sites, recipe) = (town_map(800.0, json!({})), town_sites(800.0), recipe());
     // Seven seats to a building: one too few for a squad of eight.
-    let mut fixture = common::village();
+    let mut fixture = common::game();
     fixture["buildings"]["capacity_soldiers"] = json!(7);
     let cramped: Rules = serde_json::from_value(fixture.clone()).unwrap();
     let planned = plan_with(&map, &sites, &cramped, &recipe, 1);
@@ -675,7 +675,7 @@ fn the_json_boundary_answers_with_the_planned_encounter_or_named_diagnostics() {
         serde_json::from_str(&plan_encounter_json(
             &serde_json::to_string(&map).unwrap(),
             &serde_json::to_string(sites).unwrap(),
-            &common::village().to_string(),
+            &common::game().to_string(),
             &serde_json::to_string(&recipe).unwrap(),
             seed,
         ))

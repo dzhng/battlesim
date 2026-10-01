@@ -3,7 +3,7 @@
 // the pose driver's drawn vehicles and soldiers per frame. Sound tables and
 // levels come from the fixture's `presentation.audio`; fires burn as long
 // as the effects' smoke does.
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import {
   validateAudio,
   type AudioPresentation,
@@ -11,20 +11,20 @@ import {
 import { BattleAudio } from "@packages/battle-audio/src/battleAudio";
 import type { SoundMotion, SoundVehicle } from "@packages/battle-audio/src/soundFrame";
 import type { PoseFrame } from "@packages/battle-renderer/src/models/poseDriver";
-import { villageEffects } from "./effectFeed";
+import { gameEffects } from "./effectFeed";
 import { sideKey } from "@packages/battle-renderer/src/sideKey";
 import type { Side } from "@packages/scene-assets/src/schema";
 
-export const villageAudio: AudioPresentation = validateAudio(
-  village.presentation.audio as unknown as AudioPresentation,
+export const gameAudio: AudioPresentation = validateAudio(
+  game.presentation.audio as unknown as AudioPresentation,
 );
 
 /** A battle's sound, heard as `presentation.audio` says. */
 export function createBattleAudio(tickHz: number): BattleAudio {
   return new BattleAudio({
     tickHz,
-    presentation: villageAudio,
-    smokeTimes: villageEffects.smoke,
+    presentation: gameAudio,
+    smokeTimes: gameEffects.smoke,
   });
 }
 

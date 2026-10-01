@@ -125,7 +125,7 @@ fn every_move_ends_in_a_fresh_seeded_arrangement() {
     let u = b.unit(UnitId(0)).unwrap();
     assert!(u.orders.is_empty(), "every walk arrived");
     // Arrived around the ordered point, spread out and spaced (D1, Q7).
-    let im = &common::village()["infantry_movement"];
+    let im = &common::game()["infantry_movement"];
     let spacing = im["spacing_m"].as_f64().unwrap();
     let spread = im["spread_m"].as_f64().unwrap();
     assert!((u.position.xy() - sim::math::v2(60.0, 40.0)).length() < 1.0);

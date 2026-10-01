@@ -4,7 +4,7 @@ import { beforeAll, expect, test } from "vitest";
 import * as wasm from "@wasm/game_wasm.js";
 import lab from "@fixtures/generated-lab.json";
 import encounters from "@fixtures/encounters.json";
-import { VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
+import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
 import { PreparationRefused, prepareGeneratedBattle } from "../src/battle/prepare/generatedBattle";
 import type { PrepareRequest } from "../src/battle/prepare/protocol";
 import type { WorldLayout } from "@packages/battle-renderer/src/worldMesh";
@@ -19,7 +19,7 @@ beforeAll(() => {
   }).memory;
 });
 
-const rules = JSON.stringify(VILLAGE_RULES);
+const rules = JSON.stringify(GAME_RULES);
 const assault = encounters.recipes.assault;
 
 test("the lab plans a recipe the recipes file holds", () => {

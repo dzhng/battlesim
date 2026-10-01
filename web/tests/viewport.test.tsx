@@ -2,7 +2,7 @@ import { act, cleanup, render } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { afterEach, expect, test, vi } from "vitest";
 import { LabViewport } from "@apps/battle-lab/src/LabViewport";
-import { villageCamera } from "@apps/battle-lab/src/villageCamera";
+import { gameCamera } from "@apps/battle-lab/src/gameCamera";
 import type { BattleFrame, WorldLayers } from "@packages/battle-renderer/src/scene";
 
 const gpu = vi.hoisted(() => ({
@@ -40,7 +40,7 @@ function mount(overrides: Partial<ComponentProps<typeof LabViewport>> = {}) {
   const props = {
     fixture: "lifetime",
     world: { current: {} as WorldLayers, subscribe: () => () => {} },
-    initialCamera: villageCamera.opening(),
+    initialCamera: gameCamera.opening(),
     ...overrides,
   };
   return { view: render(<LabViewport {...props} />), props, frames };

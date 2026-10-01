@@ -4,9 +4,9 @@
 // village, so red's ids and garrisons are unchanged.
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { villageScenario } from "./savedMaps";
-import { VILLAGE_RULES } from "./scenarios";
+import { GAME_RULES } from "./scenarios";
 import { useBuiltScenario } from "./useBuiltScenario";
-import { villageCamera } from "./villageCamera";
+import { gameCamera } from "./gameCamera";
 import type { Wasm } from "@web/battle/sim/module";
 
 /** Blue's nine units, in the village's blue order. */
@@ -29,7 +29,7 @@ export const STREET_CAMERA: Camera3DParams = {
   distance: 150,
   pitch: 0.9076,
   yaw: 3.752,
-  ...villageCamera.lens,
+  ...gameCamera.lens,
 };
 
 type UnitSetup = { side: string; kind: string; position: [number, number]; yaw: number };
@@ -39,7 +39,7 @@ export function useStreetScenario() {
   return useBuiltScenario({}, (wasm) => buildStreetScenario(wasm));
 }
 
-export async function buildStreetScenario(wasm: Wasm, rules = VILLAGE_RULES) {
+export async function buildStreetScenario(wasm: Wasm, rules = GAME_RULES) {
   const s = JSON.parse(await villageScenario(wasm, "ordinary", rules)) as { units: UnitSetup[] };
   const blue = s.units.filter((u) => u.side === "blue");
   if (blue.length !== STREET.length) throw new Error("the street places the village's blue units");

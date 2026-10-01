@@ -151,13 +151,12 @@ pub struct ForestRule {
     /// Each trunk moves up to this fraction of the spacing off its cell's
     /// centre, on each axis (seeded by the forest, so every reader agrees).
     pub trunk_jitter: f64,
-    /// Detection-range multiplier for a target under full foliage, by
-    /// class: the per-class strength is the rule (Q21).
+    /// Detection-range multiplier for a target on uncleared forest ground, by class.
     pub concealment_infantry: f64,
     pub concealment_vehicle: f64,
     /// Foliage depth per metre a sight line crosses below the canopy.
     pub attenuation_per_m: f64,
-    /// A trunk's crown: it conceals each fog cell whose centre lies this near.
+    /// A trunk's crown: it attenuates sight through fog cells whose centres lie this near.
     pub canopy_radius_m: f64,
     pub canopy_height_m: f64,
     pub trunk_radius_m: f64,
@@ -468,6 +467,12 @@ impl Armor {
 /// Optical sensing and concealment (the fixture's `sensors` section).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SensorRules {
+    /// Minimum fraction of living soldiers one observer must see to identify a squad.
+    #[serde(default = "squad_identification_fraction")]
+    pub squad_identification_fraction: f64,
+    /// Fraction of living soldiers that concealment must exceed for HIDDEN.
+    #[serde(default = "squad_hidden_fraction")]
+    pub squad_hidden_fraction: f64,
     /// A ground ray whose foliage depth (the sum of each crossed metre's
     /// `attenuation_per_m` below the canopy) reaches this is blocked
     /// outright; below it, reach is `range · exp(−depth)`.
@@ -489,6 +494,13 @@ pub struct SensorRules {
     pub sound_bucket_s: f64,
     /// Height above ground tested for ground visibility.
     pub fog_target_height_m: f64,
+}
+
+fn squad_identification_fraction() -> f64 {
+    0.2
+}
+fn squad_hidden_fraction() -> f64 {
+    0.8
 }
 
 /// How far a unit sees by direction, as multipliers of its ground range:
@@ -517,7 +529,7 @@ pub struct ServiceRules {
     pub stock_per_soldier: u32,
 }
 
-/// The game's rules (`fixtures/village.json` with its catalog). Loading
+/// The game's rules (`fixtures/game.json` with its catalog). Loading
 /// them checks what crosses sections: every mount names a weapon row.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(try_from = "UncheckedRules")]

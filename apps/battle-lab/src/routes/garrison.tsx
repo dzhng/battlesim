@@ -15,9 +15,9 @@ import {
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
-import { durableSoldiers, VILLAGE_RULES } from "../scenarios";
+import { durableSoldiers, GAME_RULES } from "../scenarios";
 import { useFeed } from "../feed";
-import { villageCamera } from "../villageCamera";
+import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
 
 // The garrison map's saved encounter
@@ -35,7 +35,7 @@ import { TickStatus } from "../TickStatus";
 const BUILDING = 0;
 // Keep direct fire from eliminating the occupants before the house falls;
 // collapse itself still decides which soldiers escape.
-const RULES = durableSoldiers(VILLAGE_RULES);
+const RULES = durableSoldiers(GAME_RULES);
 const SEED = 11;
 
 const GARRISON_CAMERA: Camera3DParams = {
@@ -43,7 +43,7 @@ const GARRISON_CAMERA: Camera3DParams = {
   distance: 95,
   pitch: 1.12,
   yaw: -1.57,
-  ...villageCamera.lens,
+  ...gameCamera.lens,
 };
 
 /** Blue's squads, listed even once eliminated. */

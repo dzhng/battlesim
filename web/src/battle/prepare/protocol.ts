@@ -33,7 +33,7 @@ export interface PrepareRequest {
   /** The physical template descriptors the request pins, as text. */
   templates: string;
   limits: CompileLimits;
-  /** The rules the battle runs under, as JSON text (the village's, with the
+  /** The rules the battle runs under, as JSON text (the game's, with the
    *  resolved catalog). */
   rules: string;
   /** One recipe of `fixtures/encounters.json` (`contract::encounter::

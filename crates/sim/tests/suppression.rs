@@ -254,7 +254,7 @@ fn after_the_lull_a_pinned_squad_recovers_tier_by_tier() {
 #[test]
 fn tiers_that_do_not_climb_or_cost_less_deeper_fail_at_load() {
     let load = |patch: Value| {
-        let mut fixture = common::village();
+        let mut fixture = common::game();
         for (k, v) in patch.as_object().unwrap() {
             fixture["suppression"][k] = v.clone();
         }

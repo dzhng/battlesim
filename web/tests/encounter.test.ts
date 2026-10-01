@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { initSync, generate_map, plan_encounter } from "@wasm/game_wasm.js";
-import { VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
+import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
 import { mapAndSites } from "../src/battle/prepare/generatedBattle";
 
 const fixture = (path: string) =>
@@ -17,7 +17,7 @@ const recipes = JSON.parse(fixture("encounters.json")).recipes as Record<
   string,
   Record<string, Record<string, unknown>>
 >;
-const rules = JSON.stringify(VILLAGE_RULES);
+const rules = JSON.stringify(GAME_RULES);
 
 beforeAll(() => {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });

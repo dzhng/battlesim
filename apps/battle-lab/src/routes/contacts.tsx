@@ -7,7 +7,7 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useFeed } from "../feed";
-import { villageCamera } from "../villageCamera";
+import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
 
 // Blue watches the ridge. Red's rifle squad hides behind it and fires every
@@ -20,7 +20,7 @@ const CONTACTS_CAMERA: Camera3DParams = {
   distance: 520,
   pitch: 0.95,
   yaw: -1.57,
-  ...villageCamera.lens,
+  ...gameCamera.lens,
 };
 
 export default function Contacts() {

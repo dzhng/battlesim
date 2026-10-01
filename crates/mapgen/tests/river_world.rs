@@ -58,8 +58,7 @@ fn on_deck(bridge: &Bridge, along: f64, across: f64) -> [f64; 2] {
 /// the map's centre, which on a river map it can only do by the decks.
 #[test]
 fn a_generated_bridge_is_stepped_onto_from_dry_land_and_carries_the_roads_over() {
-    let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::village()).unwrap();
+    let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
     let mut bridges = 0;
     for (map_type, size, seed) in [
         (MapType::Open, MapSize::Small, 3),

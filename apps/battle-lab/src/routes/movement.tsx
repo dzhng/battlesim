@@ -8,7 +8,7 @@ import { LabViewport } from "../LabViewport";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useBattleSession } from "../useBattleSession";
 import { useFeed } from "../feed";
-import { villageCamera } from "../villageCamera";
+import { gameCamera } from "../gameCamera";
 
 // A wall drops across the main road at tick 150: units only learn of it by
 // coming close, then route around it.
@@ -19,7 +19,7 @@ const MOVEMENT_CAMERA: Camera3DParams = {
   distance: 390,
   pitch: 0.95,
   yaw: -1.5,
-  ...villageCamera.lens,
+  ...gameCamera.lens,
 };
 
 /** Reference commands the lab can send, exactly as a player would. */

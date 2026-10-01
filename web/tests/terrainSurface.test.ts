@@ -3,7 +3,7 @@
 // is WorldView's ground (heights and normals, at triangle edges and where
 // props stand), and the material's road, forest and water masks are the
 // simulation's surface rules.
-import { VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
+import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
 import { readFileSync } from "node:fs";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { polygon2 } from "math/shapes";
@@ -40,11 +40,11 @@ afterEach(() => {
 
 beforeAll(() => {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
-  layout = JSON.parse(world_layout(JSON.stringify(VILLAGE_RULES))) as WorldLayout;
+  layout = JSON.parse(world_layout(JSON.stringify(GAME_RULES))) as WorldLayout;
 });
 
 function world(map: unknown): { view: WorldView; exports: WorldExports } {
-  const view = new WorldView(JSON.stringify(map), JSON.stringify(VILLAGE_RULES));
+  const view = new WorldView(JSON.stringify(map), JSON.stringify(GAME_RULES));
   views.push(view);
   return {
     view,

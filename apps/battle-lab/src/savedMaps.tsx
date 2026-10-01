@@ -9,7 +9,7 @@ import type { MapDefinition } from "@web/maps/resolve";
 import type { Wasm } from "@web/battle/sim/module";
 import {
   labScenario,
-  VILLAGE_RULES,
+  GAME_RULES,
   type LabEncounter,
   type LabEvent,
   type LabScript,
@@ -30,7 +30,7 @@ export interface SavedBattle {
 export async function villageScenario(
   wasm: Wasm,
   variant: string,
-  rules = VILLAGE_RULES,
+  rules = GAME_RULES,
 ): Promise<string> {
   const { definition } = await loadMap("village");
   return wasm.village_scenario(JSON.stringify({ ...rules, map: definition }), variant);
@@ -42,7 +42,7 @@ export async function enduranceScenario(wasm: Wasm, seed: number, late: boolean)
   const { definition } = await loadMap("endurance");
   return wasm.endurance_scenario(
     JSON.stringify(definition),
-    JSON.stringify(VILLAGE_RULES),
+    JSON.stringify(GAME_RULES),
     BigInt(seed),
     late,
   );
@@ -53,7 +53,7 @@ export async function enduranceScenario(wasm: Wasm, seed: number, late: boolean)
 export async function savedBattle(
   id: string,
   name: string,
-  rules = VILLAGE_RULES,
+  rules = GAME_RULES,
 ): Promise<SavedBattle> {
   const [{ definition }, saved] = await Promise.all([loadMap(id), loadEncounter(id, name)]);
   const encounter: LabEncounter = {
@@ -112,12 +112,12 @@ export function SavedMap({
 export function SavedEncounters<Name extends string>({
   map,
   encounters,
-  rules = VILLAGE_RULES,
+  rules = GAME_RULES,
   children,
 }: {
   map: string;
   encounters: readonly Name[];
-  rules?: typeof VILLAGE_RULES;
+  rules?: typeof GAME_RULES;
   children: (battles: Record<Name, SavedBattle>) => ReactNode;
 }) {
   const battles = useBuiltScenario({ map, encounters }, async (_, o) => {
@@ -143,7 +143,7 @@ export function SavedEncounter({
 }: {
   map: string;
   encounter: string;
-  rules?: typeof VILLAGE_RULES;
+  rules?: typeof GAME_RULES;
   children: (battle: SavedBattle) => ReactNode;
 }) {
   return (

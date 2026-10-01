@@ -8,7 +8,7 @@
 // reset clears everything.
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { expect, test } from "vitest";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import { mountMuzzles } from "@packages/scene-assets/src/mountMuzzle";
 import { offeredCastLights } from "@packages/battle-renderer/src/light/castLights";
 import {
@@ -29,7 +29,7 @@ import {
 
 const HZ = 30;
 const DT = 1 / HZ;
-const PRESENTATION = village.presentation.effects as unknown as EffectPresentation;
+const PRESENTATION = game.presentation.effects as unknown as EffectPresentation;
 /** The tank's mounts' muzzles, from its type's `mounts` rows. */
 const [CANNON, HMG] = mountMuzzles(UNITS.type("tank").mounts);
 /** The cannon at rest, from the hull origin (forward, left, up): its pivot
@@ -569,7 +569,7 @@ test("a tracer never leaves its published stretch, corners included", () => {
 });
 
 test("the village's round kinds each have a tracer and flash of their own", () => {
-  const kinds = Object.keys(village.weapons);
+  const kinds = Object.keys(game.weapons);
   const look = (kind: string) =>
     JSON.stringify([PRESENTATION.tracers[kind], PRESENTATION.flashes[kind]]);
   for (const kind of kinds) {

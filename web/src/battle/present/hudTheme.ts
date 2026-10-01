@@ -4,7 +4,7 @@
  *  properties (`--hud-<name>`: "r g b" channels, so a rule picks its own
  *  alpha with `rgb(var(--hud-accent) / 0.5)`), so the stylesheet holds no
  *  colour of its own. */
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import type { Vec3 } from "math";
 
 export interface HudTheme {
@@ -48,9 +48,7 @@ export function validateCalloutGlow(callouts: number): number {
   return callouts;
 }
 
-export const villageCalloutGlow: number = validateCalloutGlow(
-  village.presentation.overlay.glow.callouts,
-);
+export const gameCalloutGlow: number = validateCalloutGlow(game.presentation.overlay.glow.callouts);
 
 const COLOURS = ["accent", "enemy", "text", "dim", "warn", "pinned", "good", "bad"] as const;
 
@@ -71,9 +69,7 @@ export function validateHudTheme(theme: HudTheme): HudTheme {
   return theme;
 }
 
-export const villageHud: HudTheme = validateHudTheme(
-  village.presentation.hud as unknown as HudTheme,
-);
+export const gameHud: HudTheme = validateHudTheme(game.presentation.hud as unknown as HudTheme);
 
 /** A 0–1 colour's rgb as CSS channels ("r g b", 0–255): `rgb(${…})`. */
 export const channels = (c: readonly number[]) =>
@@ -95,8 +91,8 @@ export function hudProperties(theme: HudTheme, calloutGlow = 1): Record<string, 
   return out;
 }
 
-/** Set the village's theme on the document. */
+/** Set the game's theme on the document. */
 export function applyHudTheme() {
-  for (const [k, v] of Object.entries(hudProperties(villageHud, villageCalloutGlow)))
+  for (const [k, v] of Object.entries(hudProperties(gameHud, gameCalloutGlow)))
     document.documentElement.style.setProperty(k, v);
 }

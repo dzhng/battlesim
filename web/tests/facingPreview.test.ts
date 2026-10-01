@@ -1,13 +1,13 @@
 import { expect, test } from "vitest";
 import { buildDestinationPreview } from "@packages/battle-renderer/src/orderOverlay";
-import { villageOrderStyle, villageStroke } from "@apps/battle-lab/src/villageOverlay";
+import { gameOrderStyle, gameStroke } from "@apps/battle-lab/src/gameOverlay";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
 
 test("the held destination marker keeps its anchor while its arrow follows facing", () => {
   const mark = { c: [100, 200] as const, r: 8, facing: 0, placed: true, opacity: 1 };
   const draw = (facing: number) =>
-    buildDestinationPreview([{ ...mark, facing }], () => 0, villageOrderStyle, {
-      stroke: villageStroke(0.05),
+    buildDestinationPreview([{ ...mark, facing }], () => 0, gameOrderStyle, {
+      stroke: gameStroke(0.05),
     });
   const extents = (mesh: Float32Array) => {
     const xs = [],
@@ -84,7 +84,7 @@ test("placement queries coalesce cursor updates and a cancelled reply cannot res
 
 test("an unplaced intention uses the cannot-place color and the confirmation opacity", () => {
   const style = {
-    ...villageOrderStyle,
+    ...gameOrderStyle,
     color: [1, 0, 0, 1] as const,
     blocked: [0, 1, 0, 1] as const,
     glow: { order: 1, selected: 1 },
@@ -93,7 +93,7 @@ test("an unplaced intention uses the cannot-place color and the confirmation opa
     [{ c: [100, 200], r: 8, facing: 0, placed: false, opacity: 0.5 }],
     () => 0,
     style,
-    { stroke: villageStroke(0.05) },
+    { stroke: gameStroke(0.05) },
   );
   expect(mesh.length).toBeGreaterThan(0);
   for (let i = 0; i < mesh.length; i += VERTEX_FLOATS) {

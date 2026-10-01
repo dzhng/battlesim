@@ -20,7 +20,7 @@ const HALF: [f64; 3] = [12.0, 9.0, 4.0];
 const BUILDING: u32 = 0;
 
 fn rules() -> Value {
-    common::village()
+    common::game()
 }
 
 fn num(section: &str, key: &str) -> f64 {

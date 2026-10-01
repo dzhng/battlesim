@@ -1,17 +1,17 @@
 // Lab scenarios compose a resolved map (a saved map of the catalogue, or a
-// test's own) with the one rules owner (village.json), the unit catalog and
+// test's own) with the one rules owner (game.json), the unit catalog and
 // an encounter: units, events and scripted orders.
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import type { Engagement, Order, SideName } from "@web/battle/sim/protocol";
 
 /** Shared rules and resolved catalog. Focused labs may pin experiment controls;
  *  village and endurance builders use these gameplay defaults. */
-export const VILLAGE_RULES = { ...village, catalog: UNITS.documents };
+export const GAME_RULES = { ...game, catalog: UNITS.documents };
 
 /** `rules` with every soldier kind all but unkillable: how a lab keeps a
  *  firefight going so what it shows holds still. */
-export function durableSoldiers(rules: typeof VILLAGE_RULES): typeof VILLAGE_RULES {
+export function durableSoldiers(rules: typeof GAME_RULES): typeof GAME_RULES {
   const durable = structuredClone(rules);
   for (const doc of durable.catalog as { soldiers?: Record<string, { hp: number }> }[])
     for (const kind of Object.values(doc.soldiers ?? {})) kind.hp = 1.0e6;
@@ -72,7 +72,7 @@ export function labScenario(
   units: LabUnit[],
   events: LabEvent[] = [],
   scripts: LabScript[] = [],
-  rules = VILLAGE_RULES,
+  rules = GAME_RULES,
 ): string {
   return JSON.stringify({
     map,

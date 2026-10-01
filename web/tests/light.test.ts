@@ -2,7 +2,7 @@
 // The battle's light: `presentation.light` in the
 // fixture is the one owner of the sun, sky, haze, grade, bloom and cascades.
 import { expect, test } from "vitest";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import { loadMap } from "@web/maps/node";
 import {
   postSettings,
@@ -50,7 +50,7 @@ function cascadeBlendWeight(
   return Math.min(1, Math.max(0, Math.min(linearDepth - low, high - linearDepth) / margin));
 }
 
-const LIGHT = village.presentation.light as unknown as LightPresentation;
+const LIGHT = game.presentation.light as unknown as LightPresentation;
 const withLight = (edit: (l: LightPresentation) => void): LightPresentation => {
   const copy = structuredClone(LIGHT);
   edit(copy);
@@ -142,7 +142,7 @@ function visibleGround(cam: Camera3DParams) {
 const CAMERAS: Record<string, Partial<Camera3DParams>> = {
   ground: { target: [170, 800, 0], distance: 25, pitch: 0.22 },
   default: { target: [170, 800, 0], distance: 65 },
-  village: { target: [990, 790, 0], distance: 160, yaw: -1.2 },
+  game: { target: [990, 790, 0], distance: 160, yaw: -1.2 },
   warno: { target: [700, 800, 0], distance: 420, yaw: -1.2 },
   route: { target: [800, 800, 0], distance: 1150 },
   strategic: { target: [170, 800, 0], distance: 2000 },

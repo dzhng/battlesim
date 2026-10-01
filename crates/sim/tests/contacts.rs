@@ -31,7 +31,7 @@ fn fires(unit: u32, ticks: &[u64]) -> Value {
 }
 
 fn lifetime_ticks() -> u64 {
-    (common::village()["sensors"]["contact_lifetime_s"]
+    (common::game()["sensors"]["contact_lifetime_s"]
         .as_f64()
         .unwrap()
         * common::tick_hz() as f64) as u64
@@ -220,7 +220,7 @@ fn losing_sight_leaves_a_fixed_last_seen_area_that_reidentification_retires() {
 /// Each weapon row's bit in a firing report's `heard`: the rules' rows in
 /// name order (the layout's `roundKinds`).
 fn row_bit(row: &str) -> u32 {
-    let rows: Vec<String> = common::village()["weapons"]
+    let rows: Vec<String> = common::game()["weapons"]
         .as_object()
         .unwrap()
         .keys()

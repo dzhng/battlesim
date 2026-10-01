@@ -1,12 +1,12 @@
 // Where the workbench's models come from, both through the one loader
 // (`AppearanceLibrary`):
 // - a catalog appearance: the baked runtime catalog served at the site root,
-//   the page's one load of it (`villageAppearances`);
+//   the page's one load of it (`gameAppearances`);
 // - a dropped GLB: validated in the page with the CLI's own `validateLoose`,
 //   its preview bundle encoded and served from memory, so it installs exactly
 //   as a baked bundle would, findings and all.
 
-import { VILLAGE_RULES } from "../scenarios";
+import { GAME_RULES } from "../scenarios";
 import catalogJson from "../../../../assets/catalog.json";
 import type { Vec3 } from "math";
 import manifest from "../../../../reuse-manifest.json";
@@ -18,7 +18,7 @@ import {
 } from "@packages/scene-assets/src/loader";
 import { validateLoose, type LooseOptions } from "@packages/scene-assets/src/loose";
 import { INFANTRY_CLIPS } from "@packages/scene-assets/src/schema";
-import { reloadVillageAppearances, villageAppearances } from "../villageAppearances";
+import { reloadGameAppearances, gameAppearances } from "../gameAppearances";
 import type {
   AppearanceUnit,
   Catalog,
@@ -84,7 +84,7 @@ export async function loadPropClasses(): Promise<PropClasses> {
   if (!propClasses) {
     const [wasm, village] = await Promise.all([loadWasm(), loadMap("village")]);
     propClasses = {
-      ...(JSON.parse(wasm.world_layout(JSON.stringify(VILLAGE_RULES))) as PropClasses),
+      ...(JSON.parse(wasm.world_layout(JSON.stringify(GAME_RULES))) as PropClasses),
       placed: placedProps(village.definition),
     };
   }
@@ -95,7 +95,7 @@ export async function loadPropClasses(): Promise<PropClasses> {
  *  page's load, or `fresh` after a re-bake. */
 export async function loadCatalog(fresh = false): Promise<InstalledAppearances> {
   await loadPropClasses();
-  return fresh ? reloadVillageAppearances() : villageAppearances();
+  return fresh ? reloadGameAppearances() : gameAppearances();
 }
 
 /** The clip roles that loop, for a dropped GLB's clips: every one but the fall. */

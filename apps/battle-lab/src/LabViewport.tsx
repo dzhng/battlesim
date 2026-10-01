@@ -38,15 +38,11 @@ import type {
 } from "@packages/battle-renderer/src/models/modelInstances";
 import { trackHeldKeys } from "@web/battle/input/heldKeys";
 import type { Project } from "@web/battle/present/readouts";
-import { villageCamera } from "./villageCamera";
-import { villageLightFor } from "./villageLight";
-import { villageFogGeometry, villageFogStyle } from "./villageFog";
-import {
-  villageOverlayGlow,
-  villagePaint,
-  villageXrayMinHiddenFragmentFraction,
-} from "./villageOverlay";
-import { villageModelDetail } from "./villageModels";
+import { gameCamera } from "./gameCamera";
+import { gameLightFor } from "./gameLight";
+import { gameFogGeometry, gameFogStyle } from "./gameFog";
+import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "./gameOverlay";
+import { gameModelDetail } from "./gameModels";
 import type { FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
 import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
@@ -130,7 +126,7 @@ interface LabViewportProps {
   /** What a click can pick when no frame hands picks over (the units'
    *  simulation boxes); each drawn proxy by its own box without it. */
   picks?: readonly PickBox[];
-  /** The camera rig's numbers; the village's by default. */
+  /** The camera rig's numbers; the game's by default. */
   cameraConfig?: CameraPresentation;
 }
 
@@ -423,7 +419,7 @@ export function LabViewport({
   fogStyleRef.current = fogStyle;
   const lightRef = useRef(light);
   useEffect(() => {
-    sceneRef.current?.setFogStyle(fogStyle ?? villageFogStyle);
+    sceneRef.current?.setFogStyle(fogStyle ?? gameFogStyle);
     redrawRef.current();
   }, [fogStyle]);
   const fogSuppressed = useRef(false);
@@ -484,10 +480,7 @@ export function LabViewport({
     // Without a ground, the target keeps its height.
     const ground = (x: number, y: number) =>
       groundAtRef.current ? groundAtRef.current(x, y) : asked.target[2];
-    const controller = new CameraController(
-      cameraConfigRef.current ?? villageCamera.config,
-      ground,
-    );
+    const controller = new CameraController(cameraConfigRef.current ?? gameCamera.config, ground);
     const openGround = createCameraObstacles([], ground);
     const obstaclesNow = () => obstaclesRef.current?.current ?? openGround;
     let resolvedOver: CameraObstacles | null = null;
@@ -561,13 +554,13 @@ export function LabViewport({
         const build = async () => {
           const next = await createBattleFrame(device!, info.format, {
             // A route's own light, else the fixture's (a lab URL's `?sun=` sets it lower).
-            light: lightRef.current ?? villageLightFor(window.location.search),
-            fogGeometry: villageFogGeometry,
-            fogStyle: fogStyleRef.current ?? villageFogStyle,
-            overlayGlow: villageOverlayGlow,
-            paint: villagePaint,
-            xrayMinHiddenFragmentFraction: villageXrayMinHiddenFragmentFraction,
-            models: villageModelDetail,
+            light: lightRef.current ?? gameLightFor(window.location.search),
+            fogGeometry: gameFogGeometry,
+            fogStyle: fogStyleRef.current ?? gameFogStyle,
+            overlayGlow: gameOverlayGlow,
+            paint: gamePaint,
+            xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
+            models: gameModelDetail,
             world: worldRef.current.current!,
             instances: instancesRef.current,
             width: canvas.width,
@@ -846,7 +839,7 @@ export function LabViewport({
           },
           async setOverlayGlowStrength(strength: number | null) {
             scene.setOverlayGlow(
-              strength === null ? villageOverlayGlow : { ...villageOverlayGlow, strength },
+              strength === null ? gameOverlayGlow : { ...gameOverlayGlow, strength },
             );
             await nextFrame();
           },

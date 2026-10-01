@@ -30,7 +30,7 @@ import {
 } from "@packages/battle-renderer/src/terrain/grassField.ts";
 import { eyePosition, viewProjMatrix } from "@packages/renderer-core/src/camera3d.ts";
 import summer from "@fixtures/biomes/summer.json";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import { AUTHORITY, GRASS_SPEC, TOLERANCES } from "./sceneAssets/synthetic";
 
 const ROOT = new URL("../../", import.meta.url);
@@ -134,7 +134,7 @@ test("a clump's tints average to one, so its mean colour is the ground's it grow
 
 /** The village camera's framings, from the fixture. */
 function view(distance: number, pitch: number) {
-  const d = village.presentation.camera.default;
+  const d = game.presentation.camera.default;
   return {
     target: vec3.fromValues(d.target[0], d.target[1], 0),
     distance,
@@ -155,7 +155,7 @@ test("the field's window covers the view where a pixel is under the fade's end, 
   grassWindow(out, eye, 0, scale, biome.grass);
   expect(out.tilesX * out.tilesY).toBe(0);
 
-  const def = view(village.presentation.camera.default.distance, 0.85);
+  const def = view(game.presentation.camera.default.distance, 0.85);
   eyePosition(eye, def);
   grassWindow(out, eye, 0, scale, biome.grass);
   expect(out.reach).toBeCloseTo(biome.grass.fade_m_per_px[1] / scale, 6);

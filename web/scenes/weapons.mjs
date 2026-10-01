@@ -3,7 +3,7 @@
 import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, obs, advance, openBattle } from "./_lab.mjs";
-import { village } from "./_units.mjs";
+import { game } from "./_units.mjs";
 
 const own = (o, id) => o.own.find((u) => u.id === id);
 
@@ -64,7 +64,7 @@ export async function run(ctx) {
       Math.hypot(
         visible.position[0] - squad.position[0],
         visible.position[1] - squad.position[1],
-      ) <= village.weapons.rifle.range_m
+      ) <= game.weapons.rifle.range_m
     ) {
       visibleTankChoices.push({ tick: o.tick, target: visible.id, mounts: squad.mounts });
     }
@@ -93,8 +93,7 @@ export async function run(ctx) {
     !!grace &&
       !!reacquired &&
       reacquired.target.id === grace.target.id &&
-      reacquired.tick - grace.tick <=
-        Math.round(village.sensors.acquisition_grace_s * village.tick_hz),
+      reacquired.tick - grace.tick <= Math.round(game.sensors.acquisition_grace_s * game.tick_hz),
     JSON.stringify({ grace, reacquired }),
   );
   ctx.check(

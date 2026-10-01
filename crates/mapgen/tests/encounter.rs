@@ -59,7 +59,7 @@ fn outcome(record: &Record) -> String {
     sim::encounter::plan_encounter_json(
         &serde_json::to_string(&result.map).unwrap(),
         &serde_json::to_string(&result.sites).unwrap(),
-        &sim::fixtures::village().to_string(),
+        &sim::fixtures::game().to_string(),
         &recipe_json(record),
         &record.encounter_seed,
     )

@@ -2,7 +2,7 @@
 import { writeFile } from "node:fs/promises";
 import { openBattle, obs, aim, snapshot, groundCss, until, lab } from "./_lab.mjs";
 import { decode, writeCrop } from "./_png.mjs";
-import { curvePitch, village } from "./_units.mjs";
+import { curvePitch, game } from "./_units.mjs";
 
 export async function contactTour(ctx) {
   const page = await openBattle(ctx, {
@@ -51,7 +51,7 @@ export async function contactTour(ctx) {
     await aim(page, [...contact.center, 0], {
       distance,
       pitch: curvePitch(distance),
-      yaw: village.presentation.camera.default.yaw,
+      yaw: game.presentation.camera.default.yaw,
     });
     const file = `contact-${label}-${distance}`;
     const png = await snapshot(ctx, page, `${file}.png`);

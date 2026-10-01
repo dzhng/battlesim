@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
-import { VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
+import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
 import { initSync, compile_map, WorldView, world_layout } from "@wasm/game_wasm.js";
 import type { WorldLayout } from "@packages/battle-renderer/src/worldMesh";
 
@@ -25,7 +25,7 @@ test("the compiled artifact reaches the existing public world without a plan int
     ),
   );
   const compiled = JSON.parse(compile_map(request, `[${descriptor}]`)).result;
-  const rules = JSON.stringify(VILLAGE_RULES);
+  const rules = JSON.stringify(GAME_RULES);
   const world = new WorldView(JSON.stringify(compiled.map), rules);
   try {
     const layout = JSON.parse(world_layout(rules)) as WorldLayout;

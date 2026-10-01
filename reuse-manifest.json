@@ -219,7 +219,7 @@
       "source": "packages/game-renderer/src/environment/postParameters.ts",
       "source_commit": "d4394dfc7941edd8ccf5dfe885269f2451a57567",
       "sha256": "995128c197b9b32c089d708e525e58f60ff881b4813ba62dba401b2679db619c",
-      "destination": "fixtures/village.json",
+      "destination": "fixtures/game.json",
       "mode": "adapted",
       "local_changes": "slice 13: the bloom and grade constants moved into presentation.light.bloom and .grade; preset strengths, the clamp and the module were dropped",
       "ported_by": "battle-look slice 13"
@@ -230,7 +230,7 @@
       "sha256": "8ab14baa77d01cd81096c38582d72a8cb423848db3034184f6204e429e130ab8",
       "destination": "packages/battle-renderer/src/light/sceneLight.ts",
       "mode": "technique",
-      "local_changes": "slice 13: the presets and their types became presentation.light (fixtures/village.json) and its LightPresentation type, validator and the one sun direction",
+      "local_changes": "slice 13: the presets and their types became presentation.light (fixtures/game.json) and its LightPresentation type, validator and the one sun direction",
       "ported_by": "battle-look slice 13"
     },
     {

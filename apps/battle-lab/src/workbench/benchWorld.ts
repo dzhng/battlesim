@@ -5,7 +5,7 @@
 // the marks are display-space overlays.
 
 import { vec3, type Mat4, type Vec3 } from "math";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import type { MapDefinition } from "@web/maps/resolve";
 import { MeshBuilder, type Mesh, type Rgba } from "@packages/battle-renderer/src/mesh";
 import type { WorldLayers, WorldMeshes } from "@packages/battle-renderer/src/scene";
@@ -13,7 +13,7 @@ import {
   terrainSurface,
   type TerrainSurface,
 } from "@packages/battle-renderer/src/terrain/terrainSurface";
-import { villageBiome } from "../villageBiome";
+import { gameBiome } from "../gameBiome";
 import { SCENERY_KINDS, propsDrawnBy } from "@packages/scene-assets/src/scenery";
 import type { ModelInstance } from "@packages/battle-renderer/src/models/modelInstances";
 import {
@@ -33,10 +33,10 @@ import type {
 import { fixtureAuthority } from "@packages/scene-assets/src/authority";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 
-export const physics = village.physics;
+export const physics = game.physics;
 
 /** The simulation's bodies and unit types: the fit authority the validator reads too. */
-export const AUTHORITY: Authority = fixtureAuthority(village, UNITS);
+export const AUTHORITY: Authority = fixtureAuthority(game, UNITS);
 
 /** Height of the scale figure: the rules' soldier. */
 export const FIGURE_HEIGHT_M = physics.soldier_height_m;
@@ -112,7 +112,7 @@ function benchTerrain(): TerrainSurface {
       buildings: [],
       footprints: NONE,
     },
-    villageBiome,
+    gameBiome,
     null,
   );
   return _bench_terrain;
@@ -271,7 +271,7 @@ export function footprint(
     };
   }
   if (rule?.footprint.kind === "tree") {
-    const tree = village.forests.rule;
+    const tree = game.forests.rule;
     cylinder(edges, tree.trunk_radius_m, 0, tree.trunk_height_m, 12);
     cylinder(edges, tree.canopy_radius_m, tree.canopy_height_m, tree.canopy_height_m, 24);
     return {

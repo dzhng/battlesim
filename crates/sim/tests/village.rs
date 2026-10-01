@@ -7,7 +7,7 @@ use contract::scenario::{ScenarioDefinition, UnitSetup};
 use serde_json::json;
 use sim::battle::Battle;
 use sim::village::scripts::Plan;
-use sim::village::{scenario, trial, ScriptedBlue};
+use sim::village::{scenario, trial};
 
 use crate::common;
 
@@ -17,7 +17,7 @@ const RED_AT: u32 = 12;
 const BLUE_TANKS: [u32; 2] = [4, 5];
 
 fn setup(variant: &str) -> ScenarioDefinition {
-    scenario(&common::village(), variant).unwrap()
+    scenario(&common::game(), variant).unwrap()
 }
 
 fn hz() -> u64 {
@@ -48,8 +48,7 @@ fn red_orders(battle: &Battle) -> Vec<(u64, Order)> {
 
 #[test]
 fn the_supported_attack_shells_the_first_public_building_owner() {
-    // Freeze the original encounter so future fixture tuning does not change this
-    // aggregate-ownership regression's opening.
+    // Freeze the map and roster whose first public building owner is the contract.
     let oracle: serde_json::Value = serde_json::from_str(include_str!(
         "../../../fixtures/parity/buildings/oracle.json"
     ))
@@ -63,35 +62,30 @@ fn the_supported_attack_shells_the_first_public_building_owner() {
         .clone();
     let mut setup: ScenarioDefinition = serde_json::from_value(input).unwrap();
     setup.map = common::physical_map(setup.map, &setup.rules);
-    let tick_hz = setup.rules.tick_hz as u64;
-    let mut battle = Battle::new(&setup, 20260925);
-    let mut commander = ScriptedBlue::new(Plan::ScoutSuppressFlank, &setup);
-    for _ in 0..40 * tick_hz {
-        commander.command(&mut battle);
-        battle.step();
+    let battle = Battle::new(&setup, 20260925);
+    let mut frame = battle.observe(Side::Blue).clone();
+    frame.identified.clear();
+    let mut commander = sim::village::scripts::Script::new(Plan::ScoutSuppressFlank, &setup);
+    // Isolate the public building owner from combat-dependent bombardment timing.
+    let mut orders = Vec::new();
+    for tick in [
+        0,
+        1000 * setup.rules.tick_hz as u64,
+        2000 * setup.rules.tick_hz as u64,
+    ] {
+        frame.tick = tick;
+        orders.extend(commander.orders(&frame, &setup.rules));
     }
-    let first = battle
-        .replay()
-        .accepted
-        .into_iter()
-        .find_map(|(tick, command)| match (command.side, command.order) {
-            (
-                Side::Blue,
-                Order::Attack {
-                    units,
-                    target: TargetRef::Ground { point },
-                },
-            ) => Some((tick, units, point)),
-            _ => None,
-        });
-    // The shipped opening's first bombardment, from before compound ownership.
+    let first = orders.into_iter().find_map(|order| match order {
+        Order::Attack {
+            units,
+            target: TargetRef::Ground { point },
+        } => Some((units, point)),
+        _ => None,
+    });
     assert_eq!(
         first,
-        Some((
-            35 * tick_hz + 1,
-            vec![UnitId(4), UnitId(5)],
-            [975.0, 752.0, 0.0]
-        ))
+        Some((vec![UnitId(4), UnitId(5)], [975.0, 752.0, 0.0]))
     );
 }
 
@@ -115,12 +109,12 @@ fn the_variants_differ_only_by_the_second_at_team() {
         let holding = u.engagement == Some(Engagement::ReturnFireOnly);
         assert_eq!(holding, u.side == Side::Red && u.kind == "at");
     }
-    assert!(scenario(&common::village(), "no_such_variant").is_err());
+    assert!(scenario(&common::game(), "no_such_variant").is_err());
 }
 
 #[test]
 fn a_spawn_row_may_set_its_units_engagement() {
-    let mut fixture = common::village();
+    let mut fixture = common::game();
     fixture["spawn"]["blue"][8] = serde_json::json!(["jeep", 125, 905, "return_fire_only"]);
     fixture["spawn"]["red"][3] = serde_json::json!(["at", 760, 886, "fire_at_will"]);
     let units = scenario(&fixture, "ordinary").unwrap().units;
@@ -145,7 +139,7 @@ fn a_spawn_row_may_set_its_units_engagement() {
         serde_json::json!(["jeep", 125, 905, "return_fire_only", 1]),
         serde_json::json!(["jeep", 125]),
     ] {
-        let mut fixture = common::village();
+        let mut fixture = common::game();
         fixture["spawn"]["blue"][8] = bad.clone();
         assert!(scenario(&fixture, "ordinary").is_err(), "{bad} loads");
     }
@@ -388,7 +382,7 @@ fn the_referee_counts_units_that_carry_weapons() {
 /// comparison is `cargo run -p sim --release --example village_report`).
 #[test]
 fn a_scripted_trial_repeats_from_its_seed() {
-    let fixture = common::village();
+    let fixture = common::game();
     let plan = Plan::ScoutSuppressFlank;
     let (a, b) = std::thread::scope(|s| {
         let a = s.spawn(|| trial(&fixture, "ordinary", plan, 5, 120.0));
@@ -424,7 +418,7 @@ fn smoke_is_presentation_only() {
         });
         (battle.digest(), wrecks)
     };
-    let plain = common::village();
+    let plain = common::game();
     let mut thick = plain.clone();
     let wreck = &mut thick["presentation"]["effects"]["smoke"]["wreck"];
     wreck["smoke"]["opacity"] = 1.0.into();
@@ -449,7 +443,7 @@ fn smoke_is_presentation_only() {
 /// may move, but inactive physical rows are not authoritative battle state.
 #[test]
 fn unused_city_catalog_rows_do_not_change_village_digests() {
-    let full = common::village();
+    let full = common::game();
     let mut without = full.clone();
     without["catalog"]
         .as_array_mut()

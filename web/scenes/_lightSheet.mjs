@@ -15,10 +15,10 @@
 // LIGHT_LABEL names the set (default `current`, or `dusk` with LIGHT_SUN).
 import { mkdir, writeFile } from "node:fs/promises";
 import { lab, advance, aim } from "./_lab.mjs";
-import { village, curvePitch } from "./_units.mjs";
+import { game, curvePitch } from "./_units.mjs";
 
-const CAMERA = village.presentation.camera;
-const TICK_HZ = village.tick_hz;
+const CAMERA = game.presentation.camera;
+const TICK_HZ = game.tick_hz;
 const START = Number(process.env.LIGHT_TICK ?? 30);
 const LAST = Number(process.env.LIGHT_LAST_TICK ?? 300 * TICK_HZ);
 const SUN = process.env.LIGHT_SUN ?? null;

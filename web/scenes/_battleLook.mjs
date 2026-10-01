@@ -36,9 +36,9 @@ import {
 import { anyNear, decode, mostChanged } from "./_png.mjs";
 import { trackPageResources, pageResources } from "./_leaks.mjs";
 import { paintOnly } from "./_overlays.mjs";
-import { hasRole, village, villageMap, curvePitch } from "./_units.mjs";
+import { hasRole, game, villageMap, curvePitch } from "./_units.mjs";
 
-const CAMERA = village.presentation.camera;
+const CAMERA = game.presentation.camera;
 const BATTLE_TICK = Number(process.env.BATTLE_TICK ?? 9900);
 const VIEWPORT = { width: 1920, height: 1080 };
 // The callout layer: each unit's panel and the leader line joining it to
@@ -78,7 +78,7 @@ export async function battleTour(ctx) {
     JSON.stringify({ tick: o.tick, rounds: o.projectiles.length, fighters: fighters.length }),
   );
   if (!moment(o)) return page.close();
-  const zone = village.encounter.success_zone_center;
+  const zone = game.encounter.success_zone_center;
   const front = fighters.reduce((a, b) =>
     dist(a.position, zone) <= dist(b.position, zone) ? a : b,
   );
@@ -136,7 +136,7 @@ export async function battleTour(ctx) {
   await lab(page, () => window.__lab.setFrameView("final"));
   await ctx.writeEvidence("battle-frames.json", {
     tick: o.tick,
-    seed: village.seed,
+    seed: game.seed,
     script: "scout-suppress-flank",
     frames,
     craters,
@@ -181,7 +181,7 @@ export async function woodsTour(ctx) {
   const squads = o.own.filter((u) => u.members.length > 0 && u.kind === "rifle");
   // The squad spawned furthest south walks in along the map's south, out of
   // the village's fire; the one spawned furthest north stays in the open.
-  const spawns = village.spawn.blue.filter((r) => r[0] === "rifle").map((r) => [r[1], r[2]]);
+  const spawns = game.spawn.blue.filter((r) => r[0] === "rifle").map((r) => [r[1], r[2]]);
   const nearest = (p) =>
     squads.reduce((a, b) => (dist(a.position, p) <= dist(b.position, p) ? a : b));
   const walker = nearest(spawns.reduce((a, b) => (a[1] >= b[1] ? a : b)));

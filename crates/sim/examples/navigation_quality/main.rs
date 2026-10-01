@@ -181,8 +181,7 @@ impl Report {
 }
 
 fn main() {
-    let rules: contract::scenario::Rules =
-        serde_json::from_value(sim::fixtures::village()).unwrap();
+    let rules: contract::scenario::Rules = serde_json::from_value(sim::fixtures::game()).unwrap();
     let mut report = Report {
         rules: rules.navigation,
         cases: 0,

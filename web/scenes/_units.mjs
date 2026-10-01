@@ -1,14 +1,14 @@
-// The fixtures as the scenes read them: the village's rules and presentation
-// (`fixtures/village.json`), its map, resolved from the saved catalogue, and
+// The fixtures as the scenes read them: the game's rules and presentation
+// (`fixtures/game.json`), its map, resolved from the saved catalogue, and
 // the catalog, the simulation's resolved view
 // (`fixtures/catalog.json`), unit and prop types by id. The derived questions mirror
 // `packages/scene-assets/src/units.ts`, answered from a type's components.
 import { readFile } from "node:fs/promises";
 import { loadMap } from "../src/maps/node.ts";
 
-/** `fixtures/village.json`. */
-export const village = JSON.parse(
-  await readFile(new URL("../../fixtures/village.json", import.meta.url), "utf8"),
+/** `fixtures/game.json`. */
+export const game = JSON.parse(
+  await readFile(new URL("../../fixtures/game.json", import.meta.url), "utf8"),
 );
 
 /** The village's physical map (`fixtures/maps/village`), resolved. */
@@ -16,7 +16,7 @@ export const villageMap = loadMap("village").definition;
 
 /** The camera curve's pitch at `distance` (the controller's own rule). */
 export function curvePitch(distance) {
-  const curve = village.presentation.camera.pitch_curve;
+  const curve = game.presentation.camera.pitch_curve;
   if (distance <= curve[0][0]) return curve[0][1];
   for (let k = 1; k < curve.length; k++)
     if (distance <= curve[k][0]) {

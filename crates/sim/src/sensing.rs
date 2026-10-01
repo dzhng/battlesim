@@ -2,7 +2,7 @@
 //! Rays run from the observer's eye to the target's visibility samples (a
 //! vehicle's hull centre and top, each living soldier). Solid geometry blocks;
 //! foliage attenuates reach continuously and blocks outright past a full run;
-//! the foliage a target stands under conceals it by class (Q21).
+//! forest ground conceals a target by class, independently of tree crowns.
 use contract::ids::{Side, UnitId};
 use contract::scenario::{Rules, SensorRules};
 
@@ -29,8 +29,8 @@ pub fn due(observer: &Unit, tick: u64) -> bool {
 }
 
 /// A sighting kept from an observer's last run, as it stands now: `None`
-/// once the observer or target has fallen, or every soldier it saw has.
-pub fn kept(s: &Sighting, units: &[Unit]) -> Option<Sighting> {
+/// once the observer or target has fallen, or too few seen soldiers survive.
+pub fn kept(s: &Sighting, units: &[Unit], rules: &Rules) -> Option<Sighting> {
     let (observer, target) = (&units[s.observer.0 as usize], &units[s.target.0 as usize]);
     if !observer.alive() || !target.alive() {
         return None;
@@ -44,10 +44,15 @@ pub fn kept(s: &Sighting, units: &[Unit]) -> Option<Sighting> {
         .copied()
         .filter(|&k| target.members[k].alive())
         .collect();
-    (!members.is_empty()).then(|| Sighting {
+    squad_identified(target, members.len(), rules).then(|| Sighting {
         members,
         ..s.clone()
     })
+}
+
+fn squad_identified(target: &Unit, seen: usize, rules: &Rules) -> bool {
+    let living = target.members.iter().filter(|m| m.alive()).count();
+    living > 0 && seen as f64 >= living as f64 * rules.sensors.squad_identification_fraction
 }
 
 /// One observer identifying one target this tick.
@@ -82,9 +87,9 @@ pub fn eyes(unit: &Unit, rules: &Rules) -> Vec<V3> {
 }
 
 /// Detection-range multiplier for a target standing at `at`: 1 in the open
-/// or on cleared ground, its foliage's class multiplier under trees (Q21).
+/// or on cleared ground, its forest class multiplier on forest ground (Q21).
 pub fn concealment_multiplier(infantry: bool, world: &WorldGeometry, at: V3) -> f64 {
-    world.foliage_at(at.x, at.y).concealment(infantry)
+    world.forest_concealment(infantry, at.x, at.y)
 }
 
 /// How far sight of directional `range` reaches through foliage of `depth`
@@ -150,20 +155,26 @@ fn target_concealment(world: &WorldGeometry, target: &Unit, at: V3, rules: &Rule
         .min(1.0 + (s.building_range_multiplier - 1.0) * shelter)
 }
 
-/// Whether any living target sample benefits from the sensing rule's concealment.
+/// Whether enough of the living unit benefits from concealment to qualify for HIDDEN.
 pub fn concealed(world: &WorldGeometry, target: &Unit, rules: &Rules) -> bool {
     if target.hull.is_some() {
         target_concealment(world, target, target.position, rules) < 1.0
     } else {
-        target
-            .member_positions()
-            .any(|at| target_concealment(world, target, at, rules) < 1.0)
+        let mut living = 0;
+        let mut hidden = 0;
+        for at in target.member_positions() {
+            living += 1;
+            hidden += usize::from(target_concealment(world, target, at, rules) < 1.0);
+        }
+        living > 0 && hidden as f64 > living as f64 * rules.sensors.squad_hidden_fraction
     }
 }
 
 /// Sensor rules the geometry relies on (the fog sweep stops a ray once its
 /// reach has shrunk behind it).
 pub fn validate(s: &SensorRules) {
+    assert!(s.squad_identification_fraction > 0.0 && s.squad_identification_fraction <= 1.0);
+    assert!((0.0..1.0).contains(&s.squad_hidden_fraction));
     assert!(
         s.foliage_full_block > 0.0,
         "sensors.foliage_full_block must be positive"
@@ -223,7 +234,7 @@ pub fn evaluate(
                     }
                 }
             }
-            if any {
+            if any && (target.hull.is_some() || squad_identified(target, seen.len(), rules)) {
                 out.push(Sighting {
                     observer: observer.id,
                     target: target.id,

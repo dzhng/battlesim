@@ -6,7 +6,7 @@ import {
   type WorldLayout,
 } from "@packages/battle-renderer/src/worldMesh";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
-import { VILLAGE_RULES } from "./scenarios";
+import { GAME_RULES } from "./scenarios";
 
 export type WorldView = InstanceType<Wasm["WorldView"]>;
 
@@ -27,7 +27,7 @@ export function useStaticWorld(map: unknown): StaticWorld | null {
     void loadWasm().then((wasm) => {
       if (!live) return;
       // The world as the simulation builds it under the one rules owner.
-      const rules = JSON.stringify(VILLAGE_RULES);
+      const rules = JSON.stringify(GAME_RULES);
       view = new wasm.WorldView(JSON.stringify(map), rules);
       setWorld({
         view,

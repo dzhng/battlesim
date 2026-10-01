@@ -31,7 +31,7 @@ pub struct Scenario {
     pub events: Value,
     /// Orders (`contract::scenario::ScriptedOrder` rows).
     pub scripts: Value,
-    /// Merged over the village rules (JSON merge): per-scenario rule numbers.
+    /// Merged over the game rules (JSON merge): per-scenario rule numbers.
     /// Its `catalog` holds patches by section and id, merged into the unit
     /// catalog's entries (`sim::fixtures::patch_catalog`).
     pub rules: Value,
@@ -692,7 +692,8 @@ fn authored() -> Vec<Scenario> {
             ]),
             events: none.clone(),
             scripts: none.clone(),
-            rules: json!({ "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
+            // Pin acquisition so this experiment judges stepping out, not squad spotting thresholds.
+            rules: json!({ "sensors": { "squad_identification_fraction": 0.125 }, "catalog": { "soldiers": { "rifleman": { "hp": 1.0e6 } } } }),
             seconds: 30.0,
             seed: 1,
             checks: vec![
@@ -2008,7 +2009,7 @@ fn merge(base: &mut Value, patch: &Value) {
 }
 
 pub fn definition(s: &Scenario) -> ScenarioDefinition {
-    let mut rules = sim::fixtures::village();
+    let mut rules = sim::fixtures::game();
     let mut patch = s.rules.clone();
     if let Some(Value::Object(sections)) = patch.as_object_mut().and_then(|p| p.remove("catalog")) {
         for (section, entries) in sections {
@@ -2899,7 +2900,7 @@ fn the_window_producer_preserves_original_physical_bodies_and_dense_ids() {
     let expected: Vec<contract::map::AuthoredPropDefinition> =
         serde_json::from_value(receipt["props"].clone()).unwrap();
     assert_eq!(json!(actual), serde_json::to_value(expected).unwrap());
-    let rules = serde_json::from_value(sim::fixtures::village()).unwrap();
+    let rules = serde_json::from_value(sim::fixtures::game()).unwrap();
     let world = sim::world::WorldGeometry::new(&map, &rules);
     assert_eq!(world.building_of(0), Some(0));
     assert_eq!(world.structure_owner(0), Some(0));

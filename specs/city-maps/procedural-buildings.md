@@ -29,7 +29,7 @@ Walked with the user on 2026-09-28. This owns retained building-art/source lesso
 \*Each whole `.blend` scene, including the building's own sidewalk and street dressing.
 
 **Our side** (cited):
-- The battle camera (`fixtures/village.json` `presentation.camera`) has a 0.8 rad vertical field of view and 25–2,000 m zoom. Pitch rises from 0.22 rad at 25 m to 0.85 rad at 65 m and beyond.
+- The battle camera (`fixtures/game.json` `presentation.camera`) has a 0.8 rad vertical field of view and 25–2,000 m zoom. Pitch rises from 0.22 rad at 25 m to 0.85 rad at 65 m and beyond.
 - The renderer is TypeGPU/WebGPU with no three.js (`research.md:16`).
 - Blender is pinned to 5.2.1 (`web/asset.mjs:72`).
 

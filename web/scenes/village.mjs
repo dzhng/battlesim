@@ -46,11 +46,11 @@ import {
   isVehicle,
   unitType,
   vehicleAppearances,
-  village,
+  game,
   villageMap,
 } from "./_units.mjs";
 
-const CAMERA = village.presentation.camera;
+const CAMERA = game.presentation.camera;
 const roadStrokes = villageMap.surfaces
   .filter((s) => s.kind === "road" && s.shape.kind === "stroke")
   .map((s) => s.shape);
@@ -634,7 +634,7 @@ async function soldierTour(ctx) {
   ctx.check(
     "clicking a soldier picks his box",
     picked >= 0 &&
-      box.half[0] === village.physics.soldier_radius_m &&
+      box.half[0] === game.physics.soldier_radius_m &&
       Math.hypot(box.x - m[0], box.y - m[1]) < 1.5,
     JSON.stringify({ picked, box, member: m }),
   );
@@ -1123,8 +1123,8 @@ function yellowInk(png) {
  *  none. Holding Space shows the same marks, pixel for pixel. A queued
  *  (Shift) order flashes too. */
 async function orderFlashTour(ctx) {
-  const { flash } = village.presentation.overlay.orders;
-  const tickHz = village.tick_hz;
+  const { flash } = game.presentation.overlay.orders;
+  const tickHz = game.tick_hz;
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
   const o = await obs(page);
   const rifle = o.own.find((u) => u.kind === "rifle");
@@ -1682,7 +1682,7 @@ async function orderTour(ctx) {
     // The route runs from the edge of the circle the squad stands in to the
     // edge of its area ring (both drawn at the fixture's scale):
     // sample only the line between them.
-    const scale = village.presentation.overlay.orders.area_draw_scale;
+    const scale = game.presentation.overlay.orders.area_draw_scale;
     const here = Math.max(
       ...u.members.map((m) => Math.hypot(m[0] - u.position[0], m[1] - u.position[1])),
     );
@@ -1877,7 +1877,7 @@ async function checkSelectionYellow(ctx, page, squadId, vehicleId) {
   const squad = o.own.find((u) => u.id === squadId);
   const vehicle = o.own.find((u) => u.id === vehicleId);
   const { area_draw_scale: scale, vehicle_marker_margin_m: margin } =
-    village.presentation.overlay.orders;
+    game.presentation.overlay.orders;
   const vehicleR = hullOf(vehicle.kind).half_extents_m[0] + margin;
   // The paint (the orders and the selection), each mark in its own colour.
   const paint = await orderPaint(ctx, page, "orders-selected");
@@ -2026,7 +2026,7 @@ async function checkRimJoin(ctx, page, squadId) {
     }
     return c;
   };
-  const { color, selected: amberRgb, glow } = village.presentation.overlay.orders;
+  const { color, selected: amberRgb, glow } = game.presentation.overlay.orders;
   const Y = color.map((v) => v * glow.order);
   const A = amberRgb.map((v) => v * glow.selected);
   const det = A[0] * Y[1] - A[1] * Y[0];
@@ -2103,7 +2103,7 @@ async function checkPaintedLight(ctx, page, vehicleId) {
   await lab(page, () => window.__lab.frame());
   const r =
     hullOf(vehicle.kind).half_extents_m[0] +
-    village.presentation.overlay.orders.vehicle_marker_margin_m;
+    game.presentation.overlay.orders.vehicle_marker_margin_m;
   const at = [];
   for (let k = 0; k < 64; k++) {
     const a = (k / 64) * 2 * Math.PI;
@@ -2340,7 +2340,7 @@ const WORKS = {
 
 async function worksTour(ctx) {
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 } });
-  const { distance, yaw } = village.presentation.camera.default;
+  const { distance, yaw } = game.presentation.camera.default;
   for (const [name, at] of Object.entries(WORKS)) {
     await aim(page, at, { distance, pitch: 0.85, yaw });
     await snapshot(ctx, page, `works-${name}-1920x1080.png`);
@@ -2724,8 +2724,8 @@ async function rulerTour(ctx) {
     const [first] = unitType(unit.kind).mounts;
     const muzzle = first?.muzzle_m
       ? first.pivot_m[2] + first.muzzle_m[2]
-      : village.physics.infantry_muzzle_m;
-    const dz = (await surface(p)) + village.physics.infantry_aim_m - (unit.position[2] + muzzle);
+      : game.physics.infantry_muzzle_m;
+    const dz = (await surface(p)) + game.physics.infantry_aim_m - (unit.position[2] + muzzle);
     return Math.hypot(p[0] - unit.position[0], p[1] - unit.position[1], dz);
   };
   const frames = async () => {
@@ -2904,7 +2904,7 @@ async function rulerTour(ctx) {
 }
 
 /** The HUD's enemy red, as CSS computes it. */
-const ENEMY_RGB = `rgb(${village.presentation.hud.enemy.map((v) => Math.round(v * 255)).join(", ")})`;
+const ENEMY_RGB = `rgb(${game.presentation.hud.enemy.map((v) => Math.round(v * 255)).join(", ")})`;
 
 /** One panel as drawn: shown, its name, every state row (state, word, ring
  *  progress) and every weapon tag. `attr` is `unit`, `enemy` or `contact`. */
@@ -3158,7 +3158,7 @@ async function panelTour(ctx) {
     await look([c.center[0], c.center[1], 0]);
     const p = await panelOf(page, "contact", c.id);
     const ago = Number(p?.states.at(-1)?.word.match(word)?.[1]);
-    const expected = Math.floor((o.tick - c.evidenceTick) / village.tick_hz);
+    const expected = Math.floor((o.tick - c.evidenceTick) / game.tick_hz);
     const named =
       source === "last_seen"
         ? !!c.kind && p?.name === unitType(c.kind).name.toUpperCase()
@@ -3253,7 +3253,7 @@ async function panelTour(ctx) {
       .filter((b) => a.x0 < b.x1 && b.x0 < a.x1)
       .map((b) => Math.max(b.y0 - a.y1, a.y0 - b.y1)),
   );
-  const wantGap = village.presentation.hud.panel_gap_px;
+  const wantGap = game.presentation.hud.panel_gap_px;
   ctx.check(
     `stacked panels keep at least the fixture's ${wantGap} px between them`,
     gaps.length > 0 && gaps.every((g) => g >= wantGap - 0.5),

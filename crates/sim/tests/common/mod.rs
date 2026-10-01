@@ -1,5 +1,5 @@
 //! Shared test setup. Rules always come from the one fixture owner
-//! (village.json): scenario rules for authority tests; flight rules, weapon
+//! (game.json): scenario rules for authority tests; flight rules, weapon
 //! rows, analytic maps and constant-velocity bodies for flight tests.
 #![allow(dead_code)]
 use contract::ballistics::{FlightRules, WeaponBallistics};
@@ -21,8 +21,8 @@ use sim::rng::Rng;
 use sim::world::WorldGeometry;
 use std::collections::{BTreeMap, BTreeSet};
 
-pub fn village() -> Value {
-    sim::fixtures::village()
+pub fn game() -> Value {
+    sim::fixtures::game()
 }
 
 /// The shipped prop types.
@@ -50,15 +50,15 @@ pub fn unit_kind(id: &str) -> contract::catalog::TypeIndex {
 
 /// The fixture's one forest rule (`forests`).
 pub fn forest_rules() -> ForestRules {
-    serde_json::from_value(village()["forests"].clone()).unwrap()
+    serde_json::from_value(game()["forests"].clone()).unwrap()
 }
 
 pub fn flight_rules() -> FlightRules {
-    serde_json::from_value(village()["physics"].clone()).unwrap()
+    serde_json::from_value(game()["physics"].clone()).unwrap()
 }
 
 pub fn tick_hz() -> u32 {
-    village()["tick_hz"].as_u64().unwrap() as u32
+    game()["tick_hz"].as_u64().unwrap() as u32
 }
 
 pub fn config() -> FlightConfig {
@@ -66,7 +66,7 @@ pub fn config() -> FlightConfig {
 }
 
 pub fn weapon(name: &str) -> WeaponBallistics {
-    serde_json::from_value(village()["weapons"][name].clone()).unwrap()
+    serde_json::from_value(game()["weapons"][name].clone()).unwrap()
 }
 
 pub fn profile(name: &str) -> LaunchProfile {
@@ -74,7 +74,7 @@ pub fn profile(name: &str) -> LaunchProfile {
 }
 
 pub fn physics(key: &str) -> f64 {
-    village()["physics"][key].as_f64().unwrap()
+    game()["physics"][key].as_f64().unwrap()
 }
 
 /// A flat map `size` metres, plus extra map JSON fields (leading comma).
@@ -167,7 +167,7 @@ pub fn tank_shape() -> Shape {
 
 /// The shipped rules, catalog resolved.
 pub fn rules() -> contract::scenario::Rules {
-    serde_json::from_value(village()).unwrap()
+    serde_json::from_value(game()).unwrap()
 }
 
 /// A shipped unit type's hull.
@@ -287,10 +287,10 @@ pub fn saved_map(id: &str) -> &'static str {
     })
 }
 
-/// The runtime rules of a scenario: the village fixture itself (rules read the
+/// The runtime rules of a scenario: the game fixture itself (rules read the
 /// sections they own and ignore the rest).
 pub fn scenario_rules() -> serde_json::Value {
-    village()
+    game()
 }
 
 pub fn scenario(
@@ -317,7 +317,7 @@ pub fn scenario_with(
 }
 
 pub fn ricochet_rules() -> contract::scenario::RicochetRules {
-    serde_json::from_value(village()["ricochet"].clone()).unwrap()
+    serde_json::from_value(game()["ricochet"].clone()).unwrap()
 }
 
 /// A flight-test resolver with the battle's hull policy: bodies in `hulls`
@@ -344,7 +344,7 @@ impl TankHulls {
 
     /// Judge `id` as a round of the weapon row `name`.
     pub fn register(&mut self, id: ProjectileId, name: &str) {
-        let row = &village()["weapons"][name];
+        let row = &game()["weapons"][name];
         let power = RoundPower {
             penetration: row["penetration"].as_f64().unwrap(),
             bursts: row["blast_radius_m"].as_f64().unwrap() > 0.0,

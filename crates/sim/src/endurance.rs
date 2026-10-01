@@ -6,7 +6,7 @@
 //! fight turning over for an hour: waves of attack-moves to shifting points,
 //! reserves arriving from the rear edge, supply trucks setting up behind the
 //! lines. The optional late state adds 20,000 corpses and 2,000 wrecks as
-//! stress input. Rules come from the one fixture owner (village.json).
+//! stress input. Rules come from the one fixture owner (game.json).
 use contract::command::{Order, TargetRef};
 use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;

@@ -13,7 +13,7 @@ import { reach, type ReachCommand } from "../input/commandReach";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { hudIcon, stateIcon, unitIcons } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
-import { villageHud } from "./hudTheme";
+import { gameHud } from "./hudTheme";
 import { layoutReadoutDetails, type DetailCard } from "./readoutDetails";
 import { eyePosition, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { clamp, vec3 } from "math";
@@ -259,7 +259,7 @@ export function ReadoutLayer({
               : [c.at[0], c.at[1], drawn.ground?.(c.at[0], c.at[1]) ?? 0];
         // A panel hangs off a unit in view; one whose anchor is off screen hides.
         const q = shown ? project(p[0], p[1], p[2] + (c.owner === "contact" ? 0 : HEAD_M)) : null;
-        const edge = villageHud.panel_edge_hide_px;
+        const edge = gameHud.panel_edge_hide_px;
         // Hover overrides edge hiding; keep its card inside the viewport.
         const at: [number, number] | null =
           hovering && q
@@ -312,7 +312,7 @@ export function ReadoutLayer({
         w: a.node.offsetWidth,
         h: a.node.offsetHeight,
       }));
-      const gap = villageHud.panel_gap_px;
+      const gap = gameHud.panel_gap_px;
       // On screen, and never under a panel: below the top edge, then the
       // shortest way out of a panel, right of a side panel, below a top
       // plate, above a bottom bar; never up off the top of the screen.

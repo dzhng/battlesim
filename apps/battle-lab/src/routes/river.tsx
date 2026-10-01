@@ -11,8 +11,8 @@ import { LabViewport } from "../LabViewport";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useBattleSession } from "../useBattleSession";
 import { useFeed } from "../feed";
-import { villageBiome } from "../villageBiome";
-import { villageCamera } from "../villageCamera";
+import { gameBiome } from "../gameBiome";
+import { gameCamera } from "../gameCamera";
 
 // The river map's saved encounter (`fixtures/maps/river/encounters/river.json`):
 // a rifle squad on the country road south of its bridge, and a tank ahead of
@@ -41,7 +41,7 @@ const RIVER_CAMERA: Camera3DParams = {
   distance: 430,
   pitch: 0.95,
   yaw: -Math.PI / 2,
-  ...villageCamera.lens,
+  ...gameCamera.lens,
 };
 
 const send = (units: number[], gesture: number, goal: readonly [number, number]): Order => ({
@@ -81,7 +81,7 @@ function RiverLab({ battle }: { battle: SavedBattle }) {
   const [view, setView] = useState<GroundView>("surface");
   const drawn = useMemo(() => {
     if (view === "surface" || !world) return meshes;
-    const layers = buildWorldLayers(world.exports, world.layout, villageBiome, "traversal");
+    const layers = buildWorldLayers(world.exports, world.layout, gameBiome, "traversal");
     if (view === "traversal") return layers;
     // One tint over every triangle: what is left is the ground's shading.
     const mesh = layers.terrain.mesh.slice();

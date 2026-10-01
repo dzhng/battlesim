@@ -23,7 +23,7 @@ fn main() {
         .unwrap_or(60)
         .max(5);
     let late = std::env::args().nth(2).as_deref() == Some("late");
-    let fixture = sim::fixtures::village();
+    let fixture = sim::fixtures::game();
     let setup = sim::endurance::scenario(
         &sim::maps::load("endurance").unwrap().definition,
         &fixture,

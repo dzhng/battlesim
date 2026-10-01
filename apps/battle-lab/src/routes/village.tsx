@@ -1,10 +1,10 @@
 import { useState } from "react";
-import village from "@fixtures/village.json";
-import { durableSoldiers, VILLAGE_RULES } from "../scenarios";
+import game from "@fixtures/game.json";
+import { durableSoldiers, GAME_RULES } from "../scenarios";
 import { SavedEncounter, villageScenario } from "../savedMaps";
 import { BattleView } from "../BattleView";
 import { useBuiltScenario } from "../useBuiltScenario";
-import { villageCamera } from "../villageCamera";
+import { gameCamera } from "../gameCamera";
 import type { BattleSession } from "../useBattleSession";
 import type { ScriptedSim } from "../useSimSession";
 
@@ -20,10 +20,10 @@ interface ReplayFile {
 }
 const LAST_REPLAY_KEY = "village-last-replay";
 
-const VILLAGE_CAMERA = villageCamera.opening();
+const VILLAGE_CAMERA = gameCamera.opening();
 
-const HOLD_S = village.encounter.hold_s;
-const TICK_HZ = village.tick_hz;
+const HOLD_S = game.encounter.hold_s;
+const TICK_HZ = game.tick_hz;
 /** The objective's readout once the battle is decided; while it runs, the
  *  hold's count. */
 const RESULT_TEXT: Record<string, string> = {
@@ -38,7 +38,7 @@ const isVariant = (v: unknown): v is Variant => typeof v === "string" && v in VA
  *  player UI shows or sets it. */
 function urlSeed(): number {
   const seed = Number(new URLSearchParams(window.location.search).get("seed"));
-  return Number.isInteger(seed) && seed > 0 ? seed : village.seed;
+  return Number.isInteger(seed) && seed > 0 ? seed : game.seed;
 }
 
 /** Blue's comparison scripts (`village_report`'s names) a watched battle can
@@ -131,7 +131,7 @@ export function VillageWatch() {
  *  blue squad at rest just inside the west wood trades fire with a red
  *  squad in the open 45 m east; soldiers too tough to fall, so the fight
  *  holds. Men lean out from their trees, fire and tuck back in. */
-const LEAN_RULES = durableSoldiers(VILLAGE_RULES);
+const LEAN_RULES = durableSoldiers(GAME_RULES);
 
 /** /battle/village/lean: the lean-out firefight, watched. */
 export function VillageLean() {
@@ -141,8 +141,8 @@ export function VillageLean() {
         <BattleView
           fixture="village-lean"
           scenario={battle.scenario}
-          seed={village.seed}
-          camera={villageCamera.opening()}
+          seed={game.seed}
+          camera={gameCamera.opening()}
           status={({ sim }) => <BattleClock tick={sim.observation?.tick ?? 0} />}
         />
       )}

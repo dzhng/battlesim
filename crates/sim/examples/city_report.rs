@@ -43,7 +43,7 @@ fn main() {
     let reach = args.next().unwrap_or("0.92".into());
     let per_side: usize = args.next().and_then(|s| s.parse().ok()).unwrap_or(6).max(1);
     let probe_trees: usize = args.next().and_then(|s| s.parse().ok()).unwrap_or(0);
-    let fixture = sim::fixtures::village();
+    let fixture = sim::fixtures::game();
 
     println!("| stage | wall ms | instructions G | RSS MiB | note |");
     println!("|---|---|---|---|---|");
@@ -61,7 +61,7 @@ fn main() {
         );
         (map, note)
     });
-    let rules: Rules = serde_json::from_value(fixture.clone()).expect("the village rules");
+    let rules: Rules = serde_json::from_value(fixture.clone()).expect("the game rules");
     let world = stage("world build", || {
         let world = WorldGeometry::new(&map, &rules);
         let note = format!("{} props (trees included)", world.props().count());

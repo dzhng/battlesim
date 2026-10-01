@@ -63,7 +63,7 @@ export async function surfaceExportAgreement(ctx) {
         ]),
       ],
     };
-    const view = new wasm.WorldView(JSON.stringify(map), JSON.stringify(rules.VILLAGE_RULES));
+    const view = new wasm.WorldView(JSON.stringify(map), JSON.stringify(rules.GAME_RULES));
     const adapter = await navigator.gpu.requestAdapter();
     const device = await adapter.requestDevice();
     const live = allocations.trackGpuAllocations(device);
@@ -102,7 +102,7 @@ export async function surfaceExportAgreement(ctx) {
     let rows;
     try {
       const exported = mesh.readWorldExports(view);
-      const layout = JSON.parse(wasm.world_layout(JSON.stringify(rules.VILLAGE_RULES)));
+      const layout = JSON.parse(wasm.world_layout(JSON.stringify(rules.GAME_RULES)));
       const world = mesh.buildWorldLayers(exported, layout, biome.default, "surface");
       const source = terrain.createTerrainSource(root, registry);
       await source.ready();

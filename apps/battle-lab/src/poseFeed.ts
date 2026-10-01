@@ -9,7 +9,7 @@
 // their mount roles and track gauge), the installed appearances each type's
 // clips, and `presentation.pose` its feel. Whether a squad is pinned (it goes
 // prone) is the published suppression tier.
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import {
@@ -35,9 +35,7 @@ export interface PoseRules {
 }
 
 /** `presentation.pose`: the pose driver's feel. */
-export const villagePose: PoseFeel = validatePoseFeel(
-  village.presentation.pose as unknown as PoseFeel,
-);
+export const gamePose: PoseFeel = validatePoseFeel(game.presentation.pose as unknown as PoseFeel);
 
 /** A pose driver for `rules` and the unit catalog, reading each type's clips
  *  from its appearance. */
@@ -50,7 +48,7 @@ export function createPoseDriver(
   return new PoseDriver({
     units,
     mounts: (kind) => catalog.mountRoles(kind),
-    feel: villagePose,
+    feel: gamePose,
     leanHold: rules.cover.lean_hold_s,
     clip: (kind, name) => {
       const resolved = catalog.resolve(kind, "blue");

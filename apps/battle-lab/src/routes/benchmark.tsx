@@ -2,7 +2,7 @@
 // flies its tour, then read the results. The page publishes its state on
 // `window.__benchmark` for the scene harness.
 import { useEffect, useState } from "react";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import { villageScenario } from "../savedMaps";
 import { frameCostRow, type BenchmarkReport } from "@web/battle/benchmark/report";
 import { VILLAGE_CONTACT, type BenchmarkLength } from "@web/battle/benchmark/scenario";
@@ -10,7 +10,7 @@ import { BattleView } from "../BattleView";
 import { BenchmarkResults } from "../benchmark/BenchmarkResults";
 import { createBenchmarkRun, type BenchmarkRun } from "../benchmark/run";
 import { useBuiltScenario } from "../useBuiltScenario";
-import { villageCamera } from "../villageCamera";
+import { gameCamera } from "../gameCamera";
 
 const SCENARIO = VILLAGE_CONTACT;
 
@@ -94,7 +94,7 @@ function BenchmarkBattle({
   const scenario = useBuiltScenario(SCENARIO.variant, villageScenario);
   // One run per mount: the page remounts for another.
   const [run] = useState<BenchmarkRun>(() =>
-    createBenchmarkRun(SCENARIO, length, village.tick_hz, onDone),
+    createBenchmarkRun(SCENARIO, length, game.tick_hz, onDone),
   );
   if (!scenario) return null;
   if (typeof scenario !== "string")
@@ -109,7 +109,7 @@ function BenchmarkBattle({
       scenario={scenario}
       seed={SCENARIO.seed}
       scripted={run.scripted}
-      camera={villageCamera.opening()}
+      camera={gameCamera.opening()}
       status={(session) => (
         <Progress run={run} tick={session.sim.observation?.tick ?? 0} error={session.sim.error} />
       )}

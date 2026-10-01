@@ -10,7 +10,7 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useFeed } from "../feed";
-import { villageCamera } from "../villageCamera";
+import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
 
 // Everyone holds fire until a demo orders it, so each consequence is caused
@@ -25,7 +25,7 @@ const CONSEQUENCES_CAMERA: Camera3DParams = {
   distance: 330,
   pitch: 0.95,
   yaw: -1.57,
-  ...villageCamera.lens,
+  ...gameCamera.lens,
 };
 
 /** Reference commands, exactly as a player would send them. */

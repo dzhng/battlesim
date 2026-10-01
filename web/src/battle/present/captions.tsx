@@ -6,14 +6,14 @@
  *  newest few show. Hearing cues are always captioned, independently of
  *  audio settings. */
 import { useCallback, useState } from "react";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import type { ObservationView, SoundCueView } from "../sim/observation";
 import { unitName } from "./readouts";
 
 /** Rows shown at most. */
 export const CAPTION_ROWS = 3;
 /** A row lasts this long after its sound was last heard (ticks). */
-export const CAPTION_TICKS = 5 * village.tick_hz;
+export const CAPTION_TICKS = 5 * game.tick_hz;
 
 const DIRECTIONS = [
   "east",

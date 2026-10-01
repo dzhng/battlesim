@@ -3,19 +3,19 @@
 // verdict. Stress input, clearly labelled: the village stays the play fixture.
 import { useEffect, useRef, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import { enduranceScenario } from "../savedMaps";
 import { BattleView } from "../BattleView";
 import { useBuiltScenario } from "../useBuiltScenario";
 import type { BattleSession } from "../useBattleSession";
-import { villageCamera } from "../villageCamera";
+import { gameCamera } from "../gameCamera";
 
 const CAMERA: Camera3DParams = {
   target: [1500, 1000, 0],
   distance: 2400,
   pitch: 0.95,
   yaw: -1.57,
-  ...villageCamera.lens,
+  ...gameCamera.lens,
 };
 const FRAME_WINDOW_MS = 10_000;
 
@@ -108,7 +108,7 @@ export default function Endurance() {
       <>
         <ul className="lab-log" data-testid="telemetry">
           <li>
-            tick {t.tick} ({(t.tick / village.tick_hz / 60).toFixed(1)} min) · {t.status}
+            tick {t.tick} ({(t.tick / game.tick_hz / 60).toFixed(1)} min) · {t.status}
             {t.slow ? " · behind real time" : ""}
           </li>
           <li>

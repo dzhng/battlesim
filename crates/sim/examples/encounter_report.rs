@@ -51,7 +51,7 @@ fn main() {
         !maps.is_empty(),
         "usage: encounter_report [--recipe id] [--seed n] [--out dir] <map-directory>..."
     );
-    let rules: Rules = serde_json::from_value(sim::fixtures::village()).expect("the village rules");
+    let rules: Rules = serde_json::from_value(sim::fixtures::game()).expect("the village rules");
     let recipes = EncounterRecipes::from_json(
         &std::fs::read_to_string(sim::fixtures::dir().join("encounters.json"))
             .expect("fixtures/encounters.json"),

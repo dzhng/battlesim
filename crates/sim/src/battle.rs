@@ -1652,7 +1652,7 @@ impl Battle {
         let mut sightings: Vec<Sighting> = self.sightings[side.index()]
             .iter()
             .filter(|s| !due(&units[s.observer.0 as usize]))
-            .filter_map(|s| sensing::kept(s, units))
+            .filter_map(|s| sensing::kept(s, units, &self.rules))
             .collect();
         sightings.extend(sensing::evaluate(
             &self.world,
@@ -2110,6 +2110,15 @@ impl Battle {
         let hulls = cover::hull_bodies(&crate::lean::hulls(&self.units, &self.rules));
         for side in Side::ALL {
             let knowledge = &self.knowledge[side.index()];
+            let spotted_by_visible_enemy: BTreeSet<UnitId> = self.sightings[1 - side.index()]
+                .iter()
+                .filter(|s| {
+                    knowledge
+                        .track(s.observer)
+                        .is_some_and(|t| t.last_seen == self.tick)
+                })
+                .map(|s| s.target)
+                .collect();
             let fog = &self.fog[side.index()];
             let frame = &mut self.observations[side.index()];
             frame.tick = self.tick;
@@ -2273,7 +2282,9 @@ impl Battle {
                             .map(|s| s.hp)
                             .collect(),
                         suppression: self.rules.suppression.tier(u.suppression),
-                        concealed: sensing::concealed(&self.world, u, &self.rules),
+                        concealed: sensing::concealed(&self.world, u, &self.rules)
+                            && !spotted_by_visible_enemy.contains(&u.id)
+                            && u.attackers.is_empty(),
                         stock: u.stock,
                         service: u.service,
                         garrison: garrison::state(&self.world, u, &self.rules),
@@ -2482,7 +2493,7 @@ mod tests {
                 "forests": [{ "shape": { "kind": "polygon",
                     "ring": [[100, 50], [200, 50], [200, 150], [100, 150]] } }],
                 "props": props },
-            "rules": crate::fixtures::village(),
+            "rules": crate::fixtures::game(),
             "units": [
                 { "side": "blue", "kind": "tank", "position": [40, 100], "yaw": 0.0,
                   "engagement": "return_fire_only" },
@@ -2598,7 +2609,7 @@ mod tests {
                 yaw: 0.0,
             })
             .unwrap();
-        let mut rules = crate::fixtures::village();
+        let mut rules = crate::fixtures::game();
         crate::fixtures::patch_catalog(
             &mut rules,
             "units",
@@ -2650,7 +2661,7 @@ mod tests {
                 })
                 .unwrap();
             geometry.floor_z = Some(vec![0.0, 3.0, 6.0]);
-            let mut rules = crate::fixtures::village();
+            let mut rules = crate::fixtures::game();
             crate::fixtures::patch_catalog(
                 &mut rules,
                 "units",

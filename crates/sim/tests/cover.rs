@@ -17,7 +17,7 @@ use std::f64::consts::FRAC_PI_2;
 use crate::common;
 
 fn rules() -> Rules {
-    serde_json::from_value(common::village()).unwrap()
+    serde_json::from_value(common::game()).unwrap()
 }
 
 fn map(props: Value) -> String {

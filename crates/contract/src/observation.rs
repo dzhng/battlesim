@@ -426,8 +426,8 @@ pub struct OwnUnit {
     /// The squad's suppression tier (P14), from its hidden level by the
     /// rules' thresholds: the one state the sim's penalties and the UI read.
     pub suppression: SuppressionTier,
-    /// A foliage or shelter detection-range bonus applies to this hull or at
-    /// least one living soldier. This does not say whether enemies see it.
+    /// Forest or shelter concealment covers enough of this living unit,
+    /// and neither a visible enemy observer nor a known attacker reveals it.
     pub concealed: bool,
     /// A supply vehicle's remaining stock.
     pub stock: Option<u32>,

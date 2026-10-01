@@ -5,7 +5,7 @@ import {
   validateStrokeRule,
   type StrokeRule,
 } from "../../packages/battle-renderer/src/strokeWidth";
-import village from "../../fixtures/village.json";
+import game from "../../fixtures/game.json";
 
 const RULE: StrokeRule = {
   full_m_per_px: 0.05,
@@ -47,7 +47,7 @@ test("no stroke is narrower than the floor on the ground", () => {
 });
 
 test("the fixture's rule is valid and a backwards zoom range is refused", () => {
-  expect(() => validateStrokeRule(village.presentation.overlay.stroke)).not.toThrow();
+  expect(() => validateStrokeRule(game.presentation.overlay.stroke)).not.toThrow();
   expect(() => validateStrokeRule({ ...RULE, thin_m_per_px: 0.01 })).toThrow(/stroke/);
   expect(() => validateStrokeRule({ ...RULE, thin_scale: 1.5 })).toThrow(/stroke/);
 });

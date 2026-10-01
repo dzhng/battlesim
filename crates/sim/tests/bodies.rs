@@ -12,7 +12,7 @@ use sim::ground::GroundLayer;
 use sim::math::{v2, v3, V2};
 
 fn rules() -> Rules {
-    serde_json::from_value(common::village()).unwrap()
+    serde_json::from_value(common::game()).unwrap()
 }
 
 fn run(b: &mut Battle, seconds: f64) {
@@ -230,7 +230,7 @@ fn shoves_replay_and_poses_are_in_the_digest() {
 /// Q28: a test-only smoke prop type: blocks nobody, stops no rounds, gives
 /// no cover, occludes, and lasts 10 s. Each column acts alone.
 fn smoke(units: Value, scripts: Value) -> ScenarioDefinition {
-    let mut rules = common::village();
+    let mut rules = common::game();
     rules["catalog"]
         .as_array_mut()
         .unwrap()
@@ -393,7 +393,7 @@ fn a_destroyed_jeep_leaves_a_light_wreck() {
 /// row, and nothing in code knows its id.
 #[test]
 fn a_wreck_is_whatever_prop_type_its_vehicle_names() {
-    let mut rules = common::village();
+    let mut rules = common::game();
     rules["catalog"]
         .as_array_mut()
         .unwrap()

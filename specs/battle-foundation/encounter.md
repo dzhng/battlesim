@@ -1,6 +1,6 @@
 # Village encounter and tuning
 
-The only numeric owner is the runtime fixture [fixtures/village.json](../../fixtures/village.json), moved there from this spec when implementation started (slice 01). It is a **proposed starting fixture**, not balanced historical data. Tune it in place with recorded paired evidence; there is no second editable copy.
+The only numeric owner is the runtime fixture [fixtures/game.json](../../fixtures/game.json), moved there from this spec when implementation started (slice 01). It is a **proposed starting fixture**, not balanced historical data. Tune it in place with recorded paired evidence; there is no second editable copy.
 
 ## Playable question
 

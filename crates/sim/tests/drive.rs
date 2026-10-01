@@ -9,7 +9,7 @@ use sim::battle::Battle;
 use sim::math::wrap_angle;
 
 fn rules() -> Value {
-    sim::fixtures::village()
+    sim::fixtures::game()
 }
 
 /// One vehicle of `kind` on open flat ground at `at` facing `yaw`, moved to

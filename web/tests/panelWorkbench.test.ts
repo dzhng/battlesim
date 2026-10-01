@@ -2,14 +2,14 @@
 // The panel workbench shows every panel the battle can draw: every row kind
 // the derivation (`panelRows.ts`) can produce appears in its specimens, so a
 // new state row, unit type, weapon row or reason can't slip past review.
-import village from "@fixtures/village.json";
+import game from "@fixtures/game.json";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { expect, test } from "vitest";
 import { panelSpecimens } from "@apps/battle-lab/src/panelSpecimens";
 import { REASON_MARK } from "../src/battle/present/infoPanel";
 import { STATE_ROWS, type PanelRules } from "../src/battle/present/panelRows";
 
-const RULES = village as unknown as PanelRules;
+const RULES = game as unknown as PanelRules;
 const specimens = panelSpecimens(RULES);
 const rows = specimens.flatMap((s) => s.panel.weapons);
 const kinds = rows.flatMap((w) => w.kinds);

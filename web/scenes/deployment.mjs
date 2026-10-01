@@ -3,9 +3,9 @@
 import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, advance, openBattle } from "./_lab.mjs";
-import { unitType, village } from "./_units.mjs";
+import { unitType, game } from "./_units.mjs";
 
-const N = Math.round(unitType("supply").capabilities.deploy.seconds * village.tick_hz);
+const N = Math.round(unitType("supply").capabilities.deploy.seconds * game.tick_hz);
 
 const supply = async (page) =>
   lab(page, () => window.__lab.route.observation().own.find((u) => u.kind === "supply"));

@@ -6,7 +6,7 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useFeed } from "../feed";
-import { villageCamera } from "../villageCamera";
+import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
 
 // The sensors map's saved encounter
@@ -24,7 +24,7 @@ const SENSORS_CAMERA: Camera3DParams = {
   distance: 640,
   pitch: 1.0,
   yaw: -1.57,
-  ...villageCamera.lens,
+  ...gameCamera.lens,
 };
 
 export default function Sensors() {

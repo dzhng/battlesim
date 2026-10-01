@@ -11,7 +11,7 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useFeed } from "../feed";
-import { villageCamera } from "../villageCamera";
+import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
 
 // A supply truck sets up among a damaged tank, an AT team short of missiles and
@@ -25,7 +25,7 @@ const SUPPLY_CAMERA: Camera3DParams = {
   distance: 300,
   pitch: 0.95,
   yaw: -1.57,
-  ...villageCamera.lens,
+  ...gameCamera.lens,
 };
 
 export default function Supply() {

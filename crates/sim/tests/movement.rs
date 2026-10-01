@@ -449,7 +449,7 @@ fn idle_units_never_search() {
 fn one_squad(props: serde_json::Value, from: [f64; 2], goal: [f64; 2]) -> Battle {
     let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
         "map": { "size": [120, 80], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35, "props": props },
-        "rules": common::village(),
+        "rules": common::game(),
         "units": [{ "side": "blue", "kind": "rifle", "position": from, "engagement": "return_fire_only" }],
         "events": [],
         "scripts": [{ "tick": 1, "side": "blue", "order": {

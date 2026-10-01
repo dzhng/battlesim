@@ -28,7 +28,7 @@ import type { Vec3 } from "math";
 import { orderView } from "./battleOverlay";
 import { Feed } from "./feed";
 import { groundUnderRay, type StaticWorld } from "./useStaticWorld";
-import { villageOrderStyle, villageRulerStyle, villageStroke } from "./villageOverlay";
+import { gameOrderStyle, gameRulerStyle, gameStroke } from "./gameOverlay";
 
 /** The ruler shown, and the circle the orders draw round its unit (with
  *  Space held), which the painted line leaves from. */
@@ -62,7 +62,7 @@ export function rulerAt(
   // Space is held: the orders draw every unit's circle, shown in full.
   return {
     ruler: rangeRuler(unit, cursor, rules, UNITS),
-    circle: unitCircle(orderView(own, true, 1), villageOrderStyle),
+    circle: unitCircle(orderView(own, true, 1), gameOrderStyle),
   };
 }
 
@@ -165,7 +165,7 @@ export class PointerPaint {
               area: u.area ? { ...u.area, anchor: mark.goal } : null,
             },
             mark.goal,
-            villageOrderStyle,
+            gameOrderStyle,
           ),
         },
       ];
@@ -205,14 +205,14 @@ export class PointerPaint {
           ? buildRangeRuler(
               rulerLine(shown.ruler, shown.circle),
               z,
-              villageRulerStyle,
+              gameRulerStyle,
               metresPerPx,
-              villageStroke(metresPerPx),
+              gameStroke(metresPerPx),
             )
           : EMPTY_MESH,
         preview.length
-          ? buildDestinationPreview(preview, z, villageOrderStyle, {
-              stroke: villageStroke(metresPerPx),
+          ? buildDestinationPreview(preview, z, gameOrderStyle, {
+              stroke: gameStroke(metresPerPx),
             })
           : EMPTY_MESH,
       ]),
