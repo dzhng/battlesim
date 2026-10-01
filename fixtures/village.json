@@ -799,6 +799,7 @@
       "haze": {
         "distance_scale": 4.6,
         "clear_radius_m": 300,
+        "overview_from_m": 2000,
         "range_near_m": 600,
         "range_far_m": 3000,
         "range_power": 1.3,

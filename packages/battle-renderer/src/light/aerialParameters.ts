@@ -25,6 +25,7 @@ export interface AerialParams {
   visibilityKm: number;
   distanceScale: number;
   clearRadiusKm: number;
+  overviewFromM: number;
   rangeFogNearM: number;
   rangeFogFarM: number;
   rangeFogPower: number;
@@ -59,6 +60,7 @@ export function aerialParams(light: LightPresentation): AerialParams {
     visibilityKm: 3.912 / mean,
     distanceScale: h.distance_scale,
     clearRadiusKm: h.clear_radius_m / 1000,
+    overviewFromM: h.overview_from_m,
     rangeFogNearM: h.range_near_m,
     rangeFogFarM: h.range_far_m,
     rangeFogPower: h.range_power,
