@@ -93,6 +93,8 @@ struct Way {
     pieces: Vec<usize>,
     /// Left exactly as laid: closing it lost a joint.
     pinned: bool,
+    /// The stroke `points` make at `width`: rounded once, when they change.
+    shape: GroundShape,
 }
 
 /// One end of one way: the way, and whether it is the way's last point.
@@ -126,8 +128,25 @@ impl Way {
         }
     }
 
-    fn shape(&self) -> Result<GroundShape, String> {
-        GroundShape::stroke(self.points.clone(), self.width)
+    /// Lay it along `points` instead, unless the shared centreline refuses
+    /// the line they make: then it stays as it was. Says whether it moved.
+    fn relay(&mut self, points: Vec<Point>) -> bool {
+        match GroundShape::stroke(points.clone(), self.width) {
+            Ok(shape) => {
+                self.points = points;
+                self.shape = shape;
+                true
+            }
+            Err(_) => false,
+        }
+    }
+
+    /// Its rounded centreline.
+    fn samples(&self) -> &[Point] {
+        match &self.shape {
+            GroundShape::Stroke { centerline, .. } => centerline.samples(),
+            GroundShape::Polygon { .. } => unreachable!("a way is a stroke"),
+        }
     }
 }
 
@@ -146,22 +165,27 @@ pub fn close(surfaces: Vec<SurfaceArea>, size: [f64; 2], grounds: &[&[Point]]) -
     let mut laid: Vec<Way> = Vec::new();
     let mut kept: Vec<Option<SurfaceArea>> = Vec::with_capacity(surfaces.len());
     for (slot, area) in surfaces.into_iter().enumerate() {
-        match &area.shape {
+        let road = match &area.shape {
             GroundShape::Stroke {
                 centerline,
                 width_m,
-            } if area.kind.is_road() => {
+            } if area.kind.is_road() => Some((centerline.control_points().to_vec(), *width_m)),
+            _ => None,
+        };
+        match road {
+            Some((points, width)) => {
                 laid.push(Way {
                     kind: area.kind,
-                    width: *width_m,
-                    points: centerline.control_points().to_vec(),
+                    width,
+                    points,
                     slot,
                     pieces: vec![slot],
                     pinned: false,
+                    shape: area.shape,
                 });
                 kept.push(None);
             }
-            _ => kept.push(Some(area)),
+            None => kept.push(Some(area)),
         }
     }
     let slots = kept.len();
@@ -182,10 +206,9 @@ pub fn close(surfaces: Vec<SurfaceArea>, size: [f64; 2], grounds: &[&[Point]]) -
         ways = laid;
     }
     for way in ways {
-        let shape = way.shape().expect("every change to a way was checked");
         kept[way.slot] = Some(SurfaceArea {
             kind: way.kind,
-            shape,
+            shape: way.shape,
         });
     }
     kept.into_iter().flatten().collect()
@@ -304,8 +327,8 @@ fn nodes(ways: &[Way]) -> Vec<Vec<End>> {
 }
 
 /// The ways' rounded stretches, bucketed by the ground their width covers.
-struct Paving {
-    shapes: Vec<GroundShape>,
+struct Paving<'a> {
+    shapes: Vec<&'a GroundShape>,
     /// Each way's half width.
     halves: Vec<f64>,
     /// (way, one rounded stretch of it)
@@ -314,19 +337,13 @@ struct Paving {
     widest: f64,
 }
 
-impl Paving {
-    fn new(ways: &[Way], size: [f64; 2]) -> Self {
-        let shapes: Vec<GroundShape> = ways
-            .iter()
-            .map(|way| way.shape().expect("every way is a valid stroke"))
-            .collect();
+impl<'a> Paving<'a> {
+    fn new(ways: &'a [Way], size: [f64; 2]) -> Self {
+        let shapes: Vec<&GroundShape> = ways.iter().map(|way| &way.shape).collect();
         let mut stretches = Vec::new();
         let mut grid = Grid::new(size, 64.0);
-        for (way, shape) in shapes.iter().enumerate() {
-            let GroundShape::Stroke { centerline, .. } = shape else {
-                unreachable!()
-            };
-            for pair in centerline.samples().windows(2) {
+        for (way, line) in ways.iter().enumerate() {
+            for pair in line.samples().windows(2) {
                 grid.insert(
                     segment_bounds(pair[0], pair[1], ways[way].half() + NEAR_M),
                     stretches.len() as u32,
@@ -485,8 +502,7 @@ fn trim(ways: &mut [Way], size: [f64; 2], grounds: &[&[Point]]) {
         }
     }
     for ((way, last), step, to) in cuts {
-        let original = ways[way].points.clone();
-        let points = &mut ways[way].points;
+        let mut points = ways[way].points.clone();
         if last {
             points.truncate(points.len() - step);
         } else {
@@ -495,8 +511,8 @@ fn trim(ways: &mut [Way], size: [f64; 2], grounds: &[&[Point]]) {
         let at = if last { points.len() - 1 } else { 0 };
         points[at] = to;
         points.dedup();
-        if points.len() < 2 || ways[way].shape().is_err() {
-            ways[way].points = original;
+        if points.len() >= 2 {
+            ways[way].relay(points);
         }
     }
 }
@@ -666,6 +682,13 @@ fn weld(ways: Vec<Way>) -> Vec<Way> {
         }
         points.dedup();
         let first = piece(chain[0].0);
+        // A line the shared centreline refuses stays as its pieces.
+        let Ok(shape) = GroundShape::stroke(points.clone(), first.width) else {
+            continue;
+        };
+        if chain.len() == 1 {
+            continue;
+        }
         let welded = Way {
             kind: first.kind,
             width: first.width,
@@ -680,14 +703,12 @@ fn weld(ways: Vec<Way>) -> Vec<Way> {
                 .flat_map(|(way, _)| piece(*way).pieces.clone())
                 .collect(),
             pinned: false,
+            shape,
         };
-        if chain.len() > 1 && welded.shape().is_ok() {
-            for (way, _) in &chain {
-                pieces[*way] = None;
-            }
-            out.push(welded);
+        for (way, _) in &chain {
+            pieces[*way] = None;
         }
-        // A line the shared centreline refuses stays as its pieces.
+        out.push(welded);
     }
     out.extend(pieces.into_iter().flatten());
     out.sort_by_key(|way| way.slot);
@@ -850,10 +871,7 @@ fn gate(ways: &mut [Way], size: [f64; 2]) {
             let turn = round_cm(sub(at, scale(normal, depth)));
             let mut gated = way.points.clone();
             gated.insert(if last { gated.len() - 1 } else { 1 }, turn);
-            let original = core::mem::replace(&mut way.points, gated);
-            if way.shape().is_err() {
-                way.points = original;
-            }
+            way.relay(gated);
         }
     }
 }
@@ -937,11 +955,9 @@ fn snap(ways: &mut [Way], size: [f64; 2], settled: &[End]) {
 /// Move each end, unless the shared centreline refuses the way it makes.
 fn apply(ways: &mut [Way], moves: Vec<(End, Point)>) {
     for ((way, last), to) in moves {
-        let at = ways[way].at(last);
-        let original = core::mem::replace(&mut ways[way].points[at], to);
-        if ways[way].shape().is_err() {
-            ways[way].points[at] = original;
-        }
+        let mut points = ways[way].points.clone();
+        points[ways[way].at(last)] = to;
+        ways[way].relay(points);
     }
 }
 

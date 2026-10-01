@@ -2288,6 +2288,14 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 
 **Verdict:** sound: the sweep's road-graph refusals stopped with it. It costs two more crossing passes a plan. **Confidence:** high.
 
+### Welded streets cost about a fifth more generation work
+
+**Choice:** The cost is accepted. Generation and compilation retire 2.24 G instructions for a Mixed Small map against 1.84 G with the pass switched off, and 7.92 G against 6.52 G for Metro Large (medians of 12 seeds): 21 to 22% more.
+
+**Gap:** No budget names generation's own cost; the startup budget covers it.
+
+**Verdict:** provisional. Skipping only the weld gives the cost back (6.44 G for Metro Large): a street welded round a corner has a rounded bend of a dozen samples where two straight strokes had none, and everything downstream (the parcel pass's street index, `measure`, the compiler) reads every sample. The pass itself and its lost-joint check are about 0.3 G of the 1.4 G. The simulation and the surface field carry those stretches too, which has not been measured. A bend sampled more coarsely on streets is the lever if startup needs it. **Confidence:** medium.
+
 ### A road leaves the map square to its edge
 
 **Choice:** A road that ends on the map's edge at a slant gets one more authored point, two widths in from the edge, so its last run is square to the edge and its flat end lies along it.
@@ -2318,7 +2326,7 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 
 **Gap:** Two kinds of joint are not closed: three or more roads of one width that meet at a point at sharp angles, or whose ends stand a few metres apart round one junction; and two streets of one width laid side by side for a few metres. (Two roads that fork alone, too sharply to be one road, are closed: the first runs on over the second one's end. The unprimed critique found that fork as a stepped tip before this.) A wider road that ends on narrower ones shows its shoulders and is counted sound: the road narrows there.
 
-**Verdict:** provisional. The bound is a measured count, to be lowered as those are closed and never raised. **Confidence:** medium.
+**Verdict:** provisional. The bound is a measured count, to be lowered as those are closed and never raised. A second unprimed critique still reads the closed fork as "a tick mark with a blunt heel": the first track runs on about half its width past the point and ends flat. It is sound (no bite) and not pretty; a link that joins a main street's far end at a sharp angle is the layout's choice, and choosing a kinder join belongs to the road network, not here. **Confidence:** medium.
 
 ### The change to physical ground is named; the quick village report did not move
 
