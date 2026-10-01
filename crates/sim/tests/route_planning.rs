@@ -1,0 +1,329 @@
+//! Route planning as a battle does it: a share of each tick's allowance at a
+//! time, the unit holding where it is until its route is ready.
+use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy};
+use contract::ids::{Side, UnitId};
+use contract::observation::{MoveState, OwnUnit};
+use contract::scenario::ScenarioDefinition;
+use serde_json::json;
+use sim::battle::Battle;
+
+use crate::common;
+
+/// Open ground 400 × 200 m with a 90 m wall across the middle of it:
+/// a route from one side to the other has to be searched for.
+const WALLED: &str = r#"{"size":[400,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+    "props":[{"kind":"wall","center":[200,100],"yaw":0,"half_extents":[0.4,45,0.6]}]}"#;
+
+/// The shipped rules with `work` planning work a tick, so a test decides how
+/// many ticks a search takes whatever the shipped allowance is.
+fn scenario(map: &str, units: serde_json::Value, work: u32) -> ScenarioDefinition {
+    let mut rules = common::scenario_rules();
+    rules["navigation"]["work_per_tick"] = json!(work);
+    let map: serde_json::Value = serde_json::from_str(map).unwrap();
+    serde_json::from_value(json!({
+        "map": map, "rules": rules, "units": units, "events": [], "scripts": [],
+    }))
+    .unwrap()
+}
+
+fn own(b: &Battle, id: u32) -> OwnUnit {
+    b.observe(Side::Blue)
+        .own
+        .iter()
+        .find(|u| u.id == UnitId(id))
+        .unwrap()
+        .clone()
+}
+
+fn xy(u: &OwnUnit) -> [f64; 2] {
+    [u.position[0], u.position[1]]
+}
+
+fn dist(a: [f64; 2], b: [f64; 2]) -> f64 {
+    (a[0] - b[0]).hypot(a[1] - b[1])
+}
+
+fn go(units: &[u32], goal: [f64; 2]) -> Order {
+    Order::Move {
+        units: units.iter().map(|&u| UnitId(u)).collect(),
+        gesture: 1,
+        goal,
+        route: RoutePolicy::Shortest,
+        direction: MoveDirection::Forward,
+        facing: None,
+    }
+}
+
+fn send(b: &mut Battle, seq: u64, order: Order) {
+    let ack = b.accept(CommandEnvelope {
+        side: Side::Blue,
+        seq,
+        order,
+        queued: false,
+    });
+    assert_eq!(ack.error, None);
+}
+
+fn one_tank() -> serde_json::Value {
+    json!([{ "side": "blue", "kind": "tank", "position": [100, 100] }])
+}
+
+#[test]
+fn a_unit_holds_where_it_is_while_its_route_is_planned_then_drives_it() {
+    let mut b = Battle::new(&scenario(WALLED, one_tank(), 100), 1);
+    send(&mut b, 1, go(&[0], [300.0, 100.0]));
+    b.step();
+    let start = xy(&own(&b, 0));
+    assert_eq!(own(&b, 0).state, MoveState::Planning);
+    let mut planning = 1;
+    while own(&b, 0).state == MoveState::Planning {
+        assert_eq!(xy(&own(&b, 0)), start, "it holds while it plans");
+        assert!(own(&b, 0).route.is_empty(), "no route before it is whole");
+        b.step();
+        planning += 1;
+        assert!(planning < 600, "planning never finished");
+    }
+    assert!(planning > 2, "a search this size outlasts one tick's work");
+    assert_eq!(own(&b, 0).state, MoveState::Moving);
+    for _ in 0..3000 {
+        b.step();
+        if own(&b, 0).state == MoveState::Idle {
+            break;
+        }
+    }
+    assert!(dist(xy(&own(&b, 0)), [300.0, 100.0]) < 1.0);
+}
+
+#[test]
+fn stop_while_planning_leaves_the_unit_idle_and_drops_its_request() {
+    let mut b = Battle::new(&scenario(WALLED, one_tank(), 100), 1);
+    send(&mut b, 1, go(&[0], [300.0, 100.0]));
+    b.step();
+    let start = xy(&own(&b, 0));
+    assert_eq!(b.load().routes_pending, 1);
+    send(
+        &mut b,
+        2,
+        Order::Stop {
+            units: vec![UnitId(0)],
+        },
+    );
+    for _ in 0..600 {
+        b.step();
+        assert_eq!(own(&b, 0).state, MoveState::Idle);
+        assert_eq!(b.load().routes_pending, 0);
+        assert_eq!(b.load().planning_work, 0, "nothing is searched for it");
+    }
+    assert_eq!(xy(&own(&b, 0)), start, "the stopped unit never set off");
+}
+
+#[test]
+fn a_new_order_replaces_the_route_being_planned() {
+    let mut b = Battle::new(&scenario(WALLED, one_tank(), 100), 1);
+    send(&mut b, 1, go(&[0], [300.0, 100.0]));
+    b.step();
+    b.step();
+    assert_eq!(own(&b, 0).state, MoveState::Planning);
+    // Back the way it faces away from, over open ground: no search needed.
+    send(&mut b, 2, go(&[0], [40.0, 100.0]));
+    for _ in 0..3000 {
+        b.step();
+        let unit = own(&b, 0);
+        assert!(
+            unit.position[0] < 101.0 && unit.route.iter().all(|p| p[0] < 101.0),
+            "it never gets or drives the route it was told to forget: {:?}",
+            unit.route
+        );
+        assert!(b.load().routes_pending <= 1);
+        if own(&b, 0).state == MoveState::Idle {
+            break;
+        }
+    }
+    assert!(dist(xy(&own(&b, 0)), [40.0, 100.0]) < 1.0);
+    assert_eq!(b.load().routes_pending, 0);
+}
+
+/// Six tanks either side of the wall, each sent across it at once.
+fn crossing() -> (ScenarioDefinition, Vec<Order>) {
+    let units: Vec<_> = (0..6)
+        .map(|k| json!({ "side": "blue", "kind": "tank", "position": [60 + 12 * k, 40 + 24 * k] }))
+        .collect();
+    let orders = (0..6)
+        .map(|k| go(&[k], [330.0 - 12.0 * k as f64, 40.0 + 24.0 * k as f64]))
+        .collect();
+    (scenario(WALLED, json!(units), 400), orders)
+}
+
+#[test]
+fn many_long_orders_share_each_ticks_allowance_and_every_unit_gets_its_route() {
+    let (setup, orders) = crossing();
+    let allowance = setup.rules.navigation.work_per_tick as u64;
+    let mut b = Battle::new(&setup, 1);
+    for (k, order) in orders.into_iter().enumerate() {
+        send(&mut b, k as u64 + 1, order);
+    }
+    let mut ticks = 0;
+    let mut most = 0;
+    let mut total = 0;
+    while (0..6).any(|id| own(&b, id).state == MoveState::Planning) || ticks == 0 {
+        b.step();
+        ticks += 1;
+        let work = b.load().planning_work;
+        most = most.max(work);
+        total += work;
+        assert!(ticks < 2000, "planning never finished");
+    }
+    assert!(ticks > 6, "the searches outlast one tick: {ticks}");
+    assert!(
+        most <= allowance + sim::navigation::LARGEST_STEP,
+        "a tick spent {most} of an allowance of {allowance}"
+    );
+    assert!(total <= ticks * allowance + sim::navigation::LARGEST_STEP);
+    for id in 0..6 {
+        assert_eq!(own(&b, id).state, MoveState::Moving, "unit {id}");
+    }
+}
+
+#[test]
+fn a_short_order_is_not_starved_by_long_ones() {
+    let (setup, orders) = crossing();
+    let mut b = Battle::new(&setup, 1);
+    // Five long searches, then the sixth tank a few metres over open ground.
+    for (k, order) in orders.into_iter().take(5).enumerate() {
+        send(&mut b, k as u64 + 1, order);
+    }
+    b.step();
+    b.step();
+    assert!((0..5).all(|id| own(&b, id).state == MoveState::Planning));
+    let near = xy(&own(&b, 5));
+    send(&mut b, 6, go(&[5], [near[0] - 20.0, near[1]]));
+    b.step();
+    assert_eq!(
+        own(&b, 5).state,
+        MoveState::Moving,
+        "its share of the tick is enough for a short route"
+    );
+    assert!((0..5).any(|id| own(&b, id).state == MoveState::Planning));
+}
+
+/// Every tick's digest of a battle given `orders` at tick 0 and a stop for
+/// unit 2 at tick 5: mid-search ticks included.
+fn digests(setup: &ScenarioDefinition, orders: &[Order], ticks: u64) -> (Vec<u64>, Battle) {
+    let mut b = Battle::new(setup, 7);
+    for (k, order) in orders.iter().enumerate() {
+        send(&mut b, k as u64 + 1, order.clone());
+    }
+    let mut out = Vec::new();
+    for t in 0..ticks {
+        if t == 5 {
+            let stop = Order::Stop {
+                units: vec![UnitId(2)],
+            };
+            send(&mut b, orders.len() as u64 + 1, stop);
+        }
+        b.step();
+        out.push(b.digest());
+    }
+    (out, b)
+}
+
+#[test]
+fn two_battles_given_the_same_orders_plan_alike_tick_for_tick() {
+    let (setup, orders) = crossing();
+    let (first, _) = digests(&setup, &orders, 400);
+    let (second, _) = digests(&setup, &orders, 400);
+    assert_eq!(first, second);
+    // The allowance is part of the battle: with less, routes come later.
+    let mut slower = setup.clone();
+    slower.rules.navigation.work_per_tick /= 2;
+    let (halved, _) = digests(&slower, &orders, 400);
+    assert_ne!(first[..40], halved[..40]);
+}
+
+#[test]
+fn a_replay_plans_the_same_routes_on_the_same_ticks() {
+    let (setup, orders) = crossing();
+    let (live, battle) = digests(&setup, &orders, 400);
+    let mut replay = Battle::from_replay(&setup, &battle.replay()).unwrap();
+    for (tick, digest) in live.iter().enumerate() {
+        replay.step();
+        assert_eq!(replay.digest(), *digest, "tick {}", tick + 1);
+    }
+}
+
+/// A side that learns of a body while a route is being searched gets a
+/// route that fits what it now knows, not one searched on the old picture.
+#[test]
+fn a_route_searched_while_the_side_learns_of_a_body_fits_what_it_now_knows() {
+    use sim::math::v2;
+    use sim::navigation::{Mobility, NavGrid, Plan};
+    use sim::route_planner::{Request, RoutePlanner};
+    use sim::world::WorldGeometry;
+    // A wall with its nearer gap to the south; then a second wall closes it.
+    let wall = r#"{"kind":"wall","center":[200,110],"yaw":0,"half_extents":[0.4,45,0.6]}"#;
+    let closed = r#"{"kind":"wall","center":[200,32],"yaw":0,"half_extents":[0.4,34,0.6]}"#;
+    let grid = |props: &str| {
+        let map = serde_json::from_str(&format!(
+            r#"{{"size":[400,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[{props}]}}"#
+        ))
+        .unwrap();
+        let world = WorldGeometry::new(&map, &common::rules());
+        NavGrid::build(&world, world.props().cloned(), 0.3)
+    };
+    let both = format!("{wall},{closed}");
+    let (before, after) = (grid(wall), grid(&both));
+    let rules = common::rules();
+    let tank = sim::units::mobility(rules.catalog.by_id("tank"), &rules);
+    let (from, goal) = (v2(100.0, 100.0), v2(300.0, 100.0));
+    let request = || Request {
+        side: Side::Blue,
+        from,
+        goal,
+        mobility: tank,
+        policy: RoutePolicy::Shortest,
+        detour: None,
+        kept: None,
+        new_goal: true,
+    };
+    let fits = |grid: &NavGrid, plan: &Plan, m: &Mobility| match plan {
+        Plan::Route(route) => grid.route_fits(from, route, m),
+        Plan::Blocked(_) => false,
+    };
+    // How many 40-work ticks the search takes on the first picture.
+    let mut twin = RoutePlanner::default();
+    twin.submit(UnitId(0), request());
+    let mut ticks = 0;
+    let old = loop {
+        ticks += 1;
+        if let Some((_, _, plan)) = twin.advance(40, [Some((&before, 1)), None]).pop() {
+            break plan;
+        }
+    };
+    assert!(ticks > 3 && fits(&before, &old, &tank));
+    assert!(
+        !fits(&after, &old, &tank),
+        "the old route runs through the new wall"
+    );
+    // The same search on fresh grids (a grid keeps what earlier searches
+    // worked out), but the side learns of the second wall on its last tick.
+    let (before, after) = (grid(wall), grid(&both));
+    let mut planner = RoutePlanner::default();
+    planner.submit(UnitId(0), request());
+    for _ in 1..ticks {
+        assert!(planner.advance(40, [Some((&before, 1)), None]).is_empty());
+    }
+    let plan = loop {
+        if let Some((_, _, plan)) = planner.advance(40, [Some((&after, 2)), None]).pop() {
+            break plan;
+        }
+    };
+    assert!(fits(&after, &plan, &tank), "{plan:?}");
+}
+
+#[test]
+fn rules_without_planning_work_are_refused_at_load() {
+    let mut rules = common::scenario_rules();
+    rules["navigation"]["work_per_tick"] = json!(0);
+    let error = serde_json::from_value::<contract::scenario::Rules>(rules).unwrap_err();
+    assert!(error.to_string().contains("work_per_tick"), "{error}");
+}

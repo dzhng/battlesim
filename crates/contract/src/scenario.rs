@@ -171,6 +171,25 @@ pub struct MovementRules {
     pub drive: DriveRules,
 }
 
+/// How routes are planned. A unit holds where it is while its route is
+/// worked out, a share of each tick's allowance at a time.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NavigationRules {
+    /// Planning work every side's units share each tick: one unit is about
+    /// one grid cell searched.
+    pub work_per_tick: u32,
+}
+
+impl NavigationRules {
+    fn check(&self) -> Result<(), String> {
+        if self.work_per_tick == 0 {
+            return Err("work_per_tick must be positive: no route would ever finish".into());
+        }
+        Ok(())
+    }
+}
+
 /// How every vehicle drives its route (Q29, Q30), whatever its own speeds
 /// and turning.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -388,6 +407,7 @@ pub struct ServiceRules {
 pub struct Rules {
     pub tick_hz: u32,
     pub movement: MovementRules,
+    pub navigation: NavigationRules,
     pub infantry_movement: InfantryMovementRules,
     pub physics: BodyRules,
     /// Every unit type and prop type (the catalog, `fixtures/units/` and
@@ -416,6 +436,7 @@ pub struct Rules {
 struct UncheckedRules {
     tick_hz: u32,
     movement: MovementRules,
+    navigation: NavigationRules,
     infantry_movement: InfantryMovementRules,
     physics: BodyRules,
     catalog: crate::catalog::Catalog,
@@ -440,16 +461,20 @@ impl TryFrom<UncheckedRules> for Rules {
     type Error = crate::catalog::CatalogError;
     fn try_from(r: UncheckedRules) -> Result<Self, Self::Error> {
         r.catalog.check_weapons(&r.weapons)?;
-        r.suppression
-            .check()
-            .map_err(|error| crate::catalog::CatalogError::Invalid {
+        for (id, checked) in [
+            ("suppression", r.suppression.check()),
+            ("navigation", r.navigation.check()),
+        ] {
+            checked.map_err(|error| crate::catalog::CatalogError::Invalid {
                 section: "rules",
-                id: "suppression".into(),
+                id: id.into(),
                 error,
             })?;
+        }
         Ok(Rules {
             tick_hz: r.tick_hz,
             movement: r.movement,
+            navigation: r.navigation,
             infantry_movement: r.infantry_movement,
             physics: r.physics,
             catalog: r.catalog,

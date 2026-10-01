@@ -1,4 +1,5 @@
-//! Ground movement each tick: plan when needed, follow the route at surface
+//! Ground movement each tick: ask for a route when one is needed and hold
+//! until the planner has it ([`RoutePlanner`]), follow the route at surface
 //! speed, and learn obstacles by running into them. A vehicle drives its route
 //! as one hull, waits for every other vehicle whatever its side (Q14), never
 //! for soldiers, and shoves bodies lighter than its push class aside
@@ -18,6 +19,7 @@ use crate::arrangement;
 use crate::ground::GroundLayer;
 use crate::math::{v2, Obb2, V2};
 use crate::navigation::{NavGrid, Plan};
+use crate::route_planner::{Request, RoutePlanner};
 use crate::units::Unit;
 use crate::world::{Prop, PropId, WorldGeometry};
 
@@ -270,17 +272,23 @@ pub fn advance(
     ctx: &MovementContext,
     units: &mut [Unit],
     sides: &mut [SideGeometry; 2],
+    planner: &mut RoutePlanner,
 ) -> Vec<Shove> {
     let footprints: Vec<Option<Obb2>> = units
         .iter()
         .map(|u| u.hull_box().filter(|_| u.alive()))
         .collect();
     let field = take_cover::Field::gather(ctx, units);
-    // The destroyed stay put; a wreck is an obstacle prop, not traffic.
-    for unit in units.iter_mut().filter(|u| u.alive()) {
+    for unit in units.iter_mut() {
+        // The destroyed stay put; a wreck is an obstacle prop, not traffic.
+        if !unit.alive() {
+            planner.cancel(unit.id);
+            continue;
+        }
         let s = unit.side.index();
-        plan_if_needed(ctx, unit, &mut sides[s], &footprints, &field);
+        request_route(ctx, unit, &mut sides[s], &footprints, planner);
     }
+    plan_routes(ctx, units, sides, &field, planner);
     let hulls: Vec<Obb2> = footprints.iter().flatten().copied().collect();
     // Every live vehicle on the move, either side, as soldiers see it coming.
     let threats: Vec<Threat> = units
@@ -310,14 +318,18 @@ pub fn advance(
     shoves
 }
 
-fn plan_if_needed(
+/// Ask the planner for a route when the unit needs one: a new goal, a route
+/// its side now knows is blocked, or a stall. It holds until the route comes
+/// ([`plan_routes`]); a goal that moves on meanwhile asks again.
+fn request_route(
     ctx: &MovementContext,
     unit: &mut Unit,
     side: &mut SideGeometry,
     footprints: &[Option<Obb2>],
-    field: &take_cover::Field,
+    planner: &mut RoutePlanner,
 ) {
     let Some((goal, policy)) = unit.movement_goal() else {
+        planner.cancel(unit.id);
         unit.route = None;
         unit.planned_goal = None;
         unit.state = MoveState::Idle;
@@ -335,6 +347,9 @@ fn plan_if_needed(
     let goal_moved = unit
         .planned_goal
         .is_none_or(|g| (g - goal).length() > GOAL_REPLAN_M);
+    if planner.pending(unit.id).is_some() && !goal_moved {
+        return;
+    }
     let changed = unit.planned_revision != side.revision;
     let stall_ticks = (STALL_REPLAN_S * ctx.tick_hz as f64) as u64;
     let stalled = unit.route.is_some() && ctx.tick.saturating_sub(unit.progress.1) > stall_ticks;
@@ -372,31 +387,87 @@ fn plan_if_needed(
         return;
     }
     side.searches += 1;
-    let grid = side.grid(ctx.world, ctx.authored, ctx.soldier_radius_m);
-    let from = if unit.is_vehicle() {
-        unit.position.xy()
-    } else {
-        set_off(unit)
-    };
-    // A new goal draws a new arrangement; a replan toward the same one
-    // keeps every soldier's spot.
-    let new_goal = goal_moved;
     unit.planned_goal = Some(goal);
+    // It holds without a route while it waits; a detour keeps the one it has.
+    let kept = unit.route.take().filter(|_| detour.is_some());
+    unit.state = MoveState::Planning;
+    planner.submit(
+        unit.id,
+        Request {
+            side: unit.side,
+            from: route_start(unit),
+            goal,
+            mobility: unit.mobility,
+            policy,
+            detour,
+            kept,
+            new_goal: goal_moved,
+        },
+    );
+}
+
+/// Spend this tick's planning work, and give every unit whose route is
+/// whole its route.
+fn plan_routes(
+    ctx: &MovementContext,
+    units: &mut [Unit],
+    sides: &mut [SideGeometry; 2],
+    field: &take_cover::Field,
+    planner: &mut RoutePlanner,
+) {
+    let waiting = planner.sides();
+    // Each side's grid as it knows the map now, built only if it is needed.
+    fn known<'a>(ctx: &MovementContext, side: &'a mut SideGeometry) -> (&'a NavGrid, u64) {
+        let revision = side.revision;
+        let grid = side.grid(ctx.world, ctx.authored, ctx.soldier_radius_m);
+        (grid, revision)
+    }
+    let [blue, red] = &mut *sides;
+    let ready = planner.advance(
+        ctx.rules.navigation.work_per_tick as u64,
+        [
+            waiting[0].then(|| known(ctx, blue)),
+            waiting[1].then(|| known(ctx, red)),
+        ],
+    );
+    for (id, request, plan) in ready {
+        let unit = &mut units[id.0 as usize];
+        take_route(ctx, unit, &sides[unit.side.index()], field, request, plan);
+    }
+}
+
+/// The planner's answer to `request` arrives: the unit sets off on the
+/// route, or learns there is none. It held while it waited, so the route
+/// starts where it stands; a squad's soldiers, who may have shifted to
+/// cover meanwhile, join the corridor from wherever they are.
+fn take_route(
+    ctx: &MovementContext,
+    unit: &mut Unit,
+    side: &SideGeometry,
+    field: &take_cover::Field,
+    request: Request,
+    plan: Plan,
+) {
+    let from = request.from;
+    unit.planned_revision = side.revision;
     unit.progress = (f64::INFINITY, ctx.tick);
-    if let Some(blocker) = detour {
-        // A failed detour keeps waiting and may try again after another stall.
-        if let Plan::Route(route) =
-            grid.plan_avoiding(from, goal, &unit.mobility, policy, &[blocker])
-        {
-            unit.route = Some(route);
-        }
+    if request.detour.is_some() {
+        // No way round keeps it waiting on the route it had; it may try
+        // again after another stall.
+        unit.route = match plan {
+            Plan::Route(route) => Some(route),
+            Plan::Blocked(_) => request.kept,
+        };
+        unit.state = MoveState::Waiting;
         return;
     }
-    match grid.plan(from, goal, &unit.mobility, policy) {
+    match plan {
         Plan::Route(route) => {
             if !unit.is_vehicle() {
                 let end = *route.last().expect("a route ends somewhere");
-                if new_goal {
+                // A new goal draws a new arrangement; a replan toward the
+                // same one keeps every soldier's spot.
+                if request.new_goal {
                     spread_out(ctx, unit, side, field, from, end);
                 } else {
                     keep_spots(ctx, unit, side, end);
@@ -741,11 +812,14 @@ fn keep_spots(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, end: 
     }
 }
 
-/// Where a squad plans its corridor from: the living soldier nearest its
-/// middle, who stands where soldiers can stand (the middle of a squad split
-/// by a wall may lie inside it).
-fn set_off(unit: &Unit) -> V2 {
+/// Where a unit's route starts: a vehicle's hull, or for a squad the living
+/// soldier nearest its middle, who stands where soldiers can stand (the
+/// middle of a squad split by a wall may lie inside it).
+fn route_start(unit: &Unit) -> V2 {
     let middle = unit.position.xy();
+    if unit.is_vehicle() {
+        return middle;
+    }
     unit.member_positions()
         .map(|p| p.xy())
         .min_by(|a, b| (*a - middle).length().total_cmp(&(*b - middle).length()))

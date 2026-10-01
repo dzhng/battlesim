@@ -31,6 +31,7 @@ use crate::knowledge::SideKnowledge;
 use crate::math::{v2, v3, Obb2, V2, V3};
 use crate::movement::{self, MovementContext, SideGeometry};
 use crate::rng::Rng;
+use crate::route_planner::RoutePlanner;
 use crate::sensing::{self, Sighting};
 use crate::sight;
 use crate::structures::Structures;
@@ -155,6 +156,9 @@ pub struct Load {
     pub active_projectiles: usize,
     pub rounds_launched: u64,
     pub path_searches: u64,
+    /// Units holding for a route, and the planning work the latest tick spent.
+    pub routes_pending: usize,
+    pub planning_work: u64,
     /// Bytes the ground layer holds.
     pub ground_bytes: usize,
     /// Bytes both sides' learned copies of it hold.
@@ -187,6 +191,8 @@ pub struct Battle {
     /// Props authored with the map (ids below this) are known to every side.
     authored_props: PropId,
     sides: [SideGeometry; 2],
+    /// Every unit's route request in progress.
+    planner: RoutePlanner,
     events: VecDeque<ScenarioEvent>,
     scripts: VecDeque<ScriptedOrder>,
     knowledge: [SideKnowledge; 2],
@@ -486,6 +492,7 @@ impl Battle {
             tick: 0,
             units,
             sides: Default::default(),
+            planner: RoutePlanner::default(),
             events: events.into(),
             scripts: scripts.into(),
             knowledge,
@@ -605,6 +612,8 @@ impl Battle {
             active_projectiles: self.projectiles.active().len(),
             rounds_launched: self.projectiles.launched(),
             path_searches: Side::ALL.into_iter().map(|s| self.route_searches(s)).sum(),
+            routes_pending: self.planner.waiting(),
+            planning_work: self.planner.spent(),
             ground_bytes: self.ground.bytes(),
             known_ground_bytes: self.knowledge.iter().map(|k| k.ground().bytes()).sum(),
         }
@@ -830,7 +839,7 @@ impl Battle {
             knowledge: &self.knowledge,
             arsenal: &self.arsenal,
         };
-        let shoves = movement::advance(&ctx, &mut self.units, &mut self.sides);
+        let shoves = movement::advance(&ctx, &mut self.units, &mut self.sides, &mut self.planner);
         self.shove_props(shoves);
         self.clear_lanes(&before);
         for ((from, channel), (to, _)) in treads.into_iter().zip(self.treads()) {
@@ -2176,6 +2185,7 @@ impl Battle {
         for side in &self.sides {
             side.digest(&mut d);
         }
+        self.planner.digest(&mut d);
         d.u64(self.world.obstacle_revision());
         // Every body's pose (L3): shoves move them.
         for p in self.world.props() {

@@ -31,6 +31,7 @@ mod navigation;
 mod order_markers;
 mod publication;
 mod ricochet;
+mod route_planning;
 mod sensing;
 mod sight;
 mod soldier_bodies;

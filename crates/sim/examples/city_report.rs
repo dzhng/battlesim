@@ -9,7 +9,8 @@
 //! build, then a small force crossing the whole map by road and across
 //! country. Each stage prints wall time, instructions retired (the
 //! load-independent number, macOS only) and resident memory. The crossing
-//! prints tick timings, when the first unit arrived, and the battle digest.
+//! prints tick timings and the planning work behind them, how long each
+//! unit held for its route and when it arrived, and the battle digest.
 use contract::ids::UnitId;
 use contract::map::MapDefinition;
 use contract::observation::MoveState;
@@ -86,8 +87,14 @@ fn main() {
     let hz = setup.rules.tick_hz as u64;
     let mut ticks = Vec::with_capacity((seconds * hz) as usize);
     let mut arrived: Vec<Option<f64>> = vec![None; kinds.len() * 2];
+    // Ticks each unit spent holding for a route, and when it first set off.
+    let mut held = vec![0u64; kinds.len() * 2];
+    let mut set_off: Vec<Option<f64>> = vec![None; kinds.len() * 2];
     let (start, before) = (Instant::now(), instructions());
     let mut worst = (0.0, 0);
+    // Planning work: the run's total, the busiest tick's, and the ticks
+    // over 33 ms that did any.
+    let (mut work, mut busiest, mut slow_planning) = (0u64, 0u64, 0usize);
     for t in 1..=seconds * hz {
         let tick = Instant::now();
         battle.step();
@@ -96,14 +103,18 @@ fn main() {
             worst = (ms, t);
         }
         ticks.push(ms);
-        if t > 2 {
-            for (i, slot) in arrived.iter_mut().enumerate() {
-                let idle = battle
-                    .unit(UnitId(i as u32))
-                    .is_some_and(|u| u.state == MoveState::Idle);
-                if slot.is_none() && idle {
-                    *slot = Some(t as f64 / hz as f64);
-                }
+        let planned = battle.load().planning_work;
+        work += planned;
+        busiest = busiest.max(planned);
+        slow_planning += usize::from(ms > 33.0 && planned > 0);
+        for i in 0..arrived.len() {
+            let state = battle.unit(UnitId(i as u32)).map(|u| u.state);
+            let now = t as f64 / hz as f64;
+            match state {
+                Some(MoveState::Planning) => held[i] += 1,
+                Some(MoveState::Moving) if set_off[i].is_none() => set_off[i] = Some(now),
+                Some(MoveState::Idle) if t > 2 && arrived[i].is_none() => arrived[i] = Some(now),
+                _ => {}
             }
         }
     }
@@ -122,13 +133,19 @@ fn main() {
         worst.1,
         ticks.iter().filter(|ms| **ms > 33.0).count(),
     );
+    println!(
+        "planning: {work} work in all, {busiest} in the busiest tick (allowance {}); {slow_planning} ticks over 33 ms did any",
+        setup.rules.navigation.work_per_tick,
+    );
     for (i, when) in arrived.iter().enumerate() {
         let side = if i < kinds.len() { "blue" } else { "red" };
         let unit = battle.unit(UnitId(i as u32));
         let at = unit.map(|u| u.position.xy());
         println!(
-            "{side} {}: {} at {:?}",
+            "{side} {}: held {:.2} s for routes, set off at {}, {} at {:?}",
             kinds[i % kinds.len()],
+            held[i] as f64 / hz as f64,
+            set_off[i].map_or("never".into(), |s| format!("{s:.2} s")),
             when.map_or("still moving".into(), |s| format!("stopped after {s:.1} s")),
             at.map(|p| (p.x.round(), p.y.round())),
         );

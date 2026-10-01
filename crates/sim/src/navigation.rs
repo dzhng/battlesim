@@ -17,8 +17,7 @@
 //! open, a wall stays closed. Soldiers then find their own way through the
 //! gap on the exact bodies (`movement::final_leg`).
 use std::cell::RefCell;
-use std::cmp::Ordering;
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::HashMap;
 use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 
@@ -28,6 +27,10 @@ use contract::scenario::PushClass;
 
 use crate::math::{v2, Obb2, V2};
 use crate::world::{Prop, WorldGeometry};
+
+mod search;
+
+pub use search::{RouteSearch, Scratch, SearchWork};
 
 pub const NAV_CELL_M: f64 = 2.0;
 /// Sub-cells per cell side for infantry: 0.5 m.
@@ -41,6 +44,19 @@ const TILE_SIDE: usize = 32;
 const TILE_SAMPLES: usize = TILE_SIDE * TILE_SIDE;
 const CLEARANCE_HALO: usize = (MAX_CLEARANCE_M / NAV_CELL_M) as usize;
 const CLEARANCE_SIDE: usize = TILE_SIDE + 2 * CLEARANCE_HALO;
+/// A route starts from the nearest cell its mover fits within this far of it.
+const START_REACH_M: f64 = NAV_CELL_M * 2.0;
+/// Planning work is counted in searched cells: building one clearance tile
+/// costs about this many.
+const TILE_WORK: u64 = 64;
+/// How many samples along a route segment one unit of work reads.
+const SAMPLES_PER_WORK: usize = 8;
+/// How many cells of a map-wide pass, or of a traced path, one unit reads.
+const CELLS_PER_WORK: usize = 32;
+/// The most one indivisible step of a search costs, and so the most a tick's
+/// planning overruns its allowance by: expanding a cell whose neighbours
+/// span four clearance tiles nobody has asked about yet.
+pub const LARGEST_STEP: u64 = 5 * TILE_WORK;
 
 /// How a unit class moves: its speeds on each surface and how wide it is.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -193,25 +209,32 @@ pub struct NavGrid {
     clearance: [RefCell<HashMap<usize, Box<[f64; TILE_SAMPLES]>>>; PUSH_CLASSES],
     /// Bit w is set when a known stopping body has weight rank w.
     weights: u8,
-    /// Temporary obstacles for the plan in progress.
-    avoid: Vec<Obb2>,
-    /// Visited search bookkeeping retained between plans.
+    /// The bookkeeping [`NavGrid::plan`] searches with, kept between plans.
     scratch: Scratch,
     /// Conservative rectangles containing every nonuniform surface or known body.
     regions: Regions,
     /// What each mover and policy planned with so far makes of the whole map.
     totals: RefCell<Vec<(TotalsKey, Arc<MoverTotals>)>>,
-    queued: usize,
-    heap_peak: usize,
-    expanded: usize,
-    stale: usize,
-}
-#[derive(Clone, Copy)]
-struct Search {
-    g: f64,
-    parent: u32,
+    /// What the latest [`NavGrid::plan`] cost.
+    latest: SearchWork,
+    /// Planning work done on this grid since it was built.
+    work: std::cell::Cell<u64>,
 }
 
+/// Who a plan is for: the mover, and the footprints this one plan treats as
+/// solid on top of what its side knows.
+#[derive(Clone, Copy)]
+struct Mover<'a> {
+    m: &'a Mobility,
+    avoid: &'a [Obb2],
+}
+
+impl<'a> Mover<'a> {
+    /// The mover with nothing extra in its way.
+    fn free(m: &'a Mobility) -> Self {
+        Mover { m, avoid: &[] }
+    }
+}
 /// Every route crossing this row/column must visit one of these cells.
 struct SearchCut {
     vertical: bool,
@@ -407,112 +430,6 @@ impl SearchBound {
     }
 }
 
-struct SearchTile {
-    g: [f64; TILE_SAMPLES],
-    parent: [u32; TILE_SAMPLES],
-    stamp: [u32; TILE_SAMPLES],
-}
-struct Scratch {
-    nx: usize,
-    tiles: HashMap<usize, Box<SearchTile>>,
-    generation: u32,
-    visited: usize,
-}
-impl Scratch {
-    fn new(nx: usize) -> Self {
-        Self {
-            nx,
-            tiles: HashMap::new(),
-            generation: 0,
-            visited: 0,
-        }
-    }
-    fn location(&self, k: usize) -> (usize, usize) {
-        let (i, j) = (k % self.nx, k / self.nx);
-        (
-            (j / TILE_SIDE) * self.nx.div_ceil(TILE_SIDE) + i / TILE_SIDE,
-            (j % TILE_SIDE) * TILE_SIDE + i % TILE_SIDE,
-        )
-    }
-    fn clear(&mut self) {
-        self.generation = self.generation.wrapping_add(1);
-        if self.generation == 0 {
-            for tile in self.tiles.values_mut() {
-                tile.stamp.fill(0);
-            }
-            self.generation = 1;
-        }
-        self.visited = 0;
-    }
-    fn get(&self, k: &usize) -> Option<Search> {
-        let (key, at) = self.location(*k);
-        let tile = self.tiles.get(&key)?;
-        (tile.stamp[at] == self.generation).then(|| Search {
-            g: tile.g[at],
-            parent: tile.parent[at],
-        })
-    }
-    /// One tile lookup for admission and the accepted cost/parent update.
-    fn relax(&mut self, k: usize, value: Search, admit: impl FnOnce() -> bool) -> bool {
-        use std::collections::hash_map::Entry;
-        let (key, at) = self.location(k);
-        let tile = match self.tiles.entry(key) {
-            Entry::Occupied(entry) => {
-                let tile = entry.get();
-                let improves = tile.stamp[at] != self.generation || value.g < tile.g[at];
-                if !improves {
-                    return false;
-                }
-                if !admit() {
-                    return false;
-                }
-                entry.into_mut()
-            }
-            Entry::Vacant(entry) => {
-                if !admit() {
-                    return false;
-                }
-                entry.insert(Box::new(SearchTile {
-                    g: [0.0; TILE_SAMPLES],
-                    parent: [0; TILE_SAMPLES],
-                    stamp: [0; TILE_SAMPLES],
-                }))
-            }
-        };
-        if tile.stamp[at] != self.generation {
-            self.visited += 1;
-        }
-        tile.g[at] = value.g;
-        tile.parent[at] = value.parent;
-        tile.stamp[at] = self.generation;
-        true
-    }
-    fn len(&self) -> usize {
-        self.visited
-    }
-    fn capacity(&self) -> usize {
-        self.tiles.len() * TILE_SAMPLES
-    }
-}
-
-#[derive(PartialEq)]
-struct Open {
-    f: f64,
-    cell: u32,
-}
-impl Eq for Open {}
-impl Ord for Open {
-    fn cmp(&self, o: &Self) -> Ordering {
-        // Min-heap on f, then lowest cell index for determinism.
-        o.f.total_cmp(&self.f).then_with(|| o.cell.cmp(&self.cell))
-    }
-}
-impl PartialOrd for Open {
-    fn partial_cmp(&self, o: &Self) -> Option<Ordering> {
-        Some(self.cmp(o))
-    }
-}
-
 /// Retained container capacities and the latest search's peak queue storage.
 #[derive(Debug, serde::Serialize)]
 pub struct NavigationStorage {
@@ -544,11 +461,20 @@ impl NavGrid {
             clearance_capacity: self.clearance.iter().map(|c| c.borrow().capacity()).sum(),
             search_cells: self.scratch.len(),
             search_capacity: self.scratch.capacity(),
-            queued: self.queued,
-            heap_capacity: self.heap_peak,
-            expanded: self.expanded,
-            stale: self.stale,
+            queued: self.latest.queued,
+            heap_capacity: self.latest.heap_peak,
+            expanded: self.latest.expanded,
+            stale: self.latest.stale,
         }
+    }
+
+    /// Planning work done on this grid since it was built.
+    pub fn work(&self) -> u64 {
+        self.work.get()
+    }
+
+    fn spend(&self, work: u64) {
+        self.work.set(self.work.get() + work);
     }
     /// Build from the world's surfaces plus the props this side knows about,
     /// where it believes they stand. `known_props` are the movement blockers
@@ -710,14 +636,11 @@ impl NavGrid {
             cells,
             clearance: Default::default(),
             weights,
-            avoid: Vec::new(),
             scratch: Scratch::new(nx),
             regions: Regions::new(regions, world.width(), world.depth()),
             totals: RefCell::default(),
-            queued: 0,
-            heap_peak: 0,
-            expanded: 0,
-            stale: 0,
+            latest: SearchWork::default(),
+            work: std::cell::Cell::new(0),
         }
     }
 
@@ -759,6 +682,7 @@ impl NavGrid {
         if let Some(values) = self.clearance[usize::from(stop)].borrow().get(&tile) {
             return values[local];
         }
+        self.spend(TILE_WORK);
         let (tx, ty) = (i / TILE_SIDE * TILE_SIDE, j / TILE_SIDE * TILE_SIDE);
         let (x0, y0) = (
             tx.saturating_sub(CLEARANCE_HALO),
@@ -844,7 +768,8 @@ impl NavGrid {
     }
 
     /// Whether a footprint fits with its centre in this cell.
-    fn fits(&self, cell: usize, m: &Mobility) -> bool {
+    fn fits(&self, cell: usize, who: Mover) -> bool {
+        let m = who.m;
         let c = &self.cells[cell];
         // The nearest blocked cell's centre is `clearance` away; its near edge
         // half a cell closer.
@@ -857,7 +782,7 @@ impl NavGrid {
             }
         };
         enters
-            && self.avoid.iter().all(|f| {
+            && who.avoid.iter().all(|f| {
                 !f.contains(
                     cell_center(cell % self.nx, cell / self.nx),
                     m.half_width_m + NAV_CELL_M / 2.0,
@@ -885,16 +810,17 @@ impl NavGrid {
     }
 
     /// Nearest cell within `radius` of `p` that the footprint fits, by distance.
-    fn nearest_fit(&self, p: V2, m: &Mobility, radius: f64) -> Option<usize> {
+    fn nearest_fit(&self, p: V2, who: Mover, radius: f64) -> Option<usize> {
         let (ci, cj) = cell_of(p);
         let reach = (radius / NAV_CELL_M).ceil() as isize;
+        self.spend(1);
         let mut best: Option<(f64, usize)> = None;
         for dj in -reach..=reach {
             for di in -reach..=reach {
                 if let Some(k) = self.index(ci + di, cj + dj) {
                     let d = (cell_center(k % self.nx, k / self.nx) - p).length();
                     if d <= radius
-                        && self.fits(k, m)
+                        && self.fits(k, who)
                         && best.is_none_or(|(bd, bk)| (d, k) < (bd, bk))
                     {
                         best = Some((d, k));
@@ -930,10 +856,15 @@ impl NavGrid {
     /// Whether `p` lies in a cell the footprint fits (for infantry, in one
     /// of its free sub-cells).
     pub fn fits_at(&self, p: V2, m: &Mobility) -> bool {
+        self.stands(p, Mover::free(m))
+    }
+
+    fn stands(&self, p: V2, who: Mover) -> bool {
         let (i, j) = cell_of(p);
         self.index(i, j).is_some_and(|k| {
-            self.fits(k, m)
-                && (m.class != MoverClass::Infantry || self.cells[k].free & (1 << sub_of(p)) != 0)
+            self.fits(k, who)
+                && (who.m.class != MoverClass::Infantry
+                    || self.cells[k].free & (1 << sub_of(p)) != 0)
         })
     }
 
@@ -1016,7 +947,8 @@ impl NavGrid {
         if self.fits_at(p, m) {
             return Some(p);
         }
-        self.nearest_fit(p, m, radius).map(|k| self.waypoint(k, m))
+        self.nearest_fit(p, Mover::free(m), radius)
+            .map(|k| self.waypoint(k, m))
     }
 
     /// Plan as if these footprints were solid, for this search only.
@@ -1028,192 +960,25 @@ impl NavGrid {
         policy: RoutePolicy,
         avoid: &[Obb2],
     ) -> Plan {
-        self.avoid = avoid.to_vec();
-        let plan = self.plan(from, goal, m, policy);
-        self.avoid.clear();
-        plan
+        let scratch = std::mem::replace(&mut self.scratch, Scratch::new(self.nx));
+        let mut search = RouteSearch::new(self, Some(scratch), from, goal, m, policy, avoid);
+        search.advance(self, u64::MAX);
+        self.latest = search.work();
+        let (plan, scratch) = search.finish();
+        self.scratch = scratch;
+        plan.expect("a search with no allowance left to wait for has finished")
     }
 
+    /// The whole route at once. A battle plans in steps instead
+    /// ([`RouteSearch`]), so no tick pays for a whole search.
     pub fn plan(&mut self, from: V2, goal: V2, m: &Mobility, policy: RoutePolicy) -> Plan {
-        let Some(start) = self.nearest_fit(from, m, NAV_CELL_M * 2.0) else {
-            return Plan::Blocked(BlockReason::StartEnclosed);
-        };
-        let Some(target) = self.nearest_fit(goal, m, NAV_CELL_M * 3.0) else {
-            return Plan::Blocked(BlockReason::NoRoute);
-        };
-        let goal = if self.fits_at(goal, m) {
-            goal
-        } else {
-            self.waypoint(target, m)
-        };
-        self.scratch.clear();
-        self.queued = 0;
-        self.heap_peak = 0;
-        self.expanded = 0;
-        self.stale = 0;
-        let totals = self.totals(m, policy);
-        if self.separated(start, target, &totals) {
-            return Plan::Blocked(BlockReason::NoRoute);
-        }
-        if self.uniform_segment(from, goal, start, target, m, policy) {
-            return Plan::Route(vec![goal]);
-        }
-        let heuristic_speed = match policy {
-            RoutePolicy::Shortest => 1.0,
-            RoutePolicy::Fastest => m.max_speed(),
-        };
-        let target_center = cell_center(target % self.nx, target / self.nx);
-        let h = |k: usize, nx: usize| {
-            (cell_center(k % nx, k / nx) - target_center).length() / heuristic_speed
-        };
-        let bound = self.search_bound(start, target, m, policy, &totals);
-        let implicit_costs = [
-            Self::cell_cost(&self.cells.implicit[3], m, policy, NAV_CELL_M),
-            Self::cell_cost(
-                &self.cells.implicit[3],
-                m,
-                policy,
-                NAV_CELL_M * std::f64::consts::SQRT_2,
-            ),
-        ];
-        let mut open = BinaryHeap::new();
-        self.scratch.relax(
-            start,
-            Search {
-                g: 0.0,
-                parent: start as u32,
-            },
-            || true,
-        );
-        open.push(Open {
-            f: h(start, self.nx),
-            cell: start as u32,
-        });
-        self.queued = 1;
-        self.heap_peak = open.capacity();
-        const STEPS: [(isize, isize); 8] = [
-            (1, 0),
-            (-1, 0),
-            (0, 1),
-            (0, -1),
-            (1, 1),
-            (1, -1),
-            (-1, 1),
-            (-1, -1),
-        ];
-        let mut found = false;
-        while let Some(Open { f, cell }) = open.pop() {
-            let cell = cell as usize;
-            if cell == target {
-                found = true;
-                break;
-            }
-            let g = self.scratch.get(&cell).expect("a queued cell has a cost").g;
-            if f > g + h(cell, self.nx) {
-                self.stale += 1;
-                continue; // stale entry
-            }
-            self.expanded += 1;
-            let (ci, cj) = ((cell % self.nx) as isize, (cell / self.nx) as isize);
-            // Geometry is fixed for the search. Classify each neighbour once;
-            // diagonal moves reuse the same orthogonal fit/crossing answers.
-            let nexts = STEPS.map(|(di, dj)| self.index(ci + di, cj + dj));
-            let uniform = self.uniform_stencil(cell, m);
-            let fits = nexts.map(|next| next.is_some_and(|k| uniform || self.fits(k, m)));
-            let crosses: [bool; 4] = std::array::from_fn(|k| {
-                fits[k] && (uniform || self.crosses(cell, nexts[k].unwrap(), m))
-            });
-            let costs = if uniform {
-                implicit_costs
-            } else {
-                let c = &self.cells[cell];
-                [
-                    Self::cell_cost(c, m, policy, NAV_CELL_M),
-                    Self::cell_cost(c, m, policy, NAV_CELL_M * std::f64::consts::SQRT_2),
-                ]
-            };
-            for (direction, &(di, dj)) in STEPS.iter().enumerate() {
-                if !fits[direction] {
-                    continue;
-                }
-                let next = nexts[direction].unwrap();
-                let diagonal = di != 0 && dj != 0;
-                if diagonal {
-                    // No corner cutting: both orthogonal neighbours must fit,
-                    // and be crossed into and out of.
-                    let horizontal = if di > 0 { 0 } else { 1 };
-                    let vertical = if dj > 0 { 2 } else { 3 };
-                    let via = |k: usize| {
-                        crosses[k] && (uniform || self.crosses(nexts[k].unwrap(), next, m))
-                    };
-                    if !(via(horizontal) && via(vertical)) {
-                        continue;
-                    }
-                } else if !crosses[direction] {
-                    continue;
-                }
-                let length = if diagonal {
-                    NAV_CELL_M * std::f64::consts::SQRT_2
-                } else {
-                    NAV_CELL_M
-                };
-                // Half the step on each cell's surface. Preserve the separate
-                // orthogonal/diagonal cost arithmetic and original step order.
-                let next_cost = if uniform {
-                    costs[usize::from(diagonal)]
-                } else {
-                    self.cost(next, m, policy, length)
-                };
-                let step = (costs[usize::from(diagonal)] + next_cost) / 2.0;
-                let tentative = g + step;
-                if self.scratch.relax(
-                    next,
-                    Search {
-                        g: tentative,
-                        parent: cell as u32,
-                    },
-                    || !bound.as_ref().is_some_and(|b| b.rejects(next, tentative)),
-                ) {
-                    open.push(Open {
-                        f: tentative + h(next, self.nx),
-                        cell: next as u32,
-                    });
-                    self.queued += 1;
-                    self.heap_peak = self.heap_peak.max(open.capacity());
-                }
-            }
-        }
-        if !found {
-            return Plan::Blocked(BlockReason::NoRoute);
-        }
-        let mut cells = vec![target];
-        while *cells.last().unwrap() != start {
-            let k = *cells.last().unwrap();
-            cells.push(
-                self.scratch
-                    .get(&k)
-                    .expect("a route cell has a parent")
-                    .parent as usize,
-            );
-        }
-        cells.reverse();
-        // Infantry passes each orthogonal step through the middle of the
-        // gap on the shared edge, so a corridor through a narrow gap runs
-        // down its middle.
-        let mut points: Vec<V2> = vec![from];
-        for w in cells.windows(2) {
-            let crossing = (m.class == MoverClass::Infantry)
-                .then(|| self.crossing(w[0], w[1]))
-                .flatten();
-            points.push(crossing.unwrap_or_else(|| self.waypoint(w[1], m)));
-        }
-        *points.last_mut().unwrap() = goal;
-        Plan::Route(self.smooth(&points, m, policy))
+        self.plan_avoiding(from, goal, m, policy, &[])
     }
 
     /// Certify the entire nine-cell stencil from conservative source reach.
     /// This reuses implicit cell answers; no sampled cost arithmetic changes.
-    fn uniform_stencil(&self, cell: usize, m: &Mobility) -> bool {
+    fn uniform_stencil(&self, cell: usize, who: Mover) -> bool {
+        let m = who.m;
         let (x, y) = (cell % self.nx, cell / self.nx);
         if !self.cells.implicit[3].ground
             || x == 0
@@ -1244,7 +1009,7 @@ impl NavGrid {
         }) {
             return false;
         }
-        !self.avoid.iter().any(|b| {
+        !who.avoid.iter().any(|b| {
             let reach = b.half.length()
                 + ((m.half_width_m + NAV_CELL_M / 2.0).max(0.0) + NAV_CELL_M)
                     * std::f64::consts::SQRT_2;
@@ -1265,26 +1030,28 @@ impl NavGrid {
         &self,
         from: usize,
         to: usize,
-        m: &Mobility,
+        who: Mover,
         policy: RoutePolicy,
         mut total: f64,
     ) -> Option<f64> {
+        let m = who.m;
         let mut at = from;
         while at != to {
+            self.spend(1);
             let (x, y) = (at % self.nx, at / self.nx);
             let (tx, ty) = (to % self.nx, to / self.nx);
             let di = (tx as isize - x as isize).signum();
             let dj = (ty as isize - y as isize).signum();
             let next = self.index(x as isize + di, y as isize + dj)?;
-            if !self.fits(next, m) {
+            if !self.fits(next, who) {
                 return None;
             }
             let diagonal = di != 0 && dj != 0;
             if diagonal {
                 let a = self.index(x as isize + di, y as isize)?;
                 let b = self.index(x as isize, y as isize + dj)?;
-                if !self.fits(a, m)
-                    || !self.fits(b, m)
+                if !self.fits(a, who)
+                    || !self.fits(b, who)
                     || !self.crosses(at, a, m)
                     || !self.crosses(a, next, m)
                     || !self.crosses(at, b, m)
@@ -1313,7 +1080,7 @@ impl NavGrid {
         &self,
         start: usize,
         target: usize,
-        m: &Mobility,
+        who: Mover,
         totals: &MoverTotals,
     ) -> Option<SearchCut> {
         let counts = [&totals.closed_columns, &totals.closed_rows];
@@ -1352,8 +1119,9 @@ impl NavGrid {
                         at * self.nx + other
                     }
                 })
-                .filter(|&k| self.fits(k, m))
+                .filter(|&k| self.fits(k, who))
                 .collect();
+            self.spend((extent / SAMPLES_PER_WORK) as u64);
             let mut openings: Vec<[usize; 2]> = Vec::new();
             for &k in &portals {
                 let y = if vertical { k / self.nx } else { k % self.nx };
@@ -1383,10 +1151,11 @@ impl NavGrid {
         &self,
         start: usize,
         target: usize,
-        m: &Mobility,
+        who: Mover,
         policy: RoutePolicy,
         totals: &MoverTotals,
     ) -> Option<SearchBound> {
+        let m = who.m;
         let unit = match policy {
             RoutePolicy::Shortest => 1.0,
             RoutePolicy::Fastest => 1.0 / m.off_road_mps,
@@ -1430,9 +1199,9 @@ impl NavGrid {
         if rounding >= 0.001 {
             return None;
         }
-        let cut = self.search_cut(start, target, m, totals);
+        let cut = self.search_cut(start, target, who, totals);
         let mut upper = self
-            .walk_bound(start, target, m, policy, 0.0)
+            .walk_bound(start, target, who, policy, 0.0)
             .unwrap_or(f64::INFINITY);
         if let Some(cut) = &cut {
             let mut portals = cut.portals.clone();
@@ -1469,13 +1238,13 @@ impl NavGrid {
                 } else {
                     (point(hi), point(lo))
                 };
-                if !self.fits(a, m) || !self.fits(b, m) {
+                if !self.fits(a, who) || !self.fits(b, who) {
                     continue;
                 }
                 if let Some(cost) = self
-                    .walk_bound(start, a, m, policy, 0.0)
-                    .and_then(|cost| self.walk_bound(a, b, m, policy, cost))
-                    .and_then(|cost| self.walk_bound(b, target, m, policy, cost))
+                    .walk_bound(start, a, who, policy, 0.0)
+                    .and_then(|cost| self.walk_bound(a, b, who, policy, cost))
+                    .and_then(|cost| self.walk_bound(b, target, who, policy, cost))
                 {
                     upper = upper.min(cost);
                 }
@@ -1530,6 +1299,7 @@ impl NavGrid {
         };
         let mut order: Vec<usize> = self.cells.changed.keys().copied().collect();
         order.sort_unstable();
+        self.spend((order.len() / CELLS_PER_WORK) as u64);
         for k in order {
             let c = &self.cells.changed[&k];
             let (x, y) = (k % self.nx, k / self.nx);
@@ -1584,11 +1354,12 @@ impl NavGrid {
         goal: V2,
         start: usize,
         target: usize,
-        m: &Mobility,
+        who: Mover,
         policy: RoutePolicy,
     ) -> bool {
+        let m = who.m;
         // The existing crossing graph requires distinct east/north strides.
-        if self.nx < 2 || !self.fits_at(from, m) {
+        if self.nx < 2 || !self.stands(from, who) {
             return false;
         }
         let totals = self.totals(m, policy);
@@ -1656,7 +1427,7 @@ impl NavGrid {
         if found {
             return false;
         }
-        if self.avoid.iter().any(|b| {
+        if who.avoid.iter().any(|b| {
             let radius = b.half.length() + m.half_width_m + NAV_CELL_M / 2.0;
             b.center.x + radius >= x0
                 && b.center.x - radius <= x1
@@ -1665,14 +1436,15 @@ impl NavGrid {
         }) {
             return false;
         }
-        self.segment_cost(from, goal, m, policy).is_some()
+        self.segment_cost(from, goal, who, policy).is_some()
     }
 
     /// Cost of travelling a straight segment, walking the cells it crosses; `None`
     /// when any sampled cell does not fit the footprint.
     /// Infantry samples every half sub-cell, and each sample must lie in a
     /// free sub-cell.
-    fn segment_cost(&self, a: V2, b: V2, m: &Mobility, policy: RoutePolicy) -> Option<f64> {
+    fn segment_cost(&self, a: V2, b: V2, who: Mover, policy: RoutePolicy) -> Option<f64> {
+        let m = who.m;
         let length = (b - a).length();
         let infantry = m.class == MoverClass::Infantry;
         let spacing = if infantry {
@@ -1681,13 +1453,15 @@ impl NavGrid {
             NAV_CELL_M / 4.0
         };
         let samples = ((length / spacing).ceil() as usize).max(1);
+        self.spend(1 + (samples / SAMPLES_PER_WORK) as u64);
         let piece = length / samples as f64;
         let mut total = 0.0;
         for k in 0..samples {
             let p = a + (b - a) * ((k as f64 + 0.5) / samples as f64);
             let (i, j) = cell_of(p);
             let cell = self.index(i, j)?;
-            if !self.fits(cell, m) || (infantry && self.cells[cell].free & (1 << sub_of(p)) == 0) {
+            if !self.fits(cell, who) || (infantry && self.cells[cell].free & (1 << sub_of(p)) == 0)
+            {
                 return None;
             }
             total += self.cost(cell, m, policy, piece);
@@ -1695,51 +1469,13 @@ impl NavGrid {
         Some(total)
     }
 
-    /// Greedy string-pulling over the grid path's turn points: from each kept
-    /// point, jump to the furthest later turn whose straight segment fits and
-    /// costs no more than the grid path it replaces. Scanning stops at the
-    /// first segment that does not fit, so long open runs stay cheap.
-    fn smooth(&self, points: &[V2], m: &Mobility, policy: RoutePolicy) -> Vec<V2> {
-        let mut turns = vec![0];
-        for k in 1..points.len() - 1 {
-            let (d0, d1) = (points[k] - points[k - 1], points[k + 1] - points[k]);
-            if d0.cross(d1).abs() > 1e-9 || d0.dot(d1) < 0.0 {
-                turns.push(k);
-            }
-        }
-        turns.push(points.len() - 1);
-        // Grid-path cost between consecutive turns (straight runs of cells).
-        let run_costs: Vec<f64> = turns
-            .windows(2)
-            .map(|w| {
-                self.segment_cost(points[w[0]], points[w[1]], m, policy)
-                    .unwrap_or(f64::INFINITY)
-            })
-            .collect();
-        let mut out = Vec::new();
-        let mut at = 0;
-        while at + 1 < turns.len() {
-            let mut next = at + 1;
-            let mut path_cost = run_costs[at];
-            for k in at + 2..turns.len() {
-                path_cost += run_costs[k - 1];
-                match self.segment_cost(points[turns[at]], points[turns[k]], m, policy) {
-                    Some(direct) if direct <= path_cost + 1e-9 => next = k,
-                    Some(_) => {}
-                    None => break,
-                }
-            }
-            out.push(points[turns[next]]);
-            at = next;
-        }
-        out
-    }
-
     /// Whether any known blocker now overlaps the remaining route for this footprint.
     pub fn route_fits(&self, from: V2, route: &[V2], m: &Mobility) -> bool {
         let mut a = from;
         route.iter().all(|&b| {
-            let ok = self.segment_cost(a, b, m, RoutePolicy::Shortest).is_some();
+            let ok = self
+                .segment_cost(a, b, Mover::free(m), RoutePolicy::Shortest)
+                .is_some();
             a = b;
             ok
         })
@@ -1752,7 +1488,7 @@ impl NavGrid {
             .iter()
             .map(|&b| {
                 let t = self
-                    .segment_cost(a, b, m, RoutePolicy::Fastest)
+                    .segment_cost(a, b, Mover::free(m), RoutePolicy::Fastest)
                     .unwrap_or(f64::INFINITY);
                 a = b;
                 t
