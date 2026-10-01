@@ -13,6 +13,7 @@ import {
   grassBladeVertices,
   grassClumpGlb,
   grassStripIndices,
+  grassStripFindings,
 } from "@packages/scene-assets/src/grass.ts";
 import { validateAppearance } from "@packages/scene-assets/src/validate.ts";
 import type { Catalog, StaticBundle } from "@packages/scene-assets/src/schema.ts";
@@ -170,4 +171,32 @@ test("the field's window covers the view where a pixel is under the fade's end, 
     sides.slice(0, 4).every((pl) => vec3.dot(pl.normal, p as never) + pl.constant >= 0);
   expect(inside([tx, ty, 0])).toBe(true);
   expect(inside([2 * eye[0] - tx, 2 * eye[1] - ty, 0])).toBe(false);
+});
+
+test("the field refuses grass whose composed height exceeds 0.9 m", async () => {
+  const source = await tuft({ ...GRASS_SPEC, height_m: [0.5, 0.5] });
+  const taller = structuredClone(biome);
+  for (const growth of Object.values(taller.grass.growth)) growth.height = 1.4;
+  const appearances = new Map(
+    Object.values(taller.grass.growth).map((g) => [g.appearance, source] as const),
+  );
+  // Source and biome alone are 0.7 m. Both independent shader variations
+  // can reach 1.2, taking the composed field above the physical cap.
+  expect(() => grassKinds(taller, appearances)).toThrow(/0.9/);
+});
+
+test("a strip cannot gain height when the field widens its blades", async () => {
+  const source = await tuft();
+  source.states[0].tiers[0].positions[2 * 3 + 2] += 0.1;
+  expect(grassStripFindings("slanted-side", source.states[0].tiers)).not.toEqual([]);
+});
+
+test("the effective height check includes the far tier's drawn vertices", async () => {
+  const source = await tuft({ ...GRASS_SPEC, height_m: [0.3, 0.3] });
+  const far = source.states[0].tiers[2];
+  far.positions[far.positions.length - 1] = 1.0;
+  const appearances = new Map(
+    Object.values(biome.grass.growth).map((g) => [g.appearance, source] as const),
+  );
+  expect(() => grassKinds(biome, appearances)).toThrow(/0.9/);
 });

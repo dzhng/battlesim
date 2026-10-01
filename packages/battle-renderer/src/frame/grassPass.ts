@@ -38,6 +38,10 @@ import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { eyePosition } from "@packages/renderer-core/src/camera3d";
 import {
   GRASS_SEGMENTS,
+  GRASS_HEIGHT_VARIATION,
+  GRASS_PATCH_HEIGHT_VARIATION,
+  maxFieldGrassHeight,
+  grassMeshHeight,
   grassBladeVertices,
   grassStripIndices,
 } from "@packages/scene-assets/src/grass.ts";
@@ -371,7 +375,7 @@ const buildFn = tgpu
     let row = P.kinds[kind];
     // Patches a few metres across stand taller or lower, as uneven grass does.
     let tall = valueNoise(p * ${1 / GRASS_PATCH_M});
-    let height = row.x * g.y * grow * fade * mix(0.8, 1.2, h.x) * mix(0.7, 1.2, tall) * mix(0.35, 1.0, edge);
+    let height = row.x * g.y * grow * fade * mix(${GRASS_HEIGHT_VARIATION[0]}, ${GRASS_HEIGHT_VARIATION[1]}, h.x) * mix(${GRASS_PATCH_HEIGHT_VARIATION[0]}, ${GRASS_PATCH_HEIGHT_VARIATION[1]}, tall) * mix(0.35, 1.0, edge);
     if (height < 0.02) { continue; }
     let centre = root + vec3f(0.0, 0.0, height * 0.5);
     let radius = height * 0.8 + 0.4;
@@ -729,7 +733,10 @@ export async function createGrassPass(
       const scales = Object.values(rules!.growth)
         .filter((g) => g.appearance === a.name)
         .map((g) => g.height);
-      return Math.max(m, a.bundle.bounds.max[2] * Math.max(...scales) * 1.2);
+      return Math.max(
+        m,
+        maxFieldGrassHeight(grassMeshHeight(a.bundle.states[0].tiers), Math.max(...scales)),
+      );
     }, 0);
     const wind = rules.wind;
     const heading = (wind.heading_deg * Math.PI) / 180;

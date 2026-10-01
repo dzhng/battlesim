@@ -100,10 +100,10 @@
       "meadow": { "appearance": "grass_meadow", "density": 1, "height": 1 },
       "pasture": { "appearance": "grass_pasture", "density": 0.9, "height": 1 },
       "young_crop": { "appearance": "grass_crop", "density": 0.85, "height": 1 },
-      "wheat": { "appearance": "grass_wheat", "density": 1, "height": 1 },
+      "wheat": { "appearance": "grass_wheat", "density": 1, "height": 0.65 },
       "hay": { "appearance": "grass_stubble", "density": 0.8, "height": 1 },
       "ploughed": { "appearance": "grass_meadow", "density": 0.04, "height": 0.6 },
-      "verge": { "appearance": "grass_meadow", "density": 1, "height": 1.1 }
+      "verge": { "appearance": "grass_meadow", "density": 1, "height": 1 }
     },
     "pixels_per_clump": 28,
     "max_clumps_m2": 40,

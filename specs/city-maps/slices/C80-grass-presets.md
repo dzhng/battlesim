@@ -38,3 +38,23 @@ One indirect draw per tier; capacity bounds.
 
 ## Feedback that would change this slice
 Grass that implies cover above its physical cap changes effective-height presets before any downstream species tuning.
+
+
+## Outcome — physical implementation checkpoint (2026-10-01)
+
+The systems-only effective-height guard composes actual vertex height across
+all LODs, biome scale, clump variation and patch variation with f32 arithmetic.
+The renderer and tile bound use the same shared variation constants. Width must
+lie horizontally (apart from bake roundoff), so widening cannot evade the cap.
+Three falsified regressions cover combined multipliers, tilted strips and a
+higher far LOD. All nine grass checks pass.
+
+Existing wheat and verge field scales were reduced to meet the 0.9 m contract;
+source meshes, wind and provenance are unchanged. This does not certify grass
+look or the other C80 presets. Matched production village frames (1280×800, DPR 1, tick 90, fixed camera)
+show 59,492 changed pixels after lowering the verge scale; mean RGB channel
+difference is 0.384. Full shots and 3× grass crops are under
+`throwaway/sim-lane/grass-{before,after}*.png`. No actor or height ruler is in
+that framing, so it proves the field change reaches production rather than
+measuring world height from pixels. Unprimed review and integrated checks are
+pending; the mathematical bound is pinned by the adversarial validator checks.

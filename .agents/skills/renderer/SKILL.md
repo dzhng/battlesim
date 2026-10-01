@@ -111,6 +111,7 @@ When a new need shows two passes owning one concept, refactor to the shared prim
 - **WGSL `let` is immutable.** A reassigned `let` invalidates the pipeline, and route stats stay healthy while the canvas goes black.
 - **WGSL reserves words it doesn't use yet** (`cast`, `meta`, `static`, `new`, …). An identifier named after one fails the module at parse time; name a varying for what it holds (`castLit`).
 - **Pad uniform structs to 16 B by hand** and group scalars into `vec4f` slots. Keep a byte constant beside each schema, and test the packer against it.
+- **Validate final field height, not just the source clump.** Compose biome scaling and every independent shader variation from shared bounds, inspect every drawn LOD, and use the same maximum for tile culling. Screen-width expansion must stay horizontal; wind and flattening must only lower the vertical bound.
 - **Bind limits are tight.** The grass build uses exactly the default 8 storage buffers. Count before adding a binding, and prefer vertex-only storage where the fragment stage already holds the fog groups.
 - **Fixed at module load:** the cascade count, bloom's numbers and the grade. Changing them means rebuilding the frame, not setting a uniform.
 - **`GPUSupportedLimits` exposes prototype getters,** so `Object.entries` returns nothing. Read the named limits. Passes read `GpuDeviceCaps`; they never re-probe the adapter.

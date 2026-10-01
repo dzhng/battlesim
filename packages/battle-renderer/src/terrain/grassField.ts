@@ -13,7 +13,12 @@ import { mat4, type Mat4, type Vec3 } from "math";
 import { frustum, type Frustum } from "math/shapes";
 import type { StaticBundle } from "@packages/scene-assets/src/schema.ts";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader.ts";
-import { GRASS_SEGMENTS, grassBladeVertices } from "@packages/scene-assets/src/grass.ts";
+import {
+  GRASS_SEGMENTS,
+  grassBladeVertices,
+  maxFieldGrassHeight,
+  grassMeshHeight,
+} from "@packages/scene-assets/src/grass.ts";
 import { VERGE_GROWTH, type Biome, type GrassRules } from "./biome";
 
 /** World tiles the field is grown over, metres a side. */
@@ -144,6 +149,14 @@ export function grassKinds(biome: Biome, appearances: GrassAppearances): GrassKi
   const row = (at: number, key: string) => {
     const g = rules.growth[key];
     if (!g) return;
+    const maximum = maxFieldGrassHeight(
+      grassMeshHeight(appearances.get(g.appearance)!.states[0].tiers),
+      g.height,
+    );
+    if (!Number.isFinite(maximum) || maximum <= 0 || maximum > 0.9)
+      throw new Error(
+        `grass.growth.${key}: effective field height ${maximum} m exceeds the 0.9 m cap`,
+      );
     growth.set([g.density, g.height, names.indexOf(g.appearance), 0], at * 4);
   };
   biome.plots.forEach((plot, k) => row(k, plot.name));
@@ -206,7 +219,7 @@ export function packGrassShapes(kinds: GrassKinds) {
         for (let c = 0; c < 3; c++) {
           const spine = (p(left, c) + p(right, c)) / 2;
           shapes[o + c] = spine;
-          shapes[o + 4 + c] = p(v, c) - spine;
+          shapes[o + 4 + c] = c === 2 ? 0 : p(v, c) - spine;
           shapes[o + 8 + c] = mesh.normals[v * 4 + c] / 32767;
           shapes[o + 12 + c] = linear(mesh.colors[v * 4 + c]) / mean[c];
         }
