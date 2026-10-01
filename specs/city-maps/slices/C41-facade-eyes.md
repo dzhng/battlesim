@@ -27,3 +27,16 @@ Muzzles at seats.
 
 ## Feedback that would change this slice
 A floor-band eye that cannot see as a viewer expects reopens eye/seat geometry through the rules workflow.
+
+
+## Outcome — physical systems (2026-10-01)
+
+Each direction publishes one actual living occupied seat on its highest held
+floor, with stable seat-order ties. Empty directions publish no eye. No facade
+averages or unoccupied windows contribute sight. Native checks pin the real seat
+origins and demonstrate third-floor identification above a lower obstacle.
+Existing exterior-union and range contracts remain checked. The building parity
+oracle was regenerated for the named seat/eye/digest change; its input is frozen.
+
+Source facade fit and specialist visual acceptance remain open. Native/Wasm replay and whole-repo gate results are recorded in
+[the integration evidence](../assets/sim-lane-closeout/README.md).

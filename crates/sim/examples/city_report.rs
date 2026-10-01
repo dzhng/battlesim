@@ -3,7 +3,8 @@
 //!     cargo run -p sim --release --example city_report <map.json> [sim-seconds] [reach] [units-per-side] [probe-trees]
 //!
 //! `reach` is the share of the map's width each unit is sent across (default
-//! 0.92: edge to edge) on a fast move; `units-per-side` is at most six.
+//! 0.92: edge to edge) on a fast move. Larger forces repeat the six-unit
+//! mix on parallel crossing lanes.
 //! With `centre` for `reach`, one jeep is given an ordinary move from the
 //! middle of the west edge to the middle of the map.
 //!
@@ -40,7 +41,7 @@ fn main() {
         .expect("usage: city_report <map.json> [sim-seconds]");
     let seconds: u64 = args.next().and_then(|s| s.parse().ok()).unwrap_or(240);
     let reach = args.next().unwrap_or("0.92".into());
-    let per_side: usize = args.next().and_then(|s| s.parse().ok()).unwrap_or(6).min(6);
+    let per_side: usize = args.next().and_then(|s| s.parse().ok()).unwrap_or(6).max(1);
     let probe_trees: usize = args.next().and_then(|s| s.parse().ok()).unwrap_or(0);
     let fixture = sim::fixtures::village();
 
@@ -85,13 +86,18 @@ fn main() {
             .parse()
             .expect("reach: a share of the width, or `centre`");
         let (west, east) = (w * 0.04, w * 0.96);
-        let kinds = &["jeep", "tank", "rifle", "jeep", "tank", "rifle"][..per_side];
+        let kinds = ["jeep", "tank", "rifle"];
         for (side, x, goal_x) in [
             ("blue", west, west + w * reach),
             ("red", east, east - w * reach),
         ] {
-            for (i, kind) in kinds.iter().enumerate() {
-                let y = d * (0.3 + 0.08 * i as f64);
+            for i in 0..per_side {
+                let kind = kinds[i % kinds.len()];
+                let y = if per_side <= 6 {
+                    d * (0.3 + 0.08 * i as f64)
+                } else {
+                    d * (0.1 + 0.8 * i as f64 / (per_side - 1) as f64)
+                };
                 rows.push((side, kind, [x, y], [goal_x, y], "fastest"));
             }
         }
@@ -189,6 +195,7 @@ fn main() {
     let mut reached: Vec<Option<f64>> = vec![None; rows.len()];
     let (start, before) = (Instant::now(), instructions());
     let mut worst = (0.0, 0);
+    let mut worst_cpu = (0.0f64, 0);
     // The tick that retired the most instructions: (instructions, tick).
     let mut dearest = (0u64, 0u64);
     // Planning work: the run's total, the busiest tick's, and the ticks
@@ -205,13 +212,20 @@ fn main() {
     // and the most in one tick.
     let (mut relaid, mut most_relaid) = (0u64, 0u64);
     // The slowest ticks: (ms, tick, instructions, planning work).
-    let mut slowest: Vec<(f64, u64, u64, u64)> = Vec::new();
+    let mut slowest: Vec<(f64, u64, u64, u64, f64)> = Vec::new();
     for t in 1..=seconds * hz {
-        let (tick, counted) = (Instant::now(), instructions());
+        let (tick, counted) = (Instant::now(), resources());
         battle.step();
         let ms = tick.elapsed().as_secs_f64() * 1000.0;
-        let cost = instructions().zip(counted).map_or(0, |(a, b)| a - b);
-        slowest.push((ms, t, cost, battle.load().planning_work));
+        let after = resources();
+        let cost = after.zip(counted).map_or(0, |(a, b)| a.0 - b.0);
+        let cpu_ms = after
+            .zip(counted)
+            .map_or(0.0, |(a, b)| (a.1 - b.1) as f64 / 1e6);
+        if cpu_ms > worst_cpu.0 {
+            worst_cpu = (cpu_ms, t);
+        }
+        slowest.push((ms, t, cost, battle.load().planning_work, cpu_ms));
         slowest.sort_by(|a, b| b.0.total_cmp(&a.0));
         slowest.truncate(5);
         if changed {
@@ -267,6 +281,14 @@ fn main() {
         dearest.0 as f64 / 1e6,
         dearest.1,
     );
+    if resources().is_some() {
+        println!(
+            "process CPU: maximum tick {:.2} ms (tick {}); wall time includes scheduling delays",
+            worst_cpu.0, worst_cpu.1
+        );
+    } else {
+        println!("process CPU: unavailable on this host");
+    }
     println!(
         "planning: {work} work in all, {busiest} in the busiest tick (allowance {}); {slow_planning} ticks over 33 ms did any",
         setup.rules.navigation.work_per_tick,
@@ -277,9 +299,9 @@ fn main() {
         costliest.0 as f64 / 1e6,
         costliest.1,
     );
-    for (ms, t, cost, planned) in slowest {
+    for (ms, t, cost, planned, cpu_ms) in slowest {
         println!(
-            "slow tick {t}: {ms:.1} ms, {:.1} M instructions, {planned} planning work",
+            "slow tick {t}: {ms:.1} ms wall, {cpu_ms:.2} ms CPU, {:.1} M instructions, {planned} planning work",
             cost as f64 / 1e6
         );
     }
@@ -329,4 +351,4 @@ fn rss_mib() -> u64 {
 
 #[path = "common/instructions.rs"]
 mod instructions;
-use instructions::instructions;
+use instructions::{instructions, resources};

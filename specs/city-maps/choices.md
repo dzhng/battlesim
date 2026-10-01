@@ -1919,3 +1919,295 @@ The layout generator's roads and settlements were reworked for M22 (a road from 
 ### Not done
 
 Apartment slabs still stand along their streets, not in ranked rows across a lawn. An industrial district is one block on a road at the town's edge with streets of its own, but still one shed to a parcel. A town centre has no square; its main street is the country road or a 10 m avenue. Near-duplicate bridges and sharp turns onto a bridge are as they were. Open ground has no field pattern, and every map has its main settlement in the middle.
+
+## Simulation lane decisions
+
+Review first: the provisional building HP coefficient, legacy source-fact bridge,
+and the bridge-approach tradeoff below. This section supersedes the earlier
+map-lane decision to leave river planning limits unchanged; the simulation lane
+now owns those mechanics. Art acceptance and complete G0 remain separate work.
+
+### Sound, with provisional values or a retained source gap
+
+#### C42/C43 — bulk integrity has a provisional coefficient
+
+When two building parts overlap, their shared ground area counts once toward
+integrity. The coefficient multiplies that union footprint by the first three
+floor bands, the same band policy used for fighting seats. Computing area once
+from immutable source geometry avoids changing bulk when a damaged shell loses
+height. Summing part rectangles would give overlapping compounds extra HP.
+The coefficient is currently one in the rules fixture; C50 owns final balance.
+**Confidence:** high on area/ownership, medium on that starting balance value.
+
+#### C40 — preserve only the identified legacy source bridge
+
+Old authored box fixtures have no authoritative floor heights or bay positions.
+They keep one ground band with approximately three-metre facade spacing.
+Integrity and collapse classification also use the one-band legacy fallback;
+this is a compatibility policy, not a claim that the source has one floor. Once
+floor heights are supplied, an unresolved bay list supplies no seats: the
+simulation cannot invent upper-floor windows. Resolved facades remain usable.
+Removing the bridge today would remove fighting positions from those frozen
+inputs; extending it to known floors would create a competing facade owner.
+Remove it when preparation supplies complete physical facts. **Confidence:**
+high on preserving those inputs, low on their eventual source-window fit.
+
+#### C40 — demonstrate the firing seam with the existing rifle squad
+
+The catalog has no dedicated infantry MG unit. The physical recording therefore
+uses its existing rifle squad firing from floor three over a five-metre obstacle;
+the gun-agnostic seat/muzzle contract is exercised without inventing a new unit
+or borrowing a weapon model. The exact MG/window visual moment remains a later
+unit/source presentation task. **Confidence:** high on the physical seam, medium
+on substituting this demonstration for the slice's named MG shot.
+
+#### SA6 — prefer a finishable aligned bridge approach
+
+A move whose direct terrain leg crosses water asks the road graph for a bridge,
+even under shortest policy. It joins and leaves through authored road approaches,
+rather than cutting diagonally onto a deck where the formation or turning hull
+cannot finish. Shortest compares distance; fastest compares travel time. The
+unbuilt alternative is a more globally optimal approach that still satisfies
+those physical constraints. This can make a cross-river route longer than a dense
+planner's route; it does not redefine ordinary shortest moves or relax body fit.
+The worst observed routes in the frozen corpus cost about 20% more than the
+dense planner's route; this is an observed tradeoff, not a universal error bound.
+**Confidence:** high on physical completion, medium on global optimality.
+
+#### C77 — density is a sparse candidate ceiling
+
+Logs and boulders each use an independently seeded jittered lattice. Candidates
+that cannot fit are omitted without retrying or moving a trunk. Logs are placed
+first, boulders second, after all existing trunks. A narrow or densely planted
+wood may admit no floor bodies. The alternative, hunting until an exact count
+fits, would add unbounded startup work and disturb the established tree layout.
+Configured densities are candidate ceilings, with a hard admission cap of
+100 per hectare to preserve sparse startup work. **Confidence:** medium;
+actual density depends on the available physical gaps.
+
+#### SA5 — direct page lookup spends directory memory
+
+A terrain or foliage sample addresses a directory of sparse pages. Missing
+terrain pages mean exactly flat ground; missing foliage pages mean open ground.
+Existing samples, interpolation and clearing remain authoritative. Keeping the
+old tree/hash lookup at every ray sample would spend less directory memory but
+repeat more work. A larger extent or finer cells must measure this trade again;
+empty height fields allocate no directory. **Confidence:** medium on the memory
+trade, high on preserving sample semantics.
+
+### Sound owner and behavior decisions
+
+#### C40/C41 — one occupied seat plan supplies eyes and muzzles
+
+The capped plan distributes seats across building-frame directions and samples
+physical bay lists evenly, highest eligible band first. Each direction sees
+from its highest occupied living seat, with stable seat-index ties. Weapon
+assessment uses actual living carriers' muzzles; launch owns window-swap delay.
+A hypothetical nearest vacant window could allow a shot no participating soldier
+can fire. Whole-squad admission is checked again when entry finishes because
+supply may replenish the squad during its entry timer. **Confidence:** high.
+
+#### C40 — replacement height clips seats without revealing hidden changes
+
+An optional holdable damaged shell reuses only source bays below its remembered
+remaining height. Physical entry checks the live shell. Original authored IDs
+retain their source plan while remembered, so an unseen collapse cannot change
+command admission. Holdable replacement states share one height across parts;
+full per-part heights belong to terminal ungarrisonable gutted shells. The
+alternative, reading live replacement height at command time, leaks hidden
+changes. **Confidence:** high.
+
+#### C42/C43 — building policy belongs in catalog data
+
+An explicit HP-scaling enum is independent of permission to garrison. The
+optional building-remains policy supplies the collapse fraction, cap, floor
+threshold and terminal gutted kind. Ordinary props retain fixed HP and ordinary
+destruction chains. A per-kind simulation branch would split the catalog owner
+and make new building types require code. Aggregate replacement states remain
+immovable until one owner can move a whole compound coherently. **Confidence:**
+high.
+
+#### C42/C43 — placement owns the whole destruction chain
+
+A catalog row may be usable in a building aggregate but cannot be spawned as an
+ordinary crate, trunk, deck or vehicle wreck if any later state needs building
+seats or scaled HP. One catalog traversal checks the ordinary/aggregate placement
+context for every declared state. Boot validates actual bindings; dynamic births
+validate their own context; a replacement inherits its old body's retained
+geometry owner. This replaces separate guards and closes the later-state hole
+without adding a serialized field, cache or recurring movement check. Unused
+aggregate-capable rows can remain in the same catalog. **Confidence:** high.
+
+#### C42/C43 — retain floor ownership after an occupant dies
+
+A soldier who dies on an elevated fighting floor retains that floor's building
+owner even after the entire squad dies and releases its hold. When support is
+removed, existing and new deaths settle on the existing ground/deck surface at
+their XY position. The tall gutted exterior also loses fighting floors. Identity
+and facing remain; settling does not reroll survival. Keeping only the live
+squad's hold would strand previously dead occupants in the air. This is internal
+simulation state, with no new public corpse fields. **Confidence:** high.
+
+#### C42/C43 — a corpse position follows side knowledge
+
+The observing side remembers a movable floor corpse's last-seen pose. A hidden
+collapse updates its own casualties immediately but cannot move a remembered
+enemy corpse until sight returns. Ordinary ground deaths retain their immutable
+pose path and original digest bytes. The existing knowledge owner stores these
+conditional snapshots; a separate corpse-knowledge subsystem would duplicate
+that owner. The renderer refreshes dying, resting and fading anchors without
+restarting death or bringing a faded body back. **Confidence:** high.
+
+#### SA5 — reuse indexes and invalidate only visited occlusion tiles
+
+Eyes query existing body/forest buckets; a visited four-by-four fog-cell tile
+rasterizes the same cell centres as before. An obstacle revision invalidates
+cached tops, but only subsequently visited tiles rebuild. Forest candidates are
+sorted before unchanged span integration. Each side indexes its authoritative
+remembered bodies through the same two mutation owners; a read-only accessor
+prevents unsynchronized writes. A second sweep-only copy or whole-map rebuild
+would add another authority or repeated global work. **Confidence:** high.
+
+#### SA5 — omit only rays proven unable to add visibility
+
+A ray skips physical sampling only after proving every cell it could visit is
+already in that side's visible union. Checking the farthest cells first changes
+proof cost, not the answer. Eye order, shape and cadence remain unchanged.
+Learning a visible building part still reveals all current live parts, and uses
+immutable historical identities to remove far remembered replacements. Nearby
+index discovery cannot turn an aggregate into independently learned pieces.
+**Confidence:** high.
+
+#### SA5 — reports distinguish work from scheduling delay
+
+The city report can repeat its existing unit mix to a hundred units per side;
+its original six-unit scenario remains unchanged. It reports process CPU time
+beside wall time and retired instructions. A tick delayed by other work remains
+a delayed wall-time tick; CPU time only helps attribute the delay. Reports are
+measurement seams rather than production telemetry or new game settings.
+**Confidence:** high.
+
+#### SA6 — public terrain can prove disconnection, removable bodies cannot
+
+Connected terrain row runs are built before stamping bodies. Different component
+labels prove an impossible crossing; equal labels merely admit physical search.
+Repeated identical row intervals share a query band. Long terrain probes and
+route revalidation keep cursors across scheduler steps instead of scanning a
+whole leg in one tick. A removable or unseen wreck cannot establish permanent
+river disconnection. **Confidence:** high.
+
+#### SA6 — road-access discovery belongs to each endpoint
+
+If nearby road accesses are absent or all physically inaccessible, search arcs
+incrementally for the nearest terrain-legal access at that endpoint. Retain the
+existing access-radius band beyond the nearest candidate. Discovering a start
+access cannot suppress a later goal search. Rejecting one connector leaves the
+road arc usable by other journeys. Soldiers share the squad's global corridor
+and test terrain for their local lanes, avoiding eight independent global
+searches. **Confidence:** high.
+
+#### SA6 — stalled followers may make room
+
+Every stalled vehicle may try a local detour, and a newly committed route clears
+an obsolete reversing manoeuvre. Straight followers reserve turning room; that
+extra longitudinal reserve is removed while reversing, turning or approaching a
+corner. Arc probes stop at the remaining heading error and may not create or
+deepen hull overlap. Numeric unit priority alone could keep the rear vehicle
+from yielding forever while its leader needs room to reverse. **Confidence:**
+high on the defined physical moments; dense traffic still relies on local yielding.
+
+#### C77 — conservative placement preserves routes
+
+A body's bounding circle must fit inside forest/map boundaries and remain clear
+of roads, water, trunks and other bodies. A diagonal log cannot poke onto a road
+merely because its centre fits. A bounded local navigation check then preserves
+each old component and its open boundary for the actual catalog movement
+profiles. Rejected candidates roll back. One temporary shared grid is built only
+for active floor density; an influence window over 4096 cells per fit pattern omits the candidate.
+Sampling a few routes would not prove that no enclosed pocket was introduced.
+Conservative rejection may reduce density. **Confidence:** high.
+
+#### C77 — default activation waits for drawing
+
+Missing optional floor fields mean zero density, preserving frozen inputs. The
+playable village also keeps zero density until accepted log/boulder drawing
+exists; explicit systems trials use five log and three boulder candidates per
+hectare. Pending art resolves to no model, so default activation would create invisible blockers.
+Dynamic felled trees retain the existing cleared-ground lifecycle; this does not
+add a separate tree-to-log rule. **Confidence:** high.
+
+#### C44/C77 — unfinished art is represented explicitly
+
+New physical catalog rows carry `appearance.status: systems_only` and their
+intended scenery name. A bench cannot silently borrow crate art and claim a
+fitted source. Ordinary appearance checks remain strict, and pending rows must
+have no accepted binding. C45/C78 supply and fit real art before removing that
+status. **Confidence:** high.
+
+#### C80 — the bound includes all geometry and runtime multipliers
+
+The validator measures actual vertices at every LOD and composes both runtime
+height maxima. Horizontal ribbon width permits only bake roundoff. Wheat scale is reduced to 0.65 and verge scale to one to meet the 0.9 m
+effective field-height cap. Testing only LOD0 or
+individual multipliers would miss a taller far tier or an excessive product.
+This accepts a physical bound, while silhouette, shadow/fog cues and appearance
+remain specialist work. **Confidence:** high.
+
+#### C86 — tree lines consume the existing forest owner
+
+A tree line is the shared Stroke forest shape with ordinary trunks, canopy and
+foliage. A narrow strip can conceal distant identification while remaining
+transparent at close range. Its canopy extends past the authored ground strip
+using real trunk radii. A second always-opaque hedgerow mechanic would change
+sight and duplicate the geometry contract. The village gains no tree lines.
+**Confidence:** high.
+
+### Delegated starting physical values — C44/C77
+
+### Per-kind war-film audit (delegated values)
+
+Every row uses ordinary body columns. Soldiers can walk around an object;
+vehicles either shove a lighter object or route around it. A thin object does
+not grant an invisible cover position merely because its footprint blocks feet.
+
+| Kind | War-film moment and verdict |
+|---|---|
+| lamp | A truck knocks the pole aside; rifle fire passes the thin shaft and it grants no cover. |
+| bench | Soldiers crouch behind a light destructible bench; vehicles shove it and rounds pass its slats. |
+| bollard | A jeep cannot push a bollard; a tank can, and the narrow post stops intersecting rounds but shelters no soldier. |
+| bins | Light bins offer weak concealment-like cover through the cover rule, but neither block sight nor stop rounds. |
+| hydrant | A jeep stops at the anchored hydrant; a tank shoves it, and it is too narrow to shelter a soldier. |
+| utility box | Soldiers shelter behind the metal box; a tank can shove or shoot it apart. |
+| scooter | Vehicles push a scooter aside; its thin frame neither stops rounds nor provides cover. |
+| planter | A solid filled planter is medium cover and a medium obstacle; tanks can push it. |
+| parked car | A car shelters soldiers, is shoved by a tank, and becomes a lower car wreck under destructive fire. |
+| car wreck | The lower shell retains medium cover and remains shoveable; further destruction removes it. |
+| Jersey barrier | Concrete is heavy cover, stops fire and resists a tank's ordinary shove; aimed destructive fire clears it. |
+| bus shelter | Glass and open framing block walking but not sight or rounds; it offers no dependable cover. |
+| scaffold | The frame obstructs movement but neither hides enemies nor acts as a bulletproof screen. |
+| Heras fence | Mesh blocks walking while eyes and rounds pass through; vehicles shove it, and fire can damage it. |
+| skip bin | Soldiers shelter behind substantial steel; a tank shoves it while a jeep cannot. |
+| pallet stack | Light destructible cover can be shoved; incidental rounds pass while wearing it down. |
+| site cabin | A closed storage cabin is an immovable opaque obstacle and heavy exterior cover, with no interior fighting positions. |
+| traffic cone | A small cone does not interrupt soldiers or vehicles and grants no cover; intersecting fire can remove it. |
+| road barrier | A light open plastic barrier blocks movement but does not shelter or hide a soldier; vehicles shove it. |
+
+The HP and weight values in the catalog are starting physical values, not a
+balance claim. The closed storage cabin avoids turning a street prop into a
+second garrison representation; a future occupied cabin must be a C01 aggregate.
+
+A log is destructible medium cover that stops intersecting rounds; a tank can
+shove it but a jeep cannot. A boulder is immovable heavy cover and routes traffic
+around its footprint. Their initial dimensions/HP and street-row values are
+physical starting values, not a final balance claim. Placement and accepted art
+remain owned by their later slices.
+
+#### C80 — keep the complete footprint oracle affordable
+
+The grass-prop test still scans every raw footprint for every sampled point.
+Its double-precision inverse rotations are prepared once, and one local vector
+is reused by the query. This removes repeated temporary allocation and fixed
+trigonometry without narrowing the sample set, copying production's spatial
+index, or changing strict footprint edges. Reducing cases or raising the test
+deadline would conceal the oracle's avoidable work. **Verdict: sound. Confidence:
+high; this changes test execution only.**

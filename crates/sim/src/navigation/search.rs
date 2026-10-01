@@ -255,7 +255,7 @@ impl Smoothing {
             .reading
             .take()
             .unwrap_or_else(|| Probe::new(point(from), point(to), who.m));
-        let cost = grid.read(&mut probe, who, policy);
+        let cost = grid.read(&mut probe, who, policy, true);
         if cost.is_none() {
             self.reading = Some(probe);
         }
@@ -366,6 +366,9 @@ impl RouteSearch {
         let Some(target) = grid.nearest_fit(self.goal, who, NAV_CELL_M * 3.0) else {
             return Stage::Done(Plan::Blocked(BlockReason::NoRoute));
         };
+        if !grid.base.terrain.connected(start, target, grid.nx) {
+            return Stage::Done(Plan::Blocked(BlockReason::NoRoute));
+        }
         if !grid.stands(self.goal, who) {
             self.goal = grid.waypoint(target, m);
         }

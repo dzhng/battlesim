@@ -342,10 +342,15 @@ fn a_tank_never_fires_through_a_house_at_ground_beyond_it() {
         queued: false,
     });
     assert_eq!(ack.error, None);
+    let hp_before = house_hp(&b, 0);
     let fired = until(&mut b, 60, |b| b.rounds().any(|(_, r)| r.unit == UnitId(0)));
     assert!(!fired);
     assert_eq!(reasons(&b)[0], ActionReason::BlockedTrajectory);
-    assert_eq!(house_hp(&b, 0), common::props().by_id("building").body.hp);
+    assert_eq!(
+        house_hp(&b, 0),
+        hp_before,
+        "holding fire leaves integrity unchanged"
+    );
 }
 
 #[test]

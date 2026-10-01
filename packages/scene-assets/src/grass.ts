@@ -27,6 +27,26 @@ export const GRASS_SEGMENTS = [4, 3, 2, 1] as const;
 /** Blades a clump may hold: the field pads every kind to the most. */
 export const GRASS_MAX_BLADES = 8;
 
+/** Independent clump and patch height variation, shared with the field shader. */
+export const GRASS_HEIGHT_VARIATION = [0.8, 1.2] as const;
+export const GRASS_PATCH_HEIGHT_VARIATION = [0.7, 1.2] as const;
+
+/** Highest vertex in any tier the field can draw, including imported clumps. */
+export function grassMeshHeight(tiers: readonly MeshData[]): number {
+  let maximum = 0;
+  for (const mesh of tiers)
+    for (let i = 2; i < mesh.positions.length; i += 3)
+      maximum = Math.max(maximum, mesh.positions[i]);
+  return maximum;
+}
+
+/** Maximum drawn height, using the shader's f32 inputs and multiplication. */
+export function maxFieldGrassHeight(sourceHeight: number, biomeScale: number): number {
+  let height = Math.fround(Math.fround(sourceHeight) * Math.fround(biomeScale));
+  height = Math.fround(height * Math.fround(GRASS_HEIGHT_VARIATION[1]));
+  return Math.fround(height * Math.fround(GRASS_PATCH_HEIGHT_VARIATION[1]));
+}
+
 /** Vertices of one blade of `segments` segments. */
 export const grassBladeVertices = (segments: number) => 2 * segments + 1;
 
@@ -87,6 +107,13 @@ export function grassStripFindings(label: string, tiers: readonly MeshData[]): F
         ),
       ];
     for (let b = 0; b < blades; b++) {
+      // Screen-width expansion can be arbitrarily large at distant cameras;
+      // blade width must stay horizontal to preserve the field height bound.
+      for (let k = 0; k < GRASS_SEGMENTS[t]; k++) {
+        const left = (b * per + 2 * k) * 3 + 2;
+        if (Math.abs(mesh.positions[left] - mesh.positions[left + 3]) > 1e-6)
+          return [finding(`${label}: LOD${t} blade ${b} has a vertical width component`, fix)];
+      }
       const root = mesh.uvs[b * per * 2 + 1];
       const tip = mesh.uvs[(b * per + per - 1) * 2 + 1];
       if (root !== 0 || Math.abs(tip - 1) > 1e-6)

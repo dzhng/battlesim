@@ -1,0 +1,19 @@
+6 trials (6 run, 0 cached) in 50.8 s wall on 2 threads; a trial 10.3–26.0 s (mean 16.3); 1132 G instructions retired; load { 22.27 15.07 26.13 }
+| script | seed | result | captured s | blue cost lost | tanks lost | rejoined | digest |
+|---|---|---|---|---|---|---|---|
+| scout-suppress-flank | 1 | Captured | 530 | 532 | 0 | 3 | `1cb16157f747124d` |
+| scout-suppress-flank | 2 | Captured | 541 | 452 | 0 | 1 | `a0ce786287ddcb8d` |
+| scout-suppress-flank | 3 | Captured | 551 | 478 | 0 | 1 | `7b4e265e587ba8ad` |
+| **scout-suppress-flank** | all | **3/3 captured** | | **1462** | **0** (a tank survived in 3) | **5** | |
+| ordinary-ambush-retreat (0.75 s) | 1 | Running | — | 0 | 0 | 0 | `823ec59fcf902625` |
+| ordinary-ambush-retreat (0.75 s) | 2 | Running | — | 0 | 0 | 0 | `9c7278322a90e5b5` |
+| ordinary-ambush-retreat (0.75 s) | 3 | Running | — | 200 | 1 | 0 | `176da8d89f02d610` |
+| **ordinary-ambush-retreat (0.75 s)** | all | **0/3 captured** | | **200** | **1** (a tank survived in 3) | **0** | |
+saved 6 trials to /Users/david/dev/battlegame/throwaway/city-maps-sim-lane/final-quick.jsonl
+
+Compared with main (before → after):
+
+| script | trials | same digest | captured | blue cost lost | tanks lost | rejoined |
+|---|---|---|---|---|---|---|
+| scout-suppress-flank | 3 | 0/3 | 2 → **3** | 968 → **1462** | 0 | 2 → **5** |
+| ordinary-ambush-retreat (0.75 s) | 3 | 0/3 | 0 | 200 | 1 | 0 |

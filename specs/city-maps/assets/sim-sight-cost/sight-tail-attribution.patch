@@ -1,0 +1,32 @@
+--- a/crates/sim/src/battle.rs
++++ b/crates/sim/src/battle.rs
+@@ -889,12 +889,20 @@
+         self.fly(&before, &after);
+         // Where each unit looks, before this tick's fire turns any turret.
+         sight::snapshot(&mut self.units, &self.arsenal);
++        let mut sa5_sense_cpu = 0;
++        let mut sa5_fog_cpu = 0;
++        let sa5_wall_start = std::time::Instant::now();
+         for side in Side::ALL {
++            let sa5_cpu_start = sa5_probe::resources().unwrap().1;
+             self.sense(side, false);
++            sa5_sense_cpu += sa5_probe::resources().unwrap().1 - sa5_cpu_start;
+             if self.tick % FOG_INTERVAL_TICKS == side.index() as u64 * FOG_INTERVAL_TICKS / 2 {
++                let sa5_cpu_start = sa5_probe::resources().unwrap().1;
+                 self.sweep_fog(side);
+-            }
+-        }
++                sa5_fog_cpu += sa5_probe::resources().unwrap().1 - sa5_cpu_start;
++            }
++        }
++        eprintln!("SA5 sight tick={} sense_cpu_ns={} fog_cpu_ns={} wall_ns={}", self.tick, sa5_sense_cpu, sa5_fog_cpu, sa5_wall_start.elapsed().as_nanos());
+         self.prune_attackers();
+         let fired = self.fire(&moved);
+         supply::service(
+@@ -2519,3 +2527,6 @@
+         );
+     }
+ }
++
++#[path = "/Users/david/.codex/worktrees/city-sim-sight/crates/sim/examples/common/instructions.rs"]
++mod sa5_probe;

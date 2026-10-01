@@ -148,7 +148,7 @@ fn a_cleared_lane_reads_as_open_ground() {
     let ground = sim::ground::GroundLayer::new(w.width(), w.depth(), &rules.ground);
     assert!(sim::cover::at(&w, &ground, &hulls, &rules, on, threat).is_none());
     // Fog: an eye at the lane's mouth sees down it, not through the trees.
-    let grid = OcclusionGrid::new(&w, 8.0);
+    let mut grid = OcclusionGrid::new(&w, 8.0);
     let mut field = grid.field();
     let sight = sim::sight::Sight {
         forward: 0.0,
@@ -161,7 +161,7 @@ fn a_cleared_lane_reads_as_open_ground() {
     };
     visibility::sweep(
         &w,
-        &grid,
+        &mut grid,
         &rules.sensors,
         v3(30.0, 60.0, 1.8),
         &sight,
@@ -171,7 +171,7 @@ fn a_cleared_lane_reads_as_open_ground() {
     let mut beside = grid.field();
     visibility::sweep(
         &w,
-        &grid,
+        &mut grid,
         &rules.sensors,
         v3(30.0, 80.0, 1.8),
         &sight,
@@ -444,4 +444,339 @@ fn stroke_forest_uses_capsule_membership_instead_of_its_bounds() {
         let nearest = ((p.x - 20.0) + (p.y - 20.0)).clamp(0.0, 120.0) / 120.0;
         assert!((p.x - (20.0 + 60.0 * nearest)).hypot(p.y - (20.0 + 60.0 * nearest)) <= 9.0);
     }
+}
+
+#[test]
+fn foliage_line_depth_keeps_its_exact_spans_across_bucket_edges_and_canopies() {
+    let map: contract::map::MapDefinition = serde_json::from_value(json!({
+        "size":[300,300], "fog_cell_m":8, "height_grid_m":4, "slope_cutoff_deg":35,
+        "forests":[forest([66.0,58.0,12.0,12.0]), forest([74.0,62.0,12.0,12.0]),
+            forest([-30.0,50.0,12.0,20.0]), forest([96.0,92.0,12.0,12.0])]
+    }))
+    .unwrap();
+    let mut rules = common::village();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "props",
+        "trunk",
+        json!({"body":{"conceals":1.0}}),
+    );
+    let mut rules: contract::scenario::Rules = serde_json::from_value(rules).unwrap();
+    rules.forests.rule.trunk_spacing_m = 12.0;
+    rules.forests.rule.trunk_jitter = 0.0;
+    rules.forests.rule.canopy_radius_m = 16.0;
+    rules.forests.rule.canopy_height_m = 6.0;
+    rules.forests.rule.attenuation_per_m = 0.03;
+    let world = WorldGeometry::new(&map, &rules);
+    let lines = [
+        ([40.0, 60.0, 1.5], [120.0, 60.0, 1.5]),
+        ([63.99999999, 0.0, 1.5], [63.99999999, 120.0, 1.5]),
+        ([63.99999999, 70.0, 1.5], [63.99999999, 85.0, 1.5]),
+        ([77.0, 0.0, 1.5], [77.0, 120.0, 1.5]),
+        ([-40.0, 62.0, 1.5], [110.0, 62.0, 1.5]),
+        ([150.0, 200.0, 1.5], [100.0, 102.0, 1.5]),
+        ([200.0, 200.0, 1.5], [280.0, 260.0, 1.5]),
+        ([62.0, 62.0, 50.0], [102.0, 98.0, 50.0]),
+    ];
+    let depths: Vec<_> = lines
+        .into_iter()
+        .map(|(a, b)| {
+            world
+                .foliage_depth(v3(a[0], a[1], a[2]), v3(b[0], b[1], b[2]))
+                .to_bits()
+        })
+        .collect();
+    // Exact span integration from the exhaustive forest walk, with fixed inputs.
+    assert_eq!(
+        depths,
+        vec![
+            0x3ff3333333333337,
+            0x3fdeb851eb851ebc,
+            0x3faeb851eb851eb8,
+            0x3feeb851eb851ebe,
+            0x3ff317e4b17e4b1b,
+            0x3fd62ba122893e40,
+            0x0,
+            0x0
+        ]
+    );
+}
+
+/// Sparse floor cover is physical, generated after every trunk, and cannot
+/// rearrange a later forest's trees when a density changes.
+#[test]
+fn sparse_floor_bodies_leave_every_trunk_and_foliage_cell_unchanged() {
+    let map: contract::map::MapDefinition = serde_json::from_value(json!({
+        "size":[300,240],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+        "forests":[forest([0.0,0.0,220.0,220.0]),forest([100.0,50.0,180.0,180.0])]
+    }))
+    .unwrap();
+    let mut raw = common::village();
+    // Deliberately provide broad navigable gaps for every catalog mover;
+    // overlapping dense woods may correctly admit no floor cover.
+    raw["forests"]["rule"]["trunk_spacing_m"] = json!(18);
+    raw["forests"]["rule"]["logs_per_ha"] = json!(5);
+    raw["forests"]["rule"]["boulders_per_ha"] = json!(3);
+    raw["forests"]["rule"]["log_half_extents_m"] = json!([2.2, 0.35, 0.35]);
+    raw["forests"]["rule"]["boulder_half_extents_m"] = json!([1, 0.8, 0.75]);
+    raw["forests"]["log"] = json!("log");
+    raw["forests"]["boulder"] = json!("boulder");
+    let bodies: contract::scenario::Rules = serde_json::from_value(raw.clone()).unwrap();
+    raw["forests"]["rule"]["logs_per_ha"] = json!(0);
+    raw["forests"]["rule"]["boulders_per_ha"] = json!(0);
+    let empty: contract::scenario::Rules = serde_json::from_value(raw).unwrap();
+    let (with, without) = (
+        WorldGeometry::new(&map, &bodies),
+        WorldGeometry::new(&map, &empty),
+    );
+    let trunks = |w: &WorldGeometry| {
+        w.props()
+            .filter(|p| p.forest_tree)
+            .cloned()
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(trunks(&with), trunks(&without));
+    assert_eq!(with.export_foliage(), without.export_foliage());
+    assert_eq!(
+        with.export_forest_trunk_ranges(),
+        without.export_forest_trunk_ranges()
+    );
+    let floor: Vec<_> = with.props().filter(|p| !p.forest_tree).collect();
+    assert!(floor.iter().any(|p| with.types().id(p.kind) == "log"));
+    assert!(floor.iter().any(|p| with.types().id(p.kind) == "boulder"));
+    for body in floor {
+        assert!(with.forest_ground(body.center.x, body.center.y));
+        for tree in trunks(&with) {
+            assert!(!body.footprint().contains(
+                tree.center,
+                tree.half.x + bodies.forests.rule.trunk_clearance_m
+            ));
+        }
+    }
+    let again = WorldGeometry::new(&map, &bodies);
+    assert_eq!(with.export_props(), again.export_props());
+}
+
+/// A fallen trunk is useful solid cover, not standing foliage; a boulder
+/// stops a jeep and cannot be cleared by ordinary shoving or rifle fire.
+#[test]
+fn floor_bodies_give_real_cover_without_creating_foliage() {
+    use contract::scenario::CoverTier::{Heavy, Medium};
+    for (kind, tier) in [("log", Medium), ("boulder", Heavy)] {
+        let w = common::flat(
+            [100.0, 100.0],
+            &format!(
+                r#","props":[{{"kind":"{kind}","center":[50,50],"yaw":0,"half_extents":[1,1,0.7]}}]"#
+            ),
+        );
+        let p = w.prop(0).unwrap();
+        assert!(p.blocks(MoverClass::Infantry) && p.blocks(MoverClass::Vehicle));
+        assert!(!w.segment_clear(v3(40.0, 50.0, 1.0), v3(60.0, 50.0, 1.0)));
+        assert!(w.sight_clear(v3(40.0, 50.0, 1.0), v3(60.0, 50.0, 1.0)));
+        assert!(w.foliage_at(50.0, 50.0).is_open());
+        let r = common::rules();
+        let ground = sim::ground::GroundLayer::new(100.0, 100.0, &r.ground);
+        assert_eq!(
+            sim::cover::at(&w, &ground, &[], &r, v2(48.5, 50.0), v2(60.0, 50.0)),
+            Some(tier)
+        );
+        assert!(!PushClass::Light.pushes(p.body.weight_class));
+        assert_eq!(PushClass::Heavy.pushes(p.body.weight_class), kind == "log");
+        let mut structures = sim::structures::Structures::default();
+        assert_eq!(structures.damage(&w, 0, 1.0e6), kind == "log");
+    }
+}
+
+#[test]
+fn invalid_floor_generation_rules_fail_during_rule_loading() {
+    let mut raw = common::village();
+    raw["forests"]["log"] = json!("log");
+    raw["forests"]["rule"]["logs_per_ha"] = json!(5);
+    raw["forests"]["rule"]["log_half_extents_m"] = json!([2.2, 0.35, 0.35]);
+    let cases = [
+        ("log", json!("missing")),
+        ("rule", json!({"logs_per_ha":-1})),
+        ("rule", json!({"logs_per_ha":101})),
+        ("rule", json!({"logs_per_ha":1e-320})),
+        ("rule", json!({"log_half_extents_m":[1,0,1]})),
+    ];
+    for (key, patch) in cases {
+        let mut bad = raw.clone();
+        if key == "rule" {
+            for (name, value) in patch.as_object().unwrap() {
+                bad["forests"][key][name] = value.clone();
+            }
+        } else {
+            bad["forests"][key] = patch;
+        }
+        let e = serde_json::from_value::<contract::scenario::Rules>(bad)
+            .unwrap_err()
+            .to_string();
+        assert!(e.contains("forests") && e.contains("log"), "{e}");
+    }
+}
+
+/// Every open navigation cell remains connected to the forest's approaches;
+/// floor cover must not close isolated pockets between trunks.
+#[test]
+fn sparse_floor_cover_keeps_all_open_forest_cells_reachable() {
+    use sim::navigation::{Mobility, NavBase, NavGrid};
+    use std::collections::VecDeque;
+    use std::sync::Arc;
+    for offset in [0.0, 7.0, 19.0] {
+        let map: contract::map::MapDefinition = serde_json::from_value(json!({
+            "size":[200,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+            "forests":[forest([10.0+offset,10.0,160.0,160.0])]
+        }))
+        .unwrap();
+        let mut r = common::rules();
+        r.forests.log = Some("log".into());
+        r.forests.boulder = Some("boulder".into());
+        r.forests.rule.logs_per_ha = 5.0;
+        r.forests.rule.boulders_per_ha = 3.0;
+        r.forests.rule.log_half_extents_m = [2.2, 0.35, 0.35];
+        r.forests.rule.boulder_half_extents_m = [1.0, 0.8, 0.75];
+        let w = WorldGeometry::new(&map, &r);
+        assert!(
+            w.props().any(|p| !p.forest_tree),
+            "experiment must contain floor bodies"
+        );
+        let grid = NavGrid::new(Arc::new(NavBase::build(&w, w.props(), 0.3)));
+        for (class, push, half_width_m) in [
+            (MoverClass::Infantry, PushClass::None, 0.5),
+            (MoverClass::Vehicle, PushClass::Light, 1.0),
+        ] {
+            let m = Mobility {
+                off_road_mps: 3.0,
+                road_mps: 3.0,
+                forest_multiplier: 0.5,
+                half_width_m,
+                class,
+                push,
+                drive: None,
+            };
+            let point = |k: usize| v2((k % 100) as f64 * 2.0 + 1.0, (k / 100) as f64 * 2.0 + 1.0);
+            let open: Vec<_> = (0..10000).map(|k| grid.fits_at(point(k), &m)).collect();
+            let start = open.iter().position(|p| *p).unwrap();
+            let mut visited = vec![false; 10000];
+            visited[start] = true;
+            let mut queue = VecDeque::from([start]);
+            while let Some(k) = queue.pop_front() {
+                let x = k % 100;
+                let y = k / 100;
+                for (dx, dy) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+                    let (x, y) = (x as isize + dx, y as isize + dy);
+                    if !(0..100).contains(&x) || !(0..100).contains(&y) {
+                        continue;
+                    }
+                    let next = y as usize * 100 + x as usize;
+                    if open[next] && !visited[next] && grid.route_fits(point(k), &[point(next)], &m)
+                    {
+                        visited[next] = true;
+                        queue.push_back(next);
+                    }
+                }
+            }
+            for (k, free) in open.iter().enumerate() {
+                assert!(
+                    !free || visited[k],
+                    "{class:?}: isolated cell {:?} at forest offset {offset}",
+                    point(k)
+                );
+            }
+        }
+    }
+}
+/// The tree-line contract uses the ordinary forest rule: a far-field recon
+/// squad loses identification through a real strip, with an open arm as control.
+#[test]
+fn a_real_tree_line_hides_a_recon_squad_from_the_far_field() {
+    let battle = |strips: bool, observer_x: f64, target_x: f64| {
+        let mut map =
+            json!({"size":[1200,300],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35});
+        if strips {
+            map["forests"] =
+                json!([{"shape":{"kind":"stroke","points":[[600,20],[600,280]],"width_m":24}}]);
+        }
+        let setup = common::scenario(
+            &map.to_string(),
+            json!([
+                {"side":"blue","kind":"recon","position":[observer_x,150],"engagement":"return_fire_only"},
+                {"side":"red","kind":"recon","position":[target_x,150],"engagement":"return_fire_only"}
+            ]),
+            json!([]),
+        );
+        let mut b = Battle::new(&setup, 1);
+        b.step();
+        b
+    };
+    let (strip, open) = (battle(true, 100.0, 950.0), battle(false, 100.0, 950.0));
+    assert!(
+        !open.observe(Side::Blue).identified.is_empty(),
+        "control identifies the squad"
+    );
+    assert!(
+        strip.observe(Side::Blue).identified.is_empty(),
+        "strip attenuates sight to the far squad"
+    );
+    let close = battle(true, 500.0, 700.0);
+    assert!(
+        !close.observe(Side::Blue).identified.is_empty(),
+        "a thin strip uses ordinary forest attenuation, not an opaque wall"
+    );
+}
+
+#[test]
+fn tree_line_foliage_follows_trunk_crowns_beyond_the_authored_strip_edge() {
+    let map: contract::map::MapDefinition = serde_json::from_value(json!({
+        "size":[300,240],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+        "forests":[{"shape":{"kind":"stroke","points":[[30,30],[150,60],[250,190]],"width_m":18}}]
+    }))
+    .unwrap();
+    let r = common::rules();
+    let w = WorldGeometry::new(&map, &r);
+    let trunks: Vec<_> = w
+        .props()
+        .filter(|p| p.forest_tree)
+        .map(|p| p.center)
+        .collect();
+    assert!(!trunks.is_empty());
+    let grid = w.export_foliage();
+    assert!(grid.len() > 3);
+    let mut over_edge = false;
+    for record in grid[3..].chunks_exact(4) {
+        let center = v2(
+            (record[0] as f64 + 0.5) * grid[2] as f64,
+            (record[1] as f64 + 0.5) * grid[2] as f64,
+        );
+        assert!(
+            trunks
+                .iter()
+                .any(|p| (*p - center).length() <= r.forests.rule.canopy_radius_m + 1e-9),
+            "foliage at {center:?} needs a real crown"
+        );
+        over_edge |= !w.forest_ground(center.x, center.y);
+    }
+    assert!(
+        over_edge,
+        "canopy reaches past the strip edge instead of being clipped to it"
+    );
+}
+
+#[test]
+fn forest_floor_scaled_integrity_is_refused_without_an_aggregate() {
+    let mut raw = common::village();
+    sim::fixtures::patch_catalog(
+        &mut raw,
+        "props",
+        "log",
+        json!({"body":{"hp_scale":"building_floor_bands"}}),
+    );
+    raw["forests"]["log"] = json!("log");
+    raw["forests"]["rule"]["logs_per_ha"] = json!(5);
+    raw["forests"]["rule"]["log_half_extents_m"] = json!([2.2, 0.35, 0.35]);
+    assert!(
+        serde_json::from_value::<contract::scenario::Rules>(raw).is_err(),
+        "an ordinary generated log has no building bulk from which to derive HP"
+    );
 }

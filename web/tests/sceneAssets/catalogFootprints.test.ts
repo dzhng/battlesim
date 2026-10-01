@@ -35,13 +35,14 @@ const propEntries = Object.entries(catalog.appearances).filter(
     (e.unit === "scenery" && SCENERY_KINDS[e.scenery ?? ""]?.footprint.kind === "prop"),
 );
 
-test("the catalog ships an appearance for every simulation prop kind but forest trunks", () => {
+test("the catalog ships an appearance for every accepted prop kind but forest trunks", () => {
   const kinds = new Set(
     propEntries.map(([, e]) => (e.unit === "building" ? "building" : e.scenery)),
   );
   // what the catalog's prop types are drawn by; trees are the forest's,
   // owned by the trees slice
   const simulated = Object.values(units.view.props)
+    .filter((t) => t.appearance.status !== "systems_only")
     .map((t) => t.appearance.drawn_by)
     .filter((by) => by !== "forest");
   expect([...kinds].sort()).toEqual([...new Set(simulated)].sort());
@@ -87,11 +88,12 @@ test("a wreck is its vehicle's hull box and a ruin a building's plan at the ruin
 
 test("which prop types a scenery kind draws is the prop catalog's drawn_by, both ways", () => {
   // Every scenery kind that stands for a prop draws some prop type, and every
-  // prop type is drawn by such a kind, the building appearances or a forest.
+  // accepted prop type is drawn by such a kind, building appearances or a forest.
   for (const [kind, rule] of Object.entries(SCENERY_KINDS))
     if (rule.footprint.kind === "prop")
       expect(propsDrawnBy(units.view.props, kind), kind).not.toEqual([]);
   for (const [id, t] of Object.entries(units.view.props)) {
+    if (t.appearance.status === "systems_only") continue;
     const by = t.appearance.drawn_by;
     const drawn =
       by === "building" || by === "forest" || SCENERY_KINDS[by]?.footprint.kind === "prop";
@@ -129,6 +131,54 @@ test("every prop appearance declares a positive box", () => {
     expect(
       e.footprint_half_m!.every((v) => v > 0),
       name,
+    ).toBe(true);
+  }
+});
+
+// Physical prototypes cannot pass the appearance gate by borrowing an existing
+// scenery binding. Removing this status makes the ordinary strict gate apply.
+test("systems-only bodies have no accepted appearance binding", () => {
+  for (const [id, t] of Object.entries(units.view.props)) {
+    if (t.appearance.status !== "systems_only") continue;
+    expect(
+      t.appearance.drawn_by === "building" ||
+        t.appearance.drawn_by === "forest" ||
+        t.appearance.drawn_by in SCENERY_KINDS,
+      id,
+    ).toBe(false);
+    expect(
+      propEntries.some(([, e]) => e.scenery === t.appearance.drawn_by),
+      id,
+    ).toBe(false);
+  }
+});
+
+test("the playable village's authored props and their remains have accepted bindings", () => {
+  const placed = [
+    ...village.map.props.map((p: { kind: string }) => p.kind),
+    ...village.map.buildings.map((b: { kind: string }) => b.kind),
+  ];
+  for (let i = 0; i < placed.length; i++) {
+    const id = placed[i];
+    const t = units.view.props[id];
+    expect(t.appearance.status, id).toBeUndefined();
+    if (typeof t.destroyed === "object" && !placed.includes(t.destroyed.into.prop))
+      placed.push(t.destroyed.into.prop);
+  }
+});
+
+test("the playable village enables generated floor blockers only with accepted drawing", () => {
+  for (const [kindField, densityField] of [
+    ["log", "logs_per_ha"],
+    ["boulder", "boulders_per_ha"],
+  ]) {
+    if (village.forests.rule[densityField] <= 0) continue;
+    const kind = village.forests[kindField];
+    const t = units.view.props[kind];
+    expect(t.appearance.status, `${kind}: active generated cover must draw`).toBeUndefined();
+    expect(
+      propEntries.some(([, e]) => e.scenery === t.appearance.drawn_by),
+      kind,
     ).toBe(true);
   }
 });

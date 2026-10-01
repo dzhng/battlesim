@@ -38,10 +38,14 @@ use crate::world::PropId;
 
 mod base;
 mod cells;
+mod check;
+mod floor;
 mod journey;
 mod regions;
 mod roads;
 mod search;
+mod terrain;
+pub use check::RouteCheck;
 mod update;
 
 use base::Body;
@@ -356,6 +360,17 @@ impl NavGrid {
     /// by nothing that stands on it.
     fn across(&self, a: V2, b: V2, m: &Mobility) -> f64 {
         (b - a).length() / m.off_road_mps * self.slow.stretch(a, b, m)
+    }
+
+    /// Public ground only: a cheap straight connector may not cross water.
+    /// Bodies remain the physical refinement's responsibility.
+    fn terrain_clear(&self, a: V2, b: V2) -> bool {
+        self.terrain_step(&mut terrain::Probe::new(a, b)) == Some(true)
+    }
+
+    fn terrain_step(&self, probe: &mut terrain::Probe) -> Option<bool> {
+        self.spend(1);
+        self.base.terrain.step(probe, self.nx)
     }
 
     /// Planning work done on this grid since it was built.
@@ -814,7 +829,7 @@ impl NavGrid {
     fn segment_cost(&self, a: V2, b: V2, who: Mover, policy: RoutePolicy) -> Option<f64> {
         let mut probe = Probe::new(a, b, who.m);
         loop {
-            if let Some(cost) = self.read(&mut probe, who, policy) {
+            if let Some(cost) = self.read(&mut probe, who, policy, true) {
                 return cost;
             }
         }
@@ -822,7 +837,13 @@ impl NavGrid {
 
     /// Read the next stretch of `probe`'s segment: `None` while there is
     /// more of it to read, then its cost, or `None` if a sample did not fit.
-    fn read(&self, probe: &mut Probe, who: Mover, policy: RoutePolicy) -> Option<Option<f64>> {
+    fn read(
+        &self,
+        probe: &mut Probe,
+        who: Mover,
+        policy: RoutePolicy,
+        allow_push: bool,
+    ) -> Option<Option<f64>> {
         let m = who.m;
         let Probe { a, b, samples, .. } = *probe;
         let infantry = m.class == MoverClass::Infantry;
@@ -864,7 +885,10 @@ impl NavGrid {
                     (fits, cost)
                 }
             };
-            if !fits || (infantry && self.cells[cell].free & (1 << sub_of(p)) == 0) {
+            if !fits
+                || (!allow_push && !infantry && self.cells[cell].heaviest != NO_BODY)
+                || (infantry && self.cells[cell].free & (1 << sub_of(p)) == 0)
+            {
                 return Some(None);
             }
             probe.total += cost;

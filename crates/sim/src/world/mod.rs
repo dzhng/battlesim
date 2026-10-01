@@ -10,20 +10,19 @@ mod surfaces;
 mod terrain;
 
 pub use forest::Foliage;
-pub(crate) use props::ray_box;
-use props::PropIndex;
+pub(crate) use props::{ray_box, PropIndex};
 pub use props::{Prop, PropId, Slot};
 use terrain::HeightField;
 
 use crate::math::{v2, v3, Obb2, V2, V3};
-use contract::catalog::{PropBody, PropCatalog, PropKind, PropType};
+use contract::catalog::{PropBody, PropCatalog, PropKind, PropPlacement, PropType};
 use contract::map::{Bridge, Forest, MapDefinition, PropDefinition};
 use contract::river::River;
 use contract::scenario::Rules;
 
 /// The prop index's bucket. Line tests measured this against 8, 16 and 64 m
 /// buckets (27 perf): 32 and 64 tie, finer is dearer.
-const PROP_BUCKET_M: f64 = 32.0;
+pub(crate) const PROP_BUCKET_M: f64 = 32.0;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SurfaceKind {
@@ -127,19 +126,34 @@ impl WorldGeometry {
         let authored = map
             .authored_props()
             .expect("invalid authored map IDs or buildings");
+        let catalog = rules.catalog.props();
+        let ordinary = |id: &str| {
+            catalog
+                .check_placement(catalog.kind(id), PropPlacement::Ordinary)
+                .expect("ordinary world body placement");
+        };
         for prop in &map.props {
-            assert!(
-                !rules.catalog.props().by_id(&prop.kind).body.garrison,
-                "garrison-capable authored bodies require a placed aggregate"
-            );
+            ordinary(&prop.kind);
+        }
+        for bridge in &map.bridges {
+            ordinary(&bridge.deck);
+        }
+        if !map.forests.is_empty() {
+            ordinary(&rules.forests.tree);
+            for (kind, density) in [
+                (&rules.forests.log, rules.forests.rule.logs_per_ha),
+                (&rules.forests.boulder, rules.forests.rule.boulders_per_ha),
+            ] {
+                if density > 0.0 {
+                    ordinary(kind.as_deref().expect("validated floor kind"));
+                }
+            }
         }
         for building in &map.buildings {
-            let body = rules.catalog.props().by_id(&building.kind).body;
-            assert_eq!(
-                body.weight_class,
-                contract::scenario::WeightClass::Immovable,
-                "placed aggregates require immovable bodies until composite motion exists"
-            );
+            catalog
+                .check_placement(catalog.kind(&building.kind), PropPlacement::Aggregate)
+                .expect("placed aggregate states");
+            let body = catalog.by_id(&building.kind).body;
             assert!(
                 !body.garrison || building.geometry.edges.iter().any(|e| e.exposed),
                 "garrison-capable aggregates require an exposed physical span"
@@ -179,10 +193,10 @@ impl WorldGeometry {
             field,
         };
         for (id, def) in &authored {
-            assert_eq!(world.add_prop(def), *id);
+            assert_eq!(world.insert_prop(def), *id);
         }
         for bridge in &map.bridges {
-            world.add_prop(&PropDefinition {
+            world.insert_prop(&PropDefinition {
                 kind: bridge.deck.clone(),
                 center: bridge.center,
                 yaw: bridge.yaw,
@@ -198,7 +212,7 @@ impl WorldGeometry {
             let rule = forests.rule;
             let first = u32::try_from(world.props.len()).expect("world exceeds u32 prop IDs");
             for p in world.trunk_positions(index, forest) {
-                let id = world.add_prop(&PropDefinition {
+                let id = world.insert_prop(&PropDefinition {
                     kind: forests.tree.clone(),
                     center: [p.x, p.y],
                     yaw: 0.0,
@@ -215,6 +229,64 @@ impl WorldGeometry {
             }
             let end = u32::try_from(world.props.len()).expect("world exceeds u32 prop IDs");
             world.note_forest(forest, [first, end]);
+        }
+        // Floor cover follows every forest's trunks, so it cannot displace a
+        // later forest's trees or change their immutable source ID ranges.
+        let mut floor_nav = (!map.forests.is_empty()
+            && (forests.rule.logs_per_ha > 0.0 || forests.rule.boulders_per_ha > 0.0))
+            .then(|| {
+                crate::navigation::NavGrid::new(std::sync::Arc::new(
+                    crate::navigation::NavBase::build(
+                        &world,
+                        world.props(),
+                        rules.physics.soldier_radius_m,
+                    ),
+                ))
+            });
+        let floor_movers = floor_nav.as_ref().map(|_| {
+            let mut movers: Vec<crate::navigation::Mobility> = Vec::new();
+            for kind in rules.catalog.indices() {
+                let mover = crate::units::mobility(rules.catalog.get(kind), rules);
+                if !movers.iter().any(|m| {
+                    m.class == mover.class
+                        && m.push == mover.push
+                        && m.half_width_m == mover.half_width_m
+                }) {
+                    movers.push(mover);
+                }
+            }
+            movers
+        });
+        for (index, forest) in map.forests.iter().enumerate() {
+            for (kind, density, half, salt) in [
+                (
+                    &forests.log,
+                    forests.rule.logs_per_ha,
+                    forests.rule.log_half_extents_m,
+                    3,
+                ),
+                (
+                    &forests.boulder,
+                    forests.rule.boulders_per_ha,
+                    forests.rule.boulder_half_extents_m,
+                    4,
+                ),
+            ] {
+                if density > 0.0 {
+                    world.place_forest_bodies(
+                        index,
+                        forest,
+                        forest::FloorBody {
+                            kind: kind.as_deref().expect("validated floor kind"),
+                            density,
+                            half,
+                            salt,
+                        },
+                        floor_nav.as_mut().expect("enabled floor grid"),
+                        floor_movers.as_ref().expect("enabled floor movers"),
+                    );
+                }
+            }
         }
         // Authored setup is revision 0; only later changes count.
         world.revision = 0;
@@ -270,6 +342,11 @@ impl WorldGeometry {
         self.buildings.definition(owner)
     }
 
+    /// Immutable union area, computed once for each authored aggregate.
+    pub(crate) fn building_footprint_area(&self, part: PropId) -> Option<f64> {
+        self.buildings.footprint_area(part)
+    }
+
     /// The current live state's one integrity/garrison prop owner.
     pub fn structure_owner(&self, part: PropId) -> Option<PropId> {
         self.prop(part)
@@ -290,7 +367,7 @@ impl WorldGeometry {
             self.authored_sources.get(&part).copied()
         }
     }
-    pub(crate) fn note_replacement(&mut self, new: PropId, old: PropId) {
+    fn note_replacement(&mut self, new: PropId, old: PropId) {
         if let Some(source) = self.authored_prop(old) {
             self.authored_sources.insert(new, source);
         }
@@ -298,8 +375,13 @@ impl WorldGeometry {
     pub(crate) fn digest_buildings(&self, d: &mut crate::digest::Digest) {
         self.buildings.digest(d)
     }
-    pub(crate) fn building_states(&self) -> impl Iterator<Item = (PropId, &[PropId], &[PropId])> {
-        self.buildings.states()
+    /// Live parts of an authored building, keyed by its immutable identity.
+    pub(crate) fn current_building_parts(&self, identity: PropId) -> &[PropId] {
+        self.buildings.current_parts(identity)
+    }
+    /// Every physical part ever belonging to the immutable building identity.
+    pub(crate) fn historical_building_parts(&self, identity: PropId) -> &[PropId] {
+        self.buildings.historical_parts(identity)
     }
     fn skips_structure(&self, id: PropId, skip: Option<PropId>) -> bool {
         skip.is_some_and(|s| self.structure_owner(id) == self.structure_owner(s))
@@ -603,12 +685,45 @@ impl WorldGeometry {
             .min_by(f64::total_cmp)
     }
 
+    /// Add a body with no placed-building geometry owner.
     pub fn add_prop(&mut self, def: &PropDefinition) -> PropId {
+        self.types
+            .check_placement(self.types.kind(&def.kind), PropPlacement::Ordinary)
+            .expect("ordinary prop placement");
+        self.insert_prop(def)
+    }
+
+    /// A replacement inherits its old body's retained geometry ownership.
+    pub(crate) fn add_replacement(&mut self, def: &PropDefinition, old: PropId) -> PropId {
+        let placement = if self.buildings.identity(old).is_some() {
+            PropPlacement::Aggregate
+        } else {
+            PropPlacement::Ordinary
+        };
+        self.types
+            .check_placement(self.types.kind(&def.kind), placement)
+            .expect("replacement prop placement");
+        let id = self.insert_prop(def);
+        self.note_replacement(id, old);
+        id
+    }
+
+    fn insert_prop(&mut self, def: &PropDefinition) -> PropId {
+        let prop = self.placed_prop(def);
+        let id = prop.id;
+        self.index.insert(&prop);
+        self.props.push(Some(prop));
+        self.revision += 1;
+        self.touched.push(id);
+        id
+    }
+
+    fn placed_prop(&self, def: &PropDefinition) -> Prop {
         let id = u32::try_from(self.props.len()).expect("world exceeds u32 prop IDs");
         let center = v2(def.center[0], def.center[1]);
         let base_z = def.base_z.unwrap_or_else(|| self.standing_z(center));
         let kind = self.types.kind(&def.kind);
-        let prop = Prop {
+        Prop {
             id,
             kind,
             center,
@@ -622,12 +737,7 @@ impl WorldGeometry {
             forest_tree: false,
             known_to_all: false,
             body: self.types.get(kind).body,
-        };
-        self.index.insert(&prop);
-        self.props.push(Some(prop));
-        self.revision += 1;
-        self.touched.push(id);
-        id
+        }
     }
 
     /// Every side plans with `id` from now on ([`Prop::known_to_all`]).

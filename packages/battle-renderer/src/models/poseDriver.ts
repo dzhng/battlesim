@@ -554,9 +554,22 @@ export class PoseDriver {
   private reconcileFallen(fallen: readonly FeedFallen[], time: number): boolean {
     let changed = false;
     const listed = new Set<number>();
+    const fading = new Map(this.out.fading.map((f) => [f.corpse.soldier, f.corpse]));
     for (const f of fallen) {
       listed.add(f.soldier);
-      if (this.corpseMap.has(f.soldier) || this.gone.has(f.soldier)) continue;
+      const corpse = this.corpseMap.get(f.soldier);
+      if (corpse) {
+        if (corpse.position.some((v, i) => v !== f.position[i])) {
+          vec3.copy(corpse.position, f.position);
+          changed = true;
+        }
+        continue;
+      }
+      if (this.gone.has(f.soldier)) {
+        const fadingCorpse = fading.get(f.soldier);
+        if (fadingCorpse) vec3.copy(fadingCorpse.position, f.position);
+        continue;
+      }
       const state = this.soldiers.get(f.soldier);
       if (state && state.fellAt === null) {
         state.fellAt = time;
@@ -564,7 +577,10 @@ export class PoseDriver {
         state.pose.unit = -1;
         this.switchTo(state, "death");
         this.dying.add(f.soldier);
-      } else if (!state) {
+      } else if (state) {
+        // Authority can remove a floor while the same death is still playing.
+        vec3.copy(state.pose.position, f.position);
+      } else {
         this.lay({
           soldier: f.soldier,
           kind: f.kind,

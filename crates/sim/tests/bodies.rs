@@ -60,6 +60,26 @@ fn a_vehicle_shoves_only_bodies_strictly_lighter_than_its_push_class() {
             "tooth",
             "light_wreck",
             "heavy_wreck",
+            "lamp",
+            "bench",
+            "bollard",
+            "bins",
+            "hydrant",
+            "utility_box",
+            "scooter",
+            "planter",
+            "parked_car",
+            "car_wreck",
+            "jersey_barrier",
+            "bus_shelter",
+            "scaffold",
+            "heras_fence",
+            "skip_bin",
+            "pallet_stack",
+            "site_cabin",
+            "road_barrier",
+            "log",
+            "boulder",
         ] {
             // A wall across the map with a 9.6 m gate; the body fills most of it.
             let at = [55.0, 30.0];
@@ -412,4 +432,90 @@ fn a_wreck_is_whatever_prop_type_its_vehicle_names() {
         .expect("the jeep left a wreck");
     assert_eq!(b.world().types().id(wreck.kind), "burnt_out_jeep");
     assert_eq!((wreck.body.hp, wreck.body.armor), (Some(35.0), 0.25));
+}
+
+/// C44: a street lamp is a thin obstruction, never a wall or cover position.
+#[test]
+fn a_street_lamp_blocks_movers_without_hiding_or_sheltering_them() {
+    let w = common::flat(
+        [100.0, 100.0],
+        r#","props":[{"kind":"lamp","center":[50,50],"yaw":0,"half_extents":[0.15,0.15,3]}]"#,
+    );
+    let p = w.prop(0).unwrap();
+    assert!(p.blocks(MoverClass::Infantry) && p.blocks(MoverClass::Vehicle));
+    assert!(w.sight_clear(v3(40.0, 50.0, 1.0), v3(60.0, 50.0, 1.0)));
+    assert!(w.segment_clear(v3(40.0, 50.0, 1.0), v3(60.0, 50.0, 1.0)));
+    let r = rules();
+    let ground = GroundLayer::new(100.0, 100.0, &r.ground);
+    assert_eq!(
+        sim::cover::at(&w, &ground, &[], &r, v2(49.4, 50.0), v2(60.0, 50.0)),
+        None
+    );
+}
+
+/// Street bodies retain independent sight, fire and cover columns. Glass and
+/// mesh must never become opaque bulletproof walls just because they block feet.
+#[test]
+fn street_body_rows_obey_their_physical_roles() {
+    use contract::scenario::CoverTier::{Heavy, Light, Medium};
+    let rows = [
+        ("bench", false, false, Some(Light)),
+        ("bollard", true, false, None),
+        ("bins", false, false, Some(Light)),
+        ("hydrant", true, false, None),
+        ("utility_box", true, false, Some(Medium)),
+        ("scooter", false, false, None),
+        ("planter", true, false, Some(Medium)),
+        ("parked_car", true, false, Some(Medium)),
+        ("car_wreck", true, false, Some(Medium)),
+        ("jersey_barrier", true, false, Some(Heavy)),
+        ("bus_shelter", false, false, None),
+        ("scaffold", false, false, None),
+        ("heras_fence", false, false, None),
+        ("skip_bin", true, false, Some(Medium)),
+        ("pallet_stack", false, false, Some(Light)),
+        ("site_cabin", true, true, Some(Heavy)),
+        ("traffic_cone", false, false, None),
+        ("road_barrier", false, false, None),
+    ];
+    let r = rules();
+    let ground = GroundLayer::new(100.0, 100.0, &r.ground);
+    for (id, stops, hides, cover) in rows {
+        let w = common::flat(
+            [100.0, 100.0],
+            &format!(
+                r#","props":[{{"kind":"{id}","center":[50,50],"yaw":0,"half_extents":[1,1,1]}}]"#
+            ),
+        );
+        assert_eq!(
+            w.segment_clear(v3(40.0, 50.0, 1.0), v3(60.0, 50.0, 1.0)),
+            !stops,
+            "{id}: rounds"
+        );
+        assert_eq!(
+            w.sight_clear(v3(40.0, 50.0, 1.0), v3(60.0, 50.0, 1.0)),
+            !hides,
+            "{id}: sight"
+        );
+        assert_eq!(
+            sim::cover::at(&w, &ground, &[], &r, v2(48.5, 50.0), v2(60.0, 50.0)),
+            cover,
+            "{id}: cover"
+        );
+        let p = w.prop(0).unwrap();
+        assert_eq!(
+            p.blocks(MoverClass::Infantry),
+            id != "traffic_cone",
+            "{id}: feet"
+        );
+        assert_eq!(
+            p.blocks(MoverClass::Vehicle),
+            id != "traffic_cone",
+            "{id}: wheels"
+        );
+        assert!(
+            !p.body.garrison,
+            "{id}: street rows are not fighting-position buildings"
+        );
+    }
 }

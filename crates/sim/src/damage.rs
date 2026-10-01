@@ -422,7 +422,15 @@ pub fn resolve(
             let s = &unit.members[k];
             if !s.alive() && s.corpse.is_none() {
                 let at = unit.members[k].position;
-                unit.members[k].fall(at, unit.yaw);
+                let support = unit
+                    .garrison
+                    .as_ref()
+                    .filter(|_| {
+                        unit.garrisoned()
+                            && at.z > ctx.world.surface_at(at.x, at.y).map_or(0.0, |s| s.z)
+                    })
+                    .map(|g| g.building);
+                unit.members[k].fall(at, unit.yaw, support);
             }
         }
     }

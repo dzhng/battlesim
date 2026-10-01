@@ -1,0 +1,19 @@
+6 trials (6 run, 0 cached) in 48.4 s wall on 2 threads; a trial 12.6–17.4 s (mean 15.2); 992 G instructions retired; load { 10.40 9.87 12.14 }
+| script | seed | result | captured s | blue cost lost | tanks lost | rejoined | digest |
+|---|---|---|---|---|---|---|---|
+| scout-suppress-flank | 1 | Captured | 492 | 465 | 0 | 1 | `d03a67616fbd7941` |
+| scout-suppress-flank | 2 | Captured | 548 | 490 | 0 | 0 | `3952afb3432acb20` |
+| scout-suppress-flank | 3 | Captured | 484 | 452 | 0 | 1 | `66ec8b22d8c8c01a` |
+| **scout-suppress-flank** | all | **3/3 captured** | | **1408** | **0** (a tank survived in 3) | **2** | |
+| ordinary-ambush-retreat (0.75 s) | 1 | Running | — | 0 | 0 | 0 | `4424d63f628f3b1c` |
+| ordinary-ambush-retreat (0.75 s) | 2 | Running | — | 0 | 0 | 0 | `7692f4a1fdcc1230` |
+| ordinary-ambush-retreat (0.75 s) | 3 | Running | — | 0 | 0 | 0 | `c6a1dfdaecc585a8` |
+| **ordinary-ambush-retreat (0.75 s)** | all | **0/3 captured** | | **0** | **0** (a tank survived in 3) | **0** | |
+saved 6 trials to /Users/david/.codex/worktrees/7ee3/battlegame/specs/city-maps/assets/sim-lane-closeout/merged-quick-trials.jsonl
+
+Compared with /Users/david/.codex/worktrees/7ee3/battlegame/specs/city-maps/assets/sim-lane-closeout/quick-trials.jsonl (before → after):
+
+| script | trials | same digest | captured | blue cost lost | tanks lost | rejoined |
+|---|---|---|---|---|---|---|
+| scout-suppress-flank | 3 | 0/3 | 3 | 1462 → **1408** | 0 | 5 → **2** |
+| ordinary-ambush-retreat (0.75 s) | 3 | 0/3 | 0 | 200 → **0** | 1 → **0** | 0 |

@@ -423,7 +423,14 @@ pub fn soldier_steer(
     threats: &[Threat],
 ) -> Option<Steer> {
     let rules = ctx.infantry;
-    let clear = |a: V2, b: V2| around.clear(a, b, ctx.soldier_radius_m);
+    let clear = |a: V2, b: V2| {
+        let steps = ((b - a).length() / 0.5).ceil().max(1.0) as usize;
+        around.clear(a, b, ctx.soldier_radius_m)
+            && (1..=steps).all(|k| {
+                let p = a + (b - a) * (k as f64 / steps as f64);
+                ctx.world.traversable_at(p.x, p.y)
+            })
+    };
     let here = s.position.xy();
     let clear_by = ctx.soldier_radius_m + rules.yield_margin_m;
     if let Some(target) = threats.iter().find_map(|t| t.dodge(here, clear_by)) {

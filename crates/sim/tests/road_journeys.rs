@@ -499,3 +499,180 @@ fn a_fast_move_takes_the_road_round_a_wood_and_beats_the_straight_move_through_i
         "the fast move arrives first: {arrived:?}"
     );
 }
+
+#[test]
+fn a_bridge_detour_is_chosen_over_an_impossible_straight_crossing() {
+    let mut map = two_bridges();
+    map["size"] = json!([3000, 6000]);
+    map["rivers"][0]["points"][1]["xy"] = json!([1500, 6000]);
+    map["bridges"] = json!([map["bridges"][0].clone()]);
+    map["surfaces"] = json!([
+        road([[20, 200], [2980, 200]]),
+        road([[100, 200], [100, 5800]]),
+        road([[2900, 200], [2900, 5800]])
+    ]);
+    let mut b = Battle::new(&scenario(map, jeep([100.0, 5600.0]), json!([])), 1);
+    order(&mut b, 1, [2900.0, 5600.0]);
+    let unit = planned(&mut b);
+    assert_eq!(
+        unit.state,
+        MoveState::Moving,
+        "road graph connects the banks"
+    );
+    assert_eq!(unit.route.last(), Some(&[2900.0, 5600.0]));
+    assert!(
+        on_line(&unit, 200.0) >= 2,
+        "the route takes the distant bridge"
+    );
+}
+
+#[test]
+fn a_bridge_journey_reaches_a_goal_beyond_the_access_radius() {
+    let mut map = two_bridges();
+    map["size"] = json!([3000, 6000]);
+    map["rivers"][0]["points"][1]["xy"] = json!([1500, 6000]);
+    map["bridges"] = json!([map["bridges"][0].clone()]);
+    map["surfaces"] = json!([
+        road([[20, 200], [2980, 200]]),
+        road([[100, 200], [100, 5800]]),
+        road([[1800, 200], [1800, 5800]])
+    ]);
+    let mut b = Battle::new(&scenario(map, jeep([100.0, 5600.0]), json!([])), 1);
+    order(&mut b, 1, [2900.0, 5600.0]);
+    let unit = planned(&mut b);
+    assert_eq!(
+        unit.state,
+        MoveState::Moving,
+        "road graph connects the banks"
+    );
+    assert_eq!(unit.route.last(), Some(&[2900.0, 5600.0]));
+    assert!(
+        on_line(&unit, 200.0) >= 2,
+        "the route takes the distant bridge"
+    );
+}
+
+#[test]
+fn a_wrong_bank_access_does_not_hide_the_farther_legal_approach() {
+    let mut map = two_bridges();
+    map["size"] = json!([3000, 6000]);
+    map["rivers"][0]["points"][1]["xy"] = json!([1500, 6000]);
+    map["bridges"] = json!([map["bridges"][0].clone()]);
+    map["surfaces"] = json!([
+        road([[20, 200], [2980, 200]]),
+        road([[100, 200], [100, 5800]]),
+        road([[2900, 200], [2900, 5800]]),
+        road([[1400, 200], [1400, 5800]])
+    ]);
+    let mut b = Battle::new(&scenario(map, jeep([100.0, 5600.0]), json!([])), 1);
+    order(&mut b, 1, [1700.0, 5600.0]);
+    let unit = planned(&mut b);
+    assert_eq!(
+        unit.state,
+        MoveState::Moving,
+        "road graph connects the banks"
+    );
+    assert_eq!(unit.route.last(), Some(&[1700.0, 5600.0]));
+    assert!(
+        on_line(&unit, 200.0) >= 2,
+        "the route takes the distant bridge"
+    );
+}
+
+#[test]
+fn discovering_one_endpoint_does_not_hide_the_others_legal_approach() {
+    let mut map = two_bridges();
+    map["size"] = json!([3000, 6000]);
+    map["rivers"][0]["points"][1]["xy"] = json!([1500, 6000]);
+    map["bridges"] = json!([map["bridges"][0].clone()]);
+    map["surfaces"] = json!([
+        road([[20, 200], [2980, 200]]),
+        road([[1300, 200], [1300, 5800]]),
+        road([[2900, 200], [2900, 5800]]),
+        road([[1400, 200], [1400, 5800]])
+    ]);
+    let mut b = Battle::new(&scenario(map, jeep([100.0, 5600.0]), json!([])), 1);
+    order(&mut b, 1, [1700.0, 5600.0]);
+    let unit = planned(&mut b);
+    assert_eq!(
+        unit.state,
+        MoveState::Moving,
+        "road graph connects the banks"
+    );
+    assert_eq!(unit.route.last(), Some(&[1700.0, 5600.0]));
+    assert!(
+        on_line(&unit, 200.0) >= 2,
+        "the route takes the distant bridge"
+    );
+}
+
+#[test]
+fn a_short_bridge_journey_keeps_distance_and_time_policies_distinct() {
+    use contract::map::MoverClass;
+    use contract::scenario::PushClass;
+    use sim::math::v2;
+    use sim::navigation::{Leg, Mobility, NavBase, NavGrid, Plan, RoadNet};
+    use sim::world::WorldGeometry;
+    let rules = common::rules();
+    let bridge = |y| json!({"deck":"bridge_deck","center":[800,y],"half_extents":[36,8],"yaw":0,"deck_z":0.1,"thickness_m":0.8});
+    let map = serde_json::from_value(json!({"size":[1600,1600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+      "rivers":[{"points":[{"xy":[800,0],"width_m":40,"depth_m":1.5},{"xy":[800,1600],"width_m":40,"depth_m":1.5}],"surface_z":-0.5}],
+      "bridges":[bridge(750),bridge(1000)],
+      "surfaces":[
+       {"kind":"dirt_track","shape":{"kind":"stroke","points":[[200,800],[200,750],[1400,750],[1400,800]],"width_m":12}},
+       {"kind":"road","shape":{"kind":"stroke","points":[[200,800],[200,1000],[1400,1000],[1400,800]],"width_m":12}}
+      ]})).unwrap();
+    let world = WorldGeometry::new(&map, &rules);
+    let roads = RoadNet::build(&world);
+    let grid = NavGrid::new(std::sync::Arc::new(NavBase::build(
+        &world,
+        world.props(),
+        0.3,
+    )));
+    let m = Mobility {
+        off_road_mps: 6.0,
+        road_mps: 12.0,
+        forest_multiplier: 0.4,
+        half_width_m: 1.8,
+        class: MoverClass::Vehicle,
+        push: PushClass::Heavy,
+        drive: None,
+    };
+    let from = v2(200.0, 800.0);
+    let goal = v2(1400.0, 800.0);
+    assert!((goal - from).length() < rules.navigation.road_leg_m);
+    let crossing = |policy| {
+        let (plan, _) = sim::navigation::plan(
+            &grid,
+            &roads,
+            Leg {
+                from,
+                goal,
+                m: &m,
+                policy,
+                avoid: &[],
+            },
+            &rules.navigation,
+        );
+        let Plan::Route(route) = plan else {
+            panic!("connected bridge journey was refused");
+        };
+        let mut previous = from;
+        for next in route {
+            if (previous.x - 800.0) * (next.x - 800.0) <= 0.0 && previous.x != next.x {
+                return previous.y
+                    + (next.y - previous.y) * (800.0 - previous.x) / (next.x - previous.x);
+            }
+            previous = next;
+        }
+        panic!("route did not cross the river");
+    };
+    assert!(
+        crossing(RoutePolicy::Shortest) < 850.0,
+        "shortest uses the nearer dirt bridge"
+    );
+    assert!(
+        crossing(RoutePolicy::Fastest) > 900.0,
+        "fastest uses the farther paved bridge"
+    );
+}

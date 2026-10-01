@@ -1,0 +1,23 @@
+{
+  "props": {
+    "log": {
+      "body": {
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "stops_rounds": true,
+        "occludes": false,
+        "weight_class": "medium",
+        "cover_tier": "medium",
+        "hp": 120
+      },
+      "appearance": {
+        "drawn_by": "log",
+        "status": "systems_only",
+        "map_only": true
+      },
+      "destroyed": "removed"
+    }
+  }
+}

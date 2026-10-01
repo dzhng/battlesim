@@ -1,0 +1,52 @@
+sa6-unbridged-river 0.0s V2 { x: 100.0, y: 5600.0 }
+sa6-unbridged-river 0.4s V2 { x: 100.0, y: 5600.0 }
+sa6-unbridged-river 2.0s V2 { x: 100.0, y: 5600.0 }
+sa6-unbridged-river 10.0s V2 { x: 100.0, y: 5600.0 }
+sa6-unbridged-river diagnostic check true
+sa6-unbridged-river diagnostic check true
+sa6-unbridged-river diagnostic check true
+sa6-distant-bridge 0.0s V2 { x: 100.0, y: 5600.0 }
+sa6-distant-bridge 0.4s V2 { x: 100.27151283193648, y: 5599.993853593502 }
+sa6-distant-bridge 2.0s V2 { x: 105.75784036522153, y: 5595.687862232003 }
+sa6-distant-bridge 10.0s V2 { x: 105.90548450594292, y: 5525.725593626264 }
+sa6-distant-bridge 50.0s V2 { x: 105.40233624420034, y: 5170.1703940743 }
+sa6-distant-bridge 100.0s V2 { x: 104.77340091702212, y: 4725.7263946343455 }
+sa6-distant-bridge 200.0s V2 { x: 102.38350490847058, y: 3036.880348985408 }
+sa6-distant-bridge 300.0s V2 { x: 129.40494642767553, y: 198.59342544456405 }
+sa6-distant-bridge 342.2s V2 { x: 1410.3390991185659, y: 198.49622819839917 }
+sa6-distant-bridge 342.4s V2 { x: 1416.4502102120834, y: 198.49576448746754 }
+sa6-distant-bridge 342.6s V2 { x: 1422.561321305601, y: 198.4953007765359 }
+sa6-distant-bridge 342.8s V2 { x: 1428.6724323991186, y: 198.4948370656043 }
+sa6-distant-bridge 343.0s V2 { x: 1434.7835434926362, y: 198.49437335467266 }
+sa6-distant-bridge 343.2s V2 { x: 1440.8946545861538, y: 198.49390964374103 }
+sa6-distant-bridge 343.4s V2 { x: 1447.0057656796714, y: 198.4934459328094 }
+sa6-distant-bridge 343.6s V2 { x: 1453.116876773189, y: 198.49298222187778 }
+sa6-distant-bridge 343.8s V2 { x: 1459.2279878667066, y: 198.49251851094616 }
+sa6-distant-bridge 344.0s V2 { x: 1465.3390989602242, y: 198.49205480001453 }
+sa6-distant-bridge 344.2s V2 { x: 1471.4502100537418, y: 198.4915910890829 }
+sa6-distant-bridge 344.4s V2 { x: 1477.5613211472594, y: 198.49112737815128 }
+sa6-distant-bridge 344.6s V2 { x: 1483.672432240777, y: 198.49066366721965 }
+sa6-distant-bridge 344.8s V2 { x: 1489.7835433342946, y: 198.49019995628802 }
+sa6-distant-bridge 345.0s V2 { x: 1495.8946544278122, y: 198.4897362453564 }
+sa6-distant-bridge 345.2s V2 { x: 1502.0057655213297, y: 198.48927253442477 }
+sa6-distant-bridge 345.4s V2 { x: 1508.1168766148473, y: 198.48880882349314 }
+sa6-distant-bridge 345.6s V2 { x: 1514.227987708365, y: 198.48834511256152 }
+sa6-distant-bridge 345.8s V2 { x: 1520.3390988018825, y: 198.4878814016299 }
+sa6-distant-bridge 346.0s V2 { x: 1526.4502098954001, y: 198.48741769069827 }
+sa6-distant-bridge 346.2s V2 { x: 1532.5613209889177, y: 198.48695397976664 }
+sa6-distant-bridge 346.4s V2 { x: 1538.6724320824353, y: 198.486490268835 }
+sa6-distant-bridge 346.6s V2 { x: 1544.783543175953, y: 198.4860265579034 }
+sa6-distant-bridge 346.8s V2 { x: 1550.8946542694705, y: 198.48556284697176 }
+sa6-distant-bridge 347.0s V2 { x: 1557.005765362988, y: 198.48509913604013 }
+sa6-distant-bridge 347.2s V2 { x: 1563.1168764565057, y: 198.4846354251085 }
+sa6-distant-bridge 347.4s V2 { x: 1569.2279875500233, y: 198.48417171417688 }
+sa6-distant-bridge 347.6s V2 { x: 1575.3390986435409, y: 198.48370800324525 }
+sa6-distant-bridge 347.8s V2 { x: 1581.4502097370585, y: 198.48324429231363 }
+sa6-distant-bridge 348.0s V2 { x: 1587.561320830576, y: 198.482780581382 }
+sa6-distant-bridge 450.0s V2 { x: 2901.4345573352352, y: 1845.7924953415431 }
+sa6-distant-bridge 600.0s V2 { x: 2900.155972018086, y: 5599.667225140153 }
+sa6-distant-bridge diagnostic check true
+sa6-distant-bridge diagnostic check true
+sa6-distant-bridge diagnostic check true
+sa6-distant-bridge diagnostic check true
+sa6-distant-bridge diagnostic check true

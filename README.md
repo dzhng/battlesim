@@ -49,6 +49,8 @@ The rules then follow from those properties alone:
 
 So there is no "wall", "road block" or "tank trap" in the code. Dragon's teeth are just small heavy bodies that block vehicles, and a squad takes cover behind each one because each is a body. Vehicles and props follow the same rules. A new obstacle is an entry in the prop catalog (`fixtures/props/`), not new code.
 
+A catalog row describes a body, while its placement supplies geometry ownership. Garrison seats and building-scaled integrity require a placed building aggregate; ordinary props, generated forest bodies, bridge decks and vehicle wrecks have no such owner. This constraint follows the body's destruction chain. Aggregate bodies remain immovable until the simulation supports moving all their parts together.
+
 It's a game, not a physics simulation. The target is **Hollywood realism**: the battle should look and behave the way a war film makes it look, not the way a ballistics table says. Keep what a viewer expects, even exaggerated, like cover blown apart, shells felling trees and sparks off armour. Drop what looks silly on screen, even when it's physically defensible, like a squad's stray rifle fire mowing down a forest. Sustained, aimed fire may fell one tree; incidental fire shouldn't clear woods. Use first principles where they stay simple, and hard-code a clear game rule where a principled version would be complex. Today's hard-coded rules:
 
 - cover only helps infantry, and crouching is an animation;

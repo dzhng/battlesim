@@ -1,6 +1,8 @@
 //! Forests as bodies (Q14, Q16, Q21). A forest's shape is only authoring
 //! input: the one `forests.rule` generates its trunks, and at runtime a forest
-//! is those trunk bodies plus the ground a heavy vehicle has cleared.
+//! is those trunk bodies plus the ground a heavy vehicle has cleared. Logs
+//! and boulders are ordinary cover bodies, placed after all trunks; they
+//! neither supply foliage nor clear forest ground when shoved.
 //!
 //! - **Foliage** is precomputed per fog cell (`map.fog_cell_m`) from the concealing bodies
 //!   whose crown covers the cell's centre: strength `1 − Π(1 − conceals)`,
@@ -14,7 +16,7 @@
 //!   through, the ground is open, whatever foliage its cell holds. Every
 //!   forest query ([`WorldGeometry::foliage_at`], [`WorldGeometry::forest_ground`])
 //!   reads it.
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use super::WorldGeometry;
 use crate::cell_page::Page;
@@ -83,10 +85,10 @@ pub(super) struct ForestState {
     pub(super) rule: ForestRule,
     nx: usize,
     ny: usize,
-    cells: BTreeMap<usize, Foliage>,
+    cells: Vec<Option<Page<Foliage>>>,
     cleared_nx: usize,
     cleared_ny: usize,
-    cleared: BTreeMap<usize, Page<u64>>,
+    cleared: Vec<Option<Page<u64>>>,
     /// Every cleared cell, in the order they were cleared: what a reader
     /// that keeps its place sees as new.
     cleared_order: Vec<u32>,
@@ -112,14 +114,20 @@ impl ForestState {
         let ground_nx = (width / GROUND_BUCKET_M).ceil().max(1.0) as usize;
         let ground_ny = (depth / GROUND_BUCKET_M).ceil().max(1.0) as usize;
         let mut ground_buckets = vec![Vec::new(); ground_nx * ground_ny];
-        for (id, ([x, y, max_x, max_y], _)) in ground_regions.iter().enumerate() {
-            let first = |v: f64| (v / GROUND_BUCKET_M).floor().max(0.0) as usize;
-            let last = |v: f64, n: usize| ((v / GROUND_BUCKET_M).floor() as usize).min(n - 1);
-            if *max_x < 0.0 || *max_y < 0.0 {
-                continue;
-            }
-            for j in first(*y)..=last(*max_y, ground_ny) {
-                for i in first(*x)..=last(*max_x, ground_nx) {
+        for (id, forest) in forests.iter().enumerate() {
+            let [x, y, w, h] = forest.shape.bounds();
+            let r = rule.canopy_radius_m;
+            let [lo_x, lo_y, hi_x, hi_y] = ground_regions[id].0;
+            // Ground membership and foliage spans share these buckets. Include
+            // the exact ground limits and the canopy's recomposed span bounds.
+            let cell =
+                |v: f64, n: usize| ((v / GROUND_BUCKET_M).floor().max(0.0) as usize).min(n - 1);
+            let x0 = lo_x.min(x - r);
+            let y0 = lo_y.min(y - r);
+            let x1 = hi_x.max((x - r) + (w + 2.0 * r));
+            let y1 = hi_y.max((y - r) + (h + 2.0 * r));
+            for j in cell(y0, ground_ny)..=cell(y1, ground_ny) {
+                for i in cell(x0, ground_nx)..=cell(x1, ground_nx) {
                     ground_buckets[j * ground_nx + i].push(id as u32);
                 }
             }
@@ -135,10 +143,10 @@ impl ForestState {
             rule,
             nx,
             ny,
-            cells: BTreeMap::new(),
+            cells: vec![None; (nx * ny).div_ceil(256)],
             cleared_nx,
             cleared_ny,
-            cleared: BTreeMap::new(),
+            cleared: vec![None; (cleared_nx * cleared_ny).div_ceil(64 * 256)],
             cleared_order: Vec::new(),
         }
     }
@@ -189,6 +197,13 @@ fn forest_seed(index: usize, forest: &Forest) -> u64 {
     }
 }
 
+pub(super) struct FloorBody<'a> {
+    pub kind: &'a str,
+    pub density: f64,
+    pub half: [f64; 3],
+    pub salt: u64,
+}
+
 impl WorldGeometry {
     /// Where `forest`'s trunks stand (Q16): a grid at the rule's spacing,
     /// each trunk jittered off its cell's centre, none near a road or
@@ -237,6 +252,82 @@ impl WorldGeometry {
         out
     }
 
+    /// Independent jittered lattices place sparse floor bodies in gaps. A
+    /// rejected candidate stays rejected: no retries, and no trunks move.
+    pub(super) fn place_forest_bodies(
+        &mut self,
+        index: usize,
+        forest: &Forest,
+        placement: FloorBody<'_>,
+        nav: &mut crate::navigation::NavGrid,
+        movers: &[crate::navigation::Mobility],
+    ) {
+        let FloorBody {
+            kind,
+            density,
+            half,
+            salt,
+        } = placement;
+        let step = (10_000.0 / density).sqrt();
+        let [x0, y0, max_x, max_y] = forest.shape.limits();
+        assert!(
+            [x0, y0, max_x, max_y]
+                .iter()
+                .all(|v| (v + step).is_finite() && v + step > *v),
+            "forest floor lattice spacing must advance at every bound"
+        );
+        let radius = half[0].hypot(half[1]);
+        let clearance = self.forest.rule.trunk_clearance_m;
+        let mut rng = crate::rng::Rng::new(forest_seed(index, forest) ^ salt);
+        let mut y = y0 + step / 2.0;
+        while y <= max_y {
+            let mut x = x0 + step / 2.0;
+            while x <= max_x {
+                let p = v2(
+                    x + (rng.unit() * 2.0 - 1.0) * self.forest.rule.trunk_jitter * step,
+                    y + (rng.unit() * 2.0 - 1.0) * self.forest.rule.trunk_jitter * step,
+                );
+                let yaw = rng.unit() * std::f64::consts::TAU;
+                let inside = match &forest.shape {
+                    contract::ground::GroundShape::Polygon { ring } => {
+                        forest.shape.contains([p.x, p.y], 0.0)
+                            && contract::ground::edges(ring).all(|(a, b)| {
+                                contract::ground::segment_distance(*a, *b, [p.x, p.y]) >= radius
+                            })
+                    }
+                    contract::ground::GroundShape::Stroke { .. } => {
+                        forest.shape.contains([p.x, p.y], -radius)
+                    }
+                };
+                let clear = inside
+                    && p.x >= radius
+                    && p.y >= radius
+                    && p.x + radius <= self.field.width()
+                    && p.y + radius <= self.field.depth()
+                    && !self.surfaces.road_near(p, radius + clearance)
+                    && !self.surfaces.water_near(p, radius + clearance)
+                    && self
+                        .props_near(p, radius + clearance)
+                        .iter()
+                        .all(|q| q.footprint().distance(p) >= radius + clearance);
+                if clear {
+                    let def = contract::map::PropDefinition {
+                        kind: kind.into(),
+                        center: [p.x, p.y],
+                        yaw,
+                        half_extents: half,
+                        base_z: None,
+                    };
+                    if nav.admit_floor_body(self, self.placed_prop(&def), movers) {
+                        self.add_prop(&def);
+                    }
+                }
+                x += step;
+            }
+            y += step;
+        }
+    }
+
     /// Record a forest's reach once its trunks stand.
     pub(super) fn note_forest(&mut self, forest: &Forest, range: [u32; 2]) {
         self.forest.trunk_ranges.push(range);
@@ -261,10 +352,10 @@ impl WorldGeometry {
                 let mid = v2((i as f64 + 0.5) * c, (j as f64 + 0.5) * c);
                 let cell = self.foliage_cell(mid, |_| false);
                 let key = j * self.forest.nx + i;
-                if cell.is_open() {
-                    self.forest.cells.remove(&key);
-                } else {
-                    self.forest.cells.insert(key, cell);
+                let page = &mut self.forest.cells[key / 256];
+                if !cell.is_open() || page.is_some() {
+                    page.get_or_insert_with(|| Page::Uniform(Foliage::open()))
+                        .set(key % 256, cell);
                 }
             }
         }
@@ -305,7 +396,8 @@ impl WorldGeometry {
         self.forest.cleared_index(x, y).is_some_and(|k| {
             self.forest
                 .cleared
-                .get(&(k / (64 * 256)))
+                .get(k / (64 * 256))
+                .and_then(Option::as_ref)
                 .is_some_and(|page| page.get((k / 64) % 256) >> (k % 64) & 1 == 1)
         })
     }
@@ -337,24 +429,43 @@ impl WorldGeometry {
     /// The foliage over (x, y): its fog cell's, or open ground where the
     /// ground is cleared.
     pub fn foliage_at(&self, x: f64, y: f64) -> Foliage {
-        if self.cleared(x, y) {
-            return Foliage::open();
-        }
-        self.forest
+        let foliage = self
+            .forest
             .cell_index(x, y)
-            .and_then(|k| self.forest.cells.get(&k))
-            .copied()
-            .unwrap_or_else(Foliage::open)
+            .and_then(|k| self.forest.cells[k / 256].as_ref().map(|p| p.get(k % 256)))
+            .unwrap_or_else(Foliage::open);
+        // Clearing can only remove foliage, so open cells need no mask query.
+        if foliage.is_open() || self.cleared(x, y) {
+            Foliage::open()
+        } else {
+            foliage
+        }
     }
 
     /// The foliage depth of the segment `a`→`b` (Q21): each metre below the
     /// canopy of uncleared foliage adds its cell's depth per metre.
     pub fn foliage_depth(&self, a: V3, b: V3) -> f64 {
+        if self.forest.bounds.is_empty() {
+            return 0.0;
+        }
         let d = b - a;
         let len = d.length();
         // The spans of the segment within some forest's reach, merged.
         let mut spans: Vec<(f64, f64)> = Vec::new();
-        for &[x0, y0, w, h] in &self.forest.bounds {
+        let f = &self.forest;
+        let ny = f.ground_buckets.len() / f.ground_nx;
+        let cell = |v: f64, n: usize| ((v / GROUND_BUCKET_M).floor().max(0.0) as usize).min(n - 1);
+        let mut candidates = Vec::new();
+        for j in cell(a.y.min(b.y), ny)..=cell(a.y.max(b.y), ny) {
+            for i in cell(a.x.min(b.x), f.ground_nx)..=cell(a.x.max(b.x), f.ground_nx) {
+                candidates.extend_from_slice(&f.ground_buckets[j * f.ground_nx + i]);
+            }
+        }
+        // Preserve authored forest order before the exact span integration.
+        candidates.sort_unstable();
+        candidates.dedup();
+        for id in candidates {
+            let [x0, y0, w, h] = f.bounds[id as usize];
             let (mut t0, mut t1) = (0.0f64, 1.0f64);
             for (o, dv, lo, hi) in [(a.x, d.x, x0, x0 + w), (a.y, d.y, y0, y0 + h)] {
                 if dv.abs() < 1e-12 {
@@ -432,7 +543,7 @@ impl WorldGeometry {
                     continue;
                 }
                 let k = j * self.forest.cleared_nx + i;
-                let page = self.forest.cleared.entry(k / (64 * 256)).or_default();
+                let page = self.forest.cleared[k / (64 * 256)].get_or_insert_with(Page::default);
                 let word = (k / 64) % 256;
                 page.set(word, page.get(word) | (1 << (k % 64)));
                 touched.insert(k / (64 * 256));
@@ -441,9 +552,8 @@ impl WorldGeometry {
             }
         }
         for key in touched {
-            self.forest
-                .cleared
-                .get_mut(&key)
+            self.forest.cleared[key]
+                .as_mut()
                 .expect("cleared page exists")
                 .compress();
         }
@@ -481,7 +591,7 @@ impl WorldGeometry {
                     continue;
                 }
                 let k = j * self.forest.cleared_nx + i;
-                let page = self.forest.cleared.entry(k / (64 * 256)).or_default();
+                let page = self.forest.cleared[k / (64 * 256)].get_or_insert_with(Page::default);
                 let word = (k / 64) % 256;
                 page.set(word, page.get(word) | (1 << (k % 64)));
                 touched.insert(k / (64 * 256));
@@ -490,9 +600,8 @@ impl WorldGeometry {
             }
         }
         for key in touched {
-            self.forest
-                .cleared
-                .get_mut(&key)
+            self.forest.cleared[key]
+                .as_mut()
                 .expect("cleared page exists")
                 .compress();
         }
@@ -536,12 +645,18 @@ impl WorldGeometry {
     /// The cleared mask, word by word (the digest's): each word that holds
     /// a cleared cell, with its index.
     pub fn digest_cleared(&self, d: &mut crate::digest::Digest) {
-        let words = self.forest.cleared.iter().flat_map(|(&key, page)| {
-            (0..256).filter_map(move |i| {
-                let word = page.get(i);
-                (word != 0).then_some((key * 256 + i, word))
-            })
-        });
+        let words = self
+            .forest
+            .cleared
+            .iter()
+            .enumerate()
+            .filter_map(|(key, page)| page.as_ref().map(|p| (key, p)))
+            .flat_map(|(key, page)| {
+                (0..256).filter_map(move |i| {
+                    let word = page.get(i);
+                    (word != 0).then_some((key * 256 + i, word))
+                })
+            });
         // The count frames the pairs: nothing after them reads as one.
         d.u64(words.clone().count() as u64);
         for (k, w) in words {
@@ -586,7 +701,14 @@ impl WorldGeometry {
             }
         }
         let mut out = vec![f.nx as f32, f.ny as f32, c as f32];
-        for (&k, &original) in &f.cells {
+        for (k, original) in f
+            .cells
+            .iter()
+            .enumerate()
+            .filter_map(|(id, page)| page.as_ref().map(|page| (id, page)))
+            .flat_map(|(id, page)| (0..256).map(move |cell| (id * 256 + cell, page.get(cell))))
+            .filter(|(_, cell)| !cell.is_open())
+        {
             let mid = v2((k % f.nx) as f64 + 0.5, (k / f.nx) as f64 + 0.5) * c;
             let cell = if cleared(mid.x, mid.y) {
                 Foliage::open()

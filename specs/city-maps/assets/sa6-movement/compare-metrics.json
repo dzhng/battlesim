@@ -1,0 +1,135 @@
+[
+  {
+    "case": "c69-river-bridge",
+    "frame": 300,
+    "t_s": 60.0,
+    "native_size": [
+      1280,
+      834
+    ],
+    "changed_pixels": 4,
+    "difference_bounds": [
+      218,
+      203,
+      230,
+      226
+    ],
+    "crop_native_bounds": [
+      180,
+      130,
+      320,
+      300
+    ],
+    "crop_magnification": 2
+  },
+  {
+    "case": "c69-river-around",
+    "frame": 400,
+    "t_s": 80.0,
+    "native_size": [
+      1280,
+      834
+    ],
+    "changed_pixels": 1124,
+    "difference_bounds": [
+      290,
+      66,
+      721,
+      517
+    ],
+    "crop_native_bounds": [
+      190,
+      40,
+      740,
+      570
+    ],
+    "crop_magnification": 2
+  },
+  {
+    "case": "sa6-jeep-round-wreck",
+    "frame": 200,
+    "t_s": 40.0,
+    "native_size": [
+      1280,
+      834
+    ],
+    "changed_pixels": 3067,
+    "difference_bounds": [
+      599,
+      418,
+      1188,
+      484
+    ],
+    "crop_native_bounds": [
+      540,
+      380,
+      1220,
+      520
+    ],
+    "crop_magnification": 2
+  },
+  {
+    "case": "sa6-columns-through-bridge",
+    "frame": 400,
+    "t_s": 80.0,
+    "native_size": [
+      1280,
+      834
+    ],
+    "changed_pixels": 1653,
+    "difference_bounds": [
+      149,
+      52,
+      171,
+      812
+    ],
+    "crop_native_bounds": [
+      120,
+      35,
+      200,
+      830
+    ],
+    "crop_magnification": 2
+  },
+  {
+    "case": "sa6-unbridged-river",
+    "frame": 2,
+    "t_s": 0.4,
+    "native_size": [
+      1280,
+      834
+    ],
+    "changed_pixels": 0,
+    "difference_bounds": null,
+    "crop_native_bounds": [
+      0,
+      35,
+      180,
+      830
+    ],
+    "crop_magnification": 2
+  },
+  {
+    "case": "sa6-distant-bridge",
+    "frame": 1500,
+    "t_s": 300.0,
+    "native_size": [
+      1280,
+      834
+    ],
+    "changed_pixels": 806,
+    "difference_bounds": [
+      4,
+      215,
+      1277,
+      834
+    ],
+    "crop_native_bounds": [
+      0,
+      35,
+      180,
+      830
+    ],
+    "crop_magnification": 2
+  }
+]

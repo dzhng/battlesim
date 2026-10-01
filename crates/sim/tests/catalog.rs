@@ -216,3 +216,16 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
     }
     assert!(failures.is_empty(), "{failures:#?}");
 }
+#[test]
+fn vehicle_wrecks_cannot_require_missing_building_facts() {
+    let mut raw = crate::common::village();
+    sim::fixtures::patch_catalog(
+        &mut raw,
+        "props",
+        "light_wreck",
+        serde_json::json!({"body":{"hp_scale":"building_floor_bands"}}),
+    );
+    let error = serde_json::from_value::<contract::scenario::Rules>(raw)
+        .expect_err("vehicle wreck births have no placed aggregate");
+    assert!(error.to_string().contains("wreck"), "{error}");
+}

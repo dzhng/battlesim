@@ -219,7 +219,7 @@
     "template_catalog_hash": "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13"
   },
   "buildings": {
-    "capacity_soldiers": 16,
+    "capacity_soldiers": 32,
     "cover_strength": 1
   },
   "spawn": {
@@ -608,7 +608,9 @@
   },
   "forests": {
     "tree": "trunk",
-    "rule": { "trunk_spacing_m": 9, "trunk_jitter": 0.3, "concealment_infantry": 0.45, "concealment_vehicle": 0.7, "attenuation_per_m": 0.011, "canopy_radius_m": 6.5, "canopy_height_m": 12, "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2 }
+    "log": "log",
+    "boulder": "boulder",
+    "rule": { "trunk_spacing_m": 9, "trunk_jitter": 0.3, "concealment_infantry": 0.45, "concealment_vehicle": 0.7, "attenuation_per_m": 0.011, "canopy_radius_m": 6.5, "canopy_height_m": 12, "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2, "logs_per_ha": 0, "boulders_per_ha": 0, "log_half_extents_m": [2.2, 0.35, 0.35], "boulder_half_extents_m": [1, 0.8, 0.75] }
   },
   "variants": {
     "ordinary": {

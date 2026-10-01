@@ -71,6 +71,7 @@ A prop type (a house, a wall, a tree, a wreck, rubble) is **one entry** of a `pr
   - `body`: `blocks` (per mover class), `stops_rounds`, `occludes`, `weight_class`, `cover_tier`, `lifetime_s` (a transient body, like smoke), `conceals` (foliage), `hp` and `armor` (integrity), `topples` (falls rather than slides: a tree) and `garrison` (a squad can hold it from inside). Each column has its own readers; a rule reads columns, never the id.
   - `destroyed`, with `hp` and only with it: `"removed"`, `"cleared"` (open ground, for a toppling body) or `{ "into": { "prop": <id>, "height_m": h } }`, remains on the same plan. Chains end: heavier remains degrade to lighter categories before disappearing. Wreck category names describe their body and protection, not the vehicle model used to draw them.
   - `appearance`: what draws it. `drawn_by` names the asset catalog's scenery kind whose appearances are fitted to its box (`building` for the building appearances, `forest` for the trees a forest draws itself); `modular` repeats a module along the box instead of stretching it; `map_only` marks a type a battle never leaves or places, so only the appearances a map uses load; `remains_state` draws remains as the body they replace, in that state (a building's ruin).
+- **Systems-only physical rows** carry `appearance.status: "systems_only"` until their actual scenery is fitted and accepted. They name the intended scenery, never borrow a released asset to pass validation. Removing that status restores the ordinary appearance gate; the systems marker is not an art acceptance.
 - **A variant is `extends` plus overrides,** as for units: `wrecks.json` shares one abstract `wreck` frame.
 - **Resolution happens once, in the simulation,** with the units: unknown or looping destroyed states, `hp` without `destroyed`, a cleared state on a body that doesn't topple, and a unit's wreck that names no prop type fail at load, naming the entry. The exported WASM catalog resolver accepts supplied documents through the same validation path; shipped-fixture tests therefore do not replace load-time validation. Regenerate `catalog.json` after editing, as for the units above.
 
@@ -117,3 +118,14 @@ A map's water is its `rivers`: each a line of points with the water's `width_m` 
 ## Parity oracles
 
 `parity/` holds frozen inputs and expected outputs that the native tests and the web tests both read, so the Rust simulation and its WebAssembly build are held to the same answer: building aggregates, fog delivery, ground learning and transport, the map compiler, physical templates (including the rejected descriptors that must keep failing), terrain queries and the rounded samples of roads and rivers. A file changes only with a named behaviour change, and every test that reads it changes in the same commit.
+
+
+## Forest floor cover
+
+The one `forests.rule` controls sparse log and boulder candidate density and
+physical size. The forest's catalog references select their body properties.
+The world places floor cover after all trunks with independent seeds, so changing
+floor density cannot shift any trunk or its published source range. Candidates
+that conflict with trees, roads, water, bodies or the forest boundary are omitted;
+per-hectare densities are placement ceilings, not guaranteed counts. The floor
+adds no concealment: trunk crowns remain the single foliage authority.

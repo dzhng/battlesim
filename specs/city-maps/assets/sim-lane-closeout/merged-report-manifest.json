@@ -1,0 +1,158 @@
+{
+  "source": "3c3752d81294ec04ecd7f26cdf4dc1040b298440",
+  "binary_sha256": {
+    "city_report": "fc2d2985f51f398b1c39f2ed7f477d1dab45b700de8e0dd0cde39d79726181b3",
+    "village_report": "650371b06ff8354492e2f0b52473b7ca7088cf297679ad795ec7c3ad3a673cea"
+  },
+  "runs": [
+    {
+      "name": "quick",
+      "arguments": [
+        "/Users/david/dev/battlegame/target/wt/7ee3/release/examples/village_report",
+        "--quick",
+        "--threads",
+        "2",
+        "--compare",
+        "/Users/david/.codex/worktrees/7ee3/battlegame/specs/city-maps/assets/sim-lane-closeout/quick-trials.jsonl",
+        "--save",
+        "/Users/david/.codex/worktrees/7ee3/battlegame/specs/city-maps/assets/sim-lane-closeout/merged-quick-trials.jsonl"
+      ],
+      "exit_code": 0,
+      "elapsed_wall_s": 49.01741441700142,
+      "report": "merged-quick.txt"
+    },
+    {
+      "name": "full",
+      "arguments": [
+        "/Users/david/dev/battlegame/target/wt/7ee3/release/examples/village_report",
+        "--threads",
+        "2",
+        "--save",
+        "/Users/david/.codex/worktrees/7ee3/battlegame/specs/city-maps/assets/sim-lane-closeout/merged-full-trials.jsonl"
+      ],
+      "exit_code": 0,
+      "elapsed_wall_s": 730.9845174170041,
+      "report": "merged-full.txt"
+    },
+    {
+      "name": "mixed-large-s35",
+      "arguments": [
+        "/Users/david/dev/battlegame/target/wt/7ee3/release/examples/city_report",
+        "/Users/david/dev/battlegame/throwaway/layout-rivers/sim/mixed-large-s35.map/map.json",
+        "300",
+        "0.92",
+        "6",
+        "0"
+      ],
+      "exit_code": 0,
+      "elapsed_wall_s": 26.245305290998658,
+      "report": "merged-mixed-large-s35.txt",
+      "map_sha256": "9bae7e48df5cb8a040c861743911d5fa14d38dd5b7d6445a5f92dae174756901"
+    },
+    {
+      "name": "open-small-s3",
+      "arguments": [
+        "/Users/david/dev/battlegame/target/wt/7ee3/release/examples/city_report",
+        "/Users/david/dev/battlegame/throwaway/layout-rivers/sim/open-small-s3.map/map.json",
+        "300",
+        "0.92",
+        "6",
+        "0"
+      ],
+      "exit_code": 0,
+      "elapsed_wall_s": 18.492184167000232,
+      "report": "merged-open-small-s3.txt",
+      "map_sha256": "e47a9949b60b2a00932642fc5ab318c9b0957da9debb26abb97d6fb83a0a92ce"
+    },
+    {
+      "name": "mixed-small-s4",
+      "arguments": [
+        "/Users/david/dev/battlegame/target/wt/7ee3/release/examples/city_report",
+        "/Users/david/dev/battlegame/throwaway/layout-rivers/sim/mixed-small-s4.map/map.json",
+        "300",
+        "0.92",
+        "6",
+        "0"
+      ],
+      "exit_code": 0,
+      "elapsed_wall_s": 28.307067334011663,
+      "report": "merged-mixed-small-s4.txt",
+      "map_sha256": "92ec8569cb81c8a73ce318c45953bd0295f5c12b2e51314582baf462c5995c96"
+    },
+    {
+      "name": "open-medium-s1",
+      "arguments": [
+        "/Users/david/dev/battlegame/target/wt/7ee3/release/examples/city_report",
+        "/Users/david/dev/battlegame/throwaway/layout-rivers/sim/open-medium-s1.map/map.json",
+        "300",
+        "0.92",
+        "6",
+        "0"
+      ],
+      "exit_code": 0,
+      "elapsed_wall_s": 37.65860391699243,
+      "report": "merged-open-medium-s1.txt",
+      "map_sha256": "e79bddd457f1945a0d732622646c9d9a5df48ba8514f7d296176a89f0fb3e7b1"
+    },
+    {
+      "name": "mixed-medium-s2",
+      "arguments": [
+        "/Users/david/dev/battlegame/target/wt/7ee3/release/examples/city_report",
+        "/Users/david/dev/battlegame/throwaway/layout-rivers/sim/mixed-medium-s2.map/map.json",
+        "300",
+        "0.92",
+        "6",
+        "0"
+      ],
+      "exit_code": 0,
+      "elapsed_wall_s": 38.35237366700312,
+      "report": "loaded-merged-mixed-medium-s2.txt",
+      "map_sha256": "757a1a21f3436384cf58314b588c65e55c3ba770e62103d8330ad8ecec9a1d1d"
+    },
+    {
+      "name": "metro-large-s4",
+      "arguments": [
+        "/Users/david/dev/battlegame/target/wt/7ee3/release/examples/city_report",
+        "/Users/david/dev/battlegame/throwaway/layout-rivers/sim/metro-large-s4.map/map.json",
+        "300",
+        "0.92",
+        "6",
+        "0"
+      ],
+      "exit_code": 0,
+      "elapsed_wall_s": 32.74843879099353,
+      "report": "loaded-merged-metro-large-s4.txt",
+      "map_sha256": "1af0b574511a2f859ea3ae99c2b672bdcb54da23350b2ebbd69738450544b9c6"
+    },
+    {
+      "name": "mixed-small-s4.100side",
+      "arguments": [
+        "/Users/david/dev/battlegame/target/wt/7ee3/release/examples/city_report",
+        "/Users/david/dev/battlegame/throwaway/layout-rivers/sim-dry/mixed-small-s4.map/map.json",
+        "30",
+        "0.92",
+        "100",
+        "0"
+      ],
+      "exit_code": 0,
+      "elapsed_wall_s": 14.969234874995891,
+      "report": "loaded-merged-mixed-small-s4.100side.txt",
+      "map_sha256": "59c0971dade907af209c4b9c57185f104abc2427ad119dbd54b85b680445c606"
+    },
+    {
+      "name": "metro-large-s4.100side",
+      "arguments": [
+        "/Users/david/dev/battlegame/target/wt/7ee3/release/examples/city_report",
+        "/Users/david/dev/battlegame/throwaway/layout-rivers/sim-dry/metro-large-s4.map/map.json",
+        "30",
+        "0.92",
+        "100",
+        "0"
+      ],
+      "exit_code": 0,
+      "elapsed_wall_s": 16.989703957980964,
+      "report": "loaded-merged-metro-large-s4.100side.txt",
+      "map_sha256": "f8079f26cf0b986f33b559a59063d0e58907a004d0e7e026f40a24762f9fff56"
+    }
+  ]
+}

@@ -1,0 +1,252 @@
+{
+  "attribution": {
+    "final_measured_calls": [
+      "Battle::sense both sides",
+      "Battle::sweep_fog when due"
+    ],
+    "final_source": "21ec37fb84d85740da0ac7c01d3409b3aa7ba57b",
+    "forward_bracket_includes_snapshot": true,
+    "forward_failure_patch": "sight-forward-attribution.patch",
+    "forward_failure_source": "886e7200c00147abf0074c8ad62a2ace034f374a",
+    "original_captured_diff": "sight-tail-attribution-captured.patch",
+    "outside_final_bracket": [
+      "sight::snapshot",
+      "other battle stages",
+      "publication"
+    ],
+    "patch": "sight-tail-attribution.patch",
+    "raw_tick_output": "sight-tail-attribution-ticks.txt",
+    "summary": "sight-tail-attribution-summary.json",
+    "tick_count": 9000
+  },
+  "hash_policy": "SHA-256 over exact file bytes; manifest excludes itself. Source-file hashes address Git content at the stated commit.",
+  "included_files": {
+    "README.md": {
+      "bytes": 4907,
+      "sha256": "54791ed0b1734deddfa655c16d08fea3d12583b81b77104fa36e559f909e649b"
+    },
+    "endurance-attributed.txt": {
+      "bytes": 830,
+      "sha256": "3f236128cdbeebd81182a8b322a60d5edbd47c1d495b11671ae4eb2fc8a75747"
+    },
+    "endurance-before.txt": {
+      "bytes": 762,
+      "sha256": "8681e45a73306e6a50ca94a0005580b8ac301125e0c792ae6333d548f79017f8"
+    },
+    "endurance-final-winner.txt": {
+      "bytes": 830,
+      "sha256": "58b080538201ddbac36f134efcf075cfba0af5b2da1c0fc41545854b73801343"
+    },
+    "endurance-tail-attributed.txt": {
+      "bytes": 827,
+      "sha256": "cbe9fde29c9c24b0c1c6679f6f1cc2b6b60d4f8bc3b9dde819f233a7b3d2b094"
+    },
+    "large-before.txt": {
+      "bytes": 27184,
+      "sha256": "7eb69d2d2e255f635c8088fbe7476ccb67684571ca53fef6314bef70c86e805d"
+    },
+    "large-final-winner.txt": {
+      "bytes": 27333,
+      "sha256": "f3bd1e572f5d08661678b6b19c25514582b2d5ace1ea1fa6c4be1237dfdfb88f"
+    },
+    "large-loaded-core.txt": {
+      "bytes": 27341,
+      "sha256": "fdba00994470ce1f3c39ba6d726803e5720b15a27929cb97d6d4de226117d68e"
+    },
+    "large-map-SOURCES.json": {
+      "bytes": 766,
+      "sha256": "a85763639bda1f1d0699fe3ef82da1574c7f313c840591be44f9d3d8f54e4b9e"
+    },
+    "sight-forward-attribution-summary.json": {
+      "bytes": 1184,
+      "sha256": "ad28e96968bccf0ffd9ee9bd71d071ca92489c7ddb5b3cf3766710ede9ad469e"
+    },
+    "sight-forward-attribution.patch": {
+      "bytes": 1208,
+      "sha256": "f7eca5945e9dbb4d8997e31cfef18584b1a7ca87b2b629cce74bc68e71937766"
+    },
+    "sight-tail-attribution-captured.patch": {
+      "bytes": 3627,
+      "sha256": "264f426bf4a988263ff32a41b58d340256afd9156f5c9bf51b328a3f5012dd24"
+    },
+    "sight-tail-attribution-summary.json": {
+      "bytes": 328,
+      "sha256": "764c92c57ff3964da9d74161aa6b1abd8dfd4eba7781df7f696efad5f6e2cc56"
+    },
+    "sight-tail-attribution-ticks.txt": {
+      "bytes": 639330,
+      "sha256": "42bc0fe4b74997c68d551c88cadcc63d5ed75d4cba6d71d01bfc49b0c5df1923"
+    },
+    "sight-tail-attribution.patch": {
+      "bytes": 1365,
+      "sha256": "5e5a3e49eef6100624f41b8bb34dffa1339cae9cac4b70b2432411e82d23d1a3"
+    },
+    "small-before.txt": {
+      "bytes": 27027,
+      "sha256": "c72124726e6a78214013b245f9e3f1fc78252aa8ba4cbf4368d098cc943071d9"
+    },
+    "small-final-winner.txt": {
+      "bytes": 27189,
+      "sha256": "50d27a84bcf86542dd3682cc0cdc3e663570440ff5bf966a6ee9f40f5f698770"
+    },
+    "small-loaded-core.txt": {
+      "bytes": 27194,
+      "sha256": "323265191bc3c2f81bc9e4391c62e1d1044117dcb21b6fb9c8d719b8e439daa0"
+    },
+    "small-map-SOURCES.json": {
+      "bytes": 766,
+      "sha256": "1c85b8f4d617e58183d1dfdb8948894736304603eb003aacd79d12b640d81804"
+    },
+    "village-before.jsonl": {
+      "bytes": 1116,
+      "sha256": "7a9dede38d767af5b48eee4bed5914caac0e7c28d4a80093f67aae3eafa233c1"
+    },
+    "village-before.txt": {
+      "bytes": 863,
+      "sha256": "6a131aecf15aefbf6f71a53fdf883d84af6aff5075bc9cef6e4a5909dbc2fa79"
+    },
+    "village-final-winner.jsonl": {
+      "bytes": 1116,
+      "sha256": "7a9dede38d767af5b48eee4bed5914caac0e7c28d4a80093f67aae3eafa233c1"
+    },
+    "village-final-winner.txt": {
+      "bytes": 1436,
+      "sha256": "7570cbe39e82cc358ebce369d125b70f8b30d2b821a0dbe7e7b7f125f42b723f"
+    }
+  },
+  "platform": {
+    "architecture": "aarch64",
+    "build_profile": "release",
+    "os": "macos"
+  },
+  "recorded_on": "2026-10-01",
+  "referenced_maps": [
+    {
+      "city_probe": {
+        "battle_seconds": 30,
+        "reach_share": 0.03,
+        "units_per_side": 100
+      },
+      "generation_identity": {
+        "generation": {
+          "config_hash": "02aee0fff4a2f146b44e2a0cb52d36440ff88f132d6ec903344e0b256d26dc06",
+          "generator_version": "layout-3",
+          "map_hash": "59c0971dade907af209c4b9c57185f104abc2427ad119dbd54b85b680445c606",
+          "preset_revision": "layout-presets-5",
+          "seed": "4",
+          "template_catalog_hash": "ed9981b358116490fd50585874a615ac427af819628e097cc2bf4216cda4f2cb"
+        },
+        "kind": "generated"
+      },
+      "map_json_bytes": 8092816,
+      "map_json_sha256": "59c0971dade907af209c4b9c57185f104abc2427ad119dbd54b85b680445c606",
+      "metadata_file": "small-map-SOURCES.json",
+      "path_at_capture": "/Users/david/dev/battlegame/throwaway/layout-rivers/sim-dry/mixed-small-s4.map/map.json",
+      "physical_extent_m": [
+        6000,
+        6000
+      ],
+      "report_arm": "small",
+      "supplied_input_hashes": [
+        {
+          "kind": "supplied",
+          "label": "request",
+          "sha256": "1fbaaf4e838b1b584ea9b44182a8c8c4a7b517771e84158618f4257f62d3cbd5"
+        },
+        {
+          "kind": "supplied",
+          "label": "presets",
+          "sha256": "b67f1bfc540f700c2740d3b5b6bc4495ed3043d6bfc257f3c48259129c2b8e5d"
+        },
+        {
+          "kind": "supplied",
+          "label": "catalogue",
+          "sha256": "33183a5c5a4fcf2e47ecfd43413220139a366c08a08b164ff0ca8f0ccf48e548"
+        }
+      ]
+    },
+    {
+      "city_probe": {
+        "battle_seconds": 30,
+        "reach_share": 0.018,
+        "units_per_side": 100
+      },
+      "generation_identity": {
+        "generation": {
+          "config_hash": "24e757387166e18ab474ca90b9e38dea91d29f50f89768ab60faaac75673b49c",
+          "generator_version": "layout-3",
+          "map_hash": "f8079f26cf0b986f33b559a59063d0e58907a004d0e7e026f40a24762f9fff56",
+          "preset_revision": "layout-presets-5",
+          "seed": "4",
+          "template_catalog_hash": "ed9981b358116490fd50585874a615ac427af819628e097cc2bf4216cda4f2cb"
+        },
+        "kind": "generated"
+      },
+      "map_json_bytes": 24084196,
+      "map_json_sha256": "f8079f26cf0b986f33b559a59063d0e58907a004d0e7e026f40a24762f9fff56",
+      "metadata_file": "large-map-SOURCES.json",
+      "path_at_capture": "/Users/david/dev/battlegame/throwaway/layout-rivers/sim-dry/metro-large-s4.map/map.json",
+      "physical_extent_m": [
+        10000,
+        10000
+      ],
+      "report_arm": "large",
+      "supplied_input_hashes": [
+        {
+          "kind": "supplied",
+          "label": "request",
+          "sha256": "7d4cff2c99f20c2e9ccce43c7a2edd0b33f151f77729853df468b57170b17b04"
+        },
+        {
+          "kind": "supplied",
+          "label": "presets",
+          "sha256": "b67f1bfc540f700c2740d3b5b6bc4495ed3043d6bfc257f3c48259129c2b8e5d"
+        },
+        {
+          "kind": "supplied",
+          "label": "catalogue",
+          "sha256": "33183a5c5a4fcf2e47ecfd43413220139a366c08a08b164ff0ca8f0ccf48e548"
+        }
+      ]
+    }
+  ],
+  "schema_version": 1,
+  "scope": "Historical SA5 performance-only paired native proof; final integrated lane acceptance is separate.",
+  "source_files": {
+    "crates/sim/examples/city_report.rs": {
+      "commit": "21ec37fb84d85740da0ac7c01d3409b3aa7ba57b",
+      "sha256": "102b5be6c67b59171d911132c57e7dcf58d38b128df37d81f7bdd0da7df212dd"
+    },
+    "crates/sim/examples/common/instructions.rs": {
+      "commit": "21ec37fb84d85740da0ac7c01d3409b3aa7ba57b",
+      "sha256": "6d16cefc51b288bf637dba30d520284d8423bd91546fa9558364fee1208de6f4"
+    },
+    "crates/sim/examples/endurance_report.rs": {
+      "commit": "21ec37fb84d85740da0ac7c01d3409b3aa7ba57b",
+      "sha256": "40ac623decde930718f8521b66b45fa32e543e35c4f07fcb17f463e1349569c1"
+    },
+    "crates/sim/examples/village_report.rs": {
+      "commit": "21ec37fb84d85740da0ac7c01d3409b3aa7ba57b",
+      "sha256": "5ed613357b12203f6ded6e3280d7bac39264ecf752373f7e183d429d4c71dbc9"
+    },
+    "crates/sim/src/battle.rs": {
+      "commit": "21ec37fb84d85740da0ac7c01d3409b3aa7ba57b",
+      "sha256": "2ff8e6b07454a6924ae1d64411f431df15abd694851913aebfc1f6e10161b379"
+    },
+    "crates/sim/src/visibility.rs": {
+      "commit": "21ec37fb84d85740da0ac7c01d3409b3aa7ba57b",
+      "sha256": "80f9b609b649fdeea0427dd28bce3bbacaa5785db9746c474cdec8a814abfc6c"
+    },
+    "fixtures/village.json": {
+      "commit": "21ec37fb84d85740da0ac7c01d3409b3aa7ba57b",
+      "sha256": "0a18c9af03c2810906487170e4728af6bce01b4622244db085c25834713e8f5c"
+    }
+  },
+  "sources": {
+    "baseline_city_force_harness_commit": "2fcbb10432259ff9083e16e8935002b929b65534",
+    "baseline_simulation_commit": "e5cf680bbe256fb894ec21f81d24b24eab7b1114",
+    "final_uninstrumented_commit": "21ec37fb84d85740da0ac7c01d3409b3aa7ba57b",
+    "loaded_core_commit": "c4aeff4d5d2767c1d03a50167faf3a68fe515147",
+    "remembered_index_commit": "886e7200c00147abf0074c8ad62a2ace034f374a"
+  }
+}
