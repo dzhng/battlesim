@@ -111,7 +111,8 @@
             "conceals": 0.0,
             "cover_tier": "heavy",
             "garrison": true,
-            "hp": 400.0,
+            "hp": 1.0,
+            "hp_scale": "building_floor_bands",
             "lifetime_s": null,
             "occludes": true,
             "stops_rounds": true,
@@ -120,6 +121,12 @@
           },
           "destroyed": {
             "into": {
+              "building": {
+                "collapse_max_floors": 6,
+                "gutted_prop": "gutted",
+                "height_fraction": 0.25,
+                "max_height_m": 6.0
+              },
               "height_m": 2.0,
               "prop": "ruin"
             }
@@ -216,6 +223,29 @@
             "weight_class": "light"
           },
           "destroyed": "removed"
+        },
+        "gutted": {
+          "appearance": {
+            "drawn_by": "gutted",
+            "map_only": true,
+            "status": "systems_only"
+          },
+          "body": {
+            "armor": 1.0,
+            "blocks": {
+              "infantry": true,
+              "vehicle": true
+            },
+            "conceals": 0.0,
+            "cover_tier": "medium",
+            "garrison": false,
+            "hp": null,
+            "lifetime_s": null,
+            "occludes": true,
+            "stops_rounds": true,
+            "topples": false,
+            "weight_class": "immovable"
+          }
         },
         "heavy_wreck": {
           "appearance": {
@@ -1481,7 +1511,8 @@
         "conceals": 0.0,
         "cover_tier": "heavy",
         "garrison": true,
-        "hp": 400.0,
+        "hp": 1.0,
+        "hp_scale": "building_floor_bands",
         "lifetime_s": null,
         "occludes": true,
         "stops_rounds": true,
@@ -1490,6 +1521,12 @@
       },
       "destroyed": {
         "into": {
+          "building": {
+            "collapse_max_floors": 6,
+            "gutted_prop": "gutted",
+            "height_fraction": 0.25,
+            "max_height_m": 6.0
+          },
           "height_m": 2.0,
           "prop": "ruin"
         }
@@ -1586,6 +1623,29 @@
         "weight_class": "light"
       },
       "destroyed": "removed"
+    },
+    "gutted": {
+      "appearance": {
+        "drawn_by": "gutted",
+        "map_only": true,
+        "status": "systems_only"
+      },
+      "body": {
+        "armor": 1.0,
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "conceals": 0.0,
+        "cover_tier": "medium",
+        "garrison": false,
+        "hp": null,
+        "lifetime_s": null,
+        "occludes": true,
+        "stops_rounds": true,
+        "topples": false,
+        "weight_class": "immovable"
+      }
     },
     "heavy_wreck": {
       "appearance": {

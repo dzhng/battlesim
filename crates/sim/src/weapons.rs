@@ -623,14 +623,6 @@ fn engage(
     } else {
         mount.bearing
     };
-    // A garrisoned squad fires from the building's slot facing the target.
-    let origin = if unit.garrisoned() {
-        crate::garrison::facing_origin(unit, r.point, ctx.rules)
-            .ok_or(ActionReason::NoFacingSlot)?
-            + v3(0.0, 0.0, ctx.rules.physics.infantry_muzzle_m)
-    } else {
-        muzzle(unit, mount, spec, ctx.rules, bearing)
-    };
     let from = |origin: V3, past: Option<PropId>, hull: Option<UnitId>| {
         if (r.point - origin).length() > weapon.def.ballistics.range_m {
             return Err(ActionReason::OutOfRange);
@@ -651,6 +643,29 @@ fn engage(
             Ok((s, _)) => Ok(s),
         }
     };
+    if let Some(garrison) = unit.garrison.as_ref().filter(|_| unit.garrisoned()) {
+        let facing = ctx.rules.garrison.slot_facing_min_deg.to_radians();
+        let mut result = Err(ActionReason::NoFacingSlot);
+        for k in participants(unit, mount, spec) {
+            let Some(seat) = garrison
+                .seat(k)
+                .filter(|s| s.slot.faces(r.point.xy(), facing))
+            else {
+                continue;
+            };
+            // Assessment and launch use the same occupied window's muzzle.
+            result = from(
+                seat.position + v3(0.0, 0.0, ctx.rules.physics.infantry_muzzle_m),
+                None,
+                None,
+            );
+            if result.is_ok() {
+                return result;
+            }
+        }
+        return result;
+    }
+    let origin = muzzle(unit, mount, spec, ctx.rules, bearing);
     let at_unit = from(origin, None, None);
     // A soldier's weapon fires from his own muzzle: with the squad's
     // middle (or the operator where he stands) blocked, or a friendly hull
@@ -659,8 +674,7 @@ fn engage(
     if !matches!(
         at_unit,
         Err(ActionReason::BlockedTrajectory | ActionReason::FriendlyInLine)
-    ) || unit.garrisoned()
-        || unit.hull.is_some()
+    ) || unit.hull.is_some()
     {
         return at_unit;
     }

@@ -47,7 +47,7 @@ fn buildings_match_the_parity_oracle_observations_digests_queries_and_seats() {
         let mut setup: ScenarioDefinition = original_setup(arm["scenario"].clone());
         setup.map = crate::common::physical_map(setup.map, &setup.rules);
         let mut b = Battle::new(&setup, arm["seed"].as_u64().unwrap());
-        let slots: Vec<_> = b.world().props().filter(|p|p.body.garrison).map(|p| json!({"id":p.id,"slots":sim::garrison::slots(b.world(),p,&setup.rules).iter().map(|s|json!({"position":[s.position.x,s.position.y,s.position.z],"normal":[s.slot.normal.x,s.slot.normal.y],"facade":s.slot.facade})).collect::<Vec<_>>()})).collect();
+        let slots: Vec<_> = b.world().props().filter(|p|p.body.garrison).map(|p| json!({"id":p.id,"slots":sim::garrison::building_seats(b.world().building(p.id).unwrap(),&setup.rules).iter().map(|s|json!({"position":[s.position.x,s.position.y,s.position.z],"normal":[s.slot.normal.x,s.slot.normal.y],"facade":s.slot.facade})).collect::<Vec<_>>()})).collect();
         let queries: Vec<_>=b.world().props().filter(|p|p.body.garrison).map(|p|json!({"id":p.id,"surface":sim::world::export::surface_record(b.world().surface_at(p.center.x,p.center.y)),"hit":sim::world::export::hit_record(b.world().raycast(sim::math::v3(p.center.x-60.0,p.center.y,p.base_z+2.0),sim::math::v3(1.0,0.0,0.0),100.0))})).collect();
         let actual = [
             ("props", original_props(b.world())),
@@ -115,7 +115,12 @@ fn compound_setup(events: Value) -> ScenarioDefinition {
         })
         .unwrap();
     let mut rules = crate::common::village();
-    sim::fixtures::patch_catalog(&mut rules, "props", "building", json!({"body":{"hp":1000}}));
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "props",
+        "building",
+        json!({"body":{"hp":1000,"hp_scale":"fixed"}}),
+    );
     rules["weapons"]["tank_he"]["structural_damage"] = json!(100);
     rules["weapons"]["tank_he"]["blast_radius_m"] = json!(20);
     serde_json::from_value(json!({
@@ -280,7 +285,7 @@ fn compound_damageable_remains_have_one_fresh_integrity_per_state() {
 fn seating_uses_only_exposed_compound_spans() {
     let setup = compound_setup(json!([]));
     let b = Battle::new(&setup, 11);
-    let slots = sim::garrison::slots(b.world(), b.world().prop(0).unwrap(), &setup.rules);
+    let slots = sim::garrison::building_seats(b.world().building(0).unwrap(), &setup.rules);
     let east: Vec<_> = slots
         .iter()
         .filter(|s| s.slot.facade == 0)
@@ -289,12 +294,7 @@ fn seating_uses_only_exposed_compound_spans() {
     let standoff = setup.rules.garrison.slot_standoff_m;
     assert_eq!(
         east,
-        vec![
-            [404.0 + standoff, 297.75],
-            [408.0 + standoff, 299.25],
-            [408.0 + standoff, 300.75],
-            [408.0 + standoff, 302.25]
-        ]
+        vec![[408.0 + standoff, 301.0], [408.0 + standoff, 301.0]]
     );
     assert!(slots
         .iter()
@@ -450,8 +450,12 @@ fn stepped_facade_eyes_stay_outside_every_shell_and_fire_past_the_whole_owner() 
         );
     }
     let east: Vec<_> = eyes.iter().filter(|e| e.x > 404.0 && e.y < 303.0).collect();
-    assert_eq!(east.len(), 2);
-    for (eye, expected) in east.iter().zip([[404.45, 297.75], [408.45, 300.75]]) {
+    assert_eq!(
+        east.len(),
+        1,
+        "parallel exposed spans share one directional eye"
+    );
+    for (eye, expected) in east.iter().zip([[408.45, 301.0]]) {
         assert!((eye.x - expected[0]).abs() < 1e-12 && (eye.y - expected[1]).abs() < 1e-12);
     }
     for eye in east {
@@ -685,7 +689,7 @@ fn a_holdable_replacement_uses_current_parts_and_its_fresh_owner() {
     setup.rules = serde_json::from_value(rules).unwrap();
     setup.units=serde_json::from_value(json!([{"side":"blue","kind":"rifle","position":[425,301],"engagement":"return_fire_only"}])).unwrap();
     let mut b = Battle::new(&setup, 11);
-    let expected = sim::garrison::slots(b.world(), b.world().prop(0).unwrap(), &setup.rules)
+    let expected = sim::garrison::building_seats(b.world().building(0).unwrap(), &setup.rules)
         .iter()
         .map(|s| s.position)
         .collect::<Vec<_>>();
@@ -738,4 +742,351 @@ fn a_holdable_replacement_uses_current_parts_and_its_fresh_owner() {
         (b.world().structure_owner(5), b.world().structure_owner(6)),
         (Some(5), Some(5))
     );
+}
+
+#[test]
+fn floor_band_seats_follow_exposed_bays_and_stop_at_the_third_floor() {
+    let mut setup = compound_setup(json!([]));
+    setup.rules.buildings.capacity_soldiers = 32;
+    setup.map.buildings[0].geometry.floor_z = Some(vec![0.0, 3.0, 6.0, 7.0]);
+    let b = Battle::new(&setup, 11);
+    let definition = &setup.map.buildings[0].geometry;
+    let seats = sim::garrison::building_seats(b.world().building(0).unwrap(), &setup.rules);
+    assert!(
+        seats.iter().any(|s| s.position.z == 6.0),
+        "third floor has seats"
+    );
+    assert!(seats
+        .iter()
+        .all(|s| [0.0, 3.0, 6.0].contains(&s.position.z)));
+    for seat in &seats {
+        let edge = &definition.edges[seat.edge];
+        assert!(edge.exposed);
+        let bay = seat.slot.position
+            - sim::math::v2(edge.normal[0], edge.normal[1]) * setup.rules.garrison.slot_standoff_m;
+        assert!(
+            edge.bays
+                .as_ref()
+                .unwrap()
+                .iter()
+                .any(|p| (bay - sim::math::v2(p[0], p[1])).length() < 1e-8),
+            "seat lies at a physical bay: {seat:?}"
+        );
+    }
+    assert_eq!(seats.len(), 30);
+}
+
+#[test]
+fn abundant_facade_bays_never_admit_more_than_32_seats() {
+    let mut setup = compound_setup(json!([]));
+    setup.rules.buildings.capacity_soldiers = 100;
+    let geometry = &mut setup.map.buildings[0].geometry;
+    geometry.floor_z = Some(vec![0.0, 3.0, 6.0]);
+    for edge in geometry.edges.iter_mut().filter(|e| e.exposed) {
+        let [a, b] = edge.span;
+        edge.bays = Some(
+            (1..=20)
+                .map(|j| {
+                    let t = j as f64 / 21.0;
+                    [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
+                })
+                .collect(),
+        );
+    }
+    let b = Battle::new(&setup, 11);
+    let seats = sim::garrison::building_seats(b.world().building(0).unwrap(), &setup.rules);
+    assert_eq!(seats.len(), 32);
+    for f in 0..4 {
+        assert_eq!(seats.iter().filter(|s| s.slot.facade == f).count(), 8);
+    }
+}
+
+#[test]
+fn each_directional_eye_is_an_occupied_seat_on_its_highest_held_floor() {
+    let mut setup = compound_setup(json!([]));
+    setup.map.buildings[0].geometry.floor_z = Some(vec![0.0, 3.0, 6.0]);
+    setup.units = serde_json::from_value(json!([{"side":"blue","kind":"rifle","position":[380,300],"engagement":"return_fire_only"}])).unwrap();
+    let mut b = Battle::new(&setup, 11);
+    crate::common::order(
+        &mut b,
+        Side::Blue,
+        1,
+        contract::command::Order::Garrison {
+            units: vec![contract::ids::UnitId(0)],
+            building: 0,
+        },
+    );
+    for _ in 0..1000 {
+        b.step();
+        if b.unit(contract::ids::UnitId(0)).unwrap().garrisoned() {
+            break;
+        }
+    }
+    let u = b.unit(contract::ids::UnitId(0)).unwrap();
+    assert!(u.garrisoned());
+    let g = u.garrison.as_ref().unwrap();
+    let eyes = sim::garrison::facade_eyes(u, &setup.rules);
+    assert!(eyes.len() <= 4);
+    for f in 0..4 {
+        let held: Vec<_> = u
+            .members
+            .iter()
+            .enumerate()
+            .filter(|(_, m)| m.alive())
+            .filter_map(|(k, _)| g.seat(k))
+            .filter(|s| s.slot.facade == f)
+            .collect();
+        if held.is_empty() {
+            continue;
+        }
+        let highest = held
+            .iter()
+            .map(|s| s.position.z)
+            .max_by(f64::total_cmp)
+            .unwrap();
+        assert!(
+            eyes.iter()
+                .any(|eye| held.iter().any(|s| s.position.z == highest
+                    && *eye
+                        == s.position
+                            + sim::math::v3(0.0, 0.0, setup.rules.physics.infantry_eye_m))),
+            "group {f} has an occupied highest-band eye, rather than an average: {eyes:?}"
+        );
+    }
+}
+
+#[test]
+fn a_third_floor_garrison_sees_over_a_two_storey_obstacle() {
+    let mut setup = compound_setup(json!([]));
+    setup.map.buildings[0].geometry.floor_z = Some(vec![0.0, 3.0, 6.0]);
+    setup.map.props.push(
+        serde_json::from_value(
+            json!({"id":3,"kind":"wall","center":[440,301],"yaw":0,"half_extents":[3,20,2.5]}),
+        )
+        .unwrap(),
+    );
+    setup.units = serde_json::from_value(json!([
+        {"side":"blue","kind":"rifle","position":[380,300],"engagement":"return_fire_only"},
+        {"side":"red","kind":"tank","position":[580,301],"engagement":"return_fire_only"}
+    ]))
+    .unwrap();
+    let mut b = Battle::new(&setup, 11);
+    crate::common::order(
+        &mut b,
+        Side::Blue,
+        1,
+        contract::command::Order::Garrison {
+            units: vec![contract::ids::UnitId(0)],
+            building: 0,
+        },
+    );
+    for _ in 0..1000 {
+        b.step();
+        if b.unit(contract::ids::UnitId(0)).unwrap().garrisoned() {
+            break;
+        }
+    }
+    for _ in 0..30 {
+        b.step();
+    }
+    assert!(b.unit(contract::ids::UnitId(0)).unwrap().garrisoned());
+    assert_eq!(
+        b.observe(Side::Blue).identified.len(),
+        1,
+        "highest occupied facade sees the tank over the intervening five-metre shop"
+    );
+    crate::common::order(
+        &mut b,
+        Side::Blue,
+        2,
+        contract::command::Order::Attack {
+            units: vec![contract::ids::UnitId(0)],
+            target: contract::command::TargetRef::Ground {
+                point: [580.0, 301.0, 0.0],
+            },
+        },
+    );
+    let mut fired = false;
+    for _ in 0..400 {
+        b.step();
+        fired |= b.rounds().any(|(_, round)| {
+            round.unit == contract::ids::UnitId(0)
+                && b.arsenal().weapons[round.weapon].id == "rifle"
+        });
+    }
+    assert!(
+        fired,
+        "a gun held on floor three fires over the shop from its real muzzle"
+    );
+}
+
+#[test]
+fn building_integrity_scales_with_its_footprint_and_floor_bands() {
+    let mut setup = compound_setup(json!([]));
+    let mut rows = serde_json::to_value(&setup.rules).unwrap();
+    sim::fixtures::patch_catalog(
+        &mut rows,
+        "props",
+        "building",
+        json!({"body":{"hp":2,"hp_scale":"building_floor_bands","garrison":false}}),
+    );
+    setup.rules = serde_json::from_value(rows).unwrap();
+    let b = Battle::new(&setup, 11);
+    assert_eq!(
+        b.structures().hp(b.world(), 0),
+        Some(256.0),
+        "64 square metres times two floor bands times coefficient two"
+    );
+    assert_eq!(
+        b.structures().hp(b.world(), 1),
+        Some(256.0),
+        "parts share that integrity"
+    );
+}
+
+#[test]
+fn low_rise_collapse_height_scales_and_clamps_from_the_destroyed_row() {
+    for (height, expected) in [(8.0, 2.0), (16.0, 4.0), (32.0, 6.0)] {
+        let mut setup = compound_setup(json!((1..=11)
+            .map(|tick| json!({"tick":tick,"burst":{"point":[409,301],"weapon":"tank_he"}}))
+            .collect::<Vec<_>>()));
+        let geometry = &mut setup.map.buildings[0].geometry;
+        geometry.height_m = height;
+        geometry.floor_z = Some(vec![0.0, height / 2.0]);
+        for part in &mut geometry.parts {
+            part.half_extents[2] = height / 2.0;
+        }
+        for edge in &mut geometry.edges {
+            edge.top_z = height;
+        }
+        let mut rows = serde_json::to_value(&setup.rules).unwrap();
+        sim::fixtures::patch_catalog(
+            &mut rows,
+            "props",
+            "building",
+            json!({"destroyed":{"into":{"building":{"height_fraction":0.25,"max_height_m":6,"collapse_max_floors":6,"gutted_prop":"gutted"}}}}),
+        );
+        setup.rules = serde_json::from_value(rows).unwrap();
+        let mut b = Battle::new(&setup, 11);
+        for _ in 0..11 {
+            b.step();
+        }
+        assert!(b.world().prop(0).is_none());
+        for prop in b
+            .world()
+            .props()
+            .filter(|p| b.structures().replaced_by(p.id).is_some())
+        {
+            assert_eq!(2.0 * prop.half.z, expected);
+        }
+    }
+}
+
+#[test]
+fn tall_buildings_leave_a_terminal_ungarrisonable_shell() {
+    let mut setup = compound_setup(json!((400..=410)
+        .map(|tick| json!({"tick":tick,"burst":{"point":[409,301],"weapon":"tank_he"}}))
+        .collect::<Vec<_>>()));
+    let geometry = &mut setup.map.buildings[0].geometry;
+    geometry.height_m = 24.0;
+    geometry.floor_z = Some((0..7).map(|n| n as f64 * 3.0).collect());
+    for part in &mut geometry.parts {
+        part.half_extents[2] = 12.0;
+    }
+    for edge in &mut geometry.edges {
+        edge.top_z = 24.0;
+    }
+    let mut rows = serde_json::to_value(&setup.rules).unwrap();
+    sim::fixtures::patch_catalog(
+        &mut rows,
+        "props",
+        "building",
+        json!({"destroyed":{"into":{"building":{"height_fraction":0.25,"max_height_m":6,"collapse_max_floors":6,"gutted_prop":"gutted"}}}}),
+    );
+    setup.rules = serde_json::from_value(rows).unwrap();
+    setup.rules.garrison.survival_probability_on_collapse = 1.0;
+    setup.units = serde_json::from_value(json!([{"side":"blue","kind":"rifle","position":[380,300],"engagement":"return_fire_only"}])).unwrap();
+    let mut b = Battle::new(&setup, 11);
+    crate::common::order(
+        &mut b,
+        Side::Blue,
+        1,
+        contract::command::Order::Garrison {
+            units: vec![contract::ids::UnitId(0)],
+            building: 0,
+        },
+    );
+    for _ in 0..300 {
+        b.step();
+    }
+    assert!(b.unit(contract::ids::UnitId(0)).unwrap().garrisoned());
+    while b.tick() < 410 {
+        b.step();
+    }
+    assert!(b.unit(contract::ids::UnitId(0)).unwrap().garrison.is_none());
+    let shells: Vec<_> = b
+        .world()
+        .props()
+        .filter(|p| b.structures().replaced_by(p.id).is_some())
+        .cloned()
+        .collect();
+    assert_eq!(shells.len(), 2);
+    for shell in &shells {
+        assert_eq!(2.0 * shell.half.z, 24.0);
+        assert_eq!(b.world().types().id(shell.kind), "gutted");
+        assert!(shell.body.occludes && shell.body.stops_rounds && !shell.body.garrison);
+        assert_eq!(
+            shell.body.cover_tier,
+            Some(contract::scenario::CoverTier::Medium)
+        );
+        assert_eq!(b.structures().hp(b.world(), shell.id), None);
+        let mut integrity = b.structures().clone();
+        assert!(
+            !integrity.damage(b.world(), shell.id, 1e9),
+            "no second terminal transition"
+        );
+    }
+    let ack = b.accept(contract::command::CommandEnvelope {
+        side: Side::Blue,
+        seq: 2,
+        queued: false,
+        order: contract::command::Order::Garrison {
+            units: vec![contract::ids::UnitId(0)],
+            building: shells[0].id,
+        },
+    });
+    assert_eq!(ack.error, Some(contract::command::OrderError::NotABuilding));
+}
+
+#[test]
+fn a_squad_reinforced_during_entry_never_enters_only_partly_seated() {
+    let mut setup = compound_setup(json!([]));
+    setup.rules.buildings.capacity_soldiers = 7;
+    setup.rules.garrison.enter_exit_s = 15.0;
+    setup.rules.service.soldier_replacement_s = 0.1;
+    setup.units = serde_json::from_value(json!([
+        {"side":"blue","kind":"rifle","position":[380,300],"engagement":"return_fire_only","condition":{"casualties":2}},
+        {"side":"blue","kind":"supply","position":[380,330],"engagement":"return_fire_only"}
+    ])).unwrap();
+    let mut b = Battle::new(&setup, 11);
+    crate::common::order(
+        &mut b,
+        Side::Blue,
+        1,
+        contract::command::Order::Garrison {
+            units: vec![contract::ids::UnitId(0)],
+            building: 0,
+        },
+    );
+    for _ in 0..1400 {
+        b.step();
+    }
+    let u = b.unit(contract::ids::UnitId(0)).unwrap();
+    assert_eq!(
+        u.members.iter().filter(|m| m.alive()).count(),
+        8,
+        "the truck restored the squad before seating"
+    );
+    assert!(!u.garrisoned(), "the whole reinforced squad no longer fits");
+    assert!(u.orders.is_empty(), "refusal ends the entry attempt");
 }

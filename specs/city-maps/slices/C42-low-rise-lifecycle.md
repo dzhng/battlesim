@@ -31,3 +31,19 @@ One integrity owner; deterministic RNG order.
 
 ## Feedback that would change this slice
 An implausible collapse moment reopens the retained lifecycle contract only as a named game-rule decision.
+
+
+## Outcome — physical implementation checkpoint (2026-10-01)
+
+Building integrity is fixture coefficient × union footprint area × first-three
+floor bands. The immutable aggregate caches its union area, so overlap is counted
+once and damage has constant-cost integrity lookup. Scaling belongs to physical
+building bulk, independently of whether that building permits garrisoning.
+Ordinary props cannot request aggregate scaling without building facts.
+
+The destroyed row specifies 25% height clamped 2–6 metres. Existing shared damage,
+atomic replacement and one occupant survival/escape path remain the lifecycle
+owners. Native checks exercise bulk HP, low-rise heights and aggregate collapse.
+Coefficient 1 is provisional for C50; village changes are named rule changes,
+not parity-preserving performance work. Quick-report and integration gates are
+pending. The collapse GIF and final source fit remain open.

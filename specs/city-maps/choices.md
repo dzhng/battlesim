@@ -1750,3 +1750,52 @@ row awaiting art from a released binding, while this pass explicitly defers art.
 art under a systems-only name deliberately makes the gate red until that handoff.
 **Verdict:** sound: this represents the existing systems/art boundary without a
 fake source or weakening ordinary appearance checks. **Confidence:** high.
+
+
+## C40/C41 occupied floor bands and eyes (2026-10-01)
+
+**Choice:** Allocate the capped seats round-robin across facade directions and
+sample their physical bay lists evenly, ordered from the highest eligible band.
+Publish the highest occupied seat per direction, with stable seat-index ties.
+Assessment checks real weapon participants, while launch owns window-swap delay.
+**Gap:** The spec fixed physical bays, three floors, 32 seats and at most four
+occupied eyes, but not selection/tie policy. **Verdict:** sound; one physical seat
+plan owns occupancy, vision and firing origins. **Confidence:** high.
+
+**Choice:** Authored legacy boxes with absent floor/bay metadata retain one
+ground band and approximately three-metre bay spacing. **Gap:** Existing frozen
+fixtures predate physical source authoring. **Verdict:** provisional, scoped to
+those inputs. It cannot certify source window fit or actual floor count. Remove
+it when the preparation lane supplies complete facts. **Confidence:** high on
+compatibility, low on visual fit. Complete generated descriptors stay strict.
+
+**Choice:** Recheck whole-squad admission at entry completion, using the same
+immutable capacity as command admission. **Gap:** Supply can replenish a squad
+during its entry timer. **Verdict:** sound; no partial admission or empty seats
+for newly living members. **Confidence:** high from red/green battle evidence.
+
+## C42/C43 building integrity and terminal remains (2026-10-01)
+
+**Choice:** HP floor bands share the seating owner's first-three-floor count;
+coefficient 1 lives in fixture data pending C50. Footprint means the union of
+part rectangles, cached once with immutable source facts. **Gap:** The spec
+names banded floors and delegates the initial coefficient but leaves compound
+area semantics implicit. **Verdict:** sound owner/area semantics; provisional
+balance value. Overlap must not create extra bulk. **Confidence:** high on
+geometry and ownership; final balance needs C50.
+
+**Choice:** Optional destroyed-row building policy contains the height fraction,
+maximum ruin height, six-floor threshold and terminal kind. HP scaling is an
+explicit body enum independent of garrison permission, admitted only on a
+building aggregate. **Gap:** Ordinary props and authored destruction chains
+already use the same catalog. **Verdict:** sound; ordinary fixed HP/destruction
+stays representable without per-kind simulation branches. **Confidence:** high.
+
+## C80 effective field height (2026-10-01)
+
+**Choice:** Measure all actual LOD vertices and compose both 1.2 runtime maxima;
+require horizontal ribbon width, tolerating only 1e-6 bake roundoff. Lower wheat
+scale to 0.65 and verge to 1 so existing assets meet 0.9 m. **Gap:** Individual
+multipliers looked safe while their product exceeded the field contract, and a
+far tier can exceed LOD0. **Verdict:** sound physical bound; field appearance
+remains a specialist decision. **Confidence:** high from falsified checks.

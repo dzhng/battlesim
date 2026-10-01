@@ -29,7 +29,7 @@ impl Structures {
     pub fn hp(&self, world: &WorldGeometry, id: PropId) -> Option<f64> {
         world.prop(id)?;
         let id = world.structure_owner(id)?;
-        let hp = world.prop(id)?.body.hp?;
+        let hp = integrity(world, id)?;
         Some(hp - self.damage.get(&id).copied().unwrap_or(0.0))
     }
 
@@ -41,7 +41,7 @@ impl Structures {
         let Some(id) = world.structure_owner(id) else {
             return false;
         };
-        let Some(hp) = world.prop(id).and_then(|p| p.body.hp) else {
+        let Some(hp) = integrity(world, id) else {
             return false;
         };
         if amount <= 0.0 || self.destroyed.contains(&id) {
@@ -91,4 +91,15 @@ impl Structures {
             d.u64(*id as u64);
         }
     }
+}
+
+fn integrity(world: &WorldGeometry, id: PropId) -> Option<f64> {
+    let body = world.prop(id)?.body;
+    let hp = body.hp?;
+    if body.hp_scale == contract::catalog::HpScale::Fixed {
+        return Some(hp);
+    }
+    let geometry = &world.building(id)?.geometry;
+    let bands = crate::garrison::floor_band_count(geometry);
+    Some(hp * world.building_footprint_area(id)? * bands as f64)
 }

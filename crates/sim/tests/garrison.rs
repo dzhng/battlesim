@@ -450,7 +450,21 @@ fn only_soldiers_at_facing_windows_fire_and_free_facing_slots_fill() {
             }
         }
     }
-    assert_eq!(shooters.len(), 4, "all four north slots fire");
+    let north_slots = b
+        .unit(UnitId(0))
+        .unwrap()
+        .garrison
+        .as_ref()
+        .unwrap()
+        .slots
+        .iter()
+        .filter(|s| s.slot.facade == 1)
+        .count();
+    assert_eq!(
+        shooters.len(),
+        north_slots.min(8),
+        "every available north slot fills before soldiers hold fire"
+    );
     assert!(
         owners.values().any(|o| o.0 == 0 && o.1 == "grenade"),
         "the grenadier moved north"
@@ -462,7 +476,29 @@ fn only_soldiers_at_facing_windows_fire_and_free_facing_slots_fill() {
 fn under_fire(extra_props: Value, events: Value, seed: u64) -> (Battle, Commander) {
     let mut units = west_squads(&["rifle"]).as_array().unwrap().clone();
     units.push(json!({ "side": "red", "kind": "tank", "position": [CENTRE[0] + HALF[0] + 45.0, CENTRE[1] + 4.0], "yaw": std::f64::consts::PI }));
-    let mut b = battle_with(extra_props, Value::Array(units), events, seed);
+    let mut setup =
+        common::scenario_with(&map(extra_props), Value::Array(units), events, json!([]));
+    setup.rules.buildings.capacity_soldiers = 16;
+    let mut rows = serde_json::to_value(&setup.rules).unwrap();
+    sim::fixtures::patch_catalog(
+        &mut rows,
+        "props",
+        "building",
+        json!({"body":{"hp":400,"hp_scale":"fixed"}}),
+    );
+    setup.rules = serde_json::from_value(rows).unwrap();
+    for edge in &mut setup.map.buildings[0].geometry.edges {
+        let [a, b] = edge.span;
+        edge.bays = Some(
+            (0..4)
+                .map(|j| {
+                    let t = (j as f64 + 0.5) / 4.0;
+                    [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]
+                })
+                .collect(),
+        );
+    }
+    let mut b = Battle::new(&setup, seed);
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
     until(&mut b, 1200, "inside", |b| inside(b, 0));
@@ -498,7 +534,7 @@ fn enemy_rounds_hit_occupants_or_the_shell_and_only_structural_weapons_wear_it()
     let tank = b.unit(UnitId(1)).unwrap().position;
     let p = building(&b);
     let hp0 = b.structures().hp(b.world(), BUILDING).unwrap();
-    assert_eq!(Some(hp0), common::props().by_id("building").body.hp);
+    assert_eq!(hp0, 400.0);
     let mut owners = BTreeMap::new();
     let (mut direct, mut shell_hmg, mut shell_he) = (0, 0, 0);
     let mut hp = hp0;
@@ -577,7 +613,7 @@ fn every_round_meets_the_same_capsules_and_shell_whatever_it_was_aimed_at() {
     );
     let prop = world.prop(BUILDING).unwrap().clone();
     let r: contract::scenario::Rules = serde_json::from_value(rules()).unwrap();
-    let slot = sim::garrison::slots(&world, &prop, &r)[1]; // east facade
+    let slot = sim::garrison::building_seats(world.building(prop.id).unwrap(), &r)[1]; // east facade
     let beyond = v3(CENTRE[0] - 60.0, slot.position.y, 0.0);
     let body =
         |id: u32, unit: u32, at| common::Mover::standing(id, unit, common::soldier_shape(), at);
@@ -941,14 +977,24 @@ fn occupants_see_only_from_occupied_slots_and_are_seen_only_there() {
     // An AT squad of three walks in from the north, the building hiding the
     // south; red squads stand in the open south and north. It turns to the
     // north squad it knows of, and nobody holds the south facade.
-    let mut b = battle(
+    let mut setup = common::scenario_with(
+        &map(json!([])),
         json!([
             { "side": "blue", "kind": "at", "position": [400, 335] },
             { "side": "red", "kind": "rifle", "position": [CENTRE[0], CENTRE[1] - HALF[1] - 30.0], "engagement": "return_fire_only" },
             { "side": "red", "kind": "rifle", "position": [CENTRE[0], CENTRE[1] + HALF[1] + 60.0], "engagement": "return_fire_only" },
         ]),
-        9,
+        json!([]),
+        json!([]),
     );
+    // Control which facade can be occupied; perception must not invent eyes
+    // on the other three faces as target choice and seating policy evolve.
+    for edge in &mut setup.map.buildings[0].geometry.edges {
+        if edge.facade != contract::templates::Facade::PositiveY {
+            edge.bays = Some(vec![]);
+        }
+    }
+    let mut b = Battle::new(&setup, 9);
     let mut c = Commander::new();
     c.ok(
         &mut b,

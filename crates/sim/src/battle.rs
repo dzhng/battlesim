@@ -755,6 +755,7 @@ impl Battle {
                         && matches!(c.order, Order::Garrison { building: b, .. } if self.world.remembered_structure_owner(b) == self.world.remembered_structure_owner(*building))
                 });
                 return garrison::validate(
+                    &self.world,
                     &self.units,
                     command.side,
                     units,
@@ -1078,8 +1079,23 @@ impl Battle {
             }
             Destroyed::Into {
                 prop: remains,
-                height_m,
+                mut height_m,
+                building,
             } => {
+                let mut remains = remains;
+                if let Some(rule) = building {
+                    if let Some(definition) = self.world.building(id) {
+                        let geometry = &definition.geometry;
+                        let floors = geometry.floor_z.as_ref().map_or(1, Vec::len);
+                        if floors > rule.collapse_max_floors {
+                            remains = rule.gutted_prop;
+                            height_m = 2.0 * prop.half.z;
+                        } else {
+                            height_m = (geometry.height_m * rule.height_fraction)
+                                .clamp(height_m, rule.max_height_m);
+                        }
+                    }
+                }
                 self.world.remove_prop(id);
                 let remains = self.add_prop(&PropDefinition {
                     kind: remains,

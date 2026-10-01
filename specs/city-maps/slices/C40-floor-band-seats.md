@@ -43,3 +43,20 @@ Flat shelter; muzzles at seats.
 
 ## Feedback that would change this slice
 Seats that miss accepted facade bays reopen descriptor/seat fit; new bands or capacity rules need a named rule decision.
+
+
+## Outcome — physical implementation checkpoint (2026-10-01)
+
+Physical seats now come from exposed bays on the first three source floors,
+with at most 32 seats and balanced directional allocation. Whole squads are
+admitted against the remembered building definition and checked again when
+entry completes, because replenishment can change squad size during entry.
+Weapon assessment uses occupied carriers' window muzzles, matching launch.
+Focused regressions cover physical placement, capacity, replenishment refusal
+and actual rifle fire over an intervening shop. The old hypothetical closest
+window firing origin is removed. Seat positions enter the battle digest.
+
+Existing authored boxes lack floor/bay facts and retain a documented ground-floor
+bridge. Source window fit, final tall-source authoring and the framed visual
+moment remain specialist/map-lane work. Whole-repo and report gates are pending
+integration; this is a physical implementation checkpoint.

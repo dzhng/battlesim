@@ -31,3 +31,17 @@ Low-rise behaviour; knowledge isolation.
 
 ## Feedback that would change this slice
 A tall terminal shell that appears collapsed reopens state/body/appearance alignment; the standing-gutting threshold is retained.
+
+
+## Outcome — physical implementation checkpoint (2026-10-01)
+
+The fixture destruction policy chooses a terminal gutted state above six source
+floors. Every aggregate part retains its full source height; the body keeps
+movement blocking, sight occlusion and round stopping with medium cover, but
+has no HP or garrison. The existing single aggregate collapse path releases
+occupants once. A native battle checks the full-height terminal replacement,
+occupant exit and rejection of another transition or garrison order.
+
+The gutted appearance explicitly awaits art. Legacy boxes without source floor
+facts cannot certify the tall threshold. Specialist art/GIF gates and integrated
+checks remain open.

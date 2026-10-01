@@ -267,30 +267,20 @@ fn a_garrison_sees_from_one_eye_per_facade_it_holds() {
         .unwrap();
     let out = 12.0 + standoff;
     // Facades in order +x, +y, -x, -y: each one a soldier stands at gives
-    // one eye, at its middle.
+    // one eye, at an occupied seat.
     let facades = [[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0], [0.0, -1.0]];
-    let z = squad.members[0][2] + eye("infantry_eye_m");
-    let expected: Vec<[f64; 3]> = facades
-        .iter()
-        .filter(|n| {
-            squad
-                .members
-                .iter()
-                .any(|m| (m[0] - 360.0) * n[0] + (m[1] - 250.0) * n[1] > out - 0.01)
-        })
-        .map(|n| [360.0 + n[0] * out, 250.0 + n[1] * out, z])
-        .collect();
     assert_eq!(
-        expected.len(),
+        squad.sight.eyes.len(),
         4,
-        "the squad spreads round all four facades"
+        "the squad holds all four directions"
     );
-    assert!(expected.len() < squad.members.len());
-    assert_eq!(squad.sight.eyes.len(), expected.len());
-    for (got, want) in squad.sight.eyes.iter().zip(&expected) {
-        for i in 0..3 {
-            assert!((got[i] - want[i]).abs() < 1e-6, "{got:?} vs {want:?}");
-        }
+    for eye_point in &squad.sight.eyes {
+        assert!(
+            squad.members.iter().any(|m| eye_point[0] == m[0]
+                && eye_point[1] == m[1]
+                && eye_point[2] == m[2] + eye("infantry_eye_m")),
+            "each eye is at a living occupied seat"
+        );
     }
     assert_eq!(squad.sight.range, base_range("rifle"));
     // The side's fog is the union of those eyes: open ground 30 m straight

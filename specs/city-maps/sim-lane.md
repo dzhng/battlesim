@@ -34,4 +34,6 @@ Use [implement-spec](../../.agents/skills/implement-spec/SKILL.md). Branch from 
 
 ## Status
 
-Not started. Update this section, not the README, at the end of each pass: what landed, what is next, and anything the map lane needs to know.
+**In progress (2026-10-01), branch `codex/city-sim-lane`.** C44 physical catalog is committed; its full integration gates remain pending. C40/C41 seats and directional occupied eyes and C42/C43 data-driven integrity/collapse/gutting are implemented with focused red/green tests; closeout is in progress. SA6 movement and SA5 exact sight-cost work run in isolated branches. C77/C86 forest-body and tree-line physical work follows C44; C80 effective-height validation remains next on the integration lane.
+
+**Map-lane seams:** C44 adds explicit `appearance.status: systems_only` and honest unbound future scenery names; these rows do not certify art. Building lifecycle adds fixture-owned integrity scaling and a destroyed-row building policy. The generator and map preparation remain untouched. Full city-maps visual gates remain open with the specialist; this lane does not archive the parent spec.
