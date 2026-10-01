@@ -35,7 +35,7 @@ const propEntries = Object.entries(catalog.appearances).filter(
     (e.unit === "scenery" && SCENERY_KINDS[e.scenery ?? ""]?.footprint.kind === "prop"),
 );
 
-test("the catalog ships an appearance for every simulation prop kind but forest trunks", () => {
+test("the catalog ships an appearance for every accepted prop kind but forest trunks", () => {
   const kinds = new Set(
     propEntries.map(([, e]) => (e.unit === "building" ? "building" : e.scenery)),
   );
@@ -88,7 +88,7 @@ test("a wreck is its vehicle's hull box and a ruin a building's plan at the ruin
 
 test("which prop types a scenery kind draws is the prop catalog's drawn_by, both ways", () => {
   // Every scenery kind that stands for a prop draws some prop type, and every
-  // prop type is drawn by such a kind, the building appearances or a forest.
+  // accepted prop type is drawn by such a kind, building appearances or a forest.
   for (const [kind, rule] of Object.entries(SCENERY_KINDS))
     if (rule.footprint.kind === "prop")
       expect(propsDrawnBy(units.view.props, kind), kind).not.toEqual([]);
