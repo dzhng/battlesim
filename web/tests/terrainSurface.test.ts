@@ -196,10 +196,17 @@ test("the material's road, forest and water masks are the simulation's surface r
       }
       return false;
     };
+    const strokes = site.surfaceStrokes;
     const onRoad = (x: number, y: number) => {
-      for (let r = 0; r < site.surfaceStrokes.length; r += site.surfaceStrokeStride) {
-        const [ax, ay, bx, by, half] = site.surfaceStrokes.subarray(r, r + 5);
-        const [dx, dy] = [bx - ax, by - ay];
+      for (let r = 0; r < strokes.length; r += site.surfaceStrokeStride) {
+        const ax = strokes[r],
+          ay = strokes[r + 1];
+        const dx = strokes[r + 2] - ax,
+          dy = strokes[r + 3] - ay;
+        // Skip a segment whose box the point is outside: rounded bends add many.
+        const half = strokes[r + 4];
+        if (Math.abs(x - ax - dx / 2) > Math.abs(dx) / 2 + half) continue;
+        if (Math.abs(y - ay - dy / 2) > Math.abs(dy) / 2 + half) continue;
         const t = Math.min(1, Math.max(0, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)));
         if (Math.hypot(x - ax - dx * t, y - ay - dy * t) <= half) return true;
       }
@@ -224,6 +231,22 @@ test("the material's road, forest and water masks are the simulation's surface r
     expect(wrong).toEqual([]);
     expect(roads).toBeGreaterThan(100);
   }
+});
+
+test("rounded strokes are the native samples, bit for bit", () => {
+  const oracle = JSON.parse(
+    readFileSync(
+      new URL("../../fixtures/parity/ground/curve-strokes.json", import.meta.url),
+      "utf8",
+    ),
+  ) as { map: unknown; strokes: string[] };
+  const { exports } = world(oracle.map);
+  const bits = new Uint32Array(
+    exports.surfaceStrokes.buffer,
+    exports.surfaceStrokes.byteOffset,
+    exports.surfaceStrokes.length,
+  );
+  expect(Array.from(bits, (v) => v.toString(16).padStart(8, "0"))).toEqual(oracle.strokes);
 });
 
 test("roads split the patchwork: fields meet a road edge-on, never across it", () => {

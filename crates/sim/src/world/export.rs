@@ -73,6 +73,8 @@ pub fn layout_json(types: &PropCatalog) -> String {
         "areaFields": ["x", "y", "w", "h", "z"],
         "surfaceStrokeStride": SURFACE_STROKE_STRIDE,
         "surfaceStrokeFields": ["ax", "ay", "bx", "by", "halfWidth", "kind"],
+        "surfaceRunStride": 4,
+        "surfaceRunFields": ["ax", "ay", "bx", "by"],
         "surfaceTriangleStride": SURFACE_TRIANGLE_STRIDE,
         "surfaceTriangleFields": ["ax", "ay", "bx", "by", "cx", "cy", "kind"],
         "surfaceBoundaryStride": SURFACE_BOUNDARY_STRIDE,
@@ -183,7 +185,24 @@ impl WorldGeometry {
             .collect()
     }
 
-    /// Exact authored strokes: ax, ay, bx, by, half width, surface kind.
+    /// The authored control runs of every road stroke: ax, ay, bx, by. A
+    /// field is cut along these, not along a bend's short samples.
+    pub fn export_surface_runs(&self) -> Vec<f32> {
+        let mut out = Vec::new();
+        for area in self.surfaces.areas() {
+            if let contract::ground::GroundShape::Stroke { centerline, .. } = &area.shape {
+                if area.kind.is_road() {
+                    for p in centerline.control_points().windows(2) {
+                        out.extend([p[0][0], p[0][1], p[1][0], p[1][1]].map(|v| v as f32));
+                    }
+                }
+            }
+        }
+        out
+    }
+
+    /// The rounded strokes every consumer samples: ax, ay, bx, by, half width,
+    /// surface kind.
     pub fn export_surface_strokes(&self) -> Vec<f32> {
         let mut out = Vec::new();
         for area in self.surfaces.areas() {

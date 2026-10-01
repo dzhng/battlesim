@@ -135,6 +135,8 @@ export function buildTerrainSurface(
       map: [0, 0, maxX, maxY],
       surfaceStrokes: exports.surfaceStrokes,
       surfaceStrokeStride: layout.surfaceStrokeStride,
+      surfaceRuns: exports.surfaceRuns,
+      surfaceRunStride: layout.surfaceRunStride,
       surfaceTriangles: exports.surfaceTriangles,
       surfaceTriangleStride: layout.surfaceTriangleStride,
       surfaceBoundaries: exports.surfaceBoundaries,

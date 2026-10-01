@@ -46,6 +46,8 @@ export interface WorldLayout {
   areaFields: string[];
   surfaceStrokeStride: number;
   surfaceStrokeFields: string[];
+  surfaceRunStride: number;
+  surfaceRunFields: string[];
   surfaceTriangleStride: number;
   surfaceTriangleFields: string[];
   surfaceBoundaryStride: number;
@@ -99,6 +101,8 @@ export interface WorldExports {
   foliage: Float32Array;
   /** Native strokes, polygon membership triangles and exposed union boundaries. */
   surfaceStrokes: Float32Array;
+  /** The road strokes' authored control runs (`ax, ay, bx, by`): what fields are cut along. */
+  surfaceRuns: Float32Array;
   surfaceTriangles: Float32Array;
   surfaceBoundaries: Float32Array;
 }
@@ -124,6 +128,7 @@ export interface WorldExportSource {
   forest_boundaries(): Float32Array;
   foliage(): Float32Array;
   surface_strokes(): Float32Array;
+  surface_runs(): Float32Array;
   surface_triangles(): Float32Array;
   surface_boundaries(): Float32Array;
 }
@@ -150,6 +155,7 @@ export function readWorldExports(view: WorldExportSource): WorldExports {
     forestBoundaries: view.forest_boundaries(),
     foliage: view.foliage(),
     surfaceStrokes: view.surface_strokes(),
+    surfaceRuns: view.surface_runs(),
     surfaceTriangles: view.surface_triangles(),
     surfaceBoundaries: view.surface_boundaries(),
   };

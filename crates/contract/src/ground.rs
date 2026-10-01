@@ -5,6 +5,8 @@ use serde::{ser::SerializeStruct, Deserialize, Deserializer, Serialize, Serializ
 
 pub const MAX_POLYGON_VERTICES: usize = 256;
 pub const MAX_STROKE_CONTROLS: usize = 4096;
+/// One stroke's rounded-sample allowance; a map's total is the compiler's policy.
+pub const MAX_STROKE_SAMPLES: usize = 65_536;
 
 #[derive(Clone, Debug)]
 pub enum GroundShape {
@@ -108,7 +110,7 @@ impl GroundShape {
         {
             return Err("ground stroke requires finite points and nonnegative finite width".into());
         }
-        let centerline = Centerline::new(points);
+        let centerline = Centerline::new(points, width_m / 2.0, MAX_STROKE_SAMPLES)?;
         let half = width_m / 2.0;
         let samples = centerline.samples();
         if !(half as f32).is_finite()

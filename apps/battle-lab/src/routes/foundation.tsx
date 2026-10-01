@@ -67,6 +67,8 @@ function groundPatch(): WorldLayers {
     map: [-PATCH_HALF, -PATCH_HALF, PATCH_HALF, PATCH_HALF] as const,
     surfaceStrokes: none,
     surfaceStrokeStride: 6,
+    surfaceRuns: none,
+    surfaceRunStride: 4,
     surfaceTriangles: none,
     surfaceBoundaries: none,
     surfaceTriangleStride: 7,

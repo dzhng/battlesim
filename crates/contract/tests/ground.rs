@@ -79,13 +79,9 @@ fn finite_stroke_inputs_must_still_have_representable_physical_geometry() {
         r#"{"kind":"stroke","points":[[0,0],[1e-200,0]],"width_m":2}"#,
     ] {
         let input = format!(r#"{{"kind":"road","shape":{shape}}}"#);
-        let error = serde_json::from_str::<SurfaceArea>(&input)
-            .expect_err("finite source numbers must not admit NaN distance arithmetic")
-            .to_string();
-        assert!(
-            error.contains("stroke arithmetic or exports cannot be represented"),
-            "{error}"
-        );
+        // Which owner refuses (the centreline or the stroke) is not the contract.
+        serde_json::from_str::<SurfaceArea>(&input)
+            .expect_err("finite source numbers must not admit NaN distance arithmetic");
     }
 }
 
