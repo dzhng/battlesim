@@ -3,8 +3,9 @@ use contract::command::RoutePolicy;
 use contract::map::{MapDefinition, MoverClass, PropDefinition};
 use contract::scenario::PushClass;
 use sim::math::{v2, V2};
-use sim::navigation::{BlockReason, Leg, Mobility, NavGrid, Plan, RoadNet};
+use sim::navigation::{BlockReason, Leg, Mobility, NavBase, NavGrid, Plan, RoadNet};
 use sim::world::WorldGeometry;
+use std::sync::Arc;
 
 /// Length of the polyline from `from` through `route`.
 fn route_length(from: V2, route: &[V2]) -> f64 {
@@ -89,7 +90,7 @@ impl Known {
 
 /// A side that knows every body on the map.
 fn grid(w: &WorldGeometry) -> Known {
-    Known::of(NavGrid::build(w, w.props().cloned(), 0.3), w)
+    Known::of(NavGrid::new(Arc::new(NavBase::build(w, w.props(), 0.3))), w)
 }
 
 fn route(plan: Plan) -> Vec<V2> {
@@ -305,6 +306,7 @@ fn an_enclosed_goal_is_blocked_and_says_why() {
 #[test]
 fn only_known_props_shape_the_plan() {
     let mut w = world("");
+    let map = Arc::new(NavBase::build(&w, w.props(), 0.3));
     let wall = w.add_prop(&PropDefinition {
         kind: "wall".into(),
         center: [200.0, 100.0],
@@ -313,17 +315,17 @@ fn only_known_props_shape_the_plan() {
         base_z: None,
     });
     let (from, to) = (v2(150.0, 100.0), v2(250.0, 100.0));
-    let unknown = Known::of(NavGrid::build(&w, std::iter::empty(), 0.3), &w);
+    let unknown = Known::of(NavGrid::new(Arc::clone(&map)), &w);
     assert!(
         route_length(
             from,
             &route(unknown.plan(from, to, &TANK, RoutePolicy::Shortest))
         ) < 101.0
     );
-    let known = Known::of(
-        NavGrid::build(&w, w.prop(wall).cloned().into_iter(), 0.3),
-        &w,
-    );
+    let mut learned = NavGrid::new(map);
+    let seen = [(wall, w.prop(wall).cloned())];
+    learned.update(&w, seen.into_iter(), std::iter::empty());
+    let known = Known::of(learned, &w);
     assert!(
         route_length(
             from,
@@ -375,7 +377,7 @@ fn a_line_of_teeth_admits_infantry_where_a_wall_does_not() {
 fn empty_ground_does_not_allocate_navigation_per_square_metre() {
     let w = world("");
     let g = grid(&w);
-    assert_eq!(g.storage().cells, 0, "open ground has no exceptional cells");
+    assert_eq!(g.storage().cell_pages, 0, "open ground stores no cells");
     assert!(g.fits_at(v2(390.0, 190.0), &TANK));
 }
 

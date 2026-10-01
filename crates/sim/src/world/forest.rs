@@ -24,6 +24,8 @@ use contract::scenario::ForestRule;
 
 /// Sight lines are sampled this often through foliage.
 const SAMPLE_M: f64 = 1.0;
+/// Forest ground is looked up in buckets this wide.
+const GROUND_BUCKET_M: f64 = 64.0;
 
 /// What a point's foliage does to sight: open ground is the default.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -71,6 +73,10 @@ pub(super) struct ForestState {
     bounds: Vec<[f64; 4]>,
     /// Cached physical bounds and exact-rectangle flags; shape data stays authored.
     ground_regions: Vec<([f64; 4], bool)>,
+    /// Per bucket of the map, row by row, the forests whose bounds reach
+    /// it: a point on the map asks only about those.
+    ground_buckets: Vec<Vec<u32>>,
+    ground_nx: usize,
     /// Immutable source associations; removals never recycle the original IDs.
     trunk_ranges: Vec<[u32; 2]>,
     /// The one rule every forest's trees follow.
@@ -81,6 +87,9 @@ pub(super) struct ForestState {
     cleared_nx: usize,
     cleared_ny: usize,
     cleared: BTreeMap<usize, Page<u64>>,
+    /// Every cleared cell, in the order they were cleared: what a reader
+    /// that keeps its place sees as new.
+    cleared_order: Vec<u32>,
 }
 
 impl ForestState {
@@ -96,14 +105,32 @@ impl ForestState {
         let ny = (depth / foliage_m).ceil().max(1.0) as usize;
         let cleared_nx = (width / cleared_m).ceil().max(1.0) as usize;
         let cleared_ny = (depth / cleared_m).ceil().max(1.0) as usize;
+        let ground_regions: Vec<([f64; 4], bool)> = forests
+            .iter()
+            .map(|f| (f.shape.limits(), f.shape.exact_rectangle().is_some()))
+            .collect();
+        let ground_nx = (width / GROUND_BUCKET_M).ceil().max(1.0) as usize;
+        let ground_ny = (depth / GROUND_BUCKET_M).ceil().max(1.0) as usize;
+        let mut ground_buckets = vec![Vec::new(); ground_nx * ground_ny];
+        for (id, ([x, y, max_x, max_y], _)) in ground_regions.iter().enumerate() {
+            let first = |v: f64| (v / GROUND_BUCKET_M).floor().max(0.0) as usize;
+            let last = |v: f64, n: usize| ((v / GROUND_BUCKET_M).floor() as usize).min(n - 1);
+            if *max_x < 0.0 || *max_y < 0.0 {
+                continue;
+            }
+            for j in first(*y)..=last(*max_y, ground_ny) {
+                for i in first(*x)..=last(*max_x, ground_nx) {
+                    ground_buckets[j * ground_nx + i].push(id as u32);
+                }
+            }
+        }
         ForestState {
             foliage_m,
             cleared_m,
             bounds: Vec::new(),
-            ground_regions: forests
-                .iter()
-                .map(|f| (f.shape.limits(), f.shape.exact_rectangle().is_some()))
-                .collect(),
+            ground_regions,
+            ground_buckets,
+            ground_nx,
             trunk_ranges: Vec::with_capacity(forests.len()),
             rule,
             nx,
@@ -112,6 +139,7 @@ impl ForestState {
             cleared_nx,
             cleared_ny,
             cleared: BTreeMap::new(),
+            cleared_order: Vec::new(),
         }
     }
 
@@ -285,18 +313,25 @@ impl WorldGeometry {
     /// Whether (x, y) is forest ground (forest speed): inside an authored
     /// forest, and not cleared since.
     pub fn forest_ground(&self, x: f64, y: f64) -> bool {
-        self.forest
-            .ground_regions
-            .iter()
-            .enumerate()
-            .any(|(id, (bounds, rectangle))| {
-                x >= bounds[0]
-                    && x <= bounds[2]
-                    && y >= bounds[1]
-                    && y <= bounds[3]
-                    && (*rectangle || self.forests[id].shape.contains([x, y], 0.0))
-            })
-            && !self.cleared(x, y)
+        let f = &self.forest;
+        let within = |id: usize| {
+            let (bounds, rectangle) = &f.ground_regions[id];
+            x >= bounds[0]
+                && x <= bounds[2]
+                && y >= bounds[1]
+                && y <= bounds[3]
+                && (*rectangle || self.forests[id].shape.contains([x, y], 0.0))
+        };
+        let (i, j) = ((x / GROUND_BUCKET_M).floor(), (y / GROUND_BUCKET_M).floor());
+        let bucket = (i >= 0.0 && j >= 0.0 && (i as usize) < f.ground_nx)
+            .then(|| f.ground_buckets.get(j as usize * f.ground_nx + i as usize))
+            .flatten();
+        let forested = match bucket {
+            Some(near) => near.iter().any(|&id| within(id as usize)),
+            // Off the bucketed map: ask every forest.
+            None => (0..f.ground_regions.len()).any(within),
+        };
+        forested && !self.cleared(x, y)
     }
 
     /// The foliage over (x, y): its fog cell's, or open ground where the
@@ -401,6 +436,7 @@ impl WorldGeometry {
                 let word = (k / 64) % 256;
                 page.set(word, page.get(word) | (1 << (k % 64)));
                 touched.insert(k / (64 * 256));
+                self.forest.cleared_order.push(k as u32);
                 out.push(mid);
             }
         }
@@ -449,6 +485,7 @@ impl WorldGeometry {
                 let word = (k / 64) % 256;
                 page.set(word, page.get(word) | (1 << (k % 64)));
                 touched.insert(k / (64 * 256));
+                self.forest.cleared_order.push(k as u32);
                 out.push(mid);
             }
         }
@@ -483,11 +520,17 @@ impl WorldGeometry {
 
     /// Cells cleared so far.
     pub fn cleared_cells(&self) -> u32 {
-        self.forest
-            .cleared
-            .values()
-            .map(|page| (0..256).map(|i| page.get(i).count_ones()).sum::<u32>())
-            .sum()
+        self.forest.cleared_order.len() as u32
+    }
+
+    /// The middle of every cell cleared after the first `taken`, in the
+    /// order they were cleared.
+    pub fn cleared_since(&self, taken: usize) -> impl Iterator<Item = V2> + '_ {
+        let (c, nx) = (self.forest.cleared_m, self.forest.cleared_nx);
+        self.forest.cleared_order[taken..].iter().map(move |&k| {
+            let k = k as usize;
+            v2((k % nx) as f64 + 0.5, (k / nx) as f64 + 0.5) * c
+        })
     }
 
     /// The cleared mask, word by word (the digest's): each word that holds

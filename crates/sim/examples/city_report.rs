@@ -1,25 +1,35 @@
 //! Full-extent scale report: what a compiled map costs the simulation.
 //!
-//!     cargo run -p sim --release --example city_report <map.json> [sim-seconds] [reach] [units-per-side]
+//!     cargo run -p sim --release --example city_report <map.json> [sim-seconds] [reach] [units-per-side] [probe-trees]
 //!
 //! `reach` is the share of the map's width each unit is sent across (default
 //! 0.92: edge to edge) on a fast move; `units-per-side` is at most six.
 //! With `centre` for `reach`, one jeep is given an ordinary move from the
 //! middle of the west edge to the middle of the map.
 //!
-//! Stages: parse, world build (terrain, surfaces, forests' trunks), battle
-//! build, then a small force crossing the whole map by road and across
-//! country. Each stage prints wall time, instructions retired (the
-//! load-independent number, macOS only) and resident memory. The crossing
-//! prints tick timings and the planning work behind them, the slowest
-//! ticks, how long each unit held for its route, when it set off, when it
-//! came near its goal and when it stopped, and the battle digest.
+//! `probe-trees` (default 0: no probe) changes what the sides know mid-run:
+//! after 1.5 s a heavy wreck appears 30 m ahead of every vehicle, and after
+//! 3 s that many trees are shelled at once, the ones nearest the unit that
+//! starts closest to a wood. The report prints what the ticks that took
+//! those changes into a side's planning picture cost.
+//!
+//! Stages: parse, world build (terrain, surfaces, forests' trunks), the two
+//! parts of a battle's build that grow with the map (the planning grid both
+//! sides share, and the road graph), each built here once more to be
+//! measured alone, the battle build itself, then a small force crossing
+//! the whole map by road and across country. Each stage prints wall time,
+//! instructions retired (the load-independent number, macOS only) and
+//! resident memory. The crossing prints tick timings and the planning work
+//! behind them, the slowest ticks, how long each unit held for its route,
+//! when it set off, when it came near its goal and when it stopped, and
+//! the battle digest.
 use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;
 use contract::observation::MoveState;
 use contract::scenario::{Rules, ScenarioDefinition};
 use serde_json::json;
 use sim::battle::Battle;
+use sim::navigation::{NavBase, NavGrid, RoadNet};
 use sim::world::WorldGeometry;
 use std::time::Instant;
 
@@ -31,6 +41,7 @@ fn main() {
     let seconds: u64 = args.next().and_then(|s| s.parse().ok()).unwrap_or(240);
     let reach = args.next().unwrap_or("0.92".into());
     let per_side: usize = args.next().and_then(|s| s.parse().ok()).unwrap_or(6).min(6);
+    let probe_trees: usize = args.next().and_then(|s| s.parse().ok()).unwrap_or(0);
     let fixture = sim::fixtures::village();
 
     println!("| stage | wall ms | instructions G | RSS MiB | note |");
@@ -50,10 +61,10 @@ fn main() {
         (map, note)
     });
     let rules: Rules = serde_json::from_value(fixture.clone()).expect("the village rules");
-    stage("world build", || {
+    let world = stage("world build", || {
         let world = WorldGeometry::new(&map, &rules);
         let note = format!("{} props (trees included)", world.props().count());
-        ((), note)
+        (world, note)
     });
 
     // Each unit's side, kind, place, goal and route policy.
@@ -100,7 +111,66 @@ fn main() {
         scripts.push(json!({ "tick": 1, "side": side, "order": { "kind": "move",
             "units": [index], "gesture": index + 1, "goal": goal, "route": route } }));
     }
-    let scenario = json!({ "map": map, "rules": fixture, "units": units, "events": [],
+    let hz = rules.tick_hz as u64;
+    let mut events = Vec::new();
+    if probe_trees > 0 {
+        for (_, kind, at, goal, _) in rows.iter().filter(|row| row.1 != "rifle") {
+            let ahead = (goal[0] - at[0]).signum() * 30.0;
+            let hull = rules.catalog.by_id(kind).hull().expect("a vehicle");
+            events.push(json!({ "tick": hz * 3 / 2, "add_prop": {
+                "kind": "heavy_wreck", "center": [at[0] + ahead, at[1]], "yaw": 0.0,
+                "half_extents": hull.half_extents_m } }));
+        }
+        // The trees nearest each unit, nearest first; the unit whose
+        // furthest of them is nearest is the one beside a wood.
+        let nearest = |at: [f64; 2]| {
+            let mut trees: Vec<(f64, [f64; 2])> = world
+                .props()
+                .filter(|p| p.forest_tree)
+                .map(|p| {
+                    let away = (p.center.x - at[0]).hypot(p.center.y - at[1]);
+                    (away, [p.center.x, p.center.y])
+                })
+                .collect();
+            trees.sort_by(|a, b| a.0.total_cmp(&b.0));
+            trees.truncate(probe_trees);
+            trees
+        };
+        let furthest = |trees: &[(f64, [f64; 2])]| trees.last().map_or(f64::INFINITY, |t| t.0);
+        let trees = rows
+            .iter()
+            .map(|row| nearest(row.2))
+            .min_by(|a, b| furthest(a).total_cmp(&furthest(b)))
+            .unwrap_or_default();
+        println!(
+            "probe: {} wrecks at 1.5 s; {} trees shelled at 3 s, {:.0} to {:.0} m from the nearest unit",
+            events.len(),
+            trees.len(),
+            trees.first().map_or(0.0, |t| t.0),
+            furthest(&trees),
+        );
+        for (_, at) in trees {
+            events.push(json!({ "tick": hz * 3, "burst": {
+                "point": at, "weapon": "tank_he" } }));
+        }
+    }
+    stage("map grid (alone)", || {
+        let base = NavBase::build(&world, world.props(), rules.physics.soldier_radius_m);
+        let storage = NavGrid::new(std::sync::Arc::new(base)).storage();
+        (
+            (),
+            format!(
+                "{} pages of 256 cells hold a body, a road, a wood or a slope",
+                storage.cell_pages
+            ),
+        )
+    });
+    stage("road graph (alone)", || {
+        RoadNet::build(&world);
+        ((), String::new())
+    });
+    drop(world);
+    let scenario = json!({ "map": map, "rules": fixture, "units": units, "events": events,
         "scripts": scripts });
     let setup: ScenarioDefinition = stage("scenario", || {
         (
@@ -110,7 +180,6 @@ fn main() {
     });
     let mut battle = stage("battle build", || (Battle::new(&setup, 1), String::new()));
 
-    let hz = setup.rules.tick_hz as u64;
     let mut ticks = Vec::with_capacity((seconds * hz) as usize);
     let mut arrived: Vec<Option<f64>> = vec![None; rows.len()];
     // Ticks each unit spent holding for a route, and when it first set off.
@@ -120,31 +189,46 @@ fn main() {
     let mut reached: Vec<Option<f64>> = vec![None; rows.len()];
     let (start, before) = (Instant::now(), instructions());
     let mut worst = (0.0, 0);
+    // The tick that retired the most instructions: (instructions, tick).
+    let mut dearest = (0u64, 0u64);
     // Planning work: the run's total, the busiest tick's, and the ticks
     // over 33 ms that did any.
     let (mut work, mut busiest, mut slow_planning) = (0u64, 0u64, 0usize);
-    // The ticks over 33 ms on which a side rebuilt its planning grid: its
-    // knowledge changed the tick before (a tank felled or shoved a tree).
+    // The ticks that take a change of a side's knowledge (a wreck seen, a
+    // tree felled or shoved) into its planning picture, each the tick after
+    // the change: how many, how many of them ran over 33 ms, and the
+    // costliest (instructions, tick).
     let revisions = |b: &Battle| Side::ALL.map(|s| b.navigation_revision(s));
-    let (mut known, mut slow_rebuilds) = (revisions(&battle), 0usize);
+    let (mut known, mut changed) = (revisions(&battle), false);
+    let (mut applied, mut slow_applied, mut costliest) = (0usize, 0usize, (0u64, 0u64));
+    // Grid cells worked out again to take the changes in: the run's total
+    // and the most in one tick.
+    let (mut relaid, mut most_relaid) = (0u64, 0u64);
     // The slowest ticks: (ms, tick, instructions, planning work).
     let mut slowest: Vec<(f64, u64, u64, u64)> = Vec::new();
     for t in 1..=seconds * hz {
         let (tick, counted) = (Instant::now(), instructions());
-        let before = known;
         battle.step();
         let ms = tick.elapsed().as_secs_f64() * 1000.0;
         let cost = instructions().zip(counted).map_or(0, |(a, b)| a - b);
         slowest.push((ms, t, cost, battle.load().planning_work));
         slowest.sort_by(|a, b| b.0.total_cmp(&a.0));
         slowest.truncate(5);
-        let rebuilt = before != std::mem::replace(&mut known, revisions(&battle));
-        slow_rebuilds += usize::from(ms > 33.0 && rebuilt);
+        if changed {
+            applied += 1;
+            slow_applied += usize::from(ms > 33.0);
+            costliest = costliest.max((cost, t));
+        }
+        changed = std::mem::replace(&mut known, revisions(&battle)) != known;
         if ms > worst.0 {
             worst = (ms, t);
         }
+        dearest = dearest.max((cost, t));
         ticks.push(ms);
-        let planned = battle.load().planning_work;
+        let load = battle.load();
+        most_relaid = most_relaid.max(load.grid_cells_relaid - relaid);
+        relaid = load.grid_cells_relaid;
+        let planned = load.planning_work;
         work += planned;
         busiest = busiest.max(planned);
         slow_planning += usize::from(ms > 33.0 && planned > 0);
@@ -170,7 +254,7 @@ fn main() {
     ticks.sort_by(|a, b| a.total_cmp(b));
     let at = |q: f64| ticks[((ticks.len() - 1) as f64 * q).round() as usize];
     println!(
-        "| crossing {seconds} s | {:.0} | {:.1} | {} | tick p50 {:.2} ms, p95 {:.2}, p99 {:.2}, max {:.0} (tick {}); {} ticks over 33 ms |",
+        "| crossing {seconds} s | {:.0} | {:.1} | {} | tick p50 {:.2} ms, p95 {:.2}, p99 {:.2}, max {:.0} (tick {}); {} ticks over 33 ms; the costliest tick retired {:.1} M instructions (tick {}) |",
         start.elapsed().as_secs_f64() * 1000.0,
         spent as f64 / 1e9,
         rss_mib(),
@@ -180,14 +264,18 @@ fn main() {
         worst.0,
         worst.1,
         ticks.iter().filter(|ms| **ms > 33.0).count(),
+        dearest.0 as f64 / 1e6,
+        dearest.1,
     );
     println!(
         "planning: {work} work in all, {busiest} in the busiest tick (allowance {}); {slow_planning} ticks over 33 ms did any",
         setup.rules.navigation.work_per_tick,
     );
     println!(
-        "knowledge: a side's planning picture changed {} times; {slow_rebuilds} ticks over 33 ms followed a change",
+        "knowledge: a side's planning picture changed {} times, taken in over {applied} ticks; {slow_applied} of those ran over 33 ms; the costliest retired {:.1} M instructions (tick {}); {relaid} grid cells worked out again, {most_relaid} in the busiest tick",
         known.iter().sum::<u64>(),
+        costliest.0 as f64 / 1e6,
+        costliest.1,
     );
     for (ms, t, cost, planned) in slowest {
         println!(

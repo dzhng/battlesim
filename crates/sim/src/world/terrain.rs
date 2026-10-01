@@ -114,6 +114,8 @@ impl HeightField {
         &self.variation_regions
     }
 
+    // Inlined for the same reason as `triangle`, its caller in the fog sweep.
+    #[inline(always)]
     pub fn sample(&self, i: usize, j: usize) -> f64 {
         if self.pages.is_empty() {
             return 0.0;
