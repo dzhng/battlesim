@@ -37,7 +37,7 @@ fn admitted(
 
 #[test]
 fn saved_geometry_resolves_complete_physical_definition_and_identity() {
-    let input = include_str!("../../../fixtures/geometry-lab.json");
+    let input = include_str!("../../../fixtures/maps/geometry/map.json");
     let definition: MapDefinition = serde_json::from_str(input).unwrap();
     let sources = sources(&definition);
     let resolved = resolve(
@@ -63,7 +63,7 @@ fn saved_geometry_resolves_complete_physical_definition_and_identity() {
 #[test]
 fn altered_map_is_refused_against_saved_content_identity() {
     let mut definition: MapDefinition =
-        serde_json::from_str(include_str!("../../../fixtures/geometry-lab.json")).unwrap();
+        serde_json::from_str(include_str!("../../../fixtures/maps/geometry/map.json")).unwrap();
     let sources = sources(&definition);
     definition.props[0].geometry.center[0] += 1.0;
     let error = admitted(&definition, &sources).expect_err("changed geometry must be refused");
@@ -77,7 +77,7 @@ fn altered_map_is_refused_against_saved_content_identity() {
 #[test]
 fn self_consistent_geometry_cannot_invent_unmeasured_catalogue_floors() {
     let mut definition: MapDefinition =
-        serde_json::from_str(include_str!("../../../fixtures/geometry-lab.json")).unwrap();
+        serde_json::from_str(include_str!("../../../fixtures/maps/geometry/map.json")).unwrap();
     definition.buildings[0].geometry.floor_z = Some(vec![2.0]);
     definition.buildings[0].geometry.validate().unwrap();
     let sources = sources(&definition);
@@ -93,7 +93,7 @@ fn self_consistent_geometry_cannot_invent_unmeasured_catalogue_floors() {
 #[test]
 fn selection_does_not_silently_relabel_an_existing_catalogue_identity() {
     let definition: MapDefinition =
-        serde_json::from_str(include_str!("../../../fixtures/geometry-lab.json")).unwrap();
+        serde_json::from_str(include_str!("../../../fixtures/maps/geometry/map.json")).unwrap();
     let mut sources = sources(&definition);
     sources["catalogue"]["template_ids"] = json!(["api-box-12-9-4"]);
     let error = admitted(&definition, &sources)
@@ -107,7 +107,7 @@ fn selection_does_not_silently_relabel_an_existing_catalogue_identity() {
 
 #[test]
 fn physical_part_admission_refuses_the_whole_map() {
-    let input = include_str!("../../../fixtures/geometry-lab.json");
+    let input = include_str!("../../../fixtures/maps/geometry/map.json");
     let definition: MapDefinition = serde_json::from_str(input).unwrap();
     let error = resolve(
         input,
@@ -186,7 +186,7 @@ fn bay_admission_counts_all_placements_before_verification_materializes_them() {
 #[test]
 fn missing_input_receipts_cannot_claim_saved_provenance() {
     let definition: MapDefinition =
-        serde_json::from_str(include_str!("../../../fixtures/geometry-lab.json")).unwrap();
+        serde_json::from_str(include_str!("../../../fixtures/maps/geometry/map.json")).unwrap();
     let mut sources = sources(&definition);
     sources["inputs"] = json!([]);
     let error = admitted(&definition, &sources).expect_err("saved source needs an input receipt");
@@ -200,7 +200,7 @@ fn missing_input_receipts_cannot_claim_saved_provenance() {
 #[test]
 fn historical_receipts_require_relative_paths_revisions_and_content_hashes() {
     let definition: MapDefinition =
-        serde_json::from_str(include_str!("../../../fixtures/geometry-lab.json")).unwrap();
+        serde_json::from_str(include_str!("../../../fixtures/maps/geometry/map.json")).unwrap();
     for (field, bad) in [
         ("path", "../other-project/map.json"),
         ("path", "/tmp/map.json"),
@@ -225,7 +225,7 @@ fn historical_receipts_require_relative_paths_revisions_and_content_hashes() {
 #[test]
 fn matching_content_identity_does_not_admit_duplicate_authored_ids() {
     let mut definition: MapDefinition =
-        serde_json::from_str(include_str!("../../../fixtures/geometry-lab.json")).unwrap();
+        serde_json::from_str(include_str!("../../../fixtures/maps/geometry/map.json")).unwrap();
     definition.props[1].id = definition.props[0].id;
     let error = admitted(&definition, &sources(&definition))
         .expect_err("saved authored IDs must still form one dense unique namespace");
@@ -239,7 +239,7 @@ fn matching_content_identity_does_not_admit_duplicate_authored_ids() {
 #[test]
 fn generated_sources_refuse_empty_versions_and_noncanonical_identity_hashes() {
     let definition: MapDefinition =
-        serde_json::from_str(include_str!("../../../fixtures/geometry-lab.json")).unwrap();
+        serde_json::from_str(include_str!("../../../fixtures/maps/geometry/map.json")).unwrap();
     for (field, bad) in [
         ("generator_version", ""),
         ("preset_revision", " \t"),
@@ -275,7 +275,7 @@ fn generated_sources_refuse_empty_versions_and_noncanonical_identity_hashes() {
 #[test]
 fn recomputing_content_hash_cannot_admit_invalid_physical_headers() {
     let original: MapDefinition =
-        serde_json::from_str(include_str!("../../../fixtures/geometry-lab.json")).unwrap();
+        serde_json::from_str(include_str!("../../../fixtures/maps/geometry/map.json")).unwrap();
     for field in ["size", "fog_cell_m", "height_grid_m", "slope_cutoff_deg"] {
         let mut definition = original.clone();
         match field {
@@ -295,7 +295,7 @@ fn recomputing_content_hash_cannot_admit_invalid_physical_headers() {
 #[test]
 fn recomputing_content_hash_cannot_admit_a_river_the_terrain_cannot_carry() {
     let mut map: serde_json::Value =
-        serde_json::from_str(include_str!("../../../fixtures/geometry-lab.json")).unwrap();
+        serde_json::from_str(include_str!("../../../fixtures/maps/geometry/map.json")).unwrap();
     map["rivers"][0]["surface_z"] = json!(5.0);
     let definition: MapDefinition = serde_json::from_value(map).unwrap();
     let error = admitted(&definition, &sources(&definition))
@@ -336,7 +336,7 @@ fn single_template_selection_preserves_the_frozen_endurance_catalogue_identity()
         .find(|t| t.id == "api-box-12-10-4")
         .unwrap();
     let mut definition: MapDefinition =
-        serde_json::from_str(include_str!("../../../fixtures/geometry-lab.json")).unwrap();
+        serde_json::from_str(include_str!("../../../fixtures/maps/geometry/map.json")).unwrap();
     let building = &mut definition.buildings[0];
     building.geometry = template.materialize(building.geometry.frame).unwrap();
     definition.template_catalog_hash =

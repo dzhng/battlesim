@@ -4,14 +4,13 @@ import { concatMeshes } from "@packages/battle-renderer/src/mesh";
 import type { MountView, ObservationView, OwnUnitView } from "@web/battle/sim/observation";
 import { REASON_TEXT } from "../reasonText";
 import type { Order } from "@web/battle/sim/protocol";
-import weaponsMap from "@fixtures/weapons-lab.json";
 import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
 import { AckLog } from "../AckLog";
 import { FeedInspector } from "../FeedInspector";
 import { contactLayer, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
-import { labScenario, type LabEvent } from "../scenarios";
+import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
 import { TickStatus } from "../TickStatus";
@@ -24,33 +23,6 @@ import { TickStatus } from "../TickStatus";
 // line, so the red tank drops out of sight briefly: the acquisition grace.
 // The hidden squad reports fire while the tank is still alive, so target
 // priority is checked independently of the tank's eventual death.
-const FIRING: LabEvent[] = Array.from({ length: 60 }, (_, k) => ({
-  tick: 60 + k * 90,
-  fire: { unit: 3 },
-}));
-const shuttle = (goal: [number, number]) => ({
-  tick: 20,
-  side: "red" as const,
-  queued: true,
-  order: { kind: "move" as const, units: [2], gesture: 1, goal, route: "shortest" as const },
-});
-const SCENARIO = labScenario(
-  weaponsMap,
-  [
-    { side: "blue", kind: "tank", position: [260, 230] },
-    { side: "blue", kind: "rifle", position: [200, 260] },
-    {
-      side: "red",
-      kind: "tank",
-      position: [400, 110],
-      yaw: Math.PI,
-      engagement: "return_fire_only",
-    },
-    { side: "red", kind: "rifle", position: [440, 340], engagement: "return_fire_only" },
-  ],
-  FIRING,
-  [shuttle([400, 230]), shuttle([400, 110]), shuttle([400, 230]), shuttle([400, 110])],
-);
 const SEED = 8;
 
 const WEAPONS_CAMERA: Camera3DParams = {
@@ -87,7 +59,15 @@ const DEMOS: Record<string, (o: ObservationView, units: number[]) => Order | nul
 };
 
 export default function Weapons() {
-  const session = useBattleSession({ map: weaponsMap, scenario: SCENARIO, seed: SEED });
+  return (
+    <SavedEncounter map="weapons" encounter="weapons">
+      {(battle) => <WeaponsLab battle={battle} />}
+    </SavedEncounter>
+  );
+}
+
+function WeaponsLab({ battle }: { battle: SavedBattle }) {
+  const session = useBattleSession({ ...battle, seed: SEED });
   const { world, meshes, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;

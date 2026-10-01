@@ -3,7 +3,7 @@
 // squads garrison the three buildings). Same unit count and order as the
 // village, so red's ids and garrisons are unchanged.
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
-import { VILLAGE_RULES } from "./scenarios";
+import { villageScenario } from "./savedMaps";
 import { useBuiltScenario } from "./useBuiltScenario";
 import { villageCamera } from "./villageCamera";
 
@@ -34,10 +34,8 @@ type UnitSetup = { side: string; kind: string; position: [number, number]; yaw: 
 
 /** The street's scenario JSON, as `useBuiltScenario` reports it. */
 export function useStreetScenario() {
-  return useBuiltScenario({ variant: "ordinary" }, (wasm, o) => {
-    const s = JSON.parse(wasm.village_scenario(JSON.stringify(VILLAGE_RULES), o.variant)) as {
-      units: UnitSetup[];
-    };
+  return useBuiltScenario({ variant: "ordinary" }, async (wasm, o) => {
+    const s = JSON.parse(await villageScenario(wasm, o.variant)) as { units: UnitSetup[] };
     const blue = s.units.filter((u) => u.side === "blue");
     if (blue.length !== STREET.length)
       throw new Error("the street places the village's blue units");

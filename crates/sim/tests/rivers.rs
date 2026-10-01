@@ -6,10 +6,8 @@ use contract::map::MapDefinition;
 use sim::math::{v2, v3};
 use sim::world::{Collider, SurfaceKind, WorldGeometry};
 
-const RIVER_LAB: &str = include_str!("../../../fixtures/river-lab.json");
-
 fn lab_map() -> MapDefinition {
-    serde_json::from_str(RIVER_LAB).unwrap()
+    sim::maps::load("river").unwrap().definition
 }
 
 fn lab() -> WorldGeometry {

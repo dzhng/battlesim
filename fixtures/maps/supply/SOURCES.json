@@ -1,0 +1,18 @@
+{
+  "identity": {
+    "kind": "authored",
+    "map_hash": "e85638464079cdc934b8b44e0a766e392a0f950a171a3ecfb39ae4146b6e04b8",
+    "template_catalog_hash": null
+  },
+  "catalogue": {
+    "template_ids": null
+  },
+  "inputs": [
+    {
+      "kind": "repository",
+      "path": "fixtures/supply-lab.json",
+      "revision": "f303c07c43ad38f06f223ad1e48e4e0d1e6e73f8",
+      "sha256": "8436df171bcd9d03423398f198fd5e2bb794960cc858781a201bfb562a2c3b70"
+    }
+  ]
+}

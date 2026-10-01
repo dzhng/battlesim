@@ -8,7 +8,8 @@ import {
   type FlightTrace,
 } from "@packages/battle-renderer/src/flightMesh";
 import type { SceneInstance } from "@packages/battle-renderer/src/scene";
-import geometryMap from "@fixtures/geometry-lab.json";
+import type { MapDefinition } from "@web/maps/resolve";
+import { SavedMap } from "../savedMaps";
 import village from "@fixtures/village.json";
 import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
 import type { WeaponRow } from "@packages/scene-assets/src/units";
@@ -329,9 +330,9 @@ function packBodies(view: WorldView, k: number): Float64Array {
   return Float64Array.from(out);
 }
 
-function startRun(wasm: Wasm, view: WorldView, spread: boolean): Run {
+function startRun(wasm: Wasm, map: MapDefinition, view: WorldView, spread: boolean): Run {
   const lab = new wasm.FlightLab(
-    JSON.stringify(geometryMap),
+    JSON.stringify(map),
     JSON.stringify(VILLAGE_RULES),
     JSON.stringify(UNITS.hull("tank")!.armor),
     SEED,
@@ -530,7 +531,11 @@ function overlayOf(run: Run, view: WorldView, half: number) {
 }
 
 export default function Ballistics() {
-  const world = useStaticWorld(geometryMap);
+  return <SavedMap id="geometry">{(map) => <BallisticsLab map={map} />}</SavedMap>;
+}
+
+function BallisticsLab({ map }: { map: MapDefinition }) {
+  const world = useStaticWorld(map);
   const appearances = useVillageAppearances();
   const meshes = useMemo(
     () =>
@@ -561,11 +566,11 @@ export default function Ballistics() {
     (withSpread: boolean) => {
       if (!wasm || !world) return;
       runRef.current?.lab.free();
-      runRef.current = startRun(wasm, world.view, withSpread);
+      runRef.current = startRun(wasm, map, world.view, withSpread);
       effects.note(launchPublication());
       setShown({ run: runRef.current });
     },
-    [wasm, world, effects],
+    [wasm, map, world, effects],
   );
   useEffect(() => restart(false), [restart]);
   useEffect(() => () => runRef.current?.lab.free(), []);

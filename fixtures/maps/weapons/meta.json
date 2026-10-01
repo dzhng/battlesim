@@ -1,0 +1,13 @@
+{
+  "category": "lab",
+  "status": "released",
+  "label": "Weapons lab",
+  "character": "arena",
+  "biome": "summer",
+  "size_m": [900, 500],
+  "tags": ["prop", "building"],
+  "source": "authored",
+  "seed": null,
+  "encounters": ["weapons"],
+  "benchmarks": []
+}

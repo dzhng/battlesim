@@ -47,10 +47,11 @@ import {
   unitType,
   vehicleAppearances,
   village,
+  villageMap,
 } from "./_units.mjs";
 
 const CAMERA = village.presentation.camera;
-const roadStrokes = village.map.surfaces
+const roadStrokes = villageMap.surfaces
   .filter((s) => s.kind === "road" && s.shape.kind === "stroke")
   .map((s) => s.shape);
 /** Every mark, paint or overlay, lies on the ground itself (the ground and
@@ -142,7 +143,7 @@ const insideForest = (point, forest) => {
   return point[0] > a[0] && point[0] < c[0] && point[1] > a[1] && point[1] < c[1];
 };
 const underProp = (p) =>
-  [...village.map.props, ...village.map.buildings.flatMap((b) => b.geometry.parts)].some(
+  [...villageMap.props, ...villageMap.buildings.flatMap((b) => b.geometry.parts)].some(
     ({ center: [cx, cy], yaw, half_extents: [hx, hy] }) => {
       const [dx, dy] = [p[0] - cx, p[1] - cy];
       const [c, s] = [Math.cos(yaw), Math.sin(yaw)];
@@ -167,7 +168,7 @@ async function checkGrass(ctx, page, name, minRelief = 0) {
     (c) =>
       offRoad(c.root) < 0 ||
       underProp(c.root) ||
-      village.map.forests.some((f) => insideForest(c.root, f)),
+      villageMap.forests.some((f) => insideForest(c.root, f)),
   );
   const tiers = [0, 1].map((t) => clumps.filter((c) => c.tier === t).length);
   const relief = clumps.reduce((m, c) => Math.max(m, c.root[2]), 0);
@@ -519,7 +520,7 @@ async function treeTour(ctx) {
   });
   const top = decode(await snapshot(ctx, page, "trees-top-check-1920x1080.png"));
   await hud.evaluate((e) => e.remove());
-  const [x0, y0] = village.map.forests[0].shape.ring[0];
+  const [x0, y0] = villageMap.forests[0].shape.ring[0];
   const luminance = async (x, y) => {
     const css = await lab(page, (p) => window.__lab.projectToCss(p[0], p[1], p[2]), [
       x,
@@ -766,7 +767,7 @@ async function vehicleTour(ctx) {
   );
   // The fences and sandbags are drawn apart too (bodies a vehicle
   // can shove), so the houses are the structures standing on a house's box.
-  const houses = village.map.buildings.flatMap((b) => b.geometry.parts);
+  const houses = villageMap.buildings.flatMap((b) => b.geometry.parts);
   const structures = (await lab(page, () => window.__lab.route.structures())).filter((s) =>
     houses.some((h) => s.position[0] === h.center[0] && s.position[1] === h.center[1]),
   );
@@ -853,7 +854,7 @@ async function effectTour(ctx) {
   });
   await advance(page, 600 - (await lab(page, () => window.__lab.route.tick())));
   // The first burst in the open: one under a wood's canopy is hidden by the crowns.
-  const open = (b) => !village.map.forests.some((f) => insideForest(b.point, f));
+  const open = (b) => !villageMap.forests.some((f) => insideForest(b.point, f));
   const o = await until(page, (f) => f.blasts.some(open), 30 * 60, 1);
   if (!o) {
     ctx.check("a burst in the firefight is drawn as a fireball", false, "no blast by tick 2400");
@@ -2352,7 +2353,7 @@ async function worksTour(ctx) {
   // Modular kinds draw one model per module along the box, so a body is
   // drawn when a model of its appearance stands inside its footprint.
   const look = { tooth: "dragon_tooth", fence: "fence", sandbags: "sandbags" };
-  const works = village.map.props.filter((p) => look[p.kind]);
+  const works = villageMap.props.filter((p) => look[p.kind]);
   const drawn = works.map((p) =>
     apart.some(
       (s) =>
@@ -2814,7 +2815,7 @@ async function rulerTour(ctx) {
   await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id]);
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);
   // Toward the map's middle, so the far points stay on the map.
-  const [mx, my] = village.map.size.map((v) => v / 2);
+  const [mx, my] = villageMap.size.map((v) => v / 2);
   const inward = (u) => Math.atan2(my - u.position[1], mx - u.position[0]);
   const far = [
     rifle.position[0] + Math.cos(inward(rifle)) * 750,

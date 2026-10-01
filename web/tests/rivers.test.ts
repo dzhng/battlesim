@@ -20,8 +20,11 @@ import {
 import { plotAt } from "@packages/battle-renderer/src/terrain/plots.ts";
 import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
 import summer from "@fixtures/biomes/summer.json";
-import village from "@fixtures/village.json";
-import riverLab from "@fixtures/river-lab.json";
+import { loadMap } from "@web/maps/node";
+
+const riverLab = loadMap("river").definition;
+const river = riverLab.rivers![0];
+const villageMap = loadMap("village").definition;
 
 const biome = validateBiome(summer as unknown as Biome);
 /** How near the map's edge a field may still span a river that ends there. */
@@ -47,7 +50,7 @@ test("the river export follows its published layout", () => {
   expect(layout.riverStride).toBe(RIVER_FLOATS);
   expect(layout.riverRunFields).toEqual(["ax", "ay", "bx", "by"]);
   const exports = exportsOf(riverLab);
-  const authored = riverLab.rivers[0].points;
+  const authored = river.points;
   const { rivers } = exports;
   expect(rivers.length % RIVER_FLOATS).toBe(0);
   // Each authored corner is rounded: more stretches than authored runs.
@@ -65,9 +68,9 @@ test("the river export follows its published layout", () => {
   for (let o = 0; o < rivers.length; o += RIVER_FLOATS) {
     // The lab's land is flat at zero: every bank stands the water's depth
     // below it, above the water.
-    expect(rivers[o + 8]).toBe(Math.fround(-riverLab.rivers[0].surface_z));
-    expect(rivers[o + 9]).toBe(Math.fround(-riverLab.rivers[0].surface_z));
-    expect(rivers[o + 10]).toBe(Math.fround(riverLab.rivers[0].surface_z));
+    expect(rivers[o + 8]).toBe(Math.fround(-river.surface_z));
+    expect(rivers[o + 9]).toBe(Math.fround(-river.surface_z));
+    expect(rivers[o + 10]).toBe(Math.fround(river.surface_z));
     if (o > 0) {
       expect([rivers[o], rivers[o + 1], rivers[o + 4]]).toEqual([
         rivers[o - RIVER_FLOATS + 2],
@@ -77,7 +80,7 @@ test("the river export follows its published layout", () => {
     }
   }
   // A map without water exports none.
-  const dry = exportsOf(village.map);
+  const dry = exportsOf(villageMap);
   expect(dry.rivers.length + dry.riverRuns.length).toBe(0);
 });
 
@@ -115,7 +118,7 @@ test("fields are cut along a river's long runs, which leave out the points that 
   // The lab's meander is authored every 5 m: its runs join authored points
   // end to end, far fewer than were authored, and pass within the narrowest
   // water's half width (6 m) of every point they leave out.
-  const lab = riverLab.rivers[0].points;
+  const lab = river.points;
   const labRuns = exportsOf(riverLab).riverRuns;
   expect(labRuns.length / layout.riverRunStride).toBeLessThan(lab.length / 4);
   let at = 0;
@@ -149,7 +152,7 @@ test("the water surface covers the water once, at its surface height", () => {
       minX = Math.min(minX, water[at]);
       maxX = Math.max(maxX, water[at]);
       minY = Math.min(minY, water[at + 1]);
-      expect(water[at + 2]).toBe(Math.fround(riverLab.rivers[0].surface_z));
+      expect(water[at + 2]).toBe(Math.fround(river.surface_z));
     }
     cell = maxX - minX;
     const key = `${minX},${minY}`;

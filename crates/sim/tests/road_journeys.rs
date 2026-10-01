@@ -445,7 +445,7 @@ fn a_fast_move_takes_the_road_round_a_wood_and_beats_the_straight_move_through_i
         { "side": "blue", "kind": "tank", "position": [40, 190] },
         { "side": "blue", "kind": "tank", "position": [40, 215] },
     ]);
-    let map: Value = serde_json::from_str(common::MOVEMENT_LAB).unwrap();
+    let map: Value = serde_json::from_str(common::saved_map("movement")).unwrap();
     let mut b = Battle::new(&scenario(map, units, json!([])), 1);
     for (unit, goal, route) in [
         (0u32, [275.0, 185.0], RoutePolicy::Shortest),

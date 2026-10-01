@@ -4,12 +4,11 @@ import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { ObservationView } from "@web/battle/sim/observation";
 import { ReadoutLayer, SelectionCard } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
-import consequencesMap from "@fixtures/consequences-lab.json";
 import { AckLog } from "../AckLog";
 import { BattleMemory, orderLayer, remainsLayer, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
-import { labScenario } from "../scenarios";
+import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
 import { TickStatus } from "../TickStatus";
@@ -19,21 +18,6 @@ import { TickStatus } from "../TickStatus";
 // forest; blue's squad stands close to the open one; red's tank, already
 // hit once, blocks the walled passage that blue's truck will want. The wear
 // settles the tank duel in blue's favour even if one of its rounds scatters wide.
-const SCENARIO = labScenario(consequencesMap, [
-  { side: "blue", kind: "tank", position: [230, 250], engagement: "return_fire_only" },
-  { side: "blue", kind: "rifle", position: [356, 166], engagement: "return_fire_only" },
-  { side: "blue", kind: "supply", position: [200, 390] },
-  { side: "red", kind: "rifle", position: [360, 148], engagement: "return_fire_only" },
-  { side: "red", kind: "rifle", position: [375, 275], engagement: "return_fire_only" },
-  {
-    side: "red",
-    kind: "tank",
-    position: [520, 390],
-    yaw: Math.PI / 2,
-    engagement: "return_fire_only",
-    condition: { hp: 60 },
-  },
-]);
 const SEED = 9;
 
 const CONSEQUENCES_CAMERA: Camera3DParams = {
@@ -72,12 +56,19 @@ const DEMOS: Record<string, (o: ObservationView) => Order | null> = {
 };
 
 export default function Consequences() {
+  return (
+    <SavedEncounter map="consequences" encounter="consequences">
+      {(battle) => <ConsequencesLab battle={battle} />}
+    </SavedEncounter>
+  );
+}
+
+function ConsequencesLab({ battle }: { battle: SavedBattle }) {
   // Where rounds struck recently, kept for two seconds so a hit can be read.
   const memory = useRef(new BattleMemory());
   const onDecoded = useCallback((o: ObservationView) => memory.current.note(o), []);
   const session = useBattleSession({
-    map: consequencesMap,
-    scenario: SCENARIO,
+    ...battle,
     seed: SEED,
     onDecoded,
   });

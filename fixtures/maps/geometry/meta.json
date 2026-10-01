@@ -1,0 +1,13 @@
+{
+  "category": "lab",
+  "status": "released",
+  "label": "Geometry lab",
+  "character": "arena",
+  "biome": "summer",
+  "size_m": [400, 300],
+  "tags": ["relief", "river", "road", "bridge", "forest", "prop", "building"],
+  "source": "authored",
+  "seed": null,
+  "encounters": ["authority"],
+  "benchmarks": []
+}

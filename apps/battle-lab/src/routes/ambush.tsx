@@ -5,12 +5,12 @@ import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { MountView, ObservationView } from "@web/battle/sim/observation";
 import { REASON_TEXT } from "../reasonText";
 import type { Order } from "@web/battle/sim/protocol";
-import ambushMap from "@fixtures/ambush-lab.json";
 import { AckLog } from "../AckLog";
 import { BattleMemory, guidanceLayer, remainsLayer, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
-import { labScenario, VILLAGE_RULES, type LabScript, type LabUnit } from "../scenarios";
+import { SavedEncounters, type SavedBattle } from "../savedMaps";
+import { VILLAGE_RULES } from "../scenarios";
 import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
 import { TickStatus } from "../TickStatus";
@@ -18,58 +18,27 @@ import { TickStatus } from "../TickStatus";
 // Red's first tank stands in the open beside a building it can duck behind;
 // the second waits north, hidden from the AT team, seen only by blue's scout.
 // The AT team launches at 3 s; the missile needs about 3 s to arrive. Each
-// variant uses the same weapon data: only red's timing and blue's positions
-// differ.
-const RED: LabUnit[] = [
-  {
-    side: "red",
-    kind: "tank",
-    position: [600, 248],
-    yaw: Math.PI / 2,
-    engagement: "return_fire_only",
-  },
-  {
-    side: "red",
-    kind: "tank",
-    position: [620, 60],
-    yaw: -Math.PI / 2,
-    engagement: "return_fire_only",
-  },
-];
-const BLUE: LabUnit[] = [
-  { side: "blue", kind: "at", position: [60, 340] },
-  { side: "blue", kind: "recon", position: [350, 120], engagement: "return_fire_only" },
-];
-const CROSSFIRE: LabUnit = { side: "blue", kind: "at", position: [700, 470] };
-const escape = (tick: number): LabScript => ({
-  tick,
-  side: "red",
-  order: { kind: "move", units: [0], gesture: 1, goal: [600, 305], route: "shortest" },
-});
-
+// variant is a saved encounter of the ambush map
+// (`fixtures/maps/ambush/encounters/<variant>.json`) under the same weapon
+// data: only red's timing and blue's positions differ.
 const VARIANTS = {
   late: {
     label: "Late escape",
     describe: "Red's tank ducks behind the building beside it 5 s after the launch: too late.",
-    units: [...RED, ...BLUE],
-    scripts: [escape(240)],
   },
   prompt: {
     label: "Prompt escape",
     describe:
       "Red's tank ducks behind the building beside it the moment the missile launches: the launcher loses sight and the missile flies on to its last point.",
-    units: [...RED, ...BLUE],
-    scripts: [escape(92)],
   },
   crossfire: {
     label: "Prepared crossfire",
     describe:
       "The same prompt escape against two AT teams: the south-east team still sees the tank behind the building.",
-    units: [...RED, ...BLUE, CROSSFIRE],
-    scripts: [escape(92)],
   },
 } as const;
 type Variant = keyof typeof VARIANTS;
+const VARIANT_NAMES = Object.keys(VARIANTS) as Variant[];
 const SEED = 10;
 // Guidance compares controlled LOS crossings, independent of vehicle startup time.
 const AMBUSH_RULES = {
@@ -92,18 +61,15 @@ const LAUNCHER_MARK = [0.95, 0.95, 0.95, 1] as const;
 const SCOUT_MARK = [0.55, 0.75, 1.0, 1] as const;
 
 export default function Ambush() {
-  const [variant, setVariant] = useState<Variant>("prompt");
-  const scenario = useMemo(
-    () =>
-      labScenario(
-        ambushMap,
-        [...VARIANTS[variant].units],
-        [],
-        [...VARIANTS[variant].scripts],
-        AMBUSH_RULES,
-      ),
-    [variant],
+  return (
+    <SavedEncounters map="ambush" encounters={VARIANT_NAMES} rules={AMBUSH_RULES}>
+      {(battles) => <AmbushLab battles={battles} />}
+    </SavedEncounters>
   );
+}
+
+function AmbushLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
+  const [variant, setVariant] = useState<Variant>("prompt");
   // Own strikes (kept 3 s) and each missile's path, for replaying it to its last point.
   const memory = useRef(new BattleMemory({ impactTicks: 90, ownImpactsOnly: true }));
   const missileNames = useRef(new Map<number, string>());
@@ -128,7 +94,7 @@ export default function Ambush() {
       if (!missileNames.current.has(g.id))
         missileNames.current.set(g.id, `Missile ${missileNames.current.size + 1}`);
   }, []);
-  const session = useBattleSession({ map: ambushMap, scenario, seed: SEED, onDecoded });
+  const session = useBattleSession({ ...battles[variant], seed: SEED, onDecoded });
   const { world, meshes, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;

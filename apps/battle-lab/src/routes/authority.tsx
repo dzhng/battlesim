@@ -2,10 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { createSimClient } from "@web/battle/sim/client";
 import { AckLog } from "../AckLog";
-import geometryMap from "@fixtures/geometry-lab.json";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
-import { labScenario } from "../scenarios";
+import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
 
@@ -13,25 +12,6 @@ import { villageCamera } from "../villageCamera";
 // Field works dropped south of the column at tick 1 (a sandbag line, a fence
 // and a row of dragon's teeth) and the jeep show every appearance
 // the battle draws, learned by sight like any other body.
-const prop = (kind: string, center: [number, number], half: [number, number, number], yaw = 0) => ({
-  tick: 1,
-  add_prop: { kind, center, yaw, half_extents: half },
-});
-const SCENARIO = labScenario(
-  geometryMap,
-  [
-    { side: "blue", kind: "tank", position: [60, 150] },
-    { side: "blue", kind: "rifle", position: [50, 170] },
-    { side: "blue", kind: "rifle", position: [50, 130] },
-    { side: "blue", kind: "supply", position: [30, 150] },
-    { side: "blue", kind: "jeep", position: [72, 172], yaw: -0.4 },
-  ],
-  [
-    prop("sandbags", [48, 119], [3, 0.4, 0.5]),
-    prop("fence", [70, 112], [0.1, 6, 0.6]),
-    ...[0, 1, 2, 3, 4].map((k) => prop("tooth", [78, 106 + 2.4 * k], [0.6, 0.6, 0.6])),
-  ],
-);
 const SEED = 20260925;
 
 const AUTHORITY_CAMERA: Camera3DParams = {
@@ -48,10 +28,17 @@ type ReplayCheck =
   | { state: "mismatch"; tick: number };
 
 export default function Authority() {
+  return (
+    <SavedEncounter map="geometry" encounter="authority">
+      {(battle) => <AuthorityLab battle={battle} />}
+    </SavedEncounter>
+  );
+}
+
+function AuthorityLab({ battle }: { battle: SavedBattle }) {
   const digests = useRef(new Map<number, string>());
   const session = useBattleSession({
-    map: geometryMap,
-    scenario: SCENARIO,
+    ...battle,
     seed: SEED,
     onDecoded: (o, digest) => digests.current.set(o.tick, digest),
   });
@@ -90,7 +77,7 @@ export default function Authority() {
     const recorded = digests.current;
     const last = Math.max(...recorded.keys());
     const replay = createSimClient({
-      scenario: SCENARIO,
+      scenario: battle.scenario,
       seed: SEED,
       side: "blue",
       transport: "direct",
@@ -110,7 +97,7 @@ export default function Authority() {
     replay.dispose();
     setReplayCheck(result);
     return result;
-  }, [client]);
+  }, [client, battle.scenario]);
 
   // Lab-only probes for the scene harness; rebuilt each render.
   const diagnostics = { ...session.probes, setWithhold: toggleWithhold, checkReplay };

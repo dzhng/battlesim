@@ -1,4 +1,3 @@
-import { mulberry32 } from "math/random";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
@@ -6,7 +5,6 @@ import type { GroundView } from "@web/battle/sim/ground";
 import type { ObservationView } from "@web/battle/sim/observation";
 import type { SideName } from "@web/battle/sim/protocol";
 import village from "@fixtures/village.json";
-import groundMap from "@fixtures/ground-lab.json";
 import { BattleMemory, orderLayer, remainsLayer, tracerLayer } from "../battleOverlay";
 import {
   buildGroundCellOverlay,
@@ -20,11 +18,14 @@ import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
 import { useBuiltScenario } from "../useBuiltScenario";
 import { villageCamera } from "../villageCamera";
-import { labScenario, type LabEvent, type LabScript, VILLAGE_RULES } from "../scenarios";
+import { SavedEncounter, villageScenario, type SavedBattle } from "../savedMaps";
 import { useFeed } from "../feed";
 
-// The ground layer, as each side learns it. The lab field: two tanks race
-// east side by side, the north one through an authored crater field; two
+// The ground layer, as each side learns it. The lab field is the ground
+// map's saved encounter (`fixtures/maps/ground/encounters/ground.json`): two
+// tanks race east side by side, the north one through a crater field (two
+// passes of HE bursts at tick 1, each thrown off its grid point as a barrage
+// falls, so the field's craters are full); two
 // tanks shell a red squad standing in craters and one in the open; a blue
 // squad walks the field. `?village` inspects the village encounter instead,
 // paused after the supported attack's opening bombardment. The flat cell view
@@ -32,84 +33,6 @@ import { useFeed } from "../feed";
 // its publications carry; switching side reopens the stream with that side's
 // full snapshot.
 
-/** HE bursts (the lab emitter) at tick 1, one per `step` over the rect, each
- *  thrown up to 0.4 `step` off its grid point (seeded), as a barrage falls. */
-function craters(x0: number, x1: number, y0: number, y1: number, step: number): LabEvent[] {
-  const rng = mulberry32.create(Math.round(x0 * 1000 + y0));
-  const off = () => (mulberry32.sample(rng) - 0.5) * 0.8 * step;
-  const out: LabEvent[] = [];
-  for (let x = x0; x <= x1; x += step)
-    for (let y = y0; y <= y1; y += step) {
-      const point: [number, number] = [
-        Math.min(x1, Math.max(x0, x + off())),
-        Math.min(y1, Math.max(y0, y + off())),
-      ];
-      out.push({ tick: 1, burst: { point, weapon: "tank_he" } });
-    }
-  return out;
-}
-
-/** The crater field the north tank crosses. */
-const CRATER_FIELD = { x0: 220, x1: 380, y0: 96, y1: 124 };
-const RACE_GOAL_X = 500;
-const BARRAGE: [number, number][] = [
-  [470, 310],
-  [470, 380],
-];
-
-const move = (unit: number, goal: [number, number]): LabScript => ({
-  tick: 1,
-  side: "blue",
-  order: { kind: "move", units: [unit], gesture: 9700 + unit, goal, route: "shortest" },
-});
-
-const SCENARIO = labScenario(
-  groundMap,
-  [
-    { side: "blue", kind: "tank", position: [110, 110], engagement: "return_fire_only" },
-    { side: "blue", kind: "tank", position: [110, 170], engagement: "return_fire_only" },
-    { side: "blue", kind: "tank", position: [120, 300], engagement: "return_fire_only" },
-    { side: "blue", kind: "tank", position: [120, 390], engagement: "return_fire_only" },
-    { side: "blue", kind: "rifle", position: [140, 235], engagement: "return_fire_only" },
-    {
-      side: "red",
-      kind: "rifle",
-      position: BARRAGE[0],
-      yaw: Math.PI,
-      engagement: "return_fire_only",
-    },
-    {
-      side: "red",
-      kind: "rifle",
-      position: BARRAGE[1],
-      yaw: Math.PI,
-      engagement: "return_fire_only",
-    },
-  ],
-  [
-    // Two passes, so the field's craters are full.
-    ...craters(CRATER_FIELD.x0, CRATER_FIELD.x1, CRATER_FIELD.y0, CRATER_FIELD.y1, 4),
-    ...craters(CRATER_FIELD.x0 + 2, CRATER_FIELD.x1, CRATER_FIELD.y0 + 2, CRATER_FIELD.y1, 4),
-    // The red squad's own foxhole craters.
-    ...craters(455, 485, 298, 322, 6),
-  ],
-  [
-    move(0, [RACE_GOAL_X, 110]),
-    move(1, [RACE_GOAL_X, 170]),
-    move(4, [460, 235]),
-    ...BARRAGE.map(
-      (point, k): LabScript => ({
-        tick: 1,
-        side: "blue",
-        order: {
-          kind: "attack",
-          units: [2 + k],
-          target: { kind: "ground", point: [point[0], point[1], 0] },
-        },
-      }),
-    ),
-  ],
-);
 const SEED = 17;
 
 const GROUND_CAMERA: Camera3DParams = {
@@ -133,9 +56,20 @@ export default function Ground() {
 
 function LabFieldGround() {
   return (
+    <SavedEncounter map="ground" encounter="ground">
+      {(battle) => <LabField battle={battle} />}
+    </SavedEncounter>
+  );
+}
+
+function LabField({ battle }: { battle: SavedBattle }) {
+  // The race's line: where the encounter sends its first tank.
+  const racer = battle.encounter.scripts[0].order;
+  const raceGoalX = racer.kind === "move" ? racer.goal[0] : NaN;
+  return (
     <GroundInspector
-      map={groundMap}
-      scenario={SCENARIO}
+      map={battle.map}
+      scenario={battle.scenario}
       seed={SEED}
       camera={GROUND_CAMERA}
       legend={`the lab field (${village.ground.cell_m} m cells)`}
@@ -147,7 +81,7 @@ function LabFieldGround() {
         return (
           <>
             <div data-testid="race">
-              Race to x = {RACE_GOAL_X}: crater tank at {x(0)?.toFixed(0) ?? "—"} · clean tank at{" "}
+              Race to x = {raceGoalX}: crater tank at {x(0)?.toFixed(0) ?? "—"} · clean tank at{" "}
               {x(1)?.toFixed(0) ?? "—"}
               {lag > 0.5 ? ` · craters cost ${lag.toFixed(1)} m` : ""}
             </div>
@@ -163,8 +97,10 @@ function LabFieldGround() {
 }
 
 function VillageGround() {
-  const built = useBuiltScenario("ordinary", (wasm, v) =>
-    wasm.village_scenario(JSON.stringify(VILLAGE_RULES), v),
+  const built = useBuiltScenario("ordinary", villageScenario);
+  const map = useMemo(
+    () => (typeof built === "string" ? (JSON.parse(built) as { map: unknown }).map : null),
+    [built],
   );
   if (!built) return null;
   if (typeof built !== "string")
@@ -175,7 +111,7 @@ function VillageGround() {
     );
   return (
     <GroundInspector
-      map={village.map}
+      map={map}
       scenario={built}
       seed={village.seed}
       camera={VILLAGE_INSPECT_CAMERA}

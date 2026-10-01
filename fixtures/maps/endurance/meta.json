@@ -1,0 +1,13 @@
+{
+  "category": "benchmark",
+  "status": "released",
+  "label": "Endurance field",
+  "character": "arena",
+  "biome": "summer",
+  "size_m": [3000, 2000],
+  "tags": ["relief", "forest", "building"],
+  "source": "authored",
+  "seed": null,
+  "encounters": [],
+  "benchmarks": ["endurance"]
+}

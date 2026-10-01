@@ -1,0 +1,18 @@
+{
+  "identity": {
+    "kind": "authored",
+    "map_hash": "a6e2220ca64f20960d6bd61e1542ff59d628db64268988eaa2cb5c999535b36f",
+    "template_catalog_hash": "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13"
+  },
+  "catalogue": {
+    "template_ids": null
+  },
+  "inputs": [
+    {
+      "kind": "repository",
+      "path": "fixtures/ambush-lab.json",
+      "revision": "f303c07c43ad38f06f223ad1e48e4e0d1e6e73f8",
+      "sha256": "a8dcbd3882ab0ddb4c625495f766e10f0327e57cb7df816e1bb10c0ec6b3164b"
+    }
+  ]
+}

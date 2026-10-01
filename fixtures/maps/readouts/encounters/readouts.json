@@ -1,0 +1,9 @@
+{
+  "units": [
+    {"side":"blue","kind":"tank","position":[200,220]},
+    {"side":"blue","kind":"at","position":[215,270]},
+    {"side":"blue","kind":"rifle","position":[185,170],"condition":{"spent":{"grenade":3}}},
+    {"side":"blue","kind":"supply","position":[140,230]},
+    {"side":"red","kind":"tank","position":[470,230],"yaw":3.141592653589793,"engagement":"return_fire_only"}
+  ]
+}

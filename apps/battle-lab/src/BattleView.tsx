@@ -78,14 +78,14 @@ export function BattleView({
     const s = JSON.parse(scenario) as {
       map: { size: [number, number] };
       rules: { service: { radius_m: number } };
-      encounter: { success_zone_center: [number, number]; success_zone_radius_m: number } | null;
+      /** Absent or null when the scenario has no completion rule. */
+      encounter?: { success_zone_center: [number, number]; success_zone_radius_m: number } | null;
     };
     const drawn: BattleOverlayScenario = {
       supplyRadius: s.rules.service.radius_m,
-      zone: s.encounter && {
-        center: s.encounter.success_zone_center,
-        radius: s.encounter.success_zone_radius_m,
-      },
+      zone: s.encounter
+        ? { center: s.encounter.success_zone_center, radius: s.encounter.success_zone_radius_m }
+        : null,
     };
     return { map: s.map, size: s.map.size, drawn };
   }, [scenario]);

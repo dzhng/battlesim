@@ -14,11 +14,13 @@ import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/ob
 import { GroundView } from "../src/battle/sim/ground";
 import { sightMultiplier } from "@packages/battle-renderer/src/sightOverlay";
 import { labScenario, VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
-import sensors from "@fixtures/sensors-lab.json";
-import weaponsMap from "@fixtures/weapons-lab.json";
-import deploymentMap from "@fixtures/deployment-lab.json";
+import { loadMap } from "@web/maps/node";
 import village from "@fixtures/village.json";
 import type { Order } from "../src/battle/sim/protocol";
+
+const sensors = loadMap("sensors").definition;
+const weaponsMap = loadMap("weapons").definition;
+const deploymentMap = loadMap("deployment").definition;
 
 // Whole battles run to a late state; under a loaded `bun run check` they
 // can pass Vitest's 5 s default without anything being wrong.
@@ -343,7 +345,13 @@ test("the encounter status decodes, and is absent outside an encounter", () => {
   lab.step();
   expect(published(lab, layout).encounter).toBeNull();
   lab.free();
-  const battle = new Battle(village_scenario(JSON.stringify(VILLAGE_RULES), "ordinary"), 1);
+  const battle = new Battle(
+    village_scenario(
+      JSON.stringify({ ...VILLAGE_RULES, map: loadMap("village").definition }),
+      "ordinary",
+    ),
+    1,
+  );
   battle.step();
   expect(published(battle, layout, "red").encounter).toEqual({ heldS: 0, result: "running" });
   expect(layout.encounterResults).toEqual(["running", "captured", "defeated", "inconclusive"]);

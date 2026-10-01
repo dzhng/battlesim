@@ -5,20 +5,21 @@ import { OPEN } from "@packages/battle-renderer/src/terrain/terrainSurface";
 import { buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import type { Order } from "@web/battle/sim/protocol";
-import riverMap from "@fixtures/river-lab.json";
 import { AckLog } from "../AckLog";
 import { orderLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
-import { labScenario } from "../scenarios";
+import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useBattleSession } from "../useBattleSession";
 import { useFeed } from "../feed";
 import { villageBiome } from "../villageBiome";
 import { villageCamera } from "../villageCamera";
 
-/** Where units stand and are sent: named so the scene and the panel agree. */
+// The river map's saved encounter (`fixtures/maps/river/encounters/river.json`):
+// a rifle squad on the country road south of its bridge, and a tank ahead of
+// it that leads over the bridge.
+
+/** Where units are sent: named so the scene and the panel agree. */
 const STATIONS = {
-  /** On the country road, south of its bridge. */
-  south: [60, 185],
   /** On the road past the bridge. */
   north: [60, 310],
   /** On the dirt track beside the 30 m stretch. */
@@ -33,11 +34,6 @@ type GroundView = "surface" | "traversal" | "shading";
 /** Where a vertex's tint sits: after its position and normal. */
 const VERTEX_COLOUR = 6;
 
-const SCENARIO = labScenario(riverMap, [
-  { side: "blue", kind: "rifle", position: [...STATIONS.south] },
-  // The tank leads over the bridge; the squad follows it.
-  { side: "blue", kind: "tank", position: [60, 212], yaw: Math.PI / 2 },
-]);
 const SEED = 4;
 
 const RIVER_CAMERA: Camera3DParams = {
@@ -72,7 +68,15 @@ const DEMOS: Record<string, (own: OwnUnitView[]) => Order[]> = {
 };
 
 export default function River() {
-  const session = useBattleSession({ map: riverMap, scenario: SCENARIO, seed: SEED });
+  return (
+    <SavedEncounter map="river" encounter="river">
+      {(battle) => <RiverLab battle={battle} />}
+    </SavedEncounter>
+  );
+}
+
+function RiverLab({ battle }: { battle: SavedBattle }) {
+  const session = useBattleSession({ ...battle, seed: SEED });
   const { world, meshes, sim, control, surfaceZ } = session;
   const [view, setView] = useState<GroundView>("surface");
   const drawn = useMemo(() => {

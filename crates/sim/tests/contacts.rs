@@ -5,10 +5,12 @@ use serde_json::{json, Value};
 use sim::battle::Battle;
 
 use crate::common;
-const MAP: &str = include_str!("../../../fixtures/sensors-lab.json");
+fn map() -> &'static str {
+    common::saved_map("sensors")
+}
 
 fn battle(units: Value, events: Value, scripts: Value) -> Battle {
-    Battle::new(&common::scenario_with(MAP, units, events, scripts), 11)
+    Battle::new(&common::scenario_with(map(), units, events, scripts), 11)
 }
 
 fn blue(b: &Battle) -> &ObservationFrame {

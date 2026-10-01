@@ -2,25 +2,17 @@ import { useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import { CommandBar, ReadoutLayer, SelectionCard } from "@web/battle/present/readouts";
-import readoutsMap from "@fixtures/readouts-lab.json";
 import { AckLog } from "../AckLog";
 import { orderLayer, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
-import { labScenario } from "../scenarios";
+import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
 import { TickStatus } from "../TickStatus";
 
 // A tank (cannon with AP/HE, and an HMG), an AT team, a rifle squad and a
 // supply truck setting up, facing a red tank: every kind of timer runs at once.
-const SCENARIO = labScenario(readoutsMap, [
-  { side: "blue", kind: "tank", position: [200, 220] },
-  { side: "blue", kind: "at", position: [215, 270] },
-  { side: "blue", kind: "rifle", position: [185, 170], condition: { spent: { grenade: 3 } } },
-  { side: "blue", kind: "supply", position: [140, 230] },
-  { side: "red", kind: "tank", position: [470, 230], yaw: Math.PI, engagement: "return_fire_only" },
-]);
 const SEED = 14;
 
 const READOUTS_CAMERA: Camera3DParams = {
@@ -32,7 +24,15 @@ const READOUTS_CAMERA: Camera3DParams = {
 };
 
 export default function Readouts() {
-  const session = useBattleSession({ map: readoutsMap, scenario: SCENARIO, seed: SEED });
+  return (
+    <SavedEncounter map="readouts" encounter="readouts">
+      {(battle) => <ReadoutsLab battle={battle} />}
+    </SavedEncounter>
+  );
+}
+
+function ReadoutsLab({ battle }: { battle: SavedBattle }) {
+  const session = useBattleSession({ ...battle, seed: SEED });
   const { world, meshes, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;

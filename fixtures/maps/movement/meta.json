@@ -1,0 +1,13 @@
+{
+  "category": "lab",
+  "status": "released",
+  "label": "Movement lab",
+  "character": "arena",
+  "biome": "summer",
+  "size_m": [500, 400],
+  "tags": ["relief", "river", "road", "bridge", "forest", "prop", "building"],
+  "source": "authored",
+  "seed": null,
+  "encounters": ["movement"],
+  "benchmarks": []
+}

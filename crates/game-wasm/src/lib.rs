@@ -53,6 +53,27 @@ pub fn map_generator_version() -> String {
     mapgen::layout::GENERATOR_VERSION.into()
 }
 
+/// Resolve a saved map from its documents (`fixtures/maps/<id>/map.json` and
+/// `SOURCES.json`, and the physical template library): the browser's and the
+/// tools' side of the one resolver, admitted as the native catalogue reader
+/// (`sim::maps`) admits it. Answers `{ status: "ok", result: { definition,
+/// identity } }`, or `{ status: "error", error: { code, location, message } }`.
+#[wasm_bindgen]
+pub fn resolve_saved_map(
+    map_json: &str,
+    sources_json: &str,
+    library_json: &str,
+) -> Result<String, JsError> {
+    let outcome: contract::maps::ResolveOutcome = contract::maps::resolve(
+        map_json,
+        sources_json,
+        library_json,
+        contract::maps::MapAdmission::CATALOGUE,
+    )
+    .into();
+    serde_json::to_string(&outcome).map_err(js_error)
+}
+
 /// Validate and canonically identify physical templates, independent of art.
 #[wasm_bindgen]
 pub fn template_catalogue_json(descriptors_json: &str) -> Result<String, JsError> {
@@ -589,8 +610,9 @@ pub fn resolve_catalog(documents_json: &str) -> Result<String, JsError> {
     Ok(catalog.view().to_string())
 }
 
-/// The village encounter for `variant`, built from the one fixture: a
-/// scenario JSON for `Battle` (with its defender and completion referee).
+/// The village encounter for `variant`, built from the one fixture (the
+/// rules, with the village's resolved map under `map`): a scenario JSON for
+/// `Battle` (with its defender and completion referee).
 #[wasm_bindgen]
 pub fn village_scenario(fixture_json: &str, variant: &str) -> Result<String, JsError> {
     let fixture: serde_json::Value = serde_json::from_str(fixture_json).map_err(js_error)?;
@@ -598,12 +620,19 @@ pub fn village_scenario(fixture_json: &str, variant: &str) -> Result<String, JsE
     serde_json::to_string(&setup).map_err(js_error)
 }
 
-/// The synthetic endurance battle for `seed`, with the late
-/// state's remains when `late`; rules from the one fixture.
+/// The synthetic endurance battle for `seed` on its resolved field
+/// (`map_json`, the catalogue's `endurance`), with the late state's remains
+/// when `late`; rules from the one fixture.
 #[wasm_bindgen]
-pub fn endurance_scenario(fixture_json: &str, seed: u64, late: bool) -> Result<String, JsError> {
+pub fn endurance_scenario(
+    map_json: &str,
+    fixture_json: &str,
+    seed: u64,
+    late: bool,
+) -> Result<String, JsError> {
+    let field: MapDefinition = serde_json::from_str(map_json).map_err(js_error)?;
     let fixture: serde_json::Value = serde_json::from_str(fixture_json).map_err(js_error)?;
-    let setup = sim::endurance::scenario(&fixture, seed, late).map_err(js_error)?;
+    let setup = sim::endurance::scenario(&field, &fixture, seed, late).map_err(js_error)?;
     serde_json::to_string(&setup).map_err(js_error)
 }
 

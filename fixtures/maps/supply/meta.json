@@ -1,0 +1,13 @@
+{
+  "category": "lab",
+  "status": "released",
+  "label": "Supply lab",
+  "character": "arena",
+  "biome": "summer",
+  "size_m": [600, 400],
+  "tags": [],
+  "source": "authored",
+  "seed": null,
+  "encounters": ["supply"],
+  "benchmarks": []
+}

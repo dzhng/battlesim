@@ -173,7 +173,7 @@ fn preview_queries_cannot_change_later_navigation_or_replay() {
     use contract::ids::Side;
     use sim::battle::Battle;
     let setup = crate::common::scenario(
-        crate::common::GEOMETRY_LAB,
+        crate::common::saved_map("geometry"),
         serde_json::json!([
             {"side": "blue", "kind": "tank", "position": [30, 150]}
         ]),

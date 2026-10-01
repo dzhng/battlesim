@@ -3,7 +3,7 @@
 // ground under the fixture's own camera numbers.
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
-import village from "@fixtures/village.json";
+import { loadMap } from "@web/maps/node";
 import { VILLAGE_RULES } from "@apps/battle-lab/src/scenarios";
 import { villageCamera } from "@apps/battle-lab/src/villageCamera";
 import {
@@ -19,13 +19,15 @@ import { initSync, WorldView, world_layout } from "@wasm/game_wasm.js";
 import { sampleTour } from "../src/battle/benchmark/camera";
 import { VILLAGE_CONTACT } from "../src/battle/benchmark/scenario";
 
+const villageMap = loadMap("village").definition;
+
 let obstacles: CameraObstacles;
 let rig: CameraController;
 
 beforeAll(() => {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
   const rules = JSON.stringify(VILLAGE_RULES);
-  const world = new WorldView(JSON.stringify(village.map), rules);
+  const world = new WorldView(JSON.stringify(villageMap), rules);
   const exports = readWorldExports(world);
   const ground = (x: number, y: number) => world.surface_at(x, y)[0] ?? 0;
   obstacles = buildingObstacles(

@@ -9,7 +9,7 @@ use sim::battle::Battle;
 use crate::common;
 
 fn scenario(units: serde_json::Value, events: serde_json::Value) -> ScenarioDefinition {
-    common::scenario(common::GEOMETRY_LAB, units, events)
+    common::scenario(common::saved_map("geometry"), units, events)
 }
 
 struct Orders {

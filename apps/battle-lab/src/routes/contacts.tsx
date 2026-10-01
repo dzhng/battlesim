@@ -2,11 +2,10 @@ import { useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { CaptionList, useCaptions } from "@web/battle/present/captions";
 import { SoundControls } from "../SoundControls";
-import sensorsMap from "@fixtures/sensors-lab.json";
 import { contactLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
-import { labScenario, type LabEvent } from "../scenarios";
+import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
 import { TickStatus } from "../TickStatus";
@@ -14,45 +13,6 @@ import { TickStatus } from "../TickStatus";
 // Blue watches the ridge. Red's rifle squad hides behind it and fires every
 // three seconds; red's tank drives out into view and back behind the hill.
 // Nobody opens fire for real: the squad's shots are the lab's firing events.
-const FIRING: LabEvent[] = Array.from({ length: 40 }, (_, k) => ({
-  tick: 60 + k * 90,
-  fire: { unit: 3 },
-}));
-const SCENARIO = labScenario(
-  sensorsMap,
-  [
-    { side: "blue", kind: "recon", position: [560, 400], engagement: "return_fire_only" },
-    { side: "blue", kind: "rifle", position: [560, 560], engagement: "return_fire_only" },
-    {
-      side: "red",
-      kind: "tank",
-      position: [840, 470],
-      yaw: Math.PI,
-      engagement: "return_fire_only",
-    },
-    { side: "red", kind: "rifle", position: [860, 500], engagement: "return_fire_only" },
-  ],
-  FIRING,
-  [
-    {
-      tick: 30,
-      side: "red",
-      order: { kind: "move", units: [2], gesture: 1, goal: [820, 330], route: "shortest" },
-    },
-    {
-      tick: 30,
-      side: "red",
-      queued: true,
-      order: { kind: "move", units: [2], gesture: 1, goal: [820, 470], route: "shortest" },
-    },
-    {
-      tick: 30,
-      side: "red",
-      queued: true,
-      order: { kind: "move", units: [2], gesture: 1, goal: [900, 560], route: "shortest" },
-    },
-  ],
-);
 const SEED = 6;
 
 const CONTACTS_CAMERA: Camera3DParams = {
@@ -64,11 +24,18 @@ const CONTACTS_CAMERA: Camera3DParams = {
 };
 
 export default function Contacts() {
+  return (
+    <SavedEncounter map="sensors" encounter="contacts">
+      {(battle) => <ContactsLab battle={battle} />}
+    </SavedEncounter>
+  );
+}
+
+function ContactsLab({ battle }: { battle: SavedBattle }) {
   const cues = useCaptions();
   const onDecoded = cues.note;
   const session = useBattleSession({
-    map: sensorsMap,
-    scenario: SCENARIO,
+    ...battle,
     seed: SEED,
     onDecoded,
     sound: true,

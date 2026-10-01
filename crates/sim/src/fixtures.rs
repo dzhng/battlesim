@@ -3,7 +3,7 @@
 //! `fixtures/units/**/*.json` and `fixtures/props/**/*.json`, as its
 //! `catalog`. The browser gets the same catalog, resolved, from
 //! `fixtures/catalog.json`, which [`catalog_view`] writes and a test
-//! keeps current.
+//! keeps current. Maps are read by id through [`crate::maps`].
 use std::path::{Path, PathBuf};
 
 use serde_json::Value;
@@ -49,11 +49,14 @@ pub fn catalog_documents() -> Vec<Value> {
         .collect()
 }
 
-/// The village fixture with the unit catalog: what `Rules` and the village
-/// and endurance scenarios read.
+/// The village fixture as `Rules` and the village scenario read it: the rules
+/// (`village.json`), the unit catalog, and the village's map, resolved from
+/// the saved catalogue (`fixtures/maps/village`), under `map`.
 pub fn village() -> Value {
     let mut fixture = read(&dir().join("village.json"));
     fixture["catalog"] = Value::Array(catalog_documents());
+    let map = crate::maps::load("village").unwrap_or_else(|e| panic!("the village's map: {e}"));
+    fixture["map"] = serde_json::to_value(map.definition).expect("the map serializes");
     fixture
 }
 

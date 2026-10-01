@@ -1,0 +1,13 @@
+{
+  "category": "lab",
+  "status": "released",
+  "label": "Consequences lab",
+  "character": "arena",
+  "biome": "summer",
+  "size_m": [800, 500],
+  "tags": ["forest", "prop"],
+  "source": "authored",
+  "seed": null,
+  "encounters": ["consequences"],
+  "benchmarks": []
+}

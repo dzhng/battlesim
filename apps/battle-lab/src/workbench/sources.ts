@@ -28,8 +28,9 @@ import type {
 } from "@packages/scene-assets/src/schema";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import type { Stats } from "@packages/scene-assets/src/validate";
-import { AUTHORITY, footprint, type Footprint, type PropClasses } from "./benchWorld";
+import { AUTHORITY, footprint, placedProps, type Footprint, type PropClasses } from "./benchWorld";
 import { loadWasm } from "@web/battle/sim/module";
+import { loadMap } from "@web/maps/browser";
 
 export const CATALOG = catalogJson as unknown as Catalog;
 
@@ -77,11 +78,15 @@ export interface LoadedModel {
 let propClasses: PropClasses | null = null;
 
 /** The simulation's prop classes (what blocks whom, what hides sight), read
- *  once from `world_layout()`. */
+ *  once from `world_layout()`, with the boxes the village's resolved map
+ *  places. */
 export async function loadPropClasses(): Promise<PropClasses> {
   if (!propClasses) {
-    const wasm = await loadWasm();
-    propClasses = JSON.parse(wasm.world_layout(JSON.stringify(VILLAGE_RULES))) as PropClasses;
+    const [wasm, village] = await Promise.all([loadWasm(), loadMap("village")]);
+    propClasses = {
+      ...(JSON.parse(wasm.world_layout(JSON.stringify(VILLAGE_RULES))) as PropClasses),
+      placed: placedProps(village.definition),
+    };
   }
   return propClasses;
 }

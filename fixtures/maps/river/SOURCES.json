@@ -1,0 +1,18 @@
+{
+  "identity": {
+    "kind": "authored",
+    "map_hash": "da03ebd684dd20dc7bc9771f8dcb8d6398288c6b098d65589fe02311d3389827",
+    "template_catalog_hash": null
+  },
+  "catalogue": {
+    "template_ids": null
+  },
+  "inputs": [
+    {
+      "kind": "repository",
+      "path": "fixtures/river-lab.json",
+      "revision": "f303c07c43ad38f06f223ad1e48e4e0d1e6e73f8",
+      "sha256": "5fb47fbdd1abb170bebe2de853cc745900c748b5c58d5757032d225f859d7930"
+    }
+  ]
+}

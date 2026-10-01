@@ -1,19 +1,20 @@
 //! The endurance load (validation.md): a synthetic, clearly labelled
 //! stress battle for the scale verdict, not a play fixture. 100 units a side
 //! (50 eight-soldier rifle squads, 50 vehicles and specialists) on a
-//! 3 × 2 km field with woods and buildings. Seeded scripted orders keep the
+//! 3 × 2 km field with woods and buildings, the catalogue's saved `endurance`
+//! map. Seeded scripted orders keep the
 //! fight turning over for an hour: waves of attack-moves to shifting points,
 //! reserves arriving from the rear edge, supply trucks setting up behind the
 //! lines. The optional late state adds 20,000 corpses and 2,000 wrecks as
 //! stress input. Rules come from the one fixture owner (village.json).
 use contract::command::{Order, TargetRef};
 use contract::ids::{Side, UnitId};
+use contract::map::MapDefinition;
 use contract::scenario::{Rules, ScenarioDefinition, ScriptedOrder, UnitCondition, UnitSetup};
 use serde_json::json;
 
 use crate::rng::Rng;
 
-pub const FIELD: [f64; 2] = [3000.0, 2000.0];
 /// Per side: (unit type, count). 100 units, 50 of them rifle squads.
 const ROSTER: [(&str, usize); 5] = [
     ("rifle", 50),
@@ -33,8 +34,11 @@ pub const BURST_WAVE: u64 = 15;
 pub const LATE_CORPSES: usize = 20_000;
 pub const LATE_WRECKS: usize = 2_000;
 
-/// The endurance battle for `seed`; `late` adds the synthetic remains.
+/// The endurance battle for `seed` on `field`, its saved map (the
+/// catalogue's `endurance`); `late` adds the synthetic remains: the wrecks to
+/// the map, as further authored props, and the fallen squads to the forces.
 pub fn scenario(
+    field: &MapDefinition,
     fixture: &serde_json::Value,
     seed: u64,
     late: bool,
@@ -43,62 +47,25 @@ pub fn scenario(
     // Separate streams, so the late state's remains never move the waves.
     let mut rng = Rng::new(seed);
     let mut remains = Rng::new(seed ^ 0x005e_ed0f_4e3a_1175);
-    let mut props = Vec::new();
-    let template = contract::templates::BuildingTemplateDescriptor::solid_box(
-        "api-box-12-10-4".into(),
-        contract::templates::BuildingCategory::Farmstead,
-        "api_fixture".into(),
-        [12.0, 10.0, 4.0],
-    );
-    let catalogue = contract::templates::TemplateGeometryCatalog::new(vec![template.clone()])?;
-    let mut buildings = Vec::new();
-    // A village of buildings in each third of the field's middle band.
-    for cx in [1100.0, 1500.0, 1900.0] {
-        for k in 0..4 {
-            let (dx, dy) = ((k % 2) as f64 * 60.0 - 30.0, (k / 2) as f64 * 60.0 - 30.0);
-            let owner = buildings.len() as u32;
-            buildings.push(contract::map::BuildingDefinition::materialize(
-                &template,
-                contract::templates::PlacementFrame {
-                    translation: [cx + dx, 1000.0 + dy, 0.0],
-                    yaw: 0.0,
-                },
-                "building".into(),
-                owner,
-                vec![contract::map::BuildingPartReference {
-                    part: "body".into(),
-                    prop: owner,
-                }],
-            )?);
-        }
-    }
+    let mut map = field.clone();
+    let width = map.size[0];
     if late {
         for _ in 0..LATE_WRECKS {
             let (x, y) = (
                 400.0 + remains.unit() * 2200.0,
                 100.0 + remains.unit() * 1800.0,
             );
-            props.push(
-                json!({ "id": buildings.len()+props.len(), "kind": "heavy_wreck", "center": [x, y], "yaw": remains.unit() * std::f64::consts::TAU,
-                "half_extents": [3.5, 1.8, 1.2] }),
-            );
+            let wreck = json!({ "id": map.buildings.len() + map.props.len(), "kind": "heavy_wreck", "center": [x, y], "yaw": remains.unit() * std::f64::consts::TAU,
+                "half_extents": [3.5, 1.8, 1.2] });
+            map.props
+                .push(serde_json::from_value(wreck).map_err(|e| e.to_string())?);
         }
     }
-    let map = json!({
-        "size": FIELD, "fog_cell_m": 8, "height_grid_m": 8, "slope_cutoff_deg": 35,
-        "relief": [{ "kind": "ridge", "center": [1500, 500], "peak_m": 15, "radius_m": 250 }],
-        "forests": [
-            { "shape":{"kind":"polygon","ring":[[1300.0,1400.0],[1550.0,1400.0],[1550.0,1600.0],[1300.0,1600.0]]} },
-            { "shape":{"kind":"polygon","ring":[[1500.0,250.0],[1700.0,250.0],[1700.0,500.0],[1500.0,500.0]]} }
-        ],
-        "props": props,"buildings":buildings,"template_catalog_hash":catalogue.hash(),
-    });
-    let map = serde_json::from_value(map).map_err(|e| e.to_string())?;
     let mut units = Vec::new();
     let mut scripts = Vec::new();
     for side in Side::ALL {
         let east = side == Side::Red;
-        let x_of = |depth: f64| if east { FIELD[0] - depth } else { depth };
+        let x_of = |depth: f64| if east { width - depth } else { depth };
         let yaw = if east { std::f64::consts::PI } else { 0.0 };
         let first = units.len() as u32;
         let mut n = 0usize;
@@ -177,7 +144,7 @@ pub fn scenario(
                 gesture += 1;
                 let order = if wave == BURST_WAVE {
                     // Everyone fires at the ground across the middle.
-                    let point = [FIELD[0] / 2.0, goal[1], 0.0];
+                    let point = [width / 2.0, goal[1], 0.0];
                     Order::Attack {
                         units: group,
                         target: TargetRef::Ground { point },

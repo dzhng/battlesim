@@ -290,9 +290,7 @@ fn forest(rect: [f64; 4]) -> Value {
 /// its props whose centre lies inside `window` (`[x0, y0, x1, y1]`), so the
 /// drawing frames that corner of the encounter.
 fn village(window: [f64; 4]) -> Value {
-    let fixture: Value =
-        serde_json::from_str(include_str!("../../../fixtures/village.json")).unwrap();
-    let mut map = fixture["map"].clone();
+    let mut map = serde_json::to_value(sim::maps::load("village").unwrap().definition).unwrap();
     let props: Vec<Value> = map["props"]
         .as_array()
         .unwrap()
@@ -1869,7 +1867,7 @@ fn authored() -> Vec<Scenario> {
         Scenario {
             name: "c69-river-bridge",
             caption: "a squad and a tank go up the road and over the river by its bridge",
-            map: serde_json::from_str(include_str!("../../../fixtures/river-lab.json")).unwrap(),
+            map: serde_json::to_value(sim::maps::load("river").unwrap().definition).unwrap(),
             units: json!([
                 rifle("blue", [60.0, 185.0]),
                 vehicle("blue", "tank", [60.0, 150.0], 1.57),
@@ -1906,7 +1904,7 @@ fn authored() -> Vec<Scenario> {
         Scenario {
             name: "c69-river-around",
             caption: "a squad and a tank ordered straight across the river go round by the bridge",
-            map: serde_json::from_str(include_str!("../../../fixtures/river-lab.json")).unwrap(),
+            map: serde_json::to_value(sim::maps::load("river").unwrap().definition).unwrap(),
             units: json!([
                 rifle("blue", [125.0, 195.0]),
                 vehicle("blue", "tank", [150.0, 180.0], 1.57),

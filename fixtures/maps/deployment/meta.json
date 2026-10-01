@@ -1,0 +1,13 @@
+{
+  "category": "lab",
+  "status": "released",
+  "label": "Deployment lab",
+  "character": "arena",
+  "biome": "summer",
+  "size_m": [300, 200],
+  "tags": ["road", "prop"],
+  "source": "authored",
+  "seed": null,
+  "encounters": ["deployment"],
+  "benchmarks": []
+}

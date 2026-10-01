@@ -1,0 +1,20 @@
+{
+  "identity": {
+    "kind": "authored",
+    "map_hash": "752c7c73c9b48d452df81b7423273f3fc7699aad0dce26ebadb0bb20060423b8",
+    "template_catalog_hash": "fd62882f6114c99b42ee939109f7ca17dda1a37a41c6f0a8a50ee95461c297e3"
+  },
+  "catalogue": {
+    "template_ids": [
+      "api-box-12-10-4"
+    ]
+  },
+  "inputs": [
+    {
+      "kind": "repository",
+      "path": "crates/sim/src/endurance.rs",
+      "revision": "f303c07c43ad38f06f223ad1e48e4e0d1e6e73f8",
+      "sha256": "1af8a49cde106a41da79610160367062e6e1c47126495587fd75e195c9eb2c4d"
+    }
+  ]
+}

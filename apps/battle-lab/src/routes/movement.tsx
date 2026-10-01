@@ -2,34 +2,16 @@ import { useCallback, useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import type { Order } from "@web/battle/sim/protocol";
-import movementMap from "@fixtures/movement-lab.json";
 import { AckLog } from "../AckLog";
 import { orderLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
-import { labScenario } from "../scenarios";
+import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useBattleSession } from "../useBattleSession";
 import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
 
 // A wall drops across the main road at tick 150: units only learn of it by
 // coming close, then route around it.
-const SCENARIO = labScenario(
-  movementMap,
-  [
-    { side: "blue", kind: "tank", position: [40, 190] },
-    { side: "blue", kind: "tank", position: [40, 215] },
-    { side: "blue", kind: "rifle", position: [70, 200] },
-    { side: "blue", kind: "rifle", position: [70, 225] },
-    { side: "blue", kind: "recon", position: [75, 175] },
-    { side: "blue", kind: "supply", position: [20, 240] },
-  ],
-  [
-    {
-      tick: 150,
-      add_prop: { kind: "wall", center: [160, 60], yaw: 0, half_extents: [0.5, 10, 2] },
-    },
-  ],
-);
 const SEED = 4;
 
 const MOVEMENT_CAMERA: Camera3DParams = {
@@ -101,7 +83,15 @@ const DEMOS: Record<string, (own: OwnUnitView[]) => { order: Order; queued?: boo
 };
 
 export default function Movement() {
-  const session = useBattleSession({ map: movementMap, scenario: SCENARIO, seed: SEED });
+  return (
+    <SavedEncounter map="movement" encounter="movement">
+      {(battle) => <MovementLab battle={battle} />}
+    </SavedEncounter>
+  );
+}
+
+function MovementLab({ battle }: { battle: SavedBattle }) {
+  const session = useBattleSession({ ...battle, seed: SEED });
   const { world, meshes, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
