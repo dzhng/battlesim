@@ -2,7 +2,7 @@
   "limits": { "max_authored_parts": 60000, "max_bay_positions": 600000, "max_ground_points": 200000 },
   "encounter": {
     "blue": {
-      "column": ["recon", "jeep", "tank", "tank", "rifle", "rifle", "rifle", "at", "supply"],
+      "column": ["jeep", "recon", "tank", "tank", "rifle", "rifle", "rifle", "at", "supply"],
       "edge_inset_m": 150,
       "spacing_m": 30
     },

@@ -25,6 +25,7 @@ import {
   type FogSensorRules,
 } from "@packages/battle-renderer/src/frame/fogInputs";
 import { massingInstances, massingParts } from "@packages/battle-renderer/src/scenery/massing";
+import { INSTANCE_FLOATS } from "@packages/battle-renderer/src/scenery/lod";
 import { villageBiome } from "./villageBiome";
 import { villageMassing } from "./villageMassing";
 import { useVillageAppearances } from "./villageAppearances";
@@ -486,6 +487,33 @@ export function useBattleSession({
     advance: (n: number) => sim.client!.advance(n),
     reset: () => sim.reset(),
     surfaceZ,
+    /** The static ground under a point: its kind and whether units cross it;
+     *  null off the map. */
+    surfaceAt: (x: number, y: number) => {
+      const s = world?.view.surface_at(x, y);
+      return s?.length
+        ? { kind: world!.layout.surfaceKinds[s[5]], forest: s[6] === 1, traversable: s[7] === 1 }
+        : null;
+    },
+    /** The static map's props of `kind` nearest (x, y), nearest first. */
+    propsNear: (kind: string, x: number, y: number, count = 1) =>
+      (props?.map ?? [])
+        .filter((p) => p.kind === kind)
+        .map((p) => ({ ...p, distance: Math.hypot(p.center[0] - x, p.center[1] - y) }))
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, count),
+    /** The massing boxes drawn now, as their records' fields. */
+    massing: () =>
+      Array.from(massing?.kinds ?? [], (_, i) => {
+        const r = massing!.records.subarray(i * INSTANCE_FLOATS, (i + 1) * INSTANCE_FLOATS);
+        return {
+          center: [r[0], r[1]],
+          baseZ: r[2],
+          yaw: r[3],
+          half: [r[4], r[5], r[6] / 2],
+          tint: [r[8], r[9], r[10]],
+        };
+      }),
     /** The side's known craters: marked cells, and the centre of the
      *  `binM`-square block holding the most (framing a shelled field). */
     craters: (binM = 16) => {
