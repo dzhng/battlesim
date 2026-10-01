@@ -955,7 +955,6 @@
       "bad": [1.0, 0.45, 0.4],
       "glass": [0.02, 0.06, 0.09, 0.62],
       "glow_px": 5,
-      "panel_compress_above": 6,
       "panel_edge_hide_px": 36,
       "panel_gap_px": 14
     },

@@ -56,7 +56,9 @@ pub enum Order {
         direction: MoveDirection,
         /// A right-drag's facing (Q9): the world bearing (radians,
         /// counter-clockwise from +X) the units face once there. `None`: the
-        /// direction of travel. A seen or engaged enemy overrides it.
+        /// direction of travel. Group offsets rotate from the first selected
+        /// unit's heading to this bearing. Wheeled vehicles keep their approach
+        /// heading; a seen or engaged enemy overrides ordered facing.
         #[serde(default)]
         facing: Option<f64>,
     },

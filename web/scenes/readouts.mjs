@@ -140,6 +140,8 @@ export async function run(ctx) {
     !!enemy && /attack enemy/.test(ack.label) && ack.ack.error === null,
     JSON.stringify(ack),
   );
+  await page.keyboard.down("Space");
+  await page.waitForFunction(() => document.querySelector(".ro-layer").dataset.zoom === "default");
   // Mid-engagement: aim, reload and deployment timers all running.
   let matched = true;
   let priorityMatched = true;
@@ -216,10 +218,14 @@ export async function run(ctx) {
   await page.setViewportSize({ width: 900, height: 600 });
   await shots(ctx, page, "engaged-900x600", [200, 220, 0]);
   // Preserve the last row's dark support and the line's light, with only a faint tail below.
+  await page.locator('.ro-unit[data-unit="1"] .ro-name').hover();
+  await page.waitForFunction(
+    () => document.querySelector('.ro-unit[data-unit="1"]').dataset.zoom === "default",
+  );
   const atPanel = await page.locator('.ro-unit[data-unit="1"]').boundingBox();
   const backed = decode(await snapshot(ctx, page, "backing-on.png"));
   const noBacking = await page.addStyleTag({
-    content: ".ro-unit::before { display: none !important; }",
+    content: '.ro-unit[data-unit="1"]::before { display: none !important; }',
   });
   const bare = decode(await snapshot(ctx, page, "backing-off.png"));
   await noBacking.evaluate((node) => node.remove());
@@ -264,7 +270,7 @@ export async function run(ctx) {
     };
   });
   ctx.check(
-    "four full readouts fit the smaller viewport without hiding or overprinting",
+    "four readouts fit the smaller viewport without hiding or overprinting",
     smallLayout.boxes.length === 4 && smallLayout.inside && smallLayout.apart,
     JSON.stringify(smallLayout),
   );
@@ -288,6 +294,8 @@ export async function run(ctx) {
       ordered[0].panelY < ordered[1].panelY,
     JSON.stringify(ordered),
   );
+  await page.keyboard.up("Space");
+  await page.mouse.move(20, 20);
   await page.setViewportSize({ width: 1280, height: 800 });
   await lab(page, () => window.__lab.route.select([0]));
   await page.waitForFunction(() => window.__lab.route.selected().length === 1);

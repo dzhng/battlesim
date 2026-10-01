@@ -35,8 +35,6 @@ export interface HudTheme {
   /** The least space between a callout and another callout, a unit's anchor
    *  or a HUD bar, in CSS pixels: stacked panels never touch. */
   panel_gap_px: number;
-  /** Crowd limit for the name-and-health-only form. */
-  panel_compress_above: number;
   /** Hide anchors this near the viewport edge. */
   panel_edge_hide_px: number;
 }
@@ -65,7 +63,6 @@ export function validateHudTheme(theme: HudTheme): HudTheme {
     !unit(theme.glass, 4) ||
     !(theme.glow_px >= 0) ||
     !(theme.panel_gap_px >= 0) ||
-    !(Number.isInteger(theme.panel_compress_above) && theme.panel_compress_above >= 1) ||
     !(theme.panel_edge_hide_px >= 0)
   )
     throw new Error(

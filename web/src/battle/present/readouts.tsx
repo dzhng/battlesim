@@ -7,23 +7,29 @@
  *  - the command bar: the selection's commands and its fire policy. */
 import { useCallback, useImperativeHandle, useRef, type ReactNode, type Ref } from "react";
 import type { ContactView, IdentifiedView, OwnUnitView } from "../sim/observation";
-import type { CommandMode, useUnitControl } from "../input/useUnitControl";
+import type { CommandMode, PointerPick, useUnitControl } from "../input/useUnitControl";
 import { CommandBindings, FacingBinding } from "../input/commandBindings";
 import { reach, type ReachCommand } from "../input/commandReach";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { hudIcon, stateIcon, unitIcons } from "@packages/scene-assets/src/icons";
 import { Icon } from "./icons";
 import { villageHud } from "./hudTheme";
+import { layoutReadoutDetails, type DetailCard } from "./readoutDetails";
+import { eyePosition, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
+import { clamp, vec3 } from "math";
+import type { Box2 } from "math/shapes";
 import { InfoPanel, PanelCallout, type PanelOwner } from "./infoPanel";
 import { contactPanel, enemyPanel, ownPanel, type PanelRules } from "./panelRows";
 
 /** World point → page CSS pixel, or null when behind the eye. */
 export type Project = (x: number, y: number, z: number) => [number, number] | null;
 type Point3 = readonly [number, number, number];
+export type ReadoutHover = Pick<PointerPick, "x" | "y" | "unit" | "enemy">;
+const _readout_eye = vec3.create(),
+  _readout_anchor = vec3.create();
 
 /** Above this camera distance, panels show only for selected units (every
- *  other own panel, and every enemy's and contact's, hides), each in its
- *  compact far form: the name over one line of icons and counts. */
+ *  other own panel, and every enemy's and contact's, hides). */
 const PANELS_FAR_M = 700;
 
 /** The name a unit goes by in the panel, the log and on the map: its
@@ -87,7 +93,14 @@ export interface ReadoutLayerHandle {
   /** Re-anchor every panel; call once per animation frame. `clock` is that
    *  frame's presentation clock in seconds, which eases a panel's nudge
    *  (null snaps it). */
-  place(project: Project, distance: number, drawn?: DrawnAnchors, clock?: number | null): void;
+  place(
+    project: Project,
+    camera: Camera3DParams,
+    drawn?: DrawnAnchors,
+    clock?: number | null,
+    expanded?: boolean,
+    hover?: ReadoutHover | null,
+  ): void;
 }
 
 /** One panel: whose, where its leader starts and what it says. */
@@ -137,6 +150,8 @@ export function ReadoutLayer({
   // drawn at.
   const nudges = useRef(new Map<string, Nudge>());
   const lastClock = useRef<number | null>(null);
+  const hoveredCard = useRef<string | null>(null);
+  const compactBoxes = useRef(new Map<string, ReadoutRect>());
   const callouts: Callout[] = [
     ...own.map((u): Callout => {
       const picked = selected.includes(u.id);
@@ -183,7 +198,9 @@ export function ReadoutLayer({
   useImperativeHandle(handle, () => ({
     pick(x, y) {
       const priority = [...calloutsRef.current].sort(
-        (a, b) => Number(b.selected) - Number(a.selected),
+        (a, b) =>
+          Number(b.key === hoveredCard.current) - Number(a.key === hoveredCard.current) ||
+          Number(b.selected) - Number(a.selected),
       );
       for (const c of priority) {
         const r = visibleBox(c.key);
@@ -200,15 +217,40 @@ export function ReadoutLayer({
       const r = visibleBox(`own-${unit}`);
       return !!r && overlaps(r, rect);
     },
-    place(project, distance, drawn = {}, clock = null) {
-      // Far out, every panel takes its compact form (before sizes are read).
+    place(project, camera, drawn = {}, clock = null, expanded = false, hover = null) {
+      const contains = (r: ReadoutRect | null | undefined) =>
+        !!r && !!hover && hover.x >= r.x0 && hover.x <= r.x1 && hover.y >= r.y0 && hover.y <= r.y1;
+      // Retain the original hit area when expansion moves the hovered card.
+      const previous = hoveredCard.current;
+      const held =
+        previous &&
+        (contains(compactBoxes.current.get(previous)) || contains(visibleBox(previous)));
+      const card = hover && calloutsRef.current.find((c) => contains(visibleBox(c.key)));
+      hoveredCard.current = hover
+        ? held
+          ? previous
+          : (card?.key ??
+            (hover.unit !== null
+              ? `own-${hover.unit}`
+              : hover.enemy != null
+                ? `enemy-${hover.enemy}`
+                : null))
+        : null;
+      eyePosition(_readout_eye, camera);
       // Each panel's anchor, in page pixels.
-      const anchored: { id: string; node: HTMLDivElement; x: number; y: number }[] = [];
+      const anchored: {
+        id: string;
+        node: HTMLDivElement;
+        x: number;
+        y: number;
+        distanceSq: number;
+      }[] = [];
       for (const c of calloutsRef.current) {
         const node = nodes.current.get(c.key);
         if (!node) continue;
         // Zoomed out, panels stay only for the selection.
-        const shown = distance < PANELS_FAR_M || c.selected;
+        const hovering = c.key === hoveredCard.current;
+        const shown = camera.distance < PANELS_FAR_M || c.selected || hovering;
         const p: Point3 =
           c.owner === "own"
             ? (drawn.own?.get(c.id) ?? c.at)
@@ -217,28 +259,47 @@ export function ReadoutLayer({
               : [c.at[0], c.at[1], drawn.ground?.(c.at[0], c.at[1]) ?? 0];
         // A panel hangs off a unit in view; one whose anchor is off screen hides.
         const q = shown ? project(p[0], p[1], p[2] + (c.owner === "contact" ? 0 : HEAD_M)) : null;
-        const at =
-          q &&
-          q[0] >= villageHud.panel_edge_hide_px &&
-          q[1] >= villageHud.panel_edge_hide_px &&
-          q[0] <= window.innerWidth - villageHud.panel_edge_hide_px &&
-          q[1] <= window.innerHeight - villageHud.panel_edge_hide_px
-            ? q
-            : null;
+        const edge = villageHud.panel_edge_hide_px;
+        // Hover overrides edge hiding; keep its card inside the viewport.
+        const at: [number, number] | null =
+          hovering && q
+            ? [clamp(q[0], 0, window.innerWidth), clamp(q[1], 0, window.innerHeight)]
+            : q &&
+                q[0] >= edge &&
+                q[1] >= edge &&
+                q[0] <= window.innerWidth - edge &&
+                q[1] <= window.innerHeight - edge
+              ? q
+              : null;
         node.style.display = at ? "flex" : "none";
-        if (at) anchored.push({ id: c.key, node, x: at[0], y: at[1] });
+        if (at)
+          anchored.push({
+            id: c.key,
+            node,
+            x: at[0],
+            y: at[1],
+            distanceSq: vec3.squaredDistance(
+              _readout_eye,
+              vec3.set(_readout_anchor, p[0], p[1], p[2]),
+            ),
+          });
         else {
           leaders.current.get(c.key)?.setAttribute("d", "");
           nudges.current.delete(c.key);
         }
       }
-      const zoom =
-        anchored.length > villageHud.panel_compress_above
-          ? "compressed"
-          : distance < PANELS_FAR_M
-            ? "default"
-            : "far";
+      const zoom = expanded ? "default" : "compressed";
       if (layer.current && layer.current.dataset.zoom !== zoom) layer.current.dataset.zoom = zoom;
+      // Measure detail separately, then always lay out the compact footprints.
+      const fullSizes = new Map<string, { w: number; h: number }>();
+      const detailing = expanded || hoveredCard.current !== null;
+      if (detailing) {
+        for (const a of anchored) a.node.dataset.zoom = "default";
+        for (const a of anchored)
+          fullSizes.set(a.id, { w: a.node.offsetWidth, h: a.node.offsetHeight });
+      }
+      for (const a of anchored) a.node.dataset.zoom = "compressed";
+      const situated: { b: (typeof anchored)[number]; box: ReadoutRect }[] = [];
       // The presentation clock's step, which eases each callout's nudge.
       const dt = clock === null || lastClock.current === null ? 0 : clock - lastClock.current;
       lastClock.current = clock;
@@ -338,6 +399,45 @@ export function ReadoutLayer({
           y1: natural.y1 + n.dy,
         };
         b.node.style.transform = `translate(${box.x0}px, ${box.y0}px)`;
+        situated.push({ b, box });
+      }
+      const viewport: Box2 = [EDGE_PX, EDGE_PX, right, window.innerHeight - EDGE_PX];
+      compactBoxes.current.clear();
+      for (const { b, box } of situated) compactBoxes.current.set(b.id, box);
+      let details: ReturnType<typeof layoutReadoutDetails> | null = null;
+      if (detailing) {
+        const detailCards: DetailCard[] = situated.map(({ b, box }) => {
+          const size = fullSizes.get(b.id)!;
+          return {
+            id: b.id,
+            distanceSq: b.distanceSq,
+            compact: [box.x0, box.y0, box.x1, box.y1],
+            full: [box.x0, box.y0, box.x0 + size.w, box.y0 + size.h],
+          };
+        });
+        const obstacles: Box2[] = [
+          ...panels.map((r): Box2 => [r.left, r.top, r.right, r.bottom]),
+          ...callouts.map((b): Box2 => [b.x - 6, b.y - 6, b.x + 6, b.y + 6]),
+        ];
+        details = layoutReadoutDetails(
+          detailCards,
+          obstacles,
+          viewport,
+          gap,
+          expanded,
+          hoveredCard.current,
+        );
+      }
+      for (const { b, box: compact } of situated) {
+        const detail = details?.get(b.id);
+        const box = detail
+          ? { x0: detail.box[0], y0: detail.box[1], x1: detail.box[2], y1: detail.box[3] }
+          : compact;
+        b.node.dataset.zoom = detail?.full ? "default" : "compressed";
+        b.node.style.transform = `translate(${box.x0}px, ${box.y0}px)`;
+        const group = b.node.parentElement!;
+        if (b.id === hoveredCard.current) group.dataset.hovered = "true";
+        else delete group.dataset.hovered;
         // The leader: a small ring on the unit, a line off it to the
         // callout's near bottom corner, then along the callout's foot.
         const [near, far] = box.x0 >= b.x ? [box.x0, box.x1] : [box.x1, box.x0];
@@ -362,13 +462,14 @@ export function ReadoutLayer({
     [],
   );
   return (
-    <div ref={layer} className="ro-layer" data-testid="readouts">
+    <div ref={layer} className="ro-layer" data-testid="readouts" data-zoom="compressed">
       {callouts.map((c) => (
         <div key={c.key} className={`ro-callout${c.selected ? " ro-selected" : ""}`}>
           <PanelCallout
             ref={bind(nodes.current, c.key)}
             owner={c.owner}
             selected={c.selected}
+            data-zoom="compressed"
             data-unit={c.owner === "own" ? c.id : undefined}
             data-enemy={c.owner === "enemy" ? c.id : undefined}
             data-contact={c.owner === "contact" ? c.id : undefined}

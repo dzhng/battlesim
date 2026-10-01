@@ -162,7 +162,7 @@ export default function Garrison() {
         onPick={session.onPick}
         onBox={session.onBox}
         onReady={session.onReady}
-        onFrame={(project, camera) => session.placePanels(project, camera.distance)}
+        onFrame={session.placePanels}
         diagnostics={diagnostics}
       />
       <ReadoutLayer

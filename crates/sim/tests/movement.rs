@@ -110,6 +110,72 @@ fn a_tank_routes_around_walls_and_arrives() {
 }
 
 #[test]
+fn a_right_drag_rotates_the_group_layout_around_its_destination() {
+    let setup = common::scenario(
+        &serde_json::json!({ "size": [300, 300], "fog_cell_m": 8,
+            "height_grid_m": 4, "slope_cutoff_deg": 35, "props": [] })
+        .to_string(),
+        serde_json::json!([
+            { "side": "blue", "kind": "tank", "position": [30, 140], "yaw": 0 },
+            { "side": "blue", "kind": "tank", "position": [30, 160], "yaw": 0 }
+        ]),
+        serde_json::json!([]),
+    );
+    let mut b = Battle::new(&setup, 1);
+    let mut orders = Orders { seq: 0 };
+    orders.send(
+        &mut b,
+        Order::Move {
+            units: vec![UnitId(0), UnitId(1)],
+            gesture: 1,
+            goal: [150.0, 150.0],
+            route: RoutePolicy::Shortest,
+            direction: contract::command::MoveDirection::Forward,
+            facing: Some(std::f64::consts::FRAC_PI_2),
+        },
+        false,
+    );
+    b.step();
+    for (id, x) in [(0, 160.0), (1, 140.0)] {
+        let unit = own(&b, id);
+        let goal = unit.goal.unwrap();
+        assert!(
+            (goal[0] - x).abs() < 1.0 && (goal[1] - 150.0).abs() < 1.0,
+            "unit {id}: {goal:?}"
+        );
+        assert!((unit.final_facing - std::f64::consts::FRAC_PI_2).abs() < 1e-6);
+    }
+    let mut digests = vec![b.digest()];
+    let ticks = run(&mut b, &[0, 1], 3000, |b| digests.push(b.digest()));
+    assert!(ticks < 3000, "the rotated formation must arrive");
+    // Tracked units finish their pivot after the movement state becomes idle.
+    for _ in 0..600 {
+        if [0, 1]
+            .iter()
+            .all(|&id| (own(&b, id).yaw - std::f64::consts::FRAC_PI_2).abs() < 0.02)
+        {
+            break;
+        }
+        b.step();
+        digests.push(b.digest());
+    }
+    for (id, x) in [(0, 160.0), (1, 140.0)] {
+        let unit = own(&b, id);
+        assert!(dist(xy(&unit), [x, 150.0]) < 2.0);
+        assert!(
+            (unit.yaw - std::f64::consts::FRAC_PI_2).abs() < 0.02,
+            "unit {id}: yaw {}",
+            unit.yaw
+        );
+    }
+    let mut replay = Battle::from_replay(&setup, &b.replay()).unwrap();
+    for digest in digests {
+        replay.step();
+        assert_eq!(replay.digest(), digest);
+    }
+}
+
+#[test]
 fn a_group_keeps_its_arrangement_and_each_unit_its_own_speed() {
     let units = serde_json::json!([
         { "side": "blue", "kind": "tank", "position": [30, 150] },

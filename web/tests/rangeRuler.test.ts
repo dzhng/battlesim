@@ -12,7 +12,7 @@ import {
 } from "@packages/battle-renderer/src/rangeRulerOverlay";
 import { circleReach } from "@packages/battle-renderer/src/orderOverlay";
 import { strokeWidth, validateStrokeRule } from "@packages/battle-renderer/src/strokeWidth";
-import { rulerLine } from "@apps/battle-lab/src/rulerFeed";
+import { rulerLine } from "@apps/battle-lab/src/pointerPaint";
 import { villageRulerStyle } from "@apps/battle-lab/src/villageOverlay";
 import { closestUnit, rangeRuler, type RulerRules } from "../src/battle/present/rangeRuler";
 

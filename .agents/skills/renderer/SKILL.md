@@ -312,9 +312,11 @@ do not care about order, so the pixels stay byte-identical
   (`__lab.grass().clumps()`, sorted) and treat its frames as bounded by that
   noise. Pin the tick exactly: a pause can land a tick late.
 
-- **Resource checks must control rendered view history.** A paused fast-forward can finish delivering data before the UI draws that publication. Await the last publication’s drawn tick and presentation clock before moving the camera. Otherwise a view-dependent retained buffer may see one extra detail tier on one reset and look like a leak. Attribute differences with actual allocation creation/destruction records before changing capacity policy or weakening byte assertions.
+- **Resource checks must control rendered view history.** Await pause acknowledgement before calculating the fast-forward tick count. A paused fast-forward can finish delivering data before the UI draws that publication. Await the last publication’s drawn tick and presentation clock before moving the camera. Otherwise a view-dependent retained buffer may see one extra detail tier on one reset and look like a leak. Attribute differences with actual allocation creation/destruction records before changing capacity policy or weakening byte assertions.
 
 - **Interactive callouts share the viewport's gesture owner.** A DOM panel above the canvas needs native pointer handling for hover, while click and drag must reach the same capture/release path as battlefield picks. Verify dragging from a panel as well as dragging across one, and test the drawn panel bounds rather than the unit anchor.
+
+- **Held destination previews use the captured press ray.** Camera movement during a drag must not move its destination. Refresh facing through the pointer paint feed, independently of observation ticks, and use the committed order marker geometry so preview and result agree. Normal pointer-capture release must preserve stationary hover; only an interrupted active gesture cancels it.
 
 
 ## Match attachment owners before points
@@ -342,3 +344,4 @@ lines as well as model panels: they share the cue's cyan and survive the frame
 inspector. Compare grass on/off at one exact paused camera and publication,
 and falsify the gate on the real posed model pass before accepting an isolated
 shader oracle.
+
