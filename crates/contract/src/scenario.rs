@@ -98,31 +98,39 @@ impl Blocks {
     }
 }
 
-/// The fixture's `forests` section: each density a forest may name.
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+/// The fixture's `forests` section: one rule every forest plays by (Q-G8b),
+/// so a forest's art can never imply a different sight or movement rule.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ForestRules {
     /// The prop type a forest's trees are (a `props` catalog entry).
     pub tree: String,
-    pub densities: std::collections::BTreeMap<String, ForestDensity>,
+    pub rule: ForestRule,
 }
 
-/// One forest density (Q16): how its trunks stand and how much it hides.
+/// How every forest's trunks stand and how much it hides (Q16, Q21).
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
-pub struct ForestDensity {
+#[serde(deny_unknown_fields)]
+pub struct ForestRule {
     /// Trunk grid spacing; each trunk starts at its cell's centre, the
-    /// first `spacing / 2` inside the rect's minimum corner.
+    /// first `spacing / 2` inside the shape's minimum corner.
     pub trunk_spacing_m: f64,
     /// Each trunk moves up to this fraction of the spacing off its cell's
     /// centre, on each axis (seeded by the forest, so every reader agrees).
     pub trunk_jitter: f64,
-    /// Detection-range multiplier for a target under full foliage of this
-    /// density, by class: the per-class strength is the rule (Q21).
+    /// Detection-range multiplier for a target under full foliage, by
+    /// class: the per-class strength is the rule (Q21).
     pub concealment_infantry: f64,
     pub concealment_vehicle: f64,
     /// Foliage depth per metre a sight line crosses below the canopy.
     pub attenuation_per_m: f64,
     /// A trunk's crown: it conceals each fog cell whose centre lies this near.
     pub canopy_radius_m: f64,
+    pub canopy_height_m: f64,
+    pub trunk_radius_m: f64,
+    pub trunk_height_m: f64,
+    /// Trunks are omitted within this distance of roads and props.
+    pub trunk_clearance_m: f64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -360,7 +368,7 @@ pub struct Rules {
     pub ricochet: RicochetRules,
     pub guided: crate::ballistics::GuidedRules,
     pub sensors: SensorRules,
-    /// Forest densities (Q16): what a forest's `density` names.
+    /// The one forest rule (Q16, Q-G8b).
     pub forests: ForestRules,
     /// The weapon rows, `extends` resolved (`weapons::resolve_weapons`).
     pub weapons: crate::weapons::WeaponRules,

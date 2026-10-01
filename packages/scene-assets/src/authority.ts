@@ -14,19 +14,17 @@ export interface AuthorityFixture {
     infantry_eye_m: number;
     infantry_muzzle_m: number;
   };
-  map: { forests: readonly { canopy_height_m: number }[] };
+  forests: { rule: { canopy_height_m: number } };
 }
 
 export function fixtureAuthority(fixture: AuthorityFixture, units: UnitCatalog): Authority {
   const p = fixture.physics;
-  const canopies = fixture.map.forests.map((f) => f.canopy_height_m);
   return {
     soldier_height_m: p.soldier_height_m,
     infantry_eye_m: p.infantry_eye_m,
     infantry_muzzle_m: p.infantry_muzzle_m,
     units,
-    // A map without forests has no canopy to stand in.
-    canopy_height_m: canopies.length ? Math.min(...canopies) : Infinity,
+    canopy_height_m: fixture.forests.rule.canopy_height_m,
     ruin_height_m: ruinHeight(units),
   };
 }

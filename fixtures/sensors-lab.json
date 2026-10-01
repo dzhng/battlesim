@@ -6,20 +6,10 @@
   "relief": [{ "kind": "ridge", "center": [700, 480], "peak_m": 25, "radius_m": 90 }],
   "forests": [
     {
-      "rect": [400, 20, 40, 160],
-      "canopy_height_m": 12,
-      "density": "medium",
-      "trunk_radius_m": 0.35,
-      "trunk_height_m": 10,
-      "trunk_clearance_m": 2
+      "shape": {"kind": "polygon","ring": [[400,20],[440,20],[440,180],[400,180]]}
     },
     {
-      "rect": [400, 220, 160, 160],
-      "canopy_height_m": 12,
-      "density": "dense",
-      "trunk_radius_m": 0.35,
-      "trunk_height_m": 10,
-      "trunk_clearance_m": 2
+      "shape": {"kind": "polygon","ring": [[400,220],[560,220],[560,380],[400,380]]}
     }
   ],
   "props": [

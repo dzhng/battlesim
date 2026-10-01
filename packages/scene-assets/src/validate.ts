@@ -934,7 +934,7 @@ function canopyFindings(
     ? [
         finding(
           "fit.canopy",
-          `${label}: crown top at ${fmt(top)} m, above the forests' canopy of ${authority.canopy_height_m} m (map.forests[].canopy_height_m)`,
+          `${label}: crown top at ${fmt(top)} m, above the forests' canopy of ${authority.canopy_height_m} m (forests.rule.canopy_height_m)`,
           "lower the crown under the canopy height; placement scales each tree down to fit its forest",
         ),
       ]

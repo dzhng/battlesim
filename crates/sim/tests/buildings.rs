@@ -4,13 +4,7 @@ use contract::scenario::ScenarioDefinition;
 use serde_json::{json, Value};
 use sim::battle::Battle;
 
-fn original_setup(mut input: Value) -> ScenarioDefinition {
-    input["map"]["fog_cell_m"] = input["rules"]["sensors"]
-        .as_object_mut()
-        .unwrap()
-        .remove("fog_cell_m")
-        .unwrap();
-    crate::common::migrate_original_surfaces(&mut input["map"]);
+fn original_setup(input: Value) -> ScenarioDefinition {
     serde_json::from_value(input).unwrap()
 }
 fn original_observation(frame: &contract::observation::ObservationFrame) -> String {
@@ -39,42 +33,33 @@ fn original_props(world: &sim::world::WorldGeometry) -> String {
 }
 
 #[test]
-fn singleton_cutover_preserves_frozen_observations_digests_queries_and_seats() {
+fn buildings_match_the_parity_oracle_observations_digests_queries_and_seats() {
     let oracle: Value = serde_json::from_str(include_str!(
         "../../../fixtures/parity/buildings/oracle.json"
     ))
     .unwrap();
-    for arm in oracle["arms"].as_array().unwrap() {
+    let mut blessed = oracle.clone();
+    for arm in blessed["arms"].as_array_mut().unwrap() {
         let mut setup: ScenarioDefinition = original_setup(arm["scenario"].clone());
         setup.map = crate::common::physical_map(setup.map, &setup.rules);
         let mut b = Battle::new(&setup, arm["seed"].as_u64().unwrap());
-        assert_eq!(original_props(b.world()), arm["props"].as_str().unwrap());
         let slots: Vec<_> = b.world().props().filter(|p|p.body.garrison).map(|p| json!({"id":p.id,"slots":sim::garrison::slots(b.world(),p,&setup.rules).iter().map(|s|json!({"position":[s.position.x,s.position.y,s.position.z],"normal":[s.slot.normal.x,s.slot.normal.y],"facade":s.slot.facade})).collect::<Vec<_>>()})).collect();
-        assert_eq!(
-            serde_json::to_string(&slots).unwrap(),
-            arm["slots"].as_str().unwrap()
-        );
         let queries: Vec<_>=b.world().props().filter(|p|p.body.garrison).map(|p|json!({"id":p.id,"surface":sim::world::export::surface_record(b.world().surface_at(p.center.x,p.center.y)),"hit":sim::world::export::hit_record(b.world().raycast(sim::math::v3(p.center.x-60.0,p.center.y,p.base_z+2.0),sim::math::v3(1.0,0.0,0.0),100.0))})).collect();
-        assert_eq!(
-            serde_json::to_string(&queries).unwrap(),
-            arm["queries"].as_str().unwrap()
-        );
-        for row in arm["rows"].as_array().unwrap() {
+        let actual = [
+            ("props", original_props(b.world())),
+            ("slots", serde_json::to_string(&slots).unwrap()),
+            ("queries", serde_json::to_string(&queries).unwrap()),
+        ];
+        for (key, value) in actual {
+            arm[key] = json!(value);
+        }
+        for row in arm["rows"].as_array_mut().unwrap() {
             while b.tick() < row["tick"].as_u64().unwrap() {
                 b.step();
             }
-            assert_eq!(
-                format!("{:016x}", b.digest()),
-                row["digest"].as_str().unwrap()
-            );
+            row["digest"] = json!(format!("{:016x}", b.digest()));
             for (side, name) in [(Side::Blue, "blue"), (Side::Red, "red")] {
-                assert_eq!(
-                    original_observation(b.observe(side)),
-                    row[name].as_str().unwrap(),
-                    "{} tick {} {name}",
-                    arm["name"],
-                    b.tick()
-                );
+                row[name] = json!(original_observation(b.observe(side)));
             }
         }
         let mut replay = Battle::from_replay(&setup, &b.replay()).unwrap();
@@ -82,6 +67,33 @@ fn singleton_cutover_preserves_frozen_observations_digests_queries_and_seats() {
             replay.step();
         }
         assert_eq!(replay.digest(), b.digest());
+    }
+    if crate::common::bless_parity("buildings/oracle.json", &blessed) {
+        return;
+    }
+    for (arm, expected) in blessed["arms"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(oracle["arms"].as_array().unwrap())
+    {
+        for key in ["props", "slots", "queries"] {
+            assert_eq!(arm[key], expected[key], "{} {key}", arm["name"]);
+        }
+        for (row, frozen) in arm["rows"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .zip(expected["rows"].as_array().unwrap())
+        {
+            for key in ["digest", "blue", "red"] {
+                assert_eq!(
+                    row[key], frozen[key],
+                    "{} tick {} {key}",
+                    arm["name"], row["tick"]
+                );
+            }
+        }
     }
 }
 

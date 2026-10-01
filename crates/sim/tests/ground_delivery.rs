@@ -261,8 +261,7 @@ fn busy_setup() -> contract::scenario::ScenarioDefinition {
         json!([drive(0, [420.0, 320.0]), drive(1, [760.0, 80.0])]),
     );
     setup.map.forests = serde_json::from_value(json!([{
-        "rect": [108, 194, 65, 40], "density": "light", "canopy_height_m": 12,
-        "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2
+        "shape":{"kind":"polygon","ring":[[108.0,194.0],[173.0,194.0],[173.0,234.0],[108.0,234.0]]}
     }]))
     .unwrap();
     setup

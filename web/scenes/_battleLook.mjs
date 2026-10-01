@@ -173,7 +173,9 @@ const xrayAt = (png, p) => anyNear(png, p, 3, ([r, g, b]) => b > 60 && b > r + 2
 export async function woodsTour(ctx) {
   const page = await openBattle(ctx, { viewport: VIEWPORT, tick: 60 });
   await page.addStyleTag({ content: HIDE_READOUTS });
-  const wood = village.map.forests[0].rect;
+  // The west wood is an axis-aligned ring: its rect is [x, y, w, h].
+  const [[x0, y0], , [x1, y1]] = village.map.forests[0].shape.ring;
+  const wood = [x0, y0, x1 - x0, y1 - y0];
   const goal = [wood[0] + 40, wood[1] + wood[3] - 40];
   let o = await obs(page);
   const squads = o.own.filter((u) => u.members.length > 0 && u.kind === "rifle");

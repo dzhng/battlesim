@@ -17,6 +17,7 @@ import type { WorldExports, WorldLayout, WorldOverlay } from "../worldMesh";
 import type { SurfaceGeometry } from "./surfaces";
 import type { Biome } from "./biome";
 import { generatePlots, type PlotTree } from "./plots";
+import { buildForestShapes, type ForestShape } from "./forestShapes";
 import type { TerrainGrid } from "./terrainGrid";
 
 /** Rects `x, y, w, h` per record. */
@@ -28,10 +29,12 @@ export const FOOTPRINT_FLOATS = 5;
 export interface TerrainSite extends SurfaceGeometry {
   /** Map box `[minX, minY, maxX, maxY]`. */
   map: readonly [number, number, number, number];
-  /** The authored forests' rects (`RECT_FLOATS` each): the forest floor,
+  /** Exact rectangle fast-path forests (`RECT_FLOATS` each): the forest floor,
    *  as the simulation's forest ground (less its cleared lanes, drawn as
    *  crushed ground). */
   forests: Float32Array;
+  /** Authored-order primitives and canopy metadata; also used to fit tree crowns. */
+  forestShapes: readonly ForestShape[];
   water: Float32Array;
   buildings: readonly Vec2[];
   /** Every static prop's footprint (`FOOTPRINT_FLOATS` each), where no grass grows. */
@@ -137,6 +140,7 @@ export function buildTerrainSurface(
       surfaceBoundaries: exports.surfaceBoundaries,
       surfaceBoundaryStride: layout.surfaceBoundaryStride,
       forests: rects(exports.forests, layout),
+      forestShapes: buildForestShapes(exports, layout),
       water: rects(exports.water, layout),
       buildings,
       footprints,

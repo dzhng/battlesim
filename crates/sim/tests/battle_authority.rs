@@ -191,9 +191,7 @@ fn map_resolution_cuts_visibility_and_foliage_together() {
         let map = serde_json::json!({
             "size": [19, 12], "height_grid_m": 4, "slope_cutoff_deg": 35,
             "fog_cell_m": cell,
-            "forests": [{ "rect": [0, 0, 19, 12], "density": "dense",
-                "canopy_height_m": 12, "trunk_radius_m": 0.35,
-                "trunk_height_m": 10, "trunk_clearance_m": 2 }]
+            "forests": [{ "shape":{"kind":"polygon","ring":[[0.0,0.0],[19.0,0.0],[19.0,12.0],[0.0,12.0]]}}]
         });
         let setup = common::scenario(
             &map.to_string(),

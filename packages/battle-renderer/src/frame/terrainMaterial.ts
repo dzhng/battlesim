@@ -7,8 +7,8 @@
 // The plot edges wander (a small warp gives them a hand-cut line); the road
 // and water masks are the simulation's own shapes, so a road's 50% blend is
 // on the road rule's edge. The forest floor (leaf litter, moss, humus, roots)
-// covers the simulation's forest rects and meets the field across a ragged
-// verge on each rect's edge: the rect stays the rule, only its
+// covers the simulation's forest shapes and meets the field across a ragged
+// verge on each shape's edge: the shape stays the rule, only its
 // look is softened. Under the crowns, `groundDapple` lets sun flecks through.
 // Detail finer than a pixel fades to its mean, so the patchwork neither
 // shimmers nor changes value with zoom.
@@ -20,6 +20,12 @@ import { tgpu, d, std } from "typegpu";
 import { pcgHash } from "../shaders/pcgHash";
 import { MAX_PLOT_DEPTH, NODE_FLOATS, type PlotTree } from "../terrain/plots";
 import { RECT_FLOATS, type TerrainSurface } from "../terrain/terrainSurface";
+import {
+  FOREST_BOUNDARY_FLOATS,
+  FOREST_STROKE_FLOATS,
+  FOREST_TRIANGLE_FLOATS,
+  type ForestShape,
+} from "../terrain/forestShapes";
 import { SCAR_CHANNELS, type ForestFloor, type ScarMark } from "../terrain/biome";
 import type { Rgb } from "../light/sceneLight";
 import type { GpuRegistry, GpuSlot } from "./registry";
@@ -41,6 +47,8 @@ const TerrainParams = d.struct({
   counts: d.vec4u,
   /** Exposed native polygon-union boundary segments. */
   boundaryCount: d.u32,
+  /** Nonrect forest groups appended to the same native primitive buffer. */
+  forestShapes: d.vec2u,
   /** Edge warp metres, 1 / warp scale, 1 / fine mottle scale, 1 / broad mottle scale. */
   shape: d.vec4f,
   /** Linear rgb, verge half width. */
@@ -160,7 +168,8 @@ const MOTTLE_SLOPE_STEP = 0.05;
 const MOTTLE_DRY = d.vec3f(0.7, 0, -0.9);
 const NODE_BYTES = 32;
 const PLOT_BYTES = 48;
-const SURFACE_BYTES = 32;
+/** One stroke, triangle, boundary or forest header record: 8 floats. */
+const SURFACE_FLOATS = 8;
 
 /** Value noise on a unit lattice, in [0, 1]: an integer hash per lattice
  *  corner (no sin-hash, which loses precision kilometres out), smoothly
@@ -249,25 +258,69 @@ const rectInside = tgpu.fn(
   return std.min(std.min(xy.x - r.x, r.z - xy.x), std.min(xy.y - r.y, r.w - xy.y));
 });
 
-/** How far `xy` lies inside the deepest forest rect (negative outside): the
- *  simulation's forest. */
-export const groundForest = tgpu.fn(
-  [d.vec2f],
+/** Distance to a closed segment, for polygon edges and forest strokes. Road
+ * strokes keep their own inline form: changing its float order would move
+ * the village's road edges by an ULP. */
+const polygonEdgeDistance = tgpu.fn(
+  [d.vec2f, d.vec2f, d.vec2f],
   d.f32,
-)((xy) => {
-  "use gpu";
-  let forest = d.f32(-1e9);
-  for (let i = d.u32(0); i < terrainLayout.$.params.counts.y; i++) {
-    forest = std.max(forest, rectInside(xy, terrainLayout.$.rects[i]));
+)(/* wgsl */ `(p:vec2f,a:vec2f,b:vec2f)->f32 {
+ let ab=b-a;let len2=dot(ab,ab);var t=0.0;if(len2>0.0){t=clamp(dot(p-a,ab)/len2,0.0,1.0);}return length(p-(a+ab*t));
+}`);
+
+const polygonTriangleInside = tgpu.fn(
+  [d.vec2f, d.vec2f, d.vec2f, d.vec2f],
+  d.bool,
+)(/* wgsl */ `(xy:vec2f,a:vec2f,b:vec2f,c:vec2f)->bool {
+ let ab=b-a;let bc=c-b;let ca=a-c;
+ let area=dot(vec2f(-ab.y,ab.x),c-a);
+ let s0=dot(vec2f(-ab.y,ab.x),xy-a);let s1=dot(vec2f(-bc.y,bc.x),xy-b);let s2=dot(vec2f(-ca.y,ca.x),xy-c);
+ return area!=0.0&&((min(s0,min(s1,s2))>=0.0)||(max(s0,max(s1,s2))<=0.0));
+}`);
+
+/** Signed native forest-shape distance. Rectangles preserve their original
+ * arithmetic; polygon diagonals are only membership, never feather edges. */
+export const groundForest = tgpu
+  .fn(
+    [d.vec2f],
+    d.f32,
+  )(/* wgsl */ `(xy:vec2f)->f32 {
+ let P=terrainLayout.$.params;var forest=-1e9;
+ for(var i=0u;i<P.counts.y;i++) {forest=max(forest,rectInside(xy,terrainLayout.$.rects[i]));}
+ var group=P.forestShapes.x;
+ let end=group+P.forestShapes.y;
+ while(group<end){
+  let header=terrainLayout.$.surfaces[group];
+  let strokeCount=u32(header.ends.x);let triCount=u32(header.ends.y);let edgeCount=u32(header.ends.z);
+  var at=group+1u;var distance=-1e9;
+  for(var i=0u;i<strokeCount;i++){
+   let seg=terrainLayout.$.surfaces[at+i];
+   distance=max(distance,seg.detail.x-polygonEdgeDistance(xy,seg.ends.xy,seg.ends.zw));
   }
-  return forest;
-});
+  at+=strokeCount;var inside=false;
+  for(var i=0u;i<triCount;i++){
+   let tri=terrainLayout.$.surfaces[at+i];
+   inside=inside||polygonTriangleInside(xy,tri.ends.xy,tri.ends.zw,tri.detail.xy);
+  }
+  at+=triCount;
+  if(edgeCount>0u){
+   var nearest=1e9;
+   for(var i=0u;i<edgeCount;i++){
+    let edge=terrainLayout.$.surfaces[at+i];nearest=min(nearest,polygonEdgeDistance(xy,edge.ends.xy,edge.ends.zw));
+   }
+   distance=max(distance,select(-nearest,nearest,inside));
+  }
+  forest=max(forest,distance);group=at+edgeCount;
+ }
+ return forest;
+}`)
+  .$uses({ terrainLayout, rectInside, polygonEdgeDistance, polygonTriangleInside });
 
 /** How far `xy` lies inside the forest floor's drawn edge, in metres
  *  (negative outside), `forest` metres inside the simulation's forest. The
- *  drawn edge is a verge `verge_m` wide lying mostly outside the rect, its
+ *  drawn edge is a verge `verge_m` wide lying mostly outside the shape, its
  *  line wandering and broken into patches, so the wood meets the field
- *  without a ruled edge. The rect stays the rule; this is only its look, and
+ *  without a ruled edge. The native shape stays the rule; this is only its look, and
  *  the grass stops at whichever edge lies farther out. */
 export const forestVergeInside = tgpu.fn(
   [d.vec2f, d.f32],
@@ -350,15 +403,6 @@ export const groundDapple = tgpu.fn(
   return flecks * dapple.z * forestFloorWeight(xy, forest, footprint);
 });
 
-/** Polygon edges use their actual closed-segment distance. Stroke math stays
- * inline below so the village retains its original float operation order. */
-const polygonEdgeDistance = tgpu.fn(
-  [d.vec2f, d.vec2f, d.vec2f],
-  d.f32,
-)(/* wgsl */ `(p:vec2f,a:vec2f,b:vec2f)->f32 {
- let ab=b-a;let len2=dot(ab,ab);var t=0.0;if(len2>0.0){t=clamp(dot(p-a,ab)/len2,0.0,1.0);}return length(p-(a+ab*t));
-}`);
-
 /** Membership comes from native triangles; only the exposed union boundary
  * contributes polygon feathering. Stroke math retains its original order. */
 const pavedSurfaceDistance = tgpu
@@ -377,10 +421,7 @@ const pavedSurfaceDistance = tgpu
  for(var i=0u;i<P.counts.w;i++){
   let tri=terrainLayout.$.surfaces[P.counts.x+i];
   let a=tri.ends.xy;let b=tri.ends.zw;let c=tri.detail.xy;
-  let ab=b-a;let bc=c-b;let ca=a-c;
-  let area=dot(vec2f(-ab.y,ab.x),c-a);
-  let s0=dot(vec2f(-ab.y,ab.x),xy-a);let s1=dot(vec2f(-bc.y,bc.x),xy-b);let s2=dot(vec2f(-ca.y,ca.x),xy-c);
-  inside=inside||(area!=0.0&&((min(s0,min(s1,s2))>=0.0)||(max(s0,max(s1,s2))<=0.0)));
+  inside=inside||polygonTriangleInside(xy,a,b,c);
  }
  if(P.boundaryCount>0u){
   var nearest=1e9;
@@ -392,13 +433,13 @@ const pavedSurfaceDistance = tgpu
  }
  return paved;
 }`)
-  .$uses({ terrainLayout, polygonEdgeDistance });
+  .$uses({ terrainLayout, polygonEdgeDistance, polygonTriangleInside });
 
 /** Where `xy` sits in the ground's features, in metres:
  *  `(plot, edge, road, forest)`. `plot` is the plot's index (a whole
  *  number); `edge` the distance to its (warped) edge; `road` how far inside
  *  the nearest paved shape's edge (negative outside); `forest` how far inside the
- *  deepest forest rect (negative outside). The ground's colour and the grass
+ *  deepest forest shape (negative outside). The ground's colour and the grass
  *  both read it, so grass grows exactly where the ground says what it is. */
 export const groundSite = tgpu.fn(
   [d.vec2f],
@@ -516,7 +557,7 @@ export const groundColour = tgpu.fn(
   );
   albedo = std.mix(albedo, params.distant.xyz, distant);
 
-  // The forest floor, over the simulation's forest rects and their verge.
+  // The forest floor, over the simulation's forest shapes and their verge.
   const forest = forestFloorWeight(xy, site.w, footprint);
   if (forest > 0) {
     albedo = std.mix(albedo, forestFloor(xy, footprint, noise), forest);
@@ -1025,36 +1066,54 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
       const strokeCount = site.surfaceStrokes.length / site.surfaceStrokeStride;
       const triangleCount = site.surfaceTriangles.length / site.surfaceTriangleStride;
       const boundaryCount = site.surfaceBoundaries.length / site.surfaceBoundaryStride;
+      const pavingRecords = strokeCount + triangleCount + boundaryCount;
+      const nonrect = site.forestShapes.filter((shape) => shape.kind !== "rectangle");
+      const counts = (shape: ForestShape) => [
+        shape.strokes.length / FOREST_STROKE_FLOATS,
+        shape.triangles.length / FOREST_TRIANGLE_FLOATS,
+        shape.boundaries.length / FOREST_BOUNDARY_FLOATS,
+      ];
+      let forestRecords = 0;
+      for (const shape of nonrect) forestRecords += 1 + counts(shape).reduce((a, b) => a + b);
       const surfaceBytes = new Float32Array(
-        Math.max(1, strokeCount + triangleCount + boundaryCount) * (SURFACE_BYTES / 4),
+        Math.max(1, pavingRecords + forestRecords) * SURFACE_FLOATS,
       );
       for (let r = 0; r < strokeCount; r++)
         surfaceBytes.set(
           site.surfaceStrokes.subarray(
             r * site.surfaceStrokeStride,
-            r * site.surfaceStrokeStride + 6,
+            r * site.surfaceStrokeStride + FOREST_STROKE_FLOATS,
           ),
-          r * 8,
+          r * SURFACE_FLOATS,
         );
       for (let r = 0; r < triangleCount; r++)
         surfaceBytes.set(
           site.surfaceTriangles.subarray(
             r * site.surfaceTriangleStride,
-            r * site.surfaceTriangleStride + 7,
+            r * site.surfaceTriangleStride + FOREST_TRIANGLE_FLOATS,
           ),
-          (strokeCount + r) * 8,
+          (strokeCount + r) * SURFACE_FLOATS,
         );
       for (let r = 0; r < boundaryCount; r++)
         surfaceBytes.set(
           site.surfaceBoundaries.subarray(
             r * site.surfaceBoundaryStride,
-            r * site.surfaceBoundaryStride + 5,
+            r * site.surfaceBoundaryStride + FOREST_BOUNDARY_FLOATS,
           ),
-          (strokeCount + triangleCount + r) * 8,
+          (strokeCount + triangleCount + r) * SURFACE_FLOATS,
         );
-      surfaces
-        .set(surfaceBuffer(strokeCount + triangleCount + boundaryCount))
-        .write(surfaceBytes.buffer);
+      let forestAt = pavingRecords;
+      for (const shape of nonrect) {
+        surfaceBytes.set([...counts(shape), 0], forestAt++ * SURFACE_FLOATS);
+        for (const [records, stride] of [
+          [shape.strokes, FOREST_STROKE_FLOATS],
+          [shape.triangles, FOREST_TRIANGLE_FLOATS],
+          [shape.boundaries, FOREST_BOUNDARY_FLOATS],
+        ] as const)
+          for (let o = 0; o < records.length; o += stride)
+            surfaceBytes.set(records.subarray(o, o + stride), forestAt++ * SURFACE_FLOATS);
+      }
+      surfaces.set(surfaceBuffer(pavingRecords + forestRecords)).write(surfaceBytes.buffer);
       const forestCount = site.forests.length / RECT_FLOATS;
       const waterCount = site.water.length / RECT_FLOATS;
       const rectBytes = new Float32Array(Math.max(1, forestCount + waterCount) * 4);
@@ -1071,6 +1130,7 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
         region: d.vec4f(...tree.region),
         counts: d.vec4u(strokeCount, forestCount, waterCount, triangleCount),
         boundaryCount,
+        forestShapes: d.vec2u(pavingRecords, forestRecords),
         shape: d.vec4f(
           rules.edge_warp_m,
           1 / rules.edge_warp_scale_m,

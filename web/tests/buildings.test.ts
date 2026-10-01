@@ -11,7 +11,11 @@ import {
   materialize_template,
   template_catalogue_json,
 } from "@wasm/game_wasm.js";
-import type { WorldExports, WorldLayout } from "@packages/battle-renderer/src/worldMesh";
+import {
+  readWorldExports,
+  type WorldExports,
+  type WorldLayout,
+} from "@packages/battle-renderer/src/worldMesh";
 import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/observation";
 let memory: WebAssembly.Memory;
 beforeAll(() => {
@@ -80,24 +84,7 @@ test("the public picker and delivered replacements share one physical building o
   );
   try {
     const layout = JSON.parse(world_layout(JSON.stringify(rules))) as WorldLayout;
-    const exports: WorldExports = {
-      terrain: {
-        ...JSON.parse(view.terrain_grid()),
-        pageIds: view.terrain_page_ids(),
-        heights: view.terrain_heights(),
-      },
-      positions: view.terrain_positions(),
-      indices: view.terrain_indices(),
-      triangleSurfaces: view.terrain_triangle_surfaces(),
-      props: view.props(),
-      buildings: JSON.parse(view.buildings()),
-      water: view.water(),
-      forests: view.forests(),
-      foliage: view.foliage(),
-      surfaceStrokes: view.surface_strokes(),
-      surfaceTriangles: view.surface_triangles(),
-      surfaceBoundaries: view.surface_boundaries(),
-    };
+    const exports: WorldExports = readWorldExports(view);
     expect(exports.buildings).toEqual({
       catalogueHash: hash,
       buildings: [

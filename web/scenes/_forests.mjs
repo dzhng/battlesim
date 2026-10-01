@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 
-/** Query the production terrain material at the public surface-export seam. */
-export async function surfaceExportAgreement(ctx) {
+/** Query the production terrain material at the public forest-export seam. */
+export async function forestExportAgreement(ctx) {
   const page = await ctx.newPage();
   await page.goto(new URL("/", ctx.url).href);
   const repo = new URL("../../", import.meta.url).pathname;
@@ -23,43 +23,41 @@ export async function surfaceExportAgreement(ctx) {
         import(file("packages/renderer-core/src/gpuAllocations.ts")),
       ]);
     await wasm.default();
-    const polygon = (ring) => ({ kind: "road", shape: { kind: "polygon", ring } });
+    const forest = (shape) => ({ shape });
     const map = {
-      size: [32, 64],
+      size: [256, 128],
       height_grid_m: 4,
       fog_cell_m: 8,
       slope_cutoff_deg: 35,
-      surfaces: [
-        polygon([
-          [2, 2],
-          [12, 2],
-          [12, 12],
-          [2, 12],
-        ]),
-        polygon([
-          [2, 20],
-          [12, 20],
-          [12, 30],
-          [2, 30],
-        ]),
-        polygon([
-          [7, 20],
-          [17, 20],
-          [17, 30],
-          [7, 30],
-        ]),
-        polygon([
-          [2, 40],
-          [12, 40],
-          [12, 50],
-          [2, 50],
-        ]),
-        polygon([
-          [12, 40],
-          [22, 40],
-          [22, 50],
-          [12, 50],
-        ]),
+      forests: [
+        forest({
+          kind: "polygon",
+          ring: [
+            [0, 0],
+            [90, 0],
+            [90, 27],
+            [27, 27],
+            [27, 90],
+            [0, 90],
+          ],
+        }),
+        forest({
+          kind: "polygon",
+          ring: [
+            [180, 0],
+            [240, 0],
+            [240, 60],
+            [180, 60],
+          ],
+        }),
+        forest({
+          kind: "stroke",
+          points: [
+            [100, 20],
+            [160, 80],
+          ],
+          width_m: 18,
+        }),
       ],
     };
     const view = new wasm.WorldView(JSON.stringify(map), JSON.stringify(rules.VILLAGE_RULES));
@@ -78,17 +76,13 @@ export async function surfaceExportAgreement(ctx) {
       return shader(descriptor);
     };
     const cases = [
-      { name: "single polygon diagonal centre", xy: [7, 7], distance: 5 },
-      { name: "single polygon across diagonal", xy: [7.25, 7], distance: 4.75 },
-      { name: "single polygon inside outer edge", xy: [2.25, 7], distance: 0.25 },
-      { name: "single polygon outside outer edge", xy: [1.75, 7], distance: -0.25 },
-      { name: "single polygon on outer edge", xy: [7, 2], distance: 0 },
-      { name: "overlap covers second polygon boundary", xy: [7, 25], distance: 5 },
-      { name: "overlap covers first polygon boundary", xy: [12, 25], distance: 5 },
-      { name: "overlap distance reaches exposed union boundary", xy: [9.5, 25], distance: 5 },
-      { name: "touching polygon shared edge", xy: [12, 45], distance: 5 },
-      { name: "left of touching polygon edge", xy: [11.75, 45], distance: 5 },
-      { name: "right of touching polygon edge", xy: [12.25, 45], distance: 5 },
+      { name: "concave polygon interior", xy: [10, 50], distance: 10 },
+      { name: "concave polygon notch", xy: [50, 50], distance: -23 },
+      { name: "closed polygon edge", xy: [27, 70], distance: 0 },
+      { name: "across polygon triangulation diagonal", xy: [13.5, 45], distance: 13.5 },
+      { name: "mixed-ID exact rectangle", xy: [210, 30], distance: 30 },
+      { name: "diagonal strip centre", xy: [130, 50], distance: 9 },
+      { name: "closed capsule endpoint outside", xy: [100, 10], distance: -1 },
     ];
     let rows;
     try {
@@ -103,12 +97,11 @@ export async function surfaceExportAgreement(ctx) {
         output: { storage: (n) => d.arrayOf(d.vec4f, n), access: "mutable" },
       });
       const groundSite = terrain.groundSite;
-      const groundColour = terrain.groundColour;
       const kernel = tgpu
         .computeFn({ in: { gid: d.builtin.globalInvocationId }, workgroupSize: [1] })(`{
-        let xy=queryLayout.$.points[gid.x];let site=groundSite(xy);let actual=groundColour(xy,0.1,site,-1e9);let interior=groundColour(xy,0.1,vec4f(site.xy,5.0,site.w),-1e9);queryLayout.$.output[gid.x]=vec4f(site.z,actual.w,interior.w,site.w);
+        let xy=queryLayout.$.points[gid.x];let site=groundSite(xy);queryLayout.$.output[gid.x]=vec4f(site.w,site.z,0.0,0.0);
       }`)
-        .$uses({ queryLayout, groundSite, groundColour });
+        .$uses({ queryLayout, groundSite });
       const pipeline = root.createComputePipeline({ compute: kernel });
       await pipeline.initAsync();
       const input = registry.buffer({
@@ -138,8 +131,7 @@ export async function surfaceExportAgreement(ctx) {
         rows = cases.map((c, i) => ({
           ...c,
           actual: values[i * 4],
-          roughness: values[i * 4 + 1],
-          interiorRoughness: values[i * 4 + 2],
+          nativeForest: view.surface_at(c.xy[0], c.xy[1])[6],
         }));
       } finally {
         read.unmap();
@@ -157,12 +149,18 @@ export async function surfaceExportAgreement(ctx) {
   delete result.compiled;
   result.shaderHashes = compiled.map((s) => createHash("sha256").update(s).digest("hex"));
   for (let i = 0; i < compiled.length; i++)
-    await writeFile(ctx.evidencePath(`surface-query-${i}.wgsl`), compiled[i]);
-  await writeFile(ctx.evidencePath("surface-query.json"), JSON.stringify(result, null, 2));
+    await writeFile(ctx.evidencePath(`forest-query-${i}.wgsl`), compiled[i]);
+  await writeFile(ctx.evidencePath("forest-query.json"), JSON.stringify(result, null, 2));
   ctx.check(
-    "polygon paving uses exposed union boundaries across diagonals, overlaps and touching edges",
+    "forest floor uses native concave, capsule and explicit rectangle primitives",
+    // WGSL's sqrt/length are not correctly rounded, so a GPU distance may sit a
+    // few f32 steps off. Membership is the contract: the GPU's side of the
+    // boundary must equal the sim's, and the distance must agree to 0.1 mm.
     result.rows.every(
-      (r) => r.actual === r.distance && (r.distance !== 5 || r.roughness === r.interiorRoughness),
+      (r) =>
+        Math.abs(r.actual - r.distance) <= 1e-4 &&
+        r.nativeForest === (r.distance >= 0 ? 1 : 0) &&
+        (r.actual >= 0 ? 1 : 0) === r.nativeForest,
     ) &&
       result.validation.length === 0 &&
       Object.values(result.final).every((value) => value === 0),

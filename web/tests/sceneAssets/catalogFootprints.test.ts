@@ -105,7 +105,7 @@ test("which prop types a scenery kind draws is the prop catalog's drawn_by, both
 });
 
 test("the building appearances' one ruin state refuses remains of differing heights", () => {
-  const fixture = { physics: village.physics, map: { forests: [] } };
+  const fixture = { physics: village.physics, forests: village.forests };
   expect(fixtureAuthority(fixture, units).ruin_height_m).toBe(ruinHalf * 2);
   const building = units.view.props.building;
   const keep = { ...building, destroyed: { into: { prop: "ruin", height_m: ruinHalf * 2 + 1 } } };

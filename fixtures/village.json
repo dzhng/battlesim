@@ -84,30 +84,10 @@
     ],
     "forests": [
       {
-        "rect": [
-          700,
-          880,
-          180,
-          160
-        ],
-        "canopy_height_m": 12,
-        "density": "medium",
-        "trunk_radius_m": 0.35,
-        "trunk_height_m": 10,
-        "trunk_clearance_m": 2
+        "shape": {"kind": "polygon","ring": [[700,880],[880,880],[880,1040],[700,1040]]}
       },
       {
-        "rect": [
-          1080,
-          600,
-          160,
-          180
-        ],
-        "canopy_height_m": 12,
-        "density": "light",
-        "trunk_radius_m": 0.35,
-        "trunk_height_m": 10,
-        "trunk_clearance_m": 2
+        "shape": {"kind": "polygon","ring": [[1080,600],[1240,600],[1240,780],[1080,780]]}
       }
     ],
     "props": [
@@ -601,11 +581,7 @@
   "controls": { "reverse_zone_length_m": 30, "reverse_zone_margin_m": 2 },
   "forests": {
     "tree": "trunk",
-    "densities": {
-      "light": { "trunk_spacing_m": 14, "trunk_jitter": 0.3, "concealment_infantry": 0.7, "concealment_vehicle": 0.9, "attenuation_per_m": 0.007, "canopy_radius_m": 8 },
-      "medium": { "trunk_spacing_m": 9, "trunk_jitter": 0.3, "concealment_infantry": 0.45, "concealment_vehicle": 0.7, "attenuation_per_m": 0.011, "canopy_radius_m": 6.5 },
-      "dense": { "trunk_spacing_m": 6, "trunk_jitter": 0.25, "concealment_infantry": 0.3, "concealment_vehicle": 0.5, "attenuation_per_m": 0.02, "canopy_radius_m": 5 }
-    }
+    "rule": { "trunk_spacing_m": 9, "trunk_jitter": 0.3, "concealment_infantry": 0.45, "concealment_vehicle": 0.7, "attenuation_per_m": 0.011, "canopy_radius_m": 6.5, "canopy_height_m": 12, "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2 }
   },
   "variants": {
     "ordinary": {

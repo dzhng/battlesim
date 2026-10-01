@@ -17,8 +17,8 @@ pub struct Prop {
     pub base_z: f64,
     /// Its prop type's body row: what it blocks, stops, hides and weighs.
     pub body: PropBody,
-    /// A tree's crown, for the trunks a forest generates.
-    pub canopy: Option<super::Canopy>,
+    /// A tree a forest generated: its crown hides by the one `forests.rule`.
+    pub forest_tree: bool,
     /// Every side plans with it, seen or not: remains that close an
     /// authored body's footprint as the body did (a building's ruin).
     pub known_to_all: bool,

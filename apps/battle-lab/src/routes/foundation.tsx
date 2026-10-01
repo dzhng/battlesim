@@ -72,6 +72,7 @@ function groundPatch(): WorldLayers {
     surfaceTriangleStride: 7,
     surfaceBoundaryStride: 5,
     forests: none,
+    forestShapes: [],
     water: none,
     buildings: [],
     footprints: none,

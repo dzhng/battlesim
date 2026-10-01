@@ -1,25 +1,21 @@
-//! Forests as bodies, with densities (Q14, Q16, Q21). A forest
-//! rect and its density only generate trunks; at runtime a forest is those
-//! bodies plus the ground a heavy vehicle has cleared, and every forest
-//! query (speed, concealment, sight, cover, fog) reads both.
+//! Forests as bodies, all by one rule (Q14, Q16, Q21, Q-G8b). A forest's
+//! shape only generates trunks; at runtime a forest is those bodies plus the
+//! ground a heavy vehicle has cleared, and every forest query (speed,
+//! concealment, sight, cover, fog) reads both.
 use crate::common;
 
 use contract::ids::{Side, UnitId};
 use contract::map::MoverClass;
-use contract::scenario::{ForestDensity, PushClass};
+use contract::scenario::PushClass;
 use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::math::{v2, v3, Obb2, V2};
 use sim::visibility::{self, OcclusionGrid};
 use sim::world::WorldGeometry;
 
-fn density(name: &str) -> ForestDensity {
-    common::forest_rules().densities[name]
-}
-
-fn forest(rect: [f64; 4], density: &str) -> Value {
-    json!({ "rect": rect, "density": density, "canopy_height_m": 12, "trunk_radius_m": 0.35,
-            "trunk_height_m": 10, "trunk_clearance_m": 2 })
+fn forest(rect: [f64; 4]) -> Value {
+    let [x, y, w, h] = rect;
+    json!({ "shape": {"kind":"polygon","ring":[[x,y],[x+w,y],[x+w,y+h],[x,y+h]]}})
 }
 
 fn forests(list: Value) -> WorldGeometry {
@@ -33,22 +29,23 @@ fn trunks_in(w: &WorldGeometry, x0: f64, x1: f64) -> Vec<V2> {
         .collect()
 }
 
-/// Q16: a density's spacing sets how many trunks stand and how close.
+/// Q16, Q-G8b: the one rule's spacing sets how many trunks stand and how
+/// close, in every forest alike.
 #[test]
-fn density_sets_trunk_spacing() {
+fn the_rule_sets_trunk_spacing_in_every_forest() {
     let w = forests(json!([
-        forest([0.0, 0.0, 120.0, 120.0], "light"),
-        forest([150.0, 0.0, 120.0, 120.0], "dense")
+        forest([0.0, 0.0, 120.0, 120.0]),
+        forest([150.0, 0.0, 120.0, 120.0])
     ]));
-    for (name, x0, x1) in [("light", 0.0, 120.0), ("dense", 150.0, 270.0)] {
-        let d = density(name);
+    let d = common::forest_rules().rule;
+    for (x0, x1) in [(0.0, 120.0), (150.0, 270.0)] {
         let trunks = trunks_in(&w, x0, x1);
-        let per_axis = ((120.0 - d.trunk_spacing_m / 2.0) / d.trunk_spacing_m).floor() + 1.0;
+        let per_axis: f64 = ((120.0 - d.trunk_spacing_m / 2.0) / d.trunk_spacing_m).floor() + 1.0;
         let grid = per_axis * per_axis;
         // A jittered trunk never leaves its forest, so a few edge ones go.
         assert!(
             trunks.len() as f64 <= grid && trunks.len() as f64 >= 0.85 * grid,
-            "{name}: {} trunks on a {grid} grid",
+            "{x0}: {} trunks on a {grid} grid",
             trunks.len()
         );
         let closest = trunks
@@ -57,23 +54,23 @@ fn density_sets_trunk_spacing() {
             .flat_map(|(i, a)| trunks[i + 1..].iter().map(move |b| (*a - *b).length()))
             .fold(f64::INFINITY, f64::min);
         let floor = d.trunk_spacing_m * (1.0 - 2.0 * d.trunk_jitter);
-        assert!(closest >= floor - 1e-9, "{name}: {closest:.2} m apart");
+        assert!(closest >= floor - 1e-9, "{x0}: {closest:.2} m apart");
     }
     // The same forest places the same trunks.
     let again = forests(json!([
-        forest([0.0, 0.0, 120.0, 120.0], "light"),
-        forest([150.0, 0.0, 120.0, 120.0], "dense")
+        forest([0.0, 0.0, 120.0, 120.0]),
+        forest([150.0, 0.0, 120.0, 120.0])
     ]));
     assert_eq!(trunks_in(&w, 0.0, 300.0), trunks_in(&again, 0.0, 300.0));
 }
 
-/// Q16, Q21: light forest hides infantry far less than dense, vehicles
-/// likewise, and open ground not at all.
+/// Q21, Q-G8b: every forest hides alike, infantry more than vehicles, and
+/// open ground not at all.
 #[test]
-fn denser_forest_conceals_more() {
+fn every_forest_conceals_alike() {
     let w = forests(json!([
-        forest([0.0, 0.0, 120.0, 120.0], "light"),
-        forest([150.0, 0.0, 120.0, 120.0], "dense")
+        forest([0.0, 0.0, 120.0, 120.0]),
+        forest([150.0, 0.0, 120.0, 120.0])
     ]));
     // Averaged over the forests' interiors: a single point may sit in a gap.
     let mean = |x0: f64, infantry: bool| {
@@ -89,11 +86,8 @@ fn denser_forest_conceals_more() {
         sum / n
     };
     for infantry in [true, false] {
-        let (light, dense) = (mean(0.0, infantry), mean(150.0, infantry));
-        assert!(
-            dense < light && light < 1.0,
-            "{infantry}: {light} vs {dense}"
-        );
+        let (a, b) = (mean(0.0, infantry), mean(150.0, infantry));
+        assert!(a < 1.0 && (a - b).abs() < 0.02, "{infantry}: {a} vs {b}");
     }
     // Infantry hides more than a vehicle in the same foliage (the class rule).
     assert!(mean(150.0, true) < mean(150.0, false));
@@ -106,7 +100,7 @@ fn denser_forest_conceals_more() {
 /// cover and fog, while the forest beside it is still forest.
 #[test]
 fn a_cleared_lane_reads_as_open_ground() {
-    let mut w = forests(json!([forest([40.0, 0.0, 200.0, 120.0], "medium")]));
+    let mut w = forests(json!([forest([40.0, 0.0, 200.0, 120.0])]));
     let lane = Obb2 {
         center: v2(140.0, 60.0),
         yaw: 0.0,
@@ -191,7 +185,7 @@ fn a_cleared_lane_reads_as_open_ground() {
 /// down.
 #[test]
 fn trunks_block_every_mover_and_only_heavy_push_knocks_them() {
-    let w = forests(json!([forest([0.0, 0.0, 60.0, 60.0], "medium")]));
+    let w = forests(json!([forest([0.0, 0.0, 60.0, 60.0])]));
     let trunk = w.props().find(|p| p.kind == common::kind("trunk")).unwrap();
     assert!(trunk.body.topples);
     assert!(trunk.blocks(MoverClass::Infantry));
@@ -218,7 +212,7 @@ fn only_the_forests_own_tree_decides_who_clears_a_lane() {
     // Trees stand clear of the forest's edge: the truck's hull overlaps the
     // treeless band inside it by a metre.
     let map = json!({ "size": [300, 80], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
-                      "forests": [forest([70.0, 0.0, 60.0, 40.0], "medium")] });
+                      "forests": [forest([70.0, 0.0, 60.0, 40.0])] });
     let setup = serde_json::from_value(json!({
         "map": map, "rules": rules, "events": [],
         "units": [{ "side": "blue", "kind": "supply", "position": [40, 40.4] }],
@@ -236,11 +230,11 @@ fn only_the_forests_own_tree_decides_who_clears_a_lane() {
     assert_eq!(b.world().cleared_cells(), 0, "it knocked nothing down");
 }
 
-/// A tank through medium forest, and a red squad down its lane that did
+/// A tank through the forest, and a red squad down its lane that did
 /// not see the trees fall.
 fn carve(watcher: [f64; 2]) -> contract::scenario::ScenarioDefinition {
     let map = json!({ "size": [1000, 80], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
-                      "forests": [forest([70.0, 0.0, 60.0, 80.0], "medium")] });
+                      "forests": [forest([70.0, 0.0, 60.0, 80.0])] });
     common::scenario_with(
         &map.to_string(),
         json!([
@@ -325,7 +319,7 @@ fn a_side_that_did_not_see_a_tree_fall_keeps_it_standing() {
 /// down and that ground cleared.
 #[test]
 fn foliage_from_known_cleared_ground_matches_the_battle_world() {
-    let list = json!([forest([40.0, 0.0, 120.0, 120.0], "medium")]);
+    let list = json!([forest([40.0, 0.0, 120.0, 120.0])]);
     let fixed = forests(list.clone());
     let mut live = forests(list);
     // A lane across the forest, as a tank leaves it.
@@ -373,7 +367,7 @@ fn foliage_from_known_cleared_ground_matches_the_battle_world() {
 #[test]
 fn the_digest_tells_cleared_lanes_apart_by_place() {
     let cleared = |y: f64| {
-        let mut w = forests(json!([forest([0.0, 0.0, 120.0, 120.0], "light")]));
+        let mut w = forests(json!([forest([0.0, 0.0, 120.0, 120.0])]));
         let lane = Obb2 {
             center: v2(60.0, y),
             yaw: 0.0,
@@ -400,9 +394,54 @@ fn the_digest_tells_cleared_lanes_apart_by_place() {
 /// still writes its (zero) count.
 #[test]
 fn the_cleared_digest_is_framed_by_its_count() {
-    let w = forests(json!([forest([0.0, 0.0, 120.0, 120.0], "light")]));
+    let w = forests(json!([forest([0.0, 0.0, 120.0, 120.0])]));
     assert_eq!(w.cleared_cells(), 0);
     let mut d = sim::digest::Digest::default();
     w.digest_cleared(&mut d);
     assert_ne!(d.finish(), sim::digest::Digest::default().finish());
+}
+
+#[test]
+fn polygon_forest_uses_its_concave_boundary_for_ground_and_trunks() {
+    let w = forests(json!([{
+        "shape": {"kind":"polygon","ring":[[0,0],[90,0],[90,27],[27,27],[27,90],[0,90]]}
+    }]));
+    assert!(w.forest_ground(10.0, 70.0));
+    assert!(w.forest_ground(70.0, 10.0));
+    assert!(
+        w.forest_ground(27.0, 70.0),
+        "the authored boundary is closed"
+    );
+    assert!(
+        !w.forest_ground(70.0, 70.0),
+        "the concave notch is open ground"
+    );
+    let trunks = trunks_in(&w, 0.0, 100.0);
+    assert!(!trunks.is_empty());
+    assert!(
+        trunks.iter().all(|p| p.x <= 27.0 || p.y <= 27.0),
+        "no trunk in the notch"
+    );
+}
+
+#[test]
+fn stroke_forest_uses_capsule_membership_instead_of_its_bounds() {
+    let w = forests(json!([{
+        "shape": {"kind":"stroke","points":[[20,20],[80,80]],"width_m":18}
+    }]));
+    assert!(w.forest_ground(50.0, 50.0));
+    assert!(
+        w.forest_ground(14.0, 20.0),
+        "the endpoint is a closed capsule"
+    );
+    assert!(
+        !w.forest_ground(20.0, 80.0),
+        "bounds must not become physical forest"
+    );
+    let trunks = trunks_in(&w, 0.0, 100.0);
+    assert!(!trunks.is_empty());
+    for p in trunks {
+        let nearest = ((p.x - 20.0) + (p.y - 20.0)).clamp(0.0, 120.0) / 120.0;
+        assert!((p.x - (20.0 + 60.0 * nearest)).hypot(p.y - (20.0 + 60.0 * nearest)) <= 9.0);
+    }
 }

@@ -52,7 +52,7 @@ fn main() {
         r#", "water":[{"rect":[28,0,8,48],"bed_z":-2,"surface_z":-0.5}], "bridges":[{"deck":"bridge_deck","center":[32,10],"half_extents":[12,5],"yaw":0,"deck_z":0.1,"thickness_m":0.8}]"#,
         r#", "water":[{"rect":[28,0,8,48],"bed_z":-2,"surface_z":-0.5}], "bridges":[{"deck":"bridge_deck","center":[32,10],"half_extents":[12,5],"yaw":0,"deck_z":0.1,"thickness_m":0.8}], "surfaces":[{"kind":"road","shape":{"kind":"stroke","points":[[8,34],[24,34],[24,8]],"width_m":4}},{"kind":"road","shape":{"kind":"stroke","points":[[40,8],[40,40],[60,40]],"width_m":4}}]"#,
         r#", "relief":[{"kind":"mesa","rect":[28,12,8,20],"height_m":10,"side_degrees":45}]"#,
-        r#", "forests":[{"rect":[24,12,16,20],"density":"light","canopy_height_m":12,"trunk_radius_m":0.35,"trunk_height_m":10,"trunk_clearance_m":2}]"#,
+        r#", "forests":[{"shape":{"kind":"polygon","ring":[[24.0,12.0],[40.0,12.0],[40.0,32.0],[24.0,32.0]]}}]"#,
         r#", "props":[{"kind":"crate","center":[20,24],"yaw":0.2,"half_extents":[2,2,1]},{"kind":"sandbags","center":[31,24],"yaw":-0.2,"half_extents":[2,2,1]},{"kind":"tooth","center":[42,24],"yaw":0.4,"half_extents":[2,2,1]},{"kind":"wall","center":[51,24],"yaw":-0.4,"half_extents":[2,2,2]}]"#,
     ];
     let mut cases = 0;

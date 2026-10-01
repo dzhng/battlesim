@@ -88,10 +88,8 @@ pub fn scenario(
         "size": FIELD, "fog_cell_m": 8, "height_grid_m": 8, "slope_cutoff_deg": 35,
         "relief": [{ "kind": "ridge", "center": [1500, 500], "peak_m": 15, "radius_m": 250 }],
         "forests": [
-            { "rect": [1300, 1400, 250, 200], "canopy_height_m": 12, "density": "medium",
-              "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2 },
-            { "rect": [1500, 250, 200, 250], "canopy_height_m": 12, "density": "light",
-              "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2 }
+            { "shape":{"kind":"polygon","ring":[[1300.0,1400.0],[1550.0,1400.0],[1550.0,1600.0],[1300.0,1600.0]]} },
+            { "shape":{"kind":"polygon","ring":[[1500.0,250.0],[1700.0,250.0],[1700.0,500.0],[1500.0,500.0]]} }
         ],
         "props": props,"buildings":buildings,"template_catalog_hash":catalogue.hash(),
     });

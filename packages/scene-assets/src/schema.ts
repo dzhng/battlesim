@@ -298,8 +298,8 @@ export interface Authority {
   infantry_eye_m: number;
   infantry_muzzle_m: number;
   units: UnitCatalog;
-  /** The lowest canopy of the fixture's forests (`map.forests[].canopy_height_m`):
-   *  a tree, unscaled, stands inside it. */
+  /** The forest canopy (`forests.rule.canopy_height_m`): a tree, unscaled,
+   *  stands inside it. */
   canopy_height_m: number;
   /** A destroyed building becomes a ruin this tall (the fixture's `buildings` block). */
   ruin_height_m: number;

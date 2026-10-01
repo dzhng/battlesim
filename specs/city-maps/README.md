@@ -22,9 +22,9 @@ Generate seeded battle maps with urban areas and usable surrounding plains on **
 
 ## Next Agent Prompt
 
-**Status (2026-09-30):** reviewed stopping checkpoint for main, at the user’s request. Integrated production cuts cover sparse terrain/navigation/ground storage, incremental fog delivery, physical template/building ownership, per-map fog, shared surfaces, the building/identity compiler core, and the pure saved-map resolver/provenance core. Polygon-union exports pass focused native/public-Wasm/GPU checks. The village commander now targets aggregate owner geometry; its original shipping replay matches through 3,602 ticks. The complete check and browser gates pass; [final evidence and resumption limits](assets/checkpoint/README.md) are retained. Work pauses here; this does not close the complete procedural-map spec.
+**Status (2026-09-30):** systems (non-3D) implementation is under way on main's line; art and visual gates wait for the specialist ([systems handoff](systems-handoff.md)). In production: sparse terrain, navigation and ground storage; incremental fog delivery; physical templates and aggregate buildings; per-map fog; shared surfaces; the building/identity compiler core; the saved-map resolver core; and **C72, the one forest rule** over the shared ground shape. Raw evidence left the spec: each `assets/` note keeps its conclusions, test oracles live in `fixtures/parity/`, and the raw files are at tag `city-maps-evidence-2026-09-30`.
 
-**Current pickup:** resume the shared structural ground contract using the [unactivated C72 candidate](slices/C72-one-forest-rule.md), then C65 round centerlines and C69 rivers/C64 speeds before admitting nonempty ground plans through C04. The [centerline prototype](assets/centerline-prototype/README.md) is preserved research. SA2’s counted-road prototype retains the accepted strict **over 2 km** activation rule, but Battle integration remains pending. C09/C60 still needs saved catalogue data, adapters and production migration. These prototypes do not close full-scale active-battle, startup, rendered surroundings, or source/art admission. See [systems handoff](systems-handoff.md), [scale direction](scale-direction.md), and each owning slice’s explicit remaining gates.
+**Current pickup:** [C64 road kinds](slices/C64-road-kinds.md) (the physical speed table; its painted look waits), then [C65 round centerlines](slices/C65-round-centerlines.md) (the prototype's source is in the tag), then [C69 rivers](slices/C69-rivers-contract.md), before nonempty ground plans enter through C04. Still pending behind those: SA2's counted road core and its strict **over 2 km** automatic road use in Battle; C09/C60 saved catalogue data and the cutover of existing maps onto the resolver; presets at the M04 sizes; full-scale active-battle, startup and rendered-surroundings admission.
 
 You are implementing `city-maps`. Use [implement-spec](../../.agents/skills/implement-spec/SKILL.md), use the current extents in [M04](procedural-maps.md#closed-decisions) and [startup/transit policy](scale-direction.md), and read the [S0 verdict](spikes/S0.md) before allocating full-size arms. Earlier extent measurements remain evidence at their original sizes, not the current preset definitions.
 
@@ -79,8 +79,8 @@ Rules         C40 seats ─► C41 eyes; C42 collapse ─► C43 gutted
 Delivery      C09 resolver ─► C33 public preparation
               C53 + selected art/rules/scale + C57 ─► C58 full Small authored encounter
               C58 ─► C59 recipe planner ─► C55 runtime
-Migration     C37 shared house appearance; C56 reservation proof ─► C34 village · C35 labs · C36 benchmarks
-Closeout      C50 balance + complete appearance/ground/runtime/migration ─► C54 ─► C51
+Cutover       C37 shared house appearance; C56 reservation proof ─► C34 village · C35 labs · C36 benchmarks
+Closeout      C50 balance + complete appearance/ground/runtime/cutover ─► C54 ─► C51
 ```
 
 **Critical paths:** scale inventory → focused failure proofs → complete G0; physical descriptors/compiler/layout/parcels; source export/library/selected art → full Small fixed-seed play → recipe planner/runtime. Complete class/family art and final ground composition gate release rather than first useful play. Slice headers own exact prerequisites.

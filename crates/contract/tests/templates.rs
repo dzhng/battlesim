@@ -440,10 +440,14 @@ fn rotation_materialization_uses_the_same_values_as_the_portable_runtime() {
     }
     let descriptor: BuildingTemplateDescriptor = serde_json::from_str(include_str!(
         "../../../fixtures/parity/templates/rejected-runtime-rotation/descriptor.json"
-    )).unwrap();
+    ))
+    .unwrap();
     // The original report has no local-span metadata. Add only that owner
     // field without parsing/reprinting any original floating-point token.
-    let mut raw=include_str!("../../../fixtures/parity/templates/rejected-runtime-rotation/regression.json").to_string();
+    let mut raw = include_str!(
+        "../../../fixtures/parity/templates/rejected-runtime-rotation/regression.json"
+    )
+    .to_string();
     for edge in &descriptor.edges {
         let original = format!("\"id\": \"{}\",", edge.id);
         raw = raw.replace(

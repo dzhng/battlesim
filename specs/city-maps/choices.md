@@ -588,7 +588,7 @@ coordinating agent from the authorized systems scope.
 or `supplied { label, sha256 }`. When the compiler reads a request from a temporary
 directory, it knows the bytes and their hash; it does not know a historical Git
 revision. It therefore records a supplied input labelled request or catalogue.
-Migrated shipped fixtures record their actual repository path, revision and byte
+Cut-over shipped fixtures record their actual repository path, revision and byte
 hash. Both use the existing shared SHA256 owner. Neither receipt certifies an art
 source or authenticates historical content not supplied to the resolver.
 
@@ -639,7 +639,7 @@ template ID; the existing catalogue owner rebuilds and hashes the selection.
 Loading the entire library unconditionally would silently change Endurance's
 identity. Copying its descriptor into a second catalogue file would create two
 physical owners. The actual resolver preserves the frozen single-template hash;
-the labelled analytic proof is not a seeded Endurance scenario migration.
+the labelled analytic proof is not a seeded Endurance scenario cutover.
 
 **Gap:** The producer inventory exposed different legitimate catalogue selections
 that a single global-library hash could not preserve.
@@ -763,3 +763,37 @@ keeps storage addresses independent of physical identity and encounter naming.
 - **Reach:** these are ordinary deterministic digest values, with ordinary collision limits. Actual Battle scheduler, retirement and snapshot authority must include their future-affecting state too; the reference scan and complete JSON serialization remain outside the credited actor.
 - **Verdict:** sound for the frozen corpus — complete Native/Wasm poll traces and canonical comparisons agree; this does not admit unimplemented Battle state.
 - **Confidence:** high.
+
+## C72 one forest rule
+
+### Hold the GPU forest query to the sim's membership, not to exact distance bits
+
+**Choice:** The browser check of the forest-floor query asserts that the GPU puts every probe point on the same side of the forest boundary as the sim, and that its signed distance agrees within 0.1 mm. It no longer asserts bit-equal distances.
+
+**Gap:** The candidate's check demanded `===` on a GPU distance and failed by one f32 step at a capsule endpoint (`-1` vs `-1.0000001`). WGSL does not promise correctly rounded `sqrt`/`length`, so bit equality is not a contract any GPU can be held to; membership is what the sim and the drawing must share.
+
+**Verdict:** sound. **Confidence:** high; the check is stricter on the property that matters, since it now compares the GPU's inside/outside answer with the sim's directly.
+
+### Rewrite frozen parity inputs once and regenerate their outputs for the named change
+
+**Choice:** Frozen oracle inputs in `fixtures/parity/` were rewritten to the current map format (roads as surfaces, forests as shapes, one forest rule, `fog_cell_m` on the map), and the test-only converters that did this on every run (`migrate_original_ground`, `originalGroundInput`) were deleted. Outputs that the forest rule changes were regenerated with `BLESS_PARITY=1`: the village arm of the building oracle, the fog-delivery oracle (digests and visibility from native, decoded frames from Wasm), the foliage exports and the terrain queries.
+
+**Gap:** These oracles froze outputs of implementations that no longer exist (dense terrain, pre-aggregate buildings), so the named C72 change could not be re-derived from them. Their historical-equivalence proofs stand at `9a88280` (tag `city-maps-evidence-2026-09-30`); from here they pin the current build, and the fog oracle still holds native and Wasm to the same digests.
+
+**Verdict:** sound. **Confidence:** high; only the arms with light or dense woods moved, and the garrison-collapse arm, garrison seats and line-of-fire queries came out byte-identical.
+
+### Replace the light-versus-dense spotting scenario with open-versus-forest
+
+**Choice:** `t1-spotted-light-vs-dense` became `t1-spotted-open-vs-forest`: a squad on open ground is spotted at least 1.3× farther than one in the forest. The map is 800 m long so the open squad starts beyond detection range.
+
+**Gap:** With one rule there is no light or dense forest to compare; the moment that still matters is that a forest hides a squad that open ground would not.
+
+**Verdict:** sound. **Confidence:** high.
+
+### Leave the forest export's redundant columns for the next forest-export slice
+
+**Choice:** The forest metadata export still carries a canopy height per forest (every row now holds the rule's 12 m) and an `id` that equals its row index, and a rectangular forest still travels as a rect row, a rect-to-forest ID row and a metadata row.
+
+**Gap:** Trimming them changes the export layout and its renderer readers for no behaviour change, and the rectangle path exists to keep the village's float order.
+
+**Verdict:** provisional; collapse them when C77/C78 next touch the forest export. **Confidence:** medium.

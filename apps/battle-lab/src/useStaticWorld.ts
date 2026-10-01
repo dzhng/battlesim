@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import type { WorldRay } from "@packages/renderer-core/src/camera3d";
-import type { WorldExports, WorldLayout } from "@packages/battle-renderer/src/worldMesh";
+import {
+  readWorldExports,
+  type WorldExports,
+  type WorldLayout,
+} from "@packages/battle-renderer/src/worldMesh";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
 import { VILLAGE_RULES } from "./scenarios";
 
@@ -28,24 +32,7 @@ export function useStaticWorld(map: unknown): StaticWorld | null {
       setWorld({
         view,
         layout: JSON.parse(wasm.world_layout(rules)) as WorldLayout,
-        exports: {
-          terrain: {
-            ...JSON.parse(view.terrain_grid()),
-            pageIds: view.terrain_page_ids(),
-            heights: view.terrain_heights(),
-          },
-          positions: view.terrain_positions(),
-          indices: view.terrain_indices(),
-          triangleSurfaces: view.terrain_triangle_surfaces(),
-          props: view.props(),
-          buildings: JSON.parse(view.buildings()),
-          water: view.water(),
-          forests: view.forests(),
-          foliage: view.foliage(),
-          surfaceStrokes: view.surface_strokes(),
-          surfaceTriangles: view.surface_triangles(),
-          surfaceBoundaries: view.surface_boundaries(),
-        },
+        exports: readWorldExports(view),
       });
     });
     return () => {

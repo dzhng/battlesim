@@ -20,10 +20,7 @@ test("the compiled artifact reaches the existing public world without a plan int
   );
   const original = JSON.parse(
     readFileSync(
-      new URL(
-        "../../fixtures/parity/templates/native-asymmetric.json",
-        import.meta.url,
-      ),
+      new URL("../../fixtures/parity/templates/native-asymmetric.json", import.meta.url),
       "utf8",
     ),
   );

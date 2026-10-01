@@ -50,6 +50,17 @@ export interface WorldLayout {
   surfaceTriangleFields: string[];
   surfaceBoundaryStride: number;
   surfaceBoundaryFields: string[];
+  forestTrunkRangeStride: number;
+  forestTrunkRangeFields: string[];
+  forestMetadataStride: number;
+  forestMetadataFields: string[];
+  forestShapeKinds: string[];
+  forestStrokeStride: number;
+  forestStrokeFields: string[];
+  forestTriangleStride: number;
+  forestTriangleFields: string[];
+  forestBoundaryStride: number;
+  forestBoundaryFields: string[];
 }
 
 import type { TerrainGrid } from "./terrain/terrainGrid";
@@ -76,14 +87,72 @@ export interface WorldExports {
   props: Float32Array;
   buildings: PublicBuildings;
   water: Float32Array;
-  /** Forest rects with canopy heights (authoring input: the drawn floor). */
+  /** Exact rectangular fast-path rows; general shapes stay in native primitive streams. */
   forests: Float32Array;
+  forestTrunkRanges: Uint32Array;
+  forestRectIds: Uint32Array;
+  forestMetadata: Float32Array;
+  forestStrokes: Float32Array;
+  forestTriangles: Float32Array;
+  forestBoundaries: Float32Array;
   /** The foliage grid standing trees give (`WorldView.foliage`). */
   foliage: Float32Array;
   /** Native strokes, polygon membership triangles and exposed union boundaries. */
   surfaceStrokes: Float32Array;
   surfaceTriangles: Float32Array;
   surfaceBoundaries: Float32Array;
+}
+
+/** The static-world exports a `WorldView` publishes, read in one place so a
+ *  new export is wired once. */
+export interface WorldExportSource {
+  terrain_grid(): string;
+  terrain_page_ids(): Uint32Array;
+  terrain_heights(): Float32Array;
+  terrain_positions(): Float32Array;
+  terrain_indices(): Uint32Array;
+  terrain_triangle_surfaces(): Uint8Array;
+  props(): Float32Array;
+  buildings(): string;
+  water(): Float32Array;
+  forests(): Float32Array;
+  forest_trunk_ranges(): Uint32Array;
+  forest_rect_ids(): Uint32Array;
+  forest_metadata(): Float32Array;
+  forest_strokes(): Float32Array;
+  forest_triangles(): Float32Array;
+  forest_boundaries(): Float32Array;
+  foliage(): Float32Array;
+  surface_strokes(): Float32Array;
+  surface_triangles(): Float32Array;
+  surface_boundaries(): Float32Array;
+}
+
+export function readWorldExports(view: WorldExportSource): WorldExports {
+  return {
+    terrain: {
+      ...JSON.parse(view.terrain_grid()),
+      pageIds: view.terrain_page_ids(),
+      heights: view.terrain_heights(),
+    },
+    positions: view.terrain_positions(),
+    indices: view.terrain_indices(),
+    triangleSurfaces: view.terrain_triangle_surfaces(),
+    props: view.props(),
+    buildings: JSON.parse(view.buildings()),
+    water: view.water(),
+    forests: view.forests(),
+    forestTrunkRanges: view.forest_trunk_ranges(),
+    forestRectIds: view.forest_rect_ids(),
+    forestMetadata: view.forest_metadata(),
+    forestStrokes: view.forest_strokes(),
+    forestTriangles: view.forest_triangles(),
+    forestBoundaries: view.forest_boundaries(),
+    foliage: view.foliage(),
+    surfaceStrokes: view.surface_strokes(),
+    surfaceTriangles: view.surface_triangles(),
+    surfaceBoundaries: view.surface_boundaries(),
+  };
 }
 
 /** "surface" draws the biome; "traversal" marks what ground units cannot enter. */

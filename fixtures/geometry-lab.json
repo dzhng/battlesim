@@ -33,12 +33,7 @@
   ],
   "forests": [
     {
-      "rect": [260, 190, 90, 80],
-      "canopy_height_m": 12,
-      "density": "dense",
-      "trunk_radius_m": 0.35,
-      "trunk_height_m": 10,
-      "trunk_clearance_m": 2
+      "shape": {"kind": "polygon","ring": [[260,190],[350,190],[350,270],[260,270]]}
     }
   ],
   "props": [

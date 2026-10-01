@@ -80,6 +80,17 @@ pub fn layout_json(types: &PropCatalog) -> String {
         "surfaceTriangleFields": ["ax", "ay", "bx", "by", "cx", "cy", "kind"],
         "surfaceBoundaryStride": SURFACE_BOUNDARY_STRIDE,
         "surfaceBoundaryFields": ["ax", "ay", "bx", "by", "kind"],
+        "forestTrunkRangeStride": 2,
+        "forestTrunkRangeFields": ["firstProp", "onePastProp"],
+        "forestMetadataStride": 3,
+        "forestMetadataFields": ["id", "canopy", "shapeKind"],
+        "forestShapeKinds": ["rectangle", "stroke", "polygon"],
+        "forestStrokeStride": 6,
+        "forestStrokeFields": ["ax", "ay", "bx", "by", "halfWidth", "id"],
+        "forestTriangleStride": 7,
+        "forestTriangleFields": ["ax", "ay", "bx", "by", "cx", "cy", "id"],
+        "forestBoundaryStride": 5,
+        "forestBoundaryFields": ["ax", "ay", "bx", "by", "id"],
     })
     .to_string()
 }
@@ -179,9 +190,13 @@ impl WorldGeometry {
     pub fn export_surface_strokes(&self) -> Vec<f32> {
         let mut out = Vec::new();
         for area in self.surfaces.areas() {
-            if let contract::map::SurfaceShape::Stroke { points, width_m } = &area.shape {
+            if let contract::ground::GroundShape::Stroke {
+                centerline,
+                width_m,
+            } = &area.shape
+            {
                 let kind = surface_area_tag(area.kind) as f64;
-                for p in points.windows(2) {
+                for p in centerline.samples().windows(2) {
                     out.extend(
                         [p[0][0], p[0][1], p[1][0], p[1][1], width_m / 2.0, kind].map(|v| v as f32),
                     );
@@ -201,21 +216,117 @@ impl WorldGeometry {
         self.surfaces.boundaries().to_vec()
     }
 
-    /// Forest rects with their canopy height.
+    /// Actual rectangular forests only, preserving the original rectangle arithmetic.
     pub fn export_forests(&self) -> Vec<f32> {
         self.forests()
             .iter()
-            .flat_map(|f| {
-                [
-                    f.rect[0],
-                    f.rect[1],
-                    f.rect[2],
-                    f.rect[3],
-                    f.canopy_height_m,
-                ]
-                .map(|v| v as f32)
+            .filter_map(|f| {
+                f.shape.exact_rectangle().map(|r| {
+                    [r[0], r[1], r[2], r[3], self.forest.rule.canopy_height_m].map(|v| v as f32)
+                })
+            })
+            .flatten()
+            .collect()
+    }
+
+    /// Original source prop ranges by authored forest; immutable across removals.
+    pub fn export_forest_trunk_ranges(&self) -> Vec<u32> {
+        self.forest
+            .trunk_ranges()
+            .iter()
+            .flatten()
+            .copied()
+            .collect()
+    }
+
+    /// Rect export ordinal -> authored forest ID, for mixed shape maps.
+    pub fn export_forest_rect_ids(&self) -> Vec<u32> {
+        self.forests()
+            .iter()
+            .enumerate()
+            .filter_map(|(id, f)| f.shape.exact_rectangle().map(|_| id as u32))
+            .collect()
+    }
+
+    /// Authored order: ID, canopy height, physical shape kind (rect/stroke/polygon).
+    pub fn export_forest_metadata(&self) -> Vec<f32> {
+        self.forests()
+            .iter()
+            .enumerate()
+            .flat_map(|(id, f)| {
+                let kind = if f.shape.exact_rectangle().is_some() {
+                    0.0
+                } else if matches!(f.shape, contract::ground::GroundShape::Stroke { .. }) {
+                    1.0
+                } else {
+                    2.0
+                };
+                [id as f32, self.forest.rule.canopy_height_m as f32, kind]
             })
             .collect()
+    }
+
+    pub fn export_forest_strokes(&self) -> Vec<f32> {
+        let mut out = Vec::new();
+        for (id, f) in self.forests().iter().enumerate() {
+            if let contract::ground::GroundShape::Stroke {
+                centerline,
+                width_m,
+            } = &f.shape
+            {
+                for p in centerline.samples().windows(2) {
+                    out.extend(
+                        [p[0][0], p[0][1], p[1][0], p[1][1], width_m / 2.0, id as f64]
+                            .map(|v| v as f32),
+                    );
+                }
+            }
+        }
+        assert!(
+            out.iter().all(|v| v.is_finite()),
+            "forest stroke export must fit finite f32 coordinates"
+        );
+        out
+    }
+
+    pub fn export_forest_triangles(&self) -> Vec<f32> {
+        let mut out = Vec::new();
+        for (id, f) in self.forests().iter().enumerate() {
+            if f.shape.exact_rectangle().is_some() {
+                continue;
+            }
+            if let contract::ground::GroundShape::Polygon { ring } = &f.shape {
+                for triangle in contract::ground::triangulate(ring).expect("validated forest ring")
+                {
+                    out.extend(triangle.into_iter().flatten().map(|v| v as f32));
+                    out.push(id as f32);
+                }
+            }
+        }
+        assert!(
+            out.iter().all(|v| v.is_finite()),
+            "forest polygon export must fit finite f32 coordinates"
+        );
+        out
+    }
+
+    pub fn export_forest_boundaries(&self) -> Vec<f32> {
+        let mut out = Vec::new();
+        for (id, f) in self.forests().iter().enumerate() {
+            if f.shape.exact_rectangle().is_some() {
+                continue;
+            }
+            if let contract::ground::GroundShape::Polygon { ring } = &f.shape {
+                for (a, b) in contract::ground::edges(ring) {
+                    out.extend([a[0], a[1], b[0], b[1], id as f64].map(|v| v as f32));
+                }
+            }
+        }
+        assert!(
+            out.iter().all(|v| v.is_finite()),
+            "forest boundary export must fit finite f32 coordinates"
+        );
+        out
     }
 }
 
