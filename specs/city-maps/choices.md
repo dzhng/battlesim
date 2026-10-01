@@ -1501,3 +1501,103 @@ keeps storage addresses independent of physical identity and encounter naming.
 **Gap:** After the grid-update pass, every unit still re-checked its whole route whenever its side learned anything anywhere: 3–4 M instructions per unit on a long route, and a vehicle whose route shoves anything re-planned each time. The pass trialled this change and left it uncommitted because it moves digests (routes are the same; later searches read different clearance tiles on different ticks).
 
 **Verdict:** sound; a named digest change. On Metro Large (10 km, 9,276 buildings), twelve units crossing with wrecks and shelled trees appearing: planning work 7.1 M → 2.0 M, slowest tick 9 ms, none over 33 ms. Quick village report: flank 2/3 captured with 938 lost (950 before), ambush 0/3 with 0 lost. **Confidence:** high.
+
+## Rivers in the layout generator
+
+The layout generator now writes a river and its bridges. The seam and the measurements are in the [C52 outcome](slices/C52-procedural-generator.md#rivers).
+
+### A river map has one river, and it runs from the north edge to the south
+
+**Choice:** A map has no river or one. The river enters at the north edge and leaves at the south, so it crosses the line between the two halves and each half holds a like length of it (within 20%, or 5% of the whole, and the generator aims for half that).
+
+**Gap:** The task said "zero or one river", "edge to edge" and "fair". It did not say which edges. A river from west to east would lie in one half, or along the line between them, and one side would have a water obstacle the other has not.
+
+**Verdict:** sound for fairness, narrow for variety: every river map is a valley across the front, which both sides must cross or fight along. **Confidence:** medium. A river along the front line (west to east through the centre) is a different kind of map and wants its own decision.
+
+### How often: half of Open and Mixed maps, four in ten Metro maps
+
+**Choice:** `river_chance` is 0.5 for Open and Mixed and 0.4 for Metro. The seed decides, on a random stream of its own, so a seed that draws no river is byte for byte the map it was before rivers existed.
+
+**Gap:** "A seed-chosen share of maps per type" with no numbers.
+
+**Verdict:** a guess. Nothing was measured that favours these shares over others; they are one number per type in the presets. **Confidence:** low. The user should set them.
+
+### The river is drawn straight after the main settlement, before anything else
+
+**Choice:** The order is: main settlement, river, the two approaches, the other settlements, roads, forests. A course is taken only if it clears the main settlement and its junctions, keeps 500 m from the east and west edges, and is fair. If no course fits in 150 tries the main settlement is drawn again, and the map is refused with the diagnostic `river` when that runs out too.
+
+**Gap:** The task put the river "after sites and before roads" in spirit (settlements respect it) but did not say what happens when the ground is already full.
+
+**Verdict:** sound. The first version drew the river after every settlement and approach, and found no course on 38% of Mixed Small and 68% of Metro Small seeds. Drawn second, nothing is refused in 2,700 layouts. The cost is that a river never passes through a settlement (next entry). **Confidence:** high.
+
+### No town stands on the river
+
+**Choice:** Settlements keep 40 m from the water and the main settlement more. A share of the others (`siting.beside_river`: 0.2 on Open, 0.1 on Mixed and Metro) is placed along a bank on purpose. None is split by the river and no street runs to the water.
+
+**Gap:** The task said the river is "not through the centre settlement unless presets allow". Presets do not allow it for any settlement, because a town on both banks needs streets that cross by bridges, blocks cut along a bank, and a waterfront, none of which the parcel pass does.
+
+**Verdict:** the largest thing missing from river maps. A riverside town here is a town with a field between it and the water. **Confidence:** high that it is missing; it is a pass of its own in the parcel code.
+
+### Water is not open ground for the approach rule
+
+**Choice:** The 1,800 m approach to the main settlement stops at water, as it stops at a wood or another settlement. The generator picks the two approaches where no river lies in them.
+
+**Gap:** The task asked for this to be decided and recorded.
+
+**Verdict:** sound. The rule exists so a force can advance on the main settlement over open ground; nothing advances over water, and a bridge is a defile, the opposite of an open approach. Every river map still has an approach in each half. River maps count fewer approaches in all (see the table in the outcome), because the river ends the ones that would have run across it. **Confidence:** high.
+
+### A road keeps to its bank and crosses once
+
+**Choice:** A road whose ends are on the same bank never touches the water: where its line would cross and come back, it follows the bank 22 m from the water instead. A road whose ends are on opposite banks crosses once. It takes a bridge already built if one lies within 600 m of its line (1,200 m for a dirt track); otherwise it gets its own, on the road's own line when that is within 45° of square to the river, and square across the nearest straight stretch when it is not. When the generator chooses which settlement to join a new one to, one on the far bank counts as 800 m farther away.
+
+**Gap:** The task asked for "few, well-placed crossings" and for minor tracks to be led to existing bridges, without distances.
+
+**Verdict:** works, and looks mechanical in places. River maps have a median of two or three bridges. Two things look wrong: a road led to a bridge it did not aim for turns sharply at both ends of the deck, and a main road beside the river follows its bends for a long way. The four distances are preset numbers. **Confidence:** medium.
+
+### A bridge is 14 m wide and ends 9 m past the water
+
+**Choice:** One deck type (`bridge_deck`), 14 m wide, 0.8 m thick, its top 10 cm above the land, spanning at most 90 m. Each end lies 9 m past the water's edge and the road runs straight for 12 m beyond that.
+
+**Gap:** The contract says a deck's ends must be over land that can be stood on. It does not say how far.
+
+**Verdict:** the 9 m is measured, not chosen. With 6 m the contract accepted the bridge, but the simulation's ground, which is drawn on a 2 m grid, still stood 12 cm below the deck at one corner, more than a unit steps up. At 9 m the step is the deck's own 10 cm at every corner of every bridge tested. The presets now refuse a landing shorter than the bank's fall plus one grid diagonal. **Confidence:** high.
+
+### A river's course must leave the main roads in time, and a road is timed along its rounded line
+
+**Choice:** Before a course is taken, the generator lays a trial main road from each edge to the centre across it and refuses the course if any takes longer than the transit limit (215 s). When the real roads are built, each candidate is timed along the rounded line the road surface is made on, not along the straight runs between its points.
+
+**Gap:** The transit rule was written for roads that run nearly straight. A bridge can put two corners in a main road, and a rounded corner is longer than the two straight runs it joins.
+
+**Verdict:** sound. Without the trial road, 3 of 2,700 river layouts were refused for transit. Timing along straight runs then let one more through the generator and into a refusal: Mixed Medium seed 115, whose east road was 23 cm longer rounded than authored and 3 cm over the limit. Both are now tests. Maps without a river did not move: all are the maps they were. **Confidence:** high.
+
+### The river is written as many close points, and a road beside it as few
+
+**Choice:** A river's points lie at most 16 m apart and turn at most 8° each, so the contract's rounding of corners cannot pull the water away from where the generator measured it. A road that follows the bank is written with only the points it needs to stay within a couple of metres of that line.
+
+**Gap:** None in the task; this is what the shared curve code needs. It rounds every corner, and takes more room the sharper the corner.
+
+**Verdict:** sound, with a cost: a river adds 4,000 to 7,500 ground points to a map (a river-free Open Small has about 1,800 in all). They count toward `max_ground_points`. **Confidence:** medium. Fewer, longer river runs would work if the contract's river rounding were given a tighter tolerance, which is a contract change.
+
+### Streets do not cross water
+
+**Choice:** In the parcel pass, a street is joined to the nearest street it can reach without touching the water or its bank. A filled plan with a street in the water is refused.
+
+**Gap:** Found by test. On Metro Medium and Metro Large seed 11 a town near the river joined its streets to a road on the far bank, straight through the water.
+
+**Verdict:** sound for now, and it is the other half of "no town stands on the river". **Confidence:** high.
+
+### Bridges are not shared evenly between the two halves
+
+**Choice:** `measure` reports the bridges in the top half and the bottom half. No rule holds them equal.
+
+**Gap:** The fairness rule covers town, forest and river length. The task did not name bridges.
+
+**Verdict:** open, and it matters for play. Of 2,700 river maps, 1,098 have a half with no bridge of its own (649 of them have one bridge in all), and in 620 the halves differ by two bridges or more. A side whose half has the only bridge holds the only crossing. **Confidence:** low. The user should decide whether to hold it to a rule (at least one bridge in each half is the simplest); the generator would then add a crossing or refuse.
+
+### Long moves on river maps can fail to plan in the simulation, and columns can jam
+
+**Choice:** Left as it is. The generator's maps are valid and connected, and the simulation's road graph reaches every settlement over the bridges; this is a limit of the simulation's route search, which this work may not change.
+
+**Gap:** Found by running `city_report` on generated river maps.
+
+**Verdict:** open, in two parts. Planning: six units a side were sent across six river maps for 300 s. On the 8 km and 10 km maps two units were refused a route and two were still planning at the end, and three ticks on one map retired about 1.0 G instructions each; none of that happened on the same seeds without a river. Jamming: given 900 s, seven of eight vehicles crossed Mixed Small, but on Open Small only three of eight did, because four vehicles of one side stood waiting behind one of the other side on a road 700 m from the water. Without the river seven of eight arrived. A river sends both sides down the few roads that lead to a bridge. **Confidence:** high that both are the simulation and not the map: units do cross by the decks, a test proves each deck can be walked onto and across, and the jam was on dry ground. Low on how often the jam happens: it was one map of two, and an earlier run of the same seed had six of eight arrive.

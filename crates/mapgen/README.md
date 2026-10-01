@@ -5,12 +5,13 @@ into a `MapPlan`. The **parcel pass** fills that plan's districts with streets, 
 and buildings chosen from a physical template catalogue. The **compiler** turns any
 plan, generated or authored, into the contract's final map. The battle and renderer
 consume that compiled geometry; they never reinterpret a plan or look up a template
-catalogue. The crate imports no simulation or appearance library.
+catalogue. The crate imports no simulation or appearance library; its tests load one
+generated map into the simulation's world, to hold a bridge to what a battle needs.
 
 ## Layout generation (`layout`)
 
 `generate_layout(&GenerationRequest, &PresetDefinitions)` writes where settlements,
-roads and forests go. Its numbers are data: [`fixtures/map-presets.json`](../../fixtures/map-presets.json),
+a river, roads with their bridges, and forests go. Its numbers are data: [`fixtures/map-presets.json`](../../fixtures/map-presets.json),
 validated at load, whose `revision` a request pins beside `GENERATOR_VERSION`. A
 request that names another revision or generator is refused, so an old request
 cannot quietly yield a new map. The only constants in code are the three playable
@@ -21,21 +22,37 @@ extents, which are a user decision (M04 in the [map brief](../../specs/city-maps
   town's districts) cannot move what another placed. Arithmetic is `+ − × ÷` and
   `libm`, as in `contract::curve`; plan coordinates are whole centimetres.
 - **A rule is met because the finished plan measures as meeting it.** `measure` reads
-  only the plan's geometry: top/bottom areas, open approaches, and the road graph's
-  reach and journey times. That graph is the rounded centrelines the surfaces are
-  made of, so two roads are joined exactly when their pavement is. The generator
+  only the plan's geometry: top/bottom areas, open approaches, the river, and the
+  road graph's reach and journey times. That graph is the rounded centrelines the
+  surfaces are made of, so two roads are joined exactly when their pavement is, and
+  a run of road in the water is driven only where a deck carries it. The generator
   steers toward each rule as it builds, then holds its output to `measure` and
-  refuses a plan that fails.
+  refuses a plan that fails. Steer by the geometry `measure` reads: a main road is
+  timed along its rounded line, which is longer than the runs between its points.
 - **A search that runs out is a named refusal.** The diagnostic names the feature,
   the preset cell and the seed. The generator never tries another seed and never
-  returns a thinner map than the presets describe.
+  returns a thinner map than the presets describe. Within the one seed, the main
+  settlement and the river are drawn again, a bounded number of times, when the
+  rest of the map does not fit beside them.
 - **Settlements are plan-level.** `MapPlan.settlements` holds each settlement's
   outline and its districts: single-use pieces of ground (one dominant building
   category), each with a stable id, an area and an anchor point. `MapPlan.approaches`
   holds the measured wedges of open ground. Neither reaches the map: the parcel pass
   turns districts into `buildings`, and the encounter planner reads both.
-- **Rivers are not generated.** The compiler admits them (below), but no layout
-  writes one yet. They belong after sites and before roads, on a stream of their own.
+- **A river is a hard feature everything else is placed beside.** A seed-chosen
+  share of each type's maps has one river (`rivers`, on a stream of its own, so a
+  seed without one is the map it was before rivers existed). It runs from the north
+  edge to the south, so each half holds a like length of it. Its course is drawn
+  as soon as the main settlement's outline is, and is taken only if the main roads
+  can still reach the centre in time by its bridges; the approaches, the other
+  settlements and the woods then keep to its banks. Water ends an open approach:
+  it is ground no force advances over.
+- **A road keeps to its bank and crosses by a bridge** (`crossings`). Where a road
+  would wander over the water it follows the bank instead; where its ends lie on
+  opposite banks it crosses once, by a bridge already near or a new one, on its
+  own line if that is not far askew of the river and square across it otherwise.
+  `MapPlan.bridges` are the contract's own `Bridge` rows, each long enough to be
+  stepped onto from dry land (`water` asks the contract's river distance).
 
 What the presets mean, and why they hold the values they do, is in the
 [C52 slice](../../specs/city-maps/slices/C52-procedural-generator.md) and its
@@ -60,8 +77,9 @@ A district kind's streets and setbacks are rows of the same presets file.
 - **Every street is joined to the settlement's road.** A district's streets are a
   grid in its own frame. A piece of that grid no road crosses gets one link to the
   nearest street, so no pavement is stranded, and a street that stops within a block
-  of another carriageway runs on to it; `measure` then confirms on the finished plan
-  that every street has a way to the centre. (A link that ends on another street's
+  of another carriageway runs on to it. No street crosses water: the nearest street
+  is the nearest it can reach on its own bank. `measure` then confirms on the
+  finished plan that every street has a way to the centre. (A link that ends on another street's
   rounded bend takes that sample's exact coordinates: the one place a plan
   coordinate is not a whole centimetre.)
 - **Ids are derived, not counted across the map.** A parcel is
@@ -92,12 +110,14 @@ whitespace and object-key order do not change identity. Version labels are suppl
 by preparation callers, so this is content identity rather than verified source provenance.
 
 The compiler admits physical buildings, ordinary authored bodies, and ground: roads,
-tracks, sidewalks, forests and rivers in the contract's shared shapes, which pass into
-the map unchanged. Explicit body IDs enter the contract-owned dense namespace. A ground
+tracks, sidewalks, forests, rivers and bridges in the contract's shared shapes, which
+pass into the map unchanged. Explicit body IDs enter the contract-owned dense namespace. A ground
 shape's authored points must lie inside the playable rectangle (a stroke or a river may
-overhang the edge by its width). A river the terrain cannot carry is refused as
-`invalid_river`, by the one rule the world loads maps with (`contract::river::validate`).
-A river's rounded samples count toward `max_ground_points` with the strokes'. Land
+overhang the edge by its width). A river the terrain cannot carry, and a bridge whose end stands over
+water or too near it for a ramp, is refused as `invalid_river`, by the one rule the
+world loads maps with (`contract::river::validate`); a deck that is not a finite box
+inside the playable rectangle is `invalid_bounds`. A river's rounded samples count
+toward `max_ground_points` with the strokes'. Land
 regions and source/art fit remain prerequisites for their compiler arms; a requested
 unsupported feature produces a named error rather than disappearing from output.
 
@@ -119,8 +139,8 @@ samples) before materialization. They do not claim a bound on all input bytes, t
 navigation, runtime trees or the complete battle's memory.
 
 `mapgen inspect` draws a plan's layers at metre scale for review, with the numbers
-`measure` reports: the whole map, or one settlement or district close enough to read
-its parcels and entrances. `mapgen catalogue` prints a descriptor list's canonical
+`measure` reports: the whole map, or one settlement, district or bridge close enough
+to read its parcels, entrances and the roads onto a deck. `mapgen catalogue` prints a descriptor list's canonical
 form, whose hash a request pins and the map loader resolves against. The
 `layout_sweep` example runs every type and size over a range of seeds and reports
 the layout, what was built on it and what the compiled map costs; it is how a preset
