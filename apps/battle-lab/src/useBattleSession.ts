@@ -25,6 +25,11 @@ import {
   type FogSensorRules,
 } from "@packages/battle-renderer/src/frame/fogInputs";
 import { massingInstances, massingParts } from "@packages/battle-renderer/src/scenery/massing";
+import {
+  buildingObstacles,
+  buildingPartProps,
+  knownOf,
+} from "@packages/battle-renderer/src/buildingObstacles";
 import { INSTANCE_FLOATS } from "@packages/battle-renderer/src/scenery/lod";
 import { villageBiome } from "./villageBiome";
 import { villageMassing } from "./villageMassing";
@@ -228,6 +233,16 @@ export function useBattleSession({
     [props, massingOf, knownKey],
   );
   const massingFeed = useFeed(massing);
+  // What the camera keeps clear of: the ground, and every building part the
+  // side knows stands (a fallen one's remains once it has seen the fall).
+  // Rebuilt only when what it knows of a building changes.
+  const buildingParts = useMemo(() => world && buildingPartProps(world.exports.buildings), [world]);
+  const knownBuildingsKey = useMemo(
+    () =>
+      buildingParts &&
+      JSON.stringify(knownOf(JSON.parse(knownKey) as KnownPropView[], buildingParts)),
+    [knownKey, buildingParts],
+  );
   // Renderer fog: the side's eyes at the published tick over the static
   // world, cut by the occluders it knows (rebuilt only when knowledge changes).
   // Its foliage is the side's: less the trees on ground it has seen cleared
@@ -267,6 +282,18 @@ export function useBattleSession({
     (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
     [world],
   );
+  const cameraObstacles = useMemo(() => {
+    if (!props || !buildingParts || !knownBuildingsKey) return null;
+    const started = performance.now();
+    const view = buildingObstacles(
+      props.map,
+      JSON.parse(knownBuildingsKey) as KnownPropView[],
+      buildingParts,
+      surfaceZ,
+    );
+    return { view, buildMs: performance.now() - started };
+  }, [props, buildingParts, knownBuildingsKey, surfaceZ]);
+  const cameraObstaclesFeed = useFeed(cameraObstacles?.view ?? null);
 
   // What the last frame drew: which unit or enemy each pick box is, and each
   // own unit's drawn (interpolated) position.
@@ -503,6 +530,9 @@ export function useBattleSession({
         .sort((a, b) => a.distance - b.distance)
         .slice(0, count),
     /** The massing boxes drawn now, as their records' fields. */
+    /** The camera's obstacles: how many boxes, and what indexing them took. */
+    cameraObstacles: () =>
+      cameraObstacles && { boxes: cameraObstacles.view.count, buildMs: cameraObstacles.buildMs },
     massing: () =>
       Array.from(massing?.kinds ?? [], (_, i) => {
         const r = massing!.records.subarray(i * INSTANCE_FLOATS, (i + 1) * INSTANCE_FLOATS);
@@ -606,6 +636,9 @@ export function useBattleSession({
     structures,
     /** The massing boxes drawn from what the side knows, for the viewport. */
     massingFeed,
+    /** What the camera keeps clear of, from what the side knows stands, for
+     *  the viewport. */
+    cameraObstaclesFeed,
     /** What renderer fog is drawn from; `fogFeed` carries it to the viewport. */
     fog,
     fogFeed,

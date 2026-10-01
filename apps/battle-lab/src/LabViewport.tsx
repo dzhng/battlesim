@@ -23,6 +23,14 @@ import {
   type CameraPose,
   type CameraPresentation,
 } from "@packages/renderer-core/src/cameraController";
+import {
+  createClearanceState,
+  type ClearanceState,
+} from "@packages/renderer-core/src/cameraClearance";
+import {
+  createCameraObstacles,
+  type CameraObstacles,
+} from "@packages/renderer-core/src/cameraObstacles";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type {
   CorpseInstance,
@@ -73,6 +81,9 @@ interface LabViewportProps {
   /** Knowledge-drawn massing boxes (buildings with no art), fed like the
    *  overlay; omitted or null draws none. */
   massing?: FeedSource<PlacedInstances | null>;
+  /** What the camera keeps clear of (the buildings the side knows stand, on
+   *  the ground), fed like the overlay; the ground alone when omitted or null. */
+  obstacles?: FeedSource<CameraObstacles | null>;
   /** Display-space marks drawn over the finished frame, fed through one
    *  stable object (`useFeed`): never a prop that changes with them. */
   overlay?: FeedSource<WorldMeshes | undefined>;
@@ -108,9 +119,9 @@ interface LabViewportProps {
   onFrame?: (project: Project, camera: Camera3DParams, pointer: ViewportPointer) => void;
   /** Route-specific diagnostics published on `window.__lab.route`. */
   diagnostics?: Record<string, unknown>;
-  /** A scripted driver (the benchmark), fixed for the viewport's life: it
-   *  owns the camera, input no longer steers it, and every frame is drawn
-   *  and reported with its cost. */
+  /** A scripted driver (the benchmark, a lab's trajectory), fixed for the
+   *  viewport's life: while it gives a framing it owns the camera, input no
+   *  longer steers it, and every frame is drawn and reported with its cost. */
   pilot?: ViewportPilot;
   /** Appearance bundles from `AppearanceLibrary` for the models layer. */
   appearances?: InstalledAppearances | null;
@@ -144,15 +155,17 @@ export interface ViewportFrame {
   ground?: GroundMarks | null;
 }
 
-/** The benchmark's hold on the viewport. */
+/** A script's hold on the viewport's camera. */
 export interface ViewportPilot {
   /** The battle frame is up: the adapter, and the frame's own statistics
    *  (its rolling GPU frame time from `timestamp-query`, and live memory). */
-  attach(frame: { adapter: string; stats: () => ReturnType<BattleFrame["stats"]> }): void;
-  /** The framing for the frame at `now`; the rig places it (`CameraController.place`). */
-  pose(now: number): CameraPose;
+  attach?(frame: { adapter: string; stats: () => ReturnType<BattleFrame["stats"]> }): void;
+  /** The framing for the frame at `now`; the rig places it
+   *  (`CameraController.place`) and draws it clear of obstacles (`resolve`).
+   *  Null leaves the camera to the player for that frame. */
+  pose(now: number): CameraPose | null;
   /** A drawn frame: its main-thread cost and the camera drawn. */
-  frame(f: { now: number; cpuMs: number; camera: Camera3DParams }): void;
+  frame?(f: { now: number; cpuMs: number; camera: Camera3DParams }): void;
 }
 
 /** What the viewport's device reports once it is up. */
@@ -207,6 +220,9 @@ const CLICK_SLOP_PX = 5;
 /** Screen-edge band that pans the camera like a held key. */
 const EDGE_PAN_PX = 14;
 
+/** What holds a drawn pose off the pose asked for, and how it got there. */
+type ClearanceReading = Pick<ClearanceState, "hold" | "cut" | "blocked">;
+
 /** Diagnostic hooks the scene harness reads; lab-only, never on a player route. */
 interface LabHandle {
   ready: boolean;
@@ -215,8 +231,31 @@ interface LabHandle {
   adapter?: { vendor: string; architecture: string; description: string; format: string };
   stats?: () => ReturnType<BattleFrame["stats"]>;
   allocations?: () => GpuAllocationCounts;
+  /** The camera drawn. */
   camera?: () => Camera3DParams;
+  /** The harness's raw framing: drawn exactly as given, through neither the
+   *  rig's limits nor camera clearance, so a check can frame its subject from
+   *  anywhere. No playable or benchmark path uses it; the next input or
+   *  scripted placement returns the camera to the rig. */
   setCamera?: (camera: Camera3DParams) => void;
+  /** A scripted framing, as the rig places it and the next frame clears it
+   *  (the benchmark tour's path): `camera()` is then the pose drawn for it. */
+  placeCamera?: (pose: CameraPose) => void;
+  /** Where camera clearance stands: the pose asked for, what holds the drawn
+   *  pose off it, and whether the last step was a cut or found nothing clear. */
+  clearance?: () => ClearanceReading & { asked: Camera3DParams; settled: boolean };
+  /** Fly a scratch camera through `poses`, `dt` seconds apart, by the rig
+   *  and the obstacles the viewport uses, drawing nothing: each pose drawn,
+   *  and what the resolver cost (wall time and box tests, over `reps` flights). */
+  flyClearance?: (
+    poses: readonly CameraPose[],
+    dt: number,
+    reps?: number,
+  ) => {
+    frames: (ClearanceReading & { camera: Camera3DParams })[];
+    msPerFrame: number;
+    boxTestsPerFrame: number;
+  };
   reset?: () => void;
   /** Rebuild the scene from scratch (reset/dispose cycle) and resolve when drawn. */
   rebuild?: () => Promise<void>;
@@ -272,6 +311,7 @@ export function LabViewport({
   world,
   structures,
   massing,
+  obstacles,
   overlay,
   pointerMarks,
   fog,
@@ -374,6 +414,8 @@ export function LabViewport({
       }),
     [massing],
   );
+  const obstaclesRef = useRef(obstacles);
+  obstaclesRef.current = obstacles;
   const fogRef = useRef(fog);
   fogRef.current = fog;
   const fogStyleRef = useRef(fogStyle);
@@ -431,26 +473,57 @@ export function LabViewport({
     const { signal } = lifetime;
     let device: GPUDevice | null = null;
     let raf = 0;
+    // The pose input and scripts ask for, and the pose drawn for it: the
+    // same one unless camera clearance holds it off an obstacle.
+    let asked = initialCamera;
     let camera = initialCamera;
+    /** A harness framing (`setCamera`) is drawn as given until the rig moves. */
+    let framedRaw = false;
+    const clearance = createClearanceState();
     // Without a ground, the target keeps its height.
+    const ground = (x: number, y: number) =>
+      groundAtRef.current ? groundAtRef.current(x, y) : asked.target[2];
     const controller = new CameraController(
       cameraConfigRef.current ?? villageCamera.config,
-      (x, y) => (groundAtRef.current ? groundAtRef.current(x, y) : camera.target[2]),
+      ground,
     );
+    const openGround = createCameraObstacles([], ground);
+    const obstaclesNow = () => obstaclesRef.current?.current ?? openGround;
+    let resolvedOver: CameraObstacles | null = null;
+    /** Draw the pose asked for, clear of obstacles, `dt` seconds on from the
+     *  last call. Nothing to do once the camera rests on an unchanged ask over
+     *  unchanged obstacles. */
+    const see = (dt: number) => {
+      if (framedRaw) return;
+      const aspect = canvas.width / Math.max(1, canvas.height);
+      if (asked.aspect !== aspect) asked = { ...asked, aspect };
+      const over = obstaclesNow();
+      if (clearance.settled && clearance.desired === asked && over === resolvedOver) return;
+      resolvedOver = over;
+      const next = controller.resolve(clearance, asked, dt, over);
+      if (next !== camera) {
+        camera = next;
+        dirty = true;
+      }
+    };
+    /** The rig takes the camera: from input, a script, or back from a raw framing. */
+    const place = (next: Camera3DParams) => {
+      asked = next;
+      framedRaw = false;
+    };
     const keys = trackHeldKeys(
       window,
       (code) => code in CAMERA_KEYS || code === "ShiftLeft" || code === "ShiftRight",
     );
     const pilot = pilotRef.current;
-    /** Apply one intent; redraw only when the camera moved. A pilot's camera
-     *  takes no input. */
+    /** The pilot gave the last frame its framing. */
+    let piloted = pilot !== undefined;
+    /** Apply one intent to the pose asked for; the frame loop draws it. A
+     *  piloted camera takes no input. */
     const steer = (intent: CameraIntent, dt: number) => {
-      if (pilot) return;
-      const next = controller.step(camera, intent, dt);
-      if (next !== camera) {
-        camera = next;
-        dirty = true;
-      }
+      if (piloted) return;
+      const next = controller.step(asked, intent, dt);
+      if (next !== asked) place(next);
     };
     let dirty = true;
 
@@ -532,7 +605,7 @@ export function LabViewport({
         };
         let scene = await build();
         if (signal.aborted) return;
-        pilot?.attach({
+        pilot?.attach?.({
           adapter: info.description || `${info.vendor} ${info.architecture}`.trim(),
           stats: () => scene.stats(),
         });
@@ -570,12 +643,15 @@ export function LabViewport({
                   : 0,
             ];
           }
+          const framing = pilot?.pose(now) ?? null;
+          piloted = framing !== null;
           steer({ held: keys.held, edge }, dt);
           const started = performance.now();
-          if (pilot) {
-            camera = controller.place(camera, pilot.pose(now));
+          if (framing) {
+            place(controller.place(asked, framing));
             dirty = true; // a piloted frame is always drawn: it is measured
           }
+          see(dt);
           const animated = frameRef.current?.(now);
           if (animated?.ground !== undefined) groundRef.current = animated.ground;
           if (scene.setGround(groundNow())) dirty = true;
@@ -606,7 +682,7 @@ export function LabViewport({
             ray: pointerRay(),
             rightPress: rightPress?.ray ?? null,
           });
-          pilot?.frame({ now, cpuMs: performance.now() - started, camera });
+          pilot?.frame?.({ now, cpuMs: performance.now() - started, camera });
           raf = requestAnimationFrame(loop);
         };
         raf = requestAnimationFrame(loop);
@@ -654,12 +730,46 @@ export function LabViewport({
           allocations,
           camera: () => camera,
           setCamera(next: Camera3DParams) {
-            camera = next;
+            asked = camera = next;
+            framedRaw = true;
+            Object.assign(clearance, createClearanceState());
             dirty = true;
           },
+          placeCamera(pose: CameraPose) {
+            place(controller.place(asked, pose));
+          },
+          clearance: () => ({
+            asked,
+            hold: clearance.hold,
+            cut: clearance.cut,
+            blocked: clearance.blocked,
+            settled: clearance.settled,
+          }),
+          flyClearance(poses: readonly CameraPose[], dt: number, reps = 1) {
+            const over = obstaclesNow();
+            const tested = over.tested;
+            const started = performance.now();
+            let frames: (ClearanceReading & { camera: Camera3DParams })[] = [];
+            for (let rep = 0; rep < reps; rep++) {
+              const state = createClearanceState();
+              let pose = asked;
+              frames = poses.map((p) => {
+                pose = controller.place(pose, p);
+                const drawn = controller.resolve(state, pose, dt, over);
+                return { camera: drawn, hold: state.hold, cut: state.cut, blocked: state.blocked };
+              });
+            }
+            const flown = Math.max(1, poses.length * reps);
+            return {
+              frames,
+              msPerFrame: (performance.now() - started) / flown,
+              boxTestsPerFrame: (over.tested - tested) / flown,
+            };
+          },
           reset() {
-            camera = initialCamera;
-            dirty = true;
+            place(initialCamera);
+            Object.assign(clearance, createClearanceState());
+            see(0);
           },
           async rebuild() {
             scene.dispose();
@@ -794,6 +904,7 @@ export function LabViewport({
           orbit.y = e.clientY;
           const h = canvas.clientHeight || 1;
           steer({ drag: [dx / h, dy / h] }, 0);
+          see(0);
         };
         const onUp = (e: PointerEvent) => {
           orbit = null;
@@ -838,6 +949,7 @@ export function LabViewport({
         const onWheel = (e: WheelEvent) => {
           e.preventDefault();
           steer({ wheel: e.deltaY }, 0);
+          see(0);
         };
         const onResize = () => (dirty = true);
         window.addEventListener("pointerdown", onDown, { signal });

@@ -34,7 +34,7 @@ const heapBytes = (): number | null =>
   (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize ??
   null;
 
-type FrameStats = Parameters<ViewportPilot["attach"]>[0]["stats"];
+type FrameStats = Parameters<NonNullable<ViewportPilot["attach"]>>[0]["stats"];
 
 export function createBenchmarkRun(
   scenario: BenchmarkScenario,

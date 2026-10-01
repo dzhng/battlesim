@@ -122,6 +122,7 @@ export default function Authority() {
         fixture="authority"
         world={worldFeed}
         structures={session.structures}
+        obstacles={session.cameraObstaclesFeed}
         massing={session.massingFeed}
         frame={session.frame}
         appearances={session.appearances}
