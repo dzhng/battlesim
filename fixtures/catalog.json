@@ -769,7 +769,8 @@
           },
           "capabilities": {
             "deploy": {
-              "seconds": 15.0
+              "pack_seconds": 1.0,
+              "seconds": 3.0
             },
             "supply": {
               "stock": 600
@@ -1796,7 +1797,8 @@
       },
       "capabilities": {
         "deploy": {
-          "seconds": 15.0
+          "pack_seconds": 1.0,
+          "seconds": 3.0
         },
         "supply": {
           "stock": 600
@@ -1959,7 +1961,7 @@
       "name": "ATGM",
       "near_miss_suppression": 0.3,
       "penetration": 300.0,
-      "range_m": 1800.0,
+      "range_m": 1200.0,
       "reload_s": 9.0,
       "scatter_mrad": 0.5,
       "speed_mps": 50.0,
@@ -1988,7 +1990,7 @@
       "name": "Grenade",
       "near_miss_suppression": 0.15,
       "penetration": 20.0,
-      "range_m": 450.0,
+      "range_m": 300.0,
       "reload_s": 5.0,
       "scatter_mrad": 15.0,
       "speed_mps": 24.0,
@@ -2024,10 +2026,10 @@
       "name": "HMG",
       "near_miss_suppression": 0.04,
       "penetration": 20.0,
-      "range_m": 800.0,
+      "range_m": 550.0,
       "reload_s": 5.0,
       "scatter_mrad": 6.0,
-      "speed_mps": 270.0,
+      "speed_mps": 540.0,
       "stationary": false,
       "structural_damage": 4.0,
       "suppression_radius_m": 4.0,
@@ -2060,10 +2062,10 @@
       "name": "Rifle",
       "near_miss_suppression": 0.025,
       "penetration": 5.0,
-      "range_m": 600.0,
+      "range_m": 400.0,
       "reload_s": 0.0,
       "scatter_mrad": 8.0,
-      "speed_mps": 255.0,
+      "speed_mps": 510.0,
       "stationary": false,
       "structural_damage": 0.25,
       "suppression_radius_m": 3.0,
@@ -2089,7 +2091,7 @@
       "name": "AP",
       "near_miss_suppression": 0.2,
       "penetration": 180.0,
-      "range_m": 1400.0,
+      "range_m": 950.0,
       "reload_s": 6.0,
       "scatter_mrad": 3.43,
       "speed_mps": 930.0,
@@ -2118,7 +2120,7 @@
       "name": "HE",
       "near_miss_suppression": 0.4,
       "penetration": 30.0,
-      "range_m": 1400.0,
+      "range_m": 950.0,
       "reload_s": 6.0,
       "scatter_mrad": 3.43,
       "speed_mps": 930.0,

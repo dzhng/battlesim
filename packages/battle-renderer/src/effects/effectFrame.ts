@@ -116,6 +116,7 @@ export interface MuzzleSource {
 /** One publication, as the effects read it. */
 export interface EffectPublication {
   tick: number;
+  /** Visible flight in the authority's stable round order. */
   segments: readonly EffectSegment[];
   blasts: readonly EffectBlast[];
   shooters: readonly EffectShooter[];
@@ -148,6 +149,10 @@ export interface TransientCast extends CastStyle {
  *  its front; optionally a hot core, a dark body and a smoke trail (each
  *  absent: none). */
 export interface TracerStyle {
+  /** Chance to show a new round; its whole visible flight keeps that choice. */
+  chance?: number;
+  /** A sharp line of this screen width, with no world-space width or soft halo. */
+  line_px?: number;
   /** The tail is where the round was over the last `tail_s` seconds, so a
    *  fast round draws a long bolt and a slow one a short point; held within
    *  `tail_m` [least, most] metres. */
@@ -356,6 +361,10 @@ export function validateEffects(p: EffectPresentation): EffectPresentation {
  *  outside (0, 1], or a smoke trail with no spacing. */
 function validateTracer(kind: string, t: TracerStyle) {
   const at = `presentation.effects.tracers.${kind}`;
+  if (t.chance !== undefined && !(t.chance >= 0 && t.chance <= 1))
+    throw new Error(`${at}.chance must be in [0, 1]`);
+  if (t.line_px !== undefined && !(Number.isFinite(t.line_px) && t.line_px > 0))
+    throw new Error(`${at}.line_px must be finite and positive`);
   if (!(t.tail_s > 0 && t.tail_s <= TRACER_TAIL_MAX_S))
     throw new Error(`${at}.tail_s must be in (0, ${TRACER_TAIL_MAX_S}]`);
   if (!(t.tail_m[0] > 0 && t.tail_m[1] >= t.tail_m[0]))
@@ -490,7 +499,8 @@ function put(
 }
 
 /** A streak from a (tail, `alongA` of the way to the head) to b (`alongB`),
- *  `width` metres wide, additive: a sharp line, or a soft glow when `soft`. */
+ *  additive: a sharp line, or a soft glow when `soft`. Width is metres when
+ *  positive; a negative width encodes its fixed screen width in pixels. */
 function streak(
   batch: EffectBatch,
   ax: number,
@@ -676,6 +686,7 @@ class Effect implements EffectLifetime {
   /** Spark velocities, flat. */
   sparks: number[] = [];
   tracer: TracerStyle | null = null;
+  tracerVisible = true;
   flash: FlashStyle | null = null;
   /** A flash's launch: the shooter key, mount and soldier (`Launch`). */
   shooter = 0;
@@ -840,11 +851,12 @@ export class EffectFrame {
     const rng = mulberry32.create((pub.tick * 2654435761) >>> 0);
 
     // Launches (`launches.ts`): a flash at each, at its tick's start.
-    for (const l of this.launches.note(pub, gap)) this.addFlash(t0, l, rng);
+    for (const l of this.launches.note(pub, gap, (kind) => pick(this.p.tracers, kind).chance ?? 1))
+      this.addFlash(t0, l, rng);
 
     for (const s of pub.segments) {
       if (s.path.length < 2) continue;
-      const e = this.addTracer(t0, s, rng);
+      const e = this.addTracer(t0, s, rng, this.launches.tracers.has(s));
       for (const r of s.ricochets) {
         const at = t0 + (this.dt * e.cum[r.point]) / Math.max(e.length, 1e-6);
         const next = s.path[Math.min(r.point + 1, s.path.length - 1)];
@@ -1112,10 +1124,12 @@ export class EffectFrame {
     t0: number,
     s: EffectSegment,
     rng: ReturnType<typeof mulberry32.create>,
+    visible: boolean,
   ): Effect {
     const style = pick(this.p.tracers, s.kind);
     const e = this.push(TRACER, t0, t0);
     e.tracer = style;
+    e.tracerVisible = visible;
     e.cause = `round:${s.kind}`;
     let total = 0;
     for (let i = 0; i < s.path.length; i++) {
@@ -1137,7 +1151,7 @@ export class EffectFrame {
       total > 1e-6
         ? t0 + Math.min(this.dt * (1 + e.size / total), this.dt + TRACER_TAIL_MAX_S)
         : t0;
-    if (style.smoke && total > 1e-6) this.addTrail(t0, e, style.smoke, rng);
+    if (visible && style.smoke && total > 1e-6) this.addTrail(t0, e, style.smoke, rng);
     return e;
   }
 
@@ -1326,11 +1340,20 @@ export class EffectFrame {
   /** A round in flight: its glow along the tail, its hot core along the
    *  tail's front, and its body (while this stretch holds the round). */
   private drawTracer(e: Effect, age: number, batch: EffectBatch) {
+    if (!e.tracerVisible) return;
     const style = e.tracer!;
     const L = e.length;
     if (L <= 1e-6) return;
     const head = (L * age) / e.span;
-    this.drawTail(e, head, e.size, style.glow, style.glow.min_px, true, batch);
+    this.drawTail(
+      e,
+      head,
+      e.size,
+      style.glow,
+      style.line_px ?? style.glow.min_px,
+      !style.line_px,
+      batch,
+    );
     if (style.core)
       this.drawTail(
         e,
@@ -1390,7 +1413,7 @@ export class EffectFrame {
         _build_b[0],
         _build_b[1],
         _build_b[2],
-        light.width_m,
+        e.tracer?.line_px ? -e.tracer.line_px : light.width_m,
         minPx,
         light.color,
         light.intensity,

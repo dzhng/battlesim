@@ -409,7 +409,10 @@ export function LabViewport({
       cameraConfigRef.current ?? villageCamera.config,
       (x, y) => (groundAtRef.current ? groundAtRef.current(x, y) : camera.target[2]),
     );
-    const keys = trackHeldKeys(window, (code) => code in CAMERA_KEYS);
+    const keys = trackHeldKeys(
+      window,
+      (code) => code in CAMERA_KEYS || code === "ShiftLeft" || code === "ShiftRight",
+    );
     const pilot = pilotRef.current;
     /** Apply one intent; redraw only when the camera moved. A pilot's camera
      *  takes no input. */
@@ -710,6 +713,12 @@ export function LabViewport({
           });
         };
         const onDown = (e: PointerEvent) => {
+          const target = e.target;
+          if (
+            target !== canvas &&
+            !(target instanceof Element && target.closest(".ro-layer .ro-unit"))
+          )
+            return;
           if (e.button === 0) {
             press = { x: e.clientX, y: e.clientY, shift: e.shiftKey };
             canvas.setPointerCapture(e.pointerId);
@@ -768,7 +777,7 @@ export function LabViewport({
           steer({ wheel: e.deltaY }, 0);
         };
         const onResize = () => (dirty = true);
-        canvas.addEventListener("pointerdown", onDown, { signal });
+        window.addEventListener("pointerdown", onDown, { signal });
         canvas.addEventListener("pointermove", onMove, { signal });
         canvas.addEventListener("pointerup", onUp, { signal });
         canvas.addEventListener("pointerleave", onLeave, { signal });

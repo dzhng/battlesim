@@ -354,6 +354,11 @@ fn config_digest(setup: &ScenarioDefinition) -> u64 {
 impl Battle {
     pub fn new(setup: &ScenarioDefinition, seed: u64) -> Self {
         let rules = setup.rules.clone();
+        assert!(
+            rules.physics.vehicle_aim_height_fraction > 0.0
+                && rules.physics.vehicle_aim_height_fraction <= 1.0,
+            "physics.vehicle_aim_height_fraction must be in (0, 1]"
+        );
         units::validate_drive(&rules);
         sensing::validate(&rules.sensors);
         damage::validate(&rules);
@@ -1455,11 +1460,15 @@ impl Battle {
     fn guide(&mut self, moved: &[bool]) {
         let mut supported = BTreeSet::new();
         let alive: Vec<bool> = self.units.iter().map(|u| u.alive()).collect();
-        // Where a target is aimed: a hull's centre height, else a soldier's middle.
+        // Guidance and gun fire share the vehicle aim height.
         let aim_z: Vec<f64> = self
             .units
             .iter()
-            .map(|u| u.hull.map_or(self.rules.physics.infantry_aim_m, |h| h.z))
+            .map(|u| {
+                u.hull.map_or(self.rules.physics.infantry_aim_m, |h| {
+                    2.0 * h.z * self.rules.physics.vehicle_aim_height_fraction
+                })
+            })
             .collect();
         for (i, unit) in self.units.iter_mut().enumerate() {
             weapons::assign_operators(&self.arsenal, unit);

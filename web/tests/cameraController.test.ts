@@ -173,3 +173,13 @@ test("no command key is a camera key", () => {
   const camera = new Set(Object.keys(CAMERA_KEYS));
   for (const { code } of Object.values(CommandBindings)) expect(camera.has(code)).toBe(false);
 });
+
+test("either Shift key triples keyboard pan without speeding rotation", () => {
+  const rig = new CameraController(CONFIG);
+  const normal = rig.step(CAM, held("KeyW", "KeyD", "KeyQ"), 0.2);
+  for (const shift of ["ShiftLeft", "ShiftRight"]) {
+    const fast = rig.step(CAM, held("KeyW", "KeyD", "KeyQ", shift), 0.2);
+    expect(Math.hypot(...fast.target)).toBeCloseTo(3 * Math.hypot(...normal.target), 6);
+    expect(fast.yaw).toBe(normal.yaw);
+  }
+});

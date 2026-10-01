@@ -80,6 +80,9 @@ export function PauseMenu({
           </button>
         )}
         {children}
+        <a className="hud-menu-item" href="/">
+          Main menu
+        </a>
         <section className="hud-menu-section" aria-label="Sound">
           <SoundControls />
         </section>

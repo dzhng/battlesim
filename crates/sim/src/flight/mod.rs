@@ -37,6 +37,9 @@ const TIME_EPSILON_S: f64 = 1e-9;
 #[derive(Clone, Debug)]
 pub struct FlightConfig {
     gravity: V3,
+    miss_fall_max_s: f64,
+    ricochet_lifetime_s: f64,
+    miss_gravity_multiplier: f64,
     tick_s: f64,
     subsegments: u32,
     chord_error_m: f64,
@@ -91,6 +94,20 @@ impl FlightConfig {
                 rules.max_unguided_lifetime_s,
             ))
             .and(positive("gravity_mps2", rules.gravity_mps2))
+            .and(positive(
+                "miss_gravity_multiplier",
+                rules.miss_gravity_multiplier,
+            ))
+            .and(
+                (rules.ricochet_lifetime_s >= 0.0 && rules.ricochet_lifetime_s.is_finite())
+                    .then_some(())
+                    .ok_or("ricochet_lifetime_s"),
+            )
+            .and(
+                (rules.miss_fall_max_s >= 0.0 && rules.miss_fall_max_s.is_finite())
+                    .then_some(())
+                    .ok_or("miss_fall_max_s"),
+            )
             .and(
                 (rules.min_spread_at_max_range_m >= 0.0
                     && rules.min_spread_at_max_range_m.is_finite())
@@ -108,6 +125,9 @@ impl FlightConfig {
         }
         Ok(FlightConfig {
             gravity: v3(0.0, 0.0, -rules.gravity_mps2),
+            miss_fall_max_s: rules.miss_fall_max_s,
+            ricochet_lifetime_s: rules.ricochet_lifetime_s,
+            miss_gravity_multiplier: rules.miss_gravity_multiplier,
             tick_s,
             subsegments: required,
             chord_error_m: rules.curve_chord_error_m,
@@ -356,8 +376,15 @@ pub struct Shooter {
     pub cover: Option<Struck>,
 }
 
-/// Everything a round needs at launch; weapons and the lab emitter build it
-/// through [`prepare_launch`].
+/// A direct-fire miss falls to ground within the authored post-target time limit.
+/// The stronger gravity is fixed at launch; position and velocity stay continuous.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MissFall {
+    pub gravity_scale: f64,
+    pub after_s: f64,
+}
+
+/// Everything a round needs at launch.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Launch {
     pub origin: V3,
@@ -369,6 +396,7 @@ pub struct Launch {
     pub shooter: Option<Shooter>,
     pub guidance: Option<Guidance>,
     pub motor: Option<Motor>,
+    pub fall: Option<MissFall>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -387,6 +415,7 @@ pub struct Projectile {
     pub shooter: Option<Shooter>,
     pub guidance: Option<Guidance>,
     pub motor: Option<Motor>,
+    pub fall: Option<MissFall>,
     /// Ricochets so far; the resolver bounds them.
     pub bounces: u8,
 }
@@ -593,6 +622,7 @@ impl Projectiles {
             shooter: launch.shooter,
             guidance: launch.guidance,
             motor: launch.motor,
+            fall: launch.fall,
             bounces: 0,
         });
         id
@@ -678,6 +708,9 @@ impl Projectiles {
                     .f64(g.turn_rad_s)
                     .u64(g.supported as u64);
             }
+            if let Some(fall) = p.fall {
+                d.u64(0x4c414e44).f64(fall.gravity_scale).f64(fall.after_s);
+            }
             d.u64(p.motor.is_some() as u64);
             if let Some(m) = p.motor {
                 d.f64(m.accel_mps2).f64(m.top_speed_mps);
@@ -738,6 +771,9 @@ pub fn advance_projectiles(
 #[derive(Default)]
 struct Scratch {
     path: Vec<(V3, V3)>,
+    path_times: Vec<f64>,
+    accelerations: Vec<V3>,
+    leg: Vec<(V3, V3)>,
     candidates: Vec<u32>,
     motions: Vec<(usize, sweep::Motion)>,
     misses: Vec<NearMiss>,
@@ -817,6 +853,12 @@ impl Flight<'_> {
                     bounces: p.bounces,
                     pose,
                 }));
+                if p.bounces == 0 && config.ricochet_lifetime_s > 0.0 {
+                    p.lifetime_s = p
+                        .lifetime_s
+                        .min(p.age_s + hit.time * config.tick_s + config.ricochet_lifetime_s);
+                }
+                p.fall = None;
                 p.bounces += 1;
                 p.position = hit.point;
                 p.velocity = velocity;
@@ -886,9 +928,44 @@ impl Flight<'_> {
             bodies,
             grid,
         } = *self;
-        let n = config.subsegments;
         let rest = span - flown;
-        chords(p.position, p.velocity, gravity, rest, n, &mut scratch.path);
+        let split = p
+            .fall
+            .map_or(rest, |l| (l.after_s - p.age_s - flown).clamp(0.0, rest));
+        scratch.path.clear();
+        scratch.path_times.clear();
+        scratch.accelerations.clear();
+        scratch.path.push((p.position, p.velocity));
+        scratch.path_times.push(flown);
+        for (start, duration, acceleration) in [
+            (flown, split, gravity),
+            (
+                flown + split,
+                rest - split,
+                p.fall.map_or(gravity, |f| config.gravity * f.gravity_scale),
+            ),
+        ] {
+            if duration <= TIME_EPSILON_S {
+                continue;
+            }
+            let (position, velocity) = *scratch.path.last().unwrap();
+            let n = subsegments_for(acceleration.length(), duration, config.chord_error_m);
+            chords(
+                position,
+                velocity,
+                acceleration,
+                duration,
+                n,
+                &mut scratch.leg,
+            );
+            for (k, endpoint) in scratch.leg.iter().enumerate().skip(1) {
+                scratch.path.push(*endpoint);
+                scratch
+                    .path_times
+                    .push(start + duration * k as f64 / n as f64);
+                scratch.accelerations.push(acceleration);
+            }
+        }
         // Bodies near this leg's path, out to the near-miss reach.
         let reach = p.suppression_radius_m;
         let (mut lo, mut hi) = (p.position.xy(), p.position.xy());
@@ -910,12 +987,13 @@ impl Flight<'_> {
             shooter.is_none_or(|s| s.unit != body.unit && s.cover != Some(Struck::Body(body.id)))
                 && glanced != Some(body.id)
         });
-        let chord_s = rest / n as f64;
-        for k in 0..n as usize {
+        for k in 0..scratch.accelerations.len() {
+            let chord_s = scratch.path_times[k + 1] - scratch.path_times[k];
+            let acceleration = scratch.accelerations[k];
             let ((a0, v0), (a1, _)) = (scratch.path[k], scratch.path[k + 1]);
             let (s0, s1) = (
-                (flown + k as f64 * chord_s) / config.tick_s,
-                (flown + (k + 1) as f64 * chord_s) / config.tick_s,
+                scratch.path_times[k] / config.tick_s,
+                scratch.path_times[k + 1] / config.tick_s,
             );
             let chord = a1 - a0;
             let len = chord.length();
@@ -1004,7 +1082,7 @@ impl Flight<'_> {
                     body,
                     point: a0 + chord * u,
                     normal,
-                    velocity: v0 + gravity * (u * chord_s),
+                    velocity: v0 + acceleration * (u * chord_s),
                     time: s0 + (s1 - s0) * u,
                 });
             }

@@ -7,6 +7,15 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FlightRules {
     pub gravity_mps2: f64,
+    /// Maximum fall time after a direct round passes its original aim point; zero disables it.
+    #[serde(default)]
+    pub miss_fall_max_s: f64,
+    /// Flight time left after the first ricochet; zero keeps the original lifetime.
+    #[serde(default)]
+    pub ricochet_lifetime_s: f64,
+    /// Downward acceleration after passing the aim point, in world gravities.
+    #[serde(default = "full_gravity")]
+    pub miss_gravity_multiplier: f64,
     /// Largest allowed distance between a flown chord and the true curve.
     pub curve_chord_error_m: f64,
     /// Declared bound on chords per tick; authoring that needs more is invalid.

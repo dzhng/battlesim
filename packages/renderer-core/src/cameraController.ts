@@ -167,7 +167,8 @@ export class CameraController {
     const length = Math.hypot(right, forward);
     if (length > 0) {
       // Diagonals are no faster than straight lines.
-      const step = (c.pan_speed * distance * dt) / Math.max(1, length);
+      const boost = intent.held?.has("ShiftLeft") || intent.held?.has("ShiftRight") ? 3 : 1;
+      const step = (c.pan_speed * distance * dt * boost) / Math.max(1, length);
       // The eye sits at yaw around the target: screen-forward is −(cos yaw, sin yaw),
       // screen-right is forward × up.
       const fx = -Math.cos(yaw),

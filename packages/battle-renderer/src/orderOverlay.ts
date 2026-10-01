@@ -477,6 +477,11 @@ export interface UnitCircle {
   facing: number | null;
 }
 
+/** The circular interior, excluding the facing arrowhead. */
+export function circleContains(circle: UnitCircle, point: readonly [number, number]): boolean {
+  return vec2.squaredDistance(circle.c as Vec2, point as Vec2) <= circle.r * circle.r;
+}
+
 /** The circle the orders draw round a unit where it stands, or null where
  *  they draw none, one marker for every ground unit: a vehicle's under its
  *  hull (moving, selected or revealed), a moving squad's round its soldiers,

@@ -171,8 +171,8 @@ fn an_identified_shooter_adds_no_area() {
 fn losing_sight_leaves_a_fixed_last_seen_area_that_reidentification_retires() {
     // Red's tank drives behind the ridge and, much later, back out.
     let units = json!([
-        { "side": "blue", "kind": "recon", "position": [560, 400] },
-        { "side": "red", "kind": "tank", "position": [820, 330] },
+        { "side": "blue", "kind": "recon", "position": [560, 400], "engagement": "return_fire_only" },
+        { "side": "red", "kind": "tank", "position": [820, 330], "engagement": "return_fire_only" },
     ]);
     let scripts = json!([
         { "tick": 1, "side": "red", "order": { "kind": "move", "units": [1], "gesture": 1, "goal": [820, 460], "route": "shortest" } },

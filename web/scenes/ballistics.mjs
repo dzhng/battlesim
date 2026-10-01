@@ -4,6 +4,7 @@
 import { writeFile } from "node:fs/promises";
 import { anyNear, decode, writeCrop } from "./_png.mjs";
 import { checkOverlayIsolation } from "./_overlays.mjs";
+import { village } from "./_units.mjs";
 
 const END_TICK = 300;
 
@@ -120,9 +121,12 @@ export async function run(ctx) {
     JSON.stringify(arcs.map((a) => [a.range, a.end?.point])),
   );
   const hmg = end("hmg at sliding board");
+  const boardArrival = (149.85 - 20) / shot("hmg at sliding board").velocity[0];
   ctx.check(
-    "a 900 m/s round leads the 0.3 m sliding board and hits its face mid-chord",
-    hmg?.struck === "body:1" && hmg.tick === 5 && Math.abs(hmg.point[0] - 149.85) < 1e-6,
+    "a fast round leads the 0.3 m sliding board and hits its face mid-chord",
+    hmg?.struck === "body:1" &&
+      hmg.tick === Math.ceil(boardArrival * village.tick_hz) &&
+      Math.abs(hmg.point[0] - 149.85) < 1e-6,
     JSON.stringify(hmg),
   );
   const walker = end("grenade at walker");

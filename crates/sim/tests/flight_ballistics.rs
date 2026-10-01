@@ -23,6 +23,7 @@ fn launch(origin: V3, velocity: V3) -> Launch {
         shooter: None,
         guidance: None,
         motor: None,
+        fall: None,
     }
 }
 
@@ -617,10 +618,12 @@ fn a_prepared_launch_is_the_scattered_solution_and_refuses_a_blocked_aim() {
     let (launch, fired) =
         prepare_launch(&world, &config(), &grenade, &aim, 15.0, &mut rng, None).unwrap();
     assert_eq!(launch.origin, aim.origin);
+    assert!(fired.intercept.z <= aim.target.z);
     assert!((launch.velocity.length() - grenade.speed_mps).abs() < 1e-9);
     assert_eq!(fired.arc, ArcKind::Low);
     let mut replay = Rng::new(3);
-    let scattered = scatter_aim(aim.origin, aim.target, 15.0, &mut replay);
+    let mut scattered = scatter_aim(aim.origin, aim.target, 15.0, &mut replay);
+    scattered.z = scattered.z.min(aim.target.z);
     assert!((fired.intercept - scattered).length() < 1e-9);
     assert_eq!(rng, replay);
     // Behind the ridge a direct weapon does not fire at all.
@@ -636,4 +639,126 @@ fn a_prepared_launch_is_the_scattered_solution_and_refuses_a_blocked_aim() {
         prepare_launch(&world, &config(), &grenade, &blocked, 15.0, &mut rng, None),
         Err(NoSolution::Blocked { .. })
     ));
+}
+
+#[test]
+fn missed_direct_rounds_reach_ground_within_the_post_target_fall_limit() {
+    let world = flat([2000.0, 1000.0], "");
+    let aim = Aim {
+        origin: v3(100.0, 500.0, 1.4),
+        target: v3(700.0, 500.0, 1.4),
+        target_velocity: V3::default(),
+    };
+    for name in ["rifle", "hmg", "tank_ap", "tank_he"] {
+        for seed in 0..32 {
+            let p = profile(name);
+            let (launch, solution) =
+                prepare_launch(&world, &config(), &p, &aim, 20.0, &mut Rng::new(seed), None)
+                    .unwrap();
+            assert!(
+                solution.intercept.z <= aim.target.z,
+                "scatter never aims above the target"
+            );
+            let mut store = Projectiles::new(config());
+            store.launch(launch);
+            let events = fly(&mut store, &world, 1000, |_| Vec::new());
+            let hits = impacts(&events);
+            assert_eq!(hits.len(), 1, "{name}, seed {seed}: must hit ground");
+            assert_eq!(hits[0].1.struck, Struck::Terrain);
+            let when = event_time(
+                hits[0].0,
+                &FlightEvent::Impact(hits[0].1),
+                config().tick_s(),
+            );
+            assert!(
+                when <= solution.time_of_flight_s + physics("miss_fall_max_s") + config().tick_s(),
+                "{name}, seed {seed}: flight ended at {when} s"
+            );
+        }
+    }
+}
+
+#[test]
+fn the_miss_tail_preserves_a_high_body_hit_before_the_aim_plane() {
+    let world = flat([2000.0, 1000.0], "");
+    let aim = Aim {
+        origin: v3(100.0, 500.0, 2.0),
+        target: v3(700.0, 500.0, 2.0),
+        target_velocity: V3::default(),
+    };
+    for name in ["hmg", "tank_ap"] {
+        let p = profile(name);
+        let (launch, _) =
+            prepare_launch(&world, &config(), &p, &aim, 0.0, &mut Rng::new(1), None).unwrap();
+        let mut store = Projectiles::new(config());
+        store.launch(launch);
+        let body = Mover::standing(1, 1, tank_shape(), v3(700.0, 500.0, 0.0));
+        let events = fly(&mut store, &world, 1000, |tick| {
+            vec![body.body(tick, config().tick_s())]
+        });
+        let hits = impacts(&events);
+        assert_eq!(hits[0].1.struck, Struck::Body(sim::flight::BodyId(1)));
+        assert!(
+            hits[0].1.point.z > 1.8,
+            "{name}: the intended high hit cannot be pulled down early: {:?}",
+            hits[0].1.point
+        );
+    }
+}
+
+#[test]
+fn a_ricochet_keeps_its_deflected_flight_instead_of_the_post_target_fall() {
+    let world = flat([800.0, 1000.0], "");
+    let aim = Aim {
+        origin: v3(200.0, 500.0, 1.4),
+        target: v3(400.0, 500.0, 1.4),
+        target_velocity: V3::default(),
+    };
+    let (launch, _) = prepare_launch(
+        &world,
+        &config(),
+        &profile("hmg"),
+        &aim,
+        0.0,
+        &mut Rng::new(1),
+        None,
+    )
+    .unwrap();
+    let mut store = Projectiles::new(config());
+    store.launch(launch);
+    let body = Mover::standing(1, 1, tank_shape(), v3(250.0, 500.0, 0.0));
+    let events = fly_with(
+        &mut store,
+        &world,
+        39,
+        |tick| vec![body.body(tick, config().tick_s())],
+        &mut |_: &sim::flight::ImpactContext| sim::flight::ImpactDecision::Bounce {
+            velocity: v3(-20.0, 0.0, 30.0),
+        },
+    );
+    assert!(events
+        .iter()
+        .any(|(_, e)| matches!(e, FlightEvent::Ricochet(_))));
+    assert_eq!(store.active().len(), 1, "the glancing round keeps flying");
+    assert!(
+        store.active()[0].position.z > 25.0,
+        "ordinary gravity preserves the upward deflection"
+    );
+    let first = events
+        .iter()
+        .find(|(_, e)| matches!(e, FlightEvent::Ricochet(_)))
+        .unwrap();
+    let first_time = event_time(first.0, &first.1, config().tick_s());
+    let later = fly(&mut store, &world, 30, |_| Vec::new());
+    assert!(
+        store.active().is_empty(),
+        "the glancing round disappears rather than flying forever"
+    );
+    let expired = later
+        .iter()
+        .find(|(_, e)| matches!(e, FlightEvent::Expired(x) if x.cause == Expiry::Lifetime))
+        .expect("lifetime expiry, not a forced ground hit");
+    let elapsed = 39.0 * config().tick_s() + event_time(expired.0, &expired.1, config().tick_s())
+        - first_time;
+    assert!((elapsed - 1.5).abs() < 1e-6, "ricochet lifetime: {elapsed}");
 }

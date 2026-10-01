@@ -5,7 +5,7 @@ import { lab, obs, advance, snapshot, openBattle } from "./_lab.mjs";
 const unit = (o, id) => o.own.find((u) => u.id === id);
 
 /** The supply rows a recipient's panel can carry. */
-const SUPPLY_ROWS = ["resupplying", "supply_full", "cannot_supply"];
+const SUPPLY_ROWS = ["resupplying"];
 
 /** Each own panel's unit, its supply row's word (null without one) and every
  *  state row's word, as drawn. */
@@ -69,8 +69,8 @@ export async function run(ctx) {
   );
   await frame(ctx, page, "setting-up", [205, 210]);
 
-  // Set up (15 s), then serve for 20 s.
-  await advance(page, 450 + 600);
+  // Set up, then serve long enough to restore the recipients.
+  await advance(page, 90 + 600);
   o = await obs(page);
   const truck = unit(o, 0);
   ctx.check(
@@ -89,27 +89,22 @@ export async function run(ctx) {
     unit(o, 4).stock === 0 && unit(o, 5).service === "no_stock",
     JSON.stringify({ stock: unit(o, 4).stock, scouts: unit(o, 5).service }),
   );
-  // Every unit in a set-up truck's reach says, in its panel, whether it is
-  // served, full or cannot be; the trucks their stock and their supplying.
+  // Recipients show active service only; trucks show stock and supplying.
   await page.evaluate(() => window.__lab.frame());
   rows = await supplyRows(page);
   const WORD = {
     serving: "RESUPPLYING",
-    full: "SUPPLY FULL",
-    moving: "CANNOT SUPPLY",
-    firing: "CANNOT SUPPLY",
-    no_stock: "CANNOT SUPPLY",
   };
   const serving = o.own.filter((u) => u.service === "serving").map((u) => u.id);
   ctx.check(
-    "each unit's supply row is its service's word (RESUPPLYING, SUPPLY FULL, CANNOT SUPPLY), and none out of reach",
+    "only actively resupplying recipients show a supply row",
     serving.length > 0 &&
       o.own.every((u) => (rowOf(rows, u.id)?.row ?? null) === (WORD[u.service] ?? null)),
     JSON.stringify({ services: o.own.map((u) => [u.id, u.service]), rows }),
   );
   ctx.check(
-    "the scouts beside the empty truck read CANNOT SUPPLY",
-    rowOf(rows, 5)?.row === "CANNOT SUPPLY",
+    "the scouts beside the empty truck have no redundant supply row",
+    rowOf(rows, 5)?.row === null,
     JSON.stringify(rowOf(rows, 5)),
   );
   ctx.check(
@@ -135,9 +130,9 @@ export async function run(ctx) {
   o = await obs(page);
   rows = await supplyRows(page);
   ctx.check(
-    "a moving recipient in reach reads CANNOT SUPPLY; out of reach, no row",
+    "a moving recipient has no redundant supply row",
     unit(o, 1).service === "moving"
-      ? rowOf(rows, 1)?.row === "CANNOT SUPPLY"
+      ? rowOf(rows, 1)?.row === null
       : unit(o, 1).service === "out_of_range" && rowOf(rows, 1)?.row === null,
     JSON.stringify({ service: unit(o, 1).service, rows }),
   );

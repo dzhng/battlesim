@@ -726,3 +726,11 @@ test("with Space, the route polylines are exactly the units with an order, one e
   const withOrders = units.filter((u) => u.goal).length;
   expect(routes.length).toBe(withOrders);
 });
+
+test("the infantry ring includes its interior and boundary in picking", async () => {
+  const { circleContains } = await import("@packages/battle-renderer/src/orderOverlay");
+  const ring = { c: [10, 20] as const, r: 5, facing: null };
+  expect(circleContains(ring, [13, 24])).toBe(true);
+  expect(circleContains(ring, [10, 20])).toBe(true);
+  expect(circleContains(ring, [15.01, 20])).toBe(false);
+});

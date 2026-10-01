@@ -893,7 +893,15 @@ fn a_survivor_keeps_guiding_when_the_original_gunner_falls() {
                 // Guidance runs before damage: the next tick assigns a
                 // survivor before steering the existing missile.
                 b.step();
-                let m = still(&b).expect("the missile flies on");
+                let Some(m) = still(&b) else {
+                    // It may hit during the handoff tick: there is no continuing
+                    // guidance to inspect, but disappearance must be a real impact.
+                    assert!(b.flight_events().iter().any(|event| matches!(
+                        event, sim::flight::FlightEvent::Impact(i)
+                            if i.projectile.0 == before.id && i.detonated
+                    )));
+                    break;
+                };
                 assert!(m.supported, "seed {seed}: a survivor keeps guiding");
                 assert_eq!(m.id, before.id, "the same missile survives the handoff");
                 assert!(

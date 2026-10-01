@@ -37,7 +37,7 @@ import {
   type ResolveAppearance,
   type XrayOf,
 } from "@packages/battle-renderer/src/models/modelInstances";
-import { villageOrderFlash, villageXray } from "./villageOverlay";
+import { villageOrderFlash, villageXray, villageOrderStyle } from "./villageOverlay";
 import {
   NOTHING_REVEALED,
   OrderReveal,
@@ -70,6 +70,10 @@ import { createBattleAudio, soundMotion } from "./soundFeed";
 import { useFeed } from "./feed";
 import { posedSockets } from "./workbench/benchWorld";
 import type { Vec3 } from "math";
+import type { Pose } from "@web/battle/present/interpolate";
+import { circleContains, unitCircle } from "@packages/battle-renderer/src/orderOverlay";
+import { orderView } from "./battleOverlay";
+import { groundUnderRay } from "./useStaticWorld";
 
 export interface BattleSessionOptions {
   /** The map the scenario runs on (the scenario's own `map`). */
@@ -242,6 +246,7 @@ export function useBattleSession({
   // own unit's drawn (interpolated) position.
   const drawn = useRef<DrawnInstances>({ picks: [], owners: [], enemies: [] });
   const drawnAt = useRef(new Map<number, Readonly<Vec3>>());
+  const drawnPoses = useRef<readonly Pose[]>([]);
   const drawnEnemyAt = useRef(new Map<number, Readonly<Vec3>>());
   const readouts = useRef<ReadoutLayerHandle>(null);
   // The last frame's clock and drawn motion, which sound hears at the camera.
@@ -298,6 +303,7 @@ export function useBattleSession({
       const time = interpolator?.time(now) ?? null;
       if (!interpolator || time === null || !observation) return null;
       const own = interpolator.sample(now);
+      drawnPoses.current = own;
       const identified = interpolator.sampleIdentified(now);
       const d = sideInstances(own, identified, observation, rules.physics, UNITS);
       drawn.current = d;
@@ -371,8 +377,29 @@ export function useBattleSession({
 
   const onPick = useCallback(
     (pick: LabPick) => {
-      if (world)
-        control.onPointer(pickToPointer(world, drawn.current, pick, observation?.contacts));
+      if (!world) return;
+      const pointer = pickToPointer(world, drawn.current, pick, observation?.contacts);
+      const panel = readouts.current?.pick(pick.x, pick.y);
+      if (!panel && pick.button === "left" && pointer.unit === null && pointer.enemy === null) {
+        const ground = groundUnderRay(world.view, pick.ray);
+        if (ground) {
+          for (const u of observation?.own ?? []) {
+            if (UNITS.hull(u.kind)) continue;
+            const pose = orderView(u, true);
+            const drawnPose = drawnPoses.current.find((p) => p.id === u.id);
+            if (drawnPose) {
+              pose.position = drawnPose.position;
+              pose.members = drawnPose.members;
+            }
+            const circle = unitCircle(pose, villageOrderStyle);
+            if (circle && circleContains(circle, [ground[0], ground[1]])) {
+              pointer.unit = u.id;
+              break;
+            }
+          }
+        }
+      }
+      control.onPointer(panel ? { ...pointer, ...panel } : pointer);
     },
     [world, control, observation],
   );
@@ -382,7 +409,10 @@ export function useBattleSession({
       control.selectInRect((u) => {
         const at = drawnAt.current.get(u.id) ?? u.position;
         const p = box.project(at[0], at[1], at[2] + 1);
-        return !!p && p[0] >= box.x0 && p[0] <= box.x1 && p[1] >= box.y0 && p[1] <= box.y1;
+        return (
+          !!readouts.current?.inRect(u.id, box) ||
+          (!!p && p[0] >= box.x0 && p[0] <= box.x1 && p[1] >= box.y0 && p[1] <= box.y1)
+        );
       }, box.shift),
     [control],
   );

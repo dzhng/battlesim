@@ -2281,7 +2281,7 @@ async function muzzleTour(ctx) {
       kind: "move",
       units: [driver.id],
       gesture: 1,
-      goal: [driver.position[0] + 80, driver.position[1]],
+      goal: [driver.position[0] + 400, driver.position[1]],
       route: "shortest",
     });
     window.__lab.route.command({
@@ -2336,8 +2336,12 @@ async function muzzleTour(ctx) {
       const squad = o.own.find((u) => u.id === unit.id);
       const round = o.projectiles.find(
         (s) =>
+          s.kind === "rifle" &&
           squad.memberIds.includes(s.shooterMember) &&
-          squad.members.some((m) => Math.hypot(m[0] - s.path[0][0], m[1] - s.path[0][1]) < 2),
+          Math.hypot(
+            squad.members[squad.memberIds.indexOf(s.shooterMember)][0] - s.path[0][0],
+            squad.members[squad.memberIds.indexOf(s.shooterMember)][1] - s.path[0][1],
+          ) < 2,
       );
       if (!round) continue;
       near = round.path[0];
@@ -2705,13 +2709,13 @@ async function rulerTour(ctx) {
     JSON.stringify({ r, want, text }),
   );
   await snapshot(ctx, page, "ruler-far-1920x1080.png");
-  // Both again, the cursor 1000 m out from the tank: the tank is nearer. Its
+  // Both again, the cursor 750 m out from the tank: the tank is nearer. Its
   // HMG falls short, its gun reaches.
   await lab(page, (ids) => window.__lab.route.select(ids), [rifle.id, tank.id]);
   await page.waitForFunction(() => window.__lab.route.selected().length === 2);
   const tankFar = [
-    tank.position[0] + Math.cos(inward(tank)) * 1000,
-    tank.position[1] + Math.sin(inward(tank)) * 1000,
+    tank.position[0] + Math.cos(inward(tank)) * 750,
+    tank.position[1] + Math.sin(inward(tank)) * 750,
   ];
   await aim(page, [(tank.position[0] + tankFar[0]) / 2, (tank.position[1] + tankFar[1]) / 2], {
     distance: 1400,
@@ -2725,7 +2729,7 @@ async function rulerTour(ctx) {
   r = await ruler();
   text = await shownText();
   ctx.check(
-    "from the tank at 1000 m, the gun reaches and the HMG's reach ticks the line",
+    "from the tank at 750 m, the gun reaches and the HMG's reach ticks the line",
     r?.unit === tank.id &&
       r.marks.length === 2 &&
       !r.marks[0].inRange &&
@@ -2896,7 +2900,7 @@ async function panelTour(ctx) {
     (id) => window.__lab.route.command({ kind: "set_deployment", units: [id], deployed: true }),
     truck.id,
   );
-  await advance(page, 30 * 6);
+  await advance(page, 30);
   o = await obs(page);
   const deploying = o.own.find((u) => u.id === truck.id);
   await look(deploying.position);
@@ -2988,7 +2992,7 @@ async function panelTour(ctx) {
   };
   // A last sighting and a firing report: what was known, and how long ago.
   const contactPanelCheck = (source, word, file) => async (o) => {
-    const c = o.contacts.find((x) => x.source === source);
+    const c = o.contacts.find((x) => x.source === source && x.primaryLabel);
     if (!c) return false;
     await look([c.center[0], c.center[1], 0]);
     const p = await panelOf(page, "contact", c.id);
@@ -3130,7 +3134,40 @@ async function captionsTour(ctx) {
   await page.close();
 }
 
+async function menuTour(ctx) {
+  const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 }, tick: 30 });
+  const button = page.getByRole("button", { name: "Menu", exact: true });
+  const rect = await button.boundingBox();
+  ctx.check(
+    "the menu has a generous click target",
+    rect.width >= 44 && rect.height >= 44,
+    JSON.stringify(rect),
+  );
+  for (const [x, y] of [
+    [0.1, 0.1],
+    [0.9, 0.1],
+    [0.1, 0.9],
+    [0.9, 0.9],
+    [0.5, 0.5],
+  ]) {
+    await page.mouse.click(rect.x + rect.width * x, rect.y + rect.height * y);
+    await page.getByRole("dialog", { name: "Paused" }).waitFor();
+    await page.getByRole("button", { name: "Resume", exact: true }).click();
+  }
+  ctx.check("the menu opens from its corners and center", true);
+  await button.click();
+  await snapshot(ctx, page, "pause-main-menu-1920x1080.png");
+  await page.getByRole("link", { name: "Main menu", exact: true }).click();
+  await page.getByRole("link", { name: "Play village" }).waitFor();
+  ctx.check(
+    "Main menu returns from the paused battle to the game's home",
+    new URL(page.url()).pathname === "/",
+  );
+  await page.close();
+}
+
 const TOURS = {
+  menu: menuTour,
   captions: captionsTour,
   panels: panelTour,
   ruler: rulerTour,

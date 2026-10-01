@@ -1,23 +1,34 @@
 // Contact callouts anchor to the reported ground center, independent of uncertainty radius.
 import { writeFile } from "node:fs/promises";
-import { openBattle, obs, aim, snapshot, groundCss, until } from "./_lab.mjs";
+import { openBattle, obs, aim, snapshot, groundCss, until, lab } from "./_lab.mjs";
 import { decode, writeCrop } from "./_png.mjs";
 import { curvePitch, village } from "./_units.mjs";
 
 export async function contactTour(ctx) {
   const page = await openBattle(ctx, {
+    url: new URL("/battle/village", ctx.url).href,
     viewport: { width: 1920, height: 1080 },
-    tick: 1140,
+    tick: 30,
     grass: true,
   });
+  // Bring the observers into the shortened weapon ranges before capturing reports.
+  await lab(page, () =>
+    window.__lab.route.command({
+      kind: "attack_move",
+      units: window.__lab.route.observation().own.map((u) => u.id),
+      gesture: 1,
+      goal: [1000, 800],
+    }),
+  );
   const mixedReports = (o) =>
-    o.contacts.some((c) => !c.primaryLabel) &&
-    o.contacts.some((c) => c.primaryLabel && c.source === "last_seen");
+    o.contacts.some((c) => !c.primaryLabel) && o.contacts.some((c) => c.primaryLabel);
   let observation = await obs(page);
   if (!mixedReports(observation)) {
     observation = await until(page, mixedReports, 6000, 30);
   }
-  const contact = observation?.contacts.find((c) => c.primaryLabel && c.source === "last_seen");
+  const contact =
+    observation?.contacts.find((c) => c.primaryLabel && c.source === "last_seen") ??
+    observation?.contacts.find((c) => c.primaryLabel);
   if (!contact) throw new Error("contact capture needs a labelled contact");
   const drawnIds = await page
     .locator("[data-contact]")

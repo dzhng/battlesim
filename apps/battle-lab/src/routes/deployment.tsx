@@ -157,7 +157,7 @@ export default function Deployment() {
 }
 
 /** The one progress value and its target, read straight from the observation. */
-/** Deploying and packing both take `seconds` (the scenario's service rules). */
+
 function DeploymentReadout({ unit, seconds }: { unit: OwnUnitView; seconds: number }) {
   const d = unit.deployment;
   const orders = unit.goal

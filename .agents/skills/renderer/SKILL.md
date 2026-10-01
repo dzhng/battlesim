@@ -39,7 +39,7 @@ Read before changing anything:
 - **Every effect has a published cause.** No effect is invented from a rule.
 - **Fog eyes come from the published tick,** never from interpolated positions.
 - **A prop the side hasn't learned never occludes.**
-- **Picking uses the simulation's boxes,** never the drawn model. `liveCamera()` is the one camera for GPU packing and CPU picking alike.
+- **Picking uses the simulation's boxes and the shared selection-circle geometry,** never the drawn model. `liveCamera()` is the one camera for GPU packing and CPU picking alike.
 - **Poses are per soldier:** each soldier's own published position, velocity and id. Never a formation slot.
 - **Presentation numbers live in the fixture.** A new knob is a fixture field its owner validates, not a constant in a pass.
 
@@ -215,6 +215,8 @@ When a new need shows two passes owning one concept, refactor to the shared prim
 
 When a world-space width change barely moves the screenshot, trace the full width path through screen-space minimums, core/glow layers and postprocessing before tuning again. Compare native tactical and close views with the same camera and event. For moving subpixel features, inspect consecutive frames in the crowded gameplay view as well as isolated crops; a thin still can conceal flicker or disappear against terrain.
 
+A fixed one-pixel diagonal needs analytic pixel coverage over a wider supporting quad. A one-pixel quad alone misses neighboring sample centers and stipples; its support width is not its visible width. Keep the authored line width in the coverage calculation, and check consecutive frames and both rifle and vehicle fire. A tracer's visibility choice belongs to the round's tracked continuation, never to each publication independently; sparks and impacts remain independent causes.
+
 ## Repeating motion needs a full cycle
 
 For cadence or synchronization claims, capture startup and multiple complete work/rest cycles, including their longest pauses. Pair native motion frames with source-event timestamps per actor; overlapping visible trails do not prove simultaneous launches, and a short staggered opening does not prove sustained independence. Test random timing across several seeds and report measured gaps rather than promising uninterrupted activity.
@@ -274,3 +276,5 @@ flag does not resolve a failed distance oracle. At a stopping point, preserve an
 unactivated candidate and restore the runtime baseline instead of widening its bar.
 
 - **Resource checks must control rendered view history.** A paused fast-forward can finish delivering data before the UI draws that publication. Await the last publication’s drawn tick and presentation clock before moving the camera. Otherwise a view-dependent retained buffer may see one extra detail tier on one reset and look like a leak. Attribute differences with actual allocation creation/destruction records before changing capacity policy or weakening byte assertions.
+
+- **Interactive callouts share the viewport's gesture owner.** A DOM panel above the canvas needs native pointer handling for hover, while click and drag must reach the same capture/release path as battlefield picks. Verify dragging from a panel as well as dragging across one, and test the drawn panel bounds rather than the unit anchor.

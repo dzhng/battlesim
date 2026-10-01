@@ -33,13 +33,14 @@ export function unitName(u: Pick<OwnUnitView, "kind">): string {
 }
 
 /** Page-pixel box. */
-interface Box {
+export interface ReadoutRect {
   x0: number;
   x1: number;
   y0: number;
   y1: number;
 }
-const overlaps = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+const overlaps = (a: ReadoutRect, b: ReadoutRect) =>
+  a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 /** Where a callout sits from its unit's anchor: its near bottom corner this
  *  far to the side and up, so the leader line rises off the unit. */
 const CALLOUT_SIDE_PX = 30;
@@ -78,6 +79,11 @@ interface DrawnAnchors {
 }
 
 export interface ReadoutLayerHandle {
+  pick(
+    x: number,
+    y: number,
+  ): { unit: number | null; enemy: number | null; contact: number | null } | null;
+  inRect(unit: number, rect: ReadoutRect): boolean;
   /** Re-anchor every panel; call once per animation frame. `clock` is that
    *  frame's presentation clock in seconds, which eases a panel's nudge
    *  (null snaps it). */
@@ -100,7 +106,7 @@ const HEAD_M = 2;
 
 /** Observation-only panels, positioned each frame beside their units.
  *  Stack downward in screen order, upward when the bottom fills. If neither
- *  direction fits, keep every panel visible; selected panels paint above
+ *  direction fits, hide a panel that cannot fit; selected panels paint above
  *  the others. Nudges ease on the presentation clock. */
 export function ReadoutLayer({
   own,
@@ -168,11 +174,34 @@ export function ReadoutLayer({
   ];
   const calloutsRef = useRef(callouts);
   calloutsRef.current = callouts;
+  const visibleBox = (key: string): ReadoutRect | null => {
+    const node = nodes.current.get(key);
+    if (!node || node.style.display === "none") return null;
+    const r = node.getBoundingClientRect();
+    return { x0: r.left, x1: r.right, y0: r.top, y1: r.bottom };
+  };
   useImperativeHandle(handle, () => ({
+    pick(x, y) {
+      const priority = [...calloutsRef.current].sort(
+        (a, b) => Number(b.selected) - Number(a.selected),
+      );
+      for (const c of priority) {
+        const r = visibleBox(c.key);
+        if (r && x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1)
+          return {
+            unit: c.owner === "own" ? c.id : null,
+            enemy: c.owner === "enemy" ? c.id : null,
+            contact: c.owner === "contact" ? c.id : null,
+          };
+      }
+      return null;
+    },
+    inRect(unit, rect) {
+      const r = visibleBox(`own-${unit}`);
+      return !!r && overlaps(r, rect);
+    },
     place(project, distance, drawn = {}, clock = null) {
       // Far out, every panel takes its compact form (before sizes are read).
-      const zoom = distance < PANELS_FAR_M ? "default" : "far";
-      if (layer.current && layer.current.dataset.zoom !== zoom) layer.current.dataset.zoom = zoom;
       // Each panel's anchor, in page pixels.
       const anchored: { id: string; node: HTMLDivElement; x: number; y: number }[] = [];
       for (const c of calloutsRef.current) {
@@ -189,7 +218,11 @@ export function ReadoutLayer({
         // A panel hangs off a unit in view; one whose anchor is off screen hides.
         const q = shown ? project(p[0], p[1], p[2] + (c.owner === "contact" ? 0 : HEAD_M)) : null;
         const at =
-          q && q[0] >= 0 && q[1] >= 0 && q[0] <= window.innerWidth && q[1] <= window.innerHeight
+          q &&
+          q[0] >= villageHud.panel_edge_hide_px &&
+          q[1] >= villageHud.panel_edge_hide_px &&
+          q[0] <= window.innerWidth - villageHud.panel_edge_hide_px &&
+          q[1] <= window.innerHeight - villageHud.panel_edge_hide_px
             ? q
             : null;
         node.style.display = at ? "flex" : "none";
@@ -199,6 +232,13 @@ export function ReadoutLayer({
           nudges.current.delete(c.key);
         }
       }
+      const zoom =
+        anchored.length > villageHud.panel_compress_above
+          ? "compressed"
+          : distance < PANELS_FAR_M
+            ? "default"
+            : "far";
+      if (layer.current && layer.current.dataset.zoom !== zoom) layer.current.dataset.zoom = zoom;
       // The presentation clock's step, which eases each callout's nudge.
       const dt = clock === null || lastClock.current === null ? 0 : clock - lastClock.current;
       lastClock.current = clock;
@@ -215,7 +255,7 @@ export function ReadoutLayer({
       // On screen, and never under a panel: below the top edge, then the
       // shortest way out of a panel, right of a side panel, below a top
       // plate, above a bottom bar; never up off the top of the screen.
-      const clear = (box: Box): Box => {
+      const clear = (box: ReadoutRect): ReadoutRect => {
         if (box.y0 < EDGE_PX) box = shift(box, EDGE_PX - box.y0);
         for (const r of panels) {
           if (overlaps({ x0: r.left, x1: r.right, y0: r.top, y1: r.bottom }, box)) {
@@ -231,7 +271,7 @@ export function ReadoutLayer({
         }
         return box;
       };
-      const placed: Box[] = panels.map((r) => ({
+      const placed: ReadoutRect[] = panels.map((r) => ({
         x0: r.left,
         x1: r.right,
         y0: r.top,
@@ -239,11 +279,15 @@ export function ReadoutLayer({
       }));
       // Pad obstacles so collision checks and placement use the same edge,
       // without subtracting the gap again and rounding back into a collision.
-      const hit = (box: Box) =>
+      const hit = (box: ReadoutRect) =>
         placed.find((o) =>
           overlaps({ x0: o.x0 - gap, x1: o.x1 + gap, y0: o.y0 - gap, y1: o.y1 + gap }, box),
         );
-      const shift = (box: Box, dy: number): Box => ({ ...box, y0: box.y0 + dy, y1: box.y1 + dy });
+      const shift = (box: ReadoutRect, dy: number): ReadoutRect => ({
+        ...box,
+        y0: box.y0 + dy,
+        y1: box.y1 + dy,
+      });
       const right = window.innerWidth - EDGE_PX;
       // Highest unit first; keep unit anchors clear as well as panels.
       const callouts = [...boxes].sort((m, n) => m.y - n.y);
@@ -269,6 +313,17 @@ export function ReadoutLayer({
             target = candidate;
             break;
           }
+        }
+        if (
+          target.x0 < EDGE_PX ||
+          target.x1 > right ||
+          target.y0 < EDGE_PX ||
+          target.y1 > window.innerHeight - EDGE_PX
+        ) {
+          b.node.style.display = "none";
+          leaders.current.get(b.id)?.setAttribute("d", "");
+          nudges.current.delete(b.id);
+          continue;
         }
         // Layout holds the target, so the next callout clears where this one
         // is going; this one is drawn eased toward it.
