@@ -147,6 +147,7 @@ name = "mapgen"
 version = "0.1.0"
 dependencies = [
  "contract",
+ "libm",
  "serde",
  "serde_json",
 ]

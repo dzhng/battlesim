@@ -1,0 +1,359 @@
+//! Seeded layout: where a map's settlements, roads and forests go. The output
+//! is an ordinary `MapPlan` for the compiler; the presets are data.
+mod forests;
+pub(crate) mod geometry;
+mod measure;
+mod presets;
+mod rng;
+mod roads;
+mod sites;
+
+pub use measure::{measure, EdgeTransit, HalfSplit, LayoutMetrics, RoadMetrics};
+pub use presets::*;
+
+use crate::{CompileLimits, CompileOutcome, CompileRequest, Diagnostic, DiagnosticCode, MapPlan};
+use contract::identity::Seed;
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+
+/// A request pins this; a change that moves any generated point renames it.
+pub const GENERATOR_VERSION: &str = "layout-1";
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MapType {
+    Open,
+    Mixed,
+    Metro,
+}
+
+impl MapType {
+    pub const ALL: [MapType; 3] = [MapType::Open, MapType::Mixed, MapType::Metro];
+    pub fn name(self) -> &'static str {
+        match self {
+            MapType::Open => "open",
+            MapType::Mixed => "mixed",
+            MapType::Metro => "metro",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MapSize {
+    Small,
+    Medium,
+    Large,
+}
+
+impl MapSize {
+    pub const ALL: [MapSize; 3] = [MapSize::Small, MapSize::Medium, MapSize::Large];
+    pub fn name(self) -> &'static str {
+        match self {
+            MapSize::Small => "small",
+            MapSize::Medium => "medium",
+            MapSize::Large => "large",
+        }
+    }
+    /// M04: the side of the square playable area. A user decision, not a preset.
+    pub fn extent_m(self) -> f64 {
+        match self {
+            MapSize::Small => 6_000.0,
+            MapSize::Medium => 8_000.0,
+            MapSize::Large => 10_000.0,
+        }
+    }
+}
+
+/// Everything that decides a generated plan. The same request and presets
+/// give the same plan bytes on every target.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct GenerationRequest {
+    pub generator_version: String,
+    pub preset_revision: String,
+    pub seed: Seed,
+    pub template_catalog_hash: String,
+    #[serde(rename = "type")]
+    pub map_type: MapType,
+    pub size: MapSize,
+    /// The compiler's admission for the plan this request yields.
+    pub limits: CompileLimits,
+}
+
+impl GenerationRequest {
+    /// The compiler request for a plan generated from this request.
+    pub fn compile_request(&self, plan: MapPlan) -> CompileRequest {
+        CompileRequest {
+            generator_version: self.generator_version.clone(),
+            preset_revision: self.preset_revision.clone(),
+            seed: self.seed,
+            template_catalog_hash: self.template_catalog_hash.clone(),
+            plan,
+            limits: self.limits,
+        }
+    }
+}
+
+/// One request's fixed inputs, shared by every generation step.
+struct Context<'a> {
+    request: &'a GenerationRequest,
+    presets: &'a PresetDefinitions,
+    preset: &'a TypePreset,
+    cell: &'a SizePreset,
+    extent: f64,
+}
+
+impl Context<'_> {
+    /// The request's own stream of that name: the type and size are part of
+    /// the key, so one seed gives each of the nine maps its own layout.
+    fn stream(&self, name: &str) -> rng::Stream {
+        let (map_type, size) = (self.request.map_type.name(), self.request.size.name());
+        rng::Stream::new(
+            self.request.seed.value(),
+            &format!("{map_type}/{size}/{name}"),
+        )
+    }
+
+    /// A bounded search ran out. Names the feature, the preset cell and the
+    /// seed, so the caller can report it; the generator never tries another seed.
+    fn fail(&self, feature: &str, message: String) -> Vec<Diagnostic> {
+        let (map_type, size) = (self.request.map_type.name(), self.request.size.name());
+        vec![Diagnostic {
+            code: DiagnosticCode::GenerationFailed,
+            feature: Some(feature.into()),
+            location: format!("$.presets.types.{map_type}.sizes.{size}"),
+            message: format!(
+                "{message} ({map_type} {size}, seed {})",
+                self.request.seed.value()
+            ),
+        }]
+    }
+}
+
+pub fn generate_layout(
+    request: &GenerationRequest,
+    presets: &PresetDefinitions,
+) -> Result<MapPlan, Vec<Diagnostic>> {
+    let pins = [
+        (
+            "generator_version",
+            &request.generator_version,
+            GENERATOR_VERSION,
+        ),
+        (
+            "preset_revision",
+            &request.preset_revision,
+            presets.revision.as_str(),
+        ),
+    ];
+    let stale: Vec<_> = pins
+        .into_iter()
+        .filter(|(_, requested, current)| requested.as_str() != *current)
+        .map(|(field, requested, current)| Diagnostic {
+            code: DiagnosticCode::InvalidRequest,
+            feature: None,
+            location: format!("$.{field}"),
+            message: format!("the request pins {requested:?}; this generator is {current:?}"),
+        })
+        .collect();
+    if !stale.is_empty() {
+        return Err(stale);
+    }
+    let (preset, cell) = presets.cell(request.map_type, request.size);
+    let context = Context {
+        request,
+        presets,
+        preset,
+        cell,
+        extent: request.size.extent_m(),
+    };
+    // What kind of country this seed is: a few corridors or a road network,
+    // sparse woodland or large forests.
+    let mut style = context.stream("style");
+    let (richness, woodland) = (style.unit(), style.unit());
+
+    // The main roads' lines come first, so settlements can stand on them.
+    let mut road_draws = context.stream("roads");
+    let skeleton = roads::skeleton(&context, &mut road_draws);
+    let placed = sites::place(&context, &skeleton)?;
+    // Rivers (C69) belong here, on a stream of their own: after the sites
+    // they must avoid, before the roads that must bridge them.
+    let surfaces = roads::build(&context, &skeleton, &placed.sites, richness, road_draws)?;
+    let forests = forests::grow(&context, &placed, woodland);
+    let settlements = placed
+        .sites
+        .iter()
+        .enumerate()
+        .map(|(index, site)| sites::settlement(&context, index, site, &surfaces))
+        .collect();
+    let mut plan = MapPlan {
+        size: [context.extent; 2],
+        fog_cell_m: presets.terrain.fog_cell_m,
+        height_grid_m: presets.terrain.height_grid_m,
+        slope_cutoff_deg: presets.terrain.slope_cutoff_deg,
+        props: Vec::new(),
+        buildings: Vec::new(),
+        surfaces,
+        forests,
+        settlements,
+        approaches: Vec::new(),
+        unsupported_fields: BTreeMap::new(),
+    };
+    plan.approaches = measure::approaches(&plan, presets);
+    verify(&context, &plan)?;
+    Ok(plan)
+}
+
+/// Hold the finished plan to the preset rules by measuring it, so a rule is
+/// met because the geometry meets it and not because a step meant it to.
+fn verify(context: &Context, plan: &MapPlan) -> Result<(), Vec<Diagnostic>> {
+    let presets = context.presets;
+    let metrics = measure(plan, presets);
+    let mut errors = Vec::new();
+    let mut check = |ok: bool, feature: &str, message: String| {
+        if !ok {
+            errors.extend(context.fail(feature, message));
+        }
+    };
+    check(
+        metrics.roads.unconnected_settlements == 0,
+        "roads",
+        format!(
+            "{} settlements have no road to the centre",
+            metrics.roads.unconnected_settlements
+        ),
+    );
+    for (name, split) in [("town", &metrics.town), ("forest", &metrics.forest)] {
+        check(
+            split.fair,
+            &format!("fairness.{name}"),
+            format!(
+                "{name} area is {:.0} m² in the top half and {:.0} m² in the bottom",
+                split.top_m2, split.bottom_m2
+            ),
+        );
+    }
+    check(
+        metrics.main_approach_top && metrics.main_approach_bottom,
+        "approach",
+        format!(
+            "the main settlement lacks {} m of open ground across {} m in a half",
+            presets.approach.depth_m, presets.approach.front_m
+        ),
+    );
+    check(
+        metrics.transit.len() == 4
+            && metrics
+                .transit
+                .iter()
+                .all(|edge| edge.elapsed_s <= presets.transit.max_s),
+        "transit",
+        format!(
+            "an edge has no road to the centre within {} s: {:?}",
+            presets.transit.max_s, metrics.transit
+        ),
+    );
+    check(
+        metrics.urban_share <= context.cell.urban_share_max,
+        "urban_share",
+        format!(
+            "settlements cover {:.3} of the map, above the ceiling {}",
+            metrics.urban_share, context.cell.urban_share_max
+        ),
+    );
+    let [low, high] = context.preset.forest_share;
+    let slack = presets.forests.share_tolerance;
+    check(
+        metrics.forest_share >= low - slack && metrics.forest_share <= high + slack,
+        "forest_share",
+        format!(
+            "forest covers {:.3} of the map, outside {low}..{high}",
+            metrics.forest_share
+        ),
+    );
+    if metrics.ground_points > context.request.limits.max_ground_points {
+        errors.push(Diagnostic {
+            code: DiagnosticCode::ComplexityLimit,
+            feature: None,
+            location: "$.limits.max_ground_points".into(),
+            message: format!(
+                "the generated plan has {} ground points",
+                metrics.ground_points
+            ),
+        });
+    }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
+}
+
+/// The CLI and Wasm boundaries emit this same record.
+#[derive(Debug, Serialize)]
+#[serde(tag = "status", rename_all = "snake_case")]
+pub enum GenerateOutcome {
+    Ok { plan: Box<MapPlan> },
+    Error { diagnostics: Vec<Diagnostic> },
+}
+
+fn generate(
+    request_json: &str,
+    presets_json: &str,
+) -> Result<(GenerationRequest, MapPlan), Vec<Diagnostic>> {
+    let request: GenerationRequest = serde_json::from_str(request_json).map_err(|error| {
+        vec![Diagnostic {
+            code: DiagnosticCode::InvalidRequest,
+            feature: None,
+            location: "$".into(),
+            message: error.to_string(),
+        }]
+    })?;
+    let presets = PresetDefinitions::from_json(presets_json)?;
+    let plan = generate_layout(&request, &presets)?;
+    Ok((request, plan))
+}
+
+/// Generate a plan from request and preset JSON.
+pub fn generate_plan(request_json: &str, presets_json: &str) -> GenerateOutcome {
+    match generate(request_json, presets_json) {
+        Ok((_, plan)) => GenerateOutcome::Ok {
+            plan: Box::new(plan),
+        },
+        Err(diagnostics) => GenerateOutcome::Error { diagnostics },
+    }
+}
+
+/// Generate a plan and compile it, through the same `lower` an authored plan uses.
+pub fn generate_map(
+    request_json: &str,
+    presets_json: &str,
+    descriptors_json: &str,
+) -> CompileOutcome {
+    let result = generate(request_json, presets_json).and_then(|(request, plan)| {
+        let catalogue = crate::catalogue(descriptors_json)?;
+        crate::lower(&request.compile_request(plan), &catalogue)
+    });
+    match result {
+        Ok(result) => CompileOutcome::Ok {
+            result: Box::new(result),
+        },
+        Err(diagnostics) => CompileOutcome::Error { diagnostics },
+    }
+}
+
+pub fn generate_plan_json(
+    request_json: &str,
+    presets_json: &str,
+) -> Result<String, serde_json::Error> {
+    serde_json::to_string(&generate_plan(request_json, presets_json))
+}
+
+pub fn generate_map_json(
+    request_json: &str,
+    presets_json: &str,
+    descriptors_json: &str,
+) -> Result<String, serde_json::Error> {
+    serde_json::to_string(&generate_map(request_json, presets_json, descriptors_json))
+}

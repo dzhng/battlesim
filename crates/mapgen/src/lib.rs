@@ -5,6 +5,9 @@ use contract::templates::{PlacementFrame, TemplateGeometryCatalog};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
+pub mod inspect;
+pub mod layout;
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BuildingPlacement {
@@ -36,9 +39,92 @@ pub struct MapPlan {
     /// Forest shapes; the one `forests.rule` stands their trees at load.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub forests: Vec<contract::map::Forest>,
+    /// Where towns stand and what each district is built from, the main
+    /// settlement first. Plan-only: the parcel pass turns them into
+    /// `buildings`; nothing here reaches the map.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub settlements: Vec<SettlementPlan>,
+    /// Measured open ground beside settlements. Plan-only, like `settlements`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub approaches: Vec<ApproachPlan>,
     /// A requested feature without a shared physical owner cannot be discarded.
     #[serde(flatten)]
     pub unsupported_fields: BTreeMap<String, serde_json::Value>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SettlementPlan {
+    pub id: String,
+    /// The preset size class it was drawn from (`village`, `town`, ...).
+    pub class: String,
+    #[serde(deserialize_with = "contract::numbers::array")]
+    pub center: [f64; 2],
+    /// Its envelope: a simple ring, star-shaped about `center`.
+    #[serde(deserialize_with = "contract::numbers::points")]
+    pub outline: Vec<[f64; 2]>,
+    /// The built ground: simple rings inside the outline that do not overlap.
+    /// What the outline holds beyond them is field or wood.
+    pub districts: Vec<DistrictPlan>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DistrictPlan {
+    /// Stable for a request: `settlement-3/district-2`.
+    pub id: String,
+    /// The preset district it is (`garden_suburb`, `industrial`, ...).
+    pub kind: String,
+    #[serde(deserialize_with = "contract::numbers::points")]
+    pub ring: Vec<[f64; 2]>,
+    #[serde(deserialize_with = "contract::numbers::scalar")]
+    pub area_m2: f64,
+    /// A point inside the ring, near its middle, to place things on. (A ring
+    /// sector's centroid can fall outside it.)
+    #[serde(deserialize_with = "contract::numbers::array")]
+    pub anchor: [f64; 2],
+    /// Tallest building the map type admits here; absent means no limit.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_floors: Option<u32>,
+    /// What it is built from: its one dominant building category first, then
+    /// at most one minor category, with their shares of its ground.
+    pub categories: Vec<CategoryShare>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CategoryShare {
+    pub category: contract::templates::BuildingCategory,
+    #[serde(deserialize_with = "contract::numbers::scalar")]
+    pub weight: f64,
+}
+
+/// The half of the playable area north (`Top`) or south of its midline.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Half {
+    Top,
+    Bottom,
+}
+
+/// A wedge of ground with no settlement and no forest: every bearing from
+/// `from_rad` to `to_rad` (counter-clockwise from +X, about the settlement's
+/// centre) is open for `depth_m` beyond the settlement's edge.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ApproachPlan {
+    /// Index into `settlements`.
+    pub settlement: usize,
+    pub half: Half,
+    #[serde(deserialize_with = "contract::numbers::scalar")]
+    pub from_rad: f64,
+    #[serde(deserialize_with = "contract::numbers::scalar")]
+    pub to_rad: f64,
+    #[serde(deserialize_with = "contract::numbers::scalar")]
+    pub depth_m: f64,
+    /// Width across the wedge half-way out.
+    #[serde(deserialize_with = "contract::numbers::scalar")]
+    pub front_m: f64,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
@@ -73,6 +159,9 @@ pub enum DiagnosticCode {
     InvalidPlacement,
     InvalidAuthoredIds,
     ComplexityLimit,
+    InvalidPresets,
+    /// A bounded search found no layout; the diagnostic names what ran out.
+    GenerationFailed,
 }
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Diagnostic {
@@ -113,23 +202,7 @@ pub fn compile(request_json: &str, descriptors_json: &str) -> CompileOutcome {
                 message: error.to_string(),
             }]
         })?;
-        let descriptors = serde_json::from_str(descriptors_json).map_err(|error| {
-            vec![Diagnostic {
-                code: DiagnosticCode::InvalidCatalogue,
-                feature: None,
-                location: "$.catalogue".into(),
-                message: error.to_string(),
-            }]
-        })?;
-        let catalogue = TemplateGeometryCatalog::new(descriptors).map_err(|message| {
-            vec![Diagnostic {
-                code: DiagnosticCode::InvalidCatalogue,
-                feature: None,
-                location: "$.catalogue".into(),
-                message,
-            }]
-        })?;
-        lower(&request, &catalogue)
+        lower(&request, &catalogue(descriptors_json)?)
     })();
     match result {
         Ok(result) => CompileOutcome::Ok {
@@ -137,6 +210,21 @@ pub fn compile(request_json: &str, descriptors_json: &str) -> CompileOutcome {
         },
         Err(diagnostics) => CompileOutcome::Error { diagnostics },
     }
+}
+
+/// The physical catalogue a list of template descriptors makes.
+fn catalogue(descriptors_json: &str) -> Result<TemplateGeometryCatalog, Vec<Diagnostic>> {
+    let invalid = |message: String| {
+        vec![Diagnostic {
+            code: DiagnosticCode::InvalidCatalogue,
+            feature: None,
+            location: "$.catalogue".into(),
+            message,
+        }]
+    };
+    let descriptors =
+        serde_json::from_str(descriptors_json).map_err(|error| invalid(error.to_string()))?;
+    TemplateGeometryCatalog::new(descriptors).map_err(invalid)
 }
 
 pub fn compile_json(
@@ -434,7 +522,7 @@ fn shape_points(shape: &contract::ground::GroundShape) -> &[[f64; 2]] {
 
 /// What the plan's ground costs every consumer: polygon vertices plus the
 /// rounded samples of each stroke.
-fn ground_points(plan: &MapPlan) -> u64 {
+pub fn ground_points(plan: &MapPlan) -> u64 {
     let count = |shape: &contract::ground::GroundShape| match shape {
         contract::ground::GroundShape::Polygon { ring } => ring.len() as u64,
         contract::ground::GroundShape::Stroke { centerline, .. } => {
