@@ -312,7 +312,7 @@ do not care about order, so the pixels stay byte-identical
   (`__lab.grass().clumps()`, sorted) and treat its frames as bounded by that
   noise. Pin the tick exactly: a pause can land a tick late.
 
-- **Resource checks must control rendered view history.** A paused fast-forward can finish delivering data before the UI draws that publication. Await the last publication’s drawn tick and presentation clock before moving the camera. Otherwise a view-dependent retained buffer may see one extra detail tier on one reset and look like a leak. Attribute differences with actual allocation creation/destruction records before changing capacity policy or weakening byte assertions.
+- **Resource checks must control rendered view history.** Await pause acknowledgement before calculating the fast-forward tick count. A paused fast-forward can finish delivering data before the UI draws that publication. Await the last publication’s drawn tick and presentation clock before moving the camera. Otherwise a view-dependent retained buffer may see one extra detail tier on one reset and look like a leak. Attribute differences with actual allocation creation/destruction records before changing capacity policy or weakening byte assertions.
 
 - **Interactive callouts share the viewport's gesture owner.** A DOM panel above the canvas needs native pointer handling for hover, while click and drag must reach the same capture/release path as battlefield picks. Verify dragging from a panel as well as dragging across one, and test the drawn panel bounds rather than the unit anchor.
 
