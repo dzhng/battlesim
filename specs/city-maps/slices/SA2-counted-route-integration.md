@@ -248,10 +248,39 @@ general portals remain separate proof owners; no old synchronous A* fallback qua
 - `web/scenes/movement.mjs` checked a blocked order five ticks after giving it; it now waits for planning to finish.
 - `web/scenes/_battleLook.mjs`'s walk into the west wood (a live village battle, already retuned twice for earlier rule changes) keeps 40 m south of the wood instead of 110 m: in the battle as it now plays the squad was pinned at the corner.
 
+### Grid updates
+
+**Landed 2026-10-01** on `city-maps/nav-grid-updates`, closing item 1 below as it stood. The decisions are in [choices.md](../choices.md#navigation-grid-updates). No battle digest moved: the village quick report's six and all four probe runs below end on the digests they ended on before.
+
+**The seam.**
+
+- **`NavBase`** (`crates/sim/src/navigation/base.rs`) is what both sides know alike when the battle starts: the terrain under each 2 m cell and every body the map was authored with, where the map put it. `Battle::new` builds it once (`NavBase::build(&world, world.props(), soldier_radius)`) and both sides share it.
+- **`NavGrid`** is one side's picture: `NavGrid::new(base)` starts as the base and holds only what the side knows differently. Cells live in 16 × 16 pages shared with the base until the side changes one.
+- **`NavGrid::update(&world, beliefs, cleared)`** is the one way a side's picture changes. `beliefs` names each body the side may now place differently, with the prop as it believes it stands, or nothing if it plans without it; `cleared` is the forest ground cleared since. Only the cells under those bodies are worked out again, and only the clearance tiles within reach of a cell whose heaviest body changed are dropped.
+- **`SideGeometry::grid(&world, authored)`** calls it when the side's revision has changed, at the moments the whole rebuild used to run. It knows which bodies to pass from the side's own learning and from two lists the world now keeps: `WorldGeometry::touched()` (props added, moved, removed or made known to all, emptied by the battle every tick) and `cleared_since(n)` (ground cells cleared, in order).
+- **Digest, replay, observation, commands:** unchanged. The grid was never in the digest. Planning work is counted exactly as before, so every route arrives on the tick it did. `Battle::load()` gains `grid_cells_relaid`, the cells both sides' grids have worked out again.
+
+**The proof.** Two tests compare a grid kept up body by body with one built whole from the same knowledge, field by field and answer by answer (every cell, the rectangles, the slow-ground and stopping counts, and clearance, fit and open-ground answers for both mover classes and all five push classes): after each of 160 random appear, remove, move, destroy and relearn events on a map with a hill, water, a bridge, a road, a wood and bodies of every weight; and at every twentieth tick of a real battle with shoved crates, a lane knocked through a wood, shelled trees, a fallen wall, a wreck breaking up and a side that only learns of each later.
+
+**Measured** with `city_report <map> 300 0.92 6 50`: twelve units crossing edge to edge for 300 s; at 1.5 s a heavy wreck appears 30 m ahead of each of the eight vehicles, and at 3 s fifty trees beside one unit are shelled at once. Instructions are the comparable number; the machine is shared and its load moves tick times.
+
+| Map | Battle build | Resident after build | Dearest tick that took a change in | Slowest tick, ticks over 33 ms | Whole crossing |
+|---|---|---|---|---|---|
+| Probe, 6 km, 63,332 trees | 22.4 G → **4.0 G** | 270 → 90 MiB | 11,169 M → **23 M** | 1,473 ms, 3 → 6 ms, none | 390 G → 353 G |
+| Mixed Small, 6 km, 2,207 buildings | 33.5 G → **4.8 G** | 324 → 159 MiB | 16,587 M → **42 M** | 2,109 ms, 6 → 7 ms, none | 411 G → 310 G |
+| Probe, 10 km, 179,057 trees | 67.1 G → **11.0 G** | 546 → 255 MiB | 33,020 M → **28 M** | 5,403 ms, 7 → 7 ms, none | 682 G → 574 G |
+| Metro Large, 10 km, 9,276 buildings | 113.7 G → **13.1 G** | 1,170 → 507 MiB | 56,153 M → **138 M** | 6,587 ms, 20 → 11 ms, none | 1,572 G → 448 G |
+
+- **A change costs what it touches.** The fifty trees are one update of about 1,200 cells and 1.6 to 1.75 M instructions on every map; a wreck is about a hundred cells and 0.25 M. Nothing is spread over ticks and no unit plans on a stale picture.
+- **Before, every tick that took a change in ran over 33 ms** (3, 6, 3 and 20 of them on the four maps, at 1.4 to 6.6 s each). After, no tick does. The dearest tick of a run is now the fifty shells bursting (112 to 166 M instructions), or on Mixed Small a planning tick (156 M).
+- **What a change still costs is the units, not the grid.** Each unit with a route checks all of it against the new picture: 2.6 to 4.4 M instructions for a 5 to 9 km route, 190 M over the first 100 s on Metro Large against 3 M for the grid's own updates. It was 445 M before segments were read a cell at a time.
+- **Where the build goes now** (Metro Large, 13.1 G): the shared grid 10.6 G, the world 2.1 G, hashing the scenario for its digest about 0.4 G. Of the grid, about two thirds is asking the world what surface lies under each cell (forest and road polygons, the height pages' hashing, the surface index), and the rest laying bodies, the squad crossings and the cell pages. The grid alone is 2.9, 3.8, 8.1 and 10.6 G on the four maps. The whole start (parse, world, scenario, battle) is 5.1, 6.7, 14.0 and 19.0 G: 0.2, 0.3, 0.6 and 1.0 s natively.
+- **In Wasm** (node, the same twelve units, best of three, scenario parse included): a battle builds in 0.26, 0.37, 0.70 and 1.04 s, with 73, 113, 220 and 345 MiB of Wasm memory at the end.
+
 ### What is still open
 
-1. **A side's planning grid is rebuilt whole when its knowledge changes** (a tank fells or shoves a tree, a wreck appears, a body is destroyed): 10.5 G instructions on the 6 km map, 31 G on the 10 km one, in one tick. None of the probe runs triggered it; a real battle will. The grid samples the terrain again every time though only bodies changed; the fix is to keep the terrain layer and re-lay only the bodies near the change (cleared forest ground needs a change feed first). **This is the next blocker for a full-size battle.**
-2. **Vehicles among trees.** The grid judges a vehicle as a disc on 2 m cells; a trunk at a cell corner blocks no cell, and a hull is longer than it is wide. A jeep sent into or through a wood can stop against a trunk and plan the same route again every two seconds (one jeep did in each 12-unit run, and a jeep sent to a point among trees stops a metre short of it). The off-centre rule fixed the cases the tests met, not the general one.
+1. **Every unit checks its whole route when its side learns something**, and a plan that finishes after its side learned something is checked whole in one step (a tick's planning reached 15,029 on the 10 km probe against the allowance of 4,000). The whole rebuild that used to dwarf both is gone ([Grid updates](#grid-updates)). Checking only routes near the change gives the same routes but moves digests, because of how clearance tiles are charged; it needs the user's decision on that count.
+2. **Vehicles among trees.** The grid judges a vehicle as a disc on 2 m cells; a trunk at a cell corner blocks no cell, and a hull is longer than it is wide. A jeep sent into or through a wood can stop against a trunk and plan the same route again every two seconds (one jeep did in each 12-unit run, and a jeep sent to a point among trees stops a metre short of it). The off-centre rule fixed the cases the tests met, not the general one. The same happens at a wreck: a jeep at road speed that sees a 10 m wreck appear across an 8 m road plans round its end at once, then stops with its hull against the wreck's corner and plans that route again and again (a wreck lying along its lane it passes, which is what `route_planning`'s wreck test drives).
 3. **Unreachable goals cost the whole search limit** before the unit reports blocked (about 5 s for a 2.8 km leg across an unbridged river).
 4. **Two columns head-on on a forest track** have nowhere to pull off; in the open they pass or drive round each other.
 5. **Roads authored as polygons** are not in the road graph.
