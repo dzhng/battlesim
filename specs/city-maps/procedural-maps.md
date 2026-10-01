@@ -69,6 +69,7 @@ These are explicit spike outputs. Evidence can change the technical architecture
 
 ## 3. Unknown knowns: taste and tacit context extracted
 
+- **Mixed reads as a mosaic of districts** ([Broken Arrow references](assets/reference/broken-arrow/SOURCES.md)). A town is single-use districts side by side (garden suburb, apartment rows, a tower, an industrial compound with paved yards), loosely strung along a main road, with fields and woods pushing in between them and right up to the last houses. Objectives sit on districts. A compact blob of blended blocks is the wrong picture.
 - **Range changes composition.** The user's 1,800 m reminder rejected an attractive but physically cramped map. Review open approaches at tactical range as well as from an overview.
 - **Town size stays familiar.** Larger maps get more places to fight; houses and streets retain their dimensions.
 - **Fairness is approximate.** The user liked the sketches' top/bottom balance and specifically rejected a requirement for exact symmetry. Review area/count metrics alongside routes; geometry need not mirror.
