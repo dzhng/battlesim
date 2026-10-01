@@ -444,3 +444,23 @@ fn smoke_is_presentation_only() {
     assert_eq!(thick, plain);
     assert_eq!(none, plain);
 }
+
+/// Catalog additions do not change an existing village battle. Prop ranks
+/// may move, but inactive physical rows are not authoritative battle state.
+#[test]
+fn unused_city_catalog_rows_do_not_change_village_digests() {
+    let full = common::village();
+    let mut without = full.clone();
+    without["catalog"]
+        .as_array_mut()
+        .unwrap()
+        .retain(|d| d["props"].get("lamp").is_none());
+    let a = scenario(&full, "ordinary").unwrap();
+    let b = scenario(&without, "ordinary").unwrap();
+    let (mut a, mut b) = (Battle::new(&a, 1), Battle::new(&b, 1));
+    for _ in 0..200 {
+        assert_eq!(a.digest(), b.digest());
+        a.step();
+        b.step();
+    }
+}

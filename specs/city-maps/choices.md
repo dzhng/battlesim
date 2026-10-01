@@ -1699,3 +1699,54 @@ The layout generator now writes a river and its bridges. The seam and the measur
 **Gap:** Found by running `city_report` on generated river maps.
 
 **Verdict:** open, in two parts. Planning: six units a side were sent across six river maps for 300 s. On the 8 km and 10 km maps two units were refused a route and two were still planning at the end, and three ticks on one map retired about 1.0 G instructions each; none of that happened on the same seeds without a river. Jamming: given 900 s, seven of eight vehicles crossed Mixed Small, but on Open Small only three of eight did, because four vehicles of one side stood waiting behind one of the other side on a road 700 m from the water. Without the river seven of eight arrived. A river sends both sides down the few roads that lead to a bridge. **Confidence:** high that both are the simulation and not the map: units do cross by the decks, a test proves each deck can be walked onto and across, and the jam was on dry ground. Low on how often the jam happens: it was one map of two, and an earlier run of the same seed had six of eight arrive.
+
+
+## C44 street bodies — physical catalog pass (2026-10-01)
+
+### Per-kind war-film audit (delegated values)
+
+Every row uses ordinary body columns. Soldiers can walk around an object;
+vehicles either shove a lighter object or route around it. A thin object does
+not grant an invisible cover position merely because its footprint blocks feet.
+
+| Kind | War-film moment and verdict |
+|---|---|
+| lamp | A truck knocks the pole aside; rifle fire passes the thin shaft and it grants no cover. |
+| bench | Soldiers crouch behind a light destructible bench; vehicles shove it and rounds pass its slats. |
+| bollard | A jeep cannot push a bollard; a tank can, and the narrow post stops intersecting rounds but shelters no soldier. |
+| bins | Light bins offer weak concealment-like cover through the cover rule, but neither block sight nor stop rounds. |
+| hydrant | A jeep stops at the anchored hydrant; a tank shoves it, and it is too narrow to shelter a soldier. |
+| utility box | Soldiers shelter behind the metal box; a tank can shove or shoot it apart. |
+| scooter | Vehicles push a scooter aside; its thin frame neither stops rounds nor provides cover. |
+| planter | A solid filled planter is medium cover and a medium obstacle; tanks can push it. |
+| parked car | A car shelters soldiers, is shoved by a tank, and becomes a lower car wreck under destructive fire. |
+| car wreck | The lower shell retains medium cover and remains shoveable; further destruction removes it. |
+| Jersey barrier | Concrete is heavy cover, stops fire and resists a tank's ordinary shove; aimed destructive fire clears it. |
+| bus shelter | Glass and open framing block walking but not sight or rounds; it offers no dependable cover. |
+| scaffold | The frame obstructs movement but neither hides enemies nor acts as a bulletproof screen. |
+| Heras fence | Mesh blocks walking while eyes and rounds pass through; vehicles shove it, and fire can damage it. |
+| skip bin | Soldiers shelter behind substantial steel; a tank shoves it while a jeep cannot. |
+| pallet stack | Light destructible cover can be shoved; incidental rounds pass while wearing it down. |
+| site cabin | A closed storage cabin is an immovable opaque obstacle and heavy exterior cover, with no interior fighting positions. |
+| traffic cone | A small cone does not interrupt soldiers or vehicles and grants no cover; intersecting fire can remove it. |
+| road barrier | A light open plastic barrier blocks movement but does not shelter or hide a soldier; vehicles shove it. |
+
+The HP and weight values in the catalog are starting physical values, not a
+balance claim. The closed storage cabin avoids turning a street prop into a
+second garrison representation; a future occupied cabin must be a C01 aggregate.
+
+### Unaccepted art is explicit in the prop appearance contract
+
+**Choice:** Each new physical row carries `appearance.status: systems_only` and
+its intended scenery name. For example a bench participates in collision and
+cover, but it cannot claim the existing crate art as a fitted bench. The asset
+coverage gate still requires every ordinary row to have an accepted binding;
+systems-only rows are checked to have no accepted binding, and the playable
+village's authored objects and their remains must keep accepted bindings.
+
+**Gap:** The required prop appearance field had no way to distinguish a physical
+row awaiting art from a released binding, while this pass explicitly defers art.
+**Reach:** C45/C78 must supply and fit the actual art and remove the status; adding
+art under a systems-only name deliberately makes the gate red until that handoff.
+**Verdict:** sound: this represents the existing systems/art boundary without a
+fake source or weakening ordinary appearance checks. **Confidence:** high.

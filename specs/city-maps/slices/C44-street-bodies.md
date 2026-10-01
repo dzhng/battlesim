@@ -26,3 +26,25 @@ Village rows.
 
 ## Feedback that would change this slice
 A street body with an implausible blocking/destruction effect reopens fixture-owned properties through tweak-mechanics.
+
+
+## Outcome — physical catalog pass (2026-10-01)
+
+The physical catalog rows are implemented. The per-kind war-film audit and
+appearance boundary are recorded in [choices](../choices.md#c44-street-bodies--physical-catalog-pass-2026-10-01).
+Native checks exercise every row through world sight, projectile passage,
+blocking and cover queries; the shove battle matrix now includes every blocking
+street row. The paired village test removes the unused city document and proves
+all 200 tick digests unchanged. Both focused body tests and the appearance gate
+pass. The ordinary asset-binding checks remain strict; systems-only rows have
+explicit unavailable-art status and cannot borrow an existing scenery binding.
+
+C45 models, C46 placement and the per-kind visual/GIF evidence remain open. No
+new street prop is placed in the village. The closed site storage cabin has no
+garrison; an occupied cabin would use a placed building aggregate.
+
+Closeout review: one catalog owns every property, no production id branches or
+new physical mechanics, and generated catalog output is regenerated. Independent
+CLI review could not run because the configured model was rejected as unsupported
+for this account; integrated second review and whole-repo gates belong to the
+orchestrator before merge.

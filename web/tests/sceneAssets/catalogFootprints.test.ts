@@ -42,6 +42,7 @@ test("the catalog ships an appearance for every simulation prop kind but forest 
   // what the catalog's prop types are drawn by; trees are the forest's,
   // owned by the trees slice
   const simulated = Object.values(units.view.props)
+    .filter((t) => t.appearance.status !== "systems_only")
     .map((t) => t.appearance.drawn_by)
     .filter((by) => by !== "forest");
   expect([...kinds].sort()).toEqual([...new Set(simulated)].sort());
@@ -92,6 +93,7 @@ test("which prop types a scenery kind draws is the prop catalog's drawn_by, both
     if (rule.footprint.kind === "prop")
       expect(propsDrawnBy(units.view.props, kind), kind).not.toEqual([]);
   for (const [id, t] of Object.entries(units.view.props)) {
+    if (t.appearance.status === "systems_only") continue;
     const by = t.appearance.drawn_by;
     const drawn =
       by === "building" || by === "forest" || SCENERY_KINDS[by]?.footprint.kind === "prop";
@@ -130,5 +132,37 @@ test("every prop appearance declares a positive box", () => {
       e.footprint_half_m!.every((v) => v > 0),
       name,
     ).toBe(true);
+  }
+});
+
+// Physical prototypes cannot pass the appearance gate by borrowing an existing
+// scenery binding. Removing this status makes the ordinary strict gate apply.
+test("systems-only bodies have no accepted appearance binding", () => {
+  for (const [id, t] of Object.entries(units.view.props)) {
+    if (t.appearance.status !== "systems_only") continue;
+    expect(
+      t.appearance.drawn_by === "building" ||
+        t.appearance.drawn_by === "forest" ||
+        t.appearance.drawn_by in SCENERY_KINDS,
+      id,
+    ).toBe(false);
+    expect(
+      propEntries.some(([, e]) => e.scenery === t.appearance.drawn_by),
+      id,
+    ).toBe(false);
+  }
+});
+
+test("the playable village's authored props and their remains have accepted bindings", () => {
+  const placed = [
+    ...village.map.props.map((p: { kind: string }) => p.kind),
+    ...village.map.buildings.map((b: { kind: string }) => b.kind),
+  ];
+  for (let i = 0; i < placed.length; i++) {
+    const id = placed[i];
+    const t = units.view.props[id];
+    expect(t.appearance.status, id).toBeUndefined();
+    if (typeof t.destroyed === "object" && !placed.includes(t.destroyed.into.prop))
+      placed.push(t.destroyed.into.prop);
   }
 });

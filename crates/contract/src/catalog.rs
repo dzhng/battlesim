@@ -326,6 +326,9 @@ pub enum Destroyed {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PropAppearance {
+    /// Physical catalog entry whose fitted art is still awaiting acceptance.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<PropAppearanceStatus>,
     /// The asset catalog's appearances that draw it: the scenery kind (or
     /// `building`) whose appearances are fitted to its box, `forest` for the
     /// trees a forest draws itself.
@@ -342,6 +345,12 @@ pub struct PropAppearance {
     /// appearance (a building's ruin).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub remains_state: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PropAppearanceStatus {
+    SystemsOnly,
 }
 
 /// The prop types, in id order: [`PropKind`] is a rank.

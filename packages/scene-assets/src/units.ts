@@ -127,6 +127,7 @@ export interface PropType {
   destroyed?: "removed" | "cleared" | { into: { prop: string; height_m: number } };
   appearance: {
     drawn_by: string;
+    status?: "systems_only";
     modular?: boolean;
     map_only?: boolean;
     remains_state?: string;
