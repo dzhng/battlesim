@@ -7,8 +7,8 @@ use serde_json::{json, Value};
 
 fn village_house(index: usize) -> BuildingTemplateDescriptor {
     let village: Value =
-        serde_json::from_str(include_str!("../../../fixtures/village.json")).unwrap();
-    let half = &village["map"]["buildings"][index]["geometry"]["parts"][0]["half_extents"];
+        serde_json::from_str(include_str!("../../../fixtures/maps/village/map.json")).unwrap();
+    let half = &village["buildings"][index]["geometry"]["parts"][0]["half_extents"];
     let (hx, hy, hz) = (
         half[0].as_f64().unwrap(),
         half[1].as_f64().unwrap(),

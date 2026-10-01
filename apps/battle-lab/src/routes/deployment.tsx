@@ -3,13 +3,12 @@ import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { ReadoutLayer } from "@web/battle/present/readouts";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import type { Order } from "@web/battle/sim/protocol";
-import deploymentMap from "@fixtures/deployment-lab.json";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { AckLog } from "../AckLog";
 import { orderLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
-import { labScenario } from "../scenarios";
+import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
 import { TickStatus } from "../TickStatus";
@@ -17,9 +16,6 @@ import { TickStatus } from "../TickStatus";
 // One supply truck on a road. It sets up where it stands (a stopped supply
 // unit deploys); every button sends a real command through the one path. Its
 // progress is its info panel's row, as in the battle.
-const SCENARIO = labScenario(deploymentMap, [
-  { side: "blue", kind: "supply", position: [100, 100] },
-]);
 const SEED = 12;
 
 const DEPLOYMENT_CAMERA: Camera3DParams = {
@@ -54,7 +50,15 @@ const DEMOS: Record<string, { order: (units: number[]) => Order; queued?: boolea
 };
 
 export default function Deployment() {
-  const session = useBattleSession({ map: deploymentMap, scenario: SCENARIO, seed: SEED });
+  return (
+    <SavedEncounter map="deployment" encounter="deployment">
+      {(battle) => <DeploymentLab battle={battle} />}
+    </SavedEncounter>
+  );
+}
+
+function DeploymentLab({ battle }: { battle: SavedBattle }) {
+  const session = useBattleSession({ ...battle, seed: SEED });
   const { world, meshes, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;

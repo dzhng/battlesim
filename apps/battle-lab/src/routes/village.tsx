@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import village from "@fixtures/village.json";
-import { VILLAGE_RULES } from "../scenarios";
+import { durableSoldiers, VILLAGE_RULES } from "../scenarios";
+import { SavedEncounter, villageScenario } from "../savedMaps";
 import { BattleView } from "../BattleView";
 import { useBuiltScenario } from "../useBuiltScenario";
 import { villageCamera } from "../villageCamera";
@@ -50,9 +51,7 @@ function watchedScript(fallback: string): string {
 
 /** The village scenario JSON for `variant`, built by the simulation. */
 function useVillageScenario(variant: Variant): string | { error: string } | null {
-  const built = useBuiltScenario(variant, (wasm, v) =>
-    wasm.village_scenario(JSON.stringify(VILLAGE_RULES), v),
-  );
+  const built = useBuiltScenario(variant, villageScenario);
   return built && typeof built !== "string"
     ? { error: `the village scenario could not be built: ${built.error}` }
     : built;
@@ -127,43 +126,27 @@ export function VillageWatch() {
   return <VillageEncounter script={script} />;
 }
 
-/** The lean-out firefight on the village's ground: a
+/** The lean-out firefight on the village's ground, the village map's saved
+ *  encounter `lean` (`fixtures/maps/village/encounters/lean.json`): a
  *  blue squad at rest just inside the west wood trades fire with a red
  *  squad in the open 45 m east; soldiers too tough to fall, so the fight
  *  holds. Men lean out from their trees, fire and tuck back in. */
-const LEAN_UNITS = [
-  { side: "blue", kind: "rifle", position: [866, 962], yaw: 0 },
-  { side: "red", kind: "rifle", position: [912, 966], yaw: Math.PI },
-];
-
-function leanScenario(scenario: string): string {
-  const s = JSON.parse(scenario) as Record<string, unknown> & {
-    rules: { catalog: { soldiers?: Record<string, { hp: number }> }[] };
-  };
-  // Every soldier kind of the (resolved) catalog all but unkillable.
-  for (const doc of s.rules.catalog)
-    for (const kind of Object.values(doc.soldiers ?? {})) kind.hp = 1.0e6;
-  return JSON.stringify({ ...s, units: LEAN_UNITS, scripts: [], opponent: null, encounter: null });
-}
+const LEAN_RULES = durableSoldiers(VILLAGE_RULES);
 
 /** /battle/village/lean: the lean-out firefight, watched. */
 export function VillageLean() {
-  const scenario = useVillageScenario("ordinary");
-  const lean = useMemo(
-    () => (typeof scenario === "string" ? leanScenario(scenario) : null),
-    [scenario],
-  );
-  if (!scenario) return null;
-  if (typeof scenario !== "string") return <Failed error={scenario.error} />;
-  if (!lean) return null;
   return (
-    <BattleView
-      fixture="village-lean"
-      scenario={lean}
-      seed={village.seed}
-      camera={villageCamera.opening()}
-      status={({ sim }) => <BattleClock tick={sim.observation?.tick ?? 0} />}
-    />
+    <SavedEncounter map="village" encounter="lean" rules={LEAN_RULES}>
+      {(battle) => (
+        <BattleView
+          fixture="village-lean"
+          scenario={battle.scenario}
+          seed={village.seed}
+          camera={villageCamera.opening()}
+          status={({ sim }) => <BattleClock tick={sim.observation?.tick ?? 0} />}
+        />
+      )}
+    </SavedEncounter>
   );
 }
 

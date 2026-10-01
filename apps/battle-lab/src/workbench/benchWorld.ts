@@ -6,6 +6,7 @@
 
 import { vec3, type Mat4, type Vec3 } from "math";
 import village from "@fixtures/village.json";
+import type { MapDefinition } from "@web/maps/resolve";
 import { MeshBuilder, type Mesh, type Rgba } from "@packages/battle-renderer/src/mesh";
 import type { WorldLayers, WorldMeshes } from "@packages/battle-renderer/src/scene";
 import {
@@ -144,11 +145,22 @@ const AXES: [Vec3, Rgba][] = [
   ],
 ];
 
-/** What the simulation's `world_layout()` says of prop kinds. */
+/** What the simulation's `world_layout()` says of prop kinds, and the boxes
+ *  the village's resolved map places. */
 export interface PropClasses {
   /** Per mover class ("infantry", "vehicle"), the prop kinds that stop it. */
   blockingPropKinds: Record<string, string[]>;
   occludingPropKinds: string[];
+  /** Every prop and building part the village's map places, in its order. */
+  placed: { kind: string; half_extents: number[] }[];
+}
+
+/** The boxes `map` places: its props, then its buildings' parts. */
+export function placedProps(map: MapDefinition): PropClasses["placed"] {
+  return [
+    ...map.props,
+    ...(map.buildings ?? []).flatMap((b) => b.geometry.parts.map((p) => ({ ...p, kind: b.kind }))),
+  ];
 }
 
 /** The simulation's body beside a model: wireframe edges in model space and
@@ -195,12 +207,9 @@ function box(edges: Edges, half: readonly number[]) {
 const m = (v: number) => `${+v.toFixed(2)}`;
 
 /** The map's first prop of a kind: the size the simulation places it at. */
-function placedProp(kind: string): number[] | null {
-  const props = [
-    ...village.map.props,
-    ...village.map.buildings.flatMap((b) => b.geometry.parts.map((p) => ({ ...p, kind: b.kind }))),
-  ];
-  return props.find((p) => p.kind.replace(/_/g, "") === kind)?.half_extents ?? null;
+function placedProp(kind: string, classes: PropClasses | null): number[] | null {
+  const placed = classes?.placed.find((p) => p.kind.replace(/_/g, "") === kind);
+  return placed?.half_extents ?? null;
 }
 
 function propLabel(kind: string, classes: PropClasses | null): string {
@@ -246,11 +255,11 @@ export function footprint(
     unit === "building" || rule?.footprint.kind === "prop"
       ? propsDrawnBy(UNITS.view.props, unit === "building" ? "building" : (scenery ?? ""))
       : [];
-  const prop = drawn.find((p) => placedProp(p)) ?? drawn[0] ?? null;
+  const prop = drawn.find((p) => placedProp(p, classes)) ?? drawn[0] ?? null;
   if (prop) {
     // The box the art is authored to (the catalog's footprint), else the
     // map's first placement of the kind.
-    const half = authored ?? placedProp(prop);
+    const half = authored ?? placedProp(prop, classes);
     if (half) box(edges, half);
     return {
       edges,

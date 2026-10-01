@@ -5,7 +5,7 @@ use sim::math::{v2, v3, V3};
 use sim::world::{Collider, SurfaceKind, WorldGeometry};
 
 fn lab_map() -> MapDefinition {
-    serde_json::from_str(include_str!("../../../fixtures/geometry-lab.json")).unwrap()
+    sim::maps::load("geometry").unwrap().definition
 }
 
 fn lab() -> WorldGeometry {

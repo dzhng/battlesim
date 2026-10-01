@@ -4,13 +4,12 @@ import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import { ReadoutLayer } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
-import supplyMap from "@fixtures/supply-lab.json";
 import { UNITS, WEAPONS } from "@packages/scene-assets/src/shippedUnits";
 import { AckLog } from "../AckLog";
 import { orderLayer, supplyLayer, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
-import { labScenario } from "../scenarios";
+import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
 import { TickStatus } from "../TickStatus";
@@ -19,39 +18,6 @@ import { TickStatus } from "../TickStatus";
 // a rifle squad with casualties. A second truck stands empty beside a scout
 // team short of one soldier. (Service under incoming fire is pinned by the
 // Rust tests, where a squad is shelled from beyond its reach.)
-const SCENARIO = labScenario(supplyMap, [
-  { side: "blue", kind: "supply", position: [200, 200] },
-  {
-    side: "blue",
-    kind: "tank",
-    position: [240, 175],
-    engagement: "return_fire_only",
-    condition: { hp: 40 },
-  },
-  {
-    side: "blue",
-    kind: "at",
-    position: [245, 235],
-    engagement: "return_fire_only",
-    condition: { spent: { atgm: 3 } },
-  },
-  {
-    side: "blue",
-    kind: "rifle",
-    position: [165, 245],
-    engagement: "return_fire_only",
-    condition: { casualties: 3 },
-  },
-  { side: "blue", kind: "supply", position: [330, 320], stock: 0 },
-  // Beside the empty truck only: it waits for stock that never comes.
-  {
-    side: "blue",
-    kind: "recon",
-    position: [360, 330],
-    engagement: "return_fire_only",
-    condition: { casualties: 1 },
-  },
-]);
 const SEED = 13;
 
 const SUPPLY_CAMERA: Camera3DParams = {
@@ -63,7 +29,15 @@ const SUPPLY_CAMERA: Camera3DParams = {
 };
 
 export default function Supply() {
-  const session = useBattleSession({ map: supplyMap, scenario: SCENARIO, seed: SEED });
+  return (
+    <SavedEncounter map="supply" encounter="supply">
+      {(battle) => <SupplyLab battle={battle} />}
+    </SavedEncounter>
+  );
+}
+
+function SupplyLab({ battle }: { battle: SavedBattle }) {
+  const session = useBattleSession({ ...battle, seed: SEED });
   const { world, meshes, rules, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;

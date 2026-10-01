@@ -2332,3 +2332,117 @@ The planner, its seam, rules and measurements are in the [C59 outcome](slices/C5
 
 The planner has not run on the C58 map, which does not exist yet. No authored-encounter checker was built: `legality::stands` and `apart` are public for the one C58 needs. The lab draws no placement overlay; the pictures come from `encounter_report`. Cover and concealment are not judged anywhere. A refusal tries no other encounter seed and no other recipe.
 
+
+## C09/C60 saved-map cutover
+
+The seam these decisions belong to is in the [C09](slices/C09-fetched-maps.md#outcome) and [C60](slices/C60-map-catalogue-data.md#outcome) outcomes.
+
+### A map's id is its lab's name; routes stay separate from maps
+
+**Choice:** The folders are `village`, `endurance` and the twelve lab maps under their old names without `-lab` (`geometry`, `movement`, `river`, `sensors`, `weapons`, `consequences`, `deployment`, `ambush`, `garrison`, `supply`, `ground`, `readouts`). A route names the map it plays; nothing lists routes per map.
+
+**Gap:** C60 delegated each lab's id.
+
+**Verdict:** sound: fourteen folders serve 29 routes with no second list. **Confidence:** high.
+
+### An encounter is the half of a scenario that is not the map or the rules
+
+**Choice:** `encounters/<name>.json` is `contract::scenario::EncounterDefinition`: `units`, `events`, `scripts`, `opponent` and `encounter`, the fields of `ScenarioDefinition` other than `map` and `rules`. `EncounterDefinition::on(map, rules)` makes the scenario. An unknown top-level field is refused. A file is named after the route that plays it (`geometry/encounters/authority.json`); the ambush lab's variants are `late`, `prompt` and `crossfire`.
+
+**Gap:** C60 said each lab's scenario moves into an encounter and did not give its schema. C58 and C59 want "the existing encounter shape".
+
+**Reach:** The battle's seed is not in the file: `Battle::new` takes it apart from the scenario, and C59 keeps map and encounter randomness as separate pinned inputs. Only the top level refuses unknown fields; a misspelt key inside a unit is still ignored, as it is in any scenario.
+
+**Verdict:** sound: C58's authored encounter and C59's planner output are this type. **Confidence:** high.
+
+### A lab's pinned rules stay with its route
+
+**Choice:** The ambush lab's instant drive timing and the garrison and lean labs' all-but-unkillable soldiers are still set by the route, which passes its rules to the encounter loader. The encounter file holds no rules.
+
+**Gap:** The labs' inline scenarios carried these experiment controls; the slice did not say where they go.
+
+**Verdict:** sound for now. The values are controls of the lab's experiment, not of the forces on the map, and the soldier pin is a loop over the unit catalog that a patch in a file could not express simply. **Confidence:** medium: a generic map route (C61) will want an encounter to be playable without its lab's code.
+
+### The village and endurance encounters stay factories
+
+**Choice:** The village's two variants are still built by `sim::village::scenario` from `village.json`'s `spawn`, `variants`, `defender_policy` and `encounter` sections, and the endurance waves by `sim::endurance::scenario`. Only the village's `map` left `village.json`. The village map has one saved encounter, `lean`.
+
+**Gap:** C60 names the labs' scenarios. The village's deployment is rules data other work is editing, its tests rewrite spawn rows, and endurance takes a seed.
+
+**Reach:** `sim::fixtures::village()` composes the rules, the unit catalog and the resolved map under `map`, so no test or example that reads it changed. The browser composes the same value. Endurance gained an input, so it takes its field as an argument and a stale caller fails to compile.
+
+**Verdict:** sound for a location-only cutover. C59's planner takes the map and the rules apart; the village factory should follow it then. **Confidence:** medium.
+
+### The endurance field is saved as its code printed it, and its wrecks stay in code
+
+**Choice:** `maps/endurance/map.json` is the canonical JSON of the map `sim::endurance` built before the cutover. Its `SOURCES.json` selects the one template it uses, so the catalogue hash it always had still resolves. The late state's 2,000 wrecks are appended to the resolved map in code, from the same stream, in the same order, with the same ids.
+
+**Gap:** C09 named the wreck augmentation and left how the base is produced open.
+
+**Verdict:** sound: the typed scenario is byte for byte the old one at seed 1, seed 1 late and seed 7. **Confidence:** high.
+
+### Receipts name the files the maps came from
+
+**Choice:** Each `SOURCES.json` has one `repository` receipt: the old path, the revision before the cutover (`f303c07c`) and the sha256 of that file there. A lab's is its `fixtures/<id>-lab.json`, the village's is `fixtures/village.json`, and endurance's is `crates/sim/src/endurance.rs`. The lab maps moved byte for byte and the village's map was lifted text for text.
+
+**Gap:** The earlier choice fixed the receipt's shape, not which file each map names.
+
+**Verdict:** sound. The receipt records provenance; the map's identity is its content hash. **Confidence:** high.
+
+### One allowance for the saved catalogue, owned beside the resolver
+
+**Choice:** `MapAdmission::CATALOGUE` (4,096 authored parts, 65,536 bay positions) is a constant of `contract::maps`. The native adapter and the Wasm export both pass it.
+
+**Gap:** The resolver makes each caller state its allowance. Both catalogue adapters are the same caller, in two languages.
+
+**Reach:** The largest saved map has 56 parts. C58's saved generated map will need a larger allowance, and raising it is then a decision about every reader's startup.
+
+**Verdict:** sound: one number cannot differ between native and browser. **Confidence:** high.
+
+### The adapters' refusals use the resolver's error
+
+**Choice:** `ResolveCode` gains `invalid_id`, `missing_document` and `invalid_encounter`. Every refusal's location starts with the map's folder. An identity mismatch states the hash the resolver computed, so an authored map's `SOURCES.json` can be written from its first refusal.
+
+**Gap:** The resolver does no IO, so it had no code for a missing file or a bad address.
+
+**Verdict:** sound: native and JavaScript callers see one error shape. **Confidence:** high.
+
+### `meta.json` has no id, and what it repeats is checked
+
+**Choice:** The id is the folder's name. `size_m`, `tags`, `encounters` and, for a generated map, `source` and `seed` are compared with the map, the directory and `SOURCES.json` by `checkMapFolder`. `tags` are exactly the physical features the map has (`relief`, `river`, `road`, `bridge`, `forest`, `prop`, `building`). `character` is `open`, `mixed`, `metro`, `village` or `arena`; every lab and the endurance field is `arena`. `benchmarks` are the ids of the benchmark routes that run on the map, and the test checks each is a registered route.
+
+**Gap:** C60 delegated the `character` and `tags` vocabulary. Q-G9 lists the fields without saying which are derived, or what `benchmarks` holds.
+
+**Verdict:** sound for the derived fields: a listing cannot say something the map does not. `benchmarks` is provisional: C61 decides what the menu needs from it. **Confidence:** medium.
+
+### Each document is its own served file
+
+**Choice:** `web/src/maps/browser.ts` globs `map.json`, `SOURCES.json`, the encounters and the template library as URLs (`?url&no-inline`), so each is a hashed file fetched when a route first asks for it. `catalogue.ts` globs `meta.json` eagerly; nothing on the entry path imports it yet.
+
+**Gap:** C09 said HTTP and no map in the entry script, and left how a document is served open.
+
+**Reach:** The entry script shrank by 6.7 KB (1.3 KB gzipped). C61's menu will import the listing; if the metadata then weighs on the entry, the glob can turn lazy without changing `listMaps`'s callers much.
+
+**Verdict:** sound. **Confidence:** high.
+
+### Node has its own adapter
+
+**Choice:** `web/src/maps/node.ts` reads the folders from disk and calls the built Wasm resolver, synchronously. Web tests and scenes use it; the catalogue test reads the directory with it.
+
+**Gap:** C09 names a browser adapter and asset tools over the built Wasm. Vitest and the scene runner cannot fetch a Vite asset URL.
+
+**Reach:** The asset CLI (`web/asset.mjs`) and `scene-assets`' fit authority read rules only (`physics`, `forests.rule`), so they did not need it. `scene.mjs` lists no maps yet; that is C61's.
+
+**Verdict:** sound: three adapters, one resolver. **Confidence:** high.
+
+### The camera and generated labs are not saved maps
+
+**Choice:** `fixtures/camera-lab.json` (a plan the map compiler builds at run time, over the prototype templates) and `fixtures/generated-lab.json` (the generated route's limits, developer encounter and camera) stayed where they were.
+
+**Gap:** Q-G9 says the labs move out of `fixtures/*-lab.json`. These two hold no `MapDefinition`, and a saved map of prototype templates needs the catalogue to name a second library, which C58 has to decide for its saved generated map.
+
+**Verdict:** open. Both bypass `contract::maps::resolve` today: their maps come straight from the compiler. C55 gives the generated request its variant of `MapSource`, and the camera lab's plan can be saved as a compiled map once C58 settles the library question. **Confidence:** high that it does not belong in a location-only cutover.
+
+### Not done
+
+C33 (one simulation world) was not started. Its consumers call the main-thread world synchronously for picking, ground height and foliage clearing, and moving them needs a public query index and prepared geometry that `Battle` can reuse: a slice of its own. `specs/city-maps/assets/map-acquisition/README.md` still describes the core checkpoint; it is the frozen record and was left as written.

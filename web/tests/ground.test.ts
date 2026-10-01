@@ -10,7 +10,9 @@ import {
   type ObservationLayout,
 } from "../src/battle/sim/observation";
 import { labScenario, type LabEvent } from "@apps/battle-lab/src/scenarios";
-import groundMap from "@fixtures/ground-lab.json";
+import { loadMap } from "@web/maps/node";
+
+const groundMap = loadMap("ground").definition;
 
 // Whole battles run to a late state; under a loaded `bun run check` they
 // can pass Vitest's 5 s default without anything being wrong.

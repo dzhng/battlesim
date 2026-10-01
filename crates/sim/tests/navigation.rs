@@ -421,8 +421,7 @@ fn a_bridge_search_bounds_work_without_changing_the_crossing() {
 /// its deck, and no step of either route is on water.
 #[test]
 fn a_meandering_river_is_crossed_by_its_bridge_by_squads_and_tanks() {
-    let map: MapDefinition =
-        serde_json::from_str(include_str!("../../../fixtures/river-lab.json")).unwrap();
+    let map: MapDefinition = sim::maps::load("river").unwrap().definition;
     let w = WorldGeometry::new(&map, &crate::common::rules());
     let river = &w.rivers()[0];
     for m in [&TANK, &INFANTRY] {

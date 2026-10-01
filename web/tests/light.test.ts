@@ -3,6 +3,7 @@
 // fixture is the one owner of the sun, sky, haze, grade, bloom and cascades.
 import { expect, test } from "vitest";
 import village from "@fixtures/village.json";
+import { loadMap } from "@web/maps/node";
 import {
   postSettings,
   sunDirection,
@@ -24,6 +25,8 @@ import {
   type Camera3DParams,
 } from "@packages/renderer-core/src/camera3d.ts";
 import { mat4, vec2, vec3, type Mat4, type Vec3 } from "math";
+
+const villageMap = loadMap("village").definition;
 
 // Private receiver-blend oracle for checking production cascade-fit geometry.
 // Runtime blending is implemented independently in shaders/shadow.ts.
@@ -54,7 +57,7 @@ const withLight = (edit: (l: LightPresentation) => void): LightPresentation => {
   return copy;
 };
 
-const [MAP_W, MAP_H] = village.map.size;
+const [MAP_W, MAP_H] = villageMap.size;
 /** The village's ground as one flat slab (its 20 m ridge is inside the box's
  *  standing headroom). */
 const MAP = mapBox(

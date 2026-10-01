@@ -37,8 +37,11 @@ import {
   type WorldLayout,
 } from "@packages/battle-renderer/src/worldMesh";
 import { labScenario, type LabEvent } from "@apps/battle-lab/src/scenarios";
-import sensors from "@fixtures/sensors-lab.json";
+import { loadMap } from "@web/maps/node";
 import village from "@fixtures/village.json";
+
+const sensors = loadMap("sensors").definition;
+const villageMap = loadMap("village").definition;
 
 let memory: WebAssembly.Memory;
 beforeAll(() => {
@@ -149,7 +152,7 @@ test("a prop the side has not learned never reaches fog (metamorphic)", () => {
 });
 
 test("a fallen building leaves fog's occluders and its known ruin takes its place", () => {
-  const { exports, layout } = staticWorld(village.map);
+  const { exports, layout } = staticWorld(villageMap);
   const firstId =
     exports.props[layout.propFields.indexOf("idLo")] +
     exports.props[layout.propFields.indexOf("idHi")] * 2 ** layout.limbBits;

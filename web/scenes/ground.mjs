@@ -295,16 +295,14 @@ async function sidesDrawTheirOwnScars(ctx, page, blue, red) {
   const props = await page.evaluate(
     async (repo) => {
       const file = (p) => `/@fs/${repo}${p}`;
-      const [wasm, rules, { mapProps }, { readWorldExports }] = await Promise.all([
+      const [wasm, { villageScenario }, { mapProps }, { readWorldExports }] = await Promise.all([
         import("/src/wasm/game_wasm.js"),
-        import(file("apps/battle-lab/src/scenarios.ts")),
+        import(file("apps/battle-lab/src/savedMaps.tsx")),
         import(file("packages/battle-renderer/src/models/propAppearance.ts")),
         import(file("packages/battle-renderer/src/worldMesh.ts")),
       ]);
       await wasm.default();
-      const setup = JSON.parse(
-        wasm.village_scenario(JSON.stringify(rules.VILLAGE_RULES), "ordinary"),
-      );
+      const setup = JSON.parse(await villageScenario(wasm, "ordinary"));
       const ruleJson = JSON.stringify(setup.rules);
       const view = new wasm.WorldView(JSON.stringify(setup.map), ruleJson);
       try {

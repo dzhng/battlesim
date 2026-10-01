@@ -1,0 +1,6 @@
+{
+  "units": [
+    {"side":"blue","kind":"rifle","position":[60,185]},
+    {"side":"blue","kind":"tank","position":[60,212],"yaw":1.5707963267948966}
+  ]
+}

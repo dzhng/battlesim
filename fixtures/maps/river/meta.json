@@ -1,0 +1,13 @@
+{
+  "category": "lab",
+  "status": "released",
+  "label": "River lab",
+  "character": "arena",
+  "biome": "summer",
+  "size_m": [640, 480],
+  "tags": ["river", "road", "bridge", "forest"],
+  "source": "authored",
+  "seed": null,
+  "encounters": ["river"],
+  "benchmarks": []
+}

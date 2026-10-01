@@ -2,72 +2,20 @@ import { useEffect, useMemo, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { SideName } from "@web/battle/sim/protocol";
 import { buildSightOverlay } from "@packages/battle-renderer/src/sightOverlay";
-import sensorsMap from "@fixtures/sensors-lab.json";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
-import { labScenario, type LabScript } from "../scenarios";
+import { SavedEncounter, type SavedBattle } from "../savedMaps";
 import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
 import { TickStatus } from "../TickStatus";
 
-// Blue watches from open ground west of the thin forest. Red's scripted tank
+// The sensors map's saved encounter
+// (`fixtures/maps/sensors/encounters/sensors.json`). Blue watches from open
+// ground west of the thin forest. Red's scripted tank
 // tours thin forest, deep forest, the ridge's far side and the building's
 // shadow; a red squad walks into the thin forest's edge. Nobody opens fire:
 // this lab is about sight, not combat. The sight-lobe overlay outlines how
 // far each own unit's eyes reach in every direction, with its forward line.
-const route = (
-  side: SideName,
-  unit: number,
-  points: [number, number][],
-  gesture: number,
-): LabScript[] =>
-  points.map((goal, k) => ({
-    tick: 30,
-    side,
-    queued: k > 0,
-    order: { kind: "move", units: [unit], gesture, goal, route: "shortest" },
-  }));
-const SCENARIO = labScenario(
-  sensorsMap,
-  [
-    { side: "blue", kind: "recon", position: [300, 120], engagement: "return_fire_only" },
-    { side: "blue", kind: "rifle", position: [300, 170], engagement: "return_fire_only" },
-    { side: "blue", kind: "tank", position: [300, 70], engagement: "return_fire_only" },
-    { side: "blue", kind: "rifle", position: [420, 470], engagement: "return_fire_only" },
-    {
-      side: "red",
-      kind: "tank",
-      position: [480, 110],
-      yaw: Math.PI,
-      engagement: "return_fire_only",
-    },
-    { side: "red", kind: "rifle", position: [470, 60], engagement: "return_fire_only" },
-  ],
-  [],
-  [
-    ...route(
-      "red",
-      4,
-      [
-        [480, 300],
-        [620, 300],
-        [820, 440],
-        [1100, 110],
-        [480, 110],
-      ],
-      1,
-    ),
-    ...route(
-      "red",
-      5,
-      [
-        [420, 60],
-        [470, 60],
-      ],
-      2,
-    ),
-  ],
-);
 const SEED = 5;
 const NO_LOBES = { opaque: new Float32Array(0), translucent: new Float32Array(0) };
 
@@ -80,10 +28,18 @@ const SENSORS_CAMERA: Camera3DParams = {
 };
 
 export default function Sensors() {
+  return (
+    <SavedEncounter map="sensors" encounter="sensors">
+      {(battle) => <SensorsLab battle={battle} />}
+    </SavedEncounter>
+  );
+}
+
+function SensorsLab({ battle }: { battle: SavedBattle }) {
   const [side, setSide] = useState<SideName>("blue");
   const [fogOn, setFogOn] = useState(true);
   const [lobesOn, setLobesOn] = useState(true);
-  const session = useBattleSession({ map: sensorsMap, scenario: SCENARIO, seed: SEED, side });
+  const session = useBattleSession({ ...battle, seed: SEED, side });
   const { meshes, sim, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;

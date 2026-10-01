@@ -1,0 +1,13 @@
+{
+  "category": "lab",
+  "status": "released",
+  "label": "Ambush lab",
+  "character": "arena",
+  "biome": "summer",
+  "size_m": [900, 500],
+  "tags": ["building"],
+  "source": "authored",
+  "seed": null,
+  "encounters": ["crossfire", "late", "prompt"],
+  "benchmarks": []
+}

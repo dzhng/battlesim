@@ -107,15 +107,52 @@ pub struct MapAdmission {
     pub max_bay_positions: u64,
 }
 
+impl MapAdmission {
+    /// What the saved catalogue's adapters admit (`fixtures/maps/<id>/`): the
+    /// authored arenas and the village, with room to grow. A larger saved map
+    /// is refused, and raising this is a decision about every catalogue
+    /// reader's startup, native and browser alike.
+    pub const CATALOGUE: Self = Self {
+        max_authored_parts: 4096,
+        max_bay_positions: 65_536,
+    };
+}
+
 #[derive(Debug, Serialize)]
 pub struct ResolvedMap {
     pub definition: MapDefinition,
     pub identity: MapIdentity,
 }
 
+/// What a resolution answers across a JSON boundary: the resolved map, or the
+/// refusal with its code and location.
+#[derive(Debug, Serialize)]
+#[serde(tag = "status", rename_all = "snake_case")]
+pub enum ResolveOutcome {
+    Ok { result: Box<ResolvedMap> },
+    Error { error: ResolveError },
+}
+
+impl From<Result<ResolvedMap, ResolveError>> for ResolveOutcome {
+    fn from(result: Result<ResolvedMap, ResolveError>) -> Self {
+        match result {
+            Ok(result) => Self::Ok {
+                result: Box::new(result),
+            },
+            Err(error) => Self::Error { error },
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ResolveCode {
+    /// An adapter was asked for an address that is not a catalogue id.
+    InvalidId,
+    /// An adapter found no document where the id says it is.
+    MissingDocument,
+    /// A saved encounter is not an encounter definition.
+    InvalidEncounter,
     InvalidMap,
     InvalidSources,
     IdentityMismatch,
@@ -260,7 +297,9 @@ pub fn resolve(
         return Err(ResolveError {
             code: ResolveCode::IdentityMismatch,
             location: "SOURCES.json.identity.map_hash".into(),
-            message: "saved content hash does not match the physical map".into(),
+            message: format!(
+                "saved content hash does not match the physical map, whose content hash is {map_hash}"
+            ),
         });
     }
     let catalogue =

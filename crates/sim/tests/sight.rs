@@ -221,7 +221,7 @@ fn sight_shape_consumers_agree() {
 fn a_garrison_sees_from_one_eye_per_facade_it_holds() {
     // garrison-lab's one building: 24 m square round (360, 250), yaw 0, on
     // flat ground.
-    let map = include_str!("../../../fixtures/garrison-lab.json");
+    let map = common::saved_map("garrison");
     let mut b = battle(
         map,
         json!([

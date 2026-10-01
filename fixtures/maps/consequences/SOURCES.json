@@ -1,0 +1,18 @@
+{
+  "identity": {
+    "kind": "authored",
+    "map_hash": "3b5596535f572313189184c0294e3e00a618d280a288c9d28e10b99177daf454",
+    "template_catalog_hash": null
+  },
+  "catalogue": {
+    "template_ids": null
+  },
+  "inputs": [
+    {
+      "kind": "repository",
+      "path": "fixtures/consequences-lab.json",
+      "revision": "f303c07c43ad38f06f223ad1e48e4e0d1e6e73f8",
+      "sha256": "7821cba1206b5ed05d187ac6a4eaa61c5d9c0f31afc299243eea51042bfb4fbd"
+    }
+  ]
+}

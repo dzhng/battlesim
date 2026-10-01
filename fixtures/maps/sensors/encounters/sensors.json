@@ -1,0 +1,19 @@
+{
+  "units": [
+    {"side":"blue","kind":"recon","position":[300,120],"engagement":"return_fire_only"},
+    {"side":"blue","kind":"rifle","position":[300,170],"engagement":"return_fire_only"},
+    {"side":"blue","kind":"tank","position":[300,70],"engagement":"return_fire_only"},
+    {"side":"blue","kind":"rifle","position":[420,470],"engagement":"return_fire_only"},
+    {"side":"red","kind":"tank","position":[480,110],"yaw":3.141592653589793,"engagement":"return_fire_only"},
+    {"side":"red","kind":"rifle","position":[470,60],"engagement":"return_fire_only"}
+  ],
+  "scripts": [
+    {"tick":30,"side":"red","queued":false,"order":{"kind":"move","units":[4],"gesture":1,"goal":[480,300],"route":"shortest"}},
+    {"tick":30,"side":"red","queued":true,"order":{"kind":"move","units":[4],"gesture":1,"goal":[620,300],"route":"shortest"}},
+    {"tick":30,"side":"red","queued":true,"order":{"kind":"move","units":[4],"gesture":1,"goal":[820,440],"route":"shortest"}},
+    {"tick":30,"side":"red","queued":true,"order":{"kind":"move","units":[4],"gesture":1,"goal":[1100,110],"route":"shortest"}},
+    {"tick":30,"side":"red","queued":true,"order":{"kind":"move","units":[4],"gesture":1,"goal":[480,110],"route":"shortest"}},
+    {"tick":30,"side":"red","queued":false,"order":{"kind":"move","units":[5],"gesture":2,"goal":[420,60],"route":"shortest"}},
+    {"tick":30,"side":"red","queued":true,"order":{"kind":"move","units":[5],"gesture":2,"goal":[470,60],"route":"shortest"}}
+  ]
+}

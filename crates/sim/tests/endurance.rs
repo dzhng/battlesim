@@ -6,9 +6,14 @@ use sim::endurance::{scenario, LATE_CORPSES, LATE_WRECKS};
 
 use crate::common;
 
+/// The battle's saved field, the catalogue's `endurance` map.
+fn field() -> contract::map::MapDefinition {
+    sim::maps::load("endurance").unwrap().definition
+}
+
 #[test]
 fn each_side_fields_100_units_half_of_them_rifle_squads() {
-    let s = scenario(&common::village(), 1, false).unwrap();
+    let s = scenario(&field(), &common::village(), 1, false).unwrap();
     for side in Side::ALL {
         let mine: Vec<_> = s.units.iter().filter(|u| u.side == side).collect();
         assert_eq!(mine.len(), 100);
@@ -16,7 +21,7 @@ fn each_side_fields_100_units_half_of_them_rifle_squads() {
     }
     assert!(!s.scripts.is_empty(), "seeded waves drive the battle");
     // Same seed, same battle.
-    let again = scenario(&common::village(), 1, false).unwrap();
+    let again = scenario(&field(), &common::village(), 1, false).unwrap();
     assert_eq!(
         serde_json::to_string(&s).unwrap(),
         serde_json::to_string(&again).unwrap()
@@ -25,7 +30,7 @@ fn each_side_fields_100_units_half_of_them_rifle_squads() {
 
 #[test]
 fn the_late_state_starts_with_its_remains_and_keeps_every_one() {
-    let s = scenario(&common::village(), 1, true).unwrap();
+    let s = scenario(&field(), &common::village(), 1, true).unwrap();
     let mut battle = Battle::new(&s, 1);
     let start = battle.load();
     assert!(start.corpses >= LATE_CORPSES);

@@ -276,8 +276,17 @@ pub fn impacts(events: &[(u64, FlightEvent)]) -> Vec<(u64, sim::flight::Impact)>
         .collect()
 }
 
-pub const GEOMETRY_LAB: &str = include_str!("../../../../fixtures/geometry-lab.json");
-pub const MOVEMENT_LAB: &str = include_str!("../../../../fixtures/movement-lab.json");
+/// The saved map `id` of the catalogue (`fixtures/maps/<id>`), resolved, as
+/// the map JSON a scenario takes.
+pub fn saved_map(id: &str) -> &'static str {
+    static MAPS: std::sync::Mutex<BTreeMap<String, &'static str>> =
+        std::sync::Mutex::new(BTreeMap::new());
+    MAPS.lock().unwrap().entry(id.into()).or_insert_with(|| {
+        let map = sim::maps::load(id).unwrap_or_else(|e| panic!("{e}"));
+        &*serde_json::to_string(&map.definition).unwrap().leak()
+    })
+}
+
 /// The runtime rules of a scenario: the village fixture itself (rules read the
 /// sections they own and ignore the rest).
 pub fn scenario_rules() -> serde_json::Value {

@@ -1,0 +1,13 @@
+{
+  "category": "lab",
+  "status": "released",
+  "label": "Sensors lab",
+  "character": "arena",
+  "biome": "summer",
+  "size_m": [1400, 600],
+  "tags": ["relief", "forest", "prop", "building"],
+  "source": "authored",
+  "seed": null,
+  "encounters": ["contacts", "sensors"],
+  "benchmarks": []
+}

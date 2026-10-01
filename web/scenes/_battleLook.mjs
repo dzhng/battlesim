@@ -36,7 +36,7 @@ import {
 import { anyNear, decode, mostChanged } from "./_png.mjs";
 import { trackPageResources, pageResources } from "./_leaks.mjs";
 import { paintOnly } from "./_overlays.mjs";
-import { hasRole, village, curvePitch } from "./_units.mjs";
+import { hasRole, village, villageMap, curvePitch } from "./_units.mjs";
 
 const CAMERA = village.presentation.camera;
 const BATTLE_TICK = Number(process.env.BATTLE_TICK ?? 9900);
@@ -174,7 +174,7 @@ export async function woodsTour(ctx) {
   const page = await openBattle(ctx, { viewport: VIEWPORT, tick: 60 });
   await page.addStyleTag({ content: HIDE_READOUTS });
   // The west wood is an axis-aligned ring: its rect is [x, y, w, h].
-  const [[x0, y0], , [x1, y1]] = village.map.forests[0].shape.ring;
+  const [[x0, y0], , [x1, y1]] = villageMap.forests[0].shape.ring;
   const wood = [x0, y0, x1 - x0, y1 - y0];
   const goal = [wood[0] + 40, wood[1] + wood[3] - 40];
   let o = await obs(page);

@@ -32,8 +32,10 @@ import {
 } from "@packages/battle-renderer/src/terrain/surfaceField.ts";
 import { CURATED_GROUND, denseGround } from "./surfaceGrounds";
 import summer from "@fixtures/biomes/summer.json";
-import village from "@fixtures/village.json";
-import geometry from "@fixtures/geometry-lab.json";
+import { loadMap } from "@web/maps/node";
+
+const geometry = loadMap("geometry").definition;
+const villageMap = loadMap("village").definition;
 
 const biome = validateBiome(summer as unknown as Biome);
 let layout: WorldLayout;
@@ -221,7 +223,7 @@ test("a field lookup is the all-primitives distance wherever a consumer reads it
 });
 
 test("the shipped maps' fields match their all-primitives distances", () => {
-  expect(expectFieldMatches(siteOf(village.map), 2000, 1).exactToM).toBe(Infinity);
+  expect(expectFieldMatches(siteOf(villageMap), 2000, 1).exactToM).toBe(Infinity);
   expect(expectFieldMatches(siteOf(geometry), 2000, 2).exactToM).toBe(Infinity);
 });
 

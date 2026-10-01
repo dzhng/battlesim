@@ -4,7 +4,6 @@ import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { ObservationView } from "@web/battle/sim/observation";
 import { ReadoutLayer, SelectionCard } from "@web/battle/present/readouts";
 import type { Order } from "@web/battle/sim/protocol";
-import garrisonMap from "@fixtures/garrison-lab.json";
 import { AckLog } from "../AckLog";
 import {
   BattleMemory,
@@ -15,49 +14,28 @@ import {
 } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
 import { useBattleSession } from "../useBattleSession";
-import { labScenario } from "../scenarios";
+import { SavedEncounter, type SavedBattle } from "../savedMaps";
+import { durableSoldiers, VILLAGE_RULES } from "../scenarios";
 import { useFeed } from "../feed";
 import { villageCamera } from "../villageCamera";
 import { TickStatus } from "../TickStatus";
 
-// Blue's two rifle squads and a scout squad wait west of the building, out of
+// The garrison map's saved encounter
+// (`fixtures/maps/garrison/encounters/garrison.json`). Blue's two rifle squads
+// and a scout squad wait west of the building, out of
 // red's sight. Red's squad stands east, behind the building, holding fire but
 // spotting for red's tank 250 m east. The tank holds fire while blue's scouts
 // walk in, enter and leave and a rifle squad takes the building after them
-// (the scene's entry steps), then opens fire at `TANK_OPENS_FIRE` and shells whatever occupants
+// (the scene's entry steps), then opens fire at the encounter's one scripted
+// order and shells whatever occupants
 // its squad sees. Held until then so its fire (the HMG wears walls)
 // never brings the house down mid-entry: the entry steps measure the
 // stationary timer, not a collapse. Blue holds fire until fired on. The
 // building (prop 0) is 24 × 24 m and takes one squad of up to 16 soldiers.
 const BUILDING = 0;
-/** The tick red's tank switches to fire at will: after every entry. */
-const TANK_OPENS_FIRE = 1500;
-const staged = labScenario(
-  garrisonMap,
-  [
-    { side: "blue", kind: "rifle", position: [290, 250], engagement: "return_fire_only" },
-    { side: "blue", kind: "rifle", position: [268, 250], engagement: "return_fire_only" },
-    { side: "blue", kind: "recon", position: [325, 250], engagement: "return_fire_only" },
-    { side: "red", kind: "rifle", position: [475, 250], engagement: "return_fire_only" },
-    { side: "red", kind: "tank", position: [620, 200], yaw: 2.9, engagement: "return_fire_only" },
-  ],
-  [],
-  [
-    {
-      tick: TANK_OPENS_FIRE,
-      side: "red",
-      order: { kind: "set_engagement", units: [4], policy: "fire_at_will" },
-    },
-  ],
-);
 // Keep direct fire from eliminating the occupants before the house falls;
 // collapse itself still decides which soldiers escape.
-const durable = JSON.parse(staged) as {
-  rules: { catalog: { soldiers?: Record<string, { hp: number }> }[] };
-};
-for (const doc of durable.rules.catalog)
-  for (const soldier of Object.values(doc.soldiers ?? {})) soldier.hp = 1.0e6;
-const SCENARIO = JSON.stringify(durable);
+const RULES = durableSoldiers(VILLAGE_RULES);
 const SEED = 11;
 
 const GARRISON_CAMERA: Camera3DParams = {
@@ -99,12 +77,19 @@ const DEMOS: Record<string, (o: ObservationView) => Order | null> = {
 };
 
 export default function Garrison() {
+  return (
+    <SavedEncounter map="garrison" encounter="garrison" rules={RULES}>
+      {(battle) => <GarrisonLab battle={battle} />}
+    </SavedEncounter>
+  );
+}
+
+function GarrisonLab({ battle }: { battle: SavedBattle }) {
   // Where rounds struck recently, kept for two seconds so a hit can be read.
   const memory = useRef(new BattleMemory());
   const onDecoded = useCallback((o: ObservationView) => memory.current.note(o), []);
   const session = useBattleSession({
-    map: garrisonMap,
-    scenario: SCENARIO,
+    ...battle,
     seed: SEED,
     onDecoded,
     // Once blue has seen a building fall, it is no longer drawn and its known
@@ -142,7 +127,8 @@ export default function Garrison() {
   const diagnostics = {
     ...session.probes,
     demo: (name: string) => runDemo(name),
-    tankOpensFire: TANK_OPENS_FIRE,
+    /** The tick red's tank switches to fire at will: after every entry. */
+    tankOpensFire: battle.encounter.scripts[0].tick,
   };
 
   if (!meshes) return null;

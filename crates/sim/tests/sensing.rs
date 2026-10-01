@@ -5,10 +5,12 @@ use serde_json::json;
 use sim::battle::Battle;
 
 use crate::common;
-const MAP: &str = include_str!("../../../fixtures/sensors-lab.json");
+fn map() -> &'static str {
+    common::saved_map("sensors")
+}
 
 fn battle(units: serde_json::Value) -> Battle {
-    Battle::new(&common::scenario(MAP, units, json!([])), 1)
+    Battle::new(&common::scenario(map(), units, json!([])), 1)
 }
 
 fn blue(b: &Battle) -> &ObservationFrame {
@@ -160,9 +162,9 @@ fn hidden_enemy_changes_leave_the_side_view_identical() {
         { "side": "blue", "kind": "recon", "position": [100, 480] },
         { "side": "red", "kind": "tank", "position": [840, 480] },
     ]);
-    let mut a = Battle::new(&common::scenario(MAP, units.clone(), json!([])), 1);
+    let mut a = Battle::new(&common::scenario(map(), units.clone(), json!([])), 1);
     let scripts = json!([{ "tick": 1, "side": "red", "order": { "kind": "move", "units": [1], "gesture": 1, "goal": [860, 470], "route": "shortest" } }]);
-    let mut b = Battle::new(&common::scenario_with(MAP, units, json!([]), scripts), 1);
+    let mut b = Battle::new(&common::scenario_with(map(), units, json!([]), scripts), 1);
     for _ in 0..90 {
         a.step();
         b.step();
@@ -189,7 +191,7 @@ fn handles_along(
             "order": { "kind": "move", "units": [1], "gesture": 1, "goal": goal, "route": "shortest" } }))
         .collect();
     let mut b = Battle::new(
-        &common::scenario_with(MAP, units, json!([]), json!(scripts)),
+        &common::scenario_with(map(), units, json!([]), json!(scripts)),
         1,
     );
     (0..1500)
@@ -274,7 +276,7 @@ fn each_observer_identifies_on_alternate_ticks_and_never_more_than_one_tick_late
         ]);
         let scripts = json!([{ "tick": start_tick, "side": "red",
         "order": { "kind": "move", "units": [2], "gesture": 1, "goal": [1100, 330], "route": "shortest" } }]);
-        let mut b = Battle::new(&common::scenario_with(MAP, units, json!([]), scripts), 1);
+        let mut b = Battle::new(&common::scenario_with(map(), units, json!([]), scripts), 1);
         // What each scout's eyes identify against the battle as it stands.
         let fresh = |b: &Battle| -> [bool; 2] {
             let units: Vec<sim::units::Unit> =

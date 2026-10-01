@@ -23,11 +23,13 @@ import { forestInside } from "@packages/battle-renderer/src/terrain/forestShapes
 import { plotAt } from "@packages/battle-renderer/src/terrain/plots.ts";
 import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
 import summer from "@fixtures/biomes/summer.json";
-import village from "@fixtures/village.json";
-import geometry from "@fixtures/geometry-lab.json";
-import riverLab from "@fixtures/river-lab.json";
+import { loadMap } from "@web/maps/node";
 import { groundHeight } from "@packages/battle-renderer/src/terrain/terrainGrid";
 import { packTerrainHeights } from "@packages/battle-renderer/src/frame/terrainHeights";
+
+const geometry = loadMap("geometry").definition;
+const riverLab = loadMap("river").definition;
+const villageMap = loadMap("village").definition;
 
 const biome = validateBiome(summer as unknown as Biome);
 let layout: WorldLayout;
@@ -171,7 +173,7 @@ test("empty full-extent height uploads stay independent of area", () => {
 });
 
 test("heights and normals where props stand are WorldView's", () => {
-  const { view, exports } = world(village.map);
+  const { view, exports } = world(villageMap);
   const surface = buildTerrainSurface(exports, layout, biome);
   const at = (f: string) => layout.propFields.indexOf(f);
   let checked = 0;
@@ -214,7 +216,7 @@ test("the material's road, forest and water masks are the simulation's surface r
     return inside;
   };
   let wet = 0;
-  for (const map of [geometry, village.map, riverLab]) {
+  for (const map of [geometry, villageMap, riverLab]) {
     const { view, exports } = world(map);
     const { site } = buildTerrainSurface(exports, layout, biome);
     const inRect = (rects: Float32Array, x: number, y: number) => {
@@ -288,7 +290,7 @@ test("rounded strokes are the native samples, bit for bit", () => {
 });
 
 test("roads split the patchwork: fields meet a road edge-on, never across it", () => {
-  const { exports } = world(village.map);
+  const { exports } = world(villageMap);
   const { site, plots } = buildTerrainSurface(exports, layout, biome);
   for (let r = 0; r < site.surfaceStrokes.length; r += site.surfaceStrokeStride) {
     const [ax, ay, bx, by, half] = site.surfaceStrokes.subarray(r, r + 5);
@@ -305,7 +307,7 @@ test("roads split the patchwork: fields meet a road edge-on, never across it", (
 });
 
 test("each point lies in the plot the split walks to, and its edge distance is that plot's", () => {
-  const { exports } = world(village.map);
+  const { exports } = world(villageMap);
   const { plots } = buildTerrainSurface(exports, layout, biome);
   const [x0, y0, x1, y1] = plots.region;
   for (let k = 0; k < 400; k++) {
@@ -325,16 +327,16 @@ test("each point lies in the plot the split walks to, and its edge distance is t
 });
 
 test("plots around the buildings are the settlement's meadow", () => {
-  const { exports } = world(village.map);
+  const { exports } = world(villageMap);
   const { plots } = buildTerrainSurface(exports, layout, biome);
   const settlement = biome.plots.findIndex((p) => p.name === biome.field_rules.settlement_kind);
-  const houses = village.map.buildings.flatMap((b) => b.geometry.parts);
+  const houses = villageMap.buildings!.flatMap((b) => b.geometry.parts);
   for (const [x, y] of houses.map((p) => p.center))
     expect(plots.plots[plotAt(plots, x, y)!.plot].kind).toBe(settlement);
 });
 
 test("the patchwork is the same for the same seed and moves with it", () => {
-  const { exports } = world(village.map);
+  const { exports } = world(villageMap);
   const a = buildTerrainSurface(exports, layout, biome).plots;
   const b = buildTerrainSurface(exports, layout, biome).plots;
   const c = buildTerrainSurface(exports, layout, { ...biome, seed: biome.seed + 1 }).plots;

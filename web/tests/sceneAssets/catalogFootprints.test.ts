@@ -9,6 +9,7 @@ import { fixtureAuthority } from "@packages/scene-assets/src/authority.ts";
 import { WEAPONS } from "@packages/scene-assets/src/shippedUnits.ts";
 import type { Catalog } from "@packages/scene-assets/src/schema.ts";
 import { UnitCatalog, type CatalogView } from "@packages/scene-assets/src/units.ts";
+import { loadMap } from "@web/maps/node";
 
 const read = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8"));
 const catalog = read("../../../assets/catalog.json") as Catalog;
@@ -16,9 +17,9 @@ const village = read("../../../fixtures/village.json");
 const same = (a: readonly number[], b: readonly number[]) =>
   a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) < 1e-9);
 
-const buildings = (
-  village.map.buildings as { geometry: { parts: { half_extents: number[] }[] } }[]
-).flatMap((b) => b.geometry.parts.map((p) => p.half_extents));
+const buildings = loadMap("village").definition.buildings!.flatMap((b) =>
+  b.geometry.parts.map((p) => p.half_extents),
+);
 /** Every unit type with a hull leaves a wreck on its hull box. */
 const units = new UnitCatalog(read("../../../fixtures/catalog.json") as CatalogView);
 const hulls = units.ids.flatMap((id) => {

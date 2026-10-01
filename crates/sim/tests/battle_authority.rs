@@ -8,7 +8,7 @@ use crate::common;
 
 fn scenario() -> ScenarioDefinition {
     common::scenario(
-        common::GEOMETRY_LAB,
+        common::saved_map("geometry"),
         serde_json::json!([
             { "side": "blue", "kind": "tank", "position": [40, 150] },
             { "side": "blue", "kind": "rifle", "position": [40, 170] },

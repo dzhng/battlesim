@@ -1,0 +1,13 @@
+{
+  "category": "lab",
+  "status": "released",
+  "label": "Readouts lab",
+  "character": "arena",
+  "biome": "summer",
+  "size_m": [700, 450],
+  "tags": ["building"],
+  "source": "authored",
+  "seed": null,
+  "encounters": ["readouts"],
+  "benchmarks": []
+}

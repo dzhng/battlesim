@@ -317,7 +317,13 @@ fn channels_saturate_and_storage_stays_within_the_map_bound() {
 
 #[test]
 fn the_endurance_battle_keeps_the_layer_within_its_bound() {
-    let s = sim::endurance::scenario(&common::village(), 1, false).unwrap();
+    let s = sim::endurance::scenario(
+        &sim::maps::load("endurance").unwrap().definition,
+        &common::village(),
+        1,
+        false,
+    )
+    .unwrap();
     let mut b = Battle::new(&s, 1);
     let bound = b.ground().bound_bytes();
     let cell = s.rules.ground.cell_m;

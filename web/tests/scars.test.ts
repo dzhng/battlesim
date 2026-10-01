@@ -17,7 +17,9 @@ import {
   type ScarRegion,
 } from "@packages/battle-renderer/src/frame/scarTexture";
 import { labScenario, type LabEvent } from "@apps/battle-lab/src/scenarios";
-import groundMap from "@fixtures/ground-lab.json";
+import { loadMap } from "@web/maps/node";
+
+const groundMap = loadMap("ground").definition;
 let memory: WebAssembly.Memory;
 beforeAll(() => {
   memory = initSync({

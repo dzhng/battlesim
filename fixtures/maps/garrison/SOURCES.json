@@ -1,0 +1,18 @@
+{
+  "identity": {
+    "kind": "authored",
+    "map_hash": "83177e891f9a936dbecd1b7651f270882e66373598db4d008139be67c1e056d5",
+    "template_catalog_hash": "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13"
+  },
+  "catalogue": {
+    "template_ids": null
+  },
+  "inputs": [
+    {
+      "kind": "repository",
+      "path": "fixtures/garrison-lab.json",
+      "revision": "f303c07c43ad38f06f223ad1e48e4e0d1e6e73f8",
+      "sha256": "c2ea8ca77360fcca540ddb2359a388f1a4ae8b59ffcb95c07364fef86a7297cb"
+    }
+  ]
+}

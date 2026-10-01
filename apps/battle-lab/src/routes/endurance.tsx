@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import village from "@fixtures/village.json";
-import { VILLAGE_RULES } from "../scenarios";
+import { enduranceScenario } from "../savedMaps";
 import { BattleView } from "../BattleView";
 import { useBuiltScenario } from "../useBuiltScenario";
 import type { BattleSession } from "../useBattleSession";
@@ -54,7 +54,7 @@ export default function Endurance() {
   const [late, setLate] = useState(false);
   const [seed, setSeed] = useState(1);
   const built = useBuiltScenario({ late, seed }, (wasm, o) =>
-    wasm.endurance_scenario(JSON.stringify(VILLAGE_RULES), BigInt(o.seed), o.late),
+    enduranceScenario(wasm, o.seed, o.late),
   );
   const frames = useFrameIntervals();
   // Repaint the telemetry once a second.

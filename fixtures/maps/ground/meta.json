@@ -1,0 +1,13 @@
+{
+  "category": "lab",
+  "status": "released",
+  "label": "Ground lab",
+  "character": "arena",
+  "biome": "summer",
+  "size_m": [600, 440],
+  "tags": [],
+  "source": "authored",
+  "seed": null,
+  "encounters": ["ground"],
+  "benchmarks": []
+}

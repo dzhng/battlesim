@@ -1,0 +1,13 @@
+{
+  "category": "playable",
+  "status": "released",
+  "label": "Village",
+  "character": "village",
+  "biome": "summer",
+  "size_m": [1600, 1600],
+  "tags": ["relief", "road", "forest", "prop", "building"],
+  "source": "authored",
+  "seed": null,
+  "encounters": ["lean"],
+  "benchmarks": ["benchmark"]
+}

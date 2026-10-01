@@ -1,0 +1,18 @@
+{
+  "identity": {
+    "kind": "authored",
+    "map_hash": "f98d42a2e9cf2be09b6cdadf06735e6fd09d1af3a32ea303fdc81ff4627cd2ff",
+    "template_catalog_hash": "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13"
+  },
+  "catalogue": {
+    "template_ids": null
+  },
+  "inputs": [
+    {
+      "kind": "repository",
+      "path": "fixtures/readouts-lab.json",
+      "revision": "f303c07c43ad38f06f223ad1e48e4e0d1e6e73f8",
+      "sha256": "28328aad0089a256e3976a8a6b6d132e0423fd4ecbab8208672f2f095e95d94c"
+    }
+  ]
+}

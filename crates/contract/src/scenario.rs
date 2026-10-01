@@ -1049,6 +1049,38 @@ pub struct ScenarioDefinition {
     pub encounter: Option<EncounterRules>,
 }
 
+/// The encounter half of a scenario: the forces, events and scripted orders
+/// laid on a map, as a saved map's `encounters/<name>.json` holds them. A
+/// field it does not know is refused.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EncounterDefinition {
+    pub units: Vec<UnitSetup>,
+    #[serde(default)]
+    pub events: Vec<ScenarioEvent>,
+    #[serde(default)]
+    pub scripts: Vec<ScriptedOrder>,
+    #[serde(default)]
+    pub opponent: Option<Opponent>,
+    #[serde(default)]
+    pub encounter: Option<EncounterRules>,
+}
+
+impl EncounterDefinition {
+    /// The scenario this encounter makes on `map` under `rules`.
+    pub fn on(self, map: MapDefinition, rules: Rules) -> ScenarioDefinition {
+        ScenarioDefinition {
+            map,
+            rules,
+            units: self.units,
+            events: self.events,
+            scripts: self.scripts,
+            opponent: self.opponent,
+            encounter: self.encounter,
+        }
+    }
+}
+
 /// A small defensive policy for one side (encounter.md). It sees only that
 /// side's observation and acts only through ordinary commands.
 #[derive(Clone, Debug, Serialize, Deserialize)]

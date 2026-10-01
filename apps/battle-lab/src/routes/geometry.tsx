@@ -6,7 +6,8 @@ import {
   type WorldOverlay,
 } from "@packages/battle-renderer/src/worldMesh";
 import type { SceneInstance } from "@packages/battle-renderer/src/scene";
-import geometryMap from "@fixtures/geometry-lab.json";
+import type { MapDefinition } from "@web/maps/resolve";
+import { SavedMap } from "../savedMaps";
 import { LabViewport, type LabPick } from "../LabViewport";
 import { useStaticWorld, type WorldView } from "../useStaticWorld";
 import { villageBiome } from "../villageBiome";
@@ -52,7 +53,11 @@ function probe(view: WorldView, layout: WorldLayout, ray: LabPick["ray"]): Probe
 }
 
 export default function Geometry() {
-  const world = useStaticWorld(geometryMap);
+  return <SavedMap id="geometry">{(map) => <GeometryLab map={map} />}</SavedMap>;
+}
+
+function GeometryLab({ map }: { map: MapDefinition }) {
+  const world = useStaticWorld(map);
   const [overlay, setOverlay] = useState<WorldOverlay>("surface");
   const [showTrees, setShowTrees] = useState(true);
   const appearances = useVillageAppearances();

@@ -1,0 +1,18 @@
+{
+  "identity": {
+    "kind": "authored",
+    "map_hash": "2359bf0fe55d86debb190fb67b48378b3daf8e9439217d67dbb2a06da704c257",
+    "template_catalog_hash": null
+  },
+  "catalogue": {
+    "template_ids": null
+  },
+  "inputs": [
+    {
+      "kind": "repository",
+      "path": "fixtures/ground-lab.json",
+      "revision": "f303c07c43ad38f06f223ad1e48e4e0d1e6e73f8",
+      "sha256": "088285eb8f982e5d1eb962c48038f2800e68e1ad72913dd90e82ef6e34656a31"
+    }
+  ]
+}

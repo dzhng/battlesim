@@ -1,0 +1,18 @@
+{
+  "units": [
+    {"side":"blue","kind":"tank","position":[60,150]},
+    {"side":"blue","kind":"rifle","position":[50,170]},
+    {"side":"blue","kind":"rifle","position":[50,130]},
+    {"side":"blue","kind":"supply","position":[30,150]},
+    {"side":"blue","kind":"jeep","position":[72,172],"yaw":-0.4}
+  ],
+  "events": [
+    {"tick":1,"add_prop":{"kind":"sandbags","center":[48,119],"yaw":0,"half_extents":[3,0.4,0.5]}},
+    {"tick":1,"add_prop":{"kind":"fence","center":[70,112],"yaw":0,"half_extents":[0.1,6,0.6]}},
+    {"tick":1,"add_prop":{"kind":"tooth","center":[78,106],"yaw":0,"half_extents":[0.6,0.6,0.6]}},
+    {"tick":1,"add_prop":{"kind":"tooth","center":[78,108.4],"yaw":0,"half_extents":[0.6,0.6,0.6]}},
+    {"tick":1,"add_prop":{"kind":"tooth","center":[78,110.8],"yaw":0,"half_extents":[0.6,0.6,0.6]}},
+    {"tick":1,"add_prop":{"kind":"tooth","center":[78,113.2],"yaw":0,"half_extents":[0.6,0.6,0.6]}},
+    {"tick":1,"add_prop":{"kind":"tooth","center":[78,115.6],"yaw":0,"half_extents":[0.6,0.6,0.6]}}
+  ]
+}

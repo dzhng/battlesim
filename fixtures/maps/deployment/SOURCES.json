@@ -1,0 +1,18 @@
+{
+  "identity": {
+    "kind": "authored",
+    "map_hash": "7c3d0b066a4dfcd17f7acc435e723285c2bc9774933c4534b2909efa8b6ec580",
+    "template_catalog_hash": null
+  },
+  "catalogue": {
+    "template_ids": null
+  },
+  "inputs": [
+    {
+      "kind": "repository",
+      "path": "fixtures/deployment-lab.json",
+      "revision": "f303c07c43ad38f06f223ad1e48e4e0d1e6e73f8",
+      "sha256": "4953d9335baad901d3b1832707e75e2a650d02841a20d7d6aa5d99f0d85ba75c"
+    }
+  ]
+}
