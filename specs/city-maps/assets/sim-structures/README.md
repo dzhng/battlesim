@@ -47,6 +47,12 @@ ordered PNGs, not observed GIF playback. It found:
 - Projectile clearance is visually ambiguous even in crops. Pixel inspection
   alone cannot certify the physical height or collision result.
 
+The recorded five fallen are **fresh collapse casualties**: the lab's durable
+soldier HP prevents prior direct-fire deaths. These GIFs do not pixel-verify an
+already-dead corpse moving after later support loss. That earlier-death path,
+including a wholly dead squad and hidden enemy memory, is native regression
+proof; dying/resting/fading cache updates are PoseDriver regression proof.
+
 These findings remain open for the real facade/window/overlay and destruction
 art owners. This packet accepts no source fit or final visual presentation.
 Native geometry, hit paths and support/knowledge regressions supply systems

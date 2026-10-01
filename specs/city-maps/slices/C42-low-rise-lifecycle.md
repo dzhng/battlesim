@@ -86,3 +86,7 @@ native support/knowledge proof, actual compound transition, complete raw-record
 location and unprimed pixel critique. The prototype loses height visibly, but
 its slab/rubble presentation, floor attachment, label overlaps and fog competition
 remain qualified visual findings; this is not accepted source or art coverage.
+
+The captured fallen are fresh collapse casualties. Prior-death support loss and
+existing corpse-cache relocation remain native/PoseDriver regression proof,
+not a claim of pixel verification in this recording.
