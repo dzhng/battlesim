@@ -7,6 +7,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub mod inspect;
 pub mod layout;
+pub mod parcels;
+
+use layout::{GenerationRequest, PresetDefinitions};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -47,6 +50,9 @@ pub struct MapPlan {
     /// Measured open ground beside settlements. Plan-only, like `settlements`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub approaches: Vec<ApproachPlan>,
+    /// The parcels the parcel pass cut, in the order it cut them. Plan-only.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub lots: Vec<LotPlan>,
     /// A requested feature without a shared physical owner cannot be discarded.
     #[serde(flatten)]
     pub unsupported_fields: BTreeMap<String, serde_json::Value>,
@@ -89,6 +95,19 @@ pub struct DistrictPlan {
     /// What it is built from: its one dominant building category first, then
     /// at most one minor category, with their shares of its ground.
     pub categories: Vec<CategoryShare>,
+}
+
+/// One parcel: a rectangle of a district fronting a street, cut to the
+/// template that stands on it.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LotPlan {
+    /// `settlement-3/district-2/lot-14`, stable for a request. The building
+    /// on it has the same id; a parcel without one is open ground.
+    pub id: String,
+    /// Its corners, counter-clockwise from the street side.
+    #[serde(deserialize_with = "contract::numbers::points")]
+    pub ring: Vec<[f64; 2]>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -232,6 +251,82 @@ pub fn compile_json(
     descriptors_json: &str,
 ) -> Result<String, serde_json::Error> {
     serde_json::to_string(&compile(request_json, descriptors_json))
+}
+
+/// The CLI and Wasm boundaries emit this same record.
+#[derive(Debug, Serialize)]
+#[serde(tag = "status", rename_all = "snake_case")]
+pub enum GenerateOutcome {
+    Ok { plan: Box<MapPlan> },
+    Error { diagnostics: Vec<Diagnostic> },
+}
+
+/// A request's whole plan: the layout, then its districts' streets, parcels
+/// and buildings.
+fn generate(
+    request_json: &str,
+    presets_json: &str,
+    descriptors_json: &str,
+) -> Result<(GenerationRequest, MapPlan, TemplateGeometryCatalog), Vec<Diagnostic>> {
+    let request: GenerationRequest = serde_json::from_str(request_json).map_err(|error| {
+        vec![Diagnostic {
+            code: DiagnosticCode::InvalidRequest,
+            feature: None,
+            location: "$".into(),
+            message: error.to_string(),
+        }]
+    })?;
+    let presets = PresetDefinitions::from_json(presets_json)?;
+    let catalogue = catalogue(descriptors_json)?;
+    let layout = layout::generate_layout(&request, &presets)?;
+    let plan = parcels::fill_districts(layout, &request, &catalogue, &presets)?;
+    Ok((request, plan, catalogue))
+}
+
+/// Generate a plan from request, preset and template JSON.
+pub fn generate_plan(
+    request_json: &str,
+    presets_json: &str,
+    descriptors_json: &str,
+) -> GenerateOutcome {
+    match generate(request_json, presets_json, descriptors_json) {
+        Ok((_, plan, _)) => GenerateOutcome::Ok {
+            plan: Box::new(plan),
+        },
+        Err(diagnostics) => GenerateOutcome::Error { diagnostics },
+    }
+}
+
+/// Generate a plan and compile it, through the same `lower` an authored plan uses.
+pub fn generate_map(
+    request_json: &str,
+    presets_json: &str,
+    descriptors_json: &str,
+) -> CompileOutcome {
+    let result = generate(request_json, presets_json, descriptors_json)
+        .and_then(|(request, plan, catalogue)| lower(&request.compile_request(plan), &catalogue));
+    match result {
+        Ok(result) => CompileOutcome::Ok {
+            result: Box::new(result),
+        },
+        Err(diagnostics) => CompileOutcome::Error { diagnostics },
+    }
+}
+
+pub fn generate_plan_json(
+    request_json: &str,
+    presets_json: &str,
+    descriptors_json: &str,
+) -> Result<String, serde_json::Error> {
+    serde_json::to_string(&generate_plan(request_json, presets_json, descriptors_json))
+}
+
+pub fn generate_map_json(
+    request_json: &str,
+    presets_json: &str,
+    descriptors_json: &str,
+) -> Result<String, serde_json::Error> {
+    serde_json::to_string(&generate_map(request_json, presets_json, descriptors_json))
 }
 
 pub fn validate_plan(plan: &MapPlan) -> Result<(), Vec<Diagnostic>> {
@@ -453,29 +548,24 @@ pub fn lower(
         }]
     })?;
     for (id, prop) in &authored {
-        let feature = request
-            .plan
-            .buildings
-            .iter()
-            .find(|building| building.parts.iter().any(|part| part.prop == *id))
-            .map(|building| building.id.clone());
-        let location = format!("$.plan.authored_parts[{id}]");
-        let bounds = prop.footprint_bounds().map_err(|message| {
+        // Named only on refusal: a city has tens of thousands of parts.
+        let refuse = |message: &str| {
             vec![Diagnostic {
                 code: DiagnosticCode::InvalidBounds,
-                feature: feature.clone(),
-                location: location.clone(),
+                feature: request
+                    .plan
+                    .buildings
+                    .iter()
+                    .find(|building| building.parts.iter().any(|part| part.prop == *id))
+                    .map(|building| building.id.clone()),
+                location: format!("$.plan.authored_parts[{id}]"),
                 message: message.into(),
             }]
-        })?;
+        };
+        let bounds = prop.footprint_bounds().map_err(refuse)?;
         if bounds[0] < 0.0 || bounds[1] < 0.0 || bounds[2] > map.size[0] || bounds[3] > map.size[1]
         {
-            return Err(vec![Diagnostic {
-                code: DiagnosticCode::InvalidBounds,
-                feature,
-                location,
-                message: "physical body extends outside the map bounds".into(),
-            }]);
+            return Err(refuse("physical body extends outside the map bounds"));
         }
     }
     let identity = GenerationIdentity {

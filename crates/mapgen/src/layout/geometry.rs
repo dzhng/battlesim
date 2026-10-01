@@ -233,3 +233,61 @@ impl Outline {
         ring_distance(&self.ring, p) - radius
     }
 }
+
+/// Buckets of item indices over the map, for "what is near this box".
+pub struct Grid {
+    cell: f64,
+    columns: usize,
+    rows: usize,
+    buckets: Vec<Vec<u32>>,
+}
+
+impl Grid {
+    pub fn new(size: [f64; 2], cell: f64) -> Self {
+        let count = |extent: f64| (libm::ceil(extent / cell) as usize).max(1);
+        let (columns, rows) = (count(size[0]), count(size[1]));
+        Self {
+            cell,
+            columns,
+            rows,
+            buckets: vec![Vec::new(); columns * rows],
+        }
+    }
+
+    /// The buckets a box `[min_x, min_y, max_x, max_y]` reaches; ground
+    /// outside the map falls in the edge buckets.
+    fn span(&self, bounds: [f64; 4]) -> impl Iterator<Item = usize> {
+        let index =
+            |v: f64, count: usize| (libm::floor(v / self.cell).max(0.0) as usize).min(count - 1);
+        let (x0, x1) = (
+            index(bounds[0], self.columns),
+            index(bounds[2], self.columns),
+        );
+        let (y0, y1) = (index(bounds[1], self.rows), index(bounds[3], self.rows));
+        let columns = self.columns;
+        (y0..=y1).flat_map(move |y| (x0..=x1).map(move |x| y * columns + x))
+    }
+
+    pub fn insert(&mut self, bounds: [f64; 4], item: u32) {
+        for bucket in self.span(bounds) {
+            self.buckets[bucket].push(item);
+        }
+    }
+
+    /// Whether `test` holds for any item whose box may reach `bounds`. An
+    /// item in several buckets is tested once per bucket.
+    pub fn any(&self, bounds: [f64; 4], mut test: impl FnMut(u32) -> bool) -> bool {
+        self.span(bounds)
+            .any(|bucket| self.buckets[bucket].iter().any(|item| test(*item)))
+    }
+}
+
+/// The box of two points, grown by `margin`.
+pub fn segment_bounds(a: Point, b: Point, margin: f64) -> [f64; 4] {
+    [
+        a[0].min(b[0]) - margin,
+        a[1].min(b[1]) - margin,
+        a[0].max(b[0]) + margin,
+        a[1].max(b[1]) + margin,
+    ]
+}

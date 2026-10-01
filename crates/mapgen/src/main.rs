@@ -1,14 +1,20 @@
 //! File preparation boundary; generation, lowering and diagnostics live in the library.
 use contract::maps::{CatalogueSelection, MapIdentity, MapSources, SourceReceipt};
-use mapgen::layout::{self, GenerateOutcome, PresetDefinitions};
-use mapgen::CompileOutcome;
+use contract::templates::TemplateGeometryCatalog;
+use mapgen::layout::{self, PresetDefinitions};
+use mapgen::{CompileOutcome, GenerateOutcome};
 use std::path::Path;
 
 const USAGE: &str = "usage:
   mapgen lower <request.json> <catalogue.json> [output-directory]
-  mapgen generate <request.json> <presets.json> [plan.json]
+  mapgen generate <request.json> <presets.json> <catalogue.json> [plan.json]
   mapgen generate-map <request.json> <presets.json> <catalogue.json> [output-directory]
-  mapgen inspect <plan.json> <presets.json> <picture.svg>";
+  mapgen inspect <plan.json> <presets.json> <catalogue.json> <picture.svg> [crop]
+  mapgen catalogue <catalogue.json>
+
+<catalogue.json> is a list of physical template descriptors; `catalogue` prints its
+canonical form, whose hash a request pins. [crop] is a settlement or district id of
+the plan, or x,y,width,height in metres.";
 
 /// Print the compiler's outcome and, on success, save the map beside
 /// receipts for exactly the input bytes that made it.
@@ -55,9 +61,9 @@ fn run() -> Result<bool, Box<dyn std::error::Error>> {
                 arguments.get(3),
             )
         }
-        (Some("generate"), 3 | 4) => {
-            let outcome = layout::generate_plan(&read(1)?, &read(2)?);
-            if let (GenerateOutcome::Ok { plan }, Some(path)) = (&outcome, arguments.get(3)) {
+        (Some("generate"), 4 | 5) => {
+            let outcome = mapgen::generate_plan(&read(1)?, &read(2)?, &read(3)?);
+            if let (GenerateOutcome::Ok { plan }, Some(path)) = (&outcome, arguments.get(4)) {
                 std::fs::write(path, serde_json::to_vec(plan)?)?;
             }
             println!("{}", serde_json::to_string(&outcome)?);
@@ -66,7 +72,7 @@ fn run() -> Result<bool, Box<dyn std::error::Error>> {
         (Some("generate-map"), 4 | 5) => {
             let (request, presets, catalogue) = (read(1)?, read(2)?, read(3)?);
             finish(
-                layout::generate_map(&request, &presets, &catalogue),
+                mapgen::generate_map(&request, &presets, &catalogue),
                 &[
                     ("request", &request),
                     ("presets", &presets),
@@ -75,17 +81,25 @@ fn run() -> Result<bool, Box<dyn std::error::Error>> {
                 arguments.get(4),
             )
         }
-        (Some("inspect"), 4) => {
+        (Some("inspect"), 5 | 6) => {
             let plan: mapgen::MapPlan = serde_json::from_str(&read(1)?)?;
             let presets =
                 PresetDefinitions::from_json(&read(2)?).map_err(|errors| format!("{errors:?}"))?;
+            let catalogue = TemplateGeometryCatalog::new(serde_json::from_str(&read(3)?)?)?;
             let title = Path::new(&arguments[1])
                 .file_stem()
                 .map(|name| name.to_string_lossy().into_owned())
                 .unwrap_or_default();
+            let crop = arguments.get(5).and_then(|crop| crop.to_str());
             let metrics = layout::measure(&plan, &presets);
-            std::fs::write(&arguments[3], mapgen::inspect::svg(&plan, &title, &metrics))?;
+            let picture = mapgen::inspect::svg(&plan, &catalogue, &title, &metrics, crop)?;
+            std::fs::write(&arguments[4], picture)?;
             println!("{}", serde_json::to_string(&metrics)?);
+            Ok(true)
+        }
+        (Some("catalogue"), 2) => {
+            let catalogue = TemplateGeometryCatalog::new(serde_json::from_str(&read(1)?)?)?;
+            println!("{}", catalogue.canonical_json()?);
             Ok(true)
         }
         _ => Err(USAGE.into()),

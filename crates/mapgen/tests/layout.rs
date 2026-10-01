@@ -12,7 +12,7 @@ const SIZES: [MapSize; 3] = [MapSize::Small, MapSize::Medium, MapSize::Large];
 /// all of them, not one lucky layout.
 const SEEDS: [u64; 6] = [1, 2, 3, 4, 5, u64::MAX];
 
-/// C53 places buildings; a layout has none, so no template is needed yet.
+/// A layout has no buildings (the parcel pass places them), so no template.
 fn empty_catalogue() -> contract::templates::TemplateGeometryCatalog {
     contract::templates::TemplateGeometryCatalog::new(Vec::new()).unwrap()
 }
@@ -613,9 +613,28 @@ fn presets_that_break_a_map_rule_are_refused_at_load() {
         ("/classes/town/bands/1/to", serde_json::json!(0.9)),
         ("/classes/town/bands/0/open", serde_json::json!(0.5)),
         (
-            "/districts/centre",
+            "/districts/centre/mix",
             serde_json::json!({ "attached_home": 1, "industry": 1, "farmstead": 1 }),
         ),
+        // Parcels: a block narrower than its street, a bend that folds,
+        // a negative setback, no regional family.
+        (
+            "/districts/centre/streets/block_depth_m",
+            serde_json::json!(9),
+        ),
+        (
+            "/districts/village/streets/bend",
+            serde_json::json!({ "amplitude_m": 60, "wavelength_m": 300 }),
+        ),
+        (
+            "/districts/village/streets/cross_skip",
+            serde_json::json!(1),
+        ),
+        ("/districts/core/lots/side_m", serde_json::json!(-1)),
+        ("/districts/core/lots/coverage", serde_json::json!(0)),
+        ("/parcels/regional_families", serde_json::json!([])),
+        ("/parcels/street_width_m", serde_json::json!(0)),
+        ("/retries/fit", serde_json::json!(0)),
         ("/types/mixed/siting/on_road", serde_json::json!(0.9)),
         ("/types/open/centre/class", serde_json::json!("capital")),
         ("/retries/site", serde_json::json!(0)),

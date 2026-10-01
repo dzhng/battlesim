@@ -1,23 +1,24 @@
 //! Seeded layout: where a map's settlements, roads and forests go. The output
-//! is an ordinary `MapPlan` for the compiler; the presets are data.
+//! is an ordinary `MapPlan` for the parcel pass and the compiler; the presets
+//! are data.
 mod forests;
 pub(crate) mod geometry;
 mod measure;
 mod presets;
-mod rng;
+pub(crate) mod rng;
 mod roads;
 mod sites;
 
 pub use measure::{measure, EdgeTransit, HalfSplit, LayoutMetrics, RoadMetrics};
 pub use presets::*;
 
-use crate::{CompileLimits, CompileOutcome, CompileRequest, Diagnostic, DiagnosticCode, MapPlan};
+use crate::{CompileLimits, CompileRequest, Diagnostic, DiagnosticCode, MapPlan};
 use contract::identity::Seed;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// A request pins this; a change that moves any generated point renames it.
-pub const GENERATOR_VERSION: &str = "layout-1";
+pub const GENERATOR_VERSION: &str = "layout-2";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -93,6 +94,14 @@ impl GenerationRequest {
             limits: self.limits,
         }
     }
+
+    /// The request's own random stream of that name. The type and size are
+    /// part of the key, so one seed gives each of the nine maps its own
+    /// layout, and each consumer draws without moving another's.
+    pub(crate) fn stream(&self, name: &str) -> rng::Stream {
+        let (map_type, size) = (self.map_type.name(), self.size.name());
+        rng::Stream::new(self.seed.value(), &format!("{map_type}/{size}/{name}"))
+    }
 }
 
 /// One request's fixed inputs, shared by every generation step.
@@ -105,14 +114,8 @@ struct Context<'a> {
 }
 
 impl Context<'_> {
-    /// The request's own stream of that name: the type and size are part of
-    /// the key, so one seed gives each of the nine maps its own layout.
     fn stream(&self, name: &str) -> rng::Stream {
-        let (map_type, size) = (self.request.map_type.name(), self.request.size.name());
-        rng::Stream::new(
-            self.request.seed.value(),
-            &format!("{map_type}/{size}/{name}"),
-        )
+        self.request.stream(name)
     }
 
     /// A bounded search ran out. Names the feature, the preset cell and the
@@ -198,6 +201,7 @@ pub fn generate_layout(
         forests,
         settlements,
         approaches: Vec::new(),
+        lots: Vec::new(),
         unsupported_fields: BTreeMap::new(),
     };
     plan.approaches = measure::approaches(&plan, presets);
@@ -288,72 +292,4 @@ fn verify(context: &Context, plan: &MapPlan) -> Result<(), Vec<Diagnostic>> {
     } else {
         Err(errors)
     }
-}
-
-/// The CLI and Wasm boundaries emit this same record.
-#[derive(Debug, Serialize)]
-#[serde(tag = "status", rename_all = "snake_case")]
-pub enum GenerateOutcome {
-    Ok { plan: Box<MapPlan> },
-    Error { diagnostics: Vec<Diagnostic> },
-}
-
-fn generate(
-    request_json: &str,
-    presets_json: &str,
-) -> Result<(GenerationRequest, MapPlan), Vec<Diagnostic>> {
-    let request: GenerationRequest = serde_json::from_str(request_json).map_err(|error| {
-        vec![Diagnostic {
-            code: DiagnosticCode::InvalidRequest,
-            feature: None,
-            location: "$".into(),
-            message: error.to_string(),
-        }]
-    })?;
-    let presets = PresetDefinitions::from_json(presets_json)?;
-    let plan = generate_layout(&request, &presets)?;
-    Ok((request, plan))
-}
-
-/// Generate a plan from request and preset JSON.
-pub fn generate_plan(request_json: &str, presets_json: &str) -> GenerateOutcome {
-    match generate(request_json, presets_json) {
-        Ok((_, plan)) => GenerateOutcome::Ok {
-            plan: Box::new(plan),
-        },
-        Err(diagnostics) => GenerateOutcome::Error { diagnostics },
-    }
-}
-
-/// Generate a plan and compile it, through the same `lower` an authored plan uses.
-pub fn generate_map(
-    request_json: &str,
-    presets_json: &str,
-    descriptors_json: &str,
-) -> CompileOutcome {
-    let result = generate(request_json, presets_json).and_then(|(request, plan)| {
-        let catalogue = crate::catalogue(descriptors_json)?;
-        crate::lower(&request.compile_request(plan), &catalogue)
-    });
-    match result {
-        Ok(result) => CompileOutcome::Ok {
-            result: Box::new(result),
-        },
-        Err(diagnostics) => CompileOutcome::Error { diagnostics },
-    }
-}
-
-pub fn generate_plan_json(
-    request_json: &str,
-    presets_json: &str,
-) -> Result<String, serde_json::Error> {
-    serde_json::to_string(&generate_plan(request_json, presets_json))
-}
-
-pub fn generate_map_json(
-    request_json: &str,
-    presets_json: &str,
-    descriptors_json: &str,
-) -> Result<String, serde_json::Error> {
-    serde_json::to_string(&generate_map(request_json, presets_json, descriptors_json))
 }

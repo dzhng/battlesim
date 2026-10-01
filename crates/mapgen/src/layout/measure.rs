@@ -3,8 +3,8 @@
 //! holds its own output to the presets with these numbers, and the sweep
 //! and the inspection picture report them.
 use super::geometry::{
-    add, area, area_above, direction, distance, ray_crossings, scale, segment_crossing, sub, Point,
-    TAU,
+    add, area, area_above, direction, distance, ray_crossings, scale, segment_bounds,
+    segment_crossing, sub, Grid, Point, TAU,
 };
 use super::presets::PresetDefinitions;
 use crate::{ApproachPlan, Half, MapPlan};
@@ -26,6 +26,9 @@ pub struct HalfSplit {
 pub struct RoadMetrics {
     pub country_road_km: f64,
     pub dirt_track_km: f64,
+    /// In-town streets, and how much of them no road joins to the centre.
+    pub street_km: f64,
+    pub unconnected_street_km: f64,
     /// Settlements with no road from inside their outline to the centre.
     pub unconnected_settlements: usize,
     /// Independent loops in the network: none for a tree of corridors.
@@ -301,33 +304,48 @@ impl Ord for Seconds {
     }
 }
 
-/// The road graph: authored points are nodes, and two roads that cross
-/// share a node at the crossing, because their surfaces overlap there.
+/// The road graph: the points of each rounded centreline are nodes, and two
+/// roads that cross share a node at the crossing, because their surfaces
+/// overlap there.
 fn roads(plan: &MapPlan, presets: &PresetDefinitions) -> (RoadMetrics, Vec<EdgeTransit>) {
-    let segments: Vec<(Point, Point, SurfaceKind)> = plan
+    let centrelines = plan
         .surfaces
         .iter()
         .filter(|area| area.kind.is_road())
-        .flat_map(|area| {
-            let points = match &area.shape {
-                GroundShape::Stroke { centerline, .. } => centerline.control_points(),
-                GroundShape::Polygon { .. } => &[],
-            };
-            points.windows(2).map(|run| (run[0], run[1], area.kind))
+        .filter_map(|area| match &area.shape {
+            GroundShape::Stroke { centerline, .. } => Some((centerline, area.kind)),
+            GroundShape::Polygon { .. } => None,
+        });
+    let segments: Vec<(Point, Point, SurfaceKind)> = centrelines
+        .clone()
+        .flat_map(|(line, kind)| {
+            line.samples()
+                .windows(2)
+                .map(move |run| (run[0], run[1], kind))
         })
         .collect();
+    let mut grid = Grid::new(plan.size, 128.0);
+    for (index, (a, b, _)) in segments.iter().enumerate() {
+        grid.insert(segment_bounds(*a, *b, 0.0), index as u32);
+    }
     let mut splits: Vec<Vec<(f64, Point)>> = vec![Vec::new(); segments.len()];
+    // The segment each other one was last tried against, so a pair that
+    // shares several buckets is tried once.
+    let mut tried = vec![usize::MAX; segments.len()];
     for i in 0..segments.len() {
-        for j in i + 1..segments.len() {
-            let (a, b, _) = segments[i];
-            let (c, d, _) = segments[j];
-            let apart = (0..2).any(|axis| {
-                a[axis].max(b[axis]) < c[axis].min(d[axis])
-                    || c[axis].max(d[axis]) < a[axis].min(b[axis])
-            });
-            if apart {
-                continue;
+        let (a, b, _) = segments[i];
+        let mut near = Vec::new();
+        grid.any(segment_bounds(a, b, 0.0), |item| {
+            let j = item as usize;
+            if j > i && tried[j] != i {
+                tried[j] = i;
+                near.push(j);
             }
+            false
+        });
+        near.sort_unstable();
+        for j in near {
+            let (c, d, _) = segments[j];
             let Some((t, u)) = segment_crossing(a, b, c, d) else {
                 continue;
             };
@@ -350,7 +368,10 @@ fn roads(plan: &MapPlan, presets: &PresetDefinitions) -> (RoadMetrics, Vec<EdgeT
     let mut ids: BTreeMap<[u64; 2], usize> = BTreeMap::new();
     let mut nodes: Vec<Point> = Vec::new();
     let mut links: Vec<Vec<(usize, f64, f64)>> = Vec::new();
-    let mut km = [0.0, 0.0];
+    // Kilometres of country road, dirt track and street.
+    let mut km = [0.0; 3];
+    // Each link's kind beside it, to total what the hub cannot reach.
+    let mut streets: Vec<(usize, f64)> = Vec::new();
     let mps = presets.transit.road_mps();
     for ((a, b, kind), mut cuts) in segments.into_iter().zip(splits) {
         cuts.sort_by(|x, y| x.0.total_cmp(&y.0));
@@ -377,7 +398,15 @@ fn roads(plan: &MapPlan, presets: &PresetDefinitions) -> (RoadMetrics, Vec<EdgeT
                 continue;
             }
             let metres = distance(piece[0], piece[1]);
-            km[usize::from(track)] += metres / 1000.0;
+            let row = match kind {
+                SurfaceKind::DirtTrack => 1,
+                SurfaceKind::Road => 2,
+                _ => 0,
+            };
+            km[row] += metres / 1000.0;
+            if kind == SurfaceKind::Road {
+                streets.push((ends[0], metres));
+            }
             links[ends[0]].push((ends[1], metres, metres / speed));
             links[ends[1]].push((ends[0], metres, metres / speed));
         }
@@ -385,14 +414,21 @@ fn roads(plan: &MapPlan, presets: &PresetDefinitions) -> (RoadMetrics, Vec<EdgeT
     let mut metrics = RoadMetrics {
         country_road_km: km[0],
         dirt_track_km: km[1],
+        street_km: km[2],
+        unconnected_street_km: 0.0,
         unconnected_settlements: plan.settlements.len(),
         loops: 0,
         edge_exits: 0,
         hub_roads: 0,
     };
+    // The hub is an authored point: the main junction, not whichever point
+    // of a bend happens to lie nearer the middle.
     let centre = [plan.size[0] / 2.0, plan.size[1] / 2.0];
-    let Some(hub) = (0..nodes.len())
-        .min_by(|a, b| distance(nodes[*a], centre).total_cmp(&distance(nodes[*b], centre)))
+    let authored = centrelines
+        .flat_map(|(line, _)| line.control_points())
+        .filter_map(|p| ids.get(&p.map(f64::to_bits)).copied());
+    let Some(hub) =
+        authored.min_by(|a, b| distance(nodes[*a], centre).total_cmp(&distance(nodes[*b], centre)))
     else {
         return (metrics, Vec::new());
     };
@@ -423,6 +459,11 @@ fn roads(plan: &MapPlan, presets: &PresetDefinitions) -> (RoadMetrics, Vec<EdgeT
         .sum::<usize>()
         / 2;
     metrics.loops = reached_edges + 1 - reached;
+    metrics.unconnected_street_km = streets
+        .iter()
+        .filter(|(node, _)| best[*node].is_none())
+        .map(|(_, metres)| metres / 1000.0)
+        .sum();
     metrics.hub_roads = links[hub].len();
     metrics.edge_exits = nodes
         .iter()
