@@ -75,9 +75,12 @@ import { createTerrainHeights } from "./terrainHeights";
 import { createFogVisibility, type FogTiles } from "./fogVisibility";
 import {
   createTerrainSource,
+  groundCell,
+  groundColour,
   groundDapple,
   groundScarsSeen,
-  groundSurface,
+  groundSite,
+  groundWater,
   scarRegionContains,
   scarredNormal,
   scarredSurface,
@@ -164,14 +167,16 @@ export async function createWorldPass(
     color: d.vec4f,
     highlight: d.f32,
   };
-  /** The biome's ground, under the vertex tint (its alpha the tint's weight). */
+  /** The biome's ground, under the vertex tint (its alpha the tint's weight).
+   *  `cell` is the point's `groundCell`. */
   const groundAlbedo = tgpu.fn(
-    [d.vec3f, d.vec4f],
+    [d.vec3f, d.vec4f, d.vec4u],
     d.vec4f,
-  )((world, tint) => {
+  )((world, tint, cell) => {
     "use gpu";
     const footprint = std.length(std.fwidth(world.xy));
-    const surface = groundSurface(world, footprint);
+    const xy = world.xy;
+    const surface = groundColour(xy, footprint, groundSite(xy, cell), groundWater(xy, cell));
     const albedo = std.mix(surface.xyz, srgbToLinear(tint.xyz), tint.w);
     return d.vec4f(albedo, std.mix(surface.w, ROUGHNESS, tint.w));
   });
@@ -182,8 +187,10 @@ export async function createWorldPass(
     const eye = typegpuCameraLayout.$.cam.eye;
     const n = std.normalize(v.normal);
     const seen = fogTerm(v.world, n, v.clip.xy, fogIsGround());
-    const plain = groundAlbedo(v.world, v.color);
     const footprint = std.length(std.fwidth(v.world.xy));
+    // One lookup of the surface field serves the ground and its dapple.
+    const cell = groundCell(v.world.xy, footprint);
+    const plain = groundAlbedo(v.world, v.color, cell);
     // The side's learned scars, on the biome's ground (not under a tint).
     const biome = 1 - v.color.w;
     const scar = groundScarsSeen(v.world, eye, footprint);
@@ -192,7 +199,7 @@ export async function createWorldPass(
     // The ground paint on it (its layer is painted).
     const paint = groundPaint(v.world);
     // Sun flecks through the crowns lift the canopy's whole shadow.
-    const flecks = groundDapple(v.world.xy, footprint);
+    const flecks = groundDapple(v.world.xy, footprint, cell);
     const sun = std.max(environment.sampleSunShadow(v.world, n, v.clip.xy), flecks);
     const lit = environment.shade(
       paintedAlbedo(surface.xyz, paint),
@@ -215,7 +222,8 @@ export async function createWorldPass(
   const backdropFragment = tgpu.fragmentFn({ in: varyings, out: WORLD_OUT })((v) => {
     "use gpu";
     const eye = typegpuCameraLayout.$.cam.eye;
-    const surface = groundAlbedo(v.world, v.color);
+    const cell = groundCell(v.world.xy, std.length(std.fwidth(v.world.xy)));
+    const surface = groundAlbedo(v.world, v.color, cell);
     const up = std.normalize(v.normal);
     const paint = groundPaint(v.world);
     const albedo = paintedAlbedo(surface.xyz, paint);

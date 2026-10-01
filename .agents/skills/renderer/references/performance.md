@@ -47,7 +47,7 @@ The only gate is **30 FPS average at the default camera, 1920×1080**, measured 
 
 ## Traps
 
-- **Per-fragment loops over authored shapes.** Looping 120-odd forest cells in terrain and grass fragments cost about 2.5 ms. The forest floor's rectangles take one cheap test each, but `groundForest` loops over every polygon and stroke primitive per fragment with no broad phase: free on today's all-rectangle maps, a cost to measure (and bound with a broad phase) once generated maps bring polygon forests.
+- **Per-fragment loops over authored shapes.** Looping 120-odd forest cells in terrain and grass fragments cost about 2.5 ms, and the ground rules once looped every road, forest and water primitive per fragment: 163 ms for a frame's worth of points on a 4,300-record town. They now read the surface field (`terrain/surfaceField.ts`), which lists per cell what lies within a pixel's reach: 0.4 ms on the same town, and the village (103 records once its bends were rounded) went from 4.2 to 0.7 ms. A new ground rule adds its primitives to that field; it never loops a table in a fragment. See "Bucket per-fragment shape loops by reach" in the skill.
 - **Memory grows faster than time.** Textures went 63 → 346 MiB over the port (the MSAA HDR target alone is 63 MiB, shadows 64 MiB); buffers went 37 → 218 MiB, mostly model tiers and variants. Report memory in every row, and question each new full-screen MSAA target: the overlay's own 4× target is 32 MiB at 1080p.
 - **Leaf cards and tree impostors were rejected.** They need a discarding prepass and caster, and they shimmer under 4× MSAA. Trees keep an 80-triangle far tier instead.
 - **Thinning the horizon to save its 0.17 ms loses the horizon.** Don't.
