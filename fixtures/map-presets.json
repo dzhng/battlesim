@@ -1,5 +1,5 @@
 {
-  "revision": "layout-presets-2",
+  "revision": "layout-presets-3",
   "terrain": { "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
   "approach": {
     "depth_m": 1800,
@@ -43,16 +43,56 @@
     "max_woods": 80,
     "infill_chance": 0.5
   },
-  "retries": { "centre": 60, "site": 200, "forest": 60, "repair_settlements": 4, "repair_woods": 5 },
+  "retries": { "centre": 60, "site": 200, "forest": 60, "repair_settlements": 4, "repair_woods": 5, "fit": 3 },
+  "parcels": {
+    "regional_families": ["prototype"],
+    "prop_kind": "building",
+    "street_width_m": 7,
+    "verge_m": 2,
+    "street_step_m": 45,
+    "lot_step_m": 4
+  },
   "districts": {
-    "farm": { "farmstead": 80, "detached_home": 20 },
-    "village": { "detached_home": 85, "farmstead": 15 },
-    "garden_suburb": { "detached_home": 90, "attached_home": 10 },
-    "small_centre": { "attached_home": 85, "detached_home": 15 },
-    "centre": { "attached_home": 85, "urban_apartment": 15 },
-    "apartments": { "urban_apartment": 85, "attached_home": 15 },
-    "core": { "highrise": 75, "urban_apartment": 25 },
-    "industrial": { "industry": 100 }
+    "farm": {
+      "mix": { "farmstead": 80, "detached_home": 20 },
+      "streets": { "block_depth_m": 150, "block_length_m": 220, "bend": { "amplitude_m": 10, "wavelength_m": 300 }, "cross_skip": 0.3 },
+      "lots": { "front_m": 8, "side_m": 8, "rear_m": 8, "coverage": 0.85, "apron_m": 0 }
+    },
+    "village": {
+      "mix": { "detached_home": 85, "farmstead": 15 },
+      "streets": { "block_depth_m": 96, "block_length_m": 200, "bend": { "amplitude_m": 14, "wavelength_m": 320 }, "cross_skip": 0.3 },
+      "lots": { "front_m": 6, "side_m": 6, "rear_m": 10, "coverage": 0.85, "apron_m": 0 }
+    },
+    "garden_suburb": {
+      "mix": { "detached_home": 90, "attached_home": 10 },
+      "streets": { "block_depth_m": 84, "block_length_m": 190, "bend": { "amplitude_m": 16, "wavelength_m": 360 }, "cross_skip": 0.3 },
+      "lots": { "front_m": 6, "side_m": 6, "rear_m": 10, "coverage": 0.85, "apron_m": 0 }
+    },
+    "small_centre": {
+      "mix": { "attached_home": 85, "detached_home": 15 },
+      "streets": { "block_depth_m": 70, "block_length_m": 130, "cross_skip": 0 },
+      "lots": { "front_m": 2, "side_m": 0.75, "rear_m": 6, "coverage": 0.95, "apron_m": 0 }
+    },
+    "centre": {
+      "mix": { "attached_home": 85, "urban_apartment": 15 },
+      "streets": { "block_depth_m": 72, "block_length_m": 140, "cross_skip": 0 },
+      "lots": { "front_m": 2, "side_m": 0.75, "rear_m": 6, "coverage": 0.95, "apron_m": 0 }
+    },
+    "apartments": {
+      "mix": { "urban_apartment": 85, "attached_home": 15 },
+      "streets": { "block_depth_m": 130, "block_length_m": 230, "cross_skip": 0.2 },
+      "lots": { "front_m": 16, "side_m": 10, "rear_m": 14, "coverage": 0.9, "apron_m": 12 }
+    },
+    "core": {
+      "mix": { "highrise": 75, "urban_apartment": 25 },
+      "streets": { "block_depth_m": 120, "block_length_m": 150, "cross_skip": 0 },
+      "lots": { "front_m": 10, "side_m": 9, "rear_m": 10, "coverage": 0.9, "apron_m": 0 }
+    },
+    "industrial": {
+      "mix": { "industry": 100 },
+      "streets": { "block_depth_m": 210, "block_length_m": 280, "cross_skip": 0.3 },
+      "lots": { "front_m": 30, "side_m": 12, "rear_m": 10, "coverage": 0.85, "apron_m": 30 }
+    }
   },
   "classes": {
     "hamlet": {

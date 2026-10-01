@@ -1,19 +1,29 @@
 //! Generate every type × size over a run of seeds and report what came out:
-//! refusals by feature, composition, roads, transit and generation time.
+//! refusals by feature, composition, roads and transit of the layout, then
+//! what the parcel pass built on it and what the compiled map costs.
 //!
 //!   cargo run -p mapgen --release --example layout_sweep -- [--seeds 10]
-//!       [--pictures 3] [--out <dir>] [--only metro:small]
+//!       [--pictures 3] [--out <dir>] [--only metro:small] [--layout]
 //!       [--set /classes/city/area_share=[0.3,0.4]]...
 //!
 //! `--set` edits one preset value (a JSON pointer) for a tuning trial.
-//! `--out` writes `sweep.json` and an SVG per pictured seed.
+//! `--layout` stops before the parcel pass. `--out` writes `sweep.json`, the
+//! two tables, and for each pictured seed the whole map and one district of
+//! each kind as SVG.
+use contract::templates::TemplateGeometryCatalog;
 use mapgen::layout::{
     generate_layout, measure, GenerationRequest, LayoutMetrics, MapSize, MapType,
     PresetDefinitions, GENERATOR_VERSION,
 };
+use mapgen::parcels::fill_districts;
 use mapgen::CompileLimits;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::Write;
 use std::time::Instant;
+
+#[path = "../../sim/examples/common/instructions.rs"]
+mod instructions;
+use instructions::instructions;
 
 fn span(values: impl Iterator<Item = f64>, digits: usize) -> String {
     let values: Vec<f64> = values.collect();
@@ -24,6 +34,25 @@ fn span(values: impl Iterator<Item = f64>, digits: usize) -> String {
     } else {
         format!("{low:.digits$}–{high:.digits$}")
     }
+}
+
+fn median(values: &mut [f64]) -> f64 {
+    values.sort_by(f64::total_cmp);
+    values.get(values.len() / 2).copied().unwrap_or(0.0)
+}
+
+/// What one filled, compiled plan came to.
+struct Scale {
+    buildings: f64,
+    parts: f64,
+    bays: f64,
+    street_km: f64,
+    streets: f64,
+    ground_points: f64,
+    built_share: f64,
+    map_mib: f64,
+    instructions_g: f64,
+    millis: f64,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -45,12 +74,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let pictures = number("--pictures", 3)?;
     let out = values("--out").first().map(std::path::PathBuf::from);
     let only = values("--only").first().map(|cell| cell.to_string());
+    let layout_only = arguments.iter().any(|argument| argument == "--layout");
 
-    let file = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../fixtures/map-presets.json"
-    );
-    let mut source: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(file)?)?;
+    let fixtures = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures");
+    let mut source: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(format!(
+        "{fixtures}/map-presets.json"
+    ))?)?;
     for edit in values("--set") {
         let (pointer, value) = edit.split_once('=').ok_or("--set takes pointer=json")?;
         *source
@@ -59,14 +88,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let presets =
         PresetDefinitions::from_json(&source.to_string()).map_err(|e| format!("{e:?}"))?;
+    let catalogue = TemplateGeometryCatalog::new(serde_json::from_str(&std::fs::read_to_string(
+        format!("{fixtures}/prototype-building-templates.json"),
+    )?)?)?;
     if let Some(out) = &out {
         std::fs::create_dir_all(out)?;
     }
 
-    println!(
-        "| cell | ok | refused | settlements | urban % | main % of urban | forest % | forest km² | woods | road km | track km | loops | exits | central crossroads | worst transit s | approaches top/bottom | ground points | ms median/max |"
+    let mut layout_table = String::from(
+        "| cell | ok | refused | settlements | urban % | main % of urban | forest % | forest km² | woods | road km | track km | loops | exits | central crossroads | worst transit s | approaches top/bottom | ground points | ms median/max |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
     );
-    println!("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|");
+    let mut scale_table = String::from(
+        "| cell | ok | refused | buildings | parts (props) | bay positions | street km | street strokes | ground points | built ground % | generate ms median/max | generate + compile instructions G median/max | map.json MiB |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
+    );
     let mut records = Vec::new();
     for map_type in MapType::ALL {
         for size in MapSize::ALL {
@@ -76,49 +110,125 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             let mut refused: BTreeMap<String, u32> = BTreeMap::new();
             let mut passed: Vec<LayoutMetrics> = Vec::new();
+            let mut scales: Vec<Scale> = Vec::new();
             let mut millis: Vec<f64> = Vec::new();
             for seed in 1..=seeds {
                 let request = GenerationRequest {
                     generator_version: GENERATOR_VERSION.into(),
                     preset_revision: presets.revision.clone(),
                     seed: seed.into(),
-                    template_catalog_hash: String::new(),
+                    template_catalog_hash: catalogue.hash().into(),
                     map_type,
                     size,
                     limits: CompileLimits {
-                        max_authored_parts: 0,
-                        max_bay_positions: 0,
-                        max_ground_points: 1_000_000,
+                        max_authored_parts: 1_000_000,
+                        max_bay_positions: 100_000_000,
+                        max_ground_points: 10_000_000,
                     },
                 };
-                let started = Instant::now();
-                let result = generate_layout(&request, &presets);
+                let (started, before) = (Instant::now(), instructions());
+                let layout = generate_layout(&request, &presets);
                 millis.push(started.elapsed().as_secs_f64() * 1000.0);
+                let result = layout.and_then(|layout| {
+                    let metrics = measure(&layout, &presets);
+                    let plan = if layout_only {
+                        layout
+                    } else {
+                        fill_districts(layout, &request, &catalogue, &presets)?
+                    };
+                    Ok((plan, metrics))
+                });
+                let generate_ms = started.elapsed().as_secs_f64() * 1000.0;
                 match result {
-                    Ok(plan) => {
-                        let metrics = measure(&plan, &presets);
-                        if let Some(out) = out.as_ref().filter(|_| seed <= pictures) {
-                            let name = format!("{}-{}-s{seed}", map_type.name(), size.name());
-                            let title = format!(
-                                "{map_type:?} {size:?} {0}×{0} km, seed {seed}",
-                                size.extent_m() / 1000.0
-                            );
-                            std::fs::write(
-                                out.join(format!("{name}.svg")),
-                                mapgen::inspect::svg(&plan, &title, &metrics),
-                            )?;
-                        }
-                        records.push(serde_json::json!({
+                    Ok((plan, metrics)) => {
+                        let name = format!("{}-{}-s{seed}", map_type.name(), size.name());
+                        let title = format!(
+                            "{map_type:?} {size:?} {0}×{0} km, seed {seed}",
+                            size.extent_m() / 1000.0
+                        );
+                        let mut record = serde_json::json!({
                             "type": map_type, "size": size, "seed": seed, "metrics": metrics,
-                        }));
+                        });
+                        if !layout_only {
+                            let filled = measure(&plan, &presets);
+                            let compiled = mapgen::lower(
+                                &request.clone().compile_request(plan.clone()),
+                                &catalogue,
+                            )
+                            .map_err(|errors| format!("{cell} seed {seed}: {errors:?}"))?;
+                            let spent = instructions().zip(before).map_or(0, |(a, b)| a - b);
+                            let scale = Scale {
+                                buildings: plan.buildings.len() as f64,
+                                parts: f64::from(compiled.report.authored_parts),
+                                bays: compiled.report.bay_positions as f64,
+                                street_km: filled.roads.street_km,
+                                streets: plan
+                                    .surfaces
+                                    .iter()
+                                    .filter(|area| {
+                                        area.kind == contract::map::SurfaceKind::Road
+                                            && matches!(
+                                                area.shape,
+                                                contract::ground::GroundShape::Stroke { .. }
+                                            )
+                                    })
+                                    .count() as f64,
+                                ground_points: compiled.report.ground_points as f64,
+                                built_share: metrics.urban_share * 100.0,
+                                map_mib: serde_json::to_vec(&compiled.map)?.len() as f64
+                                    / 1048576.0,
+                                instructions_g: spent as f64 / 1e9,
+                                millis: generate_ms,
+                            };
+                            record["scale"] = serde_json::json!({
+                                "buildings": scale.buildings, "parts": scale.parts,
+                                "bay_positions": scale.bays, "street_km": scale.street_km,
+                                "street_strokes": scale.streets, "ground_points": scale.ground_points,
+                                "map_mib": scale.map_mib, "instructions_g": scale.instructions_g,
+                                "generate_ms": scale.millis,
+                            });
+                            scales.push(scale);
+                        }
+                        if let Some(out) = out.as_ref().filter(|_| seed <= pictures) {
+                            let picture = |crop: Option<&str>| {
+                                mapgen::inspect::svg(
+                                    &plan,
+                                    &catalogue,
+                                    &title,
+                                    &measure(&plan, &presets),
+                                    crop,
+                                )
+                            };
+                            std::fs::write(out.join(format!("{name}.svg")), picture(None)?)?;
+                            // One district of each kind, close enough to read its parcels.
+                            let mut drawn = BTreeSet::new();
+                            for district in plan.settlements.iter().flat_map(|s| &s.districts) {
+                                if !layout_only && drawn.insert(&district.kind) {
+                                    std::fs::write(
+                                        out.join(format!("{name}-{}.svg", district.kind)),
+                                        picture(Some(&district.id))?,
+                                    )?;
+                                }
+                            }
+                        }
+                        records.push(record);
                         passed.push(metrics);
                     }
                     Err(errors) => {
                         for error in &errors {
-                            eprintln!("{cell} seed {seed}: {}", error.message);
+                            eprintln!(
+                                "{cell} seed {seed}: {} at {}: {}",
+                                error.feature.as_deref().unwrap_or("-"),
+                                error.location,
+                                error.message
+                            );
                             let feature = error.feature.clone().unwrap_or_default();
-                            // Settlement and road refusals name an index.
-                            let feature = feature.split('-').next().unwrap_or_default().to_string();
+                            // Settlement, district and road refusals name an index.
+                            let feature = feature
+                                .split(['-', '/'])
+                                .next()
+                                .unwrap_or_default()
+                                .to_string();
                             *refused.entry(feature).or_default() += 1;
                         }
                         records.push(serde_json::json!({
@@ -134,10 +244,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .iter()
                 .map(|(feature, count)| format!("{feature} {count}"))
                 .collect();
-            println!(
-                "| {cell} | {}/{seeds} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {:.0}% | {} | {} / {} | {} | {:.1}/{:.1} |",
+            let refusals = if refusals.is_empty() {
+                "-".into()
+            } else {
+                refusals.join(", ")
+            };
+            writeln!(
+                layout_table,
+                "| {cell} | {}/{seeds} | {refusals} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {:.0}% | {} | {} / {} | {} | {:.1}/{:.1} |",
                 passed.len(),
-                if refusals.is_empty() { "-".into() } else { refusals.join(", ") },
                 each(|m| m.settlements.values().sum::<usize>() as f64, 0),
                 each(|m| m.urban_share * 100.0, 1),
                 each(|m| m.main_settlement_share * 100.0, 0),
@@ -156,11 +271,43 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 each(|m| m.ground_points as f64, 0),
                 millis[millis.len() / 2],
                 millis[millis.len() - 1],
-            );
+            )?;
+            if !layout_only {
+                let each =
+                    |value: fn(&Scale) -> f64, digits| span(scales.iter().map(value), digits);
+                let mut work: Vec<f64> = scales.iter().map(|s| s.instructions_g).collect();
+                let mut wall: Vec<f64> = scales.iter().map(|s| s.millis).collect();
+                let (work_median, wall_median) = (median(&mut work), median(&mut wall));
+                writeln!(
+                    scale_table,
+                    "| {cell} | {}/{seeds} | {refusals} | {} | {} | {} | {} | {} | {} | {} | {:.0}/{:.0} | {:.2}/{:.2} | {} |",
+                    scales.len(),
+                    each(|s| s.buildings, 0),
+                    each(|s| s.parts, 0),
+                    each(|s| s.bays, 0),
+                    each(|s| s.street_km, 0),
+                    each(|s| s.streets, 0),
+                    each(|s| s.ground_points, 0),
+                    each(|s| s.built_share, 1),
+                    wall_median,
+                    wall.last().copied().unwrap_or(0.0),
+                    work_median,
+                    work.last().copied().unwrap_or(0.0),
+                    each(|s| s.map_mib, 1),
+                )?;
+            }
         }
+    }
+    print!("{layout_table}");
+    if !layout_only {
+        print!("\n{scale_table}");
     }
     if let Some(out) = &out {
         std::fs::write(out.join("sweep.json"), serde_json::to_vec_pretty(&records)?)?;
+        std::fs::write(out.join("layout.md"), layout_table)?;
+        if !layout_only {
+            std::fs::write(out.join("scale.md"), scale_table)?;
+        }
     }
     Ok(())
 }

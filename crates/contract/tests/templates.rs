@@ -480,3 +480,30 @@ fn saved_local_spans_cannot_contradict_the_emitted_world_geometry() {
     let map:contract::map::MapDefinition=serde_json::from_value(json!({"size":[18000,18000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"template_catalog_hash":"0".repeat(64),"buildings":[{"owner":0,"kind":"building","category":"farmstead","regional_family":"api_fixture","parts":[{"part":"main","prop":0},{"part":"wing","prop":1}],"geometry":record}]})).unwrap();
     assert!(map.authored_props().is_err());
 }
+
+/// A building far along one axis and near the origin of the other: its bays
+/// and entrances are still on their facades, whatever way it is turned.
+#[test]
+fn every_placement_on_a_playable_map_materializes() {
+    let descriptor = asymmetric();
+    let mut refused = Vec::new();
+    for step in 0..4000u32 {
+        let frame = PlacementFrame {
+            translation: [
+                9_900.0 - 0.37 * f64::from(step),
+                81.0 + 0.011 * f64::from(step),
+                0.0,
+            ],
+            yaw: 0.001_571 * f64::from(step),
+        };
+        if let Err(error) = descriptor.materialize(frame) {
+            refused.push((frame, error));
+        }
+    }
+    assert!(
+        refused.is_empty(),
+        "{} refused: {:?}",
+        refused.len(),
+        refused.first()
+    );
+}

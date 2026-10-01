@@ -26,11 +26,10 @@ pub struct PresetDefinitions {
     pub sites: Sites,
     pub forests: Forests,
     pub retries: Retries,
-    /// District id to what it is built from: one dominant building category
-    /// and at most one minor one, the dominant first. A town is a mosaic of
-    /// single-use districts, not a blend on every block.
-    #[serde(deserialize_with = "district_mix")]
-    pub districts: BTreeMap<String, Mix>,
+    /// District id to what stands there and how its ground is cut. A town
+    /// is a mosaic of single-use districts, not a blend on every block.
+    pub districts: BTreeMap<String, DistrictPreset>,
+    pub parcels: Parcels,
     pub classes: BTreeMap<String, SettlementClass>,
     pub types: BTreeMap<MapType, TypePreset>,
 }
@@ -181,6 +180,79 @@ pub struct Retries {
     pub forest: u32,
     pub repair_settlements: u32,
     pub repair_woods: u32,
+    /// Templates tried at one place along a street before it is left open.
+    pub fit: u32,
+}
+
+/// One kind of district: its buildings, its streets and its parcels. Every
+/// length is metres, the same at every map size.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DistrictPreset {
+    /// One dominant building category and at most one minor one, by weight,
+    /// kept dominant first.
+    #[serde(deserialize_with = "mix")]
+    pub mix: Mix,
+    pub streets: StreetPattern,
+    pub lots: LotRule,
+}
+
+/// A district's streets are a grid in its own frame: long streets
+/// `block_depth_m` apart and cross streets every `block_length_m`.
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct StreetPattern {
+    pub block_depth_m: f64,
+    pub block_length_m: f64,
+    /// Swings both street families off their straight lines; absent is a
+    /// straight grid.
+    #[serde(default)]
+    pub bend: Option<Bend>,
+    /// Chance a cross street is left out between two long streets, which
+    /// leaves longer blocks and T-junctions.
+    pub cross_skip: f64,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Bend {
+    pub amplitude_m: f64,
+    pub wavelength_m: f64,
+}
+
+/// A parcel is its template's footprint plus these margins: the template is
+/// never scaled to a parcel.
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LotRule {
+    /// From the parcel's street edge to the building.
+    pub front_m: f64,
+    /// On each side: neighbours stand twice this apart.
+    pub side_m: f64,
+    pub rear_m: f64,
+    /// Share of parcels built on; the rest stay open ground.
+    pub coverage: f64,
+    /// Depth of the paved apron across the parcel's front (parking, a
+    /// loading yard), from the street's edge; never under the building.
+    pub apron_m: f64,
+}
+
+/// What the parcel pass shares across districts.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Parcels {
+    /// The regional families a map may be built in; a seed draws one, and
+    /// every building of the map comes from it (M08).
+    pub regional_families: Vec<String>,
+    /// The prop type every placed building is (a `props` catalog entry).
+    pub prop_kind: String,
+    pub street_width_m: f64,
+    /// Between a carriageway's edge and a parcel's.
+    pub verge_m: f64,
+    /// Distance between a bent street's authored points.
+    pub street_step_m: f64,
+    /// How far along a street the next parcel is tried when none fits.
+    pub lot_step_m: f64,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -282,9 +354,6 @@ pub struct SizePreset {
     /// Class id to the inclusive count range a seed draws from.
     pub settlements: BTreeMap<String, [u32; 2]>,
 }
-
-#[derive(Deserialize)]
-struct DistrictWire(BTreeMap<String, f64>);
 
 impl PresetDefinitions {
     pub fn from_json(source: &str) -> Result<Self, Vec<Diagnostic>> {
@@ -410,15 +479,57 @@ impl PresetDefinitions {
         );
         let n = &self.retries;
         check(
-            n.centre > 0 && n.site > 0 && n.forest > 0,
+            n.centre > 0 && n.site > 0 && n.forest > 0 && n.fit > 0,
             "retries".into(),
             "every search needs at least one attempt",
         );
-        for (id, mix) in &self.districts {
+        let p = &self.parcels;
+        let length = |v: f64| v.is_finite() && v >= 0.0;
+        check(
+            !p.regional_families.is_empty()
+                && p.regional_families.iter().all(|family| !family.is_empty())
+                && !p.prop_kind.is_empty()
+                && positive(p.street_width_m)
+                && length(p.verge_m)
+                && positive(p.street_step_m)
+                && positive(p.lot_step_m),
+            "parcels".into(),
+            "parcels need a regional family, a prop type, a street width and positive steps",
+        );
+        for (id, district) in &self.districts {
+            let mix = &district.mix;
             check(
                 (1..=2).contains(&mix.len()) && mix.iter().all(|(_, weight)| positive(*weight)),
-                format!("districts.{id}"),
+                format!("districts.{id}.mix"),
                 "a district is one building category, or one with a minor second, by positive weight",
+            );
+            let streets = &district.streets;
+            // A block must hold a street and its verges with ground to spare.
+            let least = p.street_width_m + 2.0 * p.verge_m;
+            check(
+                streets.block_depth_m.is_finite()
+                    && streets.block_length_m.is_finite()
+                    && streets.block_depth_m > least
+                    && streets.block_length_m > least
+                    && (0.0..1.0).contains(&streets.cross_skip)
+                    // A steeper swing would fold a street over its neighbour.
+                    && streets.bend.is_none_or(|bend| {
+                        length(bend.amplitude_m)
+                            && positive(bend.wavelength_m)
+                            && bend.amplitude_m * core::f64::consts::TAU / bend.wavelength_m <= 0.5
+                    }),
+                format!("districts.{id}.streets"),
+                "blocks must be wider than a street, cross_skip a chance below 1, and a bend gentle",
+            );
+            let lots = &district.lots;
+            check(
+                length(lots.front_m)
+                    && length(lots.side_m)
+                    && length(lots.rear_m)
+                    && length(lots.apron_m)
+                    && share(lots.coverage),
+                format!("districts.{id}.lots"),
+                "setbacks and aprons are nonnegative metres and coverage a share above 0",
             );
         }
         for (id, class) in &self.classes {
@@ -559,7 +670,8 @@ impl PresetDefinitions {
                             .chain(band.roadside.iter().flatten().map(|(d, _)| d))
                     });
                 for district in districts {
-                    for (category, _) in self.districts.get(district).into_iter().flatten() {
+                    let mix = self.districts.get(district).map(|d| &d.mix);
+                    for (category, _) in mix.into_iter().flatten() {
                         if !preset.categories.contains(category) {
                             let category = serde_json::to_string(category).unwrap_or_default();
                             check(
@@ -603,23 +715,16 @@ fn refusal(location: String, message: String) -> Diagnostic {
     }
 }
 
-/// A district's mix is written as an object and kept dominant first (then by
-/// name), so the plan lists categories the same way whatever order the file used.
-fn district_mix<'de, D: serde::Deserializer<'de>>(
-    decoder: D,
-) -> Result<BTreeMap<String, Mix>, D::Error> {
-    let wire = BTreeMap::<String, DistrictWire>::deserialize(decoder)?;
-    wire.into_iter()
-        .map(|(id, DistrictWire(mix))| {
-            let mut out = Vec::new();
-            for (name, weight) in mix {
-                let category: BuildingCategory =
-                    serde_json::from_value(serde_json::Value::String(name))
-                        .map_err(serde::de::Error::custom)?;
-                out.push((category, weight));
-            }
-            out.sort_by(|a, b| b.1.total_cmp(&a.1));
-            Ok((id, out))
-        })
-        .collect()
+/// A mix is written as an object and kept dominant first (then by name), so
+/// the plan lists categories the same way whatever order the file used.
+fn mix<'de, D: serde::Deserializer<'de>>(decoder: D) -> Result<Mix, D::Error> {
+    let wire = BTreeMap::<String, f64>::deserialize(decoder)?;
+    let mut out = Vec::new();
+    for (name, weight) in wire {
+        let category: BuildingCategory = serde_json::from_value(serde_json::Value::String(name))
+            .map_err(serde::de::Error::custom)?;
+        out.push((category, weight));
+    }
+    out.sort_by(|a, b| b.1.total_cmp(&a.1));
+    Ok(out)
 }

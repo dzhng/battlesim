@@ -499,6 +499,7 @@ pub fn settlement(
             DistrictPlan {
                 id: format!("settlement-{index}/district-{number}"),
                 categories: presets.districts[&kind]
+                    .mix
                     .iter()
                     .map(|(category, weight)| CategoryShare {
                         category: *category,
