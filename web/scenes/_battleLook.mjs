@@ -320,7 +320,14 @@ export async function cleanupTour(ctx) {
         goal: [1000, 800],
       });
     });
+    // Fight until the first soldier falls (the same tick every cycle: the
+    // battle is deterministic), and at least as long as before.
     await advance(page, 2400);
+    for (let i = 0; i < 20; i++) {
+      const corpses = await lab(page, () => window.__lab.route.observation()?.corpses.length ?? 0);
+      if (corpses > 0) break;
+      await advance(page, 600);
+    }
     // Fast-forward releases a publication before React draws it. Draw this
     // view first so every reset warms the same scenery tiers before the jump.
     await presented(page);
