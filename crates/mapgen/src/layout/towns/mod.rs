@@ -523,7 +523,7 @@ fn finish(
     // all, and with it any block it alone joined to the rest.
     let mut built: BTreeSet<usize> = plot.built().iter().copied().collect();
     let streets = loop {
-        let streets = avenues(context, site, &plot, &built, &fronted);
+        let streets = avenues(site, &plot, &built, &fronted);
         let cramped: Vec<usize> = built
             .iter()
             .copied()

@@ -90,6 +90,48 @@ What the presets mean, and why they hold the values they do, is in the
 [C52 slice](../../specs/city-maps/slices/C52-procedural-generator.md) and its
 entries in the [choices ledger](../../specs/city-maps/choices.md).
 
+## Road ends (`joints`)
+
+A stroke is cut square across its first and last point (`contract::ground`), so
+the flat face of a road's end shows wherever no other paving covers it. Both
+steps hand their carriageways to one pass, `joints::close`: the layout its roads
+and avenues, the parcel pass those again with its streets, before any parcel is
+cut along them. After it, a road's end is one of these, and
+`tests/road_ends.rs` holds the finished plans to that over every type and size:
+
+- **Part of a through road.** Carriageways of one kind and width that meet end to
+  end become one stroke through the point they shared, and the bend there is the
+  centreline's own rounded one. Two that meet alone are one road round whatever
+  corner they make (a country road or a track up to 110°, a street any). At a
+  junction of three or more, only ends that carry nearly straight on are joined.
+  Two ends that stop within each other's width on lines that cross there are
+  first brought to that crossing.
+- **Under the road it joins.** An end that touches another carriageway stops a
+  quarter of a metre past that carriageway's rounded middle, where its face lies
+  inside the other's width.
+- **The outer edge of a corner.** Where unlike roads meet at a corner the wider
+  one runs on until the narrower one leaves through its side, and covers the
+  narrower one's end. A narrower road that carries nearly straight on runs back
+  into the wider one instead, and the wider one's end shows a shoulder either
+  side: the road narrows. A wider road that comes onto a narrower one at a slant
+  crosses it whole.
+- **Square on the map's edge.** A road that leaves the map at a slant turns
+  square to the edge over its last two widths, so its end lies along the edge.
+- **At the last block it serves.** A road that runs out past the last block on
+  its line and stops in open country is cut back to that block, or to the last
+  road that joins it.
+
+The plan's road graph joins two roads where their centrelines cross, so the pass
+never leaves an end touching a line that rounding has moved off it: ends that
+share a point keep it, or all run on past it far enough to cross. It checks
+itself the same way. Whatever two roads' centrelines crossed before, they cross
+after or are one road; where a change would break that, the roads concerned are
+left exactly as they were laid and the rest are closed round them.
+
+Not closed yet, and counted by the test (1.3 in a thousand ends): two roads of
+one width that fork sharply, three ends a few metres apart round one junction,
+and two streets laid side by side where one stops.
+
 ## Parcels and buildings (`parcels`)
 
 `fill_districts(plan, &request, &catalogue, &presets)` takes a layout and returns the
@@ -116,9 +158,9 @@ A district kind's streets and setbacks are rows of the same presets file.
   gets one link to the nearest street, so no pavement is stranded, and a street that
   stops within a block of another carriageway runs on to it. No street crosses
   water: the nearest street is the nearest it can reach on its own bank. `measure`
-  then confirms on the finished plan that every street has a way to the centre. (A
-  link that ends on another street's rounded bend takes that sample's exact
-  coordinates: the one place a plan coordinate is not a whole centimetre.)
+  then confirms on the finished plan that every street has a way to the centre. A
+  street that stops facing another street's end, within a block, runs to that
+  end and not past it: the two are one street, not two laid side by side.
 - **Ids are derived, not counted across the map.** A parcel is
   `<district id>/lot-<n>` and the building on it has the same id, so tuning one
   district kind renames nothing elsewhere. Building parts take the plan's prop ids

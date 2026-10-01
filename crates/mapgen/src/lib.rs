@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub mod inspect;
+mod joints;
 pub mod layout;
 pub mod parcels;
 
