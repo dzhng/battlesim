@@ -40,8 +40,8 @@ pub struct Motion {
     pub step: f64,
     /// Driving backwards (a reverse move, or a leg of a three-point turn).
     pub backwards: bool,
-    /// The turn this motion makes counts as progress (a wheeled turn).
-    pub turning: bool,
+    /// A wheeled turn or clearing a tracked pivot counts as progress away from its waypoint.
+    pub manoeuvring: bool,
 }
 
 fn gear_sign(direction: MoveDirection) -> f64 {
@@ -70,6 +70,62 @@ fn speed_in(drive: &Drive, gear: f64, speed: f64) -> f64 {
     } else {
         speed
     }
+}
+
+/// Approach a speed limit without banking speed during a stop or gear change.
+fn accelerate(unit: &Unit, desired: f64, gear: f64, dt: f64) -> f64 {
+    let drive = unit.mobility.drive.expect("a vehicle has a drive");
+    let current = (unit.drive_speed_mps * gear).max(0.0);
+    let seconds = if desired > current {
+        drive.feel.acceleration_s
+    } else {
+        drive.feel.braking_s
+    };
+    let change = unit.mobility.road_mps / seconds * dt;
+    current + (desired - current).clamp(-change, change)
+}
+
+fn turn_speed(drive: &Drive, full: f64, angle: f64) -> f64 {
+    let angle = angle.abs();
+    if drive.tracked {
+        if angle > drive.feel.turn_in_place_deg.to_radians() {
+            0.0
+        } else {
+            full * angle.cos()
+        }
+    } else {
+        let corner = (full * drive.feel.turn_slow).min(drive.radius_m * drive.turn_rad_s);
+        let lock = (angle / drive.feel.turning_deg.to_radians()).min(1.0);
+        corner + (full - corner) * (lock * std::f64::consts::FRAC_PI_2).cos()
+    }
+}
+
+/// Look through short approach legs too: a road bend can have several corners.
+/// Beyond the full-road stopping distance, even a stop cannot bind this tick.
+fn approach_speed(unit: &Unit, surface_speed: f64, gear: f64) -> f64 {
+    let drive = unit.mobility.drive.expect("a vehicle has a drive");
+    let braking = unit.mobility.road_mps / drive.feel.braking_s;
+    let stopping_distance = unit.mobility.road_mps.powi(2) / (2.0 * braking);
+    let full = speed_in(&drive, gear, surface_speed);
+    let mut limit = full;
+    let mut from = unit.position.xy();
+    let mut distance = 0.0;
+    let route = unit.route.as_ref().expect("a route to follow");
+    for (i, &point) in route.iter().enumerate() {
+        let incoming = point - from;
+        distance += incoming.length();
+        if distance > stopping_distance {
+            break;
+        }
+        let corner = route.get(i + 1).map_or(0.0, |next| {
+            let outgoing = *next - point;
+            let angle = wrap_angle(outgoing.y.atan2(outgoing.x) - incoming.y.atan2(incoming.x));
+            turn_speed(&drive, full, angle)
+        });
+        limit = limit.min((corner * corner + 2.0 * braking * distance).sqrt());
+        from = point;
+    }
+    limit
 }
 
 /// Whether `target` lies inside the turning circle on side `side` of a hull
@@ -111,6 +167,20 @@ fn arc_clear(world: &WorldGeometry, unit: &Unit, gear: f64, turn: f64, length: f
     true
 }
 
+/// Give a blocked tracked pivot room by rolling against its ordered direction.
+pub fn give_space(unit: &Unit, speed: f64, dt: f64) -> Motion {
+    let drive = unit.mobility.drive.expect("a vehicle has a drive");
+    let gear = -gear_sign(unit.direction());
+    let v = accelerate(unit, speed_in(&drive, gear, speed), gear, dt);
+    Motion {
+        yaw: unit.yaw,
+        heading: dir(travel(unit.yaw, gear)),
+        step: v * dt,
+        backwards: gear < 0.0,
+        manoeuvring: true,
+    }
+}
+
 /// This tick's motion toward `target`, at surface speed `speed`.
 pub fn steer(world: &WorldGeometry, unit: &mut Unit, target: V2, speed: f64, dt: f64) -> Motion {
     let drive = unit.mobility.drive.expect("a vehicle has a drive");
@@ -125,12 +195,15 @@ pub fn steer(world: &WorldGeometry, unit: &mut Unit, target: V2, speed: f64, dt:
         let max = drive.turn_rad_s * dt;
         let yaw = unit.yaw + error.clamp(-max, max);
         let remaining = wrap_angle(bearing - travel(yaw, gear)).abs();
-        let factor = if remaining > drive.feel.turn_in_place_deg.to_radians() {
+        let pivoting = remaining > drive.feel.turn_in_place_deg.to_radians();
+        let desired = turn_speed(&drive, speed_in(&drive, gear, speed), remaining)
+            .min(approach_speed(unit, speed, gear));
+        let v = accelerate(unit, desired, gear, dt);
+        let step = if pivoting {
             0.0
         } else {
-            remaining.cos()
+            (v * dt).min(distance)
         };
-        let step = (speed_in(&drive, gear, speed) * factor * dt).min(distance);
         return Motion {
             yaw,
             heading: if distance > 0.0 {
@@ -140,7 +213,7 @@ pub fn steer(world: &WorldGeometry, unit: &mut Unit, target: V2, speed: f64, dt:
             },
             step,
             backwards: gear < 0.0 && step > 0.0,
-            turning: false,
+            manoeuvring: false,
         };
     }
 
@@ -181,7 +254,7 @@ pub fn steer(world: &WorldGeometry, unit: &mut Unit, target: V2, speed: f64, dt:
     }
     if let Some(m) = unit.manoeuvre {
         let back = -gear;
-        let v = speed_in(&drive, back, speed);
+        let v = accelerate(unit, speed_in(&drive, back, speed), back, dt);
         let step = v * dt;
         let turn = m.turn * curvature(v);
         if arc_clear(world, unit, back, turn, PROBE_M) {
@@ -191,21 +264,27 @@ pub fn steer(world: &WorldGeometry, unit: &mut Unit, target: V2, speed: f64, dt:
                 heading: dir(travel(unit.yaw, back) + dyaw / 2.0),
                 step,
                 backwards: back < 0.0,
-                turning: false,
+                manoeuvring: false,
             };
         }
         // The leg meets a solid: turn the other way again.
         unit.manoeuvre = None;
     }
-    let slow = drive.feel.turn_slow
-        + (1.0 - drive.feel.turn_slow) * error.abs().min(std::f64::consts::FRAC_PI_2).cos();
-    let v = speed_in(&drive, gear, speed) * slow;
+    let desired = turn_speed(&drive, speed_in(&drive, gear, speed), error)
+        .min(approach_speed(unit, speed, gear));
+    let v = accelerate(unit, desired, gear, dt);
     let step = (v * dt).min(distance);
     let max = curvature(v) * step;
     let dyaw = error.clamp(-max, max);
     let turning = error.abs() > drive.feel.turning_deg.to_radians();
-    if turning && !arc_clear(world, unit, gear, dyaw.signum() * curvature(v), PROBE_M) {
-        // The turn runs into a solid: back up, still turning the same way.
+    if !arc_clear(
+        world,
+        unit,
+        gear,
+        dyaw.signum() * curvature(v),
+        PROBE_M.min((distance - super::PROGRESS_EPSILON_M).max(0.0)),
+    ) {
+        // The forward arc runs into a solid: back up, still turning the same way.
         unit.manoeuvre = Some(Manoeuvre {
             turn: side,
             driven_m: 0.0,
@@ -215,7 +294,7 @@ pub fn steer(world: &WorldGeometry, unit: &mut Unit, target: V2, speed: f64, dt:
             heading: dir(heading),
             step: 0.0,
             backwards: false,
-            turning: false,
+            manoeuvring: false,
         };
     }
     Motion {
@@ -223,7 +302,7 @@ pub fn steer(world: &WorldGeometry, unit: &mut Unit, target: V2, speed: f64, dt:
         heading: dir(heading + dyaw / 2.0),
         step,
         backwards: gear < 0.0 && step > 0.0,
-        turning,
+        manoeuvring: turning,
     }
 }
 

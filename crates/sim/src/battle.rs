@@ -30,7 +30,9 @@ use crate::hearing;
 use crate::knowledge::SideKnowledge;
 use crate::math::{v2, v3, Obb2, Rotation, V2, V3};
 use crate::movement::{self, MovementContext, SideGeometry};
+use crate::navigation::{NavBase, RoadNet};
 use crate::rng::Rng;
+use crate::route_planner::RoutePlanner;
 use crate::sensing::{self, Sighting};
 use crate::sight;
 use crate::structures::Structures;
@@ -155,6 +157,12 @@ pub struct Load {
     pub active_projectiles: usize,
     pub rounds_launched: u64,
     pub path_searches: u64,
+    /// Units holding for a route, and the planning work the latest tick spent.
+    pub routes_pending: usize,
+    pub planning_work: u64,
+    /// Cells both sides' planning grids have worked out again since the
+    /// battle began, as the sides learned of bodies and cleared ground.
+    pub grid_cells_relaid: u64,
     /// Bytes the ground layer holds.
     pub ground_bytes: usize,
     /// Bytes both sides' learned copies of it hold.
@@ -187,6 +195,11 @@ pub struct Battle {
     /// Props authored with the map (ids below this) are known to every side.
     authored_props: PropId,
     sides: [SideGeometry; 2],
+    /// The map's road graph, built once: public terrain, the same for both
+    /// sides.
+    roads: RoadNet,
+    /// Every unit's route request in progress.
+    planner: RoutePlanner,
     events: VecDeque<ScenarioEvent>,
     scripts: VecDeque<ScriptedOrder>,
     knowledge: [SideKnowledge; 2],
@@ -366,6 +379,14 @@ impl Battle {
         crate::cover::validate(&rules);
         flight::validate_guided(&rules.guided);
         let world = WorldGeometry::new(&setup.map, &rules);
+        let roads = RoadNet::build(&world);
+        // What both sides know of the map when the battle starts, built
+        // once and shared: every body authored on it stands where it is.
+        let grid = std::sync::Arc::new(NavBase::build(
+            &world,
+            world.props(),
+            rules.physics.soldier_radius_m,
+        ));
         let arsenal = Arsenal::new(&rules);
         supply::validate(&arsenal, &rules);
         for e in &setup.events {
@@ -462,6 +483,7 @@ impl Battle {
                     }),
                     manoeuvre: None,
                     reversing: false,
+                    drive_speed_mps: 0.0,
                     turn_to: None,
                 }
             })
@@ -490,7 +512,12 @@ impl Battle {
             seed,
             tick: 0,
             units,
-            sides: Default::default(),
+            sides: [
+                SideGeometry::new(std::sync::Arc::clone(&grid)),
+                SideGeometry::new(grid),
+            ],
+            roads,
+            planner: RoutePlanner::default(),
             events: events.into(),
             scripts: scripts.into(),
             knowledge,
@@ -610,6 +637,9 @@ impl Battle {
             active_projectiles: self.projectiles.active().len(),
             rounds_launched: self.projectiles.launched(),
             path_searches: Side::ALL.into_iter().map(|s| self.route_searches(s)).sum(),
+            routes_pending: self.planner.waiting(),
+            planning_work: self.planner.spent(),
+            grid_cells_relaid: self.sides.iter().map(|s| s.cells_relaid()).sum(),
             ground_bytes: self.ground.bytes(),
             known_ground_bytes: self.knowledge.iter().map(|k| k.ground().bytes()).sum(),
         }
@@ -821,8 +851,15 @@ impl Battle {
         deployment::advance_all(&mut self.units);
         let before = self.poses();
         let treads = self.treads();
+        // Every prop the world changed since last tick, for each side's
+        // planning grid to look at again.
+        let touched = self.world.take_touched();
+        for side in &mut self.sides {
+            side.touch(&touched);
+        }
         let ctx = MovementContext {
             world: &self.world,
+            roads: &self.roads,
             ground: &self.ground,
             ground_rules: &self.rules.ground,
             authored: self.authored_props,
@@ -835,7 +872,7 @@ impl Battle {
             knowledge: &self.knowledge,
             arsenal: &self.arsenal,
         };
-        let shoves = movement::advance(&ctx, &mut self.units, &mut self.sides);
+        let shoves = movement::advance(&ctx, &mut self.units, &mut self.sides, &mut self.planner);
         self.shove_props(shoves);
         self.clear_lanes(&before);
         for ((from, channel), (to, _)) in treads.into_iter().zip(self.treads()) {
@@ -1803,6 +1840,7 @@ impl Battle {
                     unit.planned_goal = None;
                     unit.pursuit = None;
                     unit.state = MoveState::Idle;
+                    unit.drive_speed_mps = 0.0;
                     unit.blocker = None;
                     unit.turn_to = None;
                     for mount in &mut unit.mounts {
@@ -1882,8 +1920,7 @@ impl Battle {
         } else {
             1.0
         };
-        let radius = self.rules.physics.soldier_radius_m;
-        let grid = self.sides[side.index()].grid(&self.world, self.authored_props, radius);
+        let grid = self.sides[side.index()].grid(&self.world, self.authored_props);
         ids.iter()
             .zip(&positions)
             .map(|(id, &p)| {
@@ -2200,6 +2237,7 @@ impl Battle {
         for side in &self.sides {
             side.digest(&mut d);
         }
+        self.planner.digest(&mut d);
         d.u64(self.world.obstacle_revision());
         // Every body's pose (L3): shoves move them.
         for p in self.world.props() {
@@ -2260,6 +2298,103 @@ impl Battle {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A battle that changes what each side knows in every way a battle
+    /// can: a tank shoves a crate and knocks a lane through a wood, shells
+    /// fell trees, break a wall into rubble and a wreck into a lighter
+    /// wreck, and a wreck appears; one side watches from close by, the
+    /// other learns of each only as it comes into view. Whatever a side
+    /// believes at any tick, its planning grid, kept up body by body, is
+    /// the grid built whole from those beliefs.
+    #[test]
+    fn each_sides_grid_stays_the_whole_build_of_what_it_believes() {
+        let burst = |tick: u64, at: [f64; 2]| serde_json::json!({ "tick": tick, "burst": { "point": at, "weapon": "tank_he" } });
+        let mut events = vec![serde_json::json!({ "tick": 60, "add_prop": {
+            "kind": "light_wreck", "center": [150, 30], "yaw": 0.4, "half_extents": [2.2, 1.0, 0.9] } })];
+        for round in 0..12 {
+            let tick = 20 + 25 * round;
+            events.push(burst(tick, [150.0 + 4.0 * round as f64, 80.0]));
+            events.push(burst(tick + 3, [232.0, 60.0]));
+            if round < 5 {
+                events.push(burst(tick + 6, [236.0, 140.0]));
+            }
+        }
+        // A row of crates too close together for a tank to pass between.
+        let mut props: Vec<serde_json::Value> = (0..13)
+            .map(|k| {
+                serde_json::json!({ "kind": "crate", "center": [70.0, 79.0 + 3.5 * k as f64],
+                    "yaw": 0, "half_extents": [0.8, 0.8, 0.6] })
+            })
+            .collect();
+        props.push(
+            serde_json::json!({ "kind": "wall", "center": [232, 60], "yaw": 0,
+            "half_extents": [0.4, 10, 1] }),
+        );
+        props.push(
+            serde_json::json!({ "kind": "heavy_wreck", "center": [236, 140], "yaw": 0.3,
+            "half_extents": [3, 1.5, 1] }),
+        );
+        let (wall, wreck) = (13, 14);
+        let drive = |side: &str, unit: u32, goal: [f64; 2]| {
+            serde_json::json!({ "tick": 1, "side": side, "order": { "kind": "move",
+                "units": [unit], "gesture": unit + 1, "goal": goal, "route": "shortest" } })
+        };
+        let setup: ScenarioDefinition = serde_json::from_value(serde_json::json!({
+            "map": { "size": [900, 200], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35,
+                "forests": [{ "shape": { "kind": "polygon",
+                    "ring": [[100, 50], [200, 50], [200, 150], [100, 150]] } }],
+                "props": props },
+            "rules": crate::fixtures::village(),
+            "units": [
+                { "side": "blue", "kind": "tank", "position": [40, 100], "yaw": 0.0,
+                  "engagement": "return_fire_only" },
+                { "side": "blue", "kind": "jeep", "position": [40, 30], "yaw": 0.0,
+                  "engagement": "return_fire_only" },
+                { "side": "red", "kind": "rifle", "position": [860, 100],
+                  "engagement": "return_fire_only" },
+                { "side": "red", "kind": "jeep", "position": [880, 180], "yaw": 3.1,
+                  "engagement": "return_fire_only" }
+            ],
+            "events": events,
+            "scripts": [
+                drive("blue", 0, [290.0, 100.0]),
+                drive("blue", 1, [300.0, 30.0]),
+                drive("red", 3, [30.0, 180.0])
+            ]
+        }))
+        .expect("a scenario");
+        let mut battle = Battle::new(&setup, 3);
+        let radius = battle.rules.physics.soldier_radius_m;
+        for tick in 1..=1200 {
+            battle.step();
+            if tick % 20 != 0 {
+                continue;
+            }
+            for side in Side::ALL {
+                let (kept, whole) = battle.sides[side.index()].grid_beside_whole_build(
+                    &battle.world,
+                    battle.authored_props,
+                    radius,
+                );
+                kept.assert_same(&format!("tick {tick}, {side:?}"), &whole);
+            }
+        }
+        // The battle did change what the sides know, in each of the ways.
+        let world = &battle.world;
+        assert!(world.cleared_cells() > 0, "a lane was cleared");
+        assert!(world.moved().next().is_some(), "a crate was shoved");
+        assert!(world.prop(wall).is_none(), "the wall fell");
+        assert!(world.prop(wreck).is_none(), "the wreck broke up");
+        assert!(
+            world.props().any(|p| p.known_to_all),
+            "remains both sides plan with"
+        );
+        for side in &battle.sides {
+            assert!(side.revision > 0);
+            assert!(!side.seen.is_empty());
+        }
+        assert!(battle.load().grid_cells_relaid > 0);
+    }
 
     #[test]
     fn an_enemy_round_is_clipped_to_seen_ground_leg_by_leg_keeping_its_ricochets() {

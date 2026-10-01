@@ -42,6 +42,9 @@ pub struct MapPlan {
     /// Forest shapes; the one `forests.rule` stands their trees at load.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub forests: Vec<contract::map::Forest>,
+    /// Rivers, in the contract's shared shape: impassable water.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub rivers: Vec<contract::river::River>,
     /// Where towns stand and what each district is built from, the main
     /// settlement first. Plan-only: the parcel pass turns them into
     /// `buildings`; nothing here reaches the map.
@@ -152,7 +155,8 @@ pub struct CompileLimits {
     /// Ordinary authored bodies plus materialized template parts only.
     pub max_authored_parts: u32,
     pub max_bay_positions: u64,
-    /// Polygon vertices plus rounded stroke samples, over surfaces and forests.
+    /// Polygon vertices plus rounded stroke samples, over surfaces, forests
+    /// and rivers.
     pub max_ground_points: u64,
 }
 
@@ -177,6 +181,8 @@ pub enum DiagnosticCode {
     InvalidBounds,
     InvalidPlacement,
     InvalidAuthoredIds,
+    /// A river the terrain cannot carry (`contract::river::validate`).
+    InvalidRiver,
     ComplexityLimit,
     InvalidPresets,
     /// A bounded search found no layout; the diagnostic names what ran out.
@@ -344,16 +350,28 @@ pub fn validate_plan(plan: &MapPlan) -> Result<(), Vec<Diagnostic>> {
         .surfaces
         .iter()
         .enumerate()
-        .map(|(i, area)| (format!("$.plan.surfaces[{i}]"), &area.shape))
-        .chain(
-            plan.forests
-                .iter()
-                .enumerate()
-                .map(|(i, forest)| (format!("$.plan.forests[{i}]"), &forest.shape)),
-        );
-    for (location, shape) in shapes {
-        // A stroke may overhang the edge by its width; its authored points may not.
-        let outside = shape_points(shape)
+        .map(|(i, area)| {
+            (
+                format!("$.plan.surfaces[{i}]"),
+                shape_points(&area.shape).to_vec(),
+            )
+        })
+        .chain(plan.forests.iter().enumerate().map(|(i, forest)| {
+            (
+                format!("$.plan.forests[{i}]"),
+                shape_points(&forest.shape).to_vec(),
+            )
+        }))
+        .chain(plan.rivers.iter().enumerate().map(|(i, river)| {
+            (
+                format!("$.plan.rivers[{i}]"),
+                river.points().iter().map(|p| p.xy).collect(),
+            )
+        }));
+    for (location, points) in shapes {
+        // A stroke or a river may overhang the edge by its width; its
+        // authored points may not.
+        let outside = points
             .iter()
             .any(|p| p[0] < 0.0 || p[1] < 0.0 || p[0] > plan.size[0] || p[1] > plan.size[1]);
         if outside {
@@ -513,7 +531,7 @@ pub fn lower(
         height_grid_m: request.plan.height_grid_m,
         slope_cutoff_deg: request.plan.slope_cutoff_deg,
         relief: Vec::new(),
-        water: Vec::new(),
+        rivers: request.plan.rivers.clone(),
         surfaces: request.plan.surfaces.clone(),
         bridges: Vec::new(),
         forests: request.plan.forests.clone(),
@@ -521,6 +539,14 @@ pub fn lower(
         buildings: Vec::new(),
         template_catalog_hash: Some(catalogue.hash().into()),
     };
+    contract::river::validate(&map).map_err(|message| {
+        vec![Diagnostic {
+            code: DiagnosticCode::InvalidRiver,
+            feature: None,
+            location: "$.plan.rivers".into(),
+            message,
+        }]
+    })?;
     for (placement, descriptor) in request.plan.buildings.iter().zip(descriptors) {
         let building = contract::map::BuildingDefinition::materialize(
             descriptor,
@@ -611,7 +637,7 @@ fn shape_points(shape: &contract::ground::GroundShape) -> &[[f64; 2]] {
 }
 
 /// What the plan's ground costs every consumer: polygon vertices plus the
-/// rounded samples of each stroke.
+/// rounded samples of each stroke and river.
 pub fn ground_points(plan: &MapPlan) -> u64 {
     let count = |shape: &contract::ground::GroundShape| match shape {
         contract::ground::GroundShape::Polygon { ring } => ring.len() as u64,
@@ -627,6 +653,11 @@ pub fn ground_points(plan: &MapPlan) -> u64 {
             .forests
             .iter()
             .map(|forest| count(&forest.shape))
+            .sum::<u64>()
+        + plan
+            .rivers
+            .iter()
+            .map(|river| river.samples().len() as u64)
             .sum::<u64>()
 }
 

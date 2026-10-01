@@ -126,9 +126,24 @@ export const CURATED_GROUND = {
       ],
     }),
   ],
-  water: [
-    { rect: [130, 100, 24, 120], bed_z: -2, surface_z: -1.5 },
-    { rect: [140, 200, 60, 30], bed_z: -2, surface_z: -1.5 },
+  // A river that widens round a bend, crossing roads and a wood, and a
+  // short straight one that runs into it.
+  rivers: [
+    {
+      points: [
+        { xy: [142, 60], width_m: 12, depth_m: 1.5 },
+        { xy: [142, 200], width_m: 24, depth_m: 2 },
+        { xy: [300, 260], width_m: 16, depth_m: 2 },
+      ],
+      surface_z: -0.5,
+    },
+    {
+      points: [
+        { xy: [60, 215], width_m: 14, depth_m: 1.5 },
+        { xy: [142, 215], width_m: 14, depth_m: 1.5 },
+      ],
+      surface_z: -0.5,
+    },
   ],
 };
 
@@ -158,7 +173,7 @@ function polygonForest(cx: number, cy: number, radius: number, sides: number): F
 }
 
 /** A town-sized ground: curved roads cut to 2 m segments, polygon and strip
- *  woods, and a river of rects. */
+ *  woods, and a winding river whose width swells and narrows. */
 export function denseGround(sizeM: number, roads: number, woods: number): TerrainSite {
   const random = mulberry32.create(7);
   const next = () => mulberry32.sample(random);
@@ -205,10 +220,16 @@ export function denseGround(sizeM: number, roads: number, woods: number): Terrai
     triangles: new Float32Array(0),
     boundaries: new Float32Array(0),
   });
-  const water: number[] = [];
-  for (let s = 0; s < 40; s++) water.push(s * 40, 500 + Math.sin(s / 5) * 60, 44, 18);
+  const rivers: number[] = [];
+  const bank = (s: number) => [s * 20, 500 + Math.sin(s / 10) * 60, 9 + Math.sin(s / 7) * 3];
+  for (let s = 0; s < 80; s++) {
+    const [ax, ay, halfA] = bank(s),
+      [bx, by, halfB] = bank(s + 1);
+    rivers.push(ax, ay, bx, by, halfA, halfB, 0.25, 0.25, 1, 1, -1);
+  }
   return {
     map: [0, 0, sizeM, sizeM],
+    gridM: 4,
     surfaceStrokes: Float32Array.from(strokes),
     surfaceStrokeStride: 6,
     // No authored runs: the field plots are not what these grounds test.
@@ -220,7 +241,9 @@ export function denseGround(sizeM: number, roads: number, woods: number): Terrai
     surfaceBoundaryStride: 5,
     forests: Float32Array.of(1200, 1200, 300, 240, 1350, 1300, 200, 200),
     forestShapes,
-    water: Float32Array.from(water),
+    rivers: Float32Array.from(rivers),
+    riverRuns: new Float32Array(0),
+    riverRunStride: 4,
     buildings: [],
     footprints: new Float32Array(0),
   };

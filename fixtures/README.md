@@ -85,6 +85,33 @@ Add one entry. A mechanic comes from the body's columns, so a new obstacle needs
 
 Every mover states its own two top speeds in its `mobility` row, in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road (at most 130, and never below the off-road speed). `village.json`'s `surfaces` table has one row per surface kind a map may pave (`road`, `country_road`, `dirt_track`, `sidewalk`). A row's `speed_factor` scales each unit type's own road speed on that surface, never below its off-road speed: 1 is a full road, 0 is no road at all. A new surface kind is a new row plus its variant in `contract::map::SurfaceKind`.
 
+Vehicle surface speeds are targets, not instantaneous velocity. The drive settings in
+[`village.json`](village.json) express acceleration and braking as time from rest to
+full road speed and back; each vehicle's own top speed sets the rate. This keeps
+road entry gradual without reducing the road advantage. Surface and shove limits
+act on the target speed so slowdown does not compound every tick. The follower
+brakes on the incoming leg of a planned bend, using its turning radius and yaw rate to
+choose a corner speed. A tracked pivot blocked by traffic backs up when it needs room.
+Stops, collisions and gear changes discard momentum. Infantry retain their own
+pace; their yield horizon follows a vehicle's accepted velocity, including reverse
+movement. Once clear of that path, a soldier waits rather than stepping back
+into it. Accepted vehicle speed participates in replay digests but adds no
+observation or command fields. Frozen parity inputs without these timing settings
+use the contract's defaults. Focused mechanic labs may pin unrelated timing to
+isolate their experiment; playable battles use the shared gameplay settings.
+
+## Rivers
+
+A map's water is its `rivers`: each a line of points with the water's `width_m` and its `depth_m` at the middle there, and one `surface_z` for the whole river. The line is rounded like a road's, and width and depth run evenly between points.
+
+- **Water is one distance:** a point is water when it lies within half the width of the rounded line. The simulation classifies by it, the terrain is carved by it and the water is drawn to it (`contract::river`).
+- **The cross-section is a V.** The bed falls from the waterline to `depth_m` at the middle, and the bank climbs away at the same grade (depth over half the width) until it has made up the height the land stands above the water at the edge. So `surface_z` below the land sets how far the bank runs: 0.5 m of freeboard at a grade of 1 in 4 is a 2 m bank.
+- **A map is refused at load** when a point is narrower than three height samples (12 m on the 4 m grid), when a point is so deep for its width that its bank would pass the map's slope cutoff on the grid, when the surface stands above the land at the water's edge, or when a bridge's deck ends over the water or too near it for a bank at the steepest climbable grade to reach the land by its end.
+- **Water is crossed at `bridges`.** Along a bridge's approach the bank is steepened into a ramp, so the deck is stepped onto from the land's own height. Author the deck to end a few metres past the water on each side.
+- Water is neither road nor forest whatever is authored over it, and no trunk stands in it or within the forest rule's clearance of it.
+
+`river-lab.json` is the worked example: a meander from the 12 m minimum to a 30 m stretch, a bridge, a road, a track and a wood over one bank.
+
 ## Parity oracles
 
-`parity/` holds frozen inputs and expected outputs that the native tests and the web tests both read, so the Rust simulation and its WebAssembly build are held to the same answer: building aggregates, fog delivery, ground learning and transport, the map compiler, physical templates (including the rejected descriptors that must keep failing) and terrain queries. A file changes only with a named behaviour change, and every test that reads it changes in the same commit.
+`parity/` holds frozen inputs and expected outputs that the native tests and the web tests both read, so the Rust simulation and its WebAssembly build are held to the same answer: building aggregates, fog delivery, ground learning and transport, the map compiler, physical templates (including the rejected descriptors that must keep failing), terrain queries and the rounded samples of roads and rivers. A file changes only with a named behaviour change, and every test that reads it changes in the same commit.

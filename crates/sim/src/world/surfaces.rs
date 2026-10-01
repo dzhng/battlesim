@@ -1,4 +1,5 @@
-//! Sparse broad phase over the exact authored ground shapes.
+//! Sparse broad phase over the exact authored ground shapes: the paving and
+//! the rivers.
 use std::collections::{BTreeSet, HashMap};
 
 use contract::ground::{
@@ -6,6 +7,7 @@ use contract::ground::{
     GroundShape,
 };
 use contract::map::{Rect, SurfaceArea, SurfaceKind};
+use contract::river::{section, River, Section};
 
 use crate::math::{v2, V2};
 
@@ -26,22 +28,48 @@ impl Primitive {
 pub(super) struct SurfaceIndex {
     areas: Vec<SurfaceArea>,
     primitives: Vec<Primitive>,
+    /// Each primitive's limits `[x, y, max_x, max_y]`: a point outside
+    /// them, by more than rounding, is outside the primitive.
+    limits: Vec<[f64; 4]>,
     buckets: HashMap<(i32, i32), Vec<usize>>,
     last: [i32; 2],
     triangles: Vec<f32>,
     boundaries: Vec<f32>,
+    rivers: Vec<River>,
+    /// Each bucket's river stretches: the river, and the first of the
+    /// stretch's two rounded samples.
+    stretches: HashMap<(i32, i32), Vec<(u32, u32)>>,
 }
 
 impl SurfaceIndex {
-    pub fn new(areas: &[SurfaceArea], size: [f64; 2]) -> Self {
+    pub fn new(areas: &[SurfaceArea], rivers: &[River], size: [f64; 2]) -> Self {
         let mut index = Self {
             areas: areas.to_vec(),
             primitives: Vec::new(),
+            limits: Vec::new(),
             buckets: HashMap::new(),
             last: size.map(|v| (v / BUCKET_M).floor() as i32),
             triangles: Vec::new(),
             boundaries: Vec::new(),
+            rivers: rivers.to_vec(),
+            stretches: HashMap::new(),
         };
+        for (river, definition) in rivers.iter().enumerate() {
+            for (stretch, pair) in definition.samples().windows(2).enumerate() {
+                let reach = pair[0].half_width_m.max(pair[1].half_width_m);
+                let [x0, y0, x1, y1] =
+                    index.bucket_bounds(limits(&[pair[0].xy, pair[1].xy], reach));
+                for j in y0..=y1 {
+                    for i in x0..=x1 {
+                        index
+                            .stretches
+                            .entry((i, j))
+                            .or_default()
+                            .push((river as u32, stretch as u32));
+                    }
+                }
+            }
+        }
         for (area, surface) in areas.iter().enumerate() {
             match &surface.shape {
                 GroundShape::Stroke {
@@ -80,6 +108,7 @@ impl SurfaceIndex {
     fn insert(&mut self, primitive: Primitive, bounds: [f64; 4]) {
         let id = self.primitives.len();
         self.primitives.push(primitive);
+        self.limits.push(bounds);
         let [x0, y0, x1, y1] = self.bucket_bounds(bounds);
         for j in y0..=y1 {
             for i in x0..=x1 {
@@ -222,7 +251,14 @@ impl SurfaceIndex {
             (p.y / BUCKET_M).floor() as i32,
         );
         let mut result = None;
+        // Far more than the rounding of a containment test.
+        const HAIR_M: f64 = 1e-6;
         for &id in self.buckets.get(&key)? {
+            let [x, y, max_x, max_y] = self.limits[id];
+            if p.x < x - HAIR_M || p.x > max_x + HAIR_M || p.y < y - HAIR_M || p.y > max_y + HAIR_M
+            {
+                continue;
+            }
             let primitive = &self.primitives[id];
             if self.contains(primitive, p, 0.0) {
                 let kind = self.areas[primitive.area()].kind;
@@ -233,6 +269,49 @@ impl SurfaceIndex {
             }
         }
         result
+    }
+
+    pub fn rivers(&self) -> &[River] {
+        &self.rivers
+    }
+
+    /// The cross-sections at `p` of every stretch whose water lies within
+    /// `reach` of it, each with its river's index. A stretch may be given
+    /// more than once, and stretches farther off may be given too.
+    pub fn river_sections(&self, p: V2, reach: f64) -> impl Iterator<Item = (usize, Section)> + '_ {
+        let [x0, y0, x1, y1] =
+            self.bucket_bounds([p.x - reach, p.y - reach, p.x + reach, p.y + reach]);
+        (y0..=y1)
+            .flat_map(move |j| (x0..=x1).map(move |i| (i, j)))
+            .filter_map(|key| self.stretches.get(&key))
+            .flatten()
+            .map(move |&(river, stretch)| {
+                let samples = self.rivers[river as usize].samples();
+                let stretch = stretch as usize;
+                (
+                    river as usize,
+                    section(&samples[stretch], &samples[stretch + 1], [p.x, p.y]),
+                )
+            })
+    }
+
+    /// Whether `p` is water: inside the closed edge of any river's stretch.
+    pub fn water_at(&self, p: V2) -> bool {
+        !self.rivers.is_empty() && self.river_sections(p, 0.0).any(|(_, s)| s.inside_m >= 0.0)
+    }
+
+    /// Whether `p` is in the water of river `river`.
+    pub fn in_river(&self, river: usize, p: V2) -> bool {
+        self.river_sections(p, 0.0)
+            .any(|(id, s)| id == river && s.inside_m >= 0.0)
+    }
+
+    /// Whether `p` is water or within `margin` of its edge.
+    pub fn water_near(&self, p: V2, margin: f64) -> bool {
+        !self.rivers.is_empty()
+            && self
+                .river_sections(p, margin)
+                .any(|(_, s)| s.inside_m >= -margin)
     }
 
     pub fn road_near(&self, p: V2, margin: f64) -> bool {

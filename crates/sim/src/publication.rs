@@ -32,13 +32,14 @@ use crate::ground::GroundRunPatch;
 /// 40.5 MB. Higher-entropy workloads fail admission explicitly, never lose cells.
 pub const MAX_PUBLICATION_BYTES: usize = 64 * 1024 * 1024;
 
-const MOVE_STATES: [MoveState; 6] = [
+const MOVE_STATES: [MoveState; 7] = [
     MoveState::Idle,
     MoveState::Moving,
     MoveState::Waiting,
     MoveState::RouteBlocked,
     MoveState::Halted,
     MoveState::Packing,
+    MoveState::Planning,
 ];
 const COVER_TIERS: [CoverTier; 3] = [CoverTier::Light, CoverTier::Medium, CoverTier::Heavy];
 const LEAN_SIDES: [LeanSide; 2] = [LeanSide::Left, LeanSide::Right];

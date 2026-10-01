@@ -47,9 +47,14 @@ export async function run(ctx) {
 
   // The truck is sent through the passage: its route goes round the wreck.
   await demo(page, "Truck east through the gap");
-  await advance(page, 4);
-  o = await obs(page);
-  const truck = o.own.find((u) => u.kind === "supply");
+  // The route is planned over a few ticks while the truck holds.
+  let truck;
+  for (let i = 0; i < 100; i++) {
+    await advance(page, 4);
+    o = await obs(page);
+    truck = o.own.find((u) => u.kind === "supply");
+    if (truck.state !== "planning") break;
+  }
   const crosses = (() => {
     let from = truck.position;
     for (const p of truck.route) {

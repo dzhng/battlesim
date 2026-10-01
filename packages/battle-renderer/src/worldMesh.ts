@@ -1,8 +1,8 @@
 // Presentation of the exported authoritative geometry, in layers. The ground
 // is the terrain surface (`terrain/terrainSurface.ts`): the simulation's own
 // triangles under the biome's material. Props are their appearances fitted to
-// their exported boxes (`models/propAppearance.ts`), water is drawn from its
-// exported shape, and forests are the scenery's trees (`scenery/placement.ts`),
+// their exported boxes (`models/propAppearance.ts`), water is laid along the
+// exported rivers, and forests are the scenery's trees (`scenery/placement.ts`),
 // which draw the simulation's trunks too. Colours are presentation only.
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import {
@@ -17,6 +17,7 @@ import { MeshBuilder, type Rgba } from "./mesh";
 import type { WorldLayers, WorldScenery } from "./scene";
 import type { Biome } from "./terrain/biome";
 import { BLOCKED, buildTerrainSurface, OPEN, type TerrainSurface } from "./terrain/terrainSurface";
+import { waterSurfaceMesh } from "./terrain/rivers";
 import { kindSize, sceneryAppearances } from "./scenery/appearance";
 import { placeScenery, scenerySite } from "./scenery/placement";
 
@@ -52,6 +53,10 @@ export interface WorldLayout {
   surfaceTriangleFields: string[];
   surfaceBoundaryStride: number;
   surfaceBoundaryFields: string[];
+  riverStride: number;
+  riverFields: string[];
+  riverRunStride: number;
+  riverRunFields: string[];
   forestTrunkRangeStride: number;
   forestTrunkRangeFields: string[];
   forestMetadataStride: number;
@@ -88,7 +93,10 @@ export interface WorldExports {
   triangleSurfaces: Uint8Array;
   props: Float32Array;
   buildings: PublicBuildings;
-  water: Float32Array;
+  /** Every river's rounded stretches (`layout.riverFields`): the water. */
+  rivers: Float32Array;
+  /** The rivers' long runs (`ax, ay, bx, by`): what fields are cut along. */
+  riverRuns: Float32Array;
   /** Exact rectangular fast-path rows; general shapes stay in native primitive streams. */
   forests: Float32Array;
   forestTrunkRanges: Uint32Array;
@@ -118,7 +126,8 @@ export interface WorldExportSource {
   terrain_triangle_surfaces(): Uint8Array;
   props(): Float32Array;
   buildings(): string;
-  water(): Float32Array;
+  rivers(): Float32Array;
+  river_runs(): Float32Array;
   forests(): Float32Array;
   forest_trunk_ranges(): Uint32Array;
   forest_rect_ids(): Uint32Array;
@@ -145,7 +154,8 @@ export function readWorldExports(view: WorldExportSource): WorldExports {
     triangleSurfaces: view.terrain_triangle_surfaces(),
     props: view.props(),
     buildings: JSON.parse(view.buildings()),
-    water: view.water(),
+    rivers: view.rivers(),
+    riverRuns: view.river_runs(),
     forests: view.forests(),
     forestTrunkRanges: view.forest_trunk_ranges(),
     forestRectIds: view.forest_rect_ids(),
@@ -166,11 +176,7 @@ export type WorldOverlay = "surface" | "traversal";
 
 /** Stops some mover classes but not others (a wreck stops vehicles only). */
 const PARTLY_BLOCKED: Rgba = [0.86, 0.6, 0.22, 1];
-/** How far past its rect a water surface is drawn: the banks the terrain
- *  slopes down between the rect's edge and the last height sample outside it
- *  lie partly below the surface, and the water must meet them there. Where the
- *  ground stands above the surface, the depth test hides it. */
-const WATER_SHORE_M = 6;
+const NO_RIVERS = new Float32Array(0);
 const SKIRT: Rgba = [0.33, 0.3, 0.26, 1];
 const SKIRT_DEPTH_M = 6;
 
@@ -233,7 +239,6 @@ export function buildWorldLayers(
   appearances: InstalledAppearances | null = null,
 ): WorldLayers {
   const props = new MeshBuilder();
-  const water = new MeshBuilder();
   addSkirt(props, exports.positions);
   if (overlay === "traversal") addTraversalProps(props, exports, layout);
   const drawn =
@@ -246,30 +251,14 @@ export function buildWorldLayers(
         )
       : [];
 
-  // The traversal overlay shows the blocked flag alone; a water tint would muddy it.
-  // Its look is the terrain material's (`waterSurface`), not a vertex colour.
-  const areas = fieldReader(
-    layout.areaFields,
-    layout.areaStride,
-    overlay === "traversal" ? new Float32Array(0) : exports.water,
-  );
-  for (let r = 0; r < areas.count; r++) {
-    const [x, y, w, h, z] = ["x", "y", "w", "h", "z"].map((f) => areas.get(r, f));
-    const [x0, y0, x1, y1] = [
-      x - WATER_SHORE_M,
-      y - WATER_SHORE_M,
-      x + w + WATER_SHORE_M,
-      y + h + WATER_SHORE_M,
-    ];
-    water.quad([x0, y0, z], [x1, y0, z], [x1, y1, z], [x0, y1, z], [1, 1, 1, 1]);
-  }
-
   const terrain = buildTerrainSurface(exports, layout, biome, overlay);
   return {
     terrain,
     props: props.build(),
     structures: drawn,
-    water: water.build(),
+    // The traversal overlay shows the blocked flag alone; a water tint would
+    // muddy it. The water's look is the terrain material's (`waterSurface`).
+    water: waterSurfaceMesh(overlay === "traversal" ? NO_RIVERS : terrain.site.rivers),
     scenery:
       overlay === "surface" && appearances
         ? worldScenery(exports, layout, terrain, biome, appearances)

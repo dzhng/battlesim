@@ -171,10 +171,65 @@ pub struct MovementRules {
     pub drive: DriveRules,
 }
 
+/// How routes are planned. A unit holds where it is while its route is
+/// worked out, a share of each tick's allowance at a time. A long ordered
+/// leg goes by road where a road journey beats driving straight there.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NavigationRules {
+    /// Planning work every side's units share each tick: one unit is about
+    /// one grid cell searched.
+    pub work_per_tick: u32,
+    /// How far a search looks before it gives the route up as blocked: this
+    /// many cells, plus `search_cells_per_m` for every metre between its
+    /// two ends.
+    pub search_cells_base: u32,
+    pub search_cells_per_m: u32,
+    /// An ordered move leg strictly longer than this, as the crow flies
+    /// when the leg starts, is driven by the fastest policy: by road where
+    /// that is quicker.
+    pub road_leg_m: f64,
+    /// How far from each end of a leg a road is looked for.
+    pub road_access_m: f64,
+}
+
+impl NavigationRules {
+    /// The cells a search between two points `distance_m` apart may expand.
+    pub fn search_limit(&self, distance_m: f64) -> usize {
+        self.search_cells_base as usize + (self.search_cells_per_m as f64 * distance_m) as usize
+    }
+
+    fn check(&self) -> Result<(), String> {
+        if self.work_per_tick == 0 {
+            return Err("work_per_tick must be positive: no route would ever finish".into());
+        }
+        if self.search_cells_base == 0 {
+            return Err("search_cells_base must be positive: no search would look anywhere".into());
+        }
+        for (name, v) in [
+            ("road_leg_m", self.road_leg_m),
+            ("road_access_m", self.road_access_m),
+        ] {
+            if !v.is_finite() || v < 0.0 {
+                return Err(format!(
+                    "{name} must be a distance: finite and not negative"
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
 /// How every vehicle drives its route (Q29, Q30), whatever its own speeds
 /// and turning.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DriveRules {
+    /// Seconds to accelerate from rest to the vehicle's full road speed.
+    #[serde(default = "default_acceleration_s")]
+    pub acceleration_s: f64,
+    /// Seconds to brake from full road speed to rest.
+    #[serde(default = "default_braking_s")]
+    pub braking_s: f64,
     /// Tracks turn in place beyond this heading error.
     pub turn_in_place_deg: f64,
     /// A wheeled vehicle reaches a waypoint it passes abeam within this.
@@ -185,11 +240,20 @@ pub struct DriveRules {
     pub min_leg_m: f64,
     /// The waypoint must lie this far outside the turning circle to end a leg.
     pub circle_margin_m: f64,
-    /// Beyond this heading error a wheeled turn counts as a manoeuvre: it
-    /// probes ahead, and its progress is not a stall.
+    /// Beyond this heading error a wheeled turn counts as progress rather
+    /// than a stall while it swings away from the waypoint.
     pub turning_deg: f64,
-    /// A wheeled vehicle slows to this fraction of its speed at full lock.
+    /// Maximum speed fraction during a manoeuvre; the turning radius and
+    /// yaw rate can impose a lower limit.
     pub turn_slow: f64,
+}
+
+// Frozen parity inputs predate these optional tuning fields.
+fn default_acceleration_s() -> f64 {
+    4.5
+}
+fn default_braking_s() -> f64 {
+    1.5
 }
 
 /// How a squad's soldiers spread out where a move ends (D1, Q7): each move
@@ -395,6 +459,7 @@ pub struct ServiceRules {
 pub struct Rules {
     pub tick_hz: u32,
     pub movement: MovementRules,
+    pub navigation: NavigationRules,
     pub infantry_movement: InfantryMovementRules,
     pub physics: BodyRules,
     /// Every unit type and prop type (the catalog, `fixtures/units/` and
@@ -423,6 +488,7 @@ pub struct Rules {
 struct UncheckedRules {
     tick_hz: u32,
     movement: MovementRules,
+    navigation: NavigationRules,
     infantry_movement: InfantryMovementRules,
     physics: BodyRules,
     catalog: crate::catalog::Catalog,
@@ -447,16 +513,20 @@ impl TryFrom<UncheckedRules> for Rules {
     type Error = crate::catalog::CatalogError;
     fn try_from(r: UncheckedRules) -> Result<Self, Self::Error> {
         r.catalog.check_weapons(&r.weapons)?;
-        r.suppression
-            .check()
-            .map_err(|error| crate::catalog::CatalogError::Invalid {
+        for (id, checked) in [
+            ("suppression", r.suppression.check()),
+            ("navigation", r.navigation.check()),
+        ] {
+            checked.map_err(|error| crate::catalog::CatalogError::Invalid {
                 section: "rules",
-                id: "suppression".into(),
+                id: id.into(),
                 error,
             })?;
+        }
         Ok(Rules {
             tick_hz: r.tick_hz,
             movement: r.movement,
+            navigation: r.navigation,
             infantry_movement: r.infantry_movement,
             physics: r.physics,
             catalog: r.catalog,

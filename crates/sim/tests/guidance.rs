@@ -286,14 +286,24 @@ fn a_recovered_spare_pauses_its_existing_reload_without_losing_progress() {
 
 /// Blue's AT team 500 m from a red tank, a wall just north of the line of fire.
 fn ambush(seed: u64) -> Battle {
-    battle(
-        json!([{ "kind": "wall", "center": [560, 336], "yaw": 0, "half_extents": [0.5, 30, 4] }]),
+    let map = json!({ "size": [1200, 600], "fog_cell_m": 8, "height_grid_m": 4,
+        "slope_cutoff_deg": 35, "props": [
+            { "kind": "wall", "center": [560, 336], "yaw": 0, "half_extents": [0.5, 30, 4] }
+        ] })
+    .to_string();
+    let mut setup = common::scenario_with(
+        &map,
         json!([
             { "side": "blue", "kind": "at", "position": [100, 300], "engagement": "fire_at_will" },
-            { "side": "red", "kind": "tank", "position": [600, 300], "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" },
+            { "side": "red", "kind": "tank", "position": [600, 300], "yaw": std::f64::consts::FRAC_PI_2, "engagement": "return_fire_only" }
         ]),
-        seed,
-    )
+        json!([]),
+        json!([]),
+    );
+    // Guidance needs a controlled LOS crossing, independent of vehicle buildup.
+    setup.rules.movement.drive.acceleration_s = 1e-6;
+    setup.rules.movement.drive.braking_s = 1e-6;
+    Battle::new(&setup, seed)
 }
 
 fn move_to(unit: u32, goal: [f64; 2]) -> Order {

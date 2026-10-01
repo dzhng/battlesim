@@ -563,7 +563,7 @@ fn sidewalk_edges_are_closed_and_road_water_and_bridge_take_precedence() {
         r#", "surfaces":[
       {"kind":"sidewalk","shape":{"kind":"polygon","ring":[[32,32],[160,32],[160,160],[32,160]]}},
       {"kind":"road","shape":{"kind":"stroke","points":[[0,64],[180,64]],"width_m":8}}
-    ],"water":[{"rect":[100,0,8,180],"bed_z":-2,"surface_z":-0.5}],
+    ],"rivers":[{"points":[{"xy":[104,0],"width_m":12,"depth_m":1.5},{"xy":[104,180],"width_m":12,"depth_m":1.5}],"surface_z":-0.5}],
     "bridges":[{"deck":"bridge_deck","center":[104,64],"half_extents":[12,5],"yaw":0,"deck_z":0.1,"thickness_m":0.8}]"#,
     );
     for (p, kind) in [
@@ -635,8 +635,9 @@ fn overlapping_polygon_boundaries_clip_covered_edges_and_keep_one_exterior() {
     assert_eq!(perimeter, 50.0);
 }
 
-/// C65: a rounded stroke's samples are the same bits in every runtime. The
-/// web test holds Wasm to this file's native samples.
+/// C65: a rounded stroke's samples are the same bits in every runtime, and
+/// so are a river's with the width and grade at each (C69). The web test
+/// holds Wasm to this file's native samples.
 #[test]
 fn rounded_strokes_match_the_parity_oracle() {
     let oracle: serde_json::Value = serde_json::from_str(include_str!(
@@ -651,10 +652,21 @@ fn rounded_strokes_match_the_parity_oracle() {
         .map(|v| format!("{:08x}", v.to_bits()))
         .collect();
     assert!(strokes.len() / 6 > 40, "the bends were not rounded");
+    let rivers: Vec<String> = w
+        .export_rivers()
+        .iter()
+        .map(|v| format!("{:08x}", v.to_bits()))
+        .collect();
+    assert!(
+        rivers.len() / sim::world::export::RIVER_STRIDE > 40,
+        "the river's bends were not rounded"
+    );
     let mut blessed = oracle.clone();
     blessed["strokes"] = serde_json::json!(strokes);
+    blessed["rivers"] = serde_json::json!(rivers);
     if crate::common::bless_parity("ground/curve-strokes.json", &blessed) {
         return;
     }
     assert_eq!(serde_json::json!(strokes), oracle["strokes"]);
+    assert_eq!(serde_json::json!(rivers), oracle["rivers"]);
 }

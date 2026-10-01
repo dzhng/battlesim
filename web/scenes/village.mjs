@@ -1673,6 +1673,26 @@ async function orderTour(ctx) {
   });
   await lab(page, () => window.__lab.frame());
   await snapshot(ctx, page, "orders-selected-default-1920x1080.png");
+  // Separate the destination ring only for route clipping; the preceding
+  // cover checks keep their covered destination.
+  await lab(
+    page,
+    (c) =>
+      window.__lab.route.command({
+        kind: "move",
+        units: [c.id],
+        gesture: 3503,
+        goal: c.goal,
+        route: "shortest",
+        facing: c.facing,
+      }),
+    {
+      id: rifle.id,
+      goal: [goal[0], goal[1] + (tank.position[1] >= rifle.position[1] ? -10 : 10)],
+      facing: wanted,
+    },
+  );
+  await advance(page, 3);
   // The selection's markers against its orders: Space held, so they show
   // (the pointer off the canvas, so the range ruler doesn't).
   await pointerOffCanvas(page);

@@ -1155,3 +1155,349 @@ keeps storage addresses independent of physical identity and encounter naming.
 **Gap:** C52 chose the first mix. On Metro Large it stood about 100 towers in a field; the Broken Arrow reference has one tower among apartment slabs.
 
 **Verdict:** sound. Seed 1 of Metro Large now has 21 towers among 9,276 buildings. Highrises remain Metro-only. **Confidence:** medium until real tower art exists.
+
+## SA2 navigation at full extent
+
+**When:** SA2 implementation (counted planning, road journeys), 2026-10-01. The user had already decided the hold while planning, the 2,000 m rule and the three-minute jeep target; these are the decisions the spec left open.
+
+### A long leg becomes a fast move, written on the order
+
+**Choice:** When a move or attack-move leg starts and its goal is strictly more than `navigation.road_leg_m` (2,000 m) away as the crow flies, the order's own route policy becomes `fastest`, exactly as if the player had double-clicked. It stays that way for the life of the leg, however short the leg has become when the unit plans again. A queued leg is measured from where it starts, not from where it was ordered. The alternative was a separate hidden "road preference" flag beside the order.
+
+**Gap:** The spec said the preference is inferred and frozen, not where it lives, nor whether attack-move counts as an ordered leg.
+
+**Verdict:** Sound. One mechanism (the fastest policy) instead of two, and the player's panel and order line show the truth: the unit is on a fast move. Attack-move is included: it is an ordered leg that happens to halt on contact, so a long advance to contact goes by road until it meets something. Pursuit and a building's approach are never legs and never change. **Confidence:** High for moves; medium for attack-move, which the user may prefer to keep cross-country.
+
+### The fastest policy means "by road if a road journey beats the straight line"
+
+**Choice:** A fastest leg first asks the map's road graph for the quickest way: straight to a road, along roads, straight off again. If that is quicker than driving straight there across country, the unit takes it; otherwise it plans straight across country. Both are judged as the crow flies, with the unit's own speeds, over the ground the line crosses: a wood or a hillside on the line counts as slow, bodies do not count. There is no detour tolerance number: the comparison is the rule. The old planner instead searched the whole grid for the provably fastest route, which is what flooded.
+
+**Gap:** The spec asked for a "useful" road journey without defining useful.
+
+**Verdict:** Sound. Against the frozen exact planner on 12,064 small cases, fastest routes average 0.5% slower, 15 of 4,757 are more than 10% slower and the worst is 17% slower. In the movement lab the fast tank takes the road round the wood and beats the tank that cuts through it, as before. **Confidence:** Medium: the straight-line estimate knows woods and slopes by 64 m tiles, not rivers or walls, so a road that only pays because the direct way is cut off is judged against a direct way that does not exist.
+
+### Roads within 1,000 m of each end are considered
+
+**Choice:** `navigation.road_access_m` is 1,000 m. A leg looks for road within that distance of its start and of its goal.
+
+**Gap:** The spec left "nearby" to be measured.
+
+**Verdict:** Provisional. On the probe maps (a road every 1.5 to 2 km) a unit is at most about 850 m from a road, so 1,000 m lets nearly every long leg find one; the journey-time comparison then discards roads that do not pay. Re-measure on generated maps. **Confidence:** Low to medium.
+
+### The road graph is built from road strokes only
+
+**Choice:** At load the map's road strokes become a graph: a node at each bend and wherever two roads' surfaces touch (their centrelines pass within the sum of their half-widths), an arc for each straight run. A run the terrain does not carry (water with no deck, ground too steep) is left out. Roads authored as polygons keep their speed but are not in the graph.
+
+**Gap:** Polygon-road connectivity has no source contract yet (the spec names it as missing).
+
+**Verdict:** Sound for generated maps, whose roads are strokes. A polygon plaza or junction slab does not join the roads that end in it; if generated maps use them, they need centrelines too. **Confidence:** Medium.
+
+### The road says where to go; the grid says what fits
+
+**Choice:** The graph is public terrain and knows no bodies. The chosen way is then checked on the side's own grid, 64 m at a time, for the unit's footprint. Where a known body stands on the road, the unit looks for a way round it within 128 m and rejoins the road. If nothing gets round (a wall across a bridge deck), that stretch of road is closed for this one plan and the graph is asked again. If the unit cannot reach the road at all, it plans straight across country. A body the side has not seen changes nothing until the unit drives up to it, learns of it and plans again, still on its fast move.
+
+**Gap:** The spec required physical refinement and failed-arc retry without fixing the pieces.
+
+**Verdict:** Sound: a truck goes to the other bridge, a hidden collapse does not leak. **Confidence:** High for the cases tested (wall on a road, wall on a bridge, no bridge); medium for long columns of wrecks, where a way round more than 128 m long closes the road for that plan.
+
+### Vehicles keep to the right of the road
+
+**Choice:** A road journey runs down the right-hand side of each road: the unit's left side half a metre from the middle, but its own middle never nearer than half a metre to the road's edge, so on a narrow track a wide vehicle runs with its right side off the track. It takes 32 m along the road to get over to its side, and the same to come back to the middle where it leaves.
+
+**Gap:** Not in the spec. The first edge-to-edge run put both sides on the same centreline and they met head-on and stood there for the rest of the battle.
+
+**Verdict:** Sound on 8 m roads (a jeep and a tank pass without either waiting) and on a 5 m track in the open (a jeep and a tank each way all get past). Through a wood there is no room beside a 5 m track, and two columns can still jam there. **Confidence:** Medium.
+
+### A vehicle stuck in traffic plans round the whole knot
+
+**Choice:** A vehicle that has waited too long for another already planned a way round that one vehicle. It now plans round every vehicle within 40 m of it, as they stand.
+
+**Gap:** Not in the spec. Two columns meeting on a track are four vehicles, and a way round one led straight into the next.
+
+**Verdict:** Sound: the two-columns test passes with it. The lower-numbered vehicle of a pair still just waits, as before. **Confidence:** Medium; 40 m is a guess that covers a short column.
+
+### A unit joins and leaves the road at a slant
+
+**Choice:** A unit 300 m from a road heads for a point 300 m further along it, not the nearest point, and leaves the road the same way.
+
+**Gap:** Not in the spec.
+
+**Verdict:** Sound: it reads as a crew cutting across to the road, and avoids a right-angle turn onto it. **Confidence:** High.
+
+### The cross-country search walks its line
+
+**Choice:** The grid search now estimates the way still to go as the walk over open ground, at the pace the ground straight ahead allows (a wood or a hillside ahead counts as slow), and of two equally good cells takes the one nearer the goal. Each cell is expanded once. Across open ground it searches about one cell per cell of route. The exact planner's start-up proofs (the separating-line proof, the uniform-rectangle shortcut, the cost-bound walks and the map-wide totals behind them) are deleted: they existed to make an exhaustive search affordable.
+
+**Gap:** The brief asked for a bounded local search and left the estimate open.
+
+**Verdict:** Sound. Shortest routes average 0.4% longer than the exact planner's on the 12,064 cases, none more than 10%, worst 7.8%. A search still has to fill the pocket in front of an obstacle before it finds the way round, as any grid search does. **Confidence:** High.
+
+### A search gives up at a limit and says the route is blocked
+
+**Choice:** A search may expand `search_cells_base` (20,000) cells plus `search_cells_per_m` (200) for every metre between its ends. Reaching the limit ends the plan as blocked, with its own reason inside the simulation (`SearchLimit`, distinct from "no route exists"); the player sees ROUTE BLOCKED either way and the order is kept and retried when the side learns something.
+
+**Gap:** The user ruled that running out of a tick's work is never "no route"; an indefinite search still needed an exit.
+
+**Verdict:** Sound but blunt. A goal across an unbridged river costs the whole limit before the unit reports blocked: about 5 s of planning for a 2.8 km leg. A reachable goal whose only way round lies outside roughly a 400 m band either side of the line is also reported blocked. A cheap proof that a goal is cut off (searching from both ends) would shorten the first case. **Confidence:** Medium.
+
+### A straight pull past the middle of a tight cell needs the room it gives up
+
+**Choice:** A cell's room is measured from its centre. A vehicle's straight route segment, or the point it is told to stand on, that passes to one side of a cell's centre now has that much less of the cell's room. Infantry is unchanged (it already reads half-metre sub-cells).
+
+**Gap:** Not in the spec. With the new search the jeep-at-the-garden-fence scenario routed diagonally through the 4 m gate, clipped the post by 14 cm and stood there re-planning; and a jeep sent to a point among trees stopped 0.9 m short of it for good.
+
+**Verdict:** Sound: it is the footprint rule applied where the route actually runs. Routes near obstacles keep a waypoint more, and 15% of the comparison's goals near map edges and bodies move to the middle of their cell. **Confidence:** High for the rule; the general gap (the grid judges a disc, the hull is a box) remains.
+
+### Planning work is shared equally, a tick at a time
+
+**Choice:** `navigation.work_per_tick` is 4,000 units, about one searched cell each (roughly 25 to 30 million instructions a tick when fully used, 3 to 4 ms on this machine unloaded). Every waiting unit gets an equal share each tick, round and round in unit order. A tick may overrun by one indivisible step (at most 576 units); the overrun comes off the next tick. A plan that fits in its share commits on the tick it was asked for, as before.
+
+**Gap:** The spec asked for a budget and fairness, not the numbers or the unit.
+
+**Verdict:** Sound. Twelve 900 m plans at once start moving after 0.13 to 0.27 s, twelve 9 km ones after 1 to 2.2 s; a short order is never starved by long ones. **Confidence:** Medium on the number: it is tuned on a loaded development machine and should be re-measured in the browser.
+
+### What a unit does while it waits
+
+**Choice:** A unit with a plan pending has no route: it holds, and the published move state is `planning`. A squad takes cover and posts as it would standing still, and its soldiers join the corridor from wherever they are when the route arrives. A vehicle that is planning a way round traffic keeps its old route to resume if no way round is found. A pursuit whose target has moved more than 5 m asks again, dropping the unfinished plan. The panel shows no row for `planning` yet. Because a blocked verdict can now arrive after the order's flash of order marks has faded, the marks flash once more when a unit's route turns out blocked.
+
+**Gap:** The spec accepted the hold and proposed the published state, leaving the consumer review open.
+
+**Verdict:** Sound. The order line appears at once (the goal is published); only the unit's first metre waits. A panel row is a UI decision for the client pass. **Confidence:** High.
+
+### A side that learns something while a route is planned
+
+**Choice:** The plan carries on against the side's new picture. When it finishes, it stands only if it still fits what the side now knows (and shoves nothing new); otherwise it is planned again from scratch on the new picture.
+
+**Gap:** The spec asked for invalidation of affected work and warned against restarting on every change.
+
+**Verdict:** Sound: unrelated changes never restart a plan, and a route through a newly learned body is never handed out. **Confidence:** High.
+
+### A finished search hands its memory to the next
+
+**Choice:** A search's bookkeeping (the cells it reached) is never freed when the search ends or is cancelled: it goes to a pool and the next search reuses it under a new generation number. Cancelling is a constant-time hand-over.
+
+**Gap:** The standalone prototype freed a cancelled request's maps in one go, which the spec named as its open gap.
+
+**Verdict:** Sound. Memory is bounded by the largest search (the limit above) times the most plans ever pending at once. **Confidence:** High.
+
+### Each side's planning grid is built with the battle
+
+**Choice:** `Battle::new` builds both sides' grids. Before, the first order built them in its tick.
+
+**Gap:** Found by measurement: about 21 G instructions of S1's "12 s first tick" on the 6 km map were the two grids being built, not planning.
+
+**Verdict:** Sound for loading, and it exposes the next blocker: the grid is still rebuilt whole whenever a side's knowledge changes (a tank fells a tree, a wreck appears), at the same cost. See the SA2 outcome. **Confidence:** High.
+
+## C69 rivers
+
+### The rule, and the moments it was judged by
+
+**Choice:** Water is the ground within half a river's width of its rounded centreline. No ground mover stands on it; a deck over it is ground like any other; a round stops at its surface.
+
+**Gap:** The slice asks for the neighbouring rules to be walked (tweak-mechanics) and says only "impassable and crossed at bridges".
+
+**The moments:**
+- *A squad reaches a river.* It walks down the bank to the water and stops. Ordered across, it goes round by the bridge; with no bridge its route is blocked and it stays. A film squad would wade a shallow stream, but depth is not read by the rule: every river is deep enough to stop everyone. A ford, when one is wanted, is a deck at the bed's height, with no new rule.
+- *A tank reaches a river.* The same. It does not ford.
+- *On the bank.* The bank is gentle and can be stood on to the waterline. Men at the water stand below the land, so the land's lip hides them from far eyes by the terrain's own line of sight, with no cover rule added.
+- *Across the water.* Eyes and rounds cross it as open ground. A round falling into it stops at the surface: a shell bursts on the river and its blast reaches men on the bank; it digs no crater and leaves no scorch.
+- *Ordered into the water.* A squad's goal is moved to the nearest ground it can stand on, so within about 15 m of a bank it walks to the bank; farther out, and for any vehicle, the route is blocked and the order kept, as for any goal that cannot be reached. A group's places are spread round the click and can land on both banks, each unit going to its own. A film tank would drive to the bank too; that is the unreachable-goal rule's to change, for cliffs as well.
+- *Shoving.* A wreck pushed off a deck's side drops to the bed; pushed along the deck it stays on the deck. (It used to follow the bed under the deck.)
+- *Woods and roads.* Water is neither. Trunks keep the forest rule's clearance from it, as from a road.
+- *What it rules out.* Standing in water, a road under water giving road speed, a forest's concealment or slow going over water, a crater in a river.
+
+**Double counting, freezes, cheap tricks:** none found in the rule. A river is a wall with gates, which is what it is for, and the other side sees the same gates. The freeze that does exist is not the rule's: see "Squads at a bridge" below.
+
+**Verdict:** sound. **Confidence:** high.
+
+### The minimum width comes from the grid: three height samples
+
+**Choice:** A river point is refused under three times `height_grid_m`: 12 m on every shipped map.
+
+**Gap:** Q-G5 says 12 m and gives the reason in brackets (three cells on the 4 m grid).
+
+**Verdict:** sound. The reason is the rule: a channel narrower than three samples falls between them and is not carved. A coarser grid needs a wider river and says so. **Confidence:** high.
+
+### The cross-section is a V, and its grade is depth over half the width
+
+**Choice:** The bed falls in a straight line from the waterline to `depth_m` at the centreline. The bank carries the same grade on above the waterline. A point is refused when that grade, as the grid can draw it (up to √2 steeper, with a tenth to spare), would reach the slope cutoff: at 35° a 12 m river may be 2.67 m deep.
+
+**Gap:** Delegated: bank profile. The slice asks for "a bank steeper than the slope cutoff" to be refused without saying what sets a bank's steepness.
+
+**Alternatives:** A bank width per river, or a flat-bottomed channel with its own bank grade. Both add an authored number. One grade through the waterline has a property the others lack: the ground is one plane across the water's edge, so the grid's triangles cross the surface exactly on the rule's edge wherever the river runs straight.
+
+**Verdict:** sound. **Confidence:** medium: a wide, shallow river has a long gentle bank (30 m wide and 2 m deep gives 1 in 7.5), which may want its own number once banks have art.
+
+### A bank is cut below the land at the water's edge, not below a level
+
+**Choice:** On the bank the ground is the land's own height, less whatever the cross-section still lacks to reach the land's height at the nearest point of the water's edge. The cut ends where the bank has climbed that far.
+
+**Gap:** The slice says "a gentle bank from distance".
+
+**Alternatives:** The first version took the lower of the land and the V. A ridge 60 m from the geometry lab's river was then sliced flat by the V's plane, and a bank could run on as far as any hill near it was high.
+
+**Verdict:** sound. Land beside a river keeps its shape, and the strip that moves is bounded by the bank's own height. Where the land already slopes into the water its slope adds to the bank's, and only the bank's own grade is validated. **Confidence:** medium for rivers through relief, which no map has yet.
+
+### `surface_z` is authored, and the land must stand at or above it
+
+**Choice:** Each river has one surface height. A map is refused if the land at any sampled point of the water's edge is below it.
+
+**Gap:** Delegated: per-river `surface_z`.
+
+**Verdict:** sound. The geometry and movement labs use half a metre of freeboard (a 2 to 3 m bank) and the river lab 1.2 m (a 4.8 m bank). A river flowing downhill wants a surface per point; no map needs one yet. **Confidence:** medium.
+
+### A bridge's ramp is the bank made steep
+
+**Choice:** Along a bridge's approach (its deck, lengthened by the bank's reach and widened by a height sample each side) the cross-section takes the steepest grade the grid can draw under the slope cutoff (0.45 at 35°), bed and bank alike, and eases back to the river's own over at least three samples beside it. A bridge is refused when that bank cannot reach the land's height by the deck's end.
+
+**Gap:** Delegated: ramp length. The slice asks for "a ramp at bridge ends".
+
+**Alternatives:** A mound falling away from the deck's end stood in the water at the deck's corners and left a dip between the deck and the land. A steeper bank only above the waterline bent the ground at the water's edge, and the grid drew dry ground 0.4 m inside the water all along the abutment.
+
+**Verdict:** sound: a deck 6 m past the water is stepped onto from the land's height (the 0.1 m every lab deck stands above its road), and the ground beside the ramp is a centimetre off the water's surface at worst. **Confidence:** high.
+
+### The water is drawn as squares along the river, cut by distance
+
+**Choice:** The water surface is a strip of 8 m squares at the river's surface height, one for every square the water or a 4 m margin touches. The fragment cuts the edge by the shared distance, feathered over a pixel.
+
+**Gap:** The slice says "a ribbon along the centerline".
+
+**Alternatives:** A ribbon of quads with mitred joins folds over itself on the inside of a bend tighter than the water is wide, and the blended surface is then drawn twice there. Squares never overlap.
+
+**Verdict:** sound. **Confidence:** high.
+
+### SG2 was answered here, and its second fallback is in
+
+**Choice:** The bank and the bed are lit by a normal from the cross-section (`groundBank`), not by the triangles' own, out to a triangle past the bank's top. Nearby stretches share it by how far inside each puts the point.
+
+**Gap:** SG2 was never run. Its kill check and fallbacks were to be applied in order.
+
+**Evidence:** Lit by its own triangles a bank steps by up to 20.6% of the flat ground's luminance between neighbours (bar: 8%). Cutting the edge by distance and laying the wet band over it, both already in the frame, leave the steps on the bed through the water and on the bank past the band. With the shading normal the largest step walking a bank is 2.1%. Two things were tried and dropped on the way. Taking the nearest stretch alone left 16% at the inside of bends, where the bank's face turned at a stroke. Lighting the bed as the V it is showed through the water as one bright half and one dark, so the bed is lit flat.
+
+**Verdict:** sound for "not stepped". It overlaps C71 (bank roundness), which now starts from a round bank. How soon the shading ends is a constant in the material, to become biome numbers when C70 gives banks a look. **Confidence:** medium until the specialist judges it beside bank art.
+
+### The wet band's edge is plain
+
+**Choice:** The wet, bare band beside the water ends a fixed distance from the water's edge (the biome's `shore.width_m`). Its ragged line is gone.
+
+**Gap:** The slice says "there's no new look yet"; the band's ragged edge was the existing look, drawn for straight water rects.
+
+**Evidence:** Two unprimed critiques called the band's outer edge scalloped or stepped, with high confidence, at the play camera and closer: the raggedness was value noise on a square lattice, which shows as lumps and straight runs beside a round river.
+
+**Verdict:** sound as the plain drawing: a fourth critique, on the plain band, found no stepping on it. The band's art is C70's; fresh eyes also said the plain band reads as a painted outline. The geometry and movement labs' bands lose their ragged line too. **Confidence:** high for not stepped.
+
+### The lab's meander is authored every 4 m
+
+**Choice:** `river-lab.json`'s meander is 127 points along a smooth curve, none turning the river by more than 8°.
+
+**Gap:** The slice asks for "a meander". C65's curve rounds a third of each run at a corner, so a river authored as a dozen long runs is straight for a third of every run.
+
+**Evidence:** Authored as twelve 50 m runs it read as a chain of straights from above. Unprimed critiques named the corners in the waterline of a 9 m version, and in the wet band of a 5 m version whose points were rounded to half a metre.
+
+**Verdict:** sound for the lab, and it says what a generator has to write: a river is a dense line, and the loader only takes the corners off. **Confidence:** medium; a curve family that rounds a whole run would let rivers be authored sparsely, and is C65's to decide.
+
+### Fields are cut along a river's long runs, not every authored run
+
+**Choice:** `river_runs()` joins authored points, leaving out those within half the river's narrowest water of the run between their neighbours.
+
+**Gap:** The slice says "plots cut along river control runs". A meander authored point by point has a run every 4 m.
+
+**Evidence:** Cut along every run, the lab's fields fanned into slivers at each bend.
+
+**Verdict:** sound: the cuts stay under the water. **Confidence:** medium; the plot cutter may want its own rule for curves.
+
+### Squads at a bridge: found, measured, left to movement
+
+**Choice:** Not changed here. The river scenarios carry the failing checks as pending on SA2.
+
+**Gap:** The slice asks for a squad and a tank to route over the bridge and never enter the water. They do both. But a soldier whose next step is onto ground he cannot enter does not sidestep; he stays. A squad's files spread wider than a 10 m deck, and a route that meets the deck at an angle runs along the deck's edge, so some soldiers stop at the water beside the deck and never arrive.
+
+**Evidence:** The same scenario on the base commit's water rects strands the same four soldiers (`throwaway/c69/base-bridge/`). Straight up the road every soldier crosses in the scenario table (34 reversals at the deck's edges), and six of eight in the lab's scene, where a tank leads them over.
+
+**Verdict:** open, and it will be met on the first generated map with a river. It needs soldiers to slide along ground they cannot enter as they do along bodies, or routes that keep a squad's width from a deck's edge. **Confidence:** high that it is not the river's contract.
+
+### The lab is registered the way the others are
+
+**Choice:** `river` is an entry in `apps/battle-lab/src/fixtures.json` with its own route, scene and `fixtures/river-lab.json`.
+
+**Gap:** The slice depends on C60's catalogue, which has not landed; the dependency was relaxed.
+
+**Verdict:** sound; it moves with the other labs when C60 does. **Confidence:** high.
+
+## Integrating SA2 with C69
+
+### A straight segment may clip the corner of any cell a mover could stand in
+
+**Choice:** When a route segment passes more than half a cell from a cell's middle, it only clips that cell's corner, and the segment check asks whether a mover could stand in the cell at all. That is the rule the search already holds a diagonal step to. Closer than half a cell, the segment still loses that much of the cell's room, as before.
+
+**Gap:** SA2 made the straight-segment check stricter than the search's diagonal rule. Along a curved river bank the search then gave a tank a route its own check refused (the river lab's long way round), so the unit would plan the same route again; the same thing explains SA2's "jeep among trees" note.
+
+**Verdict:** sound: the search can no longer emit a step the route check refuses. Tightening the search to the stricter rule instead was tried and rejected: followed through, it needs almost 4 m of clearance and would keep tanks out of ordinary 7 m streets. The two navigation tests that judged a route point by point with the off-centre standing rule now judge it by the engine's route check plus "every cell on the way can be stood in". **Confidence:** medium; vehicles among trees should be re-measured.
+
+## Navigation grid updates
+
+**When:** the grid-update pass after SA2, 2026-10-01. The brief fixed the goals (local updates, one shared base, digests unchanged); these are the decisions it left open. Numbers are in [SA2's outcome](slices/SA2-counted-route-integration.md#grid-updates).
+
+### The shared base is the map as authored, bodies included
+
+**Choice:** Both sides start from one planning picture, built once: the terrain, and every body the map was authored with (trees, buildings, walls, authored wrecks), standing where the map put it. A side then keeps only what it has come to know differently: a body it has learned of, one it has seen moved, one it has seen go.
+
+**Gap:** SA2 said public terrain is shared and "never includes secret side-specific bodies", but did not say whether authored bodies are public. In the battle they already are: every side plans with every authored body from the first tick, in view or not.
+
+**Verdict:** Sound. Nothing about who knows what has changed. A side still plans round a tree it has not seen fall, and still knows nothing of a wreck it has not seen. A battle test holds both sides' pictures to that at every twentieth tick, with one side watching the changes and the other two kilometres off. **Confidence:** High.
+
+### A change is taken in at once, not spread over ticks
+
+**Choice:** When a side learns something, its picture is brought up to date the next time one of its units reads it, in full, before the unit plans. Only the cells under the bodies that changed are worked out again.
+
+**Gap:** The brief allowed a burst to be spread over ticks, with units planning on the old picture meanwhile.
+
+**Verdict:** Not needed. Fifty trees felled in one tick are about 1,200 cells and about 1.7 million instructions, a twentieth of what a full tick of planning costs; there is no window in which a unit plans on a stale picture. **Confidence:** High.
+
+### Planning work is counted as before
+
+**Choice:** A search still pays for its first read of each 64 m clearance tile after its side learns anything, although the tile is no longer worked out again unless a body near it changed.
+
+**Gap:** Before, the whole picture was rebuilt on every change, so every tile really was worked out again and the charge was honest. Now it is a charge for work mostly not done.
+
+**Verdict:** Kept, so that every route arrives on the tick it did and no battle digest moves. Charging only for tiles really worked out would shorten the hold after a side learns something and is a small named digest change for later. **Confidence:** Medium.
+
+### Cleared forest ground reaches a side's picture when the side next learns of a body
+
+**Choice:** Left as it was. Ground a tank or a shell has cleared stops counting as forest (the slower speed) in a side's picture at that side's next change of knowledge, whoever cleared it and whether or not the side saw it.
+
+**Gap:** The old rebuild read the true cleared ground each time; nobody decided that. It is a small leak (speed only: what a side can pass is never affected) and a delay for the side that did the clearing.
+
+**Verdict:** Kept, because changing it moves digests. The right rule is the one the rest of the battle uses: a side's picture of the ground is the ground it has seen. **Confidence:** Low. The user should decide.
+
+### The world keeps two short lists of what changed
+
+**Choice:** The world records the bodies it added, moved, removed or made known to all since the battle last asked, and every ground cell cleared, in order. A side's picture reads both; nothing else tells it which bodies to look at again.
+
+**Gap:** SA2's outcome said cleared ground "needs a change feed first".
+
+**Verdict:** Sound. The first list is emptied every tick; the second grows by one entry per cleared square metre and is the cleared ground itself in another order. **Confidence:** High.
+
+### Each unit still checks its whole route when its side learns something
+
+**Choice:** Left as it was, and made cheaper: a route is read a cell at a time instead of a sample at a time.
+
+**Gap:** With the rebuild gone, this is what a change of knowledge costs: every unit with a route walks all of it to see whether the new body is in the way, 3 to 4 million instructions for a 9 km route. A hundred units a side would be a slow tick. Checking only the routes that pass near the change gives the same answers, but it changes which clearance tiles later searches pay for (see "Planning work is counted as before"), so routes arrive a tick earlier or later and digests move.
+
+**Verdict:** Open. It is the next cost to remove, together with the check of a finished plan against newer knowledge, which reads a whole route in one uncounted step (a tick's planning reached 15,029 against an allowance of 4,000 on the 10 km probe, before and after this pass). Both need the counting decision above. A trial of the first (not committed; the patch is `throwaway/navgrid/route-recheck-near-change.patch`): a unit checks its route only when a change lies within 24 m of it. All six village quick digests moved, with like outcomes (the flank 2 of 3 captured both ways, 938 lost against 950). On Metro Large the crossing's planning work fell from 7.1 M to 2.0 M, because today a vehicle whose route shoves anything plans the whole route again whenever its side learns anything anywhere. **Confidence:** High that it is the next cost; medium on the fix.
+
+### Surface lookups pass by a primitive on its bounds
+
+**Choice:** A surface lookup skips a road segment or a polygon whose bounds the point lies outside by more than a thousandth of a millimetre.
+
+**Gap:** Found by measurement: over half of the picture's build on a generated town was containment tests against every primitive of a 128 m bucket.
+
+**Verdict:** Sound: the margin is far above rounding, so the answer is the same. It is in its own commit because it touches a file the rivers work is also changing. **Confidence:** High.
+
+### A unit re-checks its route only when its side learns something near it
+
+**Choice:** When a side learns of a change, a unit re-checks its remaining route only if the change lies within 24 m of that route (the widest clearance a footprint is judged by, and a cell more). If the side's change log no longer reaches back to the unit's plan, it re-checks as before.
+
+**Gap:** After the grid-update pass, every unit still re-checked its whole route whenever its side learned anything anywhere: 3–4 M instructions per unit on a long route, and a vehicle whose route shoves anything re-planned each time. The pass trialled this change and left it uncommitted because it moves digests (routes are the same; later searches read different clearance tiles on different ticks).
+
+**Verdict:** sound; a named digest change. On Metro Large (10 km, 9,276 buildings), twelve units crossing with wrecks and shelled trees appearing: planning work 7.1 M → 2.0 M, slowest tick 9 ms, none over 33 ms. Quick village report: flank 2/3 captured with 938 lost (950 before), ambush 0/3 with 0 lost. **Confidence:** high.

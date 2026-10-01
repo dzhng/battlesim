@@ -96,7 +96,15 @@ export async function run(ctx) {
     ack.seq === 1 && !ack.ack.error,
     JSON.stringify(ack),
   );
-  await wait(500);
+  // Startup acceleration is a vehicle rule; authority checks eventual progress.
+  await page.waitForFunction(
+    ({ id, from }) => {
+      const unit = window.__lab.route.observation().own.find((u) => u.id === id);
+      return unit.position[0] > from[0] + 1;
+    },
+    { id: tank.id, from: tank.position },
+    { timeout: 10000, polling: 100 },
+  );
   const moved = await route(
     page,
     (id) => window.__lab.route.observation().own.find((u) => u.id === id),

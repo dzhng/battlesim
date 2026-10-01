@@ -13,6 +13,7 @@ pub mod map;
 pub mod maps;
 pub mod numbers;
 pub mod observation;
+pub mod river;
 pub mod scenario;
 pub mod templates;
 pub mod weapons;

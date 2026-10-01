@@ -1,4 +1,5 @@
-//! Ground movement each tick: plan when needed, follow the route at surface
+//! Ground movement each tick: ask for a route when one is needed and hold
+//! until the planner has it ([`RoutePlanner`]), follow the route toward surface
 //! speed, and learn obstacles by running into them. A vehicle drives its route
 //! as one hull, waits for every other vehicle whatever its side (Q14), never
 //! for soldiers, and shoves bodies lighter than its push class aside
@@ -7,7 +8,8 @@
 //! his own ([`soldier`]), with his own route on the exact bodies for the
 //! final stretch ([`final_leg`]). Craters slow a driving vehicle here, in
 //! integration only: planning never reads them.
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::sync::Arc;
 
 use contract::ids::Tick;
 use contract::map::MoverClass;
@@ -17,7 +19,8 @@ use contract::scenario::InfantryMovementRules;
 use crate::arrangement;
 use crate::ground::GroundLayer;
 use crate::math::{v2, Obb2, V2};
-use crate::navigation::{NavGrid, Plan};
+use crate::navigation::{NavBase, NavGrid, Plan, RoadNet};
+use crate::route_planner::{Request, RoutePlanner};
 use crate::units::Unit;
 use crate::world::{Prop, PropId, WorldGeometry};
 
@@ -38,6 +41,9 @@ const GOAL_REPLAN_M: f64 = 5.0;
 const STALL_REPLAN_S: f64 = 2.0;
 /// Progress shorter than this does not reset the stall watch.
 const PROGRESS_EPSILON_M: f64 = 0.5;
+/// A vehicle planning its way out of a traffic knot plans round every
+/// vehicle within this distance of it.
+const KNOT_M: f64 = 40.0;
 /// Extra room vehicles keep from other bodies.
 const TRAFFIC_MARGIN_M: f64 = 0.4;
 /// A unit learns of an obstacle within this distance of its footprint.
@@ -78,7 +84,6 @@ fn span(prop: &Prop, seen: Option<V2>) -> (V2, f64) {
 /// What one side may plan with: the authored map plus the dynamic obstacles
 /// its units have encountered, each where the side last saw it. Hidden
 /// changes never reach this.
-#[derive(Default)]
 pub struct SideGeometry {
     /// Every body this side places somewhere other than where it truly
     /// stands, or learned after setup: each learned body where it was last
@@ -93,12 +98,49 @@ pub struct SideGeometry {
     /// Where each of the latest revisions changed the side's plan, oldest
     /// first, so a squad re-resolves only for changes within its reach.
     changes: VecDeque<Change>,
-    grid: Option<(u64, NavGrid)>,
+    /// The side's planning grid as of revision `grid_revision`: the map's
+    /// grid, with what the side had learned by then.
+    grid: NavGrid,
+    grid_revision: u64,
+    /// The bodies the side may place otherwise than its grid has them.
+    stale: BTreeSet<PropId>,
+    /// How many of the world's cleared ground cells the grid has taken in.
+    cleared_taken: usize,
     /// Route searches run for this side (the no-per-frame-search contract).
     pub searches: u64,
 }
 
+/// A change farther than this from a unit's route cannot put a body in
+/// its way: the widest clearance a footprint is judged by, and a cell more.
+const ROUTE_RECHECK_REACH_M: f64 = 24.0;
+
 impl SideGeometry {
+    /// A side that knows the map as `base` has it, and nothing else.
+    pub fn new(base: Arc<NavBase>) -> Self {
+        SideGeometry {
+            seen: BTreeMap::new(),
+            standing: BTreeMap::new(),
+            revision: 0,
+            changes: VecDeque::new(),
+            grid: NavGrid::new(base),
+            grid_revision: 0,
+            stale: BTreeSet::new(),
+            cleared_taken: 0,
+            searches: 0,
+        }
+    }
+
+    /// Cells the side's grid has worked out again as the side learned.
+    pub fn cells_relaid(&self) -> u64 {
+        self.grid.relaid()
+    }
+
+    /// The world changed these props (added, moved, removed or made known
+    /// to all): what the side believes of each may have changed with it.
+    pub fn touch(&mut self, props: &[PropId]) {
+        self.stale.extend(props);
+    }
+
     /// The side sees or touches `prop` where it stands now. A body new to it
     /// is learned; one it knows elsewhere is re-learned once it has moved
     /// more than `relearn_m` from where it was seen, or has come to rest
@@ -118,6 +160,7 @@ impl SideGeometry {
             Some(_) => {}
         }
         let was = self.seen.insert(prop.id, now).map(|w| w.center);
+        self.stale.insert(prop.id);
         self.changed(span(prop, was));
     }
 
@@ -150,6 +193,37 @@ impl SideGeometry {
             .any(|c| (c.at - at).length() <= reach + c.radius)
     }
 
+    /// Whether any change after revision `since` came within `reach` of
+    /// the way from `from` along `route`: always, once the log no longer
+    /// reaches back that far.
+    pub fn changed_along(&self, since: u64, from: V2, route: &[V2], reach: f64) -> bool {
+        if since >= self.revision {
+            return false;
+        }
+        if self.changes.front().is_none_or(|c| c.revision > since + 1) {
+            return true;
+        }
+        self.changes
+            .iter()
+            .rev()
+            .take_while(|c| c.revision > since)
+            .any(|c| {
+                let mut a = from;
+                route.iter().any(|&b| {
+                    let ab = b - a;
+                    let len2 = ab.dot(ab);
+                    let t = if len2 > 0.0 {
+                        ((c.at - a).dot(ab) / len2).clamp(0.0, 1.0)
+                    } else {
+                        0.0
+                    };
+                    let near = (a + ab * t - c.at).length() <= reach + c.radius;
+                    a = b;
+                    near
+                })
+            })
+    }
+
     /// `prop` is about to be shoved: an authored body the side has not seen
     /// move stays, for it, where it stands now (L1).
     pub fn before_move(&mut self, prop: &Prop, authored: PropId) {
@@ -159,11 +233,13 @@ impl SideGeometry {
                 yaw: prop.yaw,
                 base_z: prop.base_z,
             });
+            self.stale.insert(prop.id);
         }
     }
 
     /// A body this side did not see go: it keeps planning around it.
     pub fn keep_standing(&mut self, prop: Prop) {
+        self.stale.insert(prop.id);
         self.standing.insert(prop.id, prop);
     }
 
@@ -171,6 +247,7 @@ impl SideGeometry {
     pub fn saw_fallen(&mut self, prop: PropId) {
         if let Some(gone) = self.standing.remove(&prop) {
             let was = self.seen.remove(&prop).map(|s| s.center);
+            self.stale.insert(prop);
             self.changed(span(&gone, was));
         }
     }
@@ -178,6 +255,7 @@ impl SideGeometry {
     /// A prop this side plans with is gone: plan again without it.
     pub fn forget(&mut self, prop: &Prop) {
         let was = self.seen.remove(&prop.id).map(|s| s.center);
+        self.stale.insert(prop.id);
         self.changed(span(prop, was));
     }
 
@@ -206,22 +284,42 @@ impl SideGeometry {
         self.belief(world.prop(id).or_else(|| self.standing.get(&id))?, authored)
     }
 
-    /// The side's planning grid, rebuilt only when its knowledge changed.
-    /// `soldier_radius` sizes infantry's gaps.
-    pub fn grid(
+    /// The side's planning grid. It takes in what the side has learned
+    /// only when its revision has changed, and then only the bodies and the
+    /// cleared ground that changed.
+    pub fn grid(&mut self, world: &WorldGeometry, authored: PropId) -> &NavGrid {
+        if self.grid_revision != self.revision {
+            self.stale.extend(world.touched());
+            let beliefs: Vec<(PropId, Option<Prop>)> = std::mem::take(&mut self.stale)
+                .into_iter()
+                .map(|id| (id, self.prop(world, authored, id)))
+                .collect();
+            let cleared = world.cleared_since(self.cleared_taken);
+            self.cleared_taken = world.cleared_cells() as usize;
+            self.grid.update(world, beliefs.into_iter(), cleared);
+            self.grid_revision = self.revision;
+        }
+        &self.grid
+    }
+
+    /// The side's grid as it stands once it has taken in everything the
+    /// side believes now, beside a grid built whole from those beliefs.
+    #[cfg(test)]
+    pub(crate) fn grid_beside_whole_build(
         &mut self,
         world: &WorldGeometry,
         authored: PropId,
         soldier_radius: f64,
-    ) -> &mut NavGrid {
-        if self.grid.as_ref().is_none_or(|(r, _)| *r != self.revision) {
-            let known = world
-                .props()
-                .chain(self.standing.values())
-                .filter_map(|p| self.belief(p, authored));
-            self.grid = Some((self.revision, NavGrid::build(world, known, soldier_radius)));
-        }
-        &mut self.grid.as_mut().unwrap().1
+    ) -> (&NavGrid, NavGrid) {
+        let believed: Vec<Prop> = world
+            .props()
+            .chain(self.standing.values())
+            .filter_map(|p| self.belief(p, authored))
+            .collect();
+        let whole = NavBase::build(world, believed.iter(), soldier_radius);
+        // A revision the side never reaches, so the grid looks again.
+        self.grid_revision = u64::MAX;
+        (self.grid(world, authored), NavGrid::new(Arc::new(whole)))
     }
 
     /// Fold the side's planning knowledge into a digest.
@@ -247,6 +345,8 @@ impl SideGeometry {
 
 pub struct MovementContext<'a> {
     pub world: &'a WorldGeometry,
+    /// The map's road graph: the same for both sides.
+    pub roads: &'a RoadNet,
     pub ground: &'a GroundLayer,
     pub ground_rules: &'a contract::scenario::GroundRules,
     /// Props with ids below this were authored with the map and are known to all.
@@ -270,17 +370,23 @@ pub fn advance(
     ctx: &MovementContext,
     units: &mut [Unit],
     sides: &mut [SideGeometry; 2],
+    planner: &mut RoutePlanner,
 ) -> Vec<Shove> {
     let footprints: Vec<Option<Obb2>> = units
         .iter()
         .map(|u| u.hull_box().filter(|_| u.alive()))
         .collect();
     let field = take_cover::Field::gather(ctx, units);
-    // The destroyed stay put; a wreck is an obstacle prop, not traffic.
-    for unit in units.iter_mut().filter(|u| u.alive()) {
+    for unit in units.iter_mut() {
+        // The destroyed stay put; a wreck is an obstacle prop, not traffic.
+        if !unit.alive() {
+            planner.cancel(unit.id);
+            continue;
+        }
         let s = unit.side.index();
-        plan_if_needed(ctx, unit, &mut sides[s], &footprints, &field);
+        request_route(ctx, unit, &mut sides[s], &footprints, planner);
     }
+    plan_routes(ctx, units, sides, &field, planner);
     let hulls: Vec<Obb2> = footprints.iter().flatten().copied().collect();
     // Every live vehicle on the move, either side, as soldiers see it coming.
     let threats: Vec<Threat> = units
@@ -310,14 +416,19 @@ pub fn advance(
     shoves
 }
 
-fn plan_if_needed(
+/// Ask the planner for a route when the unit needs one: a new goal, a route
+/// its side now knows is blocked, or a stall. It holds until the route comes
+/// ([`plan_routes`]); a goal that moves on meanwhile asks again.
+fn request_route(
     ctx: &MovementContext,
     unit: &mut Unit,
     side: &mut SideGeometry,
     footprints: &[Option<Obb2>],
-    field: &take_cover::Field,
+    planner: &mut RoutePlanner,
 ) {
+    prefer_roads(ctx, unit);
     let Some((goal, policy)) = unit.movement_goal() else {
+        planner.cancel(unit.id);
         unit.route = None;
         unit.planned_goal = None;
         unit.state = MoveState::Idle;
@@ -335,16 +446,28 @@ fn plan_if_needed(
     let goal_moved = unit
         .planned_goal
         .is_none_or(|g| (g - goal).length() > GOAL_REPLAN_M);
+    if planner.pending(unit.id).is_some() && !goal_moved {
+        return;
+    }
     let changed = unit.planned_revision != side.revision;
     let stall_ticks = (STALL_REPLAN_S * ctx.tick_hz as f64) as u64;
     let stalled = unit.route.is_some() && ctx.tick.saturating_sub(unit.progress.1) > stall_ticks;
     // Deadlocked vehicles: the lower-priority one (higher id) plans around
-    // the one it waits for; the other keeps its route and proceeds when clear.
-    let detour = match (unit.state, unit.blocker) {
+    // the one it waits for, and every other vehicle standing in the knot
+    // with it (two columns that meet are more than a pair); the other keeps
+    // its route and proceeds when clear.
+    let detour: Vec<Obb2> = match (unit.state, unit.blocker) {
         (MoveState::Waiting, Some(b)) if stalled && unit.is_vehicle() && unit.id > b => {
-            footprints[b.0 as usize]
+            let here = unit.position.xy();
+            footprints
+                .iter()
+                .enumerate()
+                .filter(|(k, _)| *k != unit.id.0 as usize)
+                .filter_map(|(_, hull)| *hull)
+                .filter(|hull| (hull.center - here).length() <= KNOT_M)
+                .collect()
         }
-        _ => None,
+        _ => Vec::new(),
     };
     let needs = match (&unit.route, unit.state) {
         _ if goal_moved => true,
@@ -360,11 +483,18 @@ fn plan_if_needed(
             // a pusher's route that now shoves one, so A* weighs the shove
             // against a detour (Q13).
             stalled
-                || (changed && {
-                    let grid = side.grid(ctx.world, ctx.authored, ctx.soldier_radius_m);
-                    !grid.route_fits(from, route, &unit.mobility)
-                        || grid.route_pushes(from, route, &unit.mobility)
-                })
+                || (changed
+                    && side.changed_along(
+                        unit.planned_revision,
+                        from,
+                        route,
+                        ROUTE_RECHECK_REACH_M,
+                    )
+                    && {
+                        let grid = side.grid(ctx.world, ctx.authored);
+                        !grid.route_fits(from, route, &unit.mobility)
+                            || grid.route_pushes(from, route, &unit.mobility)
+                    })
         }
     };
     unit.planned_revision = side.revision;
@@ -372,31 +502,104 @@ fn plan_if_needed(
         return;
     }
     side.searches += 1;
-    let grid = side.grid(ctx.world, ctx.authored, ctx.soldier_radius_m);
-    let from = if unit.is_vehicle() {
-        unit.position.xy()
-    } else {
-        set_off(unit)
-    };
-    // A new goal draws a new arrangement; a replan toward the same one
-    // keeps every soldier's spot.
-    let new_goal = goal_moved;
     unit.planned_goal = Some(goal);
-    unit.progress = (f64::INFINITY, ctx.tick);
-    if let Some(blocker) = detour {
-        // A failed detour keeps waiting and may try again after another stall.
-        if let Plan::Route(route) =
-            grid.plan_avoiding(from, goal, &unit.mobility, policy, &[blocker])
-        {
-            unit.route = Some(route);
-        }
+    // It holds without a route while it waits; a detour keeps the one it has.
+    let kept = unit.route.take().filter(|_| !detour.is_empty());
+    unit.state = MoveState::Planning;
+    planner.submit(
+        unit.id,
+        Request {
+            side: unit.side,
+            from: route_start(unit),
+            goal,
+            mobility: unit.mobility,
+            policy,
+            detour,
+            kept,
+            new_goal: goal_moved,
+        },
+    );
+}
+
+/// A long ordered leg goes by road: a move or attack-move leg strictly over
+/// `navigation.road_leg_m` from where the unit stands when the leg starts
+/// takes the fastest policy, and keeps it however short the leg has become
+/// when it plans again. Pursuit and a building's approach are never legs.
+fn prefer_roads(ctx: &MovementContext, unit: &mut Unit) {
+    if unit.planned_goal.is_some() || unit.garrison.is_some() {
         return;
     }
-    match grid.plan(from, goal, &unit.mobility, policy) {
+    let from = route_start(unit);
+    if let Some(leg) = unit.orders.front_mut().and_then(|o| o.movement_mut()) {
+        if (leg.destination - from).length() > ctx.rules.navigation.road_leg_m {
+            leg.policy = contract::command::RoutePolicy::Fastest;
+        }
+    }
+}
+
+/// Spend this tick's planning work, and give every unit whose route is
+/// whole its route.
+fn plan_routes(
+    ctx: &MovementContext,
+    units: &mut [Unit],
+    sides: &mut [SideGeometry; 2],
+    field: &take_cover::Field,
+    planner: &mut RoutePlanner,
+) {
+    let waiting = planner.sides();
+    // Each side's grid as it knows the map now, built only if it is needed.
+    fn known<'a>(ctx: &MovementContext, side: &'a mut SideGeometry) -> (&'a NavGrid, u64) {
+        let revision = side.revision;
+        let grid = side.grid(ctx.world, ctx.authored);
+        (grid, revision)
+    }
+    let [blue, red] = &mut *sides;
+    let ready = planner.advance(
+        &ctx.rules.navigation,
+        ctx.roads,
+        [
+            waiting[0].then(|| known(ctx, blue)),
+            waiting[1].then(|| known(ctx, red)),
+        ],
+    );
+    for (id, request, plan) in ready {
+        let unit = &mut units[id.0 as usize];
+        take_route(ctx, unit, &sides[unit.side.index()], field, request, plan);
+    }
+}
+
+/// The planner's answer to `request` arrives: the unit sets off on the
+/// route, or learns there is none. It held while it waited, so the route
+/// starts where it stands; a squad's soldiers, who may have shifted to
+/// cover meanwhile, join the corridor from wherever they are.
+fn take_route(
+    ctx: &MovementContext,
+    unit: &mut Unit,
+    side: &SideGeometry,
+    field: &take_cover::Field,
+    request: Request,
+    plan: Plan,
+) {
+    let from = request.from;
+    unit.planned_revision = side.revision;
+    unit.progress = (f64::INFINITY, ctx.tick);
+    if !request.detour.is_empty() {
+        // No way round keeps it waiting on the route it had; it may try
+        // again after another stall.
+        unit.route = match plan {
+            Plan::Route(route) => Some(route),
+            Plan::Blocked(_) => request.kept,
+        };
+        unit.state = MoveState::Waiting;
+        return;
+    }
+    match plan {
         Plan::Route(route) => {
             if !unit.is_vehicle() {
                 let end = *route.last().expect("a route ends somewhere");
-                if new_goal {
+                // A new goal draws a new arrangement; a replan toward the
+                // same one keeps every soldier's spot.
+                if request.new_goal {
                     spread_out(ctx, unit, side, field, from, end);
                 } else {
                     keep_spots(ctx, unit, side, end);
@@ -457,6 +660,7 @@ fn arrive(unit: &mut Unit) {
     unit.route = None;
     unit.planned_goal = None;
     unit.manoeuvre = None;
+    unit.drive_speed_mps = 0.0;
     unit.state = if unit.orders.is_empty() {
         MoveState::Idle
     } else {
@@ -474,6 +678,7 @@ fn step_vehicle(
     let dt = 1.0 / ctx.tick_hz as f64;
     units[i].reversing = false;
     if !may_advance(ctx, &mut units[i]) {
+        units[i].drive_speed_mps = 0.0;
         units[i].manoeuvre = None;
         if units[i].route.is_none() && units[i].turn_to.is_some() {
             let before = units[i].yaw;
@@ -502,35 +707,10 @@ fn step_vehicle(
     });
     // Craters under the hull slow it slightly; never to a stop (Q8).
     let speed = speed * ctx.ground.vehicle_speed(here.x, here.y, ctx.ground_rules);
-    let motion = drive::steer(ctx.world, &mut units[i], target, speed, dt);
+    let before_manoeuvre = unit.manoeuvre;
+    let mut motion = drive::steer(ctx.world, &mut units[i], target, speed, dt);
     let unit = &units[i];
-    // Tracks turn standing still; wheels turn only as they roll (Q29).
-    let pivots = unit.mobility.drive.is_some_and(|d| d.tracked);
-    let held_yaw = if pivots { motion.yaw } else { unit.yaw };
-    let yaw = motion.yaw;
-    let heading = motion.heading;
-    let mut step = motion.step;
-
-    // Traffic, whatever its side (Q14): a vehicle waits for whatever it
-    // would run into; live vehicles are never shoved (Q15).
-    let mut next = here + heading * step;
-    let blocker = units.iter().enumerate().find_map(|(j, other)| {
-        (j != i && other.is_vehicle() && other.alive() && vehicle_conflict(unit, next, yaw, other))
-            .then_some(other.id)
-    });
-
-    let unit = &mut units[i];
-    if let Some(b) = blocker {
-        unit.state = MoveState::Waiting;
-        unit.blocker = Some(b);
-        unit.yaw = held_yaw;
-        return;
-    }
-    unit.state = MoveState::Moving;
-    unit.blocker = None;
-
-    // True geometry decides; an obstacle met here becomes known to the side.
-    let radius = unit.footprint_radius(ctx.soldier_radius_m);
+    let mut next = here + motion.heading * motion.step;
     let half = unit.hull.expect("a vehicle has a hull").xy();
     let current = Obb2 {
         center: here,
@@ -538,6 +718,79 @@ fn step_vehicle(
         half,
     };
     let push = unit.mobility.push;
+    // Box against box (L8): a body it cannot shove stops it; the bodies it
+    // can shove slow it by the heaviest's class ratio and slide aside (Q2).
+    let hull_at = |center: V2, yaw: f64| Obb2 { center, yaw, half };
+    let mut met = push::meet(ctx.world, &hull_at(next, motion.yaw), &current, push);
+    if met.solid.is_none() && !met.shoved.is_empty() {
+        let heaviest = met
+            .shoved
+            .iter()
+            .map(|p| p.body.weight_class.rank())
+            .max()
+            .unwrap_or(0);
+        // Shoving limits the target speed, not the already ramped velocity:
+        // multiplying carried speed every tick would compound the slowdown.
+        units[i].manoeuvre = before_manoeuvre;
+        motion = drive::steer(
+            ctx.world,
+            &mut units[i],
+            target,
+            speed * push.shove_speed(heaviest),
+            dt,
+        );
+        next = here + motion.heading * motion.step;
+        met = push::meet(ctx.world, &hull_at(next, motion.yaw), &current, push);
+    }
+    // Traffic, whatever its side (Q14): a vehicle waits for whatever it
+    // would run into; live vehicles are never shoved (Q15).
+    let unit = &units[i];
+    let mut blocker = units.iter().enumerate().find_map(|(j, other)| {
+        (j != i
+            && other.is_vehicle()
+            && other.alive()
+            && vehicle_conflict(unit, next, motion.yaw, other))
+        .then_some(other.id)
+    });
+
+    // A detouring tank must not pivot through its neighbour. Give the turn
+    // room instead of deadlocking nose-to-nose.
+    if blocker.is_some()
+        && unit.mobility.drive.is_some_and(|d| d.tracked)
+        && motion.yaw != unit.yaw
+        && stationary_yaw(ctx.world, units, i, motion.yaw) == unit.yaw
+    {
+        let back = drive::give_space(unit, speed, dt);
+        let at = here + back.heading * back.step;
+        let behind = push::meet(ctx.world, &hull_at(at, back.yaw), &current, push);
+        let traffic = units.iter().enumerate().any(|(j, other)| {
+            j != i
+                && other.is_vehicle()
+                && other.alive()
+                && vehicle_conflict(unit, at, back.yaw, other)
+        });
+        if behind.solid.is_none() && behind.shoved.is_empty() && !traffic {
+            motion = back;
+            next = at;
+            met = behind;
+            blocker = None;
+        }
+    }
+    if let Some(b) = blocker {
+        let held_yaw = stationary_yaw(ctx.world, units, i, motion.yaw);
+        let unit = &mut units[i];
+        unit.state = MoveState::Waiting;
+        unit.blocker = Some(b);
+        unit.yaw = held_yaw;
+        unit.drive_speed_mps = 0.0;
+        return;
+    }
+    let unit = &mut units[i];
+    unit.state = MoveState::Moving;
+    unit.blocker = None;
+
+    // True geometry decides; an obstacle met here becomes known to the side.
+    let radius = unit.footprint_radius(ctx.soldier_radius_m);
     let side = &mut sides[unit.side.index()];
     for prop in ctx.world.props_near(next, radius + ENCOUNTER_RANGE_M) {
         if prop.blocks(MoverClass::Vehicle)
@@ -547,21 +800,6 @@ fn step_vehicle(
             side.learn(prop, ctx.authored, ctx.rules.pushing.relearn_m, resting);
         }
     }
-    // Box against box (L8): a body it cannot shove stops it; the bodies it
-    // can shove slow it by the heaviest's class ratio and slide aside (Q2).
-    let hull_at = |center: V2, yaw: f64| Obb2 { center, yaw, half };
-    let mut met = push::meet(ctx.world, &hull_at(next, yaw), &current, push);
-    if met.solid.is_none() && !met.shoved.is_empty() {
-        let heaviest = met
-            .shoved
-            .iter()
-            .map(|p| p.body.weight_class.rank())
-            .max()
-            .unwrap_or(0);
-        step *= push.shove_speed(heaviest);
-        next = here + heading * step;
-        met = push::meet(ctx.world, &hull_at(next, yaw), &current, push);
-    }
     let turn = ctx.rules.pushing.turn_deg_per_m.to_radians();
     let mut shoved = Vec::new();
     let mut solid = met.solid.is_some();
@@ -570,8 +808,8 @@ fn step_vehicle(
             ctx.world,
             units,
             i,
-            &hull_at(next, yaw),
-            heading,
+            &hull_at(next, motion.yaw),
+            motion.heading,
             prop,
             turn,
         ) {
@@ -579,35 +817,35 @@ fn step_vehicle(
             None => solid = true,
         }
     }
-    let unit = &mut units[i];
-    let Some(ground) = ctx
+    let ground = ctx
         .world
         .surface_at(next.x, next.y)
-        .filter(|s| s.traversable)
-    else {
+        .filter(|s| s.traversable);
+    if solid || ground.is_none() {
+        let held_yaw = stationary_yaw(ctx.world, units, i, motion.yaw);
+        let unit = &mut units[i];
         unit.yaw = held_yaw;
-        return;
-    };
-    if solid {
-        unit.yaw = held_yaw;
+        unit.drive_speed_mps = 0.0;
         return;
     }
+    let ground = ground.expect("traversable ground checked above");
+    let unit = &mut units[i];
     shoves.extend(shoved);
-    unit.yaw = yaw;
+    unit.yaw = motion.yaw;
     unit.position = next.with_z(ground.z);
-    unit.reversing = motion.backwards && step > 0.0;
+    unit.reversing = motion.backwards && motion.step > 0.0;
+    unit.drive_speed_mps = motion.step / dt * if motion.backwards { -1.0 } else { 1.0 };
     if let Some(m) = unit.manoeuvre.as_mut() {
-        m.driven_m += step;
+        m.driven_m += motion.step;
     }
-    // A wheeled turn swings away from its waypoint before closing on it:
-    // that is progress, not a stall.
-    if motion.turning && step > 0.0 {
+    // Turning or making room can move away from the waypoint without stalling.
+    if motion.manoeuvring && motion.step > 0.0 {
         unit.progress.1 = ctx.tick;
     }
 
     let route = unit.route.as_mut().unwrap();
     let left = (route[0] - next).length();
-    if left < PROGRESS_EPSILON_M.min(step + 1e-9) || left < 1e-6 {
+    if left < PROGRESS_EPSILON_M.min(motion.step + 1e-9) || left < 1e-6 {
         route.remove(0);
         unit.progress = (f64::INFINITY, ctx.tick);
         if route.is_empty() {
@@ -615,6 +853,32 @@ fn step_vehicle(
         }
     } else if left < unit.progress.0 - PROGRESS_EPSILON_M {
         unit.progress = (left, ctx.tick);
+    }
+}
+
+/// A rejected step may still let tracks pivot, but only into a clear pose.
+fn stationary_yaw(world: &WorldGeometry, units: &[Unit], i: usize, yaw: f64) -> f64 {
+    let unit = &units[i];
+    if yaw == unit.yaw || !unit.mobility.drive.is_some_and(|d| d.tracked) {
+        return unit.yaw;
+    }
+    let here = unit.hull_box().expect("a vehicle has a hull");
+    let turned = Obb2 { yaw, ..here };
+    let met = push::meet(world, &turned, &here, unit.mobility.push);
+    // A stationary pivot checks true hulls; translation's traffic buffer
+    // would forbid using the clearance reserved by the stopped approach.
+    let occupied = met.solid.is_some()
+        || !met.shoved.is_empty()
+        || units.iter().enumerate().any(|(j, other)| {
+            j != i
+                && other.is_vehicle()
+                && other.alive()
+                && turned.overlaps(&other.hull_box().expect("a vehicle has a hull"))
+        });
+    if occupied {
+        unit.yaw
+    } else {
+        yaw
     }
 }
 
@@ -741,11 +1005,14 @@ fn keep_spots(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, end: 
     }
 }
 
-/// Where a squad plans its corridor from: the living soldier nearest its
-/// middle, who stands where soldiers can stand (the middle of a squad split
-/// by a wall may lie inside it).
-fn set_off(unit: &Unit) -> V2 {
+/// Where a unit's route starts: a vehicle's hull, or for a squad the living
+/// soldier nearest its middle, who stands where soldiers can stand (the
+/// middle of a squad split by a wall may lie inside it).
+fn route_start(unit: &Unit) -> V2 {
     let middle = unit.position.xy();
+    if unit.is_vehicle() {
+        return middle;
+    }
     unit.member_positions()
         .map(|p| p.xy())
         .min_by(|a, b| (*a - middle).length().total_cmp(&(*b - middle).length()))

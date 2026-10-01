@@ -333,12 +333,13 @@ fn an_explicit_pack_holds_a_stationary_unit_packed_and_deploy_cancels_movement()
     assert_eq!(u.state, MoveState::Idle);
 
     c.move_to(&mut b, SUPPLY, [500.0, 200.0], false);
-    run(&mut b, 60);
-    let moving = xy(&b, SUPPLY);
+    b.step();
     assert!(
-        moving[0] > 110.0,
-        "already packed, so it drives off at once"
+        xy(&b, SUPPLY)[0] > 100.0,
+        "already packed, so movement starts on the first tick"
     );
+    run(&mut b, 59);
+    let moving = xy(&b, SUPPLY);
     c.deploy(&mut b, SUPPLY, true);
     b.step();
     let u = own(&b, SUPPLY);

@@ -3,8 +3,9 @@ use contract::command::RoutePolicy;
 use contract::map::{MapDefinition, MoverClass, PropDefinition};
 use contract::scenario::PushClass;
 use sim::math::{v2, V2};
-use sim::navigation::{BlockReason, Mobility, NavGrid, Plan};
+use sim::navigation::{BlockReason, Leg, Mobility, NavBase, NavGrid, Plan, RoadNet};
 use sim::world::WorldGeometry;
+use std::sync::Arc;
 
 /// Length of the polyline from `from` through `route`.
 fn route_length(from: V2, route: &[V2]) -> f64 {
@@ -45,8 +46,51 @@ fn world(extra: &str) -> WorldGeometry {
     .unwrap();
     WorldGeometry::new(&map, &crate::common::rules())
 }
-fn grid(w: &WorldGeometry) -> NavGrid {
-    NavGrid::build(w, w.props().cloned(), 0.3)
+/// What a side plans a leg with: its grid of the bodies it knows, and the
+/// map's roads.
+struct Known {
+    grid: NavGrid,
+    roads: RoadNet,
+}
+
+impl std::ops::Deref for Known {
+    type Target = NavGrid;
+    fn deref(&self) -> &NavGrid {
+        &self.grid
+    }
+}
+
+impl Known {
+    fn of(grid: NavGrid, w: &WorldGeometry) -> Self {
+        Known {
+            grid,
+            roads: RoadNet::build(w),
+        }
+    }
+
+    /// The whole route, by the shipped planning rules.
+    fn plan(&self, from: V2, goal: V2, m: &Mobility, policy: RoutePolicy) -> Plan {
+        self.search(from, goal, m, policy).0
+    }
+
+    /// The whole route, and how many cells its searches reached.
+    fn search(&self, from: V2, goal: V2, m: &Mobility, policy: RoutePolicy) -> (Plan, usize) {
+        let leg = Leg {
+            from,
+            goal,
+            m,
+            policy,
+            avoid: &[],
+        };
+        let rules = crate::common::rules().navigation;
+        let (plan, work) = sim::navigation::plan(&self.grid, &self.roads, leg, &rules);
+        (plan, work.cells)
+    }
+}
+
+/// A side that knows every body on the map.
+fn grid(w: &WorldGeometry) -> Known {
+    Known::of(NavGrid::new(Arc::new(NavBase::build(w, w.props(), 0.3))), w)
 }
 
 fn route(plan: Plan) -> Vec<V2> {
@@ -57,6 +101,14 @@ fn route(plan: Plan) -> Vec<V2> {
 }
 
 /// Every point along the route (sampled) satisfies `ok`.
+/// Whether a footprint could stand in the middle of the cell `p` lies in:
+/// the room every step of a route is judged by. (A point off its cell's
+/// middle has less room, which `route_fits` accounts for along a segment.)
+fn cell_fits(g: &NavGrid, p: V2, m: &Mobility) -> bool {
+    let middle = |v: f64| (v / 2.0).floor() * 2.0 + 1.0;
+    g.fits_at(v2(middle(p.x), middle(p.y)), m)
+}
+
 fn all_along(from: V2, r: &[V2], ok: impl Fn(V2) -> bool) -> bool {
     let mut a = from;
     r.iter().all(|&b| {
@@ -72,7 +124,7 @@ fn the_fastest_route_takes_the_road_and_the_shortest_does_not() {
     let w = world(
         r#","surfaces":[{"kind":"road","shape":{"kind":"stroke","points":[[20,20],[20,160],[380,160],[380,20]],"width_m":10}}]"#,
     );
-    let mut g = grid(&w);
+    let g = grid(&w);
     let (from, to) = (v2(20.0, 20.0), v2(380.0, 20.0));
     let shortest = route(g.plan(from, to, &TANK, RoutePolicy::Shortest));
     let fastest = route(g.plan(from, to, &TANK, RoutePolicy::Fastest));
@@ -111,7 +163,7 @@ fn one_slope_cutoff_blocks_everyone_and_routes_go_around() {
     let w = world(
         r#","relief":[{"kind":"mesa","rect":[180,0,40,160],"height_m":30,"side_degrees":45}]"#,
     );
-    let mut g = grid(&w);
+    let g = grid(&w);
     let (from, to) = (v2(40.0, 60.0), v2(360.0, 60.0));
     for m in [&TANK, &INFANTRY] {
         let r = route(g.plan(from, to, m, RoutePolicy::Shortest));
@@ -126,10 +178,10 @@ fn one_slope_cutoff_blocks_everyone_and_routes_go_around() {
 #[test]
 fn water_is_crossed_only_by_the_bridge() {
     let w = world(
-        r#","water":[{"rect":[190,0,20,200],"bed_z":-2,"surface_z":-0.5}],
+        r#","rivers":[{"points":[{"xy":[200,0],"width_m":20,"depth_m":1.5},{"xy":[200,200],"width_m":20,"depth_m":1.5}],"surface_z":-0.5}],
            "bridges":[{"deck":"bridge_deck","center":[200,40],"half_extents":[16,5],"yaw":0,"deck_z":0.1,"thickness_m":0.8}]"#,
     );
-    let mut g = grid(&w);
+    let g = grid(&w);
     let (from, to) = (v2(40.0, 150.0), v2(360.0, 150.0));
     let r = route(g.plan(from, to, &TANK, RoutePolicy::Shortest));
     assert!(all_along(from, &r, |p| w
@@ -147,7 +199,7 @@ fn routes_stay_on_the_map_and_never_cut_a_blocked_corner() {
         r#","props":[{"kind":"crate","center":[199,99],"yaw":0,"half_extents":[1,1,1]},
                      {"kind":"crate","center":[201,101],"yaw":0,"half_extents":[1,1,1]}]"#,
     );
-    let mut g = grid(&w);
+    let g = grid(&w);
     let (from, to) = (v2(190.0, 110.0), v2(210.0, 90.0));
     let r = route(g.plan(from, to, &INFANTRY, RoutePolicy::Shortest));
     assert!(all_along(from, &r, |p| w
@@ -168,7 +220,7 @@ fn a_gap_admits_infantry_but_not_a_tank() {
         r#","props":[{"kind":"wall","center":[200,48.75],"yaw":0,"half_extents":[0.5,48.75,2]},
                      {"kind":"wall","center":[200,136.25],"yaw":0,"half_extents":[0.5,33.75,2]}]"#,
     );
-    let mut g = grid(&w);
+    let g = grid(&w);
     let (from, to) = (v2(150.0, 100.0), v2(250.0, 100.0));
     let foot = route(g.plan(from, to, &INFANTRY, RoutePolicy::Shortest));
     assert!(route_length(from, &foot) < 110.0, "infantry uses the gap");
@@ -177,7 +229,8 @@ fn a_gap_admits_infantry_but_not_a_tank() {
         tank.iter().any(|p| p.y > 170.0),
         "the tank detours to the wide opening"
     );
-    assert!(all_along(from, &tank, |p| g.fits_at(p, &TANK)));
+    assert!(g.route_fits(from, &tank, &TANK));
+    assert!(all_along(from, &tank, |p| cell_fits(&g, p, &TANK)));
 }
 
 /// Q27: every solid body stops infantry too. A solid line of tank wrecks
@@ -194,12 +247,13 @@ fn a_line_of_wrecks_stops_squads_and_tanks_alike() {
         })
         .collect();
     let w = world(&format!(r#","props":[{}]"#, wrecks.join(",")));
-    let mut g = grid(&w);
+    let g = grid(&w);
     let (from, to) = (v2(150.0, 60.0), v2(250.0, 60.0));
     for m in [&INFANTRY, &TANK] {
         let r = route(g.plan(from, to, m, RoutePolicy::Shortest));
         assert!(r.iter().any(|p| p.y > 170.0), "{:?} goes round", m.class);
-        assert!(all_along(from, &r, |p| g.fits_at(p, m)));
+        assert!(g.route_fits(from, &r, m));
+        assert!(all_along(from, &r, |p| cell_fits(&g, p, m)));
     }
 }
 
@@ -237,7 +291,7 @@ fn an_enclosed_goal_is_blocked_and_says_why() {
                      {"kind":"wall","center":[280,100],"yaw":0,"half_extents":[0.5,20,2]},
                      {"kind":"wall","center":[320,100],"yaw":0,"half_extents":[0.5,20,2]}]"#,
     );
-    let mut g = grid(&w);
+    let g = grid(&w);
     assert_eq!(
         g.plan(
             v2(40.0, 100.0),
@@ -252,6 +306,7 @@ fn an_enclosed_goal_is_blocked_and_says_why() {
 #[test]
 fn only_known_props_shape_the_plan() {
     let mut w = world("");
+    let map = Arc::new(NavBase::build(&w, w.props(), 0.3));
     let wall = w.add_prop(&PropDefinition {
         kind: "wall".into(),
         center: [200.0, 100.0],
@@ -260,14 +315,17 @@ fn only_known_props_shape_the_plan() {
         base_z: None,
     });
     let (from, to) = (v2(150.0, 100.0), v2(250.0, 100.0));
-    let mut unknown = NavGrid::build(&w, std::iter::empty(), 0.3);
+    let unknown = Known::of(NavGrid::new(Arc::clone(&map)), &w);
     assert!(
         route_length(
             from,
             &route(unknown.plan(from, to, &TANK, RoutePolicy::Shortest))
         ) < 101.0
     );
-    let mut known = NavGrid::build(&w, w.prop(wall).cloned().into_iter(), 0.3);
+    let mut learned = NavGrid::new(map);
+    let seen = [(wall, w.prop(wall).cloned())];
+    learned.update(&w, seen.into_iter(), std::iter::empty());
+    let known = Known::of(learned, &w);
     assert!(
         route_length(
             from,
@@ -291,7 +349,7 @@ fn a_line_of_teeth_admits_infantry_where_a_wall_does_not() {
         })
         .collect();
     let w = world(&format!(r#","props":[{}]"#, teeth.join(",")));
-    let mut g = grid(&w);
+    let g = grid(&w);
     let (from, to) = (v2(150.0, 100.0), v2(250.0, 100.0));
     let foot = route(g.plan(from, to, &INFANTRY, RoutePolicy::Shortest));
     assert!(
@@ -319,46 +377,78 @@ fn a_line_of_teeth_admits_infantry_where_a_wall_does_not() {
 fn empty_ground_does_not_allocate_navigation_per_square_metre() {
     let w = world("");
     let g = grid(&w);
-    assert_eq!(g.storage().cells, 0, "open ground has no exceptional cells");
+    assert_eq!(g.storage().cell_pages, 0, "open ground stores no cells");
     assert!(g.fits_at(v2(390.0, 190.0), &TANK));
 }
 
 #[test]
-fn an_unbroken_water_strip_proves_no_route_without_exploring_a_map_half() {
-    let w = world(r#","water":[{"rect":[190,0,20,200],"bed_z":-2,"surface_z":-0.5}]"#);
-    let mut g = grid(&w);
-    let plan = g.plan(
+fn an_unbroken_water_strip_leaves_no_route() {
+    let w = world(
+        r#","rivers":[{"points":[{"xy":[200,0],"width_m":20,"depth_m":1.5},{"xy":[200,200],"width_m":20,"depth_m":1.5}],"surface_z":-0.5}]"#,
+    );
+    let g = grid(&w);
+    let (plan, cells) = g.search(
         v2(40.0, 100.0),
         v2(360.0, 100.0),
         &TANK,
         RoutePolicy::Shortest,
     );
     assert_eq!(plan, Plan::Blocked(BlockReason::NoRoute));
-    assert_eq!(
-        g.storage().search_cells,
-        0,
-        "a separating strip needs no search of either open half"
+    assert!(
+        cells < 10_000,
+        "the near bank is all there is to search: {cells}"
     );
 }
 
 #[test]
 fn a_bridge_search_bounds_work_without_changing_the_crossing() {
     let w = world(
-        r#", "water":[{"rect":[190,0,20,200],"bed_z":-2,"surface_z":-0.5}],
+        r#", "rivers":[{"points":[{"xy":[200,0],"width_m":20,"depth_m":1.5},{"xy":[200,200],"width_m":20,"depth_m":1.5}],"surface_z":-0.5}],
         "bridges":[{"deck":"bridge_deck","center":[200,40],"half_extents":[16,5],"yaw":0,"deck_z":0.1,"thickness_m":0.8}]"#,
     );
     for m in [&TANK, &INFANTRY] {
         for policy in [RoutePolicy::Shortest, RoutePolicy::Fastest] {
-            let mut g = grid(&w);
+            let g = grid(&w);
             let (from, to) = (v2(40.0, 150.0), v2(360.0, 150.0));
-            let r = route(g.plan(from, to, m, policy));
+            let (plan, cells) = g.search(from, to, m, policy);
+            let r = route(plan);
             assert_eq!(r.last(), Some(&to));
             assert!(g.route_fits(from, &r, m));
+            assert!(cells < 8_000, "{policy:?}: {cells}");
+        }
+    }
+}
+
+/// The river lab's meander lies between each start and its goal: a squad and
+/// a tank both go round by the country road's bridge, up its ramp and over
+/// its deck, and no step of either route is on water.
+#[test]
+fn a_meandering_river_is_crossed_by_its_bridge_by_squads_and_tanks() {
+    let map: MapDefinition =
+        serde_json::from_str(include_str!("../../../fixtures/river-lab.json")).unwrap();
+    let w = WorldGeometry::new(&map, &crate::common::rules());
+    let river = &w.rivers()[0];
+    for m in [&TANK, &INFANTRY] {
+        for (from, to) in [
+            (v2(125.0, 195.0), v2(125.0, 300.0)),
+            (v2(450.0, 176.0), v2(420.0, 300.0)),
+            (v2(60.0, 185.0), v2(60.0, 310.0)),
+        ] {
+            let g = grid(&w);
+            let r = route(g.plan(from, to, m, RoutePolicy::Shortest));
+            assert_eq!(r.last(), Some(&to));
+            assert!(g.route_fits(from, &r, m));
+            let crossed = std::cell::Cell::new(false);
+            assert!(all_along(from, &r, |p| {
+                let s = w.surface_at(p.x, p.y).unwrap();
+                // Wherever the route is over the river's water it is on the deck.
+                let over_water = river.inside([p.x, p.y]) >= 0.0;
+                crossed.set(crossed.get() || over_water);
+                s.traversable && (!over_water || s.kind == sim::world::SurfaceKind::Bridge)
+            }));
             assert!(
-                g.storage().search_cells < 8_000,
-                "{:?}: {:?}",
-                policy,
-                g.storage()
+                crossed.get(),
+                "the route from {from:?} never crossed the river"
             );
         }
     }
@@ -376,7 +466,7 @@ fn a_nonfinite_cost_keeps_the_original_grid_winner() {
         road_mps: f64::NAN,
         ..TANK
     };
-    let mut g = grid(&w);
+    let g = grid(&w);
     assert_eq!(
         g.plan(v2(5.0, 5.0), v2(59.0, 5.0), &m, RoutePolicy::Fastest),
         Plan::Route(vec![v2(7.0, 3.0), v2(57.0, 3.0), v2(59.0, 5.0)])
@@ -410,4 +500,46 @@ fn polygon_road_costs_are_shared_by_navigation_while_sidewalks_cost_ground() {
         sidewalk.route_time(from, &[to], &TANK),
         ground.route_time(from, &[to], &TANK)
     );
+}
+
+/// One grid serves every mover and policy of its side: what an earlier plan
+/// worked out about the whole map must not answer for a different mover.
+#[test]
+fn a_grid_plans_each_mover_and_policy_as_a_fresh_grid_would() {
+    // A road that pays for vehicles, and a line of teeth only infantry pass.
+    let teeth: Vec<String> = (0..100)
+        .map(|k| {
+            format!(
+                r#"{{"kind":"wall","center":[200,{}],"yaw":0,"half_extents":[0.4,0.4,0.6]}}"#,
+                1.0 + 2.0 * k as f64
+            )
+        })
+        .collect();
+    let w = world(&format!(
+        r#","surfaces":[{{"kind":"road","shape":{{"kind":"stroke","points":[[20,20],[20,160],[180,160],[180,20]],"width_m":10}}}}],"props":[{}]"#,
+        teeth.join(",")
+    ));
+    let jeep = Mobility {
+        off_road_mps: 9.0,
+        road_mps: 30.0,
+        ..TANK
+    };
+    let legs = [
+        (v2(20.0, 20.0), v2(180.0, 20.0)),
+        (v2(150.0, 100.0), v2(250.0, 100.0)),
+        (v2(230.0, 30.0), v2(380.0, 170.0)),
+    ];
+    let shared = grid(&w);
+    for m in [&TANK, &INFANTRY, &jeep, &TANK] {
+        for policy in [RoutePolicy::Fastest, RoutePolicy::Shortest] {
+            for (from, to) in legs {
+                assert_eq!(
+                    shared.plan(from, to, m, policy),
+                    grid(&w).plan(from, to, m, policy),
+                    "{:?} {policy:?} {from:?} to {to:?}",
+                    m.class
+                );
+            }
+        }
+    }
 }

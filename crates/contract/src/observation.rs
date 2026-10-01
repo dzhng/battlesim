@@ -325,6 +325,8 @@ pub enum MoveState {
     Halted,
     /// Has somewhere to go but must finish packing before it may move (L01).
     Packing,
+    /// Has somewhere to go and holds where it is while its route is worked out.
+    Planning,
 }
 
 /// The end state a deploying unit's progress is heading to.

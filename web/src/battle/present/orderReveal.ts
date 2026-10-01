@@ -1,7 +1,9 @@
 /** Which own units' order marks show, and how strongly: the one owner.
  *  Holding Space shows every own unit's; an order just issued (queued or
  *  not) shows its units' in full for `hold_s`, then fades them out over
- *  `fade_s`, a confirmation; nothing else does. A selection alone shows
+ *  `fade_s`, a confirmation; a unit whose route turns out blocked flashes
+ *  the same way when that is found (a route takes a while to plan, so the
+ *  order's own flash may be over); nothing else does. A selection alone shows
  *  only the selection's own markers, which are not order marks. Either
  *  way the marks are the one Space view (`buildOrderOverlay`), drawn at the
  *  opacity given here. Time is the presentation clock, so a paused battle
@@ -49,6 +51,8 @@ function flashedUnits(order: Order): readonly number[] {
 export class OrderReveal {
   /** Each flashed unit's latest order, at its presentation time. */
   private readonly issued = new Map<number, number>();
+  /** The units whose route was blocked when last looked at. */
+  private blocked = new Set<number>();
 
   constructor(private readonly flash: OrderFlash) {}
 
@@ -60,12 +64,24 @@ export class OrderReveal {
   /** A new battle: no flash carries over. */
   clear() {
     this.issued.clear();
+    this.blocked.clear();
   }
 
   /** The order marks shown at presentation time `now` among `own`: all in
    *  full with Space held (`showOrders`), otherwise each flashed unit's
-   *  flash. */
-  at(now: number, showOrders: boolean, own: readonly { id: number }[]): RevealedOrders {
+   *  flash. A unit seen here with its route newly blocked starts one. */
+  at(
+    now: number,
+    showOrders: boolean,
+    own: readonly { id: number; state?: string }[],
+  ): RevealedOrders {
+    const blocked = new Set<number>();
+    for (const { id, state } of own) {
+      if (state !== "route_blocked") continue;
+      blocked.add(id);
+      if (!this.blocked.has(id)) this.issued.set(id, now);
+    }
+    this.blocked = blocked;
     if (!showOrders && this.issued.size === 0) return NOTHING_REVEALED;
     const shown = new Map<number, number>();
     const { hold_s, fade_s } = this.flash;

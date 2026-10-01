@@ -165,7 +165,6 @@
     ],
     "slope_cutoff_deg": 35.0,
     "template_catalog_hash": "38c98a4a4a21bbe8a4784b121e5bde2a6a83f88d4c0370e5d13e20bb2643ede7",
-    "water": [],
     "fog_cell_m": 8.0,
     "surfaces": []
   },
@@ -467,18 +466,6 @@
     ],
     "slope_cutoff_deg": 35.0,
     "template_catalog_hash": "f125fbb06c347ce789d3de3b54892bcb11d1f516831dd9848f349151e3e39d5f",
-    "water": [
-      {
-        "bed_z": -2.0,
-        "rect": [
-          180.0,
-          100.0,
-          24.0,
-          120.0
-        ],
-        "surface_z": -1.5
-      }
-    ],
     "fog_cell_m": 8,
     "surfaces": [
       {
@@ -497,6 +484,29 @@
           "width_m": 8.0,
           "kind": "stroke"
         }
+      }
+    ],
+    "rivers": [
+      {
+        "points": [
+          {
+            "xy": [
+              192.0,
+              112.0
+            ],
+            "width_m": 24.0,
+            "depth_m": 2.0
+          },
+          {
+            "xy": [
+              192.0,
+              208.0
+            ],
+            "width_m": 24.0,
+            "depth_m": 2.0
+          }
+        ],
+        "surface_z": -0.5
       }
     ]
   },
@@ -666,7 +676,6 @@
     ],
     "slope_cutoff_deg": 35.0,
     "template_catalog_hash": "f125fbb06c347ce789d3de3b54892bcb11d1f516831dd9848f349151e3e39d5f",
-    "water": [],
     "fog_cell_m": 8.0,
     "surfaces": []
   },
@@ -1993,7 +2002,6 @@
     ],
     "slope_cutoff_deg": 35.0,
     "template_catalog_hash": "997791ad3783c4cdbf65c994f4d6ffe92d2fc4923d9586d24be3bd34c2983120",
-    "water": [],
     "fog_cell_m": 8.0,
     "surfaces": [
       {
