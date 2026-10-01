@@ -93,7 +93,7 @@ pub struct SideGeometry {
     /// Bodies gone out of this side's sight (trees knocked down, props
     /// destroyed): it plans around them, and draws them, until it sees the
     /// ground where they stood (Q16, Q17, L1).
-    pub standing: BTreeMap<PropId, Prop>,
+    standing: BTreeMap<PropId, Prop>,
     /// The same remembered snapshots, indexed for sight queries.
     standing_index: PropIndex,
     pub revision: u64,
@@ -249,6 +249,11 @@ impl SideGeometry {
         }
         self.standing_index.insert(&prop);
         self.standing.insert(prop.id, prop);
+    }
+
+    /// Read-only remembered snapshots; mutations keep the sight index in sync.
+    pub(crate) fn standing(&self) -> &BTreeMap<PropId, Prop> {
+        &self.standing
     }
 
     /// Remembered body candidates whose footprint may meet an eye's reach.

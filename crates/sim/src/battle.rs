@@ -1712,7 +1712,7 @@ impl Battle {
         let revealed: std::collections::BTreeSet<_> = candidates
             .iter()
             .filter_map(|&id| self.world.prop(id))
-            .chain(remembered.iter().filter_map(|id| known.standing.get(id)))
+            .chain(remembered.iter().filter_map(|id| known.standing().get(id)))
             .filter_map(|p| self.world.building_of(p.id).map(|owner| (owner, p)))
             .filter(|(_, p)| footprint_seen(&field, p))
             .map(|(owner, _)| owner)
@@ -1735,7 +1735,7 @@ impl Battle {
         remembered.dedup();
         let fallen: Vec<PropId> = remembered
             .into_iter()
-            .filter_map(|id| known.standing.get(&id))
+            .filter_map(|id| known.standing().get(&id))
             .filter(|p| {
                 footprint_seen(&field, p)
                     || self
@@ -2050,7 +2050,7 @@ impl Battle {
             let removed = self
                 .structures
                 .removed()
-                .filter(|p| p.id < self.authored_props && !known.standing.contains_key(&p.id))
+                .filter(|p| p.id < self.authored_props && !known.standing().contains_key(&p.id))
                 .map(|p| (p.clone(), Some(p.id), true));
             for (p, replaces, destroyed) in remembered.chain(removed) {
                 let building = self.world.building_of(p.id);
@@ -2515,7 +2515,7 @@ mod tests {
         let mut battle = Battle::new(&setup, 11);
         battle.destroy_prop(0);
         assert!(
-            battle.sides[0].standing.contains_key(&1),
+            battle.sides[0].standing().contains_key(&1),
             "unseen wing remains remembered"
         );
         let delta = crate::math::v3(78.0, 200.0, 0.0);
@@ -2528,9 +2528,9 @@ mod tests {
             !battle.fog[0].visible(452.0, 301.0),
             "far wing stays fogged"
         );
-        assert!(!battle.sides[0].standing.contains_key(&0));
+        assert!(!battle.sides[0].standing().contains_key(&0));
         assert!(
-            !battle.sides[0].standing.contains_key(&1),
+            !battle.sides[0].standing().contains_key(&1),
             "whole aggregate's historical snapshots are cleared"
         );
     }

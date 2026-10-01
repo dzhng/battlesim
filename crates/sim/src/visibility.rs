@@ -112,7 +112,9 @@ pub fn sweep(
         // A side's field is the union of every eye. When earlier eyes marked
         // every cell this ray could reach, its terrain and foliage work cannot
         // contribute another bit, whatever would block it.
-        if (1..=steps).all(|k| {
+        // Check the tail first: blocked rays often have an unseen far cell,
+        // so this proof can fail before walking the already-visible prefix.
+        if (1..=steps).rev().all(|k| {
             let p = eye.xy() + dir * (k as f64 * cell);
             field.visible(p.x, p.y)
         }) {
