@@ -801,22 +801,32 @@ impl NavGrid {
         };
         let until = (probe.next + Probe::STRETCH).min(samples);
         self.spend(1 + ((until - probe.next) / SAMPLES_PER_WORK) as u64);
+        // Several samples fall in each cell, and a cell answers them all
+        // alike: whether the footprint fits there, and what a piece costs.
+        let mut crossing: Option<(usize, bool, f64)> = None;
         for k in probe.next..until {
             let p = a + (b - a) * ((k as f64 + 0.5) / samples as f64);
             let (i, j) = cell_of(p);
             let Some(cell) = self.index(i, j) else {
                 return Some(None);
             };
-            // How far the segment passes from the middle of the cell.
-            let off = (cell_center(cell % self.nx, cell / self.nx) - a)
-                .cross(along)
-                .abs();
-            if !self.fits_off_centre(cell, who, off)
-                || (infantry && self.cells[cell].free & (1 << sub_of(p)) == 0)
-            {
+            let (fits, cost) = match crossing {
+                Some((last, fits, cost)) if last == cell => (fits, cost),
+                _ => {
+                    // How far the segment passes from the middle of the cell.
+                    let off = (cell_center(cell % self.nx, cell / self.nx) - a)
+                        .cross(along)
+                        .abs();
+                    let fits = self.fits_off_centre(cell, who, off);
+                    let cost = self.cost(cell, m, policy, piece);
+                    crossing = Some((cell, fits, cost));
+                    (fits, cost)
+                }
+            };
+            if !fits || (infantry && self.cells[cell].free & (1 << sub_of(p)) == 0) {
                 return Some(None);
             }
-            probe.total += self.cost(cell, m, policy, piece);
+            probe.total += cost;
         }
         probe.next = until;
         (until == samples).then_some(Some(probe.total))
