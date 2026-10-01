@@ -16,14 +16,10 @@ beforeAll(() => {
 type Record = { name: string; command: string; request_json: string; native_sha256: string };
 const cases: Record[] = JSON.parse(fixture("parity/map-layout/paired-records.json")).cases;
 
-test("native CLI and WASM generate the same plan and map bytes and refusals", () => {
-  for (const record of cases) {
-    const generate = record.command === "generate-map" ? generate_map : generate_map_plan;
-    const outcome = generate(record.request_json, presets, templates);
-    expect(createHash("sha256").update(outcome).digest("hex"), record.name).toBe(
-      record.native_sha256,
-    );
-  }
+test.each(cases)("$name: native CLI and WASM agree on bytes or refusal", (record) => {
+  const generate = record.command === "generate-map" ? generate_map : generate_map_plan;
+  const outcome = generate(record.request_json, presets, templates);
+  expect(createHash("sha256").update(outcome).digest("hex")).toBe(record.native_sha256);
 });
 
 test("a generated map carries the plan's ground and buildings and none of its plan-only layers", () => {
