@@ -180,11 +180,13 @@ impl WorldGeometry {
         self.props().flat_map(prop_record).collect()
     }
 
-    /// Immutable building references; physical prop geometry stays in props().
+    /// Immutable building references: each building's template and the frame
+    /// it was placed at, which is where its template's art is drawn. Physical
+    /// prop geometry stays in props().
     pub fn export_buildings(&self) -> String {
         serde_json::json!({"catalogueHash":self.template_catalog_hash,"buildings":self.buildings.definitions().map(|b|serde_json::json!({
             "owner":b.owner,"kind":b.kind,"templateId":b.geometry.template_id,"category":b.category,
-            "regionalFamily":b.regional_family,"parts":b.parts
+            "regionalFamily":b.regional_family,"frame":b.geometry.frame,"parts":b.parts
         })).collect::<Vec<_>>()}).to_string()
     }
 

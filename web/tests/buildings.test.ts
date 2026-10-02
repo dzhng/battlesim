@@ -97,6 +97,7 @@ test("the public picker and delivered replacements share one physical building o
           templateId: descriptor.id,
           category: descriptor.category,
           regionalFamily: descriptor.regional_family,
+          frame: { translation: [400, 300, 0], yaw: 0 },
           parts: [
             { part: "main", prop: 0 },
             { part: "wing", prop: 1 },

@@ -10,7 +10,6 @@ import config from "@fixtures/generated-battle.json";
 import recipes from "@fixtures/encounters.json?raw";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
-import type { CameraPresentation } from "@packages/renderer-core/src/cameraController";
 import { prepareBattle, PreparationFailed } from "@web/battle/prepare/client";
 import type {
   PrepareBattleRequest,
@@ -98,19 +97,6 @@ function failureOf(request: PrepareBattleRequest, error: unknown, replay: boolea
         ? "Deploy again from the menu for another map."
         : undefined,
     details,
-  };
-}
-
-/** The camera rig for a map `size` metres across: the game's, with the
- *  wheel reaching far enough out, and tilting far enough down, to take the
- *  whole map in. */
-function mapCamera(size: [number, number]): CameraPresentation {
-  const far = Math.max(gameCamera.config.zoom_max, Math.max(...size) * config.camera.overview_span);
-  if (far === gameCamera.config.zoom_max) return gameCamera.config;
-  return {
-    ...gameCamera.config,
-    zoom_max: far,
-    pitch_curve: [...gameCamera.config.pitch_curve, [far, config.camera.overview_pitch]],
   };
 }
 
@@ -260,7 +246,7 @@ function PreparedBattleView({
             number,
           ],
         },
-        cameraConfig: mapCamera(prepared.report.size),
+        cameraConfig: gameCamera.forMap(prepared.report.size),
       },
     [prepared],
   );

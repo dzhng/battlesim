@@ -71,6 +71,7 @@ test("the compiled artifact reaches the existing public world without a plan int
           templateId: "asymmetric-api-compound",
           category: "attached_home",
           regionalFamily: "api_fixture",
+          frame: original.materialized.frame,
           parts: [
             { part: "main", prop: 0 },
             { part: "wing", prop: 1 },

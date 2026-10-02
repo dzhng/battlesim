@@ -193,3 +193,28 @@ test("without a view every chunk is near, culled or not", () => {
   expect(pop.near).toEqual([0, 1]);
   expect(pop.ranges[0].every((r) => r.length === 0)).toBe(true);
 });
+
+test("an instance with an anchor is bucketed there, not where its own record stands", () => {
+  // Two pieces of one thing placed at x = 1000: one piece stands across the
+  // chunk edge at x = 1024, and still belongs to the first chunk.
+  const at: [number, number][] = [
+    [1000, 1000],
+    [1030, 1000],
+    [1100, 1000],
+  ];
+  const source = placed(at, 16);
+  const whole = createStaticChunks(
+    { ...source, anchors: Float32Array.of(1000, 1000, 1000, 1000, 1100, 1000) },
+    1,
+    CHUNK_M,
+    4,
+  );
+  expect(whole.chunks.map((c) => [c.start[0], c.end[0]])).toEqual([
+    [0, 2],
+    [2, 3],
+  ]);
+  // The chunk's box still holds the piece where it is drawn.
+  expect(whole.chunks[0].box[3]).toBeGreaterThanOrEqual(1031);
+  // Without anchors the piece is its own chunk's.
+  expect(createStaticChunks(source, 1, CHUNK_M, 4).chunks).toHaveLength(3);
+});

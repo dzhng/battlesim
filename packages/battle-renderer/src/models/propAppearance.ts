@@ -253,7 +253,7 @@ export interface KnownStanding {
  * What a side knows stands of the map props `among` holds: each one it has not
  * seen replaced, as authored, and the remains of each it has; nothing for one
  * it saw destroyed with nothing left. A fall the side has not seen leaves the
- * prop standing. Massing draws these and the camera keeps clear of them, so
+ * prop standing. Buildings are drawn from these and the camera keeps clear of them, so
  * what is drawn and what blocks the camera cannot part.
  */
 export function knownStanding(

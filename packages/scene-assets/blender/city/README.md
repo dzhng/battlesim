@@ -51,7 +51,7 @@ A set is one source's work: the China graph's apartment blocks, our own houses, 
 - **A row** is twelve numbers: `[module, x, y, z, yaw, sx, sy, sz, tiers, r, g, b]`.
   - `module` indexes `modules`.
   - The module's geometry is scaled per axis by `(sx, sy, sz)`, turned by `yaw` radians about +Z, then moved to `(x, y, z)`. That is all a row can say. A tilt, a mirror or any other transform is baked into a module variant of its own, so every scale is positive.
-  - `tiers` is a bit per detail tier the row draws at (`1` is tier 0 … `8` is tier 3; `15` is all four, `0` is not a row). Small things drop out of the coarse tiers; a template's coarsest tier is little more than its shell.
+  - `tiers` is a bit per detail tier the row draws at (`1` is tier 0 … `8` is tier 3; `15` is all four, `0` is not a row). Small things drop out of the coarse tiers; a template's coarsest tier is little more than its shell. A state has a row at every tier: the game draws a block of a town at one tier and the whole map at the coarsest, so a state with none there would vanish with distance.
   - `r, g, b` (whole numbers 0 to 255, sRGB) tint the row's tint-masked surfaces; `255, 255, 255` leaves them as authored.
 - **`status`** is `release` for accepted art and `prototype` for a labelled stand-in. A stand-in never counts as coverage.
 - **`fit`** is how far this set's art may reach past a part's faces: `side_m` for balconies, cornices and awnings, `top_m` for roof furniture above the part's top. The asset check holds every vertex of every state to it, at each tier its row draws at: inside some part grown by `side_m` on its four sides and `top_m` above. Nothing reaches below a part's base.
