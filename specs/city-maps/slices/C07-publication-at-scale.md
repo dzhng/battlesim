@@ -316,3 +316,49 @@ identical. Native and Wasm replay the same firing/impact stream. The authority's
 external module fixture now implements the required public-world handoff, returning
 no world for its raw-carrier test. Combined authority, observation, delivery and
 preparation checks pass; the optimized native/Wasm engine identity also matches.
+
+## Historical layout-6 delivery and requested heap
+
+The combined prototype-map/rule identity and cost control live in
+[C05](C05-measuring-tools.md#frozen-layout-6-combined-contact-measurement).
+These records precede current admission and preserve separate workload identities.
+
+| Encoded delivery | Early | Late |
+|---|---:|---:|
+| Approximate mean B/tick | 17,144 | 16,781 |
+| p95 B/tick | 48,600 | 48,540 |
+| Max B/tick | 66,368 | 66,668 |
+| Corpse mean / max B | 12 / 12 | 52 / 1,268 |
+| Other rows mean / max B | 15,760 / 56,392 | 15,360 / 55,312 |
+| Cold initial blue snapshot B | 452,836 | 952,120 |
+| Red resubscription at 60 s B | 1,195,300 | 1,711,004 |
+
+The sparse corpse copies removed the retained-tail amplification from this arm,
+but other rows still missed the provisional 19.8 KB/tick limit. Complete snapshots
+include exact fog and ground state; their packing at 60 s reached 71–76 M
+instructions. Browser copy/decoder cost and peak overlap were not established
+by this control. Raw reports live in `throwaway/scale-lane/`.
+
+This historical layout-6 full-world delivery uses Metro Large seed 4 (`33bbd0d9…`),
+13,006 buildings and 22,577 parts, with the central `city-arena-1` stress
+recipe, 100 living units per side and battle seed 4. Each arm runs 60 s;
+late adds 20,000 corpses and 2,000 wrecks. A scratch requested-allocation
+counter measures native heap separately from clocks and instruction cost.
+Its steady wire costs are the pre-compact rows in
+[the captured codec comparison](#outcome-compact-lossless-group-carriers).
+
+| Historical full-world delivery | Early | Late |
+|---|---:|---:|
+| Cold blue snapshot B | 452,692 | 946,972 |
+| Blue resync at 60 s B | 1,044,468 | 1,579,216 |
+| Red switch at 60 s B | 990,320 | 1,500,996 |
+| Active peak requested heap B | 399,905,882 | 420,671,630 |
+| Peak with retained blue/red publishers B | 401,825,004 | 423,182,142 |
+| Rounds / final digest | 67 / `f7397266251bd45b` | 438 / `ce9463bc51b5b494` |
+
+Native requested heap stayed below the 4 GiB ceiling on this workload. It excludes
+allocator-internal reallocation overlap, browser transfer/decoding and GPU
+resources. Profiling allocation hooks and loaded clocks are not throughput
+admission. The provisional 19.8 KB whole-record gate was red at p95/max;
+no budget is raised. Browser startup/peak overlap and full generated early/late
+throughput were not established by this control.
