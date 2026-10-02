@@ -33,3 +33,40 @@ One simulation geometry construction, public picking/clearance, route outcomes a
 
 ## Feedback that would change this slice
 A missing public query or transfer peak reopens G0's export representation.
+
+## Outcome — startup lane
+
+Preparation retains its worker and consumes one `PreparedMap` for live, scripted
+or replay startup. Public typed exports transfer to the page; its `PublicWorld`
+imports a lossless query payload and builds only the static picking/surface index.
+Surface, terrain/water ray and learned crown arithmetic have shared Rust owners.
+Production battle hooks build no WorldView. Standalone camera geometry is prepared
+off the page thread; geometry/flight probes retain their explicit developer view.
+
+Narrow proofs pass: reused native preparation matches direct construction through
+180 combat ticks and replay; public grid/ray/PropId/foliage queries match exactly;
+focused web contracts pass. A browser test with GPU disabled exercises actual
+preparation-worker adoption, three ticks, transferred geometry and replay. Against
+the frozen original Wasm (`4efec25b`), 1,323 point queries and 5,292 rays over the
+geometry, village and camera maps match exactly, including learned foliage.
+
+Independent review found that an initialization refusal could hide behind the
+mesh gate. A real browser regression fails under that gate, then passes with the
+existing error HUD and menu available before drawing; no canvas is created. The
+prepared replay adapter retains main's engine-build refusal contract. Unprimed
+visual review found no blocking clipping, contrast or overlap issue in the final
+refusal; normal clock/status is hidden to avoid implying playback is waiting.
+
+Matched cold/warm starts on both menu presets pass the one-minute gate. The
+page holds the static index rather than a second simulation world; its exact
+import and retained worker costs are counted. Instructions decrease, wall time
+increases on the loaded machine, and charged memory varies, so no general time
+or memory improvement is claimed. The measured envelope and conditions belong
+to [the lane](../startup-lane.md#startup-measurement); full G0 admission remains
+with its separate envelope gate. Camera frozen query overlays match; fresh
+review found no courtyard regression. The collapse frame does not show its
+subject clearly enough for a visual-collapse claim.
+
+The ground browser scene also passes: only the observed side's learned marks
+are drawn; the opposite side's unseen crater remains absent, and a view switch
+begins a full snapshot in a new epoch before deltas resume.

@@ -87,7 +87,8 @@
   {
     "id": "camera",
     "route": "/lab/camera",
-    "describe": "Camera clearance: scripted camera trajectories round a wall, a tower, a corner of two tall slabs, a courtyard block and a concave compound (prototype buildings as massing). Watch from outside, with the eye path asked for (amber, red inside a building's clearance) beside the eye path drawn (cyan), or ride the camera as the viewport flies it; a switch makes blue see the tower fall."
+    "describe": "Camera clearance: scripted camera trajectories round a wall, a tower, a corner of two tall slabs, a courtyard block and a concave compound (prototype buildings as massing). Watch from outside, with the eye path asked for (amber, red inside a building's clearance) beside the eye path drawn (cyan), or ride the camera as the viewport flies it; a switch makes blue see the tower fall.",
+    "map": "camera-lab"
   },
   {
     "id": "village",

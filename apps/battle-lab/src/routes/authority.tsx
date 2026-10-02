@@ -151,7 +151,7 @@ function AuthorityLab({ battle }: { battle: SavedBattle }) {
           >
             Step
           </button>
-          <button type="button" onClick={sim.reset}>
+          <button type="button" onClick={sim.restart}>
             Reset
           </button>
           <button type="button" onClick={() => void checkReplay()}>

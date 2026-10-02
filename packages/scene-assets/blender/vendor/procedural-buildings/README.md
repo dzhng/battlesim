@@ -2,10 +2,10 @@
 
 Three procedural buildings made with Blender geometry nodes. They are the source of truth for the city kit's New York, Paris and China archetypes: the building scripts in [`../../city/`](../../city/) open them headless, patch their inputs and export kit modules and template placements. Nothing here is edited by hand.
 
-| File | What it is |
-|---|---|
-| `NYC_CornerBuilding.blend` | A pre-war New York corner building |
-| `FrenchBuilding.blend` | A Haussmann-style Paris block |
+| File                         | What it is                                                            |
+| ---------------------------- | --------------------------------------------------------------------- |
+| `NYC_CornerBuilding.blend`   | A pre-war New York corner building                                    |
+| `FrenchBuilding.blend`       | A Haussmann-style Paris block                                         |
 | `CN_ApartmentBuilding.blend` | A Chinese corner apartment building with shops and enclosed balconies |
 
 **Source:** <https://github.com/achrefelouafi/ProceduralBuildingsThreeJS>, `blender/`, at commit `6c19f1b1f14408353989ad26cda27f1e1ede5e91`, copied unchanged.

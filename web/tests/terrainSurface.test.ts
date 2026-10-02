@@ -26,12 +26,14 @@ import {
   STROKE_CUTS,
   strokeInside,
 } from "@packages/battle-renderer/src/terrain/strokes";
+import { SURFACE_AREA_KINDS } from "@packages/battle-renderer/src/terrain/surfaces";
 import { plotAt } from "@packages/battle-renderer/src/terrain/plots.ts";
 import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
 import summer from "@fixtures/biomes/summer.json";
 import { loadMap } from "@web/maps/node";
 import { groundHeight } from "@packages/battle-renderer/src/terrain/terrainGrid";
 import { packTerrainHeights } from "@packages/battle-renderer/src/frame/terrainHeights";
+import { roadLooks } from "@packages/battle-renderer/src/frame/terrainMaterial";
 
 const geometry = loadMap("geometry").definition;
 const riverLab = loadMap("river").definition;
@@ -329,6 +331,21 @@ test("the material's road, forest and water masks are the simulation's surface r
   expect(ends).toBeGreaterThan(100);
 });
 
+test("each paved stretch names its own area's kind, so a track is drawn as a track", () => {
+  // The river lab holds a 9 m country road and a 4 m dirt track.
+  const { site } = buildTerrainSurface(world(riverLab).exports, layout, biome);
+  const kindAt = layout.surfaceStrokeFields.indexOf("kind");
+  const widths = new Map<string, Set<number>>();
+  for (let r = 0; r < site.surfaceStrokes.length; r += site.surfaceStrokeStride) {
+    const kind = SURFACE_AREA_KINDS[site.surfaceStrokes[r + kindAt]];
+    widths.set(kind, (widths.get(kind) ?? new Set()).add(site.surfaceStrokes[r + 4] * 2));
+  }
+  expect(Object.fromEntries(widths)).toEqual({
+    country_road: new Set([9]),
+    dirt_track: new Set([4]),
+  });
+});
+
 test("rounded strokes are the native samples, bit for bit", () => {
   const oracle = JSON.parse(
     readFileSync(
@@ -406,6 +423,45 @@ test("the patchwork is the same for the same seed and moves with it", () => {
 test("a biome that names a missing palette is refused by name", () => {
   const broken = { ...biome, plots: [{ ...biome.plots[0], palette: "nowhere" }] };
   expect(() => validateBiome(broken, "summer")).toThrow(/summer\.plots\[0\]\.palette/);
+});
+
+test("every paved kind is drawn by its own road row, or the default's", () => {
+  const roads = {
+    default: { ...biome.roads.default, palette: "gravel" },
+    dirt_track: { ...biome.roads.default, palette: "earth", roughness: 0.5 },
+  };
+  const palettes = {
+    ...biome.palettes,
+    gravel: [
+      [0.5, 0.5, 0.5],
+      [0.9, 0.6, 0.3],
+    ],
+    earth: [
+      [0.5, 0.4, 0.3],
+      [0.2, 0.2, 0.2],
+    ],
+  } as Biome["palettes"];
+  const looks = roadLooks(validateBiome({ ...biome, palettes, roads }));
+  const look = (kind: (typeof SURFACE_AREA_KINDS)[number]) =>
+    looks[SURFACE_AREA_KINDS.indexOf(kind)];
+  expect(look("dirt_track").core.w).toBe(0.5);
+  expect(look("dirt_track").core.x).toBeCloseTo(0.5 ** 2.2, 6);
+  for (const kind of ["road", "country_road", "sidewalk"] as const)
+    expect(look(kind), kind).toEqual(look("road"));
+  expect(look("road").core).not.toEqual(look("dirt_track").core);
+  // A patch is a change of hue alone: as bright as the surface it lies in,
+  // whichever of the two colours is the brighter in the palette.
+  const luminance = (c: { x: number; y: number; z: number }) =>
+    0.2126 * c.x + 0.7152 * c.y + 0.0722 * c.z;
+  for (const kind of ["road", "dirt_track"] as const)
+    expect(luminance(look(kind).worn), kind).toBeCloseTo(luminance(look(kind).core), 6);
+
+  expect(() => validateBiome({ ...biome, roads: { dirt_track: roads.dirt_track } })).toThrow(
+    /roads: needs a default/,
+  );
+  expect(() =>
+    validateBiome({ ...biome, roads: { ...biome.roads, motorway: roads.default } }),
+  ).toThrow(/roads\.motorway: names no paved kind/);
 });
 
 test("the forest floor names a palette of litter, moss and humus, and its numbers are checked", () => {

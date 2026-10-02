@@ -1520,14 +1520,6 @@ keeps storage addresses independent of physical identity and encounter naming.
 
 ## Generated map in the lab
 
-### Preparation has a worker of its own, closed after its one answer
-
-**Choice:** `/lab/generated` asks a preparation worker for a battle; the worker generates the map, lays the encounter on it, returns the scenario JSON and is closed. The battle then starts in the usual battle worker from that scenario.
-
-**Gap:** C55 says "the pre-battle preparation worker"; C33 says "the existing preparation worker". No preparation worker existed, only the battle authority's.
-
-**Verdict:** Sound. Closing the worker frees everything generation allocated (93 MiB of Wasm memory on Metro Large) and is the cancel: a request that is no longer wanted cannot start a battle. Restart reuses the scenario, so it never generates again. The cost is one copy of the scenario text (27 MB on Metro Large) to the page and one to the battle worker. **Confidence:** High.
-
 ### The map and its plan come from two generator calls
 
 **Choice:** The worker calls `generate_map` for the map and `generate_map_plan` for the plan, with the same request. The scenario carries the generator's own map text, spliced out of the outcome, never a re-serialised parse.
@@ -3445,14 +3437,6 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 
 **Verdict:** sound. Without it the saved map's request was hand-written JSON with a hash in it. **Confidence:** high.
 
-### The camera lab was not moved
-
-**Choice:** `fixtures/camera-lab.json` is still compiled at run time.
-
-**Gap:** "If it falls out cheaply."
-
-**Verdict:** sound for now. Its plan is already template ids and frames, so the move is mechanical, but a saved map pins the prototype library's hash, and the lab would stop loading whenever a prototype template changed. **Confidence:** medium.
-
 ### A far building is one row
 
 **Choice:** At tiers 0 and 1 a kit mesh is a row. At tiers 2 and 3 what is left of it is folded into the template's shell, whose walls are then flat with each opening one dark quad on them, so a template is one row there. The alternative kept every window a row at every tier.
@@ -3767,6 +3751,186 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 
 **Verdict:** sound. **Confidence:** high.
 
+## C20 renderer fog at scale — startup implementation pass
+
+### Use exact per-eye grid and angular candidates while the S4 verdict is absent
+
+- **When:** C20 startup implementation pass.
+- **The choice:** Keep the existing sharp ray–box intersections, and use the existing grid of building footprints to give each eye only nearby boxes. On a 10 km city, a squad beside one block tests that block's neighbours instead of every building at the far end of the city. A first measured grid-only arm still cost 2.61 ms, exceeding the 2 ms gate, so the same table now narrows each ray to a conservative angular sector. Bounding circles enclose turned boxes, eye-inside circles retain every direction, and an extra sector at each edge covers f32 angle rounding. Rasterising building tops would instead replace the exact corner geometry.
+- **The gap:** C20 says to implement the technique S4 picked, but only S4's plan exists; its named verdict file is absent. Grid representation itself is delegated, but selecting the unrecorded arm is a spec gap.
+- **The reach:** Future fog work keeps the same horizon precision and sharpness. If the paired city measurement misses the budget, this arm needs further work rather than a silently relaxed gate.
+- **Verdict:** Sound within the startup contract. Exact intersections and whole-building visibility remain authoritative. Missing full S4/G0 envelope admission remains separate from this local-work design.
+- **Confidence:** Medium.
+
+### Put candidate lists in the existing rebuild table
+
+- **When:** C20 startup implementation pass.
+- **The choice:** The table saying which eyes rebuild also carries each eye's nearby building indices. Before rebuilding an eye, the CPU writes its eye number, its angular-sector table offset and count, then each sector's list offset/count and sorted building indices. Terrain reads the eye number; occluder rays read their sector. Both passes share this table. The alternative would add another storage buffer and binding solely for candidates.
+- **The gap:** The spec does not define the CPU-to-GPU list layout.
+- **The reach:** This keeps the horizon passes' existing GPU binding count. The whole-surface pass separately keeps a reachable-structure/eye-pair table because both lists are consumed by commands in the same submission and cannot overwrite one another. Its one additional binding stays within the guaranteed storage limit. The horizon table can grow when a denser nearby neighbourhood arrives, so probes must construct their sampling bind group after preparation; otherwise its dummy table binding can refer to a destroyed old buffer. The regression test covers a probe before the first rendered frame.
+- **Verdict:** Sound. One owner carries the rebuild transaction and its variable data without spending another scarce storage binding.
+- **Confidence:** High.
+
+### Detect occluder changes by geometry, independent of row identity
+
+- **When:** C20 startup implementation pass.
+- **The choice:** Compare complete box geometry before and after a publication, rather than treating a moved row as a changed building. If a demolished house disappears from the first row, the remaining unchanged houses shift indices but keep every distant squad's map. Only eyes in reach of geometry that disappeared or appeared rebuild. Two identical overlapping boxes have the same effect as one, so removing one duplicate alone does not invalidate maps.
+- **The gap:** Fog occluders have no stable identifiers in the existing input contract, and C20 does not prescribe change identity.
+- **The reach:** Future callers may reorder or recreate equivalent records without starting a rebuild storm. All geometry fields participate, including height changes and moved boxes' old and new locations.
+- **Verdict:** Sound. Map validity follows physical occlusion, while the separately rebuilt whole-structure table uses the new row indices.
+- **Confidence:** High.
+
+### Preserve whole-fog roof reach while making structure work local
+
+- **When:** C20 whole-surface followup.
+- **The choice:** A structure may become visible when its roof probe looks inward toward an eye even though its footprint is just outside that eye's reach. Keep the whole pass's existing broad bounding-circle test, rather than reusing the tighter horizon footprint query unchanged. Its grid query grows by the largest known box radius, then filters each box against the original eye-plus-box circle bound. Each retained structure lists only the eyes that can reach it; structures outside every eye's reach receive cleared flags.
+- **The gap:** C20 names the horizon merge and invalidation sites but does not say how its cost contract applies to the later whole-surface visibility pass. That pass otherwise still samples every global box against every eye.
+- **The reach:** The whole pass has one additional storage binding for structure/eye pairs, seven total across its two groups. Moving away from a previously visible building clears that building's whole-fog flag, and inward-looking roofs keep their earlier visibility rule.
+- **Verdict:** Sound. The existing whole-fog semantics are retained while both dimensions of its sampled work follow nearby structure/eye pairs. It preserves the original roof reach while distant structures do no sampled work; flags must clear when the eyes leave.
+- **Confidence:** High.
+
+### Sound — medium confidence on broader art: accept the preserved corner look
+
+**Choice:** After the non-blocking five-minute Preview checkpoint received no
+feedback, retain the unchanged village corner appearance. Exact horizon and
+whole-building visibility remain the authority; existing roof-trim ambiguity
+and bright seams stay with building-art work rather than prompting an unrelated
+fog redesign.
+
+**Gap:** C20 requires a recorded decision when the human checkpoint is silent.
+
+**Reach:** This accepts only fog edges at building corners. Distant forest and
+unit/effect pixels differ slightly; complete dense-city appearance and the
+missing S4/G0 envelope remain separate acceptance decisions.
+
+**Verdict:** sound within the startup slice. The scoped comparison and unprimed
+critique support preserving the look without claiming all frames identical.
+**Confidence:** high for unchanged corners, medium for broader art.
+
+## Startup lane: combat parity and named native math change
+
+**When:** Startup step 5, 2026-10-01; the owner explicitly authorized the deterministic math correction and its native digest change.
+
+### Combat has its own paired record, with the movement pair preserved
+
+**Choice:** Keep the moving four-unit stream unchanged and add a stationary rifle duel to the same native/WebAssembly publication harness. Each tick compares the whole battle state digest, packed observation bytes and delivered fog, and the duel must actually publish fired shots and physical impacts. Moving and firing in one record would make a first mismatch harder to assign to either mechanism.
+
+**Gap:** Step 5 asks for a short shooting battle but leaves the fixture, roster and comparison shape open.
+
+**Reach:** The existing movement, side switches and resynchronization remain covered; later combat changes get a separate small reproduction on shipped rules, without test-only aim, damage or scatter overrides.
+
+**Verdict:** sound. It adds a real combat path while retaining the prior proof. **Confidence:** high.
+
+### Use the pinned Rust math implementation for state-bearing combat transcendental operations
+
+**Choice:** A shot's direction and weapon elevation, the normal random samples that choose its spread, and conversion of angular spread to displacement now use the same pinned pure Rust math library in both targets. Native system math can round a result differently from WebAssembly by one final binary digit. That tiny difference can enter the battle's Float64 state even when its Float32 observation looks identical. Keeping system math and accepting an approximate digest would make a seed or replay mean different battles across targets.
+
+**Gap:** The lane originally required unchanged battle digests. The new combat check exposed existing cross-target drift, so the owner authorized this exception as a named native math change.
+
+**Reach:** Combat's native digest changes where system math had differed. The original movement record remains byte-for-byte unchanged. In the shooting sample, corrected native digests and publications agree with the pre-correction WebAssembly build at every tick; this preserves sampled browser behavior, not a claim that every unrelated simulation math path has been audited.
+
+**Verdict:** sound. The correction removes platform rounding from the tested authority paths rather than weakening the parity check or finding a lucky fixture. **Confidence:** high.
+### Sound — high confidence: native expectations follow named upstream contracts
+
+**Choice:** Keep the combat scenario and seeds fixed while native expectations
+follow shipped rule and publication changes. Main's grenade gravity changes the
+shot history; its variable-span normalization changes packed representation.
+Native remains the recording source and WebAssembly remains the independent
+reader of those expectations.
+
+**Gap:** The combat fixture was produced before those main changes and the lane
+left integration of expected records unspecified.
+
+**Reach:** A rule change can alter affected state expectations, while a codec
+change alters only packed hashes. Neither allows approximate comparisons,
+changing inputs to evade mismatches, or rewriting the original movement record.
+
+**Verdict:** sound. One exact current contract replaces stale expectations rather
+than comparing different builds' rules. **Confidence:** high.
+
+## C33 preparation and public queries — startup lane
+
+### Sound — medium confidence: keep public query arithmetic in Rust
+
+**Choice:** After Deploy, the page imports a read-only Rust query index containing the already sampled ground, static surfaces and picking boxes. It also holds sparse static foliage needed to apply only the clearing this side learned. The battle's navigation and mutable world remain in its worker. A TypeScript query implementation would save a second Wasm instance but would also duplicate the simulation's interpolation, bridge, river and ray rules.
+
+**Gap:** C33 delegates query-index internals but does not choose the language or transport precision.
+
+**Reach:** The page still loads Wasm for public queries. The query payload preserves floating-point bits explicitly: decimal JSON parsing moved a terrain normal by one bit in the regression. Its temporary payload and resident index must be included in startup memory accounting; rendering's Float32 arrays cannot substitute for exact picking inputs.
+
+**Verdict:** sound within the measured menu envelope. Exact shared arithmetic earns the import cost; full dense-city G0 admission remains separate. **Confidence:** medium.
+
+### Sound — medium confidence on prominence: show an authority refusal without waiting for drawing
+
+**Choice:** A replay refused by the simulation keeps the existing error HUD and menu available even when no world exports arrive. The viewport still requires meshes, and a failure hides the loading cover. For example, importing commands recorded on the ordinary village into the crossfire variant explains the scenario mismatch and lets the player open the menu to load another file or return home.
+
+**Gap:** Independent review found that making world delivery part of authority startup also made the error HUD depend on successful initialization.
+
+**Reach:** The normal battle and refusal share the same HUD, menu and error component. The prepared replay adapter forwards the simulation's existing error text, including main's new engine-build refusal. Development replay imports persist through the existing replay-file storage owner before reloading; a storage failure stays visible on the current page. Downloads may still proceed when persistence is unavailable.
+
+**Verdict:** sound. Refusal navigation belongs to the existing HUD and must remain available before world construction. Normal status/clock is hidden on refusal to avoid implying playback is waiting. The existing compact HUD remains the owner rather than introducing another failure layout. **Confidence:** high on the failure contract, medium on first-glance prominence.
+
+### Sound — high confidence: preparation's worker becomes the battle authority
+
+**Choice:** The worker that lays the encounter keeps its world and becomes the worker that plays the battle. The page adopts its channel using the existing simulation client. Cancelling closes that worker, so an abandoned planner cannot publish a stale battle. Restart is a new battle: a fresh worker builds the same scenario once.
+
+**Gap:** The lane requires world reuse but does not specify the worker handoff or restart ownership.
+
+**Reach:** Both generated and saved battles use this handoff. Other scenario routes export public geometry from their one worker-owned preparation too. Geometry and flight probes keep their explicit developer WorldView; production battle hooks do not construct one.
+
+**Verdict:** sound. It retains the existing command/publication authority and lets worker termination release all abandoned preparation allocations. **Confidence:** high.
+
+### Sound — high confidence: measure browser memory with explicit bounds
+
+**Choice:** Startup samples this Chromium instance's own process counters from Deploy, through the first playable view. It records cold and warm navigation separately, stage peaks, charged memory and retired instructions. Summed RSS can double-count shared pages; sampled instruction deltas can miss a process's final work. The sum of process lifetime memory high-water marks provides a conservative bound, not a simultaneous tab peak.
+
+**Gap:** The lane asks for tab memory and retired instructions without prescribing a browser measurement API.
+
+**Reach:** These measurements include the browser and GPU processes, not merely the JS heap. The harness cannot label a sampled maximum as an exact simultaneous high-water mark or a development-server start as a production download proof.
+
+**Verdict:** sound. It uses kernel counters and states their limits. **Confidence:** high.
+
+### Sound — high confidence: keep source-dependent Vite caches local to each checkout
+
+**Choice:** Checkouts share installed dependencies while their Vite caches live under their own ignored scratch directory. Two simultaneous startup checks therefore cannot overwrite each other's compiled dependency metadata.
+
+**Gap:** The shared-dependencies rule did not prescribe a Vite cache location; a worker integration run exposed repeated cache invalidation across checkouts.
+
+**Reach:** Every local dev/verification server uses its checkout's cache. No new dependency or user-facing setting is added.
+
+**Verdict:** sound. It applies the existing prohibition on sharing build output between different sources. **Confidence:** high.
+
+### Sound — high confidence: preserve the developer stress scenario's actual map
+
+**Choice:** Main's city-stress producer remains the owner of its full early/late
+scenario. Preparation builds its retained authority world from that scenario,
+including late wrecks, and forwards its living-force count and camera start.
+Normal menu recipes continue planning on the retained world itself.
+
+**Gap:** Main introduced the developer stress factory after the startup branch
+was measured; its synthetic remains can change the map after generation.
+
+**Reach:** The public index and battle must share the stress scenario's actual
+map rather than the generator's earlier map. The developer factory still builds
+its existing temporary placement world, so it is not included in the normal
+menu's one-construction or frozen cost claim. Its broader scale admission stays
+with the scale owner.
+
+**Verdict:** sound for integration. It preserves main's authoritative fixture
+and makes its static exports agree with the scenario that actually plays.
+**Confidence:** high.
+
+## Camera catalogue — startup lane
+
+### Sound — high confidence: separate authored geometry from camera trajectories
+
+**Choice:** The camera lab's physical plan is an offline source beside its saved catalogue map. The route loads that map by id; its trajectory fixture keeps only camera paths, framing and the public owner id of the building whose fall it demonstrates. An authored identity describes the hand-placed arena even though the compiler produces its saved physical document.
+
+**Gap:** The lane requests catalogue resolution but does not specify where the lab's source plan or fall reference should live.
+
+**Reach:** Changing a camera path does not rebuild geography. Changing the arena goes through the compiler and saved-map provenance, as other catalogue maps do. The catalogue cutover preserves framing and compiled geometry. Integration later adopts main's named China slab template for the wall and repins this authored map and its source receipts to that same input.
+
+**Verdict:** sound. The resolver result exactly matches the former compiler output and the catalogue validation covers the new folder. **Confidence:** high.
 ## C54 pipeline tooling
 
 ### Measure a short advance without turning it into an arrival deadline
@@ -4303,3 +4467,146 @@ renderer state, capacity change or product API.
 **Verdict:** sound. Actual creation/destruction traces explain the old difference;
 exact matched openings pass and a real retained GPU allocation falsifies the check.
 **Confidence:** high for repeated-reset stability; full timing admission stays open.
+## C66 road core
+
+### The export's `kind` column names the area's kind; no column was added
+
+**Choice:** A paved stretch, triangle and boundary edge's existing `kind` column now holds the area's own kind (an index into the layout's new `surfaceAreaKinds`: road, country_road, dirt_track, sidewalk). Before, it held the surface a unit finds there (road or sidewalk), so every carriageway said "road". The layout also gained `roadAreaKinds`.
+
+**Gap:** C64 left "a distinct exported tag per road kind" open and did not say whether it is a new column or the old one's meaning.
+
+**Verdict:** sound. The surface a unit finds is a function of the area's kind (`SurfaceKind::of`), so the old column held less; a second column would be two owners of one fact. No stride moved. The stroke parity record was re-recorded because the column's values changed (road 1 to 0, dirt track 1 to 2). Rules and digests are untouched. **Confidence:** high.
+
+### `road` and `country_road` share the country road's look
+
+**Choice:** `roads.default` is the country road's gravel, and `road`, `country_road` and `sidewalk` all take it; only `dirt_track` has a row of its own.
+
+**Gap:** Q-G4 says the village's 12 m roads are country roads, but its map says `road`, and generated towns' streets are `road` too.
+
+**Verdict:** provisional. The village map is not this lane's to edit, and a town street has no look of its own until C28. When C28 adds `roads.road` and `roads.sidewalk`, the village's map must say `country_road` first, or its roads turn into streets. **Confidence:** high.
+
+### Kinds are painted one over another, in the contract's order
+
+**Choice:** The material keeps a distance per paved kind and paints the kinds in reverse of `SurfaceKind`'s order, so the earlier kind lies on top: a dirt track ends at the edge of the country road it joins, and its earth is carried `join_m` onto the road.
+
+**Gap:** The slice asks for a look per kind and says nothing of where two kinds overlap.
+
+**Verdict:** sound. The contract already says "where kinds overlap, the earlier one here wins" for speed, so the drawing agrees with what a unit drives on. One "nearest kind" for the whole pixel left a line of grass colour across every junction. **Confidence:** high.
+
+### Patches change hue only, and only toward the warmer colour
+
+**Choice:** A surface's patches go to the palette's second colour scaled to the first's luminance, cover about a quarter of it, and the second colour is the warmer of the two.
+
+**Gap:** "Palettes and mottle" are delegated; the avoid-list bans two-sided blobs.
+
+**Verdict:** sound. The first critique read half-and-half patches as stains and camouflage, and the cooler tone as shadow beside real shadows although no patch was darker. **Confidence:** medium: the second critique still reads the patches as faint stains.
+
+### The luminance rule is checked on frames, not on the palette
+
+**Choice:** "Core at or above the grass" is a scene check on three stations (core against the band 5 to 9 m out), not a rule of `validateBiome`.
+
+**Gap:** The slice asks for a mask-based check and does not say whether the biome should refuse a dark road.
+
+**Verdict:** provisional. A palette rule would have to pick "the grass": against every plot palette it would forbid any road beside a bright crop (wheat today, rapeseed in C83), which is not what L-G3 is about. **Confidence:** medium.
+
+## C67 road shoulder
+
+### The shoulder is a wash of hue with thinner grass, not a band of its own colour
+
+**Choice:** Where the wear is whole the ground goes 45% of the way to the shoulder's colour (`shoulder.cover`), and the grass thins across the same wear. A shoulder painted fully in a sand colour was built first and withdrawn.
+
+**Gap:** Q-G2 asks for "a worn shoulder 2–4 m wide"; SG3, never run, was to say whether one reads as an outline, and names "shoulder by hue and grass thinning only" as its first fallback.
+
+**Verdict:** sound. The unprimed critique called the sand band an outline in every frame from 25 m to 250 m and round every lawn of the generated town. Painted in the road's own colour instead it read as torn paper. The wash is the fallback SG3 names. **Confidence:** medium: the wash all but vanishes beside a field as bright as itself (stubble, wheat), so one road can show a shoulder on one side only.
+
+### "Never darker than the grass" is arithmetic, not a palette
+
+**Choice:** The shoulder's colour is scaled up to the luminance of the ground it lies on wherever that ground is the brighter.
+
+**Gap:** L-G3 asks that the shoulder stay at or above the grass's luminance; fields range from ploughed earth to wheat.
+
+**Verdict:** sound. No palette row can hold that against every field; the lift holds it against any, and a later field palette (C84) cannot break it. **Confidence:** high.
+
+### The shoulder fades out by the tactical camera
+
+**Choice:** The wash is whole while a pixel is under 3% of the shoulder's width and gone at 8% (about 0.1 m and 0.28 m a pixel for the country road: whole at 65 m, gone by 250 m).
+
+**Gap:** Q-G17 says fine detail fades with distance; the slice says nothing of the shoulder at 250 m.
+
+**Verdict:** provisional. The second critique found no outline close up but called the few-pixel fringe at 120 m and 250 m a halo, and possibly a contact shadow under a raised road. A fringe that thin cannot show its ragged edge. The fade was shot at 120 m and 250 m and looked at by its author; it has not had a critique of its own. **Confidence:** medium.
+
+### One wear for the ground and the grass
+
+**Choice:** `groundShoulder` returns one wear value, and both the ground's colour and the grass build read it; the grass keeps `shoulder.grass` of the field's clumps where the wear is whole, and none where it is over 0.9 (the foot of the shoulder and the road itself).
+
+**Gap:** "Grass density ramps across it from C63's field" does not say whether grass and ground share an edge.
+
+**Verdict:** sound. Thin grass over unworn ground, or worn ground under a wall of blades, is the outline again. **Confidence:** high.
+
+### The paved reach is the shoulder's width, and costs nothing
+
+**Choice:** `groundReach`'s paved reach is the widest shoulder (3.5 m), in place of the verge's half width plus a pixel.
+
+**Gap:** The brief asks what widening the reach cost.
+
+**Verdict:** sound. The field's finest level was already built for a 2 m pixel (2.9 m), and the old reach grew with the pixel at every coarser level where the new one does not: the village's index went from 651 to 648 KiB and the dense synthetic town's from 1,037 to 1,024 KiB; the paved records a lookup visits at a play-camera pixel went from 0.047 to 0.049 (village) and 0.49 to 0.56 (town). **Confidence:** high.
+
+### `setRoadWearShown` is a lab switch, not a frame view
+
+**Choice:** The paired cost measure and paired frames turn the roads' wear off through `BattleFrame.setRoadWearShown` (the lab's `suppressRoadWear`), beside `setTreesShown`.
+
+**Gap:** The slice asks for a frame-cost row and names no switch.
+
+**Verdict:** sound. A frame view replaces the frame's composition; this is the finished frame less one thing, as the trees' switch is. **Confidence:** high.
+
+## SG3 road wear read
+
+### Answered inside C67 and C68, on the real material
+
+**Choice:** No scratch worktree and no `spikes/SG3.md`: the shoulder and the ruts were built in the terrain material, critiqued unprimed, and cut back to what passed. The verdict is in the slice file.
+
+**Gap:** SG3 was written as a throwaway spike to run before C67.
+
+**Verdict:** sound. The per-fragment road loop the spike was to paint through is gone (C63), and C62's rig made each question a station shot. **Confidence:** high.
+
+## C68 ruts and centre strip
+
+### The gravel road has no ruts; the dirt track has them and its strip
+
+**Choice:** `roads.default.ruts` is empty. `roads.dirt_track` has one pair of wheel ruts 0.8 m either side of the centreline and a grass strip 0.7 m wide between them, on tracks up to 5 m wide.
+
+**Gap:** Q-G3 asks for two soft ruts inside the core; SG3's fallbacks allow cutting them.
+
+**Verdict:** sound. On the 9 m and 12 m gravel roads the critique read ruts as "pencil lines" and "pinstripes down the lanes" at 65 m in each of the two shapes tried (four narrow ruts, four broader and shallower). On the track it read "a grass strip growing between two wheel ruts", "the best result in the set". **Confidence:** medium. A wide road therefore still has no structure across it at the tactical camera.
+
+### Ruts change no pixel once they fade
+
+**Choice:** A rut darkens its own line and the rest of the surface lightens by the ruts' share of the road, so the road's mean is unchanged; the fade (whole under 0.2 of a rut's width a pixel, gone at 0.4) therefore fades to exactly the surface without ruts.
+
+**Gap:** "They fade to the core's mean below about 2 px per rut, using the same footprint fade as the plot rows."
+
+**Verdict:** sound. The plot rows' fade keeps a mean term; a rut covers a tenth of a road, so a mean term would darken the whole road. The window is 2.5 to 5 pixels a rut, where the rows' is 1.7 to 4: a rut shimmers sooner than a field of rows. **Confidence:** high.
+
+### The strip is never broken along its length
+
+**Choice:** The centre strip's edge wanders but the strip has no gaps.
+
+**Gap:** The slice says only that grass grows in a centre strip.
+
+**Verdict:** sound. Broken by noise, it read as "olive dashes" at 65 m: a dashed line painted down the track. **Confidence:** medium: the second critique still calls the continuous strip "a firm-edged painted stripe" at 65 m.
+
+### The strip fades out with the ruts
+
+**Choice:** The strip is whole while a pixel is under 0.2 of its width and gone at 0.4, as a rut is: gone by the tactical camera.
+
+**Gap:** The slice gives the ruts a fade and the strip none.
+
+**Verdict:** provisional. At 250 m the second critique read the strip, a few pixels wide, as "a dashed centre line (road marking)". The fade is checked at `track-250` and was looked at by its author; it has had no critique of its own. **Confidence:** medium.
+
+### The lane a point lies in rides with the paved distances
+
+**Choice:** `groundPaved` returns a struct: the distance inside each kind's paving, and for the stroke the point lies deepest in, the direction away from its centreline, the distance from it and its half width. Ruts and the strip are functions of that distance from the centreline.
+
+**Gap:** The slice says "keyed from the field" and names no carrier.
+
+**Verdict:** sound. The loop that finds the paved distance already has the closest point of each stretch; a second lookup for the lane would walk the cell's list twice. A polygon has no centreline, so a town's streets have no lanes. **Confidence:** high.

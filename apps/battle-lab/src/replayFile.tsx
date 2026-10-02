@@ -46,18 +46,19 @@ export function readSavedReplay(): ReplayFile | null {
   }
 }
 
-function remember(text: string) {
-  try {
-    localStorage.setItem(LAST_REPLAY_KEY, text);
-  } catch {
-    // storage unavailable: the download still works
-  }
+/** Persist an imported replay before a navigation can discard its page state. */
+export function rememberReplay(text: string) {
+  localStorage.setItem(LAST_REPLAY_KEY, text);
 }
 
 /** Keep `file` as the last saved battle and download it as `name`. */
 export function saveReplay(file: ReplayFile, name: string) {
   const text = JSON.stringify(file);
-  remember(text);
+  try {
+    rememberReplay(text);
+  } catch {
+    /* Storage failure must not prevent a download. */
+  }
   const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
   const a = document.createElement("a");
   a.href = url;
@@ -96,7 +97,7 @@ export function ReplayImport<File extends ReplayFile>({
               const viewer = replayRoute(file);
               if (viewer === window.location.pathname + window.location.search)
                 throw new Error("not a saved battle this viewer can play");
-              remember(text);
+              rememberReplay(text);
               window.location.assign(viewer);
             } catch (err) {
               setError((err as Error).message);

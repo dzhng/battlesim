@@ -14,7 +14,7 @@ below serves that one goal.
 
 1. **Write ONE test at a time.** Assert first, watch it go red on the un-fixed
    code, make the code earn green, learn, then write the next. Never a batch up
-   front: a batch written against *imagined* behavior pins what you guessed —
+   front: a batch written against _imagined_ behavior pins what you guessed —
    those tests pass when the mechanism breaks and fail when it's fine. Each
    green cycle tells you what the next test should actually assert.
 2. **Iterate on the fastest focused runner** (one file, one test name), and run
@@ -27,6 +27,9 @@ below serves that one goal.
 
 ## What to assert
 
+- **Exercise boundary points, not only cell centres.** A valid geometry endpoint
+  can occupy a grid cell whose centre is blocked; centre-only path fixtures miss
+  failures in that conversion.
 - **Observable behavior through the outermost practical entry point** — return
   values, exit codes, persisted rows, HTTP responses, rendered output — never
   which internal functions ran or how a value is computed. A test on the public
@@ -34,6 +37,21 @@ below serves that one goal.
   internals breaks on every refactor and pins implementation, not behavior.
   Reserve isolated unit tests for genuinely tricky pure logic (parsers,
   schedulers, state machines).
+- **Exercise every editing path for coupled values.** Direct edits, Undo and
+  Restore must preserve the same invariant; a converted field can update correctly
+  while restoring its source silently leaves the dependent value changed. Check
+  dependent lists through the same restored projection as the form.
+- **Exercise structural edits with invalid child input.** Disable, replace or
+  restore a parent after a child contains unfinished text; verify discarded fields
+  no longer block submission and unrelated hidden edits still survive.
+- **Exercise previews across identity changes and native defaults.** A draft can
+  name a row that publication replaces or deletes, and authored parents can omit
+  fields that the resolver supplies. Assert the accepted row's displayed values
+  through creation, inherited restore and cleanup; draft projections are not the
+  acceptance oracle.
+- **Test generated artifacts against their owning generator.** Compare exact
+  bytes when the existing contract is canonical text; cross-language JSON
+  reserialization can preserve values while breaking the catalog freshness gate.
 - **Nothing the compiler already guarantees.** A test that re-asserts a type
   signature — field shapes, rejected argument types — can only fail if the
   compiler failed first. Spend the budget on business rules, arithmetic,
@@ -58,6 +76,11 @@ below serves that one goal.
   whatever the lucky sample did and can mask a systematic bias for months. If
   you must assert a noisy differential, widen the margin and name it
   chaos-marginal in a comment.
+
+For cross-target simulation parity, compare full state digests as well as published
+values. Float32 packing can hide Float64 differences in aiming, random sampling or
+flight. Diagnose the first divergent tick before changing a seed, placement, end
+time or fixture rule to make the pair green.
 
 ## Seams and mocks
 
@@ -94,7 +117,7 @@ finite value from a NaN baseline residual to prove the decoder retained its bits
   subject. When a comparison test breaks, first ask whether an unrelated
   mechanism leaked into the experiment before touching the code under test.
 - **Validate, don't assume.** Never reason your way to a conclusion about
-  *cause* — which path fired, where the failures come from — and act on it.
+  _cause_ — which path fired, where the failures come from — and act on it.
   Write a throwaway probe that reads public state and prints; the plausible
   story is wrong often enough to burn a session, and one probe redirects the
   whole effort. Probes are scratch: put them where they cannot be committed,
@@ -128,8 +151,8 @@ needs, it takes the least intrusive form of it:
 ## Prove the test can fail
 
 A test you never saw fail is decoration. For any regression test — especially
-one written *after* the fix — falsify it once: revert or break the production
-code the way the bug would, confirm red *for the expected reason*, restore,
+one written _after_ the fix — falsify it once: revert or break the production
+code the way the bug would, confirm red _for the expected reason_, restore,
 confirm green. Verify the revert actually took: a stash or checkout with a
 wrong pathspec reverts nothing, silently, and the "red" run quietly tests the
 fixed code. The tell: the "red" numbers equal the green numbers.
@@ -171,6 +194,8 @@ Walk this on any test diff, apply fixes in the same pass, re-run the suite:
    fixed-size edits cannot expose address-shift amplification.
    For incremental work, assert observable completion before testing downstream
    effects; accepted input does not imply completed planning or publication.
+   For startup refusals, exercise the consumer before dependent resources arrive:
+   a correct error from the producer can still disappear behind a readiness gate.
    For decoder caches, change header metadata independently of retained payload;
    reuse must not bypass validation or consume a failed generation.
    For worker-backed scenario builders, prove leaving a loading view cancels

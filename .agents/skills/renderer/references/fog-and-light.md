@@ -104,3 +104,8 @@ occlusion readable without an absolute pixel-size cutoff.
 - **Fog rule:** a light is added before the mask pass, so unseen ground it touches keeps its unseen look (dimmed, night-tinted, hatched) and is never lifted to seen; the mask is untouched. Nothing unlearned is drawn, so there is nothing for a light to reveal.
 - **No shadow from a cast light:** it lights through a hull or a wall within its radius. Short radii keep that from reading; a shadowed light would need its own depth views.
 - **Warm light on green grass reads yellow-lime.** Lean the colours red-orange (`[1, 0.55–0.62, 0.25–0.32]`) and keep a burst's light modest: its fireball's own glow sprite already carries most of the bloom in daylight.
+
+- **Build a probe's bindings after preparation.** A probe that grows its GPU
+  tables can otherwise retain a destroyed dummy buffer in its bind group, even
+  while normal frame rendering works. Falsify this at the GPU boundary: reject
+  any command that references a destroyed buffer.

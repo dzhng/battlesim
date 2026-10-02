@@ -284,6 +284,19 @@ fn the_publication_stream_matches_its_paired_record() {
         "../../../fixtures/parity/publication/stream.json"
     ))
     .unwrap();
+    publication_stream(record, "publication/stream.json", false);
+}
+
+#[test]
+fn the_combat_stream_matches_its_paired_record() {
+    let record: Value = serde_json::from_str(include_str!(
+        "../../../fixtures/parity/publication/combat.json"
+    ))
+    .unwrap();
+    publication_stream(record, "publication/combat.json", true);
+}
+
+fn publication_stream(record: Value, path: &str, combat: bool) {
     let map = sim::maps::load(record["map"].as_str().unwrap())
         .unwrap()
         .definition;
@@ -301,6 +314,8 @@ fn the_publication_stream_matches_its_paired_record() {
     let mut snapshots = 0;
     let mut deltas = 0;
     let mut blessed = record.clone();
+    let mut saw_shot = false;
+    let mut saw_impact = false;
     for row in blessed["rows"].as_array_mut().unwrap() {
         battle.step();
         let side: Side = serde_json::from_value(row["side"].clone()).unwrap();
@@ -323,13 +338,23 @@ fn the_publication_stream_matches_its_paired_record() {
                 bits[change[0] as usize] = change[1] as u32 | (change[2] as u32) << 16;
             }
         }
+        let observation = battle.observe(side);
         // Snapshots and deltas alike deliver the side's authoritative field.
         assert_eq!(
             bits,
-            battle.observe(side).ground_visibility.bits,
+            observation.ground_visibility.bits,
             "tick {}",
             battle.tick()
         );
+        saw_shot |= observation
+            .own
+            .iter()
+            .flat_map(|unit| &unit.weapon_poses)
+            .any(|pose| pose.shots > 0);
+        saw_impact |= observation
+            .projectiles
+            .iter()
+            .any(|projectile| projectile.hit != contract::observation::SegmentHit::None);
         let hash = |bytes: Vec<u8>| json!(contract::identity::bytes_hash(&bytes));
         row["digest"] = json!(format!("{:016x}", battle.digest()));
         row["publication_sha256"] = hash(
@@ -345,7 +370,14 @@ fn the_publication_stream_matches_its_paired_record() {
         "initial, each side switch and resync replace the field"
     );
     assert!(deltas > 0, "the stream must exercise incremental fields");
-    if common::bless_parity("publication/stream.json", &blessed) {
+    if combat {
+        assert!(saw_shot, "the paired stream must observe combat firing");
+        assert!(
+            saw_impact,
+            "the paired stream must observe a projectile impact"
+        );
+    }
+    if common::bless_parity(path, &blessed) {
         return;
     }
     for (tick, (row, expected)) in blessed["rows"]

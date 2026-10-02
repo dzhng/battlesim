@@ -1,3 +1,4 @@
+import type { PreparedSession } from "@web/battle/prepare/client";
 // One side's live battle session: the static world and its meshes, the worker
 // authority, the player command path, the drawn units (interpolated; soldiers
 // and vehicles posed by the pose driver as models, each picked by the
@@ -79,11 +80,10 @@ import { orderView } from "./battleOverlay";
 import { groundUnderRay } from "./useStaticWorld";
 
 export interface BattleSessionOptions {
-  /** The map the scenario runs on (the scenario's own `map`). */
-  map: unknown;
   /** The scenario JSON the authority runs. */
   scenario: string;
   seed: number;
+  prepared?: PreparedSession;
   /** Called for every decoded frame, before its credit returns. */
   onDecoded?: (o: ObservationView, digest: string) => void;
   /** A recorded battle to replay: input is off. */
@@ -111,7 +111,6 @@ export interface ScenarioRules extends PoseRules, PanelRules, RulerRules {
 }
 
 export function useBattleSession({
-  map,
   scenario,
   seed,
   onDecoded,
@@ -120,8 +119,8 @@ export function useBattleSession({
   side = "blue",
   destroyable,
   sound = false,
+  prepared,
 }: BattleSessionOptions) {
-  const world = useStaticWorld(map);
   const rules = useMemo(() => (JSON.parse(scenario) as { rules: ScenarioRules }).rules, [scenario]);
   // Combat effects: every decoded publication noted (the frame dedupes),
   // drawn at each animation frame's presentation clock.
@@ -142,7 +141,8 @@ export function useBattleSession({
     },
     [effects, audio, side, onDecoded],
   );
-  const sim = useSimSession({ scenario, seed, onDecoded: noteDecoded, replay, scripted });
+  const sim = useSimSession({ scenario, seed, onDecoded: noteDecoded, replay, scripted, prepared });
+  const world = useStaticWorld(sim.client?.world ?? null, sim.fail);
   const { observation } = sim;
   // The last drawn frame's presentation clock: the callouts' nudges ease on
   // it, and an order's flash starts at it.

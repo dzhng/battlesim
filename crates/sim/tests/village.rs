@@ -445,3 +445,28 @@ fn unused_city_catalog_rows_do_not_change_village_digests() {
         b.step();
     }
 }
+
+#[test]
+fn prepared_world_preserves_combat_and_replay_digest() {
+    let setup = setup("ordinary");
+    let mut direct = Battle::new(&setup, 20260925);
+    let prepared = sim::encounter::PreparedMap::new(&setup.map, &setup.rules);
+    let mut reused = Battle::from_prepared(&setup, 20260925, prepared);
+    assert_eq!(direct.digest(), reused.digest());
+    for _ in 0..180 {
+        direct.step();
+        reused.step();
+        assert_eq!(direct.digest(), reused.digest());
+    }
+    assert_eq!(
+        serde_json::to_string(&direct.replay()).unwrap(),
+        serde_json::to_string(&reused.replay()).unwrap()
+    );
+    let replay = direct.replay();
+    let prepared = sim::encounter::PreparedMap::new(&setup.map, &setup.rules);
+    let mut restored = Battle::from_prepared_replay(&setup, &replay, prepared).unwrap();
+    for _ in 0..180 {
+        restored.step();
+    }
+    assert_eq!(direct.digest(), restored.digest());
+}

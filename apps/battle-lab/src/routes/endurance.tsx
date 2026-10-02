@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import game from "@fixtures/game.json";
+import { restartBattle } from "@web/mechanicsLifecycle";
 import config from "@fixtures/generated-battle.json";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
@@ -59,8 +60,25 @@ function heapMiB(): number | null {
 
 export default function Endurance() {
   const generated = new URLSearchParams(window.location.search).get("generated") === "1";
-  const [late, setLate] = useState(false);
-  const [seed, setSeed] = useState(generated ? 4 : 1);
+  const [late, setLate] = useState(
+    () => new URLSearchParams(window.location.search).get("late") === "1",
+  );
+  const [seed, setSeed] = useState(() => {
+    const requested = new URLSearchParams(window.location.search).get("seed");
+    return requested === null
+      ? generated
+        ? 4
+        : 1
+      : Math.max(0, Math.trunc(Number(requested))) || 0;
+  });
+  const choose = (nextSeed: number, nextLate: boolean) =>
+    restartBattle(
+      () => {
+        setSeed(nextSeed);
+        setLate(nextLate);
+      },
+      { seed: String(nextSeed), late: nextLate ? "1" : "0" },
+    );
   const built = useBuiltScenario({ late, seed, generated }, async (wasm, o, signal) => {
     if (!o.generated)
       return { scenario: await enduranceScenario(wasm, o.seed, o.late), report: null };
@@ -118,8 +136,8 @@ export default function Endurance() {
   const menu = () => (
     <section className="hud-menu-section" aria-label="Stress battle">
       <label>
-        <input type="checkbox" checked={late} onChange={(e) => setLate(e.target.checked)} /> Late
-        state (20,000 fallen, 2,000 wrecks)
+        <input type="checkbox" checked={late} onChange={(e) => choose(seed, e.target.checked)} />{" "}
+        Late state (20,000 fallen, 2,000 wrecks)
       </label>
       <label>
         Seed{" "}
@@ -127,7 +145,7 @@ export default function Endurance() {
           type="number"
           value={seed}
           style={{ width: 70 }}
-          onChange={(e) => setSeed(Math.max(0, Math.trunc(Number(e.target.value))) || 0)}
+          onChange={(e) => choose(Math.max(0, Math.trunc(Number(e.target.value))) || 0, late)}
         />
       </label>
     </section>

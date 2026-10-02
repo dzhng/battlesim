@@ -44,14 +44,20 @@ Test in proportion: the narrow tests for what changed and the one or two scenes 
 
 ## Status
 
-**2026-10-01.** The rig and the water's edge are in; roads, grass and trees are in flight.
+**2026-10-01.** The rig, the water's edge, grass and crops, and the tree skeleton are in; roads, fields and the forest are in flight.
 
 - **Landed:**
   - [C62](slices/C62-ground-evidence-rig.md#outcome): named stations on the village, the river lab and a generated map; the `ground-classes` frame view (the terrain's own class mask); `suppressTrees`. `STATIONS=village,river,generated bun run --cwd web scene -- ground` writes each station's shot, bare ground, mask and a sheet into `throwaway/evidence/ground/`; `STATIONS=map:station+station` shoots only those.
-  - [C70](slices/C70-river-bank-bands.md#outcome) and [C71](slices/C71-river-bank-roundness.md#outcome): the river meets the ground through a wet band and bare earth at or above the grass's luminance, the water has its own colour and light lanes along the stream, and the bank's shading tilt is capped at 40°.
-- **The ground now:** `throwaway/evidence/ground/river-stations.png` (regenerate with the command above). The river reads as water with a tan bank. Roads are still one flat pale band on every kind; the forest floor is blocky; crowns are smooth blobs.
-- **Open on the water's edge** (two unprimed critiques, for C87 or a second pass): the bank is a flat tan stripe of one width with no slope cue; its outer line is a chain of regular lobes at 250 m; the light lanes read as lane markings from high up; the water is matte at low sun. Neither frame-cost row was resolved under the machine's load: both are owed.
-- **In flight:** C73 tree skeleton (with SG1's budget); C66 → C68 country roads; C80 → C83 grass and crops.
-- **Next:** town streets C28 → C30 after roads; forest C74 → C76 after C73; fields C84 → C85 after grass; then C78, C79, the drawn half of C86, C45, C31, C87.
-- **For the other lanes:** `BattleFrame` gained `setTreesShown` and the `ground-classes` view; `post.encode` takes a mode (`look`, `ungraded`, `raw`) in place of two booleans. The biome's `shore` and `water` rows changed shape. No pass was added to the frame. Generated maps do carry rivers (mixed, medium, seed 2 has one): C69's "no layout writes a river" is stale.
-- **GPU budget for every pass:** tune on two stations with at most three variants a round and two rounds a slice; shoot the full station set once per slice; one short paired cost run per slice.
+  - [C70](slices/C70-river-bank-bands.md#outcome), [C71](slices/C71-river-bank-roundness.md#outcome): a wet band and bare earth at or above the grass's luminance, water with its own colour and light lanes, the bank's tilt capped at 40°.
+  - [C80](slices/C80-grass-presets.md), [C81](slices/C81-wild-grass.md#outcome), [C82](slices/C82-within-field-variation.md#outcome), [C83](slices/C83-crops.md#outcome): ten generated grass kinds, a field as a weighted mix that varies in patches, crops drilled on the plot's rows, all under 0.9 m. Two new plot kinds (`rough`, `prairie`) reshuffle which plot is which on every map.
+  - [C73](slices/C73-tree-skeleton.md#outcome) with SG1's tree verdict: skeleton trees with solid clumps on three tiers, a per-tier triangle budget in the validator (10,000 / 2,500 / 500 / 80).
+- **The ground now:** shoot `STATIONS=village:bend-25+wheat-25+meadow-65+forest-edge-65` for the current look. Close up, crops and grass read as planted fields; at 65 m a field is flat colour with speckle; crowns are clumped masses; the river reads as water with a tan bank. Roads are still one flat pale band on main; the forest floor is blocky.
+- **Open, for the passes in flight or C87:**
+  - Water's edge: the bank is a flat tan stripe with no slope cue; its outer line is a chain of lobes at 250 m; the light lanes read as lane markings from high up. Both frame-cost rows are owed.
+  - Grass: several ground kinds are not told apart and rapeseed has no yellow (C84's palettes); the field at 65 m needs C85's ground texture; teal streaks between rapeseed rows and one-sided tuft shading at 25 m are unfixed.
+  - Trees: crowns are less open than Q-G7 asks (cost); blade-thin crowns at forest edges (C75/C76).
+- **In flight:** C66 → C68 country roads; SG4, C84 → C85 fields and fields on generated maps; C74 → C76 forest.
+- **Next:** town streets C28 → C30 after roads; C78, C79 and the drawn half of C86 after the forest; then C45, C31, C87.
+- **For the other lanes:** `BattleFrame` gained `setTreesShown` and the `ground-classes` view; `post.encode` takes a mode (`look`, `ungraded`, `raw`). The biome's `shore`, `water` and `grass` rows changed shape. No pass was added to the frame. Generated maps do carry rivers (mixed, medium, seed 2 has one).
+- **Checkpoints:** the baseline, the banks, the grass and the trees were each shown in Preview for five minutes without comment and kept as merged.
+- **GPU budget for every pass** (the user's): tune on two stations with at most three variants a round and two rounds a slice; shoot the full station set once per slice; one short paired cost run per slice.

@@ -424,6 +424,73 @@ fn road_segments_export_the_road_rule() {
     assert!(roads_seen > 1000);
 }
 
+/// The tag an exported record of a `road` area carries.
+fn road_tag() -> f32 {
+    sim::world::export::surface_area_tag(contract::map::SurfaceKind::Road)
+}
+
+/// Every exported stretch, triangle and boundary edge says which kind its
+/// area is, in the map's own words: a dirt track is drawn as a dirt track,
+/// and a sidewalk is told from the street beside it.
+#[test]
+fn surface_exports_name_each_areas_own_kind() {
+    use sim::world::export;
+    let w = flat(
+        r#", "surfaces":[
+      {"kind":"country_road","shape":{"kind":"stroke","points":[[0,20],[180,20]],"width_m":8}},
+      {"kind":"dirt_track","shape":{"kind":"stroke","points":[[0,60],[180,60]],"width_m":4}},
+      {"kind":"road","shape":{"kind":"polygon","ring":[[20,100],[60,100],[60,140],[20,140]]}},
+      {"kind":"sidewalk","shape":{"kind":"polygon","ring":[[100,100],[140,100],[140,140],[100,140]]}}
+    ]"#,
+    );
+    let layout: serde_json::Value =
+        serde_json::from_str(&export::layout_json(crate::common::props())).unwrap();
+    let named = |tag: f32| {
+        layout["surfaceAreaKinds"][tag as usize]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let field = |fields: &str, name: &str| {
+        layout[fields]
+            .as_array()
+            .unwrap()
+            .iter()
+            .position(|f| f == name)
+            .unwrap()
+    };
+    let kind = field("surfaceStrokeFields", "kind");
+    let strokes = w.export_surface_strokes();
+    assert_eq!(strokes.len(), 2 * export::SURFACE_STROKE_STRIDE);
+    for s in strokes.chunks(export::SURFACE_STROKE_STRIDE) {
+        let expected = if s[1] == 20.0 {
+            "country_road"
+        } else {
+            "dirt_track"
+        };
+        assert_eq!(named(s[kind]), expected);
+    }
+    let kind = field("surfaceTriangleFields", "kind");
+    let triangles = w.export_surface_triangles();
+    assert_eq!(triangles.len(), 4 * export::SURFACE_TRIANGLE_STRIDE);
+    for t in triangles.chunks(export::SURFACE_TRIANGLE_STRIDE) {
+        let expected = if t[0] < 80.0 { "road" } else { "sidewalk" };
+        assert_eq!(named(t[kind]), expected);
+    }
+    let kind = field("surfaceBoundaryFields", "kind");
+    let boundaries = w.export_surface_boundaries();
+    assert_eq!(boundaries.len(), 8 * export::SURFACE_BOUNDARY_STRIDE);
+    for e in boundaries.chunks(export::SURFACE_BOUNDARY_STRIDE) {
+        let expected = if e[0] < 80.0 { "road" } else { "sidewalk" };
+        assert_eq!(named(e[kind]), expected);
+    }
+    // Which of those kinds are carriageways: what fields are cut along.
+    assert_eq!(
+        layout["roadAreaKinds"],
+        serde_json::json!(["road", "country_road", "dirt_track"])
+    );
+}
+
 #[test]
 fn navigation_regions_cover_every_nonuniform_surface() {
     let w = lab();
@@ -497,11 +564,11 @@ fn polygon_export_covers_the_concave_shape_and_marks_only_its_outer_edges() {
         area += (((points[1][0] - points[0][0]) * (points[2][1] - points[0][1])
             - (points[1][1] - points[0][1]) * (points[2][0] - points[0][0]))
             / 2.0) as f64;
-        assert_eq!(row[6], 1.0);
+        assert_eq!(row[6], road_tag());
     }
     assert_eq!(area, 7168.0);
     for edge in world.export_surface_boundaries().chunks_exact(5) {
-        assert_eq!(edge[4], 1.0);
+        assert_eq!(edge[4], road_tag());
         boundary.push(([edge[0], edge[1]], [edge[2], edge[3]]));
     }
     assert_eq!(boundary.len(), 6);
@@ -563,7 +630,7 @@ fn joined_polygon_boundaries_exclude_the_shared_pavement_edge() {
         let t = ((v2(12.0, 7.0) - a).dot(ab) / ab.dot(ab)).clamp(0.0, 1.0);
         nearest = nearest.min((v2(12.0, 7.0) - (a + ab * t)).length());
         perimeter += ab.length();
-        assert_eq!(edge[4], 1.0);
+        assert_eq!(edge[4], road_tag());
     }
     assert_eq!(nearest, 5.0, "the shared edge is not a pavement boundary");
     assert_eq!(perimeter, 60.0);
@@ -628,4 +695,63 @@ fn rounded_strokes_match_the_parity_oracle() {
     }
     assert_eq!(serde_json::json!(strokes), oracle["strokes"]);
     assert_eq!(serde_json::json!(rivers), oracle["rivers"]);
+}
+
+#[test]
+fn public_static_queries_match_prepared_geometry_and_learned_crowns() {
+    for map in [
+        lab_map(),
+        sim::village::scenario(&crate::common::game(), "ordinary")
+            .unwrap()
+            .map,
+    ] {
+        let world = WorldGeometry::new(&map, &crate::common::rules());
+        let public =
+            sim::world::export::PublicWorld::from_json(&world.export_public_queries()).unwrap();
+        for y in (0..=40).map(|i| map.size[1] * i as f64 / 40.0) {
+            for x in (0..=40).map(|i| map.size[0] * i as f64 / 40.0) {
+                assert_eq!(
+                    world.height_at(x, y),
+                    public.height_at(x, y),
+                    "height {x},{y}"
+                );
+                assert_eq!(
+                    world.surface_at(x, y),
+                    public.surface_at(x, y),
+                    "surface {x},{y}"
+                );
+                let origin = v3(x, y, 100.0);
+                let dir = v3(0.13, 0.07, -1.0).normalized();
+                assert_eq!(
+                    world.raycast(origin, dir, 200.0),
+                    public.raycast(origin, dir, 200.0),
+                    "ray {x},{y}"
+                );
+            }
+        }
+        for prop in world.props().filter(|p| p.body.stops_rounds) {
+            let origin = prop.center.with_z(prop.top_z() + 5.0);
+            let dir = v3(0.0, 0.0, -1.0);
+            assert_eq!(
+                world.raycast(origin, dir, 200.0),
+                public.raycast(origin, dir, 200.0),
+                "prop {}",
+                prop.id
+            );
+        }
+        let tree = world
+            .props()
+            .find(|p| p.forest_tree)
+            .expect("fixture has crowns");
+        let cleared = |x: f64, y: f64| (v2(x, y) - tree.center).length() < 8.0;
+        let original = world.export_foliage();
+        let learned = world.export_foliage_cleared(cleared);
+        assert_ne!(original, learned, "clearing must remove a crown");
+        assert_eq!(learned, public.foliage_cleared(cleared));
+        assert_eq!(
+            original,
+            public.foliage_cleared(|_, _| false),
+            "another side still knows the static crowns"
+        );
+    }
 }

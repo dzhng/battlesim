@@ -347,7 +347,7 @@ pub fn scatter_aim(origin: V3, aim: V3, scatter_mrad: f64, rng: &mut Rng) -> V3 
         v3(1.0, 0.0, 0.0)
     };
     let up = right.cross(forward);
-    aim + right * (range * across.tan()) + up * (range * vertical.tan())
+    aim + right * (range * libm::tan(across)) + up * (range * libm::tan(vertical))
 }
 
 /// The one way a round is launched: solve the intended aim (a weapon that

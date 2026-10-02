@@ -1,11 +1,18 @@
 import { createRoot } from "react-dom/client";
-import { LabRouter } from "@apps/battle-lab/src/router";
-import { applyHudTheme } from "./battle/present/hudTheme";
+import { startWithMechanics } from "./mechanicsLifecycle";
 import "./lab.css";
 import "./menu.css";
 import "./hud.css";
 
 const path = window.location.pathname.replace(/\/$/, "") || "/";
 
-applyHudTheme();
-createRoot(document.getElementById("root")!).render(<LabRouter path={path} />);
+void startWithMechanics(import.meta.env.DEV, async () => {
+  const [{ LabRouter }, { applyHudTheme }] = await Promise.all([
+    import("@apps/battle-lab/src/router"),
+    import("./battle/present/hudTheme"),
+  ]);
+  applyHudTheme();
+  createRoot(document.getElementById("root")!).render(<LabRouter path={path} />);
+}).catch((error: Error) => {
+  document.getElementById("root")!.textContent = error.message;
+});
