@@ -9,11 +9,21 @@
 //
 // writes every station's shot and mask into throwaway/evidence/ground/ and a
 // sheet per map (`river:bend-65+wide-65`: those stations alone, the ones a
-// change can move); a later slice imports `openStations` and `shoot`.
+// change can move). A slice's own checks open a map with `openStations` and
+// read it with `shoot` or `stationFrame`, a mask with `classAt` or
+// `classPixels`, and a switch's frame cost with `pairedCost`.
+import { readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { PNG } from "pngjs";
+import { median } from "./_colour.mjs";
 import { advance, aim, lab, presented } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
+
+/** A fixture, parsed: `path` under `fixtures/`. */
+export const fixture = (path) =>
+  JSON.parse(readFileSync(new URL(`../../fixtures/${path}`, import.meta.url), "utf8"));
+/** The biome every station is drawn under. */
+export const BIOME = fixture("biomes/summer.json");
 
 export const VIEWPORT = { width: 1920, height: 1080 };
 /** Looking north, as the labs open. */
@@ -502,6 +512,16 @@ export async function shoot(
   return shot;
 }
 
+/** A station's frame, its bare ground (no grass, no trees) and its class
+ *  mask, decoded. */
+export async function stationFrame(page, map, station) {
+  return {
+    mask: decode(await shoot(page, map, station, { view: "ground-classes" })),
+    bare: decode(await shoot(page, map, station, { grass: false, trees: false })),
+    shot: decode(await shoot(page, map, station)),
+  };
+}
+
 /** The ground's class at a pixel of a "ground-classes" shot: null where the
  *  pixel is not bare ground. Distances are metres outside an edge (negative
  *  inside), exact as far as the ground's own look reads them and holding
@@ -518,6 +538,26 @@ export function classAt(png, x, y) {
     plotKind: (b >> e.CLASS_KIND_SHIFT) & e.CLASS_KIND_MAX,
     plotHash: b & e.CLASS_HASH_MASK,
   };
+}
+
+/** The pixels of `mask` that are ground and whose class passes `keep`. */
+export function* classPixels(mask, keep) {
+  for (let y = 0; y < mask.height; y++)
+    for (let x = 0; x < mask.width; x++) {
+      const c = classAt(mask, x, y);
+      if (c && keep(c)) yield [x, y];
+    }
+}
+
+/** Whether a class is open ground: no wood on it, clear of a river's bank. */
+export const isOpen = (c) => c.forest === "none" && c.riverSd > 3;
+
+/** One in `every` of `pixels`, the first among them. */
+export function oneIn(every, pixels) {
+  const out = [];
+  let n = 0;
+  for (const p of pixels) if (n++ % every === 0) out.push(p);
+  return out;
 }
 
 /** The mask as a picture a person can read: road red by depth, water blue,
@@ -576,12 +616,7 @@ function sheet(rows, shrink) {
  *  `<map>-<station>[-bare|-classes].png`, and one sheet `<map>-stations.png`
  *  with a row a station: the shot, the bare ground, the mask made legible.
  *  `<map>-stations.json` holds the pose each was shot from. */
-export async function stationSheet(
-  ctx,
-  map,
-  page,
-  stations = Object.keys(STATION_MAPS[map].stations),
-) {
+async function stationSheet(ctx, map, page, stations = Object.keys(STATION_MAPS[map].stations)) {
   const rows = [];
   await ctx.writeEvidence(
     `${map}-stations.json`,
@@ -891,6 +926,37 @@ export async function groundRig(ctx) {
     JSON.stringify({ placed, changedShare: changed / (trees.width * trees.height) }),
   );
   await page.close();
+}
+
+/** Frames a cost batch draws before its GPU time is read. */
+const COST_FRAMES = 120;
+
+/** What one of the lab's `suppress*` switches costs a frame at the pose the
+ *  page stands at: the same frozen frame with what the switch draws and
+ *  without it, in `pairs` interleaved batches. `plainMs` is the median frame
+ *  without it, `costMs` the median of the paired differences, `differences`
+ *  each pair's. Run it alone, under the GPU lock. */
+export async function pairedCost(page, suppress, pairs) {
+  // The page draws on demand, and the timer's mean runs over the frames
+  // drawn: a view change resets it, then every frame is forced.
+  const batch = (off) =>
+    lab(
+      page,
+      async ({ suppress, off, frames }) => {
+        await window.__lab[suppress](off);
+        await window.__lab.setFrameView("final");
+        for (let i = 0; i < frames; i++) await window.__lab.frame();
+        return window.__lab.stats().gpu.meanMs;
+      },
+      { suppress, off, frames: COST_FRAMES },
+    );
+  const rows = { on: [], off: [] };
+  for (let pair = 0; pair < pairs; pair++) {
+    rows.off.push(await batch(true));
+    rows.on.push(await batch(false));
+  }
+  const differences = rows.on.map((v, i) => v - rows.off[i]);
+  return { plainMs: median(rows.off), costMs: median(differences), differences };
 }
 
 /** `STATIONS=map,...`: every station of those maps, as shots, masks and a

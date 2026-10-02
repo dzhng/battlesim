@@ -12,7 +12,7 @@
 import { writeFile } from "node:fs/promises";
 import { lab } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
-import { classAt, openStations, shoot } from "./_groundStations.mjs";
+import { classAt, openStations, pairedCost, shoot } from "./_groundStations.mjs";
 
 /** Where the floor is judged: inside the village's west wood and at its
  *  edge, at a log and a boulder where the forest rule lays any, the river
@@ -99,16 +99,11 @@ export async function forestFloor(ctx) {
   await page.close();
 }
 
-/** Frames a cost batch draws before its GPU time is read, and the pairs a
- *  station is measured over. */
-const COST_FRAMES = 120;
+/** The pairs a station's cost is measured over. */
 const COST_PAIRS = 4;
-const median = (values) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
 
 /** FLOOR_COST=1: what the dressing costs a frame over a wood from the play
- *  camera and at a wood's edge from the tactical camera: the same frozen
- *  frame with the dressing on and off in a few interleaved batches, the
- *  median of the paired differences. Run it alone, under the GPU lock. */
+ *  camera and at a wood's edge from the tactical camera (`pairedCost`). */
 export async function forestFloorCost(ctx) {
   const result = { stations: {} };
   for (const [map, stations] of [
@@ -118,24 +113,7 @@ export async function forestFloorCost(ctx) {
     const page = await openStations(ctx, map);
     for (const station of stations) {
       await shoot(page, map, station);
-      // The page draws on demand, and the timer's mean runs over the frames
-      // drawn: a view change resets it, then every frame is forced.
-      const batch = (off) =>
-        lab(
-          page,
-          async ({ off, frames }) => {
-            await window.__lab.suppressDressing(off);
-            await window.__lab.setFrameView("final");
-            for (let i = 0; i < frames; i++) await window.__lab.frame();
-            return window.__lab.stats().gpu.meanMs;
-          },
-          { off, frames: COST_FRAMES },
-        );
-      const rows = { on: [], off: [] };
-      for (let pair = 0; pair < COST_PAIRS; pair++) {
-        rows.off.push(await batch(true));
-        rows.on.push(await batch(false));
-      }
+      const cost = await pairedCost(page, "suppressDressing", COST_PAIRS);
       // The frame's scenery draw calls, counted over the last whole frame.
       const draws = (off) =>
         lab(
@@ -149,9 +127,9 @@ export async function forestFloorCost(ctx) {
           off,
         );
       result.stations[`${map} ${station}`] = {
-        bareMs: +median(rows.off).toFixed(3),
-        dressingMs: +median(rows.on.map((v, i) => v - rows.off[i])).toFixed(3),
-        differences: rows.on.map((v, i) => +(v - rows.off[i]).toFixed(3)),
+        bareMs: +cost.plainMs.toFixed(3),
+        dressingMs: +cost.costMs.toFixed(3),
+        differences: cost.differences.map((v) => +v.toFixed(3)),
         draws: { bare: await draws(true), dressed: await draws(false) },
         drawn: await lab(page, () => window.__lab.stats().scenery.dressing),
       };
