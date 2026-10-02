@@ -118,9 +118,10 @@ const throughRoad: PlotSite = {
   surfaceStrokes: Float32Array.of(0, 50, 300, 50, 4, COUNTRY, CUT_A | CUT_B),
 };
 /** A country road is a street through built ground, looked for 5 m beside
- *  it, and across a gap in it of under 40 m. */
+ *  it, and across a gap in it of under 40 m; the street's surface is carried
+ *  6 m on under the road's. */
 const asStreet = SURFACE_AREA_KINDS.map((_, tag) =>
-  tag === COUNTRY ? { as: STREET, besideM: 5, gapM: 40 } : null,
+  tag === COUNTRY ? { as: STREET, besideM: 5, gapM: 40, carryM: 6 } : null,
 );
 /** Each drawn stretch's `[from x, to x, kind]`, for a road along x. */
 const pieces = (drawn: Float32Array) => {
@@ -129,56 +130,55 @@ const pieces = (drawn: Float32Array) => {
     out.push([Math.round(drawn[o]), Math.round(drawn[o + 2]), drawn[o + 5]]);
   return out;
 };
-/** Houses north of the road only, from x = 100 to 200. */
-const builtBeside = (x: number, y: number) => x >= 100 && x <= 200 && y > 50;
+/** Houses either side of the road from x = 100 to 200. */
+const builtBeside = (x: number) => x >= 100 && x <= 200;
 
-test("a country road is drawn as a street where built ground lies beside it, and as itself beyond", () => {
+test("a country road is drawn as a street between built ground, and as itself beyond", () => {
   const drawn = drawnStrokes(throughRoad, asStreet, builtBeside);
+  // The road stops at the houses and starts again past them; the street
+  // runs its carry on under it, either end.
+  expect(pieces(drawn)).toEqual([
+    [0, 100, COUNTRY],
+    [200, 300, COUNTRY],
+    [94, 206, STREET],
+  ]);
   const stretches = [];
   for (let o = 0; o < drawn.length; o += STROKE_FLOATS)
     stretches.push(Array.from(drawn.subarray(o, o + STROKE_FLOATS)));
-  expect(stretches.map((s) => s[5])).toEqual([COUNTRY, STREET, COUNTRY]);
-  // One road still: each piece starts where the last ended, on the same
-  // line, as wide. The street ends square; the country road starts round
-  // over each end, and keeps its own square ends.
-  expect(stretches.map((s) => s[STROKE_CUTS])).toEqual([CUT_A, CUT_A | CUT_B, CUT_B]);
-  expect(stretches[0].slice(0, 2)).toEqual([0, 50]);
-  expect(stretches[2].slice(2, 4)).toEqual([300, 50]);
-  for (const [k, at] of [100, 200].entries()) {
-    expect(stretches[k].slice(2, 4)).toEqual(stretches[k + 1].slice(0, 2));
-    expect(stretches[k][2]).toBeCloseTo(at, 0);
-    expect(stretches[k][3]).toBe(50);
-  }
-  for (const s of stretches) expect(s[4]).toBe(4);
+  // The street ends square; the road ends round over it, and keeps its own
+  // square ends.
+  expect(stretches.map((s) => s[STROKE_CUTS])).toEqual([CUT_A, CUT_B, CUT_A | CUT_B]);
+  // All on the road's own line, as wide.
+  for (const s of stretches) expect([s[1], s[3], s[4]]).toEqual([50, 50, 4]);
+  expect(stretches[0][0]).toBe(0);
+  expect(stretches[1][2]).toBe(300);
 });
 
 test("a street runs on across a short gap between a town's yards, and ends at a long one", () => {
   const yards = (spans: [number, number][]) => (x: number) =>
     spans.some(([from, to]) => x >= from && x <= to);
-  expect(
-    pieces(
-      drawnStrokes(
-        throughRoad,
-        asStreet,
-        yards([
-          [60, 100],
-          [130, 170],
-          [230, 260],
-        ]),
-      ),
-    ),
-  ).toEqual([
+  const drawn = drawnStrokes(
+    throughRoad,
+    asStreet,
+    yards([
+      [60, 100],
+      [130, 170],
+      [230, 260],
+    ]),
+  );
+  expect(pieces(drawn).filter(([, , kind]) => kind === STREET)).toEqual([
+    [54, 176, STREET],
+    [224, 266, STREET],
+  ]);
+  expect(pieces(drawn).filter(([, , kind]) => kind === COUNTRY)).toEqual([
     [0, 60, COUNTRY],
-    [60, 170, STREET],
     [170, 230, COUNTRY],
-    [230, 260, STREET],
     [260, 300, COUNTRY],
   ]);
 });
 
 test("a street's run through a town carries on from one stretch of its road to the next", () => {
-  // The same road in two stretches that meet at x = 150, inside the town and
-  // then inside a gap in it.
+  // The same road in two stretches that meet at x = 150, inside the town.
   const bent: PlotSite = {
     ...empty,
     surfaceStrokes: Float32Array.from(
@@ -191,24 +191,20 @@ test("a street's run through a town carries on from one stretch of its road to t
   const drawn = drawnStrokes(bent, asStreet, builtBeside);
   expect(pieces(drawn)).toEqual([
     [0, 100, COUNTRY],
-    [100, 150, STREET],
-    [150, 200, STREET],
     [200, 300, COUNTRY],
+    [94, 150, STREET],
+    [150, 206, STREET],
   ]);
   const cuts = [];
   for (let o = 0; o < drawn.length; o += STROKE_FLOATS) cuts.push(drawn[o + STROKE_CUTS]);
-  expect(cuts).toEqual([CUT_A, CUT_A, CUT_B, CUT_B]);
-  const gapped = drawnStrokes(
-    bent,
-    asStreet,
-    (x) => (x >= 100 && x <= 140) || (x >= 165 && x <= 200),
+  // The street is not cut where its two stretches meet.
+  expect(cuts).toEqual([CUT_A, CUT_B, CUT_A, CUT_B]);
+});
+
+test("a road with houses along one side only stays a country road", () => {
+  expect(drawnStrokes(throughRoad, asStreet, (x, y) => builtBeside(x) && y > 50)).toBe(
+    throughRoad.surfaceStrokes,
   );
-  expect(pieces(gapped)).toEqual([
-    [0, 100, COUNTRY],
-    [100, 150, STREET],
-    [150, 200, STREET],
-    [200, 300, COUNTRY],
-  ]);
 });
 
 test("drawing a road as a street through a town moves no edge of it", () => {
@@ -235,7 +231,7 @@ test("a road no kind draws differently is the site's own strokes", () => {
   const none = SURFACE_AREA_KINDS.map(() => null);
   expect(drawnStrokes(throughRoad, none, builtBeside)).toBe(throughRoad.surfaceStrokes);
   // A kind drawn as itself: the village's roads, which are streets by name.
-  const itself = SURFACE_AREA_KINDS.map((_, tag) => ({ as: tag, besideM: 5, gapM: 40 }));
+  const itself = SURFACE_AREA_KINDS.map((_, tag) => ({ ...asStreet[COUNTRY]!, as: tag }));
   expect(drawnStrokes(throughRoad, itself, builtBeside)).toBe(throughRoad.surfaceStrokes);
   expect(drawnStrokes(throughRoad, asStreet, () => false)).toEqual(throughRoad.surfaceStrokes);
 });

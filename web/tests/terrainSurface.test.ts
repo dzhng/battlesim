@@ -615,25 +615,31 @@ test("a country road is drawn as a street between a town's blocks, and as itself
     return tag;
   };
   const { surfaceStrokes: exported, surfaceStrokeStride: stride } = surface.site;
-  const seen = { town: 0, plain: 0 };
+  const seen = { town: 0, streets: 0, plain: 0 };
   for (let o = 0; o < exported.length; o += stride) {
     if (exported[o + 5] !== country) continue;
     const [ax, ay, bx, by, half] = exported.subarray(o, o + 5);
-    const steps = Math.ceil(Math.hypot(bx - ax, by - ay) / 10);
+    const length = Math.hypot(bx - ax, by - ay);
+    const [nx, ny] = [(-(by - ay) / length) * (half + 15), ((bx - ax) / length) * (half + 15)];
+    const steps = Math.ceil(length / 10);
     for (let s = 0; s <= steps; s++) {
       const [x, y] = [ax + ((bx - ax) * s) / steps, ay + ((by - ay) * s) / steps];
       // Clear of the town's edge either way: a block's depth inside it with
-      // a block of buildings on the road, and beyond the last yards outside.
-      if (inTown(x, y) > 80 && inBlock(x, y) > -half - 2) {
-        expect(drawnAt(x, y), `in town at (${x}, ${y})`).toBe(street);
+      // one of the generator's blocks on each side of the road, and beyond
+      // the last yards outside.
+      if (inTown(x, y) > 80 && inBlock(x + nx, y + ny) > 0 && inBlock(x - nx, y - ny) > 0) {
         seen.town++;
+        if (drawnAt(x, y) === street) seen.streets++;
       } else if (inTown(x, y) < -200) {
         expect(drawnAt(x, y), `in the plain at (${x}, ${y})`).toBe(country);
         seen.plain++;
       }
     }
   }
+  // A block of the generator's is not all yards: a hamlet's houses stand on
+  // lots so wide that the road through them stays a country road.
   expect(seen.town).toBeGreaterThan(500);
+  expect(seen.streets / seen.town).toBeGreaterThan(0.9);
   expect(seen.plain).toBeGreaterThan(500);
 });
 

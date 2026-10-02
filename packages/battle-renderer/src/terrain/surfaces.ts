@@ -67,12 +67,14 @@ export function drawnKind(
 }
 
 /** How a paved kind's strokes are drawn through built ground: as kind `as`
- *  (its tag) wherever that ground lies `besideM` beyond the stroke's edge, on
- *  either side, and on across any gap in it shorter than `gapM`. */
+ *  (its tag) wherever that ground lies `besideM` beyond the stroke's edge on
+ *  both sides, and on across any gap in it shorter than `gapM`. Its surface
+ *  runs `carryM` on under the stroke's own, either end. */
 export interface StrokeThroughBuilt {
   as: number;
   besideM: number;
   gapM: number;
+  carryM: number;
 }
 
 /** Built ground is looked for at points this far apart along a stretch, and
@@ -82,12 +84,12 @@ const BUILT_PLACED_M = 0.25;
 
 /** `site`'s paved strokes as the ground draws them. A stroke of a kind that
  *  `through` (by tag; null for a kind that is always itself) draws as another
- *  is tagged as that kind along each run where `built(x, y)` holds beside
- *  it, and its stretches are split where a run starts and ends. Each
- *  piece starts where the last ended, on its stretch's own line and as wide.
- *  A run ends cut square, and the road it turns back into starts round over
- *  that end, so no edge of the road moves. Where nothing is drawn
- *  differently the result is `site.surfaceStrokes` itself. */
+ *  is that kind along each run where `built(x, y)` holds either side of it:
+ *  its own stretches stop at the run, round as a stroke's stretches meet,
+ *  and the run is laid as the other kind on the same line and as wide, cut
+ *  square a carry past each end, under the stroke's own surface. No edge of
+ *  the road moves. Where nothing is drawn differently the result is
+ *  `site.surfaceStrokes` itself. */
 export function drawnStrokes(
   site: SurfaceGeometry,
   through: readonly (StrokeThroughBuilt | null)[],
@@ -111,29 +113,23 @@ export function drawnStrokes(
     const tag = strokes[o + 5];
     const rule = through[tag];
     const runs = rule && rule.as !== tag ? builtRuns(strokes, o, end, stride, rule, built) : [];
-    let total = 0;
-    for (let k = o; k < end; k += stride)
-      total += Math.hypot(strokes[k + 2] - strokes[k], strokes[k + 3] - strokes[k + 1]);
     if (runs.length === 0) {
       for (let k = o; k < end; k++) out.push(strokes[k]);
       o = end;
       continue;
     }
     changed = true;
-    let from = 0;
-    for (; o < end; o += stride) {
-      const [ax, ay, bx, by, half, , cuts] = strokes.subarray(o, o + STROKE_FLOATS);
-      const length = Math.hypot(bx - ax, by - ay);
-      // The stretch's pieces: it is split at each run's end that falls
-      // inside it.
-      const ends = [
-        from,
-        ...runs.flat().filter((at) => at > from && at < from + length),
-        from + length,
-      ];
-      for (let k = 0; k + 1 < ends.length; k++) {
-        const [start, stop] = [ends[k], ends[k + 1]];
-        const run = runs.find((r) => r[0] <= start && stop <= r[1]);
+    let total = 0;
+    for (let k = o; k < end; k += stride)
+      total += Math.hypot(strokes[k + 2] - strokes[k], strokes[k + 3] - strokes[k + 1]);
+    /** The stroke's stretches within `spans` of its length, as `kind`: a
+     *  part that ends with its span short of the stroke's own end is cut
+     *  square there (`square`) or left round. */
+    const lay = (spans: [number, number][], kind: number, square: boolean) => {
+      let from = 0;
+      for (let k = o; k < end; k += stride) {
+        const [ax, ay, bx, by, half, , cuts] = strokes.subarray(k, k + STROKE_FLOATS);
+        const length = Math.hypot(bx - ax, by - ay);
         const point = (at: number) =>
           at === from
             ? [ax, ay]
@@ -143,23 +139,44 @@ export function drawnStrokes(
                   Math.fround(ax + ((bx - ax) * (at - from)) / length),
                   Math.fround(ay + ((by - ay) * (at - from)) / length),
                 ];
-        // A run ends square across the road, where the road it turns back
-        // into starts round over it; the stretch's own ends stay as cut.
-        const cut =
-          (k === 0 ? cuts & CUT_A : 0) |
-          (k + 2 === ends.length ? cuts & CUT_B : 0) |
-          (run && run[0] === start && start > 0 ? CUT_A : 0) |
-          (run && run[1] === stop && stop < total ? CUT_B : 0);
-        out.push(...point(start), ...point(stop), half, run ? rule!.as : tag, cut);
+        for (const [first, last] of spans) {
+          const [start, stop] = [Math.max(first, from), Math.min(last, from + length)];
+          if (stop <= start) continue;
+          const cut =
+            (start === from ? cuts & CUT_A : 0) |
+            (stop === from + length ? cuts & CUT_B : 0) |
+            (square && start === first && first > 0 ? CUT_A : 0) |
+            (square && stop === last && last < total ? CUT_B : 0);
+          out.push(...point(start), ...point(stop), half, kind, cut);
+        }
+        from += length;
       }
-      from += length;
+    };
+    // The stroke as itself between the runs, then each run with its carry.
+    const between: [number, number][] = [];
+    const carried: [number, number][] = [];
+    let at = 0;
+    for (const [start, stop] of runs) {
+      between.push([at, start]);
+      at = stop;
+      const span: [number, number] = [
+        Math.max(0, start - rule!.carryM),
+        Math.min(total, stop + rule!.carryM),
+      ];
+      const last = carried.at(-1);
+      if (last && span[0] <= last[1]) last[1] = span[1];
+      else carried.push(span);
     }
+    between.push([at, total]);
+    lay(between, tag, false);
+    lay(carried, rule!.as, true);
+    o = end;
   }
   return changed ? Float32Array.from(out) : strokes;
 }
 
 /** The runs of one stroke (its stretches, `strokes[from..to)`) with built
- *  ground beside them, as `[start, stop]` distances along the stroke; two
+ *  ground either side of them, as `[start, stop]` distances along the stroke; two
  *  runs nearer than the rule's gap are one. */
 function builtRuns(
   strokes: Float32Array,
@@ -187,7 +204,7 @@ function builtRuns(
     const aside = half + rule.besideM;
     const builtAt = (along: number) => {
       const [x, y] = [ax + ux * along, ay + uy * along];
-      return built(x - uy * aside, y + ux * aside) || built(x + uy * aside, y - ux * aside);
+      return built(x - uy * aside, y + ux * aside) && built(x + uy * aside, y - ux * aside);
     };
     const steps = Math.ceil(length / BUILT_STEP_M);
     for (let s = 0; s <= steps; s++) {

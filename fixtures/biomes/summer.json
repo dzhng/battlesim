@@ -1,7 +1,7 @@
 {
   "seed": 1616,
   "palettes": {
-    "yard": [[0.279, 0.313, 0.217], [0.26, 0.296, 0.208], [0.3, 0.329, 0.231], [0.319, 0.312, 0.236]],
+    "yard": [[0.274, 0.316, 0.222], [0.246, 0.29, 0.198], [0.297, 0.335, 0.238]],
     "meadow": [[0.291, 0.313, 0.246], [0.268, 0.29, 0.227], [0.316, 0.336, 0.267]],
     "pasture": [[0.33, 0.35, 0.281], [0.307, 0.326, 0.262]],
     "rough": [[0.331, 0.326, 0.262], [0.305, 0.303, 0.244], [0.358, 0.348, 0.281]],
@@ -191,10 +191,10 @@
       "furrow_contrast": 0,
       "row_break": 0,
       "grain_m": 0.35,
-      "grain": 0.14,
+      "grain": 0.12,
       "grain_stretch": 1,
-      "mottle": 0.3,
-      "patch_m": [9, 6],
+      "mottle": 0.15,
+      "patch_m": [14, 8],
       "tram": { "rows": 0, "width_m": 0, "contrast": 0 },
       "roughness": 0.95
     }
@@ -341,10 +341,10 @@
       },
       "yard": {
         "density": 1,
-        "height": 0.5,
+        "height": 1,
         "rows": 0,
-        "mix": [{ "appearance": "grass_pasture", "share": 6, "drift": 0, "dry": 0 }, { "appearance": "grass_meadow", "share": 3, "drift": 0.5, "dry": 0 }, { "appearance": "grass_verge", "share": 1, "drift": 0.7, "dry": 0 }],
-        "patches": { "height": [0.8, 1.15], "thin": 0.3, "dry": 0.3 }
+        "mix": [{ "appearance": "grass_meadow", "share": 7, "drift": 0, "dry": 0 }, { "appearance": "grass_rough", "share": 1.5, "drift": 0.8, "dry": 0.15 }, { "appearance": "grass_verge", "share": 1, "drift": 0.6, "dry": 0 }, { "appearance": "grass_prairie", "share": 0.5, "drift": 0.5, "dry": 0.4 }],
+        "patches": { "height": [0.7, 1.2], "thin": 0.25, "dry": 0.3 }
       },
       "pasture": {
         "density": 0.9,

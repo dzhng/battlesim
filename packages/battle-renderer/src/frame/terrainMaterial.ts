@@ -1353,9 +1353,12 @@ export const groundMarks = tgpu
   let cuts=u32(seg.detail.z);
   let room=2.0*paved.lane.w;
   // Beside it: not past an end its stroke is cut at, nor within this
-  // road's width of one (round a bend its stretches meet end to end).
+  // road's width of one (round a bend its stretches meet end to end), and
+  // beside the stretch's own length: past its end the distance is to a
+  // point, and a crossing laid by it would be a fan of bars round the end
+  // of a street that only joins this road.
   let ends=((cuts&${CUT_A}u)!=0u&&free<room)||((cuts&${CUT_B}u)!=0u&&len-free<room);
-  if(!ends){cross=max(cross,inside);}
+  if(!ends&&free>=0.0&&free<=len){cross=max(cross,inside);}
  }
  let soft=max(footprint,${MARK_EDGE_M})*0.5;
  let centre=(1.0-smoothstep(line-soft,line+soft,paved.lane.z))

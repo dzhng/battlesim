@@ -160,9 +160,10 @@ export interface Road {
   area?: string;
   /** A road through a town: where a settlement's own ground
    *  (`field_rules.settlement_kind`) lies within `beside_m` of a stroke's
-   *  edge, on either side, the stroke is drawn by `kind`'s row, and on across
+   *  edge on both sides, the stroke is drawn by `kind`'s row, and on across
    *  any gap in that ground shorter than `gap_m`. A country road is a street
-   *  between a town's houses. Left out, the road is itself everywhere. */
+   *  between a town's houses; the street's surface runs its own `join_m` on
+   *  under the road's, either end. Left out, the road is itself everywhere. */
   town?: { kind: string; beside_m: number; gap_m: number };
   /** A town street's walk; left out, the road has none. */
   walk?: Walk;

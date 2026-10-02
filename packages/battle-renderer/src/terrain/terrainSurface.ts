@@ -95,6 +95,7 @@ export function terrainSurface(
           as: SURFACE_AREA_KINDS.indexOf(town.kind as SurfaceAreaKind),
           besideM: town.beside_m,
           gapM: town.gap_m,
+          carryM: pick(biome.roads, town.kind).join_m,
         }
       : null;
   });
