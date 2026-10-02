@@ -20,5 +20,14 @@ blender props.py wall "$b/wall.glb"
 blender props.py crate "$b/crate.glb"
 blender props.py bridge_deck "$b/bridge_deck.glb"
 for kind in fence sandbags tooth; do blender props.py "$kind" "$b/$kind.glb"; done
+# the street's bodies (fixtures/props/city/street.json), one GLB per kind
+s="$root/assets/source/street"
+mkdir -p "$s"
+blender street_car.py "$s/parked_car.glb"
+blender street_car.py "$s/car_wreck.glb" --wreck
+for kind in jersey_barrier bollard lamp bench bins hydrant utility_box planter bus_shelter \
+  heras_fence skip_bin pallet_stack site_cabin traffic_cone road_barrier scaffold scooter; do
+  blender street.py "$kind" "$s/$kind.glb"
+done
 # the trees and hedgerows, one GLB per kind into assets/source/trees/
 blender trees.py

@@ -20,7 +20,9 @@
 // has not seen leaves the wall standing.
 
 import type { Vec3 } from "math";
+import { color } from "math/color";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
+import { PROTOTYPE_KIT, PROTOTYPE_MODULE } from "@packages/scene-assets/src/prototypeSet";
 import type { StaticBundle } from "@packages/scene-assets/src/schema";
 import type { WorldExports, WorldLayout } from "../worldMesh";
 import type { ModelInstance } from "./modelInstances";
@@ -70,6 +72,23 @@ export function drawnBy(
   return layout.propAppearance[kind]?.drawn_by === by;
 }
 
+/** `presentation.stand_ins` in the fixture: what a prop kind with no art
+ *  fitted is drawn as until it has some. */
+export interface StandInStyle {
+  /** A prop kind's colour (sRGB), with a `default`. */
+  tints: Record<string, readonly [number, number, number]>;
+}
+
+export function validateStandIns(style: StandInStyle): StandInStyle {
+  const rgb = (c: unknown) =>
+    Array.isArray(c) && c.length === 3 && c.every((v) => typeof v === "number" && v >= 0 && v <= 1);
+  if (!style.tints?.default) throw new Error("presentation.stand_ins.tints needs a default");
+  for (const [kind, tint] of Object.entries(style.tints))
+    if (!rgb(tint))
+      throw new Error(`presentation.stand_ins.tints: ${kind} must be [r, g, b] in [0, 1]`);
+  return style;
+}
+
 /** The state a prop appearance draws. */
 const STATE = "default";
 
@@ -81,17 +100,37 @@ interface Candidate {
 
 /** The installed prop appearances, indexed by the simulation prop kind:
  *  each kind is drawn by the appearances of the scenery kind its catalog
- *  `appearance` names (`drawn_by`), as the world layout carries it. */
+ *  `appearance` names (`drawn_by`), as the world layout carries it.
+ *
+ *  A kind none is fitted to (street furniture before its models) takes the
+ *  stand-in, where `standIns` gives one: the prototype kit's unit box,
+ *  stretched to the prop's own box and tinted by its kind, through the same
+ *  model instances. A body the simulation holds is then never invisible. A
+ *  forest's trees are the scenery's, never a stand-in. */
 export class PropAppearances {
   private readonly byKind = new Map<string, Candidate[]>();
   private readonly bindings: WorldLayout["propAppearance"];
   /** The kinds whose body stops no mover class: surfaces movers stand on. */
   private readonly walkedOn: Set<string>;
+  /** Each stand-in tint, linear; null where no stand-in is drawn. */
+  private readonly standIns: Map<string, Vec3> | null;
 
   constructor(
     installed: InstalledAppearances,
     layout: Pick<WorldLayout, "propAppearance" | "blockingPropKinds">,
+    standIns?: StandInStyle,
   ) {
+    const kit = installed.appearances.get(PROTOTYPE_KIT)?.bundle;
+    const box = kit?.kind === "static" && kit.states.some((s) => s.name === PROTOTYPE_MODULE);
+    this.standIns =
+      standIns && box
+        ? new Map(
+            Object.entries(standIns.tints).map(([kind, tint]) => [
+              kind,
+              [...color.fromSRGB([tint[0], tint[1], tint[2]])] as Vec3,
+            ]),
+          )
+        : null;
     this.bindings = layout.propAppearance;
     const blocking = new Set(Object.values(layout.blockingPropKinds).flat());
     this.walkedOn = new Set(Object.keys(this.bindings).filter((k) => !blocking.has(k)));
@@ -124,10 +163,29 @@ export class PropAppearances {
     return best;
   }
 
+  /** Whether `kind` is drawn as the stand-in box: it has a binding, no
+   *  appearance is fitted to it, and it is no forest's tree. */
+  private standsIn(kind: string): boolean {
+    return (
+      this.standIns !== null &&
+      kind in this.bindings &&
+      !this.drawsTree(kind) &&
+      !this.byKind.has(kind)
+    );
+  }
+
   /** The models drawing `box` as its kind, appended to `out`. A kind with
-   *  no appearance draws nothing. */
+   *  no appearance draws its stand-in, or nothing where there is none. */
   fit(box: PropBox, out: ModelInstance[]): ModelInstance[] {
     const chosen = this.choose(box.kind, box.half);
+    if (!chosen && this.standsIn(box.kind)) {
+      const [hx, hy, hz] = box.half;
+      out.push({
+        ...placed(PROTOTYPE_KIT, box, 0, [2 * hx, 2 * hy, 2 * hz], 0, false, PROTOTYPE_MODULE),
+        tint: this.standIns!.get(box.kind) ?? this.standIns!.get("default")!,
+      });
+      return out;
+    }
     if (!chosen) return out;
     const [fx, fy, fz] = chosen.footprint;
     const [hx, hy, hz] = box.half;
@@ -164,14 +222,19 @@ export class PropAppearances {
     for (const prop of props) {
       const chosen = this.choose(prop.kind, prop.half);
       if (chosen) out.add(chosen.name);
+      else if (this.standsIn(prop.kind)) out.add(PROTOTYPE_KIT);
     }
     for (const [kind, list] of this.byKind)
       if (!this.bindings[kind]?.map_only) for (const c of list) out.add(c.name);
+    // A battle can leave a body with no art anywhere (a burnt-out car).
+    for (const kind of Object.keys(this.bindings))
+      if (!this.bindings[kind].map_only && this.standsIn(kind)) out.add(PROTOTYPE_KIT);
     return out;
   }
 }
 
-/** A static model on `box`, shifted `along` its local +X after turning by `turn`. */
+/** A static model on `box`, shifted `along` its local +X after turning by
+ *  `turn`, in `state` (a kit's module, for the stand-in box). */
 function placed(
   appearance: string,
   box: PropBox,
@@ -179,6 +242,7 @@ function placed(
   scale: Vec3,
   turn: number,
   ground: boolean,
+  state = STATE,
 ): ModelInstance {
   const yaw = box.yaw + turn;
   return {
@@ -188,7 +252,7 @@ function placed(
     z: box.baseZ,
     yaw,
     scale,
-    pose: ground ? { kind: "static", state: STATE, ground } : { kind: "static", state: STATE },
+    pose: ground ? { kind: "static", state, ground } : { kind: "static", state },
   };
 }
 

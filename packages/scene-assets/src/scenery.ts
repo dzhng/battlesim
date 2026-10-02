@@ -52,6 +52,27 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   sandbags: prop,
   /** One dragon's tooth: a line of them is an anti-tank wall. */
   tooth: prop,
+  // The street's bodies (fixtures/props/city/street.json), one kind per row.
+  // A parked car's destroyed state is the wreck's own row.
+  parked_car: prop,
+  car_wreck: prop,
+  jersey_barrier: prop,
+  bollard: prop,
+  lamp: prop,
+  bench: prop,
+  bins: prop,
+  hydrant: prop,
+  utility_box: prop,
+  planter: prop,
+  bus_shelter: prop,
+  heras_fence: prop,
+  skip_bin: prop,
+  pallet_stack: prop,
+  site_cabin: prop,
+  traffic_cone: prop,
+  road_barrier: prop,
+  scaffold: prop,
+  scooter: prop,
   // Trees and hedgerows carry one state per biome season (summer; winter is
   // the next biome spec). A tree also stands inside the forests' canopy
   // (`fit.canopy`); hedgerows stand only past the map. A tree's tiers are

@@ -68,6 +68,28 @@ test("a wreck is its vehicle's hull box and a ruin a building's plan at the ruin
   }
 });
 
+test("remains with art of their own stand on the destroyed body's plan at the remains' height", () => {
+  // A parked car is fitted from the car's box and its wreck from the same plan at
+  // the height the catalog leaves, so the swap neither grows nor moves the body.
+  const boxesOf = (kind: string) =>
+    propEntries.filter(([, e]) => e.scenery === kind).map(([, e]) => e.footprint_half_m!);
+  let checked = 0;
+  for (const [id, t] of Object.entries(units.view.props)) {
+    if (typeof t.destroyed !== "object") continue;
+    const { prop, height_m } = t.destroyed.into;
+    const remains = units.view.props[prop].appearance.drawn_by;
+    if (propsDrawnBy(units.view.props, remains).length !== 1) continue; // shared art is stretched
+    for (const b of boxesOf(t.appearance.drawn_by)) {
+      checked++;
+      expect(
+        boxesOf(remains).some((r) => same(r, [b[0], b[1], height_m / 2])),
+        `${id} -> ${prop}`,
+      ).toBe(true);
+    }
+  }
+  expect(checked).toBeGreaterThan(0);
+});
+
 test("which prop types a scenery kind draws is the prop catalog's drawn_by, both ways", () => {
   // Every scenery kind that stands for a prop draws some prop type, and every
   // accepted prop type is drawn by such a kind, by its building or by a forest.
