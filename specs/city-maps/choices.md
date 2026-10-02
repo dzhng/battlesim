@@ -1520,14 +1520,6 @@ keeps storage addresses independent of physical identity and encounter naming.
 
 ## Generated map in the lab
 
-### Preparation has a worker of its own, closed after its one answer
-
-**Choice:** `/lab/generated` asks a preparation worker for a battle; the worker generates the map, lays the encounter on it, returns the scenario JSON and is closed. The battle then starts in the usual battle worker from that scenario.
-
-**Gap:** C55 says "the pre-battle preparation worker"; C33 says "the existing preparation worker". No preparation worker existed, only the battle authority's.
-
-**Verdict:** Sound. Closing the worker frees everything generation allocated (93 MiB of Wasm memory on Metro Large) and is the cancel: a request that is no longer wanted cannot start a battle. Restart reuses the scenario, so it never generates again. The cost is one copy of the scenario text (27 MB on Metro Large) to the page and one to the battle worker. **Confidence:** High.
-
 ### The map and its plan come from two generator calls
 
 **Choice:** The worker calls `generate_map` for the map and `generate_map_plan` for the plan, with the same request. The scenario carries the generator's own map text, spliced out of the outcome, never a re-serialised parse.
@@ -3310,14 +3302,6 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 
 **Verdict:** sound. Without it the saved map's request was hand-written JSON with a hash in it. **Confidence:** high.
 
-### The camera lab was not moved
-
-**Choice:** `fixtures/camera-lab.json` is still compiled at run time.
-
-**Gap:** "If it falls out cheaply."
-
-**Verdict:** sound for now. Its plan is already template ids and frames, so the move is mechanical, but a saved map pins the prototype library's hash, and the lab would stop loading whenever a prototype template changed. **Confidence:** medium.
-
 ### A far building is one row
 
 **Choice:** At tiers 0 and 1 a kit mesh is a row. At tiers 2 and 3 what is left of it is folded into the template's shell, whose walls are then flat with each opening one dark quad on them, so a template is one row there. The alternative kept every window a row at every tier.
@@ -3558,7 +3542,7 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 - **The choice:** Keep the existing sharp ray–box intersections, and use the existing grid of building footprints to give each eye only nearby boxes. On a 10 km city, a squad beside one block tests that block's neighbours instead of every building at the far end of the city. A first measured grid-only arm still cost 2.61 ms, exceeding the 2 ms gate, so the same table now narrows each ray to a conservative angular sector. Bounding circles enclose turned boxes, eye-inside circles retain every direction, and an extra sector at each edge covers f32 angle rounding. Rasterising building tops would instead replace the exact corner geometry.
 - **The gap:** C20 says to implement the technique S4 picked, but only S4's plan exists; its named verdict file is absent. Grid representation itself is delegated, but selecting the unrecorded arm is a spec gap.
 - **The reach:** Future fog work keeps the same horizon precision and sharpness. If the paired city measurement misses the budget, this arm needs further work rather than a silently relaxed gate.
-- **Verdict:** Sound as a reversible implementation candidate. The exact shader arithmetic is preserved; final frozen vectors/whole flags match, the synthetic city build is 1.182 ms, and the village shows no observed cost regression. The missing full S4/G0 envelope remains separate from startup’s 16,000-box proof.
+- **Verdict:** Sound within the startup contract. Exact intersections and whole-building visibility remain authoritative. Missing full S4/G0 envelope admission remains separate from this local-work design.
 - **Confidence:** Medium.
 
 ### Put candidate lists in the existing rebuild table
@@ -3577,6 +3561,15 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 - **The gap:** Fog occluders have no stable identifiers in the existing input contract, and C20 does not prescribe change identity.
 - **The reach:** Future callers may reorder or recreate equivalent records without starting a rebuild storm. All geometry fields participate, including height changes and moved boxes' old and new locations.
 - **Verdict:** Sound. Map validity follows physical occlusion, while the separately rebuilt whole-structure table uses the new row indices.
+- **Confidence:** High.
+
+### Preserve whole-fog roof reach while making structure work local
+
+- **When:** C20 whole-surface followup.
+- **The choice:** A structure may become visible when its roof probe looks inward toward an eye even though its footprint is just outside that eye's reach. Keep the whole pass's existing broad bounding-circle test, rather than reusing the tighter horizon footprint query unchanged. Its grid query grows by the largest known box radius, then filters each box against the original eye-plus-box circle bound. Each retained structure lists only the eyes that can reach it; structures outside every eye's reach receive cleared flags.
+- **The gap:** C20 names the horizon merge and invalidation sites but does not say how its cost contract applies to the later whole-surface visibility pass. That pass otherwise still samples every global box against every eye.
+- **The reach:** The whole pass has one additional storage binding for structure/eye pairs, seven total across its two groups. Moving away from a previously visible building clears that building's whole-fog flag, and inward-looking roofs keep their earlier visibility rule.
+- **Verdict:** Sound. The existing whole-fog semantics are retained while both dimensions of its sampled work follow nearby structure/eye pairs. It preserves the original roof reach while distant structures do no sampled work; flags must clear when the eyes leave.
 - **Confidence:** High.
 
 ## Startup lane: combat parity and named native math change
@@ -3602,38 +3595,23 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 **Reach:** Combat's native digest changes where system math had differed. The original movement record remains byte-for-byte unchanged. In the shooting sample, corrected native digests and publications agree with the pre-correction WebAssembly build at every tick; this preserves sampled browser behavior, not a claim that every unrelated simulation math path has been audited.
 
 **Verdict:** sound. The correction removes platform rounding from the tested authority paths rather than weakening the parity check or finding a lucky fixture. **Confidence:** high.
-### Re-record the combat pair when upstream changes shipped grenade gravity
+### Sound — high confidence: native expectations follow named upstream contracts
 
-**When:** Startup integration onto `origin/main` at `e6758e0a`.
+**Choice:** Keep the combat scenario and seeds fixed while native expectations
+follow shipped rule and publication changes. Main's grenade gravity changes the
+shot history; its variable-span normalization changes packed representation.
+Native remains the recording source and WebAssembly remains the independent
+reader of those expectations.
 
-**Choice:** Keep the combat scenario, seed and all exact comparisons unchanged, and regenerate only its native expected record after the shipped rifle-grenade gravity changed from 0.09 to 5.35103. A grenade now follows the upstream arc in both builds; retaining expectations from the previous arc would compare different rules rather than different implementations. WebAssembly remains the reader of the native record, never its recording source.
+**Gap:** The combat fixture was produced before those main changes and the lane
+left integration of expected records unspecified.
 
-**Gap:** The combat pair was recorded before the upstream rule change; the lane did not specify how its saved native expectations should follow that integration.
+**Reach:** A rule change can alter affected state expectations, while a codec
+change alters only packed hashes. Neither allows approximate comparisons,
+changing inputs to evade mismatches, or rewriting the original movement record.
 
-**Reach:** The original movement record stays untouched. The old native-versus-original-WebAssembly math proof remains evidence for the old rules; the refreshed pair separately proves agreement on current shipped rules.
-
-**Verdict:** sound. The input rule change is explicit and the native build owns the new expectations. **Confidence:** high.
-
-### Re-record combat publication hashes after upstream normalizes variable spans
-
-**When:** Final startup integration onto `origin/main` at `42b4dfb7`.
-
-**Choice:** Refresh only the combat record's native packed-publication hashes after upstream changed how spans refer to variable observation tails. The same shot history and observed values can have a different packed representation; the new native bytes and WebAssembly bytes agree exactly. Every battle digest, fog hash and fixture input remains unchanged, and the original movement record is untouched.
-
-**Gap:** The combat record predates the upstream publication representation change.
-
-**Reach:** Current native and WebAssembly publication encoders remain held to one exact record. Earlier numerical and decoded-field comparisons retain their historical scope; this refresh does not authorize a simulation outcome change or relax the comparison.
-
-**Verdict:** sound. Only the native encoder's changed representation is re-recorded, with all state and fog expectations independently preserved. **Confidence:** high.
-
-### Preserve whole-fog roof reach while making structure work local
-
-- **When:** C20 whole-surface followup.
-- **The choice:** A structure may become visible when its roof probe looks inward toward an eye even though its footprint is just outside that eye's reach. Keep the whole pass's existing broad bounding-circle test, rather than reusing the tighter horizon footprint query unchanged. Its grid query grows by the largest known box radius, then filters each box against the original eye-plus-box circle bound. Each retained structure lists only the eyes that can reach it; structures outside every eye's reach receive cleared flags.
-- **The gap:** C20 names the horizon merge and invalidation sites but does not say how its cost contract applies to the later whole-surface visibility pass. That pass otherwise still samples every global box against every eye.
-- **The reach:** The whole pass has one additional storage binding for structure/eye pairs, seven total across its two groups. Moving away from a previously visible building clears that building's whole-fog flag, and inward-looking roofs keep their earlier visibility rule.
-- **Verdict:** Sound. The existing whole-fog semantics are retained while both dimensions of its sampled work follow nearby structure/eye pairs. The focused roof-boundary and packed-pair tests pass. Real GPU village/city flags match the baseline, all flags clear when the eyes leave, and the final synthetic build passes the local 2 ms gate.
-- **Confidence:** High.
+**Verdict:** sound. One exact current contract replaces stale expectations rather
+than comparing different builds' rules. **Confidence:** high.
 
 ## C33 preparation and public queries — startup lane
 
@@ -3645,7 +3623,17 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 
 **Reach:** The page still loads Wasm for public queries. The query payload preserves floating-point bits explicitly: decimal JSON parsing moved a terrain normal by one bit in the regression. Its temporary payload and resident index must be included in startup memory accounting; rendering's Float32 arrays cannot substitute for exact picking inputs.
 
-**Verdict:** sound. Shared query rules and exact original-Wasm comparisons support it; the startup measurements remain the resource admission gate. **Confidence:** medium.
+**Verdict:** sound within the measured menu envelope. Exact shared arithmetic earns the import cost; full dense-city G0 admission remains separate. **Confidence:** medium.
+
+### Sound — medium confidence on prominence: show an authority refusal without waiting for drawing
+
+**Choice:** A replay refused by the simulation keeps the existing error HUD and menu available even when no world exports arrive. The viewport still requires meshes, and a failure hides the loading cover. For example, importing commands recorded on the ordinary village into the crossfire variant explains the scenario mismatch and lets the player open the menu to load another file or return home.
+
+**Gap:** Independent review found that making world delivery part of authority startup also made the error HUD depend on successful initialization.
+
+**Reach:** The normal battle and refusal share the same HUD, menu and error component. The prepared replay adapter forwards the simulation's existing error text, including main's new engine-build refusal.
+
+**Verdict:** sound. Refusal navigation belongs to the existing HUD and must remain available before world construction. Normal status/clock is hidden on refusal to avoid implying playback is waiting. The existing compact HUD remains the owner rather than introducing another failure layout. **Confidence:** high on the failure contract, medium on first-glance prominence.
 
 ### Sound — high confidence: preparation's worker becomes the battle authority
 
@@ -3676,16 +3664,6 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 **Reach:** Every local dev/verification server uses its checkout's cache. No new dependency or user-facing setting is added.
 
 **Verdict:** sound. It applies the existing prohibition on sharing build output between different sources. **Confidence:** high.
-
-### Sound — high confidence: show an authority refusal without waiting for drawing
-
-**Choice:** A replay refused by the simulation keeps the existing error HUD and menu available even when no world exports arrive. The viewport still requires meshes, and a failure hides the loading cover. For example, importing commands recorded on the ordinary village into the crossfire variant explains the scenario mismatch and lets the player open the menu to load another file or return home.
-
-**Gap:** Independent review found that making world delivery part of authority startup also made the error HUD depend on successful initialization.
-
-**Reach:** The normal battle and refusal share the same HUD, menu and error component. The prepared replay adapter forwards the simulation's existing error text, including main's new engine-build refusal.
-
-**Verdict:** sound. The real browser regression fails with the original mesh gate and passes with visible refusal, working navigation and no canvas. The before/after captures show a blank page becoming the existing HUD. Normal status/clock is hidden on refusal to avoid implying playback is waiting. Two unprimed critiques found the final text and menu legible without clipping or overlap; the existing compact HUD is retained rather than adding another failure layout. **Confidence:** high on the failure contract, medium on first-glance prominence.
 
 ## Camera catalogue — startup lane
 
@@ -3876,12 +3854,3 @@ affected digests; movement's exact body checks still decide each soldier's steps
 **Verdict:** supported by the old/new Battle comparison; follow-up verification
 is recorded in C06. A direct non-standing virtual anchor has no guaranteed legal
 timing; nearest-fit selection is not permission to publish an invalid segment.
-
-### Accept the unchanged corner look after a silent visual checkpoint
-
-- **When:** C20 final measured candidate, Preview open 2026-10-02 05:56:57–06:02 UTC.
-- **The choice:** Proceed after the non-blocking five-minute window without user feedback. The near village frame, mask and building-corner crop are byte-identical; shape/lookup oracles, whole-building hashes and frozen probe vectors match. The final synthetic 16,000-box rebuild is 1.182 ms, below the unchanged 2 ms gate. The selected arm adds 303,828 buffer bytes while keeping texture bytes fixed.
-- **The gap:** The full S4/G0 extent-and-density verdict is absent, so the measured startup count stress case cannot stand in for complete Metro rendering admission.
-- **The reach:** The complete capture set and fresh critique remain in scratch. The critic distinguishes hatched fog from cast shadows and finds no broad blur, wall spill or layering break, but flags existing bright seams/steps, tiny dark infantry and thin roof-trim ambiguity. Near pixels are unchanged, so trim contrast belongs to the expressly deferred C22+ building-art work; this pass accepts only the preserved ground fog at building corners. Small distant forest and unit/effect differences are disclosed rather than calling entire frames identical. Preview was closed on unattended proceed.
-- **Verdict:** Sound for the startup lane's reach-local fog and corner-fidelity contract; full-world/art acceptance remains separate. The grid-only 2.611 ms candidate was rejected, not excused.
-- **Confidence:** High for the frozen vectors, flags, corner pixels and measured local cost; medium for broader city transfer until the missing envelope is measured.

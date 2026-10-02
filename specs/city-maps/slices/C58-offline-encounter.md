@@ -84,4 +84,15 @@ SOURCES.json  contract::maps::MapSources
 - `web/tests`: `mapCatalogue` (the same refusals through Wasm, a saved building's fields, the definition handed on), `prepareBattle` (the town plays its saved assault through the catalogue arm, on the resolver's text, and runs), `battleStart` and `router` (the menu's entry and its address).
 - The `generated` scene starts the town from the menu and checks the map, the encounter and the subject it shows. In that run (development build, a loaded machine) the saved map resolved in 0.24 s and was playable 3.9 s after the menu's link; the same map generated from the menu was playable after 8.8 s.
 
-**Not done.** The saved map is the `layout-5` generator's seed 1, made on this branch before it met the `layout-6` generator: once the two are merged, save it again with the three commands and look at the new town before committing it. The benchmark on the saved map. The camera lab still compiles its own plan at run time (`fixtures/camera-lab.json`): saving it would pin the prototype library's hash, and a lab that other work on those templates must re-save each time is worse than one that compiles what it is given. The same holds for `market-town`, by intent: it is a reviewed map, and it stops resolving, with the catalogue tests saying so, when a prototype template changes. A catalogue map is still not planned at run time: its `sites.json` is saved but only the report reads it.
+**Not done.** The saved map is the `layout-5` generator's seed 1, made on this branch before it met the `layout-6` generator: once the two are merged, save it again with the three commands and look at the new town before committing it. The benchmark on the saved map. The camera runtime compiler debt was closed by the startup lane (below). `market-town` retains its reviewed identity, by intent: it is a reviewed map, and it stops resolving, with the catalogue tests saying so, when a prototype template changes. A catalogue map is still not planned at run time: its `sites.json` is saved but only the report reads it.
+
+### Camera catalogue follow-up — startup lane
+
+The camera route now resolves `camera-lab` through the shared catalogue. Its
+physical plan lives beside the saved map; the trajectory fixture keeps paths,
+framing and the public owner id used for the fall demonstration. The authored
+source receipts pin the physical catalogue, so a physical template edit requires
+regenerating this reviewed arena as it does any other pinned map. The current
+saved definition exactly matches the compiler output in the camera regression;
+integration adopts main's China slab wall without changing the trajectories.
+Browser clearance/capture proof belongs to [startup status](../startup-lane.md#status).

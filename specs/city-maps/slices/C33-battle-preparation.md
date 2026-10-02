@@ -34,7 +34,7 @@ One simulation geometry construction, public picking/clearance, route outcomes a
 ## Feedback that would change this slice
 A missing public query or transfer peak reopens G0's export representation.
 
-## Outcome — startup implementation checkpoint
+## Outcome — startup lane
 
 Preparation retains its worker and consumes one `PreparedMap` for live, scripted
 or replay startup. Public typed exports transfer to the page; its `PublicWorld`
@@ -57,5 +57,16 @@ prepared replay adapter retains main's engine-build refusal contract. Unprimed
 visual review found no blocking clipping, contrast or overlap issue in the final
 refusal; normal clock/status is hidden to avoid implying playback is waiting.
 
-Startup/time/memory admission remains pending the shared GPU queue. Its final
-numbers and cold/warm cache conditions belong to [the lane](../startup-lane.md).
+Matched cold/warm starts on both menu presets pass the one-minute gate. The
+page holds the static index rather than a second simulation world; its exact
+import and retained worker costs are counted. Instructions decrease, wall time
+increases on the loaded machine, and charged memory varies, so no general time
+or memory improvement is claimed. The measured envelope and conditions belong
+to [the lane](../startup-lane.md#startup-measurement); full G0 admission remains
+with its separate envelope gate. Camera frozen query overlays match; fresh
+review found no courtyard regression. The collapse frame does not show its
+subject clearly enough for a visual-collapse claim.
+
+The ground browser scene also passes: only the observed side's learned marks
+are drawn; the opposite side's unseen crater remains absent, and a view switch
+begins a full snapshot in a new epoch before deltas resume.

@@ -31,15 +31,15 @@ const delta = (a, b) => a.reduce((s, v, i) => s + Math.abs(v - b[i]), 0);
 
 /** Wait until the page's battle is playable: the loading screen has lifted
  *  over a running battle. */
-export async function playable(page, timeout = 120000) {
+export async function playable(page, timeout = 120000, minimumTick = 4) {
   await page.waitForFunction(
-    () =>
+    (minimumTick) =>
       document.querySelector("[data-testid=error]") ||
       window.__lab?.error ||
       (window.__lab?.ready &&
-        window.__lab.route?.tick?.() > 3 &&
+        (window.__lab.route?.tick?.() ?? -1) >= minimumTick &&
         !document.querySelector("[data-testid=loading]")),
-    undefined,
+    minimumTick,
     { timeout },
   );
   const error = await page.evaluate(
@@ -107,10 +107,18 @@ async function startupOf(ctx, spec) {
       await deployFromMenu(ctx, page, { type, size, seed }, false, async () => {
         measuring = await startupResources(page);
       });
-      await playable(page, 180000);
+      await playable(page, 180000, 0);
       resources = await measuring.finish();
       const startup = await lab(page, () => window.__lab.route.startup());
       const report = await preparedBattle(page);
+      const mainWasmBytes = await page.evaluate(async () => {
+        const moduleURL = performance
+          .getEntriesByType("resource")
+          .find((entry) => entry.name.split("?")[0].endsWith("/src/battle/sim/module.ts"))?.name;
+        if (!moduleURL) throw new Error("The page's query module was not observed");
+        const { loadSimModule } = await import(moduleURL);
+        return (await loadSimModule()).memory.buffer.byteLength;
+      });
       console.log(
         `METRIC startup ${type} ${size} seed ${seed} ${cache}: ${JSON.stringify({
           startup,
@@ -119,6 +127,7 @@ async function startupOf(ctx, spec) {
           publicExportMs: report.publicExportMs,
           publicBytes: report.publicBytes,
           wasmBytes: report.wasmBytes,
+          mainWasmBytes,
           buildings: report.counts.buildings,
           resources,
         })}`,
@@ -133,6 +142,7 @@ async function startupOf(ctx, spec) {
         startup,
         report,
         resources,
+        mainWasmBytes,
       });
       await writeFile(
         ctx.evidencePath(`startup-${type}-${size}-${seed}-${cache}.png`),
