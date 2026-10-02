@@ -1,5 +1,6 @@
 import { useState } from "react";
 import game from "@fixtures/game.json";
+import { restartBattle } from "@web/mechanicsLifecycle";
 import { durableSoldiers, GAME_RULES } from "../scenarios";
 import { SavedEncounter, villageScenario } from "../savedMaps";
 import { BattleView } from "../BattleView";
@@ -151,7 +152,13 @@ export function VillageLean() {
 }
 
 function VillageEncounter({ script }: { script: string | null }) {
-  const [variant, setVariant] = useState<Variant>("ordinary");
+  const [variant, setVariant] = useState<Variant>(() => {
+    const requested = new URLSearchParams(window.location.search).get("variant");
+    return isVariant(requested) ? requested : "ordinary";
+  });
+  const chooseVariant = (next: Variant) => {
+    if (next !== variant) restartBattle(() => setVariant(next), { variant: next });
+  };
   const [seed] = useState(urlSeed);
   const scenario = useVillageScenario(variant);
   if (!scenario) return null;
@@ -162,7 +169,7 @@ function VillageEncounter({ script }: { script: string | null }) {
       scenario={scenario}
       seed={seed}
       variant={variant}
-      setVariant={setVariant}
+      setVariant={chooseVariant}
       script={script}
     />
   );
@@ -175,7 +182,10 @@ export function VillageReplay() {
     file: readSavedReplay(),
     n: 0,
   }));
-  const setFile = (file: ReplayFile) => setLoaded((l) => ({ file, n: l.n + 1 }));
+  const setFile = (file: ReplayFile) => {
+    if (import.meta.env.DEV) localStorage.setItem(LAST_REPLAY_KEY, JSON.stringify(file));
+    restartBattle(() => setLoaded((l) => ({ file, n: l.n + 1 })));
+  };
   const { file } = loaded;
   const scenario = useVillageScenario(file?.variant ?? "ordinary");
   if (!file)

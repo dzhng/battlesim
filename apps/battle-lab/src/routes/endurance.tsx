@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import game from "@fixtures/game.json";
+import { restartBattle } from "@web/mechanicsLifecycle";
 import { enduranceScenario } from "../savedMaps";
 import { BattleView } from "../BattleView";
 import { useBuiltScenario } from "../useBuiltScenario";
@@ -51,8 +52,21 @@ function heapMiB(): number | null {
 }
 
 export default function Endurance() {
-  const [late, setLate] = useState(false);
-  const [seed, setSeed] = useState(1);
+  const [late, setLate] = useState(
+    () => new URLSearchParams(window.location.search).get("late") === "1",
+  );
+  const [seed, setSeed] = useState(() => {
+    const requested = new URLSearchParams(window.location.search).get("seed");
+    return requested === null ? 1 : Math.max(0, Math.trunc(Number(requested))) || 0;
+  });
+  const choose = (nextSeed: number, nextLate: boolean) =>
+    restartBattle(
+      () => {
+        setSeed(nextSeed);
+        setLate(nextLate);
+      },
+      { seed: String(nextSeed), late: nextLate ? "1" : "0" },
+    );
   const built = useBuiltScenario({ late, seed }, (wasm, o) =>
     enduranceScenario(wasm, o.seed, o.late),
   );
@@ -86,8 +100,8 @@ export default function Endurance() {
   const menu = () => (
     <section className="hud-menu-section" aria-label="Stress battle">
       <label>
-        <input type="checkbox" checked={late} onChange={(e) => setLate(e.target.checked)} /> Late
-        state (20,000 fallen, 2,000 wrecks)
+        <input type="checkbox" checked={late} onChange={(e) => choose(seed, e.target.checked)} />{" "}
+        Late state (20,000 fallen, 2,000 wrecks)
       </label>
       <label>
         Seed{" "}
@@ -95,7 +109,7 @@ export default function Endurance() {
           type="number"
           value={seed}
           style={{ width: 70 }}
-          onChange={(e) => setSeed(Math.max(0, Math.trunc(Number(e.target.value))) || 0)}
+          onChange={(e) => choose(Math.max(0, Math.trunc(Number(e.target.value))) || 0, late)}
         />
       </label>
     </section>
