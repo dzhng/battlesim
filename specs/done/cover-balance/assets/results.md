@@ -39,11 +39,8 @@ are nominal; each raw sample also records its actual source-to-receiver range.
 Fresh confirmation uses seeds 128–135 for the original six-cell matrix,
 64–127 for the precision-expanded middle/long HMG cells, and 144–175 for the
 medium short HMG cell. Exposures are respectively 30, 60 and 30 seconds.
-[Fresh matrix](scatter-confirm.json), [expanded HMG](scatter-confirm-hmg.json),
-and [medium short HMG](scatter-confirm-short-hmg.json) retain every seed pair.
-The baseline is completed main plus the property-preserving wreck rename;
-[baseline matrix](scatter-baseline.json) and [expanded baseline](scatter-baseline-hmg.json)
-retain unchanged weapon, aiming and flight inputs.
+The baseline is completed main plus the property-preserving wreck rename,
+with unchanged weapon, aiming and flight inputs.
 
 ## Total position protection
 
@@ -65,10 +62,6 @@ protection. The targeting rule is outside this tuning pass.
 Sixteen paired seeds, 60 seconds per arm. The light/medium/heavy bodies use
 crate/sandbag/wall catalog properties with the same low barrier dimensions.
 The footprint is a controlled frontage, not a claim about every ordinary prop.
-[Baseline position and splash](effects-baseline.json),
-[tuned rifle positions](effects-final-rifle.json) and
-[tuned HMG positions](effects-final-hmg.json) retain shots, physical hits,
-prop impacts, harm, initial eligibility and actual range.
 
 ## Explosive fragments
 
@@ -78,7 +71,6 @@ samples with direct body hits are rejected. Generic exterior tiers add exactly
 65.8% (62.9–68.8%) reduction over 128 fresh paired seeds, 30 seconds, 6144
 launched rounds per arm. This is the existing shelter fragment probability,
 applied once; it is separate from the roughly 70% direct-fire target.
-[Expanded fragment evidence](splash-confirm.json).
 
 ## Whole battles and rendered evidence
 
@@ -101,9 +93,11 @@ Neither cohort rejects commands. Twenty-nine paired battles retain identical
 digests; twenty-one change, as expected from changed launch spread. Flank remains
 the strongest tested plan. The frontal plan loses one capture despite lower
 aggregate casualties; tuning does not promise equal outcomes in every seed.
-[Full baseline](village-baseline.json) and [full tuned results](village-final.json)
-retain all fifty rows, including capture times and final digests.
 
 [Visual evidence](visual/README.md) compares production-renderer frames and
 records the final unprimed critique, including unchanged dust/occlusion debt.
 Images validate trajectory plausibility, not protection percentages.
+
+The per-seed records behind these tables (every seed pair, shot, hit and battle
+row) are not kept in the tree. The tag `data-files-before-prune-2026-10-01`
+holds them, as the JSON files beside this one.
