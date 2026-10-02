@@ -151,6 +151,9 @@ export interface TransientCast extends CastStyle {
 export interface TracerStyle {
   /** Chance to show a new round; its whole visible flight keeps that choice. */
   chance?: number;
+  /** At the pixel-size floor, boost emissive brightness by this multiplier
+   *  instead of dimming. Above the floor, retain the world-sized look. */
+  zoom_boost?: number;
   /** A sharp line of this screen width, with no world-space width or soft halo. */
   line_px?: number;
   /** Light energy retained at the rear, relative to the head. Default: zero. */
@@ -377,6 +380,8 @@ function validateTracer(kind: string, t: TracerStyle) {
   const at = `presentation.effects.tracers.${kind}`;
   if (t.chance !== undefined && !(t.chance >= 0 && t.chance <= 1))
     throw new Error(`${at}.chance must be in [0, 1]`);
+  if (t.zoom_boost !== undefined && !(Number.isFinite(t.zoom_boost) && t.zoom_boost > 1))
+    throw new Error(`${at}.zoom_boost must be finite and above 1`);
   if (t.line_px !== undefined && !(Number.isFinite(t.line_px) && t.line_px > 0))
     throw new Error(`${at}.line_px must be finite and positive`);
   if (
@@ -543,6 +548,7 @@ function streak(
   alongA: number,
   alongB: number,
   soft = false,
+  zoomBoost = 0,
 ) {
   const [r, g, b] = [color[0] * intensity, color[1] * intensity, color[2] * intensity];
   put(
@@ -562,7 +568,7 @@ function streak(
     SHAPE.streak,
     alongA,
     alongB,
-    soft ? 1 : 0,
+    zoomBoost ? (soft ? -zoomBoost : zoomBoost) : soft ? 1 : 0,
   );
 }
 
@@ -1451,6 +1457,7 @@ export class EffectFrame {
         tracerAmplitude((lo - tail) / length, retained),
         tracerAmplitude((hi - tail) / length, retained),
         soft,
+        e.tracer?.zoom_boost,
       );
     }
   }

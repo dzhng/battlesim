@@ -4,7 +4,8 @@ import { advance, lab, obs, snapshot, openBattle, presented } from "./_lab.mjs";
 export async function run(ctx) {
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 }, timeout: 60000 });
   const hiddenPanel = await page.addStyleTag({
-    content: "[data-testid=projectiles-panel] { display: none }",
+    content:
+      "[data-testid=projectiles-panel], [data-testid=battle-panel], [data-testid=readouts] { display: none }",
   });
   const lanes = await lab(page, () => window.__lab.route.lanes());
   // Normalize command timing before any lane fires; page startup can deliver
@@ -64,6 +65,13 @@ export async function run(ctx) {
           p.hit === "none" &&
           p.ricochets.length === 0 &&
           p.path.length > 1 &&
+          // A lob loses speed as it climbs: sample its launch stretch.
+          (lane.weapon !== "grenade" ||
+            unit.members.some(
+              (m, i) =>
+                unit.memberIds[i] === p.shooterMember &&
+                Math.hypot(m[0] - p.path[0][0], m[1] - p.path[0][1]) < 1.25,
+            )) &&
           (p.shooterMember !== null
             ? unit?.memberIds.includes(p.shooterMember)
             : Math.abs(p.path[0][1] - lane.from[1]) < 10 &&
@@ -78,6 +86,10 @@ export async function run(ctx) {
       await lab(page, (i) => window.__lab.route.show(i), lanes.indexOf(lane));
       await presented(page);
       await snapshot(ctx, page, `${lane.weapon}-wide.png`);
+      if (["tank_ap", "tank_he", "atgm"].includes(lane.weapon)) {
+        await lab(page, () => window.__lab.setCamera({ ...window.__lab.camera(), distance: 1800 }));
+        await snapshot(ctx, page, `${lane.weapon}-far.png`);
+      }
       let endpoint = round.path.at(-1);
       let currentTracer = tracer;
       for (let frame = 0; frame < 3; frame++) {
@@ -107,12 +119,22 @@ export async function run(ctx) {
         if (next) endpoint = next.path.at(-1);
         currentTracer = await tracerFor(lane, endpoint);
       }
-      if (lane.top_speed_mps) {
+      if (["tank_ap", "tank_he", "atgm", "grenade"].includes(lane.weapon)) {
         // Also show established flight, beyond the crowded launch flash.
-        await advance(page, 42);
+        await advance(page, lane.top_speed_mps ? 42 : lane.weapon === "grenade" ? 10 : 12);
         await presented(page);
         await lab(page, (i) => window.__lab.route.show(i), lanes.indexOf(lane));
         await snapshot(ctx, page, `${lane.weapon}-flight.png`);
+        await lab(page, () =>
+          window.__lab.setCamera({
+            ...window.__lab.camera(),
+            target: [650, 350, 0],
+            distance: 1300,
+            pitch: 0.9076,
+            yaw: 3.752,
+          }),
+        );
+        await snapshot(ctx, page, `${lane.weapon}-reference-zoom.png`);
       }
     }
     if (seen.size === lanes.length) break;
@@ -147,6 +169,14 @@ export async function run(ctx) {
   await snapshot(ctx, page, "street-controls.png");
   await lab(page, () => window.__lab.route.show(4));
   await snapshot(ctx, page, "atgm-controls.png");
+  ctx.check(
+    "projectile lab shows unit info panels",
+    (await page.locator("[data-testid=readouts] .ro-unit").count()) > 0,
+  );
+  await page.keyboard.down("Space");
+  await page.waitForTimeout(100);
+  ctx.check("Space reveals battle orders", await lab(page, () => window.__lab.route.showOrders()));
+  await page.keyboard.up("Space");
   const sustainedFrom = (await obs(page)).tick;
   await page.getByRole("button", { name: /^ATGM/ }).click();
   await lab(page, () => window.__lab.route.resume());
@@ -187,6 +217,40 @@ export async function run(ctx) {
       );
       return u?.weaponPoses.some((m) => m.shots >= 2);
     }),
+  );
+  await lab(page, () => window.__lab.route.show(2));
+  await lab(
+    page,
+    (p) =>
+      window.__lab.setCamera({
+        ...window.__lab.camera(),
+        target: [...p, window.__lab.route.surfaceZ(...p)],
+        distance: 150,
+      }),
+    lanes[2].from,
+  );
+  await snapshot(ctx, page, "tank-battle-controls.png");
+  const laneTank = after.own.find(
+    (u) => Math.hypot(u.position[0] - lanes[2].from[0], u.position[1] - lanes[2].from[1]) < 2,
+  );
+  const panel = page.locator(`[data-testid=readouts] .ro-unit[data-unit="${laneTank.id}"]`);
+  await panel.click();
+  await page.waitForFunction((id) => window.__lab.route.selected().includes(id), laneTank.id);
+  ctx.check("clicking a unit panel selects its unit", true);
+  await page.keyboard.down("Space");
+  await page.waitForFunction(() => window.__lab.route.showOrders());
+  await snapshot(ctx, page, "tank-space-controls.png");
+  await page.keyboard.up("Space");
+  await page.keyboard.press("Backspace");
+  await page.waitForFunction((id) => {
+    const latest = window.__lab.route.acks()[0];
+    return latest?.order.kind === "stop" && latest.order.units.includes(id);
+  }, laneTank.id);
+  const stopped = (await lab(page, () => window.__lab.route.acks()))[0];
+  ctx.check(
+    "battle hotkeys issue an accepted order",
+    stopped.order.kind === "stop" && stopped.ack.error === null,
+    JSON.stringify(stopped),
   );
   await page.close();
 }

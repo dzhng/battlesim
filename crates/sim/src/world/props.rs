@@ -134,6 +134,12 @@ pub struct PropIndex {
     nx: usize,
     ny: usize,
     cells: Vec<Vec<Entry>>,
+    changes: Option<BucketChanges>,
+}
+
+struct BucketChanges {
+    revision: u64,
+    stamps: Vec<u64>,
 }
 
 /// A prop in a bucket, with its footprint's bounding circle, so a segment
@@ -154,22 +160,57 @@ impl PropIndex {
             nx,
             ny,
             cells: vec![Vec::new(); nx * ny],
+            changes: None,
         }
     }
 
-    fn cell_range(&self, p: &Prop) -> (usize, usize, usize, usize) {
-        let r = p.footprint_radius();
+    /// World enables tracking after authored setup. Side-known indexes do not
+    /// allocate stamps: their consumers already own their change histories.
+    pub(super) fn track_changes(&mut self) {
+        self.changes = Some(BucketChanges {
+            revision: 0,
+            stamps: vec![0; self.cells.len()],
+        });
+    }
+
+    fn range(&self, center: V2, radius: f64) -> (usize, usize, usize, usize) {
         let clamp = |v: f64, n: usize| ((v / self.bucket).floor().max(0.0) as usize).min(n - 1);
         (
-            clamp(p.center.x - r, self.nx),
-            clamp(p.center.x + r, self.nx),
-            clamp(p.center.y - r, self.ny),
-            clamp(p.center.y + r, self.ny),
+            clamp(center.x - radius, self.nx),
+            clamp(center.x + radius, self.nx),
+            clamp(center.y - radius, self.ny),
+            clamp(center.y + radius, self.ny),
         )
+    }
+
+    fn cell_range(&self, p: &Prop) -> (usize, usize, usize, usize) {
+        self.range(p.center, p.footprint_radius())
+    }
+
+    fn note_change(&mut self, (i0, i1, j0, j1): (usize, usize, usize, usize)) {
+        if let Some(changes) = &mut self.changes {
+            changes.revision += 1;
+            for j in j0..=j1 {
+                changes.stamps[j * self.nx + i0..=j * self.nx + i1].fill(changes.revision);
+            }
+        }
+    }
+
+    /// Newest mutation in the same candidate buckets as `near`. Empty buckets
+    /// keep their stamp so removal invalidates a previously occupied raster.
+    pub(super) fn revision_near(&self, center: V2, radius: f64) -> u64 {
+        let changes = self.changes.as_ref().expect("tracked world index");
+        let (i0, i1, j0, j1) = self.range(center, radius);
+        (j0..=j1)
+            .flat_map(|j| &changes.stamps[j * self.nx + i0..=j * self.nx + i1])
+            .copied()
+            .max()
+            .unwrap()
     }
 
     pub fn insert(&mut self, p: &Prop) {
         let (i0, i1, j0, j1) = self.cell_range(p);
+        self.note_change((i0, i1, j0, j1));
         let entry = Entry {
             id: p.id,
             center: p.center,
@@ -184,6 +225,7 @@ impl PropIndex {
 
     pub fn remove(&mut self, p: &Prop) {
         let (i0, i1, j0, j1) = self.cell_range(p);
+        self.note_change((i0, i1, j0, j1));
         for j in j0..=j1 {
             for i in i0..=i1 {
                 self.cells[j * self.nx + i].retain(|e| e.id != p.id);
@@ -193,9 +235,9 @@ impl PropIndex {
 
     /// Candidate ids whose footprint circle may meet the XY disc.
     pub fn near(&self, center: V2, radius: f64, out: &mut Vec<PropId>) {
-        let clamp = |v: f64, n: usize| ((v / self.bucket).floor().max(0.0) as usize).min(n - 1);
-        for j in clamp(center.y - radius, self.ny)..=clamp(center.y + radius, self.ny) {
-            for i in clamp(center.x - radius, self.nx)..=clamp(center.x + radius, self.nx) {
+        let (i0, i1, j0, j1) = self.range(center, radius);
+        for j in j0..=j1 {
+            for i in i0..=i1 {
                 out.extend(self.cells[j * self.nx + i].iter().map(|e| e.id));
             }
         }

@@ -2616,6 +2616,125 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 
 **Open:** the stream record is the only native-against-Wasm check of the simulation itself, and it is a four-unit move with no firing; a short battle with combat would be a stronger pair at the same cost.
 
+## C05 — scale-lane measurement choices
+
+### Sound — medium confidence: separate contact density from transit
+
+**When:** scale-lane measurement pass. **Choice:** reuse the endurance stress
+recipe inside a central 3 × 2 km arena of the generated map, with the full map
+loaded. On a 10 km world the original recipe would send each side toward its own
+rear, leaving them kilometres apart; the new load brings both into the same city
+area, with the fronts within weapon reach. Starting units move to nearby ground the production navigation permits.
+The existing saved-map endurance recipe keeps its coordinates and identity.
+**Gap:** the lane required generated contact without specifying its fight script.
+**Reach:** this proves local street cost and complete-world allocation; the separate
+crossing load proves long transit, and neither proves encounter placement quality.
+**Verdict:** sound; workload scopes stay explicit rather than using a quiet journey
+as fighting evidence.
+
+### Sound — high confidence: profile the existing tick with external counters
+
+**When:** scale-lane measurement pass. **Choice:** reports receive callbacks when
+each system finishes and read the OS instruction counter there. Ordinary play
+calls that same tick path with a no-op callback, so it never reads clocks or
+counters. If an eye sweeps fog and then learns terrain, those costs are reported
+separately; building the observation and packing it for delivery are separate too.
+**Gap:** existing reports counted complete ticks and could not select the expensive
+owner. **Reach:** future native reports share the production path without a second
+tick implementation. **Verdict:** sound; measurements remain outside battle state
+and replay identity.
+
+## C06 — scale-lane termination pass
+
+### Sound — high confidence: exhaust the corridor, then use the existing fallback
+
+**When:** C06 termination pass. **Choice:** stop a soldier's rejoin search once
+it has sampled the remaining route. If parked bodies block a nearby route end,
+the former sampler kept returning that same blocked place forever; the revised
+search returns no rejoin point and lets the existing personal-spot fallback run.
+The limit comes from route length and sampling distance, with one endpoint
+rounding sample, rather than an arbitrary retry cap. **Gap:** the plan required
+bounded scale work but did not name this infinite iteration. **Reach:** all
+soldiers retain the same successful candidate order and can exhaust an obstructed
+route without freezing a tick. **Verdict:** sound; the search cannot create
+progress after it reaches the end, and no valid candidate is discarded.
+
+The boolean-only walkability call is a local ownership simplification, not a new
+physical rule or a measured performance gain.
+
+## C07: exact observation group delivery
+
+### Sound — medium confidence: retain one canonical non-map baseline
+
+**When:** C07 reconstruction pass.
+
+**Choice:** Compare float words within each existing observation group, rather
+than introducing entity-keyed stores. When a squad loses a soldier, its member
+rows become shorter; that can change the squad group's remaining addresses, but
+cannot move the independently addressed corpse or known-prop group. The page
+receives the new group length and exact replacement ranges, reconstructing the
+same ordered arrays it would receive in a complete record. An entity-keyed
+alternative would add identity/deletion rules for every kind of row; this work
+keeps those decisions with the simulation's existing logical observation.
+
+**Gap:** G0 selected fog/known-prop delivery but did not choose a representation
+for the measured 60 KB own rows and 522 KB late corpse tail. C07 explicitly
+reslices that arm while preserving the original byte target.
+
+**Reach:** A shrinking group can still incur within-group replacement bytes.
+Full-size active measurements decide whether this representation is sufficient;
+this checkpoint makes no budget-success claim.
+
+**Verdict:** Sound: one existing logical owner, exact ordering, no new entity
+identity scheme. **Confidence:** Medium, because the active byte gate remains
+open.
+
+### Sound — high confidence: choose snapshots by encoded size and reserve before commit
+
+**When:** C07 reconstruction pass.
+
+**Choice:** If changes are dense, send the group's full words when that costs no
+more than replacement ranges. For sparse changes, scan once to count the encoded
+bytes and again to emit them, without retaining a list of ranges. Admit and
+reserve the complete wire record and next non-map baseline before replacing the
+published output or advancing its cursor. A rejected record therefore leaves the
+last successful side/generation available for recovery. The baseline uses one
+flat allocation, so a large group on one side followed by another large group on
+the other cannot accumulate separate group-sized allocations.
+
+**Gap:** The representation needed a snapshot threshold and bounded scratch
+lifecycle; a per-range list or per-group high-water cache would make peak storage
+larger than the current logical observation.
+
+**Reach:** Producer staging, current wire, pending wire and the non-map baseline
+each have an exact bounded reservation. Those four capacities and the existing
+fog cursor must still be included in snapshot/peak admission measurements.
+
+**Verdict:** Sound: admission precedes transport commit and scratch space does
+not grow with the number of changed ranges. **Confidence:** High.
+
+### Sound — high confidence: share the existing side/epoch revision boundary
+
+**When:** C07 reconstruction pass.
+
+**Choice:** A side change or resync starts every group with a complete snapshot.
+The existing fog generation also names the group baseline. If a page misses a
+publication, the next generation fails that baseline check before applying any
+group, fog or ground state. A valid resync then reconstructs the side's full
+known state. The alternative would introduce an independent group revision that
+could disagree with fog or ground and permit a mixed observation.
+
+**Gap:** C07 needed recovery rules for the added representation; the existing
+publication cursor already supplied exactly the ordered stream boundary.
+
+**Reach:** Producer/decoder cut over together. The published layout describes
+delivery metadata separately from the canonical logical row schema, and the
+complete serializer is named `pack_logical` so native oracle/report consumers
+cannot mistake it for the transport record.
+
+**Verdict:** Sound: one atomic publication baseline, exact float32 words, and no
+codec dependency or new simulation state. **Confidence:** High.
+
 ## Buildings lane
 
 ### China's family ships first
@@ -2795,6 +2914,117 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 
 **Verdict:** sound. The final view gains one uniform comparison per terrain fragment; the machine's run-to-run noise is hundreds of times that. **Confidence:** high.
 
+## C06 per-tick geometry bounds
+
+### Cache derived bounds only while their authoritative positions are stable
+
+**Choice:** Sensing computes each unit's footprint radius once per immutable
+call. Movement gathers living infantry in unit order and keeps their derived
+radii beside the existing crowd, refreshing them after squad motion or a shove.
+
+**Gap:** The spec delegates measured cost reductions but does not choose a
+cache owner or lifetime.
+
+**Verdict:** sound. Recomputing a squad's radius for every vehicle or observer
+repeats a scan of its soldiers. These short-lived bounds have explicit refresh
+owners and preserve collision and sensing results. Fallen squads remain in the
+battle and observations; they add no traffic work per vehicle. **Confidence:** high.
+
+## C06 engagement-search bounds
+
+### Reject only an engagement search proven empty by physical reach
+
+**Choice:** Cover planning skips a fight search only when every target lies
+beyond weapon range plus the squad-area radius and maximum lean distance.
+Boundary cases retain the ordinary search with a micrometre of rounding slack.
+
+**Gap:** The cost slice delegates reductions without choosing how to bound
+failed cover searches.
+
+**Verdict:** sound. Every candidate starts inside the area, and every lean is
+bounded by the existing physical rule; three-dimensional distance is at least
+its horizontal distance. This saves searching thousands of positions without
+changing chosen cover or planning timing. **Confidence:** high.
+
+### Sound — medium confidence: fixed-row reuse follows exact content, not entity identity
+
+**When:** C07 sparse-row pass.
+
+**Choice:** Index the exact float32 words of each retained fixed row, then
+assemble the new group in its simulation-supplied order using source spans and
+literal spans. For example, learning a new corpse between two hundred known
+corpses sends that new row and instructions to copy the known neighbors. If a
+known corpse changes place, its changed row is sent literally or through the
+cheaper existing word-replacement arm. Identical duplicate rows may reuse the
+same source because their complete words are equal. The alternative would key
+rows by soldier/body ids, adding deletion and identity rules that different
+kinds of observations do not all share.
+
+**Gap:** Measurements showed group-local word replacements still resend sorted
+retained tails. The spec did not prescribe how to find unchanged rows after
+insertion or reordering.
+
+**Reach:** This arm applies to every fixed-row group, preserves spatial corpse
+ordering and needs no new simulation identities. Groups with variable sections
+keep their existing word encoding. The temporary index adds bounded storage and
+sorting work, which must pass the matched active cost gate.
+
+**Verdict:** Sound: exact content comparison avoids hash collisions and hidden
+identity assumptions, while choosing the minimum payload preserves sparse-field
+savings. **Confidence:** Medium, because actual active instruction/byte gates
+remain open.
+
+### Sound — high confidence: copies reconstruct the whole group before commit
+
+**When:** C07 sparse-row pass.
+
+**Choice:** A source-copy operation reads an aligned span from the immutable
+previous group; a literal operation supplies new row words. Operations fill the
+new group sequentially, so reordering and removal require no mutable edit list
+and a missing word is rejected. If a malformed generation copies beyond the
+previous group, the decoder keeps its old baseline and accepts the corrected
+same generation. New sides/epochs still require snapshots. The alternative,
+editing the previous array in place, could both overwrite later copy sources and
+change an observation the page already retained.
+
+**Gap:** The new representation required source validation and failure rules;
+existing generation/epoch checks remain the shared publication boundary.
+
+**Reach:** The published metadata calls the selector an encoding and names its
+three modes explicitly. Source indices, counts and copied words remain exact
+inside the existing record allowance. Publisher index allocation and wire
+admission are fallible before output/cursor commit.
+
+**Verdict:** Sound: complete, immutable reconstruction retains atomic side
+knowledge and the existing recovery contract. **Confidence:** High.
+## C06 spatial fog invalidation
+
+### Mutation stamps belong to the footprint index
+
+**Choice:** When a tree falls far from an observer, the observer's cached solid
+heights remain usable. The footprint index already divides the world into
+32 m buckets to find nearby bodies. World alone enables a private last-change
+number in each bucket. Insertion and deletion stamp affected buckets; movement
+stamps both the old and new footprints. A removed body's bucket retains its
+number even when empty. After any world change, a fog tile compares the largest
+number among the same buckets its body query uses. If unchanged, its raster
+(the solid height at each fog-cell centre) is still exact. The global revision
+remains the first cheap check while no body changes at all.
+
+**Gap:** The slice delegates dirty bookkeeping but does not specify storage or
+a retained-history policy.
+
+**Reach:** The additional arrays depend on physical extent, not battle history:
+one number per world bucket and a second number per existing fog tile. They
+add 6.25 MB at 20 × 20 km with 8 m fog cells; side-known indexes allocate no
+stamp arrays. More precise footprint-shaped invalidation could save some
+boundary rebuilds but would add bookkeeping beyond the index's bucket bounds.
+This uses the existing
+conservative body query without new sampling or changed sight rules.
+
+**Verdict:** sound. Unrelated changes no longer force active eyes to sort and
+raster nearby bodies again, and no changed-prefix scan can miss a later update.
+**Confidence:** high; fresh-sweep and cost regressions remain the acceptance seams.
 ## C13/C32 kits and the template art library
 
 ### A kit is a static bundle whose states are its modules
@@ -3223,6 +3453,95 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 
 **Verdict:** Provisional as a method: the script lives in the gitignored scratch folder. If corpse drawing changes again, a station for the fallen belongs in a scene. **Confidence:** Medium.
 
+## C16: our own farmsteads
+
+### A farm is one shell module, and its buildings' colours are in its materials
+
+**Choice:** Each farmstead's walls and roofs, for all its buildings, are one module in the template's frame, placed by one untinted row. A building's wall colour is baked into its own material (the same recipe under another vertex colour), which stays tint-masked. The alternative was the houses' way: a shell module per building, coloured by its row's tint.
+
+**Gap:** The brief asked for the houses' structure; the readme gained "a far building is one row" while this was being written.
+
+**Reach:** A farm is one row at tiers 2 and 3 (two or three with a shell per building). A row's tint, if a placement ever supplies one, shifts the whole farm, not one building. A shell is its template's alone, so nothing is shared between farms but the fittings.
+
+**Verdict:** sound. **Confidence:** medium-high.
+
+### Fittings are rows at tiers 0 and 1, and flat panels in the shell at tier 2
+
+**Choice:** A window, a door, a chimney, a stack of bales is a row at the two fine tiers. At tier 2 the shell carries what is left of each: one dark quad per window, one quad in the door's paint per door, a box per chimney and bale stack, and the barn's framing as flat boards. At tier 3 the shell is walls and roofs only. `Farm.place` does the folding, so the houses' row helpers (`glaze`, `front_door`, `stack`) are used unchanged. The China set keeps the dark quads at tier 3 too; here that is 73 quads against a budget of about 100 triangles, on a farm under 24 px tall. The barn's framing loses its braces at tier 2: a 0.2 m timber is a pixel wide from 250 m, and a diagonal one crawls.
+
+**Gap:** "A template's coarsest tier is little more than its shell."
+
+**Verdict:** sound. **Confidence:** high.
+
+### The plans are the prototypes'; every box is as tall as its ridge
+
+**Choice:** The yard and long farms' plans are the prototype rows' (the same parts, centres and sizes). The small farm's house and barn stand 5.5 m apart, not 3.5 m, so a cart passes between them: the farm is 26.5 m wide where the prototype was 24.5 m. Heights follow C17's rule, a part's top is its roof's ridge: the yard farm's house 8.35 m (6.5), barn 8.4 m (7.5) and shed 2.94 m (3.5); the long farm's house 5.2 m (4) and byre 7.5 m (8); the small farm's house 8.15 m (6.5) and barn 7.8 m (6). Roof pitches are 29 to 33 degrees, the cart shed's single slope 8.
+
+**Reach:** The catalogue's hash moves at the cutover. The longest sides are 34, 27 and 26.5 m, inside the category's 20 to 45 m.
+
+**Verdict:** sound for the look; the boxes over-claim the air beside each roof, as the houses' do. **Confidence:** medium.
+
+### The cart shed stays under the farm's upper floor datum
+
+**Choice:** The yard and small farms have two floors (0 and 3 m), the long farm one. A barn in a two-floor farm has its loft openings on the 3 m datum (sills 0.6 m above it, under the eaves); the long farm's byre, 7.5 m to the ridge, has openings on the ground only. The yard farm's cart shed is 2.94 m tall (the prototype's was 3.5 m), so the 3 m datum is above its box.
+
+**Gap:** `floor_heights_m` is one list per template; nothing says what a datum means in a part too low for a second floor.
+
+**Reach:** The simulation seats a garrison on every datum below a part's top (`seat_plan`, `crates/sim/src/garrison.rs`), so a 3.5 m shed in a two-floor template has soldiers seated half a metre under its roof. The prototype row has that. A shed under 3 m has ground seats only.
+
+**Verdict:** sound for this set; the rule it leans on (a datum counts where a part reaches it) is the simulation's, read from the code, not tested here. **Confidence:** medium.
+
+### A barn keeps few openings; a bay without one is a blank wall
+
+**Choice:** Every bay of a house has a window on every floor, as the houses have. A barn has a door or a small window in most ground bays and in a few loft bays; the cart shed's two end walls are blank. Each opening is in a bay and on a datum. The cart shed's open front is its three south bays, between the posts.
+
+**Gap:** "A barn's few small high windows still sit on bays" allows bays without windows; C17 chose a window in every bay "so a garrison's seat is always at an opening".
+
+**Reach:** A soldier garrisoned in a barn's blank bay fires through a wall that shows no opening.
+
+**Verdict:** provisional. A barn with a window every 3 m on both floors reads as a house. **Confidence:** medium.
+
+### The cart shed is drawn open; its box is solid
+
+**Choice:** The shed's south side is three open bays with a cart, a woodpile and straw inside. Its part is a whole box, as every part is.
+
+**Gap:** "Every outer wall stands on a face of a part" assumes a wall on every face.
+
+**Reach:** A unit behind the shed is hidden in the simulation where the picture shows daylight under the roof from a low camera; rounds stop at the open front. At the game's camera the roof covers most of the opening.
+
+**Verdict:** provisional; the brief names an open-fronted shed. **Confidence:** medium.
+
+### Each barn's wagon door on the street side is an entrance
+
+**Choice:** Every farm has two entrances on the south: the house's front door and the barn's wagon door. On the long farm the byre stands behind the house, so its wagon door is in the end bay (offset 10.5 m), outside the house's width, with the clear 60 m the map generator asks for. The prototype long farm had the house's door only.
+
+**Verdict:** sound. **Confidence:** high.
+
+### No yard wall or gate; what stands in a yard hugs a wall
+
+**Choice:** The village courtyard farm's yard wall, gate, cart and woodpile are not carried over as yard furniture: only a part can hold art, and the yard is open ground. Of `house.py`, the barn doors and the gable framing are lifted into `masonry.py` as builders (`barn_doors`, `timber_frame`). A woodpile, a trough, a rain barrel and straw bales stand against walls within the set's side fit, and the cart stands inside the shed's box.
+
+**Verdict:** sound. A walled yard would need the wall as a prop the generator places, which is not this lane's. **Confidence:** high.
+
+### The set's fit is 0.6 m to the side and 0.9 m above
+
+**Choice:** Eaves and gutters reach 0.46 m, a loft hoist 0.55 m, a woodpile 0.49 m, a trough 0.53 m, a rain barrel 0.57 m; chimney pots stand 0.77 m over a ridge. The houses' set has 0.5 m.
+
+**Verdict:** sound. **Confidence:** high.
+
+### A new recipe for stone walls; the houses' code is shared, not their modules
+
+**Choice:** `rubble_stone` (random rubble in lime mortar) is a new texture recipe, because `field_stone` is one stone's surface with no joints. The farm's windows, doors, chimneys and gutters are its own modules built by the same `masonry.py` builders as the houses'; the houses' shell and row helpers moved to `masonry.py` (`house_shell`) and `kit.py` (`glaze`, `front_door`, `rainwater`, `stack`, the sill and overhang conventions). `homes.py` writes the same bytes as before.
+
+**Verdict:** sound. **Confidence:** high.
+
+### The three farms differ in material and form, and read as three regions
+
+**Choice:** Variety was asked for, so each farm has its own wall materials, roof colour, roof forms and barn type: cream plaster under clay tiles with a half-timbered barn; whitewashed roughcast and rubble stone under slate; red brick and tarred boards under brown and clay tiles. The alternative was one material family in three sizes.
+
+**Reach:** An unprimed reviewer read them as a German, a French and an English farm, and a hamlet of all three as "a sampler of regional styles, not one village". None reads as Chinese; the family name is the first shipping family's, as it is for the houses.
+
+**Verdict:** provisional. If a map's hamlets should look like one place, the generator needs to pick one farm per hamlet, or the farms need one shared palette; neither is this slice's. **Confidence:** medium.
 ## Surroundings for the existing maps: cut
 
 **Choice:** C56 (reservations) and C34, C35, C36 (surroundings for the village, the labs and the benchmark fields) are removed from the spec, with the lane that was written for them. The old maps stay the small arenas they are.
@@ -3230,3 +3549,182 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 **Why:** the owner's call (2026-10-01): the village and the lab maps are developer test arenas, nobody plays them, and the game is not finished. The need those slices answered, a full-size map to play, is met by generated battles from the menu and saved generated maps. Where another slice still says C56 or C34–C36, read "cut".
 
 **Verdict:** sound. **Confidence:** high.
+
+## C54 pipeline tooling
+
+### Measure a short advance without turning it into an arrival deadline
+
+**When:** scale-lane pipeline tool checkpoint, 2026-10-01.
+
+**Choice:** Each of the nine map type/size cells runs fixed map seeds 1–10;
+the encounter and battle seeds stay fixed at the game's encounter seed and 1.
+The attacker sends its planned column toward the objective by an ordinary group
+move, while the defender keeps its existing scripts and policy. The default
+sample lasts 30 simulated seconds. A rifle squad starting kilometres away may
+move normally for all 30 s without arriving. Its row retains the remaining
+distance and every movement state; coming within 10 m is reported as proximity,
+not completion. The alternative was to call every unfinished short route a
+failure, which would confuse normal transit with blocked navigation.
+
+**Gap:** C54 delegates fixed seeds and reporting and gives no short-run duration
+or arrival deadline. **Reach:** The tooling reveals refusals, route-blocked and
+pending work across the matrix; a later playability verdict still needs a longer
+battle and its own arrival/engagement contract. **Verdict:** sound — the sample
+reports observed progress without inventing a completion requirement.
+**Confidence:** medium.
+
+### Keep the simulation dependency inside verification tooling
+
+**When:** scale-lane pipeline tool checkpoint, 2026-10-01.
+
+**Choice:** The runner is a `mapgen` example using its existing simulation test
+ dependency. It calls the same generator and compiler that produce a player's
+map, then the simulation's existing assault planner and Battle constructor.
+When a seed is refused, its exact diagnostics stay in its row and the next
+requested seed runs; nothing stands in for it. Costs and input hashes are saved
+in that row before proceeding. The alternative was to add generation to the sim
+runtime or parse several reports' prose, either adding a dependency cycle or a
+second reporting oracle that could silently drift.
+
+**Gap:** The spec names one runner but no crate or output format.
+**Reach:** One streaming JSONL report can be inspected while a long matrix runs;
+command refusals and unwinding panics remain explicit. This does not recover a
+hung process or imply full C54/art acceptance. **Verdict:** sound — production
+ownership stays unchanged and no new dependency is introduced.
+**Confidence:** high.
+## Replay engine build identity
+
+**Choice:** Every simulation replay requires the automatically derived engine build fingerprint. `Battle::from_replay` checks it before scenario/rules identity or battle construction; the Wasm adapter forwards the same explicit refusal. Missing identity is malformed replay data. No manual version bump or legacy fallback is provided.
+
+**Scope:** Hash normalized relative paths and exact bytes of simulation, contract and thin Wasm adapter Rust source, their manifests, workspace manifest, mapgen manifest, Cargo lock, rustc version, and semantic simulation cfg/features through the existing contract SHA256 owner. Dependency manifests/lock are conservative: even an unrelated dependency edit may refuse playback. Mapgen source is excluded because it prepares scenarios rather than executing the stored scenario; the separate generated replay request-versus-compiled-storage debt remains open. Assets, art pipeline, browser source, examples and test files outside runtime source are excluded. Source comments and inline test edits conservatively invalidate the engine.
+
+**Portability:** This identifies the supported deterministic engine, not identical binary bytes. Native/Wasm target, platform, debug, panic, test, lint and overflow-instrumentation cfg differences are normalized; their supported battle outcomes already share the simulation contract. Current source has no other generated/include input, and current crates expose no dependency feature selection outside the hashed manifests. Adding such inputs or target-dependent simulation semantics requires extending this owner rather than silently retaining this scope.
+
+**Cost:** Hashing occurs once at build time; replay recording copies one 64-character identity, and playback compares it once. No new tick work, codec dependency or battle digest input. The contract crate is reused as a build dependency. Native red/green checks expose the formerly accepted mismatched build through `Battle::from_replay`; same-build replay pins every tick digest. Scope tests prove art-only stability and source, dependency, compiler and semantic cfg invalidation. Worker refusal and actual native/Wasm fingerprint parity are checked on the rebuilt module.
+
+**Verdict:** Sound within the current supported build inputs. Compiled scenario storage and broader scale admission gates remain separate unfinished work. **Confidence:** High.
+## C06 infantry town corner routes
+
+**Choice:** A connected coarse infantry cell is permission to walk through its
+free sub-cells, not permission to cut straight between its entry and exit. The
+route reconstructs a bounded local connector and certifies every emitted link
+with the same sampled reader used by route timing and smoothing. A returned
+illegal segment still has infinite cost; no failed route is made finite by
+changing the timing rule. Vehicles keep their existing physical clearance.
+
+**Why:** C59 exposed an infantry route accepted by coarse search but rejected by
+the timing consumer. The public corner regression reproduced it without a city.
+A squad bending around that corner is the expected physical behavior. The
+alternative of rejecting connected cells would unnecessarily close passages
+whose free half-metre path already exists. A whole-map fine search would add
+storage and work unrelated to the local defect.
+
+**Reach:** Infantry waypoints, costs, planning completion ticks and affected
+battle digests intentionally change. Legal endpoints use their actual containing
+cells; bounded nearest-fit selection remains, but returned first links must pass
+the sampled reader. Local connection is an incremental planning phase, with no retained
+full-extent fine data. Certified infantry links remain available to smoothing
+until a longer link passes its reader, because even collinear merging changes
+sample positions. This supersedes C59's historical infinity limitation; changing
+the encounter planner to consume the corrected timings belongs to its owner.
+
+**Verdict:** sound for the focused contracts. Public timing covers narrow foot
+passage, blocked/disconnected and boundary cases. A small battle checks actual
+soldier bodies and same-build replay under the smallest planning budget. NavGrid
+certifies its sampled mask, while movement owns exact body legality. Generated
+town admission and native city cost remain open in the scale lane. **Confidence:**
+high for the regression and replay, medium across generated towns.
+
+
+## C07: variable word-span copies
+
+**Choice:** Generalize the existing copy operation through layout-owned per-group alignment: fixed rows preserve complete-row source/count checks; variable collections accept word spans. Retain one decoder and one flat baseline. Use exact eight-word sparse anchors, a same-position match preference, greedy forward extension and literals between retained spans. Choose the smallest of copies, replacement and snapshot after exact preflight.
+
+**Why:** Measured own-group section shifts still resent tails after the corpse fix. A public route edit among 80 squads needed 53,568 B, now 376 B with complete float-bit reconstruction. Across 450 captured active transitions, own max falls 51,968→10,656 B and p95 27,200→8,556 B; isolated mean encoding instructions rise 0.288→1.840 M. The integration owner accepts this measured tradeoff against current whole-step costs; whole-record admission remains open. Bitmask/XOR estimates did not address the shifted retained tail adequately.
+
+**Bound:** One u32 per eight old variable words; aggregate scratch remains ≤12.8 MiB because fixed groups' smallest row is five words and all groups partition the admitted baseline. Exact comparisons avoid identity/hashing assumptions and collision scans. Sorting and two greedy scans are O(words log anchors), with fixed eight-word comparisons and no retained operation list. Fallible index and complete record reservation precede output/cursor commit. Existing record buffers and fog ownership stay unchanged.
+
+**Verdict:** Sound and independently reviewed. Supported bits/order, fixed alignment, malformed retry and retained observations are verified. Full active early/late bytes, decoder throughput, full packing cost and peak overlap remain open under the unchanged 19.8 KB and memory contracts. **Confidence:** High for reconstruction; admission pending integration.
+## C15 interior atlas
+
+### A cell is one whole room, 128 px square
+
+**Choice:** Each sheet is 256 × 640 px: 2 × 5 square cells of 128 px. A cell is the picture of one room box 3 m wide, 3 m tall and 4.5 m deep, and a window shows the whole of it, optionally mirrored.
+
+**Gap:** The slice says "the repo's 2×5 layout". Upstream's cells are strips about 3.6 times as wide as tall (11 m of wall for a 3.1 m room), and each window slides a 2.9 m room along its strip by a hashed offset.
+
+**Verdict:** sound for the layout, provisional for the size. Square power-of-two cells keep every mip down to one texel a cell inside one room, and five rows under the 1024 px cap leave 128 as the largest power of two. That is 43 px a metre against upstream's 63, and it gives up the sliding offset: variety is ten rooms a sheet, times mirroring and the building's own dimming. If windows read as repeats in C26, the fix is more sheets or the strip layout, here. **Confidence:** medium.
+
+### The room box is one bay and one floor, on every floor
+
+**Choice:** 3 × 3 × 4.5 m, the pinhole 16 m out, for apartments and shops alike.
+
+**Gap:** Upstream's box is 2.9 m wide and 3.12 m tall (4.09 m on the ground floor), as deep as half the building up to 4.6 m, with the same 16 m pinhole. Ours is unstated.
+
+**Verdict:** sound. Our lattice is 3 m bays and 3 m floors, and a box of another size scales the lookup by its own width and height. A shallower box than 4.5 m shows the picture's middle larger than it was rendered; C26 can clamp depth as upstream does. **Confidence:** medium.
+
+### Cycles on the CPU, not Workbench or EEVEE
+
+**Choice:** The rooms are path-traced on the CPU with a fixed seed and sample count and no denoiser; the tone curve, the 4× box filter and the PNG are numpy.
+
+**Gap:** The slice asks only for a deterministic recipe.
+
+**Verdict:** sound. A room lit by nothing but its window is bounce light, which only a path tracer gives; the CPU path does not depend on the GPU or its driver. Two runs on this machine wrote the same bytes. Another CPU architecture is not tested; the committed sheets are the source of truth, as for the GLBs. **Confidence:** high on this machine.
+
+### Daylight is an area light in the window opening, the same flux for every room
+
+**Choice:** The sky is a rectangle of light filling the room's window opening in an unseen window wall. An apartment's opening is 1.3 × 1.5 m and a shopfront's 2.6 × 2.3 m, and both let the same total light in. No sun patch.
+
+**Gap:** "No lamps", "daylight-only".
+
+**Verdict:** sound. At the same sky a shopfront's room is three times as bright as an apartment's and read as lit. A sun patch would contradict the game's own sun direction on three facades out of four. **Confidence:** medium.
+
+### The picture has a ceiling, and no shadow lift
+
+**Choice:** One exposure for both sheets under a soft ceiling of 0.25 linear (0.54 sRGB). The depths are not lifted.
+
+**Gap:** "Dim": how dim, and what stops a curtain in the window's full light from reading as lit.
+
+**Verdict:** provisional. A first curve lifted the depths; the unprimed critique read it as a grey veil over the whole sheet. Whatever hangs at the window (curtains, a shutter) is the brightest thing in a cell however dark its cloth, so those are dark fabric and dark steel, and a pale pelmet that read as a strip light was removed. C26 owns the final level against the game's facade; change the tone here. **Confidence:** medium.
+
+### Curtains are in the picture
+
+**Choice:** Five apartment cells carry curtains, hung inside the window and part of the cell.
+
+**Gap:** Upstream draws curtains as their own geometry in front of the room; the slice does not say which side of the line they fall.
+
+**Verdict:** provisional. In the picture they sit right from in front and slide with the back wall from the side. If C26 adds curtain geometry they come out of these cells. **Confidence:** medium.
+
+### The layout comparison against upstream's atlases was not run
+
+**Choice:** The layout and projection were taken from upstream's code (`interiors.ts`, the interior shader in `materials.ts`), and its two atlases were never opened.
+
+**Gap:** The slice's visual step 2 compares "against the repo's atlases for layout only".
+
+**Verdict:** sound. Opening the files is the one way their content could leak into ours, and their layout is fully stated by the code that reads them. **Confidence:** high.
+
+### From the tactical camera a window shows mostly the cell's floor
+
+**Choice:** None; a finding for C26. The lookup maps the box's floor to the bottom ninth of a cell, and a ray looking down 50° through a window lands on the floor within 2.5 m of the wall. So at the tactical camera a window is the cell's floor strip stretched, with furniture feet smeared along it, and the back wall shows only from near street level.
+
+**Gap:** The slice judges the sheet, not the read behind glass.
+
+**Verdict:** the mechanism's own behaviour, the same for upstream's photographs. The mock-up shows dark, coloured, slightly streaked panes: not holes, not rooms. If the user wants furniture from above, the lookup has to change, which Q-E forbids, or the pinhole has to move, which is this recipe. **Confidence:** high that it happens, low on whether it matters.
+### A squad corridor starts at a member the known grid admits
+
+**Choice:** Select the closest living soldier whose position is standing room
+in the side's navigation grid before falling back to the physically nearest
+member. A squad's centroid is still never its corridor start. Road preference
+measures the same physical nearest member as before.
+
+**Why:** The old grid reconstruction tolerated an invalid first link, so a
+physically clear soldier near a wall could seed a usable corridor despite being
+rejected by the conservative sampled mask. Certifying links exposed that mismatch:
+a small Battle that arrived before became blocked. Choosing another existing
+standing member restores the corridor contract without weakening the mask or
+granting a body-exit exemption. This intentionally changes corridor starts and
+affected digests; movement's exact body checks still decide each soldier's steps.
+
+**Verdict:** supported by the old/new Battle comparison; follow-up verification
+is recorded in C06. A direct non-standing virtual anchor has no guaranteed legal
+timing; nearest-fit selection is not permission to publish an invalid segment.

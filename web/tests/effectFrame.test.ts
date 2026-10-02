@@ -115,6 +115,41 @@ test("a screen-width tracer emits only a thin line, without a projectile head", 
   }
 });
 
+test("a zoom-readable tracer carries a brightness boost for both its halo and core", () => {
+  const base = PRESENTATION.tracers.default;
+  const f = new EffectFrame({
+    tickHz: HZ,
+    presentation: {
+      ...PRESENTATION,
+      tracers: {
+        ...PRESENTATION.tracers,
+        rifle: { ...base, chance: 1, zoom_boost: 2, tail_s: DT, tail_m: [1, 10] },
+      },
+    },
+  });
+  f.note(
+    pub(1, {
+      segments: [
+        segment([
+          [0, 0, 2],
+          [20, 0, 2],
+        ]),
+      ],
+    }),
+  );
+  const streaks = drawn(f, DT * 0.75).filter((i) => i.shape === SHAPE.streak);
+  expect(streaks).toHaveLength(2);
+  const [halo, core] = streaks;
+  // The sign selects a soft halo; magnitude sets its far-zoom brightness boost.
+  expect(halo.misc[3]).toBe(-2);
+  expect(core.misc[3]).toBe(2);
+  expect(halo.b.slice(0, 3)).toEqual([15, 0, 2]);
+  expect(core.b.slice(0, 3)).toEqual([15, 0, 2]);
+  expect(halo.color.slice(0, 3)).toEqual(
+    base.glow.color.map((c) => Math.fround(c * base.glow.intensity)),
+  );
+});
+
 test("tracer sampling chooses one in five rounds once and carries that choice through flight", () => {
   const f = new EffectFrame({
     tickHz: HZ,
@@ -777,6 +812,8 @@ test("a tracer row that cannot draw is refused", () => {
   expect(bad({})).not.toThrow();
   expect(bad({ tail_s: 0 })).toThrow(/tail_s/);
   expect(bad({ tail_m: [5, 1] })).toThrow(/tail_m/);
+  expect(bad({ zoom_boost: 0 })).toThrow(/zoom_boost/);
+  expect(bad({ zoom_boost: Infinity })).toThrow(/zoom_boost/);
   expect(bad({ core: { ...PRESENTATION.tracers.rifle.core, share: 1.5 } })).toThrow(/share/);
 });
 

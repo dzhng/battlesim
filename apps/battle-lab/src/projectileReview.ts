@@ -10,6 +10,7 @@ export const REVIEW_LANES = [
   { name: "Tank AP", weapon: "tank_ap", shooter: "tank", target: "tank" },
   { name: "Tank HE", weapon: "tank_he", shooter: "tank", target: "rifle" },
   { name: "ATGM", weapon: "atgm", shooter: "at", target: "tank" },
+  { name: "Grenade", weapon: "grenade", shooter: "rifle", target: "rifle" },
 ] as const;
 
 export function reviewLanePositions(index: number): {

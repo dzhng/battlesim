@@ -153,7 +153,6 @@ SAGE, IVORY, STONE, CREAM, BUFF = (112, 140, 118), (232, 230, 220), (214, 208, 1
 NAVY, RUSSET, SLATE, BOTTLE, PRIMER = (52, 84, 132), (150, 66, 48), (78, 88, 100), (58, 86, 70), (150, 92, 76)
 
 # ---------------------------------------------------------------- builders
-FITTING = dict(ao_distance=0.4, paint_scale=8.0)  # small parts: no face needs splitting for paint
 
 
 def face(bm, points, toward):
@@ -555,7 +554,7 @@ def canopy(t, edge, a, b, z):
         t.mount("canopy_bay", edge, a + 1.5 + 3 * k, z=z)
 
 
-def rainwater(t, edge, edge_z, pipes, gutter=True):
+def drain(t, edge, edge_z, pipes, gutter=True):
     """A gutter under the eave over `edge`, bay by bay, and a downpipe at each offset in `pipes`."""
     for o in t.bays(edge) if gutter else ():
         t.mount("gutter_bay", edge, o, z=edge_z, out=OVER, tiers=TIERS_0_TO_1)
@@ -655,7 +654,7 @@ for side in ("east", "west"):
     along(t, "dado_bay", edge, tiers=TIERS_0_TO_2)
     for o in t.bays(edge)[1:-1]:
         t.mount("strip_window", edge, o, z=2.0, tiers=TIERS_0_TO_2)
-    rainwater(t, edge, edge_z, (-D / 2 + 0.4, D / 2 - 0.4))
+    drain(t, edge, edge_z, (-D / 2 + 0.4, D / 2 - 0.4))
 t.mount("clad_panel", "body-east", 10.5, z=DADO_M + 0.1, tiers=TIERS_0_TO_2, tint=PRIMER)  # a bay re-sheeted, never painted to match
 for y in (-5.0, 5.0):
     t.place("turbine_vent", 0.0, y, TOP - 0.1, tiers=TIERS_0_TO_2)
@@ -731,8 +730,8 @@ for side in ("south", "north", "east", "west"):
 for side in ("east", "west"):
     for o in (-D / 4, D / 4):
         t.mount("louvre", f"body-{side}", o - 0.75, z=8.6, tiers=TIERS_0_TO_1)
-rainwater(t, "body-south", edge_z, (-35.6, -12.0, 12.0, 35.6))
-rainwater(t, "body-north", edge_z, (-35.6, -12.0, 12.0, 35.6))
+drain(t, "body-south", edge_z, (-35.6, -12.0, 12.0, 35.6))
+drain(t, "body-north", edge_z, (-35.6, -12.0, 12.0, 35.6))
 for y in (-D / 4, D / 4):
     for k in range(6):
         t.place("ridge_vent", -30.0 + 12 * k, y, TOP, tiers=TIERS_0_TO_2)
@@ -841,7 +840,7 @@ along(t, "strip_window", "body-north", z=1.3, every=2, tiers=TIERS_0_TO_2)
 for edge, length in (("body-south", W), ("body-north", W)):
     for k in range(round(length / 6) + 1):
         t.mount("depot_pier", edge, min(max(-length / 2 + 6 * k, -length / 2 + 0.25), length / 2 - 0.25), tiers=TIERS_0_TO_1)
-    rainwater(t, edge, edge_z, [-length / 2 + 6 + 12 * k + 0.4 for k in range(7)])
+    drain(t, edge, edge_z, [-length / 2 + 6 + 12 * k + 0.4 for k in range(7)])
 for edge in ("body-east", "body-west"):
     for o in (-19.25, -13.5, -7.5, -1.5, 1.5, 7.5, 13.5, 19.25):
         t.mount("depot_pier", edge, o, tiers=TIERS_0_TO_1)

@@ -89,7 +89,7 @@
   },
   "retries": { "centre": 60, "site": 200, "forest": 60, "river": 150, "repair_settlements": 4, "repair_woods": 5, "repair_blocks": 4, "infill": 6, "fit": 3 },
   "parcels": {
-    "regional_families": ["prototype"],
+    "regional_families": ["china"],
     "prop_kind": "building",
     "street_width_m": 7,
     "verge_m": 2,
