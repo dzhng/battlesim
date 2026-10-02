@@ -15,11 +15,11 @@ use contract::templates::{BuildingTemplateDescriptor, PlacementFrame};
 /// A template as a parcel sees it: turned so its entrances face `−Y`, the
 /// street side, with the box its parts then fill.
 pub struct Fit<'a> {
-    template: &'a BuildingTemplateDescriptor,
+    pub template: &'a BuildingTemplateDescriptor,
     /// The turn that brings the entrance side to face `−Y`.
     turn: f64,
-    min: Point,
-    max: Point,
+    pub min: Point,
+    pub max: Point,
 }
 
 impl<'a> Fit<'a> {
@@ -66,7 +66,7 @@ impl<'a> Fit<'a> {
 
     /// The parcel cut for it under `rule`: its width along the street and
     /// its depth from the street.
-    fn lot(&self, rule: &LotRule) -> [f64; 2] {
+    pub fn lot(&self, rule: &LotRule) -> [f64; 2] {
         [
             self.max[0] - self.min[0] + 2.0 * rule.side_m,
             rule.front_m + self.max[1] - self.min[1] + rule.rear_m,
@@ -230,35 +230,8 @@ impl<'a> Ground<'a> {
     }
 
     fn build(&mut self, id: String, lot: &Lot, fit: &Fit, rule: &LotRule, verge: f64, kind: &str) {
-        let parts: Vec<BuildingPartReference> = fit
-            .template
-            .parts
-            .iter()
-            .map(|part| {
-                self.next_prop += 1;
-                BuildingPartReference {
-                    part: part.id.clone(),
-                    prop: self.next_prop - 1,
-                }
-            })
-            .collect();
-        // The template's origin, from the parcel's front centre: its box
-        // centred across the parcel and set back from the front.
-        let origin = lot.point(-(fit.min[0] + fit.max[0]) / 2.0, rule.front_m - fit.min[1]);
-        let [x, y] = round_cm(origin);
-        let yaw = fit.turn + libm::atan2(lot.rect.axis[1], lot.rect.axis[0]);
-        self.buildings.push(BuildingPlacement {
-            id,
-            template_id: fit.template.id.clone(),
-            kind: kind.into(),
-            owner: parts[0].prop,
-            parts,
-            frame: PlacementFrame {
-                translation: [x, y, 0.0],
-                // Microradians: a tenth of a millimetre across a parcel.
-                yaw: libm::round(yaw * 1e6) / 1e6,
-            },
-        });
+        self.buildings
+            .push(placement(id, lot, fit, rule, kind, &mut self.next_prop));
         // The apron is as wide as the building, so each stands on its own
         // yard with the side setbacks left open between them.
         let depth = rule.apron_m.min(rule.front_m);
@@ -281,6 +254,46 @@ impl<'a> Ground<'a> {
     }
 }
 
+/// The template of `fit` stood on `lot`: its box centred across the parcel
+/// and set back from the front, its parts numbered on from `next_prop`.
+pub fn placement(
+    id: String,
+    lot: &Lot,
+    fit: &Fit,
+    rule: &LotRule,
+    kind: &str,
+    next_prop: &mut u32,
+) -> BuildingPlacement {
+    let parts: Vec<BuildingPartReference> = fit
+        .template
+        .parts
+        .iter()
+        .map(|part| {
+            *next_prop += 1;
+            BuildingPartReference {
+                part: part.id.clone(),
+                prop: *next_prop - 1,
+            }
+        })
+        .collect();
+    // The template's origin, from the parcel's front centre.
+    let origin = lot.point(-(fit.min[0] + fit.max[0]) / 2.0, rule.front_m - fit.min[1]);
+    let [x, y] = round_cm(origin);
+    let yaw = fit.turn + libm::atan2(lot.rect.axis[1], lot.rect.axis[0]);
+    BuildingPlacement {
+        id,
+        template_id: fit.template.id.clone(),
+        kind: kind.into(),
+        owner: parts[0].prop,
+        parts,
+        frame: PlacementFrame {
+            translation: [x, y, 0.0],
+            // Microradians: a tenth of a millimetre across a parcel.
+            yaw: libm::round(yaw * 1e6) / 1e6,
+        },
+    }
+}
+
 /// The district being filled: its rule, what it may select and the woods
 /// near enough to matter.
 struct Site<'a> {
@@ -291,25 +304,25 @@ struct Site<'a> {
 }
 
 /// One side of a stretch of carriageway that parcels may front.
-struct Frontage<'a> {
-    run: &'a Run,
+pub struct Frontage<'a> {
+    pub run: &'a Run,
     /// `1` for the left of the run's direction, `−1` for the right.
-    side: f64,
+    pub side: f64,
     /// From the centreline to a parcel's front.
-    offset: f64,
+    pub offset: f64,
 }
 
-struct Lot {
-    rect: Rect,
+pub struct Lot {
+    pub rect: Rect,
     /// The middle of its street edge.
-    front: Point,
+    pub front: Point,
     /// Unit vector from the street into the parcel.
-    inward: Point,
+    pub inward: Point,
 }
 
 impl Lot {
     /// A point `x` metres along the parcel's front and `y` into it.
-    fn point(&self, x: f64, y: f64) -> Point {
+    pub fn point(&self, x: f64, y: f64) -> Point {
         add(
             self.front,
             add(scale(self.rect.axis, x), scale(self.inward, y)),
@@ -320,7 +333,7 @@ impl Lot {
 impl Frontage<'_> {
     /// The parcel for `fit` whose front starts `s` metres along the run:
     /// `None` when the run ends first or bends too far to front it.
-    fn lot(&self, s: f64, fit: &Fit, rule: &LotRule) -> Option<Lot> {
+    pub fn lot(&self, s: f64, fit: &Fit, rule: &LotRule) -> Option<Lot> {
         let [width, depth] = fit.lot(rule);
         if s + width > self.run.length() {
             return None;
