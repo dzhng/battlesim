@@ -6193,3 +6193,53 @@ The open-country pass (M24, M25): `crates/mapgen/src/open_country/`, its rows in
 **Found:** The country still reads as empty: at the opening view the jeep is the only upright thing in frame, and the eye has few landmarks. The fog over blue's column is cut on the lower left, the right and the bottom by copses and tree lines, and is one clean arc across the top: broken, and mostly open, which is what the owner asked for, and less than the references' wooded country. Tree lines and copses ignore the field pattern, because the fields are the renderer's and the generator does not know where their edges are. The fog behind a tree line pulls in some way past it with nothing at the tip of the teeth: that is the one forest rule shortening sight, not a missing model. A house group is houses on grass: no yard, track to the door or outbuilding is drawn, two houses of one group are the same model side by side, and no car stands beside them because nothing draws one.
 
 **Verdict:** provisional. The rule (M25) is met and measured; the look is the light touch that was asked for and is sparser than the references. Fitting tree lines to the drawn fields' edges needs the two to share one field geometry. **Confidence:** medium.
+
+## Kits on request
+
+Every page fetched every kit before it could start: about 116 MB of kit bundles, whatever it drew. A page now fetches a kit only if something it draws needs it (the [scene-assets readme](../../packages/scene-assets/README.md), "Fetched when drawn").
+
+### The one loader fetches kits when asked, and everything else with the catalog
+
+**Choice:** `AppearanceLibrary.load` takes every appearance that is not a kit, and the template art library; `withKits(names)` fetches the kits it lacks and installs the next generation with them, or returns the installed one when it has them all. The alternatives were a second catalog file listing kits per map, and making every appearance lazy.
+
+**Gap:** The spec's download budget counts a "shared kit" and says nothing about when it is fetched.
+
+**Reach:** One catalog file and one fetch path remain. A request for kits is a generation like a load: every hash checked, installed whole, and a failure names the kit and leaves the installed generation. Two askers for one kit share one fetch. Kits stay in the page's generation once fetched, so the next map that draws from one does not fetch it again; nothing evicts them, and a reload of the catalog (the workbench, after a re-bake) starts without them. The models layer still installs only the kits the map on screen draws from, so the GPU holds what it held before.
+
+**Verdict:** sound. Measured from each page's network log, kits fetched fell from 116.3 MB on every page to: 38.8 MB on the village battle (its own kit), 58.6 MB on a block of a generated town (the four town kits its buildings use: apartments, homes, farmsteads, industry; no tower stands in that block, so no tower kit), 7.2 MB in the facade lab, and none in a lab with no buildings. The 50 MB budget for a shared kit download holds for the village and not yet for a town, whose apartment kit alone is 27.6 MB. **Confidence:** high.
+
+### Which kits a map needs has one owner, the drawer's
+
+**Choice:** `buildingKits` in the model layer says which kits a map's buildings draw from, and it is what a map asks the loader for and what its models layer installs. The loader takes names and knows nothing of maps. The alternative was a loader method that takes template ids.
+
+**Gap:** `templateKits` (the library's) and `buildingKits` (the drawer's) both existed; the brief asked for one owner.
+
+**Reach:** A template's kits are the library's fact, and `templateKits` stays its owner. What a map draws beyond them is the drawer's: a fallen part with no art for its state is the prototype kit's box, so a map with buildings asks for that kit too, and a map with none asks for nothing. A battle also draws props that have no art as that box, so every battle asks for it (4.7 KB) whether or not its map has a building. Every route that draws buildings takes its appearances from `useMapAppearances`; three labs (geometry, ballistics, camera) had been handing the model layer the whole catalog and now ask for their map's kits like the rest.
+
+**Verdict:** sound. **Confidence:** high.
+
+### A kit that was not fetched is a named state, and a map without its kit is refused
+
+**Choice:** A generation lists every kit the catalog names (`kits`); a library module whose kit is not installed is bound to no state (`state: null`), which the type makes every reader handle; and `mapAppearances`, which says what the models layer installs for a map, refuses by name a map whose kit is not installed (`kit.missing`). The alternative was to leave absence to the model layer, which waits without a word for art that covers its buildings.
+
+**Gap:** The library was bound to its kits at load, so an absent kit failed the load. With kits on request the library is installed first, and its rows name kits that may never be fetched on this page.
+
+**Reach:** The model layer's wait stays: buildings and their art reach it apart, in either order, so an uncovered moment there is not an error. The refusal is where the two are put together for a map. The library is still held to its kits at load, without fetching them: the catalog's hash for each kit must be the one the library was packed against. A module its kit lacks is found when the kit is installed, and refuses that request.
+
+**Verdict:** sound. **Confidence:** medium: the refusal is a thrown error in the page, as a template without art already was; neither reaches the loading screen.
+
+### A failed fetch is an error on the console, as a failed catalog load was
+
+**Choice:** A kit that fails to arrive is reported as a failed catalog load is: an error on the console naming the kit, and the world never draws, so the battle's loading cover stays up. Not built: the failure on the loading screen with a way back.
+
+**Gap:** The loading screen reports the preparation worker's refusals; it has never reported an asset failure.
+
+**Verdict:** gap. Scenes fail on the console error, so a broken bake cannot pass; a player on a bad connection sees a cover that never lifts. It is the loading screen's to carry, for the catalog and the kits together. **Confidence:** high.
+
+### Not in this pass: the catalog's own download
+
+**Choice:** Only kits moved. What a page fetches before it knows its map is now about 240 MB that no kit is part of: the soldiers' bundles (108 MB), scenery (104 MB, two wrecks 31 MB of it) and vehicles (28 MB).
+
+**Gap:** The brief and the lane's status put the whole download at "about 100 MB of kits".
+
+**Verdict:** gap, for whoever owns the download budget next. The same rule would cover it: a battle asks for the unit types its scenario fields, a map for the scenery its props take, through the request path kits now use. **Confidence:** high on the numbers, which are the files' sizes.

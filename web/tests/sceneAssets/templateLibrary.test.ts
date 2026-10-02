@@ -1,7 +1,7 @@
 // @vitest-environment node
 // City kits and the template art library, end to end: a kit bakes to a bundle
 // of modules; the sets pack, deterministically, into one library the loader
-// installs with its kits; the resolver puts a template's rows where its frame
+// installs and binds to its kits as they are asked for; the resolver puts a template's rows where its frame
 // says; and art that leaves its physical template, or a catalogue the sets do
 // not cover, is refused by name.
 import { expect, test } from "vitest";
