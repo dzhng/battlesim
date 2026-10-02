@@ -59,9 +59,16 @@ Do not prioritize by scary-looking counts alone:
   or fixed prefix forever.
 - Bound both sides of a transport and every durable/in-memory queue. State the overflow behavior;
   never silently drop accepted durable data.
-- Measure sparse insertions and reordering in a long retained collection before accepting a delta
-  protocol. Absolute addresses can turn one new row into a resend of most old rows; quiet-tick
-  averages hide that amplification. Assert bounded edit bytes alongside exact reconstruction.
+- Judge a cache, an index or a delta protocol by its worst edit, not its quiet average: an insertion
+  into a long retained collection, a change far from the active view, a move, a deletion. Assert the
+  bounded work alongside the exact result.
+- Check that a measured workload does what it claims before trusting its numbers: that the forces
+  meet, the route is travelled, the failure arm runs. Measure the failure arm too.
+- Isolate a cost measurement from everything else running in the process.
+- When batching overlapping queries, measure the final canonical merge and downstream consumer
+  with collection. Fewer sorts can increase duplicate volume and shift cost across a profile
+  boundary. Track temporary capacity separately from retained state, and falsify an omitted later
+  query through the public result before claiming equivalence.
 - Match compatibility work to the product lifecycle. In prelaunch code, prefer direct changes and
   add no legacy branches or migrations unless real persisted data requires them.
 - Every limit introduced or changed must have an observable log or metric with the limit kind,
@@ -73,56 +80,3 @@ The audit is complete only when every finding has a production trigger, quantifi
 priority rationale, acceptance seam, and recorded disposition; every dismissed candidate says which
 bound or healing mechanism makes it acceptable. An implementation is complete only when its
 red/green proof shows bounded work **and** continued recovery.
-
-## Simulation report workloads
-
-A report that accepts an arbitrary map must also locate its fight on that map.
-An arena script with fixed depths from each edge can silently turn into two
-disconnected rear-area moves when the world grows. Name complete-world loading,
-local contact and edge-to-edge transit separately, and verify opposing goals
-overlap before using the result as dense-combat evidence. Attribute fog traversal
-and subsequent knowledge learning separately before selecting a sweep optimization.
-
-When a sampled position clamps at an endpoint, test an all-rejected endpoint
-inside the acceptance radius. A distance predicate then remains true forever.
-Bound exhaustion by the finite source traversal, and fail a regression's injected
-predicate after the legitimate attempts so the broken arm cannot hang the runner.
-
-Process-wide instruction counters include every test thread. Isolate a committed
-cost regression in a child process running only that test; a serial narrow command
-during development does not prevent contamination when the full suite runs later.
-
-Before accelerating a geometric candidate search, measure its failure arm and
-check whether a necessary physical bound proves the whole result empty. Include
-all allowed offsets (such as lean reach), retain numerical boundary cases, and
-falsify both the negative work test and a positive boundary test.
-
-For spatial cache invalidation, compare distant mutations with an unchanged
-active view; a quiet steady-state sample misses global-revision amplification.
-Check old and new moved footprints, deletion into an empty region and changed
-heights against fresh complete queries. Count every instance of a shared index
-when sizing metadata; tracking state unused by its other consumers is hidden
-full-extent allocation.
-
-For an integrated movement sweep, measure each unit's acknowledged destination,
-including failed placement, rather than the group command's shared goal. A short
-sample's unfinished long route is progress evidence, not a stuck verdict. Keep
-proximity, pending/blocked/traffic states and death distinct; a dead unit's retained
-movement enum must not accrue active or planning time in the report.
-
-For hierarchical navigation, a connected coarse cell does not certify the
-straight links reconstructed through it. Exercise the returned route through
-the public legality and timing consumer before optimizing the search; an
-accepted plan with infinite traversal cost exposes a seam defect. Distinguish
-sampled-grid certification from the movement owner's exact body checks, and
-prove incremental refinement still finishes under the smallest work budget.
-Physical standing room may differ from a conservative navigation mask near a
-body. Exercise the real movement representative through that mask, including a
-legal group whose centroid lies inside a body, before claiming endpoint parity.
-
-
-When batching overlapping spatial queries, count the final canonical merge and
-its downstream consumer with collection. Sorting fewer times can increase raw
-duplicate volume and move cost across a profile boundary. Measure temporary
-vector capacity separately from retained state, and falsify a later-query
-omission through public knowledge before claiming union equivalence.
