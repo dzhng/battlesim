@@ -21,6 +21,7 @@ import type { DetailView } from "../frame/detailView";
 import type { GpuRegistry } from "../frame/registry";
 import type { SunShadow } from "../frame/staticChunks";
 import {
+  artCovers,
   buildingCasters,
   buildingDraws,
   COARSE,
@@ -189,6 +190,7 @@ export function createBuildingLayer(
     dirty = true;
     Object.assign(stats, { totalExpandedRows: 0, totalUploadBytes: 0, buildMs: 0 });
     if (!art || !buildings || buildings.placed.template.length === 0) return;
+    if (!artCovers(buildings.placed, art)) return;
     const started = performance.now();
     scene = createBuildingScene(buildings.placed, art, style);
     setFallenBuildings(scene, buildings.fallen);
@@ -243,19 +245,18 @@ export function createBuildingLayer(
 
   return {
     /** The template art a generation installed and how its kits answer for
-     *  its modules (`undefined` or a missing kit: no building is drawn). */
+     *  its modules (`undefined`: no building is drawn). The kits installed
+     *  may be only those the map's buildings need (`buildingKits`). */
     setArt(installed: InstalledTemplateArt | undefined, source: ModuleSource) {
-      const library = installed?.library;
-      const bounds = installed?.modules.map((m) => source.bounds(m.kit, m.state));
-      const whole = !!installed && bounds!.every((b) => b !== null);
-      meshes = whole
-        ? installed.modules.map((m) =>
-            Array.from({ length: TIER_COUNT }, (_, tier) => source.mesh(m.kit, m.state, tier)),
-          )
-        : [];
-      const same = whole ? art?.library === library : art === null;
+      const bounds = installed?.modules.map((m) => source.bounds(m.kit, m.state)) ?? [];
+      meshes = (installed?.modules ?? []).map((m) =>
+        Array.from({ length: TIER_COUNT }, (_, tier) => source.mesh(m.kit, m.state, tier)),
+      );
+      const same =
+        art?.library === installed?.library &&
+        bounds.every((b, i) => (b === null) === (art!.bounds[i] === null));
       if (!same) {
-        art = whole ? { library: library!, bounds: bounds as Bounds[] } : null;
+        art = installed ? { library: installed.library, bounds } : null;
         rebuild();
       }
       // The meshes are a new generation's buffers either way.

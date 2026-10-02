@@ -95,27 +95,38 @@
   "city_sets": {
     "prototype": {
       "templates": "assets/source/city/prototype/templates.json",
-      "kit": "city_kit_prototype"
+      "kit": "city_kit_prototype",
+      "catalogue": "generated"
     },
     "homes": {
       "templates": "assets/source/city/homes/templates.json",
-      "kit": "city_kit_homes"
+      "kit": "city_kit_homes",
+      "catalogue": "generated"
     },
     "china_apartments": {
       "templates": "assets/source/city/china_apartments/templates.json",
-      "kit": "city_kit_china_apartments"
+      "kit": "city_kit_china_apartments",
+      "catalogue": "generated"
     },
     "farmsteads": {
       "templates": "assets/source/city/farmsteads/templates.json",
-      "kit": "city_kit_farmsteads"
+      "kit": "city_kit_farmsteads",
+      "catalogue": "generated"
     },
     "towers": {
       "templates": "assets/source/city/towers/templates.json",
-      "kit": "city_kit_towers"
+      "kit": "city_kit_towers",
+      "catalogue": "generated"
     },
     "industry": {
       "templates": "assets/source/city/industry/templates.json",
-      "kit": "city_kit_industry"
+      "kit": "city_kit_industry",
+      "catalogue": "generated"
+    },
+    "village": {
+      "templates": "assets/source/city/village/templates.json",
+      "kit": "city_kit_village",
+      "catalogue": "authored"
     }
   },
   "appearances": {
@@ -367,59 +378,11 @@
         "footprint_m": 1.0
       }
     },
-    "house_a": {
-      "unit": "building",
-      "states": {
-        "intact": "assets/source/village/house_a.glb",
-        "ruin": "assets/source/village/house_a_ruin.glb"
-      },
-      "basis_yaw_deg": 0,
-      "footprint_half_m": [
-        15,
-        12,
-        4
-      ],
-      "tolerances": {
-        "footprint_m": 0.5
-      }
-    },
-    "house_b": {
-      "unit": "building",
-      "states": {
-        "intact": "assets/source/village/house_b.glb",
-        "ruin": "assets/source/village/house_b_ruin.glb"
-      },
-      "basis_yaw_deg": 0,
-      "footprint_half_m": [
-        17,
-        14,
-        4
-      ],
-      "tolerances": {
-        "footprint_m": 0.5
-      }
-    },
-    "house_c": {
-      "unit": "building",
-      "states": {
-        "intact": "assets/source/village/house_c.glb",
-        "ruin": "assets/source/village/house_c_ruin.glb"
-      },
-      "basis_yaw_deg": 0,
-      "footprint_half_m": [
-        13,
-        11,
-        4
-      ],
-      "tolerances": {
-        "footprint_m": 0.5
-      }
-    },
     "village_ruin": {
       "unit": "scenery",
       "scenery": "ruin",
       "states": {
-        "default": "assets/source/village/house_a_ruin.glb"
+        "default": "assets/source/village/ruin.glb"
       },
       "basis_yaw_deg": 0,
       "footprint_half_m": [
@@ -1146,6 +1109,11 @@
     "city_kit_industry": {
       "unit": "kit",
       "source": "assets/source/city/industry/kit.glb",
+      "basis_yaw_deg": 0
+    },
+    "city_kit_village": {
+      "unit": "kit",
+      "source": "assets/source/city/village/kit.glb",
       "basis_yaw_deg": 0
     }
   }

@@ -12,6 +12,7 @@ import {
   complete_template_catalogue_json,
   initSync,
   resolve_saved_map,
+  template_catalogue_json,
 } from "../wasm/game_wasm.js";
 import type { PhysicalTemplates } from "../../../packages/scene-assets/src/templateSource.ts";
 import {
@@ -47,10 +48,11 @@ function resolver(): typeof resolve_saved_map {
 
 /** The physical template contract as its own code judges it
  *  (`contract::templates`): the asset check holds every city set's
- *  descriptors and the catalogue's hash to it, never to a copy in TypeScript. */
+ *  descriptors and each catalogue's hash to it, never to a copy in TypeScript. */
 export function physicalTemplates(): PhysicalTemplates {
   wasm();
   return {
+    valid: (descriptors) => JSON.parse(template_catalogue_json(JSON.stringify(descriptors))),
     complete: (descriptors) =>
       JSON.parse(complete_template_catalogue_json(JSON.stringify(descriptors))),
   };

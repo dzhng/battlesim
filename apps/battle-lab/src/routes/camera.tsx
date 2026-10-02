@@ -139,15 +139,13 @@ function Arena({ map }: { map: string }) {
     (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
     [world],
   );
-  // The lab's buildings are the prototype catalogue's: drawn from the art
-  // library's stand-in rows, as a generated town's are.
-  const templateArt = appearances?.templates;
+  // The lab's buildings are the generator's catalogue's, drawn as a
+  // generated town's are.
   const drawn = useMemo(() => {
     if (!world) return null;
     const props = mapProps(world.exports, world.layout);
-    const ids = new Set(templateArt?.library.templates.map((t) => t.id));
-    return { props, index: indexBuildings(world.exports.buildings, props, (id) => ids.has(id)) };
-  }, [world, templateArt]);
+    return { props, index: indexBuildings(world.exports.buildings, props) };
+  }, [world]);
   // What blue knows: nothing but the map, or that it has seen the tower fall.
   const standing = useMemo(() => {
     if (!world || !drawn) return null;
@@ -253,11 +251,8 @@ function Arena({ map }: { map: string }) {
         trajectories: () => TRAJECTORIES.map((t) => ({ id: t.id, seconds: t.seconds })),
         /** The buildings the camera keeps clear of now. */
         boxes: () => standing.boxes,
-        /** The lab's buildings, and how many of them template art draws. */
-        counts: () => ({
-          buildings: world?.exports.buildings.buildings.length ?? 0,
-          drawn: standing.buildings.placed.template.length,
-        }),
+        /** How many buildings the lab's map holds. */
+        counts: () => ({ buildings: world?.exports.buildings.buildings.length ?? 0 }),
         /** The near plane's envelope and the clear space kept beyond it. */
         clearance: () => ({
           envelope: nearEnvelope(lens),

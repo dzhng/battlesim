@@ -1,6 +1,6 @@
 // Tiny, deterministic GLBs for the scene-assets tests: a valid rifleman on a
 // Quaternius-shaped rig (glTF Y up, facing +Z, so the catalog's yaw is 90°), a
-// tank, a supply truck and a building authored in engine space, and knobs that
+// tank, a supply truck and a block of scenery authored in engine space, and knobs that
 // break exactly one rule each (the golden failures). Adapted from ~/dev/game's
 // `bake/make-test-glb.mjs`: generated in code, never a checked-in blob.
 
@@ -125,7 +125,6 @@ export const AUTHORITY: Authority = {
   units: syntheticUnits(),
   canopy_height_m: 12,
   canopy_radius_m: 6.5,
-  ruin_height_m: 2,
 };
 
 export const TOLERANCES: Tolerances = {
@@ -739,13 +738,13 @@ export function truckGlb(o: TruckOptions = {}): Uint8Array {
   return b.glb();
 }
 
-/** A building state: a 10 × 8 × 6 m block (the ruin is 2 m tall). */
-export function buildingGlb(height = 6, lift = 0): Uint8Array {
+/** A static state: a 10 × 8 m block, 6 m tall unless told otherwise. */
+export function blockGlb(height = 6, lift = 0): Uint8Array {
   const b = new GltfBuilder();
   const parts = ["_LOD0", "_LOD1", "_LOD2", "_LOD3"].map((suffix) =>
     b.node({ name: `walls${suffix}`, mesh: gBox(b, [-5, -4, lift], [5, 4, height + lift]) }),
   );
-  b.roots(b.node({ name: "building", children: parts }));
+  b.roots(b.node({ name: "block", children: parts }));
   return b.glb();
 }
 
@@ -841,12 +840,10 @@ export function testCatalog(): Catalog {
         mounts: TANK_DRAWS,
       },
       truck: { unit: "vehicle", source: "assets/source/test-truck.glb", basis_yaw_deg: 0 },
-      house: {
-        unit: "building",
-        states: {
-          intact: "assets/source/test-house.glb",
-          ruin: "assets/source/test-house-ruin.glb",
-        },
+      crate: {
+        unit: "scenery",
+        scenery: "crate",
+        states: { default: "assets/source/test-crate.glb" },
         basis_yaw_deg: 0,
         footprint_half_m: [5, 4, 3],
       },
@@ -860,8 +857,7 @@ export function testSources(): Record<string, Uint8Array> {
     "assets/source/test-rifleman.glb": soldierGlb({ animated: false, tint: 1 }),
     "assets/source/test-tank.glb": tankGlb(),
     "assets/source/test-truck.glb": truckGlb(),
-    "assets/source/test-house.glb": buildingGlb(6),
-    "assets/source/test-house-ruin.glb": buildingGlb(2),
+    "assets/source/test-crate.glb": blockGlb(6),
   };
 }
 

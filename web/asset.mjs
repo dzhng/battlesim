@@ -18,8 +18,8 @@
 //                          every role's symbol and every unit type's silhouette
 //   grass [name...]        write each generated grass kind's GLB from its catalog spec (then bake)
 //   prototypes             write the prototype city set (its kit and templates.json): stand-in rows for
-//                          every template of the physical catalogue no other set dresses (then bake)
-//   catalogue              rewrite the physical template catalogue's rows from the city sets' descriptors
+//                          every template of the map generator's catalogue no other set dresses (then bake)
+//   catalogue              rewrite the map generator's template catalogue from its city sets' descriptors
 //
 // bake and check pack the city sets into the template art library, which is
 // judged by the simulation's own contract: build the WebAssembly first.
@@ -77,8 +77,25 @@ const RUNTIME = join(ROOT, "assets/runtime");
 const FIXTURE = join(ROOT, "fixtures/game.json");
 const ICONS = join(ROOT, "assets/icons");
 const UNIT_CATALOG = join(ROOT, "fixtures/catalog.json");
-/** The physical template catalogue the map generator reads, which the city sets dress. */
-const TEMPLATES = "fixtures/prototype-building-templates.json";
+/** The physical template catalogues the city sets dress, by the name a set
+ *  gives its own (`city_sets.<set>.catalogue`): where each is, how its file
+ *  holds its rows, and whether every row is a complete building. */
+const CATALOGUES = {
+  // What the map generator builds towns from. Its rows are derived from its
+  // sets (`catalogue`), and it places them by their entrances and bays.
+  generated: {
+    path: "fixtures/prototype-building-templates.json",
+    rows: (file) => file,
+    complete: true,
+  },
+  // What the authored maps pin by hash: solid boxes, written as they are.
+  authored: {
+    path: "fixtures/building-templates.json",
+    rows: (file) => file.templates,
+    complete: false,
+  },
+};
+const GENERATED = join(ROOT, CATALOGUES.generated.path);
 const BLENDER_VERSION = "5.2.1";
 const BLENDER = process.env.BLENDER ?? "/Applications/Blender.app/Contents/MacOS/Blender";
 
@@ -134,7 +151,7 @@ async function validate(args) {
   });
   if (!positionals.length)
     throw new Error(
-      "validate <glb> [--unit soldier|vehicle|building|scenery] [--type <unit type id>] [--yaw deg] [--clips glb] [--loop a,b]",
+      "validate <glb> [--unit soldier|vehicle|scenery|kit] [--type <unit type id>] [--yaw deg] [--clips glb] [--loop a,b]",
     );
   const context = { authority: authority(), tolerances: catalog().tolerances };
   let failed = false;
@@ -199,7 +216,14 @@ async function validate(args) {
 async function bakeAll() {
   const cat = catalog();
   const templates = Object.keys(cat.city_sets ?? {}).length
-    ? { catalogue: readJson(join(ROOT, TEMPLATES)), physical: await physicalTemplates() }
+    ? {
+        catalogues: Object.entries(CATALOGUES).map(([name, { path, rows, complete }]) => ({
+          name,
+          rows: rows(readJson(join(ROOT, path))),
+          complete,
+        })),
+        physical: await physicalTemplates(),
+      }
     : undefined;
   return bakeCatalog(cat, readSource, { authority: authority(), templates });
 }
@@ -545,21 +569,29 @@ function readSet(name, entry) {
   return set;
 }
 
+/** The map generator's sets as they are on disk: the catalog's city sets
+ *  that name its catalogue, by set name. */
+const generatedSets = (cat) =>
+  Object.entries(cat.city_sets ?? {})
+    .filter(([, entry]) => entry.catalogue === "generated")
+    .map(([name, entry]) => [name, readSet(name, entry)]);
+
 /** The prototype set's two files by repo path, generated: stand-in rows for
- *  every template of the physical catalogue that no other set dresses, tinted
- *  by the fixture's prototype tints. Null when the catalog has no such set. */
+ *  every template of the map generator's catalogue that no other set
+ *  dresses, tinted by the fixture's prototype tints. Null when the catalog
+ *  has no such set. */
 function prototypeFiles() {
   const cat = catalog();
   const entry = cat.city_sets?.[PROTOTYPE_SET];
   const kit = entry && cat.appearances[entry.kit]?.source;
   if (!entry || !kit) return null;
   const dressed = new Set(
-    Object.entries(cat.city_sets)
+    generatedSets(cat)
       .filter(([name]) => name !== PROTOTYPE_SET)
-      .flatMap(([name, other]) => readSet(name, other).templates.map((t) => t.descriptor.id)),
+      .flatMap(([, set]) => set.templates.map((t) => t.descriptor.id)),
   );
   const set = prototypeTemplates(
-    readJson(join(ROOT, TEMPLATES)).filter((descriptor) => !dressed.has(descriptor.id)),
+    readJson(GENERATED).filter((descriptor) => !dressed.has(descriptor.id)),
     readJson(FIXTURE).presentation.buildings.prototype_tints,
   );
   return new Map([
@@ -583,24 +615,23 @@ async function prototypes() {
   return 0;
 }
 
-/** The physical catalogue's rows, rewritten from the city sets' descriptors:
- *  what a Blender script's new templates reach the map generator through. */
+/** The map generator's catalogue, rewritten from its city sets' descriptors:
+ *  what a Blender script's new templates reach the generator through. */
 async function catalogue() {
+  const { path } = CATALOGUES.generated;
   const physical = await physicalTemplates();
-  const sets = Object.entries(catalog().city_sets ?? {}).map(([name, entry]) =>
-    readSet(name, entry),
-  );
-  const before = readFileSync(join(ROOT, TEMPLATES), "utf8");
+  const sets = generatedSets(catalog()).map(([, set]) => set);
+  const before = readFileSync(GENERATED, "utf8");
   const rows = catalogueRows(sets, JSON.parse(before), physical);
   const text = catalogueText(rows);
   const hash = physical.complete(rows).hash;
   if (text === before) {
-    console.log(`${TEMPLATES} is in step with the sets: ${rows.length} template(s), hash ${hash}`);
+    console.log(`${path} is in step with the sets: ${rows.length} template(s), hash ${hash}`);
     return 0;
   }
-  writeFileSync(join(ROOT, TEMPLATES), text);
+  writeFileSync(GENERATED, text);
   console.log(
-    `${TEMPLATES}: ${rows.length} template(s); hash ${physical.complete(JSON.parse(before)).hash} → ${hash}`,
+    `${path}: ${rows.length} template(s); hash ${physical.complete(JSON.parse(before)).hash} → ${hash}`,
   );
   console.log(
     "the map generator builds from these rows: maps and their identities move with them. Now run prototypes, then bake",

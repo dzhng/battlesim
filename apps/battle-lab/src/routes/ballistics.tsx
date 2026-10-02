@@ -21,7 +21,7 @@ import {
   type EffectSegment,
 } from "@packages/battle-renderer/src/effects/effectFrame";
 import { createEffectFrame, gameEffects } from "../effectFeed";
-import { useWorldProbe, type WorldView } from "../useStaticWorld";
+import { useStandingBuildings, useWorldProbe, type WorldView } from "../useStaticWorld";
 import { GAME_RULES } from "../scenarios";
 import { gameBiome } from "../gameBiome";
 import { useGameAppearances } from "../gameAppearances";
@@ -545,6 +545,7 @@ function BallisticsLab({ map }: { map: MapDefinition }) {
     [world, appearances],
   );
   const worldFeed = useFeed(meshes);
+  const buildingsFeed = useStandingBuildings(world);
   const [wasm, setWasm] = useState<Wasm | null>(null);
   const [spread, setSpread] = useState(false);
   const [playing, setPlaying] = useState(true);
@@ -653,6 +654,7 @@ function BallisticsLab({ map }: { map: MapDefinition }) {
       <LabViewport
         fixture="ballistics"
         world={worldFeed}
+        buildings={buildingsFeed}
         appearances={appearances}
         overlay={overlayFeed}
         instances={instances}

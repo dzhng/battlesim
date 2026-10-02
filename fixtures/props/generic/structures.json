@@ -11,7 +11,7 @@
     },
     "ruin": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": true, "weight_class": "immovable", "cover_tier": "heavy"},
-      "appearance": {"drawn_by": "ruin", "remains_state": "ruin"}
+      "appearance": {"drawn_by": "ruin"}
     },
     "wall": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": true, "weight_class": "immovable", "cover_tier": "heavy", "hp": 300},

@@ -145,7 +145,6 @@ export interface PropType {
     status?: "systems_only";
     modular?: boolean;
     map_only?: boolean;
-    remains_state?: string;
   };
 }
 

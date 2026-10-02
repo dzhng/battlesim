@@ -30,7 +30,7 @@ const layout: WorldLayout = {
     trunk: { drawn_by: "forest" },
     bridge_deck: { drawn_by: "bridge_deck", map_only: true },
     heavy_wreck: { drawn_by: "wreck" },
-    ruin: { drawn_by: "ruin", remains_state: "ruin" },
+    ruin: { drawn_by: "ruin" },
   },
   flags: { forest: 1, blocked: 2 },
   propStride: 10,

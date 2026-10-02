@@ -24,7 +24,7 @@ import {
   type UnitCatalog,
   type UnitType,
 } from "./units.ts";
-import { SCENERY_KINDS, requiredStates } from "./scenery.ts";
+import { SCENERY_KINDS } from "./scenery.ts";
 import {
   DEPLOY_EXTRAS,
   REST_ARTICULATION,
@@ -46,7 +46,6 @@ import { materialFindings } from "./material.ts";
 import { textureFindings } from "./texture.ts";
 import { grassStripFindings } from "./grass.ts";
 import {
-  BUILDING_STATES,
   INFANTRY_CLIPS,
   INFANTRY_SOCKETS,
   UNIT_BUNDLE_KIND,
@@ -198,7 +197,7 @@ export async function validateAppearance(
   if (kind === "static") {
     const materials = new MaterialTable();
     const states: { name: string; tiers: MeshData[]; bounds: Bounds }[] = [];
-    const required = requiredStates(entry.unit, entry.scenery, BUILDING_STATES);
+    const required = SCENERY_KINDS[entry.scenery ?? ""]?.states ?? null;
     if (!required)
       findings.push(
         finding(
@@ -226,18 +225,16 @@ export async function validateAppearance(
       if (!built.tiers) continue;
       const bounds = positionsBounds(built.tiers[0].positions);
       states.push({ name: state, tiers: built.tiers, bounds });
-      if (entry.unit === "scenery" && SCENERY_KINDS[entry.scenery ?? ""]?.blades)
-        findings.push(...grassStripFindings(path, built.tiers));
+      const rule = SCENERY_KINDS[entry.scenery ?? ""];
+      if (rule?.blades) findings.push(...grassStripFindings(path, built.tiers));
       findings.push(...groundFindings(`${path}`, bounds.min[2], tolerances));
-      const rule = entry.unit === "scenery" ? SCENERY_KINDS[entry.scenery ?? ""] : undefined;
       if (rule?.footprint.kind === "tree")
         findings.push(...canopyFindings(path, built.tiers, context.authority, tolerances));
       if (rule?.tier_triangles)
         findings.push(...budgetFindings(path, built.tiers, rule.tier_triangles));
     }
     states.sort((a, b) => a.name.localeCompare(b.name));
-    if (required)
-      findings.push(...footprintFindings(entry, states, context.authority, tolerances, input.name));
+    if (required) findings.push(...footprintFindings(entry, states, tolerances, input.name));
     const bounds = states.reduce<Bounds | null>((b, s) => union(b, s.bounds), null);
     const bundle: StaticBundle | null = bounds
       ? {
@@ -1046,38 +1043,32 @@ function extentFindings(
     : [];
 }
 
-/** A static appearance that stands for a simulation prop, against its box. */
+/** A scenery appearance that stands for a simulation prop, against its box. */
 function footprintFindings(
   entry: AppearanceEntry,
   states: { name: string; tiers: MeshData[] }[],
-  authority: Authority,
   tolerances: Tolerances,
   label: string,
 ): Finding[] {
-  const rule = entry.unit === "building" ? null : SCENERY_KINDS[entry.scenery ?? ""];
-  if (entry.unit !== "building" && rule?.footprint.kind !== "prop") return [];
+  if (SCENERY_KINDS[entry.scenery ?? ""]?.footprint.kind !== "prop") return [];
   const half = entry.footprint_half_m;
   if (!half)
     return [
       finding(
         "fit.footprint",
-        `${label}: no footprint_half_m; a ${entry.unit === "building" ? "building" : `${entry.scenery} prop`} is fitted to the simulation's box`,
+        `${label}: no footprint_half_m; a ${entry.scenery} prop is fitted to the simulation's box`,
         "set footprint_half_m in the catalog entry to the half extents of the box the simulation places (a map placement, or a wreck's hull)",
       ),
     ];
-  return states.flatMap((state) => {
-    const ruin = entry.unit === "building" && state.name === "ruin";
-    const box: Vec3 = ruin ? [half[0], half[1], authority.ruin_height_m / 2] : half;
-    return extentFindings(`${label} (${state.name})`, state.tiers[0].positions, box, {
+  return states.flatMap((state) =>
+    extentFindings(`${label} (${state.name})`, state.tiers[0].positions, half, {
       code: "fit.footprint",
-      rule: ruin
-        ? `footprint_half_m [${half.join(", ")}] at the building's destroyed height (ruin_height_m ${authority.ruin_height_m})`
-        : `footprint_half_m [${half.join(", ")}]`,
+      rule: `footprint_half_m [${half.join(", ")}]`,
       side: tolerances.footprint_m,
       top: tolerances.footprint_m,
-      fix: "fit the art to the simulation's box, or widen footprint_m for this appearance in the catalog (roof overhangs, rubble)",
-    });
-  });
+      fix: "fit the art to the simulation's box, or widen footprint_m for this appearance in the catalog (overhangs, rubble)",
+    }),
+  );
 }
 
 /** Every unit type draws appearances the catalog has, of the right kind: a

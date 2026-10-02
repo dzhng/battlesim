@@ -9,7 +9,7 @@ import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import type { MapDefinition } from "@web/maps/resolve";
 import { SavedMap } from "../savedMaps";
 import { LabViewport, type LabPick } from "../LabViewport";
-import { useWorldProbe, type WorldView } from "../useStaticWorld";
+import { useStandingBuildings, useWorldProbe, type WorldView } from "../useStaticWorld";
 import { gameBiome } from "../gameBiome";
 import { useGameAppearances } from "../gameAppearances";
 import { useFeed } from "../feed";
@@ -76,6 +76,8 @@ function GeometryLab({ map }: { map: MapDefinition }) {
     return showTrees ? built : { ...built, scenery: null };
   }, [world, overlay, showTrees, appearances]);
   const worldFeed = useFeed(meshes);
+  // The traversal view shows what blocks as boxes, the buildings' parts among them.
+  const buildingsFeed = useStandingBuildings(overlay === "surface" ? world : null);
 
   const instances = useMemo<SceneInstance[]>(
     () =>
@@ -113,6 +115,7 @@ function GeometryLab({ map }: { map: MapDefinition }) {
       <LabViewport
         fixture="geometry"
         world={worldFeed}
+        buildings={buildingsFeed}
         appearances={appearances}
         instances={instances}
         initialCamera={GEOMETRY_CAMERA}

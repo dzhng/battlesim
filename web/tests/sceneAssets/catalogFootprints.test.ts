@@ -1,11 +1,12 @@
 // @vitest-environment node
-// The shipped catalog against the simulation: every static appearance that
+// The shipped catalog against the simulation: every scenery appearance that
 // stands for a prop is authored to a box the simulation actually places, so the
 // validator's fit check measures the art against the rule, not against itself.
+// Buildings are no appearance: the asset check holds each one's template art
+// to its template (`templateSource.ts`).
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import { SCENERY_KINDS, propsDrawnBy } from "@packages/scene-assets/src/scenery.ts";
-import { fixtureAuthority } from "@packages/scene-assets/src/authority.ts";
 import { WEAPONS } from "@packages/scene-assets/src/shippedUnits.ts";
 import type { Catalog } from "@packages/scene-assets/src/schema.ts";
 import { UnitCatalog, type CatalogView } from "@packages/scene-assets/src/units.ts";
@@ -30,21 +31,17 @@ const ruin = units.view.props.building.destroyed;
 const ruinHalf = typeof ruin === "object" ? ruin.into.height_m / 2 : NaN;
 
 const propEntries = Object.entries(catalog.appearances).filter(
-  ([, e]) =>
-    e.unit === "building" ||
-    (e.unit === "scenery" && SCENERY_KINDS[e.scenery ?? ""]?.footprint.kind === "prop"),
+  ([, e]) => e.unit === "scenery" && SCENERY_KINDS[e.scenery ?? ""]?.footprint.kind === "prop",
 );
 
-test("the catalog ships an appearance for every accepted prop kind but forest trunks", () => {
-  const kinds = new Set(
-    propEntries.map(([, e]) => (e.unit === "building" ? "building" : e.scenery)),
-  );
-  // what the catalog's prop types are drawn by; trees are the forest's,
-  // owned by the trees slice
+test("the catalog ships an appearance for every accepted prop kind a scenery kind draws", () => {
+  const kinds = new Set(propEntries.map(([, e]) => e.scenery));
+  // What the catalog's prop types are drawn by. Trees are the forest's, and a
+  // building's parts its template's art.
   const simulated = Object.values(units.view.props)
     .filter((t) => t.appearance.status !== "systems_only")
     .map((t) => t.appearance.drawn_by)
-    .filter((by) => by !== "forest");
+    .filter((by) => by !== "forest" && by !== "building");
   expect([...kinds].sort()).toEqual([...new Set(simulated)].sort());
 });
 
@@ -53,21 +50,6 @@ test("every vehicle's wreck has an appearance on its hull box", () => {
     expect(
       propEntries.some(([, e]) => e.scenery === "wreck" && same(h, e.footprint_half_m!)),
       `${h}`,
-    ).toBe(true);
-});
-
-test("every building is authored to one of the village's placed buildings", () => {
-  const houses = propEntries.filter(([, e]) => e.unit === "building");
-  for (const [name, e] of houses)
-    expect(
-      buildings.some((b) => same(b, e.footprint_half_m!)),
-      `${name} ${e.footprint_half_m}`,
-    ).toBe(true);
-  // and every placed building has its own appearance
-  for (const b of buildings)
-    expect(
-      houses.some(([, e]) => same(b, e.footprint_half_m!)),
-      `${b}`,
     ).toBe(true);
 });
 
@@ -88,7 +70,7 @@ test("a wreck is its vehicle's hull box and a ruin a building's plan at the ruin
 
 test("which prop types a scenery kind draws is the prop catalog's drawn_by, both ways", () => {
   // Every scenery kind that stands for a prop draws some prop type, and every
-  // accepted prop type is drawn by such a kind, building appearances or a forest.
+  // accepted prop type is drawn by such a kind, by its building or by a forest.
   for (const [kind, rule] of Object.entries(SCENERY_KINDS))
     if (rule.footprint.kind === "prop")
       expect(propsDrawnBy(units.view.props, kind), kind).not.toEqual([]);
@@ -104,15 +86,6 @@ test("which prop types a scenery kind draws is the prop catalog's drawn_by, both
     "light_wreck",
     "medium_wreck",
   ]);
-});
-
-test("the building appearances' one ruin state refuses remains of differing heights", () => {
-  const fixture = { physics: game.physics, forests: game.forests };
-  expect(fixtureAuthority(fixture, units).ruin_height_m).toBe(ruinHalf * 2);
-  const building = units.view.props.building;
-  const keep = { ...building, destroyed: { into: { prop: "ruin", height_m: ruinHalf * 2 + 1 } } };
-  const both = new UnitCatalog({ ...units.view, props: { ...units.view.props, keep } });
-  expect(() => fixtureAuthority(fixture, both)).toThrow(/keep.*building|building.*keep/);
 });
 
 test("the shipped view carries every weapon row a mount names, resolved", () => {

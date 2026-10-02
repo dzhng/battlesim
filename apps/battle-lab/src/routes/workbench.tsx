@@ -67,7 +67,7 @@ const NO_TINT = [1, 1, 1] as const;
 
 const EMPTY: WorldMeshes = { opaque: new Float32Array(0), translucent: new Float32Array(0) };
 const DEG = Math.PI / 180;
-const APPEARANCE_UNITS: AppearanceUnit[] = ["soldier", "vehicle", "building", "scenery"];
+const APPEARANCE_UNITS: AppearanceUnit[] = ["soldier", "vehicle", "scenery"];
 
 type PoseMode = "manual" | "feed";
 

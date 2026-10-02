@@ -290,7 +290,7 @@ export async function run(ctx) {
   await page.getByTestId("workbench-yaw").selectOption("0");
   await page.getByTestId("workbench-unit").selectOption("scenery");
   await page.getByTestId("workbench-scenery").selectOption("tree");
-  await drop(page, "tree.glb", await synthetic(page, "buildingGlb", 12));
+  await drop(page, "tree.glb", await synthetic(page, "blockGlb", 12));
   const tree = await wb(page, () => window.__workbench.state());
   const treeLabel = await page.getByTestId("workbench-footprint").textContent();
   ctx.check(

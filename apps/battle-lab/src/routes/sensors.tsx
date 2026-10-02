@@ -81,6 +81,7 @@ function SensorsLab({ battle }: { battle: SavedBattle }) {
       <LabViewport
         fixture="sensors"
         world={worldFeed}
+        buildings={session.buildingsFeed}
         overlay={overlayFeed}
         fog={fogFeed}
         frame={session.frame}

@@ -6,7 +6,6 @@
 
 import { vec3, type Mat4, type Vec3 } from "math";
 import game from "@fixtures/game.json";
-import type { MapDefinition } from "@web/maps/resolve";
 import { MeshBuilder, type Mesh, type Rgba } from "@packages/battle-renderer/src/mesh";
 import type { WorldLayers, WorldMeshes } from "@packages/battle-renderer/src/scene";
 import {
@@ -153,16 +152,8 @@ export interface PropClasses {
   /** Per mover class ("infantry", "vehicle"), the prop kinds that stop it. */
   blockingPropKinds: Record<string, string[]>;
   occludingPropKinds: string[];
-  /** Every prop and building part the village's map places, in its order. */
+  /** Every prop the village's map places, in its order. */
   placed: { kind: string; half_extents: number[] }[];
-}
-
-/** The boxes `map` places: its props, then its buildings' parts. */
-export function placedProps(map: MapDefinition): PropClasses["placed"] {
-  return [
-    ...map.props,
-    ...(map.buildings ?? []).flatMap((b) => b.geometry.parts.map((p) => ({ ...p, kind: b.kind }))),
-  ];
 }
 
 /** The simulation's body beside a model: wireframe edges in model space and
@@ -255,13 +246,11 @@ export function footprint(
       label: `${type} hit box ${hull.half_extents_m.map((h) => m(2 * h)).join(" × ")} m`,
     };
   }
-  const rule = unit === "building" ? null : scenery ? SCENERY_KINDS[scenery] : undefined;
+  const rule = scenery ? SCENERY_KINDS[scenery] : undefined;
   // The prop types it draws, by the prop catalog's `drawn_by`: the first the
   // map places stands for them.
   const drawn =
-    unit === "building" || rule?.footprint.kind === "prop"
-      ? propsDrawnBy(UNITS.view.props, unit === "building" ? "building" : (scenery ?? ""))
-      : [];
+    scenery && rule?.footprint.kind === "prop" ? propsDrawnBy(UNITS.view.props, scenery) : [];
   const prop = drawn.find((p) => placedProp(p, classes)) ?? drawn[0] ?? null;
   if (prop) {
     // The box the art is authored to (the catalog's footprint), else the

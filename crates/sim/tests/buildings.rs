@@ -29,7 +29,7 @@ fn with_damageable_remains(mut rules: Value, kind: &str) -> Value {
             "extends":"wall",
             "body":{"hp":200},
             "destroyed":{"into":{"prop":"ruin","height_m":1}},
-            "appearance":{"drawn_by":"ruin","remains_state":"ruin"}
+            "appearance":{"drawn_by":"ruin"}
         }}}));
     sim::fixtures::patch_catalog(
         &mut rules,

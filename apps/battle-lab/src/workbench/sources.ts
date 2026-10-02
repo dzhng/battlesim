@@ -21,7 +21,7 @@ import { reloadGameAppearances, gameAppearances } from "../gameAppearances";
 import type { AppearanceUnit, Catalog, Finding, Side } from "@packages/scene-assets/src/schema";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import type { Stats } from "@packages/scene-assets/src/validate";
-import { AUTHORITY, footprint, placedProps, type Footprint, type PropClasses } from "./benchWorld";
+import { AUTHORITY, footprint, type Footprint, type PropClasses } from "./benchWorld";
 import { loadWasm } from "@web/battle/sim/module";
 import { loadMap } from "@web/maps/browser";
 
@@ -77,7 +77,7 @@ export async function loadPropClasses(): Promise<PropClasses> {
     const [wasm, village] = await Promise.all([loadWasm(), loadMap("village")]);
     propClasses = {
       ...(JSON.parse(wasm.world_layout(JSON.stringify(GAME_RULES))) as PropClasses),
-      placed: placedProps(village.definition),
+      placed: village.definition.props,
     };
   }
   return propClasses;

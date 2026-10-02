@@ -590,8 +590,7 @@
         },
         "ruin": {
           "appearance": {
-            "drawn_by": "ruin",
-            "remains_state": "ruin"
+            "drawn_by": "ruin"
           },
           "body": {
             "armor": 1.0,
@@ -2037,8 +2036,7 @@
     },
     "ruin": {
       "appearance": {
-        "drawn_by": "ruin",
-        "remains_state": "ruin"
+        "drawn_by": "ruin"
       },
       "body": {
         "armor": 1.0,

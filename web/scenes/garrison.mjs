@@ -169,12 +169,15 @@ export async function run(ctx) {
 
   // Behind the building from where blue stands, red's squad is unseen.
   let o = await obs(page);
-  // The building stands as its appearance while the side
-  // knows no ruin (it cannot know of a collapse before it sees one).
+  // The building stands as its template's art while the side knows no ruin
+  // (it cannot know of a collapse before it sees one).
   await lab(page, () => window.__lab.frame());
-  // Buildings only: the crates are drawn apart too (bodies a vehicle can shove).
-  const building = (models) => models.filter((m) => m.state !== "default");
-  const standing = building(await lab(page, () => window.__lab.route.structures()));
+  const drawnBuildings = () =>
+    lab(page, () => ({
+      known: window.__lab.route.buildings(),
+      drawn: window.__lab.stats().buildings,
+    }));
+  const standing = await drawnBuildings();
   ctx.check(
     "a red squad behind the building is not seen from outside it",
     !o.identified.some((e) => e.kind === "rifle"),
@@ -469,19 +472,24 @@ export async function run(ctx) {
   await settle(page);
   await writeFile(ctx.evidencePath("ruin-1920x1080.png"), await page.screenshot());
   await page.setViewportSize({ width: 1280, height: 800 });
-  // The ruin replaces the building in one list: the same appearance, ruined,
-  // on the same spot, and no intact building left beside it.
-  const ruined = building(await lab(page, () => window.__lab.route.structures()));
-  const at = (m) => m.position.slice(0, 2).join();
+  // The ruin replaces the building in one change: the same building of the
+  // same template on the same spot, now drawn fallen, its part the low remains.
+  const ruined = await drawnBuildings();
+  const at = (b) => b.frame.slice(0, 2).join();
   ctx.check(
-    "the known ruin swaps in for its building atomically, as that building's appearance",
-    standing.length === 1 &&
-      standing[0].state === "intact" &&
-      at(standing[0]) === CENTRE.join() &&
-      ruined.length === 1 &&
-      ruined[0].state === "ruin" &&
-      at(ruined[0]) === CENTRE.join() &&
-      ruined[0].appearance === standing[0].appearance,
+    "the known ruin swaps in for its building atomically, as that building's template fallen",
+    standing.known.length === 1 &&
+      !standing.known[0].fallen &&
+      at(standing.known[0]) === CENTRE.join() &&
+      standing.drawn.fallen === 0 &&
+      standing.drawn.ruins === 0 &&
+      ruined.known.length === 1 &&
+      ruined.known[0].fallen &&
+      at(ruined.known[0]) === CENTRE.join() &&
+      ruined.known[0].template === standing.known[0].template &&
+      ruined.known[0].parts[0].half[2] < standing.known[0].parts[0].half[2] &&
+      ruined.drawn.fallen === 1 &&
+      ruined.drawn.ruins === 1,
     JSON.stringify({ standing, ruined }),
   );
   await cropBuilding(ctx, page, collapsed, "crop-ruin-2x.png");

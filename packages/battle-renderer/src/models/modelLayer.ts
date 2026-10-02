@@ -1549,12 +1549,7 @@ export async function createModelLayer(
           }
         : bundle.kind === "articulated"
           ? { kind: "articulated", articulation: { ...REST_ARTICULATION } }
-          : {
-              kind: "static",
-              state: bundle.states.some((s) => s.name === "intact")
-                ? "intact"
-                : bundle.states[0].name,
-            };
+          : { kind: "static", state: bundle.states[0].name };
     return { pose, bounds: farPoseBounds(bundle, skeleton) };
   }
 
