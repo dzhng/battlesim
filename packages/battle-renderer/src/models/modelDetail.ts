@@ -5,12 +5,20 @@
 // not upload order.
 //
 // Corpses number up to their presentation cap (`presentation.pose.corpses`,
-// a thousand), so they are bucketed in square chunks once, when the list changes: a chunk
+// a thousand), so they are a population of the static chunk owner
+// (`frame/staticChunks.ts`), bucketed once, when the list changes: a chunk
 // off screen is skipped whole, and a chunk too far for any corpse in it to
 // exceed the impostor size draws as one range of cards from a static buffer.
+// This file says only what a corpse's bounds and a chunk's level are.
 import { vec3 } from "math";
-import { box3, frustum, type Box3, type Sphere } from "math/shapes";
+import { box3, frustum, type Sphere } from "math/shapes";
 import type { DetailView } from "../frame/detailView";
+import {
+  createStaticChunks,
+  NEAR,
+  type ChunkLevel,
+  type StaticChunks,
+} from "../frame/staticChunks";
 
 /** `presentation.models`: the detail tiers by projected height, in device pixels. */
 export interface ModelDetailPresentation {
@@ -67,70 +75,50 @@ export function modelDetail(
 /** Square chunks corpses are bucketed in, metres. */
 export const CORPSE_CHUNK_M = 64;
 
-export interface CorpseChunk {
-  /** Every corpse in it, grown by its reach and the shadow margin. */
-  box: Box3;
-  /** The largest corpse's size, metres. */
-  size: number;
-  /** Its corpses in chunk order, `[start, end)`. */
-  start: number;
-  end: number;
-}
+const _corpse_corner = vec3.create();
 
 /**
- * Chunk order for `count` corpses at `positions` (x, y, z per corpse), each
- * `sizes[i]` metres across: `order[k]` is the corpse at chunk position k.
+ * Corpses as a chunked population of one kind, drawn at a mesh tier or as
+ * cards (`IMPOSTOR`): `records` hold `stride` floats a corpse, its position
+ * first, and corpse `i` is `sizes[i]` metres long. A corpse's bounds reach
+ * its length and the shadow margin every way.
  */
-export function chunkCorpses(
-  positions: Float32Array,
+export function corpseChunks(
+  records: Float32Array,
+  stride: number,
   sizes: Float32Array,
-  count: number,
-): { order: Int32Array; chunks: CorpseChunk[] } {
-  const cells = new Map<number, number[]>();
-  for (let i = 0; i < count; i++) {
-    const cx = Math.floor(positions[i * 3] / CORPSE_CHUNK_M);
-    const cy = Math.floor(positions[i * 3 + 1] / CORPSE_CHUNK_M);
-    // Row-major ids, so neighbours in a row are neighbours in memory.
-    const id = (cy + 4096) * 8192 + (cx + 4096);
-    let list = cells.get(id);
-    if (!list) cells.set(id, (list = []));
-    list.push(i);
-  }
-  const order = new Int32Array(count);
-  const chunks: CorpseChunk[] = [];
-  let at = 0;
-  for (const id of [...cells.keys()].sort((a, b) => a - b)) {
-    const box = box3.create();
-    box3.empty(box);
-    let size = 0;
-    const start = at;
-    for (const i of cells.get(id)!) {
-      const [x, y, z] = [positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]];
-      const r = sizes[i] + SHADOW_MARGIN_M;
-      box3.expandByPoint(box, box, [x - r, y - r, z - r]);
-      box3.expandByPoint(box, box, [x + r, y + r, z + r]);
-      size = Math.max(size, sizes[i]);
-      order[at++] = i;
-    }
-    chunks.push({ box, size, start, end: at });
-  }
-  return { order, chunks };
+): StaticChunks {
+  return createStaticChunks(
+    {
+      records,
+      stride,
+      kinds: new Uint16Array(sizes.length),
+      sizes,
+      bound(i, box) {
+        const o = i * stride;
+        const [x, y, z] = [records[o], records[o + 1], records[o + 2]];
+        const r = sizes[i] + SHADOW_MARGIN_M;
+        box3.expandByPoint(box, box, vec3.set(_corpse_corner, x - r, y - r, z - r));
+        box3.expandByPoint(box, box, vec3.set(_corpse_corner, x + r, y + r, z + r));
+      },
+    },
+    1,
+    CORPSE_CHUNK_M,
+    IMPOSTOR + 1,
+  );
 }
 
-const _chunk_closest = vec3.create();
-const _chunk_corner = vec3.create();
-
-/** Whether every corpse in `chunk` is below the impostor size from `view`. */
-export function chunkIsFar(
+/** A corpse chunk's level: cards for the whole chunk when every corpse in it
+ *  has one (`carded`, per chunk) and its largest is below the impostor size
+ *  from the chunk's nearest point; else each corpse chooses (`modelDetail`). */
+export function corpseChunkLevel(
   detail: ModelDetailPresentation,
-  view: DetailView,
-  chunk: CorpseChunk,
-): boolean {
-  // The chunk's point nearest the eye: the eye clamped into its box.
-  vec3.max(_chunk_closest, view.eye, box3.min(_chunk_corner, chunk.box));
-  vec3.min(_chunk_closest, _chunk_closest, box3.max(_chunk_corner, chunk.box));
-  const near = vec3.distance(_chunk_closest, view.eye);
-  return detailAt(detail, view, chunk.size, near, true) === IMPOSTOR;
+  carded: readonly boolean[],
+): ChunkLevel<DetailView> {
+  return (chunk, index, distance, view) =>
+    carded[index] && detailAt(detail, view, chunk.size, distance, true) === IMPOSTOR
+      ? IMPOSTOR
+      : NEAR;
 }
 
 /** `presentation.models`, checked: tiers strictly finer toward the camera,
