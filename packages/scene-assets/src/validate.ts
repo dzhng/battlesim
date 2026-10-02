@@ -235,6 +235,14 @@ export async function validateAppearance(
       if (rule?.tier_triangles)
         findings.push(...budgetFindings(path, built.tiers, rule.tier_triangles));
       if (rule?.size) findings.push(...sizeFindings(path, built.tiers[0], rule.size));
+      if (rule?.top_m !== undefined && bounds.max[2] > rule.top_m + tolerances.ground_m)
+        findings.push(
+          finding(
+            "fit.dressing",
+            `${path}: stands ${fmt(bounds.max[2])} m tall, over the ${rule.top_m} m a ${entry.scenery} may (it has no body to hide behind)`,
+            "lower the art under the kind's top_m (packages/scene-assets/src/scenery.ts)",
+          ),
+        );
     }
     states.sort((a, b) => a.name.localeCompare(b.name));
     if (required)

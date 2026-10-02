@@ -14,6 +14,7 @@ import { mulberry32, random, type RandomGenerator } from "math/random";
 import type { Rgb } from "../light/sceneLight";
 import { PLOT_HUE_JITTER, type Biome } from "./biome";
 import { plotGuideEdges, type SurfaceGeometry } from "./surfaces";
+import { forestStripRuns, type ForestShape } from "./forestShapes";
 
 /** A leaf of the split: one field, meadow or ploughed plot. */
 export interface Plot {
@@ -47,6 +48,8 @@ export interface PlotSite extends SurfaceGeometry {
   map: readonly [number, number, number, number];
   /** Building centres. */
   buildings: readonly Vec2[];
+  /** The forests: a strip's long stretches are cut along (`forestStripRuns`). */
+  forestShapes: readonly ForestShape[];
 }
 
 const DEG = Math.PI / 180;
@@ -206,7 +209,7 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
   const totalWeight = biome.plots.reduce((s, p) => s + p.weight, 0);
   const settlement = biome.plots.findIndex((p) => p.name === rules.settlement_kind);
   const settlementSq = rules.settlement_m ** 2;
-  const roadEdges = plotGuideEdges(site);
+  const roadEdges = Float32Array.of(...plotGuideEdges(site), ...forestStripRuns(site.forestShapes));
   const roadCount = roadEdges.length / 4;
   let depth = 0;
 

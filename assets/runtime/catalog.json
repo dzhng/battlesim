@@ -158,6 +158,58 @@
       "scenery": "wall",
       "unit": "scenery"
     },
+    "floor_bush": {
+      "bundle": "95c6325753d94bf98602fe66f4f85a23f04f3c06ebeb4fc7e72e0f2466070271",
+      "kind": "static",
+      "scenery": "dressing",
+      "unit": "scenery"
+    },
+    "floor_fern": {
+      "bundle": "db755c265d7e3b17c23ada810f30bef13594776e124bc3c0305caf91e51c17d3",
+      "kind": "static",
+      "scenery": "dressing",
+      "unit": "scenery"
+    },
+    "floor_litter": {
+      "bundle": "801190cfdcb19a1be668bfa4a452746afe2f6eb884677167f8ba3d3606aace38",
+      "kind": "static",
+      "scenery": "dressing",
+      "unit": "scenery"
+    },
+    "floor_rock": {
+      "bundle": "96b431f0fd3497b92907a840ddf31601fd36d5f73c8c8955e37b34785667bd2d",
+      "kind": "static",
+      "scenery": "dressing",
+      "unit": "scenery"
+    },
+    "floor_sapling": {
+      "bundle": "cb6627e42c1412a9e86dd81fd5bf75b6ae6ef4b32d3ff12a61ee22459cf23135",
+      "kind": "static",
+      "scenery": "dressing",
+      "unit": "scenery"
+    },
+    "forest_boulder": {
+      "bundle": "eb8169eac9815fc0c58065ba2ff739418a4d4fa6e91c1f22c907967d6318c2a2",
+      "footprint_half_m": [
+        1,
+        0.8,
+        0.75
+      ],
+      "kind": "static",
+      "scenery": "boulder",
+      "unit": "scenery"
+    },
+    "forest_log": {
+      "bundle": "c4f3ecd7125f4be742a495e35c747fa0d7153c14ee990c13a111d6db062c67f9",
+      "footprint_half_m": [
+        2.2,
+        0.35,
+        0.35
+      ],
+      "kind": "static",
+      "scenery": "log",
+      "unit": "scenery"
+    },
     "grass_barley": {
       "bundle": "feb46742caa5b3a1ba235bf7789e3b0db59fc1f5f59a73f4bb5158bab6806ac5",
       "kind": "static",

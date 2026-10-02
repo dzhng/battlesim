@@ -291,6 +291,8 @@ interface LabHandle {
   /** Draw no trees and none of their shadows while on (they are scenery, not
    *  models): the ground under a wood, and a paired cost measure. */
   suppressTrees?: (on: boolean) => Promise<void>;
+  /** Draw no forest-floor dressing while on (a paired cost measure). */
+  suppressDressing?: (on: boolean) => Promise<void>;
   /** Draw no template-art buildings and none of their shadows while on (a
    *  paired cost measure). */
   suppressBuildings?: (on: boolean) => Promise<void>;
@@ -852,6 +854,10 @@ export function LabViewport({
           },
           async suppressTrees(on: boolean) {
             scene.setTreesShown(!on);
+            await nextFrame();
+          },
+          async suppressDressing(on: boolean) {
+            scene.setDressingShown(!on);
             await nextFrame();
           },
           async suppressBuildings(on: boolean) {

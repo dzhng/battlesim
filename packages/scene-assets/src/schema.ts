@@ -59,6 +59,7 @@ export const FINDING_CODES = [
   "fit.muzzle_arc",
   "fit.canopy",
   "fit.tree_size",
+  "fit.dressing",
   "fit.footprint",
   /** A type listing a part must draw that part's hardware nodes. */
   "fit.part_nodes",

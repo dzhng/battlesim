@@ -75,8 +75,7 @@
         "boulder": {
           "appearance": {
             "drawn_by": "boulder",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -411,8 +410,7 @@
         "log": {
           "appearance": {
             "drawn_by": "log",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -1506,8 +1504,7 @@
     "boulder": {
       "appearance": {
         "drawn_by": "boulder",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -1842,8 +1839,7 @@
     "log": {
       "appearance": {
         "drawn_by": "log",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,

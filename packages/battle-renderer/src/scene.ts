@@ -53,13 +53,16 @@ export interface WorldMeshes {
   paintedMarching?: Mesh;
 }
 
-/** The trees and hedgerows: where each stands, and the appearances
- *  (`tree` and `hedgerow` bundles from the one loader) it instances. */
+/** The trees, hedgerows and forest-floor dressing: where each stands, and the
+ *  appearances (`tree`, `hedgerow` and `dressing` bundles from the one
+ *  loader) it instances. */
 export interface WorldScenery {
   placement: SceneryPlacement;
   appearances: ReadonlyMap<string, StaticBundle>;
   /** `biome.trees.lod_px`: the detail tiers by projected height. */
   lodPx: readonly [number, number, number];
+  /** The dressing's tiers and fade (`biome.forest_floor.dressing`). */
+  dressing: { lodPx: readonly [number, number, number]; fadePx: number };
 }
 
 /** The static world in layers, so each takes its own material and FogTerm
@@ -257,6 +260,9 @@ export interface BattleFrame {
   /** Lab diagnostics: draw the trees (the forest's and the backdrop's) and
    *  their shadows or not. */
   setTreesShown(on: boolean): void;
+  /** Lab diagnostics: draw the forest floor's dressing or not (a paired cost
+   *  measure). */
+  setDressingShown(on: boolean): void;
   /** Lab diagnostics: draw the template-art buildings and their shadows or
    *  not (a paired cost measure). */
   setBuildingsShown(on: boolean): void;

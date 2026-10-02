@@ -1,13 +1,13 @@
 // Scenery as the static chunk owner (`frame/staticChunks.ts`) draws it:
 // placed instances of a few appearances (trees and hedgerow shrubs), their
-// GPU record, and the rule for the detail tier each
-// draws at. An instance's tier comes from its projected height in pixels (the
+// GPU record, and the rule for the detail tier each draws at. An instance's tier comes from its projected height in pixels (the
 // biome's `lod_px`), as ~/dev/game's sceneryDetail chooses leaf detail
 // (technique): placement, not upload order, decides.
 //
 // A chunk too far for any of its instances to exceed the coarsest threshold
 // draws whole at the last tier; a nearer chunk's instances each take their
-// own.
+// own. The forest floor's dressing shares the record and the tiers, and is
+// kept by cells of its own (`dressing.ts`).
 import { vec3 } from "math";
 import { box3 } from "math/shapes";
 import type { DetailView } from "../frame/detailView";

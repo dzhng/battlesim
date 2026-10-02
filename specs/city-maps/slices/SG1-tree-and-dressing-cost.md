@@ -61,3 +61,18 @@ The tree half of this spike was answered on the way through [C73](C73-tree-skele
 **Output, for GG and G0: a tree's triangles per tier are at most 10,000 / 2,500 / 500 / 80.** The validator enforces it for every `tree` appearance, street trees included. Tier 1 is the one that matters: it is what the default camera draws, and the measured kill line for it is near 4,000.
 
 **Not measured:** the conifer the spike asked for (C74 builds it inside this budget), both forests at 710 trunks (the village has 687 already), the worst-window p95 (a noise number on a shared machine), and a 2 s pan (one rotation pair stood in for it).
+
+## Verdict: dressing (2026-10-02, run inside C79)
+
+The dressing half was answered on the way through [C79](C79-forest-dressing.md); its Outcome has the method. There was no throwaway fern population: the experiment was C79's own dressing, on and off in the real lab.
+
+| Question | Verdict |
+|---|---|
+| Does the dressing cost at most 1 ms GPU? | Yes: +0.25 ms over the village's wood from the play camera (4,300 pieces drawn, 282,000 triangles) and +0.08 ms at a generated wood's edge from the tactical camera (4,500 pieces, 83,000 triangles). A first build that drew every piece near the play camera a tier finer cost +0.79 ms. |
+| Does it cost at most 1 ms CPU? | Settled, yes: choosing the cells a view draws takes microseconds, and no piece is touched. While the camera moves into new ground a cell is laid in 0.25 to 0.5 ms (4.5 ms the worst seen on a loaded machine), two a view, so a frame that lays cells is about at the bar. |
+| Can the whole map's dressing be resident? | No. The saved small generated map (43,126 trunks) would hold 657,000 pieces: 31.5 MB of instances and 0.42 s at load. So fallback 3 was taken from the start, as cells: only the cells a camera can see pieces in are laid, into a pool of at most 128 cells (8 MB at 3,200 candidates a hectare, whatever the map). |
+| Which fallbacks were taken? | Fallback 3 (dressing within a radius only), as a bounded cache of 64 m cells. Fallback 4 (grown on the GPU) was not needed. |
+
+**Kill check:** none fired.
+
+**Not measured:** the benchmark's worst window (a noise number on a shared machine); rapid edge-to-edge movement in the browser (the cache's behaviour under a pan is a unit test, not a frame trace).

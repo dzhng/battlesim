@@ -187,7 +187,7 @@ function appendRange(ranges: number[], first: number, end: number) {
 }
 
 /** The eye's distance to the nearest point of `box`. */
-function distanceTo(box: Box3, eye: Vec3): number {
+export function distanceTo(box: Box3, eye: Vec3): number {
   vec3.max(_chunk_closest, eye, box3.min(_chunk_corner, box));
   vec3.min(_chunk_closest, _chunk_closest, box3.max(_chunk_corner, box));
   return vec3.distance(_chunk_closest, eye);

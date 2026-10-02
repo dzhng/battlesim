@@ -5491,3 +5491,134 @@ The models, their boxes and the sheets are in the [C45 outcome](slices/C45-stree
 **Gap:** "Model details within 'generic'."
 
 **Verdict:** sound for one model. A street of identical grey cars will read as clones; more bodies or colours are more appearances of the same kind at slightly different boxes, or a per-instance tint the scenery path does not have. **Confidence:** medium.
+## C78
+
+**When:** 2026-10-02. Evidence and numbers: the Outcome in [C78](slices/C78-forest-body-models.md).
+
+### One script builds the floor's bodies and its dressing, from the tree generator's parts
+
+**Choice:** `forest_floor.py` imports `trees.py` (its tube with carried frames and furrows, its leaf clumps, its export) and writes `assets/source/forest/`. `trees.py` runs its own kinds only when it is the script; its `tube` returns its end rings so a bole can be capped.
+
+**Gap:** The slice says the log reuses C73's bark and names no script.
+
+**Verdict:** sound. The bark has one owner, and the trees' GLBs are byte-identical after the change. **Confidence:** high.
+
+### A rock is a ball cut by seeded planes, with their arrises rounded by a power mean
+
+**Choice:** Along every direction the surface's distance is the power mean (power 9) of the distances to twelve seeded planes and the unit ball, so a face is flat and the edge between two is a curve. Its underside is squashed to 0.3 of its depth, so it sits on its widest section. The boulder is fitted to its box through the finest tier's extents; small rocks use the same generator.
+
+**Gap:** "A new small rock generator (rounded, not pyramids)".
+
+**Verdict:** provisional. Fresh eyes still read the boulder as artificial after the first build (an egg); the second build is flatter-faced and sits lower, and was not judged a third time. **Confidence:** medium.
+
+### The bodies are vertex-coloured like the trees, not textured like the village's props
+
+**Choice:** Bark, wood and rock are plain materials with vertex colour.
+
+**Gap:** The props pipeline (`props.py`) bakes textured recipes; the slice asks for the trees' bark.
+
+**Verdict:** provisional. The dressing's rocks and branches go through the scenery layer, which draws vertex colour only, and a boulder should match the stones beside it. Up close both bodies have less surface detail than a textured prop. **Confidence:** medium.
+
+### The bodies run a little below the ground
+
+**Choice:** The log's underside is 5 cm under its origin and the boulder's 12 cm, each with its own `ground_m` tolerance in the asset catalog.
+
+**Gap:** Fit is to the box above the ground; a box on sloping ground would float at one end.
+
+**Verdict:** sound. **Confidence:** high.
+
+### The systems-only marker is removed; the bodies are placed by default at C77's test densities
+
+**Choice:** `fixtures/props/forest/{log,boulder}.json` lose `status: "systems_only"`, and `forests.rule` places 5 log and 3 boulder candidates a hectare.
+
+**Gap:** C77 left default activation to "accepted drawing"; the brief made it conditional on C77's release regression.
+
+**Verdict:** provisional. The regression passes, and removing the marker alone changes no digest. Placing them is a named digest change: all six `--quick` rows change digest and none changes its outcome, capture time, losses or rejoined count. `village::` and `forest::` simulation tests pass. Every other forest in the game gets bodies too (the river lab, the saved generated map, every generated battle), and their scenes were not run. The fresh critique found the log too small to read as cover a vehicle cannot cross: its size is the simulation's box. **Confidence:** medium; it is its own commit so it can be reverted alone.
+
+## C79
+
+**When:** 2026-10-02. Evidence and numbers: the Outcome in [C79](slices/C79-forest-dressing.md).
+
+### The dressing is laid a cell of ground at a time and kept in a bounded pool, not expanded for the whole map
+
+**Choice:** `DressingField.place(i, j)` lays one 64 m cell, seeded by the cell; the scenery layer keeps at most 128 cells in one instance buffer, lays two a view nearest first, and gives up the cell wanted longest ago (`scenery/dressing.ts`).
+
+**Gap:** The slice says "a third population in `placement.ts`, drawn by the existing scenery layer's chunks" and "seeded per forest". SG1 asked whether whole-map residency holds.
+
+**Verdict:** sound. It does not hold: the saved small generated map has 43,126 trunks and its dressing whole is 657,000 pieces, 31.5 MB and 0.42 s at load, and larger maps grow from there. The pool is 8 MB at most whatever the map. A cell is seeded by where it is, so a forest's dressing does not depend on which forest it is. **Confidence:** high.
+
+### A cell draws whole at one tier; a piece shrinks to nothing on the GPU
+
+**Choice:** No piece is touched on the CPU after its cell is laid. A cell's tier comes from its distance and the tallest piece any cell can hold. Each piece is scaled about its foot in the vertex stage by its own projected height: whole above `fade_px`, gone at half of it; a cell whose tallest piece would be gone is not drawn or laid.
+
+**Gap:** "Far chunks leave it out, and it fades by pixel size within GG's radius"; GG has given no radius.
+
+**Verdict:** sound. Nothing blends, so the dressing stays in the opaque passes. The piece's height over `fade_px` rides in the instance record's last float, which trees use as a noise seed. **Confidence:** medium on the numbers (6 px).
+
+### The dressing casts no shadow and is fogged like a tree
+
+**Choice:** It is drawn in the depth prepass and the world pass by the forest's own fragment stage (shadowed, fogged whole at its own heart) and not into the sun's cascades. It is drawn from both sides, so a frond is one sheet of triangles.
+
+**Gap:** Not stated.
+
+**Verdict:** provisional. Four cascades of it would cost more than the dressing itself. Fresh eyes said the pieces "sit on the floor like stickers". **Confidence:** medium.
+
+### `dressing` is a scenery kind with a height and a triangle budget
+
+**Choice:** `SCENERY_KINDS.dressing`: no body, at most 0.9 m tall (`fit.dressing`), tiers of at most 600 / 200 / 60 / 24 triangles. The biome may not scale a piece above 1. The small rock is 0.33 m by construction; no rule holds rocks to 0.5 m.
+
+**Gap:** "Everything ≤0.9 m; rocks ≤0.5 m" named no owner.
+
+**Verdict:** sound for the height. **Confidence:** high.
+
+### Density, mix and drifts
+
+**Choice:** 3,200 candidate pieces a hectare: ferns 68%, branches 14%, rocks 7%, bushes 7%, saplings 5%. Each kind has its own simplex field; between its drifts a kind thins to `1 - drift` of its pieces (ferns to a tenth). About 1,900 a hectare stand.
+
+**Gap:** Delegated.
+
+**Verdict:** provisional. 900 a hectare read as a bare floor with a few plants; 1,800 and 3,200 were shot side by side and 3,200 kept. **Confidence:** medium.
+
+### A piece keeps 3 m inside its forest's edge
+
+**Choice:** `forest_floor.dressing.edge_m`. The floor is drawn out to a verge that wanders about the forest's edge; a piece at the edge stood on field-coloured ground.
+
+**Gap:** "A test that nothing is placed outside forests" says nothing of the drawn floor.
+
+**Verdict:** sound. A tree line 10 m wide keeps a 4 m band of dressing. **Confidence:** medium.
+
+### Web aliases for `math/noise`
+
+**Choice:** `web/tsconfig.json` and `web/vite.config.ts` gain the `math/noise` path beside the package's other entries.
+
+**Gap:** The drifts need a smooth seeded field, and the repo's rule is the `math` package before anything hand-written.
+
+**Verdict:** sound. Two lines in shared config. **Confidence:** high.
+
+### The root lines on the forest floor are fainter
+
+**Choice:** `forest_floor.roots` 0.25 to 0.1.
+
+**Gap:** Not this slice's rule, but its critique's finding: the painted arcs read as ruts and shadows of things that are not there, and were louder than the real branches now lying on the floor.
+
+**Verdict:** provisional. **Confidence:** medium.
+
+## C86
+
+**When:** 2026-10-02. Evidence: the Outcome in [C86](slices/C86-tree-lines.md).
+
+### Fields are cut along a strip's long stretches, read from the forest's own export
+
+**Choice:** `forestStripRuns`: every stretch of a stroke forest longer than the strip is wide is a guide edge for the plots, beside the roads' and rivers' runs.
+
+**Gap:** The slice says "plots cut along strip control runs"; the simulation exports control runs for roads and rivers and none for forests, and this lane may not add one.
+
+**Verdict:** sound. A bend is exported as chords under 2 m, so the rule keeps the straights and drops the bends, which is what a control run is for. **Confidence:** medium: a strip narrower than its bend's chords would be cut along them.
+
+### No map has a tree line, so the drawn half is proven by tests alone
+
+**Choice:** No picture, no hedgerow comparison, no critique and no 40-strip cost row.
+
+**Gap:** The slice's `farmland` lab is the map lane's; no saved map and no generator preset has a stroke forest.
+
+**Verdict:** open. **Confidence:** high that the rules hold on an inline map; none on how a tree line looks.

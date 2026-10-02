@@ -292,13 +292,31 @@
     "moss": 0.7,
     "humus": 0.4,
     "mottle": 0.25,
-    "roots": 0.25,
+    "roots": 0.1,
     "roots_m": 3,
     "verge_m": 3,
     "verge_warp_m": 1.5,
     "verge_warp_scale_m": 14,
     "roughness": 0.97,
-    "dapple": { "size_m": 2.2, "share": 0.35, "sun": 0.6 }
+    "dapple": { "size_m": 2.2, "share": 0.35, "sun": 0.6 },
+    "dressing": {
+      "per_ha": 3200,
+      "kinds": [
+        { "appearance": "floor_fern", "weight": 10, "drift": 0.9, "scale": [0.55, 1], "tint": [0.7, 0.8, 1] },
+        { "appearance": "floor_litter", "weight": 2, "drift": 0.2, "scale": [0.6, 1], "tint": [1, 1, 1] },
+        { "appearance": "floor_sapling", "weight": 0.7, "drift": 0.6, "scale": [0.6, 1], "tint": [0.78, 0.85, 0.95] },
+        { "appearance": "floor_rock", "weight": 1, "drift": 0.7, "scale": [0.5, 1], "tint": [0.85, 0.85, 0.83] },
+        { "appearance": "floor_bush", "weight": 1, "drift": 0.6, "scale": [0.5, 0.85], "tint": [0.68, 0.76, 0.9] }
+      ],
+      "drift_m": 30,
+      "squat": 0.7,
+      "edge_m": 3,
+      "trunk_clear_m": 0.9,
+      "clear_m": 1,
+      "colour_jitter": 0.18,
+      "lod_px": [48, 22, 8],
+      "fade_px": 6
+    }
   },
   "trees": {
     "species": [

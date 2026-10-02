@@ -43,6 +43,17 @@ const SIZES = new Map<string, KindSize>([
   ["hedge_shrub", { height: 2.8, radius: 3.2 }],
 ]);
 
+/** The forest floor's dressing, as built (`forest_floor.py`). */
+const FLOOR_SIZES = new Map<string, KindSize>([
+  ["floor_fern", { height: 0.44, radius: 0.64 }],
+  ["floor_bush", { height: 0.54, radius: 0.74 }],
+  ["floor_sapling", { height: 0.86, radius: 0.33 }],
+  ["floor_rock", { height: 0.33, radius: 0.5 }],
+  ["floor_litter", { height: 0.19, radius: 0.94 }],
+]);
+/** Every appearance the biome places. */
+const PLACED = new Map([...SIZES, ...FLOOR_SIZES]);
+
 let view: WorldView;
 let layout: WorldLayout;
 let exports: WorldExports;
@@ -54,7 +65,7 @@ beforeAll(() => {
   view = new WorldView(JSON.stringify(villageMap), JSON.stringify(GAME_RULES));
   exports = readWorldExports(view);
   const site = scenerySite(exports, layout, buildTerrainSurface(exports, layout, biome));
-  placement = placeScenery(site, biome, SIZES);
+  placement = placeScenery(site, biome, PLACED);
 });
 
 interface Tree {
@@ -226,7 +237,7 @@ test("a wood is stands, each mostly one family's species, with the odd tree of n
   const stands = { size_m: 50, purity: 0.9 };
   const small = { ...biome, trees: { ...biome.trees, stands } };
   const site = scenerySite(exports, layout, buildTerrainSurface(exports, layout, biome));
-  const placed = placeScenery(site, small, SIZES);
+  const placed = placeScenery(site, small, PLACED);
   const family = new Map(biome.trees.species.map((s) => [s.appearance, s.family]));
   const drawn = named(placed, placed.forest).map((t) => ({
     ...t,
@@ -283,7 +294,7 @@ function wood(shape: unknown, trees: Biome["trees"]) {
   try {
     const exported = readWorldExports(view);
     const site = scenerySite(exported, layout, buildTerrainSurface(exported, layout, biome));
-    const placed = placeScenery(site, { ...biome, trees }, SIZES);
+    const placed = placeScenery(site, { ...biome, trees }, PLACED);
     return { site, drawn: named(placed, placed.forest) };
   } finally {
     view.free();
@@ -342,7 +353,7 @@ test("the summer woods' interior-only trees (snags) are at most one in twenty", 
 
 test("placement is deterministic", () => {
   const site = scenerySite(exports, layout, buildTerrainSurface(exports, layout, biome));
-  const again = placeScenery(site, biome, SIZES);
+  const again = placeScenery(site, biome, PLACED);
   expect(again.kinds).toEqual(placement.kinds);
   expect(Array.from(again.forest)).toEqual(Array.from(placement.forest));
   expect(Array.from(again.backdrop)).toEqual(Array.from(placement.backdrop));
@@ -421,9 +432,305 @@ test("overlapping polygon and strip draw each original native-owned trunk exactl
     }
     expect(expected.length).toBeGreaterThan(30);
     const site = scenerySite(exported, layout, buildTerrainSurface(exported, layout, biome));
-    const placed = placeScenery(site, biome, SIZES);
+    const placed = placeScenery(site, biome, PLACED);
     expect(trees(placed.forest).map((tree) => [tree.x, tree.y])).toEqual(expected);
   } finally {
     overlap.free();
+  }
+});
+
+// ---------------------------------------------------- the forest floor's dressing
+
+const DRESSING = biome.forest_floor.dressing;
+
+/** Every piece of dressing the field lays, cell by cell: its appearance, its
+ *  foot and its scale. */
+function pieces(placed: SceneryPlacement) {
+  const out: { x: number; y: number; z: number; appearance: string; scale: number }[] = [];
+  const field = placed.dressing;
+  for (let c = 0; c < field.cells.length; c += 2) {
+    const data = field.place(field.cells[c], field.cells[c + 1]);
+    for (let o = 0; o < data.length; o += TREE_FLOATS)
+      out.push({
+        x: data[o + TREE_FIELD.x],
+        y: data[o + TREE_FIELD.y],
+        z: data[o + TREE_FIELD.z],
+        appearance: placed.kinds[data[o + TREE_FIELD.kind]],
+        scale: Math.max(data[o + TREE_FIELD.scaleXY], data[o + TREE_FIELD.scaleZ]),
+      });
+  }
+  return out;
+}
+
+/** The simulation's own word on whether (x, y) is forest ground. */
+const forestGround = (world: WorldView, x: number, y: number) => world.surface_at(x, y)[6] === 1;
+
+/** The scenery site of `world`. */
+function siteOf(world: WorldView) {
+  const worldExports = readWorldExports(world);
+  return {
+    worldExports,
+    site: scenerySite(worldExports, layout, buildTerrainSurface(worldExports, layout, biome)),
+  };
+}
+
+test("dressing lies only on the simulation's forest ground, on the ground, off its roads", () => {
+  const dressed = pieces(placement);
+  // Both woods are dressed, by every kind.
+  expect(dressed.length).toBeGreaterThan(1000);
+  expect(new Set(dressed.map((p) => p.appearance))).toEqual(
+    new Set(DRESSING.kinds.map((k) => k.appearance)),
+  );
+  const woods = forests().map((f) => f.rect);
+  for (const p of dressed) {
+    expect(forestGround(view, p.x, p.y), JSON.stringify(p)).toBe(true);
+    // Inside the edge the floor's verge wanders about: on the drawn floor.
+    const inside = Math.max(
+      ...woods.map(([x, y, w, h]) => Math.min(p.x - x, x + w - p.x, p.y - y, y + h - p.y)),
+    );
+    expect(inside, JSON.stringify(p)).toBeGreaterThanOrEqual(DRESSING.edge_m - 1e-3);
+    expect(onRoad(p.x, p.y), JSON.stringify(p)).toBe(false);
+    const g = ground(p.x, p.y);
+    expect(p.z, JSON.stringify(p)).toBeLessThanOrEqual(g);
+    expect(p.z, JSON.stringify(p)).toBeGreaterThan(g - 0.1);
+  }
+  // The road through the east wood (12 m wide, along x = 1150) is left
+  // bare, and the clearance beside it.
+  const beside = dressed.filter(
+    (p) => Math.abs(p.x - 1150) < 6 + DRESSING.clear_m - 1e-3 && p.y > 600 && p.y < 780,
+  );
+  expect(beside).toEqual([]);
+});
+
+test("dressing keeps clear of every trunk and of every body on the floor", () => {
+  // The floor's own cover (logs and boulders) at the densities its systems
+  // tests use: the village's default may hold none.
+  const rules = structuredClone(GAME_RULES) as typeof GAME_RULES;
+  rules.forests.rule.logs_per_ha = 5;
+  rules.forests.rule.boulders_per_ha = 3;
+  const world = new WorldView(JSON.stringify(villageMap), JSON.stringify(rules));
+  try {
+    const { worldExports, site } = siteOf(world);
+    const dressed = pieces(placeScenery(site, biome, PLACED));
+    const at = Object.fromEntries(layout.propFields.map((f, i) => [f, i]));
+    const p = worldExports.props;
+    let trunks = 0,
+      bodies = 0;
+    const tooNear: string[] = [];
+    for (let o = 0; o < p.length; o += layout.propStride) {
+      const kind = layout.propKinds[p[o + at.kind]];
+      if (kind !== "trunk" && kind !== "log" && kind !== "boulder") continue;
+      const [x, y, yaw] = [p[o + at.x], p[o + at.y], p[o + at.yaw]];
+      const [hx, hy] = [p[o + at.hx], p[o + at.hy]];
+      const [c, s] = [Math.cos(yaw), Math.sin(yaw)];
+      if (kind === "trunk") trunks++;
+      else bodies++;
+      for (const piece of dressed) {
+        const [dx, dy] = [piece.x - x, piece.y - y];
+        const near =
+          kind === "trunk"
+            ? Math.hypot(dx, dy) < DRESSING.trunk_clear_m - 1e-3
+            : // Inside the body's own box, turned as it lies.
+              Math.abs(dx * c + dy * s) < hx && Math.abs(dy * c - dx * s) < hy;
+        if (near) tooNear.push(`${kind} at ${x}, ${y}: ${JSON.stringify(piece)}`);
+      }
+    }
+    expect(tooNear).toEqual([]);
+    expect(trunks).toBeGreaterThan(50);
+    expect(bodies).toBeGreaterThan(3);
+  } finally {
+    world.free();
+  }
+});
+
+test("a strip of forest and a concave wood are dressed inside their own shapes, about as thickly", () => {
+  const strip = {
+    points: [
+      [100, 20],
+      [160, 80],
+    ],
+    width_m: 18,
+  };
+  const ring = [
+    [0, 0],
+    [90, 0],
+    [90, 27],
+    [27, 27],
+    [27, 90],
+    [0, 90],
+  ];
+  const map = {
+    size: [256, 128],
+    height_grid_m: 4,
+    fog_cell_m: 8,
+    slope_cutoff_deg: 35,
+    forests: [{ shape: { kind: "polygon", ring } }, { shape: { kind: "stroke", ...strip } }],
+  };
+  const world = new WorldView(JSON.stringify(map), JSON.stringify(GAME_RULES));
+  try {
+    const { site } = siteOf(world);
+    // Evenly and out to the edge, so a count is an area: no kind gathers in
+    // drifts, and none keeps back from the forest's edge.
+    const kinds = DRESSING.kinds.map((k) => ({ ...k, drift: 0 }));
+    const even = {
+      ...biome,
+      forest_floor: { ...biome.forest_floor, dressing: { ...DRESSING, kinds, edge_m: 0 } },
+    };
+    const dressed = pieces(placeScenery(site, even, PLACED));
+    for (const p of dressed) expect(forestGround(world, p.x, p.y), JSON.stringify(p)).toBe(true);
+    const inStrip = dressed.filter((p) => p.x > 95);
+    const perHa = (count: number, areaM2: number) => (count / areaM2) * 10000;
+    const stripArea = Math.hypot(60, 60) * strip.width_m;
+    const woodArea = 90 * 27 + 27 * 63;
+    // Trunks take their clearance out of both.
+    for (const density of [
+      perHa(inStrip.length, stripArea),
+      perHa(dressed.length - inStrip.length, woodArea),
+    ]) {
+      expect(density).toBeGreaterThan(DRESSING.per_ha * 0.7);
+      expect(density).toBeLessThanOrEqual(DRESSING.per_ha * 1.15);
+    }
+    // The same seed dresses the same floor.
+    expect(pieces(placeScenery(site, even, PLACED))).toEqual(dressed);
+  } finally {
+    world.free();
+  }
+});
+
+test("the dressing is laid a cell of ground at a time: a cell's own pieces, the same whenever it is laid", () => {
+  const field = placement.dressing;
+  expect(field.cells.length / 2).toBeGreaterThan(10);
+  let laid = 0;
+  for (let c = 0; c < field.cells.length; c += 2) {
+    const [i, j] = [field.cells[c], field.cells[c + 1]];
+    const data = field.place(i, j);
+    expect(data.length / TREE_FLOATS).toBeLessThanOrEqual(field.capacity);
+    for (let o = 0; o < data.length; o += TREE_FLOATS) {
+      expect(Math.floor(data[o + TREE_FIELD.x] / field.cellM)).toBe(i);
+      expect(Math.floor(data[o + TREE_FIELD.y] / field.cellM)).toBe(j);
+    }
+    expect(field.place(i, j)).toEqual(data);
+    laid += data.length / TREE_FLOATS;
+  }
+  expect(laid).toBeGreaterThan(1000);
+  // Its tallest piece is a kind's own height at most: nothing is scaled up.
+  expect(field.topM).toBeLessThanOrEqual(
+    Math.max(...[...FLOOR_SIZES.values()].map((s) => s.height)),
+  );
+  // A cell no forest reaches is never offered, and holds nothing if asked.
+  expect(field.place(0, 0).length).toBe(0);
+});
+
+test("a kind of dressing gathers in drifts: thick in places, thin between", () => {
+  // The west wood in 20 m squares: how unevenly the ferns fall among them,
+  // as the variance of a square's count over its mean (1 for an even
+  // scatter, whatever its density).
+  const spread = (placed: SceneryPlacement) => {
+    const squares = new Map<string, number>();
+    const square = (x: number, y: number) =>
+      `${Math.floor((x - 700) / 20)},${Math.floor((y - 880) / 20)}`;
+    for (let x = 700; x < 880; x += 20)
+      for (let y = 880; y < 1040; y += 20) squares.set(square(x, y), 0);
+    for (const p of pieces(placed)) {
+      const key = square(p.x, p.y);
+      if (p.appearance === "floor_fern" && squares.has(key))
+        squares.set(key, squares.get(key)! + 1);
+    }
+    const counts = [...squares.values()];
+    const mean = counts.reduce((sum, n) => sum + n, 0) / counts.length;
+    return counts.reduce((sum, n) => sum + (n - mean) ** 2, 0) / counts.length / mean;
+  };
+  const kinds = DRESSING.kinds.map((k) => ({ ...k, drift: 0 }));
+  const even = {
+    ...biome,
+    forest_floor: { ...biome.forest_floor, dressing: { ...DRESSING, kinds } },
+  };
+  const { site } = siteOf(view);
+  expect(spread(placement)).toBeGreaterThan(2 * spread(placeScenery(site, even, PLACED)));
+});
+
+test("no piece of dressing is drawn larger than its appearance, and a biome may not ask for it", () => {
+  // The appearance is what the asset validator holds under a man's waist.
+  const dressed = pieces(placement);
+  for (const p of dressed) expect(p.scale, JSON.stringify(p)).toBeLessThanOrEqual(1);
+  // Pieces of a kind differ in size: no two clones side by side by rule.
+  const ferns = dressed.filter((p) => p.appearance === "floor_fern").map((p) => p.scale);
+  expect(Math.max(...ferns) - Math.min(...ferns)).toBeGreaterThan(0.3);
+  const tall = structuredClone(summer) as unknown as Biome;
+  (tall.forest_floor.dressing.kinds[0] as { scale: readonly number[] }).scale = [0.8, 1.3];
+  expect(() => validateBiome(tall, "summer")).toThrow(
+    /summer\.forest_floor\.dressing\.kinds\[0\]\.scale/,
+  );
+});
+
+// ------------------------------------------------------------------ tree lines
+
+test("a tree line's crowns are as wide as a wood's, and lie within a fog cell of the simulation's foliage", () => {
+  // A strip narrower than one crown, bent once: a hedgerow between fields.
+  const strip = {
+    kind: "stroke",
+    points: [
+      [30, 40],
+      [140, 40],
+      [220, 100],
+    ],
+    width_m: 10,
+  };
+  const map = {
+    size: [256, 128],
+    height_grid_m: 4,
+    fog_cell_m: 8,
+    slope_cutoff_deg: 35,
+    forests: [{ shape: strip }],
+  };
+  const world = new WorldView(JSON.stringify(map), JSON.stringify(GAME_RULES));
+  try {
+    const { worldExports, site } = siteOf(world);
+    const placed = placeScenery(site, biome, PLACED);
+    const line = trees(placed.forest);
+    expect(line.length).toBeGreaterThan(15);
+    // The simulation's foliage: the fog cells some trunk's canopy covers.
+    const [nx, ny, cellM] = worldExports.foliage;
+    const foliage = new Set<number>();
+    for (let o = 3; o < worldExports.foliage.length; o += 4)
+      foliage.add(worldExports.foliage[o + 1] * nx + worldExports.foliage[o]);
+    expect(foliage.size).toBeGreaterThan(20);
+    const near = (x: number, y: number) => {
+      const [i, j] = [Math.floor(x / cellM), Math.floor(y / cellM)];
+      for (let dj = -1; dj <= 1; dj++)
+        for (let di = -1; di <= 1; di++) {
+          const [ci, cj] = [i + di, j + dj];
+          if (ci >= 0 && cj >= 0 && ci < nx && cj < ny && foliage.has(cj * nx + ci)) return true;
+        }
+      return false;
+    };
+    const [lo, hi] = biome.trees.forest.girth;
+    let overhang = 0;
+    for (const t of line) {
+      // No tree is narrowed to the strip: each is as wide as in a wood.
+      expect(t.girth, JSON.stringify(t)).toBeGreaterThanOrEqual(lo - 1e-6);
+      expect(t.girth, JSON.stringify(t)).toBeLessThanOrEqual(hi + 1e-6);
+      for (let k = 0; k < 8; k++) {
+        const a = (k * Math.PI) / 4;
+        const [x, y] = [t.x + t.radius * Math.cos(a), t.y + t.radius * Math.sin(a)];
+        expect(near(x, y), JSON.stringify(t)).toBe(true);
+        if (!forestGround(world, x, y)) overhang++;
+      }
+    }
+    // The crowns hang out over the fields beside the strip, as the foliage
+    // does.
+    expect(overhang).toBeGreaterThan(line.length);
+    // And no foliage is left undrawn: every foliage cell has a drawn tree
+    // within the canopy's radius of its centre.
+    const canopyRadius = game.forests.rule.canopy_radius_m;
+    for (const cell of foliage) {
+      const [cx, cy] = [((cell % nx) + 0.5) * cellM, (Math.floor(cell / nx) + 0.5) * cellM];
+      expect(
+        line.some((t) => Math.hypot(t.x - cx, t.y - cy) <= canopyRadius + 1e-3),
+        `${cx}, ${cy}`,
+      ).toBe(true);
+    }
+  } finally {
+    world.free();
   }
 });
