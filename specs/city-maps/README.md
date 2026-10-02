@@ -63,7 +63,7 @@ A slice marked "physical" has its systems half done; its look is in the visual p
 - [x] [Scale lane](../done/city-maps-scale/README.md): exact cost, delivery and resource contracts admitted on the identified full reference; [decisions and measured scope](../done/city-maps-scale/evidence.md)
 - [x] Lab: [C57 camera clearance](slices/C57-camera-clearance.md) · the generated-map lab route
 
-**In flight:** global countryside coverage; C85's separate ground-continuity prototype (C81 reduced blade facing is integrated); [one-report contact clarity](../battle-foundation/slices/06-contacts-and-audio.md); C54 evidence and remaining integration gates.
+**In flight:** global countryside coverage; C85 ground continuity after a rejected finest-grain prototype (C81 reduced blade facing is integrated, yellow dry patches are liked); [one-report contact clarity](../battle-foundation/slices/06-contacts-and-audio.md); C54 evidence and remaining integration gates.
 
 **Next, systems**
 - [x] Kerbside parking: lane margin restored to 0.9 m after physical traversal, access and combined arrival proofs ([C46](slices/C46-street-placement.md#outcome--kerbside-placement-2026-10-02)); rendered-art/frame-cost acceptance remains C54's
