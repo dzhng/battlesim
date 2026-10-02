@@ -30,6 +30,8 @@ s="$root/assets/source/street"
 mkdir -p "$s"
 blender street_car.py "$s/parked_car.glb"
 blender street_car.py "$s/car_wreck.glb" --wreck
-for kind in jersey_barrier; do blender street.py "$kind" "$s/$kind.glb"; done
+for kind in jersey_barrier bollard lamp bench bins hydrant utility_box planter bus_shelter; do
+  blender street.py "$kind" "$s/$kind.glb"
+done
 # the trees and hedgerows, one GLB per kind into assets/source/trees/
 blender trees.py

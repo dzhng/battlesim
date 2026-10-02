@@ -57,6 +57,14 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   parked_car: prop,
   car_wreck: prop,
   jersey_barrier: prop,
+  bollard: prop,
+  lamp: prop,
+  bench: prop,
+  bins: prop,
+  hydrant: prop,
+  utility_box: prop,
+  planter: prop,
+  bus_shelter: prop,
   // Trees and hedgerows carry one state per biome season (summer; winter is
   // the next biome spec). A tree also stands inside the forests' canopy
   // (`fit.canopy`); hedgerows stand only past the map. A tree's tiers are

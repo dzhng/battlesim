@@ -18,6 +18,39 @@
       "skeleton": "quaternius-ubc-launcher",
       "unit": "soldier"
     },
+    "bench": {
+      "bundle": "7fbd9b9baff0f045bf8c4312134469b5e6ca4b39cb3391901e3d7b4c15e1b374",
+      "footprint_half_m": [
+        0.9,
+        0.3,
+        0.42
+      ],
+      "kind": "static",
+      "scenery": "bench",
+      "unit": "scenery"
+    },
+    "bins": {
+      "bundle": "fd438de6196959f481a68013df43dd47efe83b0310d164ca586f514fc3460e25",
+      "footprint_half_m": [
+        0.65,
+        0.38,
+        0.55
+      ],
+      "kind": "static",
+      "scenery": "bins",
+      "unit": "scenery"
+    },
+    "bollard": {
+      "bundle": "378e2aacf52d93847fcf110fbab8546bc08894634866f620d302294eb0d8c0ec",
+      "footprint_half_m": [
+        0.1,
+        0.1,
+        0.45
+      ],
+      "kind": "static",
+      "scenery": "bollard",
+      "unit": "scenery"
+    },
     "bridge_deck": {
       "bundle": "29206c1ed911dee5d3a7e1511dce1446c6b39ef83fe685724c9e667015aabf56",
       "footprint_half_m": [
@@ -27,6 +60,17 @@
       ],
       "kind": "static",
       "scenery": "bridge_deck",
+      "unit": "scenery"
+    },
+    "bus_shelter": {
+      "bundle": "b2366826640c7039f43c53e326335f278ceff0c43fa2cd365ef93ce9aa058c78",
+      "footprint_half_m": [
+        2,
+        0.75,
+        1.25
+      ],
+      "kind": "static",
+      "scenery": "bus_shelter",
       "unit": "scenery"
     },
     "car_wreck": {
@@ -210,6 +254,17 @@
       "kind": "static",
       "unit": "building"
     },
+    "hydrant": {
+      "bundle": "71802f1bbbd7c1814249b014fba12f02a2a2bb9d5068173416834057c2c9e978",
+      "footprint_half_m": [
+        0.2,
+        0.2,
+        0.38
+      ],
+      "kind": "static",
+      "scenery": "hydrant",
+      "unit": "scenery"
+    },
     "jeep": {
       "bundle": "6dd05fcb19f1229c1603d4b9ee6eebe4fdd5a00efdb5bf3fc39f589eb7c0c481",
       "kind": "articulated",
@@ -240,6 +295,17 @@
       "scenery": "jersey_barrier",
       "unit": "scenery"
     },
+    "lamp": {
+      "bundle": "16c726c886b09a600f5ef3750d021d7cf0852297b6f3a303896361e718ffc14f",
+      "footprint_half_m": [
+        0.2,
+        0.2,
+        2.5
+      ],
+      "kind": "static",
+      "scenery": "lamp",
+      "unit": "scenery"
+    },
     "parked_car": {
       "bundle": "8feffacdbd7feb74116154a94dcda244b70d1f605f502574100fcf284605d9ab",
       "footprint_half_m": [
@@ -249,6 +315,17 @@
       ],
       "kind": "static",
       "scenery": "parked_car",
+      "unit": "scenery"
+    },
+    "planter": {
+      "bundle": "42d368777333dd804306d08a4a7329689b875fdad8538e313ca4175234d773b8",
+      "footprint_half_m": [
+        1,
+        0.45,
+        0.5
+      ],
+      "kind": "static",
+      "scenery": "planter",
       "unit": "scenery"
     },
     "recon": {
@@ -374,6 +451,17 @@
       "bundle": "c7f5c0be9ff33d1db8487a54a9fa4b044d88427f327858f03be6d82646e23f78",
       "kind": "static",
       "scenery": "tree",
+      "unit": "scenery"
+    },
+    "utility_box": {
+      "bundle": "b8937afaa41e7eafcdfef88d88eb3f53967c0e18b71caf99d9fbf611d0c6885c",
+      "footprint_half_m": [
+        0.7,
+        0.25,
+        0.7
+      ],
+      "kind": "static",
+      "scenery": "utility_box",
       "unit": "scenery"
     },
     "village_ruin": {

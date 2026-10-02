@@ -3,32 +3,32 @@
     "lamp": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "hp": 30},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "lamp", "status": "systems_only", "map_only": true}
+      "appearance": {"drawn_by": "lamp", "map_only": true}
     },
     "bench": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "hp": 40, "cover_tier": "light"},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "bench", "status": "systems_only", "map_only": true}
+      "appearance": {"drawn_by": "bench", "map_only": true}
     },
     "bollard": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "medium", "hp": 200},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "bollard", "status": "systems_only", "map_only": true}
+      "appearance": {"drawn_by": "bollard", "map_only": true}
     },
     "bins": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "hp": 20, "cover_tier": "light"},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "bins", "status": "systems_only", "map_only": true}
+      "appearance": {"drawn_by": "bins", "map_only": true}
     },
     "hydrant": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "medium", "hp": 150},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "hydrant", "status": "systems_only", "map_only": true}
+      "appearance": {"drawn_by": "hydrant", "map_only": true}
     },
     "utility_box": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "medium", "hp": 100, "cover_tier": "medium"},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "utility_box", "status": "systems_only", "map_only": true}
+      "appearance": {"drawn_by": "utility_box", "map_only": true}
     },
     "scooter": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "hp": 30},
@@ -38,7 +38,7 @@
     "planter": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "medium", "hp": 120, "cover_tier": "medium"},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "planter", "status": "systems_only", "map_only": true}
+      "appearance": {"drawn_by": "planter", "map_only": true}
     },
     "parked_car": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "medium", "hp": 120, "cover_tier": "medium"},
@@ -58,7 +58,7 @@
     "bus_shelter": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "hp": 60},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "bus_shelter", "status": "systems_only", "map_only": true}
+      "appearance": {"drawn_by": "bus_shelter", "map_only": true}
     },
     "scaffold": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "medium", "hp": 120},

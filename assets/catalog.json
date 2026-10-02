@@ -587,6 +587,110 @@
         0.4
       ]
     },
+    "bollard": {
+      "unit": "scenery",
+      "scenery": "bollard",
+      "states": {
+        "default": "assets/source/street/bollard.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.1,
+        0.1,
+        0.45
+      ]
+    },
+    "lamp": {
+      "unit": "scenery",
+      "scenery": "lamp",
+      "states": {
+        "default": "assets/source/street/lamp.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.2,
+        0.2,
+        2.5
+      ]
+    },
+    "bench": {
+      "unit": "scenery",
+      "scenery": "bench",
+      "states": {
+        "default": "assets/source/street/bench.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.9,
+        0.3,
+        0.42
+      ]
+    },
+    "bins": {
+      "unit": "scenery",
+      "scenery": "bins",
+      "states": {
+        "default": "assets/source/street/bins.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.65,
+        0.38,
+        0.55
+      ]
+    },
+    "hydrant": {
+      "unit": "scenery",
+      "scenery": "hydrant",
+      "states": {
+        "default": "assets/source/street/hydrant.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.2,
+        0.2,
+        0.38
+      ]
+    },
+    "utility_box": {
+      "unit": "scenery",
+      "scenery": "utility_box",
+      "states": {
+        "default": "assets/source/street/utility_box.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.7,
+        0.25,
+        0.7
+      ]
+    },
+    "planter": {
+      "unit": "scenery",
+      "scenery": "planter",
+      "states": {
+        "default": "assets/source/street/planter.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.0,
+        0.45,
+        0.5
+      ]
+    },
+    "bus_shelter": {
+      "unit": "scenery",
+      "scenery": "bus_shelter",
+      "states": {
+        "default": "assets/source/street/bus_shelter.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        2.0,
+        0.75,
+        1.25
+      ]
+    },
     "grass_meadow": {
       "unit": "scenery",
       "scenery": "grass",
