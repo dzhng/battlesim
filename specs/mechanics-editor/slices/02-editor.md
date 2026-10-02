@@ -14,6 +14,7 @@ nested enums, references, arrays and optional values. Exclude identity/art field
 from editing. Provide overrides and Restore inherited value where applicable.
 Landing spread (metres at maximum range) and range are coupled controls;
 range edits preserve visible spread and calculate stored angular scatter.
+Both raw and computed values remain editable side by side and update each other.
 Also convert percentages, shot cadence and full dimensions. Test round-trips,
 range/spread coupling, invalid text, inherited restore and shared impact display.
 

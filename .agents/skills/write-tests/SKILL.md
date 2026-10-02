@@ -34,6 +34,10 @@ below serves that one goal.
   internals breaks on every refactor and pins implementation, not behavior.
   Reserve isolated unit tests for genuinely tricky pure logic (parsers,
   schedulers, state machines).
+- **Exercise every editing path for coupled values.** Direct edits, Undo and
+  Restore must preserve the same invariant; a converted field can update correctly
+  while restoring its source silently leaves the dependent value changed. Check
+  dependent lists through the same restored projection as the form.
 - **Nothing the compiler already guarantees.** A test that re-asserts a type
   signature — field shapes, rejected argument types — can only fail if the
   compiler failed first. Spend the budget on business rules, arithmetic,

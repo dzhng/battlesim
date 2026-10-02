@@ -7,10 +7,19 @@ gameplay fields and the weapons that unit carries.
 
 ## Next Agent Prompt
 
-You are implementing this spec. Status (2026-10-01): exploration and independent
-planning are complete; implementation begins at slice 1. Build all slices and
-update this handoff before ending a pass. The projectile startup prerequisite
-has been pushed to main; preserve its grenade spread and all shipped values.
+Status (2026-10-01): native admission, spreadsheet controls and generation capture
+are integrated. The server publishes validated JSON and restores inherited
+soldier and mount overrides. Finish the integrated browser proof on a scratch
+checkout, then run the closeout gates and archive this spec. Preserve the shipped
+grenade speed of 100 m/s, range of 150 m and scatter of 30 mrad.
+
+Current pickup: prove Save through the real UI on scratch fixtures; show a running
+battle stays on its captured generation and Restart loads the saved generation.
+Then finish visual critique/preview, whole-feature review and the final choices
+ledger. Native admission tests and 25 integrated web tests passed; server tests
+add named-mount restoration, interrupted-save recovery and stale-draft protection.
+The live geometry preview passed existing model-fit checks. Full closeout gates
+and integrated browser publication/lifecycle evidence are still outstanding.
 
 - [ ] [Admission and publication](slices/01-admission.md).
 - [ ] [Spreadsheet and explained editing](slices/02-editor.md).
@@ -45,7 +54,9 @@ metres at maximum engagement range, not a maximum miss or blast radius.
 Angular scatter is calculated for persistence. Range edits preserve landing
 spread. Fractions use percentages, firing intervals use rounds/minute, and
 half-extents use full dimensions. Each conversion explains and exposes its
-stored value; derived values must round-trip without tuning drift.
+stored value. Both raw and computed values are editable side by side and update
+each other immediately; invalid/partial text remains visible and blocks saving.
+Derived values must round-trip without tuning drift.
 
 Saving does not restart active battles. New or explicitly restarted battles
 capture the latest accepted rules and matching presentation catalog. Vite must

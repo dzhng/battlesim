@@ -1,0 +1,276 @@
+// @vitest-environment node
+import { cp, mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
+import * as filesystem from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { afterEach, expect, test, vi } from "vitest";
+import { MechanicsStore, nativeValidator } from "../../apps/mechanics-editor/server";
+import type { JsonObject } from "../../apps/mechanics-editor/src/protocol";
+
+vi.mock("node:fs/promises", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("node:fs/promises")>()),
+  rename: vi.fn((await importOriginal<typeof import("node:fs/promises")>()).rename),
+}));
+
+const roots: string[] = [];
+afterEach(async () => {
+  vi.restoreAllMocks();
+  vi.mocked(filesystem.rename).mockImplementation(
+    (await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises")).rename,
+  );
+  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+});
+
+async function store() {
+  const root = await mkdtemp(join(tmpdir(), "mechanics-editor-"));
+  roots.push(root);
+  await mkdir(join(root, "fixtures/units"), { recursive: true });
+  await mkdir(join(root, "fixtures/props"), { recursive: true });
+  await writeFile(
+    join(root, "fixtures/game.json"),
+    JSON.stringify({ weapons: { rifle: { damage: 35 } } }),
+  );
+  await writeFile(
+    join(root, "fixtures/units/test.json"),
+    JSON.stringify({ units: { test: { cost: 1 } } }),
+  );
+  await writeFile(join(root, "fixtures/catalog.json"), "{}");
+  const validate = async (game: JsonObject, documents: JsonObject[]) => ({
+    weapons: game.weapons,
+    documents,
+    units: [],
+  });
+  return { root, editor: new MechanicsStore(root, validate) };
+}
+
+test("preview changes no files and save writes the reviewed JSON and matching catalog", async () => {
+  const { root, editor } = await store();
+  const initial = await editor.snapshot();
+  const draft = {
+    revision: initial.revision,
+    changes: [{ section: "weapons" as const, id: "rifle", path: ["damage"], value: 40 }],
+  };
+  const preview = await editor.preview(draft);
+  expect(
+    JSON.parse(await readFile(join(root, "fixtures/game.json"), "utf8")).weapons.rifle.damage,
+  ).toBe(35);
+  expect(preview.files.find((file) => file.path === "fixtures/game.json")?.after).toContain("40");
+  await editor.save(draft);
+  expect(
+    JSON.parse(await readFile(join(root, "fixtures/game.json"), "utf8")).weapons.rifle.damage,
+  ).toBe(40);
+  expect(
+    JSON.parse(await readFile(join(root, "fixtures/catalog.json"), "utf8")).weapons.rifle.damage,
+  ).toBe(40);
+});
+
+test("a change to an untouched source makes the draft stale without overwriting either file", async () => {
+  const { root, editor } = await store();
+  const initial = await editor.snapshot();
+  const outside = '{"units":{"test":{"cost":2}}}\n';
+  await writeFile(join(root, "fixtures/units/test.json"), outside);
+  await expect(
+    editor.save({
+      revision: initial.revision,
+      changes: [{ section: "weapons", id: "rifle", path: ["damage"], value: 40 }],
+    }),
+  ).rejects.toMatchObject({ status: 409 });
+  expect(await readFile(join(root, "fixtures/units/test.json"), "utf8")).toBe(outside);
+  expect(
+    JSON.parse(await readFile(join(root, "fixtures/game.json"), "utf8")).weapons.rifle.damage,
+  ).toBe(35);
+  expect(await readFile(join(root, "fixtures/catalog.json"), "utf8")).toBe("{}");
+});
+
+test("malformed JSON edit operations return named validation errors without writes", async () => {
+  const { editor } = await store();
+  const initial = await editor.snapshot();
+  for (const change of [
+    null,
+    { section: "weapons", id: "rifle", path: ["damage"], restore: "yes" },
+    { section: "weapons", id: "rifle", path: ["name"], value: "Renamed" },
+  ]) {
+    await expect(
+      editor.save(JSON.parse(JSON.stringify({ revision: initial.revision, changes: [change] }))),
+    ).rejects.toMatchObject({ status: 400 });
+  }
+  expect(await editor.snapshot()).toEqual(initial);
+});
+
+test("a publication failure restores already replaced sources and leaves the store usable", async () => {
+  const { root, editor } = await store();
+  const initial = await editor.snapshot();
+  const rename = (await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises"))
+    .rename;
+  vi.spyOn(filesystem, "rename").mockImplementation(async (from, to) => {
+    if (String(to) === join(root, "fixtures/catalog.json")) throw new Error("Disk write failed");
+    return rename(from, to);
+  });
+  const draft = {
+    revision: initial.revision,
+    changes: [{ section: "weapons" as const, id: "rifle", path: ["damage"], value: 40 }],
+  };
+  await expect(editor.save(draft)).rejects.toThrow("Disk write failed");
+  expect(await editor.snapshot()).toEqual(initial);
+  vi.restoreAllMocks();
+  vi.mocked(filesystem.rename).mockImplementation(rename);
+  const saved = await editor.save(draft);
+  expect((saved.catalog.weapons as JsonObject).rifle).toMatchObject({ damage: 40 });
+});
+
+test("the next reader rolls an interrupted publication back before exposing a generation", async () => {
+  const { root, editor } = await store();
+  const initial = await editor.snapshot();
+  const preview = await editor.preview({
+    revision: initial.revision,
+    changes: [{ section: "weapons", id: "rifle", path: ["damage"], value: 40 }],
+  });
+  const departed = spawnSync(process.execPath, ["-e", ""]);
+  expect(departed.status).toBe(0);
+  await writeFile(
+    join(root, "throwaway/mechanics-editor-transaction.json"),
+    JSON.stringify({ pid: departed.pid, files: preview.files }),
+  );
+  const first = preview.files[0];
+  await writeFile(join(root, first.path), first.after);
+  expect(
+    await new MechanicsStore(root, async (game) => ({
+      weapons: game.weapons,
+      documents: initial.catalog.documents,
+      units: [],
+    })).snapshot(),
+  ).toEqual(initial);
+});
+
+async function nativeStore() {
+  const project = resolve("..");
+  const root = await mkdtemp(join(tmpdir(), "mechanics-native-"));
+  roots.push(root);
+  await mkdir(join(root, "fixtures"));
+  for (const path of ["game.json", "catalog.json", "units", "props"])
+    await cp(join(project, "fixtures", path), join(root, "fixtures", path), { recursive: true });
+  return { root, editor: new MechanicsStore(root, nativeValidator(project)) };
+}
+
+test("a shared weapon preview names all users and invalid flight settings never write", async () => {
+  const { editor } = await nativeStore();
+  const initial = await editor.snapshot();
+  const weapon = (initial.catalog.weapons as JsonObject).rifle as JsonObject;
+  const preview = await editor.preview({
+    revision: initial.revision,
+    changes: [
+      { section: "weapons", id: "rifle", path: ["damage"], value: Number(weapon.damage) + 1 },
+    ],
+  });
+  expect(preview.affectedUnits.sort()).toEqual(["at", "recon", "rifle"]);
+  await expect(
+    editor.save({
+      revision: initial.revision,
+      changes: [{ section: "weapons", id: "grenade", path: ["range_m"], value: 1 }],
+    }),
+  ).rejects.toThrow();
+  expect(await editor.snapshot()).toEqual(initial);
+}, 30000);
+
+test("an inherited named mount edits and restores without copying sibling mounts", async () => {
+  const { root, editor } = await nativeStore();
+  const source = join(root, "fixtures/units/generic/tanks.json");
+  const authored = JSON.parse(await readFile(source, "utf8"));
+  authored.units.variant = { extends: "tank", name: "Variant tank" };
+  await writeFile(source, JSON.stringify(authored));
+  let snapshot = await editor.snapshot();
+  snapshot = await editor.save({
+    revision: snapshot.revision,
+    changes: [
+      { section: "units", id: "variant", path: ["mounts", "HMG", "weapons"], value: ["rifle"] },
+    ],
+  });
+  expect(JSON.parse(await readFile(source, "utf8")).units.variant.mounts).toEqual([
+    { name: "HMG", weapons: ["rifle"] },
+  ]);
+  snapshot = await editor.save({
+    revision: snapshot.revision,
+    changes: [
+      { section: "units", id: "variant", path: ["mounts", "HMG", "weapons"], restore: true },
+    ],
+  });
+  expect(JSON.parse(await readFile(source, "utf8")).units.variant).toEqual(authored.units.variant);
+  expect((snapshot.catalog.documents as JsonObject[])[0].units).toMatchObject({
+    variant: { mounts: [{ name: "cannon" }, { name: "HMG", weapons: ["hmg"] }] },
+  });
+}, 30000);
+
+test("an upgrade-masked edit is refused instead of saving an ineffective value", async () => {
+  const { root, editor } = await nativeStore();
+  const source = join(root, "fixtures/units/generic/infantry.json");
+  const authored = JSON.parse(await readFile(source, "utf8"));
+  authored.parts = {
+    fixed_cost: {
+      name: "Fixed cost",
+      description: "Test upgrade",
+      nodes: [],
+      patch: { cost: 150 },
+    },
+  };
+  authored.units.rifle.parts = ["fixed_cost"];
+  await writeFile(source, JSON.stringify(authored));
+  const initial = await editor.snapshot();
+  await expect(
+    editor.save({
+      revision: initial.revision,
+      changes: [{ section: "units", id: "rifle", path: ["cost"], value: 200 }],
+    }),
+  ).rejects.toThrow("would not take effect");
+  expect(await editor.snapshot()).toEqual(initial);
+}, 30000);
+
+test("restoring multiple soldier overrides removes the local variant and restores inherited slots", async () => {
+  const { root, editor } = await nativeStore();
+  const source = join(root, "fixtures/units/generic/infantry.json");
+  const authored = JSON.parse(await readFile(source, "utf8"));
+  authored.units.veteran = { extends: "rifle", name: "Veteran squad" };
+  await writeFile(source, JSON.stringify(authored));
+  let snapshot = await editor.snapshot();
+  snapshot = await editor.save({
+    revision: snapshot.revision,
+    changes: [
+      { section: "soldiers", id: "rifleman", unit: "veteran", path: ["hp"], value: 120 },
+      {
+        section: "soldiers",
+        id: "rifleman",
+        unit: "veteran",
+        path: ["mounts", "rifles", "squad"],
+        value: false,
+      },
+    ],
+  });
+  const resolved = snapshot.catalog.documents as JsonObject[];
+  expect((resolved[0].soldiers as JsonObject).rifleman).toMatchObject({ hp: 100 });
+  expect((resolved[0].soldiers as JsonObject).veteran__rifleman).toMatchObject({ hp: 120 });
+  snapshot = await editor.save({
+    revision: snapshot.revision,
+    changes: [
+      {
+        section: "soldiers",
+        id: "veteran__rifleman",
+        unit: "veteran",
+        path: ["hp"],
+        restore: true,
+      },
+      {
+        section: "soldiers",
+        id: "veteran__rifleman",
+        unit: "veteran",
+        path: ["mounts", "rifles", "squad"],
+        restore: true,
+      },
+    ],
+  });
+  const saved = JSON.parse(await readFile(source, "utf8"));
+  expect(saved.units.veteran).toEqual(authored.units.veteran);
+  expect(saved.soldiers).toBeUndefined();
+  expect((snapshot.catalog.documents as JsonObject[])[0].soldiers).not.toHaveProperty(
+    "veteran__rifleman",
+  );
+}, 30000);

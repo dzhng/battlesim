@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
 import typegpu from "unplugin-typegpu/vite";
 import react from "@vitejs/plugin-react";
+import { mechanicsPlugin } from "../apps/mechanics-editor/server";
 
 // packages/* and apps/* are source-only directories outside this vite root.
 // Their bare imports resolve to web/node_modules through explicit aliases, so
@@ -72,7 +73,13 @@ function assetWatch(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), typegpu(), assetWatch()],
+  cacheDir: fileURLToPath(new URL("../throwaway/vite-cache/", import.meta.url)),
+  plugins: [
+    react(),
+    typegpu(),
+    assetWatch(),
+    mechanicsPlugin(fileURLToPath(new URL("..", import.meta.url))),
+  ],
   // Appearance bundles and their runtime catalog, served same-origin at the
   // site root and copied into production builds (packages/scene-assets).
   publicDir: fileURLToPath(new URL("../assets/runtime/", import.meta.url)),
