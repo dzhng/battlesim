@@ -16,6 +16,7 @@ import type { CorpseInstance, ModelInstance } from "./models/modelInstances";
 import type { ModelStats } from "./models/modelLayer";
 import type { BuildingStats } from "./models/buildingLayer";
 import type { SideBuildings } from "./models/buildingReferences";
+import type { SurfaceClass } from "./models/surfaceParts";
 import type { ImpostorAtlas, ImpostorSpec } from "./models/impostor";
 import type { StaticBundle, TextureChannel } from "@packages/scene-assets/src/schema";
 import type { SceneryPlacement } from "./scenery/placement";
@@ -266,6 +267,10 @@ export interface BattleFrame {
   /** Lab diagnostics: draw the buildings and their shadows or not (a paired
    *  cost measure). */
   setBuildingsShown(on: boolean): void;
+  /** Lab diagnostics: draw one kind of model surface (`surfaceParts.ts`: a
+   *  cutout, say) with its depth and shadow, or none of it: paired frames
+   *  and cost. */
+  setSurfaceShown(surface: SurfaceClass, on: boolean): void;
   /** Lab diagnostics: draw the roads worn (surface detail, shoulders, the
    *  grass thinned across them) or plain, each kind's flat colour to its
    *  edge: paired frames and cost. */

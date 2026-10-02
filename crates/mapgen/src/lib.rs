@@ -8,6 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 pub mod inspect;
 mod joints;
 pub mod layout;
+pub mod open_country;
 pub mod parcels;
 pub mod street_props;
 
@@ -291,7 +292,8 @@ pub enum GenerateOutcome {
 }
 
 /// A request's whole plan: the layout, then its districts' streets, parcels
-/// and buildings, then the street furniture that stands among them.
+/// and buildings, then what stands in the open country between them, then
+/// the street furniture that stands among the buildings.
 /// `catalog_json` is the unit and prop catalog as a battle's rules carry it:
 /// the list of its documents (`contract::catalog::Catalog`).
 fn generate(
@@ -320,7 +322,10 @@ fn generate(
             }]
         })?;
     let layout = layout::generate_layout(&request, &presets)?;
-    let mut plan = parcels::fill_districts(layout, &request, &catalogue, &presets)?;
+    let plan = parcels::fill_districts(layout, &request, &catalogue, &presets)?;
+    // The open country first: it settles the plan's approach corridors, which
+    // street furniture keeps clear.
+    let mut plan = open_country::furnish(plan, &request, &catalogue, &presets)?;
     let props = street_props::place_street_props(&plan, &request, &catalogue, &units, &presets)?;
     plan.props.extend(props);
     Ok((request, plan, catalogue))

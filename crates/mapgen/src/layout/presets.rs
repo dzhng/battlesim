@@ -36,6 +36,8 @@ pub struct PresetDefinitions {
     pub street_props: StreetProps,
     pub classes: BTreeMap<String, SettlementClass>,
     pub types: BTreeMap<MapType, TypePreset>,
+    /// What stands between the settlements and the woods (M24).
+    pub open_country: crate::open_country::Rules,
 }
 
 /// The plan header the compiler and the battle read; flat ground has no more.
@@ -909,6 +911,9 @@ impl PresetDefinitions {
             "parcels".into(),
             "parcels need a regional family, a prop type, a street width and positive steps",
         );
+        for (field, message) in self.open_country.errors(self.wood_floor_m2()) {
+            check(false, format!("open_country.{field}"), message);
+        }
         for (id, district) in &self.districts {
             let mix = &district.mix;
             check(
@@ -1218,6 +1223,12 @@ impl PresetDefinitions {
             .max(self.roads.country_road_width_m)
             / 2.0
             + self.parcels.verge_m
+    }
+
+    /// The smallest wood the layout stands: anything smaller is a copse or
+    /// a tree of the open country.
+    pub fn wood_floor_m2(&self) -> f64 {
+        core::f64::consts::PI * self.forests.min_radius_m * self.forests.min_radius_m
     }
 
     pub fn class(&self, id: &str) -> &SettlementClass {

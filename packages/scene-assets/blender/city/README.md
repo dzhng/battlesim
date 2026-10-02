@@ -102,6 +102,7 @@ The authored catalogue (`fixtures/building-templates.json`) runs the other way: 
 - [`kit.py`](kit.py) is the authoring helper of a hand-scripted set (modules, templates, edges, bays, rows, the two files), with [`homes.py`](homes.py), the houses, as its worked example and [`farmsteads.py`](farmsteads.py), the farms, as the one with several buildings to a template.
 - [`village.py`](village.py) dresses the authored maps' catalogue: the courtyard farm of `../house.py` built on each box at its own size, one module standing and one fallen. Each of its three looks is built in full on the village house it belongs to; any other box borrows the nearest house's look a tier coarser, so the twelve farms fit a kit's byte budget.
 - [`industry.py`](industry.py) models the industrial set through `kit.py`: five buildings, each a shell of its own and rows of shared bay-wide modules, folded into the shell at the two coarse tiers. [`industry_sheets.py`](industry_sheets.py) frames buildings that size for `assemble.py`.
+- [`facade_lab.py`](facade_lab.py) is the facade lab's kit: fence panels of the two cutout recipes, a pane of glass, and window and shop bays with their rooms. It has no templates and no map places it. [`facade_lab_render.py`](facade_lab_render.py) photographs it in Blender where the lab stands it, from the lab scene's own cameras: the picture its frames are compared with.
 - [`assemble.py`](assemble.py) puts a set back together in Blender from its two files and renders it at the game's camera with the part boxes drawn over it: the picture to judge a set by until the renderer draws kits.
 
 ## Interiors
@@ -113,10 +114,27 @@ The contract a shader reads them by (the numbers are the constants at the top of
 - **Two sheets** under `assets/source/city/interiors/`: `rooms.png` for apartments on any floor, `shops.png` for ground floors. Both are opaque sRGB colour.
 - **Layout.** 2 columns by 5 rows of square 128 px cells, with no gutter. Cell `i` is at column `i mod 2`, row `floor(i / 2)`, counted from the image's top-left. A cell's picture is upright: the ceiling is at its top. A lookup clamps half a texel inside its cell. A cell is a power of two so that every mip down to one texel a cell holds one room only.
 - **The box a cell assumes** is 3 m wide, 3 m tall and 4.5 m deep: one bay and one floor of the lattice. Its open face is the inside face of the window wall.
-- **The camera a cell assumes** is a pinhole 16 m in front of the open face, on the box's axis, framing that face exactly. A point `x` metres across from the box's middle, `y` metres into the room and `z` metres above the floor is at `u = 0.5 + k x / 3`, `v = 0.5 + k (z - 1.5) / 3`, with `k = 16 / (16 + y)` and `v` running up from the cell's bottom edge. A box of another size divides by its own width and height.
+- **The camera a cell assumes** is a pinhole 16 m in front of the open face, on the box's axis, framing that face exactly. A point `x` metres across from the box's middle, `y` metres into the room and `z` metres above the floor is at `u = 0.5 + k x / 3`, `v = 0.5 + k (z - 1.5) / 3`, with `k = 16 / (16 + y)` and `v` running up from the cell's bottom edge. A box of another size divides by its own width, height and depth: its back wall is the cell's.
 - **A cell is a finished picture, and nothing in it glows.** The only light in a room is the sky through its own window wall, baked in: the brightest pixel is far below a sunlit wall, and there is no lamp, screen or emissive surface. It is shown as it is, dimmed if a building wants, and never added as emission.
 - **Any cell fits any window.** A room is composed round a window in the middle of its bay, reads the same mirrored left to right, and carries no lettering, so a building picks a cell and a mirroring by hashing the window's position.
 
 The steeper the view, the more of a window is the cell's floor: the box's floor is the bottom ninth of the picture, and from the tactical camera it fills most of an opening. Tune how a room reads here, in the scene and its tone curve, not in the shader.
 
-The sheets are not a set: they have no kit and no templates, and a template never names a cell. A room box's material names its sheet (`interior` on the material helpers; [scene-assets readme](../../README.md), "Coverage and rooms"), and its UVs are the cell's `u` and `v` above.
+The sheets are not a set: they have no kit and no templates, and a template never names a cell. `assets/catalog.json` names the two pictures under `interiors`, and the bake gives every bundle with a room its sheet as an ordinary texture, the cells laid out again four to a row in a square.
+
+What a kit author does (`parts.room`, `parts.room_box`; the facade lab's kit is the worked example):
+
+- **A room's material names its sheet** and nothing else (`room(name, "rooms")`): no recipe, no wear. Its row's tint dims it if the material is tint-masked.
+- **Its UVs are the box unfolded round its back wall.** The back wall is the unit square, and the floor, the ceiling and the two side walls hang off its edges, reaching one unit out at the open face. Those are straight lines in the box's own space, so the shader reads a fragment's place across the box and its depth into it straight off the UV and does the pinhole lookup itself, exactly, at every pixel. (The cell's `u`, `v` as the UVs would be wrong between vertices: the projection is not straight across a triangle, and a floor's diagonal was seven texels off.) `room_box` writes them; a box of any width, height or depth shows the whole of its cell.
+- **One room box a window, in a module that stands where the window does.** The cell and its mirroring come from a hash of the module's position, so a row a window gives every window its own room, the same from every camera and at every tier. Rooms folded into one shell mesh would all be one room.
+- **A box is narrower than its bay.** Two boxes that share a wall's plane fight for depth there; the lab's are 2.9 m in a 3 m bay.
+- **Rooms at tiers 0 and 1 only.** From tier 2 out a window is a few pixels: the shell's dark pane is enough, and a room box a window does not fit a far tier's triangle budget.
+
+## Surfaces that are not opaque
+
+A material says so through the material helpers (`coverage=`; [scene-assets readme](../../README.md), "Coverage and rooms"), and the battle draws each kind its own way:
+
+- **A cutout** (`coverage=("cutout", cutoff)` on a recipe with a coverage image, as `grille` and `perforated` are): a grille, a perforated sheet, a sign's cut letters. It is there or not texel by texel in colour, depth and shadow, so model it as one face (`parts.sheet`), not as bars: a hundred thin boxes alias where one face thins evenly with distance. Too far away to resolve, it is a veil as dense as the share of it that is there, and its shadow the same share of shade.
+- **Glass** (`coverage=("blended", opacity)`): one face, never a thin box (two layers and their edges). It is drawn after everything opaque, darkens what is behind it by its opacity, casts no shadow and hides nothing from the depth the overlays and the fog read. Panes are not sorted: keep one glass's opacity and colour alike across a building, and two panes blend the same either way round.
+
+[`facade_lab.py`](facade_lab.py) is the kit that shows all three with a room, and the lab route `/lab/facade` where they are judged.

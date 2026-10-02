@@ -3,7 +3,9 @@
 // changes: depth is written with the repo's one reverse-Z compare
 // (`depthContract`, `greater`), and a "prepassed" mode shades surfaces whose
 // depth a depth prepass already wrote, which must pass at equal depth; a
-// "behind" mode passes only what lies behind the depth written (an x-ray).
+// "behind" mode passes only what lies behind the depth written (an x-ray),
+// and a "kept" mode only the samples whose depth is this very surface's: what
+// a prepass that cut the surface (a cutout) kept of it.
 import {
   GPU_DEPTH_CLEAR,
   GPU_DEPTH_COMPARE,
@@ -18,7 +20,7 @@ const BEHIND = { greater: "less" } as const satisfies Record<
 >;
 
 export function battleWorldDepth(
-  mode: "read" | "read-write" | "prepassed" | "behind",
+  mode: "read" | "read-write" | "prepassed" | "kept" | "behind",
 ): GPUDepthStencilState {
   return {
     format: GPU_DEPTH_FORMAT,
@@ -26,9 +28,11 @@ export function battleWorldDepth(
     depthCompare:
       mode === "prepassed"
         ? "greater-equal"
-        : mode === "behind"
-          ? BEHIND[GPU_DEPTH_COMPARE]
-          : GPU_DEPTH_COMPARE,
+        : mode === "kept"
+          ? "equal"
+          : mode === "behind"
+            ? BEHIND[GPU_DEPTH_COMPARE]
+            : GPU_DEPTH_COMPARE,
   };
 }
 
