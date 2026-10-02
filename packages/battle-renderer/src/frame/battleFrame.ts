@@ -318,6 +318,9 @@ export async function createBattleFrame(
         setTreesShown(on) {
           if (!disposed) world.setTreesShown(on);
         },
+        setRoadWearShown(on) {
+          if (!disposed) world.setRoadWearShown(on);
+        },
         setOverlayGlow(next) {
           if (!disposed) overlay.setGlow(next);
         },

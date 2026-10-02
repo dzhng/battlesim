@@ -20,7 +20,7 @@ pub const PROP_STRIDE: usize = 10;
 /// min x, min y, width, height, z.
 pub const AREA_STRIDE: usize = 5;
 /// One stretch of a stroke between two rounded samples: end a, end b, half
-/// width, surface tag, and which of its ends are cut square
+/// width, its area's kind (`surface_area_tag`), and which of its ends are cut square
 /// (`contract::ground::CUT_A | CUT_B`, from `contract::ground::stretches`).
 pub const SURFACE_STROKE_STRIDE: usize = 7;
 /// A forest stroke's stretch: as a surface's, with the forest's id for the tag.
@@ -36,8 +36,15 @@ fn surface_tag(kind: SurfaceKind) -> u8 {
     SURFACE_KINDS.iter().position(|k| *k == kind).unwrap() as u8
 }
 
-pub(super) fn surface_area_tag(kind: contract::map::SurfaceKind) -> f32 {
-    surface_tag(SurfaceKind::of(kind)) as f32
+/// The tag a paved area's stretches, triangles and boundary edges carry: its
+/// own kind as the map names it, an index into the layout's
+/// `surfaceAreaKinds`. Each kind is drawn as itself; what a unit finds there
+/// is still `SurfaceKind::of` it.
+pub fn surface_area_tag(kind: contract::map::SurfaceKind) -> f32 {
+    contract::map::SurfaceKind::ALL
+        .iter()
+        .position(|k| *k == kind)
+        .unwrap() as f32
 }
 
 /// The layout, with the prop types' `blocks`, `occludes` and weight
@@ -52,7 +59,14 @@ pub fn layout_json(types: &PropCatalog) -> String {
             .map(|k| types.id(k))
             .collect::<Vec<_>>()
     };
-    serde_json::json!({
+    let area_kinds = |keep: &dyn Fn(contract::map::SurfaceKind) -> bool| {
+        contract::map::SurfaceKind::ALL
+            .iter()
+            .filter(|&&k| keep(k))
+            .map(|k| serde_json::json!(k))
+            .collect::<Vec<_>>()
+    };
+    let mut layout = serde_json::json!({
         "surfaceKinds": SURFACE_KINDS.iter().map(|k| lower(format!("{k:?}"))).collect::<Vec<_>>(),
         "propKinds": types.ids(),
         // What draws each prop type (`PropAppearance`).
@@ -103,8 +117,13 @@ pub fn layout_json(types: &PropCatalog) -> String {
         "forestTriangleFields": ["ax", "ay", "bx", "by", "cx", "cy", "id"],
         "forestBoundaryStride": 5,
         "forestBoundaryFields": ["ax", "ay", "bx", "by", "id"],
-    })
-    .to_string()
+    });
+    // What a paved stretch, triangle or boundary edge's `kind` names, and
+    // which of those are carriageways. (Set here: the object above is as
+    // long as the `json!` macro expands.)
+    layout["surfaceAreaKinds"] = area_kinds(&|_| true).into();
+    layout["roadAreaKinds"] = area_kinds(&|k| k.is_road()).into();
+    layout.to_string()
 }
 
 /// One exact integer ID and the presentation's unchanged physical columns.

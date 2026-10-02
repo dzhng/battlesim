@@ -7,6 +7,7 @@
 // once when the terrain surface packs them for the GPU. Tree tints are linear
 // multipliers over the tree appearances' own albedo.
 import type { Rgb } from "../light/sceneLight";
+import { SURFACE_AREA_KINDS } from "./surfaces";
 
 /** One kind of plot in the patchwork: a meadow, a crop, ploughed earth. */
 export interface PlotKind {
@@ -99,13 +100,73 @@ export interface Water {
   streak: number;
 }
 
-/** The road surface, drawn exactly where the simulation's road rule holds. */
+/** One kind of road's surface, drawn exactly where the simulation's road rule
+ *  holds: a country road's gravel, a dirt track's packed earth. */
 export interface Road {
+  /** A palette of two colours: the surface, and what patches of it wear
+   *  toward. A patch changes the surface's hue, never its brightness. */
   palette: string;
   /** Width of the blend across the road's edge, centred on it. */
   feather_m: number;
+  /** How far a patch goes to the second colour, and a patch's size. */
   mottle: number;
+  patch_m: number;
+  /** Stones and clods: how far the grain lightens and darkens the surface,
+   *  and the size of its largest lumps. Each scale of it fades to the
+   *  surface's mean as it nears a pixel. */
+  grain: number;
+  grain_m: number;
+  /** Where a road of a later kind joins this one, how far that road's
+   *  surface is carried onto it, thinning out. */
+  join_m: number;
   roughness: number;
+  shoulder: Shoulder;
+  ruts: Ruts;
+  centre_strip: CentreStrip;
+}
+
+/** Wheel ruts along a road drawn as a stroke: shading only, the ground is
+ *  never moved. They fade to the surface's mean as a rut nears a pixel or
+ *  two wide. */
+export interface Ruts {
+  /** Each rut's distance from the stroke's centreline, mirrored either side:
+   *  one or two, or none. A rut the stroke is too narrow to hold is left out. */
+  offsets_m: readonly number[];
+  width_m: number;
+  /** The steepest a rut's side tilts the shading normal, in degrees: at most
+   *  15 (steeper catches the sky and reads as a sheen). */
+  tilt_deg: number;
+  /** How far a rut darkens the surface at its middle. The surface between
+   *  the ruts lightens by their share of the road, so the road's mean is its
+   *  own and a rut is never darker than the grass beside the road. */
+  tint: number;
+}
+
+/** The grass strip down the middle of a narrow track. */
+export interface CentreStrip {
+  /** Half the strip's width; 0 for none. */
+  half_width_m: number;
+  /** A stroke wider than this has no strip. */
+  max_road_width_m: number;
+}
+
+/** The worn ground beside a road, between its surface and the field. */
+export interface Shoulder {
+  /** Its colour: drawn at the luminance of the ground it lies on where that
+   *  is the brighter, so it differs from the field by hue alone. `cover` is
+   *  how far the ground goes to it where the wear is whole. */
+  palette: string;
+  cover: number;
+  /** Its width at the widest, from the road's edge; 0 for none. */
+  width_m: number;
+  /** The share of that width its outer edge wanders inward by, and the size
+   *  of the wander. */
+  jitter: number;
+  jitter_m: number;
+  /** The share of the field's grass that still grows where the ground is
+   *  most worn, at the road's edge; the grass thins toward it across the
+   *  shoulder. */
+  grass: number;
 }
 
 /** The ground under the simulation's forests: leaf litter with patches of moss
@@ -295,9 +356,10 @@ export interface GrassRules {
   near_tier_px: number;
   /** A blade is drawn at least this many pixels wide, so far blades hold. */
   min_blade_px: number;
-  /** Bare margins: none within this of a road's edge, a prop's footprint,
-   *  or a forest or water edge. */
-  clear_m: { road: number; prop: number; area: number };
+  /** Bare margins: none within this of a prop's footprint, or of a forest
+   *  or water edge. (Beside a road the grass thins across its shoulder:
+   *  `roads.<kind>.shoulder`.) */
+  clear_m: { prop: number; area: number };
   wind: Wind;
   /** Clumps the near and far tiers hold at most in one frame. */
   capacity: readonly [number, number];
@@ -349,7 +411,7 @@ export const SCAR_CHANNELS = ["crater", "scorch", "tracks", "trampled"] as const
 /** `fixtures/biomes/<name>.json`. */
 export interface Biome {
   seed: number;
-  /** Named colour lists. Besides the ones plots, verge, road and the forest
+  /** Named colour lists. Besides the ones plots, verge, roads and the forest
    *  floor name, `water_bed`, `water` (the surface's own colour: out in the
    *  channel, then at its edge) and `distant` (the land past the patchwork)
    *  are required. */
@@ -357,7 +419,9 @@ export interface Biome {
   plots: readonly PlotKind[];
   field_rules: FieldRules;
   verge: Verge;
-  road: Road;
+  /** A row per paved kind a map can hold (`SURFACE_AREA_KINDS`); a kind with
+   *  no row takes `default`, the country road's. */
+  roads: Record<string, Road>;
   shore: Shore;
   water: Water;
   forest_floor: ForestFloor;
@@ -431,10 +495,39 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   palette("verge.palette", biome.verge.palette);
   within("verge.width_m", biome.verge.width_m, 0, 50);
   within("verge.feather_m", biome.verge.feather_m, 0, 50);
-  palette("road.palette", biome.road.palette);
-  within("road.feather_m", biome.road.feather_m, 0, 5);
-  within("road.mottle", biome.road.mottle, 0, 1);
-  within("road.roughness", biome.road.roughness, 0, 1);
+  if (!biome.roads?.default) bad("roads", "needs a default");
+  for (const [kind, road] of Object.entries(biome.roads)) {
+    const at = `roads.${kind}`;
+    if (kind !== "default" && !(SURFACE_AREA_KINDS as readonly string[]).includes(kind))
+      bad(at, "names no paved kind");
+    palette(`${at}.palette`, road.palette);
+    if (biome.palettes[road.palette].length < 2)
+      bad(`${at}.palette`, "needs two colours: the surface and its patches");
+    within(`${at}.feather_m`, road.feather_m, 0, 5);
+    within(`${at}.mottle`, road.mottle, 0, 1);
+    within(`${at}.patch_m`, road.patch_m, 0.1, 1000);
+    within(`${at}.grain`, road.grain, 0, 1);
+    within(`${at}.grain_m`, road.grain_m, 0.01, 100);
+    within(`${at}.join_m`, road.join_m, 0, 20);
+    within(`${at}.roughness`, road.roughness, 0, 1);
+    const shoulder = road.shoulder;
+    if (!shoulder || typeof shoulder !== "object") bad(`${at}.shoulder`, "is missing");
+    palette(`${at}.shoulder.palette`, shoulder.palette);
+    within(`${at}.shoulder.cover`, shoulder.cover, 0, 1);
+    within(`${at}.shoulder.width_m`, shoulder.width_m, 0, 8);
+    within(`${at}.shoulder.jitter`, shoulder.jitter, 0, 1);
+    within(`${at}.shoulder.jitter_m`, shoulder.jitter_m, 0.1, 1000);
+    within(`${at}.shoulder.grass`, shoulder.grass, 0, 1);
+    const ruts = road.ruts;
+    if (!ruts || !Array.isArray(ruts.offsets_m) || ruts.offsets_m.length > 2)
+      bad(`${at}.ruts.offsets_m`, "must list at most two distances");
+    ruts.offsets_m.forEach((o, i) => within(`${at}.ruts.offsets_m[${i}]`, o, 0.05, 50));
+    within(`${at}.ruts.width_m`, ruts.width_m, 0, 3);
+    within(`${at}.ruts.tilt_deg`, ruts.tilt_deg, 0, 15);
+    within(`${at}.ruts.tint`, ruts.tint, 0, 0.5);
+    within(`${at}.centre_strip.half_width_m`, road.centre_strip?.half_width_m, 0, 5);
+    within(`${at}.centre_strip.max_road_width_m`, road.centre_strip?.max_road_width_m, 0, 100);
+  }
   if (!biome.shore || typeof biome.shore !== "object") bad("shore", "is missing");
   const shore = biome.shore;
   palette("shore.palette", shore.palette);
@@ -536,7 +629,6 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   within("grass.dry_lift", g.dry_lift, 0, 0.5);
   within("grass.near_tier_px", g.near_tier_px, 0, 10000);
   within("grass.min_blade_px", g.min_blade_px, 0, 8);
-  within("grass.clear_m.road", g.clear_m?.road, 0, 20);
   within("grass.clear_m.prop", g.clear_m?.prop, 0, 20);
   within("grass.clear_m.area", g.clear_m?.area, 0, 20);
   const w = g.wind;
