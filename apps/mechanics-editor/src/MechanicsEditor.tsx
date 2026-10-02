@@ -13,7 +13,7 @@ import {
   editDraft,
   fieldOrigin,
   resolvedEntries,
-  restoreDraft,
+  resetDraft,
   unitWeapons,
   weaponUsers,
   type EditTarget,
@@ -47,7 +47,7 @@ interface EditorState {
     entry: JsonObject,
     textKey?: string,
   ) => void;
-  restore: (target: EditTarget, field: GameplayField) => void;
+  restore: (target: EditTarget, field: GameplayField, entry: JsonObject) => void;
 }
 const EditorContext = createContext<EditorState | null>(null);
 const useEditor = () => {
@@ -283,9 +283,13 @@ function FieldRow({
               type="button"
               className="me-text-button"
               disabled={editor.busy}
-              onClick={() => editor.restore(target, field)}
+              onClick={() => editor.restore(target, field, entry)}
             >
-              {origin.canRestore || origin.inherited ? "Restore inherited value" : "Undo edit"}
+              {origin.canRestore || origin.inherited
+                ? origin.restoresDefault
+                  ? "Restore default value"
+                  : "Restore inherited value"
+                : "Undo edit"}
             </button>
           )}
         </div>
@@ -401,7 +405,7 @@ function ExpandedUnit({ id, unit }: { id: string; unit: JsonObject }) {
           Each row is edited globally. Every affected exact unit is listed here and checked again in
           preview.
         </p>
-        {unitWeapons(editor.snapshot.catalog, id, editor.draft).map(
+        {unitWeapons(editor.snapshot, id, editor.draft).map(
           (weapon) =>
             weapons[weapon] && (
               <details className="me-linked-entry" key={weapon}>
@@ -411,7 +415,7 @@ function ExpandedUnit({ id, unit }: { id: string; unit: JsonObject }) {
                 </summary>
                 <div className="me-impact">
                   Used by{" "}
-                  {weaponUsers(editor.snapshot.catalog, weapon, editor.draft)
+                  {weaponUsers(editor.snapshot, weapon, editor.draft)
                     .map((user) =>
                       rowName(user, resolvedEntries(editor.snapshot.catalog, "units")[user]),
                     )
@@ -471,7 +475,7 @@ export default function MechanicsEditor() {
     [snapshot],
   );
   const filtered = Object.entries(units).filter(([id, unit]) => {
-    const weapons = snapshot && draft ? unitWeapons(snapshot.catalog, id, draft) : [];
+    const weapons = snapshot && draft ? unitWeapons(snapshot, id, draft) : [];
     return [
       id,
       unit.name,
@@ -580,27 +584,23 @@ export default function MechanicsEditor() {
               return next;
             });
           },
-          restore: (target, field) => {
+          restore: (target, field, entry) => {
             setDraft(
-              (current) =>
-                current &&
-                (fieldOrigin(snapshot, target, field.path).canRestore ||
-                fieldOrigin(snapshot, target, field.path).inherited
-                  ? restoreDraft(current, target, field.path)
-                  : {
-                      ...current,
-                      changes: current.changes.filter(
-                        (change) =>
-                          changeKey(change, change.path) !== changeKey(target, field.path),
-                      ),
-                    }),
+              (current) => current && resetDraft(current, target, field.path, entry, snapshot),
             );
             setPreview(null);
             setSaved(false);
             setTexts((current) =>
               Object.fromEntries(
                 Object.entries(current).filter(
-                  ([key]) => !key.startsWith(`${changeKey(target, field.path)}:`),
+                  ([key, edit]) =>
+                    !key.startsWith(`${changeKey(target, field.path)}:`) &&
+                    !(
+                      target.section === "weapons" &&
+                      field.path[0] === "range_m" &&
+                      !edit.error &&
+                      key.startsWith(`${changeKey(target, ["scatter_mrad"])}:`)
+                    ),
                 ),
               ),
             );
@@ -777,11 +777,9 @@ export default function MechanicsEditor() {
                             )}
                           </td>
                           <td className="me-weapons-cell">
-                            {unitWeapons(editor.snapshot.catalog, id, editor.draft).map(
-                              (weapon) => (
-                                <span key={weapon}>{weapon}</span>
-                              ),
-                            )}
+                            {unitWeapons(editor.snapshot, id, editor.draft).map((weapon) => (
+                              <span key={weapon}>{weapon}</span>
+                            ))}
                           </td>
                         </tr>
                       }

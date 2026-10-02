@@ -188,3 +188,67 @@ it("keeps a conflicted draft until explicit discard and reload", async () => {
     ),
   );
 });
+
+it("undoing a range edit preserves landing spread and clears the coupled draft", async () => {
+  const fixture = structuredClone(snapshot);
+  const weapons = fixture.catalog.weapons as Record<string, Record<string, number>>;
+  weapons.grenade.range_m = 150;
+  weapons.grenade.scatter_mrad = 30;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => respond(fixture)),
+  );
+  render(<MechanicsEditor />);
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
+  fireEvent.click(screen.getByText("Grenade", { selector: "summary" }));
+  const range = screen.getByLabelText("grenade Maximum engagement range");
+  fireEvent.change(range, { target: { value: "300" } });
+  fireEvent.click(range.closest(".me-field")!.querySelector("button")!);
+  expect((range as HTMLInputElement).value).toBe("150");
+  expect(
+    (screen.getByLabelText("grenade Landing spread at maximum range") as HTMLInputElement).value,
+  ).toBe("4.5");
+  expect((screen.getByLabelText("grenade stored scatter_mrad") as HTMLInputElement).value).toBe(
+    "30",
+  );
+  expect(screen.getByRole("button", { name: "Preview changes" }).hasAttribute("disabled")).toBe(
+    true,
+  );
+});
+
+it("restoring inherited range keeps the currently edited landing spread", async () => {
+  const fixture = structuredClone(snapshot);
+  const weapons = fixture.catalog.weapons as Record<string, Record<string, number>>;
+  weapons.grenade.range_m = 150;
+  weapons.grenade.scatter_mrad = 30;
+  fixture.documents = [
+    {
+      path: "game.json",
+      value: {
+        weapons: {
+          parent: { range_m: 300 },
+          grenade: { extends: "parent", range_m: 150, scatter_mrad: 30 },
+        },
+      },
+    },
+  ];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => respond(fixture)),
+  );
+  render(<MechanicsEditor />);
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
+  fireEvent.click(screen.getByText("Grenade", { selector: "summary" }));
+  fireEvent.change(screen.getByLabelText("grenade Landing spread at maximum range"), {
+    target: { value: "6" },
+  });
+  const range = screen.getByLabelText("grenade Maximum engagement range");
+  fireEvent.click(range.closest(".me-field")!.querySelector("button")!);
+  expect((range as HTMLInputElement).value).toBe("300");
+  expect(
+    (screen.getByLabelText("grenade Landing spread at maximum range") as HTMLInputElement).value,
+  ).toBe("6");
+  expect((screen.getByLabelText("grenade stored scatter_mrad") as HTMLInputElement).value).toBe(
+    "20",
+  );
+});

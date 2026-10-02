@@ -1,5 +1,6 @@
 .mechanics-editor {
   --me-bg: #111719;
+  --me-page-padding: clamp(20px, 4vw, 64px);
   --me-surface: #182124;
   --me-line: #334146;
   --me-ink: #e4e9e6;
@@ -11,7 +12,7 @@
   min-height: 100vh;
   height: 100%;
   overflow: auto;
-  padding: 32px clamp(20px, 4vw, 64px) 80px;
+  padding: 32px var(--me-page-padding) 80px;
   font:
     14px/1.5 -apple-system,
     BlinkMacSystemFont,
@@ -266,6 +267,9 @@
   background: #151f22;
 }
 .me-expanded {
+  position: sticky;
+  left: 0;
+  width: min(100%, calc(100vw - var(--me-page-padding) - var(--me-page-padding) - 2px));
   padding: 26px 30px 36px;
 }
 .me-expanded-heading {
@@ -571,7 +575,8 @@
 }
 @media (max-width: 600px) {
   .mechanics-editor {
-    padding: 20px 14px 50px;
+    --me-page-padding: 14px;
+    padding: 20px var(--me-page-padding) 50px;
   }
   .me-header {
     flex-direction: column;

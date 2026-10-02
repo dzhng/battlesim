@@ -1,4 +1,4 @@
-import { isObject, valueAt } from "./fields";
+import { gameplayField, isObject, valueAt } from "./fields";
 import type {
   Json,
   JsonObject,
@@ -71,6 +71,37 @@ export function restoreDraft(
   return replaceChange(draft, { ...target, path, restore: true });
 }
 
+/** Restoring or undoing range obeys the same landing-spread contract as editing it. */
+export function resetDraft(
+  draft: MechanicsDraft,
+  target: EditTarget,
+  path: string[],
+  entry: JsonObject,
+  snapshot: MechanicsSnapshot,
+): MechanicsDraft {
+  const origin = fieldOrigin(snapshot, target, path);
+  const restore = origin.canRestore || origin.inherited;
+  const original = resolvedEntries(snapshot.catalog, target.section)[target.id];
+  const value = restore ? origin.parentValue : valueAt(original, path);
+  let next = draft;
+  if (target.section === "weapons" && samePath(path, ["range_m"]) && typeof value === "number") {
+    next = editDraft(next, target, path, value, entry);
+    if (draftEntry(original, next, target).scatter_mrad === original.scatter_mrad)
+      next = {
+        ...next,
+        changes: next.changes.filter(
+          (c) => !sameTarget(c, target) || !samePath(c.path, ["scatter_mrad"]),
+        ),
+      };
+  }
+  return restore
+    ? restoreDraft(next, target, path)
+    : {
+        ...next,
+        changes: next.changes.filter((c) => !sameTarget(c, target) || !prefix(path, c.path)),
+      };
+}
+
 function setAt(object: JsonObject, path: readonly string[], value: Json): void {
   let cursor: JsonObject = object;
   for (let i = 0; i < path.length - 1; i++) {
@@ -138,6 +169,7 @@ export interface FieldOrigin {
   inherited: boolean;
   local: boolean;
   canRestore: boolean;
+  restoresDefault: boolean;
   parentValue?: Json;
 }
 
@@ -171,28 +203,41 @@ export function fieldOrigin(
       }
     }
   }
+  const descriptor = gameplayField(target.section, path);
+  const restoresDefault = parentValue === undefined && Boolean(descriptor?.optional);
+  if (restoresDefault) parentValue = descriptor?.kind === "strings" ? [] : null;
   return {
     id: ownerId,
     path: owner?.file ?? "Resolved default",
     inherited: !local && ownerId !== target.id,
     local,
-    canRestore: local && Boolean(first && typeof first.row.extends === "string"),
+    canRestore:
+      local && parentValue !== undefined && Boolean(first && typeof first.row.extends === "string"),
+    restoresDefault,
     parentValue,
   };
 }
 
-export function unitWeapons(catalog: JsonObject, id: string, draft: MechanicsDraft): string[] {
-  const units = resolvedEntries(catalog, "units");
+export function unitWeapons(
+  snapshot: MechanicsSnapshot,
+  id: string,
+  draft: MechanicsDraft,
+): string[] {
+  const units = resolvedEntries(snapshot.catalog, "units");
   const original = units[id];
   if (!original) return [];
-  const unit = draftEntry(original, draft, { section: "units", id });
+  const unit = draftEntry(original, draft, { section: "units", id }, snapshot);
   const kinds = valueAt(unit, ["body", "squad", "slots"]);
-  const soldiers = resolvedEntries(catalog, "soldiers");
+  const soldiers = resolvedEntries(snapshot.catalog, "soldiers");
   const mounts = Array.isArray(kinds)
     ? kinds.flatMap((kind) =>
         typeof kind === "string" && soldiers[kind]
-          ? ((draftEntry(soldiers[kind], draft, { section: "soldiers", id: kind, unit: id })
-              .mounts as Json[]) ?? [])
+          ? ((draftEntry(
+              soldiers[kind],
+              draft,
+              { section: "soldiers", id: kind, unit: id },
+              snapshot,
+            ).mounts as Json[]) ?? [])
           : [],
       )
     : Array.isArray(unit.mounts)
@@ -209,8 +254,12 @@ export function unitWeapons(catalog: JsonObject, id: string, draft: MechanicsDra
   ];
 }
 
-export function weaponUsers(catalog: JsonObject, weapon: string, draft: MechanicsDraft): string[] {
-  return Object.keys(resolvedEntries(catalog, "units")).filter((id) =>
-    unitWeapons(catalog, id, draft).includes(weapon),
+export function weaponUsers(
+  snapshot: MechanicsSnapshot,
+  weapon: string,
+  draft: MechanicsDraft,
+): string[] {
+  return Object.keys(resolvedEntries(snapshot.catalog, "units")).filter((id) =>
+    unitWeapons(snapshot, id, draft).includes(weapon),
   );
 }

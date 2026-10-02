@@ -33,7 +33,7 @@ it("reads source provenance and restores only the named mount override", async (
   const { fieldOrigin } = await import("../../apps/mechanics-editor/src/draft");
   const snapshot = {
     revision: "one",
-    catalog: {},
+    catalog: {} as import("../../apps/mechanics-editor/src/protocol").JsonObject,
     documents: [
       {
         path: "family.json",
@@ -74,4 +74,38 @@ it("reads source provenance and restores only the named mount override", async (
       snapshot,
     ),
   ).toEqual({ mounts: [{ name: "cannon", weapons: ["ap"], turret: true }] });
+  const { unitWeapons, weaponUsers } = await import("../../apps/mechanics-editor/src/draft");
+  snapshot.catalog = {
+    documents: [
+      { units: { variant: { mounts: [{ name: "cannon", weapons: ["he"], turret: true }] } } },
+    ],
+  };
+  expect(unitWeapons(snapshot, "variant", draft)).toEqual(["ap"]);
+  expect(weaponUsers(snapshot, "ap", draft)).toEqual(["variant"]);
+  expect(weaponUsers(snapshot, "he", draft)).toEqual([]);
+});
+
+it("offers restore only when inheritance or an optional default supplies a value", async () => {
+  const { fieldOrigin } = await import("../../apps/mechanics-editor/src/draft");
+  const snapshot = {
+    revision: "one",
+    catalog: {},
+    documents: [
+      {
+        path: "units.json",
+        value: {
+          units: {
+            base: { abstract: true },
+            variant: { extends: "base", cost: 100, capabilities: { deploy: { seconds: 3 } } },
+          },
+        },
+      },
+    ],
+  };
+  const target = { section: "units" as const, id: "variant" };
+  expect(fieldOrigin(snapshot, target, ["cost"]).canRestore).toBe(false);
+  expect(fieldOrigin(snapshot, target, ["capabilities", "deploy"])).toMatchObject({
+    canRestore: true,
+    parentValue: null,
+  });
 });
