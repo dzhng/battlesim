@@ -4616,7 +4616,7 @@ pending. **Confidence:** high for fixture identity, medium until the scene runs.
 
 **Choice:** No body stands nearer a carriageway's middle than the catalog's widest hull plus `lane_margin_m` (3.7 m: 7.3 m from the middle today, 3.9 m off a 7 m street's kerb).
 
-**Gap:** The design put parked cars at the kerb, on the carriageway, with a clear lane down the middle. The simulation's vehicles keep right of the middle and check their lane on a 2 m grid; at the kerb, 8 of 17 swept maps lost their assault and 77 street drives detoured.
+**Gap:** The design put parked cars at the kerb, on the carriageway, with a clear lane down the middle. The simulation's vehicles keep right of the middle and check their lane on a 2 m grid; at the kerb, 8 of 17 swept maps lost their assault and 77 street drives detoured. With the cars on the carriageway's outer edge itself, the widest hull shoved a car on 235 of 443 street drives.
 
 **Verdict:** forced by the route-survival rule; provisional as a picture. Terraced streets stay bare. It goes back to about 0.9 m when a road journey tolerates a body beside its lane. **Confidence:** high that the simulation needs it, low that it is what the streets should look like.
 
@@ -4652,9 +4652,9 @@ pending. **Confidence:** high for fixture identity, medium until the scene runs.
 
 **Verdict:** provisional until C45's models are fitted, when the boxes should be the models'. **Confidence:** medium.
 
-### Street trees are trunk props, not a forest strip
+### Street trees are a prop type of their own, not a forest strip
 
-**Choice:** An avenue's trees are props of the forests' tree type, one a spacing.
+**Choice:** An avenue's trees are props of `street_tree`, a catalog row that extends the forests' `trunk` (the same body) with a binding of its own, one a spacing.
 
 **Gap:** A tree line could also be a forest stroke (C86).
 
@@ -4662,15 +4662,15 @@ pending. **Confidence:** high for fixture identity, medium until the scene runs.
 
 ### Densities were set by Metro Large's tick cost and its admission
 
-**Choice:** Parking shares of 0.33 to 0.38 in centre, apartment and core districts, lamps every 60 to 70 m, trees every 24 to 26 m, small furniture one to a few hundred metres: 16 937 bodies on Metro Large seed 1, +7.4% of a 120 s battle's ticks.
+**Choice:** Parking shares of 0.33 to 0.38 in centre, apartment and core districts, lamps every 60 to 70 m, trees every 24 to 26 m, small furniture one to a few hundred metres: 16 825 bodies on Metro Large seed 1, +0.6% of a 120 s battle's ticks on the merged build.
 
 **Gap:** Densities were delegated.
 
-**Verdict:** provisional. The first set (30 440 bodies) cost +8.8%; a middle set left the largest Metro Large of 100 seeds at 57 484 authored bodies of the 60 000 the game admits, and this one leaves it at 51 975. Furniture now counts against that allowance, which was sized for buildings. `city_report`'s crossing aggregate overstates the cost, because the report's own `Battle::load` walks every prop between ticks. **Confidence:** medium.
+**Verdict:** provisional. The first set (30 440 bodies) cost +8.8%; a middle set left the largest Metro Large of 100 seeds at 57 484 authored bodies of the 60 000 the game admits, and this one leaves it at 52 049. Furniture now counts against that allowance, which was sized for buildings. `city_report`'s crossing aggregate overstates the cost, because the report's own `Battle::load` walks every prop between ticks. **Confidence:** medium.
 
-### A prop with no art is drawn as a box
+### A prop kind with no art is drawn as a stand-in box
 
-**Choice:** A map prop no appearance or forest draws joins the massing layer as a box of its own size, tinted by its kind; a moved one keeps its tint, a burnt-out one takes the remains' colour.
+**Choice:** A prop kind no appearance is fitted to is drawn as the prototype kit's unit box, stretched to the prop's box and tinted by its kind (`presentation.stand_ins.tints`), as an ordinary model instance from `PropAppearances`. The first version put these boxes in the massing layer; main deleted that layer the same day, and this one rides the path props with art take.
 
 **Gap:** `systems_only` kinds resolved to no model, and nothing else drew them: placed, they were invisible bodies.
 

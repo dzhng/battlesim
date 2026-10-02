@@ -235,7 +235,8 @@ placed kind must be one of its prop types, and its widest hull sizes the lane.
   hull still drives every street by the same way, the widest without shoving a body.
 - **Cars park in runs,** bumper to bumper with no way through, a squad's width or more
   between runs, along one side of a street and both of an avenue. Lamps and street
-  trees are evenly spaced and placed first, so a run ends at one; the scattered rows
+  trees (`street_tree`: the forests' trunk as a body, with its own binding) are evenly
+  spaced and placed first, so a run ends at one; the scattered rows
   fill what the cars left. Nothing beside a street stands within `corner_clear_m` of
   another carriageway's edge, so a junction's corners are open.
 - **Yard stock stands on its building's own parcel,** against a wall with no door in it.

@@ -55,8 +55,10 @@ parked cars at the kerb, on the carriageway. The simulation does not hold that:
   stops the mover stands within a few metres of it the check fails, the detour must
   land on a lane point that is itself beside a body, and the road closes to that mover.
 
-With every body 0.9 m past the widest hull from the middle (just off the kerb), the
-sweep's simulation answered: 8 of 17 maps no longer took the assault ("a jeep has no
+With the cars on the carriageway's outer edge, as designed, the widest hull shoved a
+car on 235 of its 443 street drives in the sweep, and 140 drives by the other hulls
+took a detour of more than 30 m. With every body 0.9 m past the widest hull from the
+middle (just off the kerb), the sweep's simulation answered: 8 of 17 maps no longer took the assault ("a jeep has no
 route"), 77 of about 1 240 street drives took a detour of more than 30 m, and 5 drives
 by the widest hull shoved a body. At 3.7 m past the widest hull (7.3 m from the middle
 with today's catalog) every claim holds. So that is the shipped rule, as one preset
@@ -80,7 +82,7 @@ to about 0.9.
 - No body stands within 3 m either side of a door's line to the street. The first
   trial at 0.75 m left 89 doors in the sweep where a squad could no longer stand.
 - Lamps stand at an even spacing on alternate sides and street trees (the forests'
-  `trunk`) at an even spacing along both sides of an avenue; both are placed before the
+  `trunk` body, as the prop type `street_tree`) at an even spacing along both sides of an avenue; both are placed before the
   cars, so a run ends at one. Bins, benches, planters, bollards, hydrants, utility
   boxes, scooters and, on avenues, the odd bus shelter are scattered in what is left.
 - Industrial parcels get skips and pallet stacks against a wall with no door in it.
@@ -97,7 +99,7 @@ to about 0.9.
 
 **Routes survive** (`crates/mapgen/tests/street_props.rs`, two seeds of each of the
 nine cells, bare against dressed, asked of the simulation's own planner and
-navigation): 18 of 18 assaults still plan; a squad still stands at each of 123 026
+navigation): 18 of 18 assaults still plan; a squad still stands at each of 121 266
 doors and walks to each of 736 sampled from its settlement's centre; each hull of the
 catalog still drives each of 1 328 sampled street stretches by a way no more than 30 m
 longer, the widest hull (443 drives) without shoving a body.
@@ -106,24 +108,32 @@ longer, the widest hull (443 drives) without shoving a body.
 
 | map | bodies gained | world build G | battle build G | 120 s of ticks and packing G | resident MiB |
 |---|---|---|---|---|---|
-| Mixed Small | 3 642 | 1.06 → 1.08 | 6.16 → 6.22 | 47.2 → 47.4 (+0.4%) | 222 → 227 |
-| Metro Large | 16 937 | 2.54 → 2.61 | 15.85 → 16.14 | 70.7 → 75.9 (+7.4%) | 653 → 679 |
+| Mixed Small | 3 694 | 1.05 → 1.07 | 6.14 → 6.20 | 45.1 → 45.3 (+0.4%) | 222 → 230 |
+| Metro Large | 16 825 | 2.51 → 2.58 | 15.78 → 16.07 | 66.0 → 66.4 (+0.6%) | 633 → 647 |
 
-The report's own "crossing" aggregate rises more (81.2 → 84.1 G and 139.6 → 156.7 G):
+Each row is one map generated twice by the same build, without furniture and with it.
+
+The report's own "crossing" aggregate rises more (79.0 → 82.2 G and 134.9 → 148.1 G, +9.8%):
 between ticks the report calls `Battle::load`, which counts wrecks by walking every
 prop, so that figure grows with the map's bodies whatever the battle does. The first
-densities (30 440 bodies on Metro Large) cost +8.8% of ticks. They were lowered twice,
+densities (30 440 bodies on Metro Large) cost +8.8% of ticks on the build they were
+measured on. They were lowered twice,
 to under three fifths of the bodies: once for cost, lamps and small furniture most, and once
 for admission. Over 100 seeds of each cell every map still generates
-(`layout_sweep --seeds 100`), and the largest Metro Large holds 51 975 authored bodies
-(25 085 of them furniture) against the game's allowance of 60 000; at the middle
+(`layout_sweep --seeds 100`), and the largest Metro Large holds 52 049 authored bodies
+(25 197 of them furniture) against the game's allowance of 60 000; at the middle
 densities it held 57 484.
 
 **Every placed body is drawn.** These kinds have no art (`systems_only`), and a map
-prop with no appearance drew nothing. It is now a box of its own size in the massing
-layer, tinted by kind (`presentation.massing.tints`), as an artless building's parts
-are; one the side has seen shoved is drawn where it was last seen, one it has seen
-burnt out as its wreck's box.
+prop with no appearance drew nothing. `PropAppearances` (the renderer's one owner of
+which appearance draws a prop) now gives such a kind a stand-in: the prototype kit's
+unit box, the same metre cube an artless building's parts are drawn from, stretched to
+the prop's own box and tinted by its kind (`presentation.stand_ins.tints`), as an
+ordinary model instance. So it takes the path props with art take: one the side has seen
+shoved is drawn where it was last seen, one it has seen burnt out as its wreck's box,
+one destroyed not at all. A forest's trees stay the scenery's; a street's trees are
+their own prop type (`street_tree`, the forests' `trunk` body with its own binding), so
+nothing asks which trees a forest stood.
 
 **Open.** The models (C45). Kerbside placement, as above. The slice's GIF of a block
 traversal and its frame-cost row were not made.
