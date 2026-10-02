@@ -6589,3 +6589,70 @@ the consumer without adding a diagnostic API or durable format.
 
 **Verdict:** sound; high confidence. This corrects named Native last bits at a
 measured primitive rather than migrating an inventory of unrelated math calls.
+
+## C27: ruin and gutted art drawn by what a side knows
+
+### The state is the published prop's type, read against the building row
+
+**Choice:** `fallenBuildings(index, known, shells)` draws a building `gutted` when a side knows one of its parts as a prop of a type the catalog's building rows name as their gutted shell (`destroyed.into.building.gutted_prop`, read by `buildingRemains` in scene-assets), and a `ruin` when it knows a part replaced by anything else, or destroyed with nothing left. No publication change was needed: a known prop already carries its kind, the part it replaces and its box.
+
+**Gap:** The slice says "drawn on the published collapse or gutting, via the knowledge path", not which published fact tells the two apart. The alternatives were the remains' height against the part's (a 2 m shed's remains are 2 m: a guess), and the appearance binding (`drawn_by: "gutted"`, which is a presentation label the simulation lane may still rename).
+
+**Reach:** Every route that draws a battle (`useBattleSession`) and the two labs that show a destruction without one. The catalog's shipped view is where the rule is read, as the bake reads the collapse rule there.
+
+**Verdict:** sound. Played in the built WebAssembly on the camera lab's map (`buildingKnowledge.test.ts`): a five-floor block shelled down is published as three `ruin` props at 4.075 m, a twenty-floor tower as one `gutted` prop at its 61 m, to the side that watched and not to the other. **Confidence:** high.
+
+### One known part is the whole building's state
+
+**Choice:** A building is drawn destroyed once the side knows any part of it replaced, in the one state that part says; were parts ever known both ways, a ruin.
+
+**Gap:** The contract asks what a partly known compound is.
+
+**Reach:** None in play. The simulation destroys every part of a building in one call and by one rule (`Battle::destroy_prop`), and a side that sees any part's footprint learns every part (`revealed`, in the sight pass). The test stands a squad where one wing of the U block is out of its sight and finds all three parts published.
+
+**Verdict:** sound: the art is one building's, so half a building cannot be drawn in another state, and the boxes the camera and the fog are handed are per part from the same knowledge, which is whole. **Confidence:** high.
+
+### No fallback: a template without rows for the state is refused by name
+
+**Choice:** The box fallback is deleted, with `BuildingScene.box`, `buildingKits` (the kits a map draws from are `templateKits` again, the library's own fact), the prototype kit a map with buildings used to ask for, and `presentation.buildings.ruin_tint`. `setFallenBuildings` throws `state.missing` and leaves the scene as it was.
+
+**Gap:** The contract says to delete it "if nothing can reach it".
+
+**Reach:** Two things reached it, both labs inventing a fall: the city block's switch (remains of 1.5 m whatever the building) and the camera lab's, which brought a twenty-floor tower down to 4 m. A tower stands, gutted. Both now ask `seenDestroyed` what the simulation would have published (the template's own damage state in the library, the catalog's building row, `ruinHeight`), and the camera lab's falling building is its courtyard block (`fixtures/camera-lab.json` `collapses.owner`), whose remains its idle camera recovers over. Street-furniture stand-ins still ask for the prototype kit themselves.
+
+**Verdict:** sound. **Confidence:** high. A map whose simulation ends a building one way and whose library has the other state would stop drawing; the bake refuses such a library.
+
+### The proof is a shelling by the lab emitter, on the camera lab's map
+
+**Choice:** A saved encounter, `camera-lab/shelling`: `burst` events (the scenario's own emitter of a weapon's blast) wear the U block and the tower down; a blue squad watches, a red squad stands behind two slabs and is scripted to walk out at tick 600. `/lab/city-ruins` plays it with a side switch.
+
+**Gap:** The brief offered the generated battle, the saved town with scripted fire, or a lab fixture.
+
+**Reach:** The bursts go through `structures.damage`, `destroy_prop` and the ordinary publication: nothing is injected. Tanks firing would have added minutes of flight and aim to a scene that judges knowledge, and a generated town has no place a side provably cannot see from. The map already holds a compound, a tower and slabs to hide behind.
+
+**Verdict:** sound for what it proves. It is not a fight: nobody fires a weapon. **Confidence:** high.
+
+### The far stations stand at 1.3 times the last tier boundary, and look down
+
+**Choice:** The scene's far stations are 1,384 m out at pitch 0.8, and the tower's near station at pitch 0.9.
+
+**Gap:** "The tier 3 distance" is not one distance for two buildings 220 m apart.
+
+**Reach:** From 1.1 times the boundary, the other subject is nearer than the boundary and draws at tier 2. And the ground-classes view is black past the map's edge, which lies 105 m behind the tower: a flatter camera puts the edge behind its roof. At the whole-map view (2,000 m, the rig's own pitch) the edge is within reach of the roof, so the tower is judged there by its height and brightness only.
+
+**Verdict:** sound. **Confidence:** high.
+
+### A destroyed building smokes for the side that knows it
+
+**Choice:** Each part a side knows as remains or as a gutted shell is a smoke source (`effectFeed.ts`), with a look of its own in `presentation.effects.smoke`: `gutted`, thick dark smoke off the roof for three minutes and thin smoke for fifteen more; `ruin`, pale dust for a minute and thin smoke for ten. No flame.
+
+**Gap:** The slice delegates the burnt treatment. The unprimed critic could not tell the gutted tower from a dark-fronted or shaded one when it stood alone, and lost the ruin at range.
+
+**Reach:** The same source machinery wrecks use: it burns from when the side first knows of it, so a side that learns late sees it start then, as a wreck does. Every map: a village house that falls smokes too. Sources share the one smoke budget.
+
+**Verdict:** a cue, not the fix. The silhouette and soot are the art's (C14). **Confidence:** medium: the look numbers were chosen by eye from one battle.
+
+### Not done here
+
+- The `gutted` prop type still says `appearance.status: "systems_only"` and `drawn_by: "gutted"`. Its art exists and is drawn; the row is the simulation lane's.
+- The preview checkpoint: this pass ran as one of several agents, so no Preview window was opened. The frames are listed in the slice's Outcome.
