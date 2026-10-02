@@ -764,14 +764,14 @@ def roof_sheet():
     worn = np.clip(chips(2709, 8, bias=0.12) - 0.45 * weep - 0.35 * lap - 0.25 * dull + 0.3 * fresh, 0.02, 1.0)
     rust = np.clip(weep + 0.5 * dull, 0, 1)
     return Baked(col, worn, normals_from_height(blur(h), 1.0), 1.0 - 0.2 * flank - 0.3 * lap, 0.46 + 0.2 * stain + 0.3 * rust,
-                 0.3 * (1 - rust), 0.0)
+                 0.12 * (1 - rust), 0.0)
 
 
 @recipe("flat_roof", tile=8.0, wear=(0.055, 0.068, 0.036, 1.0))
 def flat_roof():
-    """A flat roof's mineral felt, laid in metre rolls: grey grit, pale dust drifted on
-    it, dark ponds with a tide mark round each, and patches of newer felt and of
-    silver paint. The wear is moss."""
+    """A flat roof's mineral felt, laid in metre rolls with their laps showing: grey grit
+    and pale dust drifted on it. Nothing here is big enough to count across a roof: its
+    pools and patches are the building's own. The wear is moss."""
     yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
     rolls = 8
     roll = np.floor(xx * rolls).astype(int)
@@ -779,21 +779,12 @@ def flat_roof():
     end = np.random.default_rng(2801).random(rolls)[roll]  # where each roll's length ends
     seam = np.maximum(seam, smoothstep(0.006, 0.002, np.abs((yy - end + 0.5) % 1.0 - 0.5)))
     grit = fbm(96, 2803, 2)
-    col = np.broadcast_to(np.array((0.2, 0.2, 0.195)), (SIZE, SIZE, 3)) * (0.88 + 0.24 * grit + 0.08 * (end - 0.5))[..., None]
-    col = mix(col, (0.34, 0.33, 0.3), smoothstep(0.5, 0.85, fbm(5, 2805, 4)) * 0.55)
-    level = fbm(3, 2807, 3)
-    col = col * (1.0 - 0.35 * smoothstep(0.64, 0.7, level))[..., None]
-    col = mix(col, (0.4, 0.39, 0.35), np.exp(-((level - 0.635) / 0.012) ** 2) * 0.55)
-    patch = np.zeros((SIZE, SIZE))
-    for x0, x1, y0, y1, tone in ((0.12, 0.3, 0.18, 0.3, 0.55), (0.55, 0.68, 0.6, 0.86, 1.9), (0.74, 0.96, 0.08, 0.2, 0.6),
-                                 (0.2, 0.34, 0.7, 0.8, 1.7)):
-        inside = (xx > x0) & (xx < x1) & (yy > y0) & (yy < y1)
-        col = np.where(inside[..., None], np.array((0.2, 0.2, 0.195)) * tone * (0.9 + 0.2 * grit)[..., None], col)
-        patch = np.maximum(patch, inside * 1.0)
-    col = mix(col, (0.06, 0.06, 0.06), seam * 0.55 * (1 - patch))
-    h = grit * 0.3 + seam * 0.5 + patch * 0.4
+    col = np.broadcast_to(np.array((0.2, 0.2, 0.195)), (SIZE, SIZE, 3)) * (0.9 + 0.2 * grit + 0.05 * (end - 0.5))[..., None]
+    col = mix(col, (0.3, 0.295, 0.27), smoothstep(0.45, 0.9, fbm(6, 2805, 4)) * 0.4)
+    col = mix(col, (0.07, 0.07, 0.07), seam * 0.5)
+    h = grit * 0.3 + seam * 0.5
     return Baked(col, np.clip(0.25 + 0.75 * fbm(10, 2809, 4) - 0.25 * seam, 0.02, 1.0), normals_from_height(blur(h), 1.0),
-                 1.0, 0.95 - 0.25 * patch * (col.mean(-1) > 0.28), 0.0, 0.0)
+                 1.0, 0.95, 0.0, 0.0)
 
 
 @recipe("concrete_block", tile=2.4, wear=(0.1, 0.1, 0.085, 1.0))
@@ -858,20 +849,18 @@ def roller_slats():
 @recipe("factory_glazing", tile=3.0, wear=(0.2, 0.2, 0.19, 1.0))
 def factory_glazing():
     """Steel-framed industrial glazing, panes 0.5 m by 0.75 m: dark glossy glass (nothing
-    here is see-through), a film of dust thickest at each pane's foot, some panes dull
-    with dirt and the odd one painted over; grey glazing bars."""
+    here is see-through), a film of dust thickest at each pane's foot, some panes a
+    little duller than their neighbours; grey glazing bars. A window is one module seen
+    many times over, so no pane stands out enough to be counted."""
     yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
     cols, rows = 6, 4
     gx, gy = (xx * cols) % 1.0, (yy * rows) % 1.0
     bar = np.maximum(smoothstep(0.05, 0.028, np.minimum(gx, 1 - gx)), smoothstep(0.034, 0.018, np.minimum(gy, 1 - gy)))
     pane = np.random.default_rng(3201).random((rows, cols))[np.floor(yy * rows).astype(int), np.floor(xx * cols).astype(int)]
-    dusty = smoothstep(0.55, 0.8, pane) * 0.6
-    painted = pane > 0.94
-    film = np.clip(dusty + 0.3 * smoothstep(0.5, 1.0, gy) + 0.25 * (fbm(6, 3203, 3) - 0.5), 0, 1)
-    col = mix((0.018, 0.024, 0.03), (0.1, 0.105, 0.1), film)
-    col = np.where(painted[..., None], np.array((0.27, 0.3, 0.27)) * (0.9 + 0.2 * fbm(24, 3205, 3))[..., None], col)
+    film = np.clip(0.3 * pane + 0.3 * smoothstep(0.5, 1.0, gy) + 0.3 * (fbm(6, 3203, 3) - 0.5), 0, 1)
+    col = mix((0.018, 0.024, 0.03), (0.085, 0.09, 0.088), film)
     col = mix(col, (0.27, 0.27, 0.26), bar)
-    rough = np.where(painted, 0.9, 0.07 + 0.5 * film)
+    rough = 0.2 + 0.4 * film
     return Baked(col, 1.0, normals_from_height(blur(bar * 1.2), 1.0), 1.0 - 0.2 * bar, rough + (0.7 - rough) * bar, 0.0, 0.0)
 
 

@@ -146,9 +146,13 @@ def tier_of(name):
     return int(name[i + 4:]) if i >= 0 and name[i + 4:].isdigit() else None
 
 
-def load(set_dir):
-    """The set's modules ({name: [(tier or None, mesh object, its frame in the module)]}) and its templates."""
-    bpy.ops.wm.read_factory_settings(use_empty=True)
+def load(set_dir, beside=False):
+    """The set's modules ({name: [(tier or None, mesh object, its frame in the module)]}) and its templates.
+    `beside` loads it next to the sets already in the scene, whose objects, materials and images
+    must have been renamed out of its way first: Blender keeps one namespace."""
+    if not beside:
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+    earlier = set(bpy.data.objects)
     path = os.path.join(set_dir, "kit.glb")
     doc = glb_json(path)
     bpy.ops.import_scene.gltf(filepath=path)
@@ -157,7 +161,7 @@ def load(set_dir):
         surface(bpy.data.materials[info["name"]], info, doc)
     modules = {}
     for o in list(bpy.data.objects):
-        if o.parent is None and o.type == "EMPTY":
+        if o.parent is None and o.type == "EMPTY" and o not in earlier:
             inverse = o.matrix_world.inverted()
             modules[o.name] = [(tier_of(c.name), c, inverse @ c.matrix_world) for c in o.children_recursive if c.type == "MESH"]
     for o in bpy.data.objects:
@@ -409,4 +413,5 @@ def main():
         sheets[name](camera, modules, templates, out, scratch)
 
 
-main()
+if __name__ == "__main__":  # a set with sheets of its own imports this file
+    main()
