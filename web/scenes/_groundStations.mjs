@@ -138,6 +138,10 @@ export const STATION_MAPS = {
       // The west edge of the wood nearest blue's start, against the open.
       "forest-edge-250": ({ wood }) => at(wood, 250),
       "forest-edge-65": ({ wood }) => at(wood, 65),
+      // The middle of a tree line between two fields (`treeLine`), looked
+      // at across it.
+      "tree-line-250": ({ line }) => at(line?.at, 250, PLAY, line?.yaw),
+      "tree-line-65": ({ line }) => at(line?.at, 65, PLAY, line?.yaw),
     },
   },
 };
@@ -200,6 +204,67 @@ const woodEdge = (page, size, near) =>
     },
     { size, near, deep: DEEP_M },
   );
+
+/** A tree line runs straight this far at least, with open ground these
+ *  distances beside it, and stands this far inside the map. */
+const TREE_LINE_M = 80;
+const BESIDE_LINE_M = [4, 30];
+const LINE_INSET_M = 400;
+
+/** The longest tree line of a generated map: `at`, the middle of the longest
+ *  straight stretch of a strip of forest that a unit finds wooded along its
+ *  middle and open ground on both sides of; `yaw`, looking across it from
+ *  its southern side. Undefined on a map with none. */
+async function treeLine(page, size) {
+  await generatedGround(page);
+  return page.evaluate(
+    async ({ size: [width, height], repo, run, beside, inset }) => {
+      const { FOREST_STROKE_FLOATS } = await import(
+        `/@fs/${repo}packages/battle-renderer/src/terrain/forestShapes.ts`
+      );
+      const ground = (x, y) => window.__lab.route.surfaceAt(x, y);
+      const wooded = (x, y) => ground(x, y)?.forest === true;
+      const open = (x, y) => {
+        const s = ground(x, y);
+        return s?.kind === "ground" && !s.forest;
+      };
+      let best;
+      for (const shape of window.__generatedGround.surface.site.forestShapes) {
+        if (shape.kind !== "stroke") continue;
+        const s = shape.strokes;
+        for (let o = 0; o < s.length; o += FOREST_STROKE_FLOATS) {
+          const [ax, ay, bx, by, half] = s.subarray(o, o + 5);
+          const length = Math.hypot(bx - ax, by - ay);
+          const [mx, my] = [(ax + bx) / 2, (ay + by) / 2];
+          if (length < run || length <= (best?.length ?? 0)) continue;
+          if (mx < inset || mx > width - inset || my < inset || my > height - inset) continue;
+          const along = [(bx - ax) / length, (by - ay) / length];
+          const across = along[0] > 0 ? [along[1], -along[0]] : [-along[1], along[0]];
+          const between = [0.25, 0.5, 0.75].every((t) => {
+            const [x, y] = [ax + (bx - ax) * t, ay + (by - ay) * t];
+            return (
+              wooded(x, y) &&
+              beside.every((d) =>
+                [-half - d, half + d].every((side) =>
+                  open(x + across[0] * side, y + across[1] * side),
+                ),
+              )
+            );
+          });
+          if (between) best = { length, at: [mx, my], yaw: Math.atan2(across[1], across[0]) };
+        }
+      }
+      return best && { at: best.at, yaw: best.yaw };
+    },
+    {
+      size,
+      repo: new URL("../../", import.meta.url).pathname,
+      run: TREE_LINE_M,
+      beside: BESIDE_LINE_M,
+      inset: LINE_INSET_M,
+    },
+  );
+}
 
 /** A generated town's streets near `centre`, by what a unit finds on the
  *  ground: `junction`, the middle of the nearest meeting of three ways or
@@ -446,6 +511,7 @@ export async function openStations(ctx, map) {
           edges: await townEdges(page, report.objective.center),
           river: await riverBank(page, report.size),
           wood: await woodEdge(page, report.size, report.start.at),
+          line: await treeLine(page, report.size),
           streets: await townStreets(page, report.objective.center),
         },
   );

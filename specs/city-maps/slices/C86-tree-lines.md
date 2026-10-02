@@ -78,3 +78,21 @@ verification, not a claim that the rendered hedgerow has passed its gate.
 - **Floor and dressing.** The forest floor already covers strokes (C63). The floor's dressing keeps 3 m inside a forest's edge, so a strip 10 m wide carries a 4 m band of it.
 
 **Open.** The picture; the hedgerow comparison; the cost of 40 strips; whether a strip narrower than a crown reads as a hedge or as a row of park trees. A forest control-run export would replace the stretch-length rule.
+
+## Outcome — drawn half, first picture (2026-10-02)
+
+**The rig stands on a tree line.** Two generated-map stations, `tree-line-250` and `tree-line-65` (`web/scenes/_groundStations.mjs`, `treeLine`): the middle of the longest straight strip of forest, 80 m or more, that a unit finds wooded along its middle and open ground 4 m and 30 m beside on both sides, at least 400 m inside the map, looked at across. On the rig's map (mixed, medium, seed 2) that is the strip from (3359, 6213) to (3353, 6312): 100 m long, 12 m wide, about fifteen trees. That map has 11 strips, five of them 80 m or longer; seeds 1, 3 and 4 have 23, 12 and 19. A map with none leaves the stations with nothing to stand on, and `shoot` refuses them.
+
+**What the picture shows** (final, bare ground and class mask at both heights; one unprimed critique on the two final shots):
+
+- **It is a row of trees, not a hedge.** The critique calls it "a windbreak or row of trees", "isolated and placed", "an acceptable tree line but a thin one". Separate crowns with a crown's width between some of them, no understorey, nothing continuous.
+- **It does not look like it blocks a view.** "A porous screen, not a sight-blocking barrier": bare ground shows straight through between the trunks, and only one two-deep clump looks opaque. The simulation hides a far squad behind it, so the picture promises less than the rule delivers. This is the slice's own question, and the answer is no.
+- **Broadleaf trees are lollipops close up**: a crown on a straight, bare, leaning pole, one of them a saturated maroon. Conifers read as stacked cones, very dark on their shaded side, and show no trunk or contact with the ground.
+- **Fields stop at it.** Both long sides end at the strip, which stands on the boundary between two fields, as the plot cut intends. It overshoots the field corners at both ends and stops as a blunt blob, its full width of floor against a thin field margin, with no taper.
+- **The floor is the loudest part.** A scalloped brown and olive strip that reads as "bare mud" or a decal up close and "a brown smudge or scorch mark" from 250 m. Its dark blotches and the trees' shadows on it cannot be told apart. Its edge is soft against the sharp wheat, and two tramlines seem to run a little way under it (low confidence).
+- **Shadows.** Every shadow has a tree to cast it. The ones on the wheat read as tree shadows. One large soft dark patch on the green field at the right of the close shot, whose trees are partly out of frame, could be taken for a tinted overlay (medium-low confidence).
+- **Specks.** The floor's dressing reads as stray dark green blobs and tufts too small to register, not as bushes.
+
+**Nothing was changed.** None of this is an error in trunk placement or in the plot cut; it is the look of a strip one crown wide, and the tree models'.
+
+**Open.** A tree line needs a body below the crowns (an understorey or shrub layer along the strip) before it reads as a view-blocker; the floor under a strip wants to be a verge, not a wood's bare earth, and to taper at its ends; trunks. The hedgerow comparison and the cost of 40 strips are still not done. No station looks along a line or from the ground.
