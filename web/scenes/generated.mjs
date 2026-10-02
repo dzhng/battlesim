@@ -25,9 +25,10 @@ const HIDE_HUD = "[data-testid=battle-panel], .ro-layer { display: none !importa
 const isGround = ([r]) => r > 200;
 const isBody = ([r]) => r < 55;
 
-/** The far ground's mean green-over-blue at the overview (0-255): open
- *  fields through the stretched haze measure about 45, a whited-out map 23. */
-const OVERVIEW_WARMTH_MIN = 34;
+/** How much of the near fields' green-over-blue the far fields keep at the
+ *  overview, through the stretched haze. A whited-out far band keeps about
+ *  half. */
+const OVERVIEW_WARMTH_SHARE = 0.75;
 const delta = (a, b) => a.reduce((s, v, i) => s + Math.abs(v - b[i]), 0);
 
 /** Wait until the page's battle is playable: the loading screen has lifted
@@ -504,7 +505,7 @@ export async function run(ctx) {
       window.__lab.setCamera({
         ...window.__lab.camera(),
         target: [size[0] / 2, size[1] / 2, 0],
-        distance: size[0] * 1.25,
+        distance: size[0] * 1.45,
         pitch: 1.3,
       }),
     generated.size,
@@ -517,29 +518,37 @@ export async function run(ctx) {
   // The ground's own colour over a grid of the far third of the map, where
   // haze is thickest: fields are green to straw (more green than blue), and
   // haze washes them toward the sky's blue-grey.
-  let warmth = 0;
-  let samples = 0;
-  for (let i = 1; i < 12; i++)
-    for (let j = 8; j < 12; j++) {
-      const px = await project(page, [
-        (generated.size[0] * i) / 12,
-        (generated.size[1] * j) / 12,
-        0,
-      ]);
-      const [, g, b] = pixel(overview, ...px);
-      warmth += g - b;
-      samples++;
-    }
-  warmth /= samples;
+  // The median of each band, so a wood or a town under some of the samples
+  // does not stand in for the fields: which part of a map is open differs by
+  // seed. The far band is judged against the near one, so the fields' own
+  // palette cancels and only what the haze took is left.
+  const band = async (from, to) => {
+    const values = [];
+    for (let i = 1; i < 12; i++)
+      for (let j = from; j < to; j++) {
+        const px = await project(page, [
+          (generated.size[0] * i) / 12,
+          (generated.size[1] * j) / 12,
+          0,
+        ]);
+        const [, g, b] = pixel(overview, ...px);
+        values.push(g - b);
+      }
+    values.sort((a, b) => a - b);
+    return values[values.length >> 1];
+  };
+  const warmth = await band(8, 12);
+  const nearWarmth = await band(1, 5);
   ctx.check(
     "the whole-map overview draws every building at the coarsest tier with none in the pool, every tree, and its far ground keeps its colour through the haze",
     overviewStats.buildings.tiers[3] === counts.coarse &&
       overviewStats.buildings.residentChunks === 0 &&
       overviewStats.buildings.pool.used === 0 &&
       overviewStats.forest.tiers[3] === counts.trees &&
-      warmth > OVERVIEW_WARMTH_MIN,
+      warmth > OVERVIEW_WARMTH_SHARE * nearWarmth,
     JSON.stringify({
       warmth,
+      nearWarmth,
       buildings: overviewStats.buildings.tiers,
       resident: overviewStats.buildings.residentChunks,
       forest: overviewStats.forest.tiers,
