@@ -14,9 +14,11 @@ import type { SoundMotion } from "@packages/battle-audio/src/soundFrame";
 import type { GpuAllocationCounts } from "@packages/renderer-core/src/gpuAllocations";
 import { apartKinds, buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
 import {
+  knownStanding,
   mapProps,
   PropAppearances,
   structureModels,
+  type PropBox,
 } from "@packages/battle-renderer/src/models/propAppearance";
 import { pickBox, type SoldierBody } from "@packages/battle-renderer/src/picking";
 import {
@@ -38,6 +40,7 @@ import {
   knownOf,
 } from "@packages/battle-renderer/src/buildingObstacles";
 import { gameBiome } from "./gameBiome";
+import { gameGuttedShells } from "./destroyedBuildings";
 import { mapAppearances, useMapAppearances } from "./gameAppearances";
 import { gameStandIns } from "./gameModels";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
@@ -235,6 +238,7 @@ export function useBattleSession({
             fallen: fallenBuildings(
               drawnBuildings,
               JSON.parse(knownBuildingsKey) as KnownPropView[],
+              gameGuttedShells,
             ),
           }
         : null,
@@ -526,26 +530,35 @@ export function useBattleSession({
     /** The camera's obstacles: how many boxes, and what indexing them took. */
     cameraObstacles: () =>
       cameraObstacles && { boxes: cameraObstacles.view.count, buildMs: cameraObstacles.buildMs },
-    /** The map's buildings: each one's template, owner, frame and the boxes
-     *  of its parts as the side knows them (the remains of one it has seen
-     *  fall). */
+    /** The map's buildings: each one's template, owner, frame, the state the
+     *  side draws it in, its parts as the map has them (`authored`) and as the
+     *  side knows them (`parts`: the remains or the shell of one it has seen
+     *  destroyed), which are the boxes its camera keeps clear of. */
     buildings: () => {
-      if (!drawnBuildings || !buildings) return [];
-      const fallen = new Map(buildings.fallen.map((f) => [f.building, f.parts]));
+      if (!drawnBuildings || !buildings || !knownBuildingsKey) return [];
+      const state = new Map(buildings.fallen.map((f) => [f.building, f.state]));
+      const known = JSON.parse(knownBuildingsKey) as KnownPropView[];
       const { placed } = drawnBuildings;
+      const box = (p: PropBox) => ({
+        kind: p.kind,
+        center: p.center,
+        baseZ: p.baseZ,
+        yaw: p.yaw,
+        half: p.half,
+      });
       return drawnBuildings.parts.map((parts, i) => ({
         template: placed.templates[placed.template[i]],
         owner: placed.owners[i],
         frame: [...placed.frames.subarray(i * FRAME_FLOATS, (i + 1) * FRAME_FLOATS)],
-        fallen: fallen.has(i),
-        parts: (fallen.get(i) ?? parts).map((p) => ({
-          center: p.center,
-          baseZ: p.baseZ,
-          yaw: p.yaw,
-          half: p.half,
-        })),
+        fallen: state.has(i),
+        state: state.get(i) ?? "intact",
+        authored: parts.map(box),
+        parts: knownStanding(parts, known, new Set(parts.map((p) => p.id))).map((s) => box(s.box)),
       }));
     },
+    /** The boxes the fog is handed as what hides the ground behind them: the
+     *  occluders the side knows stand. */
+    fogOccluders: () => occluders,
     /** The side's known craters: marked cells, and the centre of the
      *  `binM`-square block holding the most (framing a shelled field). */
     craters: (binM = 16) => {

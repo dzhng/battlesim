@@ -9,8 +9,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AppearanceLibrary, type InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { PROTOTYPE_KIT } from "@packages/scene-assets/src/prototypeSet";
-import { TemplateArtError } from "@packages/scene-assets/src/templateLibrary";
-import { buildingKits } from "@packages/battle-renderer/src/models/buildingPlacements";
+import { TemplateArtError, templateKits } from "@packages/scene-assets/src/templateLibrary";
 import type { PlacedBuildings } from "@packages/battle-renderer/src/models/buildingReferences";
 import type { MapProp, PropAppearances } from "@packages/battle-renderer/src/models/propAppearance";
 
@@ -57,9 +56,10 @@ export function useGameAppearances(
   return held ? installed : null;
 }
 
-/** The kits a map of `placed` buildings draws from (`buildingKits`); with
- *  `standIns`, also the prototype kit, whose box a prop with no art of its
- *  own is drawn as (`PropAppearances`). A map with buildings and a catalog
+/** The kits a map of `placed` buildings draws from: those its templates'
+ *  rows place, in every state (`templateKits`). With `standIns`, also the
+ *  prototype kit, whose box a prop with no art of its own is drawn as
+ *  (`PropAppearances`). A map with buildings and a catalog
  *  with no template art for them is refused. */
 export function mapKits(
   catalog: InstalledAppearances,
@@ -70,7 +70,7 @@ export function mapKits(
   if (placed.template.length === 0) return kits;
   if (!catalog.templates)
     throw new Error("the map has buildings and the catalog has no template art library; re-bake");
-  for (const kit of buildingKits(placed, catalog.templates.library)) kits.add(kit);
+  for (const kit of templateKits(catalog.templates.library, placed.templates)) kits.add(kit);
   return kits;
 }
 

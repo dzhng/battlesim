@@ -29,15 +29,16 @@ import { apartKinds, buildWorldLayers } from "@packages/battle-renderer/src/worl
 import { nearEnvelope } from "@packages/renderer-core/src/cameraClearance";
 import { CameraController, type CameraPose } from "@packages/renderer-core/src/cameraController";
 import {
+  COLLAPSING_OWNER,
   flyTrajectory,
   OBSERVER,
   PATH_WIDTH,
-  seenFallen,
   TRAJECTORIES,
   trajectoryPose,
   watchingPose,
   type FlightFrame,
 } from "../cameraLab";
+import { gameGuttedShells, seenDestroyed } from "../destroyedBuildings";
 import { useFeed } from "../feed";
 import { LabViewport, type ViewportPilot } from "../LabViewport";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
@@ -147,18 +148,25 @@ function Arena({ map }: { map: MapDefinition }) {
     (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
     [world],
   );
-  // What blue knows: nothing but the map, or that it has seen the tower fall.
+  // What blue knows: nothing but the map, or that it has seen the courtyard
+  // block collapse (it is low enough to; a tower would stand, gutted).
   const standing = useMemo(() => {
-    if (!world || !drawn) return null;
+    const library = appearances?.templates?.library;
+    if (!world || !drawn || !library) return null;
     const { props, index } = drawn;
-    const known = fallen ? seenFallen(world.exports.buildings, props) : [];
+    const known = fallen
+      ? seenDestroyed(index, index.placed.owners.indexOf(COLLAPSING_OWNER), library)
+      : [];
     const parts = buildingPartProps(world.exports.buildings);
     return {
       boxes: knownStanding(props, known, parts).map((s) => s.box),
-      buildings: { placed: index.placed, fallen: fallenBuildings(index, known) },
+      buildings: {
+        placed: index.placed,
+        fallen: fallenBuildings(index, known, gameGuttedShells),
+      },
       obstacles: buildingObstacles(props, known, parts, surfaceZ),
     };
-  }, [world, drawn, fallen, surfaceZ]);
+  }, [world, drawn, fallen, surfaceZ, appearances]);
   const buildingsFeed = useFeed(standing?.buildings ?? null);
   const obstaclesFeed = useFeed(standing?.obstacles ?? null);
 
@@ -332,7 +340,7 @@ function Arena({ map }: { map: MapDefinition }) {
         </div>
         <label>
           <input type="checkbox" checked={fallen} onChange={(e) => setFallen(e.target.checked)} />
-          Blue has seen the tower fall
+          Blue has seen the courtyard block collapse
         </label>
         {stats && (
           <div data-testid="clearance">

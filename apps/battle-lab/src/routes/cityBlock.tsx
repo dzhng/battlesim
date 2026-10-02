@@ -5,7 +5,8 @@
 // camera stands at fixed stations round it: on the street, at the default
 // tactical camera, 250 m out, low over the town from 2 km, and at the
 // strategic overview. A switch makes the side see the block's apartment
-// building fall; a probe replaces the map's buildings with every other one,
+// building destroyed, as the simulation would end it (collapsed, or gutted if
+// it is tall); a probe replaces the map's buildings with every other one,
 // as a new map would; `?tier=0..3` draws every building at one detail tier.
 import { useCallback, useMemo, useRef, useState } from "react";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
@@ -23,11 +24,7 @@ import {
   type BuildingIndex,
   type PlacedBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
-import {
-  mapProps,
-  PropAppearances,
-  type KnownProp,
-} from "@packages/battle-renderer/src/models/propAppearance";
+import { mapProps, PropAppearances } from "@packages/battle-renderer/src/models/propAppearance";
 import {
   apartKinds,
   buildWorldLayers,
@@ -42,6 +39,7 @@ import {
   resolveMap,
   type MapChoice,
 } from "@web/maps/source";
+import { gameGuttedShells, seenDestroyed } from "../destroyedBuildings";
 import { useFeed } from "../feed";
 import { mapAppearances, useMapAppearances } from "../gameAppearances";
 import { gameBiome } from "../gameBiome";
@@ -65,8 +63,6 @@ const WIDE_M = 250;
 const OBLIQUE = { distance_m: 2000, pitch: 0.3 };
 /** How far along a street the street station looks for its run, metres. */
 const STREET_RUN_M = 80;
-/** What a fallen building's remains stand to, metres. */
-const REMAINS_M = 1.5;
 
 type Category = PublicBuildings["buildings"][number]["category"];
 const APARTMENTS: readonly Category[] = ["urban_apartment"];
@@ -250,27 +246,22 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
   );
 
   // What the side knows: the map, or that it has seen the block's apartment
-  // building come down to low remains on its own plan.
+  // building destroyed.
   const [fallen, setFallen] = useState(false);
   const [halved, setHalved] = useState(false);
   const half = useMemo(() => drawn && everyOther(drawn.index.placed), [drawn]);
   const standing = useMemo(() => {
-    if (!world || !drawn || !block || !half) return null;
+    const library = appearances?.templates?.library;
+    if (!world || !drawn || !block || !half || !library) return null;
     const { props, index } = drawn;
-    const known: KnownProp[] =
+    const known =
       fallen && !halved && block.apartment !== null
-        ? index.parts[block.apartment].map((part) => ({
-            ...part,
-            kind: "ruin",
-            half: [part.half[0], part.half[1], REMAINS_M / 2],
-            authoredProp: part.id,
-            replaces: part.id,
-          }))
+        ? seenDestroyed(index, block.apartment, library)
         : [];
     return {
       buildings: {
         placed: halved ? half : index.placed,
-        fallen: fallenBuildings(index, known),
+        fallen: fallenBuildings(index, known, gameGuttedShells),
       },
       obstacles: buildingObstacles(
         props,
@@ -279,7 +270,7 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
         surfaceZ,
       ),
     };
-  }, [world, drawn, block, half, fallen, halved, surfaceZ]);
+  }, [world, drawn, block, half, fallen, halved, surfaceZ, appearances]);
   const buildingsFeed = useFeed(standing?.buildings ?? null);
   const obstaclesFeed = useFeed(standing?.obstacles ?? null);
   const { style, drawAt } = useBuildingTier(askedTier(window.location.search));
@@ -422,7 +413,7 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
         </div>
         <label>
           <input type="checkbox" checked={fallen} onChange={(e) => setFallen(e.target.checked)} />
-          The side has seen the apartment building fall
+          The side has seen the apartment building destroyed
         </label>
       </aside>
     </>

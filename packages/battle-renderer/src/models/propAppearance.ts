@@ -12,7 +12,7 @@
 //   box's long side instead of stretched.
 //
 // A building's parts are not drawn here: a building is its template's rows,
-// standing or fallen (`buildingReferences.ts`).
+// intact, a ruin or a gutted shell (`buildingReferences.ts`).
 //
 // What a side draws is what it knows (`structureModels`): the map's props,
 // less those a known prop replaces, plus every known prop. A replacement is
