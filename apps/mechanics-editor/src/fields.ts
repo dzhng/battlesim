@@ -336,6 +336,13 @@ export const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
   ],
   weapons: [
     field(
+      "min_range_m",
+      "Minimum engagement range",
+      "Flight & accuracy",
+      "Closest muzzle-to-aim-point distance this weapon fires. Inside it the crew holds fire; zero allows unrestricted close shots.",
+      { unit: "m" },
+    ),
+    field(
       "range_m",
       "Maximum engagement range",
       "Flight & accuracy",

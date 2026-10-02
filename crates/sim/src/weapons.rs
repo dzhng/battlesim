@@ -644,7 +644,12 @@ fn engage(
         mount.bearing
     };
     let from = |origin: V3, past: Option<PropId>, hull: Option<UnitId>| {
-        if (r.point - origin).length() > weapon.def.ballistics.range_m {
+        let distance = (r.point - origin).length();
+        if distance < weapon.def.min_range_m {
+            // OutOfRange asks an ordered unit to advance; too close holds.
+            return Err(ActionReason::HoldingFire);
+        }
+        if distance > weapon.def.ballistics.range_m {
             return Err(ActionReason::OutOfRange);
         }
         let aim = Aim {
@@ -1389,27 +1394,40 @@ fn fire(
             hull: None,
             leaning: false,
         };
-        let (point, from) = match member {
-            Some(k) => {
-                let soldier = &unit.members[k];
-                let turn = (0..seen.len()).map(|j| seen[(n + j) % seen.len()]);
-                let found = turn
-                    .chain([point])
-                    .find_map(|p| Some((p, fire_from(ctx, &blockers, soldier, p)?)));
-                match found {
-                    Some(f) => f,
-                    None if hides_behind(ctx, soldier, origin, point)
-                        || blockers.iter().any(|h| h.meets(origin, point)) =>
-                    {
-                        cycle.started = false;
-                        continue;
-                    }
-                    None => (point, standing),
-                }
+        let soldier = member.map(|k| &unit.members[k]);
+        let turn = (0..seen.len()).map(|j| seen[(n + j) % seen.len()]);
+        let found = turn.chain([point]).find_map(|p| {
+            // A farther candidate can face a different side of the building.
+            if unit.garrisoned()
+                && !crate::garrison::faces(unit, participant_of(unit, body), p, ctx.rules, ctx.tick)
+            {
+                return None;
+            }
+            let from = match soldier {
+                Some(s) => fire_from(ctx, &blockers, s, p)?,
+                None => standing,
+            };
+            ((p - from.origin).length() >= weapon.def.min_range_m).then_some((p, from))
+        });
+        let (point, from) = match found {
+            Some(f) => f,
+            None if soldier.is_some_and(|s| {
+                hides_behind(ctx, s, origin, point)
+                    || blockers.iter().any(|h| h.meets(origin, point))
+            }) =>
+            {
+                cycle.started = false;
+                continue;
             }
             None => (point, standing),
         };
         let origin = from.origin;
+        // Sampling a contact or choosing a soldier/lean can shorten the
+        // shot after the mount's target-level assessment.
+        if (point - origin).length() < weapon.def.min_range_m {
+            cycle.started = false;
+            continue;
+        }
         let aim = Aim {
             origin,
             target: point,
