@@ -39,7 +39,7 @@ and separate observation construction from packing; the packed-byte breakdown
 reads the serializer's published layout. Initial subscription, unchanged delivery,
 side switch and resubscription use the production publisher. Matched native
 baselines below identify the original workload; the
-[scale lane](../scale-lane.md#status) owns current admission and browser proof. Generated contact is
+[scale evidence](../../done/city-maps-scale/evidence.md) owns identified admission and browser proof. Generated contact is
 a named central arena on a complete physical map; transit is a separate crossing
 load. This does not close C05's parent renderer/startup/tour requirements.
 

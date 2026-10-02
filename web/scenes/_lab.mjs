@@ -38,12 +38,8 @@ export async function advance(page, n) {
   }
 }
 
-/** Wait until the paused authority's last tick is presented: a drawn frame
- *  has fed the pose driver that tick's observation (React state, which lags
- *  the publications) at a presentation clock on that tick. The clock never
- *  passes the latest publication, so a paused battle's presentation comes
- *  to rest there; anything timed on it (a death playing out) has then had
- *  exactly the ticks advanced, whatever the machine's load. */
+/** Wait until the paused authority's latest observation is drawn at its settled
+ *  clock. Death-animation starts still depend on earlier presented frames. */
 export async function presented(page, timeout = 30000) {
   await page.waitForFunction(
     () => {
@@ -99,14 +95,12 @@ export function gpuMs(page, frames = 120) {
  *  pool: a view change expands a budget of rows a frame, and a chunk waiting
  *  its turn draws at the coarsest tier meanwhile. */
 export async function buildingsSettled(page, timeout = 30000) {
-  await page.waitForFunction(
-    async () => {
-      await window.__lab.frame();
-      return !window.__lab.stats().buildings.pending;
-    },
-    undefined,
-    { timeout, polling: 50 },
-  );
+  const deadline = Date.now() + timeout;
+  for (;;) {
+    await lab(page, () => window.__lab.frame());
+    if (await lab(page, () => !window.__lab.stats().buildings.pending)) return;
+    if (Date.now() >= deadline) throw new Error("building expansion did not settle");
+  }
 }
 
 /** Open a battle's pause menu by its HUD button. */

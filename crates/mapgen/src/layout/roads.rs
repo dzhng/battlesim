@@ -23,6 +23,10 @@ const ON_GROUND_M: f64 = 0.5;
 const SAME_PLACE_M: f64 = 1.0;
 /// A stretch of road whose points lie this near one line is straight.
 const STRAIGHT_M: f64 = 0.25;
+/// Two roads meet no nearer alongside than this (the sine of 45 degrees).
+const FORK_SIN: f64 = 0.707;
+/// How many places are tried for each secondary road a settlement has.
+const SIDE_ROAD_TRIES: usize = 4;
 
 /// The straight line one edge's main road follows: from its exit to the hub
 /// (the main junction, by the map's centre), or to a junction on an earlier
@@ -60,7 +64,11 @@ pub struct Skeleton {
 /// join another arm near it, inside the transit time. A road across the
 /// middle from side to side is drawn on a share of maps; the others have one
 /// side road or none. Two arms that meet at the hub from opposite edges are
-/// one straight line through it.
+/// one straight line through it. The top and the bottom road meet at one
+/// place where the journey time allows: the later of them ends where the
+/// earlier did, at the hub or, where that one joined an arm, across that arm
+/// from it at one crossroads. No two junctions lie within
+/// `roads.junction_apart_m` of each other.
 pub fn skeleton(context: &Context, rng: &mut Stream) -> Skeleton {
     let presets = context.presets;
     let roads = &presets.roads;
@@ -117,13 +125,15 @@ pub fn skeleton(context: &Context, rng: &mut Stream) -> Skeleton {
             (extent / 2.0 + half_window).min(hub[axis] + reach),
         ]
     };
-    // Where the straight line from `along` on one edge through the hub
-    // meets the opposite edge.
-    let through_hub = |edge: usize, along: f64| {
+    // Where the straight line from `along` on one edge through `via` meets
+    // the opposite edge.
+    let through = |edge: usize, along: f64, via: Point| {
         let (axis, side) = place(edge);
         let (_, far) = place((edge + 2) % 4);
-        hub[axis] + (hub[axis] - along) * (far - hub[1 - axis]) / (hub[1 - axis] - side)
+        via[axis] + (via[axis] - along) * (far - via[1 - axis]) / (via[1 - axis] - side)
     };
+    let through_hub = |edge: usize, along: f64| through(edge, along, hub);
+    let apart = roads.junction_apart_m;
     let mut arms: Vec<Arm> = Vec::new();
     for (place_in_order, (edge, timed, window)) in order.iter().copied().enumerate() {
         let (axis, side) = place(edge);
@@ -158,7 +168,7 @@ pub fn skeleton(context: &Context, rng: &mut Stream) -> Skeleton {
             .filter_map(|(index, arm)| {
                 let span = distance(arm.exit, arm.target);
                 let limit = (roads.junction_reach_m - arm.tail).min(0.6 * span);
-                let back = rng.range([roads.bend_step_m, limit]);
+                let back = rng.range([apart.min(limit), limit]);
                 let point = round_cm(add(
                     arm.target,
                     scale(sub(arm.exit, arm.target), back / span),
@@ -168,27 +178,56 @@ pub fn skeleton(context: &Context, rng: &mut Stream) -> Skeleton {
                 // to join beyond it would double back.
                 let (out, across) = (sub(exit, hub), sub(point, hub));
                 let same_side = out[0] * across[0] + out[1] * across[1] >= 0.0;
-                (limit >= roads.bend_step_m
+                (limit >= apart
                     && arm
                         .joins
                         .iter()
-                        .all(|join| distance(join.at, point) >= roads.bend_step_m)
+                        .all(|join| distance(join.at, point) >= apart)
                     && same_side
                     && (!timed || distance(exit, point) + tail <= budget))
                     .then_some((index, point, tail))
             })
             .collect();
         let (join, pick) = (rng.chance(roads.junction_chance), rng.unit());
-        let (target, tail) = match options.get((pick * options.len() as f64) as usize) {
-            Some((index, point, tail)) if join => {
-                arms[*index].joins.push(Join {
-                    at: *point,
+        let drawn = options
+            .get((pick * options.len() as f64) as usize)
+            .filter(|_| join)
+            .copied();
+        // The road from the opposite edge, where both are held to the
+        // transit time: where that road joined an earlier arm this one
+        // ends there too, coming straight across from it where its edge
+        // allows, and the two cross the arm at one crossroads.
+        let facing = arms
+            .iter()
+            .position(|arm| timed && arm.timed && arm.edge == (edge + 2) % 4);
+        let shared = facing.and_then(|facing| {
+            let (at, tail) = (arms[facing].target, arms[facing].tail);
+            let on = arms
+                .iter()
+                .position(|arm| arm.joins.iter().any(|join| join.at == at))?;
+            let along = through(arms[facing].edge, arms[facing].exit[axis], at);
+            let across = on_edge(along.clamp(span[0], span[1]));
+            (distance(across, at) + tail <= budget).then_some((on, at, tail, across))
+        });
+        let drawn = match (shared, facing) {
+            (Some((on, at, tail, across)), _) => {
+                exit = across;
+                Some((on, at, tail))
+            }
+            // And to the hub where that road ends there.
+            (None, Some(facing)) if arms[facing].target == hub => None,
+            _ => drawn,
+        };
+        let (target, tail) = match drawn {
+            Some((index, point, tail)) => {
+                arms[index].joins.push(Join {
+                    at: point,
                     exit,
                     timed,
                 });
-                (*point, *tail)
+                (point, tail)
             }
-            _ => {
+            None => {
                 // The arm from the opposite edge, when it too ends at the
                 // hub, is carried straight on through it.
                 let opposite = arms
@@ -611,10 +650,16 @@ impl<'a> Network<'a> {
 
     /// Lay settlement `index`'s secondary roads, where its class has them
     /// (`classes.<class>.side_roads`). Each leaves one of the roads that
-    /// pass its centre part of the way out, turns into the widest sector
-    /// of its ground no road runs out through yet, and runs straight to
-    /// the ground's edge and a gate past it, or to the first road it meets.
-    /// A later road may carry on from the gate.
+    /// pass its centre part of the way out, at a junction of its own
+    /// `towns.junction_clear_m` clear of every other road's end, and turns
+    /// into the widest sector of its
+    /// ground no road runs out through yet. It runs beside the next road
+    /// round that sector where that takes it off its own road within the
+    /// rule's angles, and square off its own road otherwise: so no two of a
+    /// settlement's roads converge, and the blocks between them are cut
+    /// along both. It runs straight to the ground's edge and a gate past
+    /// it, or to the first road it meets, which it never meets at less
+    /// than half a right angle. A later road may carry on from the gate.
     fn side_roads(&mut self, index: usize) {
         let presets = self.context.presets;
         let site = &self.sites[index];
@@ -665,8 +710,17 @@ impl<'a> Network<'a> {
             .map(|(_, _, along)| libm::atan2(along[1], along[0]))
             .collect();
         let mut left: Vec<Vec<f64>> = vec![Vec::new(); legs.len()];
+        // The lines its roads run along: a secondary road may run beside any.
+        let mut lines: Vec<Point> = legs.iter().map(|(_, _, along)| *along).collect();
         let clear = presets.rivers.road_gap_m;
-        for _ in 0..rng.count(rule.count) {
+        // A leg that had no room for one is tried after the others.
+        let mut failed: Vec<u32> = vec![0; legs.len()];
+        let wanted = rng.count(rule.count) as usize;
+        let mut done = 0;
+        for _ in 0..wanted * SIDE_ROAD_TRIES {
+            if done == wanted {
+                break;
+            }
             // The widest sector between two of them, and its middle.
             taken.sort_by(f64::total_cmp);
             let (width, middle) = (0..taken.len())
@@ -685,35 +739,67 @@ impl<'a> Network<'a> {
             // It leaves the leg nearest that sector, the one with fewer
             // side roads first, turning toward the sector.
             let Some(leg) = (0..legs.len()).max_by(|a, b| {
-                let toward = |leg: &usize| dot(legs[*leg].2, into);
-                (toward(a) - 0.2 * left[*a].len() as f64)
-                    .total_cmp(&(toward(b) - 0.2 * left[*b].len() as f64))
-                    .then(b.cmp(a))
+                let worth = |leg: &usize| {
+                    dot(legs[*leg].2, into)
+                        - 0.2 * left[*leg].len() as f64
+                        - 0.3 * f64::from(failed[*leg])
+                };
+                worth(a).total_cmp(&worth(b)).then(b.cmp(a))
             }) else {
                 break;
             };
+            failed[leg] += 1;
             let (road, from, along) = legs[leg];
             let side = if cross(along, into) >= 0.0 { 1.0 } else { -1.0 };
             let edge = ray_exit(ring, from, along);
-            // A few draws for a place clear of the others on this leg.
-            let drawn = (0..4)
-                .map(|_| {
-                    (
-                        rng.range(rule.from) * edge,
-                        rng.range(rule.turn_deg).to_radians(),
-                    )
+            // Beside the line that best follows the sector, of those that
+            // leave this road within the rule's angles on the sector's side.
+            let [least, most] = rule.turn_deg.map(|turn| libm::cos(turn.to_radians()));
+            let square = scale([-along[1], along[0]], side);
+            let toward = lines
+                .iter()
+                .flat_map(|line| [*line, scale(*line, -1.0)])
+                .filter(|line| {
+                    cross(along, *line) * side > 0.0
+                        && dot(along, *line) <= least
+                        && dot(along, *line) >= most
                 })
-                .collect::<Vec<_>>();
-            let Some((out, turn)) = drawn.into_iter().find(|(out, _)| {
+                .max_by(|a, b| dot(*a, into).total_cmp(&dot(*b, into)))
+                .unwrap_or(square);
+            // A few draws for a place clear of the others on this leg and
+            // of every road's end.
+            let drawn: Vec<f64> = (0..4).map(|_| rng.range(rule.from) * edge).collect();
+            let room = presets.towns.junction_clear_m;
+            let apart = |start: Point| {
+                self.roads.iter().all(|(_, points)| {
+                    [points[0], points[points.len() - 1]]
+                        .iter()
+                        .all(|end| distance(*end, start) >= room)
+                })
+            };
+            let Some(out) = drawn.into_iter().find(|out| {
                 left[leg]
                     .iter()
                     .all(|other| (other - out).abs() >= rule.apart_m)
+                    && apart(add(from, scale(along, *out)))
             }) else {
                 continue;
             };
             let start = round_cm(add(from, scale(along, out)));
-            let heading = libm::atan2(along[1], along[0]) + side * turn;
-            let gate = self.gate(site, start, direction(heading));
+            let gate = self.gate(site, start, toward);
+            // It meets no road at a slant: where its line would cross one
+            // at less than half a right angle it is not laid.
+            let slants = self.roads.iter().any(|(_, points)| {
+                points.windows(2).any(|run| {
+                    let met = segment_crossing(start, gate, run[0], run[1])
+                        .is_some_and(|(share, _)| share > 0.0);
+                    let other = sub(run[1], run[0]);
+                    met && cross(toward, other).abs() < FORK_SIN * length(other)
+                })
+            });
+            if slants {
+                continue;
+            }
             // On the road it leaves, on dry ground all the way.
             let points = &self.roads[road].1;
             let Some(run) = points.windows(2).position(|run| {
@@ -737,6 +823,9 @@ impl<'a> Network<'a> {
                 let end = laid[laid.len() - 1];
                 taken.push(bearing(centre, end));
                 left[leg].push(out);
+                lines.push(toward);
+                failed[leg] -= 1;
+                done += 1;
             }
         }
     }
@@ -786,18 +875,27 @@ impl<'a> Network<'a> {
                             continue;
                         }
                         0.0
-                    } else if let Some(join) =
-                        arm.joins.iter().find(|join| join.at == point && join.timed)
-                    {
-                        let straight = vec![join.exit, join.at];
-                        let road = self.carried(
-                            SurfaceKind::CountryRoad,
-                            straight,
-                            &mut planned.to_vec(),
-                        )?;
-                        driven(&road, width)[road.len() - 1]
                     } else {
-                        continue;
+                        // The longest way in of the roads that join here.
+                        let mut longest: Option<f64> = None;
+                        for join in arm
+                            .joins
+                            .iter()
+                            .filter(|join| join.at == point && join.timed)
+                        {
+                            let straight = vec![join.exit, join.at];
+                            let road = self.carried(
+                                SurfaceKind::CountryRoad,
+                                straight,
+                                &mut planned.to_vec(),
+                            )?;
+                            let come = driven(&road, width)[road.len() - 1];
+                            longest = Some(longest.map_or(come, |known| known.max(come)));
+                        }
+                        match longest {
+                            Some(come) => come,
+                            None => continue,
+                        }
                     };
                     if come + left > budget {
                         return Ok(false);
@@ -828,6 +926,8 @@ impl<'a> Network<'a> {
                 .filter(|gate| (0.02..0.98).contains(&share(*gate)));
             stops.extend(main_gate.map(fixed));
             stops.sort_by(|a, b| share(a.at).total_cmp(&share(b.at)));
+            // Two roads may join it at one point.
+            stops.dedup_by(|a, b| a.at == b.at);
             let mut near: Vec<(usize, f64)> = (1..sites.len())
                 .filter_map(|index| {
                     let aside = (cross(line, sub(centre_of(index), arm.exit)) / span).abs();

@@ -35,10 +35,14 @@ extents, which are a user decision (M04 in the [map brief](../../specs/city-maps
   timed along its rounded line, which is longer than the runs between its points.
 - **The two sides start at the top and the bottom, so those two edges are the ones
   held to a road** (`roads`, M22). A road runs from each to the main junction by
-  the map's centre inside the transit time, and so from one to the other. A road
-  across the middle from side to side is drawn on a preset share of maps; the rest
-  have one side road or none. `measure` reports the two journeys, the bottom-to-top
-  journey and whether a side-to-side road exists (`transit`).
+  the map's centre inside the transit time, and so from one to the other. The two
+  meet at one place: the later of them ends where the earlier did, at the main
+  junction or across the arm the earlier joined, so the road from the bottom edge
+  to the top passes through one junction. No two junctions of the edge roads lie
+  nearer each other than `roads.junction_apart_m`. A road across the middle from
+  side to side is drawn on a preset share of maps; the rest have one side road or
+  none. `measure` reports the two journeys, the bottom-to-top journey and whether
+  a side-to-side road exists (`transit`).
 - **A search that runs out is a named refusal.** The diagnostic names the feature,
   the preset cell and the seed. The generator never tries another seed and never
   returns a thinner map than the presets describe. Within the one seed, the main
@@ -57,17 +61,42 @@ extents, which are a user decision (M04 in the [map brief](../../specs/city-maps
   a parcel on that frontage (`districts.<kind>.ground_m`), so the parcel pass never
   meets a district it cannot build on. A cut that would end on a road or an
   earlier cut within `towns.align_m` of where one already ends on it from the
-  far side is moved to end there, so the avenues either side of a road make a
-  crossroads. An avenue runs the whole edge of a block that shares any of it
-  with another block.
+  far side, in line with it, is moved to end there, so the avenues either side
+  of a road make a crossroads. An avenue runs the whole edge of a block that
+  shares any of it with another block.
+- **A junction is a T or a crossroads, and the roads' junctions are their own.**
+  A cut between blocks ends on another no nearer than `towns.align_m` to a
+  junction it makes no crossroads of, and no nearer than a block
+  (`towns.junction_clear_m`, or half a block's depth where blocks are small) to
+  where one of the map's roads ends on or crosses another: it is tried at the
+  places a block may be cut at, nearest the one drawn first. An avenue that
+  would meet a road more than 22° off square stops at the last corner of a
+  block a row of lots before it, and the blocks between front the road. An
+  avenue that starts on a road's end and runs on along its line is that road
+  carried on, at its kind and width, to the next junction. A settlement whose
+  ground cut this way holds no block a parcel fits on (a hamlet round a fork)
+  is cut again as drawn.
 - **A large town and a city have more than one road** (`classes.<class>.side_roads`).
   Once a settlement of such a class has its main road, secondary roads are laid:
-  each leaves one of the roads through the centre part of the way out, turns into
-  the widest sector no road runs out through yet, and runs straight to a gate past
-  the settlement's ground, where a later road may carry on from it. The ground is
-  cut along them like any road and growth follows them, so the outline has arms
-  along its roads and bays between. They draw from a stream of their own. No
-  other class has the row.
+  each leaves one of the roads through the centre part of the way out, at a
+  junction of its own clear of every other road's end, and turns into the widest
+  sector no road runs out through yet. It runs beside the next road round that
+  sector where that takes it off its own road within the row's angles, and square
+  off its own road otherwise, straight to a gate past the settlement's ground,
+  where a later road may carry on from it. So a settlement's roads run side by
+  side or meet near square, never at a slant: the ground is cut along each, rows
+  of blocks lie along both sides of it, and the streets between two of them meet
+  both square. A secondary road is not laid where it would cross a road at less
+  than 45°. Growth follows the roads, so the outline has arms along them and
+  bays between. They draw from a stream of their own. No other class has the row.
+- **A town has air in it.** A class's `parks` are blocks near its centre that it
+  built round and then left open: the smallest of the `towns.park_reach_blocks`
+  built blocks nearest the centre that has built blocks on every side and room
+  for trees. A park has an avenue all round it and a wood of its own shape,
+  drawn in from the streets by the woods' usual distance from districts. A
+  class's `open_blocks` is the chance a block away from the centre is never
+  built, and its built share falls by as much. A park that ends up open to the
+  fields is ground like any other open block.
 - **A road crosses a settlement's ground in a straight line and turns outside it.**
   That is what lets a road be a block's edge. A main road through a settlement
   enters and leaves by gates past its limit. A settlement off the main roads has a
@@ -197,8 +226,14 @@ A district kind's streets and setbacks are rows of the same presets file.
   the edge fronts the district.
 - **A street runs from a junction to a junction, or ends at the last lot it
   serves.** A district's streets are a grid fitted between its edges, along the
-  edge that runs longest with the settlement's main street, so neighbouring
-  grids run the same way. A whole block lies between a carriageway on an edge
+  edge that most of the carriageways round it run with or square to, a road's
+  counting double: so a district beside a road has its streets beside that
+  road and square to it. Between edges that serve alike it is the one that
+  runs longest with the settlement's main street, so neighbouring grids run
+  the same way. Where the preset has a `bend`, each street family bows once or
+  less along the district, by an amount that changes from one side of the
+  district to the other (and is nothing somewhere between): no two streets
+  bend alike, and none ripples. A whole block lies between a carriageway on an edge
   and the first street, and half a block between an edge that faces the fields
   and the last one, so no street lies a few metres inside a road and no back
   land is left behind the last row of lots. A district kind's streets are
@@ -207,16 +242,25 @@ A district kind's streets and setbacks are rows of the same presets file.
   - **Each line of the grid runs to the carriageway ahead of it** (within
     `parcels.run_on_m` past the district's edge), and stops just past its
     middle. Where a street already meets that carriageway from the far side
-    within `towns.align_m`, the line is moved to meet it there: one crossroads,
-    not two junctions a few metres apart. A street as wide ends on that
-    street's own end and the joint pass makes them one street through the
-    junction; one of another width lands opposite it.
-  - **A street meets the road it joins square.** One that would come to a
-    carriageway at less than 45° turns to meet it square from its last
-    crossing. A street's own run-on may be any length; a street that turns off
-    another is at least `parcels.street_step_m` long, and one that is a single
-    run from a crossing to the road ahead at least four widths, so no link is
-    a stub.
+    within `towns.align_m`, in line with it and with no other junction beside
+    it, the line is moved to meet it there: one crossroads, not two junctions
+    a few metres apart. A street as wide ends on that street's own end and
+    the joint pass makes them one street through the junction; one of another
+    width lands opposite it.
+  - **A street meets the road it joins square, or does not meet it.** One that
+    would come to a carriageway up to 20° off square lands on its own line.
+    Up to 28° it turns at its last crossing and runs square to the
+    carriageway, a bend three widths or more from it. At more of a slant it
+    does not land. Nor does it land within a few widths of a junction it
+    makes no crossroads of, or within `parcels.junction_clear_m` of a junction
+    of the layout's roads: a junction has four arms at most, and a road
+    leaves another at a junction of its own. A street that may not land ends
+    at its last crossing with its own grid, or, where none is near, a row of
+    lots short of the carriageway; the ground between fronts that carriageway.
+    A street's own run-on may be any length; a street that turns off another
+    is at least `parcels.street_step_m` long, and one that is a single run
+    from a crossing to the road ahead at least four widths, so no link is a
+    stub.
   - **Where nothing lies ahead** a long street stops a verge inside the
     district's edge, at the last lots, and a cross street stops on the last
     long street. Two streets of one grid never come to a road within three
@@ -230,10 +274,17 @@ A district kind's streets and setbacks are rows of the same presets file.
     already joined. No street crosses water. `measure` then confirms on the
     finished plan that every street has a way to the centre.
   - After every district is laid, a street or avenue that still stops in the
-    open with a carriageway within `parcels.run_on_m` ahead runs on to it; where
-    another street's end faces it, to that end. One that runs on less than
-    `parcels.tail_min_m` past its last junction and stops in the open is cut
-    back to that junction.
+    open with a carriageway within `parcels.run_on_m` ahead runs on to it where
+    it may land on it; where another street's end faces it, to that end. One
+    that runs on less than `parcels.tail_min_m` past its last junction and
+    stops in the open is cut back to that junction, and one that stops within
+    `parcels.run_on_m` of a carriageway it may not land on is cut back until a
+    row of lots lies between. Where that would leave a district no parcel (a
+    hamlet's one lane), the layout's avenues keep their length.
+  - `tests/town_junctions.rs` counts, over every type and size, the places
+    where five carriageways meet, where two leave one place less than 45°
+    apart, where a town's street meets a country road more than 25° off
+    square, and where one turns sharply just before it.
 - **Ids are derived, not counted across the map.** A parcel is
   `<district id>/lot-<n>` and the building on it has the same id, so tuning one
   district kind renames nothing elsewhere. Building parts take the plan's prop ids

@@ -2,6 +2,16 @@
 
 **Depends on:** C05 (conditional on S1 and C05). **Kind:** slice.
 
+## Scale-lane rationale and historical evidence
+
+The completed scale implementation's reasons and invariants live in the
+[scale rationale](../../done/city-maps-scale/README.md), with its identified
+[admission evidence](../../done/city-maps-scale/evidence.md). This parent slice
+keeps its broader contracts and all historical numeric controls. Outcome sections
+below describe their named checkpoints; statements that admission remained open
+refer to those checkpoints, not the current scale pickup. Unresolved generated
+journey and encounter findings retain their parent owners.
+
 ## Question
 Do the sim's static-occluder and nav costs fit the budget at city scale?
 
@@ -124,7 +134,7 @@ for world bucket stamps and 3.125 MB more for tile revisions. Side-known indexes
 allocate no stamps, and mutations add no history or scratch buffer. The existing
 50 MB fine solid-height raster is unchanged; this pass does not claim to solve
 G0 storage. Matched native city digests/costs and browser admission remain the
-integrating scale lane's next verification; C06 remains open.
+integrating scale lane's next verification; C06 remained open at that checkpoint.
 
 ## Finding — infantry town route timing
 
@@ -168,7 +178,7 @@ stage retains only its coarse route and emitted points; fixed local queues live
 on the stack. The sampled NavGrid guarantee is distinct from movement's exact
 body checks. The focused Battle proves that concrete corner, not all continuous
 geometry. Generated town timings, matched native city cost and visual admission
-remain with the integrating scale lane; C06 stays open.
+remain with the integrating scale lane; C06 stayed open at that checkpoint.
 
 ### Follow-up — squad representative starts
 
@@ -716,3 +726,16 @@ all member positions, world-body poses and projectile fields agree. Temporary
 diagnostics are removed. Long admissions remain held until the facing repair
 passes a public paired regression. No float
 normalization, alternate input or time/budget change counts as a repair.
+
+
+## Outcome — compare complete reset presentation histories
+
+A fixed paused tick does not determine the first drawn death times. The reset
+harness now acknowledges the new authority, presents each opening publication
+at its settled clock and compares the complete presentation state beside exact
+live GPU counts and bytes. It controls only the external RAF timing seam;
+production poses, privacy, rules and clocks are unchanged. A retained allocation
+still falsifies the check. The shared building-settlement helper awaits actual
+row completion rather than treating an asynchronous predicate as a truthy value.
+
+[Identified scale admission](../../done/city-maps-scale/evidence.md) owns admission identities and results.

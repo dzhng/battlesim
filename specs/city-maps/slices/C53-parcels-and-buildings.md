@@ -60,6 +60,29 @@ Over the same 100 seeds for each type and size (900 maps, none refused), against
 
 A map has about a quarter more street and a fifth more generation work: a fitted grid fills its district where the old one left the back of a block empty, suburbs have more cross streets, and a large town or a city has more frontage along its secondary roads. Fewer strokes carry it, because a street is one stroke from junction to junction. The most authored bodies on a Metro Large map is 53,933 of the 60,000 the game allows.
 
+**How a district's streets meet the roads round it, third pass** (`layout-11`; [ledger](../choices.md#town-look-third-pass)).
+
+- *The grid's line.* A district's long streets run with the edge that most of the carriageways round it run along or square to, a road's length counting double and an open edge's a quarter: a district beside a road has streets beside that road and square to it. Between edges that serve alike it is still the one that runs longest with the main street.
+- *Landing.* A street lands on the carriageway ahead on its own line where it comes to it within 20° of square. Up to 28° off it turns at its last crossing and runs square to the carriageway, a bend 21 m or more from it. Beyond that it does not land. It does not land within three of its widths of a junction it makes no crossroads of, or within 60 m (`parcels.junction_clear_m`) of a junction of the layout's roads. It makes a crossroads only with a street that ends on the far side in line with it, within 25°, where no other junction is by.
+- *Not landing.* A street that may not land is cut back to its last crossing with its own grid, or, where none is near, until 60 m of ground lies between its end and the carriageway (a row of lots), and it goes altogether where all of it is nearer than that. Streets and avenues the run-on step leaves stopped short are cut back the same way; where that would leave a district no parcel (a hamlet's one lane), the avenues keep their length.
+- *Bends.* A `bend` is now one bow or less along the district: its wave is 1.2 to 2.4 times the district's length (or the preset wavelength, where longer), it reaches no farther than 4% of that length, and its reach changes from one side of the district to the other, so no two streets bend alike and those near the middle run straight.
+
+Over the same 100 seeds for each type and size (900 maps, none refused), against `layout-10`:
+
+| | Buildings | Authored bodies | Street km | Street strokes | Generate and compile, instructions (median, most) | `map.json` |
+|---|---|---|---|---|---|---|
+| Open Small | 646–1,309 (652–1,270) | 1,551–2,983 (1,531–2,910) | 10–24 (11–25) | 30–90 (35–88) | 1.21 G, 1.84 G (1.19, 1.63) | 2.1–3.9 MiB |
+| Open Medium | 989–1,915 (908–1,883) | 2,140–4,045 (2,134–4,196) | 15–35 (17–39) | 62–131 (67–145) | 1.83 G, 3.15 G (1.78, 2.55) | 2.7–5.4 MiB |
+| Open Large | 1,578–2,517 (1,513–2,420) | 3,434–5,366 (3,415–5,359) | 23–45 (26–47) | 99–180 (107–184) | 2.87 G, 4.07 G (2.75, 3.78) | 4.6–7.0 MiB |
+| Mixed Small | 2,592–4,715 (2,997–5,233) | 7,476–12,922 (8,365–14,837) | 58–97 (66–115) | 149–248 (147–266) | 4.35 G, 5.51 G (4.80, 6.84) | 8.4–15.9 MiB |
+| Mixed Medium | 3,527–6,716 (4,008–7,261) | 9,734–17,834 (11,682–20,545) | 81–149 (89–161) | 211–382 (228–399) | 6.13 G, 8.64 G (6.91, 8.90) | 11.1–20.8 MiB |
+| Mixed Large | 4,905–8,170 (5,210–8,610) | 14,066–22,029 (14,988–23,252) | 105–166 (116–185) | 294–467 (308–496) | 7.90 G, 10.52 G (8.67, 11.31) | 15.6–26.3 MiB |
+| Metro Small | 1,117–5,240 (1,677–5,627) | 5,546–16,053 (7,482–17,828) | 39–121 (63–132) | 79–277 (137–271) | 3.84 G, 6.13 G (4.61, 6.59) | 3.9–17.2 MiB |
+| Metro Medium | 4,139–9,936 (4,985–10,532) | 15,491–30,005 (18,933–33,691) | 128–237 (155–278) | 296–495 (326–596) | 8.98 G, 12.88 G (10.16, 15.14) | 13.5–32.6 MiB |
+| Metro Large | 7,530–16,919 (8,218–17,517) | 29,534–49,459 (32,394–53,933) | 232–398 (266–425) | 510–862 (553–851) | 16.13 G, 20.92 G (18.14, 24.60) | 24.0–54.8 MiB |
+
+A Mixed or Metro map has about a tenth less street and fewer buildings and bodies: streets that would have met a road at a slant or beside a junction stop a block back, parks and open blocks take ground, and the lots there front the road. An Open map is much as it was (its largest has 3% more buildings; villages have no parks). The most authored bodies on a Metro Large map is 49,459 of the 60,000 the game allows, down from 53,933.
+
 **Scale, over 100 seeds for each type and size** (900 maps, none refused):
 
 | | Buildings | Parts (props) | Bay positions | Street km | Street strokes | Ground points | Built ground | Generate and compile, instructions (median, most) | `map.json` |
@@ -94,8 +117,9 @@ Builds and the battle are in instructions retired. No tick ran over 33 ms on eit
 **Still wrong or unfinished.**
 
 - **Every district is a grid.** A suburb's streets are one swing repeated in parallel with a cross street every 140 m (second pass), with no crescents, greens or cul-de-sac loops. Apartment slabs stand single file along the street, not in ranked rows across a lawn. An industrial district is one block on a road at the town's edge, but still one shed per parcel, not a few fenced compounds each with several buildings in one large yard.
-- **Neighbouring districts' streets join where one lies within 30 m of the other** (second pass). Farther apart they meet the avenue as two T-junctions; 57 pairs on the 36 test maps stand 2 to 20 m apart and are counted by `tests/street_warts.rs`, with 4 streets that stop short of a road, 8 pairs side by side and 1 double bend.
-- **A grid meets a slanting road awkwardly.** A secondary road cuts a town's blocks at a slant, and a grid square to the main street meets it with streets that turn in their last block.
+- **Neighbouring districts' streets join where one lies within 30 m of the other, in line with it** (second and third pass). Farther apart they meet the avenue as two T-junctions; 19 pairs on the 36 test maps stand 2 to 20 m apart and are counted by `tests/street_warts.rs`, with 3 ends that stop short of a road (two of them country roads), 1 pair side by side and 1 double bend. `tests/town_junctions.rs` counts 2 forks under 45° and 4 streets that meet a country road 25° to 28° off square.
+- **A street that may not meet a road stops a block short of it** (third pass), so a district beside a slanting edge has dead ends, and a grid whose every line is refused becomes an island joined by one link. Streets that end at the last lots by a town's edge read as stubs.
+- **A road's own shallow fork is still built round.** Where two country roads or a road and a track meet at a slant inside a settlement (64 places on the 36 test maps), streets and avenues keep clear of the junction, and the roads still fork.
 - **A district's ground can still reach past its last buildings** where a block is deeper than its grid's last row; the fitted grid leaves much less of it (second pass).
 - **A town centre is terraces only**: no square, no larger commercial footprint. Its main street is the country road or a 10 m avenue.
 - **A village's streets are paved.** Only the farm district's are dirt lanes.
