@@ -150,7 +150,6 @@ const STYLE: BuildingStyle = validateBuildingStyle({
   pool_records: 1024,
   expand_rows: 100000,
   tint_jitter: 0,
-  prototype_tints: { default: [0.5, 0.5, 0.5] },
 });
 
 /** Buildings of `template` at each `[x, y, z, yaw]`. */
@@ -703,5 +702,4 @@ test("presentation.buildings is checked: tiers that fall, a pool, a jitter in ra
   expect(() => validateBuildingStyle({ ...STYLE, lod_px_per_m: [5, 12, 2] })).toThrow(/fall/);
   expect(() => validateBuildingStyle({ ...STYLE, pool_records: 10 })).toThrow(/pool_records/);
   expect(() => validateBuildingStyle({ ...STYLE, tint_jitter: 0.9 })).toThrow(/tint_jitter/);
-  expect(() => validateBuildingStyle({ ...STYLE, prototype_tints: {} })).toThrow(/default/);
 });

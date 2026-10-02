@@ -212,7 +212,6 @@ const STYLE: BuildingStyle = validateBuildingStyle({
   pool_records: 1024,
   expand_rows: 100000,
   tint_jitter: 0,
-  prototype_tints: { default: [0.5, 0.5, 0.5] },
 });
 const LENS = { fovY: 0.8, aspect: 16 / 9, near: 1 };
 const HEIGHT_PX = 1080;

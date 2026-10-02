@@ -29,12 +29,10 @@ import {
   type TemplateSetSource,
 } from "@packages/scene-assets/src/templateSource.ts";
 import {
-  PROTOTYPE_KIT,
-  PROTOTYPE_SET,
-  prototypeKitGlb,
-  prototypeTemplates,
-  templateSetText,
-} from "@packages/scene-assets/src/prototypeSet.ts";
+  STAND_IN_KIT,
+  STAND_IN_MODULE,
+  standInKitGlb,
+} from "@packages/scene-assets/src/standInKit.ts";
 import { physicalTemplates } from "@web/maps/node";
 import { AUTHORITY, testCatalog, testSources } from "./synthetic";
 import {
@@ -118,6 +116,23 @@ test("a module carries all four tiers, finest first", async () => {
   );
   const inverted = await refusals(testSet(), undefined, kitGlb([MODULES[0], sill(null, 3)]));
   expect(inverted.join("\n")).toMatch(/structure\.tier_order: .*module "sill": tier 3 has 24/);
+});
+
+test("the stand-in kit is one module, a metre cube standing on its base, the same bytes each time", async () => {
+  const catalog = {
+    ...cityCatalog(),
+    appearances: { [STAND_IN_KIT]: { unit: "kit" as const, source: KIT_SOURCE, basis_yaw_deg: 0 } },
+    city_sets: {},
+  };
+  const result = await bakeCatalog(catalog, async () => standInKitGlb(), cityContext());
+  expect(result.reports.flatMap((r) => r.findings)).toEqual([]);
+  const entry = result.runtime.appearances[STAND_IN_KIT];
+  const kit = decodeBundle(result.files.get(bundlePath(entry.bundle))!) as StaticBundle;
+  expect(kit.states.map((s) => s.name)).toEqual([STAND_IN_MODULE]);
+  // A prop's stand-in is this box scaled by the prop's own size.
+  close(kit.states[0].bounds.min, [-0.5, -0.5, 0]);
+  close(kit.states[0].bounds.max, [0.5, 0.5, 1]);
+  expect(standInKitGlb()).toEqual(standInKitGlb());
 });
 
 // ---------------------------------------------------------------- packing and loading
@@ -656,52 +671,7 @@ test("a catalog without city sets bakes as before, with no library", async () =>
   expect(runtimeCatalogText(result.runtime)).not.toContain("templates");
 });
 
-// ---------------------------------------------------------------- the prototype set and the catalogue
-
-test("the prototype set is each physical part as a tinted box, labelled a stand-in", async () => {
-  const tints = { detached_home: [0.5, 1, 0], default: [0.2, 0.2, 0.2] } as const;
-  const set = prototypeTemplates(
-    [HOUSE, { ...YARD, category: "industry" }],
-    tints,
-    AUTHORITY.collapse!,
-  );
-  const catalog = {
-    ...cityCatalog(),
-    appearances: {
-      [PROTOTYPE_KIT]: { unit: "kit" as const, source: KIT_SOURCE, basis_yaw_deg: 0 },
-    },
-    city_sets: {
-      [PROTOTYPE_SET]: { templates: "set.json", kit: PROTOTYPE_KIT, catalogue: CATALOGUE },
-    },
-  };
-  const sources: Record<string, Uint8Array> = {
-    [KIT_SOURCE]: prototypeKitGlb(),
-    "set.json": new TextEncoder().encode(templateSetText(set)),
-  };
-  const result = await bakeCatalog(
-    catalog,
-    async (path) => sources[path],
-    cityContext([HOUSE, { ...YARD, category: "industry" }]),
-  );
-  // Fit is zero: the boxes are the parts, the turned barn included.
-  expect(set.fit).toEqual({ side_m: 0, top_m: 0 });
-  expect(result.reports.flatMap((r) => r.findings)).toEqual([]);
-  const lib = decodeTemplateLibrary(
-    result.files.get(templateLibraryPath(result.runtime.templates!.library))!,
-  );
-  expect(lib.templates.map((t) => t.status)).toEqual(["prototype", "prototype"]);
-  const yard = templateRows(lib, "test-yard", "intact");
-  expect(yard.count).toBe(YARD.parts.length);
-  close(
-    lib.rows.transform.subarray((yard.first + 1) * ROW_TRANSFORM_FLOATS),
-    [10, 0, 0, 0.5, 8, 12, 4],
-  );
-  const house = templateRows(lib, "test-house", "intact").first;
-  expect([...lib.rows.tint.subarray(house * 3, house * 3 + 3)]).toEqual([128, 255, 0]);
-  expect([...lib.rows.tint.subarray(yard.first * 3, yard.first * 3 + 3)]).toEqual([51, 51, 51]);
-  // Generated twice, the same bytes.
-  expect(prototypeKitGlb()).toEqual(prototypeKitGlb());
-});
+// ---------------------------------------------------------------- the catalogue
 
 test("the catalogue's rows are the sets' descriptors, and unchanged rows stay as written", () => {
   const physical = physicalTemplates();

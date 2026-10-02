@@ -182,7 +182,7 @@ export function readTemplateSet(
       add(
         "templates.source",
         `${what}: status ${JSON.stringify(template.status)} is not one of ${TEMPLATE_STATUSES.join(", ")}`,
-        `mark accepted art "release" and a labelled stand-in "prototype"`,
+        `mark accepted art "release", and art still to be accepted "prototype"`,
       );
     const states = template.states;
     if (!isRecord(states)) {
@@ -686,7 +686,7 @@ export function packTemplateSets(
             "templates.coverage",
             `template ${id} is in the physical catalogue "${catalogue.name}", but no set of it has art for it`,
             catalogue.complete
-              ? "add it to a set, or give it stand-in rows: run `bun run --cwd web asset -- prototypes`"
+              ? "the catalogue's rows are the sets' descriptors: add it to a set, or run `bun run --cwd web asset -- catalogue` to drop its row"
               : "add it to a set that names this catalogue",
           ),
         );

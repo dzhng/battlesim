@@ -22,7 +22,7 @@
 import type { Vec3 } from "math";
 import { color } from "math/color";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
-import { PROTOTYPE_KIT, PROTOTYPE_MODULE } from "@packages/scene-assets/src/prototypeSet";
+import { STAND_IN_KIT, STAND_IN_MODULE } from "@packages/scene-assets/src/standInKit";
 import type { StaticBundle } from "@packages/scene-assets/src/schema";
 import type { WorldExports, WorldLayout } from "../worldMesh";
 import type { ModelInstance } from "./modelInstances";
@@ -102,10 +102,10 @@ interface Candidate {
  *  each kind is drawn by the appearances of the scenery kind its catalog
  *  `appearance` names (`drawn_by`), as the world layout carries it.
  *
- *  A kind none is fitted to (street furniture before its models) takes the
- *  stand-in, where `standIns` gives one: the prototype kit's unit box,
- *  stretched to the prop's own box and tinted by its kind, through the same
- *  model instances. A body the simulation holds is then never invisible. A
+ *  A kind none is fitted to (a body the simulation places before its model
+ *  is made) takes the stand-in, where `standIns` gives one: the stand-in
+ *  kit's unit box, stretched to the prop's own box and tinted by its kind,
+ *  through the same model instances. A body the simulation holds is then never invisible. A
  *  forest's trees are the scenery's, never a stand-in. */
 export class PropAppearances {
   private readonly byKind = new Map<string, Candidate[]>();
@@ -120,8 +120,8 @@ export class PropAppearances {
     layout: Pick<WorldLayout, "propAppearance" | "blockingPropKinds">,
     standIns?: StandInStyle,
   ) {
-    const kit = installed.appearances.get(PROTOTYPE_KIT)?.bundle;
-    const box = kit?.kind === "static" && kit.states.some((s) => s.name === PROTOTYPE_MODULE);
+    const kit = installed.appearances.get(STAND_IN_KIT)?.bundle;
+    const box = kit?.kind === "static" && kit.states.some((s) => s.name === STAND_IN_MODULE);
     this.standIns =
       standIns && box
         ? new Map(
@@ -183,7 +183,7 @@ export class PropAppearances {
     if (!chosen && this.standsIn(box.kind)) {
       const [hx, hy, hz] = box.half;
       out.push({
-        ...placed(PROTOTYPE_KIT, box, 0, [2 * hx, 2 * hy, 2 * hz], 0, false, PROTOTYPE_MODULE),
+        ...placed(STAND_IN_KIT, box, 0, [2 * hx, 2 * hy, 2 * hz], 0, false, STAND_IN_MODULE),
         tint: this.standIns!.get(box.kind) ?? this.standIns!.get("default")!,
       });
       return out;
@@ -224,13 +224,13 @@ export class PropAppearances {
     for (const prop of props) {
       const chosen = this.choose(prop.kind, prop.half);
       if (chosen) out.add(chosen.name);
-      else if (this.standsIn(prop.kind)) out.add(PROTOTYPE_KIT);
+      else if (this.standsIn(prop.kind)) out.add(STAND_IN_KIT);
     }
     for (const [kind, list] of this.byKind)
       if (!this.bindings[kind]?.map_only) for (const c of list) out.add(c.name);
     // A battle can leave a body with no art anywhere (a burnt-out car).
     for (const kind of Object.keys(this.bindings))
-      if (!this.bindings[kind].map_only && this.standsIn(kind)) out.add(PROTOTYPE_KIT);
+      if (!this.bindings[kind].map_only && this.standsIn(kind)) out.add(STAND_IN_KIT);
     return out;
   }
 }
