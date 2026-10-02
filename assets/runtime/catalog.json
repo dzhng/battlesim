@@ -89,6 +89,11 @@
       "kind": "static",
       "unit": "kit"
     },
+    "city_kit_facade_lab": {
+      "bundle": "e8811c5ec33ece8a957943073bf88a15b078b51b8a8fba712f8e8e4c0fa7e005",
+      "kind": "static",
+      "unit": "kit"
+    },
     "city_kit_farmsteads": {
       "bundle": "db06122cf4148e7cf32e686b47413dfefcf806800c6ebd0039f1afc5249dc0cb",
       "kind": "static",

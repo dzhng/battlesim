@@ -90,11 +90,11 @@ The coverage value is the base colour's alpha times the normal texture's alpha: 
 
 A source says it the standard glTF way, `alphaMode` with `alphaCutoff`. The Blender helpers write those from a `coverage` argument on each material helper, and a recipe's coverage image rides its normal map (`textures.surface`, `Baked`).
 
-A material may also be a **room**: a wall of the open box behind a window, which shows a cell of an interior atlas sheet at its own UVs (the atlas contract is in the [city readme](blender/city/README.md), "Interiors"). The material names the sheet (extras `interior`), and that is all it says: which cell, and its mirroring, is the drawer's choice per window.
+A material may also be a **room**: a wall of the open box behind a window, which shows a cell of an interior atlas sheet (the atlas contract, and the UVs a room box carries, are in the [city readme](blender/city/README.md), "Interiors"). The material names the sheet (extras `interior`), and that is all it says: which cell, and its mirroring, is the drawer's choice per window. The bake gives the bundle the sheet itself (`interior.ts`): the catalog names each sheet's source picture under `interiors`, and a room's material comes out of the bake with that picture as its albedo texture, square, mipped and content-addressed like any other, so every kit that shows a sheet shares one layer of it on the GPU.
 
-The bundle only carries these statements. What draws them is the renderer's, and a bundle of another format is refused, never read as if it were opaque.
+The bundle only carries these statements. What draws them is the renderer's (`battle-renderer` `models/surfaceParts.ts`, which orders a mesh's triangles by kind, and `models/surfaceFragments.ts`, the stage each kind is drawn by), and a bundle of another format is refused, never read as if it were opaque.
 
-The validator's `material.*` findings (`material.ts`) refuse what would be drawn wrong without anyone noticing. A cutout or blended material whose coverage value never crosses its own threshold has lost its coverage on the way (authored in the albedo's alpha, say). A blended surface cannot wear, since a worn patch has no coverage of its own. A room is opaque, has no textures or wear of its own, and is on a static appearance.
+The validator's `material.*` findings (`material.ts`) refuse what would be drawn wrong without anyone noticing. A cutout or blended material whose coverage value never crosses its own threshold has lost its coverage on the way (authored in the albedo's alpha, say). A blended surface cannot wear, since a worn patch has no coverage of its own. A room is opaque, has no textures or wear of its own in its source, and is on a static appearance; one whose sheet the catalog has no picture for does not bake.
 
 `asset validate <glb>` prints each material as it would be baked.
 

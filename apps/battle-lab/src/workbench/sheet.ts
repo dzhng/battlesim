@@ -26,7 +26,7 @@ import {
 import { gameLight } from "../gameLight";
 import { gameFogGeometry, gameFogStyle } from "../gameFog";
 import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "../gameOverlay";
-import { gameBuildingStyle, gameModelDetail } from "../gameModels";
+import { gameBuildingStyle, gameGlass, gameModelDetail } from "../gameModels";
 import { benchOverlay, benchWorld, posedSockets } from "./benchWorld";
 import { sideTint, type LoadedModel } from "./sources";
 import { SURFACE_VIEWS, WORKBENCH_VIEWS, viewCamera, type SheetView } from "./views";
@@ -208,6 +208,7 @@ export class SheetRenderer {
       paint: gamePaint,
       xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
       models: gameModelDetail,
+      glass: gameGlass,
       buildings: gameBuildingStyle,
       world: benchWorld(null),
       instances: [],

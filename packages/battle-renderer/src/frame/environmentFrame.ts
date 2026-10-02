@@ -44,6 +44,7 @@ export async function createEnvironmentFrame(
     /** The light as raw resources (uniform, PMREM) for raw passes. */
     raw: environment.raw,
     shade: environment.shade,
+    unlit: environment.unlit,
     sampleSunShadow: environment.sampleSunShadow,
     /** Pose the sky and the environment for this camera, and fit the
      *  cascades over the part of `box` it sees. */

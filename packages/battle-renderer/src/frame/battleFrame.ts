@@ -37,6 +37,7 @@ import type { PaintStyle } from "./paintedMarks";
 import { createFrameTimer } from "./gpuTiming";
 import { createEffectPass } from "../effects/effectPass";
 import { createModelLayer, type CardAtlas } from "../models/modelLayer";
+import type { GlassStyle } from "../models/surfaceFragments";
 import { createImpostorBaker } from "../models/impostor";
 import { CARD_SPEC } from "../models/impostorCards";
 import type { ModelDetailPresentation } from "../models/modelDetail";
@@ -68,6 +69,8 @@ export interface BattleFrameOptions {
   models: ModelDetailPresentation;
   /** `presentation.buildings`: the buildings' tiers, chunks and pool. */
   buildings: BuildingStyle;
+  /** `presentation.glass`: how a pane of glass takes light. */
+  glass: GlassStyle;
   world: WorldLayers;
   instances: readonly SceneInstance[];
   /** The viewport's size in device pixels: targets are built for it up front. */
@@ -114,6 +117,7 @@ export async function createBattleFrame(
       models,
       options.paint,
       options.xrayMinHiddenFragmentFraction,
+      options.glass,
     );
     const fogMask = await createFogMaskPass(root, registry, displayFormat, options.fogStyle);
     const impostors = createImpostorBaker(root, registry, models, environment);
@@ -337,6 +341,9 @@ export async function createBattleFrame(
         },
         setBuildingsShown(on) {
           if (!disposed) models.setBuildingsShown(on);
+        },
+        setSurfaceShown(surface, on) {
+          if (!disposed) models.setSurfaceShown(surface, on);
         },
         setRoadWearShown(on) {
           if (!disposed) world.setRoadWearShown(on);

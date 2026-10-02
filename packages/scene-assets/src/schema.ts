@@ -160,6 +160,20 @@ export type Coverage =
  *  apartment rooms on any floor, and shops on ground floors. */
 export const INTERIOR_SHEETS = ["rooms", "shops"] as const;
 export type InteriorSheet = (typeof INTERIOR_SHEETS)[number];
+/** A sheet's cells: how many, their edge, how many to a row in the source
+ *  picture, and how many to a row in the square texture a bundle carries
+ *  (`interior.ts`); cell `i` is at column `i mod columns`, row
+ *  `floor(i / columns)`, from the top-left. And what a cell's picture was
+ *  taken of: a room `depth_m` deep, from a pinhole `pinhole_m` before its
+ *  open face. */
+export const INTERIOR_ATLAS = {
+  cells: 10,
+  cell_px: 128,
+  source_columns: 2,
+  columns: 4,
+  depth_m: 4.5,
+  pinhole_m: 16,
+} as const;
 
 export interface Material {
   name: string;
@@ -186,7 +200,8 @@ export interface Material {
   coverage: Coverage;
   /** The surface is a wall of the room box behind a window: it shows a cell
    *  of this interior atlas sheet, at its own UVs, in place of a look of its
-   *  own. glTF extras `interior`. */
+   *  own. glTF extras `interior`. A baked bundle carries the sheet as this
+   *  material's albedo texture (`interior.ts`). */
   interior?: InteriorSheet;
 }
 
@@ -470,6 +485,9 @@ export interface Catalog {
   /** The city sets, by set name. The bake packs them all, whichever
    *  catalogue each dresses, into the one template art library. */
   city_sets?: Record<string, CitySetEntry>;
+  /** The interior atlas sheets' source pictures (`blender/city/interiors.py`),
+   *  by sheet: what a room material's bundle is given to show. */
+  interiors?: Partial<Record<InteriorSheet, string>>;
 }
 
 /** `assets/runtime/catalog.json`, written by the bake: names to content hashes. */

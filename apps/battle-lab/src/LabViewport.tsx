@@ -42,7 +42,7 @@ import { gameCamera } from "./gameCamera";
 import { gameLightFor } from "./gameLight";
 import { gameFogGeometry, gameFogStyle } from "./gameFog";
 import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "./gameOverlay";
-import { gameBuildingStyle, gameModelDetail } from "./gameModels";
+import { gameBuildingStyle, gameGlass, gameModelDetail } from "./gameModels";
 import type { FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
 import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
@@ -58,6 +58,7 @@ import type {
   BuildingStyle,
   SideBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
+import type { SurfaceClass } from "@packages/battle-renderer/src/models/surfaceParts";
 import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
 import { PassInspector } from "./PassInspector";
 import type { FeedSource } from "./feed";
@@ -294,6 +295,9 @@ interface LabHandle {
   /** Draw no template-art buildings and none of their shadows while on (a
    *  paired cost measure). */
   suppressBuildings?: (on: boolean) => Promise<void>;
+  /** Draw one kind of model surface (a cutout, say), its depth and its
+   *  shadow, or none of it while on (paired frames and cost). */
+  suppressSurface?: (surface: SurfaceClass, on: boolean) => Promise<void>;
   /** Draw the roads plain while on, with no surface detail or shoulder (a
    *  paired cost measure). */
   suppressRoadWear?: (on: boolean) => Promise<void>;
@@ -584,6 +588,7 @@ export function LabViewport({
             paint: gamePaint,
             xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
             models: gameModelDetail,
+            glass: gameGlass,
             buildings: buildingStyleRef.current ?? gameBuildingStyle,
             world: worldRef.current.current!,
             instances: instancesRef.current,
@@ -856,6 +861,10 @@ export function LabViewport({
           },
           async suppressBuildings(on: boolean) {
             scene.setBuildingsShown(!on);
+            await nextFrame();
+          },
+          async suppressSurface(surface: SurfaceClass, on: boolean) {
+            scene.setSurfaceShown(surface, !on);
             await nextFrame();
           },
           async suppressRoadWear(on: boolean) {
