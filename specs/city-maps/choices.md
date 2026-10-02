@@ -3460,3 +3460,32 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 **Why:** the owner's call (2026-10-01): the village and the lab maps are developer test arenas, nobody plays them, and the game is not finished. The need those slices answered, a full-size map to play, is met by generated battles from the menu and saved generated maps. Where another slice still says C56 or C34–C36, read "cut".
 
 **Verdict:** sound. **Confidence:** high.
+
+## C20 renderer fog at scale — startup implementation pass
+
+### Use exact per-eye grid candidates while the S4 verdict is absent
+
+- **When:** C20 startup implementation pass.
+- **The choice:** Keep the existing sharp ray–box intersections, and use the existing grid of building footprints to give each eye only nearby boxes. On a 10 km city, a squad beside one block tests that block's neighbours instead of every building at the far end of the city. The unbuilt angular-sector alternative would make still shorter lists for groups of rays; rasterising building tops would replace the exact corner geometry.
+- **The gap:** C20 says to implement the technique S4 picked, but only S4's plan exists; its named verdict file is absent. Grid representation itself is delegated, but selecting the unrecorded arm is a spec gap.
+- **The reach:** Future fog work keeps the same horizon precision and sharpness. If the paired city measurement misses the budget, this arm needs further work rather than a silently relaxed gate.
+- **Verdict:** Sound as a reversible implementation candidate. The spatial work count falls dramatically and the exact shader arithmetic is preserved; GPU cost and visual acceptance remain pending.
+- **Confidence:** Medium.
+
+### Put candidate lists in the existing rebuild table
+
+- **When:** C20 startup implementation pass.
+- **The choice:** The table saying which eyes rebuild also carries each eye's nearby building indices. Before rebuilding an eye, the CPU writes its eye number, the start and length of its list, then the list itself. Both terrain and occluder passes read this table. The alternative would add another storage buffer and binding solely for candidates.
+- **The gap:** The spec does not define the CPU-to-GPU list layout.
+- **The reach:** This keeps the existing GPU binding count. The table can grow when a denser nearby neighbourhood arrives, so probes must construct their sampling bind group after preparation; otherwise its dummy table binding can refer to a destroyed old buffer. The regression test covers a probe before the first rendered frame.
+- **Verdict:** Sound. One owner carries the rebuild transaction and its variable data without spending another scarce storage binding.
+- **Confidence:** High.
+
+### Detect occluder changes by geometry, independent of row identity
+
+- **When:** C20 startup implementation pass.
+- **The choice:** Compare complete box geometry before and after a publication, rather than treating a moved row as a changed building. If a demolished house disappears from the first row, the remaining unchanged houses shift indices but keep every distant squad's map. Only eyes in reach of geometry that disappeared or appeared rebuild. Two identical overlapping boxes have the same effect as one, so removing one duplicate alone does not invalidate maps.
+- **The gap:** Fog occluders have no stable identifiers in the existing input contract, and C20 does not prescribe change identity.
+- **The reach:** Future callers may reorder or recreate equivalent records without starting a rebuild storm. All geometry fields participate, including height changes and moved boxes' old and new locations.
+- **Verdict:** Sound. Map validity follows physical occlusion, while the separately rebuilt whole-structure table uses the new row indices.
+- **Confidence:** High.
