@@ -696,3 +696,25 @@ fn rounded_strokes_match_the_parity_oracle() {
     assert_eq!(serde_json::json!(strokes), oracle["strokes"]);
     assert_eq!(serde_json::json!(rivers), oracle["rivers"]);
 }
+
+/// This building bearing first changed a transient impact normal across targets,
+/// then a near miss's distance and the squad's authoritative suppression.
+#[test]
+fn a_rotated_prop_ray_preserves_portable_normal_bits() {
+    let w = flat(
+        r#", "props": [{ "kind": "wall", "center": [50, 50],
+        "yaw": -1.785965, "half_extents": [3, 5, 4.225] }]"#,
+    );
+    let hit = w
+        .raycast(v3(50.0, 30.0, 1.0), v3(0.0, 1.0, 0.0), 100.0)
+        .unwrap();
+    assert_eq!(hit.collider, Collider::Prop(0));
+    assert_eq!(
+        [
+            hit.normal.x.to_bits(),
+            hit.normal.y.to_bits(),
+            hit.normal.z.to_bits()
+        ],
+        [0xbfcb_545e_465e_fc4e, 0xbfef_4318_8077_2275, 0]
+    );
+}

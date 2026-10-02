@@ -6347,3 +6347,20 @@ the consumer without adding a diagnostic API or durable format.
 
 **Verdict:** sound; high confidence. This corrects named Native last bits at a
 measured primitive rather than migrating an inventory of unrelated math calls.
+
+## C07: the existing rotation owner
+
+**Choice:** Pin the shared cached rotation evaluator with `libm::sincos`, rather
+than patching suppression, near-miss distances, particular angles or individual
+rotation consumers. Keep its matrix arithmetic and cached pair unchanged.
+
+**Evidence:** Exact prop poses and authoritative pre-event state did not imply
+identical transient normals. Event capture identified the first differing sine
+component at the same yaw, then its downstream hit-time/distance/suppression
+changes. A minimal public wall-ray query reproduces the float64 fault on Native
+and checks the actual Wasm query directly. Review selected the existing combined
+software evaluator to share argument reduction rather than call sine and cosine
+separately. No measured performance win is claimed.
+
+**Verdict:** sound; high confidence. This generalizes within an observed math
+owner while leaving unrelated, unproven numerical hypotheses alone.

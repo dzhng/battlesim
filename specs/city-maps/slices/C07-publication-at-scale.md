@@ -490,3 +490,30 @@ identities are unchanged. Native ricochet, flight-collision and publication
 checks, the actual Wasm publication/decoder boundary file, clippy and formatting
 pass. Independent read-only review is clean. This is a sixty-tick causal proof,
 not whole-battle or throughput admission.
+
+### Shared rotation parity correction
+
+The per-tick admission gate next stopped at tick 175: only a squad's suppression
+first differed in persistent state, with unchanged float32 publication. Paired
+transient event capture showed impact-normal and hit-time differences already
+at tick 174, despite matching state digests. Identical prop poses at yaw
+`-1.785965` produced different sine components; a shifted impact endpoint then
+changed a near miss's distance and suppression. Neither suppression nor distance
+is rounded or given an exception.
+
+The existing cached `Rotation` owner now uses pinned `libm::sincos`, preserving
+one argument reduction and the same application arithmetic for cached transforms
+and `V2::rotated`. Public Native `WorldGeometry::raycast` is old-red/new-green
+on one rotated wall; actual Wasm `WorldView` checks the same finite float64 normal
+bits directly, so float32 exports cannot hide the fault. The wall exercises the
+query's existing requirement that a body stops rounds.
+No new API, wrapper or codec is added, and unproven hypot differences remain
+outside this correction. Full five-minute admission remains open.
+
+Fresh optimized Native/Wasm builds match every authoritative digest and raw
+publication bit from construction through tick 175 on the frozen layout-9
+input. Corrected Native tick 175 is `cfa643113f4b1b86`, matching old and fresh
+Wasm, with prior state/wire identities unchanged. Native geometry, collision and
+publication checks and actual Wasm world-query/publication boundary checks pass.
+This is a bounded causal proof; full early/late state, delivery, memory and
+throughput admission still require the per-tick-gated five-minute runs.

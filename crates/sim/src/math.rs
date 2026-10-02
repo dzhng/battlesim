@@ -92,7 +92,8 @@ pub struct Rotation {
 
 impl Rotation {
     pub fn new(yaw: f64) -> Self {
-        let (sin, cos) = yaw.sin_cos();
+        // Cached and one-shot rotations must agree across Native and Wasm.
+        let (sin, cos) = libm::sincos(yaw);
         Rotation { sin, cos }
     }
 
