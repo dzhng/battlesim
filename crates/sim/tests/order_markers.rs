@@ -55,6 +55,56 @@ fn run_until_idle(b: &mut Battle, id: u32, seconds: u64) {
 }
 
 #[test]
+fn an_oblique_squad_preview_keeps_the_committed_approach_heading() {
+    use contract::command::{CommandEnvelope, MovePreviewRequest, Order};
+    let mut b = Battle::new(
+        &setup(
+            [160.0, 120.0],
+            json!([]),
+            json!([{ "side": "blue", "kind": "rifle", "position": [30, 60], "engagement": "return_fire_only" }]),
+            json!([]),
+        ),
+        1,
+    );
+    let request = MovePreviewRequest {
+        units: vec![UnitId(0)],
+        goal: [100.0, 67.0],
+        ..Default::default()
+    };
+    let preview = b.preview_move(Side::Blue, &request).unwrap();
+    assert!(preview[0].placed);
+    let ack = b.accept(CommandEnvelope {
+        side: Side::Blue,
+        seq: 1,
+        queued: false,
+        order: Order::Move {
+            units: request.units,
+            goal: request.goal,
+            gesture: 1,
+            route: request.route,
+            direction: request.direction,
+            facing: request.facing,
+        },
+    });
+    assert_eq!(ack.error, None);
+    for _ in 0..30 {
+        b.step();
+        if !own(&b, 0).route.is_empty() {
+            break;
+        }
+    }
+    let committed = own(&b, 0);
+    assert!(committed.goal.is_some());
+    assert!(!committed.route.is_empty());
+    assert!(
+        wrap_angle(preview[0].facing - committed.final_facing).abs() < 1e-6,
+        "preview {} differs from committed {}",
+        preview[0].facing,
+        committed.final_facing
+    );
+}
+
+#[test]
 fn a_squads_published_spots_and_cover_are_its_soldiers_resolved_ones() {
     // A long wall between the squad's goal and a red squad far east: the
     // order resolves spots behind it (D4), and the publication shows them.

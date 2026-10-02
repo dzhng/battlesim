@@ -36,36 +36,44 @@ A missing public query or transfer peak reopens G0's export representation.
 
 ## Outcome — startup lane
 
-Preparation retains its worker and consumes one `PreparedMap` for live, scripted
-or replay startup. Public typed exports transfer to the page; its `PublicWorld`
-imports a lossless query payload and builds only the static picking/surface index.
-Surface, terrain/water ray and learned crown arithmetic have shared Rust owners.
-Production battle hooks build no WorldView. Standalone camera geometry is prepared
-off the page thread; geometry/flight probes retain their explicit developer view.
+One battle builds the simulation's world twice, where it built it three times:
+once in the preparation worker, for the encounter planner and the battle, and
+once on the page, for drawing and map queries. The page-side half of the
+contract above (a transferred query export in place of a page world) was built
+and then removed; [C33 simplified](../choices.md#c33-simplified) has the reason.
 
-Narrow proofs pass: reused native preparation matches direct construction through
-180 combat ticks and replay; public grid/ray/PropId/foliage queries match exactly;
-focused web contracts pass. A browser test with GPU disabled exercises actual
-preparation-worker adoption, three ticks, transferred geometry and replay. Against
-the frozen original Wasm (`4efec25b`), 1,323 point queries and 5,292 rays over the
-geometry, village and camera maps match exactly, including learned foliage.
+**The worker.** Preparation builds one `PreparedMap` (the world, its road net
+and its navigation base). The planner borrows it to place the encounter, and
+the battle then takes it (`Battle::from_prepared`, `from_prepared_replay`): the
+worker that prepared the battle becomes its authority, for a live battle and
+for a replay alike. Replacing or cancelling a pending battle closes that
+worker, which releases everything it held and silences a late answer. A
+restart is a new battle in a fresh worker, which builds the same scenario once.
 
-Independent review found that an initialization refusal could hide behind the
-mesh gate. A real browser regression fails under that gate, then passes with the
-existing error HUD and menu available before drawing; no canvas is created. The
-prepared replay adapter retains main's engine-build refusal contract. Unprimed
-visual review found no blocking clipping, contrast or overlap issue in the final
-refusal; normal clock/status is hidden to avoid implying playback is waiting.
+**The page.** The page builds its own plain world from the scenario's map with
+the simulation's `WorldView` (the world's geometry: no navigation, no battle
+state) and answers picking, ground height, surface, learned foliage and camera
+clearance from it. There is one implementation of those queries, the
+simulation's. A side still learns damage and destruction only through its own
+observations: the page's world is the static map, which is public.
 
-Matched cold/warm starts on both menu presets pass the one-minute gate. The
-page holds the static index rather than a second simulation world; its exact
-import and retained worker costs are counted. Instructions decrease, wall time
-increases on the loaded machine, and charged memory varies, so no general time
-or memory improvement is claimed. The measured envelope and conditions belong
-to [the lane](../startup-lane.md#startup-measurement); full G0 admission remains
-with its separate envelope gate. Camera frozen query overlays match; fresh
-review found no courtyard regression. The collapse frame does not show its
-subject clearly enough for a visual-collapse claim.
+Proofs, all narrow. The reused native preparation matches direct construction
+through 180 combat ticks and a replay. A browser test with the GPU disabled
+runs the real worker handoff: preparation, adoption by the simulation client,
+three ticks and the replay's digest. The generated scene passes from the menu
+through a battle, a cancelled load, a saved replay that prepares the same map
+and reaches the same digest, the engine-build refusal and the saved
+battlefield; the camera scene passes with its clearance and matched-pose
+checks unchanged.
+
+A battle the simulation refuses to start (a replay of another scenario or
+another build) shows its refusal in the existing error HUD with the menu
+available, hides the clock and the loading cover, and draws no battlefield
+under it. A browser regression holds that.
+
+Startup stays far inside its budget; the numbers and their conditions are in
+[the lane](../startup-lane.md#startup-measurement). Full G0 admission remains
+with its separate envelope gate.
 
 The ground browser scene also passes: only the observed side's learned marks
 are drawn; the opposite side's unseen crater remains absent, and a view switch

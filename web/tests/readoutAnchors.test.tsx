@@ -234,3 +234,112 @@ test("detail priority follows the actual camera eye rather than its orbit target
   handle.current!.place(project, { ...low, yaw: 0 }, {}, null, true);
   expect(cards.map((c) => c.dataset.zoom)).toEqual(["compressed", "default"]);
 });
+
+test("retiring contact panels fade together with their leader and cannot be picked", () => {
+  const handle = createRef<ReadoutLayerHandle>();
+  const contact = {
+    id: 7,
+    source: "last_seen" as const,
+    center: [200, 300] as [number, number],
+    radius: 20,
+    evidenceTick: 0,
+    expiresTick: 300,
+    primaryLabel: true,
+    kind: "tank",
+    heard: [],
+    opacity: 0.4,
+    retiring: true,
+  };
+  const view = render(
+    <ReadoutLayer
+      own={[]}
+      selected={[]}
+      handle={handle}
+      rules={game as unknown as PanelRules}
+      contacts={[contact]}
+      tick={60}
+    />,
+  );
+  const node = view.container.querySelector("[data-contact]") as HTMLDivElement;
+  node.getBoundingClientRect = () => ({ left: 230, right: 380, top: 220, bottom: 266 }) as DOMRect;
+  handle.current!.place((x, y) => [x, y], camera);
+  expect(node.closest<HTMLElement>(".ro-callout")!.style.opacity).toBe("0.4");
+  expect(node.closest(".ro-callout")!.contains(view.container.querySelector(".ro-leaders"))).toBe(
+    true,
+  );
+  expect(handle.current!.pick(250, 240)).toBeNull();
+  expect(node.textContent).toContain("LAST SEEN 2 s AGO");
+});
+
+test("far panels remain visible, overlap by depth, and pick the front card", () => {
+  const handle = createRef<ReadoutLayerHandle>();
+  const units = [600, 200].map((x, id) => ({
+    id,
+    kind: "tank",
+    position: [x, 0, 0],
+    hp: 100,
+    memberHp: [],
+    mounts: [],
+    stock: null,
+    service: "",
+    suppression: "none",
+    deployment: null,
+    garrison: null,
+  })) as unknown as import("../src/battle/sim/observation").OwnUnitView[];
+  const view = render(
+    <ReadoutLayer
+      own={units}
+      selected={[0]}
+      handle={handle}
+      rules={game as unknown as PanelRules}
+    />,
+  );
+  const cards = [...view.container.querySelectorAll<HTMLDivElement>(".ro-unit")];
+  for (const card of cards) {
+    Object.defineProperties(card, { offsetWidth: { value: 80 }, offsetHeight: { value: 20 } });
+    card.getBoundingClientRect = () =>
+      ({ left: 300, right: 380, top: 280, bottom: 300 }) as DOMRect;
+  }
+  const far = {
+    ...camera,
+    distance: 1001,
+    pitch: 0,
+    yaw: Math.PI,
+    target: [1001, 0, 0] as [number, number, number],
+  };
+  const project = (): [number, number] => [300, 300];
+  handle.current!.place(project, { ...far, distance: 900 });
+  expect(cards.every((c) => c.style.display !== "none")).toBe(true);
+  expect(cards[0].style.transform).not.toBe(cards[1].style.transform);
+  handle.current!.place(project, far);
+  expect(cards.every((c) => c.style.display !== "none")).toBe(true);
+  expect(cards[0].style.transform).toBe(cards[1].style.transform);
+  expect(Number(cards[1].parentElement!.style.zIndex)).toBeGreaterThan(
+    Number(cards[0].parentElement!.style.zIndex),
+  );
+  expect(handle.current!.pick(320, 290)?.unit).toBe(1);
+  expect(parseFloat(cards[0].parentElement!.style.opacity)).toBeLessThan(1);
+  expect(cards[0].parentElement!.style.filter).toMatch(/blur/);
+  expect(cards[1].parentElement!.style.filter).toBe("");
+  handle.current!.place(project, far, {}, null, false, { x: 320, y: 290, unit: null });
+  expect(cards[1].parentElement!.dataset.hovered).toBe("true");
+  expect(cards[1].dataset.zoom).toBe("default");
+  expect(cards[1].parentElement!.style.filter).toBe("");
+  handle.current!.place(project, far, {}, null, false, { x: 20, y: 20, unit: 0 });
+  expect(cards[0].parentElement!.dataset.hovered).toBe("true");
+  expect(cards[0].parentElement!.style.filter).toBe("");
+  expect(Number(cards[0].parentElement!.style.zIndex)).toBeGreaterThan(
+    Number(cards[1].parentElement!.style.zIndex),
+  );
+  expect(handle.current!.pick(320, 290)?.unit).toBe(0);
+  handle.current!.place((x) => [x, 300], far);
+  expect(cards.every((c) => c.parentElement!.style.filter === "")).toBe(true);
+  handle.current!.place(project, { ...far, yaw: 0 });
+  expect(Number(cards[0].parentElement!.style.zIndex)).toBeGreaterThan(
+    Number(cards[1].parentElement!.style.zIndex),
+  );
+  expect(handle.current!.pick(320, 290)?.unit).toBe(0);
+  handle.current!.place(project, { ...far, distance: 1000 });
+  expect(cards[0].style.transform).not.toBe(cards[1].style.transform);
+  expect(cards.every((c) => c.parentElement!.style.filter === "")).toBe(true);
+});

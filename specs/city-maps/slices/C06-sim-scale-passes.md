@@ -46,8 +46,12 @@ hanging the harness. Successful candidate order is unchanged.
 Fine routes now ask the existing boolean walkability query; bridges, water,
 steep ground and bounds agree with the full surface query. This simplification
 produced no measured speedup and does not substantiate a fine-routing bottleneck.
-Matched city early/late digests and [system costs](../scale-lane.md#c06-termination-checkpoint)
-remain the scale lane's evidence. C06 is still open against the tick budget.
+On the frozen [initial contact workload](C05-measuring-tools.md#generated-contact-baseline),
+the pass retires 369.9 / 499.4 G step instructions early/late versus 369.5 /
+498.2 G before; movement averages 80.343 / 115.399 M instructions per tick,
+effectively unchanged. Digests remain `32ba0e3c667a728b` / `1afb9cf97c2120f3`.
+Movement, bounded rejoin, geometry parity and authority/replay checks pass.
+This is termination proof, not a measured speedup or current timing admission.
 
 ## Outcome — exact per-tick bounds; cover still red
 
@@ -58,10 +62,13 @@ unit slice is immutable. The regression measures fallen-squad amplification in
 an isolated process: remains may add gather work, but more vehicles must not
 multiply that work. Restoring the old traffic scan makes the regression fail.
 
-Matched city early/late digests are unchanged; measured instruction gains and
-the next cover-planning owner live in the scale lane's
-[checkpoint](../scale-lane.md#c06-live-traffic-and-sight-bounds-checkpoint).
-No mechanic or scheduling delay was introduced. C06 remains open.
+The same frozen 60 s contact controls retire 356.5 / 457.5 G step instructions
+early/late, versus 369.5 / 498.4 G before this pass. Movement drops to
+77.863 / 96.912 M instructions per tick and sight to 23.941 / 25.088 M.
+Both exact digests above remain unchanged. Fine diagnostic brackets are removed
+after identifying cover planning; the production report retains its system
+contract. No mechanic or scheduling delay was introduced. Loaded clocks are
+not timing admission.
 
 ## Outcome — impossible engagement searches
 
@@ -71,8 +78,20 @@ retired 18.7 G instructions. A conservative necessary range condition now avoids
 that proven empty search. Ordinary near-target candidates and boundary cases keep
 the original exact search. The negative public-battle cost test and positive
 edge-lean test both have red/green proofs; existing cover/replay tests stay green.
-Matched city costs and unchanged digests live in the
-[checkpoint](../scale-lane.md#c06-impossible-engagement-checkpoint).
+The old public battle raises peak movement cost from 405,912 to 85,232,244
+instructions for a distant visible enemy; the range rejection removes that
+amplification. Dropping the lean allowance fails the positive boundary test.
+
+| Matched frozen 60 s contact cost | Before | After |
+|---|---:|---:|
+| Early step, G instructions | 356.5 | 278.9 |
+| Late step, G instructions | 457.5 | 348.7 |
+| Early movement, mean M/tick | 77.863 | 34.203 |
+| Late movement, mean M/tick | 96.912 | 36.557 |
+
+Digests remain `32ba0e3c667a728b` / `1afb9cf97c2120f3`; rounds remain 149 / 124.
+Cover and authority/replay checks pass. These instruction gains do not establish
+current native or browser timing admission.
 
 ## Measured finding — before local fog invalidation
 
@@ -253,7 +272,8 @@ The frozen `layout-6` physical Metro Large seed-4 map is loaded in the ordinary
 browser worker and production view: 10 × 10 km, 13,006 buildings, 22,577 parts,
 100 living units per side. Its generated identity is `33bbd0d9…`, catalogue
 `5416684f…`. The 60 s early arm advances 1,787 ticks (29.8 Hz); the late arm
-advances 1,661 (27.7 Hz). Neither admits the required 30 Hz. Worst sampled frame
+advances 1,661 (27.7 Hz). Neither met the original 30 Hz target; both meet the
+later provisional floor on these frozen inputs. Worst sampled frame
 p95/p99 are 58.7/91.7 ms early and 67.4/75.1 ms late. Late whole-page memory,
 including the worker, is 1,173 MiB; final main-thread heaps are 581/931 MiB.
 These measurements include immutable static decoder/feed reuse, before the
@@ -317,47 +337,58 @@ clearing checks pass, as do library clippy and independent read-only review.
 These are bounded initial-view measurements; contact peaks and browser admission
 remain with the scale lane.
 
-## Outcome — enclosed destination component proof
+## Outcome — shared final-connector component
 
-A failed final road connector can now prove the whole destination inaccessible,
-rather than recertifying it from every nearby road. Navigation searches backward
-from the same effective destination cell, using the weakest existing mover fit,
-push and avoidance checks. Its certificate-only graph deliberately admits more
-links than a real route: sampled roads may cross cell corners and their next
-search may snap from an unchecked endpoint. A fixed local stencil covers both;
-it emits no route and never weakens the ordinary validator. Exhausting that
-entire relaxed component
-and finding the original start's resolved cell outside it proves `NoRoute`.
-The original goal having no admitted endpoint is the same terminal refusal every
-mandatory final connector already makes. Other start refusals, terrain shortcuts
-and `SearchLimit` do not prove component exhaustion.
-Reaching the attempted exit or failing to finish the proof retains the ordinary
-alternate-road and direct-search behavior. The proof runs once, only after a
-final connector fails; healthy road journeys incur no added search.
+After a failed final road connector, navigation searches outward from the same
+resolved destination with the ordinary symmetric mover graph. Only an exhausted
+frontier is retained. Its membership rejects later final connectors using their
+actual constructed source and the original 4 m source admission; it also answers
+the direct fallback. It never rejects a whole road journey merely because the
+original start is outside that strict component: a sampled-clear road may enter
+it across a corner. A missing canonical goal endpoint remains the refusal shared
+by every mandatory final connector. Search limits, start refusal and terrain
+shortcuts leave the proof inconclusive and preserve ordinary alternatives.
 
-The frozen layout-6, physical-catalogue-541668 Mixed Small seed-3 failure confirms
-the cause: its reverse destination query exhausts 36 cells, while forward
-connectors repeatedly search tens of thousands. This is historical input evidence,
-not admission of the incoming layout-7 generator. The complete corrected journey
-finishes with proven obstruction at 52,687 counted work, after the first failed
-connector. A small public twelve-exit
-courtyard regression fails at 192,136 expansions without the correction and now
-fits one search of its 20,000-cell map plus local proof work. A low-limit reverse
-query remains `SearchLimit`, and the complete journey still takes a distant legal
-road opening. Treating that limit as component exhaustion falsifies the positive
-test. A sampled diagonal crossing falsifies using the ordinary no-corner graph
-as a global road proof; the relaxed certificate retains its legal road route.
-An actual Battle holds while planning, finishes blocked within the same
-derived allowance, clears its pending job and matches every serialized-replay tick.
+Road access admission uses a conservative envelope before constructing physical
+approaches. Every final centre slides along its goal arc, then takes one lane
+offset. The whole arc's bounds expanded by that offset, source-snap reach and
+point-coalescing tolerance must be disjoint from the exhausted component's
+bounds before an access is omitted. Overlap retains the ordinary reader and
+exact source test. Excluded arcs cannot set the fallback's nearest-access radius;
+otherwise they could hide a valid farther approach. Bounds and a first-visit
+membership fingerprint are updated
+in the already-counted rare search; pending and retained state enter the digest,
+without a visited-map scan on each tick. Healthy journeys perform no extra search.
 
-This intentionally changes affected planning completion ticks and may replace a
-later inconclusive verdict with an earlier proven obstruction. Its pending stage
-and the flag preventing repeated proofs enter the digest only when used. The
-existing sparse search scratch is reused; no world-sized storage, limit tuning or
-physical exemption is added. Large connected destination components and other
-repeated connector failures retain their existing costs. Current generated-case
-follow-up, native/Wasm agreement and full browser admission remain integration
-work; this scoped correction does not close C06 or the whole navigation budget.
+The initial twelve-exit thin-courtyard probe fails at 198,554 expansions without
+shared connector reachability. With only a late membership check, the 128-exit
+public regression still spends 304,034 counted work rebuilding approaches and graphs. Early access
+admission satisfies one map search plus flat access passes, keeping the same
+20,000-cell and 300,000-work allowances. Sampled corner crossings and a distant
+legal exit after `SearchLimit` remain successful. The small actual Battle clears
+its planning job, holds behind the walls and reproduces every replay tick.
+
+Frozen layout-6/catalogue-541668 inputs remain historical controls. The previous
+relaxed whole-journey proof resolved Mixed Small seed 3 and Metro Medium seed 9,
+but Mixed Small seed 9 was still planning after 120 seconds. Its relaxed probe
+correctly reached an exterior connector; repeated graph and approach work also
+survived late strict membership alone. The final public Journey now proves that
+case blocked in 51,293 counted work, including a five-cell goal component.
+The dependency-matched native Battle rerun plays all three exact frozen scenarios
+and commands for 120 seconds. Each affected unit remains alive and blocked with
+no pending work at both 30 and 120 seconds. Seed 9 records 82 planning ticks rather
+than all 3,600, and 390,885 total force planning work rather than 14,400,000. Its
+final digest is `bbde4d96aef7eeb3`; same-build replay is covered by the small Battle
+regression. Current-generator and native/Wasm admission remain integration checks;
+this scoped correction does not close C06 or the navigation budget.
+
+The rare component has fresh sparse scratch, while ordinary searches reuse their
+existing bank. In that seed-9 query the retained component uses one 20,480-byte
+tile beside 67 ordinary tiles (1,372,160 bytes): 1,392,640 bytes of tile payload,
+plus containers. A large inconclusive probe can briefly coexist with the normal
+bank; both retain the existing search bound. No world-sized grid, limit tuning,
+physical exemption or snapshot-memory admission is introduced. Affected planning
+ticks and digests change intentionally; same-build replay remains exact.
 
 ### Integrated frozen-case rerun
 
@@ -396,3 +427,26 @@ and precisely 16 added bytes per reset. The ordinary source has no leak hook.
 This corrects an uncontrolled comparison and adds byte accounting; stress
 durations, rendering and the timing target remain unchanged. The two-second
 arms prove the reset contract only. Full timing admission remains open.
+
+The current-main restart remounts the lab and temporarily removes its probe.
+The reset wait now treats that interval as pending. The original current-layout-7
+run throws while reading the missing probe; the corrected two-second functional
+run completes all three resets with identical counts and bytes. This repairs
+the harness wait, with no simulation, rendering or timeout change.
+
+## Outcome — reject footprint rotation reuse as the next cost pass
+
+The current native compiler already hoists `footprint_seen`'s sine/cosine pair
+outside the inner sample loop, but recomputes it for each footprint row. Reusing
+the existing `Rotation` once per footprint preserves all sample arithmetic;
+the matched current layout-7 Metro Large seed-4 control confirms every six-tick
+battle digest and both complete observation hashes unchanged, early and late.
+Whole Fog plus Learning falls from 312.077 to 309.597 million instructions early
+and 341.756 to 339.329 million late: 0.795% and 0.710%, about 0.41 million per tick.
+
+The scratch comparison first rejects unchanged old-versus-old code, then rejects
+both candidate arms against the declared 2% gain hypothesis. This is a bounded
+initial-view experiment, not a whole-battle or browser timing claim. The source
+change is discarded; existing public cost requirements stay unchanged. Remaining
+Fog plus Learning work remains the next attribution target, with current full
+report means of 54.941 and 59.969 million instructions per tick early and late.

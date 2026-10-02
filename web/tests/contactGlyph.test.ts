@@ -5,7 +5,7 @@
 import { expect, test } from "vitest";
 import {
   buildContactGlyphs,
-  contactFreshness,
+  contactOpacity,
   type ContactShape,
 } from "@packages/battle-renderer/src/contactGlyph";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh";
@@ -26,7 +26,7 @@ function vertices(mesh: Float32Array) {
 const shape = (over: Partial<ContactShape> = {}): ContactShape => ({
   center: [400, 300],
   radius: 100,
-  freshness: 1,
+  opacity: 1,
   source: "last_seen",
   ...over,
 });
@@ -34,17 +34,20 @@ const shape = (over: Partial<ContactShape> = {}): ContactShape => ({
 const maxAlpha = (c: ContactShape) =>
   Math.max(...vertices(buildContactGlyphs([c], flat, style).translucent).map((v) => v.rgba[3]));
 
-test("a glyph fades as its contact ages and is gone at expiry", () => {
+test("a glyph holds its opacity until the final fade and is gone at expiry", () => {
   const contact = { evidenceTick: 100, expiresTick: 340 };
-  const ticks = [100, 160, 250, 339];
+  const ticks = [100, 160, 250, 295, 339];
   for (const source of ["last_seen", "firing"]) {
     const alphas = ticks.map((t) =>
-      maxAlpha(shape({ source, freshness: contactFreshness(contact, t) })),
+      maxAlpha(shape({ source, opacity: contactOpacity(contact, t, 90) })),
     );
-    for (let i = 1; i < alphas.length; i++) expect(alphas[i]).toBeLessThan(alphas[i - 1]);
+    expect(alphas[1]).toBe(alphas[0]);
+    expect(alphas[2]).toBe(alphas[0]);
+    expect(alphas[3]).toBeCloseTo(alphas[0] / 2);
     expect(alphas.at(-1)).toBeGreaterThan(0);
+    expect(alphas.at(-1)).toBeLessThan(alphas[0] / 80);
     const expired = buildContactGlyphs(
-      [shape({ source, freshness: contactFreshness(contact, 340) })],
+      [shape({ source, opacity: contactOpacity(contact, 340, 90) })],
       flat,
       style,
     );

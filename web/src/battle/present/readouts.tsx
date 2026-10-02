@@ -6,6 +6,7 @@
  *  - the unit card: the selection's panels, the same component, at any zoom;
  *  - the command bar: the selection's commands and its fire policy. */
 import { useCallback, useImperativeHandle, useRef, type ReactNode, type Ref } from "react";
+import type { PresentedContact } from "./contactPresentation";
 import type { ContactView, IdentifiedView, OwnUnitView } from "../sim/observation";
 import type { CommandMode, PointerPick, useUnitControl } from "../input/useUnitControl";
 import { CommandBindings, FacingBinding } from "../input/commandBindings";
@@ -27,10 +28,6 @@ type Point3 = readonly [number, number, number];
 export type ReadoutHover = Pick<PointerPick, "x" | "y" | "unit" | "enemy">;
 const _readout_eye = vec3.create(),
   _readout_anchor = vec3.create();
-
-/** Above this camera distance, panels show only for selected units (every
- *  other own panel, and every enemy's and contact's, hides). */
-const PANELS_FAR_M = 700;
 
 /** The name a unit goes by in the panel, the log and on the map: its
  *  type's name, never a callsign. */
@@ -112,6 +109,8 @@ interface Callout {
   at: Point3;
   selected: boolean;
   content: ReactNode;
+  opacity?: number;
+  retiring?: boolean;
 }
 
 /** A unit panel's anchor: this high over its unit, about its head. */
@@ -120,7 +119,8 @@ const HEAD_M = 2;
 /** Observation-only panels, positioned each frame beside their units.
  *  Stack downward in screen order, upward when the bottom fills. If neither
  *  direction fits, hide a panel that cannot fit; selected panels paint above
- *  the others. Nudges ease on the presentation clock. */
+ *  the others. Far views allow overlap in camera-depth order.
+ *  Nudges ease on the presentation clock. */
 export function ReadoutLayer({
   own,
   identified = [],
@@ -136,7 +136,7 @@ export function ReadoutLayer({
    *  commit's changed props. */
   own: readonly OwnUnitView[];
   identified?: readonly IdentifiedView[];
-  contacts?: readonly ContactView[];
+  contacts?: readonly (ContactView | PresentedContact)[];
   /** The published tick, which a contact's "ago" counts from. */
   tick?: number;
   rules: PanelRules;
@@ -151,6 +151,7 @@ export function ReadoutLayer({
   const nudges = useRef(new Map<string, Nudge>());
   const lastClock = useRef<number | null>(null);
   const hoveredCard = useRef<string | null>(null);
+  const paintOrder = useRef(new Map<string, number>());
   const compactBoxes = useRef(new Map<string, ReadoutRect>());
   const callouts: Callout[] = [
     ...own.map((u): Callout => {
@@ -179,6 +180,8 @@ export function ReadoutLayer({
       .map(
         (c): Callout => ({
           key: `contact-${c.id}`,
+          opacity: "opacity" in c ? c.opacity : undefined,
+          retiring: "retiring" in c ? c.retiring : false,
           owner: "contact",
           id: c.id,
           at: [c.center[0], c.center[1], 0],
@@ -198,11 +201,10 @@ export function ReadoutLayer({
   useImperativeHandle(handle, () => ({
     pick(x, y) {
       const priority = [...calloutsRef.current].sort(
-        (a, b) =>
-          Number(b.key === hoveredCard.current) - Number(a.key === hoveredCard.current) ||
-          Number(b.selected) - Number(a.selected),
+        (a, b) => (paintOrder.current.get(b.key) ?? 0) - (paintOrder.current.get(a.key) ?? 0),
       );
       for (const c of priority) {
+        if (c.retiring) continue;
         const r = visibleBox(c.key);
         if (r && x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1)
           return {
@@ -224,8 +226,15 @@ export function ReadoutLayer({
       const previous = hoveredCard.current;
       const held =
         previous &&
+        calloutsRef.current.some((c) => c.key === previous && !c.retiring) &&
         (contains(compactBoxes.current.get(previous)) || contains(visibleBox(previous)));
-      const card = hover && calloutsRef.current.find((c) => contains(visibleBox(c.key)));
+      const card =
+        hover &&
+        [...calloutsRef.current]
+          .sort(
+            (a, b) => (paintOrder.current.get(b.key) ?? 0) - (paintOrder.current.get(a.key) ?? 0),
+          )
+          .find((c) => !c.retiring && contains(visibleBox(c.key)));
       hoveredCard.current = hover
         ? held
           ? previous
@@ -237,6 +246,7 @@ export function ReadoutLayer({
                 : null))
         : null;
       eyePosition(_readout_eye, camera);
+      const overlap = camera.distance > 1000;
       // Each panel's anchor, in page pixels.
       const anchored: {
         id: string;
@@ -244,13 +254,13 @@ export function ReadoutLayer({
         x: number;
         y: number;
         distanceSq: number;
+        selected: boolean;
+        opacity: number;
       }[] = [];
       for (const c of calloutsRef.current) {
         const node = nodes.current.get(c.key);
         if (!node) continue;
-        // Zoomed out, panels stay only for the selection.
         const hovering = c.key === hoveredCard.current;
-        const shown = camera.distance < PANELS_FAR_M || c.selected || hovering;
         const p: Point3 =
           c.owner === "own"
             ? (drawn.own?.get(c.id) ?? c.at)
@@ -258,7 +268,7 @@ export function ReadoutLayer({
               ? (drawn.enemies?.get(c.id) ?? c.at)
               : [c.at[0], c.at[1], drawn.ground?.(c.at[0], c.at[1]) ?? 0];
         // A panel hangs off a unit in view; one whose anchor is off screen hides.
-        const q = shown ? project(p[0], p[1], p[2] + (c.owner === "contact" ? 0 : HEAD_M)) : null;
+        const q = project(p[0], p[1], p[2] + (c.owner === "contact" ? 0 : HEAD_M));
         const edge = gameHud.panel_edge_hide_px;
         // Hover overrides edge hiding; keep its card inside the viewport.
         const at: [number, number] | null =
@@ -276,6 +286,8 @@ export function ReadoutLayer({
           anchored.push({
             id: c.key,
             node,
+            selected: c.selected,
+            opacity: c.opacity ?? 1,
             x: at[0],
             y: at[1],
             distanceSq: vec3.squaredDistance(
@@ -360,7 +372,7 @@ export function ReadoutLayer({
         const natural = { x0, x1: x0 + b.w, y0: y1 - b.h, y1 };
         let target = clear(natural);
         // Both walks move strictly past each hit, so neither can cycle.
-        for (let direction = 1; direction >= -1; direction -= 2) {
+        for (let direction = 1; !overlap && direction >= -1; direction -= 2) {
           let candidate = target;
           for (let o = hit(candidate); o; o = hit(candidate)) {
             const edge = direction > 0 ? o.y1 + gap : o.y0 - gap;
@@ -390,7 +402,7 @@ export function ReadoutLayer({
         // is going; this one is drawn eased toward it.
         placed.push(target);
         const want = { dx: target.x0 - natural.x0, dy: target.y0 - natural.y0 };
-        const n = easeNudge(nudges.current.get(b.id), want, dt);
+        const n = easeNudge(overlap ? undefined : nudges.current.get(b.id), want, dt);
         nudges.current.set(b.id, n);
         const box = {
           x0: natural.x0 + n.dx,
@@ -405,7 +417,7 @@ export function ReadoutLayer({
       compactBoxes.current.clear();
       for (const { b, box } of situated) compactBoxes.current.set(b.id, box);
       let details: ReturnType<typeof layoutReadoutDetails> | null = null;
-      if (detailing) {
+      if (detailing && !overlap) {
         const detailCards: DetailCard[] = situated.map(({ b, box }) => {
           const size = fullSizes.get(b.id)!;
           return {
@@ -428,12 +440,34 @@ export function ReadoutLayer({
           hoveredCard.current,
         );
       }
+      paintOrder.current.clear();
+      const near = [...situated].sort((a, b) => a.b.distanceSq - b.b.distanceSq);
+      for (const [i, { b }] of near.entries()) {
+        const order =
+          b.id === hoveredCard.current
+            ? near.length + 1
+            : overlap
+              ? near.length - i
+              : Number(b.selected);
+        paintOrder.current.set(b.id, order);
+        b.node.parentElement!.style.zIndex = String(order);
+      }
+      const drawnBoxes = new Map<string, ReadoutRect>();
       for (const { b, box: compact } of situated) {
         const detail = details?.get(b.id);
-        const box = detail
+        let box = detail
           ? { x0: detail.box[0], y0: detail.box[1], x1: detail.box[2], y1: detail.box[3] }
           : compact;
-        b.node.dataset.zoom = detail?.full ? "default" : "compressed";
+        b.node.dataset.zoom = (overlap ? expanded || b.id === hoveredCard.current : detail?.full)
+          ? "default"
+          : "compressed";
+        if (overlap && b.node.dataset.zoom === "default") {
+          const size = fullSizes.get(b.id)!;
+          const x0 = clamp(box.x0, EDGE_PX, right - size.w);
+          const y0 = clamp(box.y0, EDGE_PX, window.innerHeight - EDGE_PX - size.h);
+          box = { x0, y0, x1: x0 + size.w, y1: y0 + size.h };
+        }
+        drawnBoxes.set(b.id, box);
         b.node.style.transform = `translate(${box.x0}px, ${box.y0}px)`;
         const group = b.node.parentElement!;
         if (b.id === hoveredCard.current) group.dataset.hovered = "true";
@@ -451,6 +485,29 @@ export function ReadoutLayer({
               `M ${x} ${y} L ${near.toFixed(1)} ${box.y1.toFixed(1)} L ${far.toFixed(1)} ${box.y1.toFixed(1)}`,
           );
       }
+      for (const { b } of situated) {
+        const box = drawnBoxes.get(b.id)!;
+        const behind =
+          overlap &&
+          near.some(
+            ({ b: other }) =>
+              paintOrder.current.get(other.id)! > paintOrder.current.get(b.id)! &&
+              overlaps(box, drawnBoxes.get(other.id)!),
+          );
+        const inFront =
+          overlap &&
+          near.some(
+            ({ b: other }) =>
+              paintOrder.current.get(other.id)! < paintOrder.current.get(b.id)! &&
+              overlaps(box, drawnBoxes.get(other.id)!),
+          );
+        const softened = behind && b.id !== hoveredCard.current;
+        const group = b.node.parentElement!;
+        if (inFront) group.dataset.overlapping = "true";
+        else delete group.dataset.overlapping;
+        group.style.opacity = String(b.opacity * (softened ? 0.65 : 1));
+        group.style.filter = softened ? "blur(0.6px)" : "";
+      }
     },
   }));
   const bind = useCallback(
@@ -464,7 +521,12 @@ export function ReadoutLayer({
   return (
     <div ref={layer} className="ro-layer" data-testid="readouts" data-zoom="compressed">
       {callouts.map((c) => (
-        <div key={c.key} className={`ro-callout${c.selected ? " ro-selected" : ""}`}>
+        <div
+          key={c.key}
+          className={`ro-callout${c.selected ? " ro-selected" : ""}`}
+          style={{ opacity: c.opacity }}
+          data-retiring={c.retiring || undefined}
+        >
           <PanelCallout
             ref={bind(nodes.current, c.key)}
             owner={c.owner}

@@ -48,7 +48,7 @@ import { gameCamera } from "../gameCamera";
 import { LabViewport, type ViewportPilot } from "../LabViewport";
 import { askedTier, tierBoundaries, useBuildingTier } from "../buildingTier";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
-import { useStaticMap, type StaticWorld } from "../useStaticWorld";
+import { useStaticWorld, type StaticWorld } from "../useStaticWorld";
 
 const GENERATOR = { presets, templates };
 /** The map the lab opens on: a town with houses and apartment blocks. */
@@ -201,8 +201,7 @@ export default function CityBlock() {
 }
 
 function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedTown }) {
-  const mapText = useMemo(() => JSON.stringify(generated.map), [generated.map]);
-  const world = useStaticMap(mapText);
+  const world = useStaticWorld(generated.map);
   const appearances = useGameAppearances();
   const surfaceZ = useCallback(
     (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,

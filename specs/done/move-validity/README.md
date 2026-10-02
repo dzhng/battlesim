@@ -1,0 +1,36 @@
+# Valid move destinations
+
+A destination marker promises that the simulation has demonstrated the move under the ordering side's currently known conditions. A footprint fitting at the clicked point is insufficient: the vehicle must also approach it without becoming permanently blocked. The same authority checks held previews and admitted commands.
+
+## Why check execution
+
+The user's [screenshot](assets/reference/user-waiting.png) shows a supply truck waiting behind a tank despite a nearby move marker. It defines the requirement: a plausible parking position must not become a promise unless the approach works.
+
+Turning curvature and parking clearance answer different questions. A wheeled vehicle needs room to steer while rolling or reversing, but does not need a whole turning circle between its hull and a parked vehicle. Hull collision remains authoritative. Infantry already yields to a vehicle without receiving a move order; live vehicles do not shove one another.
+
+Rather than maintain a second definition of motion, admission executes the existing rules on an isolated copy. Group members can vacate one another's paths. A traffic detour retains the requested endpoint: finishing at a nearby grid point must not silently complete the order. Rejected replacement members hold still while remaining successes are checked again. A stationary nonmember may make an order unavailable; its presence cannot be ignored merely because the destination fits.
+
+## The promise and its limits
+
+- Every displayed destination has passed both standing placement and physical movement checking. Failed placement results are filtered from held, confirmation and committed markers.
+- Pending own commands and finite queued predecessors are part of the check. An automatic garrison exit is finite; an indefinite attack has no known terminal position. Attack-move travel is checked physically, while later combat can pause execution.
+- Preview uses side knowledge, including currently observed enemy soldiers and remembered hulls. It cannot use hidden positions, private enemy orders or opposing spotting knowledge to decide whether a point is reachable. Observed opponents cannot create future cover positions from information unavailable to the ordering side. Opposing private deployment timers cannot prolong checking or consume another member’s retry allowance.
+- Queries must leave live state, navigation charges, future digests and replay scheduling unchanged. Resetting a scratch forest history also requires resetting its journal cursor.
+- Work is bounded. Refusal means the check did not demonstrate arrival within its allowance; it is not proof that no possible route exists. A fixed travel-time cutoff would wrongly reject long but simple journeys and is deliberately absent.
+- Conditions can change after issuance. A newly discovered obstacle, a later Stop or combat can change execution. Admission promises known feasibility when the order is checked, rather than control over future battle events.
+
+The command boundary adds route and queued intent to preview requests, a navigation work allowance and `NoValidDestination`. Failed replacement orders hold; failed queued waypoints preserve earlier orders. A rejected route-policy upgrade preserves its prior policy. No persistent movement-certificate state or second route solver is added. The [decision ledger](choices.md) records the trade-offs.
+
+## Owners and proof
+
+[Battle admission](../../../crates/sim/src/battle.rs) owns pending command projection and the shared preview/admission boundary. [Formation](../../../crates/sim/src/formation.rs) owns candidate standing positions; [movement certification](../../../crates/sim/src/movement/certify.rs) checks their execution using the [movement owner](../../../crates/sim/src/movement/mod.rs). [World snapshots](../../../crates/sim/src/world/mod.rs) isolate mutable planning geometry. The [command contract](../../../crates/contract/src/command.rs) is the browser boundary.
+
+[Admission tests](../../../crates/sim/tests/move_admission.rs) pin stationary boxes, cooperative departure, pending commands, route upgrades, finite queues, visibility and query neutrality. [Movement tests](../../../crates/sim/tests/movement.rs), [road journeys](../../../crates/sim/tests/road_journeys.rs) and [movement scenarios](../../../crates/sim/tests/movement_scenarios.rs) pin physical arrival and collision. Browser intent and rejection checks live in [web tests](../../../web/tests/); rendered interaction checks live in [browser scenes](../../../web/scenes/).
+
+[Pointer paint](../../../apps/battle-lab/src/pointerPaint.ts) identifies each asynchronous result by the complete current intent. Preview and publication share the movement owner's approach-heading calculation; a squad's final settled body angle is not a second definition of its ordered heading. [BattleView](../../../apps/battle-lab/src/BattleView.tsx) and the [order overlay](../../../packages/battle-renderer/src/orderOverlay.ts) consume accepted destinations rather than reconstructing validity.
+
+## Visual provenance
+
+The user's [waiting screenshot](assets/reference/user-waiting.png) is the historical failure reference: a truck behind a tank with an apparent destination. The user reported that it made no progress. Production browser captures reproduce [close parking](assets/result/close-parking-valid-held.png) and [actual arrival](assets/result/close-parking-arrived.png) at the same image size and a comparable diagonal road view. The [group departure](assets/result/group-departure-complete.png) frame uses wider framing to keep every origin and destination visible; the [arrival](assets/result/group-arrival.png) frame returns to a closer road view.
+
+The matched [previous-filter frame](assets/result/baseline-invalid-held.png) and [corrected-filter frame](assets/result/candidate-invalid-held.png) use the same current simulation, camera and inputs. They isolate marker filtering rather than claiming a historical simulation comparison: the unavailable destination disappears. [Release feedback](assets/result/invalid-released-refusal.png) confirms the refused command. These retain the existing marker style; ordinary held and committed infantry overlays differ, so they are not a promise of identical meshes before and after release.
