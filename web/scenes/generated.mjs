@@ -29,6 +29,9 @@ const isBody = ([r]) => r < 55;
  *  overview, through the stretched haze. A whited-out far band keeps about
  *  half. */
 const OVERVIEW_WARMTH_SHARE = 0.75;
+/** Fewer trees than this are missing from the overview: a street's tree at
+ *  the map's rim is a chunk of its own, which the frame's edge can cut off. */
+const TREES_OUT_MOST = 5;
 const delta = (a, b) => a.reduce((s, v, i) => s + Math.abs(v - b[i]), 0);
 
 /** Wait until the page's battle is playable: the loading screen has lifted
@@ -291,10 +294,11 @@ export async function run(ctx) {
   ctx.check("the battle ticks", after === before + 30, `${before} → ${after}`);
 
   // Everything on the map is drawn: every building a reference drawn from
-  // its template's rows in the frame's static chunks, a tree a trunk, and
-  // every body on the map its model (or the kit's stand-in). A forest's
-  // boulders never change, so they draw with the static world, not among the
-  // structures the side's knowledge redraws.
+  // its template's rows in the frame's static chunks, a tree every tree
+  // body (a forest's trunk, a street's tree), and every other body on the
+  // map its model (or the kit's stand-in). A forest's boulders never change,
+  // so they draw with the static world, not among the structures the side's
+  // knowledge redraws.
   const counts = await lab(page, () => {
     const stats = window.__lab.stats();
     const drawn = window.__lab.route.buildings();
@@ -305,21 +309,23 @@ export async function run(ctx) {
       parts: drawn.reduce((n, b) => n + b.parts.length, 0),
       trees: stats.scenery.forest.placed,
       trunks: window.__lab.route.propsNear("trunk", 0, 0, Infinity).length,
+      streetTrees: window.__lab.route.propsNear("street_tree", 0, 0, Infinity).length,
       structures: stats.structures,
       boulders: window.__lab.route.propsNear("boulder", 0, 0, Infinity).length,
     };
   });
   ctx.check(
-    "every building is drawn from its template's rows, every trunk a tree and every body of street furniture a model, and no building is a model",
+    "every building is drawn from its template's rows, every trunk and street tree a tree and every body of street furniture a model, and no building is a model",
     counts.buildings === generated.counts.buildings &&
       counts.references === generated.counts.buildings &&
       counts.parts === generated.counts.parts &&
       // The whole map can draw at the coarsest tier: a row or more a building.
       counts.coarse >= counts.buildings &&
       counts.buildings > 1000 &&
-      counts.trees === counts.trunks &&
-      counts.trees > 1000 &&
-      counts.structures + counts.boulders === generated.counts.props &&
+      counts.trees === counts.trunks + counts.streetTrees &&
+      counts.trunks > 1000 &&
+      counts.streetTrees > 0 &&
+      counts.structures + counts.boulders + counts.streetTrees === generated.counts.props &&
       generated.counts.props > 100,
     JSON.stringify({ ...counts, map: generated.counts }),
   );
@@ -544,7 +550,9 @@ export async function run(ctx) {
     overviewStats.buildings.tiers[3] === counts.coarse &&
       overviewStats.buildings.residentChunks === 0 &&
       overviewStats.buildings.pool.used === 0 &&
-      overviewStats.forest.tiers[3] === counts.trees &&
+      overviewStats.forest.tiers.slice(0, 3).every((n) => n === 0) &&
+      overviewStats.forest.tiers[3] > counts.trees - TREES_OUT_MOST &&
+      overviewStats.forest.tiers[3] <= counts.trees &&
       warmth > OVERVIEW_WARMTH_SHARE * nearWarmth,
     JSON.stringify({
       warmth,
@@ -552,6 +560,7 @@ export async function run(ctx) {
       buildings: overviewStats.buildings.tiers,
       resident: overviewStats.buildings.residentChunks,
       forest: overviewStats.forest.tiers,
+      standing: overviewStats.forest.placed,
     }),
   );
   await writeFile(ctx.evidencePath("overview-fogged-1920x1080.png"), await page.screenshot());

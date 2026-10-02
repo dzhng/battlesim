@@ -618,6 +618,45 @@ already cover the behavior, so no private field-layout test or duplicate model
 was added. Raw commands, identities, per-tick proofs and counters stay in ignored
 publication-worktree `throwaway/scale-lane/field-*` artifacts.
 
+## Outcome — reject non-hull rows before member liveness
+
+The existing hull query can emit only vehicles. Checking hull presence before
+liveness avoids scanning fallen infantry members whose geometry cannot be read.
+Vehicle health, emitted geometry and unit order remain identical for all five
+production consumers. This is one predicate reorder, with no cache, retained
+state, physical rule or budget change.
+
+The native comparison freezes the serialized layout-9 Metro Large seed-4 input,
+100 living units per side, and the late 20,000 fallen soldiers / 2,000 wrecks.
+Control engine `1d9d85aa…` and candidate `d58fb441…` consume identical rules
+`b00f7d5e…`. Early factory/scenario bytes are `e2522234…`; late factory bytes
+are `2289f7a2…`, with separately recorded reloaded scenario `70bc7b75…`.
+Early/late physical map identities are `bdadf296…` / `553e6e05…`.
+These controls do not claim the incoming layout-10 generator's workload.
+
+| Counted work over 900 ticks | Early control / candidate G instructions | Late control / candidate G instructions |
+|---|---:|---:|
+| Whole Weapons | 56.111 / 55.344 | 120.526 / 77.838 |
+| All stepping phases | 356.067 / 355.192 | 560.004 / 514.219 |
+| Construction | 23.230 / 23.208 | 26.229 / 26.212 |
+| Construction plus stepping | 379.297 / 378.400 | 586.233 / 540.431 |
+
+The declared late whole-Weapons hypothesis requires 5% improvement and rejects
+unchanged controls at zero gain. This pass gains 35.418% late and 1.367% early;
+combined construction and stepping fall 7.813% late and 0.236% early. Report
+counter reads are included; input parsing, complete-observation hashing and
+output are outside those brackets. All 901 construction/tick digests and both
+complete side observation hashes match in each arm. Serialized replay content
+also matches after excluding the source build fingerprint; live authoritative
+outcomes match at every tick. Early/late launch 19,678 / 26,339 rounds.
+
+The public hull test pins interleaved live/dead vehicles, fallen/mixed infantry,
+ordered IDs and geometry. Removing vehicle liveness fails by retaining a dead
+jeep; restoring it restores green. Narrow weapon and leaning consumers own the
+physical behavior. Receipts and commands live in ignored fog-worktree
+`throwaway/hull-cost/`. This is a 30-second native cost proof; the full current
+browser throughput and reset resource gates remain open.
+
 ## Outcome — restore combat in the generated stress input
 
 The `b5c63565` move-certification control leaves the previous opening with three rounds

@@ -142,6 +142,9 @@ export const STATION_MAPS = {
       // at across it.
       "tree-line-250": ({ line }) => at(line?.at, 250, PLAY, line?.yaw),
       "tree-line-65": ({ line }) => at(line?.at, 65, PLAY, line?.yaw),
+      // A street's trees near the town's centre (`streetTrees`), with the
+      // street's other bodies drawn beside them.
+      "street-tree-65": ({ streetTree }) => ({ ...at(streetTree, 65), models: true }),
     },
   },
 };
@@ -343,6 +346,31 @@ const townStreets = (page, centre) =>
     centre,
   );
 
+/** A street tree counts as another's neighbour this near, and the station
+ *  looks among this many of the town's. */
+const AVENUE_M = 40;
+const STREET_TREES = 60;
+
+/** Where a generated town's street trees stand thickest near `centre`: of
+ *  the street trees nearest it, the one with the most others close by (the
+ *  nearest of those that tie). Undefined on a map with none. */
+const streetTrees = (page, centre) =>
+  lab(
+    page,
+    ({ centre: [x, y], near, count }) => {
+      const trees = window.__lab.route.propsNear("street_tree", x, y, count);
+      let best;
+      for (const tree of trees) {
+        const beside = trees.filter(
+          (t) => Math.hypot(t.center[0] - tree.center[0], t.center[1] - tree.center[1]) < near,
+        ).length;
+        if (beside > (best?.beside ?? 0)) best = { beside, at: tree.center };
+      }
+      return best?.at;
+    },
+    { centre, near: AVENUE_M, count: STREET_TREES },
+  );
+
 /** The generated map's ground as the renderer builds it, in the page as
  *  `window.__generatedGround`: its terrain `surface` (its plots, its paved
  *  strokes as drawn). The map is made again from the page's own request. */
@@ -513,6 +541,7 @@ export async function openStations(ctx, map) {
           wood: await woodEdge(page, report.size, report.start.at),
           line: await treeLine(page, report.size),
           streets: await townStreets(page, report.objective.center),
+          streetTree: await streetTrees(page, report.objective.center),
         },
   );
   await lab(page, () => window.__lab.route.pause());
@@ -550,20 +579,22 @@ export function stationPose(page, map, station) {
 }
 
 /** One station's frame as a PNG buffer: the final view, or `view`; with
- *  `grass` or `trees` false, without them. */
+ *  `grass` or `trees` false, without them. A station whose pose says
+ *  `models` is shot with the map's models drawn. */
 export async function shoot(
   page,
   map,
   station,
   { view = "final", grass = true, trees = true } = {},
 ) {
-  const pose = stationPose(page, map, station);
+  const { models = false, ...pose } = stationPose(page, map, station);
   if (!pose.target) throw new Error(`${map} has nothing to stand ${station} on`);
   await aim(page, pose.target, pose);
   await lab(
     page,
-    async ({ view, grass, trees }) => {
+    async ({ view, grass, trees, models }) => {
       const l = window.__lab;
+      await l.suppressModels(!models);
       await l.suppressGrass(!grass);
       await l.suppressTrees(!trees);
       await l.setFrameView(view);
@@ -571,7 +602,7 @@ export async function shoot(
       // The forest floor's dressing is laid over a few frames after a cut.
       while (l.stats().scenery.dressing.pending) await l.frame();
     },
-    { view, grass, trees },
+    { view, grass, trees, models },
   );
   const shot = await page.screenshot();
   await lab(page, () => window.__lab.setFrameView("final"));

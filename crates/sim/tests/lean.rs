@@ -9,6 +9,56 @@ use sim::math::{v2, Obb2, V2};
 
 use crate::common;
 
+/// Hull cover must retain only living vehicles, in their original unit order;
+/// infantry membership and casualties cannot turn a squad into a hull.
+#[test]
+fn hull_cover_keeps_live_vehicle_geometry_and_order_among_fallen_squads() {
+    let rules: contract::scenario::Rules =
+        serde_json::from_value(common::scenario_rules()).unwrap();
+    let fallen = rules.catalog.by_id("rifle").squad_size();
+    let setup = common::scenario_with(
+        r#"{"size":[340,160],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#,
+        json!([
+            {"side":"blue","kind":"rifle","position":[20,20],"condition":{"casualties":fallen}},
+            {"side":"red","kind":"jeep","position":[40,120]},
+            {"side":"blue","kind":"tank","position":[100,60],"yaw":0.37},
+            {"side":"red","kind":"rifle","position":[140,120],"condition":{"casualties":1}},
+            {"side":"red","kind":"jeep","position":[180,60],"yaw":-0.82},
+            {"side":"red","kind":"rifle","position":[240,120],"condition":{"casualties":fallen}},
+            {"side":"blue","kind":"jeep","position":[260,60],"yaw":1.1}
+        ]),
+        json!([]),
+        json!([]),
+    );
+    let battle = Battle::new(&setup, 1);
+    let mut units: Vec<_> = (0..7)
+        .map(|id| battle.unit(UnitId(id)).unwrap().clone())
+        .collect();
+    // Authored health is clamped above zero; the query also sees vehicles
+    // destroyed during a battle.
+    units[1].hp = 0.0;
+    assert!(!units[0].alive() && !units[1].alive() && !units[5].alive());
+    assert!(units[3].alive() && units[3].members.iter().any(|s| !s.alive()));
+    let hulls = sim::lean::hulls(units.iter(), &setup.rules);
+    assert_eq!(
+        hulls.iter().map(|h| h.unit).collect::<Vec<_>>(),
+        vec![UnitId(2), UnitId(4), UnitId(6)]
+    );
+    for (hull, (id, side, at, yaw)) in hulls.iter().zip([
+        (2, Side::Blue, v2(100.0, 60.0), 0.37),
+        (4, Side::Red, v2(180.0, 60.0), -0.82),
+        (6, Side::Blue, v2(260.0, 60.0), 1.1),
+    ]) {
+        let unit = battle.unit(UnitId(id)).unwrap();
+        assert_eq!(hull.side, side);
+        assert_eq!(hull.rect.center, at);
+        assert_eq!(hull.rect.yaw, yaw);
+        assert_eq!(hull.base, unit.position.z);
+        assert_eq!(hull.top, unit.position.z + 2.0 * unit.hull.unwrap().z);
+        assert_eq!(hull.tier, sim::cover::vehicle_tier(unit, &setup.rules));
+    }
+}
+
 const RADIUS: f64 = 0.3;
 
 fn prop(kind: &str, center: [f64; 2], half: [f64; 3]) -> Value {
