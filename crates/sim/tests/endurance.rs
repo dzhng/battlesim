@@ -172,28 +172,13 @@ fn late_stress_remains_do_not_overwrite_building_parts() {
     );
 }
 
-#[cfg(target_os = "macos")]
-#[path = "../examples/common/instructions.rs"]
-mod counters;
-
 /// Remains are not traffic. Increasing vehicles must not multiply the work
 /// added by thousands of fallen squads; count instructions, not loaded clocks.
 #[cfg(target_os = "macos")]
 #[test]
 fn fallen_squads_do_not_multiply_vehicle_traffic_work() {
-    // Process counters include every thread. Run the measurement alone even
-    // when the surrounding test suite runs battles concurrently.
-    if std::env::var_os("SIM_TRAFFIC_COST_CHILD").is_none() {
-        let status = std::process::Command::new(std::env::current_exe().unwrap())
-            .args([
-                "--exact",
-                "endurance::fallen_squads_do_not_multiply_vehicle_traffic_work",
-                "--test-threads=1",
-            ])
-            .env("SIM_TRAFFIC_COST_CHILD", "1")
-            .status()
-            .unwrap();
-        assert!(status.success(), "isolated traffic-cost regression failed");
+    if !common::isolated_cost_test("endurance::fallen_squads_do_not_multiply_vehicle_traffic_work")
+    {
         return;
     }
     fn movement_cost(vehicles: usize, fallen: usize) -> u64 {
@@ -214,10 +199,10 @@ fn fallen_squads_do_not_multiply_vehicle_traffic_work() {
             serde_json::json!([]),
         );
         let mut b = Battle::new(&setup, 1);
-        let mut previous = counters::instructions().expect("native instruction counter");
+        let mut previous = common::counters::instructions().expect("native instruction counter");
         let mut movement = 0;
         b.step_profiled(|phase| {
-            let now = counters::instructions().unwrap();
+            let now = common::counters::instructions().unwrap();
             if phase == sim::battle::TickPhase::Movement {
                 movement += now - previous;
             }

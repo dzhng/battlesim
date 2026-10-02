@@ -108,11 +108,11 @@ remain G0's open decision; the 64 MiB codec ceiling is not a performance target.
 
 ### Priority and next pickup
 
-1. C06: infantry cover planning is the largest movement owner. A temporary
-   finer profile attributes 45.540 M/tick and a 772.343 M peak at tick 46 to
-   cover; soldier stepping is 27.872 M/tick, vehicles 4.523 and traffic 0.801.
-   These component means include extra counter reads. Their maxima occur on
-   different ticks and cannot be added. Investigate the cover owner next.
+1. C06: cover's impossible-range searches are eliminated with exact geometry
+   bounds. Movement still peaks at 207.671 M early; fog is now the largest mean
+   owner (51.635 / 56.081 M/tick, peak 175.011 / 190.104 M). Local occlusion-cache
+   invalidation is being proved independently; a distant prop change currently
+   multiplies unchanged visibility-sweep cost 4.6×.
 2. Keep matched city/saved digests and replay unchanged. Run affected tests,
    then compare reports on the exact same map and stress inputs.
 3. C07: the first exact group replacement codec is integrated. Average delivery
@@ -159,3 +159,27 @@ sight to 23.941 / 25.088 M/tick. Both exact battle digests remain unchanged.
 Loaded clocks still miss the tick budget; these are instruction gains, not
 throughput acceptance. The finer diagnostic brackets are removed after locating
 cover planning, so the production report keeps its existing system contract.
+
+### C06 impossible engagement checkpoint
+
+A fight candidate starts inside the squad's holding area and can lean at most
+the rule's maximum distance beyond it. When every aim lies beyond weapon range
+plus those two bounds, its engagement search has no possible result. The exact
+range check retains edge leans and a micrometre of numerical slack. It changes
+no resolution timing, chosen place, sight or fire rule.
+
+The public battle cost regression fails on the old search: a distant visible
+enemy raises peak movement cost from 405,912 to 85,232,244 instructions. It passes
+with the range rejection. Dropping the lean allowance fails the positive boundary
+regression. All 18 cover tests and 12 authority/replay tests pass, with focused
+clippy clean. Shared cost-test isolation prevents cross-test counter contamination.
+
+| Cost on matched 60 s city contact | Before this pass | After |
+|---|---:|---:|
+| Early step, G instructions | 356.5 | 278.9 |
+| Late step, G instructions | 457.5 | 348.7 |
+| Early movement, mean M/tick | 77.863 | 34.203 |
+| Late movement, mean M/tick | 96.912 | 36.557 |
+
+Digests remain `32ba0e3c667a728b` / `1afb9cf97c2120f3`; rounds remain 149 / 124.
+Loaded clocks are not timing admission. The native and browser budgets remain open.

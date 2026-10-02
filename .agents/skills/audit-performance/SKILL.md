@@ -88,3 +88,8 @@ predicate after the legitimate attempts so the broken arm cannot hang the runner
 Process-wide instruction counters include every test thread. Isolate a committed
 cost regression in a child process running only that test; a serial narrow command
 during development does not prevent contamination when the full suite runs later.
+
+Before accelerating a geometric candidate search, measure its failure arm and
+check whether a necessary physical bound proves the whole result empty. Include
+all allowed offsets (such as lean reach), retain numerical boundary cases, and
+falsify both the negative work test and a positive boundary test.

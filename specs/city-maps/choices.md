@@ -2929,3 +2929,19 @@ cache owner or lifetime.
 repeats a scan of its soldiers. These short-lived bounds have explicit refresh
 owners and preserve collision and sensing results. Fallen squads remain in the
 battle and observations; they add no traffic work per vehicle. **Confidence:** high.
+
+## C06 engagement-search bounds
+
+### Reject only an engagement search proven empty by physical reach
+
+**Choice:** Cover planning skips a fight search only when every target lies
+beyond weapon range plus the squad-area radius and maximum lean distance.
+Boundary cases retain the ordinary search with a micrometre of rounding slack.
+
+**Gap:** The cost slice delegates reductions without choosing how to bound
+failed cover searches.
+
+**Verdict:** sound. Every candidate starts inside the area, and every lean is
+bounded by the existing physical rule; three-dimensional distance is at least
+its horizontal distance. This saves searching thousands of positions without
+changing chosen cover or planning timing. **Confidence:** high.

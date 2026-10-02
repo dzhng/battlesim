@@ -62,3 +62,14 @@ Matched city early/late digests are unchanged; measured instruction gains and
 the next cover-planning owner live in the scale lane's
 [checkpoint](../scale-lane.md#c06-live-traffic-and-sight-bounds-checkpoint).
 No mechanic or scheduling delay was introduced. C06 remains open.
+
+## Outcome — impossible engagement searches
+
+The cover probe found 146 resolutions in the first two seconds against targets
+beyond weapon, holding-area and lean reach. Their failed step-out searches alone
+retired 18.7 G instructions. A conservative necessary range condition now avoids
+that proven empty search. Ordinary near-target candidates and boundary cases keep
+the original exact search. The negative public-battle cost test and positive
+edge-lean test both have red/green proofs; existing cover/replay tests stay green.
+Matched city costs and unchanged digests live in the
+[checkpoint](../scale-lane.md#c06-impossible-engagement-checkpoint).
