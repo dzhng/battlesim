@@ -2794,3 +2794,89 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 **Gap:** "The mask view adds 0 ms to the final view."
 
 **Verdict:** sound. The final view gains one uniform comparison per terrain fragment; the machine's run-to-run noise is hundreds of times that. **Confidence:** high.
+
+## C13/C32 kits and the template art library
+
+### A kit is a static bundle whose states are its modules
+
+**Choice:** A kit is an appearance of its own unit (`kit`), baked into the existing static bundle with one state per module. The alternative was a new bundle kind.
+
+**Gap:** C32 says "existing scene-assets bake/schema/loader" without saying how a module is stored.
+
+**Reach:** The bundle format, codec and loader are unchanged, so every existing bundle keeps its hash. Anything that hands every installed appearance to the model layer now hands it the kits too; the battle already filters to what it draws.
+
+**Verdict:** sound. A module is exactly what a state already is: four tiers, a bounds, shared materials and textures. **Confidence:** high.
+
+### A module's frame is its empty's
+
+**Choice:** A module's geometry is read in its root empty's own frame, so a script may lay modules out side by side in the file. The alternative required every empty at the file's origin.
+
+**Gap:** The source readme said "in the module's own frame" without saying whether the empty's position counts.
+
+**Verdict:** sound. It costs nothing, and a kit file that can be opened and looked at is worth having. **Confidence:** high.
+
+### Rows are columns, 34 bytes each, in the bundle container
+
+**Choice:** The library is one file in the bundles' own container under its own magic: a header naming kits, modules and templates, and four columns over every row (module index, seven floats, tier mask, tint). A template's state is a range of them. The alternatives were quantised positions (about half the bytes) or one file per template.
+
+**Gap:** C32 delegated "codec grouping/packing".
+
+**Reach:** At 100 templates of 6,000 rows it is about 20 MB before transport compression; real sets should be a few megabytes. Resolving a building copies only its transforms.
+
+**Verdict:** provisional. Quantising to a centimetre risks cracks between modules that meet on a lattice, for bytes nobody has yet measured as a problem. C22 measures a real library and may amend this. **Confidence:** medium.
+
+### Art identity is the library's own bytes without the hash
+
+**Choice:** `art_hash` is the sha256 of the library encoded without it. The library names each kit's bundle hash, so the hash covers modules, materials and tiers as well as rows, tier masks, tints, status and the catalogue hash it covers.
+
+**Verdict:** sound. Anything that changes what is drawn changes it, and nothing else does. **Confidence:** high.
+
+### Missing art is refused in three places, by one name each
+
+**Choice:** A template or state with no rows is refused by the resolver (`template.missing`, `state.missing`). A module its kit lacks is refused when the sets are packed and again when the loader binds the library to the installed kits (`module.missing`, `kit.missing`), which fails the whole load.
+
+**Gap:** C32 asks for explicit failure on missing templates, modules and state rows; the resolver's four arguments cannot see the kits.
+
+**Verdict:** sound. A missing module is a broken catalog generation, not a per-building event, so it belongs to the atomic install. **Confidence:** high.
+
+### Fit is every vertex inside some grown part, and nothing below a part's base
+
+**Choice:** A state fits when each vertex its rows draw, at each tier a row draws at, lies inside at least one part grown by the set's `side_m` and `top_m`. Below a part's base only the catalog's ground tolerance is allowed. A millimetre of slack covers single-precision transforms.
+
+**Gap:** The readme gives `side_m` and `top_m` and is silent on the underside and on what "inside the union" means for a mesh spanning two parts.
+
+**Reach:** A plinth sunk into a slope is refused today. A triangle whose corners are in two parts and whose middle is in neither is accepted.
+
+**Verdict:** provisional. Foundations on sloped ground are a real need the ground lane's pads may answer first; if not, `fit` gains a `below_m`. **Confidence:** medium.
+
+### The catalogue is derived, and the prototype set is derived from it
+
+**Choice:** `asset catalogue` rewrites the physical catalogue's rows from every set's descriptors, keeping an unchanged row as written and where it is. `asset prototypes` then gives stand-in rows to every catalogue template no other set dresses. A descriptor equals its catalogue row when the contract's canonical forms are equal.
+
+**Gap:** "The physical catalogue the generator reads is derived from those descriptors and checked against them" did not say which way the prototypes flow, since they have no script.
+
+**Reach:** To retire a stand-in, delete its catalogue row and regenerate the prototype set. The catalogue file's text is the command's, so its hand formatting is now fixed.
+
+**Verdict:** sound. Run on today's catalogue it changes no byte, so nothing moved in this pass. **Confidence:** high.
+
+### Prototype rows carry the category's tint, not each building's jitter
+
+**Choice:** A stand-in row's tint is its category's massing tint. The massing boxes also varied each building's value; a template's rows are shared by every building placed from it, so that variation is the renderer's per instance, or gone.
+
+**Verdict:** provisional, for C22 to settle when the boxes are replaced. **Confidence:** medium.
+
+### Triangle budgets are reported, not enforced
+
+**Choice:** The bake prints what each template draws at each tier and marks one over budget. It refuses nothing.
+
+**Gap:** The readme lists the budgets among the rules a set keeps; the ledger above calls them provisional.
+
+**Verdict:** sound until C22 measures frames. A gate on guessed numbers would refuse good art. **Confidence:** medium.
+
+### The asset bake and check need the WebAssembly
+
+**Choice:** Descriptors and the catalogue's hash are judged by `contract::templates` through one new export (`complete_template_catalogue_json`), loaded only when the catalog has city sets. The alternative was a native helper binary.
+
+**Reach:** `asset bake` and `asset check` now fail without `bun run build:wasm`. The dev server's rebake already runs after it.
+
+**Verdict:** sound. It is the route the web tests and the map adapters already take. **Confidence:** high.
