@@ -2997,3 +2997,31 @@ admission are fallible before output/cursor commit.
 
 **Verdict:** Sound: complete, immutable reconstruction retains atomic side
 knowledge and the existing recovery contract. **Confidence:** High.
+## C06 spatial fog invalidation
+
+### Mutation stamps belong to the footprint index
+
+**Choice:** When a tree falls far from an observer, the observer's cached solid
+heights remain usable. The footprint index already divides the world into
+32 m buckets to find nearby bodies. World alone enables a private last-change
+number in each bucket. Insertion and deletion stamp affected buckets; movement
+stamps both the old and new footprints. A removed body's bucket retains its
+number even when empty. After any world change, a fog tile compares the largest
+number among the same buckets its body query uses. If unchanged, its raster
+(the solid height at each fog-cell centre) is still exact. The global revision
+remains the first cheap check while no body changes at all.
+
+**Gap:** The slice delegates dirty bookkeeping but does not specify storage or
+a retained-history policy.
+
+**Reach:** The additional arrays depend on physical extent, not battle history:
+one number per world bucket and a second number per existing fog tile. They
+add 6.25 MB at 20 × 20 km with 8 m fog cells; side-known indexes allocate no
+stamp arrays. More precise footprint-shaped invalidation could save some
+boundary rebuilds but would add bookkeeping beyond the index's bucket bounds.
+This uses the existing
+conservative body query without new sampling or changed sight rules.
+
+**Verdict:** sound. Unrelated changes no longer force active eyes to sort and
+raster nearby bodies again, and no changed-prefix scan can miss a later update.
+**Confidence:** high; fresh-sweep and cost regressions remain the acceptance seams.

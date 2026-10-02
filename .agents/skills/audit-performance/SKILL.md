@@ -96,3 +96,10 @@ Before accelerating a geometric candidate search, measure its failure arm and
 check whether a necessary physical bound proves the whole result empty. Include
 all allowed offsets (such as lean reach), retain numerical boundary cases, and
 falsify both the negative work test and a positive boundary test.
+
+For spatial cache invalidation, compare distant mutations with an unchanged
+active view; a quiet steady-state sample misses global-revision amplification.
+Check old and new moved footprints, deletion into an empty region and changed
+heights against fresh complete queries. Count every instance of a shared index
+when sizing metadata; tracking state unused by its other consumers is hidden
+full-extent allocation.

@@ -73,3 +73,36 @@ the original exact search. The negative public-battle cost test and positive
 edge-lean test both have red/green proofs; existing cover/replay tests stay green.
 Matched city costs and unchanged digests live in the
 [checkpoint](../scale-lane.md#c06-impossible-engagement-checkpoint).
+
+## Measured finding — before local fog invalidation
+
+Any prop mutation invalidated every subsequently visited occlusion tile, even
+when the changed footprint was distant. Each such tile rebuild allocated, sorted
+and deduplicated its nearby prop candidates. The cache limited permanent raster
+work to visited tiles, but the global revision amplified a local change into
+all active eyes' tiles. Native contact fog averages 51–56 M instructions/tick;
+the stack probe also samples candidate sorting. A public sweep cost comparison
+and fresh-raster parity are the acceptance seams for local invalidation.
+
+## Outcome — local fog invalidation checkpoint
+
+World's existing footprint buckets now retain monotonic mutation stamps. Fog
+tiles check their local maximum only after the global obstacle revision changes;
+unchanged candidate buckets prove their cached solid heights remain exact. Moves
+touch old and new footprints, and removal leaves a stamp in empty buckets. The
+raster's cell centres, body ordering and height arithmetic are unchanged.
+
+The old public-sweep cost regression retired 43.6 M instructions for eight
+distant-only changes versus 9.48 M for unchanged sweeps. Local tracking passes
+the bound of less than twice its steady sweep cost, with identical visibility
+bits. Fresh complete sweeps agree through authored revision zero, local additions,
+moves, deletions, height replacements, overlapping bodies and partial edge tiles.
+Removing deletion stamping makes that parity check fail; restoring it passes.
+Focused sight, village replay and library clippy pass on the engagement-guard base.
+
+Added permanent metadata is 6.25 MB at 20 × 20 km with 8 m fog cells: 3.125 MB
+for world bucket stamps and 3.125 MB more for tile revisions. Side-known indexes
+allocate no stamps, and mutations add no history or scratch buffer. The existing
+50 MB fine solid-height raster is unchanged; this pass does not claim to solve
+G0 storage. Matched native city digests/costs and browser admission remain the
+integrating scale lane's next verification; C06 remains open.
