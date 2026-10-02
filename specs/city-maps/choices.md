@@ -6231,3 +6231,18 @@ result; gameplay rules and the transport contract are unchanged.
 **Verdict:** sound; high confidence. Scope follows an observed field and public
 red proof, rather than assuming all standard math needs replacement. Remaining
 generated-battle parity must still be measured after integration.
+
+## C07: ricochet numerical primitive
+
+**Choice:** Canonicalize the whole existing ricochet scatter primitive's sine
+and cosine calls with the pinned `libm`, keeping its RNG consumption and rules.
+
+**Evidence:** Direct paired captures establish equal impact inputs and scatter
+basis before the first divergent azimuth cosine. Persistent-state equality
+alone would not have established that cause. A public damage-decision test uses
+fixed captured inputs and explicit rules; the passing two-unit battle candidate
+is not retained as a regression. Actual generated Native/Wasm playback validates
+the consumer without adding a diagnostic API or durable format.
+
+**Verdict:** sound; high confidence. This corrects named Native last bits at a
+measured primitive rather than migrating an inventory of unrelated math calls.

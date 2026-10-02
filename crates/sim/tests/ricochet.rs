@@ -445,3 +445,77 @@ fn rifle_fire_through_a_tank_glances_off_it_and_replays() {
         );
     }
 }
+
+/// A real hull bounce whose azimuth cosine differed on Native and Wasm;
+/// the persistent battle and every impact input agreed before deflection.
+#[test]
+fn hull_scatter_retains_portable_velocity_bits_and_random_draws() {
+    use contract::scenario::{Armor, RicochetRules};
+    use sim::damage::{decide, StruckHull};
+    use sim::flight::{ImpactContext, ImpactDecision, Pose};
+    let armor = Armor {
+        front: 140.0,
+        side: 100.0,
+        rear: 60.0,
+        roof: 40.0,
+        ricochet: FaceChances {
+            front: 0.5,
+            side: 0.35,
+            rear: 0.2,
+            roof: 0.6,
+        },
+    };
+    let rules = RicochetRules {
+        speed_kept: 0.6,
+        scatter_deg: 12.0,
+        penetration_kept: 0.5,
+        max_bounces: 2,
+    };
+    let pose = Pose {
+        base: v3(5079.0, 4999.0, 0.0),
+        yaw: std::f64::consts::PI,
+    };
+    let hit = ImpactContext {
+        projectile: ProjectileId(1108),
+        bounces: 0,
+        struck: Struck::Body(BodyId(16777366)),
+        point: v3(5075.5, 4999.216335123485, 1.8114914644760762),
+        normal: v3(-1.0, 1.2246467991473532e-16, 0.0),
+        velocity: v3(794.2920370002005, -95.36647169291987, -2.629057549916237),
+        pose: Some(pose),
+    };
+    let mut rng = Rng::new(0xe061_42c4_42ca_b136);
+    let ImpactDecision::Bounce { velocity } = decide(
+        RoundPower {
+            penetration: 20.0,
+            bursts: false,
+        },
+        Some(StruckHull {
+            armor: &armor,
+            half: v3(3.5, 1.8, 1.2),
+            pose,
+        }),
+        &hit,
+        &rules,
+        &mut rng,
+    ) else {
+        panic!("the failed penetration must ricochet");
+    };
+    assert_eq!(
+        [
+            velocity.x.to_bits(),
+            velocity.y.to_bits(),
+            velocity.z.to_bits()
+        ],
+        [
+            0xc07d_d117_8c14_5b0e,
+            0x4010_5104_272a_ab02,
+            0xc04a_68c4_2876_afa3
+        ]
+    );
+    assert_eq!(
+        rng.state(),
+        0xbb07_aff0_c0aa_2575,
+        "eligibility and two scatter draws"
+    );
+}

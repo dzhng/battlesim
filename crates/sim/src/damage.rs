@@ -189,13 +189,14 @@ fn deflect(velocity: V3, normal: V3, rules: &RicochetRules, rng: &mut Rng) -> V3
     };
     let a = mirror.cross(helper).normalized();
     let b = mirror.cross(a);
+    // The scatter evaluator must preserve the same bits on Native and Wasm.
     let cone = rules.scatter_deg.to_radians();
-    let cos_t = 1.0 - rng.unit() * (1.0 - cone.cos());
+    let cos_t = 1.0 - rng.unit() * (1.0 - libm::cos(cone));
     let sin_t = (1.0 - cos_t * cos_t).max(0.0).sqrt();
     let phi = std::f64::consts::TAU * rng.unit();
-    let mut dir = mirror * cos_t + (a * phi.cos() + b * phi.sin()) * sin_t;
+    let mut dir = mirror * cos_t + (a * libm::cos(phi) + b * libm::sin(phi)) * sin_t;
     let off = dir.dot(normal);
-    let least = MIN_DEFLECTION_RAD.sin();
+    let least = libm::sin(MIN_DEFLECTION_RAD);
     if off < least {
         dir = (dir + normal * (least - off)).normalized();
     }
