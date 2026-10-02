@@ -422,7 +422,7 @@ const buildFn = tgpu
       let room = max(0.0, min(site.y - terrainLayout.$.params.verge.w, margin) - ${ROW_HEADLAND_M});
       p = fell + plot.rows.xy * clamp(toRow, -room, room);
     }
-    // Nothing stands in a wheeling.
+    // A wheeling stays bare.
     if (groundWheeling(p, 0.0, i32(site.x)) > 0.5) { continue; }
     let root = vec3f(p, grassGround(p));
     // The side's learned scars: craters, scorch and tracks leave clumps out.
@@ -434,7 +434,7 @@ const buildFn = tgpu
     let keep = rho * g.x * (1.0 - stand.z * sparse) * mix(0.5, 1.0, edge) * (1.0 - bare) * (1.0 - shore) * groundShoulderGrass(worn);
     if (rank >= keep) { continue; }
     if (grassUnderProp(p)) { continue; }
-    // A clump nearing its rank's threshold is small: it grows in as the
+    // A clump nearing its rank's threshold is small: it grows as the
     // density passes it, and shrinks away as the fade takes it.
     let grow = 1.0 - smoothstep(0.7 * keep, keep, rank);
     let fade = 1.0 - smoothstep((*P).density.z, (*P).density.w, footprint);
@@ -486,15 +486,15 @@ const buildFn = tgpu
     let parched = smoothstep(0.55, 0.8, valueNoise(p * (*P).patchScales.z + vec2f(9.3, 77.1)));
     // What sets a clump apart from the ground under it (how dry it is, its
     // grain) goes with the clump as the fade takes it, so the field's far
-    // edge meets the painted ground in the ground's own colour.
+    // edge meets the painted ground with the ground's own colour.
     let dryness = min(1.0, stand.w * parched + grass.w) * fade;
     // Each clump a little lighter or darker than the next, half on its own
-    // and half with the tussock it stands in: the grain a field keeps when
+    // and half with the tussock beneath it: the grain a field keeps when
     // it is too far to show blades. Dry grass is paler, never darker.
     let tussock = valueNoise(p * (*P).grain.x + vec2f(63.9, 27.4));
     let value = 1.0 + (*P).shading.z * fade * (fract(h.y * 57.31) + tussock - 1.0);
     let colour = value * (1.0 + (*P).grain.y * dryness) * groundTint(scarredSurface(groundColour(p, footprint, site, paved, water), scar).xyz, dryness);
-    // Tracks and trampling lay the clump over (carried in the colour's alpha).
+    // Tracks and trampling lay the clump over (carried by the colour's alpha).
     let flat = max(scar.weights.z, scar.weights.w) * S.z;
     let slot = atomicAdd(&grassBuildLayout.$.args[tier * 5u + 1u], 1u);
     let cap = select((*P).grid.w, (*P).grid.z, tier == 0u);

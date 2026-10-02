@@ -446,7 +446,7 @@
     "fade_m_per_px": [0.08, 0.14],
     "soften_m_per_px": [0.02, 0.08],
     "soften": 1,
-    "blade_facing": 0.45,
+    "blade_facing": 0,
     "clump_value": 0.16,
     "dry_lift": 0.08,
     "near_tier_px": 40,
