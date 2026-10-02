@@ -6080,3 +6080,19 @@ The second pass's unprimed review found nearly all its street faults along the s
 ### Judge neutral boundary paint by colour and actual contrast
 
 **When:** boundary integration triage, 2026-10-02. **Choice:** Check the stored paint's neutral colour at each boundary sample, then require that it changes the finished frame there. Grey over a yellow field can lower red and raise blue; checking only positive red/blue rises incorrectly rejected a visible dim white line. The paired-frame helper retains both finished images for signed contrast. **Gap:** The scene specified a visible neutral border but assumed neutral paint brightened every channel. **Reach:** This corrects verification without changing border style, width, geometry or rendering; absent paint and unchanged finished frames still fail. **Verdict:** sound; stored colour and composited contrast establish the two required properties independently. **Confidence:** high.
+
+### Stage diagnostic flight against current physical rules
+
+**When:** lab integration triage, 2026-10-02. **Choice:** A low grenade arc now starts nearer the existing ridge, and moving-body starts use the owner's nominal solved flight time while retaining their speeds and shapes. Spread changes the projectile without moving the diagnostic actors. Otherwise, the old coordinates would test a crest the round clears and a tank that has already left its path. **Gap:** Fixture coordinates encoded obsolete flight timing. **Reach:** Diagnostic staging changes; weapon coefficients and gameplay flight do not. **Verdict:** sound; the fixtures again demonstrate the original blocked-arc and swept-collision contracts. **Confidence:** high.
+
+### Give the hidden weapons diagnostic a reachable physical screen
+
+**When:** lab integration triage, 2026-10-02. **Choice:** A nearby firing emitter sits behind a low wall, and the blue observer stands where the identified tank is within both weapon mounts' reach. A distant hidden report cannot demonstrate a 150 m grenade's area fire, and rifle reach alone cannot establish the identified control's eligibility for every mount. **Gap:** The fixture needed nearby hidden evidence after weapon tuning. **Reach:** The authored diagnostic map and encounter identity change; no targeting or concealment rules change. **Verdict:** sound; range and source controls prevent an ineligible target from making the experiment pass. **Confidence:** medium; the wall is a chosen diagnostic arrangement rather than a product requirement.
+
+### Keep diagnostic feeds reachable inside the viewport
+
+**When:** lab-panel integration, 2026-10-02. **Choice:** The existing lab panel uses its own bounded scrolling; its feed retains one pixel below the last row so fractional scroll endpoints cannot clip it. The scene scrolls every actual feed row into view at desktop and smaller viewports, requiring full containment. Otherwise, a valid simulation event can remain unreadable below the panel. **Gap:** The lab layout did not specify overflow behavior. **Reach:** All consumers of the existing lab-panel style inherit its viewport bound; no new panel or navigation model is introduced. **Verdict:** sound; the existing surface remains readable with strict checks and no tolerance relaxation. **Confidence:** high.
+
+### Capture crossing interaction from authoritative event times
+
+**When:** lab-panel integration, 2026-10-02. **Choice:** The scene runs the diagnostic once to obtain the actual near-miss and impact ticks, resets it, then captures those moments. Otherwise, fixed historical ticks show bodies before the current slower projectile reaches them. **Gap:** Capture timing was tied to old tuning. **Reach:** The scene consumes the flight owner's events rather than adding a second trajectory estimate; all original collision assertions remain. **Verdict:** sound; screenshots show the interaction the test judges. **Confidence:** high.

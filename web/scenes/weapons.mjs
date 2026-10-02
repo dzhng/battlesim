@@ -23,6 +23,63 @@ async function panelCrop(ctx, page, name) {
   return shot;
 }
 
+async function feedReachable(ctx, page, name) {
+  const original = page.viewportSize();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  for (const viewport of [original, { width: 800, height: 600 }]) {
+    await page.setViewportSize(viewport);
+    await page.evaluate(() => window.__lab.frame());
+    const receipt = await page.getByTestId("weapons-panel").evaluate((panel) => {
+      const feed = panel.querySelector('[data-testid="feed-panel"]');
+      const bounds = (el) => {
+        const r = el.getBoundingClientRect();
+        return { top: r.top, right: r.right, bottom: r.bottom, left: r.left };
+      };
+      const panelBounds = bounds(panel);
+      const rows = [...feed.querySelectorAll("[data-feed]")].map((row) => {
+        row.scrollIntoView({ block: "center" });
+        const r = bounds(row),
+          p = bounds(panel),
+          f = bounds(feed);
+        return {
+          row: row.dataset.feed,
+          bounds: r,
+          panel: p,
+          feed: f,
+          reachable:
+            r.top >= Math.max(0, p.top, f.top) &&
+            r.bottom <= Math.min(innerHeight, p.bottom, f.bottom) &&
+            r.left >= Math.max(0, p.left, f.left) &&
+            r.right <= Math.min(innerWidth, p.right, f.right),
+        };
+      });
+      return { panel: panelBounds, rows, viewport: [innerWidth, innerHeight] };
+    });
+    const id = `${name}-${viewport.width}x${viewport.height}`;
+    ctx.check(
+      `${id}: every animation feed entry is reachable inside the viewport`,
+      receipt.panel.top >= 0 &&
+        receipt.panel.bottom <= viewport.height &&
+        receipt.panel.left >= 0 &&
+        receipt.panel.right <= viewport.width &&
+        receipt.rows.length > 0 &&
+        receipt.rows.every((row) => row.reachable),
+      JSON.stringify(receipt),
+    );
+    await ctx.writeEvidence(`${id}.json`, receipt);
+    await writeFile(ctx.evidencePath(`frame-${id}-feed-end.png`), await page.screenshot());
+    await page.getByTestId("weapons-panel").evaluate((panel) => {
+      panel.scrollTop = 0;
+      panel.querySelector('[data-testid="feed-panel"]').scrollTop = 0;
+    });
+  }
+  await page.setViewportSize(original);
+  await page.evaluate(() => {
+    window.scrollTo(0, 0);
+    return window.__lab.frame();
+  });
+}
+
 export async function run(ctx) {
   const page = await openBattle(ctx);
   await lab(page, () => window.__lab.route.select([0, 1]));
@@ -42,6 +99,7 @@ export async function run(ctx) {
   );
   const engaging = await panelCrop(ctx, page, "crop-action-panel-engaging-2x.png");
   await writeFile(ctx.evidencePath("frame-engaging-1280x800.png"), engaging);
+  await feedReachable(ctx, page, "engaging");
 
   // The red tank passes the wall: a brief loss keeps the same lock and aim.
   let grace = null;
@@ -96,6 +154,7 @@ export async function run(ctx) {
       tracer = near;
       await page.evaluate(() => window.__lab.frame());
       await writeFile(ctx.evidencePath("frame-tracer-1280x800.png"), await page.screenshot());
+      await feedReachable(ctx, page, "tracer");
     }
     if (!grace && c.reason === "tracking_last_sighting") {
       grace = { tick: o.tick, target: c.target, aim: c.aim };

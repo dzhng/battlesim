@@ -73,6 +73,20 @@ export async function run(ctx) {
     (await page.evaluate(() => window.__lab.route.subsegments())) === 1,
   );
 
+  const crossingWindow = await page.evaluate((endTick) => {
+    const route = window.__lab.route;
+    route.runTo(endTick);
+    const state = route.state();
+    const shot = state.shots.find((s) => s.label === "grenade across crossing bodies");
+    const events = state.events.filter((e) => e.projectile === shot.projectile);
+    const impact = events.find((e) => e.kind === "impact");
+    const firstPass = events.find((e) => e.kind === "near_miss" && e.unit === 4);
+    if (!impact || !firstPass) throw new Error("crossing capture needs an impact and near miss");
+    route.reset(false);
+    return { before: firstPass.tick - 1, impact: impact.tick };
+  }, END_TICK);
+  await ctx.writeEvidence("crossing-window.json", crossingWindow);
+
   // Timing sequence: overview and the two between-tick collisions.
   await show(page, "overview");
   await runTo(page, 4);
@@ -88,10 +102,10 @@ export async function run(ctx) {
   await runTo(page, 20);
   await capture(ctx, page, "seq-overview-t020.png");
   await show(page, "crossing");
-  await runTo(page, 40);
-  await capture(ctx, page, "seq-crossing-t040.png");
-  await runTo(page, 46);
-  const crossing = await capture(ctx, page, "seq-crossing-t046.png");
+  await runTo(page, crossingWindow.before);
+  await capture(ctx, page, `seq-crossing-t${crossingWindow.before}.png`);
+  await runTo(page, crossingWindow.impact);
+  const crossing = await capture(ctx, page, `seq-crossing-t${crossingWindow.impact}.png`);
   await show(page, "overview");
   await runTo(page, 120);
   await capture(ctx, page, "seq-overview-t120.png");
@@ -220,7 +234,7 @@ export async function run(ctx) {
   );
   await writeCrop(
     decode(crossing),
-    ctx.evidencePath("crop-crossing-t046-3x.png"),
+    ctx.evidencePath(`crop-crossing-t${crossingWindow.impact}-3x.png`),
     tankPx[0] - 60,
     tankPx[1],
     150,
