@@ -76,6 +76,8 @@ the server and open the editor directly. See its README for the editing workflow
 It previews and saves validated fixture edits; new and explicitly restarted
 battles capture the latest saved rules.
 
+Contact circles and panels share a visual fade through [contact presentation](web/src/battle/present/contactPresentation.ts). A fading retired report is remembered evidence only; commands and picking still use the current observation.
+
 Floating unit panels show name and health. Own-unit panels show a crossed-out eye beside the name, plus HIDDEN in expanded detail, when forest or garrison concealment covers enough of the living unit and there is no known engagement or currently visible enemy observer spotting it. The [sensing rules](crates/sim/src/sensing.rs) own squad thresholds; concealment uses forest ground, independently of tree crowns. Space prioritizes the closest 30% of visible units from the camera's actual position; farther cards expand where room remains. Hovering a unit or its card always reveals its detail. Placement tries expansion in place, then the fewest card shifts, favoring shorter shifts when the counts tie.
 
 A held right-click previews each selected unit’s destination and facing with the same markers shown after release. Dragging rotates about the clicked front center. The [group move placement rationale](specs/done/group-move-preview/README.md) explains its authority, spacing and partial-placement contracts. The [move-validity rationale](specs/done/move-validity/README.md) explains why a destination marker also requires demonstrated physical travel.
