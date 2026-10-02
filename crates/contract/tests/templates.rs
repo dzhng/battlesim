@@ -433,35 +433,20 @@ fn common_vertical_datum_cannot_hide_real_facade_coverage() {
 
 #[test]
 fn rotation_materialization_uses_the_same_values_as_the_portable_runtime() {
+    /// What the Wasm build materialized at a frame where the platform's own
+    /// sine and cosine once gave native a different answer.
     #[derive(serde::Deserialize)]
-    struct Regression {
+    struct WasmRecord {
         frame: PlacementFrame,
         wasm: MaterializedBuilding,
     }
-    let descriptor: BuildingTemplateDescriptor = serde_json::from_str(include_str!(
-        "../../../fixtures/parity/templates/rejected-runtime-rotation/descriptor.json"
+    let record: WasmRecord = serde_json::from_str(include_str!(
+        "../../../fixtures/parity/templates/wasm-asymmetric.json"
     ))
     .unwrap();
-    // The original report has no local-span metadata. Add only that owner
-    // field without parsing/reprinting any original floating-point token.
-    let mut raw = include_str!(
-        "../../../fixtures/parity/templates/rejected-runtime-rotation/regression.json"
-    )
-    .to_string();
-    for edge in &descriptor.edges {
-        let original = format!("\"id\": \"{}\",", edge.id);
-        raw = raw.replace(
-            &original,
-            &format!(
-                "{original} \"span_m\":{},",
-                serde_json::to_string(&edge.span_m).unwrap()
-            ),
-        );
-    }
-    let reference: Regression = serde_json::from_str(&raw).unwrap();
-    let actual = descriptor.materialize(reference.frame).unwrap();
-    assert_eq!(actual.edges[0].normal, reference.wasm.edges[0].normal);
-    assert_eq!(actual, reference.wasm);
+    let actual = asymmetric().materialize(record.frame).unwrap();
+    assert_eq!(actual.edges[0].normal, record.wasm.edges[0].normal);
+    assert_eq!(actual, record.wasm);
 }
 
 #[test]
