@@ -475,6 +475,10 @@ export default function MechanicsEditor() {
     () => (snapshot ? resolvedEntries(snapshot.catalog, "units") : {}),
     [snapshot],
   );
+  const weapons = useMemo(
+    () => (snapshot ? resolvedEntries(snapshot.catalog, "weapons") : {}),
+    [snapshot],
+  );
   const filtered = Object.entries(units).filter(([id, unit]) => {
     const weapons = snapshot && draft ? unitWeapons(snapshot, id, draft) : [];
     return [
@@ -700,12 +704,15 @@ export default function MechanicsEditor() {
           <datalist id="mechanics-ammo">
             <option value="unlimited" />
           </datalist>
+          <p className="me-scroll-hint">Scroll sideways to see all unit values →</p>
           <div className="me-sheet-scroll">
             <table className="me-sheet">
               <thead>
                 <tr>
                   <th>Unit / exact type</th>
-                  <th>Cost</th>
+                  <th>
+                    Cost <span>points</span>
+                  </th>
                   <th>
                     Off-road <span>km/h</span>
                   </th>
@@ -715,7 +722,9 @@ export default function MechanicsEditor() {
                   <th>
                     Sight <span>m</span>
                   </th>
-                  <th>Health</th>
+                  <th>
+                    Health <span>HP / soldiers</span>
+                  </th>
                   <th>Weapons</th>
                 </tr>
               </thead>
@@ -779,7 +788,7 @@ export default function MechanicsEditor() {
                           </td>
                           <td className="me-weapons-cell">
                             {unitWeapons(editor.snapshot, id, editor.draft).map((weapon) => (
-                              <span key={weapon}>{weapon}</span>
+                              <span key={weapon}>{String(weapons[weapon]?.name ?? weapon)}</span>
                             ))}
                           </td>
                         </tr>

@@ -633,3 +633,13 @@
     text-align: left;
   }
 }
+.me-scroll-hint {
+  display: none;
+  color: var(--me-muted);
+  font-size: 12px;
+}
+@media (max-width: 960px) {
+  .me-scroll-hint {
+    display: block;
+  }
+}
