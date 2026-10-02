@@ -18,8 +18,7 @@ import {
   type MapMeta,
 } from "@web/maps/catalogue";
 import { openCatalogue, shipped } from "@web/maps/node";
-import { MapResolveError, resolveSavedMap, type MapIdentity } from "@web/maps/resolve";
-import { resolve_saved_map } from "@wasm/game_wasm.js";
+import { MapResolveError, type MapIdentity } from "@web/maps/resolve";
 
 const FIXTURES = join(import.meta.dirname, "../../fixtures");
 const ids = shipped.ids();
@@ -40,22 +39,38 @@ test("the listing is the catalogue's folders, each with valid metadata that says
   }
 });
 
-test("every map resolves to the identity its sources pin, and its definition survives JavaScript", () => {
+test("every map resolves to the identity its sources pin, and the definition handed on is the resolved one", () => {
   for (const id of ids) {
-    const { definition, identity } = shipped.load(id);
+    const { definition, identity, json } = shipped.load(id);
     const sources = JSON.parse(shipped.document(id, "SOURCES.json")) as { identity: MapIdentity };
     expect(identity, id).toEqual(sources.identity);
-    // The definition a route hands the simulation is the one that was
-    // resolved: parsed and printed by JavaScript, it is still the map its
-    // sources pin.
-    const again = resolveSavedMap(resolve_saved_map, id, {
-      map: JSON.stringify(definition),
-      sources: shipped.document(id, "SOURCES.json"),
-      library: shipped.library(),
-    });
-    expect(again.identity, id).toEqual(identity);
-    expect(again.definition, id).toEqual(definition);
+    // Preparation splices a scenario from the resolver's own text.
+    expect(JSON.parse(json), id).toEqual(definition);
+    // A lab hands the simulation the definition as JavaScript prints it. An
+    // authored map survives that: it holds no number JavaScript prints as
+    // another (a negative zero).
+    if (identity.kind === "authored")
+      expect(JSON.parse(JSON.stringify(definition)), id).toEqual(definition);
   }
+});
+
+test("a saved building is its template and frame, and resolves to the template's geometry there", () => {
+  const saved = JSON.parse(shipped.document("geometry", "map.json")) as {
+    buildings: Record<string, unknown>[];
+  };
+  expect(Object.keys(saved.buildings[0]).sort()).toEqual([
+    "frame",
+    "kind",
+    "owner",
+    "parts",
+    "template_id",
+  ]);
+  const [building] = shipped.load("geometry").definition.buildings!;
+  expect(building.geometry.template_id).toBe(saved.buildings[0].template_id);
+  expect(building.geometry.frame).toEqual(saved.buildings[0].frame);
+  expect(building.geometry.parts.map((part) => part.id)).toEqual(
+    building.parts.map((reference) => reference.part),
+  );
 });
 
 test("every saved encounter is listed by its map and lists its units", () => {
@@ -164,13 +179,12 @@ afterAll(() => rmSync(scratch, { recursive: true, force: true }));
 
 test("a map that does not resolve is refused naming the document at fault, never replaced", () => {
   cpSync(join(FIXTURES, "maps/geometry"), join(scratch, "geometry"), { recursive: true });
-  const library = join(FIXTURES, "building-templates.json");
   const refusal = (
     id: string,
     read: (c: ReturnType<typeof openCatalogue>) => unknown = (c) => c.load(id),
   ) => {
     try {
-      read(openCatalogue(scratch, library));
+      read(openCatalogue(scratch, FIXTURES));
     } catch (e) {
       if (!(e instanceof MapResolveError)) throw e;
       return { code: e.code, location: e.location };
@@ -197,6 +211,23 @@ test("a map that does not resolve is refused naming the document at fault, never
     location: "geometry/SOURCES.json.identity.map_hash",
   });
   writeFileSync(join(scratch, "geometry/map.json"), map);
+
+  // A map names its physical library by file name: a path is refused before
+  // it is read, and a library the catalogue lacks is a missing document.
+  const sources = shipped.document("geometry", "SOURCES.json");
+  for (const [library, code] of [
+    ["../fixtures/building-templates.json", "invalid_sources"],
+    ["absent-templates.json", "missing_document"],
+  ]) {
+    writeFileSync(
+      join(scratch, "geometry/SOURCES.json"),
+      sources.replace('"building-templates.json"', JSON.stringify(library)),
+    );
+    expect(refusal("geometry")).toEqual({
+      code,
+      location: "geometry/SOURCES.json.catalogue.library",
+    });
+  }
 
   rmSync(join(scratch, "geometry/SOURCES.json"));
   expect(refusal("geometry")).toEqual({

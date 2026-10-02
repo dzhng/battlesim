@@ -49,6 +49,9 @@ const query = (choice: MapChoice) =>
   `type=${choice.type}&size=${choice.size}&seed=${choice.seed}` as const;
 /** The battle on the generated map `choice`. */
 export const battleHref = (choice: MapChoice) => `/battle?${query(choice)}`;
+/** The battle on saved map `id`: its saved encounter `recipe`. */
+export const savedBattleHref = (id: string, recipe: string) =>
+  `/battle?map=${id}&recipe=${recipe}` as const;
 /** The main menu, opened on `choice`. */
 export const menuHref = (choice: MapChoice | null) => (choice ? `/?${query(choice)}` : "/");
 
