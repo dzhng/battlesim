@@ -33,6 +33,7 @@ const building = (owner: number, family: string, category: string, props: number
   templateId: "t",
   category,
   regionalFamily: family,
+  frame: { translation: [0, 0, 0] as [number, number, number], yaw: 0 },
   parts: props.map((prop, k) => ({ part: `p${k}`, prop })),
 });
 const buildings: PublicBuildings = {

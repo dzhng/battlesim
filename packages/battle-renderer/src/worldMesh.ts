@@ -84,6 +84,9 @@ export interface PublicBuildings {
     templateId: string;
     category: string;
     regionalFamily: string;
+    /** Where its template was placed (the contract's `PlacementFrame`): its
+     *  template's art is drawn here. */
+    frame: { translation: [number, number, number]; yaw: number };
     parts: { part: string; prop: number }[];
   }[];
 }
