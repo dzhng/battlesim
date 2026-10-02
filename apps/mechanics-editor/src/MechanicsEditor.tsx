@@ -3,6 +3,7 @@ import {
   MECHANICS_API,
   type Json,
   type JsonObject,
+  type MechanicsChange,
   type MechanicsDraft,
   type MechanicsPreview,
   type MechanicsSnapshot,
@@ -70,6 +71,50 @@ const rawText = (value: Json | undefined) =>
       : typeof value === "object"
         ? JSON.stringify(value, null, 2)
         : String(value);
+
+function ChangeSummary({ change, catalog }: { change: MechanicsChange; catalog: JsonObject }) {
+  const editor = useEditor();
+  const before = resolvedEntries(editor.snapshot.catalog, change.section)[change.id];
+  const field = gameplayField(change.section, change.path);
+  const projected = draftEntry(before, editor.draft, change, editor.snapshot);
+  const after = change.unit ? projected : resolvedEntries(catalog, change.section)[change.id];
+  const beforeValue = valueAt(before, change.path);
+  const afterValue = valueAt(after, change.path);
+  const formatted = (value: Json | undefined, entry: JsonObject) => {
+    if (value === undefined) return "Unset";
+    if (value === null) return "Disabled";
+    const text = field ? displayFieldValue(field, value, entry) : rawText(value);
+    return `${text}${field?.unit ? ` ${field.unit}` : ""}`;
+  };
+  return (
+    <li>
+      <div>
+        <strong className="me-change-label">{field?.label ?? change.path.join(".")}</strong>
+        <code>
+          {change.section}.{change.id}.{change.path.join(".")}
+        </code>
+      </div>
+      <div className="me-change-values">
+        <strong>
+          {formatted(beforeValue, before)} → {formatted(afterValue, after)}
+        </strong>
+        {field?.conversion && (
+          <small>
+            {CONVERSION_CAPTIONS[field.conversion]}: {rawText(beforeValue)} → {rawText(afterValue)}
+          </small>
+        )}
+        <small>
+          {change.restore ? "Restore inheritance · " : ""}
+          {change.unit
+            ? `Override on ${change.unit}`
+            : change.section === "weapons"
+              ? "Shared globally"
+              : "Type override"}
+        </small>
+      </div>
+    </li>
+  );
+}
 
 function textIsWithin(key: string, target: EditTarget, path: readonly string[]): boolean {
   const [section, id, unit, candidatePath] = JSON.parse(key.slice(0, key.lastIndexOf(":"))) as [
@@ -863,19 +908,11 @@ export default function MechanicsEditor() {
               ))}
               <ul className="me-change-list">
                 {editor.draft.changes.map((change) => (
-                  <li key={changeKey(change, change.path)}>
-                    <code>
-                      {change.section}.{change.id}.{change.path.join(".")}
-                    </code>
-                    <span>
-                      {change.restore ? "Restore inheritance" : JSON.stringify(change.value)}
-                      {change.unit
-                        ? ` · override on ${change.unit}`
-                        : change.section === "weapons"
-                          ? " · shared globally"
-                          : ""}
-                    </span>
-                  </li>
+                  <ChangeSummary
+                    key={changeKey(change, change.path)}
+                    change={change}
+                    catalog={preview.value.catalog}
+                  />
                 ))}
               </ul>
               {preview.value.files.map((file) => (
@@ -884,6 +921,9 @@ export default function MechanicsEditor() {
                     {file.path}
                     <span>Exact JSON</span>
                   </summary>
+                  <p className="me-scroll-hint">
+                    Scroll each JSON panel down and sideways to inspect the full replacement.
+                  </p>
                   <div className="me-file-columns">
                     <div>
                       <h4>Before</h4>

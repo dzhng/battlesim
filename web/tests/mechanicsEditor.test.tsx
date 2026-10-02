@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import MechanicsEditor from "../../apps/mechanics-editor/src/MechanicsEditor";
 import catalog from "../../fixtures/catalog.json";
 import infantry from "../../fixtures/units/generic/infantry.json";
@@ -395,4 +395,63 @@ it("restoring an inherited optional object clears unfinished child text", async 
   expect(screen.getByRole("button", { name: "Preview changes" }).hasAttribute("disabled")).toBe(
     false,
   );
+});
+
+it("previews old and new battlefield values with their raw units across coupled edits and restoration", async () => {
+  const fixture = structuredClone(snapshot);
+  const weapons = fixture.catalog.weapons as Record<string, JsonObject>;
+  weapons.grenade.range_m = 150;
+  weapons.grenade.scatter_mrad = 30;
+  fixture.documents = [
+    {
+      path: "game.json",
+      value: {
+        weapons: {
+          parent: { range_m: 300 },
+          grenade: { extends: "parent", range_m: 150, scatter_mrad: 30 },
+        },
+      },
+    },
+  ];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) =>
+      url.endsWith("/preview")
+        ? respond({
+            revision: fixture.revision,
+            catalog: {
+              ...fixture.catalog,
+              weapons: {
+                ...weapons,
+                grenade: { ...weapons.grenade, range_m: 300, scatter_mrad: 20 },
+              },
+            },
+            affectedUnits: ["rifle"],
+            warnings: [],
+            files: [],
+          })
+        : respond(fixture),
+    ),
+  );
+  render(<MechanicsEditor />);
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
+  fireEvent.change(screen.getByLabelText("grenade Landing spread at maximum range"), {
+    target: { value: "6" },
+  });
+  const range = screen.getByLabelText("grenade Maximum engagement range");
+  fireEvent.click(range.closest(".me-field")!.querySelector("button")!);
+  fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
+  await screen.findByRole("heading", { name: "Preview authored changes" });
+  const summary = within(screen.getByRole("region", { name: "Save preview" }));
+  const spreadSummary = summary
+    .getAllByRole("listitem")
+    .find((item) => item.textContent?.includes("Landing spread at maximum range"))!;
+  expect(spreadSummary.textContent).toContain("4.5 m → 6 m");
+  expect(spreadSummary.textContent).toContain("30 → 20");
+  expect(spreadSummary.textContent).toContain("Angular scatter · milliradians");
+  const rangeSummary = summary
+    .getAllByRole("listitem")
+    .find((item) => item.textContent?.includes("Maximum engagement range"))!;
+  expect(rangeSummary.textContent).toContain("150 m → 300 m");
+  expect(rangeSummary.textContent).toContain("Restore inheritance");
 });
