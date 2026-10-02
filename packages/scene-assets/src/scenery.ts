@@ -81,7 +81,8 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   boulder: prop,
   // Trees and hedgerows carry one state per biome season (summer; winter is
   // the next biome spec). A tree also stands inside the forests' canopy
-  // (`fit.canopy`); hedgerows stand only past the map. A tree's tiers are
+  // (`fit.canopy`); hedgerows stand past the map, and under the trees of a
+  // tree line, a strip of forest sight does not cross. A tree's tiers are
   // the forest's frame cost: the budget is what a paired run measured to fit
   // (specs/city-maps/slices/C73-tree-skeleton.md). Its size is the common
   // broadleaf's: placement scales it to the forest rule's canopy, where its

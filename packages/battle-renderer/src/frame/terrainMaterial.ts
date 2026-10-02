@@ -159,6 +159,9 @@ const TerrainParams = d.struct({
   forestVerge: d.vec4f,
   /** 1 / fleck size, fleck share, the sun a fleck lets through, unused. */
   forestDapple: d.vec4f,
+  /** A tree line's band: the length it narrows to a point over before each
+   *  end of its strip, how far its edge wanders, then unused. */
+  forestLine: d.vec4f,
   /** The water bed's colour (linear rgb), and how far past a bank's top a
    *  ground triangle can carry its tilt, in metres: a triangle's diagonal. */
   waterBed: d.vec4f,
@@ -610,6 +613,80 @@ const forestFloorWeight = tgpu.fn(
   "use gpu";
   const feather = std.max(footprint, terrainLayout.$.params.forestVerge.x * FOREST_FEATHER);
   return std.smoothstep(-feather, feather, forestVergeInside(xy, forest));
+});
+
+/** The tree line (a strip of forest) at `xy`, in metres: `x`, how far inside
+ *  the deepest strip of `cell` the point lies, by `groundForest`'s own
+ *  arithmetic; `y`, how far inside the band drawn under it, which is the
+ *  strip itself but for the last `tree_line.taper_m` before an end it is cut
+ *  square at, where its half width falls evenly to nothing. Both far outside
+ *  where the cell lists no strip. */
+const groundTreeLine = tgpu
+  .fn(
+    [d.vec2f, d.vec4u],
+    d.vec2f,
+  )(/* wgsl */ `(xy:vec2f,cell:vec4u)->vec2f {
+ var inside=-1e9;var band=-1e9;
+ let taper=terrainLayout.$.params.forestLine.x;
+ for(var i=cell.y;i<cell.z;i++){
+  let entry=terrainLayout.$.surfaceIndex[i];
+  if((entry>>${SURFACE_KIND_SHIFT}u)!=${SURFACE_STROKE}u){continue;}
+  let record=terrainLayout.$.surfaces[entry&${SURFACE_RECORD_MASK}u];
+  let here=strokeCutInside(xy,record.ends,record.detail,record.detail.x-polygonEdgeDistance(xy,record.ends.xy,record.ends.zw));
+  inside=max(inside,here);
+  let cuts=u32(record.detail.z);
+  var narrow=here;
+  if(cuts!=0u){
+   let a=record.ends.xy;let ab=record.ends.zw-a;let len=length(ab);let rel=xy-a;
+   let along=dot(rel,ab)/len;
+   let end=min(select(1e9,along,(cuts&${CUT_A}u)!=0u),select(1e9,len-along,(cuts&${CUT_B}u)!=0u));
+   narrow=min(here,record.detail.x*min(1.0,end/taper)-abs(rel.x*ab.y-rel.y*ab.x)/len);
+  }
+  band=max(band,narrow);
+ }
+ return vec2f(inside,band);
+}`)
+  .$uses({ terrainLayout, polygonEdgeDistance, strokeCutInside });
+
+/** Whether the forest at `xy` is a tree line, and its band: `x` is 1 where
+ *  the deepest forest shape there (`forest` metres inside it) is a strip;
+ *  `y` how far inside the band's drawn edge the point then lies, in metres,
+ *  the edge wandering by `tree_line.warp_m`. A strip has no floor of its own:
+ *  its band is the plots' verge, under the verge's grass, so the ground and
+ *  the grass both read this. `cell` is the point's `groundCell`. */
+export const groundLineBand = tgpu.fn(
+  [d.vec2f, d.vec4u, d.f32],
+  d.vec2f,
+)((xy, cell, forest) => {
+  "use gpu";
+  const params = terrainLayout.$.params;
+  const line = groundTreeLine(xy, cell);
+  if (line.x < forest) {
+    return d.vec2f(0, -1e9);
+  }
+  const at = std.add(std.mul(xy, params.forestVerge.z), d.vec2f(71.3, 23.9));
+  return d.vec2f(1, line.y + (valueNoise(at) - 0.5) * 2 * params.forestLine.y);
+});
+
+/** What a forest draws on the ground at `xy`, `forest` metres inside the
+ *  deepest shape: `x`, the weight of a wood's floor; `y`, of a tree line's
+ *  band. One of them is 0. */
+const groundFloor = tgpu.fn(
+  [d.vec2f, d.f32, d.f32],
+  d.vec2f,
+)((xy, footprint, forest) => {
+  "use gpu";
+  const params = terrainLayout.$.params;
+  const wood = forestFloorWeight(xy, forest, footprint);
+  // Only near a forest can the shape be a strip.
+  if (wood > 0 || forest > -params.forestVerge.x - params.forestVerge.y) {
+    const band = groundLineBand(xy, groundCell(xy, footprint), forest);
+    if (band.x > 0.5) {
+      const feather = std.max(footprint, params.forestVerge.x * FOREST_FEATHER);
+      return d.vec2f(0, std.smoothstep(-feather, feather, band.y));
+    }
+  }
+  return d.vec2f(wood, 0);
 });
 
 /** The forest floor's linear albedo at `xy`: leaf litter drifting into moss
@@ -1490,7 +1567,8 @@ export const groundColour = tgpu.fn(
   let roughness = plot.colour.w;
 
   const verge = groundVerge(site, footprint);
-  albedo = std.mix(albedo, std.mul(params.verge.xyz, 1 + 0.18 * noise), verge);
+  const vergeColour = std.mul(params.verge.xyz, 1 + 0.18 * noise);
+  albedo = std.mix(albedo, vergeColour, verge);
   roughness = std.mix(roughness, 0.95, verge);
 
   // Past the patchwork, and where plots shrink to a few pixels, the distant
@@ -1502,11 +1580,16 @@ export const groundColour = tgpu.fn(
   );
   albedo = std.mix(albedo, params.distant.xyz, distant);
 
-  // The forest floor, over the simulation's forest shapes and their verge.
-  const forest = forestFloorWeight(xy, site.w, footprint);
-  if (forest > 0) {
-    albedo = std.mix(albedo, forestFloor(xy, footprint, noise), forest);
-    roughness = std.mix(roughness, params.forestDetail.z, forest);
+  // The forest floor, over the simulation's forest shapes and their verge;
+  // under a tree line, a band of the plots' verge instead.
+  const floor = groundFloor(xy, footprint, site.w);
+  if (floor.x > 0) {
+    albedo = std.mix(albedo, forestFloor(xy, footprint, noise), floor.x);
+    roughness = std.mix(roughness, params.forestDetail.z, floor.x);
+  }
+  if (floor.y > 0) {
+    albedo = std.mix(albedo, vergeColour, floor.y);
+    roughness = std.mix(roughness, 0.95, floor.y);
   }
 
   // The shore: bare earth along the water, wet silt at its edge. Neither is
@@ -1572,8 +1655,11 @@ export const groundClasses = tgpu.fn(
   let forest = d.u32(0);
   if (site.w >= 0) {
     forest = d.u32(2);
-  } else if (forestFloorWeight(xy, site.w, footprint) > 0.5) {
-    forest = d.u32(1);
+  } else {
+    const floor = groundFloor(xy, footprint, site.w);
+    if (std.max(floor.x, floor.y) > 0.5) {
+      forest = d.u32(1);
+    }
   }
   const kind = std.min(d.u32(plot.detail.y), d.u32(CLASS_KIND_MAX));
   const hash = pcgHash(d.u32(site.x)) & CLASS_HASH_MASK;
@@ -2343,6 +2429,7 @@ function forestParams(floor: ForestFloor, [litter, moss, humus]: readonly Rgb[])
       1 / floor.roots_m,
     ),
     forestDapple: d.vec4f(1 / floor.dapple.size_m, floor.dapple.share, floor.dapple.sun, 0),
+    forestLine: d.vec4f(floor.tree_line.taper_m, floor.tree_line.warp_m, 0, 0),
   };
 }
 

@@ -32,8 +32,5 @@ export function buildingObstacles(
   parts: ReadonlySet<number>,
   groundAt: (x: number, y: number) => number,
 ): CameraObstacles {
-  return createCameraObstacles(
-    knownStanding(props, known, parts).map((standing) => standing.box),
-    groundAt,
-  );
+  return createCameraObstacles(knownStanding(props, known, parts), groundAt);
 }

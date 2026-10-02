@@ -25,9 +25,13 @@ const HIDE_HUD = "[data-testid=battle-panel], .ro-layer { display: none !importa
 const isGround = ([r]) => r > 200;
 const isBody = ([r]) => r < 55;
 
-/** The far ground's mean green-over-blue at the overview (0-255): open
- *  fields through the stretched haze measure about 45, a whited-out map 23. */
-const OVERVIEW_WARMTH_MIN = 34;
+/** How much of the near fields' green-over-blue the far fields keep at the
+ *  overview, through the stretched haze. A whited-out far band keeps about
+ *  half. */
+const OVERVIEW_WARMTH_SHARE = 0.75;
+/** Fewer trees than this are missing from the overview: a street's tree at
+ *  the map's rim is a chunk of its own, which the frame's edge can cut off. */
+const TREES_OUT_MOST = 5;
 const delta = (a, b) => a.reduce((s, v, i) => s + Math.abs(v - b[i]), 0);
 
 /** Wait until the page's battle is playable: the loading screen has lifted
@@ -290,10 +294,11 @@ export async function run(ctx) {
   ctx.check("the battle ticks", after === before + 30, `${before} → ${after}`);
 
   // Everything on the map is drawn: every building a reference drawn from
-  // its template's rows in the frame's static chunks, a tree a trunk, and
-  // every body on the map its model (or the kit's stand-in). A forest's
-  // boulders never change, so they draw with the static world, not among the
-  // structures the side's knowledge redraws.
+  // its template's rows in the frame's static chunks, a tree every tree
+  // body (a forest's trunk, a street's tree), and every other body on the
+  // map its model (or the kit's stand-in). A forest's boulders never change,
+  // so they draw with the static world, not among the structures the side's
+  // knowledge redraws.
   const counts = await lab(page, () => {
     const stats = window.__lab.stats();
     const drawn = window.__lab.route.buildings();
@@ -304,21 +309,23 @@ export async function run(ctx) {
       parts: drawn.reduce((n, b) => n + b.parts.length, 0),
       trees: stats.scenery.forest.placed,
       trunks: window.__lab.route.propsNear("trunk", 0, 0, Infinity).length,
+      streetTrees: window.__lab.route.propsNear("street_tree", 0, 0, Infinity).length,
       structures: stats.structures,
       boulders: window.__lab.route.propsNear("boulder", 0, 0, Infinity).length,
     };
   });
   ctx.check(
-    "every building is drawn from its template's rows, every trunk a tree and every body of street furniture a model, and no building is a model",
+    "every building is drawn from its template's rows, every trunk and street tree a tree and every body of street furniture a model, and no building is a model",
     counts.buildings === generated.counts.buildings &&
       counts.references === generated.counts.buildings &&
       counts.parts === generated.counts.parts &&
       // The whole map can draw at the coarsest tier: a row or more a building.
       counts.coarse >= counts.buildings &&
       counts.buildings > 1000 &&
-      counts.trees === counts.trunks &&
-      counts.trees > 1000 &&
-      counts.structures + counts.boulders === generated.counts.props &&
+      counts.trees === counts.trunks + counts.streetTrees &&
+      counts.trunks > 1000 &&
+      counts.streetTrees > 0 &&
+      counts.structures + counts.boulders + counts.streetTrees === generated.counts.props &&
       generated.counts.props > 100,
     JSON.stringify({ ...counts, map: generated.counts }),
   );
@@ -504,7 +511,7 @@ export async function run(ctx) {
       window.__lab.setCamera({
         ...window.__lab.camera(),
         target: [size[0] / 2, size[1] / 2, 0],
-        distance: size[0] * 1.25,
+        distance: size[0] * 1.45,
         pitch: 1.3,
       }),
     generated.size,
@@ -517,32 +524,43 @@ export async function run(ctx) {
   // The ground's own colour over a grid of the far third of the map, where
   // haze is thickest: fields are green to straw (more green than blue), and
   // haze washes them toward the sky's blue-grey.
-  let warmth = 0;
-  let samples = 0;
-  for (let i = 1; i < 12; i++)
-    for (let j = 8; j < 12; j++) {
-      const px = await project(page, [
-        (generated.size[0] * i) / 12,
-        (generated.size[1] * j) / 12,
-        0,
-      ]);
-      const [, g, b] = pixel(overview, ...px);
-      warmth += g - b;
-      samples++;
-    }
-  warmth /= samples;
+  // The median of each band, so a wood or a town under some of the samples
+  // does not stand in for the fields: which part of a map is open differs by
+  // seed. The far band is judged against the near one, so the fields' own
+  // palette cancels and only what the haze took is left.
+  const band = async (from, to) => {
+    const values = [];
+    for (let i = 1; i < 12; i++)
+      for (let j = from; j < to; j++) {
+        const px = await project(page, [
+          (generated.size[0] * i) / 12,
+          (generated.size[1] * j) / 12,
+          0,
+        ]);
+        const [, g, b] = pixel(overview, ...px);
+        values.push(g - b);
+      }
+    values.sort((a, b) => a - b);
+    return values[values.length >> 1];
+  };
+  const warmth = await band(8, 12);
+  const nearWarmth = await band(1, 5);
   ctx.check(
     "the whole-map overview draws every building at the coarsest tier with none in the pool, every tree, and its far ground keeps its colour through the haze",
     overviewStats.buildings.tiers[3] === counts.coarse &&
       overviewStats.buildings.residentChunks === 0 &&
       overviewStats.buildings.pool.used === 0 &&
-      overviewStats.forest.tiers[3] === counts.trees &&
-      warmth > OVERVIEW_WARMTH_MIN,
+      overviewStats.forest.tiers.slice(0, 3).every((n) => n === 0) &&
+      overviewStats.forest.tiers[3] > counts.trees - TREES_OUT_MOST &&
+      overviewStats.forest.tiers[3] <= counts.trees &&
+      warmth > OVERVIEW_WARMTH_SHARE * nearWarmth,
     JSON.stringify({
       warmth,
+      nearWarmth,
       buildings: overviewStats.buildings.tiers,
       resident: overviewStats.buildings.residentChunks,
       forest: overviewStats.forest.tiers,
+      standing: overviewStats.forest.placed,
     }),
   );
   await writeFile(ctx.evidencePath("overview-fogged-1920x1080.png"), await page.screenshot());

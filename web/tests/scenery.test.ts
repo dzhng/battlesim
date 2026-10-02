@@ -7,14 +7,20 @@
 import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
+import * as generator from "@wasm/game_wasm.js";
 import { initSync, WorldView, world_layout } from "@wasm/game_wasm.js";
+import generated from "@fixtures/generated-battle.json";
+import { generationRequest } from "@web/maps/source";
 import {
   readWorldExports,
   type WorldExports,
   type WorldLayout,
 } from "@packages/battle-renderer/src/worldMesh.ts";
 import { buildTerrainSurface } from "@packages/battle-renderer/src/terrain/terrainSurface.ts";
-import { forestInside } from "@packages/battle-renderer/src/terrain/forestShapes.ts";
+import {
+  FOREST_STROKE_FLOATS,
+  forestInside,
+} from "@packages/battle-renderer/src/terrain/forestShapes.ts";
 import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
 import {
   placeScenery,
@@ -433,7 +439,9 @@ test("overlapping polygon and strip draw each original native-owned trunk exactl
     expect(expected.length).toBeGreaterThan(30);
     const site = scenerySite(exported, layout, buildTerrainSurface(exported, layout, biome));
     const placed = placeScenery(site, biome, PLACED);
-    expect(trees(placed.forest).map((tree) => [tree.x, tree.y])).toEqual(expected);
+    // Then the trunk the map authored, which no forest generated: a tree of
+    // its own.
+    expect(trees(placed.forest).map((tree) => [tree.x, tree.y])).toEqual([...expected, [9, 9]]);
   } finally {
     overlap.free();
   }
@@ -730,6 +738,251 @@ test("a tree line's crowns are as wide as a wood's, and lie within a fog cell of
         `${cx}, ${cy}`,
       ).toBe(true);
     }
+  } finally {
+    world.free();
+  }
+});
+
+const UNDERSTOREY = biome.trees.understorey;
+
+/** Every shrub of a placement's understorey: its foot, its reach from it and
+ *  its top above it. */
+function shrubs(placed: SceneryPlacement) {
+  const data = placed.understorey;
+  const size = PLACED.get(UNDERSTOREY.appearance)!;
+  const out: { x: number; y: number; reach: number; top: number; appearance: string }[] = [];
+  for (let o = 0; o < data.length; o += TREE_FLOATS)
+    out.push({
+      x: data[o + TREE_FIELD.x],
+      y: data[o + TREE_FIELD.y],
+      reach: size.radius * data[o + TREE_FIELD.scaleXY],
+      top: size.height * data[o + TREE_FIELD.scaleZ],
+      appearance: placed.kinds[data[o + TREE_FIELD.kind]],
+    });
+  return out;
+}
+
+/** Whether the simulation finds open ground at (x, y): no paving, no water. */
+const onGround = (world: WorldView, x: number, y: number) =>
+  layout.surfaceKinds[world.surface_at(x, y)[5]] === "ground";
+
+test("a tree line carries shrubs along its whole length, inside the strip and its foliage, and a wood carries none", () => {
+  // A strip between fields, bent once, crossed by a road; and a wood.
+  const strip = {
+    kind: "stroke",
+    points: [
+      [30, 40],
+      [140, 40],
+      [220, 100],
+    ],
+    width_m: 12,
+  };
+  const ring = [
+    [20, 150],
+    [120, 150],
+    [120, 190],
+    [70, 190],
+    [70, 230],
+    [20, 230],
+  ];
+  const road = {
+    kind: "road",
+    shape: {
+      kind: "stroke",
+      points: [
+        [80, 0],
+        [80, 120],
+      ],
+      width_m: 8,
+    },
+  };
+  const map = {
+    size: [256, 256],
+    height_grid_m: 4,
+    fog_cell_m: 8,
+    slope_cutoff_deg: 35,
+    surfaces: [road],
+    forests: [{ shape: strip }, { shape: { kind: "polygon", ring } }],
+  };
+  const world = new WorldView(JSON.stringify(map), JSON.stringify(GAME_RULES));
+  try {
+    const { worldExports, site } = siteOf(world);
+    const placed = placeScenery(site, biome, PLACED);
+    const line = shrubs(placed);
+    expect(line.length).toBeGreaterThan(40);
+    const [nx, , cellM] = worldExports.foliage;
+    const foliage = new Set<number>();
+    for (let o = 3; o < worldExports.foliage.length; o += 4)
+      foliage.add(worldExports.foliage[o + 1] * nx + worldExports.foliage[o]);
+    // As a crown is held: in a fog cell with foliage, or beside one.
+    const underFoliage = (x: number, y: number) => {
+      const [i, j] = [Math.floor(x / cellM), Math.floor(y / cellM)];
+      for (let dj = -1; dj <= 1; dj++)
+        for (let di = -1; di <= 1; di++)
+          if (i + di >= 0 && i + di < nx && foliage.has((j + dj) * nx + i + di)) return true;
+      return false;
+    };
+    const [stroke, wood] = site.forests;
+    expect([stroke.kind, wood.kind]).toEqual(["stroke", "polygon"]);
+    const tallest = PLACED.get(UNDERSTOREY.appearance)!.height * UNDERSTOREY.height[1];
+    for (const s of line) {
+      const where = JSON.stringify(s);
+      expect(s.appearance, where).toBe(UNDERSTOREY.appearance);
+      // All of it stands on the strip's own ground: nothing is drawn wider
+      // than the forest the simulation blocks sight with, and none in the wood.
+      expect(forestInside(stroke, s.x, s.y), where).toBeGreaterThanOrEqual(s.reach - 1e-3);
+      expect(forestInside(wood, s.x, s.y), where).toBeLessThan(0);
+      expect(underFoliage(s.x, s.y), where).toBe(true);
+      // A hedge's height, by the biome's row: well under the crowns.
+      expect(s.top, where).toBeLessThanOrEqual(tallest + 1e-3);
+      expect(s.top, where).toBeLessThan(game.forests.rule.canopy_height_m / 2);
+      // Off the road and under the foliage, by its whole reach.
+      for (let k = 0; k < 8; k++) {
+        const a = (k * Math.PI) / 4;
+        const [x, y] = [s.x + s.reach * Math.cos(a), s.y + s.reach * Math.sin(a)];
+        expect(onGround(world, x, y), where).toBe(true);
+        expect(underFoliage(x, y), where).toBe(true);
+      }
+    }
+    // Along each stretch longer than the strip is wide, clear of its ends
+    // and of the road, a shrub is never farther than two spacings away.
+    const runs = [
+      [strip.points[0], strip.points[1]],
+      [strip.points[1], strip.points[2]],
+    ];
+    let walked = 0;
+    for (const [[ax, ay], [bx, by]] of runs) {
+      const length = Math.hypot(bx - ax, by - ay);
+      expect(length).toBeGreaterThan(strip.width_m);
+      for (let t = strip.width_m; t <= length - strip.width_m; t += 2) {
+        const [x, y] = [ax + ((bx - ax) * t) / length, ay + ((by - ay) * t) / length];
+        if (Math.abs(x - 80) < road.shape.width_m / 2 + 2 * UNDERSTOREY.spacing_m) continue;
+        walked++;
+        expect(
+          line.some((s) => Math.hypot(s.x - x, s.y - y) <= 2 * UNDERSTOREY.spacing_m),
+          `${x}, ${y}`,
+        ).toBe(true);
+      }
+    }
+    expect(walked).toBeGreaterThan(50);
+    // The same seed plants the same shrubs.
+    expect(shrubs(placeScenery(site, biome, PLACED))).toEqual(line);
+  } finally {
+    world.free();
+  }
+});
+
+test("the village, which has no tree line, has no understorey", () => {
+  expect(placement.understorey.length).toBe(0);
+});
+
+// ------------------------------------------------------------------ lone trees
+
+test("a tree body outside every forest is drawn as a tree of its own height, of a species the biome lets stand alone", () => {
+  const lone = biome.trees.lone;
+  const body = { yaw: 0, half_extents: [0.35, 0.35, 5] };
+  const map = {
+    size: [200, 200],
+    height_grid_m: 4,
+    fog_cell_m: 8,
+    slope_cutoff_deg: 35,
+    props: [40, 64, 88, 112].map((x) => ({ kind: "street_tree", center: [x, 40], ...body })),
+    forests: [
+      {
+        shape: {
+          kind: "polygon",
+          ring: [
+            [20, 100],
+            [180, 100],
+            [180, 180],
+            [20, 180],
+          ],
+        },
+      },
+    ],
+  };
+  const world = new WorldView(JSON.stringify(map), JSON.stringify(GAME_RULES));
+  try {
+    const { site } = siteOf(world);
+    const placed = placeScenery(site, biome, PLACED);
+    const drawn = trees(placed.forest).map((t, i) => ({
+      ...t,
+      appearance: placed.kinds[placed.forest[i * TREE_FLOATS + TREE_FIELD.kind]],
+    }));
+    const street = drawn.filter((t) => t.y < 100);
+    expect(street.map((t) => [t.x, t.y])).toEqual(map.props.map((p) => p.center));
+    for (const t of street) {
+      const where = JSON.stringify(t);
+      expect(lone.species, where).toContain(t.appearance);
+      // No taller than its body, and no wider than the biome's row.
+      const height = t.top - t.z;
+      expect(height, where).toBeLessThanOrEqual(2 * body.half_extents[2] + 0.06);
+      expect(height, where).toBeGreaterThanOrEqual(2 * body.half_extents[2] * lone.top[0]);
+      expect(t.girth, where).toBeGreaterThanOrEqual(lone.girth[0] - 1e-6);
+      expect(t.girth, where).toBeLessThanOrEqual(lone.girth[1] + 1e-6);
+    }
+    // The wood's trees are the forest rule's, as before.
+    expect(drawn.length - street.length).toBeGreaterThan(30);
+    // A species the biome's own list lacks is refused by name.
+    const palm = { ...biome, trees: { ...biome.trees, lone: { ...lone, species: ["tree_palm"] } } };
+    expect(() => validateBiome(structuredClone(palm), "summer")).toThrow(
+      /summer\.trees\.lone\.species\[0\].*tree_palm/,
+    );
+  } finally {
+    world.free();
+  }
+});
+
+// ------------------------------------------------------------ a generated map
+
+test("on a generated map every tree line carries its shrubs and every street tree is a drawn tree", () => {
+  const fixture = (path: string) =>
+    readFileSync(new URL(`../../fixtures/${path}`, import.meta.url), "utf8");
+  const documents = {
+    presets: fixture("map-presets.json"),
+    templates: fixture("prototype-building-templates.json"),
+    catalog: JSON.stringify(JSON.parse(fixture("catalog.json")).documents),
+  };
+  const request = generationRequest(
+    generator,
+    { type: "mixed", size: "medium", seed: "2" },
+    documents,
+    generated.limits,
+  );
+  const { map } = JSON.parse(
+    generator.generate_map(
+      JSON.stringify(request),
+      documents.presets,
+      documents.templates,
+      documents.catalog,
+    ),
+  ).result as { map: { props: { kind: string }[] } };
+  const world = new WorldView(JSON.stringify(map), JSON.stringify(GAME_RULES));
+  try {
+    const { site } = siteOf(world);
+    const placed = placeScenery(site, biome, PLACED);
+    const lines = site.forests.filter((f) => f.kind === "stroke");
+    expect(lines.length).toBeGreaterThan(5);
+    const hedge = shrubs(placed);
+    for (const line of lines) {
+      let length = 0;
+      for (let o = 0; o < line.strokes.length; o += FOREST_STROKE_FLOATS)
+        length += Math.hypot(
+          line.strokes[o + 2] - line.strokes[o],
+          line.strokes[o + 3] - line.strokes[o + 1],
+        );
+      // Two rows of them, less the gaps and the ends: one a row every two
+      // spacings at the least.
+      const along = hedge.filter((s) => forestInside(line, s.x, s.y) >= 0).length;
+      expect(along, `${length} m`).toBeGreaterThan(length / (2 * UNDERSTOREY.spacing_m));
+    }
+    // Every tree body is one drawn tree: the forests' trunks and the streets'.
+    const street = map.props.filter((p) => p.kind === "street_tree").length;
+    expect(street).toBeGreaterThan(100);
+    expect(placed.forest.length / TREE_FLOATS).toBe(site.trunkIds.length);
+    const alone = new Set(biome.trees.lone.species);
+    const lone = named(placed, placed.forest).slice(-street);
+    expect(lone.every((t) => alone.has(t.appearance))).toBe(true);
   } finally {
     world.free();
   }

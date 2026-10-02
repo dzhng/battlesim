@@ -21,7 +21,14 @@
 // default every state the library has rows for), and `CITY_PAIRS=` (a comma
 // list of `station:tier:tier`, or `none`).
 import { mkdir, writeFile } from "node:fs/promises";
-import { buildingsSettled, lab } from "./_lab.mjs";
+import {
+  buildingsSettled,
+  buildingStats as stats,
+  gpuWarnings,
+  groundClasses,
+  lab,
+  route,
+} from "./_lab.mjs";
 import { crop, decode } from "./_png.mjs";
 import { writeSheet } from "./_sheet.mjs";
 import { bounds, judge, projected, setFits } from "./_templateFit.mjs";
@@ -36,9 +43,6 @@ const settle = async (page) => {
   await lab(page, () => window.__lab.frame());
   await buildingsSettled(page);
 };
-const stats = (page) => lab(page, () => window.__lab.stats().buildings);
-const route = (page, method, ...args) =>
-  lab(page, ([method, args]) => window.__lab.route[method](...args), [method, args]);
 /** Tell the route what to show, and wait until it shows it. */
 async function show(page, method, key, value) {
   await route(page, method, value);
@@ -53,20 +57,10 @@ async function frame(page) {
   await lab(page, () => window.__lab.frame());
   return page.screenshot();
 }
-async function groundClasses(page) {
-  await lab(page, () => window.__lab.setFrameView("ground-classes"));
-  const png = await page.screenshot();
-  await lab(page, () => window.__lab.setFrameView("final"));
-  return decode(png);
-}
 
 export async function run(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  const warnings = [];
-  page.on("console", (m) => {
-    if (m.type() === "warning" && /webgpu|validation|gpu\w*error/i.test(m.text()))
-      warnings.push(m.text().slice(0, 200));
-  });
+  const warnings = gpuWarnings(page);
   const query = new URLSearchParams();
   if (process.env.CITY_SET) query.set("set", process.env.CITY_SET);
   if (process.env.CITY_CATEGORY) query.set("category", process.env.CITY_CATEGORY);
@@ -207,7 +201,7 @@ export async function run(ctx) {
           await settle(page);
           const picture = await frame(page);
           const seen = await projected(page, entry, fit[entry.set]);
-          const verdict = judge(await groundClasses(page), seen);
+          const verdict = judge(decode(await groundClasses(page)), seen);
           verdicts.push({ id: entry.id, state, tier, ...verdict });
           const cost = costs[entry.id].states[state].triangles;
           cells.push({

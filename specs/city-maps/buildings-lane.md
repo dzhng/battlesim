@@ -71,7 +71,9 @@ Update this section, not the README, at the end of each pass: what landed, what 
 
 **Decided:** China's family ships first, and New York and Paris are later families through the same exporter, not part of closing this lane; every category the graphs do not cover is our own scripted source; a join between parts is never built, the outline of the abutting boxes is ([choices](choices.md#buildings-lane)).
 
-**In flight:** the scripted sets (homes, farmsteads, towers, industry) adopting glass and rooms; the whole-lane review.
+**In flight:** the scripted sets (homes, farmsteads, towers, industry) adopting glass and rooms.
+
+The whole-lane review has run: one owner for what a side knows of a map's buildings, shared scene probes, one ruin-height rule, and the empty prototype set retired (what remains of it is the unit box a prop with no model is drawn as, `asset stand-in`).
 
 **Then:** the choices ledger consolidated (`choices.md` is still the per-pass append), the one full gate run, and the lane closed.
 
@@ -102,4 +104,4 @@ Update this section, not the README, at the end of each pass: what landed, what 
 - **Some bays have no opening** (barns, warehouses, a tower's blank columns): a soldier seated there fires through a drawn wall. The simulation seats every bay; whether to mark such bays is a rules question nobody has taken.
 - **Ground lane: a town does not read from far off.** From 4.5 km out to the whole map a house is a pixel or less and most of a town's ground is lawn the colour of a field, so only the road grid says "town" ([C23](slices/C23-far-tier.md#outcome)). No building tier can fix that; a built-up tint under settlements would.
 - `map-presets.json` `parcels.regional_families` is `["china"]`; its revision string was not bumped.
-- To add or retire a template: retire its catalogue row, then `asset prototypes`, `asset catalogue`, `asset prototypes`, `asset bake`, `asset check` ([city kit readme](../../packages/scene-assets/blender/city/README.md), "From a set to a town"). `asset bake` and `asset check` need the WebAssembly built.
+- To add or change a template: change its set, then `asset catalogue`, `asset bake`, `asset check` ([city kit readme](../../packages/scene-assets/blender/city/README.md), "From a set to a town"). `asset bake` and `asset check` need the WebAssembly built.

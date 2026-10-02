@@ -79,6 +79,7 @@ import {
 } from "./fogTerm";
 import {
   forestVergeInside,
+  groundLineBand,
   groundColour,
   groundScars,
   groundCell,
@@ -388,8 +389,14 @@ const buildFn = tgpu
     // a field meets a road or a wood without a wall of blades. Across a
     // road's shoulder it thins and lowers further as the ground is worn.
     // A wood's edge is its rect or its floor's ragged verge, whichever lies
-    // farther out.
-    let wood = max(site.w, forestVergeInside(fell, site.w));
+    // farther out. A tree line is no wood: the verge's grass grows on the
+    // band under it, and the field's own right up to that.
+    var wood = max(site.w, forestVergeInside(fell, site.w));
+    var line = vec2f(0.0, -1e9);
+    if (wood > -((*P).clear.x + ${GRASS_EDGE_M})) {
+      line = groundLineBand(fell, cell, site.w);
+      if (line.x > 0.5) { wood = -1e9; }
+    }
     let margin = min(-wood, -water) - (*P).clear.x;
     if (margin < 0.0) { continue; }
     // Bare on the wet bank round water, thickening across the earth behind it.
@@ -401,7 +408,7 @@ const buildFn = tgpu
     if (worn.x > ${GRASS_BARE_WEAR}) { continue; }
     let edge = smoothstep(0.0, ${GRASS_EDGE_M}, min(margin, abs(site.z))) * (1.0 - worn.x);
     var grows = min(u32(terrainLayout.$.plots[i32(site.x)].detail.y), ${GRASS_GROWTH_ROWS - 2}u);
-    if (groundVerge(site, footprint) > 0.5) { grows = ${GRASS_GROWTH_ROWS - 1}u; }
+    if (groundVerge(site, footprint) > 0.5 || line.y > 0.0) { grows = ${GRASS_GROWTH_ROWS - 1}u; }
     let g = (*P).growth[grows];
     let stand = (*P).patches[grows];
     // A drilled crop keeps to its plot's rows, the bright bands between the
@@ -516,6 +523,7 @@ const buildFn = tgpu
     groundColour,
     groundTint,
     forestVergeInside,
+    groundLineBand,
     groundScars,
     scarredSurface,
     valueNoise,

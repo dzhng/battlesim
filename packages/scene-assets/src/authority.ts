@@ -30,7 +30,7 @@ export function fixtureAuthority(fixture: AuthorityFixture, units: UnitCatalog):
   };
 }
 
-/** How a template building ends (C42, C43): the rule on the prop types that
+/** How a template building ends: the rule on the prop types that
  *  collapse as buildings, which every template's damage state is authored to.
  *  Types that carry differing rules are refused: a template is not a prop
  *  type, so its art can fit one rule only. */

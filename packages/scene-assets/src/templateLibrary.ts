@@ -27,8 +27,9 @@ export const TEMPLATE_LIBRARY_VERSION = 2;
 export const TEMPLATE_STATES = ["intact", "ruin", "gutted"] as const;
 export type TemplateState = (typeof TEMPLATE_STATES)[number];
 
-/** `release` is accepted art; `prototype` is a labelled stand-in, which never
- *  counts as coverage. */
+/** A label a set gives each template, carried to the bake's report and the
+ *  line-up lab: `release` is accepted art, `prototype` art not yet accepted.
+ *  Nothing is drawn differently for it. */
 export const TEMPLATE_STATUSES = ["prototype", "release"] as const;
 export type TemplateStatus = (typeof TEMPLATE_STATUSES)[number];
 

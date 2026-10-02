@@ -300,6 +300,7 @@
     "verge_m": 3,
     "verge_warp_m": 1.5,
     "verge_warp_scale_m": 14,
+    "tree_line": { "taper_m": 14, "warp_m": 0.8 },
     "roughness": 0.97,
     "dapple": { "size_m": 2.2, "share": 0.35, "sun": 0.6 },
     "dressing": {
@@ -334,6 +335,17 @@
     "stands": { "size_m": 140, "purity": 0.88 },
     "colour_jitter": 0.12,
     "forest": { "top": [0.8, 0.97], "girth": [0.9, 1] },
+    "lone": { "species": ["tree_tall", "tree_birch"], "top": [0.85, 1], "girth": [0.7, 0.85] },
+    "understorey": {
+      "appearance": "hedge_shrub",
+      "tint": [0.8, 0.82, 0.78],
+      "spacing_m": 3.4,
+      "row_m": 3,
+      "sway_m": 0.5,
+      "gap": 0.08,
+      "length": [0.85, 1.1],
+      "height": [1, 1.45]
+    },
     "hedgerows": {
       "appearance": "hedge_shrub",
       "tint": [0.8, 0.82, 0.78],

@@ -18,13 +18,11 @@ import {
   buildingPartProps,
 } from "@packages/battle-renderer/src/buildingObstacles";
 import {
-  fallenBuildings,
   FRAME_FLOATS,
-  indexBuildings,
   type BuildingIndex,
   type PlacedBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
-import { mapProps, PropAppearances } from "@packages/battle-renderer/src/models/propAppearance";
+import { PropAppearances } from "@packages/battle-renderer/src/models/propAppearance";
 import {
   apartKinds,
   buildWorldLayers,
@@ -39,7 +37,7 @@ import {
   resolveMap,
   type MapChoice,
 } from "@web/maps/source";
-import { gameGuttedShells, seenDestroyed } from "../destroyedBuildings";
+import { knownFallen, seenDestroyed } from "../destroyedBuildings";
 import { useFeed } from "../feed";
 import { mapAppearances, useMapAppearances } from "../gameAppearances";
 import { gameBiome } from "../gameBiome";
@@ -47,7 +45,7 @@ import { gameCamera } from "../gameCamera";
 import { LabViewport, type ViewportPilot } from "../LabViewport";
 import { askedTier, tierBoundaries, useBuildingTier } from "../buildingTier";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
-import { useStaticWorld, type StaticWorld } from "../useStaticWorld";
+import { useMapBuildings, useStaticWorld, type StaticWorld } from "../useStaticWorld";
 
 // The catalog a battle's rules carry: street furniture is placed from it.
 const GENERATOR = { presets, templates, catalog: JSON.stringify(UNITS.documents) };
@@ -201,11 +199,7 @@ export default function CityBlock() {
 function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedTown }) {
   const world = useStaticWorld(generated.map);
   // The map's buildings: every one a template reference.
-  const drawn = useMemo(() => {
-    if (!world) return null;
-    const props = mapProps(world.exports, world.layout);
-    return { props, index: indexBuildings(world.exports.buildings, props) };
-  }, [world]);
+  const drawn = useMapBuildings(world);
   // The catalog, and the kits this town's buildings draw from.
   const appearances = useMapAppearances(drawn?.index.placed ?? null);
   const surfaceZ = useCallback(
@@ -261,7 +255,7 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
     return {
       buildings: {
         placed: halved ? half : index.placed,
-        fallen: fallenBuildings(index, known, gameGuttedShells),
+        fallen: knownFallen(index, known),
       },
       obstacles: buildingObstacles(
         props,

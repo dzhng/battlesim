@@ -8,6 +8,21 @@ export const lab = (page, fn, arg) => page.evaluate(fn, arg);
 /** The newest decoded observation. */
 export const obs = (page) => lab(page, () => window.__lab.route.observation());
 
+/** Call `method` of the lab route's diagnostics with `args`. */
+export const route = (page, method, ...args) =>
+  lab(page, ([method, args]) => window.__lab.route[method](...args), [method, args]);
+
+/** The WebGPU validation warnings the page logs from now on: a list that
+ *  fills as they arrive. Any one is a failed render. */
+export function gpuWarnings(page) {
+  const warnings = [];
+  page.on("console", (m) => {
+    if (m.type() === "warning" && /webgpu|validation|gpu\w*error/i.test(m.text()))
+      warnings.push(m.text().slice(0, 200));
+  });
+  return warnings;
+}
+
 /** Advance the paused authority `n` ticks. React's development build records
  *  a performance measure per component render; thousands of fast-forwarded
  *  ticks would exhaust that buffer, so the ticks go in chunks with the buffer
@@ -47,6 +62,33 @@ export async function until(page, test, limit, step = 15, each = () => {}) {
     if (test(o)) return o;
   }
   return null;
+}
+
+/** What the building layer drew in the last frame (`BuildingStats`). */
+export const buildingStats = (page) => lab(page, () => window.__lab.stats().buildings);
+
+/** The page as the frame's ground-classes view shows it, a PNG: black where a
+ *  pixel is not wholly bare ground (something stands over it), the ground's
+ *  class bytes where it is. The frame is back at its final view after. */
+export async function groundClasses(page) {
+  await lab(page, () => window.__lab.setFrameView("ground-classes"));
+  const png = await page.screenshot();
+  await lab(page, () => window.__lab.setFrameView("final"));
+  return png;
+}
+
+/** The frame's GPU time over `frames` forced redraws from now (a lab draws on
+ *  demand, and setting the frame view starts the timer's window again). */
+export function gpuMs(page, frames = 120) {
+  return lab(
+    page,
+    async (frames) => {
+      await window.__lab.setFrameView("final");
+      for (let i = 0; i < frames; i++) await window.__lab.frame();
+      return window.__lab.stats().gpu;
+    },
+    frames,
+  );
 }
 
 /** Draw frames until every building near the camera is expanded into the
