@@ -277,6 +277,9 @@ interface LabHandle {
   suppressGrass?: (on: boolean) => Promise<void>;
   /** Draw no models or corpses while on (a paired cost measure). */
   suppressModels?: (on: boolean) => Promise<void>;
+  /** Draw no trees and none of their shadows while on (they are scenery, not
+   *  models): the ground under a wood, and a paired cost measure. */
+  suppressTrees?: (on: boolean) => Promise<void>;
   /** Draw no combat effects while on (a paired cost measure). */
   suppressEffects?: (on: boolean) => Promise<void>;
   /** Draw the effects but light nothing by them while on (paired frames, cost). */
@@ -818,6 +821,10 @@ export function LabViewport({
             modelsSuppressed.current = on;
             scene.setModels(on ? [] : (modelsRef.current ?? []));
             scene.setCorpses(on ? [] : corpsesRef.current);
+            await nextFrame();
+          },
+          async suppressTrees(on: boolean) {
+            scene.setTreesShown(!on);
             await nextFrame();
           },
           async suppressEffects(on: boolean) {

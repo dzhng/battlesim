@@ -34,6 +34,14 @@ import {
   type SurfaceReach,
 } from "../terrain/surfaceField";
 import { CUT_A, CUT_B } from "../terrain/strokes";
+import {
+  CLASS_EDGE,
+  CLASS_FOREST_SHIFT,
+  CLASS_HASH_MASK,
+  CLASS_KIND_MAX,
+  CLASS_KIND_SHIFT,
+  CLASS_STEPS_PER_M,
+} from "../terrain/groundClasses";
 import { GRASS_EDGE_M } from "../terrain/grassField";
 import { longestBank } from "../terrain/rivers";
 import { SCAR_CHANNELS, type Biome, type ForestFloor, type ScarMark } from "../terrain/biome";
@@ -87,6 +95,9 @@ const TerrainParams = d.struct({
   /** The banks' wet soil (linear rgb) and the shore's width in metres. */
   shore: d.vec4f,
   distant: d.vec4f,
+  /** 1 draws the ground's classes (`groundClasses`) in place of its lit
+   *  colour: the "ground-classes" frame view. Then unused. */
+  view: d.vec4u,
 });
 /** The scar texture's grid and the biome's scar look (`biome.scars`). */
 const ScarParams = d.struct({
@@ -698,6 +709,49 @@ export const groundColour = tgpu.fn(
   return d.vec4f(std.max(albedo, d.vec3f(0)), roughness);
 });
 
+/** Whether the frame draws the ground's classes in place of its lit colour. */
+export const groundClassView = tgpu.fn(
+  [],
+  d.bool,
+)(() => {
+  "use gpu";
+  return terrainLayout.$.params.view.x === 1;
+});
+
+/** A distance byte of the class view, over 255: `inside` metres inside an
+ *  edge. Never 0, which is the view's "not ground". */
+const classDistance = tgpu.fn(
+  [d.f32],
+  d.f32,
+)((inside) => {
+  "use gpu";
+  return std.clamp(std.round(CLASS_EDGE - inside * CLASS_STEPS_PER_M), 1, 255) / 255;
+});
+
+/** What the ground at `xy` is, as the class view's three bytes over 255
+ *  (`terrain/groundClasses.ts` decodes them), from the same site, water and
+ *  footprint `groundColour` paints by: the distance outside the paving and
+ *  outside the water, then whether the forest's floor is drawn there (inside
+ *  the simulation's shape, or on the verge round it), the plot's kind and two
+ *  hashed bits of its index. */
+export const groundClasses = tgpu.fn(
+  [d.vec2f, d.f32, d.vec4f, d.f32],
+  d.vec3f,
+)((xy, footprint, site, water) => {
+  "use gpu";
+  const plot = terrainLayout.$.plots[d.i32(site.x)];
+  let forest = d.u32(0);
+  if (site.w >= 0) {
+    forest = d.u32(2);
+  } else if (forestFloorWeight(xy, site.w, footprint) > 0.5) {
+    forest = d.u32(1);
+  }
+  const kind = std.min(d.u32(plot.detail.y), d.u32(CLASS_KIND_MAX));
+  const hash = pcgHash(d.u32(site.x)) & CLASS_HASH_MASK;
+  const packed = (forest << CLASS_FOREST_SHIFT) | (kind << CLASS_KIND_SHIFT) | hash;
+  return d.vec3f(classDistance(site.z), classDistance(water), d.f32(packed) / 255);
+});
+
 // The water surface's look (presentation, not rules): opaque over deep water,
 // the bed showing through for the first metres inside the edge; smooth enough
 // that sky and sun reflect in it, broken by two octaves of ripples. The
@@ -1128,8 +1182,20 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
       scarPages: scars.directory.createView(),
     });
   const scars = createScarTexture(registry);
+  /** The surface's numbers as `set` last packed them, and the frame's view. */
+  let look: Omit<d.Infer<typeof TerrainParams>, "view"> | null = null;
+  let classView = false;
+  const writeParams = () => {
+    if (look) params.write({ ...look, view: d.vec4u(classView ? 1 : 0, 0, 0, 0) });
+  };
 
   const source = {
+    /** Draw the ground's classes in place of its lit colour, or not. */
+    setClassView(on: boolean) {
+      if (on === classView) return;
+      classView = on;
+      writeParams();
+    },
     ready: () => groundFilterReady(root, registry, scarSampler),
     group: null as unknown as ReturnType<typeof groupOf>,
     /** Follow the side's learned ground (null: none); true when the scars
@@ -1178,7 +1244,7 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
       surfaceIndex.set(indexBuffer(field.index.length)).write(field.index.buffer as ArrayBuffer);
       const rules = biome.field_rules;
       const one = (key: string) => linear(biome.palettes[key][0]);
-      params.write({
+      look = {
         region: d.vec4f(...tree.region),
         field: d.vec4f(field.origin[0], field.origin[1], 1 / field.cellM, field.footprintM),
         fieldGrid: d.vec4u(field.cols, field.rows, field.levels, 0),
@@ -1202,7 +1268,8 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
         water: d.vec4f(...one("water"), WATER_OPACITY),
         shore: d.vec4f(...linear(biome.palettes[biome.shore.palette][0]), biome.shore.width_m),
         distant: d.vec4f(...one("distant"), 0),
-      });
+      };
+      writeParams();
       const s = biome.scars;
       const mark = (m: ScarMark) => d.vec4f(...one(m.palette), m.strength);
       scarLook.full = d.vec4f(

@@ -68,6 +68,15 @@ pub fn plan_encounter(
     )
 }
 
+/// Check a battle preparation request (`contract::preparation::
+/// PrepareBattleRequest`) before anything is resolved: answers `{ status:
+/// "ok", request }` with the request in canonical form, or `{ status:
+/// "error", diagnostics }` naming the field at fault.
+#[wasm_bindgen]
+pub fn check_prepare_request(request_json: &str) -> String {
+    contract::preparation::check_request_json(request_json)
+}
+
 /// The generator version a generation request pins: a request naming another
 /// is refused, so a caller that wants this build's maps asks here.
 #[wasm_bindgen]

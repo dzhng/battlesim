@@ -1,4 +1,5 @@
 //! One admission boundary for acquired physical maps; no IO or world construction.
+use crate::generation::GenerationRequest;
 use crate::identity::GenerationIdentity;
 use crate::map::MapDefinition;
 use crate::templates::TemplateGeometryCatalog;
@@ -37,7 +38,11 @@ impl<'de> Deserialize<'de> for MapId {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum MapSource {
+    /// A saved map of the catalogue, `fixtures/maps/<id>/`.
     Catalogue { id: MapId },
+    /// A map the generator makes from `request`. It needs no catalogue
+    /// folder: the request, with the build that reads it, is the map.
+    Generated { request: GenerationRequest },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
