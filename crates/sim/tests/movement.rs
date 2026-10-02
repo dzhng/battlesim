@@ -913,3 +913,57 @@ fn a_squad_leaves_a_body_containing_only_its_centroid() {
         assert_eq!(replay.digest(), digest);
     }
 }
+
+/// A marker is a promise the squad gets there (move validity). A squad sent
+/// past a building walks round it and completes its order: to open ground
+/// beyond, and to a point hard against the far wall, where placement moves
+/// the marker to the nearest standing room and the squad lines up along the
+/// wall (its soldiers file along it past the ones already in place).
+#[test]
+fn a_squad_sent_past_a_building_walks_round_it_and_arrives() {
+    for (goal, what) in [
+        ([60.0, 21.0], "open ground 10 m past it"),
+        ([63.3, 30.55], "hard against its far wall"),
+    ] {
+        let mut setup = one_squad_setup(
+            serde_json::json!([
+                {"kind":"wall","center":[60,40],"yaw":0,"half_extents":[12,9,4]}
+            ]),
+            [60.0, 65.0],
+            goal,
+        );
+        // Ordered by hand, so a refused order fails here and not as a squad
+        // that never set off.
+        setup.scripts.clear();
+        let mut b = Battle::new(&setup, 1);
+        Orders { seq: 0 }.go(&mut b, &[0], goal, 1, RoutePolicy::Shortest, false);
+        let body = b.world().prop(0).unwrap().footprint();
+        let radius = setup.rules.physics.soldier_radius_m;
+        let mut ticks = 0;
+        while ticks < 3000 && (ticks < 2 || b.unit(UnitId(0)).unwrap().state != MoveState::Idle) {
+            b.step();
+            ticks += 1;
+            for p in b.unit(UnitId(0)).unwrap().member_positions() {
+                assert!(
+                    !body.contains(p.xy(), radius - 1e-6),
+                    "{what}: a soldier inside the building at tick {ticks}"
+                );
+            }
+        }
+        let unit = b.unit(UnitId(0)).unwrap();
+        assert!(
+            ticks < 3000 && unit.orders.is_empty(),
+            "{what}: the order never completed ({:?})",
+            unit.state
+        );
+        let left = dist(xy(&own(&b, 0)), goal);
+        assert!(
+            left < 4.0,
+            "{what}: the squad ended {left:.1} m from its goal"
+        );
+        assert!(
+            unit.position.y < 31.0,
+            "{what}: the squad is past the building"
+        );
+    }
+}
