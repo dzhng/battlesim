@@ -4159,20 +4159,6 @@ That is the limit: the sheet trades "a hole at 80 m in the sun" against "lit on 
 
 **Verdict:** sound. Scaling the whole crown until its one widest clump fitted squeezed the tall kind to 0.59 of its width. Placement reads a kind's size from the finest tier, so the widest and highest clumps reach the tree's size exactly and no kind places smaller than it is built. **Confidence:** high.
 
-## Buildings lane follow-up
-
-### New York and Paris are later families, not part of closing the buildings lane
-
-**When:** after the first family's coverage was complete, 2026-10-01.
-
-**Choice:** The lane closes with one family, China's, covering all six categories. The New York and Paris files stay vendored and their exports are follow-up work through the same exporter (`city/graph.py`). C11's text asked for the kit modules of all three archetypes.
-
-**Gap:** The lane's contract is "every category the generator places has at least one accepted template"; C11 was written before S2 showed the graphs cover only apartment blocks, so two more graph exports would add two more styles of apartment block and nothing else.
-
-**Reach:** Every generated town has the same style of apartment block. A second family also needs houses, farms, towers and industry styled for it, or a decision to share ours.
-
-**Verdict:** provisional. It is the smallest scope that meets the contract, and it puts the facade, far-tier and damage passes first, which every family needs. **Confidence:** medium.
-
 ## Rejected scale hypotheses
 
 The [scale rationale's dead ends](../done/city-maps-scale/README.md#dead-ends-worth-retaining)
