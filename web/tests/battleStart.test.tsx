@@ -171,10 +171,12 @@ test("a cancelled or replaced preparation never delivers its battle; the request
 
   live.answer({ type: "stage", stage: "map" });
   live.answer({ type: "prepared", battle: battle("second") });
-  expect(await settled(second.battle)).toEqual(battle("second"));
+  expect(await settled(second.battle)).toMatchObject(battle("second"));
   expect(stages).toEqual(["second map"]);
   expect(await settled(first.battle)).toBe("pending");
-  // The worker is closed once it has answered.
+  // The prepared worker stays owned by this battle until it is abandoned.
+  expect(live.terminated).toBe(false);
+  second.cancel();
   expect(live.terminated).toBe(true);
 });
 

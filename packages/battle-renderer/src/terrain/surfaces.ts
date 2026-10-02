@@ -15,7 +15,35 @@ export interface SurfaceGeometry {
   riverRunStride: number;
 }
 
-export const SURFACE_ROAD = 1;
+/** The kinds a paved record's tag names, in the native layout's order: a
+ *  stretch, triangle or boundary edge carries its area's kind as an index
+ *  into these. The biome's `roads` rows are keyed by them. */
+export const SURFACE_AREA_KINDS = ["road", "country_road", "dirt_track", "sidewalk"] as const;
+export type SurfaceAreaKind = (typeof SURFACE_AREA_KINDS)[number];
+/** Which of them are carriageways: all but the sidewalk. */
+const ROAD_AREA_KINDS: readonly string[] = ["road", "country_road", "dirt_track"];
+
+/** The native layout's own words for the paved kinds. */
+export interface SurfaceKindLayout {
+  surfaceAreaKinds: string[];
+  roadAreaKinds: string[];
+}
+
+/** Refuse a native layout whose paved kinds this module would misname (one
+ *  from an older build names none). */
+export function checkSurfaceKinds(layout: Partial<SurfaceKindLayout>): void {
+  const same = (a: readonly string[] | undefined, b: readonly string[]) =>
+    a?.length === b.length && a.every((kind, k) => kind === b[k]);
+  if (
+    !same(layout.surfaceAreaKinds, SURFACE_AREA_KINDS) ||
+    !same(layout.roadAreaKinds, ROAD_AREA_KINDS)
+  )
+    throw new Error("paved surface kinds differ from the ones the ground readers expect");
+}
+
+/** Whether a paved record's kind `tag` is a carriageway. */
+const isRoad = (tag: number) => ROAD_AREA_KINDS.includes(SURFACE_AREA_KINDS[tag]);
+
 /** Agricultural guides read the road strokes' authored runs and the rivers'
  * long runs (so a field meets a rounded bend edge-on, not its short samples) and
  * the native exposed road boundary. Sidewalks and triangulation diagonals
@@ -25,7 +53,7 @@ export function plotGuideEdges(site: SurfaceGeometry): Float32Array {
   let count =
     site.surfaceRuns.length / site.surfaceRunStride + site.riverRuns.length / site.riverRunStride;
   for (let o = 0; o < boundaries.length; o += site.surfaceBoundaryStride)
-    if (boundaries[o + 4] === SURFACE_ROAD) count++;
+    if (isRoad(boundaries[o + 4])) count++;
   const edges = new Float32Array(count * 4);
   let at = 0;
   for (const [runs, stride] of [
@@ -37,7 +65,7 @@ export function plotGuideEdges(site: SurfaceGeometry): Float32Array {
       at += 4;
     }
   for (let o = 0; o < boundaries.length; o += site.surfaceBoundaryStride)
-    if (boundaries[o + 4] === SURFACE_ROAD) {
+    if (isRoad(boundaries[o + 4])) {
       edges.set(boundaries.subarray(o, o + 4), at);
       at += 4;
     }

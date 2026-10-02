@@ -335,6 +335,9 @@ export async function createBattleFrame(
         setBuildingsShown(on) {
           if (!disposed) models.setBuildingsShown(on);
         },
+        setRoadWearShown(on) {
+          if (!disposed) world.setRoadWearShown(on);
+        },
         setOverlayGlow(next) {
           if (!disposed) overlay.setGlow(next);
         },

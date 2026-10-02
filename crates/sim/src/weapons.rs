@@ -63,10 +63,39 @@ pub struct Arsenal {
     pub config: FlightConfig,
 }
 
+/// Admit launch profiles and the weapon table before constructing battle resources.
+pub fn check_rules(rules: &Rules) -> Result<FlightConfig, String> {
+    let config = FlightConfig::new(&rules.physics.flight, rules.tick_hz)
+        .map_err(|e| format!("physics: {e}"))?;
+    for (id, weapon) in &rules.weapons {
+        config
+            .profile(&weapon.ballistics)
+            .map_err(|e| format!("weapons.{id}: {e}"))?;
+    }
+    if rules.weapons.len() > crate::publication::MAX_WEAPON_ROWS {
+        return Err(format!(
+            "weapons: more than {} rows, the publication limit",
+            crate::publication::MAX_WEAPON_ROWS
+        ));
+    }
+    for t in rules.catalog.indices() {
+        for mount in rules.catalog.mounts(t) {
+            if mount.def.weapons.len() > crate::publication::MAX_AMMO_KINDS {
+                return Err(format!(
+                    "units.{}: mount {:?} has more than {} ammunition kinds, the publication limit",
+                    rules.catalog.id(t),
+                    mount.def.name,
+                    crate::publication::MAX_AMMO_KINDS
+                ));
+            }
+        }
+    }
+    Ok(config)
+}
+
 impl Arsenal {
     pub fn new(rules: &Rules) -> Self {
-        let config = FlightConfig::new(&rules.physics.flight, rules.tick_hz)
-            .expect("fixture flight rules are valid");
+        let config = check_rules(rules).expect("fixture weapon rules are valid");
         let weapons: Vec<Weapon> = rules
             .weapons
             .iter()
@@ -78,10 +107,6 @@ impl Arsenal {
                 def: def.clone(),
             })
             .collect();
-        assert!(
-            weapons.len() <= crate::publication::MAX_WEAPON_ROWS,
-            "more weapon rows than a firing report's heard mask carries"
-        );
         // The catalog's checks at load hold every mount to an existing row
         // and an earlier turret (`Catalog::check_weapons`, `catalog::check`).
         let index = |id: &str| {
@@ -99,11 +124,6 @@ impl Arsenal {
                     .enumerate()
                     .map(|(i, c)| {
                         let m = &c.def;
-                        assert!(
-                            m.weapons.len() <= crate::publication::MAX_AMMO_KINDS,
-                            "mount {} has more ammunition kinds than the publication carries",
-                            m.name
-                        );
                         let on = m.on.as_ref().map(|carrier| {
                             list[..i]
                                 .iter()
@@ -485,7 +505,7 @@ fn facade(ctx: &FireContext, unit: &Unit, mount: &Mount, spec: &MountSpec, point
 
 fn bearing_from(unit: &Unit, point: V3) -> f64 {
     let to = point.xy() - unit.position.xy();
-    to.y.atan2(to.x)
+    libm::atan2(to.y, to.x)
 }
 
 /// Where a mount's rounds leave when it points along `bearing`: each mount
@@ -1484,7 +1504,7 @@ fn fire(
         }
     }
     let last = launches.last()?.velocity;
-    mount.elevation = last.z.atan2(last.x.hypot(last.y));
+    mount.elevation = libm::atan2(last.z, libm::hypot(last.x, last.y));
     mount.shots = mount.shots.wrapping_add(launches.len() as u32);
     Some(Shot {
         unit: unit.id,

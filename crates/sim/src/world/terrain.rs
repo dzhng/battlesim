@@ -511,3 +511,72 @@ pub(crate) fn ray_triangle(origin: V3, dir: V3, tri: [V3; 3]) -> Option<f64> {
     let t = e2.dot(q) * inv;
     (t >= 0.0).then_some(t)
 }
+
+/// Sparse exact samples for public static queries. No mesh or runtime caches travel.
+#[derive(serde::Serialize, serde::Deserialize)]
+pub(super) struct QueryHeightField {
+    spacing: f64,
+    nx: usize,
+    ny: usize,
+    pages: Vec<(usize, Vec<f64>)>,
+    top: f64,
+    bottom: f64,
+    variation_regions: Vec<[f64; 4]>,
+}
+
+impl HeightField {
+    pub(super) fn query_export(&self) -> QueryHeightField {
+        QueryHeightField {
+            spacing: self.spacing,
+            nx: self.nx,
+            ny: self.ny,
+            pages: self
+                .pages
+                .iter()
+                .enumerate()
+                .filter_map(|(id, page)| page.as_ref().map(|p| (id, p.to_vec())))
+                .collect(),
+            top: self.top,
+            bottom: self.bottom,
+            variation_regions: self.variation_regions.clone(),
+        }
+    }
+    pub(super) fn from_query_export(data: QueryHeightField) -> Result<Self, String> {
+        if !data.spacing.is_finite() || data.spacing <= 0.0 || data.nx < 2 || data.ny < 2 {
+            return Err("invalid public height grid".into());
+        }
+        let count = data
+            .nx
+            .div_ceil(HEIGHT_PAGE_SIZE)
+            .checked_mul(data.ny.div_ceil(HEIGHT_PAGE_SIZE))
+            .ok_or("public height grid too large")?;
+        let mut pages = Vec::new();
+        if !data.pages.is_empty() {
+            pages.resize_with(count, || None);
+        }
+        for (id, samples) in data.pages {
+            if id >= count
+                || samples.len() != PAGE_SAMPLES
+                || samples.iter().any(|v| !v.is_finite())
+            {
+                return Err("invalid public height page".into());
+            }
+            pages[id] = Some(Box::new(
+                samples
+                    .try_into()
+                    .map_err(|_| "invalid public height page")?,
+            ));
+        }
+        Ok(Self {
+            spacing: data.spacing,
+            nx: data.nx,
+            ny: data.ny,
+            pages,
+            top: data.top,
+            bottom: data.bottom,
+            variation_regions: data.variation_regions,
+            mesh: OnceLock::new(),
+            samples: OnceLock::new(),
+        })
+    }
+}

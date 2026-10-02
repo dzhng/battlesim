@@ -283,6 +283,9 @@ interface LabHandle {
   /** Draw no template-art buildings and none of their shadows while on (a
    *  paired cost measure). */
   suppressBuildings?: (on: boolean) => Promise<void>;
+  /** Draw the roads plain while on, with no surface detail or shoulder (a
+   *  paired cost measure). */
+  suppressRoadWear?: (on: boolean) => Promise<void>;
   /** Draw no combat effects while on (a paired cost measure). */
   suppressEffects?: (on: boolean) => Promise<void>;
   /** Draw the effects but light nothing by them while on (paired frames, cost). */
@@ -834,6 +837,10 @@ export function LabViewport({
           },
           async suppressBuildings(on: boolean) {
             scene.setBuildingsShown(!on);
+            await nextFrame();
+          },
+          async suppressRoadWear(on: boolean) {
+            scene.setRoadWearShown(!on);
             await nextFrame();
           },
           async suppressEffects(on: boolean) {

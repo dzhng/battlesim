@@ -257,6 +257,10 @@ export interface BattleFrame {
   /** Lab diagnostics: draw the template-art buildings and their shadows or
    *  not (a paired cost measure). */
   setBuildingsShown(on: boolean): void;
+  /** Lab diagnostics: draw the roads worn (surface detail, shoulders, the
+   *  grass thinned across them) or plain, each kind's flat colour to its
+   *  edge: paired frames and cost. */
+  setRoadWearShown(on: boolean): void;
   /** Lab probes of the sight lights (debug readbacks, never in a frame). */
   readonly fogProbes: FogProbes;
   /** Lab probes of the grass field (debug readbacks, never in a frame). */

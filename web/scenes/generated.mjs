@@ -10,6 +10,7 @@
 // `CAMERA_MAP=metro:large:1` flies the camera through that map's main town
 // instead, and reports what clearance costs there. `STARTUP_MAP=mixed:large:1`
 // only starts that map from the menu and reports how long it took.
+import { startupResources } from "./_startupResources.mjs";
 import { writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import { advance, buildingsSettled, lab, obs, openMenu, presented } from "./_lab.mjs";
@@ -31,15 +32,15 @@ const delta = (a, b) => a.reduce((s, v, i) => s + Math.abs(v - b[i]), 0);
 
 /** Wait until the page's battle is playable: the loading screen has lifted
  *  over a running battle. */
-export async function playable(page, timeout = 120000) {
+export async function playable(page, timeout = 120000, minimumTick = 4) {
   await page.waitForFunction(
-    () =>
+    (minimumTick) =>
       document.querySelector("[data-testid=error]") ||
       window.__lab?.error ||
       (window.__lab?.ready &&
-        window.__lab.route?.tick?.() > 3 &&
+        (window.__lab.route?.tick?.() ?? -1) >= minimumTick &&
         !document.querySelector("[data-testid=loading]")),
-    undefined,
+    minimumTick,
     { timeout },
   );
   const error = await page.evaluate(
@@ -64,7 +65,7 @@ async function preparedBattle(page) {
  *  type and size, and deploy. The menu shows no seed; the scene pins one by
  *  the menu's address so the map is the same every run. Returns what the
  *  menu and the loading screen showed. */
-async function deployFromMenu(ctx, page, map, shots = false) {
+async function deployFromMenu(ctx, page, map, shots = false, beforeDeploy = async () => {}) {
   await page.goto(new URL("/", ctx.url).href);
   await page.getByTestId("menu-deploy").waitFor();
   const drawn = await page.getByTestId("menu-deploy").getAttribute("href");
@@ -84,6 +85,7 @@ async function deployFromMenu(ctx, page, map, shots = false) {
   };
   if (shots)
     await writeFile(ctx.evidencePath("menu-chosen-1920x1080.png"), await page.screenshot());
+  await beforeDeploy();
   await page.getByTestId("menu-deploy").click();
   await page.getByTestId("loading").waitFor();
   const loading = await page.evaluate(() => ({
@@ -100,14 +102,57 @@ async function deployFromMenu(ctx, page, map, shots = false) {
 async function startupOf(ctx, spec) {
   const [type, size, seed] = spec.split(":");
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await deployFromMenu(ctx, page, { type, size, seed });
-  await playable(page, 600000);
-  const startup = await lab(page, () => window.__lab.route.startup());
-  const report = await preparedBattle(page);
-  console.log(
-    `METRIC startup ${type} ${size} seed ${seed}: prepared ${startup.prepared.toFixed(0)} ms (map ${report.timings.map.toFixed(0)}, encounter ${report.timings.encounter.toFixed(0)}), world ${startup.world.toFixed(0)} ms, first frame ${startup.renderer.toFixed(0)} ms, playable ${startup.playable.toFixed(0)} ms after Deploy; ${report.counts.buildings} buildings (development build)`,
-  );
-  await writeFile(ctx.evidencePath(`startup-${type}-${size}-${seed}.png`), await page.screenshot());
+  for (const cache of ["cold", "warm"]) {
+    let measuring, resources;
+    try {
+      await deployFromMenu(ctx, page, { type, size, seed }, false, async () => {
+        measuring = await startupResources(page);
+      });
+      await playable(page, 180000, 0);
+      resources = await measuring.finish();
+      const startup = await lab(page, () => window.__lab.route.startup());
+      const report = await preparedBattle(page);
+      const mainWasmBytes = await page.evaluate(async () => {
+        const moduleURL = performance
+          .getEntriesByType("resource")
+          .find((entry) => entry.name.split("?")[0].endsWith("/src/battle/sim/module.ts"))?.name;
+        if (!moduleURL) throw new Error("The page's query module was not observed");
+        const { loadSimModule } = await import(moduleURL);
+        return (await loadSimModule()).memory.buffer.byteLength;
+      });
+      console.log(
+        `METRIC startup ${type} ${size} seed ${seed} ${cache}: ${JSON.stringify({
+          startup,
+          timings: report.timings,
+          worldBuildMs: report.worldBuildMs,
+          publicExportMs: report.publicExportMs,
+          publicBytes: report.publicBytes,
+          wasmBytes: report.wasmBytes,
+          mainWasmBytes,
+          buildings: report.counts.buildings,
+          resources,
+        })}`,
+      );
+      ctx.check(
+        `${type} ${size} ${cache} startup is playable within one minute`,
+        startup.playable < 60000,
+        `${startup.playable.toFixed(0)} ms`,
+      );
+      await ctx.writeEvidence(`startup-${type}-${size}-${seed}-${cache}.json`, {
+        cache,
+        startup,
+        report,
+        resources,
+        mainWasmBytes,
+      });
+      await writeFile(
+        ctx.evidencePath(`startup-${type}-${size}-${seed}-${cache}.png`),
+        await page.screenshot(),
+      );
+    } finally {
+      if (measuring && resources === undefined) await measuring.finish();
+    }
+  }
 }
 
 /** The frame in `view` ("final", "ground-mask", "fog-mask"), as a decoded

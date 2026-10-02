@@ -156,7 +156,7 @@ function MovementLab({ battle }: { battle: SavedBattle }) {
           <button type="button" onClick={control.stop} disabled={!control.selected.length}>
             Stop
           </button>
-          <button type="button" onClick={sim.reset}>
+          <button type="button" onClick={sim.restart}>
             Reset
           </button>
         </div>

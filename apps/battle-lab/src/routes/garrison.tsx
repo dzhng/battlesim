@@ -186,7 +186,7 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
           <button type="button" onClick={control.exitBuilding} disabled={!garrisoned}>
             Leave building
           </button>
-          <button type="button" onClick={sim.reset}>
+          <button type="button" onClick={sim.restart}>
             Reset
           </button>
         </div>

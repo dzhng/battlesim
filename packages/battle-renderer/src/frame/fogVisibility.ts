@@ -4,13 +4,14 @@
 //
 // - one horizon map per eye, `azimuth_bins × radial_bins` words: a coarse
 //   terrain march at `terrain_azimuth_bins` rays, then a merge at full
-//   azimuth that intersects every known occluder exactly. Only eyes that moved
-//   are rebuilt, `rebuild_eyes_per_frame` at a time (new eyes at once); the
+//   azimuth that intersects only the known occluders within reach exactly.
+//   Moved eyes rebuild `rebuild_eyes_per_frame` at a time; new eyes and maps
+//   touched by an occluder change rebuild at once. The
 //   sight shape is applied per fragment, so a new bearing never rebuilds;
 // - per frame, a cull over the depth prepass: each `tile_px` screen tile
 //   bounds the ground it shows and lists the eyes whose reach touches it;
 // - the structures that take fog whole (every known occluder): after the
-//   maps change, or the eyes (a publication), one workgroup per occluder
+//   maps change, or the eyes (a publication), one workgroup per reachable occluder
 //   samples its walls and roof every `whole_step_m` against every eye and
 //   flags it seen if any sample is; the flags join the occluders' boxes and
 //   a lookup grid in the `wholes` texture `fogWholeSeen` reads.
@@ -21,6 +22,7 @@
 // tests), and `probeShape` / `probeWith` run the WGSL against oracle vectors.
 // Probes read back: lab only, never in the frame.
 import { tgpu, d } from "typegpu";
+import { vec2, type Vec2 } from "math";
 import type { GpuRegistry, GpuSlot } from "./registry";
 import { triangleRuleHeight } from "./triangleRule";
 import { terrainSample, type TerrainHeights } from "./terrainHeights";
@@ -34,6 +36,7 @@ import {
   type FogSight,
   type FogWorld,
   WHOLE_TEXTURE_WIDTH,
+  WHOLE_BOX_WORDS,
   wholeWords,
 } from "./fogInputs";
 import {
@@ -59,6 +62,7 @@ const BOX_BYTES = 32;
 const PROBE_BYTES = 32;
 const BUILD_WORKGROUP = 64;
 const MAX_WORKGROUPS = 65535;
+const HORIZON_SECTORS = 64;
 
 const FogBox = d
   .struct({ center: d.vec2f, half: d.vec2f, yaw: d.f32, top: d.f32, base: d.f32, pad1: d.f32 })
@@ -74,6 +78,8 @@ const buildLayout = tgpu.bindGroupLayout({
   heights: { storage: (n: number) => d.arrayOf(d.u32, n), access: "readonly" },
   foliage: { storage: (n: number) => d.arrayOf(d.vec4f, n), access: "readonly" },
   occluders: { storage: (n: number) => d.arrayOf(FogBox, n), access: "readonly" },
+  // Per rebuilt eye: [eye index, sector table offset, sector count], followed
+  // by sector [candidate offset, count] pairs and sorted occluder indices.
   rebuild: { storage: words, access: "readonly" },
   terrain: { storage: words, access: "mutable" },
   maps: { storage: words, access: "mutable" },
@@ -91,9 +97,10 @@ const probeLayout = tgpu.bindGroupLayout({
 });
 const wholeLayout = tgpu.bindGroupLayout({
   boxes: { storage: (n: number) => d.arrayOf(FogBox, n), access: "readonly" },
-  /** Structures' step and count: (whole_step_m, count, 0, 0). */
+  /** Reachable structures' step and count: (whole_step_m, count, 0, 0). */
   whole: { uniform: d.vec4f },
   flags: { storage: words, access: "mutable" },
+  items: { storage: words, access: "readonly" },
 });
 const shapeLayout = tgpu.bindGroupLayout({
   rows: { storage: (n: number) => d.arrayOf(d.vec4f, n), access: "readonly" },
@@ -185,7 +192,7 @@ const terrainMarch = tgpu
   let r = gid.x / AZT;
   let ai = gid.x % AZT;
   if (r >= P.rebuildCount) { return; }
-  let e = buildLayout.$.eyes[buildLayout.$.rebuild[r]];
+  let e = buildLayout.$.eyes[buildLayout.$.rebuild[r * 3u]];
   let theta = (f32(ai) + 0.5) / f32(AZT) * ${TAU} - ${PI};
   let dir = vec2f(cos(theta), sin(theta));
   let lnr = log(e.reach / P.firstBinM);
@@ -230,7 +237,7 @@ const terrainMarch = tgpu
 }`)
   .$uses({ buildLayout, fogBinEdge, fogPack, fogHeight, fogFoliage });
 
-/** Full-azimuth merge: each ray meets every known occluder analytically
+/** Full-azimuth merge: each ray meets its eye’s nearby occluders analytically
  *  (entry distance and top slope; below the eye, the far edge), then takes
  *  the running maximum with the terrain map interpolated between its rays. */
 function mergeFn(radialBins: number) {
@@ -246,15 +253,20 @@ function mergeFn(radialBins: number) {
   let r = gid.x / AZ;
   let ai = gid.x % AZ;
   if (r >= P.rebuildCount) { return; }
-  let e = buildLayout.$.eyes[buildLayout.$.rebuild[r]];
+  let e = buildLayout.$.eyes[buildLayout.$.rebuild[r * 3u]];
   let theta = (f32(ai) + 0.5) / f32(AZ) * ${TAU} - ${PI};
   let dir = vec2f(cos(theta), sin(theta));
   let lnr = log(e.reach / P.firstBinM);
   var pm: array<f32, ${radialBins}>;
   var pt: array<f32, ${radialBins}>;
   for (var k = 0u; k < R; k++) { pm[k] = -1e4; pt[k] = 0.0; }
-  for (var i = 0u; i < P.occluderCount; i++) {
-    let b = buildLayout.$.occluders[i];
+  let sectors = buildLayout.$.rebuild[r * 3u + 2u];
+  let sector = min(u32((f32(ai) + 0.5) / f32(AZ) * f32(sectors)), sectors - 1u);
+  let row = buildLayout.$.rebuild[r * 3u + 1u] + sector * 2u;
+  let start = buildLayout.$.rebuild[row];
+  let count = buildLayout.$.rebuild[row + 1u];
+  for (var i = 0u; i < count; i++) {
+    let b = buildLayout.$.occluders[buildLayout.$.rebuild[start + i]];
     let o0 = e.position.xy - b.center;
     if (length(o0) - length(b.half) > e.reach) { continue; }
     let c = cos(b.yaw);
@@ -409,7 +421,7 @@ const probeFn = tgpu
 const WHOLE_WORKGROUP = 64;
 const wholeFound = tgpu.workgroupVar(d.atomic(d.u32));
 
-/** One workgroup per structure that takes fog whole: its four walls and its
+/** One workgroup per reachable structure that takes fog whole: its four walls and its
  *  roof sampled on a grid `step` apart (walls from just above its base to
  *  just below its top, each probing out along its normal; the roof facing
  *  up, under the roof rule), tested against every eye that can reach it,
@@ -420,11 +432,13 @@ const wholeFn = tgpu
     workgroupSize: [WHOLE_WORKGROUP],
   })(/* wgsl */ `{
   let W = wholeLayout.$.whole;
-  let index = wg.x + wg.y * 65535u;
-  if (index >= u32(W.y)) { return; }
+  let item = wg.x + wg.y * 65535u;
+  if (item >= u32(W.y)) { return; }
+  let index = wholeLayout.$.items[item * 3u];
+  let eyesStart = wholeLayout.$.items[item * 3u + 1u];
+  let eyesCount = wholeLayout.$.items[item * 3u + 2u];
   if (li == 0u) { atomicStore(&wholeFound, 0u); }
   workgroupBarrier();
-  let P = fogLayout.$.params;
   let b = wholeLayout.$.boxes[index];
   let step = W.x;
   let u = vec2f(cos(b.yaw), sin(b.yaw));
@@ -468,7 +482,8 @@ const wholeFn = tgpu
       local = vec2f(mix(-b.half.x + inset.x, b.half.x - inset.x, tx), mix(-b.half.y + inset.y, b.half.y - inset.y, ty));
     }
     let p = vec3f(b.center + u * local.x + v * local.y, z);
-    for (var e = 0u; e < P.eyeCount; e++) {
+    for (var ei = 0u; ei < eyesCount; ei++) {
+      let e = wholeLayout.$.items[eyesStart + ei];
       let eye = fogLayout.$.eyes[e];
       if (distance(eye.position.xy, b.center) - reach > eye.reach) { continue; }
       if (fogSeenSurface(e, p, n, false)) { atomicStore(&wholeFound, 1u); break; }
@@ -596,6 +611,180 @@ function foliageCells(foliage: Float32Array): Float32Array {
   return foliage.length > 3 ? foliage.subarray(3) : new Float32Array(4);
 }
 
+const _fog_position: Vec2 = [0, 0];
+const _fog_center: Vec2 = [0, 0];
+const _fog_half: Vec2 = [0, 0];
+
+/** Reuse the whole-structure grid for horizon candidates. Lists are deduplicated
+ * and sorted so equal horizon slopes retain the original occluder's jump. */
+export function fogOccludersInReach(
+  grid: ReturnType<typeof wholeWords>,
+  position: readonly [number, number, number],
+  reach: number,
+  queryMargin = 0,
+): number[] {
+  const p = grid.params;
+  if (!p.wholeCount) return [];
+  const [x, y] = position;
+  // The GPU reads f32 coordinates and lengths. Grow the CPU broad phase by
+  // eight f32 relative rounding units, including subtraction and sqrt.
+  const pad =
+    8 *
+    2 ** -23 *
+    Math.max(
+      1,
+      Math.abs(x),
+      Math.abs(y),
+      reach,
+      Math.abs(p.wholeOrigin[0]) + p.wholeNx * p.wholeCellM,
+      Math.abs(p.wholeOrigin[1]) + p.wholeNy * p.wholeCellM,
+    );
+  const queryReach = reach + queryMargin;
+  const loX = Math.max(0, Math.floor((x - queryReach - pad - p.wholeOrigin[0]) / p.wholeCellM));
+  const hiX = Math.min(
+    p.wholeNx - 1,
+    Math.floor((x + queryReach + pad - p.wholeOrigin[0]) / p.wholeCellM),
+  );
+  const loY = Math.max(0, Math.floor((y - queryReach - pad - p.wholeOrigin[1]) / p.wholeCellM));
+  const hiY = Math.min(
+    p.wholeNy - 1,
+    Math.floor((y + queryReach + pad - p.wholeOrigin[1]) / p.wholeCellM),
+  );
+  const found = new Set<number>();
+  const floats = new Float32Array(grid.words.buffer);
+  vec2.set(_fog_position, x, y);
+  for (let j = loY; j <= hiY; j++)
+    for (let i = loX; i <= hiX; i++) {
+      const cell = grid.words[j * p.wholeNx + i];
+      const start = p.wholeItemsBase + (cell >>> 8);
+      for (let at = start; at < start + (cell & 255); at++) {
+        const index = grid.words[at];
+        if (found.has(index)) continue;
+        const b = p.wholeBoxesBase + index * WHOLE_BOX_WORDS;
+        vec2.fromBuffer(_fog_center, floats, b);
+        vec2.fromBuffer(_fog_half, floats, b + 4);
+        const radius = vec2.length(_fog_half);
+        if (vec2.squaredDistance(_fog_center, _fog_position) <= (reach + radius + pad) ** 2)
+          found.add(index);
+      }
+    }
+  return [...found].sort((a, b) => a - b);
+}
+
+/** Conservative angular lists reduce ray work without changing box intersections.
+ * Bounding circles enclose every turned box; one extra sector at either edge
+ * covers f32 ray-angle rounding. Source order preserves equal-slope ties. */
+export function fogHorizonRecords(
+  grid: ReturnType<typeof wholeWords>,
+  eyes: readonly Pick<FogEyeRow, "position" | "reach">[],
+  indices: readonly number[] = eyes.map((_, i) => i),
+): Uint32Array {
+  const floats = new Float32Array(grid.words.buffer);
+  const lists = eyes.map((eye) => {
+    const sectors = Array.from({ length: HORIZON_SECTORS }, () => [] as number[]);
+    for (const index of fogOccludersInReach(grid, eye.position, eye.reach)) {
+      const b = grid.params.wholeBoxesBase + index * WHOLE_BOX_WORDS;
+      vec2.fromBuffer(_fog_center, floats, b);
+      vec2.fromBuffer(_fog_half, floats, b + 4);
+      vec2.set(_fog_position, Math.fround(eye.position[0]), Math.fround(eye.position[1]));
+      const distance = vec2.distance(_fog_center, _fog_position);
+      const radius = vec2.length(_fog_half);
+      if (distance <= radius * (1 + 8 * 2 ** -23)) {
+        sectors.forEach((list) => list.push(index));
+        continue;
+      }
+      const angle = Math.atan2(
+        _fog_center[1] - _fog_position[1],
+        _fog_center[0] - _fog_position[0],
+      );
+      const half = Math.asin(Math.min(1, radius / distance));
+      const scale = HORIZON_SECTORS / (Math.PI * 2);
+      const lo = Math.floor((angle - half + Math.PI) * scale) - 1;
+      const hi = Math.floor((angle + half + Math.PI) * scale) + 1;
+      if (hi - lo + 1 >= HORIZON_SECTORS) {
+        sectors.forEach((list) => list.push(index));
+      } else {
+        for (let sector = lo; sector <= hi; sector++)
+          sectors[(sector + HORIZON_SECTORS) % HORIZON_SECTORS].push(index);
+      }
+    }
+    return sectors;
+  });
+  const headers = eyes.length * 3;
+  const tableWords = eyes.length * HORIZON_SECTORS * 2;
+  const count =
+    headers +
+    tableWords +
+    lists.reduce((n, sectors) => n + sectors.reduce((m, list) => m + list.length, 0), 0);
+  const records = new Uint32Array(count);
+  let at = headers + tableWords;
+  lists.forEach((sectors, r) => {
+    const table = headers + r * HORIZON_SECTORS * 2;
+    records.set([indices[r], table, HORIZON_SECTORS], r * 3);
+    sectors.forEach((list, sector) => {
+      records.set([at, list.length], table + sector * 2);
+      records.set(list, at);
+      at += list.length;
+    });
+  });
+  return records;
+}
+
+/** Reachable structure rows and their eye lists for the whole-fog pass. */
+export function wholeFogRecords(
+  grid: ReturnType<typeof wholeWords>,
+  eyes: readonly Pick<FogEyeRow, "position" | "reach">[],
+  queryMargin: number,
+) {
+  const pairs = new Map<number, number[]>();
+  eyes.forEach((eye, e) => {
+    for (const index of fogOccludersInReach(grid, eye.position, eye.reach, queryMargin)) {
+      let list = pairs.get(index);
+      if (!list) pairs.set(index, (list = []));
+      list.push(e);
+    }
+  });
+  const rows = [...pairs].sort(([a], [b]) => a - b);
+  const count = rows.length;
+  const words = new Uint32Array(count * 3 + rows.reduce((n, [, list]) => n + list.length, 0));
+  let at = count * 3;
+  rows.forEach(([box, list], i) => {
+    words.set([box, at, list.length], i * 3);
+    words.set(list, at);
+    at += list.length;
+  });
+  return { count, words };
+}
+
+/** An unchanged geometry set preserves every eye map, even when row indices
+ * move. A removed box dirties its old neighbours, an added box its new ones. */
+export function fogAffectedEyes(
+  before: readonly FogOccluder[],
+  beforeGrid: ReturnType<typeof wholeWords>,
+  after: readonly FogOccluder[],
+  afterGrid: ReturnType<typeof wholeWords>,
+  eyes: readonly Pick<FogEyeRow, "position" | "reach">[],
+): number[] {
+  const key = (b: FogOccluder) => [b.x, b.y, b.hx, b.hy, b.yaw, b.base, b.top].join(",");
+  const oldKeys = before.map(key);
+  const newKeys = after.map(key);
+  const oldSet = new Set(oldKeys);
+  const newSet = new Set(newKeys);
+  const removed = new Set(oldKeys.flatMap((k, i) => (newSet.has(k) ? [] : [i])));
+  const added = new Set(newKeys.flatMap((k, i) => (oldSet.has(k) ? [] : [i])));
+  if (!removed.size && !added.size) return [];
+  const affected: number[] = [];
+  eyes.forEach((e, i) => {
+    if (
+      (removed.size &&
+        fogOccludersInReach(beforeGrid, e.position, e.reach).some((b) => removed.has(b))) ||
+      (added.size && fogOccludersInReach(afterGrid, e.position, e.reach).some((b) => added.has(b)))
+    )
+      affected.push(i);
+  });
+  return affected;
+}
+
 const sameEye = (a: readonly number[], b: readonly number[]) =>
   a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
 
@@ -658,7 +847,7 @@ export async function createFogVisibility(
     device.createBuffer({
       label: "fog-whole-flags",
       size: rows * WHOLE_TEXTURE_WIDTH * WORD,
-      usage: STORAGE | COPY_SRC,
+      usage: STORAGE | COPY_SRC | COPY_DST,
     });
   const wholeUniform = registry.own(root.createBuffer(d.vec4f).$usage("uniform"));
 
@@ -676,10 +865,13 @@ export async function createFogVisibility(
     rebuild: slot(storage("fog-rebuild", WORD)),
     wholes: slot(wholeTexture(1)),
     wholeFlags: slot(wholeFlagBuffer(1)),
+    wholeItems: slot(storage("fog-whole-items", WORD)),
   };
   /** The structures' lookup (`wholeWords`), and whether their flags are stale. */
   let wholes = wholeWords([], 0);
   let wholesDirty = false;
+  let wholeItemCapacity = 1;
+  let maxOccluderRadius = 0;
 
   let world: FogWorld | null = null;
   /** The tallest canopy: translucent surfaces stand at most this far above ground. */
@@ -742,11 +934,22 @@ export async function createFogVisibility(
   };
 
   const setOccluders = (next: readonly FogOccluder[]) => {
+    const nextWholes = wholeWords(next, 2 * g.face_probe_m);
+    const built = [...slots.values()].filter((s) => s.built);
+    const affected = fogAffectedEyes(
+      occluders ?? [],
+      wholes,
+      next,
+      nextWholes,
+      built.map((s) => ({ position: s.built!, reach: s.reach })),
+    );
+    for (const i of affected) built[i].built = null;
+    queue = queue.filter((key) => slots.get(key)!.built !== null);
     occluders = next;
     const bytes = occluderRecords(next);
     buffers.occluders.set(storage("fog-occluders", bytes.byteLength));
     device.queue.writeBuffer(buffers.occluders.current!, 0, bytes);
-    wholes = wholeWords(next, 2 * g.face_probe_m);
+    wholes = nextWholes;
     buffers.wholes.set(wholeTexture(wholes.rows));
     device.queue.writeTexture(
       { texture: buffers.wholes.current! },
@@ -755,9 +958,12 @@ export async function createFogVisibility(
       [WHOLE_TEXTURE_WIDTH, wholes.rows],
     );
     buffers.wholeFlags.set(wholeFlagBuffer(wholes.flagRows));
-    wholeUniform.write(d.vec4f(g.whole_step_m, next.length, 0, 0));
+    maxOccluderRadius = 0;
+    for (const box of next) {
+      vec2.set(_fog_half, box.hx, box.hy);
+      maxOccluderRadius = Math.max(maxOccluderRadius, vec2.length(_fog_half));
+    }
     generation++;
-    invalidate();
   };
 
   const setSight = (next: FogSight) => {
@@ -796,11 +1002,6 @@ export async function createFogVisibility(
     if (order.length > eyeCapacity) {
       eyeCapacity = Math.max(order.length, eyeCapacity * 2);
       buffers.eyes.set(storage("fog-eyes", eyeCapacity * EYE_BYTES));
-      generation++;
-    }
-    if (order.length > rebuildCapacity) {
-      rebuildCapacity = Math.max(order.length, rebuildCapacity * 2);
-      buffers.rebuild.set(storage("fog-rebuild", rebuildCapacity * WORD));
       generation++;
     }
   };
@@ -900,8 +1101,19 @@ export async function createFogVisibility(
     rebuiltTotal += rebuilt;
     if (active) {
       device.queue.writeBuffer(buffers.eyes.current!, 0, eyeRecords(order.map(eyeRow)));
-      if (picked.length)
-        device.queue.writeBuffer(buffers.rebuild.current!, 0, new Uint32Array(picked));
+      if (picked.length) {
+        const records = fogHorizonRecords(
+          wholes,
+          picked.map((i) => ({ position: order[i].built!, reach: order[i].reach })),
+          picked,
+        );
+        if (records.length > rebuildCapacity) {
+          rebuildCapacity = Math.max(records.length, rebuildCapacity * 2);
+          buffers.rebuild.set(storage("fog-rebuild", rebuildCapacity * WORD));
+          generation++;
+        }
+        device.queue.writeBuffer(buffers.rebuild.current!, 0, records);
+      }
     }
     writeParams({ rebuildCount: picked.length, ...frame });
     if (picked.length) wholesDirty = true;
@@ -983,7 +1195,7 @@ export async function createFogVisibility(
 
   /** Run the probe pipeline with `group` bound as fog. */
   const runProbe = async (
-    group: ReturnType<typeof fragmentGroup>,
+    group: ReturnType<typeof fragmentGroup> | (() => ReturnType<typeof fragmentGroup>),
     points: readonly FogProbeInput[],
     before?: (encoder: GPUCommandEncoder) => void,
   ): Promise<Uint8Array> => {
@@ -995,7 +1207,7 @@ export async function createFogVisibility(
       const encoder = device.createCommandEncoder({ label: "fog-probe" });
       before?.(encoder);
       pipelines.probe
-        .with(group)
+        .with(typeof group === "function" ? group() : group)
         .with(root.createBindGroup(probeLayout, { points: input, out }))
         .with(encoder)
         .dispatchWorkgroups(Math.max(1, Math.ceil(points.length / BUILD_WORKGROUP)));
@@ -1082,18 +1294,35 @@ export async function createFogVisibility(
         // Flag each structure seen or not, then copy the flags into the
         // `wholes` texture the fragments read.
         wholesDirty = false;
-        const n = occluders.length;
-        pipelines.whole
-          .with(faces)
-          .with(
-            root.createBindGroup(wholeLayout, {
-              boxes: buffers.occluders.current!,
-              whole: wholeUniform,
-              flags: buffers.wholeFlags.current!,
-            }),
-          )
-          .with(encoder)
-          .dispatchWorkgroups(Math.min(n, MAX_WORKGROUPS), Math.ceil(n / MAX_WORKGROUPS));
+        // Preserve the original bounding-circle reach test: roof probes may
+        // look inward from a box just outside the eye's circle.
+        const { count: n, words: items } = wholeFogRecords(
+          wholes,
+          order.map(eyeRow),
+          maxOccluderRadius,
+        );
+        if (items.length > wholeItemCapacity) {
+          wholeItemCapacity = Math.max(items.length, wholeItemCapacity * 2);
+          buffers.wholeItems.set(storage("fog-whole-items", wholeItemCapacity * WORD));
+        }
+        // An eye leaving a neighbourhood must clear its previously seen flags.
+        encoder.clearBuffer(buffers.wholeFlags.current!);
+        if (n) {
+          device.queue.writeBuffer(buffers.wholeItems.current!, 0, items);
+          wholeUniform.write(d.vec4f(g.whole_step_m, n, 0, 0));
+          pipelines.whole
+            .with(faces)
+            .with(
+              root.createBindGroup(wholeLayout, {
+                boxes: buffers.occluders.current!,
+                whole: wholeUniform,
+                flags: buffers.wholeFlags.current!,
+                items: buffers.wholeItems.current!,
+              }),
+            )
+            .with(encoder)
+            .dispatchWorkgroups(Math.min(n, MAX_WORKGROUPS), Math.ceil(n / MAX_WORKGROUPS));
+        }
         encoder.copyBufferToTexture(
           { buffer: buffers.wholeFlags.current!, bytesPerRow: WHOLE_TEXTURE_WIDTH * WORD },
           { texture: buffers.wholes.current!, origin: [0, wholes.flagsRow] },
@@ -1128,8 +1357,12 @@ export async function createFogVisibility(
     /** Fog at `points` against every eye, after building any maps still due. */
     async probe(points: readonly FogProbeInput[]): Promise<Uint8Array> {
       if (!world || !sight) return new Uint8Array(points.length).fill(1);
-      return runProbe(groups().faces, points, (encoder) =>
-        prepare(encoder, { probeCount: points.length }),
+      // Preparing can replace the dummy list buffer before the first frame.
+      // Bind only after preparation, when every referenced resource is live.
+      return runProbe(
+        () => groups().faces,
+        points,
+        (encoder) => prepare(encoder, { probeCount: points.length }),
       );
     },
     /** Rebuild every eye's maps on the next frame, as if all had moved (a

@@ -6,7 +6,7 @@
 // benchmark's tour is.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Vec3 } from "math";
-import templates from "@fixtures/prototype-building-templates.json?raw";
+import { loadMap } from "@web/maps/browser";
 import {
   buildingObstacles,
   buildingPartProps,
@@ -28,7 +28,6 @@ import { apartKinds, buildWorldLayers } from "@packages/battle-renderer/src/worl
 import { nearEnvelope } from "@packages/renderer-core/src/cameraClearance";
 import { CameraController, type CameraPose } from "@packages/renderer-core/src/cameraController";
 import {
-  compileCameraLabMap,
   flyTrajectory,
   OBSERVER,
   PATH_WIDTH,
@@ -41,7 +40,7 @@ import {
 import { useFeed } from "../feed";
 import { LabViewport, type ViewportPilot } from "../LabViewport";
 import { useBuiltScenario } from "../useBuiltScenario";
-import { useStaticWorld } from "../useStaticWorld";
+import { useStaticMap } from "../useStaticWorld";
 import { useGameAppearances } from "../gameAppearances";
 import { gameBiome } from "../gameBiome";
 import { gameCamera } from "../gameCamera";
@@ -92,19 +91,19 @@ function eyeMesh(frame: FlightFrame, half: number): Mesh {
 }
 
 export default function CameraLab() {
-  const map = useBuiltScenario("camera-lab", (wasm) => compileCameraLabMap(wasm, templates));
+  const map = useBuiltScenario("camera-lab", async () => (await loadMap("camera-lab")).json);
   if (!map) return null;
   if (typeof map !== "string")
     return (
       <main style={{ padding: 24 }} className="lab-rejected" data-testid="error">
-        the camera lab's map could not be compiled: {map.error}
+        the camera lab's map could not be loaded: {map.error}
       </main>
     );
   return <Arena map={map} />;
 }
 
 function Arena({ map }: { map: string }) {
-  const world = useStaticWorld(useMemo(() => JSON.parse(map) as unknown, [map]));
+  const world = useStaticMap(map);
   const appearances = useGameAppearances();
   const [trajectory, setTrajectory] = useState(TRAJECTORIES[0]);
   const [riding, setRiding] = useState(false);

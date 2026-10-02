@@ -14,7 +14,7 @@ import { triangle3 } from "math/shapes";
 import { VERTEX_FLOATS, type Mesh, type Rgba } from "../mesh";
 import { drawnBy } from "../models/propAppearance";
 import type { WorldExports, WorldLayout, WorldOverlay } from "../worldMesh";
-import type { SurfaceGeometry } from "./surfaces";
+import { checkSurfaceKinds, type SurfaceGeometry } from "./surfaces";
 import type { Biome } from "./biome";
 import { generatePlots, type PlotTree } from "./plots";
 import { buildForestShapes, type ForestShape } from "./forestShapes";
@@ -147,6 +147,7 @@ export function buildTerrainSurface(
       buildings.push(vec2.fromValues(exports.props[o + at[0]], exports.props[o + at[1]]));
   }
   checkStrokeLayout(layout);
+  checkSurfaceKinds(layout);
   return terrainSurface(
     mesh,
     {
