@@ -1,7 +1,7 @@
 // @vitest-environment node
 // City kits and the template art library, end to end: a kit bakes to a bundle
 // of modules; the sets pack, deterministically, into one library the loader
-// installs with its kits; the resolver puts a template's rows where its frame
+// installs and binds to its kits as they are asked for; the resolver puts a template's rows where its frame
 // says; and art that leaves its physical template, or a catalogue the sets do
 // not cover, is refused by name.
 import { expect, test } from "vitest";
@@ -161,13 +161,14 @@ async function served(set?: unknown) {
   return { result, files, loader: new AppearanceLibrary(memoryFetch(files, "/assets/")) };
 }
 
-test("the loader installs the library with its kits, each module bound to its kit's state", async () => {
+test("the loader installs the library, and each module is bound to its kit's state once the kit is asked for", async () => {
   const { loader, result } = await served();
-  const installed = await loader.load("/assets/");
+  await loader.load("/assets/");
+  const installed = await loader.withKits([KIT]);
   const art = installed.templates!;
   expect(art.library.art_hash).toBe(result.runtime.templates!.art_hash);
   const kit = installed.appearances.get(KIT)!.bundle as StaticBundle;
-  expect(art.modules.map((m) => [m.kit, kit.states[m.state].name])).toEqual([
+  expect(art.modules.map((m) => [m.kit, kit.states[m.state!].name])).toEqual([
     [KIT, "shell"],
     [KIT, "sill"],
   ]);
@@ -209,14 +210,17 @@ test("a module its kit lacks is refused by name when the library is bound", asyn
     result.files.get(bundlePath(result.runtime.appearances[KIT].bundle))!,
   ) as StaticBundle;
   const without = { ...bundle, states: bundle.states.filter((s) => s.name !== "sill") };
-  const bind = (kitBundle: StaticBundle | undefined) => () =>
-    bindModules(lib, () => (kitBundle ? { bundle: kitBundle, hash: null } : undefined));
+  const bind = (kitBundle: StaticBundle | undefined) => () => bindModules(lib, () => kitBundle);
   expect(bind(bundle)()).toEqual([
     { kit: KIT, state: 0 },
     { kit: KIT, state: 1 },
   ]);
   expect(bind(without)).toThrow('module.missing: kit "city_kit_test" has no module "sill"');
-  expect(bind(undefined)).toThrow('kit.missing: kit "city_kit_test" is not installed');
+  // A kit that is not installed binds its modules to no state.
+  expect(bind(undefined)()).toEqual([
+    { kit: KIT, state: null },
+    { kit: KIT, state: null },
+  ]);
 });
 
 // ---------------------------------------------------------------- the resolver

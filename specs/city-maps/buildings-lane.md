@@ -74,7 +74,7 @@ Update this section, not the README, at the end of each pass: what landed, what 
 
 **In flight:** damage states for all five sets, with the coarse-tier fixes C23 listed (C14).
 
-**Next, in order:** the kits adopt glass, rooms and cutouts, and the atlas's rooms are brightened (at 80 m a window reads near-black today); ruin and gutted art drawn by what a side knows (C27); fetching only the kits a map draws from.
+**Next, in order:** the kits adopt glass, rooms and cutouts, and the atlas's rooms are brightened (at 80 m a window reads near-black today); ruin and gutted art drawn by what a side knows (C27).
 
 **What an unprimed critic saw in the first real town** (eight frames of `/lab/city-block`, 2026-10-02), and where each finding went:
 
@@ -96,7 +96,7 @@ Update this section, not the README, at the end of each pass: what landed, what 
 - **The library covers two catalogues now**: the generator's and the authored maps' (`fixtures/building-templates.json`); a set names which in `assets/catalog.json`. A building whose template has no art is refused (`template.missing`), no longer drawn another way.
 - **`contract::catalog::PropAppearance` lost `remains_state`** (and the fixture rows with it): a presentation field only the deleted house path read. Digests are unchanged.
 - **Scenes failing on main that are not buildings**, seen while proving C37 on the merged tree: `village` (the fight's sightings, the panel tour, which throws before the house checks), `weapons` (the grenade's area), `workbench` (a dropped tree's `fit.tree_size`), and the web test `rivers` ("fields are cut along the river's long runs"). Each fails the same way without this lane's change.
-- **Every page downloads every kit** (about 100 MB of bundles with all sets and the village's). Fetching only the kits a map draws from is this lane's to do next.
+- **A page downloads only the kits it draws from** ([choices](choices.md#kits-on-request)): the village 38.8 MB, a block of a generated town 58.6 MB, a lab with no buildings none. A route that draws buildings takes its appearances from `useMapAppearances`; the bare catalog holds no kit. Every page still downloads about 240 MB that is not kits (soldiers, scenery, vehicles) before it starts, which nobody has taken.
 - **Map lane: some buildings overlap.** In Mixed Small seed 1, near the main town's centre, neighbouring buildings' boxes overlap by metres (two corner shops through each other, an apartment block into a house). Boxes hid it; real roofs do not. Art may also reach past a part's faces by its set's `fit.side_m` (0.5 m for houses, up to 1.5 m for apartment balconies and tower canopies), so two buildings need at least the sum of their side fits between their boxes unless they are one template's joined parts.
 - **Some bays have no opening** (barns, warehouses, a tower's blank columns): a soldier seated there fires through a drawn wall. The simulation seats every bay; whether to mark such bays is a rules question nobody has taken.
 - **Ground lane: a town does not read from far off.** From 4.5 km out to the whole map a house is a pixel or less and most of a town's ground is lawn the colour of a field, so only the road grid says "town" ([C23](slices/C23-far-tier.md#outcome)). No building tier can fix that; a built-up tint under settlements would.

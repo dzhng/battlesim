@@ -11,7 +11,7 @@ import { SavedMap } from "../savedMaps";
 import { LabViewport, type LabPick } from "../LabViewport";
 import { useStandingBuildings, useStaticWorld, type WorldView } from "../useStaticWorld";
 import { gameBiome } from "../gameBiome";
-import { useGameAppearances } from "../gameAppearances";
+import { useMapAppearances } from "../gameAppearances";
 import { useFeed } from "../feed";
 import { gameCamera } from "../gameCamera";
 
@@ -60,7 +60,8 @@ function GeometryLab({ map }: { map: MapDefinition }) {
   const world = useStaticWorld(map);
   const [overlay, setOverlay] = useState<WorldOverlay>("surface");
   const [showTrees, setShowTrees] = useState(true);
-  const appearances = useGameAppearances();
+  const buildings = useStandingBuildings(world);
+  const appearances = useMapAppearances(buildings?.placed ?? null);
   const [probed, setProbed] = useState<Probe | null>(null);
 
   const meshes = useMemo(() => {
@@ -77,7 +78,7 @@ function GeometryLab({ map }: { map: MapDefinition }) {
   }, [world, overlay, showTrees, appearances]);
   const worldFeed = useFeed(meshes);
   // The traversal view shows what blocks as boxes, the buildings' parts among them.
-  const buildingsFeed = useStandingBuildings(overlay === "surface" ? world : null);
+  const buildingsFeed = useFeed(overlay === "surface" ? buildings : null);
 
   const instances = useMemo<SceneInstance[]>(
     () =>

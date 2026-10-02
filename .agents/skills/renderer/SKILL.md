@@ -115,4 +115,5 @@ Read before changing anything:
 - **Flicker in a still capture:** an unowned time source, or depth ties.
 - **A cost "regression" with no cause in the diff:** machine load or the wrong GPU. Measure paired before reading code.
 - **A private projection or camera struct beside the shared one,** or a pass-local constant for something the fixture owns.
+- **Terrain and props draw, no building does, and nothing errors:** the page installed appearances without its map's kits. The catalog load holds no kit; a route that draws buildings takes its appearances from its map's own request (`useMapAppearances`), which fetches the kits its templates place.
 - **A visual fix that changes camera, light, geometry and pass order at once:** you won't know which one worked.

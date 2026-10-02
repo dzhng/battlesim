@@ -86,6 +86,9 @@ flight. Diagnose the first divergent tick before changing a seed, placement, end
 time or fixture rule to make the pair green. Include construction before the
 first tick: seeded member placement can diverge while every packed observation
 word matches.
+Equality of persistent state before an event does not prove equal transient
+inputs. Compare impact normals, basis vectors, RNG state and the first differing
+math intermediate before attributing an event output to a numerical primitive.
 
 ## Seams and mocks
 

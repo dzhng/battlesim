@@ -42,7 +42,7 @@ import { useFeed } from "../feed";
 import { LabViewport, type ViewportPilot } from "../LabViewport";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import { useStaticWorld } from "../useStaticWorld";
-import { useGameAppearances } from "../gameAppearances";
+import { useMapAppearances } from "../gameAppearances";
 import { gameBiome } from "../gameBiome";
 import { gameCamera } from "../gameCamera";
 
@@ -105,7 +105,14 @@ export default function CameraLab() {
 
 function Arena({ map }: { map: MapDefinition }) {
   const world = useStaticWorld(map);
-  const appearances = useGameAppearances();
+  // The lab's buildings are the generator's catalogue's, drawn as a
+  // generated town's are.
+  const drawn = useMemo(() => {
+    if (!world) return null;
+    const props = mapProps(world.exports, world.layout);
+    return { props, index: indexBuildings(world.exports.buildings, props) };
+  }, [world]);
+  const appearances = useMapAppearances(drawn?.index.placed ?? null);
   const [trajectory, setTrajectory] = useState(TRAJECTORIES[0]);
   const [riding, setRiding] = useState(false);
   const [fallen, setFallen] = useState(false);
@@ -140,13 +147,6 @@ function Arena({ map }: { map: MapDefinition }) {
     (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
     [world],
   );
-  // The lab's buildings are the generator's catalogue's, drawn as a
-  // generated town's are.
-  const drawn = useMemo(() => {
-    if (!world) return null;
-    const props = mapProps(world.exports, world.layout);
-    return { props, index: indexBuildings(world.exports.buildings, props) };
-  }, [world]);
   // What blue knows: nothing but the map, or that it has seen the tower fall.
   const standing = useMemo(() => {
     if (!world || !drawn) return null;

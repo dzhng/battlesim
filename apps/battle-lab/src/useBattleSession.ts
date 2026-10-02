@@ -38,7 +38,7 @@ import {
   knownOf,
 } from "@packages/battle-renderer/src/buildingObstacles";
 import { gameBiome } from "./gameBiome";
-import { mapAppearances, useGameAppearances } from "./gameAppearances";
+import { mapAppearances, useMapAppearances } from "./gameAppearances";
 import { gameStandIns } from "./gameModels";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
@@ -179,7 +179,17 @@ export function useBattleSession({
     pendingMove.current = null;
   }, [sim.client, orderReveal]);
 
-  const appearances = useGameAppearances();
+  // Every building is drawn from its template's rows, as instances of kit
+  // modules, standing or fallen: no fitted model stands for one or for its
+  // remains.
+  const placedProps = useMemo(() => world && mapProps(world.exports, world.layout), [world]);
+  const drawnBuildings = useMemo(
+    () => world && placedProps && indexBuildings(world.exports.buildings, placedProps),
+    [world, placedProps],
+  );
+  // The catalog, and the kits this map's buildings and stand-in boxes draw
+  // from, fetched once the map is known: the loading cover stays up for them.
+  const appearances = useMapAppearances(drawnBuildings?.placed ?? null, true);
   // Props that can move (shoved) or be destroyed ("apart") are drawn from
   // what the side knows, apart from the world.
   const apart = useMemo(
@@ -203,13 +213,10 @@ export function useBattleSession({
   const knownKey = useMemo(() => JSON.stringify(knownProps ?? []), [knownProps]);
   const props = useMemo(
     () =>
-      world && appearances
-        ? {
-            map: mapProps(world.exports, world.layout),
-            fit: new PropAppearances(appearances, world.layout, gameStandIns),
-          }
+      world && placedProps && appearances
+        ? { map: placedProps, fit: new PropAppearances(appearances, world.layout, gameStandIns) }
         : null,
-    [world, appearances],
+    [world, placedProps, appearances],
   );
   // What the side knows of the map's buildings, apart from everything else
   // it knows: what follows changes only when that does.
@@ -219,13 +226,6 @@ export function useBattleSession({
       buildingParts &&
       JSON.stringify(knownOf(JSON.parse(knownKey) as KnownPropView[], buildingParts)),
     [knownKey, buildingParts],
-  );
-  // Every building is drawn from its template's rows, as instances of kit
-  // modules, standing or fallen: no fitted model stands for one or for its
-  // remains.
-  const drawnBuildings = useMemo(
-    () => world && props && indexBuildings(world.exports.buildings, props.map),
-    [world, props],
   );
   const buildings = useMemo<SideBuildings | null>(
     () =>

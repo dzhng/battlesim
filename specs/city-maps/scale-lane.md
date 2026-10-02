@@ -45,9 +45,9 @@ Read [`AGENTS.md`](../../AGENTS.md): narrow checks only, no full gate. A perform
 
 ## Status
 
-**Performance implementation is integrated; cross-target admission is red.**
+**Implementation checkpoints are on main; final admission is running.**
 The `b5c63565` control of move certification leaves the former stress opening mostly inactive: three
-rounds in 900 ticks. The pending named workload correction starts the same 200 living
+rounds in 900 ticks. The named workload correction starts the same 200 living
 units 200 m closer to contact, using the existing placement projection. It keeps
 the full Metro Large seed-4 world, all scripts, unit types, rules and late remains.
 The unmodified core on that corrected input launches 8,835 early / 19,579 late
@@ -60,22 +60,24 @@ late respectively, with identical every-tick digests and complete observations.
 Focused movement, cover, sensing and city-placement checks pass on the combined
 source; the further latest-main merge `16deaca8` passes 57 focused movement,
 cover, delivery and admission tests. It adds movement repairs and street
-furniture, so final native/Wasm builds and all admission inputs are refreshed. The pending browser harness requires rising shot counters
+furniture, so final native/Wasm builds and all admission inputs are refreshed. The browser harness requires rising shot counters
 from at least ten own units during measurement in each generated arm lasting 30 seconds or more.
 
 Current pickup, in order:
 
-1. Repair the observed warm-state difference before the long runs. Source
-   `1907ec50` plus the pending 1050 m recipe builds as `4e3a8559…`, with layout-8
-   Metro Large seed-4 map `003acfac…` and current rules `4994f55c…` (new forest
-   bodies). Both initial states, scenario bytes, replay identities and cold
-   publications now agree exactly after pinned arrangement math. Ticks 0–29
-   also agree. At tick 30, state digests differ while the 3,504 B publication
-   remains identical. Unit 90's cover-facing angle differs by one bit in
-   platform `atan2(17, 100)`; positions and world bodies agree. Temporary
-   diagnostics are removed. Pin this calculation and prove a small public
-   native/Wasm regression before rechecking the full input. Packed agreement
-   cannot substitute for state parity.
+1. Recheck exact cross-target state on the combined source after the ricochet repair.
+   Pinned arrangement and cover-facing math repair the observed initial and
+   tick-30 differences; their small public paired regressions pass. Both are
+   named native last-bit corrections, not CPU gains. Temporary diagnostics are
+   removed. Incoming open-country generation changes the map and preset input,
+   so both runtime factory receipts are refreshed: layout-9 map `bdadf296…`,
+   engine `b2c45b71…`, unchanged rules `4994f55c…`. Cold state matches in both
+   arms. The old control next differs at tick 60 while its 19,388 B record stays
+   identical. Identical impact inputs isolate the ricochet's azimuth cosine. The
+   existing scatter primitive now uses pinned math with unchanged rules and RNG
+   draws; its public numerical regression and actual full-input pair through
+   tick 60 pass. Refresh longer early/late prefixes before the full runs.
+   Packed agreement cannot substitute for state parity.
 2. Once exact cross-target state parity passes, run both complete
    9,000-tick contact arms: whole-record maximum remains
    **19,800 B**, with unchanged replay, decoder and delivery contracts. Historical
