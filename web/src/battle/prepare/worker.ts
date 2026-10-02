@@ -30,7 +30,7 @@ self.addEventListener("message", (event: MessageEvent<PrepareWorkerRequest>) => 
     authority?.handle(event.data);
     return;
   }
-  const { request, documents } = event.data;
+  const { request, documents, stress } = event.data;
   void init()
     .then(async ({ memory }) => {
       const result = await prepare(
@@ -40,6 +40,8 @@ self.addEventListener("message", (event: MessageEvent<PrepareWorkerRequest>) => 
         documents,
         { loadMap, loadEncounter },
         (stage) => self.postMessage({ type: "stage", stage }),
+        undefined,
+        stress,
       );
       const { world, scenario, report } = result;
       self.postMessage({ type: "stage", stage: "world" });

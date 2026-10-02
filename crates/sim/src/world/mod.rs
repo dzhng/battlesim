@@ -778,6 +778,12 @@ impl WorldGeometry {
         ids.into_iter().filter_map(|id| self.prop(id)).collect()
     }
 
+    /// Append unordered, possibly repeated candidates for a visibility union.
+    /// The caller canonicalizes all eyes' IDs before learning any body.
+    pub(crate) fn append_prop_ids_near(&self, center: V2, radius: f64, out: &mut Vec<PropId>) {
+        self.index.append_near(center, radius, out);
+    }
+
     /// Increments whenever a prop is added, moved or removed after authored setup.
     pub fn obstacle_revision(&self) -> u64 {
         self.revision

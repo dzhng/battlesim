@@ -191,7 +191,8 @@ export function useBattleSession({
   // each a fitted appearance. A known ruin replaces its building in the same
   // list, a known shoved body its own map pose; an unseen collapse or shove
   // leaves the map's prop standing.
-  const knownKey = JSON.stringify(observation?.knownProps ?? []);
+  const knownProps = observation?.knownProps;
+  const knownKey = useMemo(() => JSON.stringify(knownProps ?? []), [knownProps]);
   const props = useMemo(
     () =>
       world && appearances

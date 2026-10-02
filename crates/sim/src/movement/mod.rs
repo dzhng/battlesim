@@ -256,9 +256,10 @@ impl SideGeometry {
         &self.standing
     }
 
-    /// Remembered body candidates whose footprint may meet an eye's reach.
-    pub(crate) fn standing_near(&self, center: V2, radius: f64, out: &mut Vec<PropId>) {
-        self.standing_index.near(center, radius, out);
+    /// Append unordered, possibly repeated remembered candidates for the
+    /// caller to canonicalize after collecting all eyes.
+    pub(crate) fn append_standing_near(&self, center: V2, radius: f64, out: &mut Vec<PropId>) {
+        self.standing_index.append_near(center, radius, out);
     }
 
     /// The side sees that a body it kept standing is gone.
@@ -1110,18 +1111,18 @@ mod remembered_sight_tests {
         let at = v2(20.0, 20.0);
         side.keep_standing(prop.clone());
         let mut nearby = Vec::new();
-        side.standing_near(at, 2.0, &mut nearby);
+        side.append_standing_near(at, 2.0, &mut nearby);
         assert_eq!(nearby, vec![0]);
         prop.center = v2(200.0, 200.0);
         side.keep_standing(prop);
         nearby.clear();
-        side.standing_near(at, 2.0, &mut nearby);
+        side.append_standing_near(at, 2.0, &mut nearby);
         assert!(nearby.is_empty(), "replaced memory has no old footprint");
-        side.standing_near(v2(200.0, 200.0), 2.0, &mut nearby);
+        side.append_standing_near(v2(200.0, 200.0), 2.0, &mut nearby);
         assert_eq!(nearby, vec![0]);
         side.saw_fallen(0);
         nearby.clear();
-        side.standing_near(v2(200.0, 200.0), 2.0, &mut nearby);
+        side.append_standing_near(v2(200.0, 200.0), 2.0, &mut nearby);
         assert!(
             nearby.is_empty(),
             "observed removals leave no remembered body"

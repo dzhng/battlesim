@@ -418,6 +418,24 @@ test("the forest floor names a palette of litter, moss and humus, and its number
   expect(() => validateBiome(flecks, "summer")).toThrow(/summer\.forest_floor\.dapple\.sun/);
 });
 
+test("a shore that could draw dark, over its own wet bank or steeper than its bank is refused", () => {
+  const shore = biome.shore;
+  const refused = (change: Partial<typeof shore>, field: string) =>
+    expect(() => validateBiome({ ...biome, shore: { ...shore, ...change } }, "summer")).toThrow(
+      new RegExp(`summer\\.shore\\.${field}`),
+    );
+  // Darker than the ground it covers: it would read as a shadow on the field.
+  refused({ lift: 0.9 }, "lift");
+  // The earth's line wandering in past the wet bank's end.
+  refused({ wander: 0.5, mud_m: shore.wet_m * 1.5 }, "mud_m");
+  // Shading a bank steeper than it was cut.
+  refused({ relief: 1.2 }, "relief");
+  const silt = { ...biome.palettes, [shore.palette]: biome.palettes[shore.palette].slice(0, 1) };
+  expect(() => validateBiome({ ...biome, palettes: silt }, "summer")).toThrow(
+    /summer\.shore\.palette/,
+  );
+});
+
 test("mixed forest exports retain authored IDs and real concave and square-ended strip membership", () => {
   const forest = (shape: unknown) => ({ shape });
   const { view, exports } = world({

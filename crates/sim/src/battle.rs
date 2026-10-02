@@ -1780,13 +1780,12 @@ impl Battle {
             for eye in sensing::eyes(unit, &self.rules) {
                 // A ray can step one cell past its reach, and the marked cell
                 // can contain a footprint sample a diagonal farther away.
-                candidates.extend(
-                    self.world
-                        .props_near(eye.xy(), sight.max_range() + 3.0 * field.cell_m)
-                        .into_iter()
-                        .map(|p| p.id),
+                self.world.append_prop_ids_near(
+                    eye.xy(),
+                    sight.max_range() + 3.0 * field.cell_m,
+                    &mut candidates,
                 );
-                self.sides[side.index()].standing_near(
+                self.sides[side.index()].append_standing_near(
                     eye.xy(),
                     sight.max_range() + 3.0 * field.cell_m,
                     &mut remembered,
@@ -1804,6 +1803,8 @@ impl Battle {
         completed(TickPhase::Fog);
         candidates.sort_unstable();
         candidates.dedup();
+        remembered.sort_unstable();
+        remembered.dedup();
         // Enemy fallen in view are remembered, and the ground in view learned.
         let knowledge = &mut self.knowledge[side.index()];
         knowledge.learn_ground(&self.ground, &field);

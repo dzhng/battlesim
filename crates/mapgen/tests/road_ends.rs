@@ -100,11 +100,12 @@ impl<'a> Paving<'a> {
 enum End {
     /// Its whole face is off the map or under another carriageway.
     Hidden,
-    /// It stops across a narrower carriageway that carries on from it: the
-    /// road narrows there, and its shoulders show either side.
-    Narrows,
     /// It stops by nothing, on or beside a settlement's block.
     Serves,
+    /// It stops across a narrower carriageway that carries on from it, in
+    /// the open: the road narrows there, and its square shoulders show
+    /// either side. A road changes width only under a road that crosses it.
+    Shoulders,
     /// Its flat end stands out past the edge of a road it meets: nothing as
     /// wide as it covers any of its face, and either a carriageway joins it
     /// within two of its widths, or narrower ones cover part of the face and
@@ -123,12 +124,13 @@ enum End {
 
 impl End {
     fn sound(self) -> bool {
-        matches!(self, End::Hidden | End::Narrows | End::Serves)
+        matches!(self, End::Hidden | End::Serves)
     }
 }
 
-/// Of every ten thousand road ends, at most this many may be a bite, a step
-/// or a heel in a joint: the joints the joint pass does not close yet.
+/// Of every ten thousand road ends, at most this many may be a bite, a step,
+/// a heel or a pair of shoulders in a joint: the joints the joint pass does
+/// not close yet.
 /// Lower it as those are closed, never raise it.
 const FLAWS_PER_TEN_THOUSAND: usize = 10;
 
@@ -218,7 +220,7 @@ fn ends(plan: &MapPlan) -> Vec<(End, Point, usize)> {
             } else if off_map > 0 {
                 End::ShowsAtEdge
             } else if narrows && carries_on {
-                End::Narrows
+                End::Shoulders
             } else if narrows {
                 End::Heel
             } else if hidden > 0 {
@@ -240,10 +242,10 @@ fn ends(plan: &MapPlan) -> Vec<(End, Point, usize)> {
 
 /// No road end shows where it should not, over every type and size and
 /// several seeds: each is hidden (off the map's edge, or under the road it
-/// joins), is the wide end of a road that narrows, or stops at a
-/// settlement it serves. None is a gap before a road, a face showing at the
-/// map's edge, or a road stopping in open ground; and no joint is bitten or
-/// shows a heel, but for the few `FLAWS_PER_TEN_THOUSAND` allows.
+/// joins), or stops at a settlement it serves. None is a gap before a road,
+/// a face showing at the map's edge, or a road stopping in open ground; and
+/// no joint is bitten, shows a heel or shows the shoulders of a wider road
+/// that narrows in the open, but for the few `FLAWS_PER_TEN_THOUSAND` allows.
 #[test]
 fn every_road_end_is_hidden_or_serves_something() {
     let mut wrong: BTreeMap<End, Vec<String>> = BTreeMap::new();
@@ -315,15 +317,15 @@ fn every_road_end_is_hidden_or_serves_something() {
         .collect();
     let report = report.join("\n");
     let total: usize = counts.values().sum();
-    let flaws: usize = [End::Notch, End::Heel]
+    let flaws: usize = [End::Notch, End::Heel, End::Shoulders]
         .into_iter()
         .map(|kind| wrong.remove(&kind).map_or(0, |ends| ends.len()))
         .sum();
-    println!("{flaws} of {total} road ends are a bite, a step or a heel\n{report}");
+    println!("{flaws} of {total} road ends are a bite, a step, a heel or shoulders\n{report}");
     assert!(wrong.is_empty(), "road ends show:\n{report}");
     assert!(
         flaws * 10_000 <= total * FLAWS_PER_TEN_THOUSAND,
-        "{flaws} of {total} road ends are a bite, a step or a heel in a joint:\n{report}"
+        "{flaws} of {total} road ends are a bite, a step, a heel or shoulders in a joint:\n{report}"
     );
     // The sweep held what it claims to judge.
     assert!(counts[&End::Hidden] > 1000 && counts[&End::Serves] > 100);

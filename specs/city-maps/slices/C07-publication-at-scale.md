@@ -173,3 +173,53 @@ The measured maximum own burst falls about 80%, at an explicit additional
 tradeoff, **not closure of the 19.8 KB whole-record gate**. Actual 60-second early
 and late p95/max, complete packing/tick cost, snapshot/peak overlap and browser
 throughput remain the integration owner's admission checks. No allowance changes.
+
+
+## Outcome: unchanged static decoded views
+
+`ObservationDecoder` now owns one group baseline containing the existing word
+buffers and the immutable decoded corpse/known-prop arrays. An unchanged static
+word buffer reuses its array, rows and coordinates after validating the current
+header count against the complete fixed-row payload. Changed words or counts
+construct new views; epoch/side invalidation starts fresh. The baseline commits
+only after all groups, fog and ground have decoded successfully.
+
+Unchanged static delivery constructs no per-row wrappers, field closures, section
+objects, final views or coordinate arrays. With 20,000 corpses and 2,000 known
+props, this avoids rebuilding 22,000 decoded rows and their 24,000 coordinate
+arrays per unchanged frame. The decoder retains only the latest two static view
+arrays alongside its word baseline; no complete observation or second word copy
+is retained. This is a construction contract, not a heap-byte or throughput
+measurement. Changed static groups still rebuild their complete view arrays.
+
+Array/row identity, own-row changes, static word/count changes, retained prior
+views, malformed cached counts, late record failure and corrected-generation
+retry are pinned. A count-check deletion mutant fails. Side invalidation discards
+stale snapshots and opens a fresh baseline. Existing consumer inspection found
+no mutation of these returned static views; static array types are readonly.
+Producer schema, canonical values and battle/publication identities are unchanged.
+Browser allocation/peak/throughput and the 19.8 KB whole-record gate remain open.
+
+
+## Outcome: stable static identities through the pose feed
+
+`ObservationFeed` now converts corpses only when the immutable decoded corpse
+array changes, retaining one converted fallen list. A changed floor/position
+view rebuilds it without altering earlier input or converted rows. `PoseDriver`
+already gates reconciliation on fallen-list identity; its existing owner still
+advances death, blend, fade and expiry every frame and resets on clock rollback.
+No second driver cache or cap/timing rule is introduced. The session's existing
+known-prop JSON key is memoized by known-prop array identity at its one owner.
+
+A bounded synthetic construction probe sends 50 fresh observations sharing
+20,000 frozen corpses, with no living units and the normal pose cap. The old feed
+builds 50 lists/1,000,000 converted rows and reads source positions 1,000,000
+times; the new feed builds one list/20,000 rows and reads positions 20,000 times.
+Capped corpse pose values remain unchanged throughout. This counts construction
+and input reads, not heap bytes, retired instructions, frame time or GPU work.
+
+The public feed tracer fails before the change and passes with stable array/row
+identity, frozen input and changed-floor reconstruction. The existing feed/driver
+suites preserve death/fade/cap/reset behavior. Producer, decoder, world, camera
+and frame orchestration are unchanged. No upload or visual-throughput verdict is
+claimed; browser admission and whole-record budgets remain open.

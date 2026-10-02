@@ -96,8 +96,7 @@ function LabField({ battle }: { battle: SavedBattle }) {
 }
 
 function VillageGround() {
-  const built = useBuiltScenario("ordinary", villageScenario);
-
+  const built = useBuiltScenario("ordinary", (wasm, variant) => villageScenario(wasm, variant));
   if (!built) return null;
   if (typeof built !== "string")
     return (

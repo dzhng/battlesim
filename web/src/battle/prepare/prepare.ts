@@ -19,12 +19,17 @@ import type {
   PreparedBattle,
   PrepareStage,
   RefusalStage,
+  StressPreparation,
 } from "./protocol.ts";
 
 /** The simulation's functions preparation calls. */
 export interface PreparationModule extends MapGenerator {
+  city_stress_preparation(map: string, rules: string, seed: bigint, late: boolean): string;
   check_prepare_request(request: string): string;
-  PreparedWorld: new (map: string, rules: string) => PreparedWorld;
+  PreparedWorld: {
+    new (map: string, rules: string): PreparedWorld;
+    from_scenario(scenario: string): PreparedWorld;
+  };
 }
 
 export interface PreparedWorld extends WorldExportSource {
@@ -91,12 +96,20 @@ function accepted<T>(stage: RefusalStage, json: string): { status: "ok" } & T {
 
 /** The encounter laid on the map: its scenario fields as text (everything
  *  after the map and the rules), its units, and the plan if it was planned. */
-interface LaidEncounter {
-  fields: string;
-  units: PlacedUnit[];
+type LaidEncounter = (
+  | {
+      scenario: string;
+      metadata: {
+        start: PreparedBattle["report"]["start"];
+        livingUnits: Record<"blue" | "red", number>;
+      };
+      stress: StressPreparation;
+    }
+  | { fields: string; units: PlacedUnit[] }
+) & {
   rule: CompletionRule | null;
   planned: PreparedBattle["report"]["planned"];
-}
+};
 
 /** Throws `PreparationRefused` when the request, the map or the encounter
  *  is refused. */
@@ -108,12 +121,28 @@ export async function prepare(
   saved: SavedMaps,
   onStage: (stage: PrepareStage) => void = () => {},
   now: () => number = () => performance.now(),
+  stress?: StressPreparation,
 ): Promise<PreparationResult> {
   const checked = accepted<{ request: PrepareBattleRequest }>(
     "request",
     wasm.check_prepare_request(JSON.stringify(request)),
   ).request;
   const source = checked.map_source;
+  if (
+    stress !== undefined &&
+    (!stress ||
+      stress.kind !== "city-arena-1" ||
+      typeof stress.late !== "boolean" ||
+      source.kind !== "generated")
+  )
+    throw new PreparationRefused("request", [
+      {
+        code: "invalid_request",
+        feature: null,
+        location: "$.stress",
+        message: "city-arena-1 stress requires a generated map and a boolean late state",
+      },
+    ]);
   const started = now();
 
   onStage("map");
@@ -127,11 +156,34 @@ export async function prepare(
   const resolvedAt = now();
 
   onStage("encounter");
-  const world = new wasm.PreparedWorld(map.json, documents.rules);
+  // The developer stress recipe owns its synthetic remains and full scenario.
+  // Prepare its resulting map, which can differ from the generator's map.
+  const stressResult = stress
+    ? wasm.city_stress_preparation(
+        map.json,
+        documents.rules,
+        BigInt(checked.battle_seed),
+        stress.late,
+      )
+    : null;
+  const stressScenario = stressResult
+    ? between(stressResult, '{"scenario":', ',"report":{', "the stress scenario")
+    : null;
+  const metadata = stressResult
+    ? (JSON.parse(between(stressResult, ',"report":', "}", "the stress report")) as {
+        start: PreparedBattle["report"]["start"];
+        livingUnits: Record<"blue" | "red", number>;
+      })
+    : null;
+  const world = stressScenario
+    ? wasm.PreparedWorld.from_scenario(stressScenario)
+    : new wasm.PreparedWorld(map.json, documents.rules);
   const worldBuiltAt = now();
   try {
     let laid: LaidEncounter;
-    if (source.kind === "generated") {
+    if (stress && stressScenario && metadata) {
+      laid = { scenario: stressScenario, metadata, stress, rule: null, planned: null };
+    } else if (source.kind === "generated") {
       const recipe = (JSON.parse(documents.recipes) as { recipes: Record<string, unknown> })
         .recipes[checked.recipe_id];
       if (recipe === undefined || map.sites === null)
@@ -176,14 +228,25 @@ export async function prepare(
         planned: null,
       };
     }
-    const first = laid.units.find((u) => u.side === "blue");
-    if (!first) throw new Error("the encounter has no blue unit");
-    const column = laid.planned?.placement.deployments.find((d) => d.side === "blue");
+    let start: PreparedBattle["report"]["start"];
+    if ("metadata" in laid) start = laid.metadata.start;
+    else {
+      const first = laid.units.find((u) => u.side === "blue");
+      if (!first) throw new Error("the encounter has no blue unit");
+      const column = laid.planned?.placement.deployments.find((d) => d.side === "blue");
+      start = { at: column?.head ?? first.position, yaw: column?.yaw ?? first.yaw ?? 0 };
+    }
     const buildings = map.definition.buildings ?? [];
     return {
       world,
-      scenario: `{"map":${map.json},"rules":${documents.rules},${laid.fields}`,
+      scenario:
+        "scenario" in laid
+          ? laid.scenario
+          : `{"map":${map.json},"rules":${documents.rules},${laid.fields}`,
       report: {
+        ...("metadata" in laid && {
+          stress: { ...laid.stress, livingUnits: laid.metadata.livingUnits },
+        }),
         request: checked,
         identity: map.identity,
         size: map.definition.size,
@@ -199,7 +262,7 @@ export async function prepare(
           radius_m: laid.rule.success_zone_radius_m,
           hold_s: laid.rule.hold_s,
         },
-        start: { at: column?.head ?? first.position, yaw: column?.yaw ?? first.yaw ?? 0 },
+        start,
         timings: { map: resolvedAt - started, encounter: now() - resolvedAt },
         wasmBytes: memory.buffer.byteLength,
         worldBuildMs: worldBuiltAt - resolvedAt,

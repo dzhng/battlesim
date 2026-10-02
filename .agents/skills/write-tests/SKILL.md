@@ -175,6 +175,10 @@ Walk this on any test diff, apply fixes in the same pass, re-run the suite:
    effects; accepted input does not imply completed planning or publication.
    For startup refusals, exercise the consumer before dependent resources arrive:
    a correct error from the producer can still disappear behind a readiness gate.
+   For decoder caches, change header metadata independently of retained payload;
+   reuse must not bypass validation or consume a failed generation.
+   For worker-backed scenario builders, prove leaving a loading view cancels
+   the work; suppressing a late reply alone leaves its allocations running.
 8. Does it take focus, move the pointer, play sound, or write the person's real
    config, library or applications? → drive the model and a scratch location
    instead, and capture windows offscreen.

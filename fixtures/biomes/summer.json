@@ -10,9 +10,9 @@
     "verge": [[0.29, 0.34, 0.17]],
     "road": [[0.46, 0.43, 0.39]],
     "forest_floor": [[0.34, 0.3, 0.22], [0.27, 0.31, 0.17], [0.2, 0.18, 0.14]],
-    "water_bed": [[0.27, 0.297, 0.252]],
-    "water": [[0.16, 0.2, 0.17]],
-    "shore": [[0.3, 0.275, 0.215]],
+    "water_bed": [[0.31, 0.31, 0.25]],
+    "water": [[0.14, 0.245, 0.28], [0.22, 0.31, 0.3]],
+    "shore": [[0.32, 0.295, 0.24], [0.34, 0.305, 0.235]],
     "distant": [[0.297, 0.324, 0.198]],
     "crater_soil": [[0.3, 0.24, 0.17]],
     "crater_ejecta": [[0.4, 0.33, 0.24]],
@@ -21,12 +21,16 @@
     "trampled": [[0.4, 0.4, 0.25]]
   },
   "plots": [
-    { "name": "meadow", "palette": "meadow", "weight": 4, "furrow_m": 0, "furrow_contrast": 0, "mottle": 0.22, "roughness": 0.95 },
+    { "name": "meadow", "palette": "meadow", "weight": 2.5, "furrow_m": 0, "furrow_contrast": 0, "mottle": 0.22, "roughness": 0.95 },
     { "name": "pasture", "palette": "pasture", "weight": 2, "furrow_m": 0, "furrow_contrast": 0, "mottle": 0.16, "roughness": 0.95 },
-    { "name": "young_crop", "palette": "young_crop", "weight": 2, "furrow_m": 1.6, "furrow_contrast": 0.18, "mottle": 0.12, "roughness": 0.92 },
-    { "name": "wheat", "palette": "wheat", "weight": 0.8, "furrow_m": 1.2, "furrow_contrast": 0.14, "mottle": 0.1, "roughness": 0.9 },
-    { "name": "hay", "palette": "hay", "weight": 1.2, "furrow_m": 3, "furrow_contrast": 0.1, "mottle": 0.12, "roughness": 0.93 },
-    { "name": "ploughed", "palette": "ploughed", "weight": 1.4, "furrow_m": 0.9, "furrow_contrast": 0.22, "mottle": 0.14, "roughness": 0.97 }
+    { "name": "wheat", "palette": "wheat", "weight": 2, "furrow_m": 1.2, "furrow_contrast": 0.14, "mottle": 0.1, "roughness": 0.9 },
+    { "name": "barley", "palette": "hay", "weight": 1.5, "furrow_m": 1.2, "furrow_contrast": 0.14, "mottle": 0.1, "roughness": 0.9 },
+    { "name": "rapeseed", "palette": "young_crop", "weight": 1.2, "furrow_m": 1.6, "furrow_contrast": 0.18, "mottle": 0.12, "roughness": 0.92 },
+    { "name": "hay", "palette": "pasture", "weight": 1.2, "furrow_m": 3, "furrow_contrast": 0.1, "mottle": 0.12, "roughness": 0.93 },
+    { "name": "stubble", "palette": "wheat", "weight": 1, "furrow_m": 1.2, "furrow_contrast": 0.16, "mottle": 0.12, "roughness": 0.93 },
+    { "name": "ploughed", "palette": "ploughed", "weight": 1.2, "furrow_m": 0.9, "furrow_contrast": 0.22, "mottle": 0.14, "roughness": 0.97 },
+    { "name": "rough", "palette": "meadow", "weight": 0.8, "furrow_m": 0, "furrow_contrast": 0, "mottle": 0.24, "roughness": 0.95 },
+    { "name": "prairie", "palette": "hay", "weight": 0.5, "furrow_m": 0, "furrow_contrast": 0, "mottle": 0.2, "roughness": 0.95 }
   ],
   "field_rules": {
     "extent_m": 2400,
@@ -57,7 +61,8 @@
     "mottle": 0.1,
     "roughness": 0.85
   },
-  "shore": { "palette": "shore", "width_m": 2 },
+  "shore": { "palette": "shore", "wet_m": 0.6, "mud_m": 5, "wander": 0.5, "wander_scale_m": 9, "lift": 1.15, "relief": 0.5 },
+  "water": { "opacity": [0.6, 0.9], "shallows_m": 0.35, "streak": 0.6 },
   "forest_floor": {
     "palette": "forest_floor",
     "patch_m": 4,
@@ -97,19 +102,112 @@
   },
   "grass": {
     "growth": {
-      "meadow": { "appearance": "grass_meadow", "density": 1, "height": 1 },
-      "pasture": { "appearance": "grass_pasture", "density": 0.9, "height": 1 },
-      "young_crop": { "appearance": "grass_crop", "density": 0.85, "height": 1 },
-      "wheat": { "appearance": "grass_wheat", "density": 1, "height": 0.65 },
-      "hay": { "appearance": "grass_stubble", "density": 0.8, "height": 1 },
-      "ploughed": { "appearance": "grass_meadow", "density": 0.04, "height": 0.6 },
-      "verge": { "appearance": "grass_meadow", "density": 1, "height": 1 }
+      "meadow": {
+        "density": 1,
+        "height": 1,
+        "rows": 0,
+        "mix": [
+          { "appearance": "grass_meadow", "share": 7, "drift": 0, "dry": 0 },
+          { "appearance": "grass_rough", "share": 1.5, "drift": 0.8, "dry": 0.15 },
+          { "appearance": "grass_verge", "share": 1, "drift": 0.6, "dry": 0 },
+          { "appearance": "grass_prairie", "share": 0.5, "drift": 0.5, "dry": 0.4 }
+        ],
+        "patches": { "height": [0.7, 1.2], "thin": 0.25, "dry": 0.45 }
+      },
+      "pasture": {
+        "density": 0.9,
+        "height": 1,
+        "rows": 0,
+        "mix": [
+          { "appearance": "grass_pasture", "share": 8, "drift": 0, "dry": 0 },
+          { "appearance": "grass_verge", "share": 1, "drift": 0.8, "dry": 0 },
+          { "appearance": "grass_meadow", "share": 1, "drift": 0.5, "dry": 0 }
+        ],
+        "patches": { "height": [0.75, 1.15], "thin": 0.25, "dry": 0.3 }
+      },
+      "wheat": {
+        "density": 1,
+        "height": 1,
+        "rows": 0.25,
+        "mix": [{ "appearance": "grass_wheat", "share": 1, "drift": 0, "dry": 0 }],
+        "patches": { "height": [0.92, 1.04], "thin": 0.08, "dry": 0.2 }
+      },
+      "barley": {
+        "density": 1,
+        "height": 1,
+        "rows": 0.25,
+        "mix": [{ "appearance": "grass_barley", "share": 1, "drift": 0, "dry": 0 }],
+        "patches": { "height": [0.9, 1.04], "thin": 0.08, "dry": 0.2 }
+      },
+      "rapeseed": {
+        "density": 0.9,
+        "height": 1,
+        "rows": 0.2,
+        "mix": [{ "appearance": "grass_rapeseed", "share": 1, "drift": 0, "dry": 0 }],
+        "patches": { "height": [0.9, 1.04], "thin": 0.1, "dry": 0.1 }
+      },
+      "hay": {
+        "density": 1,
+        "height": 1,
+        "rows": 0,
+        "mix": [
+          { "appearance": "grass_hay", "share": 9, "drift": 0, "dry": 0 },
+          { "appearance": "grass_verge", "share": 1, "drift": 0.7, "dry": 0 }
+        ],
+        "patches": { "height": [0.85, 1.1], "thin": 0.15, "dry": 0.35 }
+      },
+      "stubble": {
+        "density": 0.85,
+        "height": 1,
+        "rows": 0.5,
+        "mix": [{ "appearance": "grass_stubble", "share": 1, "drift": 0, "dry": 0 }],
+        "patches": { "height": [0.85, 1.1], "thin": 0.15, "dry": 0.2 }
+      },
+      "rough": {
+        "density": 1,
+        "height": 1,
+        "rows": 0,
+        "mix": [
+          { "appearance": "grass_rough", "share": 6, "drift": 0, "dry": 0 },
+          { "appearance": "grass_prairie", "share": 2, "drift": 0.7, "dry": 0.35 },
+          { "appearance": "grass_verge", "share": 2, "drift": 0.7, "dry": 0 }
+        ],
+        "patches": { "height": [0.6, 1.2], "thin": 0.3, "dry": 0.5 }
+      },
+      "prairie": {
+        "density": 0.8,
+        "height": 1,
+        "rows": 0,
+        "mix": [
+          { "appearance": "grass_prairie", "share": 7, "drift": 0, "dry": 0.2 },
+          { "appearance": "grass_meadow", "share": 2, "drift": 0.6, "dry": 0 },
+          { "appearance": "grass_verge", "share": 1, "drift": 0.8, "dry": 0 }
+        ],
+        "patches": { "height": [0.7, 1.2], "thin": 0.35, "dry": 0.5 }
+      },
+      "verge": {
+        "density": 1,
+        "height": 1,
+        "rows": 0,
+        "mix": [
+          { "appearance": "grass_verge", "share": 5, "drift": 0, "dry": 0 },
+          { "appearance": "grass_meadow", "share": 3, "drift": 0, "dry": 0 },
+          { "appearance": "grass_rough", "share": 2, "drift": 0.6, "dry": 0.1 }
+        ],
+        "patches": { "height": [0.75, 1.2], "thin": 0.2, "dry": 0.25 }
+      }
     },
+    "patch_m": { "height": 4, "thin": 3.5, "dry": 6, "drift": 5, "grain": 1.1 },
     "pixels_per_clump": 28,
     "max_clumps_m2": 40,
     "fade_m_per_px": [0.08, 0.14],
+    "soften_m_per_px": [0.02, 0.08],
+    "soften": 1,
+    "blade_facing": 0.45,
+    "clump_value": 0.16,
+    "dry_lift": 0.08,
     "near_tier_px": 40,
-    "min_blade_px": 0.8,
+    "min_blade_px": 1.4,
     "clear_m": { "road": 0.2, "prop": 0.3, "area": 0.5 },
     "wind": {
       "heading_deg": 35,

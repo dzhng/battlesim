@@ -687,6 +687,38 @@ pub fn endurance_scenario(
     serde_json::to_string(&setup).map_err(js_error)
 }
 
+/// The full generated world with the simulation-owned central contact stress recipe.
+#[wasm_bindgen]
+pub fn city_stress_preparation(
+    map_json: &str,
+    fixture_json: &str,
+    seed: u64,
+    late: bool,
+) -> Result<String, JsError> {
+    let field: MapDefinition = serde_json::from_str(map_json).map_err(js_error)?;
+    let fixture: serde_json::Value = serde_json::from_str(fixture_json).map_err(js_error)?;
+    let setup = sim::endurance::city_scenario(&field, &fixture, seed, late).map_err(js_error)?;
+    let first = setup
+        .units
+        .iter()
+        .find(|u| u.side == Side::Blue)
+        .ok_or_else(|| js_error("the city stress fixture has no blue unit"))?;
+    let report = serde_json::json!({
+        "start": { "at": first.position, "yaw": first.yaw },
+        "livingUnits": {
+            "blue": setup.units.iter().filter(|u| u.side == Side::Blue && u.condition.is_none()).count(),
+            "red": setup.units.iter().filter(|u| u.side == Side::Red && u.condition.is_none()).count(),
+        },
+    });
+    // Carry canonical scenario bytes without materializing the full map again
+    // in JavaScript merely to obtain its small preparation metadata.
+    Ok(format!(
+        "{{\"scenario\":{},\"report\":{}}}",
+        serde_json::to_string(&setup).map_err(js_error)?,
+        serde_json::to_string(&report).map_err(js_error)?
+    ))
+}
+
 fn js_error(e: impl std::fmt::Display) -> JsError {
     JsError::new(&e.to_string())
 }
