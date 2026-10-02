@@ -106,6 +106,9 @@ Compare a live delta stream to fresh complete snapshots while collection sizes
 change. A fixed-size replacement or snapshot-only round trip misses shifted
 variable rows, append gaps and stale retained rows. Keep earlier observations and
 reject a malformed generation before accepting its corrected retry.
+When float arrays carry packed bytes, force raw NaN carrier bits through the real
+copy/transfer seam; numeric equality hides payload canonicalization. Recover a
+finite value from a NaN baseline residual to prove the decoder retained its bits.
 
 ## Control variables and probes
 

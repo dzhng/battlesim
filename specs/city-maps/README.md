@@ -56,7 +56,7 @@ A slice marked "physical" has its systems half done; its look is in the visual p
 - [x] Sim rules ([lane record](sim-lane.md)): C40 seats → C41 facade eyes · C42 low-rise lifecycle → C43 tall gutted · SA6 movement gaps · SA5 sight cost · C44 street bodies · C77 forest bodies · C80 effective-height validator · C86 tree lines (all physical)
 - [x] Delivery: [C09 map resolution](slices/C09-fetched-maps.md) · [C60 catalogue data](slices/C60-map-catalogue-data.md) with compact saved maps · [C59 encounter planner](slices/C59-encounter-planner.md) · [C55 runtime generation](slices/C55-runtime-generation.md) from the menu · [C58 saved generated map](slices/C58-offline-encounter.md) (physical)
 - [x] Roads: square ends, sound joints, bends at sharp forks, width changes only at a crossing
-- [x] [Startup lane](startup-lane.md): C33 one prepared world · C20 fog at scale · the camera lab through the catalogue · a native-against-Wasm pair with combat. Open from it: Deploy-to-playable did not get faster in its one-sample wall-clock measurement (instructions fell 3 to 13%), and the worker's Wasm memory grew
+- [x] [Startup lane](startup-lane.md): C33 one prepared world · C20 fog at scale · the camera lab through the catalogue · a native-against-Wasm pair with combat. Deploy-to-playable is 5 to 6 s on the largest map against a budget of 30 s (the owner's, 2026-10-01), so startup time is closed
 - [x] Lab: [C57 camera clearance](slices/C57-camera-clearance.md) · the generated-map lab route
 
 **In flight (one branch each)**

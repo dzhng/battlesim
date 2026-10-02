@@ -4608,6 +4608,35 @@ pending. **Confidence:** high for fixture identity, medium until the scene runs.
 
 **Verdict:** Sound within the existing immutable-view contract. Public feed identity/floor proofs and existing pose lifecycle suites pass. Broader browser allocation, upload and throughput admission remain separate and open. **Confidence:** High for static construction and value preservation.
 
+
+## C07: compact the selected lossless group form
+
+**Choice:** Add one byte-packed transport arm inside the existing publication
+owner, wrapping the already selected snapshot, replacement or source-copy form.
+Keep one span selector and baseline. Pack small operation integers and each
+literal's exact raw bits or its XOR against the old word at the same output
+address, whichever needs fewer bytes. A fresh snapshot always uses raw bits.
+
+**Why:** After address amplification was removed, remaining float literals and
+operation metadata still crossed the 19,800-byte whole-record gate. Copy-only
+packing left 63 early frames over the gate; the general arm also packs replacement
+literals. Both captured 1,800-transition windows reconstruct every original word,
+with maxima falling to 19,772/18,220 B. Actual extracted producer mean encoding
+cost rises about 0.12–0.14 M instructions for own plus identified, with identical
+staging and indexing included. C07 owns the detailed measurements and their scope.
+
+**Contract:** The simulation's published layout owns the grammar once. Byte
+carriers can resemble NaNs, so transport/decoder copies preserve raw u32 bits
+instead of converting them through JavaScript float numbers. Complete admission
+precedes writing; compact serialization uses constant scratch and the existing
+reserved output. Invalid payloads cannot commit any baseline. Unchanged static
+word and decoded-view identities remain stable. No compression library, field
+schema, per-unit predictor, extra retained state or budget exception is added.
+
+**Verdict:** Sound on matched exact corpus evidence and the paired consumer
+contract. The early maximum has only 28-byte headroom, so current-stream estimates
+cannot close snapshot, peak or live whole-system gates. **Confidence:** High for
+lossless representation; final runtime admission remains with the scale lane.
 ## C73
 
 **When:** 2026-10-01. Evidence and numbers: the Outcome in [C73](slices/C73-tree-skeleton.md).
@@ -4694,6 +4723,76 @@ Battle observations/digests and the remaining whole-city admission limits.
 **Reach:** Every generated town has the same style of apartment block. A second family also needs houses, farms, towers and industry styled for it, or a decision to share ours.
 
 **Verdict:** provisional. It is the smallest scope that meets the contract, and it puts the facade, far-tier and damage passes first, which every family needs. **Confidence:** medium.
+
+## C06: inline the measured foliage owner
+
+**Choice:** Force the existing world foliage query inline, preserving its
+sparse-cell lookup, cleared-mask rule and every arithmetic expression. Leave
+the height wrapper's compiler policy unchanged after separate measurement.
+
+**Why:** The public fog traversal calls foliage per ray step. In the matched
+native six-tick control, foliage inlining reduces whole Fog plus Learning more
+than height inlining and also shrinks linked text. It needs no second visibility
+implementation or invalidation owner. C06 records the exact observations/digests,
+measured code-size tradeoff and narrower scope of the evidence.
+
+## C06: prove an enclosed destination once after a failed road exit
+
+**Choice:** When a vehicle reaches the final planning step from a road and that
+connector fails, try one counted search outward from the destination's resolved
+cell. A search frontier is the queue of cells still to inspect. If that queue
+empties, the search has found every cell this footprint can reach from the goal.
+When the original start's resolved cell is absent, no road exit can complete the
+journey, so report `NoRoute` immediately. A search limit leaves an unfinished
+queue and proves nothing; ordinary alternative roads remain available.
+
+**Gap:** The existing road planner rejects one failed exit at a time. The plan
+required bounded work but did not select how to share those failures. A tank
+sent into a closed courtyard can repeatedly search the large outside region
+from different roads, even though a small search inside the courtyard proves
+all approaches impossible. Reusing the search's completed component provides
+a general geometry proof without recognizing a map, unit type or seed.
+
+**Reach:** Run this extra proof after failure, not on every healthy road journey.
+It reuses the existing sparse scratch and footprint checks, preserves the original
+start/goal snapping and grants no passage through bodies. The proof may step
+round corners and farther than an actual route, covering the road reader's
+sampling and its next connector's existing snapped start. This errs toward
+declining a blockage proof; its path is never returned as a route. A reachable or large
+goal region may remain inconclusive and keep the existing repeated work; a
+general shared goal-access tree is outside this measured correction. Earlier
+proven refusal changes planning ticks and affected digests, while same-build
+replay remains exact.
+
+**Verdict:** sound for the demonstrated enclosed-component amplification.
+Public work, sampled-corner and alternate-road tests distinguish a completed
+proof from resource exhaustion, and the counted Battle exercises replay. **Confidence:** high for
+the proof and unchanged physical authority; medium for coverage beyond the
+frozen layout-6 failure family, which remains explicitly unclaimed.
+
+### C06 — compare reset resources at a fixed presented opening
+
+**When:** full generated browser integration.
+
+**Choice:** after warming the renderer with the live battle, restart three times,
+pause each authority, advance to tick 90 and wait until that tick is drawn. Compare
+both the number of buffers/textures and the bytes they hold across these openings.
+A late battle can draw a translucent overlay that an opening lacks; its mesh
+buffer is correctly destroyed when the opening is installed. Comparing those
+different states incorrectly treated that disposal as a failure.
+
+**Gap:** the reset gate required stable resource ownership but did not fix the
+battle state or presentation clock at which allocations were counted.
+
+**Reach:** future resource checks must compare equivalent drawn states and trace
+allocation ownership before changing lifetime policy. One-time lazy allocations
+are warmed before the repeated-reset baseline; accumulating leaks still fail.
+The scene retains three resets and now checks bytes as well as counts. It adds no
+renderer state, capacity change or product API.
+
+**Verdict:** sound. Actual creation/destruction traces explain the old difference;
+exact matched openings pass and a real retained GPU allocation falsifies the check.
+**Confidence:** high for repeated-reset stability; full timing admission stays open.
 ## C66 road core
 
 ### The export's `kind` column names the area's kind; no column was added

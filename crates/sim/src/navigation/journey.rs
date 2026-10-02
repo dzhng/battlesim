@@ -575,6 +575,8 @@ enum Stage {
     Roads(RoadSearch),
     Driving(Driving),
     Direct(RouteSearch),
+    /// One rare-failure proof, before trying further goal road accesses.
+    GoalProof(RouteSearch, u32),
     Done(Plan),
 }
 
@@ -597,6 +599,7 @@ pub struct Journey {
     rejected: [BTreeSet<u32>; 2],
     /// What its finished searches cost.
     work: SearchWork,
+    goal_probed: bool,
 }
 
 impl Journey {
@@ -621,6 +624,7 @@ impl Journey {
             closed: BTreeSet::new(),
             rejected: Default::default(),
             work: SearchWork::default(),
+            goal_probed: false,
         }
     }
 
@@ -677,8 +681,8 @@ impl Journey {
         RouteSearch::new(grid, scratch, leg, limit)
     }
 
-    /// Take a finished search's plan, keeping its bookkeeping and its cost.
-    fn finished(&mut self, search: RouteSearch) -> Plan {
+    /// Retain a completed or canceled search's bookkeeping and cost.
+    fn finish_search(&mut self, search: RouteSearch) -> Option<Plan> {
         let cost = search.work();
         self.work.cells += cost.cells;
         self.work.queued += cost.queued;
@@ -687,7 +691,7 @@ impl Journey {
         self.work.heap_peak = self.work.heap_peak.max(cost.heap_peak);
         let (plan, scratch) = search.finish();
         self.scratch = Some(scratch);
-        plan.expect("a finished search has a plan")
+        plan
     }
 
     /// Spend up to `allowance` work on the journey, and say how much was
@@ -719,6 +723,7 @@ impl Journey {
         let (plan, held) = match self.stage {
             Stage::Done(plan) => (Some(plan), None),
             Stage::Direct(search) => (None, Some(search.finish().1)),
+            Stage::GoalProof(search, _) => (None, Some(search.finish().1)),
             Stage::Driving(driving) => (None, driving.search.map(|s| s.finish().1)),
             Stage::Roads(_) | Stage::Terrain(_) => (None, None),
         };
@@ -728,6 +733,9 @@ impl Journey {
     /// How far the journey has got. With what was asked, the grid and the
     /// road graph, that fixes everything it will do.
     pub fn digest(&self, d: &mut Digest) {
+        if self.goal_probed {
+            d.u64(u64::MAX);
+        }
         d.u64(self.closed.len() as u64);
         for arc in &self.closed {
             d.u64(*arc as u64);
@@ -774,6 +782,10 @@ impl Journey {
                 d.u64(2);
                 search.digest(d);
             }
+            Stage::GoalProof(search, access) => {
+                d.u64(5).u64(*access as u64);
+                search.digest(d);
+            }
             Stage::Done(_) => {
                 d.u64(3);
             }
@@ -794,7 +806,10 @@ impl Journey {
             Stage::Direct(mut search) => {
                 search.advance(grid, 1);
                 if search.plan().is_some() {
-                    Stage::Done(self.finished(search))
+                    Stage::Done(
+                        self.finish_search(search)
+                            .expect("a finished search has a plan"),
+                    )
                 } else {
                     Stage::Direct(search)
                 }
@@ -832,6 +847,21 @@ impl Journey {
                 }
             }
             Stage::Driving(driving) => self.drive(grid, roads, driving),
+            Stage::GoalProof(mut search, access) => {
+                search.advance(grid, 1);
+                if search.reached_target() || search.plan().is_some() {
+                    let blocked = search.exhausted_rejects(grid, self.from);
+                    self.finish_search(search);
+                    if blocked {
+                        Stage::Done(Plan::Blocked(super::BlockReason::NoRoute))
+                    } else {
+                        self.rejected[1].insert(access);
+                        Stage::Terrain(super::terrain::Probe::new(self.from, self.goal))
+                    }
+                } else {
+                    Stage::GoalProof(search, access)
+                }
+            }
         };
     }
 
@@ -871,7 +901,10 @@ impl Journey {
                         .last()
                         .is_some_and(|end| (*end - sought).length() < 1e-6)
             };
-            return match self.finished(search) {
+            return match self
+                .finish_search(search)
+                .expect("a finished search has a plan")
+            {
                 Plan::Route(route) if arrives(&route) => {
                     driving.extend(route);
                     // A way round a body rejoins the run further along it.
@@ -895,6 +928,20 @@ impl Journey {
                 }
                 _ => {
                     let side = usize::from(driving.piece != 0);
+                    if side == 1 && !self.goal_probed {
+                        self.goal_probed = true;
+                        let scratch = self.scratch.take();
+                        let leg = Leg {
+                            from,
+                            goal: self.goal,
+                            ..self.leg()
+                        };
+                        let limit = self.rules.search_limit(length);
+                        return match RouteSearch::goal_probe(grid, scratch, leg, limit) {
+                            Some(search) => Stage::GoalProof(search, driving.accesses[side]),
+                            None => Stage::Done(Plan::Blocked(super::BlockReason::NoRoute)),
+                        };
+                    }
                     self.rejected[side].insert(driving.accesses[side]);
                     Stage::Terrain(super::terrain::Probe::new(self.from, self.goal))
                 }

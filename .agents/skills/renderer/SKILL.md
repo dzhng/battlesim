@@ -63,6 +63,10 @@ Read before changing anything:
 ## Platform traps
 
 - **Destroying the root does not free what it created.** Every buffer and texture goes through the registry, and a check asserts counts and bytes return to baseline after resize, rebuild and reset.
+- **Compare resource baselines at the same drawn state.** Await pause acknowledgement,
+  advance to a fixed tick and await presentation before counting. Attribute a difference
+  to its creation/destruction owner; an empty mesh may legitimately release a late-battle
+  buffer. Falsify repeated-reset checks with an actual retained GPU allocation.
 - **Async results can outlive their owner.** Build into a new scope and swap it in whole; free a build that is overtaken or lands after dispose; keep every public call safe after dispose. A replacement that shares buffers with a bake is one serialized transaction.
 - **Stats healthy over a black canvas** is a validation warning, a reassigned WGSL `let`, a reserved word used as a name, an attachment mismatch or a NaN. Treat any console warning as a failed render.
 - **Pin only the shared camera bind group;** let the library number the rest. Count bindings before adding one: the default limits are small.

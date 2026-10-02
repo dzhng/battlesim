@@ -424,6 +424,8 @@ impl WorldGeometry {
 
     /// The foliage over (x, y): its fog cell's, or open ground where the
     /// ground is cleared.
+    // Fog asks per ray step; expose the sparse lookup to its caller.
+    #[inline(always)]
     pub fn foliage_at(&self, x: f64, y: f64) -> Foliage {
         let foliage = self
             .forest

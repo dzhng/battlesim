@@ -274,3 +274,125 @@ heavy fog hatching, weak route contrast, unclear water, and benchmark link/
 results layout issues. These are renderer/UI lane findings; the scale lane has
 not changed appearance or accepted visual fidelity. The final stress check needs
 readable unit/contact framing alongside the full-world loading proof.
+
+## Finding — exact fog queries and late corpse sorting
+
+The bounded frozen-Metro late snapshot spends 104.142 M instructions in six
+Observation phases. Replaying the existing position comparator over its public
+corpse rows, restored to source soldier order, costs about 9.47 M per observation
+and reproduces the exact published list. This is a substantial recurring sort;
+skipping it would require death, fighting-floor loss and side-knowledge mutation
+ownership. A second corpse projection is not the next pass. An unstable coordinate sort
+would need the original construction ordinal for exact ties: reinforcement
+appends a new high soldier ID inside an existing unit, so soldier IDs cannot
+stand in for global unit/member iteration order.
+
+A short native stack sample identifies out-of-line world height and foliage
+queries in the unchanged fog traversal. The height field already forces its
+triangle reader inline to prevent new callers from increasing sweep cost, but
+the world wrapper does not. Measure each query owner's inlining separately,
+including whole Fog plus Learning and emitted code size. Keep only a clear
+instruction reduction with unchanged complete observations and battle digests;
+this introduces no cache and changes no arithmetic.
+
+
+## Outcome — expose the existing foliage query
+
+Only the foliage owner's existing query is forced inline. Height-only inlining
+was measured separately and left unchanged: it saves 3.15% early and 2.05% late
+Fog plus Learning work while growing the linked text by 7,580 bytes. Foliage-only
+inlining saves more and shrinks text; both candidates keep all arithmetic intact.
+
+Against the fog-union checkpoint on the frozen full Metro input and rules,
+six-tick Fog plus Learning falls from 330.527 M to 317.109 M instructions early
+and 355.871 M to 345.378 M late: 4.06% and 2.95%, about 2.24 M and 1.75 M fewer
+per tick. Every tick digest and complete serialized side-observation hash stays
+identical; the final digests remain `a98b13486b947938` and `b1ce437b780fa761`.
+The same linked native tracer's text shrinks from 2,562,712 to 2,559,388 bytes.
+This sizes one linked consumer, not every target. No retained allocation, cache,
+visibility-kernel fork or physical rule is added. The existing public collection
+budget remains intact; a scratch tighter bar did not become a new contract.
+All sight tests and focused clearing, canopy/bucket-edge depth and side-known
+clearing checks pass, as do library clippy and independent read-only review.
+These are bounded initial-view measurements; contact peaks and browser admission
+remain with the scale lane.
+
+## Outcome — enclosed destination component proof
+
+A failed final road connector can now prove the whole destination inaccessible,
+rather than recertifying it from every nearby road. Navigation searches backward
+from the same effective destination cell, using the weakest existing mover fit,
+push and avoidance checks. Its certificate-only graph deliberately admits more
+links than a real route: sampled roads may cross cell corners and their next
+search may snap from an unchecked endpoint. A fixed local stencil covers both;
+it emits no route and never weakens the ordinary validator. Exhausting that
+entire relaxed component
+and finding the original start's resolved cell outside it proves `NoRoute`.
+The original goal having no admitted endpoint is the same terminal refusal every
+mandatory final connector already makes. Other start refusals, terrain shortcuts
+and `SearchLimit` do not prove component exhaustion.
+Reaching the attempted exit or failing to finish the proof retains the ordinary
+alternate-road and direct-search behavior. The proof runs once, only after a
+final connector fails; healthy road journeys incur no added search.
+
+The frozen layout-6, physical-catalogue-541668 Mixed Small seed-3 failure confirms
+the cause: its reverse destination query exhausts 36 cells, while forward
+connectors repeatedly search tens of thousands. This is historical input evidence,
+not admission of the incoming layout-7 generator. The complete corrected journey
+finishes with proven obstruction at 52,687 counted work, after the first failed
+connector. A small public twelve-exit
+courtyard regression fails at 192,136 expansions without the correction and now
+fits one search of its 20,000-cell map plus local proof work. A low-limit reverse
+query remains `SearchLimit`, and the complete journey still takes a distant legal
+road opening. Treating that limit as component exhaustion falsifies the positive
+test. A sampled diagonal crossing falsifies using the ordinary no-corner graph
+as a global road proof; the relaxed certificate retains its legal road route.
+An actual Battle holds while planning, finishes blocked within the same
+derived allowance, clears its pending job and matches every serialized-replay tick.
+
+This intentionally changes affected planning completion ticks and may replace a
+later inconclusive verdict with an earlier proven obstruction. Its pending stage
+and the flag preventing repeated proofs enter the digest only when used. The
+existing sparse search scratch is reused; no world-sized storage, limit tuning or
+physical exemption is added. Large connected destination components and other
+repeated connector failures retain their existing costs. Current generated-case
+follow-up, native/Wasm agreement and full browser admission remain integration
+work; this scoped correction does not close C06 or the whole navigation budget.
+
+### Integrated frozen-case rerun
+
+On current native build `0666de00…`, the original frozen scenarios and commands
+run for 120 simulated seconds without changing their map or rules identities.
+Mixed Small seed 3 first leaves planning at tick 31; Metro Medium seed 9 at tick
+29. Both finish alive with explicit blocked routes, no pending job or planning
+work. Their battle digests are `c7296593532e935c` and `bbf7d86052ff3f05`.
+This proves termination, not reachable encounter placement.
+
+Mixed Small seed 9 remains planning for all 3,600 ticks, using 14.4 M counted
+planning work and ending at `e0901a622c524a92`. Its relaxed reverse graph reaches
+the failed connector outside a thin enclosure, so the global proof correctly
+declines. The next seam is the actual final off-road connector: an exhausted
+strict destination component may reject that connector's exact resolved start,
+while sampled road runs retain their existing links. Resource exhaustion must
+remain inconclusive. Fresh layout-7 pipeline and timing admission stay open.
+
+## Outcome — controlled reset resource baseline
+
+The full-world reset failure compared a late battle with a fresh opening.
+Factory-level allocation traces identify the extra late buffer as the translucent
+overlay's replaceable mesh (`overlayPass` → `MeshSlot.set`). An empty opening
+does not materialize that lazy buffer; replacing the late mesh destroys it.
+In the attributed run, its 1,422,960 bytes disappear on reset and corpse cards
+shrink from 320 to 16 bytes. Three fresh resets have identical counts and bytes.
+This is a valid resource-lifetime transition, not a missing disposal.
+
+The endurance scene now compares all three resets at paused, presented tick 90,
+after the live arm warms lazy resources. It checks exact buffer/texture counts
+and bytes and records them in telemetry. The bounded generated browser proof
+passes with 362 buffers / 41 textures and 294,501,276 / 263,868,125 bytes on
+every reset. A separate scratch wrapper deliberately retains a real 16-byte
+GPU buffer on each explicit draw; the check fails with 366 → 367 → 368 buffers
+and precisely 16 added bytes per reset. The ordinary source has no leak hook.
+This corrects an uncontrolled comparison and adds byte accounting; stress
+durations, rendering and the timing target remain unchanged. The two-second
+arms prove the reset contract only. Full timing admission remains open.

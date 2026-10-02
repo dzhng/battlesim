@@ -44,6 +44,8 @@ export interface ObservationLayout {
     copy: string[];
     copyAlignments: number[];
     encodings: string[];
+    /** Bit grammar declared by the producer; carriers are raw u32 words. */
+    packed: Record<string, string>;
   };
   fog: { count: string; maxWords: number };
   ground: GroundLayout;
@@ -522,15 +524,18 @@ function reconstructGroups(
     if (
       !integer(size) ||
       !integer(payload) ||
-      !["replacement", "snapshot", "copies"].includes(mode) ||
+      !["replacement", "snapshot", "copies", "packed"].includes(mode) ||
       length + size > layout.ground.maxRecordBytes / 4 ||
       cursor + payload > encoded.length ||
-      (previous === null && mode !== "snapshot")
+      (previous === null && mode !== "snapshot" && mode !== "packed")
     )
       throw new Error("invalid observation group payload");
     const end = cursor + payload;
     let values: Float32Array;
-    if (mode === "snapshot") {
+    if (mode === "packed") {
+      values = unpackGroup(layout, g, encoded, cursor, payload, size, previous?.[g] ?? null);
+      cursor = end;
+    } else if (mode === "snapshot") {
       if (payload !== size) throw new Error("observation group snapshot length mismatch");
       values = encoded.slice(cursor, end);
       cursor = end;
@@ -607,6 +612,106 @@ function reconstructGroups(
   if (length > layout.ground.maxRecordBytes / 4)
     throw new Error("reconstructed observation exceeds its admitted record bound");
   return { tailOffset: cursor, groups };
+}
+
+/** Compact carriers are raw words, never JS float reads (which can canonicalize NaNs). */
+function unpackGroup(
+  layout: ObservationLayout,
+  groupIndex: number,
+  encoded: Float32Array,
+  offset: number,
+  length: number,
+  size: number,
+  old: Float32Array | null,
+): Float32Array {
+  const words = new Uint32Array(encoded.buffer, encoded.byteOffset + offset * 4, length);
+  let bit = 0;
+  const read = (count: number): number => {
+    if (bit + count > words.length * 32) throw new Error("truncated packed observation group");
+    const index = Math.floor(bit / 32);
+    const shift = bit % 32;
+    let value = words[index] >>> shift;
+    if (shift + count > 32) value |= words[index + 1] << (32 - shift);
+    bit += count;
+    return (value & (count === 32 ? 0xffffffff : 2 ** count - 1)) >>> 0;
+  };
+  const integer = (): number => {
+    let value = 0;
+    for (let byte = 0; byte < 4; byte++) {
+      const part = read(8);
+      value += (part & 127) * 2 ** (byte * 7);
+      if (part < 128) {
+        if (byte !== 0 && part === 0) throw new Error("noncanonical packed observation integer");
+        return value;
+      }
+    }
+    throw new Error("oversized packed observation integer");
+  };
+  const form = read(8);
+  if (form > 2 || (old === null && form !== 1))
+    throw new Error("packed observation group requires its baseline");
+  const baseline = old === null ? null : new Uint32Array(old.buffer, old.byteOffset, old.length);
+  const values = new Float32Array(size);
+  const result = new Uint32Array(values.buffer);
+  const literal = (at: number): void => {
+    const tag = read(4);
+    if (tag > 9 || (form === 1 && tag >= 5))
+      throw new Error("invalid packed observation literal tag");
+    const count = tag < 5 ? tag : tag - 5;
+    const value = count === 0 ? 0 : read(count * 8);
+    result[at] = tag < 5 ? value : (value ^ (baseline?.[at] ?? 0)) >>> 0;
+  };
+  if (form === 1) {
+    for (let at = 0; at < size; at++) literal(at);
+  } else if (form === 0) {
+    result.set(baseline!.subarray(0, size));
+    const operations = integer();
+    if (operations > size) throw new Error("invalid packed observation replacement count");
+    let last = 0;
+    for (let operation = 0; operation < operations; operation++) {
+      const start = integer();
+      const count = integer();
+      if (
+        count === 0 ||
+        start < last ||
+        start + count > size ||
+        (start > baseline!.length && last < start)
+      )
+        throw new Error("invalid packed observation replacement range");
+      for (let at = start; at < start + count; at++) literal(at);
+      last = start + count;
+    }
+    if (size > baseline!.length && last < size)
+      throw new Error("packed observation growth must supply its new words");
+  } else {
+    const group = layout.groups[groupIndex];
+    const stride = layout.groupDelivery.copyAlignments[groupIndex];
+    if (stride !== (group.sections.length === 0 ? group.fields.length : 1) || size % stride !== 0)
+      throw new Error("packed observation copy alignment disagrees with its group");
+    let at = 0;
+    while (at < size) {
+      const sourcePlusOne = integer();
+      const count = integer();
+      const source = sourcePlusOne - 1;
+      if (
+        count === 0 ||
+        count % stride !== 0 ||
+        at + count > size ||
+        (sourcePlusOne !== 0 && (source % stride !== 0 || source + count > baseline!.length))
+      )
+        throw new Error("invalid packed observation source copy");
+      if (sourcePlusOne === 0) {
+        for (let end = at + count; at < end; at++) literal(at);
+      } else {
+        result.set(baseline!.subarray(source, source + count), at);
+        at += count;
+      }
+    }
+  }
+  if (words.length * 32 - bit > 31) throw new Error("excess packed observation padding");
+  while (bit < words.length * 32)
+    if (read(1) !== 0) throw new Error("nonzero packed observation padding");
+  return values;
 }
 
 function decodeFrame(

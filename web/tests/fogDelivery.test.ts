@@ -309,7 +309,12 @@ test("a live variable route copy matches a fresh producer snapshot and retains p
     ).toBeGreaterThan(0);
     const wire = record(battle);
     expect(wire[layout.header.length]).toBeGreaterThan(initial[layout.header.length]);
-    expect(wire[layout.header.length + 1]).toBe(2);
+    const encoding = wire[layout.header.length + 1];
+    const form =
+      layout.groupDelivery.encodings[encoding] === "packed"
+        ? new Uint32Array(wire.buffer, wire.byteOffset + (layout.header.length + 3) * 4, 1)[0] & 255
+        : encoding;
+    expect(layout.groupDelivery.encodings[form]).toBe("copies");
     expect((3 + wire[layout.header.length + 2]) * 4).toBeLessThan(2000);
     const after = decoder.decode(wire)!;
     expect(after.own).toEqual(oracle.own);
