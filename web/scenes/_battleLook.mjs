@@ -35,7 +35,7 @@ import {
 } from "./_lab.mjs";
 import { anyNear, decode, mostChanged } from "./_png.mjs";
 import { trackPageResources, pageResources } from "./_leaks.mjs";
-import { paintOnly } from "./_overlays.mjs";
+import { orderPaint, paintOnly } from "./_overlays.mjs";
 import { hasRole, game, villageMap, curvePitch } from "./_units.mjs";
 
 const CAMERA = game.presentation.camera;
@@ -491,7 +491,7 @@ const pixelAt = (png, p) => {
   return [png.data[i], png.data[i + 1], png.data[i + 2]];
 };
 
-/** Fog runs on past the playable area, computed as inside; a red
+/** Fog runs on past the playable area, computed as inside; a dim white
  *  border marks the area. Blue's start is near the map's west edge. */
 export async function edgeTour(ctx) {
   const page = await openBattle(ctx, { viewport: VIEWPORT });
@@ -523,32 +523,35 @@ export async function edgeTour(ctx) {
   await pose(page, [60, y], 900);
   await snapshot(ctx, page, "edge-strategic-1920x1080.png");
 
-  // The border lies along the edge: dim white ink near every sample down
-  // the west edge in view (neutral: its blue rises with its red, which no
-  // grass or soil does). It is painted on the ground, so it is read as the
-  // paint's rise over the ground there.
+  // Neutral paint must cover the edge and change the finished ground there.
+  // On a bright yellow field, grey paint lowers red while raising blue;
+  // positive rises alone cannot establish its neutral colour or contrast.
   await pose(page, [60, y], 300, 0.85);
   const ink = await paintOnly(ctx, page, "edge-border");
-  const width = (await lab(page, () => window.__lab.camera())).distance;
+  const paint = await orderPaint(ctx, page, "edge-border");
+  const distance = (await lab(page, () => window.__lab.camera())).distance;
   let samples = 0;
   const missed = [];
   for (let dy = -60; dy <= 60; dy += 10) {
     const css = await groundCss(page, [0.3, y + dy]);
     if (!css || css[0] < 4 || css[1] < 4 || css[0] > 1916 || css[1] > 1076) continue;
     samples++;
-    let best = [0, 0, 0];
+    let contrast = 0;
     for (let oy = -3; oy <= 3; oy++)
       for (let ox = -3; ox <= 3; ox++) {
-        const c = pixelAt(ink, [css[0] + ox, css[1] + oy]);
-        if (Math.min(c[0], c[2]) > Math.min(best[0], best[2])) best = c;
+        const p = [css[0] + ox, css[1] + oy];
+        const [r, , b] = pixelAt(paint, p);
+        if (!(r > 20 && b > 20)) continue;
+        const on = pixelAt(ink.painted, p);
+        const off = pixelAt(ink.under, p);
+        contrast = Math.max(contrast, ...on.map((v, k) => Math.abs(v - off[k])));
       }
-    const [r, g, b] = best;
-    if (!(r > 20 && b > 20)) missed.push({ dy, css, rgb: [r, g, b] });
+    if (!(contrast > 20)) missed.push({ dy, css, contrast });
   }
   ctx.check(
     "a dim white border is drawn along the playable area's edge",
     samples >= 8 && missed.length === 0,
-    JSON.stringify({ samples, missed: missed.slice(0, 4), distance: width }),
+    JSON.stringify({ samples, missed: missed.slice(0, 4), distance }),
   );
   await page.close();
 }
