@@ -19,11 +19,11 @@ standard deviation at maximum range, so changing range preserves that spread.
 
 Preview shows exact JSON replacements. Save rejects stale drafts and publishes
 authored sources with their matching generated catalog. Interrupted publication
-is recovered before the next reader, while outside edits are preserved. File
+is recovered before the next reader, while detected outside edits are preserved. File
 replacement is atomic individually; the journal provides recovery across files.
 The editor formats authored JSON; Rust supplies the generated catalog's exact
 canonical bytes. Changes made elsewhere during publication abort the save and
-preserve those edits while the editor rolls back its own replacements.
+preserve detected edits while the editor rolls back its own replacements.
 
 Each battle page captures one accepted generation. Saving leaves running battles
 alone; starting or explicitly restarting a battle loads the latest saved values.
@@ -32,4 +32,5 @@ paths from the browser.
 
 The [server](server.ts) owns file publication and the
 [field descriptions](src/fields.ts) own labels, units and reversible conversions.
-The [feature spec](../../specs/mechanics-editor/README.md) records remaining proof.
+The [feature rationale](../../specs/done/mechanics-editor/README.md) records the
+authoring and publication principles.

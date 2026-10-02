@@ -557,7 +557,7 @@
   background: #101719;
   border: 1px solid var(--me-line);
   font:
-    11px/1.5 ui-monospace,
+    13px/1.5 ui-monospace,
     SFMono-Regular,
     monospace;
   margin: 0;
@@ -655,4 +655,9 @@
   .me-scroll-hint {
     display: block;
   }
+}
+
+.me-json-hint {
+  color: var(--me-muted);
+  font-size: 12px;
 }

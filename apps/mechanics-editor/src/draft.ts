@@ -132,8 +132,8 @@ export function draftEntry(
   for (const change of draft.changes.filter((c) => sameTarget(c, target))) {
     if (change.restore) {
       const parent = snapshot && fieldOrigin(snapshot, target, change.path).parentValue;
-      // A restore is only shown optimistically when its inherited source has an explicit leaf.
-      // The preview catalog is the authority for defaults and part patches.
+      // Show known inherited values, including native defaults.
+      // Admission owns values absent from the resolved parent and part patches.
       if (parent !== undefined) setAt(entry, change.path, structuredClone(parent));
     } else if (change.value !== undefined) setAt(entry, change.path, structuredClone(change.value));
   }

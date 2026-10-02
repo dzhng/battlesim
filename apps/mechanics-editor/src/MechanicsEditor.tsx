@@ -974,7 +974,7 @@ export default function MechanicsEditor() {
                     {file.path}
                     <span>Exact JSON</span>
                   </summary>
-                  <p className="me-scroll-hint">
+                  <p className="me-json-hint">
                     Scroll each JSON panel down and sideways to inspect the full replacement.
                   </p>
                   <div className="me-file-columns">
