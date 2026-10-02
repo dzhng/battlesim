@@ -54,7 +54,13 @@ pub fn grow(
         top: 0.0,
         bottom: 0.0,
     };
-    // Woods first stand on some of the blocks settlements left open beside
+    // A park's trees are a wood on its block, whatever the halves hold.
+    for town in towns {
+        for park in &town.parks {
+            woods.claim(park);
+        }
+    }
+    // Woods then stand on some of the blocks settlements left open beside
     // and among their districts, where both halves still have room for them:
     // a wood of its own shape about the block, wherever one fits clear of
     // the districts around it.

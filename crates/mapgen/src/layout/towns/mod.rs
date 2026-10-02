@@ -6,7 +6,7 @@
 //! avenues.
 use crate::layout::geometry::{
     add, area, area_above, centroid, cross, distance, ring_distance, round_cm, scale,
-    segment_distance, sub, Point,
+    segment_crossing, segment_distance, sub, Point,
 };
 use crate::layout::presets::{SettlementClass, Zone};
 use crate::layout::roads::Road;
@@ -43,8 +43,12 @@ pub struct Town {
     pub blocks: Vec<Block>,
     /// The blocks it left open beside and among its districts.
     pub greens: Vec<Vec<Point>>,
-    /// The streets along its blocks' edges where no road runs.
-    avenues: Vec<[Point; 2]>,
+    /// The ground its parks' trees stand on: each a park's block, drawn in
+    /// from the streets round it.
+    pub parks: Vec<Vec<Point>>,
+    /// The streets along its blocks' edges where no road runs, each of the
+    /// kind of the road it carries on from where it does.
+    avenues: Vec<([Point; 2], Option<SurfaceKind>)>,
     avenue_kind: SurfaceKind,
 }
 
@@ -91,6 +95,8 @@ struct Plot<'a> {
     built: usize,
     /// The fewest it keeps: the blocks about its centre.
     core: usize,
+    /// The blocks near its centre kept as parks.
+    parks: Vec<usize>,
     /// Each leaf's distance from the centre as the settlement counts it:
     /// longer or shorter than the ground's by the patch the leaf lies in.
     spread: Vec<f64>,
@@ -184,13 +190,53 @@ impl Growth<'_> {
     }
 }
 
-fn plot<'a>(context: &'a Context, index: usize, site: &Site, roads: &[Road]) -> Plot<'a> {
+/// Cut settlement `index`'s ground into blocks and grow it. With `clear`,
+/// the cuts between its blocks keep clear of the junctions they make no
+/// crossroads of.
+fn plot<'a>(
+    context: &'a Context,
+    index: usize,
+    site: &Site,
+    roads: &[Road],
+    clear: bool,
+) -> Plot<'a> {
     let presets = context.presets;
     let class = presets.class(&site.class_id);
     let rules = &presets.towns;
     // Its own stream: reshaping one town never moves another, or any site.
     let mut rng = context.stream(&format!("town/{index}"));
     let limit = &site.outline.ring;
+    // Where one of the map's roads ends on another or crosses it, on this
+    // ground or beside it.
+    let [x0, y0, x1, y1] = contract::ground::limits(limit, rules.junction_clear_m);
+    let near = |p: &Point| p[0] >= x0 && p[0] <= x1 && p[1] >= y0 && p[1] <= y1;
+    let mut junctions: Vec<Point> = Vec::new();
+    for (own, (_, points)) in roads.iter().enumerate() {
+        for (other, (_, line)) in roads.iter().enumerate().filter(|(other, _)| *other != own) {
+            for end in [points[0], points[points.len() - 1]] {
+                if near(&end)
+                    && line
+                        .windows(2)
+                        .any(|run| segment_distance(run[0], run[1], end) <= MEET_M)
+                {
+                    junctions.push(end);
+                }
+            }
+            if other < own {
+                continue;
+            }
+            for run in points
+                .windows(2)
+                .filter(|run| near(&run[0]) || near(&run[1]))
+            {
+                for cross in line.windows(2) {
+                    if let Some((share, _)) = segment_crossing(run[0], run[1], cross[0], cross[1]) {
+                        junctions.push(add(run[0], scale(sub(run[1], run[0]), share)));
+                    }
+                }
+            }
+        }
+    }
     let roads = pieces(limit, roads);
     let mut ground = Ground {
         cuts: Vec::new(),
@@ -202,7 +248,10 @@ fn plot<'a>(context: &'a Context, index: usize, site: &Site, roads: &[Road]) -> 
     for (a, b, kind) in &roads {
         ground.cut(*a, *b, *kind);
     }
-    ground.subdivide(&class.block, rules, &mut rng);
+    for junction in junctions {
+        ground.junction(junction);
+    }
+    ground.subdivide(&class.block, rules, clear, &mut rng);
     let mesh = Mesh::new(&ground.leaves);
 
     // Where its roads come nearest the middle of its ground.
@@ -272,8 +321,19 @@ fn plot<'a>(context: &'a Context, index: usize, site: &Site, roads: &[Road]) -> 
             spread + class.ribbon * road.min(site.outline.reach)
         })
         .collect();
-    let target = rng.range(class.built_share) * area(limit);
     let by_key = |a: &usize, b: &usize| keys[*a].total_cmp(&keys[*b]).then(a.cmp(b));
+    // Air in it: a block away from the centre is left unbuilt here and
+    // there, and the settlement builds that much less.
+    let mut buildable = buildable;
+    let about = |leaf: usize| ring_distance(&ground.leaves[leaf].ring, center) <= 1.0;
+    if class.open_blocks > 0.0 {
+        for (leaf, buildable) in buildable.iter_mut().enumerate() {
+            if *buildable && !about(leaf) && rng.chance(class.open_blocks) {
+                *buildable = false;
+            }
+        }
+    }
+    let target = rng.range(class.built_share) * area(limit) * (1.0 - class.open_blocks);
     let mut growth = Growth {
         ground: &ground,
         mesh: &mesh,
@@ -335,7 +395,46 @@ fn plot<'a>(context: &'a Context, index: usize, site: &Site, roads: &[Road]) -> 
             built = growth.order.len();
         }
     }
-    let order = growth.order;
+    let mut order = growth.order;
+    // And parks. A park is one of the blocks it built nearest its centre,
+    // the smallest that leaves room for trees clear of the streets round
+    // it, has built blocks on every side and lies beside no other park. It
+    // is taken out of the built ground, and never built on.
+    let mut parks: Vec<usize> = Vec::new();
+    for _ in 0..class.parks.map_or(0, |count| rng.count(count)) {
+        let taken: BTreeSet<usize> = order[..built].iter().copied().collect();
+        let enclosed = |leaf: &usize| {
+            mesh.pieces[*leaf].iter().all(|(from, to, _)| {
+                mesh.owner
+                    .get(&(*to, *from))
+                    .is_some_and(|other| taken.contains(other))
+            })
+        };
+        let wooded = |leaf: &usize| {
+            ground.leaves[*leaf]
+                .inset(presets.forests.settlement_gap_m)
+                .is_some_and(|inner| area(&inner.ring) >= rules.park_min_ha * 1e4)
+        };
+        let mut near: Vec<usize> = order[core..built]
+            .iter()
+            .copied()
+            .filter(|leaf| enclosed(leaf) && wooded(leaf))
+            .filter(|leaf| {
+                !parks
+                    .iter()
+                    .any(|park| mesh.neighbours(*park).contains(leaf))
+            })
+            .collect();
+        near.sort_by(by_key);
+        let park = near
+            .into_iter()
+            .take(rules.park_reach_blocks as usize)
+            .min_by(|a, b| area(&ground.leaves[*a].ring).total_cmp(&area(&ground.leaves[*b].ring)));
+        let Some(park) = park else { break };
+        order.retain(|leaf| *leaf != park);
+        built -= 1;
+        parks.push(park);
+    }
     Plot {
         class,
         ground,
@@ -345,6 +444,7 @@ fn plot<'a>(context: &'a Context, index: usize, site: &Site, roads: &[Road]) -> 
         order,
         built,
         core,
+        parks,
         spread,
     }
 }
@@ -522,15 +622,25 @@ fn finish(
     // A block that no street gives room for a parcel is left open after
     // all, and with it any block it alone joined to the rest.
     let mut built: BTreeSet<usize> = plot.built().iter().copied().collect();
-    let streets = loop {
-        let streets = avenues(site, &plot, &built, &fronted);
+    let (streets, laid) = loop {
+        // A park has a street all round it, as a block has.
+        let lined: BTreeSet<usize> = built.iter().chain(&plot.parks).copied().collect();
+        let laid = avenues(
+            site,
+            &plot,
+            &built,
+            &lined,
+            &fronted,
+            context.presets.parcels.run_on_m,
+        );
+        let streets: Vec<[Point; 2]> = laid.iter().map(|(ends, _)| *ends).collect();
         let cramped: Vec<usize> = built
             .iter()
             .copied()
             .filter(|leaf| !fronted(*leaf, &streets))
             .collect();
         if cramped.is_empty() {
-            break streets;
+            break (streets, laid);
         }
         for leaf in cramped {
             built.remove(&leaf);
@@ -703,9 +813,20 @@ fn finish(
             )
         })?;
 
+    // Only a park with built blocks on every side has trees of its own:
+    // one that lies open to the fields is ground like any other open block,
+    // where a wood may stand or an approach be kept clear.
+    let enclosed = |leaf: &usize| {
+        mesh.pieces[*leaf].iter().all(|(from, to, _)| {
+            mesh.owner
+                .get(&(*to, *from))
+                .is_some_and(|other| built.contains(other))
+        })
+    };
+    let wooded: Vec<usize> = plot.parks.iter().copied().filter(enclosed).collect();
     // Open blocks beside its districts: where a wood may stand.
     let greens = (0..ground.leaves.len())
-        .filter(|leaf| !built.contains(leaf))
+        .filter(|leaf| !built.contains(leaf) && !wooded.contains(leaf))
         .filter(|leaf| {
             mesh.neighbours(*leaf)
                 .iter()
@@ -713,13 +834,19 @@ fn finish(
         })
         .map(|leaf| plot.ring(leaf).to_vec())
         .collect();
+    let parks = wooded
+        .iter()
+        .filter_map(|leaf| ground.leaves[*leaf].inset(context.presets.forests.settlement_gap_m))
+        .map(|inner| on_grid(&inner.ring))
+        .collect();
 
     Ok(Town {
         center: *center,
         outline: on_grid(&outline),
         blocks,
         greens,
-        avenues: streets,
+        parks,
+        avenues: laid,
         avenue_kind: context.presets.avenue(class.road).0,
     })
 }
@@ -733,14 +860,26 @@ pub fn grow(
     let mut plots: Vec<Plot> = sites
         .iter()
         .enumerate()
-        .map(|(index, site)| plot(context, index, site, roads))
+        .map(|(index, site)| plot(context, index, site, roads, true))
         .collect();
     balance(context, &mut plots);
+    // A settlement whose ground, cut clear of its junctions, leaves no block
+    // a parcel fits on (a hamlet round a fork, mostly) is cut again as
+    // drawn: it is built before its junctions are tidy.
     plots
         .into_iter()
         .zip(sites)
         .enumerate()
-        .map(|(index, (plot, site))| finish(context, index, site, plot))
+        .map(|(index, (cut, site))| {
+            finish(context, index, site, cut).or_else(|_| {
+                finish(
+                    context,
+                    index,
+                    site,
+                    plot(context, index, site, roads, false),
+                )
+            })
+        })
         .collect()
 }
 
@@ -784,13 +923,14 @@ pub fn surfaces(context: &Context, towns: &[Town]) -> Result<Vec<SurfaceArea>, V
     let mut laid = Vec::new();
     for (index, town) in towns.iter().enumerate() {
         let (_, width) = presets.avenue(town.avenue_kind);
-        for [a, b] in &town.avenues {
+        for ([a, b], road) in &town.avenues {
+            let (kind, width) = match road {
+                Some(kind) => (*kind, presets.roads.width_m(*kind)),
+                None => (town.avenue_kind, width),
+            };
             let shape = GroundShape::stroke(vec![*a, *b], width)
                 .map_err(|message| context.fail(&format!("settlement-{index}"), message))?;
-            laid.push(SurfaceArea {
-                kind: town.avenue_kind,
-                shape,
-            });
+            laid.push(SurfaceArea { kind, shape });
         }
     }
     Ok(laid)

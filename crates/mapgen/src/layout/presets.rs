@@ -145,6 +145,9 @@ pub struct Roads {
     pub junction_reach_m: f64,
     /// and does so this often when the journey time allows it.
     pub junction_chance: f64,
+    /// Two junctions of the edge roads lie at least this far apart: nearer
+    /// than this the roads meet at one.
+    pub junction_apart_m: f64,
     /// An edge road swings through a settlement this near its line.
     pub waypoint_reach_m: f64,
     /// How far past its centre, as a share of the way to its edge, the road
@@ -212,6 +215,13 @@ pub struct Towns {
     /// where a street already does from the other side: nearer than this
     /// the two make one crossroads, not two junctions a few metres apart.
     pub align_m: f64,
+    /// A cut between blocks ends on a road no nearer than this to where
+    /// another road leaves it.
+    pub junction_clear_m: f64,
+    /// A park is the smallest of this many blocks nearest the centre,
+    pub park_reach_blocks: u32,
+    /// that leaves at least this much ground for its trees.
+    pub park_min_ha: f64,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -567,6 +577,9 @@ pub struct Parcels {
     /// A street that runs on past its last junction for less than this and
     /// stops in the open is cut back to that junction.
     pub tail_min_m: f64,
+    /// A street lands on a road no nearer than this to a junction the road
+    /// already has, unless it makes a crossroads of it.
+    pub junction_clear_m: f64,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -609,6 +622,14 @@ pub struct SettlementClass {
     /// where absent.
     #[serde(default)]
     pub side_roads: Option<SideRoads>,
+    /// How many blocks near its centre are parks: open ground with trees
+    /// and a street all round. None where absent.
+    #[serde(default)]
+    pub parks: Option<[u32; 2]>,
+    /// The chance a block away from its centre is left unbuilt, so that
+    /// its built ground has gaps. Its built share falls by as much.
+    #[serde(default)]
+    pub open_blocks: f64,
     /// How many blocks side by side take one district kind together.
     pub neighbourhood: [u32; 2],
     /// What its blocks are, from the centre out; the last zone reaches the
@@ -620,6 +641,7 @@ pub struct SettlementClass {
 /// the centre part of the way out to the edge of its ground, turns off it
 /// into the widest sector that has no road yet, and runs straight to that
 /// edge: a second way out of town that does not pass the central junction.
+/// It runs beside the next road round its sector, or square off its own.
 #[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SideRoads {
@@ -628,7 +650,8 @@ pub struct SideRoads {
     /// Where one leaves its road, as a share of the way from the centre to
     /// the edge of the settlement's ground.
     pub from: Range,
-    /// How far it turns off that road, toward the open sector.
+    /// The angles to its own road at which it may run beside another;
+    /// outside them it leaves its own road square.
     pub turn_deg: Range,
     /// The least distance between two of them where they leave one road.
     pub apart_m: f64,
@@ -797,6 +820,7 @@ impl PresetDefinitions {
                 && r.junction_reach_m >= 0.0
                 && r.junction_reach_m.is_finite()
                 && (0.0..=1.0).contains(&r.junction_chance)
+                && positive(r.junction_apart_m)
                 && r.waypoint_reach_m >= 0.0
                 && r.waypoint_reach_m.is_finite()
                 && share(r.main_street_reach)
@@ -825,7 +849,10 @@ impl PresetDefinitions {
                 && (0.0..=20.0).contains(&towns.block_skew_deg)
                 && towns.road_frontage.is_finite()
                 && towns.road_frontage >= 1.0
-                && length(towns.align_m),
+                && length(towns.align_m)
+                && length(towns.junction_clear_m)
+                && towns.park_reach_blocks >= 1
+                && length(towns.park_min_ha),
             "towns".into(),
             "towns need an avenue width, a growth noise below 1 in one or more patches of a positive size, a sharpest corner below 90°, a block split inside a row, a skew of 20° at most, a road frontage of 1 or more and a nonnegative reach to align junctions over",
         );
@@ -942,7 +969,8 @@ impl PresetDefinitions {
                 && positive(p.street_step_m)
                 && positive(p.lot_step_m)
                 && length(p.run_on_m)
-                && length(p.tail_min_m),
+                && length(p.tail_min_m)
+                && length(p.junction_clear_m),
             "parcels".into(),
             "parcels need a regional family, a prop type, a street width, positive steps, a nonnegative run-on and a nonnegative least tail",
         );
@@ -1085,9 +1113,12 @@ impl PresetDefinitions {
                 "a settlement joins the network by a carriageway",
             );
             check(
-                positive_range(class.built_share) && class.built_share[1] <= 1.0,
+                positive_range(class.built_share)
+                    && class.built_share[1] <= 1.0
+                    && class.parks.is_none_or(|parks| parks[0] <= parks[1])
+                    && (0.0..0.5).contains(&class.open_blocks),
                 at("built_share"),
-                "built_share is an ordered range of shares",
+                "built_share is an ordered range of shares, parks an ordered count and open_blocks a chance below a half",
             );
             check(
                 positive_range(class.block.depth_m) && positive_range(class.block.length_m),
