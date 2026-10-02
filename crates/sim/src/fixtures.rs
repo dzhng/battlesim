@@ -60,17 +60,28 @@ pub fn game() -> Value {
     fixture
 }
 
+/// Validate supplied mechanics and return the resolved catalog used by the browser.
+/// This does not load maps or write fixture files.
+pub fn admit(mut game: Value, documents: Vec<Value>) -> Result<Value, String> {
+    if !game.is_object() {
+        return Err("game must be an object".into());
+    }
+    game["catalog"] = Value::Array(documents);
+    let rules: contract::scenario::Rules =
+        serde_json::from_value(game).map_err(|e| e.to_string())?;
+    crate::weapons::check_rules(&rules)?;
+    crate::supply::validate(&rules)?;
+    let mut view = rules.catalog.view();
+    view["weapons"] = serde_json::to_value(rules.weapons).map_err(|e| e.to_string())?;
+    Ok(view)
+}
+
 /// The resolved catalog's view (`Catalog::view`) as `fixtures/catalog.json`
 /// holds it, with `weapons`: `game.json`'s weapon rows, `extends`
 /// resolved, as the mounts name them.
 pub fn catalog_view() -> String {
-    let catalog = contract::catalog::resolve(&catalog_documents())
-        .unwrap_or_else(|e| panic!("the unit catalog: {e}"));
-    let rows = read(&dir().join("game.json"))["weapons"].take();
-    let weapons =
-        contract::weapons::resolve_weapons(rows).unwrap_or_else(|e| panic!("the weapon rows: {e}"));
-    let mut view = catalog.view();
-    view["weapons"] = serde_json::to_value(weapons).expect("the rows serialize");
+    let view = admit(read(&dir().join("game.json")), catalog_documents())
+        .unwrap_or_else(|e| panic!("the mechanics: {e}"));
     serde_json::to_string_pretty(&view).expect("the view serializes") + "\n"
 }
 

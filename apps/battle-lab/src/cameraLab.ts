@@ -1,6 +1,6 @@
-// The camera-clearance lab's fixture (`fixtures/camera-lab.json`): a small
-// flat map of prototype buildings (a wall, a tower, a corner, a courtyard, a
-// concave compound) and scripted camera trajectories round them. A flight is
+// The camera-clearance lab's trajectories (`fixtures/camera-lab.json`) over
+// its catalogue map (`camera-lab`): a wall, tower, corner, courtyard and
+// concave compound. A flight is
 // a trajectory flown through the rig and its clearance, frame by frame: the
 // eye asked for and the eye drawn.
 import { vec3, type Vec3 } from "math";
@@ -15,7 +15,6 @@ import type { CameraObstacles } from "@packages/renderer-core/src/cameraObstacle
 import type { KnownProp, MapProp } from "@packages/battle-renderer/src/models/propAppearance";
 import type { PublicBuildings } from "@packages/battle-renderer/src/worldMesh";
 import { sampleTour, type BenchmarkTour, type TourKeyframe } from "@web/battle/benchmark/camera";
-import type { Wasm } from "@web/battle/sim/module";
 
 export interface Trajectory {
   id: string;
@@ -60,38 +59,10 @@ export function trajectoryPose(trajectory: Trajectory, seconds: number): CameraP
   return sampleTour(trajectory.tour, seconds * 1000, trajectory.seconds * 1000).pose;
 }
 
-/** The lab's map, compiled from its plan and the prototype template
- *  catalogue (`templates`, the catalogue's JSON) by the map compiler. */
-export function compileCameraLabMap(
-  wasm: Pick<Wasm, "compile_map" | "template_catalogue_json">,
-  templates: string,
-): string {
-  const { hash } = JSON.parse(wasm.template_catalogue_json(templates)) as { hash: string };
-  const outcome = JSON.parse(
-    wasm.compile_map(
-      JSON.stringify({
-        generator_version: "camera-lab",
-        preset_revision: "camera-lab",
-        seed: "0",
-        template_catalog_hash: hash,
-        limits: lab.limits,
-        plan: lab.plan,
-      }),
-      templates,
-    ),
-  ) as
-    | { status: "ok"; result: { map: unknown } }
-    | { status: "error"; diagnostics: { message: string }[] };
-  if (outcome.status !== "ok")
-    throw new Error(outcome.diagnostics.map((d) => d.message).join("; "));
-  return JSON.stringify(outcome.result.map);
-}
-
 /** What blue knows once it has seen the lab's falling building come down:
  *  each of its parts replaced by low remains on the same plan. */
 export function seenFallen(buildings: PublicBuildings, props: readonly MapProp[]): KnownProp[] {
-  const fallen = lab.plan.buildings.find((b) => b.id === lab.fallen.building)!;
-  const parts = buildings.buildings.find((b) => b.owner === fallen.owner)!.parts;
+  const parts = buildings.buildings.find((b) => b.owner === lab.fallen.owner)!.parts;
   return parts.map(({ prop }) => {
     const standing = props.find((p) => p.id === prop)!;
     return {

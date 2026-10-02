@@ -109,6 +109,7 @@ version = "0.1.0"
 dependencies = [
  "contract",
  "mapgen",
+ "serde",
  "serde_json",
  "sim",
  "wasm-bindgen",
@@ -281,6 +282,7 @@ name = "sim"
 version = "0.1.0"
 dependencies = [
  "contract",
+ "libm",
  "png",
  "serde",
  "serde_json",

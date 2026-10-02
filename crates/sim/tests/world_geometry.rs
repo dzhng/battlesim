@@ -696,3 +696,62 @@ fn rounded_strokes_match_the_parity_oracle() {
     assert_eq!(serde_json::json!(strokes), oracle["strokes"]);
     assert_eq!(serde_json::json!(rivers), oracle["rivers"]);
 }
+
+#[test]
+fn public_static_queries_match_prepared_geometry_and_learned_crowns() {
+    for map in [
+        lab_map(),
+        sim::village::scenario(&crate::common::game(), "ordinary")
+            .unwrap()
+            .map,
+    ] {
+        let world = WorldGeometry::new(&map, &crate::common::rules());
+        let public =
+            sim::world::export::PublicWorld::from_json(&world.export_public_queries()).unwrap();
+        for y in (0..=40).map(|i| map.size[1] * i as f64 / 40.0) {
+            for x in (0..=40).map(|i| map.size[0] * i as f64 / 40.0) {
+                assert_eq!(
+                    world.height_at(x, y),
+                    public.height_at(x, y),
+                    "height {x},{y}"
+                );
+                assert_eq!(
+                    world.surface_at(x, y),
+                    public.surface_at(x, y),
+                    "surface {x},{y}"
+                );
+                let origin = v3(x, y, 100.0);
+                let dir = v3(0.13, 0.07, -1.0).normalized();
+                assert_eq!(
+                    world.raycast(origin, dir, 200.0),
+                    public.raycast(origin, dir, 200.0),
+                    "ray {x},{y}"
+                );
+            }
+        }
+        for prop in world.props().filter(|p| p.body.stops_rounds) {
+            let origin = prop.center.with_z(prop.top_z() + 5.0);
+            let dir = v3(0.0, 0.0, -1.0);
+            assert_eq!(
+                world.raycast(origin, dir, 200.0),
+                public.raycast(origin, dir, 200.0),
+                "prop {}",
+                prop.id
+            );
+        }
+        let tree = world
+            .props()
+            .find(|p| p.forest_tree)
+            .expect("fixture has crowns");
+        let cleared = |x: f64, y: f64| (v2(x, y) - tree.center).length() < 8.0;
+        let original = world.export_foliage();
+        let learned = world.export_foliage_cleared(cleared);
+        assert_ne!(original, learned, "clearing must remove a crown");
+        assert_eq!(learned, public.foliage_cleared(cleared));
+        assert_eq!(
+            original,
+            public.foliage_cleared(|_, _| false),
+            "another side still knows the static crowns"
+        );
+    }
+}

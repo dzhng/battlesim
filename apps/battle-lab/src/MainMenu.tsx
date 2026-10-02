@@ -25,6 +25,15 @@ interface Entry {
 }
 
 const DEVELOPER: Entry[] = [
+  ...(import.meta.env.DEV
+    ? [
+        {
+          label: "Mechanics editor",
+          href: "/mechanics",
+          note: "Tune unit and weapon values with validated JSON saves.",
+        },
+      ]
+    : []),
   {
     label: "Village",
     href: "/battle/village",

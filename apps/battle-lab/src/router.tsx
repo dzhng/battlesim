@@ -2,6 +2,8 @@ import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from "re
 import fixtures from "./fixtures.json";
 import { MainMenu } from "./MainMenu";
 
+const MechanicsEditor = lazy(() => import("../../mechanics-editor/src/MechanicsEditor"));
+
 // The one lab/scene registry: fixtures.json names every fixture id, route and
 // purpose; scene.mjs verifies each id against a harness scene of the same name.
 export interface LabFixture {
@@ -50,6 +52,12 @@ export const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
 
 /** `/` is the main menu, `/labs` the index of every fixture route. */
 export function LabRouter({ path }: { path: string }) {
+  if (path === "/mechanics" && import.meta.env.DEV)
+    return (
+      <Suspense fallback={null}>
+        <MechanicsEditor />
+      </Suspense>
+    );
   const fixture = LAB_FIXTURES.find((f) => f.route === path);
   const Route = fixture && ROUTES[fixture.id];
   if (!Route && path !== "/labs") return <MainMenu />;

@@ -1,39 +1,9 @@
-/** Worker entry: hosts the authority with the worker's clock, one
- * earliest-deadline timer and its message channel. */
-import { createAuthority } from "./authority";
+/** Worker entry for a scenario that needs no encounter preparation. */
 import { loadSimModule } from "./module";
-import type { SimReply, SimRequest } from "./protocol";
-
-interface WorkerScope {
-  postMessage(message: SimReply, options?: { transfer?: Transferable[] }): void;
+import { workerAuthority, type WorkerScope } from "./workerAuthority";
+import type { SimRequest } from "./protocol";
+const scope = self as unknown as WorkerScope & {
   addEventListener(type: "message", listener: (event: MessageEvent<SimRequest>) => void): void;
-  close(): void;
-}
-const scope = self as unknown as WorkerScope;
-
-let timer: ReturnType<typeof setTimeout> | null = null;
-let timerAt = Infinity;
-
-const authority = createAuthority({
-  post: (reply, transfer) => scope.postMessage(reply, { transfer: transfer ?? [] }),
-  now: () => performance.now(),
-  schedule(delayMs) {
-    const at = performance.now() + delayMs;
-    if (timer !== null && at >= timerAt) return;
-    if (timer !== null) clearTimeout(timer);
-    timerAt = at;
-    timer = setTimeout(() => {
-      timer = null;
-      timerAt = Infinity;
-      authority.pump();
-    }, delayMs);
-  },
-  close() {
-    if (timer !== null) clearTimeout(timer);
-    timer = null;
-    scope.close();
-  },
-  load: loadSimModule,
-});
-
+};
+const authority = workerAuthority(scope, loadSimModule);
 scope.addEventListener("message", (event) => authority.handle(event.data));

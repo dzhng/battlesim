@@ -1,6 +1,6 @@
-//! Deterministic, dependency-free combat randomness (SplitMix64). The same seed
-//! yields the same draws in the same build; the state is one u64 so it enters
-//! digests and replays directly.
+//! Deterministic combat randomness (SplitMix64). Integer draws and pinned
+//! normal-sampling math agree across native and Wasm. The state is one u64
+//! so it enters digests and replays directly.
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Rng {
@@ -32,8 +32,8 @@ impl Rng {
     /// Standard normal (Box–Muller, one value per pair of uniforms).
     pub fn normal(&mut self) -> f64 {
         // 1 - unit() lies in (0, 1], so the logarithm is finite.
-        let r = (-2.0 * (1.0 - self.unit()).ln()).sqrt();
-        r * (std::f64::consts::TAU * self.unit()).cos()
+        let r = (-2.0 * libm::log(1.0 - self.unit())).sqrt();
+        r * libm::cos(std::f64::consts::TAU * self.unit())
     }
 
     /// Standard normal truncated to ±`limit` standard deviations by rejection.

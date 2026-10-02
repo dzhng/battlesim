@@ -502,3 +502,366 @@ pub fn hit_record(h: Option<Hit>) -> Vec<f64> {
         ]
     })
 }
+
+/// Exact immutable inputs for public picks and camera queries. These are already
+/// prepared geometry: importing them samples no terrain and generates no bodies.
+#[derive(serde::Serialize, serde::Deserialize)]
+struct PublicQueryData {
+    height: super::terrain::QueryHeightField,
+    slope_cutoff_deg: f64,
+    surfaces: Vec<contract::map::SurfaceArea>,
+    surface_factors: [f64; contract::map::SurfaceKind::ALL.len()],
+    rivers: Vec<contract::river::River>,
+    bridges: Vec<contract::map::Bridge>,
+    forests: Vec<contract::map::Forest>,
+    bodies: Vec<PropBody>,
+    /// Source ID, kind index, exact box geometry, generated crown flag.
+    props: Vec<(u32, u16, [f64; 7], bool)>,
+    foliage: Vec<f32>,
+    foliage_m: f64,
+    forest_rule: contract::scenario::ForestRule,
+}
+
+impl WorldGeometry {
+    pub fn export_public_queries(&self) -> String {
+        let data = PublicQueryData {
+            height: self.field.query_export(),
+            slope_cutoff_deg: self.slope_cutoff_deg,
+            surfaces: self.surfaces.areas().to_vec(),
+            surface_factors: self.surface_factors,
+            rivers: self.rivers().to_vec(),
+            bridges: self.bridges.clone(),
+            forests: self.forests.clone(),
+            bodies: self.types.kinds().map(|k| self.types.get(k).body).collect(),
+            props: self
+                .props()
+                .filter(|p| p.body.stops_rounds || p.forest_tree)
+                .map(|p| {
+                    (
+                        p.id,
+                        p.kind.0,
+                        [
+                            p.center.x, p.center.y, p.yaw, p.half.x, p.half.y, p.half.z, p.base_z,
+                        ],
+                        p.forest_tree,
+                    )
+                })
+                .collect(),
+            foliage: self.export_foliage(),
+            foliage_m: self.forest.foliage_m,
+            forest_rule: self.forest.rule,
+        };
+        let mut value = serde_json::to_value(&data).expect("public geometry serializes");
+        encode_query_floats(&mut value);
+        serde_json::to_string(&value).expect("public query value serializes")
+    }
+}
+
+/// A read-only index of public static geometry, independent of the battle's live
+/// state. No navigation, generated forest placement, mutable foliage or terrain
+/// construction exists on this side of the export boundary.
+pub struct PublicWorld {
+    field: super::terrain::HeightField,
+    surfaces: super::surfaces::SurfaceIndex,
+    slope_cutoff_deg: f64,
+    surface_factors: [f64; contract::map::SurfaceKind::ALL.len()],
+    bridges: Vec<contract::map::Bridge>,
+    forests: Vec<contract::map::Forest>,
+    forest_buckets: std::collections::HashMap<(i32, i32), Vec<usize>>,
+    forest_regions: Vec<([f64; 4], bool)>,
+    props: std::collections::BTreeMap<u32, super::Prop>,
+    index: super::PropIndex,
+    foliage: Vec<f32>,
+    foliage_m: f64,
+    forest_rule: contract::scenario::ForestRule,
+}
+
+impl PublicWorld {
+    pub fn from_json(json: &str) -> Result<Self, String> {
+        use crate::math::{v2, v3};
+        let mut value: serde_json::Value = serde_json::from_str(json).map_err(|e| e.to_string())?;
+        decode_query_floats(&mut value)?;
+        let data: PublicQueryData = serde_json::from_value(value).map_err(|e| e.to_string())?;
+        let field = super::terrain::HeightField::from_query_export(data.height)?;
+        let size = [field.width(), field.depth()];
+        let mut index = super::PropIndex::new(size[0], size[1], super::PROP_BUCKET_M);
+        let mut props = std::collections::BTreeMap::new();
+        for (id, kind, [x, y, yaw, hx, hy, hz, base_z], forest_tree) in data.props {
+            let body = *data
+                .bodies
+                .get(kind as usize)
+                .ok_or("unknown public prop kind")?;
+            let prop = super::Prop {
+                id,
+                kind: contract::catalog::PropKind(kind),
+                center: v2(x, y),
+                yaw,
+                half: v3(hx, hy, hz),
+                base_z,
+                body,
+                forest_tree,
+                known_to_all: false,
+            };
+            index.insert(&prop);
+            props.insert(id, prop);
+        }
+        let mut forest_buckets: std::collections::HashMap<(i32, i32), Vec<usize>> =
+            Default::default();
+        let forest_regions: Vec<_> = data
+            .forests
+            .iter()
+            .map(|forest| {
+                (
+                    forest.shape.limits(),
+                    forest.shape.exact_rectangle().is_some(),
+                )
+            })
+            .collect();
+        for (id, (bounds, _)) in forest_regions.iter().enumerate() {
+            let [x0, y0, x1, y1] = *bounds;
+            for j in (y0 / super::forest::GROUND_BUCKET_M).floor() as i32
+                ..=(y1 / super::forest::GROUND_BUCKET_M).floor() as i32
+            {
+                for i in (x0 / super::forest::GROUND_BUCKET_M).floor() as i32
+                    ..=(x1 / super::forest::GROUND_BUCKET_M).floor() as i32
+                {
+                    forest_buckets.entry((i, j)).or_default().push(id);
+                }
+            }
+        }
+        Ok(Self {
+            field,
+            surfaces: super::surfaces::SurfaceIndex::new(&data.surfaces, &data.rivers, size),
+            slope_cutoff_deg: data.slope_cutoff_deg,
+            surface_factors: data.surface_factors,
+            bridges: data.bridges,
+            forests: data.forests,
+            forest_buckets,
+            forest_regions,
+            props,
+            index,
+            foliage: data.foliage,
+            foliage_m: data.foliage_m,
+            forest_rule: data.forest_rule,
+        })
+    }
+
+    pub fn height_at(&self, x: f64, y: f64) -> Option<f64> {
+        self.field.height(x, y)
+    }
+
+    pub fn surface_at(&self, x: f64, y: f64) -> Option<Surface> {
+        use crate::math::v2;
+        let p = v2(x, y);
+        let forest = self
+            .forest_buckets
+            .get(&(
+                (x / super::forest::GROUND_BUCKET_M).floor() as i32,
+                (y / super::forest::GROUND_BUCKET_M).floor() as i32,
+            ))
+            .is_some_and(|ids| {
+                ids.iter().any(|&id| {
+                    let shape = &self.forests[id].shape;
+                    let (bounds, rectangle) = self.forest_regions[id];
+                    let [x0, y0, x1, y1] = bounds;
+                    x >= x0
+                        && x <= x1
+                        && y >= y0
+                        && y <= y1
+                        && (rectangle || shape.contains([x, y], 0.0))
+                })
+            });
+        let surface = ground_surface_at(
+            &self.field,
+            &self.surfaces,
+            self.slope_cutoff_deg,
+            &self.surface_factors,
+            x,
+            y,
+            forest,
+        )?;
+        Some(bridge_surface(surface, &self.bridges, p))
+    }
+
+    pub fn raycast(
+        &self,
+        origin: crate::math::V3,
+        dir: crate::math::V3,
+        max_t: f64,
+    ) -> Option<Hit> {
+        let mut best = terrain_hit(&self.field, &self.surfaces, origin, dir, max_t);
+        let mut ids = Vec::new();
+        self.index
+            .along(origin.xy(), (origin + dir * max_t).xy(), &mut ids);
+        for id in ids {
+            let prop = &self.props[&id];
+            if !prop.body.stops_rounds {
+                continue;
+            }
+            if let Some((t, normal)) = prop.raycast(origin, dir, max_t) {
+                if best.is_none_or(|b| t < b.t) {
+                    best = Some(Hit {
+                        t,
+                        point: origin + dir * t,
+                        normal,
+                        collider: Collider::Prop(id),
+                    });
+                }
+            }
+        }
+        best
+    }
+
+    pub fn foliage_cleared(&self, cleared: impl Fn(f64, f64) -> bool) -> Vec<f32> {
+        super::forest::static_foliage_cleared(
+            &self.foliage,
+            self.foliage_m,
+            self.forest_rule,
+            self.props.values(),
+            |mid, radius| {
+                let mut ids = Vec::new();
+                self.index.near(mid, radius, &mut ids);
+                ids.into_iter()
+                    .filter_map(|id| self.props.get(&id))
+                    .collect()
+            },
+            cleared,
+        )
+    }
+}
+
+/// The static surface rule used by authority and public query imports alike.
+pub(super) fn ground_surface_at(
+    field: &super::terrain::HeightField,
+    surfaces: &super::surfaces::SurfaceIndex,
+    slope_cutoff_deg: f64,
+    factors: &[f64; contract::map::SurfaceKind::ALL.len()],
+    x: f64,
+    y: f64,
+    forest: bool,
+) -> Option<Surface> {
+    let (z, normal) = field.height_normal(x, y)?;
+    let p = crate::math::v2(x, y);
+    let slope_deg = normal.z.clamp(-1.0, 1.0).acos().to_degrees();
+    let paved = surfaces.at(p);
+    let kind = if surfaces.water_at(p) {
+        SurfaceKind::Water
+    } else {
+        paved.map_or(SurfaceKind::Ground, SurfaceKind::of)
+    };
+    Some(Surface {
+        z,
+        normal,
+        slope_deg,
+        kind,
+        road_factor: match (kind, paved) {
+            (SurfaceKind::Water, _) | (_, None) => 0.0,
+            (_, Some(paved)) => factors[paved as usize],
+        },
+        forest: kind != SurfaceKind::Water && forest,
+        traversable: kind != SurfaceKind::Water && slope_deg < slope_cutoff_deg,
+    })
+}
+
+pub(super) fn water_hit(
+    field: &super::terrain::HeightField,
+    surfaces: &super::surfaces::SurfaceIndex,
+    origin: crate::math::V3,
+    dir: crate::math::V3,
+    max_t: f64,
+) -> Option<f64> {
+    if dir.z >= 0.0 {
+        return None;
+    }
+    surfaces
+        .rivers()
+        .iter()
+        .enumerate()
+        .filter_map(|(river, definition)| {
+            let t = (definition.surface_z() - origin.z) / dir.z;
+            let p = origin + dir * t;
+            ((0.0..=max_t).contains(&t)
+                && field.contains(p.x, p.y)
+                && surfaces.in_river(river, p.xy()))
+            .then_some(t)
+        })
+        .min_by(f64::total_cmp)
+}
+
+pub(super) fn terrain_hit(
+    field: &super::terrain::HeightField,
+    surfaces: &super::surfaces::SurfaceIndex,
+    origin: crate::math::V3,
+    dir: crate::math::V3,
+    max_t: f64,
+) -> Option<Hit> {
+    let ground = field.raycast(origin, dir, max_t);
+    let water = water_hit(field, surfaces, origin, dir, max_t)
+        .filter(|&t| ground.is_none_or(|(ground, _)| t < ground))
+        .map(|t| (t, crate::math::v3(0.0, 0.0, 1.0)));
+    water.or(ground).map(|(t, normal)| Hit {
+        t,
+        point: origin + dir * t,
+        normal,
+        collider: Collider::Terrain,
+    })
+}
+
+/// A bridge's walkable deck replaces its ground, preserving forest membership.
+pub(super) fn bridge_surface(
+    ground: Surface,
+    bridges: &[contract::map::Bridge],
+    p: crate::math::V2,
+) -> Surface {
+    match bridges.iter().find(|b| super::bridge_contains(b, p)) {
+        Some(b) => Surface {
+            z: b.deck_z,
+            normal: crate::math::v3(0.0, 0.0, 1.0),
+            slope_deg: 0.0,
+            kind: SurfaceKind::Bridge,
+            road_factor: 1.0,
+            forest: ground.forest,
+            traversable: true,
+        },
+        None => ground,
+    }
+}
+
+// serde_json's default decimal parser can move an exported computed f64 by one
+// ULP. Preserve bits at this query boundary without changing simulation parsing.
+fn encode_query_floats(value: &mut serde_json::Value) {
+    match value {
+        serde_json::Value::Number(n) if n.is_f64() => {
+            *value = serde_json::Value::String(format!(
+                "#f64:{:016x}",
+                n.as_f64().expect("float number").to_bits()
+            ));
+        }
+        serde_json::Value::Array(items) => items.iter_mut().for_each(encode_query_floats),
+        serde_json::Value::Object(items) => items.values_mut().for_each(encode_query_floats),
+        _ => {}
+    }
+}
+
+fn decode_query_floats(value: &mut serde_json::Value) -> Result<(), String> {
+    match value {
+        serde_json::Value::String(text) if text.starts_with("#f64:") => {
+            let bits = u64::from_str_radix(&text[5..], 16).map_err(|e| e.to_string())?;
+            let n = serde_json::Number::from_f64(f64::from_bits(bits))
+                .ok_or("public query float must be finite")?;
+            *value = serde_json::Value::Number(n);
+        }
+        serde_json::Value::Array(items) => {
+            for item in items {
+                decode_query_floats(item)?;
+            }
+        }
+        serde_json::Value::Object(items) => {
+            for item in items.values_mut() {
+                decode_query_floats(item)?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}

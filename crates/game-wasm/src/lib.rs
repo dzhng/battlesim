@@ -171,6 +171,10 @@ impl WorldView {
         })
     }
 
+    pub fn public_queries(&self) -> String {
+        self.world.export_public_queries()
+    }
+
     /// Sampled surface descriptor; absent vertex pages have height zero.
     pub fn terrain_grid(&self) -> String {
         self.world.export_terrain_grid()
@@ -844,5 +848,361 @@ impl BattleHandle {
     /// The next publication opens a new epoch with full visibility and learned ground.
     pub fn resync_observation(&mut self) {
         self.publisher.resync();
+    }
+}
+
+/// A worker-owned world: encounter planning lends it, battle startup consumes it.
+#[wasm_bindgen]
+pub struct PreparedWorld {
+    map: MapDefinition,
+    rules: Rules,
+    prepared: sim::encounter::PreparedMap,
+    map_digest: u64,
+    rules_digest: u64,
+}
+
+#[wasm_bindgen]
+impl PreparedWorld {
+    #[wasm_bindgen(constructor)]
+    pub fn new(map_json: &str, rules_json: &str) -> Result<PreparedWorld, JsError> {
+        let map: MapDefinition = serde_json::from_str(map_json).map_err(js_error)?;
+        let rules: Rules = serde_json::from_str(rules_json).map_err(js_error)?;
+        Self::build(map, rules)
+    }
+
+    pub fn from_scenario(scenario_json: &str) -> Result<PreparedWorld, JsError> {
+        let setup: ScenarioDefinition = serde_json::from_str(scenario_json).map_err(js_error)?;
+        Self::build(setup.map, setup.rules)
+    }
+
+    pub fn layout(&self) -> String {
+        export::layout_json(self.rules.catalog.props())
+    }
+
+    pub fn plan_encounter(
+        &self,
+        sites_json: &str,
+        recipe_json: &str,
+        encounter_seed: &str,
+    ) -> String {
+        use contract::encounter::{
+            EncounterDiagnostic, EncounterDiagnosticCode as Code, EncounterOutcome,
+        };
+        let run = || {
+            let read = |error: serde_json::Error, code, location: &str| {
+                vec![EncounterDiagnostic {
+                    code,
+                    feature: None,
+                    location: location.into(),
+                    message: error.to_string(),
+                }]
+            };
+            let sites = serde_json::from_str(sites_json)
+                .map_err(|e| read(e, Code::InvalidSites, "$.sites"))?;
+            let recipe = serde_json::from_str(recipe_json)
+                .map_err(|e| read(e, Code::InvalidRecipe, "$.recipe"))?;
+            let seed = serde_json::from_value(serde_json::Value::String(encounter_seed.into()))
+                .map_err(|e| read(e, Code::InvalidRequest, "$.encounter_seed"))?;
+            sim::encounter::plan_encounter(
+                &self.prepared.queries(&self.map, &sites),
+                &self.rules,
+                &recipe,
+                seed,
+            )
+        };
+        let outcome = match run() {
+            Ok(encounter) => EncounterOutcome::Ok {
+                encounter: Box::new(encounter),
+            },
+            Err(diagnostics) => EncounterOutcome::Error { diagnostics },
+        };
+        serde_json::to_string(&outcome).expect("encounter outcome serializes")
+    }
+
+    pub fn public_queries(&self) -> String {
+        self.prepared.world.export_public_queries()
+    }
+
+    pub fn into_battle(self, scenario_json: &str, seed: f64) -> Result<BattleHandle, JsError> {
+        let setup = self.scenario(scenario_json)?;
+        Ok(BattleHandle {
+            battle: Battle::from_prepared(&setup, seed as u64, self.prepared),
+            publisher: Publisher::new(),
+            blue: None,
+        })
+    }
+
+    pub fn into_scripted(
+        self,
+        scenario_json: &str,
+        seed: f64,
+        script: &str,
+    ) -> Result<BattleHandle, JsError> {
+        let setup = self.scenario(scenario_json)?;
+        let plan =
+            Plan::named(script).ok_or_else(|| JsError::new(&format!("no script {script}")))?;
+        Ok(BattleHandle {
+            battle: Battle::from_prepared(&setup, seed as u64, self.prepared),
+            publisher: Publisher::new(),
+            blue: Some(ScriptedBlue::new(plan, &setup)),
+        })
+    }
+
+    pub fn into_replay(
+        self,
+        scenario_json: &str,
+        replay_json: &str,
+    ) -> Result<BattleHandle, JsError> {
+        let setup = self.scenario(scenario_json)?;
+        let replay: Replay = serde_json::from_str(replay_json).map_err(js_error)?;
+        let battle = Battle::from_prepared_replay(&setup, &replay, self.prepared)
+            .map_err(|e| JsError::new(&e.to_string()))?;
+        Ok(BattleHandle {
+            battle,
+            publisher: Publisher::new(),
+            blue: None,
+        })
+    }
+    /// Sampled surface descriptor; absent vertex pages have height zero.
+    pub fn terrain_grid(&self) -> String {
+        self.prepared.world.export_terrain_grid()
+    }
+
+    pub fn terrain_page_ids(&self) -> Vec<u32> {
+        self.prepared.world.export_terrain_page_ids()
+    }
+
+    pub fn terrain_heights(&self) -> Vec<f32> {
+        self.prepared.world.export_terrain_heights()
+    }
+
+    pub fn terrain_positions(&self) -> Vec<f32> {
+        self.prepared.world.export_terrain_positions()
+    }
+
+    pub fn terrain_indices(&self) -> Vec<u32> {
+        self.prepared.world.export_terrain_indices()
+    }
+
+    pub fn terrain_triangle_surfaces(&self) -> Vec<u8> {
+        self.prepared.world.export_terrain_triangle_surfaces()
+    }
+
+    /// Public immutable building/template references; geometry stays in props.
+    pub fn buildings(&self) -> String {
+        self.prepared.world.export_buildings()
+    }
+
+    pub fn props(&self) -> Vec<f32> {
+        self.prepared.world.export_props()
+    }
+
+    pub fn rivers(&self) -> Vec<f32> {
+        self.prepared.world.export_rivers()
+    }
+
+    pub fn river_runs(&self) -> Vec<f32> {
+        self.prepared.world.export_river_runs()
+    }
+
+    pub fn forests(&self) -> Vec<f32> {
+        self.prepared.world.export_forests()
+    }
+
+    pub fn forest_trunk_ranges(&self) -> Vec<u32> {
+        self.prepared.world.export_forest_trunk_ranges()
+    }
+
+    pub fn forest_rect_ids(&self) -> Vec<u32> {
+        self.prepared.world.export_forest_rect_ids()
+    }
+    pub fn forest_metadata(&self) -> Vec<f32> {
+        self.prepared.world.export_forest_metadata()
+    }
+    pub fn forest_strokes(&self) -> Vec<f32> {
+        self.prepared.world.export_forest_strokes()
+    }
+    pub fn forest_triangles(&self) -> Vec<f32> {
+        self.prepared.world.export_forest_triangles()
+    }
+    pub fn forest_boundaries(&self) -> Vec<f32> {
+        self.prepared.world.export_forest_boundaries()
+    }
+
+    /// Sparse foliage: `[nx, ny, cell_m]`, then non-open
+    /// `[column, row, canopy_m, depth_per_m]` records in row order.
+    pub fn foliage(&self) -> Vec<f32> {
+        self.prepared.world.export_foliage()
+    }
+
+    /// The public static foliage minus only the ground clearing this side learned.
+    /// Sorted pairs hold16×16tile ID and local start+length*256. Query only
+    /// forest cells through the borrowed spans; never rebuild a cell mask.
+    pub fn foliage_cleared(&self, cleared_runs: &[u32], cols: u32, cell_m: f64) -> Vec<f32> {
+        self.prepared.world.export_foliage_cleared(|x, y| {
+            let (i, j) = ((x / cell_m).floor(), (y / cell_m).floor());
+            if i < 0.0 || j < 0.0 || i >= cols as f64 {
+                return false;
+            }
+            let (i, j) = (i as u32, j as u32);
+            let tile = j / 16 * cols.div_ceil(16) + i / 16;
+            let cell = j % 16 * 16 + i % 16;
+            let (mut lo, mut hi) = (0, cleared_runs.len() / 2);
+            while lo < hi {
+                let mid = (lo + hi) / 2;
+                let (key, start) = (cleared_runs[mid * 2], cleared_runs[mid * 2 + 1] % 256);
+                if key < tile || (key == tile && start <= cell) {
+                    lo = mid + 1;
+                } else {
+                    hi = mid;
+                }
+            }
+            if lo == 0 {
+                return false;
+            }
+            let (key, span) = (cleared_runs[(lo - 1) * 2], cleared_runs[(lo - 1) * 2 + 1]);
+            key == tile && cell < span % 256 + span / 256
+        })
+    }
+
+    pub fn surface_strokes(&self) -> Vec<f32> {
+        self.prepared.world.export_surface_strokes()
+    }
+
+    pub fn surface_runs(&self) -> Vec<f32> {
+        self.prepared.world.export_surface_runs()
+    }
+
+    pub fn surface_triangles(&self) -> Vec<f32> {
+        self.prepared.world.export_surface_triangles()
+    }
+
+    pub fn surface_boundaries(&self) -> Vec<f32> {
+        self.prepared.world.export_surface_boundaries()
+    }
+
+    pub fn slope_cutoff_deg(&self) -> f64 {
+        self.prepared.world.slope_cutoff_deg()
+    }
+
+    pub fn height_at(&self, x: f64, y: f64) -> Option<f64> {
+        self.prepared.world.height_at(x, y)
+    }
+
+    pub fn surface_at(&self, x: f64, y: f64) -> Vec<f64> {
+        export::surface_record(self.prepared.world.surface_at(x, y))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn raycast(
+        &self,
+        ox: f64,
+        oy: f64,
+        oz: f64,
+        dx: f64,
+        dy: f64,
+        dz: f64,
+        max_t: f64,
+    ) -> Vec<f64> {
+        let dir = v3(dx, dy, dz).normalized();
+        export::hit_record(self.prepared.world.raycast(v3(ox, oy, oz), dir, max_t))
+    }
+}
+
+fn identity_digest<T: serde::Serialize>(value: &T) -> Result<u64, JsError> {
+    Ok(sim::digest::of_str(
+        &serde_json::to_string(value).map_err(js_error)?,
+    ))
+}
+
+impl PreparedWorld {
+    fn build(map: MapDefinition, rules: Rules) -> Result<Self, JsError> {
+        let map_digest = identity_digest(&map)?;
+        let rules_digest = identity_digest(&rules)?;
+        let prepared = sim::encounter::PreparedMap::new(&map, &rules);
+        Ok(Self {
+            map,
+            rules,
+            prepared,
+            map_digest,
+            rules_digest,
+        })
+    }
+
+    fn scenario(&self, scenario_json: &str) -> Result<ScenarioDefinition, JsError> {
+        let setup: ScenarioDefinition = serde_json::from_str(scenario_json).map_err(js_error)?;
+        if identity_digest(&setup.map)? != self.map_digest
+            || identity_digest(&setup.rules)? != self.rules_digest
+        {
+            return Err(JsError::new("prepared map and rules do not match scenario"));
+        }
+        Ok(setup)
+    }
+}
+
+/// Compact public static pick and clearance queries, imported without world construction.
+#[wasm_bindgen]
+pub struct PublicWorld {
+    world: export::PublicWorld,
+}
+
+#[wasm_bindgen]
+impl PublicWorld {
+    #[wasm_bindgen(constructor)]
+    pub fn new(query_json: &str) -> Result<Self, JsError> {
+        Ok(Self {
+            world: export::PublicWorld::from_json(query_json).map_err(js_error)?,
+        })
+    }
+    pub fn height_at(&self, x: f64, y: f64) -> Option<f64> {
+        self.world.height_at(x, y)
+    }
+
+    pub fn surface_at(&self, x: f64, y: f64) -> Vec<f64> {
+        export::surface_record(self.world.surface_at(x, y))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn raycast(
+        &self,
+        ox: f64,
+        oy: f64,
+        oz: f64,
+        dx: f64,
+        dy: f64,
+        dz: f64,
+        max_t: f64,
+    ) -> Vec<f64> {
+        let dir = v3(dx, dy, dz).normalized();
+        export::hit_record(self.world.raycast(v3(ox, oy, oz), dir, max_t))
+    }
+    /// The public static foliage minus only the ground clearing this side learned.
+    /// Sorted pairs hold16×16tile ID and local start+length*256. Query only
+    /// forest cells through the borrowed spans; never rebuild a cell mask.
+    pub fn foliage_cleared(&self, cleared_runs: &[u32], cols: u32, cell_m: f64) -> Vec<f32> {
+        self.world.foliage_cleared(|x, y| {
+            let (i, j) = ((x / cell_m).floor(), (y / cell_m).floor());
+            if i < 0.0 || j < 0.0 || i >= cols as f64 {
+                return false;
+            }
+            let (i, j) = (i as u32, j as u32);
+            let tile = j / 16 * cols.div_ceil(16) + i / 16;
+            let cell = j % 16 * 16 + i % 16;
+            let (mut lo, mut hi) = (0, cleared_runs.len() / 2);
+            while lo < hi {
+                let mid = (lo + hi) / 2;
+                let (key, start) = (cleared_runs[mid * 2], cleared_runs[mid * 2 + 1] % 256);
+                if key < tile || (key == tile && start <= cell) {
+                    lo = mid + 1;
+                } else {
+                    hi = mid;
+                }
+            }
+            if lo == 0 {
+                return false;
+            }
+            let (key, span) = (cleared_runs[(lo - 1) * 2], cleared_runs[(lo - 1) * 2 + 1]);
+            key == tile && cell < span % 256 + span / 256
+        })
     }
 }

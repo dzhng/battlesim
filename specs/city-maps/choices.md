@@ -1520,14 +1520,6 @@ keeps storage addresses independent of physical identity and encounter naming.
 
 ## Generated map in the lab
 
-### Preparation has a worker of its own, closed after its one answer
-
-**Choice:** `/lab/generated` asks a preparation worker for a battle; the worker generates the map, lays the encounter on it, returns the scenario JSON and is closed. The battle then starts in the usual battle worker from that scenario.
-
-**Gap:** C55 says "the pre-battle preparation worker"; C33 says "the existing preparation worker". No preparation worker existed, only the battle authority's.
-
-**Verdict:** Sound. Closing the worker frees everything generation allocated (93 MiB of Wasm memory on Metro Large) and is the cancel: a request that is no longer wanted cannot start a battle. Restart reuses the scenario, so it never generates again. The cost is one copy of the scenario text (27 MB on Metro Large) to the page and one to the battle worker. **Confidence:** High.
-
 ### The map and its plan come from two generator calls
 
 **Choice:** The worker calls `generate_map` for the map and `generate_map_plan` for the plan, with the same request. The scenario carries the generator's own map text, spliced out of the outcome, never a re-serialised parse.
@@ -3445,14 +3437,6 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 
 **Verdict:** sound. Without it the saved map's request was hand-written JSON with a hash in it. **Confidence:** high.
 
-### The camera lab was not moved
-
-**Choice:** `fixtures/camera-lab.json` is still compiled at run time.
-
-**Gap:** "If it falls out cheaply."
-
-**Verdict:** sound for now. Its plan is already template ids and frames, so the move is mechanical, but a saved map pins the prototype library's hash, and the lab would stop loading whenever a prototype template changed. **Confidence:** medium.
-
 ### A far building is one row
 
 **Choice:** At tiers 0 and 1 a kit mesh is a row. At tiers 2 and 3 what is left of it is folded into the template's shell, whose walls are then flat with each opening one dark quad on them, so a template is one row there. The alternative kept every window a row at every tier.
@@ -3767,6 +3751,186 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 
 **Verdict:** sound. **Confidence:** high.
 
+## C20 renderer fog at scale — startup implementation pass
+
+### Use exact per-eye grid and angular candidates while the S4 verdict is absent
+
+- **When:** C20 startup implementation pass.
+- **The choice:** Keep the existing sharp ray–box intersections, and use the existing grid of building footprints to give each eye only nearby boxes. On a 10 km city, a squad beside one block tests that block's neighbours instead of every building at the far end of the city. A first measured grid-only arm still cost 2.61 ms, exceeding the 2 ms gate, so the same table now narrows each ray to a conservative angular sector. Bounding circles enclose turned boxes, eye-inside circles retain every direction, and an extra sector at each edge covers f32 angle rounding. Rasterising building tops would instead replace the exact corner geometry.
+- **The gap:** C20 says to implement the technique S4 picked, but only S4's plan exists; its named verdict file is absent. Grid representation itself is delegated, but selecting the unrecorded arm is a spec gap.
+- **The reach:** Future fog work keeps the same horizon precision and sharpness. If the paired city measurement misses the budget, this arm needs further work rather than a silently relaxed gate.
+- **Verdict:** Sound within the startup contract. Exact intersections and whole-building visibility remain authoritative. Missing full S4/G0 envelope admission remains separate from this local-work design.
+- **Confidence:** Medium.
+
+### Put candidate lists in the existing rebuild table
+
+- **When:** C20 startup implementation pass.
+- **The choice:** The table saying which eyes rebuild also carries each eye's nearby building indices. Before rebuilding an eye, the CPU writes its eye number, its angular-sector table offset and count, then each sector's list offset/count and sorted building indices. Terrain reads the eye number; occluder rays read their sector. Both passes share this table. The alternative would add another storage buffer and binding solely for candidates.
+- **The gap:** The spec does not define the CPU-to-GPU list layout.
+- **The reach:** This keeps the horizon passes' existing GPU binding count. The whole-surface pass separately keeps a reachable-structure/eye-pair table because both lists are consumed by commands in the same submission and cannot overwrite one another. Its one additional binding stays within the guaranteed storage limit. The horizon table can grow when a denser nearby neighbourhood arrives, so probes must construct their sampling bind group after preparation; otherwise its dummy table binding can refer to a destroyed old buffer. The regression test covers a probe before the first rendered frame.
+- **Verdict:** Sound. One owner carries the rebuild transaction and its variable data without spending another scarce storage binding.
+- **Confidence:** High.
+
+### Detect occluder changes by geometry, independent of row identity
+
+- **When:** C20 startup implementation pass.
+- **The choice:** Compare complete box geometry before and after a publication, rather than treating a moved row as a changed building. If a demolished house disappears from the first row, the remaining unchanged houses shift indices but keep every distant squad's map. Only eyes in reach of geometry that disappeared or appeared rebuild. Two identical overlapping boxes have the same effect as one, so removing one duplicate alone does not invalidate maps.
+- **The gap:** Fog occluders have no stable identifiers in the existing input contract, and C20 does not prescribe change identity.
+- **The reach:** Future callers may reorder or recreate equivalent records without starting a rebuild storm. All geometry fields participate, including height changes and moved boxes' old and new locations.
+- **Verdict:** Sound. Map validity follows physical occlusion, while the separately rebuilt whole-structure table uses the new row indices.
+- **Confidence:** High.
+
+### Preserve whole-fog roof reach while making structure work local
+
+- **When:** C20 whole-surface followup.
+- **The choice:** A structure may become visible when its roof probe looks inward toward an eye even though its footprint is just outside that eye's reach. Keep the whole pass's existing broad bounding-circle test, rather than reusing the tighter horizon footprint query unchanged. Its grid query grows by the largest known box radius, then filters each box against the original eye-plus-box circle bound. Each retained structure lists only the eyes that can reach it; structures outside every eye's reach receive cleared flags.
+- **The gap:** C20 names the horizon merge and invalidation sites but does not say how its cost contract applies to the later whole-surface visibility pass. That pass otherwise still samples every global box against every eye.
+- **The reach:** The whole pass has one additional storage binding for structure/eye pairs, seven total across its two groups. Moving away from a previously visible building clears that building's whole-fog flag, and inward-looking roofs keep their earlier visibility rule.
+- **Verdict:** Sound. The existing whole-fog semantics are retained while both dimensions of its sampled work follow nearby structure/eye pairs. It preserves the original roof reach while distant structures do no sampled work; flags must clear when the eyes leave.
+- **Confidence:** High.
+
+### Sound — medium confidence on broader art: accept the preserved corner look
+
+**Choice:** After the non-blocking five-minute Preview checkpoint received no
+feedback, retain the unchanged village corner appearance. Exact horizon and
+whole-building visibility remain the authority; existing roof-trim ambiguity
+and bright seams stay with building-art work rather than prompting an unrelated
+fog redesign.
+
+**Gap:** C20 requires a recorded decision when the human checkpoint is silent.
+
+**Reach:** This accepts only fog edges at building corners. Distant forest and
+unit/effect pixels differ slightly; complete dense-city appearance and the
+missing S4/G0 envelope remain separate acceptance decisions.
+
+**Verdict:** sound within the startup slice. The scoped comparison and unprimed
+critique support preserving the look without claiming all frames identical.
+**Confidence:** high for unchanged corners, medium for broader art.
+
+## Startup lane: combat parity and named native math change
+
+**When:** Startup step 5, 2026-10-01; the owner explicitly authorized the deterministic math correction and its native digest change.
+
+### Combat has its own paired record, with the movement pair preserved
+
+**Choice:** Keep the moving four-unit stream unchanged and add a stationary rifle duel to the same native/WebAssembly publication harness. Each tick compares the whole battle state digest, packed observation bytes and delivered fog, and the duel must actually publish fired shots and physical impacts. Moving and firing in one record would make a first mismatch harder to assign to either mechanism.
+
+**Gap:** Step 5 asks for a short shooting battle but leaves the fixture, roster and comparison shape open.
+
+**Reach:** The existing movement, side switches and resynchronization remain covered; later combat changes get a separate small reproduction on shipped rules, without test-only aim, damage or scatter overrides.
+
+**Verdict:** sound. It adds a real combat path while retaining the prior proof. **Confidence:** high.
+
+### Use the pinned Rust math implementation for state-bearing combat transcendental operations
+
+**Choice:** A shot's direction and weapon elevation, the normal random samples that choose its spread, and conversion of angular spread to displacement now use the same pinned pure Rust math library in both targets. Native system math can round a result differently from WebAssembly by one final binary digit. That tiny difference can enter the battle's Float64 state even when its Float32 observation looks identical. Keeping system math and accepting an approximate digest would make a seed or replay mean different battles across targets.
+
+**Gap:** The lane originally required unchanged battle digests. The new combat check exposed existing cross-target drift, so the owner authorized this exception as a named native math change.
+
+**Reach:** Combat's native digest changes where system math had differed. The original movement record remains byte-for-byte unchanged. In the shooting sample, corrected native digests and publications agree with the pre-correction WebAssembly build at every tick; this preserves sampled browser behavior, not a claim that every unrelated simulation math path has been audited.
+
+**Verdict:** sound. The correction removes platform rounding from the tested authority paths rather than weakening the parity check or finding a lucky fixture. **Confidence:** high.
+### Sound — high confidence: native expectations follow named upstream contracts
+
+**Choice:** Keep the combat scenario and seeds fixed while native expectations
+follow shipped rule and publication changes. Main's grenade gravity changes the
+shot history; its variable-span normalization changes packed representation.
+Native remains the recording source and WebAssembly remains the independent
+reader of those expectations.
+
+**Gap:** The combat fixture was produced before those main changes and the lane
+left integration of expected records unspecified.
+
+**Reach:** A rule change can alter affected state expectations, while a codec
+change alters only packed hashes. Neither allows approximate comparisons,
+changing inputs to evade mismatches, or rewriting the original movement record.
+
+**Verdict:** sound. One exact current contract replaces stale expectations rather
+than comparing different builds' rules. **Confidence:** high.
+
+## C33 preparation and public queries — startup lane
+
+### Sound — medium confidence: keep public query arithmetic in Rust
+
+**Choice:** After Deploy, the page imports a read-only Rust query index containing the already sampled ground, static surfaces and picking boxes. It also holds sparse static foliage needed to apply only the clearing this side learned. The battle's navigation and mutable world remain in its worker. A TypeScript query implementation would save a second Wasm instance but would also duplicate the simulation's interpolation, bridge, river and ray rules.
+
+**Gap:** C33 delegates query-index internals but does not choose the language or transport precision.
+
+**Reach:** The page still loads Wasm for public queries. The query payload preserves floating-point bits explicitly: decimal JSON parsing moved a terrain normal by one bit in the regression. Its temporary payload and resident index must be included in startup memory accounting; rendering's Float32 arrays cannot substitute for exact picking inputs.
+
+**Verdict:** sound within the measured menu envelope. Exact shared arithmetic earns the import cost; full dense-city G0 admission remains separate. **Confidence:** medium.
+
+### Sound — medium confidence on prominence: show an authority refusal without waiting for drawing
+
+**Choice:** A replay refused by the simulation keeps the existing error HUD and menu available even when no world exports arrive. The viewport still requires meshes, and a failure hides the loading cover. For example, importing commands recorded on the ordinary village into the crossfire variant explains the scenario mismatch and lets the player open the menu to load another file or return home.
+
+**Gap:** Independent review found that making world delivery part of authority startup also made the error HUD depend on successful initialization.
+
+**Reach:** The normal battle and refusal share the same HUD, menu and error component. The prepared replay adapter forwards the simulation's existing error text, including main's new engine-build refusal. Development replay imports persist through the existing replay-file storage owner before reloading; a storage failure stays visible on the current page. Downloads may still proceed when persistence is unavailable.
+
+**Verdict:** sound. Refusal navigation belongs to the existing HUD and must remain available before world construction. Normal status/clock is hidden on refusal to avoid implying playback is waiting. The existing compact HUD remains the owner rather than introducing another failure layout. **Confidence:** high on the failure contract, medium on first-glance prominence.
+
+### Sound — high confidence: preparation's worker becomes the battle authority
+
+**Choice:** The worker that lays the encounter keeps its world and becomes the worker that plays the battle. The page adopts its channel using the existing simulation client. Cancelling closes that worker, so an abandoned planner cannot publish a stale battle. Restart is a new battle: a fresh worker builds the same scenario once.
+
+**Gap:** The lane requires world reuse but does not specify the worker handoff or restart ownership.
+
+**Reach:** Both generated and saved battles use this handoff. Other scenario routes export public geometry from their one worker-owned preparation too. Geometry and flight probes keep their explicit developer WorldView; production battle hooks do not construct one.
+
+**Verdict:** sound. It retains the existing command/publication authority and lets worker termination release all abandoned preparation allocations. **Confidence:** high.
+
+### Sound — high confidence: measure browser memory with explicit bounds
+
+**Choice:** Startup samples this Chromium instance's own process counters from Deploy, through the first playable view. It records cold and warm navigation separately, stage peaks, charged memory and retired instructions. Summed RSS can double-count shared pages; sampled instruction deltas can miss a process's final work. The sum of process lifetime memory high-water marks provides a conservative bound, not a simultaneous tab peak.
+
+**Gap:** The lane asks for tab memory and retired instructions without prescribing a browser measurement API.
+
+**Reach:** These measurements include the browser and GPU processes, not merely the JS heap. The harness cannot label a sampled maximum as an exact simultaneous high-water mark or a development-server start as a production download proof.
+
+**Verdict:** sound. It uses kernel counters and states their limits. **Confidence:** high.
+
+### Sound — high confidence: keep source-dependent Vite caches local to each checkout
+
+**Choice:** Checkouts share installed dependencies while their Vite caches live under their own ignored scratch directory. Two simultaneous startup checks therefore cannot overwrite each other's compiled dependency metadata.
+
+**Gap:** The shared-dependencies rule did not prescribe a Vite cache location; a worker integration run exposed repeated cache invalidation across checkouts.
+
+**Reach:** Every local dev/verification server uses its checkout's cache. No new dependency or user-facing setting is added.
+
+**Verdict:** sound. It applies the existing prohibition on sharing build output between different sources. **Confidence:** high.
+
+### Sound — high confidence: preserve the developer stress scenario's actual map
+
+**Choice:** Main's city-stress producer remains the owner of its full early/late
+scenario. Preparation builds its retained authority world from that scenario,
+including late wrecks, and forwards its living-force count and camera start.
+Normal menu recipes continue planning on the retained world itself.
+
+**Gap:** Main introduced the developer stress factory after the startup branch
+was measured; its synthetic remains can change the map after generation.
+
+**Reach:** The public index and battle must share the stress scenario's actual
+map rather than the generator's earlier map. The developer factory still builds
+its existing temporary placement world, so it is not included in the normal
+menu's one-construction or frozen cost claim. Its broader scale admission stays
+with the scale owner.
+
+**Verdict:** sound for integration. It preserves main's authoritative fixture
+and makes its static exports agree with the scenario that actually plays.
+**Confidence:** high.
+
+## Camera catalogue — startup lane
+
+### Sound — high confidence: separate authored geometry from camera trajectories
+
+**Choice:** The camera lab's physical plan is an offline source beside its saved catalogue map. The route loads that map by id; its trajectory fixture keeps only camera paths, framing and the public owner id of the building whose fall it demonstrates. An authored identity describes the hand-placed arena even though the compiler produces its saved physical document.
+
+**Gap:** The lane requests catalogue resolution but does not specify where the lab's source plan or fall reference should live.
+
+**Reach:** Changing a camera path does not rebuild geography. Changing the arena goes through the compiler and saved-map provenance, as other catalogue maps do. The catalogue cutover preserves framing and compiled geometry. Integration later adopts main's named China slab template for the wall and repins this authored map and its source receipts to that same input.
+
+**Verdict:** sound. The resolver result exactly matches the former compiler output and the catalogue validation covers the new folder. **Confidence:** high.
 ## C54 pipeline tooling
 
 ### Measure a short advance without turning it into an arrival deadline

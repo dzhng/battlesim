@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { prepare, type PreparationModule } from "../src/battle/prepare/prepare";
 import type { PrepareBattleRequest, PrepareDocuments } from "../src/battle/prepare/protocol";
 
@@ -39,7 +39,17 @@ const scenario = JSON.stringify({
 });
 // The external Wasm seam supplies admitted compiled geometry and its authoritative
 // stress setup; preparation owns carrying these bytes and metadata off-page.
+const fromScenario = vi.fn((json: string) => {
+  expect(json).toBe(scenario);
+  return { free: vi.fn() };
+});
 const module = {
+  PreparedWorld: class {
+    constructor() {
+      throw new Error("stress must prepare its authoritative scenario map");
+    }
+    static from_scenario = fromScenario;
+  },
   check_prepare_request: (json: string) =>
     JSON.stringify({ status: "ok", request: JSON.parse(json) }),
   generate_map: () =>
@@ -56,7 +66,7 @@ const module = {
     expect(late).toBe(true);
     return `{"scenario":${scenario},"report":${JSON.stringify({ start: { at: [1200, 1000], yaw: 0 }, livingUnits: { blue: 1, red: 1 } })}}`;
   },
-} as PreparationModule;
+} as unknown as PreparationModule;
 const saved = {
   loadMap: () => {
     throw new Error("no substituted saved map");
@@ -79,6 +89,7 @@ test("generated stress preparation retains the resolved full map and authoritati
     { kind: "city-arena-1", late: true },
   );
   expect(result.scenario).toBe(scenario);
+  expect(fromScenario).toHaveBeenCalledOnce();
   expect(result.report.identity).toEqual({ kind: "generated", generation: identity });
   expect(result.report.size).toEqual([3000, 2000]);
   expect(result.report.planned).toBeNull();
