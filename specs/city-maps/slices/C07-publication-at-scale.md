@@ -2,12 +2,22 @@
 
 **Depends on:** C05 and G0's chosen delivery contract; move/reslice prerequisites earlier if G0 requires them before full-map loading. **Kind:** conditional on measured budget, at any fog resolution.
 
+## Scale-lane rationale and historical evidence
+
+The scale-owned transport rationale lives in the
+[scale record](../../done/city-maps-scale/README.md), with current identified
+[admission evidence](../../done/city-maps-scale/evidence.md). This parent slice
+retains its contracts and historical numeric proofs. Earlier outcome statements
+about pending admission describe their named checkpoints; they are not live
+instructions to repeat already completed runs. Parent startup, rendering and
+whole-page resource requirements retain their own admission.
+
 ## Question
 Can steady-state and snapshot delivery fit their distinct budgets without hidden-state leaks or unbounded full-map copies?
 
 ## Latest measured checkpoint
 
-The 60 s layout-7 controls at `95f7db1b` use Metro Large seed 4, map
+The historical 60 s layout-7 controls at `95f7db1b` use Metro Large seed 4, map
 `d8a0c783…`, rules `a59680c1…` and native/Wasm build `0666de00…`. Each arm
 has 100 living units per side; late adds 20,000 corpses and 2,000 wrecks.
 

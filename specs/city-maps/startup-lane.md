@@ -20,7 +20,7 @@ Measured on Metro Large on this machine, before and after: instructions and time
 | This lane owns | Others own (stay out) |
 |---|---|
 | `web/src/battle/prepare/`, the lab's world hooks (`apps/battle-lab/src/useStaticWorld.ts` and what reads it) | The menu and routes' look; `web/src/maps/` adapters except what preparation needs |
-| `crates/game-wasm/`, `crates/sim/src/world/export.rs` | The rest of `crates/sim/src/` (the [scale lane](scale-lane.md) is changing tick cost there): a constructor seam in `battle.rs` or `encounter/` is a small named commit |
+| `crates/game-wasm/`, `crates/sim/src/world/export.rs` | The rest of `crates/sim/src/` (the [closed scale lane](../done/city-maps-scale/README.md) owns its cost contracts): a constructor seam in `battle.rs` or `encounter/` is a small named commit |
 | `packages/battle-renderer/src/frame/fogVisibility.ts` for step 3 | The rest of the renderer (the [buildings](buildings-lane.md) and [ground](ground-lane.md) lanes) |
 | This file's Status section | `README.md`'s Next Agent Prompt and TODO; `crates/mapgen/` |
 

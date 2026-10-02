@@ -2662,124 +2662,12 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 
 **Open:** the stream record is the only native-against-Wasm check of the simulation itself, and it is a four-unit move with no firing; a short battle with combat would be a stronger pair at the same cost.
 
-## C05 — scale-lane measurement choices
+## Scale lane decisions
 
-### Sound — medium confidence: separate contact density from transit
-
-**When:** scale-lane measurement pass. **Choice:** reuse the endurance stress
-recipe inside a central 3 × 2 km arena of the generated map, with the full map
-loaded. On a 10 km world the original recipe would send each side toward its own
-rear, leaving them kilometres apart; the new load brings both into the same city
-area, with the fronts within weapon reach. Starting units move to nearby ground the production navigation permits.
-The existing saved-map endurance recipe keeps its coordinates and identity.
-**Gap:** the lane required generated contact without specifying its fight script.
-**Reach:** this proves local street cost and complete-world allocation; the separate
-crossing load proves long transit, and neither proves encounter placement quality.
-**Verdict:** sound; workload scopes stay explicit rather than using a quiet journey
-as fighting evidence.
-
-### Sound — high confidence: profile the existing tick with external counters
-
-**When:** scale-lane measurement pass. **Choice:** reports receive callbacks when
-each system finishes and read the OS instruction counter there. Ordinary play
-calls that same tick path with a no-op callback, so it never reads clocks or
-counters. If an eye sweeps fog and then learns terrain, those costs are reported
-separately; building the observation and packing it for delivery are separate too.
-**Gap:** existing reports counted complete ticks and could not select the expensive
-owner. **Reach:** future native reports share the production path without a second
-tick implementation. **Verdict:** sound; measurements remain outside battle state
-and replay identity.
-
-## C06 — scale-lane termination pass
-
-### Sound — high confidence: exhaust the corridor, then use the existing fallback
-
-**When:** C06 termination pass. **Choice:** stop a soldier's rejoin search once
-it has sampled the remaining route. If parked bodies block a nearby route end,
-the former sampler kept returning that same blocked place forever; the revised
-search returns no rejoin point and lets the existing personal-spot fallback run.
-The limit comes from route length and sampling distance, with one endpoint
-rounding sample, rather than an arbitrary retry cap. **Gap:** the plan required
-bounded scale work but did not name this infinite iteration. **Reach:** all
-soldiers retain the same successful candidate order and can exhaust an obstructed
-route without freezing a tick. **Verdict:** sound; the search cannot create
-progress after it reaches the end, and no valid candidate is discarded.
-
-The boolean-only walkability call is a local ownership simplification, not a new
-physical rule or a measured performance gain.
-
-## C07: exact observation group delivery
-
-### Sound — medium confidence: retain one canonical non-map baseline
-
-**When:** C07 reconstruction pass.
-
-**Choice:** Compare float words within each existing observation group, rather
-than introducing entity-keyed stores. When a squad loses a soldier, its member
-rows become shorter; that can change the squad group's remaining addresses, but
-cannot move the independently addressed corpse or known-prop group. The page
-receives the new group length and exact replacement ranges, reconstructing the
-same ordered arrays it would receive in a complete record. An entity-keyed
-alternative would add identity/deletion rules for every kind of row; this work
-keeps those decisions with the simulation's existing logical observation.
-
-**Gap:** G0 selected fog/known-prop delivery but did not choose a representation
-for the measured 60 KB own rows and 522 KB late corpse tail. C07 explicitly
-reslices that arm while preserving the original byte target.
-
-**Reach:** A shrinking group can still incur within-group replacement bytes.
-Full-size active measurements decide whether this representation is sufficient;
-this checkpoint makes no budget-success claim.
-
-**Verdict:** Sound: one existing logical owner, exact ordering, no new entity
-identity scheme. **Confidence:** Medium, because the active byte gate remains
-open.
-
-### Sound — high confidence: choose snapshots by encoded size and reserve before commit
-
-**When:** C07 reconstruction pass.
-
-**Choice:** If changes are dense, send the group's full words when that costs no
-more than replacement ranges. For sparse changes, scan once to count the encoded
-bytes and again to emit them, without retaining a list of ranges. Admit and
-reserve the complete wire record and next non-map baseline before replacing the
-published output or advancing its cursor. A rejected record therefore leaves the
-last successful side/generation available for recovery. The baseline uses one
-flat allocation, so a large group on one side followed by another large group on
-the other cannot accumulate separate group-sized allocations.
-
-**Gap:** The representation needed a snapshot threshold and bounded scratch
-lifecycle; a per-range list or per-group high-water cache would make peak storage
-larger than the current logical observation.
-
-**Reach:** Producer staging, current wire, pending wire and the non-map baseline
-each have an exact bounded reservation. Those four capacities and the existing
-fog cursor must still be included in snapshot/peak admission measurements.
-
-**Verdict:** Sound: admission precedes transport commit and scratch space does
-not grow with the number of changed ranges. **Confidence:** High.
-
-### Sound — high confidence: share the existing side/epoch revision boundary
-
-**When:** C07 reconstruction pass.
-
-**Choice:** A side change or resync starts every group with a complete snapshot.
-The existing fog generation also names the group baseline. If a page misses a
-publication, the next generation fails that baseline check before applying any
-group, fog or ground state. A valid resync then reconstructs the side's full
-known state. The alternative would introduce an independent group revision that
-could disagree with fog or ground and permit a mixed observation.
-
-**Gap:** C07 needed recovery rules for the added representation; the existing
-publication cursor already supplied exactly the ordered stream boundary.
-
-**Reach:** Producer/decoder cut over together. The published layout describes
-delivery metadata separately from the canonical logical row schema, and the
-complete serializer is named `pack_logical` so native oracle/report consumers
-cannot mistake it for the transport record.
-
-**Verdict:** Sound: one atomic publication baseline, exact float32 words, and no
-codec dependency or new simulation state. **Confidence:** High.
+The scale lane's durable rationale and consolidated decisions live in
+[city-map scale](../done/city-maps-scale/README.md) and its
+[choices](../done/city-maps-scale/choices.md). Other lanes' contracts and
+historical measurement evidence retain their parent owners.
 
 ## Buildings lane
 
@@ -3012,117 +2900,6 @@ codec dependency or new simulation state. **Confidence:** High.
 
 **Verdict:** sound. Walking each bank the shading steps by at most 1.5%; with the bank's shading off the same frames step by 18.7%. No map the contract admits has a bank past 35°, so the bound cannot be reached in a test. The land past the bank's top is still lit as if flat. **Confidence:** high.
 
-## C06 per-tick geometry bounds
-
-### Cache derived bounds only while their authoritative positions are stable
-
-**Choice:** Sensing computes each unit's footprint radius once per immutable
-call. Movement gathers living infantry in unit order and keeps their derived
-radii beside the existing crowd, refreshing them after squad motion or a shove.
-
-**Gap:** The spec delegates measured cost reductions but does not choose a
-cache owner or lifetime.
-
-**Verdict:** sound. Recomputing a squad's radius for every vehicle or observer
-repeats a scan of its soldiers. These short-lived bounds have explicit refresh
-owners and preserve collision and sensing results. Fallen squads remain in the
-battle and observations; they add no traffic work per vehicle. **Confidence:** high.
-
-## C06 engagement-search bounds
-
-### Reject only an engagement search proven empty by physical reach
-
-**Choice:** Cover planning skips a fight search only when every target lies
-beyond weapon range plus the squad-area radius and maximum lean distance.
-Boundary cases retain the ordinary search with a micrometre of rounding slack.
-
-**Gap:** The cost slice delegates reductions without choosing how to bound
-failed cover searches.
-
-**Verdict:** sound. Every candidate starts inside the area, and every lean is
-bounded by the existing physical rule; three-dimensional distance is at least
-its horizontal distance. This saves searching thousands of positions without
-changing chosen cover or planning timing. **Confidence:** high.
-
-### Sound — medium confidence: fixed-row reuse follows exact content, not entity identity
-
-**When:** C07 sparse-row pass.
-
-**Choice:** Index the exact float32 words of each retained fixed row, then
-assemble the new group in its simulation-supplied order using source spans and
-literal spans. For example, learning a new corpse between two hundred known
-corpses sends that new row and instructions to copy the known neighbors. If a
-known corpse changes place, its changed row is sent literally or through the
-cheaper existing word-replacement arm. Identical duplicate rows may reuse the
-same source because their complete words are equal. The alternative would key
-rows by soldier/body ids, adding deletion and identity rules that different
-kinds of observations do not all share.
-
-**Gap:** Measurements showed group-local word replacements still resend sorted
-retained tails. The spec did not prescribe how to find unchanged rows after
-insertion or reordering.
-
-**Reach:** This arm applies to every fixed-row group, preserves spatial corpse
-ordering and needs no new simulation identities. Groups with variable sections
-keep their existing word encoding. The temporary index adds bounded storage and
-sorting work, which must pass the matched active cost gate.
-
-**Verdict:** Sound: exact content comparison avoids hash collisions and hidden
-identity assumptions, while choosing the minimum payload preserves sparse-field
-savings. **Confidence:** Medium, because actual active instruction/byte gates
-remain open.
-
-### Sound — high confidence: copies reconstruct the whole group before commit
-
-**When:** C07 sparse-row pass.
-
-**Choice:** A source-copy operation reads an aligned span from the immutable
-previous group; a literal operation supplies new row words. Operations fill the
-new group sequentially, so reordering and removal require no mutable edit list
-and a missing word is rejected. If a malformed generation copies beyond the
-previous group, the decoder keeps its old baseline and accepts the corrected
-same generation. New sides/epochs still require snapshots. The alternative,
-editing the previous array in place, could both overwrite later copy sources and
-change an observation the page already retained.
-
-**Gap:** The new representation required source validation and failure rules;
-existing generation/epoch checks remain the shared publication boundary.
-
-**Reach:** The published metadata calls the selector an encoding and names its
-three modes explicitly. Source indices, counts and copied words remain exact
-inside the existing record allowance. Publisher index allocation and wire
-admission are fallible before output/cursor commit.
-
-**Verdict:** Sound: complete, immutable reconstruction retains atomic side
-knowledge and the existing recovery contract. **Confidence:** High.
-## C06 spatial fog invalidation
-
-### Mutation stamps belong to the footprint index
-
-**Choice:** When a tree falls far from an observer, the observer's cached solid
-heights remain usable. The footprint index already divides the world into
-32 m buckets to find nearby bodies. World alone enables a private last-change
-number in each bucket. Insertion and deletion stamp affected buckets; movement
-stamps both the old and new footprints. A removed body's bucket retains its
-number even when empty. After any world change, a fog tile compares the largest
-number among the same buckets its body query uses. If unchanged, its raster
-(the solid height at each fog-cell centre) is still exact. The global revision
-remains the first cheap check while no body changes at all.
-
-**Gap:** The slice delegates dirty bookkeeping but does not specify storage or
-a retained-history policy.
-
-**Reach:** The additional arrays depend on physical extent, not battle history:
-one number per world bucket and a second number per existing fog tile. They
-add 6.25 MB at 20 × 20 km with 8 m fog cells; side-known indexes allocate no
-stamp arrays. More precise footprint-shaped invalidation could save some
-boundary rebuilds but would add bookkeeping beyond the index's bucket bounds.
-This uses the existing
-conservative body query without new sampling or changed sight rules.
-
-**Verdict:** sound. Unrelated changes no longer force active eyes to sort and
-raster nearby bodies again, and no changed-prefix scan can miss a later update.
-**Confidence:** high; fresh-sweep and cost regressions remain the acceptance seams.
 ## C13/C32 kits and the template art library
 
 ### A kit is a static bundle whose states are its modules
@@ -4173,101 +3950,6 @@ and makes its static exports agree with the scenario that actually plays.
 **Reach:** Changing a camera path does not rebuild geography. Changing the arena goes through the compiler and saved-map provenance, as other catalogue maps do. The catalogue cutover preserves framing and compiled geometry. Integration later adopts main's named China slab template for the wall and repins this authored map and its source receipts to that same input.
 
 **Verdict:** sound. The resolver result exactly matches the former compiler output and the catalogue validation covers the new folder. **Confidence:** high.
-## C54 pipeline tooling
-
-### Measure a short advance without turning it into an arrival deadline
-
-**When:** scale-lane pipeline tool checkpoint, 2026-10-01.
-
-**Choice:** Each of the nine map type/size cells runs fixed map seeds 1–10;
-the encounter and battle seeds stay fixed at the game's encounter seed and 1.
-The attacker sends its planned column toward the objective by an ordinary group
-move, while the defender keeps its existing scripts and policy. The default
-sample lasts 30 simulated seconds. A rifle squad starting kilometres away may
-move normally for all 30 s without arriving. Its row retains the remaining
-distance and every movement state; coming within 10 m is reported as proximity,
-not completion. The alternative was to call every unfinished short route a
-failure, which would confuse normal transit with blocked navigation.
-
-**Gap:** C54 delegates fixed seeds and reporting and gives no short-run duration
-or arrival deadline. **Reach:** The tooling reveals refusals, route-blocked and
-pending work across the matrix; a later playability verdict still needs a longer
-battle and its own arrival/engagement contract. **Verdict:** sound — the sample
-reports observed progress without inventing a completion requirement.
-**Confidence:** medium.
-
-### Keep the simulation dependency inside verification tooling
-
-**When:** scale-lane pipeline tool checkpoint, 2026-10-01.
-
-**Choice:** The runner is a `mapgen` example using its existing simulation test
- dependency. It calls the same generator and compiler that produce a player's
-map, then the simulation's existing assault planner and Battle constructor.
-When a seed is refused, its exact diagnostics stay in its row and the next
-requested seed runs; nothing stands in for it. Costs and input hashes are saved
-in that row before proceeding. The alternative was to add generation to the sim
-runtime or parse several reports' prose, either adding a dependency cycle or a
-second reporting oracle that could silently drift.
-
-**Gap:** The spec names one runner but no crate or output format.
-**Reach:** One streaming JSONL report can be inspected while a long matrix runs;
-command refusals and unwinding panics remain explicit. This does not recover a
-hung process or imply full C54/art acceptance. **Verdict:** sound — production
-ownership stays unchanged and no new dependency is introduced.
-**Confidence:** high.
-## Replay engine build identity
-
-**Choice:** Every simulation replay requires the automatically derived engine build fingerprint. `Battle::from_replay` checks it before scenario/rules identity or battle construction; the Wasm adapter forwards the same explicit refusal. Missing identity is malformed replay data. No manual version bump or legacy fallback is provided.
-
-**Scope:** Hash normalized relative paths and exact bytes of simulation, contract and thin Wasm adapter Rust source, their manifests, workspace manifest, mapgen manifest, Cargo lock, rustc version, and semantic simulation cfg/features through the existing contract SHA256 owner. Dependency manifests/lock are conservative: even an unrelated dependency edit may refuse playback. Mapgen source is excluded because it prepares scenarios rather than executing the stored scenario; the separate generated replay request-versus-compiled-storage debt remains open. Assets, art pipeline, browser source, examples and test files outside runtime source are excluded. Source comments and inline test edits conservatively invalidate the engine.
-
-**Portability:** This identifies the supported deterministic engine, not identical binary bytes. Native/Wasm target, platform, debug, panic, test, lint and overflow-instrumentation cfg differences are normalized; their supported battle outcomes already share the simulation contract. Current source has no other generated/include input, and current crates expose no dependency feature selection outside the hashed manifests. Adding such inputs or target-dependent simulation semantics requires extending this owner rather than silently retaining this scope.
-
-**Cost:** Hashing occurs once at build time; replay recording copies one 64-character identity, and playback compares it once. No new tick work, codec dependency or battle digest input. The contract crate is reused as a build dependency. Native red/green checks expose the formerly accepted mismatched build through `Battle::from_replay`; same-build replay pins every tick digest. Scope tests prove art-only stability and source, dependency, compiler and semantic cfg invalidation. Worker refusal and actual native/Wasm fingerprint parity are checked on the rebuilt module.
-
-**Verdict:** Sound within the current supported build inputs. Compiled scenario storage and broader scale admission gates remain separate unfinished work. **Confidence:** High.
-## C06 infantry town corner routes
-
-**Choice:** A connected coarse infantry cell is permission to walk through its
-free sub-cells, not permission to cut straight between its entry and exit. The
-route reconstructs a bounded local connector and certifies every emitted link
-with the same sampled reader used by route timing and smoothing. A returned
-illegal segment still has infinite cost; no failed route is made finite by
-changing the timing rule. Vehicles keep their existing physical clearance.
-
-**Why:** C59 exposed an infantry route accepted by coarse search but rejected by
-the timing consumer. The public corner regression reproduced it without a city.
-A squad bending around that corner is the expected physical behavior. The
-alternative of rejecting connected cells would unnecessarily close passages
-whose free half-metre path already exists. A whole-map fine search would add
-storage and work unrelated to the local defect.
-
-**Reach:** Infantry waypoints, costs, planning completion ticks and affected
-battle digests intentionally change. Legal endpoints use their actual containing
-cells; bounded nearest-fit selection remains, but returned first links must pass
-the sampled reader. Local connection is an incremental planning phase, with no retained
-full-extent fine data. Certified infantry links remain available to smoothing
-until a longer link passes its reader, because even collinear merging changes
-sample positions. This supersedes C59's historical infinity limitation; changing
-the encounter planner to consume the corrected timings belongs to its owner.
-
-**Verdict:** sound for the focused contracts. Public timing covers narrow foot
-passage, blocked/disconnected and boundary cases. A small battle checks actual
-soldier bodies and same-build replay under the smallest planning budget. NavGrid
-certifies its sampled mask, while movement owns exact body legality. Generated
-town admission and native city cost remain open in the scale lane. **Confidence:**
-high for the regression and replay, medium across generated towns.
-
-
-## C07: variable word-span copies
-
-**Choice:** Generalize the existing copy operation through layout-owned per-group alignment: fixed rows preserve complete-row source/count checks; variable collections accept word spans. Retain one decoder and one flat baseline. Use exact eight-word sparse anchors, a same-position match preference, greedy forward extension and literals between retained spans. Choose the smallest of copies, replacement and snapshot after exact preflight.
-
-**Why:** Measured own-group section shifts still resent tails after the corpse fix. A public route edit among 80 squads needed 53,568 B, now 376 B with complete float-bit reconstruction. Across 450 captured active transitions, own max falls 51,968→10,656 B and p95 27,200→8,556 B; isolated mean encoding instructions rise 0.288→1.840 M. The integration owner accepts this measured tradeoff against current whole-step costs; whole-record admission remains open. Bitmask/XOR estimates did not address the shifted retained tail adequately.
-
-**Bound:** One u32 per eight old variable words; aggregate scratch remains ≤12.8 MiB because fixed groups' smallest row is five words and all groups partition the admitted baseline. Exact comparisons avoid identity/hashing assumptions and collision scans. Sorting and two greedy scans are O(words log anchors), with fixed eight-word comparisons and no retained operation list. Fallible index and complete record reservation precede output/cursor commit. Existing record buffers and fog ownership stay unchanged.
-
-**Verdict:** Sound and independently reviewed. Supported bits/order, fixed alignment, malformed retry and retained observations are verified. Full active early/late bytes, decoder throughput, full packing cost and peak overlap remain open under the unchanged 19.8 KB and memory contracts. **Confidence:** High for reconstruction; admission pending integration.
 ## C15 interior atlas
 
 ### A cell is one whole room, 128 px square
@@ -4358,25 +4040,6 @@ The scene's bound (a room at most 0.7 of its wall) was not moved. Two brighter t
 A second unprimed critic, on the chosen sheets' frames: no window reads as lit under any of the four suns (high confidence; the pale shop on the shaded facade is "the nearest thing to a lit look", read as a dim daylight room); none is a hole at 30 m or from the street; rooms are told apart at 30 m by wall colour and contents; two of the three shops read as shops, the third as the vacant unit it is. At 80 m every opening is still a flat dark pane, brown for flats and slate for shops, "not black, but functionally blank": the floor strip under the glass's veil, with no wall colour left.
 
 That is the limit: the sheet trades "a hole at 80 m in the sun" against "lit on a shaded facade", and one level serves both only so far. If shaded facades still read as lit, the lever is the light a room is shown in (C26's `unlit`, which could follow the facade's shade), not the sheet. The scene checks one window under each sun and no shop; a check of every window against the shaded wall would hold this. The sheet on its own now looks like a lit doll's house; that is what a shaded surface's colour looks like before the shade. **Confidence:** medium: one block, one biome's light.
-### A squad corridor starts at a member the known grid admits
-
-**Choice:** Select the closest living soldier whose position is standing room
-in the side's navigation grid before falling back to the physically nearest
-member. A squad's centroid is still never its corridor start. Road preference
-measures the same physical nearest member as before.
-
-**Why:** The old grid reconstruction tolerated an invalid first link, so a
-physically clear soldier near a wall could seed a usable corridor despite being
-rejected by the conservative sampled mask. Certifying links exposed that mismatch:
-a small Battle that arrived before became blocked. Choosing another existing
-standing member restores the corridor contract without weakening the mask or
-granting a body-exit exemption. This intentionally changes corridor starts and
-affected digests; movement's exact body checks still decide each soldier's steps.
-
-**Verdict:** supported by the old/new Battle comparison; follow-up verification
-is recorded in C06. A direct non-standing virtual anchor has no guaranteed legal
-timing; nearest-fit selection is not permission to publish an invalid segment.
-
 ## C19: warehouses and light industry
 
 ### Sizes are whole bays, and the shed turns its gable to the street
@@ -4452,16 +4115,6 @@ timing; nearest-fit selection is not permission to publish an invalid segment.
 **Reach:** One template is one colourway. More colours are more templates over the same modules, or a tint a placement supplies.
 
 **Verdict:** provisional on the repeats, as for the houses. **Confidence:** medium.
-
-## C07: reuse unchanged decoded static groups
-
-**Choice:** Bundle the existing word baseline with decoded corpse and known-prop arrays in `ObservationDecoder`. Buffer identity witnesses unchanged static words; validate the current header's exact fixed-row count before reusing arrays, rows and coordinates. Rebuild a whole static group when its words change. Commit the bundle after the complete frame validates, and clear it on side invalidation; fresh epochs bypass it.
-
-**Why:** Sparse delivery already retains unchanged static words, but decoding recreated every row and coordinate on every own-unit update. Unchanged 20,000-corpse/2,000-prop delivery now constructs no per-static-row wrappers, closures, section objects, views or coordinates. Retaining the latest two view arrays adds references to the observation objects already returned, not a second word baseline or a complete retained observation. There is no per-row identity scheme or cache outside the decoder.
-
-**Contract:** Returned observations are immutable; the static arrays are now readonly in TypeScript. The current consumers read these rows; pose reconciliation copies positions into its own state, and effects read aliased prop extents. Cache reuse still checks current counts. Malformed cached counts and failures later in fog/ground cannot advance either baseline; corrected same-generation retry works. Changed-group views and prior observations remain distinct, and stale side/epoch records do not populate the cache.
-
-**Verdict:** Sound; identity and rollback proofs pass. Allocation claims describe skipped construction, not measured heap bytes or wall time. Producer layout/digests and all whole-record, peak and throughput gates remain unchanged. **Confidence:** High for reuse and reconstruction; runtime admission remains open.
 
 ## C21 material transport
 
@@ -4686,31 +4339,6 @@ timing; nearest-fit selection is not permission to publish an invalid segment.
 
 **Verdict:** sound. **Confidence:** high.
 
-## C06/C07: full generated browser stress ownership
-
-**Choice:** Keep the saved endurance scene as the default and add a fixed current
-Metro Large seed-4 arm. The existing preparation worker resolves its generated
-MapSource and calls a thin Wasm forwarder to the simulation's city stress factory.
-The selector belongs to the worker message, alongside the unchanged normal
-preparation request. No second generator, placement rule or persistent large
-fixture enters the browser. The prepared report identifies the full compiled
-world separately from the synthetic contact and late-state inputs.
-
-**Reach:** This adds a repeatable full-extent browser admission input, including
-worker cancellation when the view changes. It does not prove startup memory,
-GPU cost, image quality or real-time throughput. Those gates remain coordinated
-integration work. **Verdict:** sound for the preparation seam; browser evidence
-pending. **Confidence:** high for fixture identity, medium until the scene runs.
-## C07: consume stable static identities at the existing owners
-
-**Choice:** `ObservationFeed` retains one corpse input identity and its converted fallen list, rebuilding on a new corpse view. Reuse `PoseDriver`'s existing fallen-list reconciliation gate; do not create another driver cache. Memoize the existing known-prop JSON key in `useBattleSession` against the decoded known-prop array, so other observation updates do not serialize unchanged knowledge.
-
-**Why:** Decoder reuse alone left the feed rebuilding 20,000 fallen records per publication and thus triggering the driver's complete reconciliation. A bounded 50-observation, 20,000-corpse synthetic probe counts 50→1 converted lists and 1,000,000→20,000 constructed rows/source-position reads, preserving capped poses. This is construction evidence, not a heap/time/GPU claim.
-
-**Contract:** Source observations are immutable. A new static position/floor view rebuilds the conversion and retains earlier rows unchanged. Side/catalog changes recreate the existing feed/driver owners. The driver's independent death/fade/expiry work and clock-reset lifecycle remain active behind its existing reconciliation gate. Caps, world, camera and frame ownership stay intact; there is no cache shared across pages.
-
-**Verdict:** Sound within the existing immutable-view contract. Public feed identity/floor proofs and existing pose lifecycle suites pass. Broader browser allocation, upload and throughput admission remain separate and open. **Confidence:** High for static construction and value preservation.
-
 ## C46 street placement
 
 ### Furniture stands back from the street, not at the kerb
@@ -4777,34 +4405,6 @@ pending. **Confidence:** high for fixture identity, medium until the scene runs.
 
 **Verdict:** sound as a stand-in; C45's models replace it kind by kind. **Confidence:** high.
 
-## C07: compact the selected lossless group form
-
-**Choice:** Add one byte-packed transport arm inside the existing publication
-owner, wrapping the already selected snapshot, replacement or source-copy form.
-Keep one span selector and baseline. Pack small operation integers and each
-literal's exact raw bits or its XOR against the old word at the same output
-address, whichever needs fewer bytes. A fresh snapshot always uses raw bits.
-
-**Why:** After address amplification was removed, remaining float literals and
-operation metadata still crossed the 19,800-byte whole-record gate. Copy-only
-packing left 63 early frames over the gate; the general arm also packs replacement
-literals. Both captured 1,800-transition windows reconstruct every original word,
-with maxima falling to 19,772/18,220 B. Actual extracted producer mean encoding
-cost rises about 0.12–0.14 M instructions for own plus identified, with identical
-staging and indexing included. C07 owns the detailed measurements and their scope.
-
-**Contract:** The simulation's published layout owns the grammar once. Byte
-carriers can resemble NaNs, so transport/decoder copies preserve raw u32 bits
-instead of converting them through JavaScript float numbers. Complete admission
-precedes writing; compact serialization uses constant scratch and the existing
-reserved output. Invalid payloads cannot commit any baseline. Unchanged static
-word and decoded-view identities remain stable. No compression library, field
-schema, per-unit predictor, extra retained state or budget exception is added.
-
-**Verdict:** Sound on matched exact corpus evidence and the paired consumer
-contract. The early maximum has only 28-byte headroom, so current-stream estimates
-cannot close snapshot, peak or live whole-system gates. **Confidence:** High for
-lossless representation; final runtime admission remains with the scale lane.
 ## C73
 
 **When:** 2026-10-01. Evidence and numbers: the Outcome in [C73](slices/C73-tree-skeleton.md).
@@ -4857,23 +4457,7 @@ lossless representation; final runtime admission remains with the scale lane.
 
 **Verdict:** sound. Scaling the whole crown until its one widest clump fitted squeezed the tall kind to 0.59 of its width. Placement reads a kind's size from the finest tier, so the widest and highest clumps reach the tree's size exactly and no kind places smaller than it is built. **Confidence:** high.
 
-## C06: canonicalize visibility candidates at the union owner
-
-**Choice:** Fog collects raw bucket IDs from every eye and sorts/deduplicates
-the world and remembered unions before learning. Ordinary spatial queries keep
-their sorted, unique contract; no candidate cache is retained.
-
-**Why:** Per-eye sorting repeats work over overlapping views, and remembered
-queries also sorted the growing prefix. The existing bucket membership and
-query reach are unchanged. Canonicalization remains before stateful consumers,
-so an overlapping body is learned once in the same ID order. The unchanged
-visibility kernel consumes neither vector.
-
-**Tradeoff:** Raw ID vectors contain more duplicate entries during collection;
-this exchanges temporary allocation for fewer sorts, without permanent map
-storage. Measure the final merge and Learning with Fog so moving work across
-profile brackets cannot masquerade as a gain. C06 records matched bounded
-Battle observations/digests and the remaining whole-city admission limits.
+## Buildings lane follow-up
 
 ### New York and Paris are later families, not part of closing the buildings lane
 
@@ -4887,87 +4471,10 @@ Battle observations/digests and the remaining whole-city admission limits.
 
 **Verdict:** provisional. It is the smallest scope that meets the contract, and it puts the facade, far-tier and damage passes first, which every family needs. **Confidence:** medium.
 
-## C06: reject the footprint rotation hypothesis
+## Rejected scale hypotheses
 
-**Choice:** Keep the existing footprint sampling source after measuring reuse of
-its existing `Rotation` once per footprint. No new cache or state is retained.
-
-**Why:** Native disassembly shows rotation trigonometry already hoisted per row.
-The matched current layout-7 six-tick experiment preserves all digests and
-complete observation hashes but saves only 0.795% early and 0.710% late in whole
-Fog plus Learning, below the declared 2% hypothesis. This does not justify the
-next scale pass; C06 records the bounded result and leaves admission open.
-
-## C06: inline the measured foliage owner
-
-**Choice:** Force the existing world foliage query inline, preserving its
-sparse-cell lookup, cleared-mask rule and every arithmetic expression. Leave
-the height wrapper's compiler policy unchanged after separate measurement.
-
-**Why:** The public fog traversal calls foliage per ray step. In the matched
-native six-tick control, foliage inlining reduces whole Fog plus Learning more
-than height inlining and also shrinks linked text. It needs no second visibility
-implementation or invalidation owner. C06 records the exact observations/digests,
-measured code-size tradeoff and narrower scope of the evidence.
-
-## C06: share a failed final connector's strict goal component
-
-**Choice:** After one final road connector fails, exhaust a search from its
-resolved goal over the existing mover graph. Retain that component only when the
-frontier empties. Use exact forward-source admission to omit disconnected final
-connectors. Before building an approach, omit a goal access only when its whole
-arc, expanded for lane offset, source snapping and point coalescing, is outside
-the component's bounds. Excluded arcs also leave the fallback's nearest-access
-selection, preserving legitimate farther approaches. Sampled roads remain free
-to enter the strict component;
-being disconnected from the original start is not a whole-journey refusal.
-
-**Gap:** Rejecting one road exit at a time repeatedly certifies the large outside
-region. The earlier relaxed whole-journey proof was safe but too conservative for
-one frozen failure. Retaining strict membership only at the final leg then moved
-the cost into repeated graph and approach work. Shared goal-access admission
-eliminates both without recognizing a map, unit or seed, and without lowering a
-search limit. Resource exhaustion remains inconclusive.
-
-**Reach:** The proof runs after failure, preserving healthy road-search latency.
-It uses fresh sparse scratch so a small retained pocket does not pin an earlier
-large outside bank twice. Bounds and membership are fingerprinted incrementally;
-knowledge revision changes still use the planner's existing restart/recheck owner.
-This adds one bounded sparse bank during the affected job, not a world grid or
-persistent cross-order cache. Earlier blocked verdicts change planning ticks and
-affected digests; replay remains exact on the same build.
-
-**Verdict:** sound for the demonstrated repeated final-access amplification.
-Public work, sampled-corner, search-limit and counted Battle/replay tests preserve
-the refusal and recovery contracts. A river/bridge fallback falsifies letting
-excluded near accesses hide a legal farther sampled road. The exact three frozen
-Battle inputs terminate their affected jobs at both observation checkpoints.
-**Confidence:** high for graph/envelope safety and this failure family; current
-generator and whole navigation admission remain open.
-
-### C06 — compare reset resources at a fixed presented opening
-
-**When:** full generated browser integration.
-
-**Choice:** after warming the renderer, restart three times and acknowledge the
-fresh authority's first paused step. Present every opening tick at its settled
-clock before comparing battle identity, corpse IDs, camera and exact GPU counts
-and bytes. The scene controls RAF delivery during reset staging; page and worker
-clocks, production poses and simulation rules stay unchanged.
-
-**Gap:** equal paused simulation ticks can retain different first-drawn death
-histories. A cleared observation can also precede the new client closure;
-inherited pause status cannot certify that client's acknowledgement.
-
-**Reach:** resource checks compare equivalent presentation histories and trace
-allocation ownership before changing lifetime policy. Lazy resources are warmed
-before the baseline. A real retained allocation still fails without tolerances,
-resource exclusions, rounded sizes or extra product state. Await asynchronous
-work before polling completion; a truthy Promise is not evidence of settlement.
-
-**Verdict:** sound. The harness controls its timing seam instead of changing the
-production death model or hiding retained resources.
-**Confidence:** high for the controlled presentation and exact resource contract.
+The [scale rationale's dead ends](../done/city-maps-scale/README.md#dead-ends-worth-retaining)
+retain the rejected cost hypotheses; numerical controls remain in C06.
 
 ## C66 road core
 
@@ -5583,47 +5090,6 @@ production death model or hiding retained resources.
 
 **Verdict:** provisional. Order paint is saturated yellow, glows, marches and keeps a width in pixels; road paint is lit like the ground, darkens in shadow, has no glow and a width in metres. Asked directly, two critiques put the crossings at no risk and the centre dashes at low risk against yellow marks and at low to medium against a white dashed mark along a street (the zone outline and the supply reach are white). A battle frame with a zone outline along a marked street would settle it. **Confidence:** medium.
 
-## C06: reject stale infantry refinement edges
-
-**Choice:** A missing shared edge during refinement returns the existing route
-failure. The route planner already restarts a failed candidate when its knowledge
-revision changed; refinement adds no retry, geometry exception or new state.
-
-**Reason:** Coarse admission does not freeze the grid. A public body-add event
-reproduces the observed late-battle panic, so the shared-edge assertion is not a
-valid invariant across incremental steps. Static successful routes keep their
-sampling order; the affected battle now recovers instead of aborting. This is a
-named failure-path change, not a performance or unchanged-crash-digest claim.
-
-**Reach:** No runtime planning budget or latency contract changes. Completion
-and replay proof, and the remaining integration gate, live in the
-[C06 outcome](slices/C06-sim-scale-passes.md#outcome--changed-edges-during-infantry-refinement).
-
-**Verdict:** sound; high confidence. Geometry ownership stays with the current
-grid, and revision recovery stays with the existing planner.
-
-
-## C07: encode the final learned-ground tail through the existing carrier
-
-**Gap:** The captured real-catalogue five-minute early run violates the unchanged
-19,800 B maximum through a 1,313-run knowledge burst. Earlier non-map packing does
-not own these rows; simple absolute/delta varints still miss the gate.
-
-**Choice:** Extend the one publication serializer/decoder across the named ground
-tail seam. Declare one compact grammar in the producer's layout, reuse its raw
-u32 carrier/LEB/count/write and the browser's shared reader, and reconstruct the
-existing canonical four-word runs before existing physical/order validation.
-There is no legacy format fallback, per-side ground predictor, retained codec
-cache, second producer staging buffer, dependency, cap increase or delayed mark.
-
-**Verdict:** Sound, high confidence. All captured raw words reconstruct; the
-public burst is red before/green after; malformed tails preserve atomic retry.
-Count+encode costs about 0.012 M mean instructions against 3.582 M full packing.
-The decoder allocates the same owned canonical runs it already exposed, with
-minimum-wire and complete-logical-record admission before allocation. Byte and
-memory proofs remain scoped: the late battle panics, frozen replay is not final
-whole-battle admission, and browser clocks/cold allocator components do not prove
-loaded throughput or full-world process/GPU peak.
 ## C33 simplified
 
 ### The page builds its own world; the public query export is deleted
@@ -5771,66 +5237,6 @@ loaded throughput or full-world process/GPU peak.
 **Gap:** The budget was set for the four sets of this pass; the village set arrived by merge with a ruin made before it.
 
 **Verdict:** provisional. The opt-out is one named flag on one set. Rebuilding the farm's ruin with the shared `ruin_block` would remove it and is the better end. **Confidence:** medium.
-## C06: avoid geometry for a squad with no steering decision
-
-**Choice:** A vehicle moves far from an idle squad. Each living soldier is already
-at his holding post, if any, and the existing vehicle-dodge reader returns no
-motion. Skip gathering local obstacle geometry for that squad. Share the exact
-holding-post eligibility predicate with ordinary steering; do not create another
-motion rule. Nearby traffic and unfinished cover posts retain normal movement.
-
-**Gap:** The threat list described global moving vehicles, so its nonempty state
-prevented the existing idle shortcut even when none could affect this squad.
-
-**Reach:** Preserve velocity reset and garrison handling, the old empty-threat
-return, and centroid settlement for the nonempty-threat no-steer tail. Crowd and
-unit iteration order stay unchanged. This adds no cache, state or budget policy;
-future changes to post motion inherit one eligibility owner.
-
-**Verdict:** sound; high confidence. The omitted geometry cannot be consumed by a
-steering decision in this branch. Paired measurements and exact battle evidence
-live in C06; current full admission remains separate.
-
-## C06: build cover exposure only for IDs its immutable knowledge can read
-
-**When:** the untracked-cover-field pass, after the current move-certification
-profile identified repeated ephemeral field work.
-
-**The choice:** leave an empty position row for a unit neither side tracks,
-while retaining its outer unit-ID slot. Imagine a late battle with thousands of
-squads that were already fallen when it began. Movement repeatedly constructs
-their exposed soldier positions, but its cover reader asks for an enemy track
-before looking up that row. Because knowledge cannot change during this movement
-call, those particular positions cannot be read. A squad either side does track
-keeps all its member positions in order, including fallen members and remembered
-sightings. Keeping only living/currently visible rows would change remembered
-aiming; dropping the outer slots would shift every later unit's address.
-
-**The gap:** C06 names repeated-work costs but does not prescribe this field's
-read predicate. The measured parent task selected this single bounded candidate;
-the pass verified the sole consumer and immutable lifetime before implementing it.
-
-**The reach:** the field remains an ephemeral snapshot with the same one reader;
-there is no extra cache or model state. A future reader that accesses untracked
-rows must revisit the gather predicate. The paired complete observations prove
-this current reader, not a speculative future use.
-
-**Verdict — sound, high confidence:** the omission follows an unreachable read,
-not a unit class, corpse count or hand-picked visibility rule. It earns the
-predeclared whole-Orders gain and exact per-tick battle/observation proofs; the
-smaller whole-step improvement is reported separately. Existing public cover,
-last-seen, hidden and replay tests own the semantic contract, with tracked-row
-omission falsified through the cover behavior rather than private vector shape.
-
-The same unread-work principle applies to hull gathering. In a late battle,
-fallen infantry can require a full member scan to establish liveness, but a unit
-without a hull cannot emit vehicle geometry. Reject that row before checking
-liveness. Vehicles keep the same health check, ordered geometry and pure mapping;
-all consumers inherit the existing query rather than a cached hull projection.
-Battle outcomes and serialized replay content remain exact apart from engine
-identity. The bounded native evidence belongs to the [C06 outcome](slices/C06-sim-scale-passes.md#outcome--reject-non-hull-rows-before-member-liveness);
-browser admission remains separate.
-
 ## C45 street models
 
 The models, their boxes and the sheets are in the [C45 outcome](slices/C45-street-models.md#outcome).
@@ -5899,51 +5305,6 @@ The models, their boxes and the sheets are in the [C45 outcome](slices/C45-stree
 
 **Verdict:** sound for one model. A street of identical grey cars will read as clones; more bodies or colours are more appearances of the same kind at slightly different boxes, or a per-instance tint the scenery path does not have. **Confidence:** medium.
 
-## C06: restore contact by staging the existing stress fronts within weapon reach
-
-**Choice:** Move the generated stress recipe's living starts 200 m closer to
-contact using its existing legal-placement projection. Keep all commands,
-physical rules, unit counts, full world and late remains. Incoming movement
-certification refuses most scripted journeys; a combat benchmark should still
-make both forces fight without changing that production policy.
-
-**Gap:** The plan names active contact but does not prescribe how to preserve
-that workload when incoming movement admission changes. This correction is a
-new named benchmark input, never an outcome-preserving optimization.
-
-**Reach:** Generated stress starts change; normal battles and saved stress starts
-do not. Rising published shot counters guard contact during measurement in the generated browser
-arms. Refused journeys remain a separate finding and cannot prove the historical
-planning-delay cases resolved.
-
-**Verdict:** sound, medium confidence. This makes combat representative of the
-stated load while preserving production rules; it leaves marching cost dependent
-on future movement admission. Full scale acceptance still requires fresh combined
-receipts.
-
-## C06: use pinned software trig for seeded soldier placement
-
-**Choice:** Squad arrangement and nearest-free ring samples use the existing
-pinned software math library, as combat already does. A shared seed must produce
-the same authoritative positions in native and Wasm, even when the renderer's
-float32 view cannot show their last-bit difference.
-
-**Gap:** The prior arrangement used platform sine/cosine. The fresh full-world
-parity check exposed a one-bit sine difference in one seeded draw, which changed
-a member position and the squad centroid without changing the published words.
-
-**Reach:** This intentionally corrects native placement's last-bit state; it is
-not an outcome-preserving CPU optimization. Shared nearest-free callers include
-cover, garrison and replacement-soldier placement; the correction applies to
-their ring samples too. No rule value, spacing policy, random draw sequence, map
-input, allowance or public ABI changes. The existing
-engine fingerprint refuses older replays as designed. All paired publication
-records now check initial state as well as stepped state; a one-squad case owns
-the regression through the public battle interface.
-
-**Verdict:** sound, high confidence. The observed sine difference reproduces the
-first state mismatch exactly, and the public native/Wasm regression passes with
-pinned math. Full-map parity is rechecked before performance admission resumes.
 ## C24 cutout
 
 **When:** 2026-10-02, with C25 and C26, in the model layer. Evidence is the `facade` scene's (`throwaway/evidence/facade/`).
@@ -6519,37 +5880,6 @@ Every page fetched every kit before it could start: about 116 MB of kit bundles,
 **Gap:** The brief and the lane's status put the whole download at "about 100 MB of kits".
 
 **Verdict:** gap, for whoever owns the download budget next. The same rule would cover it: a battle asks for the unit types its scenario fields, a map for the scenery its props take, through the request path kits now use. **Confidence:** high on the numbers, which are the files' sizes.
-## C07: warm cover-facing parity
-
-**Choice:** Use pinned `libm::atan2` in the existing cover-bearing calculation,
-without adding a scalar math wrapper or migrating unrelated trigonometry.
-
-**Evidence:** A generated battle's first divergent tick had only one squad's
-yaw and copied sight bearing differ by one float64 ULP. The two-rifle public
-paired fixture reproduces the same `(17, 100)` bearing and first fails at tick
-30, while float32 publication hides it. The existing math module has no shared
-bearing owner. This deliberately changes Native's last bits to the portable
-result; gameplay rules and the transport contract are unchanged.
-
-**Verdict:** sound; high confidence. Scope follows an observed field and public
-red proof, rather than assuming all standard math needs replacement. Remaining
-generated-battle parity must still be measured after integration.
-
-## C07: ricochet numerical primitive
-
-**Choice:** Canonicalize the whole existing ricochet scatter primitive's sine
-and cosine calls with the pinned `libm`, keeping its RNG consumption and rules.
-
-**Evidence:** Direct paired captures establish equal impact inputs and scatter
-basis before the first divergent azimuth cosine. Persistent-state equality
-alone would not have established that cause. A public damage-decision test uses
-fixed captured inputs and explicit rules; the passing two-unit battle candidate
-is not retained as a regression. Actual generated Native/Wasm playback validates
-the consumer without adding a diagnostic API or durable format.
-
-**Verdict:** sound; high confidence. This corrects named Native last bits at a
-measured primitive rather than migrating an inventory of unrelated math calls.
-
 ## C27: ruin and gutted art drawn by what a side knows
 
 ### The state is the published prop's type, read against the building row
@@ -6616,22 +5946,6 @@ measured primitive rather than migrating an inventory of unrelated math calls.
 
 - The `gutted` prop type still says `appearance.status: "systems_only"` and `drawn_by: "gutted"`. Its art exists and is drawn; the row is the simulation lane's.
 - The preview checkpoint: this pass ran as one of several agents, so no Preview window was opened. The frames are listed in the slice's Outcome.
-## C07: the existing rotation owner
-
-**Choice:** Pin the shared cached rotation evaluator with `libm::sincos`, rather
-than patching suppression, near-miss distances, particular angles or individual
-rotation consumers. Keep its matrix arithmetic and cached pair unchanged.
-
-**Evidence:** Exact prop poses and authoritative pre-event state did not imply
-identical transient normals. Event capture identified the first differing sine
-component at the same yaw, then its downstream hit-time/distance/suppression
-changes. A minimal public wall-ray query reproduces the float64 fault on Native
-and checks the actual Wasm query directly. Review selected the existing combined
-software evaluator to share argument reduction rather than call sine and cosine
-separately. No measured performance win is claimed.
-
-**Verdict:** sound; high confidence. This generalizes within an observed math
-owner while leaving unrelated, unproven numerical hypotheses alone.
 
 ## C86 tree lines (drawn half)
 
@@ -6703,53 +6017,6 @@ owner while leaving unrelated, unproven numerical hypotheses alone.
 
 **Verdict:** provisional. The rule it holds (yards on one side, crops on the other, in one frame) still fails if either is missing, but 3% is whatever today's generator leaves in frame; a station that follows the nearest drilled field would not need the number. **Confidence:** medium.
 
-## C07: one portable evaluator policy
-
-**Choice:** Use the existing pinned `libm` directly for authoritative sine,
-cosine, paired trig, `atan2` and now causally proven `hypot`, including shared
-terrain and ground-query consumers. Keep arguments and formula order; introduce
-no wrappers, dependencies, rounding or target-specific branches. Preserve paired
-rotation evaluation. Leave unrelated numeric families and test/render arithmetic
-outside this change.
-
-**Evidence:** Four earlier public parity failures crossed separate owners in the
-same trig family. The next failure traced equal blast inputs to the first
-`hypot` distance difference and then retained structural damage. Patching only
-one caller per tick would preserve inconsistent evaluator islands. The public
-rectangle-distance regression fails on the old Native owner and earns its
-portable bits without a battle-seed search or live-rule threshold. Current
-publication golden updates change only digest leaves, not packed observations.
-The parent's forest-density reversal is a separate input decision; frozen old
-input evidence is not promoted to current workload admission.
-
-**Verdict:** sound; high confidence in the named evaluator scope. No cost gain or
-whole-battle parity claim follows from these bounded proofs.
-
-
-## C07: shorter exact anchors at a measured delivery failure
-
-**Choice:** Change the existing sparse variable-word anchor from eight to three,
-with one constant shared by index construction and lookup. Keep fixed-row copy
-alignment and the same wire grammar. Accept the measured encoder and requested
-index-capacity increase to recover short retained spans; add no alternative
-selector or entity-specific schema.
-
-**Evidence:** Actual late tick 54 uses 21,008 B. Enumerating existing measured
-candidate sizes falsifies form selection as its cause: the selected group
-payloads already win. The shorter-anchor arm reconstructs every raw word of the
-entire captured 9,000-transition early stream and 54-transition late window;
-whole-record maxima become 17,152/19,328 B under the unchanged 19,800 B gate.
-Greedy matching makes 1,014 early records larger, although none exceeds the gate.
-A focused codec tracer is old-red/new-green and pins copied NaN/signed-zero bits.
-
-**Tradeoff:** Early encoder-only mean rises 66.3%, by 0.705 M retired
-instructions; the partial late mean rises 18.7%. The conservative aggregate
-requested index bound grows from 12.8 to 21⅓ MiB (22,369,620 bytes). These figures
-are neither whole-step cost nor observed process peak. No information is delayed,
-dropped, rounded or given a larger budget.
-
-**Verdict:** sound; high confidence in this bounded arm. Complete current late
-admission and browser/heap/overlap checks still decide closure.
 ## Town look, second pass
 
 Four things earlier unprimed reviews still found, taken in the owner's order: street warts left by the parcel pass's links, a city that is a disc round one crossroads, a large town that is a slab along one road, and suburb streets that read as wood grain. The model as it stands is in the [C52](slices/C52-procedural-generator.md#outcome) and [C53](slices/C53-parcels-and-buildings.md#outcome) outcomes and the [crate guide](../../crates/mapgen/README.md). Generator `layout-10`, presets `layout-presets-9`. Counts below are over the 36 maps of `tests/street_warts.rs` and `tests/road_ends.rs` (every type and size, seeds 1, 2, 3 and 2⁶⁴−1) unless a sweep is named.

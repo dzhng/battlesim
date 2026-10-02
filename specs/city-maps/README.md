@@ -29,9 +29,9 @@ Generate seeded battle maps with urban areas and usable surrounding plains on **
 
 **Current pickup (map lane):** a player starts a battle on a generated map from the main menu (type and size; the seed is drawn silently and rides in the address) or on a saved one (`market-town`), with replay ([C55](slices/C55-runtime-generation.md#outcome), [C58](slices/C58-offline-encounter.md#outcome)). Roads, street furniture, open country and three passes of the town look are on main. Next in this lane: the owner's decision on long moves, kerbside parking, then integration of the other lanes and closeout. A fourth town-look pass (outlines, seams, staggered crossings) is worth doing only if the owner still finds towns diagram-like in play.
 
-**Lanes run in parallel**, each with its own file and Status: the map lane (this prompt: roads, the town look, integration and closeout), the [scale lane](scale-lane.md) (simulation cost against its current acceptance contract), the [buildings lane](buildings-lane.md) and the [ground lane](ground-lane.md). The [sim rules lane](sim-lane.md) and the [startup lane](startup-lane.md) are finished. One GPU is shared: every scene and render goes through the lock (the root README's Checks section).
+**Lanes run in parallel**, each with its own file and Status: the map lane (this prompt: roads, the town look, integration and closeout), the [buildings lane](buildings-lane.md) and the [ground lane](ground-lane.md). The [scale lane](../done/city-maps-scale/README.md), [sim rules lane](sim-lane.md) and [startup lane](startup-lane.md) are finished. One GPU is shared: every scene and render goes through the lock (the root README's Checks section).
 
-Open from the planner: the attacker's squads start on foot 3 to 5 km from the objective (there is no transport); infantry route times through towns come back infinite, so only a jeep's drive is timed; no battle has yet shown a fight across an 1,800 m approach. Open elsewhere: the camera lab still compiles its own map; the village opening is silent since the range tuning (the sides start beyond gun range).
+Open from the planner: the attacker's squads start on foot 3 to 5 km from the objective (there is no transport); historically pending generated infantry journeys still require a complete arrival proof ([scale limits](../done/city-maps-scale/README.md#limits-that-remain-with-the-parent)); no battle has yet shown a fight across an 1,800 m approach. Open elsewhere: the camera lab still compiles its own map; the village opening is silent since the range tuning (the sides start beyond gun range).
 
 You are implementing `city-maps`. Use [implement-spec](../../.agents/skills/implement-spec/SKILL.md), use the current extents in [M04](procedural-maps.md#closed-decisions) and [startup/transit policy](scale-direction.md), and read the [S0 verdict](spikes/S0.md) before allocating full-size arms. Earlier extent measurements remain evidence at their original sizes, not the current preset definitions.
 
@@ -59,6 +59,7 @@ A slice marked "physical" has its systems half done; its look is in the visual p
 - [x] Town look, three passes: cities with arms on secondary roads, large towns on a second road, main settlements off the middle, streets square to every road, four-arm junctions at most, parks ([M27](procedural-maps.md#closed-decisions), [C52](slices/C52-procedural-generator.md#outcome), [C53](slices/C53-parcels-and-buildings.md#outcome))
 - [x] [C46 street furniture](slices/C46-street-placement.md) in generated towns (as stand-in boxes) · open country furnished so no sight circle is unbroken ([M24, M25](procedural-maps.md#closed-decisions))
 - [x] [Startup lane](startup-lane.md): C33 one prepared world · C20 fog at scale · the camera lab through the catalogue · a native-against-Wasm pair with combat. Deploy-to-playable is 5 to 6 s on the largest map against a budget of 30 s (the owner's, 2026-10-01), so startup time is closed
+- [x] [Scale lane](../done/city-maps-scale/README.md): exact cost, delivery and resource contracts admitted on the identified full reference; [decisions and measured scope](../done/city-maps-scale/evidence.md)
 - [x] Lab: [C57 camera clearance](slices/C57-camera-clearance.md) · the generated-map lab route
 
 **In flight (one branch each)**
@@ -68,8 +69,7 @@ A slice marked "physical" has its systems half done; its look is in the visual p
 - [ ] Kerbside parking: road journeys refuse a lane with a body beside it, so street furniture stands on the verge and terraced streets have no cover ([C46 outcome](slices/C46-street-placement.md#outcome)); when navigation tolerates it, `street_props.lane_margin_m` goes back to about 0.9
 - [ ] Long moves under move certification: a rehearsal's allowance runs out on a cross-map order, so long group moves on generated maps are refused or part-placed ([move validity](../done/move-validity/README.md)); the owner decides between rehearsing only the approach and a larger allowance
 - [ ] Town look, what is left: stair-step outlines, hard seams between building kinds, streets meeting a main road 20 to 45 m apart on either side, dead ends where a street was refused; do it if towns still read as diagrams in play
-- [ ] Scale at full extent: browser startup and memory, rendered surroundings, C20 fog at scale (C06/C07 are in the scale lane; C22/C23 in the buildings lane)
-- [ ] **[Scale lane](scale-lane.md)** (a second session, in parallel): whole-battle cost on a full generated map against the lane's current acceptance contract · C05 measuring · C06 sim scale passes · C07 publication. Its status lives in that file.
+- [ ] Scale at full extent: browser startup and memory, rendered surroundings, C20 fog at scale (C06/C07 are admitted on the [scale reference](../done/city-maps-scale/evidence.md); current-layout rendering integration and C22/C23 remain parent/buildings work)
 - [ ] [C54 integrated seed gate](slices/C54-generation-gate.md), after the lanes
 - [ ] C05 measuring tools (`city_report` is its first piece) · C10 third-party sources · C13/C32 template source and library schema · C21 material transport
 - [ ] Completion: C50 durability balance → C51 playable generated encounter (requires C54 and C87)
@@ -195,7 +195,7 @@ The 30 FPS floor, fixed sizes and [startup requirement](scale-direction.md#start
 | Ground lane | At most +3 ms GPU p50 on the village benchmark for the whole lane (trees ≤1.5, dressing ≤1, grass ≤0.5); GG ratifies | village benchmark, C87 |
 | GPU memory | City adds ≤400 MB buffers and ≤200 MB textures over the village row | benchmark columns |
 | Publication | Provisional steady-state target ≤19.8 KB/tick; G0 separately ratifies full snapshot/resubscription bytes and delivery time at every selected extent | `city_report`, worker delivery probe |
-| Sim | Measured early/late throughput meets the [scale lane's current contract](scale-lane.md#the-contract); retain step distributions and instruction counts | `city_report` (instructions retired), full-map browser stress |
+| Sim | Measured early/late throughput meets the [closed scale contract](../done/city-maps-scale/README.md#contracts-that-must-survive); retain step distributions and instruction counts | `city_report` (instructions retired), full-map browser stress |
 | Download | JS gzip within ±5%; provisional saved-map ≤25 MB and shared kit ≤50 MB; G0 adds reusable template library and runtime startup/download budgets | `vite build`, library output, worker load probe |
 | Village | Digests unchanged unless named; `endurance_report` instructions ±1% on digest-neutral slices | digest and replay tests, `endurance_report` |
 
