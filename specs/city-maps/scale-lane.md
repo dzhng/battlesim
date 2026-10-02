@@ -31,7 +31,11 @@ A change this lane needs outside its column is a small, named commit, mentioned 
 3. **[C07 publication at scale](slices/C07-publication-at-scale.md):** what the simulation hands the page each tick, including the late-battle growth (remains, known props).
 4. **The browser stress checks** (`endurance` and `benchmark` scenes), with measured simulation throughput at least 25 Hz early and late on this machine. Retain actual rates and frame/tick distributions; run the full-map admission at the performance milestone, not before each commit or push.
 5. **The whole pipeline over many seeds** (the tooling half of [C54](slices/C54-generation-gate.md)): one runner that, for each map type, size and a set of seeds, generates the map, plans the `assault` encounter and plays a short battle, and reports every refusal with its reason, units that never reach their goal, and tick cost. Fix what it finds in the simulation; report what it finds in the generator or the planner in Status.
-6. **Two faults it will meet, known already:** infantry route times through a town come back infinite (`NavGrid::route_time`), so the encounter planner can only time a jeep ([C59 outcome](slices/C59-encounter-planner.md#outcome)); and a replay carries no engine build identity, so a build that changes simulation code without changing the scenario replays to a different battle unrefused ([C55 outcome](slices/C55-runtime-generation.md#outcome)).
+6. **Historical faults now repaired:** infantry route timing uses the refined
+   connectors and living-member starts described in C06; replay admission carries
+   and checks the engine build identity. Their focused public proofs remain part
+   of the lane's regression coverage. The parent's compiled-scenario replay
+   storage debt is separate; it does not reopen these completed repairs.
 
 ## How to work
 
@@ -41,50 +45,53 @@ Read [`AGENTS.md`](../../AGENTS.md): narrow checks only, no full gate. A perform
 
 ## Status
 
-**C05 is complete; C06/C07 admission remains open.** Integrated fixes are on main
-`17dd1704`. Fresh native/Wasm build `c1fb0f09…` matches, with physical catalogue
-`6b0a5e8b…` and current rules `b7e67721…`. Focused navigation, planning/replay,
-publication, authority/decoder and type checks pass. The complete historical
-measurements freeze `13beacf9` / build `6b3eb26d…` / rules `a59680c1…`; they are
-controls, not current admission.
+**Performance implementation is integrated; cross-target admission is red.**
+The `b5c63565` control of move certification leaves the former stress opening mostly inactive: three
+rounds in 900 ticks. The pending named workload correction starts the same 200 living
+units 200 m closer to contact, using the existing placement projection. It keeps
+the full Metro Large seed-4 world, all scripts, unit types, rules and late remains.
+The unmodified core on that corrected input launches 8,835 early / 19,579 late
+rounds in 900 ticks. This validates combat cost; it does not repair refused moves.
+
+Two exact movement cost passes are integrated: avoid local steering geometry
+when no member can steer, and omit cover-position rows neither immutable side
+knowledge can read. Their paired whole-Orders gains are 25.7% early and 13.69%
+late respectively, with identical every-tick digests and complete observations.
+Focused movement, cover, sensing and city-placement checks pass on the combined
+source; the further latest-main merge `16deaca8` passes 57 focused movement,
+cover, delivery and admission tests. It adds movement repairs and street
+furniture, so final native/Wasm builds and all admission inputs are refreshed. The pending browser harness requires rising shot counters
+from at least ten own units during measurement in each generated arm lasting 30 seconds or more.
 
 Current pickup, in order:
 
-1. Resolve current-main move-certification cost and workload validity before a
-   long admission run. The unmodified Metro Large seed-4 probe spends
-   **113,197.618 million instructions in Orders at its worst scripted tick**.
-   At tick 150, only eight of blue's 74 first-wave fighters acquire goals and
-   none of red's do. This is observed execution, not hidden command verdicts;
-   nested profiling confirms validation-work exhaustion. The unchanged 30 s
-   extension fires three rounds and loses one vehicle; red still has no movement
-   goals. It does not establish the intended dense contact workload. An exact
-   CPU optimization preserves those refusals, so workload validity needs a
-   movement-admission resolution or an explicitly accepted representative input.
-   Keep destination truthfulness,
-   physical rules, the validation allowance and the stress recipe intact while
-   selecting a fix or explicitly separating that incoming movement work.
-2. Run both complete 9,000-tick contact arms after that contract is resolved.
-   The infantry refinement fix uses the existing failure/revision
-   replan path when a newly known body closes a shared edge; its public regression
-   proves a physically safe route, no pending job and exact serialized replay.
-   Admit the lossless ground-tail correction on those fresh battles. The original
-   early arm reached **33,496 B**, above the unchanged **19,800 B** maximum.
-   Exact captured-record reconstruction now reaches **18,652 B** early; late is
-   only a partial corpus because the old navigation panic interrupted it.
-   Producer/decoder checks pass; no knowledge delay, quantization or allowance
-   increase occurs. Snapshots, full active heap and real browser overlap remain
-   measurement gates.
-3. The three fresh short-sweep extensions now refuse all requested destinations.
-   Their ten infantry remain idle through 120 s with null goals and no pending
-   work. This does **not** resolve the historical planning delays: current
-   certification prevents the routes from entering planning. Revisit that proof
-   after movement admission is resolved; do not count refused orders as progress.
-4. Run the full generated-map browser `endurance` milestone once native contracts
-   pass. Admit at least 25 Hz early and late; retain actual distributions. The
-   current `benchmark` loads the village: its short run is a regression control,
-   not Large-city frame/tour admission. A short reset run proves resource lifetime
-   only. No browser gate precedes each commit or push; parent full gates belong
-   to parent closeout.
+1. Repair the observed warm-state difference before the long runs. Source
+   `1907ec50` plus the pending 1050 m recipe builds as `4e3a8559…`, with layout-8
+   Metro Large seed-4 map `003acfac…` and current rules `4994f55c…` (new forest
+   bodies). Both initial states, scenario bytes, replay identities and cold
+   publications now agree exactly after pinned arrangement math. Ticks 0–29
+   also agree. At tick 30, state digests differ while the 3,504 B publication
+   remains identical. Unit 90's cover-facing angle differs by one bit in
+   platform `atan2(17, 100)`; positions and world bodies agree. Temporary
+   diagnostics are removed. Pin this calculation and prove a small public
+   native/Wasm regression before rechecking the full input. Packed agreement
+   cannot substitute for state parity.
+2. Once exact cross-target state parity passes, run both complete
+   9,000-tick contact arms: whole-record maximum remains
+   **19,800 B**, with unchanged replay, decoder and delivery contracts. Historical
+   captured-codec maxima of 18,652 B early and 15,280 B partial late are controls,
+   not current admission. Measure full active heap, snapshots and copy overlap;
+   the codec's 64 MiB ceiling is not a snapshot performance budget.
+3. Run the full generated-map browser endurance milestone once native contracts
+   pass. Admit at least **25 Hz early and late**, retaining actual distributions,
+   contact proof and reset resource counts. Run the village benchmark short as a
+   regression control. No browser gate precedes each commit or push; parent full
+   gates belong to parent closeout.
+4. Complete the whole-owned review and consolidate the scale choices ledger.
+   Keep the historical movement-admission finding separate: all commands in
+   the three fresh 120 s infantry extensions are refused before planning. Those
+   idle results do not prove the historical planning delays resolved. Refresh
+   journey-completion proofs against the newly merged admission fixes; historical refused routes cannot certify their behavior.
 
 The historical matrix retains all 90 type × size × seed requests: 89 battles play
 80,100 ticks and one encounter is refused, with no generation refusal or panic.

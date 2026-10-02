@@ -5689,6 +5689,28 @@ The models, their boxes and the sheets are in the [C45 outcome](slices/C45-stree
 
 **Verdict:** sound for one model. A street of identical grey cars will read as clones; more bodies or colours are more appearances of the same kind at slightly different boxes, or a per-instance tint the scenery path does not have. **Confidence:** medium.
 
+## C06: restore contact by staging the existing stress fronts within weapon reach
+
+**Choice:** Move the generated stress recipe's living starts 200 m closer to
+contact using its existing legal-placement projection. Keep all commands,
+physical rules, unit counts, full world and late remains. Incoming movement
+certification refuses most scripted journeys; a combat benchmark should still
+make both forces fight without changing that production policy.
+
+**Gap:** The plan names active contact but does not prescribe how to preserve
+that workload when incoming movement admission changes. This correction is a
+new named benchmark input, never an outcome-preserving optimization.
+
+**Reach:** Generated stress starts change; normal battles and saved stress starts
+do not. Rising published shot counters guard contact during measurement in the generated browser
+arms. Refused journeys remain a separate finding and cannot prove the historical
+planning-delay cases resolved.
+
+**Verdict:** sound, medium confidence. This makes combat representative of the
+stated load while preserving production rules; it leaves marching cost dependent
+on future movement admission. Full scale acceptance still requires fresh combined
+receipts.
+
 ## C06: use pinned software trig for seeded soldier placement
 
 **Choice:** Squad arrangement and nearest-free ring samples use the existing

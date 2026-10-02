@@ -618,6 +618,31 @@ already cover the behavior, so no private field-layout test or duplicate model
 was added. Raw commands, identities, per-tick proofs and counters stay in ignored
 publication-worktree `throwaway/scale-lane/field-*` artifacts.
 
+## Outcome — restore combat in the generated stress input
+
+The `b5c63565` move-certification control leaves the previous opening with three rounds
+in 900 ticks. The benchmark fronts move 200 m closer to contact through the
+existing placement projection: every living start changes, but unit properties,
+all 632 scripted commands, rules, map, seeds, 100 units a side and the late
+20,000 corpses / 2,000 wrecks remain. This is a named workload correction, not a
+performance improvement or a repair of long-move admission. No validation
+allowance or destination truthfulness changes.
+
+The corrected input on the unmodified `c1fb0f09…` engine launches 8,835 rounds in
+900 ticks early, with at least 28 blue and 29 red surviving units carrying actual
+shot counters. The late paired input launches 19,579 rounds, with 73 blue and 68
+red actual firing units. These counters avoid interpreting ammunition lost with
+a casualty as firing. The factory-only and unmodified core produce identical
+checkpoint rows, digests and complete observations on the same serialized input.
+Scripts still fail to acquire travel goals; combat admission does not establish
+marching admission. Original and corrected workload identities stay distinct.
+
+The real browser harness checks at least ten own units firing during measurement in each generated
+arm lasting 30 seconds or more, sampling the existing public observation beside
+its telemetry. Saved-field and short resource-only runs keep their existing
+coverage. Combined native/Wasm, full 9,000-tick delivery/memory and real-time
+browser admission remain open until their fresh receipts are recorded.
+
 ## Outcome — portable seeded placement
 
 The first differing authoritative field is one soldier's Y coordinate, one bit
@@ -637,3 +662,18 @@ state and all six subsequent publication/digest rows agree; existing record rows
 are unchanged and gain initial digest checks. Focused public placement and
 formation/replay checks pass. Full generated-map parity remains the next gate;
 no long performance run is claimed from this small regression.
+
+## Finding — warm-state parity after the placement repair
+
+On current source `1907ec50` plus the pending 1050 m input, build `4e3a8559…`,
+map `003acfac…` and rules `4994f55c…`, actual native/Wasm initial states,
+scenario bytes, replay identities and cold publications agree in both arms.
+The new forest bodies belong to the incoming main policy; control identities
+remain distinct. The early precheck agrees on every digest and raw publication
+through tick 29. Tick 30 differs: native `e253b286ce0e2632`, Wasm
+`10faa6cdfa9b2a39`; the 3,504 B publication words still agree. The first differing
+field is unit 90's cover-facing yaw from platform `atan2(17, 100)`, one bit apart;
+all member positions, world-body poses and projectile fields agree. Temporary
+diagnostics are removed. Long admissions remain held until the facing repair
+passes a public paired regression. No float
+normalization, alternate input or time/budget change counts as a repair.
