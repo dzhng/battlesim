@@ -985,3 +985,49 @@ fn a_soldier_hard_against_a_wall_still_gets_a_route() {
         }
     }
 }
+
+/// A vehicle passing beside a parked body may occupy its stamped cell
+/// without touching it. The body's actual near face decides whether it
+/// would be shoved; crossing that face still counts as contact.
+#[test]
+fn a_stamped_car_cell_does_not_mean_a_clear_drive_shoves_the_car() {
+    let w = world(
+        r#", "props": [{"kind":"parked_car","center":[200,106],"yaw":0,"half_extents":[2.1,0.9,0.75]}]"#,
+    );
+    let g = grid(&w);
+    let vehicle = Mobility {
+        half_width_m: 1.0,
+        ..TANK
+    };
+    assert!(!g.route_pushes(v2(180.0, 104.01), &[v2(220.0, 104.01)], &vehicle));
+    assert!(g.route_pushes(v2(180.0, 105.2), &[v2(220.0, 105.2)], &vehicle));
+}
+
+/// Refining roadside bodies does not give a vehicle permission to hang
+/// its footprint off the map or over an untraversable river bank.
+#[test]
+fn vehicle_placement_keeps_its_footprint_on_traversable_ground() {
+    let w = world(
+        r#", "rivers":[{"points":[{"xy":[200,0],"width_m":20,"depth_m":1.5},{"xy":[200,200],"width_m":20,"depth_m":1.5}],"surface_z":-0.5}]"#,
+    );
+    let g = grid(&w);
+    for point in [
+        v2(0.01, 50.0),
+        v2(399.99, 50.0),
+        v2(100.0, 0.01),
+        v2(100.0, 199.99),
+        v2(189.99, 50.0),
+        v2(210.01, 50.0),
+    ] {
+        assert!(
+            !g.placement_fits(point, &TANK),
+            "footprint crosses edge at {point:?}"
+        );
+        assert!(
+            !g.fits_at(point, &TANK),
+            "route starts over edge at {point:?}"
+        );
+    }
+    assert!(g.placement_fits(v2(184.0, 50.0), &TANK));
+    assert!(g.placement_fits(v2(216.0, 50.0), &TANK));
+}

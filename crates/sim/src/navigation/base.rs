@@ -25,6 +25,17 @@ pub(super) struct Body {
 }
 
 impl Body {
+    pub(super) fn blocks_vehicle(
+        &self,
+        p: crate::math::V2,
+        radius: f64,
+        push: contract::scenario::PushClass,
+    ) -> bool {
+        self.stops_vehicles
+            && self.weight >= push.rank().max(1)
+            && self.footprint.contains(p, radius)
+    }
+
     /// `prop` as a grid lays it, if it stops any ground mover.
     pub fn of(prop: &Prop) -> Option<Body> {
         let body = Body {

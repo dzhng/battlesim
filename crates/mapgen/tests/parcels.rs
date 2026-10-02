@@ -193,6 +193,42 @@ fn floors(building: &BuildingDefinition) -> usize {
     building.geometry.floor_z.as_ref().unwrap().len()
 }
 
+/// The accepted building kits can reach 1.5 m beyond their physical parts.
+/// That air belongs inside each building's parcel, including when a dense
+/// district selects apartments beside terraces rather than houses alone.
+#[test]
+fn parcels_leave_room_for_facade_art_around_every_building_part() {
+    every_cell(|name, _, town| {
+        let lots: BTreeMap<_, _> = town
+            .plan
+            .lots
+            .iter()
+            .map(|lot| (lot.id.as_str(), lot.ring.as_slice()))
+            .collect();
+        for (placed, building) in town.plan.buildings.iter().zip(&town.map.buildings) {
+            let lot = lots[placed.id.as_str()];
+            for part in &building.geometry.parts {
+                let mut envelope = part.clone();
+                envelope.half_extents[0] += 1.5;
+                envelope.half_extents[1] += 1.5;
+                for point in corners(&envelope) {
+                    // Parcel vertices and placement translations round to cm;
+                    // allow their combined rounding, never metres of intrusion.
+                    let on_edge = contract::ground::edges(lot)
+                        .any(|(a, b)| segment_gap(*a, *b, point) <= 0.02);
+                    assert!(
+                        polygon_contains(lot, point) || on_edge,
+                        "{name}: {} ({}) part {} leaves its parcel's art clearance at {point:?}",
+                        placed.id,
+                        placed.template_id,
+                        part.id
+                    );
+                }
+            }
+        }
+    });
+}
+
 #[test]
 fn a_fixed_request_gives_the_same_plan_and_map_bytes_every_run() {
     let (presets, catalogue) = (presets(), catalogue());

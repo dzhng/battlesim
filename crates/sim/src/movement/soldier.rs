@@ -813,13 +813,39 @@ pub(super) fn step_squad(
         } else if homing && to_spot < SETTLE_M && stuck {
             // He can get no closer (someone stands there): here will do.
             s.spot = Some(next.xy());
-        } else if homing && stuck && ctx.tick >= s.planned_at + every {
-            // Jammed on his final stretch: squadmates already on their spots
-            // stand in his way (a squad lining up along a wall files past
-            // the men in place). He plans again round the soldiers about him.
+        } else if stuck && ctx.tick >= s.planned_at + every {
+            // A man may be jammed while his squadmates still advance. Find
+            // his own way round the nearby soldiers, on the final stretch
+            // or back to the corridor, without waiting for the whole squad.
+            // A failed local target search is an attempt too.
+            s.planned_at = ctx.tick;
             let mut standing = Vec::new();
             crowd.near(id, next.xy(), CROWD_BUCKET_M, |q| standing.push(q));
-            plan_own(ctx, side, &around, s, spot, &standing);
+            let to = if homing {
+                Some(spot)
+            } else {
+                s.path.last().copied().or_else(|| {
+                    let c = corridor?;
+                    let t = c.along(s.leg, next.xy()).clamp(0.0, 1.0);
+                    let reach = ctx.infantry.window_m / 2.0 - 2.0;
+                    c.rejoin(
+                        s.leg,
+                        t,
+                        ctx.infantry.steer_ahead_m,
+                        next.xy(),
+                        reach,
+                        |p| {
+                            around.stands(p, ctx.soldier_radius_m)
+                                && standing
+                                    .iter()
+                                    .all(|q| (*q - p).length() >= 2.0 * ctx.soldier_radius_m)
+                        },
+                    )
+                })
+            };
+            if let Some(to) = to {
+                plan_own(ctx, side, &around, s, to, &standing);
+            }
         }
         let on = s
             .spot

@@ -2,31 +2,31 @@
   "cases": [
     {
       "name": "mixed small, the lab's map",
-      "request_json": "{\"generator_version\":\"layout-11\",\"preset_revision\":\"layout-presets-10\",\"seed\":\"1\",\"template_catalog_hash\":\"6b0a5e8be69e9309bd16db843fa7ecaad672616874978ecfde0fd9332c3e6316\",\"type\":\"mixed\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "request_json": "{\"generator_version\":\"layout-12\",\"preset_revision\":\"layout-presets-11\",\"seed\":\"1\",\"template_catalog_hash\":\"6b0a5e8be69e9309bd16db843fa7ecaad672616874978ecfde0fd9332c3e6316\",\"type\":\"mixed\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
       "recipe": "assault",
       "encounter_seed": "1",
-      "native_sha256": "016dfb71cbfb8f9ce19408c38a975ea5d8bfabc20872c1d14086746ed80207e1",
+      "native_sha256": "06552229db01dacd05cf141bf0ee3e2f6202259187c77225583cbe1943891a6a",
       "status": "ok"
     },
     {
       "name": "open small with a river",
-      "request_json": "{\"generator_version\":\"layout-11\",\"preset_revision\":\"layout-presets-10\",\"seed\":\"2\",\"template_catalog_hash\":\"6b0a5e8be69e9309bd16db843fa7ecaad672616874978ecfde0fd9332c3e6316\",\"type\":\"open\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "request_json": "{\"generator_version\":\"layout-12\",\"preset_revision\":\"layout-presets-11\",\"seed\":\"2\",\"template_catalog_hash\":\"6b0a5e8be69e9309bd16db843fa7ecaad672616874978ecfde0fd9332c3e6316\",\"type\":\"open\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
       "recipe": "assault",
       "encounter_seed": "1",
-      "native_sha256": "fcc727776353000fc6eeb44cbfddb7f488370d3fe29595367ea8bd79bfc8d61d",
+      "native_sha256": "eb640bde85b15b012b4e9f5326edf7264578cca53b4e329e3df7f64191550317",
       "status": "ok"
     },
     {
       "name": "metro small with a river, an encounter seed above the JavaScript integer range",
-      "request_json": "{\"generator_version\":\"layout-11\",\"preset_revision\":\"layout-presets-10\",\"seed\":\"3\",\"template_catalog_hash\":\"6b0a5e8be69e9309bd16db843fa7ecaad672616874978ecfde0fd9332c3e6316\",\"type\":\"metro\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "request_json": "{\"generator_version\":\"layout-12\",\"preset_revision\":\"layout-presets-11\",\"seed\":\"3\",\"template_catalog_hash\":\"6b0a5e8be69e9309bd16db843fa7ecaad672616874978ecfde0fd9332c3e6316\",\"type\":\"metro\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
       "recipe": "assault",
       "encounter_seed": "18446744073709551615",
-      "native_sha256": "964f13103cf29c1e8f64a77060d4e61cd274aa846c5018680d4f616d66fc60d5",
+      "native_sha256": "852f5aacd20e0558af3d2b91033ab39cd2bf670196b9d37d8582c07671e7cdb1",
       "status": "ok"
     },
     {
       "name": "no building within reach of the objective",
-      "request_json": "{\"generator_version\":\"layout-11\",\"preset_revision\":\"layout-presets-10\",\"seed\":\"1\",\"template_catalog_hash\":\"6b0a5e8be69e9309bd16db843fa7ecaad672616874978ecfde0fd9332c3e6316\",\"type\":\"mixed\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "request_json": "{\"generator_version\":\"layout-12\",\"preset_revision\":\"layout-presets-11\",\"seed\":\"1\",\"template_catalog_hash\":\"6b0a5e8be69e9309bd16db843fa7ecaad672616874978ecfde0fd9332c3e6316\",\"type\":\"mixed\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
       "recipe": "assault",
       "recipe_patch": {
         "garrison": {
@@ -39,7 +39,7 @@
     },
     {
       "name": "a start that cannot be made fair",
-      "request_json": "{\"generator_version\":\"layout-11\",\"preset_revision\":\"layout-presets-10\",\"seed\":\"3\",\"template_catalog_hash\":\"6b0a5e8be69e9309bd16db843fa7ecaad672616874978ecfde0fd9332c3e6316\",\"type\":\"metro\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "request_json": "{\"generator_version\":\"layout-12\",\"preset_revision\":\"layout-presets-11\",\"seed\":\"3\",\"template_catalog_hash\":\"6b0a5e8be69e9309bd16db843fa7ecaad672616874978ecfde0fd9332c3e6316\",\"type\":\"metro\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
       "recipe": "assault",
       "recipe_patch": {
         "deployment": {
@@ -53,7 +53,7 @@
     },
     {
       "name": "a seed that is not canonical decimal text",
-      "request_json": "{\"generator_version\":\"layout-11\",\"preset_revision\":\"layout-presets-10\",\"seed\":\"1\",\"template_catalog_hash\":\"6b0a5e8be69e9309bd16db843fa7ecaad672616874978ecfde0fd9332c3e6316\",\"type\":\"mixed\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
+      "request_json": "{\"generator_version\":\"layout-12\",\"preset_revision\":\"layout-presets-11\",\"seed\":\"1\",\"template_catalog_hash\":\"6b0a5e8be69e9309bd16db843fa7ecaad672616874978ecfde0fd9332c3e6316\",\"type\":\"mixed\",\"size\":\"small\",\"limits\":{\"max_authored_parts\":60000,\"max_bay_positions\":600000,\"max_ground_points\":200000}}",
       "recipe": "assault",
       "encounter_seed": "01",
       "native_sha256": "f9f2d069d0c30be88ec5162ae9172c0e0f7b3ca2fe2d52c5dc78b744e248fdf1",

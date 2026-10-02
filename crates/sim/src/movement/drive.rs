@@ -411,8 +411,8 @@ pub fn pivot(world: &WorldGeometry, unit: &mut Unit, dt: f64) {
 }
 
 /// Drop the waypoints a wheeled vehicle has done with before it steers:
-/// one reached, one it passes abeam, and a corner it turns into early (a
-/// fillet of its radius, at most half a radius before the corner). Returns
+/// one reached or one it passes abeam. A route's corners supply clearance;
+/// the steering owner follows them at the hull's turning radius. Returns
 /// whether the route's end is reached.
 pub fn prune(unit: &mut Unit) -> bool {
     let Some(drive) = unit.mobility.drive.filter(|d| !d.tracked) else {
@@ -427,12 +427,7 @@ pub fn prune(unit: &mut Unit) -> bool {
         let error = wrap_angle(libm::atan2(to.y, to.x) - heading).abs();
         let reached = distance < super::PROGRESS_EPSILON_M
             || (distance < drive.feel.abeam_m && error > drive.feel.abeam_deg.to_radians());
-        let early = route.get(1).is_some_and(|&next| {
-            let out = next - wp;
-            let corner = wrap_angle(libm::atan2(out.y, out.x) - libm::atan2(to.y, to.x)).abs();
-            distance <= (drive.radius_m * (corner / 2.0).tan()).min(drive.radius_m / 2.0)
-        });
-        if !(reached || early) {
+        if !reached {
             break;
         }
         route.remove(0);

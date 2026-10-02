@@ -11,6 +11,114 @@ use super::{NavBase, NavGrid};
 use crate::math::{v2, V2};
 use crate::world::{Prop, PropId, WorldGeometry};
 
+/// One point's exact known-body query, read in fixed groups so a dense
+/// bucket never turns a road probe into an indivisible whole-world scan.
+pub(super) struct BodyCheck {
+    point: V2,
+    width: f64,
+    push: contract::scenario::PushClass,
+    buckets: Vec<usize>,
+    bucket: usize,
+    own: bool,
+    index: usize,
+}
+impl BodyCheck {
+    pub(super) fn new(
+        grid: &NavGrid,
+        point: V2,
+        width: f64,
+        push: contract::scenario::PushClass,
+    ) -> Self {
+        let reach = width * std::f64::consts::SQRT_2;
+        let (i0, j0) = cell_of(point - v2(reach, reach));
+        let (i1, j1) = cell_of(point + v2(reach, reach));
+        let mut buckets = Vec::new();
+        for j in j0..=j1 {
+            for i in i0..=i1 {
+                if grid.index(i, j).is_none() {
+                    continue;
+                }
+                let bucket = body_bucket(i as usize, j as usize, grid.nx);
+                if !buckets.contains(&bucket)
+                    && (grid.base.bodies_in(bucket).next().is_some()
+                        || grid.laid_in.get(&bucket).is_some_and(|ids| !ids.is_empty()))
+                {
+                    buckets.push(bucket);
+                }
+            }
+        }
+        Self {
+            point,
+            width,
+            push,
+            buckets,
+            bucket: 0,
+            own: false,
+            index: 0,
+        }
+    }
+    pub(super) fn advance(&mut self, grid: &NavGrid, paid: bool) -> Option<bool> {
+        if self.bucket == self.buckets.len() {
+            return Some(true);
+        }
+        if paid {
+            grid.spend(1);
+        }
+        for _ in 0..super::READS_PER_WORK {
+            let Some(&bucket) = self.buckets.get(self.bucket) else {
+                return Some(true);
+            };
+            let body = if self.own {
+                match grid
+                    .laid_in
+                    .get(&bucket)
+                    .and_then(|ids| ids.get(self.index))
+                {
+                    Some(id) => {
+                        self.index += 1;
+                        grid.laid[id].as_ref()
+                    }
+                    None => {
+                        self.bucket += 1;
+                        self.own = false;
+                        self.index = 0;
+                        continue;
+                    }
+                }
+            } else {
+                match grid.base.bodies_in(bucket).nth(self.index) {
+                    Some((id, body)) => {
+                        self.index += 1;
+                        (!grid.laid.contains_key(id)).then_some(body)
+                    }
+                    None => {
+                        self.own = true;
+                        self.index = 0;
+                        continue;
+                    }
+                }
+            };
+            if body.is_some_and(|body| body.blocks_vehicle(self.point, self.width, self.push)) {
+                return Some(false);
+            }
+        }
+        None
+    }
+    pub(super) fn digest(&self, d: &mut crate::digest::Digest) {
+        d.u64(self.buckets.len() as u64);
+        for bucket in &self.buckets {
+            d.u64(*bucket as u64);
+        }
+        d.f64(self.point.x)
+            .f64(self.point.y)
+            .f64(self.width)
+            .u64(self.push.rank() as u64)
+            .u64(self.bucket as u64)
+            .u64(self.own as u64)
+            .u64(self.index as u64);
+    }
+}
+
 impl NavGrid {
     /// A side's grid that knows the map as `base` has it, and nothing else.
     pub fn new(base: Arc<NavBase>) -> Self {
@@ -123,17 +231,7 @@ impl NavGrid {
             if bucket != Some(k) {
                 bucket = Some(k);
                 stamps.clear();
-                let map = base
-                    .bodies_in(k)
-                    .filter(|(id, _)| !self.laid.contains_key(id))
-                    .map(|(_, body)| body);
-                let own = self
-                    .laid_in
-                    .get(&k)
-                    .into_iter()
-                    .flatten()
-                    .filter_map(|id| self.laid[id].as_ref());
-                stamps.extend(map.chain(own).map(|body| body.stamp(r, nx, ny)));
+                stamps.extend(self.bodies_in(k).map(|body| body.stamp(r, nx, ny)));
             }
             let (i, j) = (at % nx, at / nx);
             let old = self.cells[at];
@@ -153,6 +251,37 @@ impl NavGrid {
         let relaid: Vec<usize> = relaid.into_iter().map(|(_, at)| at).collect();
         self.relaid += relaid.len() as u64;
         settle(&mut self.cells, &relaid);
+    }
+
+    /// A diagnostic can finish the same query that route probes yield.
+    pub(super) fn bodies_clear(
+        &self,
+        point: V2,
+        width: f64,
+        push: contract::scenario::PushClass,
+    ) -> bool {
+        let mut check = BodyCheck::new(self, point, width, push);
+        loop {
+            if let Some(clear) = check.advance(self, false) {
+                return clear;
+            }
+        }
+    }
+
+    /// The bodies in a bucket after this side's replacements and removals.
+    fn bodies_in(&self, bucket: usize) -> impl Iterator<Item = &Body> {
+        let map = self
+            .base
+            .bodies_in(bucket)
+            .filter(|(id, _)| !self.laid.contains_key(id))
+            .map(|(_, body)| body);
+        let own = self
+            .laid_in
+            .get(&bucket)
+            .into_iter()
+            .flatten()
+            .filter_map(|id| self.laid[id].as_ref());
+        map.chain(own)
     }
 
     /// The body this grid has laid for prop `id`.

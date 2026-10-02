@@ -9,7 +9,10 @@
 //! vehicle cell remembers the heaviest body over it, so a class that can
 //! shove that body passes it at the cost of its shoving speed, and a class
 //! that cannot is blocked. A clearance field per push class lets a
-//! footprint of any width ask whether it fits.
+//! footprint of any width ask whether it fits. Vehicle segments refine
+//! coarse body refusals against this side's exact known footprints, while
+//! retaining terrain and map-edge clearance. A nearby body's stamped cells
+//! need not close a road that has actual width to pass it.
 //!
 //! The grid is what a route is checked on, not what works one out. A leg's
 //! route is a [`Journey`]: by road where the map's road graph ([`RoadNet`])
@@ -89,8 +92,8 @@ const START_REACH_M: f64 = NAV_CELL_M * 2.0;
 /// clearance tile since its side last learned anything costs about this
 /// many, which is what working the tile out costs.
 const TILE_WORK: u64 = 64;
-/// How many samples along a route segment one unit of work reads.
-const SAMPLES_PER_WORK: usize = 8;
+/// How many segment samples or known-body slots one unit of work reads.
+const READS_PER_WORK: usize = 8;
 /// How many cells of a traced path one unit of work reads.
 const CELLS_PER_WORK: usize = 32;
 /// The most one indivisible step of a search costs, and so the most a tick's
@@ -293,6 +296,12 @@ impl<'a> Mover<'a> {
     fn free(m: &'a Mobility) -> Self {
         Mover { m, avoid: &[] }
     }
+
+    fn clears(&self, point: V2) -> bool {
+        self.avoid
+            .iter()
+            .all(|body| !body.contains(point, self.m.half_width_m))
+    }
 }
 /// A straight segment being costed a stretch at a time, so no one step of a
 /// search reads a long one whole ([`NavGrid::read`]).
@@ -303,9 +312,18 @@ struct Probe {
     samples: usize,
     next: usize,
     total: f64,
+    bodies: Option<update::BodyCheck>,
 }
 
 impl Probe {
+    fn digest(&self, d: &mut crate::digest::Digest) {
+        d.u64(self.next as u64)
+            .f64(self.total)
+            .u64(self.bodies.is_some() as u64);
+        if let Some(bodies) = &self.bodies {
+            bodies.digest(d);
+        }
+    }
     /// Samples one read takes: 64 m of a vehicle's segment.
     const STRETCH: usize = 128;
 
@@ -320,6 +338,7 @@ impl Probe {
             samples: (((b - a).length() / spacing).ceil() as usize).max(1),
             next: 0,
             total: 0.0,
+            bodies: None,
         }
     }
 }
@@ -576,13 +595,7 @@ impl NavGrid {
                         >= m.half_width_m
             }
         };
-        enters
-            && who.avoid.iter().all(|f| {
-                !f.contains(
-                    cell_center(cell % self.nx, cell / self.nx),
-                    m.half_width_m + NAV_CELL_M / 2.0,
-                )
-            })
+        enters && who.clears(cell_center(cell % self.nx, cell / self.nx))
     }
 
     /// A step's cost on this cell: its length, or its time for the fastest
@@ -639,9 +652,7 @@ impl NavGrid {
             let samples = ((length / (NAV_CELL_M / 4.0)).ceil() as usize).max(1);
             let pushes = (0..samples).any(|k| {
                 let p = a + (b - a) * ((k as f64 + 0.5) / samples as f64);
-                let (i, j) = cell_of(p);
-                self.index(i, j)
-                    .is_some_and(|c| self.cells[c].heaviest != NO_BODY)
+                !self.bodies_clear(p, m.half_width_m, PushClass::None)
             });
             a = b;
             pushes
@@ -677,6 +688,41 @@ impl NavGrid {
         nearby.into_iter().find(|&q| self.placement_fits(q, m))
     }
 
+    /// Body refinement keeps the vehicle's whole width on traversable
+    /// terrain. A known prop may be refined; a bank or map edge may not.
+    fn ground_clear(&self, p: V2, radius: f64, paid: bool) -> bool {
+        if p.x < radius
+            || p.y < radius
+            || p.x + radius >= self.nx as f64 * NAV_CELL_M
+            || p.y + radius >= self.ny as f64 * NAV_CELL_M
+        {
+            return false;
+        }
+        let (i0, j0) = cell_of(p - v2(radius, radius));
+        let (i1, j1) = cell_of(p + v2(radius, radius));
+        let mut reads = 0;
+        for j in j0..=j1 {
+            for i in i0..=i1 {
+                reads += 1;
+                if paid && reads % READS_PER_WORK == 1 {
+                    self.spend(1);
+                }
+                let Some(k) = self.index(i, j) else {
+                    return false;
+                };
+                if !self.cells[k].ground {
+                    let c = cell_center(i as usize, j as usize);
+                    let dx = ((p.x - c.x).abs() - NAV_CELL_M / 2.0).max(0.0);
+                    let dy = ((p.y - c.y).abs() - NAV_CELL_M / 2.0).max(0.0);
+                    if dx * dx + dy * dy < radius * radius {
+                        return false;
+                    }
+                }
+            }
+        }
+        true
+    }
+
     fn stands(&self, p: V2, who: Mover) -> bool {
         self.stands_with_cost(p, who, true)
     }
@@ -687,7 +733,8 @@ impl NavGrid {
             // A vehicle standing off the middle of its cell has that much
             // less of the cell's room.
             let off = (cell_center(k % self.nx, k / self.nx) - p).length();
-            self.fits_off_centre(k, who, off, paid)
+            self.fits_off_centre(k, Mover::free(who.m), off, paid)
+                && who.clears(p)
                 && (who.m.class != MoverClass::Infantry
                     || self.cells[k].free & (1 << sub_of(p)) != 0)
         })
@@ -857,12 +904,17 @@ impl NavGrid {
         } else {
             b - a
         };
+        let started = self.work();
         let until = (probe.next + Probe::STRETCH).min(samples);
-        self.spend(1 + ((until - probe.next) / SAMPLES_PER_WORK) as u64);
+        self.spend(1);
+        let from_sample = probe.next;
         // Several samples fall in each cell, and a cell answers them all
         // alike: whether the footprint fits there, and what a piece costs.
         let mut crossing: Option<(usize, bool, f64)> = None;
         for k in probe.next..until {
+            if (k - from_sample).is_multiple_of(READS_PER_WORK) {
+                self.spend(1);
+            }
             let p = a + (b - a) * ((k as f64 + 0.5) / samples as f64);
             let (i, j) = cell_of(p);
             let Some(cell) = self.index(i, j) else {
@@ -882,19 +934,48 @@ impl NavGrid {
                         .cross(along)
                         .abs();
                     let off = if off > NAV_CELL_M / 2.0 { 0.0 } else { off };
-                    let fits = self.fits_off_centre(cell, who, off, true);
+                    let fits = self.fits_off_centre(cell, Mover::free(who.m), off, true);
                     let cost = self.cost(cell, m, policy, piece);
                     crossing = Some((cell, fits, cost));
                     (fits, cost)
                 }
             };
+            let fits = if !infantry && (!fits || !allow_push) {
+                if !fits && !self.ground_clear(p, m.half_width_m, true) {
+                    return Some(None);
+                }
+                let check = probe.bodies.get_or_insert_with(|| {
+                    update::BodyCheck::new(
+                        self,
+                        p,
+                        m.half_width_m,
+                        if allow_push { m.push } else { PushClass::None },
+                    )
+                });
+                match check.advance(self, true) {
+                    None => {
+                        probe.next = k;
+                        return None;
+                    }
+                    Some(clear) => {
+                        probe.bodies = None;
+                        clear
+                    }
+                }
+            } else {
+                fits
+            };
             if !fits
-                || (!allow_push && !infantry && self.cells[cell].heaviest != NO_BODY)
+                || !who.clears(p)
                 || (infantry && self.cells[cell].free & (1 << sub_of(p)) == 0)
             {
                 return Some(None);
             }
             probe.total += cost;
+            probe.next = k + 1;
+            if self.work() - started >= TILE_WORK && probe.next < samples {
+                return None;
+            }
         }
         probe.next = until;
         (until == samples).then_some(Some(probe.total))
