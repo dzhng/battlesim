@@ -114,7 +114,9 @@ test("a paused formation preview returns only own destinations without issuing a
     {
       type: "move_preview",
       id: 1,
-      destinations: [{ unit: 0, placed: true, goal: [120, 150], facing: Math.PI / 2 }],
+      destinations: [
+        { unit: 0, placed: true, goal: [120, 150], facing: expect.closeTo(Math.PI / 2, 12) },
+      ],
     },
     { type: "move_preview", id: 2, destinations: [] },
   ]);

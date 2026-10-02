@@ -24,13 +24,15 @@ use crate::route_planner::{Request, RoutePlanner};
 use crate::units::Unit;
 use crate::world::{Prop, PropId, PropIndex, WorldGeometry, PROP_BUCKET_M};
 
+mod certify;
 mod drive;
 mod final_leg;
 mod push;
 mod soldier;
 mod take_cover;
 
-pub use drive::{final_yaw, Manoeuvre};
+pub(crate) use certify::certify;
+pub use drive::{final_facing, Manoeuvre};
 pub use final_leg::{final_leg, FINE_CELL_M};
 pub use push::Shove;
 pub use soldier::{clear_of, soldier_steer, Around, Corridor, Steer, Threat};
@@ -84,6 +86,7 @@ fn span(prop: &Prop, seen: Option<V2>) -> (V2, f64) {
 /// What one side may plan with: the authored map plus the dynamic obstacles
 /// its units have encountered, each where the side last saw it. Hidden
 /// changes never reach this.
+#[derive(Clone)]
 pub struct SideGeometry {
     /// Every body this side places somewhere other than where it truly
     /// stands, or learned after setup: each learned body where it was last
@@ -117,6 +120,13 @@ pub struct SideGeometry {
 const ROUTE_RECHECK_REACH_M: f64 = 24.0;
 
 impl SideGeometry {
+    /// The scratch world owns a fresh clearance journal; its cursor starts there.
+    pub(crate) fn planning_snapshot(&self) -> Self {
+        let mut snapshot = self.clone();
+        snapshot.cleared_taken = 0;
+        snapshot
+    }
+
     /// A side that knows the map as `base` has it, and nothing else.
     pub fn new(base: Arc<NavBase>) -> Self {
         let [width, depth] = base.extent();
@@ -378,7 +388,7 @@ pub struct MovementContext<'a> {
     pub seed: u64,
     pub rules: &'a contract::scenario::Rules,
     /// Each side's knowledge: the enemies a squad takes cover from (Q7).
-    pub knowledge: &'a [crate::knowledge::SideKnowledge; 2],
+    pub knowledge: [&'a crate::knowledge::SideKnowledge; 2],
     /// The weapons: how far a squad's reach when it seeks where to fight.
     pub arsenal: &'a crate::weapons::Arsenal,
 }
@@ -478,18 +488,17 @@ fn request_route(
     let stalled = unit.route.is_some() && ctx.tick.saturating_sub(unit.progress.1) > stall_ticks;
     // A stalled vehicle goes round the whole knot. A waiting rear vehicle
     // must also move aside when the one in front needs room to reverse.
-    let detour: Vec<Obb2> = match (unit.state, unit.blocker) {
-        (MoveState::Waiting, Some(_)) if stalled && unit.is_vehicle() => {
-            let here = unit.position.xy();
-            footprints
-                .iter()
-                .enumerate()
-                .filter(|(k, _)| *k != unit.id.0 as usize)
-                .filter_map(|(_, hull)| *hull)
-                .filter(|hull| (hull.center - here).length() <= KNOT_M)
-                .collect()
-        }
-        _ => Vec::new(),
+    let detour: Vec<Obb2> = if stalled && unit.is_vehicle() {
+        let here = unit.position.xy();
+        footprints
+            .iter()
+            .enumerate()
+            .filter(|(k, _)| *k != unit.id.0 as usize)
+            .filter_map(|(_, hull)| *hull)
+            .filter(|hull| (hull.center - here).length() <= KNOT_M)
+            .collect()
+    } else {
+        Vec::new()
     };
     let needs = match (&unit.route, unit.state) {
         _ if goal_moved => true,
@@ -612,7 +621,14 @@ fn take_route(
         // No way round keeps it waiting on the route it had; it may try
         // again after another stall.
         unit.route = match plan {
-            Plan::Route(route) => Some(route),
+            Plan::Route(mut route) => {
+                // Traffic can temporarily cover the destination and snap the
+                // detour's end aside. Finish the original order after passing it.
+                if route.last() != Some(&request.goal) {
+                    route.push(request.goal);
+                }
+                Some(route)
+            }
             Plan::Blocked(_) => request.kept,
         };
         unit.state = MoveState::Waiting;
@@ -772,12 +788,14 @@ fn step_vehicle(
     // Traffic, whatever its side (Q14): a vehicle waits for whatever it
     // would run into; live vehicles are never shoved (Q15).
     let unit = &units[i];
-    let mut blocker = units.iter().enumerate().find_map(|(j, other)| {
-        (j != i
-            && other.is_vehicle()
-            && other.alive()
-            && vehicle_conflict(unit, next, motion.yaw, other))
-        .then_some(other.id)
+    let mut blocker = motion.blocker.or_else(|| {
+        units.iter().enumerate().find_map(|(j, other)| {
+            (j != i
+                && other.is_vehicle()
+                && other.alive()
+                && vehicle_conflict(unit, next, motion.yaw, other))
+            .then_some(other.id)
+        })
     });
 
     // A detouring tank must not pivot through its neighbour. Give the turn
@@ -865,8 +883,9 @@ fn step_vehicle(
     if let Some(m) = unit.manoeuvre.as_mut() {
         m.driven_m += motion.step;
     }
-    // Turning or making room can move away from the waypoint without stalling.
-    if motion.manoeuvring && motion.step > 0.0 {
+    // Tracks backing to clear a pivot may move away from the waypoint.
+    // Wheeled shuffling must still close on it, or traffic recovery never runs.
+    if motion.making_space && motion.step > 0.0 {
         unit.progress.1 = ctx.tick;
     }
 
@@ -909,63 +928,27 @@ fn stationary_yaw(world: &WorldGeometry, units: &[Unit], i: usize, yaw: f64) -> 
     }
 }
 
-/// A vehicle's footprint at `center`/`yaw`, grown by `margin`.
-fn rect_of(unit: &Unit, center: V2, yaw: f64, margin: f64) -> Option<Obb2> {
-    unit.hull.map(|h| Obb2 {
-        center,
-        yaw,
-        half: v2(h.x + margin, h.y + margin),
-    })
-}
-
 /// Would this vehicle, moved to `next`, run into the vehicle `other`? Only a move that
 /// makes an existing overlap no worse is allowed, so touching units can part.
 fn vehicle_conflict(unit: &Unit, next: V2, yaw: f64, other: &Unit) -> bool {
-    let other = other.hull_box().expect("a vehicle has a hull");
-    let turning = unit
-        .route
-        .as_ref()
-        .and_then(|r| r.first())
-        .is_some_and(|p| {
-            let to = *p - unit.position.xy();
-            unit.mobility.drive.is_some_and(|d| {
-                let threshold = d.feel.turning_deg.to_radians();
-                crate::math::wrap_angle(to.y.atan2(to.x) - unit.yaw).abs() > threshold
-                    || unit
-                        .route
-                        .as_ref()
-                        .and_then(|r| r.get(1))
-                        .is_some_and(|next| {
-                            let out = *next - *p;
-                            to.length() < d.radius_m + unit.hull.unwrap().x
-                                && crate::math::wrap_angle(out.y.atan2(out.x) - to.y.atan2(to.x))
-                                    .abs()
-                                    > threshold
-                        })
-            })
-        });
-    let following = !turning
-        && unit.manoeuvre.is_none()
-        && (next - unit.position.xy()).dot(v2(unit.yaw.cos(), unit.yaw.sin())) > 0.0
-        && crate::math::wrap_angle(unit.yaw - other.yaw).abs() < std::f64::consts::FRAC_PI_2
-        && (other.center - unit.position.xy()).dot(v2(unit.yaw.cos(), unit.yaw.sin())) > 0.0;
-    let room = if following {
-        unit.mobility
-            .drive
-            .map_or(TRAFFIC_MARGIN_M, |d| d.radius_m.max(unit.hull.unwrap().x))
-    } else {
-        TRAFFIC_MARGIN_M
+    let before = unit.hull_box().expect("a vehicle has a hull");
+    let after = Obb2 {
+        center: next,
+        yaw,
+        ..before
     };
-    let padded = |center: V2, yaw: f64| {
-        let mut hull = rect_of(unit, center, yaw, TRAFFIC_MARGIN_M).unwrap();
-        hull.half.x += room - TRAFFIC_MARGIN_M;
-        hull
+    let other = other.hull_box().expect("a vehicle has a hull");
+    hull_conflict(before, after, other)
+}
+
+/// Look-ahead and actual steps keep the same clearance, including when parting.
+fn hull_conflict(before: Obb2, after: Obb2, other: Obb2) -> bool {
+    let padded = |hull: Obb2| Obb2 {
+        half: hull.half + v2(TRAFFIC_MARGIN_M, TRAFFIC_MARGIN_M),
+        ..hull
     };
     let depth = |hull: Obb2| hull.separation(&other).map_or(0.0, |v| v.length());
-    let before = padded(unit.position.xy(), unit.yaw);
-    let after = padded(next, yaw);
-    depth(after) > depth(before) + 1e-9
-        || depth(rect_of(unit, next, yaw, 0.0).unwrap()) > depth(unit.hull_box().unwrap()) + 1e-9
+    depth(padded(after)) > depth(padded(before)) + 1e-9 || depth(after) > depth(before) + 1e-9
 }
 
 /// Draw each living soldier's spot around the end of the squad's route for

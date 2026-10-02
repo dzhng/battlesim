@@ -50,6 +50,9 @@ export interface CommandEnvelope {
 }
 
 export interface MovePreviewRequest {
+  /** Match execution: omitted route means shortest; omitted queued means replacement. */
+  route?: RoutePolicy;
+  queued?: boolean;
   units: number[];
   goal: [number, number];
   facing?: number;

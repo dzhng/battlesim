@@ -64,7 +64,7 @@ const DEMOS: Record<string, (own: OwnUnitView[]) => { order: Order; queued?: boo
         kind: "move",
         units: own.filter((u) => u.kind === "rifle").map((u) => u.id),
         gesture: 9004,
-        goal: [215, 325],
+        goal: [245, 325],
         route: "shortest",
       },
     },

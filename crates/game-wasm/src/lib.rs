@@ -754,16 +754,7 @@ impl BattleHandle {
         let side = parse_side(side)?;
         let request: contract::command::MovePreviewRequest =
             serde_json::from_str(move_json).map_err(js_error)?;
-        let marks = self
-            .battle
-            .preview_move(
-                side,
-                &request.units,
-                request.goal,
-                request.facing,
-                request.direction,
-            )
-            .unwrap_or_default();
+        let marks = self.battle.preview_move(side, &request).unwrap_or_default();
         serde_json::to_string(&marks).map_err(js_error)
     }
 

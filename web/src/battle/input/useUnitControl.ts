@@ -79,7 +79,7 @@ export function useUnitControl(
   client: SimClient | null,
   observation: ObservationView | null,
   /** Hears every order as it is sent, queued or not (the order flash). */
-  onIssue?: (order: Order) => void,
+  onIssue?: (order: Order, queued: boolean) => void,
 ) {
   const onIssueRef = useRef(onIssue);
   onIssueRef.current = onIssue;
@@ -170,7 +170,7 @@ export function useUnitControl(
   const issue = useCallback(
     async (order: Order, queued = false) => {
       if (!client) return null;
-      onIssueRef.current?.(order);
+      onIssueRef.current?.(order, queued);
       const label = describe(order, queued);
       const ack = await client.command(order, queued);
       setAcks((log) => [{ seq: ack.seq, label, order, ack }, ...log].slice(0, LOG_LENGTH));

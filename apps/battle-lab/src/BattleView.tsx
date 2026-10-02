@@ -220,6 +220,7 @@ export function BattleView({
                   pointer.rightDragging ? pointer.ray : null,
                   world,
                   control.selectedUnits,
+                  pointer.rightPressQueued,
                 )
               : null;
           const pending = session.pendingMove.current;
@@ -239,7 +240,7 @@ export function BattleView({
           if (!heldMove && accepted?.placement) {
             const applied = (observation?.tick ?? 0) >= accepted.applied_tick;
             preview = pointerPaint.markers(
-              accepted.placement.destinations.filter((mark) => !applied || !mark.placed),
+              applied ? [] : accepted.placement.destinations,
               observation?.own ?? [],
               session.revealed,
             );

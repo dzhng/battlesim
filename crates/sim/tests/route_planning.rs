@@ -136,16 +136,55 @@ fn a_search_stays_near_the_line_it_is_asked_to_cross() {
 
 #[test]
 fn a_search_gives_up_at_its_limit_and_reports_the_route_blocked() {
+    use sim::math::v2;
+    use sim::navigation::{Journey, Leg, NavBase, NavGrid, Plan, RoadNet};
+    use sim::world::WorldGeometry;
+    // An impossible live command is rejected before scheduling a route.
+    // Exercise the route owner directly to retain its bounded-search proof.
+    let search = |configure: &dyn Fn(&mut ScenarioDefinition)| {
+        let mut setup = scenario(CLOSED, one_tank(), 100);
+        configure(&mut setup);
+        let world = WorldGeometry::new(&setup.map, &setup.rules);
+        let grid = NavGrid::new(std::sync::Arc::new(NavBase::build(
+            &world,
+            world.props(),
+            setup.rules.physics.soldier_radius_m,
+        )));
+        let roads = RoadNet::build(&world);
+        let mobility = sim::units::mobility(setup.rules.catalog.by_id("tank"), &setup.rules);
+        let before = grid.work();
+        let mut journey = Journey::new(
+            &grid,
+            &roads,
+            None,
+            Leg {
+                from: v2(100.0, 100.0),
+                goal: v2(300.0, 100.0),
+                m: &mobility,
+                policy: RoutePolicy::Shortest,
+                avoid: &[],
+            },
+            &setup.rules.navigation,
+        );
+        let allowance = setup.rules.navigation.work_per_tick as u64;
+        for _ in 0..3000 {
+            let spent = journey.advance(&grid, &roads, allowance);
+            assert!(spent <= allowance + sim::navigation::LARGEST_STEP);
+            if journey.plan().is_some() {
+                assert!(matches!(journey.plan(), Some(Plan::Blocked(_))));
+                return grid.work() - before;
+            }
+        }
+        panic!("a limited search must finish");
+    };
     // No way across: the whole near half (10,000 cells) could be searched.
-    let (exhaustive, state) = work_to_plan(CLOSED, [300.0, 100.0], |_| {});
-    assert_eq!(state, MoveState::RouteBlocked);
+    let exhaustive = search(&|_| {});
     assert!(exhaustive > 5000, "it looked everywhere: {exhaustive}");
     // The rules bound how far a search looks: 4 cells a metre of its line.
-    let (bounded, state) = work_to_plan(CLOSED, [300.0, 100.0], |setup| {
+    let bounded = search(&|setup| {
         setup.rules.navigation.search_cells_base = 200;
         setup.rules.navigation.search_cells_per_m = 4;
     });
-    assert_eq!(state, MoveState::RouteBlocked);
     assert!(
         (1000..3000).contains(&bounded),
         "200 + 4 × 200 m cells, and the clearance worked out on the way: {bounded}"

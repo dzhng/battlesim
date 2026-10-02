@@ -51,6 +51,7 @@ impl Foliage {
     }
 }
 
+#[derive(Clone)]
 pub(super) struct ForestState {
     /// The foliage grid's cell: the fog's (`map.fog_cell_m`, Q21).
     foliage_m: f64,
@@ -80,6 +81,13 @@ pub(super) struct ForestState {
 }
 
 impl ForestState {
+    /// A planning snapshot starts with authored forest ground. Clearance
+    /// learned through future scratch shoves belongs only to that snapshot.
+    pub(super) fn reset_cleared(&mut self) {
+        self.cleared.fill(None);
+        self.cleared_order.clear();
+    }
+
     pub(super) fn new(
         width: f64,
         depth: f64,

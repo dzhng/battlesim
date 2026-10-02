@@ -182,6 +182,7 @@ export interface ViewportPointer {
   position: { x: number; y: number } | null;
   ray: WorldRay | null;
   rightPress: WorldRay | null;
+  rightPressQueued: boolean;
   rightDragging: boolean;
 }
 
@@ -678,6 +679,7 @@ export function LabViewport({
             position: pointer,
             ray: pointerRay(),
             rightPress: rightPress?.ray ?? null,
+            rightPressQueued: rightPress?.event.shiftKey ?? false,
             rightDragging: !!(
               rightPress &&
               pointer &&

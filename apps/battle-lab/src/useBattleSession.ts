@@ -154,12 +154,12 @@ export function useBattleSession({
   // each frame and kept as state only when it changes.
   const orderReveal = useMemo(() => new OrderReveal(gameOrderFlash), []);
   /** Bridge the released preview until the publication contains its order. */
-  const pendingMove = useRef<Extract<Order, { kind: "move" }> | null>(null);
+  const pendingMove = useRef<(Extract<Order, { kind: "move" }> & { queued: boolean }) | null>(null);
   const [revealed, setRevealed] = useState<RevealedOrders>(NOTHING_REVEALED);
   const revealedRef = useRef(revealed);
   const noteOrder = useCallback(
-    (order: Order) => {
-      pendingMove.current = order.kind === "move" ? order : null;
+    (order: Order, queued: boolean) => {
+      pendingMove.current = order.kind === "move" ? { ...order, queued } : null;
       if (drawnClock.current !== null) orderReveal.noteOrder(order, drawnClock.current);
     },
     [orderReveal],
