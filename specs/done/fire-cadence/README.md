@@ -8,9 +8,9 @@ Infantry fire should read as soldiers fighting individually, not a synchronized 
 - Simulation launches drive projectiles, flashes, recoil and sound. Presentation never invents delayed shots.
 - A rifle's cycle follows its soldier ID. Casualties do not reset other rifles, replacements get fresh guns, and a transferable special weapon keeps its cycle on handoff.
 - Magazine capacity is separate from reserve ammunition. Positive reload times require magazine changes even with unlimited reserves; infantry rifles deliberately use zero-time refill so the shared readout never cycles between individual soldiers; finite ammunition counts actual rounds launched. A blocked gun spends nothing and accumulates no catch-up volley.
-- Orders preserve remaining magazine contents. Existing stop and stationary-movement rules still interrupt unfinished reloads. Timing completes on simulation ticks, with at most one launch per gun per tick.
+- Orders preserve remaining magazine contents. During a lull a gun tops up a partial magazine without discarding or spending rounds. An engageable target cancels that top-up and restores the remaining rounds; an empty magazine still needs its full reload. Existing stop and stationary-movement rules still interrupt unfinished reloads. Timing completes on simulation ticks, with at most one launch per gun per tick.
 - Suppression widens physical launch dispersion as well as slowing cycle progress. Movement and target cover compose with it once. A soldier's own cover remains protected whether it is a prop or a vehicle hull.
-- A single mount readout describes the group: loaded while any gun has a loaded magazine, earliest refill progress only while all are empty. Short inter-shot cycling is not a magazine-reload ring.
+- A single mount readout describes the group: loaded while any gun is ready, earliest refill progress while all guns are empty or topping up. Short inter-shot cycling is not a magazine-reload ring.
 
 ## Owners
 

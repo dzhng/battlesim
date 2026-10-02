@@ -644,7 +644,12 @@ fn engage(
         mount.bearing
     };
     let from = |origin: V3, past: Option<PropId>, hull: Option<UnitId>| {
-        if (r.point - origin).length() > weapon.def.ballistics.range_m {
+        let distance = (r.point - origin).length();
+        if distance < weapon.def.min_range_m {
+            // OutOfRange asks an ordered unit to advance; too close holds.
+            return Err(ActionReason::HoldingFire);
+        }
+        if distance > weapon.def.ballistics.range_m {
             return Err(ActionReason::OutOfRange);
         }
         let aim = Aim {
@@ -1161,6 +1166,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                     &mount.ammo,
                     spec,
                     kind_for_target,
+                    assessment.is_some_and(|a| a.is_ok()),
                     dt * rate,
                 );
             }
@@ -1184,7 +1190,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                     engaging = true;
                     if lock.aim < ctx.arsenal.weapons[spec.kinds[k]].def.aim_s {
                         ActionReason::Aiming
-                    } else if !mount.cycles.iter().any(|c| c.loaded == Some(k)) {
+                    } else if !mount.cycles.iter().any(|c| c.ready() == Some(k)) {
                         ActionReason::Reloading
                     } else if spec.turret
                         && wrap_angle(bearing_from(unit, r.point) - mount.bearing).abs() > tolerance
@@ -1355,7 +1361,7 @@ fn fire(
             .iter_mut()
             .find(|c| c.owner == owner)
             .expect("physical weapon cycle");
-        if cycle.loaded != Some(k) || cycle.cooldown > 0.0 || mount.ammo[k] == Some(0) {
+        if cycle.ready() != Some(k) || cycle.cooldown > 0.0 || mount.ammo[k] == Some(0) {
             continue;
         }
         let point = match target {
@@ -1388,27 +1394,40 @@ fn fire(
             hull: None,
             leaning: false,
         };
-        let (point, from) = match member {
-            Some(k) => {
-                let soldier = &unit.members[k];
-                let turn = (0..seen.len()).map(|j| seen[(n + j) % seen.len()]);
-                let found = turn
-                    .chain([point])
-                    .find_map(|p| Some((p, fire_from(ctx, &blockers, soldier, p)?)));
-                match found {
-                    Some(f) => f,
-                    None if hides_behind(ctx, soldier, origin, point)
-                        || blockers.iter().any(|h| h.meets(origin, point)) =>
-                    {
-                        cycle.started = false;
-                        continue;
-                    }
-                    None => (point, standing),
-                }
+        let soldier = member.map(|k| &unit.members[k]);
+        let turn = (0..seen.len()).map(|j| seen[(n + j) % seen.len()]);
+        let found = turn.chain([point]).find_map(|p| {
+            // A farther candidate can face a different side of the building.
+            if unit.garrisoned()
+                && !crate::garrison::faces(unit, participant_of(unit, body), p, ctx.rules, ctx.tick)
+            {
+                return None;
+            }
+            let from = match soldier {
+                Some(s) => fire_from(ctx, &blockers, s, p)?,
+                None => standing,
+            };
+            ((p - from.origin).length() >= weapon.def.min_range_m).then_some((p, from))
+        });
+        let (point, from) = match found {
+            Some(f) => f,
+            None if soldier.is_some_and(|s| {
+                hides_behind(ctx, s, origin, point)
+                    || blockers.iter().any(|h| h.meets(origin, point))
+            }) =>
+            {
+                cycle.started = false;
+                continue;
             }
             None => (point, standing),
         };
         let origin = from.origin;
+        // Sampling a contact or choosing a soldier/lean can shorten the
+        // shot after the mount's target-level assessment.
+        if (point - origin).length() < weapon.def.min_range_m {
+            cycle.started = false;
+            continue;
+        }
         let aim = Aim {
             origin,
             target: point,
@@ -1764,7 +1783,7 @@ pub fn readiness(
     target_ref: Option<TargetRef>,
 ) -> MountReadiness {
     let spec = &arsenal.specs(unit.kind)[mount.spec];
-    let loaded = mount.cycles.iter().find_map(|c| c.loaded);
+    let loaded = mount.cycles.iter().find_map(Cycle::ready);
     let reloading = if loaded.is_some() {
         None
     } else {
