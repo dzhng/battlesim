@@ -219,3 +219,34 @@ test("whole-fog records pair each reachable structure only with eyes that can re
     words: new Uint32Array(0),
   });
 });
+
+test("horizon sectors conservatively retain slab intersections across west wrap and turned boxes", async () => {
+  const { fogHorizonRecords } = await import("@packages/battle-renderer/src/frame/fogVisibility");
+  const boxes = [box(-40, 0), box(40, 0), box(0, 0), box(15, 30, 12, 2, 0.8)];
+  const records = fogHorizonRecords(wholeWords(boxes, 0.2), [{ position: [0, 0, 2], reach: 100 }]);
+  const sectors = records[2];
+  const list = (sector: number) => {
+    const row = records[1] + sector * 2;
+    return [...records.subarray(records[row], records[row] + records[row + 1])];
+  };
+  expect(list(0)).toEqual([0, 2]);
+  expect(list(sectors - 1)).toEqual([0, 2]);
+  expect(list(sectors / 2)).toEqual([1, 2]);
+  for (let ai = 0; ai < 8192; ai++) {
+    const theta = ((ai + 0.5) / 8192) * Math.PI * 2 - Math.PI;
+    const candidates = list(Math.floor(((ai + 0.5) / 8192) * sectors));
+    boxes.forEach((b, i) => {
+      const c = Math.cos(b.yaw),
+        s = Math.sin(b.yaw);
+      const ox = -b.x * c - b.y * s,
+        oy = b.x * s - b.y * c;
+      const dx = Math.cos(theta) * c + Math.sin(theta) * s;
+      const dy = -Math.cos(theta) * s + Math.sin(theta) * c;
+      const tx = [(-b.hx - ox) / dx, (b.hx - ox) / dx].sort((a, z) => a - z);
+      const ty = [(-b.hy - oy) / dy, (b.hy - oy) / dy].sort((a, z) => a - z);
+      const near = Math.max(tx[0], ty[0]),
+        far = Math.min(tx[1], ty[1]);
+      if (near <= far && far > 0 && near <= 100) expect(candidates).toContain(i);
+    });
+  }
+});

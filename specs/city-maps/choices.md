@@ -3552,10 +3552,10 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 
 ## C20 renderer fog at scale — startup implementation pass
 
-### Use exact per-eye grid candidates while the S4 verdict is absent
+### Use exact per-eye grid and angular candidates while the S4 verdict is absent
 
 - **When:** C20 startup implementation pass.
-- **The choice:** Keep the existing sharp ray–box intersections, and use the existing grid of building footprints to give each eye only nearby boxes. On a 10 km city, a squad beside one block tests that block's neighbours instead of every building at the far end of the city. The unbuilt angular-sector alternative would make still shorter lists for groups of rays; rasterising building tops would replace the exact corner geometry.
+- **The choice:** Keep the existing sharp ray–box intersections, and use the existing grid of building footprints to give each eye only nearby boxes. On a 10 km city, a squad beside one block tests that block's neighbours instead of every building at the far end of the city. A first measured grid-only arm still cost 2.61 ms, exceeding the 2 ms gate, so the same table now narrows each ray to a conservative angular sector. Bounding circles enclose turned boxes, eye-inside circles retain every direction, and an extra sector at each edge covers f32 angle rounding. Rasterising building tops would instead replace the exact corner geometry.
 - **The gap:** C20 says to implement the technique S4 picked, but only S4's plan exists; its named verdict file is absent. Grid representation itself is delegated, but selecting the unrecorded arm is a spec gap.
 - **The reach:** Future fog work keeps the same horizon precision and sharpness. If the paired city measurement misses the budget, this arm needs further work rather than a silently relaxed gate.
 - **Verdict:** Sound as a reversible implementation candidate. The spatial work count falls dramatically and the exact shader arithmetic is preserved; GPU cost and visual acceptance remain pending.
@@ -3564,7 +3564,7 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 ### Put candidate lists in the existing rebuild table
 
 - **When:** C20 startup implementation pass.
-- **The choice:** The table saying which eyes rebuild also carries each eye's nearby building indices. Before rebuilding an eye, the CPU writes its eye number, the start and length of its list, then the list itself. Both terrain and occluder passes read this table. The alternative would add another storage buffer and binding solely for candidates.
+- **The choice:** The table saying which eyes rebuild also carries each eye's nearby building indices. Before rebuilding an eye, the CPU writes its eye number, its angular-sector table offset and count, then each sector's list offset/count and sorted building indices. Terrain reads the eye number; occluder rays read their sector. Both passes share this table. The alternative would add another storage buffer and binding solely for candidates.
 - **The gap:** The spec does not define the CPU-to-GPU list layout.
 - **The reach:** This keeps the horizon passes' existing GPU binding count. The whole-surface pass separately keeps a reachable-structure/eye-pair table because both lists are consumed by commands in the same submission and cannot overwrite one another. Its one additional binding stays within the guaranteed storage limit. The horizon table can grow when a denser nearby neighbourhood arrives, so probes must construct their sampling bind group after preparation; otherwise its dummy table binding can refer to a destroyed old buffer. The regression test covers a probe before the first rendered frame.
 - **Verdict:** Sound. One owner carries the rebuild transaction and its variable data without spending another scarce storage binding.
