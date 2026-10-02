@@ -4724,6 +4724,17 @@ Battle observations/digests and the remaining whole-city admission limits.
 
 **Verdict:** provisional. It is the smallest scope that meets the contract, and it puts the facade, far-tier and damage passes first, which every family needs. **Confidence:** medium.
 
+## C06: reject the footprint rotation hypothesis
+
+**Choice:** Keep the existing footprint sampling source after measuring reuse of
+its existing `Rotation` once per footprint. No new cache or state is retained.
+
+**Why:** Native disassembly shows rotation trigonometry already hoisted per row.
+The matched current layout-7 six-tick experiment preserves all digests and
+complete observation hashes but saves only 0.795% early and 0.710% late in whole
+Fog plus Learning, below the declared 2% hypothesis. This does not justify the
+next scale pass; C06 records the bounded result and leaves admission open.
+
 ## C06: inline the measured foliage owner
 
 **Choice:** Force the existing world foliage query inline, preserving its

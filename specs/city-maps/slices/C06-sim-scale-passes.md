@@ -413,3 +413,20 @@ The reset wait now treats that interval as pending. The original current-layout-
 run throws while reading the missing probe; the corrected two-second functional
 run completes all three resets with identical counts and bytes. This repairs
 the harness wait, with no simulation, rendering or timeout change.
+
+## Outcome — reject footprint rotation reuse as the next cost pass
+
+The current native compiler already hoists `footprint_seen`'s sine/cosine pair
+outside the inner sample loop, but recomputes it for each footprint row. Reusing
+the existing `Rotation` once per footprint preserves all sample arithmetic;
+the matched current layout-7 Metro Large seed-4 control confirms every six-tick
+battle digest and both complete observation hashes unchanged, early and late.
+Whole Fog plus Learning falls from 312.077 to 309.597 million instructions early
+and 341.756 to 339.329 million late: 0.795% and 0.710%, about 0.41 million per tick.
+
+The scratch comparison first rejects unchanged old-versus-old code, then rejects
+both candidate arms against the declared 2% gain hypothesis. This is a bounded
+initial-view experiment, not a whole-battle or browser timing claim. The source
+change is discarded; existing public cost requirements stay unchanged. Remaining
+Fog plus Learning work remains the next attribution target, with current full
+report means of 54.941 and 59.969 million instructions per tick early and late.
