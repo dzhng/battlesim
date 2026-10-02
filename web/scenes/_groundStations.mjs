@@ -66,6 +66,9 @@ export const STATION_MAPS = {
       // The west wood: its west edge against the fields, and inside it.
       "forest-edge-65": at([700, 960], 65),
       "forest-deep-25": at([790, 960], 25, 0.6),
+      // Over the wood's middle, from the play camera and from twice as high.
+      "forest-65": at([790, 960], 65),
+      "forest-120": at([790, 960], 120),
       // Open fields south-west of the village, and the whole patchwork.
       "field-65": at([420, 1120], 65),
       "field-250": at([420, 1120], 250),

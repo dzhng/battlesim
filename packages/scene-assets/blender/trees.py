@@ -135,22 +135,23 @@ KINDS = {
     # A spruce: whorls of boughs sloping down from one leader, under a spire.
     # `whorls` counts the boughs of each, lowest first.
     "tree_spruce": dict(
-        seed=41, height=11.2, crown_base=2.0, radius=4.6, whorls=(6, 5, 5, 4, 3),
+        seed=41, height=11.2, crown_base=3.6, radius=5.3, whorls=(6, 5, 5, 4, 3),
         trunk=0.4, droop=1.2, lean=0.3,
     ),
-    # A pine: a few flat pads of needles high on a long bare bole, its upper
+    # A pine: a few flat pads of needles high on a long bare bole, its limbs
+    # leaving the bole level (`rise`) so none arches over the pads, its upper
     # bark orange.
     "tree_pine": dict(
-        seed=53, height=11.0, crown_base=6.0, radius=4.2, half_height=2.5,
+        seed=53, height=11.0, crown_base=6.0, radius=4.9, half_height=2.5,
         lobes=7, trunk=0.32, clump_m=1.35, clumps=10, inner=0, limbs=5, droop=0.6, proud=0.25,
-        pad=(0.5, 0.32), bark=(0.16, 0.085, 0.045, 1.0), bark_low=(0.45, 0.62, 0.8),
+        pad=(0.5, 0.32), rise=0.1, bark=(0.16, 0.085, 0.045, 1.0), bark_low=(0.45, 0.62, 0.8),
     ),
     # A birch: a narrow crown of small hanging clumps on a white bole, dark
     # where the bark has split.
     "tree_birch": dict(
         seed=67, height=11.3, crown_base=3.4, radius=2.7, half_height=4.3,
         lobes=8, trunk=0.33, clump_m=0.85, clumps=20, inner=4, limbs=6, droop=3.0,
-        bark=(0.52, 0.5, 0.45, 1.0), marks=0.75,
+        bark=(0.36, 0.35, 0.32, 1.0), marks=0.75,
     ),
     # A standing snag: a dead tree's grey skeleton.
     "tree_snag": dict(
@@ -534,7 +535,7 @@ def grow(kind, tips, lift):
         out = reach.normalized()
         limb = trunk.fork(
             index,
-            Branch(bezier(start, start + (out * 0.5 + UP * 0.8).normalized() * span * 0.4, end - out * span * 0.3, end, 6)),
+            Branch(bezier(start, start + (out * 0.5 + UP * kind.get("rise", 0.8)).normalized() * span * 0.4, end - out * span * 0.3, end, 6)),
         )
         for i in cluster:
             # A clump's branch forks where the limb passes it.

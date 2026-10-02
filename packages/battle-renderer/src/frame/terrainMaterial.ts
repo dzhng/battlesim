@@ -77,7 +77,8 @@ const TerrainParams = d.struct({
   road: d.vec4f,
   /** Road mottle, then unused. */
   roadDetail: d.vec4f,
-  /** The forest floor's leaf litter, moss and humus (linear rgb). */
+  /** The forest floor's leaf litter, moss and humus (linear rgb); with the
+   *  moss and the humus, how far each takes the litter over. */
   forestLitter: d.vec4f,
   forestMoss: d.vec4f,
   forestHumus: d.vec4f,
@@ -419,8 +420,12 @@ const forestFloorWeight = tgpu.fn(
   return std.smoothstep(-feather, feather, forestVergeInside(xy, forest));
 });
 
-/** The forest floor's linear albedo at `xy`: leaf litter in patches of moss
- *  and dark humus, crossed by roots, under the ground's own mottle `noise`. */
+/** The forest floor's linear albedo at `xy`: leaf litter drifting into moss
+ *  and darker humus, crossed by roots, under the ground's own mottle `noise`.
+ *  Each drift is two octaves of noise on lattices turned against each other
+ *  and against the map's axes, eased over a wide band: one lattice cut at a
+ *  threshold drew square patches in rows, which read as noise through the
+ *  crowns. */
 const forestFloor = tgpu.fn(
   [d.vec2f, d.f32, d.f32],
   d.vec3f,
@@ -429,14 +434,22 @@ const forestFloor = tgpu.fn(
   const params = terrainLayout.$.params;
   const detail = params.forestDetail;
   const at = std.mul(xy, detail.x);
-  const moss = std.smoothstep(0.45, 0.7, valueNoise(std.add(at, d.vec2f(13.3, 7.7))));
-  const humus = std.smoothstep(
-    0.5,
-    0.75,
-    valueNoise(std.add(std.mul(at, 2.3), d.vec2f(2.9, 41.1))),
+  const turned = d.vec2f(at.x * 0.8 - at.y * 0.6, at.x * 0.6 + at.y * 0.8);
+  const across = d.vec2f(at.x * 0.28 + at.y * 0.96, at.y * 0.28 - at.x * 0.96);
+  const moss = std.smoothstep(
+    0.38,
+    0.72,
+    valueNoise(std.add(turned, d.vec2f(13.3, 7.7))) * 0.65 +
+      valueNoise(std.add(std.mul(across, 2.1), d.vec2f(4.1, 9.2))) * 0.35,
   );
-  let floor = std.mix(params.forestLitter.xyz, params.forestMoss.xyz, moss);
-  floor = std.mix(floor, params.forestHumus.xyz, humus * 0.8);
+  const humus = std.smoothstep(
+    0.42,
+    0.78,
+    valueNoise(std.add(std.mul(across, 1.3), d.vec2f(2.9, 41.1))) * 0.6 +
+      valueNoise(std.add(std.mul(turned, 3.1), d.vec2f(17.3, 5.9))) * 0.4,
+  );
+  let floor = std.mix(params.forestLitter.xyz, params.forestMoss.xyz, moss * params.forestMoss.w);
+  floor = std.mix(floor, params.forestHumus.xyz, humus * params.forestHumus.w);
   // Roots: thin dark lines where a noise field crosses its middle, broken
   // into short runs by a second field, fading to their mean below a few
   // pixels a line.
@@ -1477,8 +1490,8 @@ export function groundReach(biome: Biome, footprint: number, bankM = 0): Surface
 function forestParams(floor: ForestFloor, [litter, moss, humus]: readonly Rgb[]) {
   return {
     forestLitter: d.vec4f(...linear(litter), 0),
-    forestMoss: d.vec4f(...linear(moss), 0),
-    forestHumus: d.vec4f(...linear(humus), 0),
+    forestMoss: d.vec4f(...linear(moss), floor.moss),
+    forestHumus: d.vec4f(...linear(humus), floor.humus),
     forestDetail: d.vec4f(1 / floor.patch_m, floor.mottle, floor.roughness, floor.roots),
     forestVerge: d.vec4f(
       floor.verge_m,

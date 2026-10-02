@@ -1,9 +1,9 @@
 // @vitest-environment node
 // Scenery placement against the simulation's own geometry: the drawn forest
-// is the simulation's forest volume (every crown inside a forest shape and
-// under its canopy over the simulation's ground, the shape's foliage covered
-// by crowns, the simulation's trunks each a drawn tree), and scenery past the
-// map stays off it.
+// is the simulation's forest volume (every crown within the canopy's radius
+// of its trunk and under its canopy over the simulation's ground, the
+// simulation's trunks each a drawn tree), and scenery past the map stays off
+// it.
 import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
@@ -63,6 +63,8 @@ interface Tree {
   z: number;
   radius: number;
   top: number;
+  /** The drawn crown's width over its appearance's own. */
+  girth: number;
 }
 function trees(data: Float32Array): Tree[] {
   const out: Tree[] = [];
@@ -74,6 +76,7 @@ function trees(data: Float32Array): Tree[] {
       z: data[o + TREE_FIELD.z],
       radius: size.radius * data[o + TREE_FIELD.scaleXY],
       top: data[o + TREE_FIELD.z] + size.height * data[o + TREE_FIELD.scaleZ],
+      girth: data[o + TREE_FIELD.scaleXY],
     });
   }
   return out;
@@ -94,16 +97,17 @@ const forests = () =>
     };
   });
 
-test("every forest tree's crown stays inside a forest shape, under its canopy over the simulation's ground", () => {
+test("every forest tree's crown reaches no farther than the simulation's canopy radius, under its canopy over the simulation's ground", () => {
   const drawn = trees(placement.forest);
   expect(drawn.length).toBeGreaterThan(400);
+  // The simulation's foliage lies within the canopy radius of a trunk, past
+  // the forest's own edge too: a crown is as wide at the edge as inside.
+  const canopyRadius = game.forests.rule.canopy_radius_m;
+  expect(Math.max(...[...SIZES.values()].map((s) => s.radius))).toBeLessThanOrEqual(canopyRadius);
   for (const t of drawn) {
+    expect(t.radius, JSON.stringify(t)).toBeLessThanOrEqual(canopyRadius + 1e-3);
     const forest = forests().find(
-      ({ rect: [x, y, w, h] }) =>
-        t.x - t.radius >= x - 1e-3 &&
-        t.x + t.radius <= x + w + 1e-3 &&
-        t.y - t.radius >= y - 1e-3 &&
-        t.y + t.radius <= y + h + 1e-3,
+      ({ rect: [x, y, w, h] }) => t.x >= x && t.x <= x + w && t.y >= y && t.y <= y + h,
     );
     expect(forest, JSON.stringify(t)).toBeDefined();
     // The simulation's foliage is below ground + canopy at each point: sample
@@ -115,6 +119,32 @@ test("every forest tree's crown stays inside a forest shape, under its canopy ov
       expect(t.top, JSON.stringify(t)).toBeLessThanOrEqual(g + forest!.canopy + 1e-3);
     }
   }
+});
+
+test("a tree at its forest's edge is as wide as one deep inside", () => {
+  const [lo, hi] = biome.trees.forest.girth;
+  const [[x, y, w, h]] = forests().map((f) => f.rect);
+  const west = trees(placement.forest).filter(
+    (t) => t.x >= x && t.x <= x + w && t.y >= y && t.y <= y + h,
+  );
+  const edge = west.filter((t) => Math.min(t.x - x, x + w - t.x, t.y - y, y + h - t.y) < 3);
+  expect(edge.length).toBeGreaterThan(10);
+  for (const t of west) {
+    expect(t.girth, JSON.stringify(t)).toBeGreaterThanOrEqual(lo - 1e-6);
+    expect(t.girth, JSON.stringify(t)).toBeLessThanOrEqual(hi + 1e-6);
+  }
+});
+
+test("a biome may not draw a tree wider than its appearance", () => {
+  // The appearance is held inside the simulation's canopy radius; a wider
+  // drawing of it would not be.
+  const wide = {
+    ...biome,
+    trees: { ...biome.trees, forest: { ...biome.trees.forest, girth: [0.9, 1.2] } },
+  };
+  expect(() => validateBiome(wide as unknown as Biome, "summer")).toThrow(
+    /summer\.trees\.forest\.girth/,
+  );
 });
 
 test("trees stand on the simulation's ground", () => {

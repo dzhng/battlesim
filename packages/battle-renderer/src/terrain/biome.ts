@@ -108,14 +108,18 @@ export interface Road {
   roughness: number;
 }
 
-/** The ground under the simulation's forests: leaf litter with patches of moss
- *  and dark humus, crossed by roots, meeting the field across a ragged verge,
+/** The ground under the simulation's forests: leaf litter drifting into moss
+ *  and darker humus, crossed by roots, meeting the field across a ragged verge,
  *  and lit through the canopy in sun flecks. Lengths in metres. */
 export interface ForestFloor {
   /** A palette of at least three colours: litter, moss, humus. */
   palette: string;
-  /** Size of the moss and humus patches. */
+  /** Size of the moss and humus drifts. */
   patch_m: number;
+  /** How far the moss, and the humus, takes the litter over where it lies
+   *  thickest. The humus is the darker: a strong one reads as shadow. */
+  moss: number;
+  humus: number;
   /** Strength of the ground's value noise over the floor. */
   mottle: number;
   /** How far a root darkens the floor, and the spacing of the roots. */
@@ -157,12 +161,15 @@ export interface StandRules {
   purity: number;
 }
 
-/** How the simulation's trunks are drawn as trees: each crown stays in its
- *  forest's rect and under its canopy height. */
+/** How the simulation's trunks are drawn as trees: each crown under its
+ *  forest's canopy height and within the canopy's radius of its trunk. */
 export interface ForestRules {
   /** Where a crown's top falls, as fractions of the forest's canopy height. */
   top: readonly [number, number];
-  /** Horizontal scale over vertical, per tree (a crown's girth varies more than its height). */
+  /** A tree's width, as a share of its appearance's own: how far the canopy
+   *  closes. At most 1: an appearance is built inside the simulation's canopy
+   *  radius (`fit.canopy`), and no drawn crown may pass it. Past the map,
+   *  where nothing is simulated, it is a tree's width over its height. */
   girth: readonly [number, number];
 }
 
@@ -476,6 +483,8 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   if (biome.palettes[f.palette].length < 3)
     bad("forest_floor.palette", "needs three colours: litter, moss, humus");
   within("forest_floor.patch_m", f.patch_m, 0.1, 1000);
+  within("forest_floor.moss", f.moss, 0, 1);
+  within("forest_floor.humus", f.humus, 0, 1);
   within("forest_floor.mottle", f.mottle, 0, 1);
   within("forest_floor.roots", f.roots, 0, 1);
   within("forest_floor.roots_m", f.roots_m, 0.1, 100);
@@ -513,7 +522,7 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   within("trees.stands.purity", t.stands?.purity, 0, 1);
   within("trees.colour_jitter", t.colour_jitter, 0, 0.5);
   range("trees.forest.top", t.forest.top, 0.1, 1);
-  range("trees.forest.girth", t.forest.girth, 0.5, 2);
+  range("trees.forest.girth", t.forest.girth, 0.3, 1);
   const h = t.hedgerows;
   if (!h.appearance) bad("trees.hedgerows.appearance", "is empty");
   tint("trees.hedgerows.tint", h.tint);

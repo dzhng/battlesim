@@ -8,8 +8,12 @@ import { forestInside, type ForestShape } from "../terrain/forestShapes";
 // - `forest`: the simulation's forests, drawn as trees: exactly one tree on
 //   each of the simulation's trunks (the bodies movement, cover and
 //   concealment meet, placed by the one forest rule), and no
-//   other. Every crown fits its forest's physical shape and under its canopy
-//   over the simulation's own ground. A trunk knocked down is gone from the
+//   other. Every crown stands under its forest's canopy over the simulation's
+//   own ground and within the canopy's radius of its trunk, as the
+//   simulation's foliage does: past the forest's edge too, so a tree there is
+//   as wide as one inside. A crown is never drawn wider than its appearance,
+//   which the asset validator holds inside that radius (`fit.canopy`): the
+//   simulation's number has one owner. A trunk knocked down is gone from the
 //   drawing where the side has seen the ground cleared (`treeCleared`).
 //   Which species a trunk is drawn as is the biome's: a wood is stands, each
 //   mostly one family's species, with the odd tree of no family among them
@@ -283,17 +287,14 @@ function placeForests(
   const ground = (x: number, y: number) => groundHeight(site.ground, x, y);
   let trunk = 0;
   for (const f of site.forests) {
-    /** Fit one tree at (x, y): scale it to its crown's room inside the shape and
-     *  its top under the canopy over the lowest ground its crown covers. */
+    /** Fit one tree at (x, y): its crown a share of its appearance's
+     *  width, its top under the canopy over the lowest ground its crown
+     *  covers. */
     const plant = (x: number, y: number) => {
-      const edge = forestInside(f, x, y);
-      const s = pick(rng, x, y, f.kind === "stroke" ? OPEN : edge);
+      const s = pick(rng, x, y, f.kind === "stroke" ? OPEN : forestInside(f, x, y));
       const kind = size[s.kind];
       let sz = (f.canopy * random.float(rng, rules.top[0], rules.top[1])) / kind.height;
-      let sxy = Math.min(
-        sz * random.float(rng, rules.girth[0], rules.girth[1]),
-        edge / kind.radius,
-      );
+      const sxy = random.float(rng, rules.girth[0], rules.girth[1]);
       const radius = kind.radius * sxy;
       let foot = ground(x, y);
       for (let k = 0; k < 4; k++) {
@@ -309,7 +310,6 @@ function placeForests(
           floor = Math.min(floor, ground(x + r * Math.cos(a), y + r * Math.sin(a)));
         }
       sz = Math.min(sz, (floor + f.canopy - CANOPY_MARGIN_M - z) / kind.height);
-      sxy = Math.min(sxy, sz * rules.girth[1]);
       out.push(
         x,
         y,

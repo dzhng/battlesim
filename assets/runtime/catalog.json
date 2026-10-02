@@ -287,7 +287,7 @@
       "unit": "scenery"
     },
     "tree_birch": {
-      "bundle": "b1fe0e8ef3545196685f67208e68da9d2cabe6470e6a0cf87d503cd6a6c44106",
+      "bundle": "f3d93946ba4e8fe78ad3d99e224b82be78b11374544d85e9f5da59cb50d8f1dc",
       "kind": "static",
       "scenery": "tree",
       "unit": "scenery"
@@ -299,7 +299,7 @@
       "unit": "scenery"
     },
     "tree_pine": {
-      "bundle": "8b45e988dba15093dd7727ee886ae36c99d21b084450cb5f685b7dc4bfe171de",
+      "bundle": "ce1995bb2e23d7a1741e6bf68489d7663307e69b6e31f7042fd5ac039a4e6509",
       "kind": "static",
       "scenery": "tree",
       "unit": "scenery"
@@ -317,7 +317,7 @@
       "unit": "scenery"
     },
     "tree_spruce": {
-      "bundle": "2abb0ad0e4f2cc9cccedc3b540f68e0b2d581a3b3d57eef8dd346121d3930e61",
+      "bundle": "a7d3ed168137d30197d7d061b348fc5b35258f3fd785c921fe633a5a5a56bd78",
       "kind": "static",
       "scenery": "tree",
       "unit": "scenery"
