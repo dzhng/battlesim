@@ -648,6 +648,9 @@ export async function createWorldPass(
     setDressingShown(on: boolean) {
       scenery.setDressingShown(on);
     },
+    setUnderstoreyShown(on: boolean) {
+      scenery.setUnderstoreyShown(on);
+    },
     /** Draw the ground's classes in place of the lit world (the
      *  "ground-classes" frame view), or not. */
     setClassView(on: boolean) {

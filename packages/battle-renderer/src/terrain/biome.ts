@@ -301,6 +301,11 @@ export interface ForestFloor {
   verge_m: number;
   verge_warp_m: number;
   verge_warp_scale_m: number;
+  /** A strip of forest (a tree line) has no floor of its own: under it lies
+   *  a band of the plots' verge, with the verge's grass. The band is the
+   *  strip itself, its edge wandering by `warp_m` either way, drawn in to a
+   *  point over the last `taper_m` before each end of the strip. */
+  tree_line: { taper_m: number; warp_m: number };
   roughness: number;
   /** Sun flecks under the crowns: their size, the share of the floor they
    *  cover, and the share of the sun they let through. */
@@ -396,6 +401,41 @@ export interface ForestRules {
   girth: readonly [number, number];
 }
 
+/** A tree the simulation holds outside every forest (a street's tree): a
+ *  body with no canopy rule, drawn at its own box. */
+export interface LoneTreeRules {
+  /** The species it may be drawn as, each the `appearance` of a row of
+   *  `species`, whose weight and tint it takes. */
+  species: readonly string[];
+  /** Where its top falls, as fractions of its body's height. */
+  top: readonly [number, number];
+  /** Its width, as a share of its appearance's own: a tree beside a street
+   *  is narrower than one in a wood. */
+  girth: readonly [number, number];
+}
+
+/** The shrubs under a tree line (a strip of forest): rows of hedge along its
+ *  length, under its trees, so the line looks like what the simulation says
+ *  it is, a strip sight does not cross. Every shrub keeps its whole reach
+ *  inside the strip, off paving and water and clear of other bodies; a wood
+ *  has none (its floor's dressing stays under a man's waist). */
+export interface UnderstoreyRules {
+  /** A `hedgerow` appearance. */
+  appearance: string;
+  tint: Rgb;
+  /** Shrub spacing along a row, metres. */
+  spacing_m: number;
+  /** Rows stand this far apart across the strip, as many as fit it. */
+  row_m: number;
+  /** How far a shrub strays from its row, either way. */
+  sway_m: number;
+  /** The share of shrubs left out: gaps in the hedge. */
+  gap: number;
+  /** A shrub's length and width, and its height, over its appearance's own. */
+  length: readonly [number, number];
+  height: readonly [number, number];
+}
+
 /** Hedgerows along the plot edges past the map: shrubs end to end, with
  *  trees standing in them. Scenery only: nothing is simulated there. */
 export interface HedgerowRules {
@@ -430,6 +470,8 @@ export interface BiomeTrees {
   /** Per-tree colour variation, as a fraction. */
   colour_jitter: number;
   forest: ForestRules;
+  lone: LoneTreeRules;
+  understorey: UnderstoreyRules;
   hedgerows: HedgerowRules;
   copses: CopseRules;
   /** Scenery past the map stands at least `clear_m` outside it and within
@@ -857,6 +899,9 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   within("forest_floor.verge_m", f.verge_m, 0, 50);
   within("forest_floor.verge_warp_m", f.verge_warp_m, 0, 50);
   within("forest_floor.verge_warp_scale_m", f.verge_warp_scale_m, 1, 10000);
+  within("forest_floor.tree_line.taper_m", f.tree_line?.taper_m, 0.1, 1000);
+  // The band's edge wanders within what the surface field reads of a forest.
+  within("forest_floor.tree_line.warp_m", f.tree_line.warp_m, 0, f.verge_m + f.verge_warp_m);
   within("forest_floor.roughness", f.roughness, 0, 1);
   within("forest_floor.dapple.size_m", f.dapple?.size_m, 0.1, 100);
   within("forest_floor.dapple.share", f.dapple?.share, 0, 1);
@@ -916,6 +961,23 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   within("trees.colour_jitter", t.colour_jitter, 0, 0.5);
   range("trees.forest.top", t.forest.top, 0.1, 1);
   range("trees.forest.girth", t.forest.girth, 0.3, 1);
+  if (!Array.isArray(t.lone?.species) || t.lone.species.length === 0)
+    bad("trees.lone.species", "is empty");
+  t.lone.species.forEach((name, i) => {
+    if (!t.species.some((s) => s.appearance === name && s.weight > 0))
+      bad(`trees.lone.species[${i}]`, `names no weighted species "${name}"`);
+  });
+  range("trees.lone.top", t.lone.top, 0.1, 1);
+  range("trees.lone.girth", t.lone.girth, 0.3, 1);
+  const u = t.understorey;
+  if (!u?.appearance) bad("trees.understorey.appearance", "is empty");
+  tint("trees.understorey.tint", u.tint);
+  within("trees.understorey.spacing_m", u.spacing_m, 0.5, 100);
+  within("trees.understorey.row_m", u.row_m, 0.5, 100);
+  within("trees.understorey.sway_m", u.sway_m, 0, 10);
+  within("trees.understorey.gap", u.gap, 0, 1);
+  range("trees.understorey.length", u.length, 0.1, 2);
+  range("trees.understorey.height", u.height, 0.1, 2);
   const h = t.hedgerows;
   if (!h.appearance) bad("trees.hedgerows.appearance", "is empty");
   tint("trees.hedgerows.tint", h.tint);

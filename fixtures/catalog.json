@@ -719,9 +719,8 @@
         },
         "street_tree": {
           "appearance": {
-            "drawn_by": "street_tree",
-            "map_only": true,
-            "status": "systems_only"
+            "drawn_by": "forest",
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -2171,9 +2170,8 @@
     },
     "street_tree": {
       "appearance": {
-        "drawn_by": "street_tree",
-        "map_only": true,
-        "status": "systems_only"
+        "drawn_by": "forest",
+        "map_only": true
       },
       "body": {
         "armor": 1.0,

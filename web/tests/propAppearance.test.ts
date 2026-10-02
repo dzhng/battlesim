@@ -326,10 +326,11 @@ test("a stand-in follows what the side knows: shoved, burnt out, gone", () => {
   expect(structureModels([car], [known({ destroyed: true })], artless)).toEqual([]);
 });
 
-test("a forest's tree is never a stand-in, a street tree is, and nothing is without the kit", () => {
+test("a tree is never a stand-in, in a forest or beside a street, and nothing is without the kit", () => {
+  // The scenery draws every tree body as a tree.
   const tree = (kind: string): MapProp => ({ ...car, kind, half: [0.35, 0.35, 5] });
   expect(structureModels([tree("trunk")], [], artless)).toEqual([]);
-  expect(structureModels([tree("street_tree")], [], artless)).toHaveLength(1);
+  expect(structureModels([tree("street_tree")], [], artless)).toEqual([]);
   // The prototype kit not installed, or no stand-in style: as before, nothing.
   expect(structureModels([car], [], new PropAppearances(installed, layout, standIns))).toEqual([]);
   expect(structureModels([car], [], appearances)).toEqual([]);
