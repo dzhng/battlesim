@@ -20,8 +20,19 @@
 // each building alone; and `battle-*.png`, the battle as it is played, with
 // units, grass and smoke.
 import { readFile, writeFile } from "node:fs/promises";
-import { advance, buildingsSettled, lab, presented, until } from "./_lab.mjs";
+import {
+  advance,
+  buildingsSettled,
+  buildingStats as stats,
+  gpuWarnings,
+  groundClasses,
+  lab,
+  presented,
+  route,
+  until,
+} from "./_lab.mjs";
 import { eyeOf, gap } from "./_cameraClearance.mjs";
+import { rec709 } from "./_colour.mjs";
 import { crop, decode, pixel } from "./_png.mjs";
 import { bounds, boxRound, isBody, judge, projected, setFits } from "./_templateFit.mjs";
 
@@ -64,9 +75,6 @@ const CROP_PX = 12;
 
 /** A length to the millimetre: boxes cross the page as 32-bit floats. */
 const metres = (m) => Number(m.toFixed(3));
-const route = (page, method, ...args) =>
-  lab(page, ([method, args]) => window.__lab.route[method](...args), [method, args]);
-const stats = (page) => lab(page, () => window.__lab.stats().buildings);
 
 async function settle(page) {
   await lab(page, () => window.__lab.frame());
@@ -94,13 +102,6 @@ async function shot(page) {
   await lab(page, () => window.__lab.frame());
   return page.screenshot();
 }
-/** The ground-classes view: black where anything stands over the ground. */
-async function groundClasses(page) {
-  await lab(page, () => window.__lab.setFrameView("ground-classes"));
-  const png = await page.screenshot();
-  await lab(page, () => window.__lab.setFrameView("final"));
-  return png;
-}
 
 /** The share of the pixels of `a` and `b` inside `box` (the whole frame
  *  without one) of which a channel differs by more than `CHANGED`. */
@@ -126,8 +127,7 @@ function brightness(picture, mask, box) {
   for (let y = Math.max(0, Math.floor(box.y)); y < Math.min(mask.height, box.y + box.h); y++)
     for (let x = Math.max(0, Math.floor(box.x)); x < Math.min(mask.width, box.x + box.w); x++) {
       if (!isBody(pixel(mask, x, y))) continue;
-      const [r, g, b] = pixel(picture, x, y);
-      sum += 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      sum += rec709(pixel(picture, x, y));
       count++;
     }
   return count ? sum / count : 0;
@@ -135,11 +135,7 @@ function brightness(picture, mask, box) {
 
 export async function run(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  const warnings = [];
-  page.on("console", (m) => {
-    if (m.type() === "warning" && /webgpu|validation|gpu\w*error/i.test(m.text()))
-      warnings.push(m.text().slice(0, 200));
-  });
+  const warnings = gpuWarnings(page);
   await ctx.openLab(page, ctx.url, 120000);
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout: 60000 });
   await lab(page, () => window.__lab.route.pause());

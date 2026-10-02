@@ -6,12 +6,11 @@
 // blue watches and red stands behind two slabs; later red walks out and sees.
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
-import { gameGuttedShells } from "@apps/battle-lab/src/destroyedBuildings";
+import { knownFallen } from "@apps/battle-lab/src/destroyedBuildings";
 import { effectPublication, gameEffects } from "@apps/battle-lab/src/effectFeed";
 import { GAME_RULES, labScenario, type LabEncounter } from "@apps/battle-lab/src/scenarios";
 import { Battle, initSync, WorldView, world_layout } from "@wasm/game_wasm.js";
 import {
-  fallenBuildings,
   indexBuildings,
   type BuildingIndex,
 } from "@packages/battle-renderer/src/models/buildingReferences";
@@ -28,6 +27,7 @@ import {
 } from "@packages/battle-renderer/src/worldMesh";
 import { buildingCollapse } from "@packages/scene-assets/src/authority";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { ruinHeight } from "@packages/scene-assets/src/templateSource";
 import { loadEncounter, loadMap } from "@web/maps/node";
 import {
   ObservationDecoder,
@@ -114,8 +114,7 @@ test("a side knows a building collapsed or gutted once it has seen it, and intac
   const battle = play(encounter);
   try {
     const [compound, tower] = [battle.building(COMPOUND), battle.building(TOWER)];
-    const drawn = (side: "blue" | "red") =>
-      fallenBuildings(battle.index, battle.sees(side).knownProps, gameGuttedShells);
+    const drawn = (side: "blue" | "red") => knownFallen(battle.index, battle.sees(side).knownProps);
     // Before a round lands, both sides know the map.
     battle.to(30);
     expect(drawn("blue")).toEqual([]);
@@ -142,21 +141,18 @@ test("a side knows a building collapsed or gutted once it has seen it, and intac
       return {
         parts: parts.length,
         authored: Math.max(...parts.map((p) => p.baseZ + 2 * p.half[2])),
-        known: known.map((s) => 2 * s.box.half[2]),
-        replaced: known.every((s) => s.fallen),
+        known: known.map((box) => 2 * box.half[2]),
+        kinds: [...new Set(known.map((box) => box.kind))],
       };
     };
     const fell = heights(compound);
-    const remains = Math.min(
-      Math.max(fell.authored * rule.height_fraction, rule.min_height_m),
-      rule.max_height_m,
-    );
+    const remains = ruinHeight(fell.authored, rule);
     expect(fell.parts).toBe(3);
-    expect(fell.replaced).toBe(true);
+    expect(fell.kinds).toEqual(["ruin"]);
     expect(fell.known).toEqual([remains, remains, remains]);
     expect(remains).toBeLessThan(fell.authored / 2);
     const stands = heights(tower);
-    expect(stands.replaced).toBe(true);
+    expect(stands.kinds).toEqual(["gutted"]);
     expect(stands.known).toEqual([stands.authored]);
 
     // The fog's occluders follow the same knowledge: for blue the compound's
@@ -254,9 +250,7 @@ test("a side that sees part of a compound come down knows the whole building a r
     battle.to(lastBurst(encounter) + 30);
     expect(outOfSight()).toEqual(hidden);
     const known = battle.sees("blue").knownProps;
-    expect(fallenBuildings(battle.index, known, gameGuttedShells)).toEqual([
-      { building: compound, state: "ruin" },
-    ]);
+    expect(knownFallen(battle.index, known)).toEqual([{ building: compound, state: "ruin" }]);
     // Every part is published, the hidden one too: the simulation ends a
     // building whole, and seeing a part of it reveals all of it.
     expect(known.map((k) => k.authoredProp).sort()).toEqual(parts.map((p) => p.id).sort());

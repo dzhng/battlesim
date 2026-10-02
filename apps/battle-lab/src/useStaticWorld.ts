@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import type { WorldRay } from "@packages/renderer-core/src/camera3d";
 import {
   indexBuildings,
+  type BuildingIndex,
   type SideBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
-import { mapProps } from "@packages/battle-renderer/src/models/propAppearance";
+import { mapProps, type MapProp } from "@packages/battle-renderer/src/models/propAppearance";
 import {
   readWorldExports,
   type WorldExports,
@@ -78,16 +79,24 @@ export function buildingUnderRay(world: StaticWorld, ray: WorldRay): number | nu
   return building && world.layout.garrisonPropKinds.includes(building.kind) ? building.owner : null;
 }
 
+/** The static map's props, and its buildings as references to their
+ *  templates with the props that are their parts. */
+export interface MapBuildings {
+  props: MapProp[];
+  index: BuildingIndex;
+}
+
+export function useMapBuildings(world: StaticWorld | null): MapBuildings | null {
+  return useMemo(() => {
+    if (!world) return null;
+    const props = mapProps(world.exports, world.layout);
+    return { props, index: indexBuildings(world.exports.buildings, props) };
+  }, [world]);
+}
+
 /** The map's buildings for a view no side's knowledge is behind (a probe of
  *  the static world): every one standing. */
 export function useStandingBuildings(world: StaticWorld | null): SideBuildings | null {
-  return useMemo(
-    () =>
-      world && {
-        placed: indexBuildings(world.exports.buildings, mapProps(world.exports, world.layout))
-          .placed,
-        fallen: [],
-      },
-    [world],
-  );
+  const map = useMapBuildings(world);
+  return useMemo(() => map && { placed: map.index.placed, fallen: [] }, [map]);
 }

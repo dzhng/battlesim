@@ -814,16 +814,7 @@
       "chunk_m": 64,
       "pool_records": 131072,
       "expand_rows": 40000,
-      "tint_jitter": 0.08,
-      "prototype_tints": {
-        "farmstead": [0.58, 0.5, 0.44],
-        "detached_home": [0.86, 0.84, 0.8],
-        "attached_home": [0.66, 0.42, 0.38],
-        "urban_apartment": [0.7, 0.71, 0.74],
-        "highrise": [0.5, 0.6, 0.74],
-        "industry": [0.44, 0.5, 0.56],
-        "default": [0.62, 0.62, 0.62]
-      }
+      "tint_jitter": 0.08
     },
     "stand_ins": {
       "tints": {

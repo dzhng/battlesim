@@ -243,9 +243,11 @@ A district kind's streets and setbacks are rows of the same presets file.
   always built on; the kind's `coverage` applies to the rest.
 
 The catalogue is a list of physical descriptors. [`fixtures/prototype-building-templates.json`](../../fixtures/prototype-building-templates.json)
-is the one the generator is proved with: placeholder boxes at believable metre scale
-in the six categories, all of the regional family `prototype`. Real sources replace
-it through the same descriptor contract and a new catalogue hash. The measured
+is the one the generator builds towns from: complete buildings in the six
+categories, each row the descriptor of the city art set that dresses it
+([scene-assets](../../packages/scene-assets/README.md), "City buildings"), so it
+is derived and never edited by hand. Another regional family arrives through the
+same descriptor contract and a new catalogue hash. The measured
 outcome and the open questions are in the
 [C53 slice](../../specs/city-maps/slices/C53-parcels-and-buildings.md).
 
