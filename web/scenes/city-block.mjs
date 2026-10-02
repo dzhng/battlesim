@@ -265,6 +265,62 @@ export async function run(ctx) {
     JSON.stringify(where),
   );
 
+  // And the right way round: the building nearest the town's centre with a
+  // part whose image, turned half round about the building's frame, is open
+  // ground. Its art stands on the part, and none where a building placed the
+  // wrong way round would put it.
+  const turned = await lab(page, () => {
+    const buildings = window.__lab.route.buildings();
+    const boxes = buildings.flatMap((b) => b.parts);
+    const { town } = window.__lab.route.map();
+    const inside = (b, x, y) => {
+      const [dx, dy] = [x - b.center[0], y - b.center[1]];
+      const [c, s] = [Math.cos(b.yaw), Math.sin(b.yaw)];
+      return (
+        Math.abs(dx * c + dy * s) <= b.half[0] + 3 && Math.abs(-dx * s + dy * c) <= b.half[1] + 3
+      );
+    };
+    let best = null;
+    for (const b of buildings) {
+      if (b.parts.length < 2) continue;
+      const from = Math.hypot(b.frame[0] - town[0], b.frame[1] - town[1]);
+      if (best && from >= best.from) continue;
+      for (const part of b.parts) {
+        const image = [2 * b.frame[0] - part.center[0], 2 * b.frame[1] - part.center[1]];
+        if (boxes.some((o) => inside(o, image[0], image[1]))) continue;
+        if (window.__lab.route.surfaceAt(image[0], image[1])?.forest) continue;
+        best = { from, template: b.template, frame: b.frame, part, image };
+        break;
+      }
+    }
+    return best;
+  });
+  let way = null;
+  if (turned) {
+    await aim(page, turned.frame, { distance: 90, pitch: TOP_DOWN });
+    await buildingsSettled(page);
+    const [partPx, imagePx] = await lab(
+      page,
+      ({ part, image }) => [
+        window.__lab.projectToCss(part.center[0], part.center[1], part.baseZ + 2 * part.half[2]),
+        window.__lab.projectToCss(
+          image[0],
+          image[1],
+          window.__lab.route.surfaceZ(image[0], image[1]),
+        ),
+      ],
+      turned,
+    );
+    const mask = await groundClasses(ctx, page, "turned-ground-classes.png");
+    await shot(ctx, page, "turned-1920x1080.png");
+    way = { part: pixel(mask, ...partPx), image: pixel(mask, ...imagePx) };
+  }
+  ctx.check(
+    "a building of several parts stands the way round the map has it: its art on each part, open ground where the part would be if it were turned half round",
+    way !== null && isBody(way.part) && isGround(way.image),
+    JSON.stringify({ template: turned?.template, frame: turned?.frame, ...way }),
+  );
+
   // A pan across the town and a zoom through every tier keep the pool inside
   // its bound, and coming back to a station finds what it left.
   await stand(page, "tactical");

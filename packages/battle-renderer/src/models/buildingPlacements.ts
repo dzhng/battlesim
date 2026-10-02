@@ -62,7 +62,7 @@ import { createPlacementPool, poolAppend, poolRemove, type PlacementPool } from 
 
 const RECORD = MODEL_RECORD_FLOATS;
 /** The tier the whole map can draw at. */
-export const COARSEST = TIER_COUNT - 1;
+const COARSEST = TIER_COUNT - 1;
 /** A resident chunk's casters draw this many tiers coarser than the view,
  *  as every model's do. */
 const CASTER_COARSER = 1;
@@ -164,7 +164,7 @@ export interface BuildingScene {
 }
 
 /** The tier a chunk `distance` metres off draws at. */
-export function buildingLevel(
+function buildingLevel(
   lodPxPerM: BuildingStyle["lod_px_per_m"],
   view: DetailView,
   distance: number,
