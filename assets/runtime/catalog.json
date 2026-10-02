@@ -29,6 +29,17 @@
       "scenery": "bridge_deck",
       "unit": "scenery"
     },
+    "car_wreck": {
+      "bundle": "acdd8556d266efda56c730ae04200f4dfec5e5f7eb6f1169f0f3c136437ed6bd",
+      "footprint_half_m": [
+        2.2,
+        0.9,
+        0.35
+      ],
+      "kind": "static",
+      "scenery": "car_wreck",
+      "unit": "scenery"
+    },
     "city_kit_china_apartments": {
       "bundle": "db77be9f791276176fe6c254de09a7d9306b19b97fb6bc7a09797505d9d7d5ec",
       "kind": "static",
@@ -216,6 +227,28 @@
       ],
       "kind": "static",
       "scenery": "wreck",
+      "unit": "scenery"
+    },
+    "jersey_barrier": {
+      "bundle": "f77b3456105fdcb77bec89fb588efb2725df2d68331dc8d2910dff717d3556b5",
+      "footprint_half_m": [
+        1.5,
+        0.3,
+        0.4
+      ],
+      "kind": "static",
+      "scenery": "jersey_barrier",
+      "unit": "scenery"
+    },
+    "parked_car": {
+      "bundle": "8feffacdbd7feb74116154a94dcda244b70d1f605f502574100fcf284605d9ab",
+      "footprint_half_m": [
+        2.2,
+        0.9,
+        0.72
+      ],
+      "kind": "static",
+      "scenery": "parked_car",
       "unit": "scenery"
     },
     "recon": {

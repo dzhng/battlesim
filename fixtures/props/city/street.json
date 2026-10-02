@@ -43,17 +43,17 @@
     "parked_car": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "medium", "hp": 120, "cover_tier": "medium"},
       "destroyed": {"into": {"prop": "car_wreck", "height_m": 0.7}},
-      "appearance": {"drawn_by": "parked_car", "status": "systems_only", "map_only": true}
+      "appearance": {"drawn_by": "parked_car", "map_only": true}
     },
     "car_wreck": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "medium", "hp": 80, "cover_tier": "medium"},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "car_wreck", "status": "systems_only", "map_only": false}
+      "appearance": {"drawn_by": "car_wreck", "map_only": false}
     },
     "jersey_barrier": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": true, "occludes": false, "weight_class": "heavy", "hp": 300, "cover_tier": "heavy"},
       "destroyed": "removed",
-      "appearance": {"drawn_by": "jersey_barrier", "status": "systems_only", "map_only": true}
+      "appearance": {"drawn_by": "jersey_barrier", "modular": true, "map_only": true}
     },
     "bus_shelter": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "light", "hp": 60},

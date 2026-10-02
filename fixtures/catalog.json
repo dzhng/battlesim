@@ -181,8 +181,7 @@
         },
         "car_wreck": {
           "appearance": {
-            "drawn_by": "car_wreck",
-            "status": "systems_only"
+            "drawn_by": "car_wreck"
           },
           "body": {
             "armor": 1.0,
@@ -349,7 +348,7 @@
           "appearance": {
             "drawn_by": "jersey_barrier",
             "map_only": true,
-            "status": "systems_only"
+            "modular": true
           },
           "body": {
             "armor": 1.0,
@@ -493,8 +492,7 @@
         "parked_car": {
           "appearance": {
             "drawn_by": "parked_car",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -1628,8 +1626,7 @@
     },
     "car_wreck": {
       "appearance": {
-        "drawn_by": "car_wreck",
-        "status": "systems_only"
+        "drawn_by": "car_wreck"
       },
       "body": {
         "armor": 1.0,
@@ -1796,7 +1793,7 @@
       "appearance": {
         "drawn_by": "jersey_barrier",
         "map_only": true,
-        "status": "systems_only"
+        "modular": true
       },
       "body": {
         "armor": 1.0,
@@ -1940,8 +1937,7 @@
     "parked_car": {
       "appearance": {
         "drawn_by": "parked_car",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,

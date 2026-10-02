@@ -548,6 +548,45 @@
         0.6
       ]
     },
+    "parked_car": {
+      "unit": "scenery",
+      "scenery": "parked_car",
+      "states": {
+        "default": "assets/source/street/parked_car.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        2.2,
+        0.9,
+        0.72
+      ]
+    },
+    "car_wreck": {
+      "unit": "scenery",
+      "scenery": "car_wreck",
+      "states": {
+        "default": "assets/source/street/car_wreck.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        2.2,
+        0.9,
+        0.35
+      ]
+    },
+    "jersey_barrier": {
+      "unit": "scenery",
+      "scenery": "jersey_barrier",
+      "states": {
+        "default": "assets/source/street/jersey_barrier.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.5,
+        0.3,
+        0.4
+      ]
+    },
     "grass_meadow": {
       "unit": "scenery",
       "scenery": "grass",
