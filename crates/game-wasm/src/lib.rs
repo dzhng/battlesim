@@ -85,9 +85,10 @@ pub fn map_generator_version() -> String {
 }
 
 /// Resolve a saved map from its documents (`fixtures/maps/<id>/map.json` and
-/// `SOURCES.json`, and the physical template library): the browser's and the
-/// tools' side of the one resolver, admitted as the native catalogue reader
-/// (`sim::maps`) admits it. Answers `{ status: "ok", result: { definition,
+/// `SOURCES.json`, and the physical template library those sources name; the
+/// map stores each building as its template and frame, materialized here):
+/// the browser's and the tools' side of the one resolver, admitted as the
+/// native catalogue reader (`sim::maps`) admits it. Answers `{ status: "ok", result: { definition,
 /// identity } }`, or `{ status: "error", error: { code, location, message } }`.
 #[wasm_bindgen]
 pub fn resolve_saved_map(
@@ -114,6 +115,21 @@ pub fn template_catalogue_json(descriptors_json: &str) -> Result<String, JsError
         .map_err(js_error)?
         .canonical_json()
         .map_err(js_error)
+}
+
+/// Admit physical templates as buildings a map may place: each one complete
+/// (`require_complete`), together one canonical catalogue. The asset check
+/// holds every source set's descriptors to this, so no other code decides
+/// what a legal template is. Fails with the contract's own refusal.
+#[wasm_bindgen]
+pub fn complete_template_catalogue_json(descriptors_json: &str) -> Result<String, JsError> {
+    let descriptors: Vec<BuildingTemplateDescriptor> =
+        serde_json::from_str(descriptors_json).map_err(js_error)?;
+    let catalogue = TemplateGeometryCatalog::new(descriptors).map_err(js_error)?;
+    for template in catalogue.templates() {
+        template.require_complete().map_err(js_error)?;
+    }
+    catalogue.canonical_json().map_err(js_error)
 }
 
 /// Materialize one physical descriptor in a translation/rotation frame.

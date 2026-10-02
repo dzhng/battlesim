@@ -24,7 +24,13 @@ export default function Projectiles() {
 
 function Review({ scenario }: { scenario: string }) {
   const map = useMemo(() => JSON.parse(scenario).map as unknown, [scenario]);
-  const session = useBattleSession({ map, scenario, seed: STREET_SEED, destroyable: "apart" });
+  const session = useBattleSession({
+    map,
+    scenario,
+    seed: STREET_SEED,
+    destroyable: "apart",
+    sound: true,
+  });
   const { observation } = session.sim;
   const ordered = useRef(new Set<number>());
   const [view, setView] = useState(-1);
@@ -83,6 +89,7 @@ function Review({ scenario }: { scenario: string }) {
         initialCamera={STREET_CAMERA}
         groundAt={session.surfaceZ}
         onReady={session.onReady}
+        onFrame={(_, camera) => session.hear(camera)}
         diagnostics={{
           ...session.probes,
           show,

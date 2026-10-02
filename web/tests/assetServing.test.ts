@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { build, preview, type PreviewServer } from "vite";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import type { RuntimeCatalog } from "@packages/scene-assets/src/schema.ts";
-import { bundlePath } from "@packages/scene-assets/src/schema.ts";
+import { bundlePath, templateLibraryPath } from "@packages/scene-assets/src/schema.ts";
 
 const WEB = new URL("../", import.meta.url).pathname;
 const RUNTIME = new URL("../../assets/runtime/", import.meta.url).pathname;
@@ -50,6 +50,7 @@ test("every runtime catalog file is in the build and served byte for byte, same-
     "catalog.json",
     ...Object.values(catalog.skeletons).map(bundlePath),
     ...Object.values(catalog.appearances).map((a) => bundlePath(a.bundle)),
+    ...(catalog.templates ? [templateLibraryPath(catalog.templates.library)] : []),
   ];
   for (const file of files) {
     const response = await fetch(`${origin}/${file}`);

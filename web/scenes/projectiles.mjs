@@ -148,7 +148,24 @@ export async function run(ctx) {
   await lab(page, () => window.__lab.route.show(4));
   await snapshot(ctx, page, "atgm-controls.png");
   const sustainedFrom = (await obs(page)).tick;
+  await page.getByRole("button", { name: /^ATGM/ }).click();
   await lab(page, () => window.__lab.route.resume());
+  const sound = await page
+    .waitForFunction(
+      () => {
+        const s = window.__lab.route.sound();
+        return s?.running && s.positional > 0 && s;
+      },
+      undefined,
+      { timeout: 30000 },
+    )
+    .then((handle) => handle.jsonValue())
+    .catch(() => lab(page, () => window.__lab.route.sound()));
+  ctx.check(
+    "projectile combat plays positional sound after a click",
+    !!sound?.running && sound.positional > 0,
+    JSON.stringify(sound),
+  );
   await page.waitForFunction((tick) => window.__lab.route.tick() >= tick + 600, sustainedFrom, {
     timeout: 120000,
   });

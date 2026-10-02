@@ -23,11 +23,11 @@
         "kind": "stroke",
         "points": [
           [
-            20,
+            0,
             60
           ],
           [
-            480,
+            500,
             60
           ]
         ],
@@ -65,7 +65,7 @@
             220
           ],
           [
-            480,
+            500,
             220
           ]
         ],
@@ -89,25 +89,9 @@
     {
       "owner": 2,
       "kind": "building",
-      "category": "farmstead",
-      "regional_family": "api_fixture",
-      "parts": [{"part": "body", "prop": 2}],
-      "geometry": {
-        "template_id": "api-box-10-8-4",
-        "frame": {"translation": [320.0, 300.0, 0.0], "yaw": 0.2},
-        "parts": [
-          {"id": "body", "center": [320.0, 300.0], "yaw": 0.2, "half_extents": [10.0, 8.0, 4.0], "base_z": 0.0}
-        ],
-        "height_m": 8.0,
-        "floor_z": null,
-        "entrances": null,
-        "edges": [
-          {"id": "face-0", "part": "body", "facade": "positive_x", "span_m": [-8.0, 8.0], "span": [[331.3900204247729, 294.1461606852207], [328.21131113205195, 309.8272259306805]], "normal": [0.9800665778412416, 0.19866933079506122], "base_z": 0.0, "top_z": 8.0, "exposed": true, "bays": null},
-          {"id": "face-1", "part": "body", "facade": "positive_y", "span_m": [-10.0, 10.0], "span": [[328.21131113205195, 309.8272259306805], [308.6099795752271, 305.8538393147793]], "normal": [-0.19866933079506122, 0.9800665778412416], "base_z": 0.0, "top_z": 8.0, "exposed": true, "bays": null},
-          {"id": "face-2", "part": "body", "facade": "negative_x", "span_m": [-8.0, 8.0], "span": [[308.6099795752271, 305.8538393147793], [311.78868886794805, 290.1727740693195]], "normal": [-0.9800665778412416, -0.19866933079506122], "base_z": 0.0, "top_z": 8.0, "exposed": true, "bays": null},
-          {"id": "face-3", "part": "body", "facade": "negative_y", "span_m": [-10.0, 10.0], "span": [[311.78868886794805, 290.1727740693195], [331.3900204247729, 294.1461606852207]], "normal": [0.19866933079506122, -0.9800665778412416], "base_z": 0.0, "top_z": 8.0, "exposed": true, "bays": null}
-        ]
-      }
+      "template_id": "api-box-10-8-4",
+      "frame": {"translation": [320.0, 300.0, 0.0], "yaw": 0.2},
+      "parts": [{"part": "body", "prop": 2}]
     }
   ],
   "template_catalog_hash": "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13"

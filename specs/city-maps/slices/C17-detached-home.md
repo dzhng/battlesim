@@ -31,3 +31,12 @@ Shared module/library ownership, physical fit and the category's metre scale.
 
 ## Feedback that would change this slice
 Rejected silhouette reshapes its family source without changing the type preset or adding a per-map bake.
+
+## Outcome
+
+**2026-10-01.** The houses are a source set: `packages/scene-assets/blender/city/homes.py` writes `assets/source/city/homes/` (29 modules, ten templates: five detached, five attached), through the authoring helper `city/kit.py` that the farmstead, tower and industry scripts are to use. `city/assemble.py` rebuilds a set from its two files and renders the sheets this slice asks for.
+
+- **Proved:** two runs write the same bytes; the contract admits all ten descriptors as complete, with every door on the street side and a clear way out; the kit validates and bakes with no finding, and the library's fit and module checks pass. The one finding left is that the templates are not yet in the physical catalogue, which the cutover clears.
+- **Budget:** a detached house draws 2,750 to 6,040 triangles at tier 0, 1,120 to 2,250 at tier 1, 230 to 590 at tier 2 and 12 to 25 at tier 3.
+- **Not done:** the sheets are Blender renders with a stand-in sun, not the battle's renderer, which cannot draw kits yet. No unprimed critique or reference comparison was run on them. Damage states are C14's.
+- **Decisions:** [choices](../choices.md#c17-our-own-houses).

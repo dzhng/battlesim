@@ -40,3 +40,14 @@ Village visuals while its existing house path is awaiting C37; corpse behaviour.
 
 ## Feedback that would change this slice
 Poor residency transitions or expensive expansion reopens chunk/pool policy within the measured G0 limits.
+
+## Outcome
+
+**First half, 2026-10-01: one static chunk owner, with corpses on it.** Buildings from kits (template references, residency, the pool) have not started; they wait on C32's library.
+
+- **The owner** is `packages/battle-renderer/src/frame/staticChunks.ts`. A population hands it records of any stride with each instance's kind, size and bounds; it keeps them in chunk order and, per view, gives the merged ranges of chunks drawn whole at a level, the near chunks, and the sun's caster ranges. A level is whatever the population's layer draws for it, and a population says how many it has.
+- **Scenery** (`scenery/lod.ts`, `frame/sceneryLayer.ts`) is three populations of it, drawn as before: four mesh tiers, a far chunk whole at the last.
+- **Corpses** (`models/modelDetail.ts`, `models/modelLayer.ts`) are a fourth: one kind, the models' 16-float record, and a fifth level, the impostor card, for a chunk whose every corpse has a card. Near chunks are chosen per corpse by the models' own detail rule and packed with the units. The private corpse chunking is deleted.
+- **What the next pass builds on:** a kit module population is a `ChunkSource` and a `ChunkLevel`; a far-tier tile is another level. Neither needs a change to the owner's selection.
+
+**Proof that nothing drawn changed.** A differential probe ran the base commit's two chunk paths against the owner on seeded random populations: 800 scenery views (327,000 staged instances, 13,700 far ranges, 6,300 cast ranges) and 2,000 corpse views (18,000 card runs, 21,000 near chunks) agreed exactly, buffers and chunk boxes included. In the browser on the real GPU, the endurance lab's late state (1,000 corpses drawn) at eight cameras from 25 m to 2.4 km and a generated town at seven were captured from the base commit and from the change with grass, effects and cast lights off: every frame is pixel-identical (0 of 2,073,600 pixels differ in each of 15 frames) and the model and scenery stats are equal. The decisions are in [choices](../choices.md#c22-static-chunk-owner).

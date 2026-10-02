@@ -68,7 +68,7 @@ bun run setup   # install web dependencies
 bun run dev     # build the WebAssembly, start the lab app
 ```
 
-`/` is the main menu: start a battle on a generated map (its type, its size and a seed), play the village or watch a replay; behind its developer link, run the benchmark or open the lab index at `/labs`, which links every route. A generated battle's address (`/battle?type=&size=&seed=`) is its share identity: the same address prepares the same battle on the same build. The benchmark (`/benchmark`) is the one frame-cost measure.
+`/` is the main menu: start a battle on a generated map (its type, its size and a seed), play the village or a saved battlefield of the catalogue, or watch a replay; behind its developer link, run the benchmark or open the lab index at `/labs`, which links every route. A generated battle's address (`/battle?type=&size=&seed=`) is its share identity: the same address prepares the same battle on the same build. The benchmark (`/benchmark`) is the one frame-cost measure.
 
 Floating unit panels show name and health. Own-unit panels show a crossed-out eye beside the name, plus HIDDEN in expanded detail, when forest or garrison concealment covers enough of the living unit and there is no known engagement or currently visible enemy observer spotting it. The [sensing rules](crates/sim/src/sensing.rs) own squad thresholds; concealment uses forest ground, independently of tree crowns. Space prioritizes the closest 30% of visible units from the camera's actual position; farther cards expand where room remains. Hovering a unit or its card always reveals its detail. Placement tries expansion in place, then the fewest card shifts, favoring shorter shifts when the counts tie.
 
@@ -94,7 +94,14 @@ bun run --cwd web scene -- village                      # one browser scene
 bun run --cwd web scene -- --list                       # scene ids
 ```
 
-Web tests and scenes need the WebAssembly built once first (`bun run build:wasm`). Scenes write their evidence into gitignored `throwaway/evidence/<fixture-id>/`.
+Web tests and scenes need the WebAssembly built once first (`bun run build:wasm`).
+
+Every scene, and anything else that renders, shares the machine's one GPU. When more than one session is working, run each through the shared lock so they take turns; two at once slow each other and distort every timing:
+
+```bash
+lockf -k <main checkout>/throwaway/gpu.lock bun run --cwd web scene -- village
+```
+ Scenes write their evidence into gitignored `throwaway/evidence/<fixture-id>/`.
 
 The simulation's reports are examples of the `sim` crate (`crates/sim/examples/`); each prints its own flags when given one it doesn't know. `village_report` plays blue's comparison scripts against the red defender and ends every row in the battle's digest. Its `--quick` mode is the feedback loop for a rule change, and `--compare main` sets a run beside main's. `endurance_report` prints instructions retired over a long battle.
 
