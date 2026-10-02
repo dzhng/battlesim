@@ -73,7 +73,8 @@ extents, which are a user decision (M04 in the [map brief](../../specs/city-maps
   into `buildings`. The encounter planner (`sim::encounter`) reads both as
   `contract::encounter::EncounterSites`, which `MapPlan::sites` makes: generation's
   outcome carries the sites beside the map, and `generate-map` saves them as
-  `sites.json`.
+  `sites.json`, beside the map in its saved form
+  ([`fixtures/README.md`](../../fixtures/README.md#saved-maps)).
 - **A river is a hard feature everything else is placed beside.** A seed-chosen
   share of each type's maps has one river (`rivers`, on a stream of its own, so a
   seed without one is the map it was before rivers existed). It runs from the north

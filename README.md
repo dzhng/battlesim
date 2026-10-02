@@ -68,7 +68,7 @@ bun run setup   # install web dependencies
 bun run dev     # build the WebAssembly, start the lab app
 ```
 
-`/` is the main menu: start a battle on a generated map (its type, its size and a seed), play the village or watch a replay; behind its developer link, run the benchmark or open the lab index at `/labs`, which links every route. A generated battle's address (`/battle?type=&size=&seed=`) is its share identity: the same address prepares the same battle on the same build. The benchmark (`/benchmark`) is the one frame-cost measure.
+`/` is the main menu: start a battle on a generated map (its type, its size and a seed), play the village or a saved battlefield of the catalogue, or watch a replay; behind its developer link, run the benchmark or open the lab index at `/labs`, which links every route. A generated battle's address (`/battle?type=&size=&seed=`) is its share identity: the same address prepares the same battle on the same build. The benchmark (`/benchmark`) is the one frame-cost measure.
 
 Floating unit panels show name and health. Own-unit panels show a crossed-out eye beside the name, plus HIDDEN in expanded detail, when forest or garrison concealment covers enough of the living unit and there is no known engagement or currently visible enemy observer spotting it. The [sensing rules](crates/sim/src/sensing.rs) own squad thresholds; concealment uses forest ground, independently of tree crowns. Space prioritizes the closest 30% of visible units from the camera's actual position; farther cards expand where room remains. Hovering a unit or its card always reveals its detail. Placement tries expansion in place, then the fewest card shifts, favoring shorter shifts when the counts tie.
 

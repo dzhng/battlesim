@@ -2732,3 +2732,95 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 **Gap:** "The mask view adds 0 ms to the final view."
 
 **Verdict:** sound. The final view gains one uniform comparison per terrain fragment; the machine's run-to-run noise is hundreds of times that. **Confidence:** high.
+
+## Compact saved maps
+
+The contract these decisions belong to is in the [C58 outcome](slices/C58-offline-encounter.md#outcome).
+
+### A map's content hash is the hash of its resolved definition
+
+**Choice:** `map_hash` stays what it was: the hash of the resolved `MapDefinition`, buildings materialized. The resolver materializes first and hashes after.
+
+**Gap:** The pass said to store a building as its template and frame, and did not say what the identity then covers.
+
+**Verdict:** sound. No authored map's `SOURCES.json` hash changed, which is itself the proof that the conversion moved nothing, and a generated map's saved identity is the generator's own. The hash now also covers the library's geometry: a template edit changes the hash of every map that uses it, which the old form caught as a template mismatch instead. **Confidence:** high.
+
+### One map type, generic over what a building is
+
+**Choice:** `MapDefinition<B = BuildingDefinition>`, with `SavedMap = MapDefinition<SavedBuilding>`. Every existing use of `MapDefinition` is the resolved map, unchanged.
+
+**Gap:** The saved and resolved maps differ only in their buildings.
+
+**Verdict:** sound. A second struct would repeat twelve fields and their number readers, and a new map field would have to be added twice. **Confidence:** high.
+
+### A saved building keeps `kind`, `owner` and `parts`; category and family are the template's
+
+**Choice:** `{ owner, kind, template_id, frame, parts }`. `category` and `regional_family` are no longer stored.
+
+**Gap:** "Plus whatever is genuinely per-building, such as its ids."
+
+**Verdict:** sound. The resolver already refused a building whose category or family differed from its template's, so they were never the building's own. `parts` could be derived when ids are dense and in template order, and was kept explicit: the village's props and buildings share one id space that the map authors. **Confidence:** high.
+
+### `SOURCES.json` names the library by file name
+
+**Choice:** `catalogue.library` is a file name in `fixtures/` (lowercase, `.json`, never a path). Every folder states it; there is no default. The adapters read the sources first and fetch that file.
+
+**Gap:** The pass asked that the library be something the sources name and the adapters honour.
+
+**Verdict:** sound. A name is only an address: the map's catalogue hash still decides whether the library is the right one, so a wrong name cannot admit a wrong library. JavaScript reads the name itself (one regular expression beside the resolver's check) instead of a second Wasm call. **Confidence:** high.
+
+### The resolver reads a library as a catalogue or as a descriptor list
+
+**Choice:** `building-templates.json` is a canonical catalogue (`{ hash, templates }`); `prototype-building-templates.json` is the descriptor list the generator reads. The resolver takes either.
+
+**Gap:** The two library files have different shapes, and other work owns both files.
+
+**Verdict:** provisional. Converting either file was out of this pass's reach. One shape for both is the cleaner end, and it is the template library's decision. **Confidence:** medium.
+
+### The catalogue admits what the generator may make
+
+**Choice:** `MapAdmission::CATALOGUE` is 60,000 parts and 600,000 bay positions, the limits of `fixtures/generated-battle.json`, with a test holding them equal.
+
+**Gap:** "Set the admission from what a full generated map needs."
+
+**Verdict:** sound. One number for "a map the game can make" and "a map the game can save". The constant is in Rust because both adapters must agree without reading a file; the test is what ties it to the fixture. **Confidence:** high.
+
+### Preparation takes the resolver's text
+
+**Choice:** `ResolvedMap` in JavaScript carries `json`, the definition as the resolver printed it, and the catalogue arm of preparation splices that into the scenario.
+
+**Gap:** A saved map's definition used to be printed again by JavaScript, which loses the sign of a zero. The old test for it (print the definition and resolve it again) has no meaning once the saved form differs from the resolved one.
+
+**Verdict:** sound. The generated arm already worked this way. The labs still print the parsed definition; a test now holds every authored map to surviving that. Seed 1's resolved map happens to hold no negative zero, so nothing moved either way. **Confidence:** high.
+
+### The saved map is `market-town`, and the menu lists the catalogue
+
+**Choice:** The folder is `market-town`, labelled "Market Town". The menu shows every released playable map that has the game's default encounter saved on it, as `Play <label>`, under `Play village`.
+
+**Gap:** The pass asked for a menu entry beside the village and left the name and the rule.
+
+**Verdict:** provisional. The listing rule means the next saved map needs no code. The village stays its own entry because its battle is a factory, not a saved encounter. The name is a placeholder a person can change in `meta.json`; the id is in the address. **Confidence:** medium.
+
+### `sites.json` stays in the folder, and the report saves the encounter
+
+**Choice:** The CLI's `sites.json` is committed beside the map, and `encounter_report --save` writes the planned encounter's setup as `encounters/<recipe>.json`.
+
+**Gap:** The pass asked that the saved folder be reproducible, and the planner is the simulation's, not the map generator's.
+
+**Verdict:** provisional. 22 KB buys planning the encounter again without generating the map, and is the input a planned catalogue map would need. Nothing checks it against the map. **Confidence:** medium.
+
+### `mapgen request` prints the game's pinned request
+
+**Choice:** A CLI command makes the request for a type, size and seed, pinned to the generator, the presets' revision and the catalogue's hash, under the game's limits.
+
+**Gap:** Nothing outside the browser could make the request the menu makes.
+
+**Verdict:** sound. Without it the saved map's request was hand-written JSON with a hash in it. **Confidence:** high.
+
+### The camera lab was not moved
+
+**Choice:** `fixtures/camera-lab.json` is still compiled at run time.
+
+**Gap:** "If it falls out cheaply."
+
+**Verdict:** sound for now. Its plan is already template ids and frames, so the move is mechanical, but a saved map pins the prototype library's hash, and the lab would stop loading whenever a prototype template changed. **Confidence:** medium.
