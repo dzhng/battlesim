@@ -12,10 +12,27 @@ import { classAt, openStations, shoot, stationPose, stationReport } from "./_gro
 const MAP = "village";
 /** A plot's own grass is judged this near its middle, clear of its verge. */
 const PLOT_HEART_M = 8;
-/** The road's verge, as metres outside the road's edge: past the road's
- *  bare margin, and short of the verge's half width by more than the class
- *  mask's step and a pixel. */
-const vergeBand = (biome) => [0.4, biome.verge.width_m / 2 - 0.2];
+/** A clump stands on a verge when the class mask changes plot within this
+ *  many pixels of it (a third of a metre at the play camera, well inside the
+ *  verge's half width), clear of any road's shoulder. */
+const VERGE_PX = 6;
+const OFF_ROAD_M = 6;
+/** Whether the mask holds another plot within `VERGE_PX` of `pixel`. */
+function onPlotEdge(mask, [x, y], here) {
+  for (const [dx, dy] of [
+    [VERGE_PX, 0],
+    [-VERGE_PX, 0],
+    [0, VERGE_PX],
+    [0, -VERGE_PX],
+  ]) {
+    const [nx, ny] = [x + dx, y + dy];
+    if (nx < 0 || ny < 0 || nx >= mask.width || ny >= mask.height) continue;
+    const there = classAt(mask, nx, ny);
+    if (there && (there.plotKind !== here.plotKind || there.plotHash !== here.plotHash))
+      return true;
+  }
+  return false;
+}
 /** A clump's colour is stored as bytes of its square root: how far its
  *  luminance may read from the ground's under a hue shift that keeps it. */
 const LUMINANCE_SLACK = 0.04;
@@ -85,19 +102,22 @@ export async function grassGrowth(ctx) {
       Object.values(bare).every((b) => b.clumps === 0 && b.round > 100),
     JSON.stringify(bare),
   );
-  // The road's verge at the bend, found by the ground's own class mask.
+  // The verges between the plots round the bend, found by the ground's own
+  // class mask: where it changes plot. (Beside the road the ground is the
+  // road's shoulder, which grows its plot's own grass, thinned.)
   const bend = await clumpsAt(page, "bend-65");
   const mask = decode(await shoot(page, MAP, "bend-65", { view: "ground-classes" }));
   const classed = bend
     .filter((c) => c.pixel)
     .map((c) => ({ ...c, ground: classAt(mask, c.pixel[0], c.pixel[1]) }))
     .filter((c) => c.ground);
-  const [inner, outer] = vergeBand(biome);
-  const verge = classed.filter((c) => c.ground.roadSd > inner && c.ground.roadSd < outer);
+  const verge = classed.filter(
+    (c) => c.ground.roadSd > OFF_ROAD_M && onPlotEdge(mask, c.pixel, c.ground),
+  );
   grown.verge = { clumps: verge.length, kinds: kindsOf(verge) };
   const mixOf = (row) => biome.grass.growth[row].mix;
   ctx.check(
-    "each kind of ground grows the grasses its biome row mixes: every plot kind and the road's verge",
+    "each kind of ground grows the grasses its biome row mixes: every plot kind and the verge between plots",
     Object.entries(grown).every(
       ([row, g]) =>
         g.clumps > 100 &&
