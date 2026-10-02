@@ -20,6 +20,9 @@ const ROAD_CLEAR_M = 2;
  *  times wider than its plain rows' alone, and by this many display levels. */
 const TEXTURE_GAIN = 1.25;
 const TEXTURE_LEVELS = 1;
+/** A kind is judged where at least this many blocks of it are in view: a
+ *  corner of a plot at the frame's edge says little. */
+const KIND_BLOCKS = 100;
 /** A kind's mean luminance moves no more than this share with its texture
  *  (the wheelings are bare, so a drilled crop is a little darker), and no
  *  broad block is darker than this share of its plain self. */
@@ -104,7 +107,7 @@ export async function fieldTexture(ctx) {
     for (const b of blocks(await pair(page, station), BLOCK.fine)) (near[b.kind] ??= []).push(b);
   const kinds = Object.fromEntries(
     Object.entries(near)
-      .filter(([, list]) => list.length >= 20)
+      .filter(([, list]) => list.length >= KIND_BLOCKS)
       .map(([kind, list]) => [
         kind,
         {

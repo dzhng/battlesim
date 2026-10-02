@@ -210,12 +210,14 @@ const MOTTLE_PATCH_CUT = 0.58;
  *  its slope is read over this step of the noise's lattice. */
 const MOTTLE_PATCH_EDGE_M = 0.3;
 const MOTTLE_SLOPE_STEP = 0.05;
-/** A plot's grain is three octaves of noise, the coarsest first: each this
- *  many times finer than the last and weighted so; an octave fades to its
- *  mean as a pixel grows from the first of these shares of its size to the
- *  second. */
+/** A plot's grain is four octaves of noise, the coarsest first: each this
+ *  many times finer than the last and weighted so. The third is the biome's
+ *  `grain_m`, a lump; the last is the lump's own surface, which only the
+ *  near ground shows (without it a field seen from 25 m is soft ripples).
+ *  An octave fades to its mean as a pixel grows from the first of these
+ *  shares of its size to the second. */
 const GRAIN_OCTAVE = 2.7;
-const GRAIN_WEIGHTS = [0.2, 0.3, 0.5] as const;
+const GRAIN_WEIGHTS = [0.15, 0.25, 0.35, 0.25] as const;
 const GRAIN_FADE = [0.3, 0.9] as const;
 /** How hard the grain's noise is driven into its limits: past 1 a clod or a
  *  tussock has an edge, where plain noise is a soft blob. */
@@ -224,10 +226,17 @@ const GRAIN_CRISP = 2;
  *  the plot's rows, and is pushed about by the octave before it, by this
  *  share of its own cell: value noise on one lattice, driven into its
  *  limits, comes out as squares. */
-const GRAIN_TURNS = [0.55, 1.9, 2.9] as const;
+const GRAIN_TURNS = [0.55, 1.9, 2.9, 4.3] as const;
 const GRAIN_WARP = 0.45;
 /** A row breaks along its length over this many grains. */
 const ROW_BREAK_GRAINS = 2;
+/** A row is the cube of a cosine across the plot: a narrow dark furrow
+ *  between broad beds (the cosine alone reads as ripples on water), of this
+ *  mean. It fades to that mean as a pixel grows from the first of these
+ *  shares of a row to the second: sooner than the cosine did, for its
+ *  furrow is a third as wide. */
+const ROW_MEAN = 5 / 16;
+const ROW_FADE = [0.15, 0.45] as const;
 /** A wheeling is one of two furrows this many rows apart, a pair in every
  *  `tram_rows`: the tractor's track through a drilled crop. */
 const WHEEL_GAUGE_ROWS = 2;
@@ -326,8 +335,8 @@ export const groundWheeling = tgpu
   .$uses({ terrainLayout });
 
 /** What a plot's own ground does to its colour at `xy`, as a factor on its
- *  albedo: its rows (a cosine across the plot, broken along each row's
- *  length), its wheelings, and its grain (clods, tussocks, stubble: three
+ *  albedo: its rows (dark furrows between beds, broken along each row's
+ *  length), its wheelings, and its grain (clods, tussocks, stubble: four
  *  octaves of noise in the plot's own frame, stretched along the rows).
  *
  *  Rows and grain leave the plot's mean where its palette put it: the rows
@@ -349,27 +358,27 @@ const fieldTexture = tgpu
   var value = 1.0;
   if (rows.z > 0.0) {
     let phase = v / rows.z;
-    let shown = 1.0 - smoothstep(0.25, 0.6, footprint / rows.z);
-    var swing = 0.5 * cos(phase * 6.2831853) * shown;
+    let shown = 1.0 - smoothstep(${ROW_FADE[0]}, ${ROW_FADE[1]}, footprint / rows.z);
+    let stripe = 0.5 + 0.5 * cos(phase * 6.2831853);
+    var furrow = stripe * stripe * stripe;
     let along = grain.x * grain.z / ${ROW_BREAK_GRAINS}.0;
     let seen = shown * (1.0 - smoothstep(${GRAIN_FADE[0]}, ${GRAIN_FADE[1]}, footprint * along));
     if (breaks > 0.0 && seen > 0.0) {
-      // Each furrow and each ridge has its own noise along its length; they
-      // meet where the cosine crosses its mean, so nothing steps.
-      let half = floor(phase * 2.0 + 0.5);
-      let gap = valueNoise(vec2f(u * along, half * 7.31 + 0.5));
-      swing *= 1.0 + breaks * (gap * 2.0 - 1.0) * seen;
+      // Each furrow has its own noise along its length; two meet on the bed
+      // between them, where neither darkens anything, so nothing steps.
+      let gap = valueNoise(vec2f(u * along, floor(phase + 0.5) * 7.31 + 0.5));
+      furrow *= 1.0 + breaks * (gap * 2.0 - 1.0) * seen;
     }
     let bare = terrainLayout.$.plots[plot].tram.z * groundWheeling(xy, footprint, plot);
-    value = (1.0 - rows.w * (0.5 + swing)) * (1.0 - bare);
+    value = (1.0 - rows.w * (0.5 + (furrow - ${ROW_MEAN}) * shown)) * (1.0 - bare);
   }
   if (grain.y > 0.0) {
     var size = grain.x / ${GRAIN_OCTAVE * GRAIN_OCTAVE};
     var sum = 0.0;
     var push = vec2f(0.0);
-    var weights = array<f32, 3>(${GRAIN_WEIGHTS[0]}, ${GRAIN_WEIGHTS[1]}, ${GRAIN_WEIGHTS[2]});
-    var turns = array<vec2f, 3>(${GRAIN_TURNS.map((t) => `vec2f(${Math.cos(t)}, ${Math.sin(t)})`).join(", ")});
-    for (var i = 0u; i < 3u; i++) {
+    var weights = array<f32, 4>(${GRAIN_WEIGHTS.join(", ")});
+    var turns = array<vec2f, 4>(${GRAIN_TURNS.map((t) => `vec2f(${Math.cos(t)}, ${Math.sin(t)})`).join(", ")});
+    for (var i = 0u; i < 4u; i++) {
       let shown = 1.0 - smoothstep(${GRAIN_FADE[0]}, ${GRAIN_FADE[1]}, footprint * size);
       if (shown > 0.0) {
         let turn = turns[i];
