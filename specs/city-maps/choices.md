@@ -3985,6 +3985,81 @@ affected digests; movement's exact body checks still decide each soldier's steps
 is recorded in C06. A direct non-standing virtual anchor has no guaranteed legal
 timing; nearest-fit selection is not permission to publish an invalid segment.
 
+## C19: warehouses and light industry
+
+### Sizes are whole bays, and the shed turns its gable to the street
+
+**Choice:** The five industrial templates are 15 x 24 m (the prototype shed was 24 x 16, long side to the street), 48 x 24, 72 x 33 (72 x 32), a works of a 54 x 27 hall and an 18 x 9 office (54 x 26 and 18 x 10), and 90 x 39 (90 x 40). Every side is a multiple of the 3 m bay, so a row of bay-wide modules tiles a wall exactly. The shed is 15 wide and 24 deep with its vehicle door in the gable. The alternative kept the prototype sizes and left a part-bay of plain wall at each corner.
+
+**Gap:** The brief gave sizes as "about", and the prototype sizes were chosen for boxes.
+
+**Reach:** The catalogue's hash moves when these replace the prototypes. Heights are 6.2, 9.0, 10.0, 8.0 and 11.0 m against the prototypes' 6, 9, 10, 10 (hall) and 7 (office), and 11.
+
+**Verdict:** sound. A workshop's door is in its gable, and a wall of whole bays needs no filler module. **Confidence:** high.
+
+### The works' office is joined to the hall's street face, and both boxes are 8 m
+
+**Choice:** The office block stands against the west end of the hall's street face, flush with the hall's west wall, joined by a supported join (`hall-south-0` to `office-north`). Both parts are 8.0 m: the hall's sawtooth ridges and the office's parapet. Floor datums are 0 and 3.6 m for the whole template, so the hall is a two-floor part whose tall windows (1.2 to 5.7 m) serve both. The prototype had a 10 m hall and a 7 m office standing 4 m apart with no join.
+
+**Gap:** A join needs equal bases and tops, and floor datums belong to the template, not to a part.
+
+**Reach:** The hall is 2 m lower than its prototype. A garrison's upper floor in the hall is a notional gantry level: nothing is drawn for it.
+
+**Verdict:** provisional. It reads as one works on screen; whether a second floor of seats in an open hall plays well is the simulation's to judge. **Confidence:** medium.
+
+### The sawtooth's glazing faces along the street, not away from it
+
+**Choice:** The works' nine teeth run front to back, so the street elevation shows the zig-zag and the glazing faces the template's -X. A true north light, with the street to the south, would turn every pane away from the street and show the viewer nine plain slopes.
+
+**Gap:** The brief asked for a sawtooth north-light roof and a door on the street side; a template has no compass.
+
+**Verdict:** sound for the look. **Confidence:** high.
+
+### Not every bay has an opening, and a dock door is not an entrance
+
+**Choice:** Openings sit in bays, but a warehouse keeps blank bays: the dock warehouse's back and ends have a high window in every second bay, the distribution warehouse the same. Loading-dock doors have their sills at 1.1 m (lorry-bed height) over a floor datum of 0 and are not entrances; the template's entrances are its side door and its drive-in door. The depot draws eight vehicle doors and names two of them, with the side door, as entrances; the distribution warehouse's three side doors are drawn but only its three vehicle doors are entrances. The houses (C17) gave every bay a window on every floor.
+
+**Gap:** The readme puts windows on the lattice; it does not say every bay needs one, nor that every drawn door is an entrance.
+
+**Reach:** A garrison's seat in a blank bay fires through a wall the player sees as solid. Entrance counts follow the prototypes (two or three a building).
+
+**Verdict:** provisional. A warehouse with a window in every bay stops reading as one. If blank-bay seats look wrong in play, the fix is fewer seats there, not more windows. **Confidence:** medium.
+
+### The set's fit is 1.2 m to the side and 1.2 m above
+
+**Choice:** Canopies reach 1.15 m, a vehicle door's bollards 0.9 m, a dock's leveller 0.6 m, gutters 0.41 m. Above a part's top: flue stacks to 1.1 m over a flat roof's parapet, ridge ventilators 0.46 m, turbine vents 0.7 m. The houses' fit is 0.5 and 0.9 m.
+
+**Gap:** The brief said to choose both and keep them small.
+
+**Verdict:** sound. A canopy shallower than a metre does not read as one. **Confidence:** high.
+
+### Rows draw at the two fine tiers; the shell carries the rest
+
+**Choice:** As the apartment set does, a row draws at tiers 0 and 1 only. At tiers 2 and 3 the script copies what each row's module still has at that tier into the template's shell, in the row's place and with its tint baked into an untinted material, so a far building is one row. Flat panels that meet (a band of colour, a run of high windows) become one face. Rooflights and mended sheets on a pitched roof are faces of the shell at every tier, because a row cannot tilt a module to a roof's pitch.
+
+**Gap:** The brief asked for instancing on long walls and budgets per tier; the readme's rule that a far building is one row arrived with the apartment merge.
+
+**Reach:** A shell's second tier holds the folded detail, so its first tier must be at least as heavy: three shells bake their paint on a finer grid than they otherwise need. Folded surfaces lose the recipe's own tint mask (rust weeping from a fixing takes the paint's colour).
+
+**Verdict:** sound. **Confidence:** high.
+
+### A roof's large marks are faces and vertex paint, never the recipe
+
+**Choice:** The sheet and felt recipes carry only what is smaller than a few metres: ribs, laps, fixings, the tone of one sheet. Rust patches, damp and fading are vertex paint on a 4.4 m grid kept down to tier 2; mended sheets, rooflights and felt patches are faces of the shell. A first felt recipe with pools and patches in the texture tiled into a camouflage pattern across a 48 m roof.
+
+**Gap:** The brief asked for stains and patches readable at coarse tiers "through the shell's own texture".
+
+**Verdict:** sound. A recipe repeats every 6 to 8 m; anything a viewer can count across a roof must be placed once. **Confidence:** high.
+
+### Wall colour is the shell's tint; roofs and brick take none
+
+**Choice:** Cladding, blockwork, precast panels and render are pale tint-masked recipes and the shell's row tint is the building's paint. Roof sheet, felt and brick are untinted materials in their own colour, since a row has one tint. Bands, doors and a re-sheeted bay are rows with their own tints.
+
+**Gap:** The same as the houses': a row has one tint.
+
+**Reach:** One template is one colourway. More colours are more templates over the same modules, or a tint a placement supplies.
+
+**Verdict:** provisional on the repeats, as for the houses. **Confidence:** medium.
 
 ## C07: reuse unchanged decoded static groups
 
@@ -4083,3 +4158,174 @@ timing; nearest-fit selection is not permission to publish an invalid segment.
 **Choice:** None; a finding. `props.py tooth` writes a different index order for `tooth_LOD0` on each run (28 to 70 bytes of one buffer view; the JSON and every other view are identical), with and without this slice's changes, and none of four runs matched the committed file. Left alone: it is a model script, outside this slice, and the committed GLB is what bakes.
 
 **Verdict:** a defect against "the same scripts write the same bytes". **Confidence:** high that it happens; the cause was not looked for.
+## C80 grass presets
+
+### Wind response rides the clump's vertex alpha
+
+**Choice:** A kind's `wind` (0 to 1) is written into every vertex's colour alpha by the generator and read back when the field packs its shapes.
+
+**Gap:** The slice says the spec carries a wind-response factor; the bake reads only the GLB, never the spec.
+
+**Verdict:** sound. No bundle-format or loader change, and the response is in the art it belongs to. A model's alpha is its wear threshold only where a wear texture is bound, and grass has none. It cannot pass 1: a kind sways as the biome's wind says, or less. **Confidence:** high.
+
+### "Clumping" is the spec's existing radius; the field's clumping is the biome's
+
+**Choice:** No new clumping field on the spec. `radius_m` is a clump's spread; how clumps gather across a field is the growth row's (`thin`, `drift`, C82).
+
+**Gap:** Q-G10 lists clumping among a preset's properties.
+
+**Verdict:** sound. One owner each: the clump is the art, where clumps stand is the field's. **Confidence:** medium.
+
+### A headed blade's last pair sits on its head, in every tier
+
+**Choice:** Strip vertices are evenly spaced up a blade except on a blade with a head, whose last pair sits where the head is widest.
+
+**Gap:** The slice asks for blade shape; it does not say which tier must show it.
+
+**Verdict:** sound. The play camera draws the two-segment tier, whose only pair sat at half height, below any head: ears and flowers vanished 16 m out and the tier boundary showed as a band. **Confidence:** high.
+
+### The workbench ruler is a cage at 0.9 m
+
+**Choice:** A grass kind's footprint overlay is a ring on the ground and one at 0.9 m with four posts, and the views frame it.
+
+**Gap:** "A workbench grass sheet with a 0.9 m ruler."
+
+**Verdict:** provisional. It shows the cap beside one clump at its source height; a sheet of every kind side by side at its field scale would judge species against each other, and was not built. **Confidence:** medium.
+
+
+## C81 wild grass
+
+### Rough ground and prairie are plot kinds
+
+**Choice:** Two new plot kinds, `rough` and `prairie`, carry tall rough grass and dry prairie; meadow keeps the short meadow and the verge takes the weeds.
+
+**Gap:** "Biome growth rows point meadow, pasture, verge and rough ground at them": there was no rough ground.
+
+**Verdict:** sound. A plot kind is how the biome says what a piece of ground is. Adding kinds reshuffles which plot is which (the split itself is unchanged), on the village too, which Q-G1 allows. **Confidence:** high.
+
+### A clump's shading softens by its size on screen, as biome data
+
+**Choice:** `soften_m_per_px`, `soften`, `blade_facing` and `min_blade_px` 1.4 replace a constant share of the fade and a constant normal weight.
+
+**Gap:** The slice delegates preset parameters; the failure at the play camera was in the field's shading, not a preset.
+
+**Verdict:** sound. At 65 m a blade is under a pixel, and root-to-tip contrast and per-blade facing alias into dark flecks whatever the preset. **Confidence:** high.
+
+### The rig stands on plots by kind, and the grass pass can be retuned in the page
+
+**Choice:** Stations over the village's roomiest open plot of each kind; `__lab.grass().retune(rules)`.
+
+**Gap:** The slices name `field-65`; which crop grows there changes with every roster.
+
+**Verdict:** sound. Fixed coordinates showed three different crops over this pass. The probe is the seam the checks plant their arms through, so they hold when the biome's numbers move. **Confidence:** high.
+
+### Cost is the rig's paired run, not the village scene's
+
+**Choice:** The frame-cost row is grass on and off at two stations, still and with the camera moved a centimetre a frame.
+
+**Gap:** "Grass ms and clump counts; a frame-cost row."
+
+**Verdict:** provisional. The village scene's own `GRASS_COST` run was broken at the start (a missing helper, fixed) and was not rerun under the GPU budget. The machine was loaded: baseline pairs spread over 3 ms. **Confidence:** medium.
+
+
+## C82 within field variation
+
+### A grass among others differs by dryness, not by its own colours
+
+**Choice:** A mix entry carries `dry`, a hue shift over the ground's colour; a clump's spec colours stay relative to the ground it grows on.
+
+**Gap:** The slice says a clump picks its species; it does not say how species differ in colour inside one plot.
+
+**Verdict:** provisional. It keeps the rule that near grass and the painted ground beyond agree. It also means a prairie tuft in a meadow is green with a straw cast, not straw. **Confidence:** medium.
+
+### Drifts
+
+**Choice:** `drift` gathers a grass into patches of its own: up to three times its share inside one, none outside at 1.
+
+**Gap:** "A clump picks its species by hash."
+
+**Verdict:** sound. Salt and pepper of four grasses reads as noise; weeds and rough grass stand in drifts. **Confidence:** medium.
+
+### Patches are a few metres across, and drying lightens a little
+
+**Choice:** `patch_m` 3.5 to 6 m; `dry_lift` 0.08; sparse patches thin by a quarter to a third.
+
+**Gap:** "Noise scales; amplitudes."
+
+**Verdict:** provisional. At 11 to 17 m the unprimed pass read the field between one-sided lighter patches as cloud shadow. The avoid-list's rule is about scale as much as sign. A hue shift at exactly the ground's luminance read as rust, hence the small lift. **Confidence:** medium.
+
+### Each clump's brightness varies, within a bound
+
+**Choice:** `clump_value` 0.16, half per clump and half per tussock (1.1 m).
+
+**Gap:** "Colour varies in hue and saturation at bounded luminance."
+
+**Verdict:** provisional. Without it a softened field is flat felt at 65 m. It is two-sided, but at one metre, which is grain and not a patch; the check holds it to the amount asked. **Confidence:** medium.
+
+### What sets a clump apart fades with it
+
+**Choice:** Dryness and grain scale by the clump's fade.
+
+**Gap:** Q-G17 asks for a graceful fade; a field whose clumps are lighter than its ground ends in a visible band.
+
+**Verdict:** sound. **Confidence:** high.
+
+
+## C83 crops
+
+### New plot kinds borrow palettes
+
+**Choice:** Barley, rapeseed, hay, stubble, rough and prairie name existing palettes.
+
+**Gap:** The crops need plot kinds; palettes are C84's.
+
+**Verdict:** provisional, until C84. Two kinds on one palette are one colour past 180 m. **Confidence:** high that C84 must replace them.
+
+### Crops keep to the terrain's rows
+
+**Choice:** `rows` (0 to 1) moves a clump toward the nearest painted row of its plot, never past the verge or into a bare margin; wheat and barley 0.25, rapeseed 0.2, stubble 0.5.
+
+**Gap:** The slice asks for presets; a crop that is scattered like a meadow reads as recoloured lawn.
+
+**Verdict:** sound in mechanism, provisional in numbers. Tighter rows showed bare ground between them that read as sand; the ground's texture (C85) may let them tighten again. **Confidence:** medium.
+
+### Hay stands
+
+**Choice:** Hay is tall dry grass with seed heads, uncut; stubble is the cut field.
+
+**Gap:** "Hay and stubble."
+
+**Verdict:** provisional. Swaths and bales would be dressing, not grass. **Confidence:** medium.
+
+### Young crop is gone
+
+**Choice:** The `young_crop` plot kind and the `grass_crop` kind are removed; its palette is rapeseed's for now.
+
+**Gap:** The slice's list has no generic crop.
+
+**Verdict:** sound. **Confidence:** high.
+
+## C06/C07: full generated browser stress ownership
+
+**Choice:** Keep the saved endurance scene as the default and add a fixed current
+Metro Large seed-4 arm. The existing preparation worker resolves its generated
+MapSource and calls a thin Wasm forwarder to the simulation's city stress factory.
+The selector belongs to the worker message, alongside the unchanged normal
+preparation request. No second generator, placement rule or persistent large
+fixture enters the browser. The prepared report identifies the full compiled
+world separately from the synthetic contact and late-state inputs.
+
+**Reach:** This adds a repeatable full-extent browser admission input, including
+worker cancellation when the view changes. It does not prove startup memory,
+GPU cost, image quality or real-time throughput. Those gates remain coordinated
+integration work. **Verdict:** sound for the preparation seam; browser evidence
+pending. **Confidence:** high for fixture identity, medium until the scene runs.
+## C07: consume stable static identities at the existing owners
+
+**Choice:** `ObservationFeed` retains one corpse input identity and its converted fallen list, rebuilding on a new corpse view. Reuse `PoseDriver`'s existing fallen-list reconciliation gate; do not create another driver cache. Memoize the existing known-prop JSON key in `useBattleSession` against the decoded known-prop array, so other observation updates do not serialize unchanged knowledge.
+
+**Why:** Decoder reuse alone left the feed rebuilding 20,000 fallen records per publication and thus triggering the driver's complete reconciliation. A bounded 50-observation, 20,000-corpse synthetic probe counts 50→1 converted lists and 1,000,000→20,000 constructed rows/source-position reads, preserving capped poses. This is construction evidence, not a heap/time/GPU claim.
+
+**Contract:** Source observations are immutable. A new static position/floor view rebuilds the conversion and retains earlier rows unchanged. Side/catalog changes recreate the existing feed/driver owners. The driver's independent death/fade/expiry work and clock-reset lifecycle remain active behind its existing reconciliation gate. Caps, world, camera and frame ownership stay intact; there is no cache shared across pages.
+
+**Verdict:** Sound within the existing immutable-view contract. Public feed identity/floor proofs and existing pose lifecycle suites pass. Broader browser allocation, upload and throughput admission remain separate and open. **Confidence:** High for static construction and value preservation.

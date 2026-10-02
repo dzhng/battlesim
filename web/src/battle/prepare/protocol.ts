@@ -41,6 +41,13 @@ export interface PrepareMessage {
   type: "prepare";
   request: PrepareBattleRequest;
   documents: PrepareDocuments;
+  /** Lab-only synthetic contact workload; normal battles omit it. */
+  stress?: StressPreparation;
+}
+
+export interface StressPreparation {
+  kind: "city-arena-1";
+  late: boolean;
 }
 
 /** Why a request was refused: the request check's, the map owner's or the
@@ -95,6 +102,7 @@ export interface PreparedBattle {
 }
 
 export interface PreparationReport {
+  stress?: StressPreparation & { livingUnits: Record<"blue" | "red", number> };
   /** The request, as the simulation's check wrote it back. */
   request: PrepareBattleRequest;
   /** What the resolved map is. */

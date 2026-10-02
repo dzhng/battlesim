@@ -27,9 +27,11 @@ import { mul, trsMatrix } from "@packages/scene-assets/src/trs";
 import type {
   AppearanceUnit,
   Authority,
+  Bounds,
   Bundle,
   SkeletonClips,
 } from "@packages/scene-assets/src/schema";
+import { GRASS_MAX_HEIGHT_M } from "@packages/scene-assets/src/grass";
 import { fixtureAuthority } from "@packages/scene-assets/src/authority";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 
@@ -168,9 +170,14 @@ export function placedProps(map: MapDefinition): PropClasses["placed"] {
 export interface Footprint {
   edges: [Vec3, Vec3][];
   label: string;
+  /** A ruler the model is judged against, which its views frame with it. */
+  ruler?: Bounds;
 }
 
 type Edges = [Vec3, Vec3][];
+
+/** The grass ruler's ring stands this far round the clump. */
+const GRASS_RULER_RADIUS_M = 0.3;
 
 function cylinder(edges: Edges, r: number, z0: number, z1: number, n = 16) {
   for (let i = 0; i < n; i++) {
@@ -277,6 +284,18 @@ export function footprint(
     return {
       edges,
       label: `forest tree: trunk ${m(2 * tree.trunk_radius_m)} m × ${m(tree.trunk_height_m)} m, crown ${m(tree.canopy_radius_m)} m, canopy at ${m(tree.canopy_height_m)} m, ${m(tree.trunk_spacing_m)} m apart · trunks stop rounds and vehicles, not soldiers; a heavy vehicle knocks them down`,
+    };
+  }
+  if (rule?.blades) {
+    // No body, so the mark is a ruler: the height no grass or crop may pass.
+    cylinder(edges, GRASS_RULER_RADIUS_M, 0, GRASS_MAX_HEIGHT_M);
+    return {
+      edges,
+      label: `${scenery}: no simulation body · ruler ${m(GRASS_MAX_HEIGHT_M)} m, the tallest any grass or crop is drawn`,
+      ruler: {
+        min: [-GRASS_RULER_RADIUS_M, -GRASS_RULER_RADIUS_M, 0],
+        max: [GRASS_RULER_RADIUS_M, GRASS_RULER_RADIUS_M, GRASS_MAX_HEIGHT_M],
+      },
     };
   }
   return { edges, label: scenery ? `${scenery}: no simulation body` : "no simulation body" };
