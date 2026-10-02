@@ -207,10 +207,18 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
   const nodes: number[] = [];
   const plots: Plot[] = [];
   const totalWeight = biome.plots.reduce((s, p) => s + p.weight, 0);
-  const settlement = biome.plots.findIndex((p) => p.name === rules.settlement_kind);
+  const kindNamed = (name: string) => biome.plots.findIndex((p) => p.name === name);
+  const settlement = kindNamed(rules.settlement_kind);
+  const surround = kindNamed(rules.surround_kind);
   const settlementSq = rules.settlement_m ** 2;
+  const yardSq = rules.yard_m ** 2;
   const roadEdges = Float32Array.of(...plotGuideEdges(site), ...forestStripRuns(site.forestShapes));
   const roadCount = roadEdges.length / 4;
+  // The guides list the roads' runs, then the rivers', then the paving's
+  // boundary (`plotGuideEdges`).
+  const riversFrom = site.surfaceRuns.length / site.surfaceRunStride;
+  const riversTo = riversFrom + site.riverRuns.length / site.riverRunStride;
+  const isRiver = (edge: number) => edge >= riversFrom && edge < riversTo;
   let depth = 0;
 
   // Buildings bucketed in cells a settlement's reach wide: a centre asks the
@@ -224,20 +232,23 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
     if (cell) cell.push(b);
     else buildingCells.set(key, [b]);
   }
-  const nearBuilding = (centre: Vec2) => {
+  const nearBuilding = (centre: Vec2, withinSq: number) => {
     for (let dy = -reach; dy <= reach; dy += reach)
       for (let dx = -reach; dx <= reach; dx += reach)
         if (
           buildingCells
             .get(cellOf(centre[0] + dx, centre[1] + dy))
-            ?.some((b) => vec2.squaredDistance(b, centre) <= settlementSq)
+            ?.some((b) => vec2.squaredDistance(b, centre) <= withinSq)
         )
           return true;
     return false;
   };
-
+  // The ground round a building is the settlement's own, and the land round
+  // that its surround, where no crop is drilled. Neither draws a kind, so
+  // the fields beyond are the same whatever the two are called.
   const pickKind = (centre: Vec2) => {
-    if (nearBuilding(centre)) return settlement;
+    if (nearBuilding(centre, yardSq)) return settlement;
+    if (nearBuilding(centre, settlementSq)) return surround;
     let roll = rng() * totalWeight;
     for (let k = 0; k < biome.plots.length; k++) {
       roll -= biome.plots[k].weight;
@@ -359,7 +370,9 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
     for (const r of roads) {
       const o = r * 4;
       const [ax, ay, bx, by] = [roadEdges[o], roadEdges[o + 1], roadEdges[o + 2], roadEdges[o + 3]];
-      const share = tract ? ROAD_CHORD_SHARE.tract : ROAD_CHORD_SHARE.land;
+      // A river's run cuts whatever tract it crosses: no plot lies on both
+      // banks.
+      const share = !tract ? ROAD_CHORD_SHARE.land : isRiver(r) ? 0 : ROAD_CHORD_SHARE.tract;
       if (!roadCuts(poly, ax, ay, bx, by, rules.size_m[1], share)) continue;
       const len = Math.hypot(bx - ax, by - ay);
       const nx = -(by - ay) / len,

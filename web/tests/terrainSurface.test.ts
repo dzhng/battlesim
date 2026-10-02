@@ -7,7 +7,10 @@ import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
 import { readFileSync } from "node:fs";
 import { afterEach, beforeAll, expect, test } from "vitest";
 import { polygon2 } from "math/shapes";
+import * as generator from "@wasm/game_wasm.js";
 import { initSync, WorldView, world_layout } from "@wasm/game_wasm.js";
+import generated from "@fixtures/generated-battle.json";
+import { generationRequest } from "@web/maps/source";
 import { VERTEX_FLOATS } from "@packages/battle-renderer/src/mesh.ts";
 import {
   readWorldExports,
@@ -492,13 +495,165 @@ test("each point lies in the plot the split walks to, and its edge distance is t
   }
 });
 
-test("plots around the buildings are the settlement's meadow", () => {
+test("the ground round a building is the settlement's yard; the land round that is its surround, never a crop", () => {
   const { exports } = world(villageMap);
-  const { plots } = buildTerrainSurface(exports, layout, biome);
-  const settlement = biome.plots.findIndex((p) => p.name === biome.field_rules.settlement_kind);
-  const houses = villageMap.buildings!.flatMap((b) => b.geometry.parts);
-  for (const [x, y] of houses.map((p) => p.center))
-    expect(plots.plots[plotAt(plots, x, y)!.plot].kind).toBe(settlement);
+  const { plots, site } = buildTerrainSurface(exports, layout, biome);
+  const rules = biome.field_rules;
+  const yard = biome.plots.findIndex((p) => p.name === rules.settlement_kind);
+  const surround = biome.plots.findIndex((p) => p.name === rules.surround_kind);
+  expect(biome.plots[surround].furrow_m).toBe(0);
+  const seen = { yards: 0, round: 0 };
+  plots.plots.forEach((plot, k) => {
+    const centre = polygon2.centroid([0, 0], plot.outline, plot.outline.length / 2);
+    const within = (reach: number) =>
+      site.buildings.some((b) => Math.hypot(b[0] - centre[0], b[1] - centre[1]) <= reach);
+    if (within(rules.yard_m)) {
+      expect(plot.kind, `plot ${k} at the houses`).toBe(yard);
+      seen.yards++;
+    } else {
+      expect(plot.kind, `plot ${k} away from the houses`).not.toBe(yard);
+      if (!within(rules.settlement_m)) return;
+      expect(plot.kind, `plot ${k} round the houses`).toBe(surround);
+      seen.round++;
+    }
+  });
+  expect(seen.yards).toBeGreaterThan(1);
+  expect(seen.round).toBeGreaterThan(3);
+});
+
+/** A generated map with a town of streets on a country road (the ground
+ *  rig's own), and where its generator says its settlements' ground is: how
+ *  far inside the nearest settlement's outline a point lies, and inside its
+ *  nearest block of buildings (negative outside). The map itself holds
+ *  neither. */
+function generatedTown() {
+  const fixture = (path: string) =>
+    readFileSync(new URL(`../../fixtures/${path}`, import.meta.url), "utf8");
+  const documents = {
+    presets: fixture("map-presets.json"),
+    templates: fixture("prototype-building-templates.json"),
+    catalog: JSON.stringify(JSON.parse(fixture("catalog.json")).documents),
+  };
+  const request = generationRequest(
+    generator,
+    { type: "mixed", size: "medium", seed: "2" },
+    documents,
+    generated.limits,
+  );
+  type Ring = [number, number][];
+  const outcome = JSON.parse(
+    generator.generate_map(
+      JSON.stringify(request),
+      documents.presets,
+      documents.templates,
+      documents.catalog,
+    ),
+  ) as {
+    result: {
+      map: unknown;
+      sites: { settlements: { outline: Ring; districts: { ring: Ring }[] }[] };
+    };
+  };
+  const { exports } = world(outcome.result.map);
+  const { settlements } = outcome.result.sites;
+  const inside = (rings: Ring[]) => {
+    const flat = rings.map((ring) => ring.flat());
+    return (x: number, y: number) =>
+      Math.max(
+        ...flat.map((ring) => {
+          const off = Math.abs(polygon2.signedDistance(ring, ring.length / 2, [x, y]));
+          return polygon2.containsPoint(ring, ring.length / 2, [x, y]) ? off : -off;
+        }),
+      );
+  };
+  return {
+    surface: buildTerrainSurface(exports, layout, biome),
+    inTown: inside(settlements.map((s) => s.outline)),
+    inBlock: inside(settlements.flatMap((s) => s.districts.map((d) => d.ring))),
+  };
+}
+
+test("a generated town's blocks are yards and commons, and the plain beyond keeps its fields", () => {
+  const { surface, inTown, inBlock } = generatedTown();
+  const { plots } = surface;
+  const yard = biome.plots.findIndex((p) => p.name === biome.field_rules.settlement_kind);
+  const kindAt = (x: number, y: number) => plots.plots[plotAt(plots, x, y)!.plot].kind;
+  const [x0, y0, x1, y1] = surface.site.map;
+  const town = { ground: 0, yards: 0, drilled: 0 };
+  const plain = { ground: 0, drilled: 0 };
+  for (let y = y0 + 10; y < y1; y += 20)
+    for (let x = x0 + 10; x < x1; x += 20) {
+      const kind = kindAt(x, y);
+      const drilled = biome.plots[kind].furrow_m > 0 ? 1 : 0;
+      // Inside one of the generator's blocks, clear of the street round it.
+      if (inBlock(x, y) > 10) {
+        town.ground++;
+        town.drilled += drilled;
+        if (kind === yard) town.yards++;
+      } else if (inTown(x, y) < -300) {
+        plain.ground++;
+        plain.drilled += drilled;
+      }
+    }
+  // A block is built ground but for an unbuilt margin here and there, which
+  // the generator's rings take in and a field may reach into.
+  expect(town.ground).toBeGreaterThan(3000);
+  expect(town.yards / town.ground).toBeGreaterThan(0.8);
+  expect(town.drilled / town.ground).toBeLessThan(0.01);
+  // The biome drills about half its plots.
+  expect(plain.ground).toBeGreaterThan(50000);
+  expect(plain.drilled / plain.ground).toBeGreaterThan(0.4);
+});
+
+test("a country road is drawn as a street between a town's blocks, and as itself out in the plain", () => {
+  const { surface, inTown, inBlock } = generatedTown();
+  const [country, street] = ["country_road", "road"].map((kind) =>
+    SURFACE_AREA_KINDS.indexOf(kind as (typeof SURFACE_AREA_KINDS)[number]),
+  );
+  /** The tag the stroke under a point of a country road is drawn with. */
+  const drawnAt = (x: number, y: number) => {
+    let [deepest, tag] = [-Infinity, -1];
+    for (let o = 0; o < surface.strokes.length; o += surface.site.surfaceStrokeStride) {
+      const kind = surface.strokes[o + 5];
+      if (kind !== country && kind !== street) continue;
+      const inside = strokeInside(surface.strokes, o, x, y);
+      if (inside > deepest) [deepest, tag] = [inside, kind];
+    }
+    return tag;
+  };
+  const { surfaceStrokes: exported, surfaceStrokeStride: stride } = surface.site;
+  const seen = { town: 0, streets: 0, plain: 0 };
+  for (let o = 0; o < exported.length; o += stride) {
+    if (exported[o + 5] !== country) continue;
+    const [ax, ay, bx, by, half] = exported.subarray(o, o + 5);
+    const length = Math.hypot(bx - ax, by - ay);
+    const [nx, ny] = [(-(by - ay) / length) * (half + 15), ((bx - ax) / length) * (half + 15)];
+    const steps = Math.ceil(length / 10);
+    for (let s = 0; s <= steps; s++) {
+      const [x, y] = [ax + ((bx - ax) * s) / steps, ay + ((by - ay) * s) / steps];
+      // Clear of the town's edge either way: a block's depth inside it with
+      // one of the generator's blocks on each side of the road, and beyond
+      // the last yards outside.
+      if (inTown(x, y) > 80 && inBlock(x + nx, y + ny) > 0 && inBlock(x - nx, y - ny) > 0) {
+        seen.town++;
+        if (drawnAt(x, y) === street) seen.streets++;
+      } else if (inTown(x, y) < -200) {
+        expect(drawnAt(x, y), `in the plain at (${x}, ${y})`).toBe(country);
+        seen.plain++;
+      }
+    }
+  }
+  // A block of the generator's is not all yards: a hamlet's houses stand on
+  // lots so wide that the road through them stays a country road.
+  expect(seen.town).toBeGreaterThan(500);
+  expect(seen.streets / seen.town).toBeGreaterThan(0.9);
+  expect(seen.plain).toBeGreaterThan(500);
+});
+
+test("the village's roads, streets by name and country roads by look, are drawn as exported", () => {
+  const { exports } = world(villageMap);
+  const surface = buildTerrainSurface(exports, layout, biome);
+  expect(surface.strokes).toBe(surface.site.surfaceStrokes);
 });
 
 test("the patchwork is the same for the same seed and moves with it", () => {
