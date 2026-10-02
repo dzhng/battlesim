@@ -27,6 +27,21 @@ const HIDE_HUD = "[data-testid=battle-panel], .ro-layer, .lab-panel { display: n
 
 const at = (target, distance, pitch = PLAY, yaw = YAW) => ({ target, distance, pitch, yaw });
 
+/** A station over the middle of the village's roomiest plot of one kind
+ *  (`villagePlots`), so it follows the patchwork when the biome's kinds or
+ *  weights change. */
+const onPlot =
+  (kind, distance, pitch) =>
+  ({ plots }) => {
+    if (!plots[kind]) throw new Error(`the village has no open ${kind} plot`);
+    return at(plots[kind].at, distance, pitch);
+  };
+
+/** The kinds of ground that have a station of their own: the wild ones at
+ *  the play camera and low, each crop low. */
+const WILD = ["meadow", "rough", "prairie"];
+const CROPS = ["pasture", "wheat", "barley", "rapeseed", "hay", "stubble", "ploughed"];
+
 /** Each map's route (from the site root) and its named poses. A generated
  *  map's stations stand on what its preparation reports (the objective town,
  *  blue's start), so they follow the generator when its layouts change. */
@@ -34,6 +49,15 @@ export const STATION_MAPS = {
   village: {
     route: "/battle/village",
     stations: {
+      ...Object.fromEntries(
+        WILD.flatMap((kind) => [
+          [`${kind}-65`, onPlot(kind, 65)],
+          [`${kind}-25`, onPlot(kind, 25, LOW)],
+        ]),
+      ),
+      ...Object.fromEntries(CROPS.map((kind) => [`${kind}-25`, onPlot(kind, 25, LOW)])),
+      // A drilled crop's rows, from the play camera.
+      "wheat-65": onPlot("wheat", 65),
       // The (420, 420) corner of the north road.
       "bend-25": at([420, 420], 25, LOW),
       "bend-65": at([420, 420], 65),
@@ -131,7 +155,12 @@ export async function openStations(ctx, map) {
   );
   if (error) throw new Error(`lab failed: ${error}`);
   const report = await lab(page, () => window.__lab.route.prepared?.() ?? null);
-  reports.set(page, report && { ...report, river: await riverBank(page, report.size) });
+  reports.set(
+    page,
+    map === "village"
+      ? { plots: await villagePlots(page) }
+      : report && { ...report, river: await riverBank(page, report.size) },
+  );
   await lab(page, () => window.__lab.route.pause());
   await advance(page, TICK - (await lab(page, () => window.__lab.route.tick())));
   await presented(page);
@@ -153,6 +182,18 @@ export async function openStations(ctx, map) {
   return page;
 }
 
+/** What `openStations` learned of `page`'s map: a generated map's
+ *  preparation report, the village's plots by kind (`villagePlots`). */
+export const stationReport = (page) => reports.get(page);
+
+/** Where `station` of `map` puts the camera on `page`: the target on the
+ *  ground, the distance, pitch and yaw. */
+export function stationPose(page, map, station) {
+  const placed = STATION_MAPS[map].stations[station];
+  if (!placed) throw new Error(`no station ${station} on ${map}`);
+  return typeof placed === "function" ? placed(reports.get(page)) : placed;
+}
+
 /** One station's frame as a PNG buffer: the final view, or `view`; with
  *  `grass` or `trees` false, without them. */
 export async function shoot(
@@ -161,9 +202,7 @@ export async function shoot(
   station,
   { view = "final", grass = true, trees = true } = {},
 ) {
-  const placed = STATION_MAPS[map].stations[station];
-  if (!placed) throw new Error(`no station ${station} on ${map}`);
-  const pose = typeof placed === "function" ? placed(reports.get(page)) : placed;
+  const pose = stationPose(page, map, station);
   if (!pose.target) throw new Error(`${map} has nothing to stand ${station} on`);
   await aim(page, pose.target, pose);
   await lab(
@@ -305,12 +344,14 @@ export const groundUnder = (page, pixels) =>
     pixels,
   );
 
-/** The village's ground as the simulation exports it, read on the CPU by the
- *  surface field the terrain material reads: at each point `{ xy, footprint }`,
- *  how far inside the paving and the forest it lies. */
-const villageExport = (page, points) =>
+/** The village's ground as the simulation exports it, built once in the page
+ *  as `window.__villageGround`: its terrain surface (the plots among it), and
+ *  `paved` and `forest`, how far inside the paving and the forest a point
+ *  lies by the surface field the terrain material reads. */
+const villageGround = (page) =>
   page.evaluate(
-    async ({ repo, points }) => {
+    async (repo) => {
+      if (window.__villageGround) return;
       const file = (p) => `/@fs/${repo}${p}`;
       const [wasm, { villageScenario }, mesh, fields, terrain, biome] = await Promise.all([
         import("/src/wasm/game_wasm.js"),
@@ -332,16 +373,88 @@ const villageExport = (page, points) =>
           "surface",
         ).terrain;
         const field = fields.buildSurfaceField(surface.site, terrain.terrainReach(surface));
-        return points.map(({ xy: [x, y], footprint }) => ({
-          paved: fields.pavedDistance(field, x, y, footprint),
-          forest: fields.forestDistance(field, x, y, footprint),
-        }));
+        window.__villageGround = {
+          surface,
+          paved: (x, y, footprint) => fields.pavedDistance(field, x, y, footprint),
+          forest: (x, y, footprint) => fields.forestDistance(field, x, y, footprint),
+        };
       } finally {
         view.free();
       }
     },
-    { repo: new URL("../../", import.meta.url).pathname, points },
+    new URL("../../", import.meta.url).pathname,
   );
+
+/** At each point `{ xy, footprint }`, how far inside the paving and the
+ *  forest the simulation's export puts it. */
+async function villageExport(page, points) {
+  await villageGround(page);
+  return page.evaluate(
+    (points) =>
+      points.map(({ xy: [x, y], footprint }) => ({
+        paved: window.__villageGround.paved(x, y, footprint),
+        forest: window.__villageGround.forest(x, y, footprint),
+      })),
+    points,
+  );
+}
+
+/** A plot must keep this far inside the map and from any building to stand
+ *  for its kind, and its middle this far from its own edge. */
+const PLOT_INSET_M = 60;
+const PLOT_ROOM_M = 12;
+
+/** Per plot kind's name, the village's roomiest open plot of that kind
+ *  (inside the map, clear of buildings and woods): its middle `at`, and the
+ *  unit vector `across` its rows. */
+async function villagePlots(page) {
+  await villageGround(page);
+  return page.evaluate(
+    ({ inset, room }) => {
+      const { surface, forest } = window.__villageGround;
+      const [x0, y0, x1, y1] = surface.site.map;
+      const best = {};
+      for (const plot of surface.plots.plots) {
+        const o = plot.outline;
+        const n = o.length / 2;
+        let [cx, cy] = [0, 0];
+        for (let k = 0; k < n; k++) {
+          cx += o[k * 2] / n;
+          cy += o[k * 2 + 1] / n;
+        }
+        // The plot is convex: its middle's distance to the nearest edge.
+        let clear = Infinity;
+        for (let k = 0; k < n; k++) {
+          const [ax, ay] = [o[k * 2], o[k * 2 + 1]];
+          const [bx, by] = [o[((k + 1) % n) * 2], o[((k + 1) % n) * 2 + 1]];
+          const len = Math.hypot(bx - ax, by - ay);
+          clear = Math.min(clear, Math.abs((bx - ax) * (cy - ay) - (by - ay) * (cx - ax)) / len);
+        }
+        const open =
+          cx > x0 + inset &&
+          cx < x1 - inset &&
+          cy > y0 + inset &&
+          cy < y1 - inset &&
+          clear > room &&
+          surface.site.buildings.every((b) => Math.hypot(b[0] - cx, b[1] - cy) > inset) &&
+          [
+            [0, 0],
+            [room, 0],
+            [-room, 0],
+            [0, room],
+            [0, -room],
+          ].every(([dx, dy]) => forest(cx + dx, cy + dy, 1) < 0);
+        const name = surface.biome.plots[plot.kind].name;
+        if (open && clear > (best[name]?.clear ?? 0))
+          best[name] = { clear, at: [cx, cy], across: [...plot.across] };
+      }
+      return Object.fromEntries(
+        Object.entries(best).map(([name, { at, across }]) => [name, { at, across }]),
+      );
+    },
+    { inset: PLOT_INSET_M, room: PLOT_ROOM_M },
+  );
+}
 
 /** How many pixels the agreement check samples, and how far a mask's
  *  distance may sit from the export's: a byte's step, and what the pixel's
