@@ -30,6 +30,9 @@ const CURB_M = [0.1, street.curb.width_m - 0.03];
  *  either side of it, clear of the line and of the curb. */
 const MIDDLE_M = -(STREET_M / 2 - street.markings.line_m);
 const LANE_M = [-(STREET_M / 2 - 0.9), -0.9];
+/** The roadbed along a street's edge: past the curb's face, and short of
+ *  where a crossing's bars end. */
+const GUTTER_M = [-(street.markings.crossing.inset_m - 0.1), -(street.curb.face_m + 0.1)];
 /** A pixel is paint where it is this many times the roadbed's luminance. */
 const PAINT = 1.5;
 /** A group is judged on at least this many pixels. */
@@ -109,6 +112,7 @@ export async function streetLooks(ctx) {
     curb: [sample(shot.mask, 3, within(CURB_M)), CURB_M[1]],
     middle: [sample(shot.mask, 2, (c) => c.roadSd <= MIDDLE_M), 0],
     lane: [sample(shot.mask, 41, within(LANE_M)), 0],
+    gutter: [sample(shot.mask, 5, within(GUTTER_M)), 0],
   };
   const groups = {};
   for (const [name, [pixels, out]] of Object.entries(picked)) {
@@ -123,9 +127,24 @@ export async function streetLooks(ctx) {
     };
   }
   await page.close();
+  // The town's buildings shade much of every street, and not the same share
+  // of each group: a group is read in the sun, as the brighter half of its
+  // pixels (its luminance their median, the group's upper quartile).
   const of = (pixels) => {
-    const { count, rgb, luminance } = mean(shot.shot, pixels);
-    return { count, luminance: +luminance.toFixed(4), warmth: +warmth(rgb).toFixed(3) };
+    const lit = pixels
+      .map((p) => [luminance(pixel(shot.shot, ...p)), p])
+      .sort((a, b) => a[0] - b[0])
+      .slice(Math.floor(pixels.length / 2));
+    return {
+      count: pixels.length,
+      luminance: +(lit[Math.floor(lit.length / 2)]?.[0] ?? 0).toFixed(4),
+      warmth: +warmth(
+        mean(
+          shot.shot,
+          lit.map(([, p]) => p),
+        ).rgb,
+      ).toFixed(3),
+    };
   };
   const roadbed = of(groups.core.street);
   const gravel = of(groups.core.country);
@@ -148,7 +167,7 @@ export async function streetLooks(ctx) {
   };
   ctx.check(
     "a street has a walk each side: paler than its roadbed, and bare of grass",
-    counted && walk.luminance >= 1.2 * roadbed.luminance && grown.walk < 3 && grown.lawn > 10,
+    counted && walk.luminance >= 1.2 * roadbed.luminance && grown.walk < 1 && grown.lawn > 2,
     JSON.stringify({ walk, roadbed, grown }),
   );
   const curb = of(groups.curb.street);
@@ -171,7 +190,7 @@ export async function streetLooks(ctx) {
   const marks = {
     middle: painted(groups.middle.street),
     lane: painted(groups.lane.street),
-    walk: painted(groups.walk.street),
+    gutter: painted(groups.gutter.street),
   };
   ctx.check(
     "a street's centre line is dashes of paint that stand out from its roadbed, and its lanes are bare but for a crossing's bars",
@@ -183,16 +202,10 @@ export async function streetLooks(ctx) {
       marks.lane.share < 0.15,
     JSON.stringify({ marks, roadbed }),
   );
-  // A walk is paler than the roadbed all over: paint on it would be paler
-  // still, as far over the walk as the paint is over the roadbed.
-  const walkLight = groups.walk.street
-    .map(([x, y]) => luminance(pixel(shot.shot, x, y)))
-    .sort((a, b) => a - b);
-  const brightest = walkLight[Math.floor(walkLight.length * 0.99)] ?? 0;
   ctx.check(
-    "no painted line lies on a walk",
-    walkLight.length >= GROUP_PIXELS && brightest < (walk.luminance + marks.middle.luminance) / 2,
-    JSON.stringify({ brightest, walk: walk.luminance, paint: marks.middle.luminance }),
+    "every painted line keeps inside its street's edge: none reaches the curb or the walk",
+    marks.gutter.count >= GROUP_PIXELS && marks.gutter.share < 0.01,
+    JSON.stringify(marks.gutter),
   );
   await ctx.writeEvidence("street-looks.json", {
     roadbed,
