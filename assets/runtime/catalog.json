@@ -29,6 +29,11 @@
       "scenery": "bridge_deck",
       "unit": "scenery"
     },
+    "city_kit_prototype": {
+      "bundle": "5af1771daa664ff8a36625980715ef4d9d43d33e70468529c4564a867383fc0f",
+      "kind": "static",
+      "unit": "kit"
+    },
     "crate_stack": {
       "bundle": "1f9c0ac60873e67dd7edfbe47de591342ec8a6e8a747964e46ed9a6803f4b61d",
       "footprint_half_m": [
@@ -286,5 +291,10 @@
   "skeletons": {
     "quaternius-ubc-launcher": "b84f2a37727d5cc8ea87c307cfa704ab4a8b6ddd2594134b6f8d486f6d373bdc",
     "quaternius-ubc-rifle": "c6f5ccedf4fe807db7efdc2558d8408d9abf7d29389a1d5781cae4b9b60a0616"
+  },
+  "templates": {
+    "art_hash": "a84f7e8c11dea3054da5481dd8f90e9a4dd1712d1d5d01d738cc5353c0d84222",
+    "covers": "ed9981b358116490fd50585874a615ac427af819628e097cc2bf4216cda4f2cb",
+    "library": "417542b9126a280bd5e32945d2b150394ec7fd263172f16be9a4ba84fc1d26d2"
   }
 }
