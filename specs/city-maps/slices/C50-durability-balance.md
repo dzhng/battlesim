@@ -30,3 +30,17 @@ Seating/lifecycle semantics and physical appearance fit.
 
 ## Feedback that would change this slice
 Rejected play or terminal fit revises the measured candidate and dependent release identities.
+
+## Current candidate: retain the coefficients (2026-10-02)
+
+The current hp coefficient and ruin ratio remain candidates without tuning. Local native battles on saved layout-12 Market Town (map `fb1e8584…`, seed 1) use the unchanged game rules, one tank and one garrisoned rifle squad. The tank stands at a navigation-admitted exposed position and receives an ordinary ground attack at the building owner's physical part, as the existing bombardment script does.
+
+| Building | Initial integrity | Exposure | After one minute |
+| --- | ---: | ---: | --- |
+| Three-floor corner shop | 432 | 75 m | Collapsed at 18.27 s after three HE shots plus HMG fire; 3.1625 m ruin, five survivors outside by 60 s |
+| Four-floor apartment slab | 1,155 | 250 m | 455 integrity left; nine HE shots, HMG trajectory blocked |
+| Six-floor courtyard apartment | 3,960 | 200 m | 3,099.25 integrity left; nine HE and 171 HMG shots, seven occupants alive |
+
+The shop has no exposed candidate in the probe's 100–250 m search. A courtyard frame origin can lie in its empty court; aiming there held fire correctly and is retained as a rejected probe, separately from the owner-part result. These checks establish local behavior, not the generated encounter's balance. Exact inputs, raw reports, probe source and hashes are retained in ignored `throwaway/c50-durability-pickup/` in the main checkout.
+
+C50 remains open. Run the full village report once after the final mechanics candidate and the relevant scripted generated encounter on the final physical map. These local cases do not justify a coefficient or terminal-art change, and do not replace those gates.
