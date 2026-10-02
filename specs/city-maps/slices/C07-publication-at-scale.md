@@ -121,7 +121,7 @@ Fixed-row groups now also support an exact source-copy/literal representation.
 The group is assembled in canonical output order from retained source spans and
 new literal spans. It handles scattered insertion, removal and reorder without
 changing simulation identity or ordering. Exact word replacements and snapshots
-remain available; the publisher chooses the smallest payload. Variable-section
+remain available; the publisher chooses the smallest ordinary word payload. Variable-section
 groups retain their word representation. The layout publishes named encodings
 and operation fields; producer and decoder cut over together.
 
@@ -162,7 +162,7 @@ spans. One span enumerator uses exact eight-word old anchors sampled every eight
 words, extends matching spans wordwise, and emits literals between them. There
 is no unit identity, hash collision assumption, second baseline or compression
 dependency. Snapshot and replacement remain alternatives; complete preflight
-selects the smallest payload before writing or advancing any cursor.
+selects the smallest ordinary word payload before writing or advancing any cursor.
 
 Matched standalone codec replay of 450 captured Metro Large/layout-6/seed-4
 contact transitions (ticks 0–450, same frozen simulation/rules) measures the arm
@@ -292,7 +292,10 @@ admission, and adds no allocation beyond the already reserved output. Bit counti
 is bounded by the logical record and operations; no extra sparse-index search
 pass is introduced. Packed carriers may have NaN bit patterns: browser decoding
 reads a u32 alias, never float numbers, and writes reconstructed u32 bits. Existing
-unchanged zero-payload groups still retain their original word/view identities.
+unchanged nonempty zero-payload replacements retain their original word/view
+identities. Empty snapshots recreate empty views. Compact packing applies to the
+selected ordinary form; it does not guarantee the smallest compressed form
+across all alternatives.
 
 Public cold delivery is strictly smaller and matches its complete logical oracle.
 Special float proofs include subnormals, infinities, signed zero and distinct NaN

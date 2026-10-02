@@ -63,21 +63,19 @@ during measurement in each generated arm lasting 30 seconds or more.
 
 Current pickup, in order:
 
-1. Finish the portable math policy, then recheck exact cross-target state.
-   Arrangement, cover-facing, ricochet and shared-rotation regressions are on
-   main. These are named native last-bit corrections, not CPU gains. Frozen
-   source `112970b7`, engine `48666f03…`, layout-9 map `bdadf296…` and rules
-   `4994f55c…` have matching cold state in both arms and matching every-tick
-   state and raw publication through tick 212. Tick 213 first changes retained
-   structure damage: identical blast-distance inputs produce a one-bit Native
-   versus Wasm `hypot` difference in `Obb2::distance`. Its packed record is
-   still identical. Temporary diagnostics are removed. The next pass pins the
-   proven authoritative trig and distance evaluators to the existing portable
-   library, with an observed-input public distance regression. Keep formulas,
-   draw order, rules and unrelated math unchanged. Packed agreement cannot
-   substitute for state parity.
-2. Once exact cross-target state parity passes, run both complete
-   9,000-tick contact arms: whole-record maximum remains
+1. Refresh current inputs, then run both complete 9,000-tick contact arms.
+   The portable evaluator policy is integrated: authoritative trig, bearings
+   and 2D norms use the existing pinned library, preserving formulas and draw
+   order. These are named native last-bit corrections, not CPU gains. The
+   observed blast-distance regression fails on old Native math and passes on
+   the corrected owner. Frozen layout-9 map `bdadf296…` / rules `4994f55c…`
+   now match Native/Wasm state and raw publication through tick 213, including
+   corrected structural damage, on engine `39efd3e3…`. Temporary diagnostics
+   are removed. Main's subsequent forest-body revert changes rules input;
+   current Native publication and actual Wasm boundary checks pass, but that
+   bounded proof does not admit the full current battle. Packed agreement
+   cannot substitute for state parity.
+2. During the complete paired runs, whole-record maximum remains
    **19,800 B**, with unchanged replay, decoder and delivery contracts. Historical
    captured-codec maxima of 18,652 B early and 15,280 B partial late are controls,
    not current admission. Measure full active heap, snapshots and copy overlap;
@@ -90,8 +88,12 @@ Current pickup, in order:
 4. Complete the whole-owned review and consolidate the scale choices ledger.
    Keep the historical movement-admission finding separate: all commands in
    the three fresh 120 s infantry extensions are refused before planning. Those
-   idle results do not prove the historical planning delays resolved. Refresh
-   journey-completion proofs against the newly merged admission fixes; historical refused routes cannot certify their behavior.
+   idle results do not prove the historical planning delays resolved. The three
+   original timing, town-corner and living-member-start regressions pass on the
+   final combined runtime through current move certification. Their arrival and
+   every-tick replay assertions cannot pass on an idle refusal. They revalidate
+   those repairs; the historical generated-journey finding remains parent
+   follow-up.
 
 The historical matrix retains all 90 type × size × seed requests: 89 battles play
 80,100 ticks and one encounter is refused, with no generation refusal or panic.
