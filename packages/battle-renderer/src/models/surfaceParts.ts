@@ -31,24 +31,24 @@ export interface IndexRange {
  *  surfaces and the rooms together (what the fragment-less depth and caster
  *  pipelines draw: the two are neighbours in the index order). */
 export type SurfacePart = SurfaceClass | "solid";
-/** Each class's share of a mesh: one range of its indices. */
-export type SurfaceParts = Record<SurfaceClass, IndexRange>;
+/** Each part's share of a mesh: one range of its indices. */
+export type SurfaceParts = Record<SurfacePart, IndexRange>;
+export type SurfaceFlags = Record<SurfaceClass, boolean>;
+/** A flag a class, all down. */
+export const surfaceFlags = () =>
+  Object.fromEntries(SURFACE_CLASSES.map((c) => [c, false])) as SurfaceFlags;
 
 const NOTHING: IndexRange = { first: 0, count: 0 };
-const _range: IndexRange = { first: 0, count: 0 };
 /** The range of `parts` a pipeline drawing `part` draws, leaving out the
- *  classes `hidden` names. The result is scratch: read it before asking again. */
+ *  classes `hidden` names (the lab's paired frames). */
 export function partRange(
   parts: SurfaceParts,
   part: SurfacePart,
-  hidden: Readonly<Record<SurfaceClass, boolean>>,
+  hidden: Readonly<SurfaceFlags>,
 ): IndexRange {
   if (part !== "solid") return hidden[part] ? NOTHING : parts[part];
-  const opaque = hidden.opaque ? 0 : parts.opaque.count;
-  const room = hidden.room ? 0 : parts.room.count;
-  _range.first = opaque ? parts.opaque.first : parts.room.first;
-  _range.count = opaque + room;
-  return _range;
+  if (hidden.opaque) return hidden.room ? NOTHING : parts.room;
+  return hidden.room ? parts.opaque : parts.solid;
 }
 
 /**
@@ -80,5 +80,6 @@ export function orderSurfaces(
     }
     parts[c] = { first: first + start, count: at - start };
   }
+  parts.solid = { first: parts.opaque.first, count: parts.opaque.count + parts.room.count };
   return { indices, parts };
 }

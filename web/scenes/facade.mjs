@@ -55,7 +55,7 @@ async function open(ctx, query = "") {
       window.__lab?.error ||
       (window.__lab?.ready && window.__lab.route?.stand && window.__lab.stats),
     undefined,
-    { timeout: 120000 },
+    { timeout: 300000 },
   );
   // The kit is installed once the appearances load: draw until it is.
   for (let tries = 0; ; tries++) {

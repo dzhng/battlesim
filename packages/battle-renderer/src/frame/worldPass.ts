@@ -107,17 +107,19 @@ import type { Box3 } from "math/shapes";
 import { vec3, type Mat4 } from "math";
 import { mapBox } from "./receiverRange";
 import {
-  createGlassFragment,
   createModelFragments,
-  createRoomFragment,
   modelAttribs,
-  modelCutoutCaster,
-  modelCutoutDepth,
   modelRecordLayout,
   modelVertex,
-  type GlassStyle,
   type ModelLayer,
 } from "../models/modelLayer";
+import {
+  createGlassFragment,
+  createRoomFragment,
+  modelCutoutCaster,
+  modelCutoutDepth,
+  type GlassStyle,
+} from "../models/surfaceFragments";
 import {
   modelXrayFragment,
   modelXrayCountFragment,

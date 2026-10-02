@@ -37,7 +37,8 @@ import { flushPool } from "./placementPool";
 import {
   SURFACE_CLASSES,
   partRange,
-  type SurfaceClass,
+  surfaceFlags,
+  type SurfaceFlags,
   type SurfacePart,
   type SurfaceParts,
 } from "./surfaceParts";
@@ -119,15 +120,13 @@ interface DrawList {
   ranges: Int32Array;
   count: number;
   /** Whether any of its meshes has a surface of each class. */
-  surfaces: Record<SurfaceClass, boolean>;
+  surfaces: SurfaceFlags;
 }
-const noSurfaces = () =>
-  Object.fromEntries(SURFACE_CLASSES.map((c) => [c, false])) as Record<SurfaceClass, boolean>;
 const createDrawList = (): DrawList => ({
   meshes: [],
   ranges: new Int32Array(3 * 64),
   count: 0,
-  surfaces: noSurfaces(),
+  surfaces: surfaceFlags(),
 });
 const clearDrawList = (list: DrawList) => {
   list.count = 0;
@@ -242,7 +241,7 @@ export function createBuildingLayer(
     bind: BindBuildingDraw,
     raw: GPURenderPassEncoder,
     surface: SurfacePart,
-    hidden: Readonly<Record<SurfaceClass, boolean>>,
+    hidden: Readonly<SurfaceFlags>,
   ) {
     const has = list.surfaces;
     if (surface === "solid" ? !has.opaque && !has.room : !has[surface]) return;
@@ -250,7 +249,6 @@ export function createBuildingLayer(
     let source = -1;
     for (let i = 0; i < list.count; i++) {
       const mesh = list.meshes[i];
-      // (A scratch range: its numbers are read before the next mesh's.)
       const { first: firstIndex, count: indices } = partRange(mesh.parts, surface, hidden);
       if (!indices) continue;
       const [from, first, count] = [
@@ -378,7 +376,7 @@ export function createBuildingLayer(
       bind: BindBuildingDraw,
       raw: GPURenderPassEncoder,
       surface: SurfacePart,
-      hidden: Readonly<Record<SurfaceClass, boolean>>,
+      hidden: Readonly<SurfaceFlags>,
     ) {
       if (scene && shown) drawList(view, bind, raw, surface, hidden);
     },
@@ -387,7 +385,7 @@ export function createBuildingLayer(
       bind: BindBuildingDraw,
       raw: GPURenderPassEncoder,
       surface: SurfacePart,
-      hidden: Readonly<Record<SurfaceClass, boolean>>,
+      hidden: Readonly<SurfaceFlags>,
     ) {
       if (scene && shown) drawList(cast, bind, raw, surface, hidden);
     },

@@ -7,7 +7,10 @@ import {
   validateModelDetail,
   type ModelDetailPresentation,
 } from "@packages/battle-renderer/src/models/modelDetail";
-import { validateGlass, type GlassStyle } from "@packages/battle-renderer/src/models/modelLayer";
+import {
+  validateGlass,
+  type GlassStyle,
+} from "@packages/battle-renderer/src/models/surfaceFragments";
 import {
   validateBuildingStyle,
   type BuildingStyle,

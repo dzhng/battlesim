@@ -337,6 +337,8 @@ function pull(args) {
     ? positionals.map((name) => cat.city_sets?.[name]?.kit ?? name)
     : Object.keys(cat.appearances);
   const include = new Set();
+  // A room's bundle is baked with its interior sheet: the sheets are sources.
+  if (values.sources) for (const sheet of Object.values(cat.interiors ?? {})) include.add(sheet);
   for (const [, entry] of sets) {
     if (runtime.templates)
       include.add(`assets/runtime/${templateLibraryPath(runtime.templates.library)}`);
