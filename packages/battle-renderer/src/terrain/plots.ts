@@ -211,6 +211,11 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
   const yardSq = rules.yard_m ** 2;
   const roadEdges = plotGuideEdges(site);
   const roadCount = roadEdges.length / 4;
+  // The guides list the roads' runs, then the rivers', then the paving's
+  // boundary (`plotGuideEdges`).
+  const riversFrom = site.surfaceRuns.length / site.surfaceRunStride;
+  const riversTo = riversFrom + site.riverRuns.length / site.riverRunStride;
+  const isRiver = (edge: number) => edge >= riversFrom && edge < riversTo;
   let depth = 0;
 
   // Buildings bucketed in cells a settlement's reach wide: a centre asks the
@@ -362,7 +367,9 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
     for (const r of roads) {
       const o = r * 4;
       const [ax, ay, bx, by] = [roadEdges[o], roadEdges[o + 1], roadEdges[o + 2], roadEdges[o + 3]];
-      const share = tract ? ROAD_CHORD_SHARE.tract : ROAD_CHORD_SHARE.land;
+      // A river's run cuts whatever tract it crosses: no plot lies on both
+      // banks.
+      const share = !tract ? ROAD_CHORD_SHARE.land : isRiver(r) ? 0 : ROAD_CHORD_SHARE.tract;
       if (!roadCuts(poly, ax, ay, bx, by, rules.size_m[1], share)) continue;
       const len = Math.hypot(bx - ax, by - ay);
       const nx = -(by - ay) / len,
