@@ -107,12 +107,14 @@ import type { Box3 } from "math/shapes";
 import { vec3, type Mat4 } from "math";
 import { mapBox } from "./receiverRange";
 import {
+  createGlassFragment,
   createModelFragments,
   modelAttribs,
   modelCutoutCaster,
   modelCutoutDepth,
   modelRecordLayout,
   modelVertex,
+  type GlassStyle,
   type ModelLayer,
 } from "../models/modelLayer";
 import {
@@ -151,6 +153,7 @@ export async function createWorldPass(
   models: ModelLayer,
   paintStyle: PaintStyle,
   xrayMinHiddenFragmentFraction: number,
+  glass: GlassStyle,
 ) {
   const worldFragment = tgpu.fragmentFn({
     in: {
@@ -403,6 +406,19 @@ export async function createWorldPass(
     depthStencil: battleWorldDepth("kept"),
     multisample: { count: FRAME_MSAA },
   });
+  // A blended surface (glass) is drawn after everything opaque, over it by
+  // its coverage, as the water is: it reads depth and writes none, is in no
+  // prepass and casts no shadow.
+  const modelBlended = root.createRenderPipeline({
+    ...modelBase,
+    fragment: createGlassFragment(environment, glass),
+    targets: worldTargets({
+      color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
+      alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
+    }),
+    depthStencil: battleWorldDepth("read"),
+    multisample: { count: FRAME_MSAA },
+  });
   // The x-ray: a unit's fragments behind the world's depth (without the
   // units), over the transparent overlay target. Max blending, so a hidden
   // arm behind a hidden torso never doubles the silhouette's alpha. The
@@ -470,6 +486,7 @@ export async function createWorldPass(
       modelPrepassCutout,
       modelCasterCutout,
       modelCutout,
+      modelBlended,
       modelXray,
       modelXrayCount,
       modelCards,
@@ -929,6 +946,18 @@ export async function createWorldPass(
             .with(fogGroups.paintedFaces)
             .with(terrain.group),
         );
+      // Glass last, over everything: in the order the layer packs it, not by
+      // depth (two panes of one glass blend nearly the same either way round).
+      if (!classView) {
+        const glassLit = modelBlended.with(pass).with(cameraGroup).with(environment.group);
+        for (const fog of ["units", "faces", "ground", "paintedFaces"] as const)
+          drawModels(glassLit.with(fogGroups[fog]), "blended", fog);
+        models.drawBuildings(
+          glassLit.with(fogGroups.faces) as unknown as Bound,
+          root.unwrap(pass),
+          "blended",
+        );
+      }
       pass.end();
       return { encoder, raw };
     },

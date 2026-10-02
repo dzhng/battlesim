@@ -274,6 +274,55 @@ export async function createTypegpuEnvironment(
         layout.$.linear,
       );
     });
+    const unlitAlgorithm = tgpu
+      .fn(
+        [
+          d.vec3f,
+          d.vec3f,
+          d.vec3f,
+          d.vec3f,
+          d.vec3f,
+          d.vec3f,
+          d.vec3f,
+          d.f32,
+          d.texture2d(),
+          d.texture2d(),
+          d.sampler(),
+        ],
+        d.vec4f,
+      )(/* wgsl */ `(colour:vec3f,worldPosition:vec3f,eye:vec3f,observer:vec3f,sunDirection:vec3f,sunRadiance:vec3f,environmentIntensity:vec3f,maxMip:f32,sky:texture_2d<f32>,pmrem:texture_2d<f32>,linear:sampler)->vec4f {
+        // What a white matte surface facing the sky returns: the sun's share
+        // and the sky's, as standardPbr's diffuse terms have them.
+        let skyLight=samplePmrem(pmrem,linear,vec3f(0.0,0.0,1.0),1.0,maxMip)*environmentIntensity;
+        let white=sunRadiance*max(sunDirection.z,0.0)*0.3183098861837907+skyLight;
+        return ${aerial ? "applyAerial(vec4f(colour*white,1),worldPosition,eye,observer,sky,linear)" : "vec4f(colour*white,1)"};
+      }`)
+      .$uses({ samplePmrem, applyAerial });
+    /** A finished picture's place in the frame: a surface that takes no
+     *  light of its own (a room behind a window, lit when its picture was
+     *  made). `colour` is shown at the scene's exposure, as bright as a matte
+     *  surface of that albedo lying in the open under this sun and sky, and
+     *  behind the air between it and the eye; no sun shadow, no cast light,
+     *  nothing of its own facing. */
+    const unlit = tgpu.fn(
+      [d.vec3f, d.vec3f, d.vec3f],
+      d.vec4f,
+    )((colour, position, eye) => {
+      "use gpu";
+      return unlitAlgorithm(
+        colour,
+        position,
+        eye,
+        layout.$.data.observer.xyz,
+        layout.$.data.sunDirection.xyz,
+        layout.$.data.sunRadiance.xyz,
+        layout.$.data.fill.xyz,
+        layout.$.data.settings.x,
+        layout.$.sky,
+        layout.$.pmrem,
+        layout.$.linear,
+      );
+    });
     return {
       group,
       layout,
@@ -286,6 +335,7 @@ export async function createTypegpuEnvironment(
       shadowMode: shadow?.mode ?? null,
       sampleSunShadow,
       shade,
+      unlit,
       geometryRoughnessFromView: fromView,
       sky,
       pmrem,

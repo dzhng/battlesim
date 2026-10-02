@@ -6,6 +6,11 @@
 // how much of it is there; and a panel too far away to resolve its holes is
 // still drawn.
 //
+// Glass (free-standing panes, and the block's windows): it dims what is
+// behind it without hiding it, is hidden by what stands in front, reads the
+// same from its back and whatever order it is drawn in, and from the street
+// a window stays darker than its wall under every sun.
+//
 // `FACADE_COST=1` measures instead: the frame's GPU time with and without
 // each kind of surface (paired, interleaved) over a field of blocks.
 import { writeFile } from "node:fs/promises";
@@ -14,7 +19,7 @@ import { decode, pixel, around, writeCrop } from "./_png.mjs";
 
 const VIEWPORT = { width: 1920, height: 1080 };
 const HIDE_PANEL = "[data-testid=facade-panel] { display: none !important; }";
-const SURFACES = ["cutout"];
+const SURFACES = ["cutout", "blended"];
 /** Blocks in the cost run's field. */
 const COST_BLOCKS = 288;
 
@@ -224,7 +229,6 @@ async function cutouts(ctx) {
     await stand(page, "cutouts", distance);
     meta.cameras[`cutouts-${distance}`] = await lab(page, () => window.__lab.camera());
   }
-  await ctx.writeEvidence("meta.json", meta);
   await page.context().close();
 
   // Fog: sight ends just behind the panels, so the ground through a hole is
@@ -239,6 +243,141 @@ async function cutouts(ctx) {
     JSON.stringify(unseen),
   );
   await fogged.page.context().close();
+  return meta;
+}
+
+/** The same frame with and without one kind of surface drawn. */
+async function withAndWithout(ctx, page, surface, file) {
+  const drawn = await shot(ctx, page, file);
+  await lab(page, (s) => window.__lab.suppressSurface(s, true), surface);
+  const without = await shot(ctx, page, null);
+  await lab(page, (s) => window.__lab.suppressSurface(s, false), surface);
+  return { drawn, without };
+}
+
+/** Points of the glass station's panes, each in its pane's own frame: the
+ *  first three step back and across, the fourth is turned round. */
+const PANES = {
+  // Glass with nothing but ground behind it.
+  single: { pane: 0, at: [-0.5, 0, 1.2] },
+  // The first pane's glass over the second's.
+  double: { pane: 0, at: [0.4, 0, 1.2] },
+  // The first pane's frame, in front of the second pane's glass.
+  frame: { pane: 0, at: [0.78, 0, 1.2] },
+  // The turned pane, seen from its back.
+  back: { pane: 3, at: [0.3, 0, 1.2] },
+};
+/** A window pane of the block's middle bay, a floor up, and its wall beside it. */
+const WINDOW = { pane: [0, 0.13, 1.7], wall: [-1.1, 0, 1.7] };
+/** Sun azimuths the block is judged under from the street, by where the sun
+ *  stands for a camera south of the facade: as the fixture has it, behind the
+ *  camera, in front of it (the facade in its own shade) and along the street. */
+const SUNS = { fixture: null, behind: -Math.PI / 2, ahead: Math.PI / 2, along: Math.PI };
+
+async function glass(ctx) {
+  const { page, warnings } = await open(ctx);
+  for (const distance of ["close", "tactical", "far"]) {
+    await stand(page, "glass", distance);
+    await shot(ctx, page, `glass-${distance}-1920x1080.png`);
+  }
+  await stand(page, "glass", "close");
+  const { drawn, without } = await withAndWithout(ctx, page, "blended", null);
+  const at = {};
+  for (const [name, p] of Object.entries(PANES)) {
+    const [world] = await lab(
+      page,
+      ([locals, nth]) => window.__lab.route.points("pane", locals, nth),
+      [[p.at], p.pane],
+    );
+    const px = await project(page, world);
+    const [with_, bare] = [mean(drawn, px, 2), mean(without, px, 2)];
+    at[name] = { kept: luminance(with_) / luminance(bare), changed: sum(with_, bare) };
+  }
+  await writeCrop(drawn, ctx.evidencePath("glass-close-crop.png"), 960, 560, 300, 160, 3);
+  ctx.check(
+    "glass dims what is behind it without hiding it, two panes more than one, and the same from its back",
+    at.single.kept > 0.3 &&
+      at.single.kept < 0.92 &&
+      at.double.kept < at.single.kept - 0.04 &&
+      at.double.kept > 0.1 &&
+      Math.abs(at.back.kept - at.single.kept) < 0.12,
+    JSON.stringify(at),
+  );
+  ctx.check(
+    "an opaque frame in front of glass is drawn as it is without the glass",
+    at.frame.changed <= 3,
+    JSON.stringify(at.frame),
+  );
+  const cameras = { "glass-close": await lab(page, () => window.__lab.camera()) };
+  await page.context().close();
+
+  // Order: the same modules handed over in the opposite order blend to the
+  // same picture, so glass needs no sort.
+  const reversed = await open(ctx, "?order=reversed");
+  await stand(reversed.page, "glass", "close");
+  const other = await shot(ctx, reversed.page, "glass-close-reversed-1920x1080.png");
+  let most = 0;
+  let differing = 0;
+  for (let i = 0; i < drawn.data.length; i += 4) {
+    const delta = Math.max(
+      ...[0, 1, 2].map((c) => Math.abs(drawn.data[i + c] - other.data[i + c])),
+    );
+    most = Math.max(most, delta);
+    if (delta > 2) differing++;
+  }
+  ctx.check(
+    "overlapping panes drawn in the opposite order blend to the same picture",
+    most <= 6,
+    JSON.stringify({ largest: most, pixelsOver2: differing }),
+  );
+  await reversed.page.context().close();
+
+  // Fog: sight ends behind the first panes.
+  const fogged = await open(ctx, "?fog=1");
+  await stand(fogged.page, "glass", "close");
+  await shot(ctx, fogged.page, "glass-fog-close-1920x1080.png");
+  await fogged.page.context().close();
+
+  // From the street, under each sun: a window is darker than its wall.
+  const windows = {};
+  for (const [name, azimuth] of Object.entries(SUNS)) {
+    const sunned = await open(ctx, azimuth === null ? "" : `?azimuth=${azimuth}&sun=0.5`);
+    await stand(sunned.page, "facade", "close");
+    const street = await shot(ctx, sunned.page, `facade-street-${name}-1920x1080.png`);
+    const [pane, wall] = await lab(
+      sunned.page,
+      (locals) => window.__lab.route.points("bay_window", locals, 1),
+      [WINDOW.pane, WINDOW.wall],
+    );
+    const [panePx, wallPx] = [await project(sunned.page, pane), await project(sunned.page, wall)];
+    await writeCrop(
+      frame,
+      ctx.evidencePath(`facade-street-${name}-crop.png`),
+      ...panePx,
+      160,
+      110,
+      4,
+    );
+    windows[name] = {
+      pane: luminance(mean(street, panePx, 4)),
+      wall: luminance(mean(street, wallPx, 4)),
+    };
+    if (name === "fixture")
+      cameras["facade-close"] = await lab(sunned.page, () => window.__lab.camera());
+    warnings.push(...sunned.warnings);
+    await sunned.page.context().close();
+  }
+  ctx.check(
+    "from the street a window is a dark opening under every sun, never a plate as bright as its wall",
+    Object.values(windows).every((w) => w.pane < 0.8 * w.wall),
+    JSON.stringify(windows),
+  );
+  ctx.check(
+    "no WebGPU validation warning was logged with glass drawn",
+    warnings.length === 0,
+    warnings.slice(0, 3).join(" | "),
+  );
+  return cameras;
 }
 
 /** The frame's GPU time over `frames` forced redraws from now. */
@@ -307,5 +446,7 @@ async function cost(ctx) {
 
 export async function run(ctx) {
   if (process.env.FACADE_COST === "1") return cost(ctx);
-  await cutouts(ctx);
+  const meta = await cutouts(ctx);
+  Object.assign(meta.cameras, await glass(ctx));
+  await ctx.writeEvidence("meta.json", meta);
 }

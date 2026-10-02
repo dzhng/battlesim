@@ -436,31 +436,41 @@ const modelSurface = tgpu.fn(
   return ModelSurface({ albedo, normal: n, roughness, metallic, occlusion, tint });
 });
 
+/** A material's coverage value at a fragment (`Coverage`, scene-assets): the
+ *  base colour's alpha times the normal texture's, 1 without one. */
+const coverageValue = tgpu.fn(
+  [d.u32, d.vec2f],
+  d.f32,
+)((material, uv) => {
+  "use gpu";
+  const row = material * MATERIAL_ROWS;
+  const layer = modelLayout.$.materials[row + 4].y;
+  const image = std.textureSample(
+    modelLayout.$.surface,
+    modelLayout.$.tiled,
+    uv,
+    d.i32(std.max(layer, 0)),
+  );
+  let value = modelLayout.$.materials[row].w;
+  if (layer >= 0) {
+    value = value * image.w;
+  }
+  return value;
+});
 /**
  * How much of a cutout's surface is there at a fragment, 0..1: its coverage
- * value (the base colour's alpha times the normal texture's), scaled so that
- * the material's cutoff is half there. Sampled through the mip chain, so a
- * surface too far away to resolve its holes thins by the share of it that is
- * there, instead of vanishing or closing up at one distance.
+ * value, scaled so that the material's cutoff is half there. Sampled through
+ * the mip chain, so a surface too far away to resolve its holes thins by the
+ * share of it that is there, instead of vanishing or closing up at one
+ * distance.
  */
 const cutoutCoverage = tgpu.fn(
   [d.u32, d.vec2f],
   d.f32,
 )((material, uv) => {
   "use gpu";
-  const row = material * MATERIAL_ROWS;
-  const cut = modelLayout.$.materials[row + 4];
-  const image = std.textureSample(
-    modelLayout.$.surface,
-    modelLayout.$.tiled,
-    uv,
-    d.i32(std.max(cut.y, 0)),
-  );
-  let value = modelLayout.$.materials[row].w;
-  if (cut.y >= 0) {
-    value = value * image.w;
-  }
-  return std.saturate((value * 0.5) / std.max(cut.x, 0.001));
+  const cutoff = modelLayout.$.materials[material * MATERIAL_ROWS + 4].x;
+  return std.saturate((coverageValue(material, uv) * 0.5) / std.max(cutoff, 0.001));
 });
 /** The samples of a multisampled pixel a cutout covers: as many of them as
  *  its coverage is of the pixel, to the nearest. An edge resolves to a clean
@@ -504,6 +514,68 @@ export const modelCutoutCaster = tgpu.fragmentFn({
   "use gpu";
   return coveredTexel(cutoutCoverage(v.material, v.uv), v.clip.xy);
 });
+
+/** `presentation.glass`: how a blended surface (a pane of glass)
+ *  takes light. */
+export interface GlassStyle {
+  /** How far a pane's shading normal turns toward the eye: 0 shades it as
+   *  modelled, 1 as if seen half as obliquely. It bounds what a pane mirrors
+   *  at a grazing angle, so a window seen along a street stays a dark
+   *  opening and never a pale plate of horizon. */
+  turn: number;
+  /** The brightest a pane's own light gets, as a multiple of a white matte
+   *  surface in the open: the sun's glint off it never outshines a wall. */
+  glint: number;
+}
+export function validateGlass(glass: GlassStyle): GlassStyle {
+  if (!(glass?.turn >= 0 && glass.glint > 0))
+    throw new Error(
+      `presentation.glass: turn must be ≥ 0 and glint > 0, got ${JSON.stringify(glass)}`,
+    );
+  return glass;
+}
+
+/**
+ * A blended surface's fragment: the pane lit like any surface (the one shade
+ * function: sun, sky, cast lights, haze), over what is behind it by its
+ * coverage value, and fogged as a face. Nothing refracts and nothing glows.
+ * Its light is bounded by `style` so that glass reads as a dark, slightly
+ * reflective opening from every side.
+ */
+export function createGlassFragment(environment: EnvironmentFrame, style: GlassStyle) {
+  const { turn, glint } = validateGlass(style);
+  return tgpu.fragmentFn({ in: modelVaryings, out: WORLD_OUT })((v) => {
+    "use gpu";
+    const eye = typegpuCameraLayout.$.cam.eye;
+    const view = std.normalize(std.sub(eye, v.world));
+    let n = std.normalize(v.normal);
+    if (std.dot(n, view) < 0) {
+      n = std.neg(n);
+    }
+    const surface = modelSurface(v.color, v.material, v.track, v.uv, n, v.tangent);
+    const albedo = std.mul(surface.albedo, std.mix(d.vec3f(1), v.tint, surface.tint));
+    const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
+    const shaded = environment.shade(
+      albedo,
+      d.vec3f(0),
+      surface.roughness,
+      0,
+      surface.metallic,
+      surface.occlusion,
+      std.normalize(std.add(surface.normal, std.mul(view, turn))),
+      v.world,
+      sun,
+      eye,
+    );
+    const ceiling = std.mul(environment.unlit(d.vec3f(1), v.world, eye).xyz, glint);
+    const cover = coverageValue(v.material, v.uv);
+    const seen = modelSeen(v.world, n, v.anchor, v.clip.xy);
+    return {
+      color: d.vec4f(std.min(shaded.xyz, ceiling), cover),
+      fog: fogCoverage(seen, cover),
+    };
+  });
+}
 
 export function createModelFragments(environment: EnvironmentFrame) {
   const lit = tgpu.fragmentFn({ in: modelVaryings, out: WORLD_OUT })((v) => {

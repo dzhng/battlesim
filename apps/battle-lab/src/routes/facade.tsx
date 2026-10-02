@@ -4,12 +4,15 @@
 //
 // - cutouts: a grille and a perforated sheet as fence panels, turned so
 //   their shadows fall where they can be read;
+// - glass: free-standing panes, each half across the next behind it, and one
+//   seen from its back;
 // - facade: a block three bays wide and three floors high, a window in every
 //   bay (shops at the ground), a guard over some.
 //
 // `?blocks=<n>` stands that many more blocks in a field behind (a dense view
 // for the paired cost), `?fog=1` puts an eye before each station whose sight
-// ends across it, and `?azimuth=` and `?sun=` turn and raise the sun.
+// ends across it, `?azimuth=` and `?sun=` turn and raise the sun, and
+// `?order=reversed` hands the frame the same modules in the opposite order.
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
 import { validateLight } from "@packages/battle-renderer/src/light/sceneLight";
@@ -46,6 +49,7 @@ const PANEL_YAW = 0.6;
  *  south of a facade, looking north, at yaw −π/2). */
 const STATIONS = {
   cutouts: { at: [0, 0] as [number, number], yaw: -Math.PI / 2 + PANEL_YAW },
+  glass: { at: [60, 0] as [number, number], yaw: -Math.PI / 2 },
   facade: { at: [120, 0] as [number, number], yaw: -Math.PI / 2 - 0.35 },
 };
 type Station = keyof typeof STATIONS;
@@ -101,6 +105,16 @@ function layout(blocks: number): Placement[] {
       z: 0,
       yaw: PANEL_YAW,
     },
+    // Three panes stepping back and across, so each is half behind the last,
+    // and a fourth turned round.
+    ...[0, 1, 2].map((i) => ({
+      module: "pane",
+      x: STATIONS.glass.at[0] - 1.5 + i * 0.75,
+      y: STATIONS.glass.at[1] + i * 1.5,
+      z: 0,
+      yaw: 0,
+    })),
+    { module: "pane", x: STATIONS.glass.at[0] + 2.5, y: STATIONS.glass.at[1], z: 0, yaw: Math.PI },
     ...block(...STATIONS.facade.at, WALLS[0], (bay, floor) => bay === floor - 1),
   ];
   for (let i = 0; i < blocks; i++)
@@ -180,7 +194,10 @@ export default function Facade() {
       },
     [installed],
   );
-  const placed = useMemo(() => layout(blocks), [blocks]);
+  const placed = useMemo(
+    () => (query.get("order") === "reversed" ? layout(blocks).reverse() : layout(blocks)),
+    [blocks, query],
+  );
   const models = useMemo<ModelInstance[]>(
     () =>
       placed.map((p) => ({
@@ -246,14 +263,14 @@ export default function Facade() {
       /** Where each module stands. */
       layout: () => placed,
       light: () => ({ azimuth: light.sun_azimuth, elevation: light.sun_elevation }),
-      /** World points of the first placement of `module`, from points in its
-       *  own frame. */
-      points: (module: string, locals: [number, number, number][]) => {
-        const p = placed.find((q) => q.module === module);
+      /** World points of a placement of `module` (the `nth` the layout
+       *  stands), from points in its own frame. */
+      points: (module: string, locals: [number, number, number][], nth = 0) => {
+        const p = layout(blocks).filter((q) => q.module === module)[nth];
         return p ? locals.map((l) => worldOf(p, l)) : null;
       },
     }),
-    [placed, light, stand],
+    [placed, blocks, light, stand],
   );
 
   if (!appearances) return null;

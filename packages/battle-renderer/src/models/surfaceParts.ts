@@ -9,12 +9,14 @@ import type { Material, MeshData } from "@packages/scene-assets/src/schema";
 /** How a material's surface is drawn, in the order a mesh's indices take:
  *  - `cutout`: there or not, texel by texel. The depth prepass and the sun's
  *    casters cut it, and the colour pass shades the samples the prepass kept;
- *  - `opaque`: everything else. */
-export const SURFACE_CLASSES = ["cutout", "opaque"] as const;
+ *  - `opaque`: all of it there;
+ *  - `blended`: partly there (glass). Drawn after the opaque world over what
+ *    is behind it, reading depth and writing none, and casting no shadow. */
+export const SURFACE_CLASSES = ["cutout", "opaque", "blended"] as const;
 export type SurfaceClass = (typeof SURFACE_CLASSES)[number];
 
 export function surfaceClass(material: Material): SurfaceClass {
-  return material.coverage.kind === "cutout" ? "cutout" : "opaque";
+  return material.coverage.kind;
 }
 
 export interface IndexRange {

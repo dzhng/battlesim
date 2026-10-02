@@ -17,6 +17,7 @@ const material = (coverage: Coverage, more: Partial<Material> = {}): Material =>
 });
 const OPAQUE = material({ kind: "opaque" });
 const CUTOUT = material({ kind: "cutout", cutoff: 0.5 });
+const GLASS = material({ kind: "blended" });
 
 /** A mesh of `vertices` vertices whose draws are runs of triangles, each
  *  triangle (3k, 3k + 1, 3k + 2) in turn. */
@@ -49,6 +50,7 @@ test("an all-opaque mesh keeps its index order, and its opaque part is the whole
   expect(Array.from(indices)).toEqual(Array.from(m.indices));
   expect(parts.opaque).toEqual({ first: 0, count: 12 });
   expect(parts.cutout.count).toBe(0);
+  expect(parts.blended.count).toBe(0);
 });
 
 test("a cutout between opaque draws: each triangle once, the cutout's in its own range", () => {
@@ -66,6 +68,20 @@ test("a cutout between opaque draws: each triangle once, the cutout's in its own
   expect(triangles(indices, parts.opaque.first, parts.opaque.count).sort()).toEqual(
     ["0,1,2", "3,4,5", "9,10,11", "12,13,14", "15,16,17"].sort(),
   );
+});
+
+test("a window's pane is apart from its frame: glass in the blended range and nowhere else", () => {
+  const classes = [OPAQUE, GLASS, CUTOUT].map(surfaceClass);
+  const m = mesh(12, [
+    { material: 0, triangles: 1 },
+    { material: 1, triangles: 2 },
+    { material: 2, triangles: 1 },
+  ]);
+  const { indices, parts } = orderSurfaces([m], (i) => classes[i]);
+  expect(triangles(indices, parts.blended.first, parts.blended.count)).toEqual(["3,4,5", "6,7,8"]);
+  expect(triangles(indices, parts.opaque.first, parts.opaque.count)).toEqual(["0,1,2"]);
+  expect(triangles(indices, parts.cutout.first, parts.cutout.count)).toEqual(["9,10,11"]);
+  expect(parts.blended.count + parts.opaque.count + parts.cutout.count).toBe(indices.length);
 });
 
 test("meshes merged into one buffer index their own vertices", () => {

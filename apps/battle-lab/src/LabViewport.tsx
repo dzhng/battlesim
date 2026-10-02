@@ -42,7 +42,7 @@ import { gameCamera } from "./gameCamera";
 import { gameLightFor } from "./gameLight";
 import { gameFogGeometry, gameFogStyle } from "./gameFog";
 import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "./gameOverlay";
-import { gameBuildingStyle, gameModelDetail } from "./gameModels";
+import { gameBuildingStyle, gameGlass, gameModelDetail } from "./gameModels";
 import type { FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
 import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
@@ -574,6 +574,7 @@ export function LabViewport({
             paint: gamePaint,
             xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
             models: gameModelDetail,
+            glass: gameGlass,
             buildings: gameBuildingStyle,
             world: worldRef.current.current!,
             instances: instancesRef.current,
