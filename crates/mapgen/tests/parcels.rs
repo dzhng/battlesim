@@ -647,17 +647,18 @@ fn a_districts_built_ground_follows_its_category_shares() {
 /// M08: one map, one regional family, whichever the seed draws.
 #[test]
 fn every_building_of_a_map_is_of_one_regional_family() {
-    // A second family beside the prototype: the same shapes under other ids.
+    // A second family beside the catalogue's own: the same shapes under other ids.
     let mut templates: Vec<BuildingTemplateDescriptor> = serde_json::from_str(TEMPLATES).unwrap();
+    let family = templates[0].regional_family.clone();
     let other = templates.clone().into_iter().map(|mut template| {
-        template.id = template.id.replace("prototype", "other");
+        template.id = format!("other-{}", template.id);
         template.regional_family = "other".into();
         template
     });
     templates.extend(other.collect::<Vec<_>>());
     let catalogue = TemplateGeometryCatalog::new(templates).unwrap();
     let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
-    source["parcels"]["regional_families"] = serde_json::json!(["prototype", "other"]);
+    source["parcels"]["regional_families"] = serde_json::json!([family, "other"]);
     let presets = PresetDefinitions::from_json(&source.to_string()).unwrap();
     let mut drawn = BTreeSet::new();
     for seed in 1..=8 {

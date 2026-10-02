@@ -42,7 +42,7 @@ Test in proportion: the narrow tests for what changed and the one or two scenes 
 
 Update this section, not the README, at the end of each pass: what landed, what a town looks like now (one picture path), what is next, and anything the other lanes need to know.
 
-**2026-10-01.** A town in the game is still massing boxes (`throwaway/evidence/generated/building-1920x1080.png` after `scene -- generated`): nothing draws the library yet. The art exists as source sets and is judged so far in Blender reassembly sheets (`city/assemble.py`).
+**2026-10-01.** A town in the game is still massing boxes (`throwaway/evidence/generated/building-1920x1080.png` after `scene -- generated`), now at the real templates' sizes: nothing draws the library yet. The art exists as source sets and is judged so far in Blender reassembly sheets (`city/assemble.py`).
 
 - **Landed:**
   - The three source files, vendored with their licence ([C10](slices/C10-third-party-sources.md#outcome)), and the export spike ([S2](spikes/S2.md)).
@@ -50,6 +50,12 @@ Update this section, not the README, at the end of each pass: what landed, what 
   - China's apartment kit: five block templates, 74 modules, nine ambientCG sets pinned ([C11](slices/C11-kit-modules.md), [C12](slices/C12-baked-materials.md)).
   - Our own houses: five detached and five attached templates, and `city/kit.py`, the helper every scripted set is written with ([C17](slices/C17-detached-home.md)).
 - **Decided:** China's family ships first; every category the graphs do not cover, attached homes included, is our own scripted source; graph-made sides are 3n + 2 metres with 3 m floors ([choices](choices.md#buildings-lane)).
-- **In flight:** farmsteads (C16), towers (C18), industry (C19), the interior atlas (C15), and the static chunk owner with corpses on it (C22, first half).
-- **Next:** draw buildings from the library through the chunk owner (C22, second half), which is the first real town picture; then the catalogue cutover, the far tier (C23), the facade passes and damage.
-- **For the other lanes:** the catalogue has not changed yet. The cutover is one commit: the real templates replace prototypes in `fixtures/prototype-building-templates.json`, every template takes the family `china` (stand-ins included), `map-presets.json`'s `parcels.regional_families` and the catalogue test in `crates/mapgen` follow, and the map-layout parity records are re-recorded. Real houses are taller than their boxes were (the box top is the ridge) and apartment slabs are 35 × 11 where they were 36 × 12, so a district's `ground_m` may need a look.
+  - One static chunk owner, `frame/staticChunks.ts`, with scenery, massing and corpses on it; frames pixel-identical before and after ([C22](slices/C22-placement-chunks.md#outcome), first half).
+  - **The catalogue cutover, first part.** The generator's catalogue now holds the ten real house templates and five real apartment blocks in place of their boxes, and stand-in boxes for farmsteads, towers, industry and the two compound apartment blocks: 29 templates, all of family `china`.
+- **Decided:** China's family ships first; every category the graphs do not cover, attached homes included, is our own scripted source; graph-made sides are 3n + 2 metres with 3 m floors ([choices](choices.md#buildings-lane)).
+- **In flight:** drawing buildings from the library through the chunk owner (C22, second half), which is the first real town picture; farmsteads (C16), towers (C18), industry (C19); the interior atlas (C15).
+- **Next:** the far tier (C23), compound apartment blocks (S5), the facade passes, damage, the village's houses (C37).
+- **For the other lanes:**
+  - **The catalogue's hash moved** to `5416684f…` and will move again as each remaining set replaces its stand-ins (three more times at most). In the same commit: `map-presets.json` `parcels.regional_families` is `["china"]` (the revision string is unchanged; bump it if a request must not carry over), the two `crates/mapgen` tests that named the `prototype` family read the catalogue's own, the map-layout and encounter parity records name the new hash and are re-recorded (no record changed status), and the camera lab's map uses the real 59 × 14 slab.
+  - **Shapes changed:** houses are taller (the box top is the ridge: 5.2 m for one floor, 8.2 to 8.5 m for two, about 12 m for three) and apartment slabs are 35 × 11, 47 × 11, 59 × 14 and 53 × 14 m with a 1.1 m parapet in the box. A ten-seed sweep of every type and size still generates 90 of 90 maps; districts' `ground_m` was not retuned.
+  - To add or retire a template: `asset catalogue`, `asset prototypes`, `asset bake` ([city kit readme](../../packages/scene-assets/blender/city/README.md), "From a set to a town"). `asset bake` and `asset check` need the WebAssembly built.
