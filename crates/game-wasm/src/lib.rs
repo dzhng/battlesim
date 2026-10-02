@@ -85,9 +85,10 @@ pub fn map_generator_version() -> String {
 }
 
 /// Resolve a saved map from its documents (`fixtures/maps/<id>/map.json` and
-/// `SOURCES.json`, and the physical template library): the browser's and the
-/// tools' side of the one resolver, admitted as the native catalogue reader
-/// (`sim::maps`) admits it. Answers `{ status: "ok", result: { definition,
+/// `SOURCES.json`, and the physical template library those sources name; the
+/// map stores each building as its template and frame, materialized here):
+/// the browser's and the tools' side of the one resolver, admitted as the
+/// native catalogue reader (`sim::maps`) admits it. Answers `{ status: "ok", result: { definition,
 /// identity } }`, or `{ status: "error", error: { code, location, message } }`.
 #[wasm_bindgen]
 pub fn resolve_saved_map(

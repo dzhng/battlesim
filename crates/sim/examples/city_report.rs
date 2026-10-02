@@ -1,6 +1,9 @@
 //! Full-extent scale report: what a compiled map costs the simulation.
 //!
-//!     cargo run -p sim --release --example city_report <map.json> [sim-seconds] [reach] [units-per-side] [probe-trees]
+//!     cargo run -p sim --release --example city_report <map-directory> [sim-seconds] [reach] [units-per-side] [probe-trees]
+//!
+//! The map directory is a saved map's folder: what `mapgen generate-map`
+//! writes, or a folder of `fixtures/maps/`.
 //!
 //! `reach` is the share of the map's width each unit is sent across (default
 //! 0.92: edge to edge) on a fast move. Larger forces repeat the six-unit
@@ -38,7 +41,7 @@ fn main() {
     let mut args = std::env::args().skip(1);
     let path = args
         .next()
-        .expect("usage: city_report <map.json> [sim-seconds]");
+        .expect("usage: city_report <map-directory> [sim-seconds]");
     let seconds: u64 = args.next().and_then(|s| s.parse().ok()).unwrap_or(240);
     let reach = args.next().unwrap_or("0.92".into());
     let per_side: usize = args.next().and_then(|s| s.parse().ok()).unwrap_or(6).max(1);
@@ -47,12 +50,15 @@ fn main() {
 
     println!("| stage | wall ms | instructions G | RSS MiB | note |");
     println!("|---|---|---|---|---|");
-    let raw = std::fs::read_to_string(&path).expect("read the map");
-    let map: MapDefinition = stage("parse map", || {
-        let map: MapDefinition = serde_json::from_str(&raw).expect("a compiled map");
+    let folder = std::path::Path::new(&path);
+    let saved_bytes = std::fs::metadata(folder.join("map.json")).map_or(0, |file| file.len());
+    let map: MapDefinition = stage("resolve map", || {
+        let map = sim::maps::load_folder(folder)
+            .unwrap_or_else(|e| panic!("{e}"))
+            .definition;
         let note = format!(
-            "{} KiB; {:.0} × {:.0} m; {} surfaces, {} forests, {} buildings",
-            raw.len() / 1024,
+            "{} KiB saved; {:.0} × {:.0} m; {} surfaces, {} forests, {} buildings",
+            saved_bytes / 1024,
             map.size[0],
             map.size[1],
             map.surfaces.len(),

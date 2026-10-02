@@ -1,6 +1,7 @@
 // Node's adapter over the one map resolver, for tests, scenes and tools: a
-// saved map's documents read from `fixtures/maps/<id>/` and handed to the
-// built WebAssembly resolver (`bun run build:wasm` first). The browser's
+// saved map's documents read from `fixtures/maps/<id>/`, with the physical
+// template library its sources name, and handed to the built WebAssembly
+// resolver (`bun run build:wasm` first). The browser's
 // adapter (`browser.ts`) fetches the same documents; the native reader is
 // `sim::maps`.
 //
@@ -10,6 +11,7 @@ import { join } from "node:path";
 import { initSync, resolve_saved_map } from "../wasm/game_wasm.js";
 import {
   checkAddress,
+  libraryOf,
   MapResolveError,
   parseEncounter,
   resolveSavedMap,
@@ -45,12 +47,17 @@ function document(path: string, location: string): string {
 }
 
 /** A catalogue of saved maps (`maps`, the directory of map folders) and the
- *  physical template library they pin (`library`, its file). */
-export function openCatalogue(maps: string, library: string) {
+ *  physical template libraries they pin (`libraries`, the directory a map's
+ *  `SOURCES.json` names its library's file in). */
+export function openCatalogue(maps: string, libraries: string) {
   const resolved = new Map<string, ResolvedMap>();
   const folder = (id: string) => (checkAddress(id, id), join(maps, id));
   const read = (id: string, name: string) => document(join(folder(id), name), `${id}/${name}`);
-  const templates = () => document(library, "physical catalogue");
+  const templates = (id: string) =>
+    document(
+      join(libraries, libraryOf(id, read(id, "SOURCES.json"))),
+      `${id}/SOURCES.json.catalogue.library`,
+    );
   return {
     /** Every map's id, in order: the catalogue's folders. */
     ids(): string[] {
@@ -60,7 +67,7 @@ export function openCatalogue(maps: string, library: string) {
     },
     /** Map `id`'s document `name` (`map.json`, `SOURCES.json`), as written. */
     document: read,
-    /** The physical template library, as written. */
+    /** The physical template library map `id`'s sources name, as written. */
     library: templates,
     /** Map `id`, resolved, or the refusal naming the document and field at
      *  fault. */
@@ -68,9 +75,9 @@ export function openCatalogue(maps: string, library: string) {
       let map = resolved.get(id);
       if (!map) {
         map = resolveSavedMap(resolver(), id, {
-          library: templates(),
           map: read(id, "map.json"),
           sources: read(id, "SOURCES.json"),
+          library: templates(id),
         });
         resolved.set(id, map);
       }
@@ -102,10 +109,7 @@ export function openCatalogue(maps: string, library: string) {
 }
 
 /** The repository's catalogue, `fixtures/maps/`. */
-export const shipped = openCatalogue(
-  join(FIXTURES, "maps"),
-  join(FIXTURES, "building-templates.json"),
-);
+export const shipped = openCatalogue(join(FIXTURES, "maps"), FIXTURES);
 
 /** The shipped catalogue's map `id`, resolved. The value is shared: a caller
  *  that changes a map copies it first. */

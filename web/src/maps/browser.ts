@@ -1,5 +1,6 @@
 // The browser's adapter over the one map resolver: a saved map's documents
-// (`fixtures/maps/<id>/`), fetched over HTTP and handed to the WebAssembly
+// (`fixtures/maps/<id>/`) and the physical template library its sources name
+// (`fixtures/<library>`), fetched over HTTP and handed to the WebAssembly
 // resolver. Each document is its own served file, found by a Vite glob, so no
 // map is part of a script; a map is fetched when a route first asks for it.
 // Node tools read the same documents with `node.ts`; the native reader is
@@ -7,6 +8,7 @@
 import { loadWasm } from "../battle/sim/module";
 import {
   checkAddress,
+  libraryOf,
   MapResolveError,
   parseEncounter,
   resolveSavedMap,
@@ -19,7 +21,7 @@ const URLS = import.meta.glob<string>(
   [
     "../../../fixtures/maps/*/{map,SOURCES}.json",
     "../../../fixtures/maps/*/encounters/*.json",
-    "../../../fixtures/building-templates.json",
+    "../../../fixtures/*building-templates.json",
   ],
   { query: "?url&no-inline", import: "default", eager: true },
 );
@@ -44,7 +46,18 @@ async function document(path: string, location: string): Promise<string> {
 }
 
 const maps = new Map<string, Promise<ResolvedMap>>();
-let library: Promise<string> | null = null;
+const libraries = new Map<string, Promise<string>>();
+
+/** The library map `id`'s sources name, fetched once however many maps pin it. */
+function libraryFor(id: string, sources: string): Promise<string> {
+  const name = libraryOf(id, sources);
+  let library = libraries.get(name);
+  if (!library) {
+    library = document(name, `${id}/SOURCES.json.catalogue.library`);
+    libraries.set(name, library);
+  }
+  return library;
+}
 
 /** Map `id`, resolved, or the refusal naming the document and field at fault.
  *  The value is shared: a caller that changes a map copies it first. */
@@ -53,17 +66,16 @@ export function loadMap(id: string): Promise<ResolvedMap> {
   if (!map) {
     map = (async () => {
       checkAddress(id, id);
-      library ??= document("building-templates.json", "physical catalogue");
-      const [wasm, text, sources, templates] = await Promise.all([
+      const sources = document(`maps/${id}/SOURCES.json`, `${id}/SOURCES.json`);
+      const [wasm, text, library] = await Promise.all([
         loadWasm(),
         document(`maps/${id}/map.json`, `${id}/map.json`),
-        document(`maps/${id}/SOURCES.json`, `${id}/SOURCES.json`),
-        library,
+        sources.then((sources) => libraryFor(id, sources)),
       ]);
       return resolveSavedMap(wasm.resolve_saved_map, id, {
         map: text,
-        sources,
-        library: templates,
+        sources: await sources,
+        library,
       });
     })();
     maps.set(id, map);
