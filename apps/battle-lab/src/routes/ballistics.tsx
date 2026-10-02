@@ -41,12 +41,9 @@ import { gameCamera } from "../gameCamera";
 
 const SEED = 20260925;
 const TICK_HZ = game.tick_hz;
-// The weapon rows as the simulation resolved them (`extends` applied), at
-// the real rounds' speeds. The game flies a gun round at a fraction of its
-// real speed under that fraction squared of gravity (`gravity_scale`): the
-// same arc, flown slower. This bench's timing (a board struck mid-chord, a
-// walker reversing after launch, bodies crossing a line between ticks) is
-// choreographed for real speeds, and every arc it checks is the game's.
+// Resolved weapon rows, with speed divided by sqrt(gravity_scale) and gravity
+// normalized to one: the same stationary arc at a diagnostic flight speed.
+// Scripted bodies isolate swept collision from gameplay's flight timing.
 const W: Record<string, WeaponRow> = Object.fromEntries(
   Object.entries(WEAPONS).map(([name, row]) => {
     const g = typeof row.gravity_scale === "number" ? row.gravity_scale : 1;
@@ -137,7 +134,7 @@ const MOVERS: Mover[] = [
     unit: 4,
     shape: "capsule",
     dims: SOLDIER,
-    start: [300, 138.8],
+    start: [360, 140],
     yaw: NORTH,
     velocity: [0, 3],
   },
@@ -146,7 +143,7 @@ const MOVERS: Mover[] = [
     unit: 5,
     shape: "box",
     dims: TANK,
-    start: [372, 127.8],
+    start: [380, 140],
     yaw: NORTH,
     velocity: [0, 8],
     armored: true,
@@ -204,7 +201,7 @@ const SHOTS: Shot[] = [
     label: "direct grenade over crest",
     weapon: W.grenade,
     kind: "grenade",
-    from: [100, 118],
+    from: [100, 150],
     muzzle: P.infantry_muzzle_m,
     aim: { ground: [100, 292] },
   },
@@ -299,6 +296,7 @@ interface Run {
   shots: ShotResult[];
   events: LabEvent[];
   paths: Map<number, Xyz[]>;
+  movers: Mover[];
 }
 
 function poseAt(view: WorldView, m: Mover, tick: number) {
@@ -312,9 +310,9 @@ function poseAt(view: WorldView, m: Mover, tick: number) {
 }
 
 /** Bodies over tick `k` (from its start to its end), packed for the lab. */
-function packBodies(view: WorldView, k: number): Float64Array {
+function packBodies(view: WorldView, movers: Mover[], k: number): Float64Array {
   const out: number[] = [];
-  for (const m of MOVERS) {
+  for (const m of movers) {
     const [a, b] = [poseAt(view, m, k - 1), poseAt(view, m, k)];
     const dims = [...m.dims, 0, 0, 0].slice(0, 3);
     out.push(
@@ -371,7 +369,25 @@ function startRun(wasm: Wasm, map: MapDefinition, view: WorldView, spread: boole
     if (result.fired) paths.set(result.projectile, [origin]);
     return { label: shot.label, ...result };
   });
-  return { lab, tick: 0, shots, events: [], paths };
+  const crossingShot = SHOTS.find((s) => s.label === "grenade across crossing bodies")!;
+  const crossing = shots.find((s) => s.label === crossingShot.label)!;
+  if (!crossing.fired || crossing.time_of_flight === undefined)
+    throw new Error("the crossing demonstration needs a solved launch");
+  if (!("ground" in crossingShot.aim)) throw new Error("the crossing aim must be ground");
+  const [aimX, aimY] = crossingShot.aim.ground;
+  const arrival = crossing.time_of_flight;
+  const reach = aimX - crossingShot.from[0];
+  // The tank reaches the aim on arrival. The soldier crosses the descending
+  // segment one body diameter early, outside collision but inside near-miss reach.
+  // Nominal flight time keeps the body script fixed when spread is toggled.
+  const movers = MOVERS.map((m) => {
+    if (m.id !== 4 && m.id !== 5) return m;
+    const x = m.id === 5 ? aimX : m.start[0];
+    const time = arrival * ((x - crossingShot.from[0]) / reach);
+    const passed = m.id === 4 ? 2 * P.soldier_radius_m : 0;
+    return { ...m, start: [x, aimY - m.velocity[1] * time + passed] as [number, number] };
+  });
+  return { lab, tick: 0, shots, events: [], paths, movers };
 }
 
 /** What a struck label hit, as the battle publishes it. */
@@ -405,7 +421,7 @@ function launchPublication(): EffectPublication {
 /** Step the run one tick; what it drew, as a publication for the effects. */
 function stepRun(run: Run, view: WorldView): EffectPublication {
   const k = run.tick + 1;
-  run.lab.set_bodies(packBodies(view, k));
+  run.lab.set_bodies(packBodies(view, run.movers, k));
   const out = JSON.parse(run.lab.step()) as {
     events: Omit<LabEvent, "tick">[];
     rounds: [number, number, number, number][];
@@ -524,7 +540,7 @@ function overlayOf(run: Run, view: WorldView, half: number) {
   const struck = new Set(
     run.events.filter((e) => e.struck?.startsWith("body")).map((e) => Number(e.struck!.slice(5))),
   );
-  const bodies: FlightBody[] = MOVERS.map((m) => {
+  const bodies: FlightBody[] = run.movers.map((m) => {
     const p = poseAt(view, m, run.tick);
     return { shape: m.shape, base: p.base, yaw: p.yaw, dims: m.dims, struck: struck.has(m.id) };
   });
@@ -633,7 +649,7 @@ function BallisticsLab({ map }: { map: MapDefinition }) {
       setLineHalfWidth: setHalf,
       state: () => {
         const run = runRef.current;
-        return run && { tick: run.tick, shots: run.shots, events: run.events };
+        return run && { tick: run.tick, shots: run.shots, events: run.events, movers: run.movers };
       },
       subsegments: () => runRef.current?.lab.subsegments_per_tick(),
       effects: () => effects.stats(),

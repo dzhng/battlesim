@@ -4,7 +4,8 @@
   "height_grid_m": 4,
   "slope_cutoff_deg": 35,
   "props": [
-    {"id": 0, "kind": "wall", "center": [380, 170], "yaw": 0, "half_extents": [0.5, 2.5, 4]}
+    {"id": 0, "kind": "wall", "center": [380, 170], "yaw": 0, "half_extents": [0.5, 2.5, 4]},
+    {"id": 2, "kind": "wall", "center": [250, 300], "yaw": 0, "half_extents": [50, 0.5, 1]}
   ],
   "buildings": [
     {

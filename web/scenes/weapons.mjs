@@ -66,10 +66,27 @@ export async function run(ctx) {
         visible.position[1] - squad.position[1],
       ) <= game.weapons.rifle.range_m
     ) {
-      visibleTankChoices.push({ tick: o.tick, target: visible.id, mounts: squad.mounts });
+      visibleTankChoices.push({
+        tick: o.tick,
+        target: visible.id,
+        distance: Math.hypot(
+          visible.position[0] - squad.position[0],
+          visible.position[1] - squad.position[1],
+        ),
+        mounts: squad.mounts,
+      });
     }
     if (!areaWhileUnseen && o.identified.length === 0 && grenade.target?.kind === "contact") {
-      areaWhileUnseen = { tick: o.tick, target: grenade.target };
+      const area = o.contacts.find((c) => c.id === grenade.target.id);
+      areaWhileUnseen = {
+        tick: o.tick,
+        target: grenade.target,
+        area,
+        distance:
+          area &&
+          Math.hypot(area.center[0] - squad.position[0], area.center[1] - squad.position[1]),
+        publication: o,
+      };
     }
     // Keep a tracer still near the shooter, so the frame shows it.
     const near = o.projectiles.find(
@@ -121,15 +138,29 @@ export async function run(ctx) {
 
   ctx.check(
     "with no enemy identified, the squad's grenade takes an area",
-    !!areaWhileUnseen,
-    JSON.stringify(areaWhileUnseen),
+    !!areaWhileUnseen &&
+      areaWhileUnseen.area?.source === "firing" &&
+      areaWhileUnseen.distance >= game.weapons.grenade.min_range_m &&
+      areaWhileUnseen.distance <= game.weapons.grenade.range_m,
+    JSON.stringify(
+      areaWhileUnseen && {
+        tick: areaWhileUnseen.tick,
+        target: areaWhileUnseen.target,
+        distance: areaWhileUnseen.distance,
+      },
+    ),
   );
+  await ctx.writeEvidence("area-selection.json", areaWhileUnseen);
   // Judge actual coexistence of an identified tank and a firing report.
   // Follow visibility rather than a fixed tick: combat may kill the tank sooner.
   ctx.check(
     "a visible tank in reach takes priority over firing areas",
     visibleTankChoices.length > 0 &&
-      visibleTankChoices.every((s) => s.mounts.every((m) => m.target?.kind !== "contact")) &&
+      visibleTankChoices.every(
+        (s) =>
+          s.distance <= game.weapons.grenade.range_m &&
+          s.mounts.every((m) => m.target?.kind !== "contact"),
+      ) &&
       visibleTankChoices.some(
         (s) => s.mounts[0].target?.kind === "identified" && s.mounts[0].target.id === s.target,
       ),

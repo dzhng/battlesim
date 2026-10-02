@@ -16,11 +16,11 @@ import { gameCamera } from "../gameCamera";
 import { TickStatus } from "../TickStatus";
 
 // Blue's tank and rifle squad face a red tank shuttling past a short wall and
-// a red squad firing from behind a building every three seconds (a firing
-// area, never identified). The building is low (4 m): it hides the squad
+// a red squad firing from behind a wall every three seconds (a firing
+// area, never identified). The wall is low (2 m): it hides the squad
 // and stops the rifles, and the grenade launcher lobs over it at the
-// report, which lies within the squad's own few metres. Both blue units look through the wall along one
-// line, so the red tank drops out of sight briefly: the acquisition grace.
+// report, within grenade reach. Both blue units look past the short wall
+// along one line, so the red tank drops out of sight briefly: acquisition grace.
 // The hidden squad reports fire while the tank is still alive, so target
 // priority is checked independently of the tank's eventual death.
 const SEED = 8;
