@@ -4936,3 +4936,85 @@ exact matched openings pass and a real retained GPU allocation falsifies the che
 **Gap:** The slice says "keyed from the field" and names no carrier.
 
 **Verdict:** sound. The loop that finds the paved distance already has the closest point of each stretch; a second lookup for the lane would walk the cell's list twice. A polygon has no centreline, so a town's streets have no lanes. **Confidence:** high.
+
+## C37 house appearance
+
+### One library, two catalogues: a set names the one it dresses
+
+**Choice:** `city_sets.<set>.catalogue` in `assets/catalog.json` is `generated` (what the map generator builds towns from) or `authored` (the boxes the hand-authored maps pin). The bake is handed both catalogues, holds each to the sets that name it, and the library's `covers` lists both hashes (library format 2). `asset catalogue` and `asset prototypes` read and write the generator's alone.
+
+**Gap:** The slice says the houses go "through C32/C22"; C32's library covers one catalogue.
+
+**Verdict:** sound. One loader, one resolver and one drawing path stay as they were. The alternative, one merged catalogue, would have put the authored boxes into the generator's hash and moved every generated map. A template is found by its id alone, so an id in both catalogues is refused. **Confidence:** high.
+
+### The authored catalogue is held to `validate`, not `require_complete`
+
+**Choice:** `PhysicalTemplates` gained `valid`, the contract's own `TemplateGeometryCatalog::new` through its existing WebAssembly export. A catalogue says which rule its rows meet.
+
+**Gap:** C32 holds every set descriptor to `require_complete`. The authored boxes have no floor, entrance or bay resolved, on purpose.
+
+**Verdict:** sound. Resolving them would change what the simulation seats in a village house: physics, which this slice may not move. **Confidence:** high.
+
+### Every authored box is used, so every one has art
+
+**Choice:** The set dresses all twelve rows of `fixtures/building-templates.json`.
+
+**Gap:** "The templates the authored maps place": the brief left unused rows open.
+
+**Verdict:** sound. Each of the twelve is placed by a saved map (the village's three, and nine across the labs), and the coverage rule would refuse a row with no art in any case. **Confidence:** high.
+
+### A lab's box is the farm a tier coarser
+
+**Choice:** The three village houses are built exactly as `house.py` built them (the same triangles at every tier). Any other box takes the look of the nearest house, with its finest tier the farm's second and its paint baked as that tier's.
+
+**Gap:** "The same `house.py` art, fitted to their boxes without stretching", and a kit's bundle may weigh 50 MiB.
+
+**Verdict:** provisional. Twelve farms in full are 81 MiB baked; with paint alone twice as coarse, 66 MiB; this way, 37 MiB. The loader fetches every bundle on every page, so the labs' boxes would otherwise cost every player 45 MiB more than the three houses did. Up close a lab's house has no glazing bars, door planks or downpipes. **Confidence:** medium: the user asked for the labs not to be polished, not for them to be coarser.
+
+### A box lower than the farm is the farm pressed down
+
+**Choice:** The farm needs 8 m for its two storeys. For a lower box (one, the weapons lab's 4 m shed) the script builds it at 8 m and scales the meshes down in z before the bake.
+
+**Gap:** "Without stretching: the script builds each size."
+
+**Verdict:** sound for a lab. It is what the fitted path drew for that box, and the plan is built at its true size, which is where stretching showed. Removing the upper storey for low boxes would be new art. **Confidence:** medium.
+
+### The ruin is built to the simulation's height for that box, and held to the intact parts
+
+**Choice:** `village.py` reads the building row's `destroyed.into` rule from the resolved catalog and builds each ruin at the height the simulation leaves for that box (2 m for an 8 m house, 3 m for a 12 m one). The fit check holds it to the intact parts grown by 0.5 m, as every state is held today.
+
+**Gap:** The damage pass's rule (a `ruin` state held to the parts at the ruin height) was not on main when this closed.
+
+**Verdict:** provisional. The walls stand 0.35 m above the ruin height, inside the 0.5 m the house appearances were allowed; when the rule lands the set should pass it unchanged, and if its tolerance is tighter the script's `top` is the number to lower. **Confidence:** medium.
+
+### A map installs only the kits its buildings draw from
+
+**Choice:** `mapAppearances` installs the kits of the placed templates' rows (`buildingKits`), not every kit; the building layer builds its scene once those are in.
+
+**Gap:** C22 installed the whole library's kits whenever a map had a building, which was only ever a generated town.
+
+**Verdict:** sound. Otherwise the village would upload every town kit (67 MiB of buffers and their textures) to draw three farms. **Confidence:** high.
+
+### `drawn_by: "building"` names the building layer; `remains_state` is gone
+
+**Choice:** The prop row keeps `drawn_by: "building"`, now meaning "a part its building draws from its template's art"; the ground still reads it to find buildings. `remains_state` is removed from the fixture, the resolved catalog and `contract::catalog::PropAppearance`: nothing read it once a ruin is its building's own state.
+
+**Gap:** "Delete the prop catalog's `drawn_by: "building"` meaning."
+
+**Verdict:** sound. A row must say what draws it, and the building layer is that. The contract field is presentation only: the village's digests and replay are unchanged. **Confidence:** high.
+
+### A template with no art is refused, not skipped
+
+**Choice:** `indexBuildings` no longer filters by art. Building a scene with a template the library lacks throws `template.missing`.
+
+**Gap:** C22's filter existed for the houses.
+
+**Verdict:** sound. A silent filter would now hide a stale library as a missing building. **Confidence:** high.
+
+### Rubble and a loose ruin keep the scenery ruin
+
+**Choice:** The scenery appearance `village_ruin` stays, drawing rubble and any ruin no building owns, from `assets/source/village/ruin.glb` (the old `house_a_ruin.glb`, renamed; `house.py` still writes it).
+
+**Gap:** "Delete their source GLBs."
+
+**Verdict:** sound. That one file had a second consumer. **Confidence:** high.
