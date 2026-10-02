@@ -187,6 +187,7 @@ pub struct Load {
 /// identity, the seed and every sequenced command from both sides.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Replay {
+    pub engine_build: String,
     pub scenario_digest: String,
     pub config_digest: String,
     pub seed: u64,
@@ -196,8 +197,22 @@ pub struct Replay {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ReplayError {
+    BuildMismatch,
     ScenarioMismatch,
     ConfigMismatch,
+}
+
+/// The shared native/Wasm engine fingerprint generated from simulation build inputs.
+pub const ENGINE_BUILD_ID: &str = env!("SIM_ENGINE_BUILD_ID");
+
+impl std::fmt::Display for ReplayError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::BuildMismatch => "replay was recorded by a different simulation build",
+            Self::ScenarioMismatch => "replay does not match this scenario",
+            Self::ConfigMismatch => "replay does not match these simulation rules",
+        })
+    }
 }
 
 pub struct Battle {
@@ -612,6 +627,9 @@ impl Battle {
         replay: &Replay,
         build: impl FnOnce() -> Self,
     ) -> Result<Self, ReplayError> {
+        if replay.engine_build != ENGINE_BUILD_ID {
+            return Err(ReplayError::BuildMismatch);
+        }
         if format!("{:016x}", scenario_digest(setup)) != replay.scenario_digest {
             return Err(ReplayError::ScenarioMismatch);
         }
@@ -2504,6 +2522,7 @@ impl Battle {
 
     pub fn replay(&self) -> Replay {
         Replay {
+            engine_build: ENGINE_BUILD_ID.to_owned(),
             scenario_digest: format!("{:016x}", self.scenario_digest),
             config_digest: format!("{:016x}", self.config_digest),
             seed: self.seed,

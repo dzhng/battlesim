@@ -103,3 +103,9 @@ Check old and new moved footprints, deletion into an empty region and changed
 heights against fresh complete queries. Count every instance of a shared index
 when sizing metadata; tracking state unused by its other consumers is hidden
 full-extent allocation.
+
+For an integrated movement sweep, measure each unit's acknowledged destination,
+including failed placement, rather than the group command's shared goal. A short
+sample's unfinished long route is progress evidence, not a stuck verdict. Keep
+proximity, pending/blocked/traffic states and death distinct; a dead unit's retained
+movement enum must not accrue active or planning time in the report.

@@ -13,6 +13,21 @@ use sim::rng::Rng;
 
 const G: f64 = 9.81;
 
+// The numerical oracles use a fixed slow lob, independent of gameplay tuning.
+fn lob_weapon() -> WeaponBallistics {
+    WeaponBallistics {
+        range_m: 300.0,
+        speed_mps: 24.0,
+        gravity_scale: 0.09,
+        scatter_mrad: 15.0,
+        ..weapon("grenade")
+    }
+}
+
+fn lob_profile() -> LaunchProfile {
+    config().profile(&lob_weapon()).unwrap()
+}
+
 fn launch(origin: V3, velocity: V3) -> Launch {
     Launch {
         origin,
@@ -237,9 +252,31 @@ fn an_unguided_row_tighter_than_the_spread_ceiling_is_refused_and_a_guided_one_i
 }
 
 #[test]
+fn the_short_range_grenade_keeps_the_old_full_range_lob_height() {
+    let world = flat([1000.0, 400.0], "");
+    let origin = v3(100.0, 200.0, physics("infantry_muzzle_m"));
+    let apex = |p: &LaunchProfile, distance: f64| {
+        let aim = Aim {
+            origin,
+            target: origin + v3(distance, 0.0, 0.0),
+            target_velocity: V3::default(),
+        };
+        let shot = solve_launch(&world, &config(), p, &aim).unwrap();
+        shot.velocity.z.powi(2) / (2.0 * g(p))
+    };
+    let historical = lob_profile();
+    let expected = apex(&historical, 300.0);
+    let actual = apex(&profile("grenade"), 150.0);
+    assert!(
+        (actual / expected - 1.0).abs() < 0.05,
+        "short lob rises {actual} m; the old full-range lob rose {expected} m"
+    );
+}
+
+#[test]
 fn a_stationary_ground_target_gets_the_analytic_low_elevation() {
     let world = flat([1000.0, 400.0], "");
-    let grenade = profile("grenade");
+    let grenade = lob_profile();
     let o = v3(100.0, 200.0, physics("infantry_muzzle_m"));
     let target = v3(500.0, 200.0, 0.0);
     let aim = Aim {
@@ -264,7 +301,7 @@ fn a_stationary_ground_target_gets_the_analytic_low_elevation() {
 #[test]
 fn unequal_launch_and_target_heights_follow_the_analytic_arc_and_hit() {
     let world = flat([1000.0, 400.0], "");
-    let hmg = profile("grenade");
+    let lob = lob_profile();
     for (origin, target) in [
         // Up to a body 40 m higher, and down from 40 m to one on the ground.
         (v3(100.0, 200.0, 1.4), v3(350.0, 200.0, 40.0)),
@@ -275,12 +312,12 @@ fn unequal_launch_and_target_heights_follow_the_analytic_arc_and_hit() {
             target,
             target_velocity: V3::default(),
         };
-        let s = solve_launch(&world, &config(), &hmg, &aim).unwrap();
-        let (low, _) = analytic_elevations(hmg.speed_mps, g(&hmg), 250.0, target.z - origin.z);
+        let s = solve_launch(&world, &config(), &lob, &aim).unwrap();
+        let (low, _) = analytic_elevations(lob.speed_mps, g(&lob), 250.0, target.z - origin.z);
         assert!((elevation(s.velocity) - low).abs() < 1e-9);
         let body = Mover::standing(7, 1, soldier_shape(), target - v3(0.0, 0.0, 0.85));
         let mut store = Projectiles::new(config());
-        store.launch(fired(&hmg, origin, s.velocity));
+        store.launch(fired(&lob, origin, s.velocity));
         let dt = config().tick_s();
         let events = fly(&mut store, &world, 600, |k| vec![body.body(k, dt)]);
         let [(_, hit)] = impacts(&events)[..] else {
@@ -324,7 +361,7 @@ fn leading_steady_observed_motion_hits_and_aiming_at_the_present_misses() {
 #[test]
 fn an_unguided_round_is_dodged_by_changing_motion_after_launch() {
     let world = flat([1000.0, 400.0], "");
-    let grenade = profile("grenade");
+    let grenade = lob_profile();
     let dt = config().tick_s();
     let walker = crossing_soldier(3.0);
     let origin = v3(250.0, 190.0, physics("infantry_muzzle_m"));
@@ -391,7 +428,7 @@ fn an_unguided_round_is_dodged_by_changing_motion_after_launch() {
 #[test]
 fn an_unreachable_target_has_no_firing_solution() {
     let world = flat([2000.0, 400.0], "");
-    let grenade = profile("grenade");
+    let grenade = lob_profile();
     let o = v3(100.0, 200.0, 1.4);
     // Flat-ground maximum range is v²/g ≈ 652 m.
     let max_range = grenade.speed_mps.powi(2) / g(&grenade);
@@ -408,7 +445,7 @@ fn an_unreachable_target_has_no_firing_solution() {
     let short_lived = config()
         .profile(&WeaponBallistics {
             lifetime_s: Some(3.0),
-            ..weapon("grenade")
+            ..lob_weapon()
         })
         .unwrap();
     let far = Aim {
@@ -443,7 +480,7 @@ fn mortar(trajectory: Trajectory) -> LaunchProfile {
             trajectory,
             speed_mps: 80.0,
             gravity_scale: 1.0,
-            ..weapon("grenade")
+            ..lob_weapon()
         })
         .unwrap()
 }
@@ -608,7 +645,7 @@ fn spread_is_a_truncated_gaussian_per_axis_across_the_line_of_fire() {
 #[test]
 fn a_prepared_launch_is_the_scattered_solution_and_refuses_a_blocked_aim() {
     let world = flat([800.0, 400.0], RIDGE);
-    let grenade = profile("grenade");
+    let grenade = lob_profile();
     let aim = Aim {
         origin: v3(200.0, 100.0, 1.4),
         target: v3(400.0, 100.0, 0.0),

@@ -249,6 +249,24 @@ test("a replay of the accepted commands reproduces every tick digest", async () 
   expect(ack.error?.reason).toBe("replay_in_progress");
 });
 
+test("a different simulation build is refused before replay publication", async () => {
+  const live = harness();
+  await live.init();
+  live.authority.handle({ type: "replay" });
+  const json = (live.replies.find((r) => r.type === "replay") as { json: string }).json;
+  const record = JSON.parse(json);
+  record.engine_build = "0".repeat(64);
+  const replay = harness();
+  await replay.init(JSON.stringify(record));
+  expect(replay.replies).toContainEqual({
+    type: "error",
+    message: "replay was recorded by a different simulation build",
+  });
+  expect(replay.replies.some((r) => r.type === "ready")).toBe(false);
+  expect(replay.publications()).toHaveLength(0);
+  expect(replay.closed()).toBe(true);
+});
+
 test("the ground streams as deltas, and a side switch reopens it with a full snapshot", async () => {
   const h = harness();
   await h.init();

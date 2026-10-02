@@ -3057,7 +3057,7 @@
       "damage": 20.0,
       "default": false,
       "description": "Rifle grenades lobbed at troops behind cover.",
-      "gravity_scale": 0.09,
+      "gravity_scale": 5.35103,
       "icon": "grenade",
       "lifetime_s": null,
       "magazine": null,

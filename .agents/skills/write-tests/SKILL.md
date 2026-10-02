@@ -167,6 +167,8 @@ Walk this on any test diff, apply fixes in the same pass, re-run the suite:
 6. Is the function under test still called in production? → if the only
    callers are tests, delete the function and the test together.
 7. Can it fail for the right reason? → falsify once to confirm.
+   For cross-target build identities, also compare freshly emitted native and
+   Wasm identities; synthetic cfg normalization can miss real platform flags.
 8. Does it take focus, move the pointer, play sound, or write the person's real
    config, library or applications? → drive the model and a scratch location
    instead, and capture windows offscreen.

@@ -34,3 +34,13 @@ No photos; no lamps.
 
 ## Feedback that would change this slice
 An interior atlas that reads as repetition or a real brand changes its project-owned source, not facade geometry.
+
+## Outcome
+
+Yes. `packages/scene-assets/blender/city/interiors.py` builds ten apartment rooms and ten ground-floor shops as scripted geometry, lights each with nothing but the sky through its own window wall, and renders it from the lookup's pinhole. It writes `assets/source/city/interiors/rooms.png` and `shops.png` (Git LFS): 256 × 640 px, 2 × 5 cells of 128 px. The contract a shader reads them by is in the [city readme](../../../packages/scene-assets/blender/city/README.md#interiors); the decisions are in [choices](../choices.md#c15-interior-atlas).
+
+- **Dim:** mean luminance 0.033 linear (0.18 sRGB-encoded) on both sheets, against about 0.7 for a sunlit plaster wall. The brightest pixel is 0.45 sRGB (rooms) and 0.40 (shops); under 2 % of pixels are near black. No material emits.
+- **Deterministic:** two runs wrote the same bytes. That was checked on the pass before the last round of room changes, which touched only the rooms and two tone constants; the committed sheets were not rendered twice.
+- **Judged by eye and by an unprimed critique**, on the sheets and on a mock-up that runs the lookup behind window-sized openings at 30 m and 80 m. Straight on, windows read as dark, tinted, lived-in rooms, not holes and not lit. From the tactical camera's pitch they are the cell's floor, a dark coloured pane with some streaks (see choices). The critique's findings that were acted on: a veil from lifted shadows, a pale pelmet that read as a strip light, barcode curtain folds, five layouts each used twice, blocky wall patches.
+
+**Not done:** the layout comparison against upstream's atlases (they were never opened), the user checkpoint, and `asset check` (the sheets are not in the asset catalog, so it cannot move). **Open for C26:** curtains hung at the window are still the brightest thing in their cells; the shuttered shop is a plain dark slab; whether the floor-strip read from above is acceptable.

@@ -738,8 +738,8 @@ impl BattleHandle {
     pub fn from_replay(scenario_json: &str, replay_json: &str) -> Result<BattleHandle, JsError> {
         let setup: ScenarioDefinition = serde_json::from_str(scenario_json).map_err(js_error)?;
         let replay: Replay = serde_json::from_str(replay_json).map_err(js_error)?;
-        let battle = Battle::from_replay(&setup, &replay)
-            .map_err(|e| JsError::new(&format!("replay does not match this scenario: {e:?}")))?;
+        let battle =
+            Battle::from_replay(&setup, &replay).map_err(|e| JsError::new(&e.to_string()))?;
         Ok(BattleHandle {
             battle,
             publisher: Publisher::new(),

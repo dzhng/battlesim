@@ -35,13 +35,19 @@ Read [`AGENTS.md`](../../AGENTS.md): narrow checks only, no full gate. A perform
 
 ## Status
 
-**C05 measurement complete; C06 and C07 cost work active.** Verified scale
-checkpoints are committed; the current integration includes main through
-`d6b0f083`, the exact-row publication pass and local fog invalidation. Main now
-also carries compact saved maps and projectile tuning. All historical tables
-below use their original rules, map and catalogue; do not compare new-rule
-results against them as performance-only parity. Fresh combined measurements
-and the browser admission checks are the next pickup.
+**C05 is complete; C06/C07 timing and delivery admission remain open.** The
+integrated representation and fog-cache checkpoints are on `main` (`4efec25b`);
+this branch also includes main through `6de4cbf7`. Historical tables below use
+original rules, map and catalogue. Current projectile tuning and `layout-6` need
+fresh measurements; new results are not performance-only parity against those
+historical battles.
+
+Current pickup: integrate the infantry route correction, then run the complete
+pipeline matrix and continue the measured fog/publication costs. The pipeline
+tool is on main (`07a6f792`). Replay build identity is integrated and checked.
+The paired browser observation/codec checks pass (25 tests). The endurance scene
+is queued under the shared GPU lock; no browser throughput verdict is claimed.
+No generator, menu, renderer or parent handoff implementation changed here.
 
 The native reports now attribute the production tick without introducing OS
 counters into the ordinary tick. Observation construction and wire packing are
@@ -115,19 +121,20 @@ remain G0's open decision; the 64 MiB codec ceiling is not a performance target.
 
 ### Priority and next pickup
 
-1. C06: cover's impossible-range searches are eliminated with exact geometry
-   bounds. Movement still peaks at 207.671 M early; fog is now the largest mean
-   owner (51.635 / 56.081 M/tick, peak 175.011 / 190.104 M). Local occlusion-cache
-   invalidation is being proved independently; a distant prop change currently
-   multiplies unchanged visibility-sweep cost 4.6×.
-2. Keep matched city/saved digests and replay unchanged. Run affected tests,
-   then compare reports on the exact same map and stress inputs.
-3. C07: the first exact group replacement codec is integrated. Average delivery
-   falls to 15,643 B early and 53,744 B late, but sorted corpse insertion still
-   shifts the retained tail: late p95 is 473,328 B, max 591,180 B. The 19.8 KB/tick
-   admission remains open; a mean below it does not close the budget. The next
-   codec pass owns sparse collection edits and its producer/decoder parity.
-4. Build stable Wasm, then run `endurance` and `benchmark` scenes serially.
+1. C54 tooling: `crates/mapgen/examples/battle_sweep.rs` is the committed, named
+   cross-ownership addition. It uses existing generation/compiler and assault
+   planner APIs, current game admission, and the real Battle. A first Open Small
+   seed-1 30 s sample advances every column unit; distant goals remain pending.
+   The complete nine-cell, ten-seed matrix waits for the route correction.
+2. C59: integrate the reviewed legal local infantry links and name the route/
+   timing change. C55 replay build refusal is verified; compiled scenario storage
+   remains the parent lane's separate debt.
+3. C06/C07: local fog invalidation and sparse fixed-row copies are integrated.
+   Measure early/late active Large bytes, p95/max and instructions afresh before
+   selecting the next owner. Historical mean reductions do not close admission.
+4. Browser: run `endurance` and `benchmark` serially, then establish the full
+   generated-map stress arm. The existing saved stress arena alone does not prove
+   full-extent loading. Snapshot/copy/decoder overlap remains a separate gate.
 
 Map-lane coordination: no generator, renderer or parent README changes. The
 C07 producer/decoder checkpoint is the named cross-ownership commit: it updates
@@ -190,3 +197,61 @@ clippy clean. Shared cost-test isolation prevents cross-test counter contaminati
 
 Digests remain `32ba0e3c667a728b` / `1afb9cf97c2120f3`; rounds remain 149 / 124.
 Loaded clocks are not timing admission. The native and browser budgets remain open.
+
+### Current combined Large contact measurement
+
+Fresh `layout-6` Metro Large seed 4 under game admission: 10 × 10 km,
+12,872 buildings, 22,503 authored parts, 231,180 bay positions and 46,710 ground
+points. Physical map hash `f9e581249eb8e3467c4bc8fa736db952e384a4cf0c6fc382d2267451337d8bf5`;
+prototype catalogue unchanged. Rules are main's `6de4cbf7` projectile tuning.
+Each synthetic contact arm runs 60 s, with 100 living units per side. Late adds
+20,000 corpses and 2,000 wrecks. These are fresh costs, not parity comparisons
+with the historical `layout-5`/old-rule rows.
+
+| System | Early mean M instructions/tick | Late mean M/tick |
+|---|---:|---:|
+| Navigation | 9.852 | 9.784 |
+| Movement | 33.360 | 36.389 |
+| Sight | 24.153 | 25.429 |
+| Fog | 52.055 | 56.669 |
+| Learning | 13.374 | 16.765 |
+| Weapons | 13.548 | 19.408 |
+| Observation | 8.454 | 25.558 |
+| Wire packing | 1.613 | 4.910 |
+
+Early retires 283.6 G step instructions, launches 180 rounds and ends at digest
+`44aeaeff205a6b1a`. Late retires 354.2 G, launches 120 and ends at
+`e4f0273adade82cf`. The profiled process-CPU maxima are 45.29 / 88.54 ms;
+loaded wall maxima are 479 / 896 ms. **The 33 ms budget is still red.** Fog is the
+largest recurring owner; movement peaks at 46.821 / 49.695 M instructions.
+
+| Encoded delivery | Early | Late |
+|---|---:|---:|
+| Approximate mean B/tick | 17,144 | 16,781 |
+| p95 B/tick | 48,600 | 48,540 |
+| Max B/tick | 66,368 | 66,668 |
+| Corpse mean / max B | 12 / 12 | 52 / 1,268 |
+| Other rows mean / max B | 15,760 / 56,392 | 15,360 / 55,312 |
+| Cold initial blue snapshot B | 452,836 | 952,120 |
+| Red resubscription at 60 s B | 1,195,300 | 1,711,004 |
+
+The sparse corpse copies remove the retained-tail amplification from this arm,
+but other rows still miss the provisional 19.8 KB/tick limit. Means do not close
+C07. Complete snapshots include exact fog and ground state; their packing at
+60 s reaches 71–76 M instructions. Browser copy/decoder cost and peak overlap
+still need their own proof. Raw current reports remain in `throwaway/scale-lane/`.
+
+### Replay engine identity checkpoint
+
+Replay now requires an automatic source/compiler/dependency/cfg fingerprint.
+A foreign build is rejected before scenario checks or Battle construction, and
+a missing field is refused; there is no historical replay mode. The fingerprint
+excludes art and platform/profile differences within the supported deterministic
+native/Wasm contract. It adds one field/comparison, with no tick or digest change.
+The sim build script reuses the existing contract hash owner; its build dependency
+is the named Cargo/Wasm cross-ownership seam.
+
+The merged native authority/build-scope tests pass (15), and worker/observation/
+codec tests pass (37) on root's rebuilt Wasm. Fresh native/Wasm build outputs share
+the same identity (`639a5825…`); whole pipeline, browser throughput and compiled-
+scenario replay storage remain separate outstanding contracts.
