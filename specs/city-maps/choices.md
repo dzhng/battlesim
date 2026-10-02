@@ -3361,6 +3361,45 @@ raster nearby bodies again, and no changed-prefix scan can miss a later update.
 **Reach:** The parcel pass turns the first entrance toward the street, so slabs front the street with their long side and their shops.
 
 **Verdict:** sound. **Confidence:** high.
+
+### A compound block is built from its outline, not from its parts
+
+**Choice:** A template is boxes that abut. The exporter traces the outline of their union and dresses each straight run with one facade of the graph evaluated at that run's length; the bands, parapet and coping are our own rings round the outline, and each part's roof is one quad with the graph's furniture for a building of its size. The slabs are the one-box case of the same rule. The first approach named (evaluate the graph per wing, then drop the rows and faces on a joined face) was not built: a wing's exposed facade next to a join would be a facade cut mid-bay, with a window through the inner corner.
+
+**Gap:** S5 asked whether baked variants can hide joins; it did not say how.
+
+**Reach:** A joined face never exists, so there is no interior facade, pier or cornice end to suppress, and no corner module. The five slabs' rows and descriptors are unchanged; their shells are rebuilt (mitred bands, no hidden faces).
+
+**Verdict:** sound. **Confidence:** high.
+
+### A run of the outline is 3n or 3n + 2 metres
+
+**Choice:** A run's corner piers are 1 m (3n + 2) or 1.5 m (3n). A 3n + 1 run is refused: its piers would be 2 m, and the descriptor's 3 m lattice would then claim a bay inside each pier. With 12 m wings every run of a U or a court can be made legal; with 11 m or 14 m wings (the slabs' depths) the run between two wings cannot.
+
+**Gap:** "Sides are 3n + 2" was written for one box.
+
+**Reach:** Compounds are 12 m deep. The U keeps the prototype's 42 x 32 m; the court is 41 x 38 m round a 17 x 14 m yard, not the prototype's 44 x 40 m.
+
+**Verdict:** sound. **Confidence:** high.
+
+### The court is plainer than a slab
+
+**Choice:** The court has 408 bays against the largest slab's 336, and one template's budget. Its balcony, grille, air-conditioner, laundry and lantern probabilities are lowered (0.18, 0.25, 0.22, 0.2, 0.2) and its plan shrunk from 44 x 41 m until it fits: 146,806 / 49,034 / 7,146 / 1,766 triangles.
+
+**Verdict:** provisional: if C22 raises the budget the court can have the slabs' density back by deleting five numbers. **Confidence:** medium.
+
+### One entrance, shops on the street and the east flank, backs elsewhere
+
+**Choice:** The southmost run takes the graph's entrance facade (one door, shops), the east outer run its shop facade, every other run (the west flank, the back, the yard) a back facade with ground-floor windows. The prototypes had two doors; the graph makes one per facade.
+
+**Verdict:** provisional. **Confidence:** medium.
+
+### An open casement gets a dark pane behind it
+
+**Choice:** The kit's casement window is modelled with a leaf open. With rooms left out until C26 the eye went through it and out the far side of the block, so a dark pane now stands in the opening behind the leaf (two triangles in that module). This also fixes the five slabs.
+
+**Verdict:** sound. **Confidence:** high.
+
 ## Compact saved maps
 
 The contract these decisions belong to is in the [C58 outcome](slices/C58-offline-encounter.md#outcome).

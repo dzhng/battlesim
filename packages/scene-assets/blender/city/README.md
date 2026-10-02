@@ -77,7 +77,7 @@ A new set is listed in `assets/catalog.json`: its kit as an appearance, and the 
 
 ## What is here
 
-- [`china.py`](china.py) exports the China apartment set from the vendored graph: which of the graph's instances are a building of ours, the materials, the tiers and the five recipes are its tables.
+- [`china.py`](china.py) exports the China apartment set from the vendored graph: which of the graph's instances are a building of ours, the materials, the tiers and the templates are its tables. A template is boxes that abut; only the outline of their union is built, one graph facade to each straight run, so a slab, a U and a closed court come from one rule and a join has nothing to hide ([S5](../../../../specs/city-maps/spikes/S5.md)).
 - [`graph.py`](graph.py) reads a geometry-nodes building before it is realized: its instances with their transforms and tints, and the mesh it generated for the recipe. Every graph source starts here.
 - [`detail.py`](detail.py) makes a kit mesh's coarser tiers by one rule, the smallest feature a tier keeps. It calls no Blender operator, so its output is the same bytes every run.
 - [`ambientcg.py`](ambientcg.py) bakes a pinned ambientCG set (`../packs.py`) into a texture recipe at the size every texture in the game has.
