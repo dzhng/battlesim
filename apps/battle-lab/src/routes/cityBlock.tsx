@@ -50,7 +50,7 @@ import { useStaticWorld, type StaticWorld } from "../useStaticWorld";
 
 const GENERATOR = { presets, templates };
 /** The map the lab opens on: a town with houses and apartment blocks. */
-const DEFAULT: MapChoice = { type: "metro", size: "small", seed: "1" };
+const DEFAULT: MapChoice = { type: "mixed", size: "small", seed: "1" };
 /** A house this near an apartment building makes the two a block, metres. */
 const BLOCK_REACH_M = 90;
 /** The third station's distance, metres. */

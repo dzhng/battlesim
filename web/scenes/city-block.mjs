@@ -12,9 +12,10 @@ import { aim, buildingsSettled, lab } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
 
 const HIDE_PANEL = "[data-testid=city-block-panel] { display: none !important; }";
-/** The ground mask's two values: a pixel that is mostly ground, and one that is not. */
-const isGround = ([r]) => r > 200;
-const isBody = ([r]) => r < 55;
+/** The ground classes view: black where a pixel is not wholly bare ground
+ *  (a building stands over it), the ground's class bytes where it is. */
+const isGround = (rgb) => rgb.some((v) => v > 0);
+const isBody = (rgb) => rgb.every((v) => v === 0);
 /** Straight down, so nothing standing hides the ground beside it. */
 const TOP_DOWN = Math.PI / 2 - 0.03;
 const STATIONS = ["street", "tactical", "wide", "overview"];
@@ -38,10 +39,11 @@ async function shot(ctx, page, file) {
   return decode(png);
 }
 
-/** The frame's ground mask (fog's own channel: read with fog on, which a lab
- *  without fog input has as "all seen"). */
-async function groundMask(ctx, page, file) {
-  await lab(page, () => window.__lab.setFrameView("ground-mask"));
+/** The frame's ground classes: what the terrain material says is bare
+ *  ground under each pixel. (The ground mask is fog's channel, and this lab
+ *  has no fog.) */
+async function groundClasses(ctx, page, file) {
+  await lab(page, () => window.__lab.setFrameView("ground-classes"));
   const png = await page.screenshot();
   await writeFile(ctx.evidencePath(file), png);
   await lab(page, () => window.__lab.setFrameView("final"));
@@ -248,7 +250,7 @@ export async function run(ctx) {
       building.ground,
     );
     const name = building.category;
-    const mask = await groundMask(ctx, page, `placed-${name}-ground-mask.png`);
+    const mask = await groundClasses(ctx, page, `placed-${name}-ground-classes.png`);
     const frame = await shot(ctx, page, `placed-${name}-1920x1080.png`);
     where.push({
       template: building.template,

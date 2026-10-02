@@ -254,6 +254,11 @@ function Arena({ map }: { map: string }) {
         trajectories: () => TRAJECTORIES.map((t) => ({ id: t.id, seconds: t.seconds })),
         /** The buildings the camera keeps clear of now. */
         boxes: () => standing.boxes,
+        /** The lab's buildings, and how many of them template art draws. */
+        counts: () => ({
+          buildings: world?.exports.buildings.buildings.length ?? 0,
+          drawn: standing.buildings.placed.template.length,
+        }),
         /** The near plane's envelope and the clear space kept beyond it. */
         clearance: () => ({
           envelope: nearEnvelope(lens),
@@ -281,7 +286,7 @@ function Arena({ map }: { map: string }) {
           choose(live.current.trajectory.id, live.current.riding, secondsAt(performance.now())),
         setFallen,
       },
-    [standing, fly, lens, choose, secondsAt],
+    [world, standing, fly, lens, choose, secondsAt],
   );
 
   if (!world || !meshes) return null;

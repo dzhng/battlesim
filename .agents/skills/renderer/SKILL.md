@@ -229,15 +229,29 @@ shot alone cannot prove either is readable.
 
 ## One static chunk owner
 
-Everything placed once and drawn many times (trees, hedgerow shrubs, a town's massing boxes, the fallen) is chunked by one owner, `frame/staticChunks.ts`. It owns the bookkeeping and nothing else: records of any stride in chunk order, per-chunk culling, the level a chunk or an instance draws at, merged draw ranges, and the sun's casters. Buffers, meshes and materials stay with the layer that draws the population, so a layer never grows a chunk list of its own.
+Everything placed once and drawn many times (trees, hedgerow shrubs, a town's buildings, the fallen) is chunked by one owner, `frame/staticChunks.ts`. It owns the bookkeeping and nothing else: records of any stride in chunk order, per-chunk culling, the level a chunk or an instance draws at, merged draw ranges, and the sun's casters. Buffers, meshes and materials stay with the layer that draws the population, so a layer never grows a chunk list of its own.
 
 - **A population says three things:** each instance's bounds (`bound`), the level a whole chunk draws at or `NEAR` (`ChunkLevel`), and what a level is. A level is whatever its layer draws for it: scenery's four mesh tiers, a corpse's impostor card as a fifth.
 - **A chunk given a level costs no per-instance work.** It draws as a `[first, count]` range of the static buffer, merged with its neighbours. Only `NEAR` chunks are walked per instance: scenery copies each record into a per-tier list (`stageNear`); the models layer chooses per corpse by the models' own detail rule and packs them with the units.
 - **The level rule decides the cost at distance.** Corpses draw a far chunk as one run of cards only when every corpse in it has a card; one bare corpse makes its whole chunk near.
 - **Scenery** (`frame/sceneryLayer.ts`, `scenery/lod.ts`) is one instance record (pose, a scale per axis, a tint) in 128 m chunks. A new scenery population is a mesh table and a `PlacedInstances` list handed to `population()`.
-- **A population with one mesh never stages.** Massing passes tier thresholds of infinity, so every box draws from the static buffer at any distance and a view change costs a walk over chunks, never over boxes.
-- **What the side knows changes the list, not the frame.** A building seen to fall rebuilds the massing list (`setMassing`), as `setStructures` does for models. Don't add a per-frame knowledge test to a static path.
-- **Buildings with no art are massing, by the catalogue's own label** (`presentation.massing.families`): a box a physical part at the simulation's size, tinted by category. Never stretch another building's art over a footprint it was not made for.
+- **What the side knows changes the list, not the frame.** A building seen to fall changes its own records (`setBuildings`), as `setStructures` does for models. Don't add a per-frame knowledge test to a static path.
+
+## Buildings from template art
+
+A town's buildings are instances of a few dozen kit modules (`models/buildingPlacements.ts`, `buildingLayer.ts`, `placementPool.ts`), drawn by the models layer's own material and pipelines. A map has up to 16,000 buildings and a template up to 700 rows, so what follows is about never paying for the map.
+
+- **Expand the whole map at the coarsest tier only, and check the art before choosing which tiers are static.** The plan was tiers 2 and 3; houses turned out to have 12 to 95 rows at tier 2. The coarse population is a row or a few a building; every finer tier is expanded for the chunks near the camera into a fixed pool, and leaves it with them.
+- **Draw count is the layout's, not the camera's.** Three things each cost hundreds of draws a pass until they changed:
+  - a pool laid out a region a chunk draws chunks times modules: keep the pool kind by kind (a module at a tier), each kind one contiguous range that grows by doubling and is packed again when the free end runs out;
+  - coarse ranges split round every chunk the pool draws: hide a resident chunk's coarse records where they stand (scale zero, a buffer write on entry and exit) and never split;
+  - a range a chunk row: draw two ranges of a kind as one when only a few records of culled chunks lie between.
+- **TypeGPU sets the whole pipeline state again for every `.with()` draw.** Each `.with` makes a new pipeline object, and a draw through a new object re-applies the pipeline, every bind group and every buffer. For hundreds of draws that differ only in their ranges, make the first through TypeGPU and the rest on the raw pass (`root.unwrap(pass)`), and order the draws so that buffers change rarely: a kit's modules at a tier share one vertex and one index buffer.
+- **Bucket a thing of many instances by the thing.** A building's rows are bucketed where the building was placed (`ChunkSource.anchors`), so a chunk never holds half of one and a tier change never tears one.
+- **Choose a tier by pixels per metre when the detail is the same size everywhere.** A window is as wide on a house as on a tower; by projected height the tower would have kept its finest tier four times as far.
+- **A change of knowledge rewrites records in place.** A fallen building's coarse records are hidden, its resident chunk expanded again without it, and only the small population of what fell is rebuilt.
+- **Expansion has a budget, so a capture waits.** A view change expands a bounded number of rows and the frame asks to be drawn again; a scene that shoots after a camera cut waits for `stats().buildings.pending` (`_lab.mjs` `buildingsSettled`).
+- **Never stretch another building's art over a footprint it was not made for.** A template with no art yet is a stand-in box from the prototype set, through the same rows.
 
 ## A full-size map costs what loops over the map
 
@@ -406,9 +420,9 @@ The viewport holds two poses: the one asked for (input, a script's
 `place`) and the one drawn, which `CameraController.resolve` makes clear of the
 side's known buildings and the ground. GPU packing, picking, DOM projection and
 sound all read the drawn pose; nothing else may place the camera. The obstacles
-are `knownStanding` over the map's building parts, the list massing draws, so
-what blocks the camera and what is drawn cannot part, and a fall the side has
-not seen changes neither.
+are `knownStanding` over the map's building parts, the rule the drawn
+buildings follow, so what blocks the camera and what is drawn cannot part, and
+a fall the side has not seen changes neither.
 
 - **`__lab.setCamera` is the harness's raw framing**, drawn as given, inside a
   building if a check wants that. `__lab.placeCamera` goes through the rig and

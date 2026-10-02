@@ -98,7 +98,7 @@ const HOUSE: Row[] = [
   [SHELL, 0, 0, 0, 0, 1, 1, 1, ALL, 255, 255, 255],
   [WINDOW, 5, 1, 1, Math.PI / 2, 1, 1, 1, 3, 255, 255, 255],
   [WINDOW, 5, -1, 1, Math.PI / 2, 1, 1, 1, 1, 255, 255, 255],
-  [ROOF, 0, 0, 6, 0, 1, 1, 2, 9, 128, 255, 64],
+  [ROOF, 2, 0, 6, 0, 1, 1, 2, 9, 128, 255, 64],
 ];
 // A block with many fine rows: what fills a pool.
 const DENSE: Row[] = [
@@ -292,8 +292,8 @@ test("a chunk is expanded once when it comes near, and leaves the pool when it l
 });
 
 test("a building is in one chunk whole, however its rows straddle a chunk's edge", () => {
-  // Placed a metre west of a chunk edge at x = 1024: its east-wall windows
-  // stand past it.
+  // Placed a metre west of a chunk edge at x = 1024: its roof's own origin
+  // and its east-wall windows stand past it.
   const scene = createBuildingScene(
     placedOf([
       ["house", [1023, 2000, 0, 0]],
@@ -478,7 +478,8 @@ test("a building seen to fall changes only its own records: it leaves the intact
   expect(scene.coarseDirty.filter((_, i) => i % 2 === 1)).toEqual([1, 1]);
   for (const at of rewritten) {
     const record = scene.coarse.records.subarray(at * RECORD, (at + 1) * RECORD);
-    expect([record[0], record[1]]).toEqual([1000, 2000]);
+    // The first building's shell and roof, not its neighbour's 20 m east.
+    expect(record[0]).toBeLessThan(1010);
     expect([...record.subarray(12, 15)]).toEqual([0, 0, 0]);
   }
   selectBuildings(scene, near, SHADOW);
