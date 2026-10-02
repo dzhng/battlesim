@@ -251,40 +251,6 @@ export function selectChunks<V extends DetailView>(
   }
 }
 
-/** A layer's answer for a near chunk (`settleNear`) whose instances it draws
- *  itself but whose shadow it leaves to the chunk's own records. */
-export const NEAR_CAST_WHOLE = -2;
-
-/**
- * Settle the near chunks with their layer, after `selectChunks` and for the
- * same view and shadow. For each, `settle` answers `NEAR` (the layer draws and
- * casts its instances), `NEAR_CAST_WHOLE` (the layer draws them; the chunk's
- * own records cast, as a chunk drawn whole does), or a level: the layer
- * cannot draw the chunk's instances (its pool has no room for them, or has
- * not expanded them yet), so the chunk leaves the near list and draws whole
- * at that level after all.
- */
-export function settleNear(
-  pop: StaticChunks,
-  view: DetailView,
-  settle: (index: number) => number,
-  shadow: SunShadow | null,
-): void {
-  let kept = 0;
-  for (const c of pop.near) {
-    const level = settle(c);
-    if (level < 0) pop.near[kept++] = c;
-    if (level === NEAR) continue;
-    const chunk = pop.chunks[c];
-    const casts = shadow !== null && distanceTo(chunk.box, view.eye) <= shadow.reach;
-    for (let k = 0; k < pop.kinds; k++) {
-      if (level >= 0) appendRange(pop.ranges[k][level], chunk.start[k], chunk.end[k]);
-      if (casts) appendRange(pop.cast[k], chunk.start[k], chunk.end[k]);
-    }
-  }
-  pop.near.length = kept;
-}
-
 /** Draw `pop` with no view (an offline draw): every chunk is near. */
 export function selectEveryChunk(pop: StaticChunks): void {
   clear(pop);

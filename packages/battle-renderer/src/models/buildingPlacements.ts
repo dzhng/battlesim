@@ -10,22 +10,28 @@
 // - **The coarse population** is every building's rows at the coarsest tier
 //   (one to a few a building), expanded once for the map: a population of the
 //   static chunk owner (`frame/staticChunks.ts`), a kind a module. The whole
-//   map draws from it at the overview, as merged ranges, with no work.
+//   map draws from it at the overview, as a range a kind, with no work.
 // - **A chunk near enough for a finer tier is resident**: its buildings' rows
 //   at that tier are expanded once, when it enters, into a fixed pool
 //   (`placementPool.ts`), and leave it when the chunk leaves the view or the
-//   tier. A chunk the pool has no room for, or has not expanded yet, draws
-//   from the coarse population meanwhile. The pool is kept kind by kind (a
-//   kind is a module at a tier), so it draws in one range a kind.
-// - **A building the side has seen fall** leaves both (its coarse rows are
-//   hidden in place, its chunk expanded again without it) and is drawn by the
-//   fallen population: its template's rows for that state where the library
-//   has them, else each part's remains as a box. That population is small,
-//   so all its tiers are expanded and it is rebuilt when knowledge changes.
+//   tier. While it is resident its coarse records are hidden in place (their
+//   scale is zero), so the coarse ranges never split round it. A chunk the
+//   pool has no room for, or has not expanded yet, draws coarse meanwhile.
+//   The pool is kept kind by kind (a kind is a module at a tier), so it
+//   draws in one range a kind.
+// - **A building the side has seen fall** leaves both (its coarse records are
+//   hidden, its chunk expanded again without it) and is drawn by the fallen
+//   population: its template's rows for that state where the library has
+//   them, else each part's remains as a box. That population is small, so
+//   all its tiers are expanded and it is rebuilt when knowledge changes.
 //
 // A chunk takes one tier, from the distance of its nearest point: a building
 // is in exactly one chunk (it is bucketed by where it was placed), so it is
 // never drawn at two tiers. A row draws at a tier only if its mask has it.
+//
+// So a view's draws are a range or two a module from the coarse buffer and
+// one a module and tier from the pool: their number follows the kit, not the
+// map or the camera.
 import { color } from "math/color";
 import { mulberry32, random } from "math/random";
 import { vec3 } from "math";
@@ -41,10 +47,7 @@ import {
 import type { DetailView } from "../frame/detailView";
 import {
   createStaticChunks,
-  NEAR,
-  NEAR_CAST_WHOLE,
   selectChunks,
-  settleNear,
   type StaticChunks,
   type SunShadow,
 } from "../frame/staticChunks";
@@ -60,12 +63,13 @@ import { createPlacementPool, poolAppend, poolRemove, type PlacementPool } from 
 const RECORD = MODEL_RECORD_FLOATS;
 /** The tier the whole map can draw at. */
 export const COARSEST = TIER_COUNT - 1;
-/** A resident chunk at this tier or coarser leaves its shadow to its coarse
- *  rows: far enough that a cascade texel is larger than what the finer rows add. */
-const CAST_WHOLE_FROM = COARSEST - 1;
-/** A resident chunk's own casters draw this many tiers coarser than the
- *  view, as every model's do. */
+/** A resident chunk's casters draw this many tiers coarser than the view,
+ *  as every model's do. */
 const CASTER_COARSER = 1;
+/** Two coarse ranges of a kind this few records apart draw as one. The
+ *  records between belong to chunks out of view: drawing them costs their
+ *  vertices, which is less than the draw it saves. */
+const BRIDGE_RECORDS = 256;
 
 /** The template art a scene draws from. */
 export interface BuildingArt {
@@ -117,16 +121,17 @@ export interface BuildingScene {
   chunkOf: Int32Array;
 
   coarse: RowPopulation;
-  /** Per building: its coarse rows, a run of the rows as placed. */
+  /** Per building: its coarse rows, a run of the rows as placed, and where
+   *  each row's record is in `coarse.records`. */
   coarseFirst: Uint32Array;
   coarseCount: Uint32Array;
-  /** Per coarse row as placed: its kind, its place in the kind's records,
-   *  and its scale (a hidden row's is zero in the records). */
-  coarseKind: Uint16Array;
   coarseAt: Uint32Array;
+  /** Per coarse record: its building, and its scale (a hidden record's is
+   *  zero in the records: a fallen building's, a resident chunk's). */
+  coarseOwner: Uint32Array;
   coarseScale: Float32Array;
-  /** Coarse records changed since the layer last uploaded them: which of
-   *  `coarse.records`. */
+  /** Runs of coarse records changed since the layer last uploaded them, as
+   *  `first, count` pairs. */
   coarseDirty: number[];
 
   /** Per chunk: its buildings. */
@@ -141,10 +146,10 @@ export interface BuildingScene {
    *  and its distance. */
   wanted: Int8Array;
   distance: Float32Array;
-  /** The resident chunks. */
+  /** The chunks the last view should draw finer than coarse, and the
+   *  resident ones. */
+  near: number[];
   resident: number[];
-  seen: Uint32Array;
-  generation: number;
 
   /** The fallen buildings' rows, and a count of its rebuilds. */
   ruins: RowPopulation | null;
@@ -434,8 +439,8 @@ export function createBuildingScene(
     coarse: null as unknown as RowPopulation,
     coarseFirst: new Uint32Array(count),
     coarseCount: new Uint32Array(count),
-    coarseKind: new Uint16Array(0),
     coarseAt: new Uint32Array(0),
+    coarseOwner: new Uint32Array(0),
     coarseScale: new Float32Array(0),
     coarseDirty: [],
     chunkBuildings: [],
@@ -449,9 +454,8 @@ export function createBuildingScene(
     stale: new Uint8Array(0),
     wanted: new Int8Array(0),
     distance: new Float32Array(0),
+    near: [],
     resident: [],
-    seen: new Uint32Array(0),
-    generation: 0,
     ruins: null,
     ruinsVersion: 0,
     expandedRows: 0,
@@ -468,23 +472,23 @@ export function createBuildingScene(
   }
   const coarse = rowPopulation(scene, rows, 1);
   scene.coarse = coarse;
-  const placedRows = rows.keys.length;
-  scene.coarseKind = new Uint16Array(placedRows);
-  scene.coarseAt = new Uint32Array(placedRows);
-  scene.coarseScale = new Float32Array(placedRows * 3);
+  scene.coarseAt = new Uint32Array(coarse.count);
+  scene.coarseOwner = new Uint32Array(coarse.count);
+  scene.coarseScale = new Float32Array(coarse.count * 3);
   coarse.chunks.order.forEach((order, k) =>
-    order.forEach((row, at) => {
-      scene.coarseKind[row] = k;
+    order.forEach((row, i) => {
+      const at = coarse.base[k] + i;
       scene.coarseAt[row] = at;
-      scene.coarseScale.set(rows.records.slice(row * RECORD + 12, row * RECORD + 15), row * 3);
+      scene.coarseOwner[at] = rows.buildings[row];
+      scene.coarseScale.set(coarse.records.subarray(at * RECORD + 12, at * RECORD + 15), at * 3);
     }),
   );
   const chunkCount = coarse.chunks.chunks.length;
   scene.chunkBuildings = coarse.chunks.chunks.map((chunk, c) => {
     const inChunk = new Set<number>();
-    coarse.chunks.order.forEach((order, k) => {
-      for (let i = chunk.start[k]; i < chunk.end[k]; i++) inChunk.add(rows.buildings[order[i]]);
-    });
+    for (let k = 0; k < coarse.chunks.kinds; k++)
+      for (let i = chunk.start[k]; i < chunk.end[k]; i++)
+        inChunk.add(scene.coarseOwner[coarse.base[k] + i]);
     const list = Uint32Array.from(inChunk).sort();
     for (const b of list) scene.chunkOf[b] = c;
     return list;
@@ -494,7 +498,6 @@ export function createBuildingScene(
   scene.stale = new Uint8Array(chunkCount);
   scene.wanted = new Int8Array(chunkCount).fill(COARSEST);
   scene.distance = new Float32Array(chunkCount);
-  scene.seen = new Uint32Array(chunkCount);
   return scene;
 }
 
@@ -556,25 +559,56 @@ function expand(scene: BuildingScene, c: number, level: number): Int32Array | nu
   return handles;
 }
 
-function evict(scene: BuildingScene, c: number) {
-  const handles = scene.handles[c];
-  if (handles) for (const handle of handles) poolRemove(scene.pool, handle);
-  scene.handles[c] = null;
-  scene.level[c] = -1;
-  scene.stale[c] = 0;
+/** Show or hide coarse records `[first, first + count)` as their buildings
+ *  now stand: hidden while the side knows the building fell, or while its
+ *  chunk is resident (the pool draws it). */
+function showCoarse(scene: BuildingScene, first: number, count: number) {
+  const { records } = scene.coarse;
+  let changed = false;
+  for (let at = first; at < first + count; at++) {
+    const b = scene.coarseOwner[at];
+    const hidden = scene.fallen[b] === 1 || scene.level[scene.chunkOf[b]] >= 0;
+    for (let axis = 0; axis < 3; axis++) {
+      const scale = hidden ? 0 : scene.coarseScale[at * 3 + axis];
+      changed ||= records[at * RECORD + 12 + axis] !== scale;
+      records[at * RECORD + 12 + axis] = scale;
+    }
+  }
+  if (changed) scene.coarseDirty.push(first, count);
 }
 
-/** Bring the pool to the view's near chunks (`coarse.chunks.near`, each with
- *  its `wanted` tier and `distance`): chunks out of it leave, and chunks in
- *  it are expanded at their tier, nearest first, while the view's expansion
- *  budget and the pool's room last. A resident chunk waiting to change tier
- *  keeps the one it has. */
+/** Chunk `c`'s coarse records, as they stand now. */
+function showChunkCoarse(scene: BuildingScene, c: number) {
+  const { chunks, base } = scene.coarse;
+  const chunk = chunks.chunks[c];
+  for (let k = 0; k < chunks.kinds; k++)
+    if (chunk.end[k] > chunk.start[k])
+      showCoarse(scene, base[k] + chunk.start[k], chunk.end[k] - chunk.start[k]);
+}
+
+/** Chunk `c` resident at `level` (-1: not), with its records' handles. */
+function setResident(scene: BuildingScene, c: number, level: number, handles: Int32Array | null) {
+  const before = scene.handles[c];
+  if (before) for (const handle of before) poolRemove(scene.pool, handle);
+  const was = scene.level[c] >= 0;
+  scene.handles[c] = handles;
+  scene.level[c] = level;
+  scene.stale[c] = 0;
+  if (was !== level >= 0) showChunkCoarse(scene, c);
+}
+
+const evict = (scene: BuildingScene, c: number) => setResident(scene, c, -1, null);
+
+/** Bring the pool to the view's near chunks (`near`, each with its `wanted`
+ *  tier and `distance`): chunks out of it leave, and chunks in it are
+ *  expanded at their tier, nearest first, while the view's expansion budget
+ *  and the pool's room last. A resident chunk waiting to change tier keeps
+ *  the one it has. */
 function settleResidency(scene: BuildingScene) {
-  const { level, wanted, distance, seen, stale } = scene;
-  const generation = ++scene.generation;
-  const near = [...scene.coarse.chunks.near].sort((a, b) => distance[a] - distance[b]);
-  for (const c of near) seen[c] = generation;
-  for (const c of scene.resident) if (seen[c] !== generation) evict(scene, c);
+  const { level, wanted, distance, stale } = scene;
+  const near = scene.near.sort((a, b) => distance[a] - distance[b]);
+  const wantedNow = new Set(near);
+  for (const c of scene.resident) if (!wantedNow.has(c)) evict(scene, c);
 
   let budget = scene.style.expand_rows;
   let full = false;
@@ -607,9 +641,7 @@ function settleResidency(scene: BuildingScene) {
       scene.refused++;
       continue;
     }
-    evict(scene, c);
-    scene.handles[c] = next;
-    level[c] = wanted[c];
+    setResident(scene, c, wanted[c], next);
     budget -= scene.expandedRows - before;
   }
   scene.resident = near.filter((c) => level[c] >= 0);
@@ -626,27 +658,24 @@ export function selectBuildings(
   view: DetailView,
   shadow: SunShadow | null,
 ): void {
-  const { coarse, style, level } = scene;
+  const { coarse, style } = scene;
   scene.expandedRows = 0;
   scene.refused = 0;
   scene.pending = false;
+  scene.near = [];
+  // Every chunk in view draws its coarse records; a resident one's are hidden.
   selectChunks(
     coarse.chunks,
     view,
     (_chunk, distance, v, index) => {
       scene.wanted[index] = buildingLevel(style.lod_px_per_m, v, distance);
       scene.distance[index] = distance;
-      return scene.wanted[index] === COARSEST ? 0 : NEAR;
+      if (scene.wanted[index] < COARSEST) scene.near.push(index);
+      return 0;
     },
     shadow,
   );
   settleResidency(scene);
-  settleNear(
-    coarse.chunks,
-    view,
-    (c) => (level[c] < 0 ? 0 : level[c] >= CAST_WHOLE_FROM ? NEAR_CAST_WHOLE : NEAR),
-    shadow,
-  );
   if (scene.ruins)
     selectChunks(
       scene.ruins.chunks,
@@ -661,7 +690,7 @@ const _box_transform = new Float32Array(ROW_TRANSFORM_FLOATS);
 /**
  * What the side knows fell (`fallen`, replacing the last list). A building
  * that changes leaves or rejoins the intact rows: its coarse records are
- * hidden or restored in place (`coarseDirty` names them) and its chunk, if
+ * hidden or shown in place (`coarseDirty` names them) and its chunk, if
  * resident, is expanded again at the next view. The fallen population is
  * rebuilt whole: it holds only what fell.
  */
@@ -670,20 +699,15 @@ export function setFallenBuildings(scene: BuildingScene, fallen: readonly Fallen
   const known = fallen.filter((f) => f.building >= 0 && f.building < count);
   const next = new Uint8Array(count);
   for (const f of known) next[f.building] = 1;
+  const before = scene.fallen;
+  scene.fallen = next;
   for (let b = 0; b < count; b++) {
-    if (next[b] === scene.fallen[b]) continue;
-    for (let row = scene.coarseFirst[b]; row < scene.coarseFirst[b] + scene.coarseCount[b]; row++) {
-      const at = scene.coarse.base[scene.coarseKind[row]] + scene.coarseAt[row];
-      for (let axis = 0; axis < 3; axis++)
-        scene.coarse.records[at * RECORD + 12 + axis] = next[b]
-          ? 0
-          : scene.coarseScale[row * 3 + axis];
-      scene.coarseDirty.push(at);
-    }
+    if (next[b] === before[b]) continue;
+    for (let row = scene.coarseFirst[b]; row < scene.coarseFirst[b] + scene.coarseCount[b]; row++)
+      showCoarse(scene, scene.coarseAt[row], 1);
     const c = scene.chunkOf[b];
     if (c >= 0 && scene.level[c] >= 0) scene.stale[c] = 1;
   }
-  scene.fallen = next;
   scene.ruinsVersion++;
   scene.ruins = null;
   if (!known.length) return;
@@ -737,6 +761,8 @@ export type BuildingDraw = (
   count: number,
 ) => void;
 
+/** Draw kind `k`'s `ranges` of `population`, those within `bridge` records
+ *  of each other as one. */
 function eachRange(
   population: RowPopulation,
   source: number,
@@ -744,16 +770,22 @@ function eachRange(
   ranges: number[],
   tier: number,
   draw: BuildingDraw,
+  bridge = 0,
 ) {
-  for (let r = 0; r < ranges.length; r += 2)
-    draw(source, population.module[k], tier, population.base[k] + ranges[r], ranges[r + 1]);
+  for (let r = 0; r < ranges.length; ) {
+    const first = ranges[r];
+    let end = first + ranges[r + 1];
+    for (r += 2; r < ranges.length && ranges[r] >= end && ranges[r] - end <= bridge; r += 2)
+      end = ranges[r] + ranges[r + 1];
+    draw(source, population.module[k], tier, population.base[k] + first, end - first);
+  }
 }
 
 /** Every draw of the last `selectBuildings` into the view. */
 export function buildingDraws(scene: BuildingScene, draw: BuildingDraw): void {
   const { coarse, pool, ruins } = scene;
   for (let k = 0; k < coarse.chunks.kinds; k++)
-    eachRange(coarse, COARSE, k, coarse.chunks.ranges[k][0], COARSEST, draw);
+    eachRange(coarse, COARSE, k, coarse.chunks.ranges[k][0], COARSEST, draw, BRIDGE_RECORDS);
   const modules = scene.art.library.modules.length;
   for (let kind = 0; kind < pool.count.length; kind++)
     if (pool.count[kind])
@@ -766,15 +798,14 @@ export function buildingDraws(scene: BuildingScene, draw: BuildingDraw): void {
 }
 
 /** Every draw of the last `selectBuildings` into the sun's cascades: the
- *  coarse rows of what is drawn coarse, of far residents and of chunks out
- *  of view whose shadow lands in it, and the near residents' own rows a tier
- *  coarser. */
+ *  coarse rows of what is drawn coarse and of chunks out of view whose
+ *  shadow lands in it, and the residents' own rows a tier coarser. */
 export function buildingCasters(scene: BuildingScene, draw: BuildingDraw): void {
   const { coarse, pool, ruins } = scene;
   for (let k = 0; k < coarse.chunks.kinds; k++)
-    eachRange(coarse, COARSE, k, coarse.chunks.cast[k], COARSEST, draw);
+    eachRange(coarse, COARSE, k, coarse.chunks.cast[k], COARSEST, draw, BRIDGE_RECORDS);
   const modules = scene.art.library.modules.length;
-  for (let kind = 0; kind < CAST_WHOLE_FROM * modules; kind++)
+  for (let kind = 0; kind < pool.count.length; kind++)
     if (pool.count[kind])
       draw(
         POOL,

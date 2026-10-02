@@ -117,14 +117,21 @@ export async function run(ctx) {
     undefined,
     { timeout: 300000 },
   );
-  await page.waitForFunction(
-    async () => {
-      await window.__lab.frame();
-      return window.__lab.stats().buildings.buildings > 0;
-    },
-    undefined,
-    { timeout: 120000, polling: 100 },
-  );
+  try {
+    await page.waitForFunction(
+      async () => {
+        await window.__lab.frame();
+        return window.__lab.stats().buildings.buildings > 0;
+      },
+      undefined,
+      { timeout: 120000, polling: 100 },
+    );
+  } catch (error) {
+    // What the page drew instead, for whoever reads the failure.
+    await writeFile(ctx.evidencePath("no-buildings.png"), await page.screenshot());
+    console.log(`city-block: no building was drawn: ${JSON.stringify(await stats(page))}`);
+    throw error;
+  }
   await page.addStyleTag({ content: HIDE_PANEL });
   const map = await lab(page, () => window.__lab.route.map());
   const built = await stats(page);

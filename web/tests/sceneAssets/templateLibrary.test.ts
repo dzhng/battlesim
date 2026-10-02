@@ -343,6 +343,21 @@ test("every template is drawn intact", async () => {
   ]);
 });
 
+test("a state draws something at every tier: a building never vanishes with distance", async () => {
+  // Every row of the house stops short of the coarsest tier, which is the
+  // tier the whole map draws at.
+  const fineOnly = await refusals(
+    testSet((set) => {
+      for (const row of set.templates[0].states.intact!) row[8] = 0b0111;
+    }),
+  );
+  expect(fineOnly).toEqual([
+    expect.stringMatching(
+      /^templates\.state: .*template test-house intact draws nothing at tier 3/,
+    ),
+  ]);
+});
+
 test("the catalogue and the sets cover each other exactly", async () => {
   const shed = descriptor("test-shed", [{ id: "body", center: [0, 0], half: [3, 3, 2] }]);
   expect(await refusals(testSet(), [HOUSE, YARD, shed])).toEqual([

@@ -18,7 +18,7 @@ import type { InstalledTemplateArt } from "@packages/scene-assets/src/loader";
 import type { Bounds } from "@packages/scene-assets/src/schema";
 import { TIER_COUNT } from "@packages/scene-assets/src/schema";
 import type { DetailView } from "../frame/detailView";
-import type { GpuRegistry } from "../frame/registry";
+import type { GpuRegistry, GpuSlot } from "../frame/registry";
 import type { SunShadow } from "../frame/staticChunks";
 import {
   buildingCasters,
@@ -126,7 +126,7 @@ export function createBuildingLayer(
   let scope: GpuRegistry | null = null;
   let coarseRecords: GPUBuffer | null = null;
   let poolRecords: GPUBuffer | null = null;
-  const ruinRecords = registry.slot<GPUBuffer>();
+  let ruinRecords: GpuSlot<GPUBuffer> | null = null;
   let ruinsVersion = -1;
   let viewKey = "";
   let dirty = true;
@@ -181,6 +181,7 @@ export function createBuildingLayer(
     scope = null;
     scene = null;
     coarseRecords = poolRecords = null;
+    ruinRecords = null;
     ruinsVersion = -1;
     dirty = true;
     Object.assign(stats, { totalExpandedRows: 0, totalUploadBytes: 0, buildMs: 0 });
@@ -193,6 +194,7 @@ export function createBuildingLayer(
     coarseRecords = scope.own(recordBuffer("building-coarse", scene.coarse.count));
     stats.totalUploadBytes += write(coarseRecords, 0, scene.coarse.records, 0, scene.coarse.count);
     poolRecords = scope.own(recordBuffer("building-pool", scene.pool.capacity));
+    ruinRecords = scope.slot();
     stats.buildMs = performance.now() - started;
   }
 
@@ -209,7 +211,7 @@ export function createBuildingLayer(
 
   /** The record buffer a draw's source names. */
   const bufferOf = (source: number) =>
-    source === COARSE ? coarseRecords! : source === POOL ? poolRecords! : ruinRecords.current!;
+    source === COARSE ? coarseRecords! : source === POOL ? poolRecords! : ruinRecords!.current!;
 
   function drawList(list: DrawList, bind: BindBuildingDraw, raw: GPURenderPassEncoder) {
     let vertices: GPUBuffer | null = null;
@@ -287,13 +289,20 @@ export function createBuildingLayer(
       stats.selectMs = performance.now() - started;
 
       let uploaded = 0;
-      for (const at of scene.coarseDirty)
-        uploaded += write(coarseRecords!, at, scene.coarse.records, at, 1);
-      scene.coarseDirty.length = 0;
+      const changed = scene.coarseDirty;
+      for (let i = 0; i < changed.length; i += 2)
+        uploaded += write(
+          coarseRecords!,
+          changed[i],
+          scene.coarse.records,
+          changed[i],
+          changed[i + 1],
+        );
+      changed.length = 0;
       if (ruinsVersion !== scene.ruinsVersion) {
         ruinsVersion = scene.ruinsVersion;
         if (scene.ruins) {
-          const buffer = ruinRecords.set(recordBuffer("building-ruins", scene.ruins.count));
+          const buffer = ruinRecords!.set(recordBuffer("building-ruins", scene.ruins.count));
           uploaded += write(buffer, 0, scene.ruins.records, 0, scene.ruins.count);
         }
       }

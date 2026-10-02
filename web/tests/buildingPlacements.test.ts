@@ -184,13 +184,15 @@ interface Drawn {
   tint: number[];
 }
 
-/** Every instance the last selection draws (or casts), one entry each. */
+/** Every instance the last selection draws (or casts), one entry each. A
+ *  record hidden in place (its scale zero) is drawn as nothing. */
 function drawn(scene: BuildingScene, casters = false): Drawn[] {
   const out: Drawn[] = [];
   (casters ? buildingCasters : buildingDraws)(scene, (source, module, tier, first, count) => {
     const records = bufferOf(scene, source);
     for (let i = first; i < first + count; i++) {
       const r = [...records.subarray(i * RECORD, (i + 1) * RECORD)];
+      if (r[12] === 0 && r[13] === 0 && r[14] === 0) continue;
       out.push({
         source,
         module,
@@ -204,11 +206,7 @@ function drawn(scene: BuildingScene, casters = false): Drawn[] {
 }
 
 /** What is drawn as "module@tier", sorted. */
-const tally = (list: Drawn[]) =>
-  list
-    .filter((d) => d.transform[4] !== 0)
-    .map((d) => `${d.module}@${d.tier}`)
-    .sort();
+const tally = (list: Drawn[]) => list.map((d) => `${d.module}@${d.tier}`).sort();
 
 test("a row is drawn where the placed frame puts it: a turned building's records are the resolver's", () => {
   const frame = { translation: [1000, 2000, 3] as [number, number, number], yaw: 0.7 };
@@ -258,11 +256,8 @@ test("a row draws at a tier only if its mask has it, whether the masks nest or n
     view: [`${SHELL}@1`, `${WINDOW}@1`],
     cast: [`${SHELL}@2`, `${WINDOW}@2`],
   });
-  // Tier 2: the shell alone; its shadow is the coarse rows'.
-  expect(at(500)).toEqual({
-    view: [`${SHELL}@2`],
-    cast: [`${ROOF}@3`, `${SHELL}@3`].sort(),
-  });
+  // Tier 2: the shell alone, casting at the coarsest mesh.
+  expect(at(500)).toEqual({ view: [`${SHELL}@2`], cast: [`${SHELL}@3`] });
   // Tier 3: the coarse rows, the roof back among them.
   expect(at(2000)).toEqual({
     view: [`${ROOF}@3`, `${SHELL}@3`].sort(),
@@ -473,14 +468,24 @@ test("a building seen to fall changes only its own records: it leaves the intact
   );
   const near = view(1010, 2000, 60);
   const far = view(1010, 2000, 2000);
-  selectBuildings(scene, near, SHADOW);
-  expect(scene.pool.used).toBe(8);
+  selectBuildings(scene, far, SHADOW);
   scene.coarseDirty.length = 0;
 
   const box = part(0, 1000, 2000, [5, 4, 0.75]);
   setFallenBuildings(scene, [{ building: 0, state: "ruin", parts: [box] }]);
-  // Its two coarse rows, and no other building's.
-  expect(scene.coarseDirty).toHaveLength(2);
+  // Its two coarse records are the only ones rewritten: a run of one each.
+  const rewritten = scene.coarseDirty.filter((_, i) => i % 2 === 0);
+  expect(scene.coarseDirty.filter((_, i) => i % 2 === 1)).toEqual([1, 1]);
+  for (const at of rewritten) {
+    const record = scene.coarse.records.subarray(at * RECORD, (at + 1) * RECORD);
+    expect([record[0], record[1]]).toEqual([1000, 2000]);
+    expect([...record.subarray(12, 15)]).toEqual([0, 0, 0]);
+  }
+  selectBuildings(scene, near, SHADOW);
+  setFallenBuildings(scene, []);
+  selectBuildings(scene, near, SHADOW);
+  expect(scene.pool.used).toBe(8);
+  setFallenBuildings(scene, [{ building: 0, state: "ruin", parts: [box] }]);
   selectBuildings(scene, near, SHADOW);
   // Its chunk is expanded again without it; the neighbour is still whole.
   expect(scene.expandedRows).toBe(4);
