@@ -501,3 +501,26 @@ Fresh full contact and browser admission wait for this movement contract to be
 resolved. No validation-budget increase, script shortening, destination bypass
 or performance parity claim is made. Raw receipts and traces stay in ignored
 `throwaway/scale-lane/` and the publication worktree's corresponding directory.
+
+A paired scratch-only nested profile attributes that cost without changing the
+rules, destinations, scripts or validation allowance. Its distinct diagnostic
+build `3c8934a0…` produces the same terminal digest, every recorded goal/progress
+row, and byte-identical complete blue/red observations as the unmodified
+`c1fb0f09…` control. The instrumentation is removed after the run.
+
+| Scripted tick | Certifier calls / attempts | Virtual movement ticks | Nested total instructions G | Physical advance G | Navigation G | Snapshot and attempt setup G |
+|---|---:|---:|---:|---:|---:|---:|
+| 1 | 16 / 16 | 24,633 | 62.851 | 44.433 | 8.109 | 5.558 |
+| 150 | 20 / 24 | 20,386 | 111.598 | 90.488 | 8.806 | 7.885 |
+
+All supply slots and all 148 first-wave slots have placement points. Every
+supply attempt exhausts the roster-step allowance. The first-wave attempts end
+with 16 roster-budget exhaustions, seven planning-work exhaustions and one
+completed cohort; eight units are placed. These traced causes explain the
+absent goals without equating all failures to distance or formation placement.
+The allowance is per command, so one first wave can spend 20 × 250,000 abstract
+work units. Each unit charges living-unit steps and planner work, while physical
+advance includes collision, cover and soldier movement. Physical advance owns
+70.7% and 81.1% of the two nested totals. Coarse counter reads, about six per
+virtual step, are included; these are attribution measurements, not a measured
+speedup. No demonstrated small allocation cleanup resolves that amplification.

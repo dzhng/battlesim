@@ -4950,6 +4950,72 @@ exact matched openings pass and a real retained GPU allocation falsifies the che
 **Gap:** The slice says "keyed from the field" and names no carrier.
 
 **Verdict:** sound. The loop that finds the paved distance already has the closest point of each stretch; a second lookup for the lane would walk the cell's list twice. A polygon has no centreline, so a town's streets have no lanes. **Confidence:** high.
+
+## C23 far tier
+
+### Tier 3 is the far tier; no tile builder was written
+
+**Choice:** The slice closes with no `city/farTier.ts`. Every template's own coarsest tier, drawn as one static population for the map (C22), is the far tier.
+
+**Gap:** The slice was written when a town was massing boxes and asks for "a pure deterministic far-tier builder from reusable descriptor geometry/roof recipes", with tiles through C22's chunks. It also says the graphs' LOW tiers are not the far tier, at 47 to 86 thousand triangles.
+
+**Verdict:** sound. The sets' scripts already fold each template into a shell of 12 to 1,766 triangles, 239 a building over a Metro Large, under the 300 the slice guides by. On that map the buildings cost 1.9 ms of GPU at the whole map and 4.1 ms at the worst camera, inside 11.0 ms for the whole frame against a budget of 15. A merged tile a chunk would save draws (31 at the whole map, 59 in the oblique view) and add a vertex copy of every building; a builder from descriptors would draw boxes with roofs, which is less than the shells keep (windows, balconies, roof colour). **Confidence:** high for cost and silhouette; the coarse tiers' own art has the pops the Outcome lists.
+
+### The thresholds stay at 10, 4 and 1.2 pixels a metre
+
+**Choice:** `lod_px_per_m` is unchanged. In particular tier 0 still starts at 128 m, so the tactical camera (65 m) draws tier 0.
+
+**Gap:** "Tune `lod_px_per_m` if a boundary is in the wrong place", and the question whether tier 0 should start nearer so that the China kit's window cages, rails and solar racks stop aliasing at the tactical camera.
+
+**Verdict:** sound. A 2 cm bar at the tactical camera covers 0.4 of a pixel (19.7 pixels a metre); it covers one only at 51 pixels a metre, 25 m, the camera's nearest. A threshold that hid the bars until then would put the whole default view at tier 1, and tier 1 costs the houses their window frames and glazing bars and the shops their lettering, which do read at 65 m (`throwaway/evidence/city-lineup/pairs-tactical-0v1-*.png`). A threshold between (a metre at 20 to 26 pixels) would put the boundary across the default view. The bars are the kit's to move into a cutout texture (C24). Moving the last boundary out, so that the houses' blank tier 3 walls arrive when a window is under a pixel, would draw the apartments' tier 2 (2,500 to 7,300 triangles) over the 2 km views in place of tier 3 (650 to 1,770): several times the triangles for a fix that is a few quads in the houses' shells. **Confidence:** high.
+
+### A forced tier is the building style's own thresholds
+
+**Choice:** The labs draw every building at one tier by handing the frame a style whose thresholds no view, or every view, passes (`buildingTier.ts` `tierStyle`), and rebuilding the frame. `LabViewport` takes the style as a prop read when the frame is built. The renderer has no "force a tier" switch.
+
+**Gap:** The brief asks for a forced tier and says to place buildings through the game's own path; it does not say how a tier is forced.
+
+**Verdict:** sound. The tier is still chosen by the renderer's one rule, per chunk, with the pool and the coarse population behaving as they do in a town, so a forced picture cannot differ from what the game draws at that tier. The cost is a frame rebuild per change of tier (a second or two, four times a scene run). **Confidence:** high.
+
+### The line-up's map is empty, and its buildings are a list
+
+**Choice:** `/lab/city-lineup` builds a flat map with nothing on it and hands the frame a `PlacedBuildings` list made from the catalogue's descriptors (`cityLineup.ts`). A building's owner is a hash of its template id. Rows run south to north by their tallest building, fronts on a line, and the ground runs on behind the last row for 2.5 heights of the tallest.
+
+**Gap:** "A synthetic `PlacedBuildings` list", rows by category, at metre scale; nothing on order, spacing, tint or the map.
+
+**Verdict:** sound. No simulation building exists, so nothing garrisons, blocks or falls; the lab is a picture. The owner fixes each template's tint whichever others stand with it. The ground behind is there because the contract check reads black as "not ground", and the map's edge is black. The empty map still gets the biome's fields, so the backdrop is striped farmland, not a neutral card: the critique read the crop rows as moire. **Confidence:** medium on the backdrop; a plain surface under the line-up would read better and is the ground lane's vocabulary.
+
+### What "drawn, on the ground, inside its parts" is, on screen
+
+**Choice:** The scene shows each template alone, framed to fit, in the ground-classes view, at every tier. Every pixel that is not ground, within 16 pixels of the template's projected parts, must lie inside the projection of some part grown by its set's fit (1.5 pixels of slack). Nine points inside each part at half its height must be covered for two thirds of them, and of 41 points along the foot of the wall facing the camera, a metre up, at least one.
+
+**Gap:** "Checks from contracts: every catalogue template is drawn, on the ground, inside its physical parts grown by its set's fit (use the ground mask or the classes view)."
+
+**Verdict:** sound, with two stated weaknesses. The asset check already holds every vertex to the fit; this one catches what it cannot, a template drawn at the wrong frame, turned, or at a tier whose shell is misplaced. The foot rule is "somewhere along the wall" because `china-farmstead-yard` has a part that is a roof on posts, which a "two thirds of the wall" rule failed honestly. A building floating less than a metre, or turned half round with a symmetric plan, passes. The fit is read from each set's source `templates.json`, so the scene needs those files pulled from LFS and says so when they are pointers. **Confidence:** medium.
+
+### A boundary station is a range to the building, not an orbit distance
+
+**Choice:** `transition-1..3` put the eye at the boundary's distance from the nearest point of the box round the template's parts (`poseAtRange`), pitched as the game's camera is at that distance.
+
+**Gap:** "A transition station per template that sits exactly at each tier boundary."
+
+**Verdict:** sound. The renderer chooses a tier by the eye's distance to the building's chunk, so an orbit distance would be off by the building's size. The chunk's box is the drawn bounds, which reach up to the set's fit past the parts, and in the line-up a chunk can hold a neighbour: by distance, a building at its station may draw either tier. The captures force the tier, so the pair is exact. **Confidence:** high.
+
+### The overview's missing town is the ground's, and nothing was built for it
+
+**Choice:** No very-far aggregation (a fifth tier, a tile, a tint) was added for the whole-map overview.
+
+**Gap:** "Tile sizes and any very-far aggregation follow S3/G0's full-overview verdict", and the critique's finding that the overview shows a road grid and pink specks, not a town.
+
+**Verdict:** sound. At the overview a house is 0.9 to 1.4 pixels and a slab 4 to 7 by 1 to 1.6: geometry at its true size cannot carry the town, and enlarging it on screen is not open to opaque geometry. What a town reads by from that height is its ground, and most of a suburb's ground is lawn the colour of a field. A built-up tint under settlements is ground, in the ground lane's material, true at every distance. **Confidence:** high that no building tier fixes it; the tint itself is untried.
+
+### The user checkpoint was not held
+
+**Choice:** The slice's fourth visual step (show the shots, wait five minutes) was skipped; the verdict stands on the measurements, the comparison and the unprimed critique.
+
+**Gap:** The slice requires the checkpoint; the pass ran unattended as one agent of several.
+
+**Verdict:** provisional until the user has seen `throwaway/evidence/city-lineup/` and `throwaway/evidence/city-block-metro-large/`. **Confidence:** medium.
 ## SG4 palette vs shadow floor
 
 ### The spike ran inside C84, not in a scratch worktree

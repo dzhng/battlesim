@@ -93,7 +93,12 @@
   {
     "id": "city-block",
     "route": "/lab/city-block",
-    "describe": "A block of a generated town drawn from the template art library, with no battle on it: the apartment building nearest the main town's centre that has a house beside it (mixed, small, seed 1; ?type=, ?size= and ?seed= choose another map). Stations cut the camera to the street, the default tactical camera, 250 m out and the strategic overview; a switch makes the side see the apartment building fall, which draws its remains."
+    "describe": "A block of a generated town drawn from the template art library, with no battle on it: the apartment building nearest the main town's centre that has a house beside it (mixed, small, seed 1; ?type=, ?size= and ?seed= choose another map). Stations cut the camera to the street, the default tactical camera, 250 m out, low over the town from 2 km and the strategic overview; a switch makes the side see the apartment building fall, which draws its remains; ?tier=0..3 draws every building at one detail tier."
+  },
+  {
+    "id": "city-lineup",
+    "route": "/lab/city-lineup",
+    "describe": "Every building template of the installed art library on flat ground, in rows by category at its real size, each labelled with its id, drawn through the frame's own buildings path with no battle. ?set= or ?category= narrows it, ?tier=0..3 draws every building at one detail tier, ?state=ruin|gutted draws them as a side that saw them fall knows them, and ?station= with ?at=<template id> opens on a station: all, row, fit, close (30 m), tactical (65 m), wide (250 m), or transition-1..3 (where the template changes to that tier). The scene writes a contact sheet per category at each tier and the pairs across each tier boundary."
   },
   {
     "id": "village",
