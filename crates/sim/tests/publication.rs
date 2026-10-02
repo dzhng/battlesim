@@ -370,6 +370,15 @@ fn a_large_coordinate_arrangement_matches_its_paired_state_record() {
     publication_stream(record, "publication/arrangement.json", false);
 }
 
+#[test]
+fn cover_facing_matches_its_paired_state_record() {
+    let record: Value = serde_json::from_str(include_str!(
+        "../../../fixtures/parity/publication/cover-facing.json"
+    ))
+    .unwrap();
+    publication_stream(record, "publication/cover-facing.json", false);
+}
+
 fn publication_stream(record: Value, path: &str, combat: bool) {
     let map = match record["map"].as_str() {
         Some(id) => sim::maps::load(id).unwrap().definition,

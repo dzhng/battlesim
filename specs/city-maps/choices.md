@@ -6215,3 +6215,19 @@ The open-country pass (M24, M25): `crates/mapgen/src/open_country/`, its rows in
 **Found:** The country still reads as empty: at the opening view the jeep is the only upright thing in frame, and the eye has few landmarks. The fog over blue's column is cut on the lower left, the right and the bottom by copses and tree lines, and is one clean arc across the top: broken, and mostly open, which is what the owner asked for, and less than the references' wooded country. Tree lines and copses ignore the field pattern, because the fields are the renderer's and the generator does not know where their edges are. The fog behind a tree line pulls in some way past it with nothing at the tip of the teeth: that is the one forest rule shortening sight, not a missing model. A house group is houses on grass: no yard, track to the door or outbuilding is drawn, two houses of one group are the same model side by side, and no car stands beside them because nothing draws one.
 
 **Verdict:** provisional. The rule (M25) is met and measured; the look is the light touch that was asked for and is sparser than the references. Fitting tree lines to the drawn fields' edges needs the two to share one field geometry. **Confidence:** medium.
+
+## C07: warm cover-facing parity
+
+**Choice:** Use pinned `libm::atan2` in the existing cover-bearing calculation,
+without adding a scalar math wrapper or migrating unrelated trigonometry.
+
+**Evidence:** A generated battle's first divergent tick had only one squad's
+yaw and copied sight bearing differ by one float64 ULP. The two-rifle public
+paired fixture reproduces the same `(17, 100)` bearing and first fails at tick
+30, while float32 publication hides it. The existing math module has no shared
+bearing owner. This deliberately changes Native's last bits to the portable
+result; gameplay rules and the transport contract are unchanged.
+
+**Verdict:** sound; high confidence. Scope follows an observed field and public
+red proof, rather than assuming all standard math needs replacement. Remaining
+generated-battle parity must still be measured after integration.

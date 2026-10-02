@@ -541,7 +541,8 @@ pub(super) fn hold(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, 
     };
     let centre = unit.anchor.map_or(unit.position.xy(), |a| a.at);
     let area = Area::of(ctx, unit, centre);
-    let bearing = |p: V2| (p - centre).y.atan2((p - centre).x);
+    // Cover facing must retain the same last bits on Native and Wasm.
+    let bearing = |p: V2| libm::atan2((p - centre).y, (p - centre).x);
     let swung = w.threat.is_none_or(|t| {
         wrap_angle(bearing(threat.at) - bearing(t)).abs() > c.swing_deg.to_radians()
     });

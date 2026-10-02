@@ -446,3 +446,21 @@ dispatch, V8 allocation and GC. Combined final blue/red copy+decode costs
 actual worker transfer, learned-ground application, rendering and GPU remain
 outside these brackets. This is process CPU evidence, not engine cold startup or
 an isolated before/after decoder optimization claim.
+
+### Warm cover-facing parity correction
+
+The current generated battle first diverged between Native and Wasm at tick 30
+while its published float32 words still matched. Ordered state diagnostics
+isolated one squad's cover-facing yaw: Native `3fc58dcf04f55e57`, Wasm
+`3fc58dcf04f55e58`, from the same bearing `(17, 100)`. Positions, member fields,
+world props and projectiles matched. Cover's existing bearing calculation now
+uses the already pinned `libm::atan2`; this is a named Native last-bit state
+correction, with no publication schema or mechanics change.
+
+A two-squad inline-map record exercises the public Battle and paired publication
+owners through construction and thirty ticks, including side changes and resync.
+The actual pre-fix Wasm stream matched Native through tick 29 and failed its
+full-state digest at tick 30. Float32 publication alone would not detect this
+regression. Fresh Wasm passes the paired file; Native publication and cover
+checks, clippy and formatting pass. Existing paired records are unchanged. Whole
+generated-battle cross-target and scale admission remain open.
