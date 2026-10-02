@@ -15,14 +15,14 @@ The simulation is the one authority; everything else observes it.
 
 - **`web/src/battle/`** — the browser side of that boundary:
   - the worker that runs the simulation (one authority, ordered commands, bounded publications);
-  - the worker that prepares a battle on a generated map (`prepare/`: the simulation's generator, then its encounter planner, off the page's thread);
+  - the worker that prepares a battle (`prepare/`): one request names where the map comes from (a saved map, or a generation request), which encounter is laid on it and the seeds; the worker resolves the map, has the simulation's planner place the encounter, and answers with the scenario a battle runs, off the page's thread;
   - decoding of the packed observation;
   - player input;
   - player readouts.
 
   Presentation reads only the observation, never simulation state.
 
-- **`web/src/maps/`** — saved maps as JavaScript reaches them: the catalogue's listing, and the browser and Node adapters that fetch a map's documents by id and hand them to the simulation's one resolver.
+- **`web/src/maps/`** — maps as JavaScript reaches them: the catalogue's listing, the browser and Node adapters that fetch a saved map's documents by id and hand them to the simulation's one resolver, and the one way to a map from its source (`source.ts`: a saved map's id, or a request the simulation's generator makes a map from).
 
 - **`packages/`** — the TypeGPU renderer and its assets.
   - `renderer-core` holds device, camera and projection primitives.
@@ -68,7 +68,7 @@ bun run setup   # install web dependencies
 bun run dev     # build the WebAssembly, start the lab app
 ```
 
-`/` is the main menu: play the village or watch a replay; behind its developer link, run the benchmark or open the lab index at `/labs`, which links every route. The benchmark (`/benchmark`) is the one frame-cost measure.
+`/` is the main menu: start a battle on a generated map (its type, its size and a seed), play the village or watch a replay; behind its developer link, run the benchmark or open the lab index at `/labs`, which links every route. A generated battle's address (`/battle?type=&size=&seed=`) is its share identity: the same address prepares the same battle on the same build. The benchmark (`/benchmark`) is the one frame-cost measure.
 
 Floating unit panels show name and health. Own-unit panels show a crossed-out eye beside the name, plus HIDDEN in expanded detail, when forest or garrison concealment covers enough of the living unit and there is no known engagement or currently visible enemy observer spotting it. The [sensing rules](crates/sim/src/sensing.rs) own squad thresholds; concealment uses forest ground, independently of tree crowns. Space prioritizes the closest 30% of visible units from the camera's actual position; farther cards expand where room remains. Hovering a unit or its card always reveals its detail. Placement tries expansion in place, then the fewest card shifts, favoring shorter shifts when the counts tie.
 

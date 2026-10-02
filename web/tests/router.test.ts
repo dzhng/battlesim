@@ -9,9 +9,11 @@ test("every registered fixture has a page and every page a fixture", () => {
   expect(Object.keys(ROUTES).sort()).toEqual(fixtures.map((f) => f.id).sort());
 });
 
-test("the main menu at / offers play and replay, the benchmark and labs behind its developer link; the lab index is /labs", () => {
+test("the main menu at / offers a new battle, the village and replay, the benchmark and labs behind its developer link; the lab index is /labs", () => {
   const menu = render(createElement(LabRouter, { path: "/" }));
-  expect(menu.getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual([
+  const links = () => menu.getAllByRole("link").map((a) => a.getAttribute("href"));
+  expect(links()).toEqual([
+    expect.stringMatching(/^\/battle\?type=mixed&size=small&seed=\d+$/),
     "/battle/village",
     "/replay/village",
   ]);
@@ -22,7 +24,7 @@ test("the main menu at / offers play and replay, the benchmark and labs behind i
     Benchmark: "/benchmark",
     Labs: "/labs",
   };
-  expect(menu.getAllByRole("link")).toHaveLength(Object.keys(entries).length);
+  expect(links()).toHaveLength(Object.keys(entries).length + 1);
   for (const [name, href] of Object.entries(entries)) {
     // Each entry is one link named by its title; its description is inside
     // the same link, so a click on it navigates too.
