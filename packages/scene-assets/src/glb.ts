@@ -1,6 +1,6 @@
 // The GLB container, content hashing, and Git LFS pointer detection. The
-// container parse is adapted from ~/dev/game's soldier-assets `bake/gltf.mjs`
-// (see the reuse manifest); everything else here is ours.
+// container parse is adapted from ~/dev/game's soldier-assets `bake/gltf.mjs`;
+// everything else here is ours.
 
 const GLB_MAGIC = 0x46546c67; // 'glTF'
 const CHUNK_JSON = 0x4e4f534a; // 'JSON'

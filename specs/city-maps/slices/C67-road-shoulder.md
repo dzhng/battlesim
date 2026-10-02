@@ -9,7 +9,7 @@ Does a road fade into the field through a worn shoulder, with grass thinning acr
 - A shoulder of 2–4 m per kind, with a one-sided noise-jittered edge. Its luminance is at or above the grass's and it differs by hue.
 - Grass density ramps across it from C63's field, replacing the flat `clear_m.road` margin.
 - **The road-keyed branch of `groundVerge` (`terrainMaterial.ts:420`) is deleted**, so the shoulder is the one "beside the road" owner.
-- A technique-only manifest entry for Selo Empire's `RoadMeshBuilder` and `TerrainRoadWear`.
+- Selo Empire's `RoadMeshBuilder` and `TerrainRoadWear` are technique only: rewritten from reading, nothing copied.
 
 ## API seam
 `terrainMaterial.ts`, `grassPass.ts` density, biome road rows.

@@ -36,9 +36,6 @@ import { AUTHORITY, GRASS_SPEC, TOLERANCES } from "./sceneAssets/synthetic";
 const ROOT = new URL("../../", import.meta.url);
 const read = (path: string) => readFileSync(new URL(path, ROOT));
 const catalog = JSON.parse(read("assets/catalog.json").toString()) as Catalog;
-const manifest = JSON.parse(read("reuse-manifest.json").toString()) as {
-  third_party: { path: string; sha256: string }[];
-};
 const biome = validateBiome(summer as unknown as Biome);
 
 async function tuft(spec = GRASS_SPEC): Promise<StaticBundle> {
@@ -81,7 +78,6 @@ test("every generated grass kind's source is what its catalog spec generates", a
   for (const [name, entry] of kinds) {
     const path = Object.values(entry.states!)[0];
     const hash = await contentSha256(grassClumpGlb(name, entry.grass!));
-    expect(manifest.third_party.find((t) => t.path === path)?.sha256, name).toBe(hash);
     expect(await contentSha256(new Uint8Array(read(path))), name).toBe(hash);
   }
 });

@@ -1,7 +1,7 @@
 """Four mesh tiers from one skinned mesh, finest first, named `<name>_LOD<n>`.
 
-Technique from ~/dev/game packages/soldier-assets/bake/blender-mesh-lods.py
-(reuse manifest, technique): split the mesh into its loose islands, drop
+Technique from ~/dev/game packages/soldier-assets/bake/blender-mesh-lods.py:
+split the mesh into its loose islands, drop
 islands smaller than the tier's extent cutoff, share the triangle budget over
 the rest with a per-island floor, decimate each in bind space (before the
 armature modifier), and join. Blender interpolates UVs, colours and deform

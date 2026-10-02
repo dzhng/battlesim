@@ -41,7 +41,6 @@ from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import packs  # noqa: E402
 import weapons  # noqa: E402
 from common import (REPO, box, cyl, empty, export_glb, fbm, mat, obj_from_bm, paint, script_args,  # noqa: E402
                     texture_mean, texture_uvs)
@@ -1004,7 +1003,6 @@ def main():
     sockets = [bpy.data.objects["eye"], bpy.data.objects["muzzle"]]
     rel = f"assets/source/infantry/{kind if variant == 'a' else f'{kind}_{variant}'}.glb"
     export_glb(os.path.join(REPO, rel), [rig.arm, *tiers, *sockets])
-    packs.record_source(rel, "infantry_kit.py", (packs.UBC, packs.UBC_BIN, packs.UAL))
 
 
 if __name__ == "__main__":

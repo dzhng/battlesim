@@ -5,7 +5,7 @@
 // and rivers exactly as the simulation's surface rules define them, so a road
 // is drawn precisely where units find road.
 //
-// Rewritten (reuse manifest, technique) from reading ~/dev/game
+// Rewritten from reading ~/dev/game
 // battle-renderer/src/world/terrain.ts and shaders/terrainMaterial.ts: there
 // the ground was a cell-centred bilinear grid with 1.6× relief and its roads
 // and mud came from a baked distance texture.

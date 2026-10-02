@@ -1,5 +1,5 @@
-// Adapted from ~/dev/game game-renderer/src/environment/physicalEnvironment.ts
-// (reuse manifest): renderer-independent mapping from the light to the sun and
+// Adapted from ~/dev/game game-renderer/src/environment/physicalEnvironment.ts:
+// renderer-independent mapping from the light to the sun and
 // sky-fill terms the environment uniform carries. Local change: reads the
 // fixture's `presentation.light`, not a named preset.
 import type { LightPresentation } from "./sceneLight";

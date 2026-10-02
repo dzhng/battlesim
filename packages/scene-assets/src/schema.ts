@@ -65,9 +65,6 @@ export const FINDING_CODES = [
   "nodes.duplicate",
   "nodes.track_properties",
   "nodes.deploy_motion",
-  // provenance
-  "provenance.unlisted",
-  "provenance.licence",
 ] as const;
 export type FindingCode = (typeof FINDING_CODES)[number];
 
@@ -409,17 +406,6 @@ export interface RuntimeCatalog {
       mounts?: MountDraws;
     }
   >;
-}
-
-/** Licences a source may carry. Third-party licences need the user's acceptance first. */
-export const ALLOWED_LICENCES = ["CC0-1.0", "MIT", "project-owned"] as const;
-
-/** A provenance record: the reuse manifest's `third_party` entries. */
-export interface ProvenanceEntry {
-  path: string;
-  sha256: string;
-  licence: string;
-  accepted_by: string;
 }
 
 /** The file a bundle lives in, under its content hash's directory. */

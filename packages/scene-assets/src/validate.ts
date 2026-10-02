@@ -11,7 +11,6 @@ import {
   MaterialTable,
   triangleCount,
 } from "./build.ts";
-import { contentSha256 } from "./glb.ts";
 import { quat, vec3, type Vec3 } from "math";
 import { pointAt } from "./trs.ts";
 import { mountMuzzles, muzzleOffset, type MountMuzzle } from "./mountMuzzle.ts";
@@ -45,7 +44,6 @@ import { bindTextures, importScene } from "./scene.ts";
 import { textureFindings } from "./texture.ts";
 import { grassStripFindings } from "./grass.ts";
 import {
-  ALLOWED_LICENCES,
   BUILDING_STATES,
   INFANTRY_CLIPS,
   INFANTRY_SOCKETS,
@@ -60,7 +58,6 @@ import {
   type Joint,
   type MeshData,
   type PoseRef,
-  type ProvenanceEntry,
   type SkeletonClips,
   type SkeletonEntry,
   type SkinnedBundle,
@@ -72,8 +69,6 @@ import {
 export interface ValidationContext {
   authority: Authority;
   tolerances: Tolerances;
-  /** The reuse manifest's `third_party` entries; omit to skip provenance. */
-  provenance?: ProvenanceEntry[];
 }
 
 export interface Stats {
@@ -108,45 +103,14 @@ const tierStats = (tiers: MeshData[]) =>
   tiers.map((m) => ({ triangles: triangleCount(m), vertices: m.positions.length / 3 }));
 const fmt = (n: number) => n.toFixed(3);
 
-// ---------------------------------------------------------------- provenance
-
-export async function validateProvenance(
-  path: string,
-  bytes: Uint8Array,
-  entries: ProvenanceEntry[],
-): Promise<Finding[]> {
-  const hash = await contentSha256(bytes);
-  const entry = entries.find((e) => e.sha256 === hash);
-  if (!entry)
-    return [
-      finding(
-        "provenance.unlisted",
-        `${path}: sha256 ${hash} is not in the reuse manifest`,
-        `add a third_party entry {path: "${path}", sha256: "${hash}", licence, accepted_by} to reuse-manifest.json`,
-      ),
-    ];
-  if (!(ALLOWED_LICENCES as readonly string[]).includes(entry.licence) || !entry.accepted_by)
-    return [
-      finding(
-        "provenance.licence",
-        `${path}: licence "${entry.licence}"${entry.accepted_by ? "" : " (not accepted)"} is not allow-listed`,
-        `use art under ${ALLOWED_LICENCES.join(", ")}, with the user's acceptance recorded in accepted_by`,
-      ),
-    ];
-  return [];
-}
-
 // ---------------------------------------------------------------- skeleton clips
 
 export async function validateSkeleton(
   id: string,
   entry: SkeletonEntry,
   bytes: Uint8Array,
-  context: Pick<ValidationContext, "provenance">,
 ): Promise<Validation<SkeletonClips>> {
   const { scene, findings } = importScene(bytes, entry.source, entry.basis_yaw_deg);
-  if (context.provenance)
-    findings.push(...(await validateProvenance(entry.source, bytes, context.provenance)));
   if (!scene) return { findings, stats: null, bundle: null, preview: null };
   const built = buildClips(scene, entry.source, id, entry.sample_hz, entry.clips);
   findings.push(...built.findings);
@@ -218,8 +182,6 @@ export async function validateAppearance(
     const bytes = input.files[path];
     if (!bytes) throw new Error(`${input.name}: no bytes supplied for ${path}`);
     sourceBytes += bytes.byteLength;
-    if (context.provenance)
-      findings.push(...(await validateProvenance(path, bytes, context.provenance)));
   }
 
   if (kind === "static") {

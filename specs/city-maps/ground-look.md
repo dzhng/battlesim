@@ -14,7 +14,7 @@ Walked with the user on 2026-09-28. Retained ground appearance/rule decisions ar
 | Selo Empire, "Manor Lords for the web" ([repo](https://github.com/SeloSlav/medieval-settlement-threejs)) | Soft worn paths, mottled meadow, sunken creeks | Code under a custom MIT wrapper; art all-rights-reserved | **Technique only:** feathered road shoulder (`src/roads/RoadMeshBuilder.ts`); per-vertex road-wear blend (`src/terrain/TerrainRoadWear.ts`); shore signed-distance field with noise (`src/rivers/organicShoreField.ts`); bank patches (`RiverBankMesh.ts`) |
 | dryad ([repo](https://github.com/owenyuwono/dryad)) | Broken-up broadleaf crowns | MIT; WebGL GLSL, three.js r160; LOD not wired; leaves are alpha cards | **Technique only:** pipe-model branch radii, gravity droop, parallel-transport tube bark |
 | Grassworks | Grass species presets | Commercial, closed | Look only (the species idea) |
-| `~/dev/game` | Lobed crowns, a conifer and an aspen, pyramid rocks, one grass species, `mapCatalog.ts` | Our sibling project | **Technique:** conifer and aspen crown parameters; the `mapCatalog.ts` entry shape. Its rocks are too crude. Its crowns, grass and terrain are already ported (reuse-manifest `technique` entries) |
+| `~/dev/game` | Lobed crowns, a conifer and an aspen, pyramid rocks, one grass species, `mapCatalog.ts` | Our sibling project | **Technique:** conifer and aspen crown parameters; the `mapCatalog.ts` entry shape. Its rocks are too crude. Its crowns, grass and terrain are already ported, rewritten from reading |
 
 **Our ground today** (a code sweep of the files cited):
 - **Fully procedural:** no albedo textures and no splat maps. Per pixel: plot colour → mottle → crop rows → verge → forest floor → shore → road → water bed → scars (`packages/battle-renderer/src/frame/terrainMaterial.ts:430-490`).
@@ -74,7 +74,7 @@ Walked with the user on 2026-09-28. Retained ground appearance/rule decisions ar
 | L-G7 | ~~Grass species multiply indirect draws~~ | `frame/grassPass.ts:21` | **Corrected in synthesis:** grass is already one draw per tier over every kind. The real limits are 8-blade padding, 16 kinds and 16 growth rows, and one appearance per row; C82 fixes the last |
 | L-G8 | Replacing water rects changes `geometry-lab.json` and `movement-lab.json`. | fixtures | Sharp edge: named; the village has no water |
 | L-G9 | The catalogue cutover touches 11 lab fixtures, 25 lab-app entries, web scene ids and `MainMenu.tsx`, and overlaps hud-chrome's planned typed router. | `apps/battle-lab/src/fixtures.json`, `web/scene.mjs` | Sharp edge: C09 moves every map at once; C60 (data) and C61 (listings) follow; SG6 dry-runs it; scene ids stay stable; routes stay separate from maps |
-| L-G10 | Selo Empire's code licence is a custom wrapper, and dryad is WebGL GLSL. | their repos | Sharp edge: both are **technique-only** manifest entries, rewritten from reading |
+| L-G10 | Selo Empire's code licence is a custom wrapper, and dryad is WebGL GLSL. | their repos | Sharp edge: both are **technique only**: rewritten from reading, nothing copied |
 | L-G11 | Tree lines in the playable area must block sight as drawn. | first-principles rule | **Decided:** Q-G15 (thin forest strips in map data) |
 
 **Slices:** spikes SG1–SG6, gate GG and C60–C87 in `slices/`, from a four-draft synthesis (see `decisions.md`, "Ground synthesis"). Refinements made in synthesis:

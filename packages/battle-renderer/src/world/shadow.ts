@@ -1,4 +1,4 @@
-// Adapted from ~/dev/game battle-renderer/src/world/shadow.ts (reuse manifest).
+// Adapted from ~/dev/game battle-renderer/src/world/shadow.ts.
 // Local changes: cascade mode only, the map size from `presentation.light.cascades`, and `update(camera,
 // receiverRange)` in place of the single map's world rect.
 import type { Vec2 } from "math";

@@ -6,7 +6,7 @@
 Is there a project-owned, dim, daylight-only interior atlas in the repo's 2×5 layout?
 
 ## Contract it unlocks
-A numpy or Blender recipe renders rooms and shopfronts (ground floor) with no lamps, recorded as `project-owned` (Q-E).
+A numpy or Blender recipe renders rooms and shopfronts (ground floor) with no lamps. The atlas is ours, generated in the repo (Q-E).
 
 ## API seam
 `packages/scene-assets` texture recipe.
@@ -15,7 +15,7 @@ A numpy or Blender recipe renders rooms and shopfronts (ground floor) with no la
 The atlas sheet.
 
 ## Verification
-- `asset check`; provenance.
+- `asset check`.
 
 **Visual verification.** Do these in order; each is required:
 1. Freeze the camera, light, seed and every variable except this slice's own.

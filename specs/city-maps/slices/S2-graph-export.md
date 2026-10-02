@@ -28,7 +28,7 @@ Class/family coverage and source-gap tables, templates at 30/80/250 m, physical 
 Exporter access points, legal-input sweeps and throwaway dedupe implementation. Release dimensions/variety/coverage and codec are G0 outputs.
 
 ## Must stay green
-Production behavior; shared instancing and provenance; nothing merges.
+Production behavior; shared instancing; nothing merges.
 
 ## Feedback that would change this slice
 Insufficient category or regional fit changes the source/recipe matrix, not the meaning of a category.

@@ -2,8 +2,7 @@
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/trees.py [out_dir]
 
-writes assets/source/trees/<kind>.glb (project-owned; record each file's
-sha256 in the reuse manifest's third_party, then `asset bake`).
+writes assets/source/trees/<kind>.glb (then `asset bake`).
 
 A crown is a lobed volume: a core sphere unioned with seeded lobe spheres,
 taking along every direction from the crown's centre the farthest surface

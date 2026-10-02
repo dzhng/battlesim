@@ -15,7 +15,7 @@ import { forestInside, type ForestShape } from "../terrain/forestShapes";
 //   hedgerows along the patchwork's plot edges with trees standing in them,
 //   and copses. It keeps `backdrop.clear_m` off the map.
 //
-// Rewritten (reuse manifest, technique) from reading ~/dev/game
+// Rewritten from reading ~/dev/game
 // game-renderer/src/battle/terrainScenery.ts and terrain/sceneryDetail.ts:
 // there, forests were filled by area and a variant was hashed from placement.
 import { vec2, type Vec2 } from "math";

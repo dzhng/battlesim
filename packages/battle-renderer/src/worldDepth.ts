@@ -1,4 +1,4 @@
-// Adapted from ~/dev/game battle-renderer/src/worldDepth.ts (reuse manifest):
+// Adapted from ~/dev/game battle-renderer/src/worldDepth.ts:
 // the battle's depth states without renderer-core's pipelineContracts. Local
 // changes: depth is written with the repo's one reverse-Z compare
 // (`depthContract`, `greater`), and a "prepassed" mode shades surfaces whose

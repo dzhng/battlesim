@@ -12,8 +12,8 @@
 //   world's depth) → composite
 //
 // bracketed by two timestamp markers for the frame's GPU time. Rewritten here
-// from reading ~/dev/game battle-renderer/src/world/frame.ts (reuse manifest,
-// technique); that frame had no structures layer, overlay stage, registry or
+// from reading ~/dev/game battle-renderer/src/world/frame.ts;
+// that frame had no structures layer, overlay stage, registry or
 // timing.
 import { tgpu } from "typegpu";
 import { liveCamera, type ViewportCamera } from "@packages/renderer-core/src/cameraUniform";

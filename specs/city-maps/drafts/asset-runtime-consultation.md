@@ -219,7 +219,7 @@ So play waits on roughly ten authored sources.
 - Blender today is a separate script stage (`blender/build_sources.sh`, as the scene-assets README describes).
 
 **Fix:**
-- C13a: recipe → Blender → module GLBs and placement rows, cached by recipe hash, with project-owned manifest entries. Never run in `check`.
+- C13a: recipe → Blender → module GLBs and placement rows, cached by recipe hash. Never run in `check`.
 - C13b: the TypeScript library bake, the coverage check against `template_catalog_hash`, and the pure resolver.
 - Move the class × family coverage requirement to C54.
 

@@ -9,7 +9,6 @@
 import { GAME_RULES } from "../scenarios";
 import catalogJson from "../../../../assets/catalog.json";
 import type { Vec3 } from "math";
-import manifest from "../../../../reuse-manifest.json";
 import { previewRuntime } from "@packages/scene-assets/src/bake";
 import {
   AppearanceLibrary,
@@ -19,13 +18,7 @@ import {
 import { validateLoose, type LooseOptions } from "@packages/scene-assets/src/loose";
 import { INFANTRY_CLIPS } from "@packages/scene-assets/src/schema";
 import { reloadGameAppearances, gameAppearances } from "../gameAppearances";
-import type {
-  AppearanceUnit,
-  Catalog,
-  Finding,
-  ProvenanceEntry,
-  Side,
-} from "@packages/scene-assets/src/schema";
+import type { AppearanceUnit, Catalog, Finding, Side } from "@packages/scene-assets/src/schema";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import type { Stats } from "@packages/scene-assets/src/validate";
 import { AUTHORITY, footprint, placedProps, type Footprint, type PropClasses } from "./benchWorld";
@@ -53,7 +46,6 @@ function typeDrawing(name: string): string | null {
     null
   );
 }
-const PROVENANCE = (manifest as { third_party: ProvenanceEntry[] }).third_party;
 
 export interface LoadedModel {
   /** Appearance name in `installed`. */
@@ -133,7 +125,7 @@ export async function loadDropped(
     file,
     bytes,
     CATALOG,
-    { authority: AUTHORITY, tolerances: CATALOG.tolerances, provenance: PROVENANCE },
+    { authority: AUTHORITY, tolerances: CATALOG.tolerances },
     options,
   );
   const findings: LoadedModel["findings"] = [];

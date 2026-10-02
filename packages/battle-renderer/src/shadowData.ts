@@ -1,4 +1,4 @@
-// Adapted from ~/dev/game battle-renderer/src/shadowData.ts (reuse manifest):
+// Adapted from ~/dev/game battle-renderer/src/shadowData.ts:
 // cascade mode only (the single fitted map and its 700-line fit are dropped),
 // no crowd culling views, N cascades, splits over the receiver range, and a
 // normal bias and PCF radius that scale with each cascade's texel, all from

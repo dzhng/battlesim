@@ -60,7 +60,7 @@ and Godot web support need a separate implementation plan after the verdict.
   when testing JavaScript reuse. Inspect
   [device creation](../../packages/renderer-core/src/device.ts) for browser ties.
 - **Assets:** reuse project-owned sources and validated appearance data. Any new
-  art follows the root provenance policy. Godot imports must preserve units,
+  third-party art follows the root `AGENTS.md` rule for it. Godot imports must preserve units,
   coordinate conventions and material intent.
 
 Keep spike-specific adapters disposable. Promote shared seams only after a

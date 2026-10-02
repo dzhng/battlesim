@@ -5,7 +5,6 @@
 //                          a vehicle fitted to unit type T, or to every type that draws it)
 //   bake                   bake the catalog into assets/runtime/<hash>/bundle.bin and assets/runtime/catalog.json
 //   check                  re-bake in memory; fail if anything on disk is stale, missing or orphaned
-//   provenance <file...>   content hash, manifest entry and licence of each file
 //   pull [name...] [--sources]
 //                          git lfs pull exactly the runtime bundles (and sources) of the named entries
 //   blender <script.py> [args...]
@@ -17,8 +16,7 @@
 //                          --accept copies them to assets/review/<name>/
 //   icons                  write the generated icons (assets/icons/): every weapon row's,
 //                          every role's symbol and every unit type's silhouette
-//   grass [name...]        write each generated grass kind's GLB from its catalog spec
-//                          and record its hash in the reuse manifest (then bake)
+//   grass [name...]        write each generated grass kind's GLB from its catalog spec (then bake)
 //
 // Everything asset-specific lives in packages/scene-assets; this file is IO.
 
@@ -54,7 +52,7 @@ const { bakeCatalog, runtimeCatalogText } = await import("../packages/scene-asse
 const { contentSha256, lfsPointerOid, lfsPullCommand } =
   await import("../packages/scene-assets/src/glb.ts");
 const { bundlePath } = await import("../packages/scene-assets/src/schema.ts");
-const { hasErrors, validateProvenance } = await import("../packages/scene-assets/src/validate.ts");
+const { hasErrors } = await import("../packages/scene-assets/src/validate.ts");
 const { validateLoose } = await import("../packages/scene-assets/src/loose.ts");
 const { fixtureAuthority } = await import("../packages/scene-assets/src/authority.ts");
 const { UnitCatalog } = await import("../packages/scene-assets/src/units.ts");
@@ -65,7 +63,6 @@ const { runtimeLookup, unitSolids } = await import("../packages/scene-assets/src
 const ROOT = resolve(dirname(new URL(import.meta.url).pathname), "..");
 const CATALOG = join(ROOT, "assets/catalog.json");
 const RUNTIME = join(ROOT, "assets/runtime");
-const MANIFEST = join(ROOT, "reuse-manifest.json");
 const FIXTURE = join(ROOT, "fixtures/game.json");
 const ICONS = join(ROOT, "assets/icons");
 const UNIT_CATALOG = join(ROOT, "fixtures/catalog.json");
@@ -76,7 +73,6 @@ const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 const catalog = () => readJson(CATALOG);
 const authority = () =>
   fixtureAuthority(readJson(FIXTURE), new UnitCatalog(readJson(UNIT_CATALOG)));
-const provenance = () => readJson(MANIFEST).third_party;
 const repoPath = (path) => relative(ROOT, resolve(path));
 const readSource = async (path) => new Uint8Array(readFileSync(join(ROOT, path)));
 
@@ -122,11 +118,7 @@ async function validate(args) {
     throw new Error(
       "validate <glb> [--unit soldier|vehicle|building|scenery] [--type <unit type id>] [--yaw deg] [--clips glb] [--loop a,b]",
     );
-  const context = {
-    authority: authority(),
-    tolerances: catalog().tolerances,
-    provenance: provenance(),
-  };
+  const context = { authority: authority(), tolerances: catalog().tolerances };
   let failed = false;
   for (const file of positionals) {
     const path = repoPath(file);
@@ -185,7 +177,7 @@ async function validate(args) {
 }
 
 async function bakeAll() {
-  return bakeCatalog(catalog(), readSource, { authority: authority(), provenance: provenance() });
+  return bakeCatalog(catalog(), readSource, { authority: authority() });
 }
 
 function report(result) {
@@ -271,26 +263,6 @@ async function check() {
       : `check passed: ${result.files.size} bundle(s) match the catalog`,
   );
   return problems.length ? 1 : 0;
-}
-
-async function provenanceCommand(files) {
-  if (!files.length) throw new Error("provenance <file...>");
-  let failed = false;
-  for (const file of files) {
-    const path = repoPath(file);
-    const bytes = new Uint8Array(readFileSync(file));
-    const hash = await contentSha256(bytes);
-    const entry = provenance().find((e) => e.sha256 === hash);
-    console.log(`${path}: sha256 ${hash}${lfsPointerOid(bytes) ? " (from its LFS pointer)" : ""}`);
-    if (entry)
-      console.log(
-        `  manifest: ${entry.path}, licence ${entry.licence}, accepted by ${entry.accepted_by}`,
-      );
-    const findings = await validateProvenance(path, bytes, provenance());
-    printFindings(findings);
-    failed ||= hasErrors(findings);
-  }
-  return failed ? 1 : 0;
 }
 
 function pull(args) {
@@ -473,11 +445,9 @@ async function sheet(args) {
 }
 
 /** Generated grass kinds: each catalog entry with a `grass` spec gets its
- *  season state's GLB written from the spec, and a project-owned reuse
- *  manifest entry with the new hash. */
+ *  season state's GLB written from the spec. */
 async function grass(names) {
   const cat = catalog();
-  const manifest = readJson(MANIFEST);
   const entries = Object.entries(cat.appearances).filter(
     ([name, e]) => e.grass && (!names.length || names.includes(name)),
   );
@@ -491,21 +461,9 @@ async function grass(names) {
     const bytes = grassClumpGlb(name, entry.grass);
     mkdirSync(dirname(join(ROOT, path)), { recursive: true });
     writeFileSync(join(ROOT, path), bytes);
-    const sha256 = await contentSha256(bytes);
-    const record = {
-      path,
-      sha256,
-      licence: "project-owned",
-      covers: `the ${name} grass clump, generated from its catalog spec by \`asset grass\``,
-      accepted_by: "project: generated in this repo",
-    };
-    const at = manifest.third_party.findIndex((t) => t.path === path);
-    if (at >= 0) manifest.third_party[at] = record;
-    else manifest.third_party.push(record);
-    console.log(`${path}: ${sha256} (${(bytes.byteLength / 1024).toFixed(1)} KiB)`);
+    console.log(`${path}: ${(bytes.byteLength / 1024).toFixed(1)} KiB`);
   }
-  writeFileSync(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`);
-  console.log("recorded in the reuse manifest; now run bake");
+  console.log("now run bake");
   return 0;
 }
 
@@ -550,7 +508,6 @@ const commands = {
   validate,
   bake,
   check,
-  provenance: provenanceCommand,
   pull,
   blender,
   sheet,

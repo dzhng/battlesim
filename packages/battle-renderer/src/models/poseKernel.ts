@@ -5,8 +5,8 @@
 // `world · inverseBind` into the shared palette the model vertex stage reads.
 //
 // Rewritten from reading ~/dev/game battle-renderer/src/world/poseKernel.ts,
-// posePalette.ts and renderer-core/src/posePaletteWgsl.ts (reuse manifest,
-// technique): the same per-instance hierarchy walk and shortest-arc slerp,
+// posePalette.ts and renderer-core/src/posePaletteWgsl.ts:
+// the same per-instance hierarchy walk and shortest-arc slerp,
 // over our dense clip table (`clipTable.ts`) instead of the source's
 // snapshot banks and upper-body layer.
 

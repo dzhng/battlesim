@@ -10,13 +10,9 @@ The user is very technical but doesn't read the code day to day. Pointing at cod
 
 Lead with contracts. When work touches an interface between components (a command, an observation or publication layout, a digest, a fixture schema, a module boundary), say what the contract looks like and how it changed before anything else.
 
-## Provenance
+## Art we didn't make
 
-Every reused byte has a recorded source. Code copied from another project and every art source, ours or third-party, is entered in [`reuse-manifest.json`](reuse-manifest.json) with its content hash, an allowed licence and the user's acceptance; the asset validator refuses anything without an entry.
-
-A project we copy from is read-only: never edit it and never import from it at runtime.
-
-Reference images are for judging our work. They never ship.
+Third-party art needs a known source and a licence that allows shipping, recorded beside the asset. Reference images are for judging our work. They never ship.
 
 ## Proving a change
 

@@ -3,7 +3,7 @@
 // the scene saves it as evidence, and the row is derived from it.
 //
 // Ported by technique from ~/dev/game/web/src/battle/benchmark/
-// benchmarkReport.ts (see the reuse manifest).
+// benchmarkReport.ts.
 import type { BenchmarkRecording } from "./recording";
 import { benchmarkFingerprint, type BenchmarkLength, type BenchmarkScenario } from "./scenario";
 

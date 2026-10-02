@@ -69,7 +69,7 @@ export async function bakeCatalog(
   for (const id of Object.keys(catalog.skeletons).sort()) {
     if (!wanted(id) && !neededSkeletons.has(id)) continue;
     const entry = catalog.skeletons[id];
-    const result = await validateSkeleton(id, entry, await readSource(entry.source), context);
+    const result = await validateSkeleton(id, entry, await readSource(entry.source));
     const out = result.bundle ? await emit(result.bundle) : null;
     if (result.bundle && out) {
       clipsById.set(id, result.bundle);

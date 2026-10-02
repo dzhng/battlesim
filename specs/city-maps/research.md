@@ -49,7 +49,7 @@ Textures run 512²–4096², and some are strips: `walls_col.jpg` is 1024×16384
 
 The only exceptions are the fonts in `public/assets/ui/fonts/`, under SIL OFL 1.1, and npm dependencies under their own licences. On top of that, the README disclaims Marvel/Sony/Disney IP.
 
-Consequence: **no mesh, texture, shader, audio, layout data or code from spiderbench may enter this repo**, under any reuse-manifest mode (`copy`, `adapted` or `technique`). The OFL fonts are outside our allow-list (`packages/scene-assets/src/schema.ts` `ALLOWED_LICENCES = CC0-1.0, MIT, project-owned`), and we don't need them. Ideas aren't copyrightable, and the techniques it uses are all published practice with older public sources:
+Consequence: **no mesh, texture, shader, audio, layout data or code from spiderbench may enter this repo**, whether copied, adapted or rewritten from reading it. We don't need its OFL fonts. Ideas aren't copyrightable, and the techniques it uses are all published practice with older public sources:
 - interior mapping: van Dongen, 2008;
 - lot subdivision and archetypes: Parish & Müller, "Procedural Modeling of Cities", SIGGRAPH 2001;
 - tile batching.
@@ -84,7 +84,7 @@ These are facts from the code, read 2026-09-27.
 - **Navigation** (`crates/sim/src/navigation.rs`). A 2 m grid with 0.5 m infantry sub-cells and a clearance field per push class. Its cost is by area, so a 1.6 km city costs the same as the village, and it grows with the square of the map side.
 - **Props** have a uniform XY bucket grid for raycasts (`world/props.rs`), and every prop's integrity enters the digest. Known props are per side and publish through the observation, so publication bytes scale with known props.
 - **Renderer buildings** (`models/propAppearance.ts`). Each building is one of three house GLBs (`house_a..c`, each with a `_ruin`), chosen by box size and fitted to it. Buildings are `MAP_ONLY`. Walls and fences are `MODULAR`, repeating a module along the box. There is no per-building procedural geometry.
-- **Asset pipeline** (`packages/scene-assets/README.md`, the renderer skill's `references/procedural-assets.md`). Headless Blender scripts produce GLBs with `_LOD0..3` tiers. The bake produces a content-addressed bundle v3 with 256 px albedo, normal and ORM textures, 1024 px at most. The validator checks provenance against the reuse manifest's allow-list.
+- **Asset pipeline** (`packages/scene-assets/README.md`, the renderer skill's `references/procedural-assets.md`). Headless Blender scripts produce GLBs with `_LOD0..3` tiers. The bake produces a content-addressed bundle v3 with 256 px albedo, normal and ORM textures, 1024 px at most.
 - **Performance.** The village frame has headroom: about 8.3 ms p50, 2–4 ms GPU. Models are "not measurable" at battle scale thanks to projected-pixel tiers and impostor cards. Tree impostors were rejected for shimmering under 4× MSAA.
 
 ## Other prior art worth reading (ideas only)
@@ -97,4 +97,4 @@ These are facts from the code, read 2026-09-27.
 
 [Pack page](https://threejsassets.com/packs/construction-site), announced in [this tweet](https://x.com/threejsassets/status/2104540674209010019). It has 63 GLB assets (barriers, Heras fencing, pallets, skips), sold at $39, or in a $197 all-access library.
 
-**Verdict: files unusable, ideas only.** Their [licence](https://threejsassets.com/license) (v1, 2026-07-08) allows use inside end products but forbids "redistributing … or making the asset files available as standalone files". The free tier carries the same clause. This repo is public (`dzhng/battlesim`), so committing their files would be redistribution, and their licence isn't in `ALLOWED_LICENCES`. Their licence says an upstream CC0 original keeps its CC0 grant, so take such an asset from its original source, never from their repackaged file. The kinds it inspired are in C44 and C45 as project-owned models.
+**Verdict: files unusable, ideas only.** Their [licence](https://threejsassets.com/license) (v1, 2026-07-08) allows use inside end products but forbids "redistributing … or making the asset files available as standalone files". The free tier carries the same clause. This repo is public (`dzhng/battlesim`), so committing their files would be redistribution, which their licence forbids. Their licence says an upstream CC0 original keeps its CC0 grant, so take such an asset from its original source, never from their repackaged file. The kinds it inspired are in C44 and C45 as project-owned models.

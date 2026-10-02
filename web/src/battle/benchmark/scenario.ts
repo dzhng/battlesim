@@ -7,7 +7,7 @@
 // Another preset (the endurance battle, say) is another entry here.
 //
 // Ported by technique from ~/dev/game/web/src/battle/benchmark/
-// benchmarkScenario.ts (see the reuse manifest).
+// benchmarkScenario.ts.
 import { BENCHMARK_TOUR, type BenchmarkTour } from "./camera";
 
 export type BenchmarkLength = "full" | "short";

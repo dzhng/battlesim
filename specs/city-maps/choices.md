@@ -2578,3 +2578,31 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 **Gap:** `game.json`'s village map starts its two roads at one point at an angle (140, 780), which is now a bite on the outside of that joint, and its roads and the labs' start and stop in open ground 10 to 140 m from the map's edge, by design of the old round cap. Another lane was moving those maps while this ran.
 
 **Verdict:** open. Listed for the map lane: make the village's two roads one stroke through (140, 780), and run the lab and village roads to the edge or to something. **Confidence:** high that they need it.
+
+## Reuse manifest removed
+
+**When:** 2026-10-01, at the owner's request: delete it unless it can be justified.
+
+### The manifest, its test and the asset validator's provenance checks are deleted
+
+**Choice:** `reuse-manifest.json`, its test, the validator's provenance findings, the licence allow-list in the asset schema, the `asset provenance` command and every step that rewrote a hash in the manifest are gone. Nothing replaces them.
+
+**Gap:** C10, L10 and slices C16 to C19, C67 and C74 planned to extend the manifest.
+
+**Verdict:** sound. Its record of code taken from the owner's sibling project raised no licence question, about half of it said nothing was copied, and only a test of the manifest itself read it. Forty-one of its fifty-one art rows were our own generated sources, hashed and "accepted", so every rebake had to rewrite a hash that the bake's own check and git already cover. The origin of ported code stays where it always was, in each file's header comment. **Confidence:** high.
+
+### Kept: the pack pins, and a plain note of third-party sources
+
+**Choice:** `packages/scene-assets/blender/packs.json` holds each downloaded pack's zip name, URL, licence and sha256, and the sha256 of each file read from it; only `packs.py` reads it. `assets/README.md` lists every third-party art source with its URL and licence. The three.js-derived shader code keeps its licence file beside it.
+
+**Gap:** A pack is downloaded, not committed, so git cannot notice a re-upload; a third-party asset still needs a known source and a licence that allows shipping.
+
+**Verdict:** sound. The pin is the one check that did real work: it stops a build on changed pack bytes instead of silently changing the art. C10 is rewritten to this contract. **Confidence:** high.
+
+### Dropped with it: two guards that did not depend on the manifest's rows
+
+**Choice:** The test that no source file imports the sibling project by path, and C10's planned test refusing the two unknown-source interior atlases by hash, are not carried over.
+
+**Gap:** Both lived in the manifest's test file.
+
+**Verdict:** provisional. An import by a path outside the repo already fails in every worktree and any other checkout, and the atlases are excluded by Q-E and the README's firewalls. Either can come back as a small test of its own if the owner wants the guard. **Confidence:** medium.

@@ -12,7 +12,6 @@ import {
   type SkeletonClips,
   type Finding,
   type FindingCode,
-  type ProvenanceEntry,
   type SkeletonEntry,
 } from "@packages/scene-assets/src/schema.ts";
 import {
@@ -73,7 +72,6 @@ async function tank(
   options: TankOptions = {},
   entry: Partial<AppearanceEntry> = {},
   bytes?: Uint8Array,
-  provenance?: ProvenanceEntry[],
 ) {
   const source = "tank.glb";
   return (
@@ -83,7 +81,7 @@ async function tank(
         entry: { unit: "vehicle", source, basis_yaw_deg: 0, mounts: TANK_DRAWS, ...entry },
         files: { [source]: bytes ?? tankGlb(options) },
       },
-      { ...context, provenance },
+      context,
     )
   ).findings;
 }
@@ -137,7 +135,7 @@ async function scenery(
 }
 
 async function skeleton(entry: Partial<SkeletonEntry>, bytes = soldierGlb()) {
-  return (await validateSkeleton("test-rig", { ...SKELETON_ENTRY, ...entry }, bytes, {})).findings;
+  return (await validateSkeleton("test-rig", { ...SKELETON_ENTRY, ...entry }, bytes)).findings;
 }
 
 const withJson = (bytes: Uint8Array, edit: (json: Record<string, unknown>) => void): Uint8Array => {
@@ -254,16 +252,6 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   "nodes.duplicate": () => tank({ duplicateWheel: true }),
   "nodes.track_properties": () => tank({ noTrackProperties: true }),
   "nodes.deploy_motion": () => truck({ noDeployMotion: true }),
-  "provenance.unlisted": () => tank({}, {}, undefined, []),
-  "provenance.licence": async () => {
-    const bytes = tankGlb();
-    const digest = Buffer.from(
-      await crypto.subtle.digest("SHA-256", bytes as Uint8Array<ArrayBuffer>),
-    ).toString("hex");
-    return tank({}, {}, bytes, [
-      { path: "tank.glb", sha256: digest, licence: "CC-BY-NC-4.0", accepted_by: "nobody" },
-    ]);
-  },
 };
 
 test("the valid synthetic assets produce no findings at all", async () => {
