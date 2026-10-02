@@ -59,6 +59,9 @@ export const FINDING_CODES = [
   "fit.mount_draw",
   /** A unit type names an appearance the catalog lacks, or of the wrong kind. */
   "fit.type_appearance",
+  // frame cost
+  /** A scenery kind's tier draws more triangles than its row allows. */
+  "budget.tier_triangles",
   // required nodes
   "nodes.missing",
   "nodes.hierarchy",
@@ -295,9 +298,10 @@ export interface Authority {
   infantry_eye_m: number;
   infantry_muzzle_m: number;
   units: UnitCatalog;
-  /** The forest canopy (`forests.rule.canopy_height_m`): a tree, unscaled,
-   *  stands inside it. */
+  /** The forest canopy (`forests.rule.canopy_height_m` and
+   *  `canopy_radius_m`): a tree, unscaled, stands inside it. */
   canopy_height_m: number;
+  canopy_radius_m: number;
   /** A destroyed building becomes a ruin this tall (the fixture's `buildings` block). */
   ruin_height_m: number;
 }

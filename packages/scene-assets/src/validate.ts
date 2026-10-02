@@ -218,12 +218,11 @@ export async function validateAppearance(
       if (entry.unit === "scenery" && SCENERY_KINDS[entry.scenery ?? ""]?.blades)
         findings.push(...grassStripFindings(path, built.tiers));
       findings.push(...groundFindings(`${path}`, bounds.min[2], tolerances));
-      if (
-        entry.unit === "scenery" &&
-        entry.scenery !== undefined &&
-        SCENERY_KINDS[entry.scenery]?.footprint.kind === "tree"
-      )
-        findings.push(...canopyFindings(path, bounds, context.authority, tolerances));
+      const rule = entry.unit === "scenery" ? SCENERY_KINDS[entry.scenery ?? ""] : undefined;
+      if (rule?.footprint.kind === "tree")
+        findings.push(...canopyFindings(path, built.tiers, context.authority, tolerances));
+      if (rule?.tier_triangles)
+        findings.push(...budgetFindings(path, built.tiers, rule.tier_triangles));
     }
     states.sort((a, b) => a.name.localeCompare(b.name));
     if (required)
@@ -882,25 +881,57 @@ function deployFindings(
   return out;
 }
 
-/** A tree, unscaled, stands inside the simulation's lowest forest canopy:
- *  placement only scales it down to fit each forest, so the drawn crown never
- *  rises above the foliage that attenuates sight. */
+/** A tree, unscaled, stands inside the simulation's forest canopy on every
+ *  tier, so the drawn crown never rises above or reaches past the foliage
+ *  that attenuates sight. */
 function canopyFindings(
   label: string,
-  bounds: Bounds,
+  tiers: MeshData[],
   authority: Authority,
   tolerances: Tolerances,
 ): Finding[] {
-  const top = bounds.max[2];
-  return top > authority.canopy_height_m + tolerances.ground_m
-    ? [
-        finding(
-          "fit.canopy",
-          `${label}: crown top at ${fmt(top)} m, above the forests' canopy of ${authority.canopy_height_m} m (forests.rule.canopy_height_m)`,
-          "lower the crown under the canopy height; placement scales each tree down to fit its forest",
-        ),
-      ]
-    : [];
+  let top = 0;
+  let reach = 0;
+  for (const { positions: p } of tiers)
+    for (let i = 0; i < p.length; i += 3) {
+      top = Math.max(top, p[i + 2]);
+      reach = Math.max(reach, Math.hypot(p[i], p[i + 1]));
+    }
+  const out: Finding[] = [];
+  if (top > authority.canopy_height_m + tolerances.ground_m)
+    out.push(
+      finding(
+        "fit.canopy",
+        `${label}: crown top at ${fmt(top)} m, above the forests' canopy of ${authority.canopy_height_m} m (forests.rule.canopy_height_m)`,
+        "lower the crown under the canopy height",
+      ),
+    );
+  if (reach > authority.canopy_radius_m + tolerances.ground_m)
+    out.push(
+      finding(
+        "fit.canopy",
+        `${label}: crown reaches ${fmt(reach)} m from the trunk's axis, past the forests' canopy radius of ${authority.canopy_radius_m} m (forests.rule.canopy_radius_m)`,
+        "narrow the crown inside the canopy radius",
+      ),
+    );
+  return out;
+}
+
+/** Each tier of a kind instanced by the hundred draws no more triangles
+ *  than its `SCENERY_KINDS` row allows. */
+function budgetFindings(label: string, tiers: MeshData[], budget: readonly number[]): Finding[] {
+  return tiers.flatMap((mesh, t) => {
+    const triangles = triangleCount(mesh);
+    return triangles > budget[t]
+      ? [
+          finding(
+            "budget.tier_triangles",
+            `${label}: tier ${t} draws ${triangles} triangles, over its budget of ${budget[t]}`,
+            "simplify the tier, or change the kind's tier_triangles (packages/scene-assets/src/scenery.ts) with a paired frame-cost row",
+          ),
+        ]
+      : [];
+  });
 }
 
 interface ExtentRule {
