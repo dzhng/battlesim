@@ -33,7 +33,11 @@ import summer from "@fixtures/biomes/summer.json";
 import { loadMap } from "@web/maps/node";
 import { groundHeight } from "@packages/battle-renderer/src/terrain/terrainGrid";
 import { packTerrainHeights } from "@packages/battle-renderer/src/frame/terrainHeights";
-import { groundReach, roadLooks } from "@packages/battle-renderer/src/frame/terrainMaterial";
+import {
+  groundReach,
+  roadLooks,
+  roadOrder,
+} from "@packages/battle-renderer/src/frame/terrainMaterial";
 
 const geometry = loadMap("geometry").definition;
 const riverLab = loadMap("river").definition;
@@ -552,6 +556,29 @@ test("a road's markings are its row's, and the field is read as far as a crossin
     /roads\.road\.markings\.dash_m: must be \[dash, gap\]/,
   );
   expect(() => marked({ line_m: 3 })).toThrow(/roads\.road\.markings\.line_m/);
+});
+
+test("paving is painted in the simulation's order unless a row names its layer", () => {
+  const plain = { ...biome.roads.default, layer: undefined };
+  const rows = (road: object) =>
+    validateBiome({ ...biome, roads: { default: plain, road: { ...plain, ...road } } } as Biome);
+  const names = (order: number[]) => order.map((tag) => SURFACE_AREA_KINDS[tag]);
+  // Lowest first: the earlier kind is on top.
+  expect(names(roadOrder(rows({})))).toEqual(["sidewalk", "dirt_track", "country_road", "road"]);
+  // A street under the country road it meets, still over a track.
+  expect(names(roadOrder(rows({ layer: 2.5 })))).toEqual([
+    "sidewalk",
+    "dirt_track",
+    "road",
+    "country_road",
+  ]);
+  // On a map whose roads are all `road`, they are country roads: on top.
+  expect(names(roadOrder(rows({ layer: 2.5 }), new Set(["road"] as const)))).toEqual([
+    "sidewalk",
+    "dirt_track",
+    "country_road",
+    "road",
+  ]);
 });
 
 test("a map that names no kind but road has its roads drawn as country roads", () => {

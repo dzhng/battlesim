@@ -124,6 +124,10 @@ export interface Road {
   shoulder: Shoulder;
   ruts: Ruts;
   centre_strip: CentreStrip;
+  /** Where two kinds' paving overlaps, the higher layer is drawn on top.
+   *  Left out, the simulation's own order: 4 for a road, 3 for a country
+   *  road, 2 for a dirt track, 1 for a sidewalk. */
+  layer?: number;
   /** The paved kind whose row draws this kind where it is laid as an area (a
    *  polygon: a yard, a square) and not along a stroke. Left out, its own. */
   area?: string;
@@ -599,6 +603,7 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
       if (!(SURFACE_AREA_KINDS as readonly string[]).includes(row))
         bad(path, `names no paved kind "${row}"`);
     };
+    if (road.layer !== undefined) within(`${at}.layer`, road.layer, 0, 100);
     if (road.area !== undefined) paved(`${at}.area`, road.area);
     if (road.walk) {
       paved(`${at}.walk.kind`, road.walk.kind);
