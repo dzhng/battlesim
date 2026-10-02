@@ -5,6 +5,30 @@
 ## Question
 Can steady-state and snapshot delivery fit their distinct budgets without hidden-state leaks or unbounded full-map copies?
 
+## Latest measured checkpoint
+
+The 60 s layout-7 controls at `95f7db1b` use Metro Large seed 4, map
+`d8a0c783…`, rules `a59680c1…` and native/Wasm build `0666de00…`. Each arm
+has 100 living units per side; late adds 20,000 corpses and 2,000 wrecks.
+
+| Whole delivery | Early | Late |
+|---|---:|---:|
+| Mean / p95 / maximum B per active tick | 4,860 / 14,452 / 19,264 | 5,050 / 14,440 / 19,520 |
+| Cold blue snapshot B | 440,772 | 866,496 |
+| Blue resync at 60 s B | 1,058,448 | 1,511,840 |
+| Red switch at 60 s B | 986,176 | 1,432,508 |
+| Mean / maximum packing M instructions | 3.583 / 10.243 | 7.275 / 22.219 |
+
+Both sampled active maxima fit the unchanged 19,800 B limit; the late margin
+is 280 B. Observation construction is separate from packing. Resync costs
+about 69 M instructions per arm, so it does not inherit the active-record
+admission. Independent raw-word reconstruction covers all 3,602 records;
+canonical group samples and the actual browser decoder agree at five ticks per
+arm, with earlier views retained. These are correctness proofs, not decoder
+throughput measurements. Active heap and browser copy/decoder overlap remain
+unclaimed. The subsequent building-catalogue cutover needs its own identified
+final admission; these controls are not relabelled as current-main evidence.
+
 ## Contract it unlocks
 Implement G0's measured fog/known-prop publication representation, with the observation decoder cut over in the same commit. Possible measured arms include bounded changed tiles/masks and known-prop deltas with an initial snapshot. Sending the entire Large 8 m fog every sixth tick is not assumed sufficient; full snapshots and resubscription have their own byte/time/peak-memory budget.
 

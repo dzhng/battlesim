@@ -253,7 +253,8 @@ The frozen `layout-6` physical Metro Large seed-4 map is loaded in the ordinary
 browser worker and production view: 10 × 10 km, 13,006 buildings, 22,577 parts,
 100 living units per side. Its generated identity is `33bbd0d9…`, catalogue
 `5416684f…`. The 60 s early arm advances 1,787 ticks (29.8 Hz); the late arm
-advances 1,661 (27.7 Hz). Neither admits the required 30 Hz. Worst sampled frame
+advances 1,661 (27.7 Hz). Neither met the original 30 Hz target; both meet the
+later provisional floor on these frozen inputs. Worst sampled frame
 p95/p99 are 58.7/91.7 ms early and 67.4/75.1 ms late. Late whole-page memory,
 including the worker, is 1,173 MiB; final main-thread heaps are 581/931 MiB.
 These measurements include immutable static decoder/feed reuse, before the
