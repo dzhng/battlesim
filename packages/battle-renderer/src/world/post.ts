@@ -69,6 +69,11 @@ const finalLayout = tgpu.bindGroupLayout({
   grade: { uniform: Grade },
 });
 
+/** What post makes of the scene: the look (bloom, grade, tone map); the tone
+ *  map alone, so a mask's white stays white and its black black; or the
+ *  scene's values untouched, for a view whose bytes are data. */
+export type PostMode = "look" | "ungraded" | "raw";
+
 /** Borrowed input/output/device; TypeGPU owns all intermediate HDR resources and
  * pipeline encoding. Adapted: `settings` (exposure, grade,
  * bloom from `presentation.light`) are fixed for the chain's life, so the
@@ -262,6 +267,16 @@ export async function createTypegpuPost(
     });
     const direct = pipeline(directShader, outputFormat);
     init.push(direct.initAsync());
+    const rawShader = tgpu.fn(
+      [d.vec2f],
+      d.vec4f,
+    )((uv) => {
+      "use gpu";
+      const texel = std.textureSample(finalLayout.$.scene, finalLayout.$.linearSampler, uv);
+      return d.vec4f(texel.xyz, 1);
+    });
+    const raw = pipeline(rawShader, outputFormat);
+    init.push(raw.initAsync());
     const final = pipeline(finalShader, outputFormat);
     init.push(final.initAsync());
     const zero = texture(1, 1);
@@ -278,19 +293,19 @@ export async function createTypegpuPost(
     const pipelinesReady = Promise.all(init);
     await Promise.all([pipelinesReady, admission()]);
     return {
-      encode(encoder: GPUCommandEncoder, output: GPUTextureView, bloom = true, enabled = true) {
+      encode(encoder: GPUCommandEncoder, output: GPUTextureView, mode: PostMode = "look") {
         if (disposed) throw new Error("TypeGPU post is disposed");
-        if (!enabled) {
-          direct
+        if (mode !== "look") {
+          (mode === "raw" ? raw : direct)
             .with(groups[0])
             .with(encoder)
             .withColorAttachment({ view: output, clearValue: [0, 0, 0, 0] })
             .draw(3);
           return;
         }
-        if (bloom) for (const stage of stages) stage(encoder);
+        for (const stage of stages) stage(encoder);
         final
-          .with(groups[bloom ? 1 : 0])
+          .with(groups[1])
           .with(encoder)
           .withColorAttachment({ view: output, clearValue: [0, 0, 0, 0] })
           .draw(3);

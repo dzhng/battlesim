@@ -94,7 +94,10 @@ export interface InstalledDepthState {
  *  mask draws the resolved fog mask: black where unseen, white elsewhere
  *  (seen, and whatever fog never covers: units, the sky, the backdrop). The
  *  ground mask draws the same mask's ground coverage: white where a pixel is
- *  mostly ground (the terrain and grass), black elsewhere. */
+ *  mostly ground (the terrain and grass), black elsewhere. The ground classes
+ *  draw what the terrain material says the ground under each pixel is
+ *  (`terrain/groundClasses.ts`), byte for byte: black where the pixel is not
+ *  wholly bare terrain; grass and water are left out so the ground shows. */
 export type FrameView =
   | "final"
   | "world"
@@ -102,6 +105,7 @@ export type FrameView =
   | "overlays-on-white"
   | "fog-mask"
   | "ground-mask"
+  | "ground-classes"
   | "paint";
 export const FRAME_VIEWS: readonly FrameView[] = [
   "final",
@@ -110,6 +114,7 @@ export const FRAME_VIEWS: readonly FrameView[] = [
   "overlays-on-white",
   "fog-mask",
   "ground-mask",
+  "ground-classes",
   "paint",
 ];
 
@@ -145,7 +150,7 @@ export interface FrameStats {
     rimWidthPx: number;
     reachPx: number;
     /** Which mask compose draws in place of the look ("none" for the look). */
-    maskView: "none" | "fog" | "ground";
+    maskView: "none" | "fog" | "ground" | "classes";
   };
   /** The overlays' own halo (0 strength: none drawn). */
   overlay: { glowRadiusPx: number; glowStrength: number };
@@ -239,6 +244,9 @@ export interface BattleFrame {
   setCastLightsShown(on: boolean): void;
   /** The pass inspector's view. */
   setView(view: FrameView): void;
+  /** Lab diagnostics: draw the trees (the forest's and the backdrop's) and
+   *  their shadows or not; massing still draws. */
+  setTreesShown(on: boolean): void;
   /** Lab probes of the sight lights (debug readbacks, never in a frame). */
   readonly fogProbes: FogProbes;
   /** Lab probes of the grass field (debug readbacks, never in a frame). */

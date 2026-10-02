@@ -2615,3 +2615,54 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 **Verdict:** sound. The snapshots proved cutovers whose old implementations no longer exist; since then they only failed on deliberate changes and were re-recorded unread. One snapshot was the sole test of a rule (how cleared ground thins foliage in Wasm) and was replaced by a small behaviour test. **Confidence:** high.
 
 **Open:** the stream record is the only native-against-Wasm check of the simulation itself, and it is a four-unit move with no firing; a short battle with combat would be a stronger pair at the same cost.
+
+
+## C62 ground evidence rig
+
+### The mask is a frame view the terrain writes, not a readback or a CPU picture
+
+**Choice:** `ground-classes` is a `FrameView`: the terrain's own fragment writes three class bytes, the fog mask pass keeps only pixels that are wholly ground, and post passes them through untouched.
+
+**Gap:** The slice says the mask is "written by the terrain material's own shading function" and delegates the encoding.
+
+**Verdict:** sound. A mask computed anywhere else could drift from what is drawn; this one is the same site lookup the colour uses, lined up with the shot pixel for pixel. It cost a third post mode, because the two existing mask views survive the tone map only by being black or white. **Confidence:** high.
+
+### Distances in the mask are exact only within the look's own reach
+
+**Choice:** The mask holds the distance the material reads. Past `groundReach` (about 1 to 2 m from a road edge at a play-camera pixel, 4.5 m from a forest, 3 m from water) it keeps its side and may read farther than the truth.
+
+**Gap:** The slice asks for "road signed-distance bands, river bands"; later slices name bands out to 6 and 8 m.
+
+**Verdict:** provisional. Widening the reach for the mask alone would cost the final view (more records a lookup), against "the mask view adds 0 ms". A slice that draws a wider band must widen the reach to draw it, and the mask is then exact over that band. Until C67 lands, "the grass beside the road" is "outside, within a few pixels", not "SD in 1 to 3 m". **Confidence:** medium.
+
+### Black means "not wholly ground", and grass and water are left out of the view
+
+**Choice:** A mask pixel is black where any sample is a building, tree, unit or the backdrop; the view skips the grass and the water surface so the ground under them is read.
+
+**Gap:** The slice does not say what a non-ground pixel holds.
+
+**Verdict:** sound. A mixed pixel would decode to a wrong class; the river's bed has to show to carry its distance. To read the floor under a wood, shoot the mask with `trees: false`. **Confidence:** high.
+
+### Generated-map stations follow the map's own report
+
+**Choice:** The generated map's stations are functions of the preparation report's anchors (the objective town, blue's start, the map's size), not coordinates.
+
+**Gap:** "Lab maps add theirs"; the lane asks for a generated map at the tactical camera and close.
+
+**Verdict:** sound. The layout generator's version moves often; fixed coordinates would land in a different field each time. **Confidence:** high. They show a town street and a country road between fields; a station on a generated forest edge or river waits until a slice needs one.
+
+### `forest-deep-25` looks down at 0.6 rad
+
+**Choice:** The deep-forest station is 25 m away at 0.6 rad, above the canopy, not at the ground view's 0.32 rad.
+
+**Gap:** The slice names the station, not its pitch.
+
+**Verdict:** provisional. At 0.32 rad the eye is 8 m up, inside a crown, and the frame is one leaf. C76 (see the floor through the canopy) may want a second pose under the crowns once trunks are bare below them. **Confidence:** medium.
+
+### The final view's cost is argued, not measured
+
+**Choice:** No paired frame-cost run for the view's switch.
+
+**Gap:** "The mask view adds 0 ms to the final view."
+
+**Verdict:** sound. The final view gains one uniform comparison per terrain fragment; the machine's run-to-run noise is hundreds of times that. **Confidence:** high.

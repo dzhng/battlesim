@@ -47,9 +47,10 @@ type Root = ReturnType<typeof tgpu.initFromDevice>;
 const MASK_SEEN = 16;
 const MASK_PART = "0.35";
 
-/** What compose draws: the fogged world, the fog mask or its ground coverage. */
+/** What compose draws: the fogged world, the fog mask, its ground coverage,
+ *  or the ground's classes as the terrain wrote them. */
 const FogMaskView = d.struct({ mask: d.u32 }).$name("FogMaskView");
-const MASK_VIEWS = { none: 0, fog: 1, ground: 2 } as const;
+const MASK_VIEWS = { none: 0, fog: 1, ground: 2, classes: 3 } as const;
 export type FogMaskViewKind = keyof typeof MASK_VIEWS;
 
 const rowsLayout = tgpu.bindGroupLayout({
@@ -153,6 +154,12 @@ const composeFog = tgpu
     // Mostly ground (more than half the pixel's samples) white, else black.
     let ground = textureLoad(composeLayout.$.mask, p, 0).z > 0.5;
     return vec4f(vec3f(select(0.0, ${MASK_SEEN}.0, ground)), 1.0);
+  }
+  if (composeLayout.$.view.mask == 3u) {
+    // The terrain's bytes where every sample of the pixel is ground; black
+    // where anything else covers any of it.
+    let ground = textureLoad(composeLayout.$.mask, p, 0).z >= 0.999;
+    return vec4f(select(vec3f(0.0), lit.xyz, ground), 1.0);
   }
   if (m.x <= 0.0) { return lit; }
   let s = composeLayout.$.look;
@@ -266,8 +273,8 @@ export async function createFogMaskPass(
       style = next;
       look.write(fogStyleUniform(next));
     },
-    /** Show the resolved mask (white seen, black unseen), or its ground
-     *  coverage (white ground), instead of the look. */
+    /** Show the resolved mask (white seen, black unseen), its ground
+     *  coverage (white ground) or the ground's classes, instead of the look. */
     setMaskView(kind: FogMaskViewKind) {
       maskView = kind;
       view.write({ mask: MASK_VIEWS[kind] });
