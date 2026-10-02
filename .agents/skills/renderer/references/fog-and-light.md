@@ -79,6 +79,8 @@ occlusion readable without an absolute pixel-size cutoff.
   - a dark collar round a crater, or a bowl floor darker than 0.7;
   - a scorch wash;
   - a normal tilt past 40° (it gives a grey sky sheen that reads as fog).
+- **A shore or shoulder that must not be darker than its field is measured a side at a time.** Pooled over both banks the old dark shore read up to 1.04 times the grass, on the sunlit bank's surplus; a bank at a time it read 0.58 and 0.73. Draw the band at a floor relative to the field it lies on (the biome's `shore.lift`, above 1 for the bank that faces away), in its own hue, and check rendered luminance per bank against the grass on the same section (`river` scene).
+- **A bank shaded at its full slope goes black at a low sun,** a dark band with nothing above it to cast it. `shore.relief` shows a share of the slope. The trade is unsettled: at half, fresh eyes see no relief on the banks at all, and more relief needs more lift to keep the far bank at its field's luminance.
 - **Ask the critique directly:** "Could any dark region be mistaken for sun shadow, or any shadow for fog?" It's the standing last question for any look change.
 - **Standing critique findings left as known:** hatch moiré on walls, the rim outlining grass like frost, distant fog strips reading as water, and fogged wreck faces reading as paint. Don't rediscover them as new.
 

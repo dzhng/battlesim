@@ -2666,3 +2666,73 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 **Gap:** "The mask view adds 0 ms to the final view."
 
 **Verdict:** sound. The final view gains one uniform comparison per terrain fragment; the machine's run-to-run noise is hundreds of times that. **Confidence:** high.
+
+## C70 river bank bands
+
+### The bands are wet silt, then bare earth whose outer line wanders in
+
+**Choice:** Two bands by the simulation's distance from the water's edge (`groundShore`, the biome's `shore` row): wet silt for 0.6 m, then bare earth out to 5 m at most. The earth's outer line wanders in toward the water by up to half that reach and never out past it. Grass stands nowhere on the wet bank and thickens all the way across the earth.
+
+**Gap:** "Band widths, palettes, noise" are delegated; the slice names bed, wet bank, mud and grass.
+
+**Evidence:** The one-sided line keeps the water's distance bounded: nothing reads it past `mud_m`. The first line was one octave of value noise on the map's axes with its contrast stretched; fresh eyes called it scalloped at 250 m and "flat runs and sudden jogs" at 65 m, as they had C69's ragged band. It is now two octaves on lattices turned from the map's axes and from each other, with no clamp; a second critique still called it regular lobes at 250 m, with high confidence.
+
+**Verdict:** sound for the bands and the bounded reach; provisional for the line, which wants something other than value noise. The bank is still one width on both sides of every bend (no point bar, no cut bank), which fresh eyes read as a stripe at 250 m. That is bank art, out of this slice. **Confidence:** medium.
+
+### "At or above the grass's luminance" is a floor against the field the bank lies on
+
+**Choice:** Both bands are drawn at least `shore.lift` (1.15) times as light as the plot under them, in their own hue: the palette's colour scaled up where it is darker than that. The plot's lightness is its own colour with its rows at their mean, eased to the verge's over 10 m toward the plot's edge.
+
+**Gap:** The slice says "at or above grass luminance, differing by hue" and does not say which grass: fields run from dark young crop to wheat twice as light.
+
+**Evidence:** A fixed palette light enough for wheat was a pale road beside every dark field (banks at twice the field's luminance in the first round). A floor against the pixel's own ground carried each furrow's stripe into the bank. A floor against the plot stepped at every plot edge that meets the river: fresh eyes named those seams and wedges the first thing to fix. Eased to the verge's lightness at the plot's edge, two fields' banks meet in one tone. The lift is above 1 because a bank facing away from the sun is lit less than the flat field beside it.
+
+**Verdict:** sound against the rule, checked on rendered frames on each bank separately (`river` scene). Within 10 m of a plot's edge a bank beside a light crop can sit a little under that crop; the scene's medians hold. **Confidence:** medium: the bank's tone still follows the field's, more gently.
+
+### A bank's shading shows half its true slope
+
+**Choice:** `shore.relief` (0.5) scales the slope `groundBank` shades by. Validation holds it to at most 1.
+
+**Gap:** C69 left "the bank reading as a slope rather than a smudge at a low sun" to the look.
+
+**Evidence:** The lab's banks slope 14°. Lit as cut, the bank facing away from a sun 17° up takes almost no direct light: the dark band with nothing above it that C69's critique called a smudge. At half the slope it keeps, by the angles, about three fifths of the flat ground's, on a band that is now bare earth and reads as a bank.
+
+**Verdict:** provisional. Both critiques saw no relief on the banks at 250 m under a low sun, and the second called the bank a flat stripe at every height; more relief costs the luminance rule on the far bank (it needs more lift). **Confidence:** medium.
+
+### The water's light is drawn into its colour, in lanes that hold their distance from the bank
+
+**Choice:** The surface's colour carries streaks of light (`waterSurface`): noise in the distance from the water's edge, broken along the stream, fading to its mean as a pixel outgrows a ripple. The surface clears to the bed over 0.35 m at its edge. Its numbers are the biome's `water` row. The ripples' normal is as it was.
+
+**Gap:** C69 left "the water's own look from above" and "ripples and glints on every reach".
+
+**Evidence:** From above a reflection shows ripples only where the sun lies behind the water: one reach in the lab's top-down frame, none at the play camera. Ripples drawn as lit crests of the same noise read as cloud on the water, then as flecks streaked one way across every bend. Lanes by distance run with the channel round every bend and cost no along-stream coordinate. A wide pale shallow band read as haze and made the river "a convex tube"; it is a thin rim now.
+
+**Verdict:** provisional. It no longer reads as a road, and the streaks follow every bend; a second critique read them at 250 m as lane markings and from straight above at 25 m as paint smears, and was convinced only by the low, close view. The water does not move, and from straight above it has no glint under any sun; a river's width is the simulation's, so a straight one still reads as a canal. **Confidence:** medium.
+
+### The luminance rule is checked on rendered frames, a bank at a time
+
+**Choice:** The `river` scene walks sections across each bank at two stations and compares the frame's luminance on the wet bank and the earth with the grass on the same section, as medians per bank, with their hue apart by 6 in CIELAB's a*b* plane.
+
+**Gap:** "Luminance per band ≥ grass" does not say where or how.
+
+**Verdict:** sound. Pooled over both banks the old dark shore read 1.04 times the grass at the wide station, on the sunlit bank's surplus; a bank at a time it read 0.58 and 0.73 on the banks facing away. **Confidence:** high.
+
+### The water's reach did not need widening
+
+**Choice:** `groundReach`'s water term reads the earth's reach (`mud_m`) in place of the old shore width and the surface's shallows.
+
+**Gap:** The brief asks to widen the reach to what the bands read.
+
+**Evidence:** The bank's shading already reads 12 m from the water in the lab and on generated maps (a 4.8 m bank and a triangle past its top), farther than the 5 m the bands read, so the surface field lists the same records as before. A river level with its land would read 5 m where it read 3.
+
+**Verdict:** sound. **Confidence:** high.
+
+### `fog-look` was not rerun
+
+**Choice:** The darkest-seen check (`fog-look`) was not run for this slice.
+
+**Gap:** The slice lists "the `shadow_floor` scene check".
+
+**Evidence:** That scene draws the village, which has no water. The village's nine stations without grass are byte-identical before and after.
+
+**Verdict:** sound; it runs at the lane's milestone. **Confidence:** high.

@@ -8,7 +8,8 @@
 //   STATIONS=village,river bun run --cwd web scene -- ground
 //
 // writes every station's shot and mask into throwaway/evidence/ground/ and a
-// sheet per map; a later slice imports `openStations` and `shoot`.
+// sheet per map (`river:bend-65+wide-65`: those stations alone, the ones a
+// change can move); a later slice imports `openStations` and `shoot`.
 import { writeFile } from "node:fs/promises";
 import { PNG } from "pngjs";
 import { advance, aim, lab, presented } from "./_lab.mjs";
@@ -239,13 +240,18 @@ function sheet(rows, shrink) {
   return out;
 }
 
-/** Every station of `map`: its shot, its shot without grass or trees, and its
- *  class mask, saved as `<map>-<station>[-bare|-classes].png`, and one sheet
- *  `<map>-stations.png` with a row a station: the shot, the bare ground, the
- *  mask made legible. */
-export async function stationSheet(ctx, map, page) {
+/** Every station of `map` (or `stations` alone): its shot, its shot without
+ *  grass or trees, and its class mask, saved as
+ *  `<map>-<station>[-bare|-classes].png`, and one sheet `<map>-stations.png`
+ *  with a row a station: the shot, the bare ground, the mask made legible. */
+export async function stationSheet(
+  ctx,
+  map,
+  page,
+  stations = Object.keys(STATION_MAPS[map].stations),
+) {
   const rows = [];
-  for (const station of Object.keys(STATION_MAPS[map].stations)) {
+  for (const station of stations) {
     const save = async (suffix, options) => {
       const shot = await shoot(page, map, station, options);
       await writeFile(ctx.evidencePath(`${map}-${station}${suffix}.png`), shot);
@@ -419,11 +425,13 @@ export async function groundRig(ctx) {
   await page.close();
 }
 
-/** `STATIONS=map,...`: every station of those maps, as shots, masks and a sheet. */
+/** `STATIONS=map,...`: every station of those maps, as shots, masks and a
+ *  sheet; `map:station+station` shoots only those. */
 export async function stationSheets(ctx, maps) {
-  for (const map of maps) {
+  for (const named of maps) {
+    const [map, only] = named.split(":");
     const page = await openStations(ctx, map);
-    await stationSheet(ctx, map, page);
+    await stationSheet(ctx, map, page, only?.split("+"));
     await page.close();
   }
 }
