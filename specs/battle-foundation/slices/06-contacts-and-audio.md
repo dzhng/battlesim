@@ -1,10 +1,14 @@
 # 06 — Player observations and uncertain evidence
 
-**Status:** complete 2026-09-25 (tracer clipping moved to 08). **Dependencies:** 03, 05. **Milestone:** Village checkpoint.
+**Status:** original checkpoint complete 2026-09-25; current one-report/presentation amendment in progress (2026-10-02). Tracer clipping moved to 08. **Dependencies:** 03, 05. **Milestone:** Village checkpoint.
 
 ## Contract and question
 
 Can the player react to uncertain evidence without learning hidden truth?
+
+**Current user amendment (2026-10-02):** each side holds at most one approximate contact per enemy unit. Re-identification removes it from live knowledge immediately; every removed marker and label fades together over three seconds, during which it cannot be picked or targeted. Live reports remain fully visible, with one removal fade instead of a competing pre-expiry fade. Last-seen and subsequent firing evidence refresh one side-local record, using only permitted evidence. Renewed evidence updates the same visual owner instead of adding an overlapping fading patch. Hidden motion without new evidence never moves it. Every contact area has a white outline and an information label, including firing-only reports; unknown types remain truthfully unknown. This supersedes historical multiple episodes/reports, source-specific borders and pre-expiry fading.
+
+Implement at the existing knowledge/publication and contact presentation/glyph/readout boundaries. Remove redundant preferred-report ranking/flags once uniqueness is authoritative; do not add a renderer deduplication table or public emitter identity. Preserve repeated-shot uncertainty, independent hearing, side knowledge and general-purpose-only contact fire. Tests must cover firing after a last sighting, a shot outside the old area, separate hidden units, seeing/loss/reseeing, expiry, full/half/ended removal fades, same-owner renewal and pending/ordered contact targeting. Removed intent must not revive solely because its opaque report slot later returns. Verify complete Native/Wasm state and actual publications; name intentional digest changes rather than repinning old semantics. Paired captures include the user's close framing and both source types, with all labels/rims checked through the current report set. Existing visual gates below apply before acceptance.
 
 User requirements owned or exercised: V02, V08, V09, V10, V11, V13. Read their canonical entries in [requirements](../requirements.md), then the applicable [implementation contracts](../contracts.md). Do not infer rules from a fixture label.
 
