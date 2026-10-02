@@ -8,7 +8,7 @@
 // multipliers over the tree appearances' own albedo.
 import { pick } from "@packages/renderer-core/src/kindTable";
 import type { Rgb } from "../light/sceneLight";
-import { drawnKind, SURFACE_AREA_KINDS, type SurfaceAreaKind } from "./surfaces";
+import { SURFACE_AREA_KINDS, type SurfaceAreaKind } from "./surfaces";
 
 /** One kind of plot in the patchwork: a meadow, a crop, ploughed earth. */
 export interface PlotKind {
@@ -659,14 +659,10 @@ export interface Biome {
   scars: BiomeScars;
 }
 
-/** The row of `biome.roads` that draws paved `kind` on a map whose areas
- *  name `named` (`drawnKind`): the kind's own, or the default. Which kind a
- *  stretch of it is drawn as through a town is that row's `town`. */
-export const roadRow = (
-  biome: Pick<Biome, "roads">,
-  kind: SurfaceAreaKind,
-  named: ReadonlySet<SurfaceAreaKind>,
-): Road => pick(biome.roads, drawnKind(kind, named));
+/** The authored paved kind selects its look row, or the biome default.
+ *  A country road's promotion through built ground belongs to that row. */
+export const roadRow = (biome: Pick<Biome, "roads">, kind: SurfaceAreaKind): Road =>
+  pick(biome.roads, kind);
 
 /** The verge's key in `grass.growth`, beside the plot kinds. */
 export const VERGE_GROWTH = "verge";

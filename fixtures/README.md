@@ -119,6 +119,8 @@ Add one entry. A mechanic comes from the body's columns, so a new obstacle needs
 
 Every mover states its own two top speeds in its `mobility` row, in km/h: `offroad_kmh` on open ground and `road_kmh` on a full road (at most 130, and never below the off-road speed). `game.json`'s `surfaces` table has one row per surface kind a map may pave (`road`, `country_road`, `dirt_track`, `sidewalk`). A row's `speed_factor` scales each unit type's own road speed on that surface, never below its off-road speed: 1 is a full road, 0 is no road at all. A new surface kind is a new row plus its variant in `contract::map::SurfaceKind`.
 
+A paved area's authored kind also selects its appearance. A map names a rural road `country_road` and a town street `road`; the renderer does not infer a different kind from the other surfaces present. The biome owns a country road's local appearance through built ground.
+
 Vehicle surface speeds are targets, not instantaneous velocity. The drive settings in
 [`game.json`](game.json) express acceleration and braking as time from rest to
 full road speed and back; each vehicle's own top speed sets the rate. This keeps

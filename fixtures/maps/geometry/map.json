@@ -19,7 +19,7 @@
   ],
   "surfaces": [
     {
-      "kind": "road",
+      "kind": "country_road",
       "shape": {
         "kind": "stroke",
         "points": [

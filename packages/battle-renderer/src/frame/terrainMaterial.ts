@@ -45,7 +45,7 @@ import {
   type SurfaceReach,
 } from "../terrain/surfaceField";
 import { CUT_A, CUT_B } from "../terrain/strokes";
-import { isRoad, pavedKinds, SURFACE_AREA_KINDS, type SurfaceAreaKind } from "../terrain/surfaces";
+import { isRoad, SURFACE_AREA_KINDS, type SurfaceAreaKind } from "../terrain/surfaces";
 import {
   CLASS_EDGE,
   CLASS_FOREST_SHIFT,
@@ -2220,8 +2220,8 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
           rules.size_m[0] * PLOT_PIXELS_FADE[1],
           0,
         ),
-        roads: roadLooks(biome, pavedKinds(site)),
-        roadOrder: d.vec4u(...roadOrder(biome, pavedKinds(site))),
+        roads: roadLooks(biome),
+        roadOrder: d.vec4u(...roadOrder(biome)),
         ...forestParams(biome.forest_floor, biome.palettes[biome.forest_floor.palette]),
         waterBed: d.vec4f(...one("water_bed"), triangleReach(site)),
         water: d.vec4f(...one("water"), biome.water.opacity[1]),
@@ -2388,27 +2388,14 @@ function roadLook(road: Road, tag: number, palettes: Biome["palettes"]) {
   };
 }
 
-/** The look table, in the order of the kinds' tags: for each paved kind the
- *  row of `biome.roads` it is drawn by on a map whose areas name `named`
- *  (`roadRow`). */
-export function roadLooks(
-  biome: Biome,
-  named: ReadonlySet<SurfaceAreaKind> = new Set(SURFACE_AREA_KINDS),
-) {
-  return SURFACE_AREA_KINDS.map((kind, tag) =>
-    roadLook(roadRow(biome, kind, named), tag, biome.palettes),
-  );
+/** The look table in native tag order, selected by each authored kind. */
+export function roadLooks(biome: Biome) {
+  return SURFACE_AREA_KINDS.map((kind, tag) => roadLook(roadRow(biome, kind), tag, biome.palettes));
 }
 
-/** The paved kinds' tags in the order their rows are painted on a map whose
- *  areas name `named`: the lowest `layer` first, and without one the
- *  simulation's order, the earlier kind on top. */
-export function roadOrder(
-  biome: Biome,
-  named: ReadonlySet<SurfaceAreaKind> = new Set(SURFACE_AREA_KINDS),
-): [number, number, number, number] {
-  const layer = (tag: number) =>
-    roadRow(biome, SURFACE_AREA_KINDS[tag], named).layer ?? ROAD_KINDS - tag;
+/** Paved tags from lowest layer to highest, with native order breaking ties. */
+export function roadOrder(biome: Biome): [number, number, number, number] {
+  const layer = (tag: number) => roadRow(biome, SURFACE_AREA_KINDS[tag]).layer ?? ROAD_KINDS - tag;
   const [a, b, c, e] = SURFACE_AREA_KINDS.map((_, tag) => tag).sort(
     (x, y) => layer(x) - layer(y) || y - x,
   );
