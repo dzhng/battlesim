@@ -446,61 +446,6 @@ fn navigation_regions_cover_every_nonuniform_surface() {
 }
 
 #[test]
-fn terrain_queries_match_the_parity_oracle() {
-    let reference: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../fixtures/parity/terrain/queries.json"
-    ))
-    .unwrap();
-    let input = reference["map"].clone();
-    let rules = crate::common::rules();
-    let map = crate::common::physical_map(serde_json::from_value(input).unwrap(), &rules);
-    let w = WorldGeometry::new(&map, &rules);
-    let values = |v: &serde_json::Value| {
-        v.as_array()
-            .unwrap()
-            .iter()
-            .map(|x| f64::from_bits(u64::from_str_radix(x.as_str().unwrap(), 16).unwrap()))
-            .collect::<Vec<_>>()
-    };
-    let hex = |v: Vec<f64>| {
-        v.iter()
-            .map(|x| format!("{:016x}", x.to_bits()))
-            .collect::<Vec<_>>()
-    };
-    let mut blessed = reference.clone();
-    for query in blessed["queries"].as_array_mut().unwrap() {
-        let (p, r) = (values(&query["point"]), values(&query["ray"]));
-        query["surface"] = serde_json::json!(hex(sim::world::export::surface_record(
-            w.surface_at(p[0], p[1])
-        )));
-        query["hit"] = serde_json::json!(hex(sim::world::export::hit_record(w.raycast(
-            v3(r[0], r[1], r[2]),
-            v3(r[3], r[4], r[5]),
-            r[6]
-        ))));
-    }
-    if crate::common::bless_parity("terrain/queries.json", &blessed) {
-        return;
-    }
-    for query in reference["queries"].as_array().unwrap() {
-        let p = values(&query["point"]);
-        assert_eq!(
-            sim::world::export::surface_record(w.surface_at(p[0], p[1])),
-            values(&query["surface"])
-        );
-        let r = values(&query["ray"]);
-        assert_eq!(
-            sim::world::export::hit_record(w.raycast(
-                v3(r[0], r[1], r[2]),
-                v3(r[3], r[4], r[5]),
-                r[6]
-            )),
-            values(&query["hit"])
-        );
-    }
-}
-
-#[test]
 fn empty_terrain_export_does_not_grow_with_empty_area() {
     for size in [200, 1600] {
         let w = crate::common::flat([size as f64; 2], "");

@@ -383,7 +383,7 @@ test("every frozen animation field and ground value decodes, integers exact past
     >;
   } = JSON.parse(
     readFileSync(
-      new URL("../../fixtures/parity/buildings/animation-codec-vectors.json", import.meta.url),
+      new URL("../../fixtures/parity/publication/codec-vectors.json", import.meta.url),
       "utf8",
     ),
   );
