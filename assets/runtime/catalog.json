@@ -301,20 +301,44 @@
       "scenery": "wreck",
       "unit": "scenery"
     },
+    "tree_birch": {
+      "bundle": "8294f0af5ae355644579cf19310d6bb3d7b3ad2ce087f42e46d6bb0a014f83b4",
+      "kind": "static",
+      "scenery": "tree",
+      "unit": "scenery"
+    },
     "tree_broadleaf": {
       "bundle": "0976c01460583530768b5d313a7f65cbb6440c473df938ca7a13ff7ae8fb971d",
       "kind": "static",
       "scenery": "tree",
       "unit": "scenery"
     },
+    "tree_pine": {
+      "bundle": "c6836369677790055d8d879adf0a66df6265742bbffdd24c2367fe50d223d8d7",
+      "kind": "static",
+      "scenery": "tree",
+      "unit": "scenery"
+    },
+    "tree_snag": {
+      "bundle": "892d7a0534ae17348a67a77d601e7949181e812c418e460f12890adf2e5046b6",
+      "kind": "static",
+      "scenery": "tree",
+      "unit": "scenery"
+    },
     "tree_spreading": {
-      "bundle": "ab678b354211c4fad7d35272f2ae604588188dc432dec895ff785c6141322e32",
+      "bundle": "7ac15f9eb8f6161b0f2633512a4aa76b70473dfcbfe80b5b4c3287e3b7432049",
+      "kind": "static",
+      "scenery": "tree",
+      "unit": "scenery"
+    },
+    "tree_spruce": {
+      "bundle": "6083dda09de3bd259117a09c7df11ffa9ca297798d4bd0de5cecdebf32dee291",
       "kind": "static",
       "scenery": "tree",
       "unit": "scenery"
     },
     "tree_tall": {
-      "bundle": "984e9c30601764296e6e7b8641c2cf1f6538f62558d61523bb51c76628ca303b",
+      "bundle": "c7f5c0be9ff33d1db8487a54a9fa4b044d88427f327858f03be6d82646e23f78",
       "kind": "static",
       "scenery": "tree",
       "unit": "scenery"

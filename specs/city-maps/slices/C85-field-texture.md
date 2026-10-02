@@ -35,3 +35,55 @@ C84's mean colours.
 
 ## Feedback that would change this slice
 Visible tiling or texture that reads as terrain geometry changes field texture scale/blend with palette fixed.
+
+## Outcome
+
+**Built.** `fieldTexture` in the plot term of the terrain material (`frame/terrainMaterial.ts`): what a plot's own ground does to its albedo, per kind from the biome's plot rows.
+- **Grain** (`grain_m`, `grain`, `grain_stretch`): four octaves of value noise in the plot's own frame, stretched along its rows, from 7 times a lump's size down to a third of it. Each octave lies on a lattice of its own and is pushed about by the one before; on one lattice, driven into its limits, the grain came out as squares (the first round read as a camouflage print).
+- **Rows** (`row_break`): a narrow dark furrow between broad beds (the cube of the cosine the plots had, which alone read as ripples), each furrow broken along its length by its own noise.
+- **Wheelings** (`tram`): two furrows bare in every fifteen rows of a drilled crop. The grass build skips them (`groundWheeling`, read by `frame/grassPass.ts`).
+- **Dry patches** (`mottle`, `patch_m`): the hue-only patches the plots had, now shaped per kind (strips in a drilled crop, blotches in a meadow) and at half their strength; the grass's dry patches were halved with them. The meadow's bands along its "rows" are gone.
+
+Grain and rows are as much lighter as darker, every value term is finer than about 5 m and fades to its mean under a pixel, and the patches shift hue at the plot's own luminance. The grass takes its colour from the ground under each clump, so it carries the grain.
+
+The plot record on the GPU grew from 48 to 96 bytes. `field_rules.mottle_scale_m` became `mottle_m`. `BattleFrame.setFieldTextureShown` (lab: `suppressFieldTexture`) repacks the plots without texture, for paired frames and cost; the shader skips what a plot does not have.
+
+**Verified** (`web/scenes/_fields.mjs`, `FIELDS_ONLY=1` in the `ground` scene; texture on and off in one page, bare ground, by the class mask):
+- every kind of field in view from the play camera carries texture: the luminance spread of 32 px blocks inside a plot, texture on against plain rows, in display levels: meadow 2.6 against 0.03, prairie 2.9 against 0.04, hay 2.9 against 1.5, wheat 3.8 against 2.6, rapeseed 4.9 against 3.6;
+- a kind's mean luminance moves by 0.8% at most (the drilled crops, by their wheelings);
+- from 250 m no 9 m block is more than 2.3% darker for its texture;
+- from 1100 m a pixel moves 0.55 of a display level: it has faded to its mean.
+- `fog-look`: every style and framing passes with the texture on (three runs, the last on the final shader).
+- `GRASS_ONLY`: every kind still grows its row's grasses (run before the last round's data changes).
+- vitest: wheelings are refused without rows, wider than a row, or closer than four rows.
+
+**Frame cost** (texture on against plain rows, 120 forced frames a batch, the median of the paired differences; Apple M-series, the machine shared and loaded):
+
+| Station | Plain, ms | Texture, ms | Pairs |
+|---|---|---|---|
+| `field-65`, three octaves, turns by `cos`/`sin` | 2.23 | +0.45 | 0.26, 1.60, 0.45, 0.10 |
+| `field-65`, three octaves, turns as constants | 2.71 | +0.15 | 0.18, -0.01, 0.15, 0.22, -0.06, -0.47 |
+| `field-65`, as shipped (four octaves) | 2.71 | +0.18 | 1.70, -0.02, 0.48, -0.09, -0.12, 0.18 |
+| `field-250`, the same three runs | 1.07 to 1.14 | +0.13, -0.02, +0.09 | |
+
+The runs disagree and all are recorded: between nothing measurable and a few tenths of a millisecond where fields fill the play camera. The texture adds five noise lookups to a ground fragment that already made about ten.
+
+**Compared** with `manor-ground-closeup.jpg`, the Broken Arrow farm frame and C84's shots: less wrong, and far from the references. In-field contrast (median luminance spread of 32 px blocks, bare ground at `field-65`) went from 2.2 to about 4 display levels; the references measure 10 to 13, with their shadows, plants and objects in the count.
+
+**Critique** (two unprimed passes; the second after the changes the first caused).
+
+The first, on the three-octave grain with cosine rows: wheat with its rows and wheelings "the only field that fully reads as what it is"; every other field "colour blotches instead of ground structure" (meadow as mouldy felt with rust-orange stains, ploughed earth as blurred ripples or water and low-resolution up close); wheelings read as vehicle tracks at 65 m and as plank seams at 250 m; stubble pinkish, pasture teal, ploughed purple-brown. After it: the fourth, finer octave; furrowed rows in place of the cosine; dry patches halved in ground and grass; four palettes turned toward yellow (a commit of its own).
+
+The second, on the result:
+- **works:** stubble at 25 m ("the best of the set"), the patchwork from 1100 m and 2500 m; wheelings read as tracks at 25 m;
+- **does not:** ploughed earth still reads as rippled sand (soft bands, no clods), the meadow still as felt with ochre blotches, and from 250 m the crop fields as wood veneer or corduroy, with moiré across the rows of one field;
+- no dark region inside a field read as a shadow. The dark meadows beside bright crops in `country-250` read to it as possibly under a cloud (medium): whole fields, the palette's range, not the texture.
+
+**So the slice's question is answered in part.** Drilled and cut crops carry texture that reads as a field. Grass and bare earth carry texture that the checks measure and an unprimed eye still reads as a material sample: value noise on the albedo makes blotches, not structure.
+
+**Open.**
+- **Structure for earth and grass.** What is missing is form, not contrast: clods and tussocks as shapes (a cellular pattern), or the furrows' own relief in the shading normal. The second is bounded by the rule that nothing on the ground reads as shadow; neither was tried.
+- **Moiré on rows near the horizon** (`ploughed-25`, and one field at `field-250`): the rows fade by the pixel's longest side, so a row seen along its length at a grazing angle beats before it fades. It predates the slice; the narrower furrow makes it no better.
+- **Wheelings from 250 m** are hair-thin and ruler-straight. `tram.contrast` at 0 removes them per kind.
+- **The warm orange of dry grass** is the grass pass's (`patches.dry`, `dry_lift`), halved here and still read as rust.
+- The village scene and the full `ground` scene were not run; `GRASS_ONLY` was not rerun after the last round.
