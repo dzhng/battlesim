@@ -38,6 +38,8 @@ Generate seeded battle maps with urban areas and usable surrounding plains on **
 
 A fourth town-look pass (stair-step outlines, seams between building kinds, streets meeting a main road 20 to 45 m apart) is worth doing only if the owner still finds towns diagram-like in play.
 
+**Where to work:** start from `main`, which holds everything finished. Do each piece on a short branch off `main` and push it to `main` when its own checks pass. The two WIP branches are the only other branches that matter; rebase or merge `main` into one before finishing it. No other branch on the remote is needed.
+
 **Working rules that held all through:** narrow checks are the proof for a commit, merge and push to `main`, and green passes are pushed as they land; every scene and render goes through the GPU lock (the root README's Checks section); pull the Git LFS runtime assets before running scenes after a merge.
 
 Open from the planner: the attacker's squads start on foot 3 to 5 km from the objective (there is no transport); historically pending generated infantry journeys still require a complete arrival proof ([scale limits](../done/city-maps-scale/README.md#limits-that-remain-with-the-parent)); no battle has yet shown a fight across an 1,800 m approach. Open elsewhere: the camera lab still compiles its own map; the village opening is silent since the range tuning (the sides start beyond gun range).
