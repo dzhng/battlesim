@@ -312,7 +312,7 @@ export function BattleView({
               ? undefined
               : () => {
                   pause.show(false);
-                  sim.reset();
+                  sim.restart();
                 }
           }
         >

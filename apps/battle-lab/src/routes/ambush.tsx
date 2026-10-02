@@ -5,6 +5,7 @@ import { combineWorldMeshes } from "@packages/battle-renderer/src/mesh";
 import type { MountView, ObservationView } from "@web/battle/sim/observation";
 import { REASON_TEXT } from "../reasonText";
 import type { Order } from "@web/battle/sim/protocol";
+import { restartBattle } from "@web/mechanicsLifecycle";
 import { AckLog } from "../AckLog";
 import { BattleMemory, guidanceLayer, remainsLayer, tracerLayer } from "../battleOverlay";
 import { LabViewport } from "../LabViewport";
@@ -69,7 +70,13 @@ export default function Ambush() {
 }
 
 function AmbushLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
-  const [variant, setVariant] = useState<Variant>("prompt");
+  const [variant, setVariant] = useState<Variant>(() => {
+    const requested = new URLSearchParams(window.location.search).get("variant");
+    return VARIANT_NAMES.find((name) => name === requested) ?? "prompt";
+  });
+  const chooseVariant = (next: Variant) => {
+    if (next !== variant) restartBattle(() => setVariant(next), { variant: next });
+  };
   // Own strikes (kept 3 s) and each missile's path, for replaying it to its last point.
   const memory = useRef(new BattleMemory({ impactTicks: 90, ownImpactsOnly: true }));
   const missileNames = useRef(new Map<number, string>());
@@ -168,7 +175,7 @@ function AmbushLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
               key={v}
               type="button"
               aria-pressed={v === variant}
-              onClick={() => setVariant(v)}
+              onClick={() => chooseVariant(v)}
             >
               {VARIANTS[v].label}
             </button>
@@ -182,7 +189,7 @@ function AmbushLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
           <button type="button" onClick={() => void stopLauncher()}>
             West launcher: Stop
           </button>
-          <button type="button" onClick={sim.reset}>
+          <button type="button" onClick={sim.restart}>
             Reset
           </button>
         </div>

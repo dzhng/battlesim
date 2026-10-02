@@ -326,8 +326,10 @@ fn an_area_then_a_tank() -> Battle {
     let fire: Vec<Value> = (0..40)
         .map(|k| json!({ "tick": 5 + k * 30, "fire": { "unit": 1 } }))
         .collect();
-    battle(
-        json!([{ "kind": "building", "center": [330, 300], "yaw": 0, "half_extents": [8, 20, 2] }]),
+    let mut setup = scenario_with(
+        &map(
+            json!([{ "kind": "building", "center": [330, 300], "yaw": 0, "half_extents": [8, 20, 2] }]),
+        ),
         json!([
             { "side": "blue", "kind": "rifle", "position": [100, 300] },
             { "side": "red", "kind": "rifle", "position": [350, 300], "engagement": "return_fire_only" },
@@ -337,7 +339,11 @@ fn an_area_then_a_tank() -> Battle {
         json!(fire),
         json!([{ "tick": 30, "side": "red", "order":
             { "kind": "move", "units": [2], "gesture": 1, "goal": [350, 150], "route": "shortest" } }]),
-    )
+    );
+    // This selection experiment needs a lob over the building, independent of tuning.
+    let grenade = &mut setup.rules.weapons.get_mut("grenade").unwrap().ballistics;
+    (grenade.speed_mps, grenade.gravity_scale) = (24.0, 0.09);
+    Battle::new(&setup, 5)
 }
 
 #[test]

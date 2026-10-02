@@ -17,6 +17,7 @@
       "@fixtures/*": ["../fixtures/*"],
       "@wasm/*": ["./src/wasm/*"],
       "@web/*": ["./src/*"],
+      "vite": ["./node_modules/vite/dist/node/index.d.ts"],
       "typegpu": ["./node_modules/typegpu/index.d.ts"],
       "math": ["./node_modules/math/dist/src/index.d.ts"],
       "math/shapes": ["./node_modules/math/dist/src/shapes/index.d.ts"],

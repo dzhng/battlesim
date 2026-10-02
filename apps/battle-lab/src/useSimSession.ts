@@ -5,6 +5,7 @@ import type { GroundView } from "@web/battle/sim/ground";
 import type { ObservationView } from "@web/battle/sim/observation";
 import type { AuthorityStatus } from "@web/battle/sim/protocol";
 import { TickInterpolator } from "@web/battle/present/interpolate";
+import { restartBattle } from "@web/mechanicsLifecycle";
 
 export interface SimSessionOptions {
   scenario: string;
@@ -157,5 +158,6 @@ export function useSimSession({
     holdCredit,
     onViewportReady,
     reset: () => setGeneration((g) => g + 1),
+    restart: () => restartBattle(() => setGeneration((g) => g + 1)),
   };
 }

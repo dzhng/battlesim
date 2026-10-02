@@ -428,7 +428,7 @@ impl Battle {
             ..
         } = prepared;
         let arsenal = Arsenal::new(&rules);
-        supply::validate(&arsenal, &rules);
+        supply::validate(&rules).expect("fixture supply rules are valid");
         for e in &setup.events {
             if let EventAction::AddProp(def) = &e.action {
                 assert!(

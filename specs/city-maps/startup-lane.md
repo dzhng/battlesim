@@ -41,7 +41,7 @@ Read [`AGENTS.md`](../../AGENTS.md): narrow checks only, no full gate. Battle di
 ## Status
 
 Implemented on `codex/city-maps-startup`, integrated with main through
-`42b4dfb7`. The startup lane's five steps are complete; broader city-maps gates
+`4c6c8d1b`. The startup lane's five steps are complete; broader city-maps gates
 remain with their owning lanes.
 
 - C33 retains one prepared simulation world in the authority worker. The page
@@ -71,6 +71,17 @@ remain with their owning lanes.
   fog, camera and ground scenes pass. No full `check`/`verify` or balance run is claimed:
   the overall city-maps implementation is still active. Ground rendering keeps
   blue/red learned marks separate across full snapshots, deltas and side switches.
+
+Final main integration preserves the developer city-stress early/late factory
+and the mechanics editor's development-server plugin. Stress preparation imports
+its actual scenario map, including synthetic late wrecks, rather than exporting
+the original generated map. That developer fixture retains its existing temporary
+placement world; the normal menu encounter still shares one prepared world with
+the battle. The measurements below remain the frozen `42b4dfb7` comparison,
+not new performance claims for these later upstream additions. Integration also
+repairs main's stale replay-storage-key reference through the existing storage
+owner; viewer-import and blocked-storage regressions fail before their fixes and
+pass afterward. A development import cannot reload until persistence succeeds.
 
 ### Startup measurement
 

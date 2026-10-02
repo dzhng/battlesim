@@ -279,7 +279,7 @@ function GroundInspector({ scenario, seed, camera, legend, script, extra }: Insp
           Tick {observation?.tick ?? "—"} · {warm ? sim.status.status : "warming up"}
         </div>
         <div className="lab-row">
-          <button type="button" onClick={sim.reset}>
+          <button type="button" onClick={sim.restart}>
             Reset
           </button>
           {(["blue", "red"] as const).map((s) => (

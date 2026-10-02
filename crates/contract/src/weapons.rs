@@ -126,6 +126,26 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
         .map(|(id, row)| {
             serde_json::from_value::<WeaponDefinition>(row)
                 .and_then(|def| {
+                    for (field, value) in [
+                        ("damage", def.damage),
+                        ("penetration", def.penetration),
+                        ("aim_s", def.aim_s),
+                        ("reload_s", def.reload_s),
+                        ("blast_radius_m", def.blast_radius_m),
+                        ("structural_damage", def.structural_damage),
+                        ("near_miss_suppression", def.near_miss_suppression),
+                        ("suppression_radius_m", def.ballistics.suppression_radius_m),
+                    ] {
+                        if !value.is_finite() || value < 0.0 {
+                            return Err(serde::de::Error::custom(format!("{field} must be finite and nonnegative")));
+                        }
+                    }
+                    if !(0.0..=1.0).contains(&def.armor_fraction) {
+                        return Err(serde::de::Error::custom("armor_fraction must lie in [0, 1]"));
+                    }
+                    if def.ballistics.turn_deg_s.is_some_and(|rate| !rate.is_finite() || rate <= 0.0) {
+                        return Err(serde::de::Error::custom("turn_deg_s must be finite and positive"));
+                    }
                     if let Some(m) = def.magazine {
                         if m.rounds < 2 || !m.shot_interval_s.is_finite() || m.shot_interval_s <= 0.0
                             || !def.reload_s.is_finite() || (def.reload_s != 0.0 && def.reload_s <= m.shot_interval_s) {

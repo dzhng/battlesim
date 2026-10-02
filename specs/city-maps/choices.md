@@ -3866,7 +3866,7 @@ than comparing different builds' rules. **Confidence:** high.
 
 **Gap:** Independent review found that making world delivery part of authority startup also made the error HUD depend on successful initialization.
 
-**Reach:** The normal battle and refusal share the same HUD, menu and error component. The prepared replay adapter forwards the simulation's existing error text, including main's new engine-build refusal.
+**Reach:** The normal battle and refusal share the same HUD, menu and error component. The prepared replay adapter forwards the simulation's existing error text, including main's new engine-build refusal. Development replay imports persist through the existing replay-file storage owner before reloading; a storage failure stays visible on the current page. Downloads may still proceed when persistence is unavailable.
 
 **Verdict:** sound. Refusal navigation belongs to the existing HUD and must remain available before world construction. Normal status/clock is hidden on refusal to avoid implying playback is waiting. The existing compact HUD remains the owner rather than introducing another failure layout. **Confidence:** high on the failure contract, medium on first-glance prominence.
 
@@ -3899,6 +3899,26 @@ than comparing different builds' rules. **Confidence:** high.
 **Reach:** Every local dev/verification server uses its checkout's cache. No new dependency or user-facing setting is added.
 
 **Verdict:** sound. It applies the existing prohibition on sharing build output between different sources. **Confidence:** high.
+
+### Sound — high confidence: preserve the developer stress scenario's actual map
+
+**Choice:** Main's city-stress producer remains the owner of its full early/late
+scenario. Preparation builds its retained authority world from that scenario,
+including late wrecks, and forwards its living-force count and camera start.
+Normal menu recipes continue planning on the retained world itself.
+
+**Gap:** Main introduced the developer stress factory after the startup branch
+was measured; its synthetic remains can change the map after generation.
+
+**Reach:** The public index and battle must share the stress scenario's actual
+map rather than the generator's earlier map. The developer factory still builds
+its existing temporary placement world, so it is not included in the normal
+menu's one-construction or frozen cost claim. Its broader scale admission stays
+with the scale owner.
+
+**Verdict:** sound for integration. It preserves main's authoritative fixture
+and makes its static exports agree with the scenario that actually plays.
+**Confidence:** high.
 
 ## Camera catalogue — startup lane
 
