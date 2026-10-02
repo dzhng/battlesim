@@ -57,27 +57,25 @@ Two exact movement cost passes are integrated: avoid local steering geometry
 when no member can steer, and omit cover-position rows neither immutable side
 knowledge can read. Their paired whole-Orders gains are 25.7% early and 13.69%
 late respectively, with identical every-tick digests and complete observations.
-Focused movement, cover, sensing and city-placement checks pass on the combined
-source; the further latest-main merge `16deaca8` passes 57 focused movement,
-cover, delivery and admission tests. It adds movement repairs and street
-furniture, so final native/Wasm builds and all admission inputs are refreshed. The browser harness requires rising shot counters
-from at least ten own units during measurement in each generated arm lasting 30 seconds or more.
+Focused movement, cover, sensing, delivery and city-placement checks pass.
+The browser harness requires rising shot counters from at least ten own units
+during measurement in each generated arm lasting 30 seconds or more.
 
 Current pickup, in order:
 
-1. Recheck exact cross-target state on the combined source after the ricochet repair.
-   Pinned arrangement and cover-facing math repair the observed initial and
-   tick-30 differences; their small public paired regressions pass. Both are
-   named native last-bit corrections, not CPU gains. Temporary diagnostics are
-   removed. Incoming open-country generation changes the map and preset input,
-   so both runtime factory receipts are refreshed: layout-9 map `bdadf296…`,
-   engine `b2c45b71…`, unchanged rules `4994f55c…`. Cold state matches in both
-   arms. The old control next differs at tick 60 while its 19,388 B record stays
-   identical. Identical impact inputs isolate the ricochet's azimuth cosine. The
-   existing scatter primitive now uses pinned math with unchanged rules and RNG
-   draws; its public numerical regression and actual full-input pair through
-   tick 60 pass. Refresh longer early/late prefixes before the full runs.
-   Packed agreement cannot substitute for state parity.
+1. Finish the portable math policy, then recheck exact cross-target state.
+   Arrangement, cover-facing, ricochet and shared-rotation regressions are on
+   main. These are named native last-bit corrections, not CPU gains. Frozen
+   source `112970b7`, engine `48666f03…`, layout-9 map `bdadf296…` and rules
+   `4994f55c…` have matching cold state in both arms and matching every-tick
+   state and raw publication through tick 212. Tick 213 first changes retained
+   structure damage: identical blast-distance inputs produce a one-bit Native
+   versus Wasm `hypot` difference in `Obb2::distance`. Its packed record is
+   still identical. Temporary diagnostics are removed. The next pass pins the
+   proven authoritative trig and distance evaluators to the existing portable
+   library, with an observed-input public distance regression. Keep formulas,
+   draw order, rules and unrelated math unchanged. Packed agreement cannot
+   substitute for state parity.
 2. Once exact cross-target state parity passes, run both complete
    9,000-tick contact arms: whole-record maximum remains
    **19,800 B**, with unchanged replay, decoder and delivery contracts. Historical
