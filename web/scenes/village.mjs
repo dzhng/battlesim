@@ -9,9 +9,9 @@
 // Soldiers as posed models, by detail tier and as
 // impostor cards, never fogged, picked by the simulation's boxes, and the
 // fallen as static corpses.
-// Vehicles, buildings and wrecks as their appearances:
+// Vehicles and wrecks as their appearances, buildings as their templates' art:
 // every vehicle a posed model following its published weapon poses, the
-// village's houses fitted to their boxes, and a tank firing (recoil).
+// village's houses on their boxes, and a tank firing (recoil).
 // Order markers and the Space overlay (a real
 // right-drag's facing, a reverse move's marker, Space held at the default and
 // ground cameras over the fog), and no enemy plan in the observation.
@@ -734,7 +734,7 @@ async function soldierTour(ctx) {
 
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 
-/** Vehicles, buildings and wrecks are appearances placed, fitted and
+/** Vehicles and wrecks are appearances and buildings their templates' art, placed and
  *  articulated from what the side knows. */
 async function vehicleTour(ctx) {
   const page = await openBattle(ctx, { viewport: { width: 1920, height: 1080 }, tick: TOUR_TICK });
@@ -773,23 +773,29 @@ async function vehicleTour(ctx) {
     turrets.length > 0 && turrets.every((d) => d < 1e-3),
     JSON.stringify(turrets),
   );
-  // The fences and sandbags are drawn apart too (bodies a vehicle
-  // can shove), so the houses are the structures standing on a house's box.
+  // The houses are buildings like any town's: each its template's rows in the
+  // art library, on its own box, and no fitted appearance stands for one.
   const houses = villageMap.buildings.flatMap((b) => b.geometry.parts);
-  const structures = (await lab(page, () => window.__lab.route.structures())).filter((s) =>
+  const buildings = await lab(page, () => window.__lab.route.buildings());
+  const fitted = (await lab(page, () => window.__lab.route.structures())).filter((s) =>
     houses.some((h) => s.position[0] === h.center[0] && s.position[1] === h.center[1]),
   );
+  const drawn = await lab(page, () => window.__lab.stats().buildings);
   ctx.check(
-    "the village's houses stand as their appearances, each fitted to its box",
-    structures.length === houses.length &&
-      structures.every(
-        (s, i) =>
-          s.state === "intact" &&
-          s.position[0] === houses[i].center[0] &&
-          s.position[1] === houses[i].center[1] &&
-          s.scale.every((k) => Math.abs(k - 1) < 1e-6),
-      ),
-    JSON.stringify(structures),
+    "the village's houses stand as their templates' art, each on its box",
+    buildings.length === houses.length &&
+      buildings.every(
+        (b, i) =>
+          !b.fallen &&
+          b.frame[0] === houses[i].center[0] &&
+          b.frame[1] === houses[i].center[1] &&
+          b.parts.length === 1 &&
+          b.parts[0].half.join() === houses[i].half_extents.join(),
+      ) &&
+      fitted.length === 0 &&
+      drawn.buildings === houses.length &&
+      drawn.fallen === 0,
+    JSON.stringify({ buildings, fitted, drawn }),
   );
   const tank = own.find((u) => u.kind === "tank");
   // The nearest tank from its right front, as WARNO frames its nearest tank.

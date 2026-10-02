@@ -2,8 +2,8 @@
 // authority, the player command path, the drawn units (interpolated; soldiers
 // and vehicles posed by the pose driver as models, each picked by the
 // simulation's box for its body), the props the side knows stand (fitted
-// appearances, and buildings from template art), the pick and box-select
-// adapters over what is drawn, and the
+// appearances), the buildings it knows stand or fell (template art), the
+// pick and box-select adapters over what is drawn, and the
 // base lab probes. The battle view and every lab that plays a battle
 // share it; routes add only what they show.
 import type { PreparedSession } from "@web/battle/prepare/client";
@@ -39,6 +39,7 @@ import {
 } from "@packages/battle-renderer/src/buildingObstacles";
 import { gameBiome } from "./gameBiome";
 import { mapAppearances, useGameAppearances } from "./gameAppearances";
+import { gameStandIns } from "./gameModels";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
@@ -193,10 +194,10 @@ export function useBattleSession({
     [world, apart, appearances],
   );
   // What the side knows stands, rebuilt only when knowledge changes: the
-  // props it has learned (ruins, wrecks, shoved bodies where it last saw
+  // props it has learned (rubble, wrecks, shoved bodies where it last saw
   // them), and the map's props drawn apart that it has not seen fall or move,
-  // each a fitted appearance. A known ruin replaces its building in the same
-  // list, a known shoved body its own map pose; an unseen collapse or shove
+  // each a fitted appearance. Known rubble replaces its wall in the same
+  // list, a known shoved body its own map pose; an unseen fall or shove
   // leaves the map's prop standing.
   const knownProps = observation?.knownProps;
   const knownKey = useMemo(() => JSON.stringify(knownProps ?? []), [knownProps]);
@@ -205,7 +206,7 @@ export function useBattleSession({
       world && appearances
         ? {
             map: mapProps(world.exports, world.layout),
-            fit: new PropAppearances(appearances, world.layout),
+            fit: new PropAppearances(appearances, world.layout, gameStandIns),
           }
         : null,
     [world, appearances],
@@ -219,15 +220,13 @@ export function useBattleSession({
       JSON.stringify(knownOf(JSON.parse(knownKey) as KnownPropView[], buildingParts)),
     [knownKey, buildingParts],
   );
-  // A building whose template the installed art library has is drawn from
-  // its rows, as instances of kit modules; no fitted model stands for it or
-  // for its remains. Any other building keeps the fitted-appearance path.
-  const templates = appearances?.templates;
-  const drawnBuildings = useMemo(() => {
-    if (!world || !props) return null;
-    const ids = new Set(templates?.library.templates.map((t) => t.id));
-    return indexBuildings(world.exports.buildings, props.map, (id) => ids.has(id));
-  }, [world, props, templates]);
+  // Every building is drawn from its template's rows, as instances of kit
+  // modules, standing or fallen: no fitted model stands for one or for its
+  // remains.
+  const drawnBuildings = useMemo(
+    () => world && props && indexBuildings(world.exports.buildings, props.map),
+    [world, props],
+  );
   const buildings = useMemo<SideBuildings | null>(
     () =>
       drawnBuildings && knownBuildingsKey
@@ -244,16 +243,11 @@ export function useBattleSession({
   const buildingsFeed = useFeed(buildings);
   const structures = useMemo(() => {
     if (!props || !drawnBuildings) return [];
-    const rowDrawn = drawnBuildings.partBuilding;
+    const part = drawnBuildings.partBuilding;
     const known = (JSON.parse(knownKey) as KnownPropView[]).filter(
-      (k) => k.authoredProp === null || !rowDrawn.has(k.authoredProp),
+      (k) => k.authoredProp === null || !part.has(k.authoredProp),
     );
-    return structureModels(
-      props.map,
-      known,
-      props.fit,
-      (prop) => apart.includes(prop.kind) && !rowDrawn.has(prop.id),
-    );
+    return structureModels(props.map, known, props.fit, (prop) => apart.includes(prop.kind));
   }, [props, drawnBuildings, knownKey, apart]);
   // What the camera keeps clear of: the ground, and every building part the
   // side knows stands (a fallen one's remains once it has seen the fall).
@@ -330,7 +324,7 @@ export function useBattleSession({
   const modelAppearances = useMemo<InstalledAppearances | null>(
     () =>
       appearances && props && drawnBuildings
-        ? mapAppearances(appearances, props.map, props.fit, drawnBuildings, true)
+        ? mapAppearances(appearances, props.map, props.fit, drawnBuildings.placed, true)
         : null,
     [appearances, props, drawnBuildings],
   );
@@ -532,9 +526,9 @@ export function useBattleSession({
     /** The camera's obstacles: how many boxes, and what indexing them took. */
     cameraObstacles: () =>
       cameraObstacles && { boxes: cameraObstacles.view.count, buildMs: cameraObstacles.buildMs },
-    /** The buildings drawn from template art: each one's template, owner,
-     *  frame and the boxes of its parts as the side knows them (the remains
-     *  of one it has seen fall). */
+    /** The map's buildings: each one's template, owner, frame and the boxes
+     *  of its parts as the side knows them (the remains of one it has seen
+     *  fall). */
     buildings: () => {
       if (!drawnBuildings || !buildings) return [];
       const fallen = new Map(buildings.fallen.map((f) => [f.building, f.parts]));
@@ -649,7 +643,7 @@ export function useBattleSession({
     /** The props drawn from what the side knows (standing destroyable props
      *  when "apart", their remains, and wrecks), for the viewport's `structures`. */
     structures,
-    /** The buildings drawn from template art, and those the side has seen
+    /** The map's buildings, and those the side has seen
      *  fall, for the viewport. */
     buildingsFeed,
     /** What the camera keeps clear of, from what the side knows stands, for

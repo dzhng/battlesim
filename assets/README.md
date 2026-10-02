@@ -4,7 +4,7 @@ Art for the battle, owned by [`packages/scene-assets`](../packages/scene-assets/
 
 - `catalog.json`: the authored catalog. It holds the skeletons and appearances with their sources and basis, the fit tolerances, and each side's tint. Text.
 - `source/` and `third-party/`: GLBs and other inputs. Git LFS, whatever the extension. `source/infantry/` is exported by `packages/scene-assets/blender/`; re-export it there rather than editing the GLBs.
-- `source/city/<set>/`: a city set, the kit of modules and the templates that place them ([the city kit readme](../packages/scene-assets/blender/city/README.md)). `catalog.json` lists the sets under `city_sets`.
+- `source/city/<set>/`: a city set, the kit of modules and the templates that place them ([the city kit readme](../packages/scene-assets/blender/city/README.md)). `catalog.json` lists the sets under `city_sets`, each with the physical catalogue it dresses. Every building is drawn from one: a generated town's from the generator's sets, the village's and the labs' from `village`. No building is an appearance of its own.
 - `review/`: accepted model sheets (`asset sheet --accept`), one folder per appearance.
 - `runtime/`: the bake's output. `<hash>/bundle.bin` and the template art library's `<hash>/templates.bin` are LFS, and `catalog.json` maps names to hashes. It is Vite's `publicDir`, so it is served at the site root and copied into production builds.
 

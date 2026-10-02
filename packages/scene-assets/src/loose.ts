@@ -59,13 +59,14 @@ export interface LooseResult {
 }
 
 /** What a GLB most likely draws, from its content alone: a skin is a
- *  soldier, running gear a vehicle, anything else a building. */
+ *  soldier, running gear a vehicle, anything else scenery (of the kind the
+ *  caller names). */
 export function inferUnit(bytes: Uint8Array): AppearanceUnit {
   const { json } = parseGlb(bytes);
   const names: string[] = (json.nodes ?? []).map((n: { name?: string }) => n.name ?? "");
   if ((json.skins ?? []).length) return "soldier";
   if (names.some((n) => n.startsWith("wheel_") || n.startsWith("track_"))) return "vehicle";
-  return "building";
+  return "scenery";
 }
 
 export async function validateLoose(
@@ -111,7 +112,7 @@ export async function validateLoose(
       ? {
           unit,
           states: {
-            [(options.scenery && SCENERY_KINDS[options.scenery]?.states[0]) || "intact"]: path,
+            [(options.scenery && SCENERY_KINDS[options.scenery]?.states[0]) || "default"]: path,
           },
           basis_yaw_deg: yaw,
           ...(options.scenery ? { scenery: options.scenery } : {}),

@@ -825,6 +825,27 @@
       },
       "ruin_tint": [0.36, 0.33, 0.3]
     },
+    "stand_ins": {
+      "tints": {
+        "parked_car": [0.3, 0.37, 0.5],
+        "car_wreck": [0.2, 0.2, 0.2],
+        "street_tree": [0.29, 0.4, 0.22],
+        "lamp": [0.2, 0.2, 0.22],
+        "bus_shelter": [0.55, 0.66, 0.72],
+        "bench": [0.45, 0.33, 0.22],
+        "bins": [0.2, 0.36, 0.26],
+        "planter": [0.52, 0.5, 0.44],
+        "bollard": [0.8, 0.72, 0.2],
+        "hydrant": [0.72, 0.16, 0.12],
+        "utility_box": [0.5, 0.56, 0.5],
+        "scooter": [0.24, 0.24, 0.3],
+        "skip_bin": [0.78, 0.62, 0.16],
+        "pallet_stack": [0.72, 0.6, 0.4],
+        "site_cabin": [0.84, 0.84, 0.8],
+        "heras_fence": [0.62, 0.64, 0.66],
+        "default": [0.62, 0.62, 0.62]
+      }
+    },
     "pose": {
       "gait": { "walk_mps": 0.25, "run_mps": 2.2, "fade_s": 0.25, "facing_mps": 0.3, "turn_rad_s": 6 },
       "rest": { "turn_rad": 1.0, "tempo": [0.8, 1.25], "watch_every": 4, "settle_s": [4, 6] },

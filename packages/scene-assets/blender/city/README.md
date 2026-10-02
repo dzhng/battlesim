@@ -1,6 +1,6 @@
 # City buildings: kits and templates
 
-A town's buildings are drawn as instances of a few shared **modules** (a window bay, a balcony, a roof, a wall shell), never as one mesh per building. The scripts here make the modules and say where each one goes on each building **template**. Maps reach 16,000 buildings; a kit is a few dozen modules.
+A town's buildings are drawn as instances of a few shared **modules** (a window bay, a balcony, a roof, a wall shell), never as one mesh per building. The scripts here make the modules and say where each one goes on each building **template**. Maps reach 16,000 buildings; a kit is a few dozen modules. Every building of every map is drawn this way, the hand-authored maps' few houses included.
 
 Blender runs here and nowhere else: these scripts are an explicit source step, run by hand through `asset blender`, and their output is committed (Git LFS) under `assets/source/city/`. The asset bake, the asset check, the map generator and the game never start Blender.
 
@@ -56,9 +56,9 @@ A set is one source's work: the China graph's apartment blocks, our own houses, 
 }
 ```
 
-- **`set`** and **`kit`** are the names `assets/catalog.json` lists the set under: its key in `city_sets`, and the kit's appearance (`unit: "kit"`).
+- **`set`** and **`kit`** are the names `assets/catalog.json` lists the set under: its key in `city_sets`, and the kit's appearance (`unit: "kit"`). The catalog also says which physical catalogue the set's templates are rows of (`catalogue`): `generated`, what the map generator builds towns from, or `authored`, the boxes the hand-authored maps pin.
 - **`modules`** lists each kit module the rows use, once, by id. Every one must be in the kit.
-- **`descriptor`** is the physical template, exactly the contract's `BuildingTemplateDescriptor` (`crates/contract/src/templates.rs`): oriented boxes for parts, floor datums, entrances, facade edges with their bay lattice, supported joins. It is what the map generator places and the simulation builds, and **the art is made to it, never the other way round**: every wall stands on a face of a part, so what hides a unit in the simulation hides it on screen. A descriptor must pass `require_complete`.
+- **`descriptor`** is the physical template, exactly the contract's `BuildingTemplateDescriptor` (`crates/contract/src/templates.rs`): oriented boxes for parts, floor datums, entrances, facade edges with their bay lattice, supported joins. It is what the map generator places and the simulation builds, and **the art is made to it, never the other way round**: every wall stands on a face of a part, so what hides a unit in the simulation hides it on screen. A descriptor of the generator's catalogue must pass `require_complete`; one of the authored catalogue is a solid box with no floor, door or bay resolved, and must pass `validate`.
 - **The template's frame** is the descriptor's: metres, Z up, the ground at z = 0, the origin at the footprint's centre, the first entrance on the street side.
 - **`states`** holds the rows for each state a side can know a building in. `intact` is required; `ruin` (a collapsed building, 6 floors or fewer) and `gutted` (a burnt shell that still stands, taller) arrive with the damage pass.
 - **A row** is twelve numbers: `[module, x, y, z, yaw, sx, sy, sz, tiers, r, g, b]`.
@@ -72,11 +72,13 @@ A set is one source's work: the China graph's apartment blocks, our own houses, 
 
 ## From a set to a town
 
-A new set is listed in `assets/catalog.json`: its kit as an appearance, and the set under `city_sets`. Then, with the `asset` CLI:
+A new set is listed in `assets/catalog.json`: its kit as an appearance, and the set under `city_sets` with the catalogue it dresses. Then, with the `asset` CLI:
 
-1. `catalogue` copies the sets' descriptors into the physical catalogue the map generator reads. A template belongs to exactly one set, and a set's descriptor and its catalogue row are the same template. The catalogue's hash moves, and what pins it moves in the same commit.
+1. `catalogue` copies the `generated` sets' descriptors into the physical catalogue the map generator reads. A template belongs to exactly one set, and a set's descriptor and its catalogue row are the same template. The catalogue's hash moves, and what pins it moves in the same commit.
 2. `prototypes` regenerates the stand-in set for whatever templates still have no art.
-3. `bake`, then `check`. They refuse a set whose descriptor the simulation's contract refuses, whose art leaves its parts, whose rows name a module its kit lacks, or that leaves a catalogue template undressed. What the bake does with a set is in the [scene-assets readme](../../README.md), "City buildings".
+3. `bake`, then `check`. They refuse a set whose descriptor the simulation's contract refuses, whose art leaves its parts, whose rows name a module its kit lacks, or that leaves a template of its catalogue undressed. What the bake does with a set is in the [scene-assets readme](../../README.md), "City buildings".
+
+The authored catalogue (`fixtures/building-templates.json`) runs the other way: its rows are written by hand, its hash is its maps' identity, and nothing derives it. Its set copies each row as its descriptor (`kit.dress`), so a new authored box needs only the set's script run again, then `bake` and `check`.
 
 **The picture a set is judged by** is the line-up lab, `/lab/city-lineup`: every template on flat ground, drawn as the game draws a town, at any one tier, state and station (its route file lists the address parameters). `CITY_SET=<set> bun run --cwd web scene -- city-lineup` holds each template to its parts and fit on screen and writes, under `throwaway/evidence/city-lineup/`, a sheet per category at each tier and each template across each tier boundary (the scene file lists what else narrows a run).
 
@@ -98,6 +100,7 @@ A new set is listed in `assets/catalog.json`: its kit as an appearance, and the 
 - [`ambientcg.py`](ambientcg.py) bakes a pinned ambientCG set (`../packs.py`) into a texture recipe at the size every texture in the game has.
 - [`towers.py`](towers.py) models our own tower blocks: panel modules one bay wide and one floor high, placed by a row a bay; each template's shell carries the same grid as a texture from tier 1 out, and is the whole tower at tiers 2 and 3. [`tower_sheets.py`](tower_sheets.py) photographs them, alone and among the other sets.
 - [`kit.py`](kit.py) is the authoring helper of a hand-scripted set (modules, templates, edges, bays, rows, the two files), with [`homes.py`](homes.py), the houses, as its worked example and [`farmsteads.py`](farmsteads.py), the farms, as the one with several buildings to a template.
+- [`village.py`](village.py) dresses the authored maps' catalogue: the courtyard farm of `../house.py` built on each box at its own size, one module standing and one fallen. Each of its three looks is built in full on the village house it belongs to; any other box borrows the nearest house's look a tier coarser, so the twelve farms fit a kit's byte budget.
 - [`industry.py`](industry.py) models the industrial set through `kit.py`: five buildings, each a shell of its own and rows of shared bay-wide modules, folded into the shell at the two coarse tiers. [`industry_sheets.py`](industry_sheets.py) frames buildings that size for `assemble.py`.
 - [`assemble.py`](assemble.py) puts a set back together in Blender from its two files and renders it at the game's camera with the part boxes drawn over it: the picture to judge a set by until the renderer draws kits.
 

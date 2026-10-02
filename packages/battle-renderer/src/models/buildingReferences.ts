@@ -3,10 +3,10 @@
 // it is), and what a side knows fell. Nothing here holds a module transform;
 // `buildingPlacements.ts` expands the references near the camera.
 //
-// A building is drawn from its template's rows when the installed template
-// art library has that template. One it does not have (the village's houses,
-// a lab's fixture) is not a reference here, and keeps the fitted-appearance
-// path (`propAppearance.ts`).
+// Every building of every map is drawn this way, from its template's rows in
+// the installed template art library: a generated town's, the village's
+// houses, a lab's one box. Nothing else draws a building, and a template the
+// library lacks is refused by name when the scene is built.
 //
 // Knowledge is the rule every structure follows (`knownStanding`): a building
 // stands intact until the side has seen it fall.
@@ -66,7 +66,7 @@ export function validateBuildingStyle(style: BuildingStyle): BuildingStyle {
 /** Floats per building frame: x, y, z, then yaw (radians about +Z). */
 export const FRAME_FLOATS = 4;
 
-/** The buildings of a map that template art draws. */
+/** A map's buildings, as references to their templates. */
 export interface PlacedBuildings {
   /** The template ids `template` names. */
   templates: string[];
@@ -90,15 +90,15 @@ export interface FallenBuilding {
   parts: readonly PropBox[];
 }
 
-/** The buildings a side draws from template art: the map's, and which of
- *  them it has seen fall. `placed` keeps its identity while the map and the
+/** The buildings a side draws: the map's, and which of them it has seen
+ *  fall. `placed` keeps its identity while the map and the
  *  library do; only `fallen` follows knowledge. */
 export interface SideBuildings {
   placed: PlacedBuildings;
   fallen: readonly FallenBuilding[];
 }
 
-/** A map's art-drawn buildings, and their parts' props. */
+/** A map's buildings, and their parts' props. */
 export interface BuildingIndex {
   placed: PlacedBuildings;
   /** Each part's prop, to its building in `placed`. */
@@ -107,14 +107,13 @@ export interface BuildingIndex {
   parts: MapProp[][];
 }
 
-/** The buildings of `buildings` whose template `hasArt` accepts, as
- *  references, with the map props (`props`) that are their parts. */
+/** The map's `buildings` as references, with the map props (`props`) that
+ *  are their parts. */
 export function indexBuildings(
   buildings: PublicBuildings,
   props: readonly MapProp[],
-  hasArt: (templateId: string) => boolean,
 ): BuildingIndex {
-  const drawn = buildings.buildings.filter((b) => hasArt(b.templateId));
+  const drawn = buildings.buildings;
   const templates = [...new Set(drawn.map((b) => b.templateId))].sort();
   const templateAt = new Map(templates.map((id, i) => [id, i]));
   const byId = new Map(props.map((p) => [p.id, p]));

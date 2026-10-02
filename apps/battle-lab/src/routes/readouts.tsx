@@ -54,6 +54,7 @@ function ReadoutsLab({ battle }: { battle: SavedBattle }) {
       <LabViewport
         fixture="readouts"
         world={worldFeed}
+        buildings={session.buildingsFeed}
         overlay={overlayFeed}
         fog={session.fogFeed}
         frame={session.frame}

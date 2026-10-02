@@ -956,3 +956,32 @@ fn a_nonstanding_infantry_goal_projects_to_a_legal_timed_endpoint() {
     assert!(g.route_fits(from, &path, &INFANTRY));
     assert!(g.route_time(from, &path, &INFANTRY).is_finite());
 }
+
+/// A soldier standing hard against a wall (the survivors of a collapse, a
+/// squad tucked into cover) is physically clear of it but closer than the
+/// path clearance, so he stands on no free sub-cell. His route starts with
+/// the step out to the nearest one: it is never refused for where he stands.
+#[test]
+fn a_soldier_hard_against_a_wall_still_gets_a_route() {
+    let w =
+        world(r#", "props":[{"kind":"wall","center":[200,100],"yaw":0,"half_extents":[12,9,4]}]"#);
+    let g = grid(&w);
+    // 0.45 m off the north face, as a collapse leaves its survivors.
+    for x in [189.5, 192.5, 195.5, 201.5, 204.5] {
+        let from = v2(x, 109.45);
+        assert!(
+            !g.fits_at(from, &INFANTRY),
+            "closer than the path clearance"
+        );
+        for goal in [v2(203.0, 89.0), v2(206.6, 81.1), v2(195.5, 130.0)] {
+            let plan = g.plan(from, goal, &INFANTRY, RoutePolicy::Shortest);
+            let Plan::Route(path) = plan else {
+                panic!("from {from:?} to {goal:?}: {plan:?}");
+            };
+            assert_eq!(path.last(), Some(&goal));
+            // Past his first step out, the whole way keeps its clearance.
+            assert!(g.fits_at(path[0], &INFANTRY), "{path:?}");
+            assert!(g.route_fits(path[0], &path[1..], &INFANTRY), "{path:?}");
+        }
+    }
+}

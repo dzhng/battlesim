@@ -41,7 +41,7 @@ import {
   SKELETON_ENTRY,
   SOLDIER_CLIPS,
   TOLERANCES,
-  buildingGlb,
+  blockGlb,
   panelGlb,
   soldierGlb,
   syntheticUnits,
@@ -113,22 +113,6 @@ async function truck(options: Parameters<typeof truckGlb>[0] = {}) {
       context,
     )
   ).findings;
-}
-
-async function house(
-  states: Record<string, Uint8Array>,
-  footprint: AppearanceEntry["footprint_half_m"] | null = [5, 4, 3],
-) {
-  const files = Object.fromEntries(
-    Object.entries(states).map(([state, bytes]) => [`${state}.glb`, bytes]),
-  );
-  const entry: AppearanceEntry = {
-    unit: "building",
-    states: Object.fromEntries(Object.keys(states).map((s) => [s, `${s}.glb`])),
-    basis_yaw_deg: 0,
-    ...(footprint ? { footprint_half_m: footprint } : {}),
-  };
-  return (await validateAppearance({ name: "house", entry, files }, context)).findings;
 }
 
 /** A scenery appearance: `kind` names a `SCENERY_KINDS` row. */
@@ -204,10 +188,11 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
     skeleton({}, soldierGlb({ clips: SOLDIER_CLIPS.filter((c) => c !== "prone_pinned") })).then(
       (f) => f,
     ),
-  "structure.states": () => house({ intact: buildingGlb(6) }),
+  "structure.states": async () =>
+    (await scenery("wall", { summer: blockGlb(1.2) }, [5, 4, 0.6])).findings,
   "structure.scenery_kind": async () =>
-    (await scenery("gazebo", { default: buildingGlb(3) })).findings,
-  "structure.grass": async () => (await scenery("grass", { default: buildingGlb(3) })).findings,
+    (await scenery("gazebo", { default: blockGlb(3) })).findings,
+  "structure.grass": async () => (await scenery("grass", { default: blockGlb(3) })).findings,
   "structure.texture": () =>
     tank(
       {},
@@ -255,7 +240,8 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   "fit.muzzle": () => soldier({ muzzleY: 1.0 }),
   "fit.hull_extents": () => tank({ hullHalfY: 2.2 }),
   "fit.vehicle_muzzle": () => tank({ muzzleX: 5.9 }),
-  "fit.footprint": () => house({ intact: buildingGlb(6), ruin: buildingGlb(3) }),
+  "fit.footprint": async () =>
+    (await scenery("crate", { default: blockGlb(2) }, [1, 1, 1])).findings,
   "fit.muzzle_arc": () => tank({ turretX: -1 }),
   "fit.mount_draw": () => tank({}, { mounts: { cannon: "gun" } }),
   "fit.part_nodes": async () =>
@@ -302,8 +288,7 @@ test("the valid synthetic assets produce no findings at all", async () => {
     ...(await soldier()),
     ...(await tank()),
     ...(await truck()),
-    ...(await house({ intact: buildingGlb(6), ruin: buildingGlb(2) })),
-    ...(await scenery("wall", { default: buildingGlb(1.2) }, [5, 4, 0.6])).findings,
+    ...(await scenery("wall", { default: blockGlb(1.2) }, [5, 4, 0.6])).findings,
     ...(await scenery("tree", { summer: treeGlb() })).findings,
     ...(await scenery("hedgerow", { summer: treeGlb(3) })).findings,
     ...(await scenery("grass", { summer: grassClumpGlb("tuft", GRASS_SPEC) })).findings,
@@ -505,10 +490,10 @@ test("a deployed pad that stops short of the ground is caught, by name", async (
   ]);
 });
 
-test("a scenery kind needs its own states, not a building's, and builds a static bundle", async () => {
-  const wall = await scenery("wall", { default: buildingGlb(1.2) }, [5, 4, 0.6]);
+test("a scenery kind needs the states of its row, and builds a static bundle", async () => {
+  const wall = await scenery("wall", { default: blockGlb(1.2) }, [5, 4, 0.6]);
   expect(wall.bundle?.kind).toBe("static");
-  const missing = await scenery("wall", { intact: buildingGlb(1.2) });
+  const missing = await scenery("wall", { summer: blockGlb(1.2) });
   expect(missing.findings.map((f) => f.message).join("\n")).toContain('no "default" state');
 });
 
@@ -518,27 +503,18 @@ test("catalog tolerances, not the rules, admit art that sits outside the default
   ).toEqual([]);
 });
 
-test("a building fits its simulation box, and its ruin the rule's ruin height", async () => {
-  const codes = async (states: Record<string, Uint8Array>, footprint?: [number, number, number]) =>
-    (await house(states, footprint)).filter((f) => f.code === "fit.footprint");
-  expect(await codes({ intact: buildingGlb(6), ruin: buildingGlb(2) })).toEqual([]);
-  const tall = await codes({ intact: buildingGlb(9), ruin: buildingGlb(2) });
-  expect(tall.map((f) => f.message).join("\n")).toMatch(/intact.*\+z face at 9\.000/);
-  const ruin = await codes({ intact: buildingGlb(6), ruin: buildingGlb(3) });
-  expect(ruin.map((f) => f.message).join("\n")).toMatch(/ruin.*ruin_height_m 2/);
-  const narrow = await codes({ intact: buildingGlb(6), ruin: buildingGlb(2) }, [4, 4, 3]);
-  expect(narrow.map((f) => f.message).join("\n")).toMatch(/-x face at -5\.000 m vs -4\.000/);
-  const unsized = await house({ intact: buildingGlb(6), ruin: buildingGlb(2) }, null);
-  expect(unsized.map((f) => f.code)).toContain("fit.footprint");
-});
-
 test("a prop scenery kind is fitted to its declared box; a tree has no box to fit", async () => {
-  const crate = await scenery("crate", { default: buildingGlb(2) }, [1, 1, 1]);
+  const crate = await scenery("crate", { default: blockGlb(2) }, [1, 1, 1]);
   expect(crate.findings.map((f) => f.code)).toContain("fit.footprint");
-  expect((await scenery("crate", { default: buildingGlb(2) }, [5, 4, 1])).findings).toEqual([]);
-  expect((await scenery("crate", { default: buildingGlb(2) })).findings.map((f) => f.code)).toEqual(
-    ["fit.footprint"],
-  );
+  // Each face that is off is named, the top among them.
+  const tall = await scenery("crate", { default: blockGlb(9) }, [4, 4, 3]);
+  const faces = tall.findings.map((f) => f.message).join("\n");
+  expect(faces).toMatch(/-x face at -5\.000 m vs -4\.000/);
+  expect(faces).toMatch(/\+z face at 9\.000 m vs 6\.000/);
+  expect((await scenery("crate", { default: blockGlb(2) }, [5, 4, 1])).findings).toEqual([]);
+  expect((await scenery("crate", { default: blockGlb(2) })).findings.map((f) => f.code)).toEqual([
+    "fit.footprint",
+  ]);
   expect((await scenery("tree", { summer: treeGlb() })).findings).toEqual([]);
 });
 

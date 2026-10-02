@@ -361,9 +361,9 @@ pub struct PropAppearance {
     /// Physical catalog entry whose fitted art is still awaiting acceptance.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub status: Option<PropAppearanceStatus>,
-    /// The asset catalog's appearances that draw it: the scenery kind (or
-    /// `building`) whose appearances are fitted to its box, `forest` for the
-    /// trees a forest draws itself.
+    /// What draws it: the asset catalog's scenery kind whose appearances are
+    /// fitted to its box, `building` for a part its building draws from its
+    /// template's art, `forest` for the trees a forest draws itself.
     pub drawn_by: String,
     /// Drawn by repeating one module along the box's long side (a wall, a
     /// fence), not stretched.
@@ -373,10 +373,6 @@ pub struct PropAppearance {
     /// appearances a map uses are loaded.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub map_only: bool,
-    /// Remains drawn as the body they stand in place of, in this state of its
-    /// appearance (a building's ruin).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub remains_state: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

@@ -38,7 +38,7 @@ use crate::world::{Prop, PropId};
 const IN_PLACE_M: f64 = 0.3;
 
 /// What cover is sought among this tick: each side's live vehicles (Q24),
-/// every live hull as rounds meet it, and where every squad's soldiers are
+/// every live hull as rounds meet it, and where tracked squads' soldiers are
 /// exposed (standing, or out on a lean), by unit and member.
 pub(super) struct Field {
     hulls: [Vec<Body>; 2],
@@ -53,7 +53,15 @@ impl Field {
             .map(|side| cover::hull_bodies(blockers.iter().filter(|h| h.side == side)));
         let soldiers = units
             .iter()
-            .map(|u| u.members.iter().map(|s| s.exposed(ctx.tick).xy()).collect())
+            .map(|u| {
+                // Threat::enemy only reads tracked units; knowledge is immutable
+                // for this field's lifetime. Keep their member indices, even dead.
+                if ctx.knowledge.iter().any(|k| k.track(u.id).is_some()) {
+                    u.members.iter().map(|s| s.exposed(ctx.tick).xy()).collect()
+                } else {
+                    Vec::new()
+                }
+            })
             .collect();
         Field {
             hulls,

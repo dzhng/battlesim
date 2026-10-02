@@ -678,3 +678,39 @@ fn hidden_enemy_spotting_cannot_move_visible_blockers_during_admission() {
     );
     assert_eq!(near_preview, far_preview);
 }
+
+#[test]
+fn a_member_whose_journey_outlasts_the_allowance_does_not_unplace_the_group() {
+    // A jeep and a rifle squad ordered to one place: the jeep stands beside
+    // it, the squad is 280 m off on foot. The allowance covers the jeep's
+    // move and runs out during the squad's walk.
+    let mut rules = crate::common::scenario_rules();
+    rules["navigation"]["move_validation_work"] = json!(10000);
+    let setup: ScenarioDefinition = serde_json::from_value(json!({
+        "map": {"size": [2000, 200], "fog_cell_m": 8, "height_grid_m": 4,
+            "slope_cutoff_deg": 35, "props": []},
+        "rules": rules,
+        "units": [
+            {"side": "blue", "kind": "jeep", "position": [1900, 100], "yaw": 0},
+            {"side": "blue", "kind": "rifle", "position": [1650, 100], "yaw": 0}
+        ], "events": [], "scripts": []
+    }))
+    .unwrap();
+    let mut battle = Battle::new(&setup, 1);
+    let ack = battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        seq: 1,
+        order: move_to(&[0, 1], [1930.0, 100.0]),
+        queued: false,
+    });
+    let placed: Vec<_> = ack
+        .placement
+        .as_ref()
+        .unwrap()
+        .destinations
+        .iter()
+        .map(|d| (d.unit.0, d.placed))
+        .collect();
+    assert_eq!(ack.error, None, "the jeep's marker stands: {placed:?}");
+    assert_eq!(placed, [(0, true), (1, false)]);
+}

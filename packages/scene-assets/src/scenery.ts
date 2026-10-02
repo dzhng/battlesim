@@ -1,5 +1,5 @@
-// Scenery: every drawn thing that is not a soldier, a vehicle or a building —
-// props, trees, hedgerows, grass. Each scenery kind is a static bundle (one
+// Scenery: every drawn thing that is not a soldier, a vehicle or a building's
+// kit: props, trees, hedgerows, grass. Each scenery kind is a static bundle (one
 // mesh per state, four LOD tiers, instanced at draw) whose appearance entry is
 // `{unit: "scenery", scenery: "<kind>"}`.
 //
@@ -44,7 +44,7 @@ export interface SceneryRule {
 
 const prop: SceneryRule = { states: ["default"], footprint: { kind: "prop" } };
 
-/** Every scenery kind. Buildings keep their own unit (`intact` and `ruin`). */
+/** Every scenery kind. */
 export const SCENERY_KINDS: Record<string, SceneryRule> = {
   wall: prop,
   crate: prop,
@@ -109,8 +109,8 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   grass: { states: ["summer"], footprint: { kind: "none" }, blades: true },
 };
 
-/** The prop types a scenery kind (or `building`) draws: those whose
- *  `appearance.drawn_by` names it in the resolved prop catalog, in id order. */
+/** The prop types a scenery kind draws: those whose `appearance.drawn_by`
+ *  names it in the resolved prop catalog, in id order. */
 export function propsDrawnBy(
   props: Readonly<Record<string, { appearance: { drawn_by: string } }>>,
   scenery: string,
@@ -118,14 +118,4 @@ export function propsDrawnBy(
   return Object.keys(props)
     .filter((id) => props[id].appearance.drawn_by === scenery)
     .sort();
-}
-
-/** The states a static appearance must carry, or null for an unknown scenery kind. */
-export function requiredStates(
-  unit: string,
-  scenery: string | undefined,
-  buildingStates: readonly string[],
-): readonly string[] | null {
-  if (unit === "building") return buildingStates;
-  return scenery !== undefined && SCENERY_KINDS[scenery] ? SCENERY_KINDS[scenery].states : null;
 }

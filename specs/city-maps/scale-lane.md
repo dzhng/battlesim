@@ -55,7 +55,12 @@ Current pickup, in order:
    **113,197.618 million instructions in Orders at its worst scripted tick**.
    At tick 150, only eight of blue's 74 first-wave fighters acquire goals and
    none of red's do. This is observed execution, not hidden command verdicts;
-   distance alone does not explain the refusals. Keep destination truthfulness,
+   nested profiling confirms validation-work exhaustion. The unchanged 30 s
+   extension fires three rounds and loses one vehicle; red still has no movement
+   goals. It does not establish the intended dense contact workload. An exact
+   CPU optimization preserves those refusals, so workload validity needs a
+   movement-admission resolution or an explicitly accepted representative input.
+   Keep destination truthfulness,
    physical rules, the validation allowance and the stress recipe intact while
    selecting a fix or explicitly separating that incoming movement work.
 2. Run both complete 9,000-tick contact arms after that contract is resolved.

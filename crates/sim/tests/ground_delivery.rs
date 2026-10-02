@@ -10,6 +10,11 @@ use sim::publication::{self, Publisher};
 
 use crate::common;
 
+#[allow(dead_code)]
+mod codec {
+    include!("common/publication_codec.rs");
+}
+
 /// A flat 1200 × 400 field: blue looks east from the west end, red west from
 /// the east end, and the middle is out of both sides' sight.
 fn field() -> String {
@@ -72,7 +77,15 @@ fn decode_patch(layout: &Value, data: &[f32]) -> Patch {
         .map(|v| v.as_str().unwrap())
         .collect();
     let count = head(g["count"].as_str().unwrap()) as usize;
-    let start = data.len() - count * fields.len();
+    // The runs are the record's packed tail, after the header, the groups'
+    // carriers and the fog words; the shared test reader restores their rows.
+    let mut at = header.len();
+    for _ in layout["groups"].as_array().unwrap() {
+        at += 3 + data[at + 2] as usize;
+    }
+    at += head("fogFloats") as usize;
+    let rows = codec::ground(&data[at..], count);
+    let (data, start) = (&rows[..], 0);
     let tile_size = g["tileSize"].as_u64().unwrap() as u32;
     let cols = g["cols"].as_u64().unwrap() as u32;
     let tiles_x = cols.div_ceil(tile_size);

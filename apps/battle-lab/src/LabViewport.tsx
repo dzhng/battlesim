@@ -74,11 +74,11 @@ interface LabViewportProps {
   fixture: string;
   /** The static world, fed like the overlay (`useFeed`); drawn once it is set. */
   world: FeedSource<WorldLayers | null>;
-  /** Knowledge-drawn props as fitted appearances (standing buildings,
-   *  remembered ruins and wrecks), lit and fogged with the world. */
+  /** Knowledge-drawn props as fitted appearances (standing walls and field
+   *  works, remembered rubble and wrecks), lit and fogged with the world. */
   structures?: readonly ModelInstance[];
-  /** The buildings drawn from template art, and those the side has seen
-   *  fall, fed like the overlay; omitted or null draws none. */
+  /** The map's buildings, and those the side has seen fall, fed like the
+   *  overlay; omitted or null draws none. */
   buildings?: FeedSource<SideBuildings | null>;
   /** How those buildings are tiered, chunked and pooled; the fixture's when
    *  omitted. The frame takes it when it is built: a change draws at the next

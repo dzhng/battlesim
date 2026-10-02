@@ -1,7 +1,8 @@
 // City template sets, as their sources say them (`blender/city/README.md`):
 // reading a set's `templates.json`, holding it to its kit, to the physical
-// contract and to the catalogue the map generator reads, and packing every
-// set into the one template art library (`templateLibrary.ts`).
+// contract and to the physical catalogue it dresses (the map generator's, or
+// the authored maps'), and packing every set into the one template art
+// library (`templateLibrary.ts`).
 //
 // Isomorphic and Blender-free: the caller supplies bytes, the baked kits and
 // the physical contract. What a legal physical template is, and what the
@@ -67,11 +68,33 @@ export interface TemplateSetSource {
   }[];
 }
 
-/** The physical template contract, as its own code judges it. */
+/** A canonical physical catalogue: its identity and its rows in id order. */
+export interface AdmittedTemplates {
+  hash: string;
+  templates: TemplateDescriptor[];
+}
+
+/** The physical template contract, as its own code judges it. Each throws
+ *  the contract's refusal. */
 export interface PhysicalTemplates {
-  /** The canonical catalogue of `descriptors`, each a complete building
-   *  (`require_complete`); throws the contract's refusal. */
-  complete(descriptors: readonly unknown[]): { hash: string; templates: TemplateDescriptor[] };
+  /** The canonical catalogue of `descriptors`, each a valid physical template
+   *  (`validate`): its floors, entrances and bays may be unresolved. */
+  valid(descriptors: readonly unknown[]): AdmittedTemplates;
+  /** The same, each a complete building as well (`require_complete`). */
+  complete(descriptors: readonly unknown[]): AdmittedTemplates;
+}
+
+/** A physical catalogue the sets dress: every row of it has art in exactly
+ *  one set that names it, and every descriptor of such a set is a row of it. */
+export interface TemplateCatalogue {
+  /** What a set calls it (`city_sets.<set>.catalogue`). */
+  name: string;
+  /** Its rows: the descriptors a map of it may place. */
+  rows: readonly unknown[];
+  /** Whether every row is a complete building. The map generator's are: it
+   *  places them by their entrances and bays. An authored map's solid boxes
+   *  are not. */
+  complete: boolean;
 }
 
 /** Triangles a template is budgeted to draw at each tier, finest first. The
@@ -369,27 +392,31 @@ export interface PackedTemplates {
 const fmt = (n: number) => n.toFixed(3);
 
 /**
- * Hold every set to its kit, the physical contract and the catalogue, and
- * pack them all into one library. `catalogue` is the physical catalogue's
- * rows (the descriptors the map generator reads): every one of them is
- * dressed by exactly one set, and every set's descriptor is a row of it.
- * Deterministic: sets in name order, templates in id order, rows as written.
+ * Hold every set to its kit, the physical contract and its catalogue, and
+ * pack them all into one library. Every row of every catalogue is dressed by
+ * exactly one set, and every set's descriptor is a row of the catalogue the
+ * set names. A template is known by its id alone, so no two catalogues share
+ * one. Deterministic: sets in name order, templates in id order, rows as
+ * written.
  */
 export function packTemplateSets(
   inputs: readonly TemplateSetInput[],
-  catalogue: readonly unknown[],
+  catalogues: readonly TemplateCatalogue[],
   physical: PhysicalTemplates,
   groundM: number,
 ): PackedTemplates {
   const findings: Finding[] = [];
+  const admit = (catalogue: TemplateCatalogue, rows: readonly unknown[]) =>
+    catalogue.complete ? physical.complete(rows) : physical.valid(rows);
   const kits = [...new Set(inputs.flatMap((i) => (i.kit ? [i.entry.kit] : [])))].sort();
   const kitHash = new Map(inputs.flatMap((i) => (i.kit ? [[i.entry.kit, i.kit.hash]] : [])));
   const modules: TemplateArtLibrary["modules"] = [];
   const moduleSlot = new Map<string, number>();
   const packed: { art: TemplateArt; rows: Partial<Record<TemplateState, number[][]>> }[] = [];
   const stats: TemplateLibraryStats["templates"] = [];
-  /** Canonical descriptors by id, with the sets that dress each. */
-  const dressed = new Map<string, { sets: string[]; canonical: string }>();
+  /** Canonical descriptors by id, with the sets that dress each and the
+   *  catalogue the first of them names. */
+  const dressed = new Map<string, { sets: string[]; canonical: string; catalogue: string }>();
   let unread = false;
 
   for (const input of [...inputs].sort((a, b) => (a.name < b.name ? -1 : 1))) {
@@ -431,22 +458,35 @@ export function packTemplateSets(
       }
       return slot;
     });
-    // A set with a malformed row or template is judged no further.
-    if (read.findings.length) continue;
+    const catalogue = catalogues.find((c) => c.name === input.entry.catalogue);
+    if (!catalogue) {
+      add(
+        "templates.catalogue",
+        `the catalog lists set "${input.name}" on catalogue "${input.entry.catalogue}", which is not one of ${catalogues.map((c) => c.name).join(", ")}`,
+        "name the physical catalogue the set's templates are rows of in its city_sets entry",
+      );
+      unread = true;
+    }
+    // A set with a malformed row or template, or no catalogue, is judged no further.
+    if (read.findings.length || !catalogue) continue;
     for (const template of set.templates) {
       const id = template.descriptor.id;
       let canonical: TemplateDescriptor | null = null;
       try {
-        canonical = physical.complete([template.descriptor]).templates[0];
+        canonical = admit(catalogue, [template.descriptor]).templates[0];
       } catch (e) {
         add(
           "templates.physical",
           `template ${id} is not a physical template a map may place: ${(e as Error).message}`,
-          "fix the descriptor the script writes; contract::templates::require_complete is the rule",
+          `fix the descriptor the script writes; contract::templates::${catalogue.complete ? "require_complete" : "validate"} is the rule`,
         );
       }
       if (canonical) {
-        const entry = dressed.get(id) ?? { sets: [], canonical: JSON.stringify(canonical) };
+        const entry = dressed.get(id) ?? {
+          sets: [],
+          canonical: JSON.stringify(canonical),
+          catalogue: catalogue.name,
+        };
         entry.sets.push(input.name);
         dressed.set(id, entry);
       }
@@ -502,50 +542,74 @@ export function packTemplateSets(
     }
   }
 
-  // The catalogue and the sets, one against the other.
-  let covers: string | null = null;
-  try {
-    const admitted = physical.complete(catalogue);
-    covers = admitted.hash;
+  // Each catalogue and its sets, one against the other.
+  const covers: string[] = [];
+  /** Per template id: the catalogue that has it. */
+  const home = new Map<string, string>();
+  for (const catalogue of [...catalogues].sort((a, b) => (a.name < b.name ? -1 : 1))) {
+    let admitted: AdmittedTemplates;
+    try {
+      admitted = admit(catalogue, catalogue.rows);
+    } catch (e) {
+      findings.push(
+        error(
+          "templates.catalogue",
+          `the physical catalogue "${catalogue.name}" is refused: ${(e as Error).message}`,
+          "fix the catalogue's rows; contract::templates is the rule",
+        ),
+      );
+      continue;
+    }
+    covers.push(admitted.hash);
     const rows = new Map(admitted.templates.map((t) => [t.id, JSON.stringify(t)]));
+    for (const id of rows.keys()) {
+      const other = home.get(id);
+      if (other !== undefined)
+        findings.push(
+          error(
+            "templates.catalogue",
+            `template ${id} is in the physical catalogues "${other}" and "${catalogue.name}"; art is found by a template's id alone`,
+            "give the template of one catalogue another id",
+          ),
+        );
+      home.set(id, catalogue.name);
+    }
     for (const [id, entry] of dressed) {
+      if (entry.catalogue !== catalogue.name) continue;
       const row = rows.get(id);
       if (row !== entry.canonical)
         findings.push(
           error(
             "templates.catalogue",
-            `set ${entry.sets.join(", ")}: template ${id} ${row === undefined ? "is not in the physical catalogue" : "differs from its row in the physical catalogue"}`,
-            "the catalogue's rows are the sets' descriptors: run `bun run --cwd web asset -- catalogue`",
-          ),
-        );
-      if (entry.sets.length > 1)
-        findings.push(
-          error(
-            "templates.coverage",
-            `template ${id} is dressed by ${entry.sets.length} sets (${entry.sets.join(", ")}); exactly one set owns a template`,
-            "drop the template from all but one set",
+            `set ${entry.sets.join(", ")}: template ${id} ${row === undefined ? "is not in the physical catalogue" : "differs from its row in the physical catalogue"} "${catalogue.name}"`,
+            catalogue.complete
+              ? "the catalogue's rows are the sets' descriptors: run `bun run --cwd web asset -- catalogue`"
+              : "write the set's descriptor as the catalogue's row is written",
           ),
         );
     }
     // Which templates lack art is only known once every set has been read.
     for (const id of unread ? [] : rows.keys())
-      if (!dressed.has(id))
+      if (dressed.get(id)?.catalogue !== catalogue.name)
         findings.push(
           error(
             "templates.coverage",
-            `template ${id} is in the physical catalogue, but no set has art for it`,
-            "add it to a set, or give it stand-in rows: run `bun run --cwd web asset -- prototypes`",
+            `template ${id} is in the physical catalogue "${catalogue.name}", but no set of it has art for it`,
+            catalogue.complete
+              ? "add it to a set, or give it stand-in rows: run `bun run --cwd web asset -- prototypes`"
+              : "add it to a set that names this catalogue",
           ),
         );
-  } catch (e) {
-    findings.push(
-      error(
-        "templates.catalogue",
-        `the physical catalogue is refused: ${(e as Error).message}`,
-        "fix the catalogue's rows; contract::templates is the rule",
-      ),
-    );
   }
+  for (const [id, entry] of dressed)
+    if (entry.sets.length > 1)
+      findings.push(
+        error(
+          "templates.coverage",
+          `template ${id} is dressed by ${entry.sets.length} sets (${entry.sets.join(", ")}); exactly one set owns a template`,
+          "drop the template from all but one set",
+        ),
+      );
   if (modules.length > 0xffff)
     findings.push(
       error(
@@ -555,8 +619,7 @@ export function packTemplateSets(
       ),
     );
 
-  if (covers === null || findings.some((f) => f.severity === "error"))
-    return { findings, library: null, stats: null };
+  if (findings.some((f) => f.severity === "error")) return { findings, library: null, stats: null };
   packed.sort((a, b) => (a.art.id < b.art.id ? -1 : 1));
   const count = packed.reduce(
     (n, t) => n + Object.values(t.rows).reduce((m, rows) => m + rows.length, 0),

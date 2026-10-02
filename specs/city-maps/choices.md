@@ -4610,6 +4610,71 @@ pending. **Confidence:** high for fixture identity, medium until the scene runs.
 
 **Verdict:** Sound within the existing immutable-view contract. Public feed identity/floor proofs and existing pose lifecycle suites pass. Broader browser allocation, upload and throughput admission remain separate and open. **Confidence:** High for static construction and value preservation.
 
+## C46 street placement
+
+### Furniture stands back from the street, not at the kerb
+
+**Choice:** No body stands nearer a carriageway's middle than the catalog's widest hull plus `lane_margin_m` (3.7 m: 7.3 m from the middle today, 3.9 m off a 7 m street's kerb).
+
+**Gap:** The design put parked cars at the kerb, on the carriageway, with a clear lane down the middle. The simulation's vehicles keep right of the middle and check their lane on a 2 m grid; at the kerb, 8 of 17 swept maps lost their assault and 77 street drives detoured. With the cars on the carriageway's outer edge itself, the widest hull shoved a car on 235 of 443 street drives.
+
+**Verdict:** forced by the route-survival rule; provisional as a picture. Terraced streets stay bare. It goes back to about 0.9 m when a road journey tolerates a body beside its lane. **Confidence:** high that the simulation needs it, low that it is what the streets should look like.
+
+### The catalog is a fourth document of generation
+
+**Choice:** `generate`, `generate-map` and the two Wasm exports take the unit and prop catalog's documents. The request does not pin it.
+
+**Gap:** The slice's signature takes a catalog; the generation boundary had none, and a request pins only the generator, the presets and the template catalogue.
+
+**Verdict:** sound for a build's own maps. A catalog change that moves the lane changes every generated map under an unchanged request; the paired records and the saved map's hash go red when it does. **Confidence:** medium.
+
+### A door keeps 3 m clear either side
+
+**Choice:** `door_clear_m` is 3, as designed, after a trial at 0.75 m.
+
+**Gap:** At 3 m a terrace with a door every 6 m takes no car at all; 0.75 m would have let one stand between each pair of doors.
+
+**Verdict:** sound. At 0.75 m a squad could no longer stand at 89 doors of the sweep: navigation's cell there had no room. **Confidence:** high.
+
+### Which side parks is a width, not a lane count
+
+**Choice:** A carriageway at least `both_sides_min_width_m` (10 m) wide parks along both sides, a narrower one along one side drawn for the whole street.
+
+**Gap:** The design derived one side or two from the lane left on the carriageway. With the cars off the carriageway that sum no longer decides anything.
+
+**Verdict:** provisional: it keeps the designed outcome as a number. **Confidence:** medium.
+
+### A body's size is a preset row
+
+**Choice:** `street_props.bodies` gives each placed kind its box and the room it keeps (a car is 4.2 by 1.8 by 1.5 m).
+
+**Gap:** A catalog prop type has no size; a map prop carries its own.
+
+**Verdict:** provisional until C45's models are fitted, when the boxes should be the models'. **Confidence:** medium.
+
+### Street trees are a prop type of their own, not a forest strip
+
+**Choice:** An avenue's trees are props of `street_tree`, a catalog row that extends the forests' `trunk` (the same body) with a binding of its own, one a spacing.
+
+**Gap:** A tree line could also be a forest stroke (C86).
+
+**Verdict:** sound: a forest strip along a verge would conceal the squads walking it and thin every sight line down the avenue. A lone trunk is cover and nothing more. **Confidence:** high.
+
+### Densities were set by Metro Large's tick cost and its admission
+
+**Choice:** Parking shares of 0.33 to 0.38 in centre, apartment and core districts, lamps every 60 to 70 m, trees every 24 to 26 m, small furniture one to a few hundred metres: 16 825 bodies on Metro Large seed 1, +0.6% of a 120 s battle's ticks on the merged build.
+
+**Gap:** Densities were delegated.
+
+**Verdict:** provisional. The first set (30 440 bodies) cost +8.8%; a middle set left the largest Metro Large of 100 seeds at 57 484 authored bodies of the 60 000 the game admits, and this one leaves it at 52 049. Furniture now counts against that allowance, which was sized for buildings. `city_report`'s crossing aggregate overstates the cost, because the report's own `Battle::load` walks every prop between ticks. **Confidence:** medium.
+
+### A prop kind with no art is drawn as a stand-in box
+
+**Choice:** A prop kind no appearance is fitted to is drawn as the prototype kit's unit box, stretched to the prop's box and tinted by its kind (`presentation.stand_ins.tints`), as an ordinary model instance from `PropAppearances`. The first version put these boxes in the massing layer; main deleted that layer the same day, and this one rides the path props with art take.
+
+**Gap:** `systems_only` kinds resolved to no model, and nothing else drew them: placed, they were invisible bodies.
+
+**Verdict:** sound as a stand-in; C45's models replace it kind by kind. **Confidence:** high.
 
 ## C07: compact the selected lossless group form
 
@@ -4951,6 +5016,87 @@ exact matched openings pass and a real retained GPU allocation falsifies the che
 
 **Verdict:** sound. The loop that finds the paved distance already has the closest point of each stretch; a second lookup for the lane would walk the cell's list twice. A polygon has no centreline, so a town's streets have no lanes. **Confidence:** high.
 
+## C37 house appearance
+
+### One library, two catalogues: a set names the one it dresses
+
+**Choice:** `city_sets.<set>.catalogue` in `assets/catalog.json` is `generated` (what the map generator builds towns from) or `authored` (the boxes the hand-authored maps pin). The bake is handed both catalogues, holds each to the sets that name it, and the library's `covers` lists both hashes (library format 2). `asset catalogue` and `asset prototypes` read and write the generator's alone.
+
+**Gap:** The slice says the houses go "through C32/C22"; C32's library covers one catalogue.
+
+**Verdict:** sound. One loader, one resolver and one drawing path stay as they were. The alternative, one merged catalogue, would have put the authored boxes into the generator's hash and moved every generated map. A template is found by its id alone, so an id in both catalogues is refused. **Confidence:** high.
+
+### The authored catalogue is held to `validate`, not `require_complete`
+
+**Choice:** `PhysicalTemplates` gained `valid`, the contract's own `TemplateGeometryCatalog::new` through its existing WebAssembly export. A catalogue says which rule its rows meet.
+
+**Gap:** C32 holds every set descriptor to `require_complete`. The authored boxes have no floor, entrance or bay resolved, on purpose.
+
+**Verdict:** sound. Resolving them would change what the simulation seats in a village house: physics, which this slice may not move. **Confidence:** high.
+
+### Every authored box is used, so every one has art
+
+**Choice:** The set dresses all twelve rows of `fixtures/building-templates.json`.
+
+**Gap:** "The templates the authored maps place": the brief left unused rows open.
+
+**Verdict:** sound. Each of the twelve is placed by a saved map (the village's three, and nine across the labs), and the coverage rule would refuse a row with no art in any case. **Confidence:** high.
+
+### A lab's box is the farm a tier coarser
+
+**Choice:** The three village houses are built exactly as `house.py` built them (the same triangles at every tier). Any other box takes the look of the nearest house, with its finest tier the farm's second and its paint baked as that tier's.
+
+**Gap:** "The same `house.py` art, fitted to their boxes without stretching", and a kit's bundle may weigh 50 MiB.
+
+**Verdict:** provisional. Twelve farms in full are 81 MiB baked; with paint alone twice as coarse, 66 MiB; this way, 37 MiB. The loader fetches every bundle on every page, so the labs' boxes would otherwise cost every player 45 MiB more than the three houses did. Up close a lab's house has no glazing bars, door planks or downpipes. **Confidence:** medium: the user asked for the labs not to be polished, not for them to be coarser.
+
+### A box lower than the farm is the farm pressed down
+
+**Choice:** The farm needs 8 m for its two storeys. For a lower box (one, the weapons lab's 4 m shed) the script builds it at 8 m and scales the meshes down in z before the bake.
+
+**Gap:** "Without stretching: the script builds each size."
+
+**Verdict:** sound for a lab. It is what the fitted path drew for that box, and the plan is built at its true size, which is where stretching showed. Removing the upper storey for low boxes would be new art. **Confidence:** medium.
+
+### The ruin is built to the simulation's height for that box, and held to the intact parts
+
+**Choice:** `village.py` reads the building row's `destroyed.into` rule from the resolved catalog and builds each ruin at the height the simulation leaves for that box (2 m for an 8 m house, 3 m for a 12 m one). The fit check holds it to the intact parts grown by 0.5 m, as every state is held today.
+
+**Gap:** The damage pass's rule (a `ruin` state held to the parts at the ruin height) was not on main when this closed.
+
+**Verdict:** provisional. The walls stand 0.35 m above the ruin height, inside the 0.5 m the house appearances were allowed; when the rule lands the set should pass it unchanged, and if its tolerance is tighter the script's `top` is the number to lower. **Confidence:** medium.
+
+### A map installs only the kits its buildings draw from
+
+**Choice:** `mapAppearances` installs the kits of the placed templates' rows (`buildingKits`), not every kit; the building layer builds its scene once those are in.
+
+**Gap:** C22 installed the whole library's kits whenever a map had a building, which was only ever a generated town.
+
+**Verdict:** sound. Otherwise the village would upload every town kit (67 MiB of buffers and their textures) to draw three farms. **Confidence:** high.
+
+### `drawn_by: "building"` names the building layer; `remains_state` is gone
+
+**Choice:** The prop row keeps `drawn_by: "building"`, now meaning "a part its building draws from its template's art"; the ground still reads it to find buildings. `remains_state` is removed from the fixture, the resolved catalog and `contract::catalog::PropAppearance`: nothing read it once a ruin is its building's own state.
+
+**Gap:** "Delete the prop catalog's `drawn_by: "building"` meaning."
+
+**Verdict:** sound. A row must say what draws it, and the building layer is that. The contract field is presentation only: the village's digests and replay are unchanged. **Confidence:** high.
+
+### A template with no art is refused, not skipped
+
+**Choice:** `indexBuildings` no longer filters by art. Building a scene with a template the library lacks throws `template.missing`.
+
+**Gap:** C22's filter existed for the houses.
+
+**Verdict:** sound. A silent filter would now hide a stale library as a missing building. **Confidence:** high.
+
+### Rubble and a loose ruin keep the scenery ruin
+
+**Choice:** The scenery appearance `village_ruin` stays, drawing rubble and any ruin no building owns, from `assets/source/village/ruin.glb` (the old `house_a_ruin.glb`, renamed; `house.py` still writes it).
+
+**Gap:** "Delete their source GLBs."
+
+**Verdict:** sound. That one file had a second consumer. **Confidence:** high.
 ## C23 far tier
 
 ### Tier 3 is the far tier; no tile builder was written
@@ -5432,6 +5578,57 @@ loaded throughput or full-world process/GPU peak.
 **Reach:** One battle builds the world twice (worker, page), not once. The page's build runs behind the loading screen. The page's world has no navigation and no battle state, so no query can read hidden destruction. Where the export had moved surface, terrain-ray, water and learned-crown arithmetic into free functions so two worlds could share them, that arithmetic is back inside `WorldGeometry`, its one caller. The worker handoff, cancellation, the prepared replay, the fog change, the camera lab's catalogue map, the combat parity pair and the startup harness are unchanged.
 
 **Verdict:** sound. Battle digests and replays do not move; the generated and camera scenes pass unchanged; Mixed Small is playable 5 to 9 s after Deploy on a loaded machine, against 3 to 4 s for the export on a quieter one, with level retired instructions ([startup measurement](startup-lane.md#startup-measurement)). **Confidence:** high.
+
+## C06: avoid geometry for a squad with no steering decision
+
+**Choice:** A vehicle moves far from an idle squad. Each living soldier is already
+at his holding post, if any, and the existing vehicle-dodge reader returns no
+motion. Skip gathering local obstacle geometry for that squad. Share the exact
+holding-post eligibility predicate with ordinary steering; do not create another
+motion rule. Nearby traffic and unfinished cover posts retain normal movement.
+
+**Gap:** The threat list described global moving vehicles, so its nonempty state
+prevented the existing idle shortcut even when none could affect this squad.
+
+**Reach:** Preserve velocity reset and garrison handling, the old empty-threat
+return, and centroid settlement for the nonempty-threat no-steer tail. Crowd and
+unit iteration order stay unchanged. This adds no cache, state or budget policy;
+future changes to post motion inherit one eligibility owner.
+
+**Verdict:** sound; high confidence. The omitted geometry cannot be consumed by a
+steering decision in this branch. Paired measurements and exact battle evidence
+live in C06; current full admission remains separate.
+
+## C06: build cover exposure only for IDs its immutable knowledge can read
+
+**When:** the untracked-cover-field pass, after the current move-certification
+profile identified repeated ephemeral field work.
+
+**The choice:** leave an empty position row for a unit neither side tracks,
+while retaining its outer unit-ID slot. Imagine a late battle with thousands of
+squads that were already fallen when it began. Movement repeatedly constructs
+their exposed soldier positions, but its cover reader asks for an enemy track
+before looking up that row. Because knowledge cannot change during this movement
+call, those particular positions cannot be read. A squad either side does track
+keeps all its member positions in order, including fallen members and remembered
+sightings. Keeping only living/currently visible rows would change remembered
+aiming; dropping the outer slots would shift every later unit's address.
+
+**The gap:** C06 names repeated-work costs but does not prescribe this field's
+read predicate. The measured parent task selected this single bounded candidate;
+the pass verified the sole consumer and immutable lifetime before implementing it.
+
+**The reach:** the field remains an ephemeral snapshot with the same one reader;
+there is no extra cache or model state. A future reader that accesses untracked
+rows must revisit the gather predicate. The paired complete observations prove
+this current reader, not a speculative future use.
+
+**Verdict — sound, high confidence:** the omission follows an unreachable read,
+not a unit class, corpse count or hand-picked visibility rule. It earns the
+predeclared whole-Orders gain and exact per-tick battle/observation proofs; the
+smaller whole-step improvement is reported separately. Existing public cover,
+last-seen, hidden and replay tests own the semantic contract, with tracked-row
+omission falsified through the cover behavior rather than private vector shape.
 ## C45 street models
 
 The models, their boxes and the sheets are in the [C45 outcome](slices/C45-street-models.md#outcome).

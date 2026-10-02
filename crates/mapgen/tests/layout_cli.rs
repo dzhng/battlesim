@@ -12,6 +12,9 @@ const CATALOGUE: &str = concat!(
     "/../../fixtures/prototype-building-templates.json"
 );
 
+/// The resolved unit and prop catalog, as the browser reads it.
+const CATALOG: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/catalog.json");
+
 fn catalogue() -> contract::templates::TemplateGeometryCatalog {
     let descriptors = std::fs::read_to_string(CATALOGUE).unwrap();
     contract::templates::TemplateGeometryCatalog::new(serde_json::from_str(&descriptors).unwrap())
@@ -66,6 +69,7 @@ fn native_cli_replays_the_frozen_generation_records() {
             request.as_os_str(),
             PRESETS.as_ref(),
             CATALOGUE.as_ref(),
+            CATALOG.as_ref(),
         ]);
         let stdout = String::from_utf8(process.stdout).unwrap();
         let outcome = stdout.strip_suffix('\n').unwrap();
@@ -99,7 +103,7 @@ fn request(directory: &std::path::Path) -> PathBuf {
     let path = directory.join("request.json");
     let request = serde_json::json!({
         "generator_version": mapgen::layout::GENERATOR_VERSION,
-        "preset_revision": "layout-presets-6",
+        "preset_revision": "layout-presets-7",
         "seed": "11",
         "template_catalog_hash": catalogue().hash(),
         "type": "mixed",
@@ -120,6 +124,7 @@ fn a_generated_plan_file_compiles_and_draws() {
         request_path.as_os_str(),
         PRESETS.as_ref(),
         CATALOGUE.as_ref(),
+        CATALOG.as_ref(),
         plan_path.as_os_str(),
     ]);
     assert!(process.status.success());
@@ -209,6 +214,7 @@ fn generate_map_saves_a_map_the_battle_loader_resolves() {
         request_path.as_os_str(),
         PRESETS.as_ref(),
         CATALOGUE.as_ref(),
+        CATALOG.as_ref(),
         saved.as_os_str(),
     ]);
     assert!(
@@ -266,7 +272,7 @@ fn generate_map_saves_a_map_the_battle_loader_resolves() {
         .iter()
         .map(|input| input["label"].as_str().unwrap())
         .collect();
-    assert_eq!(labels, ["request", "presets", "catalogue"]);
+    assert_eq!(labels, ["request", "presets", "catalogue", "catalog"]);
     std::fs::remove_dir_all(directory).unwrap();
 }
 
@@ -288,6 +294,7 @@ fn a_river_plan_draws_its_water_and_each_bridge_close_up() {
         request_path.as_os_str(),
         presets_path.as_os_str(),
         CATALOGUE.as_ref(),
+        CATALOG.as_ref(),
         plan_path.as_os_str(),
     ]);
     assert!(process.status.success());

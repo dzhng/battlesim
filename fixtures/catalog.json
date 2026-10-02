@@ -577,8 +577,7 @@
         },
         "ruin": {
           "appearance": {
-            "drawn_by": "ruin",
-            "remains_state": "ruin"
+            "drawn_by": "ruin"
           },
           "body": {
             "armor": 1.0,
@@ -717,6 +716,30 @@
             "weight_class": "medium"
           },
           "destroyed": "removed"
+        },
+        "street_tree": {
+          "appearance": {
+            "drawn_by": "street_tree",
+            "map_only": true,
+            "status": "systems_only"
+          },
+          "body": {
+            "armor": 1.0,
+            "blocks": {
+              "infantry": true,
+              "vehicle": true
+            },
+            "conceals": 0.7,
+            "cover_tier": "medium",
+            "garrison": false,
+            "hp": 100.0,
+            "lifetime_s": null,
+            "occludes": false,
+            "stops_rounds": true,
+            "topples": true,
+            "weight_class": "medium"
+          },
+          "destroyed": "cleared"
         },
         "tooth": {
           "appearance": {
@@ -2006,8 +2029,7 @@
     },
     "ruin": {
       "appearance": {
-        "drawn_by": "ruin",
-        "remains_state": "ruin"
+        "drawn_by": "ruin"
       },
       "body": {
         "armor": 1.0,
@@ -2146,6 +2168,30 @@
         "weight_class": "medium"
       },
       "destroyed": "removed"
+    },
+    "street_tree": {
+      "appearance": {
+        "drawn_by": "street_tree",
+        "map_only": true,
+        "status": "systems_only"
+      },
+      "body": {
+        "armor": 1.0,
+        "blocks": {
+          "infantry": true,
+          "vehicle": true
+        },
+        "conceals": 0.7,
+        "cover_tier": "medium",
+        "garrison": false,
+        "hp": 100.0,
+        "lifetime_s": null,
+        "occludes": false,
+        "stops_rounds": true,
+        "topples": true,
+        "weight_class": "medium"
+      },
+      "destroyed": "cleared"
     },
     "tooth": {
       "appearance": {
