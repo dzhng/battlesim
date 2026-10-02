@@ -569,3 +569,51 @@ scripted move destinations remain refused on this paired input. Full current
 late delivery, real-time throughput and incoming movement-contract findings
 remain separate integration work. No cache, retained state, physical rule or
 validation allowance changes.
+
+
+## Outcome — omit unread cover exposure rows
+
+Movement's cover field keeps its unit-indexed outer vector, live hulls and
+blockers. Its sole soldier-position reader first requires a side's enemy track.
+The two knowledge references remain immutable during that field's lifetime, so
+an ID tracked by neither side has an empty inner vector. Tracked units keep every
+member in original order, including dead members and grace-retained sightings;
+current visibility and living status are not substitutes for this read contract.
+No retained cache, rule, placement solver or admission allowance changes.
+
+The frozen late Metro Large seed-4 comparison uses the named 1050 m front staging,
+100 living units per side and the original 20,000 fallen soldiers / 2,000 wrecks.
+Both arms load the same serialized scenario, effective identity `df34e7db…`,
+map-with-remains `6c6022f6…` and rules `b7e67721…`. Its factory receipt before JSON
+reload is `41126341…`; those identities are not claimed interchangeable. The
+unmodified engine is `c1fb0f09…`; the measured field candidate is `75aec037…`.
+Final comment cleanup changes no executable rule.
+
+| Counted work over 900 ticks | Control G instructions | Candidate G instructions | Gain |
+|---|---:|---:|---:|
+| Whole Orders | 123.605 | 106.684 | 13.69% |
+| Whole steps | 400.288 | 383.345 | 4.23% |
+| Construction plus whole steps | 418.423 | 401.481 | 4.05% |
+
+The declared 5% whole-Orders gate passes; the whole-step gains remain below 5%.
+Ordinary Movement means fall from 75.519 to 74.825 million instructions, including
+field preparation. The construction and tick counters include report counter
+reads; input parsing, complete-observation hashing and output are outside them.
+The scope is this 30-second native arm, not browser or full scale admission.
+
+Every tick's digest and complete blue/red observation hashes match, and both
+full final observation byte strings match. Both arms end at digest
+`d52cf36268e41eb6`, 19,579 launched rounds, 73 blue and 68 red distinct units with
+observed shot counters, 20,301 corpses and 2,011 wrecks. This is active combat,
+while move refusals and the remaining order spikes still need their own decision.
+The avoided born-fallen rows account for 20,000 two-coordinate values (320,000
+payload bytes) and 2,500 inner allocations per gather; this is a structural
+allocation count, not a measured process peak. The outer slots remain allocated.
+
+The old-versus-itself cost assertion is red at zero gain. Existing public cover,
+last-seen, hidden-enemy and same-build replay proofs pass. Omitting tracked rows
+as well falsifies the public reach/cover test: a soldier stays tucked when the
+enemy is reachable; restoring the tracked rows restores green. These owners
+already cover the behavior, so no private field-layout test or duplicate model
+was added. Raw commands, identities, per-tick proofs and counters stay in ignored
+publication-worktree `throwaway/scale-lane/field-*` artifacts.

@@ -5452,3 +5452,34 @@ future changes to post motion inherit one eligibility owner.
 **Verdict:** sound; high confidence. The omitted geometry cannot be consumed by a
 steering decision in this branch. Paired measurements and exact battle evidence
 live in C06; current full admission remains separate.
+
+## C06: build cover exposure only for IDs its immutable knowledge can read
+
+**When:** the untracked-cover-field pass, after the current move-certification
+profile identified repeated ephemeral field work.
+
+**The choice:** leave an empty position row for a unit neither side tracks,
+while retaining its outer unit-ID slot. Imagine a late battle with thousands of
+squads that were already fallen when it began. Movement repeatedly constructs
+their exposed soldier positions, but its cover reader asks for an enemy track
+before looking up that row. Because knowledge cannot change during this movement
+call, those particular positions cannot be read. A squad either side does track
+keeps all its member positions in order, including fallen members and remembered
+sightings. Keeping only living/currently visible rows would change remembered
+aiming; dropping the outer slots would shift every later unit's address.
+
+**The gap:** C06 names repeated-work costs but does not prescribe this field's
+read predicate. The measured parent task selected this single bounded candidate;
+the pass verified the sole consumer and immutable lifetime before implementing it.
+
+**The reach:** the field remains an ephemeral snapshot with the same one reader;
+there is no extra cache or model state. A future reader that accesses untracked
+rows must revisit the gather predicate. The paired complete observations prove
+this current reader, not a speculative future use.
+
+**Verdict — sound, high confidence:** the omission follows an unreachable read,
+not a unit class, corpse count or hand-picked visibility rule. It earns the
+predeclared whole-Orders gain and exact per-tick battle/observation proofs; the
+smaller whole-step improvement is reported separately. Existing public cover,
+last-seen, hidden and replay tests own the semantic contract, with tracked-row
+omission falsified through the cover behavior rather than private vector shape.
