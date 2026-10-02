@@ -53,8 +53,9 @@ const LINE_5M: Rgba = [0.26, 0.27, 0.25, 1];
 const FIGURE: Rgba = [0.5, 0.52, 0.56, 1];
 
 /** Flat ground: 5 m checks out to the battle views' reach, with 1 m and
- *  5 m lines over the middle 80 m, for scale. */
-export function benchGround(): Mesh {
+ *  5 m lines over the middle 80 m, for scale (`lines` false leaves them out:
+ *  a ground shadows are read on). */
+export function benchGround(lines = true): Mesh {
   const mesh = new MeshBuilder();
   const h = GROUND_HALF_M;
   const far = GROUND_REACH_M;
@@ -64,7 +65,7 @@ export function benchGround(): Mesh {
       mesh.quad([x, y, 0], [x + 5, y, 0], [x + 5, y + 5, 0], [x, y + 5, 0], color);
     }
   // Grid lines sit a hair above the ground so depth keeps them on top.
-  for (let k = -h; k <= h; k += 1) {
+  for (let k = -h; lines && k <= h; k += 1) {
     const color = k % 5 === 0 ? LINE_5M : LINE_1M;
     const w = k % 5 === 0 ? 0.03 : 0.012;
     mesh.quad([k - w, -h, 0.002], [k + w, -h, 0.002], [k + w, h, 0.002], [k - w, h, 0.002], color);
@@ -88,13 +89,12 @@ export function scaleFigure(x: number, y: number): Mesh {
 }
 
 const NONE = new Float32Array(0);
-/** The measured ground as terrain: its vertex tints are opaque, so it draws
- *  as tinted, not as the biome's patchwork. Built once; only the figure moves. */
-let _bench_terrain: TerrainSurface | null = null;
-function benchTerrain(): TerrainSurface {
+/** A flat ground mesh as terrain with nothing on it: its vertex tints are
+ *  opaque, so it draws as tinted, not as the biome's patchwork. */
+export function flatTerrain(ground: Mesh): TerrainSurface {
   const h = GROUND_REACH_M;
-  _bench_terrain ??= terrainSurface(
-    benchGround(),
+  return terrainSurface(
+    ground,
     {
       map: [-h, -h, h, h],
       gridM: 2 * h,
@@ -117,6 +117,11 @@ function benchTerrain(): TerrainSurface {
     gameBiome,
     null,
   );
+}
+/** The measured ground, built once; only the figure moves. */
+let _bench_terrain: TerrainSurface | null = null;
+function benchTerrain(): TerrainSurface {
+  _bench_terrain ??= flatTerrain(benchGround());
   return _bench_terrain;
 }
 

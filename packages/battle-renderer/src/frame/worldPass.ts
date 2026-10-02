@@ -109,6 +109,8 @@ import { mapBox } from "./receiverRange";
 import {
   createModelFragments,
   modelAttribs,
+  modelCutoutCaster,
+  modelCutoutDepth,
   modelRecordLayout,
   modelVertex,
   type ModelLayer,
@@ -379,6 +381,28 @@ export async function createWorldPass(
     depthStencil: battleWorldDepth("prepassed"),
     multisample: { count: FRAME_MSAA },
   });
+  // A cutout (a grille, a perforated sheet) cuts itself where depth is
+  // written: in the prepass, sample by sample, and in the sun's cascades. The
+  // colour pass then shades the samples the prepass kept, with the opaque
+  // surfaces' own fragment stage, so one stage decides its silhouette.
+  const modelPrepassCutout = root.createRenderPipeline({
+    ...modelBase,
+    fragment: modelCutoutDepth,
+    depthStencil: battleWorldDepth("read-write"),
+    multisample: { count: FRAME_MSAA },
+  });
+  const modelCasterCutout = root.createRenderPipeline({
+    ...modelBase,
+    fragment: modelCutoutCaster,
+    depthStencil: battleWorldDepth("read-write"),
+  });
+  const modelCutout = root.createRenderPipeline({
+    ...modelBase,
+    fragment: modelFragments.lit,
+    targets: worldTargets(),
+    depthStencil: battleWorldDepth("kept"),
+    multisample: { count: FRAME_MSAA },
+  });
   // The x-ray: a unit's fragments behind the world's depth (without the
   // units), over the transparent overlay target. Max blending, so a hidden
   // arm behind a hidden torso never doubles the silhouette's alpha. The
@@ -443,14 +467,21 @@ export async function createWorldPass(
       modelPrepass,
       modelCaster,
       modelOpaque,
+      modelPrepassCutout,
+      modelCasterCutout,
+      modelCutout,
       modelXray,
       modelXrayCount,
       modelCards,
     ].map((pipeline) => pipeline.initAsync()),
   );
   /** The models layer's draws take the pipelines' binding methods as they are. */
-  const drawModels = (bound: unknown, fog?: Parameters<ModelLayer["draw"]>[1]) =>
-    models.draw(bound as Parameters<ModelLayer["draw"]>[0], fog);
+  type Bound = Parameters<ModelLayer["draw"]>[0];
+  const drawModels = (
+    bound: unknown,
+    surface: Parameters<ModelLayer["draw"]>[1],
+    fog?: Parameters<ModelLayer["draw"]>[2],
+  ) => models.draw(bound as Bound, surface, fog);
   const drawCards = (bound: unknown, fog: Parameters<ModelLayer["drawCards"]>[1]) =>
     models.drawCards(bound as Parameters<ModelLayer["drawCards"]>[0], fog);
 
@@ -611,11 +642,13 @@ export async function createWorldPass(
         world.ground.draw(bound);
         world.props.draw(bound);
         proxies.draw(bound);
-        const modelCasters = modelCaster.with(pass).with(cameraGroup) as unknown as Parameters<
-          ModelLayer["draw"]
-        >[0];
-        models.drawCasters(modelCasters);
-        models.drawBuildingCasters(modelCasters, root.unwrap(pass));
+        const raw = root.unwrap(pass);
+        const modelCasters = modelCaster.with(pass).with(cameraGroup) as unknown as Bound;
+        models.drawCasters(modelCasters, "opaque");
+        models.drawBuildingCasters(modelCasters, raw, "opaque");
+        const cutoutCasters = modelCasterCutout.with(pass).with(cameraGroup) as unknown as Bound;
+        models.drawCasters(cutoutCasters, "cutout");
+        models.drawBuildingCasters(cutoutCasters, raw, "cutout");
         scenery.encodeShadows(pass, cameraGroup);
       });
     },
@@ -646,8 +679,14 @@ export async function createWorldPass(
       backdrop.draw(bound);
       scenery.encodeDepth(scene, cameraGroup);
       models.drawBuildings(
-        modelPrepass.with(scene).with(cameraGroup) as unknown as Parameters<ModelLayer["draw"]>[0],
+        modelPrepass.with(scene).with(cameraGroup) as unknown as Bound,
         root.unwrap(scene),
+        "opaque",
+      );
+      models.drawBuildings(
+        modelPrepassCutout.with(scene).with(cameraGroup) as unknown as Bound,
+        root.unwrap(scene),
+        "cutout",
       );
       scene.end();
 
@@ -703,7 +742,11 @@ export async function createWorldPass(
             },
           ],
         });
-        drawModels(modelXrayCount.with(coverage).with(cameraGroup).with(xrayCountGroup!), "units");
+        drawModels(
+          modelXrayCount.with(coverage).with(cameraGroup).with(xrayCountGroup!),
+          "opaque",
+          "units",
+        );
         coverage.end();
       }
 
@@ -719,7 +762,7 @@ export async function createWorldPass(
         ],
         depthStencilAttachment: { view: depthView, depthReadOnly: true },
       });
-      drawModels(modelXray.with(xray).with(cameraGroup).with(xrayReadGroup!), "units");
+      drawModels(modelXray.with(xray).with(cameraGroup).with(xrayReadGroup!), "opaque", "units");
       xray.end();
 
       const units = encoder.beginRenderPass({
@@ -728,7 +771,8 @@ export async function createWorldPass(
         depthStencilAttachment: { view: depthView, depthLoadOp: "load", depthStoreOp: "store" },
       });
       proxies.draw(prepass.with(units).with(cameraGroup));
-      drawModels(modelPrepass.with(units).with(cameraGroup));
+      drawModels(modelPrepass.with(units).with(cameraGroup), "opaque");
+      drawModels(modelPrepassCutout.with(units).with(cameraGroup), "cutout");
       units.end();
       raw.copyTextureToTexture({ texture: targets.depth }, { texture: targets.overlayDepth }, [
         targets.width,
@@ -846,15 +890,23 @@ export async function createWorldPass(
       // structure whole, in FogTerm), corpses as the
       // ground under them.
       const modelsLit = modelOpaque.with(pass).with(cameraGroup).with(environment.group);
+      const cutoutsLit = modelCutout.with(pass).with(cameraGroup).with(environment.group);
       const cardsLit = modelCards.with(pass).with(cameraGroup).with(environment.group);
       for (const fog of ["units", "faces", "ground", "paintedFaces"] as const) {
-        drawModels(modelsLit.with(fogGroups[fog]), fog);
+        drawModels(modelsLit.with(fogGroups[fog]), "opaque", fog);
+        drawModels(cutoutsLit.with(fogGroups[fog]), "cutout", fog);
         drawCards(cardsLit.with(fogGroups[fog]), fog);
       }
       // Buildings are faces: an occluding structure takes fog whole.
       models.drawBuildings(
-        modelsLit.with(fogGroups.faces) as unknown as Parameters<ModelLayer["draw"]>[0],
+        modelsLit.with(fogGroups.faces) as unknown as Bound,
         root.unwrap(pass),
+        "opaque",
+      );
+      models.drawBuildings(
+        cutoutsLit.with(fogGroups.faces) as unknown as Bound,
+        root.unwrap(pass),
+        "cutout",
       );
       scenery.encode(pass, cameraGroup, fogGroups.faces);
       // The class view reads the ground itself: nothing that grows on it or

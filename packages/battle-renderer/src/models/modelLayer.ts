@@ -38,6 +38,7 @@ import type {
   ArticulatedBundle,
   Bounds,
   Bundle,
+  Material,
   MeshData,
   SkeletonClips,
   Texture,
@@ -65,7 +66,14 @@ import type { Trs } from "@packages/scene-assets/src/trs";
 import { typegpuCameraLayout } from "../world/camera";
 import type { EnvironmentFrame } from "../frame/environmentFrame";
 import { fogCoverage, groundPaint, paintedAlbedo, paintedSeen, paintGlow } from "../frame/fogTerm";
-import { WORLD_OUT } from "../frame/targets";
+import { FRAME_MSAA, WORLD_OUT } from "../frame/targets";
+import {
+  SURFACE_CLASSES,
+  orderSurfaces,
+  surfaceClass,
+  type SurfaceClass,
+  type SurfaceParts,
+} from "./surfaceParts";
 import type { DetailView } from "../frame/detailView";
 import { FOG_CLASSES, FOG_INDEX, UNITS, modelFog, modelSeen, type ModelFog } from "./modelFog";
 import type { GpuRegistry, GpuSlot } from "../frame/registry";
@@ -148,10 +156,33 @@ export const modelLayout = tgpu.bindGroupLayout({
   tiled: { sampler: "filtering", visibility: ["fragment"] },
 });
 
-/** Per material: base colour; (metallic, roughness, tint, vertex colour scale); texture layers
- *  (albedo, normal, orm; −1 without) and whether it wears; the worn surface
- *  (linear rgb, roughness). */
-const MATERIAL_ROWS = 4;
+/** Per material: base colour, with the coverage value's factor in alpha;
+ *  (metallic, roughness, tint, vertex colour scale); texture layers (albedo,
+ *  normal, orm; −1 without) and whether it wears; the worn surface (linear
+ *  rgb, roughness); a cutout's cutoff, and the surface layer whose alpha is
+ *  the coverage value's image (the normal texture's; −1 without). */
+const MATERIAL_ROWS = 5;
+/** The rows of one material, given each channel's texture layer. */
+function materialRow(m: Material, layer: (channel: TextureChannel) => number): number[] {
+  const normal = layer("normal");
+  const cutoff = m.coverage.kind === "cutout" ? m.coverage.cutoff : 0;
+  return [
+    m.base_color,
+    [m.metallic, m.roughness, m.tint, m.colour_scale ?? 1],
+    [layer("albedo"), normal, layer("orm"), m.wear ? 1 : 0],
+    m.wear ?? [0, 0, 0, 1],
+    [cutoff, normal, 0, 0],
+  ].flat();
+}
+/** An opaque white material: what a generation with none installs. */
+const BLANK_MATERIAL: Material = {
+  name: "",
+  base_color: [1, 1, 1, 1],
+  metallic: 0,
+  roughness: 1,
+  tint: 0,
+  coverage: { kind: "opaque" },
+};
 /** Anisotropic filtering on material textures: surfaces are seen at grazing
  *  battle angles. */
 const TEXTURE_ANISOTROPY = 8;
@@ -182,6 +213,8 @@ const CASTER_COARSER = 1;
 const TRACK_LINK_SHADE = 0.55;
 
 const fogClassOf = (pose: ModelPose) => FOG_INDEX[modelFog(pose)];
+const noSurfaces = () =>
+  Object.fromEntries(SURFACE_CLASSES.map((c) => [c, false])) as Record<SurfaceClass, boolean>;
 
 export const modelVertex = tgpu.vertexFn({
   in: {
@@ -403,6 +436,75 @@ const modelSurface = tgpu.fn(
   return ModelSurface({ albedo, normal: n, roughness, metallic, occlusion, tint });
 });
 
+/**
+ * How much of a cutout's surface is there at a fragment, 0..1: its coverage
+ * value (the base colour's alpha times the normal texture's), scaled so that
+ * the material's cutoff is half there. Sampled through the mip chain, so a
+ * surface too far away to resolve its holes thins by the share of it that is
+ * there, instead of vanishing or closing up at one distance.
+ */
+const cutoutCoverage = tgpu.fn(
+  [d.u32, d.vec2f],
+  d.f32,
+)((material, uv) => {
+  "use gpu";
+  const row = material * MATERIAL_ROWS;
+  const cut = modelLayout.$.materials[row + 4];
+  const image = std.textureSample(
+    modelLayout.$.surface,
+    modelLayout.$.tiled,
+    uv,
+    d.i32(std.max(cut.y, 0)),
+  );
+  let value = modelLayout.$.materials[row].w;
+  if (cut.y >= 0) {
+    value = value * image.w;
+  }
+  return std.saturate((value * 0.5) / std.max(cut.x, 0.001));
+});
+/** The samples of a multisampled pixel a cutout covers: as many of them as
+ *  its coverage is of the pixel, to the nearest. An edge resolves to a clean
+ *  step of the frame's antialiasing (dithering the remainder speckled it). */
+const coveredSamples = tgpu.fn(
+  [d.f32],
+  d.u32,
+)(/* wgsl */ `(coverage: f32) -> u32 {
+    let samples = u32(clamp(floor(coverage * ${FRAME_MSAA}.0 + 0.5), 0.0, ${FRAME_MSAA}.0));
+    return (1u << samples) - 1u;
+  }`);
+/** Whether a cutout covers a single-sampled pixel (a cascade's texel): its
+ *  coverage against interleaved gradient noise (Jimenez), so what the cascade
+ *  cannot resolve casts its share of shade once the shadow is filtered. */
+const coveredTexel = tgpu.fn(
+  [d.f32, d.vec2f],
+  d.u32,
+)(/* wgsl */ `(coverage: f32, pixel: vec2f) -> u32 {
+    return u32(coverage > fract(52.9829189 * fract(dot(pixel, vec2f(0.06711056, 0.00583715)))));
+  }`);
+const cutoutVaryings = {
+  clip: d.builtin.position,
+  uv: d.vec2f,
+  material: d.interpolate("flat", d.u32),
+};
+/** A cutout's depth in the frame's prepass: the samples it covers. The colour
+ *  pass shades exactly those (`battleWorldDepth("kept")`), so nothing but
+ *  this stage decides the silhouette. */
+export const modelCutoutDepth = tgpu.fragmentFn({
+  in: cutoutVaryings,
+  out: d.builtin.sampleMask,
+})((v) => {
+  "use gpu";
+  return coveredSamples(cutoutCoverage(v.material, v.uv));
+});
+/** A cutout's depth in one of the sun's cascades. */
+export const modelCutoutCaster = tgpu.fragmentFn({
+  in: cutoutVaryings,
+  out: d.builtin.sampleMask,
+})((v) => {
+  "use gpu";
+  return coveredTexel(cutoutCoverage(v.material, v.uv), v.clip.xy);
+});
+
 export function createModelFragments(environment: EnvironmentFrame) {
   const lit = tgpu.fragmentFn({ in: modelVaryings, out: WORLD_OUT })((v) => {
     "use gpu";
@@ -473,7 +575,9 @@ interface Drawable {
   id: number;
   tier: number;
   mesh: TierMesh;
-  first: number;
+  /** Its indices, by how their surface is drawn (`surfaceParts.ts`). */
+  parts: SurfaceParts;
+  /** All of its indices. */
   count: number;
   /** What the sun's cascades draw in its place (`CASTER_COARSER` tiers coarser). */
   caster: Drawable;
@@ -690,6 +794,10 @@ export async function createModelLayer(
   let scope: GpuRegistry | null = null;
   let appearances = new Map<string, GpuAppearance>();
   let drawables: Drawable[] = [];
+  /** Whether any installed mesh has a surface of each class. */
+  let installedSurfaces = noSurfaces();
+  /** Lab diagnostics: the classes not drawn (`setSurfaceShown`). */
+  const hiddenSurfaces = noSurfaces();
   let skeletons = new Map<string, SkeletonClips>();
   let materials: GPUBuffer | null = null;
   /** The generation's material rows as authored; `writeMaterials` applies the
@@ -872,10 +980,9 @@ export async function createModelLayer(
           const index = m.textures?.[channel];
           return layers.layer(index === undefined ? undefined : bundle.textures[index]);
         };
-        rows.push(...m.base_color, m.metallic, m.roughness, m.tint, m.colour_scale ?? 1);
-        rows.push(layer("albedo"), layer("normal"), layer("orm"), m.wear ? 1 : 0);
-        rows.push(...(m.wear ?? [0, 0, 0, 1]));
+        rows.push(...materialRow(m, layer));
       }
+      const classOf = (material: number) => surfaceClass(bundle.materials[material]);
       appearanceTextureBytes[name] = bundle.textures.reduce((n, t) => n + textureBytes(t), 0);
       const skeleton =
         bundle.kind === "skinned" ? installed!.skeletons.get(bundle.skeleton)! : null;
@@ -910,20 +1017,22 @@ export async function createModelLayer(
       ): Map<string, Drawable> => {
         const vertexParts: ArrayBuffer[] = [];
         const indexParts: Uint32Array[] = [];
-        const ranges: { key: string; first: number; count: number }[] = [];
+        const ranges: { key: string; parts: SurfaceParts; count: number }[] = [];
         let base = 0;
         let first = 0;
         for (const part of parts) {
-          const start = first;
-          for (const { mesh, pack } of part.meshes) {
-            vertexParts.push(pack);
-            const idx = new Uint32Array(mesh.indices.length);
-            for (let i = 0; i < idx.length; i++) idx[i] = mesh.indices[i] + base;
-            indexParts.push(idx);
-            base += mesh.positions.length / 3;
-            first += idx.length;
-          }
-          ranges.push({ key: part.key, first: start, count: first - start });
+          const meshes = part.meshes.map(({ mesh }) => ({
+            vertices: mesh.positions.length / 3,
+            indices: mesh.indices,
+            draws: mesh.draws,
+          }));
+          // Each surface class one range of the part's indices.
+          const ordered = orderSurfaces(meshes, classOf, base, first);
+          for (const { pack } of part.meshes) vertexParts.push(pack);
+          indexParts.push(ordered.indices);
+          base += meshes.reduce((n, m) => n + m.vertices, 0);
+          first += ordered.indices.length;
+          ranges.push({ key: part.key, parts: ordered.parts, count: ordered.indices.length });
         }
         const indices = new Uint32Array(first);
         let at = 0;
@@ -941,7 +1050,7 @@ export async function createModelLayer(
             id: nextDrawables.length,
             tier,
             mesh,
-            first: r.first,
+            parts: r.parts,
             count: r.count,
           } as Drawable;
           drawable.caster = drawable;
@@ -1034,9 +1143,7 @@ export async function createModelLayer(
           list[t].caster = list[Math.min(t + CASTER_COARSER, list.length - 1)];
       built.set(name, gpu);
     }
-    const nextRows = Float32Array.from(
-      rows.length ? rows : [1, 1, 1, 1, 0, 1, 0, 1, -1, -1, -1, 0, 0, 0, 0, 1],
-    );
+    const nextRows = Float32Array.from(rows.length ? rows : materialRow(BLANK_MATERIAL, () => -1));
     const nextMaterials = own(buffer("model-materials", nextRows.byteLength, STORAGE_USAGE));
     const albedoArray = own(
       uploadTextureArray(device, "model-albedo", "rgba8unorm-srgb", layers.albedo),
@@ -1088,6 +1195,9 @@ export async function createModelLayer(
     scope = next;
     appearances = built;
     drawables = nextDrawables;
+    installedSurfaces = noSurfaces();
+    for (const drawable of drawables)
+      for (const c of SURFACE_CLASSES) installedSurfaces[c] ||= drawable.parts[c].count > 0;
     skeletons = new Map(installed?.skeletons ?? []);
     materials = nextMaterials;
     materialRows = nextRows;
@@ -1116,7 +1226,7 @@ export async function createModelLayer(
         const gpu = appearances.get(kit);
         if (gpu?.bundle.kind !== "static") return null;
         const drawable = gpu.states.get(gpu.bundle.states[state]?.name)?.[tier];
-        return drawable ? { ...drawable.mesh, first: drawable.first, count: drawable.count } : null;
+        return drawable ? { ...drawable.mesh, parts: drawable.parts, count: drawable.count } : null;
       },
       bounds(kit, state) {
         const bundle = appearances.get(kit)?.bundle;
@@ -1598,6 +1708,8 @@ export async function createModelLayer(
   }
 
   const fogIndex = (fog?: ModelFog) => (fog === undefined ? -1 : FOG_INDEX[fog]);
+  /** Whether a surface class has anything to draw, and is not switched off. */
+  const drawn = (surface: SurfaceClass) => installedSurfaces[surface] && !hiddenSurfaces[surface];
 
   return {
     /** Install a catalog generation's appearances (null clears them). */
@@ -1635,6 +1747,11 @@ export async function createModelLayer(
     },
     setBuildingsShown(on: boolean) {
       buildings.setShown(on);
+    },
+    /** Lab diagnostics: draw one surface class of every model and building,
+     *  with its depth and its shadow, or none of it. */
+    setSurfaceShown(surface: SurfaceClass, on: boolean) {
+      hiddenSurfaces[surface] = !on;
     },
     /** Whether buildings still wait to be expanded: draw another frame. */
     get buildingsPending(): boolean {
@@ -1701,37 +1818,42 @@ export async function createModelLayer(
     setCards,
     /** Run the pose kernel for this frame's skinned models. */
     encodePose,
-    /** Every mesh run into one of the sun's cascades, each a tier coarser. */
-    drawCasters(bound: Drawable3) {
-      if (!runCount || !renderGroup || !records.current) return;
+    /** One surface class of every mesh run into one of the sun's cascades,
+     *  each a tier coarser. */
+    drawCasters(bound: Drawable3, surface: SurfaceClass) {
+      if (!runCount || !renderGroup || !records.current || !drawn(surface)) return;
       const b = bound.with(modelLayout, renderGroup);
       for (let i = 0; i < runCount; i++) {
         const run = runs[i];
         const caster = run.drawable.caster;
+        const part = caster.parts[surface];
+        if (!part.count) continue;
         b.with(modelVertexLayout, caster.mesh.vertices)
           .with(modelRecordLayout, records.current)
           .withIndexBuffer(caster.mesh.indices, "uint32")
-          .drawIndexed(caster.count, run.instances, caster.first, 0, run.firstInstance);
+          .drawIndexed(part.count, run.instances, part.first, 0, run.firstInstance);
       }
     },
-    /** Draw the mesh runs, all of them or one fog class's. */
-    draw(bound: Drawable3, fog?: ModelFog) {
-      if (!runCount || !renderGroup || !records.current) return;
+    /** Draw one surface class of the mesh runs, all of them or one fog class's. */
+    draw(bound: Drawable3, surface: SurfaceClass, fog?: ModelFog) {
+      if (!runCount || !renderGroup || !records.current || !drawn(surface)) return;
       const only = fogIndex(fog);
       const b = bound.with(modelLayout, renderGroup);
       for (let i = 0; i < runCount; i++) {
         const run = runs[i];
         if (only >= 0 && run.fog !== only) continue;
+        const part = run.drawable.parts[surface];
+        if (!part.count) continue;
         b.with(modelVertexLayout, run.drawable.mesh.vertices)
           .with(modelRecordLayout, records.current)
           .withIndexBuffer(run.drawable.mesh.indices, "uint32")
-          .drawIndexed(run.drawable.count, run.instances, run.drawable.first, 0, run.firstInstance);
+          .drawIndexed(part.count, run.instances, part.first, 0, run.firstInstance);
       }
     },
-    /** Every building's modules into the view: the world's faces. `raw` is
-     *  the pass `bound` draws into. */
-    drawBuildings(bound: Drawable3, raw: GPURenderPassEncoder) {
-      if (!renderGroup) return;
+    /** One surface class of every building's modules into the view: the
+     *  world's faces. `raw` is the pass `bound` draws into. */
+    drawBuildings(bound: Drawable3, raw: GPURenderPassEncoder, surface: SurfaceClass) {
+      if (!renderGroup || !drawn(surface)) return;
       const b = bound.with(modelLayout, renderGroup);
       buildings.draw(
         (vertices, instances, indices) =>
@@ -1740,11 +1862,12 @@ export async function createModelLayer(
             .with(modelRecordLayout, instances)
             .withIndexBuffer(indices, "uint32"),
         raw,
+        surface,
       );
     },
-    /** The buildings that cast, into one of the sun's cascades. */
-    drawBuildingCasters(bound: Drawable3, raw: GPURenderPassEncoder) {
-      if (!renderGroup) return;
+    /** One surface class of the buildings that cast, into one of the sun's cascades. */
+    drawBuildingCasters(bound: Drawable3, raw: GPURenderPassEncoder, surface: SurfaceClass) {
+      if (!renderGroup || !drawn(surface)) return;
       const b = bound.with(modelLayout, renderGroup);
       buildings.drawCasters(
         (vertices, instances, indices) =>
@@ -1753,6 +1876,7 @@ export async function createModelLayer(
             .with(modelRecordLayout, instances)
             .withIndexBuffer(indices, "uint32"),
         raw,
+        surface,
       );
     },
     /** Draw one fog class's impostor cards. */

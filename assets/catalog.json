@@ -119,6 +119,11 @@
     }
   },
   "appearances": {
+    "city_kit_facade_lab": {
+      "unit": "kit",
+      "source": "assets/source/city/facade_lab/kit.glb",
+      "basis_yaw_deg": 0
+    },
     "city_kit_prototype": {
       "unit": "kit",
       "source": "assets/source/city/prototype/kit.glb",

@@ -265,8 +265,10 @@ export function createImpostorBaker(
         frame.views.forEach((view, i) => {
           pass.setViewport(view.column * px, view.row * px, px, px, 0, 1);
           pass.setScissorRect(view.column * px, view.row * px, px, px);
+          // A card carries a body's opaque surfaces: no unit has another kind.
           models.draw(
             pipeline.with(pass).with(cameras[i]) as unknown as Parameters<ModelLayer["draw"]>[0],
+            "opaque",
           );
         });
         pass.end();
