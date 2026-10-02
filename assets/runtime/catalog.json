@@ -95,17 +95,17 @@
       "unit": "kit"
     },
     "city_kit_farmsteads": {
-      "bundle": "e05147293573c372313bddd383628994ae958cea1dc98d0447de6bfd4a0a653b",
+      "bundle": "251f9460f653750ed75dcc1b41ba76d36393da96b40ae940c933a31e12e790fc",
       "kind": "static",
       "unit": "kit"
     },
     "city_kit_homes": {
-      "bundle": "6351965760f95a86590a27359dc63ab02820b423f0d90f499f77e76227fc609e",
+      "bundle": "5cdbe12e0b47c9526655a5f498aa89636e375c7ed452276b6d5c8e05c1424737",
       "kind": "static",
       "unit": "kit"
     },
     "city_kit_industry": {
-      "bundle": "8c1936d6bb8ef8f5fd28713bbdfe356e9d89c17d66fddf8b2019e8f65853f65a",
+      "bundle": "d853fcb81ce816902fbca98f71da5da02c72df52e5a844514e68bcebbd922545",
       "kind": "static",
       "unit": "kit"
     },
@@ -115,7 +115,7 @@
       "unit": "kit"
     },
     "city_kit_towers": {
-      "bundle": "d5758f4da57e1ccab9ce0a31d3c8ce42364ff3bdbcafe7b8e47f0fd1466a5450",
+      "bundle": "215855440fa6c0faed49812550cafb6c53fe8d789dca55cb8807b2cb51e8480d",
       "kind": "static",
       "unit": "kit"
     },
@@ -613,11 +613,11 @@
     "quaternius-ubc-rifle": "19706856fef2f15bd61aae8ef6d4e614c58a028296738bdeab45195880187611"
   },
   "templates": {
-    "art_hash": "0e2538358beb2132f21bbf7a624d1a7e8a7cfcabe186daa4b6f37cefa3f4df70",
+    "art_hash": "f4a239799e5559adb75406bcdc5e263afb397e3a50aea973353bee8f4a15abd3",
     "covers": [
       "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13",
       "6b0a5e8be69e9309bd16db843fa7ecaad672616874978ecfde0fd9332c3e6316"
     ],
-    "library": "f5019b25fe3a50854d86cf1bf73428e8b5603cdb21e199ddb82f83df8e689c8f"
+    "library": "154515b8038164483011a7097fa9569e76a89232393408fc191c3a77f72eb1c8"
   }
 }
