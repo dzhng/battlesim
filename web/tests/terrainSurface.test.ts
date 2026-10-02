@@ -410,6 +410,7 @@ test("open country keeps one grain: no tract turns further than the rules say, h
     surfaceBoundaryStride: 5,
     riverRuns: new Float32Array(),
     riverRunStride: 4,
+    forestShapes: [],
   };
   const rules = biome.field_rules;
   const most = ((rules.orientation_jitter_deg + rules.cut_jitter_deg) * Math.PI) / 180;

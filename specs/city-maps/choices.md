@@ -5304,3 +5304,23 @@ exact matched openings pass and a real retained GPU allocation falsifies the che
 **Gap:** Not this slice's rule, but its critique's finding: the painted arcs read as ruts and shadows of things that are not there, and were louder than the real branches now lying on the floor.
 
 **Verdict:** provisional. **Confidence:** medium.
+
+## C86
+
+**When:** 2026-10-02. Evidence: the Outcome in [C86](slices/C86-tree-lines.md).
+
+### Fields are cut along a strip's long stretches, read from the forest's own export
+
+**Choice:** `forestStripRuns`: every stretch of a stroke forest longer than the strip is wide is a guide edge for the plots, beside the roads' and rivers' runs.
+
+**Gap:** The slice says "plots cut along strip control runs"; the simulation exports control runs for roads and rivers and none for forests, and this lane may not add one.
+
+**Verdict:** sound. A bend is exported as chords under 2 m, so the rule keeps the straights and drops the bends, which is what a control run is for. **Confidence:** medium: a strip narrower than its bend's chords would be cut along them.
+
+### No map has a tree line, so the drawn half is proven by tests alone
+
+**Choice:** No picture, no hedgerow comparison, no critique and no 40-strip cost row.
+
+**Gap:** The slice's `farmland` lab is the map lane's; no saved map and no generator preset has a stroke forest.
+
+**Verdict:** open. **Confidence:** high that the rules hold on an inline map; none on how a tree line looks.
