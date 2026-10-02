@@ -274,3 +274,45 @@ heavy fog hatching, weak route contrast, unclear water, and benchmark link/
 results layout issues. These are renderer/UI lane findings; the scale lane has
 not changed appearance or accepted visual fidelity. The final stress check needs
 readable unit/contact framing alongside the full-world loading proof.
+
+## Finding — exact fog queries and late corpse sorting
+
+The bounded frozen-Metro late snapshot spends 104.142 M instructions in six
+Observation phases. Replaying the existing position comparator over its public
+corpse rows, restored to source soldier order, costs about 9.47 M per observation
+and reproduces the exact published list. This is a substantial recurring sort;
+skipping it would require death, fighting-floor loss and side-knowledge mutation
+ownership. A second corpse projection is not the next pass. An unstable coordinate sort
+would need the original construction ordinal for exact ties: reinforcement
+appends a new high soldier ID inside an existing unit, so soldier IDs cannot
+stand in for global unit/member iteration order.
+
+A short native stack sample identifies out-of-line world height and foliage
+queries in the unchanged fog traversal. The height field already forces its
+triangle reader inline to prevent new callers from increasing sweep cost, but
+the world wrapper does not. Measure each query owner's inlining separately,
+including whole Fog plus Learning and emitted code size. Keep only a clear
+instruction reduction with unchanged complete observations and battle digests;
+this introduces no cache and changes no arithmetic.
+
+
+## Outcome — expose the existing foliage query
+
+Only the foliage owner's existing query is forced inline. Height-only inlining
+was measured separately and left unchanged: it saves 3.15% early and 2.05% late
+Fog plus Learning work while growing the linked text by 7,580 bytes. Foliage-only
+inlining saves more and shrinks text; both candidates keep all arithmetic intact.
+
+Against the fog-union checkpoint on the frozen full Metro input and rules,
+six-tick Fog plus Learning falls from 330.527 M to 317.109 M instructions early
+and 355.871 M to 345.378 M late: 4.06% and 2.95%, about 2.24 M and 1.75 M fewer
+per tick. Every tick digest and complete serialized side-observation hash stays
+identical; the final digests remain `a98b13486b947938` and `b1ce437b780fa761`.
+The same linked native tracer's text shrinks from 2,562,712 to 2,559,388 bytes.
+This sizes one linked consumer, not every target. No retained allocation, cache,
+visibility-kernel fork or physical rule is added. The existing public collection
+budget remains intact; a scratch tighter bar did not become a new contract.
+All sight tests and focused clearing, canopy/bucket-edge depth and side-known
+clearing checks pass, as do library clippy and independent read-only review.
+These are bounded initial-view measurements; contact peaks and browser admission
+remain with the scale lane.

@@ -4203,3 +4203,16 @@ this exchanges temporary allocation for fewer sorts, without permanent map
 storage. Measure the final merge and Learning with Fog so moving work across
 profile brackets cannot masquerade as a gain. C06 records matched bounded
 Battle observations/digests and the remaining whole-city admission limits.
+
+
+## C06: inline the measured foliage owner
+
+**Choice:** Force the existing world foliage query inline, preserving its
+sparse-cell lookup, cleared-mask rule and every arithmetic expression. Leave
+the height wrapper's compiler policy unchanged after separate measurement.
+
+**Why:** The public fog traversal calls foliage per ray step. In the matched
+native six-tick control, foliage inlining reduces whole Fog plus Learning more
+than height inlining and also shrinks linked text. It needs no second visibility
+implementation or invalidation owner. C06 records the exact observations/digests,
+measured code-size tradeoff and narrower scope of the evidence.
