@@ -85,7 +85,7 @@
       "unit": "scenery"
     },
     "city_kit_china_apartments": {
-      "bundle": "3197df697d288ea99179090dd59818c52b8ad0c08e332c0606dce31c25b96ccf",
+      "bundle": "40e0d20a895e9d3a9e65f2bdfffc6ef5b5f4daac50d1e17a31231c07a3e6c586",
       "kind": "static",
       "unit": "kit"
     },
@@ -613,11 +613,11 @@
     "quaternius-ubc-rifle": "19706856fef2f15bd61aae8ef6d4e614c58a028296738bdeab45195880187611"
   },
   "templates": {
-    "art_hash": "8c537946a48d83a7ff7a120975e97e57a0a2f356a8ca37c17e1bec7281073028",
+    "art_hash": "e0b18303467d447f9b7431696d52697a0c137ca470da39b700d272048d5c4019",
     "covers": [
       "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13",
       "6b0a5e8be69e9309bd16db843fa7ecaad672616874978ecfde0fd9332c3e6316"
     ],
-    "library": "8ac6ec4d1cbe801e2e8160d378ea4e7d4082b4a279d28e1590736d07e2313454"
+    "library": "07867232d496e19da34fd5624e554d75976ba0ce82f38e7c995915b239827b07"
   }
 }
