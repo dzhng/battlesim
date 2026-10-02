@@ -47,7 +47,7 @@ function subjectOf(request: PrepareBattleRequest): string {
   const source = request.map_source;
   return (
     source.kind === "generated"
-      ? `${source.request.type} · ${source.request.size} · seed ${source.request.seed}`
+      ? `${source.request.type} · ${source.request.size}`
       : `${source.id} · ${request.recipe_id}`
   ).toUpperCase();
 }
@@ -85,7 +85,7 @@ function failureOf(request: PrepareBattleRequest, error: unknown, replay: boolea
       ? "This battle cannot be requested."
       : stage === "map"
         ? choice
-          ? "This seed makes no playable map."
+          ? "This map could not be built."
           : "This map could not be loaded."
         : stage === "encounter"
           ? "No battle could be placed on this map."
@@ -94,7 +94,7 @@ function failureOf(request: PrepareBattleRequest, error: unknown, replay: boolea
     message,
     advice:
       choice && (stage === "map" || stage === "encounter")
-        ? `Seed ${choice.seed} was not changed. Choose a new seed in the menu to try another map.`
+        ? "Deploy again from the menu for another map."
         : undefined,
     details,
   };
