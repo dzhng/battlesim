@@ -76,7 +76,8 @@ export interface FieldRules {
   /** Length scale of the fine value noise over verges, forest floor, shore
    *  and road, in metres. */
   mottle_m: number;
-  /** A plot whose centre lies within `yard_m` of a building is
+  /** A plot whose centre lies within `yard_m` of a building on the same
+   *  side of every carriageway is
    *  `settlement_kind`: a town's yards, a farmstead's. Any other whose centre
    *  lies within `settlement_m` of one is `surround_kind`: the paddocks and
    *  commons round a settlement, where no crop is drilled. */
