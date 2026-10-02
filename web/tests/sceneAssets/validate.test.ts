@@ -262,7 +262,7 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   "fit.canopy": async () => (await scenery("tree", { summer: treeGlb(12.5) })).findings,
   "fit.tree_size": async () =>
     (await scenery("tree", { summer: treeGlb(11, 0, { bole: 0.2 }) })).findings,
-  "fit.dressing": async () => (await scenery("dressing", { summer: buildingGlb(1.2) })).findings,
+  "fit.dressing": async () => (await scenery("dressing", { summer: blockGlb(1.2) })).findings,
   "budget.tier_triangles": async () =>
     (await scenery("tree", { summer: treeGlb(11, 0, { crowns: overBudget(3) }) })).findings,
   "nodes.missing": () => tank({ omit: "hmg_muzzle" }),
@@ -338,7 +338,7 @@ test("forest-floor dressing has no body, so none stands taller than its kind may
   // A soldier behind it must still be seen: the forest hides him, not a bush.
   const top = SCENERY_KINDS.dressing.top_m!;
   const codes = async (height: number) =>
-    (await scenery("dressing", { summer: buildingGlb(height) })).findings.map((f) => f.code);
+    (await scenery("dressing", { summer: blockGlb(height) })).findings.map((f) => f.code);
   expect(await codes(top - 0.05)).toEqual([]);
   expect(await codes(top + 0.05)).toEqual(["fit.dressing"]);
 });
