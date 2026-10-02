@@ -80,7 +80,7 @@ export class DrawnMuzzles {
   soldier(side: Side, soldier: number, at: Vec3): boolean {
     return this.answer(`s${keyOf(side, soldier)}`, at, () => {
       const s = this.soldiers.get(keyOf(side, soldier));
-      const bundle = s ? this.bundle(s.kind, s.side, s.soldier, s.slot) : null;
+      const bundle = s ? this.bundle(s.kind, s.side, s.soldier, s.slot, s.operatorMount) : null;
       if (!s || bundle?.kind !== "skinned") return null;
       const socket = bundle.sockets.find((k) => k.name === "muzzle");
       if (!socket) return null;
@@ -99,8 +99,8 @@ export class DrawnMuzzles {
     return true;
   }
 
-  private bundle(kind: string, side: Side, id: number, slot: number) {
-    const resolved = this.resolve(kind, side, id, slot);
+  private bundle(kind: string, side: Side, id: number, slot: number, operatorMount: number | null) {
+    const resolved = this.resolve(kind, side, id, slot, operatorMount);
     return (resolved && this.installed.appearances.get(resolved.appearance)?.bundle) ?? null;
   }
 

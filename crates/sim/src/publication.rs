@@ -132,7 +132,15 @@ const MOUNT_FIELDS: [&str; 15] = [
     "reloadKind",
 ];
 
-const POSE_FIELDS: [&str; 5] = ["mount", "bearing", "elevation", "shotsLo", "shotsHi"];
+const POSE_FIELDS: [&str; 7] = [
+    "mount",
+    "bearing",
+    "elevation",
+    "shotsLo",
+    "shotsHi",
+    "operatorLo",
+    "operatorHi",
+];
 
 const HEADER: [&str; 27] = [
     "tick",
@@ -293,9 +301,18 @@ fn limbs_or_absent(n: Option<u32>) -> [f32; 2] {
     n.map_or([-1.0; 2], limbs)
 }
 
-fn pose(p: &WeaponPose) -> [f32; 5] {
+fn pose(p: &WeaponPose) -> [f32; 7] {
     let [lo, hi] = limbs(p.shots);
-    [p.mount as f32, p.bearing as f32, p.elevation as f32, lo, hi]
+    let [operator_lo, operator_hi] = limbs_or_absent(p.operator);
+    [
+        p.mount as f32,
+        p.bearing as f32,
+        p.elevation as f32,
+        lo,
+        hi,
+        operator_lo,
+        operator_hi,
+    ]
 }
 
 const LEAN_FIELDS: [&str; 3] = ["side", "x", "y"];
