@@ -3558,7 +3558,7 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 - **The choice:** Keep the existing sharp ray–box intersections, and use the existing grid of building footprints to give each eye only nearby boxes. On a 10 km city, a squad beside one block tests that block's neighbours instead of every building at the far end of the city. A first measured grid-only arm still cost 2.61 ms, exceeding the 2 ms gate, so the same table now narrows each ray to a conservative angular sector. Bounding circles enclose turned boxes, eye-inside circles retain every direction, and an extra sector at each edge covers f32 angle rounding. Rasterising building tops would instead replace the exact corner geometry.
 - **The gap:** C20 says to implement the technique S4 picked, but only S4's plan exists; its named verdict file is absent. Grid representation itself is delegated, but selecting the unrecorded arm is a spec gap.
 - **The reach:** Future fog work keeps the same horizon precision and sharpness. If the paired city measurement misses the budget, this arm needs further work rather than a silently relaxed gate.
-- **Verdict:** Sound as a reversible implementation candidate. The spatial work count falls dramatically and the exact shader arithmetic is preserved; GPU cost and visual acceptance remain pending.
+- **Verdict:** Sound as a reversible implementation candidate. The exact shader arithmetic is preserved; final frozen vectors/whole flags match, the synthetic city build is 1.182 ms, and the village shows no observed cost regression. The missing full S4/G0 envelope remains separate from startup’s 16,000-box proof.
 - **Confidence:** Medium.
 
 ### Put candidate lists in the existing rebuild table
@@ -3632,7 +3632,7 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 - **The choice:** A structure may become visible when its roof probe looks inward toward an eye even though its footprint is just outside that eye's reach. Keep the whole pass's existing broad bounding-circle test, rather than reusing the tighter horizon footprint query unchanged. Its grid query grows by the largest known box radius, then filters each box against the original eye-plus-box circle bound. Each retained structure lists only the eyes that can reach it; structures outside every eye's reach receive cleared flags.
 - **The gap:** C20 names the horizon merge and invalidation sites but does not say how its cost contract applies to the later whole-surface visibility pass. That pass otherwise still samples every global box against every eye.
 - **The reach:** The whole pass has one additional storage binding for structure/eye pairs, seven total across its two groups. Moving away from a previously visible building clears that building's whole-fog flag, and inward-looking roofs keep their earlier visibility rule.
-- **Verdict:** Sound. The existing whole-fog semantics are retained while both dimensions of its sampled work follow nearby structure/eye pairs. The focused roof-boundary and packed-pair tests pass; real GPU flags and timings remain pending.
+- **Verdict:** Sound. The existing whole-fog semantics are retained while both dimensions of its sampled work follow nearby structure/eye pairs. The focused roof-boundary and packed-pair tests pass. Real GPU village/city flags match the baseline, all flags clear when the eyes leave, and the final synthetic build passes the local 2 ms gate.
 - **Confidence:** High.
 
 ## C33 preparation and public queries — startup lane
@@ -3876,3 +3876,12 @@ affected digests; movement's exact body checks still decide each soldier's steps
 **Verdict:** supported by the old/new Battle comparison; follow-up verification
 is recorded in C06. A direct non-standing virtual anchor has no guaranteed legal
 timing; nearest-fit selection is not permission to publish an invalid segment.
+
+### Accept the unchanged corner look after a silent visual checkpoint
+
+- **When:** C20 final measured candidate, Preview open 2026-10-02 05:56:57–06:02 UTC.
+- **The choice:** Proceed after the non-blocking five-minute window without user feedback. The near village frame, mask and building-corner crop are byte-identical; shape/lookup oracles, whole-building hashes and frozen probe vectors match. The final synthetic 16,000-box rebuild is 1.182 ms, below the unchanged 2 ms gate. The selected arm adds 303,828 buffer bytes while keeping texture bytes fixed.
+- **The gap:** The full S4/G0 extent-and-density verdict is absent, so the measured startup count stress case cannot stand in for complete Metro rendering admission.
+- **The reach:** The complete capture set and fresh critique remain in scratch. The critic distinguishes hatched fog from cast shadows and finds no broad blur, wall spill or layering break, but flags existing bright seams/steps, tiny dark infantry and thin roof-trim ambiguity. Near pixels are unchanged, so trim contrast belongs to the expressly deferred C22+ building-art work; this pass accepts only the preserved ground fog at building corners. Small distant forest and unit/effect differences are disclosed rather than calling entire frames identical. Preview was closed on unattended proceed.
+- **Verdict:** Sound for the startup lane's reach-local fog and corner-fidelity contract; full-world/art acceptance remains separate. The grid-only 2.611 ms candidate was rejected, not excused.
+- **Confidence:** High for the frozen vectors, flags, corner pixels and measured local cost; medium for broader city transfer until the missing envelope is measured.
