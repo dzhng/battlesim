@@ -296,7 +296,7 @@
           "appearance": {
             "drawn_by": "heras_fence",
             "map_only": true,
-            "status": "systems_only"
+            "modular": true
           },
           "body": {
             "armor": 1.0,
@@ -462,8 +462,7 @@
         "pallet_stack": {
           "appearance": {
             "drawn_by": "pallet_stack",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -537,8 +536,7 @@
         "road_barrier": {
           "appearance": {
             "drawn_by": "road_barrier",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -633,7 +631,7 @@
           "appearance": {
             "drawn_by": "scaffold",
             "map_only": true,
-            "status": "systems_only"
+            "modular": true
           },
           "body": {
             "armor": 1.0,
@@ -656,8 +654,7 @@
         "scooter": {
           "appearance": {
             "drawn_by": "scooter",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -680,8 +677,7 @@
         "site_cabin": {
           "appearance": {
             "drawn_by": "site_cabin",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -704,8 +700,7 @@
         "skip_bin": {
           "appearance": {
             "drawn_by": "skip_bin",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -749,8 +744,7 @@
         "traffic_cone": {
           "appearance": {
             "drawn_by": "traffic_cone",
-            "map_only": true,
-            "status": "systems_only"
+            "map_only": true
           },
           "body": {
             "armor": 1.0,
@@ -1733,7 +1727,7 @@
       "appearance": {
         "drawn_by": "heras_fence",
         "map_only": true,
-        "status": "systems_only"
+        "modular": true
       },
       "body": {
         "armor": 1.0,
@@ -1899,8 +1893,7 @@
     "pallet_stack": {
       "appearance": {
         "drawn_by": "pallet_stack",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -1974,8 +1967,7 @@
     "road_barrier": {
       "appearance": {
         "drawn_by": "road_barrier",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -2070,7 +2062,7 @@
       "appearance": {
         "drawn_by": "scaffold",
         "map_only": true,
-        "status": "systems_only"
+        "modular": true
       },
       "body": {
         "armor": 1.0,
@@ -2093,8 +2085,7 @@
     "scooter": {
       "appearance": {
         "drawn_by": "scooter",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -2117,8 +2108,7 @@
     "site_cabin": {
       "appearance": {
         "drawn_by": "site_cabin",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -2141,8 +2131,7 @@
     "skip_bin": {
       "appearance": {
         "drawn_by": "skip_bin",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
@@ -2186,8 +2175,7 @@
     "traffic_cone": {
       "appearance": {
         "drawn_by": "traffic_cone",
-        "map_only": true,
-        "status": "systems_only"
+        "map_only": true
       },
       "body": {
         "armor": 1.0,
