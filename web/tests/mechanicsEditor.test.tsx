@@ -65,7 +65,9 @@ it("links editable landing spread and angular scatter and keeps range edits in b
   const spread = screen.getByLabelText(
     "grenade Landing spread at maximum range",
   ) as HTMLInputElement;
-  const raw = screen.getByLabelText("grenade stored scatter_mrad") as HTMLInputElement;
+  const raw = screen.getByLabelText(
+    "grenade Landing spread at maximum range — Angular scatter · milliradians",
+  ) as HTMLInputElement;
   expect(spread.value).toBe("4.5");
   fireEvent.change(screen.getByLabelText("grenade Maximum engagement range"), {
     target: { value: "150" },
@@ -208,9 +210,13 @@ it("undoing a range edit preserves landing spread and clears the coupled draft",
   expect(
     (screen.getByLabelText("grenade Landing spread at maximum range") as HTMLInputElement).value,
   ).toBe("4.5");
-  expect((screen.getByLabelText("grenade stored scatter_mrad") as HTMLInputElement).value).toBe(
-    "30",
-  );
+  expect(
+    (
+      screen.getByLabelText(
+        "grenade Landing spread at maximum range — Angular scatter · milliradians",
+      ) as HTMLInputElement
+    ).value,
+  ).toBe("30");
   expect(screen.getByRole("button", { name: "Preview changes" }).hasAttribute("disabled")).toBe(
     true,
   );
@@ -248,7 +254,11 @@ it("restoring inherited range keeps the currently edited landing spread", async 
   expect(
     (screen.getByLabelText("grenade Landing spread at maximum range") as HTMLInputElement).value,
   ).toBe("6");
-  expect((screen.getByLabelText("grenade stored scatter_mrad") as HTMLInputElement).value).toBe(
-    "20",
-  );
+  expect(
+    (
+      screen.getByLabelText(
+        "grenade Landing spread at maximum range — Angular scatter · milliradians",
+      ) as HTMLInputElement
+    ).value,
+  ).toBe("20");
 });

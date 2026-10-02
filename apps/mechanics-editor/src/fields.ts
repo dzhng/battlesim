@@ -11,6 +11,12 @@ export type FieldKind =
   | "object"
   | "mounts";
 export type Conversion = "percent" | "cadence" | "dimensions" | "spread";
+export const CONVERSION_CAPTIONS: Record<Conversion, string> = {
+  spread: "Angular scatter · milliradians",
+  percent: "Stored fraction · 1 = 100%",
+  cadence: "Shot interval · seconds",
+  dimensions: "Half dimensions · metres",
+};
 export interface GameplayField {
   path: string[];
   label: string;
@@ -340,7 +346,7 @@ export const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       "scatter_mrad",
       "Landing spread at maximum range",
       "Flight & accuracy",
-      "One-axis standard deviation in metres at maximum engagement range. This is not a maximum miss distance or blast radius; rounds can land farther away. Guided missiles steer out their initial spread.",
+      "One-axis standard deviation in metres at maximum engagement range: angular scatter × range ÷ 1000. This is not a maximum miss distance or blast radius; rounds can land farther away. Guided missiles steer out their initial spread.",
       { conversion: "spread", unit: "m" },
     ),
     field(

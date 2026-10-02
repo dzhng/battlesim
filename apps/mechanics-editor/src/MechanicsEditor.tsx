@@ -19,6 +19,7 @@ import {
   type EditTarget,
 } from "./draft";
 import {
+  CONVERSION_CAPTIONS,
   displayFieldValue,
   entryFields,
   gameplayField,
@@ -308,13 +309,13 @@ function FieldRow({
         </div>
         {field.conversion && (
           <div>
-            <span className="me-control-caption">Stored {field.path.at(-1)}</span>
+            <span className="me-control-caption">{CONVERSION_CAPTIONS[field.conversion]}</span>
             <ValueInput
               target={target}
               field={field}
               entry={entry}
               raw
-              label={`${target.id} stored ${field.path.at(-1)}`}
+              label={`${target.id} ${field.label} — ${CONVERSION_CAPTIONS[field.conversion]}`}
             />
           </div>
         )}

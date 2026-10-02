@@ -202,13 +202,14 @@
   border-bottom: 0;
 }
 .me-sheet .me-input input {
-  background: transparent;
-  border-color: transparent;
+  background: #152024;
+  border-color: #34454b;
   padding: 5px 6px;
   font-variant-numeric: tabular-nums;
 }
 .me-sheet .me-input input:hover {
-  border-color: var(--me-line);
+  background: #24343b;
+  border-color: #788b8b;
 }
 .me-sheet .me-input input:focus {
   background: #26343a;
@@ -327,12 +328,12 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  font-size: 10px;
-  color: #7f9697;
+  font-size: 12px;
+  color: #a8b8b8;
   margin-top: 7px;
 }
 .me-origin code {
-  font-size: 9px;
+  font-size: 11px;
   overflow-wrap: anywhere;
 }
 .mechanics-editor .me-text-button {
@@ -340,7 +341,7 @@
   border: 0;
   background: transparent;
   color: var(--me-accent);
-  font-size: 10px;
+  font-size: 12px;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -355,7 +356,7 @@
 }
 .me-control-caption {
   display: block;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--me-muted);
   margin-bottom: 4px;
 }
