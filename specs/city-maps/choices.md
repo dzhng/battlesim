@@ -3852,6 +3852,8 @@ than comparing different builds' rules. **Confidence:** high.
 
 ### Sound — medium confidence: keep public query arithmetic in Rust
 
+Superseded by [C33 simplified](#c33-simplified): the page has no query index; it builds its own world.
+
 **Choice:** After Deploy, the page imports a read-only Rust query index containing the already sampled ground, static surfaces and picking boxes. It also holds sparse static foliage needed to apply only the clearing this side learned. The battle's navigation and mutable world remain in its worker. A TypeScript query implementation would save a second Wasm instance but would also duplicate the simulation's interpolation, bridge, river and ray rules.
 
 **Gap:** C33 delegates query-index internals but does not choose the language or transport precision.
@@ -3876,7 +3878,7 @@ than comparing different builds' rules. **Confidence:** high.
 
 **Gap:** The lane requires world reuse but does not specify the worker handoff or restart ownership.
 
-**Reach:** Both generated and saved battles use this handoff. Other scenario routes export public geometry from their one worker-owned preparation too. Geometry and flight probes keep their explicit developer WorldView; production battle hooks do not construct one.
+**Reach:** Both generated and saved battles use this handoff. Since [C33 simplified](#c33-simplified) no route exports geometry from a worker: every route's page builds its own `WorldView`.
 
 **Verdict:** sound. It retains the existing command/publication authority and lets worker termination release all abandoned preparation allocations. **Confidence:** high.
 
@@ -4610,3 +4612,17 @@ exact matched openings pass and a real retained GPU allocation falsifies the che
 **Gap:** The slice says "keyed from the field" and names no carrier.
 
 **Verdict:** sound. The loop that finds the paved distance already has the closest point of each stretch; a second lookup for the lane would walk the cell's list twice. A polygon has no centreline, so a town's streets have no lanes. **Confidence:** high.
+
+## C33 simplified
+
+### The page builds its own world; the public query export is deleted
+
+**Choice:** The worker still builds the simulation's world once for the planner and the battle. The page builds its own plain world from the scenario's map with the simulation's `WorldView`, as it did before the startup lane, and answers picking, ground height, surface, learned foliage and camera clearance from it. `PublicWorld`, its lossless query payload, the worker-to-page transfer, the `PreparedWorld` copies of the world's exports and queries, and the tests that held the two query implementations in exact agreement are deleted: about 1,000 lines of production code and 170 of tests.
+
+**Gap:** The lane's contract asked for a page that constructs no simulation world. The owner decided on 2026-10-01 that this half goes.
+
+**Why:** Startup is 5 to 6 s against a budget of 30 s, and the lane's own measurement showed no startup gain from the export. Margin is spent on simplicity ([`AGENTS.md`](../../AGENTS.md), "One owner per concept"). The export was a second implementation of height, surface, ray and foliage queries that had to match the first to the bit; one code path for map queries is worth more than one fewer world build.
+
+**Reach:** One battle builds the world twice (worker, page), not once. The page's build runs behind the loading screen. The page's world has no navigation and no battle state, so no query can read hidden destruction. Where the export had moved surface, terrain-ray, water and learned-crown arithmetic into free functions so two worlds could share them, that arithmetic is back inside `WorldGeometry`, its one caller. The worker handoff, cancellation, the prepared replay, the fog change, the camera lab's catalogue map, the combat parity pair and the startup harness are unchanged.
+
+**Verdict:** sound. Battle digests and replays do not move; the generated and camera scenes pass unchanged; Mixed Small is playable 5 to 9 s after Deploy on a loaded machine, against 3 to 4 s for the export on a quieter one, with level retired instructions ([startup measurement](startup-lane.md#startup-measurement)). **Confidence:** high.
