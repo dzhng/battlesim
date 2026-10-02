@@ -104,12 +104,17 @@ fn weapon(name: &str) -> Value {
 
 #[test]
 fn every_mount_aims_and_reloads_independently_and_aims_once_per_target() {
-    // A rifle squad against an enemy rifle squad 400 m away, which only answers.
+    // A rifle squad against an enemy rifle squad that only answers, close
+    // enough for the grenade's arc to reach: a pinned range does not make a
+    // lobbed round fly farther than its speed and drop allow.
+    let reach = common::scenario_rules()["weapons"]["grenade"]["range_m"]
+        .as_f64()
+        .unwrap();
     let mut setup = scenario_with(
         &map(json!([])),
         json!([
             { "side": "blue", "kind": "rifle", "position": [100, 300] },
-            { "side": "red", "kind": "rifle", "position": [500, 300], "engagement": "return_fire_only" },
+            { "side": "red", "kind": "rifle", "position": [100.0 + 0.8 * reach, 300], "engagement": "return_fire_only" },
         ]),
         json!([]),
         json!([]),
@@ -933,8 +938,8 @@ fn a_loaded_weapon_drops_a_target_it_can_no_longer_reach() {
     // holding a loaded round on the unreachable one (W07).
     let scripts = json!([{ "tick": 1, "side": "red", "order":
         { "kind": "move", "units": [2], "gesture": 1, "goal": [1100, 300], "route": "shortest" } }]);
-    let mut b = battle(
-        json!([]),
+    let mut setup = scenario_with(
+        &map(json!([])),
         json!([
             { "side": "blue", "kind": "rifle", "position": [100, 300] },
             { "side": "blue", "kind": "recon", "position": [100, 340] },
@@ -944,6 +949,12 @@ fn a_loaded_weapon_drops_a_target_it_can_no_longer_reach() {
         json!([]),
         scripts,
     );
+    // The squad must live to walk out of range: this is about which target a
+    // loaded weapon holds, not how fast rifles kill or pin at long range.
+    let rifle = setup.rules.weapons.get_mut("rifle").unwrap();
+    rifle.damage = 0.0;
+    rifle.near_miss_suppression = 0.0;
+    let mut b = Battle::new(&setup, 5);
     let handle = |b: &Battle, kind: &str| {
         b.observe(Side::Blue)
             .identified
