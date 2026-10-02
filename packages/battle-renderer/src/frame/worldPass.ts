@@ -14,7 +14,7 @@
 // are drawn into the overlay target (the x-ray), then the units; its depth is
 // copied for the overlays before the grass adds its blades.
 //
-// Five kinds of world geometry, all lit, fogged, graded and shadow-casting:
+// Six kinds of world geometry, all lit, fogged, graded and shadow-casting:
 // - the terrain: the simulation's ground triangles under the biome's
 //   material and the observing side's learned scars (`scarTexture.ts`:
 //   crater bowls and rims as shading only, scorch, tracks, trampling), and
@@ -27,6 +27,10 @@
 //   world's (the map's props that cannot fall) and the structures, what the
 //   side knows stands: buildings, their ruins and wrecks, fitted to their
 //   boxes. Each draw binds the fog group its class names (`modelFog`);
+// - a town's buildings, as instances of their kits' modules
+//   (`models/buildingLayer.ts`): static models in every respect, drawn by the
+//   models layer's pipelines as the world's faces, and in the prepass's world
+//   half, so a unit behind one is x-rayed;
 // - the forest's trees (`sceneryLayer.ts`), which draw the simulation's trunks.
 // Plus the backdrop past the map edge and the hedgerows and copses on it:
 // the same ground material (the patchwork runs on past the map), lit, hazed
@@ -96,7 +100,6 @@ import {
   WATER_SHADOW,
 } from "./terrainMaterial";
 import { createSceneryLayer } from "./sceneryLayer";
-import type { PlacedInstances } from "../scenery/lod";
 import { createPaintedMarks, validatePaintStyle, type PaintStyle } from "./paintedMarks";
 import type { GroundMarks, ScarRegion } from "./scarTexture";
 import type { FogGeometryPresentation, FogInput } from "./fogInputs";
@@ -533,9 +536,6 @@ export async function createWorldPass(
       structures = next;
       setStatics();
     },
-    setMassing(next: PlacedInstances | null) {
-      scenery.setMassing(next);
-    },
     /** Follow the side's learned ground: uploads what changed, and regrows
      *  the grass and fells the cleared trees when anything did. */
     setGround(next: GroundMarks | null): boolean {
@@ -615,9 +615,11 @@ export async function createWorldPass(
         world.ground.draw(bound);
         world.props.draw(bound);
         proxies.draw(bound);
-        models.drawCasters(
-          modelCaster.with(pass).with(cameraGroup) as unknown as Parameters<ModelLayer["draw"]>[0],
-        );
+        const modelCasters = modelCaster.with(pass).with(cameraGroup) as unknown as Parameters<
+          ModelLayer["draw"]
+        >[0];
+        models.drawCasters(modelCasters);
+        models.drawBuildingCasters(modelCasters, root.unwrap(pass));
         scenery.encodeShadows(pass, cameraGroup);
       });
     },
@@ -647,6 +649,10 @@ export async function createWorldPass(
       world.props.draw(bound);
       backdrop.draw(bound);
       scenery.encodeDepth(scene, cameraGroup);
+      models.drawBuildings(
+        modelPrepass.with(scene).with(cameraGroup) as unknown as Parameters<ModelLayer["draw"]>[0],
+        root.unwrap(scene),
+      );
       scene.end();
 
       // The ground paint, against the ground-only depth. Its target is
@@ -849,6 +855,11 @@ export async function createWorldPass(
         drawModels(modelsLit.with(fogGroups[fog]), fog);
         drawCards(cardsLit.with(fogGroups[fog]), fog);
       }
+      // Buildings are faces: an occluding structure takes fog whole.
+      models.drawBuildings(
+        modelsLit.with(fogGroups.faces) as unknown as Parameters<ModelLayer["draw"]>[0],
+        root.unwrap(pass),
+      );
       scenery.encode(pass, cameraGroup, fogGroups.faces);
       // The class view reads the ground itself: nothing that grows on it or
       // lies blended over it.

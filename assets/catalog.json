@@ -104,6 +104,18 @@
     "china_apartments": {
       "templates": "assets/source/city/china_apartments/templates.json",
       "kit": "city_kit_china_apartments"
+    },
+    "farmsteads": {
+      "templates": "assets/source/city/farmsteads/templates.json",
+      "kit": "city_kit_farmsteads"
+    },
+    "towers": {
+      "templates": "assets/source/city/towers/templates.json",
+      "kit": "city_kit_towers"
+    },
+    "industry": {
+      "templates": "assets/source/city/industry/templates.json",
+      "kit": "city_kit_industry"
     }
   },
   "appearances": {
@@ -1151,6 +1163,21 @@
     "city_kit_china_apartments": {
       "unit": "kit",
       "source": "assets/source/city/china_apartments/kit.glb",
+      "basis_yaw_deg": 0
+    },
+    "city_kit_farmsteads": {
+      "unit": "kit",
+      "source": "assets/source/city/farmsteads/kit.glb",
+      "basis_yaw_deg": 0
+    },
+    "city_kit_towers": {
+      "unit": "kit",
+      "source": "assets/source/city/towers/kit.glb",
+      "basis_yaw_deg": 0
+    },
+    "city_kit_industry": {
+      "unit": "kit",
+      "source": "assets/source/city/industry/kit.glb",
       "basis_yaw_deg": 0
     }
   }

@@ -44,20 +44,49 @@ Test in proportion: the narrow tests for what changed and the one or two scenes 
 
 Update this section, not the README, at the end of each pass: what landed, what a town looks like now (one picture path), what is next, and anything the other lanes need to know.
 
-**2026-10-01.** A town in the game is still massing boxes (`throwaway/evidence/generated/building-1920x1080.png` after `scene -- generated`), now at the real templates' sizes: nothing draws the library yet. The art exists as source sets and is judged so far in Blender reassembly sheets (`city/assemble.py`).
+**2026-10-02. A generated town is real buildings.** Every building is drawn from the template art library through the static chunk owner; massing is gone. The picture is `throwaway/evidence/city-block/wide-1920x1080.png` after `scene -- city-block` (`/lab/city-block` is a block of a generated town with no battle). Buildings cost 0.2 to 2.2 ms of GPU from street level to the whole map on a Metro Large ([C22](slices/C22-placement-chunks.md#outcome)).
 
-- **Landed:**
-  - The three source files, vendored with their licence ([C10](slices/C10-third-party-sources.md#outcome)), and the export spike ([S2](spikes/S2.md)).
-  - The source format every building script writes ([city kit readme](../../packages/scene-assets/blender/city/README.md)), and its bake side: a `kit` appearance, the packed template art library, the pure resolver, fit and coverage checks, and the prototype boxes as a generated stand-in set ([C13](slices/C13-placement-bake.md), [C32](slices/C32-template-library.md)).
-  - China's apartment kit: five block templates, 74 modules, nine ambientCG sets pinned ([C11](slices/C11-kit-modules.md), [C12](slices/C12-baked-materials.md)).
-  - Our own houses: five detached and five attached templates, and `city/kit.py`, the helper every scripted set is written with ([C17](slices/C17-detached-home.md)).
-- **Decided:** China's family ships first; every category the graphs do not cover, attached homes included, is our own scripted source; graph-made sides are 3n + 2 metres with 3 m floors ([choices](choices.md#buildings-lane)).
-  - One static chunk owner, `frame/staticChunks.ts`, with scenery, massing and corpses on it; frames pixel-identical before and after ([C22](slices/C22-placement-chunks.md#outcome), first half).
-  - **The catalogue cutover, first part.** The generator's catalogue now holds the ten real house templates and five real apartment blocks in place of their boxes, and stand-in boxes for farmsteads, towers, industry and the two compound apartment blocks: 29 templates, all of family `china`.
-- **Decided:** China's family ships first; every category the graphs do not cover, attached homes included, is our own scripted source; graph-made sides are 3n + 2 metres with 3 m floors ([choices](choices.md#buildings-lane)).
-- **In flight:** drawing buildings from the library through the chunk owner (C22, second half), which is the first real town picture; farmsteads (C16), towers (C18), industry (C19); the interior atlas (C15).
-- **Next:** the far tier (C23), compound apartment blocks (S5), the facade passes, damage, the village's houses (C37).
-- **For the other lanes:**
-  - **The catalogue's hash moved** to `5416684f…` and will move again as each remaining set replaces its stand-ins (three more times at most). In the same commit: `map-presets.json` `parcels.regional_families` is `["china"]` (the revision string is unchanged; bump it if a request must not carry over), the two `crates/mapgen` tests that named the `prototype` family read the catalogue's own, the map-layout and encounter parity records name the new hash and are re-recorded (no record changed status), and the camera lab's map uses the real 59 × 14 slab.
-  - **Shapes changed:** houses are taller (the box top is the ridge: 5.2 m for one floor, 8.2 to 8.5 m for two, about 12 m for three) and apartment slabs are 35 × 11, 47 × 11, 59 × 14 and 53 × 14 m with a 1.1 m parapet in the box. A ten-seed sweep of every type and size still generates 90 of 90 maps; districts' `ground_m` was not retuned.
-  - To add or retire a template: `asset catalogue`, `asset prototypes`, `asset bake` ([city kit readme](../../packages/scene-assets/blender/city/README.md), "From a set to a town"). `asset bake` and `asset check` need the WebAssembly built.
+**Every category has real art.** The generator's catalogue is 29 templates, all `release`, all of family `china`, and no stand-in box remains:
+
+| Category | Templates | Set, and its slice |
+|---|---|---|
+| Urban apartment | Four slabs, a point block, a U block and a courtyard block | `china_apartments`, from the vendored graph ([C11](slices/C11-kit-modules.md), [C12](slices/C12-baked-materials.md), [S5](spikes/S5.md)) |
+| Detached and attached home | Five houses; a townhouse, two terraces, a shop row, a corner shop | `homes` ([C17](slices/C17-detached-home.md)) |
+| Farmstead | Three farms | `farmsteads` ([C16](slices/C16-farmstead.md)) |
+| Highrise | A ten-floor slab and three point towers | `towers` ([C18](slices/C18-tower.md)) |
+| Industry | A shed, two warehouses, a works, a depot | `industry` ([C19](slices/C19-industry.md)) |
+
+**Also landed:**
+- The three source files with their licence ([C10](slices/C10-third-party-sources.md#outcome)) and the export spike ([S2](spikes/S2.md)).
+- The source format every building script writes ([city kit readme](../../packages/scene-assets/blender/city/README.md)), and its bake side: a `kit` appearance, the packed template art library, the pure resolver, fit and coverage checks ([C13](slices/C13-placement-bake.md), [C32](slices/C32-template-library.md)).
+- One static chunk owner, `frame/staticChunks.ts`, with scenery, corpses and buildings on it, and buildings drawn from the library with bounded residency ([C22](slices/C22-placement-chunks.md#outcome)).
+- Material coverage (opaque, cutout, blended) and the interior sheet a room surface names, in bundle format 4 ([C21](slices/C21-material-transport.md)).
+- The interior atlas: ten rooms and ten shops, dim and daylight-only ([C15](slices/C15-interior-atlas.md)).
+
+**Decided:** China's family ships first, and New York and Paris are later families through the same exporter, not part of closing this lane; every category the graphs do not cover is our own scripted source; a join between parts is never built, the outline of the abutting boxes is ([choices](choices.md#buildings-lane)).
+
+**In flight:** the far tier and a template line-up lab (C23); cutout, glass and interiors in the model layer (C24 to C26); damage states for all five sets (C14); the village's houses onto the library (C37).
+
+**Next:** glass, rooms and cutouts restored in the kits once C24 to C26 land; ruin and gutted art drawn by knowledge, with the far tier's variants (C27).
+
+**What an unprimed critic saw in the first real town** (eight frames of `/lab/city-block`, 2026-10-02), and where each finding went:
+
+| Finding | Where it is being handled |
+|---|---|
+| Neighbouring buildings run into each other: a roof through a roof, an apartment block's stair house in a house | The map: the parcel pass places some buildings overlapping (the boxes overlapped too). For the map lane, below |
+| A fallen building is a flat brown slab | C14 and C27, in flight |
+| Buildings stand on bare lawn: no pavement, yards, fences or paths to doors | The ground lane (streets, C28 to C30) and street placement (C46) |
+| Apartment roofs are the most saturated thing on screen and tile visibly; a dark ground storey reads as sunk in shadow; roof stains repeat as dots | The China kit's pass, in flight |
+| Pitched roofs read as tartan from above | The shared roof recipe, in the scripted sets' pass, in flight |
+| Opaque stand-in glass is charcoal on one face and pale on the next; doors do not read | Glass (C25), in flight |
+| Fine detail (window cages, rails) aliases at the tactical camera; the whole-map view does not read as a town | The far tier and tier thresholds (C23), in flight |
+| Identical neighbours; facing is hard to read from above | Open. A wall-colour palette per building and asymmetric roof details would help; neither is built |
+| A building's shadow on a road reads as a second road material; bands and blotches on lawns | The ground lane and the light: not buildings |
+
+**For the other lanes:**
+- **The catalogue's hash is `6b0a5e8b…` and should now hold still.** It moves only if a template's physical shape changes. Each move needs, in one commit: the parity records' requests renamed to the new hash and re-recorded, `fixtures/maps/market-town` saved again (the three commands in the fixtures guide), and `fixtures/camera-lab.json` if it names a retired template.
+- **Shapes against the old boxes.** Houses are taller (the box top is the ridge: about 5.2 m for one floor, 8.3 m for two, 12 m for three). Apartment slabs are 35 × 11, 47 × 11, 59 × 14 and 53 × 14 m with a 1.1 m parapet in the box; the courtyard block is 41 × 38 m. Towers are whole bays (56 × 14, 26 × 26, 23 × 32, 29 × 29 m). Industry is whole bays too (15 × 24, 48 × 24, 72 × 33, 90 × 39, and a works of a 54 × 27 hall with an 18 × 9 office on its street face, both 8 m). Farm buildings keep their plans. Districts' `ground_m` was not retuned.
+- **Map lane: some buildings overlap.** In Mixed Small seed 1, near the main town's centre, neighbouring buildings' boxes overlap by metres (two corner shops through each other, an apartment block into a house). Boxes hid it; real roofs do not. Art may also reach past a part's faces by its set's `fit.side_m` (0.5 m for houses, up to 1.5 m for apartment balconies and tower canopies), so two buildings need at least the sum of their side fits between their boxes unless they are one template's joined parts.
+- **Some bays have no opening** (barns, warehouses, a tower's blank columns): a soldier seated there fires through a drawn wall. The simulation seats every bay; whether to mark such bays is a rules question nobody has taken.
+- `map-presets.json` `parcels.regional_families` is `["china"]`; its revision string was not bumped.
+- To add or retire a template: retire its catalogue row, then `asset prototypes`, `asset catalogue`, `asset prototypes`, `asset bake`, `asset check` ([city kit readme](../../packages/scene-assets/blender/city/README.md), "From a set to a town"). `asset bake` and `asset check` need the WebAssembly built.

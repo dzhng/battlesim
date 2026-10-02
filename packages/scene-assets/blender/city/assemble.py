@@ -149,9 +149,11 @@ def tier_of(name):
 
 def load(set_dir, fresh=True):
     """The set's modules ({name: [(tier or None, mesh object, its frame in the module)]}) and its templates.
-    `fresh` false loads it beside the sets already loaded (a sheet of several sets; their names must not clash)."""
+    `fresh` false loads it beside the sets already loaded (a sheet of several sets; their names must not clash:
+    a caller renames the earlier sets' objects, materials and images out of the way first)."""
     if fresh:
         bpy.ops.wm.read_factory_settings(use_empty=True)
+    earlier = set(bpy.data.objects)
     path = os.path.join(set_dir, "kit.glb")
     doc = glb_json(path)
     bpy.ops.import_scene.gltf(filepath=path)
@@ -160,7 +162,7 @@ def load(set_dir, fresh=True):
         surface(bpy.data.materials[info["name"]], info, doc)
     modules = {}
     for o in list(bpy.data.objects):
-        if o.parent is None and o.type == "EMPTY":
+        if o.parent is None and o.type == "EMPTY" and o not in earlier:
             inverse = o.matrix_world.inverted()
             modules[o.name] = [(tier_of(c.name), c, inverse @ c.matrix_world) for c in o.children_recursive if c.type == "MESH"]
     for o in bpy.data.objects:

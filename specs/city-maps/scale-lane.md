@@ -4,7 +4,13 @@ A second session works this lane in parallel with the map lane. It is simulation
 
 ## The contract
 
-A full battle on a full-size generated map holds the simulation's budget: **no tick over 33 ms, and the browser's stress checks at 30 Hz or better**, with 100 units a side, from the opening to late battle (wrecks, felled trees, collapsed buildings, corpses).
+A full battle on a full-size generated map sustains **at least 25 Hz measured
+simulation throughput**, with 100 units a side, from the opening to late battle
+(wrecks, felled trees, collapsed buildings, corpses). This is the user's
+provisional acceptance floor, revised on 2026-10-02. Reaching 30 Hz and having no
+tick over 33 ms are deferred optimization targets; neither blocks this lane's
+closure on its own. Keep the nominal simulation timestep, game speed and rules
+unchanged. Delivery, memory, replay and functional contracts still apply.
 
 Where it stands ([sim lane closeout](assets/sim-lane-closeout/README.md), [SA5](slices/SA5-sight-cost.md), [S1](spikes/S1.md)): a quiet crossing of Metro Large has no tick over 33 ms, but the browser stress checks ran at 24.4 Hz early and 12.4 Hz late, and the dense 100-a-side endurance run has ticks over 33 ms (p95 27.8 ms, p99 47.0 ms).
 
@@ -23,7 +29,7 @@ A change this lane needs outside its column is a small, named commit, mentioned 
 1. **Measure where the time goes.** `city_report` and `endurance_report` on generated maps (`mapgen generate-map`; usage in [S1](spikes/S1.md)), 100 a side, early and late, in instructions retired per system (sight, fog, navigation, movement, weapons and flight, publication). This is [C05 measuring tools](slices/C05-measuring-tools.md) as far as this lane needs it. Record the table here before changing anything.
 2. **[C06 sim scale passes](slices/C06-sim-scale-passes.md):** take the largest costs first. Each pass leaves battle digests and replays unchanged, or is a named decision with the reason.
 3. **[C07 publication at scale](slices/C07-publication-at-scale.md):** what the simulation hands the page each tick, including the late-battle growth (remains, known props).
-4. **The browser stress checks** (`endurance` and `benchmark` scenes) at 30 Hz, early and late, on this machine.
+4. **The browser stress checks** (`endurance` and `benchmark` scenes), with measured simulation throughput at least 25 Hz early and late on this machine. Retain actual rates and frame/tick distributions; run the full-map admission at the performance milestone, not before each commit or push.
 5. **The whole pipeline over many seeds** (the tooling half of [C54](slices/C54-generation-gate.md)): one runner that, for each map type, size and a set of seeds, generates the map, plans the `assault` encounter and plays a short battle, and reports every refusal with its reason, units that never reach their goal, and tick cost. Fix what it finds in the simulation; report what it finds in the generator or the planner in Status.
 6. **Two faults it will meet, known already:** infantry route times through a town come back infinite (`NavGrid::route_time`), so the encounter planner can only time a jeep ([C59 outcome](slices/C59-encounter-planner.md#outcome)); and a replay carries no engine build identity, so a build that changes simulation code without changing the scenario replays to a different battle unrefused ([C55 outcome](slices/C55-runtime-generation.md#outcome)).
 
@@ -35,22 +41,41 @@ Read [`AGENTS.md`](../../AGENTS.md): narrow checks only, no full gate. A perform
 
 ## Status
 
-**C05 is complete; C06/C07 timing and delivery admission remain open.** Green
-checkpoints are pushed to `main` through `53a43a07`, including the fog candidate
-union. Current main generates `layout-7`; the completed sweep and full-world
+**C05 is complete; C06/C07 timing and delivery admission remain open.** The
+integrated checkpoint includes the enclosed-goal proof, lossless packed carriers,
+fog batching/inlining and controlled reset checks, with main through `d2a79c17`.
+Current main generates `layout-7`; the completed sweep and full-world
 stress measurements below deliberately retain their frozen `layout-6` inputs.
 Historical prototype-catalogue battles are separate controls, not performance
 parity against today's physical catalogue or rules.
 
-Current pickup: terminate repeated enclosed-goal connector searches with a sound
-reachability proof, then reduce the measured publication bursts. Infantry route
+Current pickup: run the current catalogue's pipeline and final full-world
+admission against the revised throughput floor. All three frozen navigation
+failures now terminate with explicit obstruction; no new optimization is needed
+unless current admission misses the accepted budget. Infantry route
 timing, route-start admission, replay build refusal, span copies and immutable
 static decoder/feed reuse are integrated. Fog batching preserves every sampled
-digest and complete side observation; its integrated 13 sight tests pass. Full
-generated browser stress now runs, but its 29.8 Hz early / 27.7 Hz late rates
-miss the target and its reset resource check fails. The latest full-world wire
-p95/max also remain above the 19.8 KB steady-record target. Fresh `layout-7`
-admission follows the navigation fix and measured passes.
+digest and complete side observation; its integrated 13 sight tests pass. Combined
+navigation (28) and planning/replay (16) checks pass on the correction. Earlier
+publication (15) and browser authority/decoder/preparation checks (59) passed at
+`95f7db1b`, where native and optimized Wasm shared build `0666de00…`; rebuilding
+the current native/Wasm pair remains an integration check.
+The frozen layout-6 generated browser rates (29.8 Hz early / 27.7 Hz late)
+meet the revised throughput floor, but do not admit today's catalogue/build.
+Its reset failure is attributed to comparing different drawn states;
+three fixed-tick resets match counts and bytes, and a real GPU leak falsifies the
+corrected check. The packed carrier's exact frozen-stream maxima are 19,772 B
+early / 18,220 B late, within the unchanged 19,800 B target. These narrow proofs
+do not close current live timing, delivery, snapshots or peak-overlap admission.
+The layout-7 build `0666de00…` opening runs at 29.1 Hz over 60 s; its late arm
+was interrupted by a restart-harness error. The short corrected run proves
+reset recovery only. Main now includes the building-art catalogue cutover;
+final admission must identify those inputs rather than reuse the older controls.
+The corrected 120 s frozen-case rerun terminates Mixed Small seeds 3/9 and
+Metro Medium seed 9 with explicit obstruction, live units and no pending job.
+The strict final-connector component replaces the relaxed global proof and keeps
+legal sampled roads and farther fallback accesses. Main's acceptance references
+now point to this contract; the 25 Hz revision changes no timestep or rule.
 
 The native reports now attribute the production tick without introducing OS
 counters into the ordinary tick. Observation construction and wire packing are
@@ -131,7 +156,10 @@ remain G0's open decision; the 64 MiB codec ceiling is not a performance target.
    The complete nine-cell, ten-seed matrix finished against the physical catalogue on `layout-6`:
    89 short battles, one encounter refusal, no generation refusal or panic.
    Three units still plan after 120 s because many failed road-exit connectors
-   repeat searches outside an enclosed goal. This simulation finding is being fixed.
+   repeat searches outside an enclosed goal. The rare-failure component proof is
+   replaced by shared strict final-connector reachability and independently
+   reviewed. All three exact frozen cases terminate in the 120 s rerun. Run the
+   current physical catalogue through the matrix and retain every refusal.
 2. C59: legal local infantry links and their route-start correction are green. A public
    Battle regression exposes a physically clear member that cannot stand in the
    sampled navigation grid being selected as route start; the old search arrives
@@ -141,13 +169,13 @@ remain G0's open decision; the 64 MiB codec ceiling is not a performance target.
    build refusal is verified; compiled scenario storage
    remains the parent lane's separate debt.
 3. C06/C07: local fog invalidation and exact fixed/variable span copies are integrated.
-   Measure early/late active Large bytes, p95/max and instructions afresh before
-   selecting the next owner. Fog candidate batching and the enclosed-goal proof
-   proceed independently. Static views now retain identity through decoding and
-   the pose feed. Historical mean reductions do not close admission.
-4. Browser: attribute the full-world reset resource mismatch before changing its
-   assertion. After integrating the measured passes, rebuild current `layout-7`
-   and run the full generated early/late arms and benchmark serially. The saved
+   Measure current early/late active Large bytes, p95/max and instructions before
+   selecting the next owner. Packed carriers pass the exact frozen early/late
+   stream; current live delivery remains open. Static views retain identity through
+   decoding and the pose feed. Historical reductions do not close admission.
+4. Browser: the reset mismatch is attributed and the controlled check is green.
+   Current optimized Wasm is rebuilt. Run the full generated early/late arms and
+   benchmark serially. The saved
    arena alone does not prove full-extent loading. Snapshot/copy/decoder overlap
    and the final 300 s arms remain separate gates.
 

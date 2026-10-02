@@ -42,6 +42,7 @@ import {
   SOLDIER_CLIPS,
   TOLERANCES,
   buildingGlb,
+  panelGlb,
   soldierGlb,
   syntheticUnits,
   tankGlb,
@@ -49,6 +50,7 @@ import {
   testCatalog,
   treeGlb,
   truckGlb,
+  withJson,
   type SoldierOptions,
   type TankOptions,
   TANK_DRAWS,
@@ -159,29 +161,14 @@ async function city(set: unknown = testSet(), catalogue?: unknown[], kit?: Uint8
   return result.reports.flatMap((r) => r.findings);
 }
 
+/** A hedgerow whose one material `edit` changes: its findings. */
+async function panel(edit: Parameters<typeof panelGlb>[0]) {
+  return (await scenery("hedgerow", { summer: panelGlb(edit) })).findings;
+}
+
 async function skeleton(entry: Partial<SkeletonEntry>, bytes = soldierGlb()) {
   return (await validateSkeleton("test-rig", { ...SKELETON_ENTRY, ...entry }, bytes)).findings;
 }
-
-const withJson = (bytes: Uint8Array, edit: (json: Record<string, unknown>) => void): Uint8Array => {
-  const dv = new DataView(bytes.buffer, bytes.byteOffset);
-  const length = dv.getUint32(12, true);
-  const json = JSON.parse(new TextDecoder().decode(bytes.subarray(20, 20 + length)));
-  edit(json);
-  const text = new TextEncoder().encode(JSON.stringify(json));
-  const padded = Math.ceil(text.length / 4) * 4;
-  const binChunk = bytes.subarray(20 + length);
-  const out = new Uint8Array(20 + padded + binChunk.length);
-  out.set(bytes.subarray(0, 12));
-  const odv = new DataView(out.buffer);
-  odv.setUint32(8, out.length, true);
-  odv.setUint32(12, padded, true);
-  odv.setUint32(16, 0x4e4f534a, true);
-  out.set(text, 20);
-  out.fill(0x20, 20 + text.length, 20 + padded);
-  out.set(binChunk, 20 + padded);
-  return out;
-};
 
 const LFS_POINTER = new TextEncoder().encode(
   "version https://git-lfs.github.com/spec/v1\noid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\nsize 12345\n",
@@ -245,6 +232,21 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
     return textureFindings("tank", bundle);
   },
   "texture.tangents": () => tank({ textures: { size: 4, tangents: false } }),
+  // Each material rule's variants are in material.test.ts.
+  "material.coverage": () => panel((m) => (m.alphaMode = "DITHER")),
+  "material.coverage_source": () => panel((m) => (m.alphaMode = "MASK")),
+  "material.wear": () =>
+    panel((m) => {
+      m.alphaMode = "BLEND";
+      m.pbrMetallicRoughness.baseColorFactor = [1, 1, 1, 0.5];
+      m.extras = { wear: [0.2, 0.2, 0.2, 1] };
+    }),
+  "material.interior": () =>
+    tank(
+      {},
+      {},
+      withJson(tankGlb(), (j) => (j.materials[0].extras = { interior: "rooms" })),
+    ),
   "basis.ground": () => soldier({ lift: 0.1 }),
   "basis.forward": () => tank({}, { basis_yaw_deg: 180 }),
   "basis.up": () => tank({ flip: true }),

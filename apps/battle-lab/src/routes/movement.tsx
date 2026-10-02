@@ -127,7 +127,7 @@ function MovementLab({ battle }: { battle: SavedBattle }) {
         world={worldFeed}
         structures={session.structures}
         obstacles={session.cameraObstaclesFeed}
-        massing={session.massingFeed}
+        buildings={session.buildingsFeed}
         overlay={overlayFeed}
         frame={session.frame}
         appearances={session.appearances}

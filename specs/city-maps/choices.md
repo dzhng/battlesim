@@ -3353,6 +3353,45 @@ raster nearby bodies again, and no changed-prefix scan can miss a later update.
 **Reach:** The parcel pass turns the first entrance toward the street, so slabs front the street with their long side and their shops.
 
 **Verdict:** sound. **Confidence:** high.
+
+### A compound block is built from its outline, not from its parts
+
+**Choice:** A template is boxes that abut. The exporter traces the outline of their union and dresses each straight run with one facade of the graph evaluated at that run's length; the bands, parapet and coping are our own rings round the outline, and each part's roof is one quad with the graph's furniture for a building of its size. The slabs are the one-box case of the same rule. The first approach named (evaluate the graph per wing, then drop the rows and faces on a joined face) was not built: a wing's exposed facade next to a join would be a facade cut mid-bay, with a window through the inner corner.
+
+**Gap:** S5 asked whether baked variants can hide joins; it did not say how.
+
+**Reach:** A joined face never exists, so there is no interior facade, pier or cornice end to suppress, and no corner module. The five slabs' rows and descriptors are unchanged; their shells are rebuilt (mitred bands, no hidden faces).
+
+**Verdict:** sound. **Confidence:** high.
+
+### A run of the outline is 3n or 3n + 2 metres
+
+**Choice:** A run's corner piers are 1 m (3n + 2) or 1.5 m (3n). A 3n + 1 run is refused: its piers would be 2 m, and the descriptor's 3 m lattice would then claim a bay inside each pier. With 12 m wings every run of a U or a court can be made legal; with 11 m or 14 m wings (the slabs' depths) the run between two wings cannot.
+
+**Gap:** "Sides are 3n + 2" was written for one box.
+
+**Reach:** Compounds are 12 m deep. The U keeps the prototype's 42 x 32 m; the court is 41 x 38 m round a 17 x 14 m yard, not the prototype's 44 x 40 m.
+
+**Verdict:** sound. **Confidence:** high.
+
+### The court is plainer than a slab
+
+**Choice:** The court has 408 bays against the largest slab's 336, and one template's budget. Its balcony, grille, air-conditioner, laundry and lantern probabilities are lowered (0.18, 0.25, 0.22, 0.2, 0.2) and its plan shrunk from 44 x 41 m until it fits: 146,806 / 49,034 / 7,146 / 1,766 triangles.
+
+**Verdict:** provisional: if C22 raises the budget the court can have the slabs' density back by deleting five numbers. **Confidence:** medium.
+
+### One entrance, shops on the street and the east flank, backs elsewhere
+
+**Choice:** The southmost run takes the graph's entrance facade (one door, shops), the east outer run its shop facade, every other run (the west flank, the back, the yard) a back facade with ground-floor windows. The prototypes had two doors; the graph makes one per facade.
+
+**Verdict:** provisional. **Confidence:** medium.
+
+### An open casement gets a dark pane behind it
+
+**Choice:** The kit's casement window is modelled with a leaf open. With rooms left out until C26 the eye went through it and out the far side of the block, so a dark pane now stands in the opening behind the leaf (two triangles in that module). This also fixes the five slabs.
+
+**Verdict:** sound. **Confidence:** high.
+
 ## Compact saved maps
 
 The contract these decisions belong to is in the [C58 outcome](slices/C58-offline-encounter.md#outcome).
@@ -3653,6 +3692,120 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 **Gap:** The slice names no corpse scene.
 
 **Verdict:** Provisional as a method: the script lives in the gitignored scratch folder. If corpse drawing changes again, a station for the fallen belongs in a scene. **Confidence:** Medium.
+
+**When:** C22's second half (buildings drawn from the template art library), 2026-10-01.
+
+### The whole-map population is the coarsest tier alone; tier 2 is resident
+
+**Choice:** The population expanded once for the whole map (the "coarse" population) holds each building's rows at tier 3 only. Tiers 0, 1 and 2 are expanded into the pool for chunks near enough to need them. The alternative, the brief's starting shape, was a whole-map population of the rows at tiers 2 or 3.
+
+**Gap:** The slice says "never materialize all module transforms for a full map" and leaves which tiers are static to the implementer.
+
+**Verdict:** Sound, on the art as built. An apartment block has one row at tiers 2 and 3, but a house has 12 to 95 rows at tier 2 (63% to 81% of all its rows) and 1 to 7 at tier 3: a whole-map tier 2 would have materialized most of a town of houses. A Metro Large is 22,340 coarse records (1.4 MiB) for 9,909 buildings. What it costs is the fallback: a chunk the pool cannot hold draws at tier 3, not tier 2. The pool held every view tried with room to spare, so that fallback was never drawn. **Confidence:** High.
+
+### A chunk's tier follows pixels per metre, not a building's projected height
+
+**Choice:** `presentation.buildings.lod_px_per_m` gives the tiers by how many pixels a metre of wall covers at the chunk's nearest point. The alternative was the models' rule, projected height in pixels.
+
+**Gap:** The brief says "tier thresholds for buildings in projected pixels" and not of what.
+
+**Verdict:** Sound. What a tier drops is windows, rails and trim, and those are the same size on a one-storey house and on an eight-storey slab. By projected height the slab would have kept its 149,000 tier 0 triangles four times as far out as the house kept its 2,750. **Confidence:** High.
+
+### One tier a chunk, and a building belongs to the chunk it was placed in
+
+**Choice:** A chunk draws at one tier, from the distance of its nearest point. Every row of a building is bucketed where the building's frame stands (`ChunkSource.anchors`, new in the owner), not where the row's own module stands. The alternative was a tier per building, chosen by walking the near chunks' buildings on every view change.
+
+**Gap:** The brief allows either ("per chunk (or per building)").
+
+**Verdict:** Sound. A view change walks chunks and nothing else, and a building can never be drawn at two tiers because it is in exactly one chunk. The owner's bucketing by a record's own position would have split a slab whose balcony row crosses a chunk edge. The cost is a 64 m step in where a tier changes. **Confidence:** High.
+
+### The pool is kept kind by kind, in ranges that grow, not chunk by chunk
+
+**Choice:** `placementPool.ts` keeps a kind's records (a module at a tier) in one contiguous range of the pool. A range has spare room; it moves to the free end with twice the room when it fills, and the ranges are packed again when the free end runs out. A record is removed by moving the kind's last record into its place, and a caller's handle survives every move. The alternatives were a region a chunk (written once on entry, never moved) and fixed blocks chained per kind.
+
+**Gap:** "Pool size; record packing" are delegated; the brief suggests "kind-major pool regions" if draws dominate.
+
+**Verdict:** Sound. With a region a chunk the draws are chunks times modules: 25 chunks of 50 modules at the 250 m camera is 1,250 draws a pass, six passes a frame. Chained blocks scatter (every kind's second block lands after every kind's first), so their draws approach the block count. Contiguous ranges make it one draw a kind whatever the camera, at the cost of a second buffer on the CPU for packing and of holding about four fifths of the capacity before the pool calls itself full. Uploads are what changed: a chunk's rows on entry, the one record moved into each hole on exit, and a kind's range when it moves. **Confidence:** High.
+
+### A resident chunk's coarse records are hidden in place, and near coarse ranges draw as one
+
+**Choice:** While a chunk is resident, its coarse records' scale is written as zero in the coarse buffer (as a fallen building's are), and restored when it leaves. The coarse ranges therefore never split round a resident chunk. Two coarse ranges of a kind 256 records or fewer apart draw as one: the records between belong to chunks out of view. The alternative was the owner's own split: near chunks left out of the ranges, and a range per run of chunks in a row.
+
+**Gap:** Not covered; the brief's remedy for draw calls is a layout change.
+
+**Verdict:** Sound, on a CPU-side count. On a Metro Large the split gave 474 coarse draws a pass at a 2 km camera and 453 at street level (19 kinds times the chunk rows in view, and twice that where residents cut each row); hidden and bridged it is 19 and 168, the pool's kinds included. The cost is a buffer write of a chunk's coarse records when it enters or leaves the pool, and vertices for hidden and bridged records (14,688 coarse instances drawn where 8,943 are in view, at the coarsest meshes). The owner needed no near-settling for it: only `anchors`. **Confidence:** High for the count; the GPU side is in the Outcome's table.
+
+### Residency follows the view, and expansion has a budget
+
+**Choice:** A chunk is resident while it is in view and near enough for a finer tier; one that leaves the view leaves the pool. A view change expands at most `expand_rows` rows, nearest chunks first; the rest draw coarse and the frame asks to be drawn again (`requestRedraw`) until none waits. A chunk changing tier keeps the tier it has until the new one is expanded. When the pool is full, the farthest residents make way for a nearer chunk. The alternatives were residency by distance alone (a disc round the eye), and expanding everything a view wants in the frame that wants it.
+
+**Gap:** "Residency radius within G0's" is delegated; nothing says what happens off screen or within a frame.
+
+**Verdict:** Sound. A disc at the tier 1 distance is 38 hectares, most of it behind the camera, for a pool drawn whole (a kind's range is not culled by chunk). The budget bounds a camera cut's worst frame; a scene that shoots after a cut waits for `stats().buildings.pending` (`_lab.mjs` `buildingsSettled`). Turning the camera right round expands again what it evicted: 1 to 3.5 ms in the views measured. **Confidence:** Medium: no hysteresis at a tier's edge, and none was needed in the pans flown.
+
+### Residents cast from their own rows a tier coarser; everything else from its coarse rows
+
+**Choice:** A resident chunk casts with the records it draws, each as its module's next coarser mesh, as every model and tree does. A chunk drawn coarse, and a chunk out of view whose shadow lands in it, cast their coarse rows. The alternative was the coarse shell as the caster for every building.
+
+**Gap:** The brief says "coarser tier"; not which records.
+
+**Verdict:** Sound for now. A shell as the caster of a building drawn at tier 0 puts every recessed window behind the caster's wall, in shadow on a sunlit facade. The cost is the residents' triangles again, a tier down, in each of four cascades. **Confidence:** Medium: no per-cascade culling, as for every other caster.
+
+### A building has fallen once the side has seen any part of it go, and its parts draw as the side knows them
+
+**Choice:** `fallenBuildings` makes a building fallen when any of its parts is known replaced or destroyed (`knownStanding` over its own parts). A fallen building leaves the intact rows whole. Where the library has rows for the fallen state they are drawn at its frame; where it has none (every template today), each part is one box of the prototype kit's `unit_box` in `ruin_tint`: the remains the side saw, or the part at full size if it has not seen that one go. The lab passes `ruin` as the state; nothing publishes `gutted` yet.
+
+**Gap:** The brief says "each fallen part's remains as a box" and not what a part not yet seen to fall is.
+
+**Verdict:** Sound. Rows belong to the building, not to a part, so half a building cannot keep its windows; and a part the side still believes stands is a camera obstacle, so it is drawn. A library without the prototype kit draws no remains: the catalog lists that set for as long as any stand-in exists, and C14 brings the ruin rows. **Confidence:** Medium, until C14 decides what `gutted` is in an observation.
+
+### Knowledge changes records in place; only the fallen population is rebuilt
+
+**Choice:** `BattleFrame.setBuildings({ placed, fallen })` takes the map's references and what the side knows fell. A new `fallen` with the same `placed` hides or shows the coarse records of the buildings that changed, marks their resident chunks to be expanded again, and rebuilds the fallen population, which holds only what fell. A new `placed` rebuilds everything. The alternative was massing's way: one list, rebuilt whole on every change.
+
+**Gap:** "A change of knowledge updates only what it must."
+
+**Verdict:** Sound. A fall rewrites that building's one to seven coarse records and one chunk's rows; the rebuild it avoids is the whole map's coarse population (24 ms and 1.4 MiB uploaded on a Metro Large, in a development build). The fallen population is expanded at every tier: it is bounded by what has fallen, which C14 should look at again when ruins have art. **Confidence:** High.
+
+### Buildings are drawn by the models layer's pipelines, with ranges sent to the raw pass
+
+**Choice:** `buildingLayer.ts` is part of the models layer: a kit is an installed appearance, a module a state's mesh range, a row a 16-float model record, and the three pipelines (prepass, colour, caster) are the models' own. It draws in the prepass's world half, so a unit behind a building is x-rayed. The first draw of each mesh buffer and record buffer goes through TypeGPU; the ranges after it go to the raw pass.
+
+**Gap:** "Materials stay per pass"; nothing about the draw path.
+
+**Verdict:** Sound. TypeGPU sets the pipeline, every bind group and every buffer again for each `.with()` draw (each is a new pipeline object), about eight calls a draw; a kit's modules share one vertex and one index buffer per tier, so nearly every building draw changes only its ranges. **Confidence:** High.
+
+### The frame's building seam is two inputs; the library arrives with the appearances
+
+**Choice:** The template art library reaches the frame inside `setAppearances` (`InstalledAppearances.templates`), with its kits; the lab installs both only when a map has buildings the library draws. `setBuildings` takes references only. A building whose template the library lacks is not a reference and keeps the fitted-appearance path.
+
+**Gap:** Not covered.
+
+**Verdict:** Sound: one loader, one install, and the village installs no kit. **Confidence:** High.
+
+### The export's frame is the building's own, not a new field of the contract
+
+**Choice:** `export_buildings` writes `frame` from `BuildingDefinition.geometry.frame`, the frame a saved building stores (`contract::map::SavedBuilding.frame`) and the generator materializes at. Nothing was added to a contract type.
+
+**Gap:** The brief asks for the frame in the export; the saved-map form landed on main meanwhile with the same frame.
+
+**Verdict:** Sound. There is one frame per building; the public export now carries it. **Confidence:** High.
+
+### A template state must draw at every tier
+
+**Choice:** The asset check refuses (`templates.state`) a state with no row at some tier.
+
+**Gap:** The source format allowed any mask per row.
+
+**Verdict:** Sound. A chunk draws at one tier and the whole map at the coarsest; a template with no row there is a building that vanishes with distance, and the renderer has no stand-in for it. Every set built so far passes. **Confidence:** High.
+
+### `/lab/city-block` is a town with no battle on it
+
+**Choice:** The lab generates the map on the page, draws it with no units and no fog, and stands the camera at four stations from the map's own data (the apartment building nearest the main settlement's centre with a house within 90 m; the nearest street's longest run). It opens on Mixed Small seed 1, whose centre has both; Metro Small's centre is towers, which are stand-ins. "A map replacement" is checked by handing the frame every other building as a new set of references and then the first set again. Fog over a town stays the `generated` scene's check.
+
+**Gap:** The brief names the route and its stations; not whether a battle runs, or how a map is replaced in a page.
+
+**Verdict:** Sound for a renderer check; provisional as a replacement check, which covers the buildings and not the terrain. **Confidence:** Medium.
 
 ## C16: our own farmsteads
 
@@ -4110,6 +4263,81 @@ affected digests; movement's exact body checks still decide each soldier's steps
 is recorded in C06. A direct non-standing virtual anchor has no guaranteed legal
 timing; nearest-fit selection is not permission to publish an invalid segment.
 
+## C19: warehouses and light industry
+
+### Sizes are whole bays, and the shed turns its gable to the street
+
+**Choice:** The five industrial templates are 15 x 24 m (the prototype shed was 24 x 16, long side to the street), 48 x 24, 72 x 33 (72 x 32), a works of a 54 x 27 hall and an 18 x 9 office (54 x 26 and 18 x 10), and 90 x 39 (90 x 40). Every side is a multiple of the 3 m bay, so a row of bay-wide modules tiles a wall exactly. The shed is 15 wide and 24 deep with its vehicle door in the gable. The alternative kept the prototype sizes and left a part-bay of plain wall at each corner.
+
+**Gap:** The brief gave sizes as "about", and the prototype sizes were chosen for boxes.
+
+**Reach:** The catalogue's hash moves when these replace the prototypes. Heights are 6.2, 9.0, 10.0, 8.0 and 11.0 m against the prototypes' 6, 9, 10, 10 (hall) and 7 (office), and 11.
+
+**Verdict:** sound. A workshop's door is in its gable, and a wall of whole bays needs no filler module. **Confidence:** high.
+
+### The works' office is joined to the hall's street face, and both boxes are 8 m
+
+**Choice:** The office block stands against the west end of the hall's street face, flush with the hall's west wall, joined by a supported join (`hall-south-0` to `office-north`). Both parts are 8.0 m: the hall's sawtooth ridges and the office's parapet. Floor datums are 0 and 3.6 m for the whole template, so the hall is a two-floor part whose tall windows (1.2 to 5.7 m) serve both. The prototype had a 10 m hall and a 7 m office standing 4 m apart with no join.
+
+**Gap:** A join needs equal bases and tops, and floor datums belong to the template, not to a part.
+
+**Reach:** The hall is 2 m lower than its prototype. A garrison's upper floor in the hall is a notional gantry level: nothing is drawn for it.
+
+**Verdict:** provisional. It reads as one works on screen; whether a second floor of seats in an open hall plays well is the simulation's to judge. **Confidence:** medium.
+
+### The sawtooth's glazing faces along the street, not away from it
+
+**Choice:** The works' nine teeth run front to back, so the street elevation shows the zig-zag and the glazing faces the template's -X. A true north light, with the street to the south, would turn every pane away from the street and show the viewer nine plain slopes.
+
+**Gap:** The brief asked for a sawtooth north-light roof and a door on the street side; a template has no compass.
+
+**Verdict:** sound for the look. **Confidence:** high.
+
+### Not every bay has an opening, and a dock door is not an entrance
+
+**Choice:** Openings sit in bays, but a warehouse keeps blank bays: the dock warehouse's back and ends have a high window in every second bay, the distribution warehouse the same. Loading-dock doors have their sills at 1.1 m (lorry-bed height) over a floor datum of 0 and are not entrances; the template's entrances are its side door and its drive-in door. The depot draws eight vehicle doors and names two of them, with the side door, as entrances; the distribution warehouse's three side doors are drawn but only its three vehicle doors are entrances. The houses (C17) gave every bay a window on every floor.
+
+**Gap:** The readme puts windows on the lattice; it does not say every bay needs one, nor that every drawn door is an entrance.
+
+**Reach:** A garrison's seat in a blank bay fires through a wall the player sees as solid. Entrance counts follow the prototypes (two or three a building).
+
+**Verdict:** provisional. A warehouse with a window in every bay stops reading as one. If blank-bay seats look wrong in play, the fix is fewer seats there, not more windows. **Confidence:** medium.
+
+### The set's fit is 1.2 m to the side and 1.2 m above
+
+**Choice:** Canopies reach 1.15 m, a vehicle door's bollards 0.9 m, a dock's leveller 0.6 m, gutters 0.41 m. Above a part's top: flue stacks to 1.1 m over a flat roof's parapet, ridge ventilators 0.46 m, turbine vents 0.7 m. The houses' fit is 0.5 and 0.9 m.
+
+**Gap:** The brief said to choose both and keep them small.
+
+**Verdict:** sound. A canopy shallower than a metre does not read as one. **Confidence:** high.
+
+### Rows draw at the two fine tiers; the shell carries the rest
+
+**Choice:** As the apartment set does, a row draws at tiers 0 and 1 only. At tiers 2 and 3 the script copies what each row's module still has at that tier into the template's shell, in the row's place and with its tint baked into an untinted material, so a far building is one row. Flat panels that meet (a band of colour, a run of high windows) become one face. Rooflights and mended sheets on a pitched roof are faces of the shell at every tier, because a row cannot tilt a module to a roof's pitch.
+
+**Gap:** The brief asked for instancing on long walls and budgets per tier; the readme's rule that a far building is one row arrived with the apartment merge.
+
+**Reach:** A shell's second tier holds the folded detail, so its first tier must be at least as heavy: three shells bake their paint on a finer grid than they otherwise need. Folded surfaces lose the recipe's own tint mask (rust weeping from a fixing takes the paint's colour).
+
+**Verdict:** sound. **Confidence:** high.
+
+### A roof's large marks are faces and vertex paint, never the recipe
+
+**Choice:** The sheet and felt recipes carry only what is smaller than a few metres: ribs, laps, fixings, the tone of one sheet. Rust patches, damp and fading are vertex paint on a 4.4 m grid kept down to tier 2; mended sheets, rooflights and felt patches are faces of the shell. A first felt recipe with pools and patches in the texture tiled into a camouflage pattern across a 48 m roof.
+
+**Gap:** The brief asked for stains and patches readable at coarse tiers "through the shell's own texture".
+
+**Verdict:** sound. A recipe repeats every 6 to 8 m; anything a viewer can count across a roof must be placed once. **Confidence:** high.
+
+### Wall colour is the shell's tint; roofs and brick take none
+
+**Choice:** Cladding, blockwork, precast panels and render are pale tint-masked recipes and the shell's row tint is the building's paint. Roof sheet, felt and brick are untinted materials in their own colour, since a row has one tint. Bands, doors and a re-sheeted bay are rows with their own tints.
+
+**Gap:** The same as the houses': a row has one tint.
+
+**Reach:** One template is one colourway. More colours are more templates over the same modules, or a tint a placement supplies.
+
+**Verdict:** provisional on the repeats, as for the houses. **Confidence:** medium.
 
 ## C07: reuse unchanged decoded static groups
 
@@ -4121,6 +4349,93 @@ timing; nearest-fit selection is not permission to publish an invalid segment.
 
 **Verdict:** Sound; identity and rollback proofs pass. Allocation claims describe skipped construction, not measured heap bytes or wall time. Producer layout/digests and all whole-record, peak and throughput gates remain unchanged. **Confidence:** High for reuse and reconstruction; runtime admission remains open.
 
+## C21 material transport
+
+### The coverage value is the base colour's alpha times the normal texture's alpha
+
+**Choice:** A cutout or blended material's coverage is `base_color` alpha (one number for the surface: a pane's opacity) times the normal texture's alpha (texel by texel: a grille's holes), 1 where the material has no normal texture. An opaque material ignores both.
+
+**Gap:** The slice says coverage must not ride albedo alpha or ORM alpha, and leaves where it does ride open: the factor's alpha, a dedicated texture channel, or the vertex colour.
+
+**Alternatives:** The vertex colour's alpha is how worn the surface is (L9), so it collides. Albedo alpha is the wear threshold: reading it as coverage "when the material does not wear" is the overload the slice exists to end. A fourth texture breaks the three-slot limit. Of the twelve channels in three RGBA textures, the normal map's alpha was the only one unused (255 in every shipped texture), and the base colour's alpha was carried to the renderer and never read.
+
+**Reach:** A cutout needs a normal texture, flat if it has no relief. In the source this is not glTF's convention (there, coverage is the base colour texture's alpha), exactly as our albedo alpha already is not. A cutout authored the glTF way is caught by name, not drawn solid (next choice). Mips average the alpha as stored; whether a cutout needs coverage-preserving mips is C24's.
+
+**Verdict:** sound. **Confidence:** high.
+
+### A coverage that never crosses its threshold is refused
+
+**Choice:** `material.coverage_source`: a cutout whose coverage value is everywhere under its cutoff or everywhere at or over it, and a blended material whose value is 1 everywhere, do not bake. The check reads the finest level of the normal texture.
+
+**Gap:** The brief asks to refuse "a cutout with no source of coverage". A missing normal texture is one way to have none; a normal texture whose alpha is 255 throughout, because the coverage was painted into the albedo, is the likelier one, and it would draw solid with no error.
+
+**Verdict:** sound. It is the slice's own feedback line as a check: lost coverage reopens transport. **Confidence:** high.
+
+### Blended cannot wear; a cutout can
+
+**Choice:** `material.wear` refuses a blended material with a wear colour. A cutout with wear and a tint mask bakes.
+
+**Gap:** The brief names "blended with wear" as unsupported and says nothing of cutout with wear.
+
+**Verdict:** sound. Wear replaces the surface with an opaque worn one where the vertex alpha passes the albedo's threshold; on glass that patch has no opacity anyone chose. On a cutout the four channels are independent: a rusty grille is a legitimate surface.
+
+**Reach:** `parts.export(worn=…)` is per file, so a blended material that samples a recipe has to be in an unworn export. A flat blended material (`flat_paint`) carries no wear. **Confidence:** high.
+
+### Interior metadata is the sheet's name, on the room's own surfaces
+
+**Choice:** `Material.interior` is `"rooms"` or `"shops"`, from the glTF material's extras, and nothing else. It marks the walls, floor and ceiling of the open box behind a window, not the pane in front. The box's UVs are the cell-local `u`, `v` of the atlas projection, written by whoever models the box, so the drawer needs no box size or pinhole per material.
+
+**Gap:** "Enough for the later interior pass to know this surface is a window onto a room box and which atlas sheet it looks up."
+
+**Alternatives:** Carrying the box's size and the pinhole per material repeats the atlas's constants in every bundle. Marking the pane as the interior needs a ray-marched box in the shader, which is more than the upstream mechanism (Q-E: room meshes plus a flat lookup). Which cell and which mirroring is per window, by position hash, so it cannot be material data.
+
+**Reach:** A UV interpolated across a side wall is off the true projection by at most 0.7 % of a cell (under one texel of 128) for the 3 × 3 × 4.5 m box and the 16 m pinhole; a wall cut once in depth quarters it. If C26 would rather project in the shader from a box frame, the frame needs a home (a vertex attribute or per-module data) and this field stays as it is.
+
+**Verdict:** provisional until C26 draws one. **Confidence:** medium.
+
+### A room is opaque, has no look of its own, and stands still
+
+**Choice:** `material.interior` refuses an interior material that is a cutout or blended, has textures or a wear colour, or is on a skinned or articulated bundle. A tint mask is allowed: a building's row tint is how it dims its rooms.
+
+**Gap:** The brief names only the skinned and articulated case.
+
+**Verdict:** provisional. The atlas contract says a cell is a finished picture shown as it is, so the material's own textures and wear would be silently ignored, which is the loss this slice refuses elsewhere. If C26 finds a use for one (a normal map on a back wall), it deletes that branch. **Confidence:** medium.
+
+### An opaque material's alphas are ignored, not refused
+
+**Choice:** `alphaMode` absent or `OPAQUE` is opaque whatever the base colour's alpha, the normal map's alpha or a stray `alphaCutoff` say, as glTF defines it. `MASK` with no `alphaCutoff` cuts at glTF's default, 0.5. An alpha mode or cutoff that cannot be read is `material.coverage`.
+
+**Gap:** Unstated.
+
+**Verdict:** sound. All 310 materials in the 41 shipped sources name no alpha mode and have a base alpha of 1, so neither rule moved anything. **Confidence:** high.
+
+### The packed representation is the material's JSON
+
+**Choice:** `coverage` is `{"kind":"opaque"}`, `{"kind":"cutout","cutoff":0.5}` or `{"kind":"blended"}` in the bundle header's material, on every material; `interior` is the sheet's name, present only on a room. Format 4. The decoder refuses a material with no well-formed coverage or an unknown sheet; the combination rules are the validator's alone, so the workbench can still show a preview that has findings.
+
+**Gap:** Delegated.
+
+**Alternatives:** An optional field meaning opaque when absent would have let a format 3 material read as a valid format 4 one; required, an old or truncated material cannot pass for opaque. Flags in a typed array buy nothing: a bundle has tens of materials and megabytes of mesh.
+
+**Verdict:** sound. **Confidence:** high.
+
+### The Blender helpers write the alpha mode after export, not through Blender's material graph
+
+**Choice:** `coverage=("cutout", cutoff)` or `("blended", opacity)` and `interior="rooms"` on `common.mat`, `parts.paint`, `parts.flat_paint` and `parts.textured` (coverage only: a room has no recipe). They record into one registry in `textures.py`, and `textures.attach`, which already rewrites the exported GLB's materials for textures, writes `alphaMode`, `alphaCutoff` and the base colour's alpha. `interior` is a custom property, exported as extras like `tint`. A recipe's coverage image is `Baked(coverage=…)`, in the normal PNG's alpha.
+
+**Gap:** "The Blender export helpers can write both."
+
+**Alternatives:** Blender's exporter derives `alphaMode` from the node graph feeding the Principled alpha (a Math node pattern for a mask). That ties the source bytes to exporter heuristics across Blender versions, for a value we already know.
+
+**Reach:** Checked on Blender 5.2.1 with a scratch script through each helper family: the exported materials read back as cutout 0.5 with a 0-to-1 coverage image, blended 0.35, and rooms of both sheets. Existing exports are untouched: the crate, wall, fence and sandbags re-exported byte-identical to the committed sources. No infantry source was re-exported (Cycles bake); `common.mat` was exercised by the scratch script only.
+
+**Verdict:** sound. **Confidence:** high.
+
+### Found on the way: the dragon's tooth does not export the same bytes twice
+
+**Choice:** None; a finding. `props.py tooth` writes a different index order for `tooth_LOD0` on each run (28 to 70 bytes of one buffer view; the JSON and every other view are identical), with and without this slice's changes, and none of four runs matched the committed file. Left alone: it is a model script, outside this slice, and the committed GLB is what bakes.
+
+**Verdict:** a defect against "the same scripts write the same bytes". **Confidence:** high that it happens; the cause was not looked for.
 ## C80 grass presets
 
 ### Wind response rides the clump's vertex alpha
@@ -4293,6 +4608,35 @@ pending. **Confidence:** high for fixture identity, medium until the scene runs.
 
 **Verdict:** Sound within the existing immutable-view contract. Public feed identity/floor proofs and existing pose lifecycle suites pass. Broader browser allocation, upload and throughput admission remain separate and open. **Confidence:** High for static construction and value preservation.
 
+
+## C07: compact the selected lossless group form
+
+**Choice:** Add one byte-packed transport arm inside the existing publication
+owner, wrapping the already selected snapshot, replacement or source-copy form.
+Keep one span selector and baseline. Pack small operation integers and each
+literal's exact raw bits or its XOR against the old word at the same output
+address, whichever needs fewer bytes. A fresh snapshot always uses raw bits.
+
+**Why:** After address amplification was removed, remaining float literals and
+operation metadata still crossed the 19,800-byte whole-record gate. Copy-only
+packing left 63 early frames over the gate; the general arm also packs replacement
+literals. Both captured 1,800-transition windows reconstruct every original word,
+with maxima falling to 19,772/18,220 B. Actual extracted producer mean encoding
+cost rises about 0.12–0.14 M instructions for own plus identified, with identical
+staging and indexing included. C07 owns the detailed measurements and their scope.
+
+**Contract:** The simulation's published layout owns the grammar once. Byte
+carriers can resemble NaNs, so transport/decoder copies preserve raw u32 bits
+instead of converting them through JavaScript float numbers. Complete admission
+precedes writing; compact serialization uses constant scratch and the existing
+reserved output. Invalid payloads cannot commit any baseline. Unchanged static
+word and decoded-view identities remain stable. No compression library, field
+schema, per-unit predictor, extra retained state or budget exception is added.
+
+**Verdict:** Sound on matched exact corpus evidence and the paired consumer
+contract. The early maximum has only 28-byte headroom, so current-stream estimates
+cannot close snapshot, peak or live whole-system gates. **Confidence:** High for
+lossless representation; final runtime admission remains with the scale lane.
 ## C73
 
 **When:** 2026-10-01. Evidence and numbers: the Outcome in [C73](slices/C73-tree-skeleton.md).
@@ -4367,6 +4711,100 @@ this exchanges temporary allocation for fewer sorts, without permanent map
 storage. Measure the final merge and Learning with Fog so moving work across
 profile brackets cannot masquerade as a gain. C06 records matched bounded
 Battle observations/digests and the remaining whole-city admission limits.
+
+### New York and Paris are later families, not part of closing the buildings lane
+
+**When:** after the first family's coverage was complete, 2026-10-01.
+
+**Choice:** The lane closes with one family, China's, covering all six categories. The New York and Paris files stay vendored and their exports are follow-up work through the same exporter (`city/graph.py`). C11's text asked for the kit modules of all three archetypes.
+
+**Gap:** The lane's contract is "every category the generator places has at least one accepted template"; C11 was written before S2 showed the graphs cover only apartment blocks, so two more graph exports would add two more styles of apartment block and nothing else.
+
+**Reach:** Every generated town has the same style of apartment block. A second family also needs houses, farms, towers and industry styled for it, or a decision to share ours.
+
+**Verdict:** provisional. It is the smallest scope that meets the contract, and it puts the facade, far-tier and damage passes first, which every family needs. **Confidence:** medium.
+
+## C06: reject the footprint rotation hypothesis
+
+**Choice:** Keep the existing footprint sampling source after measuring reuse of
+its existing `Rotation` once per footprint. No new cache or state is retained.
+
+**Why:** Native disassembly shows rotation trigonometry already hoisted per row.
+The matched current layout-7 six-tick experiment preserves all digests and
+complete observation hashes but saves only 0.795% early and 0.710% late in whole
+Fog plus Learning, below the declared 2% hypothesis. This does not justify the
+next scale pass; C06 records the bounded result and leaves admission open.
+
+## C06: inline the measured foliage owner
+
+**Choice:** Force the existing world foliage query inline, preserving its
+sparse-cell lookup, cleared-mask rule and every arithmetic expression. Leave
+the height wrapper's compiler policy unchanged after separate measurement.
+
+**Why:** The public fog traversal calls foliage per ray step. In the matched
+native six-tick control, foliage inlining reduces whole Fog plus Learning more
+than height inlining and also shrinks linked text. It needs no second visibility
+implementation or invalidation owner. C06 records the exact observations/digests,
+measured code-size tradeoff and narrower scope of the evidence.
+
+## C06: share a failed final connector's strict goal component
+
+**Choice:** After one final road connector fails, exhaust a search from its
+resolved goal over the existing mover graph. Retain that component only when the
+frontier empties. Use exact forward-source admission to omit disconnected final
+connectors. Before building an approach, omit a goal access only when its whole
+arc, expanded for lane offset, source snapping and point coalescing, is outside
+the component's bounds. Excluded arcs also leave the fallback's nearest-access
+selection, preserving legitimate farther approaches. Sampled roads remain free
+to enter the strict component;
+being disconnected from the original start is not a whole-journey refusal.
+
+**Gap:** Rejecting one road exit at a time repeatedly certifies the large outside
+region. The earlier relaxed whole-journey proof was safe but too conservative for
+one frozen failure. Retaining strict membership only at the final leg then moved
+the cost into repeated graph and approach work. Shared goal-access admission
+eliminates both without recognizing a map, unit or seed, and without lowering a
+search limit. Resource exhaustion remains inconclusive.
+
+**Reach:** The proof runs after failure, preserving healthy road-search latency.
+It uses fresh sparse scratch so a small retained pocket does not pin an earlier
+large outside bank twice. Bounds and membership are fingerprinted incrementally;
+knowledge revision changes still use the planner's existing restart/recheck owner.
+This adds one bounded sparse bank during the affected job, not a world grid or
+persistent cross-order cache. Earlier blocked verdicts change planning ticks and
+affected digests; replay remains exact on the same build.
+
+**Verdict:** sound for the demonstrated repeated final-access amplification.
+Public work, sampled-corner, search-limit and counted Battle/replay tests preserve
+the refusal and recovery contracts. A river/bridge fallback falsifies letting
+excluded near accesses hide a legal farther sampled road. The exact three frozen
+Battle inputs terminate their affected jobs at both observation checkpoints.
+**Confidence:** high for graph/envelope safety and this failure family; current
+generator and whole navigation admission remain open.
+
+### C06 — compare reset resources at a fixed presented opening
+
+**When:** full generated browser integration.
+
+**Choice:** after warming the renderer with the live battle, restart three times,
+pause each authority, advance to tick 90 and wait until that tick is drawn. Compare
+both the number of buffers/textures and the bytes they hold across these openings.
+A late battle can draw a translucent overlay that an opening lacks; its mesh
+buffer is correctly destroyed when the opening is installed. Comparing those
+different states incorrectly treated that disposal as a failure.
+
+**Gap:** the reset gate required stable resource ownership but did not fix the
+battle state or presentation clock at which allocations were counted.
+
+**Reach:** future resource checks must compare equivalent drawn states and trace
+allocation ownership before changing lifetime policy. One-time lazy allocations
+are warmed before the repeated-reset baseline; accumulating leaks still fail.
+The scene retains three resets and now checks bytes as well as counts. It adds no
+renderer state, capacity change or product API.
+
+**Verdict:** sound. Actual creation/destruction traces explain the old difference;
+exact matched openings pass and a real retained GPU allocation falsifies the check.
+**Confidence:** high for repeated-reset stability; full timing admission stays open.
 ## C66 road core
 
 ### The export's `kind` column names the area's kind; no column was added

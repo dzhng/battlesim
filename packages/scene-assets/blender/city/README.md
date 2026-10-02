@@ -18,7 +18,7 @@ A set is one source's work: the China graph's apartment blocks, our own houses, 
 - A **module** is a root-level empty named by the module's id (`[a-z0-9_]+`). The meshes under it are its geometry, with the usual `_LOD0`..`_LOD3` name suffix for the four detail tiers, finest first; a mesh with no suffix is in every tier. Every module has geometry in all four tiers, never more triangles in a coarser one.
 - Every root-level object is a module's empty. A mesh at the root is refused.
 - Geometry is in the module's own frame: metres, Z up, the origin wherever its rows expect it (a window's sill centre on the wall plane, a shell's footprint centre on the ground). The frame is the empty's, so a script may lay its modules out side by side in the file; where an empty stands is not content.
-- Materials, textures, UVs, tangents and vertex colour follow the conventions every static source follows ([scene-assets readme](../../README.md), "Textures"): three texture channels at most 1024 px, UVs in metres, vertex-colour alpha is wear and nothing else. A surface that takes a building's own tint (a wall colour) is tint-masked (`tint` in the material's extras, or the ORM texture's alpha).
+- Materials, textures, UVs, tangents and vertex colour follow the conventions every static source follows ([scene-assets readme](../../README.md), "Textures"): three texture channels at most 1024 px, UVs in metres, vertex-colour alpha is wear and nothing else, and a surface that is not opaque says so as its material's coverage. A surface that takes a building's own tint (a wall colour) is tint-masked (`tint` in the material's extras, or the ORM texture's alpha).
 - A mesh made for one template only (its wall shell, its roof) is a module like any other, named for its template.
 
 ### `templates.json`
@@ -64,7 +64,7 @@ A set is one source's work: the China graph's apartment blocks, our own houses, 
 - **A row** is twelve numbers: `[module, x, y, z, yaw, sx, sy, sz, tiers, r, g, b]`.
   - `module` indexes `modules`.
   - The module's geometry is scaled per axis by `(sx, sy, sz)`, turned by `yaw` radians about +Z, then moved to `(x, y, z)`. That is all a row can say. A tilt, a mirror or any other transform is baked into a module variant of its own, so every scale is positive.
-  - `tiers` is a bit per detail tier the row draws at (`1` is tier 0 … `8` is tier 3; `15` is all four, `0` is not a row). Small things drop out of the coarse tiers; a template's coarsest tier is little more than its shell.
+  - `tiers` is a bit per detail tier the row draws at (`1` is tier 0 … `8` is tier 3; `15` is all four, `0` is not a row). Small things drop out of the coarse tiers; a template's coarsest tier is little more than its shell. A state has a row at every tier: the game draws a block of a town at one tier and the whole map at the coarsest, so a state with none there would vanish with distance.
   - `r, g, b` (whole numbers 0 to 255, sRGB) tint the row's tint-masked surfaces; `255, 255, 255` leaves them as authored.
 - **`status`** is `release` for accepted art and `prototype` for a labelled stand-in. A stand-in never counts as coverage.
 - **`fit`** is how far this set's art may reach past a part's faces: `side_m` for balconies, cornices and awnings, `top_m` for roof furniture above the part's top. The asset check holds every vertex of every state to it, at each tier its row draws at: inside some part grown by `side_m` on its four sides and `top_m` above. Nothing reaches below a part's base.
@@ -90,12 +90,13 @@ A new set is listed in `assets/catalog.json`: its kit as an appearance, and the 
 
 ## What is here
 
-- [`china.py`](china.py) exports the China apartment set from the vendored graph: which of the graph's instances are a building of ours, the materials, the tiers and the five recipes are its tables.
+- [`china.py`](china.py) exports the China apartment set from the vendored graph: which of the graph's instances are a building of ours, the materials, the tiers and the templates are its tables. A template is boxes that abut; only the outline of their union is built, one graph facade to each straight run, so a slab, a U and a closed court come from one rule and a join has nothing to hide ([S5](../../../../specs/city-maps/spikes/S5.md)).
 - [`graph.py`](graph.py) reads a geometry-nodes building before it is realized: its instances with their transforms and tints, and the mesh it generated for the recipe. Every graph source starts here.
 - [`detail.py`](detail.py) makes a kit mesh's coarser tiers by one rule, the smallest feature a tier keeps. It calls no Blender operator, so its output is the same bytes every run.
 - [`ambientcg.py`](ambientcg.py) bakes a pinned ambientCG set (`../packs.py`) into a texture recipe at the size every texture in the game has.
 - [`towers.py`](towers.py) models our own tower blocks: panel modules one bay wide and one floor high, placed by a row a bay; each template's shell carries the same grid as a texture from tier 1 out, and is the whole tower at tiers 2 and 3. [`tower_sheets.py`](tower_sheets.py) photographs them, alone and among the other sets.
 - [`kit.py`](kit.py) is the authoring helper of a hand-scripted set (modules, templates, edges, bays, rows, the two files), with [`homes.py`](homes.py), the houses, as its worked example and [`farmsteads.py`](farmsteads.py), the farms, as the one with several buildings to a template.
+- [`industry.py`](industry.py) models the industrial set through `kit.py`: five buildings, each a shell of its own and rows of shared bay-wide modules, folded into the shell at the two coarse tiers. [`industry_sheets.py`](industry_sheets.py) frames buildings that size for `assemble.py`.
 - [`assemble.py`](assemble.py) puts a set back together in Blender from its two files and renders it at the game's camera with the part boxes drawn over it: the picture to judge a set by until the renderer draws kits.
 
 ## Interiors
@@ -113,4 +114,4 @@ The contract a shader reads them by (the numbers are the constants at the top of
 
 The steeper the view, the more of a window is the cell's floor: the box's floor is the bottom ninth of the picture, and from the tactical camera it fills most of an opening. Tune how a room reads here, in the scene and its tone curve, not in the shader.
 
-The sheets are not a set: they have no kit and no templates, and a template never names a cell.
+The sheets are not a set: they have no kit and no templates, and a template never names a cell. A room box's material names its sheet (`interior` on the material helpers; [scene-assets readme](../../README.md), "Coverage and rooms"), and its UVs are the cell's `u` and `v` above.

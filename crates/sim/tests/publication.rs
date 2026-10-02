@@ -8,6 +8,9 @@ use sim::battle::Battle;
 use sim::publication;
 
 use crate::common;
+mod codec {
+    include!("common/publication_codec.rs");
+}
 
 /// One decoded row: its fields by name and its sections' points.
 #[derive(Debug, Default)]
@@ -761,36 +764,9 @@ fn group_delivery_reconstructs_the_logical_oracle_across_side_and_epoch_changes(
         let mut at = 27;
         previous.resize_with(9, Vec::new);
         for group in &mut previous {
-            let size = wire[at] as usize;
-            let encoding = wire[at + 1];
-            let end = at + 3 + wire[at + 2] as usize;
-            at += 3;
-            if encoding == 1.0 {
-                *group = wire[at..end].to_vec();
-                at = end;
-            } else if encoding == 2.0 {
-                let old = std::mem::take(group);
-                while at < end {
-                    let source = wire[at];
-                    let count = wire[at + 1] as usize;
-                    at += 2;
-                    if source == -1.0 {
-                        group.extend_from_slice(&wire[at..at + count]);
-                        at += count;
-                    } else {
-                        group.extend_from_slice(&old[source as usize..source as usize + count]);
-                    }
-                }
-            } else {
-                group.resize(size, 0.0);
-                while at < end {
-                    let start = wire[at] as usize;
-                    let count = wire[at + 1] as usize;
-                    at += 2;
-                    group[start..start + count].copy_from_slice(&wire[at..at + count]);
-                    at += count;
-                }
-            }
+            let decoded = codec::group(wire, at, group);
+            at += 3 + wire[at + 2] as usize;
+            *group = decoded;
         }
         let mut oracle = Vec::new();
         let ground = publication::GroundHeader {
@@ -834,7 +810,7 @@ fn one_variable_route_change_does_not_resend_other_own_units() {
     battle.step();
     let mut publisher = publication::Publisher::new();
     let initial = publisher.publish(&battle, Side::Blue).unwrap().to_vec();
-    let old = &initial[30..30 + initial[27] as usize];
+    let old = codec::group(&initial, 27, &[]);
     assert!(battle
         .accept(CommandEnvelope {
             side: Side::Blue,
@@ -872,26 +848,59 @@ fn one_variable_route_change_does_not_resend_other_own_units() {
         own_bytes < 2000,
         "one route change must retain the other 79 own units: {own_bytes} B"
     );
-    assert_eq!(wire[28], 2.0);
-    let mut words = Vec::new();
-    let mut at = 30;
-    let end = at + wire[29] as usize;
-    while at < end {
-        let source = wire[at];
-        let count = wire[at + 1] as usize;
-        at += 2;
-        if source == -1.0 {
-            words.extend_from_slice(&wire[at..at + count]);
-            at += count;
-        } else {
-            words.extend_from_slice(&old[source as usize..source as usize + count]);
-        }
-    }
+    let words = codec::group(wire, 27, &old);
     let mut snapshot = publication::Publisher::new();
     let fresh = snapshot.publish(&battle, Side::Blue).unwrap();
     assert_eq!(
         words.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
-        fresh[30..30 + fresh[27] as usize]
+        codec::group(fresh, 27, &[])
+            .iter()
+            .map(|v| v.to_bits())
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn cold_own_delivery_compacts_sparse_values_without_losing_the_logical_words() {
+    let setup = common::scenario(
+        r#"{"size":[128,128],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#,
+        json!([{"side":"blue","kind":"rifle","position":[32,32]},
+               {"side":"blue","kind":"rifle","position":[96,96]}]),
+        json!([]),
+    );
+    let battle = Battle::new(&setup, 1);
+    let mut publisher = publication::Publisher::new();
+    let data = publisher.publish(&battle, Side::Blue).unwrap();
+    assert!(
+        data[29] < data[27],
+        "sparse cold own rows should reduce their canonical byte count: {} / {}",
+        data[29] * 4.0,
+        data[27] * 4.0
+    );
+    let frame = battle.observe(Side::Blue);
+    let ground = publication::GroundHeader {
+        epoch: 1,
+        side: Side::Blue,
+        base: 0,
+        revision: 0,
+        full: true,
+        count: 0,
+    };
+    let mut logical = Vec::new();
+    publication::pack_logical(
+        frame,
+        &ground,
+        &full_fog(),
+        std::iter::empty(),
+        &mut logical,
+    )
+    .unwrap();
+    assert_eq!(
+        codec::group(data, 27, &[])
+            .iter()
+            .map(|v| v.to_bits())
+            .collect::<Vec<_>>(),
+        logical[27..27 + data[27] as usize]
             .iter()
             .map(|v| v.to_bits())
             .collect::<Vec<_>>()
