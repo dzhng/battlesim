@@ -151,7 +151,7 @@ WALLS = {finish: textured(f"tower_wall_{finish}", recipe, tint=1.0, dirt=0.0, ch
 base_m = textured("tower_base", "concrete", colour=BASE, dirt=0.8, chip=0.0, streak=0.2, rise=1.2)
 rail_m = textured("tower_cast", "concrete", colour=RAIL, dirt=0.0, chip=0.0, streak=0.2)
 roof_m = textured("tower_roof_felt", "asphalt", colour=(0.1, 0.1, 0.096), dirt=0.0, chip=0.0, streak=0.0)
-front_m = textured("tower_balcony_front", "plaster", tint=1.0, dirt=0.0, chip=0.0, streak=0.3)
+front_m = textured("tower_balcony_front", "concrete", tint=1.0, colour=FACADE_WALL, dirt=0.0, chip=0.0, streak=0.3)  # painted: no cracks
 hut_m = textured("tower_roof_hut", "plaster", tint=1.0, dirt=0.4, chip=0.0, streak=0.4, rise=0.6, dust=(0.1, 0.1, 0.096))
 glass_m = flat_paint("tower_glass", GLASS, rough=0.08, grime=0.0)
 stair_glass_m = flat_paint("tower_stair_glass", STAIR_GLASS, rough=0.2, grime=0.0)

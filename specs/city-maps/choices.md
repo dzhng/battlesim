@@ -3414,7 +3414,7 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 
 **Reach:** By the model thresholds a tower is over 150 px tall, so at tier 0, out to 260 m (the slab) to 520 m (twenty floors): tier 0 is what a battle sees, and it is 23,000 to 42,000 triangles and 560 to 1,040 rows a tower. Tier 1 is 1,300 to 11,800 triangles (the balconies are still rows there), tiers 2 and 3 under 1,000 and 400. A curtain's colour, washing and air conditioners stop at tier 0; at tier 1 the texture has its own four dressings, the same on every tower.
 
-**Verdict:** sound for the far tiers, which read as the same building in the sheets. Provisional on tier 0's row count until the renderer draws kits: if 1,000 instances a tower is too many, the next step is the panel card at tier 0's far end, which the modules already carry. **Confidence:** medium.
+**Verdict:** sound for the arrangement. Provisional on the look of the step from tier 1 to tier 2, which an unprimed critique saw (a darker roof, the vents gone, no curtain colour), and on tier 0's row count until the renderer draws kits: if 1,000 instances a tower is too many, the next step is the panel card at tier 0's far end, which the modules already carry. **Confidence:** medium.
 
 ### A wall's face is the part's face; glass and loggias go into the box
 
