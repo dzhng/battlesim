@@ -20,18 +20,26 @@ import {
   type TerrainSurface,
 } from "@packages/battle-renderer/src/terrain/terrainSurface.ts";
 import { forestInside } from "@packages/battle-renderer/src/terrain/forestShapes";
+import { plotGuideEdges } from "@packages/battle-renderer/src/terrain/surfaces";
 import {
   CUT_A,
   CUT_B,
   STROKE_CUTS,
   strokeInside,
 } from "@packages/battle-renderer/src/terrain/strokes";
-import { plotAt } from "@packages/battle-renderer/src/terrain/plots.ts";
-import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
+import { SURFACE_AREA_KINDS } from "@packages/battle-renderer/src/terrain/surfaces";
+import { generatePlots, plotAt } from "@packages/battle-renderer/src/terrain/plots.ts";
+import {
+  PLOT_HUE_JITTER,
+  PLOT_MIN_LSTAR,
+  validateBiome,
+  type Biome,
+} from "@packages/battle-renderer/src/terrain/biome.ts";
 import summer from "@fixtures/biomes/summer.json";
 import { loadMap } from "@web/maps/node";
 import { groundHeight } from "@packages/battle-renderer/src/terrain/terrainGrid";
 import { packTerrainHeights } from "@packages/battle-renderer/src/frame/terrainHeights";
+import { roadLooks } from "@packages/battle-renderer/src/frame/terrainMaterial";
 
 const geometry = loadMap("geometry").definition;
 const riverLab = loadMap("river").definition;
@@ -329,6 +337,21 @@ test("the material's road, forest and water masks are the simulation's surface r
   expect(ends).toBeGreaterThan(100);
 });
 
+test("each paved stretch names its own area's kind, so a track is drawn as a track", () => {
+  // The river lab holds a 9 m country road and a 4 m dirt track.
+  const { site } = buildTerrainSurface(world(riverLab).exports, layout, biome);
+  const kindAt = layout.surfaceStrokeFields.indexOf("kind");
+  const widths = new Map<string, Set<number>>();
+  for (let r = 0; r < site.surfaceStrokes.length; r += site.surfaceStrokeStride) {
+    const kind = SURFACE_AREA_KINDS[site.surfaceStrokes[r + kindAt]];
+    widths.set(kind, (widths.get(kind) ?? new Set()).add(site.surfaceStrokes[r + 4] * 2));
+  }
+  expect(Object.fromEntries(widths)).toEqual({
+    country_road: new Set([9]),
+    dirt_track: new Set([4]),
+  });
+});
+
 test("rounded strokes are the native samples, bit for bit", () => {
   const oracle = JSON.parse(
     readFileSync(
@@ -362,6 +385,86 @@ test("roads split the patchwork: fields meet a road edge-on, never across it", (
       expect(left!.plot, `plots either side at (${px}, ${py})`).not.toBe(right!.plot);
     }
   }
+});
+
+/** How far `across` is turned from `heading` (radians), as rows read it: a
+ *  quarter turn is the same grain. */
+function offGrain(across: readonly number[], heading: number): number {
+  const turn = Math.atan2(across[1], across[0]) - heading;
+  return Math.abs(Math.asin(Math.sin(2 * turn))) / 2;
+}
+
+test("open country keeps one grain: no tract turns further than the rules say, however large the land", () => {
+  // 8 km of land with no road: turns must not add up from the region down
+  // to the plots, or the patchwork fans out round the map's middle.
+  const bare = {
+    map: [0, 0, 8000, 8000] as const,
+    buildings: [],
+    surfaceStrokes: new Float32Array(),
+    surfaceStrokeStride: 1,
+    surfaceRuns: new Float32Array(),
+    surfaceRunStride: 4,
+    surfaceTriangles: new Float32Array(),
+    surfaceTriangleStride: 1,
+    surfaceBoundaries: new Float32Array(),
+    surfaceBoundaryStride: 5,
+    riverRuns: new Float32Array(),
+    riverRunStride: 4,
+  };
+  const rules = biome.field_rules;
+  const most = ((rules.orientation_jitter_deg + rules.cut_jitter_deg) * Math.PI) / 180;
+  const heading = (rules.orientation_deg * Math.PI) / 180;
+  const { plots } = generatePlots(bare, biome);
+  expect(plots.length).toBeGreaterThan(5000);
+  const turned = plots.map((p) => offGrain(p.across, heading));
+  expect(Math.max(...turned)).toBeLessThanOrEqual(most + 1e-6);
+  // And tracts do turn: the land is not one ruled grid.
+  expect(turned.filter((t) => t > most / 3).length).toBeGreaterThan(plots.length / 10);
+});
+
+test("a field at a road's edge lies along a road beside it: its rows run with it or square to it", () => {
+  const { exports } = world(villageMap);
+  const { site, plots } = buildTerrainSurface(exports, layout, biome);
+  const roads = plotGuideEdges(site);
+  /** Whether road `r` runs through `outline` or beside it, nearer than a plot is wide. */
+  const borders = (outline: number[], r: number) => {
+    const [ax, ay, bx, by] = roads.subarray(r, r + 4);
+    const steps = Math.ceil(Math.hypot(bx - ax, by - ay) / 5);
+    for (let s = 0; s <= steps; s++) {
+      const p: [number, number] = [ax + ((bx - ax) * s) / steps, ay + ((by - ay) * s) / steps];
+      const n = outline.length / 2;
+      if (polygon2.containsPoint(outline, n, p)) return true;
+      if (Math.abs(polygon2.signedDistance(outline, n, p)) < biome.field_rules.min_width_m)
+        return true;
+    }
+    return false;
+  };
+  let beside = 0;
+  for (let r = 0; r < site.surfaceStrokes.length; r += site.surfaceStrokeStride) {
+    const [ax, ay, bx, by, half] = site.surfaceStrokes.subarray(r, r + 5);
+    const len = Math.hypot(bx - ax, by - ay);
+    const [nx, ny] = [-(by - ay) / len, (bx - ax) / len];
+    // Along the stretch, clear of its ends, a metre off the paving either side.
+    for (let s = 20; s < len - 20; s += 7)
+      for (const side of [-half - 1, half + 1]) {
+        const px = ax + ((bx - ax) * s) / len + nx * side;
+        const py = ay + ((by - ay) * s) / len + ny * side;
+        const plot = plots.plots[plotAt(plots, px, py)!.plot];
+        let least = Infinity;
+        for (let o = 0; o < roads.length; o += 4)
+          if (borders(plot.outline, o))
+            least = Math.min(
+              least,
+              offGrain(
+                plot.across,
+                Math.atan2(roads[o + 3] - roads[o + 1], roads[o + 2] - roads[o]),
+              ),
+            );
+        expect(least, `the plot at (${px}, ${py})`).toBeLessThan(0.1);
+        beside++;
+      }
+  }
+  expect(beside).toBeGreaterThan(100);
 });
 
 test("each point lies in the plot the split walks to, and its edge distance is that plot's", () => {
@@ -406,6 +509,89 @@ test("the patchwork is the same for the same seed and moves with it", () => {
 test("a biome that names a missing palette is refused by name", () => {
   const broken = { ...biome, plots: [{ ...biome.plots[0], palette: "nowhere" }] };
   expect(() => validateBiome(broken, "summer")).toThrow(/summer\.plots\[0\]\.palette/);
+});
+
+test("every paved kind is drawn by its own road row, or the default's", () => {
+  const roads = {
+    default: { ...biome.roads.default, palette: "gravel" },
+    dirt_track: { ...biome.roads.default, palette: "earth", roughness: 0.5 },
+  };
+  const palettes = {
+    ...biome.palettes,
+    gravel: [
+      [0.5, 0.5, 0.5],
+      [0.9, 0.6, 0.3],
+    ],
+    earth: [
+      [0.5, 0.4, 0.3],
+      [0.2, 0.2, 0.2],
+    ],
+  } as Biome["palettes"];
+  const looks = roadLooks(validateBiome({ ...biome, palettes, roads }));
+  const look = (kind: (typeof SURFACE_AREA_KINDS)[number]) =>
+    looks[SURFACE_AREA_KINDS.indexOf(kind)];
+  expect(look("dirt_track").core.w).toBe(0.5);
+  expect(look("dirt_track").core.x).toBeCloseTo(0.5 ** 2.2, 6);
+  for (const kind of ["road", "country_road", "sidewalk"] as const)
+    expect(look(kind), kind).toEqual(look("road"));
+  expect(look("road").core).not.toEqual(look("dirt_track").core);
+  // A patch is a change of hue alone: as bright as the surface it lies in,
+  // whichever of the two colours is the brighter in the palette.
+  const luminance = (c: { x: number; y: number; z: number }) =>
+    0.2126 * c.x + 0.7152 * c.y + 0.0722 * c.z;
+  for (const kind of ["road", "dirt_track"] as const)
+    expect(luminance(look(kind).worn), kind).toBeCloseTo(luminance(look(kind).core), 6);
+
+  expect(() => validateBiome({ ...biome, roads: { dirt_track: roads.dirt_track } })).toThrow(
+    /roads: needs a default/,
+  );
+  expect(() =>
+    validateBiome({ ...biome, roads: { ...biome.roads, motorway: roads.default } }),
+  ).toThrow(/roads\.motorway: names no paved kind/);
+});
+
+test("a plot kind whose ground could draw darker than the lightness floor is refused", () => {
+  // Seen ground that dark, in a sun shadow, reads as unseen ground.
+  const k = biome.plots.findIndex((p) => p.furrow_contrast > 0);
+  const kind = biome.plots[k];
+  const at = new RegExp(`summer\\.plots\\[${k}\\]\\.palette.*L\\*`);
+  const withPlot = (plot: typeof kind, colours: readonly (readonly number[])[]) =>
+    ({
+      ...biome,
+      palettes: { ...biome.palettes, [plot.palette]: colours },
+      plots: biome.plots.map((p, i) => (i === k ? plot : p)),
+    }) as Biome;
+  // A colour whose darkest plot (the per-plot jitter at its lowest) sits on
+  // the floor, and the same colour a tenth darker.
+  const jitter =
+    (1 - biome.field_rules.colour_jitter) * (1 - PLOT_HUE_JITTER * biome.field_rules.colour_jitter);
+  const grey = (lstar: number) => {
+    const v = (((lstar + 16) / 116) ** 3) ** (1 / 2.2) / jitter;
+    return [[v, v, v]];
+  };
+  const bare = { ...kind, furrow_contrast: 0 };
+  expect(() => validateBiome(withPlot(bare, grey(PLOT_MIN_LSTAR + 1)), "summer")).not.toThrow();
+  expect(() => validateBiome(withPlot(bare, grey(PLOT_MIN_LSTAR - 1)), "summer")).toThrow(at);
+  // Rows darken a plot too: the same passing colour under deep furrows.
+  expect(() =>
+    validateBiome(withPlot({ ...kind, furrow_contrast: 0.5 }, grey(PLOT_MIN_LSTAR + 1)), "summer"),
+  ).toThrow(at);
+});
+
+test("wheelings are furrows laid bare: none without rows, none wider than a row", () => {
+  const k = biome.plots.findIndex((p) => p.tram.rows > 0);
+  const kind = biome.plots[k];
+  const refused = (change: Partial<typeof kind>, field: string) =>
+    expect(() =>
+      validateBiome(
+        { ...biome, plots: biome.plots.map((p, i) => (i === k ? { ...p, ...change } : p)) },
+        "summer",
+      ),
+    ).toThrow(new RegExp(`summer\\.plots\\[${k}\\]\\.tram\\.${field}`));
+  refused({ furrow_m: 0, furrow_contrast: 0 }, "rows");
+  refused({ tram: { ...kind.tram, width_m: kind.furrow_m * 1.5 } }, "width_m");
+  // A pair of wheelings needs rows between its tracks and to the next pair.
+  refused({ tram: { ...kind.tram, rows: 2 } }, "rows");
 });
 
 test("the forest floor names a palette of litter, moss and humus, and its numbers are checked", () => {

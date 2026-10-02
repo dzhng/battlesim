@@ -41,6 +41,8 @@ const onPlot =
  *  the play camera and low, each crop low. */
 const WILD = ["meadow", "rough", "prairie"];
 const CROPS = ["pasture", "wheat", "barley", "rapeseed", "hay", "stubble", "ploughed"];
+/** The ground round the houses, a kind of its own. */
+const SETTLEMENT = "green";
 
 /** Each map's route (from the site root) and its named poses. A generated
  *  map's stations stand on what its preparation reports (the objective town,
@@ -55,7 +57,9 @@ export const STATION_MAPS = {
           [`${kind}-25`, onPlot(kind, 25, LOW)],
         ]),
       ),
-      ...Object.fromEntries(CROPS.map((kind) => [`${kind}-25`, onPlot(kind, 25, LOW)])),
+      ...Object.fromEntries(
+        [...CROPS, SETTLEMENT].map((kind) => [`${kind}-25`, onPlot(kind, 25, LOW)]),
+      ),
       // A drilled crop's rows, from the play camera.
       "wheat-65": onPlot("wheat", 65),
       // The (420, 420) corner of the north road.
@@ -66,6 +70,9 @@ export const STATION_MAPS = {
       // The west wood: its west edge against the fields, and inside it.
       "forest-edge-65": at([700, 960], 65),
       "forest-deep-25": at([790, 960], 25, 0.6),
+      // Over the wood's middle, from the play camera and from twice as high.
+      "forest-65": at([790, 960], 65),
+      "forest-120": at([790, 960], 120),
       // Open fields south-west of the village, and the whole patchwork.
       "field-65": at([420, 1120], 65),
       "field-250": at([420, 1120], 250),
@@ -84,6 +91,7 @@ export const STATION_MAPS = {
       // The dirt track, and where it leaves the country road.
       "track-25": at([230, 120], 25, LOW),
       "track-65": at([230, 120], 65),
+      "track-250": at([230, 120], 250),
       "junction-65": at([60, 160], 65),
       // The bridge, and the wood over the far bank.
       "bridge-65": at([60, 240], 65),
@@ -102,6 +110,9 @@ export const STATION_MAPS = {
       // The river's bank, on a map whose layout has a river (seed 2 has).
       "river-250": ({ river }) => at(river, 250),
       "river-65": ({ river }) => at(river, 65),
+      // The west edge of the wood nearest blue's start, against the open.
+      "forest-edge-250": ({ wood }) => at(wood, 250),
+      "forest-edge-65": ({ wood }) => at(wood, 65),
     },
   },
 };
@@ -133,6 +144,38 @@ const riverBank = (page, size) =>
     size,
   );
 
+/** The west edge of the wood nearest `near` on a generated map: the nearest
+ *  point with forest `DEEP_M` round it, walked west to where the forest ends;
+ *  undefined on a map with no wood that deep. */
+const DEEP_M = 24;
+const woodEdge = (page, size, near) =>
+  lab(
+    page,
+    ({ size: [width, height], near, deep }) => {
+      const wooded = (x, y) => window.__lab.route.surfaceAt(x, y)?.forest === true;
+      let best;
+      for (let y = deep; y < height - deep; y += 16)
+        for (let x = deep; x < width - deep; x += 16) {
+          const d = Math.hypot(x - near[0], y - near[1]);
+          if (best && d >= best.d) continue;
+          const inside = [
+            [0, 0],
+            [deep, 0],
+            [-deep, 0],
+            [0, deep],
+            [0, -deep],
+          ].every(([dx, dy]) => wooded(x + dx, y + dy));
+          if (inside) best = { d, x, y };
+        }
+      if (!best) return undefined;
+      let x = best.x;
+      while (wooded(x - 4, best.y)) x -= 4;
+      for (let step = 2; step > 0.1; step /= 2) if (wooded(x - step, best.y)) x -= step;
+      return [x, best.y];
+    },
+    { size, near, deep: DEEP_M },
+  );
+
 /** A page on `map`'s route, paused at the stations' tick with the frozen set
  *  on. Shoot it with `shoot`. */
 export async function openStations(ctx, map) {
@@ -159,7 +202,11 @@ export async function openStations(ctx, map) {
     page,
     map === "village"
       ? { plots: await villagePlots(page) }
-      : report && { ...report, river: await riverBank(page, report.size) },
+      : report && {
+          ...report,
+          river: await riverBank(page, report.size),
+          wood: await woodEdge(page, report.size, report.start.at),
+        },
   );
   await lab(page, () => window.__lab.route.pause());
   await advance(page, TICK - (await lab(page, () => window.__lab.route.tick())));
@@ -387,7 +434,7 @@ const villageGround = (page) =>
 
 /** At each point `{ xy, footprint }`, how far inside the paving and the
  *  forest the simulation's export puts it. */
-async function villageExport(page, points) {
+export async function villageExport(page, points) {
   await villageGround(page);
   return page.evaluate(
     (points) =>

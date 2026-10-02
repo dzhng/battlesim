@@ -1520,14 +1520,6 @@ keeps storage addresses independent of physical identity and encounter naming.
 
 ## Generated map in the lab
 
-### Preparation has a worker of its own, closed after its one answer
-
-**Choice:** `/lab/generated` asks a preparation worker for a battle; the worker generates the map, lays the encounter on it, returns the scenario JSON and is closed. The battle then starts in the usual battle worker from that scenario.
-
-**Gap:** C55 says "the pre-battle preparation worker"; C33 says "the existing preparation worker". No preparation worker existed, only the battle authority's.
-
-**Verdict:** Sound. Closing the worker frees everything generation allocated (93 MiB of Wasm memory on Metro Large) and is the cancel: a request that is no longer wanted cannot start a battle. Restart reuses the scenario, so it never generates again. The cost is one copy of the scenario text (27 MB on Metro Large) to the page and one to the battle worker. **Confidence:** High.
-
 ### The map and its plan come from two generator calls
 
 **Choice:** The worker calls `generate_map` for the map and `generate_map_plan` for the plan, with the same request. The scenario carries the generator's own map text, spliced out of the outcome, never a re-serialised parse.
@@ -3361,6 +3353,45 @@ raster nearby bodies again, and no changed-prefix scan can miss a later update.
 **Reach:** The parcel pass turns the first entrance toward the street, so slabs front the street with their long side and their shops.
 
 **Verdict:** sound. **Confidence:** high.
+
+### A compound block is built from its outline, not from its parts
+
+**Choice:** A template is boxes that abut. The exporter traces the outline of their union and dresses each straight run with one facade of the graph evaluated at that run's length; the bands, parapet and coping are our own rings round the outline, and each part's roof is one quad with the graph's furniture for a building of its size. The slabs are the one-box case of the same rule. The first approach named (evaluate the graph per wing, then drop the rows and faces on a joined face) was not built: a wing's exposed facade next to a join would be a facade cut mid-bay, with a window through the inner corner.
+
+**Gap:** S5 asked whether baked variants can hide joins; it did not say how.
+
+**Reach:** A joined face never exists, so there is no interior facade, pier or cornice end to suppress, and no corner module. The five slabs' rows and descriptors are unchanged; their shells are rebuilt (mitred bands, no hidden faces).
+
+**Verdict:** sound. **Confidence:** high.
+
+### A run of the outline is 3n or 3n + 2 metres
+
+**Choice:** A run's corner piers are 1 m (3n + 2) or 1.5 m (3n). A 3n + 1 run is refused: its piers would be 2 m, and the descriptor's 3 m lattice would then claim a bay inside each pier. With 12 m wings every run of a U or a court can be made legal; with 11 m or 14 m wings (the slabs' depths) the run between two wings cannot.
+
+**Gap:** "Sides are 3n + 2" was written for one box.
+
+**Reach:** Compounds are 12 m deep. The U keeps the prototype's 42 x 32 m; the court is 41 x 38 m round a 17 x 14 m yard, not the prototype's 44 x 40 m.
+
+**Verdict:** sound. **Confidence:** high.
+
+### The court is plainer than a slab
+
+**Choice:** The court has 408 bays against the largest slab's 336, and one template's budget. Its balcony, grille, air-conditioner, laundry and lantern probabilities are lowered (0.18, 0.25, 0.22, 0.2, 0.2) and its plan shrunk from 44 x 41 m until it fits: 146,806 / 49,034 / 7,146 / 1,766 triangles.
+
+**Verdict:** provisional: if C22 raises the budget the court can have the slabs' density back by deleting five numbers. **Confidence:** medium.
+
+### One entrance, shops on the street and the east flank, backs elsewhere
+
+**Choice:** The southmost run takes the graph's entrance facade (one door, shops), the east outer run its shop facade, every other run (the west flank, the back, the yard) a back facade with ground-floor windows. The prototypes had two doors; the graph makes one per facade.
+
+**Verdict:** provisional. **Confidence:** medium.
+
+### An open casement gets a dark pane behind it
+
+**Choice:** The kit's casement window is modelled with a leaf open. With rooms left out until C26 the eye went through it and out the far side of the block, so a dark pane now stands in the opening behind the leaf (two triangles in that module). This also fixes the five slabs.
+
+**Verdict:** sound. **Confidence:** high.
+
 ## Compact saved maps
 
 The contract these decisions belong to is in the [C58 outcome](slices/C58-offline-encounter.md#outcome).
@@ -3444,14 +3475,6 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 **Gap:** Nothing outside the browser could make the request the menu makes.
 
 **Verdict:** sound. Without it the saved map's request was hand-written JSON with a hash in it. **Confidence:** high.
-
-### The camera lab was not moved
-
-**Choice:** `fixtures/camera-lab.json` is still compiled at run time.
-
-**Gap:** "If it falls out cheaply."
-
-**Verdict:** sound for now. Its plan is already template ids and frames, so the move is mechanical, but a saved map pins the prototype library's hash, and the lab would stop loading whenever a prototype template changed. **Confidence:** medium.
 
 ### A far building is one row
 
@@ -3670,6 +3693,120 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 
 **Verdict:** Provisional as a method: the script lives in the gitignored scratch folder. If corpse drawing changes again, a station for the fallen belongs in a scene. **Confidence:** Medium.
 
+**When:** C22's second half (buildings drawn from the template art library), 2026-10-01.
+
+### The whole-map population is the coarsest tier alone; tier 2 is resident
+
+**Choice:** The population expanded once for the whole map (the "coarse" population) holds each building's rows at tier 3 only. Tiers 0, 1 and 2 are expanded into the pool for chunks near enough to need them. The alternative, the brief's starting shape, was a whole-map population of the rows at tiers 2 or 3.
+
+**Gap:** The slice says "never materialize all module transforms for a full map" and leaves which tiers are static to the implementer.
+
+**Verdict:** Sound, on the art as built. An apartment block has one row at tiers 2 and 3, but a house has 12 to 95 rows at tier 2 (63% to 81% of all its rows) and 1 to 7 at tier 3: a whole-map tier 2 would have materialized most of a town of houses. A Metro Large is 22,340 coarse records (1.4 MiB) for 9,909 buildings. What it costs is the fallback: a chunk the pool cannot hold draws at tier 3, not tier 2. The pool held every view tried with room to spare, so that fallback was never drawn. **Confidence:** High.
+
+### A chunk's tier follows pixels per metre, not a building's projected height
+
+**Choice:** `presentation.buildings.lod_px_per_m` gives the tiers by how many pixels a metre of wall covers at the chunk's nearest point. The alternative was the models' rule, projected height in pixels.
+
+**Gap:** The brief says "tier thresholds for buildings in projected pixels" and not of what.
+
+**Verdict:** Sound. What a tier drops is windows, rails and trim, and those are the same size on a one-storey house and on an eight-storey slab. By projected height the slab would have kept its 149,000 tier 0 triangles four times as far out as the house kept its 2,750. **Confidence:** High.
+
+### One tier a chunk, and a building belongs to the chunk it was placed in
+
+**Choice:** A chunk draws at one tier, from the distance of its nearest point. Every row of a building is bucketed where the building's frame stands (`ChunkSource.anchors`, new in the owner), not where the row's own module stands. The alternative was a tier per building, chosen by walking the near chunks' buildings on every view change.
+
+**Gap:** The brief allows either ("per chunk (or per building)").
+
+**Verdict:** Sound. A view change walks chunks and nothing else, and a building can never be drawn at two tiers because it is in exactly one chunk. The owner's bucketing by a record's own position would have split a slab whose balcony row crosses a chunk edge. The cost is a 64 m step in where a tier changes. **Confidence:** High.
+
+### The pool is kept kind by kind, in ranges that grow, not chunk by chunk
+
+**Choice:** `placementPool.ts` keeps a kind's records (a module at a tier) in one contiguous range of the pool. A range has spare room; it moves to the free end with twice the room when it fills, and the ranges are packed again when the free end runs out. A record is removed by moving the kind's last record into its place, and a caller's handle survives every move. The alternatives were a region a chunk (written once on entry, never moved) and fixed blocks chained per kind.
+
+**Gap:** "Pool size; record packing" are delegated; the brief suggests "kind-major pool regions" if draws dominate.
+
+**Verdict:** Sound. With a region a chunk the draws are chunks times modules: 25 chunks of 50 modules at the 250 m camera is 1,250 draws a pass, six passes a frame. Chained blocks scatter (every kind's second block lands after every kind's first), so their draws approach the block count. Contiguous ranges make it one draw a kind whatever the camera, at the cost of a second buffer on the CPU for packing and of holding about four fifths of the capacity before the pool calls itself full. Uploads are what changed: a chunk's rows on entry, the one record moved into each hole on exit, and a kind's range when it moves. **Confidence:** High.
+
+### A resident chunk's coarse records are hidden in place, and near coarse ranges draw as one
+
+**Choice:** While a chunk is resident, its coarse records' scale is written as zero in the coarse buffer (as a fallen building's are), and restored when it leaves. The coarse ranges therefore never split round a resident chunk. Two coarse ranges of a kind 256 records or fewer apart draw as one: the records between belong to chunks out of view. The alternative was the owner's own split: near chunks left out of the ranges, and a range per run of chunks in a row.
+
+**Gap:** Not covered; the brief's remedy for draw calls is a layout change.
+
+**Verdict:** Sound, on a CPU-side count. On a Metro Large the split gave 474 coarse draws a pass at a 2 km camera and 453 at street level (19 kinds times the chunk rows in view, and twice that where residents cut each row); hidden and bridged it is 19 and 168, the pool's kinds included. The cost is a buffer write of a chunk's coarse records when it enters or leaves the pool, and vertices for hidden and bridged records (14,688 coarse instances drawn where 8,943 are in view, at the coarsest meshes). The owner needed no near-settling for it: only `anchors`. **Confidence:** High for the count; the GPU side is in the Outcome's table.
+
+### Residency follows the view, and expansion has a budget
+
+**Choice:** A chunk is resident while it is in view and near enough for a finer tier; one that leaves the view leaves the pool. A view change expands at most `expand_rows` rows, nearest chunks first; the rest draw coarse and the frame asks to be drawn again (`requestRedraw`) until none waits. A chunk changing tier keeps the tier it has until the new one is expanded. When the pool is full, the farthest residents make way for a nearer chunk. The alternatives were residency by distance alone (a disc round the eye), and expanding everything a view wants in the frame that wants it.
+
+**Gap:** "Residency radius within G0's" is delegated; nothing says what happens off screen or within a frame.
+
+**Verdict:** Sound. A disc at the tier 1 distance is 38 hectares, most of it behind the camera, for a pool drawn whole (a kind's range is not culled by chunk). The budget bounds a camera cut's worst frame; a scene that shoots after a cut waits for `stats().buildings.pending` (`_lab.mjs` `buildingsSettled`). Turning the camera right round expands again what it evicted: 1 to 3.5 ms in the views measured. **Confidence:** Medium: no hysteresis at a tier's edge, and none was needed in the pans flown.
+
+### Residents cast from their own rows a tier coarser; everything else from its coarse rows
+
+**Choice:** A resident chunk casts with the records it draws, each as its module's next coarser mesh, as every model and tree does. A chunk drawn coarse, and a chunk out of view whose shadow lands in it, cast their coarse rows. The alternative was the coarse shell as the caster for every building.
+
+**Gap:** The brief says "coarser tier"; not which records.
+
+**Verdict:** Sound for now. A shell as the caster of a building drawn at tier 0 puts every recessed window behind the caster's wall, in shadow on a sunlit facade. The cost is the residents' triangles again, a tier down, in each of four cascades. **Confidence:** Medium: no per-cascade culling, as for every other caster.
+
+### A building has fallen once the side has seen any part of it go, and its parts draw as the side knows them
+
+**Choice:** `fallenBuildings` makes a building fallen when any of its parts is known replaced or destroyed (`knownStanding` over its own parts). A fallen building leaves the intact rows whole. Where the library has rows for the fallen state they are drawn at its frame; where it has none (every template today), each part is one box of the prototype kit's `unit_box` in `ruin_tint`: the remains the side saw, or the part at full size if it has not seen that one go. The lab passes `ruin` as the state; nothing publishes `gutted` yet.
+
+**Gap:** The brief says "each fallen part's remains as a box" and not what a part not yet seen to fall is.
+
+**Verdict:** Sound. Rows belong to the building, not to a part, so half a building cannot keep its windows; and a part the side still believes stands is a camera obstacle, so it is drawn. A library without the prototype kit draws no remains: the catalog lists that set for as long as any stand-in exists, and C14 brings the ruin rows. **Confidence:** Medium, until C14 decides what `gutted` is in an observation.
+
+### Knowledge changes records in place; only the fallen population is rebuilt
+
+**Choice:** `BattleFrame.setBuildings({ placed, fallen })` takes the map's references and what the side knows fell. A new `fallen` with the same `placed` hides or shows the coarse records of the buildings that changed, marks their resident chunks to be expanded again, and rebuilds the fallen population, which holds only what fell. A new `placed` rebuilds everything. The alternative was massing's way: one list, rebuilt whole on every change.
+
+**Gap:** "A change of knowledge updates only what it must."
+
+**Verdict:** Sound. A fall rewrites that building's one to seven coarse records and one chunk's rows; the rebuild it avoids is the whole map's coarse population (24 ms and 1.4 MiB uploaded on a Metro Large, in a development build). The fallen population is expanded at every tier: it is bounded by what has fallen, which C14 should look at again when ruins have art. **Confidence:** High.
+
+### Buildings are drawn by the models layer's pipelines, with ranges sent to the raw pass
+
+**Choice:** `buildingLayer.ts` is part of the models layer: a kit is an installed appearance, a module a state's mesh range, a row a 16-float model record, and the three pipelines (prepass, colour, caster) are the models' own. It draws in the prepass's world half, so a unit behind a building is x-rayed. The first draw of each mesh buffer and record buffer goes through TypeGPU; the ranges after it go to the raw pass.
+
+**Gap:** "Materials stay per pass"; nothing about the draw path.
+
+**Verdict:** Sound. TypeGPU sets the pipeline, every bind group and every buffer again for each `.with()` draw (each is a new pipeline object), about eight calls a draw; a kit's modules share one vertex and one index buffer per tier, so nearly every building draw changes only its ranges. **Confidence:** High.
+
+### The frame's building seam is two inputs; the library arrives with the appearances
+
+**Choice:** The template art library reaches the frame inside `setAppearances` (`InstalledAppearances.templates`), with its kits; the lab installs both only when a map has buildings the library draws. `setBuildings` takes references only. A building whose template the library lacks is not a reference and keeps the fitted-appearance path.
+
+**Gap:** Not covered.
+
+**Verdict:** Sound: one loader, one install, and the village installs no kit. **Confidence:** High.
+
+### The export's frame is the building's own, not a new field of the contract
+
+**Choice:** `export_buildings` writes `frame` from `BuildingDefinition.geometry.frame`, the frame a saved building stores (`contract::map::SavedBuilding.frame`) and the generator materializes at. Nothing was added to a contract type.
+
+**Gap:** The brief asks for the frame in the export; the saved-map form landed on main meanwhile with the same frame.
+
+**Verdict:** Sound. There is one frame per building; the public export now carries it. **Confidence:** High.
+
+### A template state must draw at every tier
+
+**Choice:** The asset check refuses (`templates.state`) a state with no row at some tier.
+
+**Gap:** The source format allowed any mask per row.
+
+**Verdict:** Sound. A chunk draws at one tier and the whole map at the coarsest; a template with no row there is a building that vanishes with distance, and the renderer has no stand-in for it. Every set built so far passes. **Confidence:** High.
+
+### `/lab/city-block` is a town with no battle on it
+
+**Choice:** The lab generates the map on the page, draws it with no units and no fog, and stands the camera at four stations from the map's own data (the apartment building nearest the main settlement's centre with a house within 90 m; the nearest street's longest run). It opens on Mixed Small seed 1, whose centre has both; Metro Small's centre is towers, which are stand-ins. "A map replacement" is checked by handing the frame every other building as a new set of references and then the first set again. Fog over a town stays the `generated` scene's check.
+
+**Gap:** The brief names the route and its stations; not whether a battle runs, or how a map is replaced in a page.
+
+**Verdict:** Sound for a renderer check; provisional as a replacement check, which covers the buildings and not the terrain. **Confidence:** Medium.
+
 ## C16: our own farmsteads
 
 ### A farm is one shell module, and its buildings' colours are in its materials
@@ -3767,6 +3904,186 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 
 **Verdict:** sound. **Confidence:** high.
 
+## C20 renderer fog at scale — startup implementation pass
+
+### Use exact per-eye grid and angular candidates while the S4 verdict is absent
+
+- **When:** C20 startup implementation pass.
+- **The choice:** Keep the existing sharp ray–box intersections, and use the existing grid of building footprints to give each eye only nearby boxes. On a 10 km city, a squad beside one block tests that block's neighbours instead of every building at the far end of the city. A first measured grid-only arm still cost 2.61 ms, exceeding the 2 ms gate, so the same table now narrows each ray to a conservative angular sector. Bounding circles enclose turned boxes, eye-inside circles retain every direction, and an extra sector at each edge covers f32 angle rounding. Rasterising building tops would instead replace the exact corner geometry.
+- **The gap:** C20 says to implement the technique S4 picked, but only S4's plan exists; its named verdict file is absent. Grid representation itself is delegated, but selecting the unrecorded arm is a spec gap.
+- **The reach:** Future fog work keeps the same horizon precision and sharpness. If the paired city measurement misses the budget, this arm needs further work rather than a silently relaxed gate.
+- **Verdict:** Sound within the startup contract. Exact intersections and whole-building visibility remain authoritative. Missing full S4/G0 envelope admission remains separate from this local-work design.
+- **Confidence:** Medium.
+
+### Put candidate lists in the existing rebuild table
+
+- **When:** C20 startup implementation pass.
+- **The choice:** The table saying which eyes rebuild also carries each eye's nearby building indices. Before rebuilding an eye, the CPU writes its eye number, its angular-sector table offset and count, then each sector's list offset/count and sorted building indices. Terrain reads the eye number; occluder rays read their sector. Both passes share this table. The alternative would add another storage buffer and binding solely for candidates.
+- **The gap:** The spec does not define the CPU-to-GPU list layout.
+- **The reach:** This keeps the horizon passes' existing GPU binding count. The whole-surface pass separately keeps a reachable-structure/eye-pair table because both lists are consumed by commands in the same submission and cannot overwrite one another. Its one additional binding stays within the guaranteed storage limit. The horizon table can grow when a denser nearby neighbourhood arrives, so probes must construct their sampling bind group after preparation; otherwise its dummy table binding can refer to a destroyed old buffer. The regression test covers a probe before the first rendered frame.
+- **Verdict:** Sound. One owner carries the rebuild transaction and its variable data without spending another scarce storage binding.
+- **Confidence:** High.
+
+### Detect occluder changes by geometry, independent of row identity
+
+- **When:** C20 startup implementation pass.
+- **The choice:** Compare complete box geometry before and after a publication, rather than treating a moved row as a changed building. If a demolished house disappears from the first row, the remaining unchanged houses shift indices but keep every distant squad's map. Only eyes in reach of geometry that disappeared or appeared rebuild. Two identical overlapping boxes have the same effect as one, so removing one duplicate alone does not invalidate maps.
+- **The gap:** Fog occluders have no stable identifiers in the existing input contract, and C20 does not prescribe change identity.
+- **The reach:** Future callers may reorder or recreate equivalent records without starting a rebuild storm. All geometry fields participate, including height changes and moved boxes' old and new locations.
+- **Verdict:** Sound. Map validity follows physical occlusion, while the separately rebuilt whole-structure table uses the new row indices.
+- **Confidence:** High.
+
+### Preserve whole-fog roof reach while making structure work local
+
+- **When:** C20 whole-surface followup.
+- **The choice:** A structure may become visible when its roof probe looks inward toward an eye even though its footprint is just outside that eye's reach. Keep the whole pass's existing broad bounding-circle test, rather than reusing the tighter horizon footprint query unchanged. Its grid query grows by the largest known box radius, then filters each box against the original eye-plus-box circle bound. Each retained structure lists only the eyes that can reach it; structures outside every eye's reach receive cleared flags.
+- **The gap:** C20 names the horizon merge and invalidation sites but does not say how its cost contract applies to the later whole-surface visibility pass. That pass otherwise still samples every global box against every eye.
+- **The reach:** The whole pass has one additional storage binding for structure/eye pairs, seven total across its two groups. Moving away from a previously visible building clears that building's whole-fog flag, and inward-looking roofs keep their earlier visibility rule.
+- **Verdict:** Sound. The existing whole-fog semantics are retained while both dimensions of its sampled work follow nearby structure/eye pairs. It preserves the original roof reach while distant structures do no sampled work; flags must clear when the eyes leave.
+- **Confidence:** High.
+
+### Sound — medium confidence on broader art: accept the preserved corner look
+
+**Choice:** After the non-blocking five-minute Preview checkpoint received no
+feedback, retain the unchanged village corner appearance. Exact horizon and
+whole-building visibility remain the authority; existing roof-trim ambiguity
+and bright seams stay with building-art work rather than prompting an unrelated
+fog redesign.
+
+**Gap:** C20 requires a recorded decision when the human checkpoint is silent.
+
+**Reach:** This accepts only fog edges at building corners. Distant forest and
+unit/effect pixels differ slightly; complete dense-city appearance and the
+missing S4/G0 envelope remain separate acceptance decisions.
+
+**Verdict:** sound within the startup slice. The scoped comparison and unprimed
+critique support preserving the look without claiming all frames identical.
+**Confidence:** high for unchanged corners, medium for broader art.
+
+## Startup lane: combat parity and named native math change
+
+**When:** Startup step 5, 2026-10-01; the owner explicitly authorized the deterministic math correction and its native digest change.
+
+### Combat has its own paired record, with the movement pair preserved
+
+**Choice:** Keep the moving four-unit stream unchanged and add a stationary rifle duel to the same native/WebAssembly publication harness. Each tick compares the whole battle state digest, packed observation bytes and delivered fog, and the duel must actually publish fired shots and physical impacts. Moving and firing in one record would make a first mismatch harder to assign to either mechanism.
+
+**Gap:** Step 5 asks for a short shooting battle but leaves the fixture, roster and comparison shape open.
+
+**Reach:** The existing movement, side switches and resynchronization remain covered; later combat changes get a separate small reproduction on shipped rules, without test-only aim, damage or scatter overrides.
+
+**Verdict:** sound. It adds a real combat path while retaining the prior proof. **Confidence:** high.
+
+### Use the pinned Rust math implementation for state-bearing combat transcendental operations
+
+**Choice:** A shot's direction and weapon elevation, the normal random samples that choose its spread, and conversion of angular spread to displacement now use the same pinned pure Rust math library in both targets. Native system math can round a result differently from WebAssembly by one final binary digit. That tiny difference can enter the battle's Float64 state even when its Float32 observation looks identical. Keeping system math and accepting an approximate digest would make a seed or replay mean different battles across targets.
+
+**Gap:** The lane originally required unchanged battle digests. The new combat check exposed existing cross-target drift, so the owner authorized this exception as a named native math change.
+
+**Reach:** Combat's native digest changes where system math had differed. The original movement record remains byte-for-byte unchanged. In the shooting sample, corrected native digests and publications agree with the pre-correction WebAssembly build at every tick; this preserves sampled browser behavior, not a claim that every unrelated simulation math path has been audited.
+
+**Verdict:** sound. The correction removes platform rounding from the tested authority paths rather than weakening the parity check or finding a lucky fixture. **Confidence:** high.
+### Sound — high confidence: native expectations follow named upstream contracts
+
+**Choice:** Keep the combat scenario and seeds fixed while native expectations
+follow shipped rule and publication changes. Main's grenade gravity changes the
+shot history; its variable-span normalization changes packed representation.
+Native remains the recording source and WebAssembly remains the independent
+reader of those expectations.
+
+**Gap:** The combat fixture was produced before those main changes and the lane
+left integration of expected records unspecified.
+
+**Reach:** A rule change can alter affected state expectations, while a codec
+change alters only packed hashes. Neither allows approximate comparisons,
+changing inputs to evade mismatches, or rewriting the original movement record.
+
+**Verdict:** sound. One exact current contract replaces stale expectations rather
+than comparing different builds' rules. **Confidence:** high.
+
+## C33 preparation and public queries — startup lane
+
+### Sound — medium confidence: keep public query arithmetic in Rust
+
+**Choice:** After Deploy, the page imports a read-only Rust query index containing the already sampled ground, static surfaces and picking boxes. It also holds sparse static foliage needed to apply only the clearing this side learned. The battle's navigation and mutable world remain in its worker. A TypeScript query implementation would save a second Wasm instance but would also duplicate the simulation's interpolation, bridge, river and ray rules.
+
+**Gap:** C33 delegates query-index internals but does not choose the language or transport precision.
+
+**Reach:** The page still loads Wasm for public queries. The query payload preserves floating-point bits explicitly: decimal JSON parsing moved a terrain normal by one bit in the regression. Its temporary payload and resident index must be included in startup memory accounting; rendering's Float32 arrays cannot substitute for exact picking inputs.
+
+**Verdict:** sound within the measured menu envelope. Exact shared arithmetic earns the import cost; full dense-city G0 admission remains separate. **Confidence:** medium.
+
+### Sound — medium confidence on prominence: show an authority refusal without waiting for drawing
+
+**Choice:** A replay refused by the simulation keeps the existing error HUD and menu available even when no world exports arrive. The viewport still requires meshes, and a failure hides the loading cover. For example, importing commands recorded on the ordinary village into the crossfire variant explains the scenario mismatch and lets the player open the menu to load another file or return home.
+
+**Gap:** Independent review found that making world delivery part of authority startup also made the error HUD depend on successful initialization.
+
+**Reach:** The normal battle and refusal share the same HUD, menu and error component. The prepared replay adapter forwards the simulation's existing error text, including main's new engine-build refusal. Development replay imports persist through the existing replay-file storage owner before reloading; a storage failure stays visible on the current page. Downloads may still proceed when persistence is unavailable.
+
+**Verdict:** sound. Refusal navigation belongs to the existing HUD and must remain available before world construction. Normal status/clock is hidden on refusal to avoid implying playback is waiting. The existing compact HUD remains the owner rather than introducing another failure layout. **Confidence:** high on the failure contract, medium on first-glance prominence.
+
+### Sound — high confidence: preparation's worker becomes the battle authority
+
+**Choice:** The worker that lays the encounter keeps its world and becomes the worker that plays the battle. The page adopts its channel using the existing simulation client. Cancelling closes that worker, so an abandoned planner cannot publish a stale battle. Restart is a new battle: a fresh worker builds the same scenario once.
+
+**Gap:** The lane requires world reuse but does not specify the worker handoff or restart ownership.
+
+**Reach:** Both generated and saved battles use this handoff. Other scenario routes export public geometry from their one worker-owned preparation too. Geometry and flight probes keep their explicit developer WorldView; production battle hooks do not construct one.
+
+**Verdict:** sound. It retains the existing command/publication authority and lets worker termination release all abandoned preparation allocations. **Confidence:** high.
+
+### Sound — high confidence: measure browser memory with explicit bounds
+
+**Choice:** Startup samples this Chromium instance's own process counters from Deploy, through the first playable view. It records cold and warm navigation separately, stage peaks, charged memory and retired instructions. Summed RSS can double-count shared pages; sampled instruction deltas can miss a process's final work. The sum of process lifetime memory high-water marks provides a conservative bound, not a simultaneous tab peak.
+
+**Gap:** The lane asks for tab memory and retired instructions without prescribing a browser measurement API.
+
+**Reach:** These measurements include the browser and GPU processes, not merely the JS heap. The harness cannot label a sampled maximum as an exact simultaneous high-water mark or a development-server start as a production download proof.
+
+**Verdict:** sound. It uses kernel counters and states their limits. **Confidence:** high.
+
+### Sound — high confidence: keep source-dependent Vite caches local to each checkout
+
+**Choice:** Checkouts share installed dependencies while their Vite caches live under their own ignored scratch directory. Two simultaneous startup checks therefore cannot overwrite each other's compiled dependency metadata.
+
+**Gap:** The shared-dependencies rule did not prescribe a Vite cache location; a worker integration run exposed repeated cache invalidation across checkouts.
+
+**Reach:** Every local dev/verification server uses its checkout's cache. No new dependency or user-facing setting is added.
+
+**Verdict:** sound. It applies the existing prohibition on sharing build output between different sources. **Confidence:** high.
+
+### Sound — high confidence: preserve the developer stress scenario's actual map
+
+**Choice:** Main's city-stress producer remains the owner of its full early/late
+scenario. Preparation builds its retained authority world from that scenario,
+including late wrecks, and forwards its living-force count and camera start.
+Normal menu recipes continue planning on the retained world itself.
+
+**Gap:** Main introduced the developer stress factory after the startup branch
+was measured; its synthetic remains can change the map after generation.
+
+**Reach:** The public index and battle must share the stress scenario's actual
+map rather than the generator's earlier map. The developer factory still builds
+its existing temporary placement world, so it is not included in the normal
+menu's one-construction or frozen cost claim. Its broader scale admission stays
+with the scale owner.
+
+**Verdict:** sound for integration. It preserves main's authoritative fixture
+and makes its static exports agree with the scenario that actually plays.
+**Confidence:** high.
+
+## Camera catalogue — startup lane
+
+### Sound — high confidence: separate authored geometry from camera trajectories
+
+**Choice:** The camera lab's physical plan is an offline source beside its saved catalogue map. The route loads that map by id; its trajectory fixture keeps only camera paths, framing and the public owner id of the building whose fall it demonstrates. An authored identity describes the hand-placed arena even though the compiler produces its saved physical document.
+
+**Gap:** The lane requests catalogue resolution but does not specify where the lab's source plan or fall reference should live.
+
+**Reach:** Changing a camera path does not rebuild geography. Changing the arena goes through the compiler and saved-map provenance, as other catalogue maps do. The catalogue cutover preserves framing and compiled geometry. Integration later adopts main's named China slab template for the wall and repins this authored map and its source receipts to that same input.
+
+**Verdict:** sound. The resolver result exactly matches the former compiler output and the catalogue validation covers the new folder. **Confidence:** high.
 ## C54 pipeline tooling
 
 ### Measure a short advance without turning it into an arrival deadline
@@ -3946,6 +4263,81 @@ affected digests; movement's exact body checks still decide each soldier's steps
 is recorded in C06. A direct non-standing virtual anchor has no guaranteed legal
 timing; nearest-fit selection is not permission to publish an invalid segment.
 
+## C19: warehouses and light industry
+
+### Sizes are whole bays, and the shed turns its gable to the street
+
+**Choice:** The five industrial templates are 15 x 24 m (the prototype shed was 24 x 16, long side to the street), 48 x 24, 72 x 33 (72 x 32), a works of a 54 x 27 hall and an 18 x 9 office (54 x 26 and 18 x 10), and 90 x 39 (90 x 40). Every side is a multiple of the 3 m bay, so a row of bay-wide modules tiles a wall exactly. The shed is 15 wide and 24 deep with its vehicle door in the gable. The alternative kept the prototype sizes and left a part-bay of plain wall at each corner.
+
+**Gap:** The brief gave sizes as "about", and the prototype sizes were chosen for boxes.
+
+**Reach:** The catalogue's hash moves when these replace the prototypes. Heights are 6.2, 9.0, 10.0, 8.0 and 11.0 m against the prototypes' 6, 9, 10, 10 (hall) and 7 (office), and 11.
+
+**Verdict:** sound. A workshop's door is in its gable, and a wall of whole bays needs no filler module. **Confidence:** high.
+
+### The works' office is joined to the hall's street face, and both boxes are 8 m
+
+**Choice:** The office block stands against the west end of the hall's street face, flush with the hall's west wall, joined by a supported join (`hall-south-0` to `office-north`). Both parts are 8.0 m: the hall's sawtooth ridges and the office's parapet. Floor datums are 0 and 3.6 m for the whole template, so the hall is a two-floor part whose tall windows (1.2 to 5.7 m) serve both. The prototype had a 10 m hall and a 7 m office standing 4 m apart with no join.
+
+**Gap:** A join needs equal bases and tops, and floor datums belong to the template, not to a part.
+
+**Reach:** The hall is 2 m lower than its prototype. A garrison's upper floor in the hall is a notional gantry level: nothing is drawn for it.
+
+**Verdict:** provisional. It reads as one works on screen; whether a second floor of seats in an open hall plays well is the simulation's to judge. **Confidence:** medium.
+
+### The sawtooth's glazing faces along the street, not away from it
+
+**Choice:** The works' nine teeth run front to back, so the street elevation shows the zig-zag and the glazing faces the template's -X. A true north light, with the street to the south, would turn every pane away from the street and show the viewer nine plain slopes.
+
+**Gap:** The brief asked for a sawtooth north-light roof and a door on the street side; a template has no compass.
+
+**Verdict:** sound for the look. **Confidence:** high.
+
+### Not every bay has an opening, and a dock door is not an entrance
+
+**Choice:** Openings sit in bays, but a warehouse keeps blank bays: the dock warehouse's back and ends have a high window in every second bay, the distribution warehouse the same. Loading-dock doors have their sills at 1.1 m (lorry-bed height) over a floor datum of 0 and are not entrances; the template's entrances are its side door and its drive-in door. The depot draws eight vehicle doors and names two of them, with the side door, as entrances; the distribution warehouse's three side doors are drawn but only its three vehicle doors are entrances. The houses (C17) gave every bay a window on every floor.
+
+**Gap:** The readme puts windows on the lattice; it does not say every bay needs one, nor that every drawn door is an entrance.
+
+**Reach:** A garrison's seat in a blank bay fires through a wall the player sees as solid. Entrance counts follow the prototypes (two or three a building).
+
+**Verdict:** provisional. A warehouse with a window in every bay stops reading as one. If blank-bay seats look wrong in play, the fix is fewer seats there, not more windows. **Confidence:** medium.
+
+### The set's fit is 1.2 m to the side and 1.2 m above
+
+**Choice:** Canopies reach 1.15 m, a vehicle door's bollards 0.9 m, a dock's leveller 0.6 m, gutters 0.41 m. Above a part's top: flue stacks to 1.1 m over a flat roof's parapet, ridge ventilators 0.46 m, turbine vents 0.7 m. The houses' fit is 0.5 and 0.9 m.
+
+**Gap:** The brief said to choose both and keep them small.
+
+**Verdict:** sound. A canopy shallower than a metre does not read as one. **Confidence:** high.
+
+### Rows draw at the two fine tiers; the shell carries the rest
+
+**Choice:** As the apartment set does, a row draws at tiers 0 and 1 only. At tiers 2 and 3 the script copies what each row's module still has at that tier into the template's shell, in the row's place and with its tint baked into an untinted material, so a far building is one row. Flat panels that meet (a band of colour, a run of high windows) become one face. Rooflights and mended sheets on a pitched roof are faces of the shell at every tier, because a row cannot tilt a module to a roof's pitch.
+
+**Gap:** The brief asked for instancing on long walls and budgets per tier; the readme's rule that a far building is one row arrived with the apartment merge.
+
+**Reach:** A shell's second tier holds the folded detail, so its first tier must be at least as heavy: three shells bake their paint on a finer grid than they otherwise need. Folded surfaces lose the recipe's own tint mask (rust weeping from a fixing takes the paint's colour).
+
+**Verdict:** sound. **Confidence:** high.
+
+### A roof's large marks are faces and vertex paint, never the recipe
+
+**Choice:** The sheet and felt recipes carry only what is smaller than a few metres: ribs, laps, fixings, the tone of one sheet. Rust patches, damp and fading are vertex paint on a 4.4 m grid kept down to tier 2; mended sheets, rooflights and felt patches are faces of the shell. A first felt recipe with pools and patches in the texture tiled into a camouflage pattern across a 48 m roof.
+
+**Gap:** The brief asked for stains and patches readable at coarse tiers "through the shell's own texture".
+
+**Verdict:** sound. A recipe repeats every 6 to 8 m; anything a viewer can count across a roof must be placed once. **Confidence:** high.
+
+### Wall colour is the shell's tint; roofs and brick take none
+
+**Choice:** Cladding, blockwork, precast panels and render are pale tint-masked recipes and the shell's row tint is the building's paint. Roof sheet, felt and brick are untinted materials in their own colour, since a row has one tint. Bands, doors and a re-sheeted bay are rows with their own tints.
+
+**Gap:** The same as the houses': a row has one tint.
+
+**Reach:** One template is one colourway. More colours are more templates over the same modules, or a tint a placement supplies.
+
+**Verdict:** provisional on the repeats, as for the houses. **Confidence:** medium.
 
 ## C07: reuse unchanged decoded static groups
 
@@ -3957,6 +4349,93 @@ timing; nearest-fit selection is not permission to publish an invalid segment.
 
 **Verdict:** Sound; identity and rollback proofs pass. Allocation claims describe skipped construction, not measured heap bytes or wall time. Producer layout/digests and all whole-record, peak and throughput gates remain unchanged. **Confidence:** High for reuse and reconstruction; runtime admission remains open.
 
+## C21 material transport
+
+### The coverage value is the base colour's alpha times the normal texture's alpha
+
+**Choice:** A cutout or blended material's coverage is `base_color` alpha (one number for the surface: a pane's opacity) times the normal texture's alpha (texel by texel: a grille's holes), 1 where the material has no normal texture. An opaque material ignores both.
+
+**Gap:** The slice says coverage must not ride albedo alpha or ORM alpha, and leaves where it does ride open: the factor's alpha, a dedicated texture channel, or the vertex colour.
+
+**Alternatives:** The vertex colour's alpha is how worn the surface is (L9), so it collides. Albedo alpha is the wear threshold: reading it as coverage "when the material does not wear" is the overload the slice exists to end. A fourth texture breaks the three-slot limit. Of the twelve channels in three RGBA textures, the normal map's alpha was the only one unused (255 in every shipped texture), and the base colour's alpha was carried to the renderer and never read.
+
+**Reach:** A cutout needs a normal texture, flat if it has no relief. In the source this is not glTF's convention (there, coverage is the base colour texture's alpha), exactly as our albedo alpha already is not. A cutout authored the glTF way is caught by name, not drawn solid (next choice). Mips average the alpha as stored; whether a cutout needs coverage-preserving mips is C24's.
+
+**Verdict:** sound. **Confidence:** high.
+
+### A coverage that never crosses its threshold is refused
+
+**Choice:** `material.coverage_source`: a cutout whose coverage value is everywhere under its cutoff or everywhere at or over it, and a blended material whose value is 1 everywhere, do not bake. The check reads the finest level of the normal texture.
+
+**Gap:** The brief asks to refuse "a cutout with no source of coverage". A missing normal texture is one way to have none; a normal texture whose alpha is 255 throughout, because the coverage was painted into the albedo, is the likelier one, and it would draw solid with no error.
+
+**Verdict:** sound. It is the slice's own feedback line as a check: lost coverage reopens transport. **Confidence:** high.
+
+### Blended cannot wear; a cutout can
+
+**Choice:** `material.wear` refuses a blended material with a wear colour. A cutout with wear and a tint mask bakes.
+
+**Gap:** The brief names "blended with wear" as unsupported and says nothing of cutout with wear.
+
+**Verdict:** sound. Wear replaces the surface with an opaque worn one where the vertex alpha passes the albedo's threshold; on glass that patch has no opacity anyone chose. On a cutout the four channels are independent: a rusty grille is a legitimate surface.
+
+**Reach:** `parts.export(worn=…)` is per file, so a blended material that samples a recipe has to be in an unworn export. A flat blended material (`flat_paint`) carries no wear. **Confidence:** high.
+
+### Interior metadata is the sheet's name, on the room's own surfaces
+
+**Choice:** `Material.interior` is `"rooms"` or `"shops"`, from the glTF material's extras, and nothing else. It marks the walls, floor and ceiling of the open box behind a window, not the pane in front. The box's UVs are the cell-local `u`, `v` of the atlas projection, written by whoever models the box, so the drawer needs no box size or pinhole per material.
+
+**Gap:** "Enough for the later interior pass to know this surface is a window onto a room box and which atlas sheet it looks up."
+
+**Alternatives:** Carrying the box's size and the pinhole per material repeats the atlas's constants in every bundle. Marking the pane as the interior needs a ray-marched box in the shader, which is more than the upstream mechanism (Q-E: room meshes plus a flat lookup). Which cell and which mirroring is per window, by position hash, so it cannot be material data.
+
+**Reach:** A UV interpolated across a side wall is off the true projection by at most 0.7 % of a cell (under one texel of 128) for the 3 × 3 × 4.5 m box and the 16 m pinhole; a wall cut once in depth quarters it. If C26 would rather project in the shader from a box frame, the frame needs a home (a vertex attribute or per-module data) and this field stays as it is.
+
+**Verdict:** provisional until C26 draws one. **Confidence:** medium.
+
+### A room is opaque, has no look of its own, and stands still
+
+**Choice:** `material.interior` refuses an interior material that is a cutout or blended, has textures or a wear colour, or is on a skinned or articulated bundle. A tint mask is allowed: a building's row tint is how it dims its rooms.
+
+**Gap:** The brief names only the skinned and articulated case.
+
+**Verdict:** provisional. The atlas contract says a cell is a finished picture shown as it is, so the material's own textures and wear would be silently ignored, which is the loss this slice refuses elsewhere. If C26 finds a use for one (a normal map on a back wall), it deletes that branch. **Confidence:** medium.
+
+### An opaque material's alphas are ignored, not refused
+
+**Choice:** `alphaMode` absent or `OPAQUE` is opaque whatever the base colour's alpha, the normal map's alpha or a stray `alphaCutoff` say, as glTF defines it. `MASK` with no `alphaCutoff` cuts at glTF's default, 0.5. An alpha mode or cutoff that cannot be read is `material.coverage`.
+
+**Gap:** Unstated.
+
+**Verdict:** sound. All 310 materials in the 41 shipped sources name no alpha mode and have a base alpha of 1, so neither rule moved anything. **Confidence:** high.
+
+### The packed representation is the material's JSON
+
+**Choice:** `coverage` is `{"kind":"opaque"}`, `{"kind":"cutout","cutoff":0.5}` or `{"kind":"blended"}` in the bundle header's material, on every material; `interior` is the sheet's name, present only on a room. Format 4. The decoder refuses a material with no well-formed coverage or an unknown sheet; the combination rules are the validator's alone, so the workbench can still show a preview that has findings.
+
+**Gap:** Delegated.
+
+**Alternatives:** An optional field meaning opaque when absent would have let a format 3 material read as a valid format 4 one; required, an old or truncated material cannot pass for opaque. Flags in a typed array buy nothing: a bundle has tens of materials and megabytes of mesh.
+
+**Verdict:** sound. **Confidence:** high.
+
+### The Blender helpers write the alpha mode after export, not through Blender's material graph
+
+**Choice:** `coverage=("cutout", cutoff)` or `("blended", opacity)` and `interior="rooms"` on `common.mat`, `parts.paint`, `parts.flat_paint` and `parts.textured` (coverage only: a room has no recipe). They record into one registry in `textures.py`, and `textures.attach`, which already rewrites the exported GLB's materials for textures, writes `alphaMode`, `alphaCutoff` and the base colour's alpha. `interior` is a custom property, exported as extras like `tint`. A recipe's coverage image is `Baked(coverage=…)`, in the normal PNG's alpha.
+
+**Gap:** "The Blender export helpers can write both."
+
+**Alternatives:** Blender's exporter derives `alphaMode` from the node graph feeding the Principled alpha (a Math node pattern for a mask). That ties the source bytes to exporter heuristics across Blender versions, for a value we already know.
+
+**Reach:** Checked on Blender 5.2.1 with a scratch script through each helper family: the exported materials read back as cutout 0.5 with a 0-to-1 coverage image, blended 0.35, and rooms of both sheets. Existing exports are untouched: the crate, wall, fence and sandbags re-exported byte-identical to the committed sources. No infantry source was re-exported (Cycles bake); `common.mat` was exercised by the scratch script only.
+
+**Verdict:** sound. **Confidence:** high.
+
+### Found on the way: the dragon's tooth does not export the same bytes twice
+
+**Choice:** None; a finding. `props.py tooth` writes a different index order for `tooth_LOD0` on each run (28 to 70 bytes of one buffer view; the JSON and every other view are identical), with and without this slice's changes, and none of four runs matched the committed file. Left alone: it is a model script, outside this slice, and the committed GLB is what bakes.
+
+**Verdict:** a defect against "the same scripts write the same bytes". **Confidence:** high that it happens; the cause was not looked for.
 ## C80 grass presets
 
 ### Wind response rides the clump's vertex alpha
@@ -4194,3 +4673,587 @@ pending. **Confidence:** high for fixture identity, medium until the scene runs.
 **Gap:** `systems_only` kinds resolved to no model, and nothing else drew them: placed, they were invisible bodies.
 
 **Verdict:** sound as a stand-in; C45's models replace it kind by kind. **Confidence:** high.
+
+## C07: compact the selected lossless group form
+
+**Choice:** Add one byte-packed transport arm inside the existing publication
+owner, wrapping the already selected snapshot, replacement or source-copy form.
+Keep one span selector and baseline. Pack small operation integers and each
+literal's exact raw bits or its XOR against the old word at the same output
+address, whichever needs fewer bytes. A fresh snapshot always uses raw bits.
+
+**Why:** After address amplification was removed, remaining float literals and
+operation metadata still crossed the 19,800-byte whole-record gate. Copy-only
+packing left 63 early frames over the gate; the general arm also packs replacement
+literals. Both captured 1,800-transition windows reconstruct every original word,
+with maxima falling to 19,772/18,220 B. Actual extracted producer mean encoding
+cost rises about 0.12–0.14 M instructions for own plus identified, with identical
+staging and indexing included. C07 owns the detailed measurements and their scope.
+
+**Contract:** The simulation's published layout owns the grammar once. Byte
+carriers can resemble NaNs, so transport/decoder copies preserve raw u32 bits
+instead of converting them through JavaScript float numbers. Complete admission
+precedes writing; compact serialization uses constant scratch and the existing
+reserved output. Invalid payloads cannot commit any baseline. Unchanged static
+word and decoded-view identities remain stable. No compression library, field
+schema, per-unit predictor, extra retained state or budget exception is added.
+
+**Verdict:** Sound on matched exact corpus evidence and the paired consumer
+contract. The early maximum has only 28-byte headroom, so current-stream estimates
+cannot close snapshot, peak or live whole-system gates. **Confidence:** High for
+lossless representation; final runtime admission remains with the scale lane.
+## C73
+
+**When:** 2026-10-01. Evidence and numbers: the Outcome in [C73](slices/C73-tree-skeleton.md).
+
+### The far tier is the lobed volume of the tree's own clumps, and clumps run to tier 2
+
+**Choice:** Tiers 0 to 2 draw one set of leaf clumps, each coarser than the last; tier 3 is a lobed volume whose lobes sit just inside those clumps. The old seeded crown now only gives a tree its size and its clumps their places.
+
+**Gap:** The slice kept the old lobed crown as the far tier and the caster tier, and SG1's first fallback put it on tiers 2 and 3.
+
+**Verdict:** sound. A tree's shadow is cast by the tier under the one drawn. A hull of another shape shadows every clump inside it: hard-edged dark shapes across the crowns, and 3.3 times today's shimmer. With one shape down the tiers it measured 1.05 times. **Confidence:** high.
+
+### About 24 clumps a crown, not 50
+
+**Choice:** A broadleaf crown is 20 outer clumps and 4 inner ones, 2.5 to 4 m across.
+
+**Gap:** Clump size was delegated; Q-G7 asks for broken-up crowns.
+
+**Verdict:** provisional. Fifty small clumps gave open crowns with limbs and sky showing, the closest to the reference, and cost +1.6 to +1.9 ms where a wood fills the frame, over the 1.5 ms bar. Twenty-four cost +0.5 to +1.0 ms and read as lumped masses with a broken outline, not as open crowns. Opening them again needs either a cheaper tier 1 or a larger tree budget from GG. **Confidence:** medium.
+
+### Branch generations: trunk, limb, branch
+
+**Choice:** A limb to each of five or six clusters of clumps, and a branch from the limb to each clump. Tier 1 draws them all on three or four sides; tier 2 draws the trunk only.
+
+**Gap:** Branch generations were delegated.
+
+**Verdict:** sound. A third generation only made sense with twice the clumps. **Confidence:** high.
+
+### The budget is 10,000 / 2,500 / 500 / 80 and lives on the scenery kind's row
+
+**Choice:** `SCENERY_KINDS.tree.tier_triangles`, read by the validator (`budget.tier_triangles`). It is what the landed trees were measured at, rounded up.
+
+**Gap:** GG was to set the budget and never ran; the slice did not say where it lives.
+
+**Verdict:** sound for tiers 1 to 3. Tier 0 has room to 25,000 by SG1's bar, but nothing was measured above 19,000, so it stays near what passed. The row already holds what a kind's art must carry, so every tree appearance (C74's species, street trees) meets one budget with no plumbing. **Confidence:** medium.
+
+### A tree must also stand inside the canopy's radius, on every tier
+
+**Choice:** `fit.canopy` now measures every tier's top and its reach from the trunk's axis, against `forests.rule.canopy_height_m` and `canopy_radius_m`.
+
+**Gap:** The slice's verification names the radius; the validator checked only the finest tier's height.
+
+**Verdict:** sound, with a limit. It holds the unscaled art. Placement still scales a crown up to its forest's canopy, so a drawn crown can pass 6.5 m; that is C76's. **Confidence:** high.
+
+### A tree's size is its old top and reach, and clumps past it are brought back
+
+**Choice:** The clumps are set on the old seeded crown; any vertex above its top or past its reach is moved onto that limit, and the build fails if the finest tier does not reach both.
+
+**Gap:** "Unchanged sizes" did not say how a different shape keeps a size.
+
+**Verdict:** sound. Scaling the whole crown until its one widest clump fitted squeezed the tall kind to 0.59 of its width. Placement reads a kind's size from the finest tier, so the three kinds place exactly as before. **Confidence:** high.
+
+### Found, not fixed: blade-thin trees at forest edges
+
+**Gap:** Placement narrows a crown to its room inside the forest's shape with no floor, so a trunk near the edge draws a tree a few centimetres wide. Today's trees show it at the same places; the critique named it first.
+
+**Verdict:** open, for C75 or C76 (`scenery/placement.ts`). **Confidence:** high that it is wrong.
+## C06: canonicalize visibility candidates at the union owner
+
+**Choice:** Fog collects raw bucket IDs from every eye and sorts/deduplicates
+the world and remembered unions before learning. Ordinary spatial queries keep
+their sorted, unique contract; no candidate cache is retained.
+
+**Why:** Per-eye sorting repeats work over overlapping views, and remembered
+queries also sorted the growing prefix. The existing bucket membership and
+query reach are unchanged. Canonicalization remains before stateful consumers,
+so an overlapping body is learned once in the same ID order. The unchanged
+visibility kernel consumes neither vector.
+
+**Tradeoff:** Raw ID vectors contain more duplicate entries during collection;
+this exchanges temporary allocation for fewer sorts, without permanent map
+storage. Measure the final merge and Learning with Fog so moving work across
+profile brackets cannot masquerade as a gain. C06 records matched bounded
+Battle observations/digests and the remaining whole-city admission limits.
+
+### New York and Paris are later families, not part of closing the buildings lane
+
+**When:** after the first family's coverage was complete, 2026-10-01.
+
+**Choice:** The lane closes with one family, China's, covering all six categories. The New York and Paris files stay vendored and their exports are follow-up work through the same exporter (`city/graph.py`). C11's text asked for the kit modules of all three archetypes.
+
+**Gap:** The lane's contract is "every category the generator places has at least one accepted template"; C11 was written before S2 showed the graphs cover only apartment blocks, so two more graph exports would add two more styles of apartment block and nothing else.
+
+**Reach:** Every generated town has the same style of apartment block. A second family also needs houses, farms, towers and industry styled for it, or a decision to share ours.
+
+**Verdict:** provisional. It is the smallest scope that meets the contract, and it puts the facade, far-tier and damage passes first, which every family needs. **Confidence:** medium.
+
+## C06: reject the footprint rotation hypothesis
+
+**Choice:** Keep the existing footprint sampling source after measuring reuse of
+its existing `Rotation` once per footprint. No new cache or state is retained.
+
+**Why:** Native disassembly shows rotation trigonometry already hoisted per row.
+The matched current layout-7 six-tick experiment preserves all digests and
+complete observation hashes but saves only 0.795% early and 0.710% late in whole
+Fog plus Learning, below the declared 2% hypothesis. This does not justify the
+next scale pass; C06 records the bounded result and leaves admission open.
+
+## C06: inline the measured foliage owner
+
+**Choice:** Force the existing world foliage query inline, preserving its
+sparse-cell lookup, cleared-mask rule and every arithmetic expression. Leave
+the height wrapper's compiler policy unchanged after separate measurement.
+
+**Why:** The public fog traversal calls foliage per ray step. In the matched
+native six-tick control, foliage inlining reduces whole Fog plus Learning more
+than height inlining and also shrinks linked text. It needs no second visibility
+implementation or invalidation owner. C06 records the exact observations/digests,
+measured code-size tradeoff and narrower scope of the evidence.
+
+## C06: share a failed final connector's strict goal component
+
+**Choice:** After one final road connector fails, exhaust a search from its
+resolved goal over the existing mover graph. Retain that component only when the
+frontier empties. Use exact forward-source admission to omit disconnected final
+connectors. Before building an approach, omit a goal access only when its whole
+arc, expanded for lane offset, source snapping and point coalescing, is outside
+the component's bounds. Excluded arcs also leave the fallback's nearest-access
+selection, preserving legitimate farther approaches. Sampled roads remain free
+to enter the strict component;
+being disconnected from the original start is not a whole-journey refusal.
+
+**Gap:** Rejecting one road exit at a time repeatedly certifies the large outside
+region. The earlier relaxed whole-journey proof was safe but too conservative for
+one frozen failure. Retaining strict membership only at the final leg then moved
+the cost into repeated graph and approach work. Shared goal-access admission
+eliminates both without recognizing a map, unit or seed, and without lowering a
+search limit. Resource exhaustion remains inconclusive.
+
+**Reach:** The proof runs after failure, preserving healthy road-search latency.
+It uses fresh sparse scratch so a small retained pocket does not pin an earlier
+large outside bank twice. Bounds and membership are fingerprinted incrementally;
+knowledge revision changes still use the planner's existing restart/recheck owner.
+This adds one bounded sparse bank during the affected job, not a world grid or
+persistent cross-order cache. Earlier blocked verdicts change planning ticks and
+affected digests; replay remains exact on the same build.
+
+**Verdict:** sound for the demonstrated repeated final-access amplification.
+Public work, sampled-corner, search-limit and counted Battle/replay tests preserve
+the refusal and recovery contracts. A river/bridge fallback falsifies letting
+excluded near accesses hide a legal farther sampled road. The exact three frozen
+Battle inputs terminate their affected jobs at both observation checkpoints.
+**Confidence:** high for graph/envelope safety and this failure family; current
+generator and whole navigation admission remain open.
+
+### C06 — compare reset resources at a fixed presented opening
+
+**When:** full generated browser integration.
+
+**Choice:** after warming the renderer with the live battle, restart three times,
+pause each authority, advance to tick 90 and wait until that tick is drawn. Compare
+both the number of buffers/textures and the bytes they hold across these openings.
+A late battle can draw a translucent overlay that an opening lacks; its mesh
+buffer is correctly destroyed when the opening is installed. Comparing those
+different states incorrectly treated that disposal as a failure.
+
+**Gap:** the reset gate required stable resource ownership but did not fix the
+battle state or presentation clock at which allocations were counted.
+
+**Reach:** future resource checks must compare equivalent drawn states and trace
+allocation ownership before changing lifetime policy. One-time lazy allocations
+are warmed before the repeated-reset baseline; accumulating leaks still fail.
+The scene retains three resets and now checks bytes as well as counts. It adds no
+renderer state, capacity change or product API.
+
+**Verdict:** sound. Actual creation/destruction traces explain the old difference;
+exact matched openings pass and a real retained GPU allocation falsifies the check.
+**Confidence:** high for repeated-reset stability; full timing admission stays open.
+## C66 road core
+
+### The export's `kind` column names the area's kind; no column was added
+
+**Choice:** A paved stretch, triangle and boundary edge's existing `kind` column now holds the area's own kind (an index into the layout's new `surfaceAreaKinds`: road, country_road, dirt_track, sidewalk). Before, it held the surface a unit finds there (road or sidewalk), so every carriageway said "road". The layout also gained `roadAreaKinds`.
+
+**Gap:** C64 left "a distinct exported tag per road kind" open and did not say whether it is a new column or the old one's meaning.
+
+**Verdict:** sound. The surface a unit finds is a function of the area's kind (`SurfaceKind::of`), so the old column held less; a second column would be two owners of one fact. No stride moved. The stroke parity record was re-recorded because the column's values changed (road 1 to 0, dirt track 1 to 2). Rules and digests are untouched. **Confidence:** high.
+
+### `road` and `country_road` share the country road's look
+
+**Choice:** `roads.default` is the country road's gravel, and `road`, `country_road` and `sidewalk` all take it; only `dirt_track` has a row of its own.
+
+**Gap:** Q-G4 says the village's 12 m roads are country roads, but its map says `road`, and generated towns' streets are `road` too.
+
+**Verdict:** provisional. The village map is not this lane's to edit, and a town street has no look of its own until C28. When C28 adds `roads.road` and `roads.sidewalk`, the village's map must say `country_road` first, or its roads turn into streets. **Confidence:** high.
+
+### Kinds are painted one over another, in the contract's order
+
+**Choice:** The material keeps a distance per paved kind and paints the kinds in reverse of `SurfaceKind`'s order, so the earlier kind lies on top: a dirt track ends at the edge of the country road it joins, and its earth is carried `join_m` onto the road.
+
+**Gap:** The slice asks for a look per kind and says nothing of where two kinds overlap.
+
+**Verdict:** sound. The contract already says "where kinds overlap, the earlier one here wins" for speed, so the drawing agrees with what a unit drives on. One "nearest kind" for the whole pixel left a line of grass colour across every junction. **Confidence:** high.
+
+### Patches change hue only, and only toward the warmer colour
+
+**Choice:** A surface's patches go to the palette's second colour scaled to the first's luminance, cover about a quarter of it, and the second colour is the warmer of the two.
+
+**Gap:** "Palettes and mottle" are delegated; the avoid-list bans two-sided blobs.
+
+**Verdict:** sound. The first critique read half-and-half patches as stains and camouflage, and the cooler tone as shadow beside real shadows although no patch was darker. **Confidence:** medium: the second critique still reads the patches as faint stains.
+
+### The luminance rule is checked on frames, not on the palette
+
+**Choice:** "Core at or above the grass" is a scene check on three stations (core against the band 5 to 9 m out), not a rule of `validateBiome`.
+
+**Gap:** The slice asks for a mask-based check and does not say whether the biome should refuse a dark road.
+
+**Verdict:** provisional. A palette rule would have to pick "the grass": against every plot palette it would forbid any road beside a bright crop (wheat today, rapeseed in C83), which is not what L-G3 is about. **Confidence:** medium.
+
+## C67 road shoulder
+
+### The shoulder is a wash of hue with thinner grass, not a band of its own colour
+
+**Choice:** Where the wear is whole the ground goes 45% of the way to the shoulder's colour (`shoulder.cover`), and the grass thins across the same wear. A shoulder painted fully in a sand colour was built first and withdrawn.
+
+**Gap:** Q-G2 asks for "a worn shoulder 2–4 m wide"; SG3, never run, was to say whether one reads as an outline, and names "shoulder by hue and grass thinning only" as its first fallback.
+
+**Verdict:** sound. The unprimed critique called the sand band an outline in every frame from 25 m to 250 m and round every lawn of the generated town. Painted in the road's own colour instead it read as torn paper. The wash is the fallback SG3 names. **Confidence:** medium: the wash all but vanishes beside a field as bright as itself (stubble, wheat), so one road can show a shoulder on one side only.
+
+### "Never darker than the grass" is arithmetic, not a palette
+
+**Choice:** The shoulder's colour is scaled up to the luminance of the ground it lies on wherever that ground is the brighter.
+
+**Gap:** L-G3 asks that the shoulder stay at or above the grass's luminance; fields range from ploughed earth to wheat.
+
+**Verdict:** sound. No palette row can hold that against every field; the lift holds it against any, and a later field palette (C84) cannot break it. **Confidence:** high.
+
+### The shoulder fades out by the tactical camera
+
+**Choice:** The wash is whole while a pixel is under 3% of the shoulder's width and gone at 8% (about 0.1 m and 0.28 m a pixel for the country road: whole at 65 m, gone by 250 m).
+
+**Gap:** Q-G17 says fine detail fades with distance; the slice says nothing of the shoulder at 250 m.
+
+**Verdict:** provisional. The second critique found no outline close up but called the few-pixel fringe at 120 m and 250 m a halo, and possibly a contact shadow under a raised road. A fringe that thin cannot show its ragged edge. The fade was shot at 120 m and 250 m and looked at by its author; it has not had a critique of its own. **Confidence:** medium.
+
+### One wear for the ground and the grass
+
+**Choice:** `groundShoulder` returns one wear value, and both the ground's colour and the grass build read it; the grass keeps `shoulder.grass` of the field's clumps where the wear is whole, and none where it is over 0.9 (the foot of the shoulder and the road itself).
+
+**Gap:** "Grass density ramps across it from C63's field" does not say whether grass and ground share an edge.
+
+**Verdict:** sound. Thin grass over unworn ground, or worn ground under a wall of blades, is the outline again. **Confidence:** high.
+
+### The paved reach is the shoulder's width, and costs nothing
+
+**Choice:** `groundReach`'s paved reach is the widest shoulder (3.5 m), in place of the verge's half width plus a pixel.
+
+**Gap:** The brief asks what widening the reach cost.
+
+**Verdict:** sound. The field's finest level was already built for a 2 m pixel (2.9 m), and the old reach grew with the pixel at every coarser level where the new one does not: the village's index went from 651 to 648 KiB and the dense synthetic town's from 1,037 to 1,024 KiB; the paved records a lookup visits at a play-camera pixel went from 0.047 to 0.049 (village) and 0.49 to 0.56 (town). **Confidence:** high.
+
+### `setRoadWearShown` is a lab switch, not a frame view
+
+**Choice:** The paired cost measure and paired frames turn the roads' wear off through `BattleFrame.setRoadWearShown` (the lab's `suppressRoadWear`), beside `setTreesShown`.
+
+**Gap:** The slice asks for a frame-cost row and names no switch.
+
+**Verdict:** sound. A frame view replaces the frame's composition; this is the finished frame less one thing, as the trees' switch is. **Confidence:** high.
+
+## SG3 road wear read
+
+### Answered inside C67 and C68, on the real material
+
+**Choice:** No scratch worktree and no `spikes/SG3.md`: the shoulder and the ruts were built in the terrain material, critiqued unprimed, and cut back to what passed. The verdict is in the slice file.
+
+**Gap:** SG3 was written as a throwaway spike to run before C67.
+
+**Verdict:** sound. The per-fragment road loop the spike was to paint through is gone (C63), and C62's rig made each question a station shot. **Confidence:** high.
+
+## C68 ruts and centre strip
+
+### The gravel road has no ruts; the dirt track has them and its strip
+
+**Choice:** `roads.default.ruts` is empty. `roads.dirt_track` has one pair of wheel ruts 0.8 m either side of the centreline and a grass strip 0.7 m wide between them, on tracks up to 5 m wide.
+
+**Gap:** Q-G3 asks for two soft ruts inside the core; SG3's fallbacks allow cutting them.
+
+**Verdict:** sound. On the 9 m and 12 m gravel roads the critique read ruts as "pencil lines" and "pinstripes down the lanes" at 65 m in each of the two shapes tried (four narrow ruts, four broader and shallower). On the track it read "a grass strip growing between two wheel ruts", "the best result in the set". **Confidence:** medium. A wide road therefore still has no structure across it at the tactical camera.
+
+### Ruts change no pixel once they fade
+
+**Choice:** A rut darkens its own line and the rest of the surface lightens by the ruts' share of the road, so the road's mean is unchanged; the fade (whole under 0.2 of a rut's width a pixel, gone at 0.4) therefore fades to exactly the surface without ruts.
+
+**Gap:** "They fade to the core's mean below about 2 px per rut, using the same footprint fade as the plot rows."
+
+**Verdict:** sound. The plot rows' fade keeps a mean term; a rut covers a tenth of a road, so a mean term would darken the whole road. The window is 2.5 to 5 pixels a rut, where the rows' is 1.7 to 4: a rut shimmers sooner than a field of rows. **Confidence:** high.
+
+### The strip is never broken along its length
+
+**Choice:** The centre strip's edge wanders but the strip has no gaps.
+
+**Gap:** The slice says only that grass grows in a centre strip.
+
+**Verdict:** sound. Broken by noise, it read as "olive dashes" at 65 m: a dashed line painted down the track. **Confidence:** medium: the second critique still calls the continuous strip "a firm-edged painted stripe" at 65 m.
+
+### The strip fades out with the ruts
+
+**Choice:** The strip is whole while a pixel is under 0.2 of its width and gone at 0.4, as a rut is: gone by the tactical camera.
+
+**Gap:** The slice gives the ruts a fade and the strip none.
+
+**Verdict:** provisional. At 250 m the second critique read the strip, a few pixels wide, as "a dashed centre line (road marking)". The fade is checked at `track-250` and was looked at by its author; it has had no critique of its own. **Confidence:** medium.
+
+### The lane a point lies in rides with the paved distances
+
+**Choice:** `groundPaved` returns a struct: the distance inside each kind's paving, and for the stroke the point lies deepest in, the direction away from its centreline, the distance from it and its half width. Ruts and the strip are functions of that distance from the centreline.
+
+**Gap:** The slice says "keyed from the field" and names no carrier.
+
+**Verdict:** sound. The loop that finds the paved distance already has the closest point of each stretch; a second lookup for the lane would walk the cell's list twice. A polygon has no centreline, so a town's streets have no lanes. **Confidence:** high.
+## SG4 palette vs shadow floor
+
+### The spike ran inside C84, not in a scratch worktree
+
+**Choice:** `fog-look` was run on the starting commit and on two drafts of the palette, and the verdict written into the slice file (no `spikes/SG4.md`).
+
+**Gap:** The slice asks for a throwaway worktree and a spike report; the lane says to answer it on the way.
+
+**Verdict:** sound. **Confidence:** high.
+
+### What the floor measures
+
+**Choice:** `PLOT_MIN_LSTAR` is 24, the CIELAB L\* of a plot's darkest albedo (palette at the low end of the per-plot jitter, rows at their mean), which is what main's darkest ground measures. It is checked on the albedo by `validateBiome`, not on rendered pixels.
+
+**Gap:** "A biome L\* floor enforced as a test" names neither the number nor what is measured.
+
+**Why:** The spike found the fog check is not about dark fields at all (it bounds how light and how grey the ground round the houses is). The floor guards the other case, which no framing of the check holds: a sunlit field as dark as ordinary ground under fog. **Verdict:** provisional: the number is main's own darkest, not a measured threshold. **Confidence:** medium.
+
+## C84 field palette
+
+### The settlement keeps the meadow's old colours as a kind of its own
+
+**Choice:** A plot kind `green` (weight 0, `settlement_kind`) on main's meadow palette, growing the meadow's grass; open-country meadow takes the olive.
+
+**Gap:** The slice moves "the plot palettes" as one, and requires the fog check to pass under every style.
+
+**Why:** `grey-veil` at `default-wall` passes on main by 1.1 a\*b\* units; a desaturated meadow there failed it (11.9 of 12) and a half-desaturated one passed by 0.1. No palette widens that margin, and `light.shadow_floor` is not the palette's to move. **Cost:** a saturated green island round the houses, which an unprimed eye picks out at once. **Verdict:** provisional, until the style's margin is widened. **Confidence:** high that it keeps the check; low that it is the look wanted.
+
+### How far the palette is desaturated
+
+**Choice:** Albedo chroma 7 to 17 (rapeseed 34), about half of what the kinds had; two rounds, the second at 0.7 of the first's chroma.
+
+**Gap:** "Desaturated (olive, tan, brown)" and "GG's palette" give no numbers.
+
+**Why:** The low sun adds about 10 of b\* on screen, so the first round still read mustard and orange. **Verdict:** provisional: on screen the fields are still half again as chromatic as the Broken Arrow frame. **Confidence:** medium.
+
+### Plot weights unchanged
+
+**Choice:** The kinds' shares are as C83 left them (rapeseed 1.2 of 14.9).
+
+**Gap:** None stated; the critique found the yellow pulls the eye.
+
+**Why:** Unchanged weights keep the same kind on the same plot, so before and after are the same fields. **Verdict:** provisional. **Confidence:** medium.
+
+## C85 field texture
+
+### What "luminance-neutral" and "one-sided" were taken to mean
+
+**Choice:** Grain and rows are as much lighter as darker, so a plot's mean stays its palette's (checked: within 0.6% per kind); every value term is finer than about 5 m and fades to its mean under a pixel; anything broader (the dry patches) shifts hue at the plot's own luminance, one way only. A scene check holds that no 9 m block is more than 3% darker for the texture.
+
+**Gap:** The contract says "luminance-neutral and one-sided" of a texture that must still show clods and furrows.
+
+**Verdict:** sound. **Confidence:** medium (the widest grain octave, 5 m on rough ground, is the nearest thing to a broad dark patch).
+
+### Wheelings
+
+**Choice:** A drilled crop has tramlines: two furrows bare in every fifteen rows, darker by 20 to 30%, and the grass leaves them bare.
+
+**Gap:** The slice lists furrows, clods and stubble.
+
+**Why:** From 250 m no grass is drawn and a crop's rows are near a pixel; the wheelings are what still says "drilled field". They are thin dark lines, not a broad patch, and take about 1% off a crop's mean. **Verdict:** provisional (the user has not seen them). **Confidence:** medium.
+
+### The old fine mottle no longer shades plots
+
+**Choice:** The 4 m value noise (`mottle_m`) still varies verge, forest floor, shore and road; a plot takes its grain instead. `field_rules.mottle_scale_m` became `mottle_m`, and the broad scale is each kind's `patch_m`.
+
+**Gap:** None stated: the grain replaces it.
+
+**Verdict:** sound. **Confidence:** high.
+
+### The texture switch rewrites the plot table
+
+**Choice:** `setFieldTextureShown(false)` packs the plots without grain, breaks or wheelings, and the shader skips what a plot does not have; no uniform flag.
+
+**Gap:** The slice asks for a frame-cost row and names no switch.
+
+**Why:** The road pass uses the next word of the terrain's `view` uniform for its own switch; a second flag there would collide with it. **Verdict:** sound. **Confidence:** high.
+
+## Fields on generated maps
+
+### One grain for the land, a tract's own once, a road's where there is one
+
+**Choice:** `generatePlots` cuts the land on `orientation_deg` down to tracts (`tract_m`); each tract turns once by `orientation_jitter_deg`; land in a tract with a road in it or within a plot's width lies along the longest such stretch. Land above tract size is cut by a road only where the road runs nine tenths of the cut's chord.
+
+**Gap:** "Find why the plots lay out that way on an 8 km map and make open country read as farmland cut along its roads."
+
+**Why:** The heading turned at every level above a tract, a random walk that reached 45° on 8 km of land (measured on a roadless site), and a bend's stretches each cut the land on their own line. **What it cannot do:** a road cut is still a whole line through its plot, so a curving road leaves wedges plot-sized or a little more; only field polygons carried by the map (`land_regions`) would follow a curve. **Verdict:** sound for the fan; provisional for the wedges. **Confidence:** medium.
+
+### The other lane's guide test
+
+**Choice:** `web/tests/surfaces.test.ts` fixes `max_aspect` at 50 beside the rules it already fixes.
+
+**Gap:** That fixture pins field rules "so seeded cuts do not obscure the guide contract"; a strip between two road edges now lies along them, is five times as long as wide, and was cut across.
+
+**Verdict:** sound. **Confidence:** high.
+
+## C74
+
+**When:** 2026-10-02. Evidence and numbers: the Outcome in [C74](slices/C74-tree-species.md).
+
+### The one size is 11 m tall with a 0.40 m bole, held by the validator
+
+**Choice:** `SCENERY_KINDS.tree.size` names a top of 11 m and a bole 0.40 m in radius at 1.3 m up, each within 5%; the validator refuses a tree outside either (`fit.tree_size`). The bole is the radius of a round trunk with the cross-section the bark encloses there.
+
+**Gap:** The slice asked for "±5% of one height and girth" and "the validator's size envelope" without naming the size, where it lives or how girth is measured.
+
+**Verdict:** sound. The size is the common broadleaf's, so the kind that fills most woods did not change. Placement scales every tree to the forest rule's canopy and draws it 0.9 to 1 wide, which puts the drawn bole at 0.36 to 0.40 m beside the simulation's 0.35 m trunk. **Confidence:** medium: the simulation's trunk radius is not the number checked, only near it.
+
+### The spreading and tall broadleaves were rebuilt into the band
+
+**Choice:** Spreading 10.0 → 10.5 m; tall 11.8 → 11.5 m with its bole 0.32 → 0.40 m.
+
+**Gap:** C73 kept the three kinds "at unchanged sizes"; Q-G8b says all trees are about one height and trunk thickness.
+
+**Verdict:** sound. Placement already drew every kind to one height, so only the tall kind's trunk visibly changed. **Confidence:** high.
+
+### A conifer is the same clumps in another arrangement, with its own far tier
+
+**Choice:** A spruce's clumps are boughs in whorls up one leader under a spire; its far tier is the boughs' outline turned round the leader (a five-ring lathe of 78 triangles), not the lobed volume.
+
+**Gap:** Branch and clump arrangements were delegated; C73 said the far tier is the lobed volume of the tree's own clumps.
+
+**Verdict:** sound. A lobed volume is measured from one centre and misses a spire's tip. The lathe stands inside the boughs like the lobed volume inside its clumps, so the caster is still the tree's own shape, coarser. **Confidence:** high.
+
+### The pine is a broadleaf-form crown, not a second conifer form
+
+**Choice:** Ten flat pads on a seeded lobed crown, 6 m up a bare bole.
+
+**Gap:** Q-G8 names spruce and pine as the conifers and gives one conifer profile to port.
+
+**Verdict:** sound. A Scots pine's crown is an irregular lump on a pole; the whorled spire is the spruce's. It reads as a mushroom on the sheet and as a pine in a stand. **Confidence:** medium.
+
+### A snag is a skeleton, drawn on every tier
+
+**Choice:** A bare kind draws bark alone: the whole skeleton on the two near tiers, the trunk and limbs on the third, the trunk and each limb as one segment on the far tier. Its height is its highest branch end.
+
+**Gap:** The slice named a standing snag; the tiers and the far tier's crown assumed leaves.
+
+**Verdict:** sound. It is 22 triangles at the far tier and nearly vanishes there, which is right for a bare pole. **Confidence:** high.
+
+## C75
+
+**When:** 2026-10-02. Evidence and numbers: the Outcome in [C75](slices/C75-forest-mix-and-colour.md).
+
+### A stand is the cell nearest a seeded point, and its family is drawn by weight
+
+**Choice:** The land is cut into cells about `trees.stands.size_m` (140 m) across, each one family's; a tree is its stand's family `purity` (0.88) of the time and any family's otherwise. A species' weight is its share of all trees, whichever way it is chosen.
+
+**Gap:** "Mostly one family per stand" did not say what a stand is.
+
+**Verdict:** sound. A forest shape is not a stand: one big wood should hold several, and a small one is one. The cells follow the ground, so a wood and the copses past the map share them. Their edges are straight where two cells meet; at 0.88 the mixing hides it. **Confidence:** medium on the two numbers.
+
+### Birch and snag have no family
+
+**Choice:** A species with no `family` is the odd tree in any stand, at its weight's share: birch 6.6%, snag 2%.
+
+**Gap:** "Plus the odd birch and snag" against "weights over all kinds".
+
+**Verdict:** sound. One list of weights still says how often every kind is drawn. **Confidence:** high.
+
+### "Not in the outer ring or in strips" is a row's `interior_m`
+
+**Choice:** The snag's row carries `interior_m: 12`: it stands only that far inside its forest's edge, never in a stroke-shaped forest and never past the map. A tree refused there is drawn as one of its stand's family.
+
+**Gap:** The slice named the rule for snags; the renderer has no notion of a snag.
+
+**Verdict:** sound. The rule is data on the row, not a named kind in the code. 12 m is past one trunk spacing (9 m) and its jitter. **Confidence:** high.
+
+### Conifers differ from broadleaves in hue, not in brightness
+
+**Choice:** Spruce `[0.74, 0.88, 1.25]` and pine `[0.86, 0.9, 1.1]` over the shared leaf colour; birch `[1.1, 1.08, 0.85]`.
+
+**Gap:** Tints were delegated; the slice's own critique question is whether a darker crown reads as cloud shadow.
+
+**Verdict:** provisional. The first tints (spruce `[0.7, 0.86, 1.5]`, birch `[1.25, 1.15, 0.8]`) left the frames' mean luminance within 3 of 255 of today's, but fresh eyes saw conifers' shaded sides go blue-black and birches read as autumn. Both were pulled toward the broadleaf green; the softened tints landed with C76 and were not critiqued again on their own. **Confidence:** medium.
+
+## C76
+
+**When:** 2026-10-02. Evidence and numbers: the Outcome in [C76](slices/C76-canopy-closure.md).
+
+### "Never past the simulation's canopy radius" is held by never drawing a tree wider than its appearance
+
+**Choice:** `trees.forest.girth` is a tree's drawn width as a share of its appearance's own, and the biome refuses a value over 1. The asset validator already holds every appearance inside `forests.rule.canopy_radius_m` (`fit.canopy`), so no drawn crown passes it.
+
+**Gap:** The slice bounds the crown by the simulation's canopy radius, but that number does not reach the renderer: the world layout exports a forest's canopy height only, and this lane may not change `crates/`.
+
+**Verdict:** sound. The simulation's number keeps one owner and placement needs no copy of it. A test places the village's woods and checks every crown against the fixture's radius. Before this, crowns reached 6.95 m against a 6.5 m canopy. The cost: closure is tuned in two places, the art's reach per species and the one `girth` range. **Confidence:** high.
+
+### Crowns no longer fit inside the forest's shape
+
+**Choice:** The clamp to a crown's room inside the shape is deleted. A tree at a wood's edge is as wide as one inside, and its crown overhangs the field.
+
+**Gap:** C73 found blade-thin edge trees and left them here; C86's simulation half says foliage reaches a canopy radius past a strip's edge.
+
+**Verdict:** sound. The drawn crown now follows the simulation's foliage, not the forest floor's outline. The placement comment and the test that said "inside the shape" were rewritten. **Confidence:** high.
+
+### Closure: girth 0.9 to 1, wider conifers
+
+**Choice:** `girth: [0.9, 1]`; the spruce built 5.3 m in reach (from 4.6) and the pine 5.5 m (from 4.9).
+
+**Gap:** Crown scale within the radius was delegated.
+
+**Verdict:** provisional. At one girth for every species the broadleaf stands closed and the conifer stands stayed an orchard (a third of the floor seen); widening the conifers' art closed them to under a quarter. Narrow kinds (birch, the tall broadleaf) stay narrow: they are the gaps. **Confidence:** medium.
+
+### What "mostly closes, floor still seen" means as a check
+
+**Choice:** In the terrain's own class mask, the share of the wood's floor pixels still seen with the trees drawn must lie between 0.12 and 0.40, at 65 m and 120 m over the village's west wood (`web/scenes/_canopy.mjs`).
+
+**Gap:** The slice names "the visible floor share from a models on/off pair" and no number.
+
+**Verdict:** sound, by the user (2026-10-02). Below about a tenth the wood is a lid; above four tenths it read as an orchard in the pictures (it measured 0.32 before). The band is wide on purpose: it is a guard, and the pictures decide inside it. The landed closure, 0.23 of the floor seen, was shown to the user with the squad it leaves to the x-ray (0 of 8 torsos seen plainly under two crowns): "the 23% check is fine, and we can always tweak that number in the future". The slice's torso check is not in a scene; a unit under a closed crown is found by its x-ray. **Confidence:** high.
+
+### The forest floor's drifts are turned noise, with their strengths in the biome
+
+**Choice:** `forestFloor` mixes moss and humus from two octaves each on lattices turned against each other and the map's axes, eased over a wide band; `forest_floor.moss` and `.humus` say how far each takes the litter over, and the patches grew from 4 m to 6 m.
+
+**Gap:** The brief asked for the floor's blockiness to be fixed inside that one function if the floor is to be seen.
+
+**Verdict:** sound. The bare floor's edge density fell from 0.12 to under 0.02 and its darkest twentieth rose from 69 to 83 of 255: no square patches, and no dark blob to read as shadow. Humus at 0.4 is a guess on the safe side. **Confidence:** medium.
+
+## Ground lane integration
+
+### Road checks judge roads against plain fields, with two bars moved
+
+**Choice:** After the fields pass (C84, C85) the road checks shoot with the fields' texture off, the walk from a road's core to the grass allows a band 4% brighter than the one inside it (was 3%) and 10% under the far grass (was 8%), and the road's edge band may hold 45% of the field's clumps (was 35%). The dirt track's palette is a tenth lighter.
+
+**Gap:** C66 and C67 state their rules against "the grass"; the fields beside the stations are now pale crops with furrow-shaped rows, denser grass and different plots.
+
+**Verdict:** provisional. With grass drawn (the frame a player sees) the walk holds the strict rule at both stations. On bare ground the 5 m beside the village's gravel road reads about 6% darker than the field 5 to 9 m out, where before the fields pass it was lighter; the cause was not found (the shoulder's wash is lifted to the luminance of the ground under it, so it should not be). The track was 10% darker than the wheat beside it and is lightened so no core is darker than its neighbour at any station; a track through stubble, the palest field, is not shot anywhere. **Confidence:** medium.
+
+### The verge's grass is checked between plots, not beside the road
+
+**Choice:** The grass check finds the verge where the class mask changes plot, clear of any road.
+
+**Gap:** C67 deleted the road-keyed verge; C81's check sampled verge grass beside the road.
+
+**Verdict:** sound. Beside a road the ground is its shoulder, which grows the plot's own grass, thinned. **Confidence:** high.
+
+### The renderer skill keeps main's rewrite
+
+**Choice:** The lessons the ground passes added to `.agents/skills/renderer/` were dropped at merge in favour of main's principles-only rewrite; later passes put lessons in slice Outcomes.
+
+**Verdict:** sound: it follows the owner's change to the skill and to AGENTS.md. **Confidence:** high.
+

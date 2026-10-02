@@ -14,10 +14,11 @@ import type { TerrainSurface } from "./terrain/terrainSurface";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import type { CorpseInstance, ModelInstance } from "./models/modelInstances";
 import type { ModelStats } from "./models/modelLayer";
+import type { BuildingStats } from "./models/buildingLayer";
+import type { SideBuildings } from "./models/buildingReferences";
 import type { ImpostorAtlas, ImpostorSpec } from "./models/impostor";
 import type { StaticBundle, TextureChannel } from "@packages/scene-assets/src/schema";
 import type { SceneryPlacement } from "./scenery/placement";
-import type { PlacedInstances } from "./scenery/lod";
 import type { SceneryStats } from "./frame/sceneryLayer";
 import type { GrassProbes, GrassStats } from "./frame/grassPass";
 import type { GrassAppearances } from "./terrain/grassField";
@@ -125,6 +126,9 @@ export interface FrameStats {
   instances: number;
   /** The models layer: appearances installed, models drawn, triangles, draws. */
   models: ModelStats;
+  /** Buildings drawn from template art: what a view draws of them, the
+   *  pool's residency and what the last view change cost. */
+  buildings: BuildingStats;
   worldVertices: number;
   /** Props drawn from what the side knows (standing buildings, ruins, wrecks). */
   structures: number;
@@ -176,12 +180,15 @@ export interface BattleFrame {
    *  buildings the side knows stand and the ruins and wrecks it remembers.
    *  Lit, graded, shadow-casting and fogged like the world. */
   setStructures(structures: readonly ModelInstance[]): void;
-  /** Knowledge-drawn massing (`massingInstances`): the boxes of the artless
-   *  buildings the side knows stand and the remains of those it has seen
-   *  fall, replacing the last list. Lit, shadow-casting and fogged like the
-   *  world. Call when the list changes, not every frame: it is chunked.
-   *  `null` draws none. */
-  setMassing(massing: PlacedInstances | null): void;
+  /** The buildings drawn from template art (`models/buildingReferences.ts`):
+   *  the map's references, and those the side has seen fall. Each is its
+   *  template's rows from the installed library (`setAppearances`), as
+   *  instances of its kit's modules, at the tier its distance asks for; one
+   *  seen to fall draws its remains. Lit, shadow-casting and fogged like the
+   *  world. Call when either changes, not every frame: a new `placed`
+   *  rebuilds the map's references, a new `fallen` only what changed. `null`
+   *  draws none. */
+  setBuildings(buildings: SideBuildings | null): void;
   /** The observing side's learned ground (the client's `GroundView`), drawn
    *  as scars on the terrain and grass. Called every animation frame: a new
    *  view is uploaded whole, the same view only where it changed since the
@@ -237,6 +244,9 @@ export interface BattleFrame {
   setOverlayGlow(glow: OverlayGlowStyle): void;
   /** Lab diagnostics: draw the painted ground marks or not (paired frames). */
   setPaintShown(on: boolean): void;
+  /** Lab diagnostics: draw the plots' own texture (grain, broken rows,
+   *  wheelings) or their plain rows alone (paired frames and cost). */
+  setFieldTextureShown(on: boolean): void;
   /** Diagnostic paired cost/falsification switch; ordinary frames keep coverage enabled. */
   setXrayCoverageEnabled(on: boolean): void;
   /** Lab diagnostics: light the world by the effects' cast lights or not
@@ -245,8 +255,15 @@ export interface BattleFrame {
   /** The pass inspector's view. */
   setView(view: FrameView): void;
   /** Lab diagnostics: draw the trees (the forest's and the backdrop's) and
-   *  their shadows or not; massing still draws. */
+   *  their shadows or not. */
   setTreesShown(on: boolean): void;
+  /** Lab diagnostics: draw the template-art buildings and their shadows or
+   *  not (a paired cost measure). */
+  setBuildingsShown(on: boolean): void;
+  /** Lab diagnostics: draw the roads worn (surface detail, shoulders, the
+   *  grass thinned across them) or plain, each kind's flat colour to its
+   *  edge: paired frames and cost. */
+  setRoadWearShown(on: boolean): void;
   /** Lab probes of the sight lights (debug readbacks, never in a frame). */
   readonly fogProbes: FogProbes;
   /** Lab probes of the grass field (debug readbacks, never in a frame). */

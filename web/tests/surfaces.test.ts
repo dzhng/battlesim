@@ -1,6 +1,10 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
 import { generatePlots, plotAt, type PlotSite } from "@packages/battle-renderer/src/terrain/plots";
+import {
+  SURFACE_AREA_KINDS,
+  type SurfaceAreaKind,
+} from "@packages/battle-renderer/src/terrain/surfaces";
 import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome";
 import summer from "@fixtures/biomes/summer.json";
 
@@ -8,7 +12,14 @@ import summer from "@fixtures/biomes/summer.json";
 const base = validateBiome(summer as unknown as Biome);
 const biome: Biome = {
   ...base,
-  field_rules: { ...base.field_rules, extent_m: 0, size_m: [1000, 1000], tract_m: 1000 },
+  field_rules: {
+    ...base.field_rules,
+    extent_m: 0,
+    size_m: [1000, 1000],
+    tract_m: 1000,
+    // A strip between two road edges lies along them, however long.
+    max_aspect: 50,
+  },
 };
 const empty: PlotSite = {
   map: [0, 0, 100, 100],
@@ -25,11 +36,13 @@ const empty: PlotSite = {
   riverRunStride: 4,
 };
 
-function paving(kind: number): PlotSite {
+/** A strip of paving of one kind across the map, as a stroke and as a polygon. */
+function paving(named: SurfaceAreaKind): PlotSite {
+  const kind = SURFACE_AREA_KINDS.indexOf(named);
   return {
     ...empty,
     surfaceStrokes: Float32Array.of(0, 50, 100, 50, 2, kind, 3),
-    surfaceRuns: kind === 1 ? Float32Array.of(0, 50, 100, 50) : new Float32Array(0),
+    surfaceRuns: named === "sidewalk" ? new Float32Array(0) : Float32Array.of(0, 50, 100, 50),
     surfaceTriangles: Float32Array.of(0, 40, 100, 40, 100, 60, kind, 0, 40, 100, 60, 0, 60, kind),
     surfaceBoundaries: Float32Array.of(
       0,
@@ -56,11 +69,13 @@ function paving(kind: number): PlotSite {
   };
 }
 
-test("sidewalk paving leaves fields unchanged while roads guide their boundaries", () => {
+test("sidewalk paving leaves fields unchanged while every road kind guides their boundaries", () => {
   const untouched = generatePlots(empty, biome);
-  expect(generatePlots(paving(4), biome)).toEqual(untouched);
-  const road = generatePlots(paving(1), biome);
-  expect(plotAt(road, 50, 30)!.plot).not.toBe(plotAt(road, 50, 70)!.plot);
+  expect(generatePlots(paving("sidewalk"), biome)).toEqual(untouched);
+  for (const kind of ["road", "country_road", "dirt_track"] as const) {
+    const road = generatePlots(paving(kind), biome);
+    expect(plotAt(road, 50, 30)!.plot, kind).not.toBe(plotAt(road, 50, 70)!.plot);
+  }
 });
 
 test("a river's authored run guides field boundaries as a road's does", () => {
@@ -76,7 +91,7 @@ test("a river's authored run guides field boundaries as a road's does", () => {
 
 test("road polygon guides use only the ring, never the triangulation diagonal", () => {
   const polygon = {
-    ...paving(1),
+    ...paving("road"),
     surfaceStrokes: new Float32Array(0),
     surfaceRuns: new Float32Array(0),
   };

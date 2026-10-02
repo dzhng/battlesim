@@ -8,6 +8,11 @@ import type { Articulation } from "@packages/scene-assets/src/articulation";
 import { isRgba, type Rgba } from "../mesh";
 import type { PoseFrame } from "./poseDriver";
 
+/** Floats in a model's GPU record (`modelLayer.ts` `ModelRecord`): placement
+ *  (x, y, z, yaw), data (palette base, track scrolls, x-ray rgb), tint (rgb,
+ *  card layer), scale (xyz, x-ray alpha). */
+export const MODEL_RECORD_FLOATS = 16;
+
 export interface SkinnedModelPose {
   kind: "skinned";
   clip: string;

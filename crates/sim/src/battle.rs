@@ -32,7 +32,7 @@ use crate::hearing;
 use crate::knowledge::SideKnowledge;
 use crate::math::{v2, v3, Obb2, V2, V3};
 use crate::movement::{self, MovementContext, SideGeometry};
-use crate::navigation::{NavBase, RoadNet};
+use crate::navigation::RoadNet;
 use crate::rng::Rng;
 use crate::route_planner::RoutePlanner;
 use crate::sensing::{self, Sighting};
@@ -395,6 +395,20 @@ fn config_digest(setup: &ScenarioDefinition) -> u64 {
 
 impl Battle {
     pub fn new(setup: &ScenarioDefinition, seed: u64) -> Self {
+        Self::from_prepared(
+            setup,
+            seed,
+            crate::encounter::PreparedMap::new(&setup.map, &setup.rules),
+        )
+    }
+
+    /// Consume the physical world and navigation already used to place this encounter.
+    /// `prepared` must have been built from this scenario's map and rules.
+    pub fn from_prepared(
+        setup: &ScenarioDefinition,
+        seed: u64,
+        prepared: crate::encounter::PreparedMap,
+    ) -> Self {
         let rules = setup.rules.clone();
         assert!(
             rules.physics.vehicle_aim_height_fraction > 0.0
@@ -407,17 +421,14 @@ impl Battle {
         ground::validate(&rules);
         crate::cover::validate(&rules);
         flight::validate_guided(&rules.guided);
-        let world = WorldGeometry::new(&setup.map, &rules);
-        let roads = RoadNet::build(&world);
-        // What both sides know of the map when the battle starts, built
-        // once and shared: every body authored on it stands where it is.
-        let grid = std::sync::Arc::new(NavBase::build(
-            &world,
-            world.props(),
-            rules.physics.soldier_radius_m,
-        ));
+        let crate::encounter::PreparedMap {
+            world,
+            roads,
+            base: grid,
+            ..
+        } = prepared;
         let arsenal = Arsenal::new(&rules);
-        supply::validate(&arsenal, &rules);
+        supply::validate(&rules).expect("fixture supply rules are valid");
         for e in &setup.events {
             if let EventAction::AddProp(def) = &e.action {
                 assert!(
@@ -597,6 +608,25 @@ impl Battle {
     /// A battle that re-applies `replay`'s commands at their recorded ticks.
     /// Player input is refused for its whole life.
     pub fn from_replay(setup: &ScenarioDefinition, replay: &Replay) -> Result<Self, ReplayError> {
+        Self::load_replay(setup, replay, || Self::new(setup, replay.seed))
+    }
+
+    /// Restore a replay while retaining the prepared map's physical allocations.
+    pub fn from_prepared_replay(
+        setup: &ScenarioDefinition,
+        replay: &Replay,
+        prepared: crate::encounter::PreparedMap,
+    ) -> Result<Self, ReplayError> {
+        Self::load_replay(setup, replay, || {
+            Self::from_prepared(setup, replay.seed, prepared)
+        })
+    }
+
+    fn load_replay(
+        setup: &ScenarioDefinition,
+        replay: &Replay,
+        build: impl FnOnce() -> Self,
+    ) -> Result<Self, ReplayError> {
         if replay.engine_build != ENGINE_BUILD_ID {
             return Err(ReplayError::BuildMismatch);
         }
@@ -606,7 +636,7 @@ impl Battle {
         if format!("{:016x}", config_digest(setup)) != replay.config_digest {
             return Err(ReplayError::ConfigMismatch);
         }
-        let mut battle = Battle::new(setup, replay.seed);
+        let mut battle = build();
         battle.replaying = Some(replay.accepted.iter().cloned().collect());
         Ok(battle)
     }
@@ -1750,13 +1780,12 @@ impl Battle {
             for eye in sensing::eyes(unit, &self.rules) {
                 // A ray can step one cell past its reach, and the marked cell
                 // can contain a footprint sample a diagonal farther away.
-                candidates.extend(
-                    self.world
-                        .props_near(eye.xy(), sight.max_range() + 3.0 * field.cell_m)
-                        .into_iter()
-                        .map(|p| p.id),
+                self.world.append_prop_ids_near(
+                    eye.xy(),
+                    sight.max_range() + 3.0 * field.cell_m,
+                    &mut candidates,
                 );
-                self.sides[side.index()].standing_near(
+                self.sides[side.index()].append_standing_near(
                     eye.xy(),
                     sight.max_range() + 3.0 * field.cell_m,
                     &mut remembered,
@@ -1774,6 +1803,8 @@ impl Battle {
         completed(TickPhase::Fog);
         candidates.sort_unstable();
         candidates.dedup();
+        remembered.sort_unstable();
+        remembered.dedup();
         // Enemy fallen in view are remembered, and the ground in view learned.
         let knowledge = &mut self.knowledge[side.index()];
         knowledge.learn_ground(&self.ground, &field);

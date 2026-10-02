@@ -1,5 +1,6 @@
 // The player camera's numbers, from the one fixture owner's presentation block.
 import game from "@fixtures/game.json";
+import generated from "@fixtures/generated-battle.json";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import {
   CameraController,
@@ -28,6 +29,18 @@ export const gameCamera = {
       pitch: rig.pitchAt(distance),
       yaw,
       ...gameCamera.lens,
+    };
+  },
+  /** The rig for a map `size` metres across: the game's, with the wheel
+   *  reaching far enough out, and tilting far enough down, to take the whole
+   *  map in. */
+  forMap(size: readonly [number, number]): CameraPresentation {
+    const far = Math.max(config.zoom_max, Math.max(...size) * generated.camera.overview_span);
+    if (far === config.zoom_max) return config;
+    return {
+      ...config,
+      zoom_max: far,
+      pitch_curve: [...config.pitch_curve, [far, generated.camera.overview_pitch]],
     };
   },
 };

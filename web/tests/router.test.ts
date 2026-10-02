@@ -1,16 +1,21 @@
 // @vitest-environment jsdom
 import { createElement } from "react";
 import { fireEvent, render } from "@testing-library/react";
-import { expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import fixtures from "@apps/battle-lab/src/fixtures.json";
 import { LAB_FIXTURES, LabRouter, ROUTES } from "@apps/battle-lab/src/router";
+
+afterEach(() => vi.unstubAllEnvs());
 
 test("every registered fixture has a page and every page a fixture", () => {
   expect(Object.keys(ROUTES).sort()).toEqual(fixtures.map((f) => f.id).sort());
 });
 
-test("the main menu at / offers a new battle, the village, the saved battlefield and replay, the benchmark and labs behind its developer link; the lab index is /labs", () => {
-  const menu = render(createElement(LabRouter, { path: "/" }));
+test("the main menu at / offers a new battle, the village, the saved battlefield and replay, the benchmark and labs behind its developer link; the lab index is /labs", async () => {
+  vi.stubEnv("DEV", true);
+  vi.resetModules();
+  const { LabRouter: DevelopmentRouter } = await import("@apps/battle-lab/src/router");
+  const menu = render(createElement(DevelopmentRouter, { path: "/" }));
   const links = () => menu.getAllByRole("link").map((a) => a.getAttribute("href"));
   expect(links()).toEqual([
     expect.stringMatching(/^\/battle\?type=mixed&size=small&seed=\d+$/),
@@ -22,6 +27,7 @@ test("the main menu at / offers a new battle, the village, the saved battlefield
     "Play Market Town": "/battle?map=market-town&recipe=assault",
     "Watch replay": "/replay/village",
     Village: "/battle/village",
+    "Mechanics editor": "/mechanics",
     Benchmark: "/benchmark",
     Labs: "/labs",
   };
@@ -47,4 +53,15 @@ test("fixture ids and routes are unique and builds are known", () => {
   expect(new Set(LAB_FIXTURES.map((f) => f.route)).size).toBe(LAB_FIXTURES.length);
   for (const f of fixtures as { build?: string }[])
     expect([undefined, "production"]).toContain(f.build);
+});
+
+test("the production menu does not offer source editing", async () => {
+  vi.stubEnv("DEV", false);
+  vi.resetModules();
+  const { MainMenu } = await import("@apps/battle-lab/src/MainMenu");
+  const menu = render(createElement(MainMenu));
+  fireEvent.click(menu.getByRole("button", { name: "Developer" }));
+  expect(menu.queryByRole("link", { name: "Mechanics editor" })).toBeNull();
+  expect(menu.getByRole("link", { name: "Benchmark" }).getAttribute("href")).toBe("/benchmark");
+  menu.unmount();
 });

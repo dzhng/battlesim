@@ -5,6 +5,30 @@
 ## Question
 Can steady-state and snapshot delivery fit their distinct budgets without hidden-state leaks or unbounded full-map copies?
 
+## Latest measured checkpoint
+
+The 60 s layout-7 controls at `95f7db1b` use Metro Large seed 4, map
+`d8a0c783…`, rules `a59680c1…` and native/Wasm build `0666de00…`. Each arm
+has 100 living units per side; late adds 20,000 corpses and 2,000 wrecks.
+
+| Whole delivery | Early | Late |
+|---|---:|---:|
+| Mean / p95 / maximum B per active tick | 4,860 / 14,452 / 19,264 | 5,050 / 14,440 / 19,520 |
+| Cold blue snapshot B | 440,772 | 866,496 |
+| Blue resync at 60 s B | 1,058,448 | 1,511,840 |
+| Red switch at 60 s B | 986,176 | 1,432,508 |
+| Mean / maximum packing M instructions | 3.583 / 10.243 | 7.275 / 22.219 |
+
+Both sampled active maxima fit the unchanged 19,800 B limit; the late margin
+is 280 B. Observation construction is separate from packing. Resync costs
+about 69 M instructions per arm, so it does not inherit the active-record
+admission. Independent raw-word reconstruction covers all 3,602 records;
+canonical group samples and the actual browser decoder agree at five ticks per
+arm, with earlier views retained. These are correctness proofs, not decoder
+throughput measurements. Active heap and browser copy/decoder overlap remain
+unclaimed. The subsequent building-catalogue cutover needs its own identified
+final admission; these controls are not relabelled as current-main evidence.
+
 ## Contract it unlocks
 Implement G0's measured fog/known-prop publication representation, with the observation decoder cut over in the same commit. Possible measured arms include bounded changed tiles/masks and known-prop deltas with an initial snapshot. Sending the entire Large 8 m fog every sixth tick is not assumed sufficient; full snapshots and resubscription have their own byte/time/peak-memory budget.
 
@@ -223,3 +247,118 @@ identity, frozen input and changed-floor reconstruction. The existing feed/drive
 suites preserve death/fade/cap/reset behavior. Producer, decoder, world, camera
 and frame orchestration are unchanged. No upload or visual-throughput verdict is
 claimed; browser admission and whole-record budgets remain open.
+
+
+## Outcome: compact lossless group carriers
+
+Post-span-copy full-Metro contact still exceeds the provisional **19,800-byte
+whole-record gate**: early p95/max are 20,284/26,260 B and late 20,344/25,356 B.
+The peak includes substantial fog and ground delivery; shortening own literals
+alone with XOR varints is insufficient. A captured full 1,800-transition stream
+per window supplies a matched encoding experiment without another battle run.
+
+One optional compact arm serializes the existing selected snapshot, replacement
+or source-copy form. Its grammar lives in the producer's `groupDelivery.packed`
+layout. Span selection, fixed-row alignment and the eight-word variable index
+remain the same. Small integers use variable-length bytes; literals retain all
+32 float bits, choosing raw bits or their exact XOR with the old word at the
+output address. Cold snapshots use raw bits only. The producer selects compact
+storage only when smaller, measures both sizes in the same operation traversal,
+and writes directly into its already admitted output. The ordinary form wins
+first; this does not search for a global minimum across all packed forms. There is no byte staging
+buffer, second baseline, entity-specific predictor or compression dependency.
+
+A standalone exact codec replay across all groups of both frozen corpora leaves
+fog/ground bytes intact and reconstructs every original raw word. Excluding cold
+tick zero, whole-record bytes change as follows; p95 uses floor((n−1)·0.95).
+
+| Window | Before mean / p95 / max B | Compact mean / p95 / max B |
+|---|---:|---:|
+| Early | 8,830 / 20,284 / 26,260 | 4,796 / 14,344 / 19,772 |
+| Late | 9,307 / 20,344 / 25,356 | 5,025 / 14,296 / 18,220 |
+
+Separately, the actual prior and new producer functions replay all captured own
+and identified groups with exact reconstruction. Identical probe staging copies
+and index sorting are included; logical observation packing, the battle step and
+browser decoding are excluded. Fresh snapshots now visit every literal while
+counting compact storage; active counters do not establish cold startup cost.
+Own mean instructions rise from 2.210 to 2.312 M
+early and 2.271 to 2.398 M late; identified rises from 0.121 to 0.134/0.135 M.
+A selected-payload-only counter is smaller and is not used as full packing cost.
+
+Transient indices retain the prior aggregate 12.8 MiB bound. Compact count/write
+uses constant scratch, preserves the existing complete 64 MiB logical and wire
+admission, and adds no allocation beyond the already reserved output. Bit counting
+is bounded by the logical record and operations; no extra sparse-index search
+pass is introduced. Packed carriers may have NaN bit patterns: browser decoding
+reads a u32 alias, never float numbers, and writes reconstructed u32 bits. Existing
+unchanged zero-payload groups still retain their original word/view identities.
+
+Public cold delivery is strictly smaller and matches its complete logical oracle.
+Special float proofs include subnormals, infinities, signed zero and distinct NaN
+payloads; a NaN baseline is used to recover a finite residual value. Malformed
+forms, tags, varints, truncation, source alignment/bounds, ranges and padding leave
+all cursors available for a corrected generation. Epoch/side/resync and retained
+views keep their existing contract. Paired native/Wasm emission and real worker
+copy/transfer proofs pin the raw carrier seam. Canonical fixture values, digests
+and fog identities remain unchanged; transport identities and its layout change.
+
+These frozen-stream maxima justify this representation arm, **not city-scale
+closure**. Early headroom is only 28 B. Root still owns matched live early/late
+whole-record admission, packing/step cost, full snapshots, peak overlap and browser
+throughput. No quantization, information masking or allowance increase occurs.
+
+### Integration with current main
+
+The newer combat stream joins the paired transport gate. Compact serialization
+changes 78 of its 80 wire hashes; every battle digest, fog hash and input is
+identical. Native and Wasm replay the same firing/impact stream. The authority's
+external module fixture now implements the required public-world handoff, returning
+no world for its raw-carrier test. Combined authority, observation, delivery and
+preparation checks pass; the optimized native/Wasm engine identity also matches.
+
+## Historical layout-6 delivery and requested heap
+
+The combined prototype-map/rule identity and cost control live in
+[C05](C05-measuring-tools.md#frozen-layout-6-combined-contact-measurement).
+These records precede current admission and preserve separate workload identities.
+
+| Encoded delivery | Early | Late |
+|---|---:|---:|
+| Approximate mean B/tick | 17,144 | 16,781 |
+| p95 B/tick | 48,600 | 48,540 |
+| Max B/tick | 66,368 | 66,668 |
+| Corpse mean / max B | 12 / 12 | 52 / 1,268 |
+| Other rows mean / max B | 15,760 / 56,392 | 15,360 / 55,312 |
+| Cold initial blue snapshot B | 452,836 | 952,120 |
+| Red resubscription at 60 s B | 1,195,300 | 1,711,004 |
+
+The sparse corpse copies removed the retained-tail amplification from this arm,
+but other rows still missed the provisional 19.8 KB/tick limit. Complete snapshots
+include exact fog and ground state; their packing at 60 s reached 71–76 M
+instructions. Browser copy/decoder cost and peak overlap were not established
+by this control. Raw reports live in `throwaway/scale-lane/`.
+
+This historical layout-6 full-world delivery uses Metro Large seed 4 (`33bbd0d9…`),
+13,006 buildings and 22,577 parts, with the central `city-arena-1` stress
+recipe, 100 living units per side and battle seed 4. Each arm runs 60 s;
+late adds 20,000 corpses and 2,000 wrecks. A scratch requested-allocation
+counter measures native heap separately from clocks and instruction cost.
+Its steady wire costs are the pre-compact rows in
+[the captured codec comparison](#outcome-compact-lossless-group-carriers).
+
+| Historical full-world delivery | Early | Late |
+|---|---:|---:|
+| Cold blue snapshot B | 452,692 | 946,972 |
+| Blue resync at 60 s B | 1,044,468 | 1,579,216 |
+| Red switch at 60 s B | 990,320 | 1,500,996 |
+| Active peak requested heap B | 399,905,882 | 420,671,630 |
+| Peak with retained blue/red publishers B | 401,825,004 | 423,182,142 |
+| Rounds / final digest | 67 / `f7397266251bd45b` | 438 / `ce9463bc51b5b494` |
+
+Native requested heap stayed below the 4 GiB ceiling on this workload. It excludes
+allocator-internal reallocation overlap, browser transfer/decoding and GPU
+resources. Profiling allocation hooks and loaded clocks are not throughput
+admission. The provisional 19.8 KB whole-record gate was red at p95/max;
+no budget is raised. Browser startup/peak overlap and full generated early/late
+throughput were not established by this control.

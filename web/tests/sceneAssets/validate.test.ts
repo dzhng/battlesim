@@ -34,6 +34,7 @@ import {
   testSet,
 } from "./city";
 import { grassClumpGlb } from "@packages/scene-assets/src/grass.ts";
+import { SCENERY_KINDS } from "@packages/scene-assets/src/scenery.ts";
 import {
   AUTHORITY,
   GRASS_SPEC,
@@ -41,6 +42,7 @@ import {
   SOLDIER_CLIPS,
   TOLERANCES,
   buildingGlb,
+  panelGlb,
   soldierGlb,
   syntheticUnits,
   tankGlb,
@@ -48,6 +50,7 @@ import {
   testCatalog,
   treeGlb,
   truckGlb,
+  withJson,
   type SoldierOptions,
   type TankOptions,
   TANK_DRAWS,
@@ -158,29 +161,14 @@ async function city(set: unknown = testSet(), catalogue?: unknown[], kit?: Uint8
   return result.reports.flatMap((r) => r.findings);
 }
 
+/** A hedgerow whose one material `edit` changes: its findings. */
+async function panel(edit: Parameters<typeof panelGlb>[0]) {
+  return (await scenery("hedgerow", { summer: panelGlb(edit) })).findings;
+}
+
 async function skeleton(entry: Partial<SkeletonEntry>, bytes = soldierGlb()) {
   return (await validateSkeleton("test-rig", { ...SKELETON_ENTRY, ...entry }, bytes)).findings;
 }
-
-const withJson = (bytes: Uint8Array, edit: (json: Record<string, unknown>) => void): Uint8Array => {
-  const dv = new DataView(bytes.buffer, bytes.byteOffset);
-  const length = dv.getUint32(12, true);
-  const json = JSON.parse(new TextDecoder().decode(bytes.subarray(20, 20 + length)));
-  edit(json);
-  const text = new TextEncoder().encode(JSON.stringify(json));
-  const padded = Math.ceil(text.length / 4) * 4;
-  const binChunk = bytes.subarray(20 + length);
-  const out = new Uint8Array(20 + padded + binChunk.length);
-  out.set(bytes.subarray(0, 12));
-  const odv = new DataView(out.buffer);
-  odv.setUint32(8, out.length, true);
-  odv.setUint32(12, padded, true);
-  odv.setUint32(16, 0x4e4f534a, true);
-  out.set(text, 20);
-  out.fill(0x20, 20 + text.length, 20 + padded);
-  out.set(binChunk, 20 + padded);
-  return out;
-};
 
 const LFS_POINTER = new TextEncoder().encode(
   "version https://git-lfs.github.com/spec/v1\noid sha256:4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393\nsize 12345\n",
@@ -244,6 +232,21 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
     return textureFindings("tank", bundle);
   },
   "texture.tangents": () => tank({ textures: { size: 4, tangents: false } }),
+  // Each material rule's variants are in material.test.ts.
+  "material.coverage": () => panel((m) => (m.alphaMode = "DITHER")),
+  "material.coverage_source": () => panel((m) => (m.alphaMode = "MASK")),
+  "material.wear": () =>
+    panel((m) => {
+      m.alphaMode = "BLEND";
+      m.pbrMetallicRoughness.baseColorFactor = [1, 1, 1, 0.5];
+      m.extras = { wear: [0.2, 0.2, 0.2, 1] };
+    }),
+  "material.interior": () =>
+    tank(
+      {},
+      {},
+      withJson(tankGlb(), (j) => (j.materials[0].extras = { interior: "rooms" })),
+    ),
   "basis.ground": () => soldier({ lift: 0.1 }),
   "basis.forward": () => tank({}, { basis_yaw_deg: 180 }),
   "basis.up": () => tank({ flip: true }),
@@ -271,6 +274,10 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
     return typeAppearanceFindings(appearances, AUTHORITY.units);
   },
   "fit.canopy": async () => (await scenery("tree", { summer: treeGlb(12.5) })).findings,
+  "fit.tree_size": async () =>
+    (await scenery("tree", { summer: treeGlb(11, 0, { bole: 0.2 }) })).findings,
+  "budget.tier_triangles": async () =>
+    (await scenery("tree", { summer: treeGlb(11, 0, { crowns: overBudget(3) }) })).findings,
   "nodes.missing": () => tank({ omit: "hmg_muzzle" }),
   "nodes.hierarchy": () => tank({ muzzleUnderTurret: true }),
   "nodes.duplicate": () => tank({ duplicateWheel: true }),
@@ -322,9 +329,68 @@ test("a tree must stand inside the simulation's canopy; a hedgerow need not", as
   // The crown top is measured against the lowest canopy the fixture's forests have.
   const codes = async (kind: string, height: number) =>
     (await scenery(kind, { summer: treeGlb(height) })).findings.map((f) => f.code);
-  expect(await codes("tree", 12.5)).toEqual(["fit.canopy"]);
-  expect(await codes("tree", 11.9)).toEqual([]);
+  expect(await codes("tree", 12.5)).toContain("fit.canopy");
+  expect(await codes("tree", 11.9)).not.toContain("fit.canopy");
   expect(await codes("hedgerow", 14)).toEqual([]);
+});
+
+test("every tree is one height and one girth of bole, within the kind's band; a hedgerow is any size", async () => {
+  const { top_m, bole_radius_m, within } = SCENERY_KINDS.tree.size!;
+  const codes = async (kind: string, height: number, bole: number) =>
+    (await scenery(kind, { summer: treeGlb(height, 0, { bole }) })).findings.map((f) => f.code);
+  const [inside, outside] = [1 + within * 0.8, 1 + within * 1.2];
+  expect(await codes("tree", top_m * inside, bole_radius_m / inside)).toEqual([]);
+  expect(await codes("tree", top_m / inside, bole_radius_m * inside)).toEqual([]);
+  expect(await codes("tree", top_m * outside, bole_radius_m)).toEqual(["fit.tree_size"]);
+  expect(await codes("tree", top_m / outside, bole_radius_m)).toEqual(["fit.tree_size"]);
+  expect(await codes("tree", top_m, bole_radius_m * outside)).toEqual(["fit.tree_size"]);
+  expect(await codes("tree", top_m, bole_radius_m / outside)).toEqual(["fit.tree_size"]);
+  expect(await codes("hedgerow", top_m / 3, bole_radius_m * 3)).toEqual([]);
+});
+
+test("a tree's bole is measured where it stands, not about the origin", async () => {
+  // A leaning or off-centre bole has the girth it has.
+  const { top_m, bole_radius_m } = SCENERY_KINDS.tree.size!;
+  const off = await scenery("tree", {
+    summer: treeGlb(top_m, 0, { bole: bole_radius_m, boleAt: [0.6, -0.4] }),
+  });
+  expect(off.findings).toEqual([]);
+});
+
+test("a tree's crown reaches no farther than the simulation's canopy radius, on every tier", async () => {
+  // The synthetic crown is a square, so its corner reaches radius × √2.
+  const reach = (corner: number) => corner / Math.SQRT2;
+  const codes = async (kind: string, corner: number) =>
+    (await scenery(kind, { summer: treeGlb(11, 0, { radius: reach(corner) }) })).findings.map(
+      (f) => f.code,
+    );
+  expect(await codes("tree", AUTHORITY.canopy_radius_m + 0.1)).toEqual(["fit.canopy"]);
+  expect(await codes("tree", AUTHORITY.canopy_radius_m - 0.1)).toEqual([]);
+  expect(await codes("hedgerow", AUTHORITY.canopy_radius_m + 3)).toEqual([]);
+});
+
+/** Crown boxes per tier that put tier `tier` one box over the tree budget
+ *  (`by` 0: the most boxes inside it). Finer tiers draw as many, inside
+ *  their own larger budgets, so the tiers stay ordered; coarser ones draw one. */
+function overBudget(tier: number, by = 1): number[] {
+  const budget = SCENERY_KINDS.tree.tier_triangles!;
+  const trunk = 12;
+  const boxes = Math.floor((budget[tier] - trunk) / 12) + by;
+  return budget.map((_, t) => (t <= tier ? boxes : 1));
+}
+
+test("a tree's tiers each stay inside the triangle budget; a hedgerow has none", async () => {
+  for (let tier = 0; tier < 4; tier++) {
+    const over = await scenery("tree", { summer: treeGlb(11, 0, { crowns: overBudget(tier) }) });
+    expect(over.findings.map((f) => f.code)).toEqual(["budget.tier_triangles"]);
+    expect(over.findings[0].message).toContain(`tier ${tier}`);
+    const within = await scenery("tree", {
+      summer: treeGlb(11, 0, { crowns: overBudget(tier, 0) }),
+    });
+    expect(within.findings).toEqual([]);
+  }
+  const hedge = await scenery("hedgerow", { summer: treeGlb(3, 0, { crowns: overBudget(3) }) });
+  expect(hedge.findings).toEqual([]);
 });
 
 test("an LFS pointer's finding prints the exact pull command", async () => {

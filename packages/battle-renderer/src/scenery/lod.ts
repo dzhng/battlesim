@@ -1,6 +1,6 @@
 // Scenery as the static chunk owner (`frame/staticChunks.ts`) draws it:
-// placed instances of a few appearances (trees and hedgerow shrubs, a town's
-// massing boxes), their GPU record, and the rule for the detail tier each
+// placed instances of a few appearances (trees and hedgerow shrubs), their
+// GPU record, and the rule for the detail tier each
 // draws at. An instance's tier comes from its projected height in pixels (the
 // biome's `lod_px`), as ~/dev/game's sceneryDetail chooses leaf detail
 // (technique): placement, not upload order, decides.

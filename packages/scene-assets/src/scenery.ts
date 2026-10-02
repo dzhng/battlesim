@@ -28,6 +28,15 @@ export interface SceneryRule {
   /** The art is blade strips the grass field instances and bends in the
    *  wind: every tier the same blades in one layout (`grass.ts`). */
   blades?: true;
+  /** The most triangles each tier may draw, finest first. The kind is
+   *  instanced by the hundred, so its tiers are the forest's frame cost
+   *  (`budget.tier_triangles`). */
+  tier_triangles?: readonly [number, number, number, number];
+  /** The one size every appearance of the kind is built to, so species
+   *  differ in shape and never in size (`fit.tree_size`): its top, and its
+   *  bole's radius at `breast_m` above the foot (that of a round bole of the
+   *  same cross-section), each within the fraction `within`. */
+  size?: { top_m: number; bole_radius_m: number; breast_m: number; within: number };
 }
 
 const prop: SceneryRule = { states: ["default"], footprint: { kind: "prop" } };
@@ -45,8 +54,17 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   tooth: prop,
   // Trees and hedgerows carry one state per biome season (summer; winter is
   // the next biome spec). A tree also stands inside the forests' canopy
-  // (`fit.canopy`); hedgerows stand only past the map.
-  tree: { states: ["summer"], footprint: { kind: "tree" } },
+  // (`fit.canopy`); hedgerows stand only past the map. A tree's tiers are
+  // the forest's frame cost: the budget is what a paired run measured to fit
+  // (specs/city-maps/slices/C73-tree-skeleton.md). Its size is the common
+  // broadleaf's: placement scales it to the forest rule's canopy, where its
+  // bole comes out near the simulation's trunk.
+  tree: {
+    states: ["summer"],
+    footprint: { kind: "tree" },
+    tier_triangles: [10000, 2500, 500, 80],
+    size: { top_m: 11, bole_radius_m: 0.4, breast_m: 1.3, within: 0.05 },
+  },
   hedgerow: { states: ["summer"], footprint: { kind: "none" } },
   /** A clump of blades, one per grass kind (meadow, wheat, stubble), in its
    *  season's state like trees: the biome names which grows on each plot kind. */

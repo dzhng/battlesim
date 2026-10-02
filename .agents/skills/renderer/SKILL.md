@@ -54,15 +54,25 @@ Read before changing anything:
 - **Light an effect throws is one bounded list of lights read by the one shade function,** never a sprite per layer. Cull before you cap. Light adds before fog, so fog still owns what unseen looks like.
 - **Whatever casts into view from off screen is culled by its shadow,** not by the view alone. A caster can be coarser than what it casts for.
 - **Things placed once and drawn many times share one chunk owner.** A far chunk costs no per-instance work. Bounds cover every pose a thing can reach.
+- **Draw count follows the layout, not the camera.** A pool streamed with the view is kept kind by kind, each kind one contiguous range, so a kind is one draw however many chunks feed it. Hide a record where it stands (scale zero) rather than split a range round it, and draw two ranges as one when only a few culled records lie between.
+- **A thing of many instances is bucketed and tiered whole,** by where the thing stands, so a change of tier never tears it. Choose the tier by pixels per metre when its detail is the same size on every instance.
+- **Expand a whole map only at its coarsest tier,** and read what the art's tiers hold before deciding which of them is static. A change of knowledge rewrites the records it touches in place.
 - **A population that grows with the battle is capped in presentation,** never in the simulation.
 - **GPU residency is a bounded cache of data owned elsewhere.** Size it by what the view needs, and measure the bytes uploaded each frame, not only the bytes retained.
 
 ## Platform traps
 
 - **Destroying the root does not free what it created.** Every buffer and texture goes through the registry, and a check asserts counts and bytes return to baseline after resize, rebuild and reset.
+- **Compare resource baselines at the same drawn state.** Await pause acknowledgement,
+  advance to a fixed tick and await presentation before counting. Attribute a difference
+  to its creation/destruction owner; an empty mesh may legitimately release a late-battle
+  buffer. Falsify repeated-reset checks with an actual retained GPU allocation.
+  During remount, a missing route probe is a pending state; wait predicates must
+  tolerate it until the new view is ready, within the existing timeout.
 - **Async results can outlive their owner.** Build into a new scope and swap it in whole; free a build that is overtaken or lands after dispose; keep every public call safe after dispose. A replacement that shares buffers with a bake is one serialized transaction.
 - **Stats healthy over a black canvas** is a validation warning, a reassigned WGSL `let`, a reserved word used as a name, an attachment mismatch or a NaN. Treat any console warning as a failed render.
 - **Pin only the shared camera bind group;** let the library number the rest. Count bindings before adding one: the default limits are small.
+- **The typed pipeline path sets the pipeline and every binding again for each draw.** For hundreds of draws that differ only in their ranges, make the first through it and send the rest to the raw pass, ordered so that buffers change rarely.
 - **A pipeline with no fragment stage is the depth-only pass.** Never write fragment depth to fake one.
 - **Pad uniform structs to 16 bytes** and test the packer against a byte constant kept beside the schema.
 - **Use one module instance of the GPU library per page;** two copies silently lose shader functions.
@@ -77,6 +87,7 @@ Read before changing anything:
 - **One injectable clock.** No wall time and no unseeded randomness in a pass; a held clock gives a still capture.
 - **Hardware output isn't bit-stable.** No pixel goldens; a pixel check carries a stated tolerance, and changes only with a written reason.
 - **A probe reads the last frame drawn.** After advancing a paused battle, draw a frame before reading stats or instances. A readback produces what it reads in its own submission.
+- **Work spread over frames says when it is done.** A capture after a camera cut waits for the layer's pending flag, not for a frame count.
 - **Judge a change by a paired frame:** the same tick and camera with only that switch flipped.
 - **Stats aren't pixels.** Pair every count with a crop that proves the subject was drawn and framed, and derive the camera from live anchors, not hand-picked coordinates.
 - **Checks derive from contracts** (compositing algebra, the simulation's own vectors, CPU equal to GPU), not from a copied constant.

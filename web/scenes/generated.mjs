@@ -1,17 +1,19 @@
 // A battle the player starts from the main menu on a generated map: the
 // menu's type, size and seed are the map the preparation worker makes, a
 // loading screen covers the wait, the battle on it runs in the village's
-// battle view, and its buildings (massing), trees and roads are drawn where
-// the static map says they are, with fog over what blue does not see. The
-// camera flown through its main town never enters a building. The menu's
-// saved battlefield (a generated map of the catalogue) starts the same way.
+// battle view, and its buildings (their templates' rows), trees and roads
+// are drawn where the static map says they are, with fog over what blue does
+// not see. The camera flown through its main town never enters a building.
+// The menu's saved battlefield (a generated map of the catalogue) starts the
+// same way.
 //
 // `CAMERA_MAP=metro:large:1` flies the camera through that map's main town
 // instead, and reports what clearance costs there. `STARTUP_MAP=mixed:large:1`
 // only starts that map from the menu and reports how long it took.
+import { startupResources } from "./_startupResources.mjs";
 import { writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
-import { advance, lab, obs, openMenu, presented } from "./_lab.mjs";
+import { advance, buildingsSettled, lab, obs, openMenu, presented } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
 import { flyTown } from "./_cameraClearance.mjs";
 
@@ -30,15 +32,15 @@ const delta = (a, b) => a.reduce((s, v, i) => s + Math.abs(v - b[i]), 0);
 
 /** Wait until the page's battle is playable: the loading screen has lifted
  *  over a running battle. */
-export async function playable(page, timeout = 120000) {
+export async function playable(page, timeout = 120000, minimumTick = 4) {
   await page.waitForFunction(
-    () =>
+    (minimumTick) =>
       document.querySelector("[data-testid=error]") ||
       window.__lab?.error ||
       (window.__lab?.ready &&
-        window.__lab.route?.tick?.() > 3 &&
+        (window.__lab.route?.tick?.() ?? -1) >= minimumTick &&
         !document.querySelector("[data-testid=loading]")),
-    undefined,
+    minimumTick,
     { timeout },
   );
   const error = await page.evaluate(
@@ -63,7 +65,7 @@ async function preparedBattle(page) {
  *  type and size, and deploy. The menu shows no seed; the scene pins one by
  *  the menu's address so the map is the same every run. Returns what the
  *  menu and the loading screen showed. */
-async function deployFromMenu(ctx, page, map, shots = false) {
+async function deployFromMenu(ctx, page, map, shots = false, beforeDeploy = async () => {}) {
   await page.goto(new URL("/", ctx.url).href);
   await page.getByTestId("menu-deploy").waitFor();
   const drawn = await page.getByTestId("menu-deploy").getAttribute("href");
@@ -83,6 +85,7 @@ async function deployFromMenu(ctx, page, map, shots = false) {
   };
   if (shots)
     await writeFile(ctx.evidencePath("menu-chosen-1920x1080.png"), await page.screenshot());
+  await beforeDeploy();
   await page.getByTestId("menu-deploy").click();
   await page.getByTestId("loading").waitFor();
   const loading = await page.evaluate(() => ({
@@ -99,14 +102,57 @@ async function deployFromMenu(ctx, page, map, shots = false) {
 async function startupOf(ctx, spec) {
   const [type, size, seed] = spec.split(":");
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await deployFromMenu(ctx, page, { type, size, seed });
-  await playable(page, 600000);
-  const startup = await lab(page, () => window.__lab.route.startup());
-  const report = await preparedBattle(page);
-  console.log(
-    `METRIC startup ${type} ${size} seed ${seed}: prepared ${startup.prepared.toFixed(0)} ms (map ${report.timings.map.toFixed(0)}, encounter ${report.timings.encounter.toFixed(0)}), world ${startup.world.toFixed(0)} ms, first frame ${startup.renderer.toFixed(0)} ms, playable ${startup.playable.toFixed(0)} ms after Deploy; ${report.counts.buildings} buildings (development build)`,
-  );
-  await writeFile(ctx.evidencePath(`startup-${type}-${size}-${seed}.png`), await page.screenshot());
+  for (const cache of ["cold", "warm"]) {
+    let measuring, resources;
+    try {
+      await deployFromMenu(ctx, page, { type, size, seed }, false, async () => {
+        measuring = await startupResources(page);
+      });
+      await playable(page, 180000, 0);
+      resources = await measuring.finish();
+      const startup = await lab(page, () => window.__lab.route.startup());
+      const report = await preparedBattle(page);
+      const mainWasmBytes = await page.evaluate(async () => {
+        const moduleURL = performance
+          .getEntriesByType("resource")
+          .find((entry) => entry.name.split("?")[0].endsWith("/src/battle/sim/module.ts"))?.name;
+        if (!moduleURL) throw new Error("The page's query module was not observed");
+        const { loadSimModule } = await import(moduleURL);
+        return (await loadSimModule()).memory.buffer.byteLength;
+      });
+      console.log(
+        `METRIC startup ${type} ${size} seed ${seed} ${cache}: ${JSON.stringify({
+          startup,
+          timings: report.timings,
+          worldBuildMs: report.worldBuildMs,
+          publicExportMs: report.publicExportMs,
+          publicBytes: report.publicBytes,
+          wasmBytes: report.wasmBytes,
+          mainWasmBytes,
+          buildings: report.counts.buildings,
+          resources,
+        })}`,
+      );
+      ctx.check(
+        `${type} ${size} ${cache} startup is playable within one minute`,
+        startup.playable < 60000,
+        `${startup.playable.toFixed(0)} ms`,
+      );
+      await ctx.writeEvidence(`startup-${type}-${size}-${seed}-${cache}.json`, {
+        cache,
+        startup,
+        report,
+        resources,
+        mainWasmBytes,
+      });
+      await writeFile(
+        ctx.evidencePath(`startup-${type}-${size}-${seed}-${cache}.png`),
+        await page.screenshot(),
+      );
+    } finally {
+      if (measuring && resources === undefined) await measuring.finish();
+    }
+  }
 }
 
 /** The frame in `view` ("final", "ground-mask", "fog-mask"), as a decoded
@@ -144,9 +190,7 @@ const project = (page, p) => lab(page, (q) => window.__lab.projectToCss(q[0], q[
  *  check that no eye drawn, by the viewport's camera or by its rig over the
  *  whole of each move, comes inside a building. */
 async function cameraKeepsOut(ctx, page, town, options) {
-  // The buildings' boxes: street furniture is drawn as boxes too, and the
-  // camera flies over it.
-  const boxes = (await lab(page, () => window.__lab.route.massing())).filter((b) => b.building);
+  const boxes = await lab(page, () => window.__lab.route.buildings().flatMap((b) => b.parts));
   const flown = await flyTown(ctx, page, town, boxes, options);
   const view = await lab(page, () => window.__lab.route.cameraObstacles());
   const moves = Object.entries(flown.moves);
@@ -247,49 +291,43 @@ export async function run(ctx) {
   const after = await lab(page, () => window.__lab.route.tick());
   ctx.check("the battle ticks", after === before + 30, `${before} → ${after}`);
 
-  // Everything on the map is in the frame's static chunks: a box a building
-  // part, a box each body of street furniture (none has art yet), a tree a
-  // forest's trunk. The map's own bodies take the first ids, so a trunk past
-  // them is a forest's.
-  const authored = generated.counts.parts + generated.counts.props;
-  const counts = await lab(
-    page,
-    (authored) => {
-      const s = window.__lab.stats().scenery;
-      const drawn = window.__lab.route.massing();
-      return {
-        boxes: s.massing.placed,
-        trees: s.forest.placed,
-        trunks: window.__lab.route
-          .propsNear("trunk", 0, 0, Infinity)
-          .filter((trunk) => trunk.id >= authored).length,
-        drawnBoxes: drawn.length,
-        buildingBoxes: drawn.filter((box) => box.building).length,
-        structures: window.__lab.stats().structures,
-      };
-    },
-    authored,
-  );
+  // Everything on the map is in the frame's static chunks: every building
+  // a reference drawn from its template's rows, a tree a trunk.
+  const counts = await lab(page, () => {
+    const stats = window.__lab.stats();
+    const drawn = window.__lab.route.buildings();
+    return {
+      buildings: stats.buildings.buildings,
+      coarse: stats.buildings.coarse,
+      references: drawn.length,
+      parts: drawn.reduce((n, b) => n + b.parts.length, 0),
+      trees: stats.scenery.forest.placed,
+      trunks: window.__lab.route.propsNear("trunk", 0, 0, Infinity).length,
+      structures: stats.structures,
+    };
+  });
   ctx.check(
-    "every building part and every body of street furniture is a massing box and every forest trunk a tree, and no building is a model",
-    counts.boxes === authored &&
-      counts.drawnBoxes === authored &&
-      counts.buildingBoxes === generated.counts.parts &&
-      counts.buildingBoxes > 1000 &&
-      generated.counts.props > 100 &&
+    "every building is drawn from its template's rows and every trunk a tree, and no building is a model",
+    counts.buildings === generated.counts.buildings &&
+      counts.references === generated.counts.buildings &&
+      counts.parts === generated.counts.parts &&
+      // The whole map can draw at the coarsest tier: a row or more a building.
+      counts.coarse >= counts.buildings &&
+      counts.buildings > 1000 &&
       counts.trees === counts.trunks &&
       counts.trees > 1000 &&
       counts.structures === 0,
-    JSON.stringify({ ...counts, parts: generated.counts.parts, props: generated.counts.props }),
+    JSON.stringify({ ...counts, map: generated.counts }),
   );
 
   await page.addStyleTag({ content: HIDE_HUD });
 
-  // A building: the box nearest the town's centre, and open ground beside it.
+  // A building: the one nearest the town's centre, and open ground beside it.
   const building = await lab(
     page,
     (town) => {
-      const boxes = window.__lab.route.massing().filter((b) => b.building);
+      const buildings = window.__lab.route.buildings();
+      const boxes = buildings.flatMap((b) => b.parts);
       const inside = (b, x, y) => {
         const [dx, dy] = [x - b.center[0], y - b.center[1]];
         const [c, s] = [Math.cos(b.yaw), Math.sin(b.yaw)];
@@ -297,15 +335,9 @@ export async function run(ctx) {
           Math.abs(dx * c + dy * s) <= b.half[0] + 1 && Math.abs(-dx * s + dy * c) <= b.half[1] + 1
         );
       };
-      // The nearest building of a coloured category: a grey one's roof
-      // takes the sun's warmth, and its channels' order with it.
-      const coloured = boxes.filter((b) => Math.max(...b.tint) - Math.min(...b.tint) > 0.15);
-      const box = coloured.reduce((a, b) =>
-        Math.hypot(a.center[0] - town[0], a.center[1] - town[1]) <=
-        Math.hypot(b.center[0] - town[0], b.center[1] - town[1])
-          ? a
-          : b,
-      );
+      const from = (b) => Math.hypot(b.frame[0] - town[0], b.frame[1] - town[1]);
+      const nearest = buildings.reduce((a, b) => (from(a) <= from(b) ? a : b));
+      const box = nearest.parts[0];
       const reach = Math.hypot(box.half[0], box.half[1]) + 6;
       let ground = null;
       for (let k = 0; k < 16 && !ground; k++) {
@@ -316,11 +348,13 @@ export async function run(ctx) {
         if (!boxes.some((b) => inside(b, x, y)) && !window.__lab.route.surfaceAt(x, y)?.forest)
           ground = [x, y];
       }
-      return { box, ground };
+      return { box, ground, template: nearest.template };
     },
     generated.town,
   );
   await look(page, building.box.center, 90, TOP_DOWN);
+  await buildingsSettled(page);
+  const near = await lab(page, () => window.__lab.stats().buildings);
   const roofAt = [...building.box.center, building.box.baseZ + 2 * building.box.half[2]];
   const groundAt = [...building.ground, 0];
   const [roofPx, groundPx] = [await project(page, roofAt), await project(page, groundAt)];
@@ -328,17 +362,20 @@ export async function run(ctx) {
   // Without fog for the colours: the town is unseen from blue's start.
   const buildingShot = await frame(ctx, page, "final", "building-1920x1080.png", true);
   const roof = pixel(buildingShot, ...roofPx);
-  // The roof keeps its tint's order of channels (the box is one flat colour).
-  const tint = building.box.tint;
-  const order = (c) => [0, 1, 2].sort((i, j) => c[j] - c[i]).join("");
   ctx.check(
-    "a building is drawn as a box where the map puts it: not ground at its roof, ground beside it, in its category's tint",
+    "a building is drawn from its template where the map puts it: not ground at its roof, ground beside it, its chunk expanded at a fine tier",
     isBody(pixel(buildingMask, ...roofPx)) &&
       isGround(pixel(buildingMask, ...groundPx)) &&
-      order(roof) === order(tint) &&
-      delta(roof, pixel(buildingShot, ...groundPx)) > 30,
+      delta(roof, pixel(buildingShot, ...groundPx)) > 30 &&
+      near.residentChunks > 0 &&
+      near.tiers[0] > 0 &&
+      near.pool.used <= near.pool.capacity,
     JSON.stringify({
+      template: building.template,
       box: building.box,
+      resident: near.residentChunks,
+      tiers: near.tiers,
+      pool: near.pool,
       roofPx,
       groundPx,
       mask: [pixel(buildingMask, ...roofPx), pixel(buildingMask, ...groundPx)],
@@ -470,7 +507,10 @@ export async function run(ctx) {
     generated.size,
   );
   const overview = await frame(ctx, page, "final", "overview-1920x1080.png", true);
-  const overviewStats = await lab(page, () => window.__lab.stats().scenery);
+  const overviewStats = await lab(page, () => ({
+    ...window.__lab.stats().scenery,
+    buildings: window.__lab.stats().buildings,
+  }));
   // The ground's own colour over a grid of the far third of the map, where
   // haze is thickest: fields are green to straw (more green than blue), and
   // haze washes them toward the sky's blue-grey.
@@ -489,19 +529,22 @@ export async function run(ctx) {
     }
   warmth /= samples;
   ctx.check(
-    "the whole-map overview draws every box and tree, and its far ground keeps its colour through the haze",
-    overviewStats.massing.tiers[3] === authored &&
+    "the whole-map overview draws every building at the coarsest tier with none in the pool, every tree, and its far ground keeps its colour through the haze",
+    overviewStats.buildings.tiers[3] === counts.coarse &&
+      overviewStats.buildings.residentChunks === 0 &&
+      overviewStats.buildings.pool.used === 0 &&
       overviewStats.forest.tiers[3] === counts.trees &&
       warmth > OVERVIEW_WARMTH_MIN,
     JSON.stringify({
       warmth,
-      massing: overviewStats.massing.tiers,
+      buildings: overviewStats.buildings.tiers,
+      resident: overviewStats.buildings.residentChunks,
       forest: overviewStats.forest.tiers,
     }),
   );
   await writeFile(ctx.evidencePath("overview-fogged-1920x1080.png"), await page.screenshot());
 
-  // Rebuilding the frame returns every allocation, the massing's included
+  // Rebuilding the frame returns every allocation, the buildings' included
   // (after one rebuild, so the per-tier buffers have this view's capacity).
   await look(page, generated.town, 400);
   await lab(page, () => window.__lab.rebuild());
@@ -509,7 +552,7 @@ export async function run(ctx) {
   for (let i = 0; i < 2; i++) await lab(page, () => window.__lab.rebuild());
   const rebuilt = await lab(page, () => window.__lab.allocations());
   ctx.check(
-    "rebuilding the frame returns live GPU buffers and textures, massing included, to baseline",
+    "rebuilding the frame returns live GPU buffers and textures, the buildings' included, to baseline",
     rebuilt.buffers === baseline.buffers &&
       rebuilt.bufferBytes === baseline.bufferBytes &&
       rebuilt.textures === baseline.textures &&

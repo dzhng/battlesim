@@ -1159,8 +1159,22 @@ fn check(
                 name(want)
             ));
         }
-        if !(h.half_extents_m.iter().all(|&e| e > 0.0) && h.eye_m > 0.0 && h.hp > 0.0) {
-            return rule("a hull needs positive extents, eye height and hp");
+        if !(h.half_extents_m.iter().all(|&e| positive(e)) && positive(h.eye_m) && positive(h.hp)) {
+            return rule("a hull needs finite positive extents, eye height and hp");
+        }
+        let armor = h.armor;
+        if ![armor.front, armor.side, armor.rear, armor.roof]
+            .into_iter()
+            .all(at_least_zero)
+        {
+            return rule("body.hull.armor needs finite nonnegative protection on every face");
+        }
+        let chance = armor.ricochet;
+        if ![chance.front, chance.side, chance.rear, chance.roof]
+            .into_iter()
+            .all(|p| p.is_finite() && (0.0..=1.0).contains(&p))
+        {
+            return rule("body.hull.armor.ricochet needs probabilities in [0, 1] on every face");
         }
     }
     ranges(t).map_or(Ok(()), rule)
@@ -1185,7 +1199,7 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
             reverse_fraction,
             ..
         } => {
-            if turn_deg_s.is_nan() || turn_deg_s <= 0.0 {
+            if !positive(turn_deg_s) {
                 Some("mobility: turn_deg_s must be positive")
             } else if !(reverse_fraction > 0.0 && reverse_fraction <= 1.0) {
                 Some("mobility.reverse_fraction must lie in (0, 1]")
@@ -1197,7 +1211,7 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
     bad.or_else(|| match t.mobility {
         Mobility::Wheeled {
             turning_radius_m, ..
-        } if turning_radius_m <= 0.0 || turning_radius_m.is_nan() => {
+        } if !positive(turning_radius_m) => {
             Some("a wheeled vehicle needs a positive turning_radius_m")
         }
         _ => None,
@@ -1207,7 +1221,7 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
     })
     .or_else(|| (!positive(t.sensors.ground_m)).then_some("sensors.ground_m must be positive"))
     .or_else(|| {
-        (!(0.0 < s.rear && s.rear <= s.side && s.side <= s.front))
+        (!(positive(s.rear) && s.rear <= s.side && s.side <= s.front && s.front.is_finite()))
             .then_some("sensors.sight_shape must have 0 < rear <= side <= front")
     })
     .or_else(|| {
@@ -1220,14 +1234,14 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
     })
 }
 
-/// Positive, and so not NaN.
+/// Finite and positive.
 fn positive(x: f64) -> bool {
-    x > 0.0
+    x.is_finite() && x > 0.0
 }
 
-/// Zero or more, and so not NaN.
+/// Finite and zero or more.
 fn at_least_zero(x: f64) -> bool {
-    x >= 0.0
+    x.is_finite() && x >= 0.0
 }
 
 /// A serde enum's name as the documents write it.

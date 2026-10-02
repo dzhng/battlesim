@@ -1,3 +1,5 @@
+import type { WorldExportSource } from "@packages/battle-renderer/src/worldMesh";
+import type { SimBattle } from "../sim/authority";
 /** Preparing a battle: the request is checked by the simulation, its map is
  *  resolved through the one map owner (a saved map by id, or the generator's
  *  for a request), the encounter is laid on it (the simulation's planner
@@ -24,13 +26,24 @@ import type {
 export interface PreparationModule extends MapGenerator {
   city_stress_preparation(map: string, rules: string, seed: bigint, late: boolean): string;
   check_prepare_request(request: string): string;
-  plan_encounter(
-    map: string,
-    sites: string,
-    rules: string,
-    recipe: string,
-    encounterSeed: string,
-  ): string;
+  PreparedWorld: {
+    new (map: string, rules: string): PreparedWorld;
+    from_scenario(scenario: string): PreparedWorld;
+  };
+}
+
+export interface PreparedWorld extends WorldExportSource {
+  layout(): string;
+  plan_encounter(sites: string, recipe: string, encounterSeed: string): string;
+  public_queries(): string;
+  into_battle(scenario: string, seed: number): SimBattle;
+  into_replay(scenario: string, replay: string): SimBattle;
+  free(): void;
+}
+export interface PreparationResult {
+  scenario: string;
+  report: PreparedBattle["report"];
+  world: PreparedWorld;
 }
 
 /** The saved catalogue, as an adapter reaches it (`browser.ts`, `node.ts`). */
@@ -114,7 +127,7 @@ export async function prepare(
   onStage: (stage: PrepareStage) => void = () => {},
   now: () => number = () => performance.now(),
   stress?: StressPreparation,
-): Promise<PreparedBattle> {
+): Promise<PreparationResult> {
   const checked = accepted<{ request: PrepareBattleRequest }>(
     "request",
     wasm.check_prepare_request(JSON.stringify(request)),
@@ -153,103 +166,123 @@ export async function prepare(
   const resolvedAt = now();
 
   onStage("encounter");
-  let laid: LaidEncounter;
-  if (stress) {
-    const prepared = wasm.city_stress_preparation(
-      map.json,
-      documents.rules,
-      BigInt(checked.battle_seed),
-      stress.late,
-    );
-    const scenario = between(prepared, '{"scenario":', ',"report":{', "the stress scenario");
-    const metadata = JSON.parse(between(prepared, ',"report":', "}", "the stress report"));
-    laid = { scenario, metadata, stress, rule: null, planned: null };
-  } else if (source.kind === "generated") {
-    const recipe = (JSON.parse(documents.recipes) as { recipes: Record<string, unknown> }).recipes[
-      checked.recipe_id
-    ];
-    if (recipe === undefined || map.sites === null)
-      throw new PreparationRefused("encounter", [
-        {
-          code: "invalid_request",
-          feature: null,
-          location: "$.recipe_id",
-          message: `there is no encounter recipe "${checked.recipe_id}"`,
+  // The developer stress recipe owns its synthetic remains and full scenario.
+  // Prepare its resulting map, which can differ from the generator's map.
+  const stressResult = stress
+    ? wasm.city_stress_preparation(
+        map.json,
+        documents.rules,
+        BigInt(checked.battle_seed),
+        stress.late,
+      )
+    : null;
+  const stressScenario = stressResult
+    ? between(stressResult, '{"scenario":', ',"report":{', "the stress scenario")
+    : null;
+  const metadata = stressResult
+    ? (JSON.parse(between(stressResult, ',"report":', "}", "the stress report")) as {
+        start: PreparedBattle["report"]["start"];
+        livingUnits: Record<"blue" | "red", number>;
+      })
+    : null;
+  const world = stressScenario
+    ? wasm.PreparedWorld.from_scenario(stressScenario)
+    : new wasm.PreparedWorld(map.json, documents.rules);
+  const worldBuiltAt = now();
+  try {
+    let laid: LaidEncounter;
+    if (stress && stressScenario && metadata) {
+      laid = { scenario: stressScenario, metadata, stress, rule: null, planned: null };
+    } else if (source.kind === "generated") {
+      const recipe = (JSON.parse(documents.recipes) as { recipes: Record<string, unknown> })
+        .recipes[checked.recipe_id];
+      if (recipe === undefined || map.sites === null)
+        throw new PreparationRefused("encounter", [
+          {
+            code: "invalid_request",
+            feature: null,
+            location: "$.recipe_id",
+            message: `there is no encounter recipe "${checked.recipe_id}"`,
+          },
+        ]);
+      const outcome = world.plan_encounter(
+        map.sites,
+        JSON.stringify(recipe),
+        checked.encounter_seed,
+      );
+      const { encounter } = accepted<{ encounter: PlannedEncounter }>("encounter", outcome);
+      laid = {
+        // `EncounterDefinition`'s fields in order: …, setup, placement. The
+        // setup is the scenario's own fields after its map and rules, kept as
+        // the planner's bytes.
+        fields: between(outcome, ',"setup":{', ',"placement":{', "the encounter"),
+        units: encounter.setup.units,
+        rule: encounter.setup.encounter ?? null,
+        planned: {
+          recipe_hash: encounter.recipe_hash,
+          encounter_seed: encounter.encounter_seed,
+          placement: encounter.placement,
         },
-      ]);
-    const outcome = wasm.plan_encounter(
-      map.json,
-      map.sites,
-      documents.rules,
-      JSON.stringify(recipe),
-      checked.encounter_seed,
-    );
-    const { encounter } = accepted<{ encounter: PlannedEncounter }>("encounter", outcome);
-    laid = {
-      // `EncounterDefinition`'s fields in order: …, setup, placement. The
-      // setup is the scenario's own fields after its map and rules, kept as
-      // the planner's bytes.
-      fields: between(outcome, ',"setup":{', ',"placement":{', "the encounter"),
-      units: encounter.setup.units,
-      rule: encounter.setup.encounter ?? null,
-      planned: {
-        recipe_hash: encounter.recipe_hash,
-        encounter_seed: encounter.encounter_seed,
-        placement: encounter.placement,
-      },
-    };
-  } else {
-    const encounter = await (async () => saved.loadEncounter(source.id, checked.recipe_id))().catch(
-      (error: unknown) => {
+      };
+    } else {
+      const encounter = await (async () =>
+        saved.loadEncounter(source.id, checked.recipe_id))().catch((error: unknown) => {
         if (!(error instanceof MapResolveError)) throw error;
         const { code, location, message } = error;
         throw new PreparationRefused("encounter", [{ code, feature: null, location, message }]);
+      });
+      laid = {
+        fields: JSON.stringify(encounter).slice(1),
+        units: encounter.units as PlacedUnit[],
+        rule: (encounter.encounter as CompletionRule | null | undefined) ?? null,
+        planned: null,
+      };
+    }
+    let start: PreparedBattle["report"]["start"];
+    if ("metadata" in laid) start = laid.metadata.start;
+    else {
+      const first = laid.units.find((u) => u.side === "blue");
+      if (!first) throw new Error("the encounter has no blue unit");
+      const column = laid.planned?.placement.deployments.find((d) => d.side === "blue");
+      start = { at: column?.head ?? first.position, yaw: column?.yaw ?? first.yaw ?? 0 };
+    }
+    const buildings = map.definition.buildings ?? [];
+    return {
+      world,
+      scenario:
+        "scenario" in laid
+          ? laid.scenario
+          : `{"map":${map.json},"rules":${documents.rules},${laid.fields}`,
+      report: {
+        ...("metadata" in laid && {
+          stress: { ...laid.stress, livingUnits: laid.metadata.livingUnits },
+        }),
+        request: checked,
+        identity: map.identity,
+        size: map.definition.size,
+        counts: {
+          buildings: buildings.length,
+          parts: buildings.reduce((n, b) => n + b.parts.length, 0),
+          props: map.definition.props.length,
+          surfaces: map.definition.surfaces.length,
+          forests: map.definition.forests.length,
+        },
+        planned: laid.planned,
+        objective: laid.rule && {
+          center: laid.rule.success_zone_center,
+          radius_m: laid.rule.success_zone_radius_m,
+          hold_s: laid.rule.hold_s,
+        },
+        start,
+        timings: { map: resolvedAt - started, encounter: now() - resolvedAt },
+        wasmBytes: memory.buffer.byteLength,
+        worldBuildMs: worldBuiltAt - resolvedAt,
+        publicExportMs: 0,
+        publicBytes: 0,
       },
-    );
-    laid = {
-      fields: JSON.stringify(encounter).slice(1),
-      units: encounter.units as PlacedUnit[],
-      rule: (encounter.encounter as CompletionRule | null | undefined) ?? null,
-      planned: null,
     };
+  } catch (error) {
+    world.free();
+    throw error;
   }
-  let start: PreparedBattle["report"]["start"];
-  if ("metadata" in laid) start = laid.metadata.start;
-  else {
-    const first = laid.units.find((u) => u.side === "blue");
-    if (!first) throw new Error("the encounter has no blue unit");
-    const column = laid.planned?.placement.deployments.find((d) => d.side === "blue");
-    start = { at: column?.head ?? first.position, yaw: column?.yaw ?? first.yaw ?? 0 };
-  }
-  const buildings = map.definition.buildings ?? [];
-  return {
-    scenario:
-      "scenario" in laid
-        ? laid.scenario
-        : `{"map":${map.json},"rules":${documents.rules},${laid.fields}`,
-    report: {
-      ...("metadata" in laid && {
-        stress: { ...laid.stress, livingUnits: laid.metadata.livingUnits },
-      }),
-      request: checked,
-      identity: map.identity,
-      size: map.definition.size,
-      counts: {
-        buildings: buildings.length,
-        parts: buildings.reduce((n, b) => n + b.parts.length, 0),
-        props: map.definition.props.length,
-        surfaces: map.definition.surfaces.length,
-        forests: map.definition.forests.length,
-      },
-      planned: laid.planned,
-      objective: laid.rule && {
-        center: laid.rule.success_zone_center,
-        radius_m: laid.rule.success_zone_radius_m,
-        hold_s: laid.rule.hold_s,
-      },
-      start,
-      timings: { map: resolvedAt - started, encounter: now() - resolvedAt },
-      wasmBytes: memory.buffer.byteLength,
-    },
-  };
 }

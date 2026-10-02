@@ -132,7 +132,7 @@ function RiverLab({ battle }: { battle: SavedBattle }) {
         fixture="river"
         world={worldFeed}
         structures={view === "surface" ? session.structures : undefined}
-        massing={view === "surface" ? session.massingFeed : undefined}
+        buildings={view === "surface" ? session.buildingsFeed : undefined}
         overlay={overlayFeed}
         frame={session.frame}
         appearances={session.appearances}
@@ -157,7 +157,7 @@ function RiverLab({ battle }: { battle: SavedBattle }) {
               {name}
             </button>
           ))}
-          <button type="button" onClick={sim.reset}>
+          <button type="button" onClick={sim.restart}>
             Reset
           </button>
         </div>

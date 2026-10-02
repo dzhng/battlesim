@@ -10,7 +10,7 @@
 // in the firefight and in the late state's aftermath, its 2,000 wrecks
 // burning.
 import { decode, writeCrop } from "./_png.mjs";
-import { lab, snapshot, until, openMenu, restart } from "./_lab.mjs";
+import { lab, snapshot, until, openMenu, restart, advance, presented } from "./_lab.mjs";
 import { game } from "./_units.mjs";
 
 const CORPSE_CAP = game.presentation.pose.corpses.max;
@@ -335,20 +335,28 @@ export async function run(ctx) {
     `${live.ticks} ticks in ${live.wall.toFixed(0)} s = ${live.rate.toFixed(1)} Hz`,
   );
 
-  // Reset cycles keep the GPU allocations where they were.
-  const before = (await telemetry(page)).gpu;
+  // Empty opening overlays dispose meshes that the later battle draws. Compare
+  // repeated openings at one drawn tick, after the live arm warmed lazy resources.
+  const resetAllocations = [];
   for (let i = 0; i < 3; i++) {
     const was = await lab(page, () => window.__lab.route.tick());
     await restart(page);
     // A fresh session starts from tick 0, then runs.
-    await page.waitForFunction((t) => window.__lab.route.tick() < t, was, { timeout: 60000 });
-    await page.waitForFunction(() => window.__lab.route.tick() > 10, undefined, { timeout: 60000 });
+    await page.waitForFunction((t) => window.__lab?.route?.tick() < t, was, { timeout: 60000 });
+    await page.waitForFunction(() => window.__lab?.route?.tick() > 10, undefined, { timeout: 60000 });
+    await lab(page, () => window.__lab.route.pause());
+    const tick = await lab(page, () => window.__lab.route.tick());
+    if (tick > 90) throw new Error(`reset passed the fixed opening tick before pause: ${tick}`);
+    await advance(page, 90 - tick);
+    await presented(page);
+    await lab(page, () => window.__lab.frame());
+    resetAllocations.push((await telemetry(page)).gpu);
+    await lab(page, () => window.__lab.route.resume());
   }
-  const after = (await telemetry(page)).gpu;
   ctx.check(
-    "reset cycles return live GPU buffers and textures to the same count",
-    after.buffers === before.buffers && after.textures === before.textures,
-    `before ${JSON.stringify(before)} after ${JSON.stringify(after)}`,
+    "reset cycles return live GPU buffers and textures to the same counts and bytes at tick 90",
+    resetAllocations.every((a) => JSON.stringify(a) === JSON.stringify(resetAllocations[0])),
+    JSON.stringify(resetAllocations),
   );
 
   // The late state: 20,000 fallen and 2,000 wrecks in the field.
@@ -391,6 +399,7 @@ export async function run(ctx) {
     seconds: SECONDS,
     preparation,
     latePreparation,
+    resetAllocations,
     live,
     late,
   });

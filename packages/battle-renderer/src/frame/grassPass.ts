@@ -82,10 +82,14 @@ import {
   groundColour,
   groundScars,
   groundCell,
+  groundPaved,
   groundShore,
+  groundShoulder,
+  groundShoulderGrass,
   groundSite,
   groundTint,
   groundVerge,
+  groundWheeling,
   groundWater,
   scarredSurface,
   terrainLayout,
@@ -122,7 +126,7 @@ const GrassParams = d
     /** How far that shading softens, how far a blade's own facing lights it,
      *  each clump's brightness variation, 0. */
     shading: d.vec4f,
-    /** Bare margins: road, prop, forest and water; then the farthest a
+    /** Bare margins: unused, prop, forest and water; then the farthest a
      *  clump moves to its row. */
     clear: d.vec4f,
     /** The height grid's size, 0, 0. */
@@ -319,6 +323,10 @@ const grassHash = tgpu
 }`)
   .$uses({ pcgHash });
 
+/** No clump grows where the roads have worn the ground more than this
+ *  (`groundShoulder`): a road's own surface, and the foot of its shoulder. */
+const GRASS_BARE_WEAR = 0.9;
+
 const buildFn = tgpu
   .computeFn({
     in: { wg: d.builtin.workgroupId, li: d.builtin.localInvocationIndex },
@@ -372,19 +380,25 @@ const buildFn = tgpu
     let rho = grassDensity(dist, max(eye.z - fellZ, 0.0));
     if (rank >= rho) { continue; }
     let cell = groundCell(fell, footprint);
-    let site = groundSite(fell, cell);
+    let paved = groundPaved(fell, cell);
+    let site = groundSite(fell, cell, paved);
     let water = groundWater(fell, cell);
     // Bare within the margins; thinner and lower for a metre beyond them, so
-    // a field meets a road or a wood without a wall of blades.
+    // a field meets a road or a wood without a wall of blades. Across a
+    // road's shoulder it thins and lowers further as the ground is worn.
     // A wood's edge is its rect or its floor's ragged verge, whichever lies
     // farther out.
     let wood = max(site.w, forestVergeInside(fell, site.w));
-    let margin = min(-site.z - (*P).clear.x, min(-wood, -water) - (*P).clear.z);
+    let margin = min(-wood, -water) - (*P).clear.z;
     if (margin < 0.0) { continue; }
     // Bare on the wet bank round water, thickening across the earth behind it.
     let shore = groundShore(fell, footprint, water).z;
     if (shore >= 1.0) { continue; }
-    let edge = smoothstep(0.0, ${GRASS_EDGE_M}, margin);
+    let worn = groundShoulder(fell, footprint, paved);
+    // Bare on a road's own surface and at the foot of its shoulder, but for
+    // a track's centre strip.
+    if (worn.x > ${GRASS_BARE_WEAR}) { continue; }
+    let edge = smoothstep(0.0, ${GRASS_EDGE_M}, min(margin, abs(site.z))) * (1.0 - worn.x);
     var grows = min(u32(terrainLayout.$.plots[i32(site.x)].detail.y), ${GRASS_GROWTH_ROWS - 2}u);
     if (groundVerge(site, footprint) > 0.5) { grows = ${GRASS_GROWTH_ROWS - 1}u; }
     let g = (*P).growth[grows];
@@ -400,6 +414,8 @@ const buildFn = tgpu
       let room = max(0.0, min(site.y - terrainLayout.$.params.verge.w, margin) - ${ROW_HEADLAND_M});
       p = fell + plot.rows.xy * clamp(toRow, -room, room);
     }
+    // Nothing stands in a wheeling.
+    if (groundWheeling(p, 0.0, i32(site.x)) > 0.5) { continue; }
     let root = vec3f(p, grassGround(p));
     // The side's learned scars: craters, scorch and tracks leave clumps out.
     let scar = groundScars(p, footprint);
@@ -407,7 +423,7 @@ const buildFn = tgpu
     let bare = max(max(scar.weights.x, scar.weights.y), scar.weights.z * S.y) * S.x;
     // Sparse patches: the stand thins there and nowhere thickens.
     let sparse = 1.0 - smoothstep(0.3, 0.55, valueNoise(p * (*P).patchScales.y + vec2f(41.7, 13.1)));
-    let keep = rho * g.x * (1.0 - stand.z * sparse) * mix(0.5, 1.0, edge) * (1.0 - bare) * (1.0 - shore);
+    let keep = rho * g.x * (1.0 - stand.z * sparse) * mix(0.5, 1.0, edge) * (1.0 - bare) * (1.0 - shore) * groundShoulderGrass(worn);
     if (rank >= keep) { continue; }
     if (grassUnderProp(p)) { continue; }
     // A clump nearing its rank's threshold is small: it grows in as the
@@ -469,7 +485,7 @@ const buildFn = tgpu
     // it is too far to show blades. Dry grass is paler, never darker.
     let tussock = valueNoise(p * (*P).grain.x + vec2f(63.9, 27.4));
     let value = 1.0 + (*P).shading.z * fade * (fract(h.y * 57.31) + tussock - 1.0);
-    let colour = value * (1.0 + (*P).grain.y * dryness) * groundTint(scarredSurface(groundColour(p, footprint, site, water), scar).xyz, dryness);
+    let colour = value * (1.0 + (*P).grain.y * dryness) * groundTint(scarredSurface(groundColour(p, footprint, site, paved, water), scar).xyz, dryness);
     // Tracks and trampling lay the clump over (carried in the colour's alpha).
     let flat = max(scar.weights.z, scar.weights.w) * S.z;
     let slot = atomicAdd(&grassBuildLayout.$.args[tier * 5u + 1u], 1u);
@@ -488,10 +504,14 @@ const buildFn = tgpu
     grassUnderProp,
     grassHash,
     groundCell,
+    groundPaved,
     groundSite,
     groundWater,
     groundShore,
+    groundShoulder,
+    groundShoulderGrass,
     groundVerge,
+    groundWheeling,
     groundColour,
     groundTint,
     forestVergeInside,
@@ -844,7 +864,7 @@ export async function createGrassPass(
         rules.soften_m_per_px[1],
       ),
       shading: d.vec4f(rules.soften, rules.blade_facing, rules.clump_value, 0),
-      clear: d.vec4f(rules.clear_m.road, rules.clear_m.prop, rules.clear_m.area, kinds.rowReach),
+      clear: d.vec4f(0, rules.clear_m.prop, rules.clear_m.area, kinds.rowReach),
       counts: d.vec4u(grid.nx, grid.ny, 0, 0),
       ground: d.vec4f(grid.spacing, 0, 0, 0),
       wind: d.vec4f(Math.cos(heading), Math.sin(heading), wind.lean, wind.gust),

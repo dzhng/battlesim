@@ -319,7 +319,7 @@ fn a_structurally_broken_type_fails_at_load_naming_it() {
     let hollow = json!({ "body": { "hull": { "hp": 0 } } });
     assert_eq!(
         tank(hollow),
-        rule("a hull needs positive extents, eye height and hp")
+        rule("a hull needs finite positive extents, eye height and hp")
     );
 }
 
@@ -420,4 +420,31 @@ fn a_mover_states_two_top_speeds_within_the_cap() {
     assert!(load(32.0, 131.0).is_err(), "over the cap");
     assert!(load(40.0, 30.0).is_err(), "a road slower than open ground");
     assert!(load(0.0, 30.0).is_err(), "no off-road speed");
+}
+
+#[test]
+fn hull_armor_and_ricochet_are_admitted_in_their_physical_ranges() {
+    for (field, value) in [
+        ("front", -1.0),
+        ("side", -1.0),
+        ("rear", -1.0),
+        ("roof", -1.0),
+        ("ricochet.front", 1.1),
+        ("ricochet.side", -0.1),
+        ("ricochet.rear", 1.1),
+        ("ricochet.roof", -0.1),
+    ] {
+        let mut tank = base_tank();
+        tank["abstract"] = json!(false);
+        if let Some(face) = field.strip_prefix("ricochet.") {
+            tank["body"]["hull"]["armor"]["ricochet"][face] = json!(value);
+        } else {
+            tank["body"]["hull"]["armor"][field] = json!(value);
+        }
+        let error = match resolve(&units(json!({"tank": tank}))) {
+            Err(error) => error.to_string(),
+            Ok(_) => panic!("invalid hull armor must fail"),
+        };
+        assert!(error.contains("tank") && error.contains("armor"), "{error}");
+    }
 }

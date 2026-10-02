@@ -22,7 +22,7 @@ The contract is ported from `~/dev/game`'s soldier-assets (`ART_INPUT_CONTRACT.m
 - **How vehicles move** is `articulation.ts`: the pose inputs (`Articulation`: turret and gun, HMG, each side's travel, deploy progress) mapped onto named nodes. Wheels roll about their local +Y; guns pitch about their local +Y. Deploying parts carry their own motion as custom properties (`deploy_start`, `deploy_end`, `deploy_move_{x,y,z}`, `deploy_turn_{x,y,z}`), and a supply truck's pads must reach the ground at deploy 1. An articulated bundle's `bounds` cover every pose this reaches; fit is still measured at rest.
 - **Static** (buildings and scenery): one GLB per state. Buildings need `intact` and `ruin`.
 - **Fit to a prop's box.** A building, and a scenery kind whose footprint is a simulation prop, declares `footprint_half_m`: the box its art is authored to, bottom on the ground. It must be a box the simulation places (a map building, a vehicle's hull for a wreck, a building's plan at the building row's ruin height (`props.building.destroyed.into.height_m`) for a ruin; `web/tests/sceneAssets/catalogFootprints.test.ts` holds the catalog to that). The validator measures every state against it (`fit.footprint`; a building's ruin at the ruin height), the runtime catalog carries it, and the battle fits each placed box from it. Vehicles' hit boxes judge the sides with `hull_extent_m` and the top with `hull_top_m`, so an antenna never loosens the sides.
-- **Scenery** (`unit: "scenery"`): every prop, tree, hedgerow and grass kind, named by the entry's `scenery`. A scenery kind is one row of `SCENERY_KINDS` (`src/scenery.ts`), the art side's table: the states its art must carry, and its footprint, meaning what the simulation knows of it for the workbench's overlay. The footprint says it stands for prop types (box and blocking class; which ones is each prop type's `appearance.drawn_by`, never this table), a forest tree (trunk and canopy) or nothing. The validator, the bake, the loader and the workbench read it from there. Which scenery kind draws a prop is the prop type's data, not this table's: a new prop type starts in the prop catalog ([`fixtures/README.md`](../../fixtures/README.md)), whose `appearance.drawn_by` names a scenery kind, and needs a new row here only when it needs new art.
+- **Scenery** (`unit: "scenery"`): every prop, tree, hedgerow and grass kind, named by the entry's `scenery`. A scenery kind is one row of `SCENERY_KINDS` (`src/scenery.ts`), the art side's table: the states its art must carry, and its footprint, meaning what the simulation knows of it for the workbench's overlay. The footprint says it stands for prop types (box and blocking class; which ones is each prop type's `appearance.drawn_by`, never this table), a forest tree (trunk and canopy) or nothing. The validator, the bake, the loader and the workbench read it from there. A kind instanced by the hundred also carries its triangle budget per tier there (`tier_triangles`, finding `budget.tier_triangles`): a tree's is what a paired frame-cost run measured to fit, so a new species fits the budget rather than raising it. A tree also carries the one size every species is built to (`size`: its top and its bole's girth at breast height, finding `fit.tree_size`), so species differ in shape and never in size. Which scenery kind draws a prop is the prop type's data, not this table's: a new prop type starts in the prop catalog ([`fixtures/README.md`](../../fixtures/README.md)), whose `appearance.drawn_by` names a scenery kind, and needs a new row here only when it needs new art.
 - **Grass kinds** are the `grass` row: a clump of blade strips the battle's grass field instances and bends in the wind, so every tier must be the same blades in one layout (`grass.ts`, finding `structure.grass`). They are generated, not modelled: a catalog entry's `grass` spec is the generator's input, `asset grass` writes its GLB, and the bake takes the GLB like any other. A clump's mean colour stands for the ground it grows on; the field tints each clump by its own ground, so a spec's colours say how its roots, tips and heads differ from that ground, never the field's colour. Its vertex alpha is how far the kind answers the field's wind. No blade stands taller than its spec's `height_m`, and no field may draw any kind taller than `GRASS_MAX_HEIGHT_M` once the biome's scales are composed; the workbench shows each kind against a ruler at that height.
 
 ## City buildings
@@ -56,16 +56,16 @@ The infantry sources under `assets/source/infantry/` are exported by the Blender
 
 They read the third-party packs from a local cache, never from the repo; `blender/packs.py fetch` downloads them, and every read is checked against the hash pinned in `blender/packs.json`, so a re-uploaded pack stops the build instead of changing the art. Their sources and licences are listed in [`assets/README.md`](../../assets/README.md). Exports are hash-stable: the same scripts and packs write the same bytes, so a changed hash means changed art.
 
-The vehicles, village buildings, wrecks and props under `assets/source/vehicles/` and `assets/source/village/` are ours from scratch, one script per subject, and so are the trees and hedgerows under `assets/source/trees/` (`trees.py`): `blender/build_sources.sh` rebuilds all of them. They follow the Muster technique: scripted parts with bevels, one mesh per `_LOD<n>` tier, and the look baked into vertex colour (paint, edge wear, grime, ambient occlusion). `parts.py` owns the primitives and the bake; `masonry.py` the village's paints and walls.
+The vehicles, village buildings, wrecks and props under `assets/source/vehicles/` and `assets/source/village/` are ours from scratch, one script per subject, and so are the trees and hedgerows under `assets/source/trees/` (`trees.py`: a branch skeleton carrying solid leaf clumps, the same clumps coarser on each nearer tier and a lobed volume built inside them as the far tier, because a tree's shadow is cast by the tier under the one drawn): `blender/build_sources.sh` rebuilds all of them. They follow the Muster technique: scripted parts with bevels, one mesh per `_LOD<n>` tier, and the look baked into vertex colour (paint, edge wear, grime, ambient occlusion). `parts.py` owns the primitives and the bake; `masonry.py` the village's paints and walls.
 
 Wrecks are the live vehicle's own parts, worked over by `wreckage.py` before the bake: warped and dented plates, folded and torn panels, hulls hollowed and holed so openings show a burnt interior, and debris thrown round. Its booleans end in a canonical vertex and face order. The paint round each fire vent (`SCORCH`) blisters to rust and chars black; away from them the original paint survives, sooted. A bridge's piers, abutments and wing walls stand below its box, down to a channel's bed: the catalog widens that appearance's `ground_m` for them.
 
 ## Textures
 
-A material may carry baked textures (bundle format 3), in three channels (`TEXTURE_CHANNELS`, `schema.ts`):
+A material may carry baked textures, in three channels (`TEXTURE_CHANNELS`, `schema.ts`):
 
 - **albedo**, sRGB; its alpha is the wear threshold;
-- **normal**, tangent space;
+- **normal**, tangent space; its alpha is coverage (see "Coverage and rooms");
 - **ORM**: occlusion, roughness and metalness, with the side-tint mask in alpha.
 
 A source embeds them as a standard glTF material's PNG textures, with a `TANGENT` attribute on its meshes. The bake (`texture.ts`) decodes each image, builds every mip level and addresses the texture by the sha256 of its content. It then stores the texture once per bundle, however many materials share it. The renderer keys textures by that address too, so a texture two bundles share is one layer on the GPU.
@@ -75,6 +75,26 @@ The validator's `texture.*` findings (`validate.ts`) hold every texture square, 
 A textured material's vertex colour means something different. It is relative to the albedo texture's mean and stored at a third (`Material.colour_scale` 3), so dust, ash and rust can lighten or tint a surface as well as darken it. Its alpha says how worn the surface is. Where that rises past the albedo's wear threshold, the material's `wear` colour shows, as crisp chips on edges and spatter low down.
 
 The textures are procedural recipes in `blender/textures.py`: camouflage prints, weaves, rubber, steel, burnt metal, wood, stone, concrete and markings. Each is evaluated on a periodic lattice, so it tiles seamlessly, and baked with fixed seeds. The scripts give a textured part UVs in metres by box projection (`box_uv`), so every part and every tier samples the recipe at its own scale. `attach` then writes the images into the exported GLB. Painted markings (tactical numbers, crate stencils, launcher nomenclature) are modelled as thin lettering (`parts.stencil`).
+
+## Coverage and rooms
+
+Every alpha has one meaning, and a material says the rest in words. Wear lives in the albedo texture's alpha and the vertex colour's, and the tint mask in the ORM texture's, on every material. How much of a surface is there is a separate statement, the material's **coverage** (`Coverage`, `schema.ts`):
+
+- **opaque**, which every material is unless its source says otherwise;
+- a **cutout**, drawn only where its coverage value reaches the material's cutoff (a grille, a sign's lettering);
+- **blended**, partly there, with what is behind it showing through (glass).
+
+The coverage value is the base colour's alpha times the normal texture's alpha: the two alphas nothing else used. So a cutout can still wear and take a side's tint, and nothing has to guess whether an alpha is damage or a hole. An opaque material ignores both.
+
+A source says it the standard glTF way, `alphaMode` with `alphaCutoff`. The Blender helpers write those from a `coverage` argument on each material helper, and a recipe's coverage image rides its normal map (`textures.surface`, `Baked`).
+
+A material may also be a **room**: a wall of the open box behind a window, which shows a cell of an interior atlas sheet at its own UVs (the atlas contract is in the [city readme](blender/city/README.md), "Interiors"). The material names the sheet (extras `interior`), and that is all it says: which cell, and its mirroring, is the drawer's choice per window.
+
+The bundle only carries these statements. What draws them is the renderer's, and a bundle of another format is refused, never read as if it were opaque.
+
+The validator's `material.*` findings (`material.ts`) refuse what would be drawn wrong without anyone noticing. A cutout or blended material whose coverage value never crosses its own threshold has lost its coverage on the way (authored in the albedo's alpha, say). A blended surface cannot wear, since a worn patch has no coverage of its own. A room is opaque, has no textures or wear of its own, and is on a static appearance.
+
+`asset validate <glb>` prints each material as it would be baked.
 
 ## Where things are
 

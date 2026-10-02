@@ -1,3 +1,4 @@
+import type { PublicWorldData } from "./publicWorld";
 /** Main-thread client of the one battle authority. Sends ordered commands,
  * resolves their acknowledgements, and hands each completed tick to the
  * consumer; the credit goes back only when the consumer releases it. */
@@ -37,6 +38,9 @@ export interface SimClientOptions {
   side: SideName;
   /** "worker" in production; "direct" runs the same authority in-thread. */
   transport: "worker" | "direct";
+  /** Adopt a worker that already holds this battle's prepared world. */
+  connect?: SimConnection;
+  publicWorld?: PublicWorldData;
   /** Replay a recorded battle instead of accepting input. */
   replay?: string;
   /** Blue is played by this comparison script; blue input is refused. */
@@ -44,6 +48,7 @@ export interface SimClientOptions {
 }
 
 export interface SimClient {
+  readonly world: Promise<PublicWorldData>;
   readonly ready: Promise<{ tickHz: number; tick: number }>;
   /** Explicit pause intent, independent of loading, visibility or consumer stalls. */
   readonly paused: boolean;
@@ -63,7 +68,12 @@ export interface SimClient {
   dispose(): void;
 }
 
-interface Channel {
+export type SimConnection = (
+  receive: (reply: SimReply) => void,
+  fail: (message: string) => void,
+) => SimChannel;
+
+export interface SimChannel {
   send(request: SimRequest, transfer?: Transferable[]): void;
   close(): void;
 }
@@ -71,7 +81,7 @@ interface Channel {
 function workerChannel(
   receive: (reply: SimReply) => void,
   fail: (message: string) => void,
-): Channel {
+): SimChannel {
   const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
   worker.onmessage = (event: MessageEvent<SimReply>) => receive(event.data);
   worker.onerror = (event) => fail(event.message || "The simulation worker failed to start.");
@@ -83,17 +93,11 @@ function workerChannel(
 
 /** The same authority in this thread. Transfers really detach the buffers,
  * so a use-after-transfer fails here exactly as it would across a worker. */
-function directChannel(receive: (reply: SimReply) => void): Channel {
+function directChannel(receive: (reply: SimReply) => void): SimChannel {
   let timer: ReturnType<typeof setTimeout> | null = null;
-  const detach = (transfer?: Transferable[]) =>
-    transfer?.map((t) => (t instanceof ArrayBuffer ? structuredClone(t, { transfer: [t] }) : t));
   const host: AuthorityHost = {
     post(reply, transfer) {
-      const moved = detach(transfer);
-      const delivered =
-        reply.type === "publication" && moved
-          ? { ...reply, buffer: moved[0] as ArrayBuffer }
-          : reply;
+      const delivered = transfer?.length ? structuredClone(reply, { transfer }) : reply;
       queueMicrotask(() => receive(delivered));
     },
     now: () => performance.now(),
@@ -109,11 +113,7 @@ function directChannel(receive: (reply: SimReply) => void): Channel {
   const authority = createAuthority(host);
   return {
     send(request, transfer) {
-      const moved = detach(transfer);
-      const delivered =
-        request.type === "credit" && moved
-          ? { ...request, buffer: moved[0] as ArrayBuffer }
-          : request;
+      const delivered = transfer?.length ? structuredClone(request, { transfer }) : request;
       queueMicrotask(() => authority.handle(delivered));
     },
     close() {
@@ -144,6 +144,14 @@ export function createSimClient(options: SimClientOptions): SimClient {
   const statusListeners: ((status: AuthorityStatus, slow: boolean) => void)[] = [];
   let consumer: ((publication: Publication) => void) | null = null;
   let replayWaiter: Pending<string> | null = null;
+  let resolveWorld!: (world: PublicWorldData) => void;
+  let rejectWorld!: (error: Error) => void;
+  const world = new Promise<PublicWorldData>((resolve, reject) => {
+    resolveWorld = resolve;
+    rejectWorld = reject;
+  });
+  world.catch(() => {});
+  if (options.publicWorld) resolveWorld(options.publicWorld);
   let resolveReady!: (info: { tickHz: number; tick: number }) => void;
   let rejectReady!: (error: Error) => void;
   const ready = new Promise<{ tickHz: number; tick: number }>((resolve, reject) => {
@@ -169,6 +177,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
     for (const buffer of heldBuffers) returnCredit(buffer);
     channel.send({ type: "pause" });
     rejectReady(failure);
+    rejectWorld(failure);
     for (const pending of pendingAcks.values()) pending.reject(failure);
     for (const pending of advances.values()) pending.reject(failure);
     for (const pending of previews.values()) pending.reject(failure);
@@ -199,6 +208,9 @@ export function createSimClient(options: SimClientOptions): SimClient {
     }
     try {
       switch (reply.type) {
+        case "world":
+          resolveWorld(reply.world);
+          break;
         case "ready": {
           const layout = JSON.parse(reply.layout) as ObservationLayout;
           decoder = new ObservationDecoder(layout);
@@ -268,8 +280,11 @@ export function createSimClient(options: SimClientOptions): SimClient {
     }
   };
 
-  const channel =
-    options.transport === "worker" ? workerChannel(receive, fail) : directChannel(receive);
+  const channel = options.connect
+    ? options.connect(receive, fail)
+    : options.transport === "worker"
+      ? workerChannel(receive, fail)
+      : directChannel(receive);
   channel.send({
     type: "init",
     scenario: options.scenario,
@@ -287,6 +302,7 @@ export function createSimClient(options: SimClientOptions): SimClient {
 
   return {
     ready,
+    world,
     get paused() {
       return paused;
     },

@@ -59,6 +59,11 @@ fn shot_counters_and_elevation_move_only_when_a_round_leaves() {
         .unwrap()
         .ballistics
         .range_m = 450.0;
+    let grenade = &mut setup.rules.weapons.get_mut("grenade").unwrap().ballistics;
+    grenade.range_m = 450.0;
+    grenade.speed_mps = 100.0;
+    grenade.gravity_scale = 0.09;
+    grenade.scatter_mrad = 30.0;
     let mut b = Battle::new(&setup, 4);
     let mut seen: BTreeSet<ProjectileId> = BTreeSet::new();
     let mut before: BTreeMap<(u32, usize), (f64, f64, u32)> = BTreeMap::new();

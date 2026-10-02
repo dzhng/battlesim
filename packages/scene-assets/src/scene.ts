@@ -1,5 +1,5 @@
 // glTF → an engine-space scene: the node tree with world transforms, triangle
-// primitives, the skin, animation channels and scalar materials. The basis
+// primitives, the skin, animation channels and materials. The basis
 // conversion (glTF Y up → engine Z up, then the source's declared yaw) is one
 // matrix above every root, applied here at bake time and never at load.
 
@@ -16,6 +16,7 @@ import {
   type Texture,
   type TextureChannel,
 } from "./schema.ts";
+import { sourceCoverage, sourceInterior } from "./material.ts";
 import { bakeTexture, decodePng, validTextureSize, type Rgba8 } from "./texture.ts";
 
 export interface SceneNode {
@@ -388,6 +389,7 @@ export function importScene(
       );
     const wear = m.extras?.wear;
     const colourScale = Number(m.extras?.colour_scale);
+    const interior = sourceInterior(m, name, add);
     return {
       name,
       base_color: (pbr.baseColorFactor ?? [1, 1, 1, 1]) as Material["base_color"],
@@ -398,6 +400,8 @@ export function importScene(
         ? { wear: wear as Material["wear"] }
         : {}),
       ...(colourScale > 0 && colourScale !== 1 ? { colour_scale: colourScale } : {}),
+      coverage: sourceCoverage(m, name, add),
+      ...(interior ? { interior } : {}),
       ...(Object.keys(channels).length ? { images: channels } : {}),
     };
   });
