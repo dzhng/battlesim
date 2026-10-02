@@ -25,15 +25,19 @@ pub fn compile_map(request_json: &str, descriptors_json: &str) -> Result<String,
     mapgen::compile_json(request_json, descriptors_json).map_err(js_error)
 }
 
-/// Generate a seeded plan (layout, streets, parcels and buildings): the same
-/// record the CLI's `generate` prints.
+/// Generate a seeded plan (layout, streets, parcels, buildings and street
+/// furniture): the same record the CLI's `generate` prints. `catalog_json` is
+/// the unit and prop catalog's documents, as the rules carry them under
+/// `catalog`.
 #[wasm_bindgen]
 pub fn generate_map_plan(
     request_json: &str,
     presets_json: &str,
     descriptors_json: &str,
+    catalog_json: &str,
 ) -> Result<String, JsError> {
-    mapgen::generate_plan_json(request_json, presets_json, descriptors_json).map_err(js_error)
+    mapgen::generate_plan_json(request_json, presets_json, descriptors_json, catalog_json)
+        .map_err(js_error)
 }
 
 /// Generate a plan and compile it into a map, as the CLI's `generate-map` does.
@@ -42,8 +46,10 @@ pub fn generate_map(
     request_json: &str,
     presets_json: &str,
     descriptors_json: &str,
+    catalog_json: &str,
 ) -> Result<String, JsError> {
-    mapgen::generate_map_json(request_json, presets_json, descriptors_json).map_err(js_error)
+    mapgen::generate_map_json(request_json, presets_json, descriptors_json, catalog_json)
+        .map_err(js_error)
 }
 
 /// Plan one encounter recipe on a compiled map: the map and the sites

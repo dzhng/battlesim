@@ -45,7 +45,12 @@ function recipeJson(record: Record_): string {
 test.each(cases)(
   "$name: native and WASM plan the same bytes or refusal",
   (record) => {
-    const generated = generate_map(record.request_json, presets, templates);
+    const generated = generate_map(
+      record.request_json,
+      presets,
+      templates,
+      JSON.stringify(GAME_RULES.catalog),
+    );
     // The generator's own bytes, as preparation hands them on.
     const { map, sites } = mapAndSites(generated);
     const outcome = plan_encounter(map, sites, rules, recipeJson(record), record.encounter_seed);

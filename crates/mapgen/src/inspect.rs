@@ -43,6 +43,28 @@ const TRACK: &str = "#7a5a2e";
 const STREET: &str = "#4a4a4a";
 const APRON: &str = "#a9a9a9";
 const ENTRANCE: &str = "#ffd43b";
+/// Street furniture, by what a reviewer looks for: (label, colour, the prop
+/// kinds drawn in it). A kind this table does not know draws as the last.
+const FURNITURE: [(&str, &str, &[&str]); 6] = [
+    ("parked car", "#e11d48", &["parked_car"]),
+    ("street tree", "#15803d", &["trunk"]),
+    ("lamp", "#facc15", &["lamp"]),
+    (
+        "site cabin and fence",
+        "#f97316",
+        &["site_cabin", "heras_fence"],
+    ),
+    ("skip and pallets", "#a16207", &["skip_bin", "pallet_stack"]),
+    ("other furniture", "#0ea5e9", &[]),
+];
+
+/// The row of `FURNITURE` a prop kind is drawn by.
+fn furniture(kind: &str) -> usize {
+    FURNITURE
+        .iter()
+        .position(|(_, _, kinds)| kinds.contains(&kind))
+        .unwrap_or(FURNITURE.len() - 1)
+}
 /// Parcels and entrances are drawn when the view is at most this wide: on a
 /// whole map they are below a pixel.
 const DETAIL_VIEW_M: f64 = 2_600.0;
@@ -337,6 +359,31 @@ pub fn svg(
             }
         }
     }
+    // Street furniture and any other authored body, each as its own box: on
+    // a whole map they are below a pixel.
+    let mut placed = [0usize; FURNITURE.len()];
+    for prop in &plan.props {
+        placed[furniture(&prop.kind)] += 1;
+        if !detail || !shown(prop.center, 10.0) {
+            continue;
+        }
+        let along = direction(prop.yaw);
+        let across = [-along[1], along[0]];
+        // A post is drawn no thinner than this, so it shows at all.
+        let half = [prop.half_extents[0], prop.half_extents[1]].map(|half| half.max(0.25));
+        let corners = [[-1.0, -1.0], [1.0, -1.0], [1.0, 1.0], [-1.0, 1.0]].map(|[u, v]| {
+            add(
+                prop.center,
+                add(scale(along, u * half[0]), scale(across, v * half[1])),
+            )
+        });
+        let _ = write!(
+            out,
+            r##"<path d="{}" fill="{}" stroke="#111111" stroke-width="0.06"/>"##,
+            path(&corners, true),
+            FURNITURE[furniture(&prop.kind)].1
+        );
+    }
     let _ = write!(
         out,
         r##"</g><rect width="{width}" height="{height}" fill="none" stroke="#111111" stroke-width="{}"/>"##,
@@ -445,6 +492,14 @@ pub fn svg(
             label(&mut out, &mut x, 2.0, &format!("{count} {name}"));
         }
     }
+    if detail {
+        for ((name, fill, _), count) in FURNITURE.iter().zip(placed) {
+            if count > 0 {
+                block(&mut out, x, 2.0, fill, 1.0);
+                label(&mut out, &mut x, 2.0, &format!("{count} {name}"));
+            }
+        }
+    }
 
     let km2 = |m2: f64| m2 / 1e6;
     let classes: Vec<String> = metrics
@@ -492,9 +547,10 @@ pub fn svg(
             seconds(&transit.east_west)
         ),
         format!(
-            "whole map: {} buildings on {} parcels  |  streets {:.0} km  |  river {:.1} km, {} bridges  |  this view is {:.0} m wide",
+            "whole map: {} buildings on {} parcels, {} street props  |  streets {:.0} km  |  river {:.1} km, {} bridges  |  this view is {:.0} m wide",
             plan.buildings.len(),
             plan.lots.len(),
+            plan.props.len(),
             metrics.roads.street_km,
             metrics.river.top_km + metrics.river.bottom_km,
             plan.bridges.len(),

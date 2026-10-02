@@ -26,7 +26,7 @@ export interface PrepareBattleRequest {
  *  of a request's identity beyond what the request pins. */
 export interface PrepareDocuments {
   /** The rules the battle runs under (the game's, with the resolved
-   *  catalog). */
+   *  catalog, which a generated map's street furniture is placed from). */
   rules: string;
   /** `fixtures/map-presets.json`. */
   presets: string;
@@ -109,7 +109,9 @@ export interface PreparationReport {
   identity: MapIdentity;
   /** The playable area, metres. */
   size: [number, number];
-  counts: { buildings: number; parts: number; surfaces: number; forests: number };
+  /** `props` are the map's own bodies that are no building's part: street
+   *  furniture on a generated map. */
+  counts: { buildings: number; parts: number; props: number; surfaces: number; forests: number };
   /** A planned encounter's inputs (the recipe's content hash and the
    *  encounter seed) and where the planner put it; null for a saved one. */
   planned: { recipe_hash: string; encounter_seed: string; placement: EncounterPlacement } | null;

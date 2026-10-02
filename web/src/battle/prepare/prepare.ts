@@ -98,6 +98,11 @@ type LaidEncounter = (
   planned: PreparedBattle["report"]["planned"];
 };
 
+/** The unit and prop catalog's documents out of the rules' text. */
+function catalogOf(rules: string): string {
+  return JSON.stringify((JSON.parse(rules) as { catalog?: unknown }).catalog ?? []);
+}
+
 /** Throws `PreparationRefused` when the request, the map or the encounter
  *  is refused. */
 export async function prepare(
@@ -136,7 +141,12 @@ export async function prepare(
   const map = await resolveMap(source, {
     loadMap: saved.loadMap,
     generator: wasm,
-    documents,
+    documents: {
+      presets: documents.presets,
+      templates: documents.templates,
+      // A generated map is furnished from the catalog its battle's rules carry.
+      catalog: source.kind === "generated" ? catalogOf(documents.rules) : "[]",
+    },
   }).catch((error: unknown) => {
     throw error instanceof MapRefused ? new PreparationRefused("map", error.diagnostics) : error;
   });
@@ -227,6 +237,7 @@ export async function prepare(
       counts: {
         buildings: buildings.length,
         parts: buildings.reduce((n, b) => n + b.parts.length, 0),
+        props: map.definition.props.length,
         surfaces: map.definition.surfaces.length,
         forests: map.definition.forests.length,
       },
