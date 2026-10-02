@@ -24,6 +24,8 @@ the specification did not settle, with scenario, reach, verdict and confidence.
   through JavaScript parsing. Errors are returned to the editor without writes.
   Development builds this executable before serving the editor; requests run it
   directly so fixture edits do not trigger recompilation of embedded Rust fixtures.
+  Its serialized output is also the catalog artifact: JavaScript parses it for
+  display but never reformats it, preserving the native catalog check's contract.
 - **High confidence — development cache ownership.** Vite's cache lives in each
   checkout's ignored scratch directory; dependencies remain shared. This avoids
   optimized modules from another worktree replacing this checkout's modules.

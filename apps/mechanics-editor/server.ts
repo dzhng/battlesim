@@ -19,7 +19,7 @@ type Validator = (
   catalog: JsonObject[],
   texts?: string[],
   changes?: MechanicsChange[],
-) => Promise<JsonObject>;
+) => Promise<string>;
 type FileState = { path: string; text: string; value: JsonObject };
 type Journal = { pid: number; files: MechanicsPreview["files"] };
 
@@ -56,11 +56,14 @@ function object(value: Json | undefined): JsonObject {
   return value;
 }
 
+function entries(catalog: JsonObject, section: string): JsonObject {
+  return section === "weapons"
+    ? object(catalog.weapons)
+    : object(object((catalog.documents as Json[])[0])[section]);
+}
+
 function entry(catalog: JsonObject, section: string, id: string): JsonObject {
-  const records =
-    section === "weapons"
-      ? object(catalog.weapons)
-      : object(object((catalog.documents as Json[])[0])[section]);
+  const records = entries(catalog, section);
   if (!Object.hasOwn(records, id)) throw new MechanicsError(`Unknown ${section}.${id}`);
   return object(records[id]);
 }
@@ -163,6 +166,8 @@ export function nativeValidator(root: string): Validator {
       );
       let stdout = "",
         stderr = "";
+      child.stdout.setEncoding("utf8");
+      child.stderr.setEncoding("utf8");
       child.stdout.on("data", (data) => {
         stdout += data;
       });
@@ -178,13 +183,7 @@ export function nativeValidator(root: string): Validator {
       );
       child.on("close", (code) => {
         if (code !== 0) reject(new MechanicsError(stderr.trim() || "Mechanics validation failed"));
-        else {
-          try {
-            resolve(JSON.parse(stdout));
-          } catch (error) {
-            reject(error);
-          }
-        }
+        else resolve(stdout);
       });
       child.stdin.on("error", () => {});
       child.stdin.end(input);
@@ -273,12 +272,12 @@ export class MechanicsStore {
     const state = await this.read();
     const game = state.files.find((file) => file.path === "fixtures/game.json")!;
     const documents = state.files.filter((file) => file !== game);
-    const catalog = await this.validate(
+    const text = await this.validate(
       game.value,
       documents.map((file) => file.value),
       [game.text, ...documents.map((file) => file.text)],
     );
-    return { ...state, catalog };
+    return { ...state, catalog: object(JSON.parse(text)) };
   }
 
   snapshot(): Promise<MechanicsSnapshot> {
@@ -406,12 +405,20 @@ export class MechanicsStore {
       restoredUnits.add(change.unit);
     }
     const game = documents.find((file) => file.path === "fixtures/game.json")!;
-    const catalog = await this.validate(
-      game.value,
-      documents.filter((file) => file !== game).map((file) => file.value),
-      undefined,
-      draft.changes,
-    );
+    const originals = new Map(state.files.map((file) => [file.path, JSON.stringify(file.value)]));
+    const sourceText = (file: FileState) =>
+      JSON.stringify(file.value) === originals.get(file.path) ? file.text : pretty(file.value);
+    const validate = () => {
+      const rows = documents.filter((file) => file !== game);
+      return this.validate(
+        game.value,
+        rows.map((file) => file.value),
+        [sourceText(game), ...rows.map(sourceText)],
+        draft.changes,
+      );
+    };
+    let generated = await validate();
+    let catalog = object(JSON.parse(generated));
     // Ask the catalog owner whether the slot override is still needed. Removing
     // the last local soldier override should return an inherited unit to its
     // authored form, including inheritance rather than a copied slot list.
@@ -421,12 +428,13 @@ export class MechanicsStore {
       const original = structuredClone(unit);
       override(unit, entry(catalog, "units", id), ["body", "squad", "slots"], undefined, true);
       try {
-        const inherited = await this.validate(
-          game.value,
-          documents.filter((file) => file !== game).map((file) => file.value),
-        );
+        const inheritedText = await validate();
+        const inherited = object(JSON.parse(inheritedText));
         if (!matchesIntent(entry(inherited, "units", id), entry(catalog, "units", id))) {
           Object.assign(unit, original);
+        } else {
+          generated = inheritedText;
+          catalog = inherited;
         }
       } catch {
         Object.assign(unit, original);
@@ -449,13 +457,16 @@ export class MechanicsStore {
           "Inheritance or an upgrade part overrides this field. The requested value would not take effect.",
         );
     }
-    const changedWeapons = new Set(
-      Object.keys(object(catalog.weapons)).filter(
-        (id) =>
-          JSON.stringify(object(catalog.weapons)[id]) !==
-          JSON.stringify(object(state.catalog.weapons)[id]),
-      ),
-    );
+    const changedRows = (section: string) =>
+      new Set(
+        Object.keys(entries(catalog, section)).filter(
+          (id) =>
+            JSON.stringify(entries(catalog, section)[id]) !==
+            JSON.stringify(entries(state.catalog, section)[id]),
+        ),
+      );
+    const changedWeapons = changedRows("weapons");
+    const changedSoldiers = changedRows("soldiers");
     const oldUnits = state.catalog.units as JsonObject[];
     const units = catalog.units as JsonObject[];
     const affectedUnits = units
@@ -464,6 +475,9 @@ export class MechanicsStore {
           JSON.stringify(unit) !== JSON.stringify(oldUnits.find((old) => old.id === unit.id)) ||
           (unit.mounts as JsonObject[]).some((mount) =>
             (mount.weapons as string[]).some((id) => changedWeapons.has(id)),
+          ) ||
+          (valueAt(unit, ["body", "squad", "slots"]) as string[] | undefined)?.some((id) =>
+            changedSoldiers.has(id),
           ),
       )
       .map((unit) => String(unit.id));
@@ -472,7 +486,6 @@ export class MechanicsStore {
         ? []
         : [{ path: file.path, before: state.files[i].text, after: pretty(file.value) }],
     );
-    const generated = pretty(catalog);
     if (generated !== state.generated)
       files.push({ path: "fixtures/catalog.json", before: state.generated, after: generated });
     const geometry = draft.changes.some((change) =>
@@ -496,8 +509,17 @@ export class MechanicsStore {
   save(draft: MechanicsDraft): Promise<MechanicsSnapshot> {
     return this.serial(async () => {
       const proposal = await this.candidate(draft);
-      if ((await this.read()).revision !== draft.revision)
+      let state = await this.read();
+      if (state.revision !== draft.revision)
         throw new MechanicsError("Fixtures changed while validating. Reload before saving.", 409);
+      const replacements = new Map(proposal.files.map((file) => [file.path, file.after]));
+      const expectedRevision = revision([
+        ...state.files.map(({ path, text }) => ({ path, text: replacements.get(path) ?? text })),
+        {
+          path: "fixtures/catalog.json",
+          text: replacements.get("fixtures/catalog.json") ?? state.generated,
+        },
+      ]);
       if (proposal.files.length) {
         const journal: Journal = { pid: process.pid, files: proposal.files };
         try {
@@ -510,7 +532,21 @@ export class MechanicsStore {
         try {
           if ((await this.read()).revision !== draft.revision)
             throw new MechanicsError("Fixtures changed before publication", 409);
-          for (const file of proposal.files) await this.replace(file.path, file.after);
+          for (const file of proposal.files) {
+            if ((await fs.readFile(join(this.root, file.path), "utf8")) !== file.before)
+              throw new MechanicsError(
+                `Outside edits to ${file.path} interrupted publication`,
+                409,
+              );
+            await this.replace(file.path, file.after);
+          }
+          const published = await this.read();
+          if (published.revision !== expectedRevision)
+            throw new MechanicsError(
+              "Fixtures changed during publication. Your outside edits were preserved.",
+              409,
+            );
+          state = published;
         } catch (error) {
           for (const file of proposal.files) {
             const current = await fs.readFile(join(this.root, file.path), "utf8");
@@ -521,7 +557,6 @@ export class MechanicsStore {
         }
         await fs.rm(this.journal);
       }
-      const state = await this.read();
       return {
         revision: state.revision,
         documents: state.files.map(({ path, value }) => ({ path, value })),
@@ -539,7 +574,7 @@ export function mechanicsPlugin(root: string): Plugin {
     configureServer(server) {
       const native = nativeValidator(root);
       store = new MechanicsStore(root, async (game, documents, texts, changes) => {
-        const catalog = await native(game, documents, texts);
+        const catalogText = await native(game, documents, texts);
         if (
           changes?.some((change) =>
             ["half_extents_m", "eye_m", "pivot_m", "muzzle_m", "parts", "mounts", "deploy"].some(
@@ -548,9 +583,9 @@ export function mechanicsPlugin(root: string): Plugin {
           )
         ) {
           const fit = await server.ssrLoadModule(join(root, "apps/mechanics-editor/modelFit.ts"));
-          await fit.validateGeometry(root, catalog);
+          await fit.validateGeometry(root, object(JSON.parse(catalogText)));
         }
-        return catalog;
+        return catalogText;
       });
       server.middlewares.use(async (req, res, next) => {
         const path = req.url?.split("?")[0];

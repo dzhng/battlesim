@@ -18,6 +18,9 @@ Preview shows exact JSON replacements. Save rejects stale drafts and publishes
 authored sources with their matching generated catalog. Interrupted publication
 is recovered before the next reader, while outside edits are preserved. File
 replacement is atomic individually; the journal provides recovery across files.
+The editor formats authored JSON; Rust supplies the generated catalog's exact
+canonical bytes. Changes made elsewhere during publication abort the save and
+preserve those edits while the editor rolls back its own replacements.
 
 Each battle page captures one accepted generation. Saving leaves running battles
 alone; starting or explicitly restarting a battle loads the latest saved values.

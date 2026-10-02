@@ -38,6 +38,9 @@ below serves that one goal.
   Restore must preserve the same invariant; a converted field can update correctly
   while restoring its source silently leaves the dependent value changed. Check
   dependent lists through the same restored projection as the form.
+- **Test generated artifacts against their owning generator.** Compare exact
+  bytes when the existing contract is canonical text; cross-language JSON
+  reserialization can preserve values while breaking the catalog freshness gate.
 - **Nothing the compiler already guarantees.** A test that re-asserts a type
   signature — field shapes, rejected argument types — can only fail if the
   compiler failed first. Spend the budget on business rules, arithmetic,

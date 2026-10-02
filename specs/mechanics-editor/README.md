@@ -13,13 +13,14 @@ soldier and mount overrides. Finish the integrated browser proof on a scratch
 checkout, then run the closeout gates and archive this spec. Preserve the shipped
 grenade speed of 100 m/s, range of 150 m and scatter of 30 mrad.
 
-Current pickup: prove Save through the real UI on scratch fixtures; show a running
-battle stays on its captured generation and Restart loads the saved generation.
-Then finish visual critique/preview, whole-feature review and the final choices
-ledger. Native admission tests and 25 integrated web tests passed; server tests
-add named-mount restoration, interrupted-save recovery and stale-draft protection.
-The live geometry preview passed existing model-fit checks. Full closeout gates
-and integrated browser publication/lifecycle evidence are still outstanding.
+Current pickup: rerun the scratch browser proof against the corrected canonical
+publisher, finish search/preview/error captures, then run the whole-feature review,
+closeout gates and final choices ledger.
+Browser Save, reciprocal spread inputs, active battle isolation, explicit restart,
+invalid flight, outside-edit protection and inheritance restoration passed on
+scratch fixtures. Metal Chromium was required for unchanged GPU admission; effect
+PNG assets needed local LFS checkout. Server tests now cover exact Rust catalog
+bytes and edits made during publication. Full closeout gates are outstanding.
 
 - [ ] [Admission and publication](slices/01-admission.md).
 - [ ] [Spreadsheet and explained editing](slices/02-editor.md).

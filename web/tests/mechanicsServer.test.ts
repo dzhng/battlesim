@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { cp, mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
+import { cp, mkdtemp, mkdir, writeFile, readFile, readdir, rm } from "node:fs/promises";
 import * as filesystem from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
@@ -36,11 +36,16 @@ async function store() {
     JSON.stringify({ units: { test: { cost: 1 } } }),
   );
   await writeFile(join(root, "fixtures/catalog.json"), "{}");
-  const validate = async (game: JsonObject, documents: JsonObject[]) => ({
-    weapons: game.weapons,
-    documents,
-    units: [],
-  });
+  const validate = async (game: JsonObject, documents: JsonObject[]) =>
+    JSON.stringify(
+      {
+        weapons: game.weapons,
+        documents: [{ soldiers: {}, ...documents[0] }],
+        units: [],
+      },
+      null,
+      2,
+    ) + "\n";
   return { root, editor: new MechanicsStore(root, validate) };
 }
 
@@ -119,6 +124,30 @@ test("a publication failure restores already replaced sources and leaves the sto
   expect((saved.catalog.weapons as JsonObject).rifle).toMatchObject({ damage: 40 });
 });
 
+test("an outside edit during publication aborts the save and survives rollback", async () => {
+  const { root, editor } = await store();
+  const initial = await editor.snapshot();
+  const rename = (await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises"))
+    .rename;
+  const outside = '{"units":{"test":{"cost":2}}}\n';
+  vi.mocked(filesystem.rename).mockImplementation(async (from, to) => {
+    await rename(from, to);
+    if (String(to) === join(root, "fixtures/game.json"))
+      await writeFile(join(root, "fixtures/units/test.json"), outside);
+  });
+  await expect(
+    editor.save({
+      revision: initial.revision,
+      changes: [{ section: "weapons", id: "rifle", path: ["damage"], value: 40 }],
+    }),
+  ).rejects.toMatchObject({ status: 409 });
+  expect(await readFile(join(root, "fixtures/units/test.json"), "utf8")).toBe(outside);
+  expect(
+    JSON.parse(await readFile(join(root, "fixtures/game.json"), "utf8")).weapons.rifle.damage,
+  ).toBe(35);
+  expect(await readFile(join(root, "fixtures/catalog.json"), "utf8")).toBe("{}");
+});
+
 test("the next reader rolls an interrupted publication back before exposing a generation", async () => {
   const { root, editor } = await store();
   const initial = await editor.snapshot();
@@ -135,11 +164,19 @@ test("the next reader rolls an interrupted publication back before exposing a ge
   const first = preview.files[0];
   await writeFile(join(root, first.path), first.after);
   expect(
-    await new MechanicsStore(root, async (game) => ({
-      weapons: game.weapons,
-      documents: initial.catalog.documents,
-      units: [],
-    })).snapshot(),
+    await new MechanicsStore(
+      root,
+      async (game) =>
+        JSON.stringify(
+          {
+            weapons: game.weapons,
+            documents: initial.catalog.documents,
+            units: [],
+          },
+          null,
+          2,
+        ) + "\n",
+    ).snapshot(),
   ).toEqual(initial);
 });
 
@@ -223,6 +260,77 @@ test("an upgrade-masked edit is refused instead of saving an ineffective value",
     }),
   ).rejects.toThrow("would not take effect");
   expect(await editor.snapshot()).toEqual(initial);
+}, 30000);
+
+test("decimal gameplay values survive native admission and publication without rounding the authored JSON", async () => {
+  const { root, editor } = await nativeStore();
+  const snapshot = await editor.snapshot();
+  const scatter = 24.666666666666668;
+  const saved = await editor.save({
+    revision: snapshot.revision,
+    changes: [
+      { section: "weapons", id: "grenade", path: ["scatter_mrad"], value: scatter },
+      {
+        section: "units",
+        id: "rifle",
+        path: ["mobility", "foot", "offroad_kmh"],
+        value: 12.3456789,
+      },
+    ],
+  });
+  expect((saved.catalog.weapons as JsonObject).grenade).toMatchObject({ scatter_mrad: scatter });
+  expect(
+    JSON.parse(await readFile(join(root, "fixtures/game.json"), "utf8")).weapons.grenade
+      .scatter_mrad,
+  ).toBe(scatter);
+  expect((saved.catalog.documents as JsonObject[])[0].units).toMatchObject({
+    rifle: { mobility: { foot: { offroad_kmh: 12.3456789 } } },
+  });
+}, 30000);
+
+test("save publishes the Rust catalog generator’s exact canonical bytes", async () => {
+  const { root, editor } = await nativeStore();
+  const snapshot = await editor.snapshot();
+  await editor.save({
+    revision: snapshot.revision,
+    changes: [{ section: "weapons", id: "rifle", path: ["damage"], value: 40 }],
+  });
+  const texts: string[] = [];
+  for (const folder of ["props", "units"]) {
+    const paths = (await readdir(join(root, "fixtures", folder), { recursive: true }))
+      .filter((path) => path.endsWith(".json"))
+      .sort();
+    for (const path of paths)
+      texts.push(await readFile(join(root, "fixtures", folder, path), "utf8"));
+  }
+  const game = await readFile(join(root, "fixtures/game.json"), "utf8");
+  const native = spawnSync(
+    resolve(
+      "..",
+      process.env.CARGO_TARGET_DIR ?? "throwaway/target",
+      "debug/examples/mechanics_validate",
+    ),
+    [],
+    { input: `{"game":${game},"catalog":[${texts.join(",")}]}`, encoding: "utf8" },
+  );
+  expect(native.status, native.stderr).toBe(0);
+  expect(await readFile(join(root, "fixtures/catalog.json"), "utf8")).toBe(native.stdout);
+}, 30000);
+
+test("editing an existing local soldier variant still lists its unit in the preview", async () => {
+  const { editor } = await nativeStore();
+  let snapshot = await editor.snapshot();
+  snapshot = await editor.save({
+    revision: snapshot.revision,
+    changes: [{ section: "soldiers", id: "rifleman", unit: "rifle", path: ["hp"], value: 120 }],
+  });
+  const preview = await editor.preview({
+    revision: snapshot.revision,
+    changes: [
+      { section: "soldiers", id: "rifle__rifleman", unit: "rifle", path: ["hp"], value: 140 },
+    ],
+  });
+  expect(preview.affectedUnits).toEqual(["rifle"]);
 }, 30000);
 
 test("restoring multiple soldier overrides removes the local variant and restores inherited slots", async () => {
