@@ -84,7 +84,8 @@ const RoadLook = d.struct({
   shoulder: d.vec4f,
   /** The shoulder's outer edge: the share of its width it wanders in by,
    *  1 / the wander's size; then the share of the field's grass that still
-   *  grows where the ground is most worn; unused. */
+   *  grows where the ground is most worn, and how far the ground goes to the
+   *  shoulder's colour there. */
   edge: d.vec4f,
 });
 
@@ -733,19 +734,21 @@ const roadGrain = tgpu
 
 /** A shoulder is worn whole out to this share of its width there, and
  *  fades from it to its edge. */
-const SHOULDER_WHOLE = 0.15;
+const SHOULDER_WHOLE = 0.35;
 /** The shoulder's wander is the noise about its middle, stretched this much:
  *  the noise seldom leaves the middle of its range. */
-const SHOULDER_WANDER = 3;
+const SHOULDER_WANDER = 5;
 /** A shoulder fades out as a pixel grows from the first share of its width
- *  to the second: narrower than a pixel it would only flicker. */
-const SHOULDER_PIXELS = [0.5, 1.5] as const;
+ *  to the second: whole at the default camera, gone by the tactical one. A
+ *  few pixels wide it is a fringe that follows the road, and reads as a halo
+ *  or a contact shadow round it. */
+const SHOULDER_PIXELS = [0.03, 0.08] as const;
 /** A shoulder carries this share of its road's grain. */
 const SHOULDER_GRAIN = 0.5;
 /** Toward its outer edge the field comes back through a shoulder in tufts
  *  this many metres across, where their noise is under these levels. */
 const SHOULDER_TUFT_M = 1.1;
-const SHOULDER_TUFTS = [0.4, 0.56] as const;
+const SHOULDER_TUFTS = [0.44, 0.52] as const;
 
 /** How worn the ground beside the roads is at `xy`, and by which kind of
  *  road: `(wear, kind's tag)`, wear 1 at a road's edge and 0 past its
@@ -817,7 +820,7 @@ const groundRoads = tgpu
   let luma=vec3f(0.2126,0.7152,0.0722);
   let lift=max(1.0,dot(under.xyz,luma)/max(dot(look.shoulder.xyz,luma),1e-5));
   let grain=roadGrain(xy*look.shape.w,footprint*look.shape.w)*${SHOULDER_GRAIN};
-  surface=mix(under,vec4f(look.shoulder.xyz*lift*(1.0+look.shape.z*grain),look.core.w),worn.x);
+  surface=mix(under,vec4f(look.shoulder.xyz*lift*(1.0+look.shape.z*grain),look.core.w),worn.x*look.edge.w);
  }
  // How much of the ground here a later kind's road already covers.
  var laid=0.0;
@@ -1560,7 +1563,12 @@ function roadLook(road: Road, palettes: Biome["palettes"]) {
     shape: d.vec4f(road.feather_m, 1 / road.patch_m, road.grain, 1 / road.grain_m),
     join: d.vec4f(road.join_m, 0, 0, 0),
     shoulder: d.vec4f(...linear(palettes[road.shoulder.palette][0]), road.shoulder.width_m),
-    edge: d.vec4f(road.shoulder.jitter, 1 / road.shoulder.jitter_m, road.shoulder.grass, 0),
+    edge: d.vec4f(
+      road.shoulder.jitter,
+      1 / road.shoulder.jitter_m,
+      road.shoulder.grass,
+      road.shoulder.cover,
+    ),
   };
 }
 

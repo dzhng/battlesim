@@ -100,8 +100,10 @@ export interface Road {
 /** The worn ground beside a road, between its surface and the field. */
 export interface Shoulder {
   /** Its colour: drawn at the luminance of the ground it lies on where that
-   *  is the brighter, so it differs from the field by hue alone. */
+   *  is the brighter, so it differs from the field by hue alone. `cover` is
+   *  how far the ground goes to it where the wear is whole. */
   palette: string;
+  cover: number;
   /** Its width at the widest, from the road's edge; 0 for none. */
   width_m: number;
   /** The share of that width its outer edge wanders inward by, and the size
@@ -399,6 +401,7 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
     const shoulder = road.shoulder;
     if (!shoulder || typeof shoulder !== "object") bad(`${at}.shoulder`, "is missing");
     palette(`${at}.shoulder.palette`, shoulder.palette);
+    within(`${at}.shoulder.cover`, shoulder.cover, 0, 1);
     within(`${at}.shoulder.width_m`, shoulder.width_m, 0, 8);
     within(`${at}.shoulder.jitter`, shoulder.jitter, 0, 1);
     within(`${at}.shoulder.jitter_m`, shoulder.jitter_m, 0.1, 1000);
