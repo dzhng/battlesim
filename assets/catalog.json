@@ -548,6 +548,253 @@
         0.6
       ]
     },
+    "parked_car": {
+      "unit": "scenery",
+      "scenery": "parked_car",
+      "states": {
+        "default": "assets/source/street/parked_car.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        2.2,
+        0.9,
+        0.72
+      ]
+    },
+    "car_wreck": {
+      "unit": "scenery",
+      "scenery": "car_wreck",
+      "states": {
+        "default": "assets/source/street/car_wreck.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        2.2,
+        0.9,
+        0.35
+      ]
+    },
+    "jersey_barrier": {
+      "unit": "scenery",
+      "scenery": "jersey_barrier",
+      "states": {
+        "default": "assets/source/street/jersey_barrier.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.5,
+        0.3,
+        0.4
+      ]
+    },
+    "bollard": {
+      "unit": "scenery",
+      "scenery": "bollard",
+      "states": {
+        "default": "assets/source/street/bollard.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.1,
+        0.1,
+        0.45
+      ]
+    },
+    "lamp": {
+      "unit": "scenery",
+      "scenery": "lamp",
+      "states": {
+        "default": "assets/source/street/lamp.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.2,
+        0.2,
+        2.5
+      ]
+    },
+    "bench": {
+      "unit": "scenery",
+      "scenery": "bench",
+      "states": {
+        "default": "assets/source/street/bench.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.9,
+        0.3,
+        0.42
+      ]
+    },
+    "bins": {
+      "unit": "scenery",
+      "scenery": "bins",
+      "states": {
+        "default": "assets/source/street/bins.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.65,
+        0.38,
+        0.55
+      ]
+    },
+    "hydrant": {
+      "unit": "scenery",
+      "scenery": "hydrant",
+      "states": {
+        "default": "assets/source/street/hydrant.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.2,
+        0.2,
+        0.38
+      ]
+    },
+    "utility_box": {
+      "unit": "scenery",
+      "scenery": "utility_box",
+      "states": {
+        "default": "assets/source/street/utility_box.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.7,
+        0.25,
+        0.7
+      ]
+    },
+    "planter": {
+      "unit": "scenery",
+      "scenery": "planter",
+      "states": {
+        "default": "assets/source/street/planter.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.0,
+        0.45,
+        0.5
+      ]
+    },
+    "bus_shelter": {
+      "unit": "scenery",
+      "scenery": "bus_shelter",
+      "states": {
+        "default": "assets/source/street/bus_shelter.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        2.0,
+        0.75,
+        1.25
+      ]
+    },
+    "heras_fence": {
+      "unit": "scenery",
+      "scenery": "heras_fence",
+      "states": {
+        "default": "assets/source/street/heras_fence.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.75,
+        0.3,
+        1.0
+      ]
+    },
+    "skip_bin": {
+      "unit": "scenery",
+      "scenery": "skip_bin",
+      "states": {
+        "default": "assets/source/street/skip_bin.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.8,
+        0.85,
+        0.6
+      ]
+    },
+    "pallet_stack": {
+      "unit": "scenery",
+      "scenery": "pallet_stack",
+      "states": {
+        "default": "assets/source/street/pallet_stack.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.6,
+        0.5,
+        0.6
+      ]
+    },
+    "site_cabin": {
+      "unit": "scenery",
+      "scenery": "site_cabin",
+      "states": {
+        "default": "assets/source/street/site_cabin.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        3.0,
+        1.2,
+        1.3
+      ]
+    },
+    "traffic_cone": {
+      "unit": "scenery",
+      "scenery": "traffic_cone",
+      "states": {
+        "default": "assets/source/street/traffic_cone.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.2,
+        0.2,
+        0.37
+      ]
+    },
+    "road_barrier": {
+      "unit": "scenery",
+      "scenery": "road_barrier",
+      "states": {
+        "default": "assets/source/street/road_barrier.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.0,
+        0.25,
+        0.5
+      ]
+    },
+    "scaffold": {
+      "unit": "scenery",
+      "scenery": "scaffold",
+      "states": {
+        "default": "assets/source/street/scaffold.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1.25,
+        0.5,
+        2.0
+      ]
+    },
+    "scooter": {
+      "unit": "scenery",
+      "scenery": "scooter",
+      "states": {
+        "default": "assets/source/street/scooter.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        0.9,
+        0.35,
+        0.55
+      ]
+    },
     "grass_meadow": {
       "unit": "scenery",
       "scenery": "grass",
