@@ -3,16 +3,19 @@
 // `window.__benchmark` for the scene harness.
 import { useEffect, useState } from "react";
 import game from "@fixtures/game.json";
-import { villageScenario } from "../savedMaps";
 import { frameCostRow, type BenchmarkReport } from "@web/battle/benchmark/report";
-import { VILLAGE_CONTACT, type BenchmarkLength } from "@web/battle/benchmark/scenario";
+import {
+  benchmarkPreset,
+  type BenchmarkPreset,
+  type BenchmarkLength,
+} from "@web/battle/benchmark/presets";
 import { BattleView } from "../BattleView";
 import { BenchmarkResults } from "../benchmark/BenchmarkResults";
 import { createBenchmarkRun, type BenchmarkRun } from "../benchmark/run";
 import { useBuiltScenario } from "../useBuiltScenario";
 import { gameCamera } from "../gameCamera";
-
-const SCENARIO = VILLAGE_CONTACT;
+import { prepareBenchmark, type BenchmarkBattle as BuiltBenchmark } from "../benchmark/prepare";
+import { buildFailed } from "../useBuiltScenario";
 
 type Stage =
   | { kind: "choose" }
@@ -23,6 +26,7 @@ declare global {
   interface Window {
     __benchmark?: {
       stage: Stage["kind"];
+      preset: string | null;
       report: BenchmarkReport | null;
       frameCostRow: (slice: string) => string | null;
     };
@@ -30,6 +34,7 @@ declare global {
 }
 
 export default function BenchmarkPage() {
+  const scenario = benchmarkPreset(new URLSearchParams(window.location.search).get("preset"));
   const [stage, setStage] = useState<Stage>({ kind: "choose" });
   const [runs, setRuns] = useState(0);
   const start = (length: BenchmarkLength) => {
@@ -40,10 +45,18 @@ export default function BenchmarkPage() {
     const report = stage.kind === "results" ? stage.report : null;
     window.__benchmark = {
       stage: stage.kind,
+      preset: scenario?.id ?? null,
       report,
       frameCostRow: (slice) => (report ? frameCostRow(report, slice) : null),
     };
-  }, [stage]);
+  }, [stage, scenario]);
+
+  if (!scenario)
+    return (
+      <main className="lab-rejected" data-testid="error">
+        Unknown benchmark preset.
+      </main>
+    );
 
   if (stage.kind === "results")
     return <BenchmarkResults report={stage.report} onAgain={() => start(stage.report.length)} />;
@@ -52,6 +65,7 @@ export default function BenchmarkPage() {
       <BenchmarkBattle
         key={stage.n}
         length={stage.length}
+        workload={scenario}
         onDone={(report) => setStage({ kind: "results", report })}
       />
     );
@@ -62,21 +76,24 @@ export default function BenchmarkPage() {
         <p className="bench-eyebrow">Battle</p>
         <h1>Benchmark</h1>
         <p className="menu-lede">
-          The village battle is stepped to heavy contact (tick{" "}
-          {SCENARIO.startTick.toLocaleString("en-US")}), with blue on its supported script against
-          the defender. The camera then flies a fixed tour: strategic, pan, zoom, ground, combined
-          and return. Input is off while it runs.
+          {scenario.generated
+            ? "Local-contact stress on the complete generated world: Metro Large seed 4, with 100 units a side in the simulation's central city arena and both sides on its seeded orders. Player transit is a separate workload."
+            : "The village battle is stepped to heavy contact, with blue on its supported script against the defender."}{" "}
+          Timing starts at tick {scenario.startTick.toLocaleString("en-US")}. The camera then flies
+          a fixed tour: strategic, pan, zoom, ground, combined and return. Input is off while it
+          runs.
         </p>
         <div className="menu-choices">
           <button type="button" onClick={() => start("full")}>
-            Full run <span>{s(SCENARIO.durationMs.full)}</span>
+            Full run <span>{s(scenario.durationMs.full)}</span>
           </button>
           <button type="button" onClick={() => start("short")}>
-            Short run <span>{s(SCENARIO.durationMs.short)}</span>
+            Short run <span>{s(scenario.durationMs.short)}</span>
           </button>
         </div>
         <p className="menu-foot">
-          {SCENARIO.id} v{SCENARIO.version} · seed {SCENARIO.seed} · tour {SCENARIO.tour.version} ·{" "}
+          {scenario.id} v{scenario.version} · seed {scenario.seed} · tour{" "}
+          {typeof scenario.tour === "string" ? scenario.tour : scenario.tour.version} ·{" "}
           <a href="/">Main menu</a>
         </p>
       </div>
@@ -86,40 +103,71 @@ export default function BenchmarkPage() {
 
 function BenchmarkBattle({
   length,
+  workload,
   onDone,
 }: {
   length: BenchmarkLength;
+  workload: BenchmarkPreset;
   onDone: (report: BenchmarkReport) => void;
 }) {
-  const scenario = useBuiltScenario(SCENARIO.variant, (wasm, variant) =>
-    villageScenario(wasm, "benchmark", variant),
-  );
-  // One run per mount: the page remounts for another.
-  const [run] = useState<BenchmarkRun>(() =>
-    createBenchmarkRun(SCENARIO, length, game.tick_hz, onDone),
-  );
-  if (!scenario) return null;
-  if (typeof scenario !== "string")
+  const built = useBuiltScenario(workload, prepareBenchmark);
+  if (!built) return null;
+  if (buildFailed(built))
     return (
-      <main style={{ padding: 24 }} className="lab-rejected" data-testid="error">
-        the village scenario could not be built: {scenario.error}
+      <main className="lab-rejected" data-testid="error">
+        The benchmark could not be prepared: {built.error}
       </main>
     );
+  return <BenchmarkSession battle={built} length={length} onDone={onDone} />;
+}
+
+function BenchmarkSession({
+  battle,
+  length,
+  onDone,
+}: {
+  battle: BuiltBenchmark;
+  length: BenchmarkLength;
+  onDone: (report: BenchmarkReport) => void;
+}) {
+  const { workload, prepared } = battle;
+  // One run per mount: the page remounts for another.
+  const [run] = useState<BenchmarkRun>(() =>
+    createBenchmarkRun(workload, length, game.tick_hz, onDone, prepared?.report),
+  );
   return (
     <BattleView
       fixture="benchmark"
-      scenario={scenario}
-      seed={SCENARIO.seed}
+      scenario={battle.scenario}
+      prepared={prepared}
+      seed={workload.seed}
       scripted={run.scripted}
       camera={gameCamera.opening()}
+      cameraConfig={prepared && gameCamera.forMap(prepared.report.size)}
       status={(session) => (
-        <Progress run={run} tick={session.sim.observation?.tick ?? 0} error={session.sim.error} />
+        <Progress
+          run={run}
+          startTick={workload.startTick}
+          tick={session.sim.observation?.tick ?? 0}
+          error={session.sim.error}
+        />
       )}
+      diagnostics={() => ({ preparation: () => prepared?.report ?? null })}
     />
   );
 }
 
-function Progress({ run, tick, error }: { run: BenchmarkRun; tick: number; error: string | null }) {
+function Progress({
+  run,
+  startTick,
+  tick,
+  error,
+}: {
+  run: BenchmarkRun;
+  startTick: number;
+  tick: number;
+  error: string | null;
+}) {
   const status = run.status();
   useEffect(() => {
     if (error) run.fail(error);
@@ -129,7 +177,7 @@ function Progress({ run, tick, error }: { run: BenchmarkRun; tick: number; error
       {status.stage === "preparing" ? (
         <span>
           Preparing the battle · tick {tick.toLocaleString("en-US")} /{" "}
-          {SCENARIO.startTick.toLocaleString("en-US")}
+          {startTick.toLocaleString("en-US")}
         </span>
       ) : (
         <span>

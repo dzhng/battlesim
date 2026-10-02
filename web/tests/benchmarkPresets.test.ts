@@ -1,19 +1,20 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
 import {
-  BENCHMARK_SCENARIOS,
+  BENCHMARK_PRESETS,
   VILLAGE_CONTACT,
   benchmarkFingerprint,
-} from "../src/battle/benchmark/scenario";
+} from "../src/battle/benchmark/presets";
 
 // Each released version's workload. A change to a scenario or its camera tour
 // fails here until the scenario gets a new version and a new line.
 const RELEASED: Record<string, string> = {
   "village-contact@1": "e8f82e7e",
+  "city-contact@1": "968aad93",
 };
 
 test("a scenario's workload is pinned to its version", () => {
-  for (const s of BENCHMARK_SCENARIOS)
+  for (const s of BENCHMARK_PRESETS)
     expect(benchmarkFingerprint(s), `${s.id}@${s.version}: bump the version`).toBe(
       RELEASED[`${s.id}@${s.version}`],
     );

@@ -61,7 +61,7 @@ export function BattleView({
   prepared?: PreparedSession;
   /** A recorded battle to replay: input is off. */
   replay?: string;
-  /** A scripted run: a script plays blue and input is off. The benchmark's
+  /** A scripted run: a comparison commander or scenario orders play it, with input off. The benchmark's
    *  pilot also flies the camera and measures every frame; without one the
    *  camera is the player's (watching the script play). */
   scripted?: ScriptedSim & { pilot?: ViewportPilot };

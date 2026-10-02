@@ -151,6 +151,13 @@
     "map": "village"
   },
   {
+    "id": "city-contact",
+    "route": "/benchmark?preset=city-contact",
+    "describe": "Full-world Metro Large seed 4 benchmark with the simulation's named central city-arena-1 contact stress, 100 units a side and seeded scenario orders; a city-centred ground, tactical and whole-map tour. This is local-contact stress, separate from player transit. The scene records the same short/full timed window as the village control.",
+    "build": "production",
+    "map": null
+  },
+  {
     "id": "village-replay",
     "route": "/replay/village",
     "describe": "Village replay: load a saved battle; the defender and input are off, the accepted commands of both sides replay, and a mismatched fixture is refused with a clear error.",

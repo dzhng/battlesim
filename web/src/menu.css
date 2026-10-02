@@ -290,6 +290,10 @@
   color: #8a929e;
   font-size: 12px;
 }
+.menu-foot a {
+  color: inherit;
+  white-space: nowrap;
+}
 .bench-results a {
   color: #9cc7ff;
 }

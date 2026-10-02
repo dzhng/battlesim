@@ -17,7 +17,7 @@ import { CameraController } from "@packages/renderer-core/src/cameraController";
 import type { CameraObstacles } from "@packages/renderer-core/src/cameraObstacles";
 import { initSync, WorldView, world_layout } from "@wasm/game_wasm.js";
 import { sampleTour } from "../src/battle/benchmark/camera";
-import { VILLAGE_CONTACT } from "../src/battle/benchmark/scenario";
+import { VILLAGE_CONTACT } from "../src/battle/benchmark/presets";
 
 const villageMap = loadMap("village").definition;
 
