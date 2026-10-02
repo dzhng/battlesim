@@ -21,7 +21,7 @@
 // - a kind of ground grows a mix of grasses: the clump is one of them by its
 //   own hash against their shares, a drifting grass gathered into patches.
 //   The stand varies across a field in world-anchored patches: taller and
-//   lower, thinner, and drier (toward straw at the ground's own luminance).
+//   lower, thinner, and drier (toward straw, paler and never darker).
 //   All of it is a function of the clump's tile, rank and place, so a clump
 //   kept as the camera moves stays the grass it was;
 // - append it to the near or far tier by its height in pixels. Far clumps'
@@ -101,6 +101,9 @@ import type { GpuRegistry, GpuSlot } from "./registry";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
+/** The field's numbers, kilobytes of them: a shader reads them through a
+ *  pointer (`let P = &….params`). A `let` of the struct itself is copied whole
+ *  by every invocation: per blade vertex, that cost 8 to 12 ms a frame. */
 const GrassParams = d
   .struct({
     /** The view's side planes: inward normal, offset. */
@@ -140,6 +143,8 @@ const GrassParams = d
     mixes: d.arrayOf(d.vec4f, GRASS_GROWTH_ROWS * GRASS_MIX_MAX),
     /** 1 / the patches' length scales: height, thinning, drying, drift. */
     patchScales: d.vec4f,
+    /** 1 / the tussocks' length scale, how far drying lightens; 0, 0. */
+    grain: d.vec4f,
     /** Per kind: height, blades, a blade's root width, 0. */
     kinds: d.arrayOf(d.vec4f, GRASS_MAX_KINDS),
     /** Per kind: the near and far tiers' first shape vertex. */
@@ -244,11 +249,11 @@ const grassGround = tgpu
     [d.vec2f],
     d.f32,
   )(/* wgsl */ `(q: vec2f) -> f32 {
-  let P = grassBuildLayout.$.params;
-  let nx = P.counts.x;
-  let ny = P.counts.y;
-  let fx = clamp(q.x / P.ground.x, 0.0, f32(nx - 1u));
-  let fy = clamp(q.y / P.ground.x, 0.0, f32(ny - 1u));
+  let P = &grassBuildLayout.$.params;
+  let nx = (*P).counts.x;
+  let ny = (*P).counts.y;
+  let fx = clamp(q.x / (*P).ground.x, 0.0, f32(nx - 1u));
+  let fy = clamp(q.y / (*P).ground.x, 0.0, f32(ny - 1u));
   let i = min(u32(fx), nx - 2u);
   let j = min(u32(fy), ny - 2u);
   return triangleRuleHeight(
@@ -265,10 +270,10 @@ const grassDensity = tgpu
     [d.f32, d.f32],
     d.f32,
   )(/* wgsl */ `(dist: f32, drop: f32) -> f32 {
-  let P = grassBuildLayout.$.params;
+  let P = &grassBuildLayout.$.params;
   let facing = clamp(drop / dist, 0.15, 1.0);
-  let footprint = P.eye.w * dist;
-  return min(P.density.y, facing / (P.density.x * footprint * footprint));
+  let footprint = (*P).eye.w * dist;
+  return min((*P).density.y, facing / ((*P).density.x * footprint * footprint));
 }`)
   .$uses({ grassBuildLayout });
 
@@ -319,10 +324,10 @@ const buildFn = tgpu
     in: { wg: d.builtin.workgroupId, li: d.builtin.localInvocationIndex },
     workgroupSize: [BUILD_WORKGROUP],
   })(/* wgsl */ `{
-  let P = grassBuildLayout.$.params;
-  if (wg.x >= P.grid.x || wg.y >= P.grid.y) { return; }
-  let T = P.window.z;
-  let lo = P.window.xy + vec2f(f32(wg.x), f32(wg.y)) * T;
+  let P = &grassBuildLayout.$.params;
+  if (wg.x >= (*P).grid.x || wg.y >= (*P).grid.y) { return; }
+  let T = (*P).window.z;
+  let lo = (*P).window.xy + vec2f(f32(wg.x), f32(wg.y)) * T;
   let hi = lo + vec2f(T);
   // The tile's box: its ground at the corners and centre, a metre either
   // way, and the tallest clump above.
@@ -336,18 +341,18 @@ const buildFn = tgpu
     zhi = max(zhi, z);
   }
   zlo -= 1.0;
-  zhi += 1.0 + P.window.w;
-  let lo2 = lo - vec2f(${GRASS_JITTER_M} + P.clear.w);
-  let hi2 = hi + vec2f(${GRASS_JITTER_M} + P.clear.w);
+  zhi += 1.0 + (*P).window.w;
+  let lo2 = lo - vec2f(${GRASS_JITTER_M} + (*P).clear.w);
+  let hi2 = hi + vec2f(${GRASS_JITTER_M} + (*P).clear.w);
   for (var i = 0u; i < 4u; i++) {
-    let pl = P.planes[i];
+    let pl = (*P).planes[i];
     let pv = vec3f(select(lo2.x, hi2.x, pl.x >= 0.0), select(lo2.y, hi2.y, pl.y >= 0.0), select(zlo, zhi, pl.z >= 0.0));
     if (dot(pl.xyz, pv) + pl.w < 0.0) { return; }
   }
-  let eye = P.eye.xyz;
+  let eye = (*P).eye.xyz;
   let nearest = clamp(eye, vec3f(lo2, zlo), vec3f(hi2, zhi));
   let dNear = max(distance(eye, nearest), 0.5);
-  if (P.eye.w * dNear >= P.density.w) { return; }
+  if ((*P).eye.w * dNear >= (*P).density.w) { return; }
   let n = u32(ceil(T * T * grassDensity(dNear, max(eye.z - zlo, 0.0))));
   // The tile's own offset of the sequence, from its place on the world grid.
   let cell = vec2i(floor(lo / T + 0.5));
@@ -360,8 +365,8 @@ const buildFn = tgpu
     let fell = lo + T * fract(offset + f32(j + 1u) * vec2f(${R2[0]}, ${R2[1]})) + jitter;
     let fellZ = grassGround(fell);
     let dist = max(distance(eye, vec3f(fell, fellZ)), 0.5);
-    let footprint = P.eye.w * dist;
-    if (footprint >= P.density.w) { continue; }
+    let footprint = (*P).eye.w * dist;
+    if (footprint >= (*P).density.w) { continue; }
     // Clump j stands once the density passes (j + 1/2) per tile.
     let rank = (f32(j) + 0.5) / (T * T);
     let rho = grassDensity(dist, max(eye.z - fellZ, 0.0));
@@ -374,15 +379,15 @@ const buildFn = tgpu
     // A wood's edge is its rect or its floor's ragged verge, whichever lies
     // farther out.
     let wood = max(site.w, forestVergeInside(fell, site.w));
-    let margin = min(-site.z - P.clear.x, min(-wood, -water) - P.clear.z);
+    let margin = min(-site.z - (*P).clear.x, min(-wood, -water) - (*P).clear.z);
     if (margin < 0.0) { continue; }
     // Bare on the wet banks round water.
     if (groundShore(water) > 0.35) { continue; }
     let edge = smoothstep(0.0, ${GRASS_EDGE_M}, margin);
     var grows = min(u32(terrainLayout.$.plots[i32(site.x)].detail.y), ${GRASS_GROWTH_ROWS - 2}u);
     if (groundVerge(site, footprint) > 0.5) { grows = ${GRASS_GROWTH_ROWS - 1}u; }
-    let g = P.growth[grows];
-    let stand = P.patches[grows];
+    let g = (*P).growth[grows];
+    let stand = (*P).patches[grows];
     // A drilled crop keeps to its plot's rows, the bright bands between the
     // furrows the ground is painted with: the clump moves across them toward
     // the nearest, but never out of its plot or into a bare margin.
@@ -400,14 +405,14 @@ const buildFn = tgpu
     let S = terrainLayout.$.scarParams.grass;
     let bare = max(max(scar.weights.x, scar.weights.y), scar.weights.z * S.y) * S.x;
     // Sparse patches: the stand thins there and nowhere thickens.
-    let sparse = 1.0 - smoothstep(0.3, 0.55, valueNoise(p * P.patchScales.y + vec2f(41.7, 13.1)));
+    let sparse = 1.0 - smoothstep(0.3, 0.55, valueNoise(p * (*P).patchScales.y + vec2f(41.7, 13.1)));
     let keep = rho * g.x * (1.0 - stand.z * sparse) * mix(0.5, 1.0, edge) * (1.0 - bare);
     if (rank >= keep) { continue; }
     if (grassUnderProp(p)) { continue; }
     // A clump nearing its rank's threshold is small: it grows in as the
     // density passes it, and shrinks away as the fade takes it.
     let grow = 1.0 - smoothstep(0.7 * keep, keep, rank);
-    let fade = 1.0 - smoothstep(P.density.z, P.density.w, footprint);
+    let fade = 1.0 - smoothstep((*P).density.z, (*P).density.w, footprint);
     // Which of the row's grasses this clump is: its hash against their
     // shares, a drifting grass weighted up inside its drifts and down to
     // nothing outside them.
@@ -415,10 +420,10 @@ const buildFn = tgpu
     var total = 0.0;
     let mixed = u32(g.z);
     for (var i = 0u; i < mixed; i++) {
-      let entry = P.mixes[grows * ${GRASS_MIX_MAX}u + i];
+      let entry = (*P).mixes[grows * ${GRASS_MIX_MAX}u + i];
       var share = entry.y;
       if (entry.z > 0.0) {
-        let drift = smoothstep(0.4, 0.65, valueNoise(p * P.patchScales.w + vec2f(f32(i) * 17.3 + 3.1, f32(grows) * 7.9)));
+        let drift = smoothstep(0.4, 0.65, valueNoise(p * (*P).patchScales.w + vec2f(f32(i) * 17.3 + 3.1, f32(grows) * 7.9)));
         share *= mix(1.0, ${DRIFT_GATHER} * drift, entry.z);
       }
       shares[i] = share;
@@ -433,37 +438,40 @@ const buildFn = tgpu
         roll -= shares[i];
       }
     }
-    let grass = P.mixes[grows * ${GRASS_MIX_MAX}u + chosen];
+    let grass = (*P).mixes[grows * ${GRASS_MIX_MAX}u + chosen];
     let kind = u32(grass.x);
-    let row = P.kinds[kind];
+    let row = (*P).kinds[kind];
     // Patches a few metres across stand taller or lower, as uneven grass does.
-    let tall = valueNoise(p * P.patchScales.x);
+    let tall = valueNoise(p * (*P).patchScales.x);
     let height = row.x * g.y * grow * fade * mix(${GRASS_HEIGHT_VARIATION[0]}, ${GRASS_HEIGHT_VARIATION[1]}, h.x) * mix(stand.x, stand.y, tall) * mix(0.35, 1.0, edge);
     if (height < 0.02) { continue; }
     let centre = root + vec3f(0.0, 0.0, height * 0.5);
     let radius = height * 0.8 + 0.4;
     var shown = true;
     for (var i = 0u; i < 4u; i++) {
-      let pl = P.planes[i];
+      let pl = (*P).planes[i];
       if (dot(pl.xyz, centre) + pl.w < -radius) { shown = false; }
     }
     if (!shown) { continue; }
     var tier = 1u;
-    if (height / footprint > P.tiers.x * mix(0.85, 1.15, h.y)) { tier = 0u; }
-    let width = max(1.0, P.tiers.y * footprint / max(row.z, 1e-4));
+    if (height / footprint > (*P).tiers.x * mix(0.85, 1.15, h.y)) { tier = 0u; }
+    let width = max(1.0, (*P).tiers.y * footprint / max(row.z, 1e-4));
     // Dry patches, and a grass drier than its neighbours: toward straw at
     // the ground's own luminance, so no patch is darker than its field.
-    let parched = smoothstep(0.55, 0.8, valueNoise(p * P.patchScales.z + vec2f(9.3, 77.1)));
-    // Each clump a little lighter or darker than the next: the grain a field
-    // keeps when it is too far to show blades.
-    let value = 1.0 + P.shading.z * (2.0 * fract(h.y * 57.31) - 1.0);
-    let colour = value * groundTint(scarredSurface(groundColour(p, footprint, site, water), scar).xyz, min(1.0, stand.w * parched + grass.w));
+    let parched = smoothstep(0.55, 0.8, valueNoise(p * (*P).patchScales.z + vec2f(9.3, 77.1)));
+    let dryness = min(1.0, stand.w * parched + grass.w);
+    // Each clump a little lighter or darker than the next, half on its own
+    // and half with the tussock it stands in: the grain a field keeps when
+    // it is too far to show blades. Dry grass is paler, never darker.
+    let tussock = valueNoise(p * (*P).grain.x + vec2f(63.9, 27.4));
+    let value = 1.0 + (*P).shading.z * (fract(h.y * 57.31) + tussock - 1.0);
+    let colour = value * (1.0 + (*P).grain.y * dryness) * groundTint(scarredSurface(groundColour(p, footprint, site, water), scar).xyz, dryness);
     // Tracks and trampling lay the clump over (carried in the colour's alpha).
     let flat = max(scar.weights.z, scar.weights.w) * S.z;
     let slot = atomicAdd(&grassBuildLayout.$.args[tier * 5u + 1u], 1u);
-    let cap = select(P.grid.w, P.grid.z, tier == 0u);
+    let cap = select((*P).grid.w, (*P).grid.z, tier == 0u);
     if (slot >= cap) { continue; }
-    let base = select(P.grid.z, 0u, tier == 0u);
+    let base = select((*P).grid.z, 0u, tier == 0u);
     grassBuildLayout.$.clumps[base + slot] = GrassClump(
       root, height, pack4x8unorm(vec4f(sqrt(max(colour, vec3f(0.0))), 1.0 - flat)), kind, h.z * 6.2831853, width);
   }
@@ -492,11 +500,11 @@ const buildFn = tgpu
 /** Clamp each tier's count to its capacity, keeping the raw count. */
 const finishFn = tgpu
   .computeFn({ workgroupSize: [1] })(/* wgsl */ `{
-  let P = grassBuildLayout.$.params;
+  let P = &grassBuildLayout.$.params;
   for (var t = 0u; t < 2u; t++) {
     let raw = atomicLoad(&grassBuildLayout.$.args[t * 5u + 1u]);
     atomicStore(&grassBuildLayout.$.args[10u + t], raw);
-    atomicStore(&grassBuildLayout.$.args[t * 5u + 1u], min(raw, select(P.grid.w, P.grid.z, t == 0u)));
+    atomicStore(&grassBuildLayout.$.args[t * 5u + 1u], min(raw, select((*P).grid.w, (*P).grid.z, t == 0u)));
   }
 }`)
   .$uses({ grassBuildLayout });
@@ -520,17 +528,17 @@ const grassVertexOf = tgpu
     [d.u32, d.u32],
     GrassVertex,
   )(/* wgsl */ `(vid: u32, iid: u32) -> GrassVertex {
-  let P = grassDrawLayout.$.params;
+  let P = &grassDrawLayout.$.params;
   let tier = grassDrawLayout.$.tier;
   let c = grassDrawLayout.$.clumps[tier.y + iid];
-  let row = P.kinds[c.kind];
+  let row = (*P).kinds[c.kind];
   var out: GrassVertex;
   if (vid / tier.z >= u32(row.y)) {
     // A blade this kind does not have: outside the depth range, clipped.
     out.clip = vec4f(0.0, 0.0, 2.0, 1.0);
     return out;
   }
-  let base = select(P.bases[c.kind].y, P.bases[c.kind].x, tier.x == 0u);
+  let base = select((*P).bases[c.kind].y, (*P).bases[c.kind].x, tier.x == 0u);
   let s = grassDrawLayout.$.shapes[base + vid];
   let scale = c.height / max(row.x, 1e-4);
   let cs = cos(c.yaw);
@@ -541,11 +549,11 @@ const grassVertexOf = tgpu
   let side = vec3f(sd.x * cs - sd.y * sn, sd.x * sn + sd.y * cs, sd.z);
   // The one wind: a steady lean, gust fronts rolling downwind, a flutter.
   let t = typegpuCameraLayout.$.cam.time;
-  let dir = P.wind.xy;
+  let dir = (*P).wind.xy;
   let along = dot(c.root.xy, dir);
-  let front = sin(6.2831853 * (along - t * P.gusts.y) * P.gusts.x);
+  let front = sin(6.2831853 * (along - t * (*P).gusts.y) * (*P).gusts.x);
   let gust = smoothstep(0.2, 1.0, front);
-  let flutter = P.gusts.z * sin(P.gusts.w * t + s.side.w * 6.2831853 + along * 0.35);
+  let flutter = (*P).gusts.z * sin((*P).gusts.w * t + s.side.w * 6.2831853 + along * 0.35);
   let bend = s.spine.w * s.spine.w;
   let packed = unpack4x8unorm(c.colour);
   // Laid over by tracks or trampling: the clump sinks and its blades lean
@@ -553,7 +561,7 @@ const grassVertexOf = tgpu
   // wind less (its shape's own response).
   let flat = 1.0 - packed.w;
   let answer = s.tint.w * (1.0 - flat);
-  let lean = (P.wind.z + P.wind.w * gust + flutter) * answer;
+  let lean = ((*P).wind.z + (*P).wind.w * gust + flutter) * answer;
   let push = dir * lean + vec2f(-dir.y, dir.x) * flutter * 0.5 * answer;
   let laid = vec2f(cs, sn) * flat * ${FLAT_LEAN};
   var world = c.root + vec3f(spine.xy, spine.z * (1.0 - flat * ${FLAT_SINK})) + side + vec3f((push + laid) * c.height * bend, 0.0);
@@ -573,10 +581,10 @@ const grassVertexOf = tgpu
   // A clump a few pixels tall shows its tops, not its roots: drawn with them,
   // its dark roots and gaps read as speckle, so its tint and its lighting
   // give way to the ground's.
-  let footprint = P.eye.w * distance(typegpuCameraLayout.$.cam.eye, c.root);
-  let plain = P.shading.x * smoothstep(P.tiers.z, P.tiers.w, footprint);
+  let footprint = (*P).eye.w * distance(typegpuCameraLayout.$.cam.eye, c.root);
+  let plain = (*P).shading.x * smoothstep((*P).tiers.z, (*P).tiers.w, footprint);
   out.albedo = colour * colour * mix(s.tint.xyz, vec3f(1.0), plain);
-  out.ground = mix(1.0 - P.shading.y, 1.0, plain);
+  out.ground = mix(1.0 - (*P).shading.y, 1.0, plain);
   return out;
 }`)
   .$uses({ grassDrawLayout, typegpuCameraLayout, GrassVertex });
@@ -846,6 +854,7 @@ export async function createGrassPass(
         1 / rules.patch_m.dry,
         1 / rules.patch_m.drift,
       ),
+      grain: d.vec4f(1 / rules.patch_m.grain, rules.dry_lift, 0, 0),
       kinds: vec4s(packed.rows, GRASS_MAX_KINDS, d.vec4f),
       bases: vec4s(packed.bases, GRASS_MAX_KINDS, d.vec4u),
     };

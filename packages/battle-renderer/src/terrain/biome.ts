@@ -179,8 +179,8 @@ export interface GrassSpecies {
   /** How far it gathers in drifts of its own instead of spreading evenly:
    *  0 even, 1 found only in its drifts. */
   drift: number;
-  /** How far its clumps stand toward dry straw from the ground's colour, at
-   *  the ground's own luminance; 0 for none. */
+  /** How far its clumps stand toward dry straw from the ground's colour
+   *  (as a dry patch does); 0 for none. */
   dry: number;
 }
 
@@ -192,7 +192,8 @@ export interface GrassPatches {
   height: readonly [number, number];
   /** How far its sparse patches thin: 0 none, 1 bare. */
   thin: number;
-  /** How far its dry patches stand toward straw, at the ground's own luminance. */
+  /** How far its dry patches stand toward straw: the ground's hue shifted
+   *  and lightened (`dry_lift`), never darkened. */
   dry: number;
 }
 
@@ -234,8 +235,8 @@ export interface GrassRules {
   /** Per plot kind name, and "verge". A plot kind not listed grows none. */
   growth: Record<string, GrassGrowth>;
   /** The length scales of the patches a stand varies in (`GrassPatches`),
-   *  and of the drifts a kind gathers in. */
-  patch_m: { height: number; thin: number; dry: number; drift: number };
+   *  of the drifts a kind gathers in, and of the tussocks its grain follows. */
+  patch_m: { height: number; thin: number; dry: number; drift: number; grain: number };
   /** About one clump per this many pixels of ground on screen, so a frame
    *  draws a similar number of clumps at any zoom. */
   pixels_per_clump: number;
@@ -256,9 +257,14 @@ export interface GrassRules {
    *  0 lights every blade as the ground, 1 by its own normal (which
    *  glitters). */
   blade_facing: number;
-  /** Each clump's brightness varies by up to this fraction either way: the
-   *  grain a field keeps when it is too far to show blades. */
+  /** Each clump's brightness varies by up to this fraction either way, half
+   *  on its own and half with the tussock it stands in (`patch_m.grain`):
+   *  the grain a field keeps when it is too far to show blades. */
   clump_value: number;
+  /** A wholly dry clump is this much lighter than the ground under it: straw
+   *  is paler than green grass, and a dry patch held to the ground's own
+   *  luminance reads as rust. */
+  dry_lift: number;
   /** A clump taller than this many pixels draws its near tier. */
   near_tier_px: number;
   /** A blade is drawn at least this many pixels wide, so far blades hold. */
@@ -476,7 +482,7 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
     within(`${at}.patches.thin`, growth.patches.thin, 0, 1);
     within(`${at}.patches.dry`, growth.patches.dry, 0, 1);
   }
-  for (const key of ["height", "thin", "dry", "drift"] as const)
+  for (const key of ["height", "thin", "dry", "drift", "grain"] as const)
     within(`grass.patch_m.${key}`, g.patch_m?.[key], 0.5, 1000);
   within("grass.pixels_per_clump", g.pixels_per_clump, 1, 10000);
   within("grass.max_clumps_m2", g.max_clumps_m2, 0.01, 400);
@@ -485,6 +491,7 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   within("grass.soften", g.soften, 0, 1);
   within("grass.blade_facing", g.blade_facing, 0, 1);
   within("grass.clump_value", g.clump_value, 0, 0.3);
+  within("grass.dry_lift", g.dry_lift, 0, 0.5);
   within("grass.near_tier_px", g.near_tier_px, 0, 10000);
   within("grass.min_blade_px", g.min_blade_px, 0, 8);
   within("grass.clear_m.road", g.clear_m?.road, 0, 20);

@@ -252,6 +252,20 @@ function spineAt(out: Vec3, blade: Blade, t: number, droop: number): Vec3 {
   return out;
 }
 
+/** Where along a headed blade its head is widest, as a share of the head. */
+const HEAD_WIDEST = 0.5 / 1.15;
+
+/** How far up the blade pair `k` of a `segments`-segment strip sits (the tip
+ *  at `k = segments`): evenly spaced, but a headed blade's last pair sits
+ *  where its head is widest, so an ear or a flower shows in every tier that
+ *  has a second pair. The field draws its far clumps from such a tier. */
+function stationAt(spec: GrassSpec, blade: Blade, k: number, segments: number): number {
+  if (k === segments) return 1;
+  if (!(spec.head && blade.head) || segments < 2) return k / segments;
+  const widest = spec.head.from + HEAD_WIDEST * (1 - spec.head.from);
+  return (k / (segments - 1)) * widest;
+}
+
 /** One tier's strips, in engine space: positions, normals, uvs, colours. */
 function strips(spec: GrassSpec, list: readonly Blade[], segments: number) {
   const per = grassBladeVertices(segments);
@@ -265,7 +279,7 @@ function strips(spec: GrassSpec, list: readonly Blade[], segments: number) {
   list.forEach((blade, b) => {
     for (let k = 0; k <= segments; k++) {
       const tip = k === segments;
-      const t = k / segments;
+      const t = stationAt(spec, blade, k, segments);
       spineAt(spine, blade, t, droop);
       if (tip) vec3.subtract(tangent, spine, spineAt(ahead, blade, 0.99, droop));
       else vec3.subtract(tangent, spineAt(ahead, blade, t + 0.01, droop), spine);

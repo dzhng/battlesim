@@ -330,3 +330,28 @@ test("the summer biome's every growth row stays under the cap with the catalog's
   expect(kinds.appearances.length).toBeGreaterThan(0);
   expect(GRASS_MAX_HEIGHT_M).toBe(0.9);
 });
+
+test("a head shows in every tier with a second pair: the far field keeps its ears and flowers", async () => {
+  const eared = await tuft({
+    ...GRASS_SPEC,
+    jitter: 0,
+    head: { from: 0.74, width: 3, chance: 1, color: [0.9, 0.8, 0.1] },
+  });
+  for (const t of [0, 1, 2]) {
+    const mesh = eared.states[0].tiers[t];
+    const per = grassBladeVertices(GRASS_SEGMENTS[t]);
+    const width = (v: number) =>
+      Math.hypot(
+        mesh.positions[v * 3] - mesh.positions[v * 3 + 3],
+        mesh.positions[v * 3 + 1] - mesh.positions[v * 3 + 4],
+      );
+    for (let b = 0; b < GRASS_SPEC.blades; b++) {
+      // The pair under the tip: the head's colour, and wider than the pair below it.
+      const last = b * per + per - 3;
+      [230, 204, 26].forEach((v, c) =>
+        expect(Math.abs(mesh.colors[last * 4 + c] - v), `tier ${t}`).toBeLessThanOrEqual(1),
+      );
+      expect(width(last), `tier ${t}`).toBeGreaterThan(width(last - 2));
+    }
+  }
+});

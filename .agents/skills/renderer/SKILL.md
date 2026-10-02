@@ -114,6 +114,7 @@ When a new need shows two passes owning one concept, refactor to the shared prim
 - **Pad uniform structs to 16 B by hand** and group scalars into `vec4f` slots. Keep a byte constant beside each schema, and test the packer against it.
 - **Validate final field height, not just the source clump.** Compose biome scaling and every independent shader variation from shared bounds, inspect every drawn LOD, and use the same maximum for tile culling. Screen-width expansion must stay horizontal; wind and flattening must only lower the vertical bound.
 - **Bind limits are tight.** The grass build uses exactly the default 8 storage buffers. Count before adding a binding, and prefer vertex-only storage where the fragment stage already holds the fog groups.
+- **A WGSL `let` of a uniform struct copies the whole struct, per invocation.** `let P = layout.$.params;` is a by-value load Metal does not elide. The grass vertex stage ran it per blade vertex: at 2.3 KiB the grass cost 8 to 12 ms a frame where it had cost 1 to 2, and 1.2 again through a pointer. Take a pointer (`let P = &layout.$.params;`, then `(*P).field`), or name the field. Check any stage that runs per vertex or per fragment before growing its uniform.
 - **Fixed at module load:** the cascade count, bloom's numbers and the grade. Changing them means rebuilding the frame, not setting a uniform.
 - **`GPUSupportedLimits` exposes prototype getters,** so `Object.entries` returns nothing. Read the named limits. Passes read `GpuDeviceCaps`; they never re-probe the adapter.
 
@@ -219,6 +220,16 @@ When a new need shows two passes owning one concept, refactor to the shared prim
 - **A perf "regression" with no plausible cause in the diff:** machine load or the wrong GPU. Rerun paired under the lock before reading the code.
 - **A private projection or camera struct beside the shared one,** or a pass-local constant for something the fixture owns.
 - **A visual fix that changes camera, light, geometry and pass order at once:** you won't know which one worked.
+
+## The grass field reads at the play camera, or not at all
+
+- **The play camera draws the far tier.** A clump takes the near tier only when it stands over `near_tier_px` tall, about 16 m from the eye; at 25 m and beyond every clump is two segments a blade. Whatever must read from 65 m has to exist there: a headed blade's last pair sits where its head is widest (`grass.ts` `stationAt`), or ears and flowers vanish a few metres out and the tier boundary shows as a band.
+- **A blade is under a pixel at 65 m.** What reads there is coverage and the difference between clumps, never a blade's own shading: root-to-tip contrast and per-blade facing alias into dark flecks. So a clump's own shading softens with its footprint (`soften_m_per_px`, `soften`), blades hold a least width (`min_blade_px`), and each clump differs a little in brightness, half with the tussock it stands in (`clump_value`, `patch_m.grain`). Without that grain a softened field is green felt.
+- **A clump's mean colour is the ground's.** A kind's spec colours say only how its roots, tips and heads differ from the ground under it; a field's colour is its plot's palette. A grass among others differs by a hue shift over the ground's colour (`dry`), never by its spec.
+- **Dry is paler, never darker.** A hue shift at the ground's own luminance reads as rust, and a broad darker patch as a cloud's shadow; dry patches and dry grasses lighten (`dry_lift`).
+- **Rows come from the plot.** A drilled crop's clumps move toward the bright bands of the rows the terrain paints (`rows`), short of the verge and any bare margin, so grass and ground agree and nothing lands on a road.
+- **Tune through the lab's rules, not a rebuild.** `__lab.grass().retune(rules)` regrows by other rules in the same page; `web/scenes/_grass.mjs` plants each arm of its checks that way, so the biome's numbers can move without moving a check. A kind's preset still needs `asset grass` and a bake.
+- **The software adapter is not admitted.** The lab's ground-filter probe refuses SwiftShader, so a look cannot be iterated off the GPU lock.
 
 ## One static chunk path
 

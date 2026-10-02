@@ -115,6 +115,9 @@ async function checkRoadEdges(ctx, page) {
   );
 }
 
+/** The middle of `v`: what a paired cost run reports of its batches. */
+const median = (v) => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)];
+
 /** The grass field, read back at a framing. */
 const grassClumps = (page) => lab(page, () => window.__lab.grass().clumps());
 const grassCounts = (page) => lab(page, () => window.__lab.grass().counts());

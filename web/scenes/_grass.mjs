@@ -12,12 +12,17 @@ import { classAt, openStations, shoot, stationPose, stationReport } from "./_gro
 const MAP = "village";
 /** A plot's own grass is judged this near its middle, clear of its verge. */
 const PLOT_HEART_M = 8;
-/** The road's verge, as metres outside the road's edge: inside the verge's
- *  width and past the road's bare margin and the thinned strip beyond it. */
-const VERGE_BAND_M = [0.5, 1.3];
+/** The road's verge, as metres outside the road's edge: past the road's
+ *  bare margin, and short of the verge's half width by more than the class
+ *  mask's step and a pixel. */
+const vergeBand = (biome) => [0.4, biome.verge.width_m / 2 - 0.2];
 /** A clump's colour is stored as bytes of its square root: how far its
  *  luminance may read from the ground's under a hue shift that keeps it. */
 const LUMINANCE_SLACK = 0.04;
+/** How far the variation check's dried field may lighten: its patches dry
+ *  by half, a wholly dry clump lighter by this share. */
+const DRY_LIFT = 0.2;
+const DRY = 0.5;
 /** The grain the variation check plants: each clump's brightness within
  *  this share of the ground's, either way. */
 const CLUMP_VALUE = 0.1;
@@ -87,9 +92,8 @@ export async function grassGrowth(ctx) {
     .filter((c) => c.pixel)
     .map((c) => ({ ...c, ground: classAt(mask, c.pixel[0], c.pixel[1]) }))
     .filter((c) => c.ground);
-  const verge = classed.filter(
-    (c) => c.ground.roadSd > VERGE_BAND_M[0] && c.ground.roadSd < VERGE_BAND_M[1],
-  );
+  const [inner, outer] = vergeBand(biome);
+  const verge = classed.filter((c) => c.ground.roadSd > inner && c.ground.roadSd < outer);
   grown.verge = { clumps: verge.length, kinds: kindsOf(verge) };
   const mixOf = (row) => biome.grass.growth[row].mix;
   ctx.check(
@@ -181,8 +185,8 @@ const retuned = (page, change) =>
  *  - a meadow of two evenly spread grasses stands in their shares' ratio;
  *  - a field with a grain against the same field without: no clump is
  *    lighter or darker by more than the grain;
- *  - a dried field against the same field level: clump for clump it keeps
- *    the level one's luminance and is only ever nearer straw;
+ *  - a dried field against the same field level: clump for clump it is no
+ *    darker, only so much paler, and only ever nearer straw;
  *  - the clumps a closer camera keeps are the grasses they were. */
 async function fieldVariation(ctx, page) {
   const pose = stationPose(page, MAP, "meadow-65");
@@ -207,11 +211,12 @@ async function fieldVariation(ctx, page) {
 
   const field = (dry, value) =>
     `rules.clump_value = ${value};
+     rules.dry_lift = ${DRY_LIFT};
      for (const row of Object.values(rules.growth)) {
        row.patches.dry = ${dry};
        row.mix = row.mix.map((s) => ({ ...s, dry: 0 }));
      }`;
-  await retuned(page, field(0.5, CLUMP_VALUE));
+  await retuned(page, field(DRY, CLUMP_VALUE));
   const dried = byRoot(await clumpsNow(page));
   await retuned(page, field(0, CLUMP_VALUE));
   const level = byRoot(await clumpsNow(page));
@@ -236,23 +241,29 @@ async function fieldVariation(ctx, page) {
   );
 
   const pairs = [...dried].filter(([key]) => level.has(key)).map(([key, c]) => [c, level.get(key)]);
-  const worstLuminance = pairs.reduce(
-    (m, [a, b]) => Math.max(m, Math.abs(luminance(a.colour) / luminance(b.colour) - 1)),
-    0,
-  );
+  const lifts = pairs.map(([a, b]) => luminance(a.colour) / luminance(b.colour) - 1);
+  const [darkest, lightest] = [Math.min(...lifts), Math.max(...lifts)];
   const warmth = ([r, , b]) => r / Math.max(b, 1e-4);
   const shifts = pairs.map(([a, b]) => warmth(a.colour) / warmth(b.colour) - 1);
   const cooled = shifts.filter((s) => s < 0).length;
   const driedShare = shifts.filter((s) => s > DRIED).length / Math.max(1, pairs.length);
   ctx.check(
-    "a field varies in hue at the ground's own luminance, and only toward straw: dry patches, never a darker or cooler one",
+    "a field's dry patches stand toward straw, paler by no more than the lift asked for: never a darker or cooler patch",
     pairs.length > 5000 &&
       pairs.length === dried.size &&
-      worstLuminance < LUMINANCE_SLACK &&
+      darkest > -LUMINANCE_SLACK &&
+      lightest < DRY * DRY_LIFT + LUMINANCE_SLACK &&
       cooled === 0 &&
       driedShare > 0.05 &&
       driedShare < 0.7,
-    JSON.stringify({ clumps: dried.size, pairs: pairs.length, worstLuminance, cooled, driedShare }),
+    JSON.stringify({
+      clumps: dried.size,
+      pairs: pairs.length,
+      darkest,
+      lightest,
+      cooled,
+      driedShare,
+    }),
   );
 
   // Closer on the same ground: every clump both cameras draw is one grass.
