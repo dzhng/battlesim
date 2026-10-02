@@ -35,8 +35,14 @@ An implausible surface speed difference reopens the fixture-owned kind table thr
 
 ## Outcome
 
-**Physical half done; the look rows wait.** `contract::map::SurfaceKind` is `road | country_road | dirt_track | sidewalk`, and the rules' `surfaces` table (`contract::scenario::SurfaceRule`) gives each a `speed_factor`: road and country road 1, dirt track 0.75, sidewalk 0. The rules refuse a missing row or a factor outside 0..=1. The world's surface query carries the factor (`Surface::road_factor`), and navigation and both movers read that one value: a mover travels at its own road speed times the factor, never slower than on open ground.
+**Implemented, including the authored cutover.** `contract::map::SurfaceKind` is `road | country_road | dirt_track | sidewalk`, and the rules' `surfaces` table (`contract::scenario::SurfaceRule`) gives each a `speed_factor`: road and country road 1, dirt track 0.75, sidewalk 0. The rules refuse a missing row or a factor outside 0..=1. The world's surface query carries the factor (`Surface::road_factor`), and navigation and both movers read that one value: a mover travels at its own road speed times the factor, never slower than on open ground.
 
 - Village outcome digests are identical (`village_report --quick`, all six trials); the rules gained a section, so `config_digest` changes. Total instructions 5,251 G against 5,246 G.
 - `t3-jeeps-country-road-vs-dirt-track`: 18.0 m/s on the road, 13.5 m/s on the track.
-- Still open for the visual pass: the biome's `roads.<kind>` look rows (C66), and a distinct exported tag per road kind. Every carriageway exports as a road today.
+- The export carries each area's authored kind, and the biome owns its corresponding look and town transition (C28/C31/C66).
+
+The 2026-10-02 cutover names the rural roads in deployment, geometry, movement and village explicitly `country_road`. Geometry, widths and speed factors stay the same; the four saved map hashes change intentionally. The renderer's map-wide kind inference and its redundant kind-set arguments are deleted, so an authored street stays a street even on a map with no other paving.
+
+The consumer regression failed against the old inference, then passed; all 31 focused terrain tests, typecheck and narrow lint pass. Native saved-map resolution pins the new identities, and an independent review checked exported tags and unchanged village drawn strokes. Six quick village trials retain their pre-cutover digests. Matched village bend and overview captures preserve the appearance; the overview is byte-identical and the bend differs only by negligible grass tie noise. This is a kind/identity cutover, not acceptance of the remaining landscape composition.
+
+The paired views were shown in one Preview window. With no fresh visual slot available, adversarial inspection recorded the pale road core, triangular field seam, rectangular woods and square road stubs as the strongest visible countercases. They remain in both arms; the narrow decision preserves the authored appearance without accepting those composition issues. The inspection and metrics remain in ignored `throwaway/authored-road/`.

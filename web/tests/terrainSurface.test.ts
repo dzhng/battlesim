@@ -30,7 +30,7 @@ import {
   STROKE_CUTS,
   strokeInside,
 } from "@packages/battle-renderer/src/terrain/strokes";
-import { pavedKinds, SURFACE_AREA_KINDS } from "@packages/battle-renderer/src/terrain/surfaces";
+import { SURFACE_AREA_KINDS } from "@packages/battle-renderer/src/terrain/surfaces";
 import { generatePlots, plotAt } from "@packages/battle-renderer/src/terrain/plots.ts";
 import {
   PLOT_HUE_JITTER,
@@ -910,42 +910,41 @@ test("paving is painted in the simulation's order unless a row names its layer",
     "road",
     "country_road",
   ]);
-  // On a map whose roads are all `road`, they are country roads: on top.
-  expect(names(roadOrder(rows({ layer: 2.5 }), new Set(["road"] as const)))).toEqual([
-    "sidewalk",
-    "dirt_track",
-    "country_road",
-    "road",
-  ]);
 });
 
-test("a map that names no kind but road has its roads drawn as country roads", () => {
+test("a paved area's authored kind selects its appearance even when every road has that kind", () => {
   const street = { ...biome.roads.default, roughness: 0.5 };
   const country = { ...biome.roads.default, roughness: 0.75 };
   const rows = validateBiome({
     ...biome,
     roads: { default: biome.roads.default, road: street, country_road: country },
   });
-  const drawn = (map: unknown) => {
-    const { site } = buildTerrainSurface(world(map).exports, layout, rows);
-    return roadLooks(rows, pavedKinds(site)).map((look) => look.core.w);
+  const drawn = (kind: "road" | "country_road") => {
+    const { site } = buildTerrainSurface(
+      world({
+        ...riverLab,
+        surfaces: [
+          {
+            kind,
+            shape: {
+              kind: "stroke",
+              points: [
+                [40, 40],
+                [200, 40],
+              ],
+              width_m: 8,
+            },
+          },
+        ],
+      }).exports,
+      layout,
+      rows,
+    );
+    const tag = site.surfaceStrokes[5];
+    return roadLooks(rows)[tag].core.w;
   };
-  // The village's roads are `road` and it names nothing else.
-  expect(drawn(villageMap).slice(0, 2)).toEqual([0.75, 0.75]);
-  // Beside a road of another kind, a `road` is a street.
-  const way = (kind: string, y: number) => ({
-    kind,
-    shape: {
-      kind: "stroke",
-      points: [
-        [40, y],
-        [200, y],
-      ],
-      width_m: 8,
-    },
-  });
-  const town = { ...riverLab, surfaces: [way("road", 40), way("country_road", 80)] };
-  expect(drawn(town).slice(0, 2)).toEqual([0.5, 0.75]);
+  expect(drawn("road")).toBe(0.5);
+  expect(drawn("country_road")).toBe(0.75);
 });
 
 test("the forest floor names a palette of litter, moss and humus, and its numbers are checked", () => {

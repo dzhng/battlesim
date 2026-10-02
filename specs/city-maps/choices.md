@@ -4556,6 +4556,8 @@ retain the rejected cost hypotheses; numerical controls remain in C06.
 
 **Verdict:** provisional. Every generated map has a country road or a track (a settlement stands on one), and every map drawn before roads had kinds has only `road`, so the rule is right on every map today, and the village's bare ground and class mask did not move by a byte. It is a guess from what a map happens to name: a town-only map would draw gravel streets. It is one function to delete when the village's map says `country_road`, which is the map lane's edit and the owner's call. **Confidence:** medium.
 
+**Resolved by C64's authored cutover:** the rural maps now name `country_road` directly and the inference is deleted. An authored `road` selects the street row regardless of the other kinds present. The temporary compatibility choice is superseded; no new appearance policy replaces it.
+
 ### `join_m` is the lower road's own
 
 **Choice:** Where one road runs under another, the lower road's `join_m` says how far its surface is carried onto the upper. Before, it was the upper road's number. A track's is 2 m; a street's is 3 m (C31; it was 0, ending on the country road's edge).

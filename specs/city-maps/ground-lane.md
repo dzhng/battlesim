@@ -67,7 +67,7 @@ Test in proportion: the narrow tests for what changed and the one or two scenes 
   - Refactors the closeout review left because they need a scene to prove: two noise helpers written out twice and three ways to turn a lattice in `terrainMaterial.ts`; the rig builds the same world twice.
 - **Open, the owner's:** forest floor bodies are off by default (with them on, the full village report's flank script is refused on seed 34); the log's 0.7 m thickness and the car wreck's 0.7 m height are the simulation's boxes; whether to spend more of the frame on open crowns.
 - **Open, other lanes':**
-  - Map: name the village's roads `country_road` (then `drawnKind` goes); say where a town is and which roads are streets; street trees stand a metre from facades, crowns through walls; woods on the village are rectangles; street stubs end square; hedgerows are rare (one tree line in thirty fields).
+  - Map: the authored rural-road cutover is complete ([C64](slices/C64-road-kinds.md#outcome)); the map names its road kinds. Street trees stand a metre from facades, crowns through walls; woods on the village are rectangles; street stubs end square; hedgerows are rare (one tree line in thirty fields).
   - Fog styles: `grey-veil` separates seen from unseen ground by about 1 unit at `default-wall`, which holds the town's yard to a dark green.
   - Scale: `movement`'s gap check and `village`'s scripted fight fail from merge `82564693`; main is about 5.6 FPS and 150 MiB of heap off the lane's start, the heap growing step by step across both lanes' merges.
   - Unattributed: two `village` panel-layout checks; the generated overview draws one tree short.

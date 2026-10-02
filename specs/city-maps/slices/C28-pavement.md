@@ -51,7 +51,7 @@ Pavement that reads as a separate painted overlay reopens road-ground compositio
 - **`groundPaved` returns two distances.** `drawn`: how far inside each row's paving the point lies (a stroke by its kind's row, a polygon by its kind's `area` row, a walk by `walk.kind`'s). `rule`: how far inside the simulation's paving. The colour and the grass read `drawn` (no grass grows on a walk); the class mask reads `rule`, so it still says only what the export says.
 - **It also returns the stroke's run**: its direction, and how far along the stroke the point is. The field's paved records now hold each stretch's start along its stroke (`SURFACE_STROKE_ALONG`); a walk's joints, and C30's dashes, are laid out by it.
 - **`join_m` is the lower road's own carry**, and only a carriageway is carried: a track's earth still runs 2 m onto the road it joins, a street ends on the country road's edge.
-- **A map that names no kind but `road`** (the village, the geometry lab) has its roads drawn by the country road's row (`drawnKind`, [`choices.md`](../choices.md)).
+- **An area's authored kind selects its row.** The authored rural maps name `country_road` explicitly ([C64](C64-road-kinds.md#outcome)).
 - **The street-to-sidewalk edge** the roads pass asked for is routed round, not solved: a street is a stroke, so its edge is the stroke's own. Two kinds of polygon side by side still share one distance.
 
 **Measured** (the `ground` scene's `STREETS_ONLY` checks at the generated town's `junction-65`; displayed luminance in the sun, each surface's upper quartile):
@@ -76,6 +76,5 @@ Pavement that reads as a separate painted overlay reopens road-ground compositio
 
 **Open.**
 - The country road through a town should be a paved road there: the map lane's kinds, or C31's composition. Most of what the critique still finds follows from it.
-- The village's map should say `country_road`; then `drawnKind` goes.
 - A map's own `sidewalk` areas take the sidewalk's row but no map has one; no station stands on a yard.
 - No checkpoint was shown in Preview (the brief's): the shots are in the report.

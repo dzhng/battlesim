@@ -18,7 +18,6 @@ import { pick } from "@packages/renderer-core/src/kindTable";
 import {
   checkSurfaceKinds,
   drawnStrokes,
-  pavedKinds,
   SURFACE_AREA_KINDS,
   type SurfaceAreaKind,
   type SurfaceGeometry,
@@ -85,10 +84,9 @@ export function terrainSurface(
   grid: TerrainGrid | null,
 ): TerrainSurface {
   const plots = generatePlots(site, biome);
-  const named = pavedKinds(site);
   const settlement = biome.plots.findIndex((p) => p.name === biome.field_rules.settlement_kind);
   const through = SURFACE_AREA_KINDS.map((kind) => {
-    const town = roadRow(biome, kind, named).town;
+    const town = roadRow(biome, kind).town;
     return town
       ? {
           as: SURFACE_AREA_KINDS.indexOf(town.kind as SurfaceAreaKind),

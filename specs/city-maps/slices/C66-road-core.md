@@ -38,7 +38,7 @@ A road core that disappears at tactical distance changes the core read with widt
 
 ## Outcome
 
-**Changed since.** [C28](C28-pavement.md) gave `road` and `sidewalk` rows of their own, lets a row name the `layer` it is painted at (the contract's order is the fallback), and routed round the last Open item: a town's streets are strokes, and their polygons take one look through `area`. A map that names only `road`, as the village does, is still drawn as a country road (`drawnKind` in `terrain/surfaces.ts`). The two luminance checks were restated when the lane was integrated: [`choices.md`](../choices.md) under C31, "A road is judged against the field beside it".
+**Changed since.** [C28](C28-pavement.md) gave `road` and `sidewalk` rows of their own, lets a row name the `layer` it is painted at (the contract's order is the fallback), and routed round the last Open item: a town's streets are strokes, and their polygons take one look through `area`. Each map now names its rural roads explicitly ([C64](C64-road-kinds.md#outcome)); appearance reads that kind directly. The two luminance checks were restated when the lane was integrated: [`choices.md`](../choices.md) under C31, "A road is judged against the field beside it".
 
 **Built.** Each paved kind is drawn as its own surface, from the biome's `roads.<kind>` rows (`default` is the country road's gravel; `dirt_track` is packed earth). `palettes.road` and `biome.road` are gone.
 

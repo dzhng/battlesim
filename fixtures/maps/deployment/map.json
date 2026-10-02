@@ -5,7 +5,7 @@
   "slope_cutoff_deg": 35,
   "surfaces": [
     {
-      "kind": "road",
+      "kind": "country_road",
       "shape": {
         "kind": "stroke",
         "points": [
