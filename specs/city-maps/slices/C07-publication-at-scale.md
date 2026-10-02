@@ -283,3 +283,12 @@ These frozen-stream maxima justify this representation arm, **not city-scale
 closure**. Early headroom is only 28 B. Root still owns matched live early/late
 whole-record admission, packing/step cost, full snapshots, peak overlap and browser
 throughput. No quantization, information masking or allowance increase occurs.
+
+### Integration with current main
+
+The newer combat stream joins the paired transport gate. Compact serialization
+changes 78 of its 80 wire hashes; every battle digest, fog hash and input is
+identical. Native and Wasm replay the same firing/impact stream. The authority's
+external module fixture now implements the required public-world handoff, returning
+no world for its raw-carrier test. Combined authority, observation, delivery and
+preparation checks pass; the optimized native/Wasm engine identity also matches.

@@ -35,22 +35,27 @@ Read [`AGENTS.md`](../../AGENTS.md): narrow checks only, no full gate. A perform
 
 ## Status
 
-**C05 is complete; C06/C07 timing and delivery admission remain open.** Green
-checkpoints are pushed to `main` through `53a43a07`, including the fog candidate
-union. Current main generates `layout-7`; the completed sweep and full-world
+**C05 is complete; C06/C07 timing and delivery admission remain open.** The
+integrated checkpoint includes the enclosed-goal proof, lossless packed carriers,
+fog batching/inlining and controlled reset checks, with main through `65b72564`.
+Current main generates `layout-7`; the completed sweep and full-world
 stress measurements below deliberately retain their frozen `layout-6` inputs.
 Historical prototype-catalogue battles are separate controls, not performance
 parity against today's physical catalogue or rules.
 
-Current pickup: terminate repeated enclosed-goal connector searches with a sound
-reachability proof, then reduce the measured publication bursts. Infantry route
+Current pickup: replay the three frozen pipeline failures through the integrated
+fix, then run fresh `layout-7` pipeline and full-world admission. Infantry route
 timing, route-start admission, replay build refusal, span copies and immutable
 static decoder/feed reuse are integrated. Fog batching preserves every sampled
-digest and complete side observation; its integrated 13 sight tests pass. Full
-generated browser stress now runs, but its 29.8 Hz early / 27.7 Hz late rates
-miss the target and its reset resource check fails. The latest full-world wire
-p95/max also remain above the 19.8 KB steady-record target. Fresh `layout-7`
-admission follows the navigation fix and measured passes.
+digest and complete side observation; its integrated 13 sight tests pass. Combined
+navigation (26), planning (16), publication (15) and browser authority/decoder/
+preparation checks (59) pass. Native and optimized Wasm share build `0666de00…`.
+The frozen generated browser rates (29.8 Hz early / 27.7 Hz late) still miss the
+target. Its reset failure is attributed to comparing different drawn states;
+three fixed-tick resets match counts and bytes, and a real GPU leak falsifies the
+corrected check. The packed carrier's exact frozen-stream maxima are 19,772 B
+early / 18,220 B late, within the unchanged 19,800 B target. These narrow proofs
+do not close current live timing, delivery, snapshots or peak-overlap admission.
 
 The native reports now attribute the production tick without introducing OS
 counters into the ordinary tick. Observation construction and wire packing are
@@ -131,7 +136,9 @@ remain G0's open decision; the 64 MiB codec ceiling is not a performance target.
    The complete nine-cell, ten-seed matrix finished against the physical catalogue on `layout-6`:
    89 short battles, one encounter refusal, no generation refusal or panic.
    Three units still plan after 120 s because many failed road-exit connectors
-   repeat searches outside an enclosed goal. This simulation finding is being fixed.
+   repeat searches outside an enclosed goal. The rare-failure component proof is
+   integrated and independently reviewed; exact frozen scenarios/commands are
+   retained for the integrated three-case rerun before the new matrix.
 2. C59: legal local infantry links and their route-start correction are green. A public
    Battle regression exposes a physically clear member that cannot stand in the
    sampled navigation grid being selected as route start; the old search arrives
@@ -141,13 +148,13 @@ remain G0's open decision; the 64 MiB codec ceiling is not a performance target.
    build refusal is verified; compiled scenario storage
    remains the parent lane's separate debt.
 3. C06/C07: local fog invalidation and exact fixed/variable span copies are integrated.
-   Measure early/late active Large bytes, p95/max and instructions afresh before
-   selecting the next owner. Fog candidate batching and the enclosed-goal proof
-   proceed independently. Static views now retain identity through decoding and
-   the pose feed. Historical mean reductions do not close admission.
-4. Browser: attribute the full-world reset resource mismatch before changing its
-   assertion. After integrating the measured passes, rebuild current `layout-7`
-   and run the full generated early/late arms and benchmark serially. The saved
+   Measure current early/late active Large bytes, p95/max and instructions before
+   selecting the next owner. Packed carriers pass the exact frozen early/late
+   stream; current live delivery remains open. Static views retain identity through
+   decoding and the pose feed. Historical reductions do not close admission.
+4. Browser: the reset mismatch is attributed and the controlled check is green.
+   Current optimized Wasm is rebuilt. Run the full generated early/late arms and
+   benchmark serially. The saved
    arena alone does not prove full-extent loading. Snapshot/copy/decoder overlap
    and the final 300 s arms remain separate gates.
 
