@@ -40,3 +40,9 @@ A material that loses wear/tint or scale changes its source bake while retaining
 ## Outcome (China)
 
 Nine ambientCG sets at 1K, pinned in `packs.json`, are baked to 256 px (the edge of every texture shipped today) as nine recipes shared by the kit's 38 materials: 27 images, 1.8 MB. Grime is in the stucco, concrete and roof recipes. No material names a wear colour and vertex-colour alpha is zero. Glass, frosted glass and PVC are opaque; decals and leaf cards are left out ([choices](../choices.md#c11c12c13-the-china-apartment-kit)). The facade keeps its character at 30 m and 80 m in the reassembly; what it loses is the curtains behind the glass.
+
+## Outcome: surfaces that are not opaque (China)
+
+The kit's exporter builds its own materials, so it says coverage and rooms through the same two calls the helpers use (`textures.surface` for a cutout or blended material, `parts.room` for a room), and `asset validate` prints each as intended: `cn_glass` blended at 0.35; `cn_streak`, `cn_leaves` and the `_cut` variant of each bar colour cutouts at 0.5 with a coverage image; `cn_room` and `cn_shop_room` opaque with an interior sheet.
+
+Three recipes are added, ours and procedural (the graph's own decal and leaf images are not copied): `cn_bars` (the shared grille's bars and rails in white over half a metre, so each cage shows its own paint and a bar is twelve texels across), `cn_streak` (a stain, fitted to its decal, drawn in the wall's own colour through the row's tint) and `cn_leaves`. The three share one occlusion-roughness-metalness image, so they add seven images, not nine. A room's UVs are the unit box unfolded round its back wall, written by the exporter as `parts.room_box` writes them.

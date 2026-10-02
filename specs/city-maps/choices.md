@@ -3376,7 +3376,7 @@ raster nearby bodies again, and no changed-prefix scan can miss a later update.
 
 ### The court is smaller than its prototype
 
-**Choice:** The court has 408 bays against the largest slab's 336, and one template's budget, so its plan is 41 x 38 m round a 17 x 14 m yard, not the prototype's 44 x 40 m. (It was also furnished more thinly until the bar rule below cut every template's tier 0; that is undone.)
+**Choice:** The court has 408 bays against the largest slab's 336, and one template's budget, so its plan is 41 x 38 m round a 17 x 14 m yard, not the prototype's 44 x 40 m. (How thinly it is furnished has moved with the budget: see the last entry of this section.)
 
 **Verdict:** sound. **Confidence:** medium.
 
@@ -3451,6 +3451,62 @@ raster nearby bodies again, and no changed-prefix scan can miss a later update.
 **Reach:** In the game's line-up the three tier boundaries no longer flip a facade dark, light, dark.
 
 **Verdict:** sound. **Confidence:** medium.
+
+### Rooms are the graph's own boxes, showing the atlas
+
+**Choice:** The graph already stands one unit box behind every window and shop front, scaled to the bay, the floor and a depth. The exporter keeps each box's place and size and swaps what it shows: one room module for apartments and one for shops, a row a window, looked up in the interior atlas. It then fits each to the plan (half the building's depth less 0.35 m; near a corner, its own distance from the corner less the same), because one facade's graph does not know the wing round the corner.
+
+**Gap:** The task says "every apartment window gets a room box"; where the box goes was open.
+
+**Verdict:** sound. **Confidence:** high.
+
+### A room, not a lining, closes an opening
+
+**Choice:** The dark pane 0.28 m inside every opening is gone wherever a room stands, and stays in the entrance and in every opening of a burnt block. A room is stretched to cover its opening top to bottom. The leak test changed with it: a ray may now go 5 m in, but may not go further or land on the back of anything.
+
+**Reach:** 0 of 2.58 million rays at tiers 0 and 1.
+
+**Verdict:** sound. **Confidence:** high.
+
+### Bars become a sheet where three or more stand in one plane
+
+**Choice:** `sheeted` finds a mesh's thin bars (under 2.2 cm), groups those of one material standing in one plane, and where there are three or more spanning a quarter metre draws one cutout face over the plane; a thin bar lying in such a face is the recipe's rail. The frame, the tray and the handrail stay geometry. It applies to the cages, the flat grille and the open balcony's rail. The solar racks are left: their thin parts are tilted tubes, 6 cm across.
+
+**Reach:** A cage is 38 triangles at tier 0 (54 as thickened ribbons, 876 in the graph). The bar rule of 5 cm still holds for what is not a sheet.
+
+**Verdict:** sound. **Confidence:** medium: at tier 1 a cage is its sheets and tray without its frame, which an unprimed critic saw as cards hanging off the window when tier 1 was forced at the play camera. A frame at tier 1 costs the court block its budget.
+
+### A cutout's image has nothing in it finer than an eighth of its width
+
+**Choice:** The first stain image was fine dribbles. At 30 m a decal is 25 pixels wide, the image is read four mips down, and its coverage averaged to under the cutoff: nothing drew. The stain is now four or five broad lanes of uneven length with blunt ends (a lane tapered to a point was a nail in the wall), in a grey that the row's tint turns into the wall's own colour a shade down (a tan stain on a grey wall was a bracket).
+
+**Verdict:** sound for a stain; a cutout is a hard edge, and a soft stain wants a blended decal the renderer does not have. **Confidence:** medium.
+
+### Fewer curtains, and faded
+
+**Choice:** The graph hangs a curtain in three windows of four, in flag colours. With the atlas's own curtained cells that left few windows showing a room. The probability is 0.35, the colours are pulled 55% of the way to grey, and a curtain is drawn at tier 0 only, in its tier 1 mesh.
+
+**Verdict:** sound. **Confidence:** medium.
+
+### Frosted glass and the strip curtain stay opaque
+
+**Choice:** They are there to hide what is behind them, and blended at a second opacity they would break the rule that a building's panes are alike. Both are darker than the graph's (a frosted bathroom window was the brightest thing on the facade).
+
+**Verdict:** sound. **Confidence:** medium.
+
+### The exporter writes the tangents
+
+**Choice:** One export in three differed from the last in one float: a rubble heap's tangent at a smooth vertex, a ten-thousandth apart. The glTF exporter averages a smooth vertex's tangent over its faces in whatever order its threads finish, then rounds. `steady_tangents` writes every tangent again after the export, from the first triangle that uses the vertex (along its u, square to the normal). On a flat face it is the exporter's own value; on a smooth one it is not an average.
+
+**Reach:** Three runs in a row write the same bytes. The damage states on main were exposed to the same flake.
+
+**Verdict:** sound. **Confidence:** medium: the flake is rare, and three runs do not prove it gone; the cause is removed by construction, since nothing is summed.
+
+### The court is thinned again, a little
+
+**Choice:** Rooms, curtains, plants and washing put the court block at 178,000 triangles. Curtains and pots are drawn coarser at tier 0 for every template, and the court's plants (0.15), air conditioners (0.4) and washing (0.28) are thinned: 147,512.
+
+**Verdict:** provisional, as before: a larger budget gives it back by deleting three numbers. **Confidence:** medium.
 
 ## Compact saved maps
 

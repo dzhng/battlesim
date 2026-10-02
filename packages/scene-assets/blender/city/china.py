@@ -25,16 +25,25 @@ memory so its instances can be read (`graph.py`).
   window openings, the bands, parapet and roof, and the unit cubes the graph
   stretches into window surrounds and sign boards. A stretched cube cannot
   carry a baked texture, so they are folded into the shell with UVs in metres.
+- **What is not opaque** (README, "Surfaces that are not opaque" and
+  "Interiors"). Glass is blended, one face a pane as the graph models it.
+  Behind every window and shop front the graph stands a room box; ours is the
+  same box showing a cell of the interior atlas, a row a window, fitted to the
+  plan so that no two rooms share space. A cage's, a grille's and a railing's
+  thin bars are cutout sheets in the bars' own colour (`sheeted`), and the
+  graph's rain stains and leaf cards are cutouts of our own images.
 - **Tiers.** A tier keeps features larger than its `FEATURE_M` (`detail.py`),
   and each kit family draws down to the tier its `FAMILIES` row names. At the
   two fine tiers a kit mesh is a row; at the two coarse ones it is folded into
-  the shell, so a far building is one row.
+  the shell, so a far building is one row. Rooms, glass and cutouts are the
+  fine tiers'; from tier 2 a window is a dark pane on a flat wall.
 - **Damage states.** The graph has no damage inputs, so a destroyed building is
   made here from the intact one (`damage.py`). Six floors or fewer collapse to a
   `ruin` inside the simulation's remains box: the same walls cut to ragged
   stumps, a heap of their rubble over the plan, fallen floors, fittings thrown
   down. Taller ones stand `gutted`: every opening empty and sooted, a few bays
-  blown out to the floor slabs, the fittings charred or gone. Each state has a
+  blown out to the floor slabs, the fittings charred or gone, no glass and no
+  room. Each state has a
   shell of its own and is one row from far off, like the intact building.
 
 A template's frame has its origin at the footprint's centre and its entrance
@@ -79,9 +88,9 @@ OUT = os.path.join(ROOT, "assets/source/city", SET)
 INPUTS = {
     "Ground Floor Height": 3.2, "Floor Height": 3.0, "Bay Width": 3.0, "Wall Thickness": 0.3,
     "Detail Level": "LOD0", "Facade Finish": "Stucco", "Wall Tint": (1.0, 1.0, 1.0, 1.0), "Stone Ground Floor": True,
-    "Floor Bands": True, "Parapet Height": 1.1, "Weathering": 0.0,
+    "Floor Bands": True, "Parapet Height": 1.1, "Weathering": 0.5,
     "Window Width": 1.5, "Window Height": 1.5, "Sill Height": 0.9, "Small Window Probability": 0.15,
-    "Curtain Probability": 0.75, "Lit Window Probability": 0.0,
+    "Curtain Probability": 0.35, "Lit Window Probability": 0.0,
     "Balcony Probability": 0.35, "Enclosed Balcony Probability": 0.45, "Balcony Min Floor": 1,
     "Security Grille Probability": 0.45, "AC Unit Probability": 0.5, "Laundry Probability": 0.35,
     "Plant Probability": 0.3, "Drainpipe Probability": 0.7,
@@ -108,7 +117,9 @@ TEMPLATES = (
      (230, 220, 200), {}),
     # four 12 m wings round a 17 x 14 m court
     ("block-court-6f", 6, {"south": (0, -13, 20.5, 6), "north": (0, 13, 20.5, 6), "west": (-14.5, 0, 6, 7),
-                           "east": (14.5, 0, 6, 7)}, 17, 37, (2, 3, 2), (214, 206, 196), {}),
+                           "east": (14.5, 0, 6, 7)}, 17, 37, (2, 3, 2), (214, 206, 196),
+     # 408 bays in one budget: a little less on its walls than a slab has
+     {"Plant Probability": 0.15, "AC Unit Probability": 0.4, "Laundry Probability": 0.28}),
 )
 FIT = {"side_m": 1.5, "top_m": 3.5}
 BUDGET = (150_000, 50_000, 12_000, 2_000)
@@ -126,9 +137,12 @@ FAMILIES = (
     ("CNK_Win_", 0b1111), ("CNK_Shop_", 0b1111), ("CNK_Ent_", 0b1111), ("CNK_Balc_", 0b1111),
     ("CNK_RoofBulk_", 0b1111),
     ("CNK_AC_", 0b0111), ("CNK_Awn_", 0b0111), ("CNK_RoofProp_", 0b0111), ("CNK_Laundry", 0b0111),
-    ("CNK_Grille_", 0b0011), ("CNK_RoofSmall_", 0b0011),
-    ("CNK_Text", 0b0001), ("CNK_Lant_", 0b0001),
+    ("CNK_Grille_", 0b0011), ("CNK_RoofSmall_", 0b0011), ("CNK_Room_", 0b0011),
+    ("CNK_Text", 0b0001), ("CNK_Lant_", 0b0001), ("CNK_Plant_", 0b0001), ("CNK_Decal_", 0b0001), ("CNK_Curt_", 0b0001),
 )
+# Families whose finest mesh keeps a larger feature than the tier's: what hangs behind glass (a curtain's
+# pleats, the washing on a glazed-in balcony) and what is a hand across (a pot, a lantern's ribs).
+TIER0_FEATURE_M = (("CNK_Curt_", 0.25), ("CNK_LaundryBalc", 0.25), ("CNK_Plant_", 0.12), ("CNK_Lant_", 0.1))
 ROW_TIERS = 0b0011  # drawn as rows; the coarser tiers are folded into the shell
 # What fills a wall opening: at the two coarse tiers the wall is flat and each is one quad on it.
 OPENINGS = ("CNK_Win_", "CNK_Shop_", "CNK_Ent_")
@@ -136,19 +150,25 @@ OPENINGS = ("CNK_Win_", "CNK_Shop_", "CNK_Ent_")
 # banded by height, then only its front.
 HULLS = ("CNK_Balc_",)
 HULL_BAND_M = (1.0, 1.3)  # at tiers 2 and 3: a glazed balcony keeps its pale parapet under its dark glass
-# Every opening in a wall is lined: a dark, matte pane stands in it just inside the wall's
-# thickness, whatever fills it. Not every module closes its opening (a window modelled with
-# a leaf open, an open stall, a glazed-in balcony whose door is left out below), and a block
-# is hollow: without the lining the eye goes in at one and out at the far side.
+# Behind every window and shop front the graph stands a room: a unit box scaled to the bay,
+# the floor and the depth the building has there. Ours is the same box, open to the wall,
+# showing a cell of the interior atlas (README, "Interiors"): rows, at the two fine tiers.
+ROOMS = {"CNK_Int_00_Room": "CNK_Room_Home", "CNK_Int_01_RoomB": "CNK_Room_Home", "CNK_Int_04_Shop": "CNK_Room_Shop"}
+ROOM_SHEETS = {"X_Room": "rooms", "X_ShopRoom": "shops"}
+ROOM_MESHES = {"CNK_Room_Home": "X_Room", "CNK_Room_Shop": "X_ShopRoom"}
+ROOM_CLEAR_M = 0.35  # a room stops this far short of the middle of the building and of a corner's other room
+ROOM_STEP_M = 0.12  # a ground-floor room's floor is this far over the ground, which would show through it
+# An opening with no room behind it (the entrance) is lined: a dark, matte pane stands in it
+# just inside the wall's thickness. A block is hollow: without one the eye goes in there and
+# out at the far side. A burnt block has no rooms, and every opening of it is lined.
 LINING_M = 0.28
-# Behind the lining: the rooms, shop interiors and curtains, until interiors are drawn (C26).
-INSIDE = ("CNK_Int_", "CNK_ShopInt_", "CNK_Curt_")
-# Inside a glazed-in balcony, behind glass that is opaque until C25: its laundry and the door onto it.
+# The graph's own furnished shop interiors: the atlas's shops stand for them.
+INSIDE = ("CNK_ShopInt_",)
+# Inside a glazed-in balcony: its laundry and the door onto it, seen through its glass.
 ON_BALCONY = ("CNK_LaundryBalc", "CNK_Win_05_BalcDoor")
-GLAZED_BALCONY = "CNK_Balc_01_Enclosed"
-# No path in the renderer until cutout (C24): the rain-streak decals, and the pot plants,
-# which are leaf cards over a pot.
-NO_PATH = ("CNK_Decal_", "CNK_Plant_")
+# Whose thin bars are drawn as a cutout sheet (`sheeted`): a cage's, a flat grille's, a railing's.
+SHEETED = ("CNK_Grille_", "CNK_Balc_00_OpenRail")
+SHEET_BAR_M = 0.022  # a bar thinner than this, one of a row of them, is the sheet's
 # Sign text is the kit's own generic shop words (tea, pharmacy, fast food). This one names a real city.
 SIGN_SWAPS = {"CNK_Text_01": "CNK_Text_09"}
 
@@ -185,10 +205,12 @@ SURFACES = {
     "M_CN_RedPaper": ("cn_red_paper", "cn_fabric", (0.75, 0.04, 0.03), 1.0, 0.0),
     "M_CN_Lantern": ("cn_lantern", "cn_fabric", (0.85, 0.05, 0.03), 1.0, 0.0),
     "M_CN_Gold": ("cn_gold", "cn_metal", (0.95, 0.72, 0.28), 0.8, 1.0),
-    # glass has no path yet: opaque, dark and glossy, as the village's windows are
-    "M_CN_Glass": ("cn_glass", None, (0.015, 0.02, 0.025), 0.1, 0.0),
-    "M_CN_GlassFrosted": ("cn_glass_frosted", None, (0.3, 0.35, 0.36), 0.4, 0.0),
-    "M_CN_PVC": ("cn_pvc", None, (0.38, 0.52, 0.5), 0.3, 0.0),
+    # glass is blended over the room behind it (COVERAGE); from tier 2 out a window is a dark, glossy pane
+    "M_CN_Glass": ("cn_glass", None, (0.05, 0.075, 0.09), 0.08, 0.0),
+    "X_Pane": ("cn_pane", None, (0.06, 0.066, 0.068), 0.25, 0.0),
+    # a frosted pane and a strip curtain stay opaque: they are there to hide what is behind them
+    "M_CN_GlassFrosted": ("cn_glass_frosted", None, (0.19, 0.22, 0.23), 0.4, 0.0),
+    "M_CN_PVC": ("cn_pvc", None, (0.22, 0.3, 0.29), 0.3, 0.0),
     "M_CN_SolarTube": ("cn_solar_tube", None, (0.03, 0.05, 0.09), 0.15, 0.3),
     "M_CN_SignText": ("cn_sign_text", None, (1.0, 1.0, 1.0), 0.4, 0.0),
     # a lamp, unlit: nothing glows
@@ -198,19 +220,46 @@ SURFACES = {
     "X_Burnt": ("cn_wall_burnt", "cn_burnt", (1.0, 1.0, 1.0), 1.0, 0.0),
     "X_Rubble": ("cn_rubble", "cn_concrete", (0.66, 0.63, 0.58), 1.0, 0.0),
     "X_Soot": ("cn_soot", "cn_concrete", (0.5, 0.48, 0.46), 1.0, 0.0),
+    # ours: cutouts (the stain a wall carries under a sill, a pot plant's leaves) and the rooms
+    "M_CN_Decal": ("cn_streak", "cn_streak", (1.0, 1.0, 1.0), 1.0, 0.0),
+    "M_CN_Leaves": ("cn_leaves", "cn_leaves", (1.0, 1.0, 1.0), 0.75, 0.0),
+    "X_Room": ("cn_room", None, (0.03, 0.03, 0.03), 1.0, 0.0),
+    "X_ShopRoom": ("cn_shop_room", None, (0.03, 0.03, 0.03), 1.0, 0.0),
 }
+# Surfaces that are not opaque (`textures.surface`). A cutout's coverage is its recipe's image.
+COVERAGE = {"M_CN_Glass": ("blended", 0.35), "M_CN_Decal": ("cutout", 0.5), "M_CN_Leaves": ("cutout", 0.5)}
+# A surface whose image is fitted to the mesh it is on (a decal is one picture), not tiled in metres.
+FITTED = frozenset(("M_CN_Decal",))
 # The source shader multiplies these by the kit's colour attribute (`col=True` in its material script).
 TAKES_COLOUR = frozenset((
     STUCCO, "M_CN_Aluminum", "M_CN_SteelBlack", "M_CN_PaintWhite", "M_CN_Shutter", "M_CN_Plastic", "M_CN_PlasticDirty",
     "M_CN_Fabric", "M_CN_Wood", "M_CN_IntWall", "M_CN_SignBoard", "M_CN_SignText", "M_CN_Emissive",
+    "M_CN_Decal",  # ours: a stain's row carries its wall's colour (`assemble`)
 ))
-# Alpha-tested cards and decals: no path in the renderer yet (C24).
-LEFT_OUT = frozenset(("M_CN_Decal", "M_CN_Leaves", "M_CN_Bark"))
+# Not in any mesh we draw.
+LEFT_OUT = frozenset(("M_CN_Bark",))
 # The source turns this material's UVs a quarter (its ridges run across).
 TURNED = frozenset(("M_CN_Shutter",))
 # A masked surface takes its row's tint: where the graph tints an instance, the surfaces
 # of it that take colour. The walls take the building's own colour this way.
 MASK = "|tint"
+# A surface drawn as a cutout sheet of bars in its own colour (`sheeted`): marked before the mask.
+CUT = "|cut"
+BARS = "cn_bars"
+
+
+def base_of(name):
+    """The source material a surface name stands for, without its marks."""
+    return name.split("|")[0]
+
+
+def recipe_of(name):
+    return BARS if CUT in name else SURFACES[base_of(name)][1]
+
+
+def see_through(name):
+    """Whether a surface is a cutout or blended: no tier's simplifying may touch it."""
+    return CUT in name or base_of(name) in COVERAGE
 
 
 def grime(streak, blotch, colour=(0.2, 0.18, 0.15)):
@@ -281,11 +330,66 @@ def recipes():
     ambientcg.bake("cn_plastic", "Plastic010", 1.0, rough=(0.8, 0.12), normal=0.3)
     ambientcg.bake("cn_fabric", "Fabric036", 0.6, rough=(1.0, 0.1), normal=0.6)
     ambientcg.bake("cn_wood", "WoodFloor041", 1.5, rough=(1.0, 0.05), normal=0.6)
+    # the three cutouts share one image of occlusion, roughness and metalness (all ones: a bundle stores an
+    # image once), and each material's own factors say what it is
+    textures.recipe(BARS, tile=0.5)(bars)
+    textures.recipe("cn_streak", tile=1.0)(streak)
+    textures.recipe("cn_leaves", tile=0.45)(leaves)
+
+
+def bars():
+    """A cage's or a railing's bars: round bars 12.5 cm apart between flat rails half a
+    metre apart, as the shared `grille` recipe has them, but in no colour of its own
+    (white: each shows its own paint or metal) and over half a metre, so a bar is twelve
+    texels across. At the shared recipe's one metre a bar seen from 30 m had a saw's edge."""
+    size = textures.SIZE
+    yy, xx = np.mgrid[0:size, 0:size].astype(float) / size
+    px = 1.0 / size
+    bar_r, rail_r = 0.012 / 0.5, 0.02 / 0.5  # half widths, in tiles
+    bx = np.abs((xx * 4) % 1.0 - 0.5) / 4  # to the nearest bar's axis
+    ry = np.abs(yy % 1.0 - 0.5)  # to the rail's
+    bar = textures.smoothstep(bar_r + px / 2, bar_r - px / 2, bx)
+    rail = textures.smoothstep(rail_r + px / 2, rail_r - px / 2, ry)
+    height = np.maximum(np.sqrt(np.clip(1.0 - (bx / bar_r) ** 2, 0, 1)) * 3.0, rail * 2.0)
+    ones = np.ones((size, size))
+    return textures.Baked(np.ones((size, size, 3)), 1.0, textures.normals_from_height(textures.blur(height), 1.0), 1.0, ones, ones,
+                          coverage=np.maximum(bar, rail))
+
+
+def streak():
+    """The stain a wall carries under a sill or a pipe bracket: dribbles of dirty water,
+    dark at the top where they start and thinning as they run down. One decal shows the
+    whole image (FITTED), its top edge at the top. A decal is 25 pixels wide at 30 m, so
+    the image is three or four broad dribbles and nothing finer: detail under an eighth of
+    it is averaged away by then, and the cutout with it."""
+    size = textures.SIZE
+    yy, xx = np.mgrid[0:size, 0:size].astype(float) / size  # yy runs down from the top
+    lanes = textures.fbm((5, 1), 951, 1)[0:1, :].repeat(size, 0)  # a value per column, the same all the way down
+    # how far down each dribble runs, and a ragged end to it: a dribble that tapers to a point is a nail in the wall
+    reach = 0.25 + 0.75 * textures.fbm((5, 1), 953, 1)[0:1, :].repeat(size, 0) + 0.06 * (textures.fbm((24, 1), 955, 1)[0:1, :].repeat(size, 0) - 0.5)
+    edge = textures.smoothstep(0.0, 0.08, xx) * textures.smoothstep(1.0, 0.92, xx)
+    cover = textures.smoothstep(0.42, 0.46, lanes) * (yy < reach) * edge
+    # damp and dirt on paint, not tar: the wall's own colour (its row carries it) a shade down, so a stain's
+    # hard edge is quiet on a wall of any colour
+    colour = np.array((0.52, 0.5, 0.47)) * (0.85 + 0.3 * textures.fbm(6, 957, 2))[..., None]
+    flat, ones = np.zeros((size, size)), np.ones((size, size))
+    return textures.Baked(colour, 1.0, textures.normals_from_height(flat, 1.0), 1.0, ones, ones, coverage=cover)
+
+
+def leaves():
+    """Pot-plant foliage on a card: broad leaves, more of the card covered than not."""
+    size = textures.SIZE
+    f1, f2, ident = textures.worley(7, 961)
+    blade = textures.smoothstep(0.62, 0.5, f1) * textures.smoothstep(0.0, 0.08, f2 - f1)
+    shade = ((ident * 2654435761) % 97) / 96.0
+    colour = np.array((0.045, 0.11, 0.03)) * (0.6 + 0.7 * shade)[..., None] * (0.8 + 0.4 * textures.fbm(10, 963, 3))[..., None]
+    height = textures.blur(blade * (1.0 - f1))
+    ones = np.ones((size, size))
+    return textures.Baked(colour, 1.0, textures.normals_from_height(height, 1.0), 1.0, ones, ones, coverage=blade)
 
 
 def material_name(source):
-    masked = source.endswith(MASK)
-    return SURFACES[source.removesuffix(MASK)][0] + ("_tint" if masked else "")
+    return SURFACES[base_of(source)][0] + ("_cut" if CUT in source else "") + ("_tint" if source.endswith(MASK) else "")
 
 
 # ---------------------------------------------------------------- the graph
@@ -452,6 +556,8 @@ def facade(tap, rows, side, run, roof_m):
     for name, m, tint in rows:
         if name.startswith(ROOF_FAMILIES) or depth(m[:3, 3]) > 0.8:
             continue
+        if name.startswith("CNK_Decal_") and m[2, 3] + tap.meshes[name].bounds()[0][2] * m[2, 2] < 0.02:
+            continue  # a stain that would run on into the ground
         if not name.startswith("primitive:"):
             placed.append((name, place @ m, tint))
             continue
@@ -461,11 +567,47 @@ def facade(tap, rows, side, run, roof_m):
         against = (normals[:, :2] @ out < -0.5) & (depth(cube.v[cube.t].mean(1)) > -0.02)
         cubes.append(cube.keep(~against).transformed(place))
     openings = [(name, place @ m) for name, m, _ in tap.rows if name.startswith(OPENINGS) and depth(m[:3, 3]) < 0.8]
+    # a room covers the opening it stands behind, top to bottom, under the floor above; an opening with none is bare
+    ground_m, storey_m = INPUTS["Ground Floor Height"], INPUTS["Floor Height"]
+    spans = []
+    for name, m in openings:
+        lo, hi = tap.meshes[name].bounds()
+        spans.append((float((m[:2, 3] - run[0]) @ ((np.array(run[1]) - run[0]) / length)), m[2, 3] + lo[2] * m[2, 2], m[2, 3] + hi[2] * m[2, 2]))
+    roomed = set()
+    for k, (name, m, tint) in enumerate(placed):
+        if name not in ROOM_MESHES:
+            continue
+        s_room = float((m[:2, 3] - run[0]) @ ((np.array(run[1]) - run[0]) / length))
+        z0, z1 = max(m[2, 3], ROOM_STEP_M), m[2, 3] + m[2, 2]
+        ceiling = (ground_m if z0 < ground_m - 1.0 else ground_m + storey_m * (math.floor((z0 - ground_m + 0.5) / storey_m) + 1)) - 0.03
+        for i, (s_open, o0, o1) in enumerate(spans):
+            if abs(s_open - s_room) < 0.6 and o0 < z1 and o1 > z0:
+                roomed.add(i)
+                z0, z1 = max(ROOM_STEP_M, min(z0, o0 - 0.03)), min(ceiling, max(z1, o1 + 0.05))
+        m = m.copy()
+        m[2, 3], m[2, 2] = z0, z1 - z0
+        placed[k] = (name, m, tint)
+    bare = [opening for i, opening in enumerate(openings) if i not in roomed]
+    # a stain is on the wall: the graph hangs some where a door onto a balcony has taken the wall away
+    def on_wall(name, m):
+        if not name.startswith("CNK_Decal_"):
+            return True
+        lo, hi = tap.meshes[name].bounds()
+        s_at = float((m[:2, 3] - run[0]) @ ((np.array(run[1]) - run[0]) / length))
+        half, z0, z1 = max(-lo[0], hi[0]) * float(np.hypot(m[0, 0], m[1, 0])), m[2, 3] + lo[2] * m[2, 2], m[2, 3] + hi[2] * m[2, 2]
+        for (o_name, o_m), (s_open, o0, o1) in zip(openings, spans):
+            o_lo, o_hi = tap.meshes[o_name].bounds()
+            o_half = max(-o_lo[0], o_hi[0]) * float(np.hypot(o_m[0, 0], o_m[1, 0]))
+            if abs(s_at - s_open) < half + o_half and z0 < o1 and z1 > o0:
+                return False
+        return True
+
+    placed = [row for row in placed if on_wall(row[0], row[1])]
     direction = np.array([run[1][0] - run[0][0], run[1][1] - run[0][1]]) / length
     return SimpleNamespace(
         start=np.array(run[0], dtype=np.float64), along=direction, out=np.array([direction[1], -direction[0]]), length=length,
         wall=masked(own.keep(ours & ~inner), True).transformed(place), inner=masked(own.keep(inner), True).transformed(place),
-        rows=placed, cubes=Soup.join(cubes), openings=openings)
+        rows=placed, cubes=Soup.join(cubes), openings=openings, bare=bare)
 
 
 def roof_rows(graph_, part, floors, seed, roof, own):
@@ -496,11 +638,73 @@ def masked(soup, tinted):
     soup = soup.without(LEFT_OUT | {""})
     mats, colour = [], soup.c.copy()
     for i, name in enumerate(soup.mats):
-        if tinted and name in TAKES_COLOUR:
+        if tinted and base_of(name) in TAKES_COLOUR:
             colour[np.unique(soup.t[soup.m == i])] = 1.0
             name += MASK
         mats.append(name)
     return Soup(soup.v, colour, soup.t, soup.m, soup.s, mats)
+
+
+def sheeted(soup):
+    """A kit mesh with its rows of thin bars drawn as cutout sheets: a cage's bars are
+    1.3 cm across, under a pixel at the battle's camera, and a hundred of them are
+    stipple where one face of the grille recipe thins evenly with distance. Bars of one
+    material that stand in one plane, three or more of them, become one face over the
+    plane they fill; a thin bar lying in such a face is the recipe's rail. The frame they
+    hang in stays geometry."""
+    labels = detail.islands(soup)
+    thin = {}
+    for label in range(labels.max() + 1):
+        part = soup.keep(labels == label)
+        lo, hi = part.bounds()
+        dims = hi - lo
+        order = np.argsort(-dims, kind="stable")
+        if dims[order[0]] > 0.3 and dims[order[1]] < SHEET_BAR_M:
+            thin[label] = (int(part.m[0]), int(order[0]), (lo + hi) / 2, lo, hi, part.c.mean(0))
+    # the plane a bar stands in: for each axis across it, the bars of its material and direction at the same place
+    groups = {}
+    for label, (mat, long_axis, mid, lo, hi, _) in thin.items():
+        for across in range(3):
+            if across != long_axis:
+                groups.setdefault((mat, long_axis, across, round(float(mid[across]), 2)), []).append(label)
+    sheets, taken = [], set()
+    for key in sorted(groups, key=lambda k: (-len(groups[k]), k)):
+        mat, long_axis, across, at = key
+        members = [label for label in groups[key] if label not in taken]
+        if len(members) < 3:
+            continue
+        lo = np.min([thin[label][3] for label in members], 0)
+        hi = np.max([thin[label][4] for label in members], 0)
+        spread = 3 - long_axis - across
+        if hi[spread] - lo[spread] < 0.25:
+            continue
+        taken.update(members)
+        corners = np.zeros((4, 3))
+        corners[:, across] = at
+        corners[:, long_axis] = (lo[long_axis], hi[long_axis], hi[long_axis], lo[long_axis])
+        corners[:, spread] = (lo[spread], lo[spread], hi[spread], hi[spread])
+        colour = np.mean([thin[label][5] for label in members], 0)
+        sheets.append((mat, across, at, lo, hi, quad(corners, soup.mats[mat] + CUT, colour)))
+    for label, (mat, long_axis, mid, lo, hi, _) in thin.items():  # the rails
+        if label not in taken and any(m == mat and abs(mid[across] - at) < 0.02 and np.all(lo >= slo - 0.02) and np.all(hi <= shi + 0.02)
+                                      for m, across, at, slo, shi, _ in sheets):
+            taken.add(label)
+    if not sheets:
+        return soup
+    return Soup.join([soup.keep(~np.isin(labels, sorted(taken))), *(sheet[5] for sheet in sheets)])
+
+
+def room_mesh(material):
+    """A room: the unit box the graph scales to a bay, a floor and a depth, open to the
+    wall at y = 0 and running in along +Y, its five faces turned inward. Its UVs are the
+    box unfolded round its back wall (`box_uv`), as `parts.room_box` writes them."""
+    x0, x1 = -0.5, 0.5
+    faces = [[(x0, 1, 0), (x1, 1, 0), (x1, 1, 1), (x0, 1, 1)],  # back
+             [(x0, 0, 0), (x1, 0, 0), (x1, 1, 0), (x0, 1, 0)],  # floor
+             [(x0, 1, 1), (x1, 1, 1), (x1, 0, 1), (x0, 0, 1)],  # ceiling
+             [(x0, 0, 0), (x0, 1, 0), (x0, 1, 1), (x0, 0, 1)],  # left
+             [(x1, 1, 0), (x1, 0, 0), (x1, 0, 1), (x1, 1, 1)]]  # right
+    return Soup.join([quad(face, material) for face in faces])
 
 
 def unmasked(soup, tint):
@@ -527,22 +731,35 @@ def front_material(soup):
 def module_tiers(name, soup):
     """The four meshes of a kit module, finest first; None where nothing is left to draw.
     A tier is never heavier than the one before it: where the rule would make it so, it
-    repeats that one."""
+    repeats that one. A cutout or blended surface is one face already: the two fine tiers
+    keep it as it is, and the two coarse ones, where a window is a dark pane on a flat
+    wall, have none (glass there is that pane)."""
+    if name in ROOM_MESHES:
+        return [soup] * 4
+    clear = np.array([see_through(m) for m in soup.mats], dtype=bool)[soup.m] if len(soup) else np.zeros(0, bool)
+    solid, sheer = soup.keep(~clear), soup.keep(clear)
+    glass = np.array([base_of(m) == "M_CN_Glass" for m in soup.mats], dtype=bool)[soup.m] if len(soup) else clear
+    far = soup.keep(~clear | glass)  # what the coarse tiers are made from: glass, as a pane
+    far = Soup(far.v, far.c, far.t, far.m, far.s, ["X_Pane" if base_of(m) == "M_CN_Glass" else m for m in far.mats])
     out = []
     for tier, g in enumerate(FEATURE_M):
+        if tier == 0:
+            g = next((own for prefix, own in TIER0_FEATURE_M if name.startswith(prefix)), g)
         if name.endswith("+wreck"):  # thrown down, it is neither an opening nor a balcony: a heap of bars and panels
-            lod = detail.simplify(soup, g, BAR_M[tier])
+            lod = Soup.join([detail.simplify(solid, g, BAR_M[tier]), *([sheer] if tier < 2 else [])])
         elif tier >= 2 and name.startswith(OPENINGS):
-            front = front_material(soup)  # the pane, not its frame: a far window is no bigger than a near one
-            lod = detail.front_quad(soup.keep(soup.m == front), front, 0.03, soup.mats)
+            front = front_material(far)  # the pane, not its frame: a far window is no bigger than a near one
+            lod = detail.front_quad(far.keep(far.m == front), front, 0.03, far.mats)
         elif tier >= 2 and name.startswith(HULLS):
-            lod = detail.hull(soup, HULL_BAND_M[tier - 2], caps=tier == 2, sides=tier == 2)
+            lod = detail.hull(far, HULL_BAND_M[tier - 2], caps=tier == 2, sides=tier == 2)
             if tier == 3 and len(lod):  # its front alone, laid on the wall: standing off it, it floats when seen from the side
                 flat = lod.v.copy()
                 flat[:, 1] = soup.bounds()[1][1] - 0.2
                 lod = Soup(flat, lod.c, lod.t, lod.m, lod.s, lod.mats)
+        elif tier >= 2:
+            lod = detail.simplify(far, g, BAR_M[tier])
         else:
-            lod = detail.simplify(soup, g, BAR_M[tier])
+            lod = Soup.join([detail.simplify(solid, g, BAR_M[tier]), sheer])
         finer = next((l for l in reversed(out) if l is not None), None)
         if finer is not None and len(clean(lod)) > len(clean(finer)):
             lod = finer
@@ -562,7 +779,7 @@ BURNS = frozenset(("M_CN_Glass", "M_CN_GlassFrosted", "M_CN_PVC", "M_CN_Fabric",
 def variant(soup, kind, seed):
     soup = damage.charred(soup, BURNS, seed)
     # burnt metal is sooted and dull: left a metal, it would mirror the sky
-    soup = Soup(soup.v, soup.c, soup.t, soup.m, soup.s, ["X_Soot" if name in SURFACES and SURFACES[name][4] > 0 else name for name in soup.mats])
+    soup = Soup(soup.v, soup.c, soup.t, soup.m, soup.s, ["X_Soot" + (CUT if CUT in name else "") if base_of(name) in SURFACES and SURFACES[base_of(name)][4] > 0 else name for name in soup.mats])
     if not len(soup) or kind == "burnt":
         return soup
     lo, hi = soup.bounds()
@@ -607,20 +824,20 @@ def srgb_bytes(linear):
     return [int(round(v * 255)) for v in np.where(c <= 0.0031308, c * 12.92, 1.055 * c ** (1 / 2.4) - 0.055)]
 
 
-def near(a, b, reach):
-    return math.hypot(a[0, 3] - b[0, 3], a[1, 3] - b[1, 3]) < reach and abs(a[2, 3] - b[2, 3]) < 0.1
-
-
 def drawn(rows):
-    """The instances a building of ours draws, from all the graph makes."""
-    glazed = [m for name, m, _ in rows if name == GLAZED_BALCONY]
+    """The instances a building of ours draws, from all the graph makes: its room boxes
+    as ours, and not its furnished shop interiors."""
     out = []
     for name, m, tint in rows:
-        if name.startswith(NO_PATH) or name.startswith(INSIDE):
+        if name.startswith(INSIDE):
             continue
-        if name.startswith(ON_BALCONY) and any(near(m, b, 1.0) for b in glazed):
-            continue
-        out.append((SIGN_SWAPS.get(name, name), m, tint))
+        if name in ROOMS:
+            out.append((ROOMS[name], m, None))
+        elif name.startswith("CNK_Curt_") and tint is not None:  # the graph's are flags; cloth behind glass has faded
+            grey = sum(tint[:3]) / 3
+            out.append((name, m, (*(0.85 * (grey + (c - grey) * 0.45) for c in tint[:3]), 1.0)))
+        else:
+            out.append((SIGN_SWAPS.get(name, name), m, tint))
     return out
 
 
@@ -745,13 +962,18 @@ def intact_shell(b, modules, tiers_of, meshes):
     cubes, and at the two coarse tiers flat walls with what is left of the kit folded in."""
     _, roof_m, _, _ = heights(b.floors)
     walls = [run.wall for run in b.runs]
-    linings = [lining(meshes, name, m, LINING_M, "X_Void") for run in b.runs for name, m in run.openings]
+    linings = [lining(meshes, name, m, LINING_M, "X_Void") for run in b.runs for name, m in run.bare]
+    linings += [step for run in b.runs for step in run.steps]
     cubes = Soup.join([run.cubes for run in b.runs])
+    # from far off a glazed-in balcony is its dark glass: the door and the washing behind it are not folded in
+    glazed = [m for name, m, _ in b.rows if name == "CNK_Balc_01_Enclosed"]
+    behind = lambda m: any(math.hypot(m[0, 3] - g[0, 3], m[1, 3] - g[1, 3]) < 1.0 and abs(m[2, 3] - g[2, 3]) < 0.1 for g in glazed)
+    far_rows = [row for row in b.rows if not (row[0].startswith(ON_BALCONY) and behind(row[1]))]
     out = []
     for tier, g in enumerate(FEATURE_M):
         body = [*walls, *linings] if tier < 2 else [flat_walls(b.loops, b.floors, STUCCO + MASK)]
         out.append(Soup.join([*body, crown(b.loops, b.floors, tier, STUCCO + MASK), roof(b.rects, roof_m + 0.04, ROOF_CELL_M[tier], b.seed),
-                              cubes if tier == 0 else detail.simplify(cubes, g), *folded(b.rows, modules, tiers_of, tier)]))
+                              cubes if tier == 0 else detail.simplify(cubes, g), *folded(far_rows, modules, tiers_of, tier)]))
     return monotone(b.name, out)
 
 
@@ -1063,10 +1285,26 @@ def box_uv(soup):
     sign = np.where(normals[rows, axis] < 0, -1.0, 1.0) * np.where(axis == 1, -1.0, 1.0)
     u = sign[:, None] * p[rows, :, a]
     v = p[rows, :, b]
-    recipe = [SURFACES[name.removesuffix(MASK)][1] for name in soup.mats]
+    recipe = [recipe_of(name) for name in soup.mats]
     tile = np.array([textures.tile_of(r) if r else 1.0 for r in recipe])[soup.m][:, None]
-    turned = np.array([name.removesuffix(MASK) in TURNED for name in soup.mats])[soup.m][:, None]
-    return np.stack([np.where(turned, v, u) / tile, np.where(turned, u, v) / tile], -1)
+    turned = np.array([base_of(name) in TURNED for name in soup.mats])[soup.m][:, None]
+    uv = np.stack([np.where(turned, v, u) / tile, np.where(turned, u, v) / tile], -1)
+    for i, name in enumerate(soup.mats):
+        own = soup.m == i
+        if not own.any():
+            continue
+        if base_of(name) in FITTED:  # one picture over the surface's own bounds, its top at the top
+            q = p[own]
+            lo, hi = q.reshape(-1, 3).min(0), q.reshape(-1, 3).max(0)
+            uv[own] = np.stack([(q[..., 0] - lo[0]) / max(hi[0] - lo[0], 1e-9), (q[..., 2] - lo[2]) / max(hi[2] - lo[2], 1e-9)], -1)
+        elif name in ROOM_SHEETS:  # the unit box unfolded round its back wall (`room_mesh`)
+            q, n = p[own], normals[own]
+            x, y, z = q[..., 0] + 0.5, q[..., 1], q[..., 2]
+            face = np.abs(n).argmax(1)[:, None]
+            low = (n[np.arange(len(n)), np.abs(n).argmax(1)] > 0)[:, None]  # the floor's and the left wall's normals point up and right
+            uv[own] = np.stack([np.where(face == 0, np.where(low, y - 1.0, 2.0 - y), x),
+                                np.where(face == 2, np.where(low, y - 1.0, 2.0 - y), z)], -1)
+    return uv
 
 
 def clean(soup):
@@ -1086,7 +1324,11 @@ MATERIALS = {}
 def material(source):
     name = material_name(source)
     if name not in MATERIALS:
-        _, recipe, base, rough, metal = SURFACES[source.removesuffix(MASK)]
+        _, _, base, rough, metal = SURFACES[base_of(source)]
+        recipe = recipe_of(source)
+        if source in ROOM_SHEETS:
+            MATERIALS[name] = parts.room(name, ROOM_SHEETS[source])
+            return MATERIALS[name]
         m = bpy.data.materials.new(name)
         m.use_nodes = True
         bsdf = m.node_tree.nodes["Principled BSDF"]
@@ -1097,6 +1339,9 @@ def material(source):
             m["tint"] = 1.0
         if recipe:
             parts.TEXTURED[name] = recipe
+        coverage = ("cutout", 0.5) if CUT in source else COVERAGE.get(base_of(source))
+        if coverage:
+            textures.surface(m, coverage)
         MATERIALS[name] = m
     return MATERIALS[name]
 
@@ -1139,9 +1384,100 @@ def write_kit(path, kit):
         for tier, soup in enumerate(kit[name]):
             mesh_object(f"{name}_LOD{tier}", soup, root)
     parts.export(path, worn=False)
+    steady_tangents(path)
+
+
+def steady_tangents(path):
+    """Write every vertex's tangent again, from the first triangle that uses it: along
+    that triangle's u, square to the vertex's normal. The exporter averages a smooth
+    vertex's tangent over its faces in whatever order its threads finish, and rounds the
+    sum, so one run in three wrote a rubble heap's tangent a ten-thousandth apart from the
+    last. A flat face's tangent comes out as the exporter's own."""
+    import struct
+
+    data = bytearray(open(path, "rb").read())
+    length = struct.unpack_from("<I", data, 12)[0]
+    doc = json.loads(bytes(data[20:20 + length]))
+    start = 20 + length + 8
+    kind = {5121: "u1", 5123: "<u2", 5125: "<u4", 5126: "<f4"}
+    width = {"SCALAR": 1, "VEC2": 2, "VEC3": 3, "VEC4": 4}
+
+    def where(index):
+        accessor = doc["accessors"][index]
+        view = doc["bufferViews"][accessor["bufferView"]]
+        if "byteStride" in view:
+            raise SystemExit("steady_tangents: an interleaved buffer view")
+        return start + view.get("byteOffset", 0) + accessor.get("byteOffset", 0), accessor["count"], width[accessor["type"]], \
+            kind[accessor["componentType"]]
+
+    def read(index):
+        at, count, n, dtype = where(index)
+        return np.frombuffer(bytes(data[at:at + count * n * np.dtype(dtype).itemsize]), dtype).reshape(count, n)
+
+    for mesh in doc["meshes"]:
+        for prim in mesh["primitives"]:
+            attributes = prim["attributes"]
+            if "TANGENT" not in attributes:
+                continue
+            p, n, uv = (read(attributes[k]).astype(np.float64) for k in ("POSITION", "NORMAL", "TEXCOORD_0"))
+            t = read(prim["indices"]).astype(np.int64).reshape(-1, 3)
+            e1, e2 = p[t[:, 1]] - p[t[:, 0]], p[t[:, 2]] - p[t[:, 0]]
+            d1, d2 = uv[t[:, 1]] - uv[t[:, 0]], uv[t[:, 2]] - uv[t[:, 0]]
+            det = d1[:, 0] * d2[:, 1] - d2[:, 0] * d1[:, 1]
+            flat = np.abs(det) <= 1e-12
+            safe = np.where(flat, 1.0, det)[:, None]
+            along_u = (e1 * d2[:, 1:2] - e2 * d1[:, 1:2]) / safe
+            along_v = (e2 * d1[:, 0:1] - e1 * d2[:, 0:1]) / safe
+            first = np.full(len(p), len(t), dtype=np.int64)
+            for corner in range(3):
+                np.minimum.at(first, t[:, corner], np.arange(len(t)))
+            first = np.minimum(first, len(t) - 1)
+            tangent = along_u[first] - n * (n * along_u[first]).sum(1, keepdims=True)
+            size = np.linalg.norm(tangent, axis=1, keepdims=True)
+            lost = flat[first] | (size[:, 0] < 1e-9)
+            # no u to follow (a triangle with no area in the texture): any direction square to the normal
+            axis = np.eye(3)[np.abs(n).argmin(1)]
+            spare = axis - n * (n * axis).sum(1, keepdims=True)
+            tangent = np.where(lost[:, None], spare, tangent)
+            tangent /= np.linalg.norm(tangent, axis=1, keepdims=True)
+            # glTF's v runs down the image: the exporter's sign is the opposite of this one
+            sign = np.where(lost, 1.0, -np.sign((np.cross(n, tangent) * along_v[first]).sum(1)))
+            sign = np.where(sign == 0.0, 1.0, sign)
+            out = np.concatenate([tangent, sign[:, None]], 1).astype("<f4")
+            at, count, _, _ = where(attributes["TANGENT"])
+            data[at:at + count * 16] = out.tobytes()
+    open(path, "wb").write(bytes(data))
 
 
 # ---------------------------------------------------------------- main
+def fit_rooms(run, rects):
+    """A run with its rooms no deeper than the plan has room for: short of the middle of
+    the building behind the wall, and, near an end of the run, short of the room that
+    stands behind the wall round the corner."""
+    wall_m = INPUTS["Wall Thickness"]
+    run.steps = []
+    for k, (name, m, tint) in enumerate(run.rows):
+        if name not in ROOM_MESHES:
+            continue
+        wide, deep = float(np.hypot(m[0, 0], m[1, 0])), float(np.hypot(m[0, 1], m[1, 1]))
+        s = float((m[:2, 3] - run.start) @ run.along)
+        if m[2, 3] < ROOM_STEP_M + 0.01:  # the threshold a ground-floor room stands on
+            at = lambda along_m, z: (*(run.start + run.along * along_m - run.out * (wall_m - 0.01)), z)
+            run.steps.append(quad([at(s - wide / 2, 0.0), at(s + wide / 2, 0.0), at(s + wide / 2, ROOM_STEP_M + 0.01),
+                                   at(s - wide / 2, ROOM_STEP_M + 0.01)], "X_Void"))
+        steps = np.arange(0.25, 12.0, 0.25)
+        behind = run.start[None] + run.along[None] * s - run.out[None] * steps[:, None]
+        outside = damage.distance_out(behind[:, 0], behind[:, 1], rects) > 0
+        through = float(steps[np.argmax(outside)]) if outside.any() else 12.0
+        corner = min(s - wide / 2, run.length - s - wide / 2)
+        fits = max(0.6, min(deep, through / 2 - wall_m - ROOM_CLEAR_M, max(corner - wall_m - ROOM_CLEAR_M, 0.6) if corner < deep + wall_m else deep))
+        if fits < deep:
+            m = m.copy()
+            m[:3, 1] *= fits / deep
+            run.rows[k] = (name, m, tint)
+    return run
+
+
 def assemble(graph_, template):
     """A template built: its outline, each run of it dressed (`facade`), its instances in
     its own frame, and what made them."""
@@ -1156,9 +1492,12 @@ def assemble(graph_, template):
         # each run of a compound is its own stretch of wall: another seed for each facade of a kind
         k = used[side] = used.get(side, -1) + 1
         inputs = run_inputs(math.dist(*run), side, floors, seed + k, shop_seed + k, own)
-        runs.append(facade(*graph_.tap(inputs), side, run, roof_m))
+        runs.append(fit_rooms(facade(*graph_.tap(inputs), side, run, roof_m), rects))
         recipe.append({"from": list(run[0]), "to": list(run[1]), "facade": side, "Seed": seed + k, "Shop Seed": shop_seed + k,
                        "Corner Margin": inputs["Corner Margin"]})
+    paint = tuple(((c / 255 + 0.055) / 1.055) ** 2.4 if c / 255 > 0.04045 else c / 255 / 12.92 for c in wall)
+    for run in runs:  # a stain is the wall's own colour, darker
+        run.rows = [(n, m, (*paint, 1.0) if n.startswith("CNK_Decal_") else tint) for n, m, tint in run.rows]
     on_roof = [row for k, part in enumerate(rects) for row in roof_rows(graph_, part, floors, seed + k, roof_, own)]
     return SimpleNamespace(
         name=name, floors=floors, parts=parts_, rects=rects, loops=loops, runs=runs, seed=seed, wall=wall, roof_rows=on_roof,
@@ -1174,6 +1513,12 @@ def main():
     meshes = {}
     for tap, _ in graph_.taps.values():
         meshes.update(tap.meshes)
+    meshes = {name: sheeted(soup) if name.startswith(SHEETED) else soup for name, soup in meshes.items()}
+    meshes.update({name: room_mesh(material) for name, material in ROOM_MESHES.items()})
+    # a decal is a face on the wall's own plane: stood off it, the two do not fight for depth
+    off = np.eye(4)
+    off[1, 3] = -0.015
+    meshes = {name: soup.transformed(off) if name.startswith("CNK_Decal_") else soup for name, soup in meshes.items()}
 
     # whether the graph tints a mesh's instances, and every mesh a state places: a kit mesh, or a variant of one
     tinted, cache = {}, {}
