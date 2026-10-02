@@ -198,3 +198,79 @@ browser transfer, the battle authority and rendering.
 This is tooling readiness, not browser admission. The real browser worker,
 rendered picture, startup overlap, reset allocations and throughput still need
 the integrating agent's coordinated GPU run. No rendering or game rule changed.
+## Finding — fog candidate collection
+
+Bounded public sweeps on the frozen full Metro input separate world candidates
+from traversal. With current rules and release optimization, paired-side steady
+candidate gathering costs about 104 M instructions early and 132 M late;
+traversal costs about 200 M. Ray direction and sight-range math is only 18 M of
+that traversal, so a trig cache is not the first fix. These are static initial
+views, not a claim about every contact tick. Empty remembered-index queries
+provide only a lower bound on that separate owner.
+
+Every eye sorts its world candidates, although the Fog caller then canonicalizes
+all eyes' IDs before learning. A scratch batch of the same bucket entries has
+exactly the same final ID set. Including its more expensive final merge, early
+collection falls from roughly 142 M to 99 M instructions across both sides.
+Raw candidate volume grows by 2.3–2.8 times, so the production pass must disclose
+transient memory and prove whole Fog plus Learning work, not merely move sorting
+across the profile boundary. Preserve ordinary sorted query consumers and all
+body knowledge; add no retained query cache or full-extent fine storage.
+
+
+## Outcome — collect fog candidates once
+
+Fog now appends the existing world and remembered bucket entries for every eye,
+then canonicalizes each union before its first body-knowledge read. Ordinary
+spatial queries retain sorted, unique results. The visibility kernel receives
+no candidate vector, and its exact field computation is unchanged. This adds
+no retained state, query cache or full-extent allocation. In the early frozen
+Metro collection probe, the largest world-ID vector capacity rises from
+0.762 MB to 2.884 MB; sides are collected separately. This is temporary vector
+capacity, not a whole-process peak-memory measurement.
+
+The isolated public dense-town regression was red at 82.460 M instructions for
+Fog plus Learning and passes at 47.630 M. The separate-observer test proves both
+visible bodies are learned, an unseen body stays unknown, the other side learns
+nothing, public fresh sweeps agree bit for bit, and replay agrees every tick.
+Omitting later observers' candidates makes that test fail on the missing body.
+Remembered replacement/removal and aggregate revelation checks also pass.
+
+A release six-tick Battle comparison on the same frozen full Metro geometry and
+rules preserves every tick digest and complete serialized side-observation hash
+for both initial early and late snapshots. Combined Fog plus Learning falls
+from 371.236 M to 330.527 M instructions early, and 418.619 M to 355.871 M late:
+about 6.8 M and 10.5 M fewer per tick respectively. Final digests are
+`a98b13486b947938` and `b1ce437b780fa761`. These bounded initial views do not
+certify dense-contact ticks or close the city-scale budget. All sight tests,
+the remembered-body owner tests and library clippy pass; integrated contact,
+whole-system memory and browser admission remain with the scale lane.
+Independent read-only review found no correctness or shape issue.
+
+## Finding — full-world browser stress
+
+The frozen `layout-6` physical Metro Large seed-4 map is loaded in the ordinary
+browser worker and production view: 10 × 10 km, 13,006 buildings, 22,577 parts,
+100 living units per side. Its generated identity is `33bbd0d9…`, catalogue
+`5416684f…`. The 60 s early arm advances 1,787 ticks (29.8 Hz); the late arm
+advances 1,661 (27.7 Hz). Neither admits the required 30 Hz. Worst sampled frame
+p95/p99 are 58.7/91.7 ms early and 67.4/75.1 ms late. Late whole-page memory,
+including the worker, is 1,173 MiB; final main-thread heaps are 581/931 MiB.
+These measurements include immutable static decoder/feed reuse, before the
+fog candidate union. They are neither an instruction comparison nor current
+`layout-7` admission.
+
+Reset resource counts differ: 363 buffers before, 362 after; textures remain
+41. The buffer-byte difference is 1,491,008. This is a red contract requiring
+allocation attribution and controlled rendered history, not a reason to relax
+the assertion. Raw telemetry, preparation and captures are preserved under
+`throwaway/scale-lane/browser-full-generated-checkpoint/`.
+
+All four full-world states and their crops have visible content (full-frame
+entropy 5.26–5.32 bits, edge density 0.73–0.74, no transparency), but an unprimed
+review finds bright sight boundaries obscuring dense city blocks and weak unit
+readability at strategic zoom. Other saved movement/benchmark captures expose
+heavy fog hatching, weak route contrast, unclear water, and benchmark link/
+results layout issues. These are renderer/UI lane findings; the scale lane has
+not changed appearance or accepted visual fidelity. The final stress check needs
+readable unit/contact framing alongside the full-world loading proof.

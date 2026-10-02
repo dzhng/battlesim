@@ -34,6 +34,7 @@ import {
   testSet,
 } from "./city";
 import { grassClumpGlb } from "@packages/scene-assets/src/grass.ts";
+import { SCENERY_KINDS } from "@packages/scene-assets/src/scenery.ts";
 import {
   AUTHORITY,
   GRASS_SPEC,
@@ -273,6 +274,8 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
     return typeAppearanceFindings(appearances, AUTHORITY.units);
   },
   "fit.canopy": async () => (await scenery("tree", { summer: treeGlb(12.5) })).findings,
+  "budget.tier_triangles": async () =>
+    (await scenery("tree", { summer: treeGlb(10, 0, { crowns: overBudget(3) }) })).findings,
   "nodes.missing": () => tank({ omit: "hmg_muzzle" }),
   "nodes.hierarchy": () => tank({ muzzleUnderTurret: true }),
   "nodes.duplicate": () => tank({ duplicateWheel: true }),
@@ -327,6 +330,42 @@ test("a tree must stand inside the simulation's canopy; a hedgerow need not", as
   expect(await codes("tree", 12.5)).toEqual(["fit.canopy"]);
   expect(await codes("tree", 11.9)).toEqual([]);
   expect(await codes("hedgerow", 14)).toEqual([]);
+});
+
+test("a tree's crown reaches no farther than the simulation's canopy radius, on every tier", async () => {
+  // The synthetic crown is a square, so its corner reaches radius × √2.
+  const reach = (corner: number) => corner / Math.SQRT2;
+  const codes = async (kind: string, corner: number) =>
+    (await scenery(kind, { summer: treeGlb(10, 0, { radius: reach(corner) }) })).findings.map(
+      (f) => f.code,
+    );
+  expect(await codes("tree", AUTHORITY.canopy_radius_m + 0.1)).toEqual(["fit.canopy"]);
+  expect(await codes("tree", AUTHORITY.canopy_radius_m - 0.1)).toEqual([]);
+  expect(await codes("hedgerow", AUTHORITY.canopy_radius_m + 3)).toEqual([]);
+});
+
+/** Crown boxes per tier that put tier `tier` one box over the tree budget
+ *  (`by` 0: the most boxes inside it). Finer tiers draw as many, inside
+ *  their own larger budgets, so the tiers stay ordered; coarser ones draw one. */
+function overBudget(tier: number, by = 1): number[] {
+  const budget = SCENERY_KINDS.tree.tier_triangles!;
+  const trunk = 12;
+  const boxes = Math.floor((budget[tier] - trunk) / 12) + by;
+  return budget.map((_, t) => (t <= tier ? boxes : 1));
+}
+
+test("a tree's tiers each stay inside the triangle budget; a hedgerow has none", async () => {
+  for (let tier = 0; tier < 4; tier++) {
+    const over = await scenery("tree", { summer: treeGlb(10, 0, { crowns: overBudget(tier) }) });
+    expect(over.findings.map((f) => f.code)).toEqual(["budget.tier_triangles"]);
+    expect(over.findings[0].message).toContain(`tier ${tier}`);
+    const within = await scenery("tree", {
+      summer: treeGlb(10, 0, { crowns: overBudget(tier, 0) }),
+    });
+    expect(within.findings).toEqual([]);
+  }
+  const hedge = await scenery("hedgerow", { summer: treeGlb(3, 0, { crowns: overBudget(3) }) });
+  expect(hedge.findings).toEqual([]);
 });
 
 test("an LFS pointer's finding prints the exact pull command", async () => {

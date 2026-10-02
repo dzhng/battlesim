@@ -65,6 +65,10 @@ Do not prioritize by scary-looking counts alone:
 - Check that a measured workload does what it claims before trusting its numbers: that the forces
   meet, the route is travelled, the failure arm runs. Measure the failure arm too.
 - Isolate a cost measurement from everything else running in the process.
+- When batching overlapping queries, measure the final canonical merge and downstream consumer
+  with collection. Fewer sorts can increase duplicate volume and shift cost across a profile
+  boundary. Track temporary capacity separately from retained state, and falsify an omitted later
+  query through the public result before claiming equivalence.
 - Match compatibility work to the product lifecycle. In prelaunch code, prefer direct changes and
   add no legacy branches or migrations unless real persisted data requires them.
 - Every limit introduced or changed must have an observable log or metric with the limit kind,
