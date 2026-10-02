@@ -5192,3 +5192,22 @@ exact matched openings pass and a real retained GPU allocation falsifies the che
 
 **Verdict:** sound: it follows the owner's change to the skill and to AGENTS.md. **Confidence:** high.
 
+
+## C06: reject stale infantry refinement edges
+
+**Choice:** A missing shared edge during refinement returns the existing route
+failure. The route planner already restarts a failed candidate when its knowledge
+revision changed; refinement adds no retry, geometry exception or new state.
+
+**Reason:** Coarse admission does not freeze the grid. A public body-add event
+reproduces the observed late-battle panic, so the shared-edge assertion is not a
+valid invariant across incremental steps. Static successful routes keep their
+sampling order; the affected battle now recovers instead of aborting. This is a
+named failure-path change, not a performance or unchanged-crash-digest claim.
+
+**Reach:** No runtime planning budget or latency contract changes. Completion
+and replay proof, and the remaining integration gate, live in the
+[C06 outcome](slices/C06-sim-scale-passes.md#outcome--changed-edges-during-infantry-refinement).
+
+**Verdict:** sound; high confidence. Geometry ownership stays with the current
+grid, and revision recovery stays with the existing planner.
