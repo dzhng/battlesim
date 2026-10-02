@@ -506,18 +506,17 @@ test("a curb is its row's kerbstones and a face shading never tilts past 40 degr
       palettes,
       roads: { default: biome.roads.default, road: { ...biome.roads.default, curb } },
     } as Biome);
-  const looks = roadLooks(
-    curbed({ palette: "stone", width_m: 0.25, face_m: 0.125, tilt_deg: 45 / 2 }),
-  );
-  const [road, country] = looks;
+  const stones = { palette: "stone", width_m: 0.25, stone_m: 0.5, joint: 0.25, face_m: 0.125 };
+  const [road, country] = roadLooks(curbed({ ...stones, tilt_deg: 45 / 2 }));
   expect([road.curb.x, road.curb.w, road.slabs.z]).toEqual([1, 0.25, 0.125]);
+  expect([road.stones.x, road.stones.y]).toEqual([2, 0.25]);
   expect(road.slabs.w).toBeCloseTo(Math.SQRT2 - 1, 6);
   // A road without one has no stones and no face.
-  expect([country.curb.w, country.slabs.z, country.slabs.w]).toEqual([0, 0, 0]);
-  expect(() => curbed({ palette: "stone", width_m: 0.25, face_m: 0.125, tilt_deg: 41 })).toThrow(
-    /roads\.road\.curb\.tilt_deg/,
-  );
-  expect(() => curbed({ palette: "granite", width_m: 0.25, face_m: 0.125, tilt_deg: 30 })).toThrow(
+  expect([country.curb.w, country.stones.x, country.slabs.z, country.slabs.w]).toEqual([
+    0, 0, 0, 0,
+  ]);
+  expect(() => curbed({ ...stones, tilt_deg: 41 })).toThrow(/roads\.road\.curb\.tilt_deg/);
+  expect(() => curbed({ ...stones, palette: "granite", tilt_deg: 30 })).toThrow(
     /roads\.road\.curb\.palette: names no palette "granite"/,
   );
 });
@@ -546,9 +545,10 @@ test("a road's markings are its row's, and the field is read as far as a crossin
   expect([...road.crossing]).toEqual([0.5, 4, 1.5, 0.25]);
   // A road without markings has no line to draw.
   expect(country.marks.x).toBe(0);
-  // The bars end 5.5 m from the road that crosses: farther than any shoulder.
+  // The bars end 5.5 m from the road that crosses, and a dash that stops
+  // short of them is 2 m long: farther than any shoulder.
   const reach = (b: Biome) => groundReach(b, 0.1).paved;
-  expect(reach(marked())).toBeGreaterThan(5.5);
+  expect(reach(marked())).toBeGreaterThan(7.5);
   expect(reach(marked())).toBeGreaterThan(
     reach(marked({ crossing: { ...markings.crossing, length_m: 1 } })),
   );

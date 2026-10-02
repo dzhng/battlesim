@@ -36,15 +36,15 @@
       [0.46, 0.41, 0.35]
     ],
     "road_asphalt": [
-      [0.335, 0.335, 0.34],
-      [0.38, 0.37, 0.355]
+      [0.35, 0.357, 0.375],
+      [0.38, 0.38, 0.385]
     ],
     "paving": [
-      [0.56, 0.555, 0.53],
-      [0.57, 0.545, 0.5]
+      [0.55, 0.555, 0.56],
+      [0.57, 0.565, 0.55]
     ],
-    "curb": [[0.66, 0.655, 0.63]],
-    "road_paint": [[0.8, 0.79, 0.74]],
+    "curb": [[0.64, 0.64, 0.635]],
+    "road_paint": [[0.88, 0.88, 0.86]],
     "shoulder_gravel": [[0.44, 0.41, 0.34]],
     "shoulder_dirt": [[0.42, 0.385, 0.31]],
     "forest_floor": [
@@ -211,7 +211,7 @@
       "patch_m": 7,
       "grain": 0.3,
       "grain_m": 0.3,
-      "join_m": 1.5,
+      "join_m": 0,
       "roughness": 0.9,
       "shoulder": {
         "palette": "shoulder_gravel",
@@ -226,14 +226,21 @@
       "layer": 2.5,
       "area": "sidewalk",
       "walk": { "kind": "sidewalk", "width_m": 2, "slab_m": 2, "joint": 0.25 },
-      "curb": { "palette": "curb", "width_m": 0.3, "face_m": 0.15, "tilt_deg": 35 },
+      "curb": {
+        "palette": "curb",
+        "width_m": 0.3,
+        "stone_m": 1,
+        "joint": 0.3,
+        "face_m": 0.15,
+        "tilt_deg": 15
+      },
       "markings": {
         "palette": "road_paint",
         "cover": 0.85,
         "wear": 0.35,
         "line_m": 0.2,
-        "dash_m": [3, 6],
-        "crossing": { "bar_m": 0.5, "length_m": 2.2, "gap_m": 0.7, "inset_m": 0.45 }
+        "dash_m": [1.5, 3],
+        "crossing": { "bar_m": 0.5, "length_m": 2, "gap_m": 0.5, "inset_m": 0.45 }
       }
     },
     "sidewalk": {

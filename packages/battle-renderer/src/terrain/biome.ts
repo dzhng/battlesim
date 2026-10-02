@@ -117,8 +117,9 @@ export interface Road {
    *  surface's mean as it nears a pixel. */
   grain: number;
   grain_m: number;
-  /** Where a road of a later kind joins this one, how far that road's
-   *  surface is carried onto it, thinning out. */
+  /** Where this kind's road runs under a road drawn over it, how far its
+   *  surface is carried onto that road, thinning out; 0 ends it at that
+   *  road's edge. */
   join_m: number;
   roughness: number;
   shoulder: Shoulder;
@@ -174,8 +175,11 @@ export interface Crossing {
 export interface Curb {
   /** A palette of one colour: the kerbstones. */
   palette: string;
-  /** The stones' width, outward from the road's edge. */
+  /** The stones' width, outward from the road's edge, a stone's length
+   *  along it, and how far the joint between two darkens them (0 for none). */
   width_m: number;
+  stone_m: number;
+  joint: number;
   /** The step's face: how far inside the road's edge it starts, and the
    *  tilt it gives the shading normal there, in degrees: at most 40 (steeper
    *  catches the sky and reads as a sheen). */
@@ -614,6 +618,8 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
     if (road.curb) {
       palette(`${at}.curb.palette`, road.curb.palette);
       within(`${at}.curb.width_m`, road.curb.width_m, 0.05, 2);
+      within(`${at}.curb.stone_m`, road.curb.stone_m, 0.1, 100);
+      within(`${at}.curb.joint`, road.curb.joint, 0, 0.5);
       within(`${at}.curb.face_m`, road.curb.face_m, 0.02, 2);
       within(`${at}.curb.tilt_deg`, road.curb.tilt_deg, 0, 40);
     }

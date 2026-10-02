@@ -86,8 +86,8 @@ const RoadLook = d.struct({
   worn: d.vec4f,
   /** Edge feather metres, 1 / patch size, grain strength, 1 / grain size. */
   shape: d.vec4f,
-  /** How far a later kind's road is carried onto this one where they join,
-   *  metres; the row that draws this kind's areas (its polygons); its walk's
+  /** How far this kind's road is carried onto a road drawn over it, metres;
+   *  the row that draws this kind's areas (its polygons); its walk's
    *  width in metres (0 for none) and the row that draws the walk. */
   join: d.vec4f,
   /** The worn ground beside it: linear rgb, and its width in metres. */
@@ -121,6 +121,9 @@ const RoadLook = d.struct({
    *  from the crossing road's edge it starts and how far it keeps from its
    *  own road's edge. */
   crossing: d.vec4f,
+  /** Its kerbstones: 1 / a stone's length along the road, and how far the
+   *  joint between two darkens them; then unused. */
+  stones: d.vec4f,
 });
 
 const TerrainParams = d.struct({
@@ -1065,12 +1068,25 @@ export const groundShoulderGrass = tgpu
 
 /** A patch covers the share of a surface where its noise passes this. */
 const PATCH_CUT = [0.52, 0.66] as const;
-/** The joint between two of a walk's slabs is this wide, and shows while a
- *  pixel is under the first of these shares of it, gone by the second. */
+/** The joint between two of a walk's slabs, or two kerbstones, is this
+ *  wide, and shows while a pixel is under the first of these shares of it,
+ *  gone by the second. */
 const SLAB_JOINT_M = 0.03;
 const SLAB_JOINT_PIXELS = [0.7, 2.5] as const;
 
-/** How much of a joint between a walk's slabs lies at a point, 0 to 1: the
+/** How much of a joint lies `along` metres along a stroke, 0 to 1, where
+ *  one crosses every `1 / perMetre` metres. */
+const strokeJoint = tgpu.fn(
+  [d.f32, d.f32, d.f32],
+  d.f32,
+)(/* wgsl */ `(along:f32,perMetre:f32,footprint:f32)->f32 {
+ let shown=1.0-smoothstep(${SLAB_JOINT_PIXELS[0]},${SLAB_JOINT_PIXELS[1]},footprint/${SLAB_JOINT_M});
+ if(perMetre<=0.0||shown<=0.0){return 0.0;}
+ let to=abs(fract(along*perMetre+0.5)-0.5)/perMetre;
+ return (1.0-smoothstep(${SLAB_JOINT_M / 2},${SLAB_JOINT_M / 2}+footprint,to))*shown;
+}`);
+
+/** How far the joint between two of a walk's slabs darkens a point: the
  *  slabs are laid along the stroke the walk runs beside, a joint across the
  *  walk every slab's length. */
 const walkJoint = tgpu
@@ -1081,13 +1097,10 @@ const walkJoint = tgpu
  if(paved.run.w<0.0||terrainLayout.$.params.view.y==1u){return 0.0;}
  let road=terrainLayout.$.params.roads[u32(paved.run.w)];
  let beyond=paved.lane.z-paved.lane.w;
- if(road.slabs.x<=0.0||beyond<=0.0||beyond>=road.join.z){return 0.0;}
- let shown=1.0-smoothstep(${SLAB_JOINT_PIXELS[0]},${SLAB_JOINT_PIXELS[1]},footprint/${SLAB_JOINT_M});
- if(shown<=0.0){return 0.0;}
- let to=abs(fract(paved.run.z*road.slabs.x+0.5)-0.5)/road.slabs.x;
- return (1.0-smoothstep(${SLAB_JOINT_M / 2},${SLAB_JOINT_M / 2}+footprint,to))*shown*road.slabs.y;
+ if(beyond<=0.0||beyond>=road.join.z){return 0.0;}
+ return strokeJoint(paved.run.z,road.slabs.x,footprint)*road.slabs.y;
 }`)
-  .$uses({ terrainLayout, GroundPaved });
+  .$uses({ terrainLayout, strokeJoint, GroundPaved });
 
 /** A curb's stones and its face are never sharper than this, in metres. */
 const CURB_EDGE_M = 0.03;
@@ -1141,21 +1154,23 @@ export const groundRoadRelief = tgpu.fn(
 /** Painted lines are never sharper than this, in metres. */
 const MARK_EDGE_M = 0.03;
 /** They fade out as a pixel grows from the first share of the centre line's
- *  width to the second: under a pixel wide a dashed line crawls. */
-const MARK_PIXELS = [0.6, 1.4] as const;
+ *  width to the second: a pixel wide, a dashed line crawls. */
+const MARK_PIXELS = [0.35, 0.85] as const;
 /** A stroke crosses a road where their directions differ by more than this
  *  (the cosine of the angle between them): a stretch round the road's own
  *  bend does not. */
 const MARK_CROSSING_COS = 0.8;
-/** The centre line stops this far short of a crossing's bars. */
-const MARK_CLEAR_M = 0.6;
+/** A dash of the centre line comes no nearer than this to a crossing's bars. */
+const MARK_CLEAR_M = 0.3;
 /** Paint wears in patches this many metres across. */
 const MARK_WEAR_M = 1.3;
 
 /** How much paint lies at `xy`, 0 to 1: the lines of the stroke whose lane
  *  the point is in, where that stroke's kind has markings. A dashed line
- *  runs down the stroke's middle, laid out by the distance along it, and
- *  stops short of any road that crosses. Where one does (a carriageway's
+ *  runs down the stroke's middle, laid out by the distance along it; a dash
+ *  that would reach a road that crosses, or its crossing, is left out whole
+ *  (it is judged at the end of it nearer that road, as far as the road runs
+ *  straight). Where a road does cross (a carriageway's
  *  stroke that runs on across this road's whole width, not one that ends in
  *  it), a crossing's bars lie on this road before it: along the road, side
  *  by side across it, clear of its edges. Every line is on its own road's
@@ -1174,8 +1189,11 @@ export const groundMarks = tgpu
  if(shown<=0.0){return 0.0;}
  let bars=look.crossing;
  let far=bars.z+bars.y;
- // How far inside the nearest road that crosses this one the point lies:
- // any such road, and one that runs on across this road's width.
+ // How far along this stroke the point is from its dash's middle.
+ let dash=(fract(paved.run.z/look.marks.z)-0.5)*look.marks.z;
+ // How far inside the nearest road that crosses this one the point's dash
+ // reaches (near), and the point itself lies where that road runs on
+ // across this road's width (cross).
  var near=-1e9;var cross=-1e9;
  for(var i=paved.list.x;i<paved.list.y;i++){
   let entry=terrainLayout.$.surfaceIndex[i];
@@ -1185,18 +1203,21 @@ export const groundMarks = tgpu
   let a=seg.ends.xy;let ab=seg.ends.zw-a;let len=max(length(ab),1e-6);
   if(abs(dot(ab,paved.run.xy))>${MARK_CROSSING_COS}*len){continue;}
   let free=dot(xy-a,ab)/len;
-  let inside=strokeCutInside(xy,seg.ends,seg.detail,seg.detail.x-length(xy-(a+ab*(clamp(free,0.0,len)/len))));
-  near=max(near,inside);
+  let away=xy-(a+ab*(clamp(free,0.0,len)/len));let off=length(away);
+  let inside=strokeCutInside(xy,seg.ends,seg.detail,seg.detail.x-off);
+  // Toward the crossing road its inside grows by this much a metre along
+  // this stroke.
+  let nearer=dot(paved.run.xy,away)/max(off,1e-5);
+  near=max(near,inside+nearer*dash+abs(nearer)*look.marks.y*0.5);
   let cuts=u32(seg.detail.z);
   let room=2.0*paved.lane.w;
   let ends=((cuts&${CUT_A}u)!=0u&&free<room)||((cuts&${CUT_B}u)!=0u&&len-free<room);
   if(free>=0.0&&free<=len&&!ends){cross=max(cross,inside);}
  }
  let soft=max(footprint,${MARK_EDGE_M})*0.5;
- let dash=abs(fract(paved.run.z/look.marks.z)-0.5)*look.marks.z;
  let centre=(1.0-smoothstep(line-soft,line+soft,paved.lane.z))
-  *(1.0-smoothstep(look.marks.y*0.5-soft,look.marks.y*0.5+soft,dash))
-  *(1.0-smoothstep(-far-${MARK_CLEAR_M}-soft,-far-${MARK_CLEAR_M}+soft,near));
+  *(1.0-smoothstep(look.marks.y*0.5-soft,look.marks.y*0.5+soft,abs(dash)))
+  *(1.0-step(-far-${MARK_CLEAR_M},near));
  let zone=smoothstep(-far-soft,-far+soft,cross)*(1.0-smoothstep(-bars.z-soft,-bars.z+soft,cross));
  let across=abs(fract(paved.lane.z/(2.0*bars.x))-0.5)*2.0*bars.x;
  let bar=1.0-smoothstep(bars.x*0.5-soft,bars.x*0.5+soft,across);
@@ -1214,7 +1235,7 @@ export const groundMarks = tgpu
  *  edge over a pixel at least, the lower layers under the higher, so a track
  *  ends at the edge of the road it joins, and a street's walk lies under
  *  every road; there the track's earth is carried
- *  a way onto the road, thinning out. A surface is its colour, in patches a
+ *  a way onto the road (its own `join_m`), thinning out. A surface is its colour, in patches a
  *  second hue at the same brightness, under its grain; along a stroke's
  *  lanes it is shaded by its ruts (`groundRuts`), and a narrow track's
  *  middle goes to the verge's grass (`groundStrip`); a walk is crossed by
@@ -1237,16 +1258,17 @@ const groundRoads = tgpu
   surface=mix(under,vec4f(look.shoulder.xyz*lift*(1.0+look.shape.z*grain),look.core.w),worn.x*look.edge.w);
  }
  let lane=roadLane(paved);
- // How much of the ground here a lower layer's road already covers.
- var laid=0.0;
+ // How far the roads already laid here are carried onto the next: each
+ // one's own carry, by how much of the ground it covers.
+ var carried=0.0;
  for(var n=0u;n<${ROAD_KINDS}u;n++){
   let k=terrainLayout.$.params.roadOrder[n];
   let look=terrainLayout.$.params.roads[k];
   var feather=max(look.shape.x,footprint)*0.5;
   var inside=paved.drawn[k];
-  if(laid>0.0){
+  if(carried>0.0){
    // The blend starts at this road's edge and runs inward.
-   feather=max(feather,look.join.x*0.5*laid);
+   feather=max(feather,carried*0.5);
    inside-=feather;
   }
   if(inside<=-feather){continue;}
@@ -1267,7 +1289,7 @@ const groundRoads = tgpu
   let on=smoothstep(-feather,feather,inside);
   surface=mix(surface,vec4f(core,look.core.w),on);
   // Only a carriageway is carried onto the road it joins.
-  if(look.track.w>0.0){laid=max(laid,on);}
+  if(look.track.w>0.0){carried=max(carried,look.join.x*on);}
  }
  let paint=groundMarks(xy,footprint,paved);
  if(paint>0.0){
@@ -1280,7 +1302,8 @@ const groundRoads = tgpu
  if(stones>0.0){
   let look=terrainLayout.$.params.roads[u32(paved.run.w)];
   let grain=roadGrain(xy*look.shape.w,footprint*look.shape.w);
-  surface=mix(surface,vec4f(look.curb.xyz*(1.0+look.shape.z*grain),look.core.w),stones);
+  let joint=strokeJoint(paved.run.z,look.stones.x,footprint)*look.stones.y;
+  surface=mix(surface,vec4f(look.curb.xyz*(1.0+look.shape.z*grain)*(1.0-joint),look.core.w),stones);
  }
  return surface;
 }`)
@@ -1294,6 +1317,7 @@ const groundRoads = tgpu
     groundCurb,
     groundMarks,
     walkJoint,
+    strokeJoint,
     roadLane,
     GroundPaved,
   });
@@ -2024,8 +2048,8 @@ export function terrainReach({ site, biome }: TerrainSurface) {
  *    widest), which the grass thins across too, or the walk beside a street
  *    (`groundPaved`: its width); the road's own edge
  *    (`groundRoads`: half a feather either side, a pixel wide at least); the
- *    far end of a crossing's bars and the centre line's stop short of them,
- *    from the edge of the road that crosses (`groundMarks`);
+ *    far end of a crossing's bars, and a centre line's dash that ends short
+ *    of them, from the edge of the road that crosses (`groundMarks`);
  *  - forest: the floor's ragged verge (`forestVergeInside` moves the edge out
  *    by up to the verge and its warp, `forestFloorWeight` feathers it by a
  *    pixel at least), which `groundDapple` and the grass read too, the grass
@@ -2042,7 +2066,9 @@ export function groundReach(biome: Biome, footprint: number, bankM = 0): Surface
     paved: Math.max(
       ...Object.values(biome.roads).map((road) => road.shoulder.width_m),
       ...Object.values(biome.roads).map(({ markings }) =>
-        markings ? markings.crossing.gap_m + markings.crossing.length_m + MARK_CLEAR_M : 0,
+        markings
+          ? markings.crossing.gap_m + markings.crossing.length_m + MARK_CLEAR_M + markings.dash_m[0]
+          : 0,
       ),
       Math.max(...Object.values(biome.roads).map((road) => road.walk?.width_m ?? 0)) +
         Math.max(...Object.values(biome.roads).map((road) => road.feather_m), footprint) / 2,
@@ -2105,6 +2131,7 @@ function roadLook(road: Road, tag: number, palettes: Biome["palettes"]) {
     curb: road.curb
       ? d.vec4f(...linear(palettes[road.curb.palette][0]), road.curb.width_m)
       : d.vec4f(0),
+    stones: road.curb ? d.vec4f(1 / road.curb.stone_m, road.curb.joint, 0, 0) : d.vec4f(0),
     paint: marks ? d.vec4f(...linear(palettes[marks.palette][0]), marks.cover) : d.vec4f(0),
     marks: marks
       ? d.vec4f(marks.line_m / 2, marks.dash_m[0], marks.dash_m[0] + marks.dash_m[1], marks.wear)
