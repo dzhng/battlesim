@@ -49,20 +49,26 @@ and type checks pass. Historical measurements are controls, not current admissio
 
 Current pickup, in order:
 
-1. Fix the late contact run's infantry connector panic in `navigation/foot.rs`.
-   Preserve the exact failing input and pin the behavior with a narrow regression.
-2. Close the whole-record delivery miss. The completed 9,000-tick early arm
-   reaches **33,496 B**, above the unchanged **19,800 B** maximum; newly learned
-   ground runs contribute **21,008 B**. Late stops on the navigation panic.
-   Test a lossless ground representation against the captured records before
-   changing production. No knowledge delay, quantization or allowance increase.
-3. Diagnose the ten infantry units still planning at the short sweep boundary.
-   Then rerun only the affected cases and final early/late native admission,
-   including snapshots, browser copying/decoding and peak memory overlap.
-4. Run the full-map browser `endurance` and `benchmark` milestone once the native
-   contracts pass. Admit at least 25 Hz early and late; retain actual distributions.
-   A short reset run proves resource lifetime only. No browser gate precedes
-   each commit or push, and parent full gates belong to parent closeout.
+1. Rebuild the combined native/Wasm pair, then run both complete 9,000-tick
+   contact arms. The infantry refinement fix uses the existing failure/revision
+   replan path when a newly known body closes a shared edge; its public regression
+   proves a physically safe route, no pending job and exact serialized replay.
+2. Admit the lossless ground-tail correction on those fresh battles. The original
+   early arm reached **33,496 B**, above the unchanged **19,800 B** maximum.
+   Exact captured-record reconstruction now reaches **18,652 B** early; late is
+   only a partial corpus because the old navigation panic interrupted it.
+   Producer/decoder checks pass; no knowledge delay, quantization or allowance
+   increase occurs. Snapshots, full active heap and real browser overlap remain
+   measurement gates.
+3. Extend the three short-sweep cases containing ten still-planning infantry
+   units. Distinguish bounded search/smoothing progress from a repeated search
+   without progress before choosing any additional optimization.
+4. Run the full generated-map browser `endurance` milestone once native contracts
+   pass. Admit at least 25 Hz early and late; retain actual distributions. The
+   current `benchmark` loads the village: its short run is a regression control,
+   not Large-city frame/tour admission. A short reset run proves resource lifetime
+   only. No browser gate precedes each commit or push; parent full gates belong
+   to parent closeout.
 
 The current matrix retains all 90 type × size × seed requests: 89 battles play
 80,100 ticks and one encounter is refused, with no generation refusal or panic.
