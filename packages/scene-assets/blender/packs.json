@@ -17,5 +17,128 @@
       "Universal Base Characters[Standard]/Base Characters/Godot - UE/Superhero_Male_FullBody.gltf": "e7fcea214ecf8855afbf910b50de6f9c7d1decfb71ca28bad8a4481452dafeb4",
       "Universal Base Characters[Standard]/Base Characters/Godot - UE/Superhero_Male_FullBody.bin": "459003f9745853ae562a85506a2b94dd56515c1f37728f9fa3d2ce1a3e4cd92f"
     }
+  },
+  {
+    "zip": "ambientcg/PaintedPlaster017_1K-JPG.zip",
+    "into": "ambientcg/PaintedPlaster017_1K-JPG",
+    "url": "https://ambientcg.com/get?file=PaintedPlaster017_1K-JPG.zip",
+    "source_url": "https://ambientcg.com/view?id=PaintedPlaster017",
+    "licence": "CC0-1.0",
+    "sha256": "bae0380d82b6ccac8943b4980417cb3c9de5c896218339c108056f1dfb8e886c",
+    "files": {
+      "ambientcg/PaintedPlaster017_1K-JPG/PaintedPlaster017_1K-JPG_Color.jpg": "ed8a69a6437de9d41d2cf380f7e6a216232fc4754f256c3405985c857547ffef",
+      "ambientcg/PaintedPlaster017_1K-JPG/PaintedPlaster017_1K-JPG_NormalGL.jpg": "1bef1887c10e1ce104be1a557e4dbd7634ef6d5ece6e3b4237dab2d0962f57fa",
+      "ambientcg/PaintedPlaster017_1K-JPG/PaintedPlaster017_1K-JPG_Roughness.jpg": "a83ecc2ba5b9d80bb9a27381f3389ccdb20c77ef6358b92f3d11455403d651d8"
+    }
+  },
+  {
+    "zip": "ambientcg/Concrete034_1K-JPG.zip",
+    "into": "ambientcg/Concrete034_1K-JPG",
+    "url": "https://ambientcg.com/get?file=Concrete034_1K-JPG.zip",
+    "source_url": "https://ambientcg.com/view?id=Concrete034",
+    "licence": "CC0-1.0",
+    "sha256": "5839d284d94ffb8d2a56df742ec522b13dd311c52dbd42b8fd33f0409ceedb81",
+    "files": {
+      "ambientcg/Concrete034_1K-JPG/Concrete034_1K-JPG_Color.jpg": "8ceb9186d990b31fce785e06fdc6974c160f1d27c43f6160266f164deba713aa",
+      "ambientcg/Concrete034_1K-JPG/Concrete034_1K-JPG_NormalGL.jpg": "e509eb9dfa978e780fbebfd2acacc2ce158b5b7ced722ddc0759039dd51e18ca",
+      "ambientcg/Concrete034_1K-JPG/Concrete034_1K-JPG_Roughness.jpg": "a4a9e39857a19afd23a778e5abf44fcdf6bd7f93918f1cf6878b41933e553511"
+    }
+  },
+  {
+    "zip": "ambientcg/Tiles138_1K-JPG.zip",
+    "into": "ambientcg/Tiles138_1K-JPG",
+    "url": "https://ambientcg.com/get?file=Tiles138_1K-JPG.zip",
+    "source_url": "https://ambientcg.com/view?id=Tiles138",
+    "licence": "CC0-1.0",
+    "sha256": "ffd9aa379820f469adb8ced90b786d15065ff8d07d8988800e236d9640aa5711",
+    "files": {
+      "ambientcg/Tiles138_1K-JPG/Tiles138_1K-JPG_Color.jpg": "b51a2322090801b0764dcfac598b1355812e68c661a715c3bc69cbd5b0f9ed46",
+      "ambientcg/Tiles138_1K-JPG/Tiles138_1K-JPG_NormalGL.jpg": "46df6bb89f57c1050b045b15f707201e519a7b5eac301b1bb7fd063350a1fcf6",
+      "ambientcg/Tiles138_1K-JPG/Tiles138_1K-JPG_Roughness.jpg": "70529e7d778c099eec1a48afe215d31a6b1504d75f194046c999c345b5be85a9",
+      "ambientcg/Tiles138_1K-JPG/Tiles138_1K-JPG_AmbientOcclusion.jpg": "791f2afe45b1655a677f46f35b116ad3108a32dd4cbeb1d937d202c4c1b360f6"
+    }
+  },
+  {
+    "zip": "ambientcg/Tiles047_1K-JPG.zip",
+    "into": "ambientcg/Tiles047_1K-JPG",
+    "url": "https://ambientcg.com/get?file=Tiles047_1K-JPG.zip",
+    "source_url": "https://ambientcg.com/view?id=Tiles047",
+    "licence": "CC0-1.0",
+    "sha256": "1d4abb3bd713e5d39390cd56391921ea52b1d1ee27b8a8641ce1e5a24cf3ac20",
+    "files": {
+      "ambientcg/Tiles047_1K-JPG/Tiles047_1K-JPG_Color.jpg": "76a5ade42310298f1ce8b8d9efcf64c37a46d7e57fddd56bcb4be2103fcb536a",
+      "ambientcg/Tiles047_1K-JPG/Tiles047_1K-JPG_NormalGL.jpg": "51e07174060142e568fb084af6feebb8218ba898ca7f1f4ec3da3f65dda06b51",
+      "ambientcg/Tiles047_1K-JPG/Tiles047_1K-JPG_Roughness.jpg": "9d5c857977a9d28fa37949ab6115af258ac29f9d6bf2143aae95d8eb13d2c11e"
+    }
+  },
+  {
+    "zip": "ambientcg/Metal009_1K-JPG.zip",
+    "into": "ambientcg/Metal009_1K-JPG",
+    "url": "https://ambientcg.com/get?file=Metal009_1K-JPG.zip",
+    "source_url": "https://ambientcg.com/view?id=Metal009",
+    "licence": "CC0-1.0",
+    "sha256": "1b1970219b40fe707e7194b28702f1a65b0d227bbea56da69dfbc8d8b5cfcb5e",
+    "files": {
+      "ambientcg/Metal009_1K-JPG/Metal009_1K-JPG_Color.jpg": "e066e240ad0eaab6a73fb0f40fa7caa94365160770331babc91de2e8ce6a986f",
+      "ambientcg/Metal009_1K-JPG/Metal009_1K-JPG_NormalGL.jpg": "45c7c88685e6b44da7e8d25e2cf6d8645d42209793ccc4354e68c16cdae15d62",
+      "ambientcg/Metal009_1K-JPG/Metal009_1K-JPG_Roughness.jpg": "6d06dfe8c240d3b6f33030740110284245bd8aefb2e10e8eb0c563444d9c0c5b",
+      "ambientcg/Metal009_1K-JPG/Metal009_1K-JPG_Metalness.jpg": "843102638fa0a5bf897888868877efab8ccdc4cb84a48e57bdb52bfb30f5e714"
+    }
+  },
+  {
+    "zip": "ambientcg/CorrugatedSteel005_1K-JPG.zip",
+    "into": "ambientcg/CorrugatedSteel005_1K-JPG",
+    "url": "https://ambientcg.com/get?file=CorrugatedSteel005_1K-JPG.zip",
+    "source_url": "https://ambientcg.com/view?id=CorrugatedSteel005",
+    "licence": "CC0-1.0",
+    "sha256": "4198faced790c75c551750d323ef384ea1ab353463b2067f44f8e5f5ff2d1a09",
+    "files": {
+      "ambientcg/CorrugatedSteel005_1K-JPG/CorrugatedSteel005_1K-JPG_Color.jpg": "82d50f2081aa71ad6bbfe5733e94eeac228e9e9ddc8df1a9e3c801fa30342ca2",
+      "ambientcg/CorrugatedSteel005_1K-JPG/CorrugatedSteel005_1K-JPG_NormalGL.jpg": "5eadc958fa5b752c81fdccd4a406906ab9d93052aa65c64e235651d7648920b4",
+      "ambientcg/CorrugatedSteel005_1K-JPG/CorrugatedSteel005_1K-JPG_Roughness.jpg": "35de527844a28ed21ece7888bed83ceb0592743e15897e68995af9b465bb12a9",
+      "ambientcg/CorrugatedSteel005_1K-JPG/CorrugatedSteel005_1K-JPG_AmbientOcclusion.jpg": "aa5b24adb781d1871f53f6e77949d33e844c1feb2deaed2b397575a820013ba7",
+      "ambientcg/CorrugatedSteel005_1K-JPG/CorrugatedSteel005_1K-JPG_Metalness.jpg": "195c7428e1a5f47e976173ed186ed36a9611e834581a8fb70bc926b3b1416f7b"
+    }
+  },
+  {
+    "zip": "ambientcg/Plastic010_1K-JPG.zip",
+    "into": "ambientcg/Plastic010_1K-JPG",
+    "url": "https://ambientcg.com/get?file=Plastic010_1K-JPG.zip",
+    "source_url": "https://ambientcg.com/view?id=Plastic010",
+    "licence": "CC0-1.0",
+    "sha256": "46a2504dbef278475b85c846713804a36823c7151cb79c90728d5c6eab283a19",
+    "files": {
+      "ambientcg/Plastic010_1K-JPG/Plastic010_1K-JPG_Color.jpg": "4a91d8a74184acb5e84fb9ddbfbc12c49102864157c91e2b3b5950133ef05e06",
+      "ambientcg/Plastic010_1K-JPG/Plastic010_1K-JPG_NormalGL.jpg": "cc073c8312edd35f42e038c45861e055f511f7f627dcb04f420324e38b5ce861",
+      "ambientcg/Plastic010_1K-JPG/Plastic010_1K-JPG_Roughness.jpg": "02f35e8fdb8f1ba78594a3e43792683276d7f713e53d3002a8c8f53bb35a88cb"
+    }
+  },
+  {
+    "zip": "ambientcg/Fabric036_1K-JPG.zip",
+    "into": "ambientcg/Fabric036_1K-JPG",
+    "url": "https://ambientcg.com/get?file=Fabric036_1K-JPG.zip",
+    "source_url": "https://ambientcg.com/view?id=Fabric036",
+    "licence": "CC0-1.0",
+    "sha256": "a06c291bcbf46fc0167fac74345dfe6af5e3ed3d3595644fa1067d191b5595ec",
+    "files": {
+      "ambientcg/Fabric036_1K-JPG/Fabric036_1K-JPG_Color.jpg": "d786e4a1c229f96f781667d062817e14fdbf2ffaba81d38f4fcc04c39a0062d4",
+      "ambientcg/Fabric036_1K-JPG/Fabric036_1K-JPG_NormalGL.jpg": "b9c2153b5f78b8d1ee0529b5d8e3174fa25accb4131e425aa18b808efede4feb",
+      "ambientcg/Fabric036_1K-JPG/Fabric036_1K-JPG_Roughness.jpg": "9ad01f95163602e6ae63c4ced864edc9b8347936b51e3f49f89e64e868f995fd",
+      "ambientcg/Fabric036_1K-JPG/Fabric036_1K-JPG_AmbientOcclusion.jpg": "d3b79780076e44ba3ecc5b09de1adfd6dc8ebf50e87d4f1b655609fc79646a6e"
+    }
+  },
+  {
+    "zip": "ambientcg/WoodFloor041_1K-JPG.zip",
+    "into": "ambientcg/WoodFloor041_1K-JPG",
+    "url": "https://ambientcg.com/get?file=WoodFloor041_1K-JPG.zip",
+    "source_url": "https://ambientcg.com/view?id=WoodFloor041",
+    "licence": "CC0-1.0",
+    "sha256": "e7364ef32a8db269b2475e76a7e1832eca82bdf6574191cd96b1cdb2b362cdc6",
+    "files": {
+      "ambientcg/WoodFloor041_1K-JPG/WoodFloor041_1K-JPG_Color.jpg": "36eab3c16a56ecdd3bae9a5b187434843d05c545ac52af7f0ea4f7ff81096b84",
+      "ambientcg/WoodFloor041_1K-JPG/WoodFloor041_1K-JPG_NormalGL.jpg": "1fc3487f4fa2707b2882ff7cca134014f32f1c72548b6c1e5a9296b97f72836e",
+      "ambientcg/WoodFloor041_1K-JPG/WoodFloor041_1K-JPG_Roughness.jpg": "1d7b339425e2d75e6ce98a781bee4a298ee8d8fa502c0c0f1c8274553c6bba9b",
+      "ambientcg/WoodFloor041_1K-JPG/WoodFloor041_1K-JPG_AmbientOcclusion.jpg": "04fc5ef467e4711448f44f1812a74508d25dd814ed8c1defc5c8dd4070f353e3"
+    }
   }
 ]
