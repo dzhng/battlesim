@@ -1,5 +1,5 @@
 // The game's front door at `/`, in the HUD's look: start a battle on a
-// generated map (its type, its size and its seed), play the village or watch
+// generated map (its type and its size), play the village or watch
 // a saved battle, and the sound settings. The benchmark and the labs are
 // developer tools, behind the developer link.
 import { useState } from "react";
@@ -103,55 +103,29 @@ function Choice<T extends string>({
   );
 }
 
-/** A new battle: the map's type and size, its seed (shown, editable, or
- *  drawn afresh), and the order to deploy. The seed is text end to end: a
- *  number could not hold it. */
+/** A new battle: the map's type and size, and the order to deploy. Every
+ *  visit to the menu is a new map: the seed is drawn here and never shown.
+ *  It rides in the battle's address, which is how a battle is shared or
+ *  returned to, and an address that already names one is kept. */
 function NewBattle() {
   const [asked] = useState(() => askedChoice(window.location.search));
   const [type, setType] = useState<MapType>(asked.type ?? "mixed");
   const [size, setSize] = useState<MapSize>(asked.size ?? "small");
-  const [seedText, setSeedText] = useState(() => asked.seed ?? newSeed());
-  const seed = canonicalSeed(seedText);
+  const [seed] = useState(() => canonicalSeed(asked.seed ?? "") ?? newSeed());
   return (
     <section className="menu-battle" aria-label="New battle">
       <h2>Skirmish</h2>
       <div className="menu-fields">
         <Choice label="map" options={MAP_TYPES} value={type} onChange={setType} />
         <Choice label="size" options={MAP_SIZES} value={size} onChange={setSize} />
-        <label className="menu-field" htmlFor="menu-seed">
-          seed
-        </label>
-        <div className="menu-seed">
-          <input
-            id="menu-seed"
-            data-testid="menu-seed"
-            inputMode="numeric"
-            autoComplete="off"
-            spellCheck={false}
-            maxLength={20}
-            value={seedText}
-            aria-invalid={seed === null}
-            aria-describedby="menu-seed-note"
-            onChange={(e) => setSeedText(e.target.value)}
-          />
-          <button type="button" data-testid="menu-new-seed" onClick={() => setSeedText(newSeed())}>
-            New seed
-          </button>
-        </div>
       </div>
-      <p className="menu-battle-note" id="menu-seed-note" data-testid="menu-note">
-        {seed === null ? (
-          <span className="hud-error">A seed is a whole number, 0 to 18446744073709551615.</span>
-        ) : (
-          TYPE_NOTE[type]
-        )}
+      <p className="menu-battle-note" data-testid="menu-note">
+        {TYPE_NOTE[type]}
       </p>
-      {/* One link, as every entry is: without a seed it leads nowhere. */}
       <a
         className="menu-card menu-deploy"
         data-testid="menu-deploy"
-        href={seed === null ? undefined : battleHref({ type, size, seed })}
-        aria-disabled={seed === null}
+        href={battleHref({ type, size, seed })}
       >
         <span className="menu-card-label">Deploy</span>
         <span className="menu-card-note">Attack the defended town as blue.</span>

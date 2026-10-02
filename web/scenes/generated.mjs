@@ -59,19 +59,24 @@ async function preparedBattle(page) {
 }
 
 /** Start a battle as a player does: open the main menu, choose the map's
- *  type and size, type its seed, and deploy. Returns what the menu and the
- *  loading screen showed. */
+ *  type and size, and deploy. The menu shows no seed; the scene pins one by
+ *  the menu's address so the map is the same every run. Returns what the
+ *  menu and the loading screen showed. */
 async function deployFromMenu(ctx, page, map, shots = false) {
   await page.goto(new URL("/", ctx.url).href);
+  await page.getByTestId("menu-deploy").waitFor();
+  const drawn = await page.getByTestId("menu-deploy").getAttribute("href");
+  await page.goto(new URL(`/?seed=${map.seed}`, ctx.url).href);
   await page.getByTestId("menu-deploy").waitFor();
   if (shots) await writeFile(ctx.evidencePath("menu-1920x1080.png"), await page.screenshot());
   await page.getByTestId(`menu-map-${map.type}`).click();
   await page.getByTestId(`menu-size-${map.size}`).click();
-  await page.getByTestId("menu-new-seed").click();
-  const drawn = await page.getByTestId("menu-seed").inputValue();
-  await page.getByTestId("menu-seed").fill(map.seed);
   const menu = {
     drawn,
+    seedShown: await page
+      .locator(".menu")
+      .innerText()
+      .then((t) => /seed/i.test(t)),
     href: await page.getByTestId("menu-deploy").getAttribute("href"),
     checked: await page.locator('.menu [role="radio"][aria-checked="true"]').allTextContents(),
   };
@@ -196,18 +201,19 @@ export async function run(ctx) {
       warnings.push(m.text().slice(0, 200));
   });
 
-  // The player's way in: the main menu's type, size and seed, then Deploy.
+  // The player's way in: the main menu's type and size, then Deploy.
   const { menu, loading } = await deployFromMenu(ctx, page, MAP, true);
   ctx.check(
-    "the menu draws a new seed when asked, and deploys the type, size and seed it shows",
-    /^\d+$/.test(menu.drawn) &&
+    "the menu shows no seed, draws one for each visit, and deploys the chosen type and size",
+    /[?&]seed=\d+$/.test(menu.drawn) &&
+      !menu.seedShown &&
       menu.href === `/battle?type=${MAP.type}&size=${MAP.size}&seed=${MAP.seed}` &&
       menu.checked.join() === `${MAP.type},${MAP.size}`,
     JSON.stringify(menu),
   );
   ctx.check(
     "a loading screen names the map and the stage while it is prepared, and can be cancelled back to the menu's choice",
-    loading.subject === "MIXED · SMALL · SEED 1" &&
+    loading.subject === "MIXED · SMALL" &&
       !!loading.stage &&
       loading.cancel === `/?type=${MAP.type}&size=${MAP.size}&seed=${MAP.seed}`,
     JSON.stringify(loading),

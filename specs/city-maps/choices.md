@@ -2794,3 +2794,152 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 **Gap:** "The mask view adds 0 ms to the final view."
 
 **Verdict:** sound. The final view gains one uniform comparison per terrain fragment; the machine's run-to-run noise is hundreds of times that. **Confidence:** high.
+
+## C13/C32 kits and the template art library
+
+### A kit is a static bundle whose states are its modules
+
+**Choice:** A kit is an appearance of its own unit (`kit`), baked into the existing static bundle with one state per module. The alternative was a new bundle kind.
+
+**Gap:** C32 says "existing scene-assets bake/schema/loader" without saying how a module is stored.
+
+**Reach:** The bundle format, codec and loader are unchanged, so every existing bundle keeps its hash. Anything that hands every installed appearance to the model layer now hands it the kits too; the battle already filters to what it draws.
+
+**Verdict:** sound. A module is exactly what a state already is: four tiers, a bounds, shared materials and textures. **Confidence:** high.
+
+### A module's frame is its empty's
+
+**Choice:** A module's geometry is read in its root empty's own frame, so a script may lay modules out side by side in the file. The alternative required every empty at the file's origin.
+
+**Gap:** The source readme said "in the module's own frame" without saying whether the empty's position counts.
+
+**Verdict:** sound. It costs nothing, and a kit file that can be opened and looked at is worth having. **Confidence:** high.
+
+### Rows are columns, 34 bytes each, in the bundle container
+
+**Choice:** The library is one file in the bundles' own container under its own magic: a header naming kits, modules and templates, and four columns over every row (module index, seven floats, tier mask, tint). A template's state is a range of them. The alternatives were quantised positions (about half the bytes) or one file per template.
+
+**Gap:** C32 delegated "codec grouping/packing".
+
+**Reach:** At 100 templates of 6,000 rows it is about 20 MB before transport compression; real sets should be a few megabytes. Resolving a building copies only its transforms.
+
+**Verdict:** provisional. Quantising to a centimetre risks cracks between modules that meet on a lattice, for bytes nobody has yet measured as a problem. C22 measures a real library and may amend this. **Confidence:** medium.
+
+### Art identity is the library's own bytes without the hash
+
+**Choice:** `art_hash` is the sha256 of the library encoded without it. The library names each kit's bundle hash, so the hash covers modules, materials and tiers as well as rows, tier masks, tints, status and the catalogue hash it covers.
+
+**Verdict:** sound. Anything that changes what is drawn changes it, and nothing else does. **Confidence:** high.
+
+### Missing art is refused in three places, by one name each
+
+**Choice:** A template or state with no rows is refused by the resolver (`template.missing`, `state.missing`). A module its kit lacks is refused when the sets are packed and again when the loader binds the library to the installed kits (`module.missing`, `kit.missing`), which fails the whole load.
+
+**Gap:** C32 asks for explicit failure on missing templates, modules and state rows; the resolver's four arguments cannot see the kits.
+
+**Verdict:** sound. A missing module is a broken catalog generation, not a per-building event, so it belongs to the atomic install. **Confidence:** high.
+
+### Fit is every vertex inside some grown part, and nothing below a part's base
+
+**Choice:** A state fits when each vertex its rows draw, at each tier a row draws at, lies inside at least one part grown by the set's `side_m` and `top_m`. Below a part's base only the catalog's ground tolerance is allowed. A millimetre of slack covers single-precision transforms.
+
+**Gap:** The readme gives `side_m` and `top_m` and is silent on the underside and on what "inside the union" means for a mesh spanning two parts.
+
+**Reach:** A plinth sunk into a slope is refused today. A triangle whose corners are in two parts and whose middle is in neither is accepted.
+
+**Verdict:** provisional. Foundations on sloped ground are a real need the ground lane's pads may answer first; if not, `fit` gains a `below_m`. **Confidence:** medium.
+
+### The catalogue is derived, and the prototype set is derived from it
+
+**Choice:** `asset catalogue` rewrites the physical catalogue's rows from every set's descriptors, keeping an unchanged row as written and where it is. `asset prototypes` then gives stand-in rows to every catalogue template no other set dresses. A descriptor equals its catalogue row when the contract's canonical forms are equal.
+
+**Gap:** "The physical catalogue the generator reads is derived from those descriptors and checked against them" did not say which way the prototypes flow, since they have no script.
+
+**Reach:** To retire a stand-in, delete its catalogue row and regenerate the prototype set. The catalogue file's text is the command's, so its hand formatting is now fixed.
+
+**Verdict:** sound. Run on today's catalogue it changes no byte, so nothing moved in this pass. **Confidence:** high.
+
+### Prototype rows carry the category's tint, not each building's jitter
+
+**Choice:** A stand-in row's tint is its category's massing tint. The massing boxes also varied each building's value; a template's rows are shared by every building placed from it, so that variation is the renderer's per instance, or gone.
+
+**Verdict:** provisional, for C22 to settle when the boxes are replaced. **Confidence:** medium.
+
+### Triangle budgets are reported, not enforced
+
+**Choice:** The bake prints what each template draws at each tier and marks one over budget. It refuses nothing.
+
+**Gap:** The readme lists the budgets among the rules a set keeps; the ledger above calls them provisional.
+
+**Verdict:** sound until C22 measures frames. A gate on guessed numbers would refuse good art. **Confidence:** medium.
+
+### The asset bake and check need the WebAssembly
+
+**Choice:** Descriptors and the catalogue's hash are judged by `contract::templates` through one new export (`complete_template_catalogue_json`), loaded only when the catalog has city sets. The alternative was a native helper binary.
+
+**Reach:** `asset bake` and `asset check` now fail without `bun run build:wasm`. The dev server's rebake already runs after it.
+
+**Verdict:** sound. It is the route the web tests and the map adapters already take. **Confidence:** high.
+### A sharp joint is one road round a bend, never a cut heel
+
+**Choice:** Two carriageways of one kind and width that meet end to end are one stroke round whatever corner they make, short of an exact reversal (within 5°). The 110° limit for country roads and tracks is gone, and so is the rule that ran one fork arm on over the other's end. At a junction of three or more, the straightest pair of alike ends is the road through it at any angle, not only within 30°.
+
+**Gap:** The user called the closed fork (two tracks at about 40°, one running half a width past the point and ending flat) a weird corner. C65's rounded centreline can turn that sharply: the bend's tangent at its apex is the bisector of the two runs, only an exact reversal has none, and the outside of the bend is then the stroke's own round join, which the square-end contract leaves alone more than half a width from an end.
+
+**Verdict:** sound. The same fork is now a switchback with a round outside (`throwaway/road-ends/forks-after/mixed-track-fork.png`). `no_road_turns_back_on_itself` now bounds a turn at 175°, the reversal the weld refuses. **Confidence:** high.
+
+### Where unlike roads meet at a corner the wider one turns it and narrows
+
+**Choice:** The widest end at a point with no road through it gains a last run along the narrower way that leaves most nearly straight on: one and a half of its widths long, at least its half width plus a metre, stopping that way's width short of its first turn. Its outer corner is its own round bend, the narrower way starts under it, and its square end lies across the narrower one with a shoulder either side. The last run ends up to 5 cm to the far side of the narrower way's line, so the two middles cross whatever rounding does. Any other end at that point joins the wider road as it would anywhere along it.
+
+**Gap:** Two strokes of different widths cannot be one stroke, and whichever ended at the shared point showed a flat heel on the outside of the corner. The earlier rules (mitre, run-on, run-back) each left one.
+
+**Verdict:** provisional. It reads as a road that turns and then narrows by a step; a taper would read better and a constant-width stroke cannot draw one. **Confidence:** medium.
+
+### A branch that comes in at a slant curves round to meet the road square
+
+**Choice:** An end that joins a carriageway more than 30° off square, and not within 20° of running alongside it, leaves its own line where the road's middle is still its half width plus a width and a half away, turns in two halves a width apart, and goes straight to the nearest point of the road's middle, a quarter of a metre past it. With less room it tries half that depth; a last run under four widths long swings whole instead. A wider end whose corners would show past a narrower road's far edge is treated the same way.
+
+**Gap:** An acute fork is where a flat end shows: the end's corner stands out past the other road's edge on the open side. A real track swings round to meet a road it joins. A lane that peels off within 20° is left: squaring it moves the join far along the road and took a farm's lane away from the farm (two refusals in the one 900-map sweep, open medium 49 and one mixed medium).
+
+**Verdict:** provisional. The join moves along the road by up to the depth over the tangent of the angle, about 15 m at 35°. **Confidence:** medium.
+
+### Stubs, doubled streets and short links are tidied before joints are made
+
+**Choice:** Three more steps. An end that stops within two of its widths past a road it crossed is cut back to it. A street drawn beside another (under their two half widths apart, running the same way) is cut back to the last road that crosses it within ten widths, or, with nothing between them, the two ends meet half way and weld. A turn within the widest road's half width plus a metre of an end is dropped, so the end's last run is long enough to move, meet or turn along; a street's link to the road it joins is a metre or two long, and blocked every one of those.
+
+**Gap:** These were most of the bites: an avenue that ran 15 m past its last cross street beside the street it should have cornered with, the offset grids of neighbouring districts, and corners the pass could not make because one arm's last run was 1 to 3 m.
+
+**Verdict:** sound for what the sweep counts. **Confidence:** medium.
+
+### A joint is kept if both roads still join one third road there
+
+**Choice:** The pass's own guard no longer asks that every pair of centrelines that crossed still cross. A pair is kept if they cross, are one road, or both cross a third road within 25 m of where they crossed each other.
+
+**Gap:** Three roads that shared a point are one junction when two of them end on the third. The stricter guard read that as a lost joint between the two, pinned all three as laid and left the heel.
+
+**Verdict:** sound: the plan's road graph still connects them through the third road. **Confidence:** medium.
+
+### What is left: 9 ends in ten thousand, counted with heels
+
+**Choice:** `tests/road_ends.rs` drops the `Corner` class it counted as sound (a free face with a road joining within two widths) and counts it as a `Heel`, with a wider road's end that narrower roads cover in part and none carries on from. Bites, steps and heels together may be 10 in ten thousand ends. Only carriageway strokes count as joining or covering an end; a yard in front of a building is paving and no road.
+
+**Gap:** The old bound (2 in a thousand) counted bites only and called the fork's heel sound.
+
+**Verdict:** provisional. By the new count the previous pass left 355 of 25,302 ends (140 in ten thousand; 328 heels, 27 bites); this one leaves 22 of 25,014 (8.8; 2 heels, 20 bites) over the same 36 maps. The rest are junctions where three ends stand a few metres apart without sharing a point, and a wider road that ends at a slant on a narrower one with no room to turn. **Confidence:** high for the count.
+
+### The lab roads run to the map's edge; the village's two roads join in a T
+
+**Choice:** The deployment, geometry and movement labs' roads run to the map's edge where they stopped 10 to 20 m short of it. The village's east-west road runs on to the west edge, and the road that shared its start at (140, 780) now curves to meet it square at (159, 780), as the generator would lay it. Each map's `SOURCES.json` hash follows. The village scene's road-edge oracle reads the road's longest run, which is the ground it read before.
+
+**Gap:** Roads that stop in open ground short of the edge, and two road ends sharing a point at 52°, which showed a bite on the outside.
+
+**Verdict:** sound, with a named move: the village edit changes physical ground, and the quick village report's three flank digests move (blue cost lost 1805 to 1792, rejoined 5 to 6, captures and tanks lost unchanged); the three ambush digests do not. The river lab is not edited: its road ends on the map are what `terrainSurface.test.ts` samples to hold the renderer's square ends to the simulation's. The movement lab's road to (40, 230) still stops in open ground, 170 m from any edge. **Confidence:** high.
+
+### The unprimed critique: the step where a road narrows still reads as a flat end
+
+**Choice:** Nothing was changed after the critique. Its findings are recorded here for the next pass.
+
+**Gap:** One unprimed reviewer was given eleven close shots and ten 3x crops and asked whether any road corner or junction looks wrong. Its three worst, all high confidence, are the same thing: where a wider road turns a corner and narrows, the wide strip "ends in a flat, square-cut end and the narrow strip pokes out of its middle", with a square shoulder either side (`forks-after/fork-avenue-corner-2.png`, `fork-road-turns-onto-track.png`, `fork-avenue-corner.png`). At medium confidence it calls the switchback's outside "a bulbous cap wider than either track" with a flat facet (`mixed-track-fork.png`, `fork-street-sharp-bend.png`), and sees a concave notch where a squared branch leaves the outside of a curving road (`fork-slanted-branch.png`). It passes the plain T-junctions and the squared tracks.
+
+**Verdict:** open. The step is the rule above working as written, and it is a flat end showing past a narrower road's edges on both sides. `tests/road_ends.rs` classes it `Narrows` and counts it sound: 340 of 25,014 ends, against 22 counted as flaws. So the count of 9 in ten thousand does not include the defect the reviewer ranks first. A stroke has one width, so the pass cannot taper it; removing the step needs either a width that varies along a stroke (a change to the shared stroke contract, in the simulation, the export and the renderer) or a layout that never asks a wide road to become a narrow one at a corner. The switchback's cap is the bend's own round joins and is the shape asked for; its facet is the bend's short stretches showing. **Confidence:** high that the step reads wrong; medium on the rest.

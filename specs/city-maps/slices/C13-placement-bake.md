@@ -32,3 +32,7 @@ Instancing, physical/art fit and no per-map Blender dependency.
 
 ## Feedback that would change this slice
 An unsupported legal join or bay pattern changes the source recipe before selection consumes it.
+
+## Outcome (the prototype source only)
+
+The temporary massing source is `assets/source/city/prototype/`, a set in the source format like any other, generated without Blender (`asset prototypes`): each physical part of a catalogue template as one tinted box, every template `prototype`. It covers exactly the catalogue templates no real set dresses, so it shrinks as sets land and is empty when C54 can remove it. The Blender exports of this slice are the kit passes' (C11, C12, C17).

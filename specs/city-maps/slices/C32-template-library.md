@@ -33,3 +33,9 @@ One asset lifecycle, matching geometry, shared instancing and art-independent si
 
 ## Feedback that would change this slice
 Packing or resolver failures reopen this codec; missing art reopens its source slice.
+
+## Outcome
+
+The library, its loader path, the resolver and the fit and coverage checks are in `packages/scene-assets` ([its readme](../../../packages/scene-assets/README.md), "City buildings"), and the bake produces a real library today from the generated prototype set: the 29 prototype templates, 49 rows of one module. The contract's own code judges every descriptor and the catalogue's hash, through one new WebAssembly export. The decisions are in [choices](../choices.md#c13c32-kits-and-the-template-art-library).
+
+**Not done here.** Nothing draws the library yet: placement chunks (C22) call the resolver, and the massing boxes go then. The contact sheet this slice names waits for that, since a kit in the workbench is its modules, not a building. `ruin` and `gutted` rows pack and resolve but have no fit rule of their own yet (C14): they are held to the intact parts. The per-template triangle budgets are reported by the bake and gate nothing.
