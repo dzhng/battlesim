@@ -13,12 +13,12 @@ import {
 
 import { labScenario, type LabScript, type LabUnit } from "@apps/battle-lab/src/scenarios";
 import { loadMap } from "@web/maps/node";
+import type { MapDefinition } from "@web/maps/resolve";
 
-/** The publication stream record: a small battle on a saved map, and what the
+/** The publication stream record: a small battle with a map input, and what the
  *  native build made of each tick (`crates/sim/tests/publication.rs`). */
 type PublicationStreamRecord = {
-  map: string;
-  map_size?: [number, number];
+  map: string | MapDefinition;
   initial_digest: string;
   seed: number;
   units: LabUnit[];
@@ -43,7 +43,11 @@ const arrangementStream: PublicationStreamRecord = JSON.parse(
     "utf8",
   ),
 );
-const SCENARIO = labScenario(loadMap(stream.map).definition, stream.units, [], stream.scripts);
+function publicationScenario(stream: PublicationStreamRecord) {
+  const map = typeof stream.map === "string" ? loadMap(stream.map).definition : stream.map;
+  return labScenario(map, stream.units, [], stream.scripts);
+}
+const SCENARIO = publicationScenario(stream);
 const sha256 = (words: Float32Array | Uint32Array) =>
   createHash("sha256")
     .update(new Uint8Array(words.buffer, words.byteOffset, words.byteLength))
@@ -68,13 +72,7 @@ test("wasm large-coordinate arrangement matches native authoritative state befor
 });
 
 function publicationStream(stream: PublicationStreamRecord, combat: boolean) {
-  const map = loadMap(stream.map).definition;
-  const scenario = labScenario(
-    stream.map_size ? { ...map, size: stream.map_size } : map,
-    stream.units,
-    [],
-    stream.scripts,
-  );
+  const scenario = publicationScenario(stream);
   const battle = new Battle(scenario, stream.seed);
   const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
   const decoder = new ObservationDecoder(layout);

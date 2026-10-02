@@ -371,12 +371,10 @@ fn a_large_coordinate_arrangement_matches_its_paired_state_record() {
 }
 
 fn publication_stream(record: Value, path: &str, combat: bool) {
-    let mut map = sim::maps::load(record["map"].as_str().unwrap())
-        .unwrap()
-        .definition;
-    if let Some(size) = record.get("map_size") {
-        map.size = serde_json::from_value(size.clone()).unwrap();
-    }
+    let map = match record["map"].as_str() {
+        Some(id) => sim::maps::load(id).unwrap().definition,
+        None => serde_json::from_value(record["map"].clone()).unwrap(),
+    };
     let setup = common::scenario_with(
         &serde_json::to_string(&map).unwrap(),
         record["units"].clone(),
