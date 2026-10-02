@@ -122,3 +122,54 @@ matched active sample must establish bytes and instruction cost after integratio
 p95/max, cold/side/resync snapshots, genuine newly learned bursts, peak overlap
 and browser throughput remain visible gates. No information is dropped and no
 byte, snapshot or memory allowance is raised.
+
+
+## Outcome: variable word spans
+
+Fixed-row copies remove retained corpse tail resends, but current layout-6 active
+Large contact still averages about 17 KB while p95 is about 48.5 KB and max
+66.7 KB. A route/member-section length change shifts own-group addresses; one
+public tracer resent 53,568 B after one squad changed route among 80 squads.
+Bitmask and XOR-varint estimates still reached 43,836/50,672 B for own rows.
+
+The existing copy grammar now declares `copyAlignments` per group: complete
+fixed rows retain their prior alignment; variable groups copy arbitrary word
+spans. One span enumerator uses exact eight-word old anchors sampled every eight
+words, extends matching spans wordwise, and emits literals between them. There
+is no unit identity, hash collision assumption, second baseline or compression
+dependency. Snapshot and replacement remain alternatives; complete preflight
+selects the smallest payload before writing or advancing any cursor.
+
+Matched standalone codec replay of 450 captured Metro Large/layout-6/seed-4
+contact transitions (ticks 0–450, same frozen simulation/rules) measures the arm
+without another battle run. Bytes include each group's metadata. Instructions
+include identical probe input staging copies in both arms; they exclude production
+logical packing, observation construction, other groups, the battle step and
+browser decoding. A separate bitwise reconstruction check passes every captured
+own and identified transition.
+
+| Group | Before mean / p95 / max B | Word spans mean / p95 / max B | Before mean / p95 / max M instructions | Word spans mean / p95 / max M instructions |
+|---|---:|---:|---:|---:|
+| Own | 7,128 / 27,200 / 51,968 | 4,170 / 8,556 / 10,656 | 0.288 / 0.362 / 0.432 | 1.840 / 2.937 / 3.401 |
+| Identified | 290 / 660 / 2,200 | 248 / 436 / 840 | 0.022 / 0.026 / 0.038 | 0.065 / 0.095 / 0.166 |
+
+The public tracer now needs 376 B and reconstructs every own float bit against a
+fresh publisher snapshot. Browser proofs cover a live producer route edit,
+fresh-snapshot equality, explicit arbitrary-word copies, route insertion/removal,
+malformed operation retry, missed generations, resync and retained earlier views.
+Canonical fixture vectors are unchanged; only copy-alignment layout metadata is
+added. Existing paired battle, wire and fog identities stay pinned.
+
+An index holds one exact-reserved u32 per eight old variable words. Across all
+groups its bound stays at 12.8 MiB, since the smallest fixed row is five words
+and all indices partition the single admitted 64 MiB baseline. Sorting is
+O(oldWords log oldWords); each candidate scan visits at most newWords positions,
+with an eight-word binary lookup or direct matching extension. Planning and
+emission repeat the bounded scan without retaining edit lists. Complete encoded
+size admission and fallible reservations still precede publication commit.
+
+The measured maximum own burst falls about 80%, at an explicit additional
+1.55 M mean encoding instructions per transition. This is an accepted delivery
+tradeoff, **not closure of the 19.8 KB whole-record gate**. Actual 60-second early
+and late p95/max, complete packing/tick cost, snapshot/peak overlap and browser
+throughput remain the integration owner's admission checks. No allowance changes.

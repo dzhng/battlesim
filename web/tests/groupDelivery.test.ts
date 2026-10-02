@@ -52,7 +52,8 @@ function packet(
     fogFloats: revision === 1 ? fog.length : 0,
   });
   for (const [i, size] of sizes)
-    header[layout.groups[i].count] = size / layout.groups[i].fields.length;
+    if (layout.groups[i].sections.length === 0)
+      header[layout.groups[i].count] = size / layout.groups[i].fields.length;
   const wire = layout.header.map((name) => header[name]);
   groups.forEach((group, i) => {
     const payload = overrides.get(i) ?? (snapshot ? Array.from(group) : []);
@@ -174,4 +175,81 @@ test("malformed row copies leave the generation available for a corrected comple
   )!;
   expect(after.corpses).toEqual([before.corpses[0], before.corpses[0]]);
   expect(before.corpses).toEqual([after.corpses[0]]);
+});
+
+test("variable word copies insert and remove a route without consuming invalid generations", () => {
+  const group = layout.groups.findIndex((g) => g.name === "own");
+  const words = Array.from(logical("base").groups[group]);
+  const fields = layout.groups[group].fields;
+  const routeCount = fields.indexOf("routeCount");
+  const routeStart = fields.length;
+  const added = [...words];
+  added[routeCount] = 1;
+  added.splice(routeStart, 0, 3, -0);
+  const decoder = new ObservationDecoder(layout);
+  const before = decoder.decode(packet("base", 1, true))!;
+  const sizes = new Map([[group, added.length]]);
+  const encodings = new Map([[group, 2]]);
+  for (const invalid of [
+    [words.length, 1],
+    [-2, words.length],
+    [-1, 2, 3],
+    [1, words.length],
+  ]) {
+    expect(() =>
+      decoder.decode(packet("base", 2, false, new Map([[group, invalid]]), sizes, encodings)),
+    ).toThrow(/cop/);
+  }
+  const payload = [
+    0,
+    routeCount,
+    -1,
+    1,
+    1,
+    routeCount + 1,
+    routeStart - routeCount - 1,
+    -1,
+    2,
+    3,
+    -0,
+    routeStart,
+    words.length - routeStart,
+  ];
+  const after = decoder.decode(
+    packet("base", 2, false, new Map([[group, payload]]), sizes, encodings),
+  )!;
+  const oracle = new ObservationDecoder(layout).decode(
+    packet("base", 1, true, new Map([[group, added]]), sizes),
+  )!;
+  expect(after.own).toEqual(oracle.own);
+  expect(Object.is(after.own[0].route[0][1], -0)).toBe(true);
+  expect(before.own[0].route).toEqual([]);
+  expect(() => decoder.decode(packet("base", 4, false))).toThrow(/baseline/);
+  const removed = decoder.decode(
+    packet(
+      "base",
+      3,
+      false,
+      new Map([
+        [
+          group,
+          [
+            0,
+            routeCount,
+            -1,
+            1,
+            0,
+            routeCount + 1,
+            routeStart - routeCount - 1,
+            routeStart + 2,
+            words.length - routeStart,
+          ],
+        ],
+      ]),
+      new Map([[group, words.length]]),
+      encodings,
+    ),
+  )!;
+  expect(removed.own).toEqual(before.own);
+  expect(after.own).toEqual(oracle.own);
 });

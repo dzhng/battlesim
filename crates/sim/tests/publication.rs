@@ -784,3 +784,71 @@ fn group_delivery_reconstructs_the_logical_oracle_across_side_and_epoch_changes(
         );
     }
 }
+
+#[test]
+fn one_variable_route_change_does_not_resend_other_own_units() {
+    use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy};
+    use contract::ids::UnitId;
+    let units: Vec<_> = (0..80)
+        .map(|i| json!({"side":"blue","kind":"rifle","position":[32 + i%10*24,32+i/10*24]}))
+        .collect();
+    let setup = common::scenario(
+        &json!({"size":[512,512],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35})
+            .to_string(),
+        json!(units),
+        json!([]),
+    );
+    let mut battle = Battle::new(&setup, 1);
+    battle.step();
+    let mut publisher = publication::Publisher::new();
+    let initial = publisher.publish(&battle, Side::Blue).unwrap().to_vec();
+    let old = &initial[30..30 + initial[27] as usize];
+    assert!(battle
+        .accept(CommandEnvelope {
+            side: Side::Blue,
+            seq: 1,
+            queued: false,
+            order: Order::Move {
+                units: vec![UnitId(0)],
+                gesture: 1,
+                goal: [400.0, 400.0],
+                route: RoutePolicy::Shortest,
+                direction: MoveDirection::Forward,
+                facing: None
+            }
+        })
+        .error
+        .is_none());
+    battle.step();
+    let wire = publisher.publish(&battle, Side::Blue).unwrap();
+    eprintln!("own route payload {} B", (3 + wire[29] as usize) * 4);
+    let own_bytes = (3 + wire[29] as usize) * 4;
+    assert!(
+        own_bytes < 2000,
+        "one route change must retain the other 79 own units: {own_bytes} B"
+    );
+    assert_eq!(wire[28], 2.0);
+    let mut words = Vec::new();
+    let mut at = 30;
+    let end = at + wire[29] as usize;
+    while at < end {
+        let source = wire[at];
+        let count = wire[at + 1] as usize;
+        at += 2;
+        if source == -1.0 {
+            words.extend_from_slice(&wire[at..at + count]);
+            at += count;
+        } else {
+            words.extend_from_slice(&old[source as usize..source as usize + count]);
+        }
+    }
+    let mut snapshot = publication::Publisher::new();
+    let fresh = snapshot.publish(&battle, Side::Blue).unwrap();
+    assert_eq!(
+        words.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
+        fresh[30..30 + fresh[27] as usize]
+            .iter()
+            .map(|v| v.to_bits())
+            .collect::<Vec<_>>()
+    );
+}

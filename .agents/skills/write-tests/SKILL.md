@@ -164,6 +164,8 @@ Walk this on any test diff, apply fixes in the same pass, re-run the suite:
 7. Can it fail for the right reason? → falsify once to confirm.
    For cross-target build identities, also compare freshly emitted native and
    Wasm identities; synthetic cfg normalization can miss real platform flags.
+   For offset deltas, grow/shrink an early collection with a retained tail;
+   fixed-size edits cannot expose address-shift amplification.
 8. Does it take focus, move the pointer, play sound, or write the person's real
    config, library or applications? → drive the model and a scratch location
    instead, and capture windows offscreen.
