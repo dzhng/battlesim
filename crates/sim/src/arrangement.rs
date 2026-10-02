@@ -91,6 +91,7 @@ pub fn arrange(
     solid: &impl Fn(&Prop) -> bool,
     rng: &mut Rng,
 ) -> Option<Vec<V2>> {
+    // Pinned trig preserves seeded positions across native/Wasm; f32 views hide drift.
     let r = diameter / 2.0;
     let mut offsets: Vec<V2> = Vec::with_capacity(count);
     for _ in 0..count {
@@ -98,7 +99,7 @@ pub fn arrange(
         let mut best = (f64::NEG_INFINITY, v2(0.0, 0.0));
         for _ in 0..DRAWS {
             let (u, a) = (rng.unit(), rng.unit() * std::f64::consts::TAU);
-            let o = v2(a.cos(), a.sin()) * (r * u.sqrt());
+            let o = v2(libm::cos(a), libm::sin(a)) * (r * u.sqrt());
             let gap = offsets
                 .iter()
                 .map(|p| (*p - o).length())
@@ -140,7 +141,7 @@ pub fn nearest_free(from: V2, radius: f64, fits: impl Fn(V2) -> bool) -> Option<
         let n = ((std::f64::consts::TAU * r / RING_STEP_M).ceil() as usize).max(1);
         for k in 0..n {
             let a = std::f64::consts::TAU * k as f64 / n as f64;
-            let p = from + v2(a.cos(), a.sin()) * r;
+            let p = from + v2(libm::cos(a), libm::sin(a)) * r;
             if fits(p) {
                 return Some(p);
             }

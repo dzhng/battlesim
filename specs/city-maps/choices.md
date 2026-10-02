@@ -5689,6 +5689,29 @@ The models, their boxes and the sheets are in the [C45 outcome](slices/C45-stree
 
 **Verdict:** sound for one model. A street of identical grey cars will read as clones; more bodies or colours are more appearances of the same kind at slightly different boxes, or a per-instance tint the scenery path does not have. **Confidence:** medium.
 
+## C06: use pinned software trig for seeded soldier placement
+
+**Choice:** Squad arrangement and nearest-free ring samples use the existing
+pinned software math library, as combat already does. A shared seed must produce
+the same authoritative positions in native and Wasm, even when the renderer's
+float32 view cannot show their last-bit difference.
+
+**Gap:** The prior arrangement used platform sine/cosine. The fresh full-world
+parity check exposed a one-bit sine difference in one seeded draw, which changed
+a member position and the squad centroid without changing the published words.
+
+**Reach:** This intentionally corrects native placement's last-bit state; it is
+not an outcome-preserving CPU optimization. Shared nearest-free callers include
+cover, garrison and replacement-soldier placement; the correction applies to
+their ring samples too. No rule value, spacing policy, random draw sequence, map
+input, allowance or public ABI changes. The existing
+engine fingerprint refuses older replays as designed. All paired publication
+records now check initial state as well as stepped state; a one-squad case owns
+the regression through the public battle interface.
+
+**Verdict:** sound, high confidence. The observed sine difference reproduces the
+first state mismatch exactly, and the public native/Wasm regression passes with
+pinned math. Full-map parity is rechecked before performance admission resumes.
 ## C24 cutout
 
 **When:** 2026-10-02, with C25 and C26, in the model layer. Evidence is the `facade` scene's (`throwaway/evidence/facade/`).
