@@ -5158,7 +5158,7 @@ exact matched openings pass and a real retained GPU allocation falsifies the che
 
 **Gap:** The slice names "the visible floor share from a models on/off pair" and no number.
 
-**Verdict:** provisional. Below about a tenth the wood is a lid; above four tenths it read as an orchard in the pictures (it measured 0.32 before). The band is wide on purpose: it is a guard, and the pictures decide inside it. **Confidence:** medium.
+**Verdict:** sound, by the user (2026-10-02). Below about a tenth the wood is a lid; above four tenths it read as an orchard in the pictures (it measured 0.32 before). The band is wide on purpose: it is a guard, and the pictures decide inside it. The landed closure, 0.23 of the floor seen, was shown to the user with the squad it leaves to the x-ray (0 of 8 torsos seen plainly under two crowns): "the 23% check is fine, and we can always tweak that number in the future". The slice's torso check is not in a scene; a unit under a closed crown is found by its x-ray. **Confidence:** high.
 
 ### The forest floor's drifts are turned noise, with their strengths in the biome
 
