@@ -2,15 +2,13 @@
 //! of WASM memory. The layout is published by [`layout_json`]; consumers never
 //! hardcode offsets, strides or tags.
 //!
-//! Record: the header, then each group in layout order. A group is
-//! `countField` rows of `fields`, followed by each row's variable sections in
-//! row order (section by section, each `count` points of `fields`). Then comes
-//! visibility snapshots or indexed word replacements, each as exact 16-bit limbs,
-//! and last the side's ground patch: exact tile-local runs and packed byte marks.
+//! Record: a complete header, then independent non-map groups carrying either
+//! their complete f32 words or ordered group-local replacement ranges. Finally
+//! visibility snapshots/indexed replacements carry exact 16-bit limbs, followed
+//! by ground's exact tile-local runs and packed byte marks.
 //!
-//! Visibility and ground patches depend on what the consumer already holds.
-//! [`Publisher`] keeps their cursors at the transport end; the battle never
-//! sees them. Both open together on a new side/epoch.
+//! [`Publisher`] retains one bounded side/epoch baseline outside the battle and
+//! its digest. A new side, epoch or resync opens every delivery cursor together.
 //!
 //! Integers that grow without bound (soldier ids, shot counters) would lose
 //! exactness in one float past 2²⁴, so they travel as two 16-bit limbs: a
@@ -433,6 +431,7 @@ pub fn layout_json(battle: &Battle) -> String {
                 "sections": [],
             },
         ],
+        "groupDelivery": { "fields": ["length", "full", "floats"], "range": ["start", "length"] },
         "fog": { "count": "fogFloats", "maxWords": MAX_FOG_WORDS },
         // A run is one 16×16 tile and start + len * 256 within it;
         // craterScorch is crater + scorch * 256; tracksTrampledCleared is tracks + trampled * 256 + cleared * 65536.
@@ -500,8 +499,8 @@ pub fn layout_json(battle: &Battle) -> String {
     .to_string()
 }
 
-/// The transport's end of a side's publications: it packs visibility changes
-/// and the ground cells its consumer lacks. A stream (an epoch) opens with a full
+/// The transport's end of a side's publications: it packs group word changes,
+/// visibility changes and the ground cells its consumer lacks. A stream (an epoch) opens with a full
 /// snapshot when publishing starts, when the side changes and on
 /// [`Publisher::resync`], then carries only cells learned or changed since
 /// the previous record. The cursor is transport state, outside the digest.
@@ -515,6 +514,10 @@ pub struct Publisher {
     fog: Vec<u32>,
     fog_revision: u32,
     fog_grid: Option<(f64, u32, u32)>,
+    logical: Vec<f32>,
+    encoded: Vec<f32>,
+    groups: Vec<f32>,
+    group_ends: Vec<usize>,
 }
 
 impl Publisher {
@@ -600,13 +603,38 @@ impl Publisher {
             revision,
             changed: &changed,
         };
-        pack(
+        let mut ends = Vec::with_capacity(9);
+        pack_record(
             frame,
             &ground,
             &fog,
             known.change_runs_since(baseline).take(count),
-            &mut self.out,
+            &mut self.logical,
+            Some(&mut ends),
         )?;
+        encode_groups(
+            &self.logical,
+            &ends,
+            if base.is_some() {
+                &self.groups[..]
+            } else {
+                &[]
+            },
+            if base.is_some() {
+                &self.group_ends[..]
+            } else {
+                &[]
+            },
+            &mut self.encoded,
+        )?;
+        self.groups
+            .try_reserve_exact(ends.last().unwrap().saturating_sub(self.groups.len()))
+            .map_err(|e| format!("publication baseline allocation: {e}"))?;
+        std::mem::swap(&mut self.out, &mut self.encoded);
+        self.groups.clear();
+        self.groups
+            .extend_from_slice(&self.logical[..*ends.last().unwrap()]);
+        self.group_ends = ends;
         if full {
             self.fog.clone_from(&frame.ground_visibility.bits);
         } else {
@@ -651,14 +679,27 @@ pub struct FogPatch<'a> {
     pub changed: &'a [usize],
 }
 
-/// The production serializer. Runs are consumed directly from learned ground;
-/// admission precedes output allocation and cursor advancement.
-pub fn pack(
+/// Canonical complete logical record, before group delivery encoding. This is
+/// the reconstruction oracle; [`Publisher::publish`] owns the transport record.
+/// Fog/ground payloads still follow their supplied cursor headers.
+/// Admission precedes output allocation.
+pub fn pack_logical(
     frame: &ObservationFrame,
     ground: &GroundHeader,
     patch: &FogPatch<'_>,
     runs: impl Iterator<Item = GroundRunPatch>,
     out: &mut Vec<f32>,
+) -> Result<(), String> {
+    pack_record(frame, ground, patch, runs, out, None)
+}
+
+fn pack_record(
+    frame: &ObservationFrame,
+    ground: &GroundHeader,
+    patch: &FogPatch<'_>,
+    runs: impl Iterator<Item = GroundRunPatch>,
+    out: &mut Vec<f32>,
+    mut ends: Option<&mut Vec<usize>>,
 ) -> Result<(), String> {
     let fog = &frame.ground_visibility;
     let cells = u64::from(fog.nx) * u64::from(fog.ny);
@@ -825,6 +866,9 @@ pub fn pack(
                 .flat_map(|p| [p[0] as f32, p[1] as f32, p[2] as f32]),
         );
     }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
     for e in &frame.identified {
         out.extend([
             e.id.0 as f32,
@@ -851,6 +895,9 @@ pub fn pack(
         out.extend(e.member_leans.iter().flat_map(lean));
         out.extend(e.weapon_poses.iter().flat_map(pose));
     }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
     for c in &frame.contacts {
         out.extend([
             c.id.0 as f32,
@@ -865,6 +912,9 @@ pub fn pack(
             u8::from(c.primary_label) as f32,
         ]);
     }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
     for a in &frame.audible {
         out.extend([
             a.listener.0 as f32,
@@ -873,6 +923,9 @@ pub fn pack(
             tag(&SOUND_BANDS, &a.band),
             a.moving as u8 as f32,
         ]);
+    }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
     }
     for p in &frame.projectiles {
         let [lo, hi] = limbs_or_absent(p.shooter_member);
@@ -905,6 +958,9 @@ pub fn pack(
             ]
         }));
     }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
     for b in &frame.blasts {
         out.extend([
             b.point[0] as f32,
@@ -913,6 +969,9 @@ pub fn pack(
             b.radius as f32,
             b.kind as f32,
         ]);
+    }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
     }
     for g in &frame.guided {
         let [lo, hi] = limbs(u32::try_from(g.id).expect("a guided id fits two limbs"));
@@ -928,6 +987,9 @@ pub fn pack(
             g.supported as u8 as f32,
         ]);
     }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
     for c in &frame.corpses {
         let [lo, hi] = limbs(c.soldier);
         out.extend([
@@ -941,6 +1003,9 @@ pub fn pack(
             c.slot as f32,
             c.yaw as f32,
         ]);
+    }
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
     }
     for p in &frame.known_props {
         let [replaces_lo, replaces_hi] = limbs_or_absent(p.replaces);
@@ -978,6 +1043,9 @@ pub fn pack(
             value
         }
     };
+    if let Some(ends) = ends.as_mut() {
+        ends.push(out.len());
+    }
     if patch.full {
         for i in 0..words {
             out.extend(limbs(word(i)));
@@ -1061,4 +1129,136 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
     add(fog, 1)?;
     add(runs, GROUND_FIELDS.len())?;
     Ok(length)
+}
+
+/// Each group keeps its own addresses: changing a squad's variable rows never
+/// shifts an unchanged corpse or known body. Values are copied as f32 words;
+/// equality is bitwise, including NaN payloads and signed zero.
+fn encode_groups(
+    logical: &[f32],
+    ends: &[usize],
+    previous: &[f32],
+    previous_ends: &[usize],
+    out: &mut Vec<f32>,
+) -> Result<(), String> {
+    let mut plans = Vec::with_capacity(ends.len());
+    let mut start = HEADER.len();
+    let mut length = HEADER.len() + logical.len() - ends.last().copied().unwrap_or(HEADER.len());
+    for (g, &end) in ends.iter().enumerate() {
+        let values = &logical[start..end];
+        let old = previous_ends.get(g).map_or(&[][..], |&end| {
+            let start = if g == 0 {
+                HEADER.len()
+            } else {
+                previous_ends[g - 1]
+            };
+            &previous[start..end]
+        });
+        let delta: usize = if previous.is_empty() {
+            values.len()
+        } else {
+            changed_ranges(values, old).map(|(a, b)| 2 + b - a).sum()
+        };
+        let full = previous.is_empty() || delta >= values.len();
+        let payload = if full { values.len() } else { delta };
+        length = length
+            .checked_add(3 + payload)
+            .filter(|n| *n <= MAX_PUBLICATION_BYTES / 4)
+            .ok_or("publication exceeds its 64 MiB atomic allocation allowance")?;
+        plans.push((full, payload, old));
+        start = end;
+    }
+    // Admission and exact reservation precede writing. Geometric growth must
+    // not turn the record allowance into larger retained scratch allocations.
+    out.try_reserve_exact(length.saturating_sub(out.len()))
+        .map_err(|e| format!("publication encoding allocation: {e}"))?;
+    out.clear();
+    out.extend_from_slice(&logical[..HEADER.len()]);
+    start = HEADER.len();
+    for (&end, (full, payload, old)) in ends.iter().zip(plans) {
+        let values = &logical[start..end];
+        out.extend([values.len() as f32, full as u8 as f32, payload as f32]);
+        if full {
+            out.extend_from_slice(values);
+        } else {
+            for (from, to) in changed_ranges(values, old) {
+                out.extend([from as f32, (to - from) as f32]);
+                out.extend_from_slice(&values[from..to]);
+            }
+        }
+        start = end;
+    }
+    out.extend_from_slice(&logical[start..]);
+    Ok(())
+}
+
+/// Two scans choose a smaller payload without storing a range for every word.
+fn changed_ranges<'a>(
+    values: &'a [f32],
+    old: &'a [f32],
+) -> impl Iterator<Item = (usize, usize)> + 'a {
+    let mut i = 0;
+    std::iter::from_fn(move || {
+        while i < values.len()
+            && old
+                .get(i)
+                .is_some_and(|v| v.to_bits() == values[i].to_bits())
+        {
+            i += 1;
+        }
+        if i == values.len() {
+            return None;
+        }
+        let start = i;
+        i += 1;
+        while i < values.len()
+            && old
+                .get(i)
+                .is_none_or(|v| v.to_bits() != values[i].to_bits())
+        {
+            i += 1;
+        }
+        Some((start, i))
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn group_addresses_survive_earlier_group_shrink_and_keep_float_bits() {
+        let words = [f32::from_bits(0x7fc0_0001), -0.0, f32::INFINITY];
+        let mut previous = vec![0.0; HEADER.len()];
+        previous.extend([1.0, 2.0, 3.0]);
+        previous.extend(words);
+        let previous_ends = [HEADER.len() + 3, previous.len()];
+        let mut logical = vec![0.0; HEADER.len()];
+        logical.push(1.0);
+        logical.extend(words);
+        let mut encoded = Vec::new();
+        encode_groups(
+            &logical,
+            &[HEADER.len() + 1, logical.len()],
+            &previous,
+            &previous_ends,
+            &mut encoded,
+        )
+        .unwrap();
+        assert_eq!(&encoded[HEADER.len()..], &[1.0, 0.0, 0.0, 3.0, 0.0, 0.0]);
+        logical[HEADER.len() + 2] = 0.0;
+        logical[HEADER.len() + 1] = f32::from_bits(0x7fc0_0002);
+        encode_groups(
+            &logical,
+            &[HEADER.len() + 1, logical.len()],
+            &previous,
+            &previous_ends,
+            &mut encoded,
+        )
+        .unwrap();
+        // Dense changes choose a full group; exact NaN payload and +0 survive.
+        assert_eq!(encoded[HEADER.len() + 6].to_bits(), 0x7fc0_0002);
+        assert_eq!(encoded[HEADER.len() + 7].to_bits(), 0);
+        assert_eq!(encoded[HEADER.len() + 8], f32::INFINITY);
+    }
 }

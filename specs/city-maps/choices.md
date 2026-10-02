@@ -2661,3 +2661,76 @@ progress after it reaches the end, and no valid candidate is discarded.
 
 The boolean-only walkability call is a local ownership simplification, not a new
 physical rule or a measured performance gain.
+
+## C07: exact observation group delivery
+
+### Sound — medium confidence: retain one canonical non-map baseline
+
+**When:** C07 reconstruction pass.
+
+**Choice:** Compare float words within each existing observation group, rather
+than introducing entity-keyed stores. When a squad loses a soldier, its member
+rows become shorter; that can change the squad group's remaining addresses, but
+cannot move the independently addressed corpse or known-prop group. The page
+receives the new group length and exact replacement ranges, reconstructing the
+same ordered arrays it would receive in a complete record. An entity-keyed
+alternative would add identity/deletion rules for every kind of row; this work
+keeps those decisions with the simulation's existing logical observation.
+
+**Gap:** G0 selected fog/known-prop delivery but did not choose a representation
+for the measured 60 KB own rows and 522 KB late corpse tail. C07 explicitly
+reslices that arm while preserving the original byte target.
+
+**Reach:** A shrinking group can still incur within-group replacement bytes.
+Full-size active measurements decide whether this representation is sufficient;
+this checkpoint makes no budget-success claim.
+
+**Verdict:** Sound: one existing logical owner, exact ordering, no new entity
+identity scheme. **Confidence:** Medium, because the active byte gate remains
+open.
+
+### Sound — high confidence: choose snapshots by encoded size and reserve before commit
+
+**When:** C07 reconstruction pass.
+
+**Choice:** If changes are dense, send the group's full words when that costs no
+more than replacement ranges. For sparse changes, scan once to count the encoded
+bytes and again to emit them, without retaining a list of ranges. Admit and
+reserve the complete wire record and next non-map baseline before replacing the
+published output or advancing its cursor. A rejected record therefore leaves the
+last successful side/generation available for recovery. The baseline uses one
+flat allocation, so a large group on one side followed by another large group on
+the other cannot accumulate separate group-sized allocations.
+
+**Gap:** The representation needed a snapshot threshold and bounded scratch
+lifecycle; a per-range list or per-group high-water cache would make peak storage
+larger than the current logical observation.
+
+**Reach:** Producer staging, current wire, pending wire and the non-map baseline
+each have an exact bounded reservation. Those four capacities and the existing
+fog cursor must still be included in snapshot/peak admission measurements.
+
+**Verdict:** Sound: admission precedes transport commit and scratch space does
+not grow with the number of changed ranges. **Confidence:** High.
+
+### Sound — high confidence: share the existing side/epoch revision boundary
+
+**When:** C07 reconstruction pass.
+
+**Choice:** A side change or resync starts every group with a complete snapshot.
+The existing fog generation also names the group baseline. If a page misses a
+publication, the next generation fails that baseline check before applying any
+group, fog or ground state. A valid resync then reconstructs the side's full
+known state. The alternative would introduce an independent group revision that
+could disagree with fog or ground and permit a mixed observation.
+
+**Gap:** C07 needed recovery rules for the added representation; the existing
+publication cursor already supplied exactly the ordered stream boundary.
+
+**Reach:** Producer/decoder cut over together. The published layout describes
+delivery metadata separately from the canonical logical row schema, and the
+complete serializer is named `pack_logical` so native oracle/report consumers
+cannot mistake it for the transport record.
+
+**Verdict:** Sound: one atomic publication baseline, exact float32 words, and no
+codec dependency or new simulation state. **Confidence:** High.

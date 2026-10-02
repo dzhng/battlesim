@@ -32,3 +32,53 @@ Side knowledge, exact reconstruction and one publication/decoder owner.
 
 ## Feedback that would change this slice
 A snapshot or steady-state miss reopens that delivery arm, not map dimensions.
+
+## Measured reslice: exact non-map group replacements
+
+C05 found full-map fog delivery already sparse (~560 B/tick), while the
+opening complete own rows exceed 60 KB and late corpses alone reach 522 KB.
+The binding provisional steady-state allowance remains 19.8 KB/tick. C07
+therefore also owns a lossless representation for the existing non-map groups;
+this is an explicit extension of G0's fog/known-prop-only selected arm.
+
+The logical observation is unchanged. Each existing group retains its canonical
+array order and exact float32 words. A transport group carries its logical
+length, snapshot tag and payload length; snapshots carry every word, replacements
+carry ordered non-overlapping `(start, length, words)` ranges. Addresses are
+local to the group, so losing a soldier's variable rows cannot move corpse or
+known-prop addresses. A smaller snapshot replaces dense changes. Complete
+headers, fog and ground retain their existing contracts and revision checks.
+
+A new side, epoch or resync sends complete group snapshots. Missing a generation
+fails the existing fog revision check before group decoding. Both cursors advance
+only after successful admission/decoding. Logical and encoded records each stay
+inside the 64 MiB bound. One bounded non-map baseline and reusable logical packing
+buffer live in the publisher; no new map-cell staging array or codec dependency
+is introduced. Producer and browser decoder ship atomically.
+
+## Outcome: reconstruction pass
+
+The producer and browser decoder now share the independent group replacement
+contract. Complete logical records remain the oracle (`pack_logical`); the
+publisher alone emits transport records. Existing paired native/Wasm records
+change only publication hashes: battle digests and delivered fog hashes stay
+unchanged. Known body order, building-part replacement and side knowledge remain
+simulation-owned.
+
+Focused proofs cover complete logical group bits, side switches/resync, exact
+NaN payloads and signed zero, immutable prior observations, malformed ranges and
+missed generations. A live casualty stream is compared with a matching battle's
+fresh snapshot every tick: shrinking member sections, growing corpse rows and a
+retained known prop reconstruct the same observation. Uniform unchanged own rows
+need under 300 bytes, rather than a complete own-unit resend.
+
+This is a green representation checkpoint, **not C07 budget closure**. The
+19.8 KB steady-state gate still requires the matched full-size active early/late
+sample. Snapshot bytes/time, peak native/Wasm/browser overlap and browser decoder
+work remain integration gates; no allowance was raised. The publisher retains
+four independently bounded record buffers (canonical staging, published wire,
+pending wire, non-map baseline) plus its existing fog cursor. Exact fallible
+reservations bound each record buffer's requested capacity; range enumeration
+uses constant scratch space. This storage bound does not itself ratify G0's peak
+memory budget. Reports attribute encoded group metadata/payload bytes, not the
+logical size of retained corpse and prop arrays.
