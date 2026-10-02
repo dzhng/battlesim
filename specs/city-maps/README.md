@@ -63,11 +63,12 @@ A slice marked "physical" has its systems half done; its look is in the visual p
 - [x] Lab: [C57 camera clearance](slices/C57-camera-clearance.md) · the generated-map lab route
 
 **In flight (one branch each)**
-- nothing in the map lane
+- `city-maps/long-moves`: long moves under move certification
+- `city-maps/kerbside`: parked cars at the kerb, with road journeys that pass a body beside the lane
 
 **Next, systems**
 - [ ] Kerbside parking: road journeys refuse a lane with a body beside it, so street furniture stands on the verge and terraced streets have no cover ([C46 outcome](slices/C46-street-placement.md#outcome)); when navigation tolerates it, `street_props.lane_margin_m` goes back to about 0.9
-- [ ] Long moves under move certification: a rehearsal's allowance runs out on a cross-map order, so long group moves on generated maps are refused or part-placed ([move validity](../done/move-validity/README.md)); the owner decides between rehearsing only the approach and a larger allowance
+- [ ] Long moves under move certification: a rehearsal's allowance runs out on a cross-map order, so long group moves on generated maps are refused or part-placed ([move validity](../done/move-validity/README.md)). Decided without the owner's answer, and reversible: the planner's route proves the journey and the rehearsal demonstrates only the arrival, so admission cost does not grow with distance
 - [ ] Town look, what is left: stair-step outlines, hard seams between building kinds, streets meeting a main road 20 to 45 m apart on either side, dead ends where a street was refused; do it if towns still read as diagrams in play
 - [ ] Scale at full extent: browser startup and memory, rendered surroundings, C20 fog at scale (C06/C07 are admitted on the [scale reference](../done/city-maps-scale/evidence.md); current-layout rendering integration and C22/C23 remain parent/buildings work)
 - [ ] [C54 integrated seed gate](slices/C54-generation-gate.md), after the lanes
