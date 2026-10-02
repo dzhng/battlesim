@@ -4,10 +4,17 @@
 // in hue and not in brightness, a clump stays the grass it was as the camera
 // closes, and nothing grows on a road or under a wood. The field's seating,
 // residency and cost are the village scene's.
-import { readFile } from "node:fs/promises";
+import { rec709 } from "./_colour.mjs";
 import { aim, lab } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
-import { classAt, openStations, shoot, stationPose, stationReport } from "./_groundStations.mjs";
+import {
+  BIOME,
+  classAt,
+  openStations,
+  shoot,
+  stationPose,
+  stationReport,
+} from "./_groundStations.mjs";
 
 const MAP = "village";
 /** A plot's own grass is judged this near its middle, clear of its verge. */
@@ -46,10 +53,6 @@ const CLUMP_VALUE = 0.1;
 /** A clump counts as dried when its red over blue rises by this share. */
 const DRIED = 0.06;
 
-const biome = JSON.parse(
-  await readFile(new URL("../../fixtures/biomes/summer.json", import.meta.url), "utf8"),
-);
-
 /** The frame drawn at the page's pose, then its clumps, each with the page
  *  pixel its root stands on (null when off screen). */
 const clumpsNow = (page) =>
@@ -78,7 +81,8 @@ async function clumpsAt(page, station) {
 const kindsOf = (clumps) => [...new Set(clumps.map((c) => c.kind))].sort();
 const rootKey = (c) => c.root.map((v) => v.toFixed(3)).join(",");
 const byRoot = (clumps) => new Map(clumps.map((c) => [rootKey(c), c]));
-const luminance = ([r, g, b]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
+/** A clump's luminance: its colour is linear. */
+const luminance = rec709;
 
 export async function grassGrowth(ctx) {
   const page = await openStations(ctx, MAP);
@@ -88,12 +92,12 @@ export async function grassGrowth(ctx) {
   // row (ploughed earth) grows nothing.
   const grown = {};
   const bare = {};
-  for (const { name } of biome.plots) {
+  for (const { name } of BIOME.plots) {
     const station = `${name}-25`;
     const [x, y] = stationPose(page, MAP, station).target;
     const all = await clumpsAt(page, station);
     const heart = all.filter((c) => Math.hypot(c.root[0] - x, c.root[1] - y) < PLOT_HEART_M);
-    if (biome.grass.growth[name]) grown[name] = { clumps: heart.length, kinds: kindsOf(heart) };
+    if (BIOME.grass.growth[name]) grown[name] = { clumps: heart.length, kinds: kindsOf(heart) };
     else bare[name] = { clumps: heart.length, round: all.length };
   }
   ctx.check(
@@ -115,7 +119,7 @@ export async function grassGrowth(ctx) {
     (c) => c.ground.roadSd > OFF_ROAD_M && onPlotEdge(mask, c.pixel, c.ground),
   );
   grown.verge = { clumps: verge.length, kinds: kindsOf(verge) };
-  const mixOf = (row) => biome.grass.growth[row].mix;
+  const mixOf = (row) => BIOME.grass.growth[row].mix;
   ctx.check(
     "each kind of ground grows the grasses its biome row mixes: every plot kind and the verge between plots",
     Object.entries(grown).every(
@@ -158,7 +162,7 @@ export async function grassGrowth(ctx) {
 async function cropRows(ctx, page) {
   const pose = stationPose(page, MAP, "wheat-65");
   const { across } = stationReport(page).plots.wheat;
-  const period = biome.plots.find((p) => p.name === "wheat").furrow_m;
+  const period = BIOME.plots.find((p) => p.name === "wheat").furrow_m;
   const offRow = (clumps) => {
     const heart = clumps.filter(
       (c) => Math.hypot(c.root[0] - pose.target[0], c.root[1] - pose.target[1]) < PLOT_HEART_M,
@@ -210,7 +214,7 @@ const retuned = (page, change) =>
  *  - the clumps a closer camera keeps are the grasses they were. */
 async function fieldVariation(ctx, page) {
   const pose = stationPose(page, MAP, "meadow-65");
-  const [first, second] = biome.grass.growth.meadow.mix.map((s) => s.appearance);
+  const [first, second] = BIOME.grass.growth.meadow.mix.map((s) => s.appearance);
   await shoot(page, MAP, "meadow-65");
   await retuned(
     page,
@@ -263,8 +267,8 @@ async function fieldVariation(ctx, page) {
   const pairs = [...dried].filter(([key]) => level.has(key)).map(([key, c]) => [c, level.get(key)]);
   const lifts = pairs.map(([a, b]) => luminance(a.colour) / luminance(b.colour) - 1);
   const [darkest, lightest] = [Math.min(...lifts), Math.max(...lifts)];
-  const warmth = ([r, , b]) => r / Math.max(b, 1e-4);
-  const shifts = pairs.map(([a, b]) => warmth(a.colour) / warmth(b.colour) - 1);
+  const redOverBlue = ([r, , b]) => r / Math.max(b, 1e-4);
+  const shifts = pairs.map(([a, b]) => redOverBlue(a.colour) / redOverBlue(b.colour) - 1);
   const cooled = shifts.filter((s) => s < 0).length;
   const driedShare = shifts.filter((s) => s > DRIED).length / Math.max(1, pairs.length);
   ctx.check(

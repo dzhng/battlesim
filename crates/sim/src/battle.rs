@@ -2146,7 +2146,7 @@ impl Battle {
             v2(goal[0], goal[1]),
             facing,
             &self.rules.formation,
-            self.world.width().hypot(self.world.depth()),
+            libm::hypot(self.world.width(), self.world.depth()),
             |id, p| grid.placement_point(p, &self.units[id.0 as usize].mobility),
         );
         let source = self.move_source(side);

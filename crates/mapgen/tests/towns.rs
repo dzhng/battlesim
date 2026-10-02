@@ -10,6 +10,9 @@ use mapgen::{CompileLimits, MapPlan, SettlementPlan};
 const PRESETS: &str = include_str!("../../../fixtures/map-presets.json");
 const SEEDS: [u64; 4] = [1, 2, 3, u64::MAX];
 type Point = [f64; 2];
+/// Two blocks' corners either side of a street are no farther apart than
+/// this: the gap an edge may leave and still carry a ray on.
+const CORNER_GAP_M: f64 = 40.0;
 
 fn presets() -> PresetDefinitions {
     PresetDefinitions::from_json(PRESETS).unwrap()
@@ -117,16 +120,35 @@ fn no_point_of_a_settlement_has_district_edges_fanning_out_from_it() {
         for apex in apexes {
             // The bearings, in degrees, along which an edge on a line
             // through the apex runs away from it: toward each of its ends
-            // that lies farther than a couple of metres. An edge points at
-            // the apex from no farther than twice its own length: a ray is
-            // edges end to end, and a far edge that happens to line up with
-            // the apex is not one.
-            let mut bearings: Vec<f64> = long
+            // that lies farther than a couple of metres. A ray is edges end
+            // to end: an edge is on one when it starts at the apex, or
+            // where an edge already on that ray stops, give or take the
+            // gap a street leaves between two blocks' corners. A far edge
+            // that happens to line up with the apex is not on one.
+            let on_line: Vec<(Point, Point)> = long
                 .iter()
-                .filter(|(a, b)| {
-                    line_distance(*a, *b, apex) <= 2.0
-                        && segment_distance(*a, *b, apex) <= 2.0 * length(*a, *b)
-                })
+                .copied()
+                .filter(|(a, b)| line_distance(*a, *b, apex) <= 2.0)
+                .collect();
+            let mut reached: Vec<Point> = vec![apex];
+            let mut on_ray = vec![false; on_line.len()];
+            loop {
+                let next = (0..on_line.len()).find(|at| {
+                    let (a, b) = on_line[*at];
+                    !on_ray[*at]
+                        && reached
+                            .iter()
+                            .any(|from| segment_distance(a, b, *from) <= CORNER_GAP_M)
+                });
+                let Some(at) = next else { break };
+                on_ray[at] = true;
+                reached.extend([on_line[at].0, on_line[at].1]);
+            }
+            let mut bearings: Vec<f64> = on_line
+                .iter()
+                .zip(&on_ray)
+                .filter(|(_, on_ray)| **on_ray)
+                .map(|(edge, _)| edge)
                 .flat_map(|(a, b)| {
                     // An apex between the ends sees the edge run both ways.
                     let between = length(*a, apex) + length(*b, apex) <= length(*a, *b) + 0.1;
@@ -272,4 +294,105 @@ fn no_road_runs_through_the_inside_of_a_district() {
             }
         }
     });
+}
+
+/// The country roads on a settlement's own ground: each straight run of one
+/// that has a district of the settlement within a block of its middle.
+fn roads_through(plan: &MapPlan, settlement: &SettlementPlan) -> Vec<(Point, Point)> {
+    plan.surfaces
+        .iter()
+        .filter(|area| area.kind == contract::map::SurfaceKind::CountryRoad)
+        .filter_map(|area| match &area.shape {
+            GroundShape::Stroke { centerline, .. } => Some(centerline.control_points()),
+            GroundShape::Polygon { .. } => None,
+        })
+        .flat_map(|road| road.windows(2))
+        .map(|run| (run[0], run[1]))
+        .filter(|(a, b)| {
+            let middle = [(a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0];
+            length(*a, *b) >= 100.0
+                && settlement.districts.iter().any(|district| {
+                    edges(&district.ring).any(|(c, d)| segment_distance(c, d, middle) <= 30.0)
+                })
+        })
+        .collect()
+}
+
+/// Where the country roads on a settlement's ground leave one another away
+/// from its centre: each point where one of them ends part of the way
+/// along another, at an angle to it.
+fn side_roads(plan: &MapPlan, settlement: &SettlementPlan) -> Vec<Point> {
+    let through = roads_through(plan, settlement);
+    let mut starts: Vec<Point> = Vec::new();
+    for (a, b) in &through {
+        for end in [*a, *b] {
+            let joins = through.iter().any(|(c, d)| {
+                let span = length(*c, *d);
+                let share = ((end[0] - c[0]) * (d[0] - c[0]) + (end[1] - c[1]) * (d[1] - c[1]))
+                    / (span * span);
+                let cos = ((b[0] - a[0]) * (d[0] - c[0]) + (b[1] - a[1]) * (d[1] - c[1])).abs()
+                    / (length(*a, *b) * span);
+                segment_distance(*c, *d, end) <= 1.0 && (0.0..=1.0).contains(&share) && cos < 0.9
+            });
+            if joins
+                && length(end, settlement.center) >= 150.0
+                && !starts.iter().any(|known| length(*known, end) <= 1.0)
+            {
+                starts.push(end);
+            }
+        }
+    }
+    starts
+}
+
+/// A city is not one crossroads with a disc round it: roads lead out of it
+/// that leave its main roads away from the central junction. Every city
+/// has one, and the typical city two or more.
+#[test]
+fn a_city_has_roads_out_that_miss_its_central_junction() {
+    let (mut total, mut cities) = (0, 0);
+    for size in MapSize::ALL {
+        for seed in SEEDS {
+            let plan = plan(MapType::Metro, size, seed);
+            let city = &plan.settlements[0];
+            assert_eq!(city.class, "city");
+            let sides = side_roads(&plan, city).len();
+            assert!(
+                sides >= 1,
+                "Metro {size:?} seed {seed}: every road out of the city passes its centre"
+            );
+            total += sides;
+            cities += 1;
+        }
+    }
+    assert!(total >= 2 * cities, "{total} side roads in {cities} cities");
+}
+
+/// A large town is never a slab along one road: a second road crosses its
+/// ground at an angle to the first.
+#[test]
+fn a_large_town_has_a_second_road_at_an_angle() {
+    for size in MapSize::ALL {
+        for seed in SEEDS {
+            let plan = plan(MapType::Mixed, size, seed);
+            let town = &plan.settlements[0];
+            assert_eq!(town.class, "large_town");
+            let through = roads_through(&plan, town);
+            let bearing = |(a, b): &(Point, Point)| libm::atan2(b[1] - a[1], b[0] - a[0]);
+            // The widest angle between two of its roads, as lines.
+            let mut widest: f64 = 0.0;
+            for first in &through {
+                for second in &through {
+                    let between =
+                        (bearing(first) - bearing(second)).rem_euclid(core::f64::consts::PI);
+                    widest = widest.max(between.min(core::f64::consts::PI - between));
+                }
+            }
+            assert!(
+                widest.to_degrees() >= 40.0,
+                "Mixed {size:?} seed {seed}: its roads all run one way, within {:.0}°",
+                widest.to_degrees()
+            );
+        }
+    }
 }

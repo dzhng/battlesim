@@ -93,11 +93,6 @@
     }
   },
   "city_sets": {
-    "prototype": {
-      "templates": "assets/source/city/prototype/templates.json",
-      "kit": "city_kit_prototype",
-      "catalogue": "generated"
-    },
     "homes": {
       "templates": "assets/source/city/homes/templates.json",
       "kit": "city_kit_homes",

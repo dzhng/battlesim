@@ -245,7 +245,7 @@ pub fn segment_distance(a: [f64; 2], b: [f64; 2], p: [f64; 2]) -> f64 {
     }
     .clamp(0.0, 1.0);
     let delta = [p[0] - (a[0] + ab[0] * t), p[1] - (a[1] + ab[1] * t)];
-    delta[0].hypot(delta[1])
+    libm::hypot(delta[0], delta[1])
 }
 /// A stretch does not round past its end `a`: cut square there.
 pub const CUT_A: u8 = 1;
@@ -265,7 +265,7 @@ pub fn stretches(
     samples: &[[f64; 2]],
     half: f64,
 ) -> impl Iterator<Item = ([f64; 2], [f64; 2], u8)> + '_ {
-    let length = |pair: &[[f64; 2]]| (pair[1][0] - pair[0][0]).hypot(pair[1][1] - pair[0][1]);
+    let length = |pair: &[[f64; 2]]| libm::hypot(pair[1][0] - pair[0][0], pair[1][1] - pair[0][1]);
     let last = samples.len().saturating_sub(2);
     // How far along the line the next stretch starts, and how far is left
     // after the last one ended.
@@ -304,7 +304,7 @@ pub fn stretch_contains(
         return true;
     }
     let ab = [b[0] - a[0], b[1] - a[1]];
-    let length = ab[0].hypot(ab[1]);
+    let length = libm::hypot(ab[0], ab[1]);
     // How far past a cut end, along the stretch: zero on the end face.
     let behind = -((p[0] - a[0]) * ab[0] + (p[1] - a[1]) * ab[1]);
     let ahead = (p[0] - b[0]) * ab[0] + (p[1] - b[1]) * ab[1];
@@ -317,7 +317,7 @@ pub fn stretch_contains(
     };
     // The margin grows the square end as it grows any edge: by a rounded corner.
     let aside = (cross(a, b, p).abs() / length - half).max(0.0);
-    aside.hypot(past) <= margin
+    libm::hypot(aside, past) <= margin
 }
 fn on_segment(a: [f64; 2], b: [f64; 2], p: [f64; 2]) -> bool {
     (0..2).all(|k| p[k] >= a[k].min(b[k]) && p[k] <= a[k].max(b[k]))

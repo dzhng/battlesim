@@ -19,11 +19,13 @@
 //   pool has no room for, or has not expanded yet, draws coarse meanwhile.
 //   The pool is kept kind by kind (a kind is a module at a tier), so it
 //   draws in one range a kind.
-// - **A building the side has seen fall** leaves both (its coarse records are
-//   hidden, its chunk expanded again without it) and is drawn by the fallen
-//   population: its template's rows for that state where the library has
-//   them, else each part's remains as a box. That population is small, so
-//   all its tiers are expanded and it is rebuilt when knowledge changes.
+// - **A building the side has seen destroyed** leaves both (its coarse
+//   records are hidden, its chunk expanded again without it) and is drawn by
+//   the fallen population: its template's rows for the state the side knows
+//   it in, a ruin or a gutted shell, at every tier those rows have. That
+//   population is small, so all its tiers are expanded and it is rebuilt
+//   when knowledge changes. A template without rows for the state is refused
+//   by name: nothing else is drawn for a destroyed building.
 //
 // A chunk takes one tier, from the distance of its nearest point: a building
 // is in exactly one chunk (it is bucketed by where it was placed), so it is
@@ -36,7 +38,6 @@ import { color } from "math/color";
 import { mulberry32, random } from "math/random";
 import { vec3 } from "math";
 import { box3 } from "math/shapes";
-import { PROTOTYPE_KIT, PROTOTYPE_MODULE } from "@packages/scene-assets/src/prototypeSet";
 import { TIER_COUNT, type Bounds } from "@packages/scene-assets/src/schema";
 import {
   placeRows,
@@ -78,28 +79,16 @@ const BRIDGE_RECORDS = 256;
 export interface BuildingArt {
   library: TemplateArtLibrary;
   /** Per library module: its mesh's bounds in its own frame, or null for a
-   *  module of a kit that is not installed (`buildingKits` names the kits a
-   *  map's buildings need). */
+   *  module of a kit that is not installed (a map installs the kits its
+   *  templates' rows place: `templateKits`). */
   bounds: readonly (Bounds | null)[];
-}
-
-/** The kit appearances a scene of `placed` draws modules of: its templates'
- *  own, in every state, and the prototype kit where the library places its
- *  box, which a fallen part with no art for its state is drawn as. A map
- *  with no buildings draws from none. This is what a map asks the loader for
- *  and what its models layer installs. */
-export function buildingKits(placed: PlacedBuildings, library: TemplateArtLibrary): Set<string> {
-  const kits = templateKits(library, placed.templates);
-  if (placed.template.length > 0 && library.kits.some((kit) => kit.appearance === PROTOTYPE_KIT))
-    kits.add(PROTOTYPE_KIT);
-  return kits;
 }
 
 /** Whether every kit `placed` needs is installed in `art`. The buildings and
  *  the kits that draw them arrive apart; a scene is built once both have. */
 export function artCovers(placed: PlacedBuildings, art: BuildingArt): boolean {
   const { kits, modules } = art.library;
-  const needed = buildingKits(placed, art.library);
+  const needed = templateKits(art.library, placed.templates);
   return modules.every((m, i) => art.bounds[i] !== null || !needed.has(kits[m.kit].appearance));
 }
 
@@ -135,8 +124,6 @@ export interface BuildingScene {
   placed: PlacedBuildings;
   /** Per `placed.templates`: its rows. */
   templates: TemplateRows[];
-  /** The library module a fallen part's remains draw with, or -1. */
-  box: number;
   /** Per building: its bounds in the world (min, max), its tint's value, and
    *  whether the side knows it fell. */
   bounds: Float32Array;
@@ -298,38 +285,10 @@ function placeRun(scene: BuildingScene, b: number, first: number, count: number)
   return _transforms;
 }
 
-/** Write a model record into `out` at float `o`: a transform (x, y, z, yaw,
- *  then the scale per axis) and a linear tint. The identity palette slot, no
- *  x-ray, no card. */
-function writeRecord(
-  out: Float32Array,
-  o: number,
-  transform: ArrayLike<number>,
-  t: number,
-  r: number,
-  g: number,
-  b: number,
-) {
-  out[o] = transform[t];
-  out[o + 1] = transform[t + 1];
-  out[o + 2] = transform[t + 2];
-  out[o + 3] = transform[t + 3];
-  out[o + 4] = 0;
-  out[o + 5] = 0;
-  out[o + 6] = 0;
-  out[o + 7] = 0;
-  out[o + 8] = r;
-  out[o + 9] = g;
-  out[o + 10] = b;
-  out[o + 11] = -1;
-  out[o + 12] = transform[t + 4];
-  out[o + 13] = transform[t + 5];
-  out[o + 14] = transform[t + 6];
-  out[o + 15] = 0;
-}
-
 /** Library row `r` of building `b`, placed (`transforms` at `t`), as a
- *  record: the row's tint times the building's own value. */
+ *  model record in `out` at float `o`: its transform (x, y, z, yaw, then the
+ *  scale per axis) and its tint, linear, times the building's own value. The
+ *  identity palette slot, no x-ray, no card. */
 function writeRow(
   scene: BuildingScene,
   out: Float32Array,
@@ -342,15 +301,22 @@ function writeRow(
   const linear = linearOf();
   const { tint } = scene.art.library.rows;
   const value = scene.jitter[b];
-  writeRecord(
-    out,
-    o,
-    transforms,
-    t,
-    linear[tint[r * 3]] * value,
-    linear[tint[r * 3 + 1]] * value,
-    linear[tint[r * 3 + 2]] * value,
-  );
+  out[o] = transforms[t];
+  out[o + 1] = transforms[t + 1];
+  out[o + 2] = transforms[t + 2];
+  out[o + 3] = transforms[t + 3];
+  out[o + 4] = 0;
+  out[o + 5] = 0;
+  out[o + 6] = 0;
+  out[o + 7] = 0;
+  out[o + 8] = linear[tint[r * 3]] * value;
+  out[o + 9] = linear[tint[r * 3 + 1]] * value;
+  out[o + 10] = linear[tint[r * 3 + 2]] * value;
+  out[o + 11] = -1;
+  out[o + 12] = transforms[t + 4];
+  out[o + 13] = transforms[t + 5];
+  out[o + 14] = transforms[t + 6];
+  out[o + 15] = 0;
 }
 
 /** Rows gathered for a population: records, each one's kind key (its module
@@ -463,9 +429,6 @@ export function createBuildingScene(
     art,
     placed,
     templates,
-    box: library.modules.findIndex(
-      (m) => library.kits[m.kit].appearance === PROTOTYPE_KIT && m.module === PROTOTYPE_MODULE,
-    ),
     bounds,
     jitter,
     fallen: new Uint8Array(count),
@@ -719,18 +682,22 @@ export function selectBuildings(
     );
 }
 
-const _box_transform = new Float32Array(ROW_TRANSFORM_FLOATS);
-
 /**
- * What the side knows fell (`fallen`, replacing the last list). A building
- * that changes leaves or rejoins the intact rows: its coarse records are
- * hidden or shown in place (`coarseDirty` names them) and its chunk, if
+ * What the side knows destroyed (`fallen`, replacing the last list). A
+ * building that changes leaves or rejoins the intact rows: its coarse records
+ * are hidden or shown in place (`coarseDirty` names them) and its chunk, if
  * resident, is expanded again at the next view. The fallen population is
- * rebuilt whole: it holds only what fell.
+ * rebuilt whole: it holds only what fell, each building as its template's
+ * rows for the state it is known in. A template with no rows for that state
+ * is refused by name (`state.missing`), and the scene keeps what it drew.
  */
 export function setFallenBuildings(scene: BuildingScene, fallen: readonly FallenBuilding[]): void {
-  const count = scene.placed.template.length;
+  const { placed } = scene;
+  const count = placed.template.length;
   const known = fallen.filter((f) => f.building >= 0 && f.building < count);
+  const ranges = known.map((f) =>
+    templateRows(scene.art.library, placed.templates[placed.template[f.building]], f.state),
+  );
   const next = new Uint8Array(count);
   for (const f of known) next[f.building] = 1;
   const before = scene.fallen;
@@ -744,39 +711,10 @@ export function setFallenBuildings(scene: BuildingScene, fallen: readonly Fallen
   }
   scene.ruinsVersion++;
   scene.ruins = null;
-  if (!known.length) return;
-
-  const { library } = scene.art;
-  const byId = new Map(library.templates.map((t) => [t.id, t]));
-  const linear = linearOf();
   const rows: GatheredRows = { records: [], keys: [], buildings: [] };
-  for (const f of known) {
-    const b = f.building;
-    const state = byId.get(scene.placed.templates[scene.placed.template[b]])?.states[f.state];
-    if (state) {
-      gatherRows(scene, rows, b, Uint32Array.of(state.first, state.count), 0);
-      continue;
-    }
-    // No art for the state: each part as the side knows it, a box.
-    if (scene.box < 0) continue;
-    const value = scene.jitter[b];
-    const [r, g, bl] = scene.style.ruin_tint.map((c) => linear[Math.round(c * 255)] * value);
-    for (const part of f.parts) {
-      _box_transform.set([
-        part.center[0],
-        part.center[1],
-        part.baseZ,
-        part.yaw,
-        2 * part.half[0],
-        2 * part.half[1],
-        2 * part.half[2],
-      ]);
-      writeRecord(_record, 0, _box_transform, 0, r, g, bl);
-      for (let i = 0; i < RECORD; i++) rows.records.push(_record[i]);
-      rows.keys.push(kindKey(scene.box, (1 << TIER_COUNT) - 1));
-      rows.buildings.push(b);
-    }
-  }
+  known.forEach((f, i) =>
+    gatherRows(scene, rows, f.building, Uint32Array.of(ranges[i].first, ranges[i].count), 0),
+  );
   if (rows.keys.length) scene.ruins = rowPopulation(scene, rows, TIER_COUNT);
 }
 

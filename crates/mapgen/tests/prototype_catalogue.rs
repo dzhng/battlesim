@@ -1,6 +1,5 @@
 //! The physical catalogue the parcel pass builds towns from. Its rows are the
-//! city source sets' descriptors (`assets/source/city/`); a template with no
-//! art yet is a stand-in box at believable metre scale, under the same contract.
+//! city source sets' descriptors (`assets/source/city/`).
 use contract::templates::{
     BuildingCategory, BuildingTemplateDescriptor, PlacementFrame, TemplateGeometryCatalog,
 };

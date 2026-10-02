@@ -43,6 +43,8 @@ An abrupt or oversized shoulder changes shoulder falloff/width; road core colour
 
 ## Outcome
 
+**Changed since.** [C30](C30-markings.md): the paved reach is 4.3 m, set by a crossing's bars; the shoulder's 3.5 m lies inside it. The band-by-band check was restated when the lane was integrated: a road is lighter than its field or within 15% of it and apart in hue, and no band is a dark trough ([`choices.md`](../choices.md) under C31, "A road is judged against the field beside it").
+
 **Built, as SG3's first fallback.** Beside every road the ground is washed toward a worn-earth hue and the grass thins across the same band. There is no band of a colour of its own: that was built first, and the critique read it as an outline (see [SG3](SG3-road-wear-read.md#outcome)).
 
 **The seam.**

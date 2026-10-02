@@ -8,7 +8,7 @@ import type { Vec3 } from "math";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader.ts";
 import type { AppearanceUnit, StaticBundle } from "@packages/scene-assets/src/schema.ts";
 import { color } from "math/color";
-import { PROTOTYPE_KIT, PROTOTYPE_MODULE } from "@packages/scene-assets/src/prototypeSet.ts";
+import { STAND_IN_KIT, STAND_IN_MODULE } from "@packages/scene-assets/src/standInKit.ts";
 import {
   PropAppearances,
   structureModels,
@@ -261,13 +261,13 @@ test("a second replacement never resurrects the static body", () => {
   ]);
 });
 
-// Street furniture has no art fitted yet. Its stand-in is the prototype
-// kit's unit box (a metre cube on its base), as artless buildings' parts are.
+// A prop kind with no art fitted is drawn as the stand-in kit's unit box (a
+// metre cube on its base).
 const withKit: InstalledAppearances = {
   ...installed,
   appearances: new Map([
     ...installed.appearances,
-    [PROTOTYPE_KIT, { ...entry("kit", null, [0, 0, 0], PROTOTYPE_MODULE), footprint: null }],
+    [STAND_IN_KIT, { ...entry("kit", null, [0, 0, 0], STAND_IN_MODULE), footprint: null }],
   ]),
 };
 const standIns = validateStandIns({
@@ -287,8 +287,8 @@ const linear = (srgb: [number, number, number]) => [...color.fromSRGB(srgb)];
 test("a prop kind with no art is drawn as a box of its own size, tinted by its kind", () => {
   const lamp: MapProp = { ...car, id: 41, kind: "lamp", half: [0.15, 0.15, 3] };
   const [box, post] = structureModels([car, lamp], [], artless);
-  expect(box.appearance).toBe(PROTOTYPE_KIT);
-  expect(box.pose).toMatchObject({ kind: "static", state: PROTOTYPE_MODULE });
+  expect(box.appearance).toBe(STAND_IN_KIT);
+  expect(box.pose).toMatchObject({ kind: "static", state: STAND_IN_MODULE });
   expect([box.x, box.y, box.z, box.yaw]).toEqual([10, 20, 3, 0.7]);
   // The unit box is a metre on a side: its scale is the prop's whole size.
   expect(box.scale).toEqual([4.2, 1.8, 1.5]);
@@ -297,7 +297,7 @@ test("a prop kind with no art is drawn as a box of its own size, tinted by its k
   expect(post.scale).toEqual([0.3, 0.3, 6]);
   post.tint!.forEach((c, k) => expect(c).toBeCloseTo(linear([0.5, 0.5, 0.5])[k], 6));
   // The models layer installs the kit for it.
-  expect(artless.drawnFor([car]).has(PROTOTYPE_KIT)).toBe(true);
+  expect(artless.drawnFor([car]).has(STAND_IN_KIT)).toBe(true);
 });
 
 test("a building's part is never a stand-in box: its building draws it from its template's art", () => {
@@ -330,7 +330,7 @@ test("a forest's tree is never a stand-in, a street tree is, and nothing is with
   const tree = (kind: string): MapProp => ({ ...car, kind, half: [0.35, 0.35, 5] });
   expect(structureModels([tree("trunk")], [], artless)).toEqual([]);
   expect(structureModels([tree("street_tree")], [], artless)).toHaveLength(1);
-  // The prototype kit not installed, or no stand-in style: as before, nothing.
+  // The stand-in kit not installed, or no stand-in style: nothing.
   expect(structureModels([car], [], new PropAppearances(installed, layout, standIns))).toEqual([]);
   expect(structureModels([car], [], appearances)).toEqual([]);
 });

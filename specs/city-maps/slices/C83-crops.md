@@ -39,6 +39,8 @@ Crops that imply protection they do not provide change height/coverage below the
 
 ## Outcome
 
+**Changed since.** [C84](C84-field-palette.md) and [C31](C31-city-biome.md) added an eleventh plot kind, the settlement's `yard`, with a growth row of its own.
+
 **Built.** The patchwork's kinds are meadow, pasture, wheat, barley, rapeseed, hay, stubble, ploughed, rough and prairie (`fixtures/biomes/summer.json` `plots`), and each grows its own row: wheat, barley, rapeseed and hay are generated kinds of their own, stubble and pasture were re-cut, ploughed earth has no row and grows nothing. No maize. Ten plot kinds and nine growth rows, inside the 15.
 
 A row's `rows` says how closely its clumps keep to the plot's drill rows, the ones the terrain already paints (`furrow_m`): a clump moves across them toward the nearest bright band, short of the plot's verge and any bare margin (`frame/grassPass.ts`). Wheat, barley, rapeseed and stubble use it.

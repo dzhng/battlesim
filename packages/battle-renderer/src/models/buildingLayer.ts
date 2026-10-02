@@ -4,11 +4,11 @@
 // drawn exactly as any static model is, from a record of the same layout.
 //
 // Three record buffers, each written where it changes and nowhere else: the
-// coarse population's (once a map, and a fallen building's records when
+// coarse population's (once a map, and a destroyed building's records when
 // knowledge changes), the pool's (a chunk's rows when it enters), and the
-// fallen population's (rebuilt with knowledge). A view change chooses the
-// draws on the CPU, a walk over chunks, never over modules; a still camera
-// does nothing.
+// fallen population's (the ruins and gutted shells, rebuilt with knowledge).
+// A view change chooses the draws on the CPU, a walk over chunks, never over
+// modules; a still camera does nothing.
 //
 // A draw is a range of one buffer as one mesh range. The meshes of a kit's
 // modules at a tier share a vertex and an index buffer, so consecutive draws
@@ -27,6 +27,7 @@ import {
   COARSE,
   createBuildingScene,
   POOL,
+  RUINS,
   selectBuildings,
   setFallenBuildings,
   type BuildingArt,
@@ -80,7 +81,8 @@ export type BindBuildingDraw = (
 };
 
 export interface BuildingStats {
-  /** Buildings drawn from template art, and those of them the side knows fell. */
+  /** Buildings drawn from template art, and those of them the side knows
+   *  destroyed (collapsed or gutted). */
   buildings: number;
   fallen: number;
   /** Chunks they are bucketed in, and those resident in the pool. */
@@ -93,9 +95,12 @@ export interface BuildingStats {
   coarse: number;
   coarseBytes: number;
   ruins: number;
-  /** Per tier: module instances and triangles drawn into the view. */
+  /** Per tier: module instances and triangles drawn into the view, and those
+   *  of the instances that are the fallen population's (a destroyed
+   *  building's rows for its damage state). */
   tiers: number[];
   triangles: number[];
+  ruinTiers: number[];
   /** Draw calls into the view, and into each of the sun's cascades with the
    *  triangles those draw. */
   draws: number;
@@ -170,6 +175,7 @@ export function createBuildingLayer(
     ruins: 0,
     tiers: Array.from({ length: TIER_COUNT }, () => 0),
     triangles: Array.from({ length: TIER_COUNT }, () => 0),
+    ruinTiers: Array.from({ length: TIER_COUNT }, () => 0),
     draws: 0,
     casterDraws: 0,
     casterTriangles: 0,
@@ -280,7 +286,7 @@ export function createBuildingLayer(
   return {
     /** The template art a generation installed and how its kits answer for
      *  its modules (`undefined`: no building is drawn). The kits installed
-     *  are only those the map's buildings need (`buildingKits`): a module of
+     *  are only those the map's buildings need (`templateKits`): a module of
      *  any other is bound to no state and has no mesh here. */
     setArt(installed: InstalledTemplateArt | undefined, source: ModuleSource) {
       const modules = installed?.modules ?? [];
@@ -359,6 +365,7 @@ export function createBuildingLayer(
       clearDrawList(cast);
       stats.tiers.fill(0);
       stats.triangles.fill(0);
+      stats.ruinTiers.fill(0);
       stats.casterTriangles = 0;
       buildingDraws(scene, (source, module, tier, first, count) => {
         const mesh = meshes[module]?.[tier];
@@ -366,6 +373,7 @@ export function createBuildingLayer(
         push(view, mesh, source, first, count);
         stats.tiers[tier] += count;
         stats.triangles[tier] += (count * mesh.count) / 3;
+        if (source === RUINS) stats.ruinTiers[tier] += count;
       });
       buildingCasters(scene, (source, module, tier, first, count) => {
         const mesh = meshes[module]?.[tier];
@@ -414,6 +422,7 @@ export function createBuildingLayer(
         ruins: scene?.ruins?.count ?? 0,
         tiers: [...stats.tiers],
         triangles: [...stats.triangles],
+        ruinTiers: [...stats.ruinTiers],
         draws: scene ? view.count : 0,
         casterDraws: scene ? cast.count : 0,
         refused: scene?.refused ?? 0,

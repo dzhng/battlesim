@@ -4,11 +4,12 @@
 // round, or stepped? C70's water's edge is measured here too (BANKS_ONLY=1
 // alone): its bands against the grass beside them, the grass thinning across
 // the bare earth, and a waterline that holds still.
-import { readFile, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { PNG } from "pngjs";
+import { chroma, linear, luminance, median } from "./_colour.mjs";
 import { advance, aim, lab, obs, openBattle, snapshot } from "./_lab.mjs";
 import { decode, pixel, writeCrop } from "./_png.mjs";
-import { classAt, groundUnder, openStations, shoot } from "./_groundStations.mjs";
+import { BIOME, classAt, groundUnder, openStations, shoot } from "./_groundStations.mjs";
 
 const VIEWPORT = { width: 1920, height: 1080 };
 /** Looking north, as the lab opens. */
@@ -40,15 +41,6 @@ const FLICKER_SHARE_MAX = 0.005;
 
 const surfaceAt = (page, p) => lab(page, (q) => window.__lab.route.surfaceAt(q[0], q[1]), p);
 
-/** Linear-light luminance of an sRGB pixel, in [0, 1]. */
-function luminance([r, g, b]) {
-  const linear = (v) => {
-    const c = v / 255;
-    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  };
-  return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
-}
-
 /** The mean luminance of the 3×3 pixels round `p` (or the square `reach`
  *  pixels each way). */
 function luminanceAt(png, p, reach = 1) {
@@ -62,19 +54,11 @@ function luminanceAt(png, p, reach = 1) {
  *  round `p`: its hue and chroma, apart from how light it is. */
 function chromaAt(png, p, reach) {
   const mean = [0, 0, 0];
-  const linear = (v) => (v / 255 <= 0.04045 ? v / 255 / 12.92 : ((v / 255 + 0.055) / 1.055) ** 2.4);
   for (let dy = -reach; dy <= reach; dy++)
     for (let dx = -reach; dx <= reach; dx++)
       pixel(png, p[0] + dx, p[1] + dy).forEach((v, c) => (mean[c] += linear(v)));
-  const [r, g, b] = mean.map((v) => v / (2 * reach + 1) ** 2);
-  const f = (t) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
-  const x = f((0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.9505),
-    y = f(0.2126 * r + 0.7152 * g + 0.0722 * b),
-    z = f((0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.089);
-  return [500 * (x - y), 200 * (y - z)];
+  return chroma(mean.map((v) => v / (2 * reach + 1) ** 2));
 }
-
-const median = (values) => [...values].sort((x, y) => x - y)[values.length >> 1];
 
 /** In the page: `window.__inside(x, y)`, how far a point lies inside the
  *  water's edge by the simulation's exported stretches (negative outside). */
@@ -138,9 +122,7 @@ const bankSections = (page, offsets) =>
 
 /** C70: the water's edge, on the ground rig's frozen page. */
 async function waterEdge(ctx) {
-  const { shore } = JSON.parse(
-    await readFile(new URL("../../fixtures/biomes/summer.json", import.meta.url), "utf8"),
-  );
+  const { shore } = BIOME;
   const page = await openStations(ctx, "river");
   await defineInside(page);
   // Where each band is whole: the middle of the wet bank, the bare earth

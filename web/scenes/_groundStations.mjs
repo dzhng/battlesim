@@ -9,11 +9,21 @@
 //
 // writes every station's shot and mask into throwaway/evidence/ground/ and a
 // sheet per map (`river:bend-65+wide-65`: those stations alone, the ones a
-// change can move); a later slice imports `openStations` and `shoot`.
+// change can move). A slice's own checks open a map with `openStations` and
+// read it with `shoot` or `stationFrame`, a mask with `classAt` or
+// `classPixels`, and a switch's frame cost with `pairedCost`.
+import { readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { PNG } from "pngjs";
+import { median } from "./_colour.mjs";
 import { advance, aim, lab, presented } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
+
+/** A fixture, parsed: `path` under `fixtures/`. */
+export const fixture = (path) =>
+  JSON.parse(readFileSync(new URL(`../../fixtures/${path}`, import.meta.url), "utf8"));
+/** The biome every station is drawn under. */
+export const BIOME = fixture("biomes/summer.json");
 
 export const VIEWPORT = { width: 1920, height: 1080 };
 /** Looking north, as the labs open. */
@@ -128,6 +138,10 @@ export const STATION_MAPS = {
       // The west edge of the wood nearest blue's start, against the open.
       "forest-edge-250": ({ wood }) => at(wood, 250),
       "forest-edge-65": ({ wood }) => at(wood, 65),
+      // The middle of a tree line between two fields (`treeLine`), looked
+      // at across it.
+      "tree-line-250": ({ line }) => at(line?.at, 250, PLAY, line?.yaw),
+      "tree-line-65": ({ line }) => at(line?.at, 65, PLAY, line?.yaw),
     },
   },
 };
@@ -190,6 +204,67 @@ const woodEdge = (page, size, near) =>
     },
     { size, near, deep: DEEP_M },
   );
+
+/** A tree line runs straight this far at least, with open ground these
+ *  distances beside it, and stands this far inside the map. */
+const TREE_LINE_M = 80;
+const BESIDE_LINE_M = [4, 30];
+const LINE_INSET_M = 400;
+
+/** The longest tree line of a generated map: `at`, the middle of the longest
+ *  straight stretch of a strip of forest that a unit finds wooded along its
+ *  middle and open ground on both sides of; `yaw`, looking across it from
+ *  its southern side. Undefined on a map with none. */
+async function treeLine(page, size) {
+  await generatedGround(page);
+  return page.evaluate(
+    async ({ size: [width, height], repo, run, beside, inset }) => {
+      const { FOREST_STROKE_FLOATS } = await import(
+        `/@fs/${repo}packages/battle-renderer/src/terrain/forestShapes.ts`
+      );
+      const ground = (x, y) => window.__lab.route.surfaceAt(x, y);
+      const wooded = (x, y) => ground(x, y)?.forest === true;
+      const open = (x, y) => {
+        const s = ground(x, y);
+        return s?.kind === "ground" && !s.forest;
+      };
+      let best;
+      for (const shape of window.__generatedGround.surface.site.forestShapes) {
+        if (shape.kind !== "stroke") continue;
+        const s = shape.strokes;
+        for (let o = 0; o < s.length; o += FOREST_STROKE_FLOATS) {
+          const [ax, ay, bx, by, half] = s.subarray(o, o + 5);
+          const length = Math.hypot(bx - ax, by - ay);
+          const [mx, my] = [(ax + bx) / 2, (ay + by) / 2];
+          if (length < run || length <= (best?.length ?? 0)) continue;
+          if (mx < inset || mx > width - inset || my < inset || my > height - inset) continue;
+          const along = [(bx - ax) / length, (by - ay) / length];
+          const across = along[0] > 0 ? [along[1], -along[0]] : [-along[1], along[0]];
+          const between = [0.25, 0.5, 0.75].every((t) => {
+            const [x, y] = [ax + (bx - ax) * t, ay + (by - ay) * t];
+            return (
+              wooded(x, y) &&
+              beside.every((d) =>
+                [-half - d, half + d].every((side) =>
+                  open(x + across[0] * side, y + across[1] * side),
+                ),
+              )
+            );
+          });
+          if (between) best = { length, at: [mx, my], yaw: Math.atan2(across[1], across[0]) };
+        }
+      }
+      return best && { at: best.at, yaw: best.yaw };
+    },
+    {
+      size,
+      repo: new URL("../../", import.meta.url).pathname,
+      run: TREE_LINE_M,
+      beside: BESIDE_LINE_M,
+      inset: LINE_INSET_M,
+    },
+  );
+}
 
 /** A generated town's streets near `centre`, by what a unit finds on the
  *  ground: `junction`, the middle of the nearest meeting of three ways or
@@ -436,6 +511,7 @@ export async function openStations(ctx, map) {
           edges: await townEdges(page, report.objective.center),
           river: await riverBank(page, report.size),
           wood: await woodEdge(page, report.size, report.start.at),
+          line: await treeLine(page, report.size),
           streets: await townStreets(page, report.objective.center),
         },
   );
@@ -502,6 +578,16 @@ export async function shoot(
   return shot;
 }
 
+/** A station's frame, its bare ground (no grass, no trees) and its class
+ *  mask, decoded. */
+export async function stationFrame(page, map, station) {
+  return {
+    mask: decode(await shoot(page, map, station, { view: "ground-classes" })),
+    bare: decode(await shoot(page, map, station, { grass: false, trees: false })),
+    shot: decode(await shoot(page, map, station)),
+  };
+}
+
 /** The ground's class at a pixel of a "ground-classes" shot: null where the
  *  pixel is not bare ground. Distances are metres outside an edge (negative
  *  inside), exact as far as the ground's own look reads them and holding
@@ -518,6 +604,26 @@ export function classAt(png, x, y) {
     plotKind: (b >> e.CLASS_KIND_SHIFT) & e.CLASS_KIND_MAX,
     plotHash: b & e.CLASS_HASH_MASK,
   };
+}
+
+/** The pixels of `mask` that are ground and whose class passes `keep`. */
+export function* classPixels(mask, keep) {
+  for (let y = 0; y < mask.height; y++)
+    for (let x = 0; x < mask.width; x++) {
+      const c = classAt(mask, x, y);
+      if (c && keep(c)) yield [x, y];
+    }
+}
+
+/** Whether a class is open ground: no wood on it, clear of a river's bank. */
+export const isOpen = (c) => c.forest === "none" && c.riverSd > 3;
+
+/** One in `every` of `pixels`, the first among them. */
+export function oneIn(every, pixels) {
+  const out = [];
+  let n = 0;
+  for (const p of pixels) if (n++ % every === 0) out.push(p);
+  return out;
 }
 
 /** The mask as a picture a person can read: road red by depth, water blue,
@@ -576,12 +682,7 @@ function sheet(rows, shrink) {
  *  `<map>-<station>[-bare|-classes].png`, and one sheet `<map>-stations.png`
  *  with a row a station: the shot, the bare ground, the mask made legible.
  *  `<map>-stations.json` holds the pose each was shot from. */
-export async function stationSheet(
-  ctx,
-  map,
-  page,
-  stations = Object.keys(STATION_MAPS[map].stations),
-) {
+async function stationSheet(ctx, map, page, stations = Object.keys(STATION_MAPS[map].stations)) {
   const rows = [];
   await ctx.writeEvidence(
     `${map}-stations.json`,
@@ -891,6 +992,37 @@ export async function groundRig(ctx) {
     JSON.stringify({ placed, changedShare: changed / (trees.width * trees.height) }),
   );
   await page.close();
+}
+
+/** Frames a cost batch draws before its GPU time is read. */
+const COST_FRAMES = 120;
+
+/** What one of the lab's `suppress*` switches costs a frame at the pose the
+ *  page stands at: the same frozen frame with what the switch draws and
+ *  without it, in `pairs` interleaved batches. `plainMs` is the median frame
+ *  without it, `costMs` the median of the paired differences, `differences`
+ *  each pair's. Run it alone, under the GPU lock. */
+export async function pairedCost(page, suppress, pairs) {
+  // The page draws on demand, and the timer's mean runs over the frames
+  // drawn: a view change resets it, then every frame is forced.
+  const batch = (off) =>
+    lab(
+      page,
+      async ({ suppress, off, frames }) => {
+        await window.__lab[suppress](off);
+        await window.__lab.setFrameView("final");
+        for (let i = 0; i < frames; i++) await window.__lab.frame();
+        return window.__lab.stats().gpu.meanMs;
+      },
+      { suppress, off, frames: COST_FRAMES },
+    );
+  const rows = { on: [], off: [] };
+  for (let pair = 0; pair < pairs; pair++) {
+    rows.off.push(await batch(true));
+    rows.on.push(await batch(false));
+  }
+  const differences = rows.on.map((v, i) => v - rows.off[i]);
+  return { plainMs: median(rows.off), costMs: median(differences), differences };
 }
 
 /** `STATIONS=map,...`: every station of those maps, as shots, masks and a

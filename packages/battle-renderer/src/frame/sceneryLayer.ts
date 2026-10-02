@@ -1,13 +1,14 @@
-// The scenery layer: every placed tree, hedgerow shrub and piece of forest-floor
-// dressing, instanced from its appearance's tiers, in the frame's own passes. Its populations are chunked, culled and tiered by the
-// static chunk owner (`staticChunks.ts`); the buffers, meshes and materials
-// here are the layer's own. Opaque, so all of it is in the depth prepass
-// (FogVisibility's tile cull reads it like any surface).
+// The scenery layer: every placed tree, hedgerow shrub and piece of
+// forest-floor dressing, instanced from its appearance's tiers, in the
+// frame's own passes. The trees and shrubs are chunked, culled and tiered by
+// the static chunk owner (`staticChunks.ts`); the buffers, meshes and
+// materials here are the layer's own. Opaque, so all of it is in the depth
+// prepass (FogVisibility's tile cull reads it like any surface).
 //
-// - The forest (the simulation's trunks, one tree each) casts sun shadows into every
-//   cascade (the trees in view, and those whose shadow can land in it),
-//   receives them, and takes FogTerm through the faces group. A
-//   tree is seen or unseen whole: every fragment probes fog at its crown's
+// - The forest (the simulation's trunks, one tree each) casts sun shadows
+//   into every cascade (the trees in view, and those whose shadow can land in
+//   it), receives them, and takes FogTerm through the faces group. A tree is
+//   seen or unseen whole: every fragment probes fog at its crown's
 //   heart with no facing test, as ground probes do. A crown is a porous
 //   volume inside the simulation's foliage, so the sweep's rule (sight into
 //   a forest fades with the foliage crossed) decides it, and fog never
@@ -28,9 +29,9 @@
 // the plain crown as a pixel grows past a clump.
 //
 // A tree whose trunk stands on ground the side has seen cleared (a lane a
-// vehicle knocked through) is not drawn: `setCleared` rebuilds
-// the forest without it, and the dressing is laid again without what stood
-// on that ground.
+// vehicle knocked through) is not drawn: `setCleared` rebuilds the forest
+// without it, and the dressing is laid again without what stood on that
+// ground.
 //
 // On a view change `prepare` sorts trees into tiers by projected height
 // (`scenery/lod.ts`) and uploads the near trees' per-tier lists; far chunks
@@ -607,14 +608,16 @@ export async function createSceneryLayer(
     setCleared(ground: GroundMarks | null) {
       if (!loaded) return;
       const all = loaded.placedForest;
+      /** Whether the side has seen the ground at (x, y) cleared. */
+      const cleared =
+        ground &&
+        ((x: number, y: number) => {
+          const [i, j] = [Math.floor(x / ground.cellM), Math.floor(y / ground.cellM)];
+          return i >= 0 && j >= 0 && i < ground.cols && j < ground.rows && ground.isCleared(i, j);
+        });
       const kept: number[] = [];
-      for (let o = 0; o < all.length; o += TREE_FLOATS) {
-        const i = Math.floor(all[o + TREE_FIELD.x] / (ground?.cellM ?? 1));
-        const j = Math.floor(all[o + TREE_FIELD.y] / (ground?.cellM ?? 1));
-        const inside = ground && i >= 0 && j >= 0 && i < ground.cols && j < ground.rows;
-        if (inside && ground.isCleared(i, j)) continue;
-        kept.push(o);
-      }
+      for (let o = 0; o < all.length; o += TREE_FLOATS)
+        if (!cleared?.(all[o + TREE_FIELD.x], all[o + TREE_FIELD.y])) kept.push(o);
       if (
         kept.length === loaded.standing &&
         (loaded.kept === null || kept.every((o, k) => o === loaded!.kept![k]))
@@ -634,14 +637,7 @@ export async function createSceneryLayer(
       loaded.standing = kept.length;
       loaded.kept = kept;
       // Ground is cleared where a tree is knocked down, and only there.
-      setDressingCleared(
-        loaded.dressing.cache,
-        ground &&
-          ((x, y) => {
-            const [i, j] = [Math.floor(x / ground.cellM), Math.floor(y / ground.cellM)];
-            return i >= 0 && j >= 0 && i < ground.cols && j < ground.rows && ground.isCleared(i, j);
-          }),
-      );
+      setDressingCleared(loaded.dressing.cache, cleared);
       viewKey = "";
     },
     setTreesShown(on: boolean) {

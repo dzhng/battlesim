@@ -14,9 +14,10 @@ import type { SoundMotion } from "@packages/battle-audio/src/soundFrame";
 import type { GpuAllocationCounts } from "@packages/renderer-core/src/gpuAllocations";
 import { apartKinds, buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
 import {
-  mapProps,
+  knownStanding,
   PropAppearances,
   structureModels,
+  type PropBox,
 } from "@packages/battle-renderer/src/models/propAppearance";
 import { pickBox, type SoldierBody } from "@packages/battle-renderer/src/picking";
 import {
@@ -27,9 +28,7 @@ import {
   type FogSensorRules,
 } from "@packages/battle-renderer/src/frame/fogInputs";
 import {
-  fallenBuildings,
   FRAME_FLOATS,
-  indexBuildings,
   type SideBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
 import {
@@ -38,6 +37,7 @@ import {
   knownOf,
 } from "@packages/battle-renderer/src/buildingObstacles";
 import { gameBiome } from "./gameBiome";
+import { knownFallen } from "./destroyedBuildings";
 import { mapAppearances, useMapAppearances } from "./gameAppearances";
 import { gameStandIns } from "./gameModels";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
@@ -74,7 +74,7 @@ import {
   EFFECT_FLOATS,
 } from "@packages/battle-renderer/src/effects/effectFrame";
 import { offeredCastLights } from "@packages/battle-renderer/src/light/castLights";
-import { useStaticWorld } from "./useStaticWorld";
+import { groundUnderRay, useMapBuildings, useStaticWorld } from "./useStaticWorld";
 import { createBattleAudio, soundMotion } from "./soundFeed";
 import { useFeed } from "./feed";
 import { posedSockets } from "./workbench/benchWorld";
@@ -82,7 +82,6 @@ import type { Vec3 } from "math";
 import type { Pose } from "@web/battle/present/interpolate";
 import { circleContains, unitCircle } from "@packages/battle-renderer/src/orderOverlay";
 import { orderView } from "./battleOverlay";
-import { groundUnderRay } from "./useStaticWorld";
 
 export interface BattleSessionOptions {
   /** The scenario JSON the authority runs. */
@@ -182,11 +181,9 @@ export function useBattleSession({
   // Every building is drawn from its template's rows, as instances of kit
   // modules, standing or fallen: no fitted model stands for one or for its
   // remains.
-  const placedProps = useMemo(() => world && mapProps(world.exports, world.layout), [world]);
-  const drawnBuildings = useMemo(
-    () => world && placedProps && indexBuildings(world.exports.buildings, placedProps),
-    [world, placedProps],
-  );
+  const mapBuildings = useMapBuildings(world);
+  const placedProps = mapBuildings?.props ?? null;
+  const drawnBuildings = mapBuildings?.index ?? null;
   // The catalog, and the kits this map's buildings and stand-in boxes draw
   // from, fetched once the map is known: the loading cover stays up for them.
   const appearances = useMapAppearances(drawnBuildings?.placed ?? null, true);
@@ -232,10 +229,7 @@ export function useBattleSession({
       drawnBuildings && knownBuildingsKey
         ? {
             placed: drawnBuildings.placed,
-            fallen: fallenBuildings(
-              drawnBuildings,
-              JSON.parse(knownBuildingsKey) as KnownPropView[],
-            ),
+            fallen: knownFallen(drawnBuildings, JSON.parse(knownBuildingsKey) as KnownPropView[]),
           }
         : null,
     [drawnBuildings, knownBuildingsKey],
@@ -526,26 +520,35 @@ export function useBattleSession({
     /** The camera's obstacles: how many boxes, and what indexing them took. */
     cameraObstacles: () =>
       cameraObstacles && { boxes: cameraObstacles.view.count, buildMs: cameraObstacles.buildMs },
-    /** The map's buildings: each one's template, owner, frame and the boxes
-     *  of its parts as the side knows them (the remains of one it has seen
-     *  fall). */
+    /** The map's buildings: each one's template, owner, frame, the state the
+     *  side draws it in, its parts as the map has them (`authored`) and as the
+     *  side knows them (`parts`: the remains or the shell of one it has seen
+     *  destroyed), which are the boxes its camera keeps clear of. */
     buildings: () => {
-      if (!drawnBuildings || !buildings) return [];
-      const fallen = new Map(buildings.fallen.map((f) => [f.building, f.parts]));
+      if (!drawnBuildings || !buildings || !knownBuildingsKey) return [];
+      const state = new Map(buildings.fallen.map((f) => [f.building, f.state]));
+      const known = JSON.parse(knownBuildingsKey) as KnownPropView[];
       const { placed } = drawnBuildings;
+      const box = (p: PropBox) => ({
+        kind: p.kind,
+        center: p.center,
+        baseZ: p.baseZ,
+        yaw: p.yaw,
+        half: p.half,
+      });
       return drawnBuildings.parts.map((parts, i) => ({
         template: placed.templates[placed.template[i]],
         owner: placed.owners[i],
         frame: [...placed.frames.subarray(i * FRAME_FLOATS, (i + 1) * FRAME_FLOATS)],
-        fallen: fallen.has(i),
-        parts: (fallen.get(i) ?? parts).map((p) => ({
-          center: p.center,
-          baseZ: p.baseZ,
-          yaw: p.yaw,
-          half: p.half,
-        })),
+        fallen: state.has(i),
+        state: state.get(i) ?? "intact",
+        authored: parts.map(box),
+        parts: knownStanding(parts, known, new Set(parts.map((p) => p.id))).map(box),
       }));
     },
+    /** The boxes the fog is handed as what hides the ground behind them: the
+     *  occluders the side knows stand. */
+    fogOccluders: () => occluders,
     /** The side's known craters: marked cells, and the centre of the
      *  `binM`-square block holding the most (framing a shelled field). */
     craters: (binM = 16) => {
