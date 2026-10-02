@@ -34,7 +34,7 @@ Rejected silhouette reshapes its family source without changing the type preset 
 
 ## Outcome
 
-**2026-10-01.** The towers are a source set: `packages/scene-assets/blender/city/towers.py` writes `assets/source/city/towers/` (30 modules, four templates) through the houses' authoring helper. `city/tower_sheets.py` photographs them with `assemble.py`'s camera, alone and among the houses and the China apartment blocks.
+**2026-10-01.** The towers are a source set: `packages/scene-assets/blender/city/towers.py` writes `assets/source/city/towers/` (30 modules, four templates) through the houses' authoring helper. They were first judged on Blender sheets from a script of their own; that script is deleted, and the line-up lab (`/lab/city-lineup`) is where they are judged now.
 
 | Template | Plan, floors, height | Look |
 |---|---|---|
@@ -48,4 +48,4 @@ Rejected silhouette reshapes its family source without changing the type preset 
 - **Proved:** two runs write the same bytes; the kit validates with no finding; the bake's only finding is that the four templates are not yet in the physical catalogue, which the cutover clears (so the contract admits the descriptors and every row stays inside its part grown by the fit). `homes.py` still writes its committed bytes.
 - **Unprimed critique** (one pass, on the sheets): read at once as prefab panel housing of the 1970s and 80s at the right scale beside the houses, floors countable; the slab reads as its own building, the three point towers as one kit recoloured (same window, same stair stripe, same porch and roof hut). What it called wrong, worst first: plain boxes that meet the ground at a razor edge; bare dark roofs with a small lift hut; balcony fronts with crack lines (fixed: painted concrete now); the stair stripe reads as a zipper; identical dark windows and grime only in the ground-floor band. Tier 1 still reads as windows, tier 2 as a ribbed striped box, tier 3 as a pale block; the step from tier 1 to tier 2 would pop (darker roof, vents gone, no curtain colour).
 - **Not done:** the sheets are Blender renders with a stand-in sun, not the battle's renderer, which cannot draw kits yet; the tier distances are `assemble.py`'s reading of the model thresholds. No reference comparison was run. The critique's points other than the balcony fronts are open. Damage states are C14's.
-- **Decisions:** [choices](../choices.md#c18-our-own-towers).
+- **Decisions:** [choices](../choices.md#buildings-lane).

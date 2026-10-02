@@ -95,4 +95,4 @@ Two passes, each a fresh agent given every frame and no history. The first saw t
 
 **Not verified.** No Preview checkpoint was opened (several agents were running). Smoke from the far stations. The frame cost of the smoke over many destroyed buildings: sources share the one smoke budget, and nothing was measured.
 
-Decisions: [choices](../choices.md#c27-ruin-and-gutted-art-drawn-by-what-a-side-knows).
+Decisions: [choices](../choices.md#buildings-lane).

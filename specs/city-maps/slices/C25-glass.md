@@ -39,7 +39,7 @@ Glass that disappears or reads opaque at the target camera changes its coverage/
 
 ## Outcome
 
-Yes, with the look left provisional. Glass composites correctly and costs nothing measurable; whether it reads as glass is the open half. The decisions are in [choices](../choices.md#c25-glass).
+Yes, with the look left provisional. Glass composites correctly and costs nothing measurable; whether it reads as glass is the open half. The decisions are in [choices](../choices.md#buildings-lane).
 
 **The seam.** A blended material's triangles are their own index range (`models/surfaceParts.ts`). They draw last in the frame's existing world pass, after the water, through one pipeline (`models/surfaceFragments.ts`):
 

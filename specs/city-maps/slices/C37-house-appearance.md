@@ -33,7 +33,7 @@ An appearance/fit regression reopens its reusable source mapping before the surr
 
 ## Outcome
 
-**2026-10-02: every building on every map is drawn from the template art library.** The fitted house path is deleted: no `unit: "building"` appearance, no `house_a/b/c`, no building half of `PropAppearances`. The decisions are in [choices](../choices.md#c37-house-appearance).
+**2026-10-02: every building on every map is drawn from the template art library.** The fitted house path is deleted: no `unit: "building"` appearance, no `house_a/b/c`, no building half of `PropAppearances`. The decisions are in [choices](../choices.md#buildings-lane).
 
 - **The contract that changed.** A city set names the physical catalogue it dresses (`city_sets.<set>.catalogue` in `assets/catalog.json`: `generated`, the map generator's, or `authored`, the hand-authored maps' boxes). One library covers both: `covers` lists both hashes (library format 2), each catalogue is held to its own sets, the generator's to `require_complete` and the authored to `validate`. Art identity is still in no map.
 - **The set.** `village` (`blender/city/village.py`) dresses all twelve boxes of `fixtures/building-templates.json`, each with one module standing and one fallen, built by `house.py`'s farm at the box's own size. Every one of the twelve is placed by a saved map. The three village houses are the same triangles as before at every tier. A lab's box borrows the nearest house's look a tier coarser; the kit bakes to 37 MiB against a 50 MiB budget.

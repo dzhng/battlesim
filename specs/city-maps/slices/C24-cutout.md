@@ -38,7 +38,7 @@ Cutouts that alias or vanish change coverage thresholds/mips; glass and interior
 
 ## Outcome
 
-Yes. A cutout keeps its coverage through colour, depth and shadow, and the opaque path is as it was. The decisions are in [choices](../choices.md#c24-cutout); what a kit author writes is in the [city readme](../../../packages/scene-assets/blender/city/README.md) ("Surfaces that are not opaque").
+Yes. A cutout keeps its coverage through colour, depth and shadow, and the opaque path is as it was. The decisions are in [choices](../choices.md#buildings-lane); what a kit author writes is in the [city readme](../../../packages/scene-assets/blender/city/README.md) ("Surfaces that are not opaque").
 
 **The seam.** A material's kind of surface (cutout, opaque, room, blended) is a range of its mesh's indices, ordered once at install (`models/surfaceParts.ts`), and every draw of the models layer and the building layer names the kind it draws. A cutout has three pipelines in the frame's existing passes, with the models' own vertex stage:
 

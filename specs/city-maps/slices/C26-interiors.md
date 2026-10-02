@@ -39,7 +39,7 @@ If the user wants rooms to read darker or lighter, tune the atlas (C15), not the
 
 ## Outcome
 
-Yes. Rooms behind windows are drawn by the repo's mechanism (a room box a window, a flat-perspective lookup into a 2 × 5 atlas, the room chosen by a hash of the window's position), unlit, at a cost under the noise. The decisions are in [choices](../choices.md#c26-interiors); what a kit author writes is in the [city readme](../../../packages/scene-assets/blender/city/README.md#interiors).
+Yes. Rooms behind windows are drawn by the repo's mechanism (a room box a window, a flat-perspective lookup into a 2 × 5 atlas, the room chosen by a hash of the window's position), unlit, at a cost under the noise. The decisions are in [choices](../choices.md#buildings-lane); what a kit author writes is in the [city readme](../../../packages/scene-assets/blender/city/README.md#interiors).
 
 **The seam.**
 
@@ -75,7 +75,7 @@ Yes. Rooms behind windows are drawn by the repo's mechanism (a room box a window
 
 A second unprimed critic, on the final frames, again found nothing glowing (the nearest case, the shaded facade, fell from medium to medium-low confidence) and the shopfronts reading as rooms from the street. Its strongest finding is the other side of that fix: **at 80 m every window is a flat, near-black rectangle, and the plain upper windows at 30 m are close to it: holes more than rooms.** The first critic said the same of the four darkest at 80 m before the fix. Two levers, neither pulled here: the atlas's floors and depths (C15: from above a window is its cell's floor), and the reference `unlit` shows a picture at (sun shadow now; the open sun made a shaded facade's rooms read as lit).
 
-**On the real kits** (`homes`, `farmsteads`, `towers`, `industry`, through the building layer's draws; the decisions are in [choices](../choices.md#facades-in-the-scripted-sets)): rooms and glass draw in a town with nothing changed in the renderer. Every house, farmhouse, shop, office and tower flat has a room behind its glass at tier 0, and all but the towers at tier 1.
+**On the real kits** (`homes`, `farmsteads`, `towers`, `industry`, through the building layer's draws; the decisions are in [choices](../choices.md#buildings-lane)): rooms and glass draw in a town with nothing changed in the renderer. Houses, farmhouses, shops, offices and tower flats have rooms behind their glass at tier 0, and all but the towers at tier 1. Not every window has one: where two walls' rooms would share a corner, one window keeps the room and the other has a blind drawn (a quarter of the houses' windows, one tower panel in eight).
 
 - **What it took in the kits:** a wall there is one face, so each window is an opening cut in the shell at the two near tiers; and two walls' rooms meet at a corner, so one window keeps the room and the other draws a blind. A squeezed room (under 1.5 m deep, or as narrow as its window) is a flat pale panel from above and is not drawn.
 - **How a window reads:** from the street an upper window is dark glass over a room; from the tactical camera it is a dark pane whose tint differs window to window; at 128 m and beyond it is a pane, as on the fixture. Nothing reads as lit. A shopfront is the weak case: a large pane with no bars over a pale room read as an open hole, and what the street sees of a shop's room is its bare side wall. The shops have a stall of boxes in the window for that.

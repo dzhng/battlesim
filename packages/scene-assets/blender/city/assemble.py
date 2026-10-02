@@ -8,11 +8,8 @@ row is instanced as the readme says (scale, yaw about +Z, move; drawn at the
 tiers its mask names; tint on tint-masked surfaces), and the descriptor's part
 boxes are drawn over them as wires.
 
-Sheets (`each`, `street`, `suburb`, `hamlet` and `tiers` unless named):
+Sheets (`each` and `tiers` unless named):
   each       one sheet a template: 30 m, 80 m and 250 m, with its part boxes
-  street     every template in a row, seen from 80 m
-  suburb     a made-up block of about twenty houses, seen from 250 m (the houses' set)
-  hamlet     a made-up hamlet of the set's farmsteads along a lane, seen from 250 m
   tiers      one template at each of its four detail tiers, from 80 m
   damage     one sheet a template: intact beside its ruin or its gutted shell at 30 m,
              80 m and 250 m, each with the boxes the simulation has there (the parts,
@@ -175,13 +172,9 @@ def tier_of(name):
     return int(name[i + 4:]) if i >= 0 and name[i + 4:].isdigit() else None
 
 
-def load(set_dir, fresh=True):
-    """The set's modules ({name: [(tier or None, mesh object, its frame in the module)]}) and its templates.
-    `fresh` false loads it beside the sets already loaded (a sheet of several sets; their names must not clash:
-    a caller renames the earlier sets' objects, materials and images out of the way first)."""
-    if fresh:
-        bpy.ops.wm.read_factory_settings(use_empty=True)
-    earlier = set(bpy.data.objects)
+def load(set_dir):
+    """The set's modules ({name: [(tier or None, mesh object, its frame in the module)]}) and its templates."""
+    bpy.ops.wm.read_factory_settings(use_empty=True)
     path = os.path.join(set_dir, "kit.glb")
     doc = glb_json(path)
     bpy.ops.import_scene.gltf(filepath=path)
@@ -190,7 +183,7 @@ def load(set_dir, fresh=True):
         surface(bpy.data.materials[info["name"]], info, doc)
     modules = {}
     for o in list(bpy.data.objects):
-        if o.parent is None and o.type == "EMPTY" and o not in earlier:
+        if o.parent is None and o.type == "EMPTY":
             inverse = o.matrix_world.inverted()
             modules[o.name] = [(tier_of(c.name), c, inverse @ c.matrix_world) for c in o.children_recursive if c.type == "MESH"]
     for o in bpy.data.objects:
@@ -250,7 +243,7 @@ def slab(name, rect, z, colour):
     return o
 
 
-def build(modules, names, template, frame=Matrix.Identity(4), tier=0, wires=0.0, into=None, state="intact"):
+def build(modules, names, template, frame=Matrix.Identity(4), tier=0, wires=0.0, state="intact"):
     """Instance the rows of a template's `state` at one tier under `frame`; `wires` metres thick, the simulation's boxes over it."""
     made = []
     for index, x, y, z, yaw, sx, sy, sz, tiers, r, g, b in template["states"][state]:
@@ -276,7 +269,7 @@ def build(modules, names, template, frame=Matrix.Identity(4), tier=0, wires=0.0,
             o.visible_shadow = False
             made.append(o)
     for o in made:
-        (into or bpy.context.scene.collection).objects.link(o)
+        bpy.context.scene.collection.objects.link(o)
     return made
 
 
@@ -355,94 +348,6 @@ def sheet_each(camera, modules, templates, out, scratch):
 
 def in_order(templates):
     return sorted(templates["templates"], key=lambda t: (t["descriptor"]["category"] != "detached_home", t["descriptor"]["id"]))
-
-
-def sheet_street(camera, modules, templates, out, scratch):
-    """Every template side by side, street side to the camera, in runs short enough to see at 80 m."""
-    names, gap, runs, run, x = templates["modules"], 6.0, [], [], 0.0
-    for template in in_order(templates):
-        x0, x1, *_ = extent(template)
-        if run and x + (x1 - x0) > 100:
-            runs.append((run, x - gap))
-            run, x = [], 0.0
-        run.append((template, x - x0))
-        x += x1 - x0 + gap
-    runs.append((run, x - gap))
-    strips = []
-    for run, length in runs:
-        made = [slab("street", (-20, length + 20, -17, -9), 0.0, (0.05, 0.05, 0.052))]
-        for template, at in run:
-            x0, x1, y0, y1, height = extent(template)
-            frame = Matrix.Translation((at, -y0, 0))  # every street front on one line
-            made += build(modules, names, template, frame, tier=tier_at(80))
-            made.append(label(template["descriptor"]["id"].replace("china-", ""), (at + (x0 + x1) / 2, -6.0)))
-        strips.append(shoot(camera, os.path.join(scratch, "panel.png"), (length / 2, 5.0, 3.0), 80, math.radians(-90),
-                            (WIDTH, 600, 20)))
-        clear(made)
-    save(os.path.join(out, "street-80m.png"), np.concatenate(strips, 0))
-
-
-def sheet_suburb(camera, modules, templates, out, scratch):
-    """A made-up block: two streets, houses facing each across them, a terrace and the shops on the corner."""
-    names = templates["modules"]
-    by = {t["descriptor"]["id"].replace("china-", ""): t for t in templates["templates"]}
-    rows = [  # (the street's y, which side of it, the houses along it from the west)
-        (0.0, 1, ["home-10x8-1f", "home-9x9-2f", "home-ell-2f", "home-8x11-1f", "home-12x9-2f", "home-10x8-1f", "home-9x9-2f"]),
-        (0.0, -1, ["terrace-3x2f", "home-8x11-1f", "home-12x9-2f", "townhouse-2f", "home-ell-2f", "home-10x8-1f"]),
-        (-64.0, 1, ["terrace-5x3f", "home-9x9-2f", "townhouse-2f", "home-12x9-2f", "home-8x11-1f"]),
-        (-64.0, -1, ["corner-shop-3f", "shops-4x3f", "townhouse-2f", "terrace-3x2f", "home-ell-2f"]),
-    ]
-    target = Vector((62.0, -32.0, 0.0))
-    eye = target + 250 * Vector((math.cos(0.85) * math.cos(math.radians(-112)), math.cos(0.85) * math.sin(math.radians(-112)),
-                                 math.sin(0.85)))
-    made = [slab(f"street_{y}", (-30, 160, y - 4, y + 4), 0.0, (0.05, 0.05, 0.052)) for y in (0.0, -64.0)]
-    made.append(slab("cross_street", (-14, -6, -100, 30), 0.0, (0.05, 0.05, 0.052)))
-    count = 0
-    for street, side, houses in rows:
-        x = 0.0
-        for id_ in houses:
-            x0, x1, y0, y1, height = extent(by[id_])
-            # the template's street side is -Y: north of a street it faces south as authored, south of it it is turned round
-            turn = 0.0 if side > 0 else math.pi
-            centre = Vector((x + (x1 - x0) / 2, street + side * 9.0, 0.0))
-            frame = Matrix.Translation(centre) @ Matrix.Rotation(turn, 4, "Z") @ Matrix.Translation((-(x0 + x1) / 2, -y0, 0))
-            made += build(modules, names, by[id_], frame, tier=tier_at((centre - eye).length))
-            x += x1 - x0 + 8.0
-            count += 1
-    image = shoot(camera, os.path.join(scratch, "panel.png"), target, 250, math.radians(-112))
-    clear(made)
-    save(os.path.join(out, "suburb-250m.png"), image)
-    print(f"suburb: {count} buildings")
-
-
-def sheet_hamlet(camera, modules, templates, out, scratch):
-    """A made-up hamlet: farmsteads on both sides of a lane, each a little out of square with it, among fields."""
-    names = templates["modules"]
-    farms = sorted((t for t in templates["templates"] if t["descriptor"]["category"] == "farmstead"),
-                   key=lambda t: t["descriptor"]["id"])
-    if not farms:
-        raise SystemExit("hamlet: the set has no farmstead")
-    target = Vector((0.0, 4.0, 0.0))
-    azimuth = math.radians(-108)
-    eye = target + 250 * Vector((math.cos(0.85) * math.cos(azimuth), math.cos(0.85) * math.sin(azimuth), math.sin(0.85)))
-    made = [slab("lane", (-190, 190, -3, 3), 0.0, (0.1, 0.085, 0.06)),
-            slab("field_a", (-170, -20, 62, 130), -0.01, (0.12, 0.1, 0.055)),
-            slab("field_b", (10, 150, -120, -58), -0.01, (0.15, 0.14, 0.06))]
-    # (along the lane, which side of it, which farm, how far out of square)
-    plots = [(-104, 1, 0, 0.07), (-56, 1, 2, -0.1), (-12, 1, 1, 0.0), (38, 1, 2, 0.12), (88, 1, 0, -0.05),
-             (-86, -1, 1, 0.06), (-38, -1, 0, -0.08), (14, -1, 2, 0.14), (62, -1, 1, -0.04)]
-    for x, side, which, turn in plots:
-        template = farms[which % len(farms)]
-        x0, x1, y0, y1, height = extent(template)
-        # the template's street side is -Y: north of the lane it faces south as authored, south of it it is turned round
-        centre = Vector((x, side * 10.0, 0.0))
-        frame = (Matrix.Translation(centre) @ Matrix.Rotation((0.0 if side > 0 else math.pi) + turn, 4, "Z")
-                 @ Matrix.Translation((-(x0 + x1) / 2, -y0, 0)))
-        made += build(modules, names, template, frame, tier=tier_at((centre - eye).length))
-    image = shoot(camera, os.path.join(scratch, "panel.png"), target, 250, azimuth)
-    clear(made)
-    save(os.path.join(out, "hamlet-250m.png"), image)
-    print(f"hamlet: {len(plots)} farmsteads")
 
 
 def sheet_tiers(camera, modules, templates, out, scratch):
@@ -540,16 +445,15 @@ def sheet_aftermath(camera, modules, templates, out, scratch):
 def main():
     args = [a for a in sys.argv[sys.argv.index("--") + 1:] if a != "--"] if "--" in sys.argv else []
     if len(args) < 2:
-        raise SystemExit("assemble.py <set dir> <out dir> [each|street|suburb|hamlet|tiers|damage|aftermath ...]")
+        raise SystemExit("assemble.py <set dir> <out dir> [each|tiers|damage|aftermath ...]")
     set_dir, out = os.path.abspath(args[0]), os.path.abspath(args[1])
-    sheets = {"each": sheet_each, "street": sheet_street, "suburb": sheet_suburb, "hamlet": sheet_hamlet, "tiers": sheet_tiers,
-              "damage": sheet_damage, "aftermath": sheet_aftermath}
+    sheets = {"each": sheet_each, "tiers": sheet_tiers, "damage": sheet_damage, "aftermath": sheet_aftermath}
     scratch = os.path.join(out, "scratch")
     os.makedirs(scratch, exist_ok=True)
     modules, templates = load(set_dir)
     camera = stage()
     camera.data.clip_end = 12000.0
-    for name in args[2:] or ["each", "street", "suburb", "hamlet", "tiers"]:
+    for name in args[2:] or ["each", "tiers"]:
         sheets[name](camera, modules, templates, out, scratch)
 
 
