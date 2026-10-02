@@ -35,9 +35,12 @@ fn river_map(map_type: MapType, size: MapSize, seed: u64) -> (MapPlan, MapDefini
         },
     };
     let plan = generate_layout(&request, &presets).unwrap();
-    let map = mapgen::lower(&request.compile_request(plan.clone()), &catalogue)
-        .unwrap()
-        .map;
+    let map = mapgen::lower(
+        &mapgen::CompileRequest::generated(&request, plan.clone()),
+        &catalogue,
+    )
+    .unwrap()
+    .map;
     (plan, map)
 }
 

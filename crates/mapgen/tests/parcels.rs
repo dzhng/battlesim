@@ -102,8 +102,11 @@ fn town(map_type: MapType, size: MapSize, seed: u64) -> Arc<Town> {
     let request = request(map_type, size, seed);
     let plan = fill(&request, &presets(), &catalogue())
         .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} seed {seed}: {errors:?}"));
-    let compiled = mapgen::lower(&request.compile_request(plan.clone()), &catalogue())
-        .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} seed {seed}: {errors:?}"));
+    let compiled = mapgen::lower(
+        &mapgen::CompileRequest::generated(&request, plan.clone()),
+        &catalogue(),
+    )
+    .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} seed {seed}: {errors:?}"));
     let town = Arc::new(Town {
         plan,
         map: compiled.map,
@@ -197,7 +200,11 @@ fn a_fixed_request_gives_the_same_plan_and_map_bytes_every_run() {
         let bytes = |seed: u64| {
             let request = request(map_type, MapSize::Small, seed);
             let plan = fill(&request, &presets, &catalogue).unwrap();
-            let map = mapgen::lower(&request.compile_request(plan.clone()), &catalogue).unwrap();
+            let map = mapgen::lower(
+                &mapgen::CompileRequest::generated(&request, plan.clone()),
+                &catalogue,
+            )
+            .unwrap();
             (
                 serde_json::to_string(&plan).unwrap(),
                 serde_json::to_string(&map.map).unwrap(),
@@ -576,9 +583,12 @@ fn an_open_map_zoned_for_apartments_builds_none_above_six_floors() {
     for seed in 1..=6 {
         let request = request(MapType::Open, MapSize::Small, seed);
         let plan = fill(&request, &presets, &catalogue).unwrap();
-        let map = mapgen::lower(&request.compile_request(plan), &catalogue)
-            .unwrap()
-            .map;
+        let map = mapgen::lower(
+            &mapgen::CompileRequest::generated(&request, plan),
+            &catalogue,
+        )
+        .unwrap()
+        .map;
         for building in &map.buildings {
             assert!(
                 floors(building) <= 6,
@@ -654,9 +664,12 @@ fn every_building_of_a_map_is_of_one_regional_family() {
         let mut request = request(MapType::Mixed, MapSize::Small, seed);
         request.template_catalog_hash = catalogue.hash().into();
         let plan = fill(&request, &presets, &catalogue).unwrap();
-        let map = mapgen::lower(&request.compile_request(plan), &catalogue)
-            .unwrap()
-            .map;
+        let map = mapgen::lower(
+            &mapgen::CompileRequest::generated(&request, plan),
+            &catalogue,
+        )
+        .unwrap()
+        .map;
         let families: BTreeSet<&str> = map
             .buildings
             .iter()
