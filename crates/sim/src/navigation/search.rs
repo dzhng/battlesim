@@ -563,6 +563,12 @@ impl RouteSearch {
                 d.u64(v as u64);
             }
         }
+        if let Stage::Smoothing(s) = &self.stage {
+            d.u64(s.reading.is_some() as u64);
+            if let Some(probe) = &s.reading {
+                probe.digest(d);
+            }
+        }
         let stage = match &self.stage {
             Stage::Expanding(e) => [0, e.open.len(), 0],
             Stage::Smoothing(s) => [

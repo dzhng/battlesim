@@ -59,7 +59,10 @@ impl RouteCheck {
     pub fn digest(&self, d: &mut Digest) {
         d.u64(self.route.len() as u64)
             .u64(self.at as u64)
-            .u64(self.probe.as_ref().map_or(0, |p| p.next) as u64);
+            .u64(self.probe.is_some() as u64);
+        if let Some(probe) = &self.probe {
+            probe.digest(d);
+        }
         for p in &self.route {
             d.f64(p.x).f64(p.y);
         }

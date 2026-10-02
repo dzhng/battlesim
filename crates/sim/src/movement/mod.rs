@@ -497,6 +497,10 @@ fn request_route(
             .filter(|(k, _)| *k != unit.id.0 as usize)
             .filter_map(|(_, hull)| *hull)
             .filter(|hull| (hull.center - here).length() <= KNOT_M)
+            .map(|hull| Obb2 {
+                half: hull.half + v2(TRAFFIC_MARGIN_M, TRAFFIC_MARGIN_M),
+                ..hull
+            })
             .collect()
     } else {
         Vec::new()

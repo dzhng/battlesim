@@ -36,7 +36,35 @@ Insufficient variety or poor street frontage expands the template library/preset
 
 ## Outcome
 
-`mapgen::parcels::fill_districts` is implemented, and `generate` and `generate-map` (CLI and Wasm) return a plan and a map with towns in them ([crate guide](../../../crates/mapgen/README.md)). The catalogue it is proved with is [`fixtures/prototype-building-templates.json`](../../../fixtures/prototype-building-templates.json): 29 labelled placeholder boxes of the regional family `prototype`, which certify no real dimension or appearance. Each district kind's streets and setbacks are rows of [`fixtures/map-presets.json`](../../../fixtures/map-presets.json), revision `layout-presets-6`. The decisions the spec left open are in the choices ledger: [parcels and buildings](../choices.md#c53-parcels-and-buildings), and the [town model](../choices.md#town-model-and-edge-roads) for what changed when districts became blocks.
+`mapgen::parcels::fill_districts` is implemented, and `generate` and `generate-map` (CLI and Wasm) return a plan and a map with towns in them ([crate guide](../../../crates/mapgen/README.md)). The generator's physical catalogue is [`fixtures/prototype-building-templates.json`](../../../fixtures/prototype-building-templates.json), derived from the accepted China-family building sets despite its historical filename. Each district kind's streets and setbacks are rows of [`fixtures/map-presets.json`](../../../fixtures/map-presets.json). The decisions the spec left open are in the choices ledger: [parcels and buildings](../choices.md#c53-parcels-and-buildings), and the [town model](../choices.md#town-model-and-edge-roads) for what changed when districts became blocks.
+
+### Facade clearance (2026-10-02)
+
+A parcel reserves room for its building's art as well as its physical parts.
+The existing global parcel admission already prevents physical building overlap;
+the reported Mixed Small seed 1 passes that check. Its dense centre setbacks,
+however, were narrower than the apartment kit's permitted facade overhang.
+Both centre kinds now reserve 1.5 m on each side, the largest accepted kit's
+side fit, through their existing general setback rows. The generator still
+reads only physical templates and presets; appearance identities remain separate.
+The uniform allowance also leaves that room when a centre selects a house.
+
+The compiled-map regression grows every part by that allowance and checks that
+it stays inside its own parcel, allowing only the existing centimetre-coordinate
+rounding. It failed on the seed-1 courtyard apartment before the setback change
+and passes afterward. The parcel file's broader proofs cover every type and size
+at seed 1 and the maximum seed, including roads, entrances, district edges,
+physical separation and rigid template placement.
+
+A full production generation of Mixed Small seed 1 has no physical overlaps in
+either arm. Pairs of permitted art envelopes that intersect fall from 167 to zero;
+buildings fall from 3,195 to 3,050. These are conservative envelopes, not a count
+of visible mesh intersections. Two real-route captures hold the original camera
+targets at tactical and wide zoom, and their pixel differences demonstrate the
+placement change. The independent fresh critique accepted this narrow spacing
+change. Street-furniture art clearance and broad city visual acceptance remain
+C54 work. The combined generator/preset revision, parity records and saved
+Market Town include this change together with kerbside placement.
 
 **What a generated map holds.** The layout's roads and the avenues between a settlement's blocks; inside each district, streets joined to them (surface kind `road`, 7 m, or dirt lanes in a hamlet); paved aprons before apartment blocks and sheds; and one building per placed template, each on a parcel cut to that template. A plan also records the parcels (`lots`).
 
@@ -127,4 +155,4 @@ Builds and the battle are in instructions retired. No tick ran over 33 ms on eit
 - **Movement through town is not proved.** A force crosses each map, but no test drives a vehicle down a street or walks infantry from a door to it; pavement connectivity and clear ground before each door are what is measured.
 - **No rejected-fit layer.** A place where nothing fitted is not recorded.
 - **Every building is the prop type `building`** (400 hp, garrisonable), a tower and a shed alike, until C50.
-- **The catalogue is placeholders.** Release coverage of the six categories waits for the specialist's sources (C13, C16–C19). What a district kind needs of its block (`ground_m`) is kept in step with the catalogue by hand.
+- **Block dimensions remain preset data.** What a district kind needs of its block (`ground_m`) is kept in step with the accepted physical catalogue by hand.

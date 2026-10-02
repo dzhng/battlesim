@@ -4051,6 +4051,8 @@ That is the limit: the sheet trades "a hole at 80 m in the sun" against "lit on 
 
 **Verdict:** forced by the route-survival rule; provisional as a picture. Terraced streets stay bare. It goes back to about 0.9 m when a road journey tolerates a body beside its lane. **Confidence:** high that the simulation needs it, low that it is what the streets should look like.
 
+**Resolved by the kerbside integration:** the margin returns to 0.9 m after local actual-hull traversals, the generated access matrix and unchanged combined long-arrival gate pass. The provisional verge placement is superseded; rendered street-art and frame-cost acceptance remain C54's.
+
 ### The catalog is a fourth document of generation
 
 **Choice:** `generate`, `generate-map` and the two Wasm exports take the unit and prop catalog's documents. The request does not pin it.
@@ -5988,3 +5990,33 @@ The second pass's unprimed review found nearly all its street faults along the s
 ### Keep large resolved maps out of traced component props
 
 **When:** C61. **Choice:** Loading still returns the same resolved map, but the loading/refusal renderer is a plain function and the geometry component receives a reader that captures the map. For a large saved battlefield, React's development profiler therefore sees a function reference instead of copying thousands of terrain and prop entries into each changed-prop record. **Gap:** Reusing the small geometry lab for full-sized saved maps exposes a data boundary that the small fixture could not stress. **Reach:** Saved-map acquisition and diagnostics stay under their existing owners, while the scene runner keeps its profiler-size guard. **Verdict:** sound; it removes the unnecessary data-bearing loading component and avoids a second acquisition or rendering path. **Confidence:** high.
+
+## Kerbside integration and individual corridor recovery
+
+### Sample free road lines before searching around a blockage
+
+**Choice:** A vehicle meeting parked bodies tries its normal lane plus six evenly spaced lateral lines. It prefers a gentle merge 32 m ahead, then 16 m and 8 m, holding its chosen line through a row before returning. A larger gentle shift can therefore win over a smaller sharp one. **Gap:** C46 did not select a lane-search algorithm. **Reach:** This bounded deterministic search retains the existing grid-search fallback; it is not a proof that every possible narrow gap is found. **Verdict:** sound within demonstrated traversal scope; finer or continuous interval search is unnecessary until a real usable gap is missed. **Confidence:** low for the exact sampling/reach numbers, medium for the policy.
+
+### Refine vehicle segments against the side's existing known bodies
+
+**Choice:** A coarse cell touched by a parked car may still hold a clear vehicle line. Segment checks consult the navigation owner's actual known footprints, including that side's moved/removed beliefs, while destinations and cell searches retain conservative admission. Terrain and map edges still constrain the whole navigation width. **Gap:** The placement plan did not choose how to resolve coarse false blockage. **Reach:** A physically clear destination may remain conservatively unavailable, and navigation still plans width rather than all rectangular-hull orientations; movement proves actual turning/collision. No second world oracle or hidden-state cache is introduced. **Verdict:** sound for this boundary. **Confidence:** high.
+
+### Traffic detours do not move roadside cover
+
+**Choice:** A tank going around another live vehicle looks for clear width or another route without pushing static bodies, even though its ordinary journey may push a light car when no clear line works. **Gap:** C46 did not choose whether traffic avoidance may rearrange parked cover. **Reach:** Traffic yielding can prefer waiting/detouring over a mechanically possible shove. **Verdict:** needs-user for this gameplay tradeoff; provisionally retain the rule because passing a colleague should not casually rearrange the street. It is reversible by restoring ordinary pushing capability to traffic replans, with the traffic/body gates rerun. **Confidence:** medium.
+
+### Yield dense queries under the existing work counter
+
+**Choice:** Each road-line candidate and exact-body query keeps its cursor between advances. Body queries read eight raw slots per charged work unit; segments stop near the existing 64-work quantum. All retained progress enters the battle digest. **Gap:** The old synchronous query could exceed the existing planning overrun limit; C46 did not prescribe a work weighting for the new refinement. **Reach:** The job completes incrementally without increasing allowances or hiding scans. The weighting establishes deterministic accounting, not instruction-cost equivalence. **Verdict:** sound for bounded work; instruction calibration remains part of the cost gate. **Confidence:** medium for weighting, high for yielding and state identity. The enlarged driving state is boxed once per road journey; it adds no public schema or dependency.
+
+### Keep clearance waypoints until reached or passed abeam
+
+**Choice:** Wheeled steering retains a nearby route corner instead of dropping it early to begin a smooth turn. A stopped colleague may require that lateral waypoint for clearance. **Gap:** The earlier shortcut did not distinguish a useful clearance corner from a disposable fillet. **Reach:** The movement owner still steers at its turning radius; some open turns may start later or look less smooth. **Verdict:** sound; deleting the unsafe shortcut is simpler than another turn-clearance oracle or traffic-only exception. Broad visual smoothness remains unmeasured. **Confidence:** medium.
+
+### Reserve the largest current facade fit in centre parcels
+
+**Choice:** Both affected centre presets reserve 1.5 m side space even when a selected house's art allowance is smaller. Two adjacent parcels can therefore hold the largest currently accepted facade overhang without the parcel generator importing appearance metadata. **Gap:** C53 did not choose template-specific art setbacks. **Reach:** Current kits fit conservatively, at a density cost; Mixed Small seed 1 loses 145 buildings. A future larger fit needs a new explicit preset/geometry decision. **Verdict:** sound for current art, with the uniform density tradeoff kept reversible. **Confidence:** medium.
+
+### A stranded soldier recovers independently of his advancing squad
+
+**Choice:** If one soldier makes no physical progress, he uses the existing local fine planner and nearby live soldier discs to reach his own path endpoint or a standing rejoin point on the squad's corridor. Seven advancing squadmates cannot hide his jam. The existing one-second attempt throttle covers unsuccessful target selection too. **Gap:** Earlier recovery applied only on the final approach; aggregate squad progress masked a member stranded beside idle infantry. **Reach:** No new timer, radius, state field or collision exception is added. This repairs demonstrated stationary jams; slow or moving congestion remains distinct. **Verdict:** sound; the individual physical-progress owner should decide his recovery. **Confidence:** high.

@@ -39,6 +39,81 @@ fn soldiers(b: &Battle, unit: u32) -> Vec<V2> {
         .collect()
 }
 
+#[test]
+fn a_corridor_member_walks_round_idle_soldiers_while_his_squadmate_advances() {
+    // Two scouts leave less than one soldier's diameter between them. One
+    // walker starts against their discs; his squadmate has a clear lane.
+    // The advancing man must not hide the other's need to go round them.
+    let mut rules = common::game();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "rifle",
+        json!({"body":{"squad":{"slots":["rifleman","rifleman"]}}}),
+    );
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "units",
+        "recon",
+        json!({"body":{"squad":{"slots":["scout"]}}}),
+    );
+    rules["physics"]["soldier_radius_m"] = json!(0.3);
+    let mut s: ScenarioDefinition = serde_json::from_value(json!({
+        "map":{"size":[1000,3000],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35},
+        "rules":rules,
+        "units":[
+            rifle([500.0,100.0]),
+            {"side":"blue","kind":"recon","position":[500.4159144498272,100.43245389398865],"engagement":"return_fire_only"},
+            {"side":"blue","kind":"recon","position":[499.3909583746914,100.04399329150203],"engagement":"return_fire_only"}
+        ],"scripts":[],"events":[]
+    }))
+    .unwrap();
+    // Freeze the contact geometry through the public scenario input while
+    // leaving the seeded arrangement of the two walkers to its owner.
+    let start = sim::math::v2(500.0, 100.0);
+    let initial = Battle::new(&s, 1);
+    let offset = start - soldiers(&initial, 0)[0];
+    s.units[0].position = [500.0 + offset.x, 100.0 + offset.y];
+    let mut b = Battle::new(&s, 1);
+    let before = soldiers(&b, 0);
+    let scouts = [soldiers(&b, 1)[0], soldiers(&b, 2)[0]];
+    let ack = b.accept(contract::command::CommandEnvelope {
+        side: contract::ids::Side::Blue,
+        seq: 1,
+        queued: false,
+        order: contract::command::Order::Move {
+            units: vec![UnitId(0)],
+            gesture: 2,
+            goal: [100.0, 2500.0],
+            route: contract::command::RoutePolicy::Shortest,
+            direction: contract::command::MoveDirection::Forward,
+            facing: None,
+        },
+    });
+    assert_eq!(ack.error, None);
+    assert!(ack.placement.unwrap().destinations[0].placed);
+    for _ in 0..30 * b.rules().tick_hz {
+        b.step();
+        let bodies: Vec<_> = (0..3).flat_map(|id| soldiers(&b, id)).collect();
+        for (i, p) in bodies.iter().enumerate() {
+            for q in &bodies[i + 1..] {
+                assert!((*p - *q).length() >= 0.6 - 1e-9, "tick {}", b.tick());
+            }
+        }
+    }
+    assert_eq!([soldiers(&b, 1)[0], soldiers(&b, 2)[0]], scouts);
+    let after = soldiers(&b, 0);
+    assert!(
+        (after[1] - before[1]).length() > 20.0,
+        "the clear walker advances"
+    );
+    assert!(
+        (after[0] - start).length() > 20.0,
+        "the other walker remains at the scouts while his squadmate advances: {:?}",
+        after[0]
+    );
+}
+
 fn crate_at(center: [f64; 2]) -> Value {
     json!({ "kind": "crate", "center": center, "yaw": 0.4, "half_extents": [0.8, 0.8, 0.6] })
 }
