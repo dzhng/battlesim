@@ -5578,6 +5578,57 @@ loaded throughput or full-world process/GPU peak.
 **Reach:** One battle builds the world twice (worker, page), not once. The page's build runs behind the loading screen. The page's world has no navigation and no battle state, so no query can read hidden destruction. Where the export had moved surface, terrain-ray, water and learned-crown arithmetic into free functions so two worlds could share them, that arithmetic is back inside `WorldGeometry`, its one caller. The worker handoff, cancellation, the prepared replay, the fog change, the camera lab's catalogue map, the combat parity pair and the startup harness are unchanged.
 
 **Verdict:** sound. Battle digests and replays do not move; the generated and camera scenes pass unchanged; Mixed Small is playable 5 to 9 s after Deploy on a loaded machine, against 3 to 4 s for the export on a quieter one, with level retired instructions ([startup measurement](startup-lane.md#startup-measurement)). **Confidence:** high.
+
+## C06: avoid geometry for a squad with no steering decision
+
+**Choice:** A vehicle moves far from an idle squad. Each living soldier is already
+at his holding post, if any, and the existing vehicle-dodge reader returns no
+motion. Skip gathering local obstacle geometry for that squad. Share the exact
+holding-post eligibility predicate with ordinary steering; do not create another
+motion rule. Nearby traffic and unfinished cover posts retain normal movement.
+
+**Gap:** The threat list described global moving vehicles, so its nonempty state
+prevented the existing idle shortcut even when none could affect this squad.
+
+**Reach:** Preserve velocity reset and garrison handling, the old empty-threat
+return, and centroid settlement for the nonempty-threat no-steer tail. Crowd and
+unit iteration order stay unchanged. This adds no cache, state or budget policy;
+future changes to post motion inherit one eligibility owner.
+
+**Verdict:** sound; high confidence. The omitted geometry cannot be consumed by a
+steering decision in this branch. Paired measurements and exact battle evidence
+live in C06; current full admission remains separate.
+
+## C06: build cover exposure only for IDs its immutable knowledge can read
+
+**When:** the untracked-cover-field pass, after the current move-certification
+profile identified repeated ephemeral field work.
+
+**The choice:** leave an empty position row for a unit neither side tracks,
+while retaining its outer unit-ID slot. Imagine a late battle with thousands of
+squads that were already fallen when it began. Movement repeatedly constructs
+their exposed soldier positions, but its cover reader asks for an enemy track
+before looking up that row. Because knowledge cannot change during this movement
+call, those particular positions cannot be read. A squad either side does track
+keeps all its member positions in order, including fallen members and remembered
+sightings. Keeping only living/currently visible rows would change remembered
+aiming; dropping the outer slots would shift every later unit's address.
+
+**The gap:** C06 names repeated-work costs but does not prescribe this field's
+read predicate. The measured parent task selected this single bounded candidate;
+the pass verified the sole consumer and immutable lifetime before implementing it.
+
+**The reach:** the field remains an ephemeral snapshot with the same one reader;
+there is no extra cache or model state. A future reader that accesses untracked
+rows must revisit the gather predicate. The paired complete observations prove
+this current reader, not a speculative future use.
+
+**Verdict — sound, high confidence:** the omission follows an unreachable read,
+not a unit class, corpse count or hand-picked visibility rule. It earns the
+predeclared whole-Orders gain and exact per-tick battle/observation proofs; the
+smaller whole-step improvement is reported separately. Existing public cover,
+last-seen, hidden and replay tests own the semantic contract, with tracked-row
+omission falsified through the cover behavior rather than private vector shape.
 ## C45 street models
 
 The models, their boxes and the sheets are in the [C45 outcome](slices/C45-street-models.md#outcome).

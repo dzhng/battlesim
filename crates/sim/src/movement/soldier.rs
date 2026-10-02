@@ -477,7 +477,7 @@ pub fn soldier_steer(
     }
     let Some(corridor) = corridor else {
         // Holding: to his post (cover, or a step out to fire), on his own route.
-        let post = s.post.filter(|p| (*p - here).length() >= ON_SPOT_M)?;
+        let post = holding_post(s)?;
         if s.path.last() != Some(&post) || stale(s, side, &clear) {
             plan_own(ctx, side, around, s, post, &[]);
         }
@@ -558,6 +558,11 @@ pub fn soldier_steer(
     }
     let on = corridor.ahead(s.leg, t, rules.steer_ahead_m);
     Some(Steer { target: on, pace })
+}
+
+fn holding_post(s: &Soldier) -> Option<V2> {
+    s.post
+        .filter(|p| (*p - s.position.xy()).length() >= ON_SPOT_M)
 }
 
 /// Plan a soldier's own route from where he stands to `to` on the exact
@@ -679,6 +684,21 @@ pub(super) fn step_squad(
     let route = if advancing { unit.route.take() } else { None };
     let posted = unit.members.iter().any(|s| s.post.is_some());
     if route.is_none() && threats.is_empty() && !posted {
+        return;
+    }
+    let clear_by = ctx.soldier_radius_m + ctx.infantry.yield_margin_m;
+    if route.is_none()
+        && !threats.is_empty()
+        && unit.members.iter().filter(|s| s.alive()).all(|s| {
+            holding_post(s).is_none()
+                && threats
+                    .iter()
+                    .all(|t| t.dodge(s.position.xy(), clear_by).is_none())
+        })
+    {
+        // A far moving hull cannot make stationary soldiers need local geometry.
+        // Keep the same centroid update as the ordinary no-corridor tail.
+        unit.settle();
         return;
     }
     let corridor = route.as_deref().map(|r| Corridor {

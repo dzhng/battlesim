@@ -60,6 +60,95 @@ fn own(b: &Battle, id: u32) -> OwnUnit {
         .clone()
 }
 
+#[test]
+fn idle_soldiers_yield_to_nearby_traffic_and_far_squads_keep_their_centroid() {
+    let mut setup = common::scenario(
+        r#"{"size":[400,300],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#,
+        serde_json::json!([
+            {"side":"blue","kind":"jeep","position":[30,50]},
+            {"side":"blue","kind":"recon","position":[70,50]},
+            {"side":"blue","kind":"recon","position":[250,250]}
+        ]),
+        serde_json::json!([]),
+    );
+    // Settle initial holding posts, then isolate traffic from new cover claims.
+    setup.rules.cover.reresolve_s = 3600.0;
+    let mut battle = Battle::new(&setup, 1);
+    for _ in 0..240 {
+        battle.step();
+    }
+    assert!(battle
+        .unit(UnitId(1))
+        .unwrap()
+        .members
+        .iter()
+        .filter(|s| s.alive())
+        .all(|s| s.post.is_none_or(|p| (p - s.position.xy()).length() < 0.05)));
+    let near: Vec<_> = battle
+        .unit(UnitId(1))
+        .unwrap()
+        .members
+        .iter()
+        .map(|s| s.position)
+        .collect();
+    let far: Vec<_> = battle
+        .unit(UnitId(2))
+        .unwrap()
+        .members
+        .iter()
+        .map(|s| s.position)
+        .collect();
+    let mut orders = Orders { seq: 0 };
+    orders.go(
+        &mut battle,
+        &[0],
+        [140.0, 50.0],
+        1,
+        RoutePolicy::Shortest,
+        false,
+    );
+    let mut yielded = false;
+    let mut before_contact = true;
+    for _ in 0..240 {
+        battle.step();
+        let hull = battle.unit(UnitId(0)).unwrap().hull_box().unwrap();
+        before_contact &= near
+            .iter()
+            .all(|p| !hull.contains(p.xy(), setup.rules.physics.soldier_radius_m));
+        let close = battle.unit(UnitId(1)).unwrap();
+        yielded |= before_contact
+            && close
+                .members
+                .iter()
+                .zip(&near)
+                .any(|(s, p)| (s.position - *p).length() > 0.3);
+        let distant = battle.unit(UnitId(2)).unwrap();
+        assert_eq!(
+            distant
+                .members
+                .iter()
+                .map(|s| s.position)
+                .collect::<Vec<_>>(),
+            far
+        );
+        assert!(distant
+            .members
+            .iter()
+            .all(|s| s.velocity == sim::math::V2::default()));
+        let sum = distant
+            .members
+            .iter()
+            .filter(|s| s.alive())
+            .fold(sim::math::V3::default(), |sum, s| sum + s.position);
+        let n = distant.members.iter().filter(|s| s.alive()).count() as f64;
+        assert_eq!(distant.position, sum * (1.0 / n));
+    }
+    assert!(
+        yielded,
+        "the nearby squad must yield before the hull reaches it"
+    );
+}
+
 fn xy(u: &OwnUnit) -> [f64; 2] {
     [u.position[0], u.position[1]]
 }
