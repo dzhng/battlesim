@@ -36,3 +36,45 @@ No new transparency framework beyond this.
 
 ## Feedback that would change this slice
 Glass that disappears or reads opaque at the target camera changes its coverage/reflectance; interiors remain separate.
+
+## Outcome
+
+Yes, with the look left provisional. Glass composites correctly and costs nothing measurable; whether it reads as glass is the open half. The decisions are in [choices](../choices.md#c25-glass).
+
+**The seam.** A blended material's triangles are their own index range (`models/surfaceParts.ts`). They draw last in the frame's existing world pass, after the water, through one pipeline (`models/surfaceFragments.ts`):
+
+- **order:** as the layer packs them, never sorted;
+- **depth:** read, not written; in no prepass, so the overlays, the fog's tile cull and the x-ray do not know a pane is there;
+- **shadow:** none;
+- **light:** the frame's one shade function, with the pane's shading normal turned toward the eye and its own light capped (`presentation.glass`: `turn`, `glint`);
+- **over what is behind it:** by the material's coverage value (its opacity), the same from both sides;
+- **fog:** it leaves the mask alone. What is seen or unseen is what stands behind the pane.
+
+A kit author marks glass with `coverage=("blended", opacity)` on a material helper and models the pane as one face (`parts.sheet`).
+
+**Proved on** `/lab/facade`: three panes each half across the next, a fourth turned round, and a block's windows.
+
+- **Through it:** one pane keeps 0.77 of the brightness behind it, two keep 0.59, and a pane seen from its back the same as from its front.
+- **Opaque occlusion:** a frame in front of another pane's glass is drawn exactly as without the glass.
+- **Order:** the same modules handed to the frame in the opposite order draw the same picture to 1 of 255 on every pixel.
+- **Fog:** panes in front of unseen ground show it hatched, their frames seen; a pane past the sight line is unseen with the rest.
+- **From the street, under four suns** (the fixture's, behind the camera, ahead of it, along the street): a window's pane is 0.25 to 0.42 of its wall's brightness, never a pale plate.
+
+**Cost** (the same field of 288 blocks, a pane in each of its 2,592 bays): +0.16 ms at the default camera and −0.02 ms over the whole field, on frames of 2.3 and 2.7 ms: noise.
+
+**Pictures** (`throwaway/evidence/facade/`): `glass-close-1920x1080.png`, `glass-tactical-1920x1080.png`, `glass-fog-close-1920x1080.png`, `facade-street-fixture-1920x1080.png`, `facade-street-ahead-1920x1080.png`, `rooms-storefront-1920x1080.png`.
+
+**Compared with** a Cycles render of the lab's panes and block from the scene's cameras, not the China balcony the slice names: that kit's glass is still the opaque stand-in. The overlaps darken in the same steps and the frames occlude alike.
+
+**The unprimed critique:**
+
+| Finding | Disposition |
+|---|---|
+| Panes read as smoked film, and a building's windows as open holes: no reflection, sky tint or highlight says a pane is there | Open. The mirror is bounded on purpose (a grazing pane was a pale plate), which leaves a pane to read by its darkening alone. The knobs are `presentation.glass`; the better cue is the pane's own material (a recipe with a faint waviness in its normal and a dust film in its coverage), which is the kits' pass |
+| A pane over unseen ground showed a second, unhatched plate inside it, and seemed to reveal seen ground | Fixed: glass no longer writes the fog mask |
+| A pane's tint is close to a cast shadow's colour; glass casts none itself; free-standing panes are dark tiles at the default camera | Left. On a facade a pane sits in a frame against a wall; the lab's free-standing panes are a test of composition |
+| The right-hand windows read as plated, rooms do not answer the sun, rooms seem lit on a shaded facade | The rooms' ([C26](C26-interiors.md)) |
+
+A second unprimed critic, on the final frames, saw the hatch run unbroken through the glass and the overlaps combine and sort correctly, and repeated the first finding: smoked plastic, and grey tiles at the default camera.
+
+**Not done:** the `preview-shots` checkpoint; the China balcony comparison; glass on a real kit.
