@@ -208,6 +208,10 @@ pub struct Towns {
     /// How many times its length an edge on a road counts for, when a
     /// piece of ground picks the edge it fronts.
     pub road_frontage: f64,
+    /// How far a street's end is moved along the road it meets, to meet it
+    /// where a street already does from the other side: nearer than this
+    /// the two make one crossroads, not two junctions a few metres apart.
+    pub align_m: f64,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -557,6 +561,12 @@ pub struct Parcels {
     pub street_step_m: f64,
     /// How far along a street the next parcel is tried when none fits.
     pub lot_step_m: f64,
+    /// A street that stops with a carriageway this near ahead of it runs on
+    /// to it: no ground between is worth a dead end.
+    pub run_on_m: f64,
+    /// A street that runs on past its last junction for less than this and
+    /// stops in the open is cut back to that junction.
+    pub tail_min_m: f64,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -595,11 +605,33 @@ pub struct SettlementClass {
     /// distance from the centre when the settlement grows: 0 grows a compact
     /// town, more strings it along its roads.
     pub ribbon: f64,
+    /// The roads it has besides the ones that meet at its centre: none
+    /// where absent.
+    #[serde(default)]
+    pub side_roads: Option<SideRoads>,
     /// How many blocks side by side take one district kind together.
     pub neighbourhood: [u32; 2],
     /// What its blocks are, from the centre out; the last zone reaches the
     /// edge.
     pub zones: Vec<Zone>,
+}
+
+/// A settlement's secondary roads. Each leaves one of the roads through
+/// the centre part of the way out to the edge of its ground, turns off it
+/// into the widest sector that has no road yet, and runs straight to that
+/// edge: a second way out of town that does not pass the central junction.
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SideRoads {
+    /// How many a seed draws.
+    pub count: [u32; 2],
+    /// Where one leaves its road, as a share of the way from the centre to
+    /// the edge of the settlement's ground.
+    pub from: Range,
+    /// How far it turns off that road, toward the open sector.
+    pub turn_deg: Range,
+    /// The least distance between two of them where they leave one road.
+    pub apart_m: f64,
 }
 
 /// A block is one district: ground bounded by roads, streets and the
@@ -792,9 +824,10 @@ impl PresetDefinitions {
                 && towns.block_split[1] < 1.0
                 && (0.0..=20.0).contains(&towns.block_skew_deg)
                 && towns.road_frontage.is_finite()
-                && towns.road_frontage >= 1.0,
+                && towns.road_frontage >= 1.0
+                && length(towns.align_m),
             "towns".into(),
-            "towns need an avenue width, a growth noise below 1 in one or more patches of a positive size, a sharpest corner below 90°, a block split inside a row, a skew of 20° at most and a road frontage of 1 or more",
+            "towns need an avenue width, a growth noise below 1 in one or more patches of a positive size, a sharpest corner below 90°, a block split inside a row, a skew of 20° at most, a road frontage of 1 or more and a nonnegative reach to align junctions over",
         );
         let f = &self.forests;
         check(
@@ -907,9 +940,11 @@ impl PresetDefinitions {
                 && positive(p.street_width_m)
                 && length(p.verge_m)
                 && positive(p.street_step_m)
-                && positive(p.lot_step_m),
+                && positive(p.lot_step_m)
+                && length(p.run_on_m)
+                && length(p.tail_min_m),
             "parcels".into(),
-            "parcels need a regional family, a prop type, a street width and positive steps",
+            "parcels need a regional family, a prop type, a street width, positive steps, a nonnegative run-on and a nonnegative least tail",
         );
         for (field, message) in self.open_country.errors(self.wood_floor_m2()) {
             check(false, format!("open_country.{field}"), message);
@@ -1060,6 +1095,21 @@ impl PresetDefinitions {
                 "a block's depth and length are ordered ranges of metres",
             );
             check(length(class.ribbon), at("ribbon"), "ribbon is nonnegative");
+            check(
+                class.side_roads.is_none_or(|rule| {
+                    rule.count[0] <= rule.count[1]
+                        && positive_range(rule.from)
+                        && rule.from[1] < 1.0
+                        && range(rule.turn_deg)
+                        // Square to the road it leaves at most; no sharper
+                        // than a road may turn.
+                        && rule.turn_deg[0] >= self.roads.turn_max_deg
+                        && rule.turn_deg[1] <= 180.0 - self.roads.turn_max_deg
+                        && length(rule.apart_m)
+                }),
+                at("side_roads"),
+                "side roads are an ordered count, leaving inside the settlement's ground at a turn no sharper than roads.turn_max_deg",
+            );
             check(
                 class.neighbourhood[0] >= 1 && class.neighbourhood[0] <= class.neighbourhood[1],
                 at("neighbourhood"),

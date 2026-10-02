@@ -5850,13 +5850,21 @@ The models, their boxes and the sheets are in the [C45 outcome](slices/C45-stree
 
 **Verdict:** sound for the binding, provisional for the height. A real burnt-out car is about 1.2 m; the 0.7 m is the simulation's remains height and the art follows it, so the shell is crushed flat. If it reads as too flat in a street, the fix is the row's `height_m`, which changes what the wreck hides and stops: a mechanics decision, the owner's. **Confidence:** medium on the look, high on the binding.
 
-### No street-tree art
+### A street tree is a tree body outside every forest, drawn by the scenery as a tree of its own
 
-**Choice:** This lane built no street-tree model. The street-placement slice made a street tree its own prop type (`street_tree`, a trunk body), still marked `systems_only`, which draws a stand-in box. The validator holds every tree appearance to one height and one girth (`fit.tree_size`), so a smaller "street size" tree model would be refused; the narrow forest kinds (`tree_tall`, `tree_birch`, reach 3.4 to 3.7 m) are the ones that would fit a pavement.
+**Choice:** The `street_tree` row is drawn by `forest`, as the trunk it extends is, and is no longer `systems_only`. The scenery draws every tree body: a forest's trunks by the forest's rule, and a trunk no forest generated as a lone tree (`trees.lone` in the biome): one of the species named there (`tree_tall`, `tree_birch`), 0.85 to 1 of its own body's height, 0.7 to 0.85 of its appearance's width. No new art, no new scenery kind, no body value changed.
 
-**Gap:** The slice lists "street trees from the one tree generator" under appearances to deliver.
+**Gap:** The slice lists "street trees from the one tree generator"; the street-placement slice made the street tree a prop type of its own and left it a stand-in box.
 
-**Verdict:** provisional. Binding `street_tree` to the forest's narrow species needs no new art. If a street tree must be shorter than the forest's, that is a second size on `SCENERY_KINDS.tree`, decided where the sight rule is. **Confidence:** medium.
+**Verdict:** sound. The street tree's box (0.35 m by 10 m) is the forest rule's trunk, so the one-size tree art (11 m, a 0.4 m bole) fits it as it fits a forest's: a smaller build or a kind of its own would have been a second size for the same body. The rule is by the body, not the id: a map's own `trunk` prop outside its forests, which nothing drew before, is a lone tree too. **Confidence:** high on the binding. Medium on the look: the crowns are narrowed by scale, so a bole comes out 0.28 to 0.34 m against the body's 0.35.
+
+### A street tree's crown is drawn where the simulation has no foliage
+
+**Choice:** Accepted. A lone tree's crown hides the ground under it from the camera; the simulation gives a tree outside a forest its trunk (cover, and the trunk row's own concealment) and no canopy.
+
+**Gap:** Every forest crown is held inside the simulation's foliage; a street tree has none to be held in.
+
+**Verdict:** provisional. It is one crown 5 to 6 m across with daylight under it, and a unit beneath is found by the x-ray as under any crown. If a street's trees should fade sight along it, that is a foliage rule for lone trunks, the simulation's. **Confidence:** medium.
 
 ### Ours for every kind, including the eight the vendored street kit was to supply
 
@@ -6636,6 +6644,38 @@ owner while leaving unrelated, unproven numerical hypotheses alone.
 
 **Verdict:** sound. A scan of an 8 km map by the ground alone would cost a million probes a page load; the strokes name eleven candidates and the ground still decides. Across is the framing that asks the slice's question (does it block the view). The inset keeps the map's edge out of the 250 m frame. **Confidence:** medium: the stations move to another line when the generator's layout changes, as the rig's other generated stations do.
 
+### A tree line carries a hedge under its trees; a wood does not
+
+**Choice:** Every strip of forest is drawn with rows of the hedgerow shrub (2.8 to 4.1 m tall) along its length, under its trees: `trees.understorey` in the biome (spacing, rows, sway, gaps, length and height ranges). A wood keeps the forest floor's rule: nothing with no body stands over 0.9 m.
+
+**Gap:** The first picture showed bare ground between the boles of a strip the simulation hides a far squad behind. The dressing's rule (nothing drawn may look like it hides a soldier) is written for a wood's floor, where sight fades with depth and a soldier near the edge is seen.
+
+**Verdict:** sound. The two rules say the same thing: draw what the simulation does. Across a strip the simulation already fades sight to nothing at range, so a hedge there tells the truth and bare boles lie; inside a wood a soldier a few metres in is still seen, so a shrub that hid him would lie. **Confidence:** high on the rule; medium on the look (one hedge model, repeated).
+
+### A shrub keeps its whole reach on the strip's ground and under its foliage
+
+**Choice:** A shrub is placed only where the circle of its reach lies on the strip's own forest ground, every point of it in a fog cell with foliage or beside one, clear of paving and water and of every body but a tree. It is drawn smaller to fit, and not at all where it would be smaller than the biome's range. A strip under about 5.5 m wide therefore carries none.
+
+**Gap:** "Never wider than the canopy the simulation blocks sight with" names no measure. The crowns' test holds a crown's rim within one fog cell of the foliage; the simulation's foliage does not cover every cell of a strip (a cell whose centre no canopy reaches is open).
+
+**Verdict:** sound. The strip's ground is the stricter bound and needs no number from the simulation; the foliage test is the crowns' own, so a stretch of strip with no trunks (and no foliage) gets no hedge either. **Confidence:** high. A generated tree line is 12 m wide, which holds two rows.
+
+### The ground under a tree line is the plots' verge with its grass, drawn in to a point at each end
+
+**Choice:** A strip has no forest floor. Under it lies a band of the plot verge's colour with the verge's grass growing on it: the strip itself, its edge wandering by `forest_floor.tree_line.warp_m`, its half width falling evenly to nothing over the last `taper_m` (14 m) before each end the strip is cut square at. The hedge's rows draw together over the same length. Past the band, inside the strip's square corners, the field's own crop grows. Woods (rectangles and polygons) are untouched.
+
+**Gap:** The floor under a strip read as "a brown smudge or scorch mark" and ended as a blunt blob; the brief left the look between the verge and the floor's moss.
+
+**Verdict:** sound for the look, provisional in two details. A tree line stands on a plot boundary, where the verge already runs, so the band is that verge grown wide: it joins the field margins at both ends without a new colour, and light reaches the ground under one row of crowns, so grass is right there and bare earth was not. The details: grass now grows on ground the simulation calls forest (in the band and in the corners), which no rule reads; and the taper is per exported stretch, so a strip that begins with a bend narrows over its first chord only. **Confidence:** medium.
+
+### The shrubs are a population of the scenery layer, drawn and shadowed as the forest is
+
+**Choice:** `SceneryPlacement.understorey` is laid whole at load (a map holds a few hundred shrubs) and drawn through the static chunk owner beside the forest: same tiers, same fragment stage, casting into the cascades, gone with the trees' switch and where the side has seen its ground cleared. `BattleFrame.setUnderstoreyShown` (the lab's `suppressUnderstorey`) switches it alone for the cost measure.
+
+**Gap:** "Through that same static chunk path" could mean rows appended to the forest's own list. That list is one tree per trunk, which the scenes and tests count.
+
+**Verdict:** sound. No pass, no per-frame CPU work and no second chunk owner; the forest's count stays the trunks'. **Confidence:** high.
+
 ## C87 ground composition gate
 
 ### Forest floor bodies are off by default
@@ -6709,3 +6749,104 @@ dropped, rounded or given a larger budget.
 
 **Verdict:** sound; high confidence in this bounded arm. Complete current late
 admission and browser/heap/overlap checks still decide closure.
+## Town look, second pass
+
+Four things earlier unprimed reviews still found, taken in the owner's order: street warts left by the parcel pass's links, a city that is a disc round one crossroads, a large town that is a slab along one road, and suburb streets that read as wood grain. The model as it stands is in the [C52](slices/C52-procedural-generator.md#outcome) and [C53](slices/C53-parcels-and-buildings.md#outcome) outcomes and the [crate guide](../../crates/mapgen/README.md). Generator `layout-10`, presets `layout-presets-9`. Counts below are over the 36 maps of `tests/street_warts.rs` and `tests/road_ends.rs` (every type and size, seeds 1, 2, 3 and 2⁶⁴−1) unless a sweep is named.
+
+### A district's grid is fitted between its edges, and each line runs to the road ahead of it
+
+**Choice:** The parcel pass no longer lays a grid at a random offset and patches it afterwards with links and run-ons. A district's grid is fitted to it: a whole block from a carriageway on an edge to the first street, half a block from an edge that faces the fields to the last one. Each line of the grid then runs on from its last node to the first carriageway ahead of it, within `parcels.run_on_m` (60 m) past the district's edge, and ends just past that carriageway's middle. A line that meets nothing ends a verge inside the district's edge if it is a long street, and on the last long street if it is a cross street.
+
+**Gap:** The brief asked for the warts to be fixed where the streets are laid: a street runs from a junction to a junction, or ends at the last lot it serves.
+
+**Verdict:** sound. Streets that stop within 40 m of a carriageway ahead of them went from 120 to 4, and a map has about a seventh fewer road ends, because a street is one stroke from junction to junction where it was a grid line, a link and a run-on. **Confidence:** high for the count; medium for the half-block rule, which is one reading of "the last lot it serves".
+
+### A street lands where a street already meets the road from the far side
+
+**Choice:** `towns.align_m` (30 m). Where a line of a grid, a link or a run-on comes to a carriageway within that distance of a point where a street already ends on it from the other side, it is moved to that point: a bent street's line is tilted through it, a straight one's turned. The layout does the same for the cuts between blocks, so avenues either side of a road line up. A junction is taken once from each side: a third street there would make a fork, which `no_point_of_a_settlement_has_district_edges_fanning_out_from_it` caught when the rule first allowed it.
+
+**Gap:** "Neighbouring districts' streets do not line up across the avenue between them."
+
+**Verdict:** sound. Pairs of streets that meet one road from opposite sides 2 to 20 m apart went from 1,538 to 57. The 57 are mostly 15 to 20 m apart, where the nearer line of the grid was already taken or the move would have been more than 0.4 of the way to the next street. **Confidence:** medium: 30 m is a guess, and a line moved 25 m shows as a slight slant in a straight grid.
+
+### Only streets of one width share an end; an unlike street lands opposite
+
+**Choice:** A street that lands on a junction made by a street of its own width ends on that street's very end point, and the joint pass welds the two into one street through the junction. One of another width (a street opposite an avenue's end) ends opposite it, just past the road's middle from its own side. A street never carries on end to end from the open end of a wider avenue: it meets the avenue just short of that end, as a side street.
+
+**Gap:** None in the brief. Found by the road-end test: sharing the point with an unlike way made a corner the joint pass had to carry a width through, and where that lost a joint it pinned the ways as laid, with a bite at every corner of them.
+
+**Verdict:** sound. `tests/road_ends.rs` counts 6 flawed ends of 22,294 (under 3 in ten thousand; it was 23 of 24,636) and its bound is lowered from 10 to 3. `joints` is unchanged. **Confidence:** high.
+
+### A street meets a road square, from its last crossing
+
+**Choice:** A line of a grid that would come to the carriageway ahead at less than 45° to it turns at its last node and runs square to that carriageway, when the node is at least two street widths from it. Nearer than that it runs straight on, and the joint pass bends its last few metres as before.
+
+**Gap:** "A street meets the road it joins, square."
+
+**Verdict:** provisional. Side roads cut a town's blocks at a slant, so this case is commoner than it was. A try at turning one node sooner when the node was too near made more streets run beside the road, and was taken out. **Confidence:** medium.
+
+### A link is a street of the grid carried on, and never a stub
+
+**Choice:** A piece of grid no road crosses is joined by running one of its own streets on along the grid to the first carriageway ahead, or to a node of the same grid already joined. A street that turns off another to do so is at least `parcels.street_step_m` (45 m) long. A line whose whole length would be one run shorter than two widths is not laid. Two streets of one grid do not come to a road within three widths of each other: the second stops at its last crossing.
+
+**Gap:** "A link shorter than a couple of street widths should not exist."
+
+**Verdict:** sound. No street shorter than two widths shows on any of the 36 maps (one piece half a metre long lies wholly under a crossing road, where the joint pass changes a road's width; the test does not count what cannot be seen). Double bends went from 11 to 1, and streets lying beside another on the same ground from 115 to 8. **Confidence:** high.
+
+### A short tail past the last junction is cut back
+
+**Choice:** `parcels.tail_min_m` (35 m). After every street is laid, a street or avenue that runs on past its last junction for less than that and stops in the open is cut back to end just past that junction. A country road is left to the layout.
+
+**Gap:** The unprimed critique's first finding: an avenue that ran the whole edge of its block overshot the last street by 25 m and stopped at the town's edge with a flat end. "A street runs from a junction to a junction, or ends at the last lot it serves": 25 m serves no lot.
+
+**Verdict:** sound. The two then meet end to end and the joint pass makes them one street round the corner. Flawed road ends went from 9 to 6 with it. **Confidence:** medium: 35 m is a guess between one lot's front and two.
+
+### What is still counted
+
+**Choice:** `tests/street_warts.rs` holds each wart to what is left: 4 streets that stop short, 8 pairs side by side, 57 staggered junctions, 1 double bend, no stub, among 39,532 ends and junctions. The numbers are to be lowered, never raised.
+
+**Gap:** The brief asked for "at or near zero".
+
+**Verdict:** provisional. What is left is where a side road cuts a block at a slant and a grid meets it at an awkward angle. A country road and a track side by side (a lane peeling off its road) is counted apart and not held: 38, from 34; that is the road network's.
+
+### A large town and a city have secondary roads, as a row of their class
+
+**Choice:** `classes.<class>.side_roads`: how many (a large town 1 or 2, a city 2 to 4), where one leaves a road through the centre as a share of the way to the edge of the settlement's ground (a large town 0.1 to 0.35, a city 0.25 to 0.6), how far it turns off (55° to 100°) and how far apart two leave one road. Each turns into the widest sector no road runs out through yet and runs straight to a gate past the settlement's ground. It is an ordinary country road: the ground is cut along it, blocks grow along it by the class's `ribbon`, later links may join its gate, and industry may stand where it leaves town. No other class has the row.
+
+**Gap:** "Give cities and large towns secondary roads out of the centre (not all through the one junction) and let growth follow them", and "make sure a large town always has one".
+
+**Verdict:** sound for the roads. Every city in the tests has at least one road that leaves its main roads away from the central junction and the typical one two or more; every large town has two roads at 40° or more to each other. A city's outline now has arms along those roads and bays between, and its core is one group of blocks near the middle. A large town is still a compact mass: its second road crosses it, and its blocks still fill the ground between. **Confidence:** medium. The shares and angles are guesses, and a side road that no later road joins stops at the town's last block.
+
+### `roads.centre_roads` counts roads, not the hair an end runs past a middle
+
+**Choice:** `measure` no longer counts as a road out of a junction the quarter metre by which a joining road runs past the middle of the road it joins.
+
+**Gap:** With a side road within 500 m of the centre on nearly every Mixed map, the T it makes counted as four roads meeting, and `main_roads_meet_in_a_crossroads_on_some_maps_and_fork_on_others` saw a crossroads on 29 maps of 30.
+
+**Verdict:** sound. The number is now what its name says. The sweep's "four roads meet at the centre" share is lower than C52 recorded for the same reason. **Confidence:** high.
+
+### Suburb and village blocks are shorter
+
+**Choice:** `garden_suburb` streets have a cross street every 140 m (190) and skip 15% of them (30%); `village` 160 m (200) and 20% (30%).
+
+**Gap:** "Add the occasional cross street so blocks are blocks."
+
+**Verdict:** sound. With the grid fitted between the district's edges a cross street also runs the whole way across, so a suburb is blocks of four to eight lots a side. **Confidence:** medium on the numbers.
+
+### Three tests were changed, and why
+
+**Choice:** (1) `road_ends.rs` and `street_warts.rs` count an end that lies under its own road's paving, six widths or more along it, as joined: a street that comes back round to itself. (2) `towns.rs` follows a ray from an apex edge by edge, with a gap of 40 m at most, where it used to take any edge on the line no farther than twice its own length. (3) The control at the end of `open_country.rs` asks only that the owner's seed still has open ground with an unbroken circle before the pass; it no longer asks for a column that starts with one.
+
+**Gap:** (1) The joint pass can weld a street into a loop that ends on itself; the test saw paving ahead of an end and called it a gap. (2) A cross cut 150 m from a village's centre lined up with it by chance once a fourth road met there. (3) That seed is another map under this generator, and its columns start in sight of a house.
+
+**Verdict:** (1) and (2) sound: each makes the test say what its comment says. (3) open: the control was a fact about one map of `layout-9`; whoever owns the open country may want another seed for it. **Confidence:** medium.
+
+### What the unprimed look at the pictures found
+
+**Choice:** One fresh critique of the six plan drawings and three in-game close-ups (Metro Large seed 1, Mixed Medium seed 2), against the Broken Arrow references, asked "does any town read as a diagram, and does any street or junction look wrong?". One finding was fixed in this pass and the rest are recorded.
+
+**Found, streets:** its worst picture was the first named corner, where an avenue overshot its last junction by 25 m and stopped flat at the town's edge (fixed: the tail rule above; the avenue and the street now turn the corner as one). Still there: in that corner a secondary road and the avenue beside it converge at a shallow angle with one row of houses between; a suburb street ends in a hook where it turns to meet a slanting road; a short diagonal street leaves the country road and ends after 100 m; suburb streets all take the same bend at the same height ("one combed wave"); where a secondary road leaves the main road at a slant exactly where a street crosses, the junction has five arms; a branch peels off a suburb street at a shallow angle and leaves a sliver of grass between two carriageways; in the city's core the north road arrives 200 m from where the south road leaves. Streets that end at the last lots by the town's edge read to it as dead ends, the wider avenue among them.
+
+**Found, towns:** "Diagram." Outlines are stacks of rectangles with stair-step corners; a large town's centre is one carpet of identical long blocks at one tilt with no square or park; a city's districts are rectangular slabs, each with its own grid, butted along hard seams; a city has a detached block no road reaches in the picture; towns are one filled polygon with almost no industry and no open ground inside, where the references are loose estates among woods and fields; in game the buildings stand on bare lawn.
+
+**Verdict:** open. The street findings are the residue the wart test counts, seen: nearly all of them lie along a secondary road, which cuts blocks at a slant. A secondary road that follows a block edge, or blocks cut square to it, is the next thing to try. The town findings are C52's standing list (block shapes, zoning, no open ground, blank country) and were not this pass's four items; the secondary roads gave a city arms and did not change how its blocks are cut. **Confidence:** high that these are visible.

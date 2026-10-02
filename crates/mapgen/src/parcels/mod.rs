@@ -42,6 +42,15 @@ impl Pass<'_> {
         }]
     }
 
+    /// How wide a street of `kind` is: a lane's width where it is a dirt
+    /// track.
+    fn street_width(&self, kind: contract::map::SurfaceKind) -> f64 {
+        match kind {
+            contract::map::SurfaceKind::DirtTrack => self.presets.roads.dirt_track_width_m,
+            _ => self.presets.parcels.street_width_m,
+        }
+    }
+
     fn district(&self, district: &DistrictPlan) -> Result<&DistrictPreset, Vec<Diagnostic>> {
         self.presets.districts.get(&district.kind).ok_or_else(|| {
             vec![Diagnostic {
@@ -99,11 +108,13 @@ pub fn fill_districts(
         for settlement in &plan.settlements {
             streets::lay(&pass, &mut network, settlement, &mut laid)?;
         }
+        streets::run_on(&pass, &mut network, &plan, &mut laid)?;
         laid
     };
     // The streets' ends are closed against each other and the layout's
     // roads before any parcel is cut along them.
     plan.surfaces.extend(laid);
+    streets::trim_tails(&pass, &mut plan.surfaces, plan.size);
     let blocks: Vec<&[[f64; 2]]> = plan
         .settlements
         .iter()

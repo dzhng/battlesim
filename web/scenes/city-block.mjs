@@ -12,15 +12,23 @@
 //   tactical camera out to the overview, and at each tier boundary the frame
 //   with every building at the tier before and at the tier after it.
 import { mkdir, writeFile } from "node:fs/promises";
-import { aim, buildingsSettled, lab } from "./_lab.mjs";
+import { median } from "./_colour.mjs";
+import {
+  aim,
+  buildingsSettled,
+  buildingStats as stats,
+  gpuMs,
+  gpuWarnings,
+  groundClasses,
+  lab,
+} from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
 import { writeSheet } from "./_sheet.mjs";
+import { isBody } from "./_templateFit.mjs";
 
 const HIDE_PANEL = "[data-testid=city-block-panel] { display: none !important; }";
-/** The ground classes view: black where a pixel is not wholly bare ground
- *  (a building stands over it), the ground's class bytes where it is. */
-const isGround = (rgb) => rgb.some((v) => v > 0);
-const isBody = (rgb) => rgb.every((v) => v === 0);
+/** Bare ground in the ground-classes view: any class byte at all. */
+const isGround = (rgb) => !isBody(rgb);
 /** Straight down, so nothing standing hides the ground beside it. */
 const TOP_DOWN = Math.PI / 2 - 0.03;
 const STATIONS = ["street", "tactical", "wide", "overview"];
@@ -29,8 +37,6 @@ const COST_STATIONS = ["street", "tactical", "wide", "oblique", "overview"];
 /** The sequence's distances between the tier boundaries, metres. */
 const SEQUENCE_M = [65, 90, 200, 250, 450, 700, 1500, 2000, 3000, 4500];
 const delta = (a, b) => a.reduce((s, v, i) => s + Math.abs(v - b[i]), 0);
-
-const stats = (page) => lab(page, () => window.__lab.stats().buildings);
 
 /** Cut the camera to a station as the rig places it, and wait until it has
  *  come to rest and every near chunk is expanded. */
@@ -48,33 +54,17 @@ async function shot(ctx, page, file) {
   return decode(png);
 }
 
-/** The frame's ground classes: what the terrain material says is bare
- *  ground under each pixel. (The ground mask is fog's channel, and this lab
- *  has no fog.) */
-async function groundClasses(ctx, page, file) {
-  await lab(page, () => window.__lab.setFrameView("ground-classes"));
-  const png = await page.screenshot();
+/** The frame's ground classes, saved as `file`: what the terrain material
+ *  says is bare ground under each pixel. (The ground mask is fog's channel,
+ *  and this lab has no fog.) */
+async function groundMask(ctx, page, file) {
+  const png = await groundClasses(page);
   await writeFile(ctx.evidencePath(file), png);
-  await lab(page, () => window.__lab.setFrameView("final"));
   return decode(png);
 }
 
 const tiers = (s) =>
   `instances ${s.tiers.join("/")}, triangles ${s.triangles.map((t) => Math.round(t)).join("/")}, ${s.draws} draws (+${s.casterDraws} a cascade, ${Math.round(s.casterTriangles)} triangles), ${s.residentChunks} of ${s.chunks} chunks resident, pool ${s.pool.used} of ${s.pool.capacity}`;
-
-/** The frame's GPU time over `frames` forced redraws from now (the lab draws
- *  on demand, and setting the frame view starts the timer's window again). */
-async function gpuMs(page, frames = 120) {
-  return lab(
-    page,
-    async (frames) => {
-      await window.__lab.setFrameView("final");
-      for (let i = 0; i < frames; i++) await window.__lab.frame();
-      return window.__lab.stats().gpu;
-    },
-    frames,
-  );
-}
 
 /** `BUILDING_COST=1`: paired GPU time, buildings drawn against every other
  *  frame batch without them, at each station. */
@@ -97,7 +87,6 @@ async function cost(ctx, page) {
       }
     }
     await lab(page, () => window.__lab.suppressBuildings(false));
-    const median = (list) => [...list].sort((a, b) => a - b)[Math.floor(list.length / 2)];
     const memory = await lab(page, () => window.__lab.stats().memory);
     rows.push({ id, drawn, median: median(differences), frame: median(absolute), differences });
     console.log(
@@ -172,11 +161,7 @@ async function sequence(ctx, page) {
 
 export async function run(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  const warnings = [];
-  page.on("console", (m) => {
-    if (m.type() === "warning" && /webgpu|validation|gpu\w*error/i.test(m.text()))
-      warnings.push(m.text().slice(0, 200));
-  });
+  const warnings = gpuWarnings(page);
   const asked = process.env.CITY_MAP?.split(":");
   await page.goto(
     asked ? `${ctx.url}?type=${asked[0]}&size=${asked[1]}&seed=${asked[2]}` : ctx.url,
@@ -320,7 +305,7 @@ export async function run(ctx) {
       building.ground,
     );
     const name = building.category;
-    const mask = await groundClasses(ctx, page, `placed-${name}-ground-classes.png`);
+    const mask = await groundMask(ctx, page, `placed-${name}-ground-classes.png`);
     const frame = await shot(ctx, page, `placed-${name}-1920x1080.png`);
     where.push({
       template: building.template,
@@ -381,7 +366,7 @@ export async function run(ctx) {
       ],
       turned,
     );
-    const mask = await groundClasses(ctx, page, "turned-ground-classes.png");
+    const mask = await groundMask(ctx, page, "turned-ground-classes.png");
     await shot(ctx, page, "turned-1920x1080.png");
     way = { part: pixel(mask, ...partPx), image: pixel(mask, ...imagePx) };
   }

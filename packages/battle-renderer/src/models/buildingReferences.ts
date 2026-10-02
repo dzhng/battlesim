@@ -15,8 +15,6 @@ import type { TemplateState } from "@packages/scene-assets/src/templateLibrary";
 import type { KnownProp, MapProp } from "./propAppearance";
 import type { PublicBuildings } from "../worldMesh";
 
-type Rgb = readonly [number, number, number];
-
 /** `presentation.buildings` in the fixture. */
 export interface BuildingStyle {
   /** The detail tiers, by how many device pixels a metre of wall covers:
@@ -34,15 +32,10 @@ export interface BuildingStyle {
   /** Each building's tint strays this far in value, either way, so identical
    *  neighbours part. */
   tint_jitter: number;
-  /** A building category's wall colour in the prototype set (sRGB), with a
-   *  `default`: read by the set's generator (`asset prototypes`), not here. */
-  prototype_tints: Record<string, Rgb>;
 }
 
 export function validateBuildingStyle(style: BuildingStyle): BuildingStyle {
   const at = "presentation.buildings";
-  const rgb = (c: unknown) =>
-    Array.isArray(c) && c.length === 3 && c.every((v) => typeof v === "number" && v >= 0 && v <= 1);
   const [t0, t1, t2] = style.lod_px_per_m ?? [];
   if (!(t0 > t1 && t1 > t2 && t2 > 0))
     throw new Error(`${at}.lod_px_per_m must fall and stay above zero`);
@@ -53,9 +46,6 @@ export function validateBuildingStyle(style: BuildingStyle): BuildingStyle {
     throw new Error(`${at}.expand_rows must be a whole number, 1 or more`);
   if (!(style.tint_jitter >= 0 && style.tint_jitter <= 0.5))
     throw new Error(`${at}.tint_jitter must be within [0, 0.5]`);
-  if (!style.prototype_tints?.default) throw new Error(`${at}.prototype_tints needs a default`);
-  for (const [name, tint] of Object.entries(style.prototype_tints))
-    if (!rgb(tint)) throw new Error(`${at}: ${name} must be [r, g, b] in [0, 1]`);
   return style;
 }
 

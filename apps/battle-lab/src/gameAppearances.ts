@@ -8,7 +8,7 @@
 // from the first frame. The workbench reloads the catalog after a re-bake.
 import { useEffect, useMemo, useState } from "react";
 import { AppearanceLibrary, type InstalledAppearances } from "@packages/scene-assets/src/loader";
-import { PROTOTYPE_KIT } from "@packages/scene-assets/src/prototypeSet";
+import { STAND_IN_KIT } from "@packages/scene-assets/src/standInKit";
 import { TemplateArtError, templateKits } from "@packages/scene-assets/src/templateLibrary";
 import type { PlacedBuildings } from "@packages/battle-renderer/src/models/buildingReferences";
 import type { MapProp, PropAppearances } from "@packages/battle-renderer/src/models/propAppearance";
@@ -58,7 +58,7 @@ export function useGameAppearances(
 
 /** The kits a map of `placed` buildings draws from: those its templates'
  *  rows place, in every state (`templateKits`). With `standIns`, also the
- *  prototype kit, whose box a prop with no art of its own is drawn as
+ *  stand-in kit, whose box a prop with no art of its own is drawn as
  *  (`PropAppearances`). A map with buildings and a catalog
  *  with no template art for them is refused. */
 export function mapKits(
@@ -66,7 +66,7 @@ export function mapKits(
   placed: PlacedBuildings,
   standIns = false,
 ): Set<string> {
-  const kits = new Set(standIns ? [PROTOTYPE_KIT] : []);
+  const kits = new Set(standIns ? [STAND_IN_KIT] : []);
   if (placed.template.length === 0) return kits;
   if (!catalog.templates)
     throw new Error("the map has buildings and the catalog has no template art library; re-bake");

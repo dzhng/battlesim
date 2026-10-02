@@ -294,6 +294,8 @@ interface LabHandle {
   suppressTrees?: (on: boolean) => Promise<void>;
   /** Draw no forest-floor dressing while on (a paired cost measure). */
   suppressDressing?: (on: boolean) => Promise<void>;
+  /** Draw no shrubs under tree lines while on (a paired cost measure). */
+  suppressUnderstorey?: (on: boolean) => Promise<void>;
   /** Draw no template-art buildings and none of their shadows while on (a
    *  paired cost measure). */
   suppressBuildings?: (on: boolean) => Promise<void>;
@@ -863,6 +865,10 @@ export function LabViewport({
           },
           async suppressDressing(on: boolean) {
             scene.setDressingShown(!on);
+            await nextFrame();
+          },
+          async suppressUnderstorey(on: boolean) {
+            scene.setUnderstoreyShown(!on);
             await nextFrame();
           },
           async suppressBuildings(on: boolean) {

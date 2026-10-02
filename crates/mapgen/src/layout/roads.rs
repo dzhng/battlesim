@@ -609,6 +609,138 @@ impl<'a> Network<'a> {
         line
     }
 
+    /// Lay settlement `index`'s secondary roads, where its class has them
+    /// (`classes.<class>.side_roads`). Each leaves one of the roads that
+    /// pass its centre part of the way out, turns into the widest sector
+    /// of its ground no road runs out through yet, and runs straight to
+    /// the ground's edge and a gate past it, or to the first road it meets.
+    /// A later road may carry on from the gate.
+    fn side_roads(&mut self, index: usize) {
+        let presets = self.context.presets;
+        let site = &self.sites[index];
+        let class = presets.class(&site.class_id);
+        let Some(rule) = class.side_roads else {
+            return;
+        };
+        let kind = class.road;
+        // Its own stream: a settlement with none draws nothing, and the
+        // rest of the network is laid as it was.
+        let mut rng = self.context.stream(&format!("side-roads/{index}"));
+        let centre = site.outline.center;
+        let ring = &site.outline.ring;
+        // The roads out of its centre: where each passes nearest it, and
+        // the way it runs on from there. (road, from, unit direction)
+        let near = site.outline.reach * presets.roads.through_reach;
+        let mut legs: Vec<(usize, Point, Point)> = Vec::new();
+        for (road, (other, points)) in self.roads.iter().enumerate() {
+            if *other > kind {
+                continue;
+            }
+            for run in points.windows(2) {
+                let step = sub(run[1], run[0]);
+                let share = (dot(sub(centre, run[0]), step) / dot(step, step)).clamp(0.0, 1.0);
+                let from = add(run[0], scale(step, share));
+                if distance(from, centre) > near {
+                    continue;
+                }
+                for end in [run[0], run[1]] {
+                    if distance(end, from) < SAME_PLACE_M {
+                        continue;
+                    }
+                    let along = scale(sub(end, from), 1.0 / distance(end, from));
+                    // One leg a way out: a road's two runs through a point
+                    // are one leg each way.
+                    if !legs.iter().any(|(_, _, known)| dot(*known, along) > 0.94) {
+                        legs.push((road, from, along));
+                    }
+                }
+            }
+        }
+        if legs.is_empty() {
+            return;
+        }
+        // The bearings a road already runs out along, seen from the centre.
+        let mut taken: Vec<f64> = legs
+            .iter()
+            .map(|(_, _, along)| libm::atan2(along[1], along[0]))
+            .collect();
+        let mut left: Vec<Vec<f64>> = vec![Vec::new(); legs.len()];
+        let clear = presets.rivers.road_gap_m;
+        for _ in 0..rng.count(rule.count) {
+            // The widest sector between two of them, and its middle.
+            taken.sort_by(f64::total_cmp);
+            let (width, middle) = (0..taken.len())
+                .map(|at| {
+                    let (from, to) = (taken[at], taken[(at + 1) % taken.len()]);
+                    let width = (to - from).rem_euclid(TAU);
+                    let width = if taken.len() == 1 { TAU } else { width };
+                    (width, from + width / 2.0)
+                })
+                .max_by(|a, b| a.0.total_cmp(&b.0))
+                .unwrap_or((TAU, 0.0));
+            if width < presets.roads.turn_max_deg.to_radians() {
+                break;
+            }
+            let into = direction(middle);
+            // It leaves the leg nearest that sector, the one with fewer
+            // side roads first, turning toward the sector.
+            let Some(leg) = (0..legs.len()).max_by(|a, b| {
+                let toward = |leg: &usize| dot(legs[*leg].2, into);
+                (toward(a) - 0.2 * left[*a].len() as f64)
+                    .total_cmp(&(toward(b) - 0.2 * left[*b].len() as f64))
+                    .then(b.cmp(a))
+            }) else {
+                break;
+            };
+            let (road, from, along) = legs[leg];
+            let side = if cross(along, into) >= 0.0 { 1.0 } else { -1.0 };
+            let edge = ray_exit(ring, from, along);
+            // A few draws for a place clear of the others on this leg.
+            let drawn = (0..4)
+                .map(|_| {
+                    (
+                        rng.range(rule.from) * edge,
+                        rng.range(rule.turn_deg).to_radians(),
+                    )
+                })
+                .collect::<Vec<_>>();
+            let Some((out, turn)) = drawn.into_iter().find(|(out, _)| {
+                left[leg]
+                    .iter()
+                    .all(|other| (other - out).abs() >= rule.apart_m)
+            }) else {
+                continue;
+            };
+            let start = round_cm(add(from, scale(along, out)));
+            let heading = libm::atan2(along[1], along[0]) + side * turn;
+            let gate = self.gate(site, start, direction(heading));
+            // On the road it leaves, on dry ground all the way.
+            let points = &self.roads[road].1;
+            let Some(run) = points.windows(2).position(|run| {
+                segment_distance(run[0], run[1], start) <= STRAIGHT_M
+                    && distance(run[0], start) >= SAME_PLACE_M
+                    && distance(run[1], start) >= SAME_PLACE_M
+            }) else {
+                continue;
+            };
+            if self.water.segment_gap(start, gate, clear) < clear
+                || distance(start, gate) < out.min(edge - out) / 2.0
+            {
+                continue;
+            }
+            self.roads[road].1.insert(run + 1, start);
+            let shared = self.vertex(start, self.roads[road].0);
+            self.vertices.push(shared);
+            let before = self.roads.len();
+            self.join(kind, vec![start, gate], Vec::new(), &[start]);
+            if let Some((_, laid)) = self.roads.get(before) {
+                let end = laid[laid.len() - 1];
+                taken.push(bearing(centre, end));
+                left[leg].push(out);
+            }
+        }
+    }
+
     /// Lay the main road of every arm of the skeleton, and say whether the
     /// top and bottom edges' journeys to the hub fit the transit time. With
     /// `swing`, a road runs through the settlements near its line that the
@@ -882,6 +1014,7 @@ pub fn build(
                 });
         if on_road {
             joined[index] = true;
+            network.side_roads(index);
             continue;
         }
         let bank = water.bank(from);
@@ -935,6 +1068,7 @@ pub fn build(
             _ => network.add(kind, vec![far, from], Vec::new(), &[]),
         }
         joined[index] = true;
+        network.side_roads(index);
     }
 
     // A richer network links neighbours directly (Gabriel pairs: no third
