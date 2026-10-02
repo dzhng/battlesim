@@ -769,6 +769,7 @@ export const GRASS_SPEC: GrassSpec = {
   lean: [0.1, 0.4],
   colors: { root: [0.1, 0.16, 0.05], mid: [0.25, 0.33, 0.14], tip: [0.45, 0.46, 0.25] },
   jitter: 0.1,
+  wind: 1,
 };
 
 export function testCatalog(): Catalog {

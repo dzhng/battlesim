@@ -80,3 +80,26 @@ left dark region ambiguous between shadow and fog. Neither view provides a
 world-height reference. These baseline appearance findings remain in the visual
 pass; no grass-look acceptance is claimed. The effective-height guard and lower
 scales remain justified by the physical bound and actual production execution.
+
+
+## Outcome — presets and their look (2026-10-01)
+
+**Built.** A grass kind is still one generated clump (`packages/scene-assets/src/grass.ts`, `asset grass`); its spec (`GrassSpec`, `schema.ts`) now carries the rest of Q-G10:
+- **Blade outline:** `shape.taper` (how late it narrows: a blade or a stalk) and `shape.belly` (a leaf's swell); `droop` hangs the top over. `width_m`, `radius_m` (the clump's spread) and the root, mid and tip colours were there.
+- **Heads:** `head.color` gives an ear or a flower its own colour. A headed blade's last pair of vertices sits where the head is widest in every tier, because the play camera draws the two-segment tier: before, ears and flowers existed only within about 16 m.
+- **Wind response:** `wind`, 0 to 1, carried in the clump's vertex alpha (the bake still reads only the GLB), packed beside the tint and multiplied into the one wind's lean, gust and flutter. No new clock.
+- **The cap is one constant,** `GRASS_MAX_HEIGHT_M`, read by the validator, the field and the workbench. No blade stands taller than its spec's `height_m` whatever its outline.
+- **The workbench** shows a grass kind inside a ruler at 0.9 m and frames its views on it (`asset sheet grass_meadow`).
+
+Ten kinds are generated, all eight blades or fewer: meadow, rough, prairie, verge (C81) and pasture, wheat, barley, rapeseed, hay, stubble (C83). The young-crop kind is gone.
+
+**Numbers.**
+- Composed height: `grassKinds` refuses any row past the cap, patch scaling included; a test builds every catalog kind from its spec against the summer biome. The tallest clumps drawn at the stations: wheat 0.82 m, rapeseed 0.81 m, barley 0.59 m, rough 0.57 m.
+- Padding: two kinds have seven blades and are padded to eight, one blade's five far-tier vertices a clump, clipped in the vertex stage. Not measurable.
+- Frame cost is the lane's row in [C81](C81-wild-grass.md#outcome).
+
+**Compared** with `grass-a.jpg` and `grass-b.jpg` (ground-level stills of dense, wide, arching blades) and the starting commit's stations: edge density at the 25 m stations went from 0.20 to 0.23 to 0.36 to 0.71 (the references: 0.47 and 0.54). Less wrong: the old clumps were hair-thin strands with near-black roots; these are wide blades that close over the ground at 25 m.
+
+**Critique** (two unprimed passes over the final stations, shared by C80 to C83; the second after the changes the first caused; their findings are split among the four Outcomes). On the clumps themselves, the first: the verge's leaves read as maize seedlings beside thin strands, and pasture as isolated seedlings with cream tips. Both presets were re-cut smaller and flatter in colour. The second still calls the verge's near side maize-leafed and over-tall beside the stubble, and finds no ears on the barley. Nothing was found floating or clipped. The single clump on the workbench sheet was not put to a critique.
+
+**Open.** A kind's colours say only how its parts differ from the ground it grows on (its mean is the ground's), so no preset can make a field yellow or gold: that is the plot's palette (C84). The four-view sheet shows one clump at its source height, not at a biome's scale.
