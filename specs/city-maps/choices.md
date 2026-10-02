@@ -6193,3 +6193,105 @@ The open-country pass (M24, M25): `crates/mapgen/src/open_country/`, its rows in
 **Found:** The country still reads as empty: at the opening view the jeep is the only upright thing in frame, and the eye has few landmarks. The fog over blue's column is cut on the lower left, the right and the bottom by copses and tree lines, and is one clean arc across the top: broken, and mostly open, which is what the owner asked for, and less than the references' wooded country. Tree lines and copses ignore the field pattern, because the fields are the renderer's and the generator does not know where their edges are. The fog behind a tree line pulls in some way past it with nothing at the tip of the teeth: that is the one forest rule shortening sight, not a missing model. A house group is houses on grass: no yard, track to the door or outbuilding is drawn, two houses of one group are the same model side by side, and no car stands beside them because nothing draws one.
 
 **Verdict:** provisional. The rule (M25) is met and measured; the look is the light touch that was asked for and is sparser than the references. Fitting tree lines to the drawn fields' edges needs the two to share one field geometry. **Confidence:** medium.
+
+## Town look, second pass
+
+Four things earlier unprimed reviews still found, taken in the owner's order: street warts left by the parcel pass's links, a city that is a disc round one crossroads, a large town that is a slab along one road, and suburb streets that read as wood grain. The model as it stands is in the [C52](slices/C52-procedural-generator.md#outcome) and [C53](slices/C53-parcels-and-buildings.md#outcome) outcomes and the [crate guide](../../crates/mapgen/README.md). Generator `layout-10`, presets `layout-presets-9`. Counts below are over the 36 maps of `tests/street_warts.rs` and `tests/road_ends.rs` (every type and size, seeds 1, 2, 3 and 2⁶⁴−1) unless a sweep is named.
+
+### A district's grid is fitted between its edges, and each line runs to the road ahead of it
+
+**Choice:** The parcel pass no longer lays a grid at a random offset and patches it afterwards with links and run-ons. A district's grid is fitted to it: a whole block from a carriageway on an edge to the first street, half a block from an edge that faces the fields to the last one. Each line of the grid then runs on from its last node to the first carriageway ahead of it, within `parcels.run_on_m` (60 m) past the district's edge, and ends just past that carriageway's middle. A line that meets nothing ends a verge inside the district's edge if it is a long street, and on the last long street if it is a cross street.
+
+**Gap:** The brief asked for the warts to be fixed where the streets are laid: a street runs from a junction to a junction, or ends at the last lot it serves.
+
+**Verdict:** sound. Streets that stop within 40 m of a carriageway ahead of them went from 120 to 4, and a map has about a seventh fewer road ends, because a street is one stroke from junction to junction where it was a grid line, a link and a run-on. **Confidence:** high for the count; medium for the half-block rule, which is one reading of "the last lot it serves".
+
+### A street lands where a street already meets the road from the far side
+
+**Choice:** `towns.align_m` (30 m). Where a line of a grid, a link or a run-on comes to a carriageway within that distance of a point where a street already ends on it from the other side, it is moved to that point: a bent street's line is tilted through it, a straight one's turned. The layout does the same for the cuts between blocks, so avenues either side of a road line up. A junction is taken once from each side: a third street there would make a fork, which `no_point_of_a_settlement_has_district_edges_fanning_out_from_it` caught when the rule first allowed it.
+
+**Gap:** "Neighbouring districts' streets do not line up across the avenue between them."
+
+**Verdict:** sound. Pairs of streets that meet one road from opposite sides 2 to 20 m apart went from 1,538 to 57. The 57 are mostly 15 to 20 m apart, where the nearer line of the grid was already taken or the move would have been more than 0.4 of the way to the next street. **Confidence:** medium: 30 m is a guess, and a line moved 25 m shows as a slight slant in a straight grid.
+
+### Only streets of one width share an end; an unlike street lands opposite
+
+**Choice:** A street that lands on a junction made by a street of its own width ends on that street's very end point, and the joint pass welds the two into one street through the junction. One of another width (a street opposite an avenue's end) ends opposite it, just past the road's middle from its own side. A street never carries on end to end from the open end of a wider avenue: it meets the avenue just short of that end, as a side street.
+
+**Gap:** None in the brief. Found by the road-end test: sharing the point with an unlike way made a corner the joint pass had to carry a width through, and where that lost a joint it pinned the ways as laid, with a bite at every corner of them.
+
+**Verdict:** sound. `tests/road_ends.rs` counts 6 flawed ends of 22,294 (under 3 in ten thousand; it was 23 of 24,636) and its bound is lowered from 10 to 3. `joints` is unchanged. **Confidence:** high.
+
+### A street meets a road square, from its last crossing
+
+**Choice:** A line of a grid that would come to the carriageway ahead at less than 45° to it turns at its last node and runs square to that carriageway, when the node is at least two street widths from it. Nearer than that it runs straight on, and the joint pass bends its last few metres as before.
+
+**Gap:** "A street meets the road it joins, square."
+
+**Verdict:** provisional. Side roads cut a town's blocks at a slant, so this case is commoner than it was. A try at turning one node sooner when the node was too near made more streets run beside the road, and was taken out. **Confidence:** medium.
+
+### A link is a street of the grid carried on, and never a stub
+
+**Choice:** A piece of grid no road crosses is joined by running one of its own streets on along the grid to the first carriageway ahead, or to a node of the same grid already joined. A street that turns off another to do so is at least `parcels.street_step_m` (45 m) long. A line whose whole length would be one run shorter than two widths is not laid. Two streets of one grid do not come to a road within three widths of each other: the second stops at its last crossing.
+
+**Gap:** "A link shorter than a couple of street widths should not exist."
+
+**Verdict:** sound. No street shorter than two widths shows on any of the 36 maps (one piece half a metre long lies wholly under a crossing road, where the joint pass changes a road's width; the test does not count what cannot be seen). Double bends went from 11 to 1, and streets lying beside another on the same ground from 115 to 8. **Confidence:** high.
+
+### A short tail past the last junction is cut back
+
+**Choice:** `parcels.tail_min_m` (35 m). After every street is laid, a street or avenue that runs on past its last junction for less than that and stops in the open is cut back to end just past that junction. A country road is left to the layout.
+
+**Gap:** The unprimed critique's first finding: an avenue that ran the whole edge of its block overshot the last street by 25 m and stopped at the town's edge with a flat end. "A street runs from a junction to a junction, or ends at the last lot it serves": 25 m serves no lot.
+
+**Verdict:** sound. The two then meet end to end and the joint pass makes them one street round the corner. Flawed road ends went from 9 to 6 with it. **Confidence:** medium: 35 m is a guess between one lot's front and two.
+
+### What is still counted
+
+**Choice:** `tests/street_warts.rs` holds each wart to what is left: 4 streets that stop short, 8 pairs side by side, 57 staggered junctions, 1 double bend, no stub, among 39,532 ends and junctions. The numbers are to be lowered, never raised.
+
+**Gap:** The brief asked for "at or near zero".
+
+**Verdict:** provisional. What is left is where a side road cuts a block at a slant and a grid meets it at an awkward angle. A country road and a track side by side (a lane peeling off its road) is counted apart and not held: 38, from 34; that is the road network's.
+
+### A large town and a city have secondary roads, as a row of their class
+
+**Choice:** `classes.<class>.side_roads`: how many (a large town 1 or 2, a city 2 to 4), where one leaves a road through the centre as a share of the way to the edge of the settlement's ground (a large town 0.1 to 0.35, a city 0.25 to 0.6), how far it turns off (55° to 100°) and how far apart two leave one road. Each turns into the widest sector no road runs out through yet and runs straight to a gate past the settlement's ground. It is an ordinary country road: the ground is cut along it, blocks grow along it by the class's `ribbon`, later links may join its gate, and industry may stand where it leaves town. No other class has the row.
+
+**Gap:** "Give cities and large towns secondary roads out of the centre (not all through the one junction) and let growth follow them", and "make sure a large town always has one".
+
+**Verdict:** sound for the roads. Every city in the tests has at least one road that leaves its main roads away from the central junction and the typical one two or more; every large town has two roads at 40° or more to each other. A city's outline now has arms along those roads and bays between, and its core is one group of blocks near the middle. A large town is still a compact mass: its second road crosses it, and its blocks still fill the ground between. **Confidence:** medium. The shares and angles are guesses, and a side road that no later road joins stops at the town's last block.
+
+### `roads.centre_roads` counts roads, not the hair an end runs past a middle
+
+**Choice:** `measure` no longer counts as a road out of a junction the quarter metre by which a joining road runs past the middle of the road it joins.
+
+**Gap:** With a side road within 500 m of the centre on nearly every Mixed map, the T it makes counted as four roads meeting, and `main_roads_meet_in_a_crossroads_on_some_maps_and_fork_on_others` saw a crossroads on 29 maps of 30.
+
+**Verdict:** sound. The number is now what its name says. The sweep's "four roads meet at the centre" share is lower than C52 recorded for the same reason. **Confidence:** high.
+
+### Suburb and village blocks are shorter
+
+**Choice:** `garden_suburb` streets have a cross street every 140 m (190) and skip 15% of them (30%); `village` 160 m (200) and 20% (30%).
+
+**Gap:** "Add the occasional cross street so blocks are blocks."
+
+**Verdict:** sound. With the grid fitted between the district's edges a cross street also runs the whole way across, so a suburb is blocks of four to eight lots a side. **Confidence:** medium on the numbers.
+
+### Three tests were changed, and why
+
+**Choice:** (1) `road_ends.rs` and `street_warts.rs` count an end that lies under its own road's paving, six widths or more along it, as joined: a street that comes back round to itself. (2) `towns.rs` follows a ray from an apex edge by edge, with a gap of 40 m at most, where it used to take any edge on the line no farther than twice its own length. (3) The control at the end of `open_country.rs` asks only that the owner's seed still has open ground with an unbroken circle before the pass; it no longer asks for a column that starts with one.
+
+**Gap:** (1) The joint pass can weld a street into a loop that ends on itself; the test saw paving ahead of an end and called it a gap. (2) A cross cut 150 m from a village's centre lined up with it by chance once a fourth road met there. (3) That seed is another map under this generator, and its columns start in sight of a house.
+
+**Verdict:** (1) and (2) sound: each makes the test say what its comment says. (3) open: the control was a fact about one map of `layout-9`; whoever owns the open country may want another seed for it. **Confidence:** medium.
+
+### What the unprimed look at the pictures found
+
+**Choice:** One fresh critique of the six plan drawings and three in-game close-ups (Metro Large seed 1, Mixed Medium seed 2), against the Broken Arrow references, asked "does any town read as a diagram, and does any street or junction look wrong?". One finding was fixed in this pass and the rest are recorded.
+
+**Found, streets:** its worst picture was the first named corner, where an avenue overshot its last junction by 25 m and stopped flat at the town's edge (fixed: the tail rule above; the avenue and the street now turn the corner as one). Still there: in that corner a secondary road and the avenue beside it converge at a shallow angle with one row of houses between; a suburb street ends in a hook where it turns to meet a slanting road; a short diagonal street leaves the country road and ends after 100 m; suburb streets all take the same bend at the same height ("one combed wave"); where a secondary road leaves the main road at a slant exactly where a street crosses, the junction has five arms; a branch peels off a suburb street at a shallow angle and leaves a sliver of grass between two carriageways; in the city's core the north road arrives 200 m from where the south road leaves. Streets that end at the last lots by the town's edge read to it as dead ends, the wider avenue among them.
+
+**Found, towns:** "Diagram." Outlines are stacks of rectangles with stair-step corners; a large town's centre is one carpet of identical long blocks at one tilt with no square or park; a city's districts are rectangular slabs, each with its own grid, butted along hard seams; a city has a detached block no road reaches in the picture; towns are one filled polygon with almost no industry and no open ground inside, where the references are loose estates among woods and fields; in game the buildings stand on bare lawn.
+
+**Verdict:** open. The street findings are the residue the wart test counts, seen: nearly all of them lie along a secondary road, which cuts blocks at a slant. A secondary road that follows a block edge, or blocks cut square to it, is the next thing to try. The town findings are C52's standing list (block shapes, zoning, no open ground, blank country) and were not this pass's four items; the secondary roads gave a city arms and did not change how its blocks are cut. **Confidence:** high that these are visible.
