@@ -99,7 +99,7 @@ fn request(directory: &std::path::Path) -> PathBuf {
     let path = directory.join("request.json");
     let request = serde_json::json!({
         "generator_version": mapgen::layout::GENERATOR_VERSION,
-        "preset_revision": "layout-presets-6",
+        "preset_revision": "layout-presets-7",
         "seed": "11",
         "template_catalog_hash": catalogue().hash(),
         "type": "mixed",

@@ -13,6 +13,7 @@ mod sites;
 mod towns;
 pub(crate) mod water;
 
+pub use measure::{approaches, bearing_step};
 pub use measure::{
     corridor_start, measure, HalfSplit, Journey, LayoutMetrics, RiverMetrics, RoadMetrics,
     TransitMetrics,
@@ -23,7 +24,7 @@ use crate::{Diagnostic, DiagnosticCode, MapPlan};
 use std::collections::BTreeMap;
 
 /// A request pins this; a change that moves any generated point renames it.
-pub const GENERATOR_VERSION: &str = "layout-7";
+pub const GENERATOR_VERSION: &str = "layout-8";
 
 pub use contract::generation::{GenerationRequest, MapSize, MapType};
 

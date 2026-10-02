@@ -8,6 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 pub mod inspect;
 mod joints;
 pub mod layout;
+pub mod open_country;
 pub mod parcels;
 
 use layout::{GenerationRequest, PresetDefinitions};
@@ -288,7 +289,7 @@ pub enum GenerateOutcome {
 }
 
 /// A request's whole plan: the layout, then its districts' streets, parcels
-/// and buildings.
+/// and buildings, then what stands in the open country between them.
 fn generate(
     request_json: &str,
     presets_json: &str,
@@ -306,6 +307,7 @@ fn generate(
     let catalogue = catalogue(descriptors_json)?;
     let layout = layout::generate_layout(&request, &presets)?;
     let plan = parcels::fill_districts(layout, &request, &catalogue, &presets)?;
+    let plan = open_country::furnish(plan, &request, &catalogue, &presets)?;
     Ok((request, plan, catalogue))
 }
 

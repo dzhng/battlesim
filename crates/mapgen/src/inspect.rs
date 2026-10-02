@@ -42,6 +42,8 @@ const ROAD: &str = "#1c1c1c";
 const TRACK: &str = "#7a5a2e";
 const STREET: &str = "#4a4a4a";
 const APRON: &str = "#a9a9a9";
+const YARD: &str = "#c2410c";
+const BODY: &str = "#57534e";
 const ENTRANCE: &str = "#ffd43b";
 /// Parcels and entrances are drawn when the view is at most this wide: on a
 /// whole map they are below a pixel.
@@ -184,9 +186,29 @@ pub fn svg(
             dash = unit * 0.5
         );
     }
+    // A wood is its ring; a tree line its stroke, and a copse or a single
+    // tree a ring drawn with an edge wide enough to find on a whole map.
     for forest in &plan.forests {
-        if let GroundShape::Polygon { ring } = &forest.shape {
-            let _ = write!(out, r##"<path d="{}" fill="{FOREST}"/>"##, path(ring, true));
+        match &forest.shape {
+            GroundShape::Polygon { ring } => {
+                let _ = write!(
+                    out,
+                    r##"<path d="{}" fill="{FOREST}" stroke="{FOREST}" stroke-width="{}"/>"##,
+                    path(ring, true),
+                    unit * 0.1
+                );
+            }
+            GroundShape::Stroke {
+                centerline,
+                width_m,
+            } => {
+                let _ = write!(
+                    out,
+                    r##"<path d="{}" fill="none" stroke="{FOREST}" stroke-width="{}"/>"##,
+                    path(centerline.samples(), false),
+                    width_m.max(unit * 0.25)
+                );
+            }
         }
     }
     for ring in crate::layout::water::rings(&plan.rivers) {
@@ -234,10 +256,30 @@ pub fn svg(
             );
         }
     }
+    // The yards of homes out in the country, at any scale: on a whole map
+    // they are the only sign of a house.
+    for lot in crate::open_country::country_lots(plan) {
+        let _ = write!(
+            out,
+            r##"<path d="{}" fill="{YARD}" fill-opacity="0.45" stroke="{YARD}" stroke-width="{}"/>"##,
+            path(&lot.ring, true),
+            unit * 0.12
+        );
+    }
     for area in &plan.surfaces {
         if let GroundShape::Polygon { ring } = &area.shape {
             let _ = write!(out, r##"<path d="{}" fill="{APRON}"/>"##, path(ring, true));
         }
+    }
+    // Loose bodies: low cover in the fields, a car in a yard.
+    for prop in &plan.props {
+        let _ = write!(
+            out,
+            r##"<circle cx="{}" cy="{}" r="{}" fill="{BODY}"/>"##,
+            prop.center[0] - left,
+            top - prop.center[1],
+            prop.half_extents[0].max(unit * 0.12)
+        );
     }
     // Tracks under roads under streets. Each is drawn at its own width, or
     // wider when that would be too thin to read at this scale.
