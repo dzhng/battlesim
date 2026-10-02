@@ -107,7 +107,8 @@ const GrassParams = d
     grid: d.vec4u,
     /** Pixels per clump, the most clumps a square metre, the fade's footprints. */
     density: d.vec4f,
-    /** Near tier's height in pixels, a blade's least width in pixels, 0, 0. */
+    /** Near tier's height in pixels, a blade's least width in pixels, the
+     *  footprints a clump's own shading softens across. */
     tiers: d.vec4f,
     /** Bare margins: road, prop, forest and water; 0. */
     clear: d.vec4f,
@@ -499,10 +500,11 @@ const grassVertexOf = tgpu
   out.world = world;
   out.root = c.root;
   out.normal = vec3f(n.x * cs - n.y * sn, n.x * sn + n.y * cs, n.z);
-  // Far clumps are a few pixels: their dark roots and gaps would read as
-  // speckle, so their tint and their lighting give way to the ground's.
+  // A clump a few pixels tall shows its tops, not its roots: drawn with them,
+  // its dark roots and gaps read as speckle, so its tint and its lighting
+  // give way to the ground's.
   let footprint = P.eye.w * distance(typegpuCameraLayout.$.cam.eye, c.root);
-  let plain = smoothstep(0.6 * P.density.z, 1.1 * P.density.z, footprint);
+  let plain = smoothstep(P.tiers.z, P.tiers.w, footprint);
   out.albedo = colour * colour * mix(s.tint.xyz, vec3f(1.0), plain);
   out.plain = plain;
   return out;
@@ -667,6 +669,8 @@ export async function createGrassPass(
   let surface: TerrainSurface | null = null;
   let appearances: GrassAppearances | null = null;
   let rules: GrassRules | null = null;
+  /** The lab's rules in place of the biome's (`probes.retune`). */
+  let retuned: GrassRules | null = null;
   let kindNames: string[] = [];
   let capacity: [number, number] = [0, 0];
   let indexCounts: [number, number] = [0, 0];
@@ -703,9 +707,9 @@ export async function createGrassPass(
     ready = false;
     const grid = surface?.grid;
     if (!surface || !grid || !appearances) return;
-    const kinds = grassKinds(surface.biome, appearances);
+    rules = retuned ?? surface.biome.grass;
+    const kinds = grassKinds({ ...surface.biome, grass: rules }, appearances);
     if (!kinds) return;
-    rules = surface.biome.grass;
     const packed = packGrassShapes(kinds);
     kindNames = kinds.appearances.map((a) => a.name);
     lowest = grid.minHeight;
@@ -753,7 +757,12 @@ export async function createGrassPass(
         rules.fade_m_per_px[0],
         rules.fade_m_per_px[1],
       ),
-      tiers: d.vec4f(rules.near_tier_px, rules.min_blade_px, 0, 0),
+      tiers: d.vec4f(
+        rules.near_tier_px,
+        rules.min_blade_px,
+        rules.soften_m_per_px[0],
+        rules.soften_m_per_px[1],
+      ),
       clear: d.vec4f(rules.clear_m.road, rules.clear_m.prop, rules.clear_m.area, 0),
       counts: d.vec4u(grid.nx, grid.ny, 0, 0),
       ground: d.vec4f(grid.spacing, 0, 0, 0),
@@ -899,6 +908,14 @@ export async function createGrassPass(
       suppress(on: boolean) {
         suppressed = on;
       },
+      /** Grow by `rules` in place of the biome's (null returns to them): one
+       *  page compares fields that differ in a single number. */
+      retune(next: GrassRules | null) {
+        retuned = next;
+        rebuild();
+      },
+      /** The rules the field grows by now. */
+      rules: () => rules,
       async counts(): Promise<GrassCounts> {
         if (!drawn) return { near: 0, far: 0, nearFound: 0, farFound: 0 };
         const words = new Uint32Array(await readback(args, ARGS_WORDS * 4));

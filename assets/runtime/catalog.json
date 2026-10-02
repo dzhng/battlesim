@@ -91,8 +91,26 @@
       "scenery": "grass",
       "unit": "scenery"
     },
+    "grass_prairie": {
+      "bundle": "849416e8920db53789faf4ce8e92d99eb67c53180e5fcbb0bbe89dff55678d5e",
+      "kind": "static",
+      "scenery": "grass",
+      "unit": "scenery"
+    },
+    "grass_rough": {
+      "bundle": "9169fb8a99f1c013b1fc952628c1dc8240b114286bf2ae933a039ada431d2210",
+      "kind": "static",
+      "scenery": "grass",
+      "unit": "scenery"
+    },
     "grass_stubble": {
       "bundle": "7def3e01fd818c2785e984969cd50569d6b3ff9e024b0b696facf97ae1c9733e",
+      "kind": "static",
+      "scenery": "grass",
+      "unit": "scenery"
+    },
+    "grass_verge": {
+      "bundle": "a8c990a534734fb9ba114bea940ceeb31463a16ee5784fad103d37874fd05964",
       "kind": "static",
       "scenery": "grass",
       "unit": "scenery"

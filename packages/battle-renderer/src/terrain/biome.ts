@@ -207,6 +207,11 @@ export interface GrassRules {
   /** Clumps shrink away as one pixel grows from the first to the second
    *  footprint (metres per pixel); beyond, the painted ground alone. */
   fade_m_per_px: readonly [number, number];
+  /** A clump's own shading (dark roots, pale tips, each blade's facing)
+   *  gives way to the ground's as one pixel grows from the first to the
+   *  second footprint: seen from far a tuft shows its tops, and drawn with
+   *  its roots it reads as dark flecks. */
+  soften_m_per_px: readonly [number, number];
   /** A clump taller than this many pixels draws its near tier. */
   near_tier_px: number;
   /** A blade is drawn at least this many pixels wide, so far blades hold. */
@@ -416,6 +421,7 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   within("grass.pixels_per_clump", g.pixels_per_clump, 1, 10000);
   within("grass.max_clumps_m2", g.max_clumps_m2, 0.01, 400);
   range("grass.fade_m_per_px", g.fade_m_per_px, 0.001, 10);
+  range("grass.soften_m_per_px", g.soften_m_per_px, 0.001, 10);
   within("grass.near_tier_px", g.near_tier_px, 0, 10000);
   within("grass.min_blade_px", g.min_blade_px, 0, 8);
   within("grass.clear_m.road", g.clear_m?.road, 0, 20);
