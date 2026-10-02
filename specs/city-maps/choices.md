@@ -3982,3 +3982,33 @@ pending. **Confidence:** high for fixture identity, medium until the scene runs.
 **Contract:** Source observations are immutable. A new static position/floor view rebuilds the conversion and retains earlier rows unchanged. Side/catalog changes recreate the existing feed/driver owners. The driver's independent death/fade/expiry work and clock-reset lifecycle remain active behind its existing reconciliation gate. Caps, world, camera and frame ownership stay intact; there is no cache shared across pages.
 
 **Verdict:** Sound within the existing immutable-view contract. Public feed identity/floor proofs and existing pose lifecycle suites pass. Broader browser allocation, upload and throughput admission remain separate and open. **Confidence:** High for static construction and value preservation.
+
+
+## C07: compact the selected lossless group form
+
+**Choice:** Add one byte-packed transport arm inside the existing publication
+owner, wrapping the already selected snapshot, replacement or source-copy form.
+Keep one span selector and baseline. Pack small operation integers and each
+literal's exact raw bits or its XOR against the old word at the same output
+address, whichever needs fewer bytes. A fresh snapshot always uses raw bits.
+
+**Why:** After address amplification was removed, remaining float literals and
+operation metadata still crossed the 19,800-byte whole-record gate. Copy-only
+packing left 63 early frames over the gate; the general arm also packs replacement
+literals. Both captured 1,800-transition windows reconstruct every original word,
+with maxima falling to 19,772/18,220 B. Actual extracted producer mean encoding
+cost rises about 0.12–0.14 M instructions for own plus identified, with identical
+staging and indexing included. C07 owns the detailed measurements and their scope.
+
+**Contract:** The simulation's published layout owns the grammar once. Byte
+carriers can resemble NaNs, so transport/decoder copies preserve raw u32 bits
+instead of converting them through JavaScript float numbers. Complete admission
+precedes writing; compact serialization uses constant scratch and the existing
+reserved output. Invalid payloads cannot commit any baseline. Unchanged static
+word and decoded-view identities remain stable. No compression library, field
+schema, per-unit predictor, extra retained state or budget exception is added.
+
+**Verdict:** Sound on matched exact corpus evidence and the paired consumer
+contract. The early maximum has only 28-byte headroom, so current-stream estimates
+cannot close snapshot, peak or live whole-system gates. **Confidence:** High for
+lossless representation; final runtime admission remains with the scale lane.
