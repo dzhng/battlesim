@@ -5366,3 +5366,71 @@ loaded throughput or full-world process/GPU peak.
 **Reach:** One battle builds the world twice (worker, page), not once. The page's build runs behind the loading screen. The page's world has no navigation and no battle state, so no query can read hidden destruction. Where the export had moved surface, terrain-ray, water and learned-crown arithmetic into free functions so two worlds could share them, that arithmetic is back inside `WorldGeometry`, its one caller. The worker handoff, cancellation, the prepared replay, the fog change, the camera lab's catalogue map, the combat parity pair and the startup harness are unchanged.
 
 **Verdict:** sound. Battle digests and replays do not move; the generated and camera scenes pass unchanged; Mixed Small is playable 5 to 9 s after Deploy on a loaded machine, against 3 to 4 s for the export on a quieter one, with level retired instructions ([startup measurement](startup-lane.md#startup-measurement)). **Confidence:** high.
+
+## C31 urban and plain ground composition
+
+**When:** 2026-10-02. Evidence and numbers: the Outcome in [C31](slices/C31-city-biome.md).
+
+### Urban ground is where buildings stand, by the plot rule; no region reaches the renderer
+
+**Choice:** The settlement's ground is the plots whose centre lies within `field_rules.yard_m` (40 m) of a building, the rule `terrain/plots.ts` already owned at a wider reach. Nothing was exported from `crates/`.
+
+**Gap:** The slice says composition comes from `MapDefinition.surfaces` and `land_regions`. `land_regions` is not a field of `MapDefinition`; the compiler refuses a plan that names one. What the generator knows of a town (each settlement's outline and blocks) is in its `EncounterSites`, which the preparation worker hands to the encounter planner and drops: it is not in the map, a saved map has none, and it reaches neither the page nor the renderer.
+
+**Why:** Exporting it means a new field of the map contract, its saved form and its identity, not a layout column: the map lane's decision. The buildings are in every map, saved or generated. **Verdict:** sound. Against the generator's own blocks on the rig's map the rule calls 85% of block ground yard and 0.3% of it a drilled crop (a block takes in unbuilt margins). **Confidence:** medium: a yard is a whole plot, so its edge is a plot's straight edge, and a wide lot round a detached house is no yard.
+
+### Two reaches: the yard, and the surround where no crop is drilled
+
+**Choice:** A plot within `yard_m` is `settlement_kind` (`yard`); any other within `settlement_m` (110 m, as before) is `surround_kind` (`meadow`). Neither draws from the plot stream.
+
+**Gap:** "Pavement and urban yards suppress farm plots" names no reach; the one rule made every plot within 110 m the settlement's lawn, a block of one green round every town.
+
+**Why:** The old rule drew no kind for a settlement plot, so keeping its reach for the pair leaves every other plot on every map the kind and colour it was (checked plot by plot against the starting commit on the village and the generated map). **Verdict:** sound. **Confidence:** high.
+
+### The yard is the old green at its own lightness, two thirds of its chroma, growing what it grew
+
+**Choice:** `palettes.yard` is the old settlement green's three colours at their own L\* and hue, chroma 17 (from 27); its grass is the meadow's mix at full height, as it was.
+
+**Gap:** "Urban yard and park appearance; grass density" are delegated, and the look must hold `fog-look`.
+
+**Why:** Three looks were shot once (a lawn, lawn and trodden courts, packed earth); the earth and the courts came out rust orange under the low sun. A mown lawn (half height, a pasture mix) then failed `fog-look` under `grey-veil` at `default-wall`: the wedge of unseen ground there is the yard, and a smooth lawn has no dark blades, so its darkest 1% rose from 39 to 52 against a darkest seen 46. The check holds by luminance only while the yard is as dark, and as rough, as it was; its chroma is free. **Verdict:** provisional: fresh eyes still read "a mown lawn from wall to wall", and the fog styles' margin (SG4) still decides what a yard may be. **Confidence:** medium.
+
+### A country road is a street where yards lie on both sides of it
+
+**Choice:** `roads.<kind>.town` names the kind a road is drawn as where a yard lies within `beside_m` (5 m) of its edge on both sides, on across gaps under `gap_m` (80 m). The summer country road's is `road`. `drawnStrokes` splits the exported stretches where a run starts and ends; the surface field is built from them (`terrainField`).
+
+**Gap:** "Never a second sim rule or a renderer-only guess about roads"; the map names the road through a town `country_road`.
+
+**Why:** The road follows the yards, the one owner of where the town is, so asphalt never runs on past them. Either side was tried first: a street with walks then ran beside a wheat field wherever a yard lay across the road. **What it cannot do:** a hamlet's road between wide lots stays gravel while its side streets, `road` by the map, are asphalt. **Verdict:** provisional until the map says which roads are streets. **Confidence:** medium.
+
+### The village is untouched because its roads are already streets by name
+
+**Choice:** A stretch is retagged only when its row's town kind differs from its own tag. The village's roads are `road` drawn by the country road's row (`drawnKind`), whose town kind is `road`: nothing to do, and `strokes` is the exported array itself.
+
+**Gap:** The brief: the village must not move.
+
+**Verdict:** sound: `bend-65`'s bare ground and class mask are byte-identical. **Confidence:** high.
+
+### The join: the street runs on under the gravel, which starts in drifts
+
+**Choice:** A run of street is cut square `join_m` (the street row's, now 3 m) past each end; the country road stops at the run's end, round. Where one road is carried onto another, the line the upper surface starts from now wanders by the carry (`JOIN_DRIFT_M`, 2.5 m drifts). This is every carried join's: a track's earth onto a road too.
+
+**Gap:** "A join that is not a ruled line."
+
+**Why:** Cut square at the run's end the asphalt was a ruled line with gravel sprayed over its middle (the critique's words). **Verdict:** provisional, and not good enough: the second critique still reads the join as a glitch (a lobed blob of gravel on one side, a ruled cut on the other). The carried blend was made for a road that crosses another; an end across a road wants a term of its own. **Confidence:** low.
+
+### A crossing is laid beside a stretch's own length only
+
+**Choice:** `groundMarks` counts a crossing road only where the point lies beside the stretch, not past its end.
+
+**Gap:** C30 left a street that only joins a road out of its crossings by the stretch's cut flags; a joining street whose first stretch is short escaped it.
+
+**Why:** With the main road a street, a fan of bars was painted on it round the end of each side street. **Verdict:** sound. **Confidence:** medium: a crossing road's bend can leave a bar's width unpainted.
+
+### The rig makes the generated map again in the page
+
+**Choice:** `_groundStations.mjs` rebuilds the terrain surface from the page's own generation request, for stations that stand on the renderer's own ground (`town-edge`, `road-join`) and for `drawnRoads`.
+
+**Gap:** No probe of the lab reaches the terrain surface, and the lab is not this lane's to change.
+
+**Verdict:** sound; it costs under a second a page. **Confidence:** high.
