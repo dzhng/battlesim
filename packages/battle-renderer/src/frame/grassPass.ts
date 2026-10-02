@@ -478,10 +478,12 @@ const grassVertexOf = tgpu
   let bend = s.spine.w * s.spine.w;
   let packed = unpack4x8unorm(c.colour);
   // Laid over by tracks or trampling: the clump sinks and its blades lean
-  // out its own way, still in the wind but less.
+  // out its own way, still in the wind but less. A stiff kind answers the
+  // wind less (its shape's own response).
   let flat = 1.0 - packed.w;
-  let lean = (P.wind.z + P.wind.w * gust + flutter) * (1.0 - flat);
-  let push = dir * lean + vec2f(-dir.y, dir.x) * flutter * 0.5 * (1.0 - flat);
+  let answer = s.tint.w * (1.0 - flat);
+  let lean = (P.wind.z + P.wind.w * gust + flutter) * answer;
+  let push = dir * lean + vec2f(-dir.y, dir.x) * flutter * 0.5 * answer;
   let laid = vec2f(cs, sn) * flat * ${FLAT_LEAN};
   var world = c.root + vec3f(spine.xy, spine.z * (1.0 - flat * ${FLAT_SINK})) + side + vec3f((push + laid) * c.height * bend, 0.0);
   world.z -= 0.5 * dot(push, push) * c.height * bend;

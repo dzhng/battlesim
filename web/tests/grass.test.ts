@@ -9,9 +9,12 @@ import { mat4, vec3 } from "math";
 import { frustum } from "math/shapes";
 import { contentSha256 } from "@packages/scene-assets/src/glb.ts";
 import {
+  GRASS_MAX_HEIGHT_M,
   GRASS_SEGMENTS,
   grassBladeVertices,
   grassClumpGlb,
+  grassMeshHeight,
+  grassSpecErrors,
   grassStripIndices,
   grassStripFindings,
 } from "@packages/scene-assets/src/grass.ts";
@@ -195,4 +198,69 @@ test("the effective height check includes the far tier's drawn vertices", async 
     Object.values(biome.grass.growth).map((g) => [g.appearance, source] as const),
   );
   expect(() => grassKinds(biome, appearances)).toThrow(/0.9/);
+});
+
+/** A biome growing `source` everywhere, and its kinds' packed shapes. */
+function packed(source: StaticBundle) {
+  const kinds = grassKinds(
+    biome,
+    new Map(Object.values(biome.grass.growth).map((g) => [g.appearance, source] as const)),
+  )!;
+  return packGrassShapes(kinds);
+}
+
+test("a kind answers the field's wind as far as its spec says, at every blade vertex", async () => {
+  const responses = async (wind: number) => {
+    const { shapes, bases, rows } = packed(await tuft({ ...GRASS_SPEC, wind }));
+    const count = rows[1] * grassBladeVertices(GRASS_SEGMENTS[0]);
+    return Array.from({ length: count }, (_, v) => shapes[(bases[0] + v) * SHAPE_FLOATS + 15]);
+  };
+  for (const r of await responses(1)) expect(r).toBeCloseTo(1, 6);
+  // A stiff stalk: a quarter of the sway, to a byte's step.
+  for (const r of await responses(0.25)) expect(Math.abs(r - 0.25)).toBeLessThan(1 / 255);
+  expect(grassSpecErrors({ ...GRASS_SPEC, wind: 1.5 })).not.toEqual([]);
+});
+
+test("no blade outline, droop or head lifts a blade above its spec's height", async () => {
+  const shaped = await tuft({
+    ...GRASS_SPEC,
+    height_m: [0.4, 0.6],
+    lean: [0.3, 0.8],
+    droop: 0.5,
+    shape: { taper: 5, belly: 3 },
+    head: { from: 0.7, width: 3, chance: 1, color: [0.9, 0.8, 0.1] },
+  });
+  const top = grassMeshHeight(shaped.states[0].tiers);
+  expect(top).toBeGreaterThan(0.2);
+  expect(top).toBeLessThanOrEqual(0.6);
+  expect(grassStripFindings("shaped", shaped.states[0].tiers)).toEqual([]);
+});
+
+test("a head takes its own colour: yellow flowers over green stems", async () => {
+  const flowering = await tuft({
+    ...GRASS_SPEC,
+    jitter: 0,
+    head: { from: 0.6, width: 2, chance: 1, color: [0.9, 0.8, 0.1] },
+  });
+  const mesh = flowering.states[0].tiers[0];
+  const per = grassBladeVertices(GRASS_SEGMENTS[0]);
+  for (let b = 0; b < GRASS_SPEC.blades; b++) {
+    const [root, tip] = [b * per, b * per + per - 1].map((v) => [
+      ...mesh.colors.subarray(v * 4, v * 4 + 3),
+    ]);
+    // The head's colour, to a byte's rounding.
+    [230, 204, 26].forEach((v, c) => expect(Math.abs(tip[c] - v)).toBeLessThanOrEqual(1));
+    // The stem under the head keeps the spec's green: more green than red.
+    expect(root[1]).toBeGreaterThan(root[0]);
+  }
+});
+
+test("the summer biome's every growth row stays under the cap with the catalog's own kinds", async () => {
+  const sources = new Map<string, StaticBundle>();
+  for (const [name, entry] of Object.entries(catalog.appearances))
+    if (entry.grass) sources.set(name, await tuft(entry.grass));
+  // `grassKinds` refuses any row whose composed height passes the cap.
+  const kinds = grassKinds(biome, sources)!;
+  expect(kinds.appearances.length).toBeGreaterThan(0);
+  expect(GRASS_MAX_HEIGHT_M).toBe(0.9);
 });

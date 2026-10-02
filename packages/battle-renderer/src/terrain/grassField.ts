@@ -14,6 +14,7 @@ import { frustum, type Frustum } from "math/shapes";
 import type { StaticBundle } from "@packages/scene-assets/src/schema.ts";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader.ts";
 import {
+  GRASS_MAX_HEIGHT_M,
   GRASS_SEGMENTS,
   grassBladeVertices,
   maxFieldGrassHeight,
@@ -153,9 +154,9 @@ export function grassKinds(biome: Biome, appearances: GrassAppearances): GrassKi
       grassMeshHeight(appearances.get(g.appearance)!.states[0].tiers),
       g.height,
     );
-    if (!Number.isFinite(maximum) || maximum <= 0 || maximum > 0.9)
+    if (!Number.isFinite(maximum) || maximum <= 0 || maximum > GRASS_MAX_HEIGHT_M)
       throw new Error(
-        `grass.growth.${key}: effective field height ${maximum} m exceeds the 0.9 m cap`,
+        `grass.growth.${key}: effective field height ${maximum} m exceeds the ${GRASS_MAX_HEIGHT_M} m cap`,
       );
     growth.set([g.density, g.height, names.indexOf(g.appearance), 0], at * 4);
   };
@@ -165,7 +166,7 @@ export function grassKinds(biome: Biome, appearances: GrassAppearances): GrassKi
 }
 
 /** Floats per clump vertex on the GPU: spine (xyz, height fraction), side
- *  (xyz, phase), normal (xyz, 0), tint (rgb, 0). */
+ *  (xyz, phase), normal (xyz, 0), tint (rgb, how far it answers the wind). */
 export const SHAPE_FLOATS = 16;
 
 const linear = (c: number) => (c / 255) ** 2.2;
@@ -225,6 +226,7 @@ export function packGrassShapes(kinds: GrassKinds) {
         }
         shapes[o + 3] = mesh.uvs[v * 2 + 1];
         shapes[o + 7] = mesh.uvs[v * 2];
+        shapes[o + 15] = mesh.colors[v * 4 + 3] / 255;
         at++;
       }
     });
