@@ -5432,3 +5432,129 @@ loaded throughput or full-world process/GPU peak.
 **Reach:** One battle builds the world twice (worker, page), not once. The page's build runs behind the loading screen. The page's world has no navigation and no battle state, so no query can read hidden destruction. Where the export had moved surface, terrain-ray, water and learned-crown arithmetic into free functions so two worlds could share them, that arithmetic is back inside `WorldGeometry`, its one caller. The worker handoff, cancellation, the prepared replay, the fog change, the camera lab's catalogue map, the combat parity pair and the startup harness are unchanged.
 
 **Verdict:** sound. Battle digests and replays do not move; the generated and camera scenes pass unchanged; Mixed Small is playable 5 to 9 s after Deploy on a loaded machine, against 3 to 4 s for the export on a quieter one, with level retired instructions ([startup measurement](startup-lane.md#startup-measurement)). **Confidence:** high.
+
+## C14: damage states of the scripted sets
+
+### A ruin is held to the building's ruin height, not each part's
+
+**Choice:** The fit rule gives every part of a collapsed template remains of one height: the rule's fraction of the building's height (its tallest part's top), between the rule's least and most. A set's `ruin` rows fit each part's plan at that height.
+
+**Gap:** The brief for this pass said "25% of the part's height clamped 2 to 6 m"; C42 says "25% of the building's height".
+
+**Reach:** Only templates whose parts differ in height, which here are the three farmsteads: the yard farm's 3 m cart shed leaves 2.1 m of remains (a quarter of its 8.4 m barn), where its own quarter would clamp to 2 m.
+
+**Verdict:** sound. `Battle::destroy_prop` scales `geometry.height_m`, the materialized building's, for every part, and the art is made to what the simulation builds. **Confidence:** high.
+
+### The rule's numbers are read from the building prop type, in both places
+
+**Choice:** The bake reads the rule through `Authority.collapse` (the unit catalog's prop types that carry `destroyed.into.building`; differing rules are refused), and the Blender side reads the same row from `fixtures/props/generic/structures.json` (`city/collapse.py`). Neither holds a number.
+
+**Gap:** "Read the ruin rule's numbers from where the simulation's rule lives ... rather than copying constants"; Blender scripts cannot call the unit catalog's resolver.
+
+**Verdict:** sound for a root entry with no `extends`. If the building row ever inherits its `destroyed` from another, `collapse.py` reads the wrong row and the bake's check (which resolves) refuses the set: the mismatch is loud. **Confidence:** medium.
+
+### `fit.ruin_top_m` is optional and 0 when absent; 0.6 m here
+
+**Choice:** A set says how far a ruin's broken walls may stand above the remains as `fit.ruin_top_m`. A set without it gets no allowance. `homes`, `farmsteads` and `industry` say 0.6 m; `towers` has no ruin and no number.
+
+**Gap:** "a small top allowance for jagged wall tops, which you put in the set's `fit` as a named number".
+
+**Reach:** The apartments' set must write the field to stand above its remains at all; without it its ruin is refused wherever a stump tops the box.
+
+**Verdict:** sound. A default allowance would be a number nobody chose. 0.6 m is a quarter to a third of a 2 to 3 m ruin: stumps read as broken walls over the heap, and the box still describes what stops a round. **Confidence:** medium (the number was judged in pictures, not in play).
+
+### A wrong or missing damage state is an error, so this branch's library does not bake alone
+
+**Choice:** `templates.state` refuses a template without its damage state, with the other state, or with both, at error severity. With the apartments' states not yet written, `asset bake` refuses the library on this branch with seven findings, all `china_apartments`; the committed runtime was left as it was.
+
+**Gap:** "the asset check refuses anything else by name" and "locally `asset bake` and `asset check` must pass" cannot both hold before the other half of the slice lands.
+
+**Verdict:** provisional until the apartments merge. A warning, or a rule a set opts into, would have baked here and would not refuse a set that forgot its states. The 22 templates of this pass were proved by the strict bake naming none of them, and drawn in the line-up from a local bake with stand-in apartment states that is not committed. **Confidence:** high that strict is right; the integrator rebakes after both halves are in.
+
+### A damage state may not draw more than intact, and the helper refuses it
+
+**Choice:** `Kit.write` fails a set whose damage state draws more triangles than `intact` at any tier, or lacks a row at a tier, or has the wrong state for its floors.
+
+**Gap:** The budget was stated in the brief; nothing said who holds it.
+
+**Verdict:** sound. It moved several designs: ruins of small houses draw fewer heaps, long buildings coarser stumps at tier 2. The bake reports a damage state's triangles but does not gate on them. **Confidence:** high.
+
+### A ruin's openings are read from the intact rows
+
+**Choice:** `ruin_sides` finds, for each wall of a part, the ground-floor fittings the intact rows hang on it, and the stump is broken to each one's sill (a door's to the ground) with the wall cut at its jambs. Party walls stand; a stretch open to a neighbour part has no wall.
+
+**Gap:** "ragged wall stumps with window openings broken to their sills".
+
+**Verdict:** sound. The ruin's doorway is where the door was without a second table to keep in step. **Confidence:** high.
+
+### A terrace's houses are two ruin modules and a level each
+
+**Choice:** A row of houses falls as its intact art stands: one module a house (two variants, alternating) in the house's own tint, each scaled down to its own level (1.0 to 0.74), with the party wall and chimney breast on its west side and the row's east end wall a module of its own.
+
+**Gap:** "A terrace's units break unevenly, so the row is not one flat line."
+
+**Reach:** A terrace's ruin is one row a house and one for the end at the coarse tiers, as its intact state is; not one row.
+
+**Verdict:** sound. One shell for the row could carry one tint, and the houses' colours are what say which terrace it was. **Confidence:** medium: the critique still found each house's heap and roof pieces alike.
+
+### Timber and steel fall their own way; the heap under them is the same recipe
+
+**Choice:** A boarded barn's stumps are thin lengths of board, burnt to the foot, between charred posts; a timber-framed barn keeps its plaster stumps and gains the posts. A steel shed's walls are its dado's stumps with torn cladding standing over them, its frame's legs leaning, and its roof's own sheets buckled over the heap. All of them stand on the one `rubble` recipe, recoloured (ash under timber and steel).
+
+**Gap:** "An industrial shed collapses as buckled sheet and bent portal frames over rubble, not as masonry"; nothing was said of timber.
+
+**Verdict:** provisional. The critique read the steel sheds' heaps as masonry rubble under the sheets. A recipe of ash and scrap is a later, cheap change. **Confidence:** medium.
+
+### A gutted tower is the shell built twice, and its soot is in the recipes
+
+**Choice:** `shell(..., burnt=True)` builds the same module in burnt facade recipes (one a kind of opening, plus a blown bay), and tier 0 places `gutted_<kind>_<quarter>` panels that show the quarter of the recipe the shell shows on that bay. Four to six bays a tower are blown out, by a list on the template. Balconies are scorched, broken or hanging by a fixed roll; aerials are gone.
+
+**Gap:** "soot streaks and missing panels in the shell's own coarse-tier texture or vertex colour".
+
+**Reach:** Seven more facade recipes in the towers' kit (about 2 MB of the source file), and four balcony recipes that carry their fronts' colours.
+
+**Verdict:** sound. Soot as vertex colour alone read as a slightly darker wall; in the texture it has a shape at every tier. **Confidence:** high.
+
+### The wall of a gutted tower darkens with height, and the panels' tints follow it
+
+**Choice:** `smoked(z)` darkens a gutted shell's walls from 6% at the ground to 46% at 50 m, in vertex colour; a tier 0 panel's row tint is dimmed by the same function at its floor, and the burnt recipes' tint mask is the whole wall, so both dim the soot and the spall alike.
+
+**Gap:** None in the slices: it answers "obviously dead ... from across the map".
+
+**Verdict:** provisional. It is what separates a gutted tower from an intact one at tier 3, and the critique's worry stands: a facade in shade is also darker. The openings, blown bays and ash carry the rest. **Confidence:** medium.
+
+### Roofs: one tile recipe without a quilt, a neutral slate, and stains in the roof's own paint
+
+**Choice:** `roof_tile` is small staggered tiles within a few percent of one tone, with soft shallow courses and nothing wider than a tile; `roof_slate` is the same in neutral grey, for slate and stone roofs (a recolour of the clay recipe turned its variation into a teal and pink cast); a roof's material takes no per-vertex grain and no tile-scale lichen, and `weathered_roof` lays drift and moss in fields metres across.
+
+**Gap:** The coordinator's note: no cross-hatch at 80 m or 250 m, one weathered colour family, variation in large soft patches.
+
+**Reach:** Every shell of `homes` and `farmsteads` (the files that moved: both sets' `kit.glb` and `templates.json`).
+
+**Verdict:** sound in the line-up at every tier. **Confidence:** high.
+
+### The coarse tiers fold fittings into the shell, and a far house is one row
+
+**Choice:** `kit.fold_far` copies what a fitting is from far off (panels and boxes, from a table a set keeps) into the template's shell at tiers 2 and 3, and the fitting's row stops at tier 1. `homes` now does at tier 2 what `farmsteads` did, and both do it at tier 3. A terrace folds the fittings of its second house into the one house module; its chimneys and shop signs stay rows at every tier, because they differ from house to house.
+
+**Gap:** C23's list asks for the openings at tier 3 "as wall texture or vertex colour"; the kit readme says a far building is one row.
+
+**Reach:** Tier 3 of a house rises from 12 to 46 triangles to 98 to 512. A terrace's doors are one colour from tier 2 out.
+
+**Verdict:** sound: the validator requires a module's coarser tier to draw no more than its finer one, so the panels could not be tier 3's alone. **Confidence:** high.
+
+### `assemble.py` picks tiers as the game does
+
+**Choice:** The reassembly sheets choose a tier by pixels to the metre (`presentation.buildings.lod_px_per_m`), not by projected height, and `tower_sheets.py`'s tier sheet stands at those distances.
+
+**Gap:** C18's outcome says a tower is at tier 0 out to 500 m; C22 chose pixels to the metre.
+
+**Verdict:** sound. The old sheets showed a tower's tier 0 where the game draws tier 1. **Confidence:** high.
+
+### Three towers differ by one built thing; the 20-floor tower was left
+
+**Choice:** The 12-floor tower's top floor and parapet are terracotta under a roof slab that stands 0.55 m out (inside the side fit); the 16-floor tower's windows are ribbons the bay's width; the 20-floor tower is unchanged.
+
+**Gap:** "vary one structural thing each ... if it is cheap". A setback top would have left the part's faces.
+
+**Verdict:** sound for two; the third differs from them by being the plain one. **Confidence:** medium.
