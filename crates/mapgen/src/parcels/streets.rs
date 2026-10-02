@@ -1,9 +1,10 @@
-//! A district's streets: a grid fitted between its edges, along the edge
-//! that runs longest with the settlement's main street, bent where the
-//! preset says. A street runs from a junction to a junction: to the
-//! carriageway on the district's edge, at the point where a street already
-//! meets it from the far side when one is near, or to the last ground it
-//! serves where the edge faces the fields. No street crosses water.
+//! A district's streets: a grid fitted between its edges, along the road
+//! the district fronts, bowed where the preset says. A street runs from a
+//! junction to a junction: to the carriageway on the district's edge, where
+//! it comes to it near enough square and clear of the junctions that
+//! carriageway already has (or straight across from a street that ends on
+//! its far side), and otherwise to its last crossing or the last ground it
+//! serves. No street crosses water.
 use super::Pass;
 use crate::layout::geometry::{
     add, bearing, direction, distance, dot, ray_exit, round_cm, scale, segment_bounds,
@@ -25,12 +26,39 @@ const JOIN_OVERSHOOT_M: f64 = 0.5;
 const FACING_PAST_M: f64 = 10.0;
 /// Two carriageways within this of parallel run the same way.
 const PARALLEL_COS: f64 = 0.866;
-/// Two streets that meet a road from its two sides run opposite ways within
-/// this (60 degrees).
+/// Two streets that stop end to end run opposite ways within this (60
+/// degrees).
 const FACING_COS: f64 = 0.5;
-/// A street that would meet a carriageway nearer alongside than this (45
-/// degrees) turns to meet it square.
-const SLANT_COS: f64 = 0.707;
+/// A street comes to a carriageway on its own line no farther off square
+/// than this (the sine of 20 degrees).
+const SLANT_SIN: f64 = 0.342;
+/// One that would come to it farther off square, up to this (the sine of
+/// 28 degrees), turns at its last crossing to meet it square: a bend, where
+/// a sharper turn would be a hook. At more of a slant it does not meet it.
+const TURN_SIN: f64 = 0.47;
+/// A street that turns to meet a carriageway square runs at least this many
+/// of its widths from the turn to the carriageway.
+const TURN_WIDTHS: f64 = 3.0;
+/// Two streets that meet a road from its two sides make a crossroads when
+/// they run opposite ways within this (25 degrees).
+const IN_LINE_COS: f64 = 0.906;
+/// A street that stops in the open looks this far to either side of its
+/// line for the carriageway it stops short of (20 degrees).
+const AHEAD_SPREAD: f64 = 0.36;
+/// How much an edge of a district counts for when the district picks the
+/// line of its streets: twice its length where a road runs along it, a
+/// quarter where no carriageway does.
+const ROAD_EDGE: f64 = 2.0;
+const OPEN_EDGE: f64 = 0.25;
+/// A joint this near a carriageway's paving lies on it.
+const ON_WAY_M: f64 = 1.0;
+/// A bowed street's wave is this many times its district's length, or the
+/// preset's wavelength where that is longer: one bend or less from end to
+/// end, never a ripple.
+const BOW_LENGTHS: [f64; 2] = [1.2, 2.4];
+/// And it swings no farther off its line than this share of that length, so
+/// a short street bends as gently as a long one.
+const BOW_REACH: f64 = 0.04;
 /// A street that is one run from a crossing to the road ahead is at least
 /// this many widths long: shorter, it is a connector between two streets
 /// that already lie side by side.
@@ -55,6 +83,8 @@ pub struct Way {
     pub half_width: f64,
     /// `[min_x, min_y, max_x, max_y]` of the samples.
     pub bounds: [f64; 4],
+    /// A road of the layout's network: not a town's street or avenue.
+    road: bool,
 }
 
 /// Every carriageway on the map so far: the layout's roads, then each street
@@ -68,10 +98,45 @@ pub struct Network<'a> {
     water: Water<'a>,
     /// The least ground between a street's middle and the water's edge.
     clearance: f64,
-    /// Where a carriageway ends on another: the end's own point, the unit
-    /// vector it arrives along and half its width.
-    joints: Vec<(Point, Point, f64)>,
+    /// Where a carriageway ends on another, and where two cross (each then
+    /// listed arriving both ways).
+    joints: Vec<Joint>,
     joint_grid: Grid,
+}
+
+/// One carriageway's end on another.
+#[derive(Clone, Copy)]
+struct Joint {
+    at: Point,
+    /// The unit vector it arrives along, and half its width.
+    arriving: Point,
+    half_width: f64,
+    /// Whether both are roads of the layout's network: a junction of the
+    /// roads, which a street keeps clear of.
+    roads: bool,
+}
+
+/// How a street lands on the carriageway ahead of it.
+enum Landing {
+    /// Where its line crosses the carriageway.
+    Free(Point),
+    /// Square to it, round a turn at the point it runs on from.
+    Turned(Point),
+    /// On the point where a street already ends on the carriageway from its
+    /// far side, in line with it: the two make a crossroads.
+    Opposite(Point),
+    /// Not at all: it would come to the carriageway at a slant, or beside
+    /// a junction it cannot make a crossroads of.
+    Refused,
+}
+
+impl Landing {
+    fn point(&self) -> Option<Point> {
+        match self {
+            Landing::Free(at) | Landing::Turned(at) | Landing::Opposite(at) => Some(*at),
+            Landing::Refused => None,
+        }
+    }
 }
 
 /// Where a street running on would cross a carriageway.
@@ -81,6 +146,8 @@ struct Met {
     /// The stretch of centreline crossed, and half that carriageway's width.
     stretch: [Point; 2],
     half_width: f64,
+    /// That carriageway, by its place in the network.
+    way: usize,
 }
 
 impl<'a> Network<'a> {
@@ -96,29 +163,93 @@ impl<'a> Network<'a> {
             joint_grid: Grid::new(plan.size, 64.0),
         };
         for area in plan.surfaces.iter().filter(|area| area.kind.is_road()) {
-            network.add(&area.shape);
+            network.add_way(&area.shape, area.kind != SurfaceKind::Road);
         }
         // The junctions the plan already has: a later street that comes to
-        // the same road from its other side meets it there.
-        let mut ends = Vec::new();
+        // the same road from its other side meets it there, or keeps clear.
+        let mut joints: Vec<Joint> = Vec::new();
         for (index, way) in network.ways.iter().enumerate() {
             let last = way.samples.len() - 1;
             for (end, before) in [(0, 1), (last, last - 1)] {
                 let (end, before) = (way.samples[end], way.samples[before]);
-                if network.joined(index, end) {
-                    let arriving = scale(sub(end, before), 1.0 / distance(end, before));
-                    ends.push((end, arriving, way.half_width));
+                if let Some(other) = network.joined_to(index, end) {
+                    joints.push(Joint {
+                        at: end,
+                        arriving: scale(sub(end, before), 1.0 / distance(end, before)),
+                        half_width: way.half_width,
+                        roads: way.road && network.ways[other].road,
+                    });
                 }
             }
         }
-        for (end, arriving, half_width) in ends {
-            network.join(end, arriving, half_width);
+        // Where two roads of the layout share a point of their lines, the
+        // roads meet, whichever way their strokes were joined there.
+        for (index, way) in network.ways.iter().enumerate().filter(|(_, way)| way.road) {
+            for at in &way.samples {
+                let meets = network.grid.any([at[0], at[1], at[0], at[1]], |item| {
+                    let (a, b, _, other) = network.segments[item as usize];
+                    other as usize != index
+                        && network.ways[other as usize].road
+                        && segment_distance(a, b, *at) <= ON_WAY_M
+                });
+                if meets {
+                    joints.push(Joint {
+                        at: *at,
+                        arriving: [1.0, 0.0],
+                        half_width: way.half_width,
+                        roads: true,
+                    });
+                }
+            }
+        }
+        // And where two cross with neither ending there.
+        let ends_near = |way: usize, at: Point, within: f64| {
+            let samples = &network.ways[way].samples;
+            distance(samples[0], at) <= within || distance(samples[samples.len() - 1], at) <= within
+        };
+        for (index, (a, b, half_width, way)) in network.segments.iter().enumerate() {
+            network.grid.any(segment_bounds(*a, *b, 0.0), |other| {
+                let (c, d, other_half, crossed) = network.segments[other as usize];
+                if other as usize <= index || crossed == *way {
+                    return false;
+                }
+                let Some((share, _)) = segment_crossing(*a, *b, c, d) else {
+                    return false;
+                };
+                let at = add(*a, scale(sub(*b, *a), share));
+                if ends_near(*way as usize, at, other_half + ON_WAY_M)
+                    || ends_near(crossed as usize, at, half_width + ON_WAY_M)
+                {
+                    return false;
+                }
+                let roads = network.ways[*way as usize].road && network.ways[crossed as usize].road;
+                for (from, to, half_width) in [(*a, *b, *half_width), (c, d, other_half)] {
+                    let along = scale(sub(to, from), 1.0 / distance(from, to));
+                    for arriving in [along, scale(along, -1.0)] {
+                        joints.push(Joint {
+                            at,
+                            arriving,
+                            half_width,
+                            roads,
+                        });
+                    }
+                }
+                false
+            });
+        }
+        for joint in joints {
+            network.join(joint);
         }
         network
     }
 
     /// Strokes only: an apron is paved ground, not a way through.
     pub fn add(&mut self, shape: &GroundShape) {
+        self.add_way(shape, false);
+    }
+
+    /// Add a carriageway: one of the layout's roads where `road`.
+    fn add_way(&mut self, shape: &GroundShape, road: bool) {
         let GroundShape::Stroke {
             centerline,
             width_m,
@@ -141,62 +272,160 @@ impl<'a> Network<'a> {
             samples,
             half_width,
             bounds: [x0, y0, x1, y1],
+            road,
         });
+    }
+
+    /// Record that a carriageway ends on another.
+    fn join(&mut self, joint: Joint) {
+        let at = joint.at;
+        self.joint_grid
+            .insert([at[0], at[1], at[0], at[1]], self.joints.len() as u32);
+        self.joints.push(joint);
     }
 
     /// Record that a street `half_width` wide either side ends on another
     /// carriageway at `at`, arriving along the unit vector `arriving`.
-    fn join(&mut self, at: Point, arriving: Point, half_width: f64) {
-        self.joint_grid
-            .insert([at[0], at[1], at[0], at[1]], self.joints.len() as u32);
-        self.joints.push((at, arriving, half_width));
+    fn join_street(&mut self, at: Point, arriving: Point, half_width: f64) {
+        self.join(Joint {
+            at,
+            arriving,
+            half_width,
+            roads: false,
+        });
     }
 
-    /// Where a street `half` wide either side, heading along the unit
-    /// vector `toward`, lands to meet the carriageway of `met` at a junction
-    /// it already has: the nearest point within `within` where a street
-    /// ends on that carriageway from its other side (one that arrives
-    /// against `toward`). A street as wide ends on that very point: the two
-    /// are one street through the junction. One of another width lands
-    /// opposite it, just past the carriageway's middle from its own side,
-    /// so each crosses the middle and no two unlike ends meet. Not a
-    /// landing of `taken`.
-    fn joint_near(
+    /// How a street `half` wide either side, at `from` and heading along
+    /// the unit vector `toward`, lands on the carriageway of `met`. Where it
+    /// would come to it more than 20 degrees off square it turns at `from`
+    /// to meet it square, and where that turn would be more than 28
+    /// degrees, or leave too short a run, it does not land. Nor within
+    /// `clear` of a junction of the layout's roads: a road leaves another
+    /// at a junction of its own. Where a street ends on the carriageway from its
+    /// other side within `within`, in line with it and with no other
+    /// junction beside it, it lands there and the two make a crossroads: a
+    /// street as wide ends on that very point, so the two are one street
+    /// through the junction, and one of another width lands opposite it,
+    /// just past the carriageway's middle from its own side, so each
+    /// crosses the middle and no two unlike ends meet. It does not land
+    /// within a few widths of any other junction: a junction has four arms
+    /// at most, and none at a slant to another. Otherwise it lands where
+    /// its line crosses. Never on a landing of `taken`.
+    fn landing(
         &self,
+        from: Point,
         met: &Met,
         toward: Point,
-        within: f64,
+        [within, clear]: [f64; 2],
         half: f64,
         taken: &[Point],
-    ) -> Option<Point> {
-        let p = met.point;
+    ) -> Landing {
         let [a, b] = met.stretch;
         let run = scale(sub(b, a), 1.0 / distance(a, b));
-        let along = scale(run, within);
-        let (from, to) = (sub(a, along), add(b, along));
-        let mut best: Option<(f64, Point)> = None;
-        let bounds = [p[0] - within, p[1] - within, p[0] + within, p[1] + within];
-        self.joint_grid.any(bounds, |item| {
-            let (joint, arriving, half_width) = self.joints[item as usize];
-            let away = distance(joint, p);
-            if away <= within
-                && dot(arriving, toward) <= -FACING_COS
-                && segment_distance(from, to, joint) <= met.half_width
-                && best.is_none_or(|(known, _)| away < known)
+        let slant = dot(run, toward).abs();
+        if slant > TURN_SIN {
+            return Landing::Refused;
+        }
+        let crowd = CROWD_WIDTHS * 2.0 * half;
+        if slant > SLANT_SIN {
+            // Square to the carriageway, at its nearest point.
+            let Some((away, foot, stretch)) = self.ways[met.way]
+                .samples
+                .windows(2)
+                .map(|pair| {
+                    let run = sub(pair[1], pair[0]);
+                    let share = (dot(sub(from, pair[0]), run) / dot(run, run)).clamp(0.0, 1.0);
+                    let foot = add(pair[0], scale(run, share));
+                    (distance(from, foot), foot, [pair[0], pair[1]])
+                })
+                .min_by(|a, b| a.0.total_cmp(&b.0))
+            else {
+                return Landing::Refused;
+            };
+            let run = scale(
+                sub(stretch[1], stretch[0]),
+                1.0 / distance(stretch[0], stretch[1]),
+            );
+            let toward = scale(sub(foot, from), 1.0 / away);
+            let point = round_cm(add(from, scale(toward, away + JOIN_OVERSHOOT_M)));
+            // Only where the carriageway is straight enough there that the
+            // nearest point is the square one, and no junction is beside it.
+            let beside = |joint: &Joint| {
+                distance(joint.at, point) <= if joint.roads { clear } else { crowd }
+                    && segment_distance(
+                        sub(stretch[0], scale(run, clear)),
+                        add(stretch[1], scale(run, clear)),
+                        joint.at,
+                    ) <= met.half_width + ON_WAY_M
+            };
+            let reach = clear.max(crowd);
+            let bounds = [
+                point[0] - reach,
+                point[1] - reach,
+                point[0] + reach,
+                point[1] + reach,
+            ];
+            return if away < TURN_WIDTHS * 2.0 * half
+                || dot(run, toward).abs() > SLANT_SIN
+                || !self.dry(from, point)
+                || self
+                    .joint_grid
+                    .any(bounds, |item| beside(&self.joints[item as usize]))
             {
-                let middle = add(a, scale(run, dot(sub(joint, a), run)));
-                let landing = if half_width == half {
-                    joint
-                } else {
-                    round_cm(add(middle, scale(toward, JOIN_OVERSHOOT_M)))
-                };
-                if !taken.contains(&landing) {
-                    best = Some((away, landing));
-                }
+                Landing::Refused
+            } else {
+                Landing::Turned(point)
+            };
+        }
+        let p = met.point;
+        let reach = within.max(clear).max(crowd);
+        let along = scale(run, reach);
+        let (from, to) = (sub(a, along), add(b, along));
+        let mut near: Vec<Joint> = Vec::new();
+        let bounds = [p[0] - reach, p[1] - reach, p[0] + reach, p[1] + reach];
+        self.joint_grid.any(bounds, |item| {
+            let joint = self.joints[item as usize];
+            if segment_distance(from, to, joint.at) <= met.half_width + ON_WAY_M {
+                near.push(joint);
             }
             false
         });
-        best.map(|(_, landing)| landing)
+        let away = |joint: &Joint| distance(joint.at, p);
+        if near.iter().any(|joint| joint.roads && away(joint) <= clear) {
+            return Landing::Refused;
+        }
+        // The nearest street that ends here from the far side, in line, at
+        // a junction of its own.
+        let partner = near
+            .iter()
+            .filter(|joint| {
+                away(joint) <= within
+                    && dot(joint.arriving, toward) <= -IN_LINE_COS
+                    && near
+                        .iter()
+                        .filter(|other| distance(other.at, joint.at) <= crowd)
+                        .count()
+                        == 1
+            })
+            .min_by(|x, y| away(x).total_cmp(&away(y)));
+        let Some(joint) = partner else {
+            return if near.iter().any(|joint| away(joint) <= crowd) {
+                Landing::Refused
+            } else {
+                Landing::Free(p)
+            };
+        };
+        let middle = add(a, scale(run, dot(sub(joint.at, a), run)));
+        let landing = if joint.half_width == half {
+            joint.at
+        } else {
+            round_cm(add(middle, scale(toward, JOIN_OVERSHOOT_M)))
+        };
+        if taken.contains(&landing) {
+            Landing::Refused
+        } else {
+            Landing::Opposite(landing)
+        }
     }
 
     /// Whether any carriageway's surface lies on the rectangle.
@@ -241,8 +470,9 @@ impl<'a> Network<'a> {
 
     /// Whether a carriageway runs along the edge from `a` to `b`: its
     /// middle within its own half width of the edge, going the edge's way,
-    /// for most of the edge's length.
-    fn runs_along(&self, a: Point, b: Point) -> bool {
+    /// for most of the edge's length. With `road`, only a road of the
+    /// layout's network.
+    fn runs_along(&self, a: Point, b: Point, road: bool) -> bool {
         let edge = scale(sub(b, a), 1.0 / distance(a, b));
         let carried = [0.25, 0.5, 0.75]
             .into_iter()
@@ -251,8 +481,9 @@ impl<'a> Network<'a> {
                 let reach = CARRIED_M;
                 let bounds = [p[0] - reach, p[1] - reach, p[0] + reach, p[1] + reach];
                 self.grid.any(bounds, |item| {
-                    let (c, d, half_width, _) = self.segments[item as usize];
-                    segment_distance(c, d, p) <= half_width + CARRIED_M
+                    let (c, d, half_width, way) = self.segments[item as usize];
+                    (!road || self.ways[way as usize].road)
+                        && segment_distance(c, d, p) <= half_width + CARRIED_M
                         && (dot(edge, sub(d, c)) / distance(c, d)).abs() >= PARALLEL_COS
                 })
             })
@@ -309,123 +540,42 @@ impl<'a> Network<'a> {
 
     /// The first carriageway a street at `from`, heading along the unit
     /// vector `toward`, would cross if it ran on for up to `reach`: how far
-    /// on, how nearly alongside it runs (a cosine), the stretch crossed,
-    /// its half width and its way.
+    /// on, the stretch crossed and its half width.
     fn crossing(
         &self,
         from: Point,
         toward: Point,
         reach: f64,
-    ) -> Option<(f64, f64, [Point; 2], f64, usize)> {
+    ) -> Option<(f64, [Point; 2], f64, usize)> {
         // From just past the end, so the street's own last run is not met.
         let start = add(from, scale(toward, 0.1));
         let end = add(from, scale(toward, reach));
-        let mut first: Option<(f64, f64, [Point; 2], f64, usize)> = None;
+        let mut first: Option<(f64, [Point; 2], f64, usize)> = None;
         self.grid.any(segment_bounds(start, end, 0.0), |item| {
             let (a, b, half_width, way) = self.segments[item as usize];
             if let Some((t, _)) = segment_crossing(start, end, a, b) {
                 if first.is_none_or(|(known, ..)| t < known) {
-                    let cos = dot(toward, sub(b, a)) / distance(a, b);
-                    first = Some((t, cos.abs(), [a, b], half_width, way as usize));
+                    first = Some((t, [a, b], half_width, way as usize));
                 }
             }
             false
         });
-        first.map(|(t, cos, stretch, half_width, way)| {
-            (
-                distance(start, end) * t + 0.1,
-                cos,
-                stretch,
-                half_width,
-                way,
-            )
+        first.map(|(t, stretch, half_width, way)| {
+            (distance(start, end) * t + 0.1, stretch, half_width, way)
         })
     }
 
     /// Where a street that ends at `from`, heading along the unit vector
     /// `toward`, would first cross a carriageway if it ran on for up to
-    /// `reach`. `None` when nothing lies ahead, what does runs nearly
-    /// alongside, or water lies between.
+    /// `reach`. `None` when nothing lies ahead or water lies between.
     fn ahead(&self, from: Point, toward: Point, reach: f64) -> Option<Met> {
-        let (met, _, stretch, half_width, _) = self
-            .crossing(from, toward, reach)
-            .filter(|(_, cos, ..)| *cos < PARALLEL_COS)?;
+        let (met, stretch, half_width, way) = self.crossing(from, toward, reach)?;
         let point = round_cm(add(from, scale(toward, met + JOIN_OVERSHOOT_M)));
         self.dry(from, point).then_some(Met {
             point,
             stretch,
             half_width,
-        })
-    }
-
-    /// Where a street at `from` that would come to the carriageway ahead of
-    /// it at a slant, less than 45 degrees off its line, turns to meet it
-    /// square: the nearest point of that carriageway, when it is `least`
-    /// away or more. With
-    /// `beside`, a street whose line crosses nothing turns likewise to the
-    /// nearest carriageway that runs its way within `reach` of it, abeam
-    /// or ahead.
-    fn square(
-        &self,
-        from: Point,
-        toward: Point,
-        reach: f64,
-        least: f64,
-        beside: bool,
-    ) -> Option<Met> {
-        let converging = self
-            .crossing(from, toward, reach)
-            .filter(|(_, cos, ..)| *cos >= SLANT_COS)
-            .map(|(.., way)| way);
-        let way = converging.or_else(|| {
-            let mut best: Option<(f64, usize)> = None;
-            let bounds = [
-                from[0] - reach,
-                from[1] - reach,
-                from[0] + reach,
-                from[1] + reach,
-            ];
-            self.grid.any(bounds, |item| {
-                let (a, b, _, way) = self.segments[item as usize];
-                let run = sub(b, a);
-                let share = (dot(sub(from, a), run) / dot(run, run)).clamp(0.0, 1.0);
-                let foot = add(a, scale(run, share));
-                let away = distance(from, foot);
-                if beside
-                    && away <= reach
-                    && away >= least
-                    && (dot(run, toward) / distance(a, b)).abs() >= PARALLEL_COS
-                    && dot(sub(foot, from), toward) >= -0.5 * away
-                    && best.is_none_or(|(known, _)| away < known)
-                {
-                    best = Some((away, way as usize));
-                }
-                false
-            });
-            best.map(|(_, way)| way)
-        })?;
-        let half_width = self.ways[way].half_width;
-        let (away, foot, stretch) = self.ways[way]
-            .samples
-            .windows(2)
-            .map(|pair| {
-                let run = sub(pair[1], pair[0]);
-                let share = (dot(sub(from, pair[0]), run) / dot(run, run)).clamp(0.0, 1.0);
-                let foot = add(pair[0], scale(run, share));
-                (distance(from, foot), foot, [pair[0], pair[1]])
-            })
-            .min_by(|a, b| a.0.total_cmp(&b.0))?;
-        if away < least || away > reach {
-            return None;
-        }
-        let point = round_cm(add(
-            from,
-            scale(sub(foot, from), (away + JOIN_OVERSHOOT_M) / away),
-        ));
-        self.dry(from, point).then_some(Met {
-            point,
-            stretch,
-            half_width,
+            way,
         })
     }
 
@@ -489,9 +639,31 @@ impl<'a> Network<'a> {
 
     /// Whether the end `at` of the way `own` lies on another carriageway.
     fn joined(&self, own: usize, at: Point) -> bool {
+        self.joined_to(own, at).is_some()
+    }
+
+    /// The other carriageway the end `at` of the way `own` lies on.
+    fn joined_to(&self, own: usize, at: Point) -> Option<usize> {
+        let mut found = None;
         self.grid.any([at[0], at[1], at[0], at[1]], |item| {
             let (a, b, half_width, other) = self.segments[item as usize];
-            other as usize != own && segment_distance(a, b, at) <= half_width
+            if other as usize != own && segment_distance(a, b, at) <= half_width {
+                found = Some(other as usize);
+            }
+            found.is_some()
+        });
+        found
+    }
+
+    /// Whether a street that stops at `from`, heading along the unit vector
+    /// `toward`, stops short of a carriageway: one lies within `reach`
+    /// ahead of it, on its line or a little to either side.
+    fn short_of(&self, from: Point, toward: Point, reach: f64) -> bool {
+        let across = [-toward[1], toward[0]];
+        [-AHEAD_SPREAD, 0.0, AHEAD_SPREAD].into_iter().any(|aside| {
+            let heading = add(toward, scale(across, aside));
+            let heading = scale(heading, 1.0 / libm::hypot(heading[0], heading[1]));
+            self.crossing(from, heading, reach).is_some()
         })
     }
 
@@ -596,6 +768,7 @@ impl<'a> Network<'a> {
                             point,
                             stretch: [before, at],
                             half_width: way.half_width,
+                            way: index,
                         };
                         best = Some((ahead, met));
                     }
@@ -661,9 +834,12 @@ struct Nearest {
 
 /// Lay every district's streets, nearest the settlement's roads first, so
 /// each district joins a network that already reaches the main road. A
-/// district's streets are a grid along one of its edges, bent where its
-/// preset says: the edge that runs longest with the settlement's main
-/// street, so neighbouring districts' long streets run the same way.
+/// district's streets are a grid along one of its edges, bowed where its
+/// preset says: the edge that most of its other edges run with or square
+/// to, a road's counting double, so that its streets run beside the
+/// carriageways round it and meet them square. Between edges that serve
+/// alike it is the one that runs longest with the settlement's main street,
+/// so neighbouring districts' long streets run the same way.
 pub fn lay(
     pass: &Pass,
     network: &mut Network,
@@ -695,21 +871,52 @@ pub fn lay(
     for (_, index) in order {
         let district = &settlement.districts[index];
         let surface = pass.district(district)?.streets.surface;
-        // Its long streets run with the edge that goes farthest the main
-        // street's way.
-        let with_main = |(a, b): &(&Point, &Point)| {
-            distance(**a, **b) * libm::fabs(libm::cos(bearing(**a, **b) - main))
+        // Its long streets run with the edge whose line the carriageways
+        // round it best agree with: each edge that runs along that line or
+        // square to it, within the slant a street may meet a road at,
+        // counts its length, twice over where a road runs along it and a
+        // quarter where nothing does.
+        let edges: Vec<(Point, Point, f64)> = contract::ground::edges(&district.ring)
+            .map(|(a, b)| {
+                let weight = if network.runs_along(*a, *b, true) {
+                    ROAD_EDGE
+                } else if network.runs_along(*a, *b, false) {
+                    1.0
+                } else {
+                    OPEN_EDGE
+                };
+                (*a, *b, weight * distance(*a, *b))
+            })
+            .collect();
+        let agreed = |axis: f64| -> f64 {
+            edges
+                .iter()
+                .filter(|(a, b, _)| {
+                    let off = libm::sin(2.0 * (bearing(*a, *b) - axis)).abs();
+                    off <= 2.0 * SLANT_SIN * libm::sqrt(1.0 - SLANT_SIN * SLANT_SIN)
+                })
+                .map(|(.., weight)| weight)
+                .sum()
         };
-        let frontage = contract::ground::edges(&district.ring)
-            .max_by(|a, b| with_main(a).total_cmp(&with_main(b)))
-            .map_or(0.0, |(a, b)| bearing(*a, *b));
+        let with_main =
+            |(a, b, _): &(Point, Point, f64)| libm::fabs(libm::cos(bearing(*a, *b) - main));
+        let frontage = edges
+            .iter()
+            .max_by(|x, y| {
+                let axis = |(a, b, _): &(Point, Point, f64)| bearing(*a, *b);
+                agreed(axis(x))
+                    .total_cmp(&agreed(axis(y)))
+                    .then(x.2.total_cmp(&y.2))
+                    .then(with_main(x).total_cmp(&with_main(y)))
+            })
+            .map_or(0.0, |(a, b, _)| bearing(*a, *b));
         let lattice = Lattice::cut(pass, network, district, frontage)?;
         let (streets, joints) = lattice.streets(network, district);
         for points in streets {
             lay(network, points, surface, &district.id)?;
         }
         for (joint, arriving) in joints {
-            network.join(joint, arriving, pass.street_width(surface) / 2.0);
+            network.join_street(joint, arriving, pass.street_width(surface) / 2.0);
         }
     }
     Ok(())
@@ -718,7 +925,9 @@ pub fn lay(
 /// Run every street that stops in the open just short of a carriageway on
 /// to it: the layout's avenues and lanes in `plan`, and the streets `laid`
 /// on it. A street runs straight on to the first carriageway ahead within
-/// the presets' run. Where another street's end faces it on the way, it
+/// the presets' run, where it may land on it (near enough square, and
+/// clear of that carriageway's junctions or straight across from a street
+/// on its far side). Where another street's end faces it on the way, it
 /// runs to that end instead of past it: the two are one street, not two
 /// drawn side by side. Where nothing crosses its line but another street
 /// stops in the open just off it, the two meet in a corner at that end. A
@@ -753,12 +962,14 @@ pub fn run_on(
                 continue;
             }
             let toward = scale(sub(at, before), 1.0 / distance(at, before));
-            // To where a street already meets that carriageway from its
-            // other side, when one does nearby.
-            let met = network.ahead(at, toward, reach).map(|met| {
+            let rules = [
+                pass.presets.towns.align_m,
+                pass.presets.parcels.junction_clear_m,
+            ];
+            let met = network.ahead(at, toward, reach).and_then(|met| {
                 network
-                    .joint_near(&met, toward, pass.presets.towns.align_m, width / 2.0, &[])
-                    .unwrap_or(met.point)
+                    .landing(at, &met, toward, rules, width / 2.0, &[])
+                    .point()
             });
             let facing = network.facing_end(at, toward, reach).filter(|facing| {
                 met.is_none_or(|met| distance(at, *facing) <= distance(at, met) + FACING_PAST_M)
@@ -773,7 +984,7 @@ pub fn run_on(
                 let shape = GroundShape::stroke(vec![at, to], width)
                     .map_err(|message| pass.fail("streets", "$.presets.parcels", &message))?;
                 network.add(&shape);
-                network.join(to, scale(sub(to, at), 1.0 / distance(to, at)), width / 2.0);
+                network.join_street(to, scale(sub(to, at), 1.0 / distance(to, at)), width / 2.0);
                 laid.push(SurfaceArea { kind, shape });
             }
         }
@@ -784,10 +995,15 @@ pub fn run_on(
 /// Cut back every street and avenue of `surfaces` that runs on a short way
 /// past its last junction and stops in the open, to that junction: a tail
 /// shorter than `parcels.tail_min_m` has no room for a lot of its own, and
-/// reads as a street that overshot its corner. A country road is the
-/// layout's to end.
-pub fn trim_tails(pass: &Pass, surfaces: &mut [SurfaceArea], size: [f64; 2]) {
+/// reads as a street that overshot its corner. One of the surfaces from
+/// `laid` on that stops in the open within `parcels.run_on_m` of a
+/// carriageway ahead of it (one it might not land on) is cut back until
+/// that much ground lies between, a row of lots deep, and to its last
+/// junction where that leaves a short tail. A country road is the layout's
+/// to end.
+pub fn trim_tails(pass: &Pass, surfaces: &mut [SurfaceArea], laid: usize, size: [f64; 2]) {
     let least = pass.presets.parcels.tail_min_m;
+    let reach = pass.presets.parcels.run_on_m;
     // (surface, half width, authored points, their box)
     let ways: Vec<(usize, f64, Vec<Point>, [f64; 4])> = surfaces
         .iter()
@@ -829,12 +1045,34 @@ pub fn trim_tails(pass: &Pass, surfaces: &mut [SurfaceArea], size: [f64; 2]) {
             .windows(2)
             .map(|pair| distance(pair[0], pair[1]))
             .sum();
-        let near = |other: &&(usize, f64, Vec<Point>, [f64; 4])| {
+        let within = |other: &(usize, f64, Vec<Point>, [f64; 4]), margin: f64| {
             other.0 != *index
-                && other.3[0] <= bounds[2]
-                && other.3[2] >= bounds[0]
-                && other.3[1] <= bounds[3]
-                && other.3[3] >= bounds[1]
+                && other.3[0] <= bounds[2] + margin
+                && other.3[2] >= bounds[0] - margin
+                && other.3[1] <= bounds[3] + margin
+                && other.3[3] >= bounds[1] - margin
+        };
+        let near = |other: &&(usize, f64, Vec<Point>, [f64; 4])| within(other, 0.0);
+        // How far ahead of the end `at`, reached from `before`, the nearest
+        // carriageway's middle lies, on its line or a little to either side.
+        let ahead = |at: Point, before: Point| -> Option<f64> {
+            let toward = scale(sub(at, before), 1.0 / distance(at, before));
+            let across = [-toward[1], toward[0]];
+            let mut gap: Option<f64> = None;
+            for aside in [-AHEAD_SPREAD, 0.0, AHEAD_SPREAD] {
+                let heading = add(toward, scale(across, aside));
+                let heading = scale(heading, 1.0 / libm::hypot(heading[0], heading[1]));
+                let (start, end) = (add(at, scale(heading, 0.1)), add(at, scale(heading, reach)));
+                for (_, _, other, _) in ways.iter().filter(|other| within(other, reach)) {
+                    for cross in other.windows(2) {
+                        if let Some((share, _)) = segment_crossing(start, end, cross[0], cross[1]) {
+                            let met = share * reach;
+                            gap = Some(gap.map_or(met, |known: f64| known.min(met)));
+                        }
+                    }
+                }
+            }
+            gap
         };
         // Where other carriageways cross it or end on it, along it.
         let mut junctions: Vec<f64> = Vec::new();
@@ -867,23 +1105,7 @@ pub fn trim_tails(pass: &Pass, surfaces: &mut [SurfaceArea], size: [f64; 2]) {
         let on_map = |p: Point| (0..2).all(|k| p[k] > 1.0 && p[k] < size[k] - 1.0);
         // The stretch kept: from just before its first junction to just
         // past its last, where the tail beyond is short and open.
-        let (mut from, mut to) = (0.0, length);
-        if !joined[0] && on_map(points[0]) {
-            let first = junctions.iter().copied().fold(f64::INFINITY, f64::min);
-            if first > JOIN_OVERSHOOT_M + 1.0 && first < least {
-                from = first - JOIN_OVERSHOOT_M;
-            }
-        }
-        if !joined[1] && on_map(points[points.len() - 1]) {
-            let last = junctions.iter().copied().fold(f64::NEG_INFINITY, f64::max);
-            if length - last > JOIN_OVERSHOOT_M + 1.0 && length - last < least {
-                to = last + JOIN_OVERSHOOT_M;
-            }
-        }
-        if (from == 0.0 && to == length) || to - from < 4.0 * half {
-            continue;
-        }
-        // Its authored points between the two, with the new ends.
+        // The point `target` along it.
         let at = |target: f64| {
             let mut run = 0.0;
             for pair in points.windows(2) {
@@ -895,6 +1117,40 @@ pub fn trim_tails(pass: &Pass, surfaces: &mut [SurfaceArea], size: [f64; 2]) {
             }
             points[points.len() - 1]
         };
+        let (mut from, mut to) = (0.0, length);
+        // How far an open end is cut back: `place` answers the point that
+        // far in from it. To its nearest junction, `tail` along from it,
+        // where the tail is short or would be once the end stood clear of
+        // the carriageway ahead; and otherwise just clear of that.
+        let back = |tail: f64, place: &dyn Fn(f64) -> Point| -> f64 {
+            let most = (length - 4.0 * half).max(0.0);
+            let mut clear = 0.0;
+            while *index >= laid && clear < most {
+                match ahead(place(clear), place(clear + 1.0)) {
+                    Some(gap) => clear += reach - gap + 1.0,
+                    None => break,
+                }
+            }
+            if tail > JOIN_OVERSHOOT_M + 1.0 && tail - clear < least {
+                tail - JOIN_OVERSHOOT_M
+            } else if clear < most {
+                clear
+            } else {
+                0.0
+            }
+        };
+        let count = points.len();
+        if !joined[0] && on_map(points[0]) {
+            let first = junctions.iter().copied().fold(f64::INFINITY, f64::min);
+            from = back(first, &|cut| at(cut));
+        }
+        if !joined[1] && on_map(points[count - 1]) {
+            let last = junctions.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+            to = length - back(length - last, &|cut| at(length - cut));
+        }
+        if (from == 0.0 && to == length) || to - from < 4.0 * half {
+            continue;
+        }
         let mut kept = vec![round_cm(at(from))];
         let mut run = 0.0;
         for pair in points.windows(2) {
@@ -949,15 +1205,41 @@ impl Tilt {
     }
 }
 
+/// How one family of a district's streets swings off its straight lines: one
+/// slow wave along the street, reaching farther on one side of the district
+/// than on the other, so no two streets bend alike and some run straight.
+#[derive(Clone, Copy, Default)]
+struct Bow {
+    /// How far the swing reaches at the district's two sides across the
+    /// family, either way.
+    reach: [f64; 2],
+    /// Those two sides, in the frame.
+    span: [f64; 2],
+    wave: f64,
+    phase: f64,
+}
+
+impl Bow {
+    fn at(&self, along: f64, across: f64) -> f64 {
+        let width = self.span[1] - self.span[0];
+        let share = if width > 1.0 {
+            ((across - self.span[0]) / width).clamp(0.0, 1.0)
+        } else {
+            0.5
+        };
+        (self.reach[0] + (self.reach[1] - self.reach[0]) * share)
+            * libm::sin(self.wave * along + self.phase)
+    }
+}
+
 /// A district's own frame: along its long streets and across them, with the
-/// swing both street families take.
+/// swing each street family takes.
 struct Frame {
     origin: Point,
     /// Unit vectors along the long streets and across them.
     axes: [Point; 2],
-    amplitude: f64,
-    wave: f64,
-    phases: [f64; 2],
+    /// The long streets' swing and the cross streets'.
+    bows: [Bow; 2],
 }
 
 impl Frame {
@@ -968,10 +1250,7 @@ impl Frame {
 
     /// How far the swing carries the frame's point `[u, v]`.
     fn swing(&self, [u, v]: Point) -> Point {
-        [
-            self.amplitude * libm::sin(self.wave * v + self.phases[1]),
-            self.amplitude * libm::sin(self.wave * u + self.phases[0]),
-        ]
+        [self.bows[1].at(v, u), self.bows[0].at(u, v)]
     }
 
     /// The map's point for the frame's `local`, swung, on the plan's grid.
@@ -997,8 +1276,12 @@ enum Stop {
     /// On a carriageway, at this point; `true` where a street already ends
     /// there and the line was moved to meet it.
     Met(Point, bool),
-    /// On a carriageway it was converging on, at this point square to it.
+    /// On a carriageway it would have come to at a slant, at this point
+    /// square to it.
     Turned(Point),
+    /// At its last crossing: a carriageway lies ahead that it may not land
+    /// on.
+    Refused,
     /// In the open, at this point by the district's edge.
     Open(Point),
     /// At the line's last node.
@@ -1040,8 +1323,9 @@ struct Lattice {
     /// reach.
     link_least: f64,
     link_reach: f64,
-    /// How far a link's end is moved to meet a street across the road.
-    align: f64,
+    /// How far a link's end is moved to meet a street across the road, and
+    /// how clear of a road's other junctions it lands.
+    landing: [f64; 2],
     /// Half its streets' width.
     half_width: f64,
 }
@@ -1058,16 +1342,10 @@ impl Lattice {
         let step = parcels.street_step_m;
         let width = pass.street_width(pattern.surface);
         let mut rng = pass.stream(&format!("streets/{}", district.id));
-        let phases = [rng.range([0.0, TAU]), rng.range([0.0, TAU])];
-        let (amplitude, wave) = pattern.bend.map_or((0.0, 0.0), |bend| {
-            (bend.amplitude_m, TAU / bend.wavelength_m)
-        });
-        let frame = Frame {
+        let mut frame = Frame {
             origin: district.anchor,
             axes: [direction(axis), direction(axis + TAU / 4.0)],
-            amplitude,
-            wave,
-            phases,
+            bows: [Bow::default(); 2],
         };
         let [along, across] = frame.axes;
         // The district's reach in its own frame, and how much of each of
@@ -1081,6 +1359,22 @@ impl Lattice {
                 high[i] = high[i].max(local[i]);
             }
         }
+        // Each family bows once or less along the district, by an amount
+        // that changes from one side of it to the other.
+        if let Some(bend) = pattern.bend {
+            frame.bows = [0, 1].map(|family| {
+                let extent = high[family] - low[family];
+                let length = rng.range(BOW_LENGTHS) * extent;
+                let most = bend.amplitude_m.min(BOW_REACH * extent);
+                Bow {
+                    reach: [0, 1].map(|_| (2.0 * rng.unit() - 1.0) * most),
+                    span: [low[1 - family], high[1 - family]],
+                    wave: TAU / length.max(bend.wavelength_m),
+                    phase: rng.range([0.0, TAU]),
+                }
+            });
+        }
+        let frame = frame;
         let mut carried = [[0.0; 2]; 2];
         let mut total = [[0.0; 2]; 2];
         for (a, b) in contract::ground::edges(&district.ring) {
@@ -1091,7 +1385,7 @@ impl Lattice {
             let middle = (low[bounds] + high[bounds]) / 2.0;
             let side = usize::from((from[bounds] + to[bounds]) / 2.0 > middle);
             total[bounds][side] += distance(*a, *b);
-            if network.runs_along(*a, *b) {
+            if network.runs_along(*a, *b, false) {
                 carried[bounds][side] += distance(*a, *b);
             }
         }
@@ -1182,6 +1476,7 @@ impl Lattice {
         // district's edge or within a short run past it, and otherwise in
         // the open just inside the edge.
         let run_on = parcels.run_on_m;
+        let clear = parcels.junction_clear_m;
         // A line is moved no farther than `within` to meet a street across
         // the road, and never to a junction of `taken`: one a line of this
         // grid already runs to.
@@ -1195,7 +1490,7 @@ impl Lattice {
             // A bent street heads the way its last stretch runs, and
             // failing that along the grid; a straight one along the grid.
             let bent = behind
-                .filter(|behind| amplitude > 0.0 && positions[*behind] != p)
+                .filter(|behind| pattern.bend.is_some() && positions[*behind] != p)
                 .map(|behind| {
                     scale(
                         sub(p, positions[behind]),
@@ -1204,13 +1499,9 @@ impl Lattice {
                 });
             let headings = bent.into_iter().chain([outward]);
             let exits = headings.map(|heading| (heading, ray_exit(&district.ring, p, heading)));
-            // The carriageway ahead: met square where the line would come to
-            // it at a slant, straight on otherwise. (where, heading, turned)
+            // The carriageway ahead. (where, heading)
             let met = exits.clone().find_map(|(heading, exit)| {
-                let reach = exit + run_on;
-                let turned = network.square(p, heading, reach, 2.0 * width, false);
-                let turned = turned.map(|met| (met, heading, true));
-                turned.or_else(|| Some((network.ahead(p, heading, reach)?, heading, false)))
+                Some((network.ahead(p, heading, exit + run_on)?, heading))
             });
             // Where nothing crosses its line, a carriageway that stops in the
             // open just off it: the line is moved to carry on from that end.
@@ -1231,11 +1522,12 @@ impl Lattice {
                 })
             };
             match (met, exits.clone().next()) {
-                (Some((met, _, true)), _) => Stop::Turned(met.point),
-                (Some((met, heading, false)), _) => {
-                    match network.joint_near(&met, heading, within, width / 2.0, taken) {
-                        Some(joint) => Stop::Met(joint, true),
-                        None => Stop::Met(met.point, false),
+                (Some((met, heading)), _) => {
+                    match network.landing(p, &met, heading, [within, clear], width / 2.0, taken) {
+                        Landing::Opposite(joint) => Stop::Met(joint, true),
+                        Landing::Free(at) => Stop::Met(at, false),
+                        Landing::Turned(at) => Stop::Turned(at),
+                        Landing::Refused => Stop::Refused,
                     }
                 }
                 (None, _) if open_end().is_some() => Stop::Met(open_end().unwrap_or(p), true),
@@ -1307,7 +1599,7 @@ impl Lattice {
                             .iter()
                             .any(|known| distance(*known, at) < CROWD_WIDTHS * width)
                         {
-                            stops[end] = Stop::Node;
+                            stops[end] = Stop::Refused;
                         } else {
                             landings.push(at);
                         }
@@ -1330,7 +1622,7 @@ impl Lattice {
                         Stop::Met(at, false) | Stop::Open(at) => {
                             [frame.unplace(*at)[lengthwise], 0.0]
                         }
-                        Stop::Turned(_) | Stop::Node => {
+                        Stop::Turned(_) | Stop::Refused | Stop::Node => {
                             let spacing = if long { su } else { sv };
                             let start = if long { u0 } else { v0 };
                             [start + end as f64 * spacing, 0.0]
@@ -1393,7 +1685,7 @@ impl Lattice {
             headings: [along, scale(along, -1.0), across, scale(across, -1.0)],
             link_least: step,
             link_reach: reach,
-            align: pass.presets.towns.align_m,
+            landing: [pass.presets.towns.align_m, clear],
             half_width: width / 2.0,
         };
         // A carriageway nearer beside a street than a row of lots is deep
@@ -1438,6 +1730,7 @@ impl Lattice {
         // Then each line's ends, from its last node on a street to where it
         // stops. An end left out as a cross street between two long ones is
         // left out here too.
+        let mut refused: Vec<(usize, bool)> = Vec::new();
         for (number, (long, line, [first, last], stops)) in runs.iter().enumerate() {
             for (end, stop) in stops.iter().enumerate() {
                 let (at, last_node) = match end {
@@ -1451,7 +1744,19 @@ impl Lattice {
                     // A long street runs on to the last lots at the town's
                     // edge; a cross street ends on the last long street,
                     // where it has no lot of its own to serve beyond.
-                    Stop::Open(to) if *long => (*to, false, false),
+                    Stop::Open(to) if *long => {
+                        let from = lattice.positions[last_node];
+                        let heading = scale(sub(*to, from), 1.0 / distance(*to, from));
+                        if network.short_of(*to, heading, run_on) {
+                            refused.push((number, end == 0));
+                            continue;
+                        }
+                        (*to, false, false)
+                    }
+                    Stop::Refused => {
+                        refused.push((number, end == 0));
+                        continue;
+                    }
                     Stop::Open(_) | Stop::Node => continue,
                 };
                 let from = lattice.positions[last_node];
@@ -1475,8 +1780,7 @@ impl Lattice {
         }
         // A street the grid left stopped inside the district, where its next
         // stretch would only have repeated a carriageway, runs on to the
-        // carriageway ahead of it, or turns to meet square the one it was
-        // converging on.
+        // carriageway ahead of it where it may land on it.
         for number in 0..lattice.lines.len() {
             for first in [true, false] {
                 let line = &lattice.lines[number];
@@ -1505,33 +1809,96 @@ impl Lattice {
                 let (p, q) = (lattice.positions[node], lattice.positions[inner]);
                 let heading = scale(sub(p, q), 1.0 / distance(p, q));
                 let within = pass.presets.towns.align_m;
-                let least = 2.0 * width;
-                let square = |beside: bool| {
-                    Some((
-                        network.square(p, heading, run_on, least, beside)?.point,
-                        true,
-                    ))
+                let rules = [within, clear];
+                let mut turned = false;
+                let onward = match network.ahead(p, heading, run_on) {
+                    Some(met) => {
+                        let landing = network.landing(p, &met, heading, rules, width / 2.0, &taken);
+                        if landing.point().is_none() {
+                            refused.push((number, first));
+                        }
+                        turned = matches!(landing, Landing::Turned(_));
+                        landing.point()
+                    }
+                    None => network.gentle_end(p, heading, run_on, width / 2.0),
                 };
-                let onward = square(false)
-                    .or_else(|| {
-                        let met = network.ahead(p, heading, run_on)?;
-                        let joint = network.joint_near(&met, heading, within, width / 2.0, &taken);
-                        Some((joint.unwrap_or(met.point), false))
-                    })
-                    .or_else(|| Some((network.gentle_end(p, heading, run_on, width / 2.0)?, false)))
-                    .or_else(|| square(true));
+                if onward.is_none() && network.short_of(p, heading, run_on) {
+                    refused.push((number, first));
+                }
                 let crowded = |to: &Point| {
                     landings
                         .iter()
                         .any(|known| distance(*known, *to) < CROWD_WIDTHS * width)
                 };
-                if let Some((to, turned)) = onward.filter(|(to, _)| !crowded(to)) {
+                if let Some(to) = onward.filter(|to| !crowded(to)) {
                     landings.push(to);
                     lattice.stub(number, first, node, to, true, turned);
                 }
             }
         }
+        // A street that may not land on the carriageway ahead of it ends at
+        // its last crossing: the ground beyond fronts that carriageway.
+        for (number, first) in refused {
+            lattice.retreat(network, number, first, run_on);
+        }
+        let links = &lattice.links;
+        lattice.seeds.retain(|node| !links[*node].is_empty());
         Ok(lattice)
+    }
+
+    /// Cut the first (or last) end of line `number` back to its last
+    /// crossing with a street of the other family, or, where none crosses
+    /// it so near, to where no carriageway lies within `reach` ahead of it:
+    /// a row of lots then stands between its end and that carriageway. A
+    /// street that is all within that reach goes altogether: its ground
+    /// fronts the carriageways at either end of it.
+    fn retreat(&mut self, network: &Network, number: usize, first: bool, reach: f64) {
+        let line = &self.lines[number];
+        let long = line.long;
+        let crossed = |node: usize| self.links[node].iter().any(|(_, other)| *other != long);
+        // The stretches from that end in, up to the node it ends at.
+        let mut dropped: Vec<usize> = Vec::new();
+        let stretches: Vec<usize> = if first {
+            (0..line.kept.len()).collect()
+        } else {
+            (0..line.kept.len()).rev().collect()
+        };
+        for stretch in stretches.into_iter().skip_while(|at| !line.kept[*at]) {
+            if !line.kept[stretch] {
+                break;
+            }
+            let (outer, inner) = if first {
+                (line.nodes[stretch], line.nodes[stretch + 1])
+            } else {
+                (line.nodes[stretch + 1], line.nodes[stretch])
+            };
+            // An end that found a landing after all keeps it.
+            if dropped.is_empty() && (self.met.contains(&outer) || self.open.contains(&outer)) {
+                return;
+            }
+            let (p, q) = (self.positions[outer], self.positions[inner]);
+            let heading = scale(sub(p, q), 1.0 / distance(p, q));
+            if crossed(outer) || !network.short_of(p, heading, reach) {
+                break;
+            }
+            dropped.push(stretch);
+        }
+        for stretch in dropped {
+            let (a, b) = (
+                self.lines[number].nodes[stretch],
+                self.lines[number].nodes[stretch + 1],
+            );
+            self.lines[number].kept[stretch] = false;
+            self.links[a].retain(|(other, _)| *other != b);
+            self.links[b].retain(|(other, _)| *other != a);
+            // The far end's own landing goes with the street.
+            for node in [a, b] {
+                if self.links[node].is_empty() {
+                    self.met.remove(&node);
+                    self.open.remove(&node);
+                }
+            }
+        }
     }
 
     /// Run the end `from` of line `number` (its first, or its last) on to
@@ -1676,6 +2043,12 @@ impl Lattice {
                     let reach = met
                         .as_ref()
                         .map_or(self.link_reach, |met| distance(p, met.point));
+                    // Where it may land on the carriageway ahead.
+                    let met = met.and_then(|met| {
+                        network
+                            .landing(p, &met, heading, self.landing, self.half_width, &[])
+                            .point()
+                    });
                     // A node of the grid already joined, on the way there.
                     let own = joined_nodes
                         .iter()
@@ -1690,12 +2063,7 @@ impl Lattice {
                         (Some((node, offset)), _) => {
                             (dot(offset, heading), self.positions[node], Some(node))
                         }
-                        (None, Some(met)) => {
-                            let to = network
-                                .joint_near(&met, heading, self.align, self.half_width, &[])
-                                .unwrap_or(met.point);
-                            (reach, to, None)
-                        }
+                        (None, Some(to)) => (reach, to, None),
                         (None, None) => continue,
                     };
                     // A street of the piece that ends here and runs on is

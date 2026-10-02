@@ -456,7 +456,9 @@ fn districts_are_single_use_addressable_pieces_of_their_settlement() {
                 });
                 assert!(ids.insert((map_type, size, seed, district.id.clone())));
                 assert!(district.id.starts_with(&settlement.id));
-                assert!((district.area_m2 - ring_area(&district.ring)).abs() <= 0.5);
+                // Whole square metres: a ring on the centimetre grid can
+                // measure exactly half a metre over, which rounds either way.
+                assert!((district.area_m2 - ring_area(&district.ring)).abs() <= 0.5 + 1e-6);
                 let anchor = district.anchor;
                 assert!(contract::ground::polygon_contains(&district.ring, anchor));
                 assert!(contract::ground::polygon_contains(
