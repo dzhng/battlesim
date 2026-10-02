@@ -2,10 +2,11 @@
 
 Four steps, one crate. The **layout generator** turns a seed, a map type and a size
 into a `MapPlan`. The **parcel pass** fills that plan's districts with streets, parcels
-and buildings chosen from a physical template catalogue. The **street furniture pass**
-stands parked cars, lamps, trees and yard stock among them, as prop types of the unit
-and prop catalog. The **compiler** turns any plan, generated or authored, into the
-contract's final map. The battle and renderer
+and buildings chosen from a physical template catalogue. The **open-country pass**
+furnishes the ground between the settlements and the woods, and the **street furniture
+pass** stands parked cars, lamps, trees and yard stock among the buildings, as prop
+types of the unit and prop catalog. The **compiler** turns any plan, generated or
+authored, into the contract's final map. The battle and renderer
 consume that compiled geometry; they never reinterpret a plan or look up a template
 catalogue. The production library imports no simulation or appearance library.
 Verification tools and tests load compiled maps into the simulation to check what
@@ -208,6 +209,57 @@ it through the same descriptor contract and a new catalogue hash. The measured
 outcome and the open questions are in the
 [C53 slice](../../specs/city-maps/slices/C53-parcels-and-buildings.md).
 
+## Open country (`open_country`)
+
+`furnish(plan, &request, &catalogue, &presets)` takes a built plan and returns it with
+the country between its settlements and woods furnished: a few homes along the
+country roads and tracks, short tree lines, copses and single trees, and low cover in
+the fields. The rule it serves is that **no unit on open ground sees an unbroken
+circle, and most of the circle stays open** (M24 and M25 in the
+[map brief](../../specs/city-maps/procedural-maps.md)). Every density, size and
+clearance is a row of `open_country` in the presets.
+
+- **It only adds.** Lanes go to `surfaces`, yards to `lots`, homes to `buildings`, low
+  cover to `props`, and every tree to `forests`, in the contract's own shapes: a tree
+  line is a stroke, a copse a small ring, a single tree a plot the one forest rule
+  stands one trunk on. What the parcel pass built is unchanged, in place and in order.
+- **One question admits everything it places.** Whether this much ground is clear of
+  the map's edge, the settlements, the woods, every carriageway, water, bridges, the
+  yards and trees already placed and, for what blocks sight, the kept approach
+  corridors. What differs between a home, a copse and a boulder is the room each asks
+  for.
+- **Homes are real buildings.** A group is one farmstead or two to four houses, drawn
+  from the same catalogue, family and floor limit as the map's towns. Its yards front
+  a country road or track, or a short lane the pass lays off one, so each street door
+  opens onto a carriageway. A yard may have a clump of trees behind it and a car or a
+  stack beside the house, clear of the doors.
+- **A tree line is stretches with gaps.** It follows a road or track at a distance, or
+  runs across a field along or square to a road near enough to set the fields' lie.
+  No stretch is longer than the preset allows before a gap a vehicle drives through.
+- **Bare ground is filled, and little else.** Open ground is walked as cells. A cell
+  with no building, wood or tree line within `sight.reach_m` gets a copse or a tree
+  line near it: random places near it first, then every place within reach in turn.
+  That is what guarantees the rule; the densities on top of it are small.
+- **A settlement keeps its widest approach in each half as a corridor.** The front's
+  width of ground along the approach's middle bearing, where the encounter planner
+  posts its overwatch, holds nothing that blocks sight; low cover may stand in it. The
+  rest of what the layout measured as open is country like any other. Afterwards the
+  plan's `approaches` are the kept ones, each as wide as its ground still measures:
+  `measure` asks a yard, a copse, a tree and each piece of a tree line as a disc,
+  because they are smaller than the gap between a corridor's measuring lines. Where
+  the kept corridors of several settlements leave ground no place beside them can
+  cover, a minor settlement's corridor gives way; the main settlement's never does.
+- **The halves are even by construction.** Each kind is placed in the half that holds
+  less of it until the map holds its share, by `fairness`: buildings, metres of tree
+  line, copses, trees and loose bodies. `open_country::measure` reads those amounts
+  back from the plan's geometry alone.
+- **The rule is judged by the simulation, not by the pass.** The `sight_report`
+  example loads each map into the battle's world and, from samples of open ground
+  and from where the encounter planner stands each column, counts the bearings on
+  which an infantry eye sees to full range by the simulation's own sight queries.
+  `tests/open_country.rs` holds a few maps to it; the report is how a preset change
+  is judged.
+
 ## Street furniture (`street_props`)
 
 `place_street_props(&plan, &request, &templates, &catalog, &presets)` answers the bodies
@@ -298,8 +350,9 @@ navigation, runtime trees or the complete battle's memory.
 to read its parcels, entrances, street furniture and the roads onto a deck. `mapgen catalogue` prints a descriptor list's canonical
 form, whose hash a request pins and the map loader resolves against. The
 `layout_sweep` example runs every type and size over a range of seeds and reports
-the layout, what was built on it, the street furniture among that and what the compiled
-map costs; it is how a preset change is judged.
+the layout, what was built on it, what the open country was furnished with, the
+street furniture among the buildings and what the compiled map costs; it is how a
+preset change is judged.
 
 The [`battle_sweep` example](examples/battle_sweep.rs) follows generation through
 assault placement and a short battle, using the same documents and admission as

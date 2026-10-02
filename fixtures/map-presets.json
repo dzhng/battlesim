@@ -1,5 +1,5 @@
 {
-  "revision": "layout-presets-7",
+  "revision": "layout-presets-8",
   "terrain": { "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
   "approach": {
     "depth_m": 1800,
@@ -423,6 +423,57 @@
         "medium": { "urban_share_max": 0.3, "settlements": { "town": [2, 3], "village": [3, 4], "hamlet": [2, 4] } },
         "large": { "urban_share_max": 0.3, "settlements": { "town": [4, 5], "village": [5, 7], "hamlet": [5, 6] } }
       }
+    }
+  },
+  "open_country": {
+    "sight": { "cell_m": 100, "reach_m": 480, "scatter": 0.5, "attempts": 30, "fill": { "copse": 4, "tree_line": 1 } },
+    "clear": { "edge_m": 12, "settlement_m": 60, "forest_m": 40, "road_m": 3, "water_m": 12, "yard_m": 6, "approach_m": 25 },
+    "fairness": { "rel": 0.25, "homes": 3, "tree_line_m": 250, "copses": 2, "trees": 3, "cover": 6 },
+    "homesteads": {
+      "per_road_km": 0.5,
+      "apart_m": 260,
+      "lane_chance": 0.35,
+      "lane_m": [60, 150],
+      "spread_m": 14,
+      "yard": { "front_m": 8, "side_m": 7, "rear_m": 8, "door_clear_m": 3 },
+      "groups": [
+        { "weight": 45, "homes": [1, 1], "mix": { "farmstead": 1 } },
+        { "weight": 55, "homes": [2, 4], "mix": { "detached_home": 85, "farmstead": 15 } }
+      ],
+      "tree_chance": 0.7,
+      "tree_plot_m": [12, 16],
+      "body_chance": 0.7,
+      "bodies": [
+        { "kind": "parked_car", "half_extents_m": [2.1, 0.9, 0.75], "weight": 5 },
+        { "kind": "pallet_stack", "half_extents_m": [0.6, 0.5, 0.6], "weight": 2 },
+        { "kind": "crate", "half_extents_m": [0.6, 0.6, 0.6], "weight": 2 }
+      ],
+      "attempts": 40
+    },
+    "tree_lines": {
+      "per_km2": 0.1,
+      "length_m": [60, 130],
+      "width_m": 12,
+      "stretch_m": [45, 90],
+      "gap_m": 12,
+      "roadside_chance": 0.6,
+      "road_gap_m": 8,
+      "align_m": 300,
+      "attempts": 40
+    },
+    "copses": { "per_km2": 0.1, "area_m2": [300, 1200], "aspect": [0.5, 1], "outline_points": 12, "attempts": 40 },
+    "lone_trees": { "per_km2": 1.2, "plot_m": 9, "attempts": 30 },
+    "field_cover": {
+      "per_km2": 1.2,
+      "spread_m": 7,
+      "gap_m": 1.2,
+      "bodies": [
+        { "kind": "boulder", "half_extents_m": [1, 0.8, 0.75], "weight": 5, "count": [1, 4] },
+        { "kind": "log", "half_extents_m": [2.2, 0.35, 0.35], "weight": 3, "count": [2, 4], "stacked": true },
+        { "kind": "car_wreck", "half_extents_m": [2.1, 0.9, 0.7], "weight": 1 },
+        { "kind": "pallet_stack", "half_extents_m": [0.6, 0.5, 0.6], "weight": 1, "count": [2, 4] }
+      ],
+      "attempts": 30
     }
   }
 }

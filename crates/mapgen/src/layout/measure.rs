@@ -377,11 +377,42 @@ pub fn approach_corridors(plan: &MapPlan) -> Vec<Corridor> {
 pub fn approaches(plan: &MapPlan, presets: &PresetDefinitions) -> Vec<ApproachPlan> {
     let rule = presets.approach;
     let water = super::water::rings(&plan.rivers);
+    // What stands in the open country ends an approach as a wood does, but
+    // is smaller than the gap between a corridor's lanes, so each is asked
+    // as a disc: a yard, a copse, a single tree, and a tree line as a disc
+    // every half width along it.
+    let wood_floor = presets.wood_floor_m2();
+    let disc = |ring: &[Point]| {
+        let obstacle = Obstacle::new(ring);
+        (obstacle.center, obstacle.reach)
+    };
+    let mut small: Vec<(Point, f64)> = crate::open_country::country_lots(plan)
+        .map(|lot| disc(&lot.ring))
+        .collect();
+    for forest in &plan.forests {
+        match &forest.shape {
+            GroundShape::Polygon { ring } if area(ring) < wood_floor => small.push(disc(ring)),
+            GroundShape::Polygon { .. } => {}
+            GroundShape::Stroke {
+                centerline,
+                width_m,
+            } => {
+                let half = width_m / 2.0;
+                for pair in centerline.samples().windows(2) {
+                    let steps = libm::ceil(distance(pair[0], pair[1]) / half).max(1.0) as usize;
+                    small.extend((0..=steps).map(|step| {
+                        let share = step as f64 / steps as f64;
+                        (add(pair[0], scale(sub(pair[1], pair[0]), share)), half)
+                    }));
+                }
+            }
+        }
+    }
     let obstacles: Vec<Obstacle> = plan
         .settlements
         .iter()
         .map(|s| s.outline.as_slice())
-        .chain(forest_rings(plan))
+        .chain(forest_rings(plan).filter(|ring| area(ring) >= wood_floor))
         .chain(water.iter().map(Vec::as_slice))
         .map(Obstacle::new)
         .collect();
@@ -412,6 +443,13 @@ pub fn approaches(plan: &MapPlan, presets: &PresetDefinitions) -> Vec<ApproachPl
             })
             .map(|(_, obstacle)| obstacle)
             .collect();
+        let near_small: Vec<(Point, f64)> = small
+            .iter()
+            .filter(|(at, reach)| {
+                distance(*at, center) <= farthest + rule.depth_m + rule.front_m + reach
+            })
+            .copied()
+            .collect();
         // Per bearing: the half its corridor lies in, when it is open.
         let open: Vec<Option<Half>> = (0..bearings)
             .map(|bearing| {
@@ -425,27 +463,34 @@ pub fn approaches(plan: &MapPlan, presets: &PresetDefinitions) -> Vec<ApproachPl
                     ]
                 };
                 let edge = corridor_start(&settlement.outline, center, toward, rule.front_m);
-                let clear = (0..=lanes).all(|lane| {
-                    let across = rule.front_m * (lane as f64 / lanes as f64 - 0.5);
-                    let from = add(center, add(scale(toward, edge), scale(aside, across)));
-                    let to = add(from, scale(toward, rule.depth_m));
-                    let inside = [from, to]
-                        .iter()
-                        .all(|p| (0..2).all(|axis| p[axis] >= 0.0 && p[axis] <= plan.size[axis]));
-                    inside
-                        && near.iter().all(|obstacle| {
-                            let [along, off] = place(obstacle.center);
-                            if (off - across).abs() > obstacle.reach
-                                || along < edge - obstacle.reach
-                                || along > edge + rule.depth_m + obstacle.reach
-                            {
-                                return true;
-                            }
-                            !polygon_contains(obstacle.ring, from)
-                                && ray_crossings(from, toward, obstacle.ring)
-                                    .all(|hit| hit > rule.depth_m)
-                        })
+                let bare = near_small.iter().all(|(at, reach)| {
+                    let [along, off] = place(*at);
+                    along < edge - reach
+                        || along > edge + rule.depth_m + reach
+                        || off.abs() > rule.front_m / 2.0 + reach
                 });
+                let clear = bare
+                    && (0..=lanes).all(|lane| {
+                        let across = rule.front_m * (lane as f64 / lanes as f64 - 0.5);
+                        let from = add(center, add(scale(toward, edge), scale(aside, across)));
+                        let to = add(from, scale(toward, rule.depth_m));
+                        let inside = [from, to].iter().all(|p| {
+                            (0..2).all(|axis| p[axis] >= 0.0 && p[axis] <= plan.size[axis])
+                        });
+                        inside
+                            && near.iter().all(|obstacle| {
+                                let [along, off] = place(obstacle.center);
+                                if (off - across).abs() > obstacle.reach
+                                    || along < edge - obstacle.reach
+                                    || along > edge + rule.depth_m + obstacle.reach
+                                {
+                                    return true;
+                                }
+                                !polygon_contains(obstacle.ring, from)
+                                    && ray_crossings(from, toward, obstacle.ring)
+                                        .all(|hit| hit > rule.depth_m)
+                            })
+                    });
                 let half_way = center[1] + toward[1] * (edge + rule.depth_m / 2.0);
                 clear.then_some(if half_way >= plan.size[1] / 2.0 {
                     Half::Top
@@ -484,6 +529,17 @@ pub fn approaches(plan: &MapPlan, presets: &PresetDefinitions) -> Vec<ApproachPl
         }
     }
     found
+}
+
+/// The turn between the bearings an approach to `settlement` is measured
+/// along: a hundred metres apart at the corridors' far end.
+pub fn bearing_step(settlement: &crate::SettlementPlan, depth_m: f64) -> f64 {
+    let farthest = settlement
+        .outline
+        .iter()
+        .map(|p| distance(settlement.center, *p))
+        .fold(0.0, f64::max);
+    TAU / (libm::ceil(TAU * (farthest + depth_m) / 100.0) as usize).clamp(64, 720) as f64
 }
 
 /// Time as a heap key. Journey times are finite, so the total order is the
