@@ -1,9 +1,35 @@
 # Mechanics editor
 
-The local authoring tool runs inside the game's development server. Open
-`/mechanics` through the developer menu after running the root development command.
-It edits authored fixtures, keeping the simulation's Rust resolver as the
-authority for inheritance and valid gameplay values.
+Run from the repository root:
+
+```bash
+bun run setup          # first checkout: install web dependencies
+bun run dev:mechanics  # build, start localhost and open /mechanics
+```
+
+Use the localhost address printed by Vite. The editor opens at `/mechanics`
+(default: <http://localhost:5173/mechanics>). If that port is occupied, stop the
+other server or run `bun run dev:mechanics --port 5175`. The normal `bun run dev`
+also serves the editor; open it through the developer menu or visit `/mechanics`.
+Prerequisites are in the root [Running it](../../README.md#running-it) section.
+
+1. Search for the exact unit, then edit its spreadsheet cells or expand its row.
+   Each field explains its effect and units. Shared weapon edits affect every
+   listed user; unit and soldier overrides apply to the selected authored type
+   and descendants that inherit it.
+2. Edit either the battlefield value or its raw stored value; its partner updates
+   automatically. Use **Undo edit** to cancel a draft change, or **Restore inherited
+   value** where offered to remove an authored override.
+3. Click **Preview changes**. Fix any errors, then review before-and-after values,
+   affected units and the exact JSON replacements.
+4. Click **Save authored JSON**. This replaces fixture files in this checkout and
+   updates their generated catalog; Git shows the changes. Start or explicitly
+   restart a battle to use the saved values. A running battle keeps its settings.
+
+The editor uses the simulation's Rust resolver as the authority for inheritance
+and valid gameplay values. If files change elsewhere, your draft is retained;
+**Reload sources**, then **Discard draft and reload**, explicitly replaces it
+with current files.
 
 The development command builds the native validator once. After changing Rust
 validation code, rebuild it with `bun run build:mechanics`; fixture edits are

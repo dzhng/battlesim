@@ -5,6 +5,7 @@
   "scripts": {
     "setup": "bun install --cwd web",
     "dev": "bun run build:wasm && bun run build:mechanics && bun run --cwd web dev",
+    "dev:mechanics": "bun run dev --open /mechanics",
     "build:mechanics": "CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-throwaway/target} cargo build -p sim --example mechanics_validate",
     "build": "bun run build:wasm && bun run build:web",
     "build:wasm": "bun run --cwd web build:wasm",
