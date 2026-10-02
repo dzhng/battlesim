@@ -30,35 +30,21 @@ fn request() -> CompileRequest {
 #[test]
 fn lowering_materializes_the_frozen_compound_into_one_global_authored_namespace() {
     let generated = lower(&request(), &catalogue()).unwrap();
-    let original: Value = serde_json::from_str(include_str!(
-        "../../../fixtures/parity/templates/native-asymmetric.json"
-    ))
-    .unwrap();
     #[derive(serde::Deserialize)]
-    struct RawOriginal {
-        materialized: Box<serde_json::value::RawValue>,
+    struct Catalogue {
+        hash: String,
     }
-    let raw: RawOriginal = serde_json::from_str(include_str!(
+    // Typed, so every physical float is read exactly as written.
+    #[derive(serde::Deserialize)]
+    struct NativeRecord {
+        catalogue: Catalogue,
+        materialized: contract::templates::MaterializedBuilding,
+    }
+    let record: NativeRecord = serde_json::from_str(include_str!(
         "../../../fixtures/parity/templates/native-asymmetric.json"
     ))
     .unwrap();
-    // Add only C01's authoritative local intervals without re-parsing the old
-    // physical float tokens through the ordinary serde JSON Value reader.
-    let mut expected_json = raw.materialized.get().to_owned();
-    for edge in &catalogue().templates()[0].edges {
-        let id = format!("\"id\":{}", serde_json::to_string(&edge.id).unwrap());
-        expected_json = expected_json.replacen(
-            &id,
-            &format!(
-                "{id},\"span_m\":{}",
-                serde_json::to_string(&edge.span_m).unwrap()
-            ),
-            1,
-        );
-    }
-    let expected: contract::templates::MaterializedBuilding =
-        serde_json::from_str(&expected_json).unwrap();
-    assert_eq!(generated.map.buildings[0].geometry, expected);
+    assert_eq!(generated.map.buildings[0].geometry, record.materialized);
     let parts = generated.map.authored_props().unwrap();
     assert_eq!(parts.iter().map(|p| p.0).collect::<Vec<_>>(), [0, 1, 2]);
     assert_eq!(parts[2].1.kind, "tooth");
@@ -67,7 +53,7 @@ fn lowering_materializes_the_frozen_compound_into_one_global_authored_namespace(
     assert_eq!(generated.identity.seed.value(), u64::MAX);
     assert_eq!(
         generated.identity.template_catalog_hash,
-        original["catalogue"]["hash"]
+        record.catalogue.hash
     );
 }
 
@@ -445,7 +431,8 @@ fn native_cli_replays_the_frozen_acceptance_and_refusal_records() {
     struct Record {
         name: String,
         request_json: String,
-        native_outcome: String,
+        /// The outcome's hash holds Wasm to every byte.
+        native_sha256: String,
         exit_code: i32,
     }
     let mut corpus: Corpus = serde_json::from_str(include_str!(
@@ -477,9 +464,11 @@ fn native_cli_replays_the_frozen_acceptance_and_refusal_records() {
             .output()
             .unwrap();
         let stdout = String::from_utf8(process.stdout).unwrap();
+        let outcome = stdout.strip_suffix('\n').unwrap();
+        let hash = contract::identity::bytes_hash(outcome.as_bytes());
         if bless {
             record.exit_code = process.status.code().unwrap();
-            record.native_outcome = stdout.trim_end_matches('\n').into();
+            record.native_sha256 = hash;
             continue;
         }
         assert_eq!(
@@ -488,12 +477,9 @@ fn native_cli_replays_the_frozen_acceptance_and_refusal_records() {
             "{}",
             record.name
         );
-        assert_eq!(
-            stdout,
-            record.native_outcome.clone() + "\n",
-            "{}",
-            record.name
-        );
+        assert_eq!(hash, record.native_sha256, "{}: {outcome}", record.name);
+        let status = if record.exit_code == 0 { "ok" } else { "error" };
+        assert!(outcome.starts_with(&format!("{{\"status\":\"{status}\"")));
     }
     std::fs::remove_dir_all(directory).unwrap();
     if bless {

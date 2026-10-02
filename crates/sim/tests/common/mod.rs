@@ -423,8 +423,9 @@ impl Commander {
     }
 }
 
-/// `BLESS_PARITY=1` rewrites a `fixtures/parity/` oracle from this build
-/// instead of asserting it; only for a named behaviour change.
+/// `BLESS_PARITY=1` re-records the native half of a `fixtures/parity/` paired
+/// record from this build instead of asserting it; the web test then holds
+/// Wasm to it. Only for a named behaviour change.
 pub fn bless_parity(path: &str, value: &serde_json::Value) -> bool {
     if std::env::var_os("BLESS_PARITY").is_none() {
         return false;

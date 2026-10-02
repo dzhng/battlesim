@@ -1,5 +1,6 @@
 // @vitest-environment node
-import { readFileSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { createSimClient } from "../src/battle/sim/client";
 import { GroundView } from "../src/battle/sim/ground";
@@ -10,18 +11,31 @@ import {
   type ObservationView,
 } from "../src/battle/sim/observation";
 
-import { originalObservation } from "./groundRuns";
+import { labScenario, type LabScript, type LabUnit } from "@apps/battle-lab/src/scenarios";
+import { loadMap } from "@web/maps/node";
 
-const oracle = JSON.parse(
-  readFileSync(new URL("../../fixtures/parity/fog/oracle.json", import.meta.url), "utf8"),
+/** The publication stream record: a small battle on a saved map, and what the
+ *  native build made of each tick (`crates/sim/tests/publication.rs`). */
+const stream: {
+  map: string;
+  seed: number;
+  units: LabUnit[];
+  scripts: LabScript[];
+  rows: {
+    side: "blue" | "red";
+    resync: boolean;
+    digest: string;
+    publication_sha256: string;
+    fog_sha256: string;
+  }[];
+} = JSON.parse(
+  readFileSync(new URL("../../fixtures/parity/publication/stream.json", import.meta.url), "utf8"),
 );
-const prepared = JSON.parse(
-  readFileSync(
-    new URL("../../fixtures/parity/buildings/cutover-inputs.json", import.meta.url),
-    "utf8",
-  ),
-);
-oracle.scenario.map = prepared.fogDelivery;
+const SCENARIO = labScenario(loadMap(stream.map).definition, stream.units, [], stream.scripts);
+const sha256 = (words: Float32Array | Uint32Array) =>
+  createHash("sha256")
+    .update(new Uint8Array(words.buffer, words.byteOffset, words.byteLength))
+    .digest("hex");
 let memory: WebAssembly.Memory;
 beforeAll(() => {
   memory = initSync({
@@ -29,41 +43,27 @@ beforeAll(() => {
   }).memory;
 });
 
-test("the incremental stream preserves every frozen observation and prior frame", () => {
-  const battle = new Battle(JSON.stringify(oracle.scenario), oracle.seed);
+test("wasm steps and publishes the native stream, and the decoder delivers its fog", () => {
+  const battle = new Battle(SCENARIO, stream.seed);
   const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
   const decoder = new ObservationDecoder(layout);
   const retained: ObservationView[] = [];
   try {
-    for (const row of oracle.rows) {
+    stream.rows.forEach((row, i) => {
       battle.step();
       if (row.resync) battle.resync_observation();
       const length = battle.publish(row.side);
-      const frame = decoder.decode(
-        new Float32Array(memory.buffer, battle.publication_ptr(), length),
-      )!;
-      expect(battle.digest(), `tick ${row.decoded.tick}`).toBe(row.digest);
-      // BLESS_PARITY=1 rewrites the decoded half after the native test has
-      // rewritten the digests (a named behaviour change only).
-      if (process.env.BLESS_PARITY) row.decoded = originalObservation(frame, layout);
-      expect(originalObservation(frame, layout), `complete tick ${frame.tick}`).toEqual(
-        row.decoded,
-      );
+      const words = new Float32Array(memory.buffer, battle.publication_ptr(), length);
+      expect(battle.digest(), `tick ${i + 1}`).toBe(row.digest);
+      expect(sha256(words), `published words, tick ${i + 1}`).toBe(row.publication_sha256);
+      const frame = decoder.decode(words)!;
+      expect(sha256(frame.fog.bits), `decoded fog, tick ${i + 1}`).toBe(row.fog_sha256);
       retained.push(frame);
-    }
+    });
+    // A later record never rewrites a frame already handed out.
     retained.forEach((frame, i) =>
-      expect(originalObservation(frame, layout), `retained tick ${frame.tick}`).toEqual(
-        oracle.rows[i].decoded,
-      ),
+      expect(sha256(frame.fog.bits), `retained tick ${i + 1}`).toBe(stream.rows[i].fog_sha256),
     );
-    if (process.env.BLESS_PARITY) {
-      const file = new URL("../../fixtures/parity/fog/oracle.json", import.meta.url);
-      const frozen = JSON.parse(readFileSync(file, "utf8"));
-      frozen.rows.forEach((row: { decoded: unknown }, i: number) => {
-        row.decoded = oracle.rows[i].decoded;
-      });
-      writeFileSync(file, JSON.stringify(frozen));
-    }
   } finally {
     battle.free();
   }
@@ -72,7 +72,7 @@ test("the incremental stream preserves every frozen observation and prior frame"
 /** Empty groups let the decoder's ordered stream contract be exercised with
  * deliberately small fields; each payload still uses the published layout. */
 function packets() {
-  const battle = new Battle(JSON.stringify(oracle.scenario), oracle.seed);
+  const battle = new Battle(SCENARIO, stream.seed);
   const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
   battle.free();
   const record = (
@@ -168,8 +168,8 @@ test("fog and ground reject a broken paired cursor before either baseline advanc
 
 test("switching views before the first callback cannot expose an old-side observation", async () => {
   const client = createSimClient({
-    scenario: JSON.stringify(oracle.scenario),
-    seed: oracle.seed,
+    scenario: SCENARIO,
+    seed: stream.seed,
     side: "blue",
     transport: "direct",
   });
@@ -198,8 +198,8 @@ test("switching views before the first callback cannot expose an old-side observ
 
 test("a view switch returns stale in-flight credits without mixing sides or blocking advance", async () => {
   const client = createSimClient({
-    scenario: JSON.stringify(oracle.scenario),
-    seed: oracle.seed,
+    scenario: SCENARIO,
+    seed: stream.seed,
     side: "blue",
     transport: "direct",
   });
@@ -221,14 +221,7 @@ test("a view switch returns stale in-flight credits without mixing sides or bloc
       [3, "red", 2],
     ]);
     expect(frames[1].own.map((u) => u.id)).toEqual([2, 3]);
-    const reference = new Battle(JSON.stringify(oracle.scenario), oracle.seed);
-    try {
-      expect(originalObservation(frames[0], JSON.parse(reference.observation_layout()))).toEqual(
-        oracle.rows[0].decoded,
-      );
-    } finally {
-      reference.free();
-    }
+    expect(sha256(frames[0].fog.bits)).toBe(stream.rows[0].fog_sha256);
   } finally {
     client.dispose();
   }

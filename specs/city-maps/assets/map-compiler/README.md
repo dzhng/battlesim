@@ -2,11 +2,11 @@
 
 The [choices ledger](choices.md) records the admission, identity and boundary decisions later compiler arms inherit.
 
-The compiler's input is the labelled asymmetric C00 descriptor: a compound with joins, entrances and bay positions, not an accepted regional art source. It is materialized through the same contract owner the battle loads. The original C00 records are unchanged, with only C01's authoritative local edge intervals added by the explicit test adapter.
+The compiler's input is the labelled asymmetric C00 descriptor: a compound with joins, entrances and bay positions, not an accepted regional art source. It is materialized through the same contract owner the battle loads. The C00 record carries C01's authoritative local edge intervals.
 
 ## What is proven
 
-- **Exact numbers across boundaries.** [`request.json`](../../../../fixtures/parity/map-compiler/request.json) holds physical scalars that exposed the old JSON reader's one-ULP rounding, and a seed above JavaScript's exact integer range. The [paired records](../../../../fixtures/parity/map-compiler/paired-records.json) are the complete native CLI outcomes, refusals included. Wasm tests compare exact outcome bytes; native tests reload the saved map and verify its physical content hash. No JavaScript-number seed conversion or renderer interpretation sits between them.
+- **Exact numbers across boundaries.** [`request.json`](../../../../fixtures/parity/map-compiler/request.json) holds physical scalars that exposed the old JSON reader's one-ULP rounding, and a seed above JavaScript's exact integer range. The [paired records](../../../../fixtures/parity/map-compiler/paired-records.json) hold the hash of each complete native CLI outcome, refusals included. Wasm tests hash the bytes they emit; native tests reload the saved map and verify its physical content hash. No JavaScript-number seed conversion or renderer interpretation sits between them.
 - **One number reader.** The contract's exact physical token reader owns template, ordinary body and map-header numbers. Flattened authored/event envelopes keep raw tokens until that owner decodes geometry. Scenario rules and simulation trig are unchanged, so S6's old formation arithmetic discrepancy is not resolved here.
 - **Finite height.** The old admission accepted an infinite derived box height when the base was implicit. Native and Wasm now refuse it identically.
 - **Limits.** Execution limits are tested at their boundary and one unit below; playability bounds at the architecture envelope and just above. Map and generation identity do not change when only admission policy changes.

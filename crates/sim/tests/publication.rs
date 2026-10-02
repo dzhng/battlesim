@@ -270,78 +270,89 @@ fn uniform_learned_ground_is_delivered_without_one_record_per_cell() {
     );
 }
 
+/// The native half of the publication stream record: each tick's battle
+/// digest, published words and delivered fog, as hashes.
+/// `web/tests/fogDelivery.test.ts` holds the Wasm build and the TypeScript
+/// decoder to the same values.
 #[test]
-fn fog_delivery_matches_the_parity_oracle_observation_and_digest() {
-    let oracle: Value =
-        serde_json::from_str(include_str!("../../../fixtures/parity/fog/oracle.json")).unwrap();
-    let scenario = oracle["scenario"].clone();
-    let mut setup: contract::scenario::ScenarioDefinition =
-        serde_json::from_value(scenario).unwrap();
-    setup.map = crate::common::physical_map(setup.map, &setup.rules);
-    let mut battle = Battle::new(&setup, oracle["seed"].as_u64().unwrap());
+fn the_publication_stream_matches_its_paired_record() {
+    let record: Value = serde_json::from_str(include_str!(
+        "../../../fixtures/parity/publication/stream.json"
+    ))
+    .unwrap();
+    let map = sim::maps::load(record["map"].as_str().unwrap())
+        .unwrap()
+        .definition;
+    let setup = common::scenario_with(
+        &serde_json::to_string(&map).unwrap(),
+        record["units"].clone(),
+        json!([]),
+        record["scripts"].clone(),
+    );
+    let mut battle = Battle::new(&setup, record["seed"].as_u64().unwrap());
     let layout: Value = serde_json::from_str(&publication::layout_json(&battle)).unwrap();
     let header = names(&layout["header"]);
     let mut publisher = publication::Publisher::new();
-    let mut bits = Vec::new();
+    let mut bits: Vec<u32> = Vec::new();
     let mut snapshots = 0;
     let mut deltas = 0;
-    let mut blessed = oracle.clone();
-    if std::env::var_os("BLESS_PARITY").is_some() {
-        for row in blessed["rows"].as_array_mut().unwrap() {
-            battle.step();
-            let side: Side = serde_json::from_value(row["side"].clone()).unwrap();
-            if row["resync"].as_bool().unwrap() {
-                publisher.resync();
-            }
-            publisher.publish(&battle, side).unwrap();
-            let frame = battle.observe(side);
-            row["digest"] = json!(format!("{:016x}", battle.digest()));
-            row["authoritative"] =
-                json!({ "tick": frame.tick, "ground_visibility": frame.ground_visibility });
-        }
-        assert!(crate::common::bless_parity("fog/oracle.json", &blessed));
-        return;
-    }
-    for row in oracle["rows"].as_array().unwrap() {
+    let mut blessed = record.clone();
+    for row in blessed["rows"].as_array_mut().unwrap() {
         battle.step();
         let side: Side = serde_json::from_value(row["side"].clone()).unwrap();
         if row["resync"].as_bool().unwrap() {
             publisher.resync();
         }
-        assert_eq!(
-            format!("{:016x}", battle.digest()),
-            row["digest"].as_str().unwrap()
-        );
-        let expected: contract::observation::VisibilityField =
-            serde_json::from_value(row["authoritative"]["ground_visibility"].clone()).unwrap();
-        // The digest pins authoritative f64 state; the browser oracle pins
-        // every packed f32 row (JSON parsing need not preserve every f64 ULP).
-        let record = publisher.publish(&battle, side).unwrap();
-        let head = |name: &str| record[header.iter().position(|f| f == name).unwrap()];
+        let words = publisher.publish(&battle, side).unwrap();
+        let head = |name: &str| words[header.iter().position(|f| f == name).unwrap()];
         let count = head("fogFloats") as usize;
-        let words = (head("fogNx") as usize * head("fogNy") as usize).div_ceil(32);
-        let at = record.len() - head("groundRunCount") as usize * 4 - count;
+        let field_words = (head("fogNx") as usize * head("fogNy") as usize).div_ceil(32);
+        let at = words.len() - head("groundRunCount") as usize * 4 - count;
         if head("fogFull") == 1.0 {
             snapshots += 1;
-            bits = (0..words)
-                .map(|i| record[at + i * 2] as u32 | (record[at + i * 2 + 1] as u32) << 16)
+            bits = (0..field_words)
+                .map(|i| words[at + i * 2] as u32 | (words[at + i * 2 + 1] as u32) << 16)
                 .collect();
         } else {
             deltas += 1;
-            for change in record[at..at + count].chunks_exact(3) {
+            for change in words[at..at + count].chunks_exact(3) {
                 bits[change[0] as usize] = change[1] as u32 | (change[2] as u32) << 16;
             }
         }
-        assert_eq!(bits, expected.bits, "tick {}", row["authoritative"]["tick"]);
+        // Snapshots and deltas alike deliver the side's authoritative field.
+        assert_eq!(
+            bits,
+            battle.observe(side).ground_visibility.bits,
+            "tick {}",
+            battle.tick()
+        );
+        let hash = |bytes: Vec<u8>| json!(contract::identity::bytes_hash(&bytes));
+        row["digest"] = json!(format!("{:016x}", battle.digest()));
+        row["publication_sha256"] = hash(
+            words
+                .iter()
+                .flat_map(|w| w.to_bits().to_le_bytes())
+                .collect(),
+        );
+        row["fog_sha256"] = hash(bits.iter().flat_map(|w| w.to_le_bytes()).collect());
     }
     assert!(
         snapshots >= 4,
         "initial, each side switch and resync replace the field"
     );
-    assert!(
-        deltas > 0,
-        "the active oracle must exercise incremental fields"
-    );
+    assert!(deltas > 0, "the stream must exercise incremental fields");
+    if common::bless_parity("publication/stream.json", &blessed) {
+        return;
+    }
+    for (tick, (row, expected)) in blessed["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(record["rows"].as_array().unwrap())
+        .enumerate()
+    {
+        assert_eq!(row, expected, "tick {}", tick + 1);
+    }
 }
 
 #[test]
@@ -606,18 +617,15 @@ fn known_bodies_publish_exact_current_building_owner_and_authored_source_ids() {
     );
 }
 
+/// The encoder's half of the codec vectors: every frame packs to exactly the
+/// words `web/tests/observation.test.ts` decodes. The vectors keep their own
+/// kind tables; the field order is this build's.
 #[test]
-fn aggregate_codec_preserves_every_original_animation_word() {
-    let original: Value = serde_json::from_str(include_str!(
-        "../../../fixtures/parity/ground/animation-codec-vectors.json"
+fn the_encoder_packs_the_codec_vectors_the_web_decoder_reads() {
+    let record: Value = serde_json::from_str(include_str!(
+        "../../../fixtures/parity/publication/codec-vectors.json"
     ))
     .unwrap();
-    let receipt: Value = serde_json::from_str(include_str!(
-        "../../../fixtures/parity/buildings/animation-codec-vectors.json"
-    ))
-    .unwrap();
-    let layout = &receipt["layout"];
-    let header = names(&layout["header"]);
     let probe = Battle::new(
         &common::scenario(
             r#"{"size":[32,32],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#,
@@ -627,19 +635,14 @@ fn aggregate_codec_preserves_every_original_animation_word() {
         1,
     );
     let current: Value = serde_json::from_str(&publication::layout_json(&probe)).unwrap();
-    let own_fields = names(&current["groups"][0]["fields"]);
-    assert_eq!(current["groups"][0]["name"], "own");
-    let concealed = own_fields.iter().position(|f| f == "concealed").unwrap();
-    for phase in ["base", "entering", "inside", "exiting", "wide"] {
-        let row = &receipt["vectors"][phase];
-        // Old synthetic frames have no concealment readout; keep the receipt frozen.
-        let mut input = row["frame"].clone();
-        for own in input["own"].as_array_mut().unwrap() {
-            own["concealed"] = json!(false);
-        }
-        let frame: contract::observation::ObservationFrame = serde_json::from_value(input).unwrap();
-        let patch = &row["patch"];
-        let runs = patch["cells"].as_array().unwrap().iter().map(|c| {
+    let mut blessed = record.clone();
+    for key in ["header", "groups"] {
+        blessed["layout"][key] = current[key].clone();
+    }
+    for row in blessed["vectors"].as_object_mut().unwrap().values_mut() {
+        let frame: contract::observation::ObservationFrame =
+            serde_json::from_value(row["frame"].clone()).unwrap();
+        let runs = row["patch"]["cells"].as_array().unwrap().iter().map(|c| {
             let cell = c["cell"].as_u64().unwrap() as u32;
             let (x, y) = (cell % 18000, cell / 18000);
             sim::ground::GroundRunPatch {
@@ -665,104 +668,13 @@ fn aggregate_codec_preserves_every_original_animation_word() {
         };
         let mut data = Vec::new();
         publication::pack(&frame, &ground, &full_fog(), runs, &mut data).unwrap();
-        // Compare every original word, excluding only the added own-unit column.
-        let mut historical = data[..header.len()].to_vec();
-        let mut cursor = header.len();
-        for _ in &frame.own {
-            assert_eq!(data[cursor + concealed].to_bits(), 0.0_f32.to_bits());
-            historical.extend(
-                data[cursor..cursor + own_fields.len()]
-                    .iter()
-                    .enumerate()
-                    .filter(|(i, _)| *i != concealed)
-                    .map(|(_, v)| *v),
-            );
-            cursor += own_fields.len();
-        }
-        historical.extend_from_slice(&data[cursor..]);
-        let data = historical;
-        assert_eq!(
-            data.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
-            row["bits"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .map(|v| v.as_u64().unwrap() as u32)
-                .collect::<Vec<_>>(),
-            "production receipt {phase}"
-        );
-        if phase == "wide" {
-            continue;
-        }
-        // The only animation changes are one scalar owner split and exact
-        // KnownProp identities. Traverse variable sections unchanged.
-        let mut legacy = data[..header.len()].to_vec();
-        let mut at = header.len();
-        for group in layout["groups"].as_array().unwrap() {
-            let fields = names(&group["fields"]);
-            let count = data[header
-                .iter()
-                .position(|n| n == group["count"].as_str().unwrap())
-                .unwrap()] as usize;
-            let mut rows = Vec::new();
-            for _ in 0..count {
-                let row = &data[at..at + fields.len()];
-                at += fields.len();
-                rows.push(row);
-                for (i, name) in fields.iter().enumerate() {
-                    if group["name"] == "knownProps"
-                        && [
-                            "idLo",
-                            "idHi",
-                            "buildingLo",
-                            "buildingHi",
-                            "structureOwnerLo",
-                            "structureOwnerHi",
-                            "authoredPropLo",
-                            "authoredPropHi",
-                        ]
-                        .contains(&name.as_str())
-                    {
-                        continue;
-                    }
-                    if name == "garrisonBuildingHi" || name == "replacesHi" {
-                        continue;
-                    }
-                    if name == "garrisonBuildingLo" || name == "replacesLo" {
-                        legacy.push(if row[i] < 0.0 {
-                            -1.0
-                        } else {
-                            row[i] + row[i + 1] * 65536.0
-                        });
-                    } else {
-                        legacy.push(row[i]);
-                    }
-                }
-            }
-            for row in rows {
-                for section in group["sections"].as_array().unwrap() {
-                    let count = row[fields
-                        .iter()
-                        .position(|n| n == section["count"].as_str().unwrap())
-                        .unwrap()] as usize;
-                    let len = count * section["fields"].as_array().unwrap().len();
-                    legacy.extend_from_slice(&data[at..at + len]);
-                    at += len;
-                }
-            }
-        }
-        let tail = original[phase]["bits"].as_array().unwrap();
-        let old_tail = tail.len() - 8;
-        // Run storage alone changes the ground tail. The exact old packed
-        // cells remain its independently frozen oracle in the web decoder.
-        legacy.extend_from_slice(&data[at..data.len() - 8]);
-        assert_eq!(
-            legacy.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
-            tail[..old_tail]
-                .iter()
-                .map(|v| v.as_u64().unwrap() as u32)
-                .collect::<Vec<_>>(),
-            "all original animation/fog/header words {phase}"
-        );
+        row["bits"] = json!(data.iter().map(|v| v.to_bits()).collect::<Vec<_>>());
+    }
+    if common::bless_parity("publication/codec-vectors.json", &blessed) {
+        return;
+    }
+    assert_eq!(blessed["layout"], record["layout"], "field order");
+    for (phase, row) in blessed["vectors"].as_object().unwrap() {
+        assert_eq!(row["bits"], record["vectors"][phase]["bits"], "{phase}");
     }
 }

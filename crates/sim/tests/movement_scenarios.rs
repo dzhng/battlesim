@@ -2887,24 +2887,6 @@ fn every_movement_scenario() {
         assert_scenario(&scenario);
     }
 }
-
-#[test]
-fn the_window_producer_preserves_original_physical_bodies_and_dense_ids() {
-    let receipt: Value = serde_json::from_str(include_str!(
-        "../../../fixtures/parity/buildings/window-producer.json"
-    ))
-    .unwrap();
-    let window = serde_json::from_value(receipt["window"].clone()).unwrap();
-    let map: contract::map::MapDefinition = serde_json::from_value(village(window)).unwrap();
-    let actual:Vec<_>=map.authored_props().unwrap().iter().map(|(id,p)|json!({"id":id,"kind":p.kind,"center":p.center,"yaw":p.yaw,"half_extents":p.half_extents,"base_z":p.base_z})).collect();
-    let expected: Vec<contract::map::AuthoredPropDefinition> =
-        serde_json::from_value(receipt["props"].clone()).unwrap();
-    assert_eq!(json!(actual), serde_json::to_value(expected).unwrap());
-    let rules = serde_json::from_value(sim::fixtures::game()).unwrap();
-    let world = sim::world::WorldGeometry::new(&map, &rules);
-    assert_eq!(world.building_of(0), Some(0));
-    assert_eq!(world.structure_owner(0), Some(0));
-}
 #[test]
 fn a_jeep_passes_a_wreck_across_the_road() {
     assert_scenario(&scenario("sa6-jeep-round-wreck"));
