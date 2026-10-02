@@ -3739,3 +3739,20 @@ timing; nearest-fit selection is not permission to publish an invalid segment.
 **Contract:** Returned observations are immutable; the static arrays are now readonly in TypeScript. The current consumers read these rows; pose reconciliation copies positions into its own state, and effects read aliased prop extents. Cache reuse still checks current counts. Malformed cached counts and failures later in fog/ground cannot advance either baseline; corrected same-generation retry works. Changed-group views and prior observations remain distinct, and stale side/epoch records do not populate the cache.
 
 **Verdict:** Sound; identity and rollback proofs pass. Allocation claims describe skipped construction, not measured heap bytes or wall time. Producer layout/digests and all whole-record, peak and throughput gates remain unchanged. **Confidence:** High for reuse and reconstruction; runtime admission remains open.
+
+
+## C06/C07: full generated browser stress ownership
+
+**Choice:** Keep the saved endurance scene as the default and add a fixed current
+Metro Large seed-4 arm. The existing preparation worker resolves its generated
+MapSource and calls a thin Wasm forwarder to the simulation's city stress factory.
+The selector belongs to the worker message, alongside the unchanged normal
+preparation request. No second generator, placement rule or persistent large
+fixture enters the browser. The prepared report identifies the full compiled
+world separately from the synthetic contact and late-state inputs.
+
+**Reach:** This adds a repeatable full-extent browser admission input, including
+worker cancellation when the view changes. It does not prove startup memory,
+GPU cost, image quality or real-time throughput. Those gates remain coordinated
+integration work. **Verdict:** sound for the preparation seam; browser evidence
+pending. **Confidence:** high for fixture identity, medium until the scene runs.

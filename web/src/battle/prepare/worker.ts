@@ -14,11 +14,18 @@ interface WorkerScope {
 const scope = self as unknown as WorkerScope;
 
 scope.addEventListener("message", (event) => {
-  const { request, documents } = event.data;
+  const { request, documents, stress } = event.data;
   void init()
     .then(({ memory }) =>
-      prepare(wasm, memory, request, documents, { loadMap, loadEncounter }, (stage) =>
-        scope.postMessage({ type: "stage", stage }),
+      prepare(
+        wasm,
+        memory,
+        request,
+        documents,
+        { loadMap, loadEncounter },
+        (stage) => scope.postMessage({ type: "stage", stage }),
+        undefined,
+        stress,
       ),
     )
     .then((battle) => scope.postMessage({ type: "prepared", battle }))
