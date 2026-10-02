@@ -286,3 +286,28 @@ general portals remain separate proof owners; no old synchronous A* fallback qua
 5. **Roads authored as polygons** are not in the road graph.
 6. **The client:** `planning` has no panel row. The order marks now flash again when a route turns out blocked (the order's own flash is over by then); that wants a look in the UI pass.
 7. **Native/Wasm digest agreement at full extent** was not run. The planner reads no hash-map order and no wall time, and the web suite and the movement and village scenes pass on the Wasm build.
+
+### Long-move admission pickup
+
+Move preview and command admission still share the movement owner on isolated, side-known state. The navigation rule `move_rehearsal_m` controls the departure and arrival stretches of a long leg. Long eligibility freezes from endpoint distance before planning, using the existing road-leg threshold; short legs retain full rehearsal. A carry changes only the isolated rehearsal, never live battle positions. It sets a hull on the planned heading or a squad in file, then real movement must reach the destination.
+
+A new carry requires real net displacement from the preceding checkpoint. Replanning cannot earn distance, and the carry itself resets that origin. Stationary hulls and props intersecting the straight hull sweep introduce intermediate checkpoints. The prop checkpoint uses the existing segment clip with a conservative hull margin to stop before first contact, rather than its centre: a long rotated body can meet the lane far before its centre. Only the live movement owner demonstrates a shove. An exact sweep first filters legal roadside props out of that test.
+
+Initial long-leg planning uses the live planner's bounded search separately from the shared rehearsal allowance. Short initial searches remain charged. Repeated planning has a share per mover, with one share reserved for movement; a blocked member stops instead of consuming other members' arrival work. These latest-tick charges are transient accounting and do not enter persistent state or alter live planner scheduling.
+
+The focused admission file passes: generated Market Town cross-map orders for a vehicle, a squad and a mixed group are admitted and then physically arrive; an unbridged river, a closed arrival yard, a stationary blocker, a chain shove and contact with the end of long rotated bodies are refused as applicable. Both added shove regressions were observed red and green. Route-planning checks pass, and every digest in the quick village comparison remains identical to main. Narrow native publication parity and lint/format checks remain part of this checkpoint.
+
+Measured admission instructions on matched 6,000 × 240 m open worlds, with the same units and positions within each pair:
+
+| World and group | 500 m | 5,000 m | Ratio |
+|---|---:|---:|---:|
+| No road, jeep | 25.2 M | 31.4 M | 1.25 |
+| No road, squad | 609 M | 3,092 M | 5.07 |
+| No road, mixed group | 707 M | 3,155 M | 4.46 |
+| Straight country road, jeep | 24.6 M | 31.2 M | 1.27 |
+| Straight country road, squad | 595 M | 138 M | 0.23 |
+| Straight country road, mixed group | 705 M | 208 M | 0.30 |
+
+The shorter move is fully rehearsed; the longer empty stretch can be carried. These are process instruction counters around admission, excluding Battle construction; the retained probe and raw outputs are in ignored `throwaway/`. A small admission allowance does not prove a small instruction count. Empty-distance motion rehearsal is bounded, while route search still depends on topology; the roadless infantry amplification remains a measuring-tool/scale concern.
+
+This checkpoint does not establish every current-layout traffic interaction or turning trajectory. Straight hull sweeps are not a proof of the offset footprint through a wheeled turn; the focused open-corner probes arrived and tight L corridors refused in both rehearsal modes, but wider C54 physical-arrival evidence remains required. Kerbside traffic recovery is its own still-open pass. The CLI second review could not run because its configured model was unsupported; an independent agent reviewed the movement state, accounting, adversarial shoves and corner cases instead.

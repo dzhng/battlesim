@@ -1,11 +1,208 @@
 //! Move admission runs the real movement owner on isolated, side-known state.
+//! It drives the two ends of each leg, where bodies jam, squeeze and settle,
+//! and the approach to stationary hulls and props on the way; the stretch between
+//! is taken on the route the planner found ([`carry`]), so what a move costs
+//! to rehearse does not grow with how far it goes. Planning still pays for
+//! the route it must find.
 use contract::command::MovePreviewRequest;
+use contract::map::MoverClass;
 use contract::observation::MoveState;
 
-use super::{MovementContext, SideGeometry, STALL_REPLAN_S};
+use super::{MovementContext, SideGeometry, KNOT_M, STALL_REPLAN_S, TRAFFIC_MARGIN_M};
 use crate::formation::Slot;
+use crate::math::{v2, Obb2, V2};
 use crate::route_planner::RoutePlanner;
 use crate::units::{MoveOrder, Unit, UnitOrder};
+use crate::world::WorldGeometry;
+
+/// The unit stands where it is, with nothing left to do.
+fn stand(unit: &mut Unit) {
+    unit.orders.clear();
+    unit.route = None;
+    unit.planned_goal = None;
+    unit.pursuit = None;
+    unit.turn_to = None;
+    unit.manoeuvre = None;
+    unit.drive_speed_mps = 0.0;
+    unit.state = MoveState::Idle;
+}
+
+/// What is left of a unit's route: where it stands, then its waypoints.
+fn remaining_route(unit: &Unit) -> Option<Vec<V2>> {
+    let route = unit.route.as_ref().filter(|r| !r.is_empty())?;
+    let here = std::iter::once(unit.position.xy());
+    Some(here.chain(route.iter().copied()).collect())
+}
+
+/// Metres of the way left from each of its points.
+fn distances_to_end(way: &[V2]) -> Vec<f64> {
+    let mut left = vec![0.0; way.len()];
+    for k in (0..way.len() - 1).rev() {
+        left[k] = left[k + 1] + (way[k + 1] - way[k]).length();
+    }
+    left
+}
+
+/// Carry `units[index]` along its planned route between physical checkpoints:
+/// to `move_rehearsal_m` short of the route's end, or of
+/// the first stationary vehicle or prop its hull meets. Navigation may
+/// admit pushable props, but only movement can demonstrate their shoves.
+/// A hull is set down on the route heading the way it was
+/// travelling, a squad in file along it, and where other bodies stand there
+/// it queues behind them. `false`, and nothing changes, if there is no
+/// clear place for it.
+fn carry(
+    ctx: &MovementContext,
+    world: &WorldGeometry,
+    units: &mut [Unit],
+    index: usize,
+    tick: u64,
+) -> bool {
+    let reach = ctx.rules.navigation.move_rehearsal_m;
+    let unit = &units[index];
+    let Some(way) = remaining_route(unit) else {
+        return false;
+    };
+    let left = distances_to_end(&way);
+    let others = || units.iter().filter(|o| o.id != unit.id && o.alive());
+    let radius = unit.footprint_radius(ctx.soldier_radius_m);
+    let mut stop = reach;
+    for other in others().filter(|o| o.is_vehicle() && o.orders.is_empty()) {
+        let c = other.position.xy();
+        let near = radius + other.footprint_radius(ctx.soldier_radius_m) + TRAFFIC_MARGIN_M;
+        // Where the way first comes by it.
+        let met = way.windows(2).enumerate().find_map(|(k, w)| {
+            let ab = w[1] - w[0];
+            let l2 = ab.dot(ab);
+            let t = if l2 > 0.0 {
+                ((c - w[0]).dot(ab) / l2).clamp(0.0, 1.0)
+            } else {
+                0.0
+            };
+            let p = w[0] + ab * t;
+            ((p - c).length() < near).then(|| left[k + 1] + (w[1] - p).length())
+        });
+        if let Some(met) = met {
+            stop = stop.max(met + reach);
+        }
+    }
+    if let Some(hull) = unit.hull_box() {
+        for (k, w) in way.windows(2).enumerate() {
+            let ab = w[1] - w[0];
+            let length = ab.length();
+            if length == 0.0 {
+                continue;
+            }
+            // The straight hull sweep, not a radius: a car legally beside
+            // the lane does not require a shove rehearsal.
+            let sweep = Obb2 {
+                center: (w[0] + w[1]) * 0.5,
+                yaw: libm::atan2(ab.y, ab.x),
+                half: hull.half + v2(length * 0.5, 0.0),
+            };
+            for prop in world.props_near(sweep.center, sweep.half.length()) {
+                if prop.blocks(MoverClass::Vehicle) && sweep.overlaps(&prop.footprint()) {
+                    // A long rotated body's near end may cross the lane far
+                    // before its centre. The circumscribed hull margin gives
+                    // an entry no later than physical contact; the exact sweep
+                    // above keeps legal roadside bodies out of this test.
+                    if let Some((entry, _)) =
+                        prop.footprint()
+                            .clip_segment(w[0], w[1], hull.half.length())
+                    {
+                        stop = stop.max(left[k + 1] + length * (1.0 - entry) + reach);
+                    }
+                }
+            }
+        }
+    }
+    // The place `e` metres short of the end, the travel there, and the
+    // first waypoint after it.
+    let at = |e: f64| {
+        let k = (0..way.len() - 1)
+            .rev()
+            .find(|&k| left[k] >= e && left[k] > left[k + 1])?;
+        let along = (way[k + 1] - way[k]).normalized();
+        let p = way[k + 1] - along * (e - left[k + 1]);
+        let ground = world.surface_at(p.x, p.y).filter(|s| s.traversable)?;
+        Some((p.with_z(ground.z), along, k + 1))
+    };
+    // Each place tried is a metre further back, as far as the stretch driven.
+    let mut tries = (0..=reach as usize)
+        .map(|n| stop + n as f64)
+        .take_while(|e| e + 1.0 < left[0]);
+    let hulls: Vec<Obb2> = others().filter_map(|o| o.hull_box()).collect();
+    // Each body's place, its heading, and the first waypoint after it.
+    let mut places = Vec::new();
+    if let Some(hull) = unit.hull_box() {
+        let travel = (way[1] - way[0]).normalized();
+        let backwards = v2(libm::cos(unit.yaw), libm::sin(unit.yaw)).dot(travel) < 0.0;
+        places.extend(tries.find_map(|e| {
+            let (p, along, next) = at(e)?;
+            let along = if backwards { along * -1.0 } else { along };
+            let yaw = libm::atan2(along.y, along.x);
+            let set = Obb2 {
+                center: p.xy(),
+                yaw,
+                ..hull
+            };
+            let padded = Obb2 {
+                half: set.half + v2(TRAFFIC_MARGIN_M, TRAFFIC_MARGIN_M),
+                ..set
+            };
+            let clear = hulls.iter().all(|o| !padded.overlaps(o))
+                && world
+                    .props_near(set.center, set.half.length())
+                    .iter()
+                    .all(|b| !b.blocks(MoverClass::Vehicle) || !set.overlaps(&b.footprint()));
+            clear.then_some((p, yaw, next))
+        }));
+    } else {
+        let apart = 2.0 * ctx.soldier_radius_m;
+        let soldiers: Vec<V2> = others()
+            .filter(|o| !o.is_vehicle())
+            .flat_map(|o| o.member_positions())
+            .map(|p| p.xy())
+            .collect();
+        let mut tries = tries.step_by(ctx.infantry.spacing_m.ceil().max(1.0) as usize);
+        for _ in unit.members.iter().filter(|s| s.alive()) {
+            places.extend(tries.find_map(|e| {
+                let (p, _, next) = at(e)?;
+                let free = soldiers.iter().all(|q| (*q - p.xy()).length() >= apart)
+                    && hulls
+                        .iter()
+                        .all(|h| !h.contains(p.xy(), ctx.soldier_radius_m));
+                free.then_some((p, unit.yaw, next))
+            }));
+        }
+    }
+    let bodies = unit.members.iter().filter(|s| s.alive()).count().max(1);
+    let Some(&(rear, yaw, next)) = places.last().filter(|_| places.len() == bodies) else {
+        return false;
+    };
+    let unit = &mut units[index];
+    unit.route = Some(way[next..].to_vec());
+    unit.progress = (f64::INFINITY, tick);
+    if unit.is_vehicle() {
+        unit.position = rear;
+        unit.yaw = yaw;
+        unit.drive_speed_mps = 0.0;
+        unit.manoeuvre = None;
+        unit.blocker = None;
+        return true;
+    }
+    // The corridor now starts where the file's rear man stands; each man
+    // walks on from the stretch of it he was set down on.
+    unit.route_from = rear.xy();
+    for (s, (p, _, after)) in unit.members.iter_mut().filter(|s| s.alive()).zip(places) {
+        s.position = p;
+        s.path.clear();
+        s.leg = after - next;
+        s.lateral = 0.0;
+    }
+    unit.settle();
+    true
+}
 
 /// An approach heading is returned only for destinations reached by their group.
 /// Failed members are held on the next pass, so successes cannot rely on them vacating.
@@ -84,19 +281,22 @@ pub(crate) fn certify(
                 .enumerate()
                 .any(|(i, s)| active[i] && s.id == unit.id)
             {
-                unit.orders.clear();
-                unit.route = None;
-                unit.planned_goal = None;
-                unit.pursuit = None;
-                unit.turn_to = None;
-                unit.manoeuvre = None;
-                unit.drive_speed_mps = 0.0;
-                unit.state = MoveState::Idle;
+                stand(unit);
             }
         }
         let step_cost = units.iter().filter(|u| u.alive()).count().max(1) as u64;
         let mut approaches = vec![None; slots.len()];
-        let mut unchanged = 0;
+        // Orders left identify the queued leg; its long-distance decision
+        // freezes before planning, and only actual movement earns a carry.
+        let mut legs: Vec<Option<(usize, bool, V2)>> = vec![None; slots.len()];
+        // How long each member has stood with nothing near it on the move,
+        // and the members stopped for it.
+        let mut still = vec![0u64; slots.len()];
+        let mut stopped = vec![false; slots.len()];
+        // Keep one share for the movement rehearsal itself. A mover may use
+        // at most one other share on repeated route searches in this pass.
+        let moving = units.iter().filter(|u| !u.orders.is_empty()).count();
+        let mut replan_left = vec![remaining / (moving as u64 + 1); units.len()];
         let mut offset = 0;
         // Opposing bodies are known obstacles; their private setup timers
         // cannot keep this side's admission running or spend its retry budget.
@@ -116,6 +316,19 @@ pub(crate) fn certify(
             offset += 1;
             let tick = ctx.tick + offset;
             let before: Vec<_> = units.iter().map(progress).collect();
+            for (i, slot) in slots.iter().enumerate() {
+                let unit = &units[slot.id.0 as usize];
+                let orders = unit.orders.len();
+                if legs[i].is_none_or(|leg| leg.0 != orders) {
+                    legs[i] = unit.movement_goal().map(|(goal, _)| {
+                        (
+                            orders,
+                            (goal - unit.position.xy()).length() > ctx.rules.navigation.road_leg_m,
+                            unit.position.xy(),
+                        )
+                    });
+                }
+            }
             crate::garrison::advance(
                 &world,
                 &sides,
@@ -134,7 +347,30 @@ pub(crate) fn certify(
                 ..*ctx
             };
             let shoves = super::advance(&local, &mut units, &mut sides, &mut planner, &mut |_| {});
-            remaining = remaining.saturating_sub(planner.spent());
+            // Long initial routes use the live planner's bound. Repeated
+            // planning has a share per mover, so one blocked member cannot
+            // spend the other members' arrival rehearsal.
+            for index in 0..planner.charges().len() {
+                let charge = planner.charges()[index];
+                if charge.new_goal {
+                    if charge.distance_m <= ctx.rules.navigation.road_leg_m {
+                        remaining = remaining.saturating_sub(charge.work);
+                    }
+                    continue;
+                }
+                let id = charge.unit;
+                let index = id.0 as usize;
+                let charged = charge.work.min(replan_left[index]);
+                replan_left[index] -= charged;
+                remaining = remaining.saturating_sub(charged);
+                if replan_left[index] == 0 {
+                    planner.cancel(id);
+                    stand(&mut units[index]);
+                    if let Some(i) = slots.iter().position(|s| s.id == id) {
+                        stopped[i] = true;
+                    }
+                }
+            }
             for shove in shoves {
                 let Some(prop) = world.prop(shove.prop).cloned() else {
                     continue;
@@ -162,7 +398,7 @@ pub(crate) fn certify(
                 if !active[i] {
                     continue;
                 }
-                if result[i].is_some() {
+                if result[i].is_some() || stopped[i] {
                     continue;
                 }
                 let unit = &units[slot.id.0 as usize];
@@ -195,14 +431,64 @@ pub(crate) fn certify(
             {
                 break;
             }
-            let moved = before.iter().zip(&units).any(|(p, u)| *p != progress(u));
-            unchanged = if moved || planner.waiting() > 0 || !touched.is_empty() {
-                0
-            } else {
-                unchanged + 1
-            };
-            if unchanged > (2.0 * STALL_REPLAN_S * ctx.tick_hz as f64) as u64 {
-                break;
+            // A member that has driven the first stretch of its leg is
+            // carried to the last, or to the next physical interaction on it.
+            let reach = ctx.rules.navigation.move_rehearsal_m;
+            for (i, slot) in slots.iter().enumerate() {
+                let index = slot.id.0 as usize;
+                let unit = &units[index];
+                let Some(left) = remaining_route(unit)
+                    .filter(|_| active[i])
+                    .map(|w| distances_to_end(&w)[0])
+                else {
+                    continue;
+                };
+                let Some((orders, long, from)) = legs[i].as_mut() else {
+                    continue;
+                };
+                if *orders != unit.orders.len() {
+                    continue;
+                }
+                if *long
+                    && (unit.position.xy() - *from).length() >= reach
+                    && left > reach
+                    && carry(ctx, &world, &mut units, index, tick)
+                {
+                    // The synthetic jump earns no travel. A new carry must
+                    // follow real movement through the next interaction.
+                    *from = units[index].position.xy();
+                }
+            }
+            // A member that has stood through two stalls, with nothing within
+            // a knot of it moving or planning, stays stuck however long the
+            // rehearsal runs: it stops where it is, and the others go on.
+            let moved: Vec<bool> = before
+                .iter()
+                .zip(&units)
+                .map(|(p, u)| *p != progress(u))
+                .collect();
+            let busy: Vec<bool> = units
+                .iter()
+                .zip(&moved)
+                .map(|(u, moved)| *moved || planner.pending(u.id).is_some())
+                .collect();
+            for (i, slot) in slots.iter().enumerate() {
+                let index = slot.id.0 as usize;
+                if !active[i] || result[i].is_some() || stopped[i] {
+                    continue;
+                }
+                let here = units[index].position.xy();
+                if moved[index] {
+                    still[i] = 0;
+                } else if (0..units.len())
+                    .all(|k| !busy[k] || (units[k].position.xy() - here).length() > KNOT_M)
+                {
+                    still[i] += 1;
+                }
+                if still[i] > (2.0 * STALL_REPLAN_S * ctx.tick_hz as f64) as u64 {
+                    stopped[i] = true;
+                    stand(&mut units[index]);
+                }
             }
             if remaining == 0 {
                 break;
@@ -211,6 +497,7 @@ pub(crate) fn certify(
                 && planner.waiting() == 0
                 && active.iter().enumerate().all(|(i, a)| {
                     !*a || result[i].is_some()
+                        || stopped[i]
                         || units[slots[i].id.0 as usize].state == MoveState::RouteBlocked
                 })
             {

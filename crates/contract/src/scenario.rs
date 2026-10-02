@@ -241,8 +241,14 @@ pub struct MovementRules {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct NavigationRules {
-    /// Total route work plus per-unit movement steps allowed to certify one move.
+    /// Motion steps and route work allowed to certify one group move.
+    /// A long leg's initial route uses the live planner's separate bound;
+    /// shorter initial routes and repeated searches spend this allowance.
     pub move_validation_work: u32,
+    /// How much of each end of a leg certification drives, and of the
+    /// approach to an intermediate hull or prop: the stretch between is taken
+    /// on the route.
+    pub move_rehearsal_m: f64,
     /// Planning work every side's units share each tick: one unit is about
     /// one grid cell searched.
     pub work_per_tick: u32,
@@ -278,6 +284,7 @@ impl NavigationRules {
         for (name, v) in [
             ("road_leg_m", self.road_leg_m),
             ("road_access_m", self.road_access_m),
+            ("move_rehearsal_m", self.move_rehearsal_m),
         ] {
             if !v.is_finite() || v < 0.0 {
                 return Err(format!(
