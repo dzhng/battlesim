@@ -382,7 +382,7 @@ const buildFn = tgpu
     let margin = min(-site.z - (*P).clear.x, min(-wood, -water) - (*P).clear.z);
     if (margin < 0.0) { continue; }
     // Bare on the wet bank round water, thickening across the earth behind it.
-    let shore = groundShore(p, footprint, water).z;
+    let shore = groundShore(fell, footprint, water).z;
     if (shore >= 1.0) { continue; }
     let edge = smoothstep(0.0, ${GRASS_EDGE_M}, margin);
     var grows = min(u32(terrainLayout.$.plots[i32(site.x)].detail.y), ${GRASS_GROWTH_ROWS - 2}u);
