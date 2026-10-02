@@ -27,18 +27,20 @@ other rows into it.
 """
 import math
 import os
+import random
 import sys
+import zlib
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from kit import *  # noqa: E402,F403
-from masonry import panel_door  # noqa: E402
+from masonry import panel_door, ragged_wall, scorched  # noqa: E402
 
 FAMILY = "china"
 UP, SOUTH = Vector((0, 0, 1)), (0, -1, 0)
 OVER, VERGE = 0.25, 0.12  # how far a sheet roof's eaves and verges overhang
 DROP = 0.02  # a wall stops this far under its roof
 
-kit = Kit("industry", "industry.py", fit_side_m=1.2, fit_top_m=1.2)
+kit = Kit("industry", "industry.py", fit_side_m=1.2, fit_top_m=1.2, fit_ruin_top_m=0.6)
 
 
 # ---------------------------------------------------------------- materials
@@ -149,6 +151,35 @@ door_m = flat_paint("door_steel", (0.5, 0.5, 0.49), rough=0.5, wear=0.5, grime=0
 band_m = textured("band_paint", "tilt_slab", tint=1.0, dirt=0.0, chip=0.5, streak=0.5, seed=6.0)  # a stripe painted on the panels
 door_m["tint"] = 1.0
 
+# What a fallen building is made of: burnt steel, and the heaps of each kind of wall. The
+# shared heaps take a row's tint; a ruin's own heap carries its colour, as its walls do.
+steel_m = textured("steel_burnt", "burnt_metal", dirt=0.2, chip=0.3, streak=0.0, ash=0.2)
+rubble_m = textured("rubble_masonry", "rubble", tint=1.0, dirt=0.0, chip=0.0, streak=0.0, ash=0.1)
+
+
+def rubble_of(name, colour, seed):
+    return textured(f"rubble_{name}", "rubble", colour=colour, dirt=0.0, chip=0.0, streak=0.0, ash=0.1, seed=seed)
+
+
+def burnt_sheet(mat, seed=0.0):
+    """A sheet roof's material after the fire (`<name>_burnt`): its paint gone to scale and
+    rust in wide stretches, and sooted black in others."""
+    name = mat.name + "_burnt"
+    if name not in bpy.data.materials:
+        base = PAINTS[mat.name]
+        twin = mat.copy()
+        twin.name = name
+
+        def fn(p, n, edge):
+            c, wear = base(p, n, edge)
+            c = lerp3(c, RUST, 0.45 + 0.25 * fbm(p, 0.3, 2, 37.0 + seed))
+            c = lerp3(c, (0.014, 0.013, 0.012), 0.85 * smoothstep(-0.3, 0.4, fbm(p, 0.17, 2, 51.0 + seed)))
+            return c, max(wear, 0.3)
+
+        PAINTS[name], TEXTURED[name] = fn, TEXTURED[mat.name]
+    return bpy.data.materials[name]
+
+
 # Tints, sRGB: paints on sheet, concrete and render, and the doors.
 SAGE, IVORY, STONE, CREAM, BUFF = (112, 140, 118), (232, 230, 220), (214, 208, 196), (230, 216, 188), (212, 200, 168)
 NAVY, RUSSET, SLATE, BOTTLE, PRIMER = (52, 84, 132), (150, 66, 48), (78, 88, 100), (58, 86, 70), (150, 92, 76)
@@ -178,21 +209,22 @@ def cells(points, size):
 
 
 ROOF_CELL_M = 4.4  # a roof's paint (rust, damp, fading) lives on vertices: this keeps them down to the third tier
+ROOF_FAR_CELL_M = 6.6  # and this, coarser, at the coarsest: the same marks, where a roof is all the camera sees of a shed
 
 
-def surface(m, tag, faces, mat, lods=TIERS, uv=None, grid=None):
+def surface(m, tag, faces, mat, lods=TIERS, uv=None, grid=None, far_grid=None):
     """One mesh of flat faces, each `(points, toward)` or `(points, toward, uv)`. With no
     `uv` the export box-projects it. `"slope"` is a roof's own: u along the eave and v up
     the slope, so a sheet's ribs run with the fall. `(origin, u, v)` lays the recipe from
     a corner, so a window's panes start at its own edge. `grid` cuts every face into
-    cells that size at all but the coarsest tier."""
+    cells that size at all but the coarsest tier, and `far_grid` into cells that size there."""
     tile = textures.tile_of(TEXTURED[mat.name]) if mat.name in TEXTURED else 1.0
 
     def build(bm, lod):
         layer = bm.loops.layers.uv.new("UVMap") if uv is not None or any(len(f) > 2 for f in faces) else None
         for points, toward, *own in faces:
             how = own[0] if own else uv
-            for quad in cells(points, grid) if grid and lod < 3 else [points]:
+            for quad in cells(points, grid) if grid and lod < 3 else cells(points, far_grid) if far_grid and lod == 3 else [points]:
                 f = face(bm, quad, toward)
                 if how == "slope":
                     origin, u = Vector((0, 0, 0)), UP.cross(f.normal).normalized()
@@ -207,7 +239,10 @@ def surface(m, tag, faces, mat, lods=TIERS, uv=None, grid=None):
 
 
 def skin(m, tag, faces, mat, **how):
-    """A weathered surface: `mat` at the tiers that have the vertices for its marks, its twin at the coarsest."""
+    """A weathered surface: `mat` at the tiers that have the vertices for its marks, its twin at the coarsest.
+    A roof (one that has a `grid`) keeps its marks there too, on a coarser grid: no twin."""
+    if how.get("grid"):
+        return surface(m, tag, faces, mat, far_grid=ROOF_FAR_CELL_M, **how)
     surface(m, tag, faces, mat, lods=(0, 1, 2), **how)
     surface(m, tag + "_far", faces, FAR.get(mat.name, mat), lods=(3,), **how)
 
@@ -308,10 +343,13 @@ for s in (-1, 1):
 # over the dock's concrete face, a leveller's lip and two bumpers.
 DOCK_SILL, DOCK_W, DOCK_H = 1.1, 2.7, 3.0
 m = kit.module("dock_door", ground=True, **FITTING)
-surface(m, "door", [(front(-DOCK_W / 2, DOCK_W / 2, DOCK_SILL, DOCK_SILL + DOCK_H, -0.04), SOUTH)], slats_m)
+surface(m, "door", [(front(-DOCK_W / 2, DOCK_W / 2, DOCK_SILL, DOCK_SILL + DOCK_H, -0.04), SOUTH)], slats_m, lods=(0, 1))
+surface(m, "door_far", [(front(-DOCK_W / 2 + 0.35, DOCK_W / 2 - 0.35, DOCK_SILL + 0.3, DOCK_SILL + DOCK_H - 0.35, -0.05), SOUTH)], slats_m,
+        lods=(2, 3))
 box(m.n("face"), (3.0, 0.16, DOCK_SILL), (0, -0.08, DOCK_SILL / 2), plinth_m, m.root, lods=(0, 1))
 box(m.n("seal_head"), (DOCK_W + 0.5, 0.3, 0.35), (0, -0.15, DOCK_SILL + DOCK_H + 0.175), rubber_m, m.root, lods=(0, 1))
-surface(m, "seal", [(front(-DOCK_W / 2 - 0.25, DOCK_W / 2 + 0.25, DOCK_SILL, DOCK_SILL + DOCK_H + 0.35, -0.03), SOUTH)], rubber_m, lods=(2,))
+surface(m, "seal", [(front(-DOCK_W / 2 - 0.25, DOCK_W / 2 + 0.25, DOCK_SILL - 0.4, DOCK_SILL + DOCK_H + 0.35, -0.03), SOUTH)], rubber_m,
+        lods=(2, 3))
 box(m.n("lip"), (2.1, 0.45, 0.05), (0, -0.38, DOCK_SILL - 0.03), galv_m, m.root, lods=(0, 1))
 for s in (-1, 1):
     box(m.n(f"seal_{'ab'[s > 0]}"), (0.3, 0.3, DOCK_H), (s * (DOCK_W / 2 + 0.1), -0.15, DOCK_SILL + DOCK_H / 2), rubber_m, m.root,
@@ -442,7 +480,7 @@ def gabled_shell(m, length, depth, eave, ridge, wall, roof, spans=1, lights=None
             trims.append(([(x0, yk, ridge + 0.03), (x1, yk, ridge + 0.03), (x1, yk + s * 0.16, ridge + 0.03 - 0.16 * tan),
                            (x0, yk + s * 0.16, ridge + 0.03 - 0.16 * tan)], UP))
     skin(m, "roof", slopes, roof, uv="slope", grid=ROOF_CELL_M)
-    surface(m, "flashings", trims, trim_m, lods=(0, 1, 2))
+    surface(m, "flashings", trims, trim_m)
     for k in range(spans - 1):  # a box gutter in each valley
         yv = centres[k] + half
         z = eave + 0.35 * tan + 0.02
@@ -508,12 +546,11 @@ def flat_shell(m, tag, x0, x1, y0, y1, top, wall, deck, mends=()):
         ([(x0 + t, y1 - t, deck_z), (x1 - t, y1 - t, deck_z), (x1 - t, y1 - t, under), (x0 + t, y1 - t, under)], (0, -1, 0)),
         ([(x0 + t, y0 + t, deck_z), (x0 + t, y1 - t, deck_z), (x0 + t, y1 - t, under), (x0 + t, y0 + t, under)], (1, 0, 0)),
         ([(x1 - t, y0 + t, deck_z), (x1 - t, y1 - t, deck_z), (x1 - t, y1 - t, under), (x1 - t, y0 + t, under)], (-1, 0, 0))],
-        concrete_m, lods=(0, 1, 2))
+        concrete_m)
     for k, y in enumerate((y0 + t / 2, y1 - t / 2)):
-        box(m.n(f"{tag}_coping_{k}"), (x1 - x0 + 0.1, t + 0.1, 0.08), ((x0 + x1) / 2, y, top - 0.04), concrete_m, m.root, lods=(0, 1, 2))
+        box(m.n(f"{tag}_coping_{k}"), (x1 - x0 + 0.1, t + 0.1, 0.08), ((x0 + x1) / 2, y, top - 0.04), concrete_m, m.root)
     for k, x in enumerate((x0 + t / 2, x1 - t / 2)):
-        box(m.n(f"{tag}_coping_{k + 2}"), (t + 0.1, y1 - y0 - 2 * t - 0.1, 0.08), (x, (y0 + y1) / 2, top - 0.04), concrete_m, m.root,
-            lods=(0, 1, 2))
+        box(m.n(f"{tag}_coping_{k + 2}"), (t + 0.1, y1 - y0 - 2 * t - 0.1, 0.08), (x, (y0 + y1) / 2, top - 0.04), concrete_m, m.root)
     return deck_z
 
 
@@ -628,6 +665,114 @@ def fold(t, shell):
     t.rows["intact"] = [r if r[0] == shell.name else (*r[:8], r[8] & TIERS_0_TO_1, *r[9:]) for r in t.rows["intact"]]
 
 
+# ---------------------------------------------------------------- ruins
+# A shed does not fall as a house does. A steel one leaves its block dado as stumps, its
+# cladding torn and standing in buckled lengths, its portal frames' legs leaning, and its
+# roof lying over the wreck as buckled sheets. A concrete or masonry one leaves broken
+# panels or ragged walls, and its roof the same way: sheets, or slabs of a flat roof's deck.
+wreckage(kit, rubble_m, steel_m, beam="steel_beam", section=(0.2, 0.3))
+RUIN_BAKE = RUIN | dict(ao_distance=2.5, paint_scale=8.0)  # a heap's cell is 3.4 m: no split for paint
+# Each structure's stumps (thickness, a run's width, how far the top walks), what its heap is, and
+# what its frame's legs are made of (None: its walls bore the roof).
+STRUCTURES = {
+    "steel": dict(thick=0.2, run=(1.0, 2.4), jagged=1.0, rubble=rubble_of("ash", (0.05, 0.048, 0.045), 1.0), legs=steel_m, dust=(96, 92, 88)),
+    "precast": dict(thick=0.2, run=(1.6, 3.0), jagged=3.0, rubble=rubble_of("concrete", (0.15, 0.148, 0.14), 2.0), legs=None, dust=(196, 194, 186)),
+    "brick": dict(thick=0.35, run=(0.3, 0.9), jagged=1.5, rubble=rubble_of("brick", (0.12, 0.062, 0.046), 3.0), legs=None, dust=(170, 100, 80)),
+    "render": dict(thick=0.3, run=(0.3, 0.9), jagged=1.5, rubble=rubble_of("render", (0.16, 0.15, 0.135), 4.0), legs=None, dust=(204, 196, 178)),
+    "block": dict(thick=0.25, run=(0.4, 1.2), jagged=1.5, rubble=rubble_of("block", (0.14, 0.14, 0.13), 5.0), legs=pier_m, dust=(190, 190, 182)),
+}
+# What breaks a wall near the ground: fitting -> its opening's width.
+OPENINGS = {"roller_door": 5.2, "personnel_door": 1.2, "office_door": 1.8, "dock_door": 2.8, "factory_window": 2.1, "office_window": 1.8,
+            "strip_window": 2.6}
+
+
+def buckled_sheets(m, tag, ruin, crest, mat, seed, pitch=(9.0, 6.5), stiff=False):
+    """A roof fallen over a ruin's heap: lengths of it, each lying where it was with a fold
+    or two thrown up (or, `stiff`, a flat roof's deck in tilted slabs), none above `crest`.
+    The finest tier gives each an underside; the third draws every other one, flat."""
+    rng = random.Random(seed * 53 + 1)
+    ix0, ix1, iy0, iy1 = ruin.inner
+    nx, ny = max(1, round((ix1 - ix0) / pitch[0])), max(1, round((iy1 - iy0) / pitch[1]))
+    sheets = []
+    for j in range(ny):
+        for i in range(nx):
+            w, d = (ix1 - ix0) / nx * rng.uniform(0.9, 1.15), (iy1 - iy0) / ny * rng.uniform(0.85, 1.1)
+            x = ix0 + (i + 0.5 + rng.uniform(-0.12, 0.12)) * (ix1 - ix0) / nx
+            y = iy0 + (j + 0.5 + rng.uniform(-0.12, 0.12)) * (iy1 - iy0) / ny
+            yaw, folds = rng.uniform(-0.16, 0.16), [rng.random() for _ in range(2 if stiff else 4)]
+            if rng.random() > 0.14:
+                sheets.append((x, y, w, d, yaw, folds))
+
+    def build(bm, lod):
+        for k, (x, y, w, d, yaw, folds) in enumerate(sheets):
+            if lod == 2 and k % 2:
+                continue
+            stations = folds if lod == 0 else (folds[0], folds[len(folds) // 2], folds[-1]) if lod == 1 and not stiff else (folds[0], folds[-1])
+            c, s = math.cos(yaw), math.sin(yaw)
+
+            def at(u, v, lift):
+                px = min(max(x + u * c - v * s, ix0 + 0.05), ix1 - 0.05)
+                py = min(max(y + u * s + v * c, iy0 + 0.05), iy1 - 0.05)
+                base = ruin.heap(px, py)
+                return (px, py, min(crest - 0.04, base + 0.06 + lift * min(1.1, crest - base - 0.1)))
+
+            for under in (False, True) if lod == 0 else (False,):
+                for q in range(len(stations) - 1):
+                    u0, u1 = -w / 2 + w * q / (len(stations) - 1), -w / 2 + w * (q + 1) / (len(stations) - 1)
+                    quad = [at(u0, -d / 2, stations[q]), at(u1, -d / 2, stations[q + 1]), at(u1, d / 2, stations[q + 1]), at(u0, d / 2, stations[q])]
+                    if under:
+                        quad = [(px, py, pz - 0.04) for px, py, pz in reversed(quad)]
+                    bm.faces.new([bm.verts.new(v) for v in quad])
+        return bool(sheets)
+
+    mesh_part(m.n(f"{tag}_roof"), build, mat, m.root, lods=(0, 1, 2))
+
+
+def wrecked(t, tag, tint, blocks):
+    """A template's ruin: one module in the building's paint (`tint`), and the set's wreckage
+    about it. `blocks` is each part's (id, structure, wall material, roof material): a sheet
+    roof falls as buckled sheets, a flat one as slabs of its deck."""
+    m = kit.module(f"{tag}_ruin", ground=True, **RUIN_BAKE)
+    high, over, seed = t.ruin_height(), kit.fit["ruin_top_m"], zlib.crc32(t.id.encode()) % 997
+    crest = high + over - 0.06
+    for k, (part, structure, wall, roof) in enumerate(blocks):
+        how = STRUCTURES[structure]
+        p = next(p for p in t.parts if p["id"] == part)
+        rect = (p["x0"], p["x1"], p["y0"], p["y1"])
+        sides = ruin_sides(t, part, OPENINGS)
+        steel, flat = structure == "steel", roof in (felt_m,)
+        torn = scorched(wall, high + over, seed + k, floor=0.3 if steel else 0.0)
+        long = max(rect[1] - rect[0], rect[3] - rect[2])
+        ruin = ruin_block(m, part, rect, high, over, sides, dado_m if steel else wall, None, how["rubble"], seed + 17 * k,
+                          thick=how["thick"], run=how["run"], jagged=how["jagged"], stump=DADO_M if steel else None,
+                          cells=(3.4, 6.8, 14.0), coarse=max(6, round(long / 5)), roofing=False, far_wall=torn)
+        for j, side in enumerate(sorted(sides)) if steel else ():  # the cladding, torn off its rails and standing in lengths
+            ragged_wall(m.n(f"{part}_{side}_sheet"), *wall_line(rect, side, 0.05), 0.2 * high, crest, seed * 37 + j,
+                        torn, m.root, 0.06, gaps=sides[side]["gaps"], openings=sides[side]["openings"], lods=(0, 1, 2), groups=(1, 2, 5, 8),
+                        jagged=3.0, run=(1.2, 3.0), buckle=0.22)
+        fallen = scorched(roof, 3.0 * (high + over), seed + 2.0, floor=0.6) if flat else burnt_sheet(roof, seed)
+        buckled_sheets(m, part, ruin, crest, fallen, seed + k, stiff=flat)
+        x0, x1, y0, y1 = rect
+        surface(m, f"{part}_far_top", [([(x0, y0, 0.8 * high), (x1, y0, 0.8 * high), (x1, y1, 0.8 * high), (x0, y1, 0.8 * high)], UP)], fallen,
+                lods=(3,), far_grid=2 * ROOF_FAR_CELL_M)  # in cells, so the rust and the soot keep their patches
+        rng = random.Random(seed * 71 + k)
+        if how["legs"] is not None:  # the frame's legs down the two long sides, a bay apart, leaning as the roof pulled them
+            along_x = x1 - x0 >= y1 - y0
+            a0, a1 = (x0, x1) if along_x else (y0, y1)
+            for i in range(int((a1 - a0) // 6) + 1):
+                for s in (-1, 1):
+                    at = min(max(a0 + 6.0 * i, a0 + 0.5), a1 - 0.5)
+                    across = (y0 + y1) / 2 + s * ((y1 - y0) / 2 - 0.55) if along_x else (x0 + x1) / 2 + s * ((x1 - x0) / 2 - 0.55)
+                    tall, lean = rng.uniform(0.55, 0.92) * (crest - 0.25), rng.uniform(0.05, 0.22)
+                    rot = (s * lean, 0, 0) if along_x else (0, -s * lean, 0)
+                    mid = tall / 2 * math.cos(lean) + 0.13 * math.sin(lean) + 0.01  # its low corner on the ground
+                    box(m.n(f"{part}_leg_{i}_{'ab'[s > 0]}"), (0.26, 0.26, tall), (at, across, mid) if along_x else (across, at, mid),
+                        how["legs"], m.root, rot=rot, lods=(0, 1))
+        area = (x1 - x0) * (y1 - y0)
+        litter(t, ruin, how["dust"], beams=min(30, round(area / 55)), heaps=min(7 if steel else 12, round(area / 80)), long=9.0)
+    t.place(m.name, tint=tint, state="ruin")
+
+
 # ---------------------------------------------------------------- the workshop shed
 # Sage-green steel sheet on a block dado, gable to the street, under a galvanised roof
 # gone to rust: a vehicle door and a side door in the gable, windows down both sides.
@@ -644,22 +789,23 @@ lattices(t, "body", W, D)
 t.place(m.name, yaw=math.pi / 2, tint=SAGE)  # the shell is built ridge along x
 taken = [side_door(t, "body-south", 3.0, BOTTLE), roller(t, "body-south", -1.5, BOTTLE)]
 along(t, "dado_bay", "body-south", taken=taken, tiers=TIERS_0_TO_2)
-along(t, "strip_window", "body-south", z=2.0, taken=taken, tiers=TIERS_0_TO_2)
+along(t, "strip_window", "body-south", z=2.0, taken=taken)
 t.mount("louvre", "body-south", -1.5, z=4.9, tiers=TIERS_0_TO_1)
 along(t, "dado_bay", "body-north", tiers=TIERS_0_TO_2)
-along(t, "strip_window", "body-north", z=2.0, every=2, start=1, tiers=TIERS_0_TO_2)
+along(t, "strip_window", "body-north", z=2.0, every=2, start=1)
 t.mount("louvre", "body-north", 0.0, z=5.0, tiers=TIERS_0_TO_1)
 for side in ("east", "west"):
     edge = f"body-{side}"
     along(t, "dado_bay", edge, tiers=TIERS_0_TO_2)
     for o in t.bays(edge)[1:-1]:
-        t.mount("strip_window", edge, o, z=2.0, tiers=TIERS_0_TO_2)
+        t.mount("strip_window", edge, o, z=2.0)
     drain(t, edge, edge_z, (-D / 2 + 0.4, D / 2 - 0.4))
 t.mount("clad_panel", "body-east", 10.5, z=DADO_M + 0.1, tiers=TIERS_0_TO_2, tint=PRIMER)  # a bay re-sheeted, never painted to match
 for y in (-5.0, 5.0):
-    t.place("turbine_vent", 0.0, y, TOP - 0.1, tiers=TIERS_0_TO_2)
+    t.place("turbine_vent", 0.0, y, TOP - 0.1)
 t.place("flue_stack", 3.4, 8.0, TOP - 3.4 * tan - 0.2, tiers=TIERS_0_TO_2)
 fold(t, m)
+wrecked(t, "shed", SAGE, [("body", "steel", clad_m, ROOFS["rusty"])])
 
 # ---------------------------------------------------------------- the dock warehouse
 # Precast concrete panels under a flat felt roof: a row of loading docks under a canopy
@@ -676,7 +822,7 @@ t.floors(0.0)
 lattices(t, "body", W, D)
 t.place(m.name, tint=STONE)
 taken = [side_door(t, "body-south", -22.5, RUSSET), roller(t, "body-south", 18.0, RUSSET)]
-t.mount("office_window", "body-south", -19.5, z=0.95, tiers=TIERS_0_TO_2)
+t.mount("office_window", "body-south", -19.5, z=0.95)
 for k in range(10):
     t.mount("dock_door", "body-south", -16.5 + 3 * k, tint=IVORY)
 canopy(t, "body-south", -18.0, 12.0, 4.55)
@@ -685,7 +831,7 @@ for side in ("south", "north", "east", "west"):
     edge = f"body-{side}"
     along(t, "paint_band", edge, z=7.3, tint=RUSSET)
     if side != "south":
-        along(t, "clerestory", edge, z=6.0, every=2, tiers=TIERS_0_TO_2)
+        along(t, "clerestory", edge, z=6.0, every=2)
 for o in (-21.0, -9.0, 3.0, 15.0):
     t.mount("downpipe", "body-north", o, scale=(1.0, 1.0, deck), tiers=TIERS_0_TO_1)
 for k in range(3):
@@ -693,15 +839,16 @@ for k in range(3):
 for x in (-20.0, -12.0, -4.0, 4.0, 12.0, 20.0):
     for y in (-5.0, 5.0):
         if (x, y) != (-20.0, -5.0):
-            t.place("skylight_dome", x, y, deck, tiers=TIERS_0_TO_2)
-t.place("roof_unit", -20.0, -6.5, deck, tiers=TIERS_0_TO_2)
-t.place("roof_unit", -16.0, -9.0, deck, math.pi / 2, tiers=TIERS_0_TO_2)
+            t.place("skylight_dome", x, y, deck)
+t.place("roof_unit", -20.0, -6.5, deck)
+t.place("roof_unit", -16.0, -9.0, deck, math.pi / 2)
 for k in range(4):
     t.place("duct_run", -17.4 + 3 * k, -6.5, deck, tiers=TIERS_0_TO_2)
 for x in (-8.0, 8.0, 16.0):
-    t.place("turbine_vent", x, 0.0, deck, tiers=TIERS_0_TO_2)
+    t.place("turbine_vent", x, 0.0, deck)
 t.place("flue_stack", -21.5, 9.5, deck, tiers=TIERS_0_TO_2)
 fold(t, m)
+wrecked(t, "slab", STONE, [("body", "precast", slab_m, felt_m)])
 
 # ---------------------------------------------------------------- the distribution warehouse
 # Two spans of off-white steel sheet with a blue band under the eaves and a pale roof
@@ -723,8 +870,8 @@ for x in (0.0, -24.0, 24.0):
     taken.append(roller(t, "body-south", x, NAVY))
     taken.append(side_door(t, "body-south", x + 4.5, NAVY, entrance=False))
     canopy(t, "body-south", x - 3.0, x + 6.0, 4.75)
-along(t, "clerestory", "body-south", z=5.9, taken=[(x, 4.5) for x in (1.5, -22.5, 25.5)], tiers=TIERS_0_TO_2)
-along(t, "clerestory", "body-north", z=5.9, every=2, tiers=TIERS_0_TO_2)
+along(t, "clerestory", "body-south", z=5.9, taken=[(x, 4.5) for x in (1.5, -22.5, 25.5)])
+along(t, "clerestory", "body-north", z=5.9, every=2)
 for side in ("south", "north", "east", "west"):
     along(t, "clad_panel", f"body-{side}", z=7.15, scale=(1.0, 1.0, 0.4), tint=NAVY)
 for side in ("east", "west"):
@@ -734,8 +881,9 @@ drain(t, "body-south", edge_z, (-35.6, -12.0, 12.0, 35.6))
 drain(t, "body-north", edge_z, (-35.6, -12.0, 12.0, 35.6))
 for y in (-D / 4, D / 4):
     for k in range(6):
-        t.place("ridge_vent", -30.0 + 12 * k, y, TOP, tiers=TIERS_0_TO_2)
+        t.place("ridge_vent", -30.0 + 12 * k, y, TOP)
 fold(t, m)
+wrecked(t, "span", IVORY, [("body", "steel", clad_m, ROOFS["pale"])])
 
 # ---------------------------------------------------------------- the works
 # A brick hall under a sawtooth of north lights, tall steel windows between its piers,
@@ -789,10 +937,9 @@ for k in range(TEETH):
 taken = [side_door(t, "office-south", -1.5, BOTTLE, module="office_door"), roller(t, "hall-south-1", 12.0, BOTTLE)]
 for floor in (0.0, STOREY):
     for edge in ("office-south", "office-east", "office-west"):
-        along(t, "office_window", edge, z=floor + 0.95, taken=taken[:1] if floor == 0.0 and edge == "office-south" else (),
-              tiers=TIERS_0_TO_2)
+        along(t, "office_window", edge, z=floor + 0.95, taken=taken[:1] if floor == 0.0 and edge == "office-south" else ())
 for edge in ("hall-north", "hall-east", "hall-west", "hall-south-1"):
-    along(t, "factory_window", edge, z=1.2, taken=taken[1:] if edge == "hall-south-1" else (), tiers=TIERS_0_TO_2)
+    along(t, "factory_window", edge, z=1.2, taken=taken[1:] if edge == "hall-south-1" else ())
     a, b = t.edges()[edge]["span"]
     piers = [a + 6 * k for k in range(int((b - a) // 6) + 1)]  # a pier every second bay, and one at each corner
     for o in piers + [b] * (b - piers[-1] > 1.0):
@@ -805,10 +952,11 @@ for edge in ("hall-north", "hall-south-1"):  # a downpipe from each valley
             t.mount("downpipe", edge, o + 0.55, scale=(1.0, 1.0, VALLEY), tiers=TIERS_0_TO_1)
 t.place("flue_stack", 21.0 + 2.2, y1 - 4.0, VALLEY + 0.2, tiers=TIERS_0_TO_2)
 t.place("flue_stack", 15.0 + 2.2, y1 - 4.0, VALLEY + 0.2, tiers=TIERS_0_TO_2)
-t.place("roof_unit", -hx + 4.0, y0 - 5.5, office_deck, tiers=TIERS_0_TO_2)
-t.place("skylight_dome", -hx + 9.0, y0 - 4.5, office_deck, tiers=TIERS_0_TO_2)
-t.place("skylight_dome", -hx + 13.0, y0 - 4.5, office_deck, tiers=TIERS_0_TO_2)
+t.place("roof_unit", -hx + 4.0, y0 - 5.5, office_deck)
+t.place("skylight_dome", -hx + 9.0, y0 - 4.5, office_deck)
+t.place("skylight_dome", -hx + 13.0, y0 - 4.5, office_deck)
 fold(t, kit.modules["works_shell"])
+wrecked(t, "works", CREAM, [("hall", "brick", brick_m, ROOFS["green"]), ("office", "render", render_m, felt_m)])
 
 # ---------------------------------------------------------------- the depot
 # A concrete frame filled with painted blockwork under an oxide-red roof with a glazed
@@ -833,10 +981,10 @@ for x in (-30.0, -24.0, -18.0, -12.0, 12.0, 18.0, 24.0, 30.0):
     taken.append(roller(t, "body-south", x, SLATE, entrance=x in (-24.0, 24.0)))
 canopy(t, "body-south", -33.0, -9.0, 4.75)
 canopy(t, "body-south", 9.0, 33.0, 4.75)
-along(t, "strip_window", "body-south", z=1.3, taken=taken, tiers=TIERS_0_TO_2)
+along(t, "strip_window", "body-south", z=1.3, taken=taken)
 for side in ("south", "north", "east", "west"):
     along(t, "window_band", f"body-{side}", z=5.8)
-along(t, "strip_window", "body-north", z=1.3, every=2, tiers=TIERS_0_TO_2)
+along(t, "strip_window", "body-north", z=1.3, every=2)
 for edge, length in (("body-south", W), ("body-north", W)):
     for k in range(round(length / 6) + 1):
         t.mount("depot_pier", edge, min(max(-length / 2 + 6 * k, -length / 2 + 0.25), length / 2 - 0.25), tiers=TIERS_0_TO_1)
@@ -847,9 +995,10 @@ for edge in ("body-east", "body-west"):
     t.mount("louvre", edge, -0.75, z=8.3, tiers=TIERS_0_TO_1)
 for x in (-30.0, -15.0, 0.0, 15.0, 30.0):
     for s in (-1, 1):
-        t.place("turbine_vent", x, s * 11.0, EAVE + (D / 2 - 11.0) * tan - 0.1, tiers=TIERS_0_TO_2)
+        t.place("turbine_vent", x, s * 11.0, EAVE + (D / 2 - 11.0) * tan - 0.1)
 for x in (-40.5, 27.0):
     t.place("flue_stack", x, 14.5, EAVE + (D / 2 - 14.5) * tan - 0.15, tiers=TIERS_0_TO_2)
 fold(t, m)
+wrecked(t, "depot", BUFF, [("body", "block", block_m, ROOFS["oxide"])])
 
 kit.write(next(iter(script_args()), None))  # an argument writes the two files somewhere else

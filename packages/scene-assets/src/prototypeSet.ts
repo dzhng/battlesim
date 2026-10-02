@@ -4,14 +4,23 @@
 // Blender: a kit of one unit box, and for each template one row per physical
 // part, the box stretched to the part and tinted by the building's category.
 // So a town with no real art still draws through the template path, as plain
-// boxes. Every template is `status: "prototype"`, which is never coverage.
+// boxes. Destroyed, a stand-in is the same boxes, darker: its remains
+// (`ruin`) or its standing shell (`gutted`), whichever the simulation's rule
+// leaves. Every template is `status: "prototype"`, which is never coverage.
 //
 // Generated, not modelled (`asset prototypes`), and deterministic: the files'
 // bytes are the catalogue's and the tints'.
 
 import { encodeGlb, type GltfJson } from "./glb.ts";
+import type { BuildingCollapse } from "./schema.ts";
 import { ALL_TIERS } from "./templateLibrary.ts";
-import type { TemplateDescriptor, TemplateSetSource } from "./templateSource.ts";
+import {
+  damageState,
+  ruinParts,
+  type TemplateDescriptor,
+  type TemplatePart,
+  type TemplateSetSource,
+} from "./templateSource.ts";
 
 export const PROTOTYPE_SET = "prototype";
 export const PROTOTYPE_KIT = "city_kit_prototype";
@@ -20,6 +29,8 @@ export const PROTOTYPE_KIT = "city_kit_prototype";
 export const PROTOTYPE_MODULE = "unit_box";
 
 type Rgb = readonly [number, number, number];
+/** A destroyed stand-in's tint, as a share of its category's. */
+const DAMAGED_TONE = 0.4;
 
 /** The prototype kit's GLB: `unit_box`, one mesh in every tier. */
 export function prototypeKitGlb(): Uint8Array {
@@ -135,12 +146,27 @@ export function prototypeKitGlb(): Uint8Array {
  * The prototype set for `descriptors`: each physical part one row, the unit
  * box stretched to it, tinted by the template's category (`tints`, sRGB in
  * 0..1, as `presentation.buildings.prototype_tints`; a category it lacks takes
- * `default`). The box is the part exactly, so the set's fit is zero.
+ * `default`). The box is the part exactly, so the set's fit is zero. Its
+ * damage state is the boxes `collapse` leaves, at `DAMAGED_TONE` of the tint.
  */
 export function prototypeTemplates(
   descriptors: readonly TemplateDescriptor[],
   tints: Readonly<Record<string, Rgb>>,
+  collapse: BuildingCollapse,
 ): TemplateSetSource {
+  const boxes = (parts: readonly TemplatePart[], rgb: number[]) =>
+    parts.map((part) => [
+      0,
+      part.center[0],
+      part.center[1],
+      part.base_z,
+      part.yaw,
+      2 * part.half_extents[0],
+      2 * part.half_extents[1],
+      2 * part.half_extents[2],
+      ALL_TIERS,
+      ...rgb,
+    ]);
   return {
     set: PROTOTYPE_SET,
     kit: PROTOTYPE_KIT,
@@ -152,23 +178,13 @@ export function prototypeTemplates(
       if (!tint)
         throw new Error(`no prototype tint for category ${descriptor.category}, and no default`);
       const rgb = tint.map((c) => Math.round(Math.max(0, Math.min(1, c)) * 255));
+      const burnt = rgb.map((c) => Math.round(c * DAMAGED_TONE));
+      const ends = damageState(descriptor, collapse);
+      const remains = ends === "ruin" ? ruinParts(descriptor.parts, collapse) : descriptor.parts;
       return {
         status: "prototype",
         descriptor,
-        states: {
-          intact: descriptor.parts.map((part) => [
-            0,
-            part.center[0],
-            part.center[1],
-            part.base_z,
-            part.yaw,
-            2 * part.half_extents[0],
-            2 * part.half_extents[1],
-            2 * part.half_extents[2],
-            ALL_TIERS,
-            ...rgb,
-          ]),
-        },
+        states: { intact: boxes(descriptor.parts, rgb), [ends]: boxes(remains, burnt) },
       };
     }),
   };

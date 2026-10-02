@@ -141,18 +141,20 @@ SCORCH = []
 
 
 def textured(name, recipe, rough=None, metal=None, tint=0.0, colour=None, dirt=0.7, chip=0.8, streak=0.3,
-             rise=1.0, seed=0.0, soot=0.0, ash=0.0, dust=DUST, mottle=0.0, lichen=0.0, coverage=None):
+             rise=1.0, seed=0.0, soot=0.0, ash=0.0, dust=DUST, mottle=0.0, lichen=0.0, coverage=None, grain=0.06):
     """A material that samples `recipe`: `colour` (linear) tints the recipe's mean,
     `chip` scales wear on convex edges, `dirt` the dust (colour `dust`) and mud rising
     from the ground to `rise` metres, `streak` rain streaks on walls, `soot` blackens
     walls and undersides (a fire's smoke), `ash` greys what faces up, `mottle` varies the tone
-    piece to piece and `lichen` greens what faces the sky. `coverage` makes it a cutout
-    or blended, by the recipe's coverage image (`textures.surface`)."""
+    piece to piece and `lichen` greens what faces the sky. `grain` is the tone's own fine
+    variation, vertex to vertex: 0 on a big flat surface seen from far off, where it
+    shows as the mesh's grid. `coverage` makes it a cutout or blended, by the recipe's
+    coverage image (`textures.surface`)."""
     mean = textures.baked(recipe).mean()
     hue = tuple(c / m for c, m in zip(colour, mean)) if colour else (1.0, 1.0, 1.0)
 
     def fn(p, n, edge):
-        k = 1.0 + 0.06 * fbm(p, 3.0, 2, 17.0 + seed)
+        k = 1.0 + grain * fbm(p, 3.0, 2, 17.0 + seed)
         if mottle:  # piece-to-piece tone: blotches about a stone or a board across
             k *= 1.0 + mottle * fbm(p, 3.5, 1, 53.0 + seed)
         wall = 1.0 - smoothstep(0.3, 0.9, abs(n.z))

@@ -3374,11 +3374,11 @@ raster nearby bodies again, and no changed-prefix scan can miss a later update.
 
 **Verdict:** sound. **Confidence:** high.
 
-### The court is plainer than a slab
+### The court is smaller than its prototype
 
-**Choice:** The court has 408 bays against the largest slab's 336, and one template's budget. Its balcony, grille, air-conditioner, laundry and lantern probabilities are lowered (0.18, 0.25, 0.22, 0.2, 0.2) and its plan shrunk from 44 x 41 m until it fits: 146,806 / 49,034 / 7,146 / 1,766 triangles.
+**Choice:** The court has 408 bays against the largest slab's 336, and one template's budget, so its plan is 41 x 38 m round a 17 x 14 m yard, not the prototype's 44 x 40 m. (It was also furnished more thinly until the bar rule below cut every template's tier 0; that is undone.)
 
-**Verdict:** provisional: if C22 raises the budget the court can have the slabs' density back by deleting five numbers. **Confidence:** medium.
+**Verdict:** sound. **Confidence:** medium.
 
 ### One entrance, shops on the street and the east flank, backs elsewhere
 
@@ -3391,6 +3391,66 @@ raster nearby bodies again, and no changed-prefix scan can miss a later update.
 **Choice:** The kit's casement window is modelled with a leaf open. With rooms left out until C26 the eye went through it and out the far side of the block, so a dark pane now stands in the opening behind the leaf (two triangles in that module). This also fixes the five slabs.
 
 **Verdict:** sound. **Confidence:** high.
+
+### Damage states are built from the intact export, not from the graph
+
+**Choice:** The China graph has no damage inputs, and Q-G's "damage inputs added to each graph" would mean writing breach and collapse logic in geometry nodes inside a vendored file. The exporter makes `ruin` and `gutted` itself from what it already reads: it cuts the same walls, piles rubble of the same materials over the same plan, and chars, hangs or throws down the same kit meshes as module variants (`+burnt`, `+hanging`, `+wreck`).
+
+**Gap:** C14 says "evaluate patched damage inputs"; S2 found none to patch.
+
+**Reach:** A damage state is the same building by construction (same openings, same wall colour through the same tint), and costs no second source. The kit grows by the variants and the state shells: 115 modules, a 38.6 MB bundle.
+
+**Verdict:** sound. **Confidence:** high.
+
+### Burnt is grey with black marks, not the same wall darker
+
+**Choice:** Three first attempts read as something else in the game's light. Soot streaked down a wall still in its paint colour was the grain of a plank. Soot in clouds, in a texture that repeats every 4.8 m, was camouflage. Dark patches on a roof were the shadow of a tree, still so to an unprimed eye after the roof was smoked grey and the patches given hard edges. So a gutted block changes hue, which no shadow does: its shell row's tint is the wall colour with nine tenths of its colour gone, the burnt-wall texture is an even smoked grey, its trim is blackened, and the whole roof is smoked to a brown grey. The marks that say fire are geometry and never repeat. A black fan stands above most openings and fades up and out into the wall (a fan with an edge is a pale bucket hung under the window above); it stops under the next opening, because a fan drawn across an opening paints the hole the wall's colour and the window reads as glazed. The holes themselves are dark, and bays are blown out to the slab. On the roof the fire leaves holes with hard, ragged edges (a 1 m grid pushed off its lines, a cell one surface): through a hole the top storey's black floor and the inside of its walls show, moving against the roof as the camera does, and round it the tiles are off a slab grey with ash. A flat dark patch, however black and hard-edged, stayed a shadow or a tarp to an unprimed eye; a hole with something 3 m down in it did not. A fan that stops under an opening is still half black there, so a column of windows is one streak rather than a shadow under each sill.
+
+**Verdict:** sound. **Confidence:** medium.
+
+### A rubble heap is smooth, off its grid, and one material to a cell
+
+**Choice:** The first heap was a height field on a square grid, flat shaded, each triangle given concrete, plaster or tile by noise: an unprimed eye saw a camouflage tarp, light and dark triangles with tile in a chequer of diagonals. It is now smooth shaded, its vertices pushed off the grid's lines, and both triangles of a cell take one material from noise 3 m across. The blocks thrown over it are many small and a few large instead of one size. The coarse stumps' inner faces take the fine stumps' colour, and tier 2 keeps the sign boards and a few large blocks, so 319 m does not swap one picture for another.
+
+**Verdict:** sound. **Confidence:** medium.
+
+### A ruin stays inside the remains box with no allowance above it
+
+**Choice:** Stumps break off at or below the ruin height (`collapse.ruin_height`, the simulation's), and slabs, blocks and wrecks are pressed under it. The bake allows a set a `ruin_top_m` above the remains for jagged tops; this set names none.
+
+**Verdict:** sound: what stops a round is what is drawn. **Confidence:** high.
+
+### Every opening is lined, and the rooms behind are not drawn at all
+
+**Choice:** The point block showed grass through its balconies: a glazed-in balcony's door had been left out as hidden, and the block is hollow. Rather than patch each module that does not close its opening (the open casement, the open stall, the entrance, the balcony), the shell now carries a dark matte pane 0.28 m inside the wall in every opening, at the two tiers that have openings. The room boxes and shop interiors behind open stalls, kept until now, are behind it and no longer exported; the casement's own backing pane is gone.
+
+**Reach:** 0 of 2.58 million rays shot at the seven templates' facades (square on, 63 degrees to either side, and down at the game's two pitches) get more than 1.5 m inside, at tiers 0 and 1; the committed point block let 1,687 and 4,515 through.
+
+**Verdict:** sound. **Confidence:** high.
+
+### The roof and the plinth take colours of our own
+
+**Choice:** In the game's light the roof read as loud orange-red with a chequer, and the stone ground floor as a scorched band. The roof recipe is the set with half its colour taken out, its brightness levelled and its mean brought to a dull clay (linear 0.2, 0.115, 0.085), with no dirt in the texture; its stains are in the roof mesh's vertex colour, a grid of 3 m cells shaded by noise that never repeats and differs per template: a few large, faint stains. The stone recipe is brought to a mid grey (0.2, 0.19, 0.175).
+
+**Reach:** A first pass that only set the mean (0.25, 0.125, 0.085) was still orange and chequered in the game's line-up: the set is lighter at one corner than another, and four repeats of it are a chequer from the air. So `toned` levels the set's brightness over anything longer than a tenth of the tile.
+
+**Verdict:** sound: seen in the game's line-up at tiers 0 to 3. **Confidence:** medium.
+
+### Thin bars are not geometry
+
+**Choice:** At the tactical camera, which draws tier 0, a metre is about 20 pixels, and the kit's cages, rails and solar racks are 1 to 2 cm bars: stipple. `detail.simplify` now takes the thinnest bar a tier draws (5 cm at tier 0, 12.5 cm at tier 1): a thinner bar becomes one quad that wide, every other bar of a cage or railing is left out, and a bar under a sixth of the tier's feature size is not drawn. Tier 1's feature size is 25 cm (was 20), so there nothing under 4 cm is drawn at all. The alternative, cutout textures with mips, waits for C24.
+
+**Reach:** Tier 0 falls to between 46,000 and 140,000 triangles a template and tier 1 to between 12,000 and 42,000, so the court block takes the slabs' furnishing back (its lowered probabilities are gone; it keeps the smaller plan).
+
+**Verdict:** sound in the line-up's stills at the tactical station; not yet seen moving. **Confidence:** medium.
+
+### The coarse tiers keep the facade's bands
+
+**Choice:** A coarser tier is the same picture with less geometry. `detail.hull` now votes by the area each triangle shows on the face of the bounds it looks out of, so a glazed balcony is a pale parapet under dark glass at tier 2 (it was a cream slab: glass panes narrower than the balcony voted for nothing) and the same two bands at tier 3 (it was one dark box). At tier 3 the bands are laid on the wall: a front standing 1.2 m off it with no sides floats when seen along the wall. Roof furniture is folded in at tier 2 and gone at tier 3, which the tier-transition review accepted at that distance.
+
+**Reach:** In the game's line-up the three tier boundaries no longer flip a facade dark, light, dark.
+
+**Verdict:** sound. **Confidence:** medium.
 
 ## Compact saved maps
 
@@ -5604,6 +5664,139 @@ loaded throughput or full-world process/GPU peak.
 
 **Verdict:** sound. Battle digests and replays do not move; the generated and camera scenes pass unchanged; Mixed Small is playable 5 to 9 s after Deploy on a loaded machine, against 3 to 4 s for the export on a quieter one, with level retired instructions ([startup measurement](startup-lane.md#startup-measurement)). **Confidence:** high.
 
+## C14: damage states of the scripted sets
+
+### A ruin is held to the building's ruin height, not each part's
+
+**Choice:** The fit rule gives every part of a collapsed template remains of one height: the rule's fraction of the building's height (its tallest part's top), between the rule's least and most. A set's `ruin` rows fit each part's plan at that height.
+
+**Gap:** The brief for this pass said "25% of the part's height clamped 2 to 6 m"; C42 says "25% of the building's height".
+
+**Reach:** Only templates whose parts differ in height, which here are the three farmsteads: the yard farm's 3 m cart shed leaves 2.1 m of remains (a quarter of its 8.4 m barn), where its own quarter would clamp to 2 m.
+
+**Verdict:** sound. `Battle::destroy_prop` scales `geometry.height_m`, the materialized building's, for every part, and the art is made to what the simulation builds. **Confidence:** high.
+
+### The rule's numbers are read from the building prop type, in both places
+
+**Choice:** The bake reads the rule through `Authority.collapse` (the unit catalog's prop types that carry `destroyed.into.building`; differing rules are refused), and the Blender side reads the same row from the catalog's resolved view, `fixtures/catalog.json` (`city/collapse.py`; `village.py` now asks its template instead of keeping a copy of the formula). Neither holds a number.
+
+**Gap:** "Read the ruin rule's numbers from where the simulation's rule lives ... rather than copying constants"; Blender scripts cannot call the unit catalog's resolver.
+
+**Verdict:** sound. The resolved view is generated and a test fails while it is stale, so an `extends` on the building row reaches the scripts. **Confidence:** high.
+
+### `fit.ruin_top_m` is optional and 0 when absent; 0.6 m here
+
+**Choice:** A set says how far a ruin's broken walls may stand above the remains as `fit.ruin_top_m`. A set without it gets no allowance. `homes`, `farmsteads` and `industry` say 0.6 m; `towers` has no ruin and no number.
+
+**Gap:** "a small top allowance for jagged wall tops, which you put in the set's `fit` as a named number".
+
+**Reach:** The apartments' set must write the field to stand above its remains at all; without it its ruin is refused wherever a stump tops the box.
+
+**Verdict:** sound. A default allowance would be a number nobody chose. 0.6 m is a quarter to a third of a 2 to 3 m ruin: stumps read as broken walls over the heap, and the box still describes what stops a round. **Confidence:** medium (the number was judged in pictures, not in play).
+
+### A wrong or missing damage state is an error, so this branch's library does not bake alone
+
+**Choice:** `templates.state` refuses a template without its damage state, with the other state, or with both, at error severity. With the apartments' states not yet written, `asset bake` refuses the library on this branch with seven findings, all `china_apartments`; the committed runtime was left as it was.
+
+**Gap:** "the asset check refuses anything else by name" and "locally `asset bake` and `asset check` must pass" cannot both hold before the other half of the slice lands.
+
+**Verdict:** provisional until the apartments merge. A warning, or a rule a set opts into, would have baked here and would not refuse a set that forgot its states. The 22 templates of this pass were proved by the strict bake naming none of them, and drawn in the line-up from a local bake with stand-in apartment states that is not committed. **Confidence:** high that strict is right; the integrator rebakes after both halves are in.
+
+### A damage state may not draw more than intact, and the helper refuses it
+
+**Choice:** `Kit.write` fails a set whose damage state draws more triangles than `intact` at any tier, or lacks a row at a tier, or has the wrong state for its floors.
+
+**Gap:** The budget was stated in the brief; nothing said who holds it.
+
+**Verdict:** sound. It moved several designs: ruins of small houses draw fewer heaps, long buildings coarser stumps at tier 2. The bake reports a damage state's triangles but does not gate on them. **Confidence:** high.
+
+### A ruin's openings are read from the intact rows
+
+**Choice:** `ruin_sides` finds, for each wall of a part, the ground-floor fittings the intact rows hang on it, and the stump is broken to each one's sill (a door's to the ground) with the wall cut at its jambs. Party walls stand; a stretch open to a neighbour part has no wall.
+
+**Gap:** "ragged wall stumps with window openings broken to their sills".
+
+**Verdict:** sound. The ruin's doorway is where the door was without a second table to keep in step. **Confidence:** high.
+
+### A terrace's houses are two ruin modules and a level each
+
+**Choice:** A row of houses falls as its intact art stands: one module a house (two variants, alternating) in the house's own tint, each scaled down to its own level (1.0 to 0.74), with the party wall and chimney breast on its west side and the row's east end wall a module of its own.
+
+**Gap:** "A terrace's units break unevenly, so the row is not one flat line."
+
+**Reach:** A terrace's ruin is one row a house and one for the end at the coarse tiers, as its intact state is; not one row.
+
+**Verdict:** sound. One shell for the row could carry one tint, and the houses' colours are what say which terrace it was. **Confidence:** medium: the critique still found each house's heap and roof pieces alike.
+
+### Timber and steel fall their own way; the heap under them is the same recipe
+
+**Choice:** A boarded barn's stumps are thin lengths of board, burnt to the foot, between charred posts; a timber-framed barn keeps its plaster stumps and gains the posts. A steel shed's walls are its dado's stumps with torn cladding standing over them, its frame's legs leaning, and its roof's own sheets buckled over the heap. All of them stand on the one `rubble` recipe, recoloured (ash under timber and steel).
+
+**Gap:** "An industrial shed collapses as buckled sheet and bent portal frames over rubble, not as masonry"; nothing was said of timber.
+
+**Verdict:** provisional. The critique read the steel sheds' heaps as masonry rubble under the sheets. A recipe of ash and scrap is a later, cheap change. **Confidence:** medium.
+
+### A gutted tower is the shell built twice, and its soot is in the recipes
+
+**Choice:** `shell(..., burnt=True)` builds the same module in burnt facade recipes (one a kind of opening, plus a blown bay), and tier 0 places `gutted_<kind>_<quarter>` panels that show the quarter of the recipe the shell shows on that bay. Four to six bays a tower are blown out, by a list on the template. Balconies are scorched, broken or hanging by a fixed roll; aerials are gone.
+
+**Gap:** "soot streaks and missing panels in the shell's own coarse-tier texture or vertex colour".
+
+**Reach:** Seven more facade recipes in the towers' kit (about 2 MB of the source file), and four balcony recipes that carry their fronts' colours.
+
+**Verdict:** sound. Soot as vertex colour alone read as a slightly darker wall; in the texture it has a shape at every tier. **Confidence:** high.
+
+### The wall of a gutted tower darkens with height, and the panels' tints follow it
+
+**Choice:** `smoked(z)` darkens a gutted shell's walls from 6% at the ground to 46% at 50 m, in vertex colour; a tier 0 panel's row tint is dimmed by the same function at its floor, and the burnt recipes' tint mask is the whole wall, so both dim the soot and the spall alike.
+
+**Gap:** None in the slices: it answers "obviously dead ... from across the map".
+
+**Verdict:** provisional. It is what separates a gutted tower from an intact one at tier 3, and the critique's worry stands: a facade in shade is also darker. The openings, blown bays and ash carry the rest. **Confidence:** medium.
+
+### Roofs: one tile recipe without a quilt, a neutral slate, and stains in the roof's own paint
+
+**Choice:** `roof_tile` is small staggered tiles within a few percent of one tone, with soft shallow courses and nothing wider than a tile; `roof_slate` is the same in neutral grey, for slate and stone roofs (a recolour of the clay recipe turned its variation into a teal and pink cast); a roof's material takes no per-vertex grain and no tile-scale lichen, and `weathered_roof` lays drift and moss in fields metres across.
+
+**Gap:** The coordinator's note: no cross-hatch at 80 m or 250 m, one weathered colour family, variation in large soft patches.
+
+**Reach:** Every shell of `homes` and `farmsteads` (the files that moved: both sets' `kit.glb` and `templates.json`).
+
+**Verdict:** sound in the line-up at every tier. **Confidence:** high.
+
+### The coarse tiers fold fittings into the shell, and a far house is one row
+
+**Choice:** `kit.fold_far` copies what a fitting is from far off (panels and boxes, from a table a set keeps) into the template's shell at tiers 2 and 3, and the fitting's row stops at tier 1. `homes` now does at tier 2 what `farmsteads` did, and both do it at tier 3. A terrace folds the fittings of its second house into the one house module; its chimneys and shop signs stay rows at every tier, because they differ from house to house.
+
+**Gap:** C23's list asks for the openings at tier 3 "as wall texture or vertex colour"; the kit readme says a far building is one row.
+
+**Reach:** Tier 3 of a house rises from 12 to 46 triangles to 98 to 512. A terrace's doors are one colour from tier 2 out.
+
+**Verdict:** sound: the validator requires a module's coarser tier to draw no more than its finer one, so the panels could not be tier 3's alone. **Confidence:** high.
+
+### `assemble.py` picks tiers as the game does
+
+**Choice:** The reassembly sheets choose a tier by pixels to the metre (`presentation.buildings.lod_px_per_m`), not by projected height, and `tower_sheets.py`'s tier sheet stands at those distances.
+
+**Gap:** C18's outcome says a tower is at tier 0 out to 500 m; C22 chose pixels to the metre.
+
+**Verdict:** sound. The old sheets showed a tower's tier 0 where the game draws tier 1. **Confidence:** high.
+
+### Three towers differ by one built thing; the 20-floor tower was left
+
+**Choice:** The 12-floor tower's top floor and parapet are terracotta under a roof slab that stands 0.55 m out (inside the side fit); the 16-floor tower's windows are ribbons the bay's width; the 20-floor tower is unchanged.
+
+**Gap:** "vary one structural thing each ... if it is cheap". A setback top would have left the part's faces.
+
+**Verdict:** sound for two; the third differs from them by being the plain one. **Confidence:** medium.
+
+### The village's older ruin is held to the remains, and let past the budget
+
+**Choice:** The village set (C37) says `ruin_top_m` 0.6 like the others, so its farmhouse ruin (walls to 0.35 m over the remains) passes the new fit; `Kit(..., damage_budget=False)` lets its ruin draw more than its farm (2,299 against 1,916 triangles at tier 1, 371 against 260 at tier 3 on the smallest box), and nothing else may.
+
+**Gap:** The budget was set for the four sets of this pass; the village set arrived by merge with a ruin made before it.
+
+**Verdict:** provisional. The opt-out is one named flag on one set. Rebuilding the farm's ruin with the shared `ruin_block` would remove it and is the better end. **Confidence:** medium.
 ## C06: avoid geometry for a squad with no steering decision
 
 **Choice:** A vehicle moves far from an idle squad. Each living soldier is already
@@ -6317,6 +6510,55 @@ The open-country pass (M24, M25): `crates/mapgen/src/open_country/`, its rows in
 
 **Verdict:** provisional. The rule (M25) is met and measured; the look is the light touch that was asked for and is sparser than the references. Fitting tree lines to the drawn fields' edges needs the two to share one field geometry. **Confidence:** medium.
 
+## Kits on request
+
+Every page fetched every kit before it could start: about 116 MB of kit bundles, whatever it drew. A page now fetches a kit only if something it draws needs it (the [scene-assets readme](../../packages/scene-assets/README.md), "Fetched when drawn").
+
+### The one loader fetches kits when asked, and everything else with the catalog
+
+**Choice:** `AppearanceLibrary.load` takes every appearance that is not a kit, and the template art library; `withKits(names)` fetches the kits it lacks and installs the next generation with them, or returns the installed one when it has them all. The alternatives were a second catalog file listing kits per map, and making every appearance lazy.
+
+**Gap:** The spec's download budget counts a "shared kit" and says nothing about when it is fetched.
+
+**Reach:** One catalog file and one fetch path remain. A request for kits is a generation like a load: every hash checked, installed whole, and a failure names the kit and leaves the installed generation. Two askers for one kit share one fetch. Kits stay in the page's generation once fetched, so the next map that draws from one does not fetch it again; nothing evicts them, and a reload of the catalog (the workbench, after a re-bake) starts without them. The models layer still installs only the kits the map on screen draws from, so the GPU holds what it held before.
+
+**Verdict:** sound. Measured from each page's network log, kits fetched fell from 116.3 MB on every page to: 38.8 MB on the village battle (its own kit), 58.6 MB on a block of a generated town (the four town kits its buildings use: apartments, homes, farmsteads, industry; no tower stands in that block, so no tower kit), 7.2 MB in the facade lab, and none in a lab with no buildings. The 50 MB budget for a shared kit download holds for the village and not yet for a town, whose apartment kit alone is 27.6 MB. **Confidence:** high.
+
+### Which kits a map needs has one owner, the drawer's
+
+**Choice:** `buildingKits` in the model layer says which kits a map's buildings draw from, and it is what a map asks the loader for and what its models layer installs. The loader takes names and knows nothing of maps. The alternative was a loader method that takes template ids.
+
+**Gap:** `templateKits` (the library's) and `buildingKits` (the drawer's) both existed; the brief asked for one owner.
+
+**Reach:** A template's kits are the library's fact, and `templateKits` stays its owner. What a map draws beyond them is the drawer's: a fallen part with no art for its state is the prototype kit's box, so a map with buildings asks for that kit too, and a map with none asks for nothing. A battle also draws props that have no art as that box, so every battle asks for it (4.7 KB) whether or not its map has a building. Every route that draws buildings takes its appearances from `useMapAppearances`; three labs (geometry, ballistics, camera) had been handing the model layer the whole catalog and now ask for their map's kits like the rest.
+
+**Verdict:** sound. **Confidence:** high.
+
+### A kit that was not fetched is a named state, and a map without its kit is refused
+
+**Choice:** A generation lists every kit the catalog names (`kits`); a library module whose kit is not installed is bound to no state (`state: null`), which the type makes every reader handle; and `mapAppearances`, which says what the models layer installs for a map, refuses by name a map whose kit is not installed (`kit.missing`). The alternative was to leave absence to the model layer, which waits without a word for art that covers its buildings.
+
+**Gap:** The library was bound to its kits at load, so an absent kit failed the load. With kits on request the library is installed first, and its rows name kits that may never be fetched on this page.
+
+**Reach:** The model layer's wait stays: buildings and their art reach it apart, in either order, so an uncovered moment there is not an error. The refusal is where the two are put together for a map. The library is still held to its kits at load, without fetching them: the catalog's hash for each kit must be the one the library was packed against. A module its kit lacks is found when the kit is installed, and refuses that request.
+
+**Verdict:** sound. **Confidence:** medium: the refusal is a thrown error in the page, as a template without art already was; neither reaches the loading screen.
+
+### A failed fetch is an error on the console, as a failed catalog load was
+
+**Choice:** A kit that fails to arrive is reported as a failed catalog load is: an error on the console naming the kit, and the world never draws, so the battle's loading cover stays up. Not built: the failure on the loading screen with a way back.
+
+**Gap:** The loading screen reports the preparation worker's refusals; it has never reported an asset failure.
+
+**Verdict:** gap. Scenes fail on the console error, so a broken bake cannot pass; a player on a bad connection sees a cover that never lifts. It is the loading screen's to carry, for the catalog and the kits together. **Confidence:** high.
+
+### Not in this pass: the catalog's own download
+
+**Choice:** Only kits moved. What a page fetches before it knows its map is now about 240 MB that no kit is part of: the soldiers' bundles (108 MB), scenery (104 MB, two wrecks 31 MB of it) and vehicles (28 MB).
+
+**Gap:** The brief and the lane's status put the whole download at "about 100 MB of kits".
+
+**Verdict:** gap, for whoever owns the download budget next. The same rule would cover it: a battle asks for the unit types its scenario fields, a map for the scenery its props take, through the request path kits now use. **Confidence:** high on the numbers, which are the files' sizes.
 ## C07: warm cover-facing parity
 
 **Choice:** Use pinned `libm::atan2` in the existing cover-bearing calculation,

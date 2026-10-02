@@ -727,24 +727,79 @@ def brick():
     return Baked(col, 0.3 + 0.7 * fbm(8, 2309, 4), normals_from_height(blur(h), 1.2), 1.0 - 0.35 * mortar, 0.88 + 0.08 * mortar)
 
 
-@recipe("roof_tile", tile=2.0, wear=(0.1, 0.11, 0.06, 1.0))
-def roof_tile():
-    """Clay pantiles, six courses and eight rolls to the tile. A roof's own UVs
-    run u along the eave and v up the slope, so each course's butt is at the low
-    edge of its row and the course above shades its top. Lichen is the wear."""
+def _courses(courses, per, seed):
+    """A roof covering laid in level courses, each half a piece along from the one under it
+    (a roof's own UVs run u along the eave and v up the slope, image rows down it):
+    how far down its course a texel is (0 under the course above), how far across its
+    piece, and the piece's own number in 0..1."""
     yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
-    courses, pans = 6, 8
     row = np.floor(yy * courses).astype(int)
-    fy = yy * courses - row  # 0 at the top of a course (image rows run down the slope)
-    pan = np.floor(xx * pans).astype(int)
-    roll = 0.5 - 0.5 * np.cos((xx * pans - pan) * 2 * math.pi)
-    fired = np.random.default_rng(2401).random((courses, pans))[row, pan]
-    shade = smoothstep(0.16, 0.0, fy)
-    col = mix((0.2, 0.085, 0.055), (0.31, 0.135, 0.08), 0.3 + 0.4 * fired)
-    col = col * ((0.78 + 0.3 * roll) * (1 - 0.5 * shade) * (0.85 + 0.3 * fbm(4, 2403, 4)))[..., None]
-    col = mix(col, (0.15, 0.15, 0.1), smoothstep(0.62, 0.8, fbm(7, 2405, 4)) * 0.45)
+    u = xx * per + 0.5 * (row % 2)
+    piece = np.random.default_rng(seed).random((courses, per))[row, np.floor(u).astype(int) % per]
+    return yy * courses - row, u - np.floor(u), piece
+
+
+@recipe("roof_tile", tile=3.0, wear=(0.1, 0.11, 0.06, 1.0))
+def roof_tile():
+    """Small clay tiles, fifteen courses and twelve tiles to the tile, in one fired
+    colour: a tile is within a few percent of its neighbours, the course above shades
+    each one's head, and nothing in the recipe is wider than a tile. So a roof shows
+    neither a quilt of tiles nor the recipe's repeat: what stains and patches a roof
+    wears are the roof's own, in its vertex paint (`masonry.weathered_roof`). Lichen is the wear."""
+    fy, fx, fired = _courses(15, 12, 2401)
+    roll = 0.5 - 0.5 * np.cos(fx * 2 * math.pi)
+    shade = smoothstep(0.3, 0.0, fy)  # soft and shallow: a course is two pixels at the tactical camera, and a hard one moires
+    gap = smoothstep(0.07, 0.02, np.minimum(fx, 1 - fx))
+    grain = fbm(48, 2403, 3)
+    tone = (0.93 + 0.07 * (fired - 0.5)) * (0.92 + 0.1 * roll) * (1 - 0.2 * shade) * (1 - 0.12 * gap) * (0.95 + 0.1 * grain)
+    col = np.broadcast_to(np.array((0.27, 0.113, 0.07)), (SIZE, SIZE, 3)) * tone[..., None]
+    col = mix(col, (0.15, 0.15, 0.1), smoothstep(0.7, 0.82, fbm(40, 2405, 3)) * 0.22)
     h = roll * 1.2 + fy * 1.6
-    return Baked(col, 0.3 + 0.7 * fbm(8, 2407, 4), normals_from_height(blur(h * 2), 1.0), 1.0 - 0.45 * shade, 0.82, tint=0.0)
+    return Baked(col, 0.3 + 0.7 * fbm(8, 2407, 4), normals_from_height(blur(h * 2), 1.0), 1.0 - 0.4 * shade, 0.82, tint=0.0)
+
+
+@recipe("roof_slate", tile=3.0, wear=(0.1, 0.11, 0.06, 1.0))
+def roof_slate():
+    """Slates, fifteen courses and ten to the tile: a neutral grey a material's colour
+    makes blue-black slate or brown stone, each slate barely its own tone, a thin dark
+    joint between them and the shade of the course above. Neutral, so a colour never
+    turns its variation into a cast. Lichen is the wear."""
+    fy, fx, cut = _courses(15, 10, 2451)
+    shade = smoothstep(0.26, 0.0, fy)
+    gap = smoothstep(0.05, 0.015, np.minimum(fx, 1 - fx))
+    riven = fbm(64, 2453, 3)
+    tone = (0.95 + 0.07 * (cut - 0.5)) * (1 - 0.2 * shade) * (1 - 0.2 * gap) * (0.95 + 0.1 * riven)
+    col = np.broadcast_to(np.array((0.24, 0.24, 0.24)), (SIZE, SIZE, 3)) * tone[..., None]
+    h = fy * 1.2 + riven * 0.3 - gap
+    return Baked(col, 0.3 + 0.7 * fbm(8, 2457, 4), normals_from_height(blur(h * 2), 1.0), 1.0 - 0.35 * shade, 0.62 + 0.2 * riven,
+                 tint=0.0)
+
+
+@recipe("rubble", tile=4.0, wear=(0.2, 0.19, 0.17, 1.0))
+def rubble_heap():
+    """A heap of broken masonry after a fire: fragments a hand across in grey-brown
+    mortar dust and ash, some of them pale (a building's tint makes those its own
+    plaster or block), some brick, some charred wood, all of it dulled by soot.
+    Nothing in it is wider than a fragment. The wear is dust."""
+    cells = 44
+    f1, f2, ident = worley(cells, 4101)
+    edge = f2 - f1
+    tone = np.random.default_rng(4103).random(cells * cells)[ident]
+    kind = np.random.default_rng(4105).random(cells * cells)[ident]
+    buried = smoothstep(0.35, 0.65, fbm(16, 4107, 4))  # where dust lies over the fragments
+    gap = smoothstep(0.2, 0.04, edge)
+    pale, brick, char = kind < 0.4, (kind >= 0.4) & (kind < 0.68), kind > 0.86
+    col = np.broadcast_to(np.array((0.15, 0.14, 0.125)), (SIZE, SIZE, 3)) * (0.75 + 0.5 * tone)[..., None]
+    col = np.where(pale[..., None], np.array((0.4, 0.385, 0.36)) * (0.6 + 0.4 * tone)[..., None], col)
+    col = np.where(brick[..., None], np.array((0.21, 0.1, 0.07)) * (0.6 + 0.5 * tone)[..., None], col)
+    col = np.where(char[..., None], np.array((0.022, 0.02, 0.019)), col)
+    col = mix(col, (0.17, 0.16, 0.145), buried * 0.75)
+    col = col * (0.45 + 0.25 * fbm(24, 4109, 3))[..., None]
+    col = mix(col, (0.02, 0.019, 0.018), gap * 0.7 * (1 - 0.6 * buried))
+    h = (0.3 + 0.7 * tone) * (1 - gap) * (1 - 0.7 * buried)
+    mask = np.clip(np.where(pale, 0.8, np.where(brick | char, 0.0, 0.5)) * (1 - gap), 0, 1)
+    mask = np.maximum(mask, 0.5 * buried * (1 - char))  # the dust is the building's own too
+    return Baked(col, 0.25 + 0.75 * fbm(10, 4111, 4), normals_from_height(blur(h * 3), 1.6), 1.0 - 0.5 * gap, 0.96, 0.0, mask)
 
 
 @recipe("joinery", tile=1.0, wear=(0.18, 0.13, 0.085, 0.9))

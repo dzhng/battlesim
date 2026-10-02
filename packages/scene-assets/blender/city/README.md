@@ -27,7 +27,7 @@ A set is one source's work: the China graph's apartment blocks, our own houses, 
 {
   "set": "china_apartments",
   "kit": "city_kit_china_apartments",
-  "fit": { "side_m": 1.6, "top_m": 4.5 },
+  "fit": { "side_m": 1.6, "top_m": 4.5, "ruin_top_m": 0.6 },
   "source": {
     "script": "china.py",
     "blend": "vendor/procedural-buildings/CN_ApartmentBuilding.blend",
@@ -49,7 +49,8 @@ A set is one source's work: the China graph's apartment blocks, our own houses, 
         "joins": []
       },
       "states": {
-        "intact": [[2, 0, 0, 0, 0, 1, 1, 1, 15, 255, 255, 255]]
+        "intact": [[2, 0, 0, 0, 0, 1, 1, 1, 15, 255, 255, 255]],
+        "ruin": [[3, 0, 0, 0, 0, 1, 1, 1, 15, 255, 255, 255]]
       }
     }
   ]
@@ -60,7 +61,7 @@ A set is one source's work: the China graph's apartment blocks, our own houses, 
 - **`modules`** lists each kit module the rows use, once, by id. Every one must be in the kit.
 - **`descriptor`** is the physical template, exactly the contract's `BuildingTemplateDescriptor` (`crates/contract/src/templates.rs`): oriented boxes for parts, floor datums, entrances, facade edges with their bay lattice, supported joins. It is what the map generator places and the simulation builds, and **the art is made to it, never the other way round**: every wall stands on a face of a part, so what hides a unit in the simulation hides it on screen. A descriptor of the generator's catalogue must pass `require_complete`; one of the authored catalogue is a solid box with no floor, door or bay resolved, and must pass `validate`.
 - **The template's frame** is the descriptor's: metres, Z up, the ground at z = 0, the origin at the footprint's centre, the first entrance on the street side.
-- **`states`** holds the rows for each state a side can know a building in. `intact` is required; `ruin` (a collapsed building, 6 floors or fewer) and `gutted` (a burnt shell that still stands, taller) arrive with the damage pass.
+- **`states`** holds the rows for each state a side can know a building in: `intact`, and the one state the simulation destroys it into. A building of 6 floors or fewer collapses, and has `ruin`; a taller one stands as a burnt shell, and has `gutted`. A template has exactly its own of the two. Which, and how tall a collapse's remains are, is the building prop type's rule, read from the catalog's resolved view (`fixtures/catalog.json`) by [`collapse.py`](collapse.py) here and through the unit catalog by the bake; nothing copies its numbers.
 - **A row** is twelve numbers: `[module, x, y, z, yaw, sx, sy, sz, tiers, r, g, b]`.
   - `module` indexes `modules`.
   - The module's geometry is scaled per axis by `(sx, sy, sz)`, turned by `yaw` radians about +Z, then moved to `(x, y, z)`. That is all a row can say. A tilt, a mirror or any other transform is baked into a module variant of its own, so every scale is positive.
@@ -68,6 +69,8 @@ A set is one source's work: the China graph's apartment blocks, our own houses, 
   - `r, g, b` (whole numbers 0 to 255, sRGB) tint the row's tint-masked surfaces; `255, 255, 255` leaves them as authored.
 - **`status`** is `release` for accepted art and `prototype` for a labelled stand-in. A stand-in never counts as coverage.
 - **`fit`** is how far this set's art may reach past a part's faces: `side_m` for balconies, cornices and awnings, `top_m` for roof furniture above the part's top. The asset check holds every vertex of every state to it, at each tier its row draws at: inside some part grown by `side_m` on its four sides and `top_m` above. Nothing reaches below a part's base.
+  - **A ruin is held to the remains, not the parts.** A collapse replaces every part by a box on the same plan, all of one height: a quarter of the building's height (its tallest part's top), never under 2 m nor over 6 m. A `ruin` state's rows fit those boxes, grown by `side_m` on the sides and by `ruin_top_m` above (the jagged tops of broken walls; 0 when a set does not say). The remains are what stops rounds and gives cover, so the art fills them and does not stand over them.
+  - A `gutted` state fits the standing parts, as `intact` does.
 - **`recipe`** and **`source`** record what made the template: the inputs, the script, the file and the Blender version. Nothing reads them.
 
 ## From a set to a town
@@ -88,6 +91,8 @@ The authored catalogue (`fixtures/building-templates.json`) runs the other way: 
 - **Sizes are whole bays and whole floors.** A facade's windows sit on the descriptor's bay lattice (3 m pitch) and its floors on `floor_heights_m`. A graph-made side is 3n + 2 metres long ([S2](../../../../specs/city-maps/spikes/S2.md)).
 - **An exposed edge has a facade; an edge that is not exposed has none.** No windows on a party wall or an interior join.
 - **Detail is budgeted per template**, in triangles drawn at each tier: 150,000 at tier 0, 50,000 at tier 1, 12,000 at tier 2 and 2,000 at tier 3. The script prints what each template draws. A far building is one row: at the coarse tiers a script folds what is left of its modules into the template's own shell.
+- **A destroyed building is the same building.** Its damage state is made on the same plan, in the same materials and tints, in the same frame, and by the same tier rule: shared wreckage (heaps of rubble, beams, burnt panels) is rows at the fine tiers, and the state's own shell is the whole of it at the coarse ones. It draws no more triangles than `intact` at any tier. Soot and breakage that must read from across the map are in the shell's own texture or vertex colour, never only in a fine tier's modules.
+- **The game picks a tier by pixels to the metre** (`presentation.buildings.lod_px_per_m`): at the battle's camera tier 0 reaches about 130 m, tier 1 about 320 m and tier 2 about a kilometre, whatever the building's height. A tower is at tier 1 or coarser in most frames, so its far tiers carry its character.
 - **Nothing glows.** Emission is zero; interiors are unlit.
 - **No real names.** Sign text is a generic word for a trade (tea, pharmacy, hotel) or comes from the project's own invented-name list; no brand, logo, place or landmark.
 - **No street.** Sidewalks, street trees, lamps and props are not part of a building.
@@ -96,14 +101,16 @@ The authored catalogue (`fixtures/building-templates.json`) runs the other way: 
 
 - [`china.py`](china.py) exports the China apartment set from the vendored graph: which of the graph's instances are a building of ours, the materials, the tiers and the templates are its tables. A template is boxes that abut; only the outline of their union is built, one graph facade to each straight run, so a slab, a U and a closed court come from one rule and a join has nothing to hide ([S5](../../../../specs/city-maps/spikes/S5.md)).
 - [`graph.py`](graph.py) reads a geometry-nodes building before it is realized: its instances with their transforms and tints, and the mesh it generated for the recipe. Every graph source starts here.
-- [`detail.py`](detail.py) makes a kit mesh's coarser tiers by one rule, the smallest feature a tier keeps. It calls no Blender operator, so its output is the same bytes every run.
+- [`damage.py`](damage.py) makes what is left of a graph-made building: walls cut to ragged stumps, a heap of rubble over the plan, fallen floors, charred and thrown-down fittings, soot. The graphs have no damage inputs, so `china.py` builds its `ruin` and `gutted` states from the intact export with these.
+- [`detail.py`](detail.py) makes a kit mesh's coarser tiers by one rule: the smallest feature a tier keeps, and the thinnest bar it draws (5 cm at tier 0; a thinner one is stipple at the tactical camera, so a cage's bars come out fewer and thicker). It calls no Blender operator, so its output is the same bytes every run.
 - [`ambientcg.py`](ambientcg.py) bakes a pinned ambientCG set (`../packs.py`) into a texture recipe at the size every texture in the game has.
-- [`towers.py`](towers.py) models our own tower blocks: panel modules one bay wide and one floor high, placed by a row a bay; each template's shell carries the same grid as a texture from tier 1 out, and is the whole tower at tiers 2 and 3. [`tower_sheets.py`](tower_sheets.py) photographs them, alone and among the other sets.
-- [`kit.py`](kit.py) is the authoring helper of a hand-scripted set (modules, templates, edges, bays, rows, the two files), with [`homes.py`](homes.py), the houses, as its worked example and [`farmsteads.py`](farmsteads.py), the farms, as the one with several buildings to a template.
+- [`towers.py`](towers.py) models our own tower blocks: panel modules one bay wide and one floor high, placed by a row a bay; each template's shell carries the same grid as a texture from tier 1 out, and is the whole tower at tiers 2 and 3. Gutted, a tower is the same shell built in burnt facade recipes (empty openings, the soot of each one's fire up the wall over it, bays blown out to the floor slabs), and each bay shows the same quarter of the recipe at every tier. [`tower_sheets.py`](tower_sheets.py) photographs them, alone and among the other sets.
+- [`kit.py`](kit.py) is the authoring helper of a hand-scripted set (modules, templates, edges, bays, rows, states, the two files), with [`homes.py`](homes.py), the houses, as its worked example and [`farmsteads.py`](farmsteads.py), the farms, as the one with several buildings to a template. `fold_far` keeps a template's fittings in its shell at the coarse tiers, as flat panels and boxes where the rows had them. It also holds what masonry ruins share: `ruin_block` (a fallen box: ragged stumps of its walls with their openings broken to the sills, the heap inside them, its roof slipped over the heap, its far tiers), `ruin_sides` (which walls stood and where they were pierced, read from the intact rows) and `wreckage` and `litter` (the shared heaps and beams, and the rows that strew them). The broken wall, the heap and the burnt materials themselves are `../masonry.py`'s (`ragged_wall`, `rubble_fill`, `scorched`), which the village farmhouse's ruin uses too.
+- [`collapse.py`](collapse.py) reads the simulation's rule for a destroyed building: which damage state a template has, and how tall its remains are.
 - [`village.py`](village.py) dresses the authored maps' catalogue: the courtyard farm of `../house.py` built on each box at its own size, one module standing and one fallen. Each of its three looks is built in full on the village house it belongs to; any other box borrows the nearest house's look a tier coarser, so the twelve farms fit a kit's byte budget.
-- [`industry.py`](industry.py) models the industrial set through `kit.py`: five buildings, each a shell of its own and rows of shared bay-wide modules, folded into the shell at the two coarse tiers. [`industry_sheets.py`](industry_sheets.py) frames buildings that size for `assemble.py`.
+- [`industry.py`](industry.py) models the industrial set through `kit.py`: five buildings, each a shell of its own and rows of shared bay-wide modules, folded into the shell at the two coarse tiers. A steel shed falls as torn cladding, leaning frame legs and buckled roof sheets over its dado's stumps, not as masonry. [`industry_sheets.py`](industry_sheets.py) frames buildings that size for `assemble.py`.
 - [`facade_lab.py`](facade_lab.py) is the facade lab's kit: fence panels of the two cutout recipes, a pane of glass, and window and shop bays with their rooms. It has no templates and no map places it. [`facade_lab_render.py`](facade_lab_render.py) photographs it in Blender where the lab stands it, from the lab scene's own cameras: the picture its frames are compared with.
-- [`assemble.py`](assemble.py) puts a set back together in Blender from its two files and renders it at the game's camera with the part boxes drawn over it: the picture to judge a set by until the renderer draws kits.
+- [`assemble.py`](assemble.py) puts a set back together in Blender from its two files and renders it at the game's camera, in any state, with the simulation's boxes drawn over it (the parts, or a ruin's remains): the picture to judge a set by until the renderer draws kits. Its `damage` sheets set each template beside its destroyed state at 30, 80 and 250 m and at the two coarse tiers; `aftermath` is a street of them, standing and destroyed, mixed.
 
 ## Interiors
 

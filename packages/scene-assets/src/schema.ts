@@ -370,6 +370,21 @@ export interface Authority {
    *  `canopy_radius_m`): a tree, unscaled, stands inside it. */
   canopy_height_m: number;
   canopy_radius_m: number;
+  /** How a placed building of a template ends (the building prop types'
+   *  `destroyed.into.building`), or null when no prop type has the rule. */
+  collapse: BuildingCollapse | null;
+}
+
+/** The simulation's rule for a destroyed template building: one of
+ *  `max_floors` floors or fewer collapses, each part to remains on its own
+ *  plan, as tall as `height_fraction` of the building's height held between
+ *  `min_height_m` and `max_height_m`; a taller one stands, gutted, at its
+ *  full height. */
+export interface BuildingCollapse {
+  min_height_m: number;
+  height_fraction: number;
+  max_height_m: number;
+  max_floors: number;
 }
 
 export interface ClipDeclaration {

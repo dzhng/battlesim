@@ -24,7 +24,7 @@ import { createEffectFrame, gameEffects } from "../effectFeed";
 import { useStandingBuildings, useStaticWorld, type WorldView } from "../useStaticWorld";
 import { GAME_RULES } from "../scenarios";
 import { gameBiome } from "../gameBiome";
-import { useGameAppearances } from "../gameAppearances";
+import { useMapAppearances } from "../gameAppearances";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
 import { useFeed } from "../feed";
 import { gameCamera } from "../gameCamera";
@@ -536,7 +536,9 @@ export default function Ballistics() {
 
 function BallisticsLab({ map }: { map: MapDefinition }) {
   const world = useStaticWorld(map);
-  const appearances = useGameAppearances();
+  const buildings = useStandingBuildings(world);
+  const buildingsFeed = useFeed(buildings);
+  const appearances = useMapAppearances(buildings?.placed ?? null);
   const meshes = useMemo(
     () =>
       world &&
@@ -545,7 +547,6 @@ function BallisticsLab({ map }: { map: MapDefinition }) {
     [world, appearances],
   );
   const worldFeed = useFeed(meshes);
-  const buildingsFeed = useStandingBuildings(world);
   const [wasm, setWasm] = useState<Wasm | null>(null);
   const [spread, setSpread] = useState(false);
   const [playing, setPlaying] = useState(true);

@@ -43,7 +43,7 @@ import {
   type MapChoice,
 } from "@web/maps/source";
 import { useFeed } from "../feed";
-import { mapAppearances, useGameAppearances } from "../gameAppearances";
+import { mapAppearances, useMapAppearances } from "../gameAppearances";
 import { gameBiome } from "../gameBiome";
 import { gameCamera } from "../gameCamera";
 import { LabViewport, type ViewportPilot } from "../LabViewport";
@@ -204,7 +204,14 @@ export default function CityBlock() {
 
 function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedTown }) {
   const world = useStaticWorld(generated.map);
-  const appearances = useGameAppearances();
+  // The map's buildings: every one a template reference.
+  const drawn = useMemo(() => {
+    if (!world) return null;
+    const props = mapProps(world.exports, world.layout);
+    return { props, index: indexBuildings(world.exports.buildings, props) };
+  }, [world]);
+  // The catalog, and the kits this town's buildings draw from.
+  const appearances = useMapAppearances(drawn?.index.placed ?? null);
   const surfaceZ = useCallback(
     (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
     [world],
@@ -224,13 +231,6 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
     [world, appearances],
   );
   const worldFeed = useFeed(meshes);
-
-  // The map's buildings: every one a template reference.
-  const drawn = useMemo(() => {
-    if (!world) return null;
-    const props = mapProps(world.exports, world.layout);
-    return { props, index: indexBuildings(world.exports.buildings, props) };
-  }, [world]);
   const modelAppearances = useMemo(
     () =>
       world && appearances && drawn

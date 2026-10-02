@@ -30,12 +30,11 @@ LOOKS = {(15.0, 12.0, 4.0): 0, (17.0, 14.0, 4.0): 1, (13.0, 11.0, 4.0): 2}
 # edge about doubles from a tier to the next (`parts.PAINT_EDGE_M`).
 BORROWED = BAKE | dict(paint_scale=2 * BAKE["paint_scale"])
 
-kit = Kit("village", "village.py", fit_side_m=0.5, fit_top_m=0.5)
+# (The farm's ruin is older than the rule that a ruin draws no more than its building: its heaps outdraw the farm at two tiers.)
+kit = Kit("village", "village.py", fit_side_m=0.5, fit_top_m=0.5, fit_ruin_top_m=0.6, damage_budget=False)
 
 with open(os.path.join(REPO, "fixtures", "building-templates.json")) as f:
     ROWS = json.load(f)["templates"]
-with open(os.path.join(REPO, "fixtures", "catalog.json")) as f:
-    FALL = json.load(f)["props"]["building"]["destroyed"]["into"]
 
 
 def look(half):
@@ -58,12 +57,6 @@ def coarsen(root):
                 last.name = last.data.name = f"{o.name[:-1]}{tier}"
 
 
-def ruin_height(height):
-    """How tall the simulation leaves a collapsed building that stood `height` (the building row's `destroyed.into`)."""
-    rule = FALL["building"]
-    return min(max(height * rule["height_fraction"], FALL["height_m"]), rule["max_height_m"])
-
-
 for row in ROWS:
     (part,) = row["parts"]
     hx, hy, hz = part["half_extents"]
@@ -72,7 +65,7 @@ for row in ROWS:
     variant = look((hx, hy, hz))
     borrowed = (hx, hy, hz) not in LOOKS
     t = kit.dress(row, recipe=dict(Box=[2 * hx, 2 * hy, 2 * hz], Look=variant))
-    for state, ruin in (("intact", None), ("ruin", ruin_height(2 * hz))):
+    for state, ruin in (("intact", None), ("ruin", t.ruin_height())):
         m = kit.module(f"farm_{hx:g}x{hy:g}x{hz:g}_{state}", ground=True, **(BORROWED if borrowed else BAKE))
         farmstead(m.root, hx, hy, hz, variant, ruin, tag=f"_{variant}" + ("_burnt" if ruin else ""))
         if borrowed:
