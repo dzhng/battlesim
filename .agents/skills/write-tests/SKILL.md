@@ -83,7 +83,9 @@ which existing tests can go, use [audit-tests](../audit-tests/SKILL.md).
 For cross-target simulation parity, compare full state digests as well as published
 values. Float32 packing can hide Float64 differences in aiming, random sampling or
 flight. Diagnose the first divergent tick before changing a seed, placement, end
-time or fixture rule to make the pair green.
+time or fixture rule to make the pair green. Include construction before the
+first tick: seeded member placement can diverge while every packed observation
+word matches.
 
 ## Seams and mocks
 

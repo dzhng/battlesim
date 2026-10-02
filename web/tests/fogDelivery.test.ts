@@ -18,6 +18,8 @@ import { loadMap } from "@web/maps/node";
  *  native build made of each tick (`crates/sim/tests/publication.rs`). */
 type PublicationStreamRecord = {
   map: string;
+  map_size?: [number, number];
+  initial_digest: string;
   seed: number;
   units: LabUnit[];
   scripts: LabScript[];
@@ -34,6 +36,12 @@ const stream: PublicationStreamRecord = JSON.parse(
 );
 const combatStream: PublicationStreamRecord = JSON.parse(
   readFileSync(new URL("../../fixtures/parity/publication/combat.json", import.meta.url), "utf8"),
+);
+const arrangementStream: PublicationStreamRecord = JSON.parse(
+  readFileSync(
+    new URL("../../fixtures/parity/publication/arrangement.json", import.meta.url),
+    "utf8",
+  ),
 );
 const SCENARIO = labScenario(loadMap(stream.map).definition, stream.units, [], stream.scripts);
 const sha256 = (words: Float32Array | Uint32Array) =>
@@ -55,8 +63,18 @@ test("wasm combat matches the native stream with firing and impacts", () => {
   publicationStream(combatStream, true);
 });
 
+test("wasm large-coordinate arrangement matches native authoritative state before float32 packing", () => {
+  publicationStream(arrangementStream, false);
+});
+
 function publicationStream(stream: PublicationStreamRecord, combat: boolean) {
-  const scenario = labScenario(loadMap(stream.map).definition, stream.units, [], stream.scripts);
+  const map = loadMap(stream.map).definition;
+  const scenario = labScenario(
+    stream.map_size ? { ...map, size: stream.map_size } : map,
+    stream.units,
+    [],
+    stream.scripts,
+  );
   const battle = new Battle(scenario, stream.seed);
   const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
   const decoder = new ObservationDecoder(layout);
@@ -64,6 +82,7 @@ function publicationStream(stream: PublicationStreamRecord, combat: boolean) {
   let sawShot = false;
   let sawImpact = false;
   try {
+    expect(battle.digest(), "initial authoritative state").toBe(stream.initial_digest);
     stream.rows.forEach((row, i) => {
       battle.step();
       if (row.resync) battle.resync_observation();

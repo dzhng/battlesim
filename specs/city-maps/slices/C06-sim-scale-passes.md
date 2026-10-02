@@ -617,3 +617,23 @@ enemy is reachable; restoring the tracked rows restores green. These owners
 already cover the behavior, so no private field-layout test or duplicate model
 was added. Raw commands, identities, per-tick proofs and counters stay in ignored
 publication-worktree `throwaway/scale-lane/field-*` artifacts.
+
+## Outcome — portable seeded placement
+
+The first differing authoritative field is one soldier's Y coordinate, one bit
+apart, followed by its squad centroid. All world-body poses and cold float32
+publication words agree. The mismatch reproduces with one rifle squad on an
+empty map. Tracing its unchanged draw sequence isolates platform sine before
+scaling and mean-centering: the pinned software sine yields the Wasm position.
+Squad draws and nearest-free ring samples now use that existing pinned library,
+with no change to random draws, placement policy or physical rules. Native
+last-bit positions intentionally change; this is a named portability repair,
+not a CPU speedup. No temporary diagnostic export ships.
+
+The existing shared publication-record tests include initial authoritative
+state, with no compatibility branch. The new one-squad record fails on the
+unmodified native/Wasm pair before float32 packing. With pinned math, initial
+state and all six subsequent publication/digest rows agree; existing record rows
+are unchanged and gain initial digest checks. Focused public placement and
+formation/replay checks pass. Full generated-map parity remains the next gate;
+no long performance run is claimed from this small regression.
