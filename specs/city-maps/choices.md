@@ -3222,3 +3222,11 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 **Gap:** The slice names no corpse scene.
 
 **Verdict:** Provisional as a method: the script lives in the gitignored scratch folder. If corpse drawing changes again, a station for the fallen belongs in a scene. **Confidence:** Medium.
+
+## Surroundings for the existing maps: cut
+
+**Choice:** C56 (reservations) and C34, C35, C36 (surroundings for the village, the labs and the benchmark fields) are removed from the spec, with the lane that was written for them. The old maps stay the small arenas they are.
+
+**Why:** the owner's call (2026-10-01): the village and the lab maps are developer test arenas, nobody plays them, and the game is not finished. The need those slices answered, a full-size map to play, is met by generated battles from the menu and saved generated maps. Where another slice still says C56 or C34–C36, read "cut".
+
+**Verdict:** sound. **Confidence:** high.
