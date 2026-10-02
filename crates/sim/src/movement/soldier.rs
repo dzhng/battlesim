@@ -785,12 +785,20 @@ pub(super) fn step_squad(
         };
         let to_spot = (spot - next.xy()).length();
         let homing = s.leg == corridor.map_or(0, |c| c.last()) && s.path.last() == Some(&spot);
+        let stuck = (next.xy() - here.xy()).length() < 1e-3;
         if homing && to_spot < ON_SPOT_M {
             s.position = spot.with_z(next.z);
             crowd.set(id, spot);
-        } else if homing && to_spot < SETTLE_M && (next.xy() - here.xy()).length() < 1e-3 {
+        } else if homing && to_spot < SETTLE_M && stuck {
             // He can get no closer (someone stands there): here will do.
             s.spot = Some(next.xy());
+        } else if homing && stuck && ctx.tick >= s.planned_at + every {
+            // Jammed on his final stretch: squadmates already on their spots
+            // stand in his way (a squad lining up along a wall files past
+            // the men in place). He plans again round the soldiers about him.
+            let mut standing = Vec::new();
+            crowd.near(id, next.xy(), CROWD_BUCKET_M, |q| standing.push(q));
+            plan_own(ctx, side, &around, s, spot, &standing);
         }
         let on = s
             .spot
