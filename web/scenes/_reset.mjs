@@ -20,7 +20,7 @@ async function presentedStep(page, action) {
   await presented(page);
 }
 
-export async function restartPresentedOpening(page, targetTick = 90) {
+export async function restartPresentedOpening(page, targetTick) {
   const priorTick = await lab(page, () => window.__lab.route.tick());
   await restart(page);
   await page.waitForFunction((prior) => window.__lab?.route?.tick() < prior, priorTick, {
