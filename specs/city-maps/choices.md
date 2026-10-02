@@ -6629,3 +6629,29 @@ input evidence is not promoted to current workload admission.
 
 **Verdict:** sound; high confidence in the named evaluator scope. No cost gain or
 whole-battle parity claim follows from these bounded proofs.
+
+
+## C07: shorter exact anchors at a measured delivery failure
+
+**Choice:** Change the existing sparse variable-word anchor from eight to three,
+with one constant shared by index construction and lookup. Keep fixed-row copy
+alignment and the same wire grammar. Accept the measured encoder and requested
+index-capacity increase to recover short retained spans; add no alternative
+selector or entity-specific schema.
+
+**Evidence:** Actual late tick 54 uses 21,008 B. Enumerating existing measured
+candidate sizes falsifies form selection as its cause: the selected group
+payloads already win. The shorter-anchor arm reconstructs every raw word of the
+entire captured 9,000-transition early stream and 54-transition late window;
+whole-record maxima become 17,152/19,328 B under the unchanged 19,800 B gate.
+Greedy matching makes 1,014 early records larger, although none exceeds the gate.
+A focused codec tracer is old-red/new-green and pins copied NaN/signed-zero bits.
+
+**Tradeoff:** Early encoder-only mean rises 66.3%, by 0.705 M retired
+instructions; the partial late mean rises 18.7%. The conservative aggregate
+requested index bound grows from 12.8 to 21⅓ MiB (22,369,620 bytes). These figures
+are neither whole-step cost nor observed process peak. No information is delayed,
+dropped, rounded or given a larger budget.
+
+**Verdict:** sound; high confidence in this bounded arm. Complete current late
+admission and browser/heap/overlap checks still decide closure.

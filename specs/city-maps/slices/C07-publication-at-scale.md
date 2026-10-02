@@ -555,3 +555,56 @@ state and publication identities are unchanged. Current-input Native publication
 geometry, collision and the three admitted town-journey proofs pass, alongside
 actual Wasm world-query/publication boundary checks. This closes the captured
 numerical fault, not current-input five-minute workload or cost admission.
+
+
+## Outcome: shorter variable anchors
+
+Current early admission records match Native/Wasm state and transport for all
+9,000 transitions, but the late gate stops at tick 54 with 21,008 B against the
+unchanged 19,800 B limit. Replay of that immutable corpus shows that every group
+already selects its smallest existing measured candidate at this tick. Correcting
+the ordinary-before-compact selection policy would not resolve this failure.
+
+The existing variable-span owner now uses one shared three-word anchor width for
+index construction and lookup. Short unchanged spans remain reusable after
+variable metadata shifts; matching spans still extend wordwise. Fixed-row
+alignment, grammar, literals, predictors, canonical order and transactional
+admission are unchanged. No second index, selector, baseline, codec or dependency
+is added. One pure-codec regression grows metadata around retained positions,
+including duplicate anchors, NaN payloads and signed zero; it fails at 3,016 B
+with the old width and passes below 1,400 B with exact reconstructed words.
+
+Captured-corpus replay includes every group, fog and ground. Early's 9,000 deltas
+change mean/p95/max from 1,105/3,428/19,388 B to 1,055/3,240/17,152 B. Greedy
+matching worsens 1,014 individual records; all remain under the limit. The 54
+captured late deltas also remain under it, with tick-54/max falling to 19,328 B:
+own saves 968 B, identified 520 B and projectiles 192 B. These are complete
+record sizes, not group-only estimates, and the late window remains partial.
+
+The matched encoder bracket includes index allocation/sorting, measurement,
+admission and emission; decoding, corpus staging and oracles are excluded.
+Early mean/p95/max retired instructions rise from 1.064/1.932/7.584 M to
+1.769/3.009/8.889 M: +0.705 M mean, +66.3%. The captured late mean rises from
+7.515 to 8.923 M (+18.7%). These are encoder costs, not observation packing,
+whole-step or browser throughput measurements.
+
+Under the existing 64 MiB logical ceiling, exact-reserved u32 indices now need
+at most 22,369,620 requested bytes (21⅓ MiB), replacing the earlier 12.8 MiB
+aggregate bound. Every index partitions the same prior baseline; fixed rows
+have wider anchors. Sorting stays bounded O(oldWords log oldWords), candidate
+lookups examine three words, and planning/emission retain their existing bounded
+scans. Requested index capacity is not allocator/RSS or process peak memory;
+cold snapshots construct no source index. Wire, snapshot and 4 GiB peak admission
+budgets are not raised. Full current late delivery/state, peak overlap and
+browser admission remain open after this captured-window proof.
+
+Fresh optimized actual Native/Wasm playback agrees on all 55 state digests and
+raw publications from construction through tick 54, then on blue resync and red
+side switch. Every Native state digest also matches the immutable prior control;
+tick 54 now delivers 19,328 B. The real production decoder reconstructs all 55
+records, matches complete fresh observations and raw ground at ticks 0/54,
+preserves retained views and accepts a corrected malformed-generation retry.
+Native codec/publication and actual Wasm publication, group-decoder and worker
+carrier-copy checks, formatting and clippy pass. The paired combat fixture changes
+only transport hashes. This is the measured partial late repair; the complete
+late window remains the next admission gate.
