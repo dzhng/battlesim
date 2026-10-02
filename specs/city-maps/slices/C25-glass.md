@@ -78,3 +78,13 @@ A kit author marks glass with `coverage=("blended", opacity)` on a material help
 A second unprimed critic, on the final frames, saw the hatch run unbroken through the glass and the overlaps combine and sort correctly, and repeated the first finding: smoked plastic, and grey tiles at the default camera.
 
 **Not done:** the `preview-shots` checkpoint; the China balcony comparison; glass on a real kit.
+
+## Outcome: glass on the China kit, and the balcony comparison
+
+The China apartment kit's `M_CN_Glass` is blended glass (`china.py`, opacity 0.35, a cool grey, roughness 0.08), one face a pane, as the graph models them. A frosted pane and a shop door's strip curtain stay opaque; they are there to hide what is behind them. From tier 2 out a window is an opaque pane on a flat wall, in a grey chosen to stand for glass over a room at that distance.
+
+**The enclosed balcony at 30 m** (the line-up's `close` station, `china-apartment-slab-47x11-5f`) against the graph's own render of the same building at 30 m: the same things are there in the same places. The laundry hangs behind the glazing, the balcony door and the room behind it show through two layers of glass, the parapet's inner faces and the floor slab close the box, the neighbouring open balconies have their rails and pot plants. Three differences remain. The graph's glass is pale and reflects the sky; ours adds almost nothing over what is behind it, and an unprimed critic read the windows as openings with rooms behind, glass-less, with a faint film on the balconies and one pane with a sheen. The graph's aluminium frames are white; ours take the graph's per-window tint (green, brown), as the committed kit did. The graph's rooms are its own two furnished boxes; ours are the atlas's cells.
+
+The fixture's "smoked film" does not appear on real art at this opacity. What is missing is the opposite: a cue that there is a pane at all. That is the look's (`presentation.glass`, a sky reflection that reads from the play camera), not the material's: raising the opacity to show the pane brings the film back.
+
+**Not done:** `compare-screenshots` numbers on the balcony crop (the two pictures are from different cameras and lights; the comparison is by eye); the `preview-shots` checkpoint.

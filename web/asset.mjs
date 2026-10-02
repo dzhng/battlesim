@@ -17,8 +17,8 @@
 //   icons                  write the generated icons (assets/icons/): every weapon row's,
 //                          every role's symbol and every unit type's silhouette
 //   grass [name...]        write each generated grass kind's GLB from its catalog spec (then bake)
-//   prototypes             write the prototype city set (its kit and templates.json): stand-in rows for
-//                          every template of the map generator's catalogue no other set dresses (then bake)
+//   stand-in               write the stand-in kit's GLB: the unit box a prop with no art of its own
+//                          is drawn as (then bake)
 //   catalogue              rewrite the map generator's template catalogue from its city sets' descriptors
 //
 // bake and check pack the city sets into the template art library, which is
@@ -60,8 +60,7 @@ const { contentSha256, lfsPointerOid, lfsPullCommand } =
 const { bundlePath, templateLibraryPath } = await import("../packages/scene-assets/src/schema.ts");
 const { TEMPLATE_TIER_TRIANGLES, catalogueRows, catalogueText, readTemplateSet } =
   await import("../packages/scene-assets/src/templateSource.ts");
-const { PROTOTYPE_SET, prototypeKitGlb, prototypeTemplates, templateSetText } =
-  await import("../packages/scene-assets/src/prototypeSet.ts");
+const { STAND_IN_KIT, standInKitGlb } = await import("../packages/scene-assets/src/standInKit.ts");
 const { hasErrors } = await import("../packages/scene-assets/src/validate.ts");
 const { validateLoose } = await import("../packages/scene-assets/src/loose.ts");
 const { describeMaterial } = await import("../packages/scene-assets/src/material.ts");
@@ -236,9 +235,9 @@ function report(result) {
     printStats(r.stats);
     if (r.templates) {
       const { templates, rows, modules } = r.templates;
-      const standIns = templates.filter((t) => t.status === "prototype").length;
+      const unaccepted = templates.filter((t) => t.status === "prototype").length;
       console.log(
-        `  ${templates.length} template(s), ${templates.length - standIns} release and ${standIns} prototype; ${rows} row(s) of ${modules} module(s)`,
+        `  ${templates.length} template(s), ${templates.length - unaccepted} release and ${unaccepted} prototype; ${rows} row(s) of ${modules} module(s)`,
       );
       for (const t of templates)
         console.log(
@@ -315,18 +314,14 @@ async function check() {
   const live = new Set([...result.files.keys()].map((p) => p.split("/")[0]));
   for (const dir of runtimeHashDirs())
     if (!live.has(dir)) problems.push(`orphan assets/runtime/${dir}; run bake`);
-  let generated = null;
-  try {
-    generated = prototypeFiles();
-  } catch (e) {
-    problems.push(`the prototype city set cannot be generated: ${e.message}`);
-  }
-  for (const [path, bytes] of generated ?? []) {
-    const file = join(ROOT, path);
+  const standIn = catalog().appearances[STAND_IN_KIT]?.source;
+  if (standIn) {
+    const file = join(ROOT, standIn);
     const stale =
       !existsSync(file) ||
-      (await contentSha256(new Uint8Array(readFileSync(file)))) !== (await contentSha256(bytes));
-    if (stale) problems.push(`${path} is missing or stale; run prototypes, then bake`);
+      (await contentSha256(new Uint8Array(readFileSync(file)))) !==
+        (await contentSha256(standInKitGlb()));
+    if (stale) problems.push(`${standIn} is missing or stale; run stand-in, then bake`);
   }
   const icons = generatedIcons();
   for (const [path, svg] of icons) {
@@ -576,48 +571,23 @@ function readSet(name, entry) {
 }
 
 /** The map generator's sets as they are on disk: the catalog's city sets
- *  that name its catalogue, by set name. */
+ *  that name its catalogue. */
 const generatedSets = (cat) =>
   Object.entries(cat.city_sets ?? {})
     .filter(([, entry]) => entry.catalogue === "generated")
-    .map(([name, entry]) => [name, readSet(name, entry)]);
+    .map(([name, entry]) => readSet(name, entry));
 
-/** The prototype set's two files by repo path, generated: stand-in rows for
- *  every template of the map generator's catalogue that no other set
- *  dresses, tinted by the fixture's prototype tints. Null when the catalog
- *  has no such set. */
-function prototypeFiles() {
-  const cat = catalog();
-  const entry = cat.city_sets?.[PROTOTYPE_SET];
-  const kit = entry && cat.appearances[entry.kit]?.source;
-  if (!entry || !kit) return null;
-  const dressed = new Set(
-    generatedSets(cat)
-      .filter(([name]) => name !== PROTOTYPE_SET)
-      .flatMap(([, set]) => set.templates.map((t) => t.descriptor.id)),
-  );
-  const set = prototypeTemplates(
-    readJson(GENERATED).filter((descriptor) => !dressed.has(descriptor.id)),
-    readJson(FIXTURE).presentation.buildings.prototype_tints,
-    authority().collapse,
-  );
-  return new Map([
-    [kit, prototypeKitGlb()],
-    [entry.templates, new TextEncoder().encode(templateSetText(set))],
-  ]);
-}
-
-async function prototypes() {
-  const files = prototypeFiles();
-  if (!files) {
-    console.log(`the catalog has no "${PROTOTYPE_SET}" city set with a kit appearance`);
+/** The stand-in kit's GLB, written where the catalog has its source. */
+async function standIn() {
+  const path = catalog().appearances[STAND_IN_KIT]?.source;
+  if (!path) {
+    console.log(`the catalog has no "${STAND_IN_KIT}" appearance`);
     return 1;
   }
-  for (const [path, bytes] of files) {
-    mkdirSync(dirname(join(ROOT, path)), { recursive: true });
-    writeFileSync(join(ROOT, path), bytes);
-    console.log(`${path}: ${(bytes.byteLength / 1024).toFixed(1)} KiB`);
-  }
+  const bytes = standInKitGlb();
+  mkdirSync(dirname(join(ROOT, path)), { recursive: true });
+  writeFileSync(join(ROOT, path), bytes);
+  console.log(`${path}: ${(bytes.byteLength / 1024).toFixed(1)} KiB`);
   console.log("now run bake");
   return 0;
 }
@@ -627,7 +597,7 @@ async function prototypes() {
 async function catalogue() {
   const { path } = CATALOGUES.generated;
   const physical = await physicalTemplates();
-  const sets = generatedSets(catalog()).map(([, set]) => set);
+  const sets = generatedSets(catalog());
   const before = readFileSync(GENERATED, "utf8");
   const rows = catalogueRows(sets, JSON.parse(before), physical);
   const text = catalogueText(rows);
@@ -641,7 +611,7 @@ async function catalogue() {
     `${path}: ${rows.length} template(s); hash ${physical.complete(JSON.parse(before)).hash} → ${hash}`,
   );
   console.log(
-    "the map generator builds from these rows: maps and their identities move with them. Now run prototypes, then bake",
+    "the map generator builds from these rows: maps and their identities move with them. Now run bake",
   );
   return 0;
 }
@@ -692,7 +662,7 @@ const commands = {
   sheet,
   icons,
   grass,
-  prototypes,
+  "stand-in": standIn,
   catalogue,
 };
 if (!commands[command]) {

@@ -185,10 +185,11 @@ export interface BattleFrame {
    *  Lit, graded, shadow-casting and fogged like the world. */
   setStructures(structures: readonly ModelInstance[]): void;
   /** The map's buildings (`models/buildingReferences.ts`): its references,
-   *  and those the side has seen fall. Each is its
-   *  template's rows from the installed library (`setAppearances`), as
-   *  instances of its kit's modules, at the tier its distance asks for; one
-   *  seen to fall draws its remains. Lit, shadow-casting and fogged like the
+   *  and those the side knows destroyed, each with the state it knows it in.
+   *  Each is its template's rows from the installed library
+   *  (`setAppearances`), as instances of its kit's modules, at the tier its
+   *  distance asks for: the intact rows, or the ruin's or the gutted shell's
+   *  for one known destroyed. Lit, shadow-casting and fogged like the
    *  world. Call when either changes, not every frame: a new `placed`
    *  rebuilds the map's references, a new `fallen` only what changed. `null`
    *  draws none. */

@@ -10,6 +10,7 @@ import {
   lineUp,
   lineupBuildings,
   lineupFallen,
+  lineupIn,
   poseAtRange,
   type LineupTemplate,
 } from "@apps/battle-lab/src/cityLineup";
@@ -141,15 +142,31 @@ test("the references handed to the frame name each template at its frame, whole 
   expect(solo.owners[0]).toBe(all.owners[lineup.entries.indexOf(tower[0])]);
 });
 
-test("a state other than intact is every building fallen to it, each part as authored", () => {
-  const lineup = lineUp([FARM, HOUSE_A], SPACING);
-  expect(lineupFallen(lineup.entries, "intact")).toEqual([]);
-  const ruins = lineupFallen(lineup.entries, "ruin");
-  expect(ruins.map((f) => [f.building, f.state])).toEqual([
-    [0, "ruin"],
-    [1, "ruin"],
+test("a line-up in a damage state is the templates that end in it, each destroyed into it; the others are left out", () => {
+  const lineup = lineUp([FARM, HOUSE_A, TOWER], SPACING);
+  // The farm and the house collapse; the tower stands gutted.
+  const ends = { farm: "ruin", "house-a": "ruin", tower: "gutted" } as const;
+  const library: TemplateArtLibrary = {
+    ...LIBRARY,
+    templates: Object.entries(ends).map(([id, state]) => ({
+      id,
+      set: "test",
+      status: "release" as const,
+      states: { intact: { first: 0, count: 1 }, [state]: { first: 1, count: 1 } },
+    })),
+  };
+  const ids = (state: "intact" | "ruin" | "gutted") =>
+    lineupIn(lineup.entries, state, library).map((e) => e.id);
+  expect(ids("intact")).toEqual(lineup.entries.map((e) => e.id));
+  expect(ids("ruin").sort()).toEqual(["farm", "house-a"]);
+  expect(ids("gutted")).toEqual(["tower"]);
+  // Each of them is known destroyed into that state; intact, nothing is known.
+  const ruins = lineupIn(lineup.entries, "ruin", library);
+  expect(lineupFallen(ruins, "ruin")).toEqual([
+    { building: 0, state: "ruin" },
+    { building: 1, state: "ruin" },
   ]);
-  expect(ruins.map((f) => f.parts)).toEqual(lineup.entries.map((e) => e.parts));
+  expect(lineupFallen(lineup.entries, "intact")).toEqual([]);
 });
 
 // One template whose shell (the whole building at every tier but the finest,
@@ -195,8 +212,6 @@ const STYLE: BuildingStyle = validateBuildingStyle({
   pool_records: 1024,
   expand_rows: 100000,
   tint_jitter: 0,
-  prototype_tints: { default: [0.5, 0.5, 0.5] },
-  ruin_tint: [0.3, 0.3, 0.3],
 });
 const LENS = { fovY: 0.8, aspect: 16 / 9, near: 1 };
 const HEIGHT_PX = 1080;

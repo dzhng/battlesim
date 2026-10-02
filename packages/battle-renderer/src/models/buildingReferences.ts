@@ -8,13 +8,12 @@
 // houses, a lab's one box. Nothing else draws a building, and a template the
 // library lacks is refused by name when the scene is built.
 //
-// Knowledge is the rule every structure follows (`knownStanding`): a building
-// stands intact until the side has seen it fall.
+// Knowledge is the rule every structure follows: a building stands intact
+// until the side has seen it destroyed, and is then drawn in the state the
+// simulation published of it (`fallenBuildings`), never one worked out here.
 import type { TemplateState } from "@packages/scene-assets/src/templateLibrary";
-import { knownStanding, type KnownProp, type MapProp, type PropBox } from "./propAppearance";
+import type { KnownProp, MapProp } from "./propAppearance";
 import type { PublicBuildings } from "../worldMesh";
-
-type Rgb = readonly [number, number, number];
 
 /** `presentation.buildings` in the fixture. */
 export interface BuildingStyle {
@@ -33,17 +32,10 @@ export interface BuildingStyle {
   /** Each building's tint strays this far in value, either way, so identical
    *  neighbours part. */
   tint_jitter: number;
-  /** A building category's wall colour in the prototype set (sRGB), with a
-   *  `default`: read by the set's generator (`asset prototypes`), not here. */
-  prototype_tints: Record<string, Rgb>;
-  /** A fallen part's remains, where its template has no ruin art (sRGB). */
-  ruin_tint: Rgb;
 }
 
 export function validateBuildingStyle(style: BuildingStyle): BuildingStyle {
   const at = "presentation.buildings";
-  const rgb = (c: unknown) =>
-    Array.isArray(c) && c.length === 3 && c.every((v) => typeof v === "number" && v >= 0 && v <= 1);
   const [t0, t1, t2] = style.lod_px_per_m ?? [];
   if (!(t0 > t1 && t1 > t2 && t2 > 0))
     throw new Error(`${at}.lod_px_per_m must fall and stay above zero`);
@@ -54,12 +46,6 @@ export function validateBuildingStyle(style: BuildingStyle): BuildingStyle {
     throw new Error(`${at}.expand_rows must be a whole number, 1 or more`);
   if (!(style.tint_jitter >= 0 && style.tint_jitter <= 0.5))
     throw new Error(`${at}.tint_jitter must be within [0, 0.5]`);
-  if (!style.prototype_tints?.default) throw new Error(`${at}.prototype_tints needs a default`);
-  for (const [name, tint] of Object.entries({
-    ...style.prototype_tints,
-    ruin_tint: style.ruin_tint,
-  }))
-    if (!rgb(tint)) throw new Error(`${at}: ${name} must be [r, g, b] in [0, 1]`);
   return style;
 }
 
@@ -78,16 +64,16 @@ export interface PlacedBuildings {
   owners: Uint32Array;
 }
 
+/** The states a destroyed building is known in: collapsed to remains, or
+ *  standing as a burnt shell. */
+export type DamageState = Exclude<TemplateState, "intact">;
+
 /** A building a side knows is no longer intact. */
 export interface FallenBuilding {
   /** Which of `PlacedBuildings`. */
   building: number;
-  /** The state its template is drawn in, where the library has rows for it. */
-  state: Exclude<TemplateState, "intact">;
-  /** Each of its parts as the side knows it: the remains it saw take the
-   *  part's place, or the part as authored if it has not seen that one go.
-   *  Without art for `state`, each is drawn as a box. */
-  parts: readonly PropBox[];
+  /** The state its template is drawn in. */
+  state: DamageState;
 }
 
 /** The buildings a side draws: the map's, and which of them it has seen
@@ -141,29 +127,30 @@ export function indexBuildings(
 }
 
 /**
- * The buildings of `index` a side knows have fallen, from the props it has
- * learned (`known`): every building with a part it has seen replaced or
- * destroyed, each part as it knows it. A fall the side has not seen leaves
- * the building intact.
+ * The buildings of `index` a side knows are destroyed, and how, from the props
+ * it has learned (`known`). What the simulation published decides the state:
+ * a part's place taken by a prop of a type in `shells` (the types a gutted
+ * building's parts become, from the catalog's building rows: `buildingRemains`)
+ * is a building that stands `gutted`; taken by anything else, or by nothing,
+ * it is a `ruin`. A destruction the side has not seen leaves the building
+ * intact, however long ago it was.
+ *
+ * The simulation destroys a building whole, by one rule, and a side that sees
+ * any part of it learns every part, so one known part says what the building
+ * is. Were a side ever to know parts in both states, the building is a ruin:
+ * a shell is drawn only where nothing known says a part came down.
  */
 export function fallenBuildings(
   index: BuildingIndex,
   known: readonly KnownProp[],
+  shells: { has(kind: string): boolean },
 ): FallenBuilding[] {
-  const touched = new Set<number>();
+  const states = new Map<number, DamageState>();
   for (const k of known) {
     const building = k.authoredProp === null ? undefined : index.partBuilding.get(k.authoredProp);
-    if (building !== undefined) touched.add(building);
+    if (building === undefined) continue;
+    const stands = !k.destroyed && shells.has(k.kind);
+    states.set(building, stands && states.get(building) !== "ruin" ? "gutted" : "ruin");
   }
-  return [...touched]
-    .sort((a, b) => a - b)
-    .map((building) => {
-      const parts = index.parts[building];
-      const own = new Set(parts.map((p) => p.id));
-      return {
-        building,
-        state: "ruin" as const,
-        parts: knownStanding(parts, known, own).map((standing) => standing.box),
-      };
-    });
+  return [...states].sort(([a], [b]) => a - b).map(([building, state]) => ({ building, state }));
 }

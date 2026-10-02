@@ -108,13 +108,13 @@ All seven templates of `china_apartments` carry their damage state: `ruin` on th
 
 | template | state | rows | tier 0 | tier 1 | tier 2 | tier 3 |
 |---|---|---|---|---|---|---|
-| slab-35x11-4f | ruin | 20 | 8,664 | 2,878 | 916 | 143 |
-| slab-47x11-5f | ruin | 27 | 10,113 | 4,132 | 1,367 | 190 |
-| slab-59x14-6f | ruin | 42 | 15,975 | 6,310 | 1,967 | 281 |
-| block-u-5f | ruin | 50 | 18,965 | 6,715 | 2,207 | 335 |
-| block-court-6f | ruin | 67 | 24,878 | 9,174 | 2,827 | 434 |
-| slab-53x14-8f | gutted | 261 | 58,005 | 22,941 | 5,546 | 1,264 |
-| point-20x20-7f | gutted | 129 | 29,481 | 11,081 | 2,702 | 714 |
+| slab-35x11-4f | ruin | 20 | 8,696 | 2,918 | 926 | 143 |
+| slab-47x11-5f | ruin | 27 | 10,125 | 4,192 | 1,415 | 190 |
+| slab-59x14-6f | ruin | 42 | 15,977 | 6,368 | 2,013 | 281 |
+| block-u-5f | ruin | 50 | 19,017 | 6,831 | 2,287 | 335 |
+| block-court-6f | ruin | 67 | 25,002 | 9,338 | 2,925 | 434 |
+| slab-53x14-8f | gutted | 271 | 56,879 | 23,268 | 5,304 | 1,266 |
+| point-20x20-7f | gutted | 128 | 29,690 | 11,496 | 2,716 | 710 |
 
 The ruin height and the six-floor threshold are the simulation's, read through `city/collapse.py`. The exporter holds a ruin to the parts' plan grown by `fit.side_m`, the ground, and the ruin height; the set names no `ruin_top_m`, so nothing stands above the remains, and the bake's rule passes it with no findings. A gutted block is held to the intact rule. Two runs write the same bytes. Pictures: the game's own line-up lab (`scene -- city-lineup`, every template at every tier in each state, held inside its parts) and a Blender reassembly of the two set files, intact beside damaged at 30, 80 and 250 m, with an unprimed critique ([choices](../choices.md#c11c12c13-the-china-apartment-kit)).
 

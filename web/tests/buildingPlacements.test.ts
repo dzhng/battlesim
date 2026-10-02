@@ -1,13 +1,14 @@
 // @vitest-environment node
 // Buildings drawn from template art: a map's references, the rows a view
-// draws of them at each tier, the pool's residency as the camera moves, and
-// what changes when a side sees one fall.
+// draws of them at each tier, the pool's residency as the camera moves, the
+// state a side knows a building in from what it was published, and what
+// changes when it sees one destroyed.
 import { expect, test } from "vitest";
 import { color } from "math/color";
-import { PROTOTYPE_KIT, PROTOTYPE_MODULE } from "@packages/scene-assets/src/prototypeSet";
 import {
   resolve,
   ROW_TRANSFORM_FLOATS,
+  templateKits,
   type TemplateArtLibrary,
 } from "@packages/scene-assets/src/templateLibrary";
 import { createDetailView, setDetailView } from "@packages/battle-renderer/src/frame/detailView";
@@ -15,7 +16,6 @@ import {
   artCovers,
   buildingCasters,
   buildingDraws,
-  buildingKits,
   COARSE,
   createBuildingScene,
   POOL,
@@ -38,6 +38,8 @@ import type { PublicBuildings } from "@packages/battle-renderer/src/worldMesh";
 
 const RECORD = MODEL_RECORD_FLOATS;
 const [SHELL, WINDOW, ROOF, BOX] = [0, 1, 2, 3];
+/** A second kit, with one module: what a stand-in template draws. */
+const BOX_KIT = "city_kit_boxes";
 
 type Row = [
   module: number,
@@ -63,13 +65,13 @@ function libraryOf(templates: Record<string, Record<string, Row[]>>): TemplateAr
     covers: ["physical"],
     kits: [
       { appearance: "city_kit_test", bundle: "a" },
-      { appearance: PROTOTYPE_KIT, bundle: "b" },
+      { appearance: BOX_KIT, bundle: "b" },
     ],
     modules: [
       { kit: 0, module: "shell" },
       { kit: 0, module: "window" },
       { kit: 0, module: "roof" },
-      { kit: 1, module: PROTOTYPE_MODULE },
+      { kit: 1, module: "box" },
     ],
     templates: Object.entries(templates).map(([id, states]) => ({
       id,
@@ -110,14 +112,27 @@ const DENSE: Row[] = [
     (_, i): Row => [WINDOW, 5, i * 0.2 - 4, 1, 0, 1, 1, 1, 1, 255, 255, 255],
   ),
 ];
+// The house collapsed: its remains at every tier (the shell, a quarter as
+// tall and rubble-coloured) and wreckage on them at the two finest.
+const RUBBLE: Row[] = [
+  [SHELL, 1, 0, 0, 0, 1, 1, 0.25, ALL, 90, 80, 70],
+  [ROOF, 2, 1, 1, 0.5, 0.5, 0.5, 0.5, 3, 60, 50, 40],
+];
+// A tower, and the tower gutted: its shell at full height, burnt, at every
+// tier, and a burnt-out window at the two finest.
+const TOWER: Row[] = [
+  [SHELL, 0, 0, 0, 0, 1, 1, 5, ALL, 255, 255, 255],
+  [WINDOW, 5, 1, 20, Math.PI / 2, 1, 1, 1, 3, 255, 255, 255],
+];
+const BURNT: Row[] = [
+  [SHELL, 0, 0, 0, 0, 1, 1, 5, ALL, 40, 38, 36],
+  [WINDOW, 5, 1, 20, Math.PI / 2, 1, 1, 1, 3, 10, 10, 10],
+];
 const LIBRARY = libraryOf({
-  house: { intact: HOUSE },
+  house: { intact: HOUSE, ruin: RUBBLE },
   dense: { intact: DENSE },
   stand_in: { intact: [[BOX, 0, 0, 0, 0, 20, 10, 12, ALL, 180, 180, 190]] },
-  wrecked: {
-    intact: [[SHELL, 0, 0, 0, 0, 1, 1, 1, ALL, 255, 255, 255]],
-    ruin: [[BOX, 1, 0, 0, 0, 10, 8, 1.5, ALL, 90, 80, 70]],
-  },
+  tower: { intact: TOWER, gutted: BURNT },
 });
 const ART: BuildingArt = {
   library: LIBRARY,
@@ -135,8 +150,6 @@ const STYLE: BuildingStyle = validateBuildingStyle({
   pool_records: 1024,
   expand_rows: 100000,
   tint_jitter: 0,
-  prototype_tints: { default: [0.5, 0.5, 0.5] },
-  ruin_tint: [0.3, 0.3, 0.3],
 });
 
 /** Buildings of `template` at each `[x, y, z, yaw]`. */
@@ -428,13 +441,12 @@ test("a building whose template the library has no art for is refused by name", 
   );
 });
 
-test("a map needs only the kits its own buildings draw from", () => {
+test("a map needs only the kits its own templates draw from, in every state", () => {
   const standIn = placedOf([["stand_in", [0, 0, 0, 0]]]);
   const house = placedOf([["house", [0, 0, 0, 0]]]);
-  expect([...buildingKits(standIn, LIBRARY)]).toEqual([PROTOTYPE_KIT]);
-  // A fallen part with no art for its state is a box of the prototype kit.
-  expect([...buildingKits(house, LIBRARY)].sort()).toEqual([PROTOTYPE_KIT, "city_kit_test"]);
-  // With the prototype kit alone installed, the stand-in draws and the house waits.
+  expect([...templateKits(LIBRARY, standIn.templates)]).toEqual([BOX_KIT]);
+  expect([...templateKits(LIBRARY, house.templates)]).toEqual(["city_kit_test"]);
+  // With the box kit alone installed, the stand-in draws and the house waits.
   const boxOnly: BuildingArt = { library: LIBRARY, bounds: [null, null, null, ART.bounds[BOX]] };
   expect(artCovers(standIn, boxOnly)).toBe(true);
   expect(artCovers(house, boxOnly)).toBe(false);
@@ -444,49 +456,87 @@ test("a map needs only the kits its own buildings draw from", () => {
   expect(tally(drawn(scene))).toEqual([`${BOX}@0`]);
 });
 
-test("a side draws a building intact until it has seen it fall, then each part as it knows it", () => {
+/** The prop types a gutted building's parts become, as the catalog names them. */
+const SHELLS = new Set(["burnt_shell"]);
+
+test("a building's state is what the side was published of it: remains are a ruin, a standing shell is gutted, nothing seen is intact", () => {
+  // A house of two parts, a tower, and a shed as low as the least remains.
   const buildings: PublicBuildings = {
     catalogueHash: "h",
-    buildings: [0, 1].map((i) => ({
-      owner: 10 * i,
+    buildings: (
+      [
+        ["house", 0, [0, 1]],
+        ["tower", 10, [10]],
+        ["house", 20, [20]],
+      ] as const
+    ).map(([templateId, owner, props], i) => ({
+      owner,
       kind: "building",
-      templateId: "house",
+      templateId,
       category: "detached_home",
       regionalFamily: "china",
-      frame: { translation: [1000 + 20 * i, 2000, 0] as [number, number, number], yaw: 0 },
-      parts: [{ part: "main", prop: 10 * i }].concat(i ? [] : [{ part: "wing", prop: 1 }]),
+      frame: { translation: [1000 + 40 * i, 2000, 0] as [number, number, number], yaw: 0 },
+      parts: props.map((prop, k) => ({ part: `p${k}`, prop })),
     })),
   };
   const props = [
     part(0, 1000, 2000, [5, 4, 3]),
     part(1, 1004, 2004, [2, 2, 3]),
-    part(10, 1020, 2000, [5, 4, 3]),
+    part(10, 1040, 2000, [5, 4, 30]),
+    part(20, 1080, 2000, [3, 3, 1]),
   ];
   const index = indexBuildings(buildings, props);
-  expect(fallenBuildings(index, [])).toEqual([]);
-  // Blue saw the first building's main part come down: its remains, and the
-  // wing as it last knew it. A wreck is no building's.
-  const remains: KnownProp = {
-    ...part(0, 1000, 2000, [5, 4, 0.75]),
-    kind: "ruin",
-    authoredProp: 0,
-    replaces: 0,
-  };
-  const wreck: KnownProp = { ...remains, kind: "heavy_wreck", authoredProp: null, replaces: null };
-  expect(fallenBuildings(index, [remains, wreck])).toEqual([
-    { building: 0, state: "ruin", parts: [remains, props[1]] },
+  const seen = (known: KnownProp[]) => fallenBuildings(index, known, SHELLS);
+  const replacing = (prop: MapProp, kind: string, halfZ: number): KnownProp => ({
+    ...prop,
+    kind,
+    half: [prop.half[0], prop.half[1], halfZ],
+    authoredProp: prop.id,
+    replaces: prop.id,
+  });
+
+  // Whatever was destroyed that the side did not see: every building intact.
+  expect(seen([])).toEqual([]);
+  // A wreck is no building's.
+  const wreck: KnownProp = { ...props[0], kind: "heavy_wreck", authoredProp: null, replaces: null };
+  expect(seen([wreck])).toEqual([]);
+
+  // The house's parts known as remains: a ruin.
+  const remains = [replacing(props[0], "ruin", 1), replacing(props[1], "ruin", 1)];
+  expect(seen(remains)).toEqual([{ building: 0, state: "ruin" }]);
+  // One known part is the whole building's state: its art is one building's.
+  expect(seen([remains[1]])).toEqual([{ building: 0, state: "ruin" }]);
+  // A part seen destroyed with nothing left is a ruin's too.
+  expect(seen([{ ...remains[0], destroyed: true }])).toEqual([{ building: 0, state: "ruin" }]);
+
+  // The tower's part known as a shell at its full height: gutted.
+  const shell = replacing(props[2], "burnt_shell", 30);
+  expect(seen([shell])).toEqual([{ building: 1, state: "gutted" }]);
+  // The published prop decides, never its height: remains as tall as the
+  // shed they replace (the least a ruin stands) are a ruin, and a shell is
+  // gutted however low.
+  expect(seen([replacing(props[3], "ruin", 1)])).toEqual([{ building: 2, state: "ruin" }]);
+  expect(seen([replacing(props[3], "burnt_shell", 0.5)])).toEqual([
+    { building: 2, state: "gutted" },
   ]);
-  // A part seen destroyed with nothing left draws nothing.
-  const gone: KnownProp = { ...remains, authoredProp: 1, replaces: 1, destroyed: true };
-  expect(fallenBuildings(index, [remains, gone])[0].parts).toEqual([remains]);
+  // Parts known both ways (the simulation ends a building one way): a ruin,
+  // in either order.
+  const mixed = [replacing(props[0], "burnt_shell", 3), remains[1]];
+  expect(seen(mixed)).toEqual([{ building: 0, state: "ruin" }]);
+  expect(seen([...mixed].reverse())).toEqual([{ building: 0, state: "ruin" }]);
+
+  // Each building by its own knowledge, in the map's order.
+  expect(seen([shell, wreck, ...remains])).toEqual([
+    { building: 0, state: "ruin" },
+    { building: 1, state: "gutted" },
+  ]);
 });
 
-test("a building seen to fall changes only its own records: it leaves the intact rows and draws as its remains", () => {
+test("a building seen to collapse changes only its own records: it leaves the intact rows and draws as its template's ruin", () => {
   const scene = createBuildingScene(
     placedOf([
-      ["house", [1000, 2000, 0, 0]],
+      ["house", [1000, 2000, 0, 0.5]],
       ["house", [1020, 2000, 0, 0]],
-      ["wrecked", [3000, 2000, 0, 0.5]],
     ]),
     ART,
     STYLE,
@@ -496,8 +546,7 @@ test("a building seen to fall changes only its own records: it leaves the intact
   selectBuildings(scene, far, SHADOW);
   scene.coarseDirty.length = 0;
 
-  const box = part(0, 1000, 2000, [5, 4, 0.75]);
-  setFallenBuildings(scene, [{ building: 0, state: "ruin", parts: [box] }]);
+  setFallenBuildings(scene, [{ building: 0, state: "ruin" }]);
   // Its two coarse records are the only ones rewritten: a run of one each.
   const rewritten = scene.coarseDirty.filter((_, i) => i % 2 === 0);
   expect(scene.coarseDirty.filter((_, i) => i % 2 === 1)).toEqual([1, 1]);
@@ -511,42 +560,121 @@ test("a building seen to fall changes only its own records: it leaves the intact
   setFallenBuildings(scene, []);
   selectBuildings(scene, near, SHADOW);
   expect(scene.pool.used).toBe(8);
-  setFallenBuildings(scene, [{ building: 0, state: "ruin", parts: [box] }]);
+  setFallenBuildings(scene, [{ building: 0, state: "ruin" }]);
   selectBuildings(scene, near, SHADOW);
   // Its chunk is expanded again without it; the neighbour is still whole.
   expect(scene.expandedRows).toBe(4);
   expect(scene.pool.used).toBe(4);
   const standing = drawn(scene).filter((d) => d.source === POOL);
   expect(standing.every((d) => Math.abs(d.transform[0] - 1020) < 6)).toBe(true);
-  // Its remains: the part's box in the ruin tint, at the camera's tier.
+  // Its remains: its template's ruin rows at the camera's tier, placed at
+  // its own frame (turned with it) in the rows' own tints.
   const ruin = drawn(scene).filter((d) => d.source === RUINS);
-  expect(ruin.map((d) => [d.module, d.tier])).toEqual([[BOX, 0]]);
-  expect(ruin[0].transform).toEqual([1000, 2000, 0, 0.25, 10, 8, 1.5].map(Math.fround));
-  const tint = color.fromSRGB([0.3, 0.3, 0.3]);
-  ruin[0].tint.forEach((c, k) => expect(c).toBeCloseTo(tint[k], 2));
-  // From afar its coarse rows are hidden, not the neighbour's, and its
-  // remains draw at the coarsest tier.
+  expect(tally(ruin)).toEqual([`${SHELL}@0`, `${ROOF}@0`].sort());
+  const resolved = resolve("house", { translation: [1000, 2000, 0], yaw: 0.5 }, "ruin", LIBRARY);
+  const row = (i: number) =>
+    [...resolved.transforms.subarray(i * ROW_TRANSFORM_FLOATS, (i + 1) * ROW_TRANSFORM_FLOATS)].map(
+      Math.fround,
+    );
+  expect(ruin.find((d) => d.module === SHELL)!.transform).toEqual(row(0));
+  expect(ruin.find((d) => d.module === ROOF)!.transform).toEqual(row(1));
+  const tint = color.fromSRGB([90 / 255, 80 / 255, 70 / 255]);
+  ruin.find((d) => d.module === SHELL)!.tint.forEach((c, k) => expect(c).toBeCloseTo(tint[k], 5));
+  // From afar its intact coarse rows are hidden, not the neighbour's, and
+  // its remains are the ruin's own coarse row, which casts for it.
   selectBuildings(scene, far, SHADOW);
-  expect(tally(drawn(scene))).toEqual([`${BOX}@3`, `${ROOF}@3`, `${SHELL}@3`].sort());
-  expect(tally(drawn(scene, true))).toEqual([`${BOX}@3`, `${ROOF}@3`, `${SHELL}@3`].sort());
+  const coarse = (list: Drawn[]) =>
+    list.map((d) => `${d.source === RUINS ? "ruin" : "intact"} ${d.module}@${d.tier}`).sort();
+  const farDrawn = [`intact ${ROOF}@3`, `intact ${SHELL}@3`, `ruin ${SHELL}@3`].sort();
+  expect(coarse(drawn(scene))).toEqual(farDrawn);
+  expect(coarse(drawn(scene, true))).toEqual(farDrawn);
+  expect(drawn(scene).find((d) => d.source === RUINS)!.transform).toEqual(row(0));
 
-  // A template with ruin rows draws those, at its frame, not its parts' boxes.
-  setFallenBuildings(scene, [{ building: 2, state: "ruin", parts: [box] }]);
-  selectBuildings(scene, view(3000, 2000, 60), SHADOW);
-  const art = drawn(scene).filter((d) => d.source === RUINS);
-  expect(art).toHaveLength(1);
-  expect(art[0].transform).toEqual(
-    [3000 + Math.cos(0.5), 2000 + Math.sin(0.5), 0, 0.5, 10, 8, 1.5].map(Math.fround),
-  );
-  // The first building is known intact again (another side's view): restored.
-  selectBuildings(scene, far, SHADOW);
-  expect(tally(drawn(scene).filter((d) => d.source === COARSE))).toEqual(
-    [`${ROOF}@3`, `${ROOF}@3`, `${SHELL}@3`, `${SHELL}@3`].sort(),
-  );
+  // The building is known intact again (another side's view): restored.
   setFallenBuildings(scene, []);
   expect(scene.ruins).toBeNull();
+  selectBuildings(scene, far, SHADOW);
+  expect(coarse(drawn(scene))).toEqual(
+    [`intact ${ROOF}@3`, `intact ${ROOF}@3`, `intact ${SHELL}@3`, `intact ${SHELL}@3`].sort(),
+  );
   selectBuildings(scene, near, SHADOW);
   expect(scene.pool.used).toBe(8);
+});
+
+test("a building known gutted is its template's gutted rows at every tier, and never its intact shell", () => {
+  const scene = createBuildingScene(
+    placedOf([
+      ["tower", [1000, 2000, 0, 0]],
+      ["house", [1020, 2000, 0, 0]],
+    ]),
+    ART,
+    STYLE,
+  );
+  const burnt = color.fromSRGB([40 / 255, 38 / 255, 36 / 255]);
+  const shells = (list: Drawn[]) => list.filter((d) => d.module === SHELL && d.transform[0] < 1010);
+  /** The tower's shell as drawn: where its record comes from, at which tier,
+   *  and whether it wears the burnt rows' tint. */
+  const tower = (list: Drawn[]) =>
+    shells(list).map((d) => ({
+      rows: d.source === RUINS ? "gutted" : "intact",
+      tier: d.tier,
+      burnt: Math.abs(d.tint[0] - burnt[0]) < 1e-5,
+      height: d.transform[6],
+    }));
+  setFallenBuildings(scene, [{ building: 0, state: "gutted" }]);
+  // Tiers 0, 1, 2 and 3, each from the distance the game changes to it at.
+  for (const [distance, tier] of [
+    [60, 0],
+    [200, 1],
+    [500, 2],
+    [2000, 3],
+  ]) {
+    selectBuildings(scene, view(1000, 2000, distance), SHADOW);
+    // One shell, the gutted rows', burnt and at full height: the shell stands.
+    expect(tower(drawn(scene)), `tier ${tier}`).toEqual([
+      { rows: "gutted", tier, burnt: true, height: 5 },
+    ]);
+    // Its burnt window is a fine row: at the two finest tiers and no other.
+    const windows = drawn(scene).filter((d) => d.source === RUINS && d.module === WINDOW);
+    expect(windows.map((d) => d.tier)).toEqual(tier < 2 ? [tier] : []);
+    // What casts for it is its own coarse gutted shell.
+    expect(tower(drawn(scene, true))).toEqual([
+      { rows: "gutted", tier: 3, burnt: true, height: 5 },
+    ]);
+  }
+  // Its neighbour is untouched at every one of those.
+  selectBuildings(scene, view(1000, 2000, 60), SHADOW);
+  expect(drawn(scene).filter((d) => d.source === POOL && d.transform[0] < 1010)).toEqual([]);
+  expect(tally(drawn(scene).filter((d) => d.source === POOL))).toEqual(
+    [`${ROOF}@0`, `${SHELL}@0`, `${WINDOW}@0`, `${WINDOW}@0`].sort(),
+  );
+});
+
+test("a destroyed building whose template has no rows for the state is refused by name, and nothing changes", () => {
+  const scene = createBuildingScene(
+    placedOf([
+      ["tower", [1000, 2000, 0, 0]],
+      ["dense", [1020, 2000, 0, 0]],
+    ]),
+    ART,
+    STYLE,
+  );
+  const far = view(1010, 2000, 2000);
+  selectBuildings(scene, far, SHADOW);
+  const before = tally(drawn(scene));
+  // A tower stands gutted: it has no ruin. The dense block has neither.
+  expect(() => setFallenBuildings(scene, [{ building: 0, state: "ruin" }])).toThrow(
+    /state\.missing: template "tower".*"ruin"/,
+  );
+  expect(() =>
+    setFallenBuildings(scene, [
+      { building: 0, state: "gutted" },
+      { building: 1, state: "gutted" },
+    ]),
+  ).toThrow(/state\.missing: template "dense".*"gutted"/);
+  selectBuildings(scene, far, SHADOW);
+  expect(scene.ruins).toBeNull();
+  expect(tally(drawn(scene))).toEqual(before);
 });
 
 test("identical neighbours differ a little in value, each the same every time", () => {
@@ -574,5 +702,4 @@ test("presentation.buildings is checked: tiers that fall, a pool, a jitter in ra
   expect(() => validateBuildingStyle({ ...STYLE, lod_px_per_m: [5, 12, 2] })).toThrow(/fall/);
   expect(() => validateBuildingStyle({ ...STYLE, pool_records: 10 })).toThrow(/pool_records/);
   expect(() => validateBuildingStyle({ ...STYLE, tint_jitter: 0.9 })).toThrow(/tint_jitter/);
-  expect(() => validateBuildingStyle({ ...STYLE, prototype_tints: {} })).toThrow(/default/);
 });

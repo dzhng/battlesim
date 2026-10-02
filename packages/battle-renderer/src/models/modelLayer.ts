@@ -4,10 +4,10 @@
 // - skinned bodies take their palette from the pose kernel (GPU), per soldier;
 // - articulated vehicles are rigidly skinned, one palette matrix per node,
 //   posed on the CPU from the pose inputs (`articulate`);
-// - static buildings, and every corpse, use the palette's identity slot. A
-//   corpse is its body posed once at the bundle's `corpse_pose` at install
-//   (`posedMesh`), so the fallen (up to their presentation cap) are never
-//   skinned.
+// - static models (a prop, a kit's module), and every corpse, use the
+//   palette's identity slot. A corpse is its body posed once at the bundle's
+//   `corpse_pose` at install (`posedMesh`), so the fallen (up to their
+//   presentation cap) are never skinned.
 //
 // Rewritten from reading ~/dev/game battle-renderer/src/world/crowd.ts:
 // per-appearance, per-tier vertex and index
@@ -21,7 +21,7 @@
 // or, below `impostor_px`, their impostor card (`impostorCards.ts`); only
 // bodies drawn as meshes run the pose kernel. Draws carry a fog class: units
 // (posed soldiers and vehicles) are drawn by identification and never fogged;
-// the world's models (buildings, corpses) take fog like any face.
+// the world's models (props, buildings, corpses) take fog like any face.
 //
 // The fallen are a population of the static chunk owner
 // (`frame/staticChunks.ts`), chunked when their list changes: a far chunk

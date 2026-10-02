@@ -63,22 +63,28 @@ Update this section, not the README, at the end of each pass: what landed, what 
 - The far tier is each template's own coarsest tier: no tile builder, and a whole frame stays under 11 ms on a Metro Large ([C23](slices/C23-far-tier.md#outcome)).
 - **`/lab/city-lineup` is the picture art is judged by**: every template on flat ground at any tier, state and station, with a scene that holds each to its parts and fit.
 - **One way to draw a building.** The village's and the labs' houses are templates of the library too, and the fitted house path is deleted ([C37](slices/C37-house-appearance.md)).
-- Material coverage (opaque, cutout, blended) and the room sheet a surface names, in bundle format 4 ([C21](slices/C21-material-transport.md)); the model layer draws all three ([C24](slices/C24-cutout.md#outcome), [C25](slices/C25-glass.md#outcome), [C26](slices/C26-interiors.md#outcome)), judged in `/lab/facade`. Rooms draw at tiers 0 and 1. The interior atlas is ten rooms and ten shops, dim and daylight-only ([C15](slices/C15-interior-atlas.md)). **No real kit uses glass, rooms or cutouts yet.**
+- Material coverage (opaque, cutout, blended) and the room sheet a surface names, in bundle format 4 ([C21](slices/C21-material-transport.md)); the model layer draws all three ([C24](slices/C24-cutout.md#outcome), [C25](slices/C25-glass.md#outcome), [C26](slices/C26-interiors.md#outcome)), judged in `/lab/facade`. Rooms draw at tiers 0 and 1. The interior atlas is ten rooms and ten shops, dim and daylight-only ([C15](slices/C15-interior-atlas.md)).
 - **Every template has its damage state**: `ruin` for six floors or fewer, `gutted` above, held by the bake to the simulation's own collapse rule ([C14](slices/C14-damage-placements.md)). The same pass made the coarse tiers keep their openings and colours and rewrote the roofs.
+- The China kit uses all three facade features: glass in windows and enclosed balconies, a room behind every window and shop front, and cages, rails, rain streaks and leaves as cutouts ([C11](slices/C11-kit-modules.md), [C25](slices/C25-glass.md)).
+- **A building a side has seen destroyed is drawn destroyed**, from what the simulation published about it, with smoke; the other side sees it intact until it learns. `/lab/city-ruins` shells a block and a tower while one side watches ([C27](slices/C27-ruin-gutted-art.md)).
 - **A page fetches only the kits it draws** ([choices](choices.md#kits-on-request)).
 
 **Decided:** China's family ships first, and New York and Paris are later families through the same exporter, not part of closing this lane; every category the graphs do not cover is our own scripted source; a join between parts is never built, the outline of the abutting boxes is ([choices](choices.md#buildings-lane)).
 
-**In flight:** ruin and gutted art drawn by what a side knows, in a battle (C27); the kits adopting glass, rooms and cutouts.
+**In flight:** the scripted sets (homes, farmsteads, towers, industry) adopting glass and rooms.
 
-**Then:** the whole-lane review, the choices ledger consolidated, and the one full gate run.
+The whole-lane review has run: one owner for what a side knows of a map's buildings, shared scene probes, one ruin-height rule, and the empty prototype set retired (what remains of it is the unit box a prop with no model is drawn as, `asset stand-in`).
+
+**Then:** the choices ledger consolidated (`choices.md` is still the per-pass append), the one full gate run, and the lane closed.
+
+**Open look questions**, recorded in their slices: glass adds almost no cue that a pane is there (C25); a gutted tower reads from far off as a darker intact tower, and its smoke carries the read at mid range (C27, C14); identical neighbours and unreadable facing in a town (the critic's table below).
 
 **What an unprimed critic saw in the first real town** (eight frames of `/lab/city-block`, 2026-10-02), and where each finding went:
 
 | Finding | Where it is being handled |
 |---|---|
 | Neighbouring buildings run into each other: a roof through a roof, an apartment block's stair house in a house | The map: the parcel pass places some buildings overlapping (the boxes overlapped too). For the map lane, below |
-| A fallen building is a flat brown slab | Every template has ruin or gutted art (C14); drawing it in a battle is C27, in flight |
+| A fallen building is a flat brown slab | Fixed: every template has ruin or gutted art (C14), drawn by knowledge (C27) |
 | Buildings stand on bare lawn: no pavement, yards, fences or paths to doors | The ground lane (streets, C28 to C30) and street placement (C46) |
 | Apartment roofs are the most saturated thing on screen and tile visibly; a dark ground storey reads as sunk in shadow; roof stains repeat as dots | Fixed in the China kit: a duller clay roof with large sparse stains, a mid-grey plinth (C14's pass) |
 | Pitched roofs read as tartan from above | Fixed: the roof recipes are small staggered tiles and a neutral slate, with stains in the roof's own paint (C14's pass) |
@@ -98,4 +104,4 @@ Update this section, not the README, at the end of each pass: what landed, what 
 - **Some bays have no opening** (barns, warehouses, a tower's blank columns): a soldier seated there fires through a drawn wall. The simulation seats every bay; whether to mark such bays is a rules question nobody has taken.
 - **Ground lane: a town does not read from far off.** From 4.5 km out to the whole map a house is a pixel or less and most of a town's ground is lawn the colour of a field, so only the road grid says "town" ([C23](slices/C23-far-tier.md#outcome)). No building tier can fix that; a built-up tint under settlements would.
 - `map-presets.json` `parcels.regional_families` is `["china"]`; its revision string was not bumped.
-- To add or retire a template: retire its catalogue row, then `asset prototypes`, `asset catalogue`, `asset prototypes`, `asset bake`, `asset check` ([city kit readme](../../packages/scene-assets/blender/city/README.md), "From a set to a town"). `asset bake` and `asset check` need the WebAssembly built.
+- To add or change a template: change its set, then `asset catalogue`, `asset bake`, `asset check` ([city kit readme](../../packages/scene-assets/blender/city/README.md), "From a set to a town"). `asset bake` and `asset check` need the WebAssembly built.

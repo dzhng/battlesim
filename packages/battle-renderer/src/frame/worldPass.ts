@@ -25,8 +25,8 @@
 //   (`models/modelLayer.ts`), with their own vertex stage, and far models as
 //   impostor cards (`models/impostorCards.ts`). Its static props are the
 //   world's (the map's props that cannot fall) and the structures, what the
-//   side knows stands: buildings, their ruins and wrecks, fitted to their
-//   boxes. Each draw binds the fog group its class names (`modelFog`). A
+//   side knows stands of the rest: walls, their rubble and wrecks, fitted to
+//   their boxes. Each draw binds the fog group its class names (`modelFog`). A
 //   model's surfaces are drawn by kind (`models/surfaceParts.ts`): opaque as
 //   the rest of the world; a cutout cut in the prepass and the cascades; a
 //   room behind a window as solid as a wall and shown unlit; glass last,

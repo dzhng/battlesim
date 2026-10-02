@@ -22,7 +22,11 @@ import type {
   PlacedBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
 import type { PropBox } from "@packages/battle-renderer/src/models/propAppearance";
-import type { TemplateState } from "@packages/scene-assets/src/templateLibrary";
+import {
+  templateArt,
+  type TemplateArtLibrary,
+  type TemplateState,
+} from "@packages/scene-assets/src/templateLibrary";
 
 /** A template as the line-up needs it: the catalogue's physical parts (the
  *  contract's descriptor), and the source set that dresses it. */
@@ -170,15 +174,26 @@ function ownerOf(id: string): number {
   return hash >>> 0;
 }
 
+/** The `entries` whose templates `library` has rows for in `state`: what a
+ *  line-up in that state holds. A template is destroyed into one damage state
+ *  only, so a line-up of ruins leaves out what stands gutted, and the other
+ *  way round. */
+export function lineupIn(
+  entries: readonly LineupEntry[],
+  state: TemplateState,
+  library: TemplateArtLibrary,
+): LineupEntry[] {
+  return entries.filter((e) => templateArt(library, e.id).states[state] !== undefined);
+}
+
 /** What the side knows of `entries` (as `lineupBuildings` lists them) when
- *  every one is in `state`: nothing for intact, else each fallen to it with
- *  its parts as authored (a state the library has no rows for draws those). */
+ *  every one is in `state`: nothing for intact, else each destroyed into it. */
 export function lineupFallen(
   entries: readonly LineupEntry[],
   state: TemplateState,
 ): FallenBuilding[] {
   if (state === "intact") return [];
-  return entries.map((e, building) => ({ building, state, parts: e.parts }));
+  return entries.map((_, building) => ({ building, state }));
 }
 
 const _pose_eye = vec3.create();

@@ -30,11 +30,11 @@ export function fixtureAuthority(fixture: AuthorityFixture, units: UnitCatalog):
   };
 }
 
-/** How a template building ends (C42, C43): the rule on the prop types that
+/** How a template building ends: the rule on the prop types that
  *  collapse as buildings, which every template's damage state is authored to.
  *  Types that carry differing rules are refused: a template is not a prop
  *  type, so its art can fit one rule only. */
-function buildingCollapse(units: UnitCatalog): BuildingCollapse | null {
+export function buildingCollapse(units: UnitCatalog): BuildingCollapse | null {
   const rules = new Map<string, { rule: BuildingCollapse; ids: string[] }>();
   for (const [id, t] of Object.entries(units.view.props)) {
     const into = typeof t.destroyed === "object" ? t.destroyed.into : null;
@@ -53,4 +53,21 @@ function buildingCollapse(units: UnitCatalog): BuildingCollapse | null {
       `prop types collapse as buildings by differing rules (${[...rules.values()].map((r) => r.ids.join(", ")).join("; ")}): a template's damage state fits one`,
     );
   return rules.values().next().value?.rule ?? null;
+}
+
+/** The prop types a destroyed building's parts become, from the prop types
+ *  that end as buildings: `remains` where one collapses (`destroyed.into.prop`)
+ *  and `shells` where one stands gutted, at its parts' full height
+ *  (`gutted_prop`). A side that knows a building part as a shell knows the
+ *  building gutted; any other remains are a collapse's. */
+export function buildingRemains(units: UnitCatalog): { remains: Set<string>; shells: Set<string> } {
+  const remains = new Set<string>();
+  const shells = new Set<string>();
+  for (const t of Object.values(units.view.props)) {
+    const into = typeof t.destroyed === "object" ? t.destroyed.into : null;
+    if (!into?.building) continue;
+    remains.add(into.prop);
+    shells.add(into.building.gutted_prop);
+  }
+  return { remains, shells };
 }
