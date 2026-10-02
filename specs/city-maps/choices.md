@@ -5284,3 +5284,11 @@ The open-country pass (M24, M25): `crates/mapgen/src/open_country/`, its rows in
 **Choice:** `layout-8` and `layout-presets-7`, the strings the street-furniture branch also took, so the two merge without a conflict on those lines. The merged generator is a third thing and needs its own bump and re-record.
 
 **Verdict:** sound for the merge; the records in this branch describe this branch alone. **Confidence:** high.
+
+### What the unprimed look at the pictures found
+
+**Choice:** None taken from it in this pass; recorded for the next. One fresh critique of the owner's map after the pass (the opening view, straight down over blue's column with fog on, a house group, a tree line, and the plan's picture) against the Broken Arrow references.
+
+**Found:** The country still reads as empty: at the opening view the jeep is the only upright thing in frame, and the eye has few landmarks. The fog over blue's column is cut on the lower left, the right and the bottom by copses and tree lines, and is one clean arc across the top: broken, and mostly open, which is what the owner asked for, and less than the references' wooded country. Tree lines and copses ignore the field pattern, because the fields are the renderer's and the generator does not know where their edges are. The fog behind a tree line pulls in some way past it with nothing at the tip of the teeth: that is the one forest rule shortening sight, not a missing model. A house group is houses on grass: no yard, track to the door or outbuilding is drawn, two houses of one group are the same model side by side, and no car stands beside them because nothing draws one.
+
+**Verdict:** provisional. The rule (M25) is met and measured; the look is the light touch that was asked for and is sparser than the references. Fitting tree lines to the drawn fields' edges needs the two to share one field geometry. **Confidence:** medium.
