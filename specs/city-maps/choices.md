@@ -2794,3 +2794,63 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 **Gap:** "The mask view adds 0 ms to the final view."
 
 **Verdict:** sound. The final view gains one uniform comparison per terrain fragment; the machine's run-to-run noise is hundreds of times that. **Confidence:** high.
+
+## C22 static chunk owner
+
+**When:** C22's first half (the owner, and corpses on it), 2026-10-01.
+
+### The owner is `frame/staticChunks.ts`; `scenery/lod.ts` keeps scenery's record and tier rule
+
+**Choice:** The chunk bookkeeping moved out of `scenery/lod.ts` into `frame/staticChunks.ts`. What stayed in `lod.ts` is scenery's own: its 12-float record, `treeInstances`, and the rule that a far chunk draws at the last tier. The alternative was to generalise `lod.ts` in place and have the models layer import from `scenery/`.
+
+**Gap:** The slice says "promoted from the scenery layer's existing chunk path" and names no home.
+
+**Verdict:** Sound. The owner serves two layers, so it sits beside the other things both read (`frame/detailView.ts`); scenery's files, which the ground lane owns, changed only where they called the old functions. **Confidence:** High.
+
+### A population gives each instance's bounds as a function, not as arrays
+
+**Choice:** The owner's input (`ChunkSource`) is records of any stride, a kind and a size per instance, and `bound(i, box)`, which grows a chunk's box by one instance. The alternative was the scenery path's two arrays (height and reach), extended for corpses.
+
+**Gap:** "Record packing" is delegated; the shape of an instance's bounds is not mentioned.
+
+**Verdict:** Sound. A tree stands on its foot (its reach about it, its height above); a corpse reaches its length and the shadow margin every way, computed from a 32-bit size in double precision. Arrays would have needed a third and fourth per instance or moved a corpse chunk's box by a rounding step, and a box that moves can flip a chunk between cards and meshes at the threshold. The function keeps both populations' boxes bit-identical to what they were, and runs only when a list is rebuilt. **Confidence:** High.
+
+### A chunk's level is the population's rule, and a level is whatever its layer draws
+
+**Choice:** `selectChunks` asks the population's `ChunkLevel` for each chunk in view: a level (the chunk draws whole, as merged ranges kept per kind and level) or `NEAR`. A population declares how many levels it has. Scenery has four and answers the last for a far chunk; corpses have five, the fifth their impostor card, and answer it only for a chunk whose every corpse has a card. The alternative was one built-in "far" level decided by a pixel threshold the owner holds.
+
+**Gap:** The slice asks for one owner of "tiering"; it does not say who decides a chunk's level, or that a card is a level.
+
+**Verdict:** Sound. The two rules differ in more than a number (a corpse chunk also needs every card baked), and kit modules and far-tier tiles bring their own; the owner stays free of each layer's presentation. **Confidence:** High.
+
+### Near chunks are listed; staging per level is a separate piece only scenery uses
+
+**Choice:** The owner lists the chunks whose instances choose their own level (`near`). `stageNear` copies those instances into a list per level, which scenery uploads per tier. The models layer does not use it: it walks the near chunks itself, asks the models' own detail rule per corpse (culled, a tier, or a card), and packs the result with the frame's other models. The alternative was to stage corpses through the owner too and draw them from buffers of their own.
+
+**Gap:** "Corpse chunks move onto it" does not say how far the per-corpse work moves.
+
+**Verdict:** Sound for this pass. A near corpse shares its mesh draws with the units (one records buffer, one run per mesh and fog class) and is culled by its own sphere with the shadow margin; staging it elsewhere would have changed the draws, the stats the scenes read, and added a second detail rule. What moved is everything that was duplicated: bucketing, chunk culling, the far decision's distance, the merged ranges. **Confidence:** High.
+
+### Corpses are one kind, with the placed order kept beside the records
+
+**Choice:** All corpses are one kind in the owner, whatever their appearance: one static buffer, so a far stretch of mixed corpses is still one card draw (the card's atlas layer is in the record). The owner keeps, per kind, which placed instance each sorted record is (`order`), and the models layer uses it to keep each record's appearance. The alternative was a kind per appearance.
+
+**Gap:** Not covered.
+
+**Verdict:** Sound. A kind per appearance would split every card range by appearance and raise the draw count the scenes read. **Confidence:** High.
+
+### Whether a population casts is the caller's argument, not the population's field
+
+**Choice:** `selectChunks` takes the sun's shadow (fall and reach) or null. Scenery passes it for the forest and massing and null for the backdrop; corpses pass null, since a card casts nothing and a near corpse casts through the models layer's own caster draws. Cast ranges stay one list per kind, drawn at the coarsest mesh.
+
+**Gap:** "Casters" are the owner's, with no detail.
+
+**Verdict:** Sound; this is what the scenery path did, with the flag moved to where the shadow is known. **Confidence:** High.
+
+### The corpse comparison is a scratch capture, not a registered scene
+
+**Choice:** "Corpse scenes unchanged" was judged on frames of the endurance lab's late state (the newest thousand of 20,000 fallen) at eight fixed cameras and one tick, with grass, effects and cast lights off, taken from the base commit and from the change under one hold of the GPU lock, twice each. No registered scene frames static corpses at a fixed camera; the village's fallen are mid-death when it shoots them.
+
+**Gap:** The slice names no corpse scene.
+
+**Verdict:** Provisional as a method: the script lives in the gitignored scratch folder. If corpse drawing changes again, a station for the fallen belongs in a scene. **Confidence:** Medium.
