@@ -26,6 +26,26 @@ pub(super) const SHARED_M: f64 = 8.0;
 const SLIVER_M2: f64 = 1.0;
 /// Two carriageways within this of each other meet.
 pub(super) const MEET_M: f64 = 0.5;
+/// How many places either side of the one drawn a cut is tried at, to end
+/// clear of the junctions on the cuts it ends on.
+const PLACES: usize = 6;
+/// Two cuts that end on a third from its two sides make a crossroads when
+/// they run within this of one line (the sine of 25 degrees).
+const IN_LINE_SIN: f64 = 0.423;
+
+/// Where a cut ends on another.
+#[derive(Clone, Copy)]
+pub(super) struct Tee {
+    /// How far along the cut it ends on.
+    at: f64,
+    /// Whether it comes from that cut's left.
+    from_left: bool,
+    /// The unit vector it runs along.
+    along: Point,
+    /// Whether it is a road ending on a road's line: a junction of the
+    /// settlement's roads, which the cuts between blocks keep clear of.
+    road: bool,
+}
 
 /// The least and the greatest of `values`.
 fn interval(values: impl Iterator<Item = f64>) -> [f64; 2] {
@@ -44,9 +64,8 @@ pub(super) struct Cut {
     /// The stretches a road covers, as distances along it with the road's
     /// own points at their ends.
     pub(super) paved: Vec<([f64; 2], [Point; 2])>,
-    /// Where other cuts end on it: how far along it, and whether from its
-    /// left. Its junctions.
-    pub(super) tees: Vec<(f64, bool)>,
+    /// Where other cuts end on it: its junctions.
+    pub(super) tees: Vec<Tee>,
 }
 
 impl Cut {
@@ -135,6 +154,20 @@ impl Leaf {
         (ring.len() >= 3 && area(&ring) >= SLIVER_M2).then_some(Leaf { ring, bounds })
     }
 
+    /// The leaf drawn in by `by` metres on every side: `None` where nothing
+    /// of it is left.
+    pub(super) fn inset(&self, by: f64) -> Option<Leaf> {
+        let mut inner = self.clone();
+        for index in 0..self.ring.len() {
+            let (a, b) = self.edge(index);
+            let along = scale(sub(b, a), 1.0 / distance(a, b));
+            // Counter-clockwise: the inside lies to an edge's left.
+            let origin = add(a, scale([-along[1], along[0]], by));
+            inner = inner.clipped(origin, along, true, self.bounds[index])?;
+        }
+        Some(inner)
+    }
+
     /// Its sharpest corner, in radians.
     pub(super) fn sharpest_corner(&self) -> f64 {
         let count = self.ring.len();
@@ -199,7 +232,12 @@ impl Ground {
         for (end, far) in [(a, b), (b, a)] {
             for (other, cut) in self.cuts.iter_mut().enumerate() {
                 if other != id && cut.aside(end).abs() <= SLIVER_M / 2.0 {
-                    let tee = (cut.at(end), cut.aside(far) > 0.0);
+                    let tee = Tee {
+                        at: cut.at(end),
+                        from_left: cut.aside(far) > 0.0,
+                        along: scale(sub(end, far), 1.0 / distance(end, far)),
+                        road: true,
+                    };
                     cut.tees.push(tee);
                 }
             }
@@ -242,13 +280,33 @@ impl Ground {
         self.leaves = pieces;
     }
 
+    /// Note the place `at` where two of the map's roads meet: each cut that
+    /// runs through it has a junction of the roads there, whether or not
+    /// the road that makes it crosses the settlement's ground.
+    pub(super) fn junction(&mut self, at: Point) {
+        for cut in &mut self.cuts {
+            if cut.aside(at).abs() <= SLIVER_M / 2.0 {
+                let tee = Tee {
+                    at: cut.at(at),
+                    from_left: true,
+                    along: [-cut.along[1], cut.along[0]],
+                    road: true,
+                };
+                cut.tees.push(tee);
+            }
+        }
+    }
+
     /// The line `(origin, along)` across `leaf`, moved so that each end of
     /// it within `reach` of a junction on the cut it ends on lies on that
     /// junction: slid along that cut where one end has one, turned to pass
     /// through both where both do. Only a junction made from the cut's far
-    /// side, and one no street of this side ends at yet: the two then make
-    /// a crossroads, where two streets ending at one point on the same
-    /// side would be a fork. `None` where neither end has one.
+    /// side by a cut between blocks that runs in line with this one, and
+    /// one no street of this side ends at yet: the two then make a
+    /// crossroads, where two streets ending at one point on the same side
+    /// would be a fork. The end of a road that stops along the cut is such
+    /// a place too, for a line that would pass just beyond it. `None` where
+    /// neither end has one.
     fn aligned(
         &self,
         leaf: &Leaf,
@@ -265,16 +323,36 @@ impl Ground {
                 let at = cut.at(end);
                 let side = cut.aside(middle) > 0.0;
                 let taken = |tee: f64| {
-                    cut.tees.iter().any(|(other, from_left)| {
-                        *from_left == side && (other - tee).abs() <= SHARED_M
-                    })
+                    cut.tees
+                        .iter()
+                        .any(|other| other.from_left == side && (other.at - tee).abs() <= SHARED_M)
                 };
+                // Or the end of a road that stops along the cut, where the
+                // line would pass just beyond it: the two then share that
+                // point, and the road does not stop a few metres short of a
+                // street.
+                let paved = |at: f64| {
+                    cut.paved
+                        .iter()
+                        .any(|(span, _)| span[0] <= at && at <= span[1])
+                };
+                let road_ends = cut
+                    .paved
+                    .iter()
+                    .flat_map(|(span, _)| *span)
+                    .filter(|end| !paved(at) && (end - at).abs() <= reach);
                 let tee = cut
                     .tees
                     .iter()
-                    .filter(|(tee, from_left)| *from_left != side && (tee - at).abs() <= reach)
-                    .map(|(tee, _)| *tee)
+                    .filter(|tee| {
+                        !tee.road
+                            && tee.from_left != side
+                            && (tee.at - at).abs() <= reach
+                            && cross(tee.along, along).abs() <= IN_LINE_SIN
+                    })
+                    .map(|tee| tee.at)
                     .filter(|tee| !taken(*tee))
+                    .chain(road_ends)
                     .min_by(|a, b| (a - at).abs().total_cmp(&(b - at).abs()))?;
                 Some((end, add(cut.origin, scale(cut.along, tee))))
             })
@@ -295,6 +373,31 @@ impl Ground {
             }
             _ => None,
         }
+    }
+
+    /// Whether the line `(origin, along)` across `leaf` ends clear of the
+    /// junctions it makes no crossroads of: neither end lies within `clear`
+    /// of the place a road ends on the cut that end lies on, nor within
+    /// `reach` of where another cut ends on it from either side. A road
+    /// leaves another at a junction of its own, a block from the nearest
+    /// street, and two streets that miss each other across a road miss by
+    /// more than a lot's width. An end on a junction (the one `aligned`
+    /// moved it to) is clear of it.
+    fn clear(
+        &self,
+        leaf: &Leaf,
+        (origin, along): (Point, Point),
+        [reach, clear]: [f64; 2],
+    ) -> bool {
+        leaf.ends(origin, along).into_iter().all(|(end, bound)| {
+            let Bound::Cut(id) = bound else { return true };
+            let cut = &self.cuts[id];
+            let at = cut.at(end);
+            cut.tees.iter().all(|tee| {
+                let away = (tee.at - at).abs();
+                away <= MEET_M || away >= if tee.road { clear } else { reach }
+            })
+        })
     }
 
     /// The edge a leaf fronts: its longest along a cut, a road's counting
@@ -367,7 +470,16 @@ impl Ground {
     /// runs a few degrees off square, so blocks are not all rectangles on
     /// one grid. The cuts are avenues. What is left behind a last row may
     /// be too shallow to build on: it stays open.
-    pub(super) fn subdivide(&mut self, rule: &BlockRule, towns: &Towns, rng: &mut Stream) {
+    ///
+    /// With `clear`, a cut is placed clear of the junctions on the cuts it
+    /// ends on; without, where it is drawn.
+    pub(super) fn subdivide(
+        &mut self,
+        rule: &BlockRule,
+        towns: &Towns,
+        clear: bool,
+        rng: &mut Stream,
+    ) {
         let ([shallow, deep], [short, long]) = (rule.depth_m, rule.length_m);
         let mut next = 0;
         // Each cut leaves two pieces shallower or shorter than the one it
@@ -378,37 +490,50 @@ impl Ground {
             let inward = [-along[1], along[0]];
             // A cut turns about its middle by `skew`, which carries its ends
             // `lift` off square. It is square where a turn would take a
-            // piece outside `[least, most]`.
+            // piece outside `[least, most]`. Answers the turn, the place
+            // drawn and the places it might have been.
             let skewed = |across: f64, [least, most]: [f64; 2], rng: &mut Stream| {
                 let skew = (2.0 * rng.unit() - 1.0) * towns.block_skew_deg.to_radians();
                 let lift = across / 2.0 * libm::tan(skew.abs());
                 if least + lift <= most - lift {
-                    (skew, rng.range([least + lift, most - lift]))
+                    let places = [least + lift, most - lift];
+                    (skew, rng.range(places), places)
                 } else {
-                    (0.0, rng.range([least, most]))
+                    (0.0, rng.range([least, most]), [least, most])
                 }
             };
             let turned = |by: Point, skew: f64| {
                 let (sin, cos) = (libm::sin(skew), libm::cos(skew));
                 [by[0] * cos - by[1] * sin, by[0] * sin + by[1] * cos]
             };
-            let line = if depth > deep {
-                let (skew, back) = skewed(to - from, [shallow, deep], rng);
-                let middle = add(corner, scale(along, (from + to) / 2.0));
-                Some((add(middle, scale(inward, back)), turned(along, skew)))
+            // (the turn, the place drawn, the places allowed, whether a row)
+            let cut = if depth > deep {
+                Some((skewed(to - from, [shallow, deep], rng), true))
             } else if to - from > long {
                 // A row of up to two blocks is cut about its middle, so
                 // neither is a sliver; a longer one loses a block.
-                let (skew, at) = if to - from <= 2.0 * long {
-                    let [low, high] = towns.block_split;
-                    skewed(depth, [(to - from) * low, (to - from) * high], rng)
-                } else {
-                    skewed(depth, [short, long], rng)
-                };
-                let middle = add(corner, scale(inward, depth / 2.0));
-                Some((add(middle, scale(along, from + at)), turned(inward, skew)))
+                Some((
+                    if to - from <= 2.0 * long {
+                        let [low, high] = towns.block_split;
+                        skewed(depth, [(to - from) * low, (to - from) * high], rng)
+                    } else {
+                        skewed(depth, [short, long], rng)
+                    },
+                    false,
+                ))
             } else {
                 None
+            };
+            // The line of a row's cut `at` back from the frontage, or of a
+            // cut across the row `at` along it.
+            let line = |skew: f64, at: f64, row: bool| {
+                if row {
+                    let middle = add(corner, scale(along, (from + to) / 2.0));
+                    (add(middle, scale(inward, at)), turned(along, skew))
+                } else {
+                    let middle = add(corner, scale(inward, depth / 2.0));
+                    (add(middle, scale(along, from + at)), turned(inward, skew))
+                }
             };
             let id = self.cuts.len();
             let halve = |(origin, along): (Point, Point)| {
@@ -420,11 +545,31 @@ impl Ground {
             };
             // A cut that would end on another within reach of where a cut
             // already ends on it from the far side is moved to end there:
-            // one crossroads, not two junctions a few metres apart.
-            let halves = line.and_then(|line| {
-                self.aligned(&leaf, line, towns.align_m)
-                    .and_then(halve)
-                    .or_else(|| halve(line))
+            // one crossroads, not two junctions a few metres apart. And it
+            // keeps clear of the other junctions, the roads' by a block (or
+            // half the depth of one, where blocks are small): the place
+            // nearest the one drawn, of those a block may be cut at, where
+            // it does. Where none does it is cut as drawn.
+            let rooms = if clear {
+                [towns.align_m, towns.junction_clear_m.min(shallow / 2.0)]
+            } else {
+                [0.0; 2]
+            };
+            let halves = cut.and_then(|((skew, drawn, [low, high]), row)| {
+                let step = (high - low) / PLACES as f64;
+                let places = (0..=PLACES)
+                    .flat_map(|k| [drawn + k as f64 * step, drawn - k as f64 * step])
+                    .filter(|at| *at >= low && *at <= high);
+                let moved = |at: f64| {
+                    let line = line(skew, at, row);
+                    self.aligned(&leaf, line, towns.align_m).unwrap_or(line)
+                };
+                places
+                    .map(moved)
+                    .filter(|line| self.clear(&leaf, *line, rooms))
+                    .find_map(halve)
+                    .or_else(|| halve(moved(drawn)))
+                    .or_else(|| halve(line(skew, drawn, row)))
             });
             match halves {
                 Some((origin, along, [left, right])) => {
@@ -432,7 +577,17 @@ impl Ground {
                     for (end, bound) in leaf.ends(origin, along) {
                         if let Bound::Cut(other) = bound {
                             let cut = &mut self.cuts[other];
-                            let tee = (cut.at(end), cut.aside(middle) > 0.0);
+                            let toward = if dot(sub(end, middle), along) >= 0.0 {
+                                along
+                            } else {
+                                scale(along, -1.0)
+                            };
+                            let tee = Tee {
+                                at: cut.at(end),
+                                from_left: cut.aside(middle) > 0.0,
+                                along: toward,
+                                road: false,
+                            };
                             cut.tees.push(tee);
                         }
                     }

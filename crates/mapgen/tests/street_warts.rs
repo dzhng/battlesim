@@ -49,9 +49,9 @@ const DOGLEG_COS: f64 = 0.819;
 const OWN_WIDTHS: f64 = 6.0;
 /// What the generator still leaves over the sweep's 36 maps, among some
 /// forty thousand street ends and junctions. Each is a count to bring down.
-const STOPS_SHORT: usize = 4;
-const ALONGSIDE: usize = 8;
-const STAGGER: usize = 57;
+const STOPS_SHORT: usize = 3;
+const ALONGSIDE: usize = 1;
+const STAGGER: usize = 19;
 const DOGLEG: usize = 1;
 /// How many of each wart a report lists.
 const LISTED: usize = 8;

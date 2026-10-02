@@ -1,5 +1,5 @@
 {
-  "revision": "layout-presets-9",
+  "revision": "layout-presets-10",
   "terrain": { "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
   "approach": {
     "depth_m": 1800,
@@ -27,6 +27,7 @@
     "side_exit_window": 0.7,
     "junction_reach_m": 1500,
     "junction_chance": 0.6,
+    "junction_apart_m": 700,
     "waypoint_reach_m": 400,
     "main_street_reach": 0.9,
     "gate_margin_m": 30,
@@ -45,7 +46,10 @@
     "block_split": [0.4, 0.6],
     "block_skew_deg": 8,
     "road_frontage": 2,
-    "align_m": 30
+    "align_m": 30,
+    "junction_clear_m": 100,
+    "park_reach_blocks": 8,
+    "park_min_ha": 0.3
   },
   "forests": {
     "large_radius_m": [450, 950],
@@ -97,7 +101,8 @@
     "street_step_m": 45,
     "lot_step_m": 4,
     "run_on_m": 60,
-    "tail_min_m": 35
+    "tail_min_m": 35,
+    "junction_clear_m": 60
   },
   "street_props": {
     "lane_margin_m": 3.7,
@@ -309,6 +314,7 @@
       "built_share": [0.6, 0.75],
       "block": { "depth_m": [110, 200], "length_m": [160, 320] },
       "ribbon": 1.2,
+      "parks": [0, 1],
       "neighbourhood": [2, 3],
       "zones": [
         { "to": 0.2, "districts": { "small_centre": 1 } },
@@ -330,6 +336,8 @@
       "built_share": [0.6, 0.75],
       "block": { "depth_m": [130, 230], "length_m": [200, 380] },
       "ribbon": 1.2,
+      "parks": [1, 1],
+      "open_blocks": 0.06,
       "neighbourhood": [2, 4],
       "zones": [
         { "to": 0.15, "districts": { "centre": 1 } },
@@ -351,7 +359,9 @@
       "built_share": [0.58, 0.7],
       "block": { "depth_m": [200, 340], "length_m": [300, 560] },
       "ribbon": 1,
-      "side_roads": { "count": [1, 2], "from": [0.1, 0.35], "turn_deg": [55, 100], "apart_m": 250 },
+      "side_roads": { "count": [1, 2], "from": [0.1, 0.35], "turn_deg": [60, 120], "apart_m": 250 },
+      "parks": [1, 2],
+      "open_blocks": 0.06,
       "neighbourhood": [3, 6],
       "zones": [
         { "to": 0.1, "districts": { "centre": 1 } },
@@ -374,7 +384,9 @@
       "built_share": [0.66, 0.8],
       "block": { "depth_m": [220, 380], "length_m": [320, 600] },
       "ribbon": 0.8,
-      "side_roads": { "count": [2, 4], "from": [0.25, 0.6], "turn_deg": [55, 100], "apart_m": 300 },
+      "side_roads": { "count": [2, 4], "from": [0.25, 0.6], "turn_deg": [60, 120], "apart_m": 300 },
+      "parks": [2, 3],
+      "open_blocks": 0.06,
       "neighbourhood": [4, 8],
       "zones": [
         { "to": 0.06, "districts": { "core": 1 } },

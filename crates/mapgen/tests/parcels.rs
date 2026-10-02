@@ -720,10 +720,13 @@ fn towns_keep_their_metre_dimensions_at_every_map_size() {
         let [large_buildings, large_hectares] = large[kind];
         let (a, b) = (buildings / hectares, large_buildings / large_hectares);
         // Districts differ in shape, so their fill does by a few per cent,
-        // and by more for a kind with only a few districts to count.
+        // and by more for a kind with only a few districts to count: two
+        // standard errors of the smaller count (industry is some forty
+        // buildings on a dozen districts at either size).
+        let counting = 2.0 / buildings.min(large_buildings).sqrt();
         assert!(
-            (a - b).abs() <= 0.25 * a.max(b),
-            "{kind}: {a:.2} buildings per hectare on Small, {b:.2} on Large"
+            (a - b).abs() <= (0.25 + counting) * a.max(b),
+            "{kind}: {a:.2} buildings per hectare on Small ({buildings} buildings), {b:.2} on Large ({large_buildings})"
         );
     }
 }

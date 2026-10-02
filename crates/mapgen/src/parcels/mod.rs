@@ -80,7 +80,7 @@ pub(crate) fn family<'a>(request: &GenerationRequest, presets: &'a PresetDefinit
 /// aprons added to `surfaces`, its parcels in `lots` and one `buildings` row
 /// per placed template, numbered into the plan's dense prop ids.
 pub fn fill_districts(
-    mut plan: MapPlan,
+    plan: MapPlan,
     request: &GenerationRequest,
     catalogue: &TemplateGeometryCatalog,
     presets: &PresetDefinitions,
@@ -93,6 +93,23 @@ pub fn fill_districts(
             message: "requested physical catalogue hash differs from the supplied catalogue".into(),
         }]);
     }
+    // An avenue that stops short of a road it may not meet is cut back a
+    // row of lots, like a street. Where that takes the only frontage a
+    // district has (a hamlet's one lane, mostly), the avenues keep the
+    // length the layout gave them.
+    fill(plan.clone(), request, catalogue, presets, true)
+        .or_else(|_| fill(plan, request, catalogue, presets, false))
+}
+
+/// `fill_districts`, cutting back the layout's avenues that stop short of a
+/// carriageway where `trim_avenues`.
+fn fill(
+    mut plan: MapPlan,
+    request: &GenerationRequest,
+    catalogue: &TemplateGeometryCatalog,
+    presets: &PresetDefinitions,
+    trim_avenues: bool,
+) -> Result<MapPlan, Vec<Diagnostic>> {
     let pass = Pass {
         request,
         presets,
@@ -113,8 +130,9 @@ pub fn fill_districts(
     };
     // The streets' ends are closed against each other and the layout's
     // roads before any parcel is cut along them.
+    let planned = if trim_avenues { 0 } else { plan.surfaces.len() };
     plan.surfaces.extend(laid);
-    streets::trim_tails(&pass, &mut plan.surfaces, plan.size);
+    streets::trim_tails(&pass, &mut plan.surfaces, planned, plan.size);
     let blocks: Vec<&[[f64; 2]]> = plan
         .settlements
         .iter()

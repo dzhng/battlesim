@@ -3,13 +3,19 @@
 use super::ground::{Bound, CORNER_M, MEET_M, SHARED_M};
 use super::Plot;
 use crate::layout::geometry::{
-    add, distance, round_cm, scale, segment_crossing, segment_distance, sub, Point,
+    add, cross, distance, dot, round_cm, scale, segment_crossing, segment_distance, sub, Point,
 };
 use crate::layout::sites::Site;
+use contract::map::SurfaceKind;
 use std::collections::{BTreeMap, BTreeSet};
 
 /// How far an avenue runs past the middle of the road it meets.
 const JOIN_OVERSHOOT_M: f64 = 0.5;
+/// An avenue meets a road no farther off square than this (the sine of 22
+/// degrees): at more of a slant it stops at its last corner before it.
+const SLANT_SIN: f64 = 0.375;
+/// A street within this of a road's line (a sine) runs along it.
+const ALONG_SIN: f64 = 0.02;
 
 /// Whether two stretches of carriageway meet.
 pub(super) fn touch(a: [Point; 2], b: [Point; 2]) -> bool {
@@ -32,7 +38,11 @@ struct Stretch {
 
 /// The streets along the built blocks' edges that no road covers. A street
 /// runs between two blocks where it leads on to another street or road at
-/// both ends. Along a block's edge that faces open ground, and where a
+/// both ends; `lined` are the blocks that count as the far side of one, the
+/// built blocks and the parks. One that would meet a road at a slant stops
+/// at the last corner of a block `short` or more before it: the blocks
+/// between front the road. Each street comes with the kind of the road it
+/// carries on from, where it does. Along a block's edge that faces open ground, and where a
 /// street would end in the fields, one runs only where it is needed: to
 /// lead to a street between blocks, or to give a block's parcels a front
 /// (`fronted` says whether a block has one, given the streets). An edge no
@@ -41,8 +51,10 @@ pub(super) fn avenues(
     site: &Site,
     plot: &Plot,
     built: &BTreeSet<usize>,
+    lined: &BTreeSet<usize>,
     fronted: &dyn Fn(usize, &[[Point; 2]]) -> bool,
-) -> Vec<[Point; 2]> {
+    short: f64,
+) -> Vec<([Point; 2], Option<SurfaceKind>)> {
     let (ground, mesh) = (&plot.ground, &plot.mesh);
     // Along each cut, the pieces of edge a built block stands on, with the
     // block when no other is built across the piece.
@@ -55,7 +67,7 @@ pub(super) fn avenues(
     let backed = |from: usize, to: usize| {
         mesh.owner
             .get(&(to, from))
-            .is_some_and(|other| built.contains(other))
+            .is_some_and(|other| lined.contains(other))
     };
     let shared: BTreeSet<(usize, usize)> = built
         .iter()
@@ -98,6 +110,23 @@ pub(super) fn avenues(
     for (id, mut pieces) in along {
         let cut = &ground.cuts[id];
         pieces.sort_by(|a, b| a.0[0].total_cmp(&b.0[0]).then(a.2.cmp(&b.2)));
+        // The blocks' corners along the cut.
+        let mut corners: Vec<f64> = pieces.iter().flat_map(|piece| piece.0).collect();
+        corners.sort_by(f64::total_cmp);
+        // Where a road crosses the cut's line, or ends on it, at a slant.
+        let slanted: Vec<f64> = plot
+            .roads
+            .iter()
+            .filter_map(|(a, b, _)| {
+                let (from, to) = (cut.aside(*a), cut.aside(*b));
+                let step = sub(*b, *a);
+                let slant = dot(cut.along, step).abs() / distance(*a, *b);
+                // On the line's two sides, or with an end on it.
+                let meets = from.min(to) <= MEET_M && from.max(to) >= -MEET_M;
+                (meets && slant > SLANT_SIN && (from - to).abs() > MEET_M)
+                    .then(|| cut.at(add(*a, scale(step, from / (from - to)))))
+            })
+            .collect();
         // Joined end to end into runs, each between two blocks or along one.
         let mut runs: Vec<Piece> = Vec::new();
         for (span, ends, edge_of, blocks) in pieces {
@@ -135,7 +164,44 @@ pub(super) fn avenues(
                 _ => joined.push((span, ends, edge_of, blocks)),
             }
         }
-        let runs = joined;
+        // A run that meets a road at a slant loses the stretch either side
+        // of it, back to the first corner far enough off.
+        let mut straight: Vec<Piece> = Vec::new();
+        for (span, ends, edge_of, blocks) in joined {
+            let mut kept = vec![span];
+            for at in slanted
+                .iter()
+                .filter(|at| **at >= span[0] - MEET_M && **at <= span[1] + MEET_M)
+            {
+                let before = corners
+                    .iter()
+                    .copied()
+                    .rfind(|corner| *corner <= at - short);
+                let after = corners.iter().copied().find(|corner| *corner >= at + short);
+                kept = kept
+                    .into_iter()
+                    .flat_map(|[from, to]| {
+                        [
+                            [from, to.min(before.unwrap_or(f64::NEG_INFINITY))],
+                            [from.max(after.unwrap_or(f64::INFINITY)), to],
+                        ]
+                    })
+                    .filter(|[from, to]| to - from >= SHARED_M)
+                    .collect();
+            }
+            for [from, to] in kept {
+                let place = |at: f64, end: Point| {
+                    if (at - cut.at(end)).abs() <= CORNER_M {
+                        end
+                    } else {
+                        add(cut.origin, scale(cut.along, at))
+                    }
+                };
+                let ends = [place(from, ends[0]), place(to, ends[1])];
+                straight.push(([from, to], ends, edge_of, blocks.clone()));
+            }
+        }
+        let runs = straight;
         // Less what a road already paves: the street starts on the road's
         // own end, so the two share that point.
         let mut paved = cut.paved.clone();
@@ -306,6 +372,22 @@ pub(super) fn avenues(
             .copied()
             .find(|end| distance(*end, p) <= MEET_M)
     };
+    // A street that starts on a road's end and runs on along its line is
+    // that road carried on to the next junction: a road keeps its kind and
+    // width from junction to junction.
+    let carried = |p: Point, toward: Point| {
+        ground
+            .cuts
+            .iter()
+            .filter(|cut| cross(cut.along, toward).abs() <= ALONG_SIN)
+            .find(|cut| {
+                cut.paved
+                    .iter()
+                    .flat_map(|(_, ends)| ends)
+                    .any(|end| distance(*end, p) <= MEET_M)
+            })
+            .and_then(|cut| cut.road)
+    };
     streets
         .iter()
         .map(|[a, b]| {
@@ -317,7 +399,10 @@ pub(super) fn avenues(
                 None if on_limit(p) && !on_road(p) => p,
                 None => add(p, scale(toward, way * JOIN_OVERSHOOT_M)),
             };
-            [round_cm(end(a, -1.0)), round_cm(end(b, 1.0))]
+            (
+                [round_cm(end(a, -1.0)), round_cm(end(b, 1.0))],
+                carried(a, toward).or(carried(b, toward)),
+            )
         })
         .collect()
 }
