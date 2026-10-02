@@ -41,6 +41,7 @@ const respond = (value: unknown) =>
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 it("shows exact units by default and preserves an inline edit while filtering", async () => {
@@ -454,4 +455,43 @@ it("previews old and new battlefield values with their raw units across coupled 
     .find((item) => item.textContent?.includes("Maximum engagement range"))!;
   expect(rangeSummary.textContent).toContain("150 m → 300 m");
   expect(rangeSummary.textContent).toContain("Restore inheritance");
+});
+
+it("returns to the last connected gameplay edit after native rejection without guessing the failed field", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) =>
+      url.endsWith("/preview")
+        ? new Response(JSON.stringify({ error: "ScatterTooTight: rejected flight settings" }), {
+            status: 400,
+          })
+        : respond(snapshot),
+    ),
+  );
+  const scrollIntoView = HTMLElement.prototype.scrollIntoView;
+  Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+    configurable: true,
+    value: vi.fn(),
+  });
+  try {
+    render(<MechanicsEditor />);
+    fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
+    const spread = screen.getByLabelText("grenade Landing spread at maximum range");
+    fireEvent.change(spread, { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
+    await screen.findByText("ScatterTooTight: rejected flight settings");
+    const back = screen.getByRole("button", { name: "Back to last edit" });
+    back.focus();
+    fireEvent.click(back);
+    expect(document.activeElement).toBe(spread);
+    expect(spread.closest("details")!.open).toBe(true);
+    expect((spread as HTMLInputElement).value).toBe("1");
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "tank" } });
+    expect(screen.queryByRole("button", { name: "Back to last edit" })).toBeNull();
+  } finally {
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView,
+    });
+  }
 });

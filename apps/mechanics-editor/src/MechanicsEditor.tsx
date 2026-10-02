@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   MECHANICS_API,
   type Json,
@@ -499,6 +507,14 @@ export default function MechanicsEditor() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const lastEdit = useRef<HTMLElement | null>(null);
+  const [hasLastEdit, setHasLastEdit] = useState(false);
+  useEffect(() => {
+    if (lastEdit.current && !lastEdit.current.isConnected) {
+      lastEdit.current = null;
+      setHasLastEdit(false);
+    }
+  });
   const [conflict, setConflict] = useState(false);
   const [reloadArmed, setReloadArmed] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -690,7 +706,20 @@ export default function MechanicsEditor() {
         }
       : null;
   return (
-    <main className="mechanics-editor">
+    <main
+      className="mechanics-editor"
+      onChangeCapture={(event) => {
+        const input = event.target;
+        if (
+          input instanceof HTMLElement &&
+          input.matches("input, textarea, select") &&
+          input.closest(".me-input")
+        ) {
+          lastEdit.current = input;
+          setHasLastEdit(true);
+        }
+      }}
+    >
       <header className="me-header">
         <div>
           <a className="me-back" href="/">
@@ -750,6 +779,23 @@ export default function MechanicsEditor() {
             {conflict ? "Sources changed outside this editor" : "Changes could not be accepted"}
           </strong>
           <p>{error}</p>
+          {hasLastEdit && lastEdit.current?.isConnected && (
+            <button
+              type="button"
+              onClick={() => {
+                if (!lastEdit.current?.isConnected) return;
+                let details = lastEdit.current.closest("details");
+                while (details) {
+                  details.open = true;
+                  details = details.parentElement?.closest("details") ?? null;
+                }
+                lastEdit.current.scrollIntoView({ block: "center", behavior: "smooth" });
+                lastEdit.current.focus({ preventScroll: true });
+              }}
+            >
+              Back to last edit
+            </button>
+          )}
           {conflict && (
             <p>Your draft is preserved. Reloading discards it and reads the current files.</p>
           )}
