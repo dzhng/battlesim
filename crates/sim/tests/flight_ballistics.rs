@@ -1,6 +1,7 @@
 //! Launch solving and flight against closed-form ballistics: gravity endpoints,
 //! analytic elevations, lead, evasion, reach, arc choice, and the flight
-//! bounds. Game weapon rows supply speeds; the expectations are physics.
+//! bounds. Shipped-round checks use authored weapon rows; isolated experiments
+//! pin their flight inputs so balance tuning cannot change the experiment.
 
 use crate::common::*;
 use contract::ballistics::{FlightRules, Trajectory, WeaponBallistics};
@@ -321,10 +322,24 @@ fn leading_steady_observed_motion_hits_and_aiming_at_the_present_misses() {
     }
 }
 
+/// Fixed ballistic inputs keep evasion and reach independent of weapon tuning.
+fn ballistic_control() -> LaunchProfile {
+    LaunchProfile {
+        speed_mps: 80.0,
+        gravity_scale: 1.0,
+        lifetime_s: 30.0,
+        trajectory: Trajectory::Direct,
+        scatter_mrad: 0.0,
+        suppression_radius_m: 0.0,
+        turn_rad_s: None,
+        motor: None,
+    }
+}
+
 #[test]
 fn an_unguided_round_is_dodged_by_changing_motion_after_launch() {
     let world = flat([1000.0, 400.0], "");
-    let grenade = profile("grenade");
+    let round = ballistic_control();
     let dt = config().tick_s();
     let walker = crossing_soldier(3.0);
     let origin = v3(250.0, 190.0, physics("infantry_muzzle_m"));
@@ -333,7 +348,7 @@ fn an_unguided_round_is_dodged_by_changing_motion_after_launch() {
         target: walker.base + v3(0.0, 0.0, 0.85),
         target_velocity: walker.velocity,
     };
-    let s = solve_launch(&world, &config(), &grenade, &aim).unwrap();
+    let s = solve_launch(&world, &config(), &round, &aim).unwrap();
     // Reverses ten ticks after launch; the round keeps its launch velocity.
     let reverse_at = 10;
     let dodger = |k: u64| {
@@ -357,7 +372,7 @@ fn an_unguided_round_is_dodged_by_changing_motion_after_launch() {
     };
     for (keeps_walking, should_hit) in [(true, true), (false, false)] {
         let mut store = Projectiles::new(config());
-        store.launch(fired(&grenade, origin, s.velocity));
+        store.launch(fired(&round, origin, s.velocity));
         let events = fly(&mut store, &world, 900, |k| {
             vec![if keeps_walking {
                 walker.body(k, dt)
@@ -391,31 +406,29 @@ fn an_unguided_round_is_dodged_by_changing_motion_after_launch() {
 #[test]
 fn an_unreachable_target_has_no_firing_solution() {
     let world = flat([2000.0, 400.0], "");
-    let grenade = profile("grenade");
+    let round = ballistic_control();
     let o = v3(100.0, 200.0, 1.4);
     // Flat-ground maximum range is v²/g ≈ 652 m.
-    let max_range = grenade.speed_mps.powi(2) / g(&grenade);
+    let max_range = round.speed_mps.powi(2) / g(&round);
     let beyond = Aim {
         origin: o,
         target: v3(100.0 + max_range + 20.0, 200.0, 0.0),
         target_velocity: V3::default(),
     };
     assert_eq!(
-        solve_launch(&world, &config(), &grenade, &beyond),
+        solve_launch(&world, &config(), &round, &beyond),
         Err(NoSolution::OutOfReach)
     );
     // Reachable in space but not within the round's lifetime.
-    let short_lived = config()
-        .profile(&WeaponBallistics {
-            lifetime_s: Some(3.0),
-            ..weapon("grenade")
-        })
-        .unwrap();
+    let short_lived = LaunchProfile {
+        lifetime_s: 3.0,
+        ..round
+    };
     let far = Aim {
         target: v3(500.0, 200.0, 0.0),
         ..beyond
     };
-    assert!(solve_launch(&world, &config(), &grenade, &far).is_ok());
+    assert!(solve_launch(&world, &config(), &round, &far).is_ok());
     assert_eq!(
         solve_launch(&world, &config(), &short_lived, &far),
         Err(NoSolution::OutOfReach)
@@ -427,7 +440,7 @@ fn an_unreachable_target_has_no_firing_solution() {
         ..beyond
     };
     assert_eq!(
-        solve_launch(&world, &config(), &grenade, &fleeing),
+        solve_launch(&world, &config(), &round, &fleeing),
         Err(NoSolution::OutOfReach)
     );
 }
