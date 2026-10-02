@@ -84,3 +84,7 @@ When a sampled position clamps at an endpoint, test an all-rejected endpoint
 inside the acceptance radius. A distance predicate then remains true forever.
 Bound exhaustion by the finite source traversal, and fail a regression's injected
 predicate after the legitimate attempts so the broken arm cannot hang the runner.
+
+Process-wide instruction counters include every test thread. Isolate a committed
+cost regression in a child process running only that test; a serial narrow command
+during development does not prevent contamination when the full suite runs later.

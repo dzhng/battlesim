@@ -416,7 +416,7 @@ pub(crate) fn advance(
         .filter(|u| u.alive())
         .filter_map(|u| Threat::of(ctx, u))
         .collect();
-    let mut crowd = soldier::Crowd::gather(units);
+    let mut crowd = soldier::Crowd::gather(units, ctx.soldier_radius_m);
     let mut shoves = Vec::new();
     for i in 0..units.len() {
         if !units[i].alive() {
@@ -434,6 +434,7 @@ pub(crate) fn advance(
                 take_cover::hold(ctx, unit, side, &field);
             }
             soldier::step_squad(ctx, unit, i, side, &hulls, &threats, &mut crowd, advancing);
+            crowd.refresh_radius(unit, ctx.soldier_radius_m);
         }
     }
     shoves

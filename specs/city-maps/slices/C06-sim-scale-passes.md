@@ -48,3 +48,17 @@ steep ground and bounds agree with the full surface query. This simplification
 produced no measured speedup and does not substantiate a fine-routing bottleneck.
 Matched city early/late digests and [system costs](../scale-lane.md#c06-termination-checkpoint)
 remain the scale lane's evidence. C06 is still open against the tick budget.
+
+## Outcome — exact per-tick bounds; cover still red
+
+Hull traffic now visits only living, standing squads in original unit order.
+Its current footprint bounds refresh after every relevant movement, so later
+vehicles see the same geometry. Sensing derives target bounds once while its
+unit slice is immutable. The regression measures fallen-squad amplification in
+an isolated process: remains may add gather work, but more vehicles must not
+multiply that work. Restoring the old traffic scan makes the regression fail.
+
+Matched city early/late digests are unchanged; measured instruction gains and
+the next cover-planning owner live in the scale lane's
+[checkpoint](../scale-lane.md#c06-live-traffic-and-sight-bounds-checkpoint).
+No mechanic or scheduling delay was introduced. C06 remains open.

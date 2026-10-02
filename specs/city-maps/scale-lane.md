@@ -31,11 +31,10 @@ Read [`AGENTS.md`](../../AGENTS.md): narrow checks only, no full gate. A perform
 
 ## Status
 
-**C05 native measurement complete; C06 termination pass complete; cost work active.** Branch `codex/city-maps-scale` starts at
-`732f3db0` (the supplied checkout), which contains the supplied map/simulation integration. Local `main` advanced
-while measuring; its incoming changes are evidence/docs pruning and removal of
-obsolete serde defaults, so merge those at the green checkpoint. Keep the exact
-measured inputs for same-rules parity.
+**C05 measurement complete; C06 and C07 cost work active.** Branch
+`codex/city-maps-scale` includes the latest main through `44d7655c`.
+Measured maps and rules remain unchanged across the incoming menu, renderer and
+documentation updates. Preserve the exact inputs for matched parity.
 
 The native reports now attribute the production tick without introducing OS
 counters into the ordinary tick. Observation construction and wire packing are
@@ -109,23 +108,23 @@ remain G0's open decision; the 64 MiB codec ceiling is not a performance target.
 
 ### Priority and next pickup
 
-1. C06: movement is largest in actual contact. The rejoin search now exhausts
-   its finite corridor instead of repeating a blocked nearby endpoint forever.
-   Its regression proves pure search termination, not outer-battle arrival.
-   The walkability query simplification produced **no measured speedup**.
-   Stack sampling is now locating the expensive movement/visibility owners;
-   do not build a fine-route cache from the rejected cost hypothesis.
-2. Retain all matched city/saved digests and replay. Run only affected tests,
-   then compare reports with exactly the same map and stress inputs.
-3. C07: bound delivery growth without changing complete logical observations.
-   Existing fog/ground deltas are bounded; bodies/corpses remain complete each
-   tick. The provisional 19.8 KB/tick target misses 100-unit own rows alone; any
-   budget change must be an explicit workload decision.
+1. C06: infantry cover planning is the largest movement owner. A temporary
+   finer profile attributes 45.540 M/tick and a 772.343 M peak at tick 46 to
+   cover; soldier stepping is 27.872 M/tick, vehicles 4.523 and traffic 0.801.
+   These component means include extra counter reads. Their maxima occur on
+   different ticks and cannot be added. Investigate the cover owner next.
+2. Keep matched city/saved digests and replay unchanged. Run affected tests,
+   then compare reports on the exact same map and stress inputs.
+3. C07: the first exact group replacement codec is integrated. Average delivery
+   falls to 15,643 B early and 53,744 B late, but sorted corpse insertion still
+   shifts the retained tail: late p95 is 473,328 B, max 591,180 B. The 19.8 KB/tick
+   admission remains open; a mean below it does not close the budget. The next
+   codec pass owns sparse collection edits and its producer/decoder parity.
 4. Build stable Wasm, then run `endurance` and `benchmark` scenes serially.
 
-Map-lane coordination: no generator, fixture, browser, renderer or parent README
-changes. C07 producer/decoder changes, if measurements select them, will be a named
-cross-ownership commit. The configured Codex CLI review could not run because its
+Map-lane coordination: no generator, renderer or parent README changes. The
+C07 producer/decoder checkpoint is the named cross-ownership commit: it updates
+wire fixtures and browser decoding while preserving canonical observation bits. The configured Codex CLI review could not run because its
 `gpt-6.1-sol` model is unsupported on this ChatGPT account; independent read-only
 subagent review found and corrected generated-workload, attribution and unavailable-
 counter reporting issues. Focused authority/replay, city stress/placement and late
@@ -141,6 +140,22 @@ slope/bounds query parity, authority/replay and focused clippy pass.
 
 Matched final contact digests remain `32ba0e3c667a728b` / `1afb9cf97c2120f3`.
 The first pass retires 369.9 / 499.4 G step instructions versus 369.5 / 498.2 G
-before; movement averages 80.343 / 115.329 M instructions per tick, effectively
+before; movement averages 80.343 / 115.399 M instructions per tick, effectively
 unchanged. Loaded-clock results are not throughput acceptance; **budget remains
 red**. C07 proceeds in its own worktree against the completed C05 seam.
+
+### C06 live traffic and sight bounds checkpoint
+
+Traffic scans living, standing squads in the same order, instead of scanning
+all fallen squads for every vehicle. Footprint radii are derived once per
+immutable sensing call and once per movement gather, then refreshed after
+squad movement or hull shoves. The authoritative geometry and collision order
+stay unchanged. The process-counter regression runs in an isolated child so
+concurrent tests cannot contaminate its measurement.
+
+Matched 60 s contact runs retire 356.5 / 457.5 G step instructions, against
+369.5 / 498.4 G before this pass. Movement drops to 77.863 / 96.912 M/tick;
+sight to 23.941 / 25.088 M/tick. Both exact battle digests remain unchanged.
+Loaded clocks still miss the tick budget; these are instruction gains, not
+throughput acceptance. The finer diagnostic brackets are removed after locating
+cover planning, so the production report keeps its existing system contract.

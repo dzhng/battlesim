@@ -258,6 +258,10 @@ impl Threat {
 pub struct Crowd {
     /// First entry of each unit's soldiers.
     base: Vec<usize>,
+    /// Traffic visits only living squads; footprint radii are refreshed whenever
+    /// movement or a hull shove changes their soldiers or settled centre.
+    standing: Vec<usize>,
+    radii: Vec<f64>,
     at: Vec<Option<V2>>,
     buckets: HashMap<(i32, i32), Vec<u32>>,
 }
@@ -272,13 +276,19 @@ fn bucket(p: V2) -> (i32, i32) {
 }
 
 impl Crowd {
-    pub fn gather(units: &[Unit]) -> Self {
+    pub fn gather(units: &[Unit], radius: f64) -> Self {
         let mut base = Vec::with_capacity(units.len());
         let mut at = Vec::new();
+        let mut standing_units = Vec::new();
+        let mut radii = vec![0.0; units.len()];
         let mut buckets: HashMap<(i32, i32), Vec<u32>> = HashMap::new();
-        for u in units {
+        for (i, u) in units.iter().enumerate() {
             base.push(at.len());
             let standing = !u.is_vehicle() && !u.garrisoned();
+            if standing && u.alive() {
+                standing_units.push(i);
+                radii[i] = u.footprint_radius(radius);
+            }
             for s in &u.members {
                 let p = (standing && s.alive()).then(|| s.position.xy());
                 if let Some(p) = p {
@@ -287,7 +297,17 @@ impl Crowd {
                 at.push(p);
             }
         }
-        Crowd { base, at, buckets }
+        Crowd {
+            base,
+            standing: standing_units,
+            radii,
+            at,
+            buckets,
+        }
+    }
+
+    pub(super) fn refresh_radius(&mut self, unit: &Unit, radius: f64) {
+        self.radii[unit.id.0 as usize] = unit.footprint_radius(radius);
     }
 
     fn id(&self, unit: usize, member: usize) -> usize {
@@ -942,11 +962,10 @@ pub(super) fn shove(ctx: &MovementContext, units: &mut [Unit], vehicle: usize, c
     };
     let r = ctx.soldier_radius_m;
     let reach = hull.half.length() + r;
-    for (j, unit) in units.iter_mut().enumerate() {
-        if j == vehicle || unit.is_vehicle() || unit.garrisoned() {
-            continue;
-        }
-        if (unit.position.xy() - hull.center).length() > reach + unit.footprint_radius(r) {
+    for k in 0..crowd.standing.len() {
+        let j = crowd.standing[k];
+        let unit = &mut units[j];
+        if (unit.position.xy() - hull.center).length() > reach + crowd.radii[j] {
             continue;
         }
         let mut moved = false;
@@ -962,6 +981,7 @@ pub(super) fn shove(ctx: &MovementContext, units: &mut [Unit], vehicle: usize, c
         }
         if moved {
             unit.settle();
+            crowd.refresh_radius(unit, r);
         }
     }
 }

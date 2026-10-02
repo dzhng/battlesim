@@ -714,7 +714,7 @@ fn group_delivery_reconstructs_the_logical_oracle_across_side_and_epoch_changes(
     let mut previous: Vec<Vec<f32>> = Vec::new();
     for tick in 0..12 {
         battle.step();
-        let side = if tick < 4 || tick >= 8 {
+        let side = if !(4..8).contains(&tick) {
             Side::Blue
         } else {
             Side::Red

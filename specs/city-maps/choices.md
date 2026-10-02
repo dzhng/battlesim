@@ -2913,3 +2913,19 @@ codec dependency or new simulation state. **Confidence:** High.
 **Gap:** "The mask view adds 0 ms to the final view."
 
 **Verdict:** sound. The final view gains one uniform comparison per terrain fragment; the machine's run-to-run noise is hundreds of times that. **Confidence:** high.
+
+## C06 per-tick geometry bounds
+
+### Cache derived bounds only while their authoritative positions are stable
+
+**Choice:** Sensing computes each unit's footprint radius once per immutable
+call. Movement gathers living infantry in unit order and keeps their derived
+radii beside the existing crowd, refreshing them after squad motion or a shove.
+
+**Gap:** The spec delegates measured cost reductions but does not choose a
+cache owner or lifetime.
+
+**Verdict:** sound. Recomputing a squad's radius for every vehicle or observer
+repeats a scan of its soldiers. These short-lived bounds have explicit refresh
+owners and preserve collision and sensing results. Fallen squads remain in the
+battle and observations; they add no traffic work per vehicle. **Confidence:** high.
