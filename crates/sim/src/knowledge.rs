@@ -375,7 +375,17 @@ impl SideKnowledge {
                         .iter()
                         .map(|&k| unit.members[k].leaning(tick).map(|l| l.published()))
                         .collect(),
-                    weapon_poses: unit.mounts.iter().map(crate::weapons::pose).collect(),
+                    weapon_poses: unit
+                        .mounts
+                        .iter()
+                        .map(|m| {
+                            let mut pose = crate::weapons::pose(m);
+                            pose.operator = pose
+                                .operator
+                                .filter(|id| t.members.iter().any(|&k| unit.members[k].id == *id));
+                            pose
+                        })
+                        .collect(),
                     reversing: unit.reversing,
                 }
             })

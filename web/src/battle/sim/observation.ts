@@ -232,6 +232,8 @@ export interface CorpseView {
 export interface WeaponPoseView {
   /** Index into the unit kind's mount list in the rules. */
   mount: number;
+  /** The visible infantry operator's stable soldier id, or null. */
+  operator: number | null;
   /** World bearing: a turret's heading, or a hand weapon's last aim. */
   bearing: number;
   /** Elevation of the mount's last launched round; 0 before it first fires. */
@@ -888,6 +890,7 @@ function decodeFrame(
         bearing: f("bearing"),
         elevation: f("elevation"),
         shots: limbs(f, "shots")!,
+        operator: limbs(f, "operator"),
       };
     });
   const [ownIds, ownPoses] = [reader("own", "memberIds"), reader("own", "weaponPoses")];

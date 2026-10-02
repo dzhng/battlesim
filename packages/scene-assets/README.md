@@ -54,10 +54,10 @@ Gzip is an explicit file transport, not an assumed hosting optimization. The bro
 
 ## Sides
 
-Blue and red draw the same meshes. A material's `tint` (glTF material extras, 0..1) is the side-tint mask: how much of the side's colour it takes. The catalog's `sides` holds each side's linear RGB tint, baked into the runtime catalog. `AppearanceCatalog` (`src/appearanceCatalog.ts`) answers which appearance a unit kind draws and its side's tint: `resolve(kind, side, soldierId)`.
+Blue and red draw the same meshes. A material's `tint` (glTF material extras, 0..1) is the side-tint mask: how much of the side's colour it takes. The catalog's `sides` holds each side's linear RGB tint, baked into the runtime catalog. `AppearanceCatalog` (`src/appearanceCatalog.ts`) answers which appearance a unit kind draws and its side's tint: `resolve(kind, side, soldierId, slot, operatorMount)`. The observation supplies the current operator for each infantry weapon; its mount may replace the carrier's ordinary appearance with `operator_appearance`. This follows the weapon when a survivor takes it up, and fallen soldiers return to their ordinary appearance so the recovered weapon is not duplicated.
 
 - A vehicle kind has exactly one appearance; a second is refused.
-- An infantry kind may have several **variants** (catalog entries with the same `unit`: another head, kit, pack and colouring). They must share one skeleton, so they share one clip set; variants on two skeletons are refused. A soldier wears variant `id mod n` in name order, the same one alive and fallen, so consecutive soldiers (a squad's) never share one.
+- An infantry kind may have several **variants** (catalog entries with the same `unit`: another head, kit, pack and colouring). A soldier wears variant `id mod n` in name order. Variants within one ordinary or operator appearance set share a skeleton; different equipment sets may use different holds, and each soldier samples the clips of the model he wears.
 
 The renderer multiplies tint-masked albedo by the `ModelInstance`'s tint.
 

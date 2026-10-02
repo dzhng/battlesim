@@ -54,6 +54,8 @@ export interface MountRow {
   weapons: string[];
   squad: boolean;
   special: boolean;
+  /** Appearance set worn by this single infantry weapon's current operator. */
+  operator_appearance?: string[];
   turret: boolean;
   /** The earlier turret mount that carries it; null, the hull. */
   on: string | null;

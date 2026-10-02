@@ -1125,3 +1125,94 @@ fn a_fallen_gunners_launcher_fires_from_the_soldier_who_took_it_up() {
         first.1
     );
 }
+
+#[test]
+fn the_published_launcher_operator_follows_the_survivor_who_takes_it_up() {
+    let mut b = quick(
+        json!([]),
+        json!([
+            { "side": "blue", "kind": "at", "position": [40, 300] },
+            { "side": "red", "kind": "recon", "position": [100, 330], "engagement": "return_fire_only" }
+        ]),
+        2,
+        |r| {
+            sim::fixtures::patch_catalog(r, "soldiers", "at_rifleman", json!({ "hp": 100_000 }));
+            sim::fixtures::patch_catalog(r, "soldiers", "atgm_gunner", json!({ "hp": 1 }));
+        },
+    );
+    let team = own(&b, Side::Blue, 0).unwrap();
+    let operator = |team: &contract::observation::OwnUnit| {
+        serde_json::to_value(team.weapon_poses[1]).unwrap()["operator"].clone()
+    };
+    assert_eq!(
+        operator(&team),
+        json!(team.member_ids[0]),
+        "the launcher has one published operator"
+    );
+    Commander::new().ok(
+        &mut b,
+        Side::Red,
+        Order::SetEngagement {
+            units: vec![UnitId(1)],
+            policy: contract::command::Engagement::FireAtWill,
+        },
+    );
+    let mut survivor = None;
+    for _ in 0..900 {
+        b.step();
+        let team = own(&b, Side::Blue, 0).unwrap();
+        if !team.member_slots.contains(&0) {
+            b.step();
+            survivor = own(&b, Side::Blue, 0);
+            break;
+        }
+    }
+    let survivor = survivor.expect("the gunner fell and his riflemen survived");
+    assert_eq!(
+        operator(&survivor),
+        json!(survivor.member_ids[0]),
+        "the same launcher now names its surviving operator"
+    );
+}
+
+#[test]
+fn a_seen_team_does_not_publish_its_unseen_launcher_operator() {
+    let units = json!([
+        { "side": "blue", "kind": "tank", "position": [100, 300], "engagement": "return_fire_only" },
+        { "side": "red", "kind": "at", "position": [200, 300], "engagement": "return_fire_only" }
+    ]);
+    let mut clear = quick(json!([]), units.clone(), 7, |_| {});
+    for _ in 0..5 {
+        clear.step();
+    }
+    let seen = clear
+        .observe(Side::Blue)
+        .identified
+        .iter()
+        .find(|e| e.kind == common::unit_kind("at"))
+        .unwrap();
+    let gunner = seen.weapon_poses[1]
+        .operator
+        .expect("the unobstructed operator is seen");
+    let k = seen.member_ids.iter().position(|id| *id == gunner).unwrap();
+    let at = seen.members[k];
+    let screen = json!([{ "kind": "wall", "center": [(100.0 + at[0]) / 2.0, (300.0 + at[1]) / 2.0], "yaw": 0, "half_extents": [0.1, 0.1, 8] }]);
+    let mut screened = quick(screen, units, 7, |_| {});
+    for _ in 0..5 {
+        screened.step();
+    }
+    let seen = screened
+        .observe(Side::Blue)
+        .identified
+        .iter()
+        .find(|e| e.kind == common::unit_kind("at"))
+        .expect("the guards still identify the team");
+    assert!(
+        !seen.member_ids.contains(&gunner),
+        "only the gunner is screened"
+    );
+    assert_eq!(
+        seen.weapon_poses[1].operator, None,
+        "an unseen carrier's identity never crosses the fog boundary"
+    );
+}

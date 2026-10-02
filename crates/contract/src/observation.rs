@@ -245,6 +245,9 @@ pub struct GuidedMissile {
 pub struct WeaponPose {
     /// Index into the unit type's mount list.
     pub mount: u8,
+    /// Current infantry operator, if present in this side's visible members.
+    /// None for hull/squad weapons and unseen enemy operators.
+    pub operator: Option<u32>,
     /// World bearing (radians, counter-clockwise from +X): a turret's heading,
     /// or a hand weapon's last aim.
     pub bearing: f64,

@@ -23,13 +23,13 @@
       "extends": "rifleman",
       "name": "AT rifleman",
       "description": "A rifleman of an anti-tank team.",
-      "appearance": ["at", "at_b", "at_c"]
+      "appearance": ["rifle", "rifle_b", "rifle_c"]
     },
     "atgm_gunner": {
       "extends": "at_rifleman",
       "name": "ATGM gunner",
       "description": "Carries the team's guided anti-tank missile launcher.",
-      "mounts": [{ "name": "ATGM launcher", "weapons": ["atgm"], "special": true }]
+      "mounts": [{ "name": "ATGM launcher", "weapons": ["atgm"], "special": true, "operator_appearance": ["at", "at_b", "at_c"] }]
     }
   }
 }

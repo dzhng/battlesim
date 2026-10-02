@@ -11,6 +11,9 @@ import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import { shippedMounts } from "./shippedMounts";
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
 import { PoseDriver, type PoseFrame } from "@packages/battle-renderer/src/models/poseDriver";
+import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
+import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
+import { poseFrameInstances } from "@packages/battle-renderer/src/models/modelInstances";
 import { TickInterpolator } from "../src/battle/present/interpolate";
 import type {
   CorpseView,
@@ -67,7 +70,7 @@ const squad = (
   sees: [],
   engagement: "fire_at_will",
   mounts: [],
-  weaponPoses: [{ mount: 0, bearing, elevation: 0, shots }],
+  weaponPoses: [{ mount: 0, operator: null, bearing, elevation: 0, shots }],
   hp: 100,
   memberHp: soldiers.map(() => 10),
   suppression,
@@ -90,7 +93,7 @@ const enemy = (id: number, soldiers: Soldier[], shots = 0): IdentifiedView => ({
   memberIds: soldiers.map((s) => s.id),
   memberSlots: soldiers.map(() => 0),
   memberLeans: soldiers.map((s) => (s.lean ? { side: "right", at: s.lean } : null)),
-  weaponPoses: [{ mount: 0, bearing: Math.PI, elevation: 0, shots }],
+  weaponPoses: [{ mount: 0, operator: null, bearing: Math.PI, elevation: 0, shots }],
   reversing: false,
 });
 
@@ -163,6 +166,53 @@ function battle() {
     },
   };
 }
+
+test("the launcher appearance follows the published operator across a handoff", () => {
+  // Only the asset-loading seam is synthetic; feed, posing, and model selection are real.
+  const appearances = new Map(
+    ["rifle", "rifle_b", "rifle_c", "at", "at_b", "at_c"].map((name) => [
+      name,
+      {
+        bundle: { kind: "skinned", skeleton: name.startsWith("at") ? "launcher" : "rifle" },
+      },
+    ]),
+  );
+  const catalog = new AppearanceCatalog(
+    { appearances, sides: { blue: [1, 1, 1], red: [1, 1, 1] } } as unknown as InstalledAppearances,
+    UNITS,
+  );
+  const b = battle();
+  const team = {
+    ...squad(0, [
+      { id: 10, at: [0, 0, 0] },
+      { id: 11, at: [3, 0, 0] },
+      { id: 12, at: [0, 3, 0] },
+    ]),
+    kind: "at",
+    memberSlots: [0, 1, 2],
+    weaponPoses: [{ mount: 1, operator: 10, bearing: 0, elevation: 0, shots: 0 }],
+  };
+  const models = (frame: PoseFrame) =>
+    poseFrameInstances([], frame, (kind, side, id, slot, mount) =>
+      catalog.resolve(kind, side, id, slot, mount),
+    );
+  b.publish(observation(1, [team]), 0);
+  expect(models(b.draw(0)).map((m) => m.appearance)).toEqual(["at_b", "rifle_c", "rifle"]);
+  b.publish(
+    observation(2, [
+      {
+        ...team,
+        members: team.members.slice(1),
+        memberIds: [11, 12],
+        memberSlots: [1, 2],
+        weaponPoses: [{ ...team.weaponPoses[0], operator: 11 }],
+      },
+    ]),
+    TICK_MS,
+  );
+  const survivorModels = models(b.draw(TICK_MS + 150));
+  expect(survivorModels.map((m) => m.appearance)).toEqual(["at_c", "rifle"]);
+});
 
 const clips = (frame: PoseFrame) =>
   Object.fromEntries(frame.soldiers.map((s) => [s.soldier, s.clip]));
@@ -283,12 +333,12 @@ test("an own tank and an identified enemy with the same id keep their own mounts
   const own: OwnUnitView = {
     ...squad(3, []),
     kind: "tank",
-    weaponPoses: [{ mount: 0, bearing: 0.4, elevation: 0, shots: 1 }],
+    weaponPoses: [{ mount: 0, operator: null, bearing: 0.4, elevation: 0, shots: 1 }],
   };
   const seen: IdentifiedView = {
     ...enemy(3, []),
     kind: "tank",
-    weaponPoses: [{ mount: 0, bearing: 2, elevation: 0, shots: 7 }],
+    weaponPoses: [{ mount: 0, operator: null, bearing: 2, elevation: 0, shots: 7 }],
   };
   const o = observation(1, [own], { identified: [seen] });
   const pose = (id: number) => ({

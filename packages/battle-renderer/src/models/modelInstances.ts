@@ -103,6 +103,7 @@ export type ResolveAppearance = (
   side: Side,
   id: number,
   slot: number,
+  operatorMount?: number | null,
 ) => { appearance: string; tint: readonly [number, number, number] } | null;
 
 /** The x-ray colour of a unit's models, by its side and id (null: none). */
@@ -130,7 +131,7 @@ export function poseFrameInstances(
     return m;
   };
   for (const s of frame.soldiers) {
-    const resolved = resolve(s.kind, s.side, s.soldier, s.slot);
+    const resolved = resolve(s.kind, s.side, s.soldier, s.slot, s.operatorMount);
     if (!resolved) continue;
     const m = record();
     m.appearance = resolved.appearance;
