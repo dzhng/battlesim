@@ -18,6 +18,21 @@ const snapshot: MechanicsSnapshot = {
     { path: "fixtures/game.json", value: game },
   ],
 };
+const structuralSnapshot = (): MechanicsSnapshot => {
+  const fixture = structuredClone(snapshot);
+  delete fixture.catalog.documents;
+  const units = fixture.catalog.units as JsonObject[];
+  units.find((unit) => unit.id === "rifle")!.body = {
+    squad: { slots: ["rifleman", "grenadier"] },
+  };
+  fixture.catalog.soldiers = {
+    rifleman: { hp: 100, mounts: [{ name: "rifles", weapons: ["rifle"] }] },
+    grenadier: { hp: 100, mounts: [{ name: "launcher", weapons: ["grenade"] }] },
+  };
+  const weapons = fixture.catalog.weapons as Record<string, JsonObject>;
+  weapons.rifle.magazine = { rounds: 30, shot_interval_s: 0.1, burst: null };
+  return fixture;
+};
 const respond = (value: unknown) =>
   new Response(JSON.stringify(value), {
     status: 200,
@@ -261,4 +276,123 @@ it("restoring inherited range keeps the currently edited landing spread", async 
       ) as HTMLInputElement
     ).value,
   ).toBe("20");
+});
+
+it("discarding an optional parent clears its unfinished child text without clearing other edits", async () => {
+  const fetcher = vi.fn(async () => respond(structuralSnapshot()));
+  vi.stubGlobal("fetch", fetcher);
+  render(<MechanicsEditor />);
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
+  fireEvent.click(screen.getByText("Rifle", { selector: "summary" }));
+  fireEvent.change(screen.getByLabelText("rifle Cyclic firing rate"), { target: { value: "-" } });
+  fireEvent.change(screen.getByLabelText("Rifle squad deployment cost"), {
+    target: { value: "12e" },
+  });
+  fireEvent.change(screen.getByLabelText("rifle Magazine / belt"), { target: { value: "" } });
+  expect(screen.queryByLabelText("rifle Cyclic firing rate")).toBeNull();
+  expect(screen.getByRole("button", { name: "Preview changes" }).hasAttribute("disabled")).toBe(
+    true,
+  );
+  expect((screen.getByLabelText("Rifle squad deployment cost") as HTMLInputElement).value).toBe(
+    "12e",
+  );
+  fireEvent.change(screen.getByLabelText("Rifle squad deployment cost"), {
+    target: { value: "125" },
+  });
+  expect(screen.getByRole("button", { name: "Preview changes" }).hasAttribute("disabled")).toBe(
+    false,
+  );
+});
+
+it("removing the last slot of a soldier kind discards only that unit's removed soldier edits", async () => {
+  const fetcher = vi.fn(async (url: string, init?: RequestInit) =>
+    url.endsWith("/preview")
+      ? respond({
+          revision: snapshot.revision,
+          catalog,
+          affectedUnits: ["rifle"],
+          warnings: [],
+          files: [{ path: "family.json", before: "{}", after: String(init?.body) }],
+        })
+      : respond(structuralSnapshot()),
+  );
+  vi.stubGlobal("fetch", fetcher);
+  render(<MechanicsEditor />);
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
+  fireEvent.change(screen.getByLabelText("grenadier Soldier health"), { target: { value: "125" } });
+  fireEvent.change(screen.getByLabelText("grenadier Soldier health"), { target: { value: "-" } });
+  fireEvent.change(screen.getByLabelText("rifleman Soldier health"), { target: { value: "110" } });
+  fireEvent.change(screen.getByLabelText("rifle Soldier slots"), {
+    target: { value: "rifleman, rifleman" },
+  });
+  expect(screen.queryByLabelText("grenadier Soldier health")).toBeNull();
+  expect((screen.getByLabelText("rifleman Soldier health") as HTMLInputElement).value).toBe("110");
+  const preview = screen.getByRole("button", { name: "Preview changes" });
+  expect(preview.hasAttribute("disabled")).toBe(false);
+  fireEvent.click(preview);
+  await screen.findByRole("heading", { name: "Preview authored changes" });
+  const request = fetcher.mock.calls.find(([url]) => url.endsWith("/preview"));
+  expect(JSON.parse(String(request?.[1]?.body)).changes).toEqual([
+    { section: "soldiers", id: "rifleman", unit: "rifle", path: ["hp"], value: 110 },
+    {
+      section: "units",
+      id: "rifle",
+      path: ["body", "squad", "slots"],
+      value: ["rifleman", "rifleman"],
+    },
+  ]);
+});
+
+it("undoing a mount-list replacement clears unfinished edits on its discarded mounts", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => respond(structuralSnapshot())),
+  );
+  render(<MechanicsEditor />);
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Tank" }));
+  const list = screen.getByLabelText("tank Weapon mounts") as HTMLTextAreaElement;
+  const initial = JSON.parse(list.value);
+  fireEvent.change(list, {
+    target: {
+      value: JSON.stringify([
+        ...initial,
+        { name: "temporary", weapons: ["rifle"], pivot_m: [0, 0, 0] },
+      ]),
+    },
+  });
+  const pivot = screen.getAllByLabelText("tank Pivot position").at(-1)!;
+  fireEvent.change(pivot, { target: { value: "-" } });
+  fireEvent.change(screen.getByLabelText("Tank deployment cost"), { target: { value: "125" } });
+  fireEvent.click(list.closest(".me-field")!.querySelector("button")!);
+  expect(screen.queryByRole("heading", { name: "Mount · temporary" })).toBeNull();
+  expect(JSON.parse(list.value)).toEqual(initial);
+  expect(screen.getByRole("button", { name: "Preview changes" }).hasAttribute("disabled")).toBe(
+    false,
+  );
+});
+
+it("restoring an inherited optional object clears unfinished child text", async () => {
+  const fixture = structuralSnapshot();
+  fixture.documents.unshift({
+    path: "magazine.json",
+    value: {
+      weapons: {
+        base: { magazine: null },
+        rifle: { extends: "base", magazine: { rounds: 30, shot_interval_s: 0.1 } },
+      },
+    },
+  });
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => respond(fixture)),
+  );
+  render(<MechanicsEditor />);
+  fireEvent.click(await screen.findByRole("button", { name: "Expand Rifle squad" }));
+  fireEvent.change(screen.getByLabelText("rifle Cyclic firing rate"), { target: { value: "-" } });
+  const magazine = screen.getByLabelText("rifle Magazine / belt");
+  fireEvent.click(magazine.closest(".me-field")!.querySelector("button")!);
+  expect(screen.queryByLabelText("rifle Cyclic firing rate")).toBeNull();
+  expect(screen.getByRole("button", { name: "Preview changes" }).hasAttribute("disabled")).toBe(
+    false,
+  );
 });

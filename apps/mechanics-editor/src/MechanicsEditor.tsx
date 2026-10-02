@@ -71,6 +71,21 @@ const rawText = (value: Json | undefined) =>
         ? JSON.stringify(value, null, 2)
         : String(value);
 
+function textIsWithin(key: string, target: EditTarget, path: readonly string[]): boolean {
+  const [section, id, unit, candidatePath] = JSON.parse(key.slice(0, key.lastIndexOf(":"))) as [
+    EditTarget["section"],
+    string,
+    string | null,
+    string[],
+  ];
+  return (
+    section === target.section &&
+    id === target.id &&
+    unit === (target.unit ?? null) &&
+    path.every((part, index) => candidatePath[index] === part)
+  );
+}
+
 class RequestError extends Error {
   constructor(
     message: string,
@@ -551,6 +566,51 @@ export default function MechanicsEditor() {
       setBusy(false);
     }
   };
+  const applyDraft = (
+    next: MechanicsDraft,
+    target: EditTarget,
+    field: GameplayField,
+    entry: JsonObject,
+    textKey?: string,
+  ) => {
+    if (!snapshot) return;
+    const slots = valueAt(entry, ["body", "squad", "slots"]);
+    const nextSlots = valueAt(draftEntry(entry, next, target, snapshot), [
+      "body",
+      "squad",
+      "slots",
+    ]);
+    const removedSoldiers = new Set<string>();
+    if (target.section === "units" && Array.isArray(slots))
+      for (const kind of slots)
+        if (typeof kind === "string" && (!Array.isArray(nextSlots) || !nextSlots.includes(kind)))
+          removedSoldiers.add(kind);
+    const removedTarget = (candidate: EditTarget) =>
+      candidate.section === "soldiers" &&
+      candidate.unit === target.id &&
+      removedSoldiers.has(candidate.id);
+    setDraft({ ...next, changes: next.changes.filter((change) => !removedTarget(change)) });
+    setPreview(null);
+    setSaved(false);
+    setReloadArmed(false);
+    setTexts((current) =>
+      Object.fromEntries(
+        Object.entries(current).filter(
+          ([key, edit]) =>
+            !(textIsWithin(key, target, field.path) && key !== textKey) &&
+            ![...removedSoldiers].some((id) =>
+              textIsWithin(key, { section: "soldiers", id, unit: target.id }, []),
+            ) &&
+            !(
+              target.section === "weapons" &&
+              field.path[0] === "range_m" &&
+              !edit.error &&
+              key.startsWith(`${changeKey(target, ["scatter_mrad"])}:`)
+            ),
+        ),
+      ),
+    );
+  };
   const editor: EditorState | null =
     snapshot && draft
       ? {
@@ -566,50 +626,22 @@ export default function MechanicsEditor() {
               return next;
             }),
           change: (target, field, value, entry, textKey) => {
-            const validation = validateGameplayValue(target.section, field.path, value);
-            if (validation) return;
-            setDraft((current) => current && editDraft(current, target, field.path, value, entry));
-            setPreview(null);
-            setSaved(false);
-            setReloadArmed(false);
-            setTexts((current) => {
-              const next = { ...current };
-              const key = changeKey(target, field.path);
-              // The active side keeps partial text; its linked side follows the canonical value.
-              for (const candidate of Object.keys(next)) {
-                if (candidate.startsWith(`${key}:`) && candidate !== textKey)
-                  delete next[candidate];
-              }
-              if (target.section === "weapons" && field.path[0] === "range_m") {
-                for (const side of ["human", "raw"]) {
-                  const spreadKey = `${changeKey(target, ["scatter_mrad"])}:${side}`;
-                  if (!next[spreadKey]?.error) delete next[spreadKey];
-                }
-              }
-              return next;
-            });
-          },
-          restore: (target, field, entry) => {
-            setDraft(
-              (current) => current && resetDraft(current, target, field.path, entry, snapshot),
-            );
-            setPreview(null);
-            setSaved(false);
-            setTexts((current) =>
-              Object.fromEntries(
-                Object.entries(current).filter(
-                  ([key, edit]) =>
-                    !key.startsWith(`${changeKey(target, field.path)}:`) &&
-                    !(
-                      target.section === "weapons" &&
-                      field.path[0] === "range_m" &&
-                      !edit.error &&
-                      key.startsWith(`${changeKey(target, ["scatter_mrad"])}:`)
-                    ),
-                ),
-              ),
+            if (validateGameplayValue(target.section, field.path, value)) return;
+            applyDraft(
+              editDraft(draft, target, field.path, value, entry),
+              target,
+              field,
+              entry,
+              textKey,
             );
           },
+          restore: (target, field, entry) =>
+            applyDraft(
+              resetDraft(draft, target, field.path, entry, snapshot),
+              target,
+              field,
+              entry,
+            ),
         }
       : null;
   return (

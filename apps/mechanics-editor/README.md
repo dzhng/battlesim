@@ -11,6 +11,9 @@ validated by passing current JSON to that executable, without recompilation.
 
 The spreadsheet finds concrete units; expanded rows expose explained fields,
 their inheritance source, local soldier overrides and globally shared weapons.
+Unfinished input stays with its field through filtering. Replacing or restoring a
+parent discards that subtree's edits; removing a soldier kind's last slot also
+discards its edits scoped to that unit.
 Raw and battlefield values are both editable. Landing spread describes one-axis
 standard deviation at maximum range, so changing range preserves that spread.
 
