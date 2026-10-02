@@ -28,13 +28,26 @@ A set is one source's work: the China graph's apartment blocks, our own houses, 
   "set": "china_apartments",
   "kit": "city_kit_china_apartments",
   "fit": { "side_m": 1.6, "top_m": 4.5 },
-  "source": { "script": "china.py", "blend": "vendor/procedural-buildings/CN_ApartmentBuilding.blend", "blender": "5.2.1" },
+  "source": {
+    "script": "china.py",
+    "blend": "vendor/procedural-buildings/CN_ApartmentBuilding.blend",
+    "blender": "5.2.1"
+  },
   "modules": ["window_a", "balcony_enclosed", "slab_35x11_4f_shell"],
   "templates": [
     {
       "status": "release",
       "recipe": { "Width": 35, "Depth": 11, "Floors": 4 },
-      "descriptor": { "id": "china-apartment-slab-35x11-4f", "category": "urban_apartment", "regional_family": "china", "parts": [], "floor_heights_m": [], "entrances": [], "edges": [], "joins": [] },
+      "descriptor": {
+        "id": "china-apartment-slab-35x11-4f",
+        "category": "urban_apartment",
+        "regional_family": "china",
+        "parts": [],
+        "floor_heights_m": [],
+        "entrances": [],
+        "edges": [],
+        "joins": []
+      },
       "states": {
         "intact": [[2, 0, 0, 0, 0, 1, 1, 1, 15, 255, 255, 255]]
       }
