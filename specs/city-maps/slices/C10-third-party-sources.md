@@ -30,3 +30,9 @@ Pack cache layout. Anything else you have to decide is a spec gap: record it in 
 
 ## Feedback that would change this slice
 An unacceptable licence or untraceable source changes the source choice before its art is baked.
+
+## Outcome
+
+The three `.blend` files are in Git LFS under `packages/scene-assets/blender/vendor/procedural-buildings/`, copied unchanged from the upstream repository at the commit its readme names, with the MIT notice and a readme beside them. Neither photo atlas is in the tree.
+
+**Open:** the ambientCG pins. A set is pinned in `packs.json` by the pass that first reads it (C12), since only that pass knows which sets survive the bake; `packs.py` learns ambientCG's direct downloads then.

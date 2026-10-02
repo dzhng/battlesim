@@ -38,4 +38,11 @@ Test in proportion: the narrow tests for what changed and the one or two scenes 
 
 ## Status
 
-Not started. Update this section, not the README, at the end of each pass: what landed, what a town looks like now (one picture path), what is next, and anything the other lanes need to know.
+Update this section, not the README, at the end of each pass: what landed, what a town looks like now (one picture path), what is next, and anything the other lanes need to know.
+
+**2026-10-01.** A town is still massing boxes (`throwaway/evidence/generated/building-1920x1080.png` after `scene -- generated`).
+
+- **Landed:** the three source files are vendored with their licence ([C10](slices/C10-third-party-sources.md#outcome)). The export spike ran ([S2](spikes/S2.md)): every source exports as a small shared kit plus placement rows, but the graphs only cover apartment blocks. The source format every building script writes is fixed in [the city kit readme](../../packages/scene-assets/blender/city/README.md).
+- **Decided:** China's family ships first; every category the graphs do not cover, attached homes included, is our own scripted source; graph-made sides are 3n + 2 metres with 3 m floors ([choices](choices.md#buildings-lane)).
+- **Next, in parallel:** the kit and template library in `scene-assets` with the prototypes drawn through it (C13, C32); China's apartment kit and templates (C11, C12); our own houses (C17); the static chunk owner and corpses on it (C22).
+- **For the other lanes:** nothing has changed in the catalogue yet. Its hash will move when the first real templates replace prototypes, and `map-presets.json`'s `parcels.regional_families` and the catalogue test in `crates/mapgen` will need the new family name in the same commit.
