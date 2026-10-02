@@ -4510,3 +4510,98 @@ Battle observations/digests and the remaining whole-city admission limits.
 **Gap:** The slice says "keyed from the field" and names no carrier.
 
 **Verdict:** sound. The loop that finds the paved distance already has the closest point of each stretch; a second lookup for the lane would walk the cell's list twice. A polygon has no centreline, so a town's streets have no lanes. **Confidence:** high.
+## SG4 palette vs shadow floor
+
+### The spike ran inside C84, not in a scratch worktree
+
+**Choice:** `fog-look` was run on the starting commit and on two drafts of the palette, and the verdict written into the slice file (no `spikes/SG4.md`).
+
+**Gap:** The slice asks for a throwaway worktree and a spike report; the lane says to answer it on the way.
+
+**Verdict:** sound. **Confidence:** high.
+
+### What the floor measures
+
+**Choice:** `PLOT_MIN_LSTAR` is 24, the CIELAB L\* of a plot's darkest albedo (palette at the low end of the per-plot jitter, rows at their mean), which is what main's darkest ground measures. It is checked on the albedo by `validateBiome`, not on rendered pixels.
+
+**Gap:** "A biome L\* floor enforced as a test" names neither the number nor what is measured.
+
+**Why:** The spike found the fog check is not about dark fields at all (it bounds how light and how grey the ground round the houses is). The floor guards the other case, which no framing of the check holds: a sunlit field as dark as ordinary ground under fog. **Verdict:** provisional: the number is main's own darkest, not a measured threshold. **Confidence:** medium.
+
+## C84 field palette
+
+### The settlement keeps the meadow's old colours as a kind of its own
+
+**Choice:** A plot kind `green` (weight 0, `settlement_kind`) on main's meadow palette, growing the meadow's grass; open-country meadow takes the olive.
+
+**Gap:** The slice moves "the plot palettes" as one, and requires the fog check to pass under every style.
+
+**Why:** `grey-veil` at `default-wall` passes on main by 1.1 a\*b\* units; a desaturated meadow there failed it (11.9 of 12) and a half-desaturated one passed by 0.1. No palette widens that margin, and `light.shadow_floor` is not the palette's to move. **Cost:** a saturated green island round the houses, which an unprimed eye picks out at once. **Verdict:** provisional, until the style's margin is widened. **Confidence:** high that it keeps the check; low that it is the look wanted.
+
+### How far the palette is desaturated
+
+**Choice:** Albedo chroma 7 to 17 (rapeseed 34), about half of what the kinds had; two rounds, the second at 0.7 of the first's chroma.
+
+**Gap:** "Desaturated (olive, tan, brown)" and "GG's palette" give no numbers.
+
+**Why:** The low sun adds about 10 of b\* on screen, so the first round still read mustard and orange. **Verdict:** provisional: on screen the fields are still half again as chromatic as the Broken Arrow frame. **Confidence:** medium.
+
+### Plot weights unchanged
+
+**Choice:** The kinds' shares are as C83 left them (rapeseed 1.2 of 14.9).
+
+**Gap:** None stated; the critique found the yellow pulls the eye.
+
+**Why:** Unchanged weights keep the same kind on the same plot, so before and after are the same fields. **Verdict:** provisional. **Confidence:** medium.
+
+## C85 field texture
+
+### What "luminance-neutral" and "one-sided" were taken to mean
+
+**Choice:** Grain and rows are as much lighter as darker, so a plot's mean stays its palette's (checked: within 0.6% per kind); every value term is finer than about 5 m and fades to its mean under a pixel; anything broader (the dry patches) shifts hue at the plot's own luminance, one way only. A scene check holds that no 9 m block is more than 3% darker for the texture.
+
+**Gap:** The contract says "luminance-neutral and one-sided" of a texture that must still show clods and furrows.
+
+**Verdict:** sound. **Confidence:** medium (the widest grain octave, 5 m on rough ground, is the nearest thing to a broad dark patch).
+
+### Wheelings
+
+**Choice:** A drilled crop has tramlines: two furrows bare in every fifteen rows, darker by 20 to 30%, and the grass leaves them bare.
+
+**Gap:** The slice lists furrows, clods and stubble.
+
+**Why:** From 250 m no grass is drawn and a crop's rows are near a pixel; the wheelings are what still says "drilled field". They are thin dark lines, not a broad patch, and take about 1% off a crop's mean. **Verdict:** provisional (the user has not seen them). **Confidence:** medium.
+
+### The old fine mottle no longer shades plots
+
+**Choice:** The 4 m value noise (`mottle_m`) still varies verge, forest floor, shore and road; a plot takes its grain instead. `field_rules.mottle_scale_m` became `mottle_m`, and the broad scale is each kind's `patch_m`.
+
+**Gap:** None stated: the grain replaces it.
+
+**Verdict:** sound. **Confidence:** high.
+
+### The texture switch rewrites the plot table
+
+**Choice:** `setFieldTextureShown(false)` packs the plots without grain, breaks or wheelings, and the shader skips what a plot does not have; no uniform flag.
+
+**Gap:** The slice asks for a frame-cost row and names no switch.
+
+**Why:** The road pass uses the next word of the terrain's `view` uniform for its own switch; a second flag there would collide with it. **Verdict:** sound. **Confidence:** high.
+
+## Fields on generated maps
+
+### One grain for the land, a tract's own once, a road's where there is one
+
+**Choice:** `generatePlots` cuts the land on `orientation_deg` down to tracts (`tract_m`); each tract turns once by `orientation_jitter_deg`; land in a tract with a road in it or within a plot's width lies along the longest such stretch. Land above tract size is cut by a road only where the road runs nine tenths of the cut's chord.
+
+**Gap:** "Find why the plots lay out that way on an 8 km map and make open country read as farmland cut along its roads."
+
+**Why:** The heading turned at every level above a tract, a random walk that reached 45° on 8 km of land (measured on a roadless site), and a bend's stretches each cut the land on their own line. **What it cannot do:** a road cut is still a whole line through its plot, so a curving road leaves wedges plot-sized or a little more; only field polygons carried by the map (`land_regions`) would follow a curve. **Verdict:** sound for the fan; provisional for the wedges. **Confidence:** medium.
+
+### The other lane's guide test
+
+**Choice:** `web/tests/surfaces.test.ts` fixes `max_aspect` at 50 beside the rules it already fixes.
+
+**Gap:** That fixture pins field rules "so seeded cuts do not obscure the guide contract"; a strip between two road edges now lies along them, is five times as long as wide, and was cut across.
+
+**Verdict:** sound. **Confidence:** high.
