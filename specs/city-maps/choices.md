@@ -5622,3 +5622,20 @@ The models, their boxes and the sheets are in the [C45 outcome](slices/C45-stree
 **Gap:** The slice's `farmland` lab is the map lane's; no saved map and no generator preset has a stroke forest.
 
 **Verdict:** open. **Confidence:** high that the rules hold on an inline map; none on how a tree line looks.
+
+### The bank's colours moved off the new fields' hue
+
+**Choice:** `palettes.shore` is grey silt and a browner earth (`[0.3, 0.295, 0.285]`, `[0.365, 0.305, 0.235]`).
+
+**Gap:** C70 tuned the bank against green fields; C84 then made the fields olive and tan, the bank's own hue, and the river scene's "apart from the grass in hue" check fell to 2 to 5 against its bar of 6.
+
+**Verdict:** sound. Both bands are again 7 to 14 apart in hue and no darker than the field (the lift does that). A first try at a redder earth read orange, which C70's critique had already rejected. **Confidence:** medium: one look, no fresh critique.
+
+### Forest floor bodies are on by default
+
+**Choice:** `4bdfb76f` turns on 5 log and 3 boulder candidates a hectare in every forest, as C77 planned once C78's models existed.
+
+**Gap:** It is a rule in `fixtures/game.json`, outside this lane's table; C77 and C78 name it as this slice's to flip.
+
+**Verdict:** provisional. The village's six quick digests all move and no outcome does. The ground and river scenes pass with it; sensors, consequences and the saved market town were not run, and a generated map loaded no slower. It is one commit and reverts alone. **Confidence:** medium.
+
