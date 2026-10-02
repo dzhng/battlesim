@@ -4729,3 +4729,28 @@ Battle observations/digests and the remaining whole-city admission limits.
 **Gap:** The brief asked for the floor's blockiness to be fixed inside that one function if the floor is to be seen.
 
 **Verdict:** sound. The bare floor's edge density fell from 0.12 to under 0.02 and its darkest twentieth rose from 69 to 83 of 255: no square patches, and no dark blob to read as shadow. Humus at 0.4 is a guess on the safe side. **Confidence:** medium.
+
+## Ground lane integration
+
+### Road checks judge roads against plain fields, with two bars moved
+
+**Choice:** After the fields pass (C84, C85) the road checks shoot with the fields' texture off, the walk from a road's core to the grass allows a band 4% brighter than the one inside it (was 3%) and 10% under the far grass (was 8%), and the road's edge band may hold 45% of the field's clumps (was 35%). The dirt track's palette is a tenth lighter.
+
+**Gap:** C66 and C67 state their rules against "the grass"; the fields beside the stations are now pale crops with furrow-shaped rows, denser grass and different plots.
+
+**Verdict:** provisional. With grass drawn (the frame a player sees) the walk holds the strict rule at both stations. On bare ground the 5 m beside the village's gravel road reads about 6% darker than the field 5 to 9 m out, where before the fields pass it was lighter; the cause was not found (the shoulder's wash is lifted to the luminance of the ground under it, so it should not be). The track was 10% darker than the wheat beside it and is lightened so no core is darker than its neighbour at any station; a track through stubble, the palest field, is not shot anywhere. **Confidence:** medium.
+
+### The verge's grass is checked between plots, not beside the road
+
+**Choice:** The grass check finds the verge where the class mask changes plot, clear of any road.
+
+**Gap:** C67 deleted the road-keyed verge; C81's check sampled verge grass beside the road.
+
+**Verdict:** sound. Beside a road the ground is its shoulder, which grows the plot's own grass, thinned. **Confidence:** high.
+
+### The renderer skill keeps main's rewrite
+
+**Choice:** The lessons the ground passes added to `.agents/skills/renderer/` were dropped at merge in favour of main's principles-only rewrite; later passes put lessons in slice Outcomes.
+
+**Verdict:** sound: it follows the owner's change to the skill and to AGENTS.md. **Confidence:** high.
+
