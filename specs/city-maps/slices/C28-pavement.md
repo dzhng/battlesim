@@ -40,6 +40,8 @@ Pavement that reads as a separate painted overlay reopens road-ground compositio
 
 ## Outcome
 
+**Changed since.** [C31](C31-city-biome.md): a street's `join_m` is 3, so it runs on under the country road and the gravel starts in drifts; and the country road is drawn as a street where yards lie on both sides of it (`roads.<kind>.town`), which answers the first Open item.
+
 **Built.** A town street is asphalt with a paved walk each side, and a town's yards are paving. Nothing is baked: the look reads C63's field, as the country roads do.
 
 **What the maps hold.** A generated town's streets are `road` strokes (7 m, avenues 10 m) and its loading yards are `road` polygons. No map holds a `sidewalk`, and nothing the export carries says where a town is. So the slice's "sidewalks cover exactly the right ground" has no ground to check against: the walk is a look, as the shoulder is.

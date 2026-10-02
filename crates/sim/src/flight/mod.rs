@@ -382,7 +382,7 @@ impl Body {
     fn footprint_radius(&self) -> f64 {
         match self.shape {
             Shape::Capsule { radius, .. } => radius,
-            Shape::Box { half } => half.x.hypot(half.y),
+            Shape::Box { half } => libm::hypot(half.x, half.y),
         }
     }
 }
@@ -1136,5 +1136,5 @@ pub fn steer(velocity: V3, toward: V3, max_angle: f64) -> V3 {
             v3(1.0, 0.0, 0.0)
         }
     };
-    (a * max_angle.cos() + perp * max_angle.sin()) * speed
+    (a * libm::cos(max_angle) + perp * libm::sin(max_angle)) * speed
 }

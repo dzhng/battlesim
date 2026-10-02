@@ -65,7 +65,7 @@ fn box_entry(
     let (ra, rb) = (m.relative(a0, a1, lift, ua), m.relative(a0, a1, lift, ub));
     let yaw = m.yaw0 + m.turn * (ua + ub) * 0.5;
     // A point at radius ρ turned by δ from the mid heading moves at most ρ·|δ|.
-    let margin = half.x.hypot(half.y) * (m.turn * (ub - ua)).abs() * 0.5;
+    let margin = libm::hypot(half.x, half.y) * (m.turn * (ub - ua)).abs() * 0.5;
     let local = |v: V3| {
         let r = v.xy().rotated(-yaw);
         v3(r.x, r.y, v.z)
@@ -177,7 +177,7 @@ pub(super) fn closest_approach(
     } else {
         0.0
     };
-    if (o + d * u_centre).length() > bound_radius.hypot(reach_z) + reach {
+    if (o + d * u_centre).length() > libm::hypot(bound_radius, reach_z) + reach {
         return None;
     }
     let yaw = m.yaw0 + m.turn * u_end * 0.5;

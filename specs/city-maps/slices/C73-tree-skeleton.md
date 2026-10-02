@@ -43,6 +43,8 @@ A branch silhouette that fails at the target camera changes the skeleton paramet
 
 ## Outcome (2026-10-01)
 
+**Changed since.** [C74](C74-tree-species.md) rebuilt the spreading and tall kinds into one size band (`fit.tree_size`); its table has the sizes and triangles as shipped.
+
 **Contract as landed.** `trees.py` grows a skeleton to solid leaf clumps (trunk, a limb per cluster of clumps, a branch per clump; pipe-model radii, beam droop, parallel-transport tubes, a furrowed bole on the finest tier; dryad's technique, recorded in the script's header). No alpha anywhere. The three broadleaf kinds are rebuilt at their old top and reach (11.00 × 5.90, 10.00 × 6.20, 11.80 × 3.78 m); the hedge shrub's source is byte-identical. The validator refuses a tree tier over its triangle budget (`budget.tier_triangles`, the budget on `SCENERY_KINDS.tree`) and a tree that passes the canopy's height or radius on any tier (`fit.canopy`).
 
 **What changed from the slice as written.** Clumps are drawn on tiers 0 to 2, not 0 to 1, and the far tier is the lobed volume of the tree's own clumps, not the old seeded crown. The reason is the verdict on shimmer below: a tree's shadow is cast by the tier under the one drawn, and a caster of another shape shadows the crown it stands for.

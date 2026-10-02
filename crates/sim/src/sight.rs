@@ -44,7 +44,7 @@ impl Sight {
 
 /// The shape's multiplier `off` radians from forward.
 pub fn multiplier(shape: &SightShape, off: f64) -> f64 {
-    let c = off.cos();
+    let c = libm::cos(off);
     let end = if c >= 0.0 { shape.front } else { shape.rear };
     shape.side * (1.0 - c * c) + end * c * c
 }

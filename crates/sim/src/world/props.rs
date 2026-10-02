@@ -69,7 +69,7 @@ impl Prop {
 
     /// Radius of the footprint's bounding circle.
     pub fn footprint_radius(&self) -> f64 {
-        self.half.x.hypot(self.half.y)
+        libm::hypot(self.half.x, self.half.y)
     }
 
     /// The footprint point nearest `p`, pushed `standoff` further out along
@@ -124,7 +124,7 @@ impl Slot {
     pub fn faces(&self, p: V2, min_angle: f64) -> bool {
         let d = p - self.position;
         let len = d.length();
-        len > 0.0 && d.dot(self.normal) > min_angle.sin() * len
+        len > 0.0 && d.dot(self.normal) > libm::sin(min_angle) * len
     }
 }
 

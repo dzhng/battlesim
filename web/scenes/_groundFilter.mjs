@@ -38,6 +38,7 @@ export async function groundFilterAdmission(ctx) {
       paint: overlay.gamePaint,
       xrayMinHiddenFragmentFraction: overlay.gameXrayMinHiddenFragmentFraction,
       models: models.gameModelDetail,
+      glass: models.gameGlass,
       buildings: models.gameBuildingStyle,
       world: mesh.buildWorldLayers(
         mesh.readWorldExports(view),
