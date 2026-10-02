@@ -342,6 +342,9 @@ export async function createBattleFrame(
         setDressingShown(on) {
           if (!disposed) world.setDressingShown(on);
         },
+        setUnderstoreyShown(on) {
+          if (!disposed) world.setUnderstoreyShown(on);
+        },
         setBuildingsShown(on) {
           if (!disposed) models.setBuildingsShown(on);
         },

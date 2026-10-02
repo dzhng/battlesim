@@ -3,14 +3,16 @@
 // `tree` or `hedgerow` bundle per kind), sized here only by its unscaled
 // height and crown radius.
 //
-// Three populations, drawn alike but owned differently:
-// - `forest`: the simulation's forests, drawn as trees: exactly one tree on
-//   each of the simulation's trunks (the bodies movement, cover and
-//   concealment meet, placed by the one forest rule), and no
-//   other. Every crown stands under its forest's canopy over the simulation's
-//   own ground and within the canopy's radius of its trunk, as the
-//   simulation's foliage does: past the forest's edge too, so a tree there is
-//   as wide as one inside. A crown is never drawn wider than its appearance,
+// Four populations, drawn alike but owned differently:
+// - `forest`: the simulation's tree bodies, drawn as trees: exactly one tree
+//   on each trunk (the bodies movement, cover and concealment meet), and no
+//   other. A forest's trunks are placed by the one forest rule, and a trunk
+//   outside every forest (a street's tree) is a tree of its own
+//   (`trees.lone`): as tall as its body, of a species the biome lets stand
+//   alone. Every forest crown stands under its forest's canopy over the
+//   simulation's own ground and within the canopy's radius of its trunk, as
+//   the simulation's foliage does: past the forest's edge too, so a tree
+//   there is as wide as one inside. A crown is never drawn wider than its appearance,
 //   which the asset validator holds inside that radius (`fit.canopy`): the
 //   simulation's number has one owner. A trunk knocked down is gone from the
 //   drawing where the side has seen the ground cleared (the scenery layer's
@@ -18,6 +20,13 @@
 //   Which species a trunk is drawn as is the biome's: a wood is stands, each
 //   mostly one family's species, with the odd tree of no family among them
 //   (`speciesAt`). Every species is one size, so the mix changes only the look.
+// - `understorey`: the shrubs under a tree line (a strip of forest), in rows
+//   along it (`trees.understorey`). The simulation lets no sight across a
+//   strip, and a row of bare boles says otherwise, so the strip is drawn
+//   with a hedge under its crowns. Each shrub keeps its whole reach on the
+//   strip's own ground, so nothing is drawn wider than the forest that
+//   blocks sight, and stands off paving, water and other bodies. A wood has
+//   none: its floor's dressing stays under a man's waist.
 // - `backdrop`: scenery past the map edge, where nothing is simulated —
 //   hedgerows along the patchwork's plot edges with trees standing in them,
 //   and copses. It keeps `backdrop.clear_m` off the map.
@@ -83,6 +92,7 @@ export interface SceneryPlacement {
   /** Appearance names, indexed by each tree's `kind`. */
   kinds: readonly string[];
   forest: Float32Array;
+  understorey: Float32Array;
   backdrop: Float32Array;
   dressing: DressingField;
 }
@@ -97,6 +107,8 @@ export interface ScenerySite {
   trunks: Float32Array;
   /** Original IDs in the native prop stream's ascending order. */
   trunkIds: Uint32Array;
+  /** Each trunk body's height, metres. */
+  trunkHeights: Float32Array;
   /** Every other prop's footprint circle, `x, y, radius` triples: no dressing inside. */
   obstacles: Float32Array;
   /** How far `(x, y)` lies inside the forests' ground, metres (negative
@@ -105,6 +117,9 @@ export interface ScenerySite {
   /** How far `(x, y)` lies inside paving or water, metres (negative
    *  outside), exact within `forest_floor.dressing.clear_m` of their edges. */
   wetOrPaved(x: number, y: number): number;
+  /** Whether the simulation's foliage (what sight fades across) covers the
+   *  fog cell at `(x, y)` or one beside it. */
+  foliageNear(x: number, y: number): boolean;
   plots: PlotTree;
   /** Height of the flat land past the map (the lowest ground). */
   backdropZ: number;
@@ -120,24 +135,32 @@ export function scenerySite(
   const at = Object.fromEntries(layout.propFields.map((f, i) => [f, i]));
   const trunks: number[] = [];
   const trunkIds: number[] = [];
+  const trunkHeights: number[] = [];
   const obstacles: number[] = [];
   const p = exports.props;
   for (let o = 0; o < p.length; o += layout.propStride) {
     if (drawnBy(layout, layout.propKinds[p[o + at.kind]], "forest")) {
       trunks.push(p[o + at.x], p[o + at.y]);
       trunkIds.push(p[o + at.idLo] + p[o + at.idHi] * 2 ** layout.limbBits);
+      trunkHeights.push(2 * p[o + at.hz]);
     } else obstacles.push(p[o + at.x], p[o + at.y], Math.hypot(p[o + at.hx], p[o + at.hy]));
   }
   const low = ground.minHeight;
   const { clear_m, edge_m } = terrain.biome.forest_floor.dressing;
   const reach = { paved: clear_m, forest: edge_m, water: clear_m };
   const field = buildSurfaceField(terrain.site, () => reach);
+  // The sparse foliage export: the grid, then a record per foliage cell.
+  const [columns, , fogCellM] = exports.foliage;
+  const foliage = new Set<number>();
+  for (let o = FOLIAGE_HEADER; o < exports.foliage.length; o += FOLIAGE_FLOATS)
+    foliage.add(exports.foliage[o + 1] * columns + exports.foliage[o]);
   return {
     ground,
     map: terrain.site.map,
     forests,
     trunks: Float32Array.from(trunks),
     trunkIds: Uint32Array.from(trunkIds),
+    trunkHeights: Float32Array.from(trunkHeights),
     obstacles: Float32Array.from(obstacles),
     forestInside: (x, y) => forestDistance(field, x, y, SURFACE_FOOTPRINT_M),
     wetOrPaved: (x, y) =>
@@ -145,10 +168,23 @@ export function scenerySite(
         pavedDistance(field, x, y, SURFACE_FOOTPRINT_M),
         waterDistance(field, x, y, SURFACE_FOOTPRINT_M),
       ),
+    foliageNear: (x, y) => {
+      const [i, j] = [Math.floor(x / fogCellM), Math.floor(y / fogCellM)];
+      for (let dj = -1; dj <= 1; dj++)
+        for (let di = -1; di <= 1; di++)
+          if (i + di >= 0 && i + di < columns && foliage.has((j + dj) * columns + i + di))
+            return true;
+      return false;
+    },
     plots: terrain.plots,
     backdropZ: low,
   };
 }
+
+/** The simulation's sparse foliage export (`WorldView.foliage`): the grid's
+ *  `[columns, rows, cell]`, then `[column, row, canopy, depth]` per cell. */
+const FOLIAGE_HEADER = 3;
+const FOLIAGE_FLOATS = 4;
 
 /** Trunks sink this far below the lowest ground around their foot. */
 const SINK_M = 0.05;
@@ -195,12 +231,13 @@ class Builder {
   }
 }
 
-/** Every appearance `biome` places: its trees, its hedgerow and its dressing. */
+/** Every appearance `biome` places: its trees, its shrubs and its dressing. */
 export function sceneryKinds(biome: Pick<Biome, "trees" | "forest_floor">): string[] {
   return [
     ...new Set([
       ...biome.trees.species.map((s) => s.appearance),
       biome.trees.hedgerows.appearance,
+      biome.trees.understorey.appearance,
       ...biome.forest_floor.dressing.kinds.map((k) => k.appearance),
     ]),
   ];
@@ -222,7 +259,15 @@ export function placeScenery(
   const pick = speciesAt(trees, kinds, biome.seed);
   return {
     kinds,
-    forest: placeForests(site, trees, size, pick, stream(biome.seed, 1)),
+    forest: placeForests(site, trees, kinds, size, pick, biome.seed),
+    understorey: placeUnderstorey(
+      site,
+      trees,
+      biome.forest_floor.tree_line.taper_m,
+      size,
+      kinds.indexOf(trees.understorey.appearance),
+      biome.seed,
+    ),
     backdrop: placeBackdrop(
       site,
       trees,
@@ -322,16 +367,31 @@ function speciesAt(trees: BiomeTrees, kinds: readonly string[], seed: number): S
 /** Parts the stands' seeded points from every other stream of the seed. */
 const STAND_SALT = 0x57a2d5;
 
+/** Parts the lone trees' streams from every other stream of the seed. */
+const LONE_SALT = 0x10e7ee;
+
 function placeForests(
   site: ScenerySite,
   trees: BiomeTrees,
+  kinds: readonly string[],
   size: readonly KindSize[],
   pick: SpeciesPick,
-  rng: RandomGenerator,
+  seed: number,
 ): Float32Array {
   const out = new Builder();
   const rules = trees.forest;
+  const rng = stream(seed, 1);
   const ground = (x: number, y: number) => groundHeight(site.ground, x, y);
+  /** The lowest ground round a trunk's foot at (x, y). */
+  const footOf = (x: number, y: number) => {
+    let foot = ground(x, y);
+    for (let k = 0; k < 4; k++) {
+      const a = (k * Math.PI) / 2;
+      foot = Math.min(foot, ground(x + 0.5 * Math.cos(a), y + 0.5 * Math.sin(a)));
+    }
+    return foot;
+  };
+  const planted = new Uint8Array(site.trunkIds.length);
   let trunk = 0;
   for (const f of site.forests) {
     /** Fit one tree at (x, y): its crown a share of its appearance's
@@ -343,11 +403,7 @@ function placeForests(
       let sz = (f.canopy * random.float(rng, rules.top[0], rules.top[1])) / kind.height;
       const sxy = random.float(rng, rules.girth[0], rules.girth[1]);
       const radius = kind.radius * sxy;
-      let foot = ground(x, y);
-      for (let k = 0; k < 4; k++) {
-        const a = (k * Math.PI) / 2;
-        foot = Math.min(foot, ground(x + 0.5 * Math.cos(a), y + 0.5 * Math.sin(a)));
-      }
+      const foot = footOf(x, y);
       const z = foot - SINK_M;
       let floor = foot;
       for (let ring = 1; ring <= 4; ring++)
@@ -376,9 +432,131 @@ function placeForests(
     while (trunk < site.trunkIds.length && site.trunkIds[trunk] < first) trunk++;
     while (trunk < site.trunkIds.length && site.trunkIds[trunk] < end) {
       plant(site.trunks[trunk * 2], site.trunks[trunk * 2 + 1]);
-      trunk++;
+      planted[trunk++] = 1;
     }
   }
+  // A trunk no forest generated stands alone: a tree as tall as its own
+  // body, seeded by the body, so one tree's look never moves another's.
+  const lone = trees.lone;
+  const alone = trees.species
+    .filter((s) => lone.species.includes(s.appearance))
+    .map((s) => ({ ...s, kind: kinds.indexOf(s.appearance) }));
+  for (let t = 0; t < planted.length; t++) {
+    if (planted[t]) continue;
+    const own = stream(seed ^ LONE_SALT, site.trunkIds[t]);
+    const [x, y] = [site.trunks[t * 2], site.trunks[t * 2 + 1]];
+    const s = weighted(own, alone);
+    const top = site.trunkHeights[t] * random.float(own, lone.top[0], lone.top[1]);
+    out.push(
+      x,
+      y,
+      footOf(x, y) - SINK_M,
+      random.float(own, 0, Math.PI * 2),
+      random.float(own, lone.girth[0], lone.girth[1]),
+      top / size[s.kind].height,
+      s.kind,
+      s.tint,
+      own,
+      trees.colour_jitter,
+    );
+  }
+  return Float32Array.from(out.out);
+}
+
+/** Parts the understorey's streams from every other stream of the seed. */
+const UNDERSTOREY_SALT = 0x5b2ab5;
+/** A shrub turns this far from its row's line, radians, either way. */
+const SHRUB_TURN = 0.12;
+
+/** The shrubs under every strip of forest: rows of hedge along its length,
+ *  as many as fit its width, each row's shrubs end to end and the next row's
+ *  half a spacing on. The rows draw together over the last `taperM` before
+ *  the strip's ends, where the ground's band under it narrows to a point. */
+function placeUnderstorey(
+  site: ScenerySite,
+  trees: BiomeTrees,
+  taperM: number,
+  size: readonly KindSize[],
+  kind: number,
+  seed: number,
+): Float32Array {
+  const out = new Builder();
+  const rules = trees.understorey;
+  const shrub = size[kind];
+  const ground = (x: number, y: number) => groundHeight(site.ground, x, y);
+  /** Whether a shrub reaching `reach` from (x, y) stands under the
+   *  simulation's foliage, as a crown does (in a fog cell that has it, or
+   *  beside one), and clear of paving, water and every body but a tree. */
+  const clear = (x: number, y: number, reach: number) => {
+    if (site.wetOrPaved(x, y) > 0 || !site.foliageNear(x, y)) return false;
+    for (let k = 0; k < 8; k++) {
+      const a = (k * Math.PI) / 4;
+      const [rx, ry] = [x + reach * Math.cos(a), y + reach * Math.sin(a)];
+      if (site.wetOrPaved(rx, ry) > 0 || !site.foliageNear(rx, ry)) return false;
+    }
+    const b = site.obstacles;
+    for (let o = 0; o < b.length; o += 3)
+      if (Math.hypot(b[o] - x, b[o + 1] - y) < b[o + 2] + reach) return false;
+    return true;
+  };
+  site.forests.forEach((f, index) => {
+    if (f.kind !== "stroke") return;
+    const s = f.strokes;
+    const rng = stream(seed ^ UNDERSTOREY_SALT, index);
+    // The strip's stretches run end to end: where each starts along it.
+    const starts: number[] = [];
+    let length = 0;
+    for (let o = 0; o < s.length; o += STROKE_FLOATS) {
+      starts.push(length);
+      length += Math.hypot(s[o + 2] - s[o], s[o + 3] - s[o + 1]);
+    }
+    const half = s[4];
+    const room = half - shrub.radius * rules.length[1];
+    const rows = room > 0 ? 1 + Math.floor((2 * room) / rules.row_m) : 1;
+    const count = Math.floor(length / rules.spacing_m);
+    for (let row = 0; row < rows; row++) {
+      const offset = (row - (rows - 1) / 2) * rules.row_m;
+      for (let n = 0, stretch = 0; n < count; n++) {
+        const along =
+          ((n + 0.5 + (row % 2) * 0.5 + random.float(rng, -0.15, 0.15)) * length) / count;
+        const sway = random.float(rng, -rules.sway_m, rules.sway_m);
+        const long = random.float(rng, rules.length[0], rules.length[1]);
+        const tall = random.float(rng, rules.height[0], rules.height[1]);
+        const turn = random.float(rng, -SHRUB_TURN, SHRUB_TURN);
+        if (random.bool(rng, rules.gap) || along >= length) continue;
+        while (stretch + 1 < starts.length && starts[stretch + 1] <= along) stretch++;
+        const o = stretch * STROKE_FLOATS;
+        const run = Math.hypot(s[o + 2] - s[o], s[o + 3] - s[o + 1]);
+        const [dx, dy] = [(s[o + 2] - s[o]) / run, (s[o + 3] - s[o + 1]) / run];
+        const aside = (offset + sway) * Math.min(1, along / taperM, (length - along) / taperM);
+        const x = s[o] + dx * (along - starts[stretch]) - dy * aside;
+        const y = s[o + 1] + dy * (along - starts[stretch]) + dx * aside;
+        // Its whole reach on the strip's own ground: a shrub is drawn smaller
+        // to fit, and not at all where it would be smaller than its kind.
+        const scale = Math.min(long, forestInside(f, x, y) / shrub.radius);
+        if (scale < rules.length[0] || !clear(x, y, shrub.radius * scale)) continue;
+        // On the lowest ground under its length.
+        const reach = (shrub.radius * scale) / 2;
+        const foot = Math.min(
+          ground(x, y),
+          ground(x + dx * reach, y + dy * reach),
+          ground(x - dx * reach, y - dy * reach),
+        );
+        out.push(
+          x,
+          y,
+          foot - SINK_M,
+          Math.atan2(dy, dx) + turn,
+          scale,
+          tall,
+          kind,
+          rules.tint,
+          rng,
+          trees.colour_jitter,
+        );
+      }
+    }
+  });
   return Float32Array.from(out.out);
 }
 

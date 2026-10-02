@@ -264,6 +264,9 @@ export interface BattleFrame {
   /** Lab diagnostics: draw the forest floor's dressing or not (a paired cost
    *  measure). */
   setDressingShown(on: boolean): void;
+  /** Lab diagnostics: draw the shrubs under tree lines or not (a paired cost
+   *  measure). */
+  setUnderstoreyShown(on: boolean): void;
   /** Lab diagnostics: draw the buildings and their shadows or not (a paired
    *  cost measure). */
   setBuildingsShown(on: boolean): void;

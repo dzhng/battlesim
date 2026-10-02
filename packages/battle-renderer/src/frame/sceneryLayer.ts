@@ -7,7 +7,8 @@
 //
 // - The forest (the simulation's trunks, one tree each) casts sun shadows
 //   into every cascade (the trees in view, and those whose shadow can land in
-//   it), receives them, and takes FogTerm through the faces group. A tree is
+//   it), receives them, and takes FogTerm through the faces group. The
+//   shrubs under a tree line (the understorey) are drawn the same way. A tree is
 //   seen or unseen whole: every fragment probes fog at its crown's
 //   heart with no facing test, as ground probes do. A crown is a porous
 //   volume inside the simulation's foliage, so the sweep's rule (sight into
@@ -29,9 +30,9 @@
 // the plain crown as a pixel grows past a clump.
 //
 // A tree whose trunk stands on ground the side has seen cleared (a lane a
-// vehicle knocked through) is not drawn: `setCleared` rebuilds the forest
-// without it, and the dressing is laid again without what stood on that
-// ground.
+// vehicle knocked through) is not drawn, nor a shrub that stood there:
+// `setCleared` rebuilds the forest and the understorey without them, and the
+// dressing is laid again without what stood on that ground.
 //
 // On a view change `prepare` sorts trees into tiers by projected height
 // (`scenery/lod.ts`) and uploads the near trees' per-tier lists; far chunks
@@ -96,6 +97,8 @@ export interface SceneryStats {
   /** Appearances installed. */
   kinds: number;
   forest: SceneryPopulationStats;
+  /** The shrubs under tree lines. */
+  understorey: SceneryPopulationStats;
   backdrop: SceneryPopulationStats;
   /** The forest floor's dressing: the pieces laid (`placed`) in `cells`
    *  cells of a pool of `bytes` bytes, the pieces drawn per tier, and
@@ -421,16 +424,21 @@ export async function createSceneryLayer(
     pool: InstanceBuffer;
     lodPx: TierView["lodPx"];
   }
+  /** A population on the simulation's ground: what was placed, and of it
+   *  what stands where the side has seen no ground cleared. */
+  interface Standing {
+    drawn: Population;
+    /** The population's own scope, rebuilt when what stands changes. */
+    scope: GpuRegistry;
+    placed: Float32Array;
+    /** Where each standing instance starts in `placed`; null for all. */
+    kept: number[] | null;
+  }
   interface Loaded {
     scope: GpuRegistry;
     dressing: Dressing;
-    forest: Population;
-    /** The forest's own scope, rebuilt when trees fall. */
-    forestScope: GpuRegistry;
-    /** Every placed forest tree, and how many of them are drawn. */
-    placedForest: Float32Array;
-    standing: number;
-    kept: number[] | null;
+    forest: Standing;
+    understorey: Standing;
     sizes: ReturnType<typeof kindSize>[];
     backdrop: Population;
   }
@@ -547,14 +555,22 @@ export async function createSceneryLayer(
       }
   }
 
-  /** Lab diagnostics: the trees draw and cast, or do neither; the dressing
-   *  draws or does not. */
+  /** Lab diagnostics: the trees draw and cast, or do neither, and the shrubs
+   *  under tree lines with them or not; the dressing draws or does not. */
   let treesShown = true;
+  let understoreyShown = true;
   let dressingShown = true;
   /** The trees drawn: the forest's, and the backdrop's. */
   const trees = () => (treesShown ? loaded : null);
+  /** The populations that stand on the simulation's ground, lit, shadowed
+   *  and casting alike: the forest, and the shrubs under its tree lines. */
+  const standing = () => {
+    const drawn = trees();
+    if (!drawn) return [];
+    return understoreyShown ? [drawn.forest.drawn, drawn.understorey.drawn] : [drawn.forest.drawn];
+  };
   /** Every population drawn into the view. */
-  const populations = () => (trees() ? [loaded!.forest, loaded!.backdrop] : []);
+  const populations = () => (trees() ? [...standing(), loaded!.backdrop] : []);
   const dressing = () => (dressingShown && loaded ? loaded.dressing : null);
 
   return {
@@ -571,7 +587,6 @@ export async function createSceneryLayer(
         return bundle;
       });
       const sizes = bundles.map(kindSize);
-      const forestScope = scope.scope();
       const tiers = bundles.map((bundle) =>
         Array.from({ length: TIER_COUNT }, (_, t) => {
           const mesh = tierMesh(bundle, t);
@@ -583,6 +598,10 @@ export async function createSceneryLayer(
       );
       const trees = (within: GpuRegistry, placed: Float32Array, casts: boolean) =>
         population(within, treeInstances(placed, sizes), tiers, next.lodPx, casts);
+      const stand = (placed: Float32Array): Standing => {
+        const own = scope.scope();
+        return { drawn: trees(own, placed, true), scope: own, placed, kept: null };
+      };
       const field = next.placement.dressing;
       // A small map's forests are fewer cells than the pool would hold.
       const slots = Math.min(DRESSING_SLOTS, field.cells.length / 2);
@@ -594,20 +613,18 @@ export async function createSceneryLayer(
           pool: scope.own(instanceBuffer(root, slots * field.capacity)),
           lodPx: next.dressing.lodPx,
         },
-        forest: trees(forestScope, next.placement.forest, true),
-        forestScope,
-        placedForest: next.placement.forest,
-        standing: next.placement.forest.length / TREE_FLOATS,
-        kept: null,
+        forest: stand(next.placement.forest),
+        understorey: stand(next.placement.understorey),
         sizes,
         backdrop: trees(scope, next.placement.backdrop, false),
       };
     },
-    /** Draw only the trees whose trunk stands on ground `ground`'s side has
-     *  not seen cleared; rebuilds the forest when that count changes. */
+    /** Draw only the trees and shrubs whose foot stands on ground `ground`'s
+     *  side has not seen cleared; rebuilds a population when what stands of
+     *  it changes. */
     setCleared(ground: GroundMarks | null) {
       if (!loaded) return;
-      const all = loaded.placedForest;
+      const { scope, sizes } = loaded;
       /** Whether the side has seen the ground at (x, y) cleared. */
       const cleared =
         ground &&
@@ -615,33 +632,42 @@ export async function createSceneryLayer(
           const [i, j] = [Math.floor(x / ground.cellM), Math.floor(y / ground.cellM)];
           return i >= 0 && j >= 0 && i < ground.cols && j < ground.rows && ground.isCleared(i, j);
         });
-      const kept: number[] = [];
-      for (let o = 0; o < all.length; o += TREE_FLOATS)
-        if (!cleared?.(all[o + TREE_FIELD.x], all[o + TREE_FIELD.y])) kept.push(o);
-      if (
-        kept.length === loaded.standing &&
-        (loaded.kept === null || kept.every((o, k) => o === loaded!.kept![k]))
-      )
-        return;
-      const standing = new Float32Array(kept.length * TREE_FLOATS);
-      kept.forEach((o, k) => standing.set(all.subarray(o, o + TREE_FLOATS), k * TREE_FLOATS));
-      loaded.forestScope.release();
-      loaded.forestScope = loaded.scope.scope();
-      loaded.forest = population(
-        loaded.forestScope,
-        treeInstances(standing, loaded.sizes),
-        loaded.forest.meshes,
-        loaded.forest.lodPx,
-        true,
-      );
-      loaded.standing = kept.length;
-      loaded.kept = kept;
+      /** Rebuild `stand` without what stood on cleared ground; false where
+       *  the same instances stand as before. */
+      const restand = (stand: Standing) => {
+        const all = stand.placed;
+        const kept: number[] = [];
+        for (let o = 0; o < all.length; o += TREE_FLOATS)
+          if (!cleared?.(all[o + TREE_FIELD.x], all[o + TREE_FIELD.y])) kept.push(o);
+        const before = stand.kept;
+        const same = before
+          ? kept.length === before.length && kept.every((o, k) => o === before[k])
+          : kept.length * TREE_FLOATS === all.length;
+        if (same) return false;
+        const left = new Float32Array(kept.length * TREE_FLOATS);
+        kept.forEach((o, k) => left.set(all.subarray(o, o + TREE_FLOATS), k * TREE_FLOATS));
+        stand.scope.release();
+        stand.scope = scope.scope();
+        const { meshes, lodPx } = stand.drawn;
+        stand.drawn = population(stand.scope, treeInstances(left, sizes), meshes, lodPx, true);
+        stand.kept = kept;
+        return true;
+      };
+      const forest = restand(loaded.forest);
+      const shrubs = restand(loaded.understorey);
+      if (!forest && !shrubs) return;
       // Ground is cleared where a tree is knocked down, and only there.
       setDressingCleared(loaded.dressing.cache, cleared);
       viewKey = "";
     },
     setTreesShown(on: boolean) {
       treesShown = on;
+    },
+    /** Lab diagnostics: draw the shrubs under tree lines or not (a paired
+     *  cost measure). */
+    setUnderstoreyShown(on: boolean) {
+      understoreyShown = on;
+      viewKey = "";
     },
     setDressingShown(on: boolean) {
       dressingShown = on;
@@ -674,8 +700,7 @@ export async function createSceneryLayer(
     /** The forest into one cascade (`bound` carries the cascade's camera). */
     encodeShadows(pass: TgpuRenderPass, cameraGroup: CameraGroup) {
       const bound = caster.with(pass).with(cameraGroup) as unknown as Drawable;
-      const drawn = trees();
-      if (drawn) drawPopulation(drawn.forest, bound, true, CASTER_COARSER);
+      for (const pop of standing()) drawPopulation(pop, bound, true, CASTER_COARSER);
     },
     encodeDepth(pass: TgpuRenderPass, cameraGroup: CameraGroup) {
       const bound = prepass.with(pass).with(cameraGroup) as unknown as Drawable;
@@ -699,11 +724,9 @@ export async function createSceneryLayer(
           .with(cameraGroup)
           .with(environment.group)
           .with(fogFaces) as unknown as Drawable;
+      for (const pop of standing()) drawPopulation(pop, colour(forestColour));
       const drawn = trees();
-      if (drawn) {
-        drawPopulation(drawn.forest, colour(forestColour));
-        drawPopulation(drawn.backdrop, colour(backdropColour));
-      }
+      if (drawn) drawPopulation(drawn.backdrop, colour(backdropColour));
       const dressed = dressing();
       if (dressed) drawDressing(dressed, colour(dressingColour), root.unwrap(pass));
     },
@@ -762,8 +785,9 @@ export async function createSceneryLayer(
         return out;
       };
       return {
-        kinds: loaded ? loaded.forest.meshes.length : 0,
-        forest: population(loaded?.forest),
+        kinds: loaded ? loaded.backdrop.meshes.length : 0,
+        forest: population(loaded?.forest.drawn),
+        understorey: population(loaded?.understorey.drawn),
         backdrop: population(loaded?.backdrop),
         dressing: dressing(loaded?.dressing),
         draws: lastDraws,
