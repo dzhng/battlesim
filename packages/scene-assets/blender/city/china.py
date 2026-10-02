@@ -56,6 +56,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(BLENDER)))
 sys.path.insert(0, HERE)
 sys.path.insert(0, BLENDER)
 import ambientcg  # noqa: E402
+import collapse  # noqa: E402
 import damage  # noqa: E402
 import detail  # noqa: E402
 import graph  # noqa: E402
@@ -690,11 +691,11 @@ def burnt_storey(rects, loops, roof_m, material):
 
 def heights(floors):
     """A block's levels: its ground floor's head, its roof, its parapet's top, and what
-    the simulation leaves of it when it collapses (a quarter, between 2 and 6 m)."""
+    the simulation leaves of it when it collapses (`collapse.py`)."""
     ground_m = INPUTS["Ground Floor Height"]
     roof_m = ground_m + INPUTS["Floor Height"] * (floors - 1)
     top_m = roof_m + INPUTS["Parapet Height"]
-    return ground_m, roof_m, top_m, min(6.0, max(2.0, 0.25 * top_m))
+    return ground_m, roof_m, top_m, collapse.ruin_height(top_m)
 
 
 def crown(loops, floors, tier, stucco, shade=1.0, trim=1.0):
@@ -1191,7 +1192,7 @@ def main():
     states = []
     for b in built:
         state = {"intact": (b.rows, lambda modules, tiers_of, b=b: intact_shell(b, modules, tiers_of, meshes))}
-        if b.floors <= 6:
+        if collapse.damage_state(b.floors) == "ruin":
             state["ruin"] = ruin(b, meshes, source)
         else:
             state["gutted"] = gutted(b, meshes)

@@ -3398,13 +3398,13 @@ raster nearby bodies again, and no changed-prefix scan can miss a later update.
 
 **Gap:** C14 says "evaluate patched damage inputs"; S2 found none to patch.
 
-**Reach:** A damage state is the same building by construction (same openings, same wall colour through the same tint), and costs no second source. The kit grows by the variants and the state shells: 117 modules, a 38.6 MB bundle.
+**Reach:** A damage state is the same building by construction (same openings, same wall colour through the same tint), and costs no second source. The kit grows by the variants and the state shells: 115 modules, a 38.6 MB bundle.
 
 **Verdict:** sound. **Confidence:** high.
 
 ### Burnt is grey with black marks, not the same wall darker
 
-**Choice:** Three first attempts read as something else in the game's light. Soot streaked down a wall still in its paint colour was the grain of a plank. Soot in clouds, in a texture that repeats every 4.8 m, was camouflage. Dark patches on a roof were the shadow of a tree, still so to an unprimed eye after the roof was smoked grey and the patches given hard edges. So a gutted block changes hue, which no shadow does: its shell row's tint is the wall colour with nine tenths of its colour gone, the burnt-wall texture is an even smoked grey, its trim is blackened, and the whole roof is smoked to a brown grey. The marks that say fire are geometry and never repeat. A black fan stands above most openings and fades up and out into the wall (a fan with an edge is a pale bucket hung under the window above); it stops under the next opening, because a fan drawn across an opening paints the hole the wall's colour and the window reads as glazed. The holes themselves are dark, and bays are blown out to the slab. On the roof the fire leaves three surfaces with hard, ragged edges (a 1 m grid pushed off its lines): tiles, the bare slab pale with ash where they are gone, and a hole burnt through the slab. No shadow has a pale rim.
+**Choice:** Three first attempts read as something else in the game's light. Soot streaked down a wall still in its paint colour was the grain of a plank. Soot in clouds, in a texture that repeats every 4.8 m, was camouflage. Dark patches on a roof were the shadow of a tree, still so to an unprimed eye after the roof was smoked grey and the patches given hard edges. So a gutted block changes hue, which no shadow does: its shell row's tint is the wall colour with nine tenths of its colour gone, the burnt-wall texture is an even smoked grey, its trim is blackened, and the whole roof is smoked to a brown grey. The marks that say fire are geometry and never repeat. A black fan stands above most openings and fades up and out into the wall (a fan with an edge is a pale bucket hung under the window above); it stops under the next opening, because a fan drawn across an opening paints the hole the wall's colour and the window reads as glazed. The holes themselves are dark, and bays are blown out to the slab. On the roof the fire leaves holes with hard, ragged edges (a 1 m grid pushed off its lines, a cell one surface): through a hole the top storey's black floor and the inside of its walls show, moving against the roof as the camera does, and round it the tiles are off a slab grey with ash. A flat dark patch, however black and hard-edged, stayed a shadow or a tarp to an unprimed eye; a hole with something 3 m down in it did not. A fan that stops under an opening is still half black there, so a column of windows is one streak rather than a shadow under each sill.
 
 **Verdict:** sound. **Confidence:** medium.
 
@@ -3416,7 +3416,7 @@ raster nearby bodies again, and no changed-prefix scan can miss a later update.
 
 ### A ruin stays inside the remains box with no allowance above it
 
-**Choice:** Stumps break off at or below the ruin height, and slabs, blocks and wrecks are pressed under it. The bake's coming rule allows a small top allowance named in the set's `fit`; this set does not use one.
+**Choice:** Stumps break off at or below the ruin height (`collapse.ruin_height`, the simulation's), and slabs, blocks and wrecks are pressed under it. The bake allows a set a `ruin_top_m` above the remains for jagged tops; this set names none.
 
 **Verdict:** sound: what stops a round is what is drawn. **Confidence:** high.
 
