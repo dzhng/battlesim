@@ -79,6 +79,17 @@ The fence, sandbags and dragon's teeth are worked examples:
 - **Tests hash LFS pointers by oid,** so they need no pull. Golden-failure GLBs for the validator are generated in code.
 - **In a worktree, pull only what you need,** e.g. `git lfs pull --include="assets/runtime/**"`. Never run a bare `git lfs pull`. A missing pull serves pointer files: effects flipbooks and bundles fail to decode, and nothing says "LFS".
 
+## Baked pictures of rooms (the interior atlas)
+
+`blender/city/interiors.py` renders rooms lit only through their own window; its contract is in the city readme.
+
+- **Whatever hangs in the window's light is the brightest thing in the picture, however dark its paint.** A pale curtain, pelmet or shutter read as a lit panel or a strip light. Keep window-side things dark and give the tone curve a ceiling.
+- **Don't lift the shadows to avoid black holes.** A lifted curve read as a grey veil over every room. Raise the exposure instead.
+- **Give every room the same light, not the same sky.** A shopfront has three times an apartment's glass and at the same sky reads as lit.
+- **Coplanar wall patches render black.** Give each its own thickness.
+- **Cycles on the CPU with a fixed seed and no denoiser wrote the same bytes twice;** do the tone curve, the downsample and the PNG in numpy.
+- **Judge it through the lookup, not on the sheet.** A small numpy ray-cast of the room box behind window-sized openings shows what the game will: looking down from the tactical camera, a window is mostly the cell's floor strip.
+
 ## Impostors are baked by our own renderer
 
 Soldier cards are baked at install by the frame's own model path:
