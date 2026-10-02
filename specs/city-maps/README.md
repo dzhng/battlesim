@@ -37,7 +37,7 @@ You are implementing `city-maps`. Use [implement-spec](../../.agents/skills/impl
 
 1. Work the pickup above in order, delegating independent lanes to worktrees. There is one lane now: the sim rules lane has closed, and its ownership table no longer applies.
 2. One owner builds the whole spec, look included. [The systems handoff](systems-handoff.md) lists, lane by lane, what each systems slice left for its look. Prototype art never stands in for accepted art. Art stays programmatic (Blender scripts and code in the repo).
-5. Test in proportion: every lane and every merge runs only the narrow checks for what changed. The full gate (`check` and `verify`) runs at two points and nowhere else: before a build is given to people to play, and at spec close. Everything else, including finishing a lane, is proved by the tests, scenes, measurements and pictures that change can move. No frozen-record tests; state a rule in a small behaviour test.
+5. Test in proportion: every lane and every merge runs only the narrow checks for what changed. The full gate (`check` and `verify`) runs once, when this spec's implementation is finished. Everything before that, including finishing a lane, is proved by the tests, scenes, measurements and pictures that change can move. No frozen-record tests; state a rule in a small behaviour test.
 3. Full-size arms rejected by [S0](spikes/S0.md) stay rejected until their owner changes. Measure cost in instructions retired, on generated maps, with `city_report` ([S1](spikes/S1.md)).
 4. Before ending each committed pass, update this handoff, the owning slice's Outcome and `choices.md`. Keep one next pickup.
 
