@@ -119,34 +119,53 @@ export async function run(ctx) {
     JSON.stringify({ before: before.position, after: after.position, state: after.state }),
   );
 
-  // Onto the plateau top: blocked, destination kept, reason shown.
+  // A rejected replacement holds the truck without a destination marker.
+  const truckId = (
+    await lab(page, () => window.__lab.route.observation().own.find((u) => u.kind === "supply"))
+  ).id;
   await lab(page, () => window.__lab.route.demo("Onto the cliff top"));
-  const supply = await planned(
-    page,
-    (await lab(page, () => window.__lab.route.observation().own.find((u) => u.kind === "supply")))
-      .id,
-  );
-  const panel = await page.getByTestId("selection").textContent();
+  const supply = await planned(page, truckId);
+  const refusal = await page.getByTestId("ack-log").textContent();
   ctx.check(
-    "an unreachable destination reports route blocked and keeps its order",
-    supply.state === "route_blocked" && supply.goal && /route blocked/.test(panel),
-    panel,
+    "an unavailable replacement is rejected and holds without a move marker",
+    supply.goal === null &&
+      supply.queue.length === 0 &&
+      supply.state === "idle" &&
+      /rejected: no valid destination/.test(refusal),
+    JSON.stringify({ goal: supply.goal, state: supply.state, queue: supply.queue, refusal }),
   );
 
-  // Infantry use a gap vehicles cannot.
+  // Put the entire two-squad formation beyond the wall, then verify its
+  // routes use the gap and both squads actually reach the other side.
   await lab(page, () => window.__lab.route.demo("Infantry through the gap"));
   await lab(page, () => window.__lab.route.advance(3));
+  const gapAck = await lab(page, () => window.__lab.route.acks()[0].ack);
   const rifles = await lab(page, () =>
     window.__lab.route.observation().own.filter((u) => u.kind === "rifle"),
   );
   ctx.check(
-    "rifle squads route through the 5 m gap",
-    rifles.every(
-      (r) =>
-        r.route.some(([x, y]) => Math.abs(x - 200) < 8 && Math.abs(y - 325) < 8) ||
-        pathLength(r) < 210,
+    "the rifle group's destinations are admitted and its routes use the 5 m gap",
+    !gapAck.error &&
+      gapAck.placement.destinations.every((mark) => mark.placed) &&
+      rifles.every(
+        (r) => r.goal && r.route.some(([x, y]) => Math.abs(x - 200) < 8 && Math.abs(y - 325) < 8),
+      ),
+    JSON.stringify({ gapAck, routes: rifles.map((r) => r.route) }),
+  );
+  for (let i = 0; i < 100; i++) {
+    await lab(page, () => window.__lab.route.advance(60));
+    const own = await lab(page, () => window.__lab.route.observation().own);
+    if (own.filter((u) => u.kind === "rifle").every((u) => !u.goal)) break;
+  }
+  const arrivedRifles = await lab(page, () =>
+    window.__lab.route.observation().own.filter((u) => u.kind === "rifle"),
+  );
+  ctx.check(
+    "both rifle squads finish their admitted moves beyond the wall",
+    arrivedRifles.every((r) => !r.goal && r.position[0] > 220),
+    JSON.stringify(
+      arrivedRifles.map((r) => ({ position: r.position, goal: r.goal, state: r.state })),
     ),
-    JSON.stringify(rifles.map((r) => pathLength(r).toFixed(0))),
   );
 
   // Real pointer gestures: box select, right-click, double right-click, Shift queue, S stop.
@@ -215,15 +234,15 @@ export async function run(ctx) {
 }
 
 /** Ground paint shows on every surface movers stand on or cross (post-close
- *  review, 5): a selected truck sent up the cliff (route blocked) has its
- *  dashed warning line painted across the river, mid-stream, and a selected
+ *  review, 5): a selected truck has its queued intention line painted
+ *  across the river, mid-stream, and a selected
  *  tank parked on the bridge deck has its marker ring painted on the deck.
  *  Both once vanished: the water and the deck didn't read the paint. Read
  *  as `paintOnly`, along the line over deep water and round the ring. */
 async function paintOnDeckAndWater(ctx) {
   const DECK = [390, 220];
-  // Past the river, up the cliff: no way there (the "Onto the cliff top" demo).
-  const CLIFF = [455, 345];
+  const BEFORE_RIVER = [360, 240];
+  const AFTER_RIVER = [430, 240];
   const page = await ctx.newPage();
   await ctx.openLab(page);
   await until(page, () => window.__lab.route?.tick() > 3);
@@ -233,18 +252,21 @@ async function paintOnDeckAndWater(ctx) {
   const truck = own.find((u) => u.kind === "supply");
   await lab(page, (ids) => window.__lab.route.select(ids), [tank.id, truck.id]);
   await page.waitForFunction(() => window.__lab.route.selected().length === 2);
-  const move = (id, goal, gesture) =>
+  const move = (id, goal, gesture, queued = false) =>
     lab(
       page,
       (o) =>
-        window.__lab.route.command({
-          kind: "move",
-          units: [o.id],
-          gesture: o.gesture,
-          goal: o.goal,
-          route: "fastest",
-        }),
-      { id, goal, gesture },
+        window.__lab.route.command(
+          {
+            kind: "move",
+            units: [o.id],
+            gesture: o.gesture,
+            goal: o.goal,
+            route: "fastest",
+          },
+          o.queued,
+        ),
+      { id, goal, gesture, queued },
     );
   // The paint alone, framed on `at`.
   const paintAt = async (at, name) => {
@@ -285,28 +307,35 @@ async function paintOnDeckAndWater(ctx) {
       c[1] + Math.sin((k / 48) * 2 * Math.PI) * radius,
     ]);
 
-  // The truck's blocked warning: a dashed line from it to the cliff top,
-  // crossing the river (x 380 to 400). Its dashes cover about half of it,
-  // and over deep water (away from either bank) they are as bright as over
-  // the ground just before it: the water takes the paint as its surface, not
-  // dimmed under it.
-  await move(truck.id, CLIFF, 81);
-  // Wait out the route's planning, then for the drawn frame to show it.
-  const blocked = await planned(page, truck.id);
+  // Two reachable destinations, joined by the queued intention's dashed
+  // line. The actual drive crosses the bridge; the queue line crosses water.
+  const firstAck = await move(truck.id, BEFORE_RIVER, 81);
+  await planned(page, truck.id);
+  const queuedAck = await move(truck.id, AFTER_RIVER, 82, true);
+  ctx.check(
+    "both river-side destinations are admitted before drawing their queue line",
+    !firstAck.error &&
+      !queuedAck.error &&
+      firstAck.placement.destinations.every((mark) => mark.placed) &&
+      queuedAck.placement.destinations.every((mark) => mark.placed),
+    JSON.stringify({ firstAck, queuedAck }),
+  );
+  await lab(
+    page,
+    (tick) => window.__lab.route.advance(Math.max(0, tick - window.__lab.route.tick())),
+    queuedAck.applied_tick,
+  );
   await presented(page);
-  const from = blocked.position;
+  const queuedTruck = await unit(page, truck.id);
   const onLine = (x0, x1) => {
     const out = [];
-    for (let x = x0; x <= x1; x += 0.5) {
-      const t = (x - from[0]) / (CLIFF[0] - from[0]);
-      out.push([x, from[1] + (CLIFF[1] - from[1]) * t]);
-    }
+    for (let x = x0; x <= x1; x += 0.5) out.push([x, BEFORE_RIVER[1]]);
     return out;
   };
   const across = onLine(384, 396);
   const paint = await paintAt(across[across.length >> 1], "water");
-  const [over, before] = [await inkOf(paint, across), await inkOf(paint, onLine(360, 374))];
-  const water = { state: blocked.state, over, before };
+  const [over, before] = [await inkOf(paint, across), await inkOf(paint, onLine(368, 378))];
+  const water = { queue: queuedTruck.queue, over, before };
   // The tank, parked on the deck.
   await move(tank.id, DECK, 80);
   for (let i = 0; i < 80; i++) {
@@ -320,8 +349,8 @@ async function paintOnDeckAndWater(ctx) {
     hull("tank").half_extents_m[0] + game.presentation.overlay.orders.vehicle_marker_margin_m;
   const deck = await shown(await paintAt(parked.position, "deck"), ring(parked.position, marker));
   ctx.check(
-    "ground paint shows on the water and on the bridge deck: a blocked route's dashes mid-river, a parked tank's ring",
-    water.state === "route_blocked" &&
+    "ground paint shows on the water and on the bridge deck: queued dashes mid-river, a parked tank's ring",
+    water.queue.some((q) => Math.hypot(q[0] - AFTER_RIVER[0], q[1] - AFTER_RIVER[1]) < 2) &&
       over.share >= 0.3 &&
       over.rise >= 0.8 * before.rise &&
       onDeck &&

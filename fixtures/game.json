@@ -132,6 +132,7 @@
     "max_expansions": 8
   },
   "navigation": {
+    "move_validation_work": 250000,
     "work_per_tick": 4000,
     "search_cells_base": 20000,
     "search_cells_per_m": 200,
@@ -792,6 +793,7 @@
       "panel_gap_px": 14
     },
     "contacts": {
+      "fade_s": 3,
       "hatch_spacing_m": 4,
       "hatch_width_m": 0.5,
       "hatch_angle_deg": 45,

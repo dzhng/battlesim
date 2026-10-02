@@ -334,6 +334,20 @@ pub fn validate_drive(rules: &Rules) {
 }
 
 impl Unit {
+    /// Admit an order with the same replacement and deployment semantics everywhere.
+    pub(crate) fn enqueue(&mut self, order: UnitOrder, queued: bool) {
+        if let Some(d) = self.deployment.as_mut() {
+            d.stationary = contract::observation::Posture::Deployed;
+        }
+        if !queued {
+            self.orders.clear();
+            self.route = None;
+            self.planned_goal = None;
+            self.state = MoveState::Idle;
+            self.turn_to = None;
+        }
+        self.orders.push_back(order);
+    }
     pub fn is_vehicle(&self) -> bool {
         self.hull.is_some()
     }

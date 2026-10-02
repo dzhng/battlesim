@@ -29,6 +29,7 @@ mod ground_delivery;
 mod guidance;
 mod lean;
 mod maps;
+mod move_admission;
 mod movement;
 mod movement_scenarios;
 mod navigation;

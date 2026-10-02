@@ -8,6 +8,7 @@ struct Member {
     building: PropId,
     structure: PropId,
 }
+#[derive(Clone)]
 struct Building {
     definition: BuildingDefinition,
     area_m2: f64,
@@ -15,6 +16,7 @@ struct Building {
     parts: Vec<PropId>,
     history: Vec<PropId>,
 }
+#[derive(Clone)]
 pub(super) struct Buildings {
     facts: BTreeMap<PropId, Building>,
     members: BTreeMap<PropId, Member>,

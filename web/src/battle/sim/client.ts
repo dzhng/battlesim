@@ -1,4 +1,3 @@
-import type { PublicWorldData } from "./publicWorld";
 /** Main-thread client of the one battle authority. Sends ordered commands,
  * resolves their acknowledgements, and hands each completed tick to the
  * consumer; the credit goes back only when the consumer releases it. */
@@ -40,7 +39,6 @@ export interface SimClientOptions {
   transport: "worker" | "direct";
   /** Adopt a worker that already holds this battle's prepared world. */
   connect?: SimConnection;
-  publicWorld?: PublicWorldData;
   /** Replay a recorded battle instead of accepting input. */
   replay?: string;
   /** Blue is played by this comparison script; blue input is refused. */
@@ -48,7 +46,6 @@ export interface SimClientOptions {
 }
 
 export interface SimClient {
-  readonly world: Promise<PublicWorldData>;
   readonly ready: Promise<{ tickHz: number; tick: number }>;
   /** Explicit pause intent, independent of loading, visibility or consumer stalls. */
   readonly paused: boolean;
@@ -144,14 +141,6 @@ export function createSimClient(options: SimClientOptions): SimClient {
   const statusListeners: ((status: AuthorityStatus, slow: boolean) => void)[] = [];
   let consumer: ((publication: Publication) => void) | null = null;
   let replayWaiter: Pending<string> | null = null;
-  let resolveWorld!: (world: PublicWorldData) => void;
-  let rejectWorld!: (error: Error) => void;
-  const world = new Promise<PublicWorldData>((resolve, reject) => {
-    resolveWorld = resolve;
-    rejectWorld = reject;
-  });
-  world.catch(() => {});
-  if (options.publicWorld) resolveWorld(options.publicWorld);
   let resolveReady!: (info: { tickHz: number; tick: number }) => void;
   let rejectReady!: (error: Error) => void;
   const ready = new Promise<{ tickHz: number; tick: number }>((resolve, reject) => {
@@ -177,7 +166,6 @@ export function createSimClient(options: SimClientOptions): SimClient {
     for (const buffer of heldBuffers) returnCredit(buffer);
     channel.send({ type: "pause" });
     rejectReady(failure);
-    rejectWorld(failure);
     for (const pending of pendingAcks.values()) pending.reject(failure);
     for (const pending of advances.values()) pending.reject(failure);
     for (const pending of previews.values()) pending.reject(failure);
@@ -208,9 +196,6 @@ export function createSimClient(options: SimClientOptions): SimClient {
     }
     try {
       switch (reply.type) {
-        case "world":
-          resolveWorld(reply.world);
-          break;
         case "ready": {
           const layout = JSON.parse(reply.layout) as ObservationLayout;
           decoder = new ObservationDecoder(layout);
@@ -302,7 +287,6 @@ export function createSimClient(options: SimClientOptions): SimClient {
 
   return {
     ready,
-    world,
     get paused() {
       return paused;
     },

@@ -155,7 +155,7 @@ export function ownStateRows(
   if (u.garrison) rows.push(GARRISON_ROWS[u.garrison.phase]?.(u.garrison.progress) ?? null);
   if (u.concealed) rows.push(row("hidden"));
   if (u.suppression !== "none") rows.push(row(u.suppression));
-  // The published move state: `waiting` yields to friendly traffic in the
+  // The published move state: `waiting` yields to vehicle traffic in the
   // way; `route_blocked` has no known route (the order is kept and retried).
   if (u.state === "waiting") rows.push(row("waiting"));
   if (u.state === "route_blocked") rows.push(row("route_blocked"));

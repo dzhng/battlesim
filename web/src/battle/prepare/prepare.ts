@@ -1,5 +1,3 @@
-import type { WorldExportSource } from "@packages/battle-renderer/src/worldMesh";
-import type { SimBattle } from "../sim/authority";
 /** Preparing a battle: the request is checked by the simulation, its map is
  *  resolved through the one map owner (a saved map by id, or the generator's
  *  for a request), the encounter is laid on it (the simulation's planner
@@ -8,6 +6,7 @@ import type { SimBattle } from "../sim/authority";
  *  runs. This module only carries text between those: every generation and
  *  placement rule is the Wasm module's. Pure over the module and the map
  *  adapter it is given, so the worker and a test share it. */
+import type { SimBattle } from "../sim/authority";
 import type { Encounter, ResolvedMap } from "../../maps/resolve.ts";
 import { MapResolveError } from "../../maps/resolve.ts";
 import { between, MapRefused, resolveMap, type MapGenerator } from "../../maps/source.ts";
@@ -32,10 +31,10 @@ export interface PreparationModule extends MapGenerator {
   };
 }
 
-export interface PreparedWorld extends WorldExportSource {
-  layout(): string;
+/** The simulation's world of one map, built once: the planner places the
+ *  encounter on it and the battle then takes it. */
+export interface PreparedWorld {
   plan_encounter(sites: string, recipe: string, encounterSeed: string): string;
-  public_queries(): string;
   into_battle(scenario: string, seed: number): SimBattle;
   into_replay(scenario: string, replay: string): SimBattle;
   free(): void;
@@ -277,8 +276,6 @@ export async function prepare(
         timings: { map: resolvedAt - started, encounter: now() - resolvedAt },
         wasmBytes: memory.buffer.byteLength,
         worldBuildMs: worldBuiltAt - resolvedAt,
-        publicExportMs: 0,
-        publicBytes: 0,
       },
     };
   } catch (error) {

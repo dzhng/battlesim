@@ -1,4 +1,3 @@
-import { publicWorldBuffers, type PublicWorldData } from "./publicWorld";
 /** The battle authority: one simulation, one tick owner, one command authority.
  *
  * It applies ordered commands, advances fixed ticks, and hands every completed
@@ -14,7 +13,6 @@ import { MAX_CATCHUP_TICKS, PUBLICATION_POOL } from "./timing";
 /** The slice of the WASM module the authority needs. */
 export interface SimModule {
   memory: WebAssembly.Memory;
-  takePublicWorld(): PublicWorldData | null;
   /** A live battle; with `script`, blue is played by that comparison script. */
   createBattle(scenario: string, seed: number, script?: string): SimBattle;
   replayBattle(scenario: string, replay: string): SimBattle;
@@ -175,8 +173,6 @@ export function createAuthority(host: AuthorityHost): Authority {
               battle = request.replay
                 ? module.replayBattle(request.scenario, request.replay)
                 : module.createBattle(request.scenario, request.seed, request.script);
-              const world = module.takePublicWorld();
-              if (world) host.post({ type: "world", world }, publicWorldBuffers(world));
               for (let i = 0; i < PUBLICATION_POOL; i++) credits.push(new ArrayBuffer(4096));
               host.post({
                 type: "ready",
