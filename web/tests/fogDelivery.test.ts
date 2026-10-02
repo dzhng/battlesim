@@ -43,6 +43,12 @@ const arrangementStream: PublicationStreamRecord = JSON.parse(
     "utf8",
   ),
 );
+const coverFacingStream: PublicationStreamRecord = JSON.parse(
+  readFileSync(
+    new URL("../../fixtures/parity/publication/cover-facing.json", import.meta.url),
+    "utf8",
+  ),
+);
 function publicationScenario(stream: PublicationStreamRecord) {
   const map = typeof stream.map === "string" ? loadMap(stream.map).definition : stream.map;
   return labScenario(map, stream.units, [], stream.scripts);
@@ -69,6 +75,10 @@ test("wasm combat matches the native stream with firing and impacts", () => {
 
 test("wasm large-coordinate arrangement matches native authoritative state before float32 packing", () => {
   publicationStream(arrangementStream, false);
+});
+
+test("wasm cover facing matches native authoritative state through its scheduled resolve", () => {
+  publicationStream(coverFacingStream, false);
 });
 
 function publicationStream(stream: PublicationStreamRecord, combat: boolean) {

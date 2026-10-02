@@ -4246,6 +4246,31 @@ high for the regression and replay, medium across generated towns.
 **Gap:** The slice judges the sheet, not the read behind glass.
 
 **Verdict:** the mechanism's own behaviour, the same for upstream's photographs. The mock-up shows dark, coloured, slightly streaked panes: not holes, not rooms. If the user wants furniture from above, the lookup has to change, which Q-E forbids, or the pinhole has to move, which is this recipe. **Confidence:** high that it happens, low on whether it matters.
+
+### The sheets are toned for the shade the game shows them in
+
+**Choice:** Exposure 1.0 under a ceiling of 0.15 linear (0.42 sRGB), light floors, strong wall hues. Cell means are 0.28 to 0.39 sRGB where they were 0.13 to 0.25. This supersedes "The picture has a ceiling, and no shadow lift" above: the ceiling stays, the level does not.
+
+**Gap:** C15 judged the sheet as a picture and made it dim. C26 then showed a cell as a matte surface in sun shadow, which darkens it again: at 80 m every window was a near-black rectangle.
+
+**Verdict:** sound on the facade scene's frames, with one limit the sheet cannot remove.
+
+| Room against the sunlit wall | before | after |
+|---|---|---|
+| 30 m, no glass | 0.16 to 0.44 | 0.26 to 0.58 |
+| 30 m, behind glass | 0.23 to 0.37 | 0.28 to 0.45 |
+| 80 m, no glass | 0.25 to 0.39 | 0.49 to 0.58 |
+| 80 m, behind glass | 0.25 to 0.33 | 0.39 to 0.44 |
+| shops from the street, behind glass | 0.25 to 0.32 | 0.36 to 0.42 |
+
+The scene's bound (a room at most 0.7 of its wall) was not moved. Two brighter tries were rejected on the pictures:
+
+- Exposure 0.7 under a ceiling of 0.5 tripped the bound: a white room and a pale tiled floor reached 0.76 and 0.79 without glass, and the white room was the brightest thing on the facade. The bound was right.
+- Exposure 0.9 under a ceiling of 0.2 passed every check, and an unprimed critic still read the pale shops as "a dim light left on" where the facade stands in its own shade. A room takes no sun, so it does not darken when its wall does: there a window's brightest twentieth reached 0.95 of the shaded wall. At the ceiling chosen it is 0.84 at most, and a window's mean 0.60 to 0.79 (0.47 to 0.60 before).
+
+A second unprimed critic, on the chosen sheets' frames: no window reads as lit under any of the four suns (high confidence; the pale shop on the shaded facade is "the nearest thing to a lit look", read as a dim daylight room); none is a hole at 30 m or from the street; rooms are told apart at 30 m by wall colour and contents; two of the three shops read as shops, the third as the vacant unit it is. At 80 m every opening is still a flat dark pane, brown for flats and slate for shops, "not black, but functionally blank": the floor strip under the glass's veil, with no wall colour left.
+
+That is the limit: the sheet trades "a hole at 80 m in the sun" against "lit on a shaded facade", and one level serves both only so far. If shaded facades still read as lit, the lever is the light a room is shown in (C26's `unlit`, which could follow the facade's shade), not the sheet. The scene checks one window under each sun and no shop; a check of every window against the shaded wall would hold this. The sheet on its own now looks like a lit doll's house; that is what a shaded surface's colour looks like before the shade. **Confidence:** medium: one block, one biome's light.
 ### A squad corridor starts at a member the known grid admits
 
 **Choice:** Select the closest living soldier whose position is standing room
@@ -5689,6 +5714,28 @@ The models, their boxes and the sheets are in the [C45 outcome](slices/C45-stree
 
 **Verdict:** sound for one model. A street of identical grey cars will read as clones; more bodies or colours are more appearances of the same kind at slightly different boxes, or a per-instance tint the scenery path does not have. **Confidence:** medium.
 
+## C06: restore contact by staging the existing stress fronts within weapon reach
+
+**Choice:** Move the generated stress recipe's living starts 200 m closer to
+contact using its existing legal-placement projection. Keep all commands,
+physical rules, unit counts, full world and late remains. Incoming movement
+certification refuses most scripted journeys; a combat benchmark should still
+make both forces fight without changing that production policy.
+
+**Gap:** The plan names active contact but does not prescribe how to preserve
+that workload when incoming movement admission changes. This correction is a
+new named benchmark input, never an outcome-preserving optimization.
+
+**Reach:** Generated stress starts change; normal battles and saved stress starts
+do not. Rising published shot counters guard contact during measurement in the generated browser
+arms. Refused journeys remain a separate finding and cannot prove the historical
+planning-delay cases resolved.
+
+**Verdict:** sound, medium confidence. This makes combat representative of the
+stated load while preserving production rules; it leaves marching cost dependent
+on future movement admission. Full scale acceptance still requires fresh combined
+receipts.
+
 ## C06: use pinned software trig for seeded soldier placement
 
 **Choice:** Squad arrangement and nearest-free ring samples use the existing
@@ -6094,6 +6141,82 @@ A second unprimed critic saw the final frames (after the dither and the repainte
 
 **Verdict:** provisional. The village's six quick digests all move and no outcome does. The ground and river scenes pass with it; sensors, consequences and the saved market town were not run, and a generated map loaded no slower. It is one commit and reverts alone. **Confidence:** medium.
 
+## C31 urban and plain ground composition
+
+**When:** 2026-10-02. Evidence and numbers: the Outcome in [C31](slices/C31-city-biome.md).
+
+### Urban ground is where buildings stand, by the plot rule; no region reaches the renderer
+
+**Choice:** The settlement's ground is the plots whose centre lies within `field_rules.yard_m` (40 m) of a building, the rule `terrain/plots.ts` already owned at a wider reach. Nothing was exported from `crates/`.
+
+**Gap:** The slice says composition comes from `MapDefinition.surfaces` and `land_regions`. `land_regions` is not a field of `MapDefinition`; the compiler refuses a plan that names one. What the generator knows of a town (each settlement's outline and blocks) is in its `EncounterSites`, which the preparation worker hands to the encounter planner and drops: it is not in the map, a saved map has none, and it reaches neither the page nor the renderer.
+
+**Why:** Exporting it means a new field of the map contract, its saved form and its identity, not a layout column: the map lane's decision. The buildings are in every map, saved or generated. **Verdict:** sound. Against the generator's own blocks on the rig's map the rule calls 85% of block ground yard and 0.3% of it a drilled crop (a block takes in unbuilt margins). **Confidence:** medium: a yard is a whole plot, so its edge is a plot's straight edge, and a wide lot round a detached house is no yard.
+
+### Two reaches: the yard, and the surround where no crop is drilled
+
+**Choice:** A plot within `yard_m` is `settlement_kind` (`yard`); any other within `settlement_m` (110 m, as before) is `surround_kind` (`meadow`). Neither draws from the plot stream.
+
+**Gap:** "Pavement and urban yards suppress farm plots" names no reach; the one rule made every plot within 110 m the settlement's lawn, a block of one green round every town.
+
+**Why:** The old rule drew no kind for a settlement plot, so keeping its reach for the pair leaves every other plot on every map the kind and colour it was (checked plot by plot against the starting commit on the village and the generated map). **Verdict:** sound. **Confidence:** high.
+
+### The yard is the old green at its own lightness, two thirds of its chroma, growing what it grew
+
+**Choice:** `palettes.yard` is the old settlement green's three colours at their own L\* and hue, chroma 17 (from 27); its grass is the meadow's mix at full height, as it was.
+
+**Gap:** "Urban yard and park appearance; grass density" are delegated, and the look must hold `fog-look`.
+
+**Why:** Three looks were shot once (a lawn, lawn and trodden courts, packed earth); the earth and the courts came out rust orange under the low sun. A mown lawn (half height, a pasture mix) then failed `fog-look` under `grey-veil` at `default-wall`: the wedge of unseen ground there is the yard, and a smooth lawn has no dark blades, so its darkest 1% rose from 39 to 52 against a darkest seen 46. The check holds by luminance only while the yard is as dark, and as rough, as it was; its chroma is free. **Verdict:** provisional: fresh eyes still read "a mown lawn from wall to wall", and the fog styles' margin (SG4) still decides what a yard may be. **Confidence:** medium.
+
+### A country road is a street where yards lie on both sides of it
+
+**Choice:** `roads.<kind>.town` names the kind a road is drawn as where a yard lies within `beside_m` (5 m) of its edge on both sides, on across gaps under `gap_m` (80 m). The summer country road's is `road`. `drawnStrokes` splits the exported stretches where a run starts and ends; the surface field is built from them (`terrainField`).
+
+**Gap:** "Never a second sim rule or a renderer-only guess about roads"; the map names the road through a town `country_road`.
+
+**Why:** The road follows the yards, the one owner of where the town is, so asphalt never runs on past them. Either side was tried first: a street with walks then ran beside a wheat field wherever a yard lay across the road. **What it cannot do:** a hamlet's road between wide lots stays gravel while its side streets, `road` by the map, are asphalt. **Verdict:** provisional until the map says which roads are streets. **Confidence:** medium.
+
+### The village is untouched because its roads are already streets by name
+
+**Choice:** A stretch is retagged only when its row's town kind differs from its own tag. The village's roads are `road` drawn by the country road's row (`drawnKind`), whose town kind is `road`: nothing to do, and `strokes` is the exported array itself.
+
+**Gap:** The brief: the village must not move.
+
+**Verdict:** sound: `bend-65`'s bare ground and class mask are byte-identical. **Confidence:** high.
+
+### The join: the street runs on under the gravel, which starts in drifts
+
+**Choice:** A run of street is cut square `join_m` (the street row's, now 3 m) past each end; the country road stops at the run's end, round. Where one road is carried onto another, the line the upper surface starts from now wanders by the carry (`JOIN_DRIFT_M`, 2.5 m drifts). This is every carried join's: a track's earth onto a road too.
+
+**Gap:** "A join that is not a ruled line."
+
+**Why:** Cut square at the run's end the asphalt was a ruled line with gravel sprayed over its middle (the critique's words). **Verdict:** provisional, and not good enough: the second critique still reads the join as a glitch (a lobed blob of gravel on one side, a ruled cut on the other). The carried blend was made for a road that crosses another; an end across a road wants a term of its own. **Confidence:** low.
+
+### A crossing is laid beside a stretch's own length only
+
+**Choice:** `groundMarks` counts a crossing road only where the point lies beside the stretch, not past its end.
+
+**Gap:** C30 left a street that only joins a road out of its crossings by the stretch's cut flags; a joining street whose first stretch is short escaped it.
+
+**Why:** With the main road a street, a fan of bars was painted on it round the end of each side street. **Verdict:** sound. **Confidence:** medium: a crossing road's bend can leave a bar's width unpainted.
+
+### The rig makes the generated map again in the page
+
+**Choice:** `_groundStations.mjs` rebuilds the terrain surface from the page's own generation request, for stations that stand on the renderer's own ground (`town-edge`, `road-join`) and for `drawnRoads`.
+
+**Gap:** No probe of the lab reaches the terrain surface, and the lab is not this lane's to change.
+
+**Verdict:** sound; it costs under a second a page. **Confidence:** high.
+
+### A road is judged against the field beside it as "lighter, or apart in hue", and its walk as "no dark outline"
+
+**Choice:** The two road checks that stated L-G3 are restated. A road's core may be darker than the ground beside it only when it is within 15% of it and their colours are 6 or more apart in CIELAB's a*b* plane (the river bank's bar). The walk from core to field has one rule: no band is more than 12% darker than the darker of the core and the field. The "only gets darker, band by band" rule is gone.
+
+**Gap:** C66 and C67 wrote "core luminance at or above the adjacent grass band's" and "monotone or flat from core to grass" when every field beside a station was green. After C84's palettes and C31's river recut the river lab's track runs through rapeseed, lighter than any earth.
+
+**Verdict:** provisional. It is the form the spec uses for seen against unseen ground ("lighter than, or apart in hue"), and what L-G3 guards against, a dark band beside the road, is still refused. The measured case: track 0.211 against rapeseed 0.225, 10.2 apart in hue; the bare half metre beside it is the field's own soil at 0.203. The monotone rule could not hold beside a field as light as the road, and its 3 to 4% steps were furrow phase. **Confidence:** medium: the bar is the bank's, not measured for roads by a fresh eye.
+
 ## Open country
 
 The open-country pass (M24, M25): `crates/mapgen/src/open_country/`, its rows in `fixtures/map-presets.json`, its tests in `crates/mapgen/tests/open_country.rs` and its measure in `crates/mapgen/examples/sight_report.rs`. Numbers below are from that report and `layout_sweep`.
@@ -6243,3 +6366,33 @@ Every page fetched every kit before it could start: about 116 MB of kit bundles,
 **Gap:** The brief and the lane's status put the whole download at "about 100 MB of kits".
 
 **Verdict:** gap, for whoever owns the download budget next. The same rule would cover it: a battle asks for the unit types its scenario fields, a map for the scenery its props take, through the request path kits now use. **Confidence:** high on the numbers, which are the files' sizes.
+## C07: warm cover-facing parity
+
+**Choice:** Use pinned `libm::atan2` in the existing cover-bearing calculation,
+without adding a scalar math wrapper or migrating unrelated trigonometry.
+
+**Evidence:** A generated battle's first divergent tick had only one squad's
+yaw and copied sight bearing differ by one float64 ULP. The two-rifle public
+paired fixture reproduces the same `(17, 100)` bearing and first fails at tick
+30, while float32 publication hides it. The existing math module has no shared
+bearing owner. This deliberately changes Native's last bits to the portable
+result; gameplay rules and the transport contract are unchanged.
+
+**Verdict:** sound; high confidence. Scope follows an observed field and public
+red proof, rather than assuming all standard math needs replacement. Remaining
+generated-battle parity must still be measured after integration.
+
+## C07: ricochet numerical primitive
+
+**Choice:** Canonicalize the whole existing ricochet scatter primitive's sine
+and cosine calls with the pinned `libm`, keeping its RNG consumption and rules.
+
+**Evidence:** Direct paired captures establish equal impact inputs and scatter
+basis before the first divergent azimuth cosine. Persistent-state equality
+alone would not have established that cause. A public damage-decision test uses
+fixed captured inputs and explicit rules; the passing two-unit battle candidate
+is not retained as a regression. Actual generated Native/Wasm playback validates
+the consumer without adding a diagnostic API or durable format.
+
+**Verdict:** sound; high confidence. This corrects named Native last bits at a
+measured primitive rather than migrating an inventory of unrelated math calls.
