@@ -63,7 +63,7 @@ during measurement in each generated arm lasting 30 seconds or more.
 
 Current pickup, in order:
 
-1. Refresh current inputs, then run both complete 9,000-tick contact arms.
+1. Repair the current late publication miss, then complete both contact arms.
    The portable evaluator policy is integrated: authoritative trig, bearings
    and 2D norms use the existing pinned library, preserving formulas and draw
    order. These are named native last-bit corrections, not CPU gains. The
@@ -75,6 +75,16 @@ Current pickup, in order:
    current Native publication and actual Wasm boundary checks pass, but that
    bounded proof does not admit the full current battle. Packed agreement
    cannot substitute for state parity.
+   Frozen current source `ffbee73c`, rules `b00f7d5e…` completes the early arm:
+   all 9,001 digests/raw records match, with a 19,388 B active maximum. Late
+   state and wire match through tick 54, but that record is 21,008 B. Captured
+   candidates show form selection already chooses the smallest available payload
+   there; changing selection does not repair it. The bounded next experiment
+   indexes three-word variable spans instead of eight-word anchors in the
+   existing copy owner. All 55 captured late records reconstruct exactly and
+   their maximum becomes 19,328 B. Verify the complete captured early corpus,
+   packing instructions and index-memory tradeoff before adopting it. Full
+   current late admission, heap and browser gates remain open.
 2. During the complete paired runs, whole-record maximum remains
    **19,800 B**, with unchanged replay, decoder and delivery contracts. Historical
    captured-codec maxima of 18,652 B early and 15,280 B partial late are controls,
