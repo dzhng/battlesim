@@ -14,13 +14,8 @@ blender supply_truck.py "$v/supply_truck.glb"
 blender supply_truck.py "$v/supply_truck_wreck.glb" --wreck
 blender jeep.py "$v/jeep.glb"
 blender jeep.py "$v/jeep_wreck.glb" --wreck
-# the village map's three buildings (fixtures/game.json map.buildings), each intact and ruined
-blender house.py "$b/house_a.glb" 15 12 4 0
-blender house.py "$b/house_a_ruin.glb" 15 12 4 0 --ruin 2
-blender house.py "$b/house_b.glb" 17 14 4 1
-blender house.py "$b/house_b_ruin.glb" 17 14 4 1 --ruin 2
-blender house.py "$b/house_c.glb" 13 11 4 2
-blender house.py "$b/house_c_ruin.glb" 13 11 4 2 --ruin 2
+# the ruin a loose ruin or rubble prop is drawn as (buildings are a city set: city/village.py)
+blender house.py "$b/ruin.glb" 15 12 4 0 --ruin 2
 blender props.py wall "$b/wall.glb"
 blender props.py crate "$b/crate.glb"
 blender props.py bridge_deck "$b/bridge_deck.glb"
@@ -36,3 +31,5 @@ for kind in jersey_barrier bollard lamp bench bins hydrant utility_box planter b
 done
 # the trees and hedgerows, one GLB per kind into assets/source/trees/
 blender trees.py
+# the forest floor's bodies and dressing, one GLB per kind into assets/source/forest/
+blender forest_floor.py

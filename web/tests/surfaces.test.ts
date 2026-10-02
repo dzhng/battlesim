@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { expect, test } from "vitest";
 import { generatePlots, plotAt, type PlotSite } from "@packages/battle-renderer/src/terrain/plots";
+import type { ForestShape } from "@packages/battle-renderer/src/terrain/forestShapes";
 import {
   SURFACE_AREA_KINDS,
   type SurfaceAreaKind,
@@ -34,7 +35,22 @@ const empty: PlotSite = {
   surfaceBoundaries: new Float32Array(0),
   riverRuns: new Float32Array(0),
   riverRunStride: 4,
+  forestShapes: [],
 };
+
+/** A strip of forest `width` metres wide along `stretches` (`ax, ay, bx, by` each). */
+function strip(width: number, ...stretches: number[][]): ForestShape {
+  return {
+    canopy: 12,
+    trunkRange: [0, 0],
+    kind: "stroke",
+    strokes: Float32Array.from(
+      stretches.flatMap(([ax, ay, bx, by]) => [ax, ay, bx, by, width / 2, 0, 0]),
+    ),
+    triangles: new Float32Array(0),
+    boundaries: new Float32Array(0),
+  };
+}
 
 /** A strip of paving of one kind across the map, as a stroke and as a polygon. */
 function paving(named: SurfaceAreaKind): PlotSite {
@@ -86,6 +102,22 @@ test("a river's authored run guides field boundaries as a road's does", () => {
   expect(plotAt(river, 20, 57)!.edge).toBeCloseTo(7, 9);
   expect(plotAt(generatePlots(empty, biome), 50, 30)!.plot).toBe(
     plotAt(generatePlots(empty, biome), 50, 70)!.plot,
+  );
+});
+
+test("a tree line's long stretches guide field boundaries, and the short chords of its bends do not", () => {
+  const line = generatePlots({ ...empty, forestShapes: [strip(10, [0, 50, 100, 50])] }, biome);
+  expect(plotAt(line, 50, 30)!.plot).not.toBe(plotAt(line, 50, 70)!.plot);
+  // The fields either side end on the strip's centreline, under its trees.
+  expect(plotAt(line, 50, 44)!.edge).toBeCloseTo(6, 9);
+  // A bend is exported as chords far shorter than the strip is wide: a field
+  // is not cut along one.
+  const chord = generatePlots({ ...empty, forestShapes: [strip(10, [49, 50, 51, 50])] }, biome);
+  expect(plotAt(chord, 50, 30)!.plot).toBe(plotAt(chord, 50, 70)!.plot);
+  // A wood is not a line: its outline cuts nothing.
+  const wood: ForestShape = { ...strip(10), kind: "rectangle", rect: [0, 40, 100, 20] };
+  expect(generatePlots({ ...empty, forestShapes: [wood] }, biome)).toEqual(
+    generatePlots(empty, biome),
   );
 });
 

@@ -17,10 +17,12 @@ import {
   type SkeletonClips,
   type StaticBundle,
 } from "./schema.ts";
+import { bindInteriors, interiorTexture, type InteriorSheets } from "./interior.ts";
 import { encodeTemplateLibrary, sealTemplateLibrary } from "./templateLibrary.ts";
 import {
   packTemplateSets,
   type PhysicalTemplates,
+  type TemplateCatalogue,
   type TemplateLibraryStats,
   type TemplateSetInput,
 } from "./templateSource.ts";
@@ -56,11 +58,10 @@ export interface BakeResult {
 }
 
 /** What the bake judges art against: the simulation's bodies and, for a
- *  catalog with city sets, the physical template catalogue they dress. */
+ *  catalog with city sets, the physical template catalogues they dress. */
 export interface BakeContext extends Omit<ValidationContext, "tolerances"> {
   templates?: {
-    /** The physical catalogue's rows: the descriptors the map generator reads. */
-    catalogue: readonly unknown[];
+    catalogues: readonly TemplateCatalogue[];
     physical: PhysicalTemplates;
   };
 }
@@ -100,6 +101,21 @@ export async function bakeCatalog(
       .map(([, a]) => a.skeleton)
       .filter((s): s is string => !!s),
   );
+  // The interior sheets, each read and laid out once, when a room first asks.
+  const sheetTextures = new Map<string, ReturnType<InteriorSheets>>();
+  const sheets: InteriorSheets = (sheet) => {
+    let texture = sheetTextures.get(sheet);
+    if (!texture) {
+      const path = catalog.interiors?.[sheet];
+      texture = path
+        ? readSource(path)
+            .then(interiorTexture)
+            .catch((error: unknown) => `${path} ${error instanceof Error ? error.message : error}`)
+        : Promise.resolve("the catalog has no source for");
+      sheetTextures.set(sheet, texture);
+    }
+    return texture;
+  };
   const emit = async (bundle: Parameters<typeof encodeBundle>[0]) => {
     const bytes = encodeBundle(bundle);
     const hash = await bundleHash(bytes);
@@ -163,7 +179,9 @@ export async function bakeCatalog(
       },
       { ...context, tolerances: catalog.tolerances },
     );
-    const out = result.bundle ? await emit(result.bundle) : null;
+    if (result.bundle && result.bundle.kind !== "clips")
+      result.findings.push(...(await bindInteriors(name, result.bundle, sheets)));
+    const out = result.bundle && !hasErrors(result.findings) ? await emit(result.bundle) : null;
     if (entry.unit === "kit" && out) result.findings.push(...kitBytesFindings(name, out.bytes));
     if (entry.unit === "kit" && result.bundle?.kind === "static" && out)
       kits.set(name, { bundle: result.bundle, hash: out.hash });
@@ -191,7 +209,7 @@ export async function bakeCatalog(
   const sets = Object.entries(catalog.city_sets ?? {});
   if (sets.length && !only?.length) {
     if (!context.templates)
-      throw new Error("the catalog has city sets: the bake needs the physical template catalogue");
+      throw new Error("the catalog has city sets: the bake needs the physical template catalogues");
     const inputs: TemplateSetInput[] = [];
     for (const [name, entry] of sets)
       inputs.push({
@@ -202,7 +220,7 @@ export async function bakeCatalog(
       });
     const packed = packTemplateSets(
       inputs,
-      context.templates.catalogue,
+      context.templates.catalogues,
       context.templates.physical,
       catalog.tolerances.ground_m,
     );

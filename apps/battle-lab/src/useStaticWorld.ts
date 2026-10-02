@@ -1,11 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { WorldRay } from "@packages/renderer-core/src/camera3d";
+import {
+  indexBuildings,
+  type SideBuildings,
+} from "@packages/battle-renderer/src/models/buildingReferences";
+import { mapProps } from "@packages/battle-renderer/src/models/propAppearance";
 import {
   readWorldExports,
   type WorldExports,
   type WorldLayout,
 } from "@packages/battle-renderer/src/worldMesh";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
+import { useFeed, type Feed } from "./feed";
 import { GAME_RULES } from "./scenarios";
 
 export type WorldView = InstanceType<Wasm["WorldView"]>;
@@ -71,4 +77,19 @@ export function buildingUnderRay(world: StaticWorld, ray: WorldRay): number | nu
     b.parts.some((p) => p.prop === hit[7]),
   );
   return building && world.layout.garrisonPropKinds.includes(building.kind) ? building.owner : null;
+}
+
+/** The map's buildings for a view no side's knowledge is behind (a probe of
+ *  the static world): every one standing. */
+export function useStandingBuildings(world: StaticWorld | null): Feed<SideBuildings | null> {
+  const buildings = useMemo<SideBuildings | null>(
+    () =>
+      world && {
+        placed: indexBuildings(world.exports.buildings, mapProps(world.exports, world.layout))
+          .placed,
+        fallen: [],
+      },
+    [world],
+  );
+  return useFeed(buildings);
 }

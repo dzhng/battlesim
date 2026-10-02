@@ -14,7 +14,6 @@
       },
       "appearance": {
         "drawn_by": "log",
-        "status": "systems_only",
         "map_only": true
       },
       "destroyed": "removed"

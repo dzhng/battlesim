@@ -669,7 +669,7 @@ def tube(bm, colours, points, radii, sides, furrowed, shade):
     along the centreline by parallel transport (each ring turned only as far
     as the centreline bends), so the rings never twist against each other.
     A furrowed tube's alternate ribs stand proud as bark ridges, the grooves
-    between them darker."""
+    between them darker. Returns its first and last rings, for a cap."""
     tangents = []
     for i in range(len(points)):
         a, b = points[max(i - 1, 0)], points[min(i + 1, len(points) - 1)]
@@ -699,6 +699,7 @@ def tube(bm, colours, points, radii, sides, furrowed, shade):
         for k in range(sides):
             j = (k + 1) % sides
             bm.faces.new((lower[k], lower[j], upper[j], upper[k]))
+    return rings[0], rings[-1]
 
 
 def bark_shade(kind, tier, lift):
@@ -957,8 +958,12 @@ def build_kind(name, kind):
             obj = bpy.data.objects.new(f"{part}_LOD{t}", mesh)
             obj.parent = root
             scene.collection.objects.link(obj)
-    os.makedirs(OUT, exist_ok=True)
-    path = os.path.join(OUT, f"{name}.glb")
+    export(os.path.join(OUT, f"{name}.glb"))
+
+
+def export(path):
+    """The scene as a GLB at `path`: vertex colours and materials, Y up."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     bpy.ops.export_scene.gltf(
         filepath=path,
         export_format="GLB",
@@ -978,6 +983,7 @@ def build_kind(name, kind):
     print(f"wrote {os.path.relpath(path, ROOT)}")
 
 
-for kind_name, spec in KINDS.items():
-    if not ARGS[1:] or kind_name in ARGS[1:]:
-        build_kind(kind_name, spec)
+if __name__ == "__main__":
+    for kind_name, spec in KINDS.items():
+        if not ARGS[1:] or kind_name in ARGS[1:]:
+            build_kind(kind_name, spec)

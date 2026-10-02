@@ -87,12 +87,17 @@ class Module:
 
 
 class Template:
-    def __init__(self, kit, id_, category, family, recipe, status):
+    def __init__(self, kit, id_, category, family, recipe, status, row=None):
         self.kit, self.id, self.category, self.family = kit, id_, category, family
-        self.recipe, self.status = recipe or {}, status
+        self.recipe, self.status, self.row = recipe or {}, status, row
         self.parts, self.floor_heights, self.entrances = [], [], []
         self.lattices, self.rows = {}, {"intact": []}
         self._edges = None
+        for p in (row or {}).get("parts", ()):
+            if p["yaw"]:
+                _fail(f"{id_}: part {p['id']} is turned; this helper's parts are axis-aligned")
+            (cx, cy), (hx, hy, hz) = p["center"], p["half_extents"]
+            self.part(p["id"], cx - hx, cx + hx, cy - hy, cy + hy, 2 * hz, p["base_z"])
 
     # -- the physical template
     def part(self, id_, x0, x1, y0, y1, height, base_z=0.0):
@@ -198,6 +203,8 @@ class Template:
 
     def descriptor(self):
         """The contract's `BuildingTemplateDescriptor`, in its own field order."""
+        if self.row is not None:
+            return self.row
         edges = self.edges()
         missing = sorted(id_ for id_, e in edges.items() if e["exposed"] and id_ not in self.lattices)
         if missing:
@@ -238,6 +245,12 @@ class Kit:
 
     def template(self, id_, category, family, recipe=None, status="release"):
         self.templates.append(Template(self, id_, category, family, recipe, status))
+        return self.templates[-1]
+
+    def dress(self, row, recipe=None, status="release"):
+        """A template some catalogue already has, which no set derives (an authored map's): its
+        descriptor is that row as written, and its parts are the row's boxes."""
+        self.templates.append(Template(self, row["id"], row["category"], row["regional_family"], recipe, status, row))
         return self.templates[-1]
 
     # -- writing

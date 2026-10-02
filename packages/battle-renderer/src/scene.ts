@@ -16,6 +16,7 @@ import type { CorpseInstance, ModelInstance } from "./models/modelInstances";
 import type { ModelStats } from "./models/modelLayer";
 import type { BuildingStats } from "./models/buildingLayer";
 import type { SideBuildings } from "./models/buildingReferences";
+import type { SurfaceClass } from "./models/surfaceParts";
 import type { ImpostorAtlas, ImpostorSpec } from "./models/impostor";
 import type { StaticBundle, TextureChannel } from "@packages/scene-assets/src/schema";
 import type { SceneryPlacement } from "./scenery/placement";
@@ -53,13 +54,16 @@ export interface WorldMeshes {
   paintedMarching?: Mesh;
 }
 
-/** The trees and hedgerows: where each stands, and the appearances
- *  (`tree` and `hedgerow` bundles from the one loader) it instances. */
+/** The trees, hedgerows and forest-floor dressing: where each stands, and the
+ *  appearances (`tree`, `hedgerow` and `dressing` bundles from the one
+ *  loader) it instances. */
 export interface WorldScenery {
   placement: SceneryPlacement;
   appearances: ReadonlyMap<string, StaticBundle>;
   /** `biome.trees.lod_px`: the detail tiers by projected height. */
   lodPx: readonly [number, number, number];
+  /** The dressing's tiers and fade (`biome.forest_floor.dressing`). */
+  dressing: { lodPx: readonly [number, number, number]; fadePx: number };
 }
 
 /** The static world in layers, so each takes its own material and FogTerm
@@ -130,7 +134,7 @@ export interface FrameStats {
    *  pool's residency and what the last view change cost. */
   buildings: BuildingStats;
   worldVertices: number;
-  /** Props drawn from what the side knows (standing buildings, ruins, wrecks). */
+  /** Props drawn from what the side knows (standing walls, rubble, wrecks). */
   structures: number;
   depth: InstalledDepthState;
   view: FrameView;
@@ -177,11 +181,11 @@ export interface BattleFrame {
   /** The static world: the terrain and the props on it. */
   setWorld(world: WorldLayers): void;
   /** Knowledge-drawn props, as fitted appearances (`structureModels`): the
-   *  buildings the side knows stand and the ruins and wrecks it remembers.
+   *  props the side knows stand and the rubble and wrecks it remembers.
    *  Lit, graded, shadow-casting and fogged like the world. */
   setStructures(structures: readonly ModelInstance[]): void;
-  /** The buildings drawn from template art (`models/buildingReferences.ts`):
-   *  the map's references, and those the side has seen fall. Each is its
+  /** The map's buildings (`models/buildingReferences.ts`): its references,
+   *  and those the side has seen fall. Each is its
    *  template's rows from the installed library (`setAppearances`), as
    *  instances of its kit's modules, at the tier its distance asks for; one
    *  seen to fall draws its remains. Lit, shadow-casting and fogged like the
@@ -257,9 +261,16 @@ export interface BattleFrame {
   /** Lab diagnostics: draw the trees (the forest's and the backdrop's) and
    *  their shadows or not. */
   setTreesShown(on: boolean): void;
-  /** Lab diagnostics: draw the template-art buildings and their shadows or
-   *  not (a paired cost measure). */
+  /** Lab diagnostics: draw the forest floor's dressing or not (a paired cost
+   *  measure). */
+  setDressingShown(on: boolean): void;
+  /** Lab diagnostics: draw the buildings and their shadows or not (a paired
+   *  cost measure). */
   setBuildingsShown(on: boolean): void;
+  /** Lab diagnostics: draw one kind of model surface (`surfaceParts.ts`: a
+   *  cutout, say) with its depth and shadow, or none of it: paired frames
+   *  and cost. */
+  setSurfaceShown(surface: SurfaceClass, on: boolean): void;
   /** Lab diagnostics: draw the roads worn (surface detail, shoulders, the
    *  grass thinned across them) or plain, each kind's flat colour to its
    *  edge: paired frames and cost. */

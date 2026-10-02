@@ -4393,7 +4393,7 @@ timing; nearest-fit selection is not permission to publish an invalid segment.
 
 **Reach:** A UV interpolated across a side wall is off the true projection by at most 0.7 % of a cell (under one texel of 128) for the 3 × 3 × 4.5 m box and the 16 m pinhole; a wall cut once in depth quarters it. If C26 would rather project in the shader from a box frame, the frame needs a home (a vertex attribute or per-module data) and this field stays as it is.
 
-**Verdict:** provisional until C26 draws one. **Confidence:** medium.
+**Verdict:** superseded by [C26](#c26-interiors): the field stays as it is, and the UVs are the box unfolded, with the pinhole in the shader. The 0.7 % above is the error along a wall's edge; on a floor's diagonal it is 5.5 %. **Confidence:** high.
 
 ### A room is opaque, has no look of its own, and stands still
 
@@ -5016,6 +5016,87 @@ exact matched openings pass and a real retained GPU allocation falsifies the che
 
 **Verdict:** sound. The loop that finds the paved distance already has the closest point of each stretch; a second lookup for the lane would walk the cell's list twice. A polygon has no centreline, so a town's streets have no lanes. **Confidence:** high.
 
+## C37 house appearance
+
+### One library, two catalogues: a set names the one it dresses
+
+**Choice:** `city_sets.<set>.catalogue` in `assets/catalog.json` is `generated` (what the map generator builds towns from) or `authored` (the boxes the hand-authored maps pin). The bake is handed both catalogues, holds each to the sets that name it, and the library's `covers` lists both hashes (library format 2). `asset catalogue` and `asset prototypes` read and write the generator's alone.
+
+**Gap:** The slice says the houses go "through C32/C22"; C32's library covers one catalogue.
+
+**Verdict:** sound. One loader, one resolver and one drawing path stay as they were. The alternative, one merged catalogue, would have put the authored boxes into the generator's hash and moved every generated map. A template is found by its id alone, so an id in both catalogues is refused. **Confidence:** high.
+
+### The authored catalogue is held to `validate`, not `require_complete`
+
+**Choice:** `PhysicalTemplates` gained `valid`, the contract's own `TemplateGeometryCatalog::new` through its existing WebAssembly export. A catalogue says which rule its rows meet.
+
+**Gap:** C32 holds every set descriptor to `require_complete`. The authored boxes have no floor, entrance or bay resolved, on purpose.
+
+**Verdict:** sound. Resolving them would change what the simulation seats in a village house: physics, which this slice may not move. **Confidence:** high.
+
+### Every authored box is used, so every one has art
+
+**Choice:** The set dresses all twelve rows of `fixtures/building-templates.json`.
+
+**Gap:** "The templates the authored maps place": the brief left unused rows open.
+
+**Verdict:** sound. Each of the twelve is placed by a saved map (the village's three, and nine across the labs), and the coverage rule would refuse a row with no art in any case. **Confidence:** high.
+
+### A lab's box is the farm a tier coarser
+
+**Choice:** The three village houses are built exactly as `house.py` built them (the same triangles at every tier). Any other box takes the look of the nearest house, with its finest tier the farm's second and its paint baked as that tier's.
+
+**Gap:** "The same `house.py` art, fitted to their boxes without stretching", and a kit's bundle may weigh 50 MiB.
+
+**Verdict:** provisional. Twelve farms in full are 81 MiB baked; with paint alone twice as coarse, 66 MiB; this way, 37 MiB. The loader fetches every bundle on every page, so the labs' boxes would otherwise cost every player 45 MiB more than the three houses did. Up close a lab's house has no glazing bars, door planks or downpipes. **Confidence:** medium: the user asked for the labs not to be polished, not for them to be coarser.
+
+### A box lower than the farm is the farm pressed down
+
+**Choice:** The farm needs 8 m for its two storeys. For a lower box (one, the weapons lab's 4 m shed) the script builds it at 8 m and scales the meshes down in z before the bake.
+
+**Gap:** "Without stretching: the script builds each size."
+
+**Verdict:** sound for a lab. It is what the fitted path drew for that box, and the plan is built at its true size, which is where stretching showed. Removing the upper storey for low boxes would be new art. **Confidence:** medium.
+
+### The ruin is built to the simulation's height for that box, and held to the intact parts
+
+**Choice:** `village.py` reads the building row's `destroyed.into` rule from the resolved catalog and builds each ruin at the height the simulation leaves for that box (2 m for an 8 m house, 3 m for a 12 m one). The fit check holds it to the intact parts grown by 0.5 m, as every state is held today.
+
+**Gap:** The damage pass's rule (a `ruin` state held to the parts at the ruin height) was not on main when this closed.
+
+**Verdict:** provisional. The walls stand 0.35 m above the ruin height, inside the 0.5 m the house appearances were allowed; when the rule lands the set should pass it unchanged, and if its tolerance is tighter the script's `top` is the number to lower. **Confidence:** medium.
+
+### A map installs only the kits its buildings draw from
+
+**Choice:** `mapAppearances` installs the kits of the placed templates' rows (`buildingKits`), not every kit; the building layer builds its scene once those are in.
+
+**Gap:** C22 installed the whole library's kits whenever a map had a building, which was only ever a generated town.
+
+**Verdict:** sound. Otherwise the village would upload every town kit (67 MiB of buffers and their textures) to draw three farms. **Confidence:** high.
+
+### `drawn_by: "building"` names the building layer; `remains_state` is gone
+
+**Choice:** The prop row keeps `drawn_by: "building"`, now meaning "a part its building draws from its template's art"; the ground still reads it to find buildings. `remains_state` is removed from the fixture, the resolved catalog and `contract::catalog::PropAppearance`: nothing read it once a ruin is its building's own state.
+
+**Gap:** "Delete the prop catalog's `drawn_by: "building"` meaning."
+
+**Verdict:** sound. A row must say what draws it, and the building layer is that. The contract field is presentation only: the village's digests and replay are unchanged. **Confidence:** high.
+
+### A template with no art is refused, not skipped
+
+**Choice:** `indexBuildings` no longer filters by art. Building a scene with a template the library lacks throws `template.missing`.
+
+**Gap:** C22's filter existed for the houses.
+
+**Verdict:** sound. A silent filter would now hide a stale library as a missing building. **Confidence:** high.
+
+### Rubble and a loose ruin keep the scenery ruin
+
+**Choice:** The scenery appearance `village_ruin` stays, drawing rubble and any ruin no building owns, from `assets/source/village/ruin.glb` (the old `house_a_ruin.glb`, renamed; `house.py` still writes it).
+
+**Gap:** "Delete their source GLBs."
+
+**Verdict:** sound. That one file had a second consumer. **Confidence:** high.
 ## C23 far tier
 
 ### Tier 3 is the far tier; no tile builder was written
@@ -5631,3 +5712,385 @@ the regression through the public battle interface.
 **Verdict:** sound, high confidence. The observed sine difference reproduces the
 first state mismatch exactly, and the public native/Wasm regression passes with
 pinned math. Full-map parity is rechecked before performance admission resumes.
+## C24 cutout
+
+**When:** 2026-10-02, with C25 and C26, in the model layer. Evidence is the `facade` scene's (`throwaway/evidence/facade/`).
+
+### A kind of surface is a range of the mesh, drawn by its own pipelines
+
+**Choice:** At install a mesh's indices are ordered by how their material is drawn (`models/surfaceParts.ts`: cutout, opaque, room, blended), so every drawable and every kit module has one index range a kind, and each draw call names the kind it draws. The alternatives were a branch on the material in the opaque fragment stage, or a second mesh per kind.
+
+**Gap:** The slice names the seam (`modelLayer.ts`) and says opaque wear must be unchanged; it does not say how one mesh with several kinds of material is split between pipelines.
+
+**Verdict:** sound. A material is a per-vertex index here (L11), so one mesh mixes kinds freely, and a discard in the opaque stage would cost every model early depth. A mesh that is opaque throughout keeps its index order and its one range. Proved by frames of main and of this branch (all three slices in) from the same scenes: `city-block`'s differ on at most 689 pixels of a 1920 × 1080 frame by at most 14 of 255, which is what two runs of one tree differ by (676 pixels, 15), and its overview, wide and ground-class frames are identical; `village-watch`'s battle frames differ on a few thousand pixels between any two runs, on main as here (its presentation is not locked to a frame), and its mask frames are identical. **Confidence:** high.
+
+### Mips are not coverage-preserved; the coverage becomes a sample count
+
+**Choice:** A cutout's coverage is read through the texture's ordinary mip chain, scaled so that the material's cutoff is half, and becomes the number of the pixel's four samples it covers. Coverage-preserving mips at bake, with a hard cutoff, was the other option the brief names.
+
+**Gap:** "Mips must not eat thin features: choose and say why."
+
+**Alternatives:** Coverage-preserving mips keep a feature solid at every distance: a grille a quarter there stays a hard pattern, and when its bars pass under a pixel it aliases (it is the "alpha-tested cards shimmer under multisampling" trap). They also make a texture's mips depend on a material's cutoff, when a texture is shared by content.
+
+**Verdict:** sound. A grille too far away to resolve is drawn as a veil a quarter there, the sheet as one seven tenths there, and neither vanishes (250 m: both still differ from the bare ground by 57 and 115 of 765). A cutout thinner than an eighth there would round to nothing at distance; none is authored. **Confidence:** medium on the far look, which was judged in stills only.
+
+### The mask is the fragment stage's, not alpha-to-coverage, and only where depth is written
+
+**Choice:** The prepass's cutout stage outputs a sample mask; the colour pass does not cut at all. It shades the cutout's triangles with the opaque fragment stage at depth *equal* (`battleWorldDepth("kept")`), so it draws exactly the samples the prepass kept.
+
+**Gap:** "The prepass and colour pass must still agree on depth bit for bit; a cutout cannot go through a fragment-less prepass pipeline."
+
+**Alternatives:** Alpha-to-coverage needs a colour target with alpha, and the prepass has none. Cutting in both passes with the same function leaves one sample a frame open to two compilers rounding differently, and a sample the prepass kept and the colour pass dropped shows the sky through a wall. The frame's usual greater-or-equal compare would fill every hole: the cut surface is nearer than what shows through it.
+
+**Verdict:** sound. One stage decides the silhouette, by construction. A hole's pixel is the frame without the panel to the last bit (difference 0), with and without fog. **Confidence:** high.
+
+### Rounded where the pixel resolves an edge, dithered where it does not
+
+**Choice:** The sample count is the coverage times four, rounded where the coverage changes fast across the pixel and dithered (interleaved gradient noise) where it is an even part.
+
+**Gap:** Unstated; found by the critique.
+
+**Verdict:** provisional. Dither everywhere speckled bar edges seen close; rounding everywhere drew bands across the perforated sheet at 25 m and blotches in the far grille, where an average coverage crossed a step. With the mix a fresh critic still saw faint row bands on the sheet at 25 m and mottled panels at 250 m. Not judged in motion. **Confidence:** medium.
+
+### A cutout's caster dithers the same coverage
+
+**Choice:** In a cascade a cutout's texel is covered when its coverage beats the noise at that texel. Like every model's caster it is a tier coarser.
+
+**Gap:** "Matching colour and shadow silhouettes."
+
+**Verdict:** sound. A cascade's texel is wider than a grille's bar, so a hard cutoff casts nothing or a slab. Filtered, the dither is the panel's share of shade: the grille casts 0.29 of what a wall casts at the same spot and the sheet 0.71, for panels 0.26 and 0.72 there. Individual bars cast no shadow at any distance; close up the shade seen through the grille has soft waves where the bars beat against the cascade (left). **Confidence:** high on density, medium on the look.
+
+### The fixture is a kit no template places
+
+**Choice:** `city_kit_facade_lab` is a kit appearance with no set: `facade_lab.py` writes its GLB, the catalog lists it, and `/lab/facade` stands its modules as static models. The lab's map installs only the kits the template library places, so a battle never loads it onto the GPU.
+
+**Gap:** "A small authored test kit ... drawn in a lab fixture route."
+
+**Alternatives:** A set with a template would add a row to the physical catalogue and move its hash. A GLB validated in the page (as the workbench's drop zone does) would not go through the bake, which is where a room gets its sheet.
+
+**Reach:** The building layer's draws (`buildingLayer.ts`) take the same ranges through the same pipelines, but no placed template has a cutout, glass or a room yet: that path is exercised for opaque surfaces only until the kits are restored. The bundle is 7 MiB in the runtime catalog, fetched by every page that loads the catalog.
+
+**Verdict:** sound for the lab; the building path's three new kinds are unproven on screen. **Confidence:** medium.
+
+### Units' cards and x-ray draw their opaque surfaces only
+
+**Choice:** The impostor bake and the x-ray draw a model's opaque range.
+
+**Gap:** Unstated.
+
+**Verdict:** sound today: no unit has a cutout. A camouflage net as a cutout would be missing from its card. **Confidence:** medium.
+
+### What the unprimed critique saw, and where it went
+
+| Finding | Disposition |
+|---|---|
+| The perforated sheet read as raised studs up close (a lit rim round each hole, plate and holes one colour) | Fixed in the recipe: a flat, dark plate |
+| The sheet is a solid dark slab at the default camera while its shadow says "mostly open" | As designed: it is seven tenths there. Every shadow is faint under this light's shadow floor (a wall dims the ground by 13 %) |
+| The grille loses its bars at the default camera and is a blotchy patch at 250 m | The veil is the design; the blotches were the rounding, now dithered where unresolved |
+| The grille's shadow has no bars; wavy bands in the shade seen through it; wide grainy edges; shadows detach at the foot | The cascades cannot resolve a 24 mm bar. The waves are the dither against the cascade, left. The rest is the sun shadow's known softness and bias, not this slice |
+| Bar edges jog by a pixel and have a two-tone fringe at 4 m | Four samples a pixel: five steps of coverage. Left |
+| Horizontal banding across the sheet at 25 m | The rounding again; dithered now |
+| A shadow on a light checker reads as a dark checker | The lab's ground is one colour now |
+| Cast shadow against the hatched unseen ground | Not confused: the critic answered no |
+
+A second unprimed critic saw the final frames (after the dither and the repainted sheet) and added nothing to the table: the openings are clean, the bars are under a pixel at the default camera, the far panels are mottled.
+
+**Not done:** the `preview-shots` checkpoint (this pass ran as a subagent with no one to show).
+
+## C25 glass
+
+### Glass draws at the end of the world pass, not in a pass of its own
+
+**Choice:** A blended material's triangles draw last in the frame's existing world pass, after the water, through one more pipeline: blended over what is there by its coverage value, depth read and not written, four samples like the rest. It is in no prepass and no cascade.
+
+**Gap:** "Alpha-blended model surfaces in the existing frame owner, with an explicit ordering and depth policy." The brief allows a new pass.
+
+**Verdict:** sound. The water already draws this way in this pass, so the frame function is untouched and the phase order has nothing new in it. **Reach:** what reads the prepass's depth does not know glass is there. Overlays (order lines, rings) show through a pane as they show through air; the fog's tile cull and the x-ray ignore it; and an effect (smoke, a flash) behind a pane is drawn after it and over it, not dimmed by it. A pane is thin and mostly against a wall, so none of these showed in the lab. **Confidence:** medium.
+
+### Glass is not sorted
+
+**Choice:** Panes draw in the order the layer packs them (by mesh, then in list order; a town's in its chunks' order), never by depth.
+
+**Gap:** "Sort granularity", delegated.
+
+**Alternatives:** Back to front per instance is CPU work every frame over records that are otherwise static; per chunk or per building leaves the panes inside one unsorted anyway.
+
+**Verdict:** sound for panes of one glass. Two panes blended in the wrong order differ from the right one by the product of their opacities times the difference of their two colours, and panes of one material under one light have nearly one colour. Proved on three panes each half across the next and a fourth seen from its back: the same modules handed over in the opposite order draw the same frame to within 1 of 255, on every pixel. It would not hold for a red pane before a blue one; nothing here authors that. **Confidence:** high for one glass.
+
+### A pane is lit by the one shade function, with its mirror bounded
+
+**Choice:** Glass is shaded like any surface (sun, sky, cast lights, haze) and laid over what is behind it at its opacity. Two numbers bound what it mirrors (`presentation.glass`): `turn` turns its shading normal toward the eye (0.5: seen edge on, it is shaded as if seen 63° off its normal), and `glint` caps its own light at that of a white matte surface in sun shadow (1).
+
+**Gap:** "Glass must read as glass at the game camera: a dark, slightly reflective pane ..., not a hole and not an opaque plate." How it is lit is unstated. The coordinator added, from an unprimed critique of the first real town: today's opaque stand-in glass is charcoal on one face and pale khaki on the next, because a glossy surface mirrors the horizon at a grazing angle, and along a street the pale ones read as boarded windows.
+
+**Alternatives:** Upstream's glass is a mirror weighted by Fresnel, nearly clear head on and a full mirror edge on: the pale plate again, from a grazing camera. A shading of its own beside the frame's one shade function would have had to repeat cast lights and haze.
+
+**Verdict:** provisional. From the street, under the fixture's sun and three more (behind the camera, ahead of it, along the street), a window's pane is 0.25 to 0.42 of its wall's brightness, never near it. The cost is the unprimed critique's first finding: with its mirror bounded a pane has no sky gradient and no glint to say "glass", and reads as smoked film, or on a building as an open hole with a dim room in it. A stronger mirror veils the room, which is dimmer than any reflection of this sky: four hundredths of the sky's radiance is already several times a room's. The two numbers are the fixture's to tune; the cue that costs the room nothing is the pane's own material (waviness in its normal map, dust in its coverage), which a kit authors. **Confidence:** medium that the composition is right, low that the look is finished.
+
+### Opacity is the coverage value and nothing else
+
+**Choice:** A pane's alpha is its coverage value (the base colour's alpha times the normal texture's), the same from every angle. No Fresnel in the alpha.
+
+**Gap:** Unstated.
+
+**Verdict:** sound. One pane keeps 0.77 of the brightness behind it, two keep 0.59, and a pane seen from its back the same as from its front (0.77). An opaque frame in front of a pane is drawn exactly as without the glass. **Confidence:** high.
+
+### Glass does not touch the fog mask
+
+**Choice:** The glass pipeline writes colour only. The fog mask under a pane stays what the surface behind it wrote.
+
+**Gap:** "Lit and fogged like the world."
+
+**Alternatives:** Blending the mask by the pane's opacity, as the water does, was the first version. A seen pane over unseen ground then made the pixel half seen: the mask pass drew an unhatched plate inside each pane, as if the glass revealed the ground behind it, and broke the sight line's rim across it.
+
+**Verdict:** sound. A pane is not the thing seen or unseen; what stands behind it is. A pane past the sight line is unseen with the ground it stands on. One case is wrong by a hair: an unseen pane in front of a seen surface would be drawn tinting it, which needs a seen surface farther from the eye than an unseen pane. **Confidence:** medium.
+
+### Glass casts no shadow
+
+**Choice:** None, at any opacity.
+
+**Gap:** "Blended surfaces cast no shadow or a policy you state."
+
+**Verdict:** sound for window glass. A dark, nearly opaque blended surface (a tarpaulin) would want the cutout's dithered caster; it is one line to add when something asks. **Confidence:** high.
+
+### The comparison target is the lab's facade, not the China balcony
+
+**Choice:** The Blender render compared against is the facade lab's block from the scene's own cameras.
+
+**Gap:** The slice names "a Blender render of the China enclosed-balcony module at 30 m".
+
+**Verdict:** a substitution. The China kit's glass is still the opaque stand-in (it is restored after these passes), so that module has no blended surface to draw. **Confidence:** high that it is the right order; the balcony comparison is owed by the pass that restores the kit's glass.
+
+**Not done:** the `preview-shots` checkpoint.
+
+## C26 interiors
+
+### A room box's UVs are the box unfolded, and the shader does the pinhole
+
+**Choice:** A room surface's UVs are its box unfolded round its back wall: the back wall is the unit square, and the floor, ceiling and side walls reach one unit out from its edges to the open face (`parts.room_box`). The fragment stage reads the point's place across the box and its depth into it off that UV and applies the atlas's pinhole itself. This replaces C21's provisional choice, that the UVs are the cell's projected `u`, `v`.
+
+**Gap:** C21 left it "provisional until C26 draws one", and reckoned the error of interpolating projected UVs at 0.7 % of a cell.
+
+**Alternatives:** Projected UVs are wrong between vertices, because the projection is not straight across a triangle: on the floor of the 3 × 3 × 4.5 m box the middle of the diagonal is 5.5 % of a cell off (7 texels of 128), which shows as a kink along it; cutting each wall eight times in depth would hide it at eight times the triangles. A third vertex attribute for depth has no free slot in the 48-byte vertex.
+
+**Verdict:** sound. The unfolded position is straight in the box's space, so it interpolates exactly, the lookup is upstream's (which projects in its shader from a room-local position) at every pixel, and a box of any size shows the whole of its cell with no size in the material. **Confidence:** high.
+
+### The sheets reach the runtime inside the bundles that show them
+
+**Choice:** `assets/catalog.json` names each sheet's source picture under `interiors`. The bake lays a sheet's ten cells out again four to a row in a 512 px square, mips it and addresses it by content like any texture, and gives it to every room material as its albedo texture (`interior.ts`). A room whose sheet has no picture, or whose picture is not ten 128 px cells, does not bake.
+
+**Gap:** "The atlas sheets need a way into the runtime ... through the existing texture path ..., not a side-loaded image."
+
+**Alternatives:** A third kind of runtime file beside bundles and the template library needs a codec, a loader branch and a slot in what the renderer installs, for two pictures. Embedding the sheet in each kit's GLB from Blender copies it into every source and lets a kit ship a stale sheet.
+
+**Reach:** Each kit bundle with rooms carries the sheets it shows (1.4 MiB a sheet with its mips); on the GPU they are one layer each however many kits show them. The source layout (2 × 5, 256 × 640 px) is not square, which is why the cells are laid out again; a cell is still whole at every mip down to one texel a cell (a test holds it), and the shader never reads a coarser one. The albedo array is as wide as its widest texture, so where units' 1024 px textures are installed a sheet is a 1024 px layer (5.6 MiB each). A source dropped on the workbench has no sheet and draws its rooms as their flat colour.
+
+**Verdict:** sound. **Confidence:** high.
+
+### The room is chosen by a hash of the model's position, read flat
+
+**Choice:** The cell (of ten) and whether it is mirrored are bits of a PCG hash of the three float32 coordinates of the model's own position (the record's placement: the module's row on a building). The position reaches the fragment as a flat varying.
+
+**Gap:** "Stable per-instance room choice by a hash of the instance's position (and mirroring)."
+
+**Verdict:** sound. Interpolated, a constant comes back an ulp off and a hash of it flickers, so the models' `anchor` varying is flat now; nothing else read it but the corpses' fog, at the same point. In the lab a window shows the same room after the camera has been 250 m away and back and when the frame is handed the models in the opposite order (difference 0 on every window), and six windows show four different cells. **Reach:** rooms that share one module instance share one room, so a room box is a module (or part of one) that a row places per window; folded into a shell they would all match. **Confidence:** high.
+
+### A room is shown at the scene's exposure, as a matte surface in sun shadow would be
+
+**Choice:** The atlas's colour is multiplied by what a white matte surface facing the sky returns in sun shadow under this light (the sky's light and the shadow floor's share of the sun's), and put behind the air (`environment.unlit`). Nothing of the room's own surfaces enters: no facing, no shadow test, no cast light, no emission. A tint-masked room takes its row's tint.
+
+**Gap:** "Unlit (... it takes fog and the scene's exposure, but no sun, no shadow, no emission)." What "the scene's exposure" is for a picture is unstated.
+
+**Alternatives:** The lit path with the picture as albedo adds a rough dielectric's specular, a grey veil about as bright as a dim picture. A constant would not follow a dusk preset. A white surface in the open (full sun) was the first reference: on a facade in its own shade the rooms then came close to the wall's brightness, and the critique read one shop as nearest to "lights on".
+
+**Verdict:** provisional on the level. The picture is the same under every sun azimuth (to within 1 of 765 at one elevation, while the wall beside it moves by 110 of 255), so it is unlit. Against the fixture's sunlit plaster the rooms sit at 0.16 to 0.44 of the wall's display brightness with no glass and 0.23 to 0.37 behind it, and stay under the wall on a shaded face. The slice says to tune the atlas, not the shader, if they should be darker or lighter; a building can also dim its own by tint. **Confidence:** medium.
+
+### Rooms are solid to depth and shadow
+
+**Choice:** A room's triangles are in the depth prepass and the sun's cascades with the opaque surfaces (one range, the fragment-less pipelines); only their colour has a stage of its own.
+
+**Gap:** Unstated.
+
+**Verdict:** sound. A building with windows on two sides and no room boxes lets the sun through it onto the ground in its own shadow. **Confidence:** high.
+
+### Neighbouring rooms do not share a wall's plane
+
+**Choice:** The lab's boxes are 2.9 m wide and tall in a 3 m bay and floor, as upstream's are.
+
+**Gap:** C15 gives the box as 3 × 3 × 4.5 m, a whole bay.
+
+**Verdict:** sound. Two boxes a bay apart would put two walls in one plane, each showing its own room, and they fight for depth where one is seen through the other's window. **Confidence:** high.
+
+### O-1: rooms at tiers 0 and 1
+
+**Choice:** A kit places its room boxes at tiers 0 and 1 (down to 4 px a metre, where a window is about 6 px), on every floor, and not at tiers 2 and 3.
+
+**Gap:** "Record the O-1 verdict (all room tiers, or LOD0 only)."
+
+**Verdict:** the shader allows every tier; the kit's budgets do not. The room stage is cheaper than the lit one (one atlas read and one sky read against the full shade), and the paired cost over a field of blocks is in the slice's outcome. But the whole map is expanded at the coarsest tier and a far building is one row there: a room box a window is ten triangles and a record each, hundreds of thousands of them on a large map, for windows of two to six pixels that a dark pane on the shell already draws. **Confidence:** medium: decided on the budgets and the pixel sizes; no real kit has rooms yet.
+
+### From the tactical camera a window is its room's floor, and that reads
+
+**Choice:** None; C15's open question, judged. At 80 m and the steep camera a window shows a dark, coloured pane with a hint of the floor and the far wall's foot; from 30 m and from the street the back wall, furniture and shop shelves read as rooms with depth.
+
+**Verdict:** acceptable. Windows read as dark openings, differing a little in colour, which is what a facade wants from that height. **Confidence:** medium (one facade, one light).
+
+### Nothing of upstream's lighting of the picture is kept
+
+**Choice:** Upstream's interior shader multiplies the photograph by a gain, a depth falloff and, on some windows, a warm lamp colour. None of the three is here.
+
+**Gap:** "Nothing beyond the repo's mechanism (Q-E)", and "unlit".
+
+**Verdict:** sound. They exist to make night photographs glow; our cells are finished daylight pictures. **Confidence:** high.
+
+**Open after the second critique:** in sun shadow's light the rooms no longer read as lit on a shaded facade, and at 80 m every window reads as a near-black hole (the four darkest already did). The reference is one line in `environment.unlit`; the atlas's floors are C15's.
+
+**Not done:** the `preview-shots` checkpoint.
+## C78
+
+**When:** 2026-10-02. Evidence and numbers: the Outcome in [C78](slices/C78-forest-body-models.md).
+
+### One script builds the floor's bodies and its dressing, from the tree generator's parts
+
+**Choice:** `forest_floor.py` imports `trees.py` (its tube with carried frames and furrows, its leaf clumps, its export) and writes `assets/source/forest/`. `trees.py` runs its own kinds only when it is the script; its `tube` returns its end rings so a bole can be capped.
+
+**Gap:** The slice says the log reuses C73's bark and names no script.
+
+**Verdict:** sound. The bark has one owner, and the trees' GLBs are byte-identical after the change. **Confidence:** high.
+
+### A rock is a ball cut by seeded planes, with their arrises rounded by a power mean
+
+**Choice:** Along every direction the surface's distance is the power mean (power 9) of the distances to twelve seeded planes and the unit ball, so a face is flat and the edge between two is a curve. Its underside is squashed to 0.3 of its depth, so it sits on its widest section. The boulder is fitted to its box through the finest tier's extents; small rocks use the same generator.
+
+**Gap:** "A new small rock generator (rounded, not pyramids)".
+
+**Verdict:** provisional. Fresh eyes still read the boulder as artificial after the first build (an egg); the second build is flatter-faced and sits lower, and was not judged a third time. **Confidence:** medium.
+
+### The bodies are vertex-coloured like the trees, not textured like the village's props
+
+**Choice:** Bark, wood and rock are plain materials with vertex colour.
+
+**Gap:** The props pipeline (`props.py`) bakes textured recipes; the slice asks for the trees' bark.
+
+**Verdict:** provisional. The dressing's rocks and branches go through the scenery layer, which draws vertex colour only, and a boulder should match the stones beside it. Up close both bodies have less surface detail than a textured prop. **Confidence:** medium.
+
+### The bodies run a little below the ground
+
+**Choice:** The log's underside is 5 cm under its origin and the boulder's 12 cm, each with its own `ground_m` tolerance in the asset catalog.
+
+**Gap:** Fit is to the box above the ground; a box on sloping ground would float at one end.
+
+**Verdict:** sound. **Confidence:** high.
+
+### The systems-only marker is removed; the bodies are placed by default at C77's test densities
+
+**Choice:** `fixtures/props/forest/{log,boulder}.json` lose `status: "systems_only"`, and `forests.rule` places 5 log and 3 boulder candidates a hectare.
+
+**Gap:** C77 left default activation to "accepted drawing"; the brief made it conditional on C77's release regression.
+
+**Verdict:** provisional. The regression passes, and removing the marker alone changes no digest. Placing them is a named digest change: all six `--quick` rows change digest and none changes its outcome, capture time, losses or rejoined count. `village::` and `forest::` simulation tests pass. Every other forest in the game gets bodies too (the river lab, the saved generated map, every generated battle), and their scenes were not run. The fresh critique found the log too small to read as cover a vehicle cannot cross: its size is the simulation's box. **Confidence:** medium; it is its own commit so it can be reverted alone.
+
+## C79
+
+**When:** 2026-10-02. Evidence and numbers: the Outcome in [C79](slices/C79-forest-dressing.md).
+
+### The dressing is laid a cell of ground at a time and kept in a bounded pool, not expanded for the whole map
+
+**Choice:** `DressingField.place(i, j)` lays one 64 m cell, seeded by the cell; the scenery layer keeps at most 128 cells in one instance buffer, lays two a view nearest first, and gives up the cell wanted longest ago (`scenery/dressing.ts`).
+
+**Gap:** The slice says "a third population in `placement.ts`, drawn by the existing scenery layer's chunks" and "seeded per forest". SG1 asked whether whole-map residency holds.
+
+**Verdict:** sound. It does not hold: the saved small generated map has 43,126 trunks and its dressing whole is 657,000 pieces, 31.5 MB and 0.42 s at load, and larger maps grow from there. The pool is 8 MB at most whatever the map. A cell is seeded by where it is, so a forest's dressing does not depend on which forest it is. **Confidence:** high.
+
+### A cell draws whole at one tier; a piece shrinks to nothing on the GPU
+
+**Choice:** No piece is touched on the CPU after its cell is laid. A cell's tier comes from its distance and the tallest piece any cell can hold. Each piece is scaled about its foot in the vertex stage by its own projected height: whole above `fade_px`, gone at half of it; a cell whose tallest piece would be gone is not drawn or laid.
+
+**Gap:** "Far chunks leave it out, and it fades by pixel size within GG's radius"; GG has given no radius.
+
+**Verdict:** sound. Nothing blends, so the dressing stays in the opaque passes. The piece's height over `fade_px` rides in the instance record's last float, which trees use as a noise seed. **Confidence:** medium on the numbers (6 px).
+
+### The dressing casts no shadow and is fogged like a tree
+
+**Choice:** It is drawn in the depth prepass and the world pass by the forest's own fragment stage (shadowed, fogged whole at its own heart) and not into the sun's cascades. It is drawn from both sides, so a frond is one sheet of triangles.
+
+**Gap:** Not stated.
+
+**Verdict:** provisional. Four cascades of it would cost more than the dressing itself. Fresh eyes said the pieces "sit on the floor like stickers". **Confidence:** medium.
+
+### `dressing` is a scenery kind with a height and a triangle budget
+
+**Choice:** `SCENERY_KINDS.dressing`: no body, at most 0.9 m tall (`fit.dressing`), tiers of at most 600 / 200 / 60 / 24 triangles. The biome may not scale a piece above 1. The small rock is 0.33 m by construction; no rule holds rocks to 0.5 m.
+
+**Gap:** "Everything ≤0.9 m; rocks ≤0.5 m" named no owner.
+
+**Verdict:** sound for the height. **Confidence:** high.
+
+### Density, mix and drifts
+
+**Choice:** 3,200 candidate pieces a hectare: ferns 68%, branches 14%, rocks 7%, bushes 7%, saplings 5%. Each kind has its own simplex field; between its drifts a kind thins to `1 - drift` of its pieces (ferns to a tenth). About 1,900 a hectare stand.
+
+**Gap:** Delegated.
+
+**Verdict:** provisional. 900 a hectare read as a bare floor with a few plants; 1,800 and 3,200 were shot side by side and 3,200 kept. **Confidence:** medium.
+
+### A piece keeps 3 m inside its forest's edge
+
+**Choice:** `forest_floor.dressing.edge_m`. The floor is drawn out to a verge that wanders about the forest's edge; a piece at the edge stood on field-coloured ground.
+
+**Gap:** "A test that nothing is placed outside forests" says nothing of the drawn floor.
+
+**Verdict:** sound. A tree line 10 m wide keeps a 4 m band of dressing. **Confidence:** medium.
+
+### Web aliases for `math/noise`
+
+**Choice:** `web/tsconfig.json` and `web/vite.config.ts` gain the `math/noise` path beside the package's other entries.
+
+**Gap:** The drifts need a smooth seeded field, and the repo's rule is the `math` package before anything hand-written.
+
+**Verdict:** sound. Two lines in shared config. **Confidence:** high.
+
+### The root lines on the forest floor are fainter
+
+**Choice:** `forest_floor.roots` 0.25 to 0.1.
+
+**Gap:** Not this slice's rule, but its critique's finding: the painted arcs read as ruts and shadows of things that are not there, and were louder than the real branches now lying on the floor.
+
+**Verdict:** provisional. **Confidence:** medium.
+
+## C86
+
+**When:** 2026-10-02. Evidence: the Outcome in [C86](slices/C86-tree-lines.md).
+
+### Fields are cut along a strip's long stretches, read from the forest's own export
+
+**Choice:** `forestStripRuns`: every stretch of a stroke forest longer than the strip is wide is a guide edge for the plots, beside the roads' and rivers' runs.
+
+**Gap:** The slice says "plots cut along strip control runs"; the simulation exports control runs for roads and rivers and none for forests, and this lane may not add one.
+
+**Verdict:** sound. A bend is exported as chords under 2 m, so the rule keeps the straights and drops the bends, which is what a control run is for. **Confidence:** medium: a strip narrower than its bend's chords would be cut along them.
+
+### No map has a tree line, so the drawn half is proven by tests alone
+
+**Choice:** No picture, no hedgerow comparison, no critique and no 40-strip cost row.
+
+**Gap:** The slice's `farmland` lab is the map lane's; no saved map and no generator preset has a stroke forest.
+
+**Verdict:** open. **Confidence:** high that the rules hold on an inline map; none on how a tree line looks.
+
+### The bank's colours moved off the new fields' hue
+
+**Choice:** `palettes.shore` is grey silt and a browner earth (`[0.3, 0.295, 0.285]`, `[0.365, 0.305, 0.235]`).
+
+**Gap:** C70 tuned the bank against green fields; C84 then made the fields olive and tan, the bank's own hue, and the river scene's "apart from the grass in hue" check fell to 2 to 5 against its bar of 6.
+
+**Verdict:** sound. Both bands are again 7 to 14 apart in hue and no darker than the field (the lift does that). A first try at a redder earth read orange, which C70's critique had already rejected. **Confidence:** medium: one look, no fresh critique.
+
+### Forest floor bodies are on by default
+
+**Choice:** `4bdfb76f` turns on 5 log and 3 boulder candidates a hectare in every forest, as C77 planned once C78's models existed.
+
+**Gap:** It is a rule in `fixtures/game.json`, outside this lane's table; C77 and C78 name it as this slice's to flip.
+
+**Verdict:** provisional. The village's six quick digests all move and no outcome does. The ground and river scenes pass with it; sensors, consequences and the saved market town were not run, and a generated map loaded no slower. It is one commit and reverts alone. **Confidence:** medium.
+

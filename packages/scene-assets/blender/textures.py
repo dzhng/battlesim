@@ -955,6 +955,48 @@ def factory_glazing():
     return Baked(col, 1.0, normals_from_height(blur(bar * 1.2), 1.0), 1.0 - 0.2 * bar, rough + (0.7 - rough) * bar, 0.0, 0.0)
 
 
+@recipe("grille", tile=1.0, wear=(0.105, 0.046, 0.02, 0.9))
+def grille():
+    """A steel grille (a window guard, a fence panel): round bars 12.5 cm apart between flat
+    rails half a metre apart, in dark paint that rusts where it wears. Its coverage is the
+    bars and rails, and nothing between them is there: a cutout's recipe."""
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
+    px = 1.0 / SIZE
+    bar_r, rail_r = 0.012, 0.02  # half widths, in tiles (metres)
+    bx = np.abs((xx * 8) % 1.0 - 0.5) / 8  # to the nearest bar's axis
+    ry = np.abs((yy * 2) % 1.0 - 0.5) / 2  # to the nearest rail's
+    bar = smoothstep(bar_r + px / 2, bar_r - px / 2, bx)
+    rail = smoothstep(rail_r + px / 2, rail_r - px / 2, ry)
+    cover = np.maximum(bar, rail)
+    round_ = np.sqrt(np.clip(1.0 - (bx / bar_r) ** 2, 0, 1))
+    height = np.maximum(round_ * 3.0, rail * 2.0)
+    mottle = fbm(12, 3301, 4)
+    col = np.broadcast_to(np.array((0.03, 0.036, 0.032)), (SIZE, SIZE, 3)) * (0.85 + 0.3 * mottle)[..., None]
+    return Baked(col, chips(3303, 16, bias=0.1), normals_from_height(blur(height), 1.0), 1.0, 0.5 + 0.2 * mottle, 0.0, 0.0,
+                 coverage=cover)
+
+
+@recipe("perforated", tile=0.5, wear=(0.105, 0.046, 0.02, 0.9))
+def perforated():
+    """Perforated steel sheet: 25 mm round holes staggered 42 mm apart in plate painted a dark
+    grey, streaked with dirt. Its coverage is the plate; the holes are not there (a cutout's
+    recipe). The plate is flat and darker than what shows through it: a rim lit round each hole
+    read as a stud standing off the sheet."""
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
+    px = 1.0 / SIZE
+    n, hole_r = 12, 0.025  # holes across the tile, and their radius in tiles
+    row = np.floor(yy * n)
+    gx = (xx * n + 0.5 * (row % 2)) % 1.0 - 0.5
+    gy = (yy * n) % 1.0 - 0.5
+    d = np.hypot(gx, gy) / n
+    cover = smoothstep(hole_r - px / 2, hole_r + px / 2, d)
+    streak = fbm((16, 2), 3311, 3)
+    col = np.broadcast_to(np.array((0.07, 0.075, 0.08)), (SIZE, SIZE, 3)) * (0.8 + 0.3 * streak)[..., None]
+    flat = np.zeros((SIZE, SIZE))
+    return Baked(col, chips(3313, 12, bias=0.15), normals_from_height(flat, 1.0), 1.0, 0.5 + 0.2 * streak, 0.0, 0.0,
+                 coverage=cover)
+
+
 # ---------------------------------------------------------------- UVs and the GLB
 def box_uv(obj, tile):
     """UVs in metres over `tile` (one number, or one per material slot): each
@@ -1014,7 +1056,7 @@ def surface(material, coverage=None, interior=None):
 
     `interior` names the interior atlas sheet ("rooms", "shops") the surface
     shows a cell of: a wall of the room box behind a window, opaque and
-    untextured, its UVs the cell's (city/README.md, "Interiors")."""
+    untextured, its UVs the room's box unfolded (`parts.room_box`; city/README.md, "Interiors")."""
     if coverage is not None:
         kind, value = coverage
         if kind not in ("cutout", "blended") or not 0.0 <= value <= 1.0:

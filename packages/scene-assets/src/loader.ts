@@ -167,9 +167,9 @@ export class AppearanceLibrary {
     if (actual !== named.library)
       throw new Error(`template library ${named.library}: content hash is ${actual}`);
     const library = decodeTemplateLibrary(bytes);
-    if (library.art_hash !== named.art_hash || library.covers !== named.covers)
+    if (library.art_hash !== named.art_hash || library.covers.join() !== named.covers.join())
       throw new Error(
-        `template library ${named.library} is art ${library.art_hash} over catalogue ${library.covers}, not what the catalog names; re-bake`,
+        `template library ${named.library} is art ${library.art_hash} over catalogues ${library.covers.join(", ")}, not what the catalog names; re-bake`,
       );
     const modules = bindModules(library, (name) => {
       const bundle = appearances.get(name)?.bundle;

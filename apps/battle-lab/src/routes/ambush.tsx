@@ -156,6 +156,7 @@ function AmbushLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
       <LabViewport
         fixture="ambush"
         world={worldFeed}
+        buildings={session.buildingsFeed}
         overlay={overlayFeed}
         fog={session.fogFeed}
         frame={session.frame}

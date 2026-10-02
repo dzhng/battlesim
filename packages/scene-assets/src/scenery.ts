@@ -1,5 +1,5 @@
-// Scenery: every drawn thing that is not a soldier, a vehicle or a building —
-// props, trees, hedgerows, grass. Each scenery kind is a static bundle (one
+// Scenery: every drawn thing that is not a soldier, a vehicle or a building's
+// kit: props, trees, hedgerows, grass. Each scenery kind is a static bundle (one
 // mesh per state, four LOD tiers, instanced at draw) whose appearance entry is
 // `{unit: "scenery", scenery: "<kind>"}`.
 //
@@ -37,11 +37,14 @@ export interface SceneryRule {
    *  bole's radius at `breast_m` above the foot (that of a round bole of the
    *  same cross-section), each within the fraction `within`. */
   size?: { top_m: number; bole_radius_m: number; breast_m: number; within: number };
+  /** The tallest an appearance of the kind may stand, metres: it has no
+   *  body, so it must not look like it hides one (`fit.dressing`). */
+  top_m?: number;
 }
 
 const prop: SceneryRule = { states: ["default"], footprint: { kind: "prop" } };
 
-/** Every scenery kind. Buildings keep their own unit (`intact` and `ruin`). */
+/** Every scenery kind. */
 export const SCENERY_KINDS: Record<string, SceneryRule> = {
   wall: prop,
   crate: prop,
@@ -73,6 +76,9 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   road_barrier: prop,
   scaffold: prop,
   scooter: prop,
+  /** The cover a forest floor holds: a fallen trunk, and a boulder. */
+  log: prop,
+  boulder: prop,
   // Trees and hedgerows carry one state per biome season (summer; winter is
   // the next biome spec). A tree also stands inside the forests' canopy
   // (`fit.canopy`); hedgerows stand only past the map. A tree's tiers are
@@ -87,13 +93,24 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
     size: { top_m: 11, bole_radius_m: 0.4, breast_m: 1.3, within: 0.05 },
   },
   hedgerow: { states: ["summer"], footprint: { kind: "none" } },
+  // What grows and lies under a forest's trees with no body of its own
+  // (ferns, bushes, saplings, small rocks, fallen branches), scattered by the
+  // thousand: under a man's waist, so nothing drawn hides what the forest
+  // does not, and a few hundred triangles at most
+  // (specs/city-maps/slices/C79-forest-dressing.md).
+  dressing: {
+    states: ["summer"],
+    footprint: { kind: "none" },
+    tier_triangles: [600, 200, 60, 24],
+    top_m: 0.9,
+  },
   /** A clump of blades, one per grass kind (meadow, wheat, stubble), in its
    *  season's state like trees: the biome names which grows on each plot kind. */
   grass: { states: ["summer"], footprint: { kind: "none" }, blades: true },
 };
 
-/** The prop types a scenery kind (or `building`) draws: those whose
- *  `appearance.drawn_by` names it in the resolved prop catalog, in id order. */
+/** The prop types a scenery kind draws: those whose `appearance.drawn_by`
+ *  names it in the resolved prop catalog, in id order. */
 export function propsDrawnBy(
   props: Readonly<Record<string, { appearance: { drawn_by: string } }>>,
   scenery: string,
@@ -101,14 +118,4 @@ export function propsDrawnBy(
   return Object.keys(props)
     .filter((id) => props[id].appearance.drawn_by === scenery)
     .sort();
-}
-
-/** The states a static appearance must carry, or null for an unknown scenery kind. */
-export function requiredStates(
-  unit: string,
-  scenery: string | undefined,
-  buildingStates: readonly string[],
-): readonly string[] | null {
-  if (unit === "building") return buildingStates;
-  return scenery !== undefined && SCENERY_KINDS[scenery] ? SCENERY_KINDS[scenery].states : null;
 }

@@ -41,6 +41,9 @@ import { TIER_COUNT, type Bounds } from "@packages/scene-assets/src/schema";
 import {
   placeRows,
   ROW_TRANSFORM_FLOATS,
+  TemplateArtError,
+  templateKits,
+  templateRows,
   type RowRange,
   type TemplateArtLibrary,
 } from "@packages/scene-assets/src/templateLibrary";
@@ -74,8 +77,25 @@ const BRIDGE_RECORDS = 256;
 /** The template art a scene draws from. */
 export interface BuildingArt {
   library: TemplateArtLibrary;
-  /** Per library module: its mesh's bounds in its own frame. */
-  bounds: readonly Bounds[];
+  /** Per library module: its mesh's bounds in its own frame, or null for a
+   *  module of a kit that is not installed (`buildingKits` names the kits a
+   *  map's buildings need). */
+  bounds: readonly (Bounds | null)[];
+}
+
+/** The kit appearances a scene of `placed` draws modules of: its templates'
+ *  own, in every state, and the prototype kit, whose box a fallen part with
+ *  no art for its state is drawn as. */
+export function buildingKits(placed: PlacedBuildings, library: TemplateArtLibrary): Set<string> {
+  return templateKits(library, placed.templates).add(PROTOTYPE_KIT);
+}
+
+/** Whether every kit `placed` needs is installed in `art`. The buildings and
+ *  the kits that draw them arrive apart; a scene is built once both have. */
+export function artCovers(placed: PlacedBuildings, art: BuildingArt): boolean {
+  const { kits, modules } = art.library;
+  const needed = buildingKits(placed, art.library);
+  return modules.every((m, i) => art.bounds[i] !== null || !needed.has(kits[m.kit].appearance));
 }
 
 /** A template's intact rows, sorted for expansion. */
@@ -197,6 +217,13 @@ const NO_ROWS: TemplateRows = {
 function growByRow(art: BuildingArt, r: number, min: number[], max: number[]) {
   const { rows } = art.library;
   const b = art.bounds[rows.module[r]];
+  if (!b) {
+    const module = art.library.modules[rows.module[r]];
+    throw new TemplateArtError(
+      "kit.missing",
+      `kit "${art.library.kits[module.kit].appearance}" is not installed`,
+    );
+  }
   const t = r * ROW_TRANSFORM_FLOATS;
   const [x, y, z, yaw] = [
     rows.transform[t],
@@ -218,8 +245,8 @@ function growByRow(art: BuildingArt, r: number, min: number[], max: number[]) {
   max[2] = Math.max(max[2], z + b.max[2] * sz);
 }
 
-function templateRowsOf(art: BuildingArt, range: RowRange | undefined): TemplateRows {
-  if (!range || range.count === 0) return NO_ROWS;
+function templateRowsOf(art: BuildingArt, range: RowRange): TemplateRows {
+  if (range.count === 0) return NO_ROWS;
   const { tiers } = art.library.rows;
   const runs: number[][] = Array.from({ length: TIER_COUNT }, () => []);
   const counts = Array.from({ length: TIER_COUNT }, () => 0);
@@ -388,7 +415,8 @@ function rowPopulation(scene: BuildingScene, rows: GatheredRows, levels: number)
   };
 }
 
-/** The scene of `placed` buildings drawn from `art`, every one intact. */
+/** The scene of `placed` buildings drawn from `art`, every one intact. A
+ *  template the library has no art for is refused by name (`TemplateArtError`). */
 export function createBuildingScene(
   placed: PlacedBuildings,
   art: BuildingArt,
@@ -396,8 +424,9 @@ export function createBuildingScene(
 ): BuildingScene {
   const { library } = art;
   const count = placed.template.length;
-  const byId = new Map(library.templates.map((t) => [t.id, t]));
-  const templates = placed.templates.map((id) => templateRowsOf(art, byId.get(id)?.states.intact));
+  const templates = placed.templates.map((id) =>
+    templateRowsOf(art, templateRows(library, id, "intact")),
+  );
   const bounds = new Float32Array(count * 6);
   const jitter = new Float32Array(count);
   for (let b = 0; b < count; b++) {

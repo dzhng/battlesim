@@ -6,7 +6,6 @@
 
 import { vec3, type Mat4, type Vec3 } from "math";
 import game from "@fixtures/game.json";
-import type { MapDefinition } from "@web/maps/resolve";
 import { MeshBuilder, type Mesh, type Rgba } from "@packages/battle-renderer/src/mesh";
 import type { WorldLayers, WorldMeshes } from "@packages/battle-renderer/src/scene";
 import {
@@ -53,18 +52,19 @@ const LINE_5M: Rgba = [0.26, 0.27, 0.25, 1];
 const FIGURE: Rgba = [0.5, 0.52, 0.56, 1];
 
 /** Flat ground: 5 m checks out to the battle views' reach, with 1 m and
- *  5 m lines over the middle 80 m, for scale. */
-export function benchGround(): Mesh {
+ *  5 m lines over the middle 80 m, for scale (`marked` false is one plain
+ *  colour: a ground shadows are read on). */
+export function benchGround(marked = true): Mesh {
   const mesh = new MeshBuilder();
   const h = GROUND_HALF_M;
   const far = GROUND_REACH_M;
   for (let x = -far; x < far; x += 5)
     for (let y = -far; y < far; y += 5) {
-      const color = (x / 5 + y / 5) & 1 ? GROUND_ALT : GROUND;
+      const color = marked && (x / 5 + y / 5) & 1 ? GROUND_ALT : GROUND;
       mesh.quad([x, y, 0], [x + 5, y, 0], [x + 5, y + 5, 0], [x, y + 5, 0], color);
     }
   // Grid lines sit a hair above the ground so depth keeps them on top.
-  for (let k = -h; k <= h; k += 1) {
+  for (let k = -h; marked && k <= h; k += 1) {
     const color = k % 5 === 0 ? LINE_5M : LINE_1M;
     const w = k % 5 === 0 ? 0.03 : 0.012;
     mesh.quad([k - w, -h, 0.002], [k + w, -h, 0.002], [k + w, h, 0.002], [k - w, h, 0.002], color);
@@ -88,13 +88,12 @@ export function scaleFigure(x: number, y: number): Mesh {
 }
 
 const NONE = new Float32Array(0);
-/** The measured ground as terrain: its vertex tints are opaque, so it draws
- *  as tinted, not as the biome's patchwork. Built once; only the figure moves. */
-let _bench_terrain: TerrainSurface | null = null;
-function benchTerrain(): TerrainSurface {
+/** A flat ground mesh as terrain with nothing on it: its vertex tints are
+ *  opaque, so it draws as tinted, not as the biome's patchwork. */
+export function flatTerrain(ground: Mesh): TerrainSurface {
   const h = GROUND_REACH_M;
-  _bench_terrain ??= terrainSurface(
-    benchGround(),
+  return terrainSurface(
+    ground,
     {
       map: [-h, -h, h, h],
       gridM: 2 * h,
@@ -117,6 +116,11 @@ function benchTerrain(): TerrainSurface {
     gameBiome,
     null,
   );
+}
+/** The measured ground, built once; only the figure moves. */
+let _bench_terrain: TerrainSurface | null = null;
+function benchTerrain(): TerrainSurface {
+  _bench_terrain ??= flatTerrain(benchGround());
   return _bench_terrain;
 }
 
@@ -153,16 +157,8 @@ export interface PropClasses {
   /** Per mover class ("infantry", "vehicle"), the prop kinds that stop it. */
   blockingPropKinds: Record<string, string[]>;
   occludingPropKinds: string[];
-  /** Every prop and building part the village's map places, in its order. */
+  /** Every prop the village's map places, in its order. */
   placed: { kind: string; half_extents: number[] }[];
-}
-
-/** The boxes `map` places: its props, then its buildings' parts. */
-export function placedProps(map: MapDefinition): PropClasses["placed"] {
-  return [
-    ...map.props,
-    ...(map.buildings ?? []).flatMap((b) => b.geometry.parts.map((p) => ({ ...p, kind: b.kind }))),
-  ];
 }
 
 /** The simulation's body beside a model: wireframe edges in model space and
@@ -255,13 +251,11 @@ export function footprint(
       label: `${type} hit box ${hull.half_extents_m.map((h) => m(2 * h)).join(" × ")} m`,
     };
   }
-  const rule = unit === "building" ? null : scenery ? SCENERY_KINDS[scenery] : undefined;
+  const rule = scenery ? SCENERY_KINDS[scenery] : undefined;
   // The prop types it draws, by the prop catalog's `drawn_by`: the first the
   // map places stands for them.
   const drawn =
-    unit === "building" || rule?.footprint.kind === "prop"
-      ? propsDrawnBy(UNITS.view.props, unit === "building" ? "building" : (scenery ?? ""))
-      : [];
+    scenery && rule?.footprint.kind === "prop" ? propsDrawnBy(UNITS.view.props, scenery) : [];
   const prop = drawn.find((p) => placedProp(p, classes)) ?? drawn[0] ?? null;
   if (prop) {
     // The box the art is authored to (the catalog's footprint), else the

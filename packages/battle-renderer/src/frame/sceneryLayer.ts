@@ -1,5 +1,5 @@
-// The scenery layer: every placed tree and hedgerow shrub, instanced from its
-// appearance's tiers, in the frame's own passes. Its populations are chunked, culled and tiered by the
+// The scenery layer: every placed tree, hedgerow shrub and piece of forest-floor
+// dressing, instanced from its appearance's tiers, in the frame's own passes. Its populations are chunked, culled and tiered by the
 // static chunk owner (`staticChunks.ts`); the buffers, meshes and materials
 // here are the layer's own. Opaque, so all of it is in the depth prepass
 // (FogVisibility's tile cull reads it like any surface).
@@ -15,6 +15,13 @@
 // - Scenery past the map is drawn like the backdrop it stands on: lit and
 //   hazed, never shadowed, casting nothing, and fogged as a forest tree is:
 //   the fog runs on past the playable area.
+// - The forest floor's dressing is drawn as a forest tree is (shadowed,
+//   fogged whole at its own heart) and casts nothing: it is small and stands
+//   under the crowns. There is a great deal of it, so it is kept a cell of
+//   ground at a time in one bounded pool (`scenery/dressing.ts`): a cell
+//   draws whole from its slot at one tier, and the vertex stage shrinks each
+//   piece to nothing as it nears a few pixels. A piece is drawn from both
+//   sides: a frond is one sheet.
 //
 // Foliage adds leaf clumps per pixel (3D value noise bending the normal and
 // darkening the gaps, in the tree's own space so it never swims), fading to
@@ -22,7 +29,8 @@
 //
 // A tree whose trunk stands on ground the side has seen cleared (a lane a
 // vehicle knocked through) is not drawn: `setCleared` rebuilds
-// the forest without it.
+// the forest without it, and the dressing is laid again without what stood
+// on that ground.
 //
 // On a view change `prepare` sorts trees into tiers by projected height
 // (`scenery/lod.ts`) and uploads the near trees' per-tier lists; far chunks
@@ -37,6 +45,14 @@ import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth } from "../worldDepth";
 import type { WorldScenery } from "../scene";
 import { kindSize, tierMesh } from "../scenery/appearance";
+import {
+  createDressingCache,
+  DRESSING_GONE,
+  dressingCounts,
+  selectDressing,
+  setDressingCleared,
+  type DressingCache,
+} from "../scenery/dressing";
 import {
   chunkTier,
   INSTANCE_FLOATS,
@@ -80,6 +96,10 @@ export interface SceneryStats {
   kinds: number;
   forest: SceneryPopulationStats;
   backdrop: SceneryPopulationStats;
+  /** The forest floor's dressing: the pieces laid (`placed`) in `cells`
+   *  cells of a pool of `bytes` bytes, the pieces drawn per tier, and
+   *  whether wanted cells are still to be laid. */
+  dressing: SceneryPopulationStats & { cells: number; bytes: number; pending: boolean };
   /** Draw calls in the last whole frame, over every pass. */
   draws: number;
 }
@@ -94,6 +114,12 @@ function instanceBuffer(root: Root, capacity: number) {
 
 /** Square chunks instances are bucketed in for tier selection, metres. */
 const CHUNK_M = 128;
+/** The most cells of dressing kept on the GPU at once: more than a play
+ *  camera sees pieces in. A wider view draws its nearest. */
+const DRESSING_SLOTS = 128;
+/** The cells laid a view: each costs the CPU a fraction of a millisecond, so
+ *  a cut's cells arrive over the frames after it. */
+const DRESSING_CELLS_PER_VIEW = 2;
 /** Foliage roughness: leaves scatter; the environment's specular stays small. */
 const LEAF_ROUGHNESS = 0.85;
 const BARK_ROUGHNESS = 0.9;
@@ -110,45 +136,105 @@ const placedVaryings = {
   heart: d.vec3f,
 };
 
+const placedIn = {
+  position: d.vec3f,
+  normal: d.vec3f,
+  color: d.vec4f,
+  pose: d.vec4f,
+  shape: d.vec4f,
+  tint: d.vec4f,
+};
+const placedOut = {
+  // Invariant, so the depth prepass and the colour pass agree exactly.
+  clip: d.invariant(d.builtin.position) as unknown as typeof d.builtin.position,
+  world: d.vec3f,
+  normal: d.vec3f,
+  color: d.vec4f,
+  local: d.vec3f,
+  heart: d.vec3f,
+};
+
+/** A point of the appearance, already scaled, turned by the instance's yaw
+ *  about +Z and stood on its foot. */
+const placedPoint = tgpu.fn(
+  [d.vec3f, d.vec4f],
+  d.vec3f,
+)((local, pose) => {
+  "use gpu";
+  const c = std.cos(pose.w);
+  const s = std.sin(pose.w);
+  return d.vec3f(
+    local.x * c - local.y * s + pose.x,
+    local.x * s + local.y * c + pose.y,
+    local.z + pose.z,
+  );
+});
+
+/** The appearance's normal under the instance's scale (inverted) and yaw. */
+const placedNormal = tgpu.fn(
+  [d.vec3f, d.vec4f, d.f32],
+  d.vec3f,
+)((normal, shape, yaw) => {
+  "use gpu";
+  const c = std.cos(yaw);
+  const s = std.sin(yaw);
+  const nx = normal.x / shape.x;
+  const ny = normal.y / shape.y;
+  return std.normalize(d.vec3f(nx * c - ny * s, nx * s + ny * c, normal.z / shape.z));
+});
+
 /** Places the appearance: scale per axis, yaw about +Z, then the instance's
  *  foot. Normals take the inverse scale. */
-const placedVertex = tgpu.vertexFn({
-  in: {
-    position: d.vec3f,
-    normal: d.vec3f,
-    color: d.vec4f,
-    pose: d.vec4f,
-    shape: d.vec4f,
-    tint: d.vec4f,
-  },
-  out: {
-    // Invariant, so the depth prepass and the colour pass agree exactly.
-    clip: d.invariant(d.builtin.position) as unknown as typeof d.builtin.position,
-    world: d.vec3f,
-    normal: d.vec3f,
-    color: d.vec4f,
-    local: d.vec3f,
-    heart: d.vec3f,
-  },
-})((v) => {
+const placedVertex = tgpu.vertexFn({ in: placedIn, out: placedOut })((v) => {
   "use gpu";
-  const c = std.cos(v.pose.w);
-  const s = std.sin(v.pose.w);
-  const lx = v.position.x * v.shape.x;
-  const ly = v.position.y * v.shape.y;
-  const lz = v.position.z * v.shape.z;
-  const world = d.vec3f(lx * c - ly * s + v.pose.x, lx * s + ly * c + v.pose.y, lz + v.pose.z);
-  const nx = v.normal.x / v.shape.x;
-  const ny = v.normal.y / v.shape.y;
-  const nz = v.normal.z / v.shape.z;
-  const normal = std.normalize(d.vec3f(nx * c - ny * s, nx * s + ny * c, nz));
+  const local = d.vec3f(
+    v.position.x * v.shape.x,
+    v.position.y * v.shape.y,
+    v.position.z * v.shape.z,
+  );
+  const world = placedPoint(local, v.pose);
   return {
     clip: std.mul(typegpuCameraLayout.$.cam.viewProj, d.vec4f(world, 1)),
     world,
-    normal,
+    normal: placedNormal(v.normal, v.shape, v.pose.w),
     color: d.vec4f(std.mul(v.color.xyz, v.tint.xyz), v.color.w),
-    local: d.vec3f(lx + v.tint.w, ly, lz),
+    local: d.vec3f(local.x + v.tint.w, local.y, local.z),
     heart: d.vec3f(v.pose.x, v.pose.y, v.pose.z + v.shape.w),
+  };
+});
+
+/** Places a piece of dressing as a tree is placed, shrunk about its foot as
+ *  it nears a few pixels: its record's last float is its height over the
+ *  projected height it starts to shrink at (`scenery/dressing.ts`), so its
+ *  size on screen over that height is that float times the pixels a metre
+ *  covers at its distance. */
+const dressingVertex = tgpu.vertexFn({ in: placedIn, out: placedOut })((v) => {
+  "use gpu";
+  const cam = typegpuCameraLayout.$.cam;
+  // The projection's vertical scale is the length of the view-projection's
+  // second row over the world's axes; times half the viewport's height it is
+  // the pixels a metre covers a metre away.
+  const row = d.vec3f(
+    std.mul(cam.viewProj, d.vec4f(1, 0, 0, 0)).y,
+    std.mul(cam.viewProj, d.vec4f(0, 1, 0, 0)).y,
+    std.mul(cam.viewProj, d.vec4f(0, 0, 1, 0)).y,
+  );
+  const pixelsPerMetre = 0.5 * cam.height * std.length(row);
+  const size = (v.tint.w * pixelsPerMetre) / std.max(std.distance(v.pose.xyz, cam.eye), 0.001);
+  const grow = std.smoothstep(DRESSING_GONE, 1, size);
+  const local = d.vec3f(
+    v.position.x * v.shape.x * grow,
+    v.position.y * v.shape.y * grow,
+    v.position.z * v.shape.z * grow,
+  );
+  const world = placedPoint(local, v.pose);
+  return {
+    clip: std.mul(cam.viewProj, d.vec4f(world, 1)),
+    world,
+    normal: placedNormal(v.normal, v.shape, v.pose.w),
+    color: d.vec4f(std.mul(v.color.xyz, v.tint.xyz), v.color.w),
+    local,
+    heart: d.vec3f(v.pose.x, v.pose.y, v.pose.z + v.shape.w * grow),
   };
 });
 
@@ -286,8 +372,27 @@ export async function createSceneryLayer(
     depthStencil: battleWorldDepth("prepassed"),
     multisample: { count: FRAME_MSAA },
   });
+  const dressingBase = {
+    attribs: placedAttribs,
+    vertex: dressingVertex,
+    primitive: { topology: "triangle-list", cullMode: "none" },
+  } as const;
+  const dressingPrepass = root.createRenderPipeline({
+    ...dressingBase,
+    depthStencil: battleWorldDepth("read-write"),
+    multisample: { count: FRAME_MSAA },
+  });
+  const dressingColour = root.createRenderPipeline({
+    ...dressingBase,
+    fragment: forestFragment,
+    targets: worldTargets(),
+    depthStencil: battleWorldDepth("prepassed"),
+    multisample: { count: FRAME_MSAA },
+  });
   await Promise.all(
-    [prepass, caster, forestColour, backdropColour].map((pipeline) => pipeline.initAsync()),
+    [prepass, caster, forestColour, backdropColour, dressingPrepass, dressingColour].map(
+      (pipeline) => pipeline.initAsync(),
+    ),
   );
 
   /** A kind's vertices per tier. */
@@ -307,8 +412,17 @@ export async function createSceneryLayer(
     /** Per kind and tier: this frame's near instances. */
     near: { slot: GpuSlot<InstanceBuffer>; capacity: number }[][];
   }
+  /** The forest floor's dressing: the cells laid, each in its slot of `pool`. */
+  interface Dressing {
+    cache: DressingCache;
+    meshes: TierMeshes[];
+    /** The cache's slots, of the field's `capacity` records each. */
+    pool: InstanceBuffer;
+    lodPx: TierView["lodPx"];
+  }
   interface Loaded {
     scope: GpuRegistry;
+    dressing: Dressing;
     forest: Population;
     /** The forest's own scope, rebuilt when trees fall. */
     forestScope: GpuRegistry;
@@ -405,12 +519,42 @@ export async function createSceneryLayer(
     }
   }
 
-  /** Lab diagnostics: the trees draw and cast, or do neither. */
+  /** Draw the dressing's cells in view: per tier and kind, each cell's
+   *  records of that kind. The pipeline, its groups and buffers go through
+   *  the typed path once per mesh; the cells after it change only the range,
+   *  and go straight to the pass. */
+  function drawDressing(dressing: Dressing, bound: Drawable, raw: GPURenderPassEncoder) {
+    const { cache, meshes, pool } = dressing;
+    const { capacity, kinds } = cache.field;
+    for (let t = 0; t < TIER_COUNT; t++)
+      for (let n = 0; n < kinds.length; n++) {
+        const mesh = meshes[kinds[n]][t];
+        let set = false;
+        for (const cell of cache.drawn[t]) {
+          const count = cell.starts[n + 1] - cell.starts[n];
+          if (count === 0) continue;
+          const first = cell.slot * capacity + cell.starts[n];
+          if (set) raw.draw(mesh.vertices, count, 0, first);
+          else
+            bound
+              .with(vertexLayout, mesh.buffer)
+              .with(placedLayout, pool)
+              .draw(mesh.vertices, count, 0, first);
+          set = true;
+          draws++;
+        }
+      }
+  }
+
+  /** Lab diagnostics: the trees draw and cast, or do neither; the dressing
+   *  draws or does not. */
   let treesShown = true;
+  let dressingShown = true;
   /** The trees drawn: the forest's, and the backdrop's. */
   const trees = () => (treesShown ? loaded : null);
   /** Every population drawn into the view. */
   const populations = () => (trees() ? [loaded!.forest, loaded!.backdrop] : []);
+  const dressing = () => (dressingShown && loaded ? loaded.dressing : null);
 
   return {
     /** The world's scenery (placement and appearances); `null` draws none. */
@@ -438,8 +582,17 @@ export async function createSceneryLayer(
       );
       const trees = (within: GpuRegistry, placed: Float32Array, casts: boolean) =>
         population(within, treeInstances(placed, sizes), tiers, next.lodPx, casts);
+      const field = next.placement.dressing;
+      // A small map's forests are fewer cells than the pool would hold.
+      const slots = Math.min(DRESSING_SLOTS, field.cells.length / 2);
       loaded = {
         scope,
+        dressing: {
+          cache: createDressingCache(field, sizes, next.dressing.fadePx, slots),
+          meshes: tiers,
+          pool: scope.own(instanceBuffer(root, slots * field.capacity)),
+          lodPx: next.dressing.lodPx,
+        },
         forest: trees(forestScope, next.placement.forest, true),
         forestScope,
         placedForest: next.placement.forest,
@@ -480,24 +633,47 @@ export async function createSceneryLayer(
       );
       loaded.standing = kept.length;
       loaded.kept = kept;
+      // Ground is cleared where a tree is knocked down, and only there.
+      setDressingCleared(
+        loaded.dressing.cache,
+        ground &&
+          ((x, y) => {
+            const [i, j] = [Math.floor(x / ground.cellM), Math.floor(y / ground.cellM)];
+            return i >= 0 && j >= 0 && i < ground.cols && j < ground.rows && ground.isCleared(i, j);
+          }),
+      );
       viewKey = "";
     },
     setTreesShown(on: boolean) {
       treesShown = on;
     },
-    /** Choose this frame's tiers for `camera` at a viewport `height` pixels tall. */
+    setDressingShown(on: boolean) {
+      dressingShown = on;
+    },
+    /** Choose this frame's tiers for `camera` at a viewport `height` pixels
+     *  tall, and lay the dressing's next cells while any are waiting. */
     prepare(camera: Camera3DParams, height: number) {
       const key = detailKey(camera, height);
-      if (key === viewKey) return;
+      const moved = key !== viewKey;
+      if (!moved && !loaded?.dressing.cache.pending) return;
       viewKey = key;
-      setDetailView(view, camera, height);
-      sunShadow(shadow, sun, camera);
-      for (const pop of populations()) {
-        view.lodPx = pop.lodPx;
-        selectChunks(pop.chunks, view, chunkTier, pop.casts ? view.shadow : null);
-        stageNear(pop.chunks, pop.staged, view, tierFor);
-        upload(pop);
+      if (moved) {
+        setDetailView(view, camera, height);
+        sunShadow(shadow, sun, camera);
+        for (const pop of populations()) {
+          view.lodPx = pop.lodPx;
+          selectChunks(pop.chunks, view, chunkTier, pop.casts ? view.shadow : null);
+          stageNear(pop.chunks, pop.staged, view, tierFor);
+          upload(pop);
+        }
       }
+      if (!loaded) return;
+      const { cache, pool, lodPx } = loaded.dressing;
+      view.lodPx = lodPx;
+      const slotBytes = cache.field.capacity * INSTANCE_FLOATS * 4;
+      selectDressing(cache, view, DRESSING_CELLS_PER_VIEW, (slot, records) =>
+        registry.device.queue.writeBuffer(root.unwrap(pool), slot * slotBytes, records),
+      );
     },
     /** The forest into one cascade (`bound` carries the cascade's camera). */
     encodeShadows(pass: TgpuRenderPass, cameraGroup: CameraGroup) {
@@ -508,6 +684,13 @@ export async function createSceneryLayer(
     encodeDepth(pass: TgpuRenderPass, cameraGroup: CameraGroup) {
       const bound = prepass.with(pass).with(cameraGroup) as unknown as Drawable;
       for (const pop of populations()) drawPopulation(pop, bound);
+      const dressed = dressing();
+      if (dressed)
+        drawDressing(
+          dressed,
+          dressingPrepass.with(pass).with(cameraGroup) as unknown as Drawable,
+          root.unwrap(pass),
+        );
     },
     encode(
       pass: TgpuRenderPass,
@@ -525,6 +708,8 @@ export async function createSceneryLayer(
         drawPopulation(drawn.forest, colour(forestColour));
         drawPopulation(drawn.backdrop, colour(backdropColour));
       }
+      const dressed = dressing();
+      if (dressed) drawDressing(dressed, colour(dressingColour), root.unwrap(pass));
     },
     /** Starts a frame's draw count (the frame calls it before its shadows). */
     beginFrame() {
@@ -552,10 +737,39 @@ export async function createSceneryLayer(
           }
         return { placed, tiers, triangles, casters };
       };
+      const dressing = (drawn: Dressing | undefined) => {
+        const out = {
+          placed: 0,
+          tiers: [0, 0, 0, 0],
+          triangles: 0,
+          casters: 0,
+          cells: 0,
+          bytes: 0,
+          pending: false,
+        };
+        if (!drawn) return out;
+        const { cache, meshes } = drawn;
+        const counts = dressingCounts(cache);
+        out.placed = counts.held;
+        out.cells = cache.held.filter((cell) => cell !== null).length;
+        out.bytes = cache.held.length * cache.field.capacity * INSTANCE_FLOATS * 4;
+        out.pending = cache.pending;
+        if (!dressingShown) return out;
+        out.tiers = counts.tiers;
+        cache.drawn.forEach((cells, t) => {
+          for (const cell of cells)
+            cache.field.kinds.forEach((kind, n) => {
+              out.triangles +=
+                ((cell.starts[n + 1] - cell.starts[n]) * meshes[kind][t].vertices) / 3;
+            });
+        });
+        return out;
+      };
       return {
         kinds: loaded ? loaded.forest.meshes.length : 0,
         forest: population(loaded?.forest),
         backdrop: population(loaded?.backdrop),
+        dressing: dressing(loaded?.dressing),
         draws: lastDraws,
       };
     },

@@ -410,7 +410,7 @@
     "tree": "trunk",
     "log": "log",
     "boulder": "boulder",
-    "rule": { "trunk_spacing_m": 9, "trunk_jitter": 0.3, "concealment_infantry": 0.25, "concealment_vehicle": 0.7, "attenuation_per_m": 0.011, "canopy_radius_m": 6.5, "canopy_height_m": 12, "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2, "logs_per_ha": 0, "boulders_per_ha": 0, "log_half_extents_m": [2.2, 0.35, 0.35], "boulder_half_extents_m": [1, 0.8, 0.75] }
+    "rule": { "trunk_spacing_m": 9, "trunk_jitter": 0.3, "concealment_infantry": 0.25, "concealment_vehicle": 0.7, "attenuation_per_m": 0.011, "canopy_radius_m": 6.5, "canopy_height_m": 12, "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2, "logs_per_ha": 5, "boulders_per_ha": 3, "log_half_extents_m": [2.2, 0.35, 0.35], "boulder_half_extents_m": [1, 0.8, 0.75] }
   },
   "variants": {
     "ordinary": {
@@ -808,6 +808,7 @@
       "lod_px": [150, 60, 24],
       "impostor_px": 10
     },
+    "glass": { "turn": 0.5, "glint": 1 },
     "buildings": {
       "lod_px_per_m": [10, 4, 1.2],
       "chunk_m": 64,

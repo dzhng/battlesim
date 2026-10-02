@@ -42,7 +42,7 @@ import { gameCamera } from "./gameCamera";
 import { gameLightFor } from "./gameLight";
 import { gameFogGeometry, gameFogStyle } from "./gameFog";
 import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "./gameOverlay";
-import { gameBuildingStyle, gameModelDetail } from "./gameModels";
+import { gameBuildingStyle, gameGlass, gameModelDetail } from "./gameModels";
 import type { FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
 import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
@@ -58,6 +58,7 @@ import type {
   BuildingStyle,
   SideBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
+import type { SurfaceClass } from "@packages/battle-renderer/src/models/surfaceParts";
 import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
 import { PassInspector } from "./PassInspector";
 import type { FeedSource } from "./feed";
@@ -74,11 +75,11 @@ interface LabViewportProps {
   fixture: string;
   /** The static world, fed like the overlay (`useFeed`); drawn once it is set. */
   world: FeedSource<WorldLayers | null>;
-  /** Knowledge-drawn props as fitted appearances (standing buildings,
-   *  remembered ruins and wrecks), lit and fogged with the world. */
+  /** Knowledge-drawn props as fitted appearances (standing walls and field
+   *  works, remembered rubble and wrecks), lit and fogged with the world. */
   structures?: readonly ModelInstance[];
-  /** The buildings drawn from template art, and those the side has seen
-   *  fall, fed like the overlay; omitted or null draws none. */
+  /** The map's buildings, and those the side has seen fall, fed like the
+   *  overlay; omitted or null draws none. */
   buildings?: FeedSource<SideBuildings | null>;
   /** How those buildings are tiered, chunked and pooled; the fixture's when
    *  omitted. The frame takes it when it is built: a change draws at the next
@@ -291,9 +292,14 @@ interface LabHandle {
   /** Draw no trees and none of their shadows while on (they are scenery, not
    *  models): the ground under a wood, and a paired cost measure. */
   suppressTrees?: (on: boolean) => Promise<void>;
+  /** Draw no forest-floor dressing while on (a paired cost measure). */
+  suppressDressing?: (on: boolean) => Promise<void>;
   /** Draw no template-art buildings and none of their shadows while on (a
    *  paired cost measure). */
   suppressBuildings?: (on: boolean) => Promise<void>;
+  /** Draw one kind of model surface (a cutout, say), its depth and its
+   *  shadow, or none of it while on (paired frames and cost). */
+  suppressSurface?: (surface: SurfaceClass, on: boolean) => Promise<void>;
   /** Draw the roads plain while on, with no surface detail or shoulder (a
    *  paired cost measure). */
   suppressRoadWear?: (on: boolean) => Promise<void>;
@@ -584,6 +590,7 @@ export function LabViewport({
             paint: gamePaint,
             xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
             models: gameModelDetail,
+            glass: gameGlass,
             buildings: buildingStyleRef.current ?? gameBuildingStyle,
             world: worldRef.current.current!,
             instances: instancesRef.current,
@@ -854,8 +861,16 @@ export function LabViewport({
             scene.setTreesShown(!on);
             await nextFrame();
           },
+          async suppressDressing(on: boolean) {
+            scene.setDressingShown(!on);
+            await nextFrame();
+          },
           async suppressBuildings(on: boolean) {
             scene.setBuildingsShown(!on);
+            await nextFrame();
+          },
+          async suppressSurface(surface: SurfaceClass, on: boolean) {
+            scene.setSurfaceShown(surface, !on);
             await nextFrame();
           },
           async suppressRoadWear(on: boolean) {
