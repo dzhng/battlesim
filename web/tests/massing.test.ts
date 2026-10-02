@@ -10,11 +10,13 @@ import {
   type MassingStyle,
 } from "@packages/battle-renderer/src/scenery/massing";
 import {
-  createTierPopulation,
+  chunkTier,
   INSTANCE_FLOATS,
-  selectTiers,
+  sceneryChunks,
+  TIER_COUNT,
   type PlacedInstances,
 } from "@packages/battle-renderer/src/scenery/lod";
+import { selectChunks } from "@packages/battle-renderer/src/frame/staticChunks";
 import { createDetailView, setDetailView } from "@packages/battle-renderer/src/frame/detailView";
 import type { KnownProp, MapProp } from "@packages/battle-renderer/src/models/propAppearance";
 import type { PublicBuildings } from "@packages/battle-renderer/src/worldMesh";
@@ -136,7 +138,7 @@ test("a part the side has seen fall is drawn as its remains, or not at all", () 
 
 test("every massing box draws from the static buffer, from any camera", () => {
   const parts = massingParts(buildings, style);
-  const population = createTierPopulation(massingInstances(props, [], parts, style), 1, 128, true);
+  const population = sceneryChunks(massingInstances(props, [], parts, style), 1, 128);
   const view = {
     // All three in view, the 30 m tower some 64 px tall: a tree that size
     // would sort into a near tier.
@@ -156,9 +158,9 @@ test("every massing box draws from the static buffer, from any camera", () => {
     lodPx: [Infinity, Infinity, Infinity] as [number, number, number],
     shadow: { fall: [1, 0] as [number, number], reach: 2600 },
   };
-  selectTiers(population, view);
-  expect(population.counts[0]).toEqual([0, 0, 0, 0]);
+  selectChunks(population, view, chunkTier, view.shadow);
+  expect(population.near).toEqual([]);
   const ranged = (ranges: number[]) => ranges.reduce((n, v, k) => (k % 2 ? n + v : n), 0);
-  expect(ranged(population.far[0])).toBe(3);
+  expect(ranged(population.ranges[0][TIER_COUNT - 1])).toBe(3);
   expect(ranged(population.cast[0])).toBe(3);
 });

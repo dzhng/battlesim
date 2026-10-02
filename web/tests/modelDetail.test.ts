@@ -11,13 +11,14 @@ import {
   CULLED,
   IMPOSTOR,
   SHADOW_MARGIN_M,
-  chunkCorpses,
-  chunkIsFar,
+  corpseChunkLevel,
+  corpseChunks,
   detailAt,
   modelDetail,
   validateModelDetail,
   type ModelDetailPresentation,
 } from "@packages/battle-renderer/src/models/modelDetail";
+import { selectChunks } from "@packages/battle-renderer/src/frame/staticChunks";
 import { modelFog } from "@packages/battle-renderer/src/models/modelFog";
 import {
   corpseInstances,
@@ -223,17 +224,37 @@ test("each unit's models are x-rayed in the colour presentation gives its unit, 
 
 test("corpses chunk by ground, and a far chunk draws whole as cards", () => {
   const n = 2000;
-  const positions = new Float32Array(n * 3);
+  const STRIDE = 16;
+  const records = new Float32Array(n * STRIDE);
   const sizes = new Float32Array(n).fill(SOLDIER);
-  for (let i = 0; i < n; i++) positions.set([(i % 50) * 7, Math.floor(i / 50) * 7, 0], i * 3);
-  const { order, chunks } = chunkCorpses(positions, sizes, n);
-  // Every corpse in exactly one chunk, chunks contiguous in `order`.
-  expect([...order].sort((a, b) => a - b)).toEqual(Array.from({ length: n }, (_, i) => i));
-  expect(chunks.reduce((k, c) => k + c.end - c.start, 0)).toBe(n);
-  // From the strategic height every chunk is far; from the ground the one
-  // under the camera is not.
+  for (let i = 0; i < n; i++) records.set([(i % 50) * 7, Math.floor(i / 50) * 7, 0], i * STRIDE);
+  const pop = corpseChunks(records, STRIDE, sizes);
+  // Every corpse in exactly one chunk, chunks contiguous in chunk order.
+  expect([...pop.order[0]].sort((a, b) => a - b)).toEqual(Array.from({ length: n }, (_, i) => i));
+  expect(pop.chunks.reduce((k, c) => k + c.end[0] - c.start[0], 0)).toBe(n);
+  // A chunk reaches past its corpses by their length and the shadow margin,
+  // so none is culled while its shadow can still reach into view.
+  const reach = Math.fround(SOLDIER) + SHADOW_MARGIN_M;
+  expect(pop.chunks[0].box.slice(0, 3)).toEqual([-reach, -reach, -reach]);
+  // From the strategic height every chunk is far: all of them one run of
+  // cards. From the ground the chunk under the camera is not.
+  const everyCarded = corpseChunkLevel(
+    DETAIL,
+    pop.chunks.map(() => true),
+  );
   const high = setDetailView(createDetailView(), camera(2000, [175, 140, 0]), HEIGHT);
-  expect(chunks.every((c) => chunkIsFar(DETAIL, high, c))).toBe(true);
+  selectChunks(pop, high, everyCarded, null);
+  expect(pop.ranges[0][IMPOSTOR]).toEqual([0, n]);
+  expect(pop.near).toEqual([]);
   const low = setDetailView(createDetailView(), camera(25, [30, 30, 0]), HEIGHT);
-  expect(chunks.some((c) => !chunkIsFar(DETAIL, low, c))).toBe(true);
+  selectChunks(pop, low, everyCarded, null);
+  expect(pop.near).toContain(0);
+  // A chunk holding a corpse with no card never draws whole, however far.
+  const firstBare = corpseChunkLevel(
+    DETAIL,
+    pop.chunks.map((_, k) => k > 0),
+  );
+  selectChunks(pop, high, firstBare, null);
+  expect(pop.near).toEqual([0]);
+  expect(pop.ranges[0][IMPOSTOR]).toEqual([pop.chunks[0].end[0], n - pop.chunks[0].end[0]]);
 });
