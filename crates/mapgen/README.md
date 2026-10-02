@@ -372,14 +372,14 @@ placed kind must be one of its prop types, and its widest hull sizes the lane.
   street, apart from the bodies already placed by the room each keeps, off the water, off
   every bridge deck and the run onto it, and out of every measured open approach. A kind
   is its rows; no rule names one.
-- **The lane is the simulation's, not the kerb's.** A vehicle keeps to the right of a
-  road's middle, and its route is checked for room on the simulation's 2 m planning grid.
-  A body that stops a vehicle, standing within a few metres of that lane, fails the
-  check and can close the road to it: so furniture stands back from the carriageway, on
-  the verge and the front of the parcels, not at the kerb. `tests/street_props.rs` asks
-  the simulation's own navigation, on every type and size of map, bare and dressed:
-  the assault still plans, a squad still stands at every door and walks to it, and every
-  hull still drives every street by the same way, the widest without shoving a body.
+- **The lane is the simulation's.** A vehicle normally keeps right of a road's middle.
+  Its navigation owner refines coarse false blockage against actual known bodies and
+  tries clear lines before pushing. Furniture can therefore stand at the kerb while
+  leaving the widest hull a usable street. `tests/street_props.rs` asks the simulation's
+  own navigation on bare and dressed maps: the assault still plans, a squad still
+  stands at every door and walks to it, and every hull still drives every street,
+  the widest without shoving a body. Actual kerbside traversal and traffic yielding
+  are separate movement proofs; a placement or planned route alone is insufficient.
 - **Cars park in runs,** bumper to bumper with no way through, a squad's width or more
   between runs, along one side of a street and both of an avenue. Lamps and street
   trees (`street_tree`: the forests' trunk as a body, with its own binding) are evenly
