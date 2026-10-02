@@ -4246,6 +4246,31 @@ high for the regression and replay, medium across generated towns.
 **Gap:** The slice judges the sheet, not the read behind glass.
 
 **Verdict:** the mechanism's own behaviour, the same for upstream's photographs. The mock-up shows dark, coloured, slightly streaked panes: not holes, not rooms. If the user wants furniture from above, the lookup has to change, which Q-E forbids, or the pinhole has to move, which is this recipe. **Confidence:** high that it happens, low on whether it matters.
+
+### The sheets are toned for the shade the game shows them in
+
+**Choice:** Exposure 1.0 under a ceiling of 0.15 linear (0.42 sRGB), light floors, strong wall hues. Cell means are 0.28 to 0.39 sRGB where they were 0.13 to 0.25. This supersedes "The picture has a ceiling, and no shadow lift" above: the ceiling stays, the level does not.
+
+**Gap:** C15 judged the sheet as a picture and made it dim. C26 then showed a cell as a matte surface in sun shadow, which darkens it again: at 80 m every window was a near-black rectangle.
+
+**Verdict:** sound on the facade scene's frames, with one limit the sheet cannot remove.
+
+| Room against the sunlit wall | before | after |
+|---|---|---|
+| 30 m, no glass | 0.16 to 0.44 | 0.26 to 0.58 |
+| 30 m, behind glass | 0.23 to 0.37 | 0.28 to 0.45 |
+| 80 m, no glass | 0.25 to 0.39 | 0.49 to 0.58 |
+| 80 m, behind glass | 0.25 to 0.33 | 0.39 to 0.44 |
+| shops from the street, behind glass | 0.25 to 0.32 | 0.36 to 0.42 |
+
+The scene's bound (a room at most 0.7 of its wall) was not moved. Two brighter tries were rejected on the pictures:
+
+- Exposure 0.7 under a ceiling of 0.5 tripped the bound: a white room and a pale tiled floor reached 0.76 and 0.79 without glass, and the white room was the brightest thing on the facade. The bound was right.
+- Exposure 0.9 under a ceiling of 0.2 passed every check, and an unprimed critic still read the pale shops as "a dim light left on" where the facade stands in its own shade. A room takes no sun, so it does not darken when its wall does: there a window's brightest twentieth reached 0.95 of the shaded wall. At the ceiling chosen it is 0.84 at most, and a window's mean 0.60 to 0.79 (0.47 to 0.60 before).
+
+A second unprimed critic, on the chosen sheets' frames: no window reads as lit under any of the four suns (high confidence; the pale shop on the shaded facade is "the nearest thing to a lit look", read as a dim daylight room); none is a hole at 30 m or from the street; rooms are told apart at 30 m by wall colour and contents; two of the three shops read as shops, the third as the vacant unit it is. At 80 m every opening is still a flat dark pane, brown for flats and slate for shops, "not black, but functionally blank": the floor strip under the glass's veil, with no wall colour left.
+
+That is the limit: the sheet trades "a hole at 80 m in the sun" against "lit on a shaded facade", and one level serves both only so far. If shaded facades still read as lit, the lever is the light a room is shown in (C26's `unlit`, which could follow the facade's shade), not the sheet. The scene checks one window under each sun and no shop; a check of every window against the shaded wall would hold this. The sheet on its own now looks like a lit doll's house; that is what a shaded surface's colour looks like before the shade. **Confidence:** medium: one block, one biome's light.
 ### A squad corridor starts at a member the known grid admits
 
 **Choice:** Select the closest living soldier whose position is standing room
