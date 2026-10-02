@@ -4948,3 +4948,247 @@ exact matched openings pass and a real retained GPU allocation falsifies the che
 **Gap:** The slice says "keyed from the field" and names no carrier.
 
 **Verdict:** sound. The loop that finds the paved distance already has the closest point of each stretch; a second lookup for the lane would walk the cell's list twice. A polygon has no centreline, so a town's streets have no lanes. **Confidence:** high.
+## SG4 palette vs shadow floor
+
+### The spike ran inside C84, not in a scratch worktree
+
+**Choice:** `fog-look` was run on the starting commit and on two drafts of the palette, and the verdict written into the slice file (no `spikes/SG4.md`).
+
+**Gap:** The slice asks for a throwaway worktree and a spike report; the lane says to answer it on the way.
+
+**Verdict:** sound. **Confidence:** high.
+
+### What the floor measures
+
+**Choice:** `PLOT_MIN_LSTAR` is 24, the CIELAB L\* of a plot's darkest albedo (palette at the low end of the per-plot jitter, rows at their mean), which is what main's darkest ground measures. It is checked on the albedo by `validateBiome`, not on rendered pixels.
+
+**Gap:** "A biome L\* floor enforced as a test" names neither the number nor what is measured.
+
+**Why:** The spike found the fog check is not about dark fields at all (it bounds how light and how grey the ground round the houses is). The floor guards the other case, which no framing of the check holds: a sunlit field as dark as ordinary ground under fog. **Verdict:** provisional: the number is main's own darkest, not a measured threshold. **Confidence:** medium.
+
+## C84 field palette
+
+### The settlement keeps the meadow's old colours as a kind of its own
+
+**Choice:** A plot kind `green` (weight 0, `settlement_kind`) on main's meadow palette, growing the meadow's grass; open-country meadow takes the olive.
+
+**Gap:** The slice moves "the plot palettes" as one, and requires the fog check to pass under every style.
+
+**Why:** `grey-veil` at `default-wall` passes on main by 1.1 a\*b\* units; a desaturated meadow there failed it (11.9 of 12) and a half-desaturated one passed by 0.1. No palette widens that margin, and `light.shadow_floor` is not the palette's to move. **Cost:** a saturated green island round the houses, which an unprimed eye picks out at once. **Verdict:** provisional, until the style's margin is widened. **Confidence:** high that it keeps the check; low that it is the look wanted.
+
+### How far the palette is desaturated
+
+**Choice:** Albedo chroma 7 to 17 (rapeseed 34), about half of what the kinds had; two rounds, the second at 0.7 of the first's chroma.
+
+**Gap:** "Desaturated (olive, tan, brown)" and "GG's palette" give no numbers.
+
+**Why:** The low sun adds about 10 of b\* on screen, so the first round still read mustard and orange. **Verdict:** provisional: on screen the fields are still half again as chromatic as the Broken Arrow frame. **Confidence:** medium.
+
+### Plot weights unchanged
+
+**Choice:** The kinds' shares are as C83 left them (rapeseed 1.2 of 14.9).
+
+**Gap:** None stated; the critique found the yellow pulls the eye.
+
+**Why:** Unchanged weights keep the same kind on the same plot, so before and after are the same fields. **Verdict:** provisional. **Confidence:** medium.
+
+## C85 field texture
+
+### What "luminance-neutral" and "one-sided" were taken to mean
+
+**Choice:** Grain and rows are as much lighter as darker, so a plot's mean stays its palette's (checked: within 0.6% per kind); every value term is finer than about 5 m and fades to its mean under a pixel; anything broader (the dry patches) shifts hue at the plot's own luminance, one way only. A scene check holds that no 9 m block is more than 3% darker for the texture.
+
+**Gap:** The contract says "luminance-neutral and one-sided" of a texture that must still show clods and furrows.
+
+**Verdict:** sound. **Confidence:** medium (the widest grain octave, 5 m on rough ground, is the nearest thing to a broad dark patch).
+
+### Wheelings
+
+**Choice:** A drilled crop has tramlines: two furrows bare in every fifteen rows, darker by 20 to 30%, and the grass leaves them bare.
+
+**Gap:** The slice lists furrows, clods and stubble.
+
+**Why:** From 250 m no grass is drawn and a crop's rows are near a pixel; the wheelings are what still says "drilled field". They are thin dark lines, not a broad patch, and take about 1% off a crop's mean. **Verdict:** provisional (the user has not seen them). **Confidence:** medium.
+
+### The old fine mottle no longer shades plots
+
+**Choice:** The 4 m value noise (`mottle_m`) still varies verge, forest floor, shore and road; a plot takes its grain instead. `field_rules.mottle_scale_m` became `mottle_m`, and the broad scale is each kind's `patch_m`.
+
+**Gap:** None stated: the grain replaces it.
+
+**Verdict:** sound. **Confidence:** high.
+
+### The texture switch rewrites the plot table
+
+**Choice:** `setFieldTextureShown(false)` packs the plots without grain, breaks or wheelings, and the shader skips what a plot does not have; no uniform flag.
+
+**Gap:** The slice asks for a frame-cost row and names no switch.
+
+**Why:** The road pass uses the next word of the terrain's `view` uniform for its own switch; a second flag there would collide with it. **Verdict:** sound. **Confidence:** high.
+
+## Fields on generated maps
+
+### One grain for the land, a tract's own once, a road's where there is one
+
+**Choice:** `generatePlots` cuts the land on `orientation_deg` down to tracts (`tract_m`); each tract turns once by `orientation_jitter_deg`; land in a tract with a road in it or within a plot's width lies along the longest such stretch. Land above tract size is cut by a road only where the road runs nine tenths of the cut's chord.
+
+**Gap:** "Find why the plots lay out that way on an 8 km map and make open country read as farmland cut along its roads."
+
+**Why:** The heading turned at every level above a tract, a random walk that reached 45° on 8 km of land (measured on a roadless site), and a bend's stretches each cut the land on their own line. **What it cannot do:** a road cut is still a whole line through its plot, so a curving road leaves wedges plot-sized or a little more; only field polygons carried by the map (`land_regions`) would follow a curve. **Verdict:** sound for the fan; provisional for the wedges. **Confidence:** medium.
+
+### The other lane's guide test
+
+**Choice:** `web/tests/surfaces.test.ts` fixes `max_aspect` at 50 beside the rules it already fixes.
+
+**Gap:** That fixture pins field rules "so seeded cuts do not obscure the guide contract"; a strip between two road edges now lies along them, is five times as long as wide, and was cut across.
+
+**Verdict:** sound. **Confidence:** high.
+
+## C74
+
+**When:** 2026-10-02. Evidence and numbers: the Outcome in [C74](slices/C74-tree-species.md).
+
+### The one size is 11 m tall with a 0.40 m bole, held by the validator
+
+**Choice:** `SCENERY_KINDS.tree.size` names a top of 11 m and a bole 0.40 m in radius at 1.3 m up, each within 5%; the validator refuses a tree outside either (`fit.tree_size`). The bole is the radius of a round trunk with the cross-section the bark encloses there.
+
+**Gap:** The slice asked for "±5% of one height and girth" and "the validator's size envelope" without naming the size, where it lives or how girth is measured.
+
+**Verdict:** sound. The size is the common broadleaf's, so the kind that fills most woods did not change. Placement scales every tree to the forest rule's canopy and draws it 0.9 to 1 wide, which puts the drawn bole at 0.36 to 0.40 m beside the simulation's 0.35 m trunk. **Confidence:** medium: the simulation's trunk radius is not the number checked, only near it.
+
+### The spreading and tall broadleaves were rebuilt into the band
+
+**Choice:** Spreading 10.0 → 10.5 m; tall 11.8 → 11.5 m with its bole 0.32 → 0.40 m.
+
+**Gap:** C73 kept the three kinds "at unchanged sizes"; Q-G8b says all trees are about one height and trunk thickness.
+
+**Verdict:** sound. Placement already drew every kind to one height, so only the tall kind's trunk visibly changed. **Confidence:** high.
+
+### A conifer is the same clumps in another arrangement, with its own far tier
+
+**Choice:** A spruce's clumps are boughs in whorls up one leader under a spire; its far tier is the boughs' outline turned round the leader (a five-ring lathe of 78 triangles), not the lobed volume.
+
+**Gap:** Branch and clump arrangements were delegated; C73 said the far tier is the lobed volume of the tree's own clumps.
+
+**Verdict:** sound. A lobed volume is measured from one centre and misses a spire's tip. The lathe stands inside the boughs like the lobed volume inside its clumps, so the caster is still the tree's own shape, coarser. **Confidence:** high.
+
+### The pine is a broadleaf-form crown, not a second conifer form
+
+**Choice:** Ten flat pads on a seeded lobed crown, 6 m up a bare bole.
+
+**Gap:** Q-G8 names spruce and pine as the conifers and gives one conifer profile to port.
+
+**Verdict:** sound. A Scots pine's crown is an irregular lump on a pole; the whorled spire is the spruce's. It reads as a mushroom on the sheet and as a pine in a stand. **Confidence:** medium.
+
+### A snag is a skeleton, drawn on every tier
+
+**Choice:** A bare kind draws bark alone: the whole skeleton on the two near tiers, the trunk and limbs on the third, the trunk and each limb as one segment on the far tier. Its height is its highest branch end.
+
+**Gap:** The slice named a standing snag; the tiers and the far tier's crown assumed leaves.
+
+**Verdict:** sound. It is 22 triangles at the far tier and nearly vanishes there, which is right for a bare pole. **Confidence:** high.
+
+## C75
+
+**When:** 2026-10-02. Evidence and numbers: the Outcome in [C75](slices/C75-forest-mix-and-colour.md).
+
+### A stand is the cell nearest a seeded point, and its family is drawn by weight
+
+**Choice:** The land is cut into cells about `trees.stands.size_m` (140 m) across, each one family's; a tree is its stand's family `purity` (0.88) of the time and any family's otherwise. A species' weight is its share of all trees, whichever way it is chosen.
+
+**Gap:** "Mostly one family per stand" did not say what a stand is.
+
+**Verdict:** sound. A forest shape is not a stand: one big wood should hold several, and a small one is one. The cells follow the ground, so a wood and the copses past the map share them. Their edges are straight where two cells meet; at 0.88 the mixing hides it. **Confidence:** medium on the two numbers.
+
+### Birch and snag have no family
+
+**Choice:** A species with no `family` is the odd tree in any stand, at its weight's share: birch 6.6%, snag 2%.
+
+**Gap:** "Plus the odd birch and snag" against "weights over all kinds".
+
+**Verdict:** sound. One list of weights still says how often every kind is drawn. **Confidence:** high.
+
+### "Not in the outer ring or in strips" is a row's `interior_m`
+
+**Choice:** The snag's row carries `interior_m: 12`: it stands only that far inside its forest's edge, never in a stroke-shaped forest and never past the map. A tree refused there is drawn as one of its stand's family.
+
+**Gap:** The slice named the rule for snags; the renderer has no notion of a snag.
+
+**Verdict:** sound. The rule is data on the row, not a named kind in the code. 12 m is past one trunk spacing (9 m) and its jitter. **Confidence:** high.
+
+### Conifers differ from broadleaves in hue, not in brightness
+
+**Choice:** Spruce `[0.74, 0.88, 1.25]` and pine `[0.86, 0.9, 1.1]` over the shared leaf colour; birch `[1.1, 1.08, 0.85]`.
+
+**Gap:** Tints were delegated; the slice's own critique question is whether a darker crown reads as cloud shadow.
+
+**Verdict:** provisional. The first tints (spruce `[0.7, 0.86, 1.5]`, birch `[1.25, 1.15, 0.8]`) left the frames' mean luminance within 3 of 255 of today's, but fresh eyes saw conifers' shaded sides go blue-black and birches read as autumn. Both were pulled toward the broadleaf green; the softened tints landed with C76 and were not critiqued again on their own. **Confidence:** medium.
+
+## C76
+
+**When:** 2026-10-02. Evidence and numbers: the Outcome in [C76](slices/C76-canopy-closure.md).
+
+### "Never past the simulation's canopy radius" is held by never drawing a tree wider than its appearance
+
+**Choice:** `trees.forest.girth` is a tree's drawn width as a share of its appearance's own, and the biome refuses a value over 1. The asset validator already holds every appearance inside `forests.rule.canopy_radius_m` (`fit.canopy`), so no drawn crown passes it.
+
+**Gap:** The slice bounds the crown by the simulation's canopy radius, but that number does not reach the renderer: the world layout exports a forest's canopy height only, and this lane may not change `crates/`.
+
+**Verdict:** sound. The simulation's number keeps one owner and placement needs no copy of it. A test places the village's woods and checks every crown against the fixture's radius. Before this, crowns reached 6.95 m against a 6.5 m canopy. The cost: closure is tuned in two places, the art's reach per species and the one `girth` range. **Confidence:** high.
+
+### Crowns no longer fit inside the forest's shape
+
+**Choice:** The clamp to a crown's room inside the shape is deleted. A tree at a wood's edge is as wide as one inside, and its crown overhangs the field.
+
+**Gap:** C73 found blade-thin edge trees and left them here; C86's simulation half says foliage reaches a canopy radius past a strip's edge.
+
+**Verdict:** sound. The drawn crown now follows the simulation's foliage, not the forest floor's outline. The placement comment and the test that said "inside the shape" were rewritten. **Confidence:** high.
+
+### Closure: girth 0.9 to 1, wider conifers
+
+**Choice:** `girth: [0.9, 1]`; the spruce built 5.3 m in reach (from 4.6) and the pine 5.5 m (from 4.9).
+
+**Gap:** Crown scale within the radius was delegated.
+
+**Verdict:** provisional. At one girth for every species the broadleaf stands closed and the conifer stands stayed an orchard (a third of the floor seen); widening the conifers' art closed them to under a quarter. Narrow kinds (birch, the tall broadleaf) stay narrow: they are the gaps. **Confidence:** medium.
+
+### What "mostly closes, floor still seen" means as a check
+
+**Choice:** In the terrain's own class mask, the share of the wood's floor pixels still seen with the trees drawn must lie between 0.12 and 0.40, at 65 m and 120 m over the village's west wood (`web/scenes/_canopy.mjs`).
+
+**Gap:** The slice names "the visible floor share from a models on/off pair" and no number.
+
+**Verdict:** sound, by the user (2026-10-02). Below about a tenth the wood is a lid; above four tenths it read as an orchard in the pictures (it measured 0.32 before). The band is wide on purpose: it is a guard, and the pictures decide inside it. The landed closure, 0.23 of the floor seen, was shown to the user with the squad it leaves to the x-ray (0 of 8 torsos seen plainly under two crowns): "the 23% check is fine, and we can always tweak that number in the future". The slice's torso check is not in a scene; a unit under a closed crown is found by its x-ray. **Confidence:** high.
+
+### The forest floor's drifts are turned noise, with their strengths in the biome
+
+**Choice:** `forestFloor` mixes moss and humus from two octaves each on lattices turned against each other and the map's axes, eased over a wide band; `forest_floor.moss` and `.humus` say how far each takes the litter over, and the patches grew from 4 m to 6 m.
+
+**Gap:** The brief asked for the floor's blockiness to be fixed inside that one function if the floor is to be seen.
+
+**Verdict:** sound. The bare floor's edge density fell from 0.12 to under 0.02 and its darkest twentieth rose from 69 to 83 of 255: no square patches, and no dark blob to read as shadow. Humus at 0.4 is a guess on the safe side. **Confidence:** medium.
+
+## Ground lane integration
+
+### Road checks judge roads against plain fields, with two bars moved
+
+**Choice:** After the fields pass (C84, C85) the road checks shoot with the fields' texture off, the walk from a road's core to the grass allows a band 4% brighter than the one inside it (was 3%) and 10% under the far grass (was 8%), and the road's edge band may hold 45% of the field's clumps (was 35%). The dirt track's palette is a tenth lighter.
+
+**Gap:** C66 and C67 state their rules against "the grass"; the fields beside the stations are now pale crops with furrow-shaped rows, denser grass and different plots.
+
+**Verdict:** provisional. With grass drawn (the frame a player sees) the walk holds the strict rule at both stations. On bare ground the 5 m beside the village's gravel road reads about 6% darker than the field 5 to 9 m out, where before the fields pass it was lighter; the cause was not found (the shoulder's wash is lifted to the luminance of the ground under it, so it should not be). The track was 10% darker than the wheat beside it and is lightened so no core is darker than its neighbour at any station; a track through stubble, the palest field, is not shot anywhere. **Confidence:** medium.
+
+### The verge's grass is checked between plots, not beside the road
+
+**Choice:** The grass check finds the verge where the class mask changes plot, clear of any road.
+
+**Gap:** C67 deleted the road-keyed verge; C81's check sampled verge grass beside the road.
+
+**Verdict:** sound. Beside a road the ground is its shoulder, which grows the plot's own grass, thinned. **Confidence:** high.
+
+### The renderer skill keeps main's rewrite
+
+**Choice:** The lessons the ground passes added to `.agents/skills/renderer/` were dropped at merge in favour of main's principles-only rewrite; later passes put lessons in slice Outcomes.
+
+**Verdict:** sound: it follows the owner's change to the skill and to AGENTS.md. **Confidence:** high.
+

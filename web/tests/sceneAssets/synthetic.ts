@@ -750,17 +750,25 @@ export function buildingGlb(height = 6, lift = 0): Uint8Array {
 }
 
 /** A tree: a trunk and a crown whose top stands `height` metres up and
- *  reaches `radius` from the trunk's axis, four tiers. `crowns[t]` draws tier
- *  t's crown as that many boxes (12 triangles each) instead of one. */
+ *  reaches `radius` from the trunk's axis, four tiers. The trunk is a square
+ *  post with the cross-section of a round bole of radius `bole`, standing at
+ *  `boleAt`. `crowns[t]`
+ *  draws tier t's crown as that many boxes (12 triangles each) instead of
+ *  one. */
 export function treeGlb(
-  height = 10,
+  height = 11,
   lift = 0,
-  o: { radius?: number; crowns?: readonly number[] } = {},
+  o: { radius?: number; crowns?: readonly number[]; bole?: number; boleAt?: [number, number] } = {},
 ): Uint8Array {
   const b = new GltfBuilder();
   const r = o.radius ?? 4;
+  const half = ((o.bole ?? 0.4) * Math.sqrt(Math.PI)) / 2;
+  const [x, y] = o.boleAt ?? [0, 0];
   const parts = ["_LOD0", "_LOD1", "_LOD2", "_LOD3"].flatMap((suffix, t) => [
-    b.node({ name: `trunk${suffix}`, mesh: gBox(b, [-0.3, -0.3, lift], [0.3, 0.3, 4 + lift]) }),
+    b.node({
+      name: `trunk${suffix}`,
+      mesh: gBox(b, [x - half, y - half, lift], [x + half, y + half, 4 + lift]),
+    }),
     ...Array.from({ length: o.crowns?.[t] ?? 1 }, (_, i) =>
       b.node({
         name: `crown${i}${suffix}`,

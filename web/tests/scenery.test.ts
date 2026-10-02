@@ -1,9 +1,9 @@
 // @vitest-environment node
 // Scenery placement against the simulation's own geometry: the drawn forest
-// is the simulation's forest volume (every crown inside a forest shape and
-// under its canopy over the simulation's ground, the shape's foliage covered
-// by crowns, the simulation's trunks each a drawn tree), and scenery past the
-// map stays off it.
+// is the simulation's forest volume (every crown within the canopy's radius
+// of its trunk and under its canopy over the simulation's ground, the
+// simulation's trunks each a drawn tree), and scenery past the map stays off
+// it.
 import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
@@ -14,6 +14,7 @@ import {
   type WorldLayout,
 } from "@packages/battle-renderer/src/worldMesh.ts";
 import { buildTerrainSurface } from "@packages/battle-renderer/src/terrain/terrainSurface.ts";
+import { forestInside } from "@packages/battle-renderer/src/terrain/forestShapes.ts";
 import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
 import {
   placeScenery,
@@ -33,8 +34,12 @@ const biome = validateBiome(summer as unknown as Biome);
 /** Unscaled appearance sizes: the loader reads them from the bundles. */
 const SIZES = new Map<string, KindSize>([
   ["tree_broadleaf", { height: 11, radius: 5.6 }],
-  ["tree_spreading", { height: 10, radius: 6.1 }],
-  ["tree_tall", { height: 11.8, radius: 3.8 }],
+  ["tree_spreading", { height: 10.5, radius: 6.1 }],
+  ["tree_tall", { height: 11.5, radius: 3.8 }],
+  ["tree_spruce", { height: 11.2, radius: 3.9 }],
+  ["tree_pine", { height: 11, radius: 5 }],
+  ["tree_birch", { height: 11.3, radius: 4.1 }],
+  ["tree_snag", { height: 10.7, radius: 4.9 }],
   ["hedge_shrub", { height: 2.8, radius: 3.2 }],
 ]);
 
@@ -58,6 +63,8 @@ interface Tree {
   z: number;
   radius: number;
   top: number;
+  /** The drawn crown's width over its appearance's own. */
+  girth: number;
 }
 function trees(data: Float32Array): Tree[] {
   const out: Tree[] = [];
@@ -69,6 +76,7 @@ function trees(data: Float32Array): Tree[] {
       z: data[o + TREE_FIELD.z],
       radius: size.radius * data[o + TREE_FIELD.scaleXY],
       top: data[o + TREE_FIELD.z] + size.height * data[o + TREE_FIELD.scaleZ],
+      girth: data[o + TREE_FIELD.scaleXY],
     });
   }
   return out;
@@ -89,16 +97,17 @@ const forests = () =>
     };
   });
 
-test("every forest tree's crown stays inside a forest shape, under its canopy over the simulation's ground", () => {
+test("every forest tree's crown reaches no farther than the simulation's canopy radius, under its canopy over the simulation's ground", () => {
   const drawn = trees(placement.forest);
   expect(drawn.length).toBeGreaterThan(400);
+  // The simulation's foliage lies within the canopy radius of a trunk, past
+  // the forest's own edge too: a crown is as wide at the edge as inside.
+  const canopyRadius = game.forests.rule.canopy_radius_m;
+  expect(Math.max(...[...SIZES.values()].map((s) => s.radius))).toBeLessThanOrEqual(canopyRadius);
   for (const t of drawn) {
+    expect(t.radius, JSON.stringify(t)).toBeLessThanOrEqual(canopyRadius + 1e-3);
     const forest = forests().find(
-      ({ rect: [x, y, w, h] }) =>
-        t.x - t.radius >= x - 1e-3 &&
-        t.x + t.radius <= x + w + 1e-3 &&
-        t.y - t.radius >= y - 1e-3 &&
-        t.y + t.radius <= y + h + 1e-3,
+      ({ rect: [x, y, w, h] }) => t.x >= x && t.x <= x + w && t.y >= y && t.y <= y + h,
     );
     expect(forest, JSON.stringify(t)).toBeDefined();
     // The simulation's foliage is below ground + canopy at each point: sample
@@ -110,6 +119,32 @@ test("every forest tree's crown stays inside a forest shape, under its canopy ov
       expect(t.top, JSON.stringify(t)).toBeLessThanOrEqual(g + forest!.canopy + 1e-3);
     }
   }
+});
+
+test("a tree at its forest's edge is as wide as one deep inside", () => {
+  const [lo, hi] = biome.trees.forest.girth;
+  const [[x, y, w, h]] = forests().map((f) => f.rect);
+  const west = trees(placement.forest).filter(
+    (t) => t.x >= x && t.x <= x + w && t.y >= y && t.y <= y + h,
+  );
+  const edge = west.filter((t) => Math.min(t.x - x, x + w - t.x, t.y - y, y + h - t.y) < 3);
+  expect(edge.length).toBeGreaterThan(10);
+  for (const t of west) {
+    expect(t.girth, JSON.stringify(t)).toBeGreaterThanOrEqual(lo - 1e-6);
+    expect(t.girth, JSON.stringify(t)).toBeLessThanOrEqual(hi + 1e-6);
+  }
+});
+
+test("a biome may not draw a tree wider than its appearance", () => {
+  // The appearance is held inside the simulation's canopy radius; a wider
+  // drawing of it would not be.
+  const wide = {
+    ...biome,
+    trees: { ...biome.trees, forest: { ...biome.trees.forest, girth: [0.9, 1.2] } },
+  };
+  expect(() => validateBiome(wide as unknown as Biome, "summer")).toThrow(
+    /summer\.trees\.forest\.girth/,
+  );
 });
 
 test("trees stand on the simulation's ground", () => {
@@ -163,10 +198,146 @@ test("scenery past the map stays clear of it and within reach, as hedgerows and 
     expect(outside - t.radius, JSON.stringify(t)).toBeGreaterThanOrEqual(clear_m - 1e-3);
     expect(outside).toBeLessThanOrEqual(reach_m + 1e-3);
   }
+  // Every kind but those that stand only deep inside a forest.
   const kinds = new Set<string>();
   for (let o = 0; o < placement.backdrop.length; o += TREE_FLOATS)
     kinds.add(placement.kinds[placement.backdrop[o + TREE_FIELD.kind]]);
-  expect([...kinds].sort()).toEqual([...SIZES.keys()].sort());
+  const deep = biome.trees.species.filter((s) => s.interior_m !== undefined);
+  expect(deep.length).toBeGreaterThan(0);
+  expect([...kinds].sort()).toEqual(
+    [...SIZES.keys()].filter((k) => !deep.some((s) => s.appearance === k)).sort(),
+  );
+});
+
+/** The appearance of each placed tree, with its place. */
+function named(placed: SceneryPlacement, data: Float32Array) {
+  const out: { x: number; y: number; appearance: string }[] = [];
+  for (let o = 0; o < data.length; o += TREE_FLOATS)
+    out.push({
+      x: data[o + TREE_FIELD.x],
+      y: data[o + TREE_FIELD.y],
+      appearance: placed.kinds[data[o + TREE_FIELD.kind]],
+    });
+  return out;
+}
+
+test("a wood is stands, each mostly one family's species, with the odd tree of no family", () => {
+  // Stands small enough that the village's two woods hold many.
+  const stands = { size_m: 50, purity: 0.9 };
+  const small = { ...biome, trees: { ...biome.trees, stands } };
+  const site = scenerySite(exports, layout, buildTerrainSurface(exports, layout, biome));
+  const placed = placeScenery(site, small, SIZES);
+  const family = new Map(biome.trees.species.map((s) => [s.appearance, s.family]));
+  const drawn = named(placed, placed.forest).map((t) => ({
+    ...t,
+    family: family.get(t.appearance),
+  }));
+  const inFamily = drawn.filter((t) => t.family !== undefined);
+  const families = [...new Set(inFamily.map((t) => t.family))];
+  expect(families.length).toBeGreaterThan(1);
+  // Each family has stands of its own somewhere in the two woods.
+  for (const f of families)
+    expect(inFamily.filter((t) => t.family === f).length / inFamily.length).toBeGreaterThan(0.1);
+  // A tree's nearest neighbour is of its family far more often than chance
+  // (the families' own shares) would have it.
+  let same = 0;
+  for (const t of inFamily) {
+    let nearest = inFamily[0],
+      best = Infinity;
+    for (const u of inFamily) {
+      const d = Math.hypot(u.x - t.x, u.y - t.y);
+      if (u !== t && d < best) [nearest, best] = [u, d];
+    }
+    if (nearest.family === t.family) same++;
+  }
+  const chance = families
+    .map((f) => inFamily.filter((t) => t.family === f).length / inFamily.length)
+    .reduce((sum, share) => sum + share * share, 0);
+  expect(same / inFamily.length).toBeGreaterThan(chance + 0.2);
+  // Trees of no family stand among them, about as often as their weight says.
+  const total = biome.trees.species.reduce((sum, s) => sum + s.weight, 0);
+  const odd = biome.trees.species.filter(
+    (s) => s.family === undefined && s.interior_m === undefined,
+  );
+  expect(odd.length).toBeGreaterThan(0);
+  for (const s of odd) {
+    const share = drawn.filter((t) => t.appearance === s.appearance).length / drawn.length;
+    expect(share).toBeGreaterThan((0.4 * s.weight) / total);
+    expect(share).toBeLessThan((2 * s.weight) / total);
+  }
+});
+
+/** A map of one forest of `shape`, its site and the forest's drawn trees
+ *  under `trees`. */
+function wood(shape: unknown, trees: Biome["trees"]) {
+  const view = new WorldView(
+    JSON.stringify({
+      size: [400, 400],
+      height_grid_m: 4,
+      fog_cell_m: 8,
+      slope_cutoff_deg: 35,
+      forests: [{ shape }],
+    }),
+    JSON.stringify(GAME_RULES),
+  );
+  try {
+    const exported = readWorldExports(view);
+    const site = scenerySite(exported, layout, buildTerrainSurface(exported, layout, biome));
+    const placed = placeScenery(site, { ...biome, trees }, SIZES);
+    return { site, drawn: named(placed, placed.forest) };
+  } finally {
+    view.free();
+  }
+}
+
+test("a species kept to the interior stands that deep inside its forest, and in no strip", () => {
+  // Whatever its weight: here every tree would be one if it could.
+  const [deep] = biome.trees.species.filter((s) => s.interior_m !== undefined);
+  const keen = {
+    ...biome.trees,
+    species: biome.trees.species.map((s) => (s === deep ? { ...s, weight: 1000 } : s)),
+  };
+  const ring = [
+    [40, 40],
+    [360, 40],
+    [360, 360],
+    [40, 360],
+  ];
+  const polygon = wood({ kind: "polygon", ring }, keen);
+  const inside = polygon.drawn.filter((t) => t.appearance === deep.appearance);
+  expect(inside.length).toBeGreaterThan(100);
+  for (const t of inside)
+    expect(forestInside(polygon.site.forests[0], t.x, t.y)).toBeGreaterThanOrEqual(
+      deep.interior_m!,
+    );
+  // The outer ring is drawn all the same, as other species.
+  const edge = polygon.drawn.filter(
+    (t) => forestInside(polygon.site.forests[0], t.x, t.y) < deep.interior_m!,
+  );
+  expect(edge.length).toBeGreaterThan(20);
+  const strip = wood(
+    {
+      kind: "stroke",
+      points: [
+        [40, 200],
+        [360, 200],
+      ],
+      width_m: 60,
+    },
+    keen,
+  );
+  expect(strip.drawn.length).toBeGreaterThan(50);
+  expect(strip.drawn.filter((t) => t.appearance === deep.appearance)).toEqual([]);
+});
+
+test("the summer woods' interior-only trees (snags) are at most one in twenty", () => {
+  const deep = biome.trees.species
+    .filter((s) => s.interior_m !== undefined)
+    .map((s) => s.appearance);
+  const drawn = named(placement, placement.forest);
+  const share = drawn.filter((t) => deep.includes(t.appearance)).length / drawn.length;
+  expect(share).toBeGreaterThan(0);
+  expect(share).toBeLessThanOrEqual(0.05);
 });
 
 test("placement is deterministic", () => {

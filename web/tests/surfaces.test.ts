@@ -12,7 +12,14 @@ import summer from "@fixtures/biomes/summer.json";
 const base = validateBiome(summer as unknown as Biome);
 const biome: Biome = {
   ...base,
-  field_rules: { ...base.field_rules, extent_m: 0, size_m: [1000, 1000], tract_m: 1000 },
+  field_rules: {
+    ...base.field_rules,
+    extent_m: 0,
+    size_m: [1000, 1000],
+    tract_m: 1000,
+    // A strip between two road edges lies along them, however long.
+    max_aspect: 50,
+  },
 };
 const empty: PlotSite = {
   map: [0, 0, 100, 100],

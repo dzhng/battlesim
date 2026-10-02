@@ -35,3 +35,30 @@ Palette entries within the floor. Anything else you have to decide is a spec gap
 
 ## Feedback that would change this slice
 Fields that merge into shadow or fog change field palette while retaining accepted light, density and geometry.
+
+## Outcome
+
+**Built.** Every plot kind has a palette of its own in `fixtures/biomes/summer.json`: olive meadow, pasture and rough, khaki prairie, gold wheat, green-straw barley, yellow rapeseed, hay, pale stubble, brown ploughed earth. The borrowed palettes and `young_crop` are gone; the verge and the distant land moved with them. Colours were drafted in CIELAB (lightness, chroma, hue) and stored as sRGB.
+
+The ground round the houses is a plot kind of its own, `green` (`field_rules.settlement_kind`), on the meadow's former colours and growing what the meadow grows: [SG4](SG4-palette-vs-shadow-floor.md#outcome) found the fog check held there by a hair, and a desaturated meadow under it fails.
+
+**The floor.** `validateBiome` refuses a plot kind whose darkest ground is under L\* 24 (`PLOT_MIN_LSTAR`, `darkestPlot`, `terrain/biome.ts`): its palette's darkest colour at the low end of the per-plot jitter, rows at their mean. A vitest holds a colour on the floor, the same colour under it, and the same colour under deep furrows.
+
+**Numbers.**
+- `fog-look`: every style and framing passes, each number within 0.7 of main's on the same day (the settlement's ground is main's).
+- Plot pixels on screen, by the class mask (roads and woods out), CIELAB chroma, median: `patchwork-1100` 32.5 → 20.7, `field-250` 39.3 → 21.6. The Broken Arrow farm frame's fields: 12 to 16. Mean lightness went 44 → 49 (the reference: 30 to 35, under an overcast sky).
+- The low sun adds about 10 of b\* to anything it lights, so an albedo of chroma 8 to 17 reads at 20 on screen; the palette is drafted that far under what it should read as.
+
+**Compared** with `brokenarrow/gameplay-trailer-08.jpg`, board row 4 and C62's `patchwork-1100`: less wrong (a muted patchwork in place of lawn green and orange), still about half again as chromatic as the reference and lighter, with a narrower range of value.
+
+**Critique** (one unprimed pass, on `patchwork-1100` and `field-250`). The fields read as muted olive, grey-green, tan and brown farmland; nothing reads as too dark, and no dark field reads as a shadow (each stops at its boundary). What it found, and what was done:
+- brown leaning mauve, tan leaning peach, sage and khaki merging: ploughed earth turned toward yellow-brown, wheat toward gold, stubble paler, barley greener (not shot again on their own: C85's stations carry them);
+- the green lines between fields more vivid than the fields: the verge was desaturated with them;
+- **the block of lawn green round the buildings, saturated against everything else, with a hard edge: open.** It is the settlement's `green`, held by SG4;
+- rapeseed yellow pulls the eye first: wanted (Q-G10), left;
+- an even grey-green veil toward the frame's edges read as haze: the rig's own aerial haze at 1100 m, not the palette.
+
+**Open.**
+- The settlement's ground waits on the fog styles' margin (SG4's last paragraph).
+- No pale cream field and no really dark green: the floor and the sun's warmth bound the range from this side.
+- Six kinds are told apart from 1100 m, not ten; texture (C85) separates the rest closer in.
