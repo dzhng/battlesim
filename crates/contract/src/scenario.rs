@@ -241,12 +241,12 @@ pub struct MovementRules {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct NavigationRules {
-    /// Per-unit movement steps, and the work of planning a route again,
-    /// allowed to certify one move. Each leg's first route is the planner's
-    /// own bounded search and is not counted.
+    /// Motion steps and route work allowed to certify one group move.
+    /// A long leg's initial route uses the live planner's separate bound;
+    /// shorter initial routes and repeated searches spend this allowance.
     pub move_validation_work: u32,
     /// How much of each end of a leg certification drives, and of the
-    /// approach to a vehicle standing on it: the stretch between is taken
+    /// approach to an intermediate hull or prop: the stretch between is taken
     /// on the route.
     pub move_rehearsal_m: f64,
     /// Planning work every side's units share each tick: one unit is about

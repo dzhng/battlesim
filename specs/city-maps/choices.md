@@ -5930,3 +5930,45 @@ The second pass's unprimed review found nearly all its street faults along the s
 **Reach:** Full-map preparation cost must remain within the existing startup budget; if this scan is material there, use the existing surface owner rather than create a parallel geometry model.
 
 **Verdict:** sound as the simpler provisional choice, with full-map cost still to be measured at integration. **Confidence:** medium.
+
+## Long-move admission pickup
+
+### Long routes use physical checkpoints instead of driving every empty metre
+
+**Choice:** When a player orders a long move, preview runs on a private copy of the side's known world. It drives away from the starting position, places that private unit farther along its planned route, and drives the final approach. It also drives approaches to stationary hulls and intersecting props. Only this rehearsal copy moves by that jump; the real unit still travels every metre. The alternative is to run the whole journey before showing a destination marker.
+
+**Gap:** The WIP chose bounded departure/arrival rehearsal without the owner's answer; the original physical-marker contract did not choose this tradeoff or a rehearsal distance.
+
+**Reach:** Preview's evidence is now checkpoints plus route geometry. It does not independently replay every steering turn in empty stretches. The shipped 60 m distance is fixture data, and full rehearsal can be restored by removing the carry policy. C54 must continue to check actual arrivals through current-layout bottlenecks.
+
+**Verdict:** needs-user for the evidence/cost tradeoff. Recommended provisional call: retain the checkpointed policy while completing the broader physical gate; reverse it if an accepted route fails actual arrival. The known skipped-shove failures were corrected, rather than accepted as part of that tradeoff. **Confidence:** low.
+
+### Rehearsal skips no demonstrated physical shove
+
+**Choice:** A crate may be light enough for a truck to push, yet be trapped against another crate. Route search permits the lighter body; preview must drive the encounter to discover that the game's no-chain-shove rule prevents passage. A straight hull sweep selects encountered props, and the existing segment clip conservatively locates first contact. This also handles the near end of a long diagonal body whose centre lies well beyond the crossing. Roadside props outside the hull sweep do not force this rehearsal.
+
+**Gap:** The WIP only checkpointed stationary vehicles; it treated intermediate props as a route-search concern.
+
+**Reach:** Movement remains the owner of shoves and their effects. The sweep/clip selects where to rehearse; it does not invent another shove solver or certify the footprint of a wheeled turn.
+
+**Verdict:** sound for the demonstrated straight-stretch contact contract. **Confidence:** high.
+
+### A leg becomes long at activation; actual displacement earns each jump
+
+**Choice:** A 500 m destination reached by a long detour still gets full rehearsal. A destination farther than the existing long-leg threshold is classified before planning and keeps that decision across replans. Before each private jump, the unit must move away from its previous rehearsal origin by the configured distance. Shortening a route through replanning, shuffling locally, or taking the private jump cannot earn that distance.
+
+**Gap:** The WIP used remaining-route reduction and classified by total route length, while the live long-road policy classifies endpoint distance.
+
+**Reach:** Preview and live long-leg classification agree; queued legs are reconsidered when they activate. The private origin is temporary bookkeeping, not a new persistent movement state.
+
+**Verdict:** sound. **Confidence:** high.
+
+### A blocked member has its own repeated-planning share
+
+**Choice:** In a mixed group, a vehicle blocked by a stationary hull can repeatedly search while an unobstructed squad is ready to walk. Initial long routes use the live planner's separate search bound; shorter initial routes spend the existing rehearsal allowance. Repeated searches get one share per mover and reserve one share for movement. A member that spends its share stops in the rehearsal; the remaining members keep their chance to prove arrival.
+
+**Gap:** Charging every search to one pot let a permanently blocked member consume the whole group's proof. Exempting every initial route changed previously admitted short village orders.
+
+**Reach:** Admission reads per-request accounting from the existing route planner. Scheduling and persistent digests stay unchanged; the accounting is discarded each tick. This policy may refuse a member that a larger allowance could prove, as the existing bounded admission contract already permits.
+
+**Verdict:** sound, with the equal-share allocation a provisional cost policy. **Confidence:** medium.

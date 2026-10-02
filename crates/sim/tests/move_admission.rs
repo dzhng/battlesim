@@ -683,10 +683,9 @@ fn hidden_enemy_spotting_cannot_move_visible_blockers_during_admission() {
 fn a_member_whose_journey_outlasts_the_allowance_does_not_unplace_the_group() {
     // A jeep and a rifle squad ordered to one place: the jeep stands beside
     // it, the squad is 280 m off on foot. The allowance covers the jeep's
-    // move and runs out before the squad has walked the two ends of its own
-    // (they take about twice this allowance).
+    // move and runs out during the squad's walk.
     let mut rules = crate::common::scenario_rules();
-    rules["navigation"]["move_validation_work"] = json!(1500);
+    rules["navigation"]["move_validation_work"] = json!(10000);
     let setup: ScenarioDefinition = serde_json::from_value(json!({
         "map": {"size": [2000, 200], "fog_cell_m": 8, "height_grid_m": 4,
             "slope_cutoff_deg": 35, "props": []},
@@ -928,8 +927,8 @@ fn a_vehicle_standing_in_the_way_refuses_only_the_member_it_stops() {
 }
 
 #[test]
-fn admitting_a_five_kilometre_move_costs_a_small_multiple_of_a_short_one() {
-    // The allowance is the admission's work. The least allowance that
+fn a_five_kilometre_move_fits_a_small_multiple_of_the_short_move_allowance() {
+    // This measures admission allowance, not instructions retired. The least allowance that
     // places a jeep, a tank and a rifle squad 500 m away, three times
     // over, must place them 5 km away: the longer route takes longer to
     // find, and no longer to prove.
@@ -969,4 +968,86 @@ fn admitting_a_five_kilometre_move_costs_a_small_multiple_of_a_short_one() {
         admits(3 * enough, 5100.0),
         "the 500 m move needs an allowance of about {enough}; the 5 km one is refused at three times that"
     );
+}
+
+#[test]
+fn a_long_move_cannot_skip_a_shove_that_requires_pushing_another_body() {
+    let lane = |blocked: bool| {
+        let mut props = vec![
+            json!({"kind":"wall", "center":[1500,55], "yaw":0, "half_extents":[100,55,2]}),
+            json!({"kind":"wall", "center":[1500,185], "yaw":0, "half_extents":[100,55,2]}),
+        ];
+        if blocked {
+            props.push(
+                json!({"kind":"crate", "center":[1500,120], "yaw":0, "half_extents":[1.5,9.9,2]}),
+            );
+            props.push(
+                json!({"kind":"crate", "center":[1503,120], "yaw":0, "half_extents":[1.5,9.9,2]}),
+            );
+        }
+        let map = json!({"size":[3000,240], "fog_cell_m":8, "height_grid_m":4,
+            "slope_cutoff_deg":35, "props":props});
+        Battle::new(
+            &crate::common::scenario(
+                &map.to_string(),
+                json!([{"side":"blue", "kind":"supply", "position":[100,120], "yaw":0}]),
+                json!([]),
+            ),
+            1,
+        )
+    };
+    let send = |battle: &mut Battle| {
+        battle.accept(CommandEnvelope {
+            side: Side::Blue,
+            seq: 1,
+            order: move_to(&[0], [2800.0, 120.0]),
+            queued: false,
+        })
+    };
+    let mut jammed = lane(true);
+    let refused = send(&mut jammed);
+    assert_eq!(
+        refused.error,
+        Some(OrderError::NoValidDestination),
+        "a route permitting light props is not proof that a chain shove works: {refused:?}"
+    );
+    assert!(!refused.placement.unwrap().destinations[0].placed);
+    let mut clear = lane(false);
+    let accepted = send(&mut clear);
+    assert_eq!(
+        accepted.error, None,
+        "the open lane admits the journey: {accepted:?}"
+    );
+    arrive(&mut clear, &accepted.placement.unwrap().destinations, 600);
+}
+
+#[test]
+fn a_long_move_rehearses_contact_with_the_end_of_a_rotated_body() {
+    // The long bodies' centres are well past the narrow crossing. Stopping
+    // relative to their centres can skip contact with their nearer ends.
+    let map = json!({"size":[3000,1200], "fog_cell_m":8, "height_grid_m":4,
+    "slope_cutoff_deg":35, "props":[
+        {"kind":"wall", "center":[1050,55], "yaw":0, "half_extents":[100,55,2]},
+        {"kind":"wall", "center":[1050,665], "yaw":0, "half_extents":[100,535,2]},
+        {"kind":"crate", "center":[1500,600], "yaw":std::f64::consts::FRAC_PI_4,
+            "half_extents":[700,1.5,2]},
+        {"kind":"crate", "center":[1502.12132034356,597.87867965644],
+            "yaw":std::f64::consts::FRAC_PI_4, "half_extents":[700,1.5,2]}
+    ]});
+    let mut battle = Battle::new(
+        &crate::common::scenario(
+            &map.to_string(),
+            json!([{"side":"blue", "kind":"supply", "position":[100,120], "yaw":0}]),
+            json!([]),
+        ),
+        1,
+    );
+    let ack = battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        seq: 1,
+        order: move_to(&[0], [2800.0, 120.0]),
+        queued: false,
+    });
+    assert_eq!(ack.error, Some(OrderError::NoValidDestination), "{ack:?}");
+    assert!(!ack.placement.unwrap().destinations[0].placed);
 }
