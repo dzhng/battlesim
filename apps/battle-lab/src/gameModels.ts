@@ -8,12 +8,21 @@ import {
   type ModelDetailPresentation,
 } from "@packages/battle-renderer/src/models/modelDetail";
 import {
+  validateStandIns,
+  type StandInStyle,
+} from "@packages/battle-renderer/src/models/propAppearance";
+import {
   validateBuildingStyle,
   type BuildingStyle,
 } from "@packages/battle-renderer/src/models/buildingReferences";
 
 export const gameModelDetail: ModelDetailPresentation = validateModelDetail(
   game.presentation.models as ModelDetailPresentation,
+);
+
+/** What a prop kind with no art fitted is drawn as: a box in its kind's tint. */
+export const gameStandIns: StandInStyle = validateStandIns(
+  game.presentation.stand_ins as unknown as StandInStyle,
 );
 
 export const gameBuildingStyle: BuildingStyle = validateBuildingStyle(

@@ -291,8 +291,9 @@ export async function run(ctx) {
   const after = await lab(page, () => window.__lab.route.tick());
   ctx.check("the battle ticks", after === before + 30, `${before} → ${after}`);
 
-  // Everything on the map is in the frame's static chunks: every building
-  // a reference drawn from its template's rows, a tree a trunk.
+  // Everything on the map is drawn: every building a reference drawn from
+  // its template's rows in the frame's static chunks, a tree a trunk, and
+  // every body of street furniture (none has art yet) a stand-in model.
   const counts = await lab(page, () => {
     const stats = window.__lab.stats();
     const drawn = window.__lab.route.buildings();
@@ -307,7 +308,7 @@ export async function run(ctx) {
     };
   });
   ctx.check(
-    "every building is drawn from its template's rows and every trunk a tree, and no building is a model",
+    "every building is drawn from its template's rows, every trunk a tree and every body of street furniture a stand-in box, and no building is a model",
     counts.buildings === generated.counts.buildings &&
       counts.references === generated.counts.buildings &&
       counts.parts === generated.counts.parts &&
@@ -316,7 +317,8 @@ export async function run(ctx) {
       counts.buildings > 1000 &&
       counts.trees === counts.trunks &&
       counts.trees > 1000 &&
-      counts.structures === 0,
+      counts.structures === generated.counts.props &&
+      generated.counts.props > 100,
     JSON.stringify({ ...counts, map: generated.counts }),
   );
 
