@@ -3453,6 +3453,95 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 
 **Verdict:** Provisional as a method: the script lives in the gitignored scratch folder. If corpse drawing changes again, a station for the fallen belongs in a scene. **Confidence:** Medium.
 
+## C16: our own farmsteads
+
+### A farm is one shell module, and its buildings' colours are in its materials
+
+**Choice:** Each farmstead's walls and roofs, for all its buildings, are one module in the template's frame, placed by one untinted row. A building's wall colour is baked into its own material (the same recipe under another vertex colour), which stays tint-masked. The alternative was the houses' way: a shell module per building, coloured by its row's tint.
+
+**Gap:** The brief asked for the houses' structure; the readme gained "a far building is one row" while this was being written.
+
+**Reach:** A farm is one row at tiers 2 and 3 (two or three with a shell per building). A row's tint, if a placement ever supplies one, shifts the whole farm, not one building. A shell is its template's alone, so nothing is shared between farms but the fittings.
+
+**Verdict:** sound. **Confidence:** medium-high.
+
+### Fittings are rows at tiers 0 and 1, and flat panels in the shell at tier 2
+
+**Choice:** A window, a door, a chimney, a stack of bales is a row at the two fine tiers. At tier 2 the shell carries what is left of each: one dark quad per window, one quad in the door's paint per door, a box per chimney and bale stack, and the barn's framing as flat boards. At tier 3 the shell is walls and roofs only. `Farm.place` does the folding, so the houses' row helpers (`glaze`, `front_door`, `stack`) are used unchanged. The China set keeps the dark quads at tier 3 too; here that is 73 quads against a budget of about 100 triangles, on a farm under 24 px tall. The barn's framing loses its braces at tier 2: a 0.2 m timber is a pixel wide from 250 m, and a diagonal one crawls.
+
+**Gap:** "A template's coarsest tier is little more than its shell."
+
+**Verdict:** sound. **Confidence:** high.
+
+### The plans are the prototypes'; every box is as tall as its ridge
+
+**Choice:** The yard and long farms' plans are the prototype rows' (the same parts, centres and sizes). The small farm's house and barn stand 5.5 m apart, not 3.5 m, so a cart passes between them: the farm is 26.5 m wide where the prototype was 24.5 m. Heights follow C17's rule, a part's top is its roof's ridge: the yard farm's house 8.35 m (6.5), barn 8.4 m (7.5) and shed 2.94 m (3.5); the long farm's house 5.2 m (4) and byre 7.5 m (8); the small farm's house 8.15 m (6.5) and barn 7.8 m (6). Roof pitches are 29 to 33 degrees, the cart shed's single slope 8.
+
+**Reach:** The catalogue's hash moves at the cutover. The longest sides are 34, 27 and 26.5 m, inside the category's 20 to 45 m.
+
+**Verdict:** sound for the look; the boxes over-claim the air beside each roof, as the houses' do. **Confidence:** medium.
+
+### The cart shed stays under the farm's upper floor datum
+
+**Choice:** The yard and small farms have two floors (0 and 3 m), the long farm one. A barn in a two-floor farm has its loft openings on the 3 m datum (sills 0.6 m above it, under the eaves); the long farm's byre, 7.5 m to the ridge, has openings on the ground only. The yard farm's cart shed is 2.94 m tall (the prototype's was 3.5 m), so the 3 m datum is above its box.
+
+**Gap:** `floor_heights_m` is one list per template; nothing says what a datum means in a part too low for a second floor.
+
+**Reach:** The simulation seats a garrison on every datum below a part's top (`seat_plan`, `crates/sim/src/garrison.rs`), so a 3.5 m shed in a two-floor template has soldiers seated half a metre under its roof. The prototype row has that. A shed under 3 m has ground seats only.
+
+**Verdict:** sound for this set; the rule it leans on (a datum counts where a part reaches it) is the simulation's, read from the code, not tested here. **Confidence:** medium.
+
+### A barn keeps few openings; a bay without one is a blank wall
+
+**Choice:** Every bay of a house has a window on every floor, as the houses have. A barn has a door or a small window in most ground bays and in a few loft bays; the cart shed's two end walls are blank. Each opening is in a bay and on a datum. The cart shed's open front is its three south bays, between the posts.
+
+**Gap:** "A barn's few small high windows still sit on bays" allows bays without windows; C17 chose a window in every bay "so a garrison's seat is always at an opening".
+
+**Reach:** A soldier garrisoned in a barn's blank bay fires through a wall that shows no opening.
+
+**Verdict:** provisional. A barn with a window every 3 m on both floors reads as a house. **Confidence:** medium.
+
+### The cart shed is drawn open; its box is solid
+
+**Choice:** The shed's south side is three open bays with a cart, a woodpile and straw inside. Its part is a whole box, as every part is.
+
+**Gap:** "Every outer wall stands on a face of a part" assumes a wall on every face.
+
+**Reach:** A unit behind the shed is hidden in the simulation where the picture shows daylight under the roof from a low camera; rounds stop at the open front. At the game's camera the roof covers most of the opening.
+
+**Verdict:** provisional; the brief names an open-fronted shed. **Confidence:** medium.
+
+### Each barn's wagon door on the street side is an entrance
+
+**Choice:** Every farm has two entrances on the south: the house's front door and the barn's wagon door. On the long farm the byre stands behind the house, so its wagon door is in the end bay (offset 10.5 m), outside the house's width, with the clear 60 m the map generator asks for. The prototype long farm had the house's door only.
+
+**Verdict:** sound. **Confidence:** high.
+
+### No yard wall or gate; what stands in a yard hugs a wall
+
+**Choice:** The village courtyard farm's yard wall, gate, cart and woodpile are not carried over as yard furniture: only a part can hold art, and the yard is open ground. Of `house.py`, the barn doors and the gable framing are lifted into `masonry.py` as builders (`barn_doors`, `timber_frame`). A woodpile, a trough, a rain barrel and straw bales stand against walls within the set's side fit, and the cart stands inside the shed's box.
+
+**Verdict:** sound. A walled yard would need the wall as a prop the generator places, which is not this lane's. **Confidence:** high.
+
+### The set's fit is 0.6 m to the side and 0.9 m above
+
+**Choice:** Eaves and gutters reach 0.46 m, a loft hoist 0.55 m, a woodpile 0.49 m, a trough 0.53 m, a rain barrel 0.57 m; chimney pots stand 0.77 m over a ridge. The houses' set has 0.5 m.
+
+**Verdict:** sound. **Confidence:** high.
+
+### A new recipe for stone walls; the houses' code is shared, not their modules
+
+**Choice:** `rubble_stone` (random rubble in lime mortar) is a new texture recipe, because `field_stone` is one stone's surface with no joints. The farm's windows, doors, chimneys and gutters are its own modules built by the same `masonry.py` builders as the houses'; the houses' shell and row helpers moved to `masonry.py` (`house_shell`) and `kit.py` (`glaze`, `front_door`, `rainwater`, `stack`, the sill and overhang conventions). `homes.py` writes the same bytes as before.
+
+**Verdict:** sound. **Confidence:** high.
+
+### The three farms differ in material and form, and read as three regions
+
+**Choice:** Variety was asked for, so each farm has its own wall materials, roof colour, roof forms and barn type: cream plaster under clay tiles with a half-timbered barn; whitewashed roughcast and rubble stone under slate; red brick and tarred boards under brown and clay tiles. The alternative was one material family in three sizes.
+
+**Reach:** An unprimed reviewer read them as a German, a French and an English farm, and a hamlet of all three as "a sampler of regional styles, not one village". None reads as Chinese; the family name is the first shipping family's, as it is for the houses.
+
+**Verdict:** provisional. If a map's hamlets should look like one place, the generator needs to pick one farm per hamlet, or the farms need one shared palette; neither is this slice's. **Confidence:** medium.
 ## Surroundings for the existing maps: cut
 
 **Choice:** C56 (reservations) and C34, C35, C36 (surroundings for the village, the labs and the benchmark fields) are removed from the spec, with the lane that was written for them. The old maps stay the small arenas they are.

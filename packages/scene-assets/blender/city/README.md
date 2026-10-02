@@ -81,6 +81,7 @@ A new set is listed in `assets/catalog.json`: its kit as an appearance, and the 
 - [`graph.py`](graph.py) reads a geometry-nodes building before it is realized: its instances with their transforms and tints, and the mesh it generated for the recipe. Every graph source starts here.
 - [`detail.py`](detail.py) makes a kit mesh's coarser tiers by one rule, the smallest feature a tier keeps. It calls no Blender operator, so its output is the same bytes every run.
 - [`ambientcg.py`](ambientcg.py) bakes a pinned ambientCG set (`../packs.py`) into a texture recipe at the size every texture in the game has.
+- [`kit.py`](kit.py) is the authoring helper of a hand-scripted set (modules, templates, edges, bays, rows, the two files), with [`homes.py`](homes.py), the houses, as its worked example and [`farmsteads.py`](farmsteads.py), the farms, as the one with several buildings to a template.
 - [`assemble.py`](assemble.py) puts a set back together in Blender from its two files and renders it at the game's camera with the part boxes drawn over it: the picture to judge a set by until the renderer draws kits.
 
 ## Interiors

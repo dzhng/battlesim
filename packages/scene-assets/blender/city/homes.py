@@ -28,8 +28,6 @@ from masonry import *  # noqa: E402,F403
 
 FAMILY = "china"
 WALL_M = 2.85  # from the top floor's datum up to the eaves
-SILL_M = 0.95  # a window's sill above its floor
-OVER_M, VERGE_M = 0.35, 0.25  # how far eaves and gable verges overhang
 
 kit = Kit("homes", "homes.py", fit_side_m=0.5, fit_top_m=0.9)
 
@@ -66,9 +64,7 @@ GREEN, BLUE, OXBLOOD, UMBER, IVORY = (66, 96, 76), (70, 92, 122), (122, 58, 48),
 SIGNS = ((150, 62, 50), (62, 92, 124), (190, 160, 84), (70, 108, 82))
 
 # ---------------------------------------------------------------- shared modules
-FITTING = dict(ao_distance=0.4, paint_scale=8.0)  # small parts: no face needs splitting for paint
-
-
+# (`FITTING`, the sill and overhang conventions and the rows that hang fittings are `kit.py`'s.)
 def window_module(name, w, h, shutters=False, lights=2):
     m = kit.module(name, **FITTING)
     window(m.n("w"), (0, -0.02, h / 2), (0, -1), w, h, frame_m, glass_m, joinery_m if shutters else None, m.root, stone_m,
@@ -96,7 +92,6 @@ m = kit.module("chimney_brick", **FITTING)
 chimney(m.n("c"), (1.05, 0.6), 1.8, stack_m, coping_m, m.root, pots=2, pot_mat=pot_m)
 m = kit.module("chimney_render", **FITTING)
 chimney(m.n("c"), (0.7, 0.7), 1.8, render_stack_m, coping_m, m.root, pots=1, pot_mat=pot_m)
-CHIMNEY_M = 1.8
 
 # A metre of gutter along +X and a metre of downpipe up +Z: rows stretch them to length.
 m = kit.module("gutter", **FITTING)
@@ -131,45 +126,9 @@ box(m.n("cornice"), (1.0, 0.18, 0.08), (0, -0.09, 0.74), stone_m, m.root, lods=(
 
 
 # ---------------------------------------------------------------- shells
-def shell(m, tag, shape, wall, roof, sides=("a0", "a1", "b0", "b1"), fascia_ends=(True, True), plinth=None):
+def shell(m, tag, shape, wall, roof, **options):
     """Walls, roof and plinth of one box of a house, into module `m`."""
-    house_walls(m.n(tag + "_walls"), shape, wall, m.root, sides)
-    if roof is not None and shape.ends[1] - shape.ends[0] > 1e-6:
-        pitched_roof(m.n(tag + "_roof"), shape, roof, trim_m, m.root, fascia_ends=fascia_ends)
-    if plinth:
-        x0, x1, y0, y1 = plinth
-        box(m.n(tag + "_plinth"), (x1 - x0 + 0.08, y1 - y0 + 0.08, 0.4), ((x0 + x1) / 2, (y0 + y1) / 2, 0.2), plinth_m, m.root,
-            lods=(0, 1, 2))
-
-
-def glaze(t, edge, floors, window, ground=None, skip=(), tint=WHITE):
-    """A window in every bay of `edge` on every floor. `ground` is the ground floor's
-    window if it differs; `skip` are ground-floor offsets something else fills (a door)."""
-    for k, floor in enumerate(floors):
-        for o in t.bays(edge):
-            if k == 0 and any(abs(o - s) < 1.2 for s in skip):
-                continue
-            t.mount(ground if k == 0 and ground else window, edge, o, z=floor + SILL_M, tiers=TIERS_0_TO_2, tint=tint)
-
-
-def front_door(t, edge, offset, door, tint):
-    t.entrance(edge, offset)
-    t.mount(door, edge, offset, z=0.0, tiers=TIERS_0_TO_2, tint=tint)
-    t.mount("step", edge, offset, tiers=TIERS_0_TO_1)
-
-
-def rainwater(t, edge, shape, length, pipes=(-1, 1)):
-    """A gutter under the eave over `edge` and a downpipe at each named end of it."""
-    a, b = t.edges()[edge]["span"]
-    mid = (a + b) / 2
-    t.mount("gutter", edge, mid, z=shape.edge_z - 0.07, out=OVER_M + 0.05, scale=(length, 1.0, 1.0), tiers=TIERS_0_TO_1)
-    for s in pipes:
-        t.mount("downpipe", edge, mid + s * ((b - a) / 2 - 0.3), out=0.07, scale=(1.0, 1.0, shape.eave - 0.3), tiers=TIER_0)
-
-
-def stack(t, module, x, y, ridge, yaw=0.0):
-    """A chimney whose pots clear the ridge."""
-    t.place(module, x, y, ridge + 0.5 - CHIMNEY_M, yaw, tiers=TIERS_0_TO_2)
+    house_shell(m.n(tag), shape, wall, roof, trim_m, m.root, plinth_mat=plinth_m, **options)
 
 
 def house(id_, tag, category, w, d, floors, rise, along, hips, wall, roof, tint, lattice):

@@ -52,6 +52,11 @@ BAY_PITCH_M = 3.0
 # Which detail tiers a row draws at (bit n is tier n).
 EVERY_TIER, TIERS_0_TO_2, TIERS_0_TO_1, TIER_0 = 15, 7, 3, 1
 WHITE = (255, 255, 255)
+# What the hand-scripted sets' houses keep in common (the rows at the foot of this file follow from them).
+SILL_M = 0.95  # a window's sill above its floor
+OVER_M, VERGE_M = 0.35, 0.25  # how far eaves and gable verges overhang
+CHIMNEY_M = 1.8  # a chimney module's height
+FITTING = dict(ao_distance=0.4, paint_scale=8.0)  # a small module's bake: no face needs splitting for paint
 # side -> (the contract's facade, outward normal, the direction its offsets run)
 SIDES = {
     "east": ("positive_x", (1, 0), (0, 1)),
@@ -340,3 +345,36 @@ def _rounded(value):
     if isinstance(value, (list, tuple)):
         return [_rounded(v) for v in value]
     return value
+
+
+# ---------------------------------------------------------------- rows houses share
+# A set that calls these has modules named `step`, `gutter` (a metre along +X) and
+# `downpipe` (a metre up +Z), and chimney modules `CHIMNEY_M` tall.
+def glaze(t, edge, floors, window, ground=None, skip=(), tint=WHITE, sill=SILL_M):
+    """A window in every bay of `edge` on every floor. `ground` is the ground floor's
+    window if it differs; `skip` are ground-floor offsets something else fills (a door)."""
+    for k, floor in enumerate(floors):
+        for o in t.bays(edge):
+            if k == 0 and any(abs(o - s) < 1.2 for s in skip):
+                continue
+            t.mount(ground if k == 0 and ground else window, edge, o, z=floor + sill, tiers=TIERS_0_TO_2, tint=tint)
+
+
+def front_door(t, edge, offset, door, tint):
+    t.entrance(edge, offset)
+    t.mount(door, edge, offset, z=0.0, tiers=TIERS_0_TO_2, tint=tint)
+    t.mount("step", edge, offset, tiers=TIERS_0_TO_1)
+
+
+def rainwater(t, edge, shape, length, pipes=(-1, 1), over=OVER_M):
+    """A gutter under the eave over `edge` and a downpipe at each named end of it."""
+    a, b = t.edges()[edge]["span"]
+    mid = (a + b) / 2
+    t.mount("gutter", edge, mid, z=shape.edge_z - 0.07, out=over + 0.05, scale=(length, 1.0, 1.0), tiers=TIERS_0_TO_1)
+    for s in pipes:
+        t.mount("downpipe", edge, mid + s * ((b - a) / 2 - 0.3), out=0.07, scale=(1.0, 1.0, shape.eave - 0.3), tiers=TIER_0)
+
+
+def stack(t, module, x, y, ridge, yaw=0.0):
+    """A chimney whose pots clear the ridge."""
+    t.place(module, x, y, ridge + 0.5 - CHIMNEY_M, yaw, tiers=TIERS_0_TO_2)
