@@ -1,4 +1,3 @@
-import { FOREST_TRIANGLE_FLOATS, forestInside, type ForestShape } from "../terrain/forestShapes";
 // SceneryPlacement: where every tree and hedgerow shrub stands. Placement is
 // code; the instanced unit is an appearance (`assets/catalog.json`, one
 // `tree` or `hedgerow` bundle per kind), sized here only by its unscaled
@@ -14,7 +13,8 @@ import { FOREST_TRIANGLE_FLOATS, forestInside, type ForestShape } from "../terra
 //   as wide as one inside. A crown is never drawn wider than its appearance,
 //   which the asset validator holds inside that radius (`fit.canopy`): the
 //   simulation's number has one owner. A trunk knocked down is gone from the
-//   drawing where the side has seen the ground cleared (`treeCleared`).
+//   drawing where the side has seen the ground cleared (the scenery layer's
+//   `setCleared`).
 //   Which species a trunk is drawn as is the biome's: a wood is stands, each
 //   mostly one family's species, with the odd tree of no family among them
 //   (`speciesAt`). Every species is one size, so the mix changes only the look.
@@ -25,11 +25,12 @@ import { FOREST_TRIANGLE_FLOATS, forestInside, type ForestShape } from "../terra
 //   body of its own (ferns, bushes, saplings, small rocks, fallen branches:
 //   `forest_floor.dressing`). Scattered over forest ground alone, inside
 //   the edge the floor's verge wanders about, clear of every trunk and body
-//   and of paving and water; each kind gathers in drifts. It is laid a cell of ground at a time, seeded by the cell, and
-//   only when asked for (`DressingField`): a map's forests hold far too many
-//   pieces to lay whole. Presentation only: no piece is drawn larger than
-//   its appearance, which the asset validator holds under a man's waist
-//   (`fit.dressing`), so none hides what the forest does not.
+//   and of paving and water; each kind gathers in drifts. It is laid a cell
+//   of ground at a time, seeded by the cell, and only when asked for
+//   (`DressingField`): a map's forests hold far too many pieces to lay
+//   whole. Presentation only: no piece is drawn larger than its appearance,
+//   which the asset validator holds under a man's waist (`fit.dressing`), so
+//   none hides what the forest does not.
 //
 // Rewritten from reading ~/dev/game
 // game-renderer/src/battle/terrainScenery.ts and terrain/sceneryDetail.ts:
@@ -41,6 +42,7 @@ import { simplex2d } from "math/noise";
 import { drawnBy } from "../models/propAppearance";
 import type { WorldExports, WorldLayout } from "../worldMesh";
 import type { Biome, BiomeTrees, ForestDressing } from "../terrain/biome";
+import { FOREST_TRIANGLE_FLOATS, forestInside, type ForestShape } from "../terrain/forestShapes";
 import { STROKE_FLOATS } from "../terrain/strokes";
 import {
   buildSurfaceField,
@@ -496,7 +498,8 @@ const CLEAR_CELL_M = 8;
  *  drawn a cell at a time. */
 export const DRESSING_CELL_M = 64;
 
-const cellKey = (i: number, j: number) => (j + 0x8000) * 0x10000 + (i + 0x8000);
+/** One number for cell (i, j) of a grid over the map. */
+export const cellKey = (i: number, j: number) => (j + 0x8000) * 0x10000 + (i + 0x8000);
 
 /** The forest floors' dressing, laid a cell of ground at a time and only
  *  where it is asked for: a map's forests hold too many pieces to lay whole. */
