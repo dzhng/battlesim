@@ -31,3 +31,5 @@ for kind in jersey_barrier bollard lamp bench bins hydrant utility_box planter b
 done
 # the trees and hedgerows, one GLB per kind into assets/source/trees/
 blender trees.py
+# the forest floor's bodies and dressing, one GLB per kind into assets/source/forest/
+blender forest_floor.py

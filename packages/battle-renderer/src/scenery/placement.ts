@@ -1,10 +1,10 @@
-import { forestInside, type ForestShape } from "../terrain/forestShapes";
+import { FOREST_TRIANGLE_FLOATS, forestInside, type ForestShape } from "../terrain/forestShapes";
 // SceneryPlacement: where every tree and hedgerow shrub stands. Placement is
 // code; the instanced unit is an appearance (`assets/catalog.json`, one
 // `tree` or `hedgerow` bundle per kind), sized here only by its unscaled
 // height and crown radius.
 //
-// Two populations, drawn alike but owned differently:
+// Three populations, drawn alike but owned differently:
 // - `forest`: the simulation's forests, drawn as trees: exactly one tree on
 //   each of the simulation's trunks (the bodies movement, cover and
 //   concealment meet, placed by the one forest rule), and no
@@ -21,6 +21,15 @@ import { forestInside, type ForestShape } from "../terrain/forestShapes";
 // - `backdrop`: scenery past the map edge, where nothing is simulated —
 //   hedgerows along the patchwork's plot edges with trees standing in them,
 //   and copses. It keeps `backdrop.clear_m` off the map.
+// - `dressing`: what grows and lies on the simulation's forest floors with no
+//   body of its own (ferns, bushes, saplings, small rocks, fallen branches:
+//   `forest_floor.dressing`). Scattered over forest ground alone, inside
+//   the edge the floor's verge wanders about, clear of every trunk and body
+//   and of paving and water; each kind gathers in drifts. It is laid a cell of ground at a time, seeded by the cell, and
+//   only when asked for (`DressingField`): a map's forests hold far too many
+//   pieces to lay whole. Presentation only: no piece is drawn larger than
+//   its appearance, which the asset validator holds under a man's waist
+//   (`fit.dressing`), so none hides what the forest does not.
 //
 // Rewritten from reading ~/dev/game
 // game-renderer/src/battle/terrainScenery.ts and terrain/sceneryDetail.ts:
@@ -28,15 +37,25 @@ import { forestInside, type ForestShape } from "../terrain/forestShapes";
 import { vec2, type Vec2 } from "math";
 import { polygon2 } from "math/shapes";
 import { mulberry32, random, type RandomGenerator } from "math/random";
+import { simplex2d } from "math/noise";
 import { drawnBy } from "../models/propAppearance";
 import type { WorldExports, WorldLayout } from "../worldMesh";
-import type { Biome, BiomeTrees } from "../terrain/biome";
+import type { Biome, BiomeTrees, ForestDressing } from "../terrain/biome";
+import { STROKE_FLOATS } from "../terrain/strokes";
+import {
+  buildSurfaceField,
+  forestDistance,
+  pavedDistance,
+  SURFACE_FOOTPRINT_M,
+  waterDistance,
+} from "../terrain/surfaceField";
 import type { TerrainSurface } from "../terrain/terrainSurface";
 import type { PlotTree } from "../terrain/plots";
 import { groundHeight, type TerrainGrid } from "../terrain/terrainGrid";
 
-/** Floats per placed tree. `kind` indexes `SceneryPlacement.kinds`; the
- *  scales apply to the appearance's own size; `r, g, b` multiply its albedo. */
+/** Floats per placed tree or piece of dressing. `kind` indexes
+ *  `SceneryPlacement.kinds`; the scales apply to the appearance's own size;
+ *  `r, g, b` multiply its albedo. */
 export const TREE_FIELD = {
   x: 0,
   y: 1,
@@ -63,6 +82,7 @@ export interface SceneryPlacement {
   kinds: readonly string[];
   forest: Float32Array;
   backdrop: Float32Array;
+  dressing: DressingField;
 }
 
 /** What placement reads of the static world, from the simulation's export. */
@@ -75,8 +95,14 @@ export interface ScenerySite {
   trunks: Float32Array;
   /** Original IDs in the native prop stream's ascending order. */
   trunkIds: Uint32Array;
-  /** Every other prop's footprint circle, `x, y, radius` triples: no drawn trunk inside. */
+  /** Every other prop's footprint circle, `x, y, radius` triples: no dressing inside. */
   obstacles: Float32Array;
+  /** How far `(x, y)` lies inside the forests' ground, metres (negative
+   *  outside), exact within `forest_floor.dressing.edge_m` of their edges. */
+  forestInside(x: number, y: number): number;
+  /** How far `(x, y)` lies inside paving or water, metres (negative
+   *  outside), exact within `forest_floor.dressing.clear_m` of their edges. */
+  wetOrPaved(x: number, y: number): number;
   plots: PlotTree;
   /** Height of the flat land past the map (the lowest ground). */
   backdropZ: number;
@@ -101,6 +127,9 @@ export function scenerySite(
     } else obstacles.push(p[o + at.x], p[o + at.y], Math.hypot(p[o + at.hx], p[o + at.hy]));
   }
   const low = ground.minHeight;
+  const { clear_m, edge_m } = terrain.biome.forest_floor.dressing;
+  const reach = { paved: clear_m, forest: edge_m, water: clear_m };
+  const field = buildSurfaceField(terrain.site, () => reach);
   return {
     ground,
     map: terrain.site.map,
@@ -108,6 +137,12 @@ export function scenerySite(
     trunks: Float32Array.from(trunks),
     trunkIds: Uint32Array.from(trunkIds),
     obstacles: Float32Array.from(obstacles),
+    forestInside: (x, y) => forestDistance(field, x, y, SURFACE_FOOTPRINT_M),
+    wetOrPaved: (x, y) =>
+      Math.max(
+        pavedDistance(field, x, y, SURFACE_FOOTPRINT_M),
+        waterDistance(field, x, y, SURFACE_FOOTPRINT_M),
+      ),
     plots: terrain.plots,
     backdropZ: low,
   };
@@ -158,15 +193,24 @@ class Builder {
   }
 }
 
+/** Every appearance `biome` places: its trees, its hedgerow and its dressing. */
+export function sceneryKinds(biome: Pick<Biome, "trees" | "forest_floor">): string[] {
+  return [
+    ...new Set([
+      ...biome.trees.species.map((s) => s.appearance),
+      biome.trees.hedgerows.appearance,
+      ...biome.forest_floor.dressing.kinds.map((k) => k.appearance),
+    ]),
+  ];
+}
+
 export function placeScenery(
   site: ScenerySite,
-  biome: Pick<Biome, "seed" | "trees">,
+  biome: Pick<Biome, "seed" | "trees" | "forest_floor">,
   sizes: ReadonlyMap<string, KindSize>,
 ): SceneryPlacement {
   const trees = biome.trees;
-  const kinds = [
-    ...new Set([...trees.species.map((s) => s.appearance), trees.hedgerows.appearance]),
-  ];
+  const kinds = sceneryKinds(biome);
   const missing = kinds.filter((k) => !sizes.has(k));
   if (missing.length)
     throw new Error(
@@ -185,6 +229,7 @@ export function placeScenery(
       pick,
       biome.seed,
     ),
+    dressing: dressingField(site, biome.forest_floor.dressing, kinds, size, biome.seed),
   };
 }
 
@@ -441,4 +486,159 @@ function placeBackdrop(
     }
   }
   return Float32Array.from(out.out);
+}
+
+/** Parts the dressing's streams from every other stream of the seed. */
+const DRESSING_SALT = 0xd2e551;
+/** The side of the cells trunks and bodies are bucketed in, metres. */
+const CLEAR_CELL_M = 8;
+/** The side of a cell of dressing, metres: the ground is dressed, kept and
+ *  drawn a cell at a time. */
+export const DRESSING_CELL_M = 64;
+
+const cellKey = (i: number, j: number) => (j + 0x8000) * 0x10000 + (i + 0x8000);
+
+/** The forest floors' dressing, laid a cell of ground at a time and only
+ *  where it is asked for: a map's forests hold too many pieces to lay whole. */
+export interface DressingField {
+  cellM: number;
+  /** The most pieces a cell holds. */
+  capacity: number;
+  /** The appearances it lays, as indices into the placement's `kinds`. */
+  kinds: readonly number[];
+  /** The tallest any piece stands and the farthest any reaches from its
+   *  foot, metres. */
+  topM: number;
+  reachM: number;
+  /** The ground's lowest and highest points, metres. */
+  ground: readonly [number, number];
+  /** The cells a forest reaches, `i, j` pairs: cell (i, j) is the ground
+   *  from `(i, j) * cellM` to `(i + 1, j + 1) * cellM`. */
+  cells: Int32Array;
+  /** The pieces of cell (i, j), `TREE_FLOATS` each: the same every time. */
+  place(i: number, j: number): Float32Array;
+}
+
+/** Whether a point stands clear of every trunk (by `trunkM` from its axis)
+ *  and every body (by `bodyM` from its footprint's circle): the circles are
+ *  bucketed where they reach. */
+function clearOf(site: ScenerySite, trunkM: number, bodyM: number) {
+  const cells = new Map<number, number[]>();
+  const add = (x: number, y: number, r: number) => {
+    const [i0, i1] = [Math.floor((x - r) / CLEAR_CELL_M), Math.floor((x + r) / CLEAR_CELL_M)];
+    const [j0, j1] = [Math.floor((y - r) / CLEAR_CELL_M), Math.floor((y + r) / CLEAR_CELL_M)];
+    for (let j = j0; j <= j1; j++)
+      for (let i = i0; i <= i1; i++) {
+        let list = cells.get(cellKey(i, j));
+        if (!list) cells.set(cellKey(i, j), (list = []));
+        list.push(x, y, r);
+      }
+  };
+  for (let o = 0; o < site.trunks.length; o += 2) add(site.trunks[o], site.trunks[o + 1], trunkM);
+  for (let o = 0; o < site.obstacles.length; o += 3)
+    add(site.obstacles[o], site.obstacles[o + 1], site.obstacles[o + 2] + bodyM);
+  return (x: number, y: number) => {
+    const list = cells.get(cellKey(Math.floor(x / CLEAR_CELL_M), Math.floor(y / CLEAR_CELL_M)));
+    if (list)
+      for (let o = 0; o < list.length; o += 3)
+        if ((list[o] - x) ** 2 + (list[o + 1] - y) ** 2 < list[o + 2] ** 2) return false;
+    return true;
+  };
+}
+
+/** The cells of side `cellM` the forests' own primitives reach (`i, j`
+ *  pairs): a rectangle, each stretch of a strip with its width, each
+ *  triangle of a polygon, by its box. */
+function forestCells(forests: readonly ForestShape[], cellM: number): Int32Array {
+  const cells = new Map<number, [number, number]>();
+  const reach = (x0: number, y0: number, x1: number, y1: number) => {
+    for (let j = Math.floor(y0 / cellM); j <= Math.floor(y1 / cellM); j++)
+      for (let i = Math.floor(x0 / cellM); i <= Math.floor(x1 / cellM); i++)
+        cells.set(cellKey(i, j), [i, j]);
+  };
+  for (const forest of forests) {
+    if (forest.kind === "rectangle") {
+      const [x, y, w, h] = forest.rect!;
+      reach(x, y, x + w, y + h);
+    }
+    const s = forest.strokes;
+    for (let o = 0; o < s.length; o += STROKE_FLOATS) {
+      const half = s[o + 4];
+      reach(
+        Math.min(s[o], s[o + 2]) - half,
+        Math.min(s[o + 1], s[o + 3]) - half,
+        Math.max(s[o], s[o + 2]) + half,
+        Math.max(s[o + 1], s[o + 3]) + half,
+      );
+    }
+    const t = forest.triangles;
+    for (let o = 0; o < t.length; o += FOREST_TRIANGLE_FLOATS)
+      reach(
+        Math.min(t[o], t[o + 2], t[o + 4]),
+        Math.min(t[o + 1], t[o + 3], t[o + 5]),
+        Math.max(t[o], t[o + 2], t[o + 4]),
+        Math.max(t[o + 1], t[o + 3], t[o + 5]),
+      );
+  }
+  return Int32Array.from([...cells.values()].flat());
+}
+
+/** How thick a kind's drift lies, 0 to 1, from its field's value in [-1, 1]:
+ *  half the ground lies in a drift, with a short ramp at its edge. */
+const drifted = (value: number) => Math.min(1, Math.max(0, value / 0.3 + 0.5));
+
+function dressingField(
+  site: ScenerySite,
+  rules: ForestDressing,
+  kinds: readonly string[],
+  size: readonly KindSize[],
+  seed: number,
+): DressingField {
+  const rows = rules.kinds.map((row) => ({ ...row, kind: kinds.indexOf(row.appearance) }));
+  const clear = clearOf(site, rules.trunk_clear_m, rules.clear_m);
+  // Each kind's drifts are its own smooth field over the ground, so a drift
+  // runs on from one cell, and one wood, into the next.
+  const drifts = rows.map((_, k) => simplex2d.create((seed ^ DRESSING_SALT) + k));
+  const m = DRESSING_CELL_M;
+  const capacity = Math.round((m * m * rules.per_ha) / 10000);
+  let high = 0;
+  for (const h of site.ground.heights) high = Math.max(high, h);
+  return {
+    cellM: m,
+    capacity,
+    kinds: [...new Set(rows.map((row) => row.kind))],
+    topM: Math.max(0, ...rows.map((row) => size[row.kind].height * row.scale[1])),
+    reachM: Math.max(0, ...rows.map((row) => size[row.kind].radius * row.scale[1])),
+    ground: [site.ground.minHeight, high],
+    cells: forestCells(site.forests, m),
+    place(i, j) {
+      const out = new Builder();
+      // Seeded by the cell alone: a cell is the same whenever it is laid.
+      const rng = stream(seed ^ DRESSING_SALT, cellKey(i, j));
+      for (let n = 0; n < capacity; n++) {
+        const [x, y] = [(i + random.float(rng, 0, 1)) * m, (j + random.float(rng, 0, 1)) * m];
+        const k = rows.indexOf(weighted(rng, rows));
+        const row = rows[k];
+        // Between its drifts a kind thins to `1 - drift` of its pieces.
+        const thick = drifted(simplex2d.sample(drifts[k], x / rules.drift_m, y / rules.drift_m));
+        if (!random.bool(rng, 1 - row.drift * (1 - thick))) continue;
+        if (site.forestInside(x, y) < rules.edge_m || !clear(x, y)) continue;
+        if (site.wetOrPaved(x, y) > -rules.clear_m) continue;
+        const scale = random.float(rng, row.scale[0], row.scale[1]);
+        out.push(
+          x,
+          y,
+          groundHeight(site.ground, x, y) - SINK_M,
+          random.float(rng, 0, Math.PI * 2),
+          scale,
+          scale * random.float(rng, rules.squat, 1),
+          row.kind,
+          row.tint,
+          rng,
+          rules.colour_jitter,
+        );
+      }
+      return Float32Array.from(out.out);
+    },
+  };
 }

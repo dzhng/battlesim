@@ -645,6 +645,9 @@ export async function createWorldPass(
     setTreesShown(on: boolean) {
       scenery.setTreesShown(on);
     },
+    setDressingShown(on: boolean) {
+      scenery.setDressingShown(on);
+    },
     /** Draw the ground's classes in place of the lit world (the
      *  "ground-classes" frame view), or not. */
     setClassView(on: boolean) {

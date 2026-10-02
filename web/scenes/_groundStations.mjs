@@ -73,6 +73,10 @@ export const STATION_MAPS = {
       // Over the wood's middle, from the play camera and from twice as high.
       "forest-65": at([790, 960], 65),
       "forest-120": at([790, 960], 120),
+      // The first log and the first boulder on a forest floor, where the
+      // forest rule lays any.
+      "floor-log-25": ({ floor }) => at(floor.log, 25, 0.6),
+      "floor-boulder-25": ({ floor }) => at(floor.boulder, 25, 0.6),
       // Open fields south-west of the village, and the whole patchwork.
       "field-65": at([420, 1120], 65),
       "field-250": at([420, 1120], 250),
@@ -282,7 +286,7 @@ export async function openStations(ctx, map) {
   reports.set(
     page,
     map === "village"
-      ? { plots: await villagePlots(page) }
+      ? { plots: await villagePlots(page), floor: await villageFloor(page) }
       : report && {
           ...report,
           river: await riverBank(page, report.size),
@@ -312,7 +316,8 @@ export async function openStations(ctx, map) {
 }
 
 /** What `openStations` learned of `page`'s map: a generated map's
- *  preparation report, the village's plots by kind (`villagePlots`). */
+ *  preparation report, the village's plots by kind (`villagePlots`) and the
+ *  bodies on its forest floors (`villageFloor`). */
 export const stationReport = (page) => reports.get(page);
 
 /** Where `station` of `map` puts the camera on `page`: the target on the
@@ -342,6 +347,8 @@ export async function shoot(
       await l.suppressTrees(!trees);
       await l.setFrameView(view);
       await l.frame();
+      // The forest floor's dressing is laid over a few frames after a cut.
+      while (l.stats().scenery.dressing.pending) await l.frame();
     },
     { view, grass, trees },
   );
@@ -474,7 +481,8 @@ export const groundUnder = (page, pixels) =>
   );
 
 /** The village's ground as the simulation exports it, built once in the page
- *  as `window.__villageGround`: its terrain surface (the plots among it), and
+ *  as `window.__villageGround`: its terrain surface (the plots among it),
+ *  where the `first` prop of each type stands, and
  *  `paved` and `forest`, how far inside the paving and the forest a point
  *  lies by the surface field the terrain material reads. */
 const villageGround = (page) =>
@@ -495,15 +503,21 @@ const villageGround = (page) =>
       const rules = JSON.stringify(setup.rules);
       const view = new wasm.WorldView(JSON.stringify(setup.map), rules);
       try {
-        const surface = mesh.buildWorldLayers(
-          mesh.readWorldExports(view),
-          JSON.parse(wasm.world_layout(rules)),
-          biome.default,
-          "surface",
-        ).terrain;
+        const exported = mesh.readWorldExports(view);
+        const layout = JSON.parse(wasm.world_layout(rules));
+        const surface = mesh.buildWorldLayers(exported, layout, biome.default, "surface").terrain;
         const field = fields.buildSurfaceField(surface.site, terrain.terrainReach(surface));
+        // Where the first prop of each type stands.
+        const first = {};
+        const [kind, x, y] = ["kind", "x", "y"].map((f) => layout.propFields.indexOf(f));
+        for (let o = 0; o < exported.props.length; o += layout.propStride)
+          first[layout.propKinds[exported.props[o + kind]]] ??= [
+            exported.props[o + x],
+            exported.props[o + y],
+          ];
         window.__villageGround = {
           surface,
+          first,
           paved: (x, y, footprint) => fields.pavedDistance(field, x, y, footprint),
           forest: (x, y, footprint) => fields.forestDistance(field, x, y, footprint),
         };
@@ -526,6 +540,16 @@ export async function villageExport(page, points) {
       })),
     points,
   );
+}
+
+/** Where the village's first log and first boulder lie (undefined where the
+ *  forest rule lays none). */
+async function villageFloor(page) {
+  await villageGround(page);
+  return page.evaluate(() => {
+    const { log, boulder } = window.__villageGround.first;
+    return { log, boulder };
+  });
 }
 
 /** A plot must keep this far inside the map and from any building to stand

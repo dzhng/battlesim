@@ -134,3 +134,20 @@ export function forestInside(shape: ForestShape, x: number, y: number): number {
   }
   return inside ? nearest : -nearest;
 }
+
+/** The long straight stretches of every strip of forest (`ax, ay, bx, by`
+ *  each): what fields are cut along, as along a road's runs, so a tree line
+ *  stands on the boundary between two fields. A strip's bend is exported as
+ *  chords far shorter than the strip is wide; those are left out, so a field
+ *  meets a bend edge-on and is not cut along its samples. */
+export function forestStripRuns(shapes: readonly ForestShape[]): Float32Array {
+  const runs: number[] = [];
+  for (const shape of shapes) {
+    if (shape.kind !== "stroke") continue;
+    const s = shape.strokes;
+    for (let o = 0; o < s.length; o += FOREST_STROKE_FLOATS)
+      if (Math.hypot(s[o + 2] - s[o], s[o + 3] - s[o + 1]) > 2 * s[o + 4])
+        runs.push(s[o], s[o + 1], s[o + 2], s[o + 3]);
+  }
+  return Float32Array.from(runs);
+}

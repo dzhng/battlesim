@@ -1399,6 +1399,78 @@
       "source": "assets/source/city/industry/kit.glb",
       "basis_yaw_deg": 0
     },
+    "floor_fern": {
+      "unit": "scenery",
+      "scenery": "dressing",
+      "states": {
+        "summer": "assets/source/forest/floor_fern.glb"
+      },
+      "basis_yaw_deg": 0
+    },
+    "floor_bush": {
+      "unit": "scenery",
+      "scenery": "dressing",
+      "states": {
+        "summer": "assets/source/forest/floor_bush.glb"
+      },
+      "basis_yaw_deg": 0
+    },
+    "floor_sapling": {
+      "unit": "scenery",
+      "scenery": "dressing",
+      "states": {
+        "summer": "assets/source/forest/floor_sapling.glb"
+      },
+      "basis_yaw_deg": 0
+    },
+    "floor_rock": {
+      "unit": "scenery",
+      "scenery": "dressing",
+      "states": {
+        "summer": "assets/source/forest/floor_rock.glb"
+      },
+      "basis_yaw_deg": 0
+    },
+    "floor_litter": {
+      "unit": "scenery",
+      "scenery": "dressing",
+      "states": {
+        "summer": "assets/source/forest/floor_litter.glb"
+      },
+      "basis_yaw_deg": 0
+    },
+    "forest_log": {
+      "unit": "scenery",
+      "scenery": "log",
+      "states": {
+        "default": "assets/source/forest/log.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        2.2,
+        0.35,
+        0.35
+      ],
+      "tolerances": {
+        "ground_m": 0.1
+      }
+    },
+    "forest_boulder": {
+      "unit": "scenery",
+      "scenery": "boulder",
+      "states": {
+        "default": "assets/source/forest/boulder.glb"
+      },
+      "basis_yaw_deg": 0,
+      "footprint_half_m": [
+        1,
+        0.8,
+        0.75
+      ],
+      "tolerances": {
+        "ground_m": 0.3
+      }
+    },
     "city_kit_village": {
       "unit": "kit",
       "source": "assets/source/city/village/kit.glb",
