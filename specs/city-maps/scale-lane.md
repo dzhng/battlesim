@@ -61,52 +61,38 @@ Focused movement, cover, sensing, delivery and city-placement checks pass.
 The browser harness requires rising shot counters from at least ten own units
 during measurement in each generated arm lasting 30 seconds or more.
 
-Current pickup, in order:
+Current pickup: finish the browser performance milestone, then close the lane.
 
-1. Run complete late admission on the shorter-anchor build, then refresh early.
-   The portable evaluator policy is integrated: authoritative trig, bearings
-   and 2D norms use the existing pinned library, preserving formulas and draw
-   order. These are named native last-bit corrections, not CPU gains. The
-   observed blast-distance regression fails on old Native math and passes on
-   the corrected owner. Frozen layout-9 map `bdadf296…` / rules `4994f55c…`
-   now match Native/Wasm state and raw publication through tick 213, including
-   corrected structural damage, on engine `39efd3e3…`. Temporary diagnostics
-   are removed. Main's subsequent forest-body revert changes rules input;
-   current Native publication and actual Wasm boundary checks pass, but that
-   bounded proof does not admit the full current battle. Packed agreement
-   cannot substitute for state parity.
-   Frozen current source `ffbee73c`, rules `b00f7d5e…` completes the early arm:
-   all 9,001 digests/raw records match, with a 19,388 B active maximum. Late
-   state and wire match through tick 54, but that record is 21,008 B. Captured
-   candidates show form selection already chooses the smallest available payload
-   there; changing selection does not repair it. The integrated copy owner now
-   indexes three-word variable spans. All 9,000 captured early transitions
-   reconstruct exactly with a 17,152 B maximum; the 54 captured late transitions
-   reach 19,328 B. Early encoder-only mean rises by 0.705 M instructions, and the
-   conservative requested index bound is 21⅓ MiB. The new engine `1d9d85aa…`
-   matches actual Native/Wasm state and raw wire through late tick 54, including
-   resync, side switch and real-decoder recovery. Focused codec/publication and
-   worker-boundary checks pass. Full current late admission, heap and browser
-   gates remain open.
-2. During the complete paired runs, whole-record maximum remains
-   **19,800 B**, with unchanged replay, decoder and delivery contracts. Historical
-   captured-codec maxima of 18,652 B early and 15,280 B partial late are controls,
-   not current admission. Measure full active heap, snapshots and copy overlap;
-   the codec's 64 MiB ceiling is not a snapshot performance budget.
-3. Run the full generated-map browser endurance milestone once native contracts
-   pass. Admit at least **25 Hz early and late**, retaining actual distributions,
-   contact proof and reset resource counts. Run the village benchmark short as a
+1. **Current Native/Wasm admission passes.** Frozen source `82372fe7`, engine
+   `1d9d85aa…`, rules `b00f7d5e…`, layout 9 / presets 8, Metro Large seed 4.
+   The base generated/early map is `bdadf296…`; late runtime map `553e6e05…`
+   includes the synthetic wrecks. Both 9,000-tick arms match all 9,001 authoritative
+   digests and raw publications. Maximum complete active records are 17,152 B
+   early and 19,328 B late, below the unchanged **19,800 B** limit. Complete
+   production decoding, raw ground values, retained snapshots, malformed-record
+   retry, resync and side switching pass. Portable evaluation is a named native
+   last-bit correction, not a CPU gain. Shorter exact anchors retain the wire
+   grammar at a measured encoding/index-memory cost.
+2. **Memory admission passes.** Separate full-battle requested-layout diagnostics
+   peak at 418,616,216 B early and 457,699,995 B late, with conservative late
+   reallocation overlap 458,088,603 B. Both are below the **4 GiB** guard and
+   finish with the System-counter run's digest. Actual Wasm linear capacities
+   reach 489,029,632 B and 499,974,144 B respectively. These component measures
+   exclude page, worker and GPU allocations. Whole-browser memory and reset
+   resources remain part of the pending browser milestone. Snapshot sizes and
+   decoder/copy overlap are reported separately; the codec's 64 MiB ceiling is
+   not a snapshot performance budget.
+3. **Browser milestone is running.** Admit at least **25 Hz early and late** on
+   the full generated world, retaining distributions, rising shot counters and
+   equivalent-state reset resource counts. The village benchmark is a short
    regression control. No browser gate precedes each commit or push; parent full
    gates belong to parent closeout.
 4. Complete the whole-owned review and consolidate the scale choices ledger.
-   Keep the historical movement-admission finding separate: all commands in
-   the three fresh 120 s infantry extensions are refused before planning. Those
-   idle results do not prove the historical planning delays resolved. The three
-   original timing, town-corner and living-member-start regressions pass on the
-   final combined runtime through current move certification. Their arrival and
-   every-tick replay assertions cannot pass on an idle refusal. They revalidate
-   those repairs; the historical generated-journey finding remains parent
-   follow-up.
+   The original timing, town-corner and living-member-start regressions pass
+   through current move certification with actual arrival and every-tick replay
+   assertions. The three fresh 120 s historical infantry extensions are refused
+   before planning; those idle results do not resolve the separate generated
+   journey finding. Preserve that parent follow-up when archiving this lane.
 
 The historical matrix retains all 90 type × size × seed requests: 89 battles play
 80,100 ticks and one encounter is refused, with no generation refusal or panic.

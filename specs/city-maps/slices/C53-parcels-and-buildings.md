@@ -42,6 +42,24 @@ Insufficient variety or poor street frontage expands the template library/preset
 
 **How a district is built.** A district is one block of its settlement, bounded by roads, avenues and the settlement's edge ([C52](C52-procedural-generator.md#outcome)). Its streets are a grid along the edge that runs longest with the settlement's main street, so neighbouring districts' long streets run the same way. Parcels front every carriageway in or along the district: its own streets, and the road or avenue on its edge.
 
+**How a district's streets are laid, second pass** (`layout-10`; [ledger](../choices.md#town-look-second-pass)). The grid is fitted between the district's edges: a whole block from a carriageway on an edge to the first street, half a block from an edge that faces the fields to the last. Each line then runs to the carriageway ahead of it and ends just past its middle; where a street already meets that carriageway from the far side within 30 m, the line is moved to meet it there, and two streets of one width become one street through the junction. A street that would come in at less than 45° turns to meet the road square. A line that meets nothing ends at the last lots (a long street) or on the last long street (a cross street). A piece of grid no road crosses is joined by one of its own streets carried on, never by a stub. A street or avenue that runs on less than 35 m past its last junction and stops in the open is cut back to that junction. Garden suburbs and villages have a cross street every 140 m and 160 m.
+
+Over the same 100 seeds for each type and size (900 maps, none refused), against `layout-9`:
+
+| | Buildings | Street km | Street strokes | Ground points | Generate and compile, instructions (median, most) | `map.json` |
+|---|---|---|---|---|---|---|
+| Open Small | 652–1,270 (549–1,133) | 11–25 (8–19) | 35–88 (38–93) | 3,926–11,783 | 1.19 G, 1.63 G (0.99, 1.35) | 1.9–3.8 MiB |
+| Open Medium | 908–1,883 (874–1,685) | 17–39 (12–26) | 67–145 (63–138) | 7,244–17,429 | 1.78 G, 2.55 G (1.47, 2.15) | 2.6–5.4 MiB |
+| Open Large | 1,513–2,420 (1,305–2,080) | 26–47 (17–32) | 107–184 (102–186) | 11,558–23,910 | 2.75 G, 3.78 G (2.24, 3.13) | 4.4–6.8 MiB |
+| Mixed Small | 2,997–5,233 (2,720–5,011) | 66–115 (53–100) | 147–266 (172–323) | 10,158–24,271 | 4.80 G, 6.84 G (4.12, 5.88) | 10.1–17.9 MiB |
+| Mixed Medium | 4,008–7,261 (3,056–6,543) | 89–161 (62–134) | 228–399 (242–471) | 16,656–36,373 | 6.91 G, 8.90 G (5.69, 7.67) | 13.1–23.5 MiB |
+| Mixed Large | 5,210–8,610 (4,569–7,909) | 116–185 (93–150) | 308–496 (356–554) | 22,004–44,040 | 8.67 G, 11.31 G (7.26, 10.06) | 16.3–28.3 MiB |
+| Metro Small | 1,677–5,627 (1,277–5,301) | 63–132 (50–117) | 137–271 (142–326) | 6,091–26,777 | 4.61 G, 6.59 G (3.80, 6.24) | 5.4–19.4 MiB |
+| Metro Medium | 4,985–10,532 (4,573–10,689) | 155–278 (125–228) | 326–596 (384–679) | 21,150–54,794 | 10.16 G, 15.14 G (8.29, 12.34) | 15.3–35.0 MiB |
+| Metro Large | 8,218–17,517 (8,142–16,518) | 266–425 (211–365) | 553–851 (617–1,068) | 33,715–82,944 | 18.14 G, 24.60 G (14.71, 21.27) | 27.6–58.1 MiB |
+
+A map has about a quarter more street and a fifth more generation work: a fitted grid fills its district where the old one left the back of a block empty, suburbs have more cross streets, and a large town or a city has more frontage along its secondary roads. Fewer strokes carry it, because a street is one stroke from junction to junction. The most authored bodies on a Metro Large map is 53,933 of the 60,000 the game allows.
+
 **Scale, over 100 seeds for each type and size** (900 maps, none refused):
 
 | | Buildings | Parts (props) | Bay positions | Street km | Street strokes | Ground points | Built ground | Generate and compile, instructions (median, most) | `map.json` |
@@ -75,12 +93,13 @@ Builds and the battle are in instructions retired. No tick ran over 33 ms on eit
 
 **Still wrong or unfinished.**
 
-- **Every district is a grid.** A suburb's streets are one swing repeated in parallel, with no crescents, greens or cul-de-sac loops, and the picture of a large suburb reads as wood grain. Apartment slabs stand single file along the street, not in ranked rows across a lawn. An industrial district is one block on a road at the town's edge, but still one shed per parcel, not a few fenced compounds each with several buildings in one large yard.
-- **Neighbouring districts' streets do not join.** Each grid stops at the avenue on its district's edge. The grids run the same way, but their streets are not placed to meet across the avenue, and many end as stubs at it or at the settlement's edge.
-- **A district's ground reaches past its last buildings.** A block is cut to a depth and its parcels stand along the carriageways, so the back of a deep block is empty ground in the district's colour. It shows most in hamlets and villages.
+- **Every district is a grid.** A suburb's streets are one swing repeated in parallel with a cross street every 140 m (second pass), with no crescents, greens or cul-de-sac loops. Apartment slabs stand single file along the street, not in ranked rows across a lawn. An industrial district is one block on a road at the town's edge, but still one shed per parcel, not a few fenced compounds each with several buildings in one large yard.
+- **Neighbouring districts' streets join where one lies within 30 m of the other** (second pass). Farther apart they meet the avenue as two T-junctions; 57 pairs on the 36 test maps stand 2 to 20 m apart and are counted by `tests/street_warts.rs`, with 4 streets that stop short of a road, 8 pairs side by side and 1 double bend.
+- **A grid meets a slanting road awkwardly.** A secondary road cuts a town's blocks at a slant, and a grid square to the main street meets it with streets that turn in their last block.
+- **A district's ground can still reach past its last buildings** where a block is deeper than its grid's last row; the fitted grid leaves much less of it (second pass).
 - **A town centre is terraces only**: no square, no larger commercial footprint. Its main street is the country road or a 10 m avenue.
 - **A village's streets are paved.** Only the farm district's are dirt lanes.
-- **Links and run-ons are straight lines**: a link is a short diagonal, and a run-on may cross open ground inside a district.
+- **A run-on is a straight line**, and may cross open ground inside a district. A link is a street of the grid carried on (second pass).
 - **Movement through town is not proved.** A force crosses each map, but no test drives a vehicle down a street or walks infantry from a door to it; pavement connectivity and clear ground before each door are what is measured.
 - **No rejected-fit layer.** A place where nothing fitted is not recorded.
 - **Every building is the prop type `building`** (400 hp, garrisonable), a tower and a shed alike, until C50.

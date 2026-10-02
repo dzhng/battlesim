@@ -24,7 +24,7 @@ use crate::{Diagnostic, DiagnosticCode, MapPlan};
 use std::collections::BTreeMap;
 
 /// A request pins this; a change that moves any generated point renames it.
-pub const GENERATOR_VERSION: &str = "layout-9";
+pub const GENERATOR_VERSION: &str = "layout-10";
 
 pub use contract::generation::{GenerationRequest, MapSize, MapType};
 

@@ -15,6 +15,9 @@ use serde::Serialize;
 use std::cmp::Reverse;
 use std::collections::{BTreeMap, BinaryHeap};
 
+/// A road that ends on another runs no farther than this past its middle.
+const OVERRUN_M: f64 = 1.0;
+
 #[derive(Clone, Debug, Serialize)]
 pub struct HalfSplit {
     pub top_m2: f64,
@@ -648,7 +651,9 @@ fn roads(plan: &MapPlan, presets: &PresetDefinitions) -> (RoadMetrics, TransitMe
     let mut streets: Vec<(usize, f64)> = Vec::new();
     // Links of road and track, and of country road alone, by their ends.
     let mut country: Vec<[usize; 2]> = Vec::new();
-    let mut main_ends: Vec<usize> = Vec::new();
+    // Each end of a link of country road: its node, the node at the link's
+    // other end and the link's length.
+    let mut main_ends: Vec<(usize, usize, f64)> = Vec::new();
     let mps = presets.transit.road_mps();
     for ((a, b, kind), mut cuts) in segments.into_iter().zip(splits) {
         cuts.sort_by(|x, y| x.0.total_cmp(&y.0));
@@ -691,7 +696,7 @@ fn roads(plan: &MapPlan, presets: &PresetDefinitions) -> (RoadMetrics, TransitMe
                 country.push(ends);
             }
             if kind == SurfaceKind::CountryRoad {
-                main_ends.extend(ends);
+                main_ends.extend([(ends[0], ends[1], metres), (ends[1], ends[0], metres)]);
             }
             links[ends[0]].push((ends[1], metres, metres / speed));
             links[ends[1]].push((ends[0], metres, metres / speed));
@@ -772,6 +777,13 @@ fn roads(plan: &MapPlan, presets: &PresetDefinitions) -> (RoadMetrics, TransitMe
         .filter(|(node, _)| best[*node].is_none())
         .map(|(_, metres)| metres / 1000.0)
         .sum();
+    // A road that ends on another runs a hair past its middle, so that the
+    // two cross: that hair is no road out of the junction.
+    let mut main_ends: Vec<usize> = main_ends
+        .into_iter()
+        .filter(|(_, far, metres)| *metres >= OVERRUN_M || links[*far].len() > 1)
+        .map(|(node, ..)| node)
+        .collect();
     main_ends.sort_unstable();
     metrics.centre_roads = main_ends
         .chunk_by(|a, b| a == b)

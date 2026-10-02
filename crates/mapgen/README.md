@@ -55,7 +55,19 @@ extents, which are a user decision (M04 in the [map brief](../../specs/city-maps
   its avenues: surfaces the layout writes itself. A block is built only where a
   road or an avenue leads to it and one of its class's district kinds has room for
   a parcel on that frontage (`districts.<kind>.ground_m`), so the parcel pass never
-  meets a district it cannot build on.
+  meets a district it cannot build on. A cut that would end on a road or an
+  earlier cut within `towns.align_m` of where one already ends on it from the
+  far side is moved to end there, so the avenues either side of a road make a
+  crossroads. An avenue runs the whole edge of a block that shares any of it
+  with another block.
+- **A large town and a city have more than one road** (`classes.<class>.side_roads`).
+  Once a settlement of such a class has its main road, secondary roads are laid:
+  each leaves one of the roads through the centre part of the way out, turns into
+  the widest sector no road runs out through yet, and runs straight to a gate past
+  the settlement's ground, where a later road may carry on from it. The ground is
+  cut along them like any road and growth follows them, so the outline has arms
+  along its roads and bays between. They draw from a stream of their own. No
+  other class has the row.
 - **A road crosses a settlement's ground in a straight line and turns outside it.**
   That is what lets a road be a block's edge. A main road through a settlement
   enters and leaves by gates past its limit. A settlement off the main roads has a
@@ -159,7 +171,7 @@ they cross after, are one road, or both cross a third road at the same junction;
 where a change would break that, the roads concerned are left exactly as they
 were laid and the rest are closed round them.
 
-Not closed yet, and counted by the test (9 in ten thousand ends are a bite, a
+Not closed yet, and counted by the test (under 3 in ten thousand ends are a bite, a
 heel or a wider road's shoulders showing): junctions where three ends stand a few
 metres apart without sharing a point, a wider road that ends at a slant on a
 narrower one with no room to turn, and a corner of unlike roads left as laid
@@ -183,17 +195,45 @@ A district kind's streets and setbacks are rows of the same presets file.
   country road or track through a village is its main street, and a district's edge
   is a road or an avenue as often as not: a carriageway within its own half width of
   the edge fronts the district.
-- **Every street is joined to the settlement's road.** A district's streets are a
-  grid along one of its edges: the edge that runs longest with the settlement's
-  main street, so neighbouring grids run the same way and meet on the avenue
-  between them. A district kind's streets are
-  paved, or dirt lanes (`streets.surface`). A piece of that grid no road crosses
-  gets one link to the nearest street, so no pavement is stranded, and a street that
-  stops within a block of another carriageway runs on to it. No street crosses
-  water: the nearest street is the nearest it can reach on its own bank. `measure`
-  then confirms on the finished plan that every street has a way to the centre. A
-  street that stops facing another street's end, within a block, runs to that
-  end and not past it: the two are one street, not two laid side by side.
+- **A street runs from a junction to a junction, or ends at the last lot it
+  serves.** A district's streets are a grid fitted between its edges, along the
+  edge that runs longest with the settlement's main street, so neighbouring
+  grids run the same way. A whole block lies between a carriageway on an edge
+  and the first street, and half a block between an edge that faces the fields
+  and the last one, so no street lies a few metres inside a road and no back
+  land is left behind the last row of lots. A district kind's streets are
+  paved, or dirt lanes (`streets.surface`). `tests/street_warts.rs` counts what
+  breaks these rules over every type and size.
+  - **Each line of the grid runs to the carriageway ahead of it** (within
+    `parcels.run_on_m` past the district's edge), and stops just past its
+    middle. Where a street already meets that carriageway from the far side
+    within `towns.align_m`, the line is moved to meet it there: one crossroads,
+    not two junctions a few metres apart. A street as wide ends on that
+    street's own end and the joint pass makes them one street through the
+    junction; one of another width lands opposite it.
+  - **A street meets the road it joins square.** One that would come to a
+    carriageway at less than 45° turns to meet it square from its last
+    crossing. A street's own run-on may be any length; a street that turns off
+    another is at least `parcels.street_step_m` long, and one that is a single
+    run from a crossing to the road ahead at least four widths, so no link is
+    a stub.
+  - **Where nothing lies ahead** a long street stops a verge inside the
+    district's edge, at the last lots, and a cross street stops on the last
+    long street. Two streets of one grid never come to a road within three
+    widths of each other.
+  - **A carriageway joins another only of its own width end to end.** A street
+    that comes to the open end of a wider avenue meets it just short of that
+    end, as a side street. A road changes width where another crosses it
+    ([Road ends](#road-ends-joints)).
+  - A piece of the grid no road crosses gets one link: a street of the grid
+    carried on to the first carriageway ahead, or to a street of its own grid
+    already joined. No street crosses water. `measure` then confirms on the
+    finished plan that every street has a way to the centre.
+  - After every district is laid, a street or avenue that still stops in the
+    open with a carriageway within `parcels.run_on_m` ahead runs on to it; where
+    another street's end faces it, to that end. One that runs on less than
+    `parcels.tail_min_m` past its last junction and stops in the open is cut
+    back to that junction.
 - **Ids are derived, not counted across the map.** A parcel is
   `<district id>/lot-<n>` and the building on it has the same id, so tuning one
   district kind renames nothing elsewhere. Building parts take the plan's prop ids
