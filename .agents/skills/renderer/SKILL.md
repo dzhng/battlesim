@@ -166,7 +166,7 @@ When a new need shows two passes owning one concept, refactor to the shared prim
 - **The prepass and colour pass must compute bit-identical depth.** That's the `@invariant` position and one shared vertex stage. A second single-sample depth or a previous-frame Hi-Z disagrees at edges.
 - **Instanced props need a base elevation.** Culling bounds must cover every reachable pose: the tank's bounds grow from 9.5×3.7 m to 12.1×12.1 m with the turret traversed.
 - **Casters can be coarser than what they cast for.** Trees cast from one tier coarser, because a cascade texel is coarser than leaf relief.
-- **Anything that casts into view from off screen is culled by its shadow, never by the view frustum alone.** The forest once drew every tree into every cascade, which is free in the village and 6.5 million triangles a pass on a 10 km map. Now a chunk out of view is a caster only if its box, swept along the fall of its tallest instance's shadow, meets the view within the shadows' reach (`scenery/lod.ts` `castsIntoView`); an off-screen caster draws at the coarsest tier.
+- **Anything that casts into view from off screen is culled by its shadow, never by the view frustum alone.** The forest once drew every tree into every cascade, which is free in the village and 6.5 million triangles a pass on a 10 km map. Now a chunk out of view is a caster only if its box, swept along the fall of its tallest instance's shadow, meets the view within the shadows' reach (`frame/staticChunks.ts` `castsIntoView`); an off-screen caster draws at the coarsest tier.
 
 - **Composite each annotation as one group.** Its backing paints below its foreground strokes; selection priority moves the whole group. Fix occlusion through paint order, not by erasing intended backing coverage. Bound effect tails separately from stacking.
 
@@ -220,10 +220,14 @@ When a new need shows two passes owning one concept, refactor to the shared prim
 - **A private projection or camera struct beside the shared one,** or a pass-local constant for something the fixture owns.
 - **A visual fix that changes camera, light, geometry and pass order at once:** you won't know which one worked.
 
-## One static chunk path
+## One static chunk owner
 
-Everything placed once and drawn many times (trees, hedgerow shrubs, a town's massing boxes) goes through the scenery layer's chunk path (`frame/sceneryLayer.ts`, `scenery/lod.ts`): one instance record (pose, a scale per axis, a tint), bucketed in 128 m chunks, a static buffer in chunk order with merged draw ranges, and a per-tier staging list only for chunks near enough to need a finer mesh. A new population is a mesh table and a `PlacedInstances` list handed to `population()`; materials stay per pipeline.
+Everything placed once and drawn many times (trees, hedgerow shrubs, a town's massing boxes, the fallen) is chunked by one owner, `frame/staticChunks.ts`. It owns the bookkeeping and nothing else: records of any stride in chunk order, per-chunk culling, the level a chunk or an instance draws at, merged draw ranges, and the sun's casters. Buffers, meshes and materials stay with the layer that draws the population, so a layer never grows a chunk list of its own.
 
+- **A population says three things:** each instance's bounds (`bound`), the level a whole chunk draws at or `NEAR` (`ChunkLevel`), and what a level is. A level is whatever its layer draws for it: scenery's four mesh tiers, a corpse's impostor card as a fifth.
+- **A chunk given a level costs no per-instance work.** It draws as a `[first, count]` range of the static buffer, merged with its neighbours. Only `NEAR` chunks are walked per instance: scenery copies each record into a per-tier list (`stageNear`); the models layer chooses per corpse by the models' own detail rule and packs them with the units.
+- **The level rule decides the cost at distance.** Corpses draw a far chunk as one run of cards only when every corpse in it has a card; one bare corpse makes its whole chunk near.
+- **Scenery** (`frame/sceneryLayer.ts`, `scenery/lod.ts`) is one instance record (pose, a scale per axis, a tint) in 128 m chunks. A new scenery population is a mesh table and a `PlacedInstances` list handed to `population()`.
 - **A population with one mesh never stages.** Massing passes tier thresholds of infinity, so every box draws from the static buffer at any distance and a view change costs a walk over chunks, never over boxes.
 - **What the side knows changes the list, not the frame.** A building seen to fall rebuilds the massing list (`setMassing`), as `setStructures` does for models. Don't add a per-frame knowledge test to a static path.
 - **Buildings with no art are massing, by the catalogue's own label** (`presentation.massing.families`): a box a physical part at the simulation's size, tinted by category. Never stretch another building's art over a footprint it was not made for.
