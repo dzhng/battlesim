@@ -79,8 +79,10 @@ export interface BuildingStats {
   residentChunks: number;
   /** The pool: the records it can hold, holds now, and its buffer's bytes. */
   pool: { capacity: number; used: number; bytes: number };
-  /** Records in the coarse population (the whole map's) and the fallen one. */
+  /** Records in the coarse population (the whole map's), its buffer's
+   *  bytes, and records in the fallen one. */
   coarse: number;
+  coarseBytes: number;
   ruins: number;
   /** Per tier: module instances and triangles drawn into the view. */
   tiers: number[];
@@ -144,6 +146,7 @@ export function createBuildingLayer(
     residentChunks: 0,
     pool: { capacity: 0, used: 0, bytes: 0 },
     coarse: 0,
+    coarseBytes: 0,
     ruins: 0,
     tiers: Array.from({ length: TIER_COUNT }, () => 0),
     triangles: Array.from({ length: TIER_COUNT }, () => 0),
@@ -360,6 +363,7 @@ export function createBuildingLayer(
           bytes: poolRecords?.size ?? 0,
         },
         coarse: scene?.coarse.count ?? 0,
+        coarseBytes: coarseRecords?.size ?? 0,
         ruins: scene?.ruins?.count ?? 0,
         tiers: [...stats.tiers],
         triangles: [...stats.triangles],

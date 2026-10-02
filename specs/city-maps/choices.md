@@ -5032,6 +5032,71 @@ exact matched openings pass and a real retained GPU allocation falsifies the che
 **Gap:** "Delete their source GLBs."
 
 **Verdict:** sound. That one file had a second consumer. **Confidence:** high.
+## C23 far tier
+
+### Tier 3 is the far tier; no tile builder was written
+
+**Choice:** The slice closes with no `city/farTier.ts`. Every template's own coarsest tier, drawn as one static population for the map (C22), is the far tier.
+
+**Gap:** The slice was written when a town was massing boxes and asks for "a pure deterministic far-tier builder from reusable descriptor geometry/roof recipes", with tiles through C22's chunks. It also says the graphs' LOW tiers are not the far tier, at 47 to 86 thousand triangles.
+
+**Verdict:** sound. The sets' scripts already fold each template into a shell of 12 to 1,766 triangles, 239 a building over a Metro Large, under the 300 the slice guides by. On that map the buildings cost 1.9 ms of GPU at the whole map and 4.1 ms at the worst camera, inside 11.0 ms for the whole frame against a budget of 15. A merged tile a chunk would save draws (31 at the whole map, 59 in the oblique view) and add a vertex copy of every building; a builder from descriptors would draw boxes with roofs, which is less than the shells keep (windows, balconies, roof colour). **Confidence:** high for cost and silhouette; the coarse tiers' own art has the pops the Outcome lists.
+
+### The thresholds stay at 10, 4 and 1.2 pixels a metre
+
+**Choice:** `lod_px_per_m` is unchanged. In particular tier 0 still starts at 128 m, so the tactical camera (65 m) draws tier 0.
+
+**Gap:** "Tune `lod_px_per_m` if a boundary is in the wrong place", and the question whether tier 0 should start nearer so that the China kit's window cages, rails and solar racks stop aliasing at the tactical camera.
+
+**Verdict:** sound. A 2 cm bar at the tactical camera covers 0.4 of a pixel (19.7 pixels a metre); it covers one only at 51 pixels a metre, 25 m, the camera's nearest. A threshold that hid the bars until then would put the whole default view at tier 1, and tier 1 costs the houses their window frames and glazing bars and the shops their lettering, which do read at 65 m (`throwaway/evidence/city-lineup/pairs-tactical-0v1-*.png`). A threshold between (a metre at 20 to 26 pixels) would put the boundary across the default view. The bars are the kit's to move into a cutout texture (C24). Moving the last boundary out, so that the houses' blank tier 3 walls arrive when a window is under a pixel, would draw the apartments' tier 2 (2,500 to 7,300 triangles) over the 2 km views in place of tier 3 (650 to 1,770): several times the triangles for a fix that is a few quads in the houses' shells. **Confidence:** high.
+
+### A forced tier is the building style's own thresholds
+
+**Choice:** The labs draw every building at one tier by handing the frame a style whose thresholds no view, or every view, passes (`buildingTier.ts` `tierStyle`), and rebuilding the frame. `LabViewport` takes the style as a prop read when the frame is built. The renderer has no "force a tier" switch.
+
+**Gap:** The brief asks for a forced tier and says to place buildings through the game's own path; it does not say how a tier is forced.
+
+**Verdict:** sound. The tier is still chosen by the renderer's one rule, per chunk, with the pool and the coarse population behaving as they do in a town, so a forced picture cannot differ from what the game draws at that tier. The cost is a frame rebuild per change of tier (a second or two, four times a scene run). **Confidence:** high.
+
+### The line-up's map is empty, and its buildings are a list
+
+**Choice:** `/lab/city-lineup` builds a flat map with nothing on it and hands the frame a `PlacedBuildings` list made from the catalogue's descriptors (`cityLineup.ts`). A building's owner is a hash of its template id. Rows run south to north by their tallest building, fronts on a line, and the ground runs on behind the last row for 2.5 heights of the tallest.
+
+**Gap:** "A synthetic `PlacedBuildings` list", rows by category, at metre scale; nothing on order, spacing, tint or the map.
+
+**Verdict:** sound. No simulation building exists, so nothing garrisons, blocks or falls; the lab is a picture. The owner fixes each template's tint whichever others stand with it. The ground behind is there because the contract check reads black as "not ground", and the map's edge is black. The empty map still gets the biome's fields, so the backdrop is striped farmland, not a neutral card: the critique read the crop rows as moire. **Confidence:** medium on the backdrop; a plain surface under the line-up would read better and is the ground lane's vocabulary.
+
+### What "drawn, on the ground, inside its parts" is, on screen
+
+**Choice:** The scene shows each template alone, framed to fit, in the ground-classes view, at every tier. Every pixel that is not ground, within 16 pixels of the template's projected parts, must lie inside the projection of some part grown by its set's fit (1.5 pixels of slack). Nine points inside each part at half its height must be covered for two thirds of them, and of 41 points along the foot of the wall facing the camera, a metre up, at least one.
+
+**Gap:** "Checks from contracts: every catalogue template is drawn, on the ground, inside its physical parts grown by its set's fit (use the ground mask or the classes view)."
+
+**Verdict:** sound, with two stated weaknesses. The asset check already holds every vertex to the fit; this one catches what it cannot, a template drawn at the wrong frame, turned, or at a tier whose shell is misplaced. The foot rule is "somewhere along the wall" because `china-farmstead-yard` has a part that is a roof on posts, which a "two thirds of the wall" rule failed honestly. A building floating less than a metre, or turned half round with a symmetric plan, passes. The fit is read from each set's source `templates.json`, so the scene needs those files pulled from LFS and says so when they are pointers. **Confidence:** medium.
+
+### A boundary station is a range to the building, not an orbit distance
+
+**Choice:** `transition-1..3` put the eye at the boundary's distance from the nearest point of the box round the template's parts (`poseAtRange`), pitched as the game's camera is at that distance.
+
+**Gap:** "A transition station per template that sits exactly at each tier boundary."
+
+**Verdict:** sound. The renderer chooses a tier by the eye's distance to the building's chunk, so an orbit distance would be off by the building's size. The chunk's box is the drawn bounds, which reach up to the set's fit past the parts, and in the line-up a chunk can hold a neighbour: by distance, a building at its station may draw either tier. The captures force the tier, so the pair is exact. **Confidence:** high.
+
+### The overview's missing town is the ground's, and nothing was built for it
+
+**Choice:** No very-far aggregation (a fifth tier, a tile, a tint) was added for the whole-map overview.
+
+**Gap:** "Tile sizes and any very-far aggregation follow S3/G0's full-overview verdict", and the critique's finding that the overview shows a road grid and pink specks, not a town.
+
+**Verdict:** sound. At the overview a house is 0.9 to 1.4 pixels and a slab 4 to 7 by 1 to 1.6: geometry at its true size cannot carry the town, and enlarging it on screen is not open to opaque geometry. What a town reads by from that height is its ground, and most of a suburb's ground is lawn the colour of a field. A built-up tint under settlements is ground, in the ground lane's material, true at every distance. **Confidence:** high that no building tier fixes it; the tint itself is untried.
+
+### The user checkpoint was not held
+
+**Choice:** The slice's fourth visual step (show the shots, wait five minutes) was skipped; the verdict stands on the measurements, the comparison and the unprimed critique.
+
+**Gap:** The slice requires the checkpoint; the pass ran unattended as one agent of several.
+
+**Verdict:** provisional until the user has seen `throwaway/evidence/city-lineup/` and `throwaway/evidence/city-block-metro-large/`. **Confidence:** medium.
 ## SG4 palette vs shadow floor
 
 ### The spike ran inside C84, not in a scratch worktree
@@ -5277,6 +5342,164 @@ exact matched openings pass and a real retained GPU allocation falsifies the che
 **Verdict:** sound: it follows the owner's change to the skill and to AGENTS.md. **Confidence:** high.
 
 
+## C28 pavement
+
+### A town's sidewalk is a walk beside each street, a look the map does not hold
+
+**Choice:** A row of `roads` may name a `walk`: a band beside each stroke of its kind (2 m on a street, the generator's verge), drawn by another row (`sidewalk`'s slabs). The simulation has no sidewalk there: units find ground, as they do on a sidewalk a map names.
+
+**Gap:** The slice says "roadbed and sidewalks cover exactly the right ground", and no map holds a sidewalk: the generator writes streets as `road` strokes and yards as `road` polygons, never the `sidewalk` kind.
+
+**Verdict:** provisional. It is the shoulder's place and the shoulder's contract (the surface is the rule, what lies beside it is its look), and a sidewalk moves as ground by the contract, so the walk lies about nothing. The class mask still says only the simulation's paving. If the generator writes sidewalks one day, they take the same row and `walk.width_m` goes to 0. **Confidence:** medium.
+
+### A street's yards are drawn as paving, by the sidewalk's row
+
+**Choice:** A row may name `area`: the row that draws its kind where it is laid as a polygon. A generated town's loading yards are `road` polygons and are drawn by the sidewalk's row, so asphalt is the carriageway and nothing else.
+
+**Gap:** The roads pass left "a polygon union carries one distance for all its kinds, so street-to-sidewalk has no edge to feather".
+
+**Verdict:** sound, and it routes round that problem rather than solving it: every generated street is a stroke, so the street's edge is the stroke's own, and the polygons beside it are all one look. Two kinds of polygon side by side with different looks still have no edge between them. **Confidence:** medium: no station stands on a yard.
+
+### What is painted and what is the rule are two distances
+
+**Choice:** `groundPaved` returns `drawn` (how far inside each row's paving: strokes, areas and walks, by the row that draws them) and `rule` (how far inside the simulation's paving). The colour and the grass read `drawn`; the class mask reads `rule`.
+
+**Gap:** The slice says pavement "reads C63's surface distance field" and bakes nothing.
+
+**Verdict:** sound. Nothing is baked: the walk is one more `max` in the loop that already visits each stroke. **Confidence:** high.
+
+### A map that names no kind but `road` keeps the country road's look
+
+**Choice:** On a map whose paved areas are all kind `road` (the village, the geometry lab), `road` is drawn by the country road's row. On any map that names another kind, `road` is a town street.
+
+**Gap:** The village's roads are `road` in its map and country roads by Q-G4; its map is not this lane's, and nothing the export carries says "urban" (`land_regions` has no geometry owner and reaches no consumer).
+
+**Verdict:** provisional. Every generated map has a country road or a track (a settlement stands on one), and every map drawn before roads had kinds has only `road`, so the rule is right on every map today. It is one function (`drawnKind`) to delete when the village's map says `country_road`. **Confidence:** medium.
+
+### A street lies under the country road it meets
+
+**Choice:** A row may name its `layer`; without one the kinds are painted in the simulation's order. The summer street's is 2.5: over a track, under a country road.
+
+**Gap:** C66 painted kinds in the contract's order, the earlier on top, which puts a street over a country road.
+
+**Verdict:** sound. A side street's stroke ends inside the road it joins, cut square across its own line; drawn on top it showed as a slanted slab of asphalt across half the country road at every mouth. `road` and `country_road` drive at the same speed, so the order between them says nothing about movement. **Confidence:** high.
+
+### `join_m` is the lower road's own
+
+**Choice:** Where one road runs under another, the lower road's `join_m` says how far its surface is carried onto the upper. Before, it was the upper road's number. A track's is 2 m, as it was; a street's is 0, so it ends on the country road's edge.
+
+**Gap:** C66 wrote `join_m` on the road that is joined; with a street under a country road that blurred the street's mouth over 2 m beside sidewalks that end on a ruled line, and the first critique read the blur as a shadow's edge.
+
+**Verdict:** sound. The village and the river lab's bare ground are byte-identical before and after (the track's and the country road's numbers were equal). **Confidence:** high.
+
+### Asphalt is a neutral grey above the lawn's luminance
+
+**Choice:** `road_asphalt` is [0.35, 0.357, 0.375], a little cool, with paler patches at the same brightness and a roughness of 0.9; `paving` is [0.55, 0.555, 0.56].
+
+**Gap:** Palette is delegated; L-G3 bans a road darker than the grass.
+
+**Verdict:** provisional. On screen the roadbed is 1.7 times the lawn and 0.64 of the gravel road. Two other greys were shot first: [0.385] at a roughness of 0.8 came out as bright as the gravel (0.23 against 0.24 in the sun), and a warm [0.335] sat on the tone of gravel in a building's shadow. The cool tint does not cure that: both critiques still read shadowed gravel as asphalt, because a gravel road runs through the town between three-storey shadows. Broken Arrow's asphalt is 1.1 to 1.3 times its grass; ours cannot go that dark. **Confidence:** medium.
+
+## C29 curbs
+
+### The curb is shading and a line of stones, not geometry
+
+**Choice:** A row's `curb` is a band of kerbstones just outside a stroke's edge and a tilt of the shading normal across a narrow face just inside it. The ground is not moved and no mesh is added.
+
+**Gap:** The slice says "presentation curb geometry" in `terrain/` "or the static chunks", and asks for joins, intersections, slopes and no cracks.
+
+**Verdict:** sound. A 12 cm step has no parallax to see at 25 m and nothing to hide a vehicle behind; drawn in the material it follows the street's distance, so it has no joins to crack, turns every corner and lies on any slope. It is the ruts' mechanism. **Confidence:** medium: both critiques read the kerb as a flush strip or a painted line from the ground camera, raised only on the side that faces away from the sun.
+
+### The face tilts 15°, and the curb is gone before it is a pixel wide
+
+**Choice:** `tilt_deg` is 15 and the kerbstones have a joint every metre; the curb fades out as a pixel grows from 0.25 to 0.6 of the stones' width (whole at 65 m, gone by 250 m).
+
+**Gap:** "Curb profile as data" gives no numbers.
+
+**Verdict:** sound. At 35° the face turned from the sun was "a near-black hairline on one side of the street only", "ink"; at 250 m a kerb under two pixels wide showed on streets running one way and not the other. **Confidence:** medium.
+
+### No curb where another road covers the edge
+
+**Choice:** The curb is left out wherever another carriageway's surface lies over the street's edge: across a street's mouth, and where two streets meet (their strokes are one union there).
+
+**Gap:** "Intersections" is named without a rule.
+
+**Verdict:** sound. **Confidence:** high.
+
+## C30 markings
+
+### A dashed centre line, and a crossing's bars before every road that runs on across
+
+**Choice:** Every stroke of a kind with `markings` has a dashed line down its middle, laid out by the distance along the stroke, and a crossing's bars where another carriageway's stroke crosses it and runs on past its far edge. A side street has a crossing at its mouth; the street it joins has none there. Nothing is placed by a list: the lines are a function of the strokes.
+
+**Gap:** "Deterministic, generic marking placements" names no layout.
+
+**Verdict:** sound. **Confidence:** medium: every arm of every junction has the same six bars and nothing else (no stop line), and a side street has a crossing where it meets a gravel road.
+
+### A dash is whole or absent
+
+**Choice:** A dash that would come within 0.3 m of a crossing's bars is left out whole: each point of it is judged at the dash's end nearer the road that crosses, extrapolated along the stroke.
+
+**Gap:** Dashes are laid out by the distance along a stroke, so one can straddle the place the line must stop.
+
+**Verdict:** sound. Cut at the stop, a dash left "a stub about a metre long" beside the crossing. The extrapolation is exact where the crossing road runs straight. **Confidence:** medium.
+
+### The bars lie within the field's reach
+
+**Choice:** `groundReach` reads the paving as far as a dash that must stop short of a crossing's bars reaches: `gap_m + length_m`, 0.3 m, and a dash's length. The summer numbers come to 4.3 m, so the paved reach grew from the shoulder's 3.5 m on every map.
+
+**Gap:** A crossing is placed from the edge of another road, which a point reads only within the field's reach.
+
+**Verdict:** sound. The class mask's road distance is exact 0.8 m farther out than it was (the village's and the river lab's masks differ from before in that band and nowhere else; their bare ground is byte-identical). The field's index grew from 651 to 652 KiB on the village and from 9,834 to 9,920 KiB on the generated 8 km map, and a finest cell lists 0.065 paved records where it listed 0.060 (0.295 for 0.271 on the generated map). **Confidence:** high.
+
+### Paint is dull, worn and fades with distance
+
+**Choice:** Off-white [0.88, 0.88, 0.86] hiding 85% of the asphalt, worn in patches; a centre line 0.2 m wide in dashes of 1.5 m every 4.5 m. A line fades out as a pixel grows from 0.35 to 0.85 of its own width: the centre line is whole at 65 m and gone at 250 m, a crossing's bars (0.5 m) last to about 250 m.
+
+**Gap:** "Legible at battle distance and never mistaken for tactical marks."
+
+**Verdict:** provisional. Order paint is saturated yellow, glows, marches and keeps a width in pixels; road paint is lit like the ground, darkens in shadow, has no glow and a width in metres. Asked directly, both critiques put the crossings at no risk and the centre dashes at low risk against yellow marks and at low to medium against a white dashed mark along a street (the zone outline and the supply reach are white). **Confidence:** medium.
+## C06: reject stale infantry refinement edges
+
+**Choice:** A missing shared edge during refinement returns the existing route
+failure. The route planner already restarts a failed candidate when its knowledge
+revision changed; refinement adds no retry, geometry exception or new state.
+
+**Reason:** Coarse admission does not freeze the grid. A public body-add event
+reproduces the observed late-battle panic, so the shared-edge assertion is not a
+valid invariant across incremental steps. Static successful routes keep their
+sampling order; the affected battle now recovers instead of aborting. This is a
+named failure-path change, not a performance or unchanged-crash-digest claim.
+
+**Reach:** No runtime planning budget or latency contract changes. Completion
+and replay proof, and the remaining integration gate, live in the
+[C06 outcome](slices/C06-sim-scale-passes.md#outcome--changed-edges-during-infantry-refinement).
+
+**Verdict:** sound; high confidence. Geometry ownership stays with the current
+grid, and revision recovery stays with the existing planner.
+
+
+## C07: encode the final learned-ground tail through the existing carrier
+
+**Gap:** The captured real-catalogue five-minute early run violates the unchanged
+19,800 B maximum through a 1,313-run knowledge burst. Earlier non-map packing does
+not own these rows; simple absolute/delta varints still miss the gate.
+
+**Choice:** Extend the one publication serializer/decoder across the named ground
+tail seam. Declare one compact grammar in the producer's layout, reuse its raw
+u32 carrier/LEB/count/write and the browser's shared reader, and reconstruct the
+existing canonical four-word runs before existing physical/order validation.
+There is no legacy format fallback, per-side ground predictor, retained codec
+cache, second producer staging buffer, dependency, cap increase or delayed mark.
+
+**Verdict:** Sound, high confidence. All captured raw words reconstruct; the
+public burst is red before/green after; malformed tails preserve atomic retry.
+Count+encode costs about 0.012 M mean instructions against 3.582 M full packing.
+The decoder allocates the same owned canonical runs it already exposed, with
+minimum-wire and complete-logical-record admission before allocation. Byte and
+memory proofs remain scoped: the late battle panics, frozen replay is not final
+whole-battle admission, and browser clocks/cold allocator components do not prove
+loaded throughput or full-world process/GPU peak.
 ## C33 simplified
 
 ### The page builds its own world; the public query export is deleted

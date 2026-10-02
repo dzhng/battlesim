@@ -362,3 +362,87 @@ resources. Profiling allocation hooks and loaded clocks are not throughput
 admission. The provisional 19.8 KB whole-record gate was red at p95/max;
 no budget is raised. Browser startup/peak overlap and full generated early/late
 throughput were not established by this control.
+
+## Outcome: packed learned ground runs
+
+Source `13beacf9`, engine `6b3eb26d…`, current layout-7 catalogue `6b0a5e8b…`
+produces native/Wasm-identical Metro Large seed-4 map `7ea9ba8a…`: 12,887
+buildings, 22,442 authored parts, 228,030 bays and 46,813 ground points, within
+existing generation limits. The plain-System early city-arena-1 arm completes
+9,000 ticks: whole wire mean 5,896.323 B, p95 14,184 B, maximum 33,496 B;
+packing mean/max 3.582/10.909 M instructions; Observation 7.224/10.278 M.
+Cold blue is 440,356 B/2.298 M instructions; final same-side blue resync is
+3,283,044 B/183.109 M, red switch 3,284,512 B/177.970 M. Digest ends
+`89458a3615b14cd5`, with 147 living units, 330 corpses, ten wrecks and 9,440
+rounds. These snapshot costs are excluded from active statistics.
+
+The frozen late arm stops at a navigation panic; only 4,101 complete records
+(ticks 0–4,100) survive. Its partial active mean/p95/max is
+6,043.860/14,008/21,728 B. It is **not five-minute admission**. Neither passing
+means nor p95 close the unchanged 19,800 B whole-record maximum gate. The early
+worst record at tick 5,082 is 4,332 B fog, 21,008 B learned ground (1,313 runs)
+and 8,156 B other delivery. Late partial worst tick 1,662 is 3,552/9,168/9,008 B.
+
+The selected correction changes only the final ground tail. The existing
+publication layout declares its sole grammar; canonical four-word runs remain
+the oracle. Ordered tile deltas and masked nonzero marks use the existing raw
+carrier/count/write primitives without a ground baseline, new producer buffer,
+dependency or deferred knowledge. Absolute and tile-delta integer-varint arms
+still leave early maxima 22,992 and 20,432 B; masked marks estimate 18,656 B
+(including a conservative form byte). Actual count+emit reconstructs every raw
+word in the 9,001 early and 4,101 partial late captured records, costing early
+mean/max 0.012/0.168 M instructions. This is codec replay, **not a fresh whole
+battle**. Final production delivery needs both complete arms after the unrelated
+navigation fault is fixed.
+
+The public native burst first fails at 38,548 B for 2,380 learned runs, then fits
+the delivery allowance while reproducing every canonical mark/run and digest.
+The browser shares one raw-u32 reader between groups and ground, admits both the
+canonical record and minimum encoded run size before allocating the sole owned
+run array, validates padding/order/edges/marks, and commits cursors only after
+the entire frame succeeds. A raw NaN carrier reconstructs finite exact rows;
+malformed tails permit corrected same-generation retry and preserve prior views.
+Paired fixtures change only ground delivery metadata and eight wire identities;
+canonical vectors, battle digests and fog identities remain unchanged.
+
+Separate frozen-browser diagnostics replay captured records through Chromium's
+Float32Array copy and production decoder without a scene/GPU: early decode
+mean/p95/max 1.136/1.5/3.4 ms, cold 8.9 ms, final blue/red 4.8 ms; partial late
+1.646/3.4/7.1 ms, cold 15.7 ms. Clocks are diagnostics, not load-independent
+instructions; this excludes actual Wasm-source copying and worker transfer.
+After early snapshots, two credits occupy 6,567,556 B and replacement overlap
+reaches 7,007,912 B. Active old/new non-map buffers reach 144,856 B early and
+1,235,800 B partial late; current/previous fog reaches 390,632 B. After GC,
+Chromium reports JS used/backing storage 2.312/13.039 MB early and
+4.034/2.035 MB partial late, excluding released captured-file staging. These
+retain current/previous observations, not arbitrary consumer histories.
+
+The separate short allocator probe includes setup/build input overlap but no
+stream/oracle copies: early build peak 361,271,607 B; post-input-drop battle
+264,759,368 B; cold publisher adds 1,149,352 B. Late post-input-drop battle is
+277,866,447 B; cold publisher adds 2,567,772 B. These are cold/tick-one live
+allocation components, **not five-minute peak, process RSS, Wasm/page/worker,
+GroundView or GPU admission**. Full active peak and real worker/renderer overlap
+remain open. Raw evidence lives in ignored `throwaway/scale-lane/admission-13-*`.
+
+
+The emitted captured-tail transform (without the conservative form-byte charge)
+reaches early mean/p95/max 5,403.171/10,860/18,652 B, partial late
+5,537.118/10,384/15,280 B. Current decoder replay reproduces all captured frames
+and fresh snapshot samples; final early blue/red snapshot wire becomes
+1,277,804/1,284,268 B without changing canonical runs. Two credits occupy
+2,562,072 B; maximum replacement overlap is 3,002,428 B. Post-GC JS used/backing
+storage is 2.327/9.039 MB early; these are bounded captured components, not
+full-world admission.
+
+A separate warmed Chromium process probe stages capture parsing and oracles
+outside counter brackets and reads the renderer processes' macOS retired
+instructions/CPU nanoseconds. Copy-only costs 30.873 M instructions over 9,001
+early records and 22.801 M over 4,101 partial late records. Decoder-only costs
+184.279 B / 118.252 B total (about 20.47/28.83 M per record), including browser
+dispatch, V8 allocation and GC. Combined final blue/red copy+decode costs
+261.976/241.067 M instructions; warmed-process cold-blue first-epoch decode costs
+43.104 M early and 87.850 M partial late. Source/Wasm publication construction,
+actual worker transfer, learned-ground application, rendering and GPU remain
+outside these brackets. This is process CPU evidence, not engine cold startup or
+an isolated before/after decoder optimization claim.

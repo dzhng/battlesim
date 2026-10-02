@@ -80,6 +80,8 @@ A new set is listed in `assets/catalog.json`: its kit as an appearance, and the 
 
 The authored catalogue (`fixtures/building-templates.json`) runs the other way: its rows are written by hand, its hash is its maps' identity, and nothing derives it. Its set copies each row as its descriptor (`kit.dress`), so a new authored box needs only the set's script run again, then `bake` and `check`.
 
+**The picture a set is judged by** is the line-up lab, `/lab/city-lineup`: every template on flat ground, drawn as the game draws a town, at any one tier, state and station (its route file lists the address parameters). `CITY_SET=<set> bun run --cwd web scene -- city-lineup` holds each template to its parts and fit on screen and writes, under `throwaway/evidence/city-lineup/`, a sheet per category at each tier and each template across each tier boundary (the scene file lists what else narrows a run).
+
 ## Rules a set keeps
 
 - **The same inputs write the same bytes.** Seeds are fixed, iteration is in a sorted order, and nothing reads the clock.

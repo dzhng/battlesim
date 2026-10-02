@@ -121,8 +121,9 @@ export interface Water {
   streak: number;
 }
 
-/** One kind of road's surface, drawn exactly where the simulation's road rule
- *  holds: a country road's gravel, a dirt track's packed earth. */
+/** One kind of paving's surface, drawn exactly where the simulation's rule
+ *  holds: a country road's gravel, a dirt track's packed earth, a town
+ *  street's asphalt, a sidewalk's slabs. */
 export interface Road {
   /** A palette of two colours: the surface, and what patches of it wear
    *  toward. A patch changes the surface's hue, never its brightness. */
@@ -137,13 +138,88 @@ export interface Road {
    *  surface's mean as it nears a pixel. */
   grain: number;
   grain_m: number;
-  /** Where a road of a later kind joins this one, how far that road's
-   *  surface is carried onto it, thinning out. */
+  /** Where this kind's road runs under a road drawn over it, how far its
+   *  surface is carried onto that road, thinning out; 0 ends it at that
+   *  road's edge. */
   join_m: number;
   roughness: number;
   shoulder: Shoulder;
   ruts: Ruts;
   centre_strip: CentreStrip;
+  /** Where two kinds' paving overlaps, the higher layer is drawn on top.
+   *  Left out, the simulation's own order: 4 for a road, 3 for a country
+   *  road, 2 for a dirt track, 1 for a sidewalk. */
+  layer?: number;
+  /** The paved kind whose row draws this kind where it is laid as an area (a
+   *  polygon: a yard, a square) and not along a stroke. Left out, its own. */
+  area?: string;
+  /** A town street's walk; left out, the road has none. */
+  walk?: Walk;
+  /** The curb along its strokes' edges; left out, the road has none. */
+  curb?: Curb;
+  /** The lines painted on its strokes; left out, the road has none. */
+  markings?: Markings;
+}
+
+/** A road's painted lines: a dashed line down the middle of each stroke,
+ *  and a crossing's bars on it wherever another road crosses it. They are
+ *  laid out by the strokes alone, the same on every machine, and fade out
+ *  as a line nears a pixel. */
+export interface Markings {
+  /** A palette of one colour: the paint. */
+  palette: string;
+  /** How much of the surface the paint hides where it is whole, and the
+   *  share of that it loses where it is worn. */
+  cover: number;
+  wear: number;
+  /** The centre line's width, a dash's length and the gap after it. */
+  line_m: number;
+  dash_m: readonly [number, number];
+  crossing: Crossing;
+}
+
+/** A crossing's bars, lying along the road they are painted on. */
+export interface Crossing {
+  /** A bar's width, which is also the gap between two. */
+  bar_m: number;
+  /** A bar's length along the road. */
+  length_m: number;
+  /** How far the bars start from the edge of the road that crosses. */
+  gap_m: number;
+  /** How far they keep from their own road's edge. */
+  inset_m: number;
+}
+
+/** A curb: a line of kerbstones along a road's edge, and the step up to
+ *  them from the roadbed. Shading only: the ground is never moved, so
+ *  nothing stands behind it and nothing climbs it. */
+export interface Curb {
+  /** A palette of one colour: the kerbstones. */
+  palette: string;
+  /** The stones' width, outward from the road's edge, a stone's length
+   *  along it, and how far the joint between two darkens them (0 for none). */
+  width_m: number;
+  stone_m: number;
+  joint: number;
+  /** The step's face: how far inside the road's edge it starts, and the
+   *  tilt it gives the shading normal there, in degrees: at most 40 (steeper
+   *  catches the sky and reads as a sheen). */
+  face_m: number;
+  tilt_deg: number;
+}
+
+/** The paved walk along both sides of a kind's strokes, where a country
+ *  road has its shoulder. It is a look, as the shoulder is: units find
+ *  ground there, as they do on a sidewalk the map names. */
+export interface Walk {
+  /** The paved kind whose row draws it. */
+  kind: string;
+  /** Its width, from the road's edge. */
+  width_m: number;
+  /** Its slabs' length along the road, and how far the joint between two
+   *  darkens the surface; 0 for none. A joint fades out as it nears a pixel. */
+  slab_m: number;
+  joint: number;
 }
 
 /** Wheel ruts along a road drawn as a stroke: shading only, the ground is
@@ -628,6 +704,43 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
     within(`${at}.ruts.tint`, ruts.tint, 0, 0.5);
     within(`${at}.centre_strip.half_width_m`, road.centre_strip?.half_width_m, 0, 5);
     within(`${at}.centre_strip.max_road_width_m`, road.centre_strip?.max_road_width_m, 0, 100);
+    const paved = (path: string, row: string) => {
+      if (!(SURFACE_AREA_KINDS as readonly string[]).includes(row))
+        bad(path, `names no paved kind "${row}"`);
+    };
+    if (road.layer !== undefined) within(`${at}.layer`, road.layer, 0, 100);
+    if (road.area !== undefined) paved(`${at}.area`, road.area);
+    if (road.walk) {
+      paved(`${at}.walk.kind`, road.walk.kind);
+      within(`${at}.walk.width_m`, road.walk.width_m, 0, 8);
+      within(`${at}.walk.slab_m`, road.walk.slab_m, 0, 100);
+      within(`${at}.walk.joint`, road.walk.joint, 0, 0.5);
+    }
+    if (road.curb) {
+      palette(`${at}.curb.palette`, road.curb.palette);
+      within(`${at}.curb.width_m`, road.curb.width_m, 0.05, 2);
+      within(`${at}.curb.stone_m`, road.curb.stone_m, 0.1, 100);
+      within(`${at}.curb.joint`, road.curb.joint, 0, 0.5);
+      within(`${at}.curb.face_m`, road.curb.face_m, 0.02, 2);
+      within(`${at}.curb.tilt_deg`, road.curb.tilt_deg, 0, 40);
+    }
+    if (road.markings) {
+      const marks = road.markings;
+      palette(`${at}.markings.palette`, marks.palette);
+      within(`${at}.markings.cover`, marks.cover, 0, 1);
+      within(`${at}.markings.wear`, marks.wear, 0, 1);
+      within(`${at}.markings.line_m`, marks.line_m, 0.05, 1);
+      if (!Array.isArray(marks.dash_m) || marks.dash_m.length !== 2)
+        bad(`${at}.markings.dash_m`, "must be [dash, gap]");
+      within(`${at}.markings.dash_m[0]`, marks.dash_m[0], 0.5, 50);
+      within(`${at}.markings.dash_m[1]`, marks.dash_m[1], 0, 50);
+      const crossing = marks.crossing;
+      if (!crossing || typeof crossing !== "object") bad(`${at}.markings.crossing`, "is missing");
+      within(`${at}.markings.crossing.bar_m`, crossing.bar_m, 0.1, 3);
+      within(`${at}.markings.crossing.length_m`, crossing.length_m, 0, 8);
+      within(`${at}.markings.crossing.gap_m`, crossing.gap_m, 0, 8);
+      within(`${at}.markings.crossing.inset_m`, crossing.inset_m, 0, 5);
+    }
   }
   if (!biome.shore || typeof biome.shore !== "object") bad("shore", "is missing");
   const shore = biome.shore;

@@ -11,6 +11,7 @@ import {
   type PanelRules,
 } from "../src/battle/present/panelRows";
 import { ObservationDecoder, type ObservationLayout } from "../src/battle/sim/observation";
+import { packedGroundRuns } from "./groundRuns";
 import { GroundView } from "../src/battle/sim/ground";
 import { sightMultiplier } from "@packages/battle-renderer/src/sightOverlay";
 import { labScenario, GAME_RULES } from "@apps/battle-lab/src/scenarios";
@@ -452,8 +453,12 @@ test("every frozen animation field and ground value decodes, integers exact past
             section.fields.length;
       wire.push(at - start, 1, at - start, ...logical.subarray(start, at));
     }
-    wire.push(...logical.subarray(at));
-    return new ObservationDecoder(layout).decode(new Float32Array(wire))!;
+    wire.push(...logical.subarray(at, at + head.fogFloats));
+    const packed = packedGroundRuns(runs);
+    const delivered = new Float32Array(wire.length + packed.length);
+    delivered.set(wire);
+    delivered.set(packed, wire.length);
+    return new ObservationDecoder(layout).decode(delivered)!;
   };
   const o = decodeVector("base");
   expect([o.own[0].kind, o.identified[0].kind, o.corpses[0].kind]).toEqual(["rifle", "tank", "at"]);
