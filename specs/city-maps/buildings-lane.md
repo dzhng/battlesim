@@ -42,6 +42,14 @@ Test in proportion: the narrow tests for what changed and the one or two scenes 
 
 ## Status
 
+### Current integration triage
+
+The closeout run below is historical. A focused street run passes all five checks with the current native validator and Wasm built from matching source; its first HTTP refusal came from an old validator missing the movement-rehearsal input. The hypothesized rural-road classification defect did not reproduce, so this triage changes no terrain code.
+
+The movement scene now waits within its existing planning bound before inspecting each admitted route. It retains a completed route while the other squad plans, then binds both route and actual arrival publications to every acknowledged actor and its own destination. This avoids empty-array success and proves arrival at the published float32 marker without adding a distance tolerance. All 13 checks pass on the integrated build, including concurrent weapon changes. Retained original failures, publications, guard falsifications and current evidence live in ignored `throwaway/integration-triage/` in the main checkout. The remaining field, village, ballistics, weapons and village-watch findings need current triage; this checkpoint is not whole-spec verification.
+
+### Buildings checkpoint
+
 Update this section, not the README, at the end of each pass: what landed, what a town looks like now (one picture path), what is next, and anything the other lanes need to know.
 
 **2026-10-02. A generated town is real buildings.** Every building is drawn from the template art library through the static chunk owner; massing is gone. The picture is `throwaway/evidence/city-block/wide-1920x1080.png` after `scene -- city-block` (`/lab/city-block` is a block of a generated town with no battle). Buildings cost 0.4 to 4.1 ms of GPU from the tactical camera to the whole map on a Metro Large, the most in the two views with a horizon ([C22](slices/C22-placement-chunks.md#outcome), [C23](slices/C23-far-tier.md#outcome)).
