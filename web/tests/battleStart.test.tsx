@@ -6,7 +6,8 @@ import { createElement } from "react";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { askedBattle, battleHref } from "@apps/battle-lab/src/battleLinks";
-import { MainMenu } from "@apps/battle-lab/src/MainMenu";
+import { MainMenu, savedBattles } from "@apps/battle-lab/src/MainMenu";
+import { listMaps } from "../src/maps/catalogue";
 import { PreparationFailed, prepareBattle } from "../src/battle/prepare/client";
 import type {
   PrepareBattleRequest,
@@ -101,6 +102,24 @@ test("the menu opens on the battle a cancelled or refused request asked for", ()
   expect(menu.getByTestId("menu-deploy").getAttribute("href")).toBe(
     `/battle?type=open&size=medium&seed=${ABOVE_NUMBER}`,
   );
+});
+
+test("the menu lists each saved battlefield by name, and its link asks for that map's saved encounter", () => {
+  const menu = render(createElement(MainMenu));
+  const battles = savedBattles();
+  expect(battles.map((battle) => battle.label)).toContain("Play Market Town");
+  for (const battle of battles) {
+    expect(menu.getByRole("link", { name: battle.label }).getAttribute("href")).toBe(battle.href);
+    // The address is one the battle route reads as a released playable map
+    // of the catalogue and an encounter saved on it.
+    const asked = askedBattle(new URL(battle.href, "http://game").search);
+    if (!("kind" in asked) || asked.kind !== "catalogue") throw new Error(battle.href);
+    const map = listMaps({ category: "playable", status: "released" }).find(
+      (listed) => listed.id === asked.id,
+    );
+    expect(map?.encounters, battle.href).toContain(asked.recipe);
+    expect(battle.label).toBe(`Play ${map!.label}`);
+  }
 });
 
 /** A preparation worker that answers when the test says so. */

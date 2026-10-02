@@ -1,8 +1,11 @@
 // The game's front door at `/`, in the HUD's look: start a battle on a
-// generated map (its type, its size and its seed), play the village or watch
-// a saved battle, and the sound settings. The benchmark and the labs are
+// generated map (its type, its size and its seed), play the village or a
+// saved battlefield of the catalogue, or watch a saved battle, and the sound
+// settings. The benchmark and the labs are
 // developer tools, behind the developer link.
 import { useState } from "react";
+import config from "@fixtures/generated-battle.json";
+import { listMaps } from "@web/maps/catalogue";
 import {
   canonicalSeed,
   MAP_SIZES,
@@ -11,7 +14,7 @@ import {
   type MapSize,
   type MapType,
 } from "@web/maps/source";
-import { askedChoice, battleHref } from "./battleLinks";
+import { askedChoice, battleHref, savedBattleHref } from "./battleLinks";
 import { readSavedReplay, replayRoute } from "./replayFile";
 import { SoundControls } from "./SoundControls";
 
@@ -36,6 +39,20 @@ const TYPE_NOTE: Record<MapType, string> = {
   mixed: "A town among fields and woods.",
   metro: "A city and the country round it.",
 };
+
+/** The catalogue's battlefields a player can start: every released playable
+ *  map that has the game's encounter saved on it. Each is the same map and
+ *  the same deployment every time. */
+export function savedBattles(): Entry[] {
+  const recipe = config.encounter.recipe;
+  return listMaps({ category: "playable", status: "released" })
+    .filter((map) => map.encounters.includes(recipe))
+    .map((map) => ({
+      label: `Play ${map.label}`,
+      href: savedBattleHref(map.id, recipe),
+      note: "A fixed battlefield: attack the defended town as blue.",
+    }));
+}
 
 const id = (href: string) => `menu${href.replaceAll(/[^a-z0-9]/g, "-")}`;
 
@@ -168,6 +185,7 @@ export function MainMenu() {
       href: "/battle/village",
       note: "Attack the defended village as blue.",
     },
+    ...savedBattles(),
     { label: "Watch replay", href: replayRoute(readSavedReplay()), note: "Load a saved battle." },
   ]);
   return (
