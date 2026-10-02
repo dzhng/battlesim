@@ -1026,7 +1026,7 @@ def surface(material, coverage=None, interior=None):
 
     `interior` names the interior atlas sheet ("rooms", "shops") the surface
     shows a cell of: a wall of the room box behind a window, opaque and
-    untextured, its UVs the cell's (city/README.md, "Interiors")."""
+    untextured, its UVs the room's box unfolded (`parts.room_box`; city/README.md, "Interiors")."""
     if coverage is not None:
         kind, value = coverage
         if kind not in ("cutout", "blended") or not 0.0 <= value <= 1.0:
