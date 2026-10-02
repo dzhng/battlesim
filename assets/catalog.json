@@ -118,6 +118,10 @@
       "kit": "city_kit_industry"
     }
   },
+  "interiors": {
+    "rooms": "assets/source/city/interiors/rooms.png",
+    "shops": "assets/source/city/interiors/shops.png"
+  },
   "appearances": {
     "city_kit_facade_lab": {
       "unit": "kit",

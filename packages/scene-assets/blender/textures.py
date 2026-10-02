@@ -948,8 +948,10 @@ def grille():
 
 @recipe("perforated", tile=0.5, wear=(0.105, 0.046, 0.02, 0.9))
 def perforated():
-    """Perforated steel sheet: 25 mm round holes staggered 42 mm apart in galvanised plate,
-    streaked with dirt. Its coverage is the plate; the holes are not there (a cutout's recipe)."""
+    """Perforated steel sheet: 25 mm round holes staggered 42 mm apart in plate painted a dark
+    grey, streaked with dirt. Its coverage is the plate; the holes are not there (a cutout's
+    recipe). The plate is flat and darker than what shows through it: a rim lit round each hole
+    read as a stud standing off the sheet."""
     yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
     px = 1.0 / SIZE
     n, hole_r = 12, 0.025  # holes across the tile, and their radius in tiles
@@ -958,11 +960,11 @@ def perforated():
     gy = (yy * n) % 1.0 - 0.5
     d = np.hypot(gx, gy) / n
     cover = smoothstep(hole_r - px / 2, hole_r + px / 2, d)
-    lip = smoothstep(hole_r + 3 * px, hole_r, d)  # the punched edge turns in
     streak = fbm((16, 2), 3311, 3)
-    col = np.broadcast_to(np.array((0.3, 0.31, 0.31)), (SIZE, SIZE, 3)) * (0.8 + 0.25 * streak)[..., None]
-    return Baked(col, chips(3313, 12, bias=0.15), normals_from_height(blur(-lip * 1.5), 1.0), 1.0 - 0.3 * lip,
-                 0.45 + 0.25 * streak, 0.6, 0.0, coverage=cover)
+    col = np.broadcast_to(np.array((0.07, 0.075, 0.08)), (SIZE, SIZE, 3)) * (0.8 + 0.3 * streak)[..., None]
+    flat = np.zeros((SIZE, SIZE))
+    return Baked(col, chips(3313, 12, bias=0.15), normals_from_height(flat, 1.0), 1.0, 0.5 + 0.2 * streak, 0.0, 0.0,
+                 coverage=cover)
 
 
 # ---------------------------------------------------------------- UVs and the GLB

@@ -34,7 +34,13 @@ import {
 import type { BuildingStyle, SideBuildings } from "./buildingReferences";
 import { MODEL_RECORD_FLOATS } from "./modelInstances";
 import { flushPool } from "./placementPool";
-import { SURFACE_CLASSES, type SurfaceClass, type SurfaceParts } from "./surfaceParts";
+import {
+  SURFACE_CLASSES,
+  partRange,
+  type SurfaceClass,
+  type SurfacePart,
+  type SurfaceParts,
+} from "./surfaceParts";
 
 const RECORD_BYTES = MODEL_RECORD_FLOATS * 4;
 const VERTEX_USAGE = 0x20 | 0x08; // VERTEX | COPY_DST
@@ -235,15 +241,18 @@ export function createBuildingLayer(
     list: DrawList,
     bind: BindBuildingDraw,
     raw: GPURenderPassEncoder,
-    surface: SurfaceClass,
+    surface: SurfacePart,
+    hidden: Readonly<Record<SurfaceClass, boolean>>,
   ) {
-    if (!list.surfaces[surface]) return;
+    const has = list.surfaces;
+    if (surface === "solid" ? !has.opaque && !has.room : !has[surface]) return;
     let vertices: GPUBuffer | null = null;
     let source = -1;
     for (let i = 0; i < list.count; i++) {
       const mesh = list.meshes[i];
-      const part = mesh.parts[surface];
-      if (!part.count) continue;
+      // (A scratch range: its numbers are read before the next mesh's.)
+      const { first: firstIndex, count: indices } = partRange(mesh.parts, surface, hidden);
+      if (!indices) continue;
       const [from, first, count] = [
         list.ranges[i * 3],
         list.ranges[i * 3 + 1],
@@ -255,13 +264,13 @@ export function createBuildingLayer(
         vertices = mesh.vertices;
         source = from;
         bind(mesh.vertices, bufferOf(from), mesh.indices).drawIndexed(
-          part.count,
+          indices,
           count,
-          part.first,
+          firstIndex,
           0,
           first,
         );
-      } else raw.drawIndexed(part.count, count, part.first, 0, first);
+      } else raw.drawIndexed(indices, count, firstIndex, 0, first);
     }
   }
 
@@ -363,14 +372,24 @@ export function createBuildingLayer(
       stats.totalExpandedRows += scene.expandedRows;
       stats.totalUploadBytes += uploaded;
     },
-    /** One surface class of every building into the view (the depth prepass
-     *  and the colour pass). */
-    draw(bind: BindBuildingDraw, raw: GPURenderPassEncoder, surface: SurfaceClass) {
-      if (scene && shown) drawList(view, bind, raw, surface);
+    /** One kind of surface of every building into the view (the depth prepass
+     *  and the colour pass), less the classes `hidden` names. */
+    draw(
+      bind: BindBuildingDraw,
+      raw: GPURenderPassEncoder,
+      surface: SurfacePart,
+      hidden: Readonly<Record<SurfaceClass, boolean>>,
+    ) {
+      if (scene && shown) drawList(view, bind, raw, surface, hidden);
     },
-    /** One surface class of every casting building into one of the sun's cascades. */
-    drawCasters(bind: BindBuildingDraw, raw: GPURenderPassEncoder, surface: SurfaceClass) {
-      if (scene && shown) drawList(cast, bind, raw, surface);
+    /** One kind of surface of every casting building into one of the sun's cascades. */
+    drawCasters(
+      bind: BindBuildingDraw,
+      raw: GPURenderPassEncoder,
+      surface: SurfacePart,
+      hidden: Readonly<Record<SurfaceClass, boolean>>,
+    ) {
+      if (scene && shown) drawList(cast, bind, raw, surface, hidden);
     },
     stats(): BuildingStats {
       return {

@@ -53,19 +53,19 @@ const LINE_5M: Rgba = [0.26, 0.27, 0.25, 1];
 const FIGURE: Rgba = [0.5, 0.52, 0.56, 1];
 
 /** Flat ground: 5 m checks out to the battle views' reach, with 1 m and
- *  5 m lines over the middle 80 m, for scale (`lines` false leaves them out:
- *  a ground shadows are read on). */
-export function benchGround(lines = true): Mesh {
+ *  5 m lines over the middle 80 m, for scale (`marked` false is one plain
+ *  colour: a ground shadows are read on). */
+export function benchGround(marked = true): Mesh {
   const mesh = new MeshBuilder();
   const h = GROUND_HALF_M;
   const far = GROUND_REACH_M;
   for (let x = -far; x < far; x += 5)
     for (let y = -far; y < far; y += 5) {
-      const color = (x / 5 + y / 5) & 1 ? GROUND_ALT : GROUND;
+      const color = marked && (x / 5 + y / 5) & 1 ? GROUND_ALT : GROUND;
       mesh.quad([x, y, 0], [x + 5, y, 0], [x + 5, y + 5, 0], [x, y + 5, 0], color);
     }
   // Grid lines sit a hair above the ground so depth keeps them on top.
-  for (let k = -h; lines && k <= h; k += 1) {
+  for (let k = -h; marked && k <= h; k += 1) {
     const color = k % 5 === 0 ? LINE_5M : LINE_1M;
     const w = k % 5 === 0 ? 0.03 : 0.012;
     mesh.quad([k - w, -h, 0.002], [k + w, -h, 0.002], [k + w, h, 0.002], [k - w, h, 0.002], color);

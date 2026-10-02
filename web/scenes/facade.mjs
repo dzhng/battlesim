@@ -11,15 +11,20 @@
 // same from its back and whatever order it is drawn in, and from the street
 // a window stays darker than its wall under every sun.
 //
+// Rooms (behind every window of the block): dim, never a hole and never lit;
+// the same room whatever the camera, the tier or the packing order; and the
+// same picture under every sun.
+//
 // `FACADE_COST=1` measures instead: the frame's GPU time with and without
 // each kind of surface (paired, interleaved) over a field of blocks.
 import { writeFile } from "node:fs/promises";
 import { lab } from "./_lab.mjs";
+import { PNG } from "pngjs";
 import { decode, pixel, around, writeCrop } from "./_png.mjs";
 
 const VIEWPORT = { width: 1920, height: 1080 };
 const HIDE_PANEL = "[data-testid=facade-panel] { display: none !important; }";
-const SURFACES = ["cutout", "blended"];
+const SURFACES = ["cutout", "blended", "room"];
 /** Blocks in the cost run's field. */
 const COST_BLOCKS = 288;
 
@@ -262,8 +267,8 @@ const PANES = {
   single: { pane: 0, at: [-0.5, 0, 1.2] },
   // The first pane's glass over the second's.
   double: { pane: 0, at: [0.4, 0, 1.2] },
-  // The first pane's frame, in front of the second pane's glass.
-  frame: { pane: 0, at: [0.78, 0, 1.2] },
+  // The first pane's frame (its near face), in front of the second pane's glass.
+  frame: { pane: 0, at: [0.78, -0.03, 1.2], within: 0 },
   // The turned pane, seen from its back.
   back: { pane: 3, at: [0.3, 0, 1.2] },
 };
@@ -290,7 +295,7 @@ async function glass(ctx) {
       [[p.at], p.pane],
     );
     const px = await project(page, world);
-    const [with_, bare] = [mean(drawn, px, 2), mean(without, px, 2)];
+    const [with_, bare] = [mean(drawn, px, p.within ?? 2), mean(without, px, p.within ?? 2)];
     at[name] = { kept: luminance(with_) / luminance(bare), changed: sum(with_, bare) };
   }
   await writeCrop(drawn, ctx.evidencePath("glass-close-crop.png"), 960, 560, 300, 160, 3);
@@ -343,7 +348,12 @@ async function glass(ctx) {
   for (const [name, azimuth] of Object.entries(SUNS)) {
     const sunned = await open(ctx, azimuth === null ? "" : `?azimuth=${azimuth}&sun=0.5`);
     await stand(sunned.page, "facade", "close");
-    const street = await shot(ctx, sunned.page, `facade-street-${name}-1920x1080.png`);
+    const { drawn: street, without: bare } = await withAndWithout(
+      ctx,
+      sunned.page,
+      "blended",
+      `facade-street-${name}-1920x1080.png`,
+    );
     const [pane, wall] = await lab(
       sunned.page,
       (locals) => window.__lab.route.points("bay_window", locals, 1),
@@ -351,7 +361,7 @@ async function glass(ctx) {
     );
     const [panePx, wallPx] = [await project(sunned.page, pane), await project(sunned.page, wall)];
     await writeCrop(
-      frame,
+      street,
       ctx.evidencePath(`facade-street-${name}-crop.png`),
       ...panePx,
       160,
@@ -361,6 +371,8 @@ async function glass(ctx) {
     windows[name] = {
       pane: luminance(mean(street, panePx, 4)),
       wall: luminance(mean(street, wallPx, 4)),
+      // The room behind the pane, with no glass over it.
+      room: mean(bare, panePx, 4),
     };
     if (name === "fixture")
       cameras["facade-close"] = await lab(sunned.page, () => window.__lab.camera());
@@ -377,6 +389,128 @@ async function glass(ctx) {
     warnings.length === 0,
     warnings.slice(0, 3).join(" | "),
   );
+  return { cameras, windows };
+}
+
+/** The block's windows: its six flats (two floors of three bays) and its
+ *  three shops, each by its pane's middle in its bay's own frame. */
+const WINDOWS = [
+  ...[0, 1, 2, 3, 4, 5].map((nth) => ({ module: "bay_window", nth, at: [0, 0.13, 1.7] })),
+  ...[0, 1, 2].map((nth) => ({ module: "bay_shop", nth, at: [0, 0.13, 1.45] })),
+];
+/** The mean colour behind each window's pane in `png`, as `page` frames it. */
+async function behindWindows(page, png, r = 5) {
+  const out = [];
+  for (const w of WINDOWS) {
+    const [world] = await lab(
+      page,
+      ([module, locals, nth]) => window.__lab.route.points(module, locals, nth),
+      [w.module, [w.at], w.nth],
+    );
+    out.push(mean(png, await project(page, world), r));
+  }
+  return out;
+}
+const farthest = (a, b) => Math.max(...a.map((colour, i) => sum(colour, b[i])));
+
+async function rooms(ctx, suns) {
+  const { page, warnings } = await open(ctx);
+  const cameras = {};
+  const target = (
+    await lab(page, () => window.__lab.route.points("block_shell", [[0, 0, 4.5]]))
+  )[0];
+  const yaw = -Math.PI / 2 - 0.35;
+  // The facade from 30 m and 80 m as the rig pitches the camera there, and a
+  // shopfront from the street.
+  const views = {
+    "30m": { target, distance: 30, pitch: 0.3, yaw },
+    "80m": { target, distance: 80, pitch: 0.85, yaw },
+    storefront: {
+      target: [target[0], target[1], 1.4],
+      distance: 9,
+      pitch: 0.05,
+      yaw: -Math.PI / 2 - 0.2,
+    },
+  };
+  const seen = {};
+  for (const [name, view] of Object.entries(views)) {
+    await frame(page, view.target, view);
+    const { drawn, without } = await withAndWithout(
+      ctx,
+      page,
+      "blended",
+      `rooms-${name}-1920x1080.png`,
+    );
+    await writeFile(
+      ctx.evidencePath(`rooms-${name}-no-glass-1920x1080.png`),
+      PNG.sync.write(without),
+    );
+    await writeCrop(drawn, ctx.evidencePath(`rooms-${name}-crop.png`), 960, 540, 240, 135, 4);
+    const wall = (
+      await lab(page, () => window.__lab.route.points("bay_window", [[-1.1, 0, 1.7]], 1))
+    )[0];
+    seen[name] = {
+      rooms: (await behindWindows(page, without)).map(luminance),
+      glazed: (await behindWindows(page, drawn)).map(luminance),
+      wall: luminance(mean(drawn, await project(page, wall), 4)),
+    };
+    cameras[`rooms-${name}`] = await lab(page, () => window.__lab.camera());
+  }
+  // Neither a hole (black) nor lit (as bright as the sunlit wall beside it).
+  const dim = (s) =>
+    [...s.rooms, ...s.glazed].every((l) => l >= 6) &&
+    [...s.rooms, ...s.glazed].every((l) => l <= 0.7 * s.wall);
+  ctx.check(
+    "behind every window is a dim room: never black as a hole, never as bright as the wall beside it, with glass over it or without",
+    dim(seen["30m"]) && dim(seen["80m"]),
+    JSON.stringify(seen),
+  );
+
+  // Which room a window shows depends on where it stands and nothing else:
+  // not on the camera, the tier, or the order the frame packs its models in.
+  await frame(page, views["30m"].target, views["30m"]);
+  const before = await shot(ctx, page, null);
+  const picked = await behindWindows(page, before);
+  await stand(page, "cutouts", "far");
+  await shot(ctx, page, null);
+  await frame(page, views["30m"].target, views["30m"]);
+  const after = await shot(ctx, page, null);
+  const returned = farthest(picked, await behindWindows(page, after));
+  const reversed = await open(ctx, "?order=reversed");
+  await frame(reversed.page, views["30m"].target, views["30m"]);
+  const other = await shot(ctx, reversed.page, "rooms-30m-reversed-1920x1080.png");
+  const reordered = farthest(picked, await behindWindows(reversed.page, other));
+  await reversed.page.context().close();
+  // How unlike two windows' rooms are: the nearest pair of the flats.
+  const flats = picked.slice(0, 6);
+  let alike = Infinity;
+  for (let i = 0; i < flats.length; i++)
+    for (let j = i + 1; j < flats.length; j++) alike = Math.min(alike, sum(flats[i], flats[j]));
+  const distinct = new Set(flats.map((c) => c.map((v) => Math.round(v / 6)).join()));
+  ctx.check(
+    "a window shows the same room after the camera has been away and when the models are packed in the opposite order, and the windows do not all show one room",
+    returned <= 2 && reordered <= 2 && distinct.size >= 3,
+    JSON.stringify({ returned, reordered, distinct: distinct.size, nearestPair: alike }),
+  );
+
+  // Unlit: a room is the same picture whichever way the sun stands (the three
+  // suns at one elevation), while the wall beside it changes with it.
+  const lit = ["behind", "ahead", "along"].map((name) => suns[name]);
+  const roomSpread = Math.max(...lit.map((a) => Math.max(...lit.map((b) => sum(a.room, b.room)))));
+  const wallSpread = Math.max(
+    ...lit.map((a) => Math.max(...lit.map((b) => Math.abs(a.wall - b.wall)))),
+  );
+  ctx.check(
+    "a room takes no sun: its picture is the same under every sun azimuth, while the wall beside it is lit and shaded",
+    roomSpread <= 4 && wallSpread >= 25,
+    JSON.stringify({ roomSpread, wallSpread, suns: lit }),
+  );
+  ctx.check(
+    "no WebGPU validation warning was logged with rooms drawn",
+    warnings.length === 0,
+    warnings.slice(0, 3).join(" | "),
+  );
+  await page.context().close();
   return cameras;
 }
 
@@ -447,6 +581,7 @@ async function cost(ctx) {
 export async function run(ctx) {
   if (process.env.FACADE_COST === "1") return cost(ctx);
   const meta = await cutouts(ctx);
-  Object.assign(meta.cameras, await glass(ctx));
+  const glazed = await glass(ctx);
+  Object.assign(meta.cameras, glazed.cameras, await rooms(ctx, glazed.windows));
   await ctx.writeEvidence("meta.json", meta);
 }

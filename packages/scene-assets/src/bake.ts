@@ -17,6 +17,7 @@ import {
   type SkeletonClips,
   type StaticBundle,
 } from "./schema.ts";
+import { bindInteriors, interiorTexture, type InteriorSheets } from "./interior.ts";
 import { encodeTemplateLibrary, sealTemplateLibrary } from "./templateLibrary.ts";
 import {
   packTemplateSets,
@@ -100,6 +101,21 @@ export async function bakeCatalog(
       .map(([, a]) => a.skeleton)
       .filter((s): s is string => !!s),
   );
+  // The interior sheets, each read and laid out once, when a room first asks.
+  const sheetTextures = new Map<string, ReturnType<InteriorSheets>>();
+  const sheets: InteriorSheets = (sheet) => {
+    let texture = sheetTextures.get(sheet);
+    if (!texture) {
+      const path = catalog.interiors?.[sheet];
+      texture = path
+        ? readSource(path)
+            .then(interiorTexture)
+            .catch((error: unknown) => `${path} ${error instanceof Error ? error.message : error}`)
+        : Promise.resolve("the catalog has no source for");
+      sheetTextures.set(sheet, texture);
+    }
+    return texture;
+  };
   const emit = async (bundle: Parameters<typeof encodeBundle>[0]) => {
     const bytes = encodeBundle(bundle);
     const hash = await bundleHash(bytes);
@@ -163,7 +179,9 @@ export async function bakeCatalog(
       },
       { ...context, tolerances: catalog.tolerances },
     );
-    const out = result.bundle ? await emit(result.bundle) : null;
+    if (result.bundle && result.bundle.kind !== "clips")
+      result.findings.push(...(await bindInteriors(name, result.bundle, sheets)));
+    const out = result.bundle && !hasErrors(result.findings) ? await emit(result.bundle) : null;
     if (entry.unit === "kit" && out) result.findings.push(...kitBytesFindings(name, out.bytes));
     if (entry.unit === "kit" && result.bundle?.kind === "static" && out)
       kits.set(name, { bundle: result.bundle, hash: out.hash });

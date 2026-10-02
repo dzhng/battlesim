@@ -3,7 +3,13 @@
 // pipeline draws one index range: what it must hold is every triangle once,
 // in the range of its own surface, and an all-opaque mesh exactly as it was.
 import { expect, test } from "vitest";
-import { orderSurfaces, surfaceClass } from "@packages/battle-renderer/src/models/surfaceParts";
+import {
+  SURFACE_CLASSES,
+  orderSurfaces,
+  partRange,
+  surfaceClass,
+  type SurfaceClass,
+} from "@packages/battle-renderer/src/models/surfaceParts";
 import type { Coverage, Material } from "@packages/scene-assets/src/schema";
 
 const material = (coverage: Coverage, more: Partial<Material> = {}): Material => ({
@@ -18,6 +24,12 @@ const material = (coverage: Coverage, more: Partial<Material> = {}): Material =>
 const OPAQUE = material({ kind: "opaque" });
 const CUTOUT = material({ kind: "cutout", cutoff: 0.5 });
 const GLASS = material({ kind: "blended" });
+const ROOM = material({ kind: "opaque" }, { interior: "rooms" });
+const shown = (hide: SurfaceClass[] = []) =>
+  Object.fromEntries(SURFACE_CLASSES.map((c) => [c, hide.includes(c)])) as Record<
+    SurfaceClass,
+    boolean
+  >;
 
 /** A mesh of `vertices` vertices whose draws are runs of triangles, each
  *  triangle (3k, 3k + 1, 3k + 2) in turn. */
@@ -82,6 +94,30 @@ test("a window's pane is apart from its frame: glass in the blended range and no
   expect(triangles(indices, parts.opaque.first, parts.opaque.count)).toEqual(["0,1,2"]);
   expect(triangles(indices, parts.cutout.first, parts.cutout.count)).toEqual(["9,10,11"]);
   expect(parts.blended.count + parts.opaque.count + parts.cutout.count).toBe(indices.length);
+});
+
+test("a room is solid to depth and shadow with the opaque surfaces, and its own range to colour", () => {
+  const classes = [OPAQUE, ROOM, GLASS, OPAQUE, CUTOUT].map(surfaceClass);
+  const m = mesh(15, [
+    { material: 0, triangles: 1 },
+    { material: 1, triangles: 1 },
+    { material: 2, triangles: 1 },
+    { material: 3, triangles: 1 },
+    { material: 4, triangles: 1 },
+  ]);
+  const { indices, parts } = orderSurfaces([m], (i) => classes[i]);
+  const drawn = (part: Parameters<typeof partRange>[1], hide?: SurfaceClass[]) => {
+    const { first, count } = partRange(parts, part, shown(hide));
+    return triangles(indices, first, count).sort();
+  };
+  // One range for the fragment-less pipelines: walls and rooms, no pane, no grille.
+  expect(drawn("solid")).toEqual(["0,1,2", "3,4,5", "9,10,11"]);
+  expect(drawn("room")).toEqual(["3,4,5"]);
+  expect(drawn("opaque")).toEqual(["0,1,2", "9,10,11"]);
+  // Switched off (the lab's paired cost), a class leaves depth and colour together.
+  expect(drawn("solid", ["room"])).toEqual(["0,1,2", "9,10,11"]);
+  expect(drawn("room", ["room"])).toEqual([]);
+  expect(drawn("solid", ["opaque"])).toEqual(["3,4,5"]);
 });
 
 test("meshes merged into one buffer index their own vertices", () => {

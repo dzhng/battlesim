@@ -109,6 +109,7 @@ import { mapBox } from "./receiverRange";
 import {
   createGlassFragment,
   createModelFragments,
+  createRoomFragment,
   modelAttribs,
   modelCutoutCaster,
   modelCutoutDepth,
@@ -406,6 +407,16 @@ export async function createWorldPass(
     depthStencil: battleWorldDepth("kept"),
     multisample: { count: FRAME_MSAA },
   });
+  // A room behind a window is as solid as a wall to depth and shadow (the
+  // fragment-less pipelines draw it with the opaque surfaces); its colour is
+  // its own stage's, a picture shown unlit.
+  const modelRooms = root.createRenderPipeline({
+    ...modelBase,
+    fragment: createRoomFragment(environment),
+    targets: worldTargets(),
+    depthStencil: battleWorldDepth("prepassed"),
+    multisample: { count: FRAME_MSAA },
+  });
   // A blended surface (glass) is drawn after everything opaque, over it by
   // its coverage, as the water is: it reads depth and writes none, is in no
   // prepass and casts no shadow.
@@ -486,6 +497,7 @@ export async function createWorldPass(
       modelPrepassCutout,
       modelCasterCutout,
       modelCutout,
+      modelRooms,
       modelBlended,
       modelXray,
       modelXrayCount,
@@ -661,8 +673,8 @@ export async function createWorldPass(
         proxies.draw(bound);
         const raw = root.unwrap(pass);
         const modelCasters = modelCaster.with(pass).with(cameraGroup) as unknown as Bound;
-        models.drawCasters(modelCasters, "opaque");
-        models.drawBuildingCasters(modelCasters, raw, "opaque");
+        models.drawCasters(modelCasters, "solid");
+        models.drawBuildingCasters(modelCasters, raw, "solid");
         const cutoutCasters = modelCasterCutout.with(pass).with(cameraGroup) as unknown as Bound;
         models.drawCasters(cutoutCasters, "cutout");
         models.drawBuildingCasters(cutoutCasters, raw, "cutout");
@@ -698,7 +710,7 @@ export async function createWorldPass(
       models.drawBuildings(
         modelPrepass.with(scene).with(cameraGroup) as unknown as Bound,
         root.unwrap(scene),
-        "opaque",
+        "solid",
       );
       models.drawBuildings(
         modelPrepassCutout.with(scene).with(cameraGroup) as unknown as Bound,
@@ -788,7 +800,7 @@ export async function createWorldPass(
         depthStencilAttachment: { view: depthView, depthLoadOp: "load", depthStoreOp: "store" },
       });
       proxies.draw(prepass.with(units).with(cameraGroup));
-      drawModels(modelPrepass.with(units).with(cameraGroup), "opaque");
+      drawModels(modelPrepass.with(units).with(cameraGroup), "solid");
       drawModels(modelPrepassCutout.with(units).with(cameraGroup), "cutout");
       units.end();
       raw.copyTextureToTexture({ texture: targets.depth }, { texture: targets.overlayDepth }, [
@@ -908,10 +920,12 @@ export async function createWorldPass(
       // ground under them.
       const modelsLit = modelOpaque.with(pass).with(cameraGroup).with(environment.group);
       const cutoutsLit = modelCutout.with(pass).with(cameraGroup).with(environment.group);
+      const roomsShown = modelRooms.with(pass).with(cameraGroup).with(environment.group);
       const cardsLit = modelCards.with(pass).with(cameraGroup).with(environment.group);
       for (const fog of ["units", "faces", "ground", "paintedFaces"] as const) {
         drawModels(modelsLit.with(fogGroups[fog]), "opaque", fog);
         drawModels(cutoutsLit.with(fogGroups[fog]), "cutout", fog);
+        drawModels(roomsShown.with(fogGroups[fog]), "room", fog);
         drawCards(cardsLit.with(fogGroups[fog]), fog);
       }
       // Buildings are faces: an occluding structure takes fog whole.
@@ -924,6 +938,11 @@ export async function createWorldPass(
         cutoutsLit.with(fogGroups.faces) as unknown as Bound,
         root.unwrap(pass),
         "cutout",
+      );
+      models.drawBuildings(
+        roomsShown.with(fogGroups.faces) as unknown as Bound,
+        root.unwrap(pass),
+        "room",
       );
       scenery.encode(pass, cameraGroup, fogGroups.faces);
       // The class view reads the ground itself: nothing that grows on it or
