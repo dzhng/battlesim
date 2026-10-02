@@ -358,3 +358,24 @@ physical exemption is added. Large connected destination components and other
 repeated connector failures retain their existing costs. Current generated-case
 follow-up, native/Wasm agreement and full browser admission remain integration
 work; this scoped correction does not close C06 or the whole navigation budget.
+
+## Outcome — controlled reset resource baseline
+
+The full-world reset failure compared a late battle with a fresh opening.
+Factory-level allocation traces identify the extra late buffer as the translucent
+overlay's replaceable mesh (`overlayPass` → `MeshSlot.set`). An empty opening
+does not materialize that lazy buffer; replacing the late mesh destroys it.
+In the attributed run, its 1,422,960 bytes disappear on reset and corpse cards
+shrink from 320 to 16 bytes. Three fresh resets have identical counts and bytes.
+This is a valid resource-lifetime transition, not a missing disposal.
+
+The endurance scene now compares all three resets at paused, presented tick 90,
+after the live arm warms lazy resources. It checks exact buffer/texture counts
+and bytes and records them in telemetry. The bounded generated browser proof
+passes with 362 buffers / 41 textures and 294,501,276 / 263,868,125 bytes on
+every reset. A separate scratch wrapper deliberately retains a real 16-byte
+GPU buffer on each explicit draw; the check fails with 366 → 367 → 368 buffers
+and precisely 16 added bytes per reset. The ordinary source has no leak hook.
+This corrects an uncontrolled comparison and adds byte accounting; stress
+durations, rendering and the timing target remain unchanged. The two-second
+arms prove the reset contract only. Full timing admission remains open.
