@@ -43,9 +43,15 @@ pub fn validate_header(
     errors
 }
 
+/// A physical map. `B` is what a building is: the resolved building every
+/// consumer reads (the default), or the compact one a saved map stores
+/// ([`SavedMap`]).
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct MapDefinition {
+#[serde(
+    deny_unknown_fields,
+    bound(serialize = "B: Serialize", deserialize = "B: Deserialize<'de>")
+)]
+pub struct MapDefinition<B = BuildingDefinition> {
     /// Closed ground bounds `[width, height]`.
     #[serde(deserialize_with = "crate::numbers::array")]
     pub size: [f64; 2],
@@ -72,9 +78,35 @@ pub struct MapDefinition {
     #[serde(default)]
     pub props: Vec<AuthoredPropDefinition>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub buildings: Vec<BuildingDefinition>,
+    pub buildings: Vec<B>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub template_catalog_hash: Option<String>,
+}
+
+/// A map as its folder stores it (`fixtures/maps/<id>/map.json`): everything
+/// a resolved map holds, with each building as its template and frame. Only
+/// the resolver (`maps::resolve`) reads one.
+pub type SavedMap = MapDefinition<SavedBuilding>;
+
+impl<B> MapDefinition<B> {
+    /// This map with `buildings` in place of its own, which are handed back.
+    pub fn with_buildings<C>(self, buildings: Vec<C>) -> (MapDefinition<C>, Vec<B>) {
+        let map = MapDefinition {
+            size: self.size,
+            fog_cell_m: self.fog_cell_m,
+            height_grid_m: self.height_grid_m,
+            slope_cutoff_deg: self.slope_cutoff_deg,
+            relief: self.relief,
+            rivers: self.rivers,
+            surfaces: self.surfaces,
+            bridges: self.bridges,
+            forests: self.forests,
+            props: self.props,
+            buildings,
+            template_catalog_hash: self.template_catalog_hash,
+        };
+        (map, self.buildings)
+    }
 }
 
 /// Additive height contributions, sampled at grid vertices before triangulation.
@@ -322,6 +354,32 @@ pub struct BuildingDefinition {
     pub geometry: crate::templates::MaterializedBuilding,
 }
 
+/// One placed building as a saved map stores it: which template of the map's
+/// pinned library stands at which frame, and the ids that are the building's
+/// own. Its geometry, category and regional family are the template's, so
+/// they are not stored: the resolver materializes them.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SavedBuilding {
+    pub owner: u32,
+    pub kind: String,
+    pub template_id: String,
+    pub frame: crate::templates::PlacementFrame,
+    pub parts: Vec<BuildingPartReference>,
+}
+
+impl From<&BuildingDefinition> for SavedBuilding {
+    fn from(building: &BuildingDefinition) -> Self {
+        Self {
+            owner: building.owner,
+            kind: building.kind.clone(),
+            template_id: building.geometry.template_id.clone(),
+            frame: building.geometry.frame,
+            parts: building.parts.clone(),
+        }
+    }
+}
+
 impl BuildingDefinition {
     /// Preparation materializes physical geometry once; consumers receive only
     /// this final record, never an appearance or a second template geometry.
@@ -350,6 +408,14 @@ pub fn relief_height(relief: &[Relief], x: f64, y: f64) -> f64 {
 }
 
 impl MapDefinition {
+    /// The form this map is saved in. The resolver gives this map back from
+    /// it, because a building it admits is always its template materialized
+    /// at its frame.
+    pub fn saved(&self) -> SavedMap {
+        let buildings = self.buildings.iter().map(SavedBuilding::from).collect();
+        self.clone().with_buildings(buildings).0
+    }
+
     /// The land's height at (x, y) before any river is carved into it.
     pub fn relief_height(&self, x: f64, y: f64) -> f64 {
         relief_height(&self.relief, x, y)

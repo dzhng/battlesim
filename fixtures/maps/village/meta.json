@@ -1,7 +1,7 @@
 {
-  "category": "playable",
+  "category": "lab",
   "status": "released",
-  "label": "Village",
+  "label": "Village (test map)",
   "character": "village",
   "biome": "summer",
   "size_m": [1600, 1600],

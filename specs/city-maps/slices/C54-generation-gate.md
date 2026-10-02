@@ -1,6 +1,6 @@
 # C54: integrated map generation and all-map gate
 
-**Depends on:** C53, C55, C34–C36, C56, C05, C09, C60, C31, C50, C59, C16–C19 and C32; C57 for playable camera evidence. **Kind:** required integration gate.
+**Depends on:** C53, C55, C05, C09, C60, C31, C50, C59, C16–C19 and C32; C57 for playable camera evidence. **Kind:** required integration gate.
 
 ## Question
 Do offline/runtime generation and every catalogued map satisfy the accepted composition, physical access and full-extent budgets beyond one attractive seed?
@@ -34,3 +34,31 @@ All-map scope, fixed dimensions, one generation/compiler/resolver path and repla
 
 ## Feedback that would change this slice
 A failed type/size or arena contract reopens its owning slice; one showcase seed cannot waive the gate.
+
+## Outcome: pipeline tool checkpoint
+
+The native `battle_sweep` example now follows the game's generation request,
+physical compiler, assault planner and Scenario/Battle owners. It retains one
+JSONL outcome for every exact type, size and fixed seed, with canonical input,
+generation, recipe and rules identities. A refusal keeps all diagnostics; an
+unwinding per-case panic keeps its message and does not erase later cases.
+This is failure isolation, not recovery from a hung process or memory exhaustion.
+
+The attacker advances its planned column by an ordinary group move; each unit's
+acknowledged offset destination is what the report measures. Existing defender
+scripts and policy remain in the scenario. Every unit remains visible in the
+report, including uncommanded and dead units. Proximity within 10 m, distance
+travelled, remaining distance and time in each movement state are distinct
+fields. `goals_not_neared` names lack of proximity during the sample, not a
+failed arrival or proof of permanent blockage. Dead ticks cannot count as moving
+or planning. Generation, prepared geometry, placement, Battle build and tick
+costs are separate; progress and JSON formatting lie outside the tick bracket.
+Instructions are null where unavailable. Native counters and timing reads add
+measurement overhead; loaded wall time is not performance-change proof.
+
+The refusal matrix and acknowledged-goal/dead-state report tracers pass; assigning
+one unit's goal to the group fails the latter. A real Open Small seed-1 assault
+ran for 30 s, with every column unit setting off, no refused placement and no
+substituted input. Its distant routes remain pending within the short window.
+The complete matrix, native/Wasm integration, physical/access/gallery and release
+art gates remain open. This is the tooling half delegated to the scale lane.

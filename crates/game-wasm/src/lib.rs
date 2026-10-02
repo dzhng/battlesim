@@ -85,9 +85,10 @@ pub fn map_generator_version() -> String {
 }
 
 /// Resolve a saved map from its documents (`fixtures/maps/<id>/map.json` and
-/// `SOURCES.json`, and the physical template library): the browser's and the
-/// tools' side of the one resolver, admitted as the native catalogue reader
-/// (`sim::maps`) admits it. Answers `{ status: "ok", result: { definition,
+/// `SOURCES.json`, and the physical template library those sources name; the
+/// map stores each building as its template and frame, materialized here):
+/// the browser's and the tools' side of the one resolver, admitted as the
+/// native catalogue reader (`sim::maps`) admits it. Answers `{ status: "ok", result: { definition,
 /// identity } }`, or `{ status: "error", error: { code, location, message } }`.
 #[wasm_bindgen]
 pub fn resolve_saved_map(
@@ -733,8 +734,8 @@ impl BattleHandle {
     pub fn from_replay(scenario_json: &str, replay_json: &str) -> Result<BattleHandle, JsError> {
         let setup: ScenarioDefinition = serde_json::from_str(scenario_json).map_err(js_error)?;
         let replay: Replay = serde_json::from_str(replay_json).map_err(js_error)?;
-        let battle = Battle::from_replay(&setup, &replay)
-            .map_err(|e| JsError::new(&format!("replay does not match this scenario: {e:?}")))?;
+        let battle =
+            Battle::from_replay(&setup, &replay).map_err(|e| JsError::new(&e.to_string()))?;
         Ok(BattleHandle {
             battle,
             publisher: Publisher::new(),

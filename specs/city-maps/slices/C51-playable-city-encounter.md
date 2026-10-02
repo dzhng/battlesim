@@ -1,6 +1,6 @@
 # C51: procedural map completion
 
-**Depends on:** C58 offline encounter, C55 runtime, C34–C36 surroundings, C57 clearance, C54 integrated gate, C31, C50 and every retained required appearance/rule/ground gate including C87. **Kind:** closeout gate.
+**Depends on:** C58 offline encounter, C55 runtime, C57 clearance, C54 integrated gate, C31, C50 and every retained required appearance/rule/ground gate including C87. **Kind:** closeout gate.
 
 ## Question
 Does the complete saved/runtime map system deliver the intended playable battles on this Mac at ≥30 FPS?

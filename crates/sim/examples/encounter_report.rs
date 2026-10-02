@@ -2,11 +2,15 @@
 //! given, prints what the placement is and what it cost, and draws it.
 //!
 //!     cargo run -p sim --release --example encounter_report -- \
-//!         [--recipe assault] [--seed 1] [--out <directory>] <map-directory>...
+//!         [--recipe assault] [--seed 1] [--out <directory>] [--save] <map-directory>...
 //!
 //! A map directory is what `mapgen generate-map <request> <presets>
-//! <catalogue> <directory>` writes: `map.json` and `sites.json`. The rules
-//! are the village's, the recipe a row of `fixtures/encounters.json`.
+//! <catalogue> <directory>` writes: a saved map (`map.json`, `SOURCES.json`)
+//! and its `sites.json`. The rules are the village's, the recipe a row of
+//! `fixtures/encounters.json`.
+//!
+//! With `--save`, each map's planned encounter is written as its saved
+//! encounter, `<map-directory>/encounters/<recipe>.json`.
 //!
 //! One table row per map: each column's drive to the objective for the
 //! recipe's pace unit and their difference, how far a column was moved up
@@ -33,6 +37,7 @@ fn main() {
     let mut recipe_id = "assault".to_string();
     let mut seed = 1u64;
     let mut out: Option<PathBuf> = None;
+    let mut save = false;
     let mut maps = Vec::new();
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
@@ -44,12 +49,13 @@ fn main() {
             "--recipe" => recipe_id = value("--recipe"),
             "--seed" => seed = value("--seed").parse().expect("--seed takes a u64"),
             "--out" => out = Some(value("--out").into()),
+            "--save" => save = true,
             _ => maps.push(PathBuf::from(arg)),
         }
     }
     assert!(
         !maps.is_empty(),
-        "usage: encounter_report [--recipe id] [--seed n] [--out dir] <map-directory>..."
+        "usage: encounter_report [--recipe id] [--seed n] [--out dir] [--save] <map-directory>..."
     );
     let rules: Rules = serde_json::from_value(sim::fixtures::game()).expect("the village rules");
     let recipes = EncounterRecipes::from_json(
@@ -80,7 +86,9 @@ fn main() {
             std::fs::read_to_string(directory.join(file))
                 .unwrap_or_else(|e| panic!("{}/{file}: {e}", directory.display()))
         };
-        let map: MapDefinition = serde_json::from_str(&read("map.json")).expect("a compiled map");
+        let map: MapDefinition = sim::maps::load_folder(directory)
+            .unwrap_or_else(|e| panic!("{e}"))
+            .definition;
         let sites: EncounterSites = serde_json::from_str(&read("sites.json")).expect("map sites");
         let before = instructions();
         let prepared = PreparedMap::new(&map, &rules);
@@ -143,6 +151,15 @@ fn main() {
                     why.join("; ")
                 );
             }
+        }
+        if let (true, Ok(encounter)) = (save, &outcome) {
+            let folder = directory.join("encounters");
+            std::fs::create_dir_all(&folder).expect("the encounters directory");
+            std::fs::write(
+                folder.join(format!("{recipe_id}.json")),
+                serde_json::to_vec(&encounter.setup).expect("an encounter serializes"),
+            )
+            .expect("the saved encounter");
         }
         if let (Some(out), Ok(encounter)) = (&out, &outcome) {
             draw(out, &name, &map, &sites, encounter, &rules);

@@ -1,10 +1,12 @@
 // The one map resolver as JavaScript reaches it. A saved map is a folder of
-// the catalogue, `fixtures/maps/<id>/`: its physical `map.json`, and the
-// `SOURCES.json` that pins what it is and where it came from. An adapter (the
-// browser's fetch, a tool's file read) obtains those documents and the
-// physical template library, and the simulation's WebAssembly resolver admits
-// them or refuses them, exactly as the native reader (`sim::maps`) does. The
-// battle only ever receives the resolved definition.
+// the catalogue, `fixtures/maps/<id>/`: its physical `map.json`, which stores
+// each building as its template and frame, and the `SOURCES.json` that pins
+// what the map is, where it came from and which physical template library
+// its buildings are materialized from. An adapter (the browser's fetch, a
+// tool's file read) obtains those documents and that library, and the
+// simulation's WebAssembly resolver admits them or refuses them, exactly as
+// the native reader (`sim::maps`) does. The battle only ever receives the
+// resolved definition: JavaScript never reads a saved `map.json` itself.
 //
 // Plain TypeScript with no bundler features, so Node tools import it too.
 
@@ -84,6 +86,10 @@ export type MapIdentity =
 export interface ResolvedMap {
   definition: MapDefinition;
   identity: MapIdentity;
+  /** The definition as the resolver wrote it. A scenario is spliced from
+   *  this text, never from a re-serialised parse, which would lose what a
+   *  JSON number cannot hold in JavaScript: the sign of a zero. */
+  json: string;
 }
 
 /** The documents an adapter obtained for one saved map, as text. */
@@ -92,8 +98,34 @@ export interface MapDocuments {
   map: string;
   /** `fixtures/maps/<id>/SOURCES.json`. */
   sources: string;
-  /** The physical template library the catalogue's maps pin. */
+  /** The physical template library the map's sources name (`libraryOf`). */
   library: string;
+}
+
+/** A physical template library's file name, beside the catalogue's `maps/`
+ *  (`contract::maps::CatalogueSelection::library`). */
+const LIBRARY = /^[a-z0-9][a-z0-9_-]*\.json$/;
+
+/** The library map `id`'s `SOURCES.json` names: one file name, never a path.
+ *  It only says where the library is. What admits the library is the
+ *  catalogue hash the map names, which the resolver checks. */
+export function libraryOf(id: string, sources: string): string {
+  const refuse = (location: string, message: string): never => {
+    throw new MapResolveError("invalid_sources", `${id}/${location}`, message);
+  };
+  let parsed: { catalogue?: { library?: unknown } } | null;
+  try {
+    parsed = JSON.parse(sources) as typeof parsed;
+  } catch (e) {
+    return refuse("SOURCES.json", (e as Error).message);
+  }
+  const library = parsed?.catalogue?.library;
+  if (typeof library !== "string" || !LIBRARY.test(library))
+    return refuse(
+      "SOURCES.json.catalogue.library",
+      "the physical library is one lowercase ASCII file name ending in .json, never a path",
+    );
+  return library;
 }
 
 /** A catalogue address: one lowercase directory name, never a path
@@ -128,8 +160,13 @@ export function checkAddress(name: string, location: string): void {
 export type SavedMapResolver = (map: string, sources: string, library: string) => string;
 
 type ResolveOutcome =
-  | { status: "ok"; result: ResolvedMap }
+  | { status: "ok"; result: Omit<ResolvedMap, "json"> }
   | { status: "error"; error: { code: string; location: string; message: string } };
+
+/** How an accepted outcome is laid out (`contract::maps::ResolveOutcome`):
+ *  the definition, then the identity, which closes the record. */
+const DEFINITION_OPENS = '{"status":"ok","result":{"definition":';
+const DEFINITION_CLOSES = ',"identity":{';
 
 /** Map `id`'s documents through the resolver: the definition and identity, or
  *  the refusal, located under the map's folder. */
@@ -138,10 +175,14 @@ export function resolveSavedMap(
   id: string,
   documents: MapDocuments,
 ): ResolvedMap {
-  const outcome = JSON.parse(
-    resolver(documents.map, documents.sources, documents.library),
-  ) as ResolveOutcome;
-  if (outcome.status === "ok") return outcome.result;
+  const text = resolver(documents.map, documents.sources, documents.library);
+  const outcome = JSON.parse(text) as ResolveOutcome;
+  if (outcome.status === "ok") {
+    const closes = text.lastIndexOf(DEFINITION_CLOSES);
+    if (!text.startsWith(DEFINITION_OPENS) || closes < 0)
+      throw new Error(`${id}: the resolver's outcome is not laid out as definition, identity`);
+    return { ...outcome.result, json: text.slice(DEFINITION_OPENS.length, closes) };
+  }
   const { code, location, message } = outcome.error;
   throw new MapResolveError(code, `${id}/${location}`, message);
 }

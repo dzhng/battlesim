@@ -726,6 +726,24 @@ def joinery():
     return Baked(col, chips(2507, 12, bias=0.1), normals_from_height(blur(grain * 0.5 - seam * 2), 1.2), 1.0 - 0.4 * seam, 0.6)
 
 
+@recipe("rubble_stone", tile=3.0, wear=(0.075, 0.08, 0.05, 1.0))
+def rubble_stone():
+    """A farm wall of field stone laid as random rubble: flat stones a hand or two
+    across, close in tone, in pale recessed lime mortar. A pale ground a
+    building's tint can warm or cool; the wear is moss."""
+    cells = 9
+    rows = (np.arange(SIZE) * 2) % SIZE  # twice the courses up the wall: stones lie flat
+    f1, f2, ident = (x[rows] for x in worley(cells, 2601))
+    joint = smoothstep(0.16, 0.04, f2 - f1)
+    stone = np.random.default_rng(2603).random(cells * cells)[ident]
+    grain = fbm(64, 2605, 3)
+    col = mix((0.36, 0.345, 0.31), (0.46, 0.44, 0.39), stone)
+    col = col * (0.88 + 0.24 * grain)[..., None] * (0.82 + 0.36 * fbm(3, 2607, 4))[..., None]
+    col = mix(col, (0.5, 0.48, 0.43), joint)
+    h = (1 - joint) * (0.7 + 0.5 * stone) + grain * 0.3
+    return Baked(col, 0.3 + 0.7 * fbm(8, 2609, 4), normals_from_height(blur(h), 1.8), 1.0 - 0.4 * joint, 0.94)
+
+
 # ---------------------------------------------------------------- UVs and the GLB
 def box_uv(obj, tile):
     """UVs in metres over `tile` (one number, or one per material slot): each
