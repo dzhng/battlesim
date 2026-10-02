@@ -2736,3 +2736,15 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 **Evidence:** That scene draws the village, which has no water. The village's nine stations without grass are byte-identical before and after.
 
 **Verdict:** sound; it runs at the lane's milestone. **Confidence:** high.
+
+## C71 river bank roundness
+
+### The shading normal was C69's; this slice bounds its tilt and keeps its check
+
+**Choice:** `groundBank` is unchanged but for one line: the slope it shades by is the bank's times `shore.relief`, never past tan 40° (`MAX_SLOPE`, the bound scars already had). Its blend widths are C69's.
+
+**Gap:** The slice was written before SG2's fallback landed in C69.
+
+**Evidence:** Walking each bank, the shading steps by at most 1.5% of the flat ground's luminance (bar 8%); the same frames with the bank's shading off step by 18.7%, 176 pairs over the bar. No map the contract admits has a bank past 35°, so the bound is not reachable in a test.
+
+**Verdict:** sound. Beside relief the bank is still lit as if the land past it were flat (C69's note). **Confidence:** high.
