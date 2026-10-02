@@ -10,10 +10,6 @@ The user is very technical but doesn't read the code day to day. Pointing at cod
 
 Lead with contracts. When work touches an interface between components (a command, an observation or publication layout, a digest, a fixture schema, a module boundary), say what the contract looks like and how it changed before anything else.
 
-## Art we didn't make
-
-Third-party art needs a known source and a licence that allows shipping, recorded beside the asset. Reference images are for judging our work. They never ship.
-
 ## Proving a change
 
 Write the test first. Before changing behaviour or fixing a bug, invoke [`write-tests`](.agents/skills/write-tests/SKILL.md) and follow its red/green workflow.
