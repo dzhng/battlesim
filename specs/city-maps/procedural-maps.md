@@ -152,7 +152,7 @@ The systematic sweep covered the map contract, terrain/nav/fog/foliage/export/pu
 
 **Why it bites:** surrounding urban bodies may change rays, routes, IDs, digests and frame cost even outside a screenshot crop.
 
-**Changes the plan:** C56 proves the reservation contract on one arena; C34/C35/C36 cut over village/labs/benchmarks with declared protected bounds and behavior probes. Inventory every shipped/catalogued world, including synthetic benchmark worlds. Name geometry/config/digest changes; rebaseline whole-map costs only after arena behavior is proved. Low-level geometry probes remain probes of the geometry API; the composition gate belongs at the catalogued-map boundary.
+**Changes the plan:** M29 cuts C56/C34–C36: village, labs and crafted benchmark fields retain their original arena bounds and get no surrounding content. Production generated and saved-generated maps still need explicit playable/world/render bounds and wider rendered surroundings under [scale direction](scale-direction.md#playable-area-and-rendered-surroundings). A full generated benchmark measures that production world; being a benchmark does not shrink its selected map. Name intentional geometry/config/digest changes and prove arena behavior remains controlled. Low-level geometry probes remain probes of the geometry API; production composition is judged through the common map preparation boundary.
 
 ### L08 — Coverage fairness is not tactical parity — SHARP EDGE
 
