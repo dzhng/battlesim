@@ -354,8 +354,9 @@ const buildFn = tgpu
     let wood = max(site.w, forestVergeInside(p, site.w));
     let margin = min(-site.z - P.clear.x, min(-wood, -water) - P.clear.z);
     if (margin < 0.0) { continue; }
-    // Bare on the wet banks round water.
-    if (groundShore(water) > 0.35) { continue; }
+    // Bare on the wet bank round water, thickening across the earth behind it.
+    let shore = groundShore(p, footprint, water).z;
+    if (shore >= 1.0) { continue; }
     let edge = smoothstep(0.0, ${GRASS_EDGE_M}, margin);
     let kindOfPlot = u32(terrainLayout.$.plots[i32(site.x)].detail.y);
     var g = P.growth[min(kindOfPlot, ${GRASS_GROWTH_ROWS - 2}u)];
@@ -364,7 +365,7 @@ const buildFn = tgpu
     let scar = groundScars(p, footprint);
     let S = terrainLayout.$.scarParams.grass;
     let bare = max(max(scar.weights.x, scar.weights.y), scar.weights.z * S.y) * S.x;
-    let keep = rho * g.x * mix(0.5, 1.0, edge) * (1.0 - bare);
+    let keep = rho * g.x * mix(0.5, 1.0, edge) * (1.0 - bare) * (1.0 - shore);
     if (rank >= keep) { continue; }
     if (grassUnderProp(p)) { continue; }
     // A clump nearing its rank's threshold is small: it grows in as the

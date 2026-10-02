@@ -44,10 +44,14 @@ Test in proportion: the narrow tests for what changed and the one or two scenes 
 
 ## Status
 
-**2026-10-01.** The rig is in ([C62](slices/C62-ground-evidence-rig.md#outcome)); nothing drawn has changed yet.
+**2026-10-01.** The rig and the water's edge are in; roads, grass and trees are in flight.
 
-- **Landed:** named stations on the village, the river lab and a generated map; the `ground-classes` frame view (the terrain's own class mask); `suppressTrees`; three rig checks in the `ground` scene. `STATIONS=village,river,generated bun run --cwd web scene -- ground` writes each station's shot, bare ground, mask and a sheet into `throwaway/evidence/ground/`.
-- **The ground now:** the baseline, `throwaway/evidence/ground/village-stations.png` (regenerate with the command above). Roads are one flat pale band on every kind; the forest floor is blocky; crowns are smooth blobs; the bank is a thin brown line.
-- **In flight:** C73 tree skeleton (with SG1's budget).
-- **Next:** country roads C66 → C67 → C68; wild grass C81; then in the lane's order.
-- **For the other lanes:** `BattleFrame` gained `setTreesShown` and the `ground-classes` view; `post.encode` takes a mode (`look`, `ungraded`, `raw`) in place of two booleans. No pass was added to the frame.
+- **Landed:**
+  - [C62](slices/C62-ground-evidence-rig.md#outcome): named stations on the village, the river lab and a generated map; the `ground-classes` frame view (the terrain's own class mask); `suppressTrees`. `STATIONS=village,river,generated bun run --cwd web scene -- ground` writes each station's shot, bare ground, mask and a sheet into `throwaway/evidence/ground/`; `STATIONS=map:station+station` shoots only those.
+  - [C70](slices/C70-river-bank-bands.md#outcome) and [C71](slices/C71-river-bank-roundness.md#outcome): the river meets the ground through a wet band and bare earth at or above the grass's luminance, the water has its own colour and light lanes along the stream, and the bank's shading tilt is capped at 40°.
+- **The ground now:** `throwaway/evidence/ground/river-stations.png` (regenerate with the command above). The river reads as water with a tan bank. Roads are still one flat pale band on every kind; the forest floor is blocky; crowns are smooth blobs.
+- **Open on the water's edge** (two unprimed critiques, for C87 or a second pass): the bank is a flat tan stripe of one width with no slope cue; its outer line is a chain of regular lobes at 250 m; the light lanes read as lane markings from high up; the water is matte at low sun. Neither frame-cost row was resolved under the machine's load: both are owed.
+- **In flight:** C73 tree skeleton (with SG1's budget); C66 → C68 country roads; C80 → C83 grass and crops.
+- **Next:** town streets C28 → C30 after roads; forest C74 → C76 after C73; fields C84 → C85 after grass; then C78, C79, the drawn half of C86, C45, C31, C87.
+- **For the other lanes:** `BattleFrame` gained `setTreesShown` and the `ground-classes` view; `post.encode` takes a mode (`look`, `ungraded`, `raw`) in place of two booleans. The biome's `shore` and `water` rows changed shape. No pass was added to the frame. Generated maps do carry rivers (mixed, medium, seed 2 has one): C69's "no layout writes a river" is stale.
+- **GPU budget for every pass:** tune on two stations with at most three variants a round and two rounds a slice; shoot the full station set once per slice; one short paired cost run per slice.

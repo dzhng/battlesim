@@ -66,11 +66,37 @@ export interface Verge {
   feather_m: number;
 }
 
-/** The water's edge: wet, bare soil on the banks along every river, out to
- *  `width_m` from the water, where no grass grows. */
+/** The water's edge along every river, in bands by distance from it: wet
+ *  silt for `wet_m`, where no grass grows, then bare earth out to `mud_m`,
+ *  the grass thickening across it. The earth's outer line wanders in toward
+ *  the water by up to `wander` of `mud_m`, over `wander_scale_m`: never out
+ *  past `mud_m`, so the water's distance is read no farther. */
 export interface Shore {
+  /** Two colours: the wet silt, the bare earth. */
   palette: string;
-  width_m: number;
+  wet_m: number;
+  mud_m: number;
+  wander: number;
+  wander_scale_m: number;
+  /** Both bands are drawn at least this many times as light as the ground
+   *  they cover: a shore darker than its field reads as a shadow on it. */
+  lift: number;
+  /** The share of a bank's true slope its shading shows. In full, the bank
+   *  facing away from a low sun goes dark with nothing above it to cast a
+   *  shadow. */
+  relief: number;
+}
+
+/** The water surface's look. */
+export interface Water {
+  /** How opaque the surface is at its edge, and out in the channel. */
+  opacity: readonly [number, number];
+  /** How far inside its edge the surface has taken on 63% of the channel's
+   *  colour and opacity. */
+  shallows_m: number;
+  /** How much lighter than the surface its streaks of light are, as a share
+   *  of its colour, from every side and under any sun. */
+  streak: number;
 }
 
 /** The road surface, drawn exactly where the simulation's road rule holds. */
@@ -266,15 +292,16 @@ export const SCAR_CHANNELS = ["crater", "scorch", "tracks", "trampled"] as const
 export interface Biome {
   seed: number;
   /** Named colour lists. Besides the ones plots, verge, road and the forest
-   *  floor name, `water_bed`, `water` (the surface's own colour, over deep
-   *  water) and `distant` (the land past the patchwork) are
-   *  required. */
+   *  floor name, `water_bed`, `water` (the surface's own colour: out in the
+   *  channel, then at its edge) and `distant` (the land past the patchwork)
+   *  are required. */
   palettes: Record<string, readonly Rgb[]>;
   plots: readonly PlotKind[];
   field_rules: FieldRules;
   verge: Verge;
   road: Road;
   shore: Shore;
+  water: Water;
   forest_floor: ForestFloor;
   trees: BiomeTrees;
   grass: GrassRules;
@@ -351,8 +378,23 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   within("road.mottle", biome.road.mottle, 0, 1);
   within("road.roughness", biome.road.roughness, 0, 1);
   if (!biome.shore || typeof biome.shore !== "object") bad("shore", "is missing");
-  palette("shore.palette", biome.shore.palette);
-  within("shore.width_m", biome.shore.width_m, 0, 20);
+  const shore = biome.shore;
+  palette("shore.palette", shore.palette);
+  if (biome.palettes[shore.palette].length < 2)
+    bad("shore.palette", "needs two colours: wet silt, bare earth");
+  within("shore.wet_m", shore.wet_m, 0, 20);
+  within("shore.wander", shore.wander, 0, 0.9);
+  // The earth's line never wanders in over the wet bank.
+  within("shore.mud_m", shore.mud_m, shore.wet_m / (1 - shore.wander), 20);
+  within("shore.wander_scale_m", shore.wander_scale_m, 0.5, 1000);
+  within("shore.lift", shore.lift, 1, 3);
+  within("shore.relief", shore.relief, 0, 1);
+  if (!biome.water || typeof biome.water !== "object") bad("water", "is missing");
+  if (biome.palettes.water.length < 2)
+    bad("palettes.water", "needs two colours: the channel, the water's edge");
+  range("water.opacity", biome.water.opacity, 0, 1);
+  within("water.shallows_m", biome.water.shallows_m, 0.05, 50);
+  within("water.streak", biome.water.streak, 0, 1);
   const f = biome.forest_floor;
   if (!f || typeof f !== "object") bad("forest_floor", "is missing");
   palette("forest_floor.palette", f.palette);
