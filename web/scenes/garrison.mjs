@@ -188,6 +188,7 @@ export async function run(ctx) {
 
   // The scouts garrison: one squad takes the building.
   const TANK_OPENS_FIRE = await lab(page, () => window.__lab.route.tankOpensFire);
+  const SPOTTER_WALKS_UP = await lab(page, () => window.__lab.route.spotterWalksUp);
   // The tick the house was first seen fallen during the entry steps, if it was.
   let fellAt = null;
   const watchHouse = (f) => {
@@ -223,6 +224,15 @@ export async function run(ctx) {
     );
     return page.close();
   }
+  // The staging's guard: red's squad stands out of reach of the occupants
+  // until SPOTTER_WALKS_UP, so the scouts are inside with no enemy seeing
+  // them. If a rule change slows the entry past that tick, fix the lab's
+  // staging (the encounter's scripted move), not the check below.
+  ctx.check(
+    "staging: the scouts are inside before red's squad walks up to spot them",
+    !!o && o.tick < SPOTTER_WALKS_UP,
+    JSON.stringify({ insideAt: o?.tick ?? null, spotterWalksUp: SPOTTER_WALKS_UP }),
+  );
   const card = page.locator('.ro-unit[data-unit="2"]');
   await card.hover();
   await page.waitForTimeout(200);
@@ -293,6 +303,27 @@ export async function run(ctx) {
     joined?.error === null && !!o,
     JSON.stringify(joined),
   );
+  // Red's squad has walked up by now: blue sees it, and it sees the occupants.
+  const spotted = await until(
+    page,
+    (f) => squad(f, 0)?.garrison?.phase === "inside" && !squad(f, 0).concealed,
+    300,
+    5,
+    watchHouse,
+  );
+  o = spotted ?? o;
+  const spottedCard = page.locator('.ro-unit[data-unit="0"]');
+  await spottedCard.hover();
+  await page.waitForTimeout(200);
+  ctx.check(
+    "an enemy squad in view that sees the occupants removes HIDDEN and leaves IN BUILDING",
+    !!spotted &&
+      spotted.identified.some((e) => e.kind === "rifle") &&
+      (await spottedCard.locator('[data-state="hidden"]').count()) === 0 &&
+      (await spottedCard.locator('[data-state="in_building"]').isVisible()),
+    JSON.stringify({ tick: spotted?.tick, identified: spotted?.identified.map((e) => e.kind) }),
+  );
+  await frame(ctx, page, "spotted-status");
   // The selected garrison's marker: its circle round the building, at the
   // battle's default camera distance and far out.
   await lab(page, () => window.__lab.route.select([0]));

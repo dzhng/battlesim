@@ -2878,7 +2878,33 @@ async function rulerTour(ctx) {
     (await ruler()) === null && !(await shownText()).shown,
   );
 
-  // A contact's area: right-click it with an armed unit selected.
+  // A contact's area: right-click it with an armed unit selected. The two
+  // sides start out of each other's weapon range, so nothing fires and no
+  // contact comes unbidden. The scouts make one: they fall back until the
+  // farthest enemy they hold is past their sight, and its last sighting
+  // stays on the map.
+  o = await obs(page);
+  const scouts = o.own.find((u) => u.kind === "recon");
+  const from = (e) =>
+    Math.hypot(e.position[0] - scouts.position[0], e.position[1] - scouts.position[1]);
+  const farthest = o.identified.reduce((a, b) => (from(b) > from(a) ? b : a), o.identified[0]);
+  const back = farthest ? unitType("recon").sensors.ground_m - from(farthest) + 40 : 0;
+  ctx.check(
+    "staging: the scouts hold an enemy near the edge of their sight to lose",
+    back > 0 && back < 120,
+    JSON.stringify({ identified: o.identified.map((e) => [e.kind, Math.round(from(e))]) }),
+  );
+  if (farthest)
+    await lab(page, (order) => window.__lab.route.command(order), {
+      kind: "move",
+      units: [scouts.id],
+      gesture: 2902,
+      goal: [
+        scouts.position[0] - ((farthest.position[0] - scouts.position[0]) / from(farthest)) * back,
+        scouts.position[1] - ((farthest.position[1] - scouts.position[1]) / from(farthest)) * back,
+      ],
+      route: "shortest",
+    });
   o = await until(page, (x) => x.contacts.length > 0, 30 * 180, 30);
   const contact = o?.contacts[0];
   if (contact) {
