@@ -2666,3 +2666,45 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 **Gap:** "The mask view adds 0 ms to the final view."
 
 **Verdict:** sound. The final view gains one uniform comparison per terrain fragment; the machine's run-to-run noise is hundreds of times that. **Confidence:** high.
+
+## C66 road core
+
+### The export's `kind` column names the area's kind; no column was added
+
+**Choice:** A paved stretch, triangle and boundary edge's existing `kind` column now holds the area's own kind (an index into the layout's new `surfaceAreaKinds`: road, country_road, dirt_track, sidewalk). Before, it held the surface a unit finds there (road or sidewalk), so every carriageway said "road". The layout also gained `roadAreaKinds`.
+
+**Gap:** C64 left "a distinct exported tag per road kind" open and did not say whether it is a new column or the old one's meaning.
+
+**Verdict:** sound. The surface a unit finds is a function of the area's kind (`SurfaceKind::of`), so the old column held less; a second column would be two owners of one fact. No stride moved. The stroke parity record was re-recorded because the column's values changed (road 1 to 0, dirt track 1 to 2). Rules and digests are untouched. **Confidence:** high.
+
+### `road` and `country_road` share the country road's look
+
+**Choice:** `roads.default` is the country road's gravel, and `road`, `country_road` and `sidewalk` all take it; only `dirt_track` has a row of its own.
+
+**Gap:** Q-G4 says the village's 12 m roads are country roads, but its map says `road`, and generated towns' streets are `road` too.
+
+**Verdict:** provisional. The village map is not this lane's to edit, and a town street has no look of its own until C28. When C28 adds `roads.road` and `roads.sidewalk`, the village's map must say `country_road` first, or its roads turn into streets. **Confidence:** high.
+
+### Kinds are painted one over another, in the contract's order
+
+**Choice:** The material keeps a distance per paved kind and paints the kinds in reverse of `SurfaceKind`'s order, so the earlier kind lies on top: a dirt track ends at the edge of the country road it joins, and its earth is carried `join_m` onto the road.
+
+**Gap:** The slice asks for a look per kind and says nothing of where two kinds overlap.
+
+**Verdict:** sound. The contract already says "where kinds overlap, the earlier one here wins" for speed, so the drawing agrees with what a unit drives on. One "nearest kind" for the whole pixel left a line of grass colour across every junction. **Confidence:** high.
+
+### Patches change hue only, and only toward the warmer colour
+
+**Choice:** A surface's patches go to the palette's second colour scaled to the first's luminance, cover about a quarter of it, and the second colour is the warmer of the two.
+
+**Gap:** "Palettes and mottle" are delegated; the avoid-list bans two-sided blobs.
+
+**Verdict:** sound. The first critique read half-and-half patches as stains and camouflage, and the cooler tone as shadow beside real shadows although no patch was darker. **Confidence:** medium: the second critique still reads the patches as faint stains.
+
+### The luminance rule is checked on frames, not on the palette
+
+**Choice:** "Core at or above the grass" is a scene check on three stations (core against the band 5 to 9 m out), not a rule of `validateBiome`.
+
+**Gap:** The slice asks for a mask-based check and does not say whether the biome should refuse a dark road.
+
+**Verdict:** provisional. A palette rule would have to pick "the grass": against every plot palette it would forbid any road beside a bright crop (wheat today, rapeseed in C83), which is not what L-G3 is about. **Confidence:** medium.

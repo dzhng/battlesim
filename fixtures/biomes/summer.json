@@ -8,7 +8,8 @@
     "hay": [[0.423, 0.405, 0.279], [0.387, 0.369, 0.252]],
     "ploughed": [[0.324, 0.261, 0.252], [0.297, 0.243, 0.234]],
     "verge": [[0.29, 0.34, 0.17]],
-    "road": [[0.46, 0.43, 0.39]],
+    "road_gravel": [[0.47, 0.46, 0.44], [0.5, 0.465, 0.415]],
+    "road_dirt": [[0.455, 0.395, 0.33], [0.46, 0.41, 0.35]],
     "forest_floor": [[0.34, 0.3, 0.22], [0.27, 0.31, 0.17], [0.2, 0.18, 0.14]],
     "water_bed": [[0.27, 0.297, 0.252]],
     "water": [[0.16, 0.2, 0.17]],
@@ -51,11 +52,9 @@
     "width_m": 1.8,
     "feather_m": 0.5
   },
-  "road": {
-    "palette": "road",
-    "feather_m": 0.4,
-    "mottle": 0.1,
-    "roughness": 0.85
+  "roads": {
+    "default": { "palette": "road_gravel", "feather_m": 0.3, "mottle": 0.3, "patch_m": 6, "grain": 0.5, "grain_m": 0.5, "join_m": 2, "roughness": 0.88 },
+    "dirt_track": { "palette": "road_dirt", "feather_m": 0.7, "mottle": 0.35, "patch_m": 4, "grain": 0.5, "grain_m": 0.6, "join_m": 2, "roughness": 0.95 }
   },
   "shore": { "palette": "shore", "width_m": 2 },
   "forest_floor": {

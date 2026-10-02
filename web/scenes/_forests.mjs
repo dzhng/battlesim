@@ -115,11 +115,12 @@ export async function forestExportAgreement(ctx) {
       });
       const groundSite = terrain.groundSite;
       const groundCell = terrain.groundCell;
+      const groundPaved = terrain.groundPaved;
       const kernel = tgpu
         .computeFn({ in: { gid: d.builtin.globalInvocationId }, workgroupSize: [1] })(`{
-        let query=queryLayout.$.points[gid.x];let xy=query.xy;let site=groundSite(xy,groundCell(xy,query.z));queryLayout.$.output[gid.x]=vec4f(site.w,site.z,0.0,0.0);
+        let query=queryLayout.$.points[gid.x];let xy=query.xy;let cell=groundCell(xy,query.z);let site=groundSite(xy,cell,groundPaved(xy,cell));queryLayout.$.output[gid.x]=vec4f(site.w,site.z,0.0,0.0);
       }`)
-        .$uses({ queryLayout, groundSite, groundCell });
+        .$uses({ queryLayout, groundSite, groundCell, groundPaved });
       const pipeline = root.createComputePipeline({ compute: kernel });
       await pipeline.initAsync();
       const input = registry.buffer({

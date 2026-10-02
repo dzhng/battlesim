@@ -7,6 +7,7 @@
 // once when the terrain surface packs them for the GPU. Tree tints are linear
 // multipliers over the tree appearances' own albedo.
 import type { Rgb } from "../light/sceneLight";
+import { SURFACE_AREA_KINDS } from "./surfaces";
 
 /** One kind of plot in the patchwork: a meadow, a crop, ploughed earth. */
 export interface PlotKind {
@@ -73,12 +74,25 @@ export interface Shore {
   width_m: number;
 }
 
-/** The road surface, drawn exactly where the simulation's road rule holds. */
+/** One kind of road's surface, drawn exactly where the simulation's road rule
+ *  holds: a country road's gravel, a dirt track's packed earth. */
 export interface Road {
+  /** A palette of two colours: the surface, and what patches of it wear
+   *  toward. A patch changes the surface's hue, never its brightness. */
   palette: string;
   /** Width of the blend across the road's edge, centred on it. */
   feather_m: number;
+  /** How far a patch goes to the second colour, and a patch's size. */
   mottle: number;
+  patch_m: number;
+  /** Stones and clods: how far the grain lightens and darkens the surface,
+   *  and the size of its largest lumps. Each scale of it fades to the
+   *  surface's mean as it nears a pixel. */
+  grain: number;
+  grain_m: number;
+  /** Where a road of a later kind joins this one, how far that road's
+   *  surface is carried onto it, thinning out. */
+  join_m: number;
   roughness: number;
 }
 
@@ -265,7 +279,7 @@ export const SCAR_CHANNELS = ["crater", "scorch", "tracks", "trampled"] as const
 /** `fixtures/biomes/<name>.json`. */
 export interface Biome {
   seed: number;
-  /** Named colour lists. Besides the ones plots, verge, road and the forest
+  /** Named colour lists. Besides the ones plots, verge, roads and the forest
    *  floor name, `water_bed`, `water` (the surface's own colour, over deep
    *  water) and `distant` (the land past the patchwork) are
    *  required. */
@@ -273,7 +287,9 @@ export interface Biome {
   plots: readonly PlotKind[];
   field_rules: FieldRules;
   verge: Verge;
-  road: Road;
+  /** A row per paved kind a map can hold (`SURFACE_AREA_KINDS`); a kind with
+   *  no row takes `default`, the country road's. */
+  roads: Record<string, Road>;
   shore: Shore;
   forest_floor: ForestFloor;
   trees: BiomeTrees;
@@ -346,10 +362,22 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   palette("verge.palette", biome.verge.palette);
   within("verge.width_m", biome.verge.width_m, 0, 50);
   within("verge.feather_m", biome.verge.feather_m, 0, 50);
-  palette("road.palette", biome.road.palette);
-  within("road.feather_m", biome.road.feather_m, 0, 5);
-  within("road.mottle", biome.road.mottle, 0, 1);
-  within("road.roughness", biome.road.roughness, 0, 1);
+  if (!biome.roads?.default) bad("roads", "needs a default");
+  for (const [kind, road] of Object.entries(biome.roads)) {
+    const at = `roads.${kind}`;
+    if (kind !== "default" && !(SURFACE_AREA_KINDS as readonly string[]).includes(kind))
+      bad(at, "names no paved kind");
+    palette(`${at}.palette`, road.palette);
+    if (biome.palettes[road.palette].length < 2)
+      bad(`${at}.palette`, "needs two colours: the surface and its patches");
+    within(`${at}.feather_m`, road.feather_m, 0, 5);
+    within(`${at}.mottle`, road.mottle, 0, 1);
+    within(`${at}.patch_m`, road.patch_m, 0.1, 1000);
+    within(`${at}.grain`, road.grain, 0, 1);
+    within(`${at}.grain_m`, road.grain_m, 0.01, 100);
+    within(`${at}.join_m`, road.join_m, 0, 20);
+    within(`${at}.roughness`, road.roughness, 0, 1);
+  }
   if (!biome.shore || typeof biome.shore !== "object") bad("shore", "is missing");
   palette("shore.palette", biome.shore.palette);
   within("shore.width_m", biome.shore.width_m, 0, 20);

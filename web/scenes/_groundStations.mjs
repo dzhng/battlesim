@@ -8,7 +8,8 @@
 //   STATIONS=village,river bun run --cwd web scene -- ground
 //
 // writes every station's shot and mask into throwaway/evidence/ground/ and a
-// sheet per map; a later slice imports `openStations` and `shoot`.
+// sheet per map (STATION_ONLY=bend,track keeps the stations so named); a
+// later slice imports `openStations` and `shoot`.
 import { writeFile } from "node:fs/promises";
 import { PNG } from "pngjs";
 import { advance, aim, lab, presented } from "./_lab.mjs";
@@ -219,7 +220,11 @@ function sheet(rows, shrink) {
  *  mask made legible. */
 export async function stationSheet(ctx, map, page) {
   const rows = [];
-  for (const station of Object.keys(STATION_MAPS[map].stations)) {
+  const only = process.env.STATION_ONLY?.split(",");
+  const stations = Object.keys(STATION_MAPS[map].stations).filter(
+    (station) => !only || only.some((name) => station.startsWith(name)),
+  );
+  for (const station of stations) {
     const save = async (suffix, options) => {
       const shot = await shoot(page, map, station, options);
       await writeFile(ctx.evidencePath(`${map}-${station}${suffix}.png`), shot);
@@ -235,7 +240,7 @@ export async function stationSheet(ctx, map, page) {
 
 /** The world point on the ground under each of `pixels`, and the footprint
  *  the terrain's fragment has there (`length(fwidth(world.xy))`). */
-const groundUnder = (page, pixels) =>
+export const groundUnder = (page, pixels) =>
   lab(
     page,
     (pixels) => {

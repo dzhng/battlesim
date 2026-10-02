@@ -77,6 +77,7 @@ import {
   groundColour,
   groundScars,
   groundCell,
+  groundPaved,
   groundShore,
   groundSite,
   groundVerge,
@@ -345,7 +346,8 @@ const buildFn = tgpu
     let rho = grassDensity(dist, max(eye.z - z, 0.0));
     if (rank >= rho) { continue; }
     let cell = groundCell(p, footprint);
-    let site = groundSite(p, cell);
+    let paved = groundPaved(p, cell);
+    let site = groundSite(p, cell, paved);
     let water = groundWater(p, cell);
     // Bare within the margins; thinner and lower for a metre beyond them, so
     // a field meets a road or a wood without a wall of blades.
@@ -388,7 +390,7 @@ const buildFn = tgpu
     var tier = 1u;
     if (height / footprint > P.tiers.x * mix(0.85, 1.15, h.y)) { tier = 0u; }
     let width = max(1.0, P.tiers.y * footprint / max(row.z, 1e-4));
-    let colour = scarredSurface(groundColour(p, footprint, site, water), scar).xyz;
+    let colour = scarredSurface(groundColour(p, footprint, site, paved, water), scar).xyz;
     // Tracks and trampling lay the clump over (carried in the colour's alpha).
     let flat = max(scar.weights.z, scar.weights.w) * S.z;
     let slot = atomicAdd(&grassBuildLayout.$.args[tier * 5u + 1u], 1u);
@@ -407,6 +409,7 @@ const buildFn = tgpu
     grassUnderProp,
     grassHash,
     groundCell,
+    groundPaved,
     groundSite,
     groundWater,
     groundShore,

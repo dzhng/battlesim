@@ -80,6 +80,7 @@ import {
   groundClassView,
   groundColour,
   groundDapple,
+  groundPaved,
   groundScarsSeen,
   groundSite,
   groundBank,
@@ -186,7 +187,9 @@ export async function createWorldPass(
     "use gpu";
     const footprint = std.length(std.fwidth(world.xy));
     const xy = world.xy;
-    const surface = groundColour(xy, footprint, groundSite(xy, cell), groundWater(xy, cell));
+    const paved = groundPaved(xy, cell);
+    const site = groundSite(xy, cell, paved);
+    const surface = groundColour(xy, footprint, site, paved, groundWater(xy, cell));
     const albedo = std.mix(surface.xyz, srgbToLinear(tint.xyz), tint.w);
     return d.vec4f(albedo, std.mix(surface.w, ROUGHNESS, tint.w));
   });
@@ -206,7 +209,8 @@ export async function createWorldPass(
     const cell = groundCell(v.world.xy, footprint);
     if (groundClassView()) {
       const xy = v.world.xy;
-      const classes = groundClasses(xy, footprint, groundSite(xy, cell), groundWater(xy, cell));
+      const site = groundSite(xy, cell, groundPaved(xy, cell));
+      const classes = groundClasses(xy, footprint, site, groundWater(xy, cell));
       return { color: d.vec4f(classes, 1), fog: d.vec4f(CLASS_GROUND) };
     }
     const plain = groundAlbedo(v.world, v.color, cell);

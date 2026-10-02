@@ -82,13 +82,13 @@ export async function surfaceFieldAgreement(ctx) {
         points: { storage: (n) => d.arrayOf(d.vec4f, n), access: "readonly" },
         output: { storage: (n) => d.arrayOf(d.vec4f, n), access: "mutable" },
       });
-      const { groundCell, groundSite, groundWater } = terrain;
+      const { groundCell, groundPaved, groundSite, groundWater } = terrain;
       const kernel = tgpu
         .computeFn({ in: { gid: d.builtin.globalInvocationId }, workgroupSize: [1] })(`{
-        let query=queryLayout.$.points[gid.x];let cell=groundCell(query.xy,query.z);let site=groundSite(query.xy,cell);
+        let query=queryLayout.$.points[gid.x];let cell=groundCell(query.xy,query.z);let site=groundSite(query.xy,cell,groundPaved(query.xy,cell));
         queryLayout.$.output[gid.x]=vec4f(site.z,site.w,groundWater(query.xy,cell),0.0);
       }`)
-        .$uses({ queryLayout, groundCell, groundSite, groundWater });
+        .$uses({ queryLayout, groundCell, groundPaved, groundSite, groundWater });
       const pipeline = root.createComputePipeline({ compute: kernel });
       await pipeline.initAsync();
       const count = POINTS * FOOTPRINTS.length;
