@@ -28,3 +28,11 @@ C20's matched browser look and limitations are recorded in [its outcome](slices/
 | C87 ground lane, village benchmark short run, four alternated pairs | 5.53 to 6.35 ms GPU mean; 48 to 56 FPS; 277 to 297 MiB heap | 5.66 to 6.32 ms GPU mean; 45 to 49 FPS; 426 to 454 MiB heap | Start `ca7bb972`, final `ad50cdec`. GPU pair differences +0.37, +0.13, −0.37, +0.05 ms (median +0.09) against a +3 ms lane budget. The FPS and heap changes are every lane's since the start and are not attributed; see [C87](slices/C87-ground-composition-gate.md#outcome). |
 
 Apple metal-3, 1920 × 1080, development build, `FACADE_COST=1 scene -- facade`: each kind of surface drawn against not drawn (its depth, its shadow and its colour together), interleaved in batches of 120 forced frames, whole-frame GPU time. "Off" is "on" less the median difference. Other sessions were rendering on the same machine, so a difference under about 0.3 ms is not distinguishable from none; no kind costs more than that here. The lab's field is flat ground and one small block repeated, not a town: it bounds what the three stages cost a pixel and a draw, not a Metro map's frame. No real kit has these surfaces yet.
+
+## Approved grass blade-facing setting
+
+| Workload | Paired whole-frame difference | Evidence and scope |
+|---|---:|---|
+| C81 village meadow, fixed65m camera, blade facing0.45 →0, three interleaved pairs | median −0.008ms; pairs −0.008,+0.169,−0.153ms | Apple metal-3,1920×1080;120 forced frames per batch, existing rolling GPU window. No measurable cost change or improvement. Clump storage4,480,000bytes and near/default populations unchanged. |
+
+The user approved the reduced dark streaks; the existing fixture changes one number, with no terrain/grass shader math or new resources. Paired source/control and all raw samples are in main's ignored `throwaway/grass-facing-approved/`. This is a short isolated grass comparison on its identified pre-equipment-update engine, not current whole-battle/frame admission; concurrent equipment changes require separate functional proof. Six raw WGSL comments were rephrased after a TypeGPU comment-token warning was independently red/green; the actual candidate captures have zero browser errors/warnings.
