@@ -234,3 +234,39 @@ test("detail priority follows the actual camera eye rather than its orbit target
   handle.current!.place(project, { ...low, yaw: 0 }, {}, null, true);
   expect(cards.map((c) => c.dataset.zoom)).toEqual(["compressed", "default"]);
 });
+
+test("retiring contact panels fade together with their leader and cannot be picked", () => {
+  const handle = createRef<ReadoutLayerHandle>();
+  const contact = {
+    id: 7,
+    source: "last_seen" as const,
+    center: [200, 300] as [number, number],
+    radius: 20,
+    evidenceTick: 0,
+    expiresTick: 300,
+    primaryLabel: true,
+    kind: "tank",
+    heard: [],
+    opacity: 0.4,
+    retiring: true,
+  };
+  const view = render(
+    <ReadoutLayer
+      own={[]}
+      selected={[]}
+      handle={handle}
+      rules={game as unknown as PanelRules}
+      contacts={[contact]}
+      tick={60}
+    />,
+  );
+  const node = view.container.querySelector("[data-contact]") as HTMLDivElement;
+  node.getBoundingClientRect = () => ({ left: 230, right: 380, top: 220, bottom: 266 }) as DOMRect;
+  handle.current!.place((x, y) => [x, y], camera);
+  expect(node.closest<HTMLElement>(".ro-callout")!.style.opacity).toBe("0.4");
+  expect(node.closest(".ro-callout")!.contains(view.container.querySelector(".ro-leaders"))).toBe(
+    true,
+  );
+  expect(handle.current!.pick(250, 240)).toBeNull();
+  expect(node.textContent).toContain("LAST SEEN 2 s AGO");
+});

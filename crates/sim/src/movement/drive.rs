@@ -14,6 +14,7 @@
 //! behind the hull, so the facing is held, at the reverse fraction of the
 //! speed (Q30).
 use contract::command::MoveDirection;
+use contract::ids::UnitId;
 
 use crate::math::{v2, wrap_angle, Obb2, V2};
 use crate::navigation::Drive;
@@ -40,8 +41,15 @@ pub struct Motion {
     pub step: f64,
     /// Driving backwards (a reverse move, or a leg of a three-point turn).
     pub backwards: bool,
-    /// A wheeled turn or clearing a tracked pivot counts as progress away from its waypoint.
-    pub manoeuvring: bool,
+    /// Backing to make room for a tracked pivot counts as progress away from its waypoint.
+    pub making_space: bool,
+    /// Traffic that rejected the look-ahead arc, even when the step is zero.
+    pub blocker: Option<UnitId>,
+}
+
+enum ArcBlock {
+    Solid,
+    Vehicle(UnitId),
 }
 
 fn gear_sign(direction: MoveDirection) -> f64 {
@@ -158,7 +166,7 @@ fn arc_clear(
     turn: f64,
     length: f64,
     traffic: &[Option<Obb2>],
-) -> bool {
+) -> Result<(), ArcBlock> {
     let mut at = unit.position.xy();
     let mut yaw = unit.yaw;
     let pieces = (length / PROBE_M).ceil().max(1.0) as usize;
@@ -173,18 +181,19 @@ fn arc_clear(
             yaw,
             half: before.half,
         };
-        let into_traffic = traffic.iter().enumerate().any(|(id, other)| {
-            id != unit.id.0 as usize
-                && other.is_some_and(|other| {
-                    let depth = |h: &Obb2| h.separation(&other).map_or(0.0, |v| v.length());
-                    depth(&after) > depth(&before) + 1e-9
-                })
+        let into_traffic = traffic.iter().enumerate().find_map(|(id, other)| {
+            (id != unit.id.0 as usize
+                && other.is_some_and(|other| super::hull_conflict(before, after, other)))
+            .then_some(UnitId(id as u32))
         });
-        if blocked(world, unit, at, yaw) || into_traffic {
-            return false;
+        if blocked(world, unit, at, yaw) {
+            return Err(ArcBlock::Solid);
+        }
+        if let Some(id) = into_traffic {
+            return Err(ArcBlock::Vehicle(id));
         }
     }
-    true
+    Ok(())
 }
 
 /// Give a blocked tracked pivot room by rolling against its ordered direction.
@@ -197,7 +206,8 @@ pub fn give_space(unit: &Unit, speed: f64, dt: f64) -> Motion {
         heading: dir(travel(unit.yaw, gear)),
         step: v * dt,
         backwards: gear < 0.0,
-        manoeuvring: true,
+        making_space: true,
+        blocker: None,
     }
 }
 
@@ -240,7 +250,8 @@ pub fn steer(
             },
             step,
             backwards: gear < 0.0 && step > 0.0,
-            manoeuvring: false,
+            making_space: false,
+            blocker: None,
         };
     }
 
@@ -274,7 +285,7 @@ pub fn steer(
                     target,
                     -drive.feel.circle_margin_m,
                 )
-                && arc_clear(world, unit, gear, side / radius, sweep, traffic));
+                && arc_clear(world, unit, gear, side / radius, sweep, traffic).is_ok());
         if done {
             unit.manoeuvre = None;
         }
@@ -284,14 +295,15 @@ pub fn steer(
         let v = accelerate(unit, speed_in(&drive, back, speed), back, dt);
         let step = v * dt;
         let turn = m.turn * curvature(v);
-        if arc_clear(world, unit, back, turn, PROBE_M, traffic) {
+        if arc_clear(world, unit, back, turn, PROBE_M, traffic).is_ok() {
             let dyaw = turn * step;
             return Motion {
                 yaw: unit.yaw + dyaw,
                 heading: dir(travel(unit.yaw, back) + dyaw / 2.0),
                 step,
                 backwards: back < 0.0,
-                manoeuvring: false,
+                making_space: false,
+                blocker: None,
             };
         }
         // The leg meets a solid: turn the other way again.
@@ -303,8 +315,7 @@ pub fn steer(
     let step = (v * dt).min(distance);
     let max = curvature(v) * step;
     let dyaw = error.clamp(-max, max);
-    let turning = error.abs() > drive.feel.turning_deg.to_radians();
-    if !arc_clear(
+    if let Err(block) = arc_clear(
         world,
         unit,
         gear,
@@ -322,7 +333,11 @@ pub fn steer(
             heading: dir(heading),
             step: 0.0,
             backwards: false,
-            manoeuvring: false,
+            making_space: false,
+            blocker: match block {
+                ArcBlock::Vehicle(id) => Some(id),
+                ArcBlock::Solid => None,
+            },
         };
     }
     Motion {
@@ -330,8 +345,29 @@ pub fn steer(
         heading: dir(heading + dyaw / 2.0),
         step,
         backwards: gear < 0.0 && step > 0.0,
-        manoeuvring: turning,
+        making_space: false,
+        blocker: None,
     }
+}
+
+/// The ordered arrival heading, refined by the route's final approach.
+/// Preview and publication share this estimate; ordinary combat may face elsewhere.
+pub fn final_facing(unit: &Unit) -> f64 {
+    let Some((goal, _)) = unit.movement_goal() else {
+        return unit.turn_to.unwrap_or(unit.yaw);
+    };
+    let facing = unit
+        .orders
+        .front()
+        .and_then(|o| o.movement())
+        .and_then(|m| m.facing);
+    let route = unit.route.as_deref().unwrap_or(&[]);
+    let end = route.last().copied().unwrap_or(goal);
+    let from = match route.len() {
+        0 | 1 => unit.position.xy(),
+        n => route[n - 2],
+    };
+    final_yaw(unit, facing, from, end, unit.direction()).unwrap_or(unit.yaw)
 }
 
 /// The yaw a hull ends at when `order` completes (D2): a right-drag's

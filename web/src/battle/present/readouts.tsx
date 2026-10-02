@@ -6,6 +6,7 @@
  *  - the unit card: the selection's panels, the same component, at any zoom;
  *  - the command bar: the selection's commands and its fire policy. */
 import { useCallback, useImperativeHandle, useRef, type ReactNode, type Ref } from "react";
+import type { PresentedContact } from "./contactPresentation";
 import type { ContactView, IdentifiedView, OwnUnitView } from "../sim/observation";
 import type { CommandMode, PointerPick, useUnitControl } from "../input/useUnitControl";
 import { CommandBindings, FacingBinding } from "../input/commandBindings";
@@ -112,6 +113,8 @@ interface Callout {
   at: Point3;
   selected: boolean;
   content: ReactNode;
+  opacity?: number;
+  retiring?: boolean;
 }
 
 /** A unit panel's anchor: this high over its unit, about its head. */
@@ -136,7 +139,7 @@ export function ReadoutLayer({
    *  commit's changed props. */
   own: readonly OwnUnitView[];
   identified?: readonly IdentifiedView[];
-  contacts?: readonly ContactView[];
+  contacts?: readonly (ContactView | PresentedContact)[];
   /** The published tick, which a contact's "ago" counts from. */
   tick?: number;
   rules: PanelRules;
@@ -179,6 +182,8 @@ export function ReadoutLayer({
       .map(
         (c): Callout => ({
           key: `contact-${c.id}`,
+          opacity: "opacity" in c ? c.opacity : undefined,
+          retiring: "retiring" in c ? c.retiring : false,
           owner: "contact",
           id: c.id,
           at: [c.center[0], c.center[1], 0],
@@ -203,6 +208,7 @@ export function ReadoutLayer({
           Number(b.selected) - Number(a.selected),
       );
       for (const c of priority) {
+        if (c.retiring) continue;
         const r = visibleBox(c.key);
         if (r && x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1)
           return {
@@ -224,8 +230,10 @@ export function ReadoutLayer({
       const previous = hoveredCard.current;
       const held =
         previous &&
+        calloutsRef.current.some((c) => c.key === previous && !c.retiring) &&
         (contains(compactBoxes.current.get(previous)) || contains(visibleBox(previous)));
-      const card = hover && calloutsRef.current.find((c) => contains(visibleBox(c.key)));
+      const card =
+        hover && calloutsRef.current.find((c) => !c.retiring && contains(visibleBox(c.key)));
       hoveredCard.current = hover
         ? held
           ? previous
@@ -464,7 +472,12 @@ export function ReadoutLayer({
   return (
     <div ref={layer} className="ro-layer" data-testid="readouts" data-zoom="compressed">
       {callouts.map((c) => (
-        <div key={c.key} className={`ro-callout${c.selected ? " ro-selected" : ""}`}>
+        <div
+          key={c.key}
+          className={`ro-callout${c.selected ? " ro-selected" : ""}`}
+          style={{ opacity: c.opacity }}
+          data-retiring={c.retiring || undefined}
+        >
           <PanelCallout
             ref={bind(nodes.current, c.key)}
             owner={c.owner}

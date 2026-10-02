@@ -178,6 +178,7 @@ pub enum BlockReason {
 }
 
 /// One clearance tile: exact capped distance-transform samples.
+#[derive(Clone)]
 struct Clearance {
     values: Box<[f64; TILE_SAMPLES]>,
     /// What the grid's side knew ([`NavGrid::knowledge`]) when a search
@@ -185,6 +186,7 @@ struct Clearance {
     paid: u64,
 }
 
+#[derive(Clone)]
 pub struct NavGrid {
     nx: usize,
     ny: usize,

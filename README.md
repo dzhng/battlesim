@@ -15,7 +15,7 @@ The simulation is the one authority; everything else observes it.
 
 - **`web/src/battle/`** — the browser side of that boundary:
   - the worker that runs the simulation (one authority, ordered commands, bounded publications);
-  - the worker that prepares a battle (`prepare/`): one request names where the map comes from (a saved map, or a generation request), which encounter is laid on it and the seeds; the worker resolves the map, has the simulation's planner place the encounter, and answers with the scenario a battle runs, off the page's thread;
+  - the worker that prepares a battle (`prepare/`): one request names where the map comes from (a saved map, or a generation request), which encounter is laid on it and the seeds; the worker resolves the map, has the simulation's planner place the encounter, and answers with the scenario a battle runs, off the page's thread. It keeps the world it built for the planner and then runs that battle on it. The page builds its own plain world from the same map, with the simulation's own code, for drawing and for map queries (picking, ground height, camera clearance);
   - decoding of the packed observation;
   - player input;
   - player readouts.
@@ -76,9 +76,11 @@ the server and open the editor directly. See its README for the editing workflow
 It previews and saves validated fixture edits; new and explicitly restarted
 battles capture the latest saved rules.
 
+Contact circles and panels share a visual fade through [contact presentation](web/src/battle/present/contactPresentation.ts). A fading retired report is remembered evidence only; commands and picking still use the current observation.
+
 Floating unit panels show name and health. Own-unit panels show a crossed-out eye beside the name, plus HIDDEN in expanded detail, when forest or garrison concealment covers enough of the living unit and there is no known engagement or currently visible enemy observer spotting it. The [sensing rules](crates/sim/src/sensing.rs) own squad thresholds; concealment uses forest ground, independently of tree crowns. Space prioritizes the closest 30% of visible units from the camera's actual position; farther cards expand where room remains. Hovering a unit or its card always reveals its detail. Placement tries expansion in place, then the fewest card shifts, favoring shorter shifts when the counts tie.
 
-A held right-click previews each selected unit’s destination and facing with the same markers shown after release. Dragging rotates about the clicked front center. The [group move placement rationale](specs/done/group-move-preview/README.md) explains its authority, spacing and partial-placement contracts.
+A held right-click previews each selected unit’s destination and facing with the same markers shown after release. Dragging rotates about the clicked front center. The [group move placement rationale](specs/done/group-move-preview/README.md) explains its authority, spacing and partial-placement contracts. The [move-validity rationale](specs/done/move-validity/README.md) explains why a destination marker also requires demonstrated physical travel.
 
 The [projectile review lab](apps/battle-lab/src/projectileReview.ts) keeps the fog-lit street fight running alongside firing lanes and midpoint recon teams. It uses the shared battle view’s unit panels and player controls, with gameplay flight and weapon cycles, private unlimited reserves and nonlethal rounds. Repeated visual review does not change gameplay rules. The [guided-fire contract](specs/battle-foundation/contracts.md#guided-flight) separates shared spotting from the launcher’s physical line of sight.
 

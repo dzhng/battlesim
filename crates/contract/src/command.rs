@@ -4,10 +4,11 @@ use crate::ids::{Side, Tick, UnitId};
 use crate::observation::{ContactId, ObservedTargetId};
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RoutePolicy {
     /// Minimise distance (ordinary right-click move).
+    #[default]
     Shortest,
     /// Minimise travel time using roads and terrain speeds (double right-click).
     Fastest,
@@ -59,13 +60,17 @@ pub struct MovePlacement {
     pub destinations: Vec<MoveDestination>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct MovePreviewRequest {
     pub units: Vec<UnitId>,
     pub goal: [f64; 2],
     pub facing: Option<f64>,
     #[serde(default)]
     pub direction: MoveDirection,
+    #[serde(default)]
+    pub route: RoutePolicy,
+    #[serde(default)]
+    pub queued: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -158,6 +163,8 @@ pub enum OrderError {
         unit: UnitId,
     },
     OutOfBounds,
+    /// No destination could be certified executable within the planning budget.
+    NoValidDestination,
     /// Input is disabled while a replay feeds recorded commands.
     ReplayInProgress,
     /// The target reference is not one this side currently holds.

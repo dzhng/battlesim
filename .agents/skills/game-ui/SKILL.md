@@ -38,6 +38,8 @@ The player's UI is a **holo-tactical** layer over a war film: marks that belong 
 - **Form before colour.** States differ by shape (full or broken, filled or hollow), so they read at a glance, in fog and for colour-blind players.
 - **Motion and effects exist for readability.** Animate to make direction or change obvious, and make projectiles slow and bright enough to follow (Hollywood realism). Never animate for decoration.
 - **The UI never disagrees with the rules.** A readout measures the way the simulation does, and the fog shows what the side actually knows.
+- **Async previews identify the whole intent.** A destination is incomplete without facing, direction, route policy and queue behavior. Changing one while a reply is in flight must not display the old result as valid for the new action. Sweep held previews, release confirmations and committed markers together.
+- **Preview and publication need one heading owner.** A squad's settled body angle can differ from its ordered approach angle. Check an oblique move before and after release; do not let two definitions make its arrow jump.
 
 ## Smells
 
