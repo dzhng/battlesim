@@ -6607,6 +6607,18 @@ separately. No measured performance win is claimed.
 **Verdict:** sound; high confidence. This generalizes within an observed math
 owner while leaving unrelated, unproven numerical hypotheses alone.
 
+## C86 tree lines (drawn half)
+
+**When:** 2026-10-02. Evidence: "Outcome — drawn half, first picture" in [C86](slices/C86-tree-lines.md).
+
+### The rig's tree line is the longest straight strip between open ground, seen across
+
+**Choice:** The `tree-line` stations take their candidates from the renderer's own forest strokes and keep one only where the simulation's ground agrees: wooded along its middle, open ground 4 m and 30 m beside it on both sides. Of those 80 m or longer and 400 m inside the map they stand on the longest, with the camera on its southern side looking across it.
+
+**Gap:** The gate asked for a station on a tree line and named no line, no framing and no way to find one.
+
+**Verdict:** sound. A scan of an 8 km map by the ground alone would cost a million probes a page load; the strokes name eleven candidates and the ground still decides. Across is the framing that asks the slice's question (does it block the view). The inset keeps the map's edge out of the 250 m frame. **Confidence:** medium: the stations move to another line when the generator's layout changes, as the rig's other generated stations do.
+
 ## C87 ground composition gate
 
 ### Forest floor bodies go back off by default
