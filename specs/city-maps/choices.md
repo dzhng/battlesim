@@ -3374,11 +3374,11 @@ raster nearby bodies again, and no changed-prefix scan can miss a later update.
 
 **Verdict:** sound. **Confidence:** high.
 
-### The court is plainer than a slab
+### The court is smaller than its prototype
 
-**Choice:** The court has 408 bays against the largest slab's 336, and one template's budget. Its balcony, grille, air-conditioner, laundry and lantern probabilities are lowered (0.18, 0.25, 0.22, 0.2, 0.2) and its plan shrunk from 44 x 41 m until it fits: 146,806 / 49,034 / 7,146 / 1,766 triangles.
+**Choice:** The court has 408 bays against the largest slab's 336, and one template's budget, so its plan is 41 x 38 m round a 17 x 14 m yard, not the prototype's 44 x 40 m. (It was also furnished more thinly until the bar rule below cut every template's tier 0; that is undone.)
 
-**Verdict:** provisional: if C22 raises the budget the court can have the slabs' density back by deleting five numbers. **Confidence:** medium.
+**Verdict:** sound. **Confidence:** medium.
 
 ### One entrance, shops on the street and the east flank, backs elsewhere
 
@@ -3391,6 +3391,66 @@ raster nearby bodies again, and no changed-prefix scan can miss a later update.
 **Choice:** The kit's casement window is modelled with a leaf open. With rooms left out until C26 the eye went through it and out the far side of the block, so a dark pane now stands in the opening behind the leaf (two triangles in that module). This also fixes the five slabs.
 
 **Verdict:** sound. **Confidence:** high.
+
+### Damage states are built from the intact export, not from the graph
+
+**Choice:** The China graph has no damage inputs, and Q-G's "damage inputs added to each graph" would mean writing breach and collapse logic in geometry nodes inside a vendored file. The exporter makes `ruin` and `gutted` itself from what it already reads: it cuts the same walls, piles rubble of the same materials over the same plan, and chars, hangs or throws down the same kit meshes as module variants (`+burnt`, `+hanging`, `+wreck`).
+
+**Gap:** C14 says "evaluate patched damage inputs"; S2 found none to patch.
+
+**Reach:** A damage state is the same building by construction (same openings, same wall colour through the same tint), and costs no second source. The kit grows by the variants and the state shells: 115 modules, a 38.6 MB bundle.
+
+**Verdict:** sound. **Confidence:** high.
+
+### Burnt is grey with black marks, not the same wall darker
+
+**Choice:** Three first attempts read as something else in the game's light. Soot streaked down a wall still in its paint colour was the grain of a plank. Soot in clouds, in a texture that repeats every 4.8 m, was camouflage. Dark patches on a roof were the shadow of a tree, still so to an unprimed eye after the roof was smoked grey and the patches given hard edges. So a gutted block changes hue, which no shadow does: its shell row's tint is the wall colour with nine tenths of its colour gone, the burnt-wall texture is an even smoked grey, its trim is blackened, and the whole roof is smoked to a brown grey. The marks that say fire are geometry and never repeat. A black fan stands above most openings and fades up and out into the wall (a fan with an edge is a pale bucket hung under the window above); it stops under the next opening, because a fan drawn across an opening paints the hole the wall's colour and the window reads as glazed. The holes themselves are dark, and bays are blown out to the slab. On the roof the fire leaves holes with hard, ragged edges (a 1 m grid pushed off its lines, a cell one surface): through a hole the top storey's black floor and the inside of its walls show, moving against the roof as the camera does, and round it the tiles are off a slab grey with ash. A flat dark patch, however black and hard-edged, stayed a shadow or a tarp to an unprimed eye; a hole with something 3 m down in it did not. A fan that stops under an opening is still half black there, so a column of windows is one streak rather than a shadow under each sill.
+
+**Verdict:** sound. **Confidence:** medium.
+
+### A rubble heap is smooth, off its grid, and one material to a cell
+
+**Choice:** The first heap was a height field on a square grid, flat shaded, each triangle given concrete, plaster or tile by noise: an unprimed eye saw a camouflage tarp, light and dark triangles with tile in a chequer of diagonals. It is now smooth shaded, its vertices pushed off the grid's lines, and both triangles of a cell take one material from noise 3 m across. The blocks thrown over it are many small and a few large instead of one size. The coarse stumps' inner faces take the fine stumps' colour, and tier 2 keeps the sign boards and a few large blocks, so 319 m does not swap one picture for another.
+
+**Verdict:** sound. **Confidence:** medium.
+
+### A ruin stays inside the remains box with no allowance above it
+
+**Choice:** Stumps break off at or below the ruin height (`collapse.ruin_height`, the simulation's), and slabs, blocks and wrecks are pressed under it. The bake allows a set a `ruin_top_m` above the remains for jagged tops; this set names none.
+
+**Verdict:** sound: what stops a round is what is drawn. **Confidence:** high.
+
+### Every opening is lined, and the rooms behind are not drawn at all
+
+**Choice:** The point block showed grass through its balconies: a glazed-in balcony's door had been left out as hidden, and the block is hollow. Rather than patch each module that does not close its opening (the open casement, the open stall, the entrance, the balcony), the shell now carries a dark matte pane 0.28 m inside the wall in every opening, at the two tiers that have openings. The room boxes and shop interiors behind open stalls, kept until now, are behind it and no longer exported; the casement's own backing pane is gone.
+
+**Reach:** 0 of 2.58 million rays shot at the seven templates' facades (square on, 63 degrees to either side, and down at the game's two pitches) get more than 1.5 m inside, at tiers 0 and 1; the committed point block let 1,687 and 4,515 through.
+
+**Verdict:** sound. **Confidence:** high.
+
+### The roof and the plinth take colours of our own
+
+**Choice:** In the game's light the roof read as loud orange-red with a chequer, and the stone ground floor as a scorched band. The roof recipe is the set with half its colour taken out, its brightness levelled and its mean brought to a dull clay (linear 0.2, 0.115, 0.085), with no dirt in the texture; its stains are in the roof mesh's vertex colour, a grid of 3 m cells shaded by noise that never repeats and differs per template: a few large, faint stains. The stone recipe is brought to a mid grey (0.2, 0.19, 0.175).
+
+**Reach:** A first pass that only set the mean (0.25, 0.125, 0.085) was still orange and chequered in the game's line-up: the set is lighter at one corner than another, and four repeats of it are a chequer from the air. So `toned` levels the set's brightness over anything longer than a tenth of the tile.
+
+**Verdict:** sound: seen in the game's line-up at tiers 0 to 3. **Confidence:** medium.
+
+### Thin bars are not geometry
+
+**Choice:** At the tactical camera, which draws tier 0, a metre is about 20 pixels, and the kit's cages, rails and solar racks are 1 to 2 cm bars: stipple. `detail.simplify` now takes the thinnest bar a tier draws (5 cm at tier 0, 12.5 cm at tier 1): a thinner bar becomes one quad that wide, every other bar of a cage or railing is left out, and a bar under a sixth of the tier's feature size is not drawn. Tier 1's feature size is 25 cm (was 20), so there nothing under 4 cm is drawn at all. The alternative, cutout textures with mips, waits for C24.
+
+**Reach:** Tier 0 falls to between 46,000 and 140,000 triangles a template and tier 1 to between 12,000 and 42,000, so the court block takes the slabs' furnishing back (its lowered probabilities are gone; it keeps the smaller plan).
+
+**Verdict:** sound in the line-up's stills at the tactical station; not yet seen moving. **Confidence:** medium.
+
+### The coarse tiers keep the facade's bands
+
+**Choice:** A coarser tier is the same picture with less geometry. `detail.hull` now votes by the area each triangle shows on the face of the bounds it looks out of, so a glazed balcony is a pale parapet under dark glass at tier 2 (it was a cream slab: glass panes narrower than the balcony voted for nothing) and the same two bands at tier 3 (it was one dark box). At tier 3 the bands are laid on the wall: a front standing 1.2 m off it with no sides floats when seen along the wall. Roof furniture is folded in at tier 2 and gone at tier 3, which the tier-transition review accepted at that distance.
+
+**Reach:** In the game's line-up the three tier boundaries no longer flip a facade dark, light, dark.
+
+**Verdict:** sound. **Confidence:** medium.
 
 ## Compact saved maps
 
