@@ -2666,3 +2666,151 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 **Gap:** "The mask view adds 0 ms to the final view."
 
 **Verdict:** sound. The final view gains one uniform comparison per terrain fragment; the machine's run-to-run noise is hundreds of times that. **Confidence:** high.
+
+
+## C80 grass presets
+
+### Wind response rides the clump's vertex alpha
+
+**Choice:** A kind's `wind` (0 to 1) is written into every vertex's colour alpha by the generator and read back when the field packs its shapes.
+
+**Gap:** The slice says the spec carries a wind-response factor; the bake reads only the GLB, never the spec.
+
+**Verdict:** sound. No bundle-format or loader change, and the response is in the art it belongs to. A model's alpha is its wear threshold only where a wear texture is bound, and grass has none. It cannot pass 1: a kind sways as the biome's wind says, or less. **Confidence:** high.
+
+### "Clumping" is the spec's existing radius; the field's clumping is the biome's
+
+**Choice:** No new clumping field on the spec. `radius_m` is a clump's spread; how clumps gather across a field is the growth row's (`thin`, `drift`, C82).
+
+**Gap:** Q-G10 lists clumping among a preset's properties.
+
+**Verdict:** sound. One owner each: the clump is the art, where clumps stand is the field's. **Confidence:** medium.
+
+### A headed blade's last pair sits on its head, in every tier
+
+**Choice:** Strip vertices are evenly spaced up a blade except on a blade with a head, whose last pair sits where the head is widest.
+
+**Gap:** The slice asks for blade shape; it does not say which tier must show it.
+
+**Verdict:** sound. The play camera draws the two-segment tier, whose only pair sat at half height, below any head: ears and flowers vanished 16 m out and the tier boundary showed as a band. **Confidence:** high.
+
+### The workbench ruler is a cage at 0.9 m
+
+**Choice:** A grass kind's footprint overlay is a ring on the ground and one at 0.9 m with four posts, and the views frame it.
+
+**Gap:** "A workbench grass sheet with a 0.9 m ruler."
+
+**Verdict:** provisional. It shows the cap beside one clump at its source height; a sheet of every kind side by side at its field scale would judge species against each other, and was not built. **Confidence:** medium.
+
+
+## C81 wild grass
+
+### Rough ground and prairie are plot kinds
+
+**Choice:** Two new plot kinds, `rough` and `prairie`, carry tall rough grass and dry prairie; meadow keeps the short meadow and the verge takes the weeds.
+
+**Gap:** "Biome growth rows point meadow, pasture, verge and rough ground at them": there was no rough ground.
+
+**Verdict:** sound. A plot kind is how the biome says what a piece of ground is. Adding kinds reshuffles which plot is which (the split itself is unchanged), on the village too, which Q-G1 allows. **Confidence:** high.
+
+### A clump's shading softens by its size on screen, as biome data
+
+**Choice:** `soften_m_per_px`, `soften`, `blade_facing` and `min_blade_px` 1.4 replace a constant share of the fade and a constant normal weight.
+
+**Gap:** The slice delegates preset parameters; the failure at the play camera was in the field's shading, not a preset.
+
+**Verdict:** sound. At 65 m a blade is under a pixel, and root-to-tip contrast and per-blade facing alias into dark flecks whatever the preset. **Confidence:** high.
+
+### The rig stands on plots by kind, and the grass pass can be retuned in the page
+
+**Choice:** Stations over the village's roomiest open plot of each kind; `__lab.grass().retune(rules)`.
+
+**Gap:** The slices name `field-65`; which crop grows there changes with every roster.
+
+**Verdict:** sound. Fixed coordinates showed three different crops over this pass. The probe is the seam the checks plant their arms through, so they hold when the biome's numbers move. **Confidence:** high.
+
+### Cost is the rig's paired run, not the village scene's
+
+**Choice:** The frame-cost row is grass on and off at two stations, still and with the camera moved a centimetre a frame.
+
+**Gap:** "Grass ms and clump counts; a frame-cost row."
+
+**Verdict:** provisional. The village scene's own `GRASS_COST` run was broken at the start (a missing helper, fixed) and was not rerun under the GPU budget. The machine was loaded: baseline pairs spread over 3 ms. **Confidence:** medium.
+
+
+## C82 within field variation
+
+### A grass among others differs by dryness, not by its own colours
+
+**Choice:** A mix entry carries `dry`, a hue shift over the ground's colour; a clump's spec colours stay relative to the ground it grows on.
+
+**Gap:** The slice says a clump picks its species; it does not say how species differ in colour inside one plot.
+
+**Verdict:** provisional. It keeps the rule that near grass and the painted ground beyond agree. It also means a prairie tuft in a meadow is green with a straw cast, not straw. **Confidence:** medium.
+
+### Drifts
+
+**Choice:** `drift` gathers a grass into patches of its own: up to three times its share inside one, none outside at 1.
+
+**Gap:** "A clump picks its species by hash."
+
+**Verdict:** sound. Salt and pepper of four grasses reads as noise; weeds and rough grass stand in drifts. **Confidence:** medium.
+
+### Patches are a few metres across, and drying lightens a little
+
+**Choice:** `patch_m` 3.5 to 6 m; `dry_lift` 0.08; sparse patches thin by a quarter to a third.
+
+**Gap:** "Noise scales; amplitudes."
+
+**Verdict:** provisional. At 11 to 17 m the unprimed pass read the field between one-sided lighter patches as cloud shadow. The avoid-list's rule is about scale as much as sign. A hue shift at exactly the ground's luminance read as rust, hence the small lift. **Confidence:** medium.
+
+### Each clump's brightness varies, within a bound
+
+**Choice:** `clump_value` 0.16, half per clump and half per tussock (1.1 m).
+
+**Gap:** "Colour varies in hue and saturation at bounded luminance."
+
+**Verdict:** provisional. Without it a softened field is flat felt at 65 m. It is two-sided, but at one metre, which is grain and not a patch; the check holds it to the amount asked. **Confidence:** medium.
+
+### What sets a clump apart fades with it
+
+**Choice:** Dryness and grain scale by the clump's fade.
+
+**Gap:** Q-G17 asks for a graceful fade; a field whose clumps are lighter than its ground ends in a visible band.
+
+**Verdict:** sound. **Confidence:** high.
+
+
+## C83 crops
+
+### New plot kinds borrow palettes
+
+**Choice:** Barley, rapeseed, hay, stubble, rough and prairie name existing palettes.
+
+**Gap:** The crops need plot kinds; palettes are C84's.
+
+**Verdict:** provisional, until C84. Two kinds on one palette are one colour past 180 m. **Confidence:** high that C84 must replace them.
+
+### Crops keep to the terrain's rows
+
+**Choice:** `rows` (0 to 1) moves a clump toward the nearest painted row of its plot, never past the verge or into a bare margin; wheat and barley 0.25, rapeseed 0.2, stubble 0.5.
+
+**Gap:** The slice asks for presets; a crop that is scattered like a meadow reads as recoloured lawn.
+
+**Verdict:** sound in mechanism, provisional in numbers. Tighter rows showed bare ground between them that read as sand; the ground's texture (C85) may let them tighten again. **Confidence:** medium.
+
+### Hay stands
+
+**Choice:** Hay is tall dry grass with seed heads, uncut; stubble is the cut field.
+
+**Gap:** "Hay and stubble."
+
+**Verdict:** provisional. Swaths and bales would be dressing, not grass. **Confidence:** medium.
+
+### Young crop is gone
+
+**Choice:** The `young_crop` plot kind and the `grass_crop` kind are removed; its palette is rapeseed's for now.
+
+**Gap:** The slice's list has no generic crop.
+
+**Verdict:** sound. **Confidence:** high.
