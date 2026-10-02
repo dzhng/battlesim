@@ -5,7 +5,7 @@ Every model and texture is **made by code**. The user likes this and wants it ke
 - numpy recipes build tileable textures;
 - the bake packs both into content-addressed bundles.
 
-No hand-authored or downloaded art, except licensed third-party sources admitted by the provenance rule in [`AGENTS.md`](../../../../AGENTS.md); the reuse manifest's `third_party` list is the roster. Two kinds exist today:
+No hand-authored or downloaded art, except third-party sources with a known source and a licence that allows shipping; [`assets/README.md`](../../../../assets/README.md) lists them. Two kinds exist today:
 - the Quaternius base packs the soldiers are built from (a CC0 body, its 65-joint rig and library clips), read from a local cache by `blender/packs.py`, never committed;
 - effect flipbooks under `assets/third-party/effects/`, layers of the effect atlas.
 
@@ -26,7 +26,7 @@ Drive Blender through a Blender MCP server when one is installed, e.g. to inspec
 3. `textures.py` embeds the albedo, normal and ORM PNGs.
 4. It exports a GLB into `assets/source/**`, which is LFS.
 5. `asset bake` makes bundle v3 (magic `BGAB`, a canonical JSON header and an aligned binary body) at `assets/runtime/<sha256>/bundle.bin`, mapped by name in `assets/runtime/catalog.json`.
-6. `asset check` validates it against the fit authority (`src/authority.ts`: the fixture's soldier frame and each unit type's resolved catalog numbers), within the catalog's `tolerances`. It also checks the reuse manifest's licences.
+6. `asset check` validates it against the fit authority (`src/authority.ts`: the fixture's soldier frame and each unit type's resolved catalog numbers), within the catalog's `tolerances`.
 7. `asset sheet <name>` renders workbench views headlessly for review; `--accept` copies them to `assets/review/`.
 
 A new **unit type** (vehicle or infantry) starts in the unit catalog, in [`fixtures/README.md`](../../../../fixtures/README.md): mounts, muzzles, fit checks, and what presentation anchors to.
@@ -38,7 +38,7 @@ The fence, sandbags and dragon's teeth are worked examples:
 2. Add a `props.py` kind, authored to that box, with its origin at the box centre on the ground.
 3. Add its line to `build_sources.sh`, then run `asset blender` and `asset bake`.
 4. Add a catalog entry (`unit: "scenery"`, `states`, `basis_yaw_deg`, `footprint_half_m`).
-5. Add a `SCENERY_KINDS` row and the `project-owned` provenance record.
+5. Add a `SCENERY_KINDS` row.
 6. Run `asset check`, the catalog footprint test and a sheet.
 7. **Bind it in the prop type, not the renderer:** its `appearance.drawn_by` names the scenery kind, and `modular` makes it repeat along its box instead of stretching. The renderer reads the binding from the world layout (`propAppearance`); a type whose binding names a scenery kind with no appearance draws as nothing, and the catalog footprint test catches it.
 
