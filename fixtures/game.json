@@ -205,7 +205,7 @@
       "stationary": false,
       "range_m": 150,
       "speed_mps": 100,
-      "gravity_scale": 0.09,
+      "gravity_scale": 5.35103,
       "aim_s": 1.5,
       "reload_s": 5,
       "ammo": 8,
@@ -854,27 +854,30 @@
           "glow": { "color": [1.0, 0.55, 0.2], "intensity": 4, "width_m": 0.36, "min_px": 1 }
         },
         "tank_ap": {
+          "zoom_boost": 2,
           "tail_s": 0.008, "tail_m": [3, 10],
           "glow": { "color": [1.0, 0.5, 0.18], "intensity": 4, "width_m": 0.75, "min_px": 6 },
           "core": { "color": [1.0, 0.78, 0.45], "intensity": 12, "width_m": 0.2, "min_px": 2.5, "share": 0.5 },
-          "cast": { "color": [1.0, 0.42, 0.14], "intensity": 3, "radius_m": 5 }
+          "cast": { "color": [1.0, 0.42, 0.14], "intensity": 10, "radius_m": 14 }
         },
         "tank_he": {
+          "zoom_boost": 2,
           "tail_s": 0.009, "tail_m": [3, 10],
           "glow": { "color": [1.0, 0.36, 0.08], "intensity": 2.5, "width_m": 0.75, "min_px": 6 },
           "core": { "color": [1.0, 0.6, 0.3], "intensity": 8, "width_m": 0.2, "min_px": 2.5, "share": 0.35 },
-          "cast": { "color": [1.0, 0.42, 0.14], "intensity": 3, "radius_m": 5 }
+          "cast": { "color": [1.0, 0.42, 0.14], "intensity": 10, "radius_m": 14 }
         },
         "grenade": {
           "tail_s": 0.12, "tail_m": [1, 4],
           "glow": { "color": [1.0, 0.35, 0.1], "intensity": 1.2, "width_m": 0.14, "min_px": 2.5 },
           "body": { "color": [0.04, 0.04, 0.035], "size_m": 0.12 },
-          "smoke": { "albedo": [0.92, 0.92, 0.93], "ribbon": 0.5, "opacity": 0.2, "size_m": [0.15, 0.7], "life_s": 4, "rise_mps": 0.1, "spread_mps": 0.15, "spacing_m": 1 }
+          "smoke": { "albedo": [0.92, 0.92, 0.93], "ribbon": 0.5, "opacity": 0.2, "size_m": [0.15, 0.7], "life_s": 2, "rise_mps": 0.1, "spread_mps": 0.15, "spacing_m": 1 }
         },
         "atgm": {
-          "tail_s": 0.02, "tail_m": [2, 8],
+          "zoom_boost": 2,
+          "tail_s": 0.02, "tail_m": [0.5, 4],
           "glow": { "color": [1.0, 0.55, 0.22], "intensity": 10, "width_m": 0.9, "min_px": 8 },
-          "core": { "color": [1.0, 0.95, 0.85], "intensity": 40, "width_m": 0.2, "min_px": 1.5, "share": 0.7 },
+          "core": { "color": [1.0, 0.95, 0.85], "intensity": 18, "width_m": 0.1, "min_px": 1.5, "share": 0.25 },
           "smoke": { "albedo": [0.96, 0.96, 0.98], "ribbon": 0.55, "opacity": 0.5, "size_m": [0.6, 3.2], "life_s": 12, "rise_mps": 0.15, "spread_mps": 0.3, "spacing_m": 3.5 },
           "cast": { "color": [1.0, 0.55, 0.25], "intensity": 20, "radius_m": 20 }
         }
