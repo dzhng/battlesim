@@ -8,7 +8,8 @@
 // and water masks are the simulation's own shapes, so a road's 50% blend is
 // on the road rule's edge. Each kind of road is its own surface (`biome.roads`),
 // and the ground beside it is worn across a shoulder the grass thins over:
-// the rule is the surface, the shoulder is only its look. The forest floor
+// the rule is the surface, the shoulder is only its look. A town street has
+// a paved walk there instead, a curb along its edge and painted lines. The forest floor
 // (leaf litter, moss, humus, roots)
 // covers the simulation's forest shapes and meets the field across a ragged
 // verge on each shape's edge: the shape stays the rule, only its
@@ -580,8 +581,9 @@ export const GroundPaved = d
  *  the exposed union boundary contributes feathering, so their distance goes
  *  to one row, that of the kind the point stands on (where kinds overlap,
  *  the earlier), or outside them all the nearest edge's. A stroke whose kind
- *  has a walk is drawn that much wider by the walk's row. Stroke math
- *  retains its original order. */
+ *  has a walk is drawn that much wider by the walk's row. A stretch's
+ *  record holds how far along its stroke it starts (`SURFACE_STROKE_ALONG`,
+ *  its `detail.w`). Stroke math retains its original order. */
 export const groundPaved = tgpu
   .fn(
     [d.vec2f, d.vec4u],
