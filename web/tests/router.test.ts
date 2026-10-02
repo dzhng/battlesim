@@ -9,17 +9,19 @@ test("every registered fixture has a page and every page a fixture", () => {
   expect(Object.keys(ROUTES).sort()).toEqual(fixtures.map((f) => f.id).sort());
 });
 
-test("the main menu at / offers a new battle, the village and replay, the benchmark and labs behind its developer link; the lab index is /labs", () => {
+test("the main menu at / offers a new battle, the village, the saved battlefield and replay, the benchmark and labs behind its developer link; the lab index is /labs", () => {
   const menu = render(createElement(LabRouter, { path: "/" }));
   const links = () => menu.getAllByRole("link").map((a) => a.getAttribute("href"));
   expect(links()).toEqual([
     expect.stringMatching(/^\/battle\?type=mixed&size=small&seed=\d+$/),
     "/battle/village",
+    "/battle?map=market-town&recipe=assault",
     "/replay/village",
   ]);
   fireEvent.click(menu.getByRole("button", { name: "Developer" }));
   const entries = {
     "Play village": "/battle/village",
+    "Play Market Town": "/battle?map=market-town&recipe=assault",
     "Watch replay": "/replay/village",
     Benchmark: "/benchmark",
     Labs: "/labs",

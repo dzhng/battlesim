@@ -24,10 +24,14 @@ A change this lane needs outside its column is a small, named commit, mentioned 
 2. **[C06 sim scale passes](slices/C06-sim-scale-passes.md):** take the largest costs first. Each pass leaves battle digests and replays unchanged, or is a named decision with the reason.
 3. **[C07 publication at scale](slices/C07-publication-at-scale.md):** what the simulation hands the page each tick, including the late-battle growth (remains, known props).
 4. **The browser stress checks** (`endurance` and `benchmark` scenes) at 30 Hz, early and late, on this machine.
+5. **The whole pipeline over many seeds** (the tooling half of [C54](slices/C54-generation-gate.md)): one runner that, for each map type, size and a set of seeds, generates the map, plans the `assault` encounter and plays a short battle, and reports every refusal with its reason, units that never reach their goal, and tick cost. Fix what it finds in the simulation; report what it finds in the generator or the planner in Status.
+6. **Two faults it will meet, known already:** infantry route times through a town come back infinite (`NavGrid::route_time`), so the encounter planner can only time a jeep ([C59 outcome](slices/C59-encounter-planner.md#outcome)); and a replay carries no engine build identity, so a build that changes simulation code without changing the scenario replays to a different battle unrefused ([C55 outcome](slices/C55-runtime-generation.md#outcome)).
 
 ## How to work
 
 Read [`AGENTS.md`](../../AGENTS.md): narrow checks only, no full gate. A performance change is proved by unchanged digests (the digest and replay tests) and measured in instructions retired, never wall time; `village_report -- --quick --compare main` is the cross-check over whole battles. Branch from main and merge back at each green pass, having run the sim tests for what changed and the one or two scenes it can move. Add an Outcome to each slice file and decisions to [`choices.md`](choices.md) under a heading for the slice. Keep raw reports and logs in gitignored `throwaway/`; the spec gets conclusions and tables only.
+
+**One GPU, shared.** Several sessions are working at once. Run every scene, render and asset sheet through the GPU lock in the main checkout (the README's Checks section has the command), never two at a time, and keep heavy jobs (a full Rust test run, a long sweep) to one at a time.
 
 ## Status
 
