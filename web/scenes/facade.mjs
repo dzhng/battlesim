@@ -18,7 +18,8 @@
 // `FACADE_COST=1` measures instead: the frame's GPU time with and without
 // each kind of surface (paired, interleaved) over a field of blocks.
 import { writeFile } from "node:fs/promises";
-import { lab } from "./_lab.mjs";
+import { median, rec709 as luminance } from "./_colour.mjs";
+import { gpuMs, gpuWarnings, lab } from "./_lab.mjs";
 import { PNG } from "pngjs";
 import { decode, pixel, around, writeCrop } from "./_png.mjs";
 
@@ -29,7 +30,6 @@ const SURFACES = ["cutout", "blended", "room"];
 const COST_BLOCKS = 288;
 
 const sum = (a, b) => a.reduce((s, v, i) => s + Math.abs(v - b[i]), 0);
-const luminance = ([r, g, b]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
 /** Mean colour of the pixels within `r` of `p`. */
 function mean(png, p, r) {
   const total = [0, 0, 0];
@@ -43,11 +43,7 @@ function mean(png, p, r) {
 
 async function open(ctx, query = "") {
   const page = await ctx.newPage({ viewport: VIEWPORT });
-  const warnings = [];
-  page.on("console", (m) => {
-    if (m.type() === "warning" && /webgpu|validation|gpu\w*error/i.test(m.text()))
-      warnings.push(m.text().slice(0, 200));
-  });
+  const warnings = gpuWarnings(page);
   await page.goto(`${ctx.url}${query}`);
   await page.waitForFunction(
     () =>
@@ -514,24 +510,10 @@ async function rooms(ctx, suns) {
   return cameras;
 }
 
-/** The frame's GPU time over `frames` forced redraws from now. */
-async function gpuMs(page, frames = 120) {
-  return lab(
-    page,
-    async (frames) => {
-      await window.__lab.setFrameView("final");
-      for (let i = 0; i < frames; i++) await window.__lab.frame();
-      return window.__lab.stats().gpu;
-    },
-    frames,
-  );
-}
-
 /** `FACADE_COST=1`: paired GPU time, each kind of surface drawn against every
  *  other frame batch without it, over a field of blocks. */
 async function cost(ctx) {
   const { page } = await open(ctx, `?blocks=${COST_BLOCKS}`);
-  const median = (list) => [...list].sort((a, b) => a - b)[Math.floor(list.length / 2)];
   const rows = [];
   // The field from the default camera, and from far enough to take it all in.
   for (const [name, view] of Object.entries({
