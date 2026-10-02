@@ -42,7 +42,7 @@ const onPlot =
 const WILD = ["meadow", "rough", "prairie"];
 const CROPS = ["pasture", "wheat", "barley", "rapeseed", "hay", "stubble", "ploughed"];
 /** The ground round the houses, a kind of its own. */
-const SETTLEMENT = "green";
+const SETTLEMENT = "yard";
 
 /** Each map's route (from the site root) and its named poses. A generated
  *  map's stations stand on what its preparation reports (the objective town,
@@ -108,6 +108,13 @@ export const STATION_MAPS = {
       // ways or more meet, and low along the edge of a plain street.
       "junction-65": ({ streets }) => at(streets.junction, 65),
       "street-edge-25": ({ streets }) => at(streets.edge, 25, LOW, streets.yaw),
+      // Where the town's yards stop and the fields begin, west of its
+      // centre; and where the country road through it leaves its streets
+      // (`townEdges`).
+      "town-edge-250": ({ edges }) => at(edges.yards, 250),
+      "town-edge-65": ({ edges }) => at(edges.yards, 65),
+      "road-join-65": ({ edges }) => at(edges.join, 65),
+      "road-join-25": ({ edges }) => at(edges.join, 25, LOW, edges.joinYaw),
       "country-250": ({ start }) => at(start.at, 250),
       "country-65": ({ start }) => at(start.at, 65),
       "country-25": ({ start }) => at(start.at, 25, LOW),
@@ -257,6 +264,138 @@ const townStreets = (page, centre) =>
     centre,
   );
 
+/** The generated map's ground as the renderer builds it, in the page as
+ *  `window.__generatedGround`: its terrain `surface` (its plots, its paved
+ *  strokes as drawn). The map is made again from the page's own request. */
+const generatedGround = (page) =>
+  page.evaluate(
+    async (repo) => {
+      if (window.__generatedGround) return;
+      const file = (p) => `/@fs/${repo}${p}`;
+      const [wasm, { GAME_RULES }, mesh, biome, presets, templates] = await Promise.all([
+        import("/src/wasm/game_wasm.js"),
+        import(file("apps/battle-lab/src/scenarios.ts")),
+        import(file("packages/battle-renderer/src/worldMesh.ts")),
+        import(file("fixtures/biomes/summer.json")),
+        import(file("fixtures/map-presets.json?raw")),
+        import(file("fixtures/prototype-building-templates.json?raw")),
+      ]);
+      await wasm.default();
+      const request = window.__lab.route.prepared().request.map_source.request;
+      const outcome = JSON.parse(
+        wasm.generate_map(JSON.stringify(request), presets.default, templates.default),
+      );
+      if (outcome.status !== "ok") throw new Error(JSON.stringify(outcome.diagnostics));
+      const rules = JSON.stringify(GAME_RULES);
+      const view = new wasm.WorldView(JSON.stringify(outcome.result.map), rules);
+      try {
+        window.__generatedGround = {
+          surface: mesh.buildWorldLayers(
+            mesh.readWorldExports(view),
+            JSON.parse(wasm.world_layout(rules)),
+            biome.default,
+            "surface",
+          ).terrain,
+        };
+      } finally {
+        view.free();
+      }
+    },
+    new URL("../../", import.meta.url).pathname,
+  );
+
+/** How far beside a carriageway `drawnRoads` still names it. */
+const BESIDE_ROAD_M = 10;
+
+/** At each point `[x, y]` of the generated map, the carriageway it lies
+ *  deepest in or nearest beside, by the renderer's own strokes: the `kind`
+ *  it is drawn as, and how far `inside` its edge the point is (negative
+ *  beside it). Null with none within `BESIDE_ROAD_M`. */
+export async function drawnRoads(page, points) {
+  await generatedGround(page);
+  return page.evaluate(
+    async ({ points, repo, beside }) => {
+      const file = (p) => `/@fs/${repo}${p}`;
+      const [strokes, surfaces] = await Promise.all([
+        import(file("packages/battle-renderer/src/terrain/strokes.ts")),
+        import(file("packages/battle-renderer/src/terrain/surfaces.ts")),
+      ]);
+      const { surface } = window.__generatedGround;
+      const drawn = surface.strokes;
+      const stride = surface.site.surfaceStrokeStride;
+      return points.map(([x, y]) => {
+        let road = null;
+        for (let o = 0; o < drawn.length; o += stride) {
+          if (!surfaces.isRoad(drawn[o + 5])) continue;
+          // A stretch's box first: a town has thousands.
+          const pad = drawn[o + 4] + beside;
+          if (
+            x < Math.min(drawn[o], drawn[o + 2]) - pad ||
+            x > Math.max(drawn[o], drawn[o + 2]) + pad ||
+            y < Math.min(drawn[o + 1], drawn[o + 3]) - pad ||
+            y > Math.max(drawn[o + 1], drawn[o + 3]) + pad
+          )
+            continue;
+          const inside = strokes.strokeInside(drawn, o, x, y);
+          if (inside > -beside && inside > (road?.inside ?? -Infinity))
+            road = { kind: surfaces.SURFACE_AREA_KINDS[drawn[o + 5]], inside };
+        }
+        return road;
+      });
+    },
+    { points, repo: new URL("../../", import.meta.url).pathname, beside: BESIDE_ROAD_M },
+  );
+}
+
+/** A yard's last ground is followed by this much of anything else before
+ *  the town has ended. */
+const TOWN_END_M = 300;
+
+/** Where the generated town round `centre` ends, by the renderer's own
+ *  ground: `yards`, the last of its yards due west of its centre, where the
+ *  fields begin; `join`, the nearest place to the centre where a road drawn
+ *  as a street through the town turns back into the country road it is, and
+ *  `joinYaw`, looking from there toward the town's centre. */
+async function townEdges(page, centre) {
+  await generatedGround(page);
+  return page.evaluate(
+    async ({ centre: [cx, cy], repo, end }) => {
+      const { plotAt } = await import(`/@fs/${repo}packages/battle-renderer/src/terrain/plots.ts`);
+      const { surface } = window.__generatedGround;
+      const rules = surface.biome.field_rules;
+      const yard = surface.biome.plots.findIndex((p) => p.name === rules.settlement_kind);
+      const isYard = (x, y) => surface.plots.plots[plotAt(surface.plots, x, y).plot].kind === yard;
+      let last = cx;
+      for (let x = cx; x > last - end && x > 0; x -= 2) if (isYard(x, cy)) last = x;
+      // A road stops, round, where it is drawn as a street from there on:
+      // at a point no exported stretch ends at.
+      const drawn = surface.strokes;
+      const exported = surface.site.surfaceStrokes;
+      const stride = surface.site.surfaceStrokeStride;
+      const ends = new Set();
+      for (let o = 0; o < exported.length; o += stride)
+        for (const k of [0, 2]) ends.add(`${exported[o + k]},${exported[o + k + 1]}`);
+      let join = null;
+      for (let o = 0; o < drawn.length; o += stride)
+        for (const [k, cut] of [
+          [0, 1],
+          [2, 2],
+        ]) {
+          const [x, y] = [drawn[o + k], drawn[o + k + 1]];
+          if (drawn[o + 6] & cut || ends.has(`${x},${y}`)) continue;
+          const d = Math.hypot(x - cx, y - cy);
+          if (!join || d < join.d) join = { d, at: [x, y] };
+        }
+      return {
+        yards: [last, cy],
+        join: join?.at,
+        joinYaw: join && Math.atan2(join.at[1] - cy, join.at[0] - cx),
+      };
+    },
+    { centre, repo: new URL("../../", import.meta.url).pathname, end: TOWN_END_M },
+  );
+}
+
 /** A page on `map`'s route, paused at the stations' tick with the frozen set
  *  on. Shoot it with `shoot`. */
 export async function openStations(ctx, map) {
@@ -285,6 +424,7 @@ export async function openStations(ctx, map) {
       ? { plots: await villagePlots(page) }
       : report && {
           ...report,
+          edges: await townEdges(page, report.objective.center),
           river: await riverBank(page, report.size),
           wood: await woodEdge(page, report.size, report.start.at),
           streets: await townStreets(page, report.objective.center),
@@ -422,7 +562,8 @@ function sheet(rows, shrink) {
 /** Every station of `map` (or `stations` alone): its shot, its shot without
  *  grass or trees, and its class mask, saved as
  *  `<map>-<station>[-bare|-classes].png`, and one sheet `<map>-stations.png`
- *  with a row a station: the shot, the bare ground, the mask made legible. */
+ *  with a row a station: the shot, the bare ground, the mask made legible.
+ *  `<map>-stations.json` holds the pose each was shot from. */
 export async function stationSheet(
   ctx,
   map,
@@ -430,6 +571,10 @@ export async function stationSheet(
   stations = Object.keys(STATION_MAPS[map].stations),
 ) {
   const rows = [];
+  await ctx.writeEvidence(
+    `${map}-stations.json`,
+    Object.fromEntries(stations.map((station) => [station, stationPose(page, map, station)])),
+  );
   for (const station of stations) {
     const save = async (suffix, options) => {
       const shot = await shoot(page, map, station, options);
@@ -501,7 +646,7 @@ const villageGround = (page) =>
           biome.default,
           "surface",
         ).terrain;
-        const field = fields.buildSurfaceField(surface.site, terrain.terrainReach(surface));
+        const field = terrain.terrainField(surface);
         window.__villageGround = {
           surface,
           paved: (x, y, footprint) => fields.pavedDistance(field, x, y, footprint),
@@ -529,35 +674,77 @@ export async function villageExport(page, points) {
 }
 
 /** A plot must keep this far inside the map and from any building to stand
- *  for its kind, and its middle this far from its own edge. */
+ *  for its kind, and its middle this far from its own edge (a yard's
+ *  station, this far from its buildings too). */
 const PLOT_INSET_M = 60;
 const PLOT_ROOM_M = 12;
 
 /** Per plot kind's name, the village's roomiest open plot of that kind
  *  (inside the map, clear of buildings and woods): its middle `at`, and the
- *  unit vector `across` its rows. */
+ *  unit vector `across` its rows. A settlement's yard is built on: its
+ *  station is the yards' roomiest point between the buildings. */
 async function villagePlots(page) {
   await villageGround(page);
   return page.evaluate(
     ({ inset, room }) => {
       const { surface, forest } = window.__villageGround;
       const [x0, y0, x1, y1] = surface.site.map;
+      const yard = surface.biome.field_rules.settlement_kind;
+      /** How far inside convex outline `o` a point lies. */
+      const inside = (o, x, y) => {
+        const n = o.length / 2;
+        let clear = Infinity;
+        for (let k = 0; k < n; k++) {
+          const [ax, ay] = [o[k * 2], o[k * 2 + 1]];
+          const [bx, by] = [o[((k + 1) % n) * 2], o[((k + 1) % n) * 2 + 1]];
+          const len = Math.hypot(bx - ax, by - ay);
+          clear = Math.min(clear, ((bx - ax) * (y - ay) - (by - ay) * (x - ax)) / len);
+        }
+        return clear;
+      };
+      /** How far a point lies from the nearest static prop's footprint. */
+      const fromProps = (x, y) => {
+        const f = surface.site.footprints;
+        let clear = Infinity;
+        for (let k = 0; k < f.length; k += 5) {
+          const [dx, dy] = [x - f[k], y - f[k + 1]];
+          const [c, s] = [Math.cos(f[k + 2]), Math.sin(f[k + 2])];
+          const u = Math.abs(dx * c + dy * s) - f[k + 3];
+          const v = Math.abs(-dx * s + dy * c) - f[k + 4];
+          clear = Math.min(clear, Math.hypot(Math.max(u, 0), Math.max(v, 0)));
+        }
+        return clear;
+      };
       const best = {};
       for (const plot of surface.plots.plots) {
         const o = plot.outline;
         const n = o.length / 2;
+        const name = surface.biome.plots[plot.kind].name;
         let [cx, cy] = [0, 0];
         for (let k = 0; k < n; k++) {
           cx += o[k * 2] / n;
           cy += o[k * 2 + 1] / n;
         }
         // The plot is convex: its middle's distance to the nearest edge.
-        let clear = Infinity;
-        for (let k = 0; k < n; k++) {
-          const [ax, ay] = [o[k * 2], o[k * 2 + 1]];
-          const [bx, by] = [o[((k + 1) % n) * 2], o[((k + 1) % n) * 2 + 1]];
-          const len = Math.hypot(bx - ax, by - ay);
-          clear = Math.min(clear, Math.abs((bx - ax) * (cy - ay) - (by - ay) * (cx - ax)) / len);
+        let clear = inside(o, cx, cy);
+        let apart = inset;
+        if (name === yard) {
+          // The point of a 4 m lattice over it farthest from its edge and
+          // from anything standing on it.
+          clear = 0;
+          apart = room;
+          let [lx, ly, hx, hy] = [Infinity, Infinity, -Infinity, -Infinity];
+          for (let k = 0; k < n; k++) {
+            lx = Math.min(lx, o[k * 2]);
+            hx = Math.max(hx, o[k * 2]);
+            ly = Math.min(ly, o[k * 2 + 1]);
+            hy = Math.max(hy, o[k * 2 + 1]);
+          }
+          for (let y = ly; y <= hy; y += 4)
+            for (let x = lx; x <= hx; x += 4) {
+              const here = Math.min(inside(o, x, y), fromProps(x, y));
+              if (here > clear) [clear, cx, cy] = [here, x, y];
+            }
         }
         const open =
           cx > x0 + inset &&
@@ -565,7 +752,7 @@ async function villagePlots(page) {
           cy > y0 + inset &&
           cy < y1 - inset &&
           clear > room &&
-          surface.site.buildings.every((b) => Math.hypot(b[0] - cx, b[1] - cy) > inset) &&
+          surface.site.buildings.every((b) => Math.hypot(b[0] - cx, b[1] - cy) > apart) &&
           [
             [0, 0],
             [room, 0],
@@ -573,7 +760,6 @@ async function villagePlots(page) {
             [0, room],
             [0, -room],
           ].every(([dx, dy]) => forest(cx + dx, cy + dy, 1) < 0);
-        const name = surface.biome.plots[plot.kind].name;
         if (open && clear > (best[name]?.clear ?? 0))
           best[name] = { clear, at: [cx, cy], across: [...plot.across] };
       }
