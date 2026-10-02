@@ -68,11 +68,13 @@ Update this section, not the README, at the end of each pass: what landed, what 
 - The far tier is each template's own coarsest tier: no tile builder was needed, and a whole frame stays under 11 ms on a Metro Large ([C23](slices/C23-far-tier.md)). `/lab/city-lineup` stands every template in rows at any tier or state: the picture art is judged by.
 - **One way to draw a building.** The village's and the labs' houses are templates of the library too (a `village` set over the authored maps' catalogue), and the fitted house appearance, its bundles and its branch are deleted ([C37](slices/C37-house-appearance.md)).
 
+- Cutout, glass and unlit rooms behind windows in the model layer, each about 0.2 ms on a field of 288 lab blocks ([C24](slices/C24-cutout.md), [C25](slices/C25-glass.md), [C26](slices/C26-interiors.md)); `/lab/facade` shows the three together. No real kit uses them yet. Rooms draw at tiers 0 and 1 (the O-1 verdict).
+
 **Decided:** China's family ships first, and New York and Paris are later families through the same exporter, not part of closing this lane; every category the graphs do not cover is our own scripted source; a join between parts is never built, the outline of the abutting boxes is ([choices](choices.md#buildings-lane)).
 
-**In flight:** cutout, glass and interiors in the model layer (C24 to C26); damage states for all five sets, with the coarse-tier fixes C23 listed (C14).
+**In flight:** damage states for all five sets, with the coarse-tier fixes C23 listed (C14).
 
-**Next:** the coarse tiers' art, set by set, from [C23's list](slices/C23-far-tier.md#what-the-coarse-tiers-must-keep-per-set) (tower windows that change colour at 128 m, apartment balconies that turn cream at tier 2, houses and farms with blank walls at tier 3); glass, rooms and cutouts restored in the kits, by the [city readme](../../packages/scene-assets/blender/city/README.md)'s "Interiors" and "Surfaces that are not opaque" (a room box a window at tiers 0 and 1, glass as one face, cages and grilles as a cutout face), with the glass comparison C25 still owes against the China balcony; ruin and gutted art drawn by knowledge, with the far tier's variants (C27).
+**Next, in order:** the kits adopt glass, rooms and cutouts, and the atlas's rooms are brightened (at 80 m a window reads near-black today); ruin and gutted art drawn by what a side knows (C27); fetching only the kits a map draws from.
 
 **What an unprimed critic saw in the first real town** (eight frames of `/lab/city-block`, 2026-10-02), and where each finding went:
 
