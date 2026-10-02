@@ -158,7 +158,7 @@ test("a state other than intact is every building fallen to it, each part as aut
 const [SHELL, WINDOW] = [0, 1];
 const LIBRARY: TemplateArtLibrary = {
   art_hash: "art",
-  covers: "physical",
+  covers: ["physical"],
   kits: [{ appearance: "city_kit_test", bundle: "a" }],
   modules: [
     { kit: 0, module: "shell" },
