@@ -224,6 +224,12 @@ pub(crate) fn certify(
         if !failed || request.is_none() {
             break;
         }
+        // Out of allowance: what arrived was demonstrated, and stands. A
+        // second pass could not run, and clearing it would refuse a whole
+        // group because one member's journey outlasted the allowance.
+        if remaining < step_cost {
+            break;
+        }
         for (i, a) in active.iter_mut().enumerate() {
             *a &= result[i].is_some();
         }

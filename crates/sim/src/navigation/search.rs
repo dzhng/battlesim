@@ -608,6 +608,8 @@ impl RouteSearch {
                     Some(Open { cell, .. }) if cell as usize == self.target => {
                         Some(if who.m.class == MoverClass::Infantry {
                             Stage::FootTrace(super::foot::FootTrace::new(
+                                grid,
+                                who,
                                 trace_cells(grid, &self.scratch, self.start, self.target),
                                 self.from,
                                 self.goal,

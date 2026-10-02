@@ -13,11 +13,29 @@ pub(super) struct FootTrace {
 }
 
 impl FootTrace {
-    pub fn new(cells: Vec<usize>, from: V2, goal: V2) -> Self {
+    /// The trace of `cells` from `from`. A soldier hard against a body is
+    /// clear of it but nearer than the path clearance, so he stands on no
+    /// free sub-cell (a collapse's survivors, a squad tucked into cover): his
+    /// way starts with the step out to the nearest free one of the start
+    /// cell. That step is his own to walk as a body; every link after it is
+    /// read from the grid.
+    pub fn new(grid: &NavGrid, who: Mover, cells: Vec<usize>, from: V2, goal: V2) -> Self {
+        let mut points = vec![from];
+        if !grid.stands(from, who) {
+            let start = cells[0];
+            let (i, j) = (start % grid.nx, start / grid.nx);
+            let free = grid.cells[start].free;
+            points.extend(
+                (0..SUB * SUB)
+                    .filter(|bit| free & (1 << bit) != 0)
+                    .map(|bit| sub_center(i, j, bit))
+                    .min_by(|a, b| (*a - from).length().total_cmp(&(*b - from).length())),
+            );
+        }
         Self {
             cells,
             at: 0,
-            points: vec![from],
+            points,
             goal,
         }
     }

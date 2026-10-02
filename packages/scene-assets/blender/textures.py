@@ -500,6 +500,36 @@ def ammo_paint():
     return Baked(col, chips(1203, 16), normals_from_height(fbm(96, 1205, 2) * 0.3, 1.0), 1.0, 0.45 + 0.15 * n)
 
 
+@recipe("enamel", tile=2.0, wear=(0.1, 0.06, 0.04, 0.85))
+def enamel():
+    """Sprayed enamel on pressed steel (a car's body, a street cabinet, a skip): a pale
+    neutral gloss the vertex colour tints, a faint orange peel, road film in drifts and
+    fine scratches; the wear is primer going to rust."""
+    peel = fbm(96, 3301, 2)
+    film = smoothstep(0.45, 0.9, fbm(6, 3303, 4))
+    scr = scratches(3307, 2)
+    tone = 0.9 + 0.06 * (fbm(12, 3305, 3) - 0.5) - 0.12 * film
+    col = np.broadcast_to(np.array((0.62, 0.62, 0.61)), (SIZE, SIZE, 3)) * tone[..., None]
+    col = mix(col, (0.5, 0.5, 0.48), scr * 0.3)
+    h = peel * 0.15 - scr * 0.4
+    return Baked(col, chips(3309, 12, bias=0.12), normals_from_height(blur(h), 0.8), 1.0, 0.3 + 0.35 * film + 0.2 * scr,
+                 0.0, 0.0)
+
+
+@recipe("galvanised", tile=0.6, wear=(0.09, 0.055, 0.035, 0.9))
+def galvanised():
+    """Hot-dip galvanised steel (a lamp column, scaffold tube, a mesh fence's frame): dull
+    zinc grey in a crystalline spangle, white bloom where it weathered; the wear is rust."""
+    _, _, ident = worley(14, 3401)
+    spangle = np.random.default_rng(3403).random(14 * 14)[ident]
+    bloom = smoothstep(0.55, 0.9, fbm(8, 3405, 4))
+    col = np.broadcast_to(np.array((0.3, 0.31, 0.32)), (SIZE, SIZE, 3)) * (0.82 + 0.3 * spangle)[..., None]
+    col = mix(col, (0.42, 0.42, 0.41), bloom * 0.5)
+    h = spangle * 0.15 + fbm(64, 3407, 2) * 0.2
+    return Baked(col, 0.35 + 0.65 * fbm(10, 3409, 4), normals_from_height(blur(h), 0.8), 1.0, 0.45 + 0.3 * bloom, 0.35,
+                 0.0)
+
+
 @recipe("painted_wood", tile=1.0, wear=(0.16, 0.11, 0.065, 0.9))
 def painted_wood():
     """Olive-painted ammunition crate boards: planks with grain showing through

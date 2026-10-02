@@ -23,6 +23,8 @@ mod instructions;
 struct Inputs {
     presets: String,
     templates: String,
+    /// The unit and prop catalog's documents, as the rules carry them.
+    catalog: String,
     rules: Rules,
     recipe: EncounterRecipe,
     request: GenerationRequest,
@@ -62,6 +64,7 @@ impl Inputs {
         Ok(Self {
             presets,
             templates,
+            catalog: serde_json::to_string(&rules.catalog)?,
             rules,
             recipe,
             identity,
@@ -248,6 +251,7 @@ fn run_case(inputs: &Inputs, request: &GenerationRequest, seconds: u64) -> Value
             &serde_json::to_string(request).unwrap(),
             &inputs.presets,
             &inputs.templates,
+            &inputs.catalog,
         )
     });
     match generated {

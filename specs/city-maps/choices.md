@@ -4610,6 +4610,71 @@ pending. **Confidence:** high for fixture identity, medium until the scene runs.
 
 **Verdict:** Sound within the existing immutable-view contract. Public feed identity/floor proofs and existing pose lifecycle suites pass. Broader browser allocation, upload and throughput admission remain separate and open. **Confidence:** High for static construction and value preservation.
 
+## C46 street placement
+
+### Furniture stands back from the street, not at the kerb
+
+**Choice:** No body stands nearer a carriageway's middle than the catalog's widest hull plus `lane_margin_m` (3.7 m: 7.3 m from the middle today, 3.9 m off a 7 m street's kerb).
+
+**Gap:** The design put parked cars at the kerb, on the carriageway, with a clear lane down the middle. The simulation's vehicles keep right of the middle and check their lane on a 2 m grid; at the kerb, 8 of 17 swept maps lost their assault and 77 street drives detoured. With the cars on the carriageway's outer edge itself, the widest hull shoved a car on 235 of 443 street drives.
+
+**Verdict:** forced by the route-survival rule; provisional as a picture. Terraced streets stay bare. It goes back to about 0.9 m when a road journey tolerates a body beside its lane. **Confidence:** high that the simulation needs it, low that it is what the streets should look like.
+
+### The catalog is a fourth document of generation
+
+**Choice:** `generate`, `generate-map` and the two Wasm exports take the unit and prop catalog's documents. The request does not pin it.
+
+**Gap:** The slice's signature takes a catalog; the generation boundary had none, and a request pins only the generator, the presets and the template catalogue.
+
+**Verdict:** sound for a build's own maps. A catalog change that moves the lane changes every generated map under an unchanged request; the paired records and the saved map's hash go red when it does. **Confidence:** medium.
+
+### A door keeps 3 m clear either side
+
+**Choice:** `door_clear_m` is 3, as designed, after a trial at 0.75 m.
+
+**Gap:** At 3 m a terrace with a door every 6 m takes no car at all; 0.75 m would have let one stand between each pair of doors.
+
+**Verdict:** sound. At 0.75 m a squad could no longer stand at 89 doors of the sweep: navigation's cell there had no room. **Confidence:** high.
+
+### Which side parks is a width, not a lane count
+
+**Choice:** A carriageway at least `both_sides_min_width_m` (10 m) wide parks along both sides, a narrower one along one side drawn for the whole street.
+
+**Gap:** The design derived one side or two from the lane left on the carriageway. With the cars off the carriageway that sum no longer decides anything.
+
+**Verdict:** provisional: it keeps the designed outcome as a number. **Confidence:** medium.
+
+### A body's size is a preset row
+
+**Choice:** `street_props.bodies` gives each placed kind its box and the room it keeps (a car is 4.2 by 1.8 by 1.5 m).
+
+**Gap:** A catalog prop type has no size; a map prop carries its own.
+
+**Verdict:** provisional until C45's models are fitted, when the boxes should be the models'. **Confidence:** medium.
+
+### Street trees are a prop type of their own, not a forest strip
+
+**Choice:** An avenue's trees are props of `street_tree`, a catalog row that extends the forests' `trunk` (the same body) with a binding of its own, one a spacing.
+
+**Gap:** A tree line could also be a forest stroke (C86).
+
+**Verdict:** sound: a forest strip along a verge would conceal the squads walking it and thin every sight line down the avenue. A lone trunk is cover and nothing more. **Confidence:** high.
+
+### Densities were set by Metro Large's tick cost and its admission
+
+**Choice:** Parking shares of 0.33 to 0.38 in centre, apartment and core districts, lamps every 60 to 70 m, trees every 24 to 26 m, small furniture one to a few hundred metres: 16 825 bodies on Metro Large seed 1, +0.6% of a 120 s battle's ticks on the merged build.
+
+**Gap:** Densities were delegated.
+
+**Verdict:** provisional. The first set (30 440 bodies) cost +8.8%; a middle set left the largest Metro Large of 100 seeds at 57 484 authored bodies of the 60 000 the game admits, and this one leaves it at 52 049. Furniture now counts against that allowance, which was sized for buildings. `city_report`'s crossing aggregate overstates the cost, because the report's own `Battle::load` walks every prop between ticks. **Confidence:** medium.
+
+### A prop kind with no art is drawn as a stand-in box
+
+**Choice:** A prop kind no appearance is fitted to is drawn as the prototype kit's unit box, stretched to the prop's box and tinted by its kind (`presentation.stand_ins.tints`), as an ordinary model instance from `PropAppearances`. The first version put these boxes in the massing layer; main deleted that layer the same day, and this one rides the path props with art take.
+
+**Gap:** `systems_only` kinds resolved to no model, and nothing else drew them: placed, they were invisible bodies.
+
+**Verdict:** sound as a stand-in; C45's models replace it kind by kind. **Confidence:** high.
 
 ## C07: compact the selected lossless group form
 
@@ -5483,3 +5548,62 @@ predeclared whole-Orders gain and exact per-tick battle/observation proofs; the
 smaller whole-step improvement is reported separately. Existing public cover,
 last-seen, hidden and replay tests own the semantic contract, with tracked-row
 omission falsified through the cover behavior rather than private vector shape.
+## C45 street models
+
+The models, their boxes and the sheets are in the [C45 outcome](slices/C45-street-models.md#outcome).
+
+### Each street kind's box is the appearance's, since the catalog rows carry none
+
+**Choice:** A street row has no size; a placement gives each body its box. Each model is authored to one real-world box (`footprint_half_m` in `assets/catalog.json`, listed in the outcome) and the renderer fits a placed box from it per axis. C46 should place these sizes, or near them: a car placed at half its length draws a squashed car.
+
+**Gap:** C45 asks whether each model "fits its body", and C44 gave the bodies no dimensions.
+
+**Verdict:** sound. One owner per number: the art's box is in the art catalog, the placed box in the map. **Confidence:** high.
+
+### One scenery kind per street row; the car's wreck is its own row's art
+
+**Choice:** Every row's `drawn_by` already named its own scenery kind, so each kind has one appearance with one `default` state. The parked car's terminal state is the `car_wreck` row (its `destroyed.into`), drawn by its own appearance on the car's plan at the remains' 0.7 m: a burnt shell on its rims, the roof fallen into the cabin. A test holds any remains with art of their own to the destroyed body's plan and height. No other row has remains: the rest are `removed`.
+
+**Gap:** "Each has LODs and its terminal state."
+
+**Verdict:** sound. A 0.7 m car wreck is lower than a real burnt-out car (about 1.2 m); the height is the simulation's and the art follows it, so the shell is crushed. If it reads as too flat in a street, the fix is the row's `height_m`, a mechanics decision. **Confidence:** medium on the look, high on the binding.
+
+### Street trees are the forest's tree, with no new art
+
+**Choice:** A street tree is the existing tree body (C44) drawn by the existing species. No "street size" species was added: the validator holds every tree appearance to one height and one girth (`fit.tree_size`), so a smaller tree model would be refused, and the placement already scales a crown to its room. The narrow kinds (`tree_tall`, `tree_birch`, reach 3.4 to 3.7 m) are the ones that fit a pavement.
+
+**Gap:** The slice lists "street trees from the one tree generator" under appearances to deliver.
+
+**Verdict:** sound until C46 places one. If a street tree needs to be shorter than the forest's, that is a second size on `SCENERY_KINDS.tree`, decided where the sight rule is. **Confidence:** medium.
+
+### Ours for every kind, including the eight the vendored street kit was to supply
+
+**Choice:** Lamp, bench, bollard, bins, hydrant, utility box, planter and scooter are project-owned models here, like the rest. `procedural-buildings.md` (L5) decided those eight would come from the vendored building pack's street kit, exported standalone by the buildings lane; that export has not happened and this pass was asked for one generic model per body.
+
+**Gap:** The slice's "theirs, from C11's standalone street kit" has no owner in this lane.
+
+**Verdict:** provisional. If the buildings lane exports its kit, each is another appearance of the same scenery kind (the renderer picks by nearest box) or replaces ours; nothing else changes. **Confidence:** medium.
+
+### Jersey barrier, Heras panel and scaffold bay repeat along their box
+
+**Choice:** Those three rows' `appearance` gained `modular: true` (as the wall, fence and sandbags have), so a long placed box draws a run of 3 m barriers, 3.5 m panels or 2.5 m bays instead of one stretched module. No body column changed.
+
+**Gap:** The rows had no `modular`; a barrier line is the common placement.
+
+**Verdict:** sound. It is the appearance binding, not the body. **Confidence:** high.
+
+### Glass and mesh are opaque geometry until model surfaces can blend
+
+**Choice:** The bus shelter's panes are pale, glossy, opaque glass (dark panes read as a black box in the critique). The Heras panel's mesh is wires as geometry on the two near tiers, six uprights on the third and the bare frame on the far tier.
+
+**Gap:** C25 (blended model surfaces) has not landed, and a one-pixel wire crawls at distance.
+
+**Verdict:** provisional. The simulation sees and shoots through both; the shelter draws as a pale screen that hides what stands behind it. When C25 lands the panes become a blended material in `street.py` (one argument). **Confidence:** medium.
+
+### One car, one colour
+
+**Choice:** A pale dusty grey hatchback, with no badge, plate or livery. The colour is neither side's tint, and reads as civilian beside olive vehicles.
+
+**Gap:** "Model details within 'generic'."
+
+**Verdict:** sound for one model. A street of identical grey cars will read as clones; more bodies or colours are more appearances of the same kind at slightly different boxes, or a per-instance tint the scenery path does not have. **Confidence:** medium.

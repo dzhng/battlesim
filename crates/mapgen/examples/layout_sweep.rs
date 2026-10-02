@@ -1,7 +1,8 @@
 //! Generate every type × size over a run of seeds and report what came out:
 //! refusals by feature, composition, roads and transit of the layout, its
 //! river and bridges beside the maps without one, then what the parcel pass
-//! built on it and what the compiled map costs.
+//! built on it, the street furniture placed among that, and what the
+//! compiled map costs.
 //!
 //!   cargo run -p mapgen --release --example layout_sweep -- [--seeds 10]
 //!       [--pictures 3] [--out <dir>] [--only metro:small] [--layout]
@@ -18,6 +19,7 @@ use mapgen::layout::{
     PresetDefinitions, GENERATOR_VERSION,
 };
 use mapgen::parcels::fill_districts;
+use mapgen::street_props::place_street_props;
 use mapgen::CompileLimits;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
@@ -55,7 +57,9 @@ fn median(values: &mut [f64]) -> f64 {
 /// What one filled, compiled plan came to.
 struct Scale {
     buildings: f64,
+    /// Building parts and street furniture together: every authored body.
     parts: f64,
+    furniture: f64,
     bays: f64,
     street_km: f64,
     streets: f64,
@@ -102,6 +106,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let catalogue = TemplateGeometryCatalog::new(serde_json::from_str(&std::fs::read_to_string(
         format!("{fixtures}/prototype-building-templates.json"),
     )?)?)?;
+    // The unit and prop catalog, out of the resolved view the browser reads.
+    let view: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(format!(
+        "{fixtures}/catalog.json"
+    ))?)?;
+    let catalog: contract::catalog::Catalog = serde_json::from_value(view["documents"].clone())?;
     if let Some(out) = &out {
         std::fs::create_dir_all(out)?;
     }
@@ -113,7 +122,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "| cell | ok | refused | with a river | river km | water width m | bridges | bridges top/bottom | connected | fair | approach in both halves | slowest top or bottom to centre s, river / none | layout instructions M median, river / none |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
     );
     let mut scale_table = String::from(
-        "| cell | ok | refused | buildings | parts (props) | bay positions | street km | street strokes | ground points | built ground % | generate ms median/max | generate + compile instructions G median/max | map.json MiB |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
+        "| cell | ok | refused | buildings | authored bodies | of them street furniture | bay positions | street km | street strokes | ground points | built ground % | generate ms median/max | generate + compile instructions G median/max | map.json MiB |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
     );
     let mut records = Vec::new();
     for map_type in MapType::ALL {
@@ -151,7 +160,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let plan = if layout_only {
                         layout
                     } else {
-                        fill_districts(layout, &request, &catalogue, &presets)?
+                        let mut plan = fill_districts(layout, &request, &catalogue, &presets)?;
+                        let props =
+                            place_street_props(&plan, &request, &catalogue, &catalog, &presets)?;
+                        plan.props.extend(props);
+                        plan
                     };
                     Ok((plan, metrics))
                 });
@@ -177,6 +190,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             let scale = Scale {
                                 buildings: plan.buildings.len() as f64,
                                 parts: f64::from(compiled.report.authored_parts),
+                                furniture: plan.props.len() as f64,
                                 bays: compiled.report.bay_positions as f64,
                                 street_km: filled.roads.street_km,
                                 streets: plan
@@ -199,6 +213,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             };
                             record["scale"] = serde_json::json!({
                                 "buildings": scale.buildings, "parts": scale.parts,
+                                "street_props": scale.furniture,
                                 "bay_positions": scale.bays, "street_km": scale.street_km,
                                 "street_strokes": scale.streets, "ground_points": scale.ground_points,
                                 "map_mib": scale.map_mib, "instructions_g": scale.instructions_g,
@@ -380,10 +395,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let (work_median, wall_median) = (median(&mut work), median(&mut wall));
                 writeln!(
                     scale_table,
-                    "| {cell} | {}/{seeds} | {refusals} | {} | {} | {} | {} | {} | {} | {} | {:.0}/{:.0} | {:.2}/{:.2} | {} |",
+                    "| {cell} | {}/{seeds} | {refusals} | {} | {} | {} | {} | {} | {} | {} | {} | {:.0}/{:.0} | {:.2}/{:.2} | {} |",
                     scales.len(),
                     each(|s| s.buildings, 0),
                     each(|s| s.parts, 0),
+                    each(|s| s.furniture, 0),
                     each(|s| s.bays, 0),
                     each(|s| s.street_km, 0),
                     each(|s| s.streets, 0),

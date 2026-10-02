@@ -12,6 +12,9 @@ use crate::math::{v2, Obb2, V2};
 
 /// The fine grid's cell side.
 pub const FINE_CELL_M: f64 = 0.5;
+/// How far into a standing soldier's disc a step that leaves him may graze
+/// when no way stays a full disc clear.
+const SLIDE_M: f64 = 0.05;
 
 /// A soldier's own route from `from` to `to`: A* on a `FINE_CELL_M` grid over
 /// a square window of side `window` centred between them, where a cell is
@@ -21,6 +24,11 @@ pub const FINE_CELL_M: f64 = 0.5;
 /// ignored, as walking ignores it. The route is string-pulled on the exact
 /// shapes and ends at `to`; the points follow `from`. `None` when `to` lies
 /// outside the window or no way inside it reaches `to`.
+///
+/// A soldier wedged between a wall and a man he touches has no step on the
+/// grid that leads exactly away from the man. When no way keeps a full disc
+/// clear of the standing soldiers, he looks again for one whose steps off a
+/// man he touches may graze his disc by [`SLIDE_M`], as walking slides off him.
 pub fn final_leg(
     from: V2,
     to: V2,
@@ -29,6 +37,21 @@ pub fn final_leg(
     radius: f64,
     window: f64,
     walkable: impl Fn(V2) -> bool,
+) -> Option<Vec<V2>> {
+    let search = |slide| search(from, to, solids, soldiers, radius, window, &walkable, slide);
+    search(0.0).or_else(|| (!soldiers.is_empty()).then(|| search(SLIDE_M)).flatten())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn search(
+    from: V2,
+    to: V2,
+    solids: &[Obb2],
+    soldiers: &[V2],
+    radius: f64,
+    window: f64,
+    walkable: &impl Fn(V2) -> bool,
+    slide: f64,
 ) -> Option<Vec<V2>> {
     let n = (window / FINE_CELL_M).ceil().max(2.0) as usize;
     let origin = (from + to) * 0.5 - v2(n as f64, n as f64) * (FINE_CELL_M / 2.0);
@@ -123,7 +146,7 @@ pub fn final_leg(
                 continue;
             }
             let diagonal = di != 0 && dj != 0;
-            if !clear_segment(point(cell), point(next), &solids, &soldiers, radius) {
+            if !clear_segment(point(cell), point(next), &solids, &soldiers, radius, slide) {
                 continue;
             }
             if diagonal {
@@ -161,12 +184,14 @@ pub fn final_leg(
     let mut points: Vec<V2> = cells.into_iter().map(center).collect();
     points[0] = from;
     *points.last_mut().unwrap() = to;
-    Some(pull(&points, &solids, &soldiers, radius))
+    Some(pull(&points, &solids, &soldiers, radius, slide))
 }
 
 /// Body clearance belongs to the actual segment, including a route's exact
 /// endpoints: their containing grid cell's centre may lie inside a body.
-fn clear_segment(a: V2, b: V2, solids: &[Obb2], soldiers: &[V2], radius: f64) -> bool {
+/// A standing soldier is passed a full disc clear, or from a point touching
+/// him no more than `slide` nearer than that point.
+fn clear_segment(a: V2, b: V2, solids: &[Obb2], soldiers: &[V2], radius: f64, slide: f64) -> bool {
     let apart = 2.0 * radius;
     solids
         .iter()
@@ -174,19 +199,20 @@ fn clear_segment(a: V2, b: V2, solids: &[Obb2], soldiers: &[V2], radius: f64) ->
         && soldiers.iter().all(|&q| {
             let ab = b - a;
             let t = ((q - a).dot(ab) / ab.dot(ab).max(1e-12)).clamp(0.0, 1.0);
-            (a + ab * t - q).length() >= apart || (q - a).length() < apart
+            let (near, start) = ((a + ab * t - q).length(), (q - a).length());
+            near >= apart || start < apart || near > start - slide
         })
 }
 
 /// Greedy string-pulling on the exact shapes: from each kept point, on to
 /// the furthest later point in plain sight, stopping at the first that is not.
-fn pull(points: &[V2], solids: &[Obb2], soldiers: &[V2], radius: f64) -> Vec<V2> {
+fn pull(points: &[V2], solids: &[Obb2], soldiers: &[V2], radius: f64, slide: f64) -> Vec<V2> {
     let mut out = Vec::new();
     let mut at = 0;
     while at + 1 < points.len() {
         let mut next = at + 1;
         for k in at + 2..points.len() {
-            if clear_segment(points[at], points[k], solids, soldiers, radius) {
+            if clear_segment(points[at], points[k], solids, soldiers, radius, slide) {
                 next = k;
             } else {
                 break;
@@ -297,6 +323,35 @@ mod tests {
             let ab = b - a;
             let t = ((man - a).dot(ab) / ab.dot(ab)).clamp(0.0, 1.0);
             assert!((a + ab * t - man).length() >= 0.6 - 1e-9, "{route:?}");
+            a = b;
+        }
+    }
+
+    #[test]
+    fn a_soldier_wedged_between_a_wall_and_a_man_he_touches_slides_off_him() {
+        // A squad lines up along a wall's south face. One soldier walking
+        // west along it has stopped against a squadmate already in place:
+        // he touches the face and the man, his spot lies beyond the man, and
+        // no grid step from where he stands leads exactly away from him.
+        let wall = Obb2 {
+            center: v2(60.0, 40.0),
+            yaw: 0.0,
+            half: v2(12.0, 9.0),
+        };
+        let man = v2(62.06, 30.19);
+        let from = man + v2(0.36, 0.48) * ((0.6 + 1e-6) / 0.6);
+        let to = v2(58.51, 30.64);
+        let route = final_leg(from, to, &[wall], &[man], 0.3, 40.0, |_| true)
+            .expect("a way round the man in place");
+        assert_eq!(route.last(), Some(&to));
+        assert!(clear(from, &route, &[wall], 0.3), "{route:?}");
+        // Off the man he touches by no more than the slide, then a disc clear.
+        let mut a = from;
+        for (k, &b) in route.iter().enumerate() {
+            let ab = b - a;
+            let t = ((man - a).dot(ab) / ab.dot(ab)).clamp(0.0, 1.0);
+            let room = if k == 0 { 0.6 - SLIDE_M } else { 0.6 - 1e-9 };
+            assert!((a + ab * t - man).length() >= room, "{route:?}");
             a = b;
         }
     }
