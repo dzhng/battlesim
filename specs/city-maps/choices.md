@@ -6096,3 +6096,7 @@ The second pass's unprimed review found nearly all its street faults along the s
 ### Capture crossing interaction from authoritative event times
 
 **When:** lab-panel integration, 2026-10-02. **Choice:** The scene runs the diagnostic once to obtain the actual near-miss and impact ticks, resets it, then captures those moments. Otherwise, fixed historical ticks show bodies before the current slower projectile reaches them. **Gap:** Capture timing was tied to old tuning. **Reach:** The scene consumes the flight owner's events rather than adding a second trajectory estimate; all original collision assertions remain. **Verdict:** sound; screenshots show the interaction the test judges. **Confidence:** high.
+
+### Admit a contact-capture approach before waiting for evidence
+
+**When:** village-watch integration, 2026-10-02. **Choice:** The controlled tour approaches from open ground west of town and checks that the acknowledgement admits some observers before waiting for reports. The former centre destination refused every actor, leaving them at their starts; waiting longer could not repair that rejected command. Five of nine actors are admitted by the new approach, which is enough for this report/anchor fixture; it is not an all-actor arrival claim. **Gap:** The tour assumed a destination in town was admitted. **Reach:** Verification staging changes only, with the existing report preference, knowledge and anchoring contracts retained. **Verdict:** sound; it observes actual contacts rather than hiding refusal or inventing reports. **Confidence:** high.

@@ -54,7 +54,9 @@ The diagnostic ballistics and weapons fixtures now stage the current physical fl
 
 The lab panel scrolls within the viewport, including at 800 × 600, and every feed row is reachable without a tolerance. Four added checks pass alongside the original nine weapons checks. Crossing captures use the authoritative near-miss/impact events rather than obsolete frame numbers. Paired captures and a fresh image review confirm this bounded diagnostic improvement; the review still finds tiny actors, weak distant arcs and ambiguous diagnostic marks. These remain visual limitations, not accepted battlefield art. Evidence is in `throwaway/integration-triage/lab-panel/`.
 
-Village-watch contact staging and scripted village combat still need their current verdicts. These focused results do not close the landscape look, combat or whole-spec gates.
+Village-watch now checks the approach acknowledgement before searching for contact reports. The old centre destination refused all nine actors; the west approach admits five and refuses four, yielding the actual last-seen and firing reports. Four focused checks pass, including preferred label IDs and ground-centre anchors at both zooms. This is capture staging, not a contact-style fix: the fresh critic and user find the overlapping reports hard to read. The white outline marks last-seen evidence; the offset borderless patch marks firing evidence from the same tank. Both areas are drawn but only the preferred report is labelled. Small labels and dominant fog stripes remain visible. Evidence and controls live in `throwaway/integration-triage/contact-capture-review.md` and the village-watch captures.
+
+Scripted village combat still needs current evidence. These focused results do not close the landscape look, combat or whole-spec gates.
 
 ### Buildings checkpoint
 
