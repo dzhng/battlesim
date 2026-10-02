@@ -1,4 +1,4 @@
-// Adapted from ~/dev/game renderer-core/src/cameraUniform.ts (reuse manifest):
+// Adapted from ~/dev/game renderer-core/src/cameraUniform.ts:
 // the 48-float camera every world, shadow and overlay shader binds at group 0.
 // Local changes: `liveCamera` is exported (the source's private `realParams`)
 // for CPU picking, the unused screen-space helpers are dropped, and the packer

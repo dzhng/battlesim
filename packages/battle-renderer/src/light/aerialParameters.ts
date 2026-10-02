@@ -1,5 +1,5 @@
-// Adapted from ~/dev/game game-renderer/src/environment/aerialParameters.ts
-// (reuse manifest): renderer-independent atmospheric extinction and horizon
+// Adapted from ~/dev/game game-renderer/src/environment/aerialParameters.ts:
+// renderer-independent atmospheric extinction and horizon
 // policy. Local change: the curve's numbers come from `presentation.light.haze`,
 // with no per-preset defaults.
 import type { LightPresentation } from "./sceneLight";

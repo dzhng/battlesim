@@ -70,7 +70,7 @@ const finalLayout = tgpu.bindGroupLayout({
 });
 
 /** Borrowed input/output/device; TypeGPU owns all intermediate HDR resources and
- * pipeline encoding. Adapted (reuse manifest): `settings` (exposure, grade,
+ * pipeline encoding. Adapted: `settings` (exposure, grade,
  * bloom from `presentation.light`) are fixed for the chain's life, so the
  * bloom's numbers are compiled in and the grade uniform is written once. */
 export async function createTypegpuPost(

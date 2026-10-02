@@ -84,7 +84,7 @@ export async function validateLoose(
   const skeletonNamed = Object.entries(catalog.skeletons).find(([, s]) => s.source === path);
   if (skeletonNamed && !options.unit) {
     const [id, entry] = skeletonNamed;
-    const clips = await validateSkeleton(id, entry, bytes, context);
+    const clips = await validateSkeleton(id, entry, bytes);
     return {
       path,
       unit: "soldier",
@@ -149,7 +149,7 @@ export async function validateLoose(
       };
     }
     const id = named?.[1].skeleton ?? "adhoc";
-    const clips = await validateSkeleton(id, declared, clipBytes, {});
+    const clips = await validateSkeleton(id, declared, clipBytes);
     result.clips = { ...clips, path: clipsPath, id };
     // Fit is measured on whatever clips built, so body findings show even
     // when the clips have errors.

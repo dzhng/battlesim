@@ -13,7 +13,7 @@
 // Detail finer than a pixel fades to its mean, so the patchwork neither
 // shimmers nor changes value with zoom.
 //
-// Rewritten (reuse manifest, technique) from reading ~/dev/game
+// Rewritten from reading ~/dev/game
 // battle-renderer/src/shaders/terrainMaterial.ts: the mottle, drift and
 // feathered road-edge ideas; not its baked distance texture or rock layers.
 import { tgpu, d, std } from "typegpu";

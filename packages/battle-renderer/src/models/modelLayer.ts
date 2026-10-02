@@ -9,8 +9,8 @@
 //   (`posedMesh`), so the fallen (up to their presentation cap) are never
 //   skinned.
 //
-// Rewritten from reading ~/dev/game battle-renderer/src/world/crowd.ts
-// (reuse manifest, technique): per-appearance, per-tier vertex and index
+// Rewritten from reading ~/dev/game battle-renderer/src/world/crowd.ts:
+// per-appearance, per-tier vertex and index
 // buffers, instances packed per draw, a palette storage buffer read by the
 // vertex stage, and a caster variant for the sun's cascades. The layer is lit,
 // shadowed and fogged exactly like the rest of the world (environment `shade`,

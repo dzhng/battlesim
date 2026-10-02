@@ -88,7 +88,7 @@ export async function run(ctx) {
   await drop(page, "bad-tank.glb", bad, "tank");
   const badState = await wb(page, () => window.__workbench.state());
   const codes = new Set(badState.findings.map((f) => f.code));
-  for (const code of ["fit.vehicle_muzzle", "structure.tier_count", "provenance.unlisted"])
+  for (const code of ["fit.vehicle_muzzle", "structure.tier_count"])
     ctx.check(`a bad GLB shows ${code}`, codes.has(code), [...codes].join(", "));
   // One per mount off its row: the synthetic cannon and roof HMG both.
   const muzzles = badState.findings.filter((f) => f.code === "fit.vehicle_muzzle").length;
@@ -157,7 +157,7 @@ export async function run(ctx) {
   const soldier = await wb(page, () => window.__workbench.state());
   ctx.check(
     "a valid synthetic rifleman validates clean",
-    soldier.findings.every((f) => f.code.startsWith("provenance")),
+    soldier.findings.length === 0,
     JSON.stringify(soldier.findings.map((f) => f.code)),
   );
   let worst = 0;
@@ -295,9 +295,7 @@ export async function run(ctx) {
   const treeLabel = await page.getByTestId("workbench-footprint").textContent();
   ctx.check(
     "a tree is scenery, validated and drawn with the forest's trunk and canopy",
-    tree.unit === "scenery" &&
-      tree.findings.every((f) => f.code.startsWith("provenance")) &&
-      /canopy at 12 m/.test(treeLabel),
+    tree.unit === "scenery" && tree.findings.length === 0 && /canopy at 12 m/.test(treeLabel),
     `${JSON.stringify(tree.findings.map((f) => f.code))} ${treeLabel}`,
   );
   await wb(page, () => window.__workbench.show({ hitBox: true, sockets: true, figure: true }));

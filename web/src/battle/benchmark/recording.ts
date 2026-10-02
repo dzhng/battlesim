@@ -5,7 +5,7 @@
 // the warm-up before it is never measured.
 //
 // Ported by technique from ~/dev/game/web/src/battle/benchmark/
-// benchmarkRecording.ts and benchmarkMetrics.ts (see the reuse manifest).
+// benchmarkRecording.ts and benchmarkMetrics.ts.
 import type { CameraPose } from "@packages/renderer-core/src/cameraController";
 import type { GpuAllocationCounts } from "@packages/renderer-core/src/gpuAllocations";
 

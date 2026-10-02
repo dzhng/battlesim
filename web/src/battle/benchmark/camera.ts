@@ -4,8 +4,7 @@
 // short run flies the same tour as the five-minute run, five times faster.
 // The viewport places each sample through `CameraController.place`.
 //
-// Ported by technique from ~/dev/game/web/src/battle/benchmark/benchmarkCamera.ts
-// (see the reuse manifest).
+// Ported by technique from ~/dev/game/web/src/battle/benchmark/benchmarkCamera.ts.
 import { clamp } from "math";
 import type { CameraPose } from "@packages/renderer-core/src/cameraController";
 import { smoothstep } from "@packages/renderer-core/src/math";

@@ -1,0 +1,21 @@
+[
+  {
+    "zip": "Universal Animation Library[Standard].zip",
+    "source_url": "https://quaternius.itch.io/universal-animation-library",
+    "licence": "CC0-1.0",
+    "sha256": "cc73fc4e495b82958207316596317a3f40b9fa38065bde1027937452da537724",
+    "files": {
+      "Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb": "69591853d817488edaa8fd9bf8fc1d821eaeaf789f8627b3cd23b41c4ed67997"
+    }
+  },
+  {
+    "zip": "Universal Base Characters[Standard].zip",
+    "source_url": "https://quaternius.itch.io/universal-base-characters",
+    "licence": "CC0-1.0",
+    "sha256": "fdbf1804c90dfc1ea03e992bff7da2dfd1a79318e13270a660180f9308455f40",
+    "files": {
+      "Universal Base Characters[Standard]/Base Characters/Godot - UE/Superhero_Male_FullBody.gltf": "e7fcea214ecf8855afbf910b50de6f9c7d1decfb71ca28bad8a4481452dafeb4",
+      "Universal Base Characters[Standard]/Base Characters/Godot - UE/Superhero_Male_FullBody.bin": "459003f9745853ae562a85506a2b94dd56515c1f37728f9fa3d2ce1a3e4cd92f"
+    }
+  }
+]

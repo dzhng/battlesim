@@ -21,7 +21,7 @@ import {
 } from "@packages/battle-renderer/src/models/impostor.ts";
 import { AUTHORITY, TOLERANCES, soldierGlb, tankGlb, testCatalog } from "./synthetic";
 
-const context = { authority: AUTHORITY, tolerances: TOLERANCES, provenance: [] };
+const context = { authority: AUTHORITY, tolerances: TOLERANCES };
 const empty = { skeletons: {}, appearances: {} };
 
 test("a dropped GLB outside the catalog is judged, and its preview installs through the loader", async () => {
@@ -33,7 +33,7 @@ test("a dropped GLB outside the catalog is judged, and its preview installs thro
   expect(result.unit).toBe("vehicle");
   expect(result.mounts).toEqual({ cannon: "gun", HMG: "hmg" });
   const codes = result.appearance!.findings.map((f) => f.code);
-  expect(codes).toEqual(expect.arrayContaining(["fit.vehicle_muzzle", "provenance.unlisted"]));
+  expect(codes).toContain("fit.vehicle_muzzle");
   expect(result.appearance!.bundle).toBeNull();
   const preview = result.appearance!.preview!;
   expect(preview.kind).toBe("articulated");

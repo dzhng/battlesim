@@ -3,7 +3,7 @@
 // the environment light, the aerial haze and the cascades all read the one sun
 // direction from here; the camera uniform carries the same two angles.
 //
-// Rewritten (reuse manifest, technique) from ~/dev/game
+// Rewritten from ~/dev/game
 // game-renderer/src/environment/environment.ts, whose named presets this
 // replaces: the battle has one light, and the fixture owns its numbers.
 import { vec3, type Vec3 } from "math";

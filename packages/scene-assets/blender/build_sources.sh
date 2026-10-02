@@ -1,7 +1,6 @@
 #!/bin/sh
 # Rebuild every Blender-scripted appearance source into assets/source/.
-# Run from anywhere; then `asset bake` and update the sources' project-owned
-# entries in reuse-manifest.json (`asset provenance`).
+# Run from anywhere; then `asset bake`.
 set -e
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../../.." && pwd)

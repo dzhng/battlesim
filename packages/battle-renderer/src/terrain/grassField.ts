@@ -3,7 +3,7 @@
 // grown over. Where clumps stand, how many and how tall is decided per frame
 // on the GPU (`frame/grassPass.ts`); nothing here is per clump.
 //
-// The field is a technique rewrite (reuse manifest) of ~/dev/game's
+// The field is a technique rewrite of ~/dev/game's
 // grassField.ts and battleGrassResidency.ts, after the Ghost of Tsushima
 // talk (research.md): the clumps are regrown on the GPU from world tiles
 // whenever the view moves, so there is no CPU residency or upload, and a

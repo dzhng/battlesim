@@ -43,7 +43,7 @@ export function metresPerPxAt(distance: number, fovY: number, heightPx: number):
 // cascade fit's frustum corners); the canonical projection above still omits
 // `far` for the infinite limit. Under reverse-Z the depth terms converge to the
 // infinite limit at about near/far relative error. Merged from ~/dev/game
-// renderer-core (reuse manifest).
+// renderer-core.
 export const FINITE_CAMERA_FAR_FALLBACK = 1e7;
 
 const WORLD_UP: Vec3 = [0, 0, 1];
@@ -131,7 +131,7 @@ export function perspectiveReverseZ(
 }
 
 /** Orthographic WebGPU projection, right-handed view space, near→1 and far→0.
- *  Merged from ~/dev/game renderer-core (reuse manifest): the sun's cascade
+ *  Merged from ~/dev/game renderer-core: the sun's cascade
  *  cameras. */
 export function orthographicReverseZ(
   out: Mat4,

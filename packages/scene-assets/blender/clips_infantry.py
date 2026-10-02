@@ -26,7 +26,6 @@ import bpy
 from mathutils import Matrix, Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import packs  # noqa: E402
 from common import REPO, empty, export_glb, reparent_keep, script_args  # noqa: E402
 from infantry_rig import SCALE, TORSO, Rig  # noqa: E402
 from weapons import FAMILIES  # noqa: E402
@@ -347,9 +346,7 @@ def main():
     family = args[0] if args else "rifle"
     rig = Rig()
     res = bake_family(rig, FAMILIES[family])
-    rel = f"assets/source/infantry/clips_{family}.glb"
-    export_clips(rig, res, os.path.join(REPO, rel))
-    packs.record_source(rel, "clips_infantry.py", (packs.UBC, packs.UBC_BIN, packs.UAL))
+    export_clips(rig, res, os.path.join(REPO, f"assets/source/infantry/clips_{family}.glb"))
 
 
 if __name__ == "__main__":

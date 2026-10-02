@@ -18,7 +18,7 @@
 //! out on his lean (drawn where his body is); a pale blue ring is a squad's
 //! area round its anchor.
 //! The canvas technique (a tiny RGB buffer, a fixed camera, PNG flip-books)
-//! comes from `~/dev/game`'s weave harness (reuse manifest).
+//! comes from `~/dev/game`'s weave harness.
 
 #[path = "../tests/common/mod.rs"]
 mod common;
