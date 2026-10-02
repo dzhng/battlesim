@@ -112,12 +112,21 @@ fn a_mount_naming_no_weapon_row_fails_at_load() {
     );
 }
 
+/// Firing mechanics use fixed reach rather than the live grenade balance.
+fn grenade_firing_profile(fixture: &mut Value) {
+    fixture["weapons"]["grenade"]["range_m"] = json!(450);
+    fixture["weapons"]["grenade"]["speed_mps"] = json!(100);
+    fixture["weapons"]["grenade"]["gravity_scale"] = json!(0.09);
+    fixture["weapons"]["grenade"]["scatter_mrad"] = json!(30);
+}
+
 /// A soldier's weapon falls with him, unless it is `special`: then the next
 /// living soldier takes it up, and the squad keeps it while anyone remains.
 #[test]
 fn a_fallen_carriers_weapon_is_lost_unless_it_is_special() {
     for special in [true, false] {
         let mut fixture = common::game();
+        grenade_firing_profile(&mut fixture);
         let patch = |f: &mut Value, section, id, p| sim::fixtures::patch_catalog(f, section, id, p);
         // The grenadier in the squad's last slot, so its one casualty is him.
         let slots = json!({ "body": { "squad": { "slots": [
@@ -178,6 +187,7 @@ fn battle(fixture: &Value, id: &str, others: Value) -> Battle {
 #[test]
 fn every_unit_type_sets_up_fires_each_mount_and_moves() {
     let mut fixture = with_m1_family();
+    grenade_firing_profile(&mut fixture);
     sim::fixtures::patch_catalog(&mut fixture, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
     sim::fixtures::patch_catalog(
         &mut fixture,
