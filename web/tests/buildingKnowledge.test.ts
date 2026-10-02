@@ -27,6 +27,7 @@ import {
 } from "@packages/battle-renderer/src/worldMesh";
 import { buildingCollapse } from "@packages/scene-assets/src/authority";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { ruinHeight } from "@packages/scene-assets/src/templateSource";
 import { loadEncounter, loadMap } from "@web/maps/node";
 import {
   ObservationDecoder,
@@ -145,10 +146,7 @@ test("a side knows a building collapsed or gutted once it has seen it, and intac
       };
     };
     const fell = heights(compound);
-    const remains = Math.min(
-      Math.max(fell.authored * rule.height_fraction, rule.min_height_m),
-      rule.max_height_m,
-    );
+    const remains = ruinHeight(fell.authored, rule);
     expect(fell.parts).toBe(3);
     expect(fell.kinds).toEqual(["ruin"]);
     expect(fell.known).toEqual([remains, remains, remains]);

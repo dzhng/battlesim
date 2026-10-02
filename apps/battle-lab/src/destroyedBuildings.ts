@@ -42,18 +42,8 @@ export function seenDestroyed(
   const gutted =
     templateArt(library, placed.templates[placed.template[building]]).states.gutted !== undefined;
   const ground = placed.frames[building * FRAME_FLOATS + 2];
-  const remainsM =
-    collapse &&
-    ruinHeight(
-      parts.map((part) => ({
-        id: String(part.id),
-        center: [part.center[0], part.center[1]],
-        yaw: part.yaw,
-        half_extents: [part.half[0], part.half[1], part.half[2]],
-        base_z: part.baseZ - ground,
-      })),
-      collapse,
-    );
+  const top = Math.max(...parts.map((part) => part.baseZ + 2 * part.half[2]));
+  const remainsM = collapse && ruinHeight(top - ground, collapse);
   return parts.map((part) => {
     const ends = UNITS.view.props[part.kind]?.destroyed;
     if (typeof ends !== "object" || !ends.into.building || remainsM === null)

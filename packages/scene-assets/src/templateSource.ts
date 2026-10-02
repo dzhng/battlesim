@@ -375,19 +375,21 @@ export const damageState = (
   rule: BuildingCollapse,
 ): "ruin" | "gutted" => (floorCount(descriptor) <= rule.max_floors ? "ruin" : "gutted");
 
-/** How tall the remains of a collapsed template's parts are: the rule's
- *  fraction of the building's height (its highest part's top), between the
- *  rule's least and most. Every part falls to the one height. */
-export function ruinHeight(parts: readonly TemplatePart[], rule: BuildingCollapse): number {
-  const height = parts.reduce((top, p) => Math.max(top, p.base_z + 2 * p.half_extents[2]), 0);
-  return Math.min(Math.max(height * rule.height_fraction, rule.min_height_m), rule.max_height_m);
-}
+/** How tall the remains of a collapsed building `heightM` tall are: the
+ *  rule's fraction of that height, between the rule's least and most. Every
+ *  part falls to the one height. */
+export const ruinHeight = (heightM: number, rule: BuildingCollapse): number =>
+  Math.min(Math.max(heightM * rule.height_fraction, rule.min_height_m), rule.max_height_m);
+
+/** A template's height: its highest part's top. */
+const heightOf = (parts: readonly TemplatePart[]): number =>
+  parts.reduce((top, p) => Math.max(top, p.base_z + 2 * p.half_extents[2]), 0);
 
 /** The remains a collapsed template leaves: each part's plan, from its own
  *  base to the ruin height. A ruin state is held to these, as the standing
  *  states are to the parts. */
 export function ruinParts(parts: readonly TemplatePart[], rule: BuildingCollapse): TemplatePart[] {
-  const half = ruinHeight(parts, rule) / 2;
+  const half = ruinHeight(heightOf(parts), rule) / 2;
   return parts.map((p) => ({ ...p, half_extents: [p.half_extents[0], p.half_extents[1], half] }));
 }
 
@@ -582,7 +584,7 @@ export function packTemplateSets(
             groundM,
           );
           const held = fallen
-            ? `part "${worst?.part}" at its ruin height (${fmt(ruinHeight(canonical.parts, collapse))} m), grown by the set's fit (side ${set.fit.side_m} m, ruin top ${top} m)`
+            ? `part "${worst?.part}" at its ruin height (${fmt(ruinHeight(heightOf(canonical.parts), collapse))} m), grown by the set's fit (side ${set.fit.side_m} m, ruin top ${top} m)`
             : `part "${worst?.part}" grown by the set's fit (side ${set.fit.side_m} m, top ${top} m)`;
           if (worst)
             add(
