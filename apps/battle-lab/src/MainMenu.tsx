@@ -1,7 +1,7 @@
 // The game's front door at `/`, in the HUD's look: start a battle on a
-// generated map (its type and its size), play the village or a saved
-// battlefield of the catalogue, or watch a saved battle, and the sound
-// settings. The benchmark and the labs are
+// generated map (its type and its size), play a saved battlefield of the
+// catalogue, or watch a saved battle, and the sound settings. The test
+// village, the benchmark and the labs are
 // developer tools, behind the developer link.
 import { useState } from "react";
 import config from "@fixtures/generated-battle.json";
@@ -25,6 +25,11 @@ interface Entry {
 }
 
 const DEVELOPER: Entry[] = [
+  {
+    label: "Village",
+    href: "/battle/village",
+    note: "The test village: attack it as blue.",
+  },
   {
     label: "Benchmark",
     href: "/benchmark",
@@ -154,11 +159,6 @@ function NewBattle() {
 export function MainMenu() {
   const [developer, setDeveloper] = useState(false);
   const [entries] = useState<Entry[]>(() => [
-    {
-      label: "Play village",
-      href: "/battle/village",
-      note: "Attack the defended village as blue.",
-    },
     ...savedBattles(),
     { label: "Watch replay", href: replayRoute(readSavedReplay()), note: "Load a saved battle." },
   ]);

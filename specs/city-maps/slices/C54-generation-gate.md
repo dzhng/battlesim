@@ -1,6 +1,6 @@
 # C54: integrated map generation and all-map gate
 
-**Depends on:** C53, C55, C34–C36, C56, C05, C09, C60, C31, C50, C59, C16–C19 and C32; C57 for playable camera evidence. **Kind:** required integration gate.
+**Depends on:** C53, C55, C05, C09, C60, C31, C50, C59, C16–C19 and C32; C57 for playable camera evidence. **Kind:** required integration gate.
 
 ## Question
 Do offline/runtime generation and every catalogued map satisfy the accepted composition, physical access and full-extent budgets beyond one attractive seed?
