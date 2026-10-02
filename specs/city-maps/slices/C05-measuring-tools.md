@@ -43,6 +43,14 @@ baselines below identify the original workload; the
 a named central arena on a complete physical map; transit is a separate crossing
 load. This does not close C05's parent renderer/startup/tour requirements.
 
+## Distinct browser city-contact checkpoint
+
+`/benchmark?preset=city-contact` now selects Metro Large seed 4 through the production generation/preparation owner and runs the simulation's existing `city-arena-1` early orders. The default village control retains its fingerprint; unknown names refuse. The preparation worker becomes the battle authority, including on generated endurance. A camera policy resolves once from the returned extent, and the existing recorder reports the exact request, map identity, stress workload and applied tour. No player encounter is shortened or transported.
+
+The current browser preparation returns 10 × 10 km, 14,026 buildings and map hash `27fddd00061453e1c5fad22af5d6be775c694dfe0345a02cc5ab89ee43d44a6a` on layout-12 / presets-11. At tick 152 the blue publication contains 186 projectiles and 89 surviving own units; cancelling records a partial result with no browser errors. The 23 focused agent tests pass; ten affected tests and typecheck also pass after integration. Worker-cancellation and generated-endurance adoption regressions were independently red before their fixes. Evidence and complete receipts are in the main checkout's ignored `throwaway/city-contact-benchmark/`.
+
+Fresh review accepts the bounded menu readability correction and finds dense strategic unit-card overlap still visible. The secondary menu link remains a small target, following its existing convention. Menu and opening captures were shown in Preview; this checkpoint accepts functional selection/preparation/contact/cancellation only. The registered scene shares the original short/full timing and tour checks, but its 60/300 s measurement, sustained contact, complete camera tour, representative worst-case selection, current-layout resource admission and player transit remain open. A cancelled run establishes none of those budgets.
+
 ## Frozen pre-optimization measurements
 
 Apple arm64, release; same game rules/seed 1. Counts include native profiling
