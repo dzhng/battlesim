@@ -204,7 +204,7 @@
       "icon": "grenade",
       "stationary": false,
       "range_m": 150,
-      "speed_mps": 50,
+      "speed_mps": 100,
       "gravity_scale": 0.09,
       "aim_s": 1.5,
       "reload_s": 5,
