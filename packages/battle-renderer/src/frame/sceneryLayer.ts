@@ -451,9 +451,13 @@ export async function createSceneryLayer(
     }
   }
 
+  /** Lab diagnostics: the trees draw and cast, or do neither. */
+  let treesShown = true;
+  /** The trees drawn: the forest's, and the backdrop's. */
+  const trees = () => (treesShown ? loaded : null);
   /** Every population drawn into the view. */
   const populations = () => [
-    ...(loaded ? [loaded.forest, loaded.backdrop] : []),
+    ...(trees() ? [loaded!.forest, loaded!.backdrop] : []),
     ...(massing ? [massing.pop] : []),
   ];
 
@@ -537,6 +541,9 @@ export async function createSceneryLayer(
       loaded.kept = kept;
       viewKey = "";
     },
+    setTreesShown(on: boolean) {
+      treesShown = on;
+    },
     /** Choose this frame's tiers for `camera` at a viewport `height` pixels tall. */
     prepare(camera: Camera3DParams, height: number) {
       const key = detailKey(camera, height);
@@ -556,7 +563,8 @@ export async function createSceneryLayer(
     /** The forest into one cascade (`bound` carries the cascade's camera). */
     encodeShadows(pass: TgpuRenderPass, cameraGroup: CameraGroup) {
       const bound = caster.with(pass).with(cameraGroup) as unknown as Drawable;
-      if (loaded) drawPopulation(loaded.forest, bound, true, CASTER_COARSER);
+      const drawn = trees();
+      if (drawn) drawPopulation(drawn.forest, bound, true, CASTER_COARSER);
       if (massing) drawPopulation(massing.pop, bound, true);
     },
     encodeDepth(pass: TgpuRenderPass, cameraGroup: CameraGroup) {
@@ -574,9 +582,10 @@ export async function createSceneryLayer(
           .with(cameraGroup)
           .with(environment.group)
           .with(fogFaces) as unknown as Drawable;
-      if (loaded) {
-        drawPopulation(loaded.forest, colour(forestColour));
-        drawPopulation(loaded.backdrop, colour(backdropColour));
+      const drawn = trees();
+      if (drawn) {
+        drawPopulation(drawn.forest, colour(forestColour));
+        drawPopulation(drawn.backdrop, colour(backdropColour));
       }
       if (massing) drawPopulation(massing.pop, colour(massingColour));
     },

@@ -42,4 +42,10 @@ Test in proportion: the narrow tests for what changed and the one or two scenes 
 
 ## Status
 
-Not started. Update this section, not the README, at the end of each pass: what landed, what the ground looks like now (one picture path), what is next, and anything the other lanes need to know.
+**2026-10-01.** The rig is in ([C62](slices/C62-ground-evidence-rig.md#outcome)); nothing drawn has changed yet.
+
+- **Landed:** named stations on the village, the river lab and a generated map; the `ground-classes` frame view (the terrain's own class mask); `suppressTrees`; three rig checks in the `ground` scene. `STATIONS=village,river,generated bun run --cwd web scene -- ground` writes each station's shot, bare ground, mask and a sheet into `throwaway/evidence/ground/`.
+- **The ground now:** the baseline, `throwaway/evidence/ground/village-stations.png` (regenerate with the command above). Roads are one flat pale band on every kind; the forest floor is blocky; crowns are smooth blobs; the bank is a thin brown line.
+- **In flight:** C73 tree skeleton (with SG1's budget).
+- **Next:** country roads C66 → C67 → C68; wild grass C81; then in the lane's order.
+- **For the other lanes:** `BattleFrame` gained `setTreesShown` and the `ground-classes` view; `post.encode` takes a mode (`look`, `ungraded`, `raw`) in place of two booleans. No pass was added to the frame.

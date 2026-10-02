@@ -31,7 +31,7 @@ import { createEnvironmentFrame } from "./environmentFrame";
 import { GpuRegistry } from "./registry";
 import { allocateFrameTargets, SizedTargets } from "./targets";
 import { createWorldPass } from "./worldPass";
-import { createFogMaskPass } from "./fogMaskPass";
+import { createFogMaskPass, type FogMaskViewKind } from "./fogMaskPass";
 import { createOverlayPass, type OverlayGlowStyle } from "./overlayPass";
 import type { PaintStyle } from "./paintedMarks";
 import { createFrameTimer } from "./gpuTiming";
@@ -72,6 +72,13 @@ export interface BattleFrameOptions {
   /** Called when targets for a new size finish building, so the viewport draws. */
   requestRedraw?: () => void;
 }
+
+/** The frame views the fog mask pass draws in place of the look. */
+const MASK_OF_VIEW: Partial<Record<FrameView, FogMaskViewKind>> = {
+  "fog-mask": "fog",
+  "ground-mask": "ground",
+  "ground-classes": "classes",
+};
 
 /** Device pixels per metre at the camera's target. */
 function pixelsPerMetre(camera: Camera3DParams, height: number): number {
@@ -193,14 +200,15 @@ export async function createBattleFrame(
           world.encodeDepth(encoder, raw, t, cameraGroup);
           world.encodeFog(raw, t.fog, state.bytes, width, height);
           ({ encoder, raw } = world.encode(encoder, raw, t, cameraGroup));
-          effects.encode(raw, t, t.effectGroup);
+          const classes = view === "ground-classes";
+          if (!classes) effects.encode(raw, t, t.effectGroup);
           fogMask.encode(raw, t, t.fogEdge);
           const maskView = view === "fog-mask" || view === "ground-mask";
-          const worldOnly = view === "world" || maskView;
+          const worldOnly = view === "world" || maskView || classes;
           if (view === "final" || worldOnly) {
             // The masks skip bloom and grade: white stays white, black black.
-            const graded = !maskView;
-            t.post.encode(raw, output, graded, graded);
+            // The classes skip the tone map too: their bytes are data.
+            t.post.encode(raw, output, classes ? "raw" : maskView ? "ungraded" : "look");
             fogMask.encodeRim(raw, t.fogEdge, output);
           } else {
             const v = view === "overlays-on-white" ? 1 : 0;
@@ -307,14 +315,16 @@ export async function createBattleFrame(
         setPaintShown(on) {
           if (!disposed) world.setPaintShown(on);
         },
+        setTreesShown(on) {
+          if (!disposed) world.setTreesShown(on);
+        },
         setOverlayGlow(next) {
           if (!disposed) overlay.setGlow(next);
         },
         setView(next) {
           view = next;
-          fogMask.setMaskView(
-            next === "fog-mask" ? "fog" : next === "ground-mask" ? "ground" : "none",
-          );
+          fogMask.setMaskView(MASK_OF_VIEW[next] ?? "none");
+          world.setClassView(next === "ground-classes");
           timer?.reset();
         },
         settled: () => targets.settled(),
