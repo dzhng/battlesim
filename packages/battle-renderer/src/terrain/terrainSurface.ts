@@ -17,14 +17,13 @@ import type { WorldExports, WorldLayout, WorldOverlay } from "../worldMesh";
 import { pick } from "@packages/renderer-core/src/kindTable";
 import {
   checkSurfaceKinds,
-  drawnKind,
   drawnStrokes,
   pavedKinds,
   SURFACE_AREA_KINDS,
   type SurfaceAreaKind,
   type SurfaceGeometry,
 } from "./surfaces";
-import type { Biome } from "./biome";
+import { roadRow, type Biome } from "./biome";
 import { generatePlots, plotAt, type PlotTree } from "./plots";
 import { buildForestShapes, type ForestShape } from "./forestShapes";
 import { RIVER_FIELDS, RIVER_FLOATS } from "./rivers";
@@ -89,7 +88,7 @@ export function terrainSurface(
   const named = pavedKinds(site);
   const settlement = biome.plots.findIndex((p) => p.name === biome.field_rules.settlement_kind);
   const through = SURFACE_AREA_KINDS.map((kind) => {
-    const town = pick(biome.roads, drawnKind(kind, named)).town;
+    const town = roadRow(biome, kind, named).town;
     return town
       ? {
           as: SURFACE_AREA_KINDS.indexOf(town.kind as SurfaceAreaKind),
