@@ -193,3 +193,29 @@ test("an occluder update immediately rebuilds only affected built maps through t
     vi.unstubAllGlobals();
   }
 });
+
+test("whole-surface candidates retain boxes whose roof probes can reach inward from outside the eye circle", () => {
+  const boxes = [box(0, 0), box(132, 0, 1, 100), box(3000, 3000)];
+  const grid = wholeWords(boxes, 0.2);
+  expect(fogOccludersInReach(grid, [0, 0, 2], 100)).toEqual([0]);
+  // The whole-structure pass first accepts this tall narrow box by its
+  // bounding circle; its roof rule can then probe inward toward the eye.
+  expect(fogOccludersInReach(grid, [0, 0, 2], 100, 101)).toEqual([0, 1]);
+});
+
+test("whole-fog records pair each reachable structure only with eyes that can reach it", async () => {
+  const { wholeFogRecords } = await import("@packages/battle-renderer/src/frame/fogVisibility");
+  const boxes = [box(40, 0), box(2040, 0), box(5000, 5000), box(132, 0, 1, 100)];
+  const eyes = [
+    { position: [0, 0, 2] as const, reach: 100 },
+    { position: [2000, 0, 2] as const, reach: 100 },
+  ];
+  const records = wholeFogRecords(wholeWords(boxes, 0.2), eyes, 101);
+  expect(records.count).toBe(3);
+  // GPU records: [box, eye-list offset, eye count], then the eye indices.
+  expect([...records.words]).toEqual([0, 9, 1, 1, 10, 1, 3, 11, 1, 0, 1, 0]);
+  expect(wholeFogRecords(wholeWords(boxes, 0.2), [], 101)).toEqual({
+    count: 0,
+    words: new Uint32Array(0),
+  });
+});

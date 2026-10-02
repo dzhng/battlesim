@@ -3477,7 +3477,7 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 - **When:** C20 startup implementation pass.
 - **The choice:** The table saying which eyes rebuild also carries each eye's nearby building indices. Before rebuilding an eye, the CPU writes its eye number, the start and length of its list, then the list itself. Both terrain and occluder passes read this table. The alternative would add another storage buffer and binding solely for candidates.
 - **The gap:** The spec does not define the CPU-to-GPU list layout.
-- **The reach:** This keeps the existing GPU binding count. The table can grow when a denser nearby neighbourhood arrives, so probes must construct their sampling bind group after preparation; otherwise its dummy table binding can refer to a destroyed old buffer. The regression test covers a probe before the first rendered frame.
+- **The reach:** This keeps the horizon passes' existing GPU binding count. The whole-surface pass separately keeps a reachable-structure/eye-pair table because both lists are consumed by commands in the same submission and cannot overwrite one another. Its one additional binding stays within the guaranteed storage limit. The horizon table can grow when a denser nearby neighbourhood arrives, so probes must construct their sampling bind group after preparation; otherwise its dummy table binding can refer to a destroyed old buffer. The regression test covers a probe before the first rendered frame.
 - **Verdict:** Sound. One owner carries the rebuild transaction and its variable data without spending another scarce storage binding.
 - **Confidence:** High.
 
@@ -3513,3 +3513,11 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 **Reach:** Combat's native digest changes where system math had differed. The original movement record remains byte-for-byte unchanged. In the shooting sample, corrected native digests and publications agree with the pre-correction WebAssembly build at every tick; this preserves sampled browser behavior, not a claim that every unrelated simulation math path has been audited.
 
 **Verdict:** sound. The correction removes platform rounding from the tested authority paths rather than weakening the parity check or finding a lucky fixture. **Confidence:** high.
+### Preserve whole-fog roof reach while making structure work local
+
+- **When:** C20 whole-surface followup.
+- **The choice:** A structure may become visible when its roof probe looks inward toward an eye even though its footprint is just outside that eye's reach. Keep the whole pass's existing broad bounding-circle test, rather than reusing the tighter horizon footprint query unchanged. Its grid query grows by the largest known box radius, then filters each box against the original eye-plus-box circle bound. Each retained structure lists only the eyes that can reach it; structures outside every eye's reach receive cleared flags.
+- **The gap:** C20 names the horizon merge and invalidation sites but does not say how its cost contract applies to the later whole-surface visibility pass. That pass otherwise still samples every global box against every eye.
+- **The reach:** The whole pass has one additional storage binding for structure/eye pairs, seven total across its two groups. Moving away from a previously visible building clears that building's whole-fog flag, and inward-looking roofs keep their earlier visibility rule.
+- **Verdict:** Sound. The existing whole-fog semantics are retained while both dimensions of its sampled work follow nearby structure/eye pairs. The focused roof-boundary and packed-pair tests pass; real GPU flags and timings remain pending.
+- **Confidence:** High.
