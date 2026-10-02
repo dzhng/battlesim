@@ -45,7 +45,7 @@ Read [`AGENTS.md`](../../AGENTS.md): narrow checks only, no full gate. A perform
 
 ## Status
 
-**Implementation checkpoints are on main; final admission is running.**
+**Implementation checkpoints are on main; final browser admission remains red.**
 The `b5c63565` control of move certification leaves the former stress opening mostly inactive: three
 rounds in 900 ticks. The named workload correction starts the same 200 living
 units 200 m closer to contact, using the existing placement projection. It keeps
@@ -61,7 +61,8 @@ Focused movement, cover, sensing, delivery and city-placement checks pass.
 The browser harness requires rising shot counters from at least ten own units
 during measurement in each generated arm lasting 30 seconds or more.
 
-Current pickup: finish the browser performance milestone, then close the lane.
+Current pickup: diagnose late throughput and reset-state equivalence, then rerun
+the affected browser gate before closing the lane.
 
 1. **Current Native/Wasm admission passes.** Frozen source `82372fe7`, engine
    `1d9d85aa…`, rules `b00f7d5e…`, layout 9 / presets 8, Metro Large seed 4.
@@ -73,8 +74,8 @@ Current pickup: finish the browser performance milestone, then close the lane.
    retry, resync and side switching pass. Portable evaluation is a named native
    last-bit correction, not a CPU gain. Shorter exact anchors retain the wire
    grammar at a measured encoding/index-memory cost.
-2. **Memory admission passes.** Separate full-battle requested-layout diagnostics
-   peak at 418,616,216 B early and 457,699,995 B late, with conservative late
+2. **Native component memory proofs pass.** Separate requested-layout diagnostics
+   have active peaks of 418,616,216 B early and 457,699,995 B late, with conservative late
    reallocation overlap 458,088,603 B. Both are below the **4 GiB** guard and
    finish with the System-counter run's digest. Actual Wasm linear capacities
    reach 489,029,632 B and 499,974,144 B respectively. These component measures
@@ -82,11 +83,30 @@ Current pickup: finish the browser performance milestone, then close the lane.
    resources remain part of the pending browser milestone. Snapshot sizes and
    decoder/copy overlap are reported separately; the codec's 64 MiB ceiling is
    not a snapshot performance budget.
-3. **Browser milestone is running.** Admit at least **25 Hz early and late** on
-   the full generated world, retaining distributions, rising shot counters and
-   equivalent-state reset resource counts. The village benchmark is a short
-   regression control. No browser gate precedes each commit or push; parent full
-   gates belong to parent closeout.
+3. **Browser admission is red on merged presentation source `d805a1ea`.**
+   The complete five-minute arms reach **27.120 Hz early / 22.004 Hz late**;
+   late misses the unchanged **25 Hz** floor. Actual rising shot counters cover
+   61 / 68 own units. The short village benchmark passes at 44.4 FPS; it does
+   not prove Large-city throughput. Late page-plus-worker measurement is
+   1,873,889,998 B; sampled dedicated process-tree RSS peaks at 5,888,409,600 B
+   (may double-count shared pages, not a requested-heap ceiling).
+   Three paused tick-90 resets retain 591 buffers / 41 textures, but buffer bytes
+   differ by up to 832 B. Static corpse buffers are a concrete 64 B-per-body
+   candidate: equal final tick need not imply equal presentation death history.
+   Allocation attribution confirms that all non-corpse buffer bytes are exact;
+   the old staging also sometimes stops at tick 91. A candidate pauses the new
+   session at zero and presents every opening tick before comparing exact
+   resources and corpse IDs. It is queued for browser confirmation; the retained
+   16-byte allocation mutant must still fail.
+
+   Pure hull eligibility ordering now has a matched 900-tick Native proof:
+   late whole-Weapons work falls 35.418%, total tick work falls 8.18%, and
+   construction plus stepping falls 7.813%. Early construction plus stepping
+   falls 0.236%. All 901 state digests and complete observations from both sides
+   match in each arm, as does serialized replay content except engine identity.
+   This is not a 9,000-tick rerun or a browser throughput result. Keep the floor,
+   rules, timestep, complete delivery and memory scopes. Parent full gates remain
+   parent-owned.
 4. Complete the whole-owned review and consolidate the scale choices ledger.
    The original timing, town-corner and living-member-start regressions pass
    through current move certification with actual arrival and every-tick replay
