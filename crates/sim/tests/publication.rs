@@ -867,7 +867,15 @@ fn one_variable_route_change_does_not_resend_other_own_units() {
     use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy};
     use contract::ids::UnitId;
     let units: Vec<_> = (0..80)
-        .map(|i| json!({"side":"blue","kind":"rifle","position":[32 + i%10*24,32+i/10*24]}))
+        .map(|i| {
+            // The mover has a clear corridor beside the 79 stationary squads.
+            let position = if i == 0 {
+                [320, 240]
+            } else {
+                [32 + i % 10 * 24, 32 + i / 10 * 24]
+            };
+            json!({"side":"blue","kind":"rifle","position":position})
+        })
         .collect();
     let setup = common::scenario(
         &json!({"size":[512,512],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35})
