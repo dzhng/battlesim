@@ -35,6 +35,7 @@ description: Change or add a game mechanic or rule — who can shoot, see, move,
 
 ## Rules
 
+- **Tuning still needs admission.** Validate authored weapon rows against the flight rules before publishing them: range, scatter, speed, gravity and lifetime have coupled constraints that JSON parsing does not check. Regenerate the browser's derived catalog after source tuning; stale presentation values can disguise an invalid battle setup.
 - **Prefer properties over named cases.** A rule reads data columns (what stops rounds, what occludes, hit points, weight or push class, cover tier), never a kind's name. A new kind then inherits sane behaviour from its row.
 - **Give each real-world effect one mechanism.** If two columns both model "hard to hit behind this", decide which one owns it.
 - **A hold rule needs an exit.** Any "don't act because X" must name what clears X.

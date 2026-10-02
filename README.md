@@ -94,7 +94,14 @@ bun run --cwd web scene -- village                      # one browser scene
 bun run --cwd web scene -- --list                       # scene ids
 ```
 
-Web tests and scenes need the WebAssembly built once first (`bun run build:wasm`). Scenes write their evidence into gitignored `throwaway/evidence/<fixture-id>/`.
+Web tests and scenes need the WebAssembly built once first (`bun run build:wasm`).
+
+Every scene, and anything else that renders, shares the machine's one GPU. When more than one session is working, run each through the shared lock so they take turns; two at once slow each other and distort every timing:
+
+```bash
+lockf -k <main checkout>/throwaway/gpu.lock bun run --cwd web scene -- village
+```
+ Scenes write their evidence into gitignored `throwaway/evidence/<fixture-id>/`.
 
 The simulation's reports are examples of the `sim` crate (`crates/sim/examples/`); each prints its own flags when given one it doesn't know. `village_report` plays blue's comparison scripts against the red defender and ends every row in the battle's digest. Its `--quick` mode is the feedback loop for a rule change, and `--compare main` sets a run beside main's. `endurance_report` prints instructions retired over a long battle.
 
