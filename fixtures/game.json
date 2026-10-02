@@ -211,7 +211,7 @@
       "ammo": 8,
       "penetration": 20,
       "damage": 20,
-      "scatter_mrad": 15,
+      "scatter_mrad": 30,
       "near_miss_suppression": 0.15,
       "suppression_radius_m": 8,
       "blast_radius_m": 6,
