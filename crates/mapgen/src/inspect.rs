@@ -47,7 +47,7 @@ const ENTRANCE: &str = "#ffd43b";
 /// kinds drawn in it). A kind this table does not know draws as the last.
 const FURNITURE: [(&str, &str, &[&str]); 6] = [
     ("parked car", "#e11d48", &["parked_car"]),
-    ("street tree", "#15803d", &["trunk"]),
+    ("street tree", "#15803d", &["street_tree"]),
     ("lamp", "#facc15", &["lamp"]),
     (
         "site cabin and fence",
