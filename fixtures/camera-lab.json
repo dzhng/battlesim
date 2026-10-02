@@ -17,7 +17,7 @@
       },
       {
         "id": "tower",
-        "template_id": "prototype-tower-20f",
+        "template_id": "china-tower-20f",
         "kind": "building",
         "owner": 1,
         "parts": [{ "part": "body", "prop": 1 }],
@@ -25,7 +25,7 @@
       },
       {
         "id": "corner-north",
-        "template_id": "prototype-tower-slab-10f",
+        "template_id": "china-tower-slab-10f",
         "kind": "building",
         "owner": 2,
         "parts": [{ "part": "body", "prop": 2 }],
@@ -33,7 +33,7 @@
       },
       {
         "id": "corner-east",
-        "template_id": "prototype-tower-slab-10f",
+        "template_id": "china-tower-slab-10f",
         "kind": "building",
         "owner": 3,
         "parts": [{ "part": "body", "prop": 3 }],
@@ -41,7 +41,7 @@
       },
       {
         "id": "courtyard",
-        "template_id": "prototype-block-court-6f",
+        "template_id": "china-apartment-block-court-6f",
         "kind": "building",
         "owner": 4,
         "parts": [
@@ -54,7 +54,7 @@
       },
       {
         "id": "compound",
-        "template_id": "prototype-block-u-5f",
+        "template_id": "china-apartment-block-u-5f",
         "kind": "building",
         "owner": 8,
         "parts": [
