@@ -7,6 +7,7 @@ import { buildClips } from "@packages/scene-assets/src/build.ts";
 import { importScene } from "@packages/scene-assets/src/scene.ts";
 import {
   FINDING_CODES,
+  KIT_BUNDLE_MAX_BYTES,
   type AppearanceEntry,
   type Bundle,
   type SkeletonClips,
@@ -20,6 +21,18 @@ import {
   validateSkeleton,
 } from "@packages/scene-assets/src/validate.ts";
 import { textureFindings } from "@packages/scene-assets/src/texture.ts";
+import { bakeCatalog, kitBytesFindings } from "@packages/scene-assets/src/bake.ts";
+import {
+  HOUSE,
+  MODULES,
+  YARD,
+  cityCatalog,
+  cityContext,
+  citySources,
+  descriptor,
+  kitGlb,
+  testSet,
+} from "./city";
 import { grassClumpGlb } from "@packages/scene-assets/src/grass.ts";
 import {
   AUTHORITY,
@@ -132,6 +145,17 @@ async function scenery(
     ...(footprint ? { footprint_half_m: footprint } : {}),
   };
   return validateAppearance({ name: kind ?? "scenery", entry, files }, context);
+}
+
+/** A city set baked over its kit and the physical catalogue: every finding. */
+async function city(set: unknown = testSet(), catalogue?: unknown[], kit?: Uint8Array) {
+  const sources = citySources(set, kit);
+  const result = await bakeCatalog(
+    cityCatalog(),
+    async (path) => sources[path],
+    cityContext(catalogue),
+  );
+  return result.reports.flatMap((r) => r.findings);
 }
 
 async function skeleton(entry: Partial<SkeletonEntry>, bytes = soldierGlb()) {
@@ -252,6 +276,17 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
   "nodes.duplicate": () => tank({ duplicateWheel: true }),
   "nodes.track_properties": () => tank({ noTrackProperties: true }),
   "nodes.deploy_motion": () => truck({ noDeployMotion: true }),
+  "kit.module": () => city(testSet(), undefined, kitGlb(MODULES, true)),
+  "kit.bytes": async () => kitBytesFindings("kit", KIT_BUNDLE_MAX_BYTES + 1),
+  "templates.source": () => city("not a set at all"),
+  "templates.kit": () => city(testSet((set) => (set.kit = "another_kit"))),
+  "templates.row": () => city(testSet((set) => set.templates[0].states.intact![0].pop())),
+  "templates.module": () => city(testSet((set) => set.modules.push("balcony"))),
+  "templates.state": () => city(testSet((set) => delete set.templates[0].states.intact)),
+  "templates.physical": () => city(testSet((set) => (set.templates[0].descriptor.entrances = []))),
+  "templates.fit": () => city(testSet((set) => (set.fit.side_m = 0))),
+  "templates.catalogue": () => city(testSet(), [HOUSE]),
+  "templates.coverage": () => city(testSet(), [HOUSE, YARD, descriptor("test-shed")]),
 };
 
 test("the valid synthetic assets produce no findings at all", async () => {
@@ -265,6 +300,7 @@ test("the valid synthetic assets produce no findings at all", async () => {
     ...(await scenery("hedgerow", { summer: treeGlb(3) })).findings,
     ...(await scenery("grass", { summer: grassClumpGlb("tuft", GRASS_SPEC) })).findings,
     ...(await skeleton({})),
+    ...(await city()),
   ];
   expect(all).toEqual([]);
 });
