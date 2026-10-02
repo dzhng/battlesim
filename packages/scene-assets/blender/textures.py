@@ -718,10 +718,10 @@ def roof_tile():
     wears are the roof's own, in its vertex paint (`masonry.weathered_roof`). Lichen is the wear."""
     fy, fx, fired = _courses(15, 12, 2401)
     roll = 0.5 - 0.5 * np.cos(fx * 2 * math.pi)
-    shade = smoothstep(0.26, 0.0, fy)
+    shade = smoothstep(0.3, 0.0, fy)  # soft and shallow: a course is two pixels at the tactical camera, and a hard one moires
     gap = smoothstep(0.07, 0.02, np.minimum(fx, 1 - fx))
     grain = fbm(48, 2403, 3)
-    tone = (0.93 + 0.07 * (fired - 0.5)) * (0.9 + 0.13 * roll) * (1 - 0.32 * shade) * (1 - 0.18 * gap) * (0.95 + 0.1 * grain)
+    tone = (0.93 + 0.07 * (fired - 0.5)) * (0.92 + 0.1 * roll) * (1 - 0.2 * shade) * (1 - 0.12 * gap) * (0.95 + 0.1 * grain)
     col = np.broadcast_to(np.array((0.27, 0.113, 0.07)), (SIZE, SIZE, 3)) * tone[..., None]
     col = mix(col, (0.15, 0.15, 0.1), smoothstep(0.7, 0.82, fbm(40, 2405, 3)) * 0.22)
     h = roll * 1.2 + fy * 1.6
@@ -735,10 +735,10 @@ def roof_slate():
     joint between them and the shade of the course above. Neutral, so a colour never
     turns its variation into a cast. Lichen is the wear."""
     fy, fx, cut = _courses(15, 10, 2451)
-    shade = smoothstep(0.2, 0.0, fy)
+    shade = smoothstep(0.26, 0.0, fy)
     gap = smoothstep(0.05, 0.015, np.minimum(fx, 1 - fx))
     riven = fbm(64, 2453, 3)
-    tone = (0.95 + 0.07 * (cut - 0.5)) * (1 - 0.3 * shade) * (1 - 0.3 * gap) * (0.95 + 0.1 * riven)
+    tone = (0.95 + 0.07 * (cut - 0.5)) * (1 - 0.2 * shade) * (1 - 0.2 * gap) * (0.95 + 0.1 * riven)
     col = np.broadcast_to(np.array((0.24, 0.24, 0.24)), (SIZE, SIZE, 3)) * tone[..., None]
     h = fy * 1.2 + riven * 0.3 - gap
     return Baked(col, 0.3 + 0.7 * fbm(8, 2457, 4), normals_from_height(blur(h * 2), 1.0), 1.0 - 0.35 * shade, 0.62 + 0.2 * riven,

@@ -160,7 +160,7 @@ def facade(kind, seed, burnt=False, front=None):
         mid, half = (x0 + x1) / 2, (x1 - x0) / 2
         scale = half / 0.75  # the curtain modules are cut to a window's opening, and stretched to a wider one
         drawn = np.select([which == 1, which == 3], [np.abs(bx - mid) > half - 0.42 * scale, bz > z0 + 0.7], False)
-        cloth = np.array(CLOTHS)[which]
+        cloth = 0.55 * np.array(CLOTHS)[which]  # in the reveal's shade, as the panel's curtain modules are
         inside = mix(inside, cloth, pane * drawn) * lintel[..., None]
         rough = np.where(pane > 0.5, 0.12, 0.5)
     col = mix(wall, inside, hole)
@@ -186,9 +186,10 @@ def gutted(kind, seed, wall, tone, joint, hole, which, bx, bz, rect):
     px = FACADE_M / S
     void = np.array((0.016, 0.015, 0.014)) * (0.6 + 0.8 * textures.fbm(24, seed + 57, 3))[..., None]
     inside = void
-    if kind == "B":  # a column of balconies: fronts scorched, one in four gone and one half gone
+    if kind == "B":
+        inside = np.array(FACADE_WALL) * 0.12 * tone[..., None]  # the recess behind a balcony: in shade, not a hole  # a column of balconies: fronts scorched, one in four gone and one half gone
         h, slab = BALCONY[2], FLOOR_M - 0.14
-        gone = (which == 1) | ((which == 3) & (bx < 0.2))
+        gone = (which == 1) & (bx < 0.2)
         hole = ss(np.where(gone, 0.06, h) - px, np.where(gone, 0.06, h), bz) * ss(slab + px, slab, bz)
         z1 = slab
         joint = np.zeros((S, S))
@@ -208,7 +209,7 @@ def gutted(kind, seed, wall, tone, joint, hole, which, bx, bz, rect):
     mid, half = (x0 + x1) / 2, (x1 - x0) / 2
     soot = np.zeros((S, S))
     for rise, bay in ((bz - z1, which), (bz + FLOOR_M - z1, (which + 2) % 4)):
-        strength = np.array(BURNT)[bay]
+        strength = np.array(BURNT)[bay] * (0.5 if kind == "B" else 1.0)
         reach = 0.45 + 1.7 * strength
         up = np.clip(rise, 0, None)
         width = half * (1.0 - 0.45 * np.clip(up / (2.2 * reach), 0, 1)) + 0.08
@@ -224,7 +225,7 @@ def gutted(kind, seed, wall, tone, joint, hole, which, bx, bz, rect):
     height = textures.blur(-2.0 * hole - 0.5 * joint - 0.6 * spall)
     wear = np.where(hole > 0.5, 1.0, 0.3 + 0.7 * textures.fbm(6, seed + 3, 5))
     return textures.Baked(col, wear, textures.normals_from_height(height, 1.2), 1.0 - 0.25 * joint, np.full((S, S), 0.95),
-                          tint=(1.0 - hole) * (1.0 - 0.8 * spall) * (1.0 - 0.6 * soot) * (0.0 if kind == "x" else 1.0))
+                          tint=(1.0 - hole) * (0.0 if kind == "x" else 1.0))
 
 
 for kind, seed in (("w", 3101), ("d", 3201), ("l", 3301), ("s", 3401), ("B", 3501), ("r", 3601)):
@@ -257,6 +258,7 @@ drape_m = flat_paint("tower_drape", (0.3, 0.3, 0.29), rough=0.5, grime=0.0)  # a
 drape_m["tint"] = 1.0
 patch_m = textured("tower_roof_patch", "asphalt", colour=(0.2, 0.2, 0.195), dirt=0.0, chip=0.0, streak=0.0, seed=2.0)  # felt laid since
 void_m = flat_paint("tower_void", (0.012, 0.011, 0.01), rough=1.0, grime=0.0)  # a gutted floor, seen through its openings
+ash_m = flat_paint("tower_ash", (0.21, 0.205, 0.195), rough=1.0, grime=0.0)  # where a roof's felt burnt away: pale, so not a shadow
 
 
 def stained(mat, seed=0.0):
@@ -577,16 +579,19 @@ hut("bulkhead_burnt", 6.0, 4.5, 2.7, burnt=True)
 hut("stairhead_burnt", 3.2, 4.2, 2.3, burnt=True)
 
 PLANT = (2.4, 1.4, 1.2)
-m = kit.module("roof_plant", **ROOFTOP)  # a packaged chiller on skids, its fan on top
-box(m.n("case"), (PLANT[0], PLANT[1], PLANT[2] - 0.2), (0, 0, 0.2 + (PLANT[2] - 0.2) / 2), unit_m, m.root)
-cyl(m.n("fan"), 0.45, 0.06, (-0.5, 0, PLANT[2] + 0.03), "Z", metal_m, m.root, seg=12, lods=(0, 1))
-box(m.n("grille"), (1.7, 0.03, 0.55), (0, -PLANT[1] / 2 - 0.015, 0.75), metal_m, m.root, lods=(0, 1))
-for s in (-1, 1):
-    box(m.n(f"skid_{'ab'[s > 0]}"), (0.12, PLANT[1], 0.2), (s * 0.9, 0, 0.1), metal_m, m.root, lods=(0, 1))
+UNIT_BURNT = scorched(unit_m, 1e6, 9.0, floor=0.8)
+for name_, case_ in (("roof_plant", unit_m), ("roof_plant_burnt", UNIT_BURNT)):  # a packaged chiller on skids, its fan on top
+    m = kit.module(name_, **ROOFTOP)
+    box(m.n("case"), (PLANT[0], PLANT[1], PLANT[2] - 0.2), (0, 0, 0.2 + (PLANT[2] - 0.2) / 2), case_, m.root)
+    cyl(m.n("fan"), 0.45, 0.06, (-0.5, 0, PLANT[2] + 0.03), "Z", metal_m, m.root, seg=12, lods=(0, 1))
+    box(m.n("grille"), (1.7, 0.03, 0.55), (0, -PLANT[1] / 2 - 0.015, 0.75), metal_m, m.root, lods=(0, 1))
+    for s in (-1, 1):
+        box(m.n(f"skid_{'ab'[s > 0]}"), (0.12, PLANT[1], 0.2), (s * 0.9, 0, 0.1), metal_m, m.root, lods=(0, 1))
 
-m = kit.module("roof_vent", **ROOFTOP)
-box(m.n("stack"), (0.7, 0.7, 0.75), (0, 0, 0.375), rail_m, m.root)
-box(m.n("cowl"), (0.95, 0.95, 0.08), (0, 0, 0.9), rail_m, m.root, lods=(0, 1))
+for name_, cast_ in (("roof_vent", rail_m), ("roof_vent_burnt", CAST_BURNT)):
+    m = kit.module(name_, **ROOFTOP)
+    box(m.n("stack"), (0.7, 0.7, 0.75), (0, 0, 0.375), cast_, m.root)
+    box(m.n("cowl"), (0.95, 0.95, 0.08), (0, 0, 0.9), cast_, m.root, lods=(0, 1))
 
 m = kit.module("roof_tank", **ROOFTOP)
 cyl(m.n("drum"), 1.1, 1.8, (0, 0, 1.45), "Z", tank_m, m.root, seg=20)
@@ -736,7 +741,7 @@ def shell(t, tag, finish, columns, accents, doors, fronts, rooftop, crown=None, 
         sheet(m.n("balcony_lids"), rail_m, m.root, lids, lods=ONE_ROW)
     deck = ceiling + ROOF_M
     for k, (module, x, y, yaw) in enumerate(rooftop):
-        if module not in FOLDED or (burnt and module == "roof_tank"):
+        if module not in FOLDED:
             continue
         size, lods = FOLDED[module]
         if size and module in HUTS:  # a hut keeps what it is near: its walls the tower's colour, its lid concrete, its door dark
@@ -745,12 +750,14 @@ def shell(t, tag, finish, columns, accents, doors, fronts, rooftop, crown=None, 
             box(m.n(f"hut_{k}"), (w, d, h - 0.14), (x, y, deck + (h - 0.14) / 2), HUT_BURNT if burnt else hut_m, m.root, rot=(0, 0, yaw), lods=lods)
             box(m.n(f"hut_lid_{k}"), (w + 0.3, d + 0.3, 0.14), (x, y, deck + h - 0.07), cast, m.root, rot=(0, 0, yaw), lods=lods)
             dx, dy = -w / 2 + 1.0, -d / 2 - 0.02
-            box(m.n(f"hut_door_{k}"), (0.9, 0.05, 2.0), (x + dx * c - dy * s_, y + dx * s_ + dy * c, deck + 1.0), void_m if burnt else metal_m,
-                m.root, rot=(0, 0, yaw), lods=(2,))
+            if not burnt:  # (a burnt hut's doorway is a dark hole in a dark wall)
+                box(m.n(f"hut_door_{k}"), (0.9, 0.05, 2.0), (x + dx * c - dy * s_, y + dx * s_ + dy * c, deck + 1.0), metal_m, m.root,
+                    rot=(0, 0, yaw), lods=(2,))
         elif size:
-            box(m.n(f"hut_{k}"), size, (x, y, deck + size[2] / 2), unit_m if module == "roof_plant" else cast, m.root, rot=(0, 0, yaw), lods=lods)
+            mat = cast if module != "roof_plant" else UNIT_BURNT if burnt else unit_m
+            box(m.n(f"hut_{k}"), size, (x, y, deck + size[2] / 2), mat, m.root, rot=(0, 0, yaw), lods=lods)
         else:
-            cyl(m.n(f"tank_{k}"), 1.1, 1.8, (x, y, deck + 1.45), "Z", tank_m, m.root, seg=20, lods=lods)
+            cyl(m.n(f"tank_{k}"), 1.1, 1.8, (x, y, deck + 1.45), "Z", tank_m, m.root, seg=20, lods=lods[:1] if burnt else lods)
     # The roof inside the parapet: a field that carries its stains on a grid of vertices down to the
     # third tier, inside a band the parapet shades (so the field is lit the same at every tier),
     # with what was mended since laid on it; then the parapet's inner faces and its coping.
@@ -774,7 +781,7 @@ def shell(t, tag, finish, columns, accents, doors, fronts, rooftop, crown=None, 
         x, y = f0 + w / 2 + roll(t.id, "patch", k, "x") * (f1 - f0 - w), g0 + d / 2 + roll(t.id, "patch", k, "y") * (g1 - g0 - d)
         patches.append(([(x - w / 2, y - d / 2, deck + 0.02), (x + w / 2, y - d / 2, deck + 0.02), (x + w / 2, y + d / 2, deck + 0.02),
                          (x - w / 2, y + d / 2, deck + 0.02)], (0, 0, 1), None))
-    sheet(m.n("roof_patches"), void_m if burnt else patch_m, m.root, patches)  # burnt, the patches are where it burnt through
+    sheet(m.n("roof_patches"), ash_m if burnt else patch_m, m.root, patches)  # burnt, the patches are ash where the felt burnt away
     quads = []
     for k in range(4):
         (ax, ay), (bx, by), (cx, cy), (dx, dy) = outer[k], outer[(k + 1) % 4], inner[(k + 1) % 4], inner[k]
@@ -823,8 +830,8 @@ def tower(id_, tag, w, d, floors, finish, body, columns, doors, rooftop, accents
         hut = module in HUTS
         z, tint = deck + (HUTS[on[0]] if on else 0.0), body if hut else WHITE
         t.place(module, x, y, z, yaw, tiers=TIERS_0_TO_1, tint=tint)
-        if module != "roof_aerial":  # burnt, a hut is its sooted twin and the aerials are down
-            t.place(module + "_burnt" if hut else module, x, y, z, yaw, tiers=TIERS_0_TO_1, tint=tint, state="gutted")
+        if module != "roof_aerial":  # burnt, a hut, a vent and the plant are their sooted twins, and the aerials are down
+            t.place(module if module == "roof_tank" else module + "_burnt", x, y, z, yaw, tiers=TIERS_0_TO_1, tint=tint, state="gutted")
     for side, cols in sorted(columns.items()):
         edge = f"body-{side}"
         for k, (o, kind) in enumerate(zip(t.bays(edge), cols)):
@@ -892,7 +899,7 @@ tower("china-tower-12f", "tower_12f", 26, 26, 12, "render", CREAM,
                ("roof_vent", -7.0, 6.0, 0.0), ("roof_vent", -7.0, -2.0, 0.0), ("roof_vent", 7.5, -3.0, 0.0),
                ("roof_plant", -3.0, 5.0, 0.0), ("roof_vent", 1.5, 1.0, 0.0), ("roof_vent", -8.5, -8.0, 0.0)],
       crown=TERRACOTTA, recipe=dict(Crown="terracotta"),
-      blown=[("south", 1, 2, 8, 2), ("east", 4, 2, 4, 2), ("west", 1, 2, 9, 1)])
+      blown=[("south", 1, 2, 8, 2), ("east", 4, 2, 4, 2)])
 
 # Sixteen floors faced in white tile, its narrow side to the street: ribbons of
 # glazing from balcony column to balcony column, the balconies' fronts pale aqua,

@@ -172,9 +172,9 @@ def burnt_sheet(mat, seed=0.0):
 
         def fn(p, n, edge):
             c, wear = base(p, n, edge)
-            c = lerp3(c, RUST, 0.62 + 0.25 * fbm(p, 0.3, 2, 37.0 + seed))
+            c = lerp3(c, RUST, 0.45 + 0.25 * fbm(p, 0.3, 2, 37.0 + seed))
             c = lerp3(c, (0.014, 0.013, 0.012), 0.85 * smoothstep(-0.3, 0.4, fbm(p, 0.17, 2, 51.0 + seed)))
-            return c, max(wear, 0.55)
+            return c, max(wear, 0.3)
 
         PAINTS[name], TEXTURED[name] = fn, TEXTURED[mat.name]
     return bpy.data.materials[name]
@@ -754,7 +754,7 @@ def wrecked(t, tag, tint, blocks):
         buckled_sheets(m, part, ruin, crest, fallen, seed + k, stiff=flat)
         x0, x1, y0, y1 = rect
         surface(m, f"{part}_far_top", [([(x0, y0, 0.8 * high), (x1, y0, 0.8 * high), (x1, y1, 0.8 * high), (x0, y1, 0.8 * high)], UP)], fallen,
-                lods=(3,))
+                lods=(3,), far_grid=2 * ROOF_FAR_CELL_M)  # in cells, so the rust and the soot keep their patches
         rng = random.Random(seed * 71 + k)
         if how["legs"] is not None:  # the frame's legs down the two long sides, a bay apart, leaning as the roof pulled them
             along_x = x1 - x0 >= y1 - y0

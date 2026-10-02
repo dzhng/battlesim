@@ -190,7 +190,7 @@ def fallen(t, tag, wall, roof, tint):
     for k, p in enumerate(t.parts):
         rect = (p["x0"], p["x1"], p["y0"], p["y1"])
         ruin = ruin_block(m, p["id"].replace("-", "_"), rect, high, over, ruin_sides(t, p["id"], OPENINGS), WALLS[wall], ROOFS[roof],
-                          RUBBLE[wall], seed_of(t.id) + 17 * k, stacks=stacks_of(t, rect), coarse=8)
+                          RUBBLE[wall], seed_of(t.id) + 17 * k, stacks=stacks_of(t, rect), coarse=12)
         litter(t, ruin, BRICK_DUST if wall == "brick" else tint, heaps=4)
     t.place(m.name, tint=tint, state="ruin")
 
@@ -210,6 +210,8 @@ FAR_PANELS = {
 }
 FAR_BOXES = {"chimney_brick": [((1.05, 0.6, CHIMNEY_M), (0, 0, CHIMNEY_M / 2), coping_m)],
              "chimney_render": [((0.7, 0.7, CHIMNEY_M), (0, 0, CHIMNEY_M / 2), coping_m)]}
+FAR_BOXES |= {f"dormer_{tiles}": [((1.3, 2.3, 1.05), (0, 1.15, 0.525), plaster_m), ((1.7, 2.5, 0.44), (0, 1.1, 1.2), ROOFS[tiles])]
+              for tiles in ("brown", "clay", "slate")}
 
 
 def far_paint(tint):
@@ -221,11 +223,14 @@ def far_paint(tint):
 
 def far_fittings(t, m, origin=(0.0, 0.0), within=None):
     """Fold what the two coarse tiers keep of a template's fittings into shell `m`: all of its rows, or
-    those `within` (x0, x1) of it, for a module that is one house of a row. The fittings' own rows
-    then stop at the second tier."""
+    those `within` (x0, x1) of it, for a module that is one house of a row. The folded fittings' own
+    rows then stop at the second tier. A row of houses folds no chimney: a chimney stands on the wall
+    between two houses, and every house is the one module, so its chimneys stay rows at every tier."""
     rows = [r for r in t.rows["intact"] if within is None or within[0] <= r[1] < within[1]]
-    fold_far(m, rows, FAR_PANELS, FAR_BOXES, far_paint, (2, 3), origin)
-    t.rows["intact"] = [(*r[:8], r[8] & TIERS_0_TO_1, *r[9:]) if r[0] in FAR_PANELS or r[0] in FAR_BOXES else r for r in t.rows["intact"]]
+    boxes = FAR_BOXES if within is None else {}
+    fold_far(m, rows, FAR_PANELS, boxes, far_paint, (2, 3), origin)
+    t.rows["intact"] = [(*r[:8], r[8] & TIERS_0_TO_1, *r[9:]) if r[0] in FAR_PANELS or r[0] in boxes
+                        else (*r[:8], EVERY_TIER, *r[9:]) if r[0] in FAR_BOXES else r for r in t.rows["intact"]]
 
 
 # ---------------------------------------------------------------- shells
@@ -415,7 +420,7 @@ def terrace(id_, tag, units, unit_w, d, floors, rise, wall, roof, tints, window,
         m = kit.module(f"{tag}_ruin_{v}", ground=True, **RUIN)
         ruins.append((m, ruin_block(m, "unit", (-unit_w / 2, unit_w / 2, -hy, hy), high, over, sides, WALLS[wall], ROOFS[roof],
                                     RUBBLE[wall], seed + 7 * (v == "b"), stacks=[(-unit_w / 2 + 0.4, 0.0, breast[0][::-1], breast[1])],
-                                    far=("south", "north"))))
+                                    far=("south", "north"), coarse=10)))
     for k, cx in enumerate(centres):
         m, ruin = ruins[k % 2]
         level = (1.0, 0.8, 0.92, 0.74, 0.96)[k % 5]

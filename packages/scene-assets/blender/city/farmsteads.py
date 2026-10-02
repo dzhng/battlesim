@@ -31,6 +31,7 @@ a door's leaf, a chimney's stack) is folded into the shell (`Farm.place`).
 """
 import math
 import os
+import random
 import sys
 import zlib
 
@@ -213,7 +214,7 @@ class Farm:
     def __init__(self, id_, tag, recipe):
         self.t = kit.template(id_, "farmstead", FAMILY, recipe)
         self.m = kit.module(f"{tag}_shell", ground=True, paint_scale=4.0)
-        self.far, self.built = [], {}
+        self.far, self.built, self.framed = [], {}, set()  # (`framed`: parts whose walls are timber-framed)
 
     def __getattr__(self, name):  # the template's own: parts, floors, lattices, bays, entrances
         return getattr(self.t, name)
@@ -286,9 +287,20 @@ class Farm:
             sides = {side: v for side, v in ruin_sides(t, p["id"], OPENINGS).items() if side not in (open_sides or {}).get(p["id"], ())}
             stacks = [(x, y, (1.05, 0.6), stack_m) for module, x, y, *_ in t.rows["intact"]
                       if module == "chimney_brick" and rect[0] < x < rect[1] and rect[2] < y < rect[3]]
+            # a boarded wall burns to the foot and stands in lengths of board between its posts, not in courses
+            boarded = dict(level=0.8, charred=0.7, thick=0.12, run=(1.2, 2.6), jagged=2.5) if timber else {}
             ruin = ruin_block(m, p["id"], rect, high, over, sides, WALLS[wall], ROOFS[roof], RUBBLE[wall], seed + 17 * k, stacks=stacks,
-                              level=0.8 if timber else 1.0, charred=0.7 if timber else 0.0, coarse=18)
-            litter(t, ruin, DUST[wall], beams=8 if timber else 4, heaps=4, level=1.0)
+                              coarse=18, **boarded)
+            if timber or p["id"] in self.framed:  # the frame's posts stand charred when the walls between them are gone
+                rng = random.Random(seed + 91 * k)
+                crest = ruin.height + over - 0.06
+                for side in sorted(sides):
+                    a0, a1, fixed, along_x = wall_line(rect, side, 0.1)
+                    for i in range(int((a1 - a0) // 3) + 1):
+                        at, tall = min(max(a0 + 3.0 * i, a0 + 0.1), a1 - 0.1), rng.uniform(0.5, 1.0) * crest
+                        box(m.n(f"{p['id']}_post_{side}_{i}"), (0.2, 0.2, tall), (at, fixed, tall / 2) if along_x else (fixed, at, tall / 2),
+                            char_m, m.root, lods=(0, 1))
+            litter(t, ruin, DUST[wall], beams=8 if timber or p["id"] in self.framed else 4, heaps=4, level=1.0)
         t.place(m.name, state="ruin")
 
 
@@ -339,6 +351,7 @@ framing = dict(posts=dict(a0=(6.5, 9.5, 12.5, 15.5), a1=(6.5, 9.5, 12.5, 15.5), 
                openings=dict(a0=[(11 - half_door, 11 + half_door, 3.5)],
                              b0=[(-half_door, half_door, 3.5), (-6.7, -5.3, 2.3), (5.3, 6.7, 2.3)]),
                foot=0.6, rail=2.55)
+farm.framed.add("barn")
 fm = kit.module("farm_yard_barn_frame", ground=True, **FITTING)
 timber_frame(fm.n("frame"), barn, timber_m, fm.root, **framing)
 farm.t.place(fm.name, tiers=ROW_TIERS)

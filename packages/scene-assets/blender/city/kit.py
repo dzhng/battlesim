@@ -572,13 +572,15 @@ def ruin_block(m, tag, rect, height, over, sides, wall, roof, rubble_mat, seed, 
         a0, a1 = (x0, x1) if along_x else (inner[2], inner[3])  # a side wall runs between the front's and the back's
         ragged_wall(m.n(f"{tag}_{side}"), a0, a1, fixed, along_x, 0.3 * min(high, stump or high), min(crest, stump or crest),
                     seed * 31 + k, burnt, m.root, thick, gaps=sides[side]["gaps"], openings=sides[side]["openings"], lods=(0, 1, 2),
-                    groups=(1, 3, coarse, 8), jagged=jagged, run=run)
+                    groups=(1, 3, coarse, 8), jagged=jagged, run=run, raked=True)
     top = high
     ruin = Ruin(rect, inner, high, top, seed, sides)
-    rubble_fill(m.n(f"{tag}_fill"), *ruin.fill, top, rubble_mat, seed, m.root, cells=cells)
-    for k, (x, y, (w, d), mat) in enumerate(stacks):
-        box(m.n(f"{tag}_stack_{k}"), (w, d, crest - 0.04), (x, y, (crest - 0.04) / 2), scorched(mat, high + over, seed + 1.0), m.root,
-            lods=(0, 1, 2))
+    rubble_fill(m.n(f"{tag}_fill"), *ruin.fill, top, rubble_mat, seed, m.root, cells=cells,
+                spill=tuple(thick + 0.26 if side in sides else 0.0 for side in ("west", "east", "south", "north")))
+    for k, (x, y, (w, d), mat) in enumerate(stacks):  # a chimney's stump: broken off, not black (from far off a black square is a hole)
+        tall = (crest - 0.04) * (0.8 + 0.2 * random.Random(seed + k).random())
+        box(m.n(f"{tag}_stack_{k}"), (w, d, tall), (x, y, tall / 2), scorched(mat, 2.5 * (high + over), seed + 1.0), m.root, lods=(0, 1, 2),
+            taper=(0.75, 0.85))
     # the roof, fallen in: pieces of it slipped over the heap
     rng = random.Random(seed * 131 + 7)
     span_x, span_y = inner[1] - inner[0], inner[3] - inner[2]
@@ -592,29 +594,42 @@ def ruin_block(m, tag, rect, height, over, sides, wall, roof, rubble_mat, seed, 
         rot = (rng.uniform(-0.22, 0.22), rng.uniform(-0.22, 0.22), rng.uniform(0, math.pi))
         rise = abs(w / 2 * math.sin(rot[1])) + abs(d / 2 * math.sin(rot[0])) + 0.12
         z = min(ruin.heap(x, y) + 0.5 * rise, crest - rise)
-        pieces.append(((w, d), (x, y, z), rot))
-        box(m.n(f"{tag}_roof_{k}"), (w, d, 0.1), (x, y, z), fallen, m.root, rot=rot, lods=(0, 1))
+        taper = (rng.uniform(0.55, 1.0), rng.uniform(0.6, 1.0))  # torn, not cut: no piece is a clean rectangle
+        pieces.append(((w, d), (x, y, z), rot, taper))
+        box(m.n(f"{tag}_roof_{k}"), (w, d, 0.1), (x, y, z), fallen, m.root, rot=rot, lods=(0, 1), taper=taper)
 
-    def far_roof(bm, lod):
-        for (w, d), (x, y, z), rot in pieces[:max(2, len(pieces) // 2)] if lod == 2 else pieces[:1]:
-            at = Matrix.Translation((x, y, z if lod == 2 else 0.8 * high + 0.04)) @ Matrix.Rotation(rot[2], 4, "Z")
-            grow = 1.0 if lod == 2 else min(1.6, 0.45 * span_x / w, 0.45 * span_y / d) if min(span_x, span_y) > 4 else 1.0
-            bm.faces.new([bm.verts.new(at @ Vector((sx * w / 2 * grow, sy * d / 2 * grow, 0))) for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))])
+    def far_roof(bm, lod):  # the same pieces where they lie, each one face: the two coarse tiers keep their count and place
+        for (w, d), (x, y, z), rot, (tx, ty) in pieces:
+            at = Matrix.Translation((x, y, z + 0.06 if lod == 2 else min(z + 0.06, 0.92 * high))) @ Matrix.Rotation(rot[2], 4, "Z")
+            if lod == 2:
+                at = at @ Matrix.Rotation(rot[1], 4, "Y") @ Matrix.Rotation(rot[0], 4, "X")
+            bm.faces.new([bm.verts.new(at @ Vector((sx * w / 2 * tx, sy * d / 2 * ty, 0))) for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))])
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        for f in bm.faces:
+            f.normal_update()
+            if f.normal.z < 0:
+                f.normal_flip()
 
     if roofing:
         mesh_part(m.n(f"{tag}_roof_far"), far_roof, fallen, m.root, lods=(2, 3))
 
-    # from far off: a low box, its standing sides in the wall's colour, under a rubble top
+    # From far off: its standing sides in the wall's colour, and inside them the heap as its near
+    # tiers have it, low in a band against the walls (which shade it there) and high in the middle.
     def far_sides(bm, lod):
-        z = 0.8 * high
+        z = 0.9 * high
         for side in sorted(sides if far is None else far):
             a, b = dict(south=((x0, y0), (x1, y0)), north=((x1, y1), (x0, y1)), west=((x0, y1), (x0, y0)), east=((x1, y0), (x1, y1)))[side]
             bm.faces.new([bm.verts.new(v) for v in ((*a, 0), (*b, 0), (*b, z), (*a, z))])
         return bool(sides)
 
     def far_top(bm, lod):
-        z = 0.8 * high
-        bm.faces.new([bm.verts.new(v) for v in ((x0, y0, z), (x1, y0, z), (x1, y1, z), (x0, y1, z))])
+        band = min(1.2, 0.3 * min(x1 - x0, y1 - y0))
+        outer = [bm.verts.new((x, y, 0.4 * high)) for x, y in ((x0, y0), (x1, y0), (x1, y1), (x0, y1))]
+        mid = [bm.verts.new((x, y, 0.72 * high)) for x, y in ((x0 + band, y0 + band), (x1 - band, y0 + band), (x1 - band, y1 - band),
+                                                               (x0 + band, y1 - band))]
+        bm.faces.new(mid)
+        for k in range(4):
+            bm.faces.new((outer[k], outer[(k + 1) % 4], mid[(k + 1) % 4], mid[k]))
 
     mesh_part(m.n(f"{tag}_far_sides"), far_sides, far_wall or burnt, m.root, lods=(3,))
     if roofing:
