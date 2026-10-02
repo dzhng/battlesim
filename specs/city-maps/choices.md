@@ -5729,6 +5729,14 @@ loaded throughput or full-world process/GPU peak.
 **Gap:** "vary one structural thing each ... if it is cheap". A setback top would have left the part's faces.
 
 **Verdict:** sound for two; the third differs from them by being the plain one. **Confidence:** medium.
+
+### The village's older ruin is held to the remains, and let past the budget
+
+**Choice:** The village set (C37) says `ruin_top_m` 0.6 like the others, so its farmhouse ruin (walls to 0.35 m over the remains) passes the new fit; `Kit(..., damage_budget=False)` lets its ruin draw more than its farm (2,299 against 1,916 triangles at tier 1, 371 against 260 at tier 3 on the smallest box), and nothing else may.
+
+**Gap:** The budget was set for the four sets of this pass; the village set arrived by merge with a ruin made before it.
+
+**Verdict:** provisional. The opt-out is one named flag on one set. Rebuilding the farm's ruin with the shared `ruin_block` would remove it and is the better end. **Confidence:** medium.
 ## C06: avoid geometry for a squad with no steering decision
 
 **Choice:** A vehicle moves far from an idle squad. Each living soldier is already
@@ -6457,11 +6465,3 @@ result; gameplay rules and the transport contract are unchanged.
 **Verdict:** sound; high confidence. Scope follows an observed field and public
 red proof, rather than assuming all standard math needs replacement. Remaining
 generated-battle parity must still be measured after integration.
-
-### The village's older ruin is held to the remains, and let past the budget
-
-**Choice:** The village set (C37) says `ruin_top_m` 0.6 like the others, so its farmhouse ruin (walls to 0.35 m over the remains) passes the new fit; `Kit(..., damage_budget=False)` lets its ruin draw more than its farm (2,299 against 1,916 triangles at tier 1, 371 against 260 at tier 3 on the smallest box), and nothing else may.
-
-**Gap:** The budget was set for the four sets of this pass; the village set arrived by merge with a ruin made before it.
-
-**Verdict:** provisional. The opt-out is one named flag on one set. Rebuilding the farm's ruin with the shared `ruin_block` would remove it and is the better end. **Confidence:** medium.
