@@ -3460,3 +3460,46 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 **Why:** the owner's call (2026-10-01): the village and the lab maps are developer test arenas, nobody plays them, and the game is not finished. The need those slices answered, a full-size map to play, is met by generated battles from the menu and saved generated maps. Where another slice still says C56 or C34–C36, read "cut".
 
 **Verdict:** sound. **Confidence:** high.
+
+## C54 pipeline tooling
+
+### Measure a short advance without turning it into an arrival deadline
+
+**When:** scale-lane pipeline tool checkpoint, 2026-10-01.
+
+**Choice:** Each of the nine map type/size cells runs fixed map seeds 1–10;
+the encounter and battle seeds stay fixed at the game's encounter seed and 1.
+The attacker sends its planned column toward the objective by an ordinary group
+move, while the defender keeps its existing scripts and policy. The default
+sample lasts 30 simulated seconds. A rifle squad starting kilometres away may
+move normally for all 30 s without arriving. Its row retains the remaining
+distance and every movement state; coming within 10 m is reported as proximity,
+not completion. The alternative was to call every unfinished short route a
+failure, which would confuse normal transit with blocked navigation.
+
+**Gap:** C54 delegates fixed seeds and reporting and gives no short-run duration
+or arrival deadline. **Reach:** The tooling reveals refusals, route-blocked and
+pending work across the matrix; a later playability verdict still needs a longer
+battle and its own arrival/engagement contract. **Verdict:** sound — the sample
+reports observed progress without inventing a completion requirement.
+**Confidence:** medium.
+
+### Keep the simulation dependency inside verification tooling
+
+**When:** scale-lane pipeline tool checkpoint, 2026-10-01.
+
+**Choice:** The runner is a `mapgen` example using its existing simulation test
+ dependency. It calls the same generator and compiler that produce a player's
+map, then the simulation's existing assault planner and Battle constructor.
+When a seed is refused, its exact diagnostics stay in its row and the next
+requested seed runs; nothing stands in for it. Costs and input hashes are saved
+in that row before proceeding. The alternative was to add generation to the sim
+runtime or parse several reports' prose, either adding a dependency cycle or a
+second reporting oracle that could silently drift.
+
+**Gap:** The spec names one runner but no crate or output format.
+**Reach:** One streaming JSONL report can be inspected while a long matrix runs;
+command refusals and unwinding panics remain explicit. This does not recover a
+hung process or imply full C54/art acceptance. **Verdict:** sound — production
+ownership stays unchanged and no new dependency is introduced.
+**Confidence:** high.

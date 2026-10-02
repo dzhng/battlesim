@@ -35,13 +35,18 @@ Read [`AGENTS.md`](../../AGENTS.md): narrow checks only, no full gate. A perform
 
 ## Status
 
-**C05 measurement complete; C06 and C07 cost work active.** Verified scale
-checkpoints are committed; the current integration includes main through
-`d6b0f083`, the exact-row publication pass and local fog invalidation. Main now
-also carries compact saved maps and projectile tuning. All historical tables
-below use their original rules, map and catalogue; do not compare new-rule
-results against them as performance-only parity. Fresh combined measurements
-and the browser admission checks are the next pickup.
+**C05 is complete; C06/C07 timing and delivery admission remain open.** The
+integrated representation and fog-cache checkpoints are on `main` (`4efec25b`);
+this branch also includes main through `6de4cbf7`. Historical tables below use
+original rules, map and catalogue. Current projectile tuning and `layout-6` need
+fresh measurements; new results are not performance-only parity against those
+historical battles.
+
+Current pickup: finish the whole-pipeline tool, integrate the infantry route
+correction and replay build identity, then measure the combined current build.
+The paired browser observation/codec checks pass (25 tests). The endurance scene
+is queued under the shared GPU lock; no browser throughput verdict is claimed.
+No generator, menu, renderer or parent handoff implementation changed here.
 
 The native reports now attribute the production tick without introducing OS
 counters into the ordinary tick. Observation construction and wire packing are
@@ -115,19 +120,19 @@ remain G0's open decision; the 64 MiB codec ceiling is not a performance target.
 
 ### Priority and next pickup
 
-1. C06: cover's impossible-range searches are eliminated with exact geometry
-   bounds. Movement still peaks at 207.671 M early; fog is now the largest mean
-   owner (51.635 / 56.081 M/tick, peak 175.011 / 190.104 M). Local occlusion-cache
-   invalidation is being proved independently; a distant prop change currently
-   multiplies unchanged visibility-sweep cost 4.6×.
-2. Keep matched city/saved digests and replay unchanged. Run affected tests,
-   then compare reports on the exact same map and stress inputs.
-3. C07: the first exact group replacement codec is integrated. Average delivery
-   falls to 15,643 B early and 53,744 B late, but sorted corpse insertion still
-   shifts the retained tail: late p95 is 473,328 B, max 591,180 B. The 19.8 KB/tick
-   admission remains open; a mean below it does not close the budget. The next
-   codec pass owns sparse collection edits and its producer/decoder parity.
-4. Build stable Wasm, then run `endurance` and `benchmark` scenes serially.
+1. C54 tooling: `crates/mapgen/examples/battle_sweep.rs` is the named
+   cross-ownership addition. It uses existing generation/compiler and assault
+   planner APIs, current game admission, and the real Battle. A first Open Small
+   seed-1 30 s sample advances every column unit; distant goals remain pending.
+   The complete nine-cell, ten-seed matrix waits for the route correction.
+2. C59/C55 faults: legal local infantry links and same-build replay refusal are
+   independent passes in progress. Their behavior/build identities must be named.
+3. C06/C07: local fog invalidation and sparse fixed-row copies are integrated.
+   Measure early/late active Large bytes, p95/max and instructions afresh before
+   selecting the next owner. Historical mean reductions do not close admission.
+4. Browser: run `endurance` and `benchmark` serially, then establish the full
+   generated-map stress arm. The existing saved stress arena alone does not prove
+   full-extent loading. Snapshot/copy/decoder overlap remains a separate gate.
 
 Map-lane coordination: no generator, renderer or parent README changes. The
 C07 producer/decoder checkpoint is the named cross-ownership commit: it updates
