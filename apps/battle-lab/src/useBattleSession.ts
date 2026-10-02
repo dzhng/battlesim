@@ -1,4 +1,3 @@
-import type { PreparedSession } from "@web/battle/prepare/client";
 // One side's live battle session: the static world and its meshes, the worker
 // authority, the player command path, the drawn units (interpolated; soldiers
 // and vehicles posed by the pose driver as models, each picked by the
@@ -7,6 +6,7 @@ import type { PreparedSession } from "@web/battle/prepare/client";
 // adapters over what is drawn, and the
 // base lab probes. The battle view and every lab that plays a battle
 // share it; routes add only what they show.
+import type { PreparedSession } from "@web/battle/prepare/client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Project, ReadoutLayerHandle } from "@web/battle/present/readouts";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
@@ -125,7 +125,11 @@ export function useBattleSession({
   sound = false,
   prepared,
 }: BattleSessionOptions) {
-  const rules = useMemo(() => (JSON.parse(scenario) as { rules: ScenarioRules }).rules, [scenario]);
+  const { map, rules } = useMemo(
+    () => JSON.parse(scenario) as { map: unknown; rules: ScenarioRules },
+    [scenario],
+  );
+  const world = useStaticWorld(map);
   // Combat effects: every decoded publication noted (the frame dedupes),
   // drawn at each animation frame's presentation clock.
   const effects = useMemo(() => createEffectFrame(rules.tick_hz), [rules.tick_hz]);
@@ -146,7 +150,6 @@ export function useBattleSession({
     [effects, audio, side, onDecoded],
   );
   const sim = useSimSession({ scenario, seed, onDecoded: noteDecoded, replay, scripted, prepared });
-  const world = useStaticWorld(sim.client?.world ?? null, sim.fail);
   const { observation } = sim;
   // The last drawn frame's presentation clock: the callouts' nudges ease on
   // it, and an order's flash starts at it.

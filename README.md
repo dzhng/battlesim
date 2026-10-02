@@ -15,7 +15,7 @@ The simulation is the one authority; everything else observes it.
 
 - **`web/src/battle/`** — the browser side of that boundary:
   - the worker that runs the simulation (one authority, ordered commands, bounded publications);
-  - the worker that prepares a battle (`prepare/`): one request names where the map comes from (a saved map, or a generation request), which encounter is laid on it and the seeds; the worker resolves the map, has the simulation's planner place the encounter, and answers with the scenario a battle runs, off the page's thread;
+  - the worker that prepares a battle (`prepare/`): one request names where the map comes from (a saved map, or a generation request), which encounter is laid on it and the seeds; the worker resolves the map, has the simulation's planner place the encounter, and answers with the scenario a battle runs, off the page's thread. It keeps the world it built for the planner and then runs that battle on it. The page builds its own plain world from the same map, with the simulation's own code, for drawing and for map queries (picking, ground height, camera clearance);
   - decoding of the packed observation;
   - player input;
   - player readouts.
