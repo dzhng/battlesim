@@ -560,3 +560,97 @@ fn placement_does_not_spend_or_pre_pay_route_work() {
         "warming values must not make the later route cheaper to schedule"
     );
 }
+
+/// A planned infantry town detour must carry a finite physical travel time.
+#[test]
+fn infantry_town_detours_have_finite_route_times() {
+    let (from, to) = (v2(150.0, 100.0), v2(250.0, 100.0));
+    for (yaw, offset) in [
+        (0.0, 0.0),
+        (0.0, 0.5),
+        (0.0, 1.0),
+        (0.13, 0.0),
+        (0.27, 0.5),
+        (0.6, 1.0),
+    ] {
+        let w = world(&format!(
+            r#", "props":[{{"kind":"wall","center":[200,{}],"yaw":{},"half_extents":[10,10,4]}}]"#,
+            100.0 + offset,
+            yaw
+        ));
+        let g = grid(&w);
+        let path = route(g.plan(from, to, &INFANTRY, RoutePolicy::Shortest));
+        let time = g.route_time(from, &path, &INFANTRY);
+        assert!(g.route_fits(from, &path, &INFANTRY));
+        assert!(
+            time.is_finite(),
+            "yaw {yaw}, offset {offset}, route {path:?}, time {time}"
+        );
+    }
+}
+
+#[test]
+fn infantry_timing_keeps_start_and_goal_boundary_failures_explicit() {
+    let w = world("");
+    let g = grid(&w);
+    assert_eq!(
+        g.plan(
+            v2(-1.0, 100.0),
+            v2(100.0, 100.0),
+            &INFANTRY,
+            RoutePolicy::Shortest
+        ),
+        Plan::Blocked(BlockReason::StartEnclosed)
+    );
+    assert_eq!(
+        g.plan(
+            v2(100.0, 100.0),
+            v2(420.0, 100.0),
+            &INFANTRY,
+            RoutePolicy::Shortest
+        ),
+        Plan::Blocked(BlockReason::NoRoute)
+    );
+    let p = v2(0.0, 100.0);
+    let same = route(g.plan(p, p, &INFANTRY, RoutePolicy::Shortest));
+    assert_eq!(g.route_time(p, &same, &INFANTRY), 0.0);
+    let moved = route(g.plan(p, v2(20.0, 100.0), &INFANTRY, RoutePolicy::Shortest));
+    assert!(g.route_time(p, &moved, &INFANTRY) > 0.0);
+    assert!(g.route_fits(p, &moved, &INFANTRY));
+}
+
+#[test]
+fn a_one_man_town_passage_has_a_finite_time_without_opening_a_wall() {
+    let w = world(
+        r#", "props":[
+        {"kind":"wall","center":[200,50.2],"yaw":0,"half_extents":[1,50.2,4]},
+        {"kind":"wall","center":[200,150.8],"yaw":0,"half_extents":[1,49.2,4]}]"#,
+    );
+    let g = grid(&w);
+    let from = v2(150.0, 101.0);
+    let to = v2(250.0, 101.0);
+    let foot = route(g.plan(from, to, &INFANTRY, RoutePolicy::Fastest));
+    assert!(g.route_fits(from, &foot, &INFANTRY));
+    let time = g.route_time(from, &foot, &INFANTRY);
+    assert!(time.is_finite() && time > 0.0);
+    assert!(matches!(
+        g.plan(from, to, &TANK, RoutePolicy::Shortest),
+        Plan::Blocked(_)
+    ));
+    let closed =
+        world(r#", "props":[{"kind":"wall","center":[200,100],"yaw":0,"half_extents":[1,100,4]}]"#);
+    let closed = grid(&closed);
+    assert!(closed.route_time(from, &[to], &INFANTRY).is_infinite());
+    assert!(!closed.route_fits(from, &[to], &INFANTRY));
+    assert_eq!(
+        closed.plan(from, to, &INFANTRY, RoutePolicy::Shortest),
+        Plan::Blocked(BlockReason::NoRoute)
+    );
+    let river = world(
+        r#", "rivers":[{"points":[{"xy":[200,0],"width_m":20,"depth_m":1.5},{"xy":[200,200],"width_m":20,"depth_m":1.5}],"surface_z":-0.5}]"#,
+    );
+    assert_eq!(
+        grid(&river).plan(from, to, &INFANTRY, RoutePolicy::Shortest),
+        Plan::Blocked(BlockReason::NoRoute)
+    );
+}

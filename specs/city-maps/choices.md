@@ -3514,3 +3514,34 @@ ownership stays unchanged and no new dependency is introduced.
 **Cost:** Hashing occurs once at build time; replay recording copies one 64-character identity, and playback compares it once. No new tick work, codec dependency or battle digest input. The contract crate is reused as a build dependency. Native red/green checks expose the formerly accepted mismatched build through `Battle::from_replay`; same-build replay pins every tick digest. Scope tests prove art-only stability and source, dependency, compiler and semantic cfg invalidation. Worker refusal and actual native/Wasm fingerprint parity are checked on the rebuilt module.
 
 **Verdict:** Sound within the current supported build inputs. Compiled scenario storage and broader scale admission gates remain separate unfinished work. **Confidence:** High.
+## C06 infantry town corner routes
+
+**Choice:** A connected coarse infantry cell is permission to walk through its
+free sub-cells, not permission to cut straight between its entry and exit. The
+route reconstructs a bounded local connector and certifies every emitted link
+with the same sampled reader used by route timing and smoothing. A returned
+illegal segment still has infinite cost; no failed route is made finite by
+changing the timing rule. Vehicles keep their existing physical clearance.
+
+**Why:** C59 exposed an infantry route accepted by coarse search but rejected by
+the timing consumer. The public corner regression reproduced it without a city.
+A squad bending around that corner is the expected physical behavior. The
+alternative of rejecting connected cells would unnecessarily close passages
+whose free half-metre path already exists. A whole-map fine search would add
+storage and work unrelated to the local defect.
+
+**Reach:** Infantry waypoints, costs, planning completion ticks and affected
+battle digests intentionally change. Legal endpoints use their actual containing
+cells; inside-map non-standing squad centroids retain bounded nearest-fit
+selection. Local connection is an incremental planning phase, with no retained
+full-extent fine data. Certified infantry links remain available to smoothing
+until a longer link passes its reader, because even collinear merging changes
+sample positions. This supersedes C59's historical infinity limitation; changing
+the encounter planner to consume the corrected timings belongs to its owner.
+
+**Verdict:** sound for the focused contracts. Public timing covers narrow foot
+passage, blocked/disconnected and boundary cases. A small battle checks actual
+soldier bodies and same-build replay under the smallest planning budget. NavGrid
+certifies its sampled mask, while movement owns exact body legality. Generated
+town admission and native city cost remain open in the scale lane. **Confidence:**
+high for the regression and replay, medium across generated towns.

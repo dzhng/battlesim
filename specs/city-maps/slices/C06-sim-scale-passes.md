@@ -106,3 +106,47 @@ allocate no stamps, and mutations add no history or scratch buffer. The existing
 50 MB fine solid-height raster is unchanged; this pass does not claim to solve
 G0 storage. Matched native city digests/costs and browser admission remain the
 integrating scale lane's next verification; C06 remains open.
+
+## Finding — infantry town route timing
+
+The coarse infantry search accepts connected free half-metre gaps, but its
+reconstructed corner link can cut a blocked sub-cell. Smoothing retains a raw
+adjacent link even when its sampled cost is infinite. A public route-time test
+fails on one small building corner, before any generated map or large search.
+The selected physical correction bends the route through those existing free
+sub-cells. It changes infantry waypoints and counted planning progress; this is
+a named route correction, not a digest-neutral performance pass. Vehicles keep
+their existing clearance and reconstruction. Local connection work must remain
+bounded and incremental, with no whole-world fine grid.
+
+## Outcome — infantry corner connectors
+
+Infantry reconstruction now joins the admitted free half-metre gaps inside each
+two-metre cell before smoothing. One incremental step runs at most two cell-local
+connector searches; each queue has at most sixteen entries. Endpoint fallback
+keeps the existing bounded reach. Every emitted link and every
+longer smoothing shortcut passes the existing sampled segment reader. Infinity
+still means a rejected segment, and walls and disconnected terrain stay blocked.
+Smoothing addresses infantry points through an implicit range, so entering that
+phase performs no eager scan or turn-index allocation over the expanded route.
+Legal infantry endpoints start in their containing cells rather than a nearby
+cell across an obstacle. Existing bounded fallback for an inside-map squad
+centroid remains; an outside-map start is explicitly enclosed.
+
+The old public timing regression failed at a building corner. Six corner
+placements/rotations now return legal, finite routes. A one-man passage admits
+infantry while rejecting a tank; closing it or removing a river crossing rejects
+the route. Boundary and zero-distance semantics pass. A small Battle follows the
+corrected corner route under a one-unit planning allowance: no soldier body
+enters the wall, the squad arrives, and replay agrees at every tick and in its
+record. All 22 navigation, 15 route-planning and 14 movement tests and library
+clippy pass on the 4efec25b rules baseline.
+
+This is a named physical route correction: infantry waypoints, route cost,
+planning completion ticks and affected battle digests can change. Vehicles keep
+their reconstruction. There is no permanent full-extent allocation: the new
+stage retains only its coarse route and emitted points; fixed local queues live
+on the stack. The sampled NavGrid guarantee is distinct from movement's exact
+body checks. The focused Battle proves that concrete corner, not all continuous
+geometry. Generated town timings, matched native city cost and visual admission
+remain with the integrating scale lane; C06 stays open.
