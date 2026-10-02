@@ -410,7 +410,7 @@
     "tree": "trunk",
     "log": "log",
     "boulder": "boulder",
-    "rule": { "trunk_spacing_m": 9, "trunk_jitter": 0.3, "concealment_infantry": 0.25, "concealment_vehicle": 0.7, "attenuation_per_m": 0.011, "canopy_radius_m": 6.5, "canopy_height_m": 12, "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2, "logs_per_ha": 0, "boulders_per_ha": 0, "log_half_extents_m": [2.2, 0.35, 0.35], "boulder_half_extents_m": [1, 0.8, 0.75] }
+    "rule": { "trunk_spacing_m": 9, "trunk_jitter": 0.3, "concealment_infantry": 0.25, "concealment_vehicle": 0.7, "attenuation_per_m": 0.011, "canopy_radius_m": 6.5, "canopy_height_m": 12, "trunk_radius_m": 0.35, "trunk_height_m": 10, "trunk_clearance_m": 2, "logs_per_ha": 5, "boulders_per_ha": 3, "log_half_extents_m": [2.2, 0.35, 0.35], "boulder_half_extents_m": [1, 0.8, 0.75] }
   },
   "variants": {
     "ordinary": {
@@ -808,6 +808,7 @@
       "lod_px": [150, 60, 24],
       "impostor_px": 10
     },
+    "glass": { "turn": 0.5, "glint": 1 },
     "buildings": {
       "lod_px_per_m": [10, 4, 1.2],
       "chunk_m": 64,
@@ -824,6 +825,27 @@
         "default": [0.62, 0.62, 0.62]
       },
       "ruin_tint": [0.36, 0.33, 0.3]
+    },
+    "stand_ins": {
+      "tints": {
+        "parked_car": [0.3, 0.37, 0.5],
+        "car_wreck": [0.2, 0.2, 0.2],
+        "street_tree": [0.29, 0.4, 0.22],
+        "lamp": [0.2, 0.2, 0.22],
+        "bus_shelter": [0.55, 0.66, 0.72],
+        "bench": [0.45, 0.33, 0.22],
+        "bins": [0.2, 0.36, 0.26],
+        "planter": [0.52, 0.5, 0.44],
+        "bollard": [0.8, 0.72, 0.2],
+        "hydrant": [0.72, 0.16, 0.12],
+        "utility_box": [0.5, 0.56, 0.5],
+        "scooter": [0.24, 0.24, 0.3],
+        "skip_bin": [0.78, 0.62, 0.16],
+        "pallet_stack": [0.72, 0.6, 0.4],
+        "site_cabin": [0.84, 0.84, 0.8],
+        "heras_fence": [0.62, 0.64, 0.66],
+        "default": [0.62, 0.62, 0.62]
+      }
     },
     "pose": {
       "gait": { "walk_mps": 0.25, "run_mps": 2.2, "fade_s": 0.25, "facing_mps": 0.3, "turn_rad_s": 6 },

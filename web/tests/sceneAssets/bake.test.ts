@@ -19,7 +19,7 @@ test("a valid catalog bakes every entry with no error findings", async () => {
   expect(errors).toEqual([]);
   expect(result.ok).toBe(true);
   expect(Object.keys(result.runtime.appearances).sort()).toEqual([
-    "house",
+    "crate",
     "rifleman",
     "tank",
     "truck",
@@ -78,10 +78,7 @@ test("bundles decode to the kind, tiers and parts the catalog declared", async (
     0, 0, 0, 1,
   ]);
 
-  const house = decoded(result.runtime.appearances.house.bundle);
-  if (house.kind !== "static") throw new Error(house.kind);
-  expect(house.states.map((s) => [s.name, s.bounds.max[2]])).toEqual([
-    ["intact", 6],
-    ["ruin", 2],
-  ]);
+  const crate = decoded(result.runtime.appearances.crate.bundle);
+  if (crate.kind !== "static") throw new Error(crate.kind);
+  expect(crate.states.map((s) => [s.name, s.bounds.max[2]])).toEqual([["default", 6]]);
 });

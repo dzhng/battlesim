@@ -1,7 +1,9 @@
 //! Generate every type × size over a run of seeds and report what came out:
 //! refusals by feature, composition, roads and transit of the layout, its
 //! river and bridges beside the maps without one, then what the parcel pass
-//! built on it and what the compiled map costs.
+//! built on it, what the open country between was furnished with, the
+//! street furniture placed among the buildings, and what the compiled map
+//! costs.
 //!
 //!   cargo run -p mapgen --release --example layout_sweep -- [--seeds 10]
 //!       [--pictures 3] [--out <dir>] [--only metro:small] [--layout]
@@ -18,6 +20,7 @@ use mapgen::layout::{
     PresetDefinitions, GENERATOR_VERSION,
 };
 use mapgen::parcels::fill_districts;
+use mapgen::street_props::place_street_props;
 use mapgen::CompileLimits;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
@@ -55,7 +58,9 @@ fn median(values: &mut [f64]) -> f64 {
 /// What one filled, compiled plan came to.
 struct Scale {
     buildings: f64,
+    /// Building parts and street furniture together: every authored body.
     parts: f64,
+    furniture: f64,
     bays: f64,
     street_km: f64,
     streets: f64,
@@ -102,6 +107,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let catalogue = TemplateGeometryCatalog::new(serde_json::from_str(&std::fs::read_to_string(
         format!("{fixtures}/prototype-building-templates.json"),
     )?)?)?;
+    // The unit and prop catalog, out of the resolved view the browser reads.
+    let view: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(format!(
+        "{fixtures}/catalog.json"
+    ))?)?;
+    let catalog: contract::catalog::Catalog = serde_json::from_value(view["documents"].clone())?;
     if let Some(out) = &out {
         std::fs::create_dir_all(out)?;
     }
@@ -113,7 +123,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "| cell | ok | refused | with a river | river km | water width m | bridges | bridges top/bottom | connected | fair | approach in both halves | slowest top or bottom to centre s, river / none | layout instructions M median, river / none |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
     );
     let mut scale_table = String::from(
-        "| cell | ok | refused | buildings | parts (props) | bay positions | street km | street strokes | ground points | built ground % | generate ms median/max | generate + compile instructions G median/max | map.json MiB |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
+        "| cell | ok | refused | buildings | authored bodies | of them street furniture | bay positions | street km | street strokes | ground points | built ground % | generate ms median/max | generate + compile instructions G median/max | map.json MiB |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n",
+    );
+    let mut country_table = String::from(
+        "| cell | ok | homes | groups | tree line m | copses | single trees | loose bodies | halves even | approaches kept |\n|---|---|---|---|---|---|---|---|---|---|\n",
     );
     let mut records = Vec::new();
     for map_type in MapType::ALL {
@@ -127,6 +140,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Millions of instructions each accepted layout took.
             let mut layout_work: Vec<f64> = Vec::new();
             let mut scales: Vec<Scale> = Vec::new();
+            // The open country of each map: its amounts, its lanes and the
+            // approaches it kept.
+            let mut countries: Vec<(mapgen::open_country::CountryMetrics, f64, f64)> = Vec::new();
             let mut millis: Vec<f64> = Vec::new();
             for seed in 1..=seeds {
                 let request = GenerationRequest {
@@ -151,7 +167,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let plan = if layout_only {
                         layout
                     } else {
-                        fill_districts(layout, &request, &catalogue, &presets)?
+                        let built = fill_districts(layout, &request, &catalogue, &presets)?;
+                        let mut plan =
+                            mapgen::open_country::furnish(built, &request, &catalogue, &presets)?;
+                        let props =
+                            place_street_props(&plan, &request, &catalogue, &catalog, &presets)?;
+                        plan.props.extend(props);
+                        plan
                     };
                     Ok((plan, metrics))
                 });
@@ -177,6 +199,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             let scale = Scale {
                                 buildings: plan.buildings.len() as f64,
                                 parts: f64::from(compiled.report.authored_parts),
+                                furniture: plan.props.len() as f64,
                                 bays: compiled.report.bay_positions as f64,
                                 street_km: filled.roads.street_km,
                                 streets: plan
@@ -197,8 +220,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 instructions_g: spent as f64 / 1e9,
                                 millis: generate_ms,
                             };
+                            let country = mapgen::open_country::measure(&plan, &presets);
+                            record["country"] = serde_json::json!(country);
+                            countries.push((
+                                country,
+                                plan.lots
+                                    .iter()
+                                    .filter(|lot| lot.id.ends_with("/lot-0"))
+                                    .filter(|lot| lot.id.starts_with("country/"))
+                                    .count() as f64,
+                                plan.approaches.len() as f64,
+                            ));
                             record["scale"] = serde_json::json!({
                                 "buildings": scale.buildings, "parts": scale.parts,
+                                "street_props": scale.furniture,
                                 "bay_positions": scale.bays, "street_km": scale.street_km,
                                 "street_strokes": scale.streets, "ground_points": scale.ground_points,
                                 "map_mib": scale.map_mib, "instructions_g": scale.instructions_g,
@@ -373,6 +408,37 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 work[1],
             )?;
             if !layout_only {
+                use mapgen::open_country::{CountryMetrics, Split};
+                let amount = |thing: fn(&CountryMetrics) -> Split| {
+                    span(
+                        countries.iter().map(|(country, ..)| {
+                            let split = thing(country);
+                            split.top + split.bottom
+                        }),
+                        0,
+                    )
+                };
+                let even = countries
+                    .iter()
+                    .filter(|(c, ..)| {
+                        [c.homes, c.tree_line_m, c.copses, c.trees, c.cover]
+                            .iter()
+                            .all(|split| split.fair)
+                    })
+                    .count();
+                writeln!(
+                    country_table,
+                    "| {cell} | {}/{seeds} | {} | {} | {} | {} | {} | {} | {even}/{} | {} |",
+                    countries.len(),
+                    amount(|c| c.homes),
+                    span(countries.iter().map(|(_, groups, _)| *groups), 0),
+                    amount(|c| c.tree_line_m),
+                    amount(|c| c.copses),
+                    amount(|c| c.trees),
+                    amount(|c| c.cover),
+                    countries.len(),
+                    span(countries.iter().map(|(.., kept)| *kept), 0),
+                )?;
                 let each =
                     |value: fn(&Scale) -> f64, digits| span(scales.iter().map(value), digits);
                 let mut work: Vec<f64> = scales.iter().map(|s| s.instructions_g).collect();
@@ -380,10 +446,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let (work_median, wall_median) = (median(&mut work), median(&mut wall));
                 writeln!(
                     scale_table,
-                    "| {cell} | {}/{seeds} | {refusals} | {} | {} | {} | {} | {} | {} | {} | {:.0}/{:.0} | {:.2}/{:.2} | {} |",
+                    "| {cell} | {}/{seeds} | {refusals} | {} | {} | {} | {} | {} | {} | {} | {} | {:.0}/{:.0} | {:.2}/{:.2} | {} |",
                     scales.len(),
                     each(|s| s.buildings, 0),
                     each(|s| s.parts, 0),
+                    each(|s| s.furniture, 0),
                     each(|s| s.bays, 0),
                     each(|s| s.street_km, 0),
                     each(|s| s.streets, 0),
@@ -400,13 +467,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     print!("{layout_table}\n{river_table}");
     if !layout_only {
-        print!("\n{scale_table}");
+        print!("\n{country_table}\n{scale_table}");
     }
     if let Some(out) = &out {
         std::fs::write(out.join("sweep.json"), serde_json::to_vec_pretty(&records)?)?;
         std::fs::write(out.join("layout.md"), layout_table)?;
         std::fs::write(out.join("rivers.md"), river_table)?;
         if !layout_only {
+            std::fs::write(out.join("country.md"), country_table)?;
             std::fs::write(out.join("scale.md"), scale_table)?;
         }
     }

@@ -6,6 +6,7 @@ import type { Vec3 } from "math";
 import type { BakeContext } from "@packages/scene-assets/src/bake.ts";
 import type { Catalog } from "@packages/scene-assets/src/schema.ts";
 import type {
+  TemplateCatalogue,
   TemplateDescriptor,
   TemplatePart,
   TemplateSetSource,
@@ -17,6 +18,8 @@ import { AUTHORITY, GltfBuilder, TOLERANCES, gBox } from "./synthetic";
 export const KIT = "city_kit_test";
 export const KIT_SOURCE = "assets/source/city/test/kit.glb";
 export const SET_SOURCE = "assets/source/city/test/templates.json";
+/** The name the test set gives its physical catalogue. */
+export const CATALOGUE = "towns";
 
 /** A module's geometry in its own frame: boxes, each in one tier or (null) in all. */
 export interface ModuleSpec {
@@ -180,7 +183,7 @@ export function cityCatalog(): Catalog {
     sides: { blue: [1, 1, 1], red: [1, 1, 1] },
     skeletons: {},
     appearances: { [KIT]: { unit: "kit", source: KIT_SOURCE, basis_yaw_deg: 0 } },
-    city_sets: { test: { templates: SET_SOURCE, kit: KIT } },
+    city_sets: { test: { templates: SET_SOURCE, kit: KIT, catalogue: CATALOGUE } },
   };
 }
 
@@ -201,8 +204,15 @@ const NO_UNITS = new UnitCatalog({
   units: [],
 });
 
-/** The bake's context for a physical catalogue of `rows` (the set's own by default). */
-export const cityContext = (rows: unknown[] = [HOUSE, YARD]): BakeContext => ({
+/** The bake's context for one physical catalogue of complete buildings, `rows`
+ *  (the set's own by default), and any `others`. */
+export const cityContext = (
+  rows: unknown[] = [HOUSE, YARD],
+  others: TemplateCatalogue[] = [],
+): BakeContext => ({
   authority: { ...AUTHORITY, units: NO_UNITS },
-  templates: { catalogue: rows, physical: physicalTemplates() },
+  templates: {
+    catalogues: [{ name: CATALOGUE, rows, complete: true }, ...others],
+    physical: physicalTemplates(),
+  },
 });

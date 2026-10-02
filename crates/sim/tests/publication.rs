@@ -361,10 +361,29 @@ fn the_combat_stream_matches_its_paired_record() {
     publication_stream(record, "publication/combat.json", true);
 }
 
+#[test]
+fn a_large_coordinate_arrangement_matches_its_paired_state_record() {
+    let record: Value = serde_json::from_str(include_str!(
+        "../../../fixtures/parity/publication/arrangement.json"
+    ))
+    .unwrap();
+    publication_stream(record, "publication/arrangement.json", false);
+}
+
+#[test]
+fn cover_facing_matches_its_paired_state_record() {
+    let record: Value = serde_json::from_str(include_str!(
+        "../../../fixtures/parity/publication/cover-facing.json"
+    ))
+    .unwrap();
+    publication_stream(record, "publication/cover-facing.json", false);
+}
+
 fn publication_stream(record: Value, path: &str, combat: bool) {
-    let map = sim::maps::load(record["map"].as_str().unwrap())
-        .unwrap()
-        .definition;
+    let map = match record["map"].as_str() {
+        Some(id) => sim::maps::load(id).unwrap().definition,
+        None => serde_json::from_value(record["map"].clone()).unwrap(),
+    };
     let setup = common::scenario_with(
         &serde_json::to_string(&map).unwrap(),
         record["units"].clone(),
@@ -379,6 +398,7 @@ fn publication_stream(record: Value, path: &str, combat: bool) {
     let mut snapshots = 0;
     let mut deltas = 0;
     let mut blessed = record.clone();
+    blessed["initial_digest"] = json!(format!("{:016x}", battle.digest()));
     let mut saw_shot = false;
     let mut saw_impact = false;
     for row in blessed["rows"].as_array_mut().unwrap() {
@@ -448,6 +468,7 @@ fn publication_stream(record: Value, path: &str, combat: bool) {
     if common::bless_parity(path, &blessed) {
         return;
     }
+    assert_eq!(record["initial_digest"], blessed["initial_digest"]);
     for (tick, (row, expected)) in blessed["rows"]
         .as_array()
         .unwrap()

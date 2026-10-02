@@ -6,14 +6,14 @@ building's height, between a least and a most). A taller one stands, gutted, at
 its full height. A template has the one damage state its floors call for
 (`damage_state`), and a ruin's art is held to the remains.
 
-The numbers are the building prop type's own (`fixtures/props/generic/structures.json`,
-`props.building.destroyed.into`); `templateSource.ts` reads the same row through
-the unit catalog. Nothing here needs Blender.
+The numbers are the building prop type's own, read from the catalog's resolved view
+(`fixtures/catalog.json`, `props.building.destroyed.into`), which `templateSource.ts`
+reads through the unit catalog. Nothing here needs Blender.
 """
 import json
 import os
 
-_FIXTURE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../../fixtures/props/generic/structures.json")
+_FIXTURE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../../fixtures/catalog.json")
 _INTO = json.load(open(_FIXTURE))["props"]["building"]["destroyed"]["into"]
 MIN_HEIGHT_M = float(_INTO["height_m"])
 HEIGHT_FRACTION = float(_INTO["building"]["height_fraction"])

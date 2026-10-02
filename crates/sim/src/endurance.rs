@@ -80,12 +80,12 @@ pub fn city_scenario(
         )));
     let mut placed: Vec<crate::math::V2> = Vec::new();
     for unit in setup.units.iter_mut().filter(|u| u.condition.is_none()) {
-        // Put the active fronts within mutual weapon reach; the unmodified
-        // rear-edge recipe can spend minutes planning without firing a round.
+        // Start within infantry weapon reach so contact does not depend on
+        // future long moves being admitted before the opening can fight.
         unit.position[0] += if unit.side == Side::Blue {
-            850.0
+            1050.0
         } else {
-            -850.0
+            -1050.0
         };
         let wanted = crate::math::v2(unit.position[0], unit.position[1]);
         let mobility = crate::units::mobility(setup.rules.catalog.by_id(&unit.kind), &setup.rules);

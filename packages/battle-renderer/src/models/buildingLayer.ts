@@ -21,6 +21,7 @@ import type { DetailView } from "../frame/detailView";
 import type { GpuRegistry } from "../frame/registry";
 import type { SunShadow } from "../frame/staticChunks";
 import {
+  artCovers,
   buildingCasters,
   buildingDraws,
   COARSE,
@@ -34,15 +35,24 @@ import {
 import type { BuildingStyle, SideBuildings } from "./buildingReferences";
 import { MODEL_RECORD_FLOATS } from "./modelInstances";
 import { flushPool } from "./placementPool";
+import {
+  SURFACE_CLASSES,
+  partRange,
+  surfaceFlags,
+  type SurfaceFlags,
+  type SurfacePart,
+  type SurfaceParts,
+} from "./surfaceParts";
 
 const RECORD_BYTES = MODEL_RECORD_FLOATS * 4;
 const VERTEX_USAGE = 0x20 | 0x08; // VERTEX | COPY_DST
 
-/** A module's mesh at one tier: a range of its kit's buffers for that tier. */
+/** A module's mesh at one tier: ranges of its kit's buffers for that tier,
+ *  one per surface class (`surfaceParts.ts`), `count` indices in all. */
 export interface ModuleMesh {
   vertices: GPUBuffer;
   indices: GPUBuffer;
-  first: number;
+  parts: SurfaceParts;
   count: number;
 }
 
@@ -112,8 +122,19 @@ interface DrawList {
   /** Per draw: source buffer, first record, records. */
   ranges: Int32Array;
   count: number;
+  /** Whether any of its meshes has a surface of each class. */
+  surfaces: SurfaceFlags;
 }
-const createDrawList = (): DrawList => ({ meshes: [], ranges: new Int32Array(3 * 64), count: 0 });
+const createDrawList = (): DrawList => ({
+  meshes: [],
+  ranges: new Int32Array(3 * 64),
+  count: 0,
+  surfaces: surfaceFlags(),
+});
+const clearDrawList = (list: DrawList) => {
+  list.count = 0;
+  for (const c of SURFACE_CLASSES) list.surfaces[c] = false;
+};
 
 export function createBuildingLayer(
   device: GPUDevice,
@@ -192,6 +213,7 @@ export function createBuildingLayer(
     dirty = true;
     Object.assign(stats, { totalExpandedRows: 0, totalUploadBytes: 0, buildMs: 0 });
     if (!art || !buildings || buildings.placed.template.length === 0) return;
+    if (!artCovers(buildings.placed, art)) return;
     const started = performance.now();
     scene = createBuildingScene(buildings.placed, art, style);
     setFallenBuildings(scene, buildings.fallen);
@@ -212,17 +234,28 @@ export function createBuildingLayer(
     list.meshes[list.count] = mesh;
     list.ranges.set([source, first, count], list.count * 3);
     list.count++;
+    for (const c of SURFACE_CLASSES) if (mesh.parts[c].count) list.surfaces[c] = true;
   }
 
   /** The record buffer a draw's source names. */
   const bufferOf = (source: number) =>
     source === COARSE ? coarseRecords! : source === POOL ? poolRecords! : ruinRecords!;
 
-  function drawList(list: DrawList, bind: BindBuildingDraw, raw: GPURenderPassEncoder) {
+  function drawList(
+    list: DrawList,
+    bind: BindBuildingDraw,
+    raw: GPURenderPassEncoder,
+    surface: SurfacePart,
+    hidden: Readonly<SurfaceFlags>,
+  ) {
+    const has = list.surfaces;
+    if (surface === "solid" ? !has.opaque && !has.room : !has[surface]) return;
     let vertices: GPUBuffer | null = null;
     let source = -1;
     for (let i = 0; i < list.count; i++) {
       const mesh = list.meshes[i];
+      const { first: firstIndex, count: indices } = partRange(mesh.parts, surface, hidden);
+      if (!indices) continue;
       const [from, first, count] = [
         list.ranges[i * 3],
         list.ranges[i * 3 + 1],
@@ -234,31 +267,30 @@ export function createBuildingLayer(
         vertices = mesh.vertices;
         source = from;
         bind(mesh.vertices, bufferOf(from), mesh.indices).drawIndexed(
-          mesh.count,
+          indices,
           count,
-          mesh.first,
+          firstIndex,
           0,
           first,
         );
-      } else raw.drawIndexed(mesh.count, count, mesh.first, 0, first);
+      } else raw.drawIndexed(indices, count, firstIndex, 0, first);
     }
   }
 
   return {
     /** The template art a generation installed and how its kits answer for
-     *  its modules (`undefined` or a missing kit: no building is drawn). */
+     *  its modules (`undefined`: no building is drawn). The kits installed
+     *  may be only those the map's buildings need (`buildingKits`). */
     setArt(installed: InstalledTemplateArt | undefined, source: ModuleSource) {
-      const library = installed?.library;
-      const bounds = installed?.modules.map((m) => source.bounds(m.kit, m.state));
-      const whole = !!installed && bounds!.every((b) => b !== null);
-      meshes = whole
-        ? installed.modules.map((m) =>
-            Array.from({ length: TIER_COUNT }, (_, tier) => source.mesh(m.kit, m.state, tier)),
-          )
-        : [];
-      const same = whole ? art?.library === library : art === null;
+      const bounds = installed?.modules.map((m) => source.bounds(m.kit, m.state)) ?? [];
+      meshes = (installed?.modules ?? []).map((m) =>
+        Array.from({ length: TIER_COUNT }, (_, tier) => source.mesh(m.kit, m.state, tier)),
+      );
+      const same =
+        art?.library === installed?.library &&
+        bounds.every((b, i) => (b === null) === (art!.bounds[i] === null));
       if (!same) {
-        art = whole ? { library: library!, bounds: bounds as Bounds[] } : null;
+        art = installed ? { library: installed.library, bounds } : null;
         rebuild();
       }
       // The meshes are a new generation's buffers either way.
@@ -319,7 +351,8 @@ export function createBuildingLayer(
         uploaded += write(poolRecords!, first, pool.records, first, count);
       });
 
-      view.count = cast.count = 0;
+      clearDrawList(view);
+      clearDrawList(cast);
       stats.tiers.fill(0);
       stats.triangles.fill(0);
       stats.casterTriangles = 0;
@@ -341,13 +374,24 @@ export function createBuildingLayer(
       stats.totalExpandedRows += scene.expandedRows;
       stats.totalUploadBytes += uploaded;
     },
-    /** Every building into the view (the depth prepass and the colour pass). */
-    draw(bind: BindBuildingDraw, raw: GPURenderPassEncoder) {
-      if (scene && shown) drawList(view, bind, raw);
+    /** One kind of surface of every building into the view (the depth prepass
+     *  and the colour pass), less the classes `hidden` names. */
+    draw(
+      bind: BindBuildingDraw,
+      raw: GPURenderPassEncoder,
+      surface: SurfacePart,
+      hidden: Readonly<SurfaceFlags>,
+    ) {
+      if (scene && shown) drawList(view, bind, raw, surface, hidden);
     },
-    /** Every casting building into one of the sun's cascades. */
-    drawCasters(bind: BindBuildingDraw, raw: GPURenderPassEncoder) {
-      if (scene && shown) drawList(cast, bind, raw);
+    /** One kind of surface of every casting building into one of the sun's cascades. */
+    drawCasters(
+      bind: BindBuildingDraw,
+      raw: GPURenderPassEncoder,
+      surface: SurfacePart,
+      hidden: Readonly<SurfaceFlags>,
+    ) {
+      if (scene && shown) drawList(cast, bind, raw, surface, hidden);
     },
     stats(): BuildingStats {
       return {

@@ -4,9 +4,10 @@
 // one loader installs it with the kits it places.
 //
 // The simulation never sees it. A template's physical shape is the contract's
-// descriptor, identified by the physical catalogue's hash; this library says
-// which catalogue it was made to (`covers`) and has its own identity
-// (`art_hash`). Art may change without moving any map, scenario or battle.
+// descriptor, identified by its physical catalogue's hash; this library says
+// which catalogues it was made to (`covers`: the map generator's and the
+// authored maps') and has its own identity (`art_hash`). Art may change
+// without moving any map, scenario or battle.
 //
 // Rows are columns over the whole library (34 bytes a row), and a template's
 // state is a range of them, so resolving a placed building copies nothing but
@@ -17,7 +18,7 @@ import { sha256Hex } from "./glb.ts";
 import { TIER_COUNT, type StaticBundle } from "./schema.ts";
 
 const MAGIC = 0x4c544742; // "BGTL" little-endian
-export const TEMPLATE_LIBRARY_VERSION = 1;
+export const TEMPLATE_LIBRARY_VERSION = 2;
 
 /** What a side can know a building as. `intact` always has rows; `ruin` (a
  *  collapsed building) and `gutted` (a burnt shell that stands) come with the
@@ -54,8 +55,10 @@ export interface TemplateArtLibrary {
   /** This library's identity: the kits' bundles (modules, materials, tiers),
    *  every row and status, and `covers`. */
   art_hash: string;
-  /** The hash of the physical catalogue whose templates these rows dress. */
-  covers: string;
+  /** The hashes of the physical catalogues whose templates these rows
+   *  dress, in the order of the names the bake has them under: every
+   *  template of each has art here. */
+  covers: string[];
   /** The kit appearances the rows place modules of, and the bundle each was
    *  packed against, in name order. */
   kits: { appearance: string; bundle: string }[];
@@ -108,7 +111,7 @@ function assertShape(library: TemplateArtLibrary) {
   const { rows } = library;
   if (
     typeof library.art_hash !== "string" ||
-    typeof library.covers !== "string" ||
+    !Array.isArray(library.covers) ||
     !Array.isArray(library.kits) ||
     !Array.isArray(library.modules) ||
     !Array.isArray(library.templates) ||
@@ -192,6 +195,20 @@ export function templateRows(
       `template "${templateId}" (set ${template.set}) has no "${state}" rows`,
     );
   return rows;
+}
+
+/** The kit appearances whose modules the rows of `templateIds` place, in
+ *  every state: what drawing those templates needs installed. */
+export function templateKits(
+  library: TemplateArtLibrary,
+  templateIds: Iterable<string>,
+): Set<string> {
+  const kits = new Set<string>();
+  for (const id of templateIds)
+    for (const range of Object.values(templateArt(library, id).states))
+      for (let r = range.first; r < range.first + range.count; r++)
+        kits.add(library.kits[library.modules[library.rows.module[r]].kit].appearance);
+  return kits;
 }
 
 /** Where a template stands on a map: the contract's `PlacementFrame`. */

@@ -97,17 +97,23 @@ class Module:
 
 
 class Template:
-    def __init__(self, kit, id_, category, family, recipe, status):
+    def __init__(self, kit, id_, category, family, recipe, status, row=None):
         self.kit, self.id, self.category, self.family = kit, id_, category, family
-        self.recipe, self.status = recipe or {}, status
+        self.recipe, self.status, self.row = recipe or {}, status, row
         self.parts, self.floor_heights, self.entrances = [], [], []
         self.lattices, self.rows = {}, {"intact": []}
         self._edges = None
+        for p in (row or {}).get("parts", ()):
+            if p["yaw"]:
+                _fail(f"{id_}: part {p['id']} is turned; this helper's parts are axis-aligned")
+            (cx, cy), (hx, hy, hz) = p["center"], p["half_extents"]
+            self.part(p["id"], cx - hx, cx + hx, cy - hy, cy + hy, 2 * hz, p["base_z"])
 
     # -- destroyed
     def damage_state(self):
-        """The state this template is destroyed into: "ruin" or "gutted"."""
-        return collapse.damage_state(len(self.floor_heights))
+        """The state this template is destroyed into: "ruin" or "gutted". (A row with no floors written is one floor, as the simulation counts it.)"""
+        floors = self.floor_heights if self.row is None else self.row.get("floor_heights_m")
+        return collapse.damage_state(len(floors or [0.0]))
 
     def ruin_height(self):
         """How tall the remains of each of its parts are, once it has collapsed."""
@@ -217,6 +223,8 @@ class Template:
 
     def descriptor(self):
         """The contract's `BuildingTemplateDescriptor`, in its own field order."""
+        if self.row is not None:
+            return self.row
         edges = self.edges()
         missing = sorted(id_ for id_, e in edges.items() if e["exposed"] and id_ not in self.lattices)
         if missing:
@@ -243,8 +251,10 @@ class Template:
 
 
 class Kit:
-    def __init__(self, set_id, script, fit_side_m, fit_top_m, fit_ruin_top_m=None):
-        """`fit_ruin_top_m` is how far a ruin's broken walls may stand above its remains; a set with no ruin has none."""
+    def __init__(self, set_id, script, fit_side_m, fit_top_m, fit_ruin_top_m=None, damage_budget=True):
+        """`fit_ruin_top_m` is how far a ruin's broken walls may stand above its remains; a set with no ruin has none.
+        `damage_budget` false lets a damage state draw more than its building: only for art older than the rule."""
+        self.damage_budget = damage_budget
         reset()
         self.set, self.script, self.fit = set_id, script, dict(side_m=fit_side_m, top_m=fit_top_m)
         if fit_ruin_top_m is not None:
@@ -260,6 +270,12 @@ class Kit:
 
     def template(self, id_, category, family, recipe=None, status="release"):
         self.templates.append(Template(self, id_, category, family, recipe, status))
+        return self.templates[-1]
+
+    def dress(self, row, recipe=None, status="release"):
+        """A template some catalogue already has, which no set derives (an authored map's): its
+        descriptor is that row as written, and its parts are the row's boxes."""
+        self.templates.append(Template(self, row["id"], row["category"], row["regional_family"], recipe, status, row))
         return self.templates[-1]
 
     # -- writing
@@ -317,7 +333,7 @@ class Kit:
         intact, damaged = self.drawn(t, "intact"), self.drawn(t, ends)
         if not all(intact) or not all(damaged):
             _fail(f"{t.id}: every state draws at every tier: intact {intact}, {ends} {damaged}")
-        if any(d > i for d, i in zip(damaged, intact)):
+        if self.damage_budget and any(d > i for d, i in zip(damaged, intact)):
             _fail(f"{t.id}: its {ends} state draws {damaged} triangles, more than intact's {intact}")
 
     def write(self, out_dir=None):

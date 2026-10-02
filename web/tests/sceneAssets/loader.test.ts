@@ -23,7 +23,7 @@ test("a catalog installs as one generation with every appearance and skeleton", 
   const { library } = await served();
   const installed = await library.load("/assets/");
   expect(installed.generation).toBe(1);
-  expect([...installed.appearances.keys()].sort()).toEqual(["house", "rifleman", "tank", "truck"]);
+  expect([...installed.appearances.keys()].sort()).toEqual(["crate", "rifleman", "tank", "truck"]);
   expect(installed.appearances.get("tank")?.bundle.kind).toBe("articulated");
   expect(installed.skeletons.get("test-rig")?.clips.map((c) => c.name)).toContain("walk");
 });
@@ -31,7 +31,7 @@ test("a catalog installs as one generation with every appearance and skeleton", 
 test("a static appearance arrives with the simulation box its art is authored to", async () => {
   const { library } = await served();
   const installed = await library.load("/assets/");
-  expect(installed.appearances.get("house")?.footprint).toEqual([5, 4, 3]);
+  expect(installed.appearances.get("crate")?.footprint).toEqual([5, 4, 3]);
   expect(installed.appearances.get("tank")?.footprint).toBeNull();
 });
 

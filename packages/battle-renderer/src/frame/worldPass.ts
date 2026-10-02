@@ -26,7 +26,11 @@
 //   impostor cards (`models/impostorCards.ts`). Its static props are the
 //   world's (the map's props that cannot fall) and the structures, what the
 //   side knows stands: buildings, their ruins and wrecks, fitted to their
-//   boxes. Each draw binds the fog group its class names (`modelFog`);
+//   boxes. Each draw binds the fog group its class names (`modelFog`). A
+//   model's surfaces are drawn by kind (`models/surfaceParts.ts`): opaque as
+//   the rest of the world; a cutout cut in the prepass and the cascades; a
+//   room behind a window as solid as a wall and shown unlit; glass last,
+//   over everything, in no prepass and casting nothing;
 // - a town's buildings, as instances of their kits' modules
 //   (`models/buildingLayer.ts`): static models in every respect, drawn by the
 //   models layer's pipelines as the world's faces, and in the prepass's world
@@ -114,6 +118,13 @@ import {
   type ModelLayer,
 } from "../models/modelLayer";
 import {
+  createGlassFragment,
+  createRoomFragment,
+  modelCutoutCaster,
+  modelCutoutDepth,
+  type GlassStyle,
+} from "../models/surfaceFragments";
+import {
   modelXrayFragment,
   modelXrayCountFragment,
   xrayCountLayout,
@@ -122,7 +133,15 @@ import {
   validateXrayFraction,
 } from "../models/modelXray";
 import { cardVertex, createCardFragment } from "../models/impostorCards";
-import { FRAME_MSAA, OVERLAY_FORMAT, WORLD_OUT, worldTargets, type FrameTargets } from "./targets";
+import {
+  FOG_MASK_FORMAT,
+  FRAME_MSAA,
+  HDR_FORMAT,
+  OVERLAY_FORMAT,
+  WORLD_OUT,
+  worldTargets,
+  type FrameTargets,
+} from "./targets";
 import type { GpuRegistry } from "./registry";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
@@ -149,6 +168,7 @@ export async function createWorldPass(
   models: ModelLayer,
   paintStyle: PaintStyle,
   xrayMinHiddenFragmentFraction: number,
+  glass: GlassStyle,
 ) {
   const worldFragment = tgpu.fragmentFn({
     in: {
@@ -379,6 +399,58 @@ export async function createWorldPass(
     depthStencil: battleWorldDepth("prepassed"),
     multisample: { count: FRAME_MSAA },
   });
+  // A cutout (a grille, a perforated sheet) cuts itself where depth is
+  // written: in the prepass, sample by sample, and in the sun's cascades. The
+  // colour pass then shades the samples the prepass kept, with the opaque
+  // surfaces' own fragment stage, so one stage decides its silhouette.
+  const modelPrepassCutout = root.createRenderPipeline({
+    ...modelBase,
+    fragment: modelCutoutDepth,
+    depthStencil: battleWorldDepth("read-write"),
+    multisample: { count: FRAME_MSAA },
+  });
+  const modelCasterCutout = root.createRenderPipeline({
+    ...modelBase,
+    fragment: modelCutoutCaster,
+    depthStencil: battleWorldDepth("read-write"),
+  });
+  const modelCutout = root.createRenderPipeline({
+    ...modelBase,
+    fragment: modelFragments.lit,
+    targets: worldTargets(),
+    depthStencil: battleWorldDepth("kept"),
+    multisample: { count: FRAME_MSAA },
+  });
+  // A room behind a window is as solid as a wall to depth and shadow (the
+  // fragment-less pipelines draw it with the opaque surfaces); its colour is
+  // its own stage's, a picture shown unlit.
+  const modelRooms = root.createRenderPipeline({
+    ...modelBase,
+    fragment: createRoomFragment(environment),
+    targets: worldTargets(),
+    depthStencil: battleWorldDepth("prepassed"),
+    multisample: { count: FRAME_MSAA },
+  });
+  // A blended surface (glass) is drawn after everything opaque, over it by
+  // its coverage, as the water is: it reads depth and writes none, is in no
+  // prepass and casts no shadow. Unlike the water it leaves the fog mask
+  // alone: a pane is not the thing seen or unseen, what stands behind it is.
+  const modelBlended = root.createRenderPipeline({
+    ...modelBase,
+    fragment: createGlassFragment(environment, glass),
+    targets: {
+      color: {
+        format: HDR_FORMAT,
+        blend: {
+          color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
+          alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
+        },
+      },
+      fog: { format: FOG_MASK_FORMAT, writeMask: 0 },
+    },
+    depthStencil: battleWorldDepth("read"),
+    multisample: { count: FRAME_MSAA },
+  });
   // The x-ray: a unit's fragments behind the world's depth (without the
   // units), over the transparent overlay target. Max blending, so a hidden
   // arm behind a hidden torso never doubles the silhouette's alpha. The
@@ -443,14 +515,23 @@ export async function createWorldPass(
       modelPrepass,
       modelCaster,
       modelOpaque,
+      modelPrepassCutout,
+      modelCasterCutout,
+      modelCutout,
+      modelRooms,
+      modelBlended,
       modelXray,
       modelXrayCount,
       modelCards,
     ].map((pipeline) => pipeline.initAsync()),
   );
   /** The models layer's draws take the pipelines' binding methods as they are. */
-  const drawModels = (bound: unknown, fog?: Parameters<ModelLayer["draw"]>[1]) =>
-    models.draw(bound as Parameters<ModelLayer["draw"]>[0], fog);
+  type Bound = Parameters<ModelLayer["draw"]>[0];
+  const drawModels = (
+    bound: unknown,
+    surface: Parameters<ModelLayer["draw"]>[1],
+    fog?: Parameters<ModelLayer["draw"]>[2],
+  ) => models.draw(bound as Bound, surface, fog);
   const drawCards = (bound: unknown, fog: Parameters<ModelLayer["drawCards"]>[1]) =>
     models.drawCards(bound as Parameters<ModelLayer["drawCards"]>[0], fog);
 
@@ -564,6 +645,9 @@ export async function createWorldPass(
     setTreesShown(on: boolean) {
       scenery.setTreesShown(on);
     },
+    setDressingShown(on: boolean) {
+      scenery.setDressingShown(on);
+    },
     /** Draw the ground's classes in place of the lit world (the
      *  "ground-classes" frame view), or not. */
     setClassView(on: boolean) {
@@ -615,11 +699,13 @@ export async function createWorldPass(
         world.ground.draw(bound);
         world.props.draw(bound);
         proxies.draw(bound);
-        const modelCasters = modelCaster.with(pass).with(cameraGroup) as unknown as Parameters<
-          ModelLayer["draw"]
-        >[0];
-        models.drawCasters(modelCasters);
-        models.drawBuildingCasters(modelCasters, root.unwrap(pass));
+        const raw = root.unwrap(pass);
+        const modelCasters = modelCaster.with(pass).with(cameraGroup) as unknown as Bound;
+        models.drawCasters(modelCasters, "solid");
+        models.drawBuildingCasters(modelCasters, raw, "solid");
+        const cutoutCasters = modelCasterCutout.with(pass).with(cameraGroup) as unknown as Bound;
+        models.drawCasters(cutoutCasters, "cutout");
+        models.drawBuildingCasters(cutoutCasters, raw, "cutout");
         scenery.encodeShadows(pass, cameraGroup);
       });
     },
@@ -650,8 +736,14 @@ export async function createWorldPass(
       backdrop.draw(bound);
       scenery.encodeDepth(scene, cameraGroup);
       models.drawBuildings(
-        modelPrepass.with(scene).with(cameraGroup) as unknown as Parameters<ModelLayer["draw"]>[0],
+        modelPrepass.with(scene).with(cameraGroup) as unknown as Bound,
         root.unwrap(scene),
+        "solid",
+      );
+      models.drawBuildings(
+        modelPrepassCutout.with(scene).with(cameraGroup) as unknown as Bound,
+        root.unwrap(scene),
+        "cutout",
       );
       scene.end();
 
@@ -707,7 +799,11 @@ export async function createWorldPass(
             },
           ],
         });
-        drawModels(modelXrayCount.with(coverage).with(cameraGroup).with(xrayCountGroup!), "units");
+        drawModels(
+          modelXrayCount.with(coverage).with(cameraGroup).with(xrayCountGroup!),
+          "opaque",
+          "units",
+        );
         coverage.end();
       }
 
@@ -723,7 +819,7 @@ export async function createWorldPass(
         ],
         depthStencilAttachment: { view: depthView, depthReadOnly: true },
       });
-      drawModels(modelXray.with(xray).with(cameraGroup).with(xrayReadGroup!), "units");
+      drawModels(modelXray.with(xray).with(cameraGroup).with(xrayReadGroup!), "opaque", "units");
       xray.end();
 
       const units = encoder.beginRenderPass({
@@ -732,7 +828,8 @@ export async function createWorldPass(
         depthStencilAttachment: { view: depthView, depthLoadOp: "load", depthStoreOp: "store" },
       });
       proxies.draw(prepass.with(units).with(cameraGroup));
-      drawModels(modelPrepass.with(units).with(cameraGroup));
+      drawModels(modelPrepass.with(units).with(cameraGroup), "solid");
+      drawModels(modelPrepassCutout.with(units).with(cameraGroup), "cutout");
       units.end();
       raw.copyTextureToTexture({ texture: targets.depth }, { texture: targets.overlayDepth }, [
         targets.width,
@@ -850,15 +947,30 @@ export async function createWorldPass(
       // structure whole, in FogTerm), corpses as the
       // ground under them.
       const modelsLit = modelOpaque.with(pass).with(cameraGroup).with(environment.group);
+      const cutoutsLit = modelCutout.with(pass).with(cameraGroup).with(environment.group);
+      const roomsShown = modelRooms.with(pass).with(cameraGroup).with(environment.group);
       const cardsLit = modelCards.with(pass).with(cameraGroup).with(environment.group);
       for (const fog of ["units", "faces", "ground", "paintedFaces"] as const) {
-        drawModels(modelsLit.with(fogGroups[fog]), fog);
+        drawModels(modelsLit.with(fogGroups[fog]), "opaque", fog);
+        drawModels(cutoutsLit.with(fogGroups[fog]), "cutout", fog);
+        drawModels(roomsShown.with(fogGroups[fog]), "room", fog);
         drawCards(cardsLit.with(fogGroups[fog]), fog);
       }
       // Buildings are faces: an occluding structure takes fog whole.
       models.drawBuildings(
-        modelsLit.with(fogGroups.faces) as unknown as Parameters<ModelLayer["draw"]>[0],
+        modelsLit.with(fogGroups.faces) as unknown as Bound,
         root.unwrap(pass),
+        "opaque",
+      );
+      models.drawBuildings(
+        cutoutsLit.with(fogGroups.faces) as unknown as Bound,
+        root.unwrap(pass),
+        "cutout",
+      );
+      models.drawBuildings(
+        roomsShown.with(fogGroups.faces) as unknown as Bound,
+        root.unwrap(pass),
+        "room",
       );
       scenery.encode(pass, cameraGroup, fogGroups.faces);
       // The class view reads the ground itself: nothing that grows on it or
@@ -881,6 +993,18 @@ export async function createWorldPass(
             .with(fogGroups.paintedFaces)
             .with(terrain.group),
         );
+      // Glass last, over everything: in the order the layer packs it, not by
+      // depth (two panes of one glass blend nearly the same either way round).
+      if (!classView) {
+        const glassLit = modelBlended.with(pass).with(cameraGroup).with(environment.group);
+        for (const fog of ["units", "faces", "ground", "paintedFaces"] as const)
+          drawModels(glassLit.with(fogGroups[fog]), "blended", fog);
+        models.drawBuildings(
+          glassLit.with(fogGroups.faces) as unknown as Bound,
+          root.unwrap(pass),
+          "blended",
+        );
+      }
       pass.end();
       return { encoder, raw };
     },

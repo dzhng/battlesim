@@ -11,12 +11,16 @@
 // (SCARS_ONLY=1 runs only those framings and the village inspector).
 // The ground evidence rig's own checks run here too (RIG_ONLY=1 alone), then
 // the road looks' on its stations (ROADS_ONLY=1 alone, `_roads.mjs`), the
-// town streets' (STREETS_ONLY=1 alone, `_streets.mjs`), and
+// town streets' (STREETS_ONLY=1 alone, `_streets.mjs`), the town against the
+// plain round it (TOWN_ONLY=1 alone, `_town.mjs`), and
 // STATIONS=map,... writes those maps' station sheets instead
 // (`_groundStations.mjs`). What grows where is checked at the rig's stations
 // (`_grass.mjs`, GRASS_ONLY=1 alone), the texture inside each field
 // (`_fields.mjs`, FIELDS_ONLY=1 alone; FIELD_COST=1 measures its cost), and
 // how far the canopy closes over the wood (`_canopy.mjs`, CANOPY_ONLY=1 alone).
+// The forest floor's dressing is checked at the wood's edge
+// (`_forestFloor.mjs`, FLOOR_ONLY=1 alone; FLOOR_SHOTS=1 writes its stations,
+// FLOOR_COST=1 measures its cost).
 import { writeFile } from "node:fs/promises";
 import { decode, mostChanged, pixel } from "./_png.mjs";
 import { lab, obs, advance, snapshot, openBattle, aim, groundCss } from "./_lab.mjs";
@@ -30,6 +34,8 @@ import { roadCost, roadLooks } from "./_roads.mjs";
 import { fieldCost, fieldTexture } from "./_fields.mjs";
 import { canopyClosure } from "./_canopy.mjs";
 import { streetLooks } from "./_streets.mjs";
+import { forestFloor, forestFloorCost, forestFloorShots } from "./_forestFloor.mjs";
+import { townGround } from "./_town.mjs";
 
 const x = (o, id) => o.own.find((u) => u.id === id)?.position[0] ?? NaN;
 const cells = (page) => lab(page, () => window.__lab.route.refreshGround());
@@ -50,10 +56,14 @@ export async function run(ctx) {
   if (process.env.GRASS_ONLY) return grassGrowth(ctx);
   if (process.env.ROADS_ONLY) return roadLooks(ctx);
   if (process.env.STREETS_ONLY) return streetLooks(ctx);
+  if (process.env.TOWN_ONLY) return townGround(ctx);
   if (process.env.ROAD_COST) return roadCost(ctx);
   if (process.env.FIELDS_ONLY) return fieldTexture(ctx);
   if (process.env.FIELD_COST) return fieldCost(ctx);
   if (process.env.CANOPY_ONLY) return canopyClosure(ctx);
+  if (process.env.FLOOR_SHOTS) return forestFloorShots(ctx, process.env.FLOOR_SHOTS);
+  if (process.env.FLOOR_ONLY) return forestFloor(ctx);
+  if (process.env.FLOOR_COST) return forestFloorCost(ctx);
   await surfaceExportAgreement(ctx);
   await forestExportAgreement(ctx);
   await surfaceFieldAgreement(ctx);
@@ -65,6 +75,8 @@ export async function run(ctx) {
   await fieldTexture(ctx);
   await canopyClosure(ctx);
   await streetLooks(ctx);
+  await forestFloor(ctx);
+  await townGround(ctx);
   if (process.env.SCARS_ONLY) return scarFramings(ctx).then(() => villageInspector(ctx));
   const page = await openBattle(ctx);
   // Past blue's first fog sweep since the bursts (every 6 ticks).
