@@ -45,7 +45,7 @@ Read [`AGENTS.md`](../../AGENTS.md): narrow checks only, no full gate. A perform
 
 ## Status
 
-**Implementation checkpoints are on main; final admission is running.**
+**Implementation checkpoints are on main; final browser admission remains red.**
 The `b5c63565` control of move certification leaves the former stress opening mostly inactive: three
 rounds in 900 ticks. The named workload correction starts the same 200 living
 units 200 m closer to contact, using the existing placement projection. It keeps
@@ -93,11 +93,20 @@ the affected browser gate before closing the lane.
    Three paused tick-90 resets retain 591 buffers / 41 textures, but buffer bytes
    differ by up to 832 B. Static corpse buffers are a concrete 64 B-per-body
    candidate: equal final tick need not imply equal presentation death history.
-   Attribute allocation labels before changing the comparison; retain the exact
-   leak check. A scratch browser probe measures actual worker step time and page
-   CPU cost, then those reset states. Pure hull eligibility ordering is the next
-   Native cost candidate, not a claimed gain. Keep the floor, rules, timestep,
-   complete delivery and memory scopes. Parent full gates remain parent-owned.
+   Allocation attribution confirms that all non-corpse buffer bytes are exact;
+   the old staging also sometimes stops at tick 91. A candidate pauses the new
+   session at zero and presents every opening tick before comparing exact
+   resources and corpse IDs. It is queued for browser confirmation; the retained
+   16-byte allocation mutant must still fail.
+
+   Pure hull eligibility ordering now has a matched 900-tick Native proof:
+   late whole-Weapons work falls 35.418%, total tick work falls 8.18%, and
+   construction plus stepping falls 7.813%. Early construction plus stepping
+   falls 0.236%. All 901 state digests and complete observations from both sides
+   match in each arm, as does serialized replay content except engine identity.
+   This is not a 9,000-tick rerun or a browser throughput result. Keep the floor,
+   rules, timestep, complete delivery and memory scopes. Parent full gates remain
+   parent-owned.
 4. Complete the whole-owned review and consolidate the scale choices ledger.
    The original timing, town-corner and living-member-start regressions pass
    through current move certification with actual arrival and every-tick replay

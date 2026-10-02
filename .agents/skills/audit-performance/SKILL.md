@@ -73,7 +73,9 @@ Do not prioritize by scary-looking counts alone:
   meet, the route is travelled, the failure arm runs. Measure the failure arm too.
 - Isolate a cost measurement from everything else running in the process.
   Pin scratch harness dependencies to the product lock; matching source identities alone
-  do not establish a matching runtime.
+  do not establish a matching runtime. Use the owning command’s runtime too: importing a
+  Node tool under Bun can select different package exports and fail before the
+  production path runs.
 - When batching overlapping queries, measure the final canonical merge and downstream consumer
   with collection. Fewer sorts can increase duplicate volume and shift cost across a profile
   boundary. Track temporary capacity separately from retained state, and falsify an omitted later
