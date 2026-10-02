@@ -40,6 +40,8 @@ The ground is judged by looking. For every look change, render it in the real la
 
 Test in proportion: the narrow tests for what changed and the one or two scenes it can move. No full gate. No frozen-record tests. Measure frame cost with the feature toggled on and off, interleaved on one machine. Branch from main, merge main often, and push small green passes to main. Add an Outcome to each slice file and decisions to [`choices.md`](choices.md) under a heading for the slice. Scratch renders go in gitignored `throwaway/`.
 
+**One GPU, shared.** Several sessions are working at once. Run every scene, render and asset sheet through the GPU lock in the main checkout (the README's Checks section has the command), never two at a time, and keep heavy jobs (a full Rust test run, a long sweep) to one at a time.
+
 ## Status
 
 **2026-10-01.** The rig is in ([C62](slices/C62-ground-evidence-rig.md#outcome)); nothing drawn has changed yet.
