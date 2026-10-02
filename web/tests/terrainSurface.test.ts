@@ -20,6 +20,12 @@ import {
   type TerrainSurface,
 } from "@packages/battle-renderer/src/terrain/terrainSurface.ts";
 import { forestInside } from "@packages/battle-renderer/src/terrain/forestShapes";
+import {
+  CUT_A,
+  CUT_B,
+  STROKE_CUTS,
+  strokeInside,
+} from "@packages/battle-renderer/src/terrain/strokes";
 import { plotAt } from "@packages/battle-renderer/src/terrain/plots.ts";
 import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
 import summer from "@fixtures/biomes/summer.json";
@@ -227,7 +233,10 @@ test("the material's road, forest and water masks are the simulation's surface r
       return false;
     };
     const strokes = site.surfaceStrokes;
-    const onRoad = (x: number, y: number) => {
+    // How far inside the paving: the renderer's own reading of the exported
+    // stretches, which end square where their stroke does.
+    const roadInside = (x: number, y: number) => {
+      let inside = -Infinity;
       for (let r = 0; r < strokes.length; r += site.surfaceStrokeStride) {
         const ax = strokes[r],
           ay = strokes[r + 1];
@@ -237,14 +246,61 @@ test("the material's road, forest and water masks are the simulation's surface r
         const half = strokes[r + 4];
         if (Math.abs(x - ax - dx / 2) > Math.abs(dx) / 2 + half) continue;
         if (Math.abs(y - ay - dy / 2) > Math.abs(dy) / 2 + half) continue;
-        const t = Math.min(1, Math.max(0, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)));
-        if (Math.hypot(x - ax - dx * t, y - ay - dy * t) <= half) return true;
+        inside = Math.max(inside, strokeInside(strokes, r, x, y));
+      }
+      return inside;
+    };
+    // The same, stopping at the first stretch that holds the point.
+    const onRoad = (x: number, y: number) => {
+      for (let r = 0; r < strokes.length; r += site.surfaceStrokeStride) {
+        const ax = strokes[r],
+          ay = strokes[r + 1];
+        const dx = strokes[r + 2] - ax,
+          dy = strokes[r + 3] - ay;
+        const half = strokes[r + 4];
+        if (Math.abs(x - ax - dx / 2) > Math.abs(dx) / 2 + half) continue;
+        if (Math.abs(y - ay - dy / 2) > Math.abs(dy) / 2 + half) continue;
+        if (strokeInside(strokes, r, x, y) >= 0) return true;
       }
       return false;
     };
     const [width, depth] = map.size;
     const wrong: string[] = [];
     let roads = 0;
+    // Round every end of every stroke, where a round cap would differ from
+    // the square end: past the end, beside it, and off its two corners.
+    let ends = 0;
+    for (let r = 0; r < strokes.length; r += site.surfaceStrokeStride) {
+      const cuts = strokes[r + STROKE_CUTS];
+      for (const [bit, from, to] of [
+        [CUT_A, r, r + 2],
+        [CUT_B, r + 2, r],
+      ]) {
+        if (!(cuts & bit)) continue;
+        const half = strokes[r + 4];
+        const run = Math.hypot(strokes[from] - strokes[to], strokes[from + 1] - strokes[to + 1]);
+        const out = [
+          (strokes[from] - strokes[to]) / run,
+          (strokes[from + 1] - strokes[to + 1]) / run,
+        ];
+        for (const past of [-0.4, 0.3, 0.6 * half, 0.95 * half])
+          for (const aside of [-0.9, -0.5, 0, 0.5, 0.9, 1.1]) {
+            const x = strokes[from] + out[0] * past - out[1] * aside * half,
+              y = strokes[from + 1] + out[1] * past + out[0] * aside * half;
+            if (x <= 0 || y <= 0 || x >= width || y >= depth) continue;
+            const [, , , , , kind] = view.surface_at(x, y);
+            const surfaceKind = layout.surfaceKinds[kind];
+            if (surfaceKind === "bridge" || surfaceKind === "water") continue;
+            // The exported stretches are f32: within a millimetre of the edge
+            // a point may fall either side of the simulation's f64 edge.
+            if (Math.abs(roadInside(x, y)) < 1e-3) continue;
+            ends++;
+            if (onRoad(x, y) !== (surfaceKind === "road"))
+              wrong.push(`road end at (${x}, ${y}): ${past} past, ${aside} aside`);
+          }
+      }
+    }
+    expect(ends).toBeGreaterThan(40);
     for (let y = 0.37; y < depth; y += 2.3) {
       for (let x = 0.61; x < width; x += 2.3) {
         const [, , , , , kind, forest] = view.surface_at(x, y);
@@ -360,7 +416,7 @@ test("the forest floor names a palette of litter, moss and humus, and its number
   expect(() => validateBiome(flecks, "summer")).toThrow(/summer\.forest_floor\.dapple\.sun/);
 });
 
-test("mixed forest exports retain authored IDs and real concave/capsule membership", () => {
+test("mixed forest exports retain authored IDs and real concave and square-ended strip membership", () => {
   const forest = (shape: unknown) => ({ shape });
   const { view, exports } = world({
     size: [256, 128],
@@ -414,6 +470,12 @@ test("mixed forest exports retain authored IDs and real concave/capsule membersh
     [1, 210, 30, 30],
     [2, 130, 50, 9],
     [2, 100, 80, -Math.SQRT2 * 30 + 9],
+    // The strip ends square across its first point (100, 20): behind it, just
+    // inside it, and off its corner at (106.36, 13.64): 3.73 m aside of the
+    // strip's width and 1.41 m past its end.
+    [2, 100, 10, -Math.hypot(5, 5)],
+    [2, 101, 21, Math.SQRT2],
+    [2, 108, 10, -Math.hypot(18 / Math.SQRT2 - 9, Math.SQRT2)],
   ]) {
     expect(forestInside(shapes[id], x, y)).toBeCloseTo(distance, 10);
     expect(shapes.some((shape) => forestInside(shape, x, y) >= 0)).toBe(

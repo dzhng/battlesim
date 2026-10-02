@@ -425,14 +425,18 @@ fn polygon_forest_uses_its_concave_boundary_for_ground_and_trunks() {
 }
 
 #[test]
-fn stroke_forest_uses_capsule_membership_instead_of_its_bounds() {
+fn stroke_forest_is_its_square_ended_band_instead_of_its_bounds() {
     let w = forests(json!([{
         "shape": {"kind":"stroke","points":[[20,20],[80,80]],"width_m":18}
     }]));
     assert!(w.forest_ground(50.0, 50.0));
     assert!(
-        w.forest_ground(14.0, 20.0),
-        "the endpoint is a closed capsule"
+        w.forest_ground(17.0, 25.0),
+        "beside the first point, within half the width"
+    );
+    assert!(
+        !w.forest_ground(14.0, 20.0),
+        "the strip is cut square across its first point: no half-disc of wood behind it"
     );
     assert!(
         !w.forest_ground(20.0, 80.0),
@@ -441,8 +445,9 @@ fn stroke_forest_uses_capsule_membership_instead_of_its_bounds() {
     let trunks = trunks_in(&w, 0.0, 100.0);
     assert!(!trunks.is_empty());
     for p in trunks {
-        let nearest = ((p.x - 20.0) + (p.y - 20.0)).clamp(0.0, 120.0) / 120.0;
-        assert!((p.x - (20.0 + 60.0 * nearest)).hypot(p.y - (20.0 + 60.0 * nearest)) <= 9.0);
+        let along = ((p.x - 20.0) + (p.y - 20.0)) / 120.0;
+        assert!((0.0..=1.0).contains(&along), "a trunk past the strip's end");
+        assert!((p.x - (20.0 + 60.0 * along)).hypot(p.y - (20.0 + 60.0 * along)) <= 9.0);
     }
 }
 

@@ -48,6 +48,13 @@ touching and overlapping polygons, including the actual material's internal seam
 The original village terrain tour remains green. See
 [the retained receipt](../assets/surface-contract/README.md).
 
+**Stroke ends (2026-10-01).** A stroke is no longer a union of closed capsules:
+it is cut square across its first and last point, and stays round at every bend.
+The rule is `contract::ground::stretches` and `stretch_contains`; the export's
+stroke rows carry which ends of each stretch are cut, and the renderer's field
+reads the same cut.
+See "Road ends" in [`../choices.md`](../choices.md).
+
 Generated urban/plain classification and the full bounded field at required extents
 remain later generator/C63 admission. Mixed stroke/polygon joins have not acquired
 true union distance; this receipt does not admit that capability.

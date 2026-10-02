@@ -383,21 +383,32 @@ fn road_segments_export_the_road_rule() {
         .iter()
         .map(|f| f.as_str().unwrap())
         .collect();
-    assert_eq!(fields, ["ax", "ay", "bx", "by", "halfWidth", "kind"]);
+    assert_eq!(
+        fields,
+        ["ax", "ay", "bx", "by", "halfWidth", "kind", "cuts"]
+    );
     assert_eq!(stride, fields.len());
     let roads = w.export_surface_strokes();
     assert!(!roads.is_empty() && roads.len().is_multiple_of(stride));
-    // A point is road exactly when it lies within an exported segment's half
-    // width: the renderer's road mask is the simulation's rule. Water wins
-    // over road, so the bridge's river is left out.
+    // A point is road exactly when it lies within an exported stretch's half
+    // width and not past an end the stretch is cut square at: the renderer's
+    // road mask is the simulation's rule. Water wins over road, so the
+    // bridge's river is left out.
     let within = |x: f64, y: f64| {
         roads.chunks(stride).any(|s| {
             let (a, b) = (v2(s[0] as f64, s[1] as f64), v2(s[2] as f64, s[3] as f64));
             let (p, ab) = (v2(x, y), b - a);
-            let t = ((p - a).dot(ab) / ab.dot(ab)).clamp(0.0, 1.0);
-            (p - (a + ab * t)).length() <= s[4] as f64
+            let along = (p - a).dot(ab) / ab.dot(ab);
+            let cuts = s[6] as u8;
+            let past = (cuts & contract::ground::CUT_A != 0 && along < 0.0)
+                || (cuts & contract::ground::CUT_B != 0 && along > 1.0);
+            !past && (p - (a + ab * along.clamp(0.0, 1.0))).length() <= s[4] as f64
         })
     };
+    assert!(
+        roads.chunks(stride).any(|s| s[6] != 0.0),
+        "no stretch says where its stroke ends"
+    );
     let mut roads_seen = 0;
     for j in 0..300 {
         for i in 0..400 {
@@ -651,7 +662,10 @@ fn rounded_strokes_match_the_parity_oracle() {
         .iter()
         .map(|v| format!("{:08x}", v.to_bits()))
         .collect();
-    assert!(strokes.len() / 6 > 40, "the bends were not rounded");
+    assert!(
+        strokes.len() / sim::world::export::SURFACE_STROKE_STRIDE > 40,
+        "the bends were not rounded"
+    );
     let rivers: Vec<String> = w
         .export_rivers()
         .iter()

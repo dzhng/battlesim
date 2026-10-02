@@ -12,7 +12,10 @@ pub const MAX_STROKE_SAMPLES: usize = 65_536;
 pub enum GroundShape {
     /// Closed simple ring, either winding, with no repeated endpoint.
     Polygon { ring: Vec<[f64; 2]> },
-    /// Shared sampled centreline; physical membership is a union of closed capsules.
+    /// Shared sampled centreline. Physical membership is the closed band
+    /// within half the width of it, cut square across its first and last
+    /// point: round at every bend, flat at both ends ([`stretches`],
+    /// [`stretch_contains`]).
     Stroke {
         centerline: Centerline,
         width_m: f64,
@@ -142,14 +145,14 @@ impl GroundShape {
             Self::Stroke {
                 centerline,
                 width_m,
-            } => centerline
-                .samples()
-                .windows(2)
-                .any(|pair| segment_distance(pair[0], pair[1], point) <= width_m / 2.0 + margin),
+            } => stretches(centerline.samples(), width_m / 2.0)
+                .any(|(a, b, cuts)| stretch_contains(a, b, cuts, width_m / 2.0, point, margin)),
         }
     }
 
-    /// Actual maxima keep closed-boundary queries conservative despite subtraction rounding.
+    /// Actual maxima keep closed-boundary queries conservative despite
+    /// subtraction rounding. A stroke's are those of its samples grown by half
+    /// its width: its square ends lie inside them, never on them.
     pub fn limits(&self) -> [f64; 4] {
         match self {
             Self::Polygon { ring } => limits(ring, 0.0),
@@ -243,6 +246,78 @@ pub fn segment_distance(a: [f64; 2], b: [f64; 2], p: [f64; 2]) -> f64 {
     .clamp(0.0, 1.0);
     let delta = [p[0] - (a[0] + ab[0] * t), p[1] - (a[1] + ab[1] * t)];
     delta[0].hypot(delta[1])
+}
+/// A stretch does not round past its end `a`: cut square there.
+pub const CUT_A: u8 = 1;
+/// A stretch does not round past its end `b`: cut square there.
+pub const CUT_B: u8 = 2;
+
+/// A stroke's stretches between consecutive rounded samples, each with the
+/// ends it is cut square at ([`CUT_A`], [`CUT_B`], both or neither).
+///
+/// The first stretch is cut at the stroke's first point and the last at its
+/// last. So is every stretch that starts within `half` of the stroke's first
+/// point along the line, at its own start, and every one that ends within
+/// `half` of its last point, at its own end: the round joint between two
+/// stretches is a disc of that radius, and so close behind an end it would
+/// bulge out past the end's face. Farther along, joints are round.
+pub fn stretches(
+    samples: &[[f64; 2]],
+    half: f64,
+) -> impl Iterator<Item = ([f64; 2], [f64; 2], u8)> + '_ {
+    let length = |pair: &[[f64; 2]]| (pair[1][0] - pair[0][0]).hypot(pair[1][1] - pair[0][1]);
+    let last = samples.len().saturating_sub(2);
+    // How far along the line the next stretch starts, and how far is left
+    // after the last one ended.
+    let mut along = 0.0;
+    let mut left: f64 = samples.windows(2).map(length).sum();
+    samples.windows(2).enumerate().map(move |(index, pair)| {
+        left -= length(pair);
+        let cut_a = index == 0 || along < half;
+        let cut_b = index == last || left < half;
+        along += length(pair);
+        (
+            pair[0],
+            pair[1],
+            (u8::from(cut_a) * CUT_A) | (u8::from(cut_b) * CUT_B),
+        )
+    })
+}
+
+/// Whether `p` is within `margin` of the stretch `a`–`b` of a stroke `half`
+/// wide either side: the closed capsule round the stretch, less whatever lies
+/// past a cut end. A stroke is the union of its stretches, so it is round
+/// where two of them meet and flat where it starts and stops. A point behind
+/// a cut end is still the stroke's where a stretch farther along reaches it.
+pub fn stretch_contains(
+    a: [f64; 2],
+    b: [f64; 2],
+    cuts: u8,
+    half: f64,
+    p: [f64; 2],
+    margin: f64,
+) -> bool {
+    if segment_distance(a, b, p) > half + margin {
+        return false;
+    }
+    if cuts == 0 {
+        return true;
+    }
+    let ab = [b[0] - a[0], b[1] - a[1]];
+    let length = ab[0].hypot(ab[1]);
+    // How far past a cut end, along the stretch: zero on the end face.
+    let behind = -((p[0] - a[0]) * ab[0] + (p[1] - a[1]) * ab[1]);
+    let ahead = (p[0] - b[0]) * ab[0] + (p[1] - b[1]) * ab[1];
+    let past = if cuts & CUT_A != 0 && behind > 0.0 {
+        behind / length
+    } else if cuts & CUT_B != 0 && ahead > 0.0 {
+        ahead / length
+    } else {
+        return true;
+    };
+    // The margin grows the square end as it grows any edge: by a rounded corner.
+    let aside = (cross(a, b, p).abs() / length - half).max(0.0);
+    aside.hypot(past) <= margin
 }
 fn on_segment(a: [f64; 2], b: [f64; 2], p: [f64; 2]) -> bool {
     (0..2).all(|k| p[k] >= a[k].min(b[k]) && p[k] <= a[k].max(b[k]))

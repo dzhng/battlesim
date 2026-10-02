@@ -33,6 +33,7 @@ import {
   SURFACE_TRIANGLE,
   type SurfaceReach,
 } from "../terrain/surfaceField";
+import { CUT_A, CUT_B } from "../terrain/strokes";
 import { GRASS_EDGE_M } from "../terrain/grassField";
 import { longestBank } from "../terrain/rivers";
 import { SCAR_CHANNELS, type Biome, type ForestFloor, type ScarMark } from "../terrain/biome";
@@ -277,6 +278,27 @@ const polygonEdgeDistance = tgpu.fn(
  let ab=b-a;let len2=dot(ab,ab);var t=0.0;if(len2>0.0){t=clamp(dot(p-a,ab)/len2,0.0,1.0);}return length(p-(a+ab*t));
 }`);
 
+/** A stroke stretch's `inside` (its half width less the distance to it)
+ *  once its cut ends are taken: past an end the stretch is cut square at, the
+ *  distance to that flat end; short of it, no deeper than the end is near.
+ *  `detail` is the stretch's `(half width, tag, cuts)`; `terrain/strokes.ts`
+ *  `strokeInside` is this on the CPU. An uncut stretch keeps `inside` as its
+ *  caller computed it. */
+const strokeCutInside = tgpu.fn(
+  [d.vec2f, d.vec4f, d.vec4f, d.f32],
+  d.f32,
+)(/* wgsl */ `(xy:vec2f,ends:vec4f,detail:vec4f,inside:f32)->f32 {
+ let cuts=u32(detail.z);
+ if(cuts==0u){return inside;}
+ let a=ends.xy;let ab=ends.zw-a;let len=length(ab);
+ let along=dot(xy-a,ab)/len;
+ let past=max(select(-1e9,-along,(cuts&${CUT_A}u)!=0u),select(-1e9,along-len,(cuts&${CUT_B}u)!=0u));
+ if(past<=0.0){return min(inside,-past);}
+ let rel=xy-a;
+ let aside=max(abs(rel.x*ab.y-rel.y*ab.x)/len-detail.x,0.0);
+ return -length(vec2f(aside,past));
+}`);
+
 const polygonTriangleInside = tgpu.fn(
   [d.vec2f, d.vec2f, d.vec2f, d.vec2f],
   d.bool,
@@ -328,13 +350,19 @@ export const groundForest = tgpu
    distance=-1e9;nearest=1e9;inside=false;
   }
   if(kind==${SURFACE_RECT}u){forest=max(forest,rectInside(xy,record.ends));}
-  else if(kind==${SURFACE_STROKE}u){distance=max(distance,record.detail.x-polygonEdgeDistance(xy,record.ends.xy,record.ends.zw));}
+  else if(kind==${SURFACE_STROKE}u){distance=max(distance,strokeCutInside(xy,record.ends,record.detail,record.detail.x-polygonEdgeDistance(xy,record.ends.xy,record.ends.zw)));}
   else if(kind==${SURFACE_TRIANGLE}u){inside=inside||polygonTriangleInside(xy,record.ends.xy,record.ends.zw,record.detail.xy);}
   else{nearest=min(nearest,polygonEdgeDistance(xy,record.ends.xy,record.ends.zw));}
  }
  return max(forest,max(distance,select(-nearest,nearest,inside)));
 }`)
-  .$uses({ terrainLayout, rectInside, polygonEdgeDistance, polygonTriangleInside });
+  .$uses({
+    terrainLayout,
+    rectInside,
+    polygonEdgeDistance,
+    polygonTriangleInside,
+    strokeCutInside,
+  });
 
 /** How far `xy` lies inside the forest floor's drawn edge, in metres
  *  (negative outside), `forest` metres inside the simulation's forest. The
@@ -443,14 +471,14 @@ const pavedSurfaceDistance = tgpu
   if(kind==${SURFACE_STROKE}u){
    let a=seg.ends.xy;let ab=seg.ends.zw-a;
    let t=clamp(dot(xy-a,ab)/max(dot(ab,ab),1e-6),0.0,1.0);
-   let off=length(xy-(a+ab*t));paved=max(paved,seg.detail.x-off);
+   let off=length(xy-(a+ab*t));paved=max(paved,strokeCutInside(xy,seg.ends,seg.detail,seg.detail.x-off));
   }
   else if(kind==${SURFACE_TRIANGLE}u){inside=inside||polygonTriangleInside(xy,seg.ends.xy,seg.ends.zw,seg.detail.xy);}
   else{nearest=min(nearest,polygonEdgeDistance(xy,seg.ends.xy,seg.ends.zw));}
  }
  return max(paved,select(-nearest,nearest,inside));
 }`)
-  .$uses({ terrainLayout, polygonEdgeDistance, polygonTriangleInside });
+  .$uses({ terrainLayout, polygonEdgeDistance, polygonTriangleInside, strokeCutInside });
 
 /** Where `xy` sits in the ground's features, in metres:
  *  `(plot, edge, road, forest)`. `plot` is the plot's index (a whole

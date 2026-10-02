@@ -2446,3 +2446,135 @@ The seam these decisions belong to is in the [C09](slices/C09-fetched-maps.md#ou
 ### Not done
 
 C33 (one simulation world) was not started. Its consumers call the main-thread world synchronously for picking, ground height and foliage clearing, and moving them needs a public query index and prepared geometry that `Battle` can reuse: a slice of its own. `specs/city-maps/assets/map-acquisition/README.md` still describes the core checkpoint; it is the frozen record and was left as written.
+
+## Road ends
+
+The user sent a close-up of a road that stopped in open ground in a perfect half-circle and asked that roads not end like that. Two things were wrong: how a stroke ends, and where the generator let roads end.
+
+### A stroke ends square, by one rule for every stroke
+
+**Choice:** A ground stroke's membership is the band within half its width of its rounded centreline, cut flat across its first and last point (`contract::ground::stretch_contains`). Bends stay round. A positive margin grows the flat end like any other edge, round at its two corners. A point behind the start that a later stretch reaches is still the stroke's.
+
+**Gap:** C03 said "a union of closed capsules", which puts a half-disc of the stroke's half width on both ends of every road, track, sidewalk and tree line.
+
+**Verdict:** sound. One rule, no per-kind exception and no schema field. Tree lines: no saved map and no generator output has a stroke forest today; a square-ended strip is what a hedgerow or shelter belt is. **Confidence:** high.
+
+### Stretches close behind an end are cut too
+
+**Choice:** A stroke is tested stretch by stretch between its rounded samples. The first stretch is cut at the stroke's first point and the last at its last; and every stretch that starts within half the width of the first point, measured along the line, is cut square at its own start, and likewise at the other end (`contract::ground::stretches`).
+
+**Gap:** Cutting only the first and last stretch is not enough. The round joint between two stretches is a disc of half the width, so a bend, or just a second sample, within half a width of the end bulges out past the end's face. The GPU check found it on a ground whose samples are 2 m apart under roads 6 to 12 m wide: no end there read differently from a round cap.
+
+**Verdict:** sound. Every saved and generated road's first bend is farther than half a width from its end, so only their first and last stretches are cut and no saved digest or oracle moved. Where a stroke does bend that close behind its end, the outside of the bend there has small wedges between stretches in place of a bulge. **Confidence:** medium.
+
+### Rivers keep their round ends
+
+**Choice:** A river is not a ground stroke. It has its own contract (`contract::river`), whose one distance also sets the height the bed and bank are carved to. That distance still clamps to its end points.
+
+**Gap:** The brief listed river stretches among the strokes.
+
+**Verdict:** sound for now. A generated river runs from the north edge to the south, so its ends are off the map. Two labs end a river inside the map (`geometry-lab`, `movement-lab`): a round end there is a pool's end. A flat cut would be a cliff across the bed, since the carved grade has nothing to run out along. **Confidence:** medium; revisit if a river is ever meant to stop at a weir or a culvert.
+
+### A stroke's limits stay the capsule's box
+
+**Choice:** `GroundShape::limits` is still the samples grown by half the width. The square ends lie inside it.
+
+**Gap:** The tight box of a square-ended stroke is smaller at each end.
+
+**Verdict:** sound. Limits are a conservative bound for buckets and broad phases. A forest's trunk lattice hangs off them, so tightening them would re-seat every trunk of every tree line for nothing. **Confidence:** high.
+
+### The export says which ends of a stretch are cut
+
+**Choice:** `surfaceStrokeFields` and `forestStrokeFields` gain a last column, `cuts` (stride 6 to 7), and the layout a `strokeCuts` entry naming its two bits. The renderer reads the stretch through one module (`terrain/strokes.ts`), on the CPU and in WGSL.
+
+**Gap:** A stretch between two samples cannot know how near its stroke's end it is.
+
+**Verdict:** sound. The alternative, a flag packed into the sign of the half width, hides a contract in an encoding. **Confidence:** high.
+
+### Navigation's road net still joins by nearness
+
+**Choice:** `navigation::roads` links two road pieces whose centrelines come within the sum of their half widths, as before.
+
+**Gap:** With square ends two roads can be that near and not touch: one stops a metre short of the other's edge.
+
+**Verdict:** provisional. The net says where roads lead and every journey is checked on the grid, so a link over a metre of grass costs a little speed, not a wrong path. The generator no longer produces such a gap. **Confidence:** medium.
+
+### One pass closes every road end, in both generation steps
+
+**Choice:** `mapgen::joints::close` takes the carriageways the layout laid, and again those with the parcel pass's streets before parcels are cut. It leaves each end part of a through road (ends of one kind and width that meet become one stroke through the point they shared), under the road it joins (just past that road's rounded middle), the outer edge of a corner (a wider road run over a narrower one's end), square on the map's edge, or cut back to the last block it serves.
+
+**Gap:** Each emitter (roads, avenues, lattice streets, links, run-ons) relied on round caps to close its joints in its own way: an avenue ran to the far edge of the road it met, a street half a metre past a middle, an L-corner on overlapping caps.
+
+**Verdict:** sound as a design: twelve kinds of joint across four emitters became one rule in one place, and the test judges the finished plan. **Confidence:** medium; see the residue below.
+
+### Two roads that meet alone are one road; at a junction only the straight-through pair is
+
+**Choice:** Ends of one kind and width are welded round any corner when only the two meet (a country road or track up to 110°). Where three or more meet, only ends within 30° of straight are welded; the rest each run on past the shared point until their centrelines cross.
+
+**Gap:** Welding the straightest pair at every junction left a third road touching the rounded bend from outside, at a tangent. The plan's road graph joins roads where centrelines cross, and one settlement in a sweep lost its road.
+
+**Verdict:** sound. `no_road_turns_back_on_itself` now allows 110° (it was 90°): a lane round a block's corner is one stroke now and blocks are a few degrees off square. **Confidence:** medium.
+
+### The pass never loses a joint; it leaves the roads concerned as laid
+
+**Choice:** Before and after, the pass lists the pairs of roads whose centrelines cross. If a pair crossed before and neither crosses after nor is one road, those roads are pinned as they were laid and the rest are closed round them, up to four rounds.
+
+**Gap:** The road graph's test is an exact crossing, and any change to an end (a centimetre's rounding, a bend moved by a weld) can turn a touch into a miss. Chasing each case one seed at a time did not converge.
+
+**Verdict:** sound: the sweep's road-graph refusals stopped with it. It costs two more crossing passes a plan. **Confidence:** high.
+
+### Welded streets cost about a fifth more generation work
+
+**Choice:** The cost is accepted. Generation and compilation retire 2.24 G instructions for a Mixed Small map against 1.84 G with the pass switched off, and 7.92 G against 6.52 G for Metro Large (medians of 12 seeds): 21 to 22% more.
+
+**Gap:** No budget names generation's own cost; the startup budget covers it.
+
+**Verdict:** provisional. Skipping only the weld gives the cost back (6.44 G for Metro Large): a street welded round a corner has a rounded bend of a dozen samples where two straight strokes had none, and everything downstream (the parcel pass's street index, `measure`, the compiler) reads every sample. The pass itself and its lost-joint check are about 0.3 G of the 1.4 G. The simulation and the surface field carry those stretches too, which has not been measured. A bend sampled more coarsely on streets is the lever if startup needs it. **Confidence:** medium.
+
+### A road leaves the map square to its edge
+
+**Choice:** A road that ends on the map's edge at a slant gets one more authored point, two widths in from the edge, so its last run is square to the edge and its flat end lies along it.
+
+**Gap:** The compiler admits no authored point past the edge, so a road cannot simply run on out of the map; and a flat end at a slant leaves a wedge of grass inside the map.
+
+**Verdict:** provisional. Nothing shows at the edge, at the price of a slight kink in the last 16 m of a country road. Letting strokes overhang the edge would be straighter and touches the compiler, the simulation's buckets and navigation. **Confidence:** medium.
+
+### A road stops at the last block it serves
+
+**Choice:** A road that ends in open country, by no other road and short of the map's edge, is cut back to the last district block it runs on or along (within its half width and a metre), or to the last road that joins it.
+
+**Gap:** A settlement's main street was laid to the end of the ground the settlement might build on. The settlement often grew less far, and the street ran on 50 to 300 m into the fields and stopped: the picture the user sent. The settlement's `outline` is not the measure: it is one ring and can leave districts across a road outside it.
+
+**Verdict:** sound. No road in the sweep stops in open ground. **Confidence:** high.
+
+### A street runs to a street end that faces it
+
+**Choice:** A dead-end street's run-on goes to the end of another street that faces it within a block and within that street's half width aside, where one is no farther than 10 m past the first carriageway it would cross.
+
+**Gap:** Neighbouring districts' grids are offset by a few metres. A run-on that passed the facing street's end ran beside it for a few metres: one street drawn twice, with a step where the other stopped.
+
+**Verdict:** provisional. It removed about half of those steps and made more streets carry through. **Confidence:** medium.
+
+### What is left: 1.1 ends in a thousand
+
+**Choice:** `tests/road_ends.rs` allows 2 ends in a thousand to be a bite or a step in a joint, and none to be a gap before a road, a face at the map's edge or a road stranded in open ground.
+
+**Gap:** Two kinds of joint are not closed: three or more roads of one width that meet at a point at sharp angles, or whose ends stand a few metres apart round one junction; and two streets of one width laid side by side for a few metres. (Two roads that fork alone, too sharply to be one road, are closed: the first runs on over the second one's end. The unprimed critique found that fork as a stepped tip before this.) A wider road that ends on narrower ones shows its shoulders and is counted sound: the road narrows there.
+
+**Verdict:** provisional. The bound is a measured count, to be lowered as those are closed and never raised. A second unprimed critique still reads the closed fork as "a tick mark with a blunt heel": the first track runs on about half its width past the point and ends flat. It is sound (no bite) and not pretty; a link that joins a main street's far end at a sharp angle is the layout's choice, and choosing a kinder join belongs to the road network, not here. **Confidence:** medium.
+
+### The change to physical ground is named; the quick village report did not move
+
+**Choice:** Square ends take up to half a disc of road (or tree line) off each stroke end on every saved map, which is a change to physical ground and so a named decision for every digest that depends on it.
+
+**Gap:** C03 promised the village's digests through that cutover, and the standing gate asks for `village_report --quick --compare main`.
+
+**Verdict:** sound. The six quick trials (flank and ambush, seeds 1 to 3) end in the same six digests with square ends as with round ones: no unit crosses the three free road ends of the village map in them. Main had no cached run after the simulation lane merged, so the baseline was the merged tree with the square cut switched off, which is main's ground exactly. No saved-map oracle needed a re-bless; the two that moved are outputs of unchanged inputs: `parity/ground/curve-strokes.json` (the stroke export gained a column) and `parity/map-layout/paired-records.json` (generator `layout-5`). A full report or a battle fought across a road end may still differ. **Confidence:** high for what was run.
+
+### Saved maps are not edited here
+
+**Choice:** No stroke of a saved map was changed.
+
+**Gap:** `game.json`'s village map starts its two roads at one point at an angle (140, 780), which is now a bite on the outside of that joint, and its roads and the labs' start and stop in open ground 10 to 140 m from the map's edge, by design of the old round cap. Another lane was moving those maps while this ran.
+
+**Verdict:** open. Listed for the map lane: make the village's two roads one stroke through (140, 780), and run the lab and village roads to the edge or to something. **Confidence:** high that they need it.

@@ -19,6 +19,7 @@ import type { Biome } from "./biome";
 import { generatePlots, type PlotTree } from "./plots";
 import { buildForestShapes, type ForestShape } from "./forestShapes";
 import { RIVER_FIELDS, RIVER_FLOATS } from "./rivers";
+import { checkStrokeLayout } from "./strokes";
 import type { TerrainGrid } from "./terrainGrid";
 
 /** Rects `x, y, w, h` per record. */
@@ -145,6 +146,7 @@ export function buildTerrainSurface(
     if (drawnBy(layout, layout.propKinds[exports.props[o + kindAt]], "building"))
       buildings.push(vec2.fromValues(exports.props[o + at[0]], exports.props[o + at[1]]));
   }
+  checkStrokeLayout(layout);
   return terrainSurface(
     mesh,
     {

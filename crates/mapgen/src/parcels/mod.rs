@@ -86,14 +86,32 @@ pub fn fill_districts(
     let pick = pass.stream("family").below(families.len() as u64) as usize;
     pass.family = &families[pick];
 
-    let (laid, lots, buildings, aprons) = {
-        // A street's whole width stays off a river's bank.
-        let clearance = presets.rivers.bank_m() + presets.parcels.street_width_m / 2.0;
+    // A street's whole width stays off a river's bank.
+    let clearance = presets.rivers.bank_m() + presets.parcels.street_width_m / 2.0;
+    let laid = {
         let mut network = streets::Network::new(&plan, clearance);
         let mut laid = Vec::new();
         for settlement in &plan.settlements {
             streets::lay(&pass, &mut network, settlement, &mut laid)?;
         }
+        laid
+    };
+    // The streets' ends are closed against each other and the layout's
+    // roads before any parcel is cut along them.
+    plan.surfaces.extend(laid);
+    let blocks: Vec<&[[f64; 2]]> = plan
+        .settlements
+        .iter()
+        .flat_map(|settlement| {
+            settlement
+                .districts
+                .iter()
+                .map(|district| &district.ring[..])
+        })
+        .collect();
+    plan.surfaces = crate::joints::close(core::mem::take(&mut plan.surfaces), plan.size, &blocks);
+    let (lots, buildings, aprons) = {
+        let network = streets::Network::new(&plan, clearance);
         let mut ground = Ground::new(&plan, &network);
         for district in plan.settlements.iter().flat_map(|s| &s.districts) {
             if ground.fill(&pass, district)? == 0 {
@@ -104,9 +122,8 @@ pub fn fill_districts(
                 ));
             }
         }
-        (laid, ground.plan_lots, ground.buildings, ground.aprons)
+        (ground.plan_lots, ground.buildings, ground.aprons)
     };
-    plan.surfaces.extend(laid);
     plan.surfaces.extend(aprons);
     plan.lots = lots;
     plan.buildings = buildings;

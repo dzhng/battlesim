@@ -2,6 +2,7 @@
 import { vec2, type Vec2 } from "math";
 import { segment2, triangle2 } from "math/shapes";
 import type { WorldExports, WorldLayout } from "../worldMesh";
+import { checkStrokeLayout, STROKE_FLOATS, strokeInside } from "./strokes";
 
 export type ForestShapeKind = "rectangle" | "stroke" | "polygon";
 
@@ -21,17 +22,18 @@ const EMPTY = new Float32Array(0);
 
 /** The floats per record the forest-floor shader reads; the native layout
  *  must publish the same strides. */
-export const FOREST_STROKE_FLOATS = 6;
+export const FOREST_STROKE_FLOATS = STROKE_FLOATS;
 export const FOREST_TRIANGLE_FLOATS = 7;
 export const FOREST_BOUNDARY_FLOATS = 5;
 
-/** Each primitive stream is grouped in authored-ID order by the native owner. */
-function ranges(records: Float32Array, stride: number): Map<number, Float32Array> {
+/** Each primitive stream is grouped in authored-ID order by the native
+ *  owner; `idAt` is where a record holds its forest's ID. */
+function ranges(records: Float32Array, stride: number, idAt: number): Map<number, Float32Array> {
   const out = new Map<number, Float32Array>();
   for (let first = 0; first < records.length; ) {
-    const id = records[first + stride - 1];
+    const id = records[first + idAt];
     let end = first + stride;
-    while (end < records.length && records[end + stride - 1] === id) end += stride;
+    while (end < records.length && records[end + idAt] === id) end += stride;
     if (out.has(id)) throw new Error("forest primitive groups must be contiguous");
     out.set(id, records.subarray(first, end));
     first = end;
@@ -40,8 +42,8 @@ function ranges(records: Float32Array, stride: number): Map<number, Float32Array
 }
 
 export function buildForestShapes(exports: WorldExports, layout: WorldLayout): ForestShape[] {
+  checkStrokeLayout(layout);
   if (
-    layout.forestStrokeStride !== FOREST_STROKE_FLOATS ||
     layout.forestTriangleStride !== FOREST_TRIANGLE_FLOATS ||
     layout.forestBoundaryStride !== FOREST_BOUNDARY_FLOATS
   )
@@ -56,9 +58,22 @@ export function buildForestShapes(exports: WorldExports, layout: WorldLayout): F
       exports.forests[o + 3],
     ]);
   }
-  const strokes = ranges(exports.forestStrokes, layout.forestStrokeStride);
-  const triangles = ranges(exports.forestTriangles, layout.forestTriangleStride);
-  const boundaries = ranges(exports.forestBoundaries, layout.forestBoundaryStride);
+  const idAt = (fields: string[]) => fields.indexOf("id");
+  const strokes = ranges(
+    exports.forestStrokes,
+    layout.forestStrokeStride,
+    idAt(layout.forestStrokeFields),
+  );
+  const triangles = ranges(
+    exports.forestTriangles,
+    layout.forestTriangleStride,
+    idAt(layout.forestTriangleFields),
+  );
+  const boundaries = ranges(
+    exports.forestBoundaries,
+    layout.forestBoundaryStride,
+    idAt(layout.forestBoundaryFields),
+  );
   const out: ForestShape[] = [];
   for (let o = 0; o < exports.forestMetadata.length; o += layout.forestMetadataStride) {
     const id = exports.forestMetadata[o];
@@ -89,7 +104,8 @@ const _forestPoint: Vec2 = [0, 0],
   _forestClosest: Vec2 = [0, 0];
 
 /** Signed primitive distance for crown fitting. Exact rectangles retain their
- * original arithmetic; polygons use native membership and real ring edges. */
+ * original arithmetic; polygons use native membership and real ring edges;
+ * a stroke ends square, as the simulation's does. */
 export function forestInside(shape: ForestShape, x: number, y: number): number {
   if (shape.kind === "rectangle") {
     const [sx, sy, w, h] = shape.rect!;
@@ -98,15 +114,8 @@ export function forestInside(shape: ForestShape, x: number, y: number): number {
   vec2.set(_forestPoint, x, y);
   let distance = -1e9;
   if (shape.kind === "stroke") {
-    for (let o = 0; o < shape.strokes.length; o += FOREST_STROKE_FLOATS) {
-      vec2.fromBuffer(_forestA, shape.strokes, o);
-      vec2.fromBuffer(_forestB, shape.strokes, o + 2);
-      segment2.closestPoint(_forestClosest, _forestPoint, _forestA, _forestB);
-      distance = Math.max(
-        distance,
-        shape.strokes[o + 4] - vec2.distance(_forestPoint, _forestClosest),
-      );
-    }
+    for (let o = 0; o < shape.strokes.length; o += FOREST_STROKE_FLOATS)
+      distance = Math.max(distance, strokeInside(shape.strokes, o, x, y));
     return distance;
   }
   let inside = false,

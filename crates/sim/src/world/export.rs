@@ -19,8 +19,12 @@ pub const FLAG_BLOCKED: u8 = 2;
 pub const PROP_STRIDE: usize = 10;
 /// min x, min y, width, height, z.
 pub const AREA_STRIDE: usize = 5;
-/// One exact stroke segment: end a, end b, half width and surface tag.
-pub const SURFACE_STROKE_STRIDE: usize = 6;
+/// One stretch of a stroke between two rounded samples: end a, end b, half
+/// width, surface tag, and which of its ends are cut square
+/// (`contract::ground::CUT_A | CUT_B`, from `contract::ground::stretches`).
+pub const SURFACE_STROKE_STRIDE: usize = 7;
+/// A forest stroke's stretch: as a surface's, with the forest's id for the tag.
+pub const FOREST_STROKE_STRIDE: usize = 7;
 pub const SURFACE_TRIANGLE_STRIDE: usize = 7;
 pub const SURFACE_BOUNDARY_STRIDE: usize = 5;
 /// One stretch of a river between two rounded samples: end a, end b, the
@@ -76,7 +80,8 @@ pub fn layout_json(types: &PropCatalog) -> String {
         "propFields": ["idLo", "idHi", "kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ"],
         "areaFields": ["x", "y", "w", "h", "z"],
         "surfaceStrokeStride": SURFACE_STROKE_STRIDE,
-        "surfaceStrokeFields": ["ax", "ay", "bx", "by", "halfWidth", "kind"],
+        "surfaceStrokeFields": ["ax", "ay", "bx", "by", "halfWidth", "kind", "cuts"],
+        "strokeCuts": { "a": contract::ground::CUT_A, "b": contract::ground::CUT_B },
         "surfaceRunStride": 4,
         "surfaceRunFields": ["ax", "ay", "bx", "by"],
         "surfaceTriangleStride": SURFACE_TRIANGLE_STRIDE,
@@ -92,8 +97,8 @@ pub fn layout_json(types: &PropCatalog) -> String {
         "forestMetadataStride": 3,
         "forestMetadataFields": ["id", "canopy", "shapeKind"],
         "forestShapeKinds": ["rectangle", "stroke", "polygon"],
-        "forestStrokeStride": 6,
-        "forestStrokeFields": ["ax", "ay", "bx", "by", "halfWidth", "id"],
+        "forestStrokeStride": FOREST_STROKE_STRIDE,
+        "forestStrokeFields": ["ax", "ay", "bx", "by", "halfWidth", "id", "cuts"],
         "forestTriangleStride": 7,
         "forestTriangleFields": ["ax", "ay", "bx", "by", "cx", "cy", "id"],
         "forestBoundaryStride": 5,
@@ -257,7 +262,9 @@ impl WorldGeometry {
     }
 
     /// The rounded strokes every consumer samples: ax, ay, bx, by, half width,
-    /// surface kind.
+    /// surface kind, cut ends. A point is the stroke's when it is within the
+    /// half width of a stretch and not past an end that stretch is cut at
+    /// (`contract::ground::stretch_contains`).
     pub fn export_surface_strokes(&self) -> Vec<f32> {
         let mut out = Vec::new();
         for area in self.surfaces.areas() {
@@ -267,9 +274,11 @@ impl WorldGeometry {
             } = &area.shape
             {
                 let kind = surface_area_tag(area.kind) as f64;
-                for p in centerline.samples().windows(2) {
+                for (a, b, cuts) in contract::ground::stretches(centerline.samples(), width_m / 2.0)
+                {
                     out.extend(
-                        [p[0][0], p[0][1], p[1][0], p[1][1], width_m / 2.0, kind].map(|v| v as f32),
+                        [a[0], a[1], b[0], b[1], width_m / 2.0, kind, cuts as f64]
+                            .map(|v| v as f32),
                     );
                 }
             }
@@ -345,10 +354,19 @@ impl WorldGeometry {
                 width_m,
             } = &f.shape
             {
-                for p in centerline.samples().windows(2) {
+                for (a, b, cuts) in contract::ground::stretches(centerline.samples(), width_m / 2.0)
+                {
                     out.extend(
-                        [p[0][0], p[0][1], p[1][0], p[1][1], width_m / 2.0, id as f64]
-                            .map(|v| v as f32),
+                        [
+                            a[0],
+                            a[1],
+                            b[0],
+                            b[1],
+                            width_m / 2.0,
+                            id as f64,
+                            cuts as f64,
+                        ]
+                        .map(|v| v as f32),
                     );
                 }
             }

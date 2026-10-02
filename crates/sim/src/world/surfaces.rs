@@ -3,8 +3,8 @@
 use std::collections::{BTreeSet, HashMap};
 
 use contract::ground::{
-    cross, edges, limits, polygon_area, polygon_contains, segment_distance, triangulate,
-    GroundShape,
+    cross, edges, limits, polygon_area, polygon_contains, segment_distance, stretch_contains,
+    stretches, triangulate, GroundShape,
 };
 use contract::map::{Rect, SurfaceArea, SurfaceKind};
 use contract::river::{section, River, Section};
@@ -14,8 +14,16 @@ use crate::math::{v2, V2};
 const BUCKET_M: f64 = 128.0;
 
 enum Primitive {
-    Segment { area: usize, edge: usize },
-    Polygon { area: usize },
+    /// One stretch of a stroke, with the ends it is cut square at
+    /// (`contract::ground::stretches`).
+    Segment {
+        area: usize,
+        edge: usize,
+        cuts: u8,
+    },
+    Polygon {
+        area: usize,
+    },
 }
 impl Primitive {
     fn area(&self) -> usize {
@@ -76,11 +84,11 @@ impl SurfaceIndex {
                     centerline,
                     width_m,
                 } => {
-                    let points = centerline.samples();
-                    for (edge, points) in points.windows(2).enumerate() {
+                    let half = *width_m / 2.0;
+                    for (edge, (a, b, cuts)) in stretches(centerline.samples(), half).enumerate() {
                         index.insert(
-                            Primitive::Segment { area, edge },
-                            limits(points, *width_m / 2.0),
+                            Primitive::Segment { area, edge, cuts },
+                            limits(&[a, b], half),
                         );
                     }
                 }
@@ -335,7 +343,7 @@ impl SurfaceIndex {
 
     fn contains(&self, primitive: &Primitive, p: V2, margin: f64) -> bool {
         match primitive {
-            Primitive::Segment { area, edge } => {
+            Primitive::Segment { area, edge, cuts } => {
                 let GroundShape::Stroke {
                     centerline,
                     width_m,
@@ -344,8 +352,14 @@ impl SurfaceIndex {
                     unreachable!()
                 };
                 let points = centerline.samples();
-                segment_distance(points[*edge], points[*edge + 1], [p.x, p.y])
-                    <= width_m / 2.0 + margin
+                stretch_contains(
+                    points[*edge],
+                    points[*edge + 1],
+                    *cuts,
+                    width_m / 2.0,
+                    [p.x, p.y],
+                    margin,
+                )
             }
             Primitive::Polygon { area } => {
                 let GroundShape::Polygon { ring } = &self.areas[*area].shape else {
@@ -363,7 +377,7 @@ impl SurfaceIndex {
             .iter()
             .filter(|primitive| self.areas[primitive.area()].kind.is_road())
             .map(|primitive| match primitive {
-                Primitive::Segment { area, edge } => {
+                Primitive::Segment { area, edge, .. } => {
                     let GroundShape::Stroke {
                         centerline,
                         width_m,

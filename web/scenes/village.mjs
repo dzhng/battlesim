@@ -119,17 +119,17 @@ async function checkRoadEdges(ctx, page) {
 const grassClumps = (page) => lab(page, () => window.__lab.grass().clumps());
 const grassCounts = (page) => lab(page, () => window.__lab.grass().counts());
 
-/** How far `p` lies outside the road network (negative on a road). */
+/** How far `p` lies outside the road network (negative on a road). A road
+ *  ends square: ground past its first or last point is not that run's. */
 function offRoad(p) {
   let best = Infinity;
   for (const road of roadStrokes) {
     for (let k = 1; k < road.points.length; k++) {
       const [a, b] = [road.points[k - 1], road.points[k]];
       const ab = [b[0] - a[0], b[1] - a[1]];
-      const t = Math.max(
-        0,
-        Math.min(1, ((p[0] - a[0]) * ab[0] + (p[1] - a[1]) * ab[1]) / (ab[0] ** 2 + ab[1] ** 2)),
-      );
+      const along = ((p[0] - a[0]) * ab[0] + (p[1] - a[1]) * ab[1]) / (ab[0] ** 2 + ab[1] ** 2);
+      if ((k === 1 && along < 0) || (k === road.points.length - 1 && along > 1)) continue;
+      const t = Math.max(0, Math.min(1, along));
       const off = Math.hypot(p[0] - a[0] - ab[0] * t, p[1] - a[1] - ab[1] * t);
       best = Math.min(best, off - road.width_m / 2);
     }

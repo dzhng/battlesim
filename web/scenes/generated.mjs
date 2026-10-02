@@ -213,7 +213,10 @@ export async function run(ctx) {
           Math.abs(dx * c + dy * s) <= b.half[0] + 1 && Math.abs(-dx * s + dy * c) <= b.half[1] + 1
         );
       };
-      const box = boxes.reduce((a, b) =>
+      // The nearest building of a coloured category: a grey one's roof
+      // takes the sun's warmth, and its channels' order with it.
+      const coloured = boxes.filter((b) => Math.max(...b.tint) - Math.min(...b.tint) > 0.15);
+      const box = coloured.reduce((a, b) =>
         Math.hypot(a.center[0] - town[0], a.center[1] - town[1]) <=
         Math.hypot(b.center[0] - town[0], b.center[1] - town[1])
           ? a

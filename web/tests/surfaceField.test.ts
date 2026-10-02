@@ -17,6 +17,7 @@ import {
   type TerrainSite,
 } from "@packages/battle-renderer/src/terrain/terrainSurface.ts";
 import { forestInside, type ForestShape } from "@packages/battle-renderer/src/terrain/forestShapes";
+import { STROKE_FLOATS, strokeInside } from "@packages/battle-renderer/src/terrain/strokes";
 import { RIVER_FLOATS, stretchInside } from "@packages/battle-renderer/src/terrain/rivers";
 import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
 import {
@@ -78,7 +79,7 @@ function pavedEverywhere(site: TerrainSite, x: number, y: number): number {
   vec2.set(_p, x, y);
   let paved = -1e9;
   for (let o = 0; o < site.surfaceStrokes.length; o += site.surfaceStrokeStride)
-    paved = Math.max(paved, site.surfaceStrokes[o + 4] - segmentDistance(site.surfaceStrokes, o));
+    paved = Math.max(paved, strokeInside(site.surfaceStrokes, o, x, y));
   if (site.surfaceBoundaries.length === 0) return paved;
   let inside = false,
     nearest = 1e9;
@@ -139,7 +140,7 @@ function probes(site: TerrainSite, field: SurfaceField, count: number, seed: num
   take(site.surfaceStrokes, site.surfaceStrokeStride, 2);
   take(site.surfaceBoundaries, site.surfaceBoundaryStride, 2);
   for (const shape of site.forestShapes) {
-    take(shape.strokes, 6, 2);
+    take(shape.strokes, STROKE_FLOATS, 2);
     take(shape.boundaries, 5, 2);
   }
   take(site.rivers, RIVER_FLOATS, 2);
@@ -269,13 +270,14 @@ test("a stroke through its cells' corners is found in every cell it crosses", ()
     canopy: 12,
     trunkRange: [0, 0],
     kind: "stroke",
-    strokes: Float32Array.of(96, 16, 160, 80, 9, 0),
+    // Stretches from the middle of their strokes: neither end is cut.
+    strokes: Float32Array.of(96, 16, 160, 80, 9, 0, 0),
     triangles: new Float32Array(0),
     boundaries: new Float32Array(0),
   };
   const site: TerrainSite = {
     ...denseGround(256, 0, 0),
-    surfaceStrokes: Float32Array.of(8, 8, 72, 72, 3, 1),
+    surfaceStrokes: Float32Array.of(8, 8, 72, 72, 3, 1, 0),
     forests: new Float32Array(0),
     forestShapes: [strip],
     // A river along the other diagonal, widening as it goes.
@@ -287,6 +289,30 @@ test("a stroke through its cells' corners is found in every cell it crosses", ()
     expect(forestDistance(field, 96 + k, 16 + k, 0.08)).toBe(9);
     expect(waterDistance(field, 24 + k, 200 - k, 0.08)).toBeCloseTo(6 + (4 * k) / 64, 5);
   }
+});
+
+test("a stretch is cut square at the end its stroke ends at, and round at the other", () => {
+  // East from (10, 20) to (50, 20), 3 m either side.
+  const stretch = (cuts: number) => Float32Array.of(10, 20, 50, 20, 3, 1, cuts);
+  const whole = stretch(3);
+  // Along the middle: as deep as the edge is near, the end's as well as the sides'.
+  expect(strokeInside(whole, 0, 30, 20)).toBe(3);
+  expect(strokeInside(whole, 0, 11, 20)).toBe(1);
+  expect(strokeInside(whole, 0, 49.5, 21)).toBe(0.5);
+  // The end face is the edge; past it is outside by the distance to it.
+  expect(strokeInside(whole, 0, 10, 20)).toBe(0);
+  expect(strokeInside(whole, 0, 9, 20)).toBe(-1);
+  expect(strokeInside(whole, 0, 52, 22)).toBe(-2);
+  // Off a corner, by the distance to the corner.
+  expect(strokeInside(whole, 0, 7, 27)).toBe(-5);
+  // Beside the end, outside its width.
+  expect(strokeInside(whole, 0, 10, 23.5)).toBe(-0.5);
+  // A stretch from the middle of its stroke keeps its round ends: the next
+  // stretch's ground.
+  expect(strokeInside(stretch(0), 0, 9, 20)).toBe(2);
+  expect(strokeInside(stretch(2), 0, 9, 20)).toBe(2);
+  expect(strokeInside(stretch(2), 0, 51, 20)).toBe(-1);
+  expect(strokeInside(stretch(1), 0, 51, 20)).toBe(2);
 });
 
 test("the field is the same bytes for the same ground", () => {

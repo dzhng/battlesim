@@ -187,7 +187,13 @@ export function denseGround(sizeM: number, roads: number, woods: number): Terrai
       heading += (next() - 0.5) * 0.12;
       const nx = Math.min(sizeM, Math.max(0, x + Math.cos(heading) * 2)),
         ny = Math.min(sizeM, Math.max(0, y + Math.sin(heading) * 2));
-      strokes.push(x, y, nx, ny, half, 1);
+      // As the simulation exports a stroke: the stretches within half its
+      // width of either end, along it, are cut square on that side. (A
+      // stretch pinned against the map's edge has no length, which no export
+      // has, and so no end to cut.)
+      const cut =
+        nx === x && ny === y ? 0 : (s * 2 < half ? 1 : 0) | ((299 - s) * 2 < half ? 2 : 0);
+      strokes.push(x, y, nx, ny, half, 1, cut);
       x = nx;
       y = ny;
     }
@@ -211,6 +217,7 @@ export function denseGround(sizeM: number, roads: number, woods: number): Terrai
       900 + Math.sin((s + 1) / 6) * 30,
       9,
       0,
+      (s * 4 < 9 ? 1 : 0) | ((59 - s) * 4 < 9 ? 2 : 0),
     );
   forestShapes.push({
     canopy: 12,
@@ -231,7 +238,7 @@ export function denseGround(sizeM: number, roads: number, woods: number): Terrai
     map: [0, 0, sizeM, sizeM],
     gridM: 4,
     surfaceStrokes: Float32Array.from(strokes),
-    surfaceStrokeStride: 6,
+    surfaceStrokeStride: 7,
     // No authored runs: the field plots are not what these grounds test.
     surfaceRuns: new Float32Array(0),
     surfaceRunStride: 4,

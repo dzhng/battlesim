@@ -6,8 +6,10 @@ use crate::layout::geometry::{
     add, distance, round_cm, scale, segment_crossing, segment_distance, sub, Point,
 };
 use crate::layout::sites::Site;
-use crate::layout::Context;
 use std::collections::{BTreeMap, BTreeSet};
+
+/// How far an avenue runs past the middle of the road it meets.
+const JOIN_OVERSHOOT_M: f64 = 0.5;
 
 /// Whether two stretches of carriageway meet.
 pub(super) fn touch(a: [Point; 2], b: [Point; 2]) -> bool {
@@ -36,13 +38,11 @@ struct Stretch {
 /// (`fronted` says whether a block has one, given the streets). An edge no
 /// street or road leads to stays a field's edge.
 pub(super) fn avenues(
-    context: &Context,
     site: &Site,
     plot: &Plot,
     built: &BTreeSet<usize>,
     fronted: &dyn Fn(usize, &[[Point; 2]]) -> bool,
 ) -> Vec<[Point; 2]> {
-    let presets = context.presets;
     let (ground, mesh) = (&plot.ground, &plot.mesh);
     // Along each cut, the pieces of edge a built block stands on, with the
     // block when no other is built across the piece.
@@ -245,21 +245,14 @@ pub(super) fn avenues(
     }
     let reached = reach(&kept);
 
-    // An end that meets another carriageway runs on to its far edge: past
-    // its middle wherever a rounded bend has carried that, and never onto
-    // the parcels beyond. An end on a road's own end or on another street's
-    // stops there: the two share that point. So does one that meets no road
-    // at the settlement's limit.
+    // An end that meets another carriageway, a road or one of these streets,
+    // runs just past its middle, so its square end lies inside that
+    // carriageway's width (where a rounded bend has carried the middle
+    // farther off, the plan's joint pass runs it on). An end on a road's own
+    // end or on another street's stops there: the two share that point. So
+    // does one that meets no road at the settlement's limit.
     let streets = streets_of(&reached);
-    // How wide the settlement's own streets are.
-    let (_, own) = presets.avenue(plot.class.road);
-    // Half the width of the road an end at `p` meets.
-    let road_at = |p: Point| {
-        plot.roads
-            .iter()
-            .find(|(a, b, _)| touch([p, p], [*a, *b]))
-            .map(|(_, _, kind)| presets.roads.width_m(*kind) / 2.0)
-    };
+
     // The one point that the streets' ends within half a metre of `p` share,
     // when another street ends there too.
     let shared = |p: Point| {
@@ -292,11 +285,11 @@ pub(super) fn avenues(
         .map(|[a, b]| {
             let (a, b) = (*a, *b);
             let toward = scale(sub(b, a), 1.0 / distance(a, b));
-            let end = |p: Point, way: f64| match (road_end(p).or(shared(p)), road_at(p)) {
-                (Some(end), _) => end,
-                (None, Some(past)) => add(p, scale(toward, way * past)),
-                (None, None) if on_limit(p) => p,
-                (None, None) => add(p, scale(toward, way * own / 2.0)),
+            let on_road = |p: Point| plot.roads.iter().any(|(a, b, _)| touch([p, p], [*a, *b]));
+            let end = |p: Point, way: f64| match road_end(p).or(shared(p)) {
+                Some(end) => end,
+                None if on_limit(p) && !on_road(p) => p,
+                None => add(p, scale(toward, way * JOIN_OVERSHOOT_M)),
             };
             [round_cm(end(a, -1.0)), round_cm(end(b, 1.0))]
         })

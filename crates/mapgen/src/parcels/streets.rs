@@ -18,6 +18,9 @@ use std::collections::BTreeSet;
 /// How far a street runs past the middle of the one it meets, so the two
 /// centrelines cross whatever a centimetre of rounding did to either.
 const JOIN_OVERSHOOT_M: f64 = 0.5;
+/// A street runs to an end that faces it when that end is no more than
+/// this far past the first carriageway it would cross.
+const FACING_PAST_M: f64 = 10.0;
 /// Two carriageways closer than half a block and within this of parallel
 /// are one street drawn twice.
 const PARALLEL_COS: f64 = 0.866;
@@ -167,6 +170,35 @@ impl<'a> Network<'a> {
         self.dry(from, met).then_some(met)
     }
 
+    /// The nearest end of a carriageway that faces a street stopped at
+    /// `from` and heading along the unit vector `toward`: within `reach`
+    /// ahead, no farther aside than the two would overlap, and running the
+    /// opposite way within the angle that makes two streets one.
+    fn facing_end(&self, from: Point, toward: Point, reach: f64) -> Option<Point> {
+        let mut best: Option<(f64, Point)> = None;
+        for way in &self.ways {
+            let last = way.samples.len() - 1;
+            for (end, before) in [(0, 1), (last, last - 1)] {
+                let (at, out_of) = (way.samples[end], sub(way.samples[end], way.samples[before]));
+                let offset = sub(at, from);
+                let ahead = offset[0] * toward[0] + offset[1] * toward[1];
+                let aside = (offset[0] * toward[1] - offset[1] * toward[0]).abs();
+                let facing = (out_of[0] * toward[0] + out_of[1] * toward[1])
+                    / distance(way.samples[end], way.samples[before]);
+                if ahead > 1.0
+                    && ahead <= reach
+                    && aside <= way.half_width
+                    && facing <= -PARALLEL_COS
+                    && best.is_none_or(|(known, _)| ahead < known)
+                    && self.dry(from, at)
+                {
+                    best = Some((ahead, at));
+                }
+            }
+        }
+        best.map(|(_, at)| at)
+    }
+
     /// How a candidate street edge sits against what is already laid:
     /// whether it only repeats a carriageway beside it, and whether it
     /// crosses one.
@@ -266,10 +298,20 @@ pub fn lay(
     }
     // A street that stops within a block of another carriageway runs on to
     // it, so districts' grids meet each other and the roads beside them.
-    // The run-on starts on the street's own last point.
+    // The run-on starts on the street's own last point. Where another
+    // street's end faces it on the way, it runs to that end instead of past
+    // it: the two are one street, not two drawn side by side.
     for (end, surface) in dead_ends.into_iter().zip(ends_of) {
-        if let Some(met) = network.ahead(end.at, end.toward, end.reach) {
-            lay(network, vec![end.at, met], surface, &settlement.id)?;
+        let met = network.ahead(end.at, end.toward, end.reach);
+        let facing = network
+            .facing_end(end.at, end.toward, end.reach)
+            .filter(|facing| {
+                met.is_none_or(|met| {
+                    distance(end.at, *facing) <= distance(end.at, met) + FACING_PAST_M
+                })
+            });
+        if let Some(to) = facing.or(met) {
+            lay(network, vec![end.at, to], surface, &settlement.id)?;
         }
     }
     Ok(())
@@ -557,8 +599,9 @@ impl Lattice {
 
     /// One street's authored points. A bent street shares every node with
     /// the streets it meets. A straight one is its ends and any pinned node,
-    /// and where it ends on another street it runs just past that street's
-    /// middle.
+    /// and where it ends on a street that carries on past it, it runs just
+    /// past that street's middle. Two streets that both end on one node share
+    /// it: the plan's joint pass makes them one street round the corner.
     fn street(&self, nodes: &[usize], long: bool, pinned: &BTreeSet<usize>) -> Vec<Point> {
         let ends = [nodes[0], nodes[nodes.len() - 1]];
         let mut points: Vec<Point> = nodes
@@ -570,7 +613,9 @@ impl Lattice {
         for (at, (end, toward)) in ends.into_iter().zip([(0, 1), (last, last - 1)]) {
             let meets = self.links[at]
                 .iter()
-                .any(|edge| (*edge < self.long_edges) != long);
+                .filter(|edge| (**edge < self.long_edges) != long)
+                .count()
+                > 1;
             if self.straight && !pinned.contains(&at) && meets {
                 let out = sub(points[end], points[toward]);
                 let past = scale(

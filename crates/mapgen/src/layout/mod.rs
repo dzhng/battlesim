@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// A request pins this; a change that moves any generated point renames it.
-pub const GENERATOR_VERSION: &str = "layout-4";
+pub const GENERATOR_VERSION: &str = "layout-5";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -206,6 +206,11 @@ pub fn generate_layout(
         .map(|(index, road)| roads::surface(&context, index, road))
         .collect::<Result<Vec<_>, _>>()?;
     surfaces.extend(towns::surfaces(&context, &towns)?);
+    let blocks: Vec<&[geometry::Point]> = towns
+        .iter()
+        .flat_map(|town| town.blocks.iter().map(|block| &block.ring[..]))
+        .collect();
+    let surfaces = crate::joints::close(surfaces, [context.extent; 2], &blocks);
     let settlements = placed
         .sites
         .iter()
