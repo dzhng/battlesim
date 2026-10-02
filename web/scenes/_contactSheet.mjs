@@ -11,15 +11,27 @@ export async function contactTour(ctx) {
     tick: 30,
     grass: true,
   });
-  // Bring the observers into the shortened weapon ranges before capturing reports.
+  // Approach from the open ground west of the town. The town's centre can
+  // refuse the whole formation, leaving every observer at its starting point.
   await lab(page, () =>
     window.__lab.route.command({
       kind: "attack_move",
       units: window.__lab.route.observation().own.map((u) => u.id),
       gesture: 1,
-      goal: [1000, 800],
+      goal: [700, 800],
     }),
   );
+  await lab(page, () => window.__lab.route.advance(1));
+  const approach = await lab(page, () => window.__lab.route.acks().at(-1)?.ack);
+  const admitted =
+    approach && !approach.error && approach.placement?.destinations.some((d) => d.placed);
+  await ctx.writeEvidence("contact-approach.json", approach);
+  ctx.check(
+    "the contact approach admits observers before capture",
+    !!admitted,
+    JSON.stringify(approach),
+  );
+  if (!admitted) return page.close();
   const mixedReports = (o) =>
     o.contacts.some((c) => !c.primaryLabel) && o.contacts.some((c) => c.primaryLabel);
   // Prefer a moment with both kinds of report, so the panel check below has an
