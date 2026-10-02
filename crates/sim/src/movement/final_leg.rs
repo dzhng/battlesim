@@ -68,6 +68,15 @@ pub fn final_leg(
     };
     let mut g = vec![f64::INFINITY; n * n];
     let mut parent = vec![u32::MAX; n * n];
+    let point = |k| {
+        if k == start {
+            from
+        } else if k == goal {
+            to
+        } else {
+            center(k)
+        }
+    };
     let goal_c = center(goal);
     let h = |k: usize| {
         let d = center(k) - goal_c;
@@ -114,10 +123,13 @@ pub fn final_leg(
                 continue;
             }
             let diagonal = di != 0 && dj != 0;
+            if !clear_segment(point(cell), point(next), &solids, &soldiers, radius) {
+                continue;
+            }
             if diagonal {
-                // No corner cutting.
-                let a = index(ci + di, cj).is_some_and(&mut open_cell);
-                let b = index(ci, cj + dj).is_some_and(&mut open_cell);
+                // Ground remains a cell field; do not cut a water/slope corner.
+                let a = index(ci + di, cj).is_some_and(|k| walkable(center(k)));
+                let b = index(ci, cj + dj).is_some_and(|k| walkable(center(k)));
                 if !(a && b) {
                     continue;
                 }
@@ -152,26 +164,29 @@ pub fn final_leg(
     Some(pull(&points, &solids, &soldiers, radius))
 }
 
+/// Body clearance belongs to the actual segment, including a route's exact
+/// endpoints: their containing grid cell's centre may lie inside a body.
+fn clear_segment(a: V2, b: V2, solids: &[Obb2], soldiers: &[V2], radius: f64) -> bool {
+    let apart = 2.0 * radius;
+    solids
+        .iter()
+        .all(|s| !s.meets_segment(a, b, radius) || s.contains(a, radius))
+        && soldiers.iter().all(|&q| {
+            let ab = b - a;
+            let t = ((q - a).dot(ab) / ab.dot(ab).max(1e-12)).clamp(0.0, 1.0);
+            (a + ab * t - q).length() >= apart || (q - a).length() < apart
+        })
+}
+
 /// Greedy string-pulling on the exact shapes: from each kept point, on to
 /// the furthest later point in plain sight, stopping at the first that is not.
 fn pull(points: &[V2], solids: &[Obb2], soldiers: &[V2], radius: f64) -> Vec<V2> {
-    let apart = 2.0 * radius;
-    let clear = |a: V2, b: V2| {
-        solids
-            .iter()
-            .all(|s| !s.meets_segment(a, b, radius) || s.contains(a, radius))
-            && soldiers.iter().all(|&q| {
-                let ab = b - a;
-                let t = ((q - a).dot(ab) / ab.dot(ab).max(1e-12)).clamp(0.0, 1.0);
-                (a + ab * t - q).length() >= apart || (q - a).length() < apart
-            })
-    };
     let mut out = Vec::new();
     let mut at = 0;
     while at + 1 < points.len() {
         let mut next = at + 1;
         for k in at + 2..points.len() {
-            if clear(points[at], points[k]) {
+            if clear_segment(points[at], points[k], solids, soldiers, radius) {
                 next = k;
             } else {
                 break;
@@ -259,6 +274,31 @@ mod tests {
             a = b;
         }
         assert!(clear(from, &route, &[face], 0.3), "{route:?}");
+    }
+
+    #[test]
+    fn a_soldier_beside_a_wall_routes_round_a_man_without_entering_the_wall() {
+        let wall = Obb2 {
+            center: v2(947.0, 743.0),
+            yaw: 0.0,
+            half: v2(0.4, 20.0),
+        };
+        // His disc clears the face, but his containing grid cell's centre
+        // lies inside it; he can escape diagonally away from the standing man.
+        let from = v2(947.7076674060205, 744.5683391358108);
+        let to = v2(947.9, 740.0);
+        let man = v2(947.9, 744.0);
+        let route = final_leg(from, to, &[wall], &[man], 0.3, 40.0, |_| true)
+            .expect("a way round the standing man");
+        assert_eq!(route.last(), Some(&to));
+        assert!(clear(from, &route, &[wall], 0.3), "{route:?}");
+        let mut a = from;
+        for &b in &route {
+            let ab = b - a;
+            let t = ((man - a).dot(ab) / ab.dot(ab)).clamp(0.0, 1.0);
+            assert!((a + ab * t - man).length() >= 0.6 - 1e-9, "{route:?}");
+            a = b;
+        }
     }
 
     #[test]
