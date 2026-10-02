@@ -3067,7 +3067,7 @@
       "range_m": 150.0,
       "reload_s": 5.0,
       "scatter_mrad": 30.0,
-      "speed_mps": 50.0,
+      "speed_mps": 100.0,
       "stationary": false,
       "structural_damage": 10.0,
       "suppression_radius_m": 8.0,
