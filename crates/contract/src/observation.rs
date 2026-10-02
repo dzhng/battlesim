@@ -317,7 +317,7 @@ pub struct Blast {
 pub enum MoveState {
     Idle,
     Moving,
-    /// Yielding to friendly traffic; `blocker` says who.
+    /// Yielding to vehicle traffic; `blocker` says who.
     Waiting,
     /// No known route; the destination is kept and retried on relevant change.
     RouteBlocked,

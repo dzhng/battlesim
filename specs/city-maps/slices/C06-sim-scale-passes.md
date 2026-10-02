@@ -46,8 +46,12 @@ hanging the harness. Successful candidate order is unchanged.
 Fine routes now ask the existing boolean walkability query; bridges, water,
 steep ground and bounds agree with the full surface query. This simplification
 produced no measured speedup and does not substantiate a fine-routing bottleneck.
-Matched city early/late digests and [system costs](../scale-lane.md#c06-termination-checkpoint)
-remain the scale lane's evidence. C06 is still open against the tick budget.
+On the frozen [initial contact workload](C05-measuring-tools.md#generated-contact-baseline),
+the pass retires 369.9 / 499.4 G step instructions early/late versus 369.5 /
+498.2 G before; movement averages 80.343 / 115.399 M instructions per tick,
+effectively unchanged. Digests remain `32ba0e3c667a728b` / `1afb9cf97c2120f3`.
+Movement, bounded rejoin, geometry parity and authority/replay checks pass.
+This is termination proof, not a measured speedup or current timing admission.
 
 ## Outcome — exact per-tick bounds; cover still red
 
@@ -58,10 +62,13 @@ unit slice is immutable. The regression measures fallen-squad amplification in
 an isolated process: remains may add gather work, but more vehicles must not
 multiply that work. Restoring the old traffic scan makes the regression fail.
 
-Matched city early/late digests are unchanged; measured instruction gains and
-the next cover-planning owner live in the scale lane's
-[checkpoint](../scale-lane.md#c06-live-traffic-and-sight-bounds-checkpoint).
-No mechanic or scheduling delay was introduced. C06 remains open.
+The same frozen 60 s contact controls retire 356.5 / 457.5 G step instructions
+early/late, versus 369.5 / 498.4 G before this pass. Movement drops to
+77.863 / 96.912 M instructions per tick and sight to 23.941 / 25.088 M.
+Both exact digests above remain unchanged. Fine diagnostic brackets are removed
+after identifying cover planning; the production report retains its system
+contract. No mechanic or scheduling delay was introduced. Loaded clocks are
+not timing admission.
 
 ## Outcome — impossible engagement searches
 
@@ -71,8 +78,20 @@ retired 18.7 G instructions. A conservative necessary range condition now avoids
 that proven empty search. Ordinary near-target candidates and boundary cases keep
 the original exact search. The negative public-battle cost test and positive
 edge-lean test both have red/green proofs; existing cover/replay tests stay green.
-Matched city costs and unchanged digests live in the
-[checkpoint](../scale-lane.md#c06-impossible-engagement-checkpoint).
+The old public battle raises peak movement cost from 405,912 to 85,232,244
+instructions for a distant visible enemy; the range rejection removes that
+amplification. Dropping the lean allowance fails the positive boundary test.
+
+| Matched frozen 60 s contact cost | Before | After |
+|---|---:|---:|
+| Early step, G instructions | 356.5 | 278.9 |
+| Late step, G instructions | 457.5 | 348.7 |
+| Early movement, mean M/tick | 77.863 | 34.203 |
+| Late movement, mean M/tick | 96.912 | 36.557 |
+
+Digests remain `32ba0e3c667a728b` / `1afb9cf97c2120f3`; rounds remain 149 / 124.
+Cover and authority/replay checks pass. These instruction gains do not establish
+current native or browser timing admission.
 
 ## Measured finding — before local fog invalidation
 
@@ -431,3 +450,54 @@ initial-view experiment, not a whole-battle or browser timing claim. The source
 change is discarded; existing public cost requirements stay unchanged. Remaining
 Fog plus Learning work remains the next attribution target, with current full
 report means of 54.941 and 59.969 million instructions per tick early and late.
+
+## Outcome — changed edges during infantry refinement
+
+Incremental infantry refinement can outlive the knowledge revision on which its
+coarse path was admitted. A new body can close a diagonal's shared edge before
+refinement reads it. Missing edges now reject that candidate through the existing
+bounded route-failure path; the planner's revision check owns the fresh search.
+No stale crossing is emitted, and unchanged geometry keeps the same path.
+
+The public Battle regression adds a body during planning. It reproduces the
+first-edge panic on the original source, then proves eventual publication of a
+route fitting the actual changed world, no pending job, and every serialized
+replay tick digest. Its deliberately tiny planning allowance stretches the
+revision transition; the watchdog is a completion check, not latency admission.
+A private phase probe confirms finite smoothing progress. The preserved current
+catalogue late admission crash selects this fix, but the full late run and scale
+budgets remain integration gates.
+
+## Outcome — current-main movement admission changes the measured load
+
+The combined build `c1fb0f09…` includes main's physical move certification and
+world ownership changes. Native and Wasm generation receipts match: Metro Large
+seed 4 retains map `7ea9ba8a…`, catalogue `6b0a5e8b…`, and 12,887 buildings,
+22,442 parts, 228,030 bays and 46,813 ground points. Rules are now `b7e67721…`.
+The earlier complete reports use different rules and remain historical controls.
+
+A bounded unmodified 150-tick early arm spends 1,179.833 million instructions per
+tick on average in Orders, with a maximum of 113,197.618 million at a scripted
+tick. Both scripted ticks are included; this is not ordinary per-tick cost.
+All 16 supply moves have no new goal at tick 1. At tick 150, blue's first 74-unit
+fighter wave yields eight new goals and four active routes; red's yields none.
+Tick 149 has no movement goals on either side, maximum displacement of 9.23 m
+and 8.65 m, and one launched round. Tick 150 ends with 200 living units, one
+round, and digest `5b586cfb01b49e34`. These public observations do not expose
+individual hidden preparation verdicts. Some short requested journeys also fail,
+so the validation allowance's travel bound alone is not a sufficient diagnosis.
+The city recipe shifts living starts toward contact by 850 m; conclusions from
+the unshifted rear-edge recipe were discarded.
+
+Fresh Open Medium seeds 5 and 8 and Metro Small seed 10 retain their exact map
+identities, but all three formerly accepted nine-unit moves are now refused with
+`no_valid_destination` and zero placed destinations. The ten historical pending
+infantry stay living and idle through 120 s, with null goals and zero pending
+work. Their final digests are `b5720017b15f56de`, `520de95a7c07cef3` and
+`80285fa00696bac4`. This proves refusal, not resolution of their earlier planning
+delays. Initial command-acceptance cost is outside those tick counters.
+
+Fresh full contact and browser admission wait for this movement contract to be
+resolved. No validation-budget increase, script shortening, destination bypass
+or performance parity claim is made. Raw receipts and traces stay in ignored
+`throwaway/scale-lane/` and the publication worktree's corresponding directory.

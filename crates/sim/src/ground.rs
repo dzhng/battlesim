@@ -456,6 +456,10 @@ struct Stamps {
 }
 
 impl KnownGround {
+    pub(crate) fn layer(&self) -> &GroundLayer {
+        &self.cells
+    }
+
     /// Nothing learned yet, over `layer`'s grid.
     pub fn new(layer: &GroundLayer) -> Self {
         KnownGround {

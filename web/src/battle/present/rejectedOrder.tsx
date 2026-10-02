@@ -16,6 +16,7 @@ const FROM_CURSOR_PX = [18, 14] as const;
  *  own name. */
 const REFUSAL_TEXT: Record<string, string> = {
   out_of_bounds: "OUTSIDE THE MAP",
+  no_valid_destination: "MOVE NOT AVAILABLE",
   unknown_target: "TARGET LOST",
   destroyed: "UNIT LOST",
   not_infantry: "INFANTRY ONLY",
@@ -39,11 +40,16 @@ export function RejectedOrder({ acks }: { acks: readonly AckEntry[] }) {
   const newest = acks[0];
   useEffect(() => {
     const error = newest?.ack.error;
-    if (!error) {
+    const destinations = newest?.ack.placement?.destinations;
+    const partial = destinations?.some((mark) => !mark.placed);
+    if (!error && !partial) {
       setShown(null);
       return;
     }
-    setShown({ text: refusalText(error.reason), at: pointer.current });
+    setShown({
+      text: error ? refusalText(error.reason) : "SOME MOVES NOT AVAILABLE",
+      at: pointer.current,
+    });
     const timer = setTimeout(() => setShown(null), SHOWN_MS);
     return () => clearTimeout(timer);
   }, [newest]);

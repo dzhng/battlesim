@@ -10,7 +10,6 @@ import config from "@fixtures/generated-battle.json";
 import recipes from "@fixtures/encounters.json?raw";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
-import type { CameraPresentation } from "@packages/renderer-core/src/cameraController";
 import { prepareBattle, PreparationFailed, type PreparedSession } from "@web/battle/prepare/client";
 import type {
   PrepareBattleRequest,

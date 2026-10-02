@@ -119,3 +119,26 @@ impl Bits {
         }
     }
 }
+
+/// Independent reconstruction of the final masked ground tail.
+pub fn ground(payload: &[f32], count: usize) -> Vec<f32> {
+    let mut bits = Bits { words: payload.iter().map(|v| v.to_bits()).collect(), at: 0 };
+    let mut rows = Vec::new();
+    let mut tile = 0;
+    for _ in 0..count {
+        tile += bits.integer();
+        let start = bits.read(8);
+        let len = bits.read(8) + 1;
+        let mask = bits.read(5);
+        let mut marks = [0; 5];
+        for (i, mark) in marks.iter_mut().enumerate() {
+            if mask & (1 << i) != 0 { *mark = bits.read(8); assert_ne!(*mark, 0); }
+        }
+        rows.extend([tile as f32, (start + len * 256) as f32,
+            (marks[0] + (marks[1] << 8)) as f32,
+            (marks[2] + (marks[3] << 8) + (marks[4] << 16)) as f32]);
+    }
+    assert!(bits.words.len() * 32 - bits.at <= 31);
+    while bits.at < bits.words.len() * 32 { assert_eq!(bits.read(1), 0); }
+    rows
+}

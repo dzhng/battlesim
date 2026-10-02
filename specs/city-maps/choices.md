@@ -4005,6 +4005,8 @@ than comparing different builds' rules. **Confidence:** high.
 
 ### Sound — medium confidence: keep public query arithmetic in Rust
 
+Superseded by [C33 simplified](#c33-simplified): the page has no query index; it builds its own world.
+
 **Choice:** After Deploy, the page imports a read-only Rust query index containing the already sampled ground, static surfaces and picking boxes. It also holds sparse static foliage needed to apply only the clearing this side learned. The battle's navigation and mutable world remain in its worker. A TypeScript query implementation would save a second Wasm instance but would also duplicate the simulation's interpolation, bridge, river and ray rules.
 
 **Gap:** C33 delegates query-index internals but does not choose the language or transport precision.
@@ -4029,7 +4031,7 @@ than comparing different builds' rules. **Confidence:** high.
 
 **Gap:** The lane requires world reuse but does not specify the worker handoff or restart ownership.
 
-**Reach:** Both generated and saved battles use this handoff. Other scenario routes export public geometry from their one worker-owned preparation too. Geometry and flight probes keep their explicit developer WorldView; production battle hooks do not construct one.
+**Reach:** Both generated and saved battles use this handoff. Since [C33 simplified](#c33-simplified) no route exports geometry from a worker: every route's page builds its own `WorldView`.
 
 **Verdict:** sound. It retains the existing command/publication authority and lets worker termination release all abandoned preparation allocations. **Confidence:** high.
 
@@ -5310,3 +5312,57 @@ exact matched openings pass and a real retained GPU allocation falsifies the che
 **Gap:** "Legible at battle distance and never mistaken for tactical marks."
 
 **Verdict:** provisional. Order paint is saturated yellow, glows, marches and keeps a width in pixels; road paint is lit like the ground, darkens in shadow, has no glow and a width in metres. Asked directly, both critiques put the crossings at no risk and the centre dashes at low risk against yellow marks and at low to medium against a white dashed mark along a street (the zone outline and the supply reach are white). **Confidence:** medium.
+## C06: reject stale infantry refinement edges
+
+**Choice:** A missing shared edge during refinement returns the existing route
+failure. The route planner already restarts a failed candidate when its knowledge
+revision changed; refinement adds no retry, geometry exception or new state.
+
+**Reason:** Coarse admission does not freeze the grid. A public body-add event
+reproduces the observed late-battle panic, so the shared-edge assertion is not a
+valid invariant across incremental steps. Static successful routes keep their
+sampling order; the affected battle now recovers instead of aborting. This is a
+named failure-path change, not a performance or unchanged-crash-digest claim.
+
+**Reach:** No runtime planning budget or latency contract changes. Completion
+and replay proof, and the remaining integration gate, live in the
+[C06 outcome](slices/C06-sim-scale-passes.md#outcome--changed-edges-during-infantry-refinement).
+
+**Verdict:** sound; high confidence. Geometry ownership stays with the current
+grid, and revision recovery stays with the existing planner.
+
+
+## C07: encode the final learned-ground tail through the existing carrier
+
+**Gap:** The captured real-catalogue five-minute early run violates the unchanged
+19,800 B maximum through a 1,313-run knowledge burst. Earlier non-map packing does
+not own these rows; simple absolute/delta varints still miss the gate.
+
+**Choice:** Extend the one publication serializer/decoder across the named ground
+tail seam. Declare one compact grammar in the producer's layout, reuse its raw
+u32 carrier/LEB/count/write and the browser's shared reader, and reconstruct the
+existing canonical four-word runs before existing physical/order validation.
+There is no legacy format fallback, per-side ground predictor, retained codec
+cache, second producer staging buffer, dependency, cap increase or delayed mark.
+
+**Verdict:** Sound, high confidence. All captured raw words reconstruct; the
+public burst is red before/green after; malformed tails preserve atomic retry.
+Count+encode costs about 0.012 M mean instructions against 3.582 M full packing.
+The decoder allocates the same owned canonical runs it already exposed, with
+minimum-wire and complete-logical-record admission before allocation. Byte and
+memory proofs remain scoped: the late battle panics, frozen replay is not final
+whole-battle admission, and browser clocks/cold allocator components do not prove
+loaded throughput or full-world process/GPU peak.
+## C33 simplified
+
+### The page builds its own world; the public query export is deleted
+
+**Choice:** The worker still builds the simulation's world once for the planner and the battle. The page builds its own plain world from the scenario's map with the simulation's `WorldView`, as it did before the startup lane, and answers picking, ground height, surface, learned foliage and camera clearance from it. `PublicWorld`, its lossless query payload, the worker-to-page transfer, the `PreparedWorld` copies of the world's exports and queries, and the tests that held the two query implementations in exact agreement are deleted: about 1,000 lines of production code and 170 of tests.
+
+**Gap:** The lane's contract asked for a page that constructs no simulation world. The owner decided on 2026-10-01 that this half goes.
+
+**Why:** Startup is 5 to 6 s against a budget of 30 s, and the lane's own measurement showed no startup gain from the export. Margin is spent on simplicity ([`AGENTS.md`](../../AGENTS.md), "One owner per concept"). The export was a second implementation of height, surface, ray and foliage queries that had to match the first to the bit; one code path for map queries is worth more than one fewer world build.
+
+**Reach:** One battle builds the world twice (worker, page), not once. The page's build runs behind the loading screen. The page's world has no navigation and no battle state, so no query can read hidden destruction. Where the export had moved surface, terrain-ray, water and learned-crown arithmetic into free functions so two worlds could share them, that arithmetic is back inside `WorldGeometry`, its one caller. The worker handoff, cancellation, the prepared replay, the fog change, the camera lab's catalogue map, the combat parity pair and the startup harness are unchanged.
+
+**Verdict:** sound. Battle digests and replays do not move; the generated and camera scenes pass unchanged; Mixed Small is playable 5 to 9 s after Deploy on a loaded machine, against 3 to 4 s for the export on a quieter one, with level retired instructions ([startup measurement](startup-lane.md#startup-measurement)). **Confidence:** high.

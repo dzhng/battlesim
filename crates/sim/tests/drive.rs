@@ -73,6 +73,31 @@ fn pace(kind: &str, yaw: f64, direction: &str) -> f64 {
 }
 
 #[test]
+fn wheeled_vehicles_turn_back_within_fourteen_metres_of_the_starting_line() {
+    for kind in ["jeep", "supply"] {
+        let mut b = battle(kind, [80.0, 60.0], 0.0, [40.0, 60.0], "forward", json!([]));
+        let poses = drive(&mut b, 60.0);
+        assert_eq!(
+            b.unit(UnitId(0)).unwrap().state,
+            MoveState::Idle,
+            "{kind} arrives"
+        );
+        let widest = poses
+            .iter()
+            .map(|p| (p.0.y - 60.0).abs())
+            .fold(0.0, f64::max);
+        assert!(
+            widest <= 14.0,
+            "{kind} turn needs {widest:.2} m beside its starting line"
+        );
+        assert!(
+            (b.unit(UnitId(0)).unwrap().position.xy() - sim::math::v2(40.0, 60.0)).length() < 1.0,
+            "{kind} reaches the destination behind it"
+        );
+    }
+}
+
+#[test]
 fn reverse_speed_is_the_fraction_of_forward() {
     for kind in ["tank", "supply", "jeep"] {
         let forward = pace(kind, 0.0, "forward");
