@@ -11,6 +11,9 @@ import { forestInside, type ForestShape } from "../terrain/forestShapes";
 //   other. Every crown fits its forest's physical shape and under its canopy
 //   over the simulation's own ground. A trunk knocked down is gone from the
 //   drawing where the side has seen the ground cleared (`treeCleared`).
+//   Which species a trunk is drawn as is the biome's: a wood is stands, each
+//   mostly one family's species, with the odd tree of no family among them
+//   (`speciesAt`). Every species is one size, so the mix changes only the look.
 // - `backdrop`: scenery past the map edge, where nothing is simulated —
 //   hedgerows along the patchwork's plot edges with trees standing in them,
 //   and copses. It keeps `backdrop.clear_m` off the map.
@@ -166,13 +169,7 @@ export function placeScenery(
       `scenery: no installed appearance named ${missing.map((k) => `"${k}"`).join(", ")}`,
     );
   const size = kinds.map((k) => sizes.get(k)!);
-  const species = trees.species.map((s) => ({ ...s, kind: kinds.indexOf(s.appearance) }));
-  const total = species.reduce((sum, s) => sum + s.weight, 0);
-  const pick = (rng: RandomGenerator) => {
-    let r = random.float(rng, 0, total);
-    for (const s of species) if ((r -= s.weight) < 0) return s;
-    return species[species.length - 1];
-  };
+  const pick = speciesAt(trees, kinds, biome.seed);
   return {
     kinds,
     forest: placeForests(site, trees, size, pick, stream(biome.seed, 1)),
@@ -187,7 +184,92 @@ export function placeScenery(
   };
 }
 
-type SpeciesPick = (rng: RandomGenerator) => { kind: number; tint: readonly number[] };
+/** The species a tree at (x, y) is drawn as, standing `inside` metres
+ *  within its forest's edge (`OPEN` where it has none to stand inside). */
+type SpeciesPick = (
+  rng: RandomGenerator,
+  x: number,
+  y: number,
+  inside: number,
+) => { kind: number; tint: readonly number[] };
+
+/** No forest interior: a strip, or scenery past the map. */
+const OPEN = -Infinity;
+
+/** One of `rows` by weight. */
+function weighted<T extends { weight: number }>(rng: RandomGenerator, rows: readonly T[]): T {
+  let r = random.float(
+    rng,
+    0,
+    rows.reduce((sum, s) => sum + s.weight, 0),
+  );
+  for (const s of rows) if ((r -= s.weight) < 0) return s;
+  return rows[rows.length - 1];
+}
+
+/** The biome's mix of species over the ground. The land is cut into stands,
+ *  the cells nearest seeded points `stands.size_m` apart, each one family's
+ *  (drawn by the families' weights, so a species' weight is its share of all
+ *  trees). A tree is first, by their weights, the odd one of no family, where
+ *  that species may stand; otherwise of its stand's family (`stands.purity`
+ *  of the time, else of any), a species of it by weight. */
+function speciesAt(trees: BiomeTrees, kinds: readonly string[], seed: number): SpeciesPick {
+  const species = trees.species.map((s) => ({ ...s, kind: kinds.indexOf(s.appearance) }));
+  type Row = (typeof species)[number];
+  const total = species.reduce((sum, s) => sum + s.weight, 0);
+  const odd = species.filter((s) => s.family === undefined);
+  const families = new Map<string, { weight: number; species: Row[] }>();
+  for (const s of species) {
+    if (s.family === undefined) continue;
+    const family = families.get(s.family) ?? { weight: 0, species: [] };
+    family.weight += s.weight;
+    family.species.push(s);
+    families.set(s.family, family);
+  }
+  const drawn = [...families.values()];
+  const { size_m, purity } = trees.stands;
+  const points = new Map<number, { x: number; y: number; family: (typeof drawn)[number] }>();
+  /** The seeded point of stand cell (i, j), and its family. */
+  const point = (i: number, j: number) => {
+    const key = (i + 0x8000) * 0x10000 + (j + 0x8000);
+    let p = points.get(key);
+    if (!p) {
+      const rng = stream(seed ^ STAND_SALT, key);
+      p = {
+        x: (i + random.float(rng, 0, 1)) * size_m,
+        y: (j + random.float(rng, 0, 1)) * size_m,
+        family: weighted(rng, drawn),
+      };
+      points.set(key, p);
+    }
+    return p;
+  };
+  const stand = (x: number, y: number) => {
+    const [ci, cj] = [Math.floor(x / size_m), Math.floor(y / size_m)];
+    let nearest = point(ci, cj);
+    let best = Infinity;
+    for (let j = cj - 1; j <= cj + 1; j++)
+      for (let i = ci - 1; i <= ci + 1; i++) {
+        const p = point(i, j);
+        const d = (p.x - x) ** 2 + (p.y - y) ** 2;
+        if (d < best) [nearest, best] = [p, d];
+      }
+    return nearest.family;
+  };
+  return (rng, x, y, inside) => {
+    let r = random.float(rng, 0, total);
+    for (const s of odd)
+      if ((r -= s.weight) < 0) {
+        if (inside >= (s.interior_m ?? OPEN)) return s;
+        break;
+      }
+    const family = random.bool(rng, purity) ? stand(x, y) : weighted(rng, drawn);
+    return weighted(rng, family.species);
+  };
+}
+
+/** Parts the stands' seeded points from every other stream of the seed. */
+const STAND_SALT = 0x57a2d5;
 
 function placeForests(
   site: ScenerySite,
@@ -204,9 +286,9 @@ function placeForests(
     /** Fit one tree at (x, y): scale it to its crown's room inside the shape and
      *  its top under the canopy over the lowest ground its crown covers. */
     const plant = (x: number, y: number) => {
-      const s = pick(rng);
-      const kind = size[s.kind];
       const edge = forestInside(f, x, y);
+      const s = pick(rng, x, y, f.kind === "stroke" ? OPEN : edge);
+      const kind = size[s.kind];
       let sz = (f.canopy * random.float(rng, rules.top[0], rules.top[1])) / kind.height;
       let sxy = Math.min(
         sz * random.float(rng, rules.girth[0], rules.girth[1]),
@@ -275,7 +357,7 @@ function placeBackdrop(
     return d - radius >= clear_m && d <= reach_m;
   };
   const tree = (rng: RandomGenerator, x: number, y: number) => {
-    const s = pick(rng);
+    const s = pick(rng, x, y, OPEN);
     const sz = random.float(rng, rules.tree_scale[0], rules.tree_scale[1]);
     const sxy = sz * random.float(rng, trees.forest.girth[0], trees.forest.girth[1]);
     if (!fits(x, y, size[s.kind].radius * sxy)) return;

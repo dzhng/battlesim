@@ -136,9 +136,25 @@ export interface ForestFloor {
 export interface TreeSpecies {
   /** A catalog appearance whose unit is `tree` (`assets/catalog.json`). */
   appearance: string;
+  /** Its share of all trees, against the other species' weights. */
   weight: number;
   /** Linear multiplier over the appearance's own albedo: the season's green. */
   tint: Rgb;
+  /** The family whose stands it grows in, with the family's other species
+   *  (`stands`). A species of no family is the odd tree among any stand's. */
+  family?: string;
+  /** It stands only this far inside its forest's edge, metres, and never in
+   *  a forest strip or past the map: a bare tree there would draw a gap in
+   *  foliage the simulation has. Only a species of no family may have one. */
+  interior_m?: number;
+}
+
+/** A wood is stands: patches about `size_m` across, each one family's.
+ *  `purity` of a stand's family trees are of its own family; the rest are of
+ *  any, by weight. */
+export interface StandRules {
+  size_m: number;
+  purity: number;
 }
 
 /** How the simulation's trunks are drawn as trees: each crown stays in its
@@ -180,6 +196,7 @@ export interface CopseRules {
 /** `biome.trees`: species and detail for forests and scenery. */
 export interface BiomeTrees {
   species: readonly TreeSpecies[];
+  stands: StandRules;
   /** Per-tree colour variation, as a fraction. */
   colour_jitter: number;
   forest: ForestRules;
@@ -479,8 +496,21 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
     if (!s.appearance) bad(`trees.species[${i}].appearance`, "is empty");
     within(`trees.species[${i}].weight`, s.weight, 0, 1000);
     tint(`trees.species[${i}].tint`, s.tint);
+    if (s.family !== undefined && !s.family) bad(`trees.species[${i}].family`, "is empty");
+    if (s.interior_m !== undefined) {
+      within(`trees.species[${i}].interior_m`, s.interior_m, 0, 1000);
+      if (s.family !== undefined)
+        bad(
+          `trees.species[${i}].interior_m`,
+          "is for a species of no family: a stand grows to its forest's edge",
+        );
+    }
   });
-  if (!t.species.some((s) => s.weight > 0)) bad("trees.species", "every weight is 0");
+  // Every tree a forest's edge, a strip or the backdrop draws is of a family.
+  if (!t.species.some((s) => s.weight > 0 && s.family !== undefined))
+    bad("trees.species", "no species of a family has a weight");
+  within("trees.stands.size_m", t.stands?.size_m, 1, 100000);
+  within("trees.stands.purity", t.stands?.purity, 0, 1);
   within("trees.colour_jitter", t.colour_jitter, 0, 0.5);
   range("trees.forest.top", t.forest.top, 0.1, 1);
   range("trees.forest.girth", t.forest.girth, 0.5, 2);
