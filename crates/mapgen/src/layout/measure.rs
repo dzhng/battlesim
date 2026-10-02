@@ -300,6 +300,72 @@ pub fn corridor_start(outline: &[Point], center: Point, toward: Point, front_m: 
     edge
 }
 
+/// The farthest a settlement's outline lies from its centre.
+fn reach(settlement: &crate::SettlementPlan) -> f64 {
+    settlement
+        .outline
+        .iter()
+        .map(|p| distance(settlement.center, *p))
+        .fold(0.0, f64::max)
+}
+
+/// How many bearings round a settlement an approach is judged along: a
+/// hundred metres apart at the corridor's far end.
+fn bearings(settlement: &crate::SettlementPlan, depth_m: f64) -> usize {
+    (libm::ceil(TAU * (reach(settlement) + depth_m) / 100.0) as usize).clamp(64, 720)
+}
+
+/// One bearing's corridor of a measured open approach: the ground the
+/// approach rule found open, and the generator keeps open.
+#[derive(Clone, Copy, Debug)]
+pub struct Corridor {
+    center: Point,
+    toward: Point,
+    /// Where it starts and ends along the bearing, from the centre.
+    along: [f64; 2],
+    half_front: f64,
+}
+
+impl Corridor {
+    pub fn contains(&self, p: Point) -> bool {
+        let offset = sub(p, self.center);
+        let along = dot(offset, self.toward);
+        let aside = dot(offset, [-self.toward[1], self.toward[0]]);
+        along >= self.along[0] && along <= self.along[1] && aside.abs() <= self.half_front
+    }
+}
+
+/// The corridors of every approach the plan records, one a bearing.
+pub fn approach_corridors(plan: &MapPlan) -> Vec<Corridor> {
+    let mut corridors = Vec::new();
+    for approach in &plan.approaches {
+        let Some(settlement) = plan.settlements.get(approach.settlement) else {
+            continue;
+        };
+        let step = TAU / bearings(settlement, approach.depth_m) as f64;
+        let (first, last) = (
+            libm::round(approach.from_rad / step) as usize,
+            libm::round(approach.to_rad / step) as usize,
+        );
+        for bearing in first..=last {
+            let toward = direction(step * bearing as f64);
+            let edge = corridor_start(
+                &settlement.outline,
+                settlement.center,
+                toward,
+                approach.front_m,
+            );
+            corridors.push(Corridor {
+                center: settlement.center,
+                toward,
+                along: [edge, edge + approach.depth_m],
+                half_front: approach.front_m / 2.0,
+            });
+        }
+    }
+    corridors
+}
+
 /// Every open approach to a settlement whose class measures them. An
 /// approach is a corridor of open ground as wide as the preset front and as
 /// deep as the preset depth, running out from the settlement's edge along one
@@ -332,13 +398,8 @@ pub fn approaches(plan: &MapPlan, presets: &PresetDefinitions) -> Vec<ApproachPl
             continue;
         }
         let center = settlement.center;
-        let farthest = settlement
-            .outline
-            .iter()
-            .map(|p| distance(center, *p))
-            .fold(0.0, f64::max);
-        let bearings =
-            (libm::ceil(TAU * (farthest + rule.depth_m) / 100.0) as usize).clamp(64, 720);
+        let farthest = reach(settlement);
+        let bearings = bearings(settlement, rule.depth_m);
         let step = TAU / bearings as f64;
         // What stands near enough for a corridor to reach.
         let near: Vec<&Obstacle> = obstacles

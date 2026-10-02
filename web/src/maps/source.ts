@@ -67,16 +67,19 @@ export interface SourcedMap extends ResolvedMap {
   sites: string | null;
 }
 
-/** The generator's documents: `fixtures/map-presets.json` and the physical
- *  template descriptors a request pins, as text. */
+/** The generator's documents, as text: `fixtures/map-presets.json`, the
+ *  physical template descriptors a request pins, and the unit and prop
+ *  catalog's documents (what a battle's rules carry as `catalog`), which
+ *  street furniture is placed from. */
 export interface GeneratorDocuments {
   presets: string;
   templates: string;
+  catalog: string;
 }
 
 /** The simulation's generator, as the Wasm module exports it. */
 export interface MapGenerator {
-  generate_map(request: string, presets: string, templates: string): string;
+  generate_map(request: string, presets: string, templates: string, catalog: string): string;
   map_generator_version(): string;
   template_catalogue_json(templates: string): string;
 }
@@ -111,7 +114,7 @@ export function newSeed(): string {
 export function generationRequest(
   generator: MapGenerator,
   choice: MapChoice,
-  documents: GeneratorDocuments,
+  documents: Pick<GeneratorDocuments, "presets" | "templates">,
   limits: CompileLimits,
 ): GenerationRequest {
   const { hash } = JSON.parse(generator.template_catalogue_json(documents.templates)) as {
@@ -175,6 +178,7 @@ export async function resolveMap(source: MapSource, access: MapAccess): Promise<
     JSON.stringify(source.request),
     access.documents.presets,
     access.documents.templates,
+    access.documents.catalog,
   );
   const outcome = JSON.parse(generated) as GenerateOutcome;
   if (outcome.status !== "ok") throw new MapRefused(outcome.diagnostics);

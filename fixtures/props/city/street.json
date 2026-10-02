@@ -60,6 +60,10 @@
       "destroyed": "removed",
       "appearance": {"drawn_by": "bus_shelter", "status": "systems_only", "map_only": true}
     },
+    "street_tree": {
+      "extends": "trunk",
+      "appearance": {"drawn_by": "street_tree", "status": "systems_only", "map_only": true}
+    },
     "scaffold": {
       "body": {"blocks": {"infantry": true, "vehicle": true}, "stops_rounds": false, "occludes": false, "weight_class": "medium", "hp": 120},
       "destroyed": "removed",

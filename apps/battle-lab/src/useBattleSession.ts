@@ -39,6 +39,7 @@ import {
 } from "@packages/battle-renderer/src/buildingObstacles";
 import { gameBiome } from "./gameBiome";
 import { mapAppearances, useGameAppearances } from "./gameAppearances";
+import { gameStandIns } from "./gameModels";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
@@ -205,7 +206,7 @@ export function useBattleSession({
       world && appearances
         ? {
             map: mapProps(world.exports, world.layout),
-            fit: new PropAppearances(appearances, world.layout),
+            fit: new PropAppearances(appearances, world.layout, gameStandIns),
           }
         : null,
     [world, appearances],
