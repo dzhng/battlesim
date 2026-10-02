@@ -45,10 +45,17 @@ off the page thread; geometry/flight probes retain their explicit developer view
 
 Narrow proofs pass: reused native preparation matches direct construction through
 180 combat ticks and replay; public grid/ray/PropId/foliage queries match exactly;
-26 focused web contracts pass. A browser test with GPU disabled exercises actual
+focused web contracts pass. A browser test with GPU disabled exercises actual
 preparation-worker adoption, three ticks, transferred geometry and replay. Against
 the frozen original Wasm (`4efec25b`), 1,323 point queries and 5,292 rays over the
 geometry, village and camera maps match exactly, including learned foliage.
+
+Independent review found that an initialization refusal could hide behind the
+mesh gate. A real browser regression fails under that gate, then passes with the
+existing error HUD and menu available before drawing; no canvas is created. The
+prepared replay adapter retains main's engine-build refusal contract. Unprimed
+visual review found no blocking clipping, contrast or overlap issue in the final
+refusal; normal clock/status is hidden to avoid implying playback is waiting.
 
 Startup/time/memory admission remains pending the shared GPU queue. Its final
 numbers and cold/warm cache conditions belong to [the lane](../startup-lane.md).

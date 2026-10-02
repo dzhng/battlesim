@@ -3614,6 +3614,18 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 
 **Verdict:** sound. The input rule change is explicit and the native build owns the new expectations. **Confidence:** high.
 
+### Re-record combat publication hashes after upstream normalizes variable spans
+
+**When:** Final startup integration onto `origin/main` at `42b4dfb7`.
+
+**Choice:** Refresh only the combat record's native packed-publication hashes after upstream changed how spans refer to variable observation tails. The same shot history and observed values can have a different packed representation; the new native bytes and WebAssembly bytes agree exactly. Every battle digest, fog hash and fixture input remains unchanged, and the original movement record is untouched.
+
+**Gap:** The combat record predates the upstream publication representation change.
+
+**Reach:** Current native and WebAssembly publication encoders remain held to one exact record. Earlier numerical and decoded-field comparisons retain their historical scope; this refresh does not authorize a simulation outcome change or relax the comparison.
+
+**Verdict:** sound. Only the native encoder's changed representation is re-recorded, with all state and fog expectations independently preserved. **Confidence:** high.
+
 ### Preserve whole-fog roof reach while making structure work local
 
 - **When:** C20 whole-surface followup.

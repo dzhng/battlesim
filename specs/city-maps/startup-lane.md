@@ -40,7 +40,7 @@ Read [`AGENTS.md`](../../AGENTS.md): narrow checks only, no full gate. Battle di
 
 ## Status
 
-In progress on `codex/city-maps-startup`, from main `4efec25b`.
+In progress on `codex/city-maps-startup`; integrated main through `42b4dfb7`.
 
 - C33: the preparation worker will become the battle authority. Reusing the
   prepared world matches direct initialization through 180 combat ticks and
@@ -56,13 +56,18 @@ In progress on `codex/city-maps-startup`, from main `4efec25b`.
   original movement pair is unchanged. The user authorized a named native math
   exception: pinned combat angle/spread functions remove system-libm rounding drift.
   Corrected native output matches both original and rebuilt Wasm for this sample.
-- Next: integrate latest main, complete startup and fog hardware measurements,
-  review the lane's final diff and push green checkpoints. No full `check`/`verify`
+- Review: the independent pass found an initialization refusal hidden behind the
+  mesh gate. The real browser regression now shows the existing error HUD and
+  usable menu without constructing a canvas. Native integration proofs pass;
+  implementation checkpoints are pushed.
+- Next: complete matched startup and fog hardware measurements and record admission. No full `check`/`verify`
   at lane closeout.
 
 ### Startup measurement
 
-Baseline inputs are frozen in a detached checkout at `4efec25b`, before C33.
+The final startup comparison freezes both arms at main `42b4dfb7`, with the
+startup implementation applied only to the candidate. An earlier frozen
+`4efec25b` baseline remains the C20 oracle and historical query reference.
 The generated scene measures the menu's Deploy-to-playable interval, including
 renderer resources. Both arms use a fresh Chromium instance/context, local Vite
 and the same seed and assets. Disk caches are uncontrolled; browser HTTP cache is
