@@ -2579,6 +2579,60 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 
 **Verdict:** open. Listed for the map lane: make the village's two roads one stroke through (140, 780), and run the lab and village roads to the edge or to something. **Confidence:** high that they need it.
 
+### A road changes width only where another road crosses it
+
+**Choice:** `joints::carry` replaces the rule that let a wider road turn a corner and stop a width and a half down a narrower one. Where unlike ways meet end to end, one of them is carried through the corner along the other's line to the first carriageway that crosses that line and covers the wider way's whole flat end. The wider way ends there, a quarter of a metre past the crossing road's middle, and the narrower one starts on the same point. A stroke still has one width and one kind: the change is two strokes meeting under a third.
+
+**Gap:** The old rule left a flat end with a square shoulder either side of the narrower road, in the open. An unprimed review ranked it the worst thing left about roads, and `tests/road_ends.rs` counted it sound (`Narrows`).
+
+**Verdict:** sound. The test now counts a wider road's shoulders as a flaw (`Shoulders`). Over its 36 maps: 362 flawed ends of 25,014 before (340 of them shoulders), 23 of 24,636 after (3 shoulders), under the unchanged bound of 10 in ten thousand. **Confidence:** high for the count; medium for the look, which one critique judged.
+
+### The shorter stretch is the one that changes, and a side road is not a crossing
+
+**Choice:** Two stretches could change: the narrower way's, on from the corner, or the wider way's, back from it. The pass walks both and takes the shorter. A side road that only joins the line (a T) covers one shoulder and is passed over; the change is made under a road that runs on both sides, or at the line's far end.
+
+**Gap:** The brief left the side open ("for example the shorter stretch, within a bound").
+
+**Verdict:** sound. Of 334 corners in the 36 maps, the wider way carried on in 309 and the narrower reached back in 25; 80 stop under a crossing road and 254 run to the line's far end, where it joins a road, leaves the map or stops. **Confidence:** medium.
+
+### No bound on the distance: the far cases are carried too, and counted
+
+**Choice:** Where no road crosses within a block or two, the stretch changes all the way to its far end. There is no fallback shape.
+
+**Gap:** The brief asked for the least bad honest shape where no junction lies within a sensible distance. Every other shape (the old tail, a flat end at the corner point, a change on the straight before the corner) shows the same step somewhere.
+
+**Verdict:** provisional. One way that is one width from end to end is honest and reads as a longer avenue, not as a defect. Counted: 51 of the 334 corners carry farther than 300 m, 19 farther than 400 m and one farther than a kilometre (1,369 m of street that became avenue). A bound with a different shape past it would bring the shoulders back for those 51. **Confidence:** medium; a long avenue where a street was planned may want a second look on a metro map.
+
+### A track no longer carries on from the end of a country road
+
+**Choice:** In the layout, a road may end on another road's end only if the two are of one kind (`roads::Network::joins`). A hamlet's track or a link between settlements joins where a road passes, in a T. A link that has no point on a settlement's roads to join, and may not join its centre either, is not laid.
+
+**Gap:** The layout let a road end on any road's end it carried straight on from. That made a paved road become a dirt track at a point in open country, a kilometre or more from any junction either way: about one such corner a map, and the pictures of a road turning onto a track.
+
+**Verdict:** sound. This is the fix at the emitter the brief preferred: the change of kind was being created needlessly, and carrying it in the joint pass would have turned whole tracks into country roads or whole country roads into tracks. After it, none of the 36 maps has a country road meeting a track end to end, and all 900 maps of the sweep still generate. The link that used to fall back to a settlement's centre, however many roads met there, is now refused there by the same rule as anywhere else; one map's centre would otherwise have had five roads. **Confidence:** medium: the road network of a map with such a corner differs from the one `layout-6` drew.
+
+### What is left: 9 ends in ten thousand
+
+**Choice:** `FLAWS_PER_TEN_THOUSAND` stays at 10 with shoulders now inside it: 23 of 24,636 ends (15 bites, 5 heels, 3 shoulders).
+
+**Gap:** Three corners of unlike roads are left as laid. In the one traced, mending it lost a joint, so the pass pinned its ways (the rule above that the pass never loses a joint); the other two were not traced.
+
+**Verdict:** provisional. Heels went from 2 to 5 and bites from 20 to 15 as the roads moved; neither kind was worked on here. **Confidence:** medium.
+
+### What the unprimed critique still saw
+
+**Choice:** Left as they are, and listed. One unprimed critique of four close-ups of Mixed Medium seed 2 found no shoulders and no step at any of the four corners, and named two other things.
+
+**Gap:** (1) Where a street's short link (20 m, between two turns of about 55°) had joined an avenue's end, the avenue's width now runs through that double bend, and a side street meets its outer point: the critique called the bend swollen and lumpy with a spike where the side street attaches, its worst finding. The double bend was there before at the street's width, with the old step beside it. (2) Where the track used to leave the end of the village's country road, the road now stops at its last block and a street that had met the track stops 55 m away: two flat dead ends in one view, both of the kind the pass has always left ("at the last block it serves").
+
+**Verdict:** open. The first belongs to the parcel pass's links (a link to an avenue's end need not dogleg), the second to dead ends in general. **Confidence:** high that both are visible; neither is a width change.
+
+### The generator is `layout-7`, and its cost did not move
+
+**Choice:** `GENERATOR_VERSION` is `layout-7`. The map-layout and encounter parity records are re-blessed and Market Town is saved again.
+
+**Verdict:** sound. Over a 100-seed sweep of every type and size, before and after, the median instructions retired by generation and compilation are within 2% either way in eight cells and 5% lower in Open Large (Metro Large 8.95 G before, 8.82 G after; Mixed Small 2.39 G and 2.41 G). **Confidence:** high.
+
 ## Reuse manifest removed
 
 **When:** 2026-10-01, at the owner's request: delete it unless it can be justified.
@@ -2914,6 +2968,87 @@ codec dependency or new simulation state. **Confidence:** High.
 
 **Verdict:** sound. The final view gains one uniform comparison per terrain fragment; the machine's run-to-run noise is hundreds of times that. **Confidence:** high.
 
+## C70 river bank bands
+
+### The bands are wet silt, then bare earth whose outer line wanders in
+
+**Choice:** Two bands by the simulation's distance from the water's edge (`groundShore`, the biome's `shore` row): wet silt for 0.6 m, then bare earth out to 5 m at most. The earth's outer line wanders in toward the water by up to half that reach and never out past it. Grass stands nowhere on the wet bank and thickens all the way across the earth.
+
+**Gap:** "Band widths, palettes, noise" are delegated; the slice names bed, wet bank, mud and grass.
+
+**Evidence:** The one-sided line keeps the water's distance bounded: nothing reads it past `mud_m`. The first line was one octave of value noise on the map's axes with its contrast stretched; fresh eyes called it scalloped at 250 m and "flat runs and sudden jogs" at 65 m, as they had C69's ragged band. It is now two octaves on lattices turned from the map's axes and from each other, with no clamp; a second critique still called it regular lobes at 250 m, with high confidence.
+
+**Verdict:** sound for the bands and the bounded reach; provisional for the line, which wants something other than value noise. The bank is still one width on both sides of every bend (no point bar, no cut bank), which fresh eyes read as a stripe at 250 m. That is bank art, out of this slice. **Confidence:** medium.
+
+### "At or above the grass's luminance" is a floor against the field the bank lies on
+
+**Choice:** Both bands are drawn at least `shore.lift` (1.15) times as light as the plot under them, in their own hue: the palette's colour scaled up where it is darker than that. The plot's lightness is its own colour with its rows at their mean, eased to the verge's over 10 m toward the plot's edge.
+
+**Gap:** The slice says "at or above grass luminance, differing by hue" and does not say which grass: fields run from dark young crop to wheat twice as light.
+
+**Evidence:** A fixed palette light enough for wheat was a pale road beside every dark field (banks at twice the field's luminance in the first round). A floor against the pixel's own ground carried each furrow's stripe into the bank. A floor against the plot stepped at every plot edge that meets the river: fresh eyes named those seams and wedges the first thing to fix. Eased to the verge's lightness at the plot's edge, two fields' banks meet in one tone. The lift is above 1 because a bank facing away from the sun is lit less than the flat field beside it.
+
+**Verdict:** sound against the rule, checked on rendered frames on each bank separately (`river` scene). Within 10 m of a plot's edge a bank beside a light crop can sit a little under that crop; the scene's medians hold. **Confidence:** medium: the bank's tone still follows the field's, more gently.
+
+### A bank's shading shows half its true slope
+
+**Choice:** `shore.relief` (0.5) scales the slope `groundBank` shades by. Validation holds it to at most 1.
+
+**Gap:** C69 left "the bank reading as a slope rather than a smudge at a low sun" to the look.
+
+**Evidence:** The lab's banks slope 14°. Lit as cut, the bank facing away from a sun 17° up takes almost no direct light: the dark band with nothing above it that C69's critique called a smudge. At half the slope it keeps, by the angles, about three fifths of the flat ground's, on a band that is now bare earth and reads as a bank.
+
+**Verdict:** provisional. Both critiques saw no relief on the banks at 250 m under a low sun, and the second called the bank a flat stripe at every height; more relief costs the luminance rule on the far bank (it needs more lift). **Confidence:** medium.
+
+### The water's light is drawn into its colour, in lanes that hold their distance from the bank
+
+**Choice:** The surface's colour carries streaks of light (`waterSurface`): noise in the distance from the water's edge, broken along the stream, fading to its mean as a pixel outgrows a ripple. The surface clears to the bed over 0.35 m at its edge. Its numbers are the biome's `water` row. The ripples' normal is as it was.
+
+**Gap:** C69 left "the water's own look from above" and "ripples and glints on every reach".
+
+**Evidence:** From above a reflection shows ripples only where the sun lies behind the water: one reach in the lab's top-down frame, none at the play camera. Ripples drawn as lit crests of the same noise read as cloud on the water, then as flecks streaked one way across every bend. Lanes by distance run with the channel round every bend and cost no along-stream coordinate. A wide pale shallow band read as haze and made the river "a convex tube"; it is a thin rim now.
+
+**Verdict:** provisional. It no longer reads as a road, and the streaks follow every bend; a second critique read them at 250 m as lane markings and from straight above at 25 m as paint smears, and was convinced only by the low, close view. The water does not move, and from straight above it has no glint under any sun; a river's width is the simulation's, so a straight one still reads as a canal. **Confidence:** medium.
+
+### The luminance rule is checked on rendered frames, a bank at a time
+
+**Choice:** The `river` scene walks sections across each bank at two stations and compares the frame's luminance on the wet bank and the earth with the grass on the same section, as medians per bank, with their hue apart by 6 in CIELAB's a*b* plane.
+
+**Gap:** "Luminance per band ≥ grass" does not say where or how.
+
+**Verdict:** sound. Pooled over both banks the old dark shore read 1.04 times the grass at the wide station, on the sunlit bank's surplus; a bank at a time it read 0.58 and 0.73 on the banks facing away. **Confidence:** high.
+
+### The water's reach did not need widening
+
+**Choice:** `groundReach`'s water term reads the earth's reach (`mud_m`) in place of the old shore width and the surface's shallows.
+
+**Gap:** The brief asks to widen the reach to what the bands read.
+
+**Evidence:** The bank's shading already reads 12 m from the water in the lab and on generated maps (a 4.8 m bank and a triangle past its top), farther than the 5 m the bands read, so the surface field lists the same records as before. A river level with its land would read 5 m where it read 3.
+
+**Verdict:** sound. **Confidence:** high.
+
+### `fog-look` was not rerun
+
+**Choice:** The darkest-seen check (`fog-look`) was not run for this slice.
+
+**Gap:** The slice lists "the `shadow_floor` scene check".
+
+**Evidence:** That scene draws the village, which has no water. The village's nine stations without grass are byte-identical before and after.
+
+**Verdict:** sound; it runs at the lane's milestone. **Confidence:** high.
+
+## C71 river bank roundness
+
+### The shading normal was C69's; this slice bounds its tilt and keeps its check
+
+**Choice:** `groundBank` is unchanged but for one line: the slope it shades by is the bank's times `shore.relief`, never past tan 40° (`MAX_SLOPE`, the bound scars already had). Its blend widths are C69's.
+
+**Gap:** The slice was written before SG2's fallback landed in C69.
+
+**Evidence:** Walking each bank, the shading steps by at most 1.5% of the flat ground's luminance (bar 8%); the same frames with the bank's shading off step by 18.7%, 176 pairs over the bar. No map the contract admits has a bank past 35°, so the bound is not reachable in a test.
+
+**Verdict:** sound. Beside relief the bank is still lit as if the land past it were flat (C69's note). **Confidence:** high.
 ## C06 per-tick geometry bounds
 
 ### Cache derived bounds only while their authoritative positions are stable
@@ -3685,6 +3820,48 @@ ownership stays unchanged and no new dependency is introduced.
 **Cost:** Hashing occurs once at build time; replay recording copies one 64-character identity, and playback compares it once. No new tick work, codec dependency or battle digest input. The contract crate is reused as a build dependency. Native red/green checks expose the formerly accepted mismatched build through `Battle::from_replay`; same-build replay pins every tick digest. Scope tests prove art-only stability and source, dependency, compiler and semantic cfg invalidation. Worker refusal and actual native/Wasm fingerprint parity are checked on the rebuilt module.
 
 **Verdict:** Sound within the current supported build inputs. Compiled scenario storage and broader scale admission gates remain separate unfinished work. **Confidence:** High.
+## C06 infantry town corner routes
+
+**Choice:** A connected coarse infantry cell is permission to walk through its
+free sub-cells, not permission to cut straight between its entry and exit. The
+route reconstructs a bounded local connector and certifies every emitted link
+with the same sampled reader used by route timing and smoothing. A returned
+illegal segment still has infinite cost; no failed route is made finite by
+changing the timing rule. Vehicles keep their existing physical clearance.
+
+**Why:** C59 exposed an infantry route accepted by coarse search but rejected by
+the timing consumer. The public corner regression reproduced it without a city.
+A squad bending around that corner is the expected physical behavior. The
+alternative of rejecting connected cells would unnecessarily close passages
+whose free half-metre path already exists. A whole-map fine search would add
+storage and work unrelated to the local defect.
+
+**Reach:** Infantry waypoints, costs, planning completion ticks and affected
+battle digests intentionally change. Legal endpoints use their actual containing
+cells; bounded nearest-fit selection remains, but returned first links must pass
+the sampled reader. Local connection is an incremental planning phase, with no retained
+full-extent fine data. Certified infantry links remain available to smoothing
+until a longer link passes its reader, because even collinear merging changes
+sample positions. This supersedes C59's historical infinity limitation; changing
+the encounter planner to consume the corrected timings belongs to its owner.
+
+**Verdict:** sound for the focused contracts. Public timing covers narrow foot
+passage, blocked/disconnected and boundary cases. A small battle checks actual
+soldier bodies and same-build replay under the smallest planning budget. NavGrid
+certifies its sampled mask, while movement owns exact body legality. Generated
+town admission and native city cost remain open in the scale lane. **Confidence:**
+high for the regression and replay, medium across generated towns.
+
+
+## C07: variable word-span copies
+
+**Choice:** Generalize the existing copy operation through layout-owned per-group alignment: fixed rows preserve complete-row source/count checks; variable collections accept word spans. Retain one decoder and one flat baseline. Use exact eight-word sparse anchors, a same-position match preference, greedy forward extension and literals between retained spans. Choose the smallest of copies, replacement and snapshot after exact preflight.
+
+**Why:** Measured own-group section shifts still resent tails after the corpse fix. A public route edit among 80 squads needed 53,568 B, now 376 B with complete float-bit reconstruction. Across 450 captured active transitions, own max falls 51,968→10,656 B and p95 27,200→8,556 B; isolated mean encoding instructions rise 0.288→1.840 M. The integration owner accepts this measured tradeoff against current whole-step costs; whole-record admission remains open. Bitmask/XOR estimates did not address the shifted retained tail adequately.
+
+**Bound:** One u32 per eight old variable words; aggregate scratch remains ≤12.8 MiB because fixed groups' smallest row is five words and all groups partition the admitted baseline. Exact comparisons avoid identity/hashing assumptions and collision scans. Sorting and two greedy scans are O(words log anchors), with fixed eight-word comparisons and no retained operation list. Fallible index and complete record reservation precede output/cursor commit. Existing record buffers and fog ownership stay unchanged.
+
+**Verdict:** Sound and independently reviewed. Supported bits/order, fixed alignment, malformed retry and retained observations are verified. Full active early/late bytes, decoder throughput, full packing cost and peak overlap remain open under the unchanged 19.8 KB and memory contracts. **Confidence:** High for reconstruction; admission pending integration.
 ## C15 interior atlas
 
 ### A cell is one whole room, 128 px square
@@ -3750,3 +3927,32 @@ ownership stays unchanged and no new dependency is introduced.
 **Gap:** The slice judges the sheet, not the read behind glass.
 
 **Verdict:** the mechanism's own behaviour, the same for upstream's photographs. The mock-up shows dark, coloured, slightly streaked panes: not holes, not rooms. If the user wants furniture from above, the lookup has to change, which Q-E forbids, or the pinhole has to move, which is this recipe. **Confidence:** high that it happens, low on whether it matters.
+### A squad corridor starts at a member the known grid admits
+
+**Choice:** Select the closest living soldier whose position is standing room
+in the side's navigation grid before falling back to the physically nearest
+member. A squad's centroid is still never its corridor start. Road preference
+measures the same physical nearest member as before.
+
+**Why:** The old grid reconstruction tolerated an invalid first link, so a
+physically clear soldier near a wall could seed a usable corridor despite being
+rejected by the conservative sampled mask. Certifying links exposed that mismatch:
+a small Battle that arrived before became blocked. Choosing another existing
+standing member restores the corridor contract without weakening the mask or
+granting a body-exit exemption. This intentionally changes corridor starts and
+affected digests; movement's exact body checks still decide each soldier's steps.
+
+**Verdict:** supported by the old/new Battle comparison; follow-up verification
+is recorded in C06. A direct non-standing virtual anchor has no guaranteed legal
+timing; nearest-fit selection is not permission to publish an invalid segment.
+
+
+## C07: reuse unchanged decoded static groups
+
+**Choice:** Bundle the existing word baseline with decoded corpse and known-prop arrays in `ObservationDecoder`. Buffer identity witnesses unchanged static words; validate the current header's exact fixed-row count before reusing arrays, rows and coordinates. Rebuild a whole static group when its words change. Commit the bundle after the complete frame validates, and clear it on side invalidation; fresh epochs bypass it.
+
+**Why:** Sparse delivery already retains unchanged static words, but decoding recreated every row and coordinate on every own-unit update. Unchanged 20,000-corpse/2,000-prop delivery now constructs no per-static-row wrappers, closures, section objects, views or coordinates. Retaining the latest two view arrays adds references to the observation objects already returned, not a second word baseline or a complete retained observation. There is no per-row identity scheme or cache outside the decoder.
+
+**Contract:** Returned observations are immutable; the static arrays are now readonly in TypeScript. The current consumers read these rows; pose reconciliation copies positions into its own state, and effects read aliased prop extents. Cache reuse still checks current counts. Malformed cached counts and failures later in fog/ground cannot advance either baseline; corrected same-generation retry works. Changed-group views and prior observations remain distinct, and stale side/epoch records do not populate the cache.
+
+**Verdict:** Sound; identity and rollback proofs pass. Allocation claims describe skipped construction, not measured heap bytes or wall time. Producer layout/digests and all whole-record, peak and throughput gates remain unchanged. **Confidence:** High for reuse and reconstruction; runtime admission remains open.

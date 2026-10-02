@@ -237,3 +237,68 @@ test("oversized field dimensions cannot wrap past the wasm delivery bound", () =
     new ObservationDecoder(layout).decode(record(1, 0, 1, true, [], 65536, 65536)),
   ).toThrow(/admitted/);
 });
+
+test("a live variable route copy matches a fresh producer snapshot and retains prior observations", () => {
+  const units: LabUnit[] = Array.from({ length: 80 }, (_, i) => ({
+    side: "blue",
+    kind: "rifle",
+    position: [32 + (i % 10) * 24, 32 + Math.floor(i / 10) * 24],
+  }));
+  const scenario = labScenario(loadMap("geometry").definition, units);
+  const battle = new Battle(scenario, 1);
+  const snapshot = new Battle(scenario, 1);
+  const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
+  const decoder = new ObservationDecoder(layout);
+  const record = (b: Battle) => {
+    const length = b.publish("blue");
+    return new Float32Array(memory.buffer, b.publication_ptr(), length).slice();
+  };
+  try {
+    battle.step();
+    snapshot.step();
+    const initial = record(battle);
+    const before = decoder.decode(initial)!;
+    const command = JSON.stringify({
+      side: "blue",
+      seq: 1,
+      queued: false,
+      order: {
+        kind: "move",
+        units: [0],
+        gesture: 1,
+        goal: [300, 250],
+        route: "shortest",
+        direction: "forward",
+        facing: null,
+      },
+    });
+    expect(JSON.parse(battle.accept(command)).error).toBeNull();
+    expect(JSON.parse(snapshot.accept(command)).error).toBeNull();
+    let oracle = before;
+    for (let tick = 0; tick < 240; tick++) {
+      battle.step();
+      snapshot.step();
+      snapshot.resync_observation();
+      oracle = new ObservationDecoder(layout).decode(record(snapshot))!;
+      if (oracle.own[0].route.length > 0) break;
+    }
+    expect(
+      oracle.own[0].route.length,
+      "planning must finish within eight simulated seconds",
+    ).toBeGreaterThan(0);
+    const wire = record(battle);
+    expect(wire[layout.header.length]).toBeGreaterThan(initial[layout.header.length]);
+    expect(wire[layout.header.length + 1]).toBe(2);
+    expect((3 + wire[layout.header.length + 2]) * 4).toBeLessThan(2000);
+    const after = decoder.decode(wire)!;
+    expect(after.own).toEqual(oracle.own);
+    expect(before.own[0].route).toEqual([]);
+    expect(after.own[0].route.length).toBeGreaterThan(0);
+    battle.resync_observation();
+    expect(decoder.decode(record(battle))!.own).toEqual(after.own);
+    expect(before.own[0].route).toEqual([]);
+  } finally {
+    battle.free();
+    snapshot.free();
+  }
+});

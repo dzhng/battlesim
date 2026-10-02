@@ -57,6 +57,7 @@ impl Inputs {
             "recipe_hash": contract::identity::json_hash(&recipe)?,
             "encounter_seed": encounter_seed,
             "battle_seed": 1,
+            "engine_build": sim::battle::ENGINE_BUILD_ID,
         });
         Ok(Self {
             presets,

@@ -37,16 +37,20 @@ Read [`AGENTS.md`](../../AGENTS.md): narrow checks only, no full gate. A perform
 
 **C05 is complete; C06/C07 timing and delivery admission remain open.** The
 integrated representation and fog-cache checkpoints are on `main` (`4efec25b`);
-this branch also includes main through `6de4cbf7`. Historical tables below use
+this branch also includes main through `9810912b`. Historical tables below use
 original rules, map and catalogue. Current projectile tuning and `layout-6` need
 fresh measurements; new results are not performance-only parity against those
 historical battles.
 
-Current pickup: integrate the infantry route correction, then run the complete
-pipeline matrix and continue the measured fog/publication costs. The pipeline
+Current pickup: finish the running complete pipeline matrix and continue the
+measured fog/publication costs. The pipeline
 tool is on main (`07a6f792`). Replay build identity is integrated and checked.
-The paired browser observation/codec checks pass (25 tests). The endurance scene
-is queued under the shared GPU lock; no browser throughput verdict is claimed.
+The route-start correction and variable-span publication checkpoint are integrated;
+merged publication tests (13), the body-clear squad arrival/replay regression (1),
+and browser authority/observation/codec tests (39) pass. Native and Wasm share the
+new engine identity (`0f4153f7…`). The saved endurance scene reached startup but failed on a missing
+effect flipbook's LFS content; the required runtime/effect assets are now fetched.
+No browser throughput verdict is claimed.
 No generator, menu, renderer or parent handoff implementation changed here.
 
 The native reports now attribute the production tick without introducing OS
@@ -125,13 +129,20 @@ remain G0's open decision; the 64 MiB codec ceiling is not a performance target.
    cross-ownership addition. It uses existing generation/compiler and assault
    planner APIs, current game admission, and the real Battle. A first Open Small
    seed-1 30 s sample advances every column unit; distant goals remain pending.
-   The complete nine-cell, ten-seed matrix waits for the route correction.
-2. C59: integrate the reviewed legal local infantry links and name the route/
-   timing change. C55 replay build refusal is verified; compiled scenario storage
+   The complete nine-cell, ten-seed matrix is now running against the current
+   catalogue; every request retains its seed and outcome.
+2. C59: legal local infantry links and their route-start correction are green. A public
+   Battle regression exposes a physically clear member that cannot stand in the
+   sampled navigation grid being selected as route start; the old search arrives
+   on the same input. The shared start owner now prefers living members admitted
+   by the side-known grid; the exact case arrives with physical clearance and
+   same-build replay equality. C55 replay
+   build refusal is verified; compiled scenario storage
    remains the parent lane's separate debt.
-3. C06/C07: local fog invalidation and sparse fixed-row copies are integrated.
+3. C06/C07: local fog invalidation and exact fixed/variable span copies are integrated.
    Measure early/late active Large bytes, p95/max and instructions afresh before
-   selecting the next owner. Historical mean reductions do not close admission.
+   selecting the next owner. Fog candidate/kernel attribution and immutable static
+   decoder-view reuse proceed independently. Historical mean reductions do not close admission.
 4. Browser: run `endurance` and `benchmark` serially, then establish the full
    generated-map stress arm. The existing saved stress arena alone does not prove
    full-extent loading. Snapshot/copy/decoder overlap remains a separate gate.

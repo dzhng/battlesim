@@ -47,7 +47,6 @@ Read before changing anything:
 
 These owners are in the code; find them before adding a second:
 - projection: `camera3d.ts`, with reverse-Z and an infinite far plane;
-- the camera's pose: `cameraController.ts` turns input and scripts into the pose asked for, and `cameraClearance.ts` into the pose drawn, clear of buildings and the ground (see "Camera clearance" below);
 - the depth contract: `depthContract.ts`, plus `worldDepth.ts` for the access modes;
 - the camera uniform;
 - the environment: `environmentFrame.ts` gives every material the same light, shade and `sampleSunShadow`, and the effects' cast lights through that `shade`;
@@ -165,10 +164,7 @@ shot alone cannot prove either is readable.
 - **Known world geometry is not overlay.** Structures, ruins and wrecks belong in the HDR world, with fog and shadow.
 - **Ground cues use the canonical surface height** (`surfaceZ`), never flat `z = 0`. Draping steps must be finer than the terrain relief, or ribbons speckle under grass and ground.
 - **Continuous paths are continuous geometry** (roads are painted from the sim's own segments), not gaps cut around occluders.
-- **A cut narrower than a few height samples is lit from its cross-section, never from the grid's triangles.** A river's bank is one or two 4 m samples wide, so nearly every bank triangle straddles the waterline or the bank's top and has a normal of its own: flat-shaded, the bank and the bed through the water read as a sawtooth (steps of 20% of the ground's luminance between neighbours). `groundBank` in the terrain material gives the shading normal from the exported cross-section instead. Three things made it work: it takes over from the triangle's normal a triangle's diagonal past where the cut ends (the straddling triangles reach that far); nearby stretches share it, weighted by how far inside each puts the point (the nearest alone flips the bank's face along the bisector on the inside of every bend); and the surface field's reach for water covers the whole band. Heights and the water's edge stay the simulation's. Judge it in one uniform tint (the river lab's shading view), walking a line at a fixed distance from the water: a per-triangle tint or a neighbouring-triangle comparison measures the tint or the slope, not the steps.
-- **A blended surface along a curve is laid as squares, cut per fragment.** A ribbon with mitred joins folds over itself inside a bend tighter than it is wide and is blended twice there. The water is 8 m squares over the river, its edge cut by the shared distance and feathered over a pixel, so it ends on the rule's edge and never on a triangle's.
 - **Where a shape ends is data, not something a distance function can guess.** A stroke is drawn as stretches between sampled points, each a capsule; the union is right at every bend and wrong at the stroke's two ends, where it leaves a half-disc. A stretch cannot know how near its stroke's end it is, so the simulation's export says per record which of its ends are cut (`cuts`: the first and last stretch, and any other within half a width of an end, whose round joint would bulge past it), and the one distance (`terrain/strokes.ts` `strokeInside`, `strokeCutInside` in WGSL) takes the flat end from it: past a cut end the distance to that end's face and corners, short of it no deeper than the face is near. An uncut record returns the caller's own value untouched, so every pixel away from an end keeps its bits. Keep a degenerate record out of such a function's tests: a zero-length stretch has no direction to cut across, and no export has one.
-- **A CPU mirror of a GPU lookup is built with the GPU's own inputs.** The surface field's reach depends on the ground (a river's longest bank), so `terrainReach(surface)` is the one owner the material and any check both call; a check that rebuilt the field from the biome alone compared two different fields.
 - **Opaque geometry never alpha-blends.** Translucent decals and overlays read depth; they don't write it.
 - **The prepass and colour pass must compute bit-identical depth.** That's the `@invariant` position and one shared vertex stage. A second single-sample depth or a previous-frame Hi-Z disagrees at edges.
 - **Instanced props need a base elevation.** Culling bounds must cover every reachable pose: the tank's bounds grow from 9.5×3.7 m to 12.1×12.1 m with the turret traversed.
@@ -191,7 +187,6 @@ shot alone cannot prove either is readable.
 - **Judge a light by a paired frame at one tick:** the same tick and camera with the switch on and off (`suppressCastLights`), so the before/after isolates the light and nothing else moved.
 - **Scar comparisons across observed sides suppress effects and cast lights separately.** The side switch's publication step can introduce a burst whose light changes nearby unmarked ground. Hiding its sprite leaves its combat light active; use both existing viewport switches so the comparison measures learned scars. Choose samples clear of the full public static geometry through `WorldView` and the production prop decoder; knowledge and dynamic-model lists can omit a statically baked building.
 - **Debug views** (`setFrameView`, one per `FrameView` in `scene.ts`) isolate a stage; `window.__lab` has `suppress*` switches and probes. Readbacks are lab-only, never inside a frame.
-- **Don't save a source file while a scene runs.** Scenes run against Vite's development server, so a save under `web/`, `apps/`, `packages/` or `fixtures/` reloads the page mid-check and the scene waits on a battle that is gone, holding the GPU lock until it times out. Write notes and specs meanwhile; they are not served.
 - **Ground looks are shot from the ground rig's stations** (`web/scenes/_groundStations.mjs`): named poses per map, one frozen page, and beside each shot the `ground-classes` view, the terrain material's own class under every pixel (road and water distance, forest, plot kind), so a check measures the band it judges rather than a hand-drawn crop. Its bytes are data: they reach the screen through post's `raw` mode, and a pixel that is not wholly ground is black. Its distances are exact only as far as the look reads them (`groundReach`).
 - **Stats aren't pixels.** Pair every instance or draw count with a crop or content probe. Make sure the capture frames its subject: derive the camera from live anchors (`projectToCss`, `surfaceZ`), not hand-picked coordinates.
 - **Checks derive from contracts:**
@@ -235,21 +230,6 @@ Everything placed once and drawn many times (trees, hedgerow shrubs, a town's ma
 - **A chunk given a level costs no per-instance work.** It draws as a `[first, count]` range of the static buffer, merged with its neighbours. Only `NEAR` chunks are walked per instance: scenery copies each record into a per-tier list (`stageNear`); the models layer chooses per corpse by the models' own detail rule and packs them with the units.
 - **The level rule decides the cost at distance.** Corpses draw a far chunk as one run of cards only when every corpse in it has a card; one bare corpse makes its whole chunk near.
 - **Scenery** (`frame/sceneryLayer.ts`, `scenery/lod.ts`) is one instance record (pose, a scale per axis, a tint) in 128 m chunks. A new scenery population is a mesh table and a `PlacedInstances` list handed to `population()`.
-- **A population with one mesh never stages.** Massing passes tier thresholds of infinity, so every box draws from the static buffer at any distance and a view change costs a walk over chunks, never over boxes.
-- **What the side knows changes the list, not the frame.** A building seen to fall rebuilds the massing list (`setMassing`), as `setStructures` does for models. Don't add a per-frame knowledge test to a static path.
-- **Buildings with no art are massing, by the catalogue's own label** (`presentation.massing.families`): a box a physical part at the simulation's size, tinted by category. Never stretch another building's art over a footprint it was not made for.
-
-## A full-size map costs what loops over the map
-
-Three of the four things that broke on a 6 to 10 km generated map were loops over an authored table that the village never noticed (the fourth was the forest's casters, above):
-
-- **Per clump:** the grass build asked every prop on the map whether it covered each clump (94,000 props; 100 ms frames whenever the ground changed). It now asks its grid cell's list (`packGrassProps`).
-- **Per plot:** the patchwork tested every road against every plot it split (19 s of a 22 s start). A plot now keeps only the roads whose box meets its own, and passes that list to the plots split from it; the tree is byte-identical.
-- **Per leaf:** every plot asked every building whether it stood nearby; now a grid.
-
-The ground mask (`setFrameView("ground-mask")`) is the cheap proof that such a thing is drawn where the map puts it: black at a box's roof or a tree's crown, white on the ground beside it, from straight above so nothing hides the ground. It is the fog mask's channel, so read it with fog on.
-
-Before trusting a full-size number, drive it: a paused battle regrows no grass and rebuilds no sight map. Order units to move, wait out their planning, then read the GPU time; and split it with the lab's `suppress*` switches before guessing which pass it is.
 
 ## Width changes at tactical zoom
 
@@ -268,7 +248,6 @@ For cadence or synchronization claims, capture startup and multiple complete wor
 ## Bounded exact sampled caches
 
 A sparse CPU source does not make a world-sized GPU texture valid. Keep domain knowledge in its owner and make GPU residency an exact view cache with the full filter halo. Measure upload bytes as well as retained bytes: a bounded cache can still rebuild gigabytes per frame. Uniform sampled pages can use exact packed words in the directory, while varying pages retain the original filtering. Submit the last reader before overwriting a shared cache; release all demoted slots before assigning promoted pages so input order cannot reject a fitting final resident set.
-
 
 ## Preserve sampled coordinate and arithmetic boundaries
 
@@ -303,7 +282,6 @@ geometry compiler; the shader combines triangle membership with distance to that
 boundary. Keep preprocessing out of the fragment loop, and distinguish polygon
 union support from any separate stroke-distance contract.
 
-
 ## Native generation identity owns overlapping scenery
 
 Spatial membership cannot identify which authored forest generated a trunk.
@@ -319,49 +297,11 @@ the first failed production readback and its compiled source; a matching members
 flag does not resolve a failed distance oracle. At a stopping point, preserve an
 unactivated candidate and restore the runtime baseline instead of widening its bar.
 
-## Bucket per-fragment shape loops by reach
-
-A fragment that loops a table of authored shapes costs the map, not the view.
-Bound it with an index whose cells list the primitives within the reach its
-consumers read, and keep the per-primitive arithmetic verbatim: `max` and `min`
-do not care about order, so the pixels stay byte-identical
-(`terrain/surfaceField.ts`, C63).
-
-- **Derive the reach from the consumers, and prove they saturate beyond it.**
-  Write down every reader of the distance and how far it reads. A feather that
-  is "a pixel wide at least" makes the reach grow with the pixel's footprint,
-  so one grid is not enough: keep a ladder of levels by footprint, each with
-  its own reach and cell size.
-- **`length(fwidth(world.xy))` has no upper bound.** Ground seen edge-on a
-  kilometre off spans hundreds of metres a pixel. An exact answer there reads
-  the whole map, and those few rows can cost more than the rest of the frame.
-  Give the ladder a list budget that grows with the pixel (wide pixels are rare: rows thin as 1 / sqrt(F)), and say what a wider pixel reads instead.
-- **Fold tables instead of adding a binding.** The grass build sits at the
-  eight-storage-buffer limit, so the rects moved into the records table and
-  the index took their binding.
-- **Conservative listing needs a pad for f32.** The shader picks a cell in f32
-  and the builder in f64; grow each cell by a few dozen f32 steps of the
-  largest coordinate, or a point on a boundary misses its primitives.
-- **`polygon2.intersectsSegment` counts proper crossings only.** A segment
-  through a box's two opposite corners is missed: every 45° street on a square
-  grid. Clip the segment to the box's slabs instead.
-- **Falsify an index shader by breaking its data, never its addressing.** A
-  wrong offset turns a cell's list bounds into garbage; the loop then runs for
-  billions of steps and the scene hangs the GPU, holding the lock, until
-  someone kills it. Run a deliberately broken shader under `SCENE_TIMEOUT_S`.
-- **Judge "pixels unchanged" on the layers that are stable.** With grass,
-  models, fog, effects and paint suppressed, the terrain is byte-identical
-  between sessions. Grass frames are not (68 to 2,200 pixels differ between
-  two runs of the same build), so compare the grass build's clump readback
-  (`__lab.grass().clumps()`, sorted) and treat its frames as bounded by that
-  noise. Pin the tick exactly: a pause can land a tick late.
-
 - **Resource checks must control rendered view history.** Await pause acknowledgement before calculating the fast-forward tick count. A paused fast-forward can finish delivering data before the UI draws that publication. Await the last publication’s drawn tick and presentation clock before moving the camera. Otherwise a view-dependent retained buffer may see one extra detail tier on one reset and look like a leak. Attribute differences with actual allocation creation/destruction records before changing capacity policy or weakening byte assertions.
 
 - **Interactive callouts share the viewport's gesture owner.** A DOM panel above the canvas needs native pointer handling for hover, while click and drag must reach the same capture/release path as battlefield picks. Verify dragging from a panel as well as dragging across one, and test the drawn panel bounds rather than the unit anchor.
 
 - **Held destination previews use the captured press ray.** Camera movement during a drag must not move its destination. Refresh facing through the pointer paint feed, independently of observation ticks, and use the committed order marker geometry so preview and result agree. Normal pointer-capture release must preserve stationary hover; only an interrupted active gesture cancels it.
-
 
 ## Match attachment owners before points
 
@@ -389,8 +329,6 @@ inspector. Compare grass on/off at one exact paused camera and publication,
 and falsify the gate on the real posed model pass before accepting an isolated
 shader oracle.
 
-
-
 ## Corpse identity does not freeze its anchor
 
 A falling or resting body's authority can change its support after a building
@@ -400,47 +338,6 @@ A static anchor change must invalidate the corpse publication version; moving
 only the cached object leaves GPU instances at the old height. Enemy anchors
 come from the side's last observed corpse state, so rendering cannot infer an
 unseen collapse from the current physical world.
-## Camera clearance
-
-The viewport holds two poses: the one asked for (input, a script's
-`place`) and the one drawn, which `CameraController.resolve` makes clear of the
-side's known buildings and the ground. GPU packing, picking, DOM projection and
-sound all read the drawn pose; nothing else may place the camera. The obstacles
-are `knownStanding` over the map's building parts, the list massing draws, so
-what blocks the camera and what is drawn cannot part, and a fall the side has
-not seen changes neither.
-
-- **`__lab.setCamera` is the harness's raw framing**, drawn as given, inside a
-  building if a check wants that. `__lab.placeCamera` goes through the rig and
-  clearance and is drawn by the next frame. A scene that flies the camera puts
-  it back afterwards: later framings spread `camera()` and would inherit its
-  yaw.
-- **Fly scripted moves in real time.** Stepping a paused clock and waiting a
-  frame per step feeds the resolver a stop-start motion at the wrong speed, so
-  its lookahead misfires and the frames captured are ones no player sees
-  (`_cameraClearance.mjs` `flyLive`).
-- **A camera inside a box cannot be seen in pixels.** Back faces are culled, so
-  the frame from inside a building shows the town through its walls. Judge the
-  eye against the boxes drawn, by geometry apart from the resolver's own index.
-- **Push the eye out of the box, not along the view ray.** An eye that enters
-  sideways is centimetres from clear space, and tens of metres from it along
-  the ray: the ray gave 17 to 58 m jumps in one frame. Leaving by the side the
-  eye is already on makes it slide along a wall and over a roof edge.
-- **Ease the eye from where it is held.** An eased point that runs on through a
-  wall while the eye waits at its face leaves the eye a 15 m jump when the
-  point comes clear. The spring carries on from the held eye.
-- **A goal exactly at the clearance is never reached.** A critically damped
-  spring closes on it for ever, from below a roof line. Goals keep the release
-  margin more than emitted poses need.
-- **Lookahead is a straight line, and scripts are not.** Extrapolating an
-  eased swoop a second ahead puts the eye under the ground or through a house
-  it will never meet. Look ahead for buildings only, and keep the horizon
-  under what the benchmark tour tolerates (`cameraPaths.test.ts` holds the
-  tour to its keyframes).
-- **Reach decides more than hysteresis.** A candidate pose behind a tower is
-  clear and useless; requiring that the camera can get there (straight, or over
-  something within a lift's reach) removed the side flips a memory of the
-  slide's side was added for.
 
 ## Keep scene inputs fixed throughout verification
 
