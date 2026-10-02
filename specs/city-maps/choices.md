@@ -2943,3 +2943,47 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 **Gap:** One unprimed reviewer was given eleven close shots and ten 3x crops and asked whether any road corner or junction looks wrong. Its three worst, all high confidence, are the same thing: where a wider road turns a corner and narrows, the wide strip "ends in a flat, square-cut end and the narrow strip pokes out of its middle", with a square shoulder either side (`forks-after/fork-avenue-corner-2.png`, `fork-road-turns-onto-track.png`, `fork-avenue-corner.png`). At medium confidence it calls the switchback's outside "a bulbous cap wider than either track" with a flat facet (`mixed-track-fork.png`, `fork-street-sharp-bend.png`), and sees a concave notch where a squared branch leaves the outside of a curving road (`fork-slanted-branch.png`). It passes the plain T-junctions and the squared tracks.
 
 **Verdict:** open. The step is the rule above working as written, and it is a flat end showing past a narrower road's edges on both sides. `tests/road_ends.rs` classes it `Narrows` and counts it sound: 340 of 25,014 ends, against 22 counted as flaws. So the count of 9 in ten thousand does not include the defect the reviewer ranks first. A stroke has one width, so the pass cannot taper it; removing the step needs either a width that varies along a stroke (a change to the shared stroke contract, in the simulation, the export and the renderer) or a layout that never asks a wide road to become a narrow one at a corner. The switchback's cap is the bend's own round joins and is the shape asked for; its facet is the bend's short stretches showing. **Confidence:** high that the step reads wrong; medium on the rest.
+
+## C17: our own houses
+
+### A house's box is as tall as its ridge
+
+**Choice:** Every house part's top is its roof's ridge: a one-floor house is a 5.2 m box (the prototype was 4 m), two floors 8.2 to 8.45 m (6.5 m), three floors 11.75 to 12.85 m (9.5 and 10.5 m). Floor datums stay at 0, 3 and 6 m (0, 4 and 7 m over a shop), and walls reach 2.85 m above the top datum. The alternative was a box to the eaves with the roof above it as `fit.top_m`.
+
+**Gap:** The prototypes were flat boxes with no roof, and "a storey is 2.5 to 12 m of box" does not say where a pitched roof goes.
+
+**Reach:** The simulation stops rounds and sight through the empty air beside a roof, up to 3 m above the eaves at the wall line. Plans did not change, except the L's wing (below). The catalogue's hash moves when these replace the prototypes.
+
+**Verdict:** provisional. A soldier behind a house is hidden by its roof on screen, so the box agrees with the picture from the game's camera; pitches are held to 25 to 35 degrees to keep the over-claim small. **Confidence:** medium.
+
+### The L-shaped house's wing is 6 x 6 m, set a metre in from the gable
+
+**Choice:** The wing is 6 x 6 m (the prototype's was 5 x 6) and stands from x = -2 to 4 behind a 10 x 8 house, not flush with its east gable. Its box is as tall as the house's, because a supported join needs equal tops, while its ridge is 0.6 m lower, at the house's own pitch.
+
+**Gap:** Flush with the gable, the wing's eave ran along the gable wall as a stray board under the verge. A 5 m wing under the house's ridge height needs a 43 degree roof.
+
+**Verdict:** sound for the look; the wing's box over-claims 0.6 m more than the others. **Confidence:** medium.
+
+### Bays are centred on each wall, and a door takes a bay or stands between two
+
+**Choice:** Each exposed edge's 3 m lattice is phased so its bays are symmetric about the wall's middle and at least 1 m from a corner: three on a 9 to 11 m wall, two on 6 to 8 m, four on 12 to 13 m. Every bay has a window on every floor, on gable ends too. A front door either replaces the ground-floor window of a bay (terraces, the town house, the bungalow) or stands at the middle between two bays. A shop's door and display window are a bay each.
+
+**Gap:** The readme says windows sit on the lattice; it does not say whether every bay needs one or where a door goes.
+
+**Verdict:** sound. A garrison's seat is always at an opening. **Confidence:** high.
+
+### A terrace is one unit module repeated, each unit tinted by its row
+
+**Choice:** A terrace's unit (front and back wall, its stretch of roof) is one module placed once per part, with an end-wall module turned to face each way. Detached houses are one shell module each (walls and roof together, so the eaves shade the wall in the baked occlusion). Wall colour is the row's tint on a pale tint-masked plaster or brick; roof colour is the material's own, since a row has one tint.
+
+**Gap:** "Each template's wall shell and roof is its own module" does not say whether a repeated unit counts.
+
+**Reach:** A template's colours are fixed in its rows, so two placements of one template are the same colours. Five detached templates repeat visibly in a suburb of twenty (`suburb-250m.png`). More colourways are more templates over the same modules, or a tint a placement supplies; neither is done here.
+
+**Verdict:** provisional on the repeats. **Confidence:** medium.
+
+### The set's fit is 0.5 m to the side and 0.9 m above
+
+**Choice:** Eaves overhang 0.35 m with a gutter to 0.46 m, steps and door canopies 0.4 to 0.45 m; chimney pots stand 0.77 m over the ridge and capping tiles 0.07 m.
+
+**Verdict:** sound. **Confidence:** high.
