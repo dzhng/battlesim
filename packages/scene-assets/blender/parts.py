@@ -488,11 +488,13 @@ def _hemisphere(k):
     return dirs
 
 
-def finish(ao_distance=1.2, ao_strength=0.8, ao_rays=12, ground_ao=True, paint_scale=1.0):
+def finish(ao_distance=1.2, ao_strength=0.8, ao_rays=12, ground_ao=True, paint_scale=1.0, objects=None):
     """Bake paint, wear, grime and occlusion into every tier's vertex colour.
-    `paint_scale` stretches the longest painted edge (buildings are larger)."""
+    `paint_scale` stretches the longest painted edge (buildings are larger).
+    `objects` bakes those alone, occluded only by each other (a kit's module is
+    baked on its own: it is drawn on many buildings); the default is the scene."""
     bpy.context.view_layer.update()
-    meshes = [o for o in bpy.data.objects if o.type == "MESH"]
+    meshes = [o for o in (bpy.data.objects if objects is None else objects) if o.type == "MESH"]
     # two parts given one name: Blender renamed one `name.001`, which loses its tier
     clashes = [o.name for o in meshes if tier_of(o) is None and "_LOD" in o.name]
     if clashes:
