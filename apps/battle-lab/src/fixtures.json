@@ -62,7 +62,7 @@
   {
     "id": "garrison",
     "route": "/lab/garrison",
-    "describe": "Buildings as fighting positions: two blue squads share a building by soldier capacity (a third is refused), enter and leave on a timer, and fire outward from perimeter slots while red's rounds hit occupants or the walls; a red squad behind the building is seen only once occupants stand on that facade; red's tank brings the building down into a lower, impassable ruin and survivors escape pinned."
+    "describe": "Buildings as fighting positions: two blue squads share a building by soldier capacity (a third is refused), enter and leave on a timer, and fire outward from perimeter slots while red's rounds hit occupants or the walls; a red squad behind the building is seen only once occupants stand on that facade, and the occupants are HIDDEN until it walks up close enough to see them; red's tank brings the building down into a lower, impassable ruin and survivors escape pinned."
   },
   {
     "id": "supply",

@@ -23,11 +23,14 @@ import { TickStatus } from "../TickStatus";
 // The garrison map's saved encounter
 // (`fixtures/maps/garrison/encounters/garrison.json`). Blue's two rifle squads
 // and a scout squad wait west of the building, out of
-// red's sight. Red's squad stands east, behind the building, holding fire but
-// spotting for red's tank 250 m east. The tank holds fire while blue's scouts
-// walk in, enter and leave and a rifle squad takes the building after them
-// (the scene's entry steps), then opens fire at the encounter's one scripted
-// order and shells whatever occupants
+// red's sight. Red's squad stands east, behind the building, holding fire, and
+// at first too far to make out anyone in the house (a building cuts sight's
+// reach to its occupants), so the scouts who walk in are HIDDEN. At the
+// encounter's scripted move it walks up to spot for red's tank 250 m east:
+// an enemy blue sees, seeing the occupants, ends HIDDEN. The tank holds fire
+// while blue's scouts walk in, enter and leave and a rifle squad takes the
+// building after them (the scene's entry steps), then opens fire at the
+// encounter's scripted engagement order and shells whatever occupants
 // its squad sees. Held until then so its fire (the HMG wears walls)
 // never brings the house down mid-entry: the entry steps measure the
 // stationary timer, not a collapse. Blue holds fire until fired on. The
@@ -75,6 +78,13 @@ const DEMOS: Record<string, (o: ObservationView) => Order | null> = {
     route: "shortest",
   }),
 };
+
+/** The tick of the encounter's scripted order of `kind`. */
+function scriptTick(battle: SavedBattle, kind: Order["kind"]): number {
+  const script = battle.encounter.scripts.find((s) => s.order.kind === kind);
+  if (!script) throw new Error(`the garrison encounter scripts no ${kind} order`);
+  return script.tick;
+}
 
 export default function Garrison() {
   return (
@@ -127,8 +137,10 @@ function GarrisonLab({ battle }: { battle: SavedBattle }) {
   const diagnostics = {
     ...session.probes,
     demo: (name: string) => runDemo(name),
+    /** The tick red's squad starts its walk up to spot the occupants. */
+    spotterWalksUp: scriptTick(battle, "move"),
     /** The tick red's tank switches to fire at will: after every entry. */
-    tankOpensFire: battle.encounter.scripts[0].tick,
+    tankOpensFire: scriptTick(battle, "set_engagement"),
   };
 
   if (!meshes) return null;
