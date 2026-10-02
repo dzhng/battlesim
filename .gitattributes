@@ -16,3 +16,6 @@
 # The catalogs stay text.
 assets/source/** filter=lfs diff=lfs merge=lfs -text
 assets/third-party/** filter=lfs diff=lfs merge=lfs -text
+
+# Ledgers are appended to by every lane: keep both sides of concurrent appends.
+specs/**/choices.md merge=union
