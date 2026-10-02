@@ -5,7 +5,7 @@
 //!         [--recipe assault] [--seed 1] [--out <directory>] [--save] <map-directory>...
 //!
 //! A map directory is what `mapgen generate-map <request> <presets>
-//! <catalogue> <catalog> <directory>` writes: a saved map (`map.json`, `SOURCES.json`)
+//! <catalogue> <rules> <catalog> <directory>` writes: a saved map (`map.json`, `SOURCES.json`)
 //! and its `sites.json`. The rules are the village's, the recipe a row of
 //! `fixtures/encounters.json`.
 //!

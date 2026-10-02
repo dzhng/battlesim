@@ -3,6 +3,7 @@ use contract::ballistics::WeaponBallistics;
 use contract::command::CommandEnvelope;
 use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;
+use contract::random::Rng;
 use contract::scenario::{Armor, RicochetRules, Rules, ScenarioDefinition};
 use contract::templates::{BuildingTemplateDescriptor, PlacementFrame, TemplateGeometryCatalog};
 use sim::battle::{Battle, Replay};
@@ -13,7 +14,6 @@ use sim::flight::{
 };
 use sim::math::{v3, V3};
 use sim::publication::{self, Publisher};
-use sim::rng::Rng;
 use sim::village::scripts::Plan;
 use sim::village::ScriptedBlue;
 use sim::world::{export, WorldGeometry};
@@ -26,17 +26,16 @@ pub fn compile_map(request_json: &str, descriptors_json: &str) -> Result<String,
 }
 
 /// Generate a seeded plan (layout, streets, parcels, buildings and street
-/// furniture): the same record the CLI's `generate` prints. `catalog_json` is
-/// the unit and prop catalog's documents, as the rules carry them under
-/// `catalog`.
+/// furniture): the same record the CLI's `generate` prints. `rules_json` is
+/// the battle's resolved rules, including its unit and prop catalog.
 #[wasm_bindgen]
 pub fn generate_map_plan(
     request_json: &str,
     presets_json: &str,
     descriptors_json: &str,
-    catalog_json: &str,
+    rules_json: &str,
 ) -> Result<String, JsError> {
-    mapgen::generate_plan_json(request_json, presets_json, descriptors_json, catalog_json)
+    mapgen::generate_plan_json(request_json, presets_json, descriptors_json, rules_json)
         .map_err(js_error)
 }
 
@@ -46,9 +45,9 @@ pub fn generate_map(
     request_json: &str,
     presets_json: &str,
     descriptors_json: &str,
-    catalog_json: &str,
+    rules_json: &str,
 ) -> Result<String, JsError> {
-    mapgen::generate_map_json(request_json, presets_json, descriptors_json, catalog_json)
+    mapgen::generate_map_json(request_json, presets_json, descriptors_json, rules_json)
         .map_err(js_error)
 }
 

@@ -43,8 +43,8 @@ use contract::scenario::{EncounterRules, Opponent, Rules, ScriptedOrder, UnitSet
 
 use crate::math::{v2, v3, V2};
 use crate::navigation::{self, Leg, Mobility, NavBase, NavGrid, Plan, RoadNet};
-use crate::rng::Rng;
 use crate::world::WorldGeometry;
+use contract::random::Rng;
 
 pub mod legality;
 

@@ -15,8 +15,8 @@ use super::{
     chords, FlightConfig, Guidance, Launch, LaunchProfile, MissFall, Motor, Shooter, TIME_EPSILON_S,
 };
 use crate::math::{v3, V3};
-use crate::rng::Rng;
 use crate::world::{Collider, PropId, WorldGeometry};
+use contract::random::Rng;
 
 /// A static hit this close to the intended intercept counts as arrival: an aim
 /// point on the ground, or a target standing on a surface.

@@ -8,8 +8,11 @@ const fixture = (path: string) =>
   readFileSync(new URL(`../../fixtures/${path}`, import.meta.url), "utf8");
 const presets = fixture("map-presets.json");
 const templates = fixture("prototype-building-templates.json");
-// The catalog's documents, as the game's rules carry them.
-const catalog = JSON.stringify(JSON.parse(fixture("catalog.json")).documents);
+// The resolved physical rules shared by generation and the battle.
+const rules = JSON.stringify({
+  ...JSON.parse(fixture("game.json")),
+  catalog: JSON.parse(fixture("catalog.json")).documents,
+});
 
 beforeAll(() => {
   initSync({ module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)) });
@@ -20,14 +23,14 @@ const cases: Record[] = JSON.parse(fixture("parity/map-layout/paired-records.jso
 
 test.each(cases)("$name: native CLI and WASM agree on bytes or refusal", (record) => {
   const generate = record.command === "generate-map" ? generate_map : generate_map_plan;
-  const outcome = generate(record.request_json, presets, templates, catalog);
+  const outcome = generate(record.request_json, presets, templates, rules);
   expect(createHash("sha256").update(outcome).digest("hex")).toBe(record.native_sha256);
 });
 
 test("a generated map carries the plan's ground and buildings and none of its plan-only layers", () => {
   const record = cases.find((c) => c.command === "generate-map" && c.name.includes("metro small"))!;
-  const plan = JSON.parse(generate_map_plan(record.request_json, presets, templates, catalog)).plan;
-  const map = JSON.parse(generate_map(record.request_json, presets, templates, catalog)).result.map;
+  const plan = JSON.parse(generate_map_plan(record.request_json, presets, templates, rules)).plan;
+  const map = JSON.parse(generate_map(record.request_json, presets, templates, rules)).result.map;
   expect(map.size).toEqual([6000, 6000]);
   expect(map.surfaces).toEqual(plan.surfaces);
   expect(map.forests).toEqual(plan.forests);
@@ -54,10 +57,31 @@ test("a generated map carries the plan's ground and buildings and none of its pl
 
 test("a generated river and the bridges over it reach the map as the plan wrote them", () => {
   const record = cases.find((c) => c.command === "generate-map" && c.name.includes("river"))!;
-  const plan = JSON.parse(generate_map_plan(record.request_json, presets, templates, catalog)).plan;
-  const map = JSON.parse(generate_map(record.request_json, presets, templates, catalog)).result.map;
+  const plan = JSON.parse(generate_map_plan(record.request_json, presets, templates, rules)).plan;
+  const map = JSON.parse(generate_map(record.request_json, presets, templates, rules)).result.map;
   expect(plan.rivers.length).toBe(1);
   expect(plan.bridges.length).toBeGreaterThan(0);
   expect(map.rivers).toEqual(plan.rivers);
   expect(map.bridges).toEqual(plan.bridges);
+});
+
+test("generation uses the battle's explicit physical rules and pins their identity", () => {
+  const request = cases.find((c) => c.name === "open small")!.request_json;
+  const physical = JSON.parse(rules);
+  const build = (input: unknown) =>
+    JSON.parse(generate_map(request, presets, templates, JSON.stringify(input)));
+  const before = build(physical);
+  expect(before.status).toBe("ok");
+  // A crown-height change does not move authored geometry, but changes the
+  // physical world that stands on it and therefore the generation inputs.
+  physical.forests.rule.canopy_height_m += 0.01;
+  const after = build(physical);
+  expect(after.status).toBe("ok");
+  expect(after.result.identity.map_hash).toBe(before.result.identity.map_hash);
+  expect(after.result.identity.config_hash).not.toBe(before.result.identity.config_hash);
+  delete physical.forests;
+  const refused = build(physical);
+  expect(refused.status).toBe("error");
+  expect(refused.diagnostics[0].code).toBe("invalid_physical_rules");
+  expect(refused.diagnostics[0].location).toBe("$.rules");
 });

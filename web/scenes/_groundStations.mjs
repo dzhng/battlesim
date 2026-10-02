@@ -394,7 +394,7 @@ const generatedGround = (page) =>
           JSON.stringify(request),
           presets.default,
           templates.default,
-          JSON.stringify(GAME_RULES.catalog),
+          JSON.stringify(GAME_RULES),
         ),
       );
       if (outcome.status !== "ok") throw new Error(JSON.stringify(outcome.diagnostics));

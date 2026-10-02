@@ -26,9 +26,9 @@ use contract::scenario::Rules;
 use crate::arrangement;
 use crate::digest::Digest;
 use crate::math::{v2, V2, V3};
-use crate::rng::Rng;
 use crate::units::{Soldier, Unit, UnitOrder};
 use crate::world::{Prop, PropId, Slot, WorldGeometry};
+use contract::random::Rng;
 
 /// Escaping soldiers keep at least this far apart.
 const ESCAPE_SPACING_M: f64 = 1.0;

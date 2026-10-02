@@ -49,7 +49,7 @@ test.each(cases)(
       record.request_json,
       presets,
       templates,
-      JSON.stringify(GAME_RULES.catalog),
+      JSON.stringify(GAME_RULES),
     );
     // The generator's own bytes, as preparation hands them on.
     const { map, sites } = mapAndSites(generated);

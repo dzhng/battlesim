@@ -15,9 +15,9 @@ use contract::map::MoverClass;
 use super::final_leg::final_leg;
 use super::{MovementContext, SideGeometry, ENCOUNTER_RANGE_M};
 use crate::math::{v2, Obb2, V2, V3};
-use crate::rng::Rng;
 use crate::units::{Soldier, Unit};
 use crate::world::{PropId, WorldGeometry};
+use contract::random::Rng;
 
 /// Times a soldier's step is pushed out of the solids it meets.
 const SLIDE_PASSES: usize = 3;

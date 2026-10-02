@@ -332,7 +332,8 @@ clearance is a row of `open_country` in the presets.
 - **Bare ground is filled, and little else.** Open ground is walked as cells. A cell
   with no building, wood or tree line within `sight.reach_m` gets a copse or a tree
   line near it: random places near it first, then every place within reach in turn.
-  That is what guarantees the rule; the densities on top of it are small.
+  This is a construction heuristic: cell centres and authored outlines do not yet
+  certify physical sight at every playable location. The densities on top are small.
 - **A settlement keeps its widest approach in each half as a corridor.** The front's
   width of ground along the approach's middle bearing, where the encounter planner
   posts its overwatch, holds nothing that blocks sight; low cover may stand in it. The
@@ -346,12 +347,13 @@ clearance is a row of `open_country` in the presets.
   less of it until the map holds its share, by `fairness`: buildings, metres of tree
   line, copses, trees and loose bodies. `open_country::measure` reads those amounts
   back from the plan's geometry alone.
-- **The rule is judged by the simulation, not by the pass.** The `sight_report`
+- **Finite sight samples are diagnostics.** The `sight_report`
   example loads each map into the battle's world and, from samples of open ground
   and from where the encounter planner stands each column, counts the bearings on
   which an infantry eye sees to full range by the simulation's own sight queries.
   `tests/open_country.rs` holds a few maps to it; the report is how a preset change
-  is judged.
+  is judged. Those standard infantry samples do not certify the smaller circular
+  observer, between-sample points, or every playable location.
 
 ## Street furniture (`street_props`)
 
@@ -399,7 +401,17 @@ prepares, so it belongs to the encounter planner.
 ## Compilation
 
 Generation configuration pins the lossless map seed, generator/preset versions,
-canonical plan and physical catalogue. Execution limits are separate preparation
+canonical plan, physical template catalogue and physical battle inputs. Generated maps
+pin the contract-owned `GenerationPhysics` extracted from the resolved rules: the
+unit and prop catalog, forest rules, infantry eye and fog target heights. The native
+CLI takes the existing rules and catalog files explicitly; WASM takes the resolved
+rules record the preparation worker also gives the battle. There is no second
+physical-settings file. The profile conservatively pins the whole resolved catalog,
+including its names, presentation bindings and combat columns; unrelated top-level
+weapon and balance rules stay outside it. The geometry hash remains independent
+of these input columns. Direct authored-plan compilation has no rules input.
+
+Execution limits are separate preparation
 policy. The map's content hash identifies physical output independently of its
 execution allowance or presentation assets.
 
@@ -431,8 +443,9 @@ Simulation collision arithmetic and its remaining cross-runtime proof are indepe
 The library's complete outcome is shared by the CLI (`mapgen`, whose usage text lists
 its commands) and WASM. A refusal returns diagnostics and no plan or map. Successful
 file preparation writes the final map, its sites and the shared `MapSources` envelope. Supplied
-request, preset and catalogue receipts hash exactly the bytes used and assert no Git
-history; generation identity and stdout outcomes are unchanged. Acquisition and
+request, preset, template catalogue, rules and unit/prop catalog receipts hash exactly
+the input bytes and assert no Git history. Generation configuration identity includes
+the canonical physical input hash even when a rule change leaves map geometry alone. Acquisition and
 catalogue publication belong to C09/C60. The required execution limits cover authored
 parts, emitted bay positions and ground points (polygon vertices plus rounded stroke
 samples) before materialization. They do not claim a bound on all input bytes, terrain,

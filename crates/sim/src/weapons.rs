@@ -18,9 +18,9 @@ use crate::flight::{
 use crate::knowledge::SideKnowledge;
 use crate::lean;
 use crate::math::{v2, v3, wrap_angle, V3};
-use crate::rng::Rng;
 use crate::units::Unit;
 use crate::world::{Collider, PropId, WorldGeometry};
+use contract::random::Rng;
 
 /// Vehicle hull bodies take ids above every soldier id.
 pub const VEHICLE_BODY_BASE: u32 = 1 << 24;

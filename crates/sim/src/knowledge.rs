@@ -10,7 +10,7 @@ use contract::observation::{
 use contract::scenario::Rules;
 
 use crate::ground::{GroundLayer, KnownGround};
-use crate::rng::Rng;
+use contract::random::Rng;
 
 use crate::math::{v2, V2, V3};
 use crate::sensing::Sighting;
