@@ -716,3 +716,16 @@ all member positions, world-body poses and projectile fields agree. Temporary
 diagnostics are removed. Long admissions remain held until the facing repair
 passes a public paired regression. No float
 normalization, alternate input or time/budget change counts as a repair.
+
+
+## Outcome — compare complete reset presentation histories
+
+A fixed paused tick does not determine the first drawn death times. The reset
+harness now acknowledges the new authority, presents each opening publication
+at its settled clock and compares the complete presentation state beside exact
+live GPU counts and bytes. It controls only the external RAF timing seam;
+production poses, privacy, rules and clocks are unchanged. A retained allocation
+still falsifies the check. The shared building-settlement helper awaits actual
+row completion rather than treating an asynchronous predicate as a truthy value.
+
+[Scale status](../scale-lane.md#status) owns admission identities and results.
