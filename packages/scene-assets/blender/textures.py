@@ -9,6 +9,8 @@ texture channels (`scene-assets` `TEXTURE_CHANNELS`):
   surface breaks first (low) as the vertex colour's alpha (how worn: chips on
   edges, mud rising from the ground) climbs past it;
 - normal (tangent space, +Y toward +v in the image, OpenGL convention as glTF);
+  alpha is the coverage a cutout or blended material reads (`surface`), 1
+  for every other;
 - ORM: occlusion, roughness, metalness; alpha is the side-tint mask.
 
 A textured material samples its recipe through UVs in metres over the
@@ -20,8 +22,9 @@ per-part hue), as a multiplier relative to the recipe's mean albedo
 
 `attach(glb, materials)` writes the images into an exported GLB and points
 each named material's glTF texture slots at them, with the wear colour in
-the material's extras. Everything here is numpy on fixed seeds and zlib at a
-fixed level: the same recipe writes the same bytes.
+the material's extras, and gives a cutout or blended material its glTF alpha
+mode. Everything here is numpy on fixed seeds and zlib at a fixed level: the
+same recipe writes the same bytes.
 """
 import json
 import math
@@ -171,14 +174,17 @@ def png(rgba):
 
 class Baked:
     """One recipe's images: linear albedo (H, W, 3) and wear threshold, unit
-    normals (H, W, 3), occlusion, roughness, metalness and tint mask."""
+    normals (H, W, 3), occlusion, roughness, metalness and tint mask, and the
+    coverage (how much of the surface is there, 0..1) a cutout or blended
+    material reads: it rides the normal image's alpha, apart from wear."""
 
-    def __init__(self, albedo, wear, normal, occlusion, roughness, metal=0.0, tint=1.0):
+    def __init__(self, albedo, wear, normal, occlusion, roughness, metal=0.0, tint=1.0, coverage=1.0):
         s = (SIZE, SIZE)
         self.albedo = albedo
         self.wear = np.broadcast_to(wear, s)
         self.normal = normal
         self.orm = [np.broadcast_to(x, s) for x in (occlusion, roughness, metal, tint)]
+        self.coverage = np.broadcast_to(coverage, s)
 
     def mean(self):
         """The linear mean albedo: what the vertex colour's multiplier is relative to."""
@@ -186,7 +192,7 @@ class Baked:
 
     def images(self):
         albedo = np.concatenate([_u8(_srgb(self.albedo)), _u8(self.wear)[..., None]], -1)
-        normal = np.concatenate([_u8(self.normal * 0.5 + 0.5), np.full((SIZE, SIZE, 1), 255, np.uint8)], -1)
+        normal = np.concatenate([_u8(self.normal * 0.5 + 0.5), _u8(self.coverage)[..., None]], -1)
         orm = np.stack([_u8(x) for x in self.orm], -1)
         return {"albedo": png(albedo), "normal": png(normal), "orm": png(orm)}
 
@@ -555,6 +561,43 @@ def concrete():
     return Baked(col, 0.2 + 0.8 * fbm(6, 1607, 5), normals_from_height(blur(h), 1.4), 1.0, 0.92)
 
 
+@recipe("precast", tile=3.0, wear=(0.12, 0.11, 0.09, 1.0))
+def precast():
+    """A precast concrete wall panel, one 3 m bay by one 3 m floor to the tile: a pale
+    neutral exposed-aggregate face the building's tint colours, the joint round its
+    edge and rain marks falling from the joint above; the wear is grime."""
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
+    f1, _, ident = worley(96, 2601)
+    stone = smoothstep(0.5, 0.15, f1)
+    rnd = np.random.default_rng(2603).random(96 * 96)[ident]
+    stain = fbm(3, 2605, 5)
+    joint = smoothstep(0.03, 0.012, np.minimum(np.minimum(xx, 1 - xx), np.minimum(yy, 1 - yy)) * 3.0)
+    run = smoothstep(0.3, 0.0, yy) * smoothstep(0.45, 0.8, fbm((24, 2), 2607, 3))  # image rows run down the wall
+    tone = 0.84 + 0.2 * stain + 0.14 * (rnd - 0.5) * stone - 0.14 * run
+    col = np.broadcast_to(np.array((0.74, 0.73, 0.7)), (SIZE, SIZE, 3)) * tone[..., None]
+    col = mix(col, (0.12, 0.12, 0.11), joint * 0.8)
+    h = stone * 0.5 - joint * 3.0
+    return Baked(col, 0.25 + 0.75 * fbm(6, 2609, 5), normals_from_height(blur(h), 1.2), 1.0 - 0.4 * joint, 0.93)
+
+
+@recipe("mosaic", tile=1.5, wear=(0.16, 0.155, 0.145, 1.0))
+def mosaic():
+    """Small glazed facing tiles, sixteen to the tile each way: a pale neutral glaze
+    the building's tint colours, grey grout, a tile here and there replaced by a
+    darker one; the wear is the cement bed where tiles have fallen."""
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
+    n = 16
+    ix, iy = np.floor(xx * n).astype(int), np.floor(yy * n).astype(int)
+    fx, fy = xx * n - ix, yy * n - iy
+    grout = np.maximum(smoothstep(0.1, 0.03, np.minimum(fx, 1 - fx)), smoothstep(0.1, 0.03, np.minimum(fy, 1 - fy)))
+    fired = np.random.default_rng(2701).random((n, n))[iy, ix]
+    odd = np.random.default_rng(2703).random((n, n))[iy, ix] > 0.96
+    tone = (0.92 + 0.06 * (fired - 0.5) + 0.14 * (fbm(3, 2705, 4) - 0.5)) * np.where(odd, 0.86, 1.0)
+    col = np.broadcast_to(np.array((0.76, 0.76, 0.74)), (SIZE, SIZE, 3)) * tone[..., None]
+    col = mix(col, (0.3, 0.3, 0.28), grout * 0.7)
+    return Baked(col, chips(2707, 8, bias=0.25), normals_from_height(blur(1.0 - grout), 0.8), 1.0 - 0.3 * grout, 0.32 + 0.55 * grout)
+
+
 @recipe("asphalt", tile=2.0, wear=(0.16, 0.15, 0.13, 1.0))
 def asphalt():
     """Old tarmac: black binder, grey chippings, cracks and oil stains."""
@@ -689,6 +732,199 @@ def joinery():
     return Baked(col, chips(2507, 12, bias=0.1), normals_from_height(blur(grain * 0.5 - seam * 2), 1.2), 1.0 - 0.4 * seam, 0.6)
 
 
+@recipe("rubble_stone", tile=3.0, wear=(0.075, 0.08, 0.05, 1.0))
+def rubble_stone():
+    """A farm wall of field stone laid as random rubble: flat stones a hand or two
+    across, close in tone, in pale recessed lime mortar. A pale ground a
+    building's tint can warm or cool; the wear is moss."""
+    cells = 9
+    rows = (np.arange(SIZE) * 2) % SIZE  # twice the courses up the wall: stones lie flat
+    f1, f2, ident = (x[rows] for x in worley(cells, 2601))
+    joint = smoothstep(0.16, 0.04, f2 - f1)
+    stone = np.random.default_rng(2603).random(cells * cells)[ident]
+    grain = fbm(64, 2605, 3)
+    col = mix((0.36, 0.345, 0.31), (0.46, 0.44, 0.39), stone)
+    col = col * (0.88 + 0.24 * grain)[..., None] * (0.82 + 0.36 * fbm(3, 2607, 4))[..., None]
+    col = mix(col, (0.5, 0.48, 0.43), joint)
+    h = (1 - joint) * (0.7 + 0.5 * stone) + grain * 0.3
+    return Baked(col, 0.3 + 0.7 * fbm(8, 2609, 4), normals_from_height(blur(h), 1.8), 1.0 - 0.4 * joint, 0.94)
+
+
+# Industrial sheet, block and glass. Image rows run down a wall (and down a roof's slope, by
+# its own UVs), so whatever a fixing or a joint sheds trails toward the higher rows.
+RUST_STAIN = (0.2, 0.085, 0.035)
+
+
+def _fixings(xx, yy, ribs, rows, tile, crown_at, seed, reach_m):
+    """Screws on a profiled sheet's crowns, in `rows` (v, 0 to 1) across the tile: the
+    heads, and the rust that some of them weep down the sheet for `reach_m`."""
+    across = np.abs((xx * ribs) % 1.0 - crown_at) / ribs * tile  # metres from the crown's centre line
+    rib = np.floor(xx * ribs).astype(int)
+    heads, weep = np.zeros_like(xx), np.zeros_like(xx)
+    for k, row in enumerate(rows):
+        down = ((yy - row) % 1.0) * tile  # metres below the row
+        heads = np.maximum(heads, smoothstep(0.03, 0.012, np.hypot(across, np.minimum(down, tile - down))))
+        bleeds = np.random.default_rng(seed + k).random(ribs)[rib]
+        run = smoothstep(0.035, 0.008, across) * np.exp(-down / (reach_m * (0.4 + bleeds))) * smoothstep(0.5, 0.75, bleeds)
+        weep = np.maximum(weep, run * (0.6 + 0.4 * fbm((48, 6), seed + 20 + k, 2)))
+    return heads, weep
+
+
+@recipe("cladding", tile=3.0, wear=(0.105, 0.046, 0.02, 0.9))
+def cladding():
+    """Painted box-profile steel sheet on a wall, twelve ribs to the tile running up it:
+    a pale neutral paint the building's tint colours, chalked and rain-washed, a lap and
+    a row of fixings every 3 m and one between, rust weeping from some. The wear is rust."""
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
+    ribs = 12
+    f = (xx * ribs) % 1.0
+    crown = smoothstep(0.1, 0.22, f) * smoothstep(0.62, 0.5, f)
+    flank = 4 * crown * (1 - crown)
+    sheet = np.random.default_rng(2601).random(3)[np.floor(xx * 3).astype(int)]  # a sheet covers a metre
+    fade = fbm(3, 2603, 4)
+    wash = fbm((40, 2), 2605, 3)
+    lap = smoothstep(0.012, 0.004, np.minimum(yy, 1 - yy))
+    heads, weep = _fixings(xx, yy, ribs, (0.03, 0.53), 3.0, 0.36, 2610, 0.55)
+    tone = 0.9 + 0.04 * (sheet - 0.5) + 0.16 * (fade - 0.5) + 0.1 * (wash - 0.5) + 0.05 * crown - 0.13 * flank
+    col = np.broadcast_to(np.array((0.74, 0.74, 0.72)), (SIZE, SIZE, 3)) * tone[..., None]
+    col = mix(col, (0.2, 0.2, 0.19), lap * 0.5)
+    col = mix(col, RUST_STAIN, weep * 0.75)
+    col = mix(col, (0.12, 0.1, 0.09), heads * 0.8)
+    h = crown * 2.6 - lap * 0.5 + heads * 0.5
+    worn = np.clip(chips(2607, 10, bias=0.15) - 0.4 * weep - 0.3 * lap, 0.02, 1.0)
+    return Baked(col, worn, normals_from_height(blur(h), 1.0), 1.0 - 0.22 * flank - 0.3 * lap, 0.5 + 0.2 * fade + 0.3 * weep,
+                 0.0, np.clip(1.0 - 0.9 * weep - heads, 0, 1))
+
+
+@recipe("roof_sheet", tile=6.0, wear=(0.12, 0.052, 0.024, 0.9))
+def roof_sheet():
+    """Profiled steel roofing, sixteen ribs to the tile running up the slope (a roof's
+    own UVs): galvanised grey a material's colour repaints, each sheet a tone of its
+    own, a few replaced with new ones and a few gone dull, laps every 3 m, purlin rows
+    of fixings weeping rust down the pans, dirt lying in them. The wear is rust."""
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
+    ribs = 16
+    f = (xx * ribs) % 1.0
+    crown = smoothstep(0.1, 0.24, f) * smoothstep(0.54, 0.4, f)
+    flank = 4 * crown * (1 - crown)
+    cell = (np.floor(yy * 2).astype(int), np.floor(xx * 8).astype(int))  # a sheet is 0.75 m by 3 m
+    tone = np.random.default_rng(2701).random((2, 8))[cell]
+    age = np.random.default_rng(2703).random((2, 8))[cell]
+    fresh, dull = age > 0.86, age < 0.2
+    lap = smoothstep(0.007, 0.002, np.minimum((yy * 2) % 1.0, 1 - (yy * 2) % 1.0) / 2)
+    side = smoothstep(0.03, 0.0, np.minimum((xx * 8) % 1.0, 1 - (xx * 8) % 1.0)) * 0.5
+    heads, weep = _fixings(xx, yy, ribs, (0.02, 0.27, 0.52, 0.77), 6.0, 0.32, 2710, 0.9)
+    silt = (1 - crown) * smoothstep(0.35, 0.8, fbm((48, 3), 2705, 3))
+    stain = fbm(3, 2707, 4)
+    k = 0.9 + 0.07 * (tone - 0.5) + 0.07 * (stain - 0.5) + 0.05 * crown - 0.12 * flank - 0.16 * silt + 0.2 * fresh - 0.14 * dull
+    col = np.broadcast_to(np.array((0.5, 0.51, 0.52)), (SIZE, SIZE, 3)) * k[..., None]
+    col = mix(col, (0.12, 0.12, 0.12), np.clip(lap + side * 0.5, 0, 1) * 0.6)
+    col = mix(col, RUST_STAIN, weep * 0.7)
+    col = mix(col, (0.1, 0.09, 0.08), heads * 0.7)
+    h = crown * 2.0 - lap * 0.6 + heads * 0.4
+    worn = np.clip(chips(2709, 8, bias=0.12) - 0.45 * weep - 0.35 * lap - 0.25 * dull + 0.3 * fresh, 0.02, 1.0)
+    rust = np.clip(weep + 0.5 * dull, 0, 1)
+    return Baked(col, worn, normals_from_height(blur(h), 1.0), 1.0 - 0.2 * flank - 0.3 * lap, 0.46 + 0.2 * stain + 0.3 * rust,
+                 0.12 * (1 - rust), 0.0)
+
+
+@recipe("flat_roof", tile=8.0, wear=(0.055, 0.068, 0.036, 1.0))
+def flat_roof():
+    """A flat roof's mineral felt, laid in metre rolls with their laps showing: grey grit
+    and pale dust drifted on it. Nothing here is big enough to count across a roof: its
+    pools and patches are the building's own. The wear is moss."""
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
+    rolls = 8
+    roll = np.floor(xx * rolls).astype(int)
+    seam = smoothstep(0.05, 0.015, np.minimum((xx * rolls) % 1.0, 1 - (xx * rolls) % 1.0))
+    end = np.random.default_rng(2801).random(rolls)[roll]  # where each roll's length ends
+    seam = np.maximum(seam, smoothstep(0.006, 0.002, np.abs((yy - end + 0.5) % 1.0 - 0.5)))
+    grit = fbm(96, 2803, 2)
+    col = np.broadcast_to(np.array((0.2, 0.2, 0.195)), (SIZE, SIZE, 3)) * (0.9 + 0.2 * grit + 0.05 * (end - 0.5))[..., None]
+    col = mix(col, (0.3, 0.295, 0.27), smoothstep(0.45, 0.9, fbm(6, 2805, 4)) * 0.4)
+    col = mix(col, (0.07, 0.07, 0.07), seam * 0.5)
+    h = grit * 0.3 + seam * 0.5
+    return Baked(col, np.clip(0.25 + 0.75 * fbm(10, 2809, 4) - 0.25 * seam, 0.02, 1.0), normals_from_height(blur(h), 1.0),
+                 1.0, 0.95, 0.0, 0.0)
+
+
+@recipe("concrete_block", tile=2.4, wear=(0.1, 0.1, 0.085, 1.0))
+def concrete_block():
+    """Concrete blockwork, twelve courses and six blocks to the tile: a pale neutral
+    face the building's tint paints (or leaves grey), each block barely its own tone,
+    recessed joints, rain's wash down it. The wear is the damp that darkens its foot."""
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
+    courses, per = 12, 6
+    row = np.floor(yy * courses).astype(int)
+    u = xx * per + 0.5 * (row % 2)
+    fx, fy = u - np.floor(u), yy * courses - row
+    joint = np.maximum(smoothstep(0.1, 0.04, np.minimum(fy, 1 - fy)), smoothstep(0.05, 0.02, np.minimum(fx, 1 - fx)))
+    cast = np.random.default_rng(2901).random((courses, per))[row, np.floor(u).astype(int) % per]
+    grain = fbm(80, 2903, 3)
+    tone = 0.86 + 0.07 * (cast - 0.5) + 0.12 * (grain - 0.5) + 0.2 * (fbm(3, 2905, 4) - 0.5) + 0.1 * (fbm((36, 2), 2907, 3) - 0.5)
+    col = np.broadcast_to(np.array((0.66, 0.66, 0.64)), (SIZE, SIZE, 3)) * tone[..., None]
+    col = mix(col, (0.42, 0.42, 0.4), joint * 0.7)
+    h = (1 - joint) * 0.9 + grain * 0.3
+    return Baked(col, 0.25 + 0.75 * fbm(8, 2909, 4), normals_from_height(blur(h), 1.2), 1.0 - 0.3 * joint, 0.93)
+
+
+@recipe("tilt_slab", tile=6.0, wear=(0.24, 0.235, 0.22, 1.0))
+def tilt_slab():
+    """Painted precast concrete panels, one 6 m wide to the tile: a sealed joint between
+    panels, a reveal groove every 2 m up, the cast-in lifting points, and the dirt each
+    groove sheds down the face. A pale neutral paint the building's tint colours; the
+    wear is the bare concrete it flakes off."""
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
+    joint = smoothstep(0.007, 0.003, np.minimum(xx, 1 - xx))
+    below = (yy * 3) % 1.0  # 0 just under a reveal, 1 just above the next
+    reveal = smoothstep(0.012, 0.004, np.minimum(below, 1 - below) / 3)
+    inserts = smoothstep(0.012, 0.005, np.hypot(np.abs(xx - 0.5) - 0.3, ((yy * 3) % 1.0 - 0.5) / 3))
+    shed = smoothstep(0.45, 0.8, fbm((40, 1), 3001, 3)) * np.exp(-below * 2.0 / 0.7) * (1 - reveal)
+    grain = fbm(72, 3003, 3)
+    tone = 0.9 + 0.2 * (fbm(4, 3005, 4) - 0.5) + 0.06 * (grain - 0.5) - 0.3 * shed
+    col = np.broadcast_to(np.array((0.7, 0.7, 0.68)), (SIZE, SIZE, 3)) * tone[..., None]
+    col = mix(col, (0.1, 0.1, 0.1), np.clip(joint + reveal * 0.7 + inserts * 0.6, 0, 1))
+    h = grain * 0.2 - joint * 2.0 - reveal * 1.3 - inserts
+    worn = np.clip(chips(3007, 7, bias=0.2) - 0.25 * shed, 0.02, 1.0)
+    return Baked(col, worn, normals_from_height(blur(h), 1.2), 1.0 - 0.5 * np.clip(joint + reveal, 0, 1), 0.85 + 0.1 * shed,
+                 0.0, 1.0 - np.clip(joint + inserts, 0, 1))
+
+
+@recipe("roller_slats", tile=1.2, wear=(0.105, 0.046, 0.02, 0.9))
+def roller_slats():
+    """A roller shutter's curtain, twelve slats to the tile across the opening: a pale
+    neutral paint the door's tint colours, dirt in the joints, scuffs down it. The wear is rust."""
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
+    g = (yy * 12) % 1.0
+    joint = smoothstep(0.14, 0.03, np.minimum(g, 1 - g))
+    belly = np.sin(g * math.pi)
+    scuff = fbm((30, 2), 3101, 3)
+    tone = 0.8 + 0.14 * belly + 0.12 * (scuff - 0.5) + 0.12 * (fbm(4, 3103, 4) - 0.5)
+    col = np.broadcast_to(np.array((0.72, 0.72, 0.7)), (SIZE, SIZE, 3)) * tone[..., None]
+    col = mix(col, (0.08, 0.08, 0.08), joint * 0.7)
+    worn = np.clip(chips(3105, 14, bias=0.12) - 0.25 * joint, 0.02, 1.0)
+    return Baked(col, worn, normals_from_height(blur(belly * 1.6 - joint), 1.2), 1.0 - 0.4 * joint, 0.5 + 0.2 * scuff, 0.15,
+                 1.0 - 0.6 * joint)
+
+
+@recipe("factory_glazing", tile=3.0, wear=(0.2, 0.2, 0.19, 1.0))
+def factory_glazing():
+    """Steel-framed industrial glazing, panes 0.5 m by 0.75 m: dark glossy glass (nothing
+    here is see-through), a film of dust thickest at each pane's foot, some panes a
+    little duller than their neighbours; grey glazing bars. A window is one module seen
+    many times over, so no pane stands out enough to be counted."""
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
+    cols, rows = 6, 4
+    gx, gy = (xx * cols) % 1.0, (yy * rows) % 1.0
+    bar = np.maximum(smoothstep(0.05, 0.028, np.minimum(gx, 1 - gx)), smoothstep(0.034, 0.018, np.minimum(gy, 1 - gy)))
+    pane = np.random.default_rng(3201).random((rows, cols))[np.floor(yy * rows).astype(int), np.floor(xx * cols).astype(int)]
+    film = np.clip(0.3 * pane + 0.3 * smoothstep(0.5, 1.0, gy) + 0.3 * (fbm(6, 3203, 3) - 0.5), 0, 1)
+    col = mix((0.018, 0.024, 0.03), (0.085, 0.09, 0.088), film)
+    col = mix(col, (0.27, 0.27, 0.26), bar)
+    rough = 0.2 + 0.4 * film
+    return Baked(col, 1.0, normals_from_height(blur(bar * 1.2), 1.0), 1.0 - 0.2 * bar, rough + (0.7 - rough) * bar, 0.0, 0.0)
+
+
 # ---------------------------------------------------------------- UVs and the GLB
 def box_uv(obj, tile):
     """UVs in metres over `tile` (one number, or one per material slot): each
@@ -731,6 +967,36 @@ def macro(rgb, recipe_name):
     return tuple(min(1.0, max(0.0, c / max(m, 1e-4) / COLOUR_SCALE)) for c, m in zip(rgb, mean))
 
 
+# Materials that are not opaque, by name: ("cutout", cutoff) or ("blended",
+# opacity). `surface` fills it and `attach` writes it into the export.
+COVERAGE = {}
+INTERIOR_SHEETS = ("rooms", "shops")
+
+
+def surface(material, coverage=None, interior=None):
+    """Say what a Blender material is beyond an opaque surface with a look of
+    its own. Every material helper takes these two and passes them here.
+
+    `coverage` is ("cutout", cutoff): the surface is drawn only where its
+    coverage value reaches the cutoff; or ("blended", opacity): it is partly
+    there and shows what is behind it. The coverage value is the opacity times
+    the recipe's `coverage` image, and never the wear in either alpha.
+
+    `interior` names the interior atlas sheet ("rooms", "shops") the surface
+    shows a cell of: a wall of the room box behind a window, opaque and
+    untextured, its UVs the cell's (city/README.md, "Interiors")."""
+    if coverage is not None:
+        kind, value = coverage
+        if kind not in ("cutout", "blended") or not 0.0 <= value <= 1.0:
+            raise ValueError(f"{material.name}: coverage is ('cutout', cutoff) or ('blended', opacity), 0..1")
+        COVERAGE[material.name] = (kind, float(value))
+    if interior is not None:
+        if interior not in INTERIOR_SHEETS:
+            raise ValueError(f"{material.name}: interior sheet is one of {', '.join(INTERIOR_SHEETS)}")
+        material["interior"] = interior  # exported as the glTF material's extras
+    return material
+
+
 def attach(path, materials, worn=True):
     """Embed each recipe's images in the GLB at `path` and point the named
     materials' texture slots at them: {material name: recipe name}. The
@@ -738,12 +1004,13 @@ def attach(path, materials, worn=True):
     goes in extras. With `worn` false the surface never wears: the material
     keeps its own factors, so several materials can share one recipe at their
     own base colour, roughness and metalness, and its vertex colour is a plain
-    multiplier."""
+    multiplier. A material `surface` marked as a cutout or blended gets its
+    glTF alpha mode, with its cutoff or its opacity (the base colour's alpha)."""
     data = open(path, "rb").read()
     jlen = struct.unpack_from("<I", data, 12)[0]
     doc = json.loads(data[20:20 + jlen])
-    if not any(m.get("name") in materials for m in doc.get("materials", [])):
-        return []  # an untextured export keeps its bytes
+    if not any(m.get("name") in materials or m.get("name") in COVERAGE for m in doc.get("materials", [])):
+        return []  # an export of plain opaque, untextured materials keeps its bytes
     rest = data[20 + jlen:]
     bin_ = bytearray(rest[8:8 + struct.unpack_from("<I", rest, 0)[0]]) if rest else bytearray()
     views = doc.setdefault("bufferViews", [])
@@ -766,6 +1033,14 @@ def attach(path, materials, worn=True):
 
     used = set()
     for m in doc.get("materials", []):
+        kind, value = COVERAGE.get(m.get("name"), ("opaque", 1.0))
+        if kind == "cutout":
+            m["alphaMode"] = "MASK"
+            m["alphaCutoff"] = value
+        elif kind == "blended":
+            m["alphaMode"] = "BLEND"
+            pbr = m.setdefault("pbrMetallicRoughness", {})
+            pbr["baseColorFactor"] = [*pbr.get("baseColorFactor", [1.0, 1.0, 1.0, 1.0])[:3], value]
         name = materials.get(m.get("name"))
         if not name:
             continue

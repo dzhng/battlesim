@@ -41,6 +41,11 @@ export const FINDING_CODES = [
   "texture.size",
   "texture.mips",
   "texture.tangents",
+  // materials (`material.ts`): coverage and interior metadata
+  "material.coverage",
+  "material.coverage_source",
+  "material.wear",
+  "material.interior",
   // basis
   "basis.ground",
   "basis.forward",
@@ -59,6 +64,9 @@ export const FINDING_CODES = [
   "fit.mount_draw",
   /** A unit type names an appearance the catalog lacks, or of the wrong kind. */
   "fit.type_appearance",
+  // frame cost
+  /** A scenery kind's tier draws more triangles than its row allows. */
+  "budget.tier_triangles",
   // required nodes
   "nodes.missing",
   "nodes.hierarchy",
@@ -132,8 +140,31 @@ export interface MeshData {
   draws: { material: number; first: number; count: number }[];
 }
 
+/**
+ * How much of a surface is there. `opaque` is all of it. A `cutout` is there
+ * or not, texel by texel: nothing is drawn where its coverage value is under
+ * `cutoff`. A `blended` surface is partly there, and what is behind it shows
+ * through.
+ *
+ * The coverage value is the base colour's alpha times the normal texture's
+ * alpha (1 without one), and nothing else. The albedo texture's alpha stays
+ * the wear threshold, the ORM texture's the tint mask and the vertex colour's
+ * how worn the surface is, whatever the coverage. An opaque material has no
+ * coverage value: both alphas are ignored.
+ */
+export type Coverage =
+  | { kind: "opaque" }
+  | { kind: "cutout"; cutoff: number }
+  | { kind: "blended" };
+
+/** The interior atlas sheets (`blender/city/README.md`, "Interiors"):
+ *  apartment rooms on any floor, and shops on ground floors. */
+export const INTERIOR_SHEETS = ["rooms", "shops"] as const;
+export type InteriorSheet = (typeof INTERIOR_SHEETS)[number];
+
 export interface Material {
   name: string;
+  /** Linear rgb, and the coverage value's factor in alpha (`Coverage`). */
   base_color: [number, number, number, number];
   metallic: number;
   roughness: number;
@@ -152,13 +183,20 @@ export interface Material {
    *  colour's alpha (how worn: chips on edges, mud low down) rises past the
    *  albedo texture's alpha (where it breaks first). glTF extras `wear`. */
   wear?: [number, number, number, number];
+  /** glTF `alphaMode` and `alphaCutoff`; opaque when the source names none. */
+  coverage: Coverage;
+  /** The surface is a wall of the room box behind a window: it shows a cell
+   *  of this interior atlas sheet, at its own UVs, in place of a look of its
+   *  own. glTF extras `interior`. */
+  interior?: InteriorSheet;
 }
 
 /**
  * A material's texture channels. Every one samples the mesh's UVs and is
  * shared by every tier.
  * - `albedo`: sRGB colour; alpha is the wear threshold (low wears first).
- * - `normal`: tangent-space normal, xyz in 0..1 (glTF `normalTexture`).
+ * - `normal`: tangent-space normal, xyz in 0..1 (glTF `normalTexture`); alpha
+ *   scales the coverage value of a cutout or blended material (`Coverage`).
  * - `orm`: occlusion, roughness, metalness (glTF's packed occlusion and
  *   metallic-roughness image); alpha multiplies the material's tint mask.
  */
@@ -313,9 +351,10 @@ export interface Authority {
   infantry_eye_m: number;
   infantry_muzzle_m: number;
   units: UnitCatalog;
-  /** The forest canopy (`forests.rule.canopy_height_m`): a tree, unscaled,
-   *  stands inside it. */
+  /** The forest canopy (`forests.rule.canopy_height_m` and
+   *  `canopy_radius_m`): a tree, unscaled, stands inside it. */
   canopy_height_m: number;
+  canopy_radius_m: number;
   /** A destroyed building becomes a ruin this tall (the fixture's `buildings` block). */
   ruin_height_m: number;
 }
@@ -369,14 +408,27 @@ export interface AppearanceEntry {
 export interface GrassSpec {
   seed: number;
   blades: number;
-  /** Blade roots scatter within this radius of the clump's origin. */
+  /** The clump's spread: blade roots scatter within this radius of its
+   *  origin, a tight tuft or a loose stand. */
   radius_m: number;
-  /** Each blade's height, drawn from this range. */
+  /** Each blade's height, drawn from this range: no blade stands taller. */
   height_m: [number, number];
   /** Blade width at the root. */
   width_m: number;
   /** How far the tip leans out, as a fraction of the blade's height. */
   lean: [number, number];
+  /** How far the top hangs over: the tip falls this fraction of the blade's
+   *  height below a straight blade's. Absent: none. */
+  droop?: number;
+  /** The blade's outline. Absent: a grass blade, narrowing from the root to
+   *  a point. */
+  shape?: {
+    /** How late the blade narrows: 1.6 is a grass blade; larger holds the
+     *  root's width longer, as a stalk does. */
+    taper: number;
+    /** A leaf's swell: mid-blade is this many root widths wider. */
+    belly: number;
+  };
   /** The blade's colour at its root, middle and tip. */
   colors: {
     root: [number, number, number];
@@ -385,10 +437,13 @@ export interface GrassSpec {
   };
   /** Per-blade brightness jitter, as a fraction. */
   jitter: number;
+  /** How far the blades answer the field's one wind: 1 sways as the biome's
+   *  wind says, 0 stands still. */
+  wind: number;
   /** A seed head (wheat, grasses in flower) on a `chance` of the blades: from
    *  `from` of the height the blade swells to `width` times its root width,
-   *  closing at the tip. */
-  head?: { from: number; width: number; chance: number };
+   *  closing at the tip, and takes `color` when it has one (an ear, a flower). */
+  head?: { from: number; width: number; chance: number; color?: [number, number, number] };
   /** Dry stems among the green: a `chance` of the blades take these colours. */
   dry?: {
     chance: number;

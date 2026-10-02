@@ -31,3 +31,14 @@ Shared module/library ownership, physical fit and the category's metre scale.
 
 ## Feedback that would change this slice
 Rejected silhouette reshapes its family source without changing the type preset or adding a per-map bake.
+
+## Outcome
+
+**2026-10-01.** The farmsteads are a source set: `packages/scene-assets/blender/city/farmsteads.py` writes `assets/source/city/farmsteads/` (20 modules, three templates) through the houses' helper `city/kit.py`. The three farms replace the prototype shapes `prototype-farmstead-yard`, `-long` and `-small` at the catalogue cutover, which this slice did not run.
+
+- **The farms:** `china-farmstead-yard` (a plastered two-storey house, a timber-framed barn with wagon doors, an open-fronted cart shed, round a yard; 34 x 24.5 m), `china-farmstead-long` (a whitewashed longhouse and a 26 m stone byre behind it; 26 x 27 m), `china-farmstead-small` (a brick house beside a tarred boarded barn; 26.5 x 14 m). Each building is a part of its own, standing apart; the yard is open ground.
+- **Proved:** two runs write the same bytes; `homes.py` writes the same bytes as before its helpers were lifted into `kit.py` and `masonry.py`; the kit validates with no finding; the bake admits all three descriptors as complete and finds every row inside its parts, leaving only `templates.catalogue` (not in the physical catalogue), which the cutover clears. Every entrance is on the street side with a clear 60 m out of the door.
+- **Budget:** triangles drawn at tiers 0 to 3: yard 13,416 / 5,016 / 666 / 74; long 8,832 / 3,254 / 338 / 44; small 7,824 / 3,018 / 282 / 36. At tiers 2 and 3 a farm is one row.
+- **Judged by looking:** reassembly sheets (`city/assemble.py`, which gained a `hamlet` sheet) at 30, 80 and 250 m, the three in a row at 80 m and a hamlet of nine from 250 m. An unprimed critique of them named each group a farm with a house and a barn at 30 and 80 m with high confidence, and by roof colour and footprint only at 250 m. Its findings that were acted on: the barn windows' pale frames, the long house's plain chimneys, the brick plinth's white blotches, the small farm's 3.5 m gap, the framing's crawl at 250 m. Left: the roof recipe's lattice of tone and the pink and teal in its slate (the houses share the recipe), and no yard surface, wall or gate (the ground is the map's).
+- **Not done:** the sheets are Blender renders with a stand-in sun, not the battle's renderer. No comparison against a reference image: the spec's references (`specs/city-maps/assets/reference/`) hold towns and ground, no farm. Damage states are C14's.
+- **Decisions:** [choices](../choices.md#c16-our-own-farmsteads).

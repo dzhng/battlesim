@@ -3,7 +3,8 @@
 //! hardcode offsets, strides or tags.
 //!
 //! Record: a complete header, then independent non-map groups carrying either
-//! complete f32 words, group-local replacements, or exact fixed-row source copies. Finally
+//! complete f32 words, group-local replacements, or exact source copies. A compact
+//! arm stores their lossless bit representation in raw u32 carriers. Finally
 //! visibility snapshots/indexed replacements carry exact 16-bit limbs, followed
 //! by ground's exact tile-local runs and packed byte marks.
 //!
@@ -55,7 +56,7 @@ const SOUND_BANDS: [SoundBand; 2] = [SoundBand::Near, SoundBand::Far];
 /// A snapshot holds two exact 16-bit limbs per word: at most 20,250,000 bytes.
 pub const MAX_FOG_WORDS: usize = 2_531_250;
 const LIMB_BITS: u32 = 16;
-const GROUP_ENCODINGS: [&str; 3] = ["replacement", "snapshot", "copies"];
+const GROUP_ENCODINGS: [&str; 4] = ["replacement", "snapshot", "copies", "packed"];
 const SEGMENT_HITS: [SegmentHit; 5] = [
     SegmentHit::None,
     SegmentHit::Ground,
@@ -432,7 +433,18 @@ pub fn layout_json(battle: &Battle) -> String {
                 "sections": [],
             },
         ],
-        "groupDelivery": { "fields": ["length", "encoding", "floats"], "range": ["start", "length"], "copy": ["source", "length"], "encodings": GROUP_ENCODINGS },
+        "groupDelivery": { "fields": ["length", "encoding", "floats"], "range": ["start", "length"], "copy": ["source", "length"], "copyAlignments": (0..9).map(|g| fixed_row_width(g).max(1)).collect::<Vec<_>>(), "encodings": GROUP_ENCODINGS,
+            "packed": {
+                "bitOrder": "lsb-first in raw u32 carrier words",
+                "form": "u8: replacement=0, snapshot=1, copies=2",
+                "integer": "canonical unsigned LEB128, at most four bytes",
+                "replacement": "operation count, then start/length/literals",
+                "copies": "source+1/length; source zero means literals",
+                "literal": "u4 tag: 0..4 raw byte count; 5..9 baseline-XOR byte count",
+                "snapshot": "raw literals only; no baseline predictor",
+                "padding": "zero bits to the next u32 carrier boundary"
+            }
+        },
         "fog": { "count": "fogFloats", "maxWords": MAX_FOG_WORDS },
         // A run is one 16×16 tile and start + len * 256 within it;
         // craterScorch is crater + scorch * 256; tracksTrampledCleared is tracks + trampled * 256 + cleared * 65536.
@@ -1155,50 +1167,63 @@ fn encode_groups(
             };
             &previous[start..end]
         });
-        let delta: usize = if previous.is_empty() {
-            values.len()
+        let stride = fixed_row_width(g);
+        let (delta, delta_packed, delta_operations) = if previous.is_empty() {
+            (values.len(), 0, 0)
         } else {
-            changed_ranges(values, old).map(|(a, b)| 2 + b - a).sum()
+            measure_group(0, values, old, stride, &[])
         };
         let mut encoding = u8::from(previous.is_empty() || delta >= values.len());
-        let mut payload = if encoding == 1 { values.len() } else { delta };
-        let stride = fixed_row_width(g);
+        let (mut payload, mut packed_words, mut operations) = if encoding == 1 {
+            measure_group(1, values, old, stride, &[])
+        } else {
+            (delta, delta_packed, delta_operations)
+        };
         let mut index = Vec::new();
         if !previous.is_empty()
             && payload > 2
-            && stride > 0
             && !old.is_empty()
-            && old.len().is_multiple_of(stride)
-            && values.len().is_multiple_of(stride)
+            && (stride == 0
+                || (old.len().is_multiple_of(stride) && values.len().is_multiple_of(stride)))
         {
-            // One exact-reserved 32-bit source address per fixed row; no list of
-            // edit operations and no hash-collision or identity assumptions.
+            // Fixed rows retain row alignment; variable sections use sparse exact
+            // eight-word anchors. Both share one source-span wire grammar.
+            let anchor = if stride == 0 { 8 } else { stride };
             index
-                .try_reserve_exact(old.len() / stride)
+                .try_reserve_exact(old.len() / anchor)
                 .map_err(|e| format!("publication row index allocation: {e}"))?;
-            index.extend((0..old.len()).step_by(stride).map(|i| i as u32));
+            index.extend(
+                (0..old.len().saturating_sub(anchor - 1))
+                    .step_by(anchor)
+                    .map(|i| i as u32),
+            );
             index.sort_unstable_by(|&a, &b| {
                 compare_rows(
-                    &old[a as usize..a as usize + stride],
-                    &old[b as usize..b as usize + stride],
+                    &old[a as usize..a as usize + anchor],
+                    &old[b as usize..b as usize + anchor],
                 )
                 .then_with(|| a.cmp(&b))
             });
-            let copies: usize = row_copies(values, old, stride, &index)
-                .map(|(source, from, to)| 2 + if source.is_some() { 0 } else { to - from })
-                .sum();
+            let (copies, copy_packed, copy_operations) =
+                measure_group(2, values, old, stride, &index);
             if copies < payload {
                 encoding = 2;
                 payload = copies;
+                packed_words = copy_packed;
+                operations = copy_operations;
             } else {
                 index = Vec::new();
             }
+        }
+        let packed = packed_words < payload;
+        if packed {
+            payload = packed_words;
         }
         length = length
             .checked_add(3 + payload)
             .filter(|n| *n <= MAX_PUBLICATION_BYTES / 4)
             .ok_or("publication exceeds its 64 MiB atomic allocation allowance")?;
-        plans.push((encoding, payload, old, stride, index));
+        plans.push((encoding, payload, old, stride, index, packed, operations));
         start = end;
     }
     // Admission and exact reservation precede writing. Geometric growth must
@@ -1208,13 +1233,35 @@ fn encode_groups(
     out.clear();
     out.extend_from_slice(&logical[..HEADER.len()]);
     start = HEADER.len();
-    for (&end, (encoding, payload, old, stride, index)) in ends.iter().zip(plans) {
+    for (&end, (encoding, payload, old, stride, index, packed, operations)) in
+        ends.iter().zip(plans)
+    {
         let values = &logical[start..end];
-        out.extend([values.len() as f32, encoding as f32, payload as f32]);
-        if encoding == 1 {
+        out.extend([
+            values.len() as f32,
+            if packed { 3.0 } else { encoding as f32 },
+            payload as f32,
+        ]);
+        if packed {
+            let mut writer = PackedWriter {
+                out,
+                pending: 0,
+                bits: 0,
+            };
+            pack_group(
+                encoding,
+                values,
+                old,
+                stride,
+                &index,
+                operations,
+                &mut writer,
+            );
+            writer.finish();
+        } else if encoding == 1 {
             out.extend_from_slice(values);
         } else if encoding == 2 {
-            for (source, from, to) in row_copies(values, old, stride, &index) {
+            for (source, from, to) in source_copies(values, old, stride, &index) {
                 out.extend([source.map_or(-1.0, |s| s as f32), (to - from) as f32]);
                 if source.is_none() {
                     out.extend_from_slice(&values[from..to]);
@@ -1230,6 +1277,136 @@ fn encode_groups(
     }
     out.extend_from_slice(&logical[start..]);
     Ok(())
+}
+
+/// The compact carrier changes only serialization of an already selected word
+/// form. No second span selection, byte buffer, or decoded state is retained.
+trait PackedSink {
+    fn put(&mut self, value: u32, bits: usize);
+    fn integer(&mut self, mut value: u32) {
+        loop {
+            let byte = value & 127;
+            value >>= 7;
+            self.put(byte | if value == 0 { 0 } else { 128 }, 8);
+            if value == 0 {
+                break;
+            }
+        }
+    }
+    fn literal(&mut self, value: f32, old: f32, predict: bool) {
+        let raw = value.to_bits();
+        let xor = raw ^ old.to_bits();
+        let raw_bytes = (32 - raw.leading_zeros() as usize).div_ceil(8);
+        let xor_bytes = (32 - xor.leading_zeros() as usize).div_ceil(8);
+        let residual = predict && xor_bytes < raw_bytes;
+        let bytes = if residual { xor_bytes } else { raw_bytes };
+        self.put((bytes + if residual { 5 } else { 0 }) as u32, 4);
+        if bytes != 0 {
+            self.put(if residual { xor } else { raw }, bytes * 8);
+        }
+    }
+}
+struct PackedCount(usize);
+impl PackedSink for PackedCount {
+    fn put(&mut self, _: u32, bits: usize) {
+        self.0 += bits;
+    }
+}
+struct PackedWriter<'a> {
+    out: &'a mut Vec<f32>,
+    pending: u64,
+    bits: usize,
+}
+impl PackedSink for PackedWriter<'_> {
+    fn put(&mut self, value: u32, bits: usize) {
+        self.pending |= (value as u64) << self.bits;
+        self.bits += bits;
+        if self.bits >= 32 {
+            self.out.push(f32::from_bits(self.pending as u32));
+            self.pending >>= 32;
+            self.bits -= 32;
+        }
+    }
+}
+impl PackedWriter<'_> {
+    fn finish(self) {
+        if self.bits != 0 {
+            self.out.push(f32::from_bits(self.pending as u32));
+        }
+    }
+}
+fn measure_group(
+    encoding: u8,
+    values: &[f32],
+    old: &[f32],
+    stride: usize,
+    index: &[u32],
+) -> (usize, usize, u32) {
+    let mut count = PackedCount(8);
+    let (words, operations) =
+        write_group_operations(encoding, values, old, stride, index, &mut count);
+    if encoding == 0 {
+        count.integer(operations);
+    }
+    (words, count.0.div_ceil(32), operations)
+}
+fn pack_group(
+    encoding: u8,
+    values: &[f32],
+    old: &[f32],
+    stride: usize,
+    index: &[u32],
+    operations: u32,
+    sink: &mut impl PackedSink,
+) {
+    sink.put(encoding as u32, 8);
+    if encoding == 0 {
+        sink.integer(operations);
+    }
+    write_group_operations(encoding, values, old, stride, index, sink);
+}
+/// Measure the ordinary and compact representations together. In particular,
+/// selecting a compact copy never adds another sparse-index search pass.
+fn write_group_operations(
+    encoding: u8,
+    values: &[f32],
+    old: &[f32],
+    stride: usize,
+    index: &[u32],
+    sink: &mut impl PackedSink,
+) -> (usize, u32) {
+    let mut words = 0;
+    let mut operations = 0;
+    if encoding == 1 {
+        for &value in values {
+            sink.literal(value, 0.0, false);
+        }
+        words = values.len();
+    } else if encoding == 0 {
+        for (from, to) in changed_ranges(values, old) {
+            operations += 1;
+            words += 2 + to - from;
+            sink.integer(from as u32);
+            sink.integer((to - from) as u32);
+            for (at, &value) in values.iter().enumerate().take(to).skip(from) {
+                sink.literal(value, old.get(at).copied().unwrap_or(0.0), true);
+            }
+        }
+    } else {
+        for (source, from, to) in source_copies(values, old, stride, index) {
+            operations += 1;
+            words += 2;
+            sink.integer(source.map_or(0, |s| s as u32 + 1));
+            sink.integer((to - from) as u32);
+            if source.is_none() {
+                words += to - from;
+                for (at, &value) in values.iter().enumerate().take(to).skip(from) {
+                    sink.literal(value, old.get(at).copied().unwrap_or(0.0), true);
+                }
+            }
+        }
+    }
+    (words, operations)
 }
 
 /// Variable-section groups cannot address complete rows by one fixed width.
@@ -1253,20 +1430,29 @@ fn compare_rows(a: &[f32], b: &[f32]) -> std::cmp::Ordering {
         .cmp(b.iter().map(|v| v.to_bits()))
 }
 
-/// Assemble canonical order from exact old rows and literal new rows. Adjacent
-/// source rows coalesce, so inserting a row never resends the retained tail.
-fn row_copies<'a>(
+/// Assemble canonical order from exact old spans and new literals. Fixed rows
+/// retain their alignment; variable spans use sparse eight-word anchors and
+/// extend wordwise. Bit comparisons never depend on entity identity or hashes.
+fn source_copies<'a>(
     values: &'a [f32],
     old: &'a [f32],
     stride: usize,
     index: &'a [u32],
 ) -> impl Iterator<Item = (Option<usize>, usize, usize)> + 'a {
+    let anchor = if stride == 0 { 8 } else { stride };
     let source = move |at: usize| {
-        let row = &values[at..at + stride];
+        let row = values.get(at..at + anchor)?;
+        if stride == 0
+            && old
+                .get(at..at + anchor)
+                .is_some_and(|v| compare_rows(v, row).is_eq())
+        {
+            return Some(at);
+        }
         let i = index
-            .partition_point(|&p| compare_rows(&old[p as usize..p as usize + stride], row).is_lt());
+            .partition_point(|&p| compare_rows(&old[p as usize..p as usize + anchor], row).is_lt());
         let p = *index.get(i)? as usize;
-        compare_rows(&old[p..p + stride], row).is_eq().then_some(p)
+        compare_rows(&old[p..p + anchor], row).is_eq().then_some(p)
     };
     let mut at = 0;
     std::iter::from_fn(move || {
@@ -1275,18 +1461,23 @@ fn row_copies<'a>(
         }
         let start = at;
         let from = source(at);
-        at += stride;
+        at += if from.is_some() {
+            anchor
+        } else {
+            stride.max(1)
+        };
         while at < values.len() {
+            let step = stride.max(1);
             let follows = match from {
                 Some(p) => old
-                    .get(p + at - start..p + at - start + stride)
-                    .is_some_and(|row| compare_rows(row, &values[at..at + stride]).is_eq()),
+                    .get(p + at - start..p + at - start + step)
+                    .is_some_and(|row| compare_rows(row, &values[at..at + step]).is_eq()),
                 None => source(at).is_none(),
             };
             if !follows {
                 break;
             }
-            at += stride;
+            at += step;
         }
         Some((from, start, at))
     })
@@ -1327,6 +1518,42 @@ mod tests {
     use super::*;
 
     #[test]
+    fn compact_carriers_preserve_subnormals_nan_payloads_and_signed_zero() {
+        let special = [
+            0x0007_fc00,
+            0x7f80_0001,
+            0x7fc1_2345,
+            0xff80_0001,
+            0x8000_0000,
+            0xffff_ffff,
+            0x0000_0001,
+            0x7f80_0000,
+        ];
+        let values: Vec<_> = special.into_iter().map(f32::from_bits).collect();
+        let mut body = Vec::new();
+        let mut writer = PackedWriter {
+            out: &mut body,
+            pending: 0,
+            bits: 0,
+        };
+        pack_group(1, &values, &[], 0, &[], 0, &mut writer);
+        writer.finish();
+        assert!(
+            body[0].is_nan(),
+            "encoded carrier must actually exercise NaN bits"
+        );
+        let mut wire = vec![values.len() as f32, 3.0, body.len() as f32];
+        wire.extend(body);
+        assert_eq!(
+            codec::group(&wire, 0, &[])
+                .iter()
+                .map(|v| v.to_bits())
+                .collect::<Vec<_>>(),
+            special
+        );
+    }
+
+    #[test]
     fn scattered_fixed_row_insertions_do_not_resend_the_retained_tail() {
         let row = |i: usize| {
             [
@@ -1363,7 +1590,7 @@ mod tests {
             encoded.len() * 4
         );
         assert_eq!(
-            decode_copies(&encoded, &old),
+            decode_group(&encoded, &old),
             rows.iter()
                 .flatten()
                 .map(|v| v.to_bits())
@@ -1371,25 +1598,14 @@ mod tests {
         );
     }
 
-    fn decode_copies(encoded: &[f32], old: &[f32]) -> Vec<u32> {
-        let mut reconstructed = Vec::new();
-        let mut at = HEADER.len() + 7 * 3;
-        assert_eq!(encoded[at + 1], 2.0);
-        let end = at + 3 + encoded[at + 2] as usize;
-        at += 3;
-        while at < end {
-            let source = encoded[at];
-            let count = encoded[at + 1] as usize;
-            at += 2;
-            if source == -1.0 {
-                reconstructed.extend(encoded[at..at + count].iter().map(|v| v.to_bits()));
-                at += count;
-            } else {
-                let start = HEADER.len() + source as usize;
-                reconstructed.extend(old[start..start + count].iter().map(|v| v.to_bits()));
-            }
-        }
-        reconstructed
+    mod codec {
+        include!("../tests/common/publication_codec.rs");
+    }
+    fn decode_group(encoded: &[f32], old: &[f32]) -> Vec<u32> {
+        codec::group(encoded, HEADER.len() + 7 * 3, &old[HEADER.len()..])
+            .iter()
+            .map(|v| v.to_bits())
+            .collect()
     }
 
     #[test]
@@ -1426,7 +1642,7 @@ mod tests {
                 encoded.len() * 4
             );
             assert_eq!(
-                decode_copies(&encoded, &old),
+                decode_group(&encoded, &old),
                 logical[HEADER.len()..]
                     .iter()
                     .map(|v| v.to_bits())
@@ -1465,9 +1681,13 @@ mod tests {
             &mut encoded,
         )
         .unwrap();
-        // Dense changes choose a full group; exact NaN payload and +0 survive.
-        assert_eq!(encoded[HEADER.len() + 6].to_bits(), 0x7fc0_0002);
-        assert_eq!(encoded[HEADER.len() + 7].to_bits(), 0);
-        assert_eq!(encoded[HEADER.len() + 8], f32::INFINITY);
+        let result = codec::group(&encoded, HEADER.len() + 3, &words);
+        assert_eq!(
+            result.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
+            logical[HEADER.len() + 1..]
+                .iter()
+                .map(|v| v.to_bits())
+                .collect::<Vec<_>>()
+        );
     }
 }

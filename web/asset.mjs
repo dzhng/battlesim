@@ -1,7 +1,7 @@
 // The appearance asset CLI: `bun run --cwd web asset -- <command>`.
 //
 //   validate <glb> [--unit U] [--type T] [--yaw DEG] [--clips GLB] [--loop a,b] [--json]
-//                          stats and findings for one GLB (catalog settings when it is a catalog source;
+//                          stats, materials and findings for one GLB (catalog settings when it is a catalog source;
 //                          a vehicle fitted to unit type T, or to every type that draws it)
 //   bake                   bake the catalog into assets/runtime/<hash>/bundle.bin and assets/runtime/catalog.json
 //   check                  re-bake in memory; fail if anything on disk is stale, missing or orphaned
@@ -64,6 +64,7 @@ const { PROTOTYPE_SET, prototypeKitGlb, prototypeTemplates, templateSetText } =
   await import("../packages/scene-assets/src/prototypeSet.ts");
 const { hasErrors } = await import("../packages/scene-assets/src/validate.ts");
 const { validateLoose } = await import("../packages/scene-assets/src/loose.ts");
+const { describeMaterial } = await import("../packages/scene-assets/src/material.ts");
 const { fixtureAuthority } = await import("../packages/scene-assets/src/authority.ts");
 const { UnitCatalog } = await import("../packages/scene-assets/src/units.ts");
 const { grassClumpGlb } = await import("../packages/scene-assets/src/grass.ts");
@@ -185,6 +186,8 @@ async function validate(args) {
       console.log(JSON.stringify({ stats: judged.stats, findings: judged.findings }, null, 2));
     else {
       printStats(judged.stats);
+      for (const material of judged.preview?.materials ?? [])
+        console.log(`  material ${describeMaterial(material, judged.preview.textures)}`);
       printFindings(judged.findings);
       if (!judged.findings.length) console.log("  no findings");
     }
@@ -544,7 +547,7 @@ function readSet(name, entry) {
 
 /** The prototype set's two files by repo path, generated: stand-in rows for
  *  every template of the physical catalogue that no other set dresses, tinted
- *  by the fixture's massing tints. Null when the catalog has no such set. */
+ *  by the fixture's prototype tints. Null when the catalog has no such set. */
 function prototypeFiles() {
   const cat = catalog();
   const entry = cat.city_sets?.[PROTOTYPE_SET];
@@ -557,7 +560,7 @@ function prototypeFiles() {
   );
   const set = prototypeTemplates(
     readJson(join(ROOT, TEMPLATES)).filter((descriptor) => !dressed.has(descriptor.id)),
-    readJson(FIXTURE).presentation.massing.tints,
+    readJson(FIXTURE).presentation.buildings.prototype_tints,
   );
   return new Map([
     [kit, prototypeKitGlb()],

@@ -110,7 +110,7 @@ function AuthorityLab({ battle }: { battle: SavedBattle }) {
         world={worldFeed}
         structures={session.structures}
         obstacles={session.cameraObstaclesFeed}
-        massing={session.massingFeed}
+        buildings={session.buildingsFeed}
         frame={session.frame}
         appearances={session.appearances}
         initialCamera={AUTHORITY_CAMERA}
@@ -151,7 +151,7 @@ function AuthorityLab({ battle }: { battle: SavedBattle }) {
           >
             Step
           </button>
-          <button type="button" onClick={sim.reset}>
+          <button type="button" onClick={sim.restart}>
             Reset
           </button>
           <button type="button" onClick={() => void checkReplay()}>

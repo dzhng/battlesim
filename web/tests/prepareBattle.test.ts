@@ -51,7 +51,10 @@ const request = (
   ...over,
 });
 const prepared = (r = request(), d = documents, onStage?: (stage: string) => void) =>
-  prepare(wasm, memory, r, d, saved, onStage);
+  prepare(wasm, memory, r, d, saved, onStage).then(({ world, ...battle }) => {
+    world.free();
+    return battle;
+  });
 /** The refusal `preparing` ends in. */
 async function refusal(preparing: Promise<unknown>): Promise<PreparationRefused> {
   const error = await preparing.then(

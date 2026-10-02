@@ -42,7 +42,7 @@ import { gameCamera } from "./gameCamera";
 import { gameLightFor } from "./gameLight";
 import { gameFogGeometry, gameFogStyle } from "./gameFog";
 import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "./gameOverlay";
-import { gameModelDetail } from "./gameModels";
+import { gameBuildingStyle, gameModelDetail } from "./gameModels";
 import type { FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
 import type { FogStyle } from "@packages/battle-renderer/src/frame/fogStyle";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
@@ -54,7 +54,7 @@ import type {
   WorldMeshes,
 } from "@packages/battle-renderer/src/scene";
 import type { GroundMarks } from "@packages/battle-renderer/src/frame/scarTexture";
-import type { PlacedInstances } from "@packages/battle-renderer/src/scenery/lod";
+import type { SideBuildings } from "@packages/battle-renderer/src/models/buildingReferences";
 import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
 import { PassInspector } from "./PassInspector";
 import type { FeedSource } from "./feed";
@@ -74,9 +74,9 @@ interface LabViewportProps {
   /** Knowledge-drawn props as fitted appearances (standing buildings,
    *  remembered ruins and wrecks), lit and fogged with the world. */
   structures?: readonly ModelInstance[];
-  /** Knowledge-drawn massing boxes (buildings with no art), fed like the
-   *  overlay; omitted or null draws none. */
-  massing?: FeedSource<PlacedInstances | null>;
+  /** The buildings drawn from template art, and those the side has seen
+   *  fall, fed like the overlay; omitted or null draws none. */
+  buildings?: FeedSource<SideBuildings | null>;
   /** What the camera keeps clear of (the buildings the side knows stand, on
    *  the ground), fed like the overlay; the ground alone when omitted or null. */
   obstacles?: FeedSource<CameraObstacles | null>;
@@ -281,6 +281,12 @@ interface LabHandle {
   /** Draw no trees and none of their shadows while on (they are scenery, not
    *  models): the ground under a wood, and a paired cost measure. */
   suppressTrees?: (on: boolean) => Promise<void>;
+  /** Draw no template-art buildings and none of their shadows while on (a
+   *  paired cost measure). */
+  suppressBuildings?: (on: boolean) => Promise<void>;
+  /** Draw the roads plain while on, with no surface detail or shoulder (a
+   *  paired cost measure). */
+  suppressRoadWear?: (on: boolean) => Promise<void>;
   /** Draw no combat effects while on (a paired cost measure). */
   suppressEffects?: (on: boolean) => Promise<void>;
   /** Draw the effects but light nothing by them while on (paired frames, cost). */
@@ -311,7 +317,7 @@ export function LabViewport({
   fixture,
   world,
   structures,
-  massing,
+  buildings,
   obstacles,
   overlay,
   pointerMarks,
@@ -405,15 +411,15 @@ export function LabViewport({
   );
   const structuresRef = useRef(structures);
   structuresRef.current = structures;
-  const massingRef = useRef(massing);
-  massingRef.current = massing;
+  const buildingsRef = useRef(buildings);
+  buildingsRef.current = buildings;
   useEffect(
     () =>
-      massing?.subscribe((boxes) => {
-        sceneRef.current?.setMassing(boxes);
+      buildings?.subscribe((next) => {
+        sceneRef.current?.setBuildings(next);
         redrawRef.current();
       }),
-    [massing],
+    [buildings],
   );
   const obstaclesRef = useRef(obstacles);
   obstaclesRef.current = obstacles;
@@ -565,6 +571,7 @@ export function LabViewport({
             paint: gamePaint,
             xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
             models: gameModelDetail,
+            buildings: gameBuildingStyle,
             world: worldRef.current.current!,
             instances: instancesRef.current,
             width: canvas.width,
@@ -579,7 +586,7 @@ export function LabViewport({
           sceneRef.current = next;
           try {
             if (structuresRef.current) next.setStructures(structuresRef.current);
-            if (massingRef.current) next.setMassing(massingRef.current.current);
+            if (buildingsRef.current) next.setBuildings(buildingsRef.current.current);
             const meshes = overlayRef.current?.current;
             if (meshes) next.setOverlay(meshes);
             const marks = pointerMarksRef.current?.current;
@@ -609,8 +616,9 @@ export function LabViewport({
         });
         const draw = () => {
           syncSize();
-          scene.render(context.getCurrentTexture().createView(), snapshot());
+          // Cleared first: a frame may ask to be drawn again (`requestRedraw`).
           dirty = false;
+          scene.render(context.getCurrentTexture().createView(), snapshot());
         };
         redrawRef.current = () => (dirty = true);
         let pointer: { x: number; y: number } | null = null;
@@ -827,6 +835,14 @@ export function LabViewport({
           },
           async suppressTrees(on: boolean) {
             scene.setTreesShown(!on);
+            await nextFrame();
+          },
+          async suppressBuildings(on: boolean) {
+            scene.setBuildingsShown(!on);
+            await nextFrame();
+          },
+          async suppressRoadWear(on: boolean) {
+            scene.setRoadWearShown(!on);
             await nextFrame();
           },
           async suppressEffects(on: boolean) {

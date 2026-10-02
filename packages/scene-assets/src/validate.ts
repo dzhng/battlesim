@@ -42,6 +42,7 @@ import {
   worldTransforms,
 } from "./pose.ts";
 import { bindTextures, importScene } from "./scene.ts";
+import { materialFindings } from "./material.ts";
 import { textureFindings } from "./texture.ts";
 import { grassStripFindings } from "./grass.ts";
 import {
@@ -105,6 +106,12 @@ const finding = (code: Finding["code"], message: string, fix: string): Finding =
 const tierStats = (tiers: MeshData[]) =>
   tiers.map((m) => ({ triangles: triangleCount(m), vertices: m.positions.length / 3 }));
 const fmt = (n: number) => n.toFixed(3);
+/** What a built bundle's surfaces must be, whatever it draws: its textures
+ *  and its materials. */
+const surfaceFindings = (label: string, bundle: Exclude<Bundle, SkeletonClips>) => [
+  ...textureFindings(label, bundle),
+  ...materialFindings(label, bundle),
+];
 
 // ---------------------------------------------------------------- skeleton clips
 
@@ -222,12 +229,11 @@ export async function validateAppearance(
       if (entry.unit === "scenery" && SCENERY_KINDS[entry.scenery ?? ""]?.blades)
         findings.push(...grassStripFindings(path, built.tiers));
       findings.push(...groundFindings(`${path}`, bounds.min[2], tolerances));
-      if (
-        entry.unit === "scenery" &&
-        entry.scenery !== undefined &&
-        SCENERY_KINDS[entry.scenery]?.footprint.kind === "tree"
-      )
-        findings.push(...canopyFindings(path, bounds, context.authority, tolerances));
+      const rule = entry.unit === "scenery" ? SCENERY_KINDS[entry.scenery ?? ""] : undefined;
+      if (rule?.footprint.kind === "tree")
+        findings.push(...canopyFindings(path, built.tiers, context.authority, tolerances));
+      if (rule?.tier_triangles)
+        findings.push(...budgetFindings(path, built.tiers, rule.tier_triangles));
     }
     states.sort((a, b) => a.name.localeCompare(b.name));
     if (required)
@@ -242,7 +248,7 @@ export async function validateAppearance(
           bounds,
         }
       : null;
-    if (bundle) findings.push(...textureFindings(input.name, bundle));
+    if (bundle) findings.push(...surfaceFindings(input.name, bundle));
     return {
       findings,
       stats: states.length
@@ -279,7 +285,7 @@ export async function validateAppearance(
     );
     const bounds = posedBounds(nodes);
     const bundle: ArticulatedBundle = { kind: "articulated", nodes, materials, textures, bounds };
-    findings.push(...textureFindings(path, bundle));
+    findings.push(...surfaceFindings(path, bundle));
     return {
       findings,
       stats: {
@@ -339,7 +345,7 @@ export async function validateAppearance(
     corpse_pose: corpsePose,
     sockets,
   };
-  findings.push(...textureFindings(path, bundle));
+  findings.push(...surfaceFindings(path, bundle));
   return {
     findings,
     stats: {
@@ -403,7 +409,7 @@ async function validateKit(input: AppearanceInput): Promise<Validation<Bundle>> 
     textures: materials.textures,
     bounds,
   };
-  findings.push(...textureFindings(name, bundle));
+  findings.push(...surfaceFindings(name, bundle));
   return {
     findings,
     stats: {
@@ -950,25 +956,57 @@ function deployFindings(
   return out;
 }
 
-/** A tree, unscaled, stands inside the simulation's lowest forest canopy:
- *  placement only scales it down to fit each forest, so the drawn crown never
- *  rises above the foliage that attenuates sight. */
+/** A tree, unscaled, stands inside the simulation's forest canopy on every
+ *  tier, so the drawn crown never rises above or reaches past the foliage
+ *  that attenuates sight. */
 function canopyFindings(
   label: string,
-  bounds: Bounds,
+  tiers: MeshData[],
   authority: Authority,
   tolerances: Tolerances,
 ): Finding[] {
-  const top = bounds.max[2];
-  return top > authority.canopy_height_m + tolerances.ground_m
-    ? [
-        finding(
-          "fit.canopy",
-          `${label}: crown top at ${fmt(top)} m, above the forests' canopy of ${authority.canopy_height_m} m (forests.rule.canopy_height_m)`,
-          "lower the crown under the canopy height; placement scales each tree down to fit its forest",
-        ),
-      ]
-    : [];
+  let top = 0;
+  let reach = 0;
+  for (const { positions: p } of tiers)
+    for (let i = 0; i < p.length; i += 3) {
+      top = Math.max(top, p[i + 2]);
+      reach = Math.max(reach, Math.hypot(p[i], p[i + 1]));
+    }
+  const out: Finding[] = [];
+  if (top > authority.canopy_height_m + tolerances.ground_m)
+    out.push(
+      finding(
+        "fit.canopy",
+        `${label}: crown top at ${fmt(top)} m, above the forests' canopy of ${authority.canopy_height_m} m (forests.rule.canopy_height_m)`,
+        "lower the crown under the canopy height",
+      ),
+    );
+  if (reach > authority.canopy_radius_m + tolerances.ground_m)
+    out.push(
+      finding(
+        "fit.canopy",
+        `${label}: crown reaches ${fmt(reach)} m from the trunk's axis, past the forests' canopy radius of ${authority.canopy_radius_m} m (forests.rule.canopy_radius_m)`,
+        "narrow the crown inside the canopy radius",
+      ),
+    );
+  return out;
+}
+
+/** Each tier of a kind instanced by the hundred draws no more triangles
+ *  than its `SCENERY_KINDS` row allows. */
+function budgetFindings(label: string, tiers: MeshData[], budget: readonly number[]): Finding[] {
+  return tiers.flatMap((mesh, t) => {
+    const triangles = triangleCount(mesh);
+    return triangles > budget[t]
+      ? [
+          finding(
+            "budget.tier_triangles",
+            `${label}: tier ${t} draws ${triangles} triangles, over its budget of ${budget[t]}`,
+            "simplify the tier, or change the kind's tier_triangles (packages/scene-assets/src/scenery.ts) with a paired frame-cost row",
+          ),
+        ]
+      : [];
+  });
 }
 
 interface ExtentRule {

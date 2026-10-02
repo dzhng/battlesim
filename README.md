@@ -70,6 +70,12 @@ bun run dev     # build the WebAssembly, start the lab app
 
 `/` is the main menu: start a battle on a generated map (its type and its size), play a saved battlefield of the catalogue, or watch a replay; behind its developer link, play the test village, run the benchmark or open the lab index at `/labs`, which links every route. A generated battle's address (`/battle?type=&size=&seed=`) is its share identity: the same address prepares the same battle on the same build. The benchmark (`/benchmark`) is the one frame-cost measure.
 
+During development, the [mechanics editor](apps/mechanics-editor/README.md) opens
+from the developer menu at `/mechanics`, or run `bun run dev:mechanics` to start
+the server and open the editor directly. See its README for the editing workflow.
+It previews and saves validated fixture edits; new and explicitly restarted
+battles capture the latest saved rules.
+
 Floating unit panels show name and health. Own-unit panels show a crossed-out eye beside the name, plus HIDDEN in expanded detail, when forest or garrison concealment covers enough of the living unit and there is no known engagement or currently visible enemy observer spotting it. The [sensing rules](crates/sim/src/sensing.rs) own squad thresholds; concealment uses forest ground, independently of tree crowns. Space prioritizes the closest 30% of visible units from the camera's actual position; farther cards expand where room remains. Hovering a unit or its card always reveals its detail. Placement tries expansion in place, then the fewest card shifts, favoring shorter shifts when the counts tie.
 
 A held right-click previews each selected unit’s destination and facing with the same markers shown after release. Dragging rotates about the clicked front center. The [group move placement rationale](specs/done/group-move-preview/README.md) explains its authority, spacing and partial-placement contracts. The [move-validity rationale](specs/done/move-validity/README.md) explains why a destination marker also requires demonstrated physical travel.

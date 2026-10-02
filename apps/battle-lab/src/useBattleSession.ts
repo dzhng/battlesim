@@ -1,8 +1,10 @@
+import type { PreparedSession } from "@web/battle/prepare/client";
 // One side's live battle session: the static world and its meshes, the worker
 // authority, the player command path, the drawn units (interpolated; soldiers
 // and vehicles posed by the pose driver as models, each picked by the
 // simulation's box for its body), the props the side knows stand (fitted
-// appearances), the pick and box-select adapters over what is drawn, and the
+// appearances, and buildings from template art), the pick and box-select
+// adapters over what is drawn, and the
 // base lab probes. The battle view and every lab that plays a battle
 // share it; routes add only what they show.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -24,16 +26,19 @@ import {
   type FogInput,
   type FogSensorRules,
 } from "@packages/battle-renderer/src/frame/fogInputs";
-import { massingInstances, massingParts } from "@packages/battle-renderer/src/scenery/massing";
+import {
+  fallenBuildings,
+  FRAME_FLOATS,
+  indexBuildings,
+  type SideBuildings,
+} from "@packages/battle-renderer/src/models/buildingReferences";
 import {
   buildingObstacles,
   buildingPartProps,
   knownOf,
 } from "@packages/battle-renderer/src/buildingObstacles";
-import { INSTANCE_FLOATS } from "@packages/battle-renderer/src/scenery/lod";
 import { gameBiome } from "./gameBiome";
-import { gameMassing } from "./gameMassing";
-import { useGameAppearances } from "./gameAppearances";
+import { mapAppearances, useGameAppearances } from "./gameAppearances";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
@@ -79,11 +84,10 @@ import { orderView } from "./battleOverlay";
 import { groundUnderRay } from "./useStaticWorld";
 
 export interface BattleSessionOptions {
-  /** The map the scenario runs on (the scenario's own `map`). */
-  map: unknown;
   /** The scenario JSON the authority runs. */
   scenario: string;
   seed: number;
+  prepared?: PreparedSession;
   /** Called for every decoded frame, before its credit returns. */
   onDecoded?: (o: ObservationView, digest: string) => void;
   /** A recorded battle to replay: input is off. */
@@ -111,7 +115,6 @@ export interface ScenarioRules extends PoseRules, PanelRules, RulerRules {
 }
 
 export function useBattleSession({
-  map,
   scenario,
   seed,
   onDecoded,
@@ -120,8 +123,8 @@ export function useBattleSession({
   side = "blue",
   destroyable,
   sound = false,
+  prepared,
 }: BattleSessionOptions) {
-  const world = useStaticWorld(map);
   const rules = useMemo(() => (JSON.parse(scenario) as { rules: ScenarioRules }).rules, [scenario]);
   // Combat effects: every decoded publication noted (the frame dedupes),
   // drawn at each animation frame's presentation clock.
@@ -142,7 +145,8 @@ export function useBattleSession({
     },
     [effects, audio, side, onDecoded],
   );
-  const sim = useSimSession({ scenario, seed, onDecoded: noteDecoded, replay, scripted });
+  const sim = useSimSession({ scenario, seed, onDecoded: noteDecoded, replay, scripted, prepared });
+  const world = useStaticWorld(sim.client?.world ?? null, sim.fail);
   const { observation } = sim;
   // The last drawn frame's presentation clock: the callouts' nudges ease on
   // it, and an order's flash starts at it.
@@ -191,7 +195,8 @@ export function useBattleSession({
   // each a fitted appearance. A known ruin replaces its building in the same
   // list, a known shoved body its own map pose; an unseen collapse or shove
   // leaves the map's prop standing.
-  const knownKey = JSON.stringify(observation?.knownProps ?? []);
+  const knownProps = observation?.knownProps;
+  const knownKey = useMemo(() => JSON.stringify(knownProps ?? []), [knownProps]);
   const props = useMemo(
     () =>
       world && appearances
@@ -202,41 +207,8 @@ export function useBattleSession({
         : null,
     [world, appearances],
   );
-  // Buildings with no art are massing: their parts, and the remains of those
-  // the side has seen fall, are boxes in the scenery's static chunks, and no
-  // model stands for either.
-  const massingOf = useMemo(
-    () => world && massingParts(world.exports.buildings, gameMassing),
-    [world],
-  );
-  const structures = useMemo(() => {
-    if (!props || !massingOf) return [];
-    const known = (JSON.parse(knownKey) as KnownPropView[]).filter(
-      (k) => k.authoredProp === null || !massingOf.has(k.authoredProp),
-    );
-    return structureModels(
-      props.map,
-      known,
-      props.fit,
-      (prop) => apart.includes(prop.kind) && !massingOf.has(prop.id),
-    );
-  }, [props, massingOf, knownKey, apart]);
-  const massing = useMemo(
-    () =>
-      props && massingOf?.size
-        ? massingInstances(
-            props.map,
-            JSON.parse(knownKey) as KnownPropView[],
-            massingOf,
-            gameMassing,
-          )
-        : null,
-    [props, massingOf, knownKey],
-  );
-  const massingFeed = useFeed(massing);
-  // What the camera keeps clear of: the ground, and every building part the
-  // side knows stands (a fallen one's remains once it has seen the fall).
-  // Rebuilt only when what it knows of a building changes.
+  // What the side knows of the map's buildings, apart from everything else
+  // it knows: what follows changes only when that does.
   const buildingParts = useMemo(() => world && buildingPartProps(world.exports.buildings), [world]);
   const knownBuildingsKey = useMemo(
     () =>
@@ -244,6 +216,44 @@ export function useBattleSession({
       JSON.stringify(knownOf(JSON.parse(knownKey) as KnownPropView[], buildingParts)),
     [knownKey, buildingParts],
   );
+  // A building whose template the installed art library has is drawn from
+  // its rows, as instances of kit modules; no fitted model stands for it or
+  // for its remains. Any other building keeps the fitted-appearance path.
+  const templates = appearances?.templates;
+  const drawnBuildings = useMemo(() => {
+    if (!world || !props) return null;
+    const ids = new Set(templates?.library.templates.map((t) => t.id));
+    return indexBuildings(world.exports.buildings, props.map, (id) => ids.has(id));
+  }, [world, props, templates]);
+  const buildings = useMemo<SideBuildings | null>(
+    () =>
+      drawnBuildings && knownBuildingsKey
+        ? {
+            placed: drawnBuildings.placed,
+            fallen: fallenBuildings(
+              drawnBuildings,
+              JSON.parse(knownBuildingsKey) as KnownPropView[],
+            ),
+          }
+        : null,
+    [drawnBuildings, knownBuildingsKey],
+  );
+  const buildingsFeed = useFeed(buildings);
+  const structures = useMemo(() => {
+    if (!props || !drawnBuildings) return [];
+    const rowDrawn = drawnBuildings.partBuilding;
+    const known = (JSON.parse(knownKey) as KnownPropView[]).filter(
+      (k) => k.authoredProp === null || !rowDrawn.has(k.authoredProp),
+    );
+    return structureModels(
+      props.map,
+      known,
+      props.fit,
+      (prop) => apart.includes(prop.kind) && !rowDrawn.has(prop.id),
+    );
+  }, [props, drawnBuildings, knownKey, apart]);
+  // What the camera keeps clear of: the ground, and every building part the
+  // side knows stands (a fallen one's remains once it has seen the fall).
   // Renderer fog: the side's eyes at the published tick over the static
   // world, cut by the occluders it knows (rebuilt only when knowledge changes).
   // Its foliage is the side's: less the trees on ground it has seen cleared
@@ -313,24 +323,14 @@ export function useBattleSession({
   xrayOf.current = (unitSide, unit) =>
     unitSide !== side ? null : control.selected.includes(unit) ? gameXray.selected : gameXray.own;
 
-  // The models layer installs only what the battle draws as models: its
-  // soldiers and vehicles, the appearance each of the map's props takes, and
-  // every wreck and ruin a battle can leave. Trees, hedgerows and grass are
-  // the scenery layer's and the grass pass's, which hold their own buffers.
-  const modelAppearances = useMemo<InstalledAppearances | null>(() => {
-    if (!appearances || !props || !massingOf) return null;
-    const drawn = props.fit.drawnFor(
-      props.map.filter((p) => !props.fit.drawsTree(p.kind) && !massingOf.has(p.id)),
-    );
-    return {
-      ...appearances,
-      appearances: new Map(
-        [...appearances.appearances].filter(
-          ([name, a]) => a.unit === "soldier" || a.unit === "vehicle" || drawn.has(name),
-        ),
-      ),
-    };
-  }, [appearances, props, massingOf]);
+  // The models layer installs only what the battle draws as models.
+  const modelAppearances = useMemo<InstalledAppearances | null>(
+    () =>
+      appearances && props && drawnBuildings
+        ? mapAppearances(appearances, props.map, props.fit, drawnBuildings, true)
+        : null,
+    [appearances, props, drawnBuildings],
+  );
 
   // Soldiers: the observation, fed per soldier to the pose driver, drawn as
   // the appearance for their kind and side. A new side or catalog starts over.
@@ -526,21 +526,29 @@ export function useBattleSession({
         .map((p) => ({ ...p, distance: Math.hypot(p.center[0] - x, p.center[1] - y) }))
         .sort((a, b) => a.distance - b.distance)
         .slice(0, count),
-    /** The massing boxes drawn now, as their records' fields. */
     /** The camera's obstacles: how many boxes, and what indexing them took. */
     cameraObstacles: () =>
       cameraObstacles && { boxes: cameraObstacles.view.count, buildMs: cameraObstacles.buildMs },
-    massing: () =>
-      Array.from(massing?.kinds ?? [], (_, i) => {
-        const r = massing!.records.subarray(i * INSTANCE_FLOATS, (i + 1) * INSTANCE_FLOATS);
-        return {
-          center: [r[0], r[1]],
-          baseZ: r[2],
-          yaw: r[3],
-          half: [r[4], r[5], r[6] / 2],
-          tint: [r[8], r[9], r[10]],
-        };
-      }),
+    /** The buildings drawn from template art: each one's template, owner,
+     *  frame and the boxes of its parts as the side knows them (the remains
+     *  of one it has seen fall). */
+    buildings: () => {
+      if (!drawnBuildings || !buildings) return [];
+      const fallen = new Map(buildings.fallen.map((f) => [f.building, f.parts]));
+      const { placed } = drawnBuildings;
+      return drawnBuildings.parts.map((parts, i) => ({
+        template: placed.templates[placed.template[i]],
+        owner: placed.owners[i],
+        frame: [...placed.frames.subarray(i * FRAME_FLOATS, (i + 1) * FRAME_FLOATS)],
+        fallen: fallen.has(i),
+        parts: (fallen.get(i) ?? parts).map((p) => ({
+          center: p.center,
+          baseZ: p.baseZ,
+          yaw: p.yaw,
+          half: p.half,
+        })),
+      }));
+    },
     /** The side's known craters: marked cells, and the centre of the
      *  `binM`-square block holding the most (framing a shelled field). */
     craters: (binM = 16) => {
@@ -638,8 +646,9 @@ export function useBattleSession({
     /** The props drawn from what the side knows (standing destroyable props
      *  when "apart", their remains, and wrecks), for the viewport's `structures`. */
     structures,
-    /** The massing boxes drawn from what the side knows, for the viewport. */
-    massingFeed,
+    /** The buildings drawn from template art, and those the side has seen
+     *  fall, for the viewport. */
+    buildingsFeed,
     /** What the camera keeps clear of, from what the side knows stands, for
      *  the viewport. */
     cameraObstaclesFeed,

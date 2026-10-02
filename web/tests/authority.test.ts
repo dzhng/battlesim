@@ -44,11 +44,7 @@ function harness(load: () => Promise<SimModule> = async () => sim) {
   let closed = false;
   const host: AuthorityHost = {
     post(reply, transfer) {
-      // Detach what was transferred, as a worker would; keep the moved copy.
-      const moved = (transfer ?? []).map((t) =>
-        structuredClone(t as ArrayBuffer, { transfer: [t as ArrayBuffer] }),
-      );
-      replies.push(reply.type === "publication" ? { ...reply, buffer: moved[0] } : reply);
+      replies.push(transfer?.length ? structuredClone(reply, { transfer }) : reply);
     },
     now: () => clock,
     schedule: () => {},
@@ -255,6 +251,24 @@ test("a replay of the accepted commands reproduces every tick digest", async () 
   expect(ack.error?.reason).toBe("replay_in_progress");
 });
 
+test("a different simulation build is refused before replay publication", async () => {
+  const live = harness();
+  await live.init();
+  live.authority.handle({ type: "replay" });
+  const json = (live.replies.find((r) => r.type === "replay") as { json: string }).json;
+  const record = JSON.parse(json);
+  record.engine_build = "0".repeat(64);
+  const replay = harness();
+  await replay.init(JSON.stringify(record));
+  expect(replay.replies).toContainEqual({
+    type: "error",
+    message: "replay was recorded by a different simulation build",
+  });
+  expect(replay.replies.some((r) => r.type === "ready")).toBe(false);
+  expect(replay.publications()).toHaveLength(0);
+  expect(replay.closed()).toBe(true);
+});
+
 test("the ground streams as deltas, and a side switch reopens it with a full snapshot", async () => {
   const h = harness();
   await h.init();
@@ -316,4 +330,34 @@ test("a scripted blue commands like a player: recorded, replayable, timed per st
 
   const again = await run({ type: "init", scenario: setup, seed: 3, side: "blue", replay: json });
   expect(published(again).map((p) => p.digest)).toEqual(published(live).map((p) => p.digest));
+});
+
+test("worker publication copying and transfer preserve every raw NaN carrier bit", async () => {
+  const memory = new WebAssembly.Memory({ initial: 1 });
+  const bits = Uint32Array.from([0x7f800001, 0x7fc12345, 0xff800001, 0x80000000, 0xffffffff]);
+  new Uint32Array(memory.buffer, 0, bits.length).set(bits);
+  let tick = 0;
+  const battle = {
+    observation_layout: () => "{}",
+    accept: () => "{}",
+    preview_move: () => "[]",
+    step: () => ++tick,
+    tick: () => tick,
+    digest: () => "carrier",
+    replay_json: () => "{}",
+    publish: () => bits.length,
+    resync_observation: () => {},
+    publication_ptr: () => 0,
+    free: () => {},
+  };
+  const h = harness(async () => ({
+    memory,
+    takePublicWorld: () => null,
+    createBattle: () => battle,
+    replayBattle: () => battle,
+  }));
+  await h.init();
+  h.authority.handle({ type: "start" });
+  const publication = h.publications()[0];
+  expect(new Uint32Array(publication.buffer, 0, publication.length)).toEqual(bits);
 });

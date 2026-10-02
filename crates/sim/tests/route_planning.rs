@@ -348,6 +348,94 @@ fn a_replay_plans_the_same_routes_on_the_same_ticks() {
     }
 }
 
+#[test]
+fn an_enclosed_road_goal_finishes_its_counted_proof_and_replays() {
+    use sim::math::v2;
+    use sim::navigation::{Journey, Leg, NavBase, NavGrid, Plan, RoadNet};
+    use sim::world::WorldGeometry;
+    let map = r#"{"size":[400,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
+        "surfaces":[{"kind":"road","shape":{"kind":"stroke","points":[[20,100],[280,100]],"width_m":10}}],
+        "props":[
+            {"kind":"wall","center":[290,100],"half_extents":[1,12,2],"yaw":0},
+            {"kind":"wall","center":[310,100],"half_extents":[1,12,2],"yaw":0},
+            {"kind":"wall","center":[300,89],"half_extents":[11,1,2],"yaw":0},
+            {"kind":"wall","center":[300,111],"half_extents":[11,1,2],"yaw":0}
+        ]}"#;
+    let setup = scenario(
+        map,
+        json!([{"side":"blue","kind":"tank","position":[20,100]}]),
+        200,
+    );
+    let mut battle = Battle::new(&setup, 7);
+    let start = xy(&own(&battle, 0));
+    let mut order = go(&[0], [300.0, 100.0]);
+    if let Order::Move { route, .. } = &mut order {
+        *route = RoutePolicy::Fastest;
+    }
+    // One search of the 20,000-cell map plus local proof and road checks
+    // fits this allowance; recertifying the goal from another outside start does not.
+    // Admission refuses this command before it can schedule a live search.
+    let world = WorldGeometry::new(&setup.map, &setup.rules);
+    let grid = NavGrid::new(std::sync::Arc::new(NavBase::build(
+        &world,
+        world.props(),
+        setup.rules.physics.soldier_radius_m,
+    )));
+    let roads = RoadNet::build(&world);
+    let mobility = sim::units::mobility(setup.rules.catalog.by_id("tank"), &setup.rules);
+    let mut journey = Journey::new(
+        &grid,
+        &roads,
+        None,
+        Leg {
+            from: v2(start[0], start[1]),
+            goal: v2(300.0, 100.0),
+            m: &mobility,
+            policy: RoutePolicy::Fastest,
+            avoid: &[],
+        },
+        &setup.rules.navigation,
+    );
+    for _ in 0..130 {
+        assert!(journey.advance(&grid, &roads, 200) <= 200 + sim::navigation::LARGEST_STEP);
+        if journey.plan().is_some() {
+            break;
+        }
+    }
+    assert!(matches!(journey.plan(), Some(Plan::Blocked(_))));
+    let ack = battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        seq: 1,
+        order,
+        queued: false,
+    });
+    assert_eq!(
+        ack.error,
+        Some(contract::command::OrderError::NoValidDestination)
+    );
+    assert!(!ack.placement.unwrap().destinations[0].placed);
+    let mut live = Vec::new();
+    for _ in 0..130 {
+        battle.step();
+        live.push(battle.digest());
+        assert!(battle.load().planning_work <= 200 + sim::navigation::LARGEST_STEP);
+        assert_eq!(
+            xy(&own(&battle, 0)),
+            start,
+            "a refused destination never starts movement"
+        );
+        assert_eq!(own(&battle, 0).state, MoveState::Idle);
+        assert_eq!(own(&battle, 0).goal, None);
+    }
+    assert!(battle.load().routes_pending == 0);
+    let record = serde_json::from_str(&serde_json::to_string(&battle.replay()).unwrap()).unwrap();
+    let mut replay = Battle::from_replay(&setup, &record).unwrap();
+    for (tick, digest) in live.iter().enumerate() {
+        replay.step();
+        assert_eq!(replay.digest(), *digest, "tick {}", tick + 1);
+    }
+}
+
 /// A side that learns of a body while a route is being searched gets a
 /// route that fits what it now knows, not one searched on the old picture.
 #[test]

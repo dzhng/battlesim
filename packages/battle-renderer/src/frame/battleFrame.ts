@@ -40,6 +40,8 @@ import { createModelLayer, type CardAtlas } from "../models/modelLayer";
 import { createImpostorBaker } from "../models/impostor";
 import { CARD_SPEC } from "../models/impostorCards";
 import type { ModelDetailPresentation } from "../models/modelDetail";
+import type { BuildingStyle } from "../models/buildingReferences";
+import { sunShadow } from "./staticChunks";
 import { createDetailView, detailKey, setDetailView } from "./detailView";
 import { createCastLightList, type CastLightList } from "../light/castLights";
 import { EMPTY_MESH } from "../mesh";
@@ -64,12 +66,16 @@ export interface BattleFrameOptions {
   xrayMinHiddenFragmentFraction: number;
   /** `presentation.models`: the models' detail tiers and impostor size. */
   models: ModelDetailPresentation;
+  /** `presentation.buildings`: the buildings' tiers, chunks and pool. */
+  buildings: BuildingStyle;
   world: WorldLayers;
   instances: readonly SceneInstance[];
   /** The viewport's size in device pixels: targets are built for it up front. */
   width: number;
   height: number;
-  /** Called when targets for a new size finish building, so the viewport draws. */
+  /** Called when the frame should be drawn again with nothing new handed
+   *  to it: targets for a new size finished building, or buildings still
+   *  wait their turn to be expanded. */
   requestRedraw?: () => void;
 }
 
@@ -98,7 +104,7 @@ export async function createBattleFrame(
     const camera = registry.own(root.createBuffer(Camera).$usage("uniform"));
     const cameraGroup = root.createBindGroup(typegpuCameraLayout, { cam: camera });
     const environment = await createEnvironmentFrame(device, registry, options.light);
-    const models = await createModelLayer(root, registry, options.models);
+    const models = await createModelLayer(root, registry, options.models, options.buildings);
     registry.adopt(() => models.dispose());
     const world = await createWorldPass(
       root,
@@ -152,6 +158,12 @@ export async function createBattleFrame(
       let lights: CastLightList = NO_LIGHTS;
       let lightsShown = true;
       const detailView = createDetailView();
+      const shadow = { fall: [0, 0] as [number, number], reach: 0 };
+      const sun = {
+        azimuth: options.light.sun_azimuth,
+        elevation: options.light.sun_elevation,
+        maxFarM: options.light.cascades.max_far_m,
+      };
       const rebuild = (width: number, height: number) =>
         targets.ensure(width, height).then(
           () => options.requestRedraw?.(),
@@ -190,7 +202,9 @@ export async function createBattleFrame(
           const detail = setDetailView(detailView, camera3d, height);
           environment.setCastLights(lightsShown ? lights : NO_LIGHTS, detail.sides, camera3d);
           world.prepare(camera3d, state.view, state.viewProj, state.rays, height);
-          models.prepare(detail, detailKey(camera3d, height));
+          models.prepare(detail, detailKey(camera3d, height), sunShadow(shadow, sun, camera3d));
+          // Buildings expand into their pool a budget a frame: draw until done.
+          if (models.buildingsPending) options.requestRedraw?.();
 
           let encoder = root["~unstable"].createCommandEncoder({ label: "battle-frame" });
           let raw = root.unwrap(encoder);
@@ -236,8 +250,8 @@ export async function createBattleFrame(
         setStructures(next) {
           if (!disposed) world.setStructures(next);
         },
-        setMassing(next) {
-          if (!disposed) world.setMassing(next);
+        setBuildings(next) {
+          if (!disposed) models.setBuildings(next);
         },
         setGround(next) {
           return !disposed && world.setGround(next);
@@ -318,6 +332,12 @@ export async function createBattleFrame(
         setTreesShown(on) {
           if (!disposed) world.setTreesShown(on);
         },
+        setBuildingsShown(on) {
+          if (!disposed) models.setBuildingsShown(on);
+        },
+        setRoadWearShown(on) {
+          if (!disposed) world.setRoadWearShown(on);
+        },
         setOverlayGlow(next) {
           if (!disposed) overlay.setGlow(next);
         },
@@ -339,6 +359,7 @@ export async function createBattleFrame(
             frames,
             instances: passes.instances,
             models: models.stats(),
+            buildings: models.buildingStats(),
             worldVertices: passes.worldVertices,
             structures: passes.structures,
             depth: {

@@ -118,7 +118,7 @@ function SupplyLab({ battle }: { battle: SavedBattle }) {
               {name}
             </button>
           ))}
-          <button type="button" onClick={sim.reset}>
+          <button type="button" onClick={sim.restart}>
             Reset
           </button>
         </div>

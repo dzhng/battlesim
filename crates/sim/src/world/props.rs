@@ -237,14 +237,20 @@ impl PropIndex {
 
     /// Candidate ids whose footprint circle may meet the XY disc.
     pub fn near(&self, center: V2, radius: f64, out: &mut Vec<PropId>) {
+        self.append_near(center, radius, out);
+        out.sort_unstable();
+        out.dedup();
+    }
+
+    /// Append bucket candidates without ordering or uniqueness. A caller
+    /// collecting several views canonicalizes their union once before reading it.
+    pub fn append_near(&self, center: V2, radius: f64, out: &mut Vec<PropId>) {
         let (i0, i1, j0, j1) = self.range(center, radius);
         for j in j0..=j1 {
             for i in i0..=i1 {
                 out.extend(self.cells[j * self.nx + i].iter().map(|e| e.id));
             }
         }
-        out.sort_unstable();
-        out.dedup();
     }
 
     /// Whether `hit` holds for some prop whose footprint circle the XY

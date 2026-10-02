@@ -53,7 +53,9 @@ Before proposing or changing one of these rules, invoke <skill: the project's ow
 
 Use what the repo already chose before writing your own. Find the existing owner of a concept before creating another.
 
-Prefer one general rule to a special case, and a simple structure to an abstraction nobody needs yet. When something replaces an old mechanism, delete the old one. When a change exposes a duplicate or a stale owner, invoke <skill: refactor-clean>.
+Prefer one general rule to a special case, and a simple structure to an abstraction nobody needs yet.
+
+Spend margin on simplicity. When something has room to spare against its budget (frame time, startup, memory, bandwidth), use that room to keep the design simple. Don't add machinery to make a thing faster than it needs to be, and take such machinery out when the margin shows it wasn't needed. When something replaces an old mechanism, delete the old one. When a change exposes a duplicate or a stale owner, invoke <skill: refactor-clean>.
 
 ## Parallel work stays cheap
 
@@ -66,6 +68,6 @@ Every parallel checkout is a full copy, and large files, installed dependencies 
 
 ## Skills
 
-Skills hold the procedures behind these principles. Load the one that covers your work before you start. Keep them current: when a pass learns a lesson (a gotcha, a pattern that paid off, a rejected approach), add it to the owning skill in the same commit, following <skill: write-skills>.
+Skills hold the procedures behind these principles. Load the one that covers your work before you start.
 
 Before changing this file, invoke <skill: audit-agents>.

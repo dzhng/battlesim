@@ -57,7 +57,9 @@ Before proposing or changing a game mechanic, invoke [`tweak-mechanics`](.agents
 
 Use what the repo already chose before writing your own. Find the existing owner of a concept before creating another. Before writing TypeScript vectors, matrices, shapes, noise or seeded randomness, load [`math`](.agents/skills/math/SKILL.md).
 
-Prefer one general rule to a special case, data to constants scattered through code, and a simple structure to an abstraction nobody needs yet. When something replaces an old mechanism, delete the old one. When a change exposes a duplicate or a stale owner, invoke [`refactor-clean`](.agents/skills/refactor-clean/SKILL.md).
+Prefer one general rule to a special case, data to constants scattered through code, and a simple structure to an abstraction nobody needs yet.
+
+Spend margin on simplicity. When something has room to spare against its budget (frame time, startup, memory, bandwidth), use that room to keep the design simple. Don't add machinery to make a thing faster than it needs to be, and take such machinery out when the margin shows it wasn't needed. When something replaces an old mechanism, delete the old one. When a change exposes a duplicate or a stale owner, invoke [`refactor-clean`](.agents/skills/refactor-clean/SKILL.md).
 
 ## Parallel work stays cheap
 
@@ -72,6 +74,6 @@ Scratch output (evidence, logs, candidate renders) goes in the ignored scratch f
 
 ## Skills
 
-Skills hold the procedures behind these principles. Load the one that covers your work before you start. Keep them current: when a pass learns a lesson (a gotcha, a pattern that paid off, a rejected approach), add it to the owning skill in the same commit, following [`write-skills`](.agents/skills/write-skills/SKILL.md).
+Skills hold the procedures behind these principles. Load the one that covers your work before you start.
 
 Before changing this file, invoke [`audit-agents`](.agents/skills/audit-agents/SKILL.md).

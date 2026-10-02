@@ -7,7 +7,7 @@ import { loadWasm, type Wasm } from "@web/battle/sim/module";
  *  `{ error }` if building failed. */
 export function useBuiltScenario<Options, Built = string>(
   options: Options,
-  build: (wasm: Wasm, options: Options) => Built | Promise<Built>,
+  build: (wasm: Wasm, options: Options, signal: AbortSignal) => Built | Promise<Built>,
 ): Built | { error: string } | null {
   const key = JSON.stringify(options);
   const [built, setBuilt] = useState<{ key: string; value: Built } | { error: string } | null>(
@@ -19,15 +19,20 @@ export function useBuiltScenario<Options, Built = string>(
   optionsRef.current = options;
   useEffect(() => {
     let live = true;
+    const controller = new AbortController();
     setBuilt(null);
     loadWasm()
-      .then((wasm) => buildRef.current(wasm, optionsRef.current))
+      .then((wasm) => {
+        if (controller.signal.aborted) throw new Error("Scenario preparation cancelled");
+        return buildRef.current(wasm, optionsRef.current, controller.signal);
+      })
       .then(
         (value) => live && setBuilt({ key, value }),
         (e: Error) => live && setBuilt({ error: e.message }),
       );
     return () => {
       live = false;
+      controller.abort();
     };
   }, [key]);
   if (built && "error" in built) return built;

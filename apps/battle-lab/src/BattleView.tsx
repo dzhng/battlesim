@@ -1,3 +1,4 @@
+import type { PreparedSession } from "@web/battle/prepare/client";
 // A played (or replayed) battle for blue: the world, the side's units and
 // every overlay, and the HUD: the top bar's readout, the unit card and
 // command bar, subtitles, and the pause menu. Routes compose it with their
@@ -40,6 +41,7 @@ export function BattleView({
   fixture,
   scenario,
   seed,
+  prepared,
   replay,
   scripted,
   camera,
@@ -54,6 +56,7 @@ export function BattleView({
   /** The scenario JSON the authority runs; the view draws its map. */
   scenario: string;
   seed: number;
+  prepared?: PreparedSession;
   /** A recorded battle to replay: input is off. */
   replay?: string;
   /** A scripted run: a script plays blue and input is off. The benchmark's
@@ -97,9 +100,9 @@ export function BattleView({
   const cues = useCaptions();
   const { note: noteCues } = cues;
   const session = useBattleSession({
-    map: parsed.map,
     scenario,
     seed,
+    prepared,
     onDecoded: noteCues,
     replay,
     scripted,
@@ -176,93 +179,95 @@ export function BattleView({
     if (loadStage) onLoadStageRef.current?.(loadStage);
   }, [loadStage]);
 
-  if (!meshes) return cover ?? null;
+  if (!meshes && !sim.error) return cover ?? null;
   return (
     <>
-      <LabViewport
-        fixture={fixture}
-        world={worldFeed}
-        structures={session.structures}
-        massing={session.massingFeed}
-        obstacles={session.cameraObstaclesFeed}
-        overlay={overlayFeed}
-        pointerMarks={pointerPaint.feed}
-        fog={session.fogFeed}
-        frame={session.frame}
-        appearances={session.appearances}
-        initialCamera={camera}
-        cameraConfig={cameraConfig}
-        groundAt={surfaceZ}
-        onPick={scripted ? undefined : session.onPick}
-        onBox={scripted ? undefined : session.onBox}
-        onReady={(gpu) => {
-          session.onReady(gpu);
-          setViewportReady(true);
-        }}
-        pilot={scripted?.pilot}
-        onFrame={(project, view, pointer) => {
-          session.hear(view);
-          const ruler =
-            input && control.showOrders && world
-              ? rulerAt(
-                  pointer.ray,
-                  world,
-                  control.selectedUnits,
-                  session.drawnAt.current,
-                  session.rules,
-                  surfaceZ,
-                )
-              : null;
-          const heldMove =
-            input && control.mode === "move" && world
-              ? movePreviewAt(
-                  pointer.rightPress,
-                  pointer.rightDragging ? pointer.ray : null,
-                  world,
-                  control.selectedUnits,
-                  pointer.rightPressQueued,
-                )
-              : null;
-          const pending = session.pendingMove.current;
-          const accepted =
-            pending &&
-            control.acks.find(
-              ({ order }) => order.kind === "move" && order.gesture === pending.gesture,
-            )?.ack;
-          const awaiting = pending && !accepted;
-          const move = heldMove ?? (awaiting ? pending : null);
-          let preview = pointerPaint.resolveMove(
-            move,
-            control.selectedUnits,
-            session.sim.client,
-            observation?.tick ?? 0,
-          );
-          if (!heldMove && accepted?.placement) {
-            const applied = (observation?.tick ?? 0) >= accepted.applied_tick;
-            preview = pointerPaint.markers(
-              applied ? [] : accepted.placement.destinations,
-              observation?.own ?? [],
-              session.revealed,
+      {meshes && (
+        <LabViewport
+          fixture={fixture}
+          world={worldFeed}
+          structures={session.structures}
+          buildings={session.buildingsFeed}
+          obstacles={session.cameraObstaclesFeed}
+          overlay={overlayFeed}
+          pointerMarks={pointerPaint.feed}
+          fog={session.fogFeed}
+          frame={session.frame}
+          appearances={session.appearances}
+          initialCamera={camera}
+          cameraConfig={cameraConfig}
+          groundAt={surfaceZ}
+          onPick={scripted ? undefined : session.onPick}
+          onBox={scripted ? undefined : session.onBox}
+          onReady={(gpu) => {
+            session.onReady(gpu);
+            setViewportReady(true);
+          }}
+          pilot={scripted?.pilot}
+          onFrame={(project, view, pointer) => {
+            session.hear(view);
+            const ruler =
+              input && control.showOrders && world
+                ? rulerAt(
+                    pointer.ray,
+                    world,
+                    control.selectedUnits,
+                    session.drawnAt.current,
+                    session.rules,
+                    surfaceZ,
+                  )
+                : null;
+            const heldMove =
+              input && control.mode === "move" && world
+                ? movePreviewAt(
+                    pointer.rightPress,
+                    pointer.rightDragging ? pointer.ray : null,
+                    world,
+                    control.selectedUnits,
+                    pointer.rightPressQueued,
+                  )
+                : null;
+            const pending = session.pendingMove.current;
+            const accepted =
+              pending &&
+              control.acks.find(
+                ({ order }) => order.kind === "move" && order.gesture === pending.gesture,
+              )?.ack;
+            const awaiting = pending && !accepted;
+            const move = heldMove ?? (awaiting ? pending : null);
+            let preview = pointerPaint.resolveMove(
+              move,
+              control.selectedUnits,
+              session.sim.client,
+              observation?.tick ?? 0,
             );
-          }
-          pointerPaint.update(ruler, preview, surfaceZ, metresPerPx);
-          rulerLabels.current?.place(project, ruler?.ruler ?? null);
-          const step = zoomStep(view.distance);
-          if (step !== zoomRef.current) {
-            zoomRef.current = step;
-            setZoom(step);
-          }
-          session.placePanels(project, view, pointer);
-        }}
-        diagnostics={{
-          ...session.probes,
-          audio: () => session.audio?.stats() ?? null,
-          /** The range ruler shown last frame (Space held with a selection). */
-          ruler: () => pointerPaint.shown,
-          movePreview: () => pointerPaint.preview,
-          ...diagnostics?.(session),
-        }}
-      />
+            if (!heldMove && accepted?.placement) {
+              const applied = (observation?.tick ?? 0) >= accepted.applied_tick;
+              preview = pointerPaint.markers(
+                applied ? [] : accepted.placement.destinations,
+                observation?.own ?? [],
+                session.revealed,
+              );
+            }
+            pointerPaint.update(ruler, preview, surfaceZ, metresPerPx);
+            rulerLabels.current?.place(project, ruler?.ruler ?? null);
+            const step = zoomStep(view.distance);
+            if (step !== zoomRef.current) {
+              zoomRef.current = step;
+              setZoom(step);
+            }
+            session.placePanels(project, view, pointer);
+          }}
+          diagnostics={{
+            ...session.probes,
+            audio: () => session.audio?.stats() ?? null,
+            /** The range ruler shown last frame (Space held with a selection). */
+            ruler: () => pointerPaint.shown,
+            movePreview: () => pointerPaint.preview,
+            ...diagnostics?.(session),
+          }}
+        />
+      )}
       <ReadoutLayer
         own={observation?.own ?? []}
         identified={observation?.identified}
@@ -278,7 +283,7 @@ export function BattleView({
           the bottom: the selection's unit card and its commands. */}
       <div className="hud" data-testid="battle-panel">
         <header className="hud-panel hud-top" data-occludes-readouts>
-          {status(session)}
+          {!sim.error && status(session)}
           {sim.error && (
             <div className="hud-error" data-testid="error">
               {sim.error}
@@ -299,7 +304,7 @@ export function BattleView({
         <CaptionList captions={cues} />
       </div>
       {input && <RejectedOrder acks={control.acks} />}
-      {loadStage !== "playable" && cover}
+      {!sim.error && loadStage !== "playable" && cover}
       {pause.open && (
         <PauseMenu
           onClose={() => pause.show(false)}
@@ -308,7 +313,7 @@ export function BattleView({
               ? undefined
               : () => {
                   pause.show(false);
-                  sim.reset();
+                  sim.restart();
                 }
           }
         >

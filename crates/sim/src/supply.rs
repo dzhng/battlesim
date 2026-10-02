@@ -76,16 +76,17 @@ fn price(need: Need, arsenal: &Arsenal, rules: &Rules) -> u32 {
 }
 
 /// Every finite round must have a price, or a truck could give it away (L05).
-pub fn validate(arsenal: &Arsenal, rules: &Rules) {
-    for w in &arsenal.weapons {
-        if matches!(w.def.ammo, AmmoCapacity::Rounds(_)) {
-            assert!(
-                rules.service.round_costs.contains_key(&w.id),
-                "service.round_costs has no price for finite weapon row {}",
-                w.id
-            );
+pub fn validate(rules: &Rules) -> Result<(), String> {
+    for (id, weapon) in &rules.weapons {
+        if matches!(weapon.ammo, AmmoCapacity::Rounds(_))
+            && !rules.service.round_costs.contains_key(id)
+        {
+            return Err(format!(
+                "service.round_costs has no price for finite weapon row {id}"
+            ));
         }
     }
+    Ok(())
 }
 
 /// Serve one tick. Recipients go in ascending unit order, so an earlier unit

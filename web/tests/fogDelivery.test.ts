@@ -16,7 +16,7 @@ import { loadMap } from "@web/maps/node";
 
 /** The publication stream record: a small battle on a saved map, and what the
  *  native build made of each tick (`crates/sim/tests/publication.rs`). */
-const stream: {
+type PublicationStreamRecord = {
   map: string;
   seed: number;
   units: LabUnit[];
@@ -28,8 +28,12 @@ const stream: {
     publication_sha256: string;
     fog_sha256: string;
   }[];
-} = JSON.parse(
+};
+const stream: PublicationStreamRecord = JSON.parse(
   readFileSync(new URL("../../fixtures/parity/publication/stream.json", import.meta.url), "utf8"),
+);
+const combatStream: PublicationStreamRecord = JSON.parse(
+  readFileSync(new URL("../../fixtures/parity/publication/combat.json", import.meta.url), "utf8"),
 );
 const SCENARIO = labScenario(loadMap(stream.map).definition, stream.units, [], stream.scripts);
 const sha256 = (words: Float32Array | Uint32Array) =>
@@ -44,10 +48,21 @@ beforeAll(() => {
 });
 
 test("wasm steps and publishes the native stream, and the decoder delivers its fog", () => {
-  const battle = new Battle(SCENARIO, stream.seed);
+  publicationStream(stream, false);
+});
+
+test("wasm combat matches the native stream with firing and impacts", () => {
+  publicationStream(combatStream, true);
+});
+
+function publicationStream(stream: PublicationStreamRecord, combat: boolean) {
+  const scenario = labScenario(loadMap(stream.map).definition, stream.units, [], stream.scripts);
+  const battle = new Battle(scenario, stream.seed);
   const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
   const decoder = new ObservationDecoder(layout);
   const retained: ObservationView[] = [];
+  let sawShot = false;
+  let sawImpact = false;
   try {
     stream.rows.forEach((row, i) => {
       battle.step();
@@ -58,8 +73,14 @@ test("wasm steps and publishes the native stream, and the decoder delivers its f
       expect(sha256(words), `published words, tick ${i + 1}`).toBe(row.publication_sha256);
       const frame = decoder.decode(words)!;
       expect(sha256(frame.fog.bits), `decoded fog, tick ${i + 1}`).toBe(row.fog_sha256);
+      sawShot ||= frame.own.some((unit) => unit.weaponPoses.some((pose) => pose.shots > 0));
+      sawImpact ||= frame.projectiles.some((projectile) => projectile.hit !== "none");
       retained.push(frame);
     });
+    if (combat) {
+      expect(sawShot, "the paired stream must observe combat firing").toBe(true);
+      expect(sawImpact, "the paired stream must observe a projectile impact").toBe(true);
+    }
     // A later record never rewrites a frame already handed out.
     retained.forEach((frame, i) =>
       expect(sha256(frame.fog.bits), `retained tick ${i + 1}`).toBe(stream.rows[i].fog_sha256),
@@ -67,7 +88,7 @@ test("wasm steps and publishes the native stream, and the decoder delivers its f
   } finally {
     battle.free();
   }
-});
+}
 
 /** Empty groups let the decoder's ordered stream contract be exercised with
  * deliberately small fields; each payload still uses the published layout. */
@@ -236,4 +257,74 @@ test("oversized field dimensions cannot wrap past the wasm delivery bound", () =
   expect(() =>
     new ObservationDecoder(layout).decode(record(1, 0, 1, true, [], 65536, 65536)),
   ).toThrow(/admitted/);
+});
+
+test("a live variable route copy matches a fresh producer snapshot and retains prior observations", () => {
+  const units: LabUnit[] = Array.from({ length: 80 }, (_, i) => ({
+    side: "blue",
+    kind: "rifle",
+    position: [32 + (i % 10) * 24, 32 + Math.floor(i / 10) * 24],
+  }));
+  const scenario = labScenario(loadMap("geometry").definition, units);
+  const battle = new Battle(scenario, 1);
+  const snapshot = new Battle(scenario, 1);
+  const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
+  const decoder = new ObservationDecoder(layout);
+  const record = (b: Battle) => {
+    const length = b.publish("blue");
+    return new Float32Array(memory.buffer, b.publication_ptr(), length).slice();
+  };
+  try {
+    battle.step();
+    snapshot.step();
+    const initial = record(battle);
+    const before = decoder.decode(initial)!;
+    const command = JSON.stringify({
+      side: "blue",
+      seq: 1,
+      queued: false,
+      order: {
+        kind: "move",
+        units: [0],
+        gesture: 1,
+        goal: [300, 250],
+        route: "shortest",
+        direction: "forward",
+        facing: null,
+      },
+    });
+    expect(JSON.parse(battle.accept(command)).error).toBeNull();
+    expect(JSON.parse(snapshot.accept(command)).error).toBeNull();
+    let oracle = before;
+    for (let tick = 0; tick < 240; tick++) {
+      battle.step();
+      snapshot.step();
+      snapshot.resync_observation();
+      oracle = new ObservationDecoder(layout).decode(record(snapshot))!;
+      if (oracle.own[0].route.length > 0) break;
+    }
+    expect(
+      oracle.own[0].route.length,
+      "planning must finish within eight simulated seconds",
+    ).toBeGreaterThan(0);
+    const wire = record(battle);
+    expect(wire[layout.header.length]).toBeGreaterThan(initial[layout.header.length]);
+    const encoding = wire[layout.header.length + 1];
+    const form =
+      layout.groupDelivery.encodings[encoding] === "packed"
+        ? new Uint32Array(wire.buffer, wire.byteOffset + (layout.header.length + 3) * 4, 1)[0] & 255
+        : encoding;
+    expect(layout.groupDelivery.encodings[form]).toBe("copies");
+    expect((3 + wire[layout.header.length + 2]) * 4).toBeLessThan(2000);
+    const after = decoder.decode(wire)!;
+    expect(after.own).toEqual(oracle.own);
+    expect(before.own[0].route).toEqual([]);
+    expect(after.own[0].route.length).toBeGreaterThan(0);
+    battle.resync_observation();
+    expect(decoder.decode(record(battle))!.own).toEqual(after.own);
+    expect(before.own[0].route).toEqual([]);
+  } finally {
+    battle.free();
+    snapshot.free();
+  }
 });

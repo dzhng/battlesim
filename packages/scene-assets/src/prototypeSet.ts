@@ -3,8 +3,8 @@
 // Blender script writes (`blender/city/README.md`), made here without
 // Blender: a kit of one unit box, and for each template one row per physical
 // part, the box stretched to the part and tinted by the building's category.
-// So a town with no real art still draws through the template path, as
-// massing. Every template is `status: "prototype"`, which is never coverage.
+// So a town with no real art still draws through the template path, as plain
+// boxes. Every template is `status: "prototype"`, which is never coverage.
 //
 // Generated, not modelled (`asset prototypes`), and deterministic: the files'
 // bytes are the catalogue's and the tints'.
@@ -134,7 +134,7 @@ export function prototypeKitGlb(): Uint8Array {
 /**
  * The prototype set for `descriptors`: each physical part one row, the unit
  * box stretched to it, tinted by the template's category (`tints`, sRGB in
- * 0..1, as `presentation.massing.tints`; a category it lacks takes
+ * 0..1, as `presentation.buildings.prototype_tints`; a category it lacks takes
  * `default`). The box is the part exactly, so the set's fit is zero.
  */
 export function prototypeTemplates(
@@ -150,7 +150,7 @@ export function prototypeTemplates(
     templates: descriptors.map((descriptor) => {
       const tint = tints[descriptor.category] ?? tints.default;
       if (!tint)
-        throw new Error(`no massing tint for category ${descriptor.category}, and no default`);
+        throw new Error(`no prototype tint for category ${descriptor.category}, and no default`);
       const rgb = tint.map((c) => Math.round(Math.max(0, Math.min(1, c)) * 255));
       return {
         status: "prototype",

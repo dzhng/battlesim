@@ -29,7 +29,7 @@ Generate seeded battle maps with urban areas and usable surrounding plains on **
 
 **Current pickup (map lane):** a player starts a battle on a generated map from the main menu (type and size; the seed is drawn silently and rides in the address) or on a saved one (`market-town`, listed beside the village), with replay ([C55](slices/C55-runtime-generation.md#outcome), [C58](slices/C58-offline-encounter.md#outcome)). Saved maps store a building as its template and frame and are read by id through one resolver. Roads end square, sharp joints are one road round a bend, and slanted branches meet square. In flight: a road changes width only at a crossing. Next in this lane: street furniture placed in generated towns (C46), the town look's second pass (a city that is not a disc round one crossroads, main settlements off the middle), then integration of the other lanes and closeout.
 
-**Lanes run in parallel**, each with its own file and Status: the map lane (this prompt: roads, the town look, integration and closeout), the [scale lane](scale-lane.md) (simulation cost against the 33 ms tick), the [startup lane](startup-lane.md) (one prepared world), the [buildings lane](buildings-lane.md) and the [ground lane](ground-lane.md). The [sim rules lane](sim-lane.md) is finished. One GPU is shared: every scene and render goes through the lock (the root README's Checks section).
+**Lanes run in parallel**, each with its own file and Status: the map lane (this prompt: roads, the town look, integration and closeout), the [scale lane](scale-lane.md) (simulation cost against its current acceptance contract), the [buildings lane](buildings-lane.md) and the [ground lane](ground-lane.md). The [sim rules lane](sim-lane.md) and the [startup lane](startup-lane.md) are finished. One GPU is shared: every scene and render goes through the lock (the root README's Checks section).
 
 Open from the planner: the attacker's squads start on foot 3 to 5 km from the objective (there is no transport); infantry route times through towns come back infinite, so only a jeep's drive is timed; no battle has yet shown a fight across an 1,800 m approach. Open elsewhere: the camera lab still compiles its own map; the village opening is silent since the range tuning (the sides start beyond gun range).
 
@@ -55,18 +55,18 @@ A slice marked "physical" has its systems half done; its look is in the visual p
 - [x] Generation: C04 compiler (buildings, roads, forests, land regions) · [C52 layout generator](slices/C52-procedural-generator.md) with rivers, bridges and the M22/M23 town model · [C53 parcels and buildings](slices/C53-parcels-and-buildings.md) over a labelled prototype template catalogue
 - [x] Sim rules ([lane record](sim-lane.md)): C40 seats → C41 facade eyes · C42 low-rise lifecycle → C43 tall gutted · SA6 movement gaps · SA5 sight cost · C44 street bodies · C77 forest bodies · C80 effective-height validator · C86 tree lines (all physical)
 - [x] Delivery: [C09 map resolution](slices/C09-fetched-maps.md) · [C60 catalogue data](slices/C60-map-catalogue-data.md) with compact saved maps · [C59 encounter planner](slices/C59-encounter-planner.md) · [C55 runtime generation](slices/C55-runtime-generation.md) from the menu · [C58 saved generated map](slices/C58-offline-encounter.md) (physical)
-- [x] Roads: square ends, sound joints, bends at sharp forks
+- [x] Roads: square ends, sound joints, bends at sharp forks, width changes only at a crossing
+- [x] [Startup lane](startup-lane.md): C33 one prepared world · C20 fog at scale · the camera lab through the catalogue · a native-against-Wasm pair with combat. Deploy-to-playable is 5 to 6 s on the largest map against a budget of 30 s (the owner's, 2026-10-01), so startup time is closed
 - [x] Lab: [C57 camera clearance](slices/C57-camera-clearance.md) · the generated-map lab route
 
 **In flight (one branch each)**
-- A road changes width only at a crossing (`city-maps/road-widths`)
+- C46 street furniture in generated towns (`city-maps/street-furniture`)
 
 **Next, systems**
-- [ ] **[Startup lane](startup-lane.md)** (a separate session): C33 one prepared world · C20 fog at scale · the camera lab through the catalogue · a native-against-Wasm pair with combat. Its status lives in that file.
 - [ ] [C46 street placement](slices/C46-street-placement.md) in generated towns (map lane: it changes how a street fights)
 - [ ] Town look, second pass: cities that are not a disc round one crossroads, large towns on more than one road, main settlements off the middle, fields on open ground
 - [ ] Scale at full extent: browser startup and memory, rendered surroundings, C20 fog at scale (C06/C07 are in the scale lane; C22/C23 in the buildings lane)
-- [ ] **[Scale lane](scale-lane.md)** (a second session, in parallel): whole-battle cost on a full generated map against the 33 ms tick and 30 Hz budget · C05 measuring · C06 sim scale passes · C07 publication. Its status lives in that file.
+- [ ] **[Scale lane](scale-lane.md)** (a second session, in parallel): whole-battle cost on a full generated map against the lane's current acceptance contract · C05 measuring · C06 sim scale passes · C07 publication. Its status lives in that file.
 - [ ] [C54 integrated seed gate](slices/C54-generation-gate.md), after the lanes
 - [ ] C05 measuring tools (`city_report` is its first piece) · C10 third-party sources · C13/C32 template source and library schema · C21 material transport
 - [ ] Completion: C50 durability balance → C51 playable generated encounter (requires C54 and C87)
@@ -192,7 +192,7 @@ The 30 FPS floor, fixed sizes and [startup requirement](scale-direction.md#start
 | Ground lane | At most +3 ms GPU p50 on the village benchmark for the whole lane (trees ≤1.5, dressing ≤1, grass ≤0.5); GG ratifies | village benchmark, C87 |
 | GPU memory | City adds ≤400 MB buffers and ≤200 MB textures over the village row | benchmark columns |
 | Publication | Provisional steady-state target ≤19.8 KB/tick; G0 separately ratifies full snapshot/resubscription bytes and delivery time at every selected extent | `city_report`, worker delivery probe |
-| Sim | Step p95 within the target S1 proposes (kill: no known local fix brings it ≤16 ms); no tick over 33 ms | `city_report` (instructions retired) |
+| Sim | Measured early/late throughput meets the [scale lane's current contract](scale-lane.md#the-contract); retain step distributions and instruction counts | `city_report` (instructions retired), full-map browser stress |
 | Download | JS gzip within ±5%; provisional saved-map ≤25 MB and shared kit ≤50 MB; G0 adds reusable template library and runtime startup/download budgets | `vite build`, library output, worker load probe |
 | Village | Digests unchanged unless named; `endurance_report` instructions ±1% on digest-neutral slices | digest and replay tests, `endurance_report` |
 

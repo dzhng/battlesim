@@ -55,13 +55,29 @@ Do not prioritize by scary-looking counts alone:
   large project. For a legitimately huge namespace, persist a cursor and resume after it. Finding the
   target updates identity; an exhaustive miss or abnormal ceiling produces the domain's terminal
   verdict. Never restart the same partial prefix forever.
+- A reachability refusal needs an exhaustive graph that includes every legal link of the actual
+  reader, including sampled transitions and snapped intermediate anchors. A smaller component
+  proof may terminate repeated searches from many anchors; a search ceiling remains inconclusive.
+- Scope a shared reachability proof to the actual reader it certifies. A strict final-link
+  component cannot reject permissive intermediate links. Filter approaches with a conservative
+  envelope, retaining exact admission for overlaps; quantify remaining retry work after caching.
+  Hash retained membership incrementally, and count inactive scratch pages in its memory lifetime.
 - Separate retryable failures from terminal ones. A permanent rejection must not sit at a queue head
   or fixed prefix forever.
 - Bound both sides of a transport and every durable/in-memory queue. State the overflow behavior;
   never silently drop accepted durable data.
-- Measure sparse insertions and reordering in a long retained collection before accepting a delta
-  protocol. Absolute addresses can turn one new row into a resend of most old rows; quiet-tick
-  averages hide that amplification. Assert bounded edit bytes alongside exact reconstruction.
+- Judge a cache, an index or a delta protocol by its worst edit, not its quiet average: an insertion
+  into a long retained collection, a change far from the active view, a move, a deletion. Assert the
+  bounded work alongside the exact result.
+- Check that a measured workload does what it claims before trusting its numbers: that the forces
+  meet, the route is travelled, the failure arm runs. Measure the failure arm too.
+- Isolate a cost measurement from everything else running in the process.
+  Pin scratch harness dependencies to the product lock; matching source identities alone
+  do not establish a matching runtime.
+- When batching overlapping queries, measure the final canonical merge and downstream consumer
+  with collection. Fewer sorts can increase duplicate volume and shift cost across a profile
+  boundary. Track temporary capacity separately from retained state, and falsify an omitted later
+  query through the public result before claiming equivalence.
 - Match compatibility work to the product lifecycle. In prelaunch code, prefer direct changes and
   add no legacy branches or migrations unless real persisted data requires them.
 - Every limit introduced or changed must have an observable log or metric with the limit kind,
@@ -73,33 +89,3 @@ The audit is complete only when every finding has a production trigger, quantifi
 priority rationale, acceptance seam, and recorded disposition; every dismissed candidate says which
 bound or healing mechanism makes it acceptable. An implementation is complete only when its
 red/green proof shows bounded work **and** continued recovery.
-
-## Simulation report workloads
-
-A report that accepts an arbitrary map must also locate its fight on that map.
-An arena script with fixed depths from each edge can silently turn into two
-disconnected rear-area moves when the world grows. Name complete-world loading,
-local contact and edge-to-edge transit separately, and verify opposing goals
-overlap before using the result as dense-combat evidence. Attribute fog traversal
-and subsequent knowledge learning separately before selecting a sweep optimization.
-
-When a sampled position clamps at an endpoint, test an all-rejected endpoint
-inside the acceptance radius. A distance predicate then remains true forever.
-Bound exhaustion by the finite source traversal, and fail a regression's injected
-predicate after the legitimate attempts so the broken arm cannot hang the runner.
-
-Process-wide instruction counters include every test thread. Isolate a committed
-cost regression in a child process running only that test; a serial narrow command
-during development does not prevent contamination when the full suite runs later.
-
-Before accelerating a geometric candidate search, measure its failure arm and
-check whether a necessary physical bound proves the whole result empty. Include
-all allowed offsets (such as lean reach), retain numerical boundary cases, and
-falsify both the negative work test and a positive boundary test.
-
-For spatial cache invalidation, compare distant mutations with an unchanged
-active view; a quiet steady-state sample misses global-revision amplification.
-Check old and new moved footprints, deletion into an empty region and changed
-heights against fresh complete queries. Count every instance of a shared index
-when sizing metadata; tracking state unused by its other consumers is hidden
-full-extent allocation.

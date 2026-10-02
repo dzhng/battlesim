@@ -52,7 +52,8 @@ function packet(
     fogFloats: revision === 1 ? fog.length : 0,
   });
   for (const [i, size] of sizes)
-    header[layout.groups[i].count] = size / layout.groups[i].fields.length;
+    if (layout.groups[i].sections.length === 0)
+      header[layout.groups[i].count] = size / layout.groups[i].fields.length;
   const wire = layout.header.map((name) => header[name]);
   groups.forEach((group, i) => {
     const payload = overrides.get(i) ?? (snapshot ? Array.from(group) : []);
@@ -103,6 +104,7 @@ test("group growth must supply every new word and rejects gaps without consuming
   const after = decoder.decode(
     packet("base", 2, false, new Map([[group, [words.length, words.length, ...words]]]), sizes),
   )!;
+  expect(after.corpses).not.toBe(before.corpses);
   expect(after.corpses).toEqual([before.corpses[0], before.corpses[0]]);
   expect(before.corpses).toEqual([after.corpses[0]]);
 });
@@ -172,6 +174,306 @@ test("malformed row copies leave the generation available for a corrected comple
   const after = decoder.decode(
     packet("base", 2, false, new Map([[group, [0, 9, 0, 9]]]), sizes, encodings),
   )!;
+  expect(after.corpses).not.toBe(before.corpses);
   expect(after.corpses).toEqual([before.corpses[0], before.corpses[0]]);
   expect(before.corpses).toEqual([after.corpses[0]]);
+});
+
+test("variable word copies insert and remove a route without consuming invalid generations", () => {
+  const group = layout.groups.findIndex((g) => g.name === "own");
+  const words = Array.from(logical("base").groups[group]);
+  const fields = layout.groups[group].fields;
+  const routeCount = fields.indexOf("routeCount");
+  const routeStart = fields.length;
+  const added = [...words];
+  added[routeCount] = 1;
+  added.splice(routeStart, 0, 3, -0);
+  const decoder = new ObservationDecoder(layout);
+  const before = decoder.decode(packet("base", 1, true))!;
+  const sizes = new Map([[group, added.length]]);
+  const encodings = new Map([[group, 2]]);
+  for (const invalid of [
+    [words.length, 1],
+    [-2, words.length],
+    [-1, 2, 3],
+    [1, words.length],
+  ]) {
+    expect(() =>
+      decoder.decode(packet("base", 2, false, new Map([[group, invalid]]), sizes, encodings)),
+    ).toThrow(/cop/);
+  }
+  const payload = [
+    0,
+    routeCount,
+    -1,
+    1,
+    1,
+    routeCount + 1,
+    routeStart - routeCount - 1,
+    -1,
+    2,
+    3,
+    -0,
+    routeStart,
+    words.length - routeStart,
+  ];
+  const after = decoder.decode(
+    packet("base", 2, false, new Map([[group, payload]]), sizes, encodings),
+  )!;
+  const oracle = new ObservationDecoder(layout).decode(
+    packet("base", 1, true, new Map([[group, added]]), sizes),
+  )!;
+  expect(after.own).toEqual(oracle.own);
+  expect(Object.is(after.own[0].route[0][1], -0)).toBe(true);
+  expect(before.own[0].route).toEqual([]);
+  expect(() => decoder.decode(packet("base", 4, false))).toThrow(/baseline/);
+  const removed = decoder.decode(
+    packet(
+      "base",
+      3,
+      false,
+      new Map([
+        [
+          group,
+          [
+            0,
+            routeCount,
+            -1,
+            1,
+            0,
+            routeCount + 1,
+            routeStart - routeCount - 1,
+            routeStart + 2,
+            words.length - routeStart,
+          ],
+        ],
+      ]),
+      new Map([[group, words.length]]),
+      encodings,
+    ),
+  )!;
+  expect(removed.own).toEqual(before.own);
+  expect(after.own).toEqual(oracle.own);
+});
+
+test("unchanged static groups reuse immutable arrays and rows while own units change", () => {
+  const decoder = new ObservationDecoder(layout);
+  const before = decoder.decode(packet("base", 1, true))!;
+  const own = layout.groups.findIndex((g) => g.name === "own");
+  const x = layout.groups[own].fields.indexOf("x");
+  const after = decoder.decode(packet("base", 2, false, new Map([[own, [x, 1, 17]]])))!;
+  expect(after.own[0].position[0]).toBe(17);
+  expect(before.own[0].position[0]).toBe(10);
+  expect(after.corpses).toBe(before.corpses);
+  expect(after.corpses[0]).toBe(before.corpses[0]);
+  expect(after.corpses[0].position).toBe(before.corpses[0].position);
+  expect(after.knownProps).toBe(before.knownProps);
+  expect(after.knownProps[0]).toBe(before.knownProps[0]);
+  expect(after.knownProps[0].half).toBe(before.knownProps[0].half);
+});
+
+test("cached static views still validate counts and commit only after the complete frame", () => {
+  const decoder = new ObservationDecoder(layout);
+  const before = decoder.decode(packet("base", 1, true))!;
+  const corpse = layout.groups.findIndex((g) => g.name === "corpses");
+  const prop = layout.groups.findIndex((g) => g.name === "knownProps");
+  for (const group of [corpse, prop]) {
+    const invalid = packet("base", 2, false);
+    invalid[layout.header.indexOf(layout.groups[group].count)] = 0;
+    expect(() => decoder.decode(invalid)).toThrow(/counts/);
+  }
+  const rejected = packet(
+    "base",
+    2,
+    false,
+    new Map([
+      [corpse, [0, 1, 99]],
+      [prop, [layout.groups[prop].fields.indexOf("x"), 1, 88]],
+    ]),
+  );
+  rejected[layout.header.indexOf("groundRunCount")] = 1;
+  expect(() => decoder.decode(rejected)).toThrow(/length/);
+  const corrected = decoder.decode(packet("base", 2, false))!;
+  expect(corrected.corpses).toBe(before.corpses);
+  expect(corrected.knownProps).toBe(before.knownProps);
+  const changed = decoder.decode(
+    packet(
+      "base",
+      3,
+      false,
+      new Map([
+        [corpse, [0, 1, 99]],
+        [prop, [layout.groups[prop].fields.indexOf("x"), 1, 88]],
+      ]),
+    ),
+  )!;
+  expect(changed.corpses).not.toBe(before.corpses);
+  expect(changed.corpses[0].position[0]).toBe(99);
+  expect(changed.knownProps).not.toBe(before.knownProps);
+  expect(changed.knownProps[0].center[0]).toBe(88);
+  expect(before.corpses[0].position[0]).toBe(2);
+  expect(before.knownProps[0].center).toEqual(vectors.vectors.base.frame.known_props[0].center);
+  const steady = decoder.decode(packet("base", 4, false))!;
+  expect(steady.corpses).toBe(changed.corpses);
+  expect(steady.knownProps).toBe(changed.knownProps);
+});
+
+test("new epochs and side invalidation replace static views without accepting stale snapshots", () => {
+  const decoder = new ObservationDecoder(layout);
+  const before = decoder.decode(packet("base", 1, true))!;
+  decoder.invalidate("red");
+  expect(decoder.decode(packet("base", 1, true))).toBeNull();
+  const red = (revision: number, snapshot: boolean) => {
+    const record = packet("base", revision, snapshot);
+    record[layout.header.indexOf("groundEpoch")] = 2;
+    record[layout.header.indexOf("groundSide")] = 1;
+    return record;
+  };
+  const fresh = decoder.decode(red(1, true))!;
+  expect(fresh.corpses).toEqual(before.corpses);
+  expect(fresh.corpses).not.toBe(before.corpses);
+  expect(fresh.knownProps).not.toBe(before.knownProps);
+  expect(decoder.decode(packet("base", 1, true))).toBeNull();
+  const next = decoder.decode(red(2, false))!;
+  expect(next.corpses).toBe(fresh.corpses);
+  expect(next.knownProps).toBe(fresh.knownProps);
+});
+
+/** Independent little-endian bit fixture; encoded payload never passes through JS floats. */
+function compactBits(write: (put: (value: number, bits: number) => void) => void) {
+  let value = 0n;
+  let count = 0n;
+  write((word, bits) => {
+    value |= BigInt(word >>> 0) << count;
+    count += BigInt(bits);
+  });
+  const result = new Uint32Array(Math.ceil(Number(count) / 32));
+  for (let i = 0; i < result.length; i++)
+    result[i] = Number((value >> BigInt(i * 32)) & 0xffffffffn);
+  return new Float32Array(result.buffer);
+}
+function compactPacket(revision: number, group: number, body: Float32Array) {
+  const ordinary = packet("base", revision, revision === 1);
+  let at = layout.header.length;
+  for (let i = 0; i < group; i++) at += 3 + ordinary[at + 2];
+  const end = at + 3 + ordinary[at + 2];
+  const result = new Float32Array(ordinary.length - (end - at - 3) + body.length);
+  result.set(ordinary.subarray(0, at + 3));
+  result[at + 1] = 3;
+  result[at + 2] = body.length;
+  result.set(body, at + 3);
+  result.set(ordinary.subarray(end), at + 3 + body.length);
+  return result;
+}
+
+test("packed snapshots and residuals preserve NaN payload baselines, signed zero and prior frames", () => {
+  const decoder = new ObservationDecoder(layout);
+  const g = layout.groups.findIndex((group) => group.name === "corpses");
+  const raw = new Uint32Array(logical("base").groups[g].slice().buffer);
+  raw[0] = 0x7fc12345;
+  raw[2] = 0x80000000;
+  const cold = compactBits((put) => {
+    put(1, 8);
+    for (const word of raw) {
+      put(4, 4);
+      put(word, 32);
+    }
+  });
+  const before = decoder.decode(compactPacket(1, g, cold))!;
+  expect(Number.isNaN(before.corpses[0].position[0])).toBe(true);
+  expect(Object.is(before.corpses[0].position[2], -0)).toBe(true);
+  const delta = compactBits((put) => {
+    put(0, 8);
+    put(1, 8); // replacement, one operation
+    put(0, 8);
+    put(1, 8); // start, length
+    put(9, 4);
+    put(0x7fc12345 ^ 0x3fc00000, 32); // four-byte baseline XOR
+  });
+  const after = decoder.decode(compactPacket(2, g, delta))!;
+  expect(after.corpses[0].position[0]).toBe(1.5);
+  expect(Object.is(after.corpses[0].position[2], -0)).toBe(true);
+  expect(Number.isNaN(before.corpses[0].position[0])).toBe(true);
+});
+
+test("malformed packed groups roll back atomically and allow the corrected same generation", () => {
+  const decoder = new ObservationDecoder(layout);
+  const before = decoder.decode(packet("base", 1, true))!;
+  const g = layout.groups.findIndex((group) => group.name === "corpses");
+  const fixtures = [
+    compactBits((put) => put(3, 8)),
+    compactBits((put) => {
+      put(0, 8);
+      put(128, 8);
+      put(0, 8);
+    }),
+    compactBits((put) => {
+      put(0, 8);
+      for (let i = 0; i < 4; i++) put(128, 8);
+    }),
+    compactBits((put) => {
+      put(0, 8);
+      put(1, 8);
+      put(9, 8);
+      put(1, 8);
+    }),
+    compactBits((put) => {
+      put(0, 8);
+      put(1, 8);
+      put(0, 8);
+      put(1, 8);
+      put(10, 4);
+    }),
+    compactBits((put) => {
+      put(0, 8);
+      put(1, 8);
+      put(0, 8);
+      put(1, 8);
+      put(4, 4);
+    }),
+    ...[
+      [2, 9],
+      [10, 9],
+      [1, 8],
+      [1, 0],
+    ].map(([source, count]) =>
+      compactBits((put) => {
+        put(2, 8);
+        put(source, 8);
+        put(count, 8);
+      }),
+    ),
+    compactBits((put) => {
+      put(0, 8);
+      put(0, 8);
+      put(1, 1);
+    }),
+    compactBits((put) => {
+      put(0, 8);
+      put(0, 8);
+      put(0, 32);
+    }),
+  ];
+  for (const body of fixtures)
+    expect(() => decoder.decode(compactPacket(2, g, body))).toThrow(/packed/);
+  const valid = compactBits((put) => {
+    put(0, 8);
+    put(1, 8);
+    put(0, 8);
+    put(1, 8);
+    put(4, 4);
+    put(0x41200000, 32);
+  });
+  const after = decoder.decode(compactPacket(2, g, valid))!;
+  expect(after.corpses[0].position[0]).toBe(10);
+  expect(before.corpses[0].position[0]).toBe(vectors.vectors.base.frame.corpses[0].position[0]);
+  expect(after.knownProps).toBe(before.knownProps);
+  expect(() => decoder.decode(compactPacket(4, g, valid))).toThrow(/baseline/);
+  decoder.invalidate("red");
+  expect(decoder.decode(compactPacket(2, g, valid))).toBeNull();
+  const coldXor = compactBits((put) => {
+    put(1, 8);
+    put(5, 4);
+  });
+  expect(() => new ObservationDecoder(layout).decode(compactPacket(1, g, coldXor))).toThrow(/tag/);
 });

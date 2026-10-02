@@ -1,10 +1,13 @@
+import type { PublicWorldData } from "../sim/publicWorld";
+import type { SimConnection } from "../sim/client";
+import type { SimReply } from "../sim/protocol";
 /** Main-thread side of battle preparation: one worker per request. */
 import type {
   PrepareDiagnostic,
   PreparedBattle,
   PrepareMessage,
   PrepareReply,
-  PrepareStage,
+  PreparationProgressStage,
   RefusalStage,
 } from "./protocol";
 
@@ -21,29 +24,54 @@ export class PreparationFailed extends Error {
   }
 }
 
+export interface PreparedSession extends PreparedBattle {
+  connect: SimConnection;
+}
+
 export interface Preparation {
-  readonly battle: Promise<PreparedBattle>;
-  /** Stop a request that is no longer wanted: its worker is closed and
-   *  `battle` never settles, so a stale result cannot start a battle. */
+  readonly battle: Promise<PreparedSession>;
+  /** Close the owned worker. A cancelled pending request never settles,
+   * so its answer cannot start a stale battle. */
   cancel(): void;
 }
 
 export function prepareBattle(
   message: PrepareMessage,
-  onStage: (stage: PrepareStage) => void,
+  onStage: (stage: PreparationProgressStage) => void,
 ): Preparation {
   const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
   // A cancelled request stays silent even if its answer was already on its
   // way when the worker was closed.
   let cancelled = false;
-  const battle = new Promise<PreparedBattle>((resolve, reject) => {
+  const battle = new Promise<PreparedSession>((resolve, reject) => {
     worker.onmessage = (event: MessageEvent<PrepareReply>) => {
       if (cancelled) return;
       const reply = event.data;
       if (reply.type === "stage") return onStage(reply.stage);
+      if (reply.type === "prepared") {
+        resolve({
+          ...reply.battle,
+          connect: (receive, fail) => {
+            worker.onmessage = (event: MessageEvent<SimReply>) => {
+              if (!cancelled) receive(event.data);
+            };
+            worker.onerror = (event) => {
+              if (!cancelled) fail(event.message || "The battle worker failed.");
+            };
+            return {
+              send: (request, transfer) =>
+                worker.postMessage(request, { transfer: transfer ?? [] }),
+              close: () => {
+                cancelled = true;
+                worker.terminate();
+              },
+            };
+          },
+        });
+        return;
+      }
       worker.terminate();
-      if (reply.type === "prepared") resolve(reply.battle);
-      else if (reply.type === "refused")
+      if (reply.type === "refused")
         reject(
           new PreparationFailed(
             reply.diagnostics.map((d) => d.message).join("; "),
@@ -63,6 +91,38 @@ export function prepareBattle(
   return {
     battle,
     cancel: () => {
+      cancelled = true;
+      worker.terminate();
+    },
+  };
+}
+
+/** Non-battle labs need the same public geometry, without navigation on the page. */
+export function prepareStaticWorld(map: string, rules: string) {
+  const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
+  let cancelled = false;
+  const world = new Promise<PublicWorldData>((resolve, reject) => {
+    worker.onmessage = (
+      event: MessageEvent<
+        { type: "static"; world: PublicWorldData } | { type: "error"; message: string }
+      >,
+    ) => {
+      if (cancelled) return;
+      worker.terminate();
+      if (event.data.type === "static") resolve(event.data.world);
+      else reject(new Error(event.data.message));
+    };
+    worker.onerror = (event) => {
+      if (!cancelled) {
+        worker.terminate();
+        reject(new Error(event.message));
+      }
+    };
+  });
+  worker.postMessage({ type: "static", map, rules });
+  return {
+    world,
+    cancel() {
       cancelled = true;
       worker.terminate();
     },

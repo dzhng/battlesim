@@ -26,7 +26,7 @@ import {
 import { gameLight } from "../gameLight";
 import { gameFogGeometry, gameFogStyle } from "../gameFog";
 import { gameOverlayGlow, gamePaint, gameXrayMinHiddenFragmentFraction } from "../gameOverlay";
-import { gameModelDetail } from "../gameModels";
+import { gameBuildingStyle, gameModelDetail } from "../gameModels";
 import { benchOverlay, benchWorld, posedSockets } from "./benchWorld";
 import { sideTint, type LoadedModel } from "./sources";
 import { SURFACE_VIEWS, WORKBENCH_VIEWS, viewCamera, type SheetView } from "./views";
@@ -51,14 +51,21 @@ export interface Strip {
 
 type Appearance = Exclude<Bundle, SkeletonClips>;
 
-/** What views frame: the model in its far pose (standing, at rest, intact).
- *  The bundle's own bounds hold every pose it can reach — right for culling,
- *  too loose for judging (a tank's swept gun doubles its width). */
+/** What views frame: the model in its far pose (standing, at rest, intact),
+ *  with its ruler when it is judged against one. The bundle's own bounds hold
+ *  every pose it can reach — right for culling, too loose for judging (a
+ *  tank's swept gun doubles its width). */
 export function framingBounds(model: LoadedModel): Bounds {
   const bundle = model.installed.appearances.get(model.name)!.bundle;
   const skeleton =
     bundle.kind === "skinned" ? (model.installed.skeletons.get(bundle.skeleton) ?? null) : null;
-  return farPoseBounds(bundle, skeleton);
+  const far = farPoseBounds(bundle, skeleton);
+  const ruler = model.body.ruler;
+  if (!ruler) return far;
+  return {
+    min: vec3.min(vec3.create(), far.min, ruler.min),
+    max: vec3.max(vec3.create(), far.max, ruler.max),
+  };
 }
 
 /** Where the scale figure stands for `view`: beside the model, on the screen's
@@ -201,6 +208,7 @@ export class SheetRenderer {
       paint: gamePaint,
       xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
       models: gameModelDetail,
+      buildings: gameBuildingStyle,
       world: benchWorld(null),
       instances: [],
       width: TILE,

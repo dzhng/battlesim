@@ -6,6 +6,7 @@ mod common;
 mod animation_feed;
 mod battle_authority;
 mod bodies;
+mod build_identity;
 mod buildings;
 mod catalog;
 mod contacts;

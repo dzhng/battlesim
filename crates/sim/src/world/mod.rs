@@ -506,18 +506,7 @@ impl WorldGeometry {
     /// The walkable surface at (x, y): a bridge deck where one spans, otherwise the ground.
     pub fn surface_at(&self, x: f64, y: f64) -> Option<Surface> {
         let ground = self.ground_surface_at(x, y)?;
-        match self.bridges.iter().find(|b| bridge_contains(b, v2(x, y))) {
-            Some(b) => Some(Surface {
-                z: b.deck_z,
-                normal: v3(0.0, 0.0, 1.0),
-                slope_deg: 0.0,
-                kind: SurfaceKind::Bridge,
-                road_factor: 1.0,
-                forest: ground.forest,
-                traversable: true,
-            }),
-            None => Some(ground),
-        }
+        Some(export::bridge_surface(ground, &self.bridges, v2(x, y)))
     }
 
     /// Whether a mover may stand at (x, y): [`surface_at`](Self::surface_at)'s
@@ -534,29 +523,15 @@ impl WorldGeometry {
 
     /// The ground triangle at (x, y), ignoring any bridge above it.
     pub fn ground_surface_at(&self, x: f64, y: f64) -> Option<Surface> {
-        let (z, normal) = self.field.height_normal(x, y)?;
-        let p = v2(x, y);
-        let slope_deg = normal.z.clamp(-1.0, 1.0).acos().to_degrees();
-        let paved = self.surfaces.at(p);
-        let kind = if self.surfaces.water_at(p) {
-            SurfaceKind::Water
-        } else {
-            paved.map_or(SurfaceKind::Ground, SurfaceKind::of)
-        };
-        let road_factor = match (kind, paved) {
-            (SurfaceKind::Water, _) | (_, None) => 0.0,
-            (_, Some(paved)) => self.surface_factors[paved as usize],
-        };
-        Some(Surface {
-            z,
-            normal,
-            slope_deg,
-            kind,
-            road_factor,
-            // Water is neither road nor forest, whatever is authored over it.
-            forest: kind != SurfaceKind::Water && self.forest_ground(x, y),
-            traversable: kind != SurfaceKind::Water && slope_deg < self.slope_cutoff_deg,
-        })
+        export::ground_surface_at(
+            &self.field,
+            &self.surfaces,
+            self.slope_cutoff_deg,
+            &self.surface_factors,
+            x,
+            y,
+            self.forest_ground(x, y),
+        )
     }
 
     /// Earliest hit of a round along `origin + dir * t`, t ∈ [0, max_t]: the
@@ -625,17 +600,7 @@ impl WorldGeometry {
         skip: Option<PropId>,
         admits: impl Fn(&PropBody) -> bool,
     ) -> Option<Hit> {
-        let ground = self.field.raycast(origin, dir, max_t);
-        let water = self
-            .water_hit(origin, dir, max_t)
-            .filter(|&t| ground.is_none_or(|(ground, _)| t < ground))
-            .map(|t| (t, v3(0.0, 0.0, 1.0)));
-        let mut best: Option<Hit> = water.or(ground).map(|(t, normal)| Hit {
-            t,
-            point: origin + dir * t,
-            normal,
-            collider: Collider::Terrain,
-        });
+        let mut best = export::terrain_hit(&self.field, &self.surfaces, origin, dir, max_t);
         let mut ids = Vec::new();
         self.index
             .along(origin.xy(), (origin + dir * max_t).xy(), &mut ids);
@@ -717,22 +682,7 @@ impl WorldGeometry {
     /// river's surface: water stops a round as the ground does, so a shell
     /// bursts on the river, not on its bed.
     fn water_hit(&self, origin: V3, dir: V3, max_t: f64) -> Option<f64> {
-        if dir.z >= 0.0 {
-            return None;
-        }
-        self.surfaces
-            .rivers()
-            .iter()
-            .enumerate()
-            .filter_map(|(river, definition)| {
-                let t = (definition.surface_z() - origin.z) / dir.z;
-                let p = origin + dir * t;
-                ((0.0..=max_t).contains(&t)
-                    && self.field.contains(p.x, p.y)
-                    && self.surfaces.in_river(river, p.xy()))
-                .then_some(t)
-            })
-            .min_by(f64::total_cmp)
+        export::water_hit(&self.field, &self.surfaces, origin, dir, max_t)
     }
 
     /// Add a body with no placed-building geometry owner.
@@ -875,6 +825,12 @@ impl WorldGeometry {
         let mut ids = Vec::new();
         self.index.near(center, radius, &mut ids);
         ids.into_iter().filter_map(|id| self.prop(id)).collect()
+    }
+
+    /// Append unordered, possibly repeated candidates for a visibility union.
+    /// The caller canonicalizes all eyes' IDs before learning any body.
+    pub(crate) fn append_prop_ids_near(&self, center: V2, radius: f64, out: &mut Vec<PropId>) {
+        self.index.append_near(center, radius, out);
     }
 
     /// Increments whenever a prop is added, moved or removed after authored setup.

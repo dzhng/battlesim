@@ -35,6 +35,11 @@ struct SearchTile {
     expanded: [u32; TILE_SAMPLES],
 }
 
+struct Component {
+    bounds: [usize; 4],
+    members: Digest,
+}
+
 /// The cells one search has reached, in tiles that outlive it: a finished or
 /// cancelled search hands its scratch to the next, which starts a new
 /// generation instead of clearing or freeing anything.
@@ -43,6 +48,7 @@ pub struct Scratch {
     tiles: HashMap<usize, Box<SearchTile>>,
     generation: u32,
     visited: usize,
+    component: Option<Component>,
 }
 
 impl Scratch {
@@ -52,6 +58,7 @@ impl Scratch {
             tiles: HashMap::new(),
             generation: 0,
             visited: 0,
+            component: None,
         }
     }
     fn location(&self, k: usize) -> (usize, usize) {
@@ -71,6 +78,7 @@ impl Scratch {
             self.generation = 1;
         }
         self.visited = 0;
+        self.component = None;
     }
     fn get(&self, k: usize) -> Option<Reached> {
         let (key, at) = self.location(k);
@@ -110,6 +118,14 @@ impl Scratch {
             return false;
         }
         if first {
+            if let Some(component) = &mut self.component {
+                let (x, y) = (k % self.nx, k / self.nx);
+                component.bounds[0] = component.bounds[0].min(x);
+                component.bounds[1] = component.bounds[1].min(y);
+                component.bounds[2] = component.bounds[2].max(x);
+                component.bounds[3] = component.bounds[3].max(y);
+                component.members.u64(k as u64);
+            }
             self.visited += 1;
         }
         tile.g[at] = value.g;
@@ -162,6 +178,15 @@ const STEPS: [(isize, isize); 8] = [
     (-1, -1),
 ];
 
+fn endpoint(grid: &NavGrid, p: V2, who: Mover, reach: f64) -> Option<usize> {
+    if who.m.class == MoverClass::Infantry && grid.stands(p, who) {
+        let (i, j) = super::cell_of(p);
+        grid.index(i, j)
+    } else {
+        grid.nearest_fit(p, who, reach)
+    }
+}
+
 /// Of the many cells that look equally good across open ground, the search
 /// takes the one nearer the goal: the estimate is stretched by this share,
 /// so it walks one line instead of every equal one. A route may cost this
@@ -205,7 +230,8 @@ struct Smoothing {
     /// The segment being costed.
     reading: Option<Probe>,
     points: Vec<V2>,
-    turns: Vec<usize>,
+    /// None means every point, without an eager route-length index allocation.
+    turns: Option<Vec<usize>>,
     /// Grid-path cost between consecutive turns (straight runs of cells).
     run_costs: Vec<f64>,
     out: Vec<V2>,
@@ -219,15 +245,21 @@ struct Smoothing {
 }
 
 impl Smoothing {
-    fn new(points: Vec<V2>) -> Self {
-        let mut turns = vec![0];
-        for k in 1..points.len() - 1 {
-            let (d0, d1) = (points[k] - points[k - 1], points[k + 1] - points[k]);
-            if d0.cross(d1).abs() > 1e-9 || d0.dot(d1) < 0.0 {
-                turns.push(k);
+    fn new(points: Vec<V2>, m: &Mobility) -> Self {
+        // A collinear merge changes sampling phase. Infantry keeps every
+        // certified link until the reader certifies a longer one. Its index
+        // range is implicit, so entering smoothing takes constant work.
+        let turns = (m.class != MoverClass::Infantry).then(|| {
+            let mut turns = vec![0];
+            for k in 1..points.len() - 1 {
+                let (d0, d1) = (points[k] - points[k - 1], points[k + 1] - points[k]);
+                if d0.cross(d1).abs() > 1e-9 || d0.dot(d1) < 0.0 {
+                    turns.push(k);
+                }
             }
-        }
-        turns.push(points.len() - 1);
+            turns.push(points.len() - 1);
+            turns
+        });
         Smoothing {
             reading: None,
             points,
@@ -241,6 +273,20 @@ impl Smoothing {
         }
     }
 
+    fn turn_count(&self) -> usize {
+        self.turns
+            .as_ref()
+            .map_or(self.points.len().max(2), Vec::len)
+    }
+
+    fn point(&self, turn: usize) -> V2 {
+        let k = self
+            .turns
+            .as_ref()
+            .map_or(turn.min(self.points.len() - 1), |t| t[turn]);
+        self.points[k]
+    }
+
     /// Read the next stretch of the segment between two turns: `None` while
     /// there is more of it, then its cost (`None` if it does not fit).
     fn cost(
@@ -250,11 +296,9 @@ impl Smoothing {
         policy: RoutePolicy,
         (from, to): (usize, usize),
     ) -> Option<Option<f64>> {
-        let point = |turn: usize| self.points[self.turns[turn]];
-        let mut probe = self
-            .reading
-            .take()
-            .unwrap_or_else(|| Probe::new(point(from), point(to), who.m));
+        let reading = self.reading.take();
+        let mut probe =
+            reading.unwrap_or_else(|| Probe::new(self.point(from), self.point(to), who.m));
         let cost = grid.read(&mut probe, who, policy, true);
         if cost.is_none() {
             self.reading = Some(probe);
@@ -264,14 +308,14 @@ impl Smoothing {
 
     /// The smoothed route once the last turn is kept.
     fn step(&mut self, grid: &NavGrid, who: Mover, policy: RoutePolicy) -> Option<Vec<V2>> {
-        if self.run_costs.len() + 1 < self.turns.len() {
+        if self.run_costs.len() + 1 < self.turn_count() {
             let run = self.run_costs.len();
             let cost = self.cost(grid, who, policy, (run, run + 1))?;
             self.run_costs.push(cost.unwrap_or(f64::INFINITY));
             return None;
         }
         grid.spend(1);
-        if self.at + 1 >= self.turns.len() {
+        if self.at + 1 >= self.turn_count() {
             return Some(std::mem::take(&mut self.out));
         }
         if self.trying == 0 {
@@ -279,18 +323,18 @@ impl Smoothing {
             self.path_cost = self.run_costs[self.at];
             self.trying = self.at + 2;
         }
-        if self.trying < self.turns.len() {
+        if self.trying < self.turn_count() {
             let direct = self.cost(grid, who, policy, (self.at, self.trying))?;
             self.path_cost += self.run_costs[self.trying - 1];
             match direct {
                 Some(direct) if direct <= self.path_cost + 1e-9 => self.next = self.trying,
                 Some(_) => {}
-                None => self.trying = self.turns.len() - 1,
+                None => self.trying = self.turn_count() - 1,
             }
             self.trying += 1;
             return None;
         }
-        self.out.push(self.points[self.turns[self.next]]);
+        self.out.push(self.point(self.next));
         self.at = self.next;
         self.trying = 0;
         None
@@ -309,6 +353,7 @@ pub struct Leg<'a> {
 }
 
 enum Stage {
+    FootTrace(super::foot::FootTrace),
     Expanding(Expanding),
     Smoothing(Smoothing),
     Done(Plan),
@@ -329,6 +374,8 @@ pub struct RouteSearch {
     work: SearchWork,
     /// The cells it may expand before it gives the route up.
     limit: usize,
+    /// Only emptying the frontier proves this mover's whole component.
+    exhausted: bool,
 }
 
 impl RouteSearch {
@@ -349,6 +396,7 @@ impl RouteSearch {
             stage: Stage::Done(Plan::Blocked(BlockReason::NoRoute)),
             work: SearchWork::default(),
             limit,
+            exhausted: false,
         };
         search.stage = search.begin(grid);
         search
@@ -360,10 +408,14 @@ impl RouteSearch {
             m,
             avoid: &self.avoid,
         };
-        let Some(start) = grid.nearest_fit(self.from, who, START_REACH_M) else {
+        let (fi, fj) = super::cell_of(self.from);
+        if m.class == MoverClass::Infantry && grid.index(fi, fj).is_none() {
+            return Stage::Done(Plan::Blocked(BlockReason::StartEnclosed));
+        }
+        let Some(start) = endpoint(grid, self.from, who, START_REACH_M) else {
             return Stage::Done(Plan::Blocked(BlockReason::StartEnclosed));
         };
-        let Some(target) = grid.nearest_fit(self.goal, who, NAV_CELL_M * 3.0) else {
+        let Some(target) = endpoint(grid, self.goal, who, NAV_CELL_M * 3.0) else {
             return Stage::Done(Plan::Blocked(BlockReason::NoRoute));
         };
         if !grid.base.terrain.connected(start, target, grid.nx) {
@@ -396,6 +448,74 @@ impl RouteSearch {
         self.work.queued = 1;
         self.work.heap_peak = expanding.open.capacity();
         Stage::Expanding(expanding)
+    }
+
+    /// Reverse a failed goal connector from its original effective target.
+    /// Exhaustion certifies this strict final-connector component only;
+    /// sampled road runs may enter it from another disconnected component.
+    pub(super) fn goal_probe(grid: &NavGrid, leg: Leg, limit: usize) -> Option<Self> {
+        let target = endpoint(
+            grid,
+            leg.goal,
+            Mover {
+                m: leg.m,
+                avoid: leg.avoid,
+            },
+            NAV_CELL_M * 3.0,
+        )?;
+        let reverse = Leg {
+            from: grid.waypoint(target, leg.m),
+            goal: leg.from,
+            policy: RoutePolicy::Shortest,
+            ..leg
+        };
+        let mut search = Self::new(grid, None, reverse, limit);
+        if search.work.queued != 0 {
+            let (x, y) = (search.start % grid.nx, search.start / grid.nx);
+            let mut members = Digest::default();
+            members.u64(search.start as u64);
+            search.scratch.component = Some(Component {
+                bounds: [x, y, x, y],
+                members,
+            });
+        }
+        Some(search)
+    }
+
+    /// Reachability needs no route reconstruction or string pulling.
+    pub(super) fn reached_target(&self) -> bool {
+        self.work.queued != 0 && self.scratch.get(self.target).is_some()
+    }
+
+    pub(super) fn exhausted(&self) -> bool {
+        self.exhausted
+    }
+
+    /// Even the whole segment, with every allowed lane/snap offset,
+    /// lies outside the exhausted final-connector component's bounds.
+    pub(super) fn excludes_segment(&self, a: V2, b: V2, padding: f64) -> bool {
+        let Some(component) = &self.scratch.component else {
+            return false;
+        };
+        let [x0, y0, x1, y1] = component.bounds;
+        let lo = cell_center(x0, y0);
+        let hi = cell_center(x1, y1);
+        a.x.max(b.x) + padding < lo.x
+            || a.x.min(b.x) - padding > hi.x
+            || a.y.max(b.y) + padding < lo.y
+            || a.y.min(b.y) - padding > hi.y
+    }
+
+    pub(super) fn exhausted_rejects(&self, grid: &NavGrid, from: V2) -> bool {
+        let (i, j) = super::cell_of(from);
+        let who = Mover {
+            m: &self.m,
+            avoid: &self.avoid,
+        };
+        self.exhausted
+            && !(self.m.class == MoverClass::Infantry && grid.index(i, j).is_none())
+            && endpoint(grid, from, who, START_REACH_M)
+                .is_some_and(|start| self.scratch.get(start).is_none())
     }
 
     /// Spend up to `allowance` work on the search, and say how much was
@@ -437,6 +557,12 @@ impl RouteSearch {
     /// reads, that fixes everything it will do: a search is a function of
     /// those and the work spent.
     pub fn digest(&self, d: &mut Digest) {
+        if let Some(component) = &self.scratch.component {
+            d.u64(component.members.finish());
+            for v in component.bounds {
+                d.u64(v as u64);
+            }
+        }
         let stage = match &self.stage {
             Stage::Expanding(e) => [0, e.open.len(), 0],
             Stage::Smoothing(s) => [
@@ -444,6 +570,10 @@ impl RouteSearch {
                 s.run_costs.len() + s.at + s.trying,
                 s.reading.as_ref().map_or(0, |probe| probe.next),
             ],
+            Stage::FootTrace(trace) => {
+                let [at, points] = trace.progress();
+                [3, at, points]
+            }
             Stage::Done(_) => [2, 0, 0],
         };
         for v in stage
@@ -461,21 +591,37 @@ impl RouteSearch {
         };
         let next = match &mut self.stage {
             Stage::Done(_) => return,
+            Stage::FootTrace(trace) => trace.step(grid, who).map(|result| match result {
+                Ok(points) => Stage::Smoothing(Smoothing::new(points, who.m)),
+                Err(reason) => Stage::Done(Plan::Blocked(reason)),
+            }),
             Stage::Smoothing(smoothing) => smoothing
                 .step(grid, who, self.policy)
                 .map(|route| Stage::Done(Plan::Route(route))),
             Stage::Expanding(expanding) => {
                 grid.spend(1);
                 match expanding.open.pop() {
-                    None => Some(Stage::Done(Plan::Blocked(BlockReason::NoRoute))),
+                    None => {
+                        self.exhausted = true;
+                        Some(Stage::Done(Plan::Blocked(BlockReason::NoRoute)))
+                    }
                     Some(Open { cell, .. }) if cell as usize == self.target => {
-                        Some(Stage::Smoothing(Smoothing::new(trace(
-                            grid,
-                            &self.scratch,
-                            who,
-                            (self.from, self.start),
-                            (self.goal, self.target),
-                        ))))
+                        Some(if who.m.class == MoverClass::Infantry {
+                            Stage::FootTrace(super::foot::FootTrace::new(
+                                trace_cells(grid, &self.scratch, self.start, self.target),
+                                self.from,
+                                self.goal,
+                            ))
+                        } else {
+                            let points = vehicle_trace(
+                                grid,
+                                &self.scratch,
+                                who,
+                                (self.from, self.start),
+                                (self.goal, self.target),
+                            );
+                            Stage::Smoothing(Smoothing::new(points, who.m))
+                        })
                     }
                     Some(_) if self.work.expanded >= self.limit => {
                         Some(Stage::Done(Plan::Blocked(BlockReason::SearchLimit)))
@@ -586,13 +732,23 @@ fn expand(
 
 /// The reached target's path back to the start, as the points a mover
 /// passes: from where it stands, through each cell, to its goal.
-fn trace(
+fn vehicle_trace(
     grid: &NavGrid,
     scratch: &Scratch,
     who: Mover,
     (from, start): (V2, usize),
     (goal, target): (V2, usize),
 ) -> Vec<V2> {
+    let cells = trace_cells(grid, scratch, start, target);
+    let mut points: Vec<V2> = vec![from];
+    for w in cells.windows(2) {
+        points.push(grid.waypoint(w[1], who.m));
+    }
+    *points.last_mut().unwrap() = goal;
+    points
+}
+
+fn trace_cells(grid: &NavGrid, scratch: &Scratch, start: usize, target: usize) -> Vec<usize> {
     let mut cells = vec![target];
     while *cells.last().unwrap() != start {
         let k = *cells.last().unwrap();
@@ -600,16 +756,5 @@ fn trace(
     }
     cells.reverse();
     grid.spend((cells.len() / CELLS_PER_WORK) as u64);
-    // Infantry passes each orthogonal step through the middle of the
-    // gap on the shared edge, so a corridor through a narrow gap runs
-    // down its middle.
-    let mut points: Vec<V2> = vec![from];
-    for w in cells.windows(2) {
-        let crossing = (who.m.class == MoverClass::Infantry)
-            .then(|| grid.crossing(w[0], w[1]))
-            .flatten();
-        points.push(crossing.unwrap_or_else(|| grid.waypoint(w[1], who.m)));
-    }
-    *points.last_mut().unwrap() = goal;
-    points
+    cells
 }

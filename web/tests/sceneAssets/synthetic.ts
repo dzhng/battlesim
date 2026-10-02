@@ -124,6 +124,7 @@ export const AUTHORITY: Authority = {
   infantry_muzzle_m: 1.4,
   units: syntheticUnits(),
   canopy_height_m: 12,
+  canopy_radius_m: 6.5,
   ruin_height_m: 2,
 };
 
@@ -748,15 +749,64 @@ export function buildingGlb(height = 6, lift = 0): Uint8Array {
   return b.glb();
 }
 
-/** A tree: a trunk and a crown whose top stands `height` metres up, four tiers. */
-export function treeGlb(height = 10, lift = 0): Uint8Array {
+/** A tree: a trunk and a crown whose top stands `height` metres up and
+ *  reaches `radius` from the trunk's axis, four tiers. `crowns[t]` draws tier
+ *  t's crown as that many boxes (12 triangles each) instead of one. */
+export function treeGlb(
+  height = 10,
+  lift = 0,
+  o: { radius?: number; crowns?: readonly number[] } = {},
+): Uint8Array {
   const b = new GltfBuilder();
-  const parts = ["_LOD0", "_LOD1", "_LOD2", "_LOD3"].flatMap((suffix) => [
+  const r = o.radius ?? 4;
+  const parts = ["_LOD0", "_LOD1", "_LOD2", "_LOD3"].flatMap((suffix, t) => [
     b.node({ name: `trunk${suffix}`, mesh: gBox(b, [-0.3, -0.3, lift], [0.3, 0.3, 4 + lift]) }),
-    b.node({ name: `crown${suffix}`, mesh: gBox(b, [-4, -4, 3 + lift], [4, 4, height + lift]) }),
+    ...Array.from({ length: o.crowns?.[t] ?? 1 }, (_, i) =>
+      b.node({
+        name: `crown${i}${suffix}`,
+        mesh: gBox(b, [-r, -r, 3 + lift], [r, r, height + lift]),
+      }),
+    ),
   ]);
   b.roots(b.node({ name: "tree", children: parts }));
   return b.glb();
+}
+
+/**
+ * A 2 m panel with UVs and tangents, four tiers, whose one material `edit`
+ * changes before export (its alpha mode, its extras, textures of its own
+ * from `b.texture`): the surface the material-transport tests are about.
+ */
+export function panelGlb(edit: (material: GltfJson, b: GltfBuilder) => void = () => {}) {
+  const b = new GltfBuilder();
+  b.surface = { tangents: true };
+  edit(b.json.materials[0], b);
+  const parts = ["_LOD0", "_LOD1", "_LOD2", "_LOD3"].map((suffix) =>
+    b.node({ name: `panel${suffix}`, mesh: gBox(b, [-1, -0.1, 0], [1, 0.1, 2]) }),
+  );
+  b.roots(b.node({ name: "panel", children: parts }));
+  return b.glb();
+}
+
+/** A GLB with its JSON chunk edited: one field of an otherwise valid source. */
+export function withJson(bytes: Uint8Array, edit: (json: GltfJson) => void): Uint8Array {
+  const dv = new DataView(bytes.buffer, bytes.byteOffset);
+  const length = dv.getUint32(12, true);
+  const json = JSON.parse(new TextDecoder().decode(bytes.subarray(20, 20 + length)));
+  edit(json);
+  const text = new TextEncoder().encode(JSON.stringify(json));
+  const padded = Math.ceil(text.length / 4) * 4;
+  const binChunk = bytes.subarray(20 + length);
+  const out = new Uint8Array(20 + padded + binChunk.length);
+  out.set(bytes.subarray(0, 12));
+  const odv = new DataView(out.buffer);
+  odv.setUint32(8, out.length, true);
+  odv.setUint32(12, padded, true);
+  odv.setUint32(16, 0x4e4f534a, true);
+  out.set(text, 20);
+  out.fill(0x20, 20 + text.length, 20 + padded);
+  out.set(binChunk, 20 + padded);
+  return out;
 }
 
 /** A meadow tuft for the grass generator. */
@@ -769,6 +819,7 @@ export const GRASS_SPEC: GrassSpec = {
   lean: [0.1, 0.4],
   colors: { root: [0.1, 0.16, 0.05], mid: [0.25, 0.33, 0.14], tip: [0.45, 0.46, 0.25] },
   jitter: 0.1,
+  wind: 1,
 };
 
 export function testCatalog(): Catalog {

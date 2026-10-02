@@ -8,6 +8,9 @@ use sim::battle::Battle;
 use sim::publication;
 
 use crate::common;
+mod codec {
+    include!("common/publication_codec.rs");
+}
 
 /// One decoded row: its fields by name and its sections' points.
 #[derive(Debug, Default)]
@@ -281,6 +284,19 @@ fn the_publication_stream_matches_its_paired_record() {
         "../../../fixtures/parity/publication/stream.json"
     ))
     .unwrap();
+    publication_stream(record, "publication/stream.json", false);
+}
+
+#[test]
+fn the_combat_stream_matches_its_paired_record() {
+    let record: Value = serde_json::from_str(include_str!(
+        "../../../fixtures/parity/publication/combat.json"
+    ))
+    .unwrap();
+    publication_stream(record, "publication/combat.json", true);
+}
+
+fn publication_stream(record: Value, path: &str, combat: bool) {
     let map = sim::maps::load(record["map"].as_str().unwrap())
         .unwrap()
         .definition;
@@ -298,6 +314,8 @@ fn the_publication_stream_matches_its_paired_record() {
     let mut snapshots = 0;
     let mut deltas = 0;
     let mut blessed = record.clone();
+    let mut saw_shot = false;
+    let mut saw_impact = false;
     for row in blessed["rows"].as_array_mut().unwrap() {
         battle.step();
         let side: Side = serde_json::from_value(row["side"].clone()).unwrap();
@@ -320,13 +338,23 @@ fn the_publication_stream_matches_its_paired_record() {
                 bits[change[0] as usize] = change[1] as u32 | (change[2] as u32) << 16;
             }
         }
+        let observation = battle.observe(side);
         // Snapshots and deltas alike deliver the side's authoritative field.
         assert_eq!(
             bits,
-            battle.observe(side).ground_visibility.bits,
+            observation.ground_visibility.bits,
             "tick {}",
             battle.tick()
         );
+        saw_shot |= observation
+            .own
+            .iter()
+            .flat_map(|unit| &unit.weapon_poses)
+            .any(|pose| pose.shots > 0);
+        saw_impact |= observation
+            .projectiles
+            .iter()
+            .any(|projectile| projectile.hit != contract::observation::SegmentHit::None);
         let hash = |bytes: Vec<u8>| json!(contract::identity::bytes_hash(&bytes));
         row["digest"] = json!(format!("{:016x}", battle.digest()));
         row["publication_sha256"] = hash(
@@ -342,7 +370,14 @@ fn the_publication_stream_matches_its_paired_record() {
         "initial, each side switch and resync replace the field"
     );
     assert!(deltas > 0, "the stream must exercise incremental fields");
-    if common::bless_parity("publication/stream.json", &blessed) {
+    if combat {
+        assert!(saw_shot, "the paired stream must observe combat firing");
+        assert!(
+            saw_impact,
+            "the paired stream must observe a projectile impact"
+        );
+    }
+    if common::bless_parity(path, &blessed) {
         return;
     }
     for (tick, (row, expected)) in blessed["rows"]
@@ -729,36 +764,9 @@ fn group_delivery_reconstructs_the_logical_oracle_across_side_and_epoch_changes(
         let mut at = 27;
         previous.resize_with(9, Vec::new);
         for group in &mut previous {
-            let size = wire[at] as usize;
-            let encoding = wire[at + 1];
-            let end = at + 3 + wire[at + 2] as usize;
-            at += 3;
-            if encoding == 1.0 {
-                *group = wire[at..end].to_vec();
-                at = end;
-            } else if encoding == 2.0 {
-                let old = std::mem::take(group);
-                while at < end {
-                    let source = wire[at];
-                    let count = wire[at + 1] as usize;
-                    at += 2;
-                    if source == -1.0 {
-                        group.extend_from_slice(&wire[at..at + count]);
-                        at += count;
-                    } else {
-                        group.extend_from_slice(&old[source as usize..source as usize + count]);
-                    }
-                }
-            } else {
-                group.resize(size, 0.0);
-                while at < end {
-                    let start = wire[at] as usize;
-                    let count = wire[at + 1] as usize;
-                    at += 2;
-                    group[start..start + count].copy_from_slice(&wire[at..at + count]);
-                    at += count;
-                }
-            }
+            let decoded = codec::group(wire, at, group);
+            at += 3 + wire[at + 2] as usize;
+            *group = decoded;
         }
         let mut oracle = Vec::new();
         let ground = publication::GroundHeader {
@@ -783,4 +791,118 @@ fn group_delivery_reconstructs_the_logical_oracle_across_side_and_epoch_changes(
             "tick {tick}"
         );
     }
+}
+
+#[test]
+fn one_variable_route_change_does_not_resend_other_own_units() {
+    use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy};
+    use contract::ids::UnitId;
+    let units: Vec<_> = (0..80)
+        .map(|i| json!({"side":"blue","kind":"rifle","position":[32 + i%10*24,32+i/10*24]}))
+        .collect();
+    let setup = common::scenario(
+        &json!({"size":[512,512],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35})
+            .to_string(),
+        json!(units),
+        json!([]),
+    );
+    let mut battle = Battle::new(&setup, 1);
+    battle.step();
+    let mut publisher = publication::Publisher::new();
+    let initial = publisher.publish(&battle, Side::Blue).unwrap().to_vec();
+    let old = codec::group(&initial, 27, &[]);
+    assert!(battle
+        .accept(CommandEnvelope {
+            side: Side::Blue,
+            seq: 1,
+            queued: false,
+            order: Order::Move {
+                units: vec![UnitId(0)],
+                gesture: 1,
+                goal: [400.0, 400.0],
+                route: RoutePolicy::Shortest,
+                direction: MoveDirection::Forward,
+                facing: None
+            }
+        })
+        .error
+        .is_none());
+    for _ in 0..240 {
+        battle.step();
+        if !battle.observe(Side::Blue).own[0].route.is_empty() {
+            break;
+        }
+    }
+    assert!(
+        !battle.observe(Side::Blue).own[0].route.is_empty(),
+        "the route must finish planning within eight simulated seconds"
+    );
+    let wire = publisher.publish(&battle, Side::Blue).unwrap();
+    eprintln!("own route payload {} B", (3 + wire[29] as usize) * 4);
+    assert!(
+        wire[27] > initial[27],
+        "the own variable section must actually grow"
+    );
+    let own_bytes = (3 + wire[29] as usize) * 4;
+    assert!(
+        own_bytes < 2000,
+        "one route change must retain the other 79 own units: {own_bytes} B"
+    );
+    let words = codec::group(wire, 27, &old);
+    let mut snapshot = publication::Publisher::new();
+    let fresh = snapshot.publish(&battle, Side::Blue).unwrap();
+    assert_eq!(
+        words.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
+        codec::group(fresh, 27, &[])
+            .iter()
+            .map(|v| v.to_bits())
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn cold_own_delivery_compacts_sparse_values_without_losing_the_logical_words() {
+    let setup = common::scenario(
+        r#"{"size":[128,128],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#,
+        json!([{"side":"blue","kind":"rifle","position":[32,32]},
+               {"side":"blue","kind":"rifle","position":[96,96]}]),
+        json!([]),
+    );
+    let battle = Battle::new(&setup, 1);
+    let mut publisher = publication::Publisher::new();
+    let data = publisher.publish(&battle, Side::Blue).unwrap();
+    assert!(
+        data[29] < data[27],
+        "sparse cold own rows should reduce their canonical byte count: {} / {}",
+        data[29] * 4.0,
+        data[27] * 4.0
+    );
+    let frame = battle.observe(Side::Blue);
+    let ground = publication::GroundHeader {
+        epoch: 1,
+        side: Side::Blue,
+        base: 0,
+        revision: 0,
+        full: true,
+        count: 0,
+    };
+    let mut logical = Vec::new();
+    publication::pack_logical(
+        frame,
+        &ground,
+        &full_fog(),
+        std::iter::empty(),
+        &mut logical,
+    )
+    .unwrap();
+    assert_eq!(
+        codec::group(data, 27, &[])
+            .iter()
+            .map(|v| v.to_bits())
+            .collect::<Vec<_>>(),
+        logical[27..27 + data[27] as usize]
+            .iter()
+            .map(|v| v.to_bits())
+            .collect::<Vec<_>>()
+    );
 }

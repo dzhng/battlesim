@@ -40,11 +40,15 @@ const INFANTRY: Mobility = Mobility {
 };
 
 fn world(extra: &str) -> WorldGeometry {
+    world_with_rules(extra, &crate::common::rules())
+}
+
+fn world_with_rules(extra: &str, rules: &contract::scenario::Rules) -> WorldGeometry {
     let map: MapDefinition = serde_json::from_str(&format!(
         r#"{{"size":[400,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35{extra}}}"#
     ))
     .unwrap();
-    WorldGeometry::new(&map, &crate::common::rules())
+    WorldGeometry::new(&map, rules)
 }
 /// What a side plans a leg with: its grid of the bodies it knows, and the
 /// map's roads.
@@ -91,6 +95,26 @@ impl Known {
 /// A side that knows every body on the map.
 fn grid(w: &WorldGeometry) -> Known {
     Known::of(NavGrid::new(Arc::new(NavBase::build(w, w.props(), 0.3))), w)
+}
+
+/// Fixed road admission and costs make failure/recovery tracers independent
+/// of later game-data tuning; the map has only 20,000 cells to exhaust.
+fn road_fixture(extra: &str) -> (Known, contract::scenario::NavigationRules) {
+    let mut rules = crate::common::rules();
+    rules
+        .surfaces
+        .get_mut(&contract::map::SurfaceKind::Road)
+        .unwrap()
+        .speed_factor = 1.0;
+    rules
+        .surfaces
+        .get_mut(&contract::map::SurfaceKind::DirtTrack)
+        .unwrap()
+        .speed_factor = 0.75;
+    rules.navigation.search_cells_base = 20_000;
+    rules.navigation.search_cells_per_m = 200;
+    rules.navigation.road_access_m = 256.0;
+    (grid(&world_with_rules(extra, &rules)), rules.navigation)
 }
 
 fn route(plan: Plan) -> Vec<V2> {
@@ -141,6 +165,270 @@ fn the_fastest_route_takes_the_road_and_the_shortest_does_not() {
     // Infantry gains only ×1.3 on roads, so the detour is not worth it.
     let foot = route(g.plan(from, to, &INFANTRY, RoutePolicy::Fastest));
     assert!(route_length(from, &foot) < 365.0);
+}
+
+#[test]
+fn road_exits_do_not_multiply_an_enclosed_destinations_search() {
+    // The tank can stand in this courtyard, but cannot cross its walls.
+    // Every road ends outside it; adding exits cannot make the goal reachable.
+    let roads: Vec<_> = (0..12)
+        .map(|k| format!(r#"{{"kind":"road","shape":{{"kind":"stroke","points":[[20,{}],[280,{}]],"width_m":6}}}}"#, 10 + k * 15, 10 + k * 15))
+        .collect();
+    let (g, rules) = road_fixture(&format!(
+        r#", "surfaces":[{}], "props":[
+            {{"kind":"wall","center":[290,100],"half_extents":[1,12,2],"yaw":0}},
+            {{"kind":"wall","center":[310,100],"half_extents":[1,12,2],"yaw":0}},
+            {{"kind":"wall","center":[300,89],"half_extents":[11,1,2],"yaw":0}},
+            {{"kind":"wall","center":[300,111],"half_extents":[11,1,2],"yaw":0}}
+        ]"#,
+        roads.join(",")
+    ));
+    let (from, goal) = (v2(20.0, 100.0), v2(300.0, 100.0));
+    assert!(g.fits_at(from, &TANK) && g.fits_at(goal, &TANK));
+    let (plan, work) = sim::navigation::plan(
+        &g.grid,
+        &g.roads,
+        Leg {
+            from,
+            goal,
+            m: &TANK,
+            policy: RoutePolicy::Fastest,
+            avoid: &[],
+        },
+        &rules,
+    );
+    assert_eq!(plan, Plan::Blocked(BlockReason::NoRoute));
+    // At most one search of the 200×100 grid, plus local road access and
+    // the courtyard's fewer than 100 cells, before proving the obstruction.
+    assert!(
+        work.expanded < 21_000,
+        "one failed connector and courtyard proof, not a map search per exit: {work:?}"
+    );
+}
+
+#[test]
+fn thin_closed_goals_do_not_repeat_a_search_for_each_road_exit() {
+    let roads: Vec<_> = (0..128).map(|k| format!(r#"{{"kind":"road","shape":{{"kind":"stroke","points":[[20,{}],[280,{}]],"width_m":6}}}}"#,10.0+k as f64*180.0/127.0,10.0+k as f64*180.0/127.0)).collect();
+    let (g, rules) = road_fixture(&format!(
+        r#", "surfaces":[{}], "props":[
+    {{"kind":"wall","center":[289.25,100],"half_extents":[0.1,14,2],"yaw":0}},
+    {{"kind":"wall","center":[311.25,100],"half_extents":[0.1,14,2],"yaw":0}},
+    {{"kind":"wall","center":[300,87.25],"half_extents":[12,0.1,2],"yaw":0}},
+    {{"kind":"wall","center":[300,113.25],"half_extents":[12,0.1,2],"yaw":0}}]"#,
+        roads.join(",")
+    ));
+    let narrow = Mobility {
+        half_width_m: 0.3,
+        ..TANK
+    };
+    let (from, goal) = (v2(20.0, 100.0), v2(300.0, 100.0));
+    assert!(g.fits_at(from, &narrow) && g.fits_at(goal, &narrow));
+    let before = g.grid.work();
+    let (plan, work) = sim::navigation::plan(
+        &g.grid,
+        &g.roads,
+        Leg {
+            from,
+            goal,
+            m: &narrow,
+            policy: RoutePolicy::Fastest,
+            avoid: &[],
+        },
+        &rules,
+    );
+    assert_eq!(plan, Plan::Blocked(BlockReason::NoRoute));
+    assert!(
+        g.grid.work() - before < 300_000,
+        "one map search and flat road admission, not a repeated graph per exit: {}",
+        g.grid.work() - before
+    );
+    // One failed outside search can visit the whole 20,000-cell map.
+    // The closed courtyard has fewer than 200 cells; later exits only
+    // require membership in that same final-connector component.
+    assert!(
+        work.expanded < 21_000,
+        "a closed goal must not repeat the outside search per exit: {work:?}"
+    );
+}
+
+#[test]
+fn filtered_near_accesses_do_not_hide_a_far_sampled_road_into_the_goal_component() {
+    let walls: Vec<_> = (0..100)
+        .map(|k| {
+            format!(
+                r#"{{"kind":"wall","center":[{},{}],"half_extents":[0.05,0.05,2],"yaw":0}}"#,
+                201 + 2 * k,
+                199 - 2 * k
+            )
+        })
+        .collect();
+    let (g, mut rules) = road_fixture(&format!(
+        r#", "rivers":[{{"points":[{{"xy":[0,30],"width_m":12,"depth_m":1.5}},{{"xy":[400,30],"width_m":12,"depth_m":1.5}}],"surface_z":-0.5}}], "bridges":[{{"deck":"bridge_deck","center":[330,30],"half_extents":[16,5],"yaw":1.5707963267948966,"deck_z":0.1,"thickness_m":0.8}}], "props":[{}], "surfaces":[
+      {{"kind":"road","shape":{{"kind":"stroke","points":[[380,3],[330,3],[330,50],[195,194]],"width_m":10}}}},
+      {{"kind":"road","shape":{{"kind":"stroke","points":[[180,194],[195,194]],"width_m":10}}}},
+      {{"kind":"dirt_track","shape":{{"kind":"stroke","points":[[380,3],[330,3],[330,50],[390,110],[250,175]],"width_m":1}}}}]"#,
+        walls.join(",")
+    ));
+    rules.road_access_m = 20.0;
+    let narrow = Mobility {
+        half_width_m: 0.2,
+        road_mps: 30.0,
+        ..TANK
+    };
+    let (from, goal) = (v2(380.0, 3.0), v2(210.0, 194.0));
+    assert!(g.fits_at(from, &narrow) && g.fits_at(goal, &narrow));
+    assert!(
+        g.route_fits(
+            from,
+            &[
+                v2(330.0, 3.0),
+                v2(330.0, 50.0),
+                v2(390.0, 110.0),
+                v2(250.0, 175.0),
+                goal
+            ],
+            &narrow
+        ),
+        "the farther sampled road reaches the strict component"
+    );
+    let planned = route(
+        sim::navigation::plan(
+            &g.grid,
+            &g.roads,
+            Leg {
+                from,
+                goal,
+                m: &narrow,
+                policy: RoutePolicy::Fastest,
+                avoid: &[],
+            },
+            &rules,
+        )
+        .0,
+    );
+    assert!(g.route_fits(from, &planned, &narrow));
+    assert!(g.route_time(from, &planned, &narrow).is_finite());
+    assert_eq!(planned.last(), Some(&goal));
+}
+
+#[test]
+fn an_inconclusive_goal_probe_keeps_a_legal_alternate_road_exit() {
+    let (g, mut rules) = road_fixture(
+        r#", "surfaces":[
+        {"kind":"road","shape":{"kind":"stroke","points":[[20,100],[280,100]],"width_m":10}},
+        {"kind":"road","shape":{"kind":"stroke","points":[[20,100],[20,190],[310,190],[310,100]],"width_m":10}}
+        ], "props":[{"kind":"wall","center":[290,100],"half_extents":[1,80,2],"yaw":0}]"#,
+    );
+    rules.search_cells_base = 30;
+    rules.search_cells_per_m = 0;
+    let (from, goal) = (v2(20.0, 100.0), v2(310.0, 100.0));
+    // The destination is connected through the distant opening. A short
+    // reverse search toward the cheap exit cannot prove its component closed.
+    assert_eq!(
+        sim::navigation::plan(
+            &g.grid,
+            &g.roads,
+            Leg {
+                from: goal,
+                goal: v2(218.0, 100.0),
+                m: &TANK,
+                policy: RoutePolicy::Shortest,
+                avoid: &[]
+            },
+            &rules
+        )
+        .0,
+        Plan::Blocked(BlockReason::SearchLimit),
+    );
+    let planned = route(
+        sim::navigation::plan(
+            &g.grid,
+            &g.roads,
+            Leg {
+                from,
+                goal,
+                m: &TANK,
+                policy: RoutePolicy::Fastest,
+                avoid: &[],
+            },
+            &rules,
+        )
+        .0,
+    );
+    assert!(
+        planned.iter().any(|p| p.y > 180.0),
+        "takes the distant legal road exit: {planned:?}"
+    );
+    assert!(g.route_fits(from, &planned, &TANK));
+    assert!(g.route_time(from, &planned, &TANK).is_finite());
+    assert_eq!(planned.last(), Some(&goal));
+}
+
+#[test]
+fn goal_component_proofs_include_sampled_corner_crossings() {
+    let walls: Vec<_> = (0..50)
+        .map(|k| {
+            format!(
+                r#"{{"kind":"wall","center":[{},{}],"half_extents":[0.05,0.05,2],"yaw":0}}"#,
+                1 + k * 2,
+                99 - k * 2
+            )
+        })
+        .collect();
+    let (g, rules) = road_fixture(&format!(
+        r#", "props":[{}], "surfaces":[
+        {{"kind":"dirt_track","shape":{{"kind":"stroke","points":[[21,21],[81,81]],"width_m":1}}}},
+        {{"kind":"road","shape":{{"kind":"stroke","points":[[21,21],[49,45]],"width_m":10}}}}
+        ]"#,
+        walls.join(",")
+    ));
+    let narrow = Mobility {
+        half_width_m: 0.3,
+        off_road_mps: 8.0,
+        ..TANK
+    };
+    let (from, goal) = (v2(21.0, 21.0), v2(81.0, 81.0));
+    assert!(g.fits_at(from, &narrow) && g.fits_at(goal, &narrow));
+    assert!(
+        g.route_fits(from, &[goal], &narrow),
+        "the diagonal crossing is sampled-clear"
+    );
+    // The ordinary no-corner cell graph rejects this crossing. Roads use
+    // the sampled reader, so exhausting that stricter graph is not a proof.
+    assert_eq!(
+        sim::navigation::plan(
+            &g.grid,
+            &RoadNet::default(),
+            Leg {
+                from,
+                goal,
+                m: &narrow,
+                policy: RoutePolicy::Fastest,
+                avoid: &[]
+            },
+            &rules
+        )
+        .0,
+        Plan::Blocked(BlockReason::NoRoute)
+    );
+    let planned = route(
+        sim::navigation::plan(
+            &g.grid,
+            &g.roads,
+            Leg {
+                from,
+                goal,
+                m: &narrow,
+                policy: RoutePolicy::Fastest,
+                avoid: &[],
+            },
+            &rules,
+        )
+        .0,
+    );
+    assert!(g.route_fits(from, &planned, &narrow));
+    assert!(g.route_time(from, &planned, &narrow).is_finite());
+    assert_eq!(planned.last(), Some(&goal));
 }
 
 #[test]
@@ -559,4 +847,112 @@ fn placement_does_not_spend_or_pre_pay_route_work() {
         cold.work(),
         "warming values must not make the later route cheaper to schedule"
     );
+}
+
+/// A planned infantry town detour must carry a finite physical travel time.
+#[test]
+fn infantry_town_detours_have_finite_route_times() {
+    let (from, to) = (v2(150.0, 100.0), v2(250.0, 100.0));
+    for (yaw, offset) in [
+        (0.0, 0.0),
+        (0.0, 0.5),
+        (0.0, 1.0),
+        (0.13, 0.0),
+        (0.27, 0.5),
+        (0.6, 1.0),
+    ] {
+        let w = world(&format!(
+            r#", "props":[{{"kind":"wall","center":[200,{}],"yaw":{},"half_extents":[10,10,4]}}]"#,
+            100.0 + offset,
+            yaw
+        ));
+        let g = grid(&w);
+        let path = route(g.plan(from, to, &INFANTRY, RoutePolicy::Shortest));
+        let time = g.route_time(from, &path, &INFANTRY);
+        assert!(g.route_fits(from, &path, &INFANTRY));
+        assert!(
+            time.is_finite(),
+            "yaw {yaw}, offset {offset}, route {path:?}, time {time}"
+        );
+    }
+}
+
+#[test]
+fn infantry_timing_keeps_start_and_goal_boundary_failures_explicit() {
+    let w = world("");
+    let g = grid(&w);
+    assert_eq!(
+        g.plan(
+            v2(-1.0, 100.0),
+            v2(100.0, 100.0),
+            &INFANTRY,
+            RoutePolicy::Shortest
+        ),
+        Plan::Blocked(BlockReason::StartEnclosed)
+    );
+    assert_eq!(
+        g.plan(
+            v2(100.0, 100.0),
+            v2(420.0, 100.0),
+            &INFANTRY,
+            RoutePolicy::Shortest
+        ),
+        Plan::Blocked(BlockReason::NoRoute)
+    );
+    let p = v2(0.0, 100.0);
+    let same = route(g.plan(p, p, &INFANTRY, RoutePolicy::Shortest));
+    assert_eq!(g.route_time(p, &same, &INFANTRY), 0.0);
+    let moved = route(g.plan(p, v2(20.0, 100.0), &INFANTRY, RoutePolicy::Shortest));
+    assert!(g.route_time(p, &moved, &INFANTRY) > 0.0);
+    assert!(g.route_fits(p, &moved, &INFANTRY));
+}
+
+#[test]
+fn a_one_man_town_passage_has_a_finite_time_without_opening_a_wall() {
+    let w = world(
+        r#", "props":[
+        {"kind":"wall","center":[200,50.2],"yaw":0,"half_extents":[1,50.2,4]},
+        {"kind":"wall","center":[200,150.8],"yaw":0,"half_extents":[1,49.2,4]}]"#,
+    );
+    let g = grid(&w);
+    let from = v2(150.0, 101.0);
+    let to = v2(250.0, 101.0);
+    let foot = route(g.plan(from, to, &INFANTRY, RoutePolicy::Fastest));
+    assert!(g.route_fits(from, &foot, &INFANTRY));
+    let time = g.route_time(from, &foot, &INFANTRY);
+    assert!(time.is_finite() && time > 0.0);
+    assert!(matches!(
+        g.plan(from, to, &TANK, RoutePolicy::Shortest),
+        Plan::Blocked(_)
+    ));
+    let closed =
+        world(r#", "props":[{"kind":"wall","center":[200,100],"yaw":0,"half_extents":[1,100,4]}]"#);
+    let closed = grid(&closed);
+    assert!(closed.route_time(from, &[to], &INFANTRY).is_infinite());
+    assert!(!closed.route_fits(from, &[to], &INFANTRY));
+    assert_eq!(
+        closed.plan(from, to, &INFANTRY, RoutePolicy::Shortest),
+        Plan::Blocked(BlockReason::NoRoute)
+    );
+    let river = world(
+        r#", "rivers":[{"points":[{"xy":[200,0],"width_m":20,"depth_m":1.5},{"xy":[200,200],"width_m":20,"depth_m":1.5}],"surface_z":-0.5}]"#,
+    );
+    assert_eq!(
+        grid(&river).plan(from, to, &INFANTRY, RoutePolicy::Shortest),
+        Plan::Blocked(BlockReason::NoRoute)
+    );
+}
+
+#[test]
+fn a_nonstanding_infantry_goal_projects_to_a_legal_timed_endpoint() {
+    let w =
+        world(r#", "props":[{"kind":"wall","center":[200,100],"yaw":0,"half_extents":[0.5,4,4]}]"#);
+    let g = grid(&w);
+    let from = v2(150.0, 100.0);
+    let goal = v2(200.0, 100.0);
+    assert!(!g.fits_at(goal, &INFANTRY));
+    let path = route(g.plan(from, goal, &INFANTRY, RoutePolicy::Shortest));
+    assert_ne!(path.last(), Some(&goal));
+    assert!(g.route_fits(from, &path, &INFANTRY));
+    assert!(g.route_time(from, &path, &INFANTRY).is_finite());
 }

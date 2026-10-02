@@ -453,7 +453,19 @@ export function packTemplateSets(
       const triangles = Array.from({ length: TIER_COUNT }, () => 0);
       for (const state of TEMPLATE_STATES) {
         const rows = template.states[state];
-        if (!rows || !input.kit) continue;
+        if (!rows) continue;
+        // A chunk of a town draws at one tier, and the whole map at the
+        // coarsest: a state with no row at a tier is a building that vanishes.
+        const undrawn = Array.from({ length: TIER_COUNT }, (_, t) => t).filter(
+          (t) => !rows.some((row) => row[8] & (1 << t)),
+        );
+        if (undrawn.length)
+          add(
+            "templates.state",
+            `template ${id} ${state} draws nothing at tier ${undrawn.join(", ")}`,
+            "give every tier a row: fold what is left of a building into its shell at the coarse tiers",
+          );
+        if (!input.kit) continue;
         const moduleOf = (index: number) => kitStates.get(set.modules[index]);
         if (canonical) {
           const [worst, ...more] = fitExcess(rows, moduleOf, canonical.parts, set.fit, groundM);

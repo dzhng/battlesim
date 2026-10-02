@@ -1,8 +1,7 @@
-/** The contract of battle preparation: one request to a preparation worker,
- *  which resolves the map through the one map owner (`@web/maps/source`), has
- *  the encounter laid on it and hands back the scenario a battle runs. The
- *  worker is closed after its one answer, so everything preparation
- *  allocated goes with it; closing it early cancels the request. */
+import type { PublicWorldData } from "../sim/publicWorld";
+import type { SimRequest } from "../sim/protocol";
+/** Preparation keeps its world in the worker that will run the battle. The page
+ * receives public static exports; closing the worker cancels all pending work. */
 import type { MapIdentity } from "../../maps/resolve.ts";
 import type { MapDiagnostic, MapSource } from "../../maps/source.ts";
 
@@ -41,6 +40,13 @@ export interface PrepareMessage {
   type: "prepare";
   request: PrepareBattleRequest;
   documents: PrepareDocuments;
+  /** Lab-only synthetic contact workload; normal battles omit it. */
+  stress?: StressPreparation;
+}
+
+export interface StressPreparation {
+  kind: "city-arena-1";
+  late: boolean;
 }
 
 /** Why a request was refused: the request check's, the map owner's or the
@@ -49,6 +55,7 @@ export type PrepareDiagnostic = MapDiagnostic;
 
 /** What preparation is doing: resolving the map, then laying the encounter. */
 export type PrepareStage = "map" | "encounter";
+export type PreparationProgressStage = PrepareStage | "world";
 /** Where a refusal came from: the request's own check, or a stage. */
 export type RefusalStage = "request" | PrepareStage;
 
@@ -87,14 +94,15 @@ export interface EncounterPlacement {
   attempts: number;
 }
 
-/** What preparation made: the scenario JSON a battle authority runs
- *  (`ScenarioDefinition`), and what it is. */
+/** The battle input and public static geometry sent to the page. */
 export interface PreparedBattle {
   scenario: string;
   report: PreparationReport;
+  publicWorld: PublicWorldData;
 }
 
 export interface PreparationReport {
+  stress?: StressPreparation & { livingUnits: Record<"blue" | "red", number> };
   /** The request, as the simulation's check wrote it back. */
   request: PrepareBattleRequest;
   /** What the resolved map is. */
@@ -115,10 +123,21 @@ export interface PreparationReport {
   timings: Record<PrepareStage, number>;
   /** The preparation module's Wasm memory when it finished, bytes. */
   wasmBytes: number;
+  worldBuildMs: number;
+  publicExportMs: number;
+  /** Typed exports and lossless query payload, before the page builds its index. */
+  publicBytes: number;
 }
 
+export interface StaticWorldRequest {
+  type: "static";
+  map: string;
+  rules: string;
+}
+export type PrepareWorkerRequest = PrepareMessage | StaticWorldRequest | SimRequest;
+
 export type PrepareReply =
-  | { type: "stage"; stage: PrepareStage }
+  | { type: "stage"; stage: PreparationProgressStage }
   | { type: "prepared"; battle: PreparedBattle }
   /** The request's check, the map owner or the planner refused (`stage`
    *  says which): never another seed, never another map. */

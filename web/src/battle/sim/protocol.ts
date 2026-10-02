@@ -1,3 +1,4 @@
+import type { PublicWorldData } from "./publicWorld";
 /** The wire contract between the battle authority (one simulation in a worker)
  * and the main-thread client: ordered commands, acknowledgements, and one
  * completed-tick publication per credit. There is no simulation-shaped proxy. */
@@ -119,6 +120,7 @@ export type SimRequest =
   | { type: "dispose" };
 
 export type SimReply =
+  | { type: "world"; world: PublicWorldData }
   | { type: "ready"; layout: string; tickHz: number; tick: number }
   | { type: "ack"; ack: CommandAck }
   | { type: "move_preview"; id: number; destinations: MoveDestination[] }

@@ -1,6 +1,5 @@
 // The scenery layer: every placed tree and hedgerow shrub, instanced from its
-// appearance's tiers, and the massing boxes of buildings with no art, in the
-// frame's own passes. Its populations are chunked, culled and tiered by the
+// appearance's tiers, in the frame's own passes. Its populations are chunked, culled and tiered by the
 // static chunk owner (`staticChunks.ts`); the buffers, meshes and materials
 // here are the layer's own. Opaque, so all of it is in the depth prepass
 // (FogVisibility's tile cull reads it like any surface).
@@ -25,11 +24,6 @@
 // vehicle knocked through) is not drawn: `setCleared` rebuilds
 // the forest without it.
 //
-// - Massing (`scenery/massing.ts`) is one unit box a part, scaled to the
-//   part's size: lit, shadowed and casting like the forest, and fogged per
-//   fragment as a face, so a building takes fog whole as every known
-//   occluder does. Every box draws from the static buffer, at any distance.
-//
 // On a view change `prepare` sorts trees into tiers by projected height
 // (`scenery/lod.ts`) and uploads the near trees' per-tier lists; far chunks
 // draw at tier 3 straight from a static buffer.
@@ -38,7 +32,7 @@ import { pcgHash } from "../shaders/pcgHash";
 import type { StaticBundle } from "@packages/scene-assets/src/schema";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { createDetailView, detailKey, setDetailView } from "./detailView";
-import { MeshBuilder, VERTEX_FLOATS } from "../mesh";
+import { VERTEX_FLOATS } from "../mesh";
 import { typegpuCameraLayout } from "../world/camera";
 import { battleWorldDepth } from "../worldDepth";
 import type { WorldScenery } from "../scene";
@@ -57,6 +51,7 @@ import {
   createStagedLevels,
   selectChunks,
   stageNear,
+  sunShadow,
   type StagedLevels,
   type StaticChunks,
 } from "./staticChunks";
@@ -85,8 +80,6 @@ export interface SceneryStats {
   kinds: number;
   forest: SceneryPopulationStats;
   backdrop: SceneryPopulationStats;
-  /** The massing boxes (every one draws at the last tier). */
-  massing: SceneryPopulationStats;
   /** Draw calls in the last whole frame, over every pass. */
   draws: number;
 }
@@ -101,11 +94,6 @@ function instanceBuffer(root: Root, capacity: number) {
 
 /** Square chunks instances are bucketed in for tier selection, metres. */
 const CHUNK_M = 128;
-/** Massing has one mesh, so no box is ever sorted into a nearer tier: every
- *  chunk draws from the static buffer. */
-const ALWAYS_FAR: TierView["lodPx"] = [Infinity, Infinity, Infinity];
-/** A massing wall: matt plaster. */
-const MASSING_ROUGHNESS = 0.9;
 /** Foliage roughness: leaves scatter; the environment's specular stays small. */
 const LEAF_ROUGHNESS = 0.85;
 const BARK_ROUGHNESS = 0.9;
@@ -268,28 +256,6 @@ export async function createSceneryLayer(
     };
   });
 
-  /** A massing box: a plain lit wall in its instance's tint, fogged where
-   *  it stands (FogTerm takes a known occluder whole). */
-  const massingFragment = tgpu.fragmentFn({ in: placedVaryings, out: WORLD_OUT })((v) => {
-    "use gpu";
-    const n = std.normalize(v.normal);
-    const seen = fogTerm(v.world, n, v.clip.xy, false);
-    const sun = environment.sampleSunShadow(v.world, n, v.clip.xy);
-    const lit = environment.shade(
-      v.color.xyz,
-      d.vec3f(0),
-      MASSING_ROUGHNESS,
-      0,
-      0,
-      1,
-      n,
-      v.world,
-      sun,
-      typegpuCameraLayout.$.cam.eye,
-    );
-    return { color: d.vec4f(lit.xyz, 1), fog: fogCoverage(seen, 1) };
-  });
-
   const base = {
     attribs: placedAttribs,
     vertex: placedVertex,
@@ -320,17 +286,8 @@ export async function createSceneryLayer(
     depthStencil: battleWorldDepth("prepassed"),
     multisample: { count: FRAME_MSAA },
   });
-  const massingColour = root.createRenderPipeline({
-    ...base,
-    fragment: massingFragment,
-    targets: worldTargets(),
-    depthStencil: battleWorldDepth("prepassed"),
-    multisample: { count: FRAME_MSAA },
-  });
   await Promise.all(
-    [prepass, caster, forestColour, backdropColour, massingColour].map((pipeline) =>
-      pipeline.initAsync(),
-    ),
+    [prepass, caster, forestColour, backdropColour].map((pipeline) => pipeline.initAsync()),
   );
 
   /** A kind's vertices per tier. */
@@ -363,29 +320,12 @@ export async function createSceneryLayer(
     backdrop: Population;
   }
   let loaded: Loaded | null = null;
-  // The massing's one mesh lives as long as the layer; its boxes are replaced
-  // whenever the side's knowledge of them changes.
-  const boxMesh = new MeshBuilder().orientedBox(0, 0, 0, [1, 1, 0.5], 0, [1, 1, 1, 0]).build();
-  const box = {
-    buffer: registry.own(vertexBuffer(root, boxMesh)),
-    vertices: boxMesh.length / VERTEX_FLOATS,
-  };
-  const boxTiers: TierMeshes[] = [Array.from({ length: TIER_COUNT }, () => box)];
-  let massing: { scope: GpuRegistry; pop: Population } | null = null;
   let viewKey = "";
-  // Where the sun's shadows fall: away from the sun, a metre of height
-  // throwing `1 / tan(elevation)` metres of shadow. `prepare` sets the rest
-  // per view.
+  // Where the sun's shadows fall: `prepare` sets it per view.
   const { sun_azimuth, sun_elevation, cascades } = environment.light;
-  const throwM = 1 / Math.tan(sun_elevation);
-  const view: TierView = {
-    ...createDetailView(),
-    lodPx: [1, 1, 1],
-    shadow: {
-      fall: [-Math.cos(sun_azimuth) * throwM, -Math.sin(sun_azimuth) * throwM],
-      reach: 0,
-    },
-  };
+  const sun = { azimuth: sun_azimuth, elevation: sun_elevation, maxFarM: cascades.max_far_m };
+  const shadow = { fall: [0, 0] as [number, number], reach: 0 };
+  const view: TierView = { ...createDetailView(), lodPx: [1, 1, 1], shadow };
 
   function population(
     scope: GpuRegistry,
@@ -470,10 +410,7 @@ export async function createSceneryLayer(
   /** The trees drawn: the forest's, and the backdrop's. */
   const trees = () => (treesShown ? loaded : null);
   /** Every population drawn into the view. */
-  const populations = () => [
-    ...(trees() ? [loaded!.forest, loaded!.backdrop] : []),
-    ...(massing ? [massing.pop] : []),
-  ];
+  const populations = () => (trees() ? [loaded!.forest, loaded!.backdrop] : []);
 
   return {
     /** The world's scenery (placement and appearances); `null` draws none. */
@@ -511,16 +448,6 @@ export async function createSceneryLayer(
         sizes,
         backdrop: trees(scope, next.placement.backdrop, false),
       };
-    },
-    /** The massing boxes a side draws (`massingInstances`), replacing the
-     *  last; `null` draws none. */
-    setMassing(next: PlacedInstances | null) {
-      massing?.scope.release();
-      massing = null;
-      viewKey = "";
-      if (!next?.kinds.length) return;
-      const scope = registry.scope();
-      massing = { scope, pop: population(scope, next, boxTiers, ALWAYS_FAR, true) };
     },
     /** Draw only the trees whose trunk stands on ground `ground`'s side has
      *  not seen cleared; rebuilds the forest when that count changes. */
@@ -564,10 +491,7 @@ export async function createSceneryLayer(
       if (key === viewKey) return;
       viewKey = key;
       setDetailView(view, camera, height);
-      // A shadow is received out to the reach in view depth: at the view's
-      // corners that is farther from the eye.
-      const tanV = Math.tan(camera.fovY / 2);
-      view.shadow.reach = cascades.max_far_m * Math.hypot(1, tanV, tanV * camera.aspect);
+      sunShadow(shadow, sun, camera);
       for (const pop of populations()) {
         view.lodPx = pop.lodPx;
         selectChunks(pop.chunks, view, chunkTier, pop.casts ? view.shadow : null);
@@ -580,7 +504,6 @@ export async function createSceneryLayer(
       const bound = caster.with(pass).with(cameraGroup) as unknown as Drawable;
       const drawn = trees();
       if (drawn) drawPopulation(drawn.forest, bound, true, CASTER_COARSER);
-      if (massing) drawPopulation(massing.pop, bound, true);
     },
     encodeDepth(pass: TgpuRenderPass, cameraGroup: CameraGroup) {
       const bound = prepass.with(pass).with(cameraGroup) as unknown as Drawable;
@@ -602,7 +525,6 @@ export async function createSceneryLayer(
         drawPopulation(drawn.forest, colour(forestColour));
         drawPopulation(drawn.backdrop, colour(backdropColour));
       }
-      if (massing) drawPopulation(massing.pop, colour(massingColour));
     },
     /** Starts a frame's draw count (the frame calls it before its shadows). */
     beginFrame() {
@@ -634,7 +556,6 @@ export async function createSceneryLayer(
         kinds: loaded ? loaded.forest.meshes.length : 0,
         forest: population(loaded?.forest),
         backdrop: population(loaded?.backdrop),
-        massing: population(massing?.pop),
         draws: lastDraws,
       };
     },

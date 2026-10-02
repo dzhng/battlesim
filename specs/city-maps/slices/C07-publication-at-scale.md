@@ -5,6 +5,30 @@
 ## Question
 Can steady-state and snapshot delivery fit their distinct budgets without hidden-state leaks or unbounded full-map copies?
 
+## Latest measured checkpoint
+
+The 60 s layout-7 controls at `95f7db1b` use Metro Large seed 4, map
+`d8a0c783…`, rules `a59680c1…` and native/Wasm build `0666de00…`. Each arm
+has 100 living units per side; late adds 20,000 corpses and 2,000 wrecks.
+
+| Whole delivery | Early | Late |
+|---|---:|---:|
+| Mean / p95 / maximum B per active tick | 4,860 / 14,452 / 19,264 | 5,050 / 14,440 / 19,520 |
+| Cold blue snapshot B | 440,772 | 866,496 |
+| Blue resync at 60 s B | 1,058,448 | 1,511,840 |
+| Red switch at 60 s B | 986,176 | 1,432,508 |
+| Mean / maximum packing M instructions | 3.583 / 10.243 | 7.275 / 22.219 |
+
+Both sampled active maxima fit the unchanged 19,800 B limit; the late margin
+is 280 B. Observation construction is separate from packing. Resync costs
+about 69 M instructions per arm, so it does not inherit the active-record
+admission. Independent raw-word reconstruction covers all 3,602 records;
+canonical group samples and the actual browser decoder agree at five ticks per
+arm, with earlier views retained. These are correctness proofs, not decoder
+throughput measurements. Active heap and browser copy/decoder overlap remain
+unclaimed. The subsequent building-catalogue cutover needs its own identified
+final admission; these controls are not relabelled as current-main evidence.
+
 ## Contract it unlocks
 Implement G0's measured fog/known-prop publication representation, with the observation decoder cut over in the same commit. Possible measured arms include bounded changed tiles/masks and known-prop deltas with an initial snapshot. Sending the entire Large 8 m fog every sixth tick is not assumed sufficient; full snapshots and resubscription have their own byte/time/peak-memory budget.
 
@@ -122,3 +146,173 @@ matched active sample must establish bytes and instruction cost after integratio
 p95/max, cold/side/resync snapshots, genuine newly learned bursts, peak overlap
 and browser throughput remain visible gates. No information is dropped and no
 byte, snapshot or memory allowance is raised.
+
+
+## Outcome: variable word spans
+
+Fixed-row copies remove retained corpse tail resends, but current layout-6 active
+Large contact still averages about 17 KB while p95 is about 48.5 KB and max
+66.7 KB. A route/member-section length change shifts own-group addresses; one
+public tracer resent 53,568 B after one squad changed route among 80 squads.
+Bitmask and XOR-varint estimates still reached 43,836/50,672 B for own rows.
+
+The existing copy grammar now declares `copyAlignments` per group: complete
+fixed rows retain their prior alignment; variable groups copy arbitrary word
+spans. One span enumerator uses exact eight-word old anchors sampled every eight
+words, extends matching spans wordwise, and emits literals between them. There
+is no unit identity, hash collision assumption, second baseline or compression
+dependency. Snapshot and replacement remain alternatives; complete preflight
+selects the smallest payload before writing or advancing any cursor.
+
+Matched standalone codec replay of 450 captured Metro Large/layout-6/seed-4
+contact transitions (ticks 0–450, same frozen simulation/rules) measures the arm
+without another battle run. Bytes include each group's metadata. Instructions
+include identical probe input staging copies in both arms; they exclude production
+logical packing, observation construction, other groups, the battle step and
+browser decoding. A separate bitwise reconstruction check passes every captured
+own and identified transition.
+
+| Group | Before mean / p95 / max B | Word spans mean / p95 / max B | Before mean / p95 / max M instructions | Word spans mean / p95 / max M instructions |
+|---|---:|---:|---:|---:|
+| Own | 7,128 / 27,200 / 51,968 | 4,170 / 8,556 / 10,656 | 0.288 / 0.362 / 0.432 | 1.840 / 2.937 / 3.401 |
+| Identified | 290 / 660 / 2,200 | 248 / 436 / 840 | 0.022 / 0.026 / 0.038 | 0.065 / 0.095 / 0.166 |
+
+The public tracer now needs 376 B and reconstructs every own float bit against a
+fresh publisher snapshot. Browser proofs cover a live producer route edit,
+fresh-snapshot equality, explicit arbitrary-word copies, route insertion/removal,
+malformed operation retry, missed generations, resync and retained earlier views.
+Canonical fixture vectors are unchanged; only copy-alignment layout metadata is
+added. Existing paired battle, wire and fog identities stay pinned.
+
+An index holds one exact-reserved u32 per eight old variable words. Across all
+groups its bound stays at 12.8 MiB, since the smallest fixed row is five words
+and all indices partition the single admitted 64 MiB baseline. Sorting is
+O(oldWords log oldWords); each candidate scan visits at most newWords positions,
+with an eight-word binary lookup or direct matching extension. Planning and
+emission repeat the bounded scan without retaining edit lists. Complete encoded
+size admission and fallible reservations still precede publication commit.
+
+The measured maximum own burst falls about 80%, at an explicit additional
+1.55 M mean encoding instructions per transition. This is an accepted delivery
+tradeoff, **not closure of the 19.8 KB whole-record gate**. Actual 60-second early
+and late p95/max, complete packing/tick cost, snapshot/peak overlap and browser
+throughput remain the integration owner's admission checks. No allowance changes.
+
+
+## Outcome: unchanged static decoded views
+
+`ObservationDecoder` now owns one group baseline containing the existing word
+buffers and the immutable decoded corpse/known-prop arrays. An unchanged static
+word buffer reuses its array, rows and coordinates after validating the current
+header count against the complete fixed-row payload. Changed words or counts
+construct new views; epoch/side invalidation starts fresh. The baseline commits
+only after all groups, fog and ground have decoded successfully.
+
+Unchanged static delivery constructs no per-row wrappers, field closures, section
+objects, final views or coordinate arrays. With 20,000 corpses and 2,000 known
+props, this avoids rebuilding 22,000 decoded rows and their 24,000 coordinate
+arrays per unchanged frame. The decoder retains only the latest two static view
+arrays alongside its word baseline; no complete observation or second word copy
+is retained. This is a construction contract, not a heap-byte or throughput
+measurement. Changed static groups still rebuild their complete view arrays.
+
+Array/row identity, own-row changes, static word/count changes, retained prior
+views, malformed cached counts, late record failure and corrected-generation
+retry are pinned. A count-check deletion mutant fails. Side invalidation discards
+stale snapshots and opens a fresh baseline. Existing consumer inspection found
+no mutation of these returned static views; static array types are readonly.
+Producer schema, canonical values and battle/publication identities are unchanged.
+Browser allocation/peak/throughput and the 19.8 KB whole-record gate remain open.
+
+
+## Outcome: stable static identities through the pose feed
+
+`ObservationFeed` now converts corpses only when the immutable decoded corpse
+array changes, retaining one converted fallen list. A changed floor/position
+view rebuilds it without altering earlier input or converted rows. `PoseDriver`
+already gates reconciliation on fallen-list identity; its existing owner still
+advances death, blend, fade and expiry every frame and resets on clock rollback.
+No second driver cache or cap/timing rule is introduced. The session's existing
+known-prop JSON key is memoized by known-prop array identity at its one owner.
+
+A bounded synthetic construction probe sends 50 fresh observations sharing
+20,000 frozen corpses, with no living units and the normal pose cap. The old feed
+builds 50 lists/1,000,000 converted rows and reads source positions 1,000,000
+times; the new feed builds one list/20,000 rows and reads positions 20,000 times.
+Capped corpse pose values remain unchanged throughout. This counts construction
+and input reads, not heap bytes, retired instructions, frame time or GPU work.
+
+The public feed tracer fails before the change and passes with stable array/row
+identity, frozen input and changed-floor reconstruction. The existing feed/driver
+suites preserve death/fade/cap/reset behavior. Producer, decoder, world, camera
+and frame orchestration are unchanged. No upload or visual-throughput verdict is
+claimed; browser admission and whole-record budgets remain open.
+
+
+## Outcome: compact lossless group carriers
+
+Post-span-copy full-Metro contact still exceeds the provisional **19,800-byte
+whole-record gate**: early p95/max are 20,284/26,260 B and late 20,344/25,356 B.
+The peak includes substantial fog and ground delivery; shortening own literals
+alone with XOR varints is insufficient. A captured full 1,800-transition stream
+per window supplies a matched encoding experiment without another battle run.
+
+One optional compact arm serializes the existing selected snapshot, replacement
+or source-copy form. Its grammar lives in the producer's `groupDelivery.packed`
+layout. Span selection, fixed-row alignment and the eight-word variable index
+remain the same. Small integers use variable-length bytes; literals retain all
+32 float bits, choosing raw bits or their exact XOR with the old word at the
+output address. Cold snapshots use raw bits only. The producer selects compact
+storage only when smaller, measures both sizes in the same operation traversal,
+and writes directly into its already admitted output. The ordinary form wins
+first; this does not search for a global minimum across all packed forms. There is no byte staging
+buffer, second baseline, entity-specific predictor or compression dependency.
+
+A standalone exact codec replay across all groups of both frozen corpora leaves
+fog/ground bytes intact and reconstructs every original raw word. Excluding cold
+tick zero, whole-record bytes change as follows; p95 uses floor((n−1)·0.95).
+
+| Window | Before mean / p95 / max B | Compact mean / p95 / max B |
+|---|---:|---:|
+| Early | 8,830 / 20,284 / 26,260 | 4,796 / 14,344 / 19,772 |
+| Late | 9,307 / 20,344 / 25,356 | 5,025 / 14,296 / 18,220 |
+
+Separately, the actual prior and new producer functions replay all captured own
+and identified groups with exact reconstruction. Identical probe staging copies
+and index sorting are included; logical observation packing, the battle step and
+browser decoding are excluded. Fresh snapshots now visit every literal while
+counting compact storage; active counters do not establish cold startup cost.
+Own mean instructions rise from 2.210 to 2.312 M
+early and 2.271 to 2.398 M late; identified rises from 0.121 to 0.134/0.135 M.
+A selected-payload-only counter is smaller and is not used as full packing cost.
+
+Transient indices retain the prior aggregate 12.8 MiB bound. Compact count/write
+uses constant scratch, preserves the existing complete 64 MiB logical and wire
+admission, and adds no allocation beyond the already reserved output. Bit counting
+is bounded by the logical record and operations; no extra sparse-index search
+pass is introduced. Packed carriers may have NaN bit patterns: browser decoding
+reads a u32 alias, never float numbers, and writes reconstructed u32 bits. Existing
+unchanged zero-payload groups still retain their original word/view identities.
+
+Public cold delivery is strictly smaller and matches its complete logical oracle.
+Special float proofs include subnormals, infinities, signed zero and distinct NaN
+payloads; a NaN baseline is used to recover a finite residual value. Malformed
+forms, tags, varints, truncation, source alignment/bounds, ranges and padding leave
+all cursors available for a corrected generation. Epoch/side/resync and retained
+views keep their existing contract. Paired native/Wasm emission and real worker
+copy/transfer proofs pin the raw carrier seam. Canonical fixture values, digests
+and fog identities remain unchanged; transport identities and its layout change.
+
+These frozen-stream maxima justify this representation arm, **not city-scale
+closure**. Early headroom is only 28 B. Root still owns matched live early/late
+whole-record admission, packing/step cost, full snapshots, peak overlap and browser
+throughput. No quantization, information masking or allowance increase occurs.
+
+### Integration with current main
+
+The newer combat stream joins the paired transport gate. Compact serialization
+changes 78 of its 80 wire hashes; every battle digest, fog hash and input is
+identical. Native and Wasm replay the same firing/impact stream. The authority's
+external module fixture now implements the required public-world handoff, returning
+no world for its raw-carrier test. Combined authority, observation, delivery and
+preparation checks pass; the optimized native/Wasm engine identity also matches.

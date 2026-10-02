@@ -27,7 +27,7 @@ use contract::scenario::ForestRule;
 /// Sight lines are sampled this often through foliage.
 const SAMPLE_M: f64 = 1.0;
 /// Forest ground is looked up in buckets this wide.
-const GROUND_BUCKET_M: f64 = 64.0;
+pub(super) const GROUND_BUCKET_M: f64 = 64.0;
 
 /// What a point's foliage does to sight: open ground is the default.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -54,7 +54,7 @@ impl Foliage {
 #[derive(Clone)]
 pub(super) struct ForestState {
     /// The foliage grid's cell: the fog's (`map.fog_cell_m`, Q21).
-    foliage_m: f64,
+    pub(super) foliage_m: f64,
     /// The cleared mask's cell: the ground layer's (`ground.cell_m`).
     cleared_m: f64,
     /// Each forest's conservative reach, grown by its crowns, for clipping rays.
@@ -432,6 +432,8 @@ impl WorldGeometry {
 
     /// The foliage over (x, y): its fog cell's, or open ground where the
     /// ground is cleared.
+    // Fog asks per ray step; expose the sparse lookup to its caller.
+    #[inline(always)]
     pub fn foliage_at(&self, x: f64, y: f64) -> Foliage {
         let foliage = self
             .forest
@@ -682,30 +684,8 @@ impl WorldGeometry {
     pub fn export_foliage_cleared(&self, cleared: impl Fn(f64, f64) -> bool) -> Vec<f32> {
         let f = &self.forest;
         let c = f.foliage_m;
-        let fallen: std::collections::BTreeSet<super::PropId> = self
-            .props()
-            .filter(|p| p.forest_tree && cleared(p.center.x, p.center.y))
-            .map(|p| p.id)
-            .collect();
-        // Only the cells a fallen crown reached change.
-        let reach = f.rule.canopy_radius_m + c;
-        let mut touched = BTreeSet::new();
-        for id in &fallen {
-            let p = self
-                .prop(*id)
-                .expect("a fallen tree stands in the static world");
-            let i0 = ((p.center.x - reach) / c).floor().max(0.0) as usize;
-            let j0 = ((p.center.y - reach) / c).floor().max(0.0) as usize;
-            let i1 = (((p.center.x + reach) / c).floor().max(0.0) as usize).min(f.nx - 1);
-            let j1 = (((p.center.y + reach) / c).floor().max(0.0) as usize).min(f.ny - 1);
-            for j in j0..=j1 {
-                for i in i0..=i1 {
-                    touched.insert(j * f.nx + i);
-                }
-            }
-        }
-        let mut out = vec![f.nx as f32, f.ny as f32, c as f32];
-        for (k, original) in f
+        let mut original = vec![f.nx as f32, f.ny as f32, c as f32];
+        for (k, original_cell) in f
             .cells
             .iter()
             .enumerate()
@@ -713,24 +693,84 @@ impl WorldGeometry {
             .flat_map(|(id, page)| (0..256).map(move |cell| (id * 256 + cell, page.get(cell))))
             .filter(|(_, cell)| !cell.is_open())
         {
-            let mid = v2((k % f.nx) as f64 + 0.5, (k / f.nx) as f64 + 0.5) * c;
-            let cell = if cleared(mid.x, mid.y) {
-                Foliage::open()
-            } else if touched.contains(&k) {
-                self.foliage_cell(mid, |p| fallen.contains(&p.id))
-            } else {
-                original
-            };
-            if !cell.is_open() {
-                // Axis coordinates stay exact in f32 even when global indices exceed 2^24.
-                out.extend([
-                    (k % f.nx) as f32,
-                    (k / f.nx) as f32,
-                    cell.canopy_m as f32,
-                    cell.depth_per_m as f32,
-                ]);
+            original.extend([
+                (k % f.nx) as f32,
+                (k / f.nx) as f32,
+                original_cell.canopy_m as f32,
+                original_cell.depth_per_m as f32,
+            ]);
+        }
+        static_foliage_cleared(
+            &original,
+            c,
+            f.rule,
+            self.props(),
+            |mid, radius| self.props_near(mid, radius),
+            cleared,
+        )
+    }
+}
+
+/// Public static crown filtering shared by the authoritative and compact query views.
+/// Reads sparse exported cells and immutable crown positions; never allocates a foliage grid.
+pub(super) fn static_foliage_cleared<'a>(
+    original: &[f32],
+    c: f64,
+    rule: ForestRule,
+    props: impl Iterator<Item = &'a super::Prop>,
+    near: impl Fn(V2, f64) -> Vec<&'a super::Prop>,
+    cleared: impl Fn(f64, f64) -> bool,
+) -> Vec<f32> {
+    let (nx, ny) = (original[0] as usize, original[1] as usize);
+    let fallen: std::collections::BTreeMap<_, _> = props
+        .filter(|p| p.forest_tree && cleared(p.center.x, p.center.y))
+        .map(|p| (p.id, p.center))
+        .collect();
+    let reach = rule.canopy_radius_m + c;
+    let mut touched = BTreeSet::new();
+    for center in fallen.values() {
+        let i0 = ((center.x - reach) / c).floor().max(0.0) as usize;
+        let j0 = ((center.y - reach) / c).floor().max(0.0) as usize;
+        let i1 = (((center.x + reach) / c).floor().max(0.0) as usize).min(nx - 1);
+        let j1 = (((center.y + reach) / c).floor().max(0.0) as usize).min(ny - 1);
+        for j in j0..=j1 {
+            for i in i0..=i1 {
+                touched.insert(j * nx + i);
             }
         }
-        out
     }
+    let mut out = original[..3].to_vec();
+    for row in original[3..].chunks_exact(4) {
+        let (i, j) = (row[0] as usize, row[1] as usize);
+        let mid = v2(i as f64 + 0.5, j as f64 + 0.5) * c;
+        if cleared(mid.x, mid.y) {
+            continue;
+        }
+        if !touched.contains(&(j * nx + i)) {
+            out.extend_from_slice(row);
+            continue;
+        }
+        let mut transmit = 1.0;
+        let mut crowned = false;
+        for prop in near(mid, rule.canopy_radius_m) {
+            if !prop.forest_tree
+                || prop.body.conceals <= 0.0
+                || (prop.center - mid).length() > rule.canopy_radius_m
+                || fallen.contains_key(&prop.id)
+            {
+                continue;
+            }
+            transmit *= 1.0 - prop.body.conceals;
+            crowned = true;
+        }
+        if crowned {
+            out.extend([
+                row[0],
+                row[1],
+                rule.canopy_height_m as f32,
+                (rule.attenuation_per_m * (1.0 - transmit)) as f32,
+            ]);
+        }
+    }
+    out
 }

@@ -158,10 +158,8 @@ export default function Fog() {
 }
 
 function FogLab({ scenario }: { scenario: string }) {
-  const map = useMemo(() => (JSON.parse(scenario) as { map: unknown }).map, [scenario]);
   const [side, setSide] = useState<SideName>("blue");
   const session = useBattleSession({
-    map,
     scenario,
     seed: STREET_SEED,
     destroyable: "apart",
@@ -218,7 +216,7 @@ function FogLab({ scenario }: { scenario: string }) {
         world={worldFeed}
         structures={session.structures}
         obstacles={session.cameraObstaclesFeed}
-        massing={session.massingFeed}
+        buildings={session.buildingsFeed}
         fog={fogFeed}
         frame={session.frame}
         appearances={session.appearances}
