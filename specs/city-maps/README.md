@@ -65,7 +65,7 @@ A slice marked "physical" has its systems half done; its look is in the visual p
 - [ ] Town look, second pass: cities that are not a disc round one crossroads, large towns on more than one road, main settlements off the middle, fields on open ground
 - [ ] Scale at full extent with buildings: S1 on generated towns (tens of thousands of buildings), browser startup and memory, rendered surroundings, C06 scale passes* · C07 publication* · C20 fog at scale · C22 placement chunks → C23 far tier
 - [ ] C46 street placement in generated towns
-- [ ] Whole-battle cost on a full generated map against the 30 Hz budget (the sim lane's stress checks ran under it)
+- [ ] **[Scale lane](scale-lane.md)** (a second session, in parallel): whole-battle cost on a full generated map against the 33 ms tick and 30 Hz budget · C05 measuring · C06 sim scale passes · C07 publication. Its status lives in that file.
 - [ ] Existing maps: [C56 reservations](slices/C56-fixture-surroundings.md) → C34 village · C35 labs · C36 benchmarks → [C54 integrated seed gate](slices/C54-generation-gate.md)
 - [ ] C05 measuring tools (`city_report` is its first piece) · C10 third-party sources · C13/C32 template source and library schema · C21 material transport
 - [ ] Completion: C50 durability balance → C51 playable generated encounter (requires C54 and C87)
