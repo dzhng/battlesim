@@ -33,3 +33,22 @@ One simulation geometry construction, public picking/clearance, route outcomes a
 
 ## Feedback that would change this slice
 A missing public query or transfer peak reopens G0's export representation.
+
+## Outcome — startup implementation checkpoint
+
+Preparation retains its worker and consumes one `PreparedMap` for live, scripted
+or replay startup. Public typed exports transfer to the page; its `PublicWorld`
+imports a lossless query payload and builds only the static picking/surface index.
+Surface, terrain/water ray and learned crown arithmetic have shared Rust owners.
+Production battle hooks build no WorldView. Standalone camera geometry is prepared
+off the page thread; geometry/flight probes retain their explicit developer view.
+
+Narrow proofs pass: reused native preparation matches direct construction through
+180 combat ticks and replay; public grid/ray/PropId/foliage queries match exactly;
+26 focused web contracts pass. A browser test with GPU disabled exercises actual
+preparation-worker adoption, three ticks, transferred geometry and replay. Against
+the frozen original Wasm (`4efec25b`), 1,323 point queries and 5,292 rays over the
+geometry, village and camera maps match exactly, including learned foliage.
+
+Startup/time/memory admission remains pending the shared GPU queue. Its final
+numbers and cold/warm cache conditions belong to [the lane](../startup-lane.md).

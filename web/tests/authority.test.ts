@@ -44,11 +44,7 @@ function harness(load: () => Promise<SimModule> = async () => sim) {
   let closed = false;
   const host: AuthorityHost = {
     post(reply, transfer) {
-      // Detach what was transferred, as a worker would; keep the moved copy.
-      const moved = (transfer ?? []).map((t) =>
-        structuredClone(t as ArrayBuffer, { transfer: [t as ArrayBuffer] }),
-      );
-      replies.push(reply.type === "publication" ? { ...reply, buffer: moved[0] } : reply);
+      replies.push(transfer?.length ? structuredClone(reply, { transfer }) : reply);
     },
     now: () => clock,
     schedule: () => {},

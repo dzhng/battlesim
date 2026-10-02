@@ -72,6 +72,8 @@ function assetWatch(): Plugin {
 }
 
 export default defineConfig({
+  // Worktrees share installed dependencies, but source-dependent output stays local.
+  cacheDir: fileURLToPath(new URL("../throwaway/vite-cache/", import.meta.url)),
   plugins: [react(), typegpu(), assetWatch()],
   // Appearance bundles and their runtime catalog, served same-origin at the
   // site root and copied into production builds (packages/scene-assets).

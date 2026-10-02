@@ -23,9 +23,7 @@ export default function Projectiles() {
 }
 
 function Review({ scenario }: { scenario: string }) {
-  const map = useMemo(() => JSON.parse(scenario).map as unknown, [scenario]);
   const session = useBattleSession({
-    map,
     scenario,
     seed: STREET_SEED,
     destroyable: "apart",

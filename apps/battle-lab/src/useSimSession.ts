@@ -1,3 +1,4 @@
+import type { PreparedSession } from "@web/battle/prepare/client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createSimClient, type Publication, type SimClient } from "@web/battle/sim/client";
 import type { GroundView } from "@web/battle/sim/ground";
@@ -8,6 +9,7 @@ import { TickInterpolator } from "@web/battle/present/interpolate";
 export interface SimSessionOptions {
   scenario: string;
   seed: number;
+  prepared?: PreparedSession;
   /** Called for every decoded frame, before its credit returns. */
   onDecoded?: (o: ObservationView, digest: string) => void;
   /** Replay these accepted commands instead of taking input. */
@@ -32,7 +34,14 @@ export interface ScriptedSim {
  *  credit returned) as soon as they are decoded, unless the lab holds credit
  *  to stall the producer; drawing interpolates between the last two frames.
  *  Reset disposes the client and starts again from the seed. */
-export function useSimSession({ scenario, seed, onDecoded, replay, scripted }: SimSessionOptions) {
+export function useSimSession({
+  scenario,
+  seed,
+  onDecoded,
+  replay,
+  scripted,
+  prepared,
+}: SimSessionOptions) {
   const [generation, setGeneration] = useState(0);
   const [client, setClient] = useState<SimClient | null>(null);
   /** Why the authority failed to start (for example a mismatched replay). */
@@ -60,6 +69,7 @@ export function useSimSession({ scenario, seed, onDecoded, replay, scripted }: S
 
   useEffect(() => {
     const plan = scriptedRef.current;
+    // Restart is a new battle: its fresh worker prepares the same scenario once.
     const next = createSimClient({
       scenario,
       seed,
@@ -67,6 +77,8 @@ export function useSimSession({ scenario, seed, onDecoded, replay, scripted }: S
       transport: "worker",
       replay,
       script: plan?.script,
+      connect: generation === 0 ? prepared?.connect : undefined,
+      publicWorld: generation === 0 ? prepared?.publicWorld : undefined,
     });
     let warm = !plan;
     if (plan) {
@@ -111,7 +123,7 @@ export function useSimSession({ scenario, seed, onDecoded, replay, scripted }: S
       () => {}, // reported through `error`
     );
     return () => next.dispose();
-  }, [scenario, seed, generation, replay]);
+  }, [scenario, seed, generation, replay, prepared]);
 
   const onViewportReady = useCallback(() => {
     viewportReady.current = true;
@@ -134,6 +146,7 @@ export function useSimSession({ scenario, seed, onDecoded, replay, scripted }: S
   return {
     client,
     error,
+    fail: setError,
     observation,
     status,
     interpolator,

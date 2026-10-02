@@ -1,0 +1,18 @@
+{
+  "category": "lab",
+  "status": "released",
+  "label": "Camera clearance lab",
+  "character": "arena",
+  "biome": "summer",
+  "size_m": [
+    640,
+    480
+  ],
+  "tags": [
+    "building"
+  ],
+  "source": "authored",
+  "seed": null,
+  "encounters": [],
+  "benchmarks": []
+}

@@ -129,3 +129,27 @@ test("an authority failure returns held records once and rejects requests after 
     vi.unstubAllGlobals();
   }
 });
+
+test("the direct authority transfers usable public geometry before play", async () => {
+  const map = loadMap("geometry");
+  const client = createSimClient({
+    scenario: labScenario(map.definition, []),
+    seed: 1,
+    side: "blue",
+    transport: "direct",
+  });
+  try {
+    const data = await client.world;
+    await client.ready;
+    expect(data.exports.positions.byteLength).toBeGreaterThan(0);
+    const { PublicWorld } = await import("@wasm/game_wasm.js");
+    const queries = new PublicWorld(data.queries);
+    try {
+      expect(queries.height_at(100, 210)).toBeGreaterThan(0);
+    } finally {
+      queries.free();
+    }
+  } finally {
+    client.dispose();
+  }
+});

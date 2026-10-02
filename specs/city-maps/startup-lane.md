@@ -40,4 +40,41 @@ Read [`AGENTS.md`](../../AGENTS.md): narrow checks only, no full gate. Battle di
 
 ## Status
 
-Not started. Update this section, not the README, at the end of each pass: what landed, the numbers against the contract, what is next, and anything the other lanes need to know.
+In progress on `codex/city-maps-startup`, from main `4efec25b`.
+
+- C33: the preparation worker will become the battle authority. Reusing the
+  prepared world matches direct initialization through 180 combat ticks and
+  replay in the native regression. The page receives lossless public query data
+  and typed exports; only the geometry/flight probes retain main-thread WorldView.
+- C20: the per-eye occluder index and local invalidation are committed; CPU
+  contracts pass. Hardware oracle, paired build cost and visual proof are queued.
+- Camera catalogue: the saved map resolves exactly to its prior compiled geometry;
+  nine catalogue/camera tests and web typecheck pass. Trajectories keep their original
+  framing. The offline plan lives with the map instead of the runtime script.
+- Combat pair: a separate 80-tick stationary fight observes real firing and impacts,
+  matching native/Wasm digests, packed publications and decoded fog every tick. The
+  original movement pair is unchanged. The user authorized a named native math
+  exception: pinned combat angle/spread functions remove system-libm rounding drift.
+  Corrected native output matches both original and rebuilt Wasm for this sample.
+- Next: integrate latest main, complete startup and fog hardware measurements,
+  review the lane's final diff and push green checkpoints. No full `check`/`verify`
+  at lane closeout.
+
+### Startup measurement
+
+Baseline inputs are frozen in a detached checkout at `4efec25b`, before C33.
+The generated scene measures the menu's Deploy-to-playable interval, including
+renderer resources. Both arms use a fresh Chromium instance/context, local Vite
+and the same seed and assets. Disk caches are uncontrolled; browser HTTP cache is
+cold. Wall time is on a loaded machine. Chromium's own process IDs are sampled
+at 500 ms: summed RSS can count shared pages twice, physical footprint is the
+kernel's charged memory, and sampled retired instructions are a lower bound
+because a process can exit between samples. These include browser and GPU process
+cost; they do not isolate just the page's JS heap.
+
+| Map (seed 1) | Arm | Map ms | Encounter ms | World ready ms | Renderer ms | Playable ms | Instructions G | Peak RSS MiB | Peak footprint MiB |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Mixed Small | before | queued | | | | | | | |
+| Metro Large | before | queued | | | | | | | |
+| Mixed Small | after | pending | | | | | | | |
+| Metro Large | after | pending | | | | | | | |

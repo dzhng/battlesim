@@ -68,7 +68,6 @@ function LabField({ battle }: { battle: SavedBattle }) {
   const raceGoalX = racer.kind === "move" ? racer.goal[0] : NaN;
   return (
     <GroundInspector
-      map={battle.map}
       scenario={battle.scenario}
       seed={SEED}
       camera={GROUND_CAMERA}
@@ -98,10 +97,7 @@ function LabField({ battle }: { battle: SavedBattle }) {
 
 function VillageGround() {
   const built = useBuiltScenario("ordinary", villageScenario);
-  const map = useMemo(
-    () => (typeof built === "string" ? (JSON.parse(built) as { map: unknown }).map : null),
-    [built],
-  );
+
   if (!built) return null;
   if (typeof built !== "string")
     return (
@@ -111,7 +107,6 @@ function VillageGround() {
     );
   return (
     <GroundInspector
-      map={map}
       scenario={built}
       seed={game.seed}
       camera={VILLAGE_INSPECT_CAMERA}
@@ -122,7 +117,6 @@ function VillageGround() {
 }
 
 interface InspectorProps {
-  map: unknown;
   scenario: string;
   seed: number;
   camera: Camera3DParams;
@@ -132,7 +126,7 @@ interface InspectorProps {
   extra?: (observation: ObservationView | null) => ReactNode;
 }
 
-function GroundInspector({ map, scenario, seed, camera, legend, script, extra }: InspectorProps) {
+function GroundInspector({ scenario, seed, camera, legend, script, extra }: InspectorProps) {
   const memory = useRef(new BattleMemory());
   const [side, setSide] = useState<SideName>("blue");
   const [warm, setWarm] = useState(!script);
@@ -194,7 +188,7 @@ function GroundInspector({ map, scenario, seed, camera, legend, script, extra }:
         : undefined,
     [script, refreshGround],
   );
-  const session = useBattleSession({ map, scenario, seed, onDecoded, scripted, side });
+  const session = useBattleSession({ scenario, seed, onDecoded, scripted, side });
   const { world, meshes, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation, client } = sim;

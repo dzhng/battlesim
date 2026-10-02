@@ -1,3 +1,4 @@
+import type { PreparedSession } from "@web/battle/prepare/client";
 // A played (or replayed) battle for blue: the world, the side's units and
 // every overlay, and the HUD: the top bar's readout, the unit card and
 // command bar, subtitles, and the pause menu. Routes compose it with their
@@ -40,6 +41,7 @@ export function BattleView({
   fixture,
   scenario,
   seed,
+  prepared,
   replay,
   scripted,
   camera,
@@ -54,6 +56,7 @@ export function BattleView({
   /** The scenario JSON the authority runs; the view draws its map. */
   scenario: string;
   seed: number;
+  prepared?: PreparedSession;
   /** A recorded battle to replay: input is off. */
   replay?: string;
   /** A scripted run: a script plays blue and input is off. The benchmark's
@@ -97,9 +100,9 @@ export function BattleView({
   const cues = useCaptions();
   const { note: noteCues } = cues;
   const session = useBattleSession({
-    map: parsed.map,
     scenario,
     seed,
+    prepared,
     onDecoded: noteCues,
     replay,
     scripted,

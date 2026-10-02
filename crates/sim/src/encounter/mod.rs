@@ -66,15 +66,21 @@ pub struct PreparedMap {
     pub world: WorldGeometry,
     pub grid: NavGrid,
     pub roads: RoadNet,
+    pub(crate) base: Arc<NavBase>,
 }
 
 impl PreparedMap {
     pub fn new(map: &MapDefinition, rules: &Rules) -> Self {
         let world = WorldGeometry::new(map, rules);
         let roads = RoadNet::build(&world);
-        let base = NavBase::build(&world, world.props(), rules.physics.soldier_radius_m);
+        let base = Arc::new(NavBase::build(
+            &world,
+            world.props(),
+            rules.physics.soldier_radius_m,
+        ));
         PreparedMap {
-            grid: NavGrid::new(Arc::new(base)),
+            grid: NavGrid::new(Arc::clone(&base)),
+            base,
             roads,
             world,
         }

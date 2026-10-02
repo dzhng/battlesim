@@ -3521,3 +3521,57 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 - **The reach:** The whole pass has one additional storage binding for structure/eye pairs, seven total across its two groups. Moving away from a previously visible building clears that building's whole-fog flag, and inward-looking roofs keep their earlier visibility rule.
 - **Verdict:** Sound. The existing whole-fog semantics are retained while both dimensions of its sampled work follow nearby structure/eye pairs. The focused roof-boundary and packed-pair tests pass; real GPU flags and timings remain pending.
 - **Confidence:** High.
+
+## C33 preparation and public queries — startup lane
+
+### Sound — medium confidence: keep public query arithmetic in Rust
+
+**Choice:** After Deploy, the page imports a read-only Rust query index containing the already sampled ground, static surfaces and picking boxes. It also holds sparse static foliage needed to apply only the clearing this side learned. The battle's navigation and mutable world remain in its worker. A TypeScript query implementation would save a second Wasm instance but would also duplicate the simulation's interpolation, bridge, river and ray rules.
+
+**Gap:** C33 delegates query-index internals but does not choose the language or transport precision.
+
+**Reach:** The page still loads Wasm for public queries. The query payload preserves floating-point bits explicitly: decimal JSON parsing moved a terrain normal by one bit in the regression. Its temporary payload and resident index must be included in startup memory accounting; rendering's Float32 arrays cannot substitute for exact picking inputs.
+
+**Verdict:** sound. Shared query rules and exact original-Wasm comparisons support it; the startup measurements remain the resource admission gate. **Confidence:** medium.
+
+### Sound — high confidence: preparation's worker becomes the battle authority
+
+**Choice:** The worker that lays the encounter keeps its world and becomes the worker that plays the battle. The page adopts its channel using the existing simulation client. Cancelling closes that worker, so an abandoned planner cannot publish a stale battle. Restart is a new battle: a fresh worker builds the same scenario once.
+
+**Gap:** The lane requires world reuse but does not specify the worker handoff or restart ownership.
+
+**Reach:** Both generated and saved battles use this handoff. Other scenario routes export public geometry from their one worker-owned preparation too. Geometry and flight probes keep their explicit developer WorldView; production battle hooks do not construct one.
+
+**Verdict:** sound. It retains the existing command/publication authority and lets worker termination release all abandoned preparation allocations. **Confidence:** high.
+
+### Sound — high confidence: measure browser memory with explicit bounds
+
+**Choice:** Startup samples this Chromium instance's own process counters from Deploy, through the first playable view. It records cold and warm navigation separately, stage peaks, charged memory and retired instructions. Summed RSS can double-count shared pages; sampled instruction deltas can miss a process's final work. The sum of process lifetime memory high-water marks provides a conservative bound, not a simultaneous tab peak.
+
+**Gap:** The lane asks for tab memory and retired instructions without prescribing a browser measurement API.
+
+**Reach:** These measurements include the browser and GPU processes, not merely the JS heap. The harness cannot label a sampled maximum as an exact simultaneous high-water mark or a development-server start as a production download proof.
+
+**Verdict:** sound. It uses kernel counters and states their limits. **Confidence:** high.
+
+### Sound — high confidence: keep source-dependent Vite caches local to each checkout
+
+**Choice:** Checkouts share installed dependencies while their Vite caches live under their own ignored scratch directory. Two simultaneous startup checks therefore cannot overwrite each other's compiled dependency metadata.
+
+**Gap:** The shared-dependencies rule did not prescribe a Vite cache location; a worker integration run exposed repeated cache invalidation across checkouts.
+
+**Reach:** Every local dev/verification server uses its checkout's cache. No new dependency or user-facing setting is added.
+
+**Verdict:** sound. It applies the existing prohibition on sharing build output between different sources. **Confidence:** high.
+
+## Camera catalogue — startup lane
+
+### Sound — high confidence: separate authored geometry from camera trajectories
+
+**Choice:** The camera lab's physical plan is an offline source beside its saved catalogue map. The route loads that map by id; its trajectory fixture keeps only camera paths, framing and the public owner id of the building whose fall it demonstrates. An authored identity describes the hand-placed arena even though the compiler produces its saved physical document.
+
+**Gap:** The lane requests catalogue resolution but does not specify where the lab's source plan or fall reference should live.
+
+**Reach:** Changing a camera path does not rebuild geography. Changing the arena goes through the compiler and saved-map provenance, as other catalogue maps do. Existing framing and physical map hashes are preserved.
+
+**Verdict:** sound. The resolver result exactly matches the former compiler output and the catalogue validation covers the new folder. **Confidence:** high.

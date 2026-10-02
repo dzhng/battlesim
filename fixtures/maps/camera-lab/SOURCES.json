@@ -1,0 +1,23 @@
+{
+  "identity": {
+    "kind": "authored",
+    "map_hash": "374b6f5e775e3b3c5081c06ef41c5ecd99acd385070319b41637edb7f50fc496",
+    "template_catalog_hash": "ed9981b358116490fd50585874a615ac427af819628e097cc2bf4216cda4f2cb"
+  },
+  "catalogue": {
+    "library": "prototype-building-templates.json",
+    "template_ids": null
+  },
+  "inputs": [
+    {
+      "kind": "supplied",
+      "label": "request",
+      "sha256": "605637b34b98d5aa5c9b9e5806beeda78a3c84086c28de6840964c2f3a4674eb"
+    },
+    {
+      "kind": "supplied",
+      "label": "catalogue",
+      "sha256": "33183a5c5a4fcf2e47ecfd43413220139a366c08a08b164ff0ca8f0ccf48e548"
+    }
+  ]
+}
