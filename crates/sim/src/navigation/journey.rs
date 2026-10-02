@@ -22,6 +22,8 @@ use crate::math::{Obb2, V2};
 /// The room a mover on a road leaves between itself and the road's middle,
 /// and between its own middle and the road's edge.
 const KEEP_RIGHT_M: f64 = 0.5;
+/// Points this close are coalesced when constructing a road run.
+const JOIN_EPSILON_M: f64 = 1e-6;
 /// How far along a road a mover takes to get over to its side of it, or
 /// back to the middle to leave it.
 const MERGE_M: f64 = 32.0;
@@ -30,6 +32,22 @@ const CHECK_M: f64 = 64.0;
 /// A way round a body on the road is looked for from where the run was last
 /// clear to this far along it.
 const ROUND_M: f64 = 2.0 * CHECK_M;
+
+/// The final centre slides along its goal arc, then shifts by one lane
+/// width. Source snapping and point coalescing cover every admitted cell.
+fn goal_access_outside(
+    roads: &RoadNet,
+    leg: Leg,
+    component: Option<&RouteSearch>,
+    arc: u32,
+) -> bool {
+    let Some(component) = component else {
+        return false;
+    };
+    let arc = roads.arc(arc);
+    let padding = super::START_REACH_M + (leg.m.half_width_m + KEEP_RIGHT_M).abs() + JOIN_EPSILON_M;
+    component.excludes_segment(roads.node(arc.ends[0]), roads.node(arc.ends[1]), padding)
+}
 
 /// How a node of the road graph was reached: from one of the leg's ways
 /// onto the road, or along an arc.
@@ -119,6 +137,7 @@ impl AccessSearch {
         leg: Leg,
         closed: &BTreeSet<u32>,
         rejected: &[BTreeSet<u32>; 2],
+        component: Option<&RouteSearch>,
     ) -> bool {
         if let Some((access, mut probe)) = self.probe.take() {
             match grid.terrain_step(&mut probe) {
@@ -155,7 +174,11 @@ impl AccessSearch {
             return false;
         }
         let arc = self.arc as u32;
-        if !self.needed[self.side] || closed.contains(&arc) || rejected[self.side].contains(&arc) {
+        if !self.needed[self.side]
+            || closed.contains(&arc)
+            || rejected[self.side].contains(&arc)
+            || (self.side == 1 && goal_access_outside(roads, leg, component, arc))
+        {
             self.next();
             return false;
         }
@@ -261,8 +284,18 @@ impl RoadSearch {
 
     /// Admit one endpoint connector per step. An inaccessible nearby road
     /// cannot outrank a reachable bridge approach across the river.
-    fn initialize(&mut self, grid: &NavGrid, roads: &RoadNet, leg: Leg) {
+    fn initialize(
+        &mut self,
+        grid: &NavGrid,
+        roads: &RoadNet,
+        leg: Leg,
+        component: Option<&RouteSearch>,
+    ) {
         let k = self.initializing;
+        if k < self.goals.len() && goal_access_outside(roads, leg, component, self.goals[k].arc) {
+            self.initializing += 1;
+            return;
+        }
         let (a, b) = if k < self.goals.len() {
             (self.goals[k].at, leg.goal)
         } else {
@@ -354,10 +387,11 @@ impl RoadSearch {
         leg: Leg,
         closed: &BTreeSet<u32>,
         rejected: &[BTreeSet<u32>; 2],
+        component: Option<&RouteSearch>,
     ) -> Option<Option<Way>> {
         grid.spend(1);
         if let Some(mut finding) = self.finding.take() {
-            if !finding.step(grid, roads, leg, closed, rejected) {
+            if !finding.step(grid, roads, leg, closed, rejected, component) {
                 self.finding = Some(finding);
                 return None;
             }
@@ -371,7 +405,7 @@ impl RoadSearch {
             self.initializing = 0;
         }
         if self.initializing < self.starts.len() + self.goals.len() {
-            self.initialize(grid, roads, leg);
+            self.initialize(grid, roads, leg, component);
             return None;
         }
         if !self.across.is_finite() && self.best.is_none() {
@@ -493,7 +527,7 @@ impl RoadSearch {
         }
         let mut middle: Vec<(V2, u32)> = vec![line[0]];
         for &(point, arc) in &line[1..] {
-            if (point - middle[middle.len() - 1].0).length() > 1e-6 {
+            if (point - middle[middle.len() - 1].0).length() > JOIN_EPSILON_M {
                 middle.push((point, arc));
             }
         }
@@ -562,7 +596,7 @@ impl Driving {
             if self
                 .out
                 .last()
-                .is_none_or(|last| (*last - point).length() > 1e-6)
+                .is_none_or(|last| (*last - point).length() > JOIN_EPSILON_M)
             {
                 self.out.push(point);
             }
@@ -600,6 +634,8 @@ pub struct Journey {
     /// What its finished searches cost.
     work: SearchWork,
     goal_probed: bool,
+    /// An exhausted strict component for final off-road connectors.
+    goal_component: Option<RouteSearch>,
 }
 
 impl Journey {
@@ -625,6 +661,7 @@ impl Journey {
             rejected: Default::default(),
             work: SearchWork::default(),
             goal_probed: false,
+            goal_component: None,
         }
     }
 
@@ -666,6 +703,13 @@ impl Journey {
 
     /// One search across the grid for the whole leg.
     fn direct(&mut self, grid: &NavGrid) -> Stage {
+        if self
+            .goal_component
+            .as_ref()
+            .is_some_and(|component| component.exhausted_rejects(grid, self.from))
+        {
+            return Stage::Done(Plan::Blocked(super::BlockReason::NoRoute));
+        }
         Stage::Direct(self.search(grid, self.from, self.goal))
     }
 
@@ -681,14 +725,18 @@ impl Journey {
         RouteSearch::new(grid, scratch, leg, limit)
     }
 
-    /// Retain a completed or canceled search's bookkeeping and cost.
-    fn finish_search(&mut self, search: RouteSearch) -> Option<Plan> {
+    /// Add a completed or canceled search's counted cost.
+    fn record_search(&mut self, search: &RouteSearch) {
         let cost = search.work();
         self.work.cells += cost.cells;
         self.work.queued += cost.queued;
         self.work.expanded += cost.expanded;
         self.work.stale += cost.stale;
         self.work.heap_peak = self.work.heap_peak.max(cost.heap_peak);
+    }
+
+    fn finish_search(&mut self, search: RouteSearch) -> Option<Plan> {
+        self.record_search(&search);
         let (plan, scratch) = search.finish();
         self.scratch = Some(scratch);
         plan
@@ -727,14 +775,21 @@ impl Journey {
             Stage::Driving(driving) => (None, driving.search.map(|s| s.finish().1)),
             Stage::Roads(_) | Stage::Terrain(_) => (None, None),
         };
-        (plan, held.or(self.scratch))
+        (
+            plan,
+            held.or(self.scratch)
+                .or_else(|| self.goal_component.map(|search| search.finish().1)),
+        )
     }
 
     /// How far the journey has got. With what was asked, the grid and the
     /// road graph, that fixes everything it will do.
     pub fn digest(&self, d: &mut Digest) {
         if self.goal_probed {
-            d.u64(u64::MAX);
+            d.u64(u64::MAX).u64(self.goal_component.is_some() as u64);
+            if let Some(component) = &self.goal_component {
+                component.digest(d);
+            }
         }
         d.u64(self.closed.len() as u64);
         for arc in &self.closed {
@@ -815,7 +870,14 @@ impl Journey {
                 }
             }
             Stage::Roads(mut search) => {
-                match search.step(grid, roads, self.leg(), &self.closed, &self.rejected) {
+                match search.step(
+                    grid,
+                    roads,
+                    self.leg(),
+                    &self.closed,
+                    &self.rejected,
+                    self.goal_component.as_ref(),
+                ) {
                     None => Stage::Roads(search),
                     Some(way) => {
                         // Compare both candidates under the same policy.
@@ -850,14 +912,14 @@ impl Journey {
             Stage::GoalProof(mut search, access) => {
                 search.advance(grid, 1);
                 if search.reached_target() || search.plan().is_some() {
-                    let blocked = search.exhausted_rejects(grid, self.from);
-                    self.finish_search(search);
-                    if blocked {
-                        Stage::Done(Plan::Blocked(super::BlockReason::NoRoute))
+                    if search.exhausted() {
+                        self.record_search(&search);
+                        self.goal_component = Some(search);
                     } else {
-                        self.rejected[1].insert(access);
-                        Stage::Terrain(super::terrain::Probe::new(self.from, self.goal))
+                        self.finish_search(search);
                     }
+                    self.rejected[1].insert(access);
+                    Stage::Terrain(super::terrain::Probe::new(self.from, self.goal))
                 } else {
                     Stage::GoalProof(search, access)
                 }
@@ -899,7 +961,7 @@ impl Journey {
                 driving.piece + 1 == pieces
                     || route
                         .last()
-                        .is_some_and(|end| (*end - sought).length() < 1e-6)
+                        .is_some_and(|end| (*end - sought).length() < JOIN_EPSILON_M)
             };
             return match self
                 .finish_search(search)
@@ -930,14 +992,13 @@ impl Journey {
                     let side = usize::from(driving.piece != 0);
                     if side == 1 && !self.goal_probed {
                         self.goal_probed = true;
-                        let scratch = self.scratch.take();
                         let leg = Leg {
                             from,
                             goal: self.goal,
                             ..self.leg()
                         };
                         let limit = self.rules.search_limit(length);
-                        return match RouteSearch::goal_probe(grid, scratch, leg, limit) {
+                        return match RouteSearch::goal_probe(grid, leg, limit) {
                             Some(search) => Stage::GoalProof(search, driving.accesses[side]),
                             None => Stage::Done(Plan::Blocked(super::BlockReason::NoRoute)),
                         };
@@ -948,6 +1009,15 @@ impl Journey {
             };
         }
         if !on_road {
+            if driving.piece + 1 == pieces
+                && self
+                    .goal_component
+                    .as_ref()
+                    .is_some_and(|component| component.exhausted_rejects(grid, from))
+            {
+                self.rejected[1].insert(driving.accesses[1]);
+                return Stage::Terrain(super::terrain::Probe::new(self.from, self.goal));
+            }
             driving.search = Some(self.search(grid, from, to));
             return Stage::Driving(driving);
         }

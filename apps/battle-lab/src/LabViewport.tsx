@@ -54,7 +54,10 @@ import type {
   WorldMeshes,
 } from "@packages/battle-renderer/src/scene";
 import type { GroundMarks } from "@packages/battle-renderer/src/frame/scarTexture";
-import type { SideBuildings } from "@packages/battle-renderer/src/models/buildingReferences";
+import type {
+  BuildingStyle,
+  SideBuildings,
+} from "@packages/battle-renderer/src/models/buildingReferences";
 import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
 import { PassInspector } from "./PassInspector";
 import type { FeedSource } from "./feed";
@@ -77,6 +80,10 @@ interface LabViewportProps {
   /** The buildings drawn from template art, and those the side has seen
    *  fall, fed like the overlay; omitted or null draws none. */
   buildings?: FeedSource<SideBuildings | null>;
+  /** How those buildings are tiered, chunked and pooled; the fixture's when
+   *  omitted. The frame takes it when it is built: a change draws at the next
+   *  `rebuild`. */
+  buildingStyle?: BuildingStyle;
   /** What the camera keeps clear of (the buildings the side knows stand, on
    *  the ground), fed like the overlay; the ground alone when omitted or null. */
   obstacles?: FeedSource<CameraObstacles | null>;
@@ -182,6 +189,7 @@ export interface ViewportPointer {
   position: { x: number; y: number } | null;
   ray: WorldRay | null;
   rightPress: WorldRay | null;
+  rightPressQueued: boolean;
   rightDragging: boolean;
 }
 
@@ -275,6 +283,9 @@ interface LabHandle {
   grass?: () => BattleFrame["grassProbes"];
   /** Draw without grass while on (a paired cost measure). */
   suppressGrass?: (on: boolean) => Promise<void>;
+  /** Draw the plots without their own texture while on: their plain rows
+   *  alone (paired frames, and a paired cost measure). */
+  suppressFieldTexture?: (on: boolean) => Promise<void>;
   /** Draw no models or corpses while on (a paired cost measure). */
   suppressModels?: (on: boolean) => Promise<void>;
   /** Draw no trees and none of their shadows while on (they are scenery, not
@@ -317,6 +328,7 @@ export function LabViewport({
   world,
   structures,
   buildings,
+  buildingStyle,
   obstacles,
   overlay,
   pointerMarks,
@@ -412,6 +424,8 @@ export function LabViewport({
   structuresRef.current = structures;
   const buildingsRef = useRef(buildings);
   buildingsRef.current = buildings;
+  const buildingStyleRef = useRef(buildingStyle);
+  buildingStyleRef.current = buildingStyle;
   useEffect(
     () =>
       buildings?.subscribe((next) => {
@@ -570,7 +584,7 @@ export function LabViewport({
             paint: gamePaint,
             xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
             models: gameModelDetail,
-            buildings: gameBuildingStyle,
+            buildings: buildingStyleRef.current ?? gameBuildingStyle,
             world: worldRef.current.current!,
             instances: instancesRef.current,
             width: canvas.width,
@@ -686,6 +700,7 @@ export function LabViewport({
             position: pointer,
             ray: pointerRay(),
             rightPress: rightPress?.ray ?? null,
+            rightPressQueued: rightPress?.event.shiftKey ?? false,
             rightDragging: !!(
               rightPress &&
               pointer &&
@@ -823,6 +838,10 @@ export function LabViewport({
           },
           async suppressScars(on: boolean) {
             scarsSuppressed.current = on;
+            await nextFrame();
+          },
+          async suppressFieldTexture(on: boolean) {
+            scene.setFieldTextureShown(!on);
             await nextFrame();
           },
           async suppressModels(on: boolean) {

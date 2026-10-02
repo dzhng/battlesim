@@ -41,6 +41,8 @@ const onPlot =
  *  the play camera and low, each crop low. */
 const WILD = ["meadow", "rough", "prairie"];
 const CROPS = ["pasture", "wheat", "barley", "rapeseed", "hay", "stubble", "ploughed"];
+/** The ground round the houses, a kind of its own. */
+const SETTLEMENT = "green";
 
 /** Each map's route (from the site root) and its named poses. A generated
  *  map's stations stand on what its preparation reports (the objective town,
@@ -55,7 +57,9 @@ export const STATION_MAPS = {
           [`${kind}-25`, onPlot(kind, 25, LOW)],
         ]),
       ),
-      ...Object.fromEntries(CROPS.map((kind) => [`${kind}-25`, onPlot(kind, 25, LOW)])),
+      ...Object.fromEntries(
+        [...CROPS, SETTLEMENT].map((kind) => [`${kind}-25`, onPlot(kind, 25, LOW)]),
+      ),
       // A drilled crop's rows, from the play camera.
       "wheat-65": onPlot("wheat", 65),
       // The (420, 420) corner of the north road.
@@ -66,6 +70,9 @@ export const STATION_MAPS = {
       // The west wood: its west edge against the fields, and inside it.
       "forest-edge-65": at([700, 960], 65),
       "forest-deep-25": at([790, 960], 25, 0.6),
+      // Over the wood's middle, from the play camera and from twice as high.
+      "forest-65": at([790, 960], 65),
+      "forest-120": at([790, 960], 120),
       // Open fields south-west of the village, and the whole patchwork.
       "field-65": at([420, 1120], 65),
       "field-250": at([420, 1120], 250),
@@ -97,12 +104,19 @@ export const STATION_MAPS = {
       "overview-2500": ({ size }) => at([size[0] / 2, size[1] / 2], 2500, 1.1),
       "town-250": ({ objective }) => at(objective.center, 250),
       "town-65": ({ objective }) => at(objective.center, 65),
+      // The town's streets nearest its centre (`townStreets`): where three
+      // ways or more meet, and low along the edge of a plain street.
+      "junction-65": ({ streets }) => at(streets.junction, 65),
+      "street-edge-25": ({ streets }) => at(streets.edge, 25, LOW, streets.yaw),
       "country-250": ({ start }) => at(start.at, 250),
       "country-65": ({ start }) => at(start.at, 65),
       "country-25": ({ start }) => at(start.at, 25, LOW),
       // The river's bank, on a map whose layout has a river (seed 2 has).
       "river-250": ({ river }) => at(river, 250),
       "river-65": ({ river }) => at(river, 65),
+      // The west edge of the wood nearest blue's start, against the open.
+      "forest-edge-250": ({ wood }) => at(wood, 250),
+      "forest-edge-65": ({ wood }) => at(wood, 65),
     },
   },
 };
@@ -134,6 +148,115 @@ const riverBank = (page, size) =>
     size,
   );
 
+/** The west edge of the wood nearest `near` on a generated map: the nearest
+ *  point with forest `DEEP_M` round it, walked west to where the forest ends;
+ *  undefined on a map with no wood that deep. */
+const DEEP_M = 24;
+const woodEdge = (page, size, near) =>
+  lab(
+    page,
+    ({ size: [width, height], near, deep }) => {
+      const wooded = (x, y) => window.__lab.route.surfaceAt(x, y)?.forest === true;
+      let best;
+      for (let y = deep; y < height - deep; y += 16)
+        for (let x = deep; x < width - deep; x += 16) {
+          const d = Math.hypot(x - near[0], y - near[1]);
+          if (best && d >= best.d) continue;
+          const inside = [
+            [0, 0],
+            [deep, 0],
+            [-deep, 0],
+            [0, deep],
+            [0, -deep],
+          ].every(([dx, dy]) => wooded(x + dx, y + dy));
+          if (inside) best = { d, x, y };
+        }
+      if (!best) return undefined;
+      let x = best.x;
+      while (wooded(x - 4, best.y)) x -= 4;
+      for (let step = 2; step > 0.1; step /= 2) if (wooded(x - step, best.y)) x -= step;
+      return [x, best.y];
+    },
+    { size, near, deep: DEEP_M },
+  );
+
+/** A generated town's streets near `centre`, by what a unit finds on the
+ *  ground: `junction`, the middle of the nearest meeting of three ways or
+ *  more; `edge`, a point on the edge of the nearest plain street (two ways,
+ *  no wider than a town street), and the `yaw` that looks along it. */
+const townStreets = (page, centre) =>
+  lab(
+    page,
+    ([cx, cy]) => {
+      const road = (x, y) => window.__lab.route.surfaceAt(x, y)?.kind === "road";
+      // The ways leaving (x, y): the middle angle of each run of road round
+      // a circle of radius r.
+      const ways = (x, y, r) => {
+        const n = 90;
+        const on = Array.from({ length: n }, (_, k) =>
+          road(x + r * Math.cos((k / n) * 2 * Math.PI), y + r * Math.sin((k / n) * 2 * Math.PI)),
+        );
+        const first = on.indexOf(false);
+        if (first < 0) return [];
+        const out = [];
+        for (let k = 1, from = -1; k <= n; k++) {
+          const here = on[(first + k) % n];
+          if (here && from < 0) from = k;
+          if (!here && from >= 0) {
+            out.push((((first + (from + k - 1) / 2) % n) / n) * 2 * Math.PI);
+            from = -1;
+          }
+        }
+        return out;
+      };
+      const meets = (x, y) =>
+        road(x, y) && ways(x, y, 14).length >= 3 && ways(x, y, 22).length >= 3;
+      // How far the road runs from (x, y) along (dx, dy).
+      const run = (x, y, dx, dy) => {
+        let m = 0;
+        while (m < 12 && road(x + dx * (m + 0.25), y + dy * (m + 0.25))) m += 0.25;
+        return m;
+      };
+      const plain = (x, y) => {
+        if (!road(x, y)) return null;
+        const [near, far] = [ways(x, y, 14), ways(x, y, 30)];
+        if (near.length !== 2 || far.length !== 2) return null;
+        const along = [Math.cos(far[0]), Math.sin(far[0])];
+        const back = [Math.cos(far[1]), Math.sin(far[1])];
+        if (along[0] * back[0] + along[1] * back[1] > -0.97) return null;
+        const [left, right] = [run(x, y, -along[1], along[0]), run(x, y, along[1], -along[0])];
+        if (left + right > 7.6) return null;
+        return { edge: [x - along[1] * left, y + along[0] * left], along };
+      };
+      const found = {};
+      for (let ring = 0; ring < 150 && !(found.junction && found.street); ring += 2)
+        for (let k = 0, n = Math.max(1, Math.ceil(Math.PI * ring)); k < n; k++) {
+          const a = (k / n) * 2 * Math.PI;
+          const [x, y] = [cx + ring * Math.cos(a), cy + ring * Math.sin(a)];
+          if (!found.junction && meets(x, y)) {
+            // Its middle: the mean of the points round it where ways meet.
+            let [sx, sy, count] = [0, 0, 0];
+            for (let dy = -12; dy <= 12; dy++)
+              for (let dx = -12; dx <= 12; dx++)
+                if (meets(x + dx, y + dy)) {
+                  sx += x + dx;
+                  sy += y + dy;
+                  count++;
+                }
+            found.junction = [sx / count, sy / count];
+          }
+          found.street ??= plain(x, y);
+        }
+      const { edge, along } = found.street ?? {};
+      return {
+        junction: found.junction,
+        edge,
+        yaw: along && Math.atan2(-along[1], -along[0]),
+      };
+    },
+    centre,
+  );
+
 /** A page on `map`'s route, paused at the stations' tick with the frozen set
  *  on. Shoot it with `shoot`. */
 export async function openStations(ctx, map) {
@@ -160,7 +283,12 @@ export async function openStations(ctx, map) {
     page,
     map === "village"
       ? { plots: await villagePlots(page) }
-      : report && { ...report, river: await riverBank(page, report.size) },
+      : report && {
+          ...report,
+          river: await riverBank(page, report.size),
+          wood: await woodEdge(page, report.size, report.start.at),
+          streets: await townStreets(page, report.objective.center),
+        },
   );
   await lab(page, () => window.__lab.route.pause());
   await advance(page, TICK - (await lab(page, () => window.__lab.route.tick())));

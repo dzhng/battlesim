@@ -213,8 +213,8 @@ export async function run(ctx) {
     JSON.stringify(drawn.map((d) => d.unit)),
   );
 
-  // A smaller viewport, then zoomed out: rings only for the selection, the
-  // panel keeps every detail.
+  // A smaller viewport, then zoomed out: floating panels remain visible,
+  // and the selection card keeps every detail.
   await page.setViewportSize({ width: 900, height: 600 });
   await shots(ctx, page, "engaged-900x600", [200, 220, 0]);
   // Preserve the last row's dark support and the line's light, with only a faint tail below.
@@ -330,13 +330,8 @@ export async function run(ctx) {
   const far = await rings(page);
   const panel = await page.getByTestId("selection-card").innerText();
   ctx.check(
-    "zoomed out, rings stay only for the selection and the panel keeps the details",
-    far
-      .filter((d) => d.shown)
-      .map((d) => d.unit)
-      .join() === "0" &&
-      /CANNON/.test(panel) &&
-      /HMG/.test(panel),
+    "zoomed out, compact panels remain visible and the selection card keeps the details",
+    far.every((d) => d.shown) && /CANNON/.test(panel) && /HMG/.test(panel),
     JSON.stringify({ shown: far.filter((d) => d.shown).map((d) => d.unit), panel }),
   );
   await shots(ctx, page, "far-1280x800");

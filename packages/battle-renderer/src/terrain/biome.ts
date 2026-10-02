@@ -20,8 +20,26 @@ export interface PlotKind {
   furrow_m: number;
   /** How far the rows darken the albedo, as a fraction. */
   furrow_contrast: number;
-  /** Strength of the painterly value noise over the plot. */
+  /** How far a row breaks along its length (0 ruled, 1 into dashes): clods
+   *  on a furrow, tufts of stubble, gaps in a drilled row. */
+  row_break: number;
+  /** The ground's grain: the size in metres of its finest lumps (a clod, a
+   *  tussock, a stubble tuft), how far they lighten and darken the albedo as
+   *  a fraction, and how many times longer than wide they lie along the
+   *  plot's rows. Coarser octaves ride on it, so a field keeps a grain as
+   *  the camera pulls out. It leaves the plot's mean colour alone. */
+  grain_m: number;
+  grain: number;
+  grain_stretch: number;
+  /** Strength of the dry patches' shift toward ochre, at the plot's own
+   *  luminance, and a patch's length along the plot's rows and width across
+   *  them in metres: long strips in a drilled crop, blotches in a meadow. */
   mottle: number;
+  patch_m: readonly [number, number];
+  /** Wheelings, the bare tracks a tractor leaves through a drilled crop: a
+   *  pair in every `rows` rows (0 for none), each `width_m` wide and darker
+   *  by `contrast`. Thin lines only: nothing broad is darker than its plot. */
+  tram: { rows: number; width_m: number; contrast: number };
   roughness: number;
 }
 
@@ -38,9 +56,11 @@ export interface FieldRules {
   strip_chance: number;
   /** The longest plot, as length over width. */
   max_aspect: number;
-  /** The patchwork's prevailing heading, degrees from world +X. */
+  /** The land's heading, degrees from world +X: it is cut on it down to
+   *  tracts no longer than `tract_m` either way. */
   orientation_deg: number;
-  /** How far a large tract (over `tract_m` a side) turns from its parent's heading. */
+  /** How far a tract's own grain turns from the land's heading, where no
+   *  road gives it one: its plots and their rows keep the tract's grain. */
   orientation_jitter_deg: number;
   tract_m: number;
   /** How far one cut leans off its tract's heading. */
@@ -52,8 +72,9 @@ export interface FieldRules {
   edge_warp_scale_m: number;
   /** Per-plot variation of the palette colour, as a fraction. */
   colour_jitter: number;
-  /** Length scales of the broad and fine value noise, in metres. */
-  mottle_scale_m: readonly [number, number];
+  /** Length scale of the fine value noise over verges, forest floor, shore
+   *  and road, in metres. */
+  mottle_m: number;
   /** Plots whose centre lies within this of a building are `settlement_kind`. */
   settlement_m: number;
   settlement_kind: string;
@@ -100,8 +121,9 @@ export interface Water {
   streak: number;
 }
 
-/** One kind of road's surface, drawn exactly where the simulation's road rule
- *  holds: a country road's gravel, a dirt track's packed earth. */
+/** One kind of paving's surface, drawn exactly where the simulation's rule
+ *  holds: a country road's gravel, a dirt track's packed earth, a town
+ *  street's asphalt, a sidewalk's slabs. */
 export interface Road {
   /** A palette of two colours: the surface, and what patches of it wear
    *  toward. A patch changes the surface's hue, never its brightness. */
@@ -116,13 +138,88 @@ export interface Road {
    *  surface's mean as it nears a pixel. */
   grain: number;
   grain_m: number;
-  /** Where a road of a later kind joins this one, how far that road's
-   *  surface is carried onto it, thinning out. */
+  /** Where this kind's road runs under a road drawn over it, how far its
+   *  surface is carried onto that road, thinning out; 0 ends it at that
+   *  road's edge. */
   join_m: number;
   roughness: number;
   shoulder: Shoulder;
   ruts: Ruts;
   centre_strip: CentreStrip;
+  /** Where two kinds' paving overlaps, the higher layer is drawn on top.
+   *  Left out, the simulation's own order: 4 for a road, 3 for a country
+   *  road, 2 for a dirt track, 1 for a sidewalk. */
+  layer?: number;
+  /** The paved kind whose row draws this kind where it is laid as an area (a
+   *  polygon: a yard, a square) and not along a stroke. Left out, its own. */
+  area?: string;
+  /** A town street's walk; left out, the road has none. */
+  walk?: Walk;
+  /** The curb along its strokes' edges; left out, the road has none. */
+  curb?: Curb;
+  /** The lines painted on its strokes; left out, the road has none. */
+  markings?: Markings;
+}
+
+/** A road's painted lines: a dashed line down the middle of each stroke,
+ *  and a crossing's bars on it wherever another road crosses it. They are
+ *  laid out by the strokes alone, the same on every machine, and fade out
+ *  as a line nears a pixel. */
+export interface Markings {
+  /** A palette of one colour: the paint. */
+  palette: string;
+  /** How much of the surface the paint hides where it is whole, and the
+   *  share of that it loses where it is worn. */
+  cover: number;
+  wear: number;
+  /** The centre line's width, a dash's length and the gap after it. */
+  line_m: number;
+  dash_m: readonly [number, number];
+  crossing: Crossing;
+}
+
+/** A crossing's bars, lying along the road they are painted on. */
+export interface Crossing {
+  /** A bar's width, which is also the gap between two. */
+  bar_m: number;
+  /** A bar's length along the road. */
+  length_m: number;
+  /** How far the bars start from the edge of the road that crosses. */
+  gap_m: number;
+  /** How far they keep from their own road's edge. */
+  inset_m: number;
+}
+
+/** A curb: a line of kerbstones along a road's edge, and the step up to
+ *  them from the roadbed. Shading only: the ground is never moved, so
+ *  nothing stands behind it and nothing climbs it. */
+export interface Curb {
+  /** A palette of one colour: the kerbstones. */
+  palette: string;
+  /** The stones' width, outward from the road's edge, a stone's length
+   *  along it, and how far the joint between two darkens them (0 for none). */
+  width_m: number;
+  stone_m: number;
+  joint: number;
+  /** The step's face: how far inside the road's edge it starts, and the
+   *  tilt it gives the shading normal there, in degrees: at most 40 (steeper
+   *  catches the sky and reads as a sheen). */
+  face_m: number;
+  tilt_deg: number;
+}
+
+/** The paved walk along both sides of a kind's strokes, where a country
+ *  road has its shoulder. It is a look, as the shoulder is: units find
+ *  ground there, as they do on a sidewalk the map names. */
+export interface Walk {
+  /** The paved kind whose row draws it. */
+  kind: string;
+  /** Its width, from the road's edge. */
+  width_m: number;
+  /** Its slabs' length along the road, and how far the joint between two
+   *  darkens the surface; 0 for none. A joint fades out as it nears a pixel. */
+  slab_m: number;
+  joint: number;
 }
 
 /** Wheel ruts along a road drawn as a stroke: shading only, the ground is
@@ -169,14 +266,18 @@ export interface Shoulder {
   grass: number;
 }
 
-/** The ground under the simulation's forests: leaf litter with patches of moss
- *  and dark humus, crossed by roots, meeting the field across a ragged verge,
+/** The ground under the simulation's forests: leaf litter drifting into moss
+ *  and darker humus, crossed by roots, meeting the field across a ragged verge,
  *  and lit through the canopy in sun flecks. Lengths in metres. */
 export interface ForestFloor {
   /** A palette of at least three colours: litter, moss, humus. */
   palette: string;
-  /** Size of the moss and humus patches. */
+  /** Size of the moss and humus drifts. */
   patch_m: number;
+  /** How far the moss, and the humus, takes the litter over where it lies
+   *  thickest. The humus is the darker: a strong one reads as shadow. */
+  moss: number;
+  humus: number;
   /** Strength of the ground's value noise over the floor. */
   mottle: number;
   /** How far a root darkens the floor, and the spacing of the roots. */
@@ -197,17 +298,36 @@ export interface ForestFloor {
 export interface TreeSpecies {
   /** A catalog appearance whose unit is `tree` (`assets/catalog.json`). */
   appearance: string;
+  /** Its share of all trees, against the other species' weights. */
   weight: number;
   /** Linear multiplier over the appearance's own albedo: the season's green. */
   tint: Rgb;
+  /** The family whose stands it grows in, with the family's other species
+   *  (`stands`). A species of no family is the odd tree among any stand's. */
+  family?: string;
+  /** It stands only this far inside its forest's edge, metres, and never in
+   *  a forest strip or past the map: a bare tree there would draw a gap in
+   *  foliage the simulation has. Only a species of no family may have one. */
+  interior_m?: number;
 }
 
-/** How the simulation's trunks are drawn as trees: each crown stays in its
- *  forest's rect and under its canopy height. */
+/** A wood is stands: patches about `size_m` across, each one family's.
+ *  `purity` of a stand's family trees are of its own family; the rest are of
+ *  any, by weight. */
+export interface StandRules {
+  size_m: number;
+  purity: number;
+}
+
+/** How the simulation's trunks are drawn as trees: each crown under its
+ *  forest's canopy height and within the canopy's radius of its trunk. */
 export interface ForestRules {
   /** Where a crown's top falls, as fractions of the forest's canopy height. */
   top: readonly [number, number];
-  /** Horizontal scale over vertical, per tree (a crown's girth varies more than its height). */
+  /** A tree's width, as a share of its appearance's own: how far the canopy
+   *  closes. At most 1: an appearance is built inside the simulation's canopy
+   *  radius (`fit.canopy`), and no drawn crown may pass it. Past the map,
+   *  where nothing is simulated, it is a tree's width over its height. */
   girth: readonly [number, number];
 }
 
@@ -241,6 +361,7 @@ export interface CopseRules {
 /** `biome.trees`: species and detail for forests and scenery. */
 export interface BiomeTrees {
   species: readonly TreeSpecies[];
+  stands: StandRules;
   /** Per-tree colour variation, as a fraction. */
   colour_jitter: number;
   forest: ForestRules;
@@ -435,6 +556,39 @@ export const VERGE_GROWTH = "verge";
 
 export const REQUIRED_PALETTES = ["water_bed", "water", "distant"] as const;
 
+/** A palette colour as the terrain packs it for the GPU: linear rgb. */
+export const linearRgb = (c: Rgb): [number, number, number] => [
+  c[0] ** 2.2,
+  c[1] ** 2.2,
+  c[2] ** 2.2,
+];
+
+/** A plot's colour channels vary by this share of `colour_jitter`, each on
+ *  its own, under the jitter of its value. */
+export const PLOT_HUE_JITTER = 0.4;
+
+/** No plot's ground is drawn darker than this, as CIELAB L* of its albedo:
+ *  its palette's darkest colour at the low end of the per-plot jitter, its
+ *  rows at their mean. It is how dark the ground the fog styles were tuned
+ *  on gets: a style dims unseen ground to about half, so a sunlit field
+ *  darker than this comes as dark as ordinary ground under fog and reads as
+ *  unseen. A palette answers to the floor, never `light.shadow_floor` to a
+ *  palette (SG4). */
+export const PLOT_MIN_LSTAR = 24;
+
+/** The CIELAB L* of the darkest ground a plot of `kind` is drawn with. */
+export function darkestPlot(biome: Biome, kind: PlotKind): number {
+  const jitter = biome.field_rules.colour_jitter;
+  const low = (1 - jitter) * (1 - PLOT_HUE_JITTER * jitter);
+  const rows = 1 - kind.furrow_contrast / 2;
+  return Math.min(
+    ...biome.palettes[kind.palette].map((colour) => {
+      const [r, g, b] = linearRgb(colour.map((ch) => ch * low) as unknown as Rgb);
+      return 116 * Math.cbrt((0.2126 * r + 0.7152 * g + 0.0722 * b) * rows) - 16;
+    }),
+  );
+}
+
 /** Checks every field the terrain reads; throws naming the first bad one. */
 export function validateBiome(biome: Biome, name = "biome"): Biome {
   const bad = (path: string, why: string): never => {
@@ -470,8 +624,32 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
     within(`${at}.weight`, p.weight, 0, 1000);
     within(`${at}.furrow_m`, p.furrow_m, 0, 100);
     within(`${at}.furrow_contrast`, p.furrow_contrast, 0, 1);
+    within(`${at}.row_break`, p.row_break, 0, 1);
+    within(`${at}.grain_m`, p.grain_m, 0.05, 20);
+    within(`${at}.grain`, p.grain, 0, 0.5);
+    within(`${at}.grain_stretch`, p.grain_stretch, 1, 32);
     within(`${at}.mottle`, p.mottle, 0, 1);
+    if (!Array.isArray(p.patch_m) || p.patch_m.length !== 2)
+      bad(`${at}.patch_m`, "must be [along, across]");
+    within(`${at}.patch_m[0]`, p.patch_m[0], 0.5, 1000);
+    within(`${at}.patch_m[1]`, p.patch_m[1], 0.5, 1000);
+    const tram = p.tram?.rows;
+    if (!Number.isInteger(tram) || tram < 0 || (tram > 0 && tram < 4))
+      bad(`${at}.tram.rows`, "must be 0, or a whole number of rows from 4 up");
+    if (p.tram.rows > 0 && p.furrow_m <= 0) bad(`${at}.tram.rows`, "needs rows (furrow_m)");
+    // A wheeling is a furrow laid bare, never wider than its row.
+    within(`${at}.tram.width_m`, p.tram.width_m, 0, Math.max(p.furrow_m, 0));
+    within(`${at}.tram.contrast`, p.tram.contrast, 0, 0.6);
     within(`${at}.roughness`, p.roughness, 0, 1);
+  });
+  within("field_rules.colour_jitter", biome.field_rules.colour_jitter, 0, 0.5);
+  biome.plots.forEach((p, i) => {
+    const lstar = darkestPlot(biome, p);
+    if (!(lstar >= PLOT_MIN_LSTAR))
+      bad(
+        `plots[${i}].palette`,
+        `draws "${p.name}" as dark as L* ${lstar.toFixed(1)}, under the floor of ${PLOT_MIN_LSTAR}`,
+      );
   });
   if (!biome.plots.some((p) => p.weight > 0)) bad("plots", "every weight is 0");
   const r = biome.field_rules;
@@ -487,8 +665,7 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   range("field_rules.cut_range", r.cut_range, 0.05, 0.95);
   within("field_rules.edge_warp_m", r.edge_warp_m, 0, r.min_width_m / 2);
   within("field_rules.edge_warp_scale_m", r.edge_warp_scale_m, 1, 10000);
-  within("field_rules.colour_jitter", r.colour_jitter, 0, 0.5);
-  range("field_rules.mottle_scale_m", r.mottle_scale_m, 0.1, 10000);
+  within("field_rules.mottle_m", r.mottle_m, 0.1, 10000);
   within("field_rules.settlement_m", r.settlement_m, 0, 10000);
   if (!biome.plots.some((p) => p.name === r.settlement_kind))
     bad("field_rules.settlement_kind", `names no plot kind "${r.settlement_kind}"`);
@@ -527,6 +704,43 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
     within(`${at}.ruts.tint`, ruts.tint, 0, 0.5);
     within(`${at}.centre_strip.half_width_m`, road.centre_strip?.half_width_m, 0, 5);
     within(`${at}.centre_strip.max_road_width_m`, road.centre_strip?.max_road_width_m, 0, 100);
+    const paved = (path: string, row: string) => {
+      if (!(SURFACE_AREA_KINDS as readonly string[]).includes(row))
+        bad(path, `names no paved kind "${row}"`);
+    };
+    if (road.layer !== undefined) within(`${at}.layer`, road.layer, 0, 100);
+    if (road.area !== undefined) paved(`${at}.area`, road.area);
+    if (road.walk) {
+      paved(`${at}.walk.kind`, road.walk.kind);
+      within(`${at}.walk.width_m`, road.walk.width_m, 0, 8);
+      within(`${at}.walk.slab_m`, road.walk.slab_m, 0, 100);
+      within(`${at}.walk.joint`, road.walk.joint, 0, 0.5);
+    }
+    if (road.curb) {
+      palette(`${at}.curb.palette`, road.curb.palette);
+      within(`${at}.curb.width_m`, road.curb.width_m, 0.05, 2);
+      within(`${at}.curb.stone_m`, road.curb.stone_m, 0.1, 100);
+      within(`${at}.curb.joint`, road.curb.joint, 0, 0.5);
+      within(`${at}.curb.face_m`, road.curb.face_m, 0.02, 2);
+      within(`${at}.curb.tilt_deg`, road.curb.tilt_deg, 0, 40);
+    }
+    if (road.markings) {
+      const marks = road.markings;
+      palette(`${at}.markings.palette`, marks.palette);
+      within(`${at}.markings.cover`, marks.cover, 0, 1);
+      within(`${at}.markings.wear`, marks.wear, 0, 1);
+      within(`${at}.markings.line_m`, marks.line_m, 0.05, 1);
+      if (!Array.isArray(marks.dash_m) || marks.dash_m.length !== 2)
+        bad(`${at}.markings.dash_m`, "must be [dash, gap]");
+      within(`${at}.markings.dash_m[0]`, marks.dash_m[0], 0.5, 50);
+      within(`${at}.markings.dash_m[1]`, marks.dash_m[1], 0, 50);
+      const crossing = marks.crossing;
+      if (!crossing || typeof crossing !== "object") bad(`${at}.markings.crossing`, "is missing");
+      within(`${at}.markings.crossing.bar_m`, crossing.bar_m, 0.1, 3);
+      within(`${at}.markings.crossing.length_m`, crossing.length_m, 0, 8);
+      within(`${at}.markings.crossing.gap_m`, crossing.gap_m, 0, 8);
+      within(`${at}.markings.crossing.inset_m`, crossing.inset_m, 0, 5);
+    }
   }
   if (!biome.shore || typeof biome.shore !== "object") bad("shore", "is missing");
   const shore = biome.shore;
@@ -552,6 +766,8 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   if (biome.palettes[f.palette].length < 3)
     bad("forest_floor.palette", "needs three colours: litter, moss, humus");
   within("forest_floor.patch_m", f.patch_m, 0.1, 1000);
+  within("forest_floor.moss", f.moss, 0, 1);
+  within("forest_floor.humus", f.humus, 0, 1);
   within("forest_floor.mottle", f.mottle, 0, 1);
   within("forest_floor.roots", f.roots, 0, 1);
   within("forest_floor.roots_m", f.roots_m, 0.1, 100);
@@ -572,11 +788,24 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
     if (!s.appearance) bad(`trees.species[${i}].appearance`, "is empty");
     within(`trees.species[${i}].weight`, s.weight, 0, 1000);
     tint(`trees.species[${i}].tint`, s.tint);
+    if (s.family !== undefined && !s.family) bad(`trees.species[${i}].family`, "is empty");
+    if (s.interior_m !== undefined) {
+      within(`trees.species[${i}].interior_m`, s.interior_m, 0, 1000);
+      if (s.family !== undefined)
+        bad(
+          `trees.species[${i}].interior_m`,
+          "is for a species of no family: a stand grows to its forest's edge",
+        );
+    }
   });
-  if (!t.species.some((s) => s.weight > 0)) bad("trees.species", "every weight is 0");
+  // Every tree a forest's edge, a strip or the backdrop draws is of a family.
+  if (!t.species.some((s) => s.weight > 0 && s.family !== undefined))
+    bad("trees.species", "no species of a family has a weight");
+  within("trees.stands.size_m", t.stands?.size_m, 1, 100000);
+  within("trees.stands.purity", t.stands?.purity, 0, 1);
   within("trees.colour_jitter", t.colour_jitter, 0, 0.5);
   range("trees.forest.top", t.forest.top, 0.1, 1);
-  range("trees.forest.girth", t.forest.girth, 0.5, 2);
+  range("trees.forest.girth", t.forest.girth, 0.3, 1);
   const h = t.hedgerows;
   if (!h.appearance) bad("trees.hedgerows.appearance", "is empty");
   tint("trees.hedgerows.tint", h.tint);

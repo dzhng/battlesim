@@ -397,6 +397,12 @@
   background: rgb(var(--hud-glass) / 0.6);
   filter: blur(10px);
 }
+/* Overlapping cards need a tighter dark core to reduce rear glyphs bleeding
+   through the foreground title. The softened edge still belongs to the world. */
+.ro-callout[data-overlapping] .ro-unit::before {
+  background: rgb(var(--hud-glass) / 0.9);
+  filter: blur(3px);
+}
 .ro-leader.ro-selected,
 .ro-unit.ro-selected {
   opacity: 1;
@@ -926,4 +932,8 @@
 .ro-layer .ro-unit {
   pointer-events: auto;
   cursor: pointer;
+}
+
+.ro-callout[data-retiring] .ro-unit {
+  pointer-events: none;
 }

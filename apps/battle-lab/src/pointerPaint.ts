@@ -106,7 +106,7 @@ export class PointerPaint {
     client: Pick<SimClient, "previewMove"> | null,
     tick: number,
   ) {
-    const gesture = move && client ? JSON.stringify([move.units, move.goal]) : "";
+    const gesture = move && client ? JSON.stringify(move) : "";
     if (gesture !== this.gesture || client !== this.previewClient) {
       this.generation += 1;
       this.gesture = gesture;
@@ -151,7 +151,7 @@ export class PointerPaint {
     return destinations.flatMap((mark) => {
       const u = units.get(mark.unit);
       const alpha = opacity?.get(mark.unit) ?? (opacity ? 0 : 1);
-      if (!u || alpha <= 0) return [];
+      if (!mark.placed || !u || alpha <= 0) return [];
       const view = orderView(u, true, 1);
       return [
         {
@@ -226,6 +226,7 @@ export function movePreviewAt(
   cursor: WorldRay | null,
   world: StaticWorld,
   selected: readonly OwnUnitView[],
+  queued: boolean,
 ): MovePreviewRequest | null {
   if (!start || selected.length === 0) return null;
   const at = groundUnderRay(world.view, start);
@@ -234,6 +235,8 @@ export function movePreviewAt(
   const facing = dragFacing({ ground: [at[0], at[1]], facingTo: to && [to[0], to[1]] });
   return {
     units: selected.map((u) => u.id),
+    queued,
+    route: "shortest",
     goal: [at[0], at[1]],
     ...(facing === undefined ? {} : { facing }),
     direction: inReverseZone(selected, [at[0], at[1]]) ? "reverse" : "forward",

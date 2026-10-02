@@ -35,6 +35,11 @@ struct SearchTile {
     expanded: [u32; TILE_SAMPLES],
 }
 
+struct Component {
+    bounds: [usize; 4],
+    members: Digest,
+}
+
 /// The cells one search has reached, in tiles that outlive it: a finished or
 /// cancelled search hands its scratch to the next, which starts a new
 /// generation instead of clearing or freeing anything.
@@ -43,6 +48,7 @@ pub struct Scratch {
     tiles: HashMap<usize, Box<SearchTile>>,
     generation: u32,
     visited: usize,
+    component: Option<Component>,
 }
 
 impl Scratch {
@@ -52,6 +58,7 @@ impl Scratch {
             tiles: HashMap::new(),
             generation: 0,
             visited: 0,
+            component: None,
         }
     }
     fn location(&self, k: usize) -> (usize, usize) {
@@ -71,6 +78,7 @@ impl Scratch {
             self.generation = 1;
         }
         self.visited = 0;
+        self.component = None;
     }
     fn get(&self, k: usize) -> Option<Reached> {
         let (key, at) = self.location(k);
@@ -110,6 +118,14 @@ impl Scratch {
             return false;
         }
         if first {
+            if let Some(component) = &mut self.component {
+                let (x, y) = (k % self.nx, k / self.nx);
+                component.bounds[0] = component.bounds[0].min(x);
+                component.bounds[1] = component.bounds[1].min(y);
+                component.bounds[2] = component.bounds[2].max(x);
+                component.bounds[3] = component.bounds[3].max(y);
+                component.members.u64(k as u64);
+            }
             self.visited += 1;
         }
         tile.g[at] = value.g;
@@ -161,9 +177,6 @@ const STEPS: [(isize, isize); 8] = [
     (-1, 1),
     (-1, -1),
 ];
-const COMPONENT_REACH: isize =
-    ((START_REACH_M + NAV_CELL_M / std::f64::consts::SQRT_2 + NAV_CELL_M / 8.0) / NAV_CELL_M)
-        as isize;
 
 fn endpoint(grid: &NavGrid, p: V2, who: Mover, reach: f64) -> Option<usize> {
     if who.m.class == MoverClass::Infantry && grid.stands(p, who) {
@@ -363,7 +376,6 @@ pub struct RouteSearch {
     limit: usize,
     /// Only emptying the frontier proves this mover's whole component.
     exhausted: bool,
-    component_probe: bool,
 }
 
 impl RouteSearch {
@@ -385,7 +397,6 @@ impl RouteSearch {
             work: SearchWork::default(),
             limit,
             exhausted: false,
-            component_probe: false,
         };
         search.stage = search.begin(grid);
         search
@@ -440,14 +451,9 @@ impl RouteSearch {
     }
 
     /// Reverse a failed goal connector from its original effective target.
-    /// Its relaxed links cover sampled roads and their snapped anchors;
-    /// ordinary route construction keeps its stricter graph.
-    pub(super) fn goal_probe(
-        grid: &NavGrid,
-        scratch: Option<Scratch>,
-        leg: Leg,
-        limit: usize,
-    ) -> Option<Self> {
+    /// Exhaustion certifies this strict final-connector component only;
+    /// sampled road runs may enter it from another disconnected component.
+    pub(super) fn goal_probe(grid: &NavGrid, leg: Leg, limit: usize) -> Option<Self> {
         let target = endpoint(
             grid,
             leg.goal,
@@ -463,14 +469,41 @@ impl RouteSearch {
             policy: RoutePolicy::Shortest,
             ..leg
         };
-        let mut search = Self::new(grid, scratch, reverse, limit);
-        search.component_probe = true;
+        let mut search = Self::new(grid, None, reverse, limit);
+        if search.work.queued != 0 {
+            let (x, y) = (search.start % grid.nx, search.start / grid.nx);
+            let mut members = Digest::default();
+            members.u64(search.start as u64);
+            search.scratch.component = Some(Component {
+                bounds: [x, y, x, y],
+                members,
+            });
+        }
         Some(search)
     }
 
     /// Reachability needs no route reconstruction or string pulling.
     pub(super) fn reached_target(&self) -> bool {
         self.work.queued != 0 && self.scratch.get(self.target).is_some()
+    }
+
+    pub(super) fn exhausted(&self) -> bool {
+        self.exhausted
+    }
+
+    /// Even the whole segment, with every allowed lane/snap offset,
+    /// lies outside the exhausted final-connector component's bounds.
+    pub(super) fn excludes_segment(&self, a: V2, b: V2, padding: f64) -> bool {
+        let Some(component) = &self.scratch.component else {
+            return false;
+        };
+        let [x0, y0, x1, y1] = component.bounds;
+        let lo = cell_center(x0, y0);
+        let hi = cell_center(x1, y1);
+        a.x.max(b.x) + padding < lo.x
+            || a.x.min(b.x) - padding > hi.x
+            || a.y.max(b.y) + padding < lo.y
+            || a.y.min(b.y) - padding > hi.y
     }
 
     pub(super) fn exhausted_rejects(&self, grid: &NavGrid, from: V2) -> bool {
@@ -524,6 +557,12 @@ impl RouteSearch {
     /// reads, that fixes everything it will do: a search is a function of
     /// those and the work spent.
     pub fn digest(&self, d: &mut Digest) {
+        if let Some(component) = &self.scratch.component {
+            d.u64(component.members.finish());
+            for v in component.bounds {
+                d.u64(v as u64);
+            }
+        }
         let stage = match &self.stage {
             Stage::Expanding(e) => [0, e.open.len(), 0],
             Stage::Smoothing(s) => [
@@ -560,12 +599,7 @@ impl RouteSearch {
                 .step(grid, who, self.policy)
                 .map(|route| Stage::Done(Plan::Route(route))),
             Stage::Expanding(expanding) => {
-                let width = 2 * COMPONENT_REACH + 1;
-                grid.spend(if self.component_probe {
-                    (width * width - 1) as u64 / 8
-                } else {
-                    1
-                });
+                grid.spend(1);
                 match expanding.open.pop() {
                     None => {
                         self.exhausted = true;
@@ -593,26 +627,15 @@ impl RouteSearch {
                         Some(Stage::Done(Plan::Blocked(BlockReason::SearchLimit)))
                     }
                     Some(Open { cell, .. }) => {
-                        if self.component_probe {
-                            expand_component(
-                                grid,
-                                &mut self.scratch,
-                                &mut self.work,
-                                expanding,
-                                who,
-                                cell as usize,
-                            );
-                        } else {
-                            expand(
-                                grid,
-                                &mut self.scratch,
-                                &mut self.work,
-                                expanding,
-                                who,
-                                self.policy,
-                                cell as usize,
-                            );
-                        }
+                        expand(
+                            grid,
+                            &mut self.scratch,
+                            &mut self.work,
+                            expanding,
+                            who,
+                            self.policy,
+                            cell as usize,
+                        );
                         None
                     }
                 }
@@ -620,58 +643,6 @@ impl RouteSearch {
         };
         if let Some(next) = next {
             self.stage = next;
-        }
-    }
-}
-
-/// A sampled road's last point is at most 0.25 m before an unchecked
-/// endpoint. Its next grid search chooses a cell whose centre is at most
-/// START_REACH_M (4 m) away: nearest_fit bounds centres, not waypoints. Including the
-/// previous sample's cell-centre offset gives <5.665 m between fitting
-/// centres: at most two cell indices per axis. The 5×5 stencil therefore
-/// over-approximates road sampling and anchor admission as well as ordinary
-/// grid links. It ignores corners/shared edges and emits no route.
-fn expand_component(
-    grid: &NavGrid,
-    scratch: &mut Scratch,
-    work: &mut SearchWork,
-    expanding: &mut Expanding,
-    who: Mover,
-    cell: usize,
-) {
-    if !scratch.settle(cell) {
-        work.stale += 1;
-        return;
-    }
-    work.expanded += 1;
-    let g = scratch.get(cell).expect("a queued cell has a cost").g;
-    let (i, j) = ((cell % grid.nx) as isize, (cell / grid.nx) as isize);
-    for dy in -COMPONENT_REACH..=COMPONENT_REACH {
-        for dx in -COMPONENT_REACH..=COMPONENT_REACH {
-            if dx == 0 && dy == 0 {
-                continue;
-            }
-            let Some(next) = grid.index(i + dx, j + dy) else {
-                continue;
-            };
-            if !grid.fits(next, who) {
-                continue;
-            }
-            let cost = g + NAV_CELL_M * ((dx * dx + dy * dy) as f64).sqrt();
-            if scratch.relax(
-                next,
-                Reached {
-                    g: cost,
-                    parent: cell as u32,
-                },
-            ) {
-                expanding.open.push(Open {
-                    f: cost + expanding.h(grid, who.m, RoutePolicy::Shortest, next),
-                    cell: next as u32,
-                });
-                work.queued += 1;
-                work.heap_peak = work.heap_peak.max(expanding.open.capacity());
-            }
         }
     }
 }

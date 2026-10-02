@@ -4,12 +4,14 @@ A separate session works this lane in parallel with the others. It is engineerin
 
 ## The contract
 
-One battle builds the simulation's world once. Today it is built three times from the same map: by the encounter planner (to ask where forces can stand), by the battle, and by the page's main thread (for picking, ground height and camera clearance). After this lane:
+Before this lane one battle built the simulation's world three times from the same map: by the encounter planner (to ask where forces can stand), by the battle, and by the page's main thread (for picking, ground height and camera clearance). After this lane:
 
 - the preparation worker builds the world once; the planner and the battle use that one;
-- the page receives a compact read-only export of the public static geometry and the queries it needs (ground and building picks by ray, surface and height at a point, camera clearance), and constructs no simulation world of its own;
-- a side still learns damage and destruction only through its own observations: the export is the static map, which is public;
+- the page builds its own plain world from the map with the simulation's `WorldView`, and answers the queries it needs from it (ground and building picks by ray, surface and height at a point, learned foliage, camera clearance): one implementation of those queries, the simulation's;
+- a side still learns damage and destruction only through its own observations: the page's world is the static map, which is public;
 - replacing or cancelling a pending battle releases everything the abandoned one held.
+
+The lane first went further and replaced the page's world with a query export transferred from the worker. That was removed: startup has a wide margin, and the margin is spent on one code path for map queries ([C33 simplified](choices.md#c33-simplified)).
 
 Measured on Metro Large on this machine, before and after: instructions and time from Deploy to first playable frame, and peak memory of the tab. [C33](slices/C33-battle-preparation.md) is the slice; the budgets are in [scale direction](scale-direction.md#startup-and-loading).
 
@@ -27,7 +29,7 @@ No repo-wide renames.
 ## Work, in order
 
 1. **Measure.** Where the time and memory go from Deploy to playable, per stage, on Mixed Small and Metro Large (`STARTUP_MAP=type:size:seed` on the `generated` scene prints the stages). Record the table here before changing anything.
-2. **[C33 public preparation](slices/C33-battle-preparation.md):** one world, as in the contract above. Picking and clearance must give the same answers as before: matched rays before and after.
+2. **[C33 battle preparation](slices/C33-battle-preparation.md):** one world for the planner and the battle, as in the contract above. Picking and clearance must give the same answers as before: matched rays before and after.
 3. **[C20 renderer fog at scale](slices/C20-renderer-fog-at-scale.md):** fog cost follows the occluders within an eye's reach, not every known occluder on a 16,000-building map.
 4. **The camera lab's map through the catalogue:** it is the last route that compiles its own map beside the resolver ([C58 outcome](slices/C58-offline-encounter.md#outcome), "not done").
 5. **A native-against-Wasm pair with combat.** The only such check of the simulation itself is a four-unit move with no firing (`fixtures/parity/publication/stream.json`); a short battle with shooting is a stronger pair at the same cost.
@@ -44,11 +46,15 @@ Implemented on `codex/city-maps-startup`, integrated with main through
 `4c6c8d1b`. The startup lane's five steps are complete; broader city-maps gates
 remain with their owning lanes.
 
-- C33 retains one prepared simulation world in the authority worker. The page
-  imports public static query data; matched picking, height, clearance and
-  learned-foliage answers remain exact. Cancellation and replacement release
-  the abandoned worker. The real browser generated battle/replay, refusal and
-  native prepared/direct regressions pass.
+- C33 retains one prepared simulation world in the authority worker: the
+  planner places the encounter on it and the battle, live or replayed, starts
+  from it. The page builds its own plain world from the scenario's map with
+  the simulation's `WorldView` and answers picking, height, surface, learned
+  foliage and camera clearance from it, so those queries have one
+  implementation. Cancellation and replacement release the abandoned worker.
+  The real browser generated battle/replay, refusal and native prepared/direct
+  regressions pass. A public query export to the page was built and removed
+  ([C33 simplified](choices.md#c33-simplified)).
 - C20 preserves the horizon and whole-building visibility contracts while
   indexing nearby eyes and angular candidates. The 16,000-box synthetic rebuild
   falls from 37.831 to 1.182 ms, passing the unchanged 2 ms gate. Village cost,
@@ -73,9 +79,9 @@ remain with their owning lanes.
   blue/red learned marks separate across full snapshots, deltas and side switches.
 
 Final main integration preserves the developer city-stress early/late factory
-and the mechanics editor's development-server plugin. Stress preparation imports
-its actual scenario map, including synthetic late wrecks, rather than exporting
-the original generated map. That developer fixture retains its existing temporary
+and the mechanics editor's development-server plugin. Stress preparation prepares
+its actual scenario map, including synthetic late wrecks, and the page builds
+its world from that same scenario. That developer fixture retains its existing temporary
 placement world; the normal menu encounter still shares one prepared world with
 the battle. The measurements below remain the frozen `42b4dfb7` comparison,
 not new performance claims for these later upstream additions. Integration also
@@ -84,6 +90,31 @@ owner; viewer-import and blocked-storage regressions fail before their fixes and
 pass afterward. A development import cannot reload until persistence succeeds.
 
 ### Startup measurement
+
+**The design as it stands** (the page builds its own world), Mixed Small seed
+1, one sample per row on a machine shared with other sessions. "Query export"
+is the removed design at `3824591d`, measured the same hour. Worker world ms
+is the same code in both arms, so it shows how loaded the machine was for
+each sample: the page-world samples ran on a machine about 1.7 times slower.
+
+| Arm/cache | Worker world ms | Prepared ms | World ready ms | Playable ms | Instructions G | Worker Wasm MiB | Page Wasm MiB |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| query export/cold | 566 | 1957 | 3034 | 3833 | 85.393 | 175.13 | 55.19 |
+| query export/warm | 583 | 1445 | 2426 | 3396 | 82.077 | 175.13 | 55.19 |
+| page world/cold | 1005 | 2852 | 4941 | 6247 | 86.402 | 110.38 | 45.13 |
+| page world/warm | 998 | 2456 | 4216 | 5431 | 73.796 | 110.38 | 45.13 |
+
+Retired instructions are level (cold +1%, warm -10%, inside the spread
+between samples); wall time moves with the machine. A first page-world sample
+on a busier machine (worker world 1,185 and 1,111 ms) was playable at 8,307
+ms cold and 9,147 ms warm. Every sample is well inside the 30 s budget. The
+page's world costs it less Wasm capacity than the query export did, whose
+lossless import had temporaries; the worker no longer holds a copy of the
+exports.
+
+**The earlier comparison**, which the rest of this section records, measured
+the query-export design against the three-world original. Its "after" arm and
+its public-transfer columns describe the removed design.
 
 The final startup comparison freezes both arms at main `42b4dfb7`, with the
 startup implementation applied only to the candidate. An earlier frozen

@@ -19,6 +19,7 @@ use contract::catalog::{PropBody, PropCatalog, PropKind, PropPlacement, PropType
 use contract::map::{Bridge, Forest, MapDefinition, PropDefinition};
 use contract::river::River;
 use contract::scenario::Rules;
+use std::sync::Arc;
 
 /// The prop index's bucket. Line tests measured this against 8, 16 and 64 m
 /// buckets (27 perf): 32 and 64 tie, finer is dearer.
@@ -75,13 +76,14 @@ pub struct Hit {
     pub collider: Collider,
 }
 
+#[derive(Clone)]
 pub struct WorldGeometry {
-    field: HeightField,
+    field: Arc<HeightField>,
     /// The land's authored relief, before any river is carved into it.
     relief: Vec<contract::map::Relief>,
     slope_cutoff_deg: f64,
     /// The paving and the rivers: what the ground is at a point.
-    surfaces: surfaces::SurfaceIndex,
+    surfaces: Arc<surfaces::SurfaceIndex>,
     /// Each surface kind's speed factor, by `contract::map::SurfaceKind` order.
     surface_factors: [f64; contract::map::SurfaceKind::ALL.len()],
     bridges: Vec<Bridge>,
@@ -107,6 +109,49 @@ pub struct WorldGeometry {
 }
 
 impl WorldGeometry {
+    /// Physical movement against one side's remembered bodies. Immutable
+    /// terrain and paving are shared; mutations affect only this scratch world.
+    /// Forest ground begins uncleared so unseen clearing cannot certify a move.
+    pub(crate) fn planning_snapshot(
+        &self,
+        belief: impl Fn(&Prop) -> Option<Prop>,
+        standing: impl Iterator<Item = Prop>,
+    ) -> Self {
+        let mut snapshot = Self {
+            field: Arc::clone(&self.field),
+            relief: self.relief.clone(),
+            slope_cutoff_deg: self.slope_cutoff_deg,
+            surfaces: Arc::clone(&self.surfaces),
+            surface_factors: self.surface_factors,
+            bridges: self.bridges.clone(),
+            forests: self.forests.clone(),
+            forest: self.forest.clone(),
+            props: vec![None; self.props.len()],
+            buildings: self.buildings.clone(),
+            template_catalog_hash: self.template_catalog_hash.clone(),
+            authored_props: self.authored_props,
+            authored_sources: self.authored_sources.clone(),
+            index: PropIndex::new(self.width(), self.depth(), PROP_BUCKET_M),
+            revision: 0,
+            types: self.types.clone(),
+            moved: Default::default(),
+            touched: Vec::new(),
+        };
+        snapshot.forest.reset_cleared();
+        for prop in self.props().filter_map(belief).chain(standing) {
+            let id = prop.id as usize;
+            if id >= snapshot.props.len() {
+                snapshot.props.resize(id + 1, None);
+            }
+            snapshot.props[id] = Some(prop);
+        }
+        for prop in snapshot.props.iter().flatten() {
+            snapshot.index.insert(prop);
+        }
+        snapshot.index.track_changes();
+        snapshot
+    }
+
     /// The map's ground and props, each prop with its type's body row from
     /// the rules' catalog (every type placed must be one), a bridge's deck
     /// as its `deck` type, and each forest's trees (`forests.tree`) where the
@@ -161,8 +206,12 @@ impl WorldGeometry {
         }
         contract::river::validate(map).expect("invalid rivers or bridges");
         let forests = &rules.forests;
-        let surfaces = surfaces::SurfaceIndex::new(&map.surfaces, &map.rivers, map.size);
-        let field = HeightField::build(map, &surfaces);
+        let surfaces = Arc::new(surfaces::SurfaceIndex::new(
+            &map.surfaces,
+            &map.rivers,
+            map.size,
+        ));
+        let field = Arc::new(HeightField::build(map, &surfaces));
         let index = PropIndex::new(field.width(), field.depth(), PROP_BUCKET_M);
         let mut world = WorldGeometry {
             relief: map.relief.clone(),
@@ -457,7 +506,18 @@ impl WorldGeometry {
     /// The walkable surface at (x, y): a bridge deck where one spans, otherwise the ground.
     pub fn surface_at(&self, x: f64, y: f64) -> Option<Surface> {
         let ground = self.ground_surface_at(x, y)?;
-        Some(export::bridge_surface(ground, &self.bridges, v2(x, y)))
+        match self.bridges.iter().find(|b| bridge_contains(b, v2(x, y))) {
+            Some(b) => Some(Surface {
+                z: b.deck_z,
+                normal: v3(0.0, 0.0, 1.0),
+                slope_deg: 0.0,
+                kind: SurfaceKind::Bridge,
+                road_factor: 1.0,
+                forest: ground.forest,
+                traversable: true,
+            }),
+            None => Some(ground),
+        }
     }
 
     /// Whether a mover may stand at (x, y): [`surface_at`](Self::surface_at)'s
@@ -474,15 +534,29 @@ impl WorldGeometry {
 
     /// The ground triangle at (x, y), ignoring any bridge above it.
     pub fn ground_surface_at(&self, x: f64, y: f64) -> Option<Surface> {
-        export::ground_surface_at(
-            &self.field,
-            &self.surfaces,
-            self.slope_cutoff_deg,
-            &self.surface_factors,
-            x,
-            y,
-            self.forest_ground(x, y),
-        )
+        let (z, normal) = self.field.height_normal(x, y)?;
+        let p = v2(x, y);
+        let slope_deg = normal.z.clamp(-1.0, 1.0).acos().to_degrees();
+        let paved = self.surfaces.at(p);
+        let kind = if self.surfaces.water_at(p) {
+            SurfaceKind::Water
+        } else {
+            paved.map_or(SurfaceKind::Ground, SurfaceKind::of)
+        };
+        let road_factor = match (kind, paved) {
+            (SurfaceKind::Water, _) | (_, None) => 0.0,
+            (_, Some(paved)) => self.surface_factors[paved as usize],
+        };
+        Some(Surface {
+            z,
+            normal,
+            slope_deg,
+            kind,
+            road_factor,
+            // Water is neither road nor forest, whatever is authored over it.
+            forest: kind != SurfaceKind::Water && self.forest_ground(x, y),
+            traversable: kind != SurfaceKind::Water && slope_deg < self.slope_cutoff_deg,
+        })
     }
 
     /// Earliest hit of a round along `origin + dir * t`, t ∈ [0, max_t]: the
@@ -551,7 +625,17 @@ impl WorldGeometry {
         skip: Option<PropId>,
         admits: impl Fn(&PropBody) -> bool,
     ) -> Option<Hit> {
-        let mut best = export::terrain_hit(&self.field, &self.surfaces, origin, dir, max_t);
+        let ground = self.field.raycast(origin, dir, max_t);
+        let water = self
+            .water_hit(origin, dir, max_t)
+            .filter(|&t| ground.is_none_or(|(ground, _)| t < ground))
+            .map(|t| (t, v3(0.0, 0.0, 1.0)));
+        let mut best: Option<Hit> = water.or(ground).map(|(t, normal)| Hit {
+            t,
+            point: origin + dir * t,
+            normal,
+            collider: Collider::Terrain,
+        });
         let mut ids = Vec::new();
         self.index
             .along(origin.xy(), (origin + dir * max_t).xy(), &mut ids);
@@ -633,7 +717,22 @@ impl WorldGeometry {
     /// river's surface: water stops a round as the ground does, so a shell
     /// bursts on the river, not on its bed.
     fn water_hit(&self, origin: V3, dir: V3, max_t: f64) -> Option<f64> {
-        export::water_hit(&self.field, &self.surfaces, origin, dir, max_t)
+        if dir.z >= 0.0 {
+            return None;
+        }
+        self.surfaces
+            .rivers()
+            .iter()
+            .enumerate()
+            .filter_map(|(river, definition)| {
+                let t = (definition.surface_z() - origin.z) / dir.z;
+                let p = origin + dir * t;
+                ((0.0..=max_t).contains(&t)
+                    && self.field.contains(p.x, p.y)
+                    && self.surfaces.in_river(river, p.xy()))
+                .then_some(t)
+            })
+            .min_by(f64::total_cmp)
     }
 
     /// Add a body with no placed-building geometry owner.

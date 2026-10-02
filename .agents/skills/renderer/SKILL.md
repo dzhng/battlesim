@@ -67,6 +67,8 @@ Read before changing anything:
   advance to a fixed tick and await presentation before counting. Attribute a difference
   to its creation/destruction owner; an empty mesh may legitimately release a late-battle
   buffer. Falsify repeated-reset checks with an actual retained GPU allocation.
+  During remount, a missing route probe is a pending state; wait predicates must
+  tolerate it until the new view is ready, within the existing timeout.
 - **Async results can outlive their owner.** Build into a new scope and swap it in whole; free a build that is overtaken or lands after dispose; keep every public call safe after dispose. A replacement that shares buffers with a bake is one serialized transaction.
 - **Stats healthy over a black canvas** is a validation warning, a reassigned WGSL `let`, a reserved word used as a name, an attachment mismatch or a NaN. Treat any console warning as a failed render.
 - **Pin only the shared camera bind group;** let the library number the rest. Count bindings before adding one: the default limits are small.
@@ -88,6 +90,8 @@ Read before changing anything:
 - **Work spread over frames says when it is done.** A capture after a camera cut waits for the layer's pending flag, not for a frame count.
 - **Judge a change by a paired frame:** the same tick and camera with only that switch flipped.
 - **Stats aren't pixels.** Pair every count with a crop that proves the subject was drawn and framed, and derive the camera from live anchors, not hand-picked coordinates.
+- **Judge a detail tier at its boundary:** one pose at the distance the tier changes, drawn at the tier before and the tier after. Force the tier through the layer's own thresholds, never a second switch, so the forced picture is what the game draws.
+- **A mask view's "not this" is also the sky and the map's edge.** Keep ground behind whatever a mask check judges, or limit the check to where ground is.
 - **Checks derive from contracts** (compositing algebra, the simulation's own vectors, CPU equal to GPU), not from a copied constant.
 - **A claim about repeating motion needs whole cycles,** including the longest pause, across several seeds.
 - **Hold the inputs still.** Don't rebuild, merge or rewrite built files while a browser check runs.

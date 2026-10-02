@@ -81,6 +81,116 @@ fn run(b: &mut Battle, ids: &[u32], limit: u32, mut each: impl FnMut(&Battle)) -
 }
 
 #[test]
+fn a_truck_can_park_in_clear_space_behind_a_stationary_tank() {
+    let setup = common::scenario(
+        &serde_json::json!({
+            "size": [160, 120], "fog_cell_m": 8, "height_grid_m": 4,
+            "slope_cutoff_deg": 35
+        })
+        .to_string(),
+        serde_json::json!([
+            { "side": "blue", "kind": "supply", "position": [30, 60], "yaw": 0 },
+            { "side": "blue", "kind": "tank", "position": [70, 60], "yaw": 0 }
+        ]),
+        serde_json::json!([]),
+    );
+    let mut b = Battle::new(&setup, 1);
+    let mut orders = Orders { seq: 0 };
+    orders.go(&mut b, &[0], [60.0, 60.0], 1, RoutePolicy::Shortest, false);
+    let end = run(&mut b, &[0], 1800, |b| {
+        let truck = b.unit(UnitId(0)).unwrap().hull_box().unwrap();
+        let tank = b.unit(UnitId(1)).unwrap().hull_box().unwrap();
+        assert!(!truck.overlaps(&tank), "truck stays clear of the tank");
+    });
+    assert!(
+        end < 1800,
+        "truck arrives instead of waiting on an oversized following gap"
+    );
+    assert!(dist(xy(&own(&b, 0)), [60.0, 60.0]) < 1.0);
+    assert_eq!(xy(&own(&b, 1)), [70.0, 60.0], "tank stays put");
+}
+
+#[test]
+fn a_group_moves_a_truck_surrounded_by_its_other_members() {
+    let positions = [
+        [60.0, 60.0],
+        [68.5, 60.0],
+        [51.5, 60.0],
+        [60.0, 67.7],
+        [60.0, 52.3],
+    ];
+    let setup = common::scenario(
+        &serde_json::json!({
+            "size": [200, 120], "fog_cell_m": 8, "height_grid_m": 4,
+            "slope_cutoff_deg": 35
+        })
+        .to_string(),
+        serde_json::Value::Array(
+            positions
+                .iter()
+                .map(|at| {
+                    serde_json::json!({
+                        "side": "blue", "kind": "supply", "position": at, "yaw": 0
+                    })
+                })
+                .collect(),
+        ),
+        serde_json::json!([]),
+    );
+    let mut b = Battle::new(&setup, 1);
+    let ids: Vec<_> = (0..5).map(UnitId).collect();
+    let destinations = b
+        .preview_move(
+            Side::Blue,
+            &contract::command::MovePreviewRequest {
+                units: ids.to_vec(),
+                goal: [140.0, 60.0],
+                facing: None,
+                direction: contract::command::MoveDirection::Forward,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    assert!(destinations.iter().all(|d| d.placed));
+    let mut orders = Orders { seq: 0 };
+    orders.go(
+        &mut b,
+        &[0, 1, 2, 3, 4],
+        [140.0, 60.0],
+        1,
+        RoutePolicy::Shortest,
+        false,
+    );
+    let end = run(&mut b, &[0, 1, 2, 3, 4], 1800, |b| {
+        for (i, id) in ids.iter().enumerate() {
+            let hull = b.unit(*id).unwrap().hull_box().unwrap();
+            for other in &ids[i + 1..] {
+                assert!(
+                    !hull.overlaps(&b.unit(*other).unwrap().hull_box().unwrap()),
+                    "group hulls stay separate at tick {}",
+                    b.tick()
+                );
+            }
+        }
+    });
+    assert!(
+        end < 1800,
+        "all group members arrive, including the surrounded truck"
+    );
+    for destination in destinations {
+        assert!(
+            dist(xy(&own(&b, destination.unit.0)), destination.goal) < 1.0,
+            "unit {} reaches its accepted marker",
+            destination.unit.0
+        );
+    }
+    assert!(
+        b.route_searches(Side::Blue) < 40,
+        "departure makes progress without repeated replanning"
+    );
+}
+
+#[test]
 fn a_tank_routes_around_walls_and_arrives() {
     let mut b = Battle::new(
         &scenario(
@@ -128,10 +238,13 @@ fn a_right_drag_rotates_the_group_layout_around_its_destination() {
     let preview = b
         .preview_move(
             Side::Blue,
-            &[UnitId(0), UnitId(1)],
-            [150.0, 150.0],
-            Some(std::f64::consts::FRAC_PI_2),
-            contract::command::MoveDirection::Forward,
+            &contract::command::MovePreviewRequest {
+                units: vec![UnitId(0), UnitId(1)],
+                goal: [150.0, 150.0],
+                facing: Some(std::f64::consts::FRAC_PI_2),
+                direction: contract::command::MoveDirection::Forward,
+                ..Default::default()
+            },
         )
         .unwrap();
     assert_eq!(b.digest(), digest, "previewing must not change the battle");
@@ -284,8 +397,7 @@ fn a_new_obstacle_is_learned_on_contact_and_routed_around() {
 }
 
 #[test]
-fn an_unreachable_destination_is_kept_and_not_searched_every_tick() {
-    // The building's interior is solid.
+fn an_unreachable_destination_is_rejected_without_live_route_searches() {
     let mut b = Battle::new(
         &scenario(
             serde_json::json!([{ "side": "blue", "kind": "tank", "position": [300, 150] }]),
@@ -293,17 +405,33 @@ fn an_unreachable_destination_is_kept_and_not_searched_every_tick() {
         ),
         1,
     );
-    let mut o = Orders { seq: 0 };
     // The 45° plateau top is flat but walled by slopes past the cutoff.
-    o.go(&mut b, &[0], [330.0, 50.0], 1, RoutePolicy::Shortest, false);
+    let ack = b.accept(CommandEnvelope {
+        side: Side::Blue,
+        seq: 1,
+        queued: false,
+        order: Order::Move {
+            units: vec![UnitId(0)],
+            gesture: 1,
+            goal: [330.0, 50.0],
+            route: RoutePolicy::Shortest,
+            direction: Default::default(),
+            facing: None,
+        },
+    });
+    assert_eq!(
+        ack.error,
+        Some(contract::command::OrderError::NoValidDestination)
+    );
     for _ in 0..300 {
         b.step();
     }
     let u = own(&b, 0);
-    assert_eq!(u.state, MoveState::RouteBlocked);
-    assert!(u.goal.is_some(), "destination retained");
-    assert_eq!(b.route_searches(Side::Blue), 1);
+    assert_eq!(u.state, MoveState::Idle);
+    assert_eq!(u.goal, None, "no invalid destination marker");
+    assert_eq!(b.route_searches(Side::Blue), 0);
     // A new order replaces it and plans again.
+    let mut o = Orders { seq: 1 };
     o.go(
         &mut b,
         &[0],
@@ -379,8 +507,9 @@ fn head_on_vehicles_pass_without_overlapping() {
     ]);
     let mut b = Battle::new(&scenario(units, serde_json::json!([])), 1);
     let mut o = Orders { seq: 0 };
-    o.go(&mut b, &[0], [100.0, 25.0], 1, RoutePolicy::Shortest, false);
-    o.go(&mut b, &[1], [40.0, 25.0], 2, RoutePolicy::Shortest, false);
+    // Each issued destination is clear even before the other tank gets its order.
+    o.go(&mut b, &[0], [120.0, 25.0], 1, RoutePolicy::Shortest, false);
+    o.go(&mut b, &[1], [20.0, 25.0], 2, RoutePolicy::Shortest, false);
     let end = run(&mut b, &[0, 1], 3000, |b| {
         let (a, c) = (own(b, 0), own(b, 1));
         assert!(
@@ -399,7 +528,7 @@ fn head_on_vehicles_pass_without_overlapping() {
         "the lower-priority tank detours and both arrive"
     );
     assert!(
-        dist(xy(&own(&b, 0)), [100.0, 25.0]) < 1.0 && dist(xy(&own(&b, 1)), [40.0, 25.0]) < 1.0
+        dist(xy(&own(&b, 0)), [120.0, 25.0]) < 1.0 && dist(xy(&own(&b, 1)), [20.0, 25.0]) < 1.0
     );
     assert!(
         b.route_searches(Side::Blue) < 12,

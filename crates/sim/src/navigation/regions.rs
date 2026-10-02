@@ -91,7 +91,7 @@ impl BaseRegions {
 /// One side's rectangles: the map's, less those of the bodies it believes
 /// gone or elsewhere, plus those of the bodies it has learned. It holds
 /// only the buckets it knows differently.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub(super) struct Regions {
     /// Per bucket, 0 for the map's, or one more than its place in `own`.
     slots: Vec<u32>,

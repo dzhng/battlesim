@@ -268,9 +268,30 @@ fn a_road_with_no_bridge_is_no_road_across() {
     let mut map = two_bridges();
     map["bridges"] = json!([]);
     let mut b = Battle::new(&scenario(map, jeep([100.0, 200.0]), json!([])), 1);
-    order(&mut b, 1, [2900.0, 200.0]);
-    let unit = planned(&mut b);
-    assert_eq!(unit.state, MoveState::RouteBlocked);
+    let ack = b.accept(CommandEnvelope {
+        side: Side::Blue,
+        seq: 1,
+        order: Order::Move {
+            units: vec![UnitId(0)],
+            gesture: 1,
+            goal: [2900.0, 200.0],
+            route: RoutePolicy::Shortest,
+            direction: MoveDirection::Forward,
+            facing: None,
+        },
+        queued: false,
+    });
+    assert_eq!(
+        ack.error,
+        Some(contract::command::OrderError::NoValidDestination)
+    );
+    assert!(!ack.placement.unwrap().destinations[0].placed);
+    b.step();
+    let unit = own(&b, 0);
+    assert_eq!(
+        unit.goal, None,
+        "an absent crossing cannot produce a marker"
+    );
     assert_eq!(
         unit.position[0], 100.0,
         "it never set off for a crossing that is not there"
@@ -278,7 +299,7 @@ fn a_road_with_no_bridge_is_no_road_across() {
 }
 
 /// A jeep and a tank at the two ends of `map`'s one road, each sent to
-/// where the other starts: the ticks either spent waiting for the other,
+/// beyond where the other starts: the ticks either spent waiting for the other,
 /// once both have arrived.
 fn head_on(map: Value) -> u64 {
     let units = json!([
@@ -286,7 +307,7 @@ fn head_on(map: Value) -> u64 {
         { "side": "blue", "kind": "tank", "position": [2900, 400], "yaw": std::f64::consts::PI },
     ]);
     let mut b = Battle::new(&scenario(map, units, json!([])), 1);
-    for (seq, (unit, goal)) in [(0, 2900.0), (1, 100.0)].into_iter().enumerate() {
+    for (seq, (unit, goal)) in [(0, 2920.0), (1, 80.0)].into_iter().enumerate() {
         let ack = b.accept(CommandEnvelope {
             side: Side::Blue,
             seq: seq as u64 + 1,
@@ -306,6 +327,15 @@ fn head_on(map: Value) -> u64 {
     let mut waited = 0;
     for _ in 0..400 * hz {
         b.step();
+        assert!(
+            !b.unit(UnitId(0))
+                .unwrap()
+                .hull_box()
+                .unwrap()
+                .overlaps(&b.unit(UnitId(1)).unwrap().hull_box().unwrap()),
+            "opposing vehicles keep their hulls separate at tick {}",
+            b.tick()
+        );
         waited += u64::from(own(&b, 0).state == MoveState::Waiting);
         waited += u64::from(own(&b, 1).state == MoveState::Waiting);
         if own(&b, 0).state == MoveState::Idle && own(&b, 1).state == MoveState::Idle {
@@ -313,13 +343,13 @@ fn head_on(map: Value) -> u64 {
         }
     }
     assert!(
-        (own(&b, 0).position[0] - 2900.0).abs() < 2.0,
+        (own(&b, 0).position[0] - 2920.0).abs() < 2.0,
         "the jeep arrived: {:?} at {:?}",
         own(&b, 0).state,
         own(&b, 0).position
     );
     assert!(
-        (own(&b, 1).position[0] - 100.0).abs() < 2.0,
+        (own(&b, 1).position[0] - 80.0).abs() < 2.0,
         "the tank arrived: {:?} at {:?}",
         own(&b, 1).state,
         own(&b, 1).position
@@ -359,7 +389,7 @@ fn two_columns_meeting_on_a_narrow_track_all_get_past() {
         { "side": "blue", "kind": "jeep", "position": [2900, 400], "yaw": std::f64::consts::PI },
         { "side": "blue", "kind": "tank", "position": [2940, 400], "yaw": std::f64::consts::PI },
     ]);
-    let goals = [2900.0, 2940.0, 100.0, 60.0];
+    let goals = [2920.0, 2960.0, 80.0, 40.0];
     let mut b = Battle::new(&scenario(map, units, json!([])), 1);
     for (unit, goal) in goals.into_iter().enumerate() {
         let ack = b.accept(CommandEnvelope {
@@ -380,6 +410,16 @@ fn two_columns_meeting_on_a_narrow_track_all_get_past() {
     let hz = b.rules().tick_hz as u64;
     for _ in 0..400 * hz {
         b.step();
+        for i in 0..4 {
+            let hull = b.unit(UnitId(i)).unwrap().hull_box().unwrap();
+            for j in i + 1..4 {
+                assert!(
+                    !hull.overlaps(&b.unit(UnitId(j)).unwrap().hull_box().unwrap()),
+                    "opposing columns keep hulls separate at tick {}",
+                    b.tick()
+                );
+            }
+        }
         if (0..4).all(|id| own(&b, id).state == MoveState::Idle) {
             break;
         }

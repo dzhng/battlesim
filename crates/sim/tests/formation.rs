@@ -5,6 +5,87 @@ use sim::formation::{self, Member};
 use sim::math::v2;
 
 #[test]
+fn queued_destinations_do_not_assume_an_unfinished_attack_will_end() {
+    use contract::command::{CommandEnvelope, Order, TargetRef};
+    use contract::ids::Side;
+    use sim::battle::Battle;
+    let setup = crate::common::scenario(
+        r#"{"size":[300,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,"props":[]}"#,
+        serde_json::json!([{"side":"blue","kind":"jeep","position":[30,100]}]),
+        serde_json::json!([]),
+    );
+    let mut battle = Battle::new(&setup, 1);
+    assert_eq!(
+        battle
+            .accept(CommandEnvelope {
+                side: Side::Blue,
+                seq: 1,
+                queued: false,
+                order: Order::Attack {
+                    units: vec![UnitId(0)],
+                    target: TargetRef::Ground {
+                        point: [150.0, 100.0, 0.0]
+                    }
+                },
+            })
+            .error,
+        None
+    );
+    let preview = battle
+        .preview_move(
+            Side::Blue,
+            &contract::command::MovePreviewRequest {
+                units: vec![UnitId(0)],
+                goal: [200.0, 100.0],
+                queued: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    assert!(
+        !preview[0].placed,
+        "an indefinite attack has no terminal pose for a queued move"
+    );
+}
+
+#[test]
+fn a_free_destination_across_an_unbridged_river_is_not_validated() {
+    use contract::command::MoveDirection;
+    use contract::ids::Side;
+    use sim::battle::Battle;
+    let setup = crate::common::scenario(
+        &serde_json::json!({
+            "size": [300, 200], "fog_cell_m": 8, "height_grid_m": 4,
+            "slope_cutoff_deg": 35,
+            "rivers": [{ "points": [
+                { "xy": [150, 0], "width_m": 20, "depth_m": 1.5 },
+                { "xy": [150, 200], "width_m": 20, "depth_m": 1.5 }
+            ], "surface_z": -0.5 }]
+        })
+        .to_string(),
+        serde_json::json!([{ "side": "blue", "kind": "jeep", "position": [30, 100], "yaw": 0 }]),
+        serde_json::json!([]),
+    );
+    let mut b = Battle::new(&setup, 1);
+    let destinations = b
+        .preview_move(
+            Side::Blue,
+            &contract::command::MovePreviewRequest {
+                units: vec![UnitId(0)],
+                goal: [250.0, 100.0],
+                facing: None,
+                direction: MoveDirection::Forward,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    assert!(
+        !destinations[0].placed,
+        "standing room across water is not an executable move"
+    );
+}
+
+#[test]
 fn crowded_mixed_groups_place_every_unit_without_overlapping() {
     let members: Vec<_> = (0..100)
         .map(|id| Member {
@@ -119,7 +200,7 @@ fn a_partial_order_moves_the_units_that_fit_and_holds_the_others() {
         &map.to_string(),
         serde_json::json!([
             {"side": "blue", "kind": "tank", "position": [30, 100]},
-            {"side": "blue", "kind": "rifle", "position": [30, 130]}
+            {"side": "blue", "kind": "rifle", "position": [260, 260]}
         ]),
         serde_json::json!([]),
     );
@@ -137,7 +218,7 @@ fn a_partial_order_moves_the_units_that_fit_and_holds_the_others() {
     let order = Order::Move {
         units: vec![UnitId(0), UnitId(1)],
         gesture: 3,
-        goal: [200.0, 150.0],
+        goal: [290.0, 280.0],
         route: RoutePolicy::Shortest,
         direction: MoveDirection::Forward,
         facing: None,
@@ -165,6 +246,13 @@ fn a_partial_order_moves_the_units_that_fit_and_holds_the_others() {
     let observed = battle.observe(Side::Blue);
     assert_eq!(observed.own[0].goal, None);
     assert_eq!(observed.own[1].goal, Some(accepted[1].goal));
+    for _ in 0..600 * setup.rules.tick_hz {
+        battle.step();
+        if battle.observe(Side::Blue).own[1].goal.is_none() {
+            break;
+        }
+    }
+    assert_eq!(battle.observe(Side::Blue).own[1].goal, None);
 }
 
 #[test]
@@ -198,10 +286,13 @@ fn preview_queries_cannot_change_later_navigation_or_replay() {
         queried
             .preview_move(
                 Side::Blue,
-                &[UnitId(0)],
-                [170.0, 160.0],
-                None,
-                MoveDirection::Forward,
+                &contract::command::MovePreviewRequest {
+                    units: vec![UnitId(0)],
+                    goal: [170.0, 160.0],
+                    facing: None,
+                    direction: MoveDirection::Forward,
+                    ..Default::default()
+                },
             )
             .unwrap();
     }
@@ -210,10 +301,13 @@ fn preview_queries_cannot_change_later_navigation_or_replay() {
         queried
             .preview_move(
                 Side::Blue,
-                &[UnitId(0)],
-                [170.0, 160.0],
-                None,
-                MoveDirection::Forward,
+                &contract::command::MovePreviewRequest {
+                    units: vec![UnitId(0)],
+                    goal: [170.0, 160.0],
+                    facing: None,
+                    direction: MoveDirection::Forward,
+                    ..Default::default()
+                },
             )
             .unwrap();
         queried.step();

@@ -281,3 +281,22 @@
   width: 100%;
   background: repeating-conic-gradient(#2a2f37 0 25%, #1c2026 0 50%) 0 0 / 16px 16px;
 }
+/* The template line-up's ids: one under each building, placed by the live
+   projection (the transform is set every frame). */
+.lineup-labels {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.lineup-labels span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(12, 16, 22, 0.72);
+  color: #e6ecf5;
+  font: 11px/1.3 ui-monospace, Menlo, monospace;
+  white-space: nowrap;
+}

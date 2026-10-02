@@ -1,13 +1,12 @@
-import type { PublicWorldData } from "../sim/publicWorld";
+/** Main-thread side of battle preparation: one worker per request. */
 import type { SimConnection } from "../sim/client";
 import type { SimReply } from "../sim/protocol";
-/** Main-thread side of battle preparation: one worker per request. */
 import type {
   PrepareDiagnostic,
   PreparedBattle,
   PrepareMessage,
   PrepareReply,
-  PreparationProgressStage,
+  PrepareStage,
   RefusalStage,
 } from "./protocol";
 
@@ -37,7 +36,7 @@ export interface Preparation {
 
 export function prepareBattle(
   message: PrepareMessage,
-  onStage: (stage: PreparationProgressStage) => void,
+  onStage: (stage: PrepareStage) => void,
 ): Preparation {
   const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
   // A cancelled request stays silent even if its answer was already on its
@@ -91,38 +90,6 @@ export function prepareBattle(
   return {
     battle,
     cancel: () => {
-      cancelled = true;
-      worker.terminate();
-    },
-  };
-}
-
-/** Non-battle labs need the same public geometry, without navigation on the page. */
-export function prepareStaticWorld(map: string, rules: string) {
-  const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
-  let cancelled = false;
-  const world = new Promise<PublicWorldData>((resolve, reject) => {
-    worker.onmessage = (
-      event: MessageEvent<
-        { type: "static"; world: PublicWorldData } | { type: "error"; message: string }
-      >,
-    ) => {
-      if (cancelled) return;
-      worker.terminate();
-      if (event.data.type === "static") resolve(event.data.world);
-      else reject(new Error(event.data.message));
-    };
-    worker.onerror = (event) => {
-      if (!cancelled) {
-        worker.terminate();
-        reject(new Error(event.message));
-      }
-    };
-  });
-  worker.postMessage({ type: "static", map, rules });
-  return {
-    world,
-    cancel() {
       cancelled = true;
       worker.terminate();
     },

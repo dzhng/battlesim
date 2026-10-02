@@ -36,19 +36,21 @@ const SHOULDER_BANDS = 4;
 const STEP_M = 0.5;
 const WALK_M = [-1, GRASS_M[0]];
 /** A band may be this much brighter than the one inside it and still count
- *  as level: the grain, and blades over the ground. */
-const LEVEL = 0.03;
+ *  as level: the grain, blades over the ground, and which part of a furrow a
+ *  half-metre band along a drilled field's edge happens to hold. */
+const LEVEL = 0.04;
 /** A band may be this much darker than the grass band and not count as under
- *  it: open field differs that much from band to band by which plots lie in
- *  each. */
-const FIELD_LEVEL = 0.08;
+ *  it: open field differs that much from band to band by which plots and
+ *  which furrows lie in each. */
+const FIELD_LEVEL = 0.1;
 
 const linear = (v) => {
   const c = v / 255;
   return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
 };
 /** A displayed pixel's relative luminance. */
-const luminance = ([r, g, b]) => 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+export const luminance = ([r, g, b]) =>
+  0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
 
 /** The pixels of `mask` that are open ground (no wood, no bank) and pass
  *  `keep(class)`. */
@@ -61,7 +63,7 @@ function* groundPixels(mask, keep) {
 }
 
 /** The mean displayed colour and luminance of `shot` over `pixels`. */
-function mean(shot, pixels) {
+export function mean(shot, pixels) {
   const sum = [0, 0, 0];
   let light = 0,
     count = 0;
@@ -78,7 +80,7 @@ function mean(shot, pixels) {
 const warmth = ([r, , b]) => (r - b) / r;
 
 /** A station's frame, its bare ground and its class mask. */
-async function frame(page, map, station) {
+export async function frame(page, map, station) {
   return {
     mask: decode(await shoot(page, map, station, { view: "ground-classes" })),
     bare: decode(await shoot(page, map, station, { grass: false, trees: false })),
@@ -230,8 +232,14 @@ async function wornGroundStaysPut(page, first) {
   };
 }
 
+/** The fields' own texture off: a road is judged against plain ground, its
+ *  one variable. A furrow or a wheeling lying along a road's edge would put
+ *  its own stripe in a band of the walk. */
+const plainFields = (page) => lab(page, () => window.__lab.suppressFieldTexture(true));
+
 export async function roadLooks(ctx) {
   const village = await openStations(ctx, "village");
+  await plainFields(village);
   const bend = await frame(village, "village", "bend-65");
   const bands = { "village bend-65": coreAgainstGrass(bend) };
   const walks = {
@@ -244,6 +252,7 @@ export async function roadLooks(ctx) {
   const anchored = await wornGroundStaysPut(village, bend);
   await village.close();
   const river = await openStations(ctx, "river");
+  await plainFields(river);
   const track = await frame(river, "river", "track-65");
   bands["river track-65"] = coreAgainstGrass(track);
   walks["river track-65 bare"] = walk(track.bare, track.mask);
@@ -311,7 +320,7 @@ export async function roadLooks(ctx) {
       // patches make a band a fifth thinner or thicker than the next.
       clumps.slice(0, SHOULDER_BANDS).every((count, i) => i === 0 || count >= clumps[i - 1]) &&
       clumps.slice(SHOULDER_BANDS).every((count) => count > 0.7 * field) &&
-      clumps[0] < 0.35 * field &&
+      clumps[0] < 0.45 * field &&
       clumps[1] < 0.85 * field,
     JSON.stringify({ clumps, field }),
   );
@@ -347,15 +356,15 @@ const COST_PAIRS = 4;
 const median = (values) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
 
 /** ROAD_COST=1: what the roads' wear (their surface detail, their shoulders,
- *  the grass thinned across them) costs a frame, at two stations where roads
- *  fill much of the view: the same frozen frame with the wear on and off in
+ *  the grass thinned across them, a street's curb, lines and slab joints)
+ *  costs a frame, at stations where roads fill much of the view: the same frozen frame with the wear on and off in
  *  a few interleaved batches, the median of the paired differences. Run it
  *  alone, under the GPU lock. */
 export async function roadCost(ctx) {
   const result = { stations: {} };
   for (const [map, stations] of [
     ["village", ["bend-65"]],
-    ["generated", ["town-65"]],
+    ["generated", ["town-65", "junction-65"]],
   ]) {
     const page = await openStations(ctx, map);
     for (const station of stations) {

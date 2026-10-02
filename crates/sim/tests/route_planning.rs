@@ -75,6 +75,63 @@ fn one_tank() -> serde_json::Value {
 }
 
 #[test]
+fn a_new_body_during_infantry_refinement_replans_without_panicking() {
+    let mut setup = scenario(
+        r#"{"size":[120,120],"fog_cell_m":4,"height_grid_m":4,"slope_cutoff_deg":35}"#,
+        json!([{"side":"blue","kind":"recon","position":[20,20]}]),
+        1,
+    );
+    setup.events = serde_json::from_value(json!([{
+        "tick": 60,
+        "add_prop": {
+            "kind": "wall", "center": [62, 60],
+            "half_extents": [0.5, 8, 2], "yaw": 0
+        }
+    }]))
+    .unwrap();
+    let mut battle = Battle::new(&setup, 1);
+    send(&mut battle, 1, go(&[0], [100.0, 100.0]));
+    let mut digests = Vec::new();
+    let mut planned = false;
+    // One work item per tick deliberately stretches refinement across the event.
+    // This watchdog checks completion, not the shipped planning latency.
+    for _ in 0..9000 {
+        battle.step();
+        digests.push(battle.digest());
+        let unit = battle.unit(UnitId(0)).unwrap();
+        if battle.tick() > 60 && unit.route.is_some() {
+            planned = true;
+            break;
+        }
+    }
+    assert!(
+        planned,
+        "the changed edge must finish a safe replan: state={:?} pending={} position={:?}",
+        battle.unit(UnitId(0)).unwrap().state,
+        battle.load().routes_pending,
+        battle.unit(UnitId(0)).unwrap().position
+    );
+    assert_eq!(battle.load().routes_pending, 0);
+    let grid = sim::navigation::NavGrid::new(std::sync::Arc::new(sim::navigation::NavBase::build(
+        battle.world(),
+        battle.world().props(),
+        setup.rules.physics.soldier_radius_m,
+    )));
+    let unit = battle.unit(UnitId(0)).unwrap();
+    assert!(grid.route_fits(
+        unit.route_from,
+        unit.route.as_ref().unwrap(),
+        &unit.mobility
+    ));
+    let replay = serde_json::from_str(&serde_json::to_string(&battle.replay()).unwrap()).unwrap();
+    let mut copy = Battle::from_replay(&setup, &replay).unwrap();
+    for expected in digests {
+        copy.step();
+        assert_eq!(copy.digest(), expected);
+    }
+}
+
+#[test]
 fn a_unit_holds_where_it_is_while_its_route_is_planned_then_drives_it() {
     let mut b = Battle::new(&scenario(WALLED, one_tank(), 100), 1);
     send(&mut b, 1, go(&[0], [300.0, 100.0]));
@@ -136,16 +193,55 @@ fn a_search_stays_near_the_line_it_is_asked_to_cross() {
 
 #[test]
 fn a_search_gives_up_at_its_limit_and_reports_the_route_blocked() {
+    use sim::math::v2;
+    use sim::navigation::{Journey, Leg, NavBase, NavGrid, Plan, RoadNet};
+    use sim::world::WorldGeometry;
+    // An impossible live command is rejected before scheduling a route.
+    // Exercise the route owner directly to retain its bounded-search proof.
+    let search = |configure: &dyn Fn(&mut ScenarioDefinition)| {
+        let mut setup = scenario(CLOSED, one_tank(), 100);
+        configure(&mut setup);
+        let world = WorldGeometry::new(&setup.map, &setup.rules);
+        let grid = NavGrid::new(std::sync::Arc::new(NavBase::build(
+            &world,
+            world.props(),
+            setup.rules.physics.soldier_radius_m,
+        )));
+        let roads = RoadNet::build(&world);
+        let mobility = sim::units::mobility(setup.rules.catalog.by_id("tank"), &setup.rules);
+        let before = grid.work();
+        let mut journey = Journey::new(
+            &grid,
+            &roads,
+            None,
+            Leg {
+                from: v2(100.0, 100.0),
+                goal: v2(300.0, 100.0),
+                m: &mobility,
+                policy: RoutePolicy::Shortest,
+                avoid: &[],
+            },
+            &setup.rules.navigation,
+        );
+        let allowance = setup.rules.navigation.work_per_tick as u64;
+        for _ in 0..3000 {
+            let spent = journey.advance(&grid, &roads, allowance);
+            assert!(spent <= allowance + sim::navigation::LARGEST_STEP);
+            if journey.plan().is_some() {
+                assert!(matches!(journey.plan(), Some(Plan::Blocked(_))));
+                return grid.work() - before;
+            }
+        }
+        panic!("a limited search must finish");
+    };
     // No way across: the whole near half (10,000 cells) could be searched.
-    let (exhaustive, state) = work_to_plan(CLOSED, [300.0, 100.0], |_| {});
-    assert_eq!(state, MoveState::RouteBlocked);
+    let exhaustive = search(&|_| {});
     assert!(exhaustive > 5000, "it looked everywhere: {exhaustive}");
     // The rules bound how far a search looks: 4 cells a metre of its line.
-    let (bounded, state) = work_to_plan(CLOSED, [300.0, 100.0], |setup| {
+    let bounded = search(&|setup| {
         setup.rules.navigation.search_cells_base = 200;
         setup.rules.navigation.search_cells_per_m = 4;
     });
-    assert_eq!(state, MoveState::RouteBlocked);
     assert!(
         (1000..3000).contains(&bounded),
         "200 + 4 × 200 m cells, and the clearance worked out on the way: {bounded}"
@@ -311,6 +407,9 @@ fn a_replay_plans_the_same_routes_on_the_same_ticks() {
 
 #[test]
 fn an_enclosed_road_goal_finishes_its_counted_proof_and_replays() {
+    use sim::math::v2;
+    use sim::navigation::{Journey, Leg, NavBase, NavGrid, Plan, RoadNet};
+    use sim::world::WorldGeometry;
     let map = r#"{"size":[400,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
         "surfaces":[{"kind":"road","shape":{"kind":"stroke","points":[[20,100],[280,100]],"width_m":10}}],
         "props":[
@@ -330,10 +429,49 @@ fn an_enclosed_road_goal_finishes_its_counted_proof_and_replays() {
     if let Order::Move { route, .. } = &mut order {
         *route = RoutePolicy::Fastest;
     }
-    send(&mut battle, 1, order);
-    let mut live = Vec::new();
     // One search of the 20,000-cell map plus local proof and road checks
     // fits this allowance; recertifying the goal from another outside start does not.
+    // Admission refuses this command before it can schedule a live search.
+    let world = WorldGeometry::new(&setup.map, &setup.rules);
+    let grid = NavGrid::new(std::sync::Arc::new(NavBase::build(
+        &world,
+        world.props(),
+        setup.rules.physics.soldier_radius_m,
+    )));
+    let roads = RoadNet::build(&world);
+    let mobility = sim::units::mobility(setup.rules.catalog.by_id("tank"), &setup.rules);
+    let mut journey = Journey::new(
+        &grid,
+        &roads,
+        None,
+        Leg {
+            from: v2(start[0], start[1]),
+            goal: v2(300.0, 100.0),
+            m: &mobility,
+            policy: RoutePolicy::Fastest,
+            avoid: &[],
+        },
+        &setup.rules.navigation,
+    );
+    for _ in 0..130 {
+        assert!(journey.advance(&grid, &roads, 200) <= 200 + sim::navigation::LARGEST_STEP);
+        if journey.plan().is_some() {
+            break;
+        }
+    }
+    assert!(matches!(journey.plan(), Some(Plan::Blocked(_))));
+    let ack = battle.accept(CommandEnvelope {
+        side: Side::Blue,
+        seq: 1,
+        order,
+        queued: false,
+    });
+    assert_eq!(
+        ack.error,
+        Some(contract::command::OrderError::NoValidDestination)
+    );
+    assert!(!ack.placement.unwrap().destinations[0].placed);
+    let mut live = Vec::new();
     for _ in 0..130 {
         battle.step();
         live.push(battle.digest());
@@ -341,13 +479,11 @@ fn an_enclosed_road_goal_finishes_its_counted_proof_and_replays() {
         assert_eq!(
             xy(&own(&battle, 0)),
             start,
-            "holds while proving obstruction"
+            "a refused destination never starts movement"
         );
-        if own(&battle, 0).state == MoveState::RouteBlocked {
-            break;
-        }
+        assert_eq!(own(&battle, 0).state, MoveState::Idle);
+        assert_eq!(own(&battle, 0).goal, None);
     }
-    assert_eq!(own(&battle, 0).state, MoveState::RouteBlocked);
     assert!(battle.load().routes_pending == 0);
     let record = serde_json::from_str(&serde_json::to_string(&battle.replay()).unwrap()).unwrap();
     let mut replay = Battle::from_replay(&setup, &record).unwrap();
