@@ -62,10 +62,10 @@ Wrecks are the live vehicle's own parts, worked over by `wreckage.py` before the
 
 ## Textures
 
-A material may carry baked textures (bundle format 3), in three channels (`TEXTURE_CHANNELS`, `schema.ts`):
+A material may carry baked textures, in three channels (`TEXTURE_CHANNELS`, `schema.ts`):
 
 - **albedo**, sRGB; its alpha is the wear threshold;
-- **normal**, tangent space;
+- **normal**, tangent space; its alpha is coverage (see "Coverage and rooms");
 - **ORM**: occlusion, roughness and metalness, with the side-tint mask in alpha.
 
 A source embeds them as a standard glTF material's PNG textures, with a `TANGENT` attribute on its meshes. The bake (`texture.ts`) decodes each image, builds every mip level and addresses the texture by the sha256 of its content. It then stores the texture once per bundle, however many materials share it. The renderer keys textures by that address too, so a texture two bundles share is one layer on the GPU.
@@ -75,6 +75,26 @@ The validator's `texture.*` findings (`validate.ts`) hold every texture square, 
 A textured material's vertex colour means something different. It is relative to the albedo texture's mean and stored at a third (`Material.colour_scale` 3), so dust, ash and rust can lighten or tint a surface as well as darken it. Its alpha says how worn the surface is. Where that rises past the albedo's wear threshold, the material's `wear` colour shows, as crisp chips on edges and spatter low down.
 
 The textures are procedural recipes in `blender/textures.py`: camouflage prints, weaves, rubber, steel, burnt metal, wood, stone, concrete and markings. Each is evaluated on a periodic lattice, so it tiles seamlessly, and baked with fixed seeds. The scripts give a textured part UVs in metres by box projection (`box_uv`), so every part and every tier samples the recipe at its own scale. `attach` then writes the images into the exported GLB. Painted markings (tactical numbers, crate stencils, launcher nomenclature) are modelled as thin lettering (`parts.stencil`).
+
+## Coverage and rooms
+
+Every alpha has one meaning, and a material says the rest in words. Wear lives in the albedo texture's alpha and the vertex colour's, and the tint mask in the ORM texture's, on every material. How much of a surface is there is a separate statement, the material's **coverage** (`Coverage`, `schema.ts`):
+
+- **opaque**, which every material is unless its source says otherwise;
+- a **cutout**, drawn only where its coverage value reaches the material's cutoff (a grille, a sign's lettering);
+- **blended**, partly there, with what is behind it showing through (glass).
+
+The coverage value is the base colour's alpha times the normal texture's alpha: the two alphas nothing else used. So a cutout can still wear and take a side's tint, and nothing has to guess whether an alpha is damage or a hole. An opaque material ignores both.
+
+A source says it the standard glTF way, `alphaMode` with `alphaCutoff`. The Blender helpers write those from a `coverage` argument on each material helper, and a recipe's coverage image rides its normal map (`textures.surface`, `Baked`).
+
+A material may also be a **room**: a wall of the open box behind a window, which shows a cell of an interior atlas sheet at its own UVs (the atlas contract is in the [city readme](blender/city/README.md), "Interiors"). The material names the sheet (extras `interior`), and that is all it says: which cell, and its mirroring, is the drawer's choice per window.
+
+The bundle only carries these statements. What draws them is the renderer's, and a bundle of another format is refused, never read as if it were opaque.
+
+The validator's `material.*` findings (`material.ts`) refuse what would be drawn wrong without anyone noticing. A cutout or blended material whose coverage value never crosses its own threshold has lost its coverage on the way (authored in the albedo's alpha, say). A blended surface cannot wear, since a worn patch has no coverage of its own. A room is opaque, has no textures or wear of its own, and is on a static appearance.
+
+`asset validate <glb>` prints each material as it would be baked.
 
 ## Where things are
 

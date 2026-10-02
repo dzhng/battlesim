@@ -42,6 +42,7 @@ const DEFAULT_MATERIAL: Material = {
   metallic: 0,
   roughness: 1,
   tint: 0,
+  coverage: { kind: "opaque" },
 };
 
 /** Materials, and the textures they sample, deduplicated across every source
