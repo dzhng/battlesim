@@ -6,7 +6,7 @@
 Does the complete saved/runtime map system deliver the intended playable battles on this Mac at ≥30 FPS?
 
 ## Contract it unlocks
-Closeout of the existing map/scenario/menu/replay owners: all primary type/size presets are available, fixed-seed and runtime maps use the same compiled geometry/templates, existing focused maps have real surroundings, and camera movement stays clear. C58 already owns the early fixed-seed encounter configuration; no second encounter builder lands here.
+Closeout of the existing map/scenario/menu/replay owners: all primary type/size presets are available, fixed-seed and runtime player maps use the same compiled geometry/templates and wider rendered surroundings, developer arenas retain their original extent under M29, and camera movement stays clear. C58 already owns the early fixed-seed encounter configuration; no second encounter builder lands here.
 
 ## API seam
 Integrated catalogue/generation resolution → existing battle/scenario/replay and rendering path.
