@@ -242,19 +242,19 @@
       "unit": "scenery"
     },
     "tree_broadleaf": {
-      "bundle": "13c9fe716c3082e49a85965bf6cec4d32984758436e61c4496f3c9fa72be6024",
+      "bundle": "adc97d606663dc3c16fde517a3ca9fd9690b68fb8465930ec464fa09a6bbc7a2",
       "kind": "static",
       "scenery": "tree",
       "unit": "scenery"
     },
     "tree_spreading": {
-      "bundle": "274e499d474655b1deecdd68e53b28214e7a75f5a840e747ebf74102cead1475",
+      "bundle": "9853f203e8f51c5ba3eb4ed49c97d5228650bc59f45d7d4db63519e3798fb896",
       "kind": "static",
       "scenery": "tree",
       "unit": "scenery"
     },
     "tree_tall": {
-      "bundle": "bf5a92862613a65fe1a83f652ab054bdfcf28882f8a4156faee7b87cb7de04d7",
+      "bundle": "4f9eb30eb11b7289a63591a4077b35efdd7991d4250e67d19e0fee5cb6872380",
       "kind": "static",
       "scenery": "tree",
       "unit": "scenery"
