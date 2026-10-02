@@ -52,7 +52,7 @@ How a clump is shaded became the biome's, because the old look failed at the pla
 | `field-65` | 26,421 → 37,248 | 1.92 → 1.16 | 1.69 → 1.45 |
 | `bend-25` | 22,167 → 22,705 | 0.84 → 0.91 | 1.22 → 0.85 |
 
-Inside the +0.4 ms kill bar at both, with a third more clumps and blades held 1.4 px wide where they were 0.8. The baseline's pairs spread from -0.1 to 3.3 ms, so the bar is met, not beaten by a known margin.
+Inside the +0.4 ms kill bar at both, with a third more clumps, measured with blades held 1.8 px wide where they were 0.8 (they hold 1.4 px since, not measured again). The baseline's pairs spread from -0.1 to 3.3 ms, so the bar is met, not beaten by a known margin.
 
 **A regression found and removed on the way.** C82 grew the field's uniform struct to 2.3 KiB, and every shader stage took it with `let P = params`, a whole copy per invocation: the vertex stage, per blade vertex, cost 8 to 12 ms a frame over a field (measured at `meadow-65` and `wheat-65`). They read it through a pointer now. Nothing else in the lane should grow a uniform that a vertex or fragment stage copies.
 
@@ -63,4 +63,4 @@ Inside the +0.4 ms kill bar at both, with a third more clumps and blades held 1.
 **Open.**
 - At 65 m a blade is under a pixel. What separates kinds there is the plot's palette (rough and prairie borrow meadow's and hay's until C84) and the ground's own texture between and under the clumps (C85). Grass alone will not make the play camera read as vegetation.
 - No grass is drawn at 250 m (the fade ends near 180 m); `field-250` and `country-250` moved only because plot kinds did.
-- The village scene's `GRASS_COST` run threw on a missing `median`; it is defined now, and not rerun under the GPU budget.
+- The village scene's `GRASS_COST` run threw on a missing `median`; it is defined now, and not rerun under the GPU budget. The village scene's camera tour (seating, residency, buffers) passed on the starting commit and was not rerun on the final one; the workbench scene was not run.
