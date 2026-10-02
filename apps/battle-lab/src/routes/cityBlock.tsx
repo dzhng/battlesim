@@ -3,9 +3,10 @@
 // request (?type=, ?size=, ?seed= choose another), the block is the apartment
 // building nearest the main town's centre that has a house beside it, and the
 // camera stands at fixed stations round it: on the street, at the default
-// tactical camera, 250 m out, and at the strategic overview. A switch makes
-// the side see the block's apartment building fall; a probe replaces the
-// map's buildings with every other one, as a new map would.
+// tactical camera, 250 m out, low over the town from 2 km, and at the
+// strategic overview. A switch makes the side see the block's apartment
+// building fall; a probe replaces the map's buildings with every other one,
+// as a new map would; `?tier=0..3` draws every building at one detail tier.
 import { useCallback, useMemo, useRef, useState } from "react";
 import config from "@fixtures/generated-battle.json";
 import presets from "@fixtures/map-presets.json?raw";
@@ -45,6 +46,7 @@ import { mapAppearances, useGameAppearances } from "../gameAppearances";
 import { gameBiome } from "../gameBiome";
 import { gameCamera } from "../gameCamera";
 import { LabViewport, type ViewportPilot } from "../LabViewport";
+import { askedTier, tierBoundaries, useBuildingTier } from "../buildingTier";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import { useStaticMap, type StaticWorld } from "../useStaticWorld";
 
@@ -55,6 +57,10 @@ const DEFAULT: MapChoice = { type: "mixed", size: "small", seed: "1" };
 const BLOCK_REACH_M = 90;
 /** The third station's distance, metres. */
 const WIDE_M = 250;
+/** The oblique station: the town from far off and low, most of the map
+ *  behind it up to the horizon. A player's orbit goes lower still; this is a
+ *  view a player holds. */
+const OBLIQUE = { distance_m: 2000, pitch: 0.3 };
 /** How far along a street the street station looks for its run, metres. */
 const STREET_RUN_M = 80;
 /** What a fallen building's remains stand to, metres. */
@@ -277,18 +283,23 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
   }, [world, drawn, block, half, fallen, halved, surfaceZ]);
   const buildingsFeed = useFeed(standing?.buildings ?? null);
   const obstaclesFeed = useFeed(standing?.obstacles ?? null);
+  const { style, drawAt } = useBuildingTier(askedTier(window.location.search));
 
   // The stations, each a framing the rig places as a scripted camera's.
   const cameraConfig = useMemo(() => gameCamera.forMap(generated.size), [generated]);
-  const stations = useMemo(() => {
-    if (!world || !block) return null;
-    const rig = new CameraController(cameraConfig);
-    const at = (target: [number, number], distance: number, yaw: number): CameraPose => ({
+  const rig = useMemo(() => new CameraController(cameraConfig), [cameraConfig]);
+  /** The rig's framing of `target` from `distance`. */
+  const at = useCallback(
+    (target: [number, number], distance: number, yaw: number): CameraPose => ({
       target,
       distance,
       yaw,
       pitch: rig.pitchAt(distance),
-    });
+    }),
+    [rig],
+  );
+  const stations = useMemo(() => {
+    if (!world || !block) return null;
     const opening = gameCamera.opening();
     const street = streetNear(world, block.center);
     return {
@@ -298,13 +309,14 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
         : at(block.center, cameraConfig.zoom_min, opening.yaw),
       tactical: at(block.center, opening.distance, opening.yaw),
       wide: at(block.center, WIDE_M, opening.yaw),
+      oblique: { ...at(block.center, OBLIQUE.distance_m, opening.yaw), pitch: OBLIQUE.pitch },
       overview: at(
         [generated.size[0] / 2, generated.size[1] / 2],
         cameraConfig.zoom_max,
         opening.yaw,
       ),
     };
-  }, [world, block, generated, cameraConfig]);
+  }, [world, block, generated, cameraConfig, at]);
   type Station = keyof NonNullable<typeof stations>;
   const [station, setStation] = useState<Station>("tactical");
   // Where the camera is cut to, once, when a station is chosen.
@@ -335,6 +347,12 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
         stations: () => stations,
         /** Cut the camera to a station, as the rig places it. */
         stand,
+        /** The rig's framing of the block from `distance` metres. */
+        poseAt: (distance: number) => at(block.center, distance, gameCamera.opening().yaw),
+        /** How far off each tier boundary is in this window, metres. */
+        boundaries: tierBoundaries,
+        /** Every building at one tier (null: by distance); resolves once drawn. */
+        drawAt,
         block: () => block,
         surfaceZ,
         surfaceAt: (x: number, y: number) => {
@@ -370,7 +388,7 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
          *  new map's would be), or all of them again. */
         setHalved,
       },
-    [world, drawn, block, stations, stand, surfaceZ, choice, generated],
+    [world, drawn, block, stations, stand, at, drawAt, surfaceZ, choice, generated],
   );
 
   if (!world || !meshes || !stations) return null;
@@ -381,6 +399,7 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
         fixture="city-block"
         world={worldFeed}
         buildings={buildingsFeed}
+        buildingStyle={style}
         obstacles={obstaclesFeed}
         appearances={modelAppearances}
         initialCamera={{
