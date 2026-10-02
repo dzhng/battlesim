@@ -199,3 +199,27 @@ stale snapshots and opens a fresh baseline. Existing consumer inspection found
 no mutation of these returned static views; static array types are readonly.
 Producer schema, canonical values and battle/publication identities are unchanged.
 Browser allocation/peak/throughput and the 19.8 KB whole-record gate remain open.
+
+
+## Outcome: stable static identities through the pose feed
+
+`ObservationFeed` now converts corpses only when the immutable decoded corpse
+array changes, retaining one converted fallen list. A changed floor/position
+view rebuilds it without altering earlier input or converted rows. `PoseDriver`
+already gates reconciliation on fallen-list identity; its existing owner still
+advances death, blend, fade and expiry every frame and resets on clock rollback.
+No second driver cache or cap/timing rule is introduced. The session's existing
+known-prop JSON key is memoized by known-prop array identity at its one owner.
+
+A bounded synthetic construction probe sends 50 fresh observations sharing
+20,000 frozen corpses, with no living units and the normal pose cap. The old feed
+builds 50 lists/1,000,000 converted rows and reads source positions 1,000,000
+times; the new feed builds one list/20,000 rows and reads positions 20,000 times.
+Capped corpse pose values remain unchanged throughout. This counts construction
+and input reads, not heap bytes, retired instructions, frame time or GPU work.
+
+The public feed tracer fails before the change and passes with stable array/row
+identity, frozen input and changed-floor reconstruction. The existing feed/driver
+suites preserve death/fade/cap/reset behavior. Producer, decoder, world, camera
+and frame orchestration are unchanged. No upload or visual-throughput verdict is
+claimed; browser admission and whole-record budgets remain open.
