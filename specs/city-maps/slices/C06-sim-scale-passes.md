@@ -524,3 +524,16 @@ advance includes collision, cover and soldier movement. Physical advance owns
 70.7% and 81.1% of the two nested totals. Coarse counter reads, about six per
 virtual step, are included; these are attribution measurements, not a measured
 speedup. No demonstrated small allocation cleanup resolves that amplification.
+
+The unchanged control also runs through 900 ticks to test whether the five-second
+probe ended before weapon setup. At ticks 150/300/600/900 it has 1/2/3/3 launched
+rounds, 200/200/199/199 living units, no soldier corpses and 0/0/1/1 wrecks. Blue
+ends with six movement goals and routes, maximum displacement 150.13 m; red has
+no movement goals throughout and moves at most 9.36 m. The final digest is
+`d167f5f4d7bc46ce`. Orders spend 176.662 billion instructions across the arm;
+ordinary phases average 101.437 million per tick. Complete final observations
+and the matching input identities are retained with the 900-tick receipts.
+Some combat occurs, but the intended broadly moving contact load is not
+established. Faster execution with identical refusals cannot repair that workload
+gap. Current admission needs a movement-admission resolution or an explicitly
+accepted representative workload; a quiet five-minute run cannot close it.
