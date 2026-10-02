@@ -51,3 +51,38 @@ export function groundRunCells(p: GroundRunsPatch): number {
   for (let k = 1; k < p.runs.length; k += 4) count += Math.floor(p.runs[k] / 256);
   return count;
 }
+
+/** Independent raw-bit fixture writer for the layout's final ground tail. */
+export function packedGroundRuns(runs: readonly number[]): Float32Array {
+  let bits = 0n,
+    count = 0n,
+    prior = 0;
+  const put = (value: number, width: number) => {
+    bits |= BigInt(value) << count;
+    count += BigInt(width);
+  };
+  for (let row = 0; row < runs.length; row += 4) {
+    const tile = runs[row],
+      span = runs[row + 1],
+      a = runs[row + 2],
+      b = runs[row + 3];
+    let delta = tile - prior;
+    do {
+      const byte = delta & 127;
+      delta >>>= 7;
+      put(byte | (delta ? 128 : 0), 8);
+    } while (delta);
+    put(span % 256, 8);
+    put(Math.floor(span / 256) - 1, 8);
+    const marks = [a & 255, a >>> 8, b & 255, (b >>> 8) & 255, b >>> 16];
+    put(
+      marks.reduce((mask, value, i) => mask | (Number(value !== 0) << i), 0),
+      5,
+    );
+    for (const value of marks) if (value) put(value, 8);
+    prior = tile;
+  }
+  const words = new Uint32Array(Math.ceil(Number(count) / 32));
+  for (let i = 0; i < words.length; i++) words[i] = Number((bits >> BigInt(i * 32)) & 0xffffffffn);
+  return new Float32Array(words.buffer);
+}

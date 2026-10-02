@@ -5211,3 +5211,26 @@ and replay proof, and the remaining integration gate, live in the
 
 **Verdict:** sound; high confidence. Geometry ownership stays with the current
 grid, and revision recovery stays with the existing planner.
+
+
+## C07: encode the final learned-ground tail through the existing carrier
+
+**Gap:** The captured real-catalogue five-minute early run violates the unchanged
+19,800 B maximum through a 1,313-run knowledge burst. Earlier non-map packing does
+not own these rows; simple absolute/delta varints still miss the gate.
+
+**Choice:** Extend the one publication serializer/decoder across the named ground
+tail seam. Declare one compact grammar in the producer's layout, reuse its raw
+u32 carrier/LEB/count/write and the browser's shared reader, and reconstruct the
+existing canonical four-word runs before existing physical/order validation.
+There is no legacy format fallback, per-side ground predictor, retained codec
+cache, second producer staging buffer, dependency, cap increase or delayed mark.
+
+**Verdict:** Sound, high confidence. All captured raw words reconstruct; the
+public burst is red before/green after; malformed tails preserve atomic retry.
+Count+encode costs about 0.012 M mean instructions against 3.582 M full packing.
+The decoder allocates the same owned canonical runs it already exposed, with
+minimum-wire and complete-logical-record admission before allocation. Byte and
+memory proofs remain scoped: the late battle panics, frozen replay is not final
+whole-battle admission, and browser clocks/cold allocator components do not prove
+loaded throughput or full-world process/GPU peak.

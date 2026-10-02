@@ -451,6 +451,14 @@ pub fn layout_json(battle: &Battle) -> String {
         "ground": {
             "count": "groundRunCount",
             "fields": GROUND_FIELDS,
+            "packed": {
+                "bitOrder": "lsb-first in raw u32 carrier words",
+                "tile": "delta from prior tile (initially zero); canonical unsigned LEB128, at most four bytes",
+                "span": "u8 start, u8 length-minus-one",
+                "marks": "u5 presence mask in crater/scorch/tracks/trampled/cleared order; u8 nonzero values for set bits",
+                "padding": "zero bits to the next u32 carrier boundary",
+                "count": "groundRunCount canonical four-word rows; final record tail"
+            },
             "tileSize": 16,
             "maxRecordBytes": MAX_PUBLICATION_BYTES,
             "cellM": ground.cell_m(),
@@ -625,7 +633,7 @@ impl Publisher {
             &mut self.logical,
             Some(&mut ends),
         )?;
-        encode_groups(
+        let ground_bytes = encode_delivery(
             &self.logical,
             &ends,
             if base.is_some() {
@@ -659,7 +667,7 @@ impl Publisher {
         self.fog_grid = Some(grid);
         self.epoch = epoch;
         self.cursor = Some((side, ground.revision));
-        self.ground_bytes = count * GROUND_FIELDS.len() * 4;
+        self.ground_bytes = ground_bytes;
         Ok(&self.out)
     }
 
@@ -692,7 +700,7 @@ pub struct FogPatch<'a> {
     pub changed: &'a [usize],
 }
 
-/// Canonical complete logical record, before group delivery encoding. This is
+/// Canonical complete logical record, before group and ground delivery encoding. This is
 /// the reconstruction oracle; [`Publisher::publish`] owns the transport record.
 /// Fog/ground payloads still follow their supplied cursor headers.
 /// Admission precedes output allocation.
@@ -1144,19 +1152,26 @@ fn packed_len(frame: &ObservationFrame, fog: usize, runs: usize) -> Result<usize
     Ok(length)
 }
 
-/// Each group keeps its own addresses: changing a squad's variable rows never
+/// Canonical-to-wire serialization. Each non-map group keeps its own addresses:
+/// changing a squad's variable rows never
 /// shifts an unchanged corpse or known body. Values are copied as f32 words;
 /// equality is bitwise, including NaN payloads and signed zero.
-fn encode_groups(
+fn encode_delivery(
     logical: &[f32],
     ends: &[usize],
     previous: &[f32],
     previous_ends: &[usize],
     out: &mut Vec<f32>,
-) -> Result<(), String> {
+) -> Result<usize, String> {
     let mut plans = Vec::with_capacity(ends.len());
     let mut start = HEADER.len();
-    let mut length = HEADER.len() + logical.len() - ends.last().copied().unwrap_or(HEADER.len());
+    let tail = ends.last().copied().unwrap_or(HEADER.len());
+    let fog_floats = logical[HEADER.iter().position(|name| *name == "fogFloats").unwrap()] as usize;
+    let ground_start = tail + fog_floats;
+    let mut ground_count = PackedCount(0);
+    pack_ground(&logical[ground_start..], &mut ground_count);
+    let ground_words = ground_count.0.div_ceil(32);
+    let mut length = HEADER.len() + fog_floats + ground_words;
     for (g, &end) in ends.iter().enumerate() {
         let values = &logical[start..end];
         let old = previous_ends.get(g).map_or(&[][..], |&end| {
@@ -1275,8 +1290,43 @@ fn encode_groups(
         }
         start = end;
     }
-    out.extend_from_slice(&logical[start..]);
-    Ok(())
+    out.extend_from_slice(&logical[start..ground_start]);
+    let mut writer = PackedWriter {
+        out,
+        pending: 0,
+        bits: 0,
+    };
+    pack_ground(&logical[ground_start..], &mut writer);
+    writer.finish();
+    Ok(ground_words * 4)
+}
+
+/// Ground keeps its canonical four-word logical rows. Only their final wire
+/// tail changes: ordered tile deltas and exact byte marks share the carrier
+/// writer with non-map groups, without a baseline or another staging buffer.
+fn pack_ground(values: &[f32], sink: &mut impl PackedSink) {
+    let mut prior = 0;
+    for row in values.chunks_exact(GROUND_FIELDS.len()) {
+        let tile = row[0] as u32;
+        let span = row[1] as u32;
+        let a = row[2] as u32;
+        let b = row[3] as u32;
+        sink.integer(tile - prior);
+        sink.put(span % 256, 8);
+        sink.put(span / 256 - 1, 8);
+        let marks = [a & 255, a >> 8, b & 255, (b >> 8) & 255, b >> 16];
+        let mask = marks
+            .iter()
+            .enumerate()
+            .fold(0, |mask, (i, &value)| mask | (u32::from(value != 0) << i));
+        sink.put(mask, 5);
+        for value in marks {
+            if value != 0 {
+                sink.put(value, 8);
+            }
+        }
+        prior = tile;
+    }
 }
 
 /// The compact carrier changes only serialization of an already selected word
@@ -1583,7 +1633,7 @@ mod tests {
         let (old, old_ends) = record(&old_rows);
         let (logical, ends) = record(&rows);
         let mut encoded = Vec::new();
-        encode_groups(&logical, &ends, &old, &old_ends, &mut encoded).unwrap();
+        encode_delivery(&logical, &ends, &old, &old_ends, &mut encoded).unwrap();
         assert!(
             encoded.len() * 4 < 512,
             "three new rows must not resend 100 retained rows: {} B",
@@ -1595,6 +1645,33 @@ mod tests {
                 .flatten()
                 .map(|v| v.to_bits())
                 .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn ground_carriers_preserve_exact_address_span_and_mark_extremes() {
+        let rows = [
+            0.0,
+            65536.0,
+            0.0,
+            0.0,
+            16_777_215.0,
+            511.0,
+            65535.0,
+            16_777_215.0,
+        ];
+        let mut wire = Vec::new();
+        let mut writer = PackedWriter {
+            out: &mut wire,
+            pending: 0,
+            bits: 0,
+        };
+        pack_ground(&rows, &mut writer);
+        writer.finish();
+        let restored = codec::ground(&wire, 2);
+        assert_eq!(
+            restored.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
+            rows.iter().map(|v| v.to_bits()).collect::<Vec<_>>()
         );
     }
 
@@ -1635,7 +1712,7 @@ mod tests {
             let mut ends = vec![HEADER.len(); 7];
             ends.extend([logical.len(), logical.len()]);
             let mut encoded = Vec::new();
-            encode_groups(&logical, &ends, &old, &old_ends, &mut encoded).unwrap();
+            encode_delivery(&logical, &ends, &old, &old_ends, &mut encoded).unwrap();
             assert!(
                 encoded.len() * 4 < 1024,
                 "retained 80-row reorder should copy source rows: {} B",
@@ -1662,7 +1739,7 @@ mod tests {
         logical.push(1.0);
         logical.extend(words);
         let mut encoded = Vec::new();
-        encode_groups(
+        encode_delivery(
             &logical,
             &[HEADER.len() + 1, logical.len()],
             &previous,
@@ -1673,7 +1750,7 @@ mod tests {
         assert_eq!(&encoded[HEADER.len()..], &[1.0, 0.0, 0.0, 3.0, 0.0, 0.0]);
         logical[HEADER.len() + 2] = 0.0;
         logical[HEADER.len() + 1] = f32::from_bits(0x7fc0_0002);
-        encode_groups(
+        encode_delivery(
             &logical,
             &[HEADER.len() + 1, logical.len()],
             &previous,
