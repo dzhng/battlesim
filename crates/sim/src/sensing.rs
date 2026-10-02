@@ -193,9 +193,11 @@ pub fn evaluate(
     let s = &rules.sensors;
     let mut out = Vec::new();
     // The living enemy, once: fallen squads stay in the list all battle.
-    let targets: Vec<&Unit> = units
+    let body = rules.physics.soldier_radius_m;
+    let targets: Vec<(&Unit, f64)> = units
         .iter()
         .filter(|u| u.side != side && u.alive())
+        .map(|u| (u, u.footprint_radius(body)))
         .collect();
     for observer in units
         .iter()
@@ -203,11 +205,11 @@ pub fn evaluate(
     {
         let from = eyes(observer, rules);
         let sight = crate::sight::of(observer, rules);
-        for &target in &targets {
+        let observer_radius = observer.footprint_radius(body);
+        for &(target, target_radius) in &targets {
             // Every eye and sample lies within `spread` of the two centres, so
             // no sample can be seen past the widest reach across that arc.
-            let body = rules.physics.soldier_radius_m;
-            let spread = observer.footprint_radius(body) + target.footprint_radius(body);
+            let spread = observer_radius + target_radius;
             let to = target.position - observer.position;
             let distance = to.xy().length();
             let arc = if distance > spread {

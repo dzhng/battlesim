@@ -62,10 +62,6 @@ export class MapRefused extends Error {
 
 /** A resolved map as preparation hands it on. */
 export interface SourcedMap extends ResolvedMap {
-  /** The definition as JSON text. A generated map's is the generator's own
-   *  bytes, never a re-serialised parse, which would lose what a JSON number
-   *  cannot hold in JavaScript: the sign of a zero. */
-  json: string;
   /** `contract::encounter::EncounterSites` as the generator wrote them, for
    *  the encounter planner; a saved map has none. */
   sites: string | null;
@@ -168,8 +164,7 @@ type GenerateOutcome =
 export async function resolveMap(source: MapSource, access: MapAccess): Promise<SourcedMap> {
   if (source.kind === "catalogue") {
     try {
-      const { definition, identity } = await access.loadMap(source.id);
-      return { definition, identity, json: JSON.stringify(definition), sites: null };
+      return { ...(await access.loadMap(source.id)), sites: null };
     } catch (error) {
       if (!(error instanceof MapResolveError)) throw error;
       const { code, location, message } = error;

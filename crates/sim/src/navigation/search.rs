@@ -205,7 +205,8 @@ struct Smoothing {
     /// The segment being costed.
     reading: Option<Probe>,
     points: Vec<V2>,
-    turns: Vec<usize>,
+    /// None means every point, without an eager route-length index allocation.
+    turns: Option<Vec<usize>>,
     /// Grid-path cost between consecutive turns (straight runs of cells).
     run_costs: Vec<f64>,
     out: Vec<V2>,
@@ -219,15 +220,21 @@ struct Smoothing {
 }
 
 impl Smoothing {
-    fn new(points: Vec<V2>) -> Self {
-        let mut turns = vec![0];
-        for k in 1..points.len() - 1 {
-            let (d0, d1) = (points[k] - points[k - 1], points[k + 1] - points[k]);
-            if d0.cross(d1).abs() > 1e-9 || d0.dot(d1) < 0.0 {
-                turns.push(k);
+    fn new(points: Vec<V2>, m: &Mobility) -> Self {
+        // A collinear merge changes sampling phase. Infantry keeps every
+        // certified link until the reader certifies a longer one. Its index
+        // range is implicit, so entering smoothing takes constant work.
+        let turns = (m.class != MoverClass::Infantry).then(|| {
+            let mut turns = vec![0];
+            for k in 1..points.len() - 1 {
+                let (d0, d1) = (points[k] - points[k - 1], points[k + 1] - points[k]);
+                if d0.cross(d1).abs() > 1e-9 || d0.dot(d1) < 0.0 {
+                    turns.push(k);
+                }
             }
-        }
-        turns.push(points.len() - 1);
+            turns.push(points.len() - 1);
+            turns
+        });
         Smoothing {
             reading: None,
             points,
@@ -241,6 +248,20 @@ impl Smoothing {
         }
     }
 
+    fn turn_count(&self) -> usize {
+        self.turns
+            .as_ref()
+            .map_or(self.points.len().max(2), Vec::len)
+    }
+
+    fn point(&self, turn: usize) -> V2 {
+        let k = self
+            .turns
+            .as_ref()
+            .map_or(turn.min(self.points.len() - 1), |t| t[turn]);
+        self.points[k]
+    }
+
     /// Read the next stretch of the segment between two turns: `None` while
     /// there is more of it, then its cost (`None` if it does not fit).
     fn cost(
@@ -250,11 +271,9 @@ impl Smoothing {
         policy: RoutePolicy,
         (from, to): (usize, usize),
     ) -> Option<Option<f64>> {
-        let point = |turn: usize| self.points[self.turns[turn]];
-        let mut probe = self
-            .reading
-            .take()
-            .unwrap_or_else(|| Probe::new(point(from), point(to), who.m));
+        let reading = self.reading.take();
+        let mut probe =
+            reading.unwrap_or_else(|| Probe::new(self.point(from), self.point(to), who.m));
         let cost = grid.read(&mut probe, who, policy, true);
         if cost.is_none() {
             self.reading = Some(probe);
@@ -264,14 +283,14 @@ impl Smoothing {
 
     /// The smoothed route once the last turn is kept.
     fn step(&mut self, grid: &NavGrid, who: Mover, policy: RoutePolicy) -> Option<Vec<V2>> {
-        if self.run_costs.len() + 1 < self.turns.len() {
+        if self.run_costs.len() + 1 < self.turn_count() {
             let run = self.run_costs.len();
             let cost = self.cost(grid, who, policy, (run, run + 1))?;
             self.run_costs.push(cost.unwrap_or(f64::INFINITY));
             return None;
         }
         grid.spend(1);
-        if self.at + 1 >= self.turns.len() {
+        if self.at + 1 >= self.turn_count() {
             return Some(std::mem::take(&mut self.out));
         }
         if self.trying == 0 {
@@ -279,18 +298,18 @@ impl Smoothing {
             self.path_cost = self.run_costs[self.at];
             self.trying = self.at + 2;
         }
-        if self.trying < self.turns.len() {
+        if self.trying < self.turn_count() {
             let direct = self.cost(grid, who, policy, (self.at, self.trying))?;
             self.path_cost += self.run_costs[self.trying - 1];
             match direct {
                 Some(direct) if direct <= self.path_cost + 1e-9 => self.next = self.trying,
                 Some(_) => {}
-                None => self.trying = self.turns.len() - 1,
+                None => self.trying = self.turn_count() - 1,
             }
             self.trying += 1;
             return None;
         }
-        self.out.push(self.points[self.turns[self.next]]);
+        self.out.push(self.point(self.next));
         self.at = self.next;
         self.trying = 0;
         None
@@ -309,6 +328,7 @@ pub struct Leg<'a> {
 }
 
 enum Stage {
+    FootTrace(super::foot::FootTrace),
     Expanding(Expanding),
     Smoothing(Smoothing),
     Done(Plan),
@@ -360,10 +380,25 @@ impl RouteSearch {
             m,
             avoid: &self.avoid,
         };
-        let Some(start) = grid.nearest_fit(self.from, who, START_REACH_M) else {
+        let (fi, fj) = super::cell_of(self.from);
+        if m.class == MoverClass::Infantry && grid.index(fi, fj).is_none() {
+            return Stage::Done(Plan::Blocked(BlockReason::StartEnclosed));
+        }
+        let foot_cell = |p| {
+            if m.class != MoverClass::Infantry || !grid.stands(p, who) {
+                return None;
+            }
+            let (i, j) = super::cell_of(p);
+            grid.index(i, j)
+        };
+        let Some(start) =
+            foot_cell(self.from).or_else(|| grid.nearest_fit(self.from, who, START_REACH_M))
+        else {
             return Stage::Done(Plan::Blocked(BlockReason::StartEnclosed));
         };
-        let Some(target) = grid.nearest_fit(self.goal, who, NAV_CELL_M * 3.0) else {
+        let Some(target) =
+            foot_cell(self.goal).or_else(|| grid.nearest_fit(self.goal, who, NAV_CELL_M * 3.0))
+        else {
             return Stage::Done(Plan::Blocked(BlockReason::NoRoute));
         };
         if !grid.base.terrain.connected(start, target, grid.nx) {
@@ -444,6 +479,10 @@ impl RouteSearch {
                 s.run_costs.len() + s.at + s.trying,
                 s.reading.as_ref().map_or(0, |probe| probe.next),
             ],
+            Stage::FootTrace(trace) => {
+                let [at, points] = trace.progress();
+                [3, at, points]
+            }
             Stage::Done(_) => [2, 0, 0],
         };
         for v in stage
@@ -461,6 +500,10 @@ impl RouteSearch {
         };
         let next = match &mut self.stage {
             Stage::Done(_) => return,
+            Stage::FootTrace(trace) => trace.step(grid, who).map(|result| match result {
+                Ok(points) => Stage::Smoothing(Smoothing::new(points, who.m)),
+                Err(reason) => Stage::Done(Plan::Blocked(reason)),
+            }),
             Stage::Smoothing(smoothing) => smoothing
                 .step(grid, who, self.policy)
                 .map(|route| Stage::Done(Plan::Route(route))),
@@ -469,13 +512,22 @@ impl RouteSearch {
                 match expanding.open.pop() {
                     None => Some(Stage::Done(Plan::Blocked(BlockReason::NoRoute))),
                     Some(Open { cell, .. }) if cell as usize == self.target => {
-                        Some(Stage::Smoothing(Smoothing::new(trace(
-                            grid,
-                            &self.scratch,
-                            who,
-                            (self.from, self.start),
-                            (self.goal, self.target),
-                        ))))
+                        Some(if who.m.class == MoverClass::Infantry {
+                            Stage::FootTrace(super::foot::FootTrace::new(
+                                trace_cells(grid, &self.scratch, self.start, self.target),
+                                self.from,
+                                self.goal,
+                            ))
+                        } else {
+                            let points = vehicle_trace(
+                                grid,
+                                &self.scratch,
+                                who,
+                                (self.from, self.start),
+                                (self.goal, self.target),
+                            );
+                            Stage::Smoothing(Smoothing::new(points, who.m))
+                        })
                     }
                     Some(_) if self.work.expanded >= self.limit => {
                         Some(Stage::Done(Plan::Blocked(BlockReason::SearchLimit)))
@@ -586,13 +638,23 @@ fn expand(
 
 /// The reached target's path back to the start, as the points a mover
 /// passes: from where it stands, through each cell, to its goal.
-fn trace(
+fn vehicle_trace(
     grid: &NavGrid,
     scratch: &Scratch,
     who: Mover,
     (from, start): (V2, usize),
     (goal, target): (V2, usize),
 ) -> Vec<V2> {
+    let cells = trace_cells(grid, scratch, start, target);
+    let mut points: Vec<V2> = vec![from];
+    for w in cells.windows(2) {
+        points.push(grid.waypoint(w[1], who.m));
+    }
+    *points.last_mut().unwrap() = goal;
+    points
+}
+
+fn trace_cells(grid: &NavGrid, scratch: &Scratch, start: usize, target: usize) -> Vec<usize> {
     let mut cells = vec![target];
     while *cells.last().unwrap() != start {
         let k = *cells.last().unwrap();
@@ -600,16 +662,5 @@ fn trace(
     }
     cells.reverse();
     grid.spend((cells.len() / CELLS_PER_WORK) as u64);
-    // Infantry passes each orthogonal step through the middle of the
-    // gap on the shared edge, so a corridor through a narrow gap runs
-    // down its middle.
-    let mut points: Vec<V2> = vec![from];
-    for w in cells.windows(2) {
-        let crossing = (who.m.class == MoverClass::Infantry)
-            .then(|| grid.crossing(w[0], w[1]))
-            .flatten();
-        points.push(crossing.unwrap_or_else(|| grid.waypoint(w[1], who.m)));
-    }
-    *points.last_mut().unwrap() = goal;
-    points
+    cells
 }

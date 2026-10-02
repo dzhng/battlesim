@@ -152,7 +152,8 @@ fn ids_and_shot_counters_stay_exact_past_two_to_the_twenty_four() {
         len: 1,
         marks,
     };
-    publication::pack(&frame, &patch, &full_fog(), std::iter::once(run), &mut data).unwrap();
+    publication::pack_logical(&frame, &patch, &full_fog(), std::iter::once(run), &mut data)
+        .unwrap();
     let groups = decode(&layout, &data);
 
     let own = &groups["own"][0];
@@ -383,7 +384,8 @@ fn fog_snapshots_fit_the_admitted_extents_and_preserve_padding() {
                 ..Default::default()
             };
             let mut out = Vec::new();
-            publication::pack(&frame, &patch, &full_fog(), std::iter::empty(), &mut out).unwrap();
+            publication::pack_logical(&frame, &patch, &full_fog(), std::iter::empty(), &mut out)
+                .unwrap();
             assert!(
                 out.len() * 4 <= 20_250_108,
                 "18 km at 2 m is the snapshot bound"
@@ -460,7 +462,8 @@ fn an_over_budget_record_is_rejected_before_output_allocation() {
     let mut out = vec![1.0, 2.0];
     let capacity = out.capacity();
     let error =
-        publication::pack(&frame, &ground, &full_fog(), std::iter::empty(), &mut out).unwrap_err();
+        publication::pack_logical(&frame, &ground, &full_fog(), std::iter::empty(), &mut out)
+            .unwrap_err();
     assert!(error.contains("allocation allowance"));
     assert_eq!(
         out,
@@ -495,7 +498,7 @@ fn oversized_fog_dimensions_cannot_wrap_past_the_delivery_bound() {
     };
     let mut out = vec![3.0];
     assert!(
-        publication::pack(&frame, &ground, &full_fog(), std::iter::empty(), &mut out)
+        publication::pack_logical(&frame, &ground, &full_fog(), std::iter::empty(), &mut out)
             .unwrap_err()
             .contains("admitted bound")
     );
@@ -586,7 +589,7 @@ fn known_bodies_publish_exact_current_building_owner_and_authored_source_ids() {
         count: 0,
     };
     let mut data = Vec::new();
-    publication::pack(&frame, &header, &full_fog(), std::iter::empty(), &mut data).unwrap();
+    publication::pack_logical(&frame, &header, &full_fog(), std::iter::empty(), &mut data).unwrap();
     let groups = decode(&layout, &data);
     let bits = layout["limbBits"].as_u64().unwrap() as u32;
     let p = &groups["knownProps"][0].fields;
@@ -636,7 +639,7 @@ fn the_encoder_packs_the_codec_vectors_the_web_decoder_reads() {
     );
     let current: Value = serde_json::from_str(&publication::layout_json(&probe)).unwrap();
     let mut blessed = record.clone();
-    for key in ["header", "groups"] {
+    for key in ["header", "groups", "groupDelivery"] {
         blessed["layout"][key] = current[key].clone();
     }
     for row in blessed["vectors"].as_object_mut().unwrap().values_mut() {
@@ -667,7 +670,7 @@ fn the_encoder_packs_the_codec_vectors_the_web_decoder_reads() {
             count: 2,
         };
         let mut data = Vec::new();
-        publication::pack(&frame, &ground, &full_fog(), runs, &mut data).unwrap();
+        publication::pack_logical(&frame, &ground, &full_fog(), runs, &mut data).unwrap();
         row["bits"] = json!(data.iter().map(|v| v.to_bits()).collect::<Vec<_>>());
     }
     if common::bless_parity("publication/codec-vectors.json", &blessed) {
@@ -677,4 +680,188 @@ fn the_encoder_packs_the_codec_vectors_the_web_decoder_reads() {
     for (phase, row) in blessed["vectors"].as_object().unwrap() {
         assert_eq!(row["bits"], record["vectors"][phase]["bits"], "{phase}");
     }
+}
+
+#[test]
+fn unchanged_observation_groups_do_not_retransmit_own_rows() {
+    let setup = common::scenario(
+        &json!({"size":[128,128],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35})
+            .to_string(),
+        json!([{"side":"blue","kind":"rifle","position":[32,32]}]),
+        json!([]),
+    );
+    let battle = Battle::new(&setup, 1);
+    let mut publisher = publication::Publisher::new();
+    let snapshot = publisher.publish(&battle, Side::Blue).unwrap().len() * 4;
+    let steady = publisher.publish(&battle, Side::Blue).unwrap().len() * 4;
+    assert!(snapshot > 300);
+    assert!(
+        steady < 300,
+        "unchanged own rows must be retained: {steady} B"
+    );
+}
+
+#[test]
+fn group_delivery_reconstructs_the_logical_oracle_across_side_and_epoch_changes() {
+    let setup = common::scenario(
+        &json!({"size":[128,128],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35})
+            .to_string(),
+        json!([{"side":"blue","kind":"rifle","position":[32,32]}, {"side":"red","kind":"rifle","position":[64,32]}]),
+        json!([]),
+    );
+    let mut battle = Battle::new(&setup, 1);
+    let mut publisher = publication::Publisher::new();
+    let mut previous: Vec<Vec<f32>> = Vec::new();
+    for tick in 0..12 {
+        battle.step();
+        let side = if !(4..8).contains(&tick) {
+            Side::Blue
+        } else {
+            Side::Red
+        };
+        if tick == 2 {
+            publisher.resync();
+        }
+        let wire = publisher.publish(&battle, side).unwrap();
+        if wire[25] == 1.0 {
+            previous.clear();
+        }
+        let mut at = 27;
+        previous.resize_with(9, Vec::new);
+        for group in &mut previous {
+            let size = wire[at] as usize;
+            let encoding = wire[at + 1];
+            let end = at + 3 + wire[at + 2] as usize;
+            at += 3;
+            if encoding == 1.0 {
+                *group = wire[at..end].to_vec();
+                at = end;
+            } else if encoding == 2.0 {
+                let old = std::mem::take(group);
+                while at < end {
+                    let source = wire[at];
+                    let count = wire[at + 1] as usize;
+                    at += 2;
+                    if source == -1.0 {
+                        group.extend_from_slice(&wire[at..at + count]);
+                        at += count;
+                    } else {
+                        group.extend_from_slice(&old[source as usize..source as usize + count]);
+                    }
+                }
+            } else {
+                group.resize(size, 0.0);
+                while at < end {
+                    let start = wire[at] as usize;
+                    let count = wire[at + 1] as usize;
+                    at += 2;
+                    group[start..start + count].copy_from_slice(&wire[at..at + count]);
+                    at += count;
+                }
+            }
+        }
+        let mut oracle = Vec::new();
+        let ground = publication::GroundHeader {
+            epoch: 1,
+            side,
+            base: 0,
+            revision: 0,
+            full: true,
+            count: 0,
+        };
+        let frame = battle.observe(side);
+        publication::pack_logical(frame, &ground, &full_fog(), std::iter::empty(), &mut oracle)
+            .unwrap();
+        let row_end = oracle.len() - frame.ground_visibility.bits.len() * 2;
+        let actual: Vec<u32> = previous.iter().flatten().map(|f| f.to_bits()).collect();
+        assert_eq!(
+            actual,
+            oracle[27..row_end]
+                .iter()
+                .map(|f| f.to_bits())
+                .collect::<Vec<_>>(),
+            "tick {tick}"
+        );
+    }
+}
+
+#[test]
+fn one_variable_route_change_does_not_resend_other_own_units() {
+    use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy};
+    use contract::ids::UnitId;
+    let units: Vec<_> = (0..80)
+        .map(|i| json!({"side":"blue","kind":"rifle","position":[32 + i%10*24,32+i/10*24]}))
+        .collect();
+    let setup = common::scenario(
+        &json!({"size":[512,512],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35})
+            .to_string(),
+        json!(units),
+        json!([]),
+    );
+    let mut battle = Battle::new(&setup, 1);
+    battle.step();
+    let mut publisher = publication::Publisher::new();
+    let initial = publisher.publish(&battle, Side::Blue).unwrap().to_vec();
+    let old = &initial[30..30 + initial[27] as usize];
+    assert!(battle
+        .accept(CommandEnvelope {
+            side: Side::Blue,
+            seq: 1,
+            queued: false,
+            order: Order::Move {
+                units: vec![UnitId(0)],
+                gesture: 1,
+                goal: [400.0, 400.0],
+                route: RoutePolicy::Shortest,
+                direction: MoveDirection::Forward,
+                facing: None
+            }
+        })
+        .error
+        .is_none());
+    for _ in 0..240 {
+        battle.step();
+        if !battle.observe(Side::Blue).own[0].route.is_empty() {
+            break;
+        }
+    }
+    assert!(
+        !battle.observe(Side::Blue).own[0].route.is_empty(),
+        "the route must finish planning within eight simulated seconds"
+    );
+    let wire = publisher.publish(&battle, Side::Blue).unwrap();
+    eprintln!("own route payload {} B", (3 + wire[29] as usize) * 4);
+    assert!(
+        wire[27] > initial[27],
+        "the own variable section must actually grow"
+    );
+    let own_bytes = (3 + wire[29] as usize) * 4;
+    assert!(
+        own_bytes < 2000,
+        "one route change must retain the other 79 own units: {own_bytes} B"
+    );
+    assert_eq!(wire[28], 2.0);
+    let mut words = Vec::new();
+    let mut at = 30;
+    let end = at + wire[29] as usize;
+    while at < end {
+        let source = wire[at];
+        let count = wire[at + 1] as usize;
+        at += 2;
+        if source == -1.0 {
+            words.extend_from_slice(&wire[at..at + count]);
+            at += count;
+        } else {
+            words.extend_from_slice(&old[source as usize..source as usize + count]);
+        }
+    }
+    let mut snapshot = publication::Publisher::new();
+    let fresh = snapshot.publish(&battle, Side::Blue).unwrap();
+    assert_eq!(
+        words.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
+        fresh[30..30 + fresh[27] as usize]
+            .iter()
+            .map(|v| v.to_bits())
+            .collect::<Vec<_>>()
+    );
 }

@@ -22,10 +22,14 @@
 // bodies drawn as meshes run the pose kernel. Draws carry a fog class: units
 // (posed soldiers and vehicles) are drawn by identification and never fogged;
 // the world's models (buildings, corpses) take fog like any face.
+//
+// The fallen are a population of the static chunk owner
+// (`frame/staticChunks.ts`), chunked when their list changes: a far chunk
+// draws whole as a range of cards from a static buffer, and a near chunk's
+// corpses are chosen one by one and packed with the frame's other models.
 
 import { tgpu, d, std } from "typegpu";
 import { mat4, type Mat4 } from "math";
-import { frustum } from "math/shapes";
 import type {
   ArticulatedBundle,
   Bounds,
@@ -65,12 +69,17 @@ import { buildClipTable, clipFrames, type ClipFrames, type ClipTable } from "./c
 import { CONTROL_WORDS, poseKernelWgsl, writeControl } from "./poseKernel";
 import type { CorpseInstance, ModelInstance, ModelPose } from "./modelInstances";
 import {
+  selectChunks,
+  selectEveryChunk,
+  type ChunkLevel,
+  type StaticChunks,
+} from "../frame/staticChunks";
+import {
   CULLED,
   IMPOSTOR,
-  chunkCorpses,
-  chunkIsFar,
+  corpseChunkLevel,
+  corpseChunks,
   modelDetail,
-  type CorpseChunk,
   type ModelDetailPresentation,
 } from "./modelDetail";
 import { uploadCardAtlases, type CardGroup } from "./impostorCards";
@@ -632,13 +641,13 @@ export interface CardAtlas {
 /** A corpse population, chunked when it changes (`setCorpses`). */
 interface Corpses {
   count: number;
-  /** Records in chunk order (identity palette, no x-ray, card layer set). */
-  records: Float32Array<ArrayBuffer>;
-  /** Per record: its appearance. */
+  /** Its records (identity palette, no x-ray, card layer set) in chunk
+   *  order, one kind: the static card buffer's contents. */
+  chunks: StaticChunks;
+  /** Per record in chunk order: its appearance. */
   appearance: (GpuAppearance | null)[];
-  chunks: CorpseChunk[];
-  /** Per chunk: every corpse in it has a card, so it can draw whole as cards. */
-  carded: boolean[];
+  /** Cards for a whole chunk, when every corpse in it has one and is far. */
+  level: ChunkLevel<DetailView>;
 }
 
 export async function createModelLayer(
@@ -728,7 +737,6 @@ export async function createModelLayer(
   let corpseChoice = new Int32Array(64);
   let bucketCount = new Int32Array(8);
   let bucketCursor = new Int32Array(8);
-  const nearChunks: number[] = [];
 
   const stats: ModelStats = {
     installed: [],
@@ -1125,37 +1133,31 @@ export async function createModelLayer(
   function rechunk() {
     const list = corpseList;
     const count = list.length;
-    const positions = new Float32Array(count * 3);
+    const placed = new Float32Array(count * RECORD_FLOATS);
     const sizes = new Float32Array(count);
     const owners: (GpuAppearance | null)[] = list.map((c) => appearances.get(c.appearance) ?? null);
     list.forEach((c, i) => {
-      positions.set([c.x, c.y, c.z], i * 3);
-      sizes[i] = owners[i]?.corpseSize ?? 0;
+      const gpu = owners[i];
+      sizes[i] = gpu?.corpseSize ?? 0;
+      const r = i * RECORD_FLOATS;
+      placed[r] = c.x;
+      placed[r + 1] = c.y;
+      placed[r + 2] = c.z;
+      placed[r + 3] = c.yaw;
+      placed[r + 4] = IDENTITY_SLOT;
+      placed.set(c.tint ?? NO_TINT, r + 8);
+      placed[r + 11] = gpu?.corpseCard ?? -1;
+      placed.set(UNIT_SCALE, r + 12);
     });
-    const { order, chunks } = chunkCorpses(positions, sizes, count);
-    const recordsOut = new Float32Array(count * RECORD_FLOATS);
-    const appearance: (GpuAppearance | null)[] = [];
-    for (let k = 0; k < count; k++) {
-      const c = list[order[k]];
-      const gpu = owners[order[k]];
-      appearance.push(gpu);
-      const r = k * RECORD_FLOATS;
-      recordsOut[r] = c.x;
-      recordsOut[r + 1] = c.y;
-      recordsOut[r + 2] = c.z;
-      recordsOut[r + 3] = c.yaw;
-      recordsOut[r + 4] = IDENTITY_SLOT;
-      recordsOut.set(c.tint ?? NO_TINT, r + 8);
-      recordsOut[r + 11] = gpu?.corpseCard ?? -1;
-      recordsOut.set(UNIT_SCALE, r + 12);
-    }
-    const carded = chunks.map((chunk) => {
-      for (let i = chunk.start; i < chunk.end; i++)
+    const chunks = corpseChunks(placed, RECORD_FLOATS, sizes);
+    const appearance = Array.from(chunks.order[0], (i) => owners[i]);
+    const carded = chunks.chunks.map((chunk) => {
+      for (let i = chunk.start[0]; i < chunk.end[0]; i++)
         if ((appearance[i]?.corpseCard ?? -1) < 0) return false;
       return true;
     });
-    corpses = { count, records: recordsOut, appearance, chunks, carded };
-    corpseCards.set(upload("corpse-cards", recordsOut, VERTEX_USAGE));
+    corpses = { count, chunks, appearance, level: corpseChunkLevel(detail, carded) };
+    corpseCards.set(upload("corpse-cards", chunks.sorted[0], VERTEX_USAGE));
     if (corpseChoice.length < count) corpseChoice = new Int32Array(count * 2);
     stats.corpses = count;
     dirty = true;
@@ -1231,42 +1233,42 @@ export async function createModelLayer(
       bucketCount[bucket]++;
     }
 
-    // Corpses: far chunks as ranges of static cards, near ones per corpse.
+    // Corpses: far chunks as ranges of static cards, near ones per corpse
+    // (with no view, a bake: every corpse at tier 0).
     cardRunCount = 0;
-    nearChunks.length = 0;
-    const fixedRuns = cardRuns;
     let fixedCards = 0;
-    if (corpses && view) {
-      for (let k = 0; k < corpses.chunks.length; k++) {
-        const chunk = corpses.chunks[k];
-        if (!frustum.sidesIntersectsBox3(view.sides, chunk.box)) {
-          culled += chunk.end - chunk.start;
-          continue;
-        }
-        if (corpses.carded[k] && chunkIsFar(detail, view, chunk)) {
-          const last = cardRunCount > 0 ? fixedRuns[cardRunCount - 1] : null;
-          if (last && last.fixed && last.firstInstance + last.instances === chunk.start)
-            last.instances += chunk.end - chunk.start;
-          else pushCardRun(true, fogClassOf(CORPSE_POSE), chunk.start, chunk.end - chunk.start);
-          fixedCards += chunk.end - chunk.start;
-          continue;
-        }
-        nearChunks.push(k);
-        for (let i = chunk.start; i < chunk.end; i++) {
-          const gpu = corpses.appearance[i];
+    if (corpses) {
+      const { chunks, appearance } = corpses;
+      if (view) selectChunks(chunks, view, corpses.level, null);
+      else selectEveryChunk(chunks);
+      const fog = fogClassOf(CORPSE_POSE);
+      const whole = chunks.ranges[0][IMPOSTOR];
+      for (let r = 0; r < whole.length; r += 2) {
+        pushCardRun(true, fog, whole[r], whole[r + 1]);
+        fixedCards += whole[r + 1];
+      }
+      const fallen = chunks.sorted[0];
+      let near = 0;
+      for (const k of chunks.near) {
+        const chunk = chunks.chunks[k];
+        near += chunk.end[0] - chunk.start[0];
+        for (let i = chunk.start[0]; i < chunk.end[0]; i++) {
+          const gpu = appearance[i];
           corpseChoice[i] = CULLED;
           if (!gpu || !gpu.corpse.length) continue;
           const r = i * RECORD_FLOATS;
-          const tier = modelDetail(
-            detail,
-            view,
-            corpses.records[r],
-            corpses.records[r + 1],
-            corpses.records[r + 2],
-            gpu.corpseSize,
-            gpu.corpseRadius,
-            gpu.corpseCard >= 0,
-          );
+          const tier = view
+            ? modelDetail(
+                detail,
+                view,
+                fallen[r],
+                fallen[r + 1],
+                fallen[r + 2],
+                gpu.corpseSize,
+                gpu.corpseRadius,
+                gpu.corpseCard >= 0,
+              )
+            : 0;
           if (tier === CULLED) {
             culled++;
             continue;
@@ -1276,22 +1278,13 @@ export async function createModelLayer(
             nearCards++;
             continue;
           }
-          const bucket = gpu.corpse[tier].id * FOG_CLASSES + fogClassOf(CORPSE_POSE);
+          const bucket = gpu.corpse[tier].id * FOG_CLASSES + fog;
           corpseChoice[i] = bucket;
           bucketCount[bucket]++;
         }
       }
-    } else if (corpses) {
-      // No view (a bake): every corpse at tier 0.
-      for (let k = 0; k < corpses.chunks.length; k++) nearChunks.push(k);
-      for (let i = 0; i < corpses.count; i++) {
-        const gpu = corpses.appearance[i];
-        corpseChoice[i] = CULLED;
-        if (!gpu || !gpu.corpse.length) continue;
-        const bucket = gpu.corpse[0].id * FOG_CLASSES + fogClassOf(CORPSE_POSE);
-        corpseChoice[i] = bucket;
-        bucketCount[bucket]++;
-      }
+      // Every corpse in a chunk out of view.
+      culled += corpses.count - fixedCards - near;
     }
 
     // Buckets in drawable order: each run's records are contiguous.
@@ -1394,19 +1387,22 @@ export async function createModelLayer(
       if (choice % FOG_CLASSES === UNITS && (inst.xray?.[3] ?? 0) > 0) hasXrayMeshes = true;
       writeRecord(recordStaging, bucketCursor[choice]++, inst, base, scrollL, scrollR, -1);
     }
-    if (corpses)
-      for (const k of nearChunks) {
-        const chunk = corpses.chunks[k];
-        for (let i = chunk.start; i < chunk.end; i++) {
+    if (corpses) {
+      const { chunks } = corpses;
+      const fallen = chunks.sorted[0];
+      for (const k of chunks.near) {
+        const chunk = chunks.chunks[k];
+        for (let i = chunk.start[0]; i < chunk.end[0]; i++) {
           const choice = corpseChoice[i];
           if (choice === CULLED) continue;
           const at = choice === -2 ? card++ : bucketCursor[choice]++;
           (choice === -2 ? cardStaging : recordStaging).set(
-            corpses.records.subarray(i * RECORD_FLOATS, (i + 1) * RECORD_FLOATS),
+            fallen.subarray(i * RECORD_FLOATS, (i + 1) * RECORD_FLOATS),
             at * RECORD_FLOATS,
           );
         }
       }
+    }
 
     // Runs: each non-empty bucket is one draw.
     runCount = 0;

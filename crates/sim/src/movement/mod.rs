@@ -385,17 +385,19 @@ pub struct MovementContext<'a> {
 
 /// Move every living unit one tick. Returns the bodies vehicles shoved,
 /// for the caller to move in the world (movement reads it, never writes it).
-pub fn advance(
+pub(crate) fn advance(
     ctx: &MovementContext,
     units: &mut [Unit],
     sides: &mut [SideGeometry; 2],
     planner: &mut RoutePlanner,
+    completed: &mut impl FnMut(crate::battle::TickPhase),
 ) -> Vec<Shove> {
     let mut footprints: Vec<Option<Obb2>> = units
         .iter()
         .map(|u| u.hull_box().filter(|_| u.alive()))
         .collect();
     let field = take_cover::Field::gather(ctx, units);
+    completed(crate::battle::TickPhase::Movement);
     for unit in units.iter_mut() {
         // The destroyed stay put; a wreck is an obstacle prop, not traffic.
         if !unit.alive() {
@@ -406,6 +408,7 @@ pub fn advance(
         request_route(ctx, unit, &mut sides[s], &footprints, planner);
     }
     plan_routes(ctx, units, sides, &field, planner);
+    completed(crate::battle::TickPhase::Navigation);
     let hulls: Vec<Obb2> = footprints.iter().flatten().copied().collect();
     // Every live vehicle on the move, either side, as soldiers see it coming.
     let threats: Vec<Threat> = units
@@ -413,7 +416,7 @@ pub fn advance(
         .filter(|u| u.alive())
         .filter_map(|u| Threat::of(ctx, u))
         .collect();
-    let mut crowd = soldier::Crowd::gather(units);
+    let mut crowd = soldier::Crowd::gather(units, ctx.soldier_radius_m);
     let mut shoves = Vec::new();
     for i in 0..units.len() {
         if !units[i].alive() {
@@ -431,6 +434,7 @@ pub fn advance(
                 take_cover::hold(ctx, unit, side, &field);
             }
             soldier::step_squad(ctx, unit, i, side, &hulls, &threats, &mut crowd, advancing);
+            crowd.refresh_radius(unit, ctx.soldier_radius_m);
         }
     }
     shoves
@@ -524,11 +528,15 @@ fn request_route(
     // It holds without a route while it waits; a detour keeps the one it has.
     let kept = unit.route.take().filter(|_| !detour.is_empty());
     unit.state = MoveState::Planning;
+    let from = {
+        let grid = side.grid(ctx.world, ctx.authored);
+        route_start(unit, |p| grid.placement_fits(p, &unit.mobility))
+    };
     planner.submit(
         unit.id,
         Request {
             side: unit.side,
-            from: route_start(unit),
+            from,
             goal,
             mobility: unit.mobility,
             policy,
@@ -547,7 +555,7 @@ fn prefer_roads(ctx: &MovementContext, unit: &mut Unit) {
     if unit.planned_goal.is_some() || unit.garrison.is_some() {
         return;
     }
-    let from = route_start(unit);
+    let from = route_start(unit, |_| true);
     if let Some(leg) = unit.orders.front_mut().and_then(|o| o.movement_mut()) {
         if (leg.destination - from).length() > ctx.rules.navigation.road_leg_m {
             leg.policy = contract::command::RoutePolicy::Fastest;
@@ -1065,17 +1073,19 @@ fn keep_spots(ctx: &MovementContext, unit: &mut Unit, side: &SideGeometry, end: 
 }
 
 /// Where a unit's route starts: a vehicle's hull, or for a squad the living
-/// soldier nearest its middle, who stands where soldiers can stand (the
-/// middle of a squad split by a wall may lie inside it).
-fn route_start(unit: &Unit) -> V2 {
+/// soldier nearest its middle among the caller's standing places (the middle
+/// of a squad split by a wall may lie inside it). Planning judges standing by
+/// its known grid; measuring a leg's distance needs only the physical member.
+fn route_start(unit: &Unit, stands: impl Fn(V2) -> bool) -> V2 {
     let middle = unit.position.xy();
     if unit.is_vehicle() {
         return middle;
     }
     unit.member_positions()
         .map(|p| p.xy())
-        .min_by(|a, b| (*a - middle).length().total_cmp(&(*b - middle).length()))
-        .unwrap_or(middle)
+        .map(|p| (!stands(p), (p - middle).length(), p))
+        .min_by(|a, b| a.0.cmp(&b.0).then(a.1.total_cmp(&b.1)))
+        .map_or(middle, |(_, _, p)| p)
 }
 
 #[cfg(test)]

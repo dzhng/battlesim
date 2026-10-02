@@ -2,7 +2,7 @@
   {
     "id": "prototype-farmstead-yard",
     "category": "farmstead",
-    "regional_family": "prototype",
+    "regional_family": "china",
     "parts": [
       {"id": "house", "center": [-10.0, -8.0], "yaw": 0.0, "half_extents": [7.0, 4.5, 3.25], "base_z": 0.0},
       {"id": "barn", "center": [11.0, 0.0], "yaw": 0.0, "half_extents": [6.0, 11.0, 3.75], "base_z": 0.0},
@@ -32,7 +32,7 @@
   {
     "id": "prototype-farmstead-long",
     "category": "farmstead",
-    "regional_family": "prototype",
+    "regional_family": "china",
     "parts": [
       {"id": "house", "center": [0.0, -9.0], "yaw": 0.0, "half_extents": [9.0, 4.0, 2.0], "base_z": 0.0},
       {"id": "barn", "center": [0.0, 8.0], "yaw": 0.0, "half_extents": [13.0, 6.0, 4.0], "base_z": 0.0}
@@ -56,7 +56,7 @@
   {
     "id": "prototype-farmstead-small",
     "category": "farmstead",
-    "regional_family": "prototype",
+    "regional_family": "china",
     "parts": [
       {"id": "house", "center": [-7.0, -3.0], "yaw": 0.0, "half_extents": [5.5, 4.0, 3.25], "base_z": 0.0},
       {"id": "barn", "center": [7.0, 0.0], "yaw": 0.0, "half_extents": [5.0, 7.0, 3.0], "base_z": 0.0}
@@ -79,375 +79,9 @@
     "joins": []
   },
   {
-    "id": "prototype-home-10x8-1f",
-    "category": "detached_home",
-    "regional_family": "prototype",
-    "parts": [
-      {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [5.0, 4.0, 2.0], "base_z": 0.0}
-    ],
-    "floor_heights_m": [0.0],
-    "entrances": [
-      {"id": "door-0", "edge": "body-south", "offset_m": 0.0}
-    ],
-    "edges": [
-      {"id": "body-east", "part": "body", "facade": "positive_x", "span_m": [-4.0, 4.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-5.0, 5.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
-      {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-4.0, 4.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-5.0, 5.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}}
-    ],
-    "joins": []
-  },
-  {
-    "id": "prototype-home-9x9-2f",
-    "category": "detached_home",
-    "regional_family": "prototype",
-    "parts": [
-      {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [4.5, 4.5, 3.25], "base_z": 0.0}
-    ],
-    "floor_heights_m": [0.0, 3.0],
-    "entrances": [
-      {"id": "door-0", "edge": "body-south", "offset_m": 0.0}
-    ],
-    "edges": [
-      {"id": "body-east", "part": "body", "facade": "positive_x", "span_m": [-4.5, 4.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
-      {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-4.5, 4.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
-      {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-4.5, 4.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
-      {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-4.5, 4.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}}
-    ],
-    "joins": []
-  },
-  {
-    "id": "prototype-home-12x9-2f",
-    "category": "detached_home",
-    "regional_family": "prototype",
-    "parts": [
-      {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [6.0, 4.5, 3.25], "base_z": 0.0}
-    ],
-    "floor_heights_m": [0.0, 3.0],
-    "entrances": [
-      {"id": "door-0", "edge": "body-south", "offset_m": 0.0}
-    ],
-    "edges": [
-      {"id": "body-east", "part": "body", "facade": "positive_x", "span_m": [-4.5, 4.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
-      {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-6.0, 6.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-4.5, 4.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
-      {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-6.0, 6.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}}
-    ],
-    "joins": []
-  },
-  {
-    "id": "prototype-home-8x11-1f",
-    "category": "detached_home",
-    "regional_family": "prototype",
-    "parts": [
-      {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [4.0, 5.5, 2.0], "base_z": 0.0}
-    ],
-    "floor_heights_m": [0.0],
-    "entrances": [
-      {"id": "door-0", "edge": "body-south", "offset_m": 0.0}
-    ],
-    "edges": [
-      {"id": "body-east", "part": "body", "facade": "positive_x", "span_m": [-5.5, 5.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
-      {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-4.0, 4.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-5.5, 5.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
-      {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-4.0, 4.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}}
-    ],
-    "joins": []
-  },
-  {
-    "id": "prototype-home-ell-2f",
-    "category": "detached_home",
-    "regional_family": "prototype",
-    "parts": [
-      {"id": "main", "center": [0.0, -1.0], "yaw": 0.0, "half_extents": [5.0, 4.0, 3.25], "base_z": 0.0},
-      {"id": "wing", "center": [2.5, 6.0], "yaw": 0.0, "half_extents": [2.5, 3.0, 3.25], "base_z": 0.0}
-    ],
-    "floor_heights_m": [0.0, 3.0],
-    "entrances": [
-      {"id": "door-0", "edge": "main-south", "offset_m": 0.0}
-    ],
-    "edges": [
-      {"id": "main-east", "part": "main", "facade": "positive_x", "span_m": [-4.0, 4.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "main-north-0", "part": "main", "facade": "positive_y", "span_m": [0.0, 5.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 2.5}},
-      {"id": "main-north-1", "part": "main", "facade": "positive_y", "span_m": [-5.0, 0.0], "exposed": false, "bays": null},
-      {"id": "main-west", "part": "main", "facade": "negative_x", "span_m": [-4.0, 4.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "main-south", "part": "main", "facade": "negative_y", "span_m": [-5.0, 5.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
-      {"id": "wing-east", "part": "wing", "facade": "positive_x", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "wing-north", "part": "wing", "facade": "positive_y", "span_m": [-2.5, 2.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
-      {"id": "wing-west", "part": "wing", "facade": "negative_x", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "wing-south", "part": "wing", "facade": "negative_y", "span_m": [-2.5, 2.5], "exposed": false, "bays": null}
-    ],
-    "joins": [
-      {"id": "join-0", "edges": ["main-north-1", "wing-south"]}
-    ]
-  },
-  {
-    "id": "prototype-townhouse-2f",
-    "category": "attached_home",
-    "regional_family": "prototype",
-    "parts": [
-      {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [3.5, 5.0, 3.25], "base_z": 0.0}
-    ],
-    "floor_heights_m": [0.0, 3.0],
-    "entrances": [
-      {"id": "door-0", "edge": "body-south", "offset_m": 0.0}
-    ],
-    "edges": [
-      {"id": "body-east", "part": "body", "facade": "positive_x", "span_m": [-5.0, 5.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
-      {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-3.5, 3.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-5.0, 5.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
-      {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-3.5, 3.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}}
-    ],
-    "joins": []
-  },
-  {
-    "id": "prototype-terrace-3x2f",
-    "category": "attached_home",
-    "regional_family": "prototype",
-    "parts": [
-      {"id": "unit-0", "center": [-6.0, 0.0], "yaw": 0.0, "half_extents": [3.0, 5.0, 3.25], "base_z": 0.0},
-      {"id": "unit-1", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [3.0, 5.0, 3.25], "base_z": 0.0},
-      {"id": "unit-2", "center": [6.0, 0.0], "yaw": 0.0, "half_extents": [3.0, 5.0, 3.25], "base_z": 0.0}
-    ],
-    "floor_heights_m": [0.0, 3.0],
-    "entrances": [
-      {"id": "door-0", "edge": "unit-0-south", "offset_m": 0.0},
-      {"id": "door-1", "edge": "unit-1-south", "offset_m": 0.0},
-      {"id": "door-2", "edge": "unit-2-south", "offset_m": 0.0}
-    ],
-    "edges": [
-      {"id": "unit-0-east", "part": "unit-0", "facade": "positive_x", "span_m": [-5.0, 5.0], "exposed": false, "bays": null},
-      {"id": "unit-0-north", "part": "unit-0", "facade": "positive_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-0-west", "part": "unit-0", "facade": "negative_x", "span_m": [-5.0, 5.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
-      {"id": "unit-0-south", "part": "unit-0", "facade": "negative_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-1-east", "part": "unit-1", "facade": "positive_x", "span_m": [-5.0, 5.0], "exposed": false, "bays": null},
-      {"id": "unit-1-north", "part": "unit-1", "facade": "positive_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-1-west", "part": "unit-1", "facade": "negative_x", "span_m": [-5.0, 5.0], "exposed": false, "bays": null},
-      {"id": "unit-1-south", "part": "unit-1", "facade": "negative_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-2-east", "part": "unit-2", "facade": "positive_x", "span_m": [-5.0, 5.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
-      {"id": "unit-2-north", "part": "unit-2", "facade": "positive_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-2-west", "part": "unit-2", "facade": "negative_x", "span_m": [-5.0, 5.0], "exposed": false, "bays": null},
-      {"id": "unit-2-south", "part": "unit-2", "facade": "negative_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}}
-    ],
-    "joins": [
-      {"id": "join-0", "edges": ["unit-0-east", "unit-1-west"]},
-      {"id": "join-1", "edges": ["unit-1-east", "unit-2-west"]}
-    ]
-  },
-  {
-    "id": "prototype-terrace-5x3f",
-    "category": "attached_home",
-    "regional_family": "prototype",
-    "parts": [
-      {"id": "unit-0", "center": [-12.0, 0.0], "yaw": 0.0, "half_extents": [3.0, 5.5, 4.75], "base_z": 0.0},
-      {"id": "unit-1", "center": [-6.0, 0.0], "yaw": 0.0, "half_extents": [3.0, 5.5, 4.75], "base_z": 0.0},
-      {"id": "unit-2", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [3.0, 5.5, 4.75], "base_z": 0.0},
-      {"id": "unit-3", "center": [6.0, 0.0], "yaw": 0.0, "half_extents": [3.0, 5.5, 4.75], "base_z": 0.0},
-      {"id": "unit-4", "center": [12.0, 0.0], "yaw": 0.0, "half_extents": [3.0, 5.5, 4.75], "base_z": 0.0}
-    ],
-    "floor_heights_m": [0.0, 3.0, 6.0],
-    "entrances": [
-      {"id": "door-0", "edge": "unit-0-south", "offset_m": 0.0},
-      {"id": "door-1", "edge": "unit-1-south", "offset_m": 0.0},
-      {"id": "door-2", "edge": "unit-2-south", "offset_m": 0.0},
-      {"id": "door-3", "edge": "unit-3-south", "offset_m": 0.0},
-      {"id": "door-4", "edge": "unit-4-south", "offset_m": 0.0}
-    ],
-    "edges": [
-      {"id": "unit-0-east", "part": "unit-0", "facade": "positive_x", "span_m": [-5.5, 5.5], "exposed": false, "bays": null},
-      {"id": "unit-0-north", "part": "unit-0", "facade": "positive_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-0-west", "part": "unit-0", "facade": "negative_x", "span_m": [-5.5, 5.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
-      {"id": "unit-0-south", "part": "unit-0", "facade": "negative_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-1-east", "part": "unit-1", "facade": "positive_x", "span_m": [-5.5, 5.5], "exposed": false, "bays": null},
-      {"id": "unit-1-north", "part": "unit-1", "facade": "positive_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-1-west", "part": "unit-1", "facade": "negative_x", "span_m": [-5.5, 5.5], "exposed": false, "bays": null},
-      {"id": "unit-1-south", "part": "unit-1", "facade": "negative_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-2-east", "part": "unit-2", "facade": "positive_x", "span_m": [-5.5, 5.5], "exposed": false, "bays": null},
-      {"id": "unit-2-north", "part": "unit-2", "facade": "positive_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-2-west", "part": "unit-2", "facade": "negative_x", "span_m": [-5.5, 5.5], "exposed": false, "bays": null},
-      {"id": "unit-2-south", "part": "unit-2", "facade": "negative_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-3-east", "part": "unit-3", "facade": "positive_x", "span_m": [-5.5, 5.5], "exposed": false, "bays": null},
-      {"id": "unit-3-north", "part": "unit-3", "facade": "positive_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-3-west", "part": "unit-3", "facade": "negative_x", "span_m": [-5.5, 5.5], "exposed": false, "bays": null},
-      {"id": "unit-3-south", "part": "unit-3", "facade": "negative_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-4-east", "part": "unit-4", "facade": "positive_x", "span_m": [-5.5, 5.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
-      {"id": "unit-4-north", "part": "unit-4", "facade": "positive_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-4-west", "part": "unit-4", "facade": "negative_x", "span_m": [-5.5, 5.5], "exposed": false, "bays": null},
-      {"id": "unit-4-south", "part": "unit-4", "facade": "negative_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}}
-    ],
-    "joins": [
-      {"id": "join-0", "edges": ["unit-0-east", "unit-1-west"]},
-      {"id": "join-1", "edges": ["unit-1-east", "unit-2-west"]},
-      {"id": "join-2", "edges": ["unit-2-east", "unit-3-west"]},
-      {"id": "join-3", "edges": ["unit-3-east", "unit-4-west"]}
-    ]
-  },
-  {
-    "id": "prototype-shops-4x3f",
-    "category": "attached_home",
-    "regional_family": "prototype",
-    "parts": [
-      {"id": "unit-0", "center": [-11.25, 0.0], "yaw": 0.0, "half_extents": [3.75, 6.5, 5.25], "base_z": 0.0},
-      {"id": "unit-1", "center": [-3.75, 0.0], "yaw": 0.0, "half_extents": [3.75, 6.5, 5.25], "base_z": 0.0},
-      {"id": "unit-2", "center": [3.75, 0.0], "yaw": 0.0, "half_extents": [3.75, 6.5, 5.25], "base_z": 0.0},
-      {"id": "unit-3", "center": [11.25, 0.0], "yaw": 0.0, "half_extents": [3.75, 6.5, 5.25], "base_z": 0.0}
-    ],
-    "floor_heights_m": [0.0, 4.0, 7.0],
-    "entrances": [
-      {"id": "door-0", "edge": "unit-0-south", "offset_m": 0.0},
-      {"id": "door-1", "edge": "unit-1-south", "offset_m": 0.0},
-      {"id": "door-2", "edge": "unit-2-south", "offset_m": 0.0},
-      {"id": "door-3", "edge": "unit-3-south", "offset_m": 0.0}
-    ],
-    "edges": [
-      {"id": "unit-0-east", "part": "unit-0", "facade": "positive_x", "span_m": [-6.5, 6.5], "exposed": false, "bays": null},
-      {"id": "unit-0-north", "part": "unit-0", "facade": "positive_y", "span_m": [-3.75, 3.75], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-0-west", "part": "unit-0", "facade": "negative_x", "span_m": [-6.5, 6.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-0-south", "part": "unit-0", "facade": "negative_y", "span_m": [-3.75, 3.75], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-1-east", "part": "unit-1", "facade": "positive_x", "span_m": [-6.5, 6.5], "exposed": false, "bays": null},
-      {"id": "unit-1-north", "part": "unit-1", "facade": "positive_y", "span_m": [-3.75, 3.75], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-1-west", "part": "unit-1", "facade": "negative_x", "span_m": [-6.5, 6.5], "exposed": false, "bays": null},
-      {"id": "unit-1-south", "part": "unit-1", "facade": "negative_y", "span_m": [-3.75, 3.75], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-2-east", "part": "unit-2", "facade": "positive_x", "span_m": [-6.5, 6.5], "exposed": false, "bays": null},
-      {"id": "unit-2-north", "part": "unit-2", "facade": "positive_y", "span_m": [-3.75, 3.75], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-2-west", "part": "unit-2", "facade": "negative_x", "span_m": [-6.5, 6.5], "exposed": false, "bays": null},
-      {"id": "unit-2-south", "part": "unit-2", "facade": "negative_y", "span_m": [-3.75, 3.75], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-3-east", "part": "unit-3", "facade": "positive_x", "span_m": [-6.5, 6.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-3-north", "part": "unit-3", "facade": "positive_y", "span_m": [-3.75, 3.75], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "unit-3-west", "part": "unit-3", "facade": "negative_x", "span_m": [-6.5, 6.5], "exposed": false, "bays": null},
-      {"id": "unit-3-south", "part": "unit-3", "facade": "negative_y", "span_m": [-3.75, 3.75], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}}
-    ],
-    "joins": [
-      {"id": "join-0", "edges": ["unit-0-east", "unit-1-west"]},
-      {"id": "join-1", "edges": ["unit-1-east", "unit-2-west"]},
-      {"id": "join-2", "edges": ["unit-2-east", "unit-3-west"]}
-    ]
-  },
-  {
-    "id": "prototype-corner-shop-3f",
-    "category": "attached_home",
-    "regional_family": "prototype",
-    "parts": [
-      {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [6.0, 6.0, 5.25], "base_z": 0.0}
-    ],
-    "floor_heights_m": [0.0, 4.0, 7.0],
-    "entrances": [
-      {"id": "door-0", "edge": "body-south", "offset_m": 0.0}
-    ],
-    "edges": [
-      {"id": "body-east", "part": "body", "facade": "positive_x", "span_m": [-6.0, 6.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-6.0, 6.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-6.0, 6.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-6.0, 6.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}}
-    ],
-    "joins": []
-  },
-  {
-    "id": "prototype-slab-4f",
-    "category": "urban_apartment",
-    "regional_family": "prototype",
-    "parts": [
-      {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [18.0, 6.0, 6.25], "base_z": 0.0}
-    ],
-    "floor_heights_m": [0.0, 3.0, 6.0, 9.0],
-    "entrances": [
-      {"id": "door-0", "edge": "body-south", "offset_m": -9.0},
-      {"id": "door-1", "edge": "body-south", "offset_m": 9.0}
-    ],
-    "edges": [
-      {"id": "body-east", "part": "body", "facade": "positive_x", "span_m": [-6.0, 6.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-18.0, 18.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-6.0, 6.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-18.0, 18.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}}
-    ],
-    "joins": []
-  },
-  {
-    "id": "prototype-slab-5f",
-    "category": "urban_apartment",
-    "regional_family": "prototype",
-    "parts": [
-      {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [24.0, 6.0, 7.75], "base_z": 0.0}
-    ],
-    "floor_heights_m": [0.0, 3.0, 6.0, 9.0, 12.0],
-    "entrances": [
-      {"id": "door-0", "edge": "body-south", "offset_m": -15.0},
-      {"id": "door-1", "edge": "body-south", "offset_m": 0.0},
-      {"id": "door-2", "edge": "body-south", "offset_m": 15.0}
-    ],
-    "edges": [
-      {"id": "body-east", "part": "body", "facade": "positive_x", "span_m": [-6.0, 6.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-24.0, 24.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-6.0, 6.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-24.0, 24.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}}
-    ],
-    "joins": []
-  },
-  {
-    "id": "prototype-slab-6f",
-    "category": "urban_apartment",
-    "regional_family": "prototype",
-    "parts": [
-      {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [30.0, 6.5, 9.25], "base_z": 0.0}
-    ],
-    "floor_heights_m": [0.0, 3.0, 6.0, 9.0, 12.0, 15.0],
-    "entrances": [
-      {"id": "door-0", "edge": "body-south", "offset_m": -20.0},
-      {"id": "door-1", "edge": "body-south", "offset_m": 0.0},
-      {"id": "door-2", "edge": "body-south", "offset_m": 20.0}
-    ],
-    "edges": [
-      {"id": "body-east", "part": "body", "facade": "positive_x", "span_m": [-6.5, 6.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-30.0, 30.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-6.5, 6.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-30.0, 30.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}}
-    ],
-    "joins": []
-  },
-  {
-    "id": "prototype-slab-8f",
-    "category": "urban_apartment",
-    "regional_family": "prototype",
-    "parts": [
-      {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [27.0, 7.0, 12.25], "base_z": 0.0}
-    ],
-    "floor_heights_m": [0.0, 3.0, 6.0, 9.0, 12.0, 15.0, 18.0, 21.0],
-    "entrances": [
-      {"id": "door-0", "edge": "body-south", "offset_m": -17.0},
-      {"id": "door-1", "edge": "body-south", "offset_m": 0.0},
-      {"id": "door-2", "edge": "body-south", "offset_m": 17.0}
-    ],
-    "edges": [
-      {"id": "body-east", "part": "body", "facade": "positive_x", "span_m": [-7.0, 7.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-27.0, 27.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-7.0, 7.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-27.0, 27.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}}
-    ],
-    "joins": []
-  },
-  {
-    "id": "prototype-point-7f",
-    "category": "urban_apartment",
-    "regional_family": "prototype",
-    "parts": [
-      {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [10.0, 10.0, 10.75], "base_z": 0.0}
-    ],
-    "floor_heights_m": [0.0, 3.0, 6.0, 9.0, 12.0, 15.0, 18.0],
-    "entrances": [
-      {"id": "door-0", "edge": "body-south", "offset_m": 0.0}
-    ],
-    "edges": [
-      {"id": "body-east", "part": "body", "facade": "positive_x", "span_m": [-10.0, 10.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-10.0, 10.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-10.0, 10.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
-      {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-10.0, 10.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}}
-    ],
-    "joins": []
-  },
-  {
     "id": "prototype-block-u-5f",
     "category": "urban_apartment",
-    "regional_family": "prototype",
+    "regional_family": "china",
     "parts": [
       {"id": "front", "center": [0.0, -10.0], "yaw": 0.0, "half_extents": [21.0, 6.0, 7.75], "base_z": 0.0},
       {"id": "west", "center": [-15.0, 6.0], "yaw": 0.0, "half_extents": [6.0, 10.0, 7.75], "base_z": 0.0},
@@ -482,7 +116,7 @@
   {
     "id": "prototype-block-court-6f",
     "category": "urban_apartment",
-    "regional_family": "prototype",
+    "regional_family": "china",
     "parts": [
       {"id": "south", "center": [0.0, -14.0], "yaw": 0.0, "half_extents": [22.0, 6.0, 9.25], "base_z": 0.0},
       {"id": "north", "center": [0.0, 14.0], "yaw": 0.0, "half_extents": [22.0, 6.0, 9.25], "base_z": 0.0},
@@ -526,7 +160,7 @@
   {
     "id": "prototype-tower-slab-10f",
     "category": "highrise",
-    "regional_family": "prototype",
+    "regional_family": "china",
     "parts": [
       {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [28.0, 8.0, 15.25], "base_z": 0.0}
     ],
@@ -547,7 +181,7 @@
   {
     "id": "prototype-tower-12f",
     "category": "highrise",
-    "regional_family": "prototype",
+    "regional_family": "china",
     "parts": [
       {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [12.0, 12.0, 18.25], "base_z": 0.0}
     ],
@@ -566,7 +200,7 @@
   {
     "id": "prototype-tower-16f",
     "category": "highrise",
-    "regional_family": "prototype",
+    "regional_family": "china",
     "parts": [
       {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [11.0, 15.0, 24.25], "base_z": 0.0}
     ],
@@ -585,7 +219,7 @@
   {
     "id": "prototype-tower-20f",
     "category": "highrise",
-    "regional_family": "prototype",
+    "regional_family": "china",
     "parts": [
       {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [14.0, 14.0, 30.25], "base_z": 0.0}
     ],
@@ -604,7 +238,7 @@
   {
     "id": "prototype-shed-24x16",
     "category": "industry",
-    "regional_family": "prototype",
+    "regional_family": "china",
     "parts": [
       {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [12.0, 8.0, 3.0], "base_z": 0.0}
     ],
@@ -623,7 +257,7 @@
   {
     "id": "prototype-warehouse-48x24",
     "category": "industry",
-    "regional_family": "prototype",
+    "regional_family": "china",
     "parts": [
       {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [24.0, 12.0, 4.5], "base_z": 0.0}
     ],
@@ -643,7 +277,7 @@
   {
     "id": "prototype-warehouse-72x32",
     "category": "industry",
-    "regional_family": "prototype",
+    "regional_family": "china",
     "parts": [
       {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [36.0, 16.0, 5.0], "base_z": 0.0}
     ],
@@ -664,7 +298,7 @@
   {
     "id": "prototype-works",
     "category": "industry",
-    "regional_family": "prototype",
+    "regional_family": "china",
     "parts": [
       {"id": "hall", "center": [0.0, 5.0], "yaw": 0.0, "half_extents": [27.0, 13.0, 5.0], "base_z": 0.0},
       {"id": "office", "center": [-14.0, -17.0], "yaw": 0.0, "half_extents": [9.0, 5.0, 3.5], "base_z": 0.0}
@@ -689,7 +323,7 @@
   {
     "id": "prototype-depot-90x40",
     "category": "industry",
-    "regional_family": "prototype",
+    "regional_family": "china",
     "parts": [
       {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [45.0, 20.0, 5.5], "base_z": 0.0}
     ],
@@ -704,6 +338,366 @@
       {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-45.0, 45.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
       {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-20.0, 20.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
       {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-45.0, 45.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}}
+    ],
+    "joins": []
+  },
+  {
+    "id": "china-apartment-slab-35x11-4f",
+    "category": "urban_apartment",
+    "regional_family": "china",
+    "parts": [
+      {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [17.5, 5.5, 6.6499999999999995], "base_z": 0.0}
+    ],
+    "floor_heights_m": [0.0, 3.2, 6.2, 9.2],
+    "entrances": [
+      {"id": "door-0", "edge": "body-south", "offset_m": 12.0}
+    ],
+    "edges": [
+      {"id": "body-east", "part": "body", "facade": "positive_x", "span_m": [-5.5, 5.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-17.5, 17.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-5.5, 5.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-17.5, 17.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}}
+    ],
+    "joins": []
+  },
+  {
+    "id": "china-apartment-slab-47x11-5f",
+    "category": "urban_apartment",
+    "regional_family": "china",
+    "parts": [
+      {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [23.5, 5.5, 8.15], "base_z": 0.0}
+    ],
+    "floor_heights_m": [0.0, 3.2, 6.2, 9.2, 12.2],
+    "entrances": [
+      {"id": "door-0", "edge": "body-south", "offset_m": 15.0}
+    ],
+    "edges": [
+      {"id": "body-east", "part": "body", "facade": "positive_x", "span_m": [-5.5, 5.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-23.5, 23.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-5.5, 5.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-23.5, 23.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}}
+    ],
+    "joins": []
+  },
+  {
+    "id": "china-apartment-slab-59x14-6f",
+    "category": "urban_apartment",
+    "regional_family": "china",
+    "parts": [
+      {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [29.5, 7.0, 9.65], "base_z": 0.0}
+    ],
+    "floor_heights_m": [0.0, 3.2, 6.2, 9.2, 12.2, 15.2],
+    "entrances": [
+      {"id": "door-0", "edge": "body-south", "offset_m": -21.0}
+    ],
+    "edges": [
+      {"id": "body-east", "part": "body", "facade": "positive_x", "span_m": [-7.0, 7.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-29.5, 29.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-7.0, 7.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-29.5, 29.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}}
+    ],
+    "joins": []
+  },
+  {
+    "id": "china-apartment-slab-53x14-8f",
+    "category": "urban_apartment",
+    "regional_family": "china",
+    "parts": [
+      {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [26.5, 7.0, 12.65], "base_z": 0.0}
+    ],
+    "floor_heights_m": [0.0, 3.2, 6.2, 9.2, 12.2, 15.2, 18.2, 21.2],
+    "entrances": [
+      {"id": "door-0", "edge": "body-south", "offset_m": 21.0}
+    ],
+    "edges": [
+      {"id": "body-east", "part": "body", "facade": "positive_x", "span_m": [-7.0, 7.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-26.5, 26.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-7.0, 7.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-26.5, 26.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}}
+    ],
+    "joins": []
+  },
+  {
+    "id": "china-apartment-point-20x20-7f",
+    "category": "urban_apartment",
+    "regional_family": "china",
+    "parts": [
+      {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [10.0, 10.0, 11.15], "base_z": 0.0}
+    ],
+    "floor_heights_m": [0.0, 3.2, 6.2, 9.2, 12.2, 15.2, 18.2],
+    "entrances": [
+      {"id": "door-0", "edge": "body-south", "offset_m": -7.5}
+    ],
+    "edges": [
+      {"id": "body-east", "part": "body", "facade": "positive_x", "span_m": [-10.0, 10.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-10.0, 10.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-10.0, 10.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-10.0, 10.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}}
+    ],
+    "joins": []
+  },
+  {
+    "id": "china-corner-shop-3f",
+    "category": "attached_home",
+    "regional_family": "china",
+    "parts": [
+      {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [6.0, 6.0, 6.325], "base_z": 0.0}
+    ],
+    "floor_heights_m": [0.0, 4.0, 7.0],
+    "entrances": [
+      {"id": "door-0", "edge": "body-south", "offset_m": -1.5}
+    ],
+    "edges": [
+      {"id": "body-east", "part": "body", "facade": "positive_x", "span_m": [-6.0, 6.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-6.0, 6.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-6.0, 6.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-6.0, 6.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}}
+    ],
+    "joins": []
+  },
+  {
+    "id": "china-home-10x8-1f",
+    "category": "detached_home",
+    "regional_family": "china",
+    "parts": [
+      {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [5.0, 4.0, 2.6], "base_z": 0.0}
+    ],
+    "floor_heights_m": [0.0],
+    "entrances": [
+      {"id": "door-0", "edge": "body-south", "offset_m": 0.0}
+    ],
+    "edges": [
+      {"id": "body-east", "part": "body", "facade": "positive_x", "span_m": [-4.0, 4.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-5.0, 5.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-4.0, 4.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-5.0, 5.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}}
+    ],
+    "joins": []
+  },
+  {
+    "id": "china-home-12x9-2f",
+    "category": "detached_home",
+    "regional_family": "china",
+    "parts": [
+      {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [6.0, 4.5, 4.225], "base_z": 0.0}
+    ],
+    "floor_heights_m": [0.0, 3.0],
+    "entrances": [
+      {"id": "door-0", "edge": "body-south", "offset_m": 0.0}
+    ],
+    "edges": [
+      {"id": "body-east", "part": "body", "facade": "positive_x", "span_m": [-4.5, 4.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-6.0, 6.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-4.5, 4.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-6.0, 6.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}}
+    ],
+    "joins": []
+  },
+  {
+    "id": "china-home-8x11-1f",
+    "category": "detached_home",
+    "regional_family": "china",
+    "parts": [
+      {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [4.0, 5.5, 2.575], "base_z": 0.0}
+    ],
+    "floor_heights_m": [0.0],
+    "entrances": [
+      {"id": "door-0", "edge": "body-south", "offset_m": 0.0}
+    ],
+    "edges": [
+      {"id": "body-east", "part": "body", "facade": "positive_x", "span_m": [-5.5, 5.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-4.0, 4.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-5.5, 5.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-4.0, 4.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}}
+    ],
+    "joins": []
+  },
+  {
+    "id": "china-home-9x9-2f",
+    "category": "detached_home",
+    "regional_family": "china",
+    "parts": [
+      {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [4.5, 4.5, 4.125], "base_z": 0.0}
+    ],
+    "floor_heights_m": [0.0, 3.0],
+    "entrances": [
+      {"id": "door-0", "edge": "body-south", "offset_m": 0.0}
+    ],
+    "edges": [
+      {"id": "body-east", "part": "body", "facade": "positive_x", "span_m": [-4.5, 4.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-4.5, 4.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-4.5, 4.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-4.5, 4.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}}
+    ],
+    "joins": []
+  },
+  {
+    "id": "china-home-ell-2f",
+    "category": "detached_home",
+    "regional_family": "china",
+    "parts": [
+      {"id": "main", "center": [0.0, -1.0], "yaw": 0.0, "half_extents": [5.0, 4.0, 4.1], "base_z": 0.0},
+      {"id": "wing", "center": [1.0, 6.0], "yaw": 0.0, "half_extents": [3.0, 3.0, 4.1], "base_z": 0.0}
+    ],
+    "floor_heights_m": [0.0, 3.0],
+    "entrances": [
+      {"id": "door-0", "edge": "main-south", "offset_m": 0.0}
+    ],
+    "edges": [
+      {"id": "main-east", "part": "main", "facade": "positive_x", "span_m": [-4.0, 4.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "main-north-0", "part": "main", "facade": "positive_y", "span_m": [-5.0, -4.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.5}},
+      {"id": "main-north-1", "part": "main", "facade": "positive_y", "span_m": [-4.0, 2.0], "exposed": false, "bays": null},
+      {"id": "main-north-2", "part": "main", "facade": "positive_y", "span_m": [2.0, 5.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.5}},
+      {"id": "main-west", "part": "main", "facade": "negative_x", "span_m": [-4.0, 4.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "main-south", "part": "main", "facade": "negative_y", "span_m": [-5.0, 5.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "wing-east", "part": "wing", "facade": "positive_x", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "wing-north", "part": "wing", "facade": "positive_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "wing-west", "part": "wing", "facade": "negative_x", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "wing-south", "part": "wing", "facade": "negative_y", "span_m": [-3.0, 3.0], "exposed": false, "bays": null}
+    ],
+    "joins": [
+      {"id": "join-0", "edges": ["main-north-1", "wing-south"]}
+    ]
+  },
+  {
+    "id": "china-shops-4x3f",
+    "category": "attached_home",
+    "regional_family": "china",
+    "parts": [
+      {"id": "unit-0", "center": [-11.25, 0.0], "yaw": 0.0, "half_extents": [3.75, 6.5, 6.425], "base_z": 0.0},
+      {"id": "unit-1", "center": [-3.75, 0.0], "yaw": 0.0, "half_extents": [3.75, 6.5, 6.425], "base_z": 0.0},
+      {"id": "unit-2", "center": [3.75, 0.0], "yaw": 0.0, "half_extents": [3.75, 6.5, 6.425], "base_z": 0.0},
+      {"id": "unit-3", "center": [11.25, 0.0], "yaw": 0.0, "half_extents": [3.75, 6.5, 6.425], "base_z": 0.0}
+    ],
+    "floor_heights_m": [0.0, 4.0, 7.0],
+    "entrances": [
+      {"id": "door-0", "edge": "unit-0-south", "offset_m": -1.5},
+      {"id": "door-1", "edge": "unit-1-south", "offset_m": -1.5},
+      {"id": "door-2", "edge": "unit-2-south", "offset_m": -1.5},
+      {"id": "door-3", "edge": "unit-3-south", "offset_m": -1.5}
+    ],
+    "edges": [
+      {"id": "unit-0-east", "part": "unit-0", "facade": "positive_x", "span_m": [-6.5, 6.5], "exposed": false, "bays": null},
+      {"id": "unit-0-north", "part": "unit-0", "facade": "positive_y", "span_m": [-3.75, 3.75], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-0-west", "part": "unit-0", "facade": "negative_x", "span_m": [-6.5, 6.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-0-south", "part": "unit-0", "facade": "negative_y", "span_m": [-3.75, 3.75], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-1-east", "part": "unit-1", "facade": "positive_x", "span_m": [-6.5, 6.5], "exposed": false, "bays": null},
+      {"id": "unit-1-north", "part": "unit-1", "facade": "positive_y", "span_m": [-3.75, 3.75], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-1-west", "part": "unit-1", "facade": "negative_x", "span_m": [-6.5, 6.5], "exposed": false, "bays": null},
+      {"id": "unit-1-south", "part": "unit-1", "facade": "negative_y", "span_m": [-3.75, 3.75], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-2-east", "part": "unit-2", "facade": "positive_x", "span_m": [-6.5, 6.5], "exposed": false, "bays": null},
+      {"id": "unit-2-north", "part": "unit-2", "facade": "positive_y", "span_m": [-3.75, 3.75], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-2-west", "part": "unit-2", "facade": "negative_x", "span_m": [-6.5, 6.5], "exposed": false, "bays": null},
+      {"id": "unit-2-south", "part": "unit-2", "facade": "negative_y", "span_m": [-3.75, 3.75], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-3-east", "part": "unit-3", "facade": "positive_x", "span_m": [-6.5, 6.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-3-north", "part": "unit-3", "facade": "positive_y", "span_m": [-3.75, 3.75], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-3-west", "part": "unit-3", "facade": "negative_x", "span_m": [-6.5, 6.5], "exposed": false, "bays": null},
+      {"id": "unit-3-south", "part": "unit-3", "facade": "negative_y", "span_m": [-3.75, 3.75], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}}
+    ],
+    "joins": [
+      {"id": "join-0", "edges": ["unit-0-east", "unit-1-west"]},
+      {"id": "join-1", "edges": ["unit-1-east", "unit-2-west"]},
+      {"id": "join-2", "edges": ["unit-2-east", "unit-3-west"]}
+    ]
+  },
+  {
+    "id": "china-terrace-3x2f",
+    "category": "attached_home",
+    "regional_family": "china",
+    "parts": [
+      {"id": "unit-0", "center": [-6.0, 0.0], "yaw": 0.0, "half_extents": [3.0, 5.0, 4.225], "base_z": 0.0},
+      {"id": "unit-1", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [3.0, 5.0, 4.225], "base_z": 0.0},
+      {"id": "unit-2", "center": [6.0, 0.0], "yaw": 0.0, "half_extents": [3.0, 5.0, 4.225], "base_z": 0.0}
+    ],
+    "floor_heights_m": [0.0, 3.0],
+    "entrances": [
+      {"id": "door-0", "edge": "unit-0-south", "offset_m": -1.5},
+      {"id": "door-1", "edge": "unit-1-south", "offset_m": -1.5},
+      {"id": "door-2", "edge": "unit-2-south", "offset_m": -1.5}
+    ],
+    "edges": [
+      {"id": "unit-0-east", "part": "unit-0", "facade": "positive_x", "span_m": [-5.0, 5.0], "exposed": false, "bays": null},
+      {"id": "unit-0-north", "part": "unit-0", "facade": "positive_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-0-west", "part": "unit-0", "facade": "negative_x", "span_m": [-5.0, 5.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "unit-0-south", "part": "unit-0", "facade": "negative_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-1-east", "part": "unit-1", "facade": "positive_x", "span_m": [-5.0, 5.0], "exposed": false, "bays": null},
+      {"id": "unit-1-north", "part": "unit-1", "facade": "positive_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-1-west", "part": "unit-1", "facade": "negative_x", "span_m": [-5.0, 5.0], "exposed": false, "bays": null},
+      {"id": "unit-1-south", "part": "unit-1", "facade": "negative_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-2-east", "part": "unit-2", "facade": "positive_x", "span_m": [-5.0, 5.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "unit-2-north", "part": "unit-2", "facade": "positive_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-2-west", "part": "unit-2", "facade": "negative_x", "span_m": [-5.0, 5.0], "exposed": false, "bays": null},
+      {"id": "unit-2-south", "part": "unit-2", "facade": "negative_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}}
+    ],
+    "joins": [
+      {"id": "join-0", "edges": ["unit-0-east", "unit-1-west"]},
+      {"id": "join-1", "edges": ["unit-1-east", "unit-2-west"]}
+    ]
+  },
+  {
+    "id": "china-terrace-5x3f",
+    "category": "attached_home",
+    "regional_family": "china",
+    "parts": [
+      {"id": "unit-0", "center": [-12.0, 0.0], "yaw": 0.0, "half_extents": [3.0, 5.5, 5.875], "base_z": 0.0},
+      {"id": "unit-1", "center": [-6.0, 0.0], "yaw": 0.0, "half_extents": [3.0, 5.5, 5.875], "base_z": 0.0},
+      {"id": "unit-2", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [3.0, 5.5, 5.875], "base_z": 0.0},
+      {"id": "unit-3", "center": [6.0, 0.0], "yaw": 0.0, "half_extents": [3.0, 5.5, 5.875], "base_z": 0.0},
+      {"id": "unit-4", "center": [12.0, 0.0], "yaw": 0.0, "half_extents": [3.0, 5.5, 5.875], "base_z": 0.0}
+    ],
+    "floor_heights_m": [0.0, 3.0, 6.0],
+    "entrances": [
+      {"id": "door-0", "edge": "unit-0-south", "offset_m": -1.5},
+      {"id": "door-1", "edge": "unit-1-south", "offset_m": -1.5},
+      {"id": "door-2", "edge": "unit-2-south", "offset_m": -1.5},
+      {"id": "door-3", "edge": "unit-3-south", "offset_m": -1.5},
+      {"id": "door-4", "edge": "unit-4-south", "offset_m": -1.5}
+    ],
+    "edges": [
+      {"id": "unit-0-east", "part": "unit-0", "facade": "positive_x", "span_m": [-5.5, 5.5], "exposed": false, "bays": null},
+      {"id": "unit-0-north", "part": "unit-0", "facade": "positive_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-0-west", "part": "unit-0", "facade": "negative_x", "span_m": [-5.5, 5.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "unit-0-south", "part": "unit-0", "facade": "negative_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-1-east", "part": "unit-1", "facade": "positive_x", "span_m": [-5.5, 5.5], "exposed": false, "bays": null},
+      {"id": "unit-1-north", "part": "unit-1", "facade": "positive_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-1-west", "part": "unit-1", "facade": "negative_x", "span_m": [-5.5, 5.5], "exposed": false, "bays": null},
+      {"id": "unit-1-south", "part": "unit-1", "facade": "negative_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-2-east", "part": "unit-2", "facade": "positive_x", "span_m": [-5.5, 5.5], "exposed": false, "bays": null},
+      {"id": "unit-2-north", "part": "unit-2", "facade": "positive_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-2-west", "part": "unit-2", "facade": "negative_x", "span_m": [-5.5, 5.5], "exposed": false, "bays": null},
+      {"id": "unit-2-south", "part": "unit-2", "facade": "negative_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-3-east", "part": "unit-3", "facade": "positive_x", "span_m": [-5.5, 5.5], "exposed": false, "bays": null},
+      {"id": "unit-3-north", "part": "unit-3", "facade": "positive_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-3-west", "part": "unit-3", "facade": "negative_x", "span_m": [-5.5, 5.5], "exposed": false, "bays": null},
+      {"id": "unit-3-south", "part": "unit-3", "facade": "negative_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-4-east", "part": "unit-4", "facade": "positive_x", "span_m": [-5.5, 5.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "unit-4-north", "part": "unit-4", "facade": "positive_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "unit-4-west", "part": "unit-4", "facade": "negative_x", "span_m": [-5.5, 5.5], "exposed": false, "bays": null},
+      {"id": "unit-4-south", "part": "unit-4", "facade": "negative_y", "span_m": [-3.0, 3.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}}
+    ],
+    "joins": [
+      {"id": "join-0", "edges": ["unit-0-east", "unit-1-west"]},
+      {"id": "join-1", "edges": ["unit-1-east", "unit-2-west"]},
+      {"id": "join-2", "edges": ["unit-2-east", "unit-3-west"]},
+      {"id": "join-3", "edges": ["unit-3-east", "unit-4-west"]}
+    ]
+  },
+  {
+    "id": "china-townhouse-2f",
+    "category": "attached_home",
+    "regional_family": "china",
+    "parts": [
+      {"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [3.5, 5.0, 4.15], "base_z": 0.0}
+    ],
+    "floor_heights_m": [0.0, 3.0],
+    "entrances": [
+      {"id": "door-0", "edge": "body-south", "offset_m": -1.5}
+    ],
+    "edges": [
+      {"id": "body-east", "part": "body", "facade": "positive_x", "span_m": [-5.0, 5.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "body-north", "part": "body", "facade": "positive_y", "span_m": [-3.5, 3.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}},
+      {"id": "body-west", "part": "body", "facade": "negative_x", "span_m": [-5.0, 5.0], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 0.0}},
+      {"id": "body-south", "part": "body", "facade": "negative_y", "span_m": [-3.5, 3.5], "exposed": true, "bays": {"pitch_m": 3.0, "phase_m": 1.5}}
     ],
     "joins": []
   }

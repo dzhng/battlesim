@@ -36,13 +36,28 @@ This is the focused model pass: the models are judged by looking. For every mode
 
 Test in proportion: the narrow tests for what changed and the one or two scenes it can move. No full gate. No frozen-record tests. Branch from main, merge main often, and push small green passes to main. Add an Outcome to each slice file and decisions to [`choices.md`](choices.md) under a heading for the slice. Scratch renders go in gitignored `throwaway/`.
 
+**A saved map pins the catalogue.** `fixtures/maps/market-town` is a generated map saved against the prototype catalogue's hash, so it stops resolving, and the catalogue tests fail, when that file changes. Re-save it with the three commands in the [fixtures guide](../../fixtures/README.md) in the same commit that changes the catalogue.
+
+**One GPU, shared.** Several sessions are working at once. Run every scene, render and asset sheet through the GPU lock in the main checkout (the README's Checks section has the command), never two at a time, and keep heavy jobs (a full Rust test run, a long sweep) to one at a time.
+
 ## Status
 
 Update this section, not the README, at the end of each pass: what landed, what a town looks like now (one picture path), what is next, and anything the other lanes need to know.
 
-**2026-10-01.** A town is still massing boxes (`throwaway/evidence/generated/building-1920x1080.png` after `scene -- generated`).
+**2026-10-01.** A town in the game is still massing boxes (`throwaway/evidence/generated/building-1920x1080.png` after `scene -- generated`), now at the real templates' sizes: nothing draws the library yet. The art exists as source sets and is judged so far in Blender reassembly sheets (`city/assemble.py`).
 
-- **Landed:** the three source files are vendored with their licence ([C10](slices/C10-third-party-sources.md#outcome)). The export spike ran ([S2](spikes/S2.md)): every source exports as a small shared kit plus placement rows, but the graphs only cover apartment blocks. The source format every building script writes is fixed in [the city kit readme](../../packages/scene-assets/blender/city/README.md).
+- **Landed:**
+  - The three source files, vendored with their licence ([C10](slices/C10-third-party-sources.md#outcome)), and the export spike ([S2](spikes/S2.md)).
+  - The source format every building script writes ([city kit readme](../../packages/scene-assets/blender/city/README.md)), and its bake side: a `kit` appearance, the packed template art library, the pure resolver, fit and coverage checks, and the prototype boxes as a generated stand-in set ([C13](slices/C13-placement-bake.md), [C32](slices/C32-template-library.md)).
+  - China's apartment kit: five block templates, 74 modules, nine ambientCG sets pinned ([C11](slices/C11-kit-modules.md), [C12](slices/C12-baked-materials.md)).
+  - Our own houses: five detached and five attached templates, and `city/kit.py`, the helper every scripted set is written with ([C17](slices/C17-detached-home.md)).
 - **Decided:** China's family ships first; every category the graphs do not cover, attached homes included, is our own scripted source; graph-made sides are 3n + 2 metres with 3 m floors ([choices](choices.md#buildings-lane)).
-- **Next, in parallel:** the kit and template library in `scene-assets` with the prototypes drawn through it (C13, C32); China's apartment kit and templates (C11, C12); our own houses (C17); the static chunk owner and corpses on it (C22).
-- **For the other lanes:** nothing has changed in the catalogue yet. Its hash will move when the first real templates replace prototypes, and `map-presets.json`'s `parcels.regional_families` and the catalogue test in `crates/mapgen` will need the new family name in the same commit.
+  - One static chunk owner, `frame/staticChunks.ts`, with scenery, massing and corpses on it; frames pixel-identical before and after ([C22](slices/C22-placement-chunks.md#outcome), first half).
+  - **The catalogue cutover, first part.** The generator's catalogue now holds the ten real house templates and five real apartment blocks in place of their boxes, and stand-in boxes for farmsteads, towers, industry and the two compound apartment blocks: 29 templates, all of family `china`.
+- **Decided:** China's family ships first; every category the graphs do not cover, attached homes included, is our own scripted source; graph-made sides are 3n + 2 metres with 3 m floors ([choices](choices.md#buildings-lane)).
+- **In flight:** drawing buildings from the library through the chunk owner (C22, second half), which is the first real town picture; farmsteads (C16), towers (C18), industry (C19); the interior atlas (C15).
+- **Next:** the far tier (C23), compound apartment blocks (S5), the facade passes, damage, the village's houses (C37).
+- **For the other lanes:**
+  - **The catalogue's hash moved** to `5416684f…` and will move again as each remaining set replaces its stand-ins (three more times at most). In the same commit: `map-presets.json` `parcels.regional_families` is `["china"]` (the revision string is unchanged; bump it if a request must not carry over), the two `crates/mapgen` tests that named the `prototype` family read the catalogue's own, the map-layout and encounter parity records name the new hash and are re-recorded (no record changed status), and the camera lab's map uses the real 59 × 14 slab.
+  - **Shapes changed:** houses are taller (the box top is the ridge: 5.2 m for one floor, 8.2 to 8.5 m for two, about 12 m for three) and apartment slabs are 35 × 11, 47 × 11, 59 × 14 and 53 × 14 m with a 1.1 m parapet in the box. A ten-seed sweep of every type and size still generates 90 of 90 maps; districts' `ground_m` was not retuned.
+  - To add or retire a template: `asset catalogue`, `asset prototypes`, `asset bake` ([city kit readme](../../packages/scene-assets/blender/city/README.md), "From a set to a town"). `asset bake` and `asset check` need the WebAssembly built.

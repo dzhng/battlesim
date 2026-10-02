@@ -4,8 +4,10 @@
 
 import { bundleHash, encodeBundle } from "./codec.ts";
 import {
+  KIT_BUNDLE_MAX_BYTES,
   UNIT_BUNDLE_KIND,
   bundlePath,
+  templateLibraryPath,
   type Bundle,
   type Catalog,
   type Finding,
@@ -13,7 +15,15 @@ import {
   type SideTints,
   type AppearanceUnit,
   type SkeletonClips,
+  type StaticBundle,
 } from "./schema.ts";
+import { encodeTemplateLibrary, sealTemplateLibrary } from "./templateLibrary.ts";
+import {
+  packTemplateSets,
+  type PhysicalTemplates,
+  type TemplateLibraryStats,
+  type TemplateSetInput,
+} from "./templateSource.ts";
 import {
   hasErrors,
   typeAppearanceFindings,
@@ -26,10 +36,13 @@ import type { MountDraws } from "./units.ts";
 
 export interface BakeReport {
   name: string;
-  /** A skeleton, an appearance, or the unit types' appearance names. */
-  what: "skeleton" | "appearance" | "types";
+  /** A skeleton, an appearance, the unit types' appearance names, or the
+   *  template art library packed from the city sets. */
+  what: "skeleton" | "appearance" | "types" | "library";
   findings: Finding[];
   stats: Stats | null;
+  /** The template art library: what each template draws. */
+  templates?: TemplateLibraryStats;
   hash: string | null;
   bytes: number;
 }
@@ -42,16 +55,44 @@ export interface BakeResult {
   ok: boolean;
 }
 
+/** What the bake judges art against: the simulation's bodies and, for a
+ *  catalog with city sets, the physical template catalogue they dress. */
+export interface BakeContext extends Omit<ValidationContext, "tolerances"> {
+  templates?: {
+    /** The physical catalogue's rows: the descriptors the map generator reads. */
+    catalogue: readonly unknown[];
+    physical: PhysicalTemplates;
+  };
+}
+
+/** A kit's bundle against its byte budget. */
+export function kitBytesFindings(name: string, bytes: number): Finding[] {
+  return bytes > KIT_BUNDLE_MAX_BYTES
+    ? [
+        {
+          code: "kit.bytes",
+          severity: "error",
+          message: `${name}: the kit's bundle is ${(bytes / 2 ** 20).toFixed(1)} MiB, over its budget of ${KIT_BUNDLE_MAX_BYTES / 2 ** 20} MiB`,
+          fix: "thin the modules' tiers, shrink or share textures, or split the set",
+        },
+      ]
+    : [];
+}
+
+/** The template art library's name in a bake report. */
+export const TEMPLATE_LIBRARY_REPORT = "template art";
+
 export async function bakeCatalog(
   catalog: Catalog,
   readSource: (path: string) => Promise<Uint8Array>,
-  context: Omit<ValidationContext, "tolerances">,
+  context: BakeContext,
   only?: string[],
 ): Promise<BakeResult> {
   const runtime: RuntimeCatalog = { sides: catalog.sides, skeletons: {}, appearances: {} };
   const files = new Map<string, Uint8Array>();
   const reports: BakeReport[] = [];
   const clipsById = new Map<string, SkeletonClips>();
+  const kits = new Map<string, { bundle: StaticBundle; hash: string }>();
   const wanted = (name: string) => !only?.length || only.includes(name);
   const neededSkeletons = new Set(
     Object.entries(catalog.appearances)
@@ -123,6 +164,9 @@ export async function bakeCatalog(
       { ...context, tolerances: catalog.tolerances },
     );
     const out = result.bundle ? await emit(result.bundle) : null;
+    if (entry.unit === "kit" && out) result.findings.push(...kitBytesFindings(name, out.bytes));
+    if (entry.unit === "kit" && result.bundle?.kind === "static" && out)
+      kits.set(name, { bundle: result.bundle, hash: out.hash });
     if (result.bundle && out)
       runtime.appearances[name] = {
         unit: entry.unit,
@@ -138,6 +182,45 @@ export async function bakeCatalog(
       what: "appearance",
       findings: result.findings,
       stats: result.stats,
+      hash: out?.hash ?? null,
+      bytes: out?.bytes ?? 0,
+    });
+  }
+  // The city sets, packed into the one template art library. A bake of named
+  // entries leaves it out: it is whole or absent.
+  const sets = Object.entries(catalog.city_sets ?? {});
+  if (sets.length && !only?.length) {
+    if (!context.templates)
+      throw new Error("the catalog has city sets: the bake needs the physical template catalogue");
+    const inputs: TemplateSetInput[] = [];
+    for (const [name, entry] of sets)
+      inputs.push({
+        name,
+        entry,
+        bytes: await readSource(entry.templates),
+        kit: catalog.appearances[entry.kit]?.unit === "kit" ? (kits.get(entry.kit) ?? null) : null,
+      });
+    const packed = packTemplateSets(
+      inputs,
+      context.templates.catalogue,
+      context.templates.physical,
+      catalog.tolerances.ground_m,
+    );
+    let out: { hash: string; bytes: number } | null = null;
+    if (packed.library) {
+      const library = await sealTemplateLibrary(packed.library);
+      const bytes = encodeTemplateLibrary(library);
+      const hash = await bundleHash(bytes);
+      files.set(templateLibraryPath(hash), bytes);
+      runtime.templates = { library: hash, art_hash: library.art_hash, covers: library.covers };
+      out = { hash, bytes: bytes.byteLength };
+    }
+    reports.push({
+      name: TEMPLATE_LIBRARY_REPORT,
+      what: "library",
+      findings: packed.findings,
+      stats: null,
+      ...(packed.stats ? { templates: packed.stats } : {}),
       hash: out?.hash ?? null,
       bytes: out?.bytes ?? 0,
     });

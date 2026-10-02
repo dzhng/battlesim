@@ -17,6 +17,12 @@
 //   icons                  write the generated icons (assets/icons/): every weapon row's,
 //                          every role's symbol and every unit type's silhouette
 //   grass [name...]        write each generated grass kind's GLB from its catalog spec (then bake)
+//   prototypes             write the prototype city set (its kit and templates.json): stand-in rows for
+//                          every template of the physical catalogue no other set dresses (then bake)
+//   catalogue              rewrite the physical template catalogue's rows from the city sets' descriptors
+//
+// bake and check pack the city sets into the template art library, which is
+// judged by the simulation's own contract: build the WebAssembly first.
 //
 // Everything asset-specific lives in packages/scene-assets; this file is IO.
 
@@ -51,7 +57,11 @@ registerHooks({
 const { bakeCatalog, runtimeCatalogText } = await import("../packages/scene-assets/src/bake.ts");
 const { contentSha256, lfsPointerOid, lfsPullCommand } =
   await import("../packages/scene-assets/src/glb.ts");
-const { bundlePath } = await import("../packages/scene-assets/src/schema.ts");
+const { bundlePath, templateLibraryPath } = await import("../packages/scene-assets/src/schema.ts");
+const { TEMPLATE_TIER_TRIANGLES, catalogueRows, catalogueText, readTemplateSet } =
+  await import("../packages/scene-assets/src/templateSource.ts");
+const { PROTOTYPE_SET, prototypeKitGlb, prototypeTemplates, templateSetText } =
+  await import("../packages/scene-assets/src/prototypeSet.ts");
 const { hasErrors } = await import("../packages/scene-assets/src/validate.ts");
 const { validateLoose } = await import("../packages/scene-assets/src/loose.ts");
 const { fixtureAuthority } = await import("../packages/scene-assets/src/authority.ts");
@@ -66,6 +76,8 @@ const RUNTIME = join(ROOT, "assets/runtime");
 const FIXTURE = join(ROOT, "fixtures/game.json");
 const ICONS = join(ROOT, "assets/icons");
 const UNIT_CATALOG = join(ROOT, "fixtures/catalog.json");
+/** The physical template catalogue the map generator reads, which the city sets dress. */
+const TEMPLATES = "fixtures/prototype-building-templates.json";
 const BLENDER_VERSION = "5.2.1";
 const BLENDER = process.env.BLENDER ?? "/Applications/Blender.app/Contents/MacOS/Blender";
 
@@ -75,6 +87,9 @@ const authority = () =>
   fixtureAuthority(readJson(FIXTURE), new UnitCatalog(readJson(UNIT_CATALOG)));
 const repoPath = (path) => relative(ROOT, resolve(path));
 const readSource = async (path) => new Uint8Array(readFileSync(join(ROOT, path)));
+/** The physical template contract, judged by the simulation's own code. Loaded
+ *  on demand: only the template commands need the WebAssembly built. */
+const physicalTemplates = async () => (await import("./src/maps/node.ts")).physicalTemplates();
 
 function printFindings(findings) {
   for (const f of findings)
@@ -90,6 +105,8 @@ function printStats(stats) {
     console.log(`  triangles per tier: ${stats.tiers.map((t) => t.triangles).join(" / ")}`);
   if (stats.joints !== undefined) console.log(`  bones: ${stats.joints}`);
   if (stats.nodes !== undefined) console.log(`  nodes: ${stats.nodes}`);
+  for (const module of stats.modules ?? [])
+    console.log(`  module ${module.name}: ${module.triangles.join(" / ")} triangles`);
   if (stats.clips)
     console.log(
       `  clips: ${stats.clips.map((c) => `${c.name}${c.loop ? " (loop)" : ""} ${c.duration.toFixed(2)} s`).join(", ")}`,
@@ -177,7 +194,11 @@ async function validate(args) {
 }
 
 async function bakeAll() {
-  return bakeCatalog(catalog(), readSource, { authority: authority() });
+  const cat = catalog();
+  const templates = Object.keys(cat.city_sets ?? {}).length
+    ? { catalogue: readJson(join(ROOT, TEMPLATES)), physical: await physicalTemplates() }
+    : undefined;
+  return bakeCatalog(cat, readSource, { authority: authority(), templates });
 }
 
 function report(result) {
@@ -186,6 +207,21 @@ function report(result) {
       `${r.what} ${r.name}: ${r.hash ? `${r.hash} (${(r.bytes / 1024).toFixed(1)} KiB)` : "not baked"}`,
     );
     printStats(r.stats);
+    if (r.templates) {
+      const { templates, rows, modules } = r.templates;
+      const standIns = templates.filter((t) => t.status === "prototype").length;
+      console.log(
+        `  ${templates.length} template(s), ${templates.length - standIns} release and ${standIns} prototype; ${rows} row(s) of ${modules} module(s)`,
+      );
+      for (const t of templates)
+        console.log(
+          `  ${t.id} (${t.set}, ${t.status}): ${t.rows} row(s), ${t.triangles.join(" / ")} triangles${
+            t.triangles.some((n, tier) => n > TEMPLATE_TIER_TRIANGLES[tier])
+              ? ` — over its budget of ${TEMPLATE_TIER_TRIANGLES.join(" / ")}`
+              : ""
+          }`,
+        );
+    }
     printFindings(r.findings);
   }
 }
@@ -214,7 +250,7 @@ async function bake() {
   for (const dir of runtimeHashDirs())
     if (!live.has(dir)) rmSync(join(RUNTIME, dir), { recursive: true });
   writeFileSync(join(RUNTIME, "catalog.json"), runtimeCatalogText(result.runtime));
-  console.log(`wrote ${result.files.size} bundle(s) and assets/runtime/catalog.json`);
+  console.log(`wrote ${result.files.size} runtime file(s) and assets/runtime/catalog.json`);
   return 0;
 }
 
@@ -248,6 +284,19 @@ async function check() {
   const live = new Set([...result.files.keys()].map((p) => p.split("/")[0]));
   for (const dir of runtimeHashDirs())
     if (!live.has(dir)) problems.push(`orphan assets/runtime/${dir}; run bake`);
+  let generated = null;
+  try {
+    generated = prototypeFiles();
+  } catch (e) {
+    problems.push(`the prototype city set cannot be generated: ${e.message}`);
+  }
+  for (const [path, bytes] of generated ?? []) {
+    const file = join(ROOT, path);
+    const stale =
+      !existsSync(file) ||
+      (await contentSha256(new Uint8Array(readFileSync(file)))) !== (await contentSha256(bytes));
+    if (stale) problems.push(`${path} is missing or stale; run prototypes, then bake`);
+  }
   const icons = generatedIcons();
   for (const [path, svg] of icons) {
     const file = join(ICONS, path);
@@ -260,7 +309,7 @@ async function check() {
   console.log(
     problems.length
       ? "check failed"
-      : `check passed: ${result.files.size} bundle(s) match the catalog`,
+      : `check passed: ${result.files.size} runtime file(s) match the catalog`,
   );
   return problems.length ? 1 : 0;
 }
@@ -275,8 +324,21 @@ function pull(args) {
   const runtime = existsSync(join(RUNTIME, "catalog.json"))
     ? readJson(join(RUNTIME, "catalog.json"))
     : { skeletons: {}, appearances: {} };
-  const names = positionals.length ? positionals : Object.keys(cat.appearances);
+  // A city set is pulled by its name: its kit, its templates.json and the
+  // template art library every set is packed into.
+  const sets = Object.entries(cat.city_sets ?? {}).filter(
+    ([set, entry]) =>
+      !positionals.length || positionals.includes(set) || positionals.includes(entry.kit),
+  );
+  const names = positionals.length
+    ? positionals.map((name) => cat.city_sets?.[name]?.kit ?? name)
+    : Object.keys(cat.appearances);
   const include = new Set();
+  for (const [, entry] of sets) {
+    if (runtime.templates)
+      include.add(`assets/runtime/${templateLibraryPath(runtime.templates.library)}`);
+    if (values.sources) include.add(entry.templates);
+  }
   for (const name of names) {
     const entry = cat.appearances[name] ?? null;
     const skeleton = cat.skeletons[name] ? name : entry?.skeleton;
@@ -467,6 +529,82 @@ async function grass(names) {
   return 0;
 }
 
+/** A city set's `templates.json` as it is on disk, read as a set. */
+function readSet(name, entry) {
+  const { set, findings } = readTemplateSet(
+    new Uint8Array(readFileSync(join(ROOT, entry.templates))),
+    entry.templates,
+  );
+  if (!set || findings.length) {
+    printFindings(findings);
+    throw new Error(`city set ${name} (${entry.templates}) does not read`);
+  }
+  return set;
+}
+
+/** The prototype set's two files by repo path, generated: stand-in rows for
+ *  every template of the physical catalogue that no other set dresses, tinted
+ *  by the fixture's massing tints. Null when the catalog has no such set. */
+function prototypeFiles() {
+  const cat = catalog();
+  const entry = cat.city_sets?.[PROTOTYPE_SET];
+  const kit = entry && cat.appearances[entry.kit]?.source;
+  if (!entry || !kit) return null;
+  const dressed = new Set(
+    Object.entries(cat.city_sets)
+      .filter(([name]) => name !== PROTOTYPE_SET)
+      .flatMap(([name, other]) => readSet(name, other).templates.map((t) => t.descriptor.id)),
+  );
+  const set = prototypeTemplates(
+    readJson(join(ROOT, TEMPLATES)).filter((descriptor) => !dressed.has(descriptor.id)),
+    readJson(FIXTURE).presentation.massing.tints,
+  );
+  return new Map([
+    [kit, prototypeKitGlb()],
+    [entry.templates, new TextEncoder().encode(templateSetText(set))],
+  ]);
+}
+
+async function prototypes() {
+  const files = prototypeFiles();
+  if (!files) {
+    console.log(`the catalog has no "${PROTOTYPE_SET}" city set with a kit appearance`);
+    return 1;
+  }
+  for (const [path, bytes] of files) {
+    mkdirSync(dirname(join(ROOT, path)), { recursive: true });
+    writeFileSync(join(ROOT, path), bytes);
+    console.log(`${path}: ${(bytes.byteLength / 1024).toFixed(1)} KiB`);
+  }
+  console.log("now run bake");
+  return 0;
+}
+
+/** The physical catalogue's rows, rewritten from the city sets' descriptors:
+ *  what a Blender script's new templates reach the map generator through. */
+async function catalogue() {
+  const physical = await physicalTemplates();
+  const sets = Object.entries(catalog().city_sets ?? {}).map(([name, entry]) =>
+    readSet(name, entry),
+  );
+  const before = readFileSync(join(ROOT, TEMPLATES), "utf8");
+  const rows = catalogueRows(sets, JSON.parse(before), physical);
+  const text = catalogueText(rows);
+  const hash = physical.complete(rows).hash;
+  if (text === before) {
+    console.log(`${TEMPLATES} is in step with the sets: ${rows.length} template(s), hash ${hash}`);
+    return 0;
+  }
+  writeFileSync(join(ROOT, TEMPLATES), text);
+  console.log(
+    `${TEMPLATES}: ${rows.length} template(s); hash ${physical.complete(JSON.parse(before)).hash} → ${hash}`,
+  );
+  console.log(
+    "the map generator builds from these rows: maps and their identities move with them. Now run prototypes, then bake",
+  );
+  return 0;
+}
+
 /** Every generated icon for the fixture's weapon rows and the unit catalog,
  *  each type's silhouette rendered from its baked model in assets/runtime. */
 function generatedIcons() {
@@ -513,6 +651,8 @@ const commands = {
   sheet,
   icons,
   grass,
+  prototypes,
+  catalogue,
 };
 if (!commands[command]) {
   console.log(`usage: asset ${Object.keys(commands).join(" | ")}`);

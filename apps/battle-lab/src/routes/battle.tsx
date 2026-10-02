@@ -18,6 +18,7 @@ import type {
   PrepareStage,
   RefusalStage,
 } from "@web/battle/prepare/protocol";
+import { listMaps } from "@web/maps/catalogue";
 import { generationRequest, type MapChoice } from "@web/maps/source";
 import { askedBattle, menuHref, type AskedBattle } from "../battleLinks";
 import { BattleClock, objectiveStatus } from "../battleStatus";
@@ -42,14 +43,14 @@ const GENERATOR = { presets, templates };
 const generatedChoice = (request: PrepareBattleRequest): MapChoice | null =>
   request.map_source.kind === "generated" ? request.map_source.request : null;
 
-/** What the loading screen and the top bar call the battle's map. */
+/** What the loading screen and the top bar call the battle's map: a
+ *  generated map's choice, or a saved map's listed name and its encounter. */
 function subjectOf(request: PrepareBattleRequest): string {
   const source = request.map_source;
-  return (
-    source.kind === "generated"
-      ? `${source.request.type} · ${source.request.size}`
-      : `${source.id} · ${request.recipe_id}`
-  ).toUpperCase();
+  if (source.kind === "generated")
+    return `${source.request.type} · ${source.request.size}`.toUpperCase();
+  const listed = listMaps().find((map) => map.id === source.id);
+  return `${listed?.label ?? source.id} · ${request.recipe_id}`.toUpperCase();
 }
 
 type Stage = PrepareStage | "world" | "renderer";

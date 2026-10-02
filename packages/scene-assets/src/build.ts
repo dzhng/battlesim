@@ -744,3 +744,102 @@ export function buildStaticState(
   checkTierOrder(meshes.map(triangleCount), add);
   return { tiers: meshes, findings };
 }
+
+// ---------------------------------------------------------------- kit
+
+/** A module id: what a kit's root empties are named and a template set's
+ *  `modules` list by. */
+export const MODULE_ID = /^[a-z0-9_]+$/;
+
+/**
+ * A city kit's modules (`blender/city/README.md`): every root-level empty is
+ * one module, named by its id, and the meshes under it are its geometry in
+ * that empty's own frame, so a script may lay its modules out side by side.
+ * Each module carries all four tiers; an unsuffixed mesh is in every one.
+ * Modules come back in id order.
+ */
+export function buildKitModules(
+  scene: Scene,
+  label: string,
+  materials: MaterialTable,
+): { modules: { name: string; tiers: MeshData[] }[]; findings: Finding[] } {
+  const findings: Finding[] = [];
+  const add = collector(findings, label);
+  if (scene.skins.length)
+    add(
+      "structure.skin_count",
+      `${scene.skins.length} skin(s); a kit's modules are static`,
+      "apply the armature and remove it",
+    );
+  const basisInverse = inverse(scene.basis.matrix);
+  const modules: { name: string; tiers: MeshData[] }[] = [];
+  const seen = new Set<string>();
+  for (const root of scene.roots) {
+    const node = scene.nodes[root];
+    if (node.mesh !== null) {
+      add(
+        "kit.module",
+        `mesh "${node.name}" is at the root, outside any module`,
+        "parent each mesh to its module's empty, a root-level empty named by the module's id",
+      );
+      continue;
+    }
+    if (!MODULE_ID.test(node.name) || seen.has(node.name)) {
+      add(
+        "kit.module",
+        seen.has(node.name)
+          ? `module "${node.name}" appears twice`
+          : `root empty "${node.name}" is not a module id (lowercase letters, digits and underscores)`,
+        "name each root-level empty by its module's own id",
+      );
+      continue;
+    }
+    seen.add(node.name);
+    // The module's frame is engine-aligned, as an articulated node's is.
+    const toModule = inverse(mul(node.world, basisInverse));
+    const tiers: MeshPart[][] = Array.from({ length: TIER_COUNT }, () => []);
+    const visit = (index: number) => {
+      const child = scene.nodes[index];
+      const tier = meshTier(child.name);
+      for (const primitive of child.mesh === null
+        ? []
+        : (scene.meshes[child.mesh]?.primitives ?? [])) {
+        const part: MeshPart = {
+          primitive,
+          material: materials.slot(scene.materials[primitive.material]),
+          transform: mul(toModule, child.world),
+        };
+        if (tier === null) tiers.forEach((t) => t.push(part));
+        else if (tier < TIER_COUNT) tiers[tier].push(part);
+        else
+          add(
+            "structure.tier_count",
+            `module "${node.name}": mesh "${child.name}" names tier ${tier}; tiers are _LOD0.._LOD${TIER_COUNT - 1}`,
+            `name each mesh <part>_LOD0 (finest) to <part>_LOD${TIER_COUNT - 1}`,
+          );
+      }
+      for (const next of child.children) visit(next);
+    };
+    for (const child of node.children) visit(child);
+    const meshes = tiers.map((parts) => mergeParts(parts, false));
+    const empty = meshes.flatMap((mesh, t) => (triangleCount(mesh) ? [] : [`_LOD${t}`]));
+    if (empty.length)
+      add(
+        "structure.tier_count",
+        `module "${node.name}" has no geometry in ${empty.join(", ")}; every module has all ${TIER_COUNT} tiers`,
+        `give the module a mesh for each of _LOD0.._LOD${TIER_COUNT - 1}; an unsuffixed mesh is in every tier`,
+      );
+    checkTierOrder(meshes.map(triangleCount), (code, message, fix) =>
+      add(code, `module "${node.name}": ${message}`, fix),
+    );
+    modules.push({ name: node.name, tiers: meshes });
+  }
+  if (!modules.length)
+    add(
+      "kit.module",
+      "no module",
+      "add a root-level empty per module, named by its id, with its meshes under it",
+    );
+  modules.sort((a, b) => (a.name < b.name ? -1 : 1));
+  return { modules, findings };
+}

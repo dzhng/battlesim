@@ -29,6 +29,21 @@
       "scenery": "bridge_deck",
       "unit": "scenery"
     },
+    "city_kit_china_apartments": {
+      "bundle": "a55c6a8d063550c1b33a130e77ff14258b290337968c12400686c6b48081c962",
+      "kind": "static",
+      "unit": "kit"
+    },
+    "city_kit_homes": {
+      "bundle": "c2bee1c7445c1af21a1d240080f2b53ee9b522f570aa42d1a554301f71725fd3",
+      "kind": "static",
+      "unit": "kit"
+    },
+    "city_kit_prototype": {
+      "bundle": "5af1771daa664ff8a36625980715ef4d9d43d33e70468529c4564a867383fc0f",
+      "kind": "static",
+      "unit": "kit"
+    },
     "crate_stack": {
       "bundle": "1f9c0ac60873e67dd7edfbe47de591342ec8a6e8a747964e46ed9a6803f4b61d",
       "footprint_half_m": [
@@ -286,5 +301,10 @@
   "skeletons": {
     "quaternius-ubc-launcher": "b84f2a37727d5cc8ea87c307cfa704ab4a8b6ddd2594134b6f8d486f6d373bdc",
     "quaternius-ubc-rifle": "c6f5ccedf4fe807db7efdc2558d8408d9abf7d29389a1d5781cae4b9b60a0616"
+  },
+  "templates": {
+    "art_hash": "6df7cf3fed590ef2d7740e4a13a0d001c88a7f12be62b70bdfe09469cfeab37a",
+    "covers": "5416684f1dede60a7dc3665fb3bef4a247cb1705ed042cb6a3223b9b5e522ddc",
+    "library": "1a1b3e5542d1570ce247a5ad124cb220956acd0f63c43305025af22d92567eb3"
   }
 }

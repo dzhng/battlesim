@@ -267,20 +267,38 @@ test("deployment progress, its target and the packing state decode", () => {
 });
 
 test("casualties, health and corpses decode", () => {
-  const scenario = labScenario(weaponsMap, [
-    { side: "blue", kind: "tank", position: [200, 250] },
-    { side: "red", kind: "rifle", position: [320, 250], engagement: "return_fire_only" },
-  ]);
+  const scenario = labScenario(
+    weaponsMap,
+    [
+      { side: "blue", kind: "tank", position: [200, 250] },
+      { side: "red", kind: "rifle", position: [320, 250], engagement: "return_fire_only" },
+    ],
+    [{ tick: 2, add_prop: { kind: "wall", center: [340, 280], yaw: 0, half_extents: [1, 1, 2] } }],
+  );
   const battle = new Battle(scenario, 6);
+  const oracle = new Battle(scenario, 6);
   const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
   const decode = (side: "blue" | "red") => published(battle, layout, side);
+  const snapshot = () => {
+    oracle.resync_observation();
+    return published(oracle, layout, "red");
+  };
+  const complete = (frame: ReturnType<typeof published>) => ({ ...frame, groundPatch: undefined });
   let red = decode("red");
+  const retained = red;
+  expect(complete(red)).toEqual(complete(snapshot()));
   for (let t = 0; t < 900 && red.corpses.length === 0; t++) {
     battle.step();
+    oracle.step();
     red = decode("red");
+    expect(complete(red)).toEqual(complete(snapshot()));
+    expect(battle.digest()).toBe(oracle.digest());
   }
   expect(red.corpses.length).toBeGreaterThan(0);
   expect(red.corpses.every((c) => c.own)).toBe(true);
+  expect(red.knownProps.length).toBeGreaterThan(0);
+  expect(retained.corpses).toEqual([]);
+  expect(retained.own[0].members).toHaveLength(8);
   const squad = red.own.find((u) => u.kind === "rifle");
   if (squad) {
     expect(squad.memberHp).toHaveLength(squad.members.length);
@@ -288,6 +306,7 @@ test("casualties, health and corpses decode", () => {
   }
   expect(decode("blue").own[0].hp).toBeGreaterThan(0);
   battle.free();
+  oracle.free();
 });
 
 test("guided missiles and their launcher's support decode", () => {
@@ -417,7 +436,24 @@ test("every frozen animation field and ground value decodes, integers exact past
         c.tracks + c.trampled * 256 + c.cleared * 65536,
       ];
     });
-    return new ObservationDecoder(layout).decode(new Float32Array([...record, ...runs]))!;
+    // Frozen vectors describe the logical complete record, not its delivery.
+    const logical = new Float32Array([...record, ...runs]);
+    const head = Object.fromEntries(layout.header.map((name, i) => [name, logical[i]]));
+    const wire: number[] = Array.from(logical.subarray(0, layout.header.length));
+    let at = layout.header.length;
+    for (const group of layout.groups) {
+      const start = at;
+      const count = head[group.count];
+      at += count * group.fields.length;
+      for (let row = 0; row < count; row++)
+        for (const section of group.sections)
+          at +=
+            logical[start + row * group.fields.length + group.fields.indexOf(section.count)] *
+            section.fields.length;
+      wire.push(at - start, 1, at - start, ...logical.subarray(start, at));
+    }
+    wire.push(...logical.subarray(at));
+    return new ObservationDecoder(layout).decode(new Float32Array(wire))!;
   };
   const o = decodeVector("base");
   expect([o.own[0].kind, o.identified[0].kind, o.corpses[0].kind]).toEqual(["rifle", "tank", "at"]);

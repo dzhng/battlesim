@@ -1,8 +1,9 @@
-// The scenery layer, the frame's one owner of static instanced drawing: every
-// placed tree and hedgerow shrub, instanced from its appearance's tiers, and
-// the massing boxes of buildings with no art, in the frame's own passes.
-// Opaque, so all of it is in the depth prepass (FogVisibility's tile cull
-// reads it like any surface).
+// The scenery layer: every placed tree and hedgerow shrub, instanced from its
+// appearance's tiers, and the massing boxes of buildings with no art, in the
+// frame's own passes. Its populations are chunked, culled and tiered by the
+// static chunk owner (`staticChunks.ts`); the buffers, meshes and materials
+// here are the layer's own. Opaque, so all of it is in the depth prepass
+// (FogVisibility's tile cull reads it like any surface).
 //
 // - The forest (the simulation's trunks, one tree each) casts sun shadows into every
 //   cascade (the trees in view, and those whose shadow can land in it),
@@ -29,7 +30,7 @@
 //   fragment as a face, so a building takes fog whole as every known
 //   occluder does. Every box draws from the static buffer, at any distance.
 //
-// Each frame `prepare` sorts trees into tiers by projected height
+// On a view change `prepare` sorts trees into tiers by projected height
 // (`scenery/lod.ts`) and uploads the near trees' per-tier lists; far chunks
 // draw at tier 3 straight from a static buffer.
 import { tgpu, d, std, type TgpuRenderPass } from "typegpu";
@@ -43,15 +44,22 @@ import { battleWorldDepth } from "../worldDepth";
 import type { WorldScenery } from "../scene";
 import { kindSize, tierMesh } from "../scenery/appearance";
 import {
-  createTierPopulation,
+  chunkTier,
   INSTANCE_FLOATS,
-  selectTiers,
+  sceneryChunks,
+  tierFor,
   TIER_COUNT,
   treeInstances,
   type PlacedInstances,
-  type TierPopulation,
   type TierView,
 } from "../scenery/lod";
+import {
+  createStagedLevels,
+  selectChunks,
+  stageNear,
+  type StagedLevels,
+  type StaticChunks,
+} from "./staticChunks";
 import type { EnvironmentFrame } from "./environmentFrame";
 import type { FogVisibility } from "./fogVisibility";
 import { fogCoverage, fogTerm } from "./fogTerm";
@@ -328,7 +336,11 @@ export async function createSceneryLayer(
   /** A kind's vertices per tier. */
   type TierMeshes = { buffer: VertexBuffer; vertices: number }[];
   interface Population {
-    lod: TierPopulation;
+    chunks: StaticChunks;
+    /** The near chunks' instances, per kind and tier. */
+    staged: StagedLevels;
+    /** Whether the population casts sun shadows. */
+    casts: boolean;
     /** Per kind and tier: the appearance's vertices. */
     meshes: TierMeshes[];
     /** Tier thresholds this population is sorted by, projected pixels. */
@@ -382,17 +394,19 @@ export async function createSceneryLayer(
     lodPx: TierView["lodPx"],
     casts: boolean,
   ): Population {
-    const lod = createTierPopulation(placed, meshes.length, CHUNK_M, casts);
+    const chunks = sceneryChunks(placed, meshes.length, CHUNK_M);
     return {
-      lod,
+      chunks,
+      staged: createStagedLevels(chunks),
+      casts,
       meshes,
       lodPx,
-      far: lod.sorted.map((instances) => {
+      far: chunks.sorted.map((instances) => {
         const buffer = scope.own(instanceBuffer(root, instances.length / INSTANCE_FLOATS));
         if (instances.length) buffer.write(instances.buffer);
         return buffer;
       }),
-      near: lod.sorted.map(() =>
+      near: chunks.sorted.map(() =>
         Array.from({ length: TIER_COUNT }, () => ({
           slot: scope.slot<InstanceBuffer>(),
           capacity: 0,
@@ -402,16 +416,16 @@ export async function createSceneryLayer(
   }
 
   function upload(pop: Population) {
-    for (let k = 0; k < pop.lod.kinds; k++)
+    for (let k = 0; k < pop.chunks.kinds; k++)
       for (let t = 0; t < TIER_COUNT; t++) {
-        const count = pop.lod.counts[k][t];
+        const count = pop.staged.counts[k][t];
         if (count === 0) continue;
         const near = pop.near[k][t];
         if (near.capacity < count) {
           near.capacity = Math.max(64, count * 2);
           near.slot.set(instanceBuffer(root, near.capacity));
         }
-        near.slot.current!.write(pop.lod.staging[k][t].buffer, {
+        near.slot.current!.write(pop.staged.records[k][t].buffer, {
           size: count * INSTANCE_FLOATS * 4,
         } as never);
       }
@@ -429,9 +443,9 @@ export async function createSceneryLayer(
    *  casters, each near tier with a mesh `coarser` tiers down (a cascade
    *  texel is larger than the leaf relief). */
   function drawPopulation(pop: Population, bound: Drawable, casting = false, coarser = 0) {
-    for (let k = 0; k < pop.lod.kinds; k++) {
+    for (let k = 0; k < pop.chunks.kinds; k++) {
       for (let t = 0; t < TIER_COUNT; t++) {
-        const count = pop.lod.counts[k][t];
+        const count = pop.staged.counts[k][t];
         if (count === 0) continue;
         const mesh = pop.meshes[k][Math.min(t + coarser, TIER_COUNT - 1)];
         bound
@@ -440,7 +454,7 @@ export async function createSceneryLayer(
           .draw(mesh.vertices, count);
         draws++;
       }
-      const far = casting ? pop.lod.cast[k] : pop.lod.far[k];
+      const far = casting ? pop.chunks.cast[k] : pop.chunks.ranges[k][TIER_COUNT - 1];
       if (far.length === 0) continue;
       const mesh = pop.meshes[k][TIER_COUNT - 1];
       const withMesh = bound.with(vertexLayout, mesh.buffer).with(placedLayout, pop.far[k]);
@@ -556,7 +570,8 @@ export async function createSceneryLayer(
       view.shadow.reach = cascades.max_far_m * Math.hypot(1, tanV, tanV * camera.aspect);
       for (const pop of populations()) {
         view.lodPx = pop.lodPx;
-        selectTiers(pop.lod, view);
+        selectChunks(pop.chunks, view, chunkTier, pop.casts ? view.shadow : null);
+        stageNear(pop.chunks, pop.staged, view, tierFor);
         upload(pop);
       }
     },
@@ -601,17 +616,17 @@ export async function createSceneryLayer(
           triangles = 0,
           casters = 0;
         if (pop)
-          for (let k = 0; k < pop.lod.kinds; k++) {
-            placed += pop.lod.sorted[k].length / INSTANCE_FLOATS;
+          for (let k = 0; k < pop.chunks.kinds; k++) {
+            placed += pop.chunks.sorted[k].length / INSTANCE_FLOATS;
             for (let t = 0; t < TIER_COUNT; t++) {
-              let count = pop.lod.counts[k][t];
-              if (t === TIER_COUNT - 1)
-                for (let r = 1; r < pop.lod.far[k].length; r += 2) count += pop.lod.far[k][r];
+              let count = pop.staged.counts[k][t];
+              const whole = pop.chunks.ranges[k][t];
+              for (let r = 1; r < whole.length; r += 2) count += whole[r];
               tiers[t] += count;
               triangles += (count * pop.meshes[k][t].vertices) / 3;
-              if (pop.lod.casts && t < TIER_COUNT - 1) casters += count;
+              if (pop.casts && t < TIER_COUNT - 1) casters += pop.staged.counts[k][t];
             }
-            for (let r = 1; r < pop.lod.cast[k].length; r += 2) casters += pop.lod.cast[k][r];
+            for (let r = 1; r < pop.chunks.cast[k].length; r += 2) casters += pop.chunks.cast[k][r];
           }
         return { placed, tiers, triangles, casters };
       };

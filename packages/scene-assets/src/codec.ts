@@ -39,6 +39,12 @@ const typeName = (a: Typed): TypeName =>
           : "u32";
 
 export function encodeBundle(bundle: Bundle): Uint8Array {
+  return encodeContainer(MAGIC, FORMAT_VERSION, bundle);
+}
+
+/** The container above, for any content: the bundles here, and the template
+ *  art library (`templateLibrary.ts`) under its own magic and version. */
+export function encodeContainer(magic: number, version: number, value: object): Uint8Array {
   const arrays: Typed[] = [];
   const canonical = (value: unknown): unknown => {
     if (ArrayBuffer.isView(value)) {
@@ -60,7 +66,7 @@ export function encodeBundle(bundle: Bundle): Uint8Array {
     }
     return value;
   };
-  const content = canonical(bundle) as Record<string, unknown>;
+  const content = canonical(value) as Record<string, unknown>;
   let offset = 0;
   const views: [TypeName, number, number][] = arrays.map((a) => {
     const view: [TypeName, number, number] = [typeName(a), offset, a.length];
@@ -71,8 +77,8 @@ export function encodeBundle(bundle: Bundle): Uint8Array {
   const headerLength = Math.ceil(json.length / 4) * 4;
   const out = new Uint8Array(16 + headerLength + offset);
   const dv = new DataView(out.buffer);
-  dv.setUint32(0, MAGIC, true);
-  dv.setUint32(4, FORMAT_VERSION, true);
+  dv.setUint32(0, magic, true);
+  dv.setUint32(4, version, true);
   dv.setUint32(8, headerLength, true);
   dv.setUint32(12, offset, true);
   out.set(json, 16);
@@ -84,16 +90,29 @@ export function encodeBundle(bundle: Bundle): Uint8Array {
 }
 
 export function decodeBundle(bytes: Uint8Array): Bundle {
-  if (bytes.byteLength < 16) throw new Error("bundle is truncated");
+  const bundle = decodeContainer(bytes, MAGIC, FORMAT_VERSION, "bundle") as Bundle;
+  assertShape(bundle);
+  return bundle;
+}
+
+/** A container's content, its typed arrays copied out of `bytes`. `what`
+ *  names the file's kind in a refusal. */
+export function decodeContainer(
+  bytes: Uint8Array,
+  magic: number,
+  expected: number,
+  what: string,
+): unknown {
+  if (bytes.byteLength < 16) throw new Error(`${what} is truncated`);
   const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  if (dv.getUint32(0, true) !== MAGIC) throw new Error("not an appearance bundle (bad magic)");
+  if (dv.getUint32(0, true) !== magic) throw new Error(`not an appearance ${what} (bad magic)`);
   const version = dv.getUint32(4, true);
-  if (version !== FORMAT_VERSION)
-    throw new Error(`bundle format ${version}, expected ${FORMAT_VERSION}; re-bake`);
+  if (version !== expected)
+    throw new Error(`${what} format ${version}, expected ${expected}; re-bake`);
   const headerLength = dv.getUint32(8, true);
   const bodyLength = dv.getUint32(12, true);
   if (16 + headerLength + bodyLength !== bytes.byteLength)
-    throw new Error("bundle length does not match its header");
+    throw new Error(`${what} length does not match its header`);
   const { content, views } = JSON.parse(
     new TextDecoder().decode(bytes.subarray(16, 16 + headerLength)),
   ) as {
@@ -105,7 +124,7 @@ export function decodeBundle(bytes: Uint8Array): Bundle {
     const Ctor = TYPES[type];
     if (!Ctor) throw new Error(`unknown view type ${type}`);
     const byteLength = length * Ctor.BYTES_PER_ELEMENT;
-    if (offset + byteLength > bodyLength) throw new Error("bundle view runs past the body");
+    if (offset + byteLength > bodyLength) throw new Error(`${what} view runs past the body`);
     const copy = bytes.slice(body + offset, body + offset + byteLength);
     return new Ctor(copy.buffer, 0, length);
   });
@@ -122,9 +141,7 @@ export function decodeBundle(bytes: Uint8Array): Bundle {
     }
     return value;
   };
-  const bundle = revive(content) as Bundle;
-  assertShape(bundle);
-  return bundle;
+  return revive(content);
 }
 
 export async function bundleHash(bytes: Uint8Array): Promise<string> {

@@ -6,6 +6,7 @@
 import {
   buildArticulated,
   buildClips,
+  buildKitModules,
   buildSkinned,
   buildStaticState,
   MaterialTable,
@@ -76,6 +77,8 @@ export interface Stats {
   tiers: { triangles: number; vertices: number }[];
   joints?: number;
   nodes?: number;
+  /** A kit: each module's triangles per tier, finest first. */
+  modules?: { name: string; triangles: number[] }[];
   clips?: { name: string; loop: boolean; duration: number; frames: number }[];
   source_bytes: number;
   bounds?: Bounds;
@@ -170,6 +173,7 @@ export async function validateAppearance(
   context: ValidationContext,
 ): Promise<Validation<Bundle>> {
   const { entry } = input;
+  if (entry.unit === "kit") return validateKit(input);
   const tolerances = { ...context.tolerances, ...entry.tolerances };
   const kind = UNIT_BUNDLE_KIND[entry.unit];
   const findings: Finding[] = [];
@@ -343,6 +347,70 @@ export async function validateAppearance(
       tiers: tierStats(tiers),
       joints: joints.length,
       source_bytes: sourceBytes,
+      bounds,
+    },
+    bundle: hasErrors(findings) ? null : bundle,
+    preview: bundle,
+  };
+}
+
+/**
+ * A city kit: one GLB whose root-level empties are its modules. It bakes to a
+ * static bundle whose states are the modules, each in its own frame with its
+ * own bounds over every tier. A module is a piece of a building, placed many
+ * times by the template art library's rows, so nothing here measures it
+ * against the ground or a simulation box; how far a building's art may reach
+ * past its physical parts is judged per template (`templateSource.ts`).
+ */
+async function validateKit(input: AppearanceInput): Promise<Validation<Bundle>> {
+  const { entry, name } = input;
+  const path = entry.source ?? "";
+  const bytes = input.files[path];
+  if (!bytes) throw new Error(`${name}: no bytes supplied for ${path}`);
+  const findings: Finding[] = [];
+  if (entry.footprint_half_m || entry.states)
+    findings.push(
+      finding(
+        "kit.module",
+        `${name}: a kit declares ${entry.footprint_half_m ? "footprint_half_m" : "states"}; its modules are parts of buildings, not a building`,
+        "a kit entry is { unit, source, basis_yaw_deg }: its states are its modules, and fit is its templates'",
+      ),
+    );
+  const imported = importScene(bytes, path, entry.basis_yaw_deg);
+  findings.push(...imported.findings);
+  if (!imported.scene) return { findings, stats: null, bundle: null, preview: null };
+  findings.push(...(await bindTextures(imported.scene, path)));
+  const materials = new MaterialTable();
+  const built = buildKitModules(imported.scene, path, materials);
+  findings.push(...built.findings);
+  const states = built.modules.map((module) => ({
+    name: module.name,
+    tiers: module.tiers,
+    bounds: module.tiers.reduce<Bounds>((b, mesh) => positionsBounds(mesh.positions, b), {
+      min: [Infinity, Infinity, Infinity],
+      max: [-Infinity, -Infinity, -Infinity],
+    }),
+  }));
+  // A module with no geometry at all has no bounds, and is already an error.
+  const drawn = states.filter((s) => s.bounds.min[0] <= s.bounds.max[0]);
+  const bounds = drawn.reduce<Bounds | null>((b, s) => union(b, s.bounds), null);
+  if (!bounds || drawn.length !== states.length)
+    return { findings, stats: null, bundle: null, preview: null };
+  const bundle: StaticBundle = {
+    kind: "static",
+    states,
+    materials: materials.materials,
+    textures: materials.textures,
+    bounds,
+  };
+  findings.push(...textureFindings(name, bundle));
+  return {
+    findings,
+    stats: {
+      kind: "static",
+      tiers: sumTiers(states.map((s) => s.tiers)),
+      modules: states.map((s) => ({ name: s.name, triangles: s.tiers.map(triangleCount) })),
+      source_bytes: bytes.byteLength,
       bounds,
     },
     bundle: hasErrors(findings) ? null : bundle,

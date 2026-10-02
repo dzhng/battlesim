@@ -83,11 +83,16 @@ async function checkNoGlyphIcons(ctx, page, where) {
 }
 
 /** The road is drawn where the simulation has it. Top
- *  down over the first road's straight run, ground a metre inside its edge
- *  reads as road and ground a metre and a half outside reads as verge. */
+ *  down over the first road's longest straight run, ground a metre inside
+ *  its edge reads as road and ground a metre and a half outside reads as
+ *  verge. */
 async function checkRoadEdges(ctx, page) {
   const road = roadStrokes[0];
-  const [[ax, ay], [bx, by]] = road.points;
+  const runs = road.points.slice(1).map((b, i) => [road.points[i], b]);
+  const length = ([a, b]) => Math.hypot(b[0] - a[0], b[1] - a[1]);
+  const [[ax, ay], [bx, by]] = runs.reduce((best, run) =>
+    length(run) > length(best) ? run : best,
+  );
   const half = road.width_m / 2;
   const [mx, my] = [(ax + bx) / 2, (ay + by) / 2];
   const len = Math.hypot(bx - ax, by - ay);
@@ -3298,7 +3303,7 @@ async function captionsTour(ctx) {
     );
   });
   await page.goto(new URL("/", ctx.url).href);
-  await page.getByRole("link", { name: /Play village/ }).waitFor();
+  await page.getByTestId("menu-deploy").waitFor();
   ctx.check(
     "the main menu keeps audio preferences but has no caption opt-out",
     (await page.getByLabel("Subtitles", { exact: true }).count()) === 0 &&
@@ -3347,7 +3352,7 @@ async function menuTour(ctx) {
   await button.click();
   await snapshot(ctx, page, "pause-main-menu-1920x1080.png");
   await page.getByRole("link", { name: "Main menu", exact: true }).click();
-  await page.getByRole("link", { name: "Play village" }).waitFor();
+  await page.getByTestId("menu-deploy").waitFor();
   ctx.check(
     "Main menu returns from the paused battle to the game's home",
     new URL(page.url()).pathname === "/",

@@ -604,6 +604,109 @@ def soil():
     return Baked(col, 0.3 + 0.7 * fbm(6, 2009, 4), normals_from_height(blur(h), 1.6), 0.8 + 0.2 * lump, 0.97, tint=0.0)
 
 
+@recipe("plaster", tile=4.0, wear=(0.2, 0.125, 0.09, 0.95))
+def plaster():
+    """Lime render on a house wall: a pale neutral ground the building's tint
+    colours, with trowel marks, damp blotches and hairline cracks; the wear is
+    the brick it falls off."""
+    blotch = fbm(4, 2101, 5)
+    grain = fbm(96, 2103, 3)
+    trowel = warp(fbm((6, 24), 2105, 3), 6, 2106)
+    f1, f2, _ = worley(7, 2107)
+    crack = smoothstep(0.035, 0.0, f2 - f1) * smoothstep(0.5, 0.7, fbm(6, 2109, 3))
+    tone = 0.8 + 0.24 * blotch + 0.07 * (grain - 0.5) + 0.06 * (trowel - 0.5)
+    col = np.broadcast_to(np.array((0.74, 0.73, 0.7)), (SIZE, SIZE, 3)) * tone[..., None]
+    col = mix(col, (0.3, 0.29, 0.27), crack * 0.6)
+    h = grain * 0.25 + trowel * 0.5 - crack * 1.5
+    return Baked(col, chips(2111, 9, bias=0.12), normals_from_height(blur(h), 1.0), 1.0 - 0.3 * crack, 0.9)
+
+
+@recipe("roughcast", tile=3.0, wear=(0.17, 0.16, 0.15, 1.0))
+def roughcast():
+    """Pebble-dash render: a pale neutral ground the building's tint colours,
+    speckled with stones and stained by rain; the wear is the grey cement under it."""
+    f1, _, ident = worley(72, 2201)
+    pebble = smoothstep(0.55, 0.1, f1)
+    rnd = np.random.default_rng(2203).random(72 * 72)[ident]
+    stain = fbm(3, 2205, 5)
+    tone = 0.72 + 0.24 * stain + 0.18 * (rnd - 0.5) * pebble - 0.1 * (1 - pebble)
+    col = np.broadcast_to(np.array((0.7, 0.69, 0.66)), (SIZE, SIZE, 3)) * tone[..., None]
+    return Baked(col, chips(2207, 8, bias=0.2), normals_from_height(blur(pebble * 0.9), 1.6), 0.85 + 0.15 * pebble, 0.96)
+
+
+@recipe("brick", tile=2.0, wear=(0.2, 0.19, 0.17, 1.0))
+def brick():
+    """Facing brick in running bond, 26 courses and 8 bricks to the tile: every
+    brick its own fired tone, pale recessed mortar; the wear is lime bloom."""
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
+    courses, per = 26, 8
+    row = np.floor(yy * courses).astype(int)
+    u = xx * per + 0.5 * (row % 2)
+    fx, fy = u - np.floor(u), yy * courses - row
+    mortar = np.maximum(smoothstep(0.13, 0.05, np.minimum(fy, 1 - fy)), smoothstep(0.04, 0.015, np.minimum(fx, 1 - fx)))
+    fired = np.random.default_rng(2301).random((courses, per))[row, np.floor(u).astype(int) % per]
+    col = mix((0.21, 0.09, 0.062), (0.31, 0.135, 0.082), fired)
+    col = mix(col, (0.13, 0.075, 0.062), smoothstep(0.86, 0.9, np.random.default_rng(2303).random((courses, per))[row, np.floor(u).astype(int) % per]))
+    grain = fbm(64, 2305, 3)
+    col = col * (0.88 + 0.24 * grain)[..., None] * (0.85 + 0.3 * fbm(3, 2307, 4))[..., None]
+    col = mix(col, (0.34, 0.32, 0.28), mortar)
+    h = (1 - mortar) * 1.0 + grain * 0.2
+    return Baked(col, 0.3 + 0.7 * fbm(8, 2309, 4), normals_from_height(blur(h), 1.2), 1.0 - 0.35 * mortar, 0.88 + 0.08 * mortar)
+
+
+@recipe("roof_tile", tile=2.0, wear=(0.1, 0.11, 0.06, 1.0))
+def roof_tile():
+    """Clay pantiles, six courses and eight rolls to the tile. A roof's own UVs
+    run u along the eave and v up the slope, so each course's butt is at the low
+    edge of its row and the course above shades its top. Lichen is the wear."""
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
+    courses, pans = 6, 8
+    row = np.floor(yy * courses).astype(int)
+    fy = yy * courses - row  # 0 at the top of a course (image rows run down the slope)
+    pan = np.floor(xx * pans).astype(int)
+    roll = 0.5 - 0.5 * np.cos((xx * pans - pan) * 2 * math.pi)
+    fired = np.random.default_rng(2401).random((courses, pans))[row, pan]
+    shade = smoothstep(0.16, 0.0, fy)
+    col = mix((0.2, 0.085, 0.055), (0.31, 0.135, 0.08), 0.3 + 0.4 * fired)
+    col = col * ((0.78 + 0.3 * roll) * (1 - 0.5 * shade) * (0.85 + 0.3 * fbm(4, 2403, 4)))[..., None]
+    col = mix(col, (0.15, 0.15, 0.1), smoothstep(0.62, 0.8, fbm(7, 2405, 4)) * 0.45)
+    h = roll * 1.2 + fy * 1.6
+    return Baked(col, 0.3 + 0.7 * fbm(8, 2407, 4), normals_from_height(blur(h * 2), 1.0), 1.0 - 0.45 * shade, 0.82, tint=0.0)
+
+
+@recipe("joinery", tile=1.0, wear=(0.18, 0.13, 0.085, 0.9))
+def joinery():
+    """Painted joinery (doors, shutters, shopfronts): a pale neutral paint the
+    building's tint colours, over upright boards; the wear is bare wood."""
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
+    boards = 8
+    fx = xx * boards - np.floor(xx * boards)
+    seam = smoothstep(0.06, 0.0, np.minimum(fx, 1 - fx))
+    grain = warp(fbm((48, 2), 2501, 4), 3, 2503)
+    tone = 0.84 + 0.12 * grain + 0.1 * (fbm(5, 2505, 4) - 0.5)
+    col = np.broadcast_to(np.array((0.72, 0.72, 0.7)), (SIZE, SIZE, 3)) * tone[..., None]
+    col = mix(col, (0.2, 0.2, 0.19), seam * 0.7)
+    return Baked(col, chips(2507, 12, bias=0.1), normals_from_height(blur(grain * 0.5 - seam * 2), 1.2), 1.0 - 0.4 * seam, 0.6)
+
+
+@recipe("rubble_stone", tile=3.0, wear=(0.075, 0.08, 0.05, 1.0))
+def rubble_stone():
+    """A farm wall of field stone laid as random rubble: flat stones a hand or two
+    across, close in tone, in pale recessed lime mortar. A pale ground a
+    building's tint can warm or cool; the wear is moss."""
+    cells = 9
+    rows = (np.arange(SIZE) * 2) % SIZE  # twice the courses up the wall: stones lie flat
+    f1, f2, ident = (x[rows] for x in worley(cells, 2601))
+    joint = smoothstep(0.16, 0.04, f2 - f1)
+    stone = np.random.default_rng(2603).random(cells * cells)[ident]
+    grain = fbm(64, 2605, 3)
+    col = mix((0.36, 0.345, 0.31), (0.46, 0.44, 0.39), stone)
+    col = col * (0.88 + 0.24 * grain)[..., None] * (0.82 + 0.36 * fbm(3, 2607, 4))[..., None]
+    col = mix(col, (0.5, 0.48, 0.43), joint)
+    h = (1 - joint) * (0.7 + 0.5 * stone) + grain * 0.3
+    return Baked(col, 0.3 + 0.7 * fbm(8, 2609, 4), normals_from_height(blur(h), 1.8), 1.0 - 0.4 * joint, 0.94)
+
+
 # ---------------------------------------------------------------- UVs and the GLB
 def box_uv(obj, tile):
     """UVs in metres over `tile` (one number, or one per material slot): each
@@ -646,11 +749,14 @@ def macro(rgb, recipe_name):
     return tuple(min(1.0, max(0.0, c / max(m, 1e-4) / COLOUR_SCALE)) for c, m in zip(rgb, mean))
 
 
-def attach(path, materials):
+def attach(path, materials, worn=True):
     """Embed each recipe's images in the GLB at `path` and point the named
     materials' texture slots at them: {material name: recipe name}. The
     material's factors become 1 (the images carry the values); its wear colour
-    goes in extras."""
+    goes in extras. With `worn` false the surface never wears: the material
+    keeps its own factors, so several materials can share one recipe at their
+    own base colour, roughness and metalness, and its vertex colour is a plain
+    multiplier."""
     data = open(path, "rb").read()
     jlen = struct.unpack_from("<I", data, 12)[0]
     doc = json.loads(data[20:20 + jlen])
@@ -686,13 +792,14 @@ def attach(path, materials):
         pbr = m.setdefault("pbrMetallicRoughness", {})
         pbr["baseColorTexture"] = texture(name, "albedo", blobs["albedo"])
         pbr["metallicRoughnessTexture"] = texture(name, "orm", blobs["orm"])
-        pbr["metallicFactor"] = 1.0
-        pbr["roughnessFactor"] = 1.0
         m["occlusionTexture"] = texture(name, "orm", blobs["orm"])
         m["normalTexture"] = texture(name, "normal", blobs["normal"])
-        extras = m.setdefault("extras", {})
-        extras["wear"] = [float(x) for x in RECIPES[name][1]]
-        extras["colour_scale"] = COLOUR_SCALE
+        if worn:
+            pbr["metallicFactor"] = 1.0
+            pbr["roughnessFactor"] = 1.0
+            extras = m.setdefault("extras", {})
+            extras["wear"] = [float(x) for x in RECIPES[name][1]]
+            extras["colour_scale"] = COLOUR_SCALE
     while len(bin_) % 4:
         bin_.append(0)
     doc["buffers"] = [{"byteLength": len(bin_)}]

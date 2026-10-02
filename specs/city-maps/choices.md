@@ -2616,6 +2616,125 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 
 **Open:** the stream record is the only native-against-Wasm check of the simulation itself, and it is a four-unit move with no firing; a short battle with combat would be a stronger pair at the same cost.
 
+## C05 — scale-lane measurement choices
+
+### Sound — medium confidence: separate contact density from transit
+
+**When:** scale-lane measurement pass. **Choice:** reuse the endurance stress
+recipe inside a central 3 × 2 km arena of the generated map, with the full map
+loaded. On a 10 km world the original recipe would send each side toward its own
+rear, leaving them kilometres apart; the new load brings both into the same city
+area, with the fronts within weapon reach. Starting units move to nearby ground the production navigation permits.
+The existing saved-map endurance recipe keeps its coordinates and identity.
+**Gap:** the lane required generated contact without specifying its fight script.
+**Reach:** this proves local street cost and complete-world allocation; the separate
+crossing load proves long transit, and neither proves encounter placement quality.
+**Verdict:** sound; workload scopes stay explicit rather than using a quiet journey
+as fighting evidence.
+
+### Sound — high confidence: profile the existing tick with external counters
+
+**When:** scale-lane measurement pass. **Choice:** reports receive callbacks when
+each system finishes and read the OS instruction counter there. Ordinary play
+calls that same tick path with a no-op callback, so it never reads clocks or
+counters. If an eye sweeps fog and then learns terrain, those costs are reported
+separately; building the observation and packing it for delivery are separate too.
+**Gap:** existing reports counted complete ticks and could not select the expensive
+owner. **Reach:** future native reports share the production path without a second
+tick implementation. **Verdict:** sound; measurements remain outside battle state
+and replay identity.
+
+## C06 — scale-lane termination pass
+
+### Sound — high confidence: exhaust the corridor, then use the existing fallback
+
+**When:** C06 termination pass. **Choice:** stop a soldier's rejoin search once
+it has sampled the remaining route. If parked bodies block a nearby route end,
+the former sampler kept returning that same blocked place forever; the revised
+search returns no rejoin point and lets the existing personal-spot fallback run.
+The limit comes from route length and sampling distance, with one endpoint
+rounding sample, rather than an arbitrary retry cap. **Gap:** the plan required
+bounded scale work but did not name this infinite iteration. **Reach:** all
+soldiers retain the same successful candidate order and can exhaust an obstructed
+route without freezing a tick. **Verdict:** sound; the search cannot create
+progress after it reaches the end, and no valid candidate is discarded.
+
+The boolean-only walkability call is a local ownership simplification, not a new
+physical rule or a measured performance gain.
+
+## C07: exact observation group delivery
+
+### Sound — medium confidence: retain one canonical non-map baseline
+
+**When:** C07 reconstruction pass.
+
+**Choice:** Compare float words within each existing observation group, rather
+than introducing entity-keyed stores. When a squad loses a soldier, its member
+rows become shorter; that can change the squad group's remaining addresses, but
+cannot move the independently addressed corpse or known-prop group. The page
+receives the new group length and exact replacement ranges, reconstructing the
+same ordered arrays it would receive in a complete record. An entity-keyed
+alternative would add identity/deletion rules for every kind of row; this work
+keeps those decisions with the simulation's existing logical observation.
+
+**Gap:** G0 selected fog/known-prop delivery but did not choose a representation
+for the measured 60 KB own rows and 522 KB late corpse tail. C07 explicitly
+reslices that arm while preserving the original byte target.
+
+**Reach:** A shrinking group can still incur within-group replacement bytes.
+Full-size active measurements decide whether this representation is sufficient;
+this checkpoint makes no budget-success claim.
+
+**Verdict:** Sound: one existing logical owner, exact ordering, no new entity
+identity scheme. **Confidence:** Medium, because the active byte gate remains
+open.
+
+### Sound — high confidence: choose snapshots by encoded size and reserve before commit
+
+**When:** C07 reconstruction pass.
+
+**Choice:** If changes are dense, send the group's full words when that costs no
+more than replacement ranges. For sparse changes, scan once to count the encoded
+bytes and again to emit them, without retaining a list of ranges. Admit and
+reserve the complete wire record and next non-map baseline before replacing the
+published output or advancing its cursor. A rejected record therefore leaves the
+last successful side/generation available for recovery. The baseline uses one
+flat allocation, so a large group on one side followed by another large group on
+the other cannot accumulate separate group-sized allocations.
+
+**Gap:** The representation needed a snapshot threshold and bounded scratch
+lifecycle; a per-range list or per-group high-water cache would make peak storage
+larger than the current logical observation.
+
+**Reach:** Producer staging, current wire, pending wire and the non-map baseline
+each have an exact bounded reservation. Those four capacities and the existing
+fog cursor must still be included in snapshot/peak admission measurements.
+
+**Verdict:** Sound: admission precedes transport commit and scratch space does
+not grow with the number of changed ranges. **Confidence:** High.
+
+### Sound — high confidence: share the existing side/epoch revision boundary
+
+**When:** C07 reconstruction pass.
+
+**Choice:** A side change or resync starts every group with a complete snapshot.
+The existing fog generation also names the group baseline. If a page misses a
+publication, the next generation fails that baseline check before applying any
+group, fog or ground state. A valid resync then reconstructs the side's full
+known state. The alternative would introduce an independent group revision that
+could disagree with fog or ground and permit a mixed observation.
+
+**Gap:** C07 needed recovery rules for the added representation; the existing
+publication cursor already supplied exactly the ordered stream boundary.
+
+**Reach:** Producer/decoder cut over together. The published layout describes
+delivery metadata separately from the canonical logical row schema, and the
+complete serializer is named `pack_logical` so native oracle/report consumers
+cannot mistake it for the transport record.
+
+**Verdict:** Sound: one atomic publication baseline, exact float32 words, and no
+codec dependency or new simulation state. **Confidence:** High.
+
 ## Buildings lane
 
 ### China's family ships first
@@ -2876,3 +2995,828 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 **Evidence:** Walking each bank, the shading steps by at most 1.5% of the flat ground's luminance (bar 8%); the same frames with the bank's shading off step by 18.7%, 176 pairs over the bar. No map the contract admits has a bank past 35°, so the bound is not reachable in a test.
 
 **Verdict:** sound. Beside relief the bank is still lit as if the land past it were flat (C69's note). **Confidence:** high.
+## C06 per-tick geometry bounds
+
+### Cache derived bounds only while their authoritative positions are stable
+
+**Choice:** Sensing computes each unit's footprint radius once per immutable
+call. Movement gathers living infantry in unit order and keeps their derived
+radii beside the existing crowd, refreshing them after squad motion or a shove.
+
+**Gap:** The spec delegates measured cost reductions but does not choose a
+cache owner or lifetime.
+
+**Verdict:** sound. Recomputing a squad's radius for every vehicle or observer
+repeats a scan of its soldiers. These short-lived bounds have explicit refresh
+owners and preserve collision and sensing results. Fallen squads remain in the
+battle and observations; they add no traffic work per vehicle. **Confidence:** high.
+
+## C06 engagement-search bounds
+
+### Reject only an engagement search proven empty by physical reach
+
+**Choice:** Cover planning skips a fight search only when every target lies
+beyond weapon range plus the squad-area radius and maximum lean distance.
+Boundary cases retain the ordinary search with a micrometre of rounding slack.
+
+**Gap:** The cost slice delegates reductions without choosing how to bound
+failed cover searches.
+
+**Verdict:** sound. Every candidate starts inside the area, and every lean is
+bounded by the existing physical rule; three-dimensional distance is at least
+its horizontal distance. This saves searching thousands of positions without
+changing chosen cover or planning timing. **Confidence:** high.
+
+### Sound — medium confidence: fixed-row reuse follows exact content, not entity identity
+
+**When:** C07 sparse-row pass.
+
+**Choice:** Index the exact float32 words of each retained fixed row, then
+assemble the new group in its simulation-supplied order using source spans and
+literal spans. For example, learning a new corpse between two hundred known
+corpses sends that new row and instructions to copy the known neighbors. If a
+known corpse changes place, its changed row is sent literally or through the
+cheaper existing word-replacement arm. Identical duplicate rows may reuse the
+same source because their complete words are equal. The alternative would key
+rows by soldier/body ids, adding deletion and identity rules that different
+kinds of observations do not all share.
+
+**Gap:** Measurements showed group-local word replacements still resend sorted
+retained tails. The spec did not prescribe how to find unchanged rows after
+insertion or reordering.
+
+**Reach:** This arm applies to every fixed-row group, preserves spatial corpse
+ordering and needs no new simulation identities. Groups with variable sections
+keep their existing word encoding. The temporary index adds bounded storage and
+sorting work, which must pass the matched active cost gate.
+
+**Verdict:** Sound: exact content comparison avoids hash collisions and hidden
+identity assumptions, while choosing the minimum payload preserves sparse-field
+savings. **Confidence:** Medium, because actual active instruction/byte gates
+remain open.
+
+### Sound — high confidence: copies reconstruct the whole group before commit
+
+**When:** C07 sparse-row pass.
+
+**Choice:** A source-copy operation reads an aligned span from the immutable
+previous group; a literal operation supplies new row words. Operations fill the
+new group sequentially, so reordering and removal require no mutable edit list
+and a missing word is rejected. If a malformed generation copies beyond the
+previous group, the decoder keeps its old baseline and accepts the corrected
+same generation. New sides/epochs still require snapshots. The alternative,
+editing the previous array in place, could both overwrite later copy sources and
+change an observation the page already retained.
+
+**Gap:** The new representation required source validation and failure rules;
+existing generation/epoch checks remain the shared publication boundary.
+
+**Reach:** The published metadata calls the selector an encoding and names its
+three modes explicitly. Source indices, counts and copied words remain exact
+inside the existing record allowance. Publisher index allocation and wire
+admission are fallible before output/cursor commit.
+
+**Verdict:** Sound: complete, immutable reconstruction retains atomic side
+knowledge and the existing recovery contract. **Confidence:** High.
+## C06 spatial fog invalidation
+
+### Mutation stamps belong to the footprint index
+
+**Choice:** When a tree falls far from an observer, the observer's cached solid
+heights remain usable. The footprint index already divides the world into
+32 m buckets to find nearby bodies. World alone enables a private last-change
+number in each bucket. Insertion and deletion stamp affected buckets; movement
+stamps both the old and new footprints. A removed body's bucket retains its
+number even when empty. After any world change, a fog tile compares the largest
+number among the same buckets its body query uses. If unchanged, its raster
+(the solid height at each fog-cell centre) is still exact. The global revision
+remains the first cheap check while no body changes at all.
+
+**Gap:** The slice delegates dirty bookkeeping but does not specify storage or
+a retained-history policy.
+
+**Reach:** The additional arrays depend on physical extent, not battle history:
+one number per world bucket and a second number per existing fog tile. They
+add 6.25 MB at 20 × 20 km with 8 m fog cells; side-known indexes allocate no
+stamp arrays. More precise footprint-shaped invalidation could save some
+boundary rebuilds but would add bookkeeping beyond the index's bucket bounds.
+This uses the existing
+conservative body query without new sampling or changed sight rules.
+
+**Verdict:** sound. Unrelated changes no longer force active eyes to sort and
+raster nearby bodies again, and no changed-prefix scan can miss a later update.
+**Confidence:** high; fresh-sweep and cost regressions remain the acceptance seams.
+## C13/C32 kits and the template art library
+
+### A kit is a static bundle whose states are its modules
+
+**Choice:** A kit is an appearance of its own unit (`kit`), baked into the existing static bundle with one state per module. The alternative was a new bundle kind.
+
+**Gap:** C32 says "existing scene-assets bake/schema/loader" without saying how a module is stored.
+
+**Reach:** The bundle format, codec and loader are unchanged, so every existing bundle keeps its hash. Anything that hands every installed appearance to the model layer now hands it the kits too; the battle already filters to what it draws.
+
+**Verdict:** sound. A module is exactly what a state already is: four tiers, a bounds, shared materials and textures. **Confidence:** high.
+
+### A module's frame is its empty's
+
+**Choice:** A module's geometry is read in its root empty's own frame, so a script may lay modules out side by side in the file. The alternative required every empty at the file's origin.
+
+**Gap:** The source readme said "in the module's own frame" without saying whether the empty's position counts.
+
+**Verdict:** sound. It costs nothing, and a kit file that can be opened and looked at is worth having. **Confidence:** high.
+
+### Rows are columns, 34 bytes each, in the bundle container
+
+**Choice:** The library is one file in the bundles' own container under its own magic: a header naming kits, modules and templates, and four columns over every row (module index, seven floats, tier mask, tint). A template's state is a range of them. The alternatives were quantised positions (about half the bytes) or one file per template.
+
+**Gap:** C32 delegated "codec grouping/packing".
+
+**Reach:** At 100 templates of 6,000 rows it is about 20 MB before transport compression; real sets should be a few megabytes. Resolving a building copies only its transforms.
+
+**Verdict:** provisional. Quantising to a centimetre risks cracks between modules that meet on a lattice, for bytes nobody has yet measured as a problem. C22 measures a real library and may amend this. **Confidence:** medium.
+
+### Art identity is the library's own bytes without the hash
+
+**Choice:** `art_hash` is the sha256 of the library encoded without it. The library names each kit's bundle hash, so the hash covers modules, materials and tiers as well as rows, tier masks, tints, status and the catalogue hash it covers.
+
+**Verdict:** sound. Anything that changes what is drawn changes it, and nothing else does. **Confidence:** high.
+
+### Missing art is refused in three places, by one name each
+
+**Choice:** A template or state with no rows is refused by the resolver (`template.missing`, `state.missing`). A module its kit lacks is refused when the sets are packed and again when the loader binds the library to the installed kits (`module.missing`, `kit.missing`), which fails the whole load.
+
+**Gap:** C32 asks for explicit failure on missing templates, modules and state rows; the resolver's four arguments cannot see the kits.
+
+**Verdict:** sound. A missing module is a broken catalog generation, not a per-building event, so it belongs to the atomic install. **Confidence:** high.
+
+### Fit is every vertex inside some grown part, and nothing below a part's base
+
+**Choice:** A state fits when each vertex its rows draw, at each tier a row draws at, lies inside at least one part grown by the set's `side_m` and `top_m`. Below a part's base only the catalog's ground tolerance is allowed. A millimetre of slack covers single-precision transforms.
+
+**Gap:** The readme gives `side_m` and `top_m` and is silent on the underside and on what "inside the union" means for a mesh spanning two parts.
+
+**Reach:** A plinth sunk into a slope is refused today. A triangle whose corners are in two parts and whose middle is in neither is accepted.
+
+**Verdict:** provisional. Foundations on sloped ground are a real need the ground lane's pads may answer first; if not, `fit` gains a `below_m`. **Confidence:** medium.
+
+### The catalogue is derived, and the prototype set is derived from it
+
+**Choice:** `asset catalogue` rewrites the physical catalogue's rows from every set's descriptors, keeping an unchanged row as written and where it is. `asset prototypes` then gives stand-in rows to every catalogue template no other set dresses. A descriptor equals its catalogue row when the contract's canonical forms are equal.
+
+**Gap:** "The physical catalogue the generator reads is derived from those descriptors and checked against them" did not say which way the prototypes flow, since they have no script.
+
+**Reach:** To retire a stand-in, delete its catalogue row and regenerate the prototype set. The catalogue file's text is the command's, so its hand formatting is now fixed.
+
+**Verdict:** sound. Run on today's catalogue it changes no byte, so nothing moved in this pass. **Confidence:** high.
+
+### Prototype rows carry the category's tint, not each building's jitter
+
+**Choice:** A stand-in row's tint is its category's massing tint. The massing boxes also varied each building's value; a template's rows are shared by every building placed from it, so that variation is the renderer's per instance, or gone.
+
+**Verdict:** provisional, for C22 to settle when the boxes are replaced. **Confidence:** medium.
+
+### Triangle budgets are reported, not enforced
+
+**Choice:** The bake prints what each template draws at each tier and marks one over budget. It refuses nothing.
+
+**Gap:** The readme lists the budgets among the rules a set keeps; the ledger above calls them provisional.
+
+**Verdict:** sound until C22 measures frames. A gate on guessed numbers would refuse good art. **Confidence:** medium.
+
+### The asset bake and check need the WebAssembly
+
+**Choice:** Descriptors and the catalogue's hash are judged by `contract::templates` through one new export (`complete_template_catalogue_json`), loaded only when the catalog has city sets. The alternative was a native helper binary.
+
+**Reach:** `asset bake` and `asset check` now fail without `bun run build:wasm`. The dev server's rebake already runs after it.
+
+**Verdict:** sound. It is the route the web tests and the map adapters already take. **Confidence:** high.
+### A sharp joint is one road round a bend, never a cut heel
+
+**Choice:** Two carriageways of one kind and width that meet end to end are one stroke round whatever corner they make, short of an exact reversal (within 5°). The 110° limit for country roads and tracks is gone, and so is the rule that ran one fork arm on over the other's end. At a junction of three or more, the straightest pair of alike ends is the road through it at any angle, not only within 30°.
+
+**Gap:** The user called the closed fork (two tracks at about 40°, one running half a width past the point and ending flat) a weird corner. C65's rounded centreline can turn that sharply: the bend's tangent at its apex is the bisector of the two runs, only an exact reversal has none, and the outside of the bend is then the stroke's own round join, which the square-end contract leaves alone more than half a width from an end.
+
+**Verdict:** sound. The same fork is now a switchback with a round outside (`throwaway/road-ends/forks-after/mixed-track-fork.png`). `no_road_turns_back_on_itself` now bounds a turn at 175°, the reversal the weld refuses. **Confidence:** high.
+
+### Where unlike roads meet at a corner the wider one turns it and narrows
+
+**Choice:** The widest end at a point with no road through it gains a last run along the narrower way that leaves most nearly straight on: one and a half of its widths long, at least its half width plus a metre, stopping that way's width short of its first turn. Its outer corner is its own round bend, the narrower way starts under it, and its square end lies across the narrower one with a shoulder either side. The last run ends up to 5 cm to the far side of the narrower way's line, so the two middles cross whatever rounding does. Any other end at that point joins the wider road as it would anywhere along it.
+
+**Gap:** Two strokes of different widths cannot be one stroke, and whichever ended at the shared point showed a flat heel on the outside of the corner. The earlier rules (mitre, run-on, run-back) each left one.
+
+**Verdict:** provisional. It reads as a road that turns and then narrows by a step; a taper would read better and a constant-width stroke cannot draw one. **Confidence:** medium.
+
+### A branch that comes in at a slant curves round to meet the road square
+
+**Choice:** An end that joins a carriageway more than 30° off square, and not within 20° of running alongside it, leaves its own line where the road's middle is still its half width plus a width and a half away, turns in two halves a width apart, and goes straight to the nearest point of the road's middle, a quarter of a metre past it. With less room it tries half that depth; a last run under four widths long swings whole instead. A wider end whose corners would show past a narrower road's far edge is treated the same way.
+
+**Gap:** An acute fork is where a flat end shows: the end's corner stands out past the other road's edge on the open side. A real track swings round to meet a road it joins. A lane that peels off within 20° is left: squaring it moves the join far along the road and took a farm's lane away from the farm (two refusals in the one 900-map sweep, open medium 49 and one mixed medium).
+
+**Verdict:** provisional. The join moves along the road by up to the depth over the tangent of the angle, about 15 m at 35°. **Confidence:** medium.
+
+### Stubs, doubled streets and short links are tidied before joints are made
+
+**Choice:** Three more steps. An end that stops within two of its widths past a road it crossed is cut back to it. A street drawn beside another (under their two half widths apart, running the same way) is cut back to the last road that crosses it within ten widths, or, with nothing between them, the two ends meet half way and weld. A turn within the widest road's half width plus a metre of an end is dropped, so the end's last run is long enough to move, meet or turn along; a street's link to the road it joins is a metre or two long, and blocked every one of those.
+
+**Gap:** These were most of the bites: an avenue that ran 15 m past its last cross street beside the street it should have cornered with, the offset grids of neighbouring districts, and corners the pass could not make because one arm's last run was 1 to 3 m.
+
+**Verdict:** sound for what the sweep counts. **Confidence:** medium.
+
+### A joint is kept if both roads still join one third road there
+
+**Choice:** The pass's own guard no longer asks that every pair of centrelines that crossed still cross. A pair is kept if they cross, are one road, or both cross a third road within 25 m of where they crossed each other.
+
+**Gap:** Three roads that shared a point are one junction when two of them end on the third. The stricter guard read that as a lost joint between the two, pinned all three as laid and left the heel.
+
+**Verdict:** sound: the plan's road graph still connects them through the third road. **Confidence:** medium.
+
+### What is left: 9 ends in ten thousand, counted with heels
+
+**Choice:** `tests/road_ends.rs` drops the `Corner` class it counted as sound (a free face with a road joining within two widths) and counts it as a `Heel`, with a wider road's end that narrower roads cover in part and none carries on from. Bites, steps and heels together may be 10 in ten thousand ends. Only carriageway strokes count as joining or covering an end; a yard in front of a building is paving and no road.
+
+**Gap:** The old bound (2 in a thousand) counted bites only and called the fork's heel sound.
+
+**Verdict:** provisional. By the new count the previous pass left 355 of 25,302 ends (140 in ten thousand; 328 heels, 27 bites); this one leaves 22 of 25,014 (8.8; 2 heels, 20 bites) over the same 36 maps. The rest are junctions where three ends stand a few metres apart without sharing a point, and a wider road that ends at a slant on a narrower one with no room to turn. **Confidence:** high for the count.
+
+### The lab roads run to the map's edge; the village's two roads join in a T
+
+**Choice:** The deployment, geometry and movement labs' roads run to the map's edge where they stopped 10 to 20 m short of it. The village's east-west road runs on to the west edge, and the road that shared its start at (140, 780) now curves to meet it square at (159, 780), as the generator would lay it. Each map's `SOURCES.json` hash follows. The village scene's road-edge oracle reads the road's longest run, which is the ground it read before.
+
+**Gap:** Roads that stop in open ground short of the edge, and two road ends sharing a point at 52°, which showed a bite on the outside.
+
+**Verdict:** sound, with a named move: the village edit changes physical ground, and the quick village report's three flank digests move (blue cost lost 1805 to 1792, rejoined 5 to 6, captures and tanks lost unchanged); the three ambush digests do not. The river lab is not edited: its road ends on the map are what `terrainSurface.test.ts` samples to hold the renderer's square ends to the simulation's. The movement lab's road to (40, 230) still stops in open ground, 170 m from any edge. **Confidence:** high.
+
+### The unprimed critique: the step where a road narrows still reads as a flat end
+
+**Choice:** Nothing was changed after the critique. Its findings are recorded here for the next pass.
+
+**Gap:** One unprimed reviewer was given eleven close shots and ten 3x crops and asked whether any road corner or junction looks wrong. Its three worst, all high confidence, are the same thing: where a wider road turns a corner and narrows, the wide strip "ends in a flat, square-cut end and the narrow strip pokes out of its middle", with a square shoulder either side (`forks-after/fork-avenue-corner-2.png`, `fork-road-turns-onto-track.png`, `fork-avenue-corner.png`). At medium confidence it calls the switchback's outside "a bulbous cap wider than either track" with a flat facet (`mixed-track-fork.png`, `fork-street-sharp-bend.png`), and sees a concave notch where a squared branch leaves the outside of a curving road (`fork-slanted-branch.png`). It passes the plain T-junctions and the squared tracks.
+
+**Verdict:** open. The step is the rule above working as written, and it is a flat end showing past a narrower road's edges on both sides. `tests/road_ends.rs` classes it `Narrows` and counts it sound: 340 of 25,014 ends, against 22 counted as flaws. So the count of 9 in ten thousand does not include the defect the reviewer ranks first. A stroke has one width, so the pass cannot taper it; removing the step needs either a width that varies along a stroke (a change to the shared stroke contract, in the simulation, the export and the renderer) or a layout that never asks a wide road to become a narrow one at a corner. The switchback's cap is the bend's own round joins and is the shape asked for; its facet is the bend's short stretches showing. **Confidence:** high that the step reads wrong; medium on the rest.
+
+## C17: our own houses
+
+### A house's box is as tall as its ridge
+
+**Choice:** Every house part's top is its roof's ridge: a one-floor house is a 5.2 m box (the prototype was 4 m), two floors 8.2 to 8.45 m (6.5 m), three floors 11.75 to 12.85 m (9.5 and 10.5 m). Floor datums stay at 0, 3 and 6 m (0, 4 and 7 m over a shop), and walls reach 2.85 m above the top datum. The alternative was a box to the eaves with the roof above it as `fit.top_m`.
+
+**Gap:** The prototypes were flat boxes with no roof, and "a storey is 2.5 to 12 m of box" does not say where a pitched roof goes.
+
+**Reach:** The simulation stops rounds and sight through the empty air beside a roof, up to 3 m above the eaves at the wall line. Plans did not change, except the L's wing (below). The catalogue's hash moves when these replace the prototypes.
+
+**Verdict:** provisional. A soldier behind a house is hidden by its roof on screen, so the box agrees with the picture from the game's camera; pitches are held to 25 to 35 degrees to keep the over-claim small. **Confidence:** medium.
+
+### The L-shaped house's wing is 6 x 6 m, set a metre in from the gable
+
+**Choice:** The wing is 6 x 6 m (the prototype's was 5 x 6) and stands from x = -2 to 4 behind a 10 x 8 house, not flush with its east gable. Its box is as tall as the house's, because a supported join needs equal tops, while its ridge is 0.6 m lower, at the house's own pitch.
+
+**Gap:** Flush with the gable, the wing's eave ran along the gable wall as a stray board under the verge. A 5 m wing under the house's ridge height needs a 43 degree roof.
+
+**Verdict:** sound for the look; the wing's box over-claims 0.6 m more than the others. **Confidence:** medium.
+
+### Bays are centred on each wall, and a door takes a bay or stands between two
+
+**Choice:** Each exposed edge's 3 m lattice is phased so its bays are symmetric about the wall's middle and at least 1 m from a corner: three on a 9 to 11 m wall, two on 6 to 8 m, four on 12 to 13 m. Every bay has a window on every floor, on gable ends too. A front door either replaces the ground-floor window of a bay (terraces, the town house, the bungalow) or stands at the middle between two bays. A shop's door and display window are a bay each.
+
+**Gap:** The readme says windows sit on the lattice; it does not say whether every bay needs one or where a door goes.
+
+**Verdict:** sound. A garrison's seat is always at an opening. **Confidence:** high.
+
+### A terrace is one unit module repeated, each unit tinted by its row
+
+**Choice:** A terrace's unit (front and back wall, its stretch of roof) is one module placed once per part, with an end-wall module turned to face each way. Detached houses are one shell module each (walls and roof together, so the eaves shade the wall in the baked occlusion). Wall colour is the row's tint on a pale tint-masked plaster or brick; roof colour is the material's own, since a row has one tint.
+
+**Gap:** "Each template's wall shell and roof is its own module" does not say whether a repeated unit counts.
+
+**Reach:** A template's colours are fixed in its rows, so two placements of one template are the same colours. Five detached templates repeat visibly in a suburb of twenty (`suburb-250m.png`). More colourways are more templates over the same modules, or a tint a placement supplies; neither is done here.
+
+**Verdict:** provisional on the repeats. **Confidence:** medium.
+
+### The set's fit is 0.5 m to the side and 0.9 m above
+
+**Choice:** Eaves overhang 0.35 m with a gutter to 0.46 m, steps and door canopies 0.4 to 0.45 m; chimney pots stand 0.77 m over the ridge and capping tiles 0.07 m.
+## C11/C12/C13 the China apartment kit
+
+### A recipe's Width is the template's short side
+
+**Choice:** The graph puts its one entrance on its Depth facade. A slab's recipe therefore has Depth as the long side (`Width 11, Depth 35`), and the template's frame turns the graph a quarter so the long side runs along X with the door on -Y, as the prototypes had it. The alternative, Width as the long side, puts a 35 m slab's only door in its 11 m gable.
+
+**Gap:** The readme's example recipe reads `Width 35, Depth 11`; nothing says which facade carries the door.
+
+**Reach:** The parcel pass turns the first entrance toward the street, so slabs front the street with their long side and their shops.
+
+**Verdict:** sound. **Confidence:** high.
+## Compact saved maps
+
+The contract these decisions belong to is in the [C58 outcome](slices/C58-offline-encounter.md#outcome).
+
+### A map's content hash is the hash of its resolved definition
+
+**Choice:** `map_hash` stays what it was: the hash of the resolved `MapDefinition`, buildings materialized. The resolver materializes first and hashes after.
+
+**Gap:** The pass said to store a building as its template and frame, and did not say what the identity then covers.
+
+**Verdict:** sound. No authored map's `SOURCES.json` hash changed, which is itself the proof that the conversion moved nothing, and a generated map's saved identity is the generator's own. The hash now also covers the library's geometry: a template edit changes the hash of every map that uses it, which the old form caught as a template mismatch instead. **Confidence:** high.
+
+### One map type, generic over what a building is
+
+**Choice:** `MapDefinition<B = BuildingDefinition>`, with `SavedMap = MapDefinition<SavedBuilding>`. Every existing use of `MapDefinition` is the resolved map, unchanged.
+
+**Gap:** The saved and resolved maps differ only in their buildings.
+
+**Verdict:** sound. A second struct would repeat twelve fields and their number readers, and a new map field would have to be added twice. **Confidence:** high.
+
+### A saved building keeps `kind`, `owner` and `parts`; category and family are the template's
+
+**Choice:** `{ owner, kind, template_id, frame, parts }`. `category` and `regional_family` are no longer stored.
+
+**Gap:** "Plus whatever is genuinely per-building, such as its ids."
+
+**Verdict:** sound. The resolver already refused a building whose category or family differed from its template's, so they were never the building's own. `parts` could be derived when ids are dense and in template order, and was kept explicit: the village's props and buildings share one id space that the map authors. **Confidence:** high.
+
+### `SOURCES.json` names the library by file name
+
+**Choice:** `catalogue.library` is a file name in `fixtures/` (lowercase, `.json`, never a path). Every folder states it; there is no default. The adapters read the sources first and fetch that file.
+
+**Gap:** The pass asked that the library be something the sources name and the adapters honour.
+
+**Verdict:** sound. A name is only an address: the map's catalogue hash still decides whether the library is the right one, so a wrong name cannot admit a wrong library. JavaScript reads the name itself (one regular expression beside the resolver's check) instead of a second Wasm call. **Confidence:** high.
+
+### The resolver reads a library as a catalogue or as a descriptor list
+
+**Choice:** `building-templates.json` is a canonical catalogue (`{ hash, templates }`); `prototype-building-templates.json` is the descriptor list the generator reads. The resolver takes either.
+
+**Gap:** The two library files have different shapes, and other work owns both files.
+
+**Verdict:** provisional. Converting either file was out of this pass's reach. One shape for both is the cleaner end, and it is the template library's decision. **Confidence:** medium.
+
+### The catalogue admits what the generator may make
+
+**Choice:** `MapAdmission::CATALOGUE` is 60,000 parts and 600,000 bay positions, the limits of `fixtures/generated-battle.json`, with a test holding them equal.
+
+**Gap:** "Set the admission from what a full generated map needs."
+
+**Verdict:** sound. One number for "a map the game can make" and "a map the game can save". The constant is in Rust because both adapters must agree without reading a file; the test is what ties it to the fixture. **Confidence:** high.
+
+### Preparation takes the resolver's text
+
+**Choice:** `ResolvedMap` in JavaScript carries `json`, the definition as the resolver printed it, and the catalogue arm of preparation splices that into the scenario.
+
+**Gap:** A saved map's definition used to be printed again by JavaScript, which loses the sign of a zero. The old test for it (print the definition and resolve it again) has no meaning once the saved form differs from the resolved one.
+
+**Verdict:** sound. The generated arm already worked this way. The labs still print the parsed definition; a test now holds every authored map to surviving that. Seed 1's resolved map happens to hold no negative zero, so nothing moved either way. **Confidence:** high.
+
+### The saved map is `market-town`, and the menu lists the catalogue
+
+**Choice:** The folder is `market-town`, labelled "Market Town". The menu shows every released playable map that has the game's default encounter saved on it, as `Play <label>`, under `Play village`.
+
+**Gap:** The pass asked for a menu entry beside the village and left the name and the rule.
+
+**Verdict:** provisional. The listing rule means the next saved map needs no code. The village stays its own entry because its battle is a factory, not a saved encounter. The name is a placeholder a person can change in `meta.json`; the id is in the address. **Confidence:** medium.
+
+### `sites.json` stays in the folder, and the report saves the encounter
+
+**Choice:** The CLI's `sites.json` is committed beside the map, and `encounter_report --save` writes the planned encounter's setup as `encounters/<recipe>.json`.
+
+**Gap:** The pass asked that the saved folder be reproducible, and the planner is the simulation's, not the map generator's.
+
+**Verdict:** provisional. 22 KB buys planning the encounter again without generating the map, and is the input a planned catalogue map would need. Nothing checks it against the map. **Confidence:** medium.
+
+### `mapgen request` prints the game's pinned request
+
+**Choice:** A CLI command makes the request for a type, size and seed, pinned to the generator, the presets' revision and the catalogue's hash, under the game's limits.
+
+**Gap:** Nothing outside the browser could make the request the menu makes.
+
+**Verdict:** sound. Without it the saved map's request was hand-written JSON with a hash in it. **Confidence:** high.
+
+### The camera lab was not moved
+
+**Choice:** `fixtures/camera-lab.json` is still compiled at run time.
+
+**Gap:** "If it falls out cheaply."
+
+**Verdict:** sound for now. Its plan is already template ids and frames, so the move is mechanical, but a saved map pins the prototype library's hash, and the lab would stop loading whenever a prototype template changed. **Confidence:** medium.
+
+### A far building is one row
+
+**Choice:** At tiers 0 and 1 a kit mesh is a row. At tiers 2 and 3 what is left of it is folded into the template's shell, whose walls are then flat with each opening one dark quad on them, so a template is one row there. The alternative kept every window a row at every tier.
+
+**Gap:** "A template's coarsest tier is little more than its shell" and the 2,000 triangle budget, with 336 windows on the largest template.
+
+**Reach:** 16,000 far buildings are 16,000 instances, not millions. A shell stores its template's far triangles (7,300 and 1,500 on the largest), once per template.
+
+**Verdict:** sound. **Confidence:** high.
+
+### Tiers come from one rule, the smallest feature a tier keeps
+
+**Choice:** `detail.py` simplifies a kit mesh island by island: features under 5 cm, 20 cm, 60 cm and 1.5 m go at tiers 0 to 3 (dropped, or replaced by a ribbon, a bar, a box or a clustered mesh). The sizes were tuned until the 53 x 14 m, 8-floor slab fits every budget, so the smaller templates sit well under theirs. The graph's own LOD input only switches families off and is used for nothing; `mesh_lods.py`'s decimation leaves any island of 32 triangles or fewer alone, which is most of a cage or an air conditioner, and its coarsest collapse is not reproducible.
+
+**Gap:** "Use the graph's own LOD kit where it helps, decimation where it does not."
+
+**Reach:** Tier 0 is not the source's full mesh: an air conditioner is about 290 triangles of 1,700, a cage 150 of 880. Nothing in it calls a Blender operator, so two runs write the same bytes.
+
+**Verdict:** provisional. It reads right at 30 m and 80 m in the reassembly; the renderer's own tier distances will say whether tier 1 can afford more. **Confidence:** medium.
+
+### The kit's textures are 256 px, nine recipes shared by 38 materials
+
+**Choice:** Every texture shipped today is 256 px (321 images in 38 sources), so the kit's are too. Nine ambientCG sets are baked (plaster, concrete, stone tile, roof tile, metal, corrugated steel, plastic, fabric, wood floor); a material is a recipe at its own base colour, roughness and metalness, and the seventeen sets the graph also reads are stood in for that way (black steel is the metal recipe darkened; rust, brick and soil are tinted concrete). `textures.attach(worn=False)` keeps the factors and writes no wear colour.
+
+**Gap:** C12 left the edge and the packing to the implementer.
+
+**Reach:** 27 new 256 px layers, 1.8 MB of PNG in the source. No surface of the kit can wear: its vertex-colour alpha is zero and its materials name no wear colour (L9).
+
+**Verdict:** sound for the edge; provisional for the stand-ins, which are judged at 30 m only. **Confidence:** medium.
+
+### Opaque glass hides what is behind it, so it is not exported
+
+**Choice:** Glass is opaque, dark and glossy until C25. Left out with it, and switched back on by `china.py`'s tables: room boxes and curtains behind every window, shop interiors behind glazed fronts, laundry and the door inside a glazed-in balcony. Rooms and interiors behind an open stall stay. Also left out until cutout (C24): the rain-streak decals and the pot plants (leaf cards on a pot). Frosted glass and the shops' PVC strip curtains are opaque flat colours.
+
+**Gap:** The task said to make glass opaque and leave decals and leaf cards out; it did not say what to do with what opaque glass hides.
+
+**Reach:** Windows are dark panes; the curtains that give the source much of its colour are gone until glass lands. About a third of the graph's instances are not exported.
+
+**Verdict:** sound. Drawing them would spend a third of tier 0 on triangles no camera can see. **Confidence:** high.
+
+### Grime is in the wall texture, and the roof is quieter than the source's
+
+**Choice:** The stucco recipe covers 4.8 m (the set twice each way) with damp blotches and rain streaks burnt in, so streaks do not repeat bay to bay. The roof tile recipe covers 4.8 m too, darker and less saturated than the source's (base 0.8, 0.7, 0.66 against 1, 0.92, 0.88) with heavier dirt.
+
+**Gap:** "Grime is burned into the texture"; the source's own grime is the decals left out above.
+
+**Verdict:** provisional. An unprimed critique called the source-coloured roof "carpet or a toy" and the largest surface at the play camera. **Confidence:** medium.
+
+### Sign text is the kit's own generic words
+
+**Choice:** Shop signs keep the kit's text meshes: words for trades (tea, pharmacy, fast food, hotel). The one that names a real city (Lanzhou noodles) is swapped for another. The readme's rule now allows a generic word for a trade.
+
+**Gap:** The readme asked for the project's invented-name list. There is none yet, and the file carries no CJK font to set new text with.
+
+**Verdict:** provisional: the user may still want invented names. **Confidence:** medium.
+
+### What of the graph is not a building of ours
+
+**Choice:** Switched off by input: the sidewalk, street trees, lamps and props, the shops' pavement clutter and parked scooters (street props without bodies, up to 2 m in front of a door), the rooftop sign, lit rooms. Dropped from the shell: the overhead cables (8,500 triangles of 2 cm tube). Not restored: drainpipes. The vendored file's five Object Info nodes for the pipes and the scooter point at no object, so the graph as vendored makes none; relinking them is a five-line patch nobody has asked for.
+
+**Verdict:** sound. **Confidence:** high.
+
+### Wall colour is the shell row's tint
+
+**Choice:** The graph's walls stay white and tint-masked; each template's shell row carries its colour (cream, pale yellow, grey-green, pink, blue-grey). Balconies and the stair house stay white, as the source has them.
+
+**Reach:** The library can recolour a block without a new export.
+
+**Verdict:** sound. **Confidence:** high.
+
+### No module variants
+
+**Choice:** The China graph only yaws and scales its instances, so the exporter refuses a row that tilts or mirrors instead of carrying an untested variant path. New York mirrors a few; its exporter adds the path.
+
+**Verdict:** sound. **Confidence:** high.
+## C22 static chunk owner
+
+**When:** C22's first half (the owner, and corpses on it), 2026-10-01.
+
+### The owner is `frame/staticChunks.ts`; `scenery/lod.ts` keeps scenery's record and tier rule
+
+**Choice:** The chunk bookkeeping moved out of `scenery/lod.ts` into `frame/staticChunks.ts`. What stayed in `lod.ts` is scenery's own: its 12-float record, `treeInstances`, and the rule that a far chunk draws at the last tier. The alternative was to generalise `lod.ts` in place and have the models layer import from `scenery/`.
+
+**Gap:** The slice says "promoted from the scenery layer's existing chunk path" and names no home.
+
+**Verdict:** Sound. The owner serves two layers, so it sits beside the other things both read (`frame/detailView.ts`); scenery's files, which the ground lane owns, changed only where they called the old functions. **Confidence:** High.
+
+### A population gives each instance's bounds as a function, not as arrays
+
+**Choice:** The owner's input (`ChunkSource`) is records of any stride, a kind and a size per instance, and `bound(i, box)`, which grows a chunk's box by one instance. The alternative was the scenery path's two arrays (height and reach), extended for corpses.
+
+**Gap:** "Record packing" is delegated; the shape of an instance's bounds is not mentioned.
+
+**Verdict:** Sound. A tree stands on its foot (its reach about it, its height above); a corpse reaches its length and the shadow margin every way, computed from a 32-bit size in double precision. Arrays would have needed a third and fourth per instance or moved a corpse chunk's box by a rounding step, and a box that moves can flip a chunk between cards and meshes at the threshold. The function keeps both populations' boxes bit-identical to what they were, and runs only when a list is rebuilt. **Confidence:** High.
+
+### A chunk's level is the population's rule, and a level is whatever its layer draws
+
+**Choice:** `selectChunks` asks the population's `ChunkLevel` for each chunk in view: a level (the chunk draws whole, as merged ranges kept per kind and level) or `NEAR`. A population declares how many levels it has. Scenery has four and answers the last for a far chunk; corpses have five, the fifth their impostor card, and answer it only for a chunk whose every corpse has a card. The alternative was one built-in "far" level decided by a pixel threshold the owner holds.
+
+**Gap:** The slice asks for one owner of "tiering"; it does not say who decides a chunk's level, or that a card is a level.
+
+**Verdict:** Sound. The two rules differ in more than a number (a corpse chunk also needs every card baked), and kit modules and far-tier tiles bring their own; the owner stays free of each layer's presentation. **Confidence:** High.
+
+### Near chunks are listed; staging per level is a separate piece only scenery uses
+
+**Choice:** The owner lists the chunks whose instances choose their own level (`near`). `stageNear` copies those instances into a list per level, which scenery uploads per tier. The models layer does not use it: it walks the near chunks itself, asks the models' own detail rule per corpse (culled, a tier, or a card), and packs the result with the frame's other models. The alternative was to stage corpses through the owner too and draw them from buffers of their own.
+
+**Gap:** "Corpse chunks move onto it" does not say how far the per-corpse work moves.
+
+**Verdict:** Sound for this pass. A near corpse shares its mesh draws with the units (one records buffer, one run per mesh and fog class) and is culled by its own sphere with the shadow margin; staging it elsewhere would have changed the draws, the stats the scenes read, and added a second detail rule. What moved is everything that was duplicated: bucketing, chunk culling, the far decision's distance, the merged ranges. **Confidence:** High.
+
+### Corpses are one kind, with the placed order kept beside the records
+
+**Choice:** All corpses are one kind in the owner, whatever their appearance: one static buffer, so a far stretch of mixed corpses is still one card draw (the card's atlas layer is in the record). The owner keeps, per kind, which placed instance each sorted record is (`order`), and the models layer uses it to keep each record's appearance. The alternative was a kind per appearance.
+
+**Gap:** Not covered.
+
+**Verdict:** Sound. A kind per appearance would split every card range by appearance and raise the draw count the scenes read. **Confidence:** High.
+
+### Whether a population casts is the caller's argument, not the population's field
+
+**Choice:** `selectChunks` takes the sun's shadow (fall and reach) or null. Scenery passes it for the forest and massing and null for the backdrop; corpses pass null, since a card casts nothing and a near corpse casts through the models layer's own caster draws. Cast ranges stay one list per kind, drawn at the coarsest mesh.
+
+**Gap:** "Casters" are the owner's, with no detail.
+
+**Verdict:** Sound; this is what the scenery path did, with the flag moved to where the shadow is known. **Confidence:** High.
+
+### The corpse comparison is a scratch capture, not a registered scene
+
+**Choice:** "Corpse scenes unchanged" was judged on frames of the endurance lab's late state (the newest thousand of 20,000 fallen) at eight fixed cameras and one tick, with grass, effects and cast lights off, taken from the base commit and from the change under one hold of the GPU lock, twice each. No registered scene frames static corpses at a fixed camera; the village's fallen are mid-death when it shoots them.
+
+**Gap:** The slice names no corpse scene.
+
+**Verdict:** Provisional as a method: the script lives in the gitignored scratch folder. If corpse drawing changes again, a station for the fallen belongs in a scene. **Confidence:** Medium.
+
+## C16: our own farmsteads
+
+### A farm is one shell module, and its buildings' colours are in its materials
+
+**Choice:** Each farmstead's walls and roofs, for all its buildings, are one module in the template's frame, placed by one untinted row. A building's wall colour is baked into its own material (the same recipe under another vertex colour), which stays tint-masked. The alternative was the houses' way: a shell module per building, coloured by its row's tint.
+
+**Gap:** The brief asked for the houses' structure; the readme gained "a far building is one row" while this was being written.
+
+**Reach:** A farm is one row at tiers 2 and 3 (two or three with a shell per building). A row's tint, if a placement ever supplies one, shifts the whole farm, not one building. A shell is its template's alone, so nothing is shared between farms but the fittings.
+
+**Verdict:** sound. **Confidence:** medium-high.
+
+### Fittings are rows at tiers 0 and 1, and flat panels in the shell at tier 2
+
+**Choice:** A window, a door, a chimney, a stack of bales is a row at the two fine tiers. At tier 2 the shell carries what is left of each: one dark quad per window, one quad in the door's paint per door, a box per chimney and bale stack, and the barn's framing as flat boards. At tier 3 the shell is walls and roofs only. `Farm.place` does the folding, so the houses' row helpers (`glaze`, `front_door`, `stack`) are used unchanged. The China set keeps the dark quads at tier 3 too; here that is 73 quads against a budget of about 100 triangles, on a farm under 24 px tall. The barn's framing loses its braces at tier 2: a 0.2 m timber is a pixel wide from 250 m, and a diagonal one crawls.
+
+**Gap:** "A template's coarsest tier is little more than its shell."
+
+**Verdict:** sound. **Confidence:** high.
+
+### The plans are the prototypes'; every box is as tall as its ridge
+
+**Choice:** The yard and long farms' plans are the prototype rows' (the same parts, centres and sizes). The small farm's house and barn stand 5.5 m apart, not 3.5 m, so a cart passes between them: the farm is 26.5 m wide where the prototype was 24.5 m. Heights follow C17's rule, a part's top is its roof's ridge: the yard farm's house 8.35 m (6.5), barn 8.4 m (7.5) and shed 2.94 m (3.5); the long farm's house 5.2 m (4) and byre 7.5 m (8); the small farm's house 8.15 m (6.5) and barn 7.8 m (6). Roof pitches are 29 to 33 degrees, the cart shed's single slope 8.
+
+**Reach:** The catalogue's hash moves at the cutover. The longest sides are 34, 27 and 26.5 m, inside the category's 20 to 45 m.
+
+**Verdict:** sound for the look; the boxes over-claim the air beside each roof, as the houses' do. **Confidence:** medium.
+
+### The cart shed stays under the farm's upper floor datum
+
+**Choice:** The yard and small farms have two floors (0 and 3 m), the long farm one. A barn in a two-floor farm has its loft openings on the 3 m datum (sills 0.6 m above it, under the eaves); the long farm's byre, 7.5 m to the ridge, has openings on the ground only. The yard farm's cart shed is 2.94 m tall (the prototype's was 3.5 m), so the 3 m datum is above its box.
+
+**Gap:** `floor_heights_m` is one list per template; nothing says what a datum means in a part too low for a second floor.
+
+**Reach:** The simulation seats a garrison on every datum below a part's top (`seat_plan`, `crates/sim/src/garrison.rs`), so a 3.5 m shed in a two-floor template has soldiers seated half a metre under its roof. The prototype row has that. A shed under 3 m has ground seats only.
+
+**Verdict:** sound for this set; the rule it leans on (a datum counts where a part reaches it) is the simulation's, read from the code, not tested here. **Confidence:** medium.
+
+### A barn keeps few openings; a bay without one is a blank wall
+
+**Choice:** Every bay of a house has a window on every floor, as the houses have. A barn has a door or a small window in most ground bays and in a few loft bays; the cart shed's two end walls are blank. Each opening is in a bay and on a datum. The cart shed's open front is its three south bays, between the posts.
+
+**Gap:** "A barn's few small high windows still sit on bays" allows bays without windows; C17 chose a window in every bay "so a garrison's seat is always at an opening".
+
+**Reach:** A soldier garrisoned in a barn's blank bay fires through a wall that shows no opening.
+
+**Verdict:** provisional. A barn with a window every 3 m on both floors reads as a house. **Confidence:** medium.
+
+### The cart shed is drawn open; its box is solid
+
+**Choice:** The shed's south side is three open bays with a cart, a woodpile and straw inside. Its part is a whole box, as every part is.
+
+**Gap:** "Every outer wall stands on a face of a part" assumes a wall on every face.
+
+**Reach:** A unit behind the shed is hidden in the simulation where the picture shows daylight under the roof from a low camera; rounds stop at the open front. At the game's camera the roof covers most of the opening.
+
+**Verdict:** provisional; the brief names an open-fronted shed. **Confidence:** medium.
+
+### Each barn's wagon door on the street side is an entrance
+
+**Choice:** Every farm has two entrances on the south: the house's front door and the barn's wagon door. On the long farm the byre stands behind the house, so its wagon door is in the end bay (offset 10.5 m), outside the house's width, with the clear 60 m the map generator asks for. The prototype long farm had the house's door only.
+
+**Verdict:** sound. **Confidence:** high.
+
+### No yard wall or gate; what stands in a yard hugs a wall
+
+**Choice:** The village courtyard farm's yard wall, gate, cart and woodpile are not carried over as yard furniture: only a part can hold art, and the yard is open ground. Of `house.py`, the barn doors and the gable framing are lifted into `masonry.py` as builders (`barn_doors`, `timber_frame`). A woodpile, a trough, a rain barrel and straw bales stand against walls within the set's side fit, and the cart stands inside the shed's box.
+
+**Verdict:** sound. A walled yard would need the wall as a prop the generator places, which is not this lane's. **Confidence:** high.
+
+### The set's fit is 0.6 m to the side and 0.9 m above
+
+**Choice:** Eaves and gutters reach 0.46 m, a loft hoist 0.55 m, a woodpile 0.49 m, a trough 0.53 m, a rain barrel 0.57 m; chimney pots stand 0.77 m over a ridge. The houses' set has 0.5 m.
+
+**Verdict:** sound. **Confidence:** high.
+
+### A new recipe for stone walls; the houses' code is shared, not their modules
+
+**Choice:** `rubble_stone` (random rubble in lime mortar) is a new texture recipe, because `field_stone` is one stone's surface with no joints. The farm's windows, doors, chimneys and gutters are its own modules built by the same `masonry.py` builders as the houses'; the houses' shell and row helpers moved to `masonry.py` (`house_shell`) and `kit.py` (`glaze`, `front_door`, `rainwater`, `stack`, the sill and overhang conventions). `homes.py` writes the same bytes as before.
+
+**Verdict:** sound. **Confidence:** high.
+
+### The three farms differ in material and form, and read as three regions
+
+**Choice:** Variety was asked for, so each farm has its own wall materials, roof colour, roof forms and barn type: cream plaster under clay tiles with a half-timbered barn; whitewashed roughcast and rubble stone under slate; red brick and tarred boards under brown and clay tiles. The alternative was one material family in three sizes.
+
+**Reach:** An unprimed reviewer read them as a German, a French and an English farm, and a hamlet of all three as "a sampler of regional styles, not one village". None reads as Chinese; the family name is the first shipping family's, as it is for the houses.
+
+**Verdict:** provisional. If a map's hamlets should look like one place, the generator needs to pick one farm per hamlet, or the farms need one shared palette; neither is this slice's. **Confidence:** medium.
+## Surroundings for the existing maps: cut
+
+**Choice:** C56 (reservations) and C34, C35, C36 (surroundings for the village, the labs and the benchmark fields) are removed from the spec, with the lane that was written for them. The old maps stay the small arenas they are.
+
+**Why:** the owner's call (2026-10-01): the village and the lab maps are developer test arenas, nobody plays them, and the game is not finished. The need those slices answered, a full-size map to play, is met by generated battles from the menu and saved generated maps. Where another slice still says C56 or C34–C36, read "cut".
+
+**Verdict:** sound. **Confidence:** high.
+
+## C54 pipeline tooling
+
+### Measure a short advance without turning it into an arrival deadline
+
+**When:** scale-lane pipeline tool checkpoint, 2026-10-01.
+
+**Choice:** Each of the nine map type/size cells runs fixed map seeds 1–10;
+the encounter and battle seeds stay fixed at the game's encounter seed and 1.
+The attacker sends its planned column toward the objective by an ordinary group
+move, while the defender keeps its existing scripts and policy. The default
+sample lasts 30 simulated seconds. A rifle squad starting kilometres away may
+move normally for all 30 s without arriving. Its row retains the remaining
+distance and every movement state; coming within 10 m is reported as proximity,
+not completion. The alternative was to call every unfinished short route a
+failure, which would confuse normal transit with blocked navigation.
+
+**Gap:** C54 delegates fixed seeds and reporting and gives no short-run duration
+or arrival deadline. **Reach:** The tooling reveals refusals, route-blocked and
+pending work across the matrix; a later playability verdict still needs a longer
+battle and its own arrival/engagement contract. **Verdict:** sound — the sample
+reports observed progress without inventing a completion requirement.
+**Confidence:** medium.
+
+### Keep the simulation dependency inside verification tooling
+
+**When:** scale-lane pipeline tool checkpoint, 2026-10-01.
+
+**Choice:** The runner is a `mapgen` example using its existing simulation test
+ dependency. It calls the same generator and compiler that produce a player's
+map, then the simulation's existing assault planner and Battle constructor.
+When a seed is refused, its exact diagnostics stay in its row and the next
+requested seed runs; nothing stands in for it. Costs and input hashes are saved
+in that row before proceeding. The alternative was to add generation to the sim
+runtime or parse several reports' prose, either adding a dependency cycle or a
+second reporting oracle that could silently drift.
+
+**Gap:** The spec names one runner but no crate or output format.
+**Reach:** One streaming JSONL report can be inspected while a long matrix runs;
+command refusals and unwinding panics remain explicit. This does not recover a
+hung process or imply full C54/art acceptance. **Verdict:** sound — production
+ownership stays unchanged and no new dependency is introduced.
+**Confidence:** high.
+## Replay engine build identity
+
+**Choice:** Every simulation replay requires the automatically derived engine build fingerprint. `Battle::from_replay` checks it before scenario/rules identity or battle construction; the Wasm adapter forwards the same explicit refusal. Missing identity is malformed replay data. No manual version bump or legacy fallback is provided.
+
+**Scope:** Hash normalized relative paths and exact bytes of simulation, contract and thin Wasm adapter Rust source, their manifests, workspace manifest, mapgen manifest, Cargo lock, rustc version, and semantic simulation cfg/features through the existing contract SHA256 owner. Dependency manifests/lock are conservative: even an unrelated dependency edit may refuse playback. Mapgen source is excluded because it prepares scenarios rather than executing the stored scenario; the separate generated replay request-versus-compiled-storage debt remains open. Assets, art pipeline, browser source, examples and test files outside runtime source are excluded. Source comments and inline test edits conservatively invalidate the engine.
+
+**Portability:** This identifies the supported deterministic engine, not identical binary bytes. Native/Wasm target, platform, debug, panic, test, lint and overflow-instrumentation cfg differences are normalized; their supported battle outcomes already share the simulation contract. Current source has no other generated/include input, and current crates expose no dependency feature selection outside the hashed manifests. Adding such inputs or target-dependent simulation semantics requires extending this owner rather than silently retaining this scope.
+
+**Cost:** Hashing occurs once at build time; replay recording copies one 64-character identity, and playback compares it once. No new tick work, codec dependency or battle digest input. The contract crate is reused as a build dependency. Native red/green checks expose the formerly accepted mismatched build through `Battle::from_replay`; same-build replay pins every tick digest. Scope tests prove art-only stability and source, dependency, compiler and semantic cfg invalidation. Worker refusal and actual native/Wasm fingerprint parity are checked on the rebuilt module.
+
+**Verdict:** Sound within the current supported build inputs. Compiled scenario storage and broader scale admission gates remain separate unfinished work. **Confidence:** High.
+## C06 infantry town corner routes
+
+**Choice:** A connected coarse infantry cell is permission to walk through its
+free sub-cells, not permission to cut straight between its entry and exit. The
+route reconstructs a bounded local connector and certifies every emitted link
+with the same sampled reader used by route timing and smoothing. A returned
+illegal segment still has infinite cost; no failed route is made finite by
+changing the timing rule. Vehicles keep their existing physical clearance.
+
+**Why:** C59 exposed an infantry route accepted by coarse search but rejected by
+the timing consumer. The public corner regression reproduced it without a city.
+A squad bending around that corner is the expected physical behavior. The
+alternative of rejecting connected cells would unnecessarily close passages
+whose free half-metre path already exists. A whole-map fine search would add
+storage and work unrelated to the local defect.
+
+**Reach:** Infantry waypoints, costs, planning completion ticks and affected
+battle digests intentionally change. Legal endpoints use their actual containing
+cells; bounded nearest-fit selection remains, but returned first links must pass
+the sampled reader. Local connection is an incremental planning phase, with no retained
+full-extent fine data. Certified infantry links remain available to smoothing
+until a longer link passes its reader, because even collinear merging changes
+sample positions. This supersedes C59's historical infinity limitation; changing
+the encounter planner to consume the corrected timings belongs to its owner.
+
+**Verdict:** sound for the focused contracts. Public timing covers narrow foot
+passage, blocked/disconnected and boundary cases. A small battle checks actual
+soldier bodies and same-build replay under the smallest planning budget. NavGrid
+certifies its sampled mask, while movement owns exact body legality. Generated
+town admission and native city cost remain open in the scale lane. **Confidence:**
+high for the regression and replay, medium across generated towns.
+
+
+## C07: variable word-span copies
+
+**Choice:** Generalize the existing copy operation through layout-owned per-group alignment: fixed rows preserve complete-row source/count checks; variable collections accept word spans. Retain one decoder and one flat baseline. Use exact eight-word sparse anchors, a same-position match preference, greedy forward extension and literals between retained spans. Choose the smallest of copies, replacement and snapshot after exact preflight.
+
+**Why:** Measured own-group section shifts still resent tails after the corpse fix. A public route edit among 80 squads needed 53,568 B, now 376 B with complete float-bit reconstruction. Across 450 captured active transitions, own max falls 51,968→10,656 B and p95 27,200→8,556 B; isolated mean encoding instructions rise 0.288→1.840 M. The integration owner accepts this measured tradeoff against current whole-step costs; whole-record admission remains open. Bitmask/XOR estimates did not address the shifted retained tail adequately.
+
+**Bound:** One u32 per eight old variable words; aggregate scratch remains ≤12.8 MiB because fixed groups' smallest row is five words and all groups partition the admitted baseline. Exact comparisons avoid identity/hashing assumptions and collision scans. Sorting and two greedy scans are O(words log anchors), with fixed eight-word comparisons and no retained operation list. Fallible index and complete record reservation precede output/cursor commit. Existing record buffers and fog ownership stay unchanged.
+
+**Verdict:** Sound and independently reviewed. Supported bits/order, fixed alignment, malformed retry and retained observations are verified. Full active early/late bytes, decoder throughput, full packing cost and peak overlap remain open under the unchanged 19.8 KB and memory contracts. **Confidence:** High for reconstruction; admission pending integration.
+## C15 interior atlas
+
+### A cell is one whole room, 128 px square
+
+**Choice:** Each sheet is 256 × 640 px: 2 × 5 square cells of 128 px. A cell is the picture of one room box 3 m wide, 3 m tall and 4.5 m deep, and a window shows the whole of it, optionally mirrored.
+
+**Gap:** The slice says "the repo's 2×5 layout". Upstream's cells are strips about 3.6 times as wide as tall (11 m of wall for a 3.1 m room), and each window slides a 2.9 m room along its strip by a hashed offset.
+
+**Verdict:** sound for the layout, provisional for the size. Square power-of-two cells keep every mip down to one texel a cell inside one room, and five rows under the 1024 px cap leave 128 as the largest power of two. That is 43 px a metre against upstream's 63, and it gives up the sliding offset: variety is ten rooms a sheet, times mirroring and the building's own dimming. If windows read as repeats in C26, the fix is more sheets or the strip layout, here. **Confidence:** medium.
+
+### The room box is one bay and one floor, on every floor
+
+**Choice:** 3 × 3 × 4.5 m, the pinhole 16 m out, for apartments and shops alike.
+
+**Gap:** Upstream's box is 2.9 m wide and 3.12 m tall (4.09 m on the ground floor), as deep as half the building up to 4.6 m, with the same 16 m pinhole. Ours is unstated.
+
+**Verdict:** sound. Our lattice is 3 m bays and 3 m floors, and a box of another size scales the lookup by its own width and height. A shallower box than 4.5 m shows the picture's middle larger than it was rendered; C26 can clamp depth as upstream does. **Confidence:** medium.
+
+### Cycles on the CPU, not Workbench or EEVEE
+
+**Choice:** The rooms are path-traced on the CPU with a fixed seed and sample count and no denoiser; the tone curve, the 4× box filter and the PNG are numpy.
+
+**Gap:** The slice asks only for a deterministic recipe.
+
+**Verdict:** sound. A room lit by nothing but its window is bounce light, which only a path tracer gives; the CPU path does not depend on the GPU or its driver. Two runs on this machine wrote the same bytes. Another CPU architecture is not tested; the committed sheets are the source of truth, as for the GLBs. **Confidence:** high on this machine.
+
+### Daylight is an area light in the window opening, the same flux for every room
+
+**Choice:** The sky is a rectangle of light filling the room's window opening in an unseen window wall. An apartment's opening is 1.3 × 1.5 m and a shopfront's 2.6 × 2.3 m, and both let the same total light in. No sun patch.
+
+**Gap:** "No lamps", "daylight-only".
+
+**Verdict:** sound. At the same sky a shopfront's room is three times as bright as an apartment's and read as lit. A sun patch would contradict the game's own sun direction on three facades out of four. **Confidence:** medium.
+
+### The picture has a ceiling, and no shadow lift
+
+**Choice:** One exposure for both sheets under a soft ceiling of 0.25 linear (0.54 sRGB). The depths are not lifted.
+
+**Gap:** "Dim": how dim, and what stops a curtain in the window's full light from reading as lit.
+
+**Verdict:** provisional. A first curve lifted the depths; the unprimed critique read it as a grey veil over the whole sheet. Whatever hangs at the window (curtains, a shutter) is the brightest thing in a cell however dark its cloth, so those are dark fabric and dark steel, and a pale pelmet that read as a strip light was removed. C26 owns the final level against the game's facade; change the tone here. **Confidence:** medium.
+
+### Curtains are in the picture
+
+**Choice:** Five apartment cells carry curtains, hung inside the window and part of the cell.
+
+**Gap:** Upstream draws curtains as their own geometry in front of the room; the slice does not say which side of the line they fall.
+
+**Verdict:** provisional. In the picture they sit right from in front and slide with the back wall from the side. If C26 adds curtain geometry they come out of these cells. **Confidence:** medium.
+
+### The layout comparison against upstream's atlases was not run
+
+**Choice:** The layout and projection were taken from upstream's code (`interiors.ts`, the interior shader in `materials.ts`), and its two atlases were never opened.
+
+**Gap:** The slice's visual step 2 compares "against the repo's atlases for layout only".
+
+**Verdict:** sound. Opening the files is the one way their content could leak into ours, and their layout is fully stated by the code that reads them. **Confidence:** high.
+
+### From the tactical camera a window shows mostly the cell's floor
+
+**Choice:** None; a finding for C26. The lookup maps the box's floor to the bottom ninth of a cell, and a ray looking down 50° through a window lands on the floor within 2.5 m of the wall. So at the tactical camera a window is the cell's floor strip stretched, with furniture feet smeared along it, and the back wall shows only from near street level.
+
+**Gap:** The slice judges the sheet, not the read behind glass.
+
+**Verdict:** the mechanism's own behaviour, the same for upstream's photographs. The mock-up shows dark, coloured, slightly streaked panes: not holes, not rooms. If the user wants furniture from above, the lookup has to change, which Q-E forbids, or the pinhole has to move, which is this recipe. **Confidence:** high that it happens, low on whether it matters.
+### A squad corridor starts at a member the known grid admits
+
+**Choice:** Select the closest living soldier whose position is standing room
+in the side's navigation grid before falling back to the physically nearest
+member. A squad's centroid is still never its corridor start. Road preference
+measures the same physical nearest member as before.
+
+**Why:** The old grid reconstruction tolerated an invalid first link, so a
+physically clear soldier near a wall could seed a usable corridor despite being
+rejected by the conservative sampled mask. Certifying links exposed that mismatch:
+a small Battle that arrived before became blocked. Choosing another existing
+standing member restores the corridor contract without weakening the mask or
+granting a body-exit exemption. This intentionally changes corridor starts and
+affected digests; movement's exact body checks still decide each soldier's steps.
+
+**Verdict:** supported by the old/new Battle comparison; follow-up verification
+is recorded in C06. A direct non-standing virtual anchor has no guaranteed legal
+timing; nearest-fit selection is not permission to publish an invalid segment.
+
+
+## C07: reuse unchanged decoded static groups
+
+**Choice:** Bundle the existing word baseline with decoded corpse and known-prop arrays in `ObservationDecoder`. Buffer identity witnesses unchanged static words; validate the current header's exact fixed-row count before reusing arrays, rows and coordinates. Rebuild a whole static group when its words change. Commit the bundle after the complete frame validates, and clear it on side invalidation; fresh epochs bypass it.
+
+**Why:** Sparse delivery already retains unchanged static words, but decoding recreated every row and coordinate on every own-unit update. Unchanged 20,000-corpse/2,000-prop delivery now constructs no per-static-row wrappers, closures, section objects, views or coordinates. Retaining the latest two view arrays adds references to the observation objects already returned, not a second word baseline or a complete retained observation. There is no per-row identity scheme or cache outside the decoder.
+
+**Contract:** Returned observations are immutable; the static arrays are now readonly in TypeScript. The current consumers read these rows; pose reconciliation copies positions into its own state, and effects read aliased prop extents. Cache reuse still checks current counts. Malformed cached counts and failures later in fog/ground cannot advance either baseline; corrected same-generation retry works. Changed-group views and prior observations remain distinct, and stale side/epoch records do not populate the cache.
+
+**Verdict:** Sound; identity and rollback proofs pass. Allocation claims describe skipped construction, not measured heap bytes or wall time. Producer layout/digests and all whole-record, peak and throughput gates remain unchanged. **Confidence:** High for reuse and reconstruction; runtime admission remains open.

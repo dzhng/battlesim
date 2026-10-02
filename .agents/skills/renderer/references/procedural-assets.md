@@ -63,6 +63,10 @@ The fence, sandbags and dragon's teeth are worked examples:
   - small rest-pose manners.
 - **Props fit per axis from the nearest `footprint_half_m`.** Walls, fences and sandbags repeat a module along their box instead of stretching.
 - **Sim rules come first when they collide with art.** The tank's gun length is a simulation number (its cannon's `mounts` row: `pivot_m` and `muzzle_m`). Every mount's drawn muzzle matches the sim's arc (`fit.muzzle_arc`, the pivot turning with its carrier and the muzzle with its own bearing) to 1e-6 m, never the other way round.
+- **A building drawn by the hundred is a few faces and a recipe.** One face a wall, split only as far as the vertex colour needs (occlusion, mud, streaks), with the material's texture carrying the look: a two-storey house is 5,000 triangles at tier 0 and 20 at tier 3. A kit module is baked alone (`parts.finish(objects=...)`), so its paint must not assume the ground is at its own z = 0 unless it stands there.
+- **A template of several buildings is one shell module in the template's frame.** A row has one tint, so each building's wall colour goes into its own material (the same recipe, another vertex colour); the far tiers are then one row, with each fitting folded into the shell as a flat panel. A timber or a glazing bar a pixel wide crawls: drop the diagonal ones at the coarse tiers.
+- **A pitched roof carries its own UVs** (u along the eave, v up the slope). Box projection lays the courses across the slope on every roof whose ridge runs the other way.
+- **Per-piece tone in a recipe aliases into a quilt at 80 m.** A roof tile is 4 px there; a wide brick-to-brick or tile-to-tile spread reads as a checkerboard, and vertex-colour mottle on a 1.3 m grid adds a second one. Keep the spread narrow and let stains do the variation.
 - **Rigging.** The soldier is a CC0 body on a 65-joint rig. Clothing is shells cut from the body, so it skins for free. Rigid kit is bone-parented and skinned at bake; the rifle is IK'd in its own frame and baked to FK. The basis conversion happens at bake, never in the loader.
 
 ## Determinism and LFS
@@ -78,6 +82,17 @@ The fence, sandbags and dragon's teeth are worked examples:
 - **Third-party packs** are recorded by sha256, cached in `~/.cache/battlegame/packs`, and never committed.
 - **Tests hash LFS pointers by oid,** so they need no pull. Golden-failure GLBs for the validator are generated in code.
 - **In a worktree, pull only what you need,** e.g. `git lfs pull --include="assets/runtime/**"`. Never run a bare `git lfs pull`. A missing pull serves pointer files: effects flipbooks and bundles fail to decode, and nothing says "LFS".
+
+## Baked pictures of rooms (the interior atlas)
+
+`blender/city/interiors.py` renders rooms lit only through their own window; its contract is in the city readme.
+
+- **Whatever hangs in the window's light is the brightest thing in the picture, however dark its paint.** A pale curtain, pelmet or shutter read as a lit panel or a strip light. Keep window-side things dark and give the tone curve a ceiling.
+- **Don't lift the shadows to avoid black holes.** A lifted curve read as a grey veil over every room. Raise the exposure instead.
+- **Give every room the same light, not the same sky.** A shopfront has three times an apartment's glass and at the same sky reads as lit.
+- **Coplanar wall patches render black.** Give each its own thickness.
+- **Cycles on the CPU with a fixed seed and no denoiser wrote the same bytes twice;** do the tone curve, the downsample and the PNG in numpy.
+- **Judge it through the lookup, not on the sheet.** A small numpy ray-cast of the room box behind window-sized openings shows what the game will: looking down from the tactical camera, a window is mostly the cell's floor strip.
 
 ## Impostors are baked by our own renderer
 

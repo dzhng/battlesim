@@ -222,6 +222,9 @@ test("the material's road, forest and water masks are the simulation's surface r
     return inside;
   };
   let wet = 0;
+  // Samples round stroke ends that lie on a map (a road that runs off the
+  // map's edge has none to show).
+  let ends = 0;
   for (const map of [geometry, villageMap, riverLab]) {
     const { view, exports } = world(map);
     const { site } = buildTerrainSurface(exports, layout, biome);
@@ -269,7 +272,6 @@ test("the material's road, forest and water masks are the simulation's surface r
     let roads = 0;
     // Round every end of every stroke, where a round cap would differ from
     // the square end: past the end, beside it, and off its two corners.
-    let ends = 0;
     for (let r = 0; r < strokes.length; r += site.surfaceStrokeStride) {
       const cuts = strokes[r + STROKE_CUTS];
       for (const [bit, from, to] of [
@@ -300,7 +302,6 @@ test("the material's road, forest and water masks are the simulation's surface r
           }
       }
     }
-    expect(ends).toBeGreaterThan(40);
     for (let y = 0.37; y < depth; y += 2.3) {
       for (let x = 0.61; x < width; x += 2.3) {
         const [, , , , , kind, forest] = view.surface_at(x, y);
@@ -325,6 +326,7 @@ test("the material's road, forest and water masks are the simulation's surface r
     expect(roads).toBeGreaterThan(100);
   }
   expect(wet).toBeGreaterThan(2000);
+  expect(ends).toBeGreaterThan(100);
 });
 
 test("rounded strokes are the native samples, bit for bit", () => {
