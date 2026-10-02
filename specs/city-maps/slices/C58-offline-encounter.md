@@ -96,3 +96,9 @@ regenerating this reviewed arena as it does any other pinned map. The current
 saved definition exactly matches the compiler output in the camera regression;
 integration adopts main's China slab wall without changing the trajectories.
 Browser clearance/capture proof belongs to [startup status](../startup-lane.md#status).
+
+The courtyard comparison was open in one Preview window for about five minutes
+from 06:05 UTC on 2026-10-02. With no feedback, the unchanged framing and paths
+were accepted on the exact overlay comparison and fresh critique, and Preview
+was closed. Existing cyan path seams are preserved; the inadequately framed
+collapse capture is not accepted as visual proof of fallen geometry.
