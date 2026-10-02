@@ -77,6 +77,12 @@ The generator's type weights and industrial proportions are measured decisions, 
 
 These are explicit spike outputs. Evidence can change the technical architecture and provisional densities; it cannot silently change the fixed dimensions, the type's character, required runtime generation or all-map scope.
 
+## Open-country reference checkpoint (2026-10-02)
+
+The user supplied two more [Broken Arrow countryside views](assets/reference/broken-arrow/SOURCES.md#open-country-reference-target). They reaffirm M24/M25: even a field should have nearby tree lines, small woods, occasional homes or building groups, and loose physical objects. Keep the open stretches useful; some sight bearings must be interrupted at deployment, with most remaining open. The reference target is variety and spacing between settlements, judged at the opening view as well as the whole-map overview.
+
+The existing owner is `mapgen::open_country` ([implementation principles](../../crates/mapgen/README.md#open-country-open_country)), followed by the simulation's sight report and C86's tree-line drawing. The release gate must review the final generated openings against these references and retain the sampled sight result separately from the picture judgment. An object count or a non-circular sample alone does not prove the landscape feels interesting.
+
 ## 3. Unknown knowns: taste and tacit context extracted
 
 - **Mixed reads as a mosaic of districts** ([Broken Arrow references](assets/reference/broken-arrow/SOURCES.md)). A town is single-use districts side by side (garden suburb, apartment rows, a tower, an industrial compound with paved yards), loosely strung along a main road, with fields and woods pushing in between them and right up to the last houses. Objectives sit on districts. A compact blob of blended blocks is the wrong picture.
