@@ -907,9 +907,9 @@
       "soldiers": {
         "at_rifleman": {
           "appearance": [
-            "at",
-            "at_b",
-            "at_c"
+            "rifle",
+            "rifle_b",
+            "rifle_c"
           ],
           "description": "A rifleman of an anti-tank team.",
           "hp": 100.0,
@@ -935,9 +935,9 @@
         },
         "atgm_gunner": {
           "appearance": [
-            "at",
-            "at_b",
-            "at_c"
+            "rifle",
+            "rifle_b",
+            "rifle_c"
           ],
           "description": "Carries the team's guided anti-tank missile launcher.",
           "hp": 100.0,
@@ -962,6 +962,11 @@
               "muzzle_m": null,
               "name": "ATGM launcher",
               "on": null,
+              "operator_appearance": [
+                "at",
+                "at_b",
+                "at_c"
+              ],
               "pivot_m": [
                 0.0,
                 0.0,
@@ -2358,9 +2363,9 @@
   "soldiers": {
     "at_rifleman": {
       "appearance": [
-        "at",
-        "at_b",
-        "at_c"
+        "rifle",
+        "rifle_b",
+        "rifle_c"
       ],
       "description": "A rifleman of an anti-tank team.",
       "hp": 100.0,
@@ -2386,9 +2391,9 @@
     },
     "atgm_gunner": {
       "appearance": [
-        "at",
-        "at_b",
-        "at_c"
+        "rifle",
+        "rifle_b",
+        "rifle_c"
       ],
       "description": "Carries the team's guided anti-tank missile launcher.",
       "hp": 100.0,
@@ -2413,6 +2418,11 @@
           "muzzle_m": null,
           "name": "ATGM launcher",
           "on": null,
+          "operator_appearance": [
+            "at",
+            "at_b",
+            "at_c"
+          ],
           "pivot_m": [
             0.0,
             0.0,
@@ -2581,6 +2591,11 @@
           "muzzle_m": null,
           "name": "ATGM launcher",
           "on": null,
+          "operator_appearance": [
+            "at",
+            "at_b",
+            "at_c"
+          ],
           "pivot_m": [
             0.0,
             0.0,

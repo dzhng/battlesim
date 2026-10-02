@@ -87,7 +87,9 @@ export function unitSolids(
   const solids: Solid[] = [];
   const slots = units.slots(id).slice(0, SQUAD_FIGURES);
   for (const [k, kind] of slots.entries()) {
-    const found = lookup(units.soldier(kind).appearance[0] ?? "");
+    const soldier = units.soldier(kind);
+    const operated = soldier.mounts.find((m) => m.operator_appearance?.length)?.operator_appearance;
+    const found = lookup(operated?.[0] ?? soldier.appearance[0] ?? "");
     if (found?.bundle.kind !== "skinned") return null;
     const { bundle, skeleton } = found;
     const skinned = skinPositions(

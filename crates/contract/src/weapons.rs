@@ -95,6 +95,10 @@ pub struct MountDefinition {
     /// guns remain spares. Any other soldier's weapon is lost with him.
     #[serde(default)]
     pub special: bool,
+    /// Appearance set worn by the current operator of a single infantry gun.
+    /// Absent, the operator keeps his soldier kind's ordinary appearance.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub operator_appearance: Vec<String>,
     /// Traverses at the turret rate; fires only within the bearing tolerance.
     #[serde(default)]
     pub turret: bool,

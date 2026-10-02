@@ -55,6 +55,8 @@ export interface FeedSoldier {
 }
 
 export interface FeedMount {
+  /** Published infantry operator; synthetic feeds may leave it unassigned. */
+  operator?: number | null;
   /** World bearing, radians. */
   bearing: number;
   elevation: number;
@@ -112,6 +114,8 @@ export interface SoldierPose {
   unit: number;
   kind: string;
   slot: number;
+  /** Operated weapon's appearance override, or null for his ordinary kit. */
+  operatorMount: number | null;
   side: Side;
   position: Vec3;
   /** Heading of the body's +X, radians. */
@@ -264,8 +268,12 @@ export interface PoseDriverOptions {
   /** How a type's model draws each of its mounts, in mount order: the rig
    *  its appearance declares, or by hand (`AppearanceCatalog.mountRoles`). */
   mounts: (kind: string) => readonly MountRole[];
-  /** A type's clip durations and strides, for phase; null for a clip its rig lacks. */
-  clip: (kind: string, name: string) => ClipFacts | null;
+  /** The current soldier appearance's clip durations and strides, for phase; null for a clip its rig lacks. */
+  clip: (
+    kind: string,
+    name: string,
+    soldier?: Pick<SoldierPose, "soldier" | "slot" | "operatorMount">,
+  ) => ClipFacts | null;
   /** `presentation.pose`, validated (`validatePoseFeel`). */
   feel: PoseFeel;
   /** Seconds a soldier stays in his firing pose after a shot: the rules'
@@ -455,6 +463,8 @@ export class PoseDriver {
         this.soldiers.get(soldier.id) ?? this.newSoldier(soldier, unit, shots, generation);
       state.seen = generation;
       const pose = state.pose;
+      const operatorMount = unit.mounts.findIndex((m) => m.operator === soldier.id);
+      pose.operatorMount = operatorMount < 0 ? null : operatorMount;
       const dx = soldier.position[0] - state.at[0];
       const dy = soldier.position[1] - state.at[1];
       const moved = Math.hypot(dx, dy);
@@ -521,6 +531,7 @@ export class PoseDriver {
         unit: unit.id,
         kind: unit.kind,
         slot: soldier.slot,
+        operatorMount: null,
         side: unit.side,
         position: vec3.clone(soldier.position),
         facing: unit.yaw + turn,
@@ -575,6 +586,7 @@ export class PoseDriver {
         state.fellAt = time;
         vec3.copy(state.pose.position, f.position);
         state.pose.unit = -1;
+        state.pose.operatorMount = null;
         this.switchTo(state, "death");
         this.dying.add(f.soldier);
       } else if (state) {
@@ -616,7 +628,8 @@ export class PoseDriver {
       const state = this.soldiers.get(id)!;
       state.seen = generation;
       const pose = state.pose;
-      const facts = this.options.clip(pose.kind, "death");
+      pose.operatorMount = null;
+      const facts = this.options.clip(pose.kind, "death", pose);
       pose.phase = facts ? Math.min(1, (time - state.fellAt!) / facts.duration) : 1;
       this.fade(state, dt);
       if (pose.phase >= 1 && !pose.blend) {
@@ -679,7 +692,7 @@ export class PoseDriver {
   private advance(state: SoldierState, clip: string, moved: number, dt: number) {
     const pose = state.pose;
     if (clip !== pose.clip) this.switchTo(state, clip);
-    const facts = this.options.clip(pose.kind, pose.clip);
+    const facts = this.options.clip(pose.kind, pose.clip, pose);
     if (facts) {
       // Locomotion with a declared stride advances with ground covered, so
       // feet do not slide; everything else advances with time, the idle at
@@ -701,7 +714,7 @@ export class PoseDriver {
     pose.blend = state.fading;
     state.fadeLeft = this.options.feel.gait.fade_s;
     pose.clip = clip;
-    pose.phase = this.options.clip(pose.kind, clip)?.loop ? loopStart(pose.soldier) : 0;
+    pose.phase = this.options.clip(pose.kind, clip, pose)?.loop ? loopStart(pose.soldier) : 0;
   }
 
   private fade(state: SoldierState, dt: number) {

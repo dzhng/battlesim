@@ -5,8 +5,8 @@
 // The unit catalog names them: a hull type draws its one `appearance`; a
 // squad's soldier draws from his slot's soldier kind's appearance set
 // (head, kit, colours), the member his id picks, the same one alive and
-// fallen, so no squad reads as copies of one man. A squad's appearances are
-// all skinned to one skeleton, so the squad shares one clip set.
+// fallen, so no squad reads as copies of one man. A published weapon operator
+// may wear its mount's equipment instead. Each appearance supplies its own clips.
 
 import type { Vec3 } from "math";
 import type { InstalledAppearances } from "./loader.ts";
@@ -40,19 +40,17 @@ export class AppearanceCatalog {
     const refuse = (who: string, skeletons: Set<string>) => {
       if (skeletons.size > 1)
         throw new Error(
-          `${who} use skeletons ${[...skeletons].sort().join(" and ")}; a squad's soldiers share one skeleton and clip set`,
+          `${who} use skeletons ${[...skeletons].sort().join(" and ")}; variants in one appearance set share one skeleton and clip set`,
         );
     };
     for (const [kind, soldier] of Object.entries(units.view.soldiers))
       refuse(`soldier kind ${kind}'s appearances`, skeletonOf(soldier.appearance));
-    for (const id of units.ids) {
-      const slots = units.slots(id);
-      if (slots.length)
+    for (const id of units.ids)
+      for (const mount of units.type(id).mounts)
         refuse(
-          `unit type ${id}'s soldiers`,
-          skeletonOf(slots.flatMap((k) => units.soldier(k).appearance)),
+          `unit type ${id}'s ${mount.name} operator appearances`,
+          skeletonOf(mount.operator_appearance ?? []),
         );
-    }
   }
 
   /** How type `kind`'s model draws each of its mounts, in mount order: the
@@ -73,14 +71,26 @@ export class AppearanceCatalog {
    *  his id picks (`id` modulo the installed members: consecutive soldiers
    *  never share one). Null when nothing is installed for it: nothing is
    *  drawn. */
-  resolve(kind: string, side: Side, id = 0, slot = 0): ResolvedAppearance | null {
+  resolve(
+    kind: string,
+    side: Side,
+    id = 0,
+    slot = 0,
+    operatorMount: number | null = null,
+  ): ResolvedAppearance | null {
     if (!this.units.has(kind)) return null;
     const soldier = this.units.slots(kind)[slot];
+    const operated =
+      operatorMount === null
+        ? []
+        : (this.units.type(kind).mounts[operatorMount]?.operator_appearance ?? []);
     const set = this.units.hull(kind)
       ? [this.units.type(kind).appearance ?? ""]
-      : soldier
-        ? this.units.soldier(soldier).appearance
-        : [];
+      : operated.length
+        ? operated
+        : soldier
+          ? this.units.soldier(soldier).appearance
+          : [];
     const names = set.filter((n) => this.installed.appearances.has(n));
     if (!names.length) return null;
     const pick = ((id % names.length) + names.length) % names.length;

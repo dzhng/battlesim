@@ -1134,6 +1134,12 @@ fn check(
         if m.muzzle_m.is_none() {
             return rule(&format!("mount {:?} on a hull needs muzzle_m", m.name));
         }
+        if !m.operator_appearance.is_empty() {
+            return rule(&format!(
+                "mount {:?} on a hull cannot name operator_appearance",
+                m.name
+            ));
+        }
         if m.squad || m.special {
             return rule(&format!(
                 "mount {:?} on a hull is neither squad nor special",
@@ -1259,6 +1265,12 @@ fn check_soldier(id: &str, s: &SoldierKind) -> Result<(), CatalogError> {
         return invalid("hp must be positive".into());
     }
     for m in &s.mounts {
+        if m.squad && !m.operator_appearance.is_empty() {
+            return invalid(format!(
+                "mount {:?}: operator_appearance needs a single operator",
+                m.name
+            ));
+        }
         if m.squad && m.special {
             return invalid(format!(
                 "mount {:?} is a squad weapon or a special one, not both",

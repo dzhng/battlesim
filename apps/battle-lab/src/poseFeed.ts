@@ -50,8 +50,14 @@ export function createPoseDriver(
     mounts: (kind) => catalog.mountRoles(kind),
     feel: gamePose,
     leanHold: rules.cover.lean_hold_s,
-    clip: (kind, name) => {
-      const resolved = catalog.resolve(kind, "blue");
+    clip: (kind, name, soldier) => {
+      const resolved = catalog.resolve(
+        kind,
+        "blue",
+        soldier?.soldier ?? 0,
+        soldier?.slot ?? 0,
+        soldier?.operatorMount ?? null,
+      );
       const bundle = resolved && installed.appearances.get(resolved.appearance)?.bundle;
       if (bundle?.kind !== "skinned") return null;
       const clip = installed.skeletons.get(bundle.skeleton)?.clips.find((c) => c.name === name);
@@ -73,8 +79,14 @@ type Published = Pick<
 function mountsOf(poses: readonly WeaponPoseView[], into: FeedMount[]): FeedMount[] {
   into.length = 0;
   for (const p of poses)
-    into[p.mount] = { bearing: p.bearing, elevation: p.elevation, shots: p.shots };
-  for (let i = 0; i < into.length; i++) into[i] ??= { bearing: 0, elevation: 0, shots: 0 };
+    into[p.mount] = {
+      operator: p.operator,
+      bearing: p.bearing,
+      elevation: p.elevation,
+      shots: p.shots,
+    };
+  for (let i = 0; i < into.length; i++)
+    into[i] ??= { operator: null, bearing: 0, elevation: 0, shots: 0 };
   return into;
 }
 

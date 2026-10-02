@@ -1751,6 +1751,7 @@ pub fn engaged(unit: &Unit) -> bool {
 pub fn pose(mount: &Mount) -> WeaponPose {
     WeaponPose {
         mount: mount.spec as u8,
+        operator: mount.operator,
         bearing: mount.bearing,
         elevation: mount.elevation,
         shots: mount.shots,

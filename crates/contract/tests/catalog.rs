@@ -308,6 +308,14 @@ fn a_structurally_broken_type_fails_at_load_naming_it() {
         error(json!({ "t": t })),
         rule("mount \"cannon\" on a hull needs muzzle_m")
     );
+    // Hull weapons have no infantry operator to wear equipment.
+    let mut t = base_tank();
+    t.as_object_mut().unwrap().remove("abstract");
+    t["mounts"][0]["operator_appearance"] = json!(["launcher"]);
+    assert_eq!(
+        error(json!({ "t": t })),
+        rule("mount \"cannon\" on a hull cannot name operator_appearance")
+    );
     // Its wreck keeps its cover tier (Q24): a heavy hull's wreck is heavy cover.
     let light = json!({ "body": { "hull": { "wreck": "light_wreck" } } });
     assert_eq!(
