@@ -11,7 +11,6 @@ import {
   type WorldLayout,
 } from "@packages/battle-renderer/src/worldMesh";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
-import { useFeed, type Feed } from "./feed";
 import { GAME_RULES } from "./scenarios";
 
 export type WorldView = InstanceType<Wasm["WorldView"]>;
@@ -81,8 +80,8 @@ export function buildingUnderRay(world: StaticWorld, ray: WorldRay): number | nu
 
 /** The map's buildings for a view no side's knowledge is behind (a probe of
  *  the static world): every one standing. */
-export function useStandingBuildings(world: StaticWorld | null): Feed<SideBuildings | null> {
-  const buildings = useMemo<SideBuildings | null>(
+export function useStandingBuildings(world: StaticWorld | null): SideBuildings | null {
+  return useMemo(
     () =>
       world && {
         placed: indexBuildings(world.exports.buildings, mapProps(world.exports, world.layout))
@@ -91,5 +90,4 @@ export function useStandingBuildings(world: StaticWorld | null): Feed<SideBuildi
       },
     [world],
   );
-  return useFeed(buildings);
 }

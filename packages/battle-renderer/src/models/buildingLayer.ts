@@ -280,11 +280,15 @@ export function createBuildingLayer(
   return {
     /** The template art a generation installed and how its kits answer for
      *  its modules (`undefined`: no building is drawn). The kits installed
-     *  may be only those the map's buildings need (`buildingKits`). */
+     *  are only those the map's buildings need (`buildingKits`): a module of
+     *  any other is bound to no state and has no mesh here. */
     setArt(installed: InstalledTemplateArt | undefined, source: ModuleSource) {
-      const bounds = installed?.modules.map((m) => source.bounds(m.kit, m.state)) ?? [];
-      meshes = (installed?.modules ?? []).map((m) =>
-        Array.from({ length: TIER_COUNT }, (_, tier) => source.mesh(m.kit, m.state, tier)),
+      const modules = installed?.modules ?? [];
+      const bounds = modules.map((m) => (m.state === null ? null : source.bounds(m.kit, m.state)));
+      meshes = modules.map(({ kit, state }) =>
+        Array.from({ length: TIER_COUNT }, (_, tier) =>
+          state === null ? null : source.mesh(kit, state, tier),
+        ),
       );
       const same =
         art?.library === installed?.library &&

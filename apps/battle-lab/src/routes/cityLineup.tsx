@@ -41,7 +41,7 @@ import {
   type LineupTemplate,
 } from "../cityLineup";
 import { useFeed } from "../feed";
-import { useGameAppearances } from "../gameAppearances";
+import { useGameAppearances, useMapAppearances } from "../gameAppearances";
 import { gameBiome } from "../gameBiome";
 import { gameCamera } from "../gameCamera";
 import { LabViewport } from "../LabViewport";
@@ -116,16 +116,19 @@ const flatMap = (size: [number, number]) => ({
   buildings: [],
 });
 
-/** What a template's rows draw in each state the library has: per tier, the
- *  module instances and their triangles. */
+/** What the rows of each template of `ids` draw in each state the library
+ *  has: per tier, the module instances and their triangles. `kits` holds
+ *  those templates' kits. */
 function templateCosts(
   installed: NonNullable<InstalledAppearances["templates"]>,
   kits: InstalledAppearances,
+  ids: ReadonlySet<string>,
 ) {
   const { library, modules } = installed;
-  const triangles = modules.map((m) => {
-    const bundle = kits.appearances.get(m.kit)?.bundle;
-    const tiers = bundle?.kind === "static" ? bundle.states[m.state]?.tiers : undefined;
+  const triangles = modules.map(({ kit, state }) => {
+    const bundle = kits.appearances.get(kit)?.bundle;
+    const tiers =
+      state !== null && bundle?.kind === "static" ? bundle.states[state]?.tiers : undefined;
     return Array.from({ length: TIER_COUNT }, (_, t) => (tiers?.[t]?.indices.length ?? 0) / 3);
   });
   const cost = (range: RowRange) => {
@@ -139,23 +142,25 @@ function templateCosts(
         }
     return { rows, triangles: drawn };
   };
-  return library.templates.map((t) => ({
-    id: t.id,
-    set: t.set,
-    status: t.status,
-    states: Object.fromEntries(
-      Object.entries(t.states).map(([state, range]) => [state, cost(range)]),
-    ),
-  }));
+  return library.templates
+    .filter((t) => ids.has(t.id))
+    .map((t) => ({
+      id: t.id,
+      set: t.set,
+      status: t.status,
+      states: Object.fromEntries(
+        Object.entries(t.states).map(([state, range]) => [state, cost(range)]),
+      ),
+    }));
 }
 
 export default function CityLineup() {
   const [query] = useState(() => asked(window.location.search));
-  const appearances = useGameAppearances();
+  const catalog = useGameAppearances();
   // The catalogue's templates the library dresses, as the address narrows them.
   const standing = useMemo(() => {
-    if (!appearances) return null;
-    const art = new Map(appearances.templates?.library.templates.map((t) => [t.id, t]));
+    if (!catalog) return null;
+    const art = new Map(catalog.templates?.library.templates.map((t) => [t.id, t]));
     const all = (catalogue as unknown as Omit<LineupTemplate, "set">[]).map((t) => ({
       id: t.id,
       category: t.category,
@@ -175,7 +180,11 @@ export default function CityLineup() {
         SPACING,
       ),
     };
-  }, [appearances, query]);
+  }, [catalog, query]);
+  // The kits the templates standing here draw from, and no other set's.
+  const appearances = useMapAppearances(
+    useMemo(() => standing && lineupBuildings(standing.lineup.entries), [standing]),
+  );
   if (!appearances || !standing) return null;
   if (!standing.lineup.entries.length)
     return (
@@ -332,14 +341,21 @@ function Rows({
   );
 
   const costs = useMemo(
-    () => (appearances.templates ? templateCosts(appearances.templates, appearances) : []),
-    [appearances],
+    () =>
+      appearances.templates
+        ? templateCosts(
+            appearances.templates,
+            appearances,
+            new Set(lineup.entries.map((e) => e.id)),
+          )
+        : [],
+    [appearances, lineup],
   );
   const diagnostics = useMemo(
     () => ({
       /** Where every template stands, and the catalogue templates without art. */
       lineup: () => ({ ...lineup, missing }),
-      /** Per library template and state: rows and triangles at each tier. */
+      /** Per standing template and state: rows and triangles at each tier. */
       costs: () => costs,
       /** Cut the camera to a station (of template `id`, or the one chosen). */
       stand,

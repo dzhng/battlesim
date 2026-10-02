@@ -84,10 +84,15 @@ export interface BuildingArt {
 }
 
 /** The kit appearances a scene of `placed` draws modules of: its templates'
- *  own, in every state, and the prototype kit, whose box a fallen part with
- *  no art for its state is drawn as. */
+ *  own, in every state, and the prototype kit where the library places its
+ *  box, which a fallen part with no art for its state is drawn as. A map
+ *  with no buildings draws from none. This is what a map asks the loader for
+ *  and what its models layer installs. */
 export function buildingKits(placed: PlacedBuildings, library: TemplateArtLibrary): Set<string> {
-  return templateKits(library, placed.templates).add(PROTOTYPE_KIT);
+  const kits = templateKits(library, placed.templates);
+  if (placed.template.length > 0 && library.kits.some((kit) => kit.appearance === PROTOTYPE_KIT))
+    kits.add(PROTOTYPE_KIT);
+  return kits;
 }
 
 /** Whether every kit `placed` needs is installed in `art`. The buildings and
