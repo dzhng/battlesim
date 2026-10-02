@@ -4,12 +4,17 @@
 // rest of the map draws at the coarsest tier; a building seen to fall draws
 // its remains; and replacing the buildings returns what the old ones held.
 //
-// `BUILDING_COST=1` measures instead: the frame's GPU time with and without
-// the buildings at the stations (paired, interleaved), on whatever map the
-// lab's address names (`CITY_MAP=metro:large:1`).
-import { writeFile } from "node:fs/promises";
+// Two modes measure and picture instead, on whatever map the lab's address
+// names (`CITY_MAP=metro:large:1`):
+// - `BUILDING_COST=1`: the frame's GPU time with and without the buildings at
+//   the stations (paired, interleaved);
+// - `CITY_SEQUENCE=1`: the town from a fixed run of distances, from the
+//   tactical camera out to the overview, and at each tier boundary the frame
+//   with every building at the tier before and at the tier after it.
+import { mkdir, writeFile } from "node:fs/promises";
 import { aim, buildingsSettled, lab } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
+import { writeSheet } from "./_sheet.mjs";
 
 const HIDE_PANEL = "[data-testid=city-block-panel] { display: none !important; }";
 /** The ground classes view: black where a pixel is not wholly bare ground
@@ -19,6 +24,10 @@ const isBody = (rgb) => rgb.every((v) => v === 0);
 /** Straight down, so nothing standing hides the ground beside it. */
 const TOP_DOWN = Math.PI / 2 - 0.03;
 const STATIONS = ["street", "tactical", "wide", "overview"];
+/** The stations a cost is measured at: those, and the town from 2 km, low. */
+const COST_STATIONS = ["street", "tactical", "wide", "oblique", "overview"];
+/** The sequence's distances between the tier boundaries, metres. */
+const SEQUENCE_M = [65, 90, 200, 250, 450, 700, 1500, 2000, 3000, 4500];
 const delta = (a, b) => a.reduce((s, v, i) => s + Math.abs(v - b[i]), 0);
 
 const stats = (page) => lab(page, () => window.__lab.stats().buildings);
@@ -71,8 +80,9 @@ async function gpuMs(page, frames = 120) {
  *  frame batch without them, at each station. */
 async function cost(ctx, page) {
   const rows = [];
-  for (const id of STATIONS) {
+  for (const id of COST_STATIONS) {
     await stand(page, id);
+    await shot(ctx, page, `cost-${id}-1920x1080.png`);
     const drawn = await stats(page);
     const differences = [];
     const absolute = [];
@@ -91,7 +101,7 @@ async function cost(ctx, page) {
     const memory = await lab(page, () => window.__lab.stats().memory);
     rows.push({ id, drawn, median: median(differences), frame: median(absolute), differences });
     console.log(
-      `METRIC city-block cost ${id}: buildings ${median(differences).toFixed(2)} ms of a ${median(absolute).toFixed(2)} ms frame (paired differences ${differences.map((d) => d.toFixed(2)).join(", ")}); ${tiers(drawn)}; select ${drawn.selectMs.toFixed(2)} ms; buffers ${(memory.bufferBytes / 2 ** 20).toFixed(1)} MiB, textures ${(memory.textureBytes / 2 ** 20).toFixed(1)} MiB`,
+      `METRIC city-block cost ${id}: buildings ${median(differences).toFixed(2)} ms of a ${median(absolute).toFixed(2)} ms frame (paired differences ${differences.map((d) => d.toFixed(2)).join(", ")}); ${tiers(drawn)}; select ${drawn.selectMs.toFixed(2)} ms; building records ${(drawn.coarseBytes / 2 ** 20).toFixed(2)} MiB coarse and ${(drawn.pool.bytes / 2 ** 20).toFixed(1)} MiB pool; all buffers ${(memory.bufferBytes / 2 ** 20).toFixed(1)} MiB, textures ${(memory.textureBytes / 2 ** 20).toFixed(1)} MiB`,
     );
   }
   await ctx.writeEvidence("cost.json", {
@@ -99,6 +109,65 @@ async function cost(ctx, page) {
     map: await lab(page, () => window.__lab.route.map()),
     rows,
   });
+}
+
+/** `CITY_SEQUENCE=1`: the town from a run of distances at the rig's own
+ *  pitch, tiers by distance; then each tier boundary from one pose with
+ *  every building at the tier before it and at the tier after. */
+async function sequence(ctx, page) {
+  const boundaries = await lab(page, () => window.__lab.route.boundaries());
+  const overview = await lab(page, () => window.__lab.route.stations().overview);
+  const distances = [...SEQUENCE_M.filter((m) => m < overview.distance), ...boundaries]
+    .map((m) => Math.round(m))
+    .sort((a, b) => a - b);
+  const frame = async (pose) => {
+    await aim(page, pose.target, pose);
+    await buildingsSettled(page);
+  };
+  const rows = [];
+  for (const m of distances) {
+    await frame(await lab(page, (m) => window.__lab.route.poseAt(m), m));
+    await shot(ctx, page, `sequence-${String(m).padStart(4, "0")}m.png`);
+    const s = await stats(page);
+    rows.push({ m, tiers: s.tiers, triangles: s.triangles, draws: s.draws });
+    console.log(`METRIC city-block sequence ${m} m: ${tiers(s)}`);
+  }
+  await frame(overview);
+  await shot(ctx, page, "sequence-overview.png");
+  const whole = await stats(page);
+  console.log(`METRIC city-block sequence overview (${overview.distance} m): ${tiers(whole)}`);
+
+  // Each boundary, from the one pose, at the tier before and the tier after.
+  for (const side of ["before", "after"])
+    await mkdir(ctx.evidencePath(`boundary/${side}`), { recursive: true });
+  const halves = boundaries.map(() => []);
+  for (const tier of [0, 1, 2, 3]) {
+    await lab(page, (tier) => window.__lab.route.drawAt(tier), tier);
+    for (const [b, m] of boundaries.entries()) {
+      if (tier !== b && tier !== b + 1) continue;
+      await frame(await lab(page, (m) => window.__lab.route.poseAt(m), m));
+      const s = await stats(page);
+      await lab(page, () => window.__lab.frame());
+      const png = await page.screenshot();
+      await writeFile(
+        ctx.evidencePath(`boundary/${tier === b ? "before" : "after"}/boundary-${b + 1}.png`),
+        png,
+      );
+      halves[b].push({
+        caption: `tier ${tier} · ${Math.round(s.triangles[tier])} triangles · ${s.refused} chunks refused`,
+        png,
+      });
+    }
+  }
+  await lab(page, () => window.__lab.route.drawAt(null));
+  for (const [b, m] of boundaries.entries())
+    await writeSheet(ctx, `boundary-${b + 1}-pair.png`, {
+      title: `The town from ${m.toFixed(0)} m, where tier ${b} gives way to tier ${b + 1}`,
+      columns: 2,
+      cellWidth: 1920,
+      cells: halves[b],
+    });
+  await ctx.writeEvidence("sequence.json", { boundaries, rows, overview: whole });
 }
 
 export async function run(ctx) {
@@ -140,7 +209,9 @@ export async function run(ctx) {
   console.log(
     `METRIC city-block ${map.type} ${map.size} seed ${map.seed}: ${built.buildings} buildings in ${built.chunks} chunks, ${built.coarse} coarse rows, scene built in ${built.buildMs.toFixed(1)} ms (development build)`,
   );
-  if (process.env.BUILDING_COST === "1") return cost(ctx, page);
+  if (process.env.CITY_SEQUENCE === "1") await sequence(ctx, page);
+  if (process.env.BUILDING_COST === "1") await cost(ctx, page);
+  if (process.env.CITY_SEQUENCE === "1" || process.env.BUILDING_COST === "1") return;
 
   // Every building of the map is a template reference, drawn from rows.
   const counts = await lab(page, () => ({

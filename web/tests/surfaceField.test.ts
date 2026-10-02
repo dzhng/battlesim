@@ -17,7 +17,13 @@ import {
   type TerrainSite,
 } from "@packages/battle-renderer/src/terrain/terrainSurface.ts";
 import { forestInside, type ForestShape } from "@packages/battle-renderer/src/terrain/forestShapes";
-import { STROKE_FLOATS, strokeInside } from "@packages/battle-renderer/src/terrain/strokes";
+import {
+  CUT_A,
+  CUT_B,
+  STROKE_CUTS,
+  STROKE_FLOATS,
+  strokeInside,
+} from "@packages/battle-renderer/src/terrain/strokes";
 import { RIVER_FLOATS, stretchInside } from "@packages/battle-renderer/src/terrain/rivers";
 import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
 import {
@@ -25,7 +31,9 @@ import {
   forestDistance,
   pavedDistance,
   surfaceListBudget,
+  SURFACE_FLOATS,
   SURFACE_MAX_CELLS,
+  SURFACE_STROKE_ALONG,
   surfaceCell,
   waterDistance,
   type SurfaceField,
@@ -313,6 +321,55 @@ test("a stretch is cut square at the end its stroke ends at, and round at the ot
   expect(strokeInside(stretch(2), 0, 9, 20)).toBe(2);
   expect(strokeInside(stretch(2), 0, 51, 20)).toBe(-1);
   expect(strokeInside(stretch(1), 0, 51, 20)).toBe(2);
+});
+
+test("a paved stretch's record says how far along its stroke it starts", () => {
+  // Two roads: one with a bend the simulation rounds into short stretches,
+  // one straight.
+  const bent = [
+    [20, 40],
+    [160, 40],
+    [220, 110],
+  ];
+  const site = siteOf({
+    ...CURATED_GROUND,
+    forests: [],
+    rivers: [],
+    surfaces: [
+      { kind: "road", shape: { kind: "stroke", points: bent, width_m: 8 } },
+      {
+        kind: "country_road",
+        shape: {
+          kind: "stroke",
+          points: [
+            [300, 300],
+            [400, 300],
+          ],
+          width_m: 8,
+        },
+      },
+    ],
+  });
+  const { records } = buildSurfaceField(site, reach);
+  const stretches = site.surfaceStrokes.length / STROKE_FLOATS;
+  expect(stretches).toBeGreaterThan(3);
+  const ends: number[] = [];
+  let length = 0;
+  for (let k = 0; k < stretches; k++) {
+    const o = k * SURFACE_FLOATS;
+    const starts = records[o + STROKE_CUTS] & CUT_A;
+    // Each stroke starts at 0 where it is cut, and runs on from there.
+    if (starts) length = 0;
+    expect(records[o + SURFACE_STROKE_ALONG]).toBeCloseTo(length, 3);
+    length += Math.hypot(records[o + 2] - records[o], records[o + 3] - records[o + 1]);
+    if (records[o + STROKE_CUTS] & CUT_B) ends.push(length);
+  }
+  // Each stroke ends at its own length: the bent one's is its corner's,
+  // give or take the rounding.
+  const span = (a: number[], b: number[]) => Math.hypot(b[0] - a[0], b[1] - a[1]);
+  expect(ends).toHaveLength(2);
+  expect(Math.abs(ends[0] - span(bent[0], bent[1]) - span(bent[1], bent[2]))).toBeLessThan(2);
+  expect(ends[1]).toBeCloseTo(100, 3);
 });
 
 test("the field is the same bytes for the same ground", () => {

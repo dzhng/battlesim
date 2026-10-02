@@ -54,7 +54,10 @@ import type {
   WorldMeshes,
 } from "@packages/battle-renderer/src/scene";
 import type { GroundMarks } from "@packages/battle-renderer/src/frame/scarTexture";
-import type { SideBuildings } from "@packages/battle-renderer/src/models/buildingReferences";
+import type {
+  BuildingStyle,
+  SideBuildings,
+} from "@packages/battle-renderer/src/models/buildingReferences";
 import { createBattleFrame } from "@packages/battle-renderer/src/frame/battleFrame";
 import { PassInspector } from "./PassInspector";
 import type { FeedSource } from "./feed";
@@ -77,6 +80,10 @@ interface LabViewportProps {
   /** The buildings drawn from template art, and those the side has seen
    *  fall, fed like the overlay; omitted or null draws none. */
   buildings?: FeedSource<SideBuildings | null>;
+  /** How those buildings are tiered, chunked and pooled; the fixture's when
+   *  omitted. The frame takes it when it is built: a change draws at the next
+   *  `rebuild`. */
+  buildingStyle?: BuildingStyle;
   /** What the camera keeps clear of (the buildings the side knows stand, on
    *  the ground), fed like the overlay; the ground alone when omitted or null. */
   obstacles?: FeedSource<CameraObstacles | null>;
@@ -321,6 +328,7 @@ export function LabViewport({
   world,
   structures,
   buildings,
+  buildingStyle,
   obstacles,
   overlay,
   pointerMarks,
@@ -416,6 +424,8 @@ export function LabViewport({
   structuresRef.current = structures;
   const buildingsRef = useRef(buildings);
   buildingsRef.current = buildings;
+  const buildingStyleRef = useRef(buildingStyle);
+  buildingStyleRef.current = buildingStyle;
   useEffect(
     () =>
       buildings?.subscribe((next) => {
@@ -574,7 +584,7 @@ export function LabViewport({
             paint: gamePaint,
             xrayMinHiddenFragmentFraction: gameXrayMinHiddenFragmentFraction,
             models: gameModelDetail,
-            buildings: gameBuildingStyle,
+            buildings: buildingStyleRef.current ?? gameBuildingStyle,
             world: worldRef.current.current!,
             instances: instancesRef.current,
             width: canvas.width,
