@@ -274,6 +274,71 @@ fn uniform_learned_ground_is_delivered_without_one_record_per_cell() {
     );
 }
 
+#[test]
+fn a_detailed_learned_ground_burst_stays_within_the_delivery_budget() {
+    let mut setup = common::scenario(
+        &json!({"size":[64,64],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}).to_string(),
+        json!([{"side":"blue","kind":"tank","position":[2,2],"engagement":"return_fire_only"}]),
+        json!([{"tick":1,"burst":{"point":[32,32],"weapon":"tank_he"}}]),
+    );
+    let weapon = setup.rules.weapons.get_mut("tank_he").unwrap();
+    weapon.blast_radius_m = 28.0;
+    weapon.damage = 0.0;
+    weapon.near_miss_suppression = 0.0;
+    setup.rules.ground.crater_radius_fraction = 1.0;
+    setup.rules.ground.scorch_radius_fraction = 1.0;
+    setup.rules.ground.crater_depth_per_m = 4.0;
+    setup.rules.ground.scorch_per_burst = 128.0;
+    let mut battle = Battle::new(&setup, 1);
+    for _ in 0..6 {
+        battle.step();
+    }
+    let canonical: Vec<_> = battle
+        .known_ground(Side::Blue)
+        .change_runs_since(0)
+        .collect();
+    assert!(
+        canonical.len() * 16 > 19_800,
+        "the learned burst must expose uncompressed-run amplification: {} rows",
+        canonical.len()
+    );
+    let digest = battle.digest();
+    let mut publisher = publication::Publisher::new();
+    let wire = publisher.publish(&battle, Side::Blue).unwrap();
+    assert!(
+        wire.len() * 4 <= 19_800,
+        "complete detailed-ground publication: {} B for {} rows",
+        wire.len() * 4,
+        canonical.len()
+    );
+    let layout: Value = serde_json::from_str(&publication::layout_json(&battle)).unwrap();
+    let header = names(&layout["header"]);
+    let mut at = header.len();
+    for _ in layout["groups"].as_array().unwrap() {
+        at += 3 + wire[at + 2] as usize;
+    }
+    at += wire[header.iter().position(|name| name == "fogFloats").unwrap()] as usize;
+    let restored = codec::ground(&wire[at..], canonical.len());
+    let expected: Vec<f32> = canonical
+        .iter()
+        .flat_map(|run| {
+            let c = run.marks;
+            [
+                run.tile as f32,
+                (u32::from(run.start) + u32::from(run.len) * 256) as f32,
+                (u32::from(c.crater) + (u32::from(c.scorch) << 8)) as f32,
+                (u32::from(c.tracks) + (u32::from(c.trampled) << 8) + (u32::from(c.cleared) << 16))
+                    as f32,
+            ]
+        })
+        .collect();
+    assert_eq!(
+        restored.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
+        expected.iter().map(|v| v.to_bits()).collect::<Vec<_>>()
+    );
+    assert_eq!(digest, battle.digest());
+}
+
 /// The native half of the publication stream record: each tick's battle
 /// digest, published words and delivered fog, as hashes.
 /// `web/tests/fogDelivery.test.ts` holds the Wasm build and the TypeScript
@@ -326,7 +391,10 @@ fn publication_stream(record: Value, path: &str, combat: bool) {
         let head = |name: &str| words[header.iter().position(|f| f == name).unwrap()];
         let count = head("fogFloats") as usize;
         let field_words = (head("fogNx") as usize * head("fogNy") as usize).div_ceil(32);
-        let at = words.len() - head("groundRunCount") as usize * 4 - count;
+        let mut at = header.len();
+        for _ in layout["groups"].as_array().unwrap() {
+            at += 3 + words[at + 2] as usize;
+        }
         if head("fogFull") == 1.0 {
             snapshots += 1;
             bits = (0..field_words)
@@ -677,6 +745,7 @@ fn the_encoder_packs_the_codec_vectors_the_web_decoder_reads() {
     for key in ["header", "groups", "groupDelivery"] {
         blessed["layout"][key] = current[key].clone();
     }
+    blessed["layout"]["ground"]["packed"] = current["ground"]["packed"].clone();
     for row in blessed["vectors"].as_object_mut().unwrap().values_mut() {
         let frame: contract::observation::ObservationFrame =
             serde_json::from_value(row["frame"].clone()).unwrap();
@@ -798,7 +867,15 @@ fn one_variable_route_change_does_not_resend_other_own_units() {
     use contract::command::{CommandEnvelope, MoveDirection, Order, RoutePolicy};
     use contract::ids::UnitId;
     let units: Vec<_> = (0..80)
-        .map(|i| json!({"side":"blue","kind":"rifle","position":[32 + i%10*24,32+i/10*24]}))
+        .map(|i| {
+            // The mover has a clear corridor beside the 79 stationary squads.
+            let position = if i == 0 {
+                [320, 240]
+            } else {
+                [32 + i % 10 * 24, 32 + i / 10 * 24]
+            };
+            json!({"side":"blue","kind":"rifle","position":position})
+        })
         .collect();
     let setup = common::scenario(
         &json!({"size":[512,512],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35})

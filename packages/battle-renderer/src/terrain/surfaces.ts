@@ -41,8 +41,31 @@ export function checkSurfaceKinds(layout: Partial<SurfaceKindLayout>): void {
     throw new Error("paved surface kinds differ from the ones the ground readers expect");
 }
 
+/** The paved kinds `site`'s areas name. */
+export function pavedKinds(site: SurfaceGeometry): Set<SurfaceAreaKind> {
+  const named = new Set<SurfaceAreaKind>();
+  for (const [records, stride, kind] of [
+    [site.surfaceStrokes, site.surfaceStrokeStride, 5],
+    [site.surfaceTriangles, site.surfaceTriangleStride, 6],
+  ] as const)
+    for (let o = 0; o < records.length; o += stride)
+      named.add(SURFACE_AREA_KINDS[records[o + kind]]);
+  return named;
+}
+
+/** The kind an area of `kind` is drawn as on a map whose areas name `named`.
+ *  A map that names no kind but `road` was drawn before roads had kinds: its
+ *  roads are country roads, and are drawn as one until its map says so. */
+export function drawnKind(
+  kind: SurfaceAreaKind,
+  named: ReadonlySet<SurfaceAreaKind>,
+): SurfaceAreaKind {
+  const unkinded = [...named].every((k) => k === "road");
+  return kind === "road" && unkinded ? "country_road" : kind;
+}
+
 /** Whether a paved record's kind `tag` is a carriageway. */
-const isRoad = (tag: number) => ROAD_AREA_KINDS.includes(SURFACE_AREA_KINDS[tag]);
+export const isRoad = (tag: number) => ROAD_AREA_KINDS.includes(SURFACE_AREA_KINDS[tag]);
 
 /** Agricultural guides read the road strokes' authored runs and the rivers'
  * long runs (so a field meets a rounded bend edge-on, not its short samples) and

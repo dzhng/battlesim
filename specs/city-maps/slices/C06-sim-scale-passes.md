@@ -450,3 +450,54 @@ initial-view experiment, not a whole-battle or browser timing claim. The source
 change is discarded; existing public cost requirements stay unchanged. Remaining
 Fog plus Learning work remains the next attribution target, with current full
 report means of 54.941 and 59.969 million instructions per tick early and late.
+
+## Outcome — changed edges during infantry refinement
+
+Incremental infantry refinement can outlive the knowledge revision on which its
+coarse path was admitted. A new body can close a diagonal's shared edge before
+refinement reads it. Missing edges now reject that candidate through the existing
+bounded route-failure path; the planner's revision check owns the fresh search.
+No stale crossing is emitted, and unchanged geometry keeps the same path.
+
+The public Battle regression adds a body during planning. It reproduces the
+first-edge panic on the original source, then proves eventual publication of a
+route fitting the actual changed world, no pending job, and every serialized
+replay tick digest. Its deliberately tiny planning allowance stretches the
+revision transition; the watchdog is a completion check, not latency admission.
+A private phase probe confirms finite smoothing progress. The preserved current
+catalogue late admission crash selects this fix, but the full late run and scale
+budgets remain integration gates.
+
+## Outcome — current-main movement admission changes the measured load
+
+The combined build `c1fb0f09…` includes main's physical move certification and
+world ownership changes. Native and Wasm generation receipts match: Metro Large
+seed 4 retains map `7ea9ba8a…`, catalogue `6b0a5e8b…`, and 12,887 buildings,
+22,442 parts, 228,030 bays and 46,813 ground points. Rules are now `b7e67721…`.
+The earlier complete reports use different rules and remain historical controls.
+
+A bounded unmodified 150-tick early arm spends 1,179.833 million instructions per
+tick on average in Orders, with a maximum of 113,197.618 million at a scripted
+tick. Both scripted ticks are included; this is not ordinary per-tick cost.
+All 16 supply moves have no new goal at tick 1. At tick 150, blue's first 74-unit
+fighter wave yields eight new goals and four active routes; red's yields none.
+Tick 149 has no movement goals on either side, maximum displacement of 9.23 m
+and 8.65 m, and one launched round. Tick 150 ends with 200 living units, one
+round, and digest `5b586cfb01b49e34`. These public observations do not expose
+individual hidden preparation verdicts. Some short requested journeys also fail,
+so the validation allowance's travel bound alone is not a sufficient diagnosis.
+The city recipe shifts living starts toward contact by 850 m; conclusions from
+the unshifted rear-edge recipe were discarded.
+
+Fresh Open Medium seeds 5 and 8 and Metro Small seed 10 retain their exact map
+identities, but all three formerly accepted nine-unit moves are now refused with
+`no_valid_destination` and zero placed destinations. The ten historical pending
+infantry stay living and idle through 120 s, with null goals and zero pending
+work. Their final digests are `b5720017b15f56de`, `520de95a7c07cef3` and
+`80285fa00696bac4`. This proves refusal, not resolution of their earlier planning
+delays. Initial command-acceptance cost is outside those tick counters.
+
+Fresh full contact and browser admission wait for this movement contract to be
+resolved. No validation-budget increase, script shortening, destination bypass
+or performance parity claim is made. Raw receipts and traces stay in ignored
+`throwaway/scale-lane/` and the publication worktree's corresponding directory.

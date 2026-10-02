@@ -71,12 +71,11 @@ impl FootTrace {
             // A diagonal was admitted only when both orthogonal alternatives
             // fit. Reconstruct one of them through actual shared-edge gaps.
             let via = (a / grid.nx) * grid.nx + b % grid.nx;
-            let first = grid
-                .crossing(a, via)
-                .expect("admitted diagonal's first edge");
-            let second = grid
-                .crossing(via, b)
-                .expect("admitted diagonal's second edge");
+            // Knowledge may close an edge after the parent path was found.
+            // A failed candidate is replanned by the planner's revision check.
+            let (Some(first), Some(second)) = (grid.crossing(a, via), grid.crossing(via, b)) else {
+                return Some(Err(BlockReason::NoRoute));
+            };
             if !join(
                 grid,
                 a,

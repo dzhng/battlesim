@@ -89,7 +89,8 @@ fn shot_counters_and_elevation_move_only_when_a_round_leaves() {
             launched
                 .entry((r.unit.0, mount))
                 .or_default()
-                .push((p.id, v.z.atan2(v.x.hypot(v.y))));
+                // The simulation's own portable functions: the platform's differ by a bit.
+                .push((p.id, libm::atan2(v.z, libm::hypot(v.x, v.y))));
         }
         let frame = b.observe(Side::Blue);
         for u in &frame.own {

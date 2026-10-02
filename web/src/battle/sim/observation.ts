@@ -614,7 +614,42 @@ function reconstructGroups(
   return { tailOffset: cursor, groups };
 }
 
-/** Compact carriers are raw words, never JS float reads (which can canonicalize NaNs). */
+/** Raw-carrier reader shared by groups and ground; JS float reads can canonicalize NaNs. */
+class PackedReader {
+  private bit = 0;
+  private readonly words: Uint32Array;
+  constructor(data: Float32Array) {
+    this.words = new Uint32Array(data.buffer, data.byteOffset, data.length);
+  }
+  read(count: number): number {
+    if (this.bit + count > this.words.length * 32) throw new Error("truncated packed publication");
+    const index = Math.floor(this.bit / 32),
+      shift = this.bit % 32;
+    let value = this.words[index] >>> shift;
+    if (shift + count > 32) value |= this.words[index + 1] << (32 - shift);
+    this.bit += count;
+    return (value & (count === 32 ? 0xffffffff : 2 ** count - 1)) >>> 0;
+  }
+  integer(): number {
+    let value = 0;
+    for (let byte = 0; byte < 4; byte++) {
+      const part = this.read(8);
+      value += (part & 127) * 2 ** (byte * 7);
+      if (part < 128) {
+        if (byte !== 0 && part === 0) throw new Error("noncanonical packed publication integer");
+        return value;
+      }
+    }
+    throw new Error("oversized packed publication integer");
+  }
+  finish(): void {
+    if (this.words.length * 32 - this.bit > 31)
+      throw new Error("excess packed publication padding");
+    while (this.bit < this.words.length * 32)
+      if (this.read(1) !== 0) throw new Error("nonzero packed publication padding");
+  }
+}
+
 function unpackGroup(
   layout: ObservationLayout,
   groupIndex: number,
@@ -624,53 +659,31 @@ function unpackGroup(
   size: number,
   old: Float32Array | null,
 ): Float32Array {
-  const words = new Uint32Array(encoded.buffer, encoded.byteOffset + offset * 4, length);
-  let bit = 0;
-  const read = (count: number): number => {
-    if (bit + count > words.length * 32) throw new Error("truncated packed observation group");
-    const index = Math.floor(bit / 32);
-    const shift = bit % 32;
-    let value = words[index] >>> shift;
-    if (shift + count > 32) value |= words[index + 1] << (32 - shift);
-    bit += count;
-    return (value & (count === 32 ? 0xffffffff : 2 ** count - 1)) >>> 0;
-  };
-  const integer = (): number => {
-    let value = 0;
-    for (let byte = 0; byte < 4; byte++) {
-      const part = read(8);
-      value += (part & 127) * 2 ** (byte * 7);
-      if (part < 128) {
-        if (byte !== 0 && part === 0) throw new Error("noncanonical packed observation integer");
-        return value;
-      }
-    }
-    throw new Error("oversized packed observation integer");
-  };
-  const form = read(8);
+  const reader = new PackedReader(encoded.subarray(offset, offset + length));
+  const form = reader.read(8);
   if (form > 2 || (old === null && form !== 1))
     throw new Error("packed observation group requires its baseline");
   const baseline = old === null ? null : new Uint32Array(old.buffer, old.byteOffset, old.length);
   const values = new Float32Array(size);
   const result = new Uint32Array(values.buffer);
   const literal = (at: number): void => {
-    const tag = read(4);
+    const tag = reader.read(4);
     if (tag > 9 || (form === 1 && tag >= 5))
       throw new Error("invalid packed observation literal tag");
     const count = tag < 5 ? tag : tag - 5;
-    const value = count === 0 ? 0 : read(count * 8);
+    const value = count === 0 ? 0 : reader.read(count * 8);
     result[at] = tag < 5 ? value : (value ^ (baseline?.[at] ?? 0)) >>> 0;
   };
   if (form === 1) {
     for (let at = 0; at < size; at++) literal(at);
   } else if (form === 0) {
     result.set(baseline!.subarray(0, size));
-    const operations = integer();
+    const operations = reader.integer();
     if (operations > size) throw new Error("invalid packed observation replacement count");
     let last = 0;
     for (let operation = 0; operation < operations; operation++) {
-      const start = integer();
-      const count = integer();
+      const start = reader.integer();
+      const count = reader.integer();
       if (
         count === 0 ||
         start < last ||
@@ -690,8 +703,8 @@ function unpackGroup(
       throw new Error("packed observation copy alignment disagrees with its group");
     let at = 0;
     while (at < size) {
-      const sourcePlusOne = integer();
-      const count = integer();
+      const sourcePlusOne = reader.integer();
+      const count = reader.integer();
       const source = sourcePlusOne - 1;
       if (
         count === 0 ||
@@ -708,9 +721,7 @@ function unpackGroup(
       }
     }
   }
-  if (words.length * 32 - bit > 31) throw new Error("excess packed observation padding");
-  while (bit < words.length * 32)
-    if (read(1) !== 0) throw new Error("nonzero packed observation padding");
+  reader.finish();
   return values;
 }
 
@@ -801,8 +812,16 @@ function decodeFrame(
     (previous && (previous.nx !== nx || previous.ny !== ny || previous.cellM !== cellM))
   )
     throw new Error("fog delta has no matching field baseline");
-  const groundFloats = header[layout.ground.count] * layout.ground.fields.length;
-  if (cursor + count + groundFloats !== data.length)
+  const groundRuns = header[layout.ground.count];
+  if (!Number.isSafeInteger(groundRuns) || groundRuns < 0)
+    throw new Error("ground runs do not match their count");
+  const groundFloats = groundRuns * layout.ground.fields.length;
+  const logicalWords =
+    layout.header.length +
+    payloads.reduce((sum, group) => sum + group.length, 0) +
+    count +
+    groundFloats;
+  if (cursor + count > data.length || logicalWords > layout.ground.maxRecordBytes / 4)
     throw new Error("publication length does not match its layout");
   const bits = full
     ? new Uint32Array(words)
@@ -838,7 +857,7 @@ function decodeFrame(
   if (cells % 32 && bits[words - 1] >>> (cells % 32))
     throw new Error("fog padding bits must be zero");
   cursor += count;
-  const groundPatch = decodeGroundPatch(layout, header, data.subarray(cursor));
+  const groundPatch = decodeGroundPatch(layout, header, data.subarray(cursor), groundRuns);
 
   // An exact integer from its limbs; null when absent.
   const limbs = (f: (name: string) => number, name: string): number | null => {
@@ -1077,8 +1096,9 @@ function decodeGroundPatch(
   layout: ObservationLayout,
   header: Record<string, number>,
   data: Float32Array,
+  n: number,
 ): GroundRunsPatch {
-  const { fields, count, tileSize, cols, rows } = layout.ground;
+  const { fields, tileSize, cols, rows } = layout.ground;
   if (
     fields.length !== 4 ||
     tileSize !== 16 ||
@@ -1090,18 +1110,42 @@ function decodeGroundPatch(
   )
     throw new Error("ground grid does not match its admitted tile codec");
   const at = Object.fromEntries(fields.map((f, i) => [f, i]));
-  const n = header[count];
-  if (!Number.isSafeInteger(n) || n < 0 || n * fields.length !== data.length)
+  if (n * fields.length > layout.ground.maxRecordBytes / 4 || n * 29 > data.length * 32)
     throw new Error("ground runs do not match their count");
+  // Count and minimum 29 bits/run admission precede the only run allocation.
+  const reader = new PackedReader(data);
+  const runs = new Float32Array(n * fields.length);
+  let tile = 0;
+  for (let row = 0; row < runs.length; row += fields.length) {
+    tile += reader.integer();
+    const start = reader.read(8),
+      len = reader.read(8) + 1;
+    const mask = reader.read(5);
+    let a = 0,
+      b = 0;
+    for (let mark = 0; mark < 5; mark++) {
+      if ((mask & (1 << mark)) === 0) continue;
+      const value = reader.read(8);
+      if (value === 0) throw new Error("ground mark presence must encode a nonzero byte");
+      if (mark < 2) a += value * 2 ** (mark * 8);
+      else b += value * 2 ** ((mark - 2) * 8);
+    }
+    if (tile >= 2 ** 24) throw new Error("ground tile exceeds its exact address range");
+    runs[row] = tile;
+    runs[row + 1] = start + len * 256;
+    runs[row + 2] = a;
+    runs[row + 3] = b;
+  }
+  reader.finish();
   const tilesX = Math.ceil(cols / tileSize),
     tilesY = Math.ceil(rows / tileSize);
   let prior = -1,
     end = 0;
-  for (let row = 0; row < data.length; row += fields.length) {
-    const tile = data[row + at.tile],
-      span = data[row + at.span];
-    const a = data[row + at.craterScorch],
-      b = data[row + at.tracksTrampledCleared];
+  for (let row = 0; row < runs.length; row += fields.length) {
+    const tile = runs[row + at.tile],
+      span = runs[row + at.span];
+    const a = runs[row + at.craterScorch],
+      b = runs[row + at.tracksTrampledCleared];
     const start = span % 256,
       len = Math.floor(span / 256);
     if (
@@ -1140,7 +1184,7 @@ function decodeGroundPatch(
     full: header.groundFull === 1,
     // Credits return the input buffer immediately after applyRuns. A retained
     // observation must therefore own its exact compact payload.
-    runs: data.slice(),
+    runs,
   };
 }
 
