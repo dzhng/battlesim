@@ -113,7 +113,8 @@ export interface GlassStyle {
    *  opening and never a pale plate of horizon. */
   turn: number;
   /** The brightest a pane's own light gets, as a multiple of a white matte
-   *  surface in the open: the sun's glint off it never outshines a wall. */
+   *  surface in sun shadow (the environment's `unlit`): the sun's glint off
+   *  it never outshines a wall. */
   glint: number;
 }
 export function validateGlass(glass: GlassStyle): GlassStyle {
@@ -127,9 +128,9 @@ export function validateGlass(glass: GlassStyle): GlassStyle {
 /**
  * A blended surface's fragment: the pane lit like any surface (the one shade
  * function: sun, sky, cast lights, haze), over what is behind it by its
- * coverage value, and fogged as a face. Nothing refracts and nothing glows.
- * Its light is bounded by `style` so that glass reads as a dark, slightly
- * reflective opening from every side.
+ * coverage value. Nothing refracts and nothing glows, and the fog mask stays
+ * what the surface behind the pane wrote. Its light is bounded by `style` so
+ * that glass is a dark opening from every side.
  */
 export function createGlassFragment(environment: EnvironmentFrame, style: GlassStyle) {
   const { turn, glint } = validateGlass(style);

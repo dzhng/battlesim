@@ -26,7 +26,11 @@
 //   impostor cards (`models/impostorCards.ts`). Its static props are the
 //   world's (the map's props that cannot fall) and the structures, what the
 //   side knows stands: buildings, their ruins and wrecks, fitted to their
-//   boxes. Each draw binds the fog group its class names (`modelFog`);
+//   boxes. Each draw binds the fog group its class names (`modelFog`). A
+//   model's surfaces are drawn by kind (`models/surfaceParts.ts`): opaque as
+//   the rest of the world; a cutout cut in the prepass and the cascades; a
+//   room behind a window as solid as a wall and shown unlit; glass last,
+//   over everything, in no prepass and casting nothing;
 // - a town's buildings, as instances of their kits' modules
 //   (`models/buildingLayer.ts`): static models in every respect, drawn by the
 //   models layer's pipelines as the world's faces, and in the prepass's world

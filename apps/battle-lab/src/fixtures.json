@@ -103,7 +103,7 @@
   {
     "id": "facade",
     "route": "/lab/facade",
-    "describe": "What a facade material can say beyond opaque, on the facade lab's kit with no battle on it: a grille and a perforated sheet as fence panels (cutouts: there or not texel by texel, in colour, depth and shadow), and a block three bays wide and three floors high with a window in every bay. Stations cut the camera to each from 25 m, the default tactical camera and 250 m; ?blocks= stands a field of blocks behind (a dense view for the paired cost), ?fog=1 ends an eye's sight across each station, ?azimuth= and ?sun= turn and raise the sun."
+    "describe": "What a facade material can say beyond opaque, on the facade lab's kit with no battle on it: a grille and a perforated sheet as fence panels (cutouts: there or not texel by texel, in colour, depth and shadow); free-standing panes of glass, each half across the next (blended over what is behind them, unsorted); and a block three bays wide and three floors high with a pane and a room behind every window and shopfront (a cell of the interior atlas, unlit, chosen by where the window stands). Stations cut the camera to each from 25 m, the default tactical camera and 250 m; ?blocks= stands a field of blocks behind (a dense view for the paired cost), ?fog=1 ends an eye's sight across each station, ?azimuth= and ?sun= turn and raise the sun, ?order=reversed hands the frame the same modules in the opposite order."
   },
   {
     "id": "village",

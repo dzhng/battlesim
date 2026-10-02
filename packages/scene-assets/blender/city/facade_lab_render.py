@@ -12,8 +12,8 @@ The materials are `assemble.py`'s rebuild of the model shader's surface, with wh
 materials add: a cutout or blended surface takes its coverage (the normal image's alpha times
 the base colour's) as its alpha, a cutout cut at its cutoff; a room shows its cell of the
 interior atlas (`interiors.py`'s sheets) by the lookup the battle's shader does, the cell chosen
-by the same hash of where its module stands, as an emission as bright as a matte surface in the
-open. Light is one sun and a sky: a stand-in for the battle's, not a copy of it.
+by the same hash of where its module stands, as an emission as bright as a matte surface in
+sun shadow. Light is one sun and a sky: a stand-in for the battle's, not a copy of it.
 """
 import json
 import math
@@ -34,6 +34,7 @@ INTERIORS = os.path.abspath(os.path.join(HERE, "../../../../assets/source/city/i
 GROUND = (0.17, 0.18, 0.155)  # the lab's ground, linear
 SAMPLES = 48
 SUN_ENERGY, SKY, SKY_STRENGTH = 4.0, (0.5, 0.64, 0.9), 0.9
+SHADOW_FLOOR = 0.4  # the share of the sun a shaded surface keeps in the battle's light
 # The interior atlas's contract (city/README.md, "Interiors"; `INTERIOR_ATLAS` in scene-assets).
 CELLS, SHEET_COLUMNS, SHEET_ROWS, PINHOLE_M, ROOM_DEPTH_M = 10, 2, 5, 16.0, 4.5
 ROOM_CUTS = 8  # a room's faces are cut this fine, so its lookup is the shader's to a hair
@@ -72,7 +73,7 @@ def room_pick(x, y, z):
 
 
 def room_surface(material, sheet, light):
-    """A room: its sheet as an emission, as bright as a white matte surface under the stage's sun and sky."""
+    """A room: its sheet as an emission, as bright as a white matte surface in sun shadow on the stage."""
     tree = material.node_tree
     tree.nodes.clear()
     out = tree.nodes.new("ShaderNodeOutputMaterial")
@@ -80,7 +81,7 @@ def room_surface(material, sheet, light):
     image = tree.nodes.new("ShaderNodeTexImage")
     image.image = bpy.data.images.load(os.path.join(INTERIORS, f"{sheet}.png"), check_existing=True)
     image.extension = "EXTEND"
-    emit.inputs["Strength"].default_value = (SUN_ENERGY * math.sin(light["elevation"]) / math.pi
+    emit.inputs["Strength"].default_value = (SHADOW_FLOOR * SUN_ENERGY * math.sin(light["elevation"]) / math.pi
                                              + SKY_STRENGTH * sum(SKY) / 3)
     tree.links.new(image.outputs["Color"], emit.inputs["Color"])
     tree.links.new(emit.outputs[0], out.inputs[0])
