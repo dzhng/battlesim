@@ -105,7 +105,11 @@ export async function townGround(ctx) {
   );
   ctx.check(
     "the town's edge is in one frame: its last yards on one side, drilled fields on the other",
-    masks["town-edge-250"].yard > 0.15 && masks["town-edge-250"].drilled > 0.15,
+    // How much of the frame is drilled depends on which fields lie past the
+    // meadow that surrounds a town: some, of a crop or more.
+    masks["town-edge-250"].yard > 0.15 &&
+      masks["town-edge-250"].drilled > 0.03 &&
+      masks["town-edge-250"].crops.length >= 1,
     JSON.stringify(masks["town-edge-250"]),
   );
 

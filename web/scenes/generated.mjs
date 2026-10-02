@@ -291,7 +291,9 @@ export async function run(ctx) {
 
   // Everything on the map is drawn: every building a reference drawn from
   // its template's rows in the frame's static chunks, a tree a trunk, and
-  // every body of street furniture (none has art yet) a stand-in model.
+  // every body on the map its model (or the kit's stand-in). A forest's
+  // boulders never change, so they draw with the static world, not among the
+  // structures the side's knowledge redraws.
   const counts = await lab(page, () => {
     const stats = window.__lab.stats();
     const drawn = window.__lab.route.buildings();
@@ -303,10 +305,11 @@ export async function run(ctx) {
       trees: stats.scenery.forest.placed,
       trunks: window.__lab.route.propsNear("trunk", 0, 0, Infinity).length,
       structures: stats.structures,
+      boulders: window.__lab.route.propsNear("boulder", 0, 0, Infinity).length,
     };
   });
   ctx.check(
-    "every building is drawn from its template's rows, every trunk a tree and every body of street furniture a stand-in box, and no building is a model",
+    "every building is drawn from its template's rows, every trunk a tree and every body of street furniture a model, and no building is a model",
     counts.buildings === generated.counts.buildings &&
       counts.references === generated.counts.buildings &&
       counts.parts === generated.counts.parts &&
@@ -315,7 +318,7 @@ export async function run(ctx) {
       counts.buildings > 1000 &&
       counts.trees === counts.trunks &&
       counts.trees > 1000 &&
-      counts.structures === generated.counts.props &&
+      counts.structures + counts.boulders === generated.counts.props &&
       generated.counts.props > 100,
     JSON.stringify({ ...counts, map: generated.counts }),
   );
