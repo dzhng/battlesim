@@ -555,6 +555,43 @@ def concrete():
     return Baked(col, 0.2 + 0.8 * fbm(6, 1607, 5), normals_from_height(blur(h), 1.4), 1.0, 0.92)
 
 
+@recipe("precast", tile=3.0, wear=(0.12, 0.11, 0.09, 1.0))
+def precast():
+    """A precast concrete wall panel, one 3 m bay by one 3 m floor to the tile: a pale
+    neutral exposed-aggregate face the building's tint colours, the joint round its
+    edge and rain marks falling from the joint above; the wear is grime."""
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
+    f1, _, ident = worley(96, 2601)
+    stone = smoothstep(0.5, 0.15, f1)
+    rnd = np.random.default_rng(2603).random(96 * 96)[ident]
+    stain = fbm(3, 2605, 5)
+    joint = smoothstep(0.03, 0.012, np.minimum(np.minimum(xx, 1 - xx), np.minimum(yy, 1 - yy)) * 3.0)
+    run = smoothstep(0.3, 0.0, yy) * smoothstep(0.45, 0.8, fbm((24, 2), 2607, 3))  # image rows run down the wall
+    tone = 0.84 + 0.2 * stain + 0.14 * (rnd - 0.5) * stone - 0.14 * run
+    col = np.broadcast_to(np.array((0.74, 0.73, 0.7)), (SIZE, SIZE, 3)) * tone[..., None]
+    col = mix(col, (0.12, 0.12, 0.11), joint * 0.8)
+    h = stone * 0.5 - joint * 3.0
+    return Baked(col, 0.25 + 0.75 * fbm(6, 2609, 5), normals_from_height(blur(h), 1.2), 1.0 - 0.4 * joint, 0.93)
+
+
+@recipe("mosaic", tile=1.5, wear=(0.16, 0.155, 0.145, 1.0))
+def mosaic():
+    """Small glazed facing tiles, sixteen to the tile each way: a pale neutral glaze
+    the building's tint colours, grey grout, a tile here and there replaced by a
+    darker one; the wear is the cement bed where tiles have fallen."""
+    yy, xx = np.mgrid[0:SIZE, 0:SIZE].astype(float) / SIZE
+    n = 16
+    ix, iy = np.floor(xx * n).astype(int), np.floor(yy * n).astype(int)
+    fx, fy = xx * n - ix, yy * n - iy
+    grout = np.maximum(smoothstep(0.1, 0.03, np.minimum(fx, 1 - fx)), smoothstep(0.1, 0.03, np.minimum(fy, 1 - fy)))
+    fired = np.random.default_rng(2701).random((n, n))[iy, ix]
+    odd = np.random.default_rng(2703).random((n, n))[iy, ix] > 0.96
+    tone = (0.92 + 0.06 * (fired - 0.5) + 0.14 * (fbm(3, 2705, 4) - 0.5)) * np.where(odd, 0.86, 1.0)
+    col = np.broadcast_to(np.array((0.76, 0.76, 0.74)), (SIZE, SIZE, 3)) * tone[..., None]
+    col = mix(col, (0.3, 0.3, 0.28), grout * 0.7)
+    return Baked(col, chips(2707, 8, bias=0.25), normals_from_height(blur(1.0 - grout), 0.8), 1.0 - 0.3 * grout, 0.32 + 0.55 * grout)
+
+
 @recipe("asphalt", tile=2.0, wear=(0.16, 0.15, 0.13, 1.0))
 def asphalt():
     """Old tarmac: black binder, grey chippings, cracks and oil stains."""
@@ -687,6 +724,24 @@ def joinery():
     col = np.broadcast_to(np.array((0.72, 0.72, 0.7)), (SIZE, SIZE, 3)) * tone[..., None]
     col = mix(col, (0.2, 0.2, 0.19), seam * 0.7)
     return Baked(col, chips(2507, 12, bias=0.1), normals_from_height(blur(grain * 0.5 - seam * 2), 1.2), 1.0 - 0.4 * seam, 0.6)
+
+
+@recipe("rubble_stone", tile=3.0, wear=(0.075, 0.08, 0.05, 1.0))
+def rubble_stone():
+    """A farm wall of field stone laid as random rubble: flat stones a hand or two
+    across, close in tone, in pale recessed lime mortar. A pale ground a
+    building's tint can warm or cool; the wear is moss."""
+    cells = 9
+    rows = (np.arange(SIZE) * 2) % SIZE  # twice the courses up the wall: stones lie flat
+    f1, f2, ident = (x[rows] for x in worley(cells, 2601))
+    joint = smoothstep(0.16, 0.04, f2 - f1)
+    stone = np.random.default_rng(2603).random(cells * cells)[ident]
+    grain = fbm(64, 2605, 3)
+    col = mix((0.36, 0.345, 0.31), (0.46, 0.44, 0.39), stone)
+    col = col * (0.88 + 0.24 * grain)[..., None] * (0.82 + 0.36 * fbm(3, 2607, 4))[..., None]
+    col = mix(col, (0.5, 0.48, 0.43), joint)
+    h = (1 - joint) * (0.7 + 0.5 * stone) + grain * 0.3
+    return Baked(col, 0.3 + 0.7 * fbm(8, 2609, 4), normals_from_height(blur(h), 1.8), 1.0 - 0.4 * joint, 0.94)
 
 
 # ---------------------------------------------------------------- UVs and the GLB

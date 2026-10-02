@@ -28,6 +28,10 @@ export interface SceneryRule {
   /** The art is blade strips the grass field instances and bends in the
    *  wind: every tier the same blades in one layout (`grass.ts`). */
   blades?: true;
+  /** The most triangles each tier may draw, finest first. The kind is
+   *  instanced by the hundred, so its tiers are the forest's frame cost
+   *  (`budget.tier_triangles`). */
+  tier_triangles?: readonly [number, number, number, number];
 }
 
 const prop: SceneryRule = { states: ["default"], footprint: { kind: "prop" } };
@@ -45,8 +49,14 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   tooth: prop,
   // Trees and hedgerows carry one state per biome season (summer; winter is
   // the next biome spec). A tree also stands inside the forests' canopy
-  // (`fit.canopy`); hedgerows stand only past the map.
-  tree: { states: ["summer"], footprint: { kind: "tree" } },
+  // (`fit.canopy`); hedgerows stand only past the map. A tree's tiers are
+  // the forest's frame cost: the budget is what a paired run measured to fit
+  // (specs/city-maps/slices/C73-tree-skeleton.md).
+  tree: {
+    states: ["summer"],
+    footprint: { kind: "tree" },
+    tier_triangles: [10000, 2500, 500, 80],
+  },
   hedgerow: { states: ["summer"], footprint: { kind: "none" } },
   /** A clump of blades, one per grass kind (meadow, wheat, stubble), in its
    *  season's state like trees: the biome names which grows on each plot kind. */

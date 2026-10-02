@@ -78,15 +78,16 @@ function mountsOf(poses: readonly WeaponPoseView[], into: FeedMount[]): FeedMoun
   return into;
 }
 
-/** Turns one side's observations into feed frames. Per observation it keeps
- *  the fallen list (the same array until the next publication, so the driver
- *  reconciles corpses only then) and counts each soldier's shots: the
+/** Turns one side's observations into feed frames. Keeps the fallen list
+ *  until the corpse view changes, so the driver reconciles only those changes,
+ *  and counts each soldier's shots: the
  *  launches (`launches.ts`) each publication shows, the one derivation the
  *  muzzle flashes and the gunfire sounds read too, so the soldier who kneels
  *  to fire is the one whose flash and sound fire. */
 export class ObservationFeed {
   private observation: ObservationView | null = null;
   private fallen: FeedFallen[] = [];
+  private corpses: ObservationView["corpses"] | null = null;
   /** Each soldier's launches so far, by soldier id. */
   private readonly shots = new Map<number, number>();
   private readonly launches = new LaunchTracker();
@@ -111,14 +112,17 @@ export class ObservationFeed {
     const enemy: SideName = this.side === "blue" ? "red" : "blue";
     if (observation !== this.observation) {
       this.observation = observation;
-      this.fallen = observation.corpses.map((c) => ({
-        soldier: c.soldier,
-        position: c.position,
-        yaw: c.yaw,
-        kind: c.kind,
-        slot: c.slot,
-        side: c.own ? this.side : enemy,
-      }));
+      if (observation.corpses !== this.corpses) {
+        this.corpses = observation.corpses;
+        this.fallen = observation.corpses.map((c) => ({
+          soldier: c.soldier,
+          position: c.position,
+          yaw: c.yaw,
+          kind: c.kind,
+          slot: c.slot,
+          side: c.own ? this.side : enemy,
+        }));
+      }
       if (observation.tick !== this.lastTick) {
         if (observation.tick < this.lastTick) {
           this.launches.reset();

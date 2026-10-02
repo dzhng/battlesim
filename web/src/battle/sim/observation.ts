@@ -38,7 +38,13 @@ interface Group {
 export interface ObservationLayout {
   header: string[];
   groups: Group[];
-  groupDelivery: { fields: string[]; range: string[]; copy: string[]; encodings: string[] };
+  groupDelivery: {
+    fields: string[];
+    range: string[];
+    copy: string[];
+    copyAlignments: number[];
+    encodings: string[];
+  };
   fog: { count: string; maxWords: number };
   ground: GroundLayout;
   /** Bits per limb of an exact integer field pair. */
@@ -380,10 +386,10 @@ export interface ObservationView {
   identified: IdentifiedView[];
   contacts: ContactView[];
   audible: SoundCueView[];
-  knownProps: KnownPropView[];
+  knownProps: readonly KnownPropView[];
   projectiles: ProjectileView[];
   blasts: BlastView[];
-  corpses: CorpseView[];
+  corpses: readonly CorpseView[];
   guided: GuidedView[];
   /** The fixture's completion condition, when it has one. */
   encounter: { heldS: number; result: string } | null;
@@ -393,8 +399,13 @@ export interface ObservationView {
 
 type Row = { field: (name: string) => number; sections: Record<string, number[][]> };
 
-/** One ordered side-publication stream. Retained observations own immutable fog
- * snapshots; unchanged fields share their array, changed fields copy it once. */
+type GroupBaseline = {
+  words: Float32Array[];
+  staticViews: Pick<ObservationView, "corpses" | "knownProps">;
+};
+
+/** One ordered side-publication stream. Retained observations are immutable;
+ * unchanged fog and static groups share their views, changed groups replace them. */
 export class ObservationDecoder {
   private epoch = 0;
   private floor = 0;
@@ -403,7 +414,7 @@ export class ObservationDecoder {
   private groundRevision = 0;
   private fog: VisibilityView | null = null;
   private expectedSide: string | null = null;
-  private groups: Float32Array[] = [];
+  private groupBaseline: GroupBaseline | null = null;
 
   constructor(private readonly layout: ObservationLayout) {}
 
@@ -413,6 +424,7 @@ export class ObservationDecoder {
     this.expectedSide = side ?? null;
     this.floor = this.epoch;
     this.fog = null;
+    this.groupBaseline = null;
   }
 
   decode(data: Float32Array): ObservationView | null {
@@ -462,7 +474,11 @@ export class ObservationDecoder {
       throw new Error("fog publication does not follow its side/epoch/revision baseline");
     if (!Number.isSafeInteger(revision) || revision <= base)
       throw new Error("fog publication revision must advance");
-    const reconstructed = reconstructGroups(layout, data, fresh ? null : this.groups);
+    const reconstructed = reconstructGroups(
+      layout,
+      data,
+      fresh ? null : (this.groupBaseline?.words ?? null),
+    );
     const observation = decodeFrame(
       layout,
       data,
@@ -470,6 +486,7 @@ export class ObservationDecoder {
       fresh ? null : this.fog,
       reconstructed.groups,
       reconstructed.tailOffset,
+      fresh ? null : this.groupBaseline,
     );
     // Commit only after the complete record has decoded successfully.
     this.epoch = epoch;
@@ -477,7 +494,10 @@ export class ObservationDecoder {
     this.revision = revision;
     this.groundRevision = groundRevision;
     this.fog = observation.fog;
-    this.groups = reconstructed.groups;
+    this.groupBaseline = {
+      words: reconstructed.groups,
+      staticViews: { corpses: observation.corpses, knownProps: observation.knownProps },
+    };
     return observation;
   }
 }
@@ -517,9 +537,9 @@ function reconstructGroups(
     } else if (mode === "copies") {
       const old = previous![g];
       const group = layout.groups[g];
-      const stride = group.fields.length;
-      if (group.sections.length !== 0 || size % stride !== 0)
-        throw new Error("observation copies require fixed rows");
+      const stride = layout.groupDelivery.copyAlignments[g];
+      if (stride !== (group.sections.length === 0 ? group.fields.length : 1) || size % stride !== 0)
+        throw new Error("observation copy alignment disagrees with its group");
       values = new Float32Array(size);
       let at = 0;
       while (cursor < end) {
@@ -596,20 +616,33 @@ function decodeFrame(
   previous: VisibilityView | null,
   payloads: Float32Array[],
   tailOffset: number,
+  baseline: GroupBaseline | null,
 ): ObservationView {
   let cursor = tailOffset;
   const groups: Record<string, Row[]> = {};
+  const reuse = { corpses: false, knownProps: false };
   for (const [index, group] of layout.groups.entries()) {
     const payload = payloads[index];
     let offset = 0;
-    const at = Object.fromEntries(group.fields.map((f, i) => [f, i]));
-    const rows: Row[] = [];
     if (
       !Number.isSafeInteger(header[group.count]) ||
       header[group.count] < 0 ||
       header[group.count] * group.fields.length > payload.length
     )
       throw new Error("observation group row count exceeds its payload");
+    if (
+      baseline !== null &&
+      (group.name === "corpses" || group.name === "knownProps") &&
+      group.sections.length === 0 &&
+      payload === baseline.words[index]
+    ) {
+      if (header[group.count] * group.fields.length !== payload.length)
+        throw new Error("observation group values do not match their counts");
+      reuse[group.name] = true;
+      continue;
+    }
+    const at = Object.fromEntries(group.fields.map((f, i) => [f, i]));
+    const rows: Row[] = [];
     for (let n = 0; n < header[group.count]; n++, offset += group.fields.length) {
       const base = offset;
       rows.push({ field: (name) => payload[base + at[name]], sections: {} });
@@ -855,21 +888,23 @@ function decodeFrame(
       moving: f("moving") === 1,
     }),
   );
-  const knownProps = groups.knownProps.map(
-    ({ field: f }): KnownPropView => ({
-      kind: layout.propKinds[f("kind")],
-      center: [f("x"), f("y")],
-      yaw: f("yaw"),
-      half: [f("hx"), f("hy"), f("hz")],
-      baseZ: f("baseZ"),
-      replaces: limbs(f, "replaces"),
-      id: limbs(f, "id")!,
-      building: limbs(f, "building"),
-      structureOwner: limbs(f, "structureOwner"),
-      authoredProp: limbs(f, "authoredProp"),
-      destroyed: f("destroyed") === 1,
-    }),
-  );
+  const knownProps = reuse.knownProps
+    ? baseline!.staticViews.knownProps
+    : groups.knownProps.map(
+        ({ field: f }): KnownPropView => ({
+          kind: layout.propKinds[f("kind")],
+          center: [f("x"), f("y")],
+          yaw: f("yaw"),
+          half: [f("hx"), f("hy"), f("hz")],
+          baseZ: f("baseZ"),
+          replaces: limbs(f, "replaces"),
+          id: limbs(f, "id")!,
+          building: limbs(f, "building"),
+          structureOwner: limbs(f, "structureOwner"),
+          authoredProp: limbs(f, "authoredProp"),
+          destroyed: f("destroyed") === 1,
+        }),
+      );
   const bounce = reader("projectiles", "ricochets");
   const projectiles = groups.projectiles.map(({ field: f, sections }): ProjectileView => {
     const hit = layout.hitKinds[f("hit")];
@@ -901,16 +936,18 @@ function decodeFrame(
       supported: f("supported") === 1,
     }),
   );
-  const corpses = groups.corpses.map(
-    ({ field: f }): CorpseView => ({
-      position: [f("x"), f("y"), f("z")],
-      own: f("own") === 1,
-      soldier: limbs(f, "soldier")!,
-      kind: layout.unitKinds[f("kind")],
-      slot: f("slot"),
-      yaw: f("yaw"),
-    }),
-  );
+  const corpses = reuse.corpses
+    ? baseline!.staticViews.corpses
+    : groups.corpses.map(
+        ({ field: f }): CorpseView => ({
+          position: [f("x"), f("y"), f("z")],
+          own: f("own") === 1,
+          soldier: limbs(f, "soldier")!,
+          kind: layout.unitKinds[f("kind")],
+          slot: f("slot"),
+          yaw: f("yaw"),
+        }),
+      );
   return {
     tick: header.tick,
     own,
