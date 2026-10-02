@@ -41,7 +41,7 @@ from masonry import *  # noqa: E402,F403
 FAMILY = "china"
 WALL_M = 2.85  # from a house's top floor datum up to its eaves
 BYRE_SILL_M, LOFT_SILL_M = 1.3, 0.6  # a barn's small windows: high over the stalls, low under the loft's eaves
-ROW_TIERS, FOLDED_TIER = TIERS_0_TO_1, 2  # fittings are rows near; the shell keeps their far tier
+ROW_TIERS, FOLDED_TIER, FOLDED = TIERS_0_TO_1, 2, (2, 3)  # fittings are rows near; the shell keeps them at the two far tiers
 
 kit = Kit("farmsteads", "farmsteads.py", fit_side_m=0.6, fit_top_m=0.9, fit_ruin_top_m=0.6)
 
@@ -137,7 +137,7 @@ def far_paint(tint):
 def window_module(name, w, h, shutters=False, lights=2, frame=frame_m, sill=sill_m):
     m = kit.module(name, **FITTING)
     window(m.n("w"), (0, -0.02, h / 2), (0, -1), w, h, frame, glass_m, joinery_m if shutters else None, m.root, sill,
-           bevel=0.0, glass_lods=TIERS, lights=lights)
+           bevel=0.0, glass_lods=TIERS, lights=lights)  # (its far tiers are the shell's: `FAR_PANELS`)
 
 
 window_module("window_a", 1.0, 1.3)
@@ -188,8 +188,8 @@ water_butt(m.n("butt"), cart_m, iron_m, water_m, m.root)
 # and boxes as (size, centre, material).
 STABLE_LEAF_M = STABLE_DOOR_M[1] * 0.55
 FAR_PANELS = {
-    "window_a": [(1.0, 1.3, 0.0, glass_m)],
-    "window_a_shutters": [(1.0, 1.3, 0.0, glass_m)],
+    "window_a": window_far(1.0, 1.3, glass_m, sill_m),
+    "window_a_shutters": window_far(1.0, 1.3, glass_m, sill_m, "tint"),
     "window_byre": [(0.8, 0.6, 0.0, glass_m)],
     "door_panel": [(0.95, 2.05, 0.0, "tint")],
     "barn_door": [(*BARN_DOOR_M, 0.0, "tint")],
@@ -198,7 +198,7 @@ FAR_PANELS = {
     "loft_door": [(*LOFT_DOOR_M, 0.0, "tint")],
 }
 FAR_BOXES = {
-    "chimney_brick": [((1.05, 0.6, CHIMNEY_M), (0, 0, CHIMNEY_M / 2), stack_m)],
+    "chimney_brick": [((1.05, 0.6, CHIMNEY_M), (0, 0, CHIMNEY_M / 2), coping_m)],  # from above a chimney is its cap
     "bales": [((2.85, 0.48, 1.0), (0, -0.27, 0.5), straw_m)],
 }
 
@@ -213,7 +213,7 @@ class Farm:
     def __init__(self, id_, tag, recipe):
         self.t = kit.template(id_, "farmstead", FAMILY, recipe)
         self.m = kit.module(f"{tag}_shell", ground=True, paint_scale=4.0)
-        self.panels, self.boxes, self.built = {}, 0, {}
+        self.far, self.built = [], {}
 
     def __getattr__(self, name):  # the template's own: parts, floors, lattices, bays, entrances
         return getattr(self.t, name)
@@ -225,14 +225,7 @@ class Farm:
         if tiers & ROW_TIERS:
             self.t.place(module, x, y, z, yaw, tiers=tiers & ROW_TIERS, tint=tint, **row)
         if tiers >> FOLDED_TIER & 1:
-            for w, h, foot, paint in FAR_PANELS.get(module, ()):
-                mat = far_paint(tint) if paint == "tint" else paint
-                self.panels.setdefault(mat.name, (mat, []))[1].append((x, y, z + foot, yaw, w, h))
-            c, s = math.cos(yaw), math.sin(yaw)
-            for size, (cx, cy, cz), mat in FAR_BOXES.get(module, ()):
-                box(self.m.n(f"far_{self.boxes}"), size, (x + cx * c - cy * s, y + cx * s + cy * c, z + cz), mat, self.m.root,
-                    rot=(0, 0, yaw), lods=(FOLDED_TIER,))
-                self.boxes += 1
+            self.far.append((module, x, y, z, yaw, *row.get("scale", (1.0, 1.0, 1.0)), tiers, *tint))
 
     def building(self, part, centre, size, eave, rise, along, hips, wall, roof, plinth=(plinth_m, 0.4)):
         """A building under a pitched roof: its part, and its walls, roof and plinth in the shell. Its roof's shape."""
@@ -281,9 +274,7 @@ class Farm:
         """Fold the far panels into the shell and stand it on the template; then its ruin: one
         module holding every building's stumps and heap in its own materials, with the set's
         wreckage lying on it. `open_sides` names sides that never had a wall (part -> sides)."""
-        for name in sorted(self.panels):
-            mat, panels = self.panels[name]
-            wall_panels(self.m.n("far_" + name), panels, mat, self.m.root, lods=(FOLDED_TIER,))
+        fold_far(self.m, self.far, FAR_PANELS, FAR_BOXES, far_paint, FOLDED)
         self.t.place(self.m.name)
         t = self.t
         m = kit.module(self.m.name.replace("_shell", "_ruin"), ground=True, **RUIN)

@@ -164,9 +164,6 @@ box(m.n("board"), (1.0, 0.1, 0.7), (0, -0.05, 0.35), sign_m, m.root)
 box(m.n("cornice"), (1.0, 0.18, 0.08), (0, -0.09, 0.74), stone_m, m.root, lods=(0, 1))
 
 
-wreckage(kit, rubble_m, char_m)
-
-
 # ---------------------------------------------------------------- ruins
 def seed_of(id_):
     """A template's own number: every ruin breaks its own way, the same way every run."""
@@ -184,16 +181,51 @@ def stacks_of(t, rect):
 
 
 def fallen(t, tag, wall, roof, tint):
-    """A house's ruin: one module holding every part's stumps and heap, placed in the
-    house's own tint, with the set's wreckage lying on it."""
+    """What a house is from far off, and what it is fallen. Far off, its shell keeps its
+    fittings (`far_fittings`). Fallen, it is one module holding every part's stumps and
+    heap, placed in the house's own tint, with the set's wreckage lying on it."""
+    far_fittings(t, kit.modules[f"{tag}_shell"])
     m = kit.module(f"{tag}_ruin", ground=True, **RUIN)
     high, over = t.ruin_height(), kit.fit["ruin_top_m"]
     for k, p in enumerate(t.parts):
         rect = (p["x0"], p["x1"], p["y0"], p["y1"])
         ruin = ruin_block(m, p["id"].replace("-", "_"), rect, high, over, ruin_sides(t, p["id"], OPENINGS), WALLS[wall], ROOFS[roof],
-                          RUBBLE[wall], seed_of(t.id) + 17 * k, stacks=stacks_of(t, rect))
-        litter(t, ruin, BRICK_DUST if wall == "brick" else tint)
+                          RUBBLE[wall], seed_of(t.id) + 17 * k, stacks=stacks_of(t, rect), coarse=8)
+        litter(t, ruin, BRICK_DUST if wall == "brick" else tint, heaps=4)
     t.place(m.name, tint=tint, state="ruin")
+
+
+wreckage(kit, rubble_m, char_m)
+
+# What the two coarse tiers keep of a fitting, folded into its house's shell (`fold_far`): each window
+# its pane in its pale surround between its shutters, each door its own paint, each chimney a block
+# the colour of its cap. A fitting named here is a row at the two fine tiers only.
+FAR_PANELS = {
+    "window_a": window_far(1.0, 1.3, glass_m, stone_m), "window_a_shutters": window_far(1.0, 1.3, glass_m, stone_m, "tint"),
+    "window_wide": window_far(1.6, 1.3, glass_m, stone_m), "window_tall": window_far(0.9, 1.5, glass_m, stone_m),
+    "door_panel": [(1.15, 2.15, 0.0, frame_m, 0.012), (0.95, 2.05, 0.0, "tint")],
+    "door_canopy": [(1.15, 2.55, 0.0, frame_m, 0.012), (0.95, 2.05, 0.0, "tint"), (0.95, 0.32, 2.11, glass_m)],
+    "shop_window": [(2.6, 0.5, 0.0, "tint", 0.012), (2.5, SHOP_HEAD_M - 0.5, 0.5, glass_m)],
+    "shop_door": [(1.7, SHOP_HEAD_M - 0.1, 0.1, glass_m), (0.95, 0.35, 0.0, "tint", 0.04)],
+}
+FAR_BOXES = {"chimney_brick": [((1.05, 0.6, CHIMNEY_M), (0, 0, CHIMNEY_M / 2), coping_m)],
+             "chimney_render": [((0.7, 0.7, CHIMNEY_M), (0, 0, CHIMNEY_M / 2), coping_m)]}
+
+
+def far_paint(tint):
+    """A door's or a sign's paint as the coarsest tier keeps it: the joinery's own colour under a row's tint."""
+    colour = tuple(m * (c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4)
+                   for m, c in zip(textures.baked("joinery").mean(), (v / 255 for v in tint)))
+    return flat_paint("far_paint_%d_%d_%d" % tint, colour, rough=0.7, grime=0.0)
+
+
+def far_fittings(t, m, origin=(0.0, 0.0), within=None):
+    """Fold what the two coarse tiers keep of a template's fittings into shell `m`: all of its rows, or
+    those `within` (x0, x1) of it, for a module that is one house of a row. The fittings' own rows
+    then stop at the second tier."""
+    rows = [r for r in t.rows["intact"] if within is None or within[0] <= r[1] < within[1]]
+    fold_far(m, rows, FAR_PANELS, FAR_BOXES, far_paint, (2, 3), origin)
+    t.rows["intact"] = [(*r[:8], r[8] & TIERS_0_TO_1, *r[9:]) if r[0] in FAR_PANELS or r[0] in FAR_BOXES else r for r in t.rows["intact"]]
 
 
 # ---------------------------------------------------------------- shells
@@ -351,8 +383,7 @@ def terrace(id_, tag, units, unit_w, d, floors, rise, wall, roof, tints, window,
             t.entrance(south, -1.5)
             t.mount("shop_door", south, -1.5, tiers=TIERS_0_TO_2, tint=paint)
             t.mount("shop_window", south, 1.5, tiers=TIERS_0_TO_2, tint=paint)
-            t.mount("shop_sign", south, 0.0, z=SHOP_HEAD_M + 0.15, scale=(unit_w - 0.5, 1.0, 1.0), tiers=TIERS_0_TO_2,
-                    tint=SIGNS[k % len(SIGNS)])
+            t.mount("shop_sign", south, 0.0, z=SHOP_HEAD_M + 0.15, scale=(unit_w - 0.5, 1.0, 1.0), tint=SIGNS[k % len(SIGNS)])
             glaze(t, south, floors[1:], window, tint=paint)
         else:
             front_door(t, south, -1.5, door, paint)
@@ -369,6 +400,9 @@ def terrace(id_, tag, units, unit_w, d, floors, rise, wall, roof, tints, window,
         for k in range(units + 1):
             x = -length / 2 + k * unit_w
             t.place(pm.name, x=min(max(x, -length / 2 + 0.11), length / 2 - 0.11), tiers=TIERS_0_TO_2)
+    # From far off each house's module keeps the fittings of the row's second house, and the end wall its windows.
+    far_fittings(t, um, origin=(centres[1], 0.0), within=(centres[1] - unit_w / 2 - 0.01, centres[1] + unit_w / 2 - 0.01))
+    far_fittings(t, em, origin=(length / 2, 0.0), within=(length / 2 - 0.01, length / 2 + 0.01))
     # Fallen, the row is not one flat line: each house is one of two ruins, in its own tint
     # and down to its own level, its party wall and chimney breast standing on its west
     # side; the row's east end wall is a module of its own.
@@ -416,8 +450,8 @@ for o in (-4.5, 1.5, 4.5):
     t.mount("shop_window", "body-south", o, tiers=TIERS_0_TO_2, tint=GREEN)
 for o in (-4.5, -1.5):
     t.mount("shop_window", "body-east", o, tiers=TIERS_0_TO_2, tint=GREEN)
-t.mount("shop_sign", "body-south", 0.0, z=SHOP_HEAD_M + 0.15, scale=(11.5, 1.0, 1.0), tiers=TIERS_0_TO_2, tint=SIGNS[3])
-t.mount("shop_sign", "body-east", -3.0, z=SHOP_HEAD_M + 0.15, scale=(5.5, 1.0, 1.0), tiers=TIERS_0_TO_2, tint=SIGNS[3])
+t.mount("shop_sign", "body-south", 0.0, z=SHOP_HEAD_M + 0.15, scale=(11.5, 1.0, 1.0), tint=SIGNS[3])
+t.mount("shop_sign", "body-east", -3.0, z=SHOP_HEAD_M + 0.15, scale=(5.5, 1.0, 1.0), tint=SIGNS[3])
 glaze(t, "body-south", (4.0, 7.0), "window_wide")
 glaze(t, "body-east", (0.0, 4.0, 7.0), "window_wide", skip=(-4.5, -1.5))
 for side in ("north", "west"):

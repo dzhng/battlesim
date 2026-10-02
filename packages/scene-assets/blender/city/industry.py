@@ -209,21 +209,22 @@ def cells(points, size):
 
 
 ROOF_CELL_M = 4.4  # a roof's paint (rust, damp, fading) lives on vertices: this keeps them down to the third tier
+ROOF_FAR_CELL_M = 6.6  # and this, coarser, at the coarsest: the same marks, where a roof is all the camera sees of a shed
 
 
-def surface(m, tag, faces, mat, lods=TIERS, uv=None, grid=None):
+def surface(m, tag, faces, mat, lods=TIERS, uv=None, grid=None, far_grid=None):
     """One mesh of flat faces, each `(points, toward)` or `(points, toward, uv)`. With no
     `uv` the export box-projects it. `"slope"` is a roof's own: u along the eave and v up
     the slope, so a sheet's ribs run with the fall. `(origin, u, v)` lays the recipe from
     a corner, so a window's panes start at its own edge. `grid` cuts every face into
-    cells that size at all but the coarsest tier."""
+    cells that size at all but the coarsest tier, and `far_grid` into cells that size there."""
     tile = textures.tile_of(TEXTURED[mat.name]) if mat.name in TEXTURED else 1.0
 
     def build(bm, lod):
         layer = bm.loops.layers.uv.new("UVMap") if uv is not None or any(len(f) > 2 for f in faces) else None
         for points, toward, *own in faces:
             how = own[0] if own else uv
-            for quad in cells(points, grid) if grid and lod < 3 else [points]:
+            for quad in cells(points, grid) if grid and lod < 3 else cells(points, far_grid) if far_grid and lod == 3 else [points]:
                 f = face(bm, quad, toward)
                 if how == "slope":
                     origin, u = Vector((0, 0, 0)), UP.cross(f.normal).normalized()
@@ -238,7 +239,10 @@ def surface(m, tag, faces, mat, lods=TIERS, uv=None, grid=None):
 
 
 def skin(m, tag, faces, mat, **how):
-    """A weathered surface: `mat` at the tiers that have the vertices for its marks, its twin at the coarsest."""
+    """A weathered surface: `mat` at the tiers that have the vertices for its marks, its twin at the coarsest.
+    A roof (one that has a `grid`) keeps its marks there too, on a coarser grid: no twin."""
+    if how.get("grid"):
+        return surface(m, tag, faces, mat, far_grid=ROOF_FAR_CELL_M, **how)
     surface(m, tag, faces, mat, lods=(0, 1, 2), **how)
     surface(m, tag + "_far", faces, FAR.get(mat.name, mat), lods=(3,), **how)
 
@@ -339,10 +343,13 @@ for s in (-1, 1):
 # over the dock's concrete face, a leveller's lip and two bumpers.
 DOCK_SILL, DOCK_W, DOCK_H = 1.1, 2.7, 3.0
 m = kit.module("dock_door", ground=True, **FITTING)
-surface(m, "door", [(front(-DOCK_W / 2, DOCK_W / 2, DOCK_SILL, DOCK_SILL + DOCK_H, -0.04), SOUTH)], slats_m)
+surface(m, "door", [(front(-DOCK_W / 2, DOCK_W / 2, DOCK_SILL, DOCK_SILL + DOCK_H, -0.04), SOUTH)], slats_m, lods=(0, 1))
+surface(m, "door_far", [(front(-DOCK_W / 2 + 0.35, DOCK_W / 2 - 0.35, DOCK_SILL + 0.3, DOCK_SILL + DOCK_H - 0.35, -0.05), SOUTH)], slats_m,
+        lods=(2, 3))
 box(m.n("face"), (3.0, 0.16, DOCK_SILL), (0, -0.08, DOCK_SILL / 2), plinth_m, m.root, lods=(0, 1))
 box(m.n("seal_head"), (DOCK_W + 0.5, 0.3, 0.35), (0, -0.15, DOCK_SILL + DOCK_H + 0.175), rubber_m, m.root, lods=(0, 1))
-surface(m, "seal", [(front(-DOCK_W / 2 - 0.25, DOCK_W / 2 + 0.25, DOCK_SILL, DOCK_SILL + DOCK_H + 0.35, -0.03), SOUTH)], rubber_m, lods=(2,))
+surface(m, "seal", [(front(-DOCK_W / 2 - 0.25, DOCK_W / 2 + 0.25, DOCK_SILL - 0.4, DOCK_SILL + DOCK_H + 0.35, -0.03), SOUTH)], rubber_m,
+        lods=(2, 3))
 box(m.n("lip"), (2.1, 0.45, 0.05), (0, -0.38, DOCK_SILL - 0.03), galv_m, m.root, lods=(0, 1))
 for s in (-1, 1):
     box(m.n(f"seal_{'ab'[s > 0]}"), (0.3, 0.3, DOCK_H), (s * (DOCK_W / 2 + 0.1), -0.15, DOCK_SILL + DOCK_H / 2), rubber_m, m.root,
@@ -473,7 +480,7 @@ def gabled_shell(m, length, depth, eave, ridge, wall, roof, spans=1, lights=None
             trims.append(([(x0, yk, ridge + 0.03), (x1, yk, ridge + 0.03), (x1, yk + s * 0.16, ridge + 0.03 - 0.16 * tan),
                            (x0, yk + s * 0.16, ridge + 0.03 - 0.16 * tan)], UP))
     skin(m, "roof", slopes, roof, uv="slope", grid=ROOF_CELL_M)
-    surface(m, "flashings", trims, trim_m, lods=(0, 1, 2))
+    surface(m, "flashings", trims, trim_m)
     for k in range(spans - 1):  # a box gutter in each valley
         yv = centres[k] + half
         z = eave + 0.35 * tan + 0.02
@@ -539,12 +546,11 @@ def flat_shell(m, tag, x0, x1, y0, y1, top, wall, deck, mends=()):
         ([(x0 + t, y1 - t, deck_z), (x1 - t, y1 - t, deck_z), (x1 - t, y1 - t, under), (x0 + t, y1 - t, under)], (0, -1, 0)),
         ([(x0 + t, y0 + t, deck_z), (x0 + t, y1 - t, deck_z), (x0 + t, y1 - t, under), (x0 + t, y0 + t, under)], (1, 0, 0)),
         ([(x1 - t, y0 + t, deck_z), (x1 - t, y1 - t, deck_z), (x1 - t, y1 - t, under), (x1 - t, y0 + t, under)], (-1, 0, 0))],
-        concrete_m, lods=(0, 1, 2))
+        concrete_m)
     for k, y in enumerate((y0 + t / 2, y1 - t / 2)):
-        box(m.n(f"{tag}_coping_{k}"), (x1 - x0 + 0.1, t + 0.1, 0.08), ((x0 + x1) / 2, y, top - 0.04), concrete_m, m.root, lods=(0, 1, 2))
+        box(m.n(f"{tag}_coping_{k}"), (x1 - x0 + 0.1, t + 0.1, 0.08), ((x0 + x1) / 2, y, top - 0.04), concrete_m, m.root)
     for k, x in enumerate((x0 + t / 2, x1 - t / 2)):
-        box(m.n(f"{tag}_coping_{k + 2}"), (t + 0.1, y1 - y0 - 2 * t - 0.1, 0.08), (x, (y0 + y1) / 2, top - 0.04), concrete_m, m.root,
-            lods=(0, 1, 2))
+        box(m.n(f"{tag}_coping_{k + 2}"), (t + 0.1, y1 - y0 - 2 * t - 0.1, 0.08), (x, (y0 + y1) / 2, top - 0.04), concrete_m, m.root)
     return deck_z
 
 
@@ -796,7 +802,7 @@ for side in ("east", "west"):
     drain(t, edge, edge_z, (-D / 2 + 0.4, D / 2 - 0.4))
 t.mount("clad_panel", "body-east", 10.5, z=DADO_M + 0.1, tiers=TIERS_0_TO_2, tint=PRIMER)  # a bay re-sheeted, never painted to match
 for y in (-5.0, 5.0):
-    t.place("turbine_vent", 0.0, y, TOP - 0.1, tiers=TIERS_0_TO_2)
+    t.place("turbine_vent", 0.0, y, TOP - 0.1)
 t.place("flue_stack", 3.4, 8.0, TOP - 3.4 * tan - 0.2, tiers=TIERS_0_TO_2)
 fold(t, m)
 wrecked(t, "shed", SAGE, [("body", "steel", clad_m, ROOFS["rusty"])])
@@ -833,13 +839,13 @@ for k in range(3):
 for x in (-20.0, -12.0, -4.0, 4.0, 12.0, 20.0):
     for y in (-5.0, 5.0):
         if (x, y) != (-20.0, -5.0):
-            t.place("skylight_dome", x, y, deck, tiers=TIERS_0_TO_2)
-t.place("roof_unit", -20.0, -6.5, deck, tiers=TIERS_0_TO_2)
-t.place("roof_unit", -16.0, -9.0, deck, math.pi / 2, tiers=TIERS_0_TO_2)
+            t.place("skylight_dome", x, y, deck)
+t.place("roof_unit", -20.0, -6.5, deck)
+t.place("roof_unit", -16.0, -9.0, deck, math.pi / 2)
 for k in range(4):
     t.place("duct_run", -17.4 + 3 * k, -6.5, deck, tiers=TIERS_0_TO_2)
 for x in (-8.0, 8.0, 16.0):
-    t.place("turbine_vent", x, 0.0, deck, tiers=TIERS_0_TO_2)
+    t.place("turbine_vent", x, 0.0, deck)
 t.place("flue_stack", -21.5, 9.5, deck, tiers=TIERS_0_TO_2)
 fold(t, m)
 wrecked(t, "slab", STONE, [("body", "precast", slab_m, felt_m)])
@@ -875,7 +881,7 @@ drain(t, "body-south", edge_z, (-35.6, -12.0, 12.0, 35.6))
 drain(t, "body-north", edge_z, (-35.6, -12.0, 12.0, 35.6))
 for y in (-D / 4, D / 4):
     for k in range(6):
-        t.place("ridge_vent", -30.0 + 12 * k, y, TOP, tiers=TIERS_0_TO_2)
+        t.place("ridge_vent", -30.0 + 12 * k, y, TOP)
 fold(t, m)
 wrecked(t, "span", IVORY, [("body", "steel", clad_m, ROOFS["pale"])])
 
@@ -946,9 +952,9 @@ for edge in ("hall-north", "hall-south-1"):  # a downpipe from each valley
             t.mount("downpipe", edge, o + 0.55, scale=(1.0, 1.0, VALLEY), tiers=TIERS_0_TO_1)
 t.place("flue_stack", 21.0 + 2.2, y1 - 4.0, VALLEY + 0.2, tiers=TIERS_0_TO_2)
 t.place("flue_stack", 15.0 + 2.2, y1 - 4.0, VALLEY + 0.2, tiers=TIERS_0_TO_2)
-t.place("roof_unit", -hx + 4.0, y0 - 5.5, office_deck, tiers=TIERS_0_TO_2)
-t.place("skylight_dome", -hx + 9.0, y0 - 4.5, office_deck, tiers=TIERS_0_TO_2)
-t.place("skylight_dome", -hx + 13.0, y0 - 4.5, office_deck, tiers=TIERS_0_TO_2)
+t.place("roof_unit", -hx + 4.0, y0 - 5.5, office_deck)
+t.place("skylight_dome", -hx + 9.0, y0 - 4.5, office_deck)
+t.place("skylight_dome", -hx + 13.0, y0 - 4.5, office_deck)
 fold(t, kit.modules["works_shell"])
 wrecked(t, "works", CREAM, [("hall", "brick", brick_m, ROOFS["green"]), ("office", "render", render_m, felt_m)])
 
@@ -989,7 +995,7 @@ for edge in ("body-east", "body-west"):
     t.mount("louvre", edge, -0.75, z=8.3, tiers=TIERS_0_TO_1)
 for x in (-30.0, -15.0, 0.0, 15.0, 30.0):
     for s in (-1, 1):
-        t.place("turbine_vent", x, s * 11.0, EAVE + (D / 2 - 11.0) * tan - 0.1, tiers=TIERS_0_TO_2)
+        t.place("turbine_vent", x, s * 11.0, EAVE + (D / 2 - 11.0) * tan - 0.1)
 for x in (-40.5, 27.0):
     t.place("flue_stack", x, 14.5, EAVE + (D / 2 - 14.5) * tan - 0.15, tiers=TIERS_0_TO_2)
 fold(t, m)

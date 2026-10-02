@@ -54,7 +54,7 @@ import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 from parts import *  # noqa: E402,F401,F403
-from masonry import fill_height, ragged_wall, rubble, rubble_fill, scorched  # noqa: E402
+from masonry import fill_height, ragged_wall, rubble, rubble_fill, scorched, wall_panels  # noqa: E402
 import collapse  # noqa: E402
 
 REPO = os.path.abspath(os.path.join(HERE, "../../../.."))
@@ -424,6 +424,37 @@ def rainwater(t, edge, shape, length, pipes=(-1, 1), over=OVER_M):
 def stack(t, module, x, y, ridge, yaw=0.0):
     """A chimney whose pots clear the ridge."""
     t.place(module, x, y, ridge + 0.5 - CHIMNEY_M, yaw, tiers=TIERS_0_TO_2)
+
+
+def fold_far(m, rows, panels, boxes, paint, lods, origin=(0.0, 0.0)):
+    """What a shell keeps of its building's fittings where no row draws them: into module
+    `m`, at tiers `lods`, each of `rows` (a template's rows, in its frame; `origin` is the
+    module's place in it) as flat panels on its wall and as boxes. `panels` is module ->
+    [(width, height, foot, paint)], in the fitting's own frame, where the paint is a
+    material or "tint" for the row's own colour (`paint(tint)` makes that a material);
+    `boxes` is module -> [(size, centre, material)]. A row's scale stretches its panels.
+    A panel may add `proud`, how far off the wall it lies (a window's surround lies under
+    its pane). So a far wall keeps its openings where they are, in their own colours and weight."""
+    faces, count = {}, 0
+    for module, x, y, z, yaw, sx, sy, sz, tiers, *tint in rows:
+        x, y = x - origin[0], y - origin[1]
+        for w, h, foot, mat, *proud in panels.get(module, ()):
+            mat = paint(tuple(tint)) if mat == "tint" else mat
+            faces.setdefault((mat.name, *proud), (mat, []))[1].append((x, y, z + foot * sz, yaw, w * sx, h * sz))
+        c, s = math.cos(yaw), math.sin(yaw)
+        for size, (cx, cy, cz), mat in boxes.get(module, ()):
+            box(m.n(f"far_box_{lods[0]}_{count}"), size, (x + cx * c - cy * s, y + cx * s + cy * c, z + cz), mat, m.root, rot=(0, 0, yaw), lods=lods)
+            count += 1
+    for k, key in enumerate(sorted(faces)):
+        mat, quads = faces[key]
+        wall_panels(m.n(f"far_{lods[0]}_{k}"), quads, mat, m.root, proud=key[1] if len(key) > 1 else 0.03, lods=lods)
+
+
+def window_far(w, h, glass, surround, shutters=None):
+    """`fold_far`'s panels for a window `w` by `h` on its sill: its pane, the pale surround of its
+    frame and sill under the pane, and its shutters ("tint", or None) either side."""
+    out = [(w + 0.2, h + 0.19, -0.07, surround, 0.012), (w, h, 0.0, glass)]
+    return ([(2 * w + 0.32, h + 0.04, -0.02, shutters, 0.02)] if shutters else []) + out
 
 
 # ---------------------------------------------------------------- ruins masonry buildings share

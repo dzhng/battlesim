@@ -73,14 +73,25 @@ CLOTHS = ((0.3, 0.28, 0.22), (0.2, 0.24, 0.29), (0.31, 0.31, 0.3), (0.27, 0.17, 
 kit = Kit("towers", "towers.py", fit_side_m=1.5, fit_top_m=4.0)
 
 
+def linear(tint):
+    return tuple(c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in (v / 255 for v in tint))
+
+
 # ---------------------------------------------------------------- the facade recipes
-def facade(kind, seed, burnt=False):
+# Which of a facade recipe's four bays (bay + 2 * floor) has curtains drawn across its glass, and how:
+# the rows that hang curtain modules at tier 0 follow the same table, so a window is the same near and far.
+CURTAINED = {1: "curtain_pair", 3: "curtain_blind"}
+
+
+def facade(kind, seed, burnt=False, front=None):
     """A tower's wall from a distance: two bays by two floors of pale panels the
     building's tint colours, each with `kind`'s opening where the panel module has
     it, and no two of the four dressed alike. `burnt` is the same wall gutted: each
     opening an empty dark hole, the soot of its fire fanned up the panels over it (and
     on up into the floor above), the facing spalled off in patches. `x` is a bay blown
-    out: the bare edges of its floor slabs and the dark of the floor between them."""
+    out: the bare edges of its floor slabs and the dark of the floor between them.
+    `front` (sRGB) paints a column of balconies' fronts in the recipe itself, which then
+    takes no tint: a stack is one face, and only its fronts are that colour."""
     S = textures.SIZE
     ss, mix = textures.smoothstep, textures.mix
     rows, cols = np.mgrid[0:S, 0:S].astype(float)
@@ -122,7 +133,8 @@ def facade(kind, seed, burnt=False):
             inside = mix(inside, colour, (which == 2) * rect(at, at + 0.45, 1.25, 2.05 - 0.15 * k))
         rough = np.where(sash > 0.5, 0.12, 0.9)
         joint = np.zeros((S, S))  # no panel joints: a front, then the slab's edge in its own tone
-        wall = mix(np.array(FACADE_WALL) * tone[..., None], np.array(RAIL) * tone[..., None], ss(slab - px, slab, bz))
+        paint = np.array(FACADE_WALL) * (np.array(linear(front)) if front else 1.0)
+        wall = mix(paint * tone[..., None], np.array(RAIL) * tone[..., None], ss(slab - px, slab, bz))
     elif kind == "l":
         # a recess in shade with a glazed door at its back, behind a pale balustrade
         inside = wall * 0.22
@@ -145,9 +157,9 @@ def facade(kind, seed, burnt=False):
     else:
         pane = rect(x0 + 0.06, x1 - 0.06, z0 + 0.06, z1 - 0.06) * (1.0 - bars({"w": (0.0,), "r": (-0.45, 0.45)}.get(kind, (-0.25,)), bx))
         inside = mix(FRAME, GLASS, pane)
-        mid, wide = (x0 + x1) / 2, x1 - x0
-        drawn = np.select([which == 1, which == 2, which == 3],
-                          [np.abs(bx - mid) > 0.24 * wide, bz > z0 + 0.5 * (z1 - z0), bx < x0 + 0.4 * wide], False)
+        mid, half = (x0 + x1) / 2, (x1 - x0) / 2
+        scale = half / 0.75  # the curtain modules are cut to a window's opening, and stretched to a wider one
+        drawn = np.select([which == 1, which == 3], [np.abs(bx - mid) > half - 0.42 * scale, bz > z0 + 0.7], False)
         cloth = np.array(CLOTHS)[which]
         inside = mix(inside, cloth, pane * drawn) * lintel[..., None]
         rough = np.where(pane > 0.5, 0.12, 0.5)
@@ -155,7 +167,15 @@ def facade(kind, seed, burnt=False):
     height = textures.blur(-2.0 * hole - 0.5 * joint)
     wear = np.where(hole > 0.5, 1.0, 0.3 + 0.7 * textures.fbm(6, seed + 3, 5))
     return textures.Baked(col, wear, textures.normals_from_height(height, 1.2), 1.0 - 0.25 * joint,
-                          mix(np.full((S, S, 1), 0.9), rough[..., None], hole)[..., 0], tint=1.0 - hole)
+                          mix(np.full((S, S, 1), 0.9), rough[..., None], hole)[..., 0], tint=0.0 if front else 1.0 - hole)
+
+
+def balconies_recipe(front):
+    """The name of the balcony column's recipe with its fronts painted `front` (sRGB), made when first asked for."""
+    name = "facade_balconies_%02x%02x%02x" % front
+    if name not in textures.RECIPES:
+        textures.recipe(name, tile=FACADE_M, wear=(0.12, 0.11, 0.09, 1.0))(lambda: facade("B", 3501, front=front))
+    return name
 
 
 def gutted(kind, seed, wall, tone, joint, hole, which, bx, bz, rect):
@@ -283,24 +303,21 @@ CURTAINS = ((236, 224, 196), (168, 190, 214), (232, 232, 228), (214, 150, 136), 
 WASHING = ((84, 112, 160), (176, 70, 62), (226, 196, 96), (90, 140, 110))
 
 
-def linear(tint):
-    return tuple(c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in (v / 255 for v in tint))
-
-
 _STRIPS = {}
 
 
-def strip_mat(recipe, tint=None, tone=1.0, smoke=False):
+def strip_mat(recipe, tint=None, tone=1.0, smoke=False, plain=False):
     """A shell wall's material on `recipe`: tint-masked for the row's tint (the tower's
-    colour), or with `tint` (sRGB) baked in for a column of another colour. `smoke` is
-    a gutted tower's: the wall darker the higher it stands (`smoked`)."""
-    key = (recipe, tint, tone, smoke)
+    colour), or with `tint` (sRGB) baked in for a column of another colour, or `plain`
+    for a recipe that carries its own colours. `smoke` is a gutted tower's: the wall
+    darker the higher it stands (`smoked`)."""
+    key = (recipe, tint, tone, smoke, plain)
     if key not in _STRIPS:
         mean = textures.baked(recipe).mean()
         name = (f"tower_shell_{recipe}" + ("" if tint is None else "_%02x%02x%02x" % tint) + ("" if tone == 1.0 else "_base")
                 + ("_smoked" if smoke else ""))
         colour = None if tint is None and tone == 1.0 else tuple(m * c * tone for m, c in zip(mean, linear(tint or (255, 255, 255))))
-        _STRIPS[key] = textured(name, recipe, tint=1.0 if tint is None and tone == 1.0 else 0.0, colour=colour, dirt=0.5,
+        _STRIPS[key] = textured(name, recipe, tint=1.0 if tint is None and tone == 1.0 and not plain else 0.0, colour=colour, dirt=0.5,
                                 chip=0.0, streak=0.3, rise=2.5)
         if smoke:
             base = PAINTS[name]
@@ -627,8 +644,8 @@ def shell(t, tag, finish, columns, accents, doors, fronts, rooftop, crown=None, 
     groups = {}  # (tiers, material) -> faces
     after = "_burnt" if burnt else ""
 
-    def strip(recipe_, tint=None, tone=1.0):
-        return strip_mat(recipe_, tint, tone, smoke=burnt)
+    def strip(recipe_, tint=None, tone=1.0, plain=False):
+        return strip_mat(recipe_, tint, tone, smoke=burnt, plain=plain)
 
     def wall(lods, mat, edge, o0, o1, z0, z1, left, size, inset=0.0):
         a, b = t.at(edge, o0, 0.0, -inset), t.at(edge, o1, 0.0, -inset)
@@ -642,7 +659,7 @@ def shell(t, tag, finish, columns, accents, doors, fronts, rooftop, crown=None, 
         """A column of balconies at bay `o` as one box, each face the balcony recipe a floor to the floor."""
         w, reach, h = BALCONY
         z0, z1 = FLOOR_M - 0.14, (floors - 1) * FLOOR_M + h
-        mat = strip("facade_balconies" + after, tint)
+        mat = strip("facade_balconies_burnt" if burnt else balconies_recipe(tint), plain=True)  # burnt, a front has no colour left
         wall(ONE_ROW, mat, edge, o - w / 2, o + w / 2, z0, z1, o - BAY_M / 2, FACADE_M, inset=-reach)
         along = SIDES[t.edges()[edge]["side"]][2]
         for s in (-1, 1):
@@ -722,9 +739,16 @@ def shell(t, tag, finish, columns, accents, doors, fronts, rooftop, crown=None, 
         if module not in FOLDED or (burnt and module == "roof_tank"):
             continue
         size, lods = FOLDED[module]
-        if size:
-            mat = (HUT_BURNT if burnt else hut_m) if module in HUTS else unit_m if module == "roof_plant" else cast
-            box(m.n(f"hut_{k}"), size, (x, y, deck + size[2] / 2), mat, m.root, rot=(0, 0, yaw), lods=lods)
+        if size and module in HUTS:  # a hut keeps what it is near: its walls the tower's colour, its lid concrete, its door dark
+            w, d, h = size
+            c, s_ = math.cos(yaw), math.sin(yaw)
+            box(m.n(f"hut_{k}"), (w, d, h - 0.14), (x, y, deck + (h - 0.14) / 2), HUT_BURNT if burnt else hut_m, m.root, rot=(0, 0, yaw), lods=lods)
+            box(m.n(f"hut_lid_{k}"), (w + 0.3, d + 0.3, 0.14), (x, y, deck + h - 0.07), cast, m.root, rot=(0, 0, yaw), lods=lods)
+            dx, dy = -w / 2 + 1.0, -d / 2 - 0.02
+            box(m.n(f"hut_door_{k}"), (0.9, 0.05, 2.0), (x + dx * c - dy * s_, y + dx * s_ + dy * c, deck + 1.0), void_m if burnt else metal_m,
+                m.root, rot=(0, 0, yaw), lods=(2,))
+        elif size:
+            box(m.n(f"hut_{k}"), size, (x, y, deck + size[2] / 2), unit_m if module == "roof_plant" else cast, m.root, rot=(0, 0, yaw), lods=lods)
         else:
             cyl(m.n(f"tank_{k}"), 1.1, 1.8, (x, y, deck + 1.45), "Z", tank_m, m.root, seg=20, lods=lods)
     # The roof inside the parapet: a field that carries its stains on a grid of vertices down to the
@@ -816,8 +840,8 @@ def tower(id_, tag, w, d, floors, finish, body, columns, doors, rooftop, accents
                 tint = crown if crown and f == floors - 1 else accents.get(kind, body)
                 t.mount(panel(finish, kind), edge, o, z=z, tiers=TIER_0, tint=tint)
                 if kind in "wr":
-                    if roll(key, "curtain") < 0.5:
-                        t.mount("curtain_pair" if roll(key, "drawn") < 0.6 else "curtain_blind", edge, o, z=z, tiers=TIER_0,
+                    if k % 2 + 2 * (f % 2) in CURTAINED:  # the bays the shell's recipe draws curtains in
+                        t.mount(CURTAINED[k % 2 + 2 * (f % 2)], edge, o, z=z, tiers=TIER_0,
                                 scale=(1.8 if kind == "r" else 1.0, 1.0, 1.0), tint=CURTAINS[int(roll(key, "cloth") * len(CURTAINS))])
                     if kind == "w" and roll(key, "ac") < 0.12:
                         t.mount("ac_unit", edge, o, z=z, tiers=TIER_0)

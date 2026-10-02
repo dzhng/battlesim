@@ -577,21 +577,28 @@ class RoofShape:
         return [(self.b1, top), (self.bc + w, cut - drop), (self.bc - w, cut - drop), (self.b0, top)]
 
 
-def house_walls(name, shape, mat, parent=None, sides=("a0", "a1", "b0", "b1"), base=0.0, lods=TIERS):
+def house_walls(name, shape, mat, parent=None, sides=("a0", "a1", "b0", "b1"), base=0.0, lods=TIERS, bands=None):
     """The outer walls under `shape`, one face each, from `base` to the roof's underside:
     `a0` and `a1` are the end walls (gabled as the roof says), `b0` and `b1` the walls
-    under the eaves. Leave out a side that stands against a neighbour."""
+    under the eaves. Leave out a side that stands against a neighbour. `bands` (foot,
+    head) cuts each wall in three up its height: its foot, its body and the head under
+    the eaves. The ground's mud and shade then stay in the foot and the eaves' shade in
+    the head at every tier, so the wall is one colour near and far."""
     drop = 0.03
 
     def build(bm, lod):
         top = shape.eave - drop
+        levels = [base, top] if not bands else [base, base + bands[0], top - bands[1], top]
         for key, b, out in (("b0", shape.b0, -1), ("b1", shape.b1, 1)):
-            if key in sides:
-                _face(bm, [shape.world(shape.a0, b, base), shape.world(shape.a1, b, base), shape.world(shape.a1, b, top),
-                           shape.world(shape.a0, b, top)], shape.world(0, out, 0))
+            for z0, z1 in zip(levels, levels[1:]) if key in sides else ():
+                _face(bm, [shape.world(shape.a0, b, z0), shape.world(shape.a1, b, z0), shape.world(shape.a1, b, z1),
+                           shape.world(shape.a0, b, z1)], shape.world(0, out, 0))
         for k, (key, a, out) in enumerate((("a0", shape.a0, -1), ("a1", shape.a1, 1))):
             if key in sides:
-                outline = [(shape.b0, base), (shape.b1, base)] + shape.end_wall_top(k, drop)
+                for z0, z1 in zip(levels[:-2], levels[1:-1]):
+                    _face(bm, [shape.world(a, b, z) for b, z in ((shape.b0, z0), (shape.b1, z0), (shape.b1, z1), (shape.b0, z1))],
+                          shape.world(out, 0, 0))
+                outline = [(shape.b0, levels[-2]), (shape.b1, levels[-2])] + shape.end_wall_top(k, drop)
                 _face(bm, [shape.world(a, b, z) for b, z in outline], shape.world(out, 0, 0))
 
     return mesh_part(name, build, mat, parent, lods)
@@ -663,12 +670,15 @@ def pitched_roof(name, shape, mat, trim, parent=None, thickness=0.14, fascia_end
         mesh_part(name + "_caps", caps, mat, parent, lods=tuple(t for t in lods if t < 2))
 
 
+WALL_BANDS_M = (1.1, 0.6)  # a house wall's foot and head, cut off its body (`house_walls`)
+
+
 def house_shell(name, shape, wall, roof, trim, parent=None, sides=("a0", "a1", "b0", "b1"), fascia_ends=(True, True),
                 plinth=None, plinth_mat=None, plinth_m=0.4):
     """Walls, roof and plinth of one box of a building: `<name>_walls`, `<name>_roof` and
     `<name>_plinth`. `roof` None leaves the box to a neighbour's roof; `plinth` is the
     plinth's (x0, x1, y0, y1), `plinth_m` high."""
-    house_walls(name + "_walls", shape, wall, parent, sides)
+    house_walls(name + "_walls", shape, wall, parent, sides, bands=WALL_BANDS_M)
     if roof is not None and shape.ends[1] - shape.ends[0] > 1e-6:
         pitched_roof(name + "_roof", shape, roof, trim, parent, fascia_ends=fascia_ends)
     if plinth:
@@ -678,9 +688,10 @@ def house_shell(name, shape, wall, roof, trim, parent=None, sides=("a0", "a1", "
 
 
 def chimney(name, size, height, mat, cap_mat, parent=None, pots=1, pot_mat=None):
-    """A chimney stack standing on the origin: a capped stack with clay pots."""
+    """A chimney stack standing on the origin: a capped stack with clay pots. The cap
+    stays to the third tier: from above it is the chimney's colour."""
     box(name + "_stack", (size[0], size[1], height), (0, 0, height / 2), mat, parent)
-    box(name + "_cap", (size[0] + 0.12, size[1] + 0.12, 0.07), (0, 0, height + 0.035), cap_mat, parent, lods=(0, 1))
+    box(name + "_cap", (size[0] + 0.12, size[1] + 0.12, 0.07), (0, 0, height + 0.035), cap_mat, parent, lods=(0, 1, 2))
     for k in range(pots):
         x = (k - (pots - 1) / 2) * 0.32
         cyl(f"{name}_pot_{k}", 0.085, 0.2, (x, 0, height + 0.17), "Z", pot_mat or cap_mat, parent, seg=10, r2=0.07, lods=(0, 1))
