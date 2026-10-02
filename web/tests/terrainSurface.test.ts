@@ -584,7 +584,7 @@ function generatedTown() {
   const documents = {
     presets: fixture("map-presets.json"),
     templates: fixture("prototype-building-templates.json"),
-    catalog: JSON.stringify(JSON.parse(fixture("catalog.json")).documents),
+    rules: JSON.stringify(GAME_RULES),
   };
   const request = generationRequest(
     generator,
@@ -598,7 +598,7 @@ function generatedTown() {
       JSON.stringify(request),
       documents.presets,
       documents.templates,
-      documents.catalog,
+      documents.rules,
     ),
   ) as {
     result: {

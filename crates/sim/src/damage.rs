@@ -22,10 +22,10 @@ use crate::flight::{
 };
 use crate::ground::GroundLayer;
 use crate::math::{v3, V3};
-use crate::rng::Rng;
 use crate::units::{hull_face_at, Unit};
 use crate::weapons::{Arsenal, VEHICLE_BODY_BASE};
 use crate::world::{PropId, WorldGeometry};
+use contract::random::Rng;
 
 /// Blast samples start this far off the struck surface.
 const BLAST_LIFT_M: f64 = 0.05;

@@ -51,9 +51,9 @@ fn recipe_json(record: &Record) -> String {
 /// The outcome of planning `record`: the map its request generates, then
 /// the simulation's planner over the same JSON the Wasm boundary is given.
 fn outcome(record: &Record) -> String {
-    let catalog = serde_json::to_string(&sim::fixtures::catalog_documents()).unwrap();
+    let physical_rules = serde_json::to_string(&sim::fixtures::game()).unwrap();
     let mapgen::CompileOutcome::Ok { result } =
-        mapgen::generate_map(&record.request_json, PRESETS, CATALOGUE, &catalog)
+        mapgen::generate_map(&record.request_json, PRESETS, CATALOGUE, &physical_rules)
     else {
         panic!("{}: the request generates no map", record.name)
     };

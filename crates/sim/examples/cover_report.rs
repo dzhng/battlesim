@@ -5,11 +5,11 @@ use std::time::Instant;
 
 use contract::command::{Engagement, Order, TargetRef};
 use contract::ids::{Side, UnitId};
+use contract::random::Rng;
 use serde::Serialize;
 use serde_json::{json, Value};
 use sim::battle::Battle;
 use sim::flight::{BodyId, FlightEvent, Struck};
-use sim::rng::Rng;
 
 #[path = "../tests/common/mod.rs"]
 mod common;

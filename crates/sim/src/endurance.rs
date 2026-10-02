@@ -13,7 +13,7 @@ use contract::map::MapDefinition;
 use contract::scenario::{Rules, ScenarioDefinition, ScriptedOrder, UnitCondition, UnitSetup};
 use serde_json::json;
 
-use crate::rng::Rng;
+use contract::random::Rng;
 
 /// Per side: (unit type, count). 100 units, 50 of them rifle squads.
 const ROSTER: [(&str, usize); 5] = [

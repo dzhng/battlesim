@@ -1,4 +1,4 @@
-//! Deterministic combat randomness (SplitMix64). Integer draws and pinned
+//! Deterministic shared randomness (SplitMix64). Integer draws and pinned
 //! normal-sampling math agree across native and Wasm. The state is one u64
 //! so it enters digests and replays directly.
 
@@ -18,10 +18,7 @@ impl Rng {
 
     pub fn next_u64(&mut self) -> u64 {
         self.state = self.state.wrapping_add(0x9e37_79b9_7f4a_7c15);
-        let mut z = self.state;
-        z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
-        z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
-        z ^ (z >> 31)
+        mix(self.state)
     }
 
     /// Uniform in [0, 1) with 53 bits of precision.
@@ -45,4 +42,11 @@ impl Rng {
             }
         }
     }
+}
+
+/// SplitMix64's integer finalizer, also used to separate named stream seeds.
+pub fn mix(mut z: u64) -> u64 {
+    z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+    z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+    z ^ (z >> 31)
 }

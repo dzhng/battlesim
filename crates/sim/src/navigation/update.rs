@@ -370,8 +370,8 @@ impl NavGrid {
 mod tests {
     use super::*;
     use crate::navigation::PUSH_CLASSES;
-    use crate::rng::Rng;
     use contract::map::{MapDefinition, PropDefinition};
+    use contract::random::Rng;
     use contract::scenario::Rules;
 
     const SOLDIER_M: f64 = 0.3;

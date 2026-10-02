@@ -24,7 +24,6 @@ pub mod math;
 pub mod movement;
 pub mod navigation;
 pub mod publication;
-pub mod rng;
 pub mod route_planner;
 pub mod sensing;
 pub mod sight;

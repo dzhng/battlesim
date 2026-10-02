@@ -28,7 +28,7 @@ Routes and saved maps have different identities. The [fixture registry](../apps/
 
 ```bash
 cargo run -p mapgen --release -- request mixed small 1 fixtures/map-presets.json fixtures/prototype-building-templates.json fixtures/generated-battle.json > throwaway/request.json
-cargo run -p mapgen --release -- generate-map throwaway/request.json fixtures/map-presets.json fixtures/prototype-building-templates.json fixtures/catalog.json fixtures/maps/market-town
+cargo run -p mapgen --release -- generate-map throwaway/request.json fixtures/map-presets.json fixtures/prototype-building-templates.json fixtures/game.json fixtures/catalog.json fixtures/maps/market-town
 cargo run -p sim --release --example encounter_report -- --save fixtures/maps/market-town
 ``` There is no index to regenerate: the browser lists the folders with a Vite glob, and the tests read the directory. The catalogue tests (`cargo test -p sim --test sim maps::`, `bun run --cwd web test -- tests/mapCatalogue.test.ts`) hold every folder to all of the above.
 

@@ -11,12 +11,12 @@ use std::time::Instant;
 use crate::common::*;
 use contract::ballistics::WeaponBallistics;
 use contract::map::MapDefinition;
+use contract::random::Rng;
 use sim::flight::{
     advance_projectiles, prepare_launch, Aim, Body, FlightEvent, NoSolution, Projectiles, Shape,
     Shooter,
 };
 use sim::math::v3;
-use sim::rng::Rng;
 use sim::world::WorldGeometry;
 
 struct Emitter {

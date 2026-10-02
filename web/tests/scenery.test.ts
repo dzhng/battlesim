@@ -941,7 +941,7 @@ test("on a generated map every tree line carries its shrubs and every street tre
   const documents = {
     presets: fixture("map-presets.json"),
     templates: fixture("prototype-building-templates.json"),
-    catalog: JSON.stringify(JSON.parse(fixture("catalog.json")).documents),
+    rules: JSON.stringify(GAME_RULES),
   };
   const request = generationRequest(
     generator,
@@ -954,7 +954,7 @@ test("on a generated map every tree line carries its shrubs and every street tre
       JSON.stringify(request),
       documents.presets,
       documents.templates,
-      documents.catalog,
+      documents.rules,
     ),
   ).result as { map: { props: { kind: string }[] } };
   const world = new WorldView(JSON.stringify(map), JSON.stringify(GAME_RULES));

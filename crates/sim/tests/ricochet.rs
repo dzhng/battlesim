@@ -7,13 +7,13 @@ use std::collections::BTreeMap;
 use crate::common::*;
 use contract::command::{Order, TargetRef};
 use contract::ids::{Side, UnitId};
+use contract::random::Rng;
 use contract::scenario::FaceChances;
 use serde_json::json;
 use sim::battle::Battle;
 use sim::damage::RoundPower;
 use sim::flight::{BodyId, FlightEvent, Launch, ProjectileId, Projectiles, Ricochet, Struck};
 use sim::math::{v2, v3, V3};
-use sim::rng::Rng;
 
 fn launch(origin: V3, velocity: V3, suppression_radius_m: f64) -> Launch {
     Launch {

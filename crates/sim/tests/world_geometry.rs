@@ -231,8 +231,8 @@ fn props_occlude_by_their_actual_height() {
 #[test]
 fn the_line_test_agrees_with_the_nearest_hit_ray() {
     let mut w = lab();
-    let mut rng = sim::rng::Rng::new(7);
-    let point = |rng: &mut sim::rng::Rng| {
+    let mut rng = contract::random::Rng::new(7);
+    let point = |rng: &mut contract::random::Rng| {
         let (x, y) = (400.0 * rng.unit(), 300.0 * rng.unit());
         v3(x, y, w.height_at(x, y).unwrap() + 3.0 * rng.unit())
     };

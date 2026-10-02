@@ -1,8 +1,8 @@
 //! Open country (M24, M25): what stands between the settlements and the
 //! woods. A few homes along the country roads, short tree lines, copses and
-//! single trees, and low cover in the fields, so that a unit on open ground
-//! always has something in view that cuts its sight short on some bearings,
-//! and most bearings stay open.
+//! single trees, and low cover in the fields. The target is interrupted sight
+//! at every playable location, with most bearings open. Authored-outline
+//! proximity is a construction heuristic, not a physical sight certificate.
 //!
 //! The pass runs on a plan whose districts are built. It adds lanes to
 //! `surfaces`, parcels to `lots`, homes to `buildings`, tree lines, copses
@@ -23,7 +23,7 @@
 //!   Where the kept corridors of several settlements lie side by side and
 //!   leave ground nothing can be seen from, a minor settlement's corridor
 //!   gives way; the main settlement's never does.
-//! - **Sight is cut everywhere by filling what is bare**: open ground is
+//! - **Bare ground is furnished by proximity**: open ground is
 //!   walked as cells, and a cell with no building, wood or tree line within
 //!   `sight.reach_m` gets a copse or a tree line near it. The rule is judged
 //!   by the simulation's own sight (`examples/sight_report`), not here.

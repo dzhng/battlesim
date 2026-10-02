@@ -10,8 +10,8 @@
 use contract::scenario::InfantryMovementRules;
 
 use crate::math::{v2, V2};
-use crate::rng::Rng;
 use crate::world::{Prop, WorldGeometry};
+use contract::random::Rng;
 
 /// Draws per soldier before the arrangement gives up on spacing him.
 const DRAWS: usize = 24;

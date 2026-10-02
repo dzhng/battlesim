@@ -4,12 +4,12 @@
 
 use crate::common::*;
 use contract::ballistics::{FlightRules, Trajectory, WeaponBallistics};
+use contract::random::Rng;
 use sim::flight::{
     predicted_path, prepare_launch, scatter_aim, solve_launch, Aim, ArcKind, Expiry, FlightConfig,
     FlightConfigError, FlightEvent, Launch, LaunchProfile, NoSolution, Projectiles, Struck,
 };
 use sim::math::{v3, V3};
-use sim::rng::Rng;
 
 const G: f64 = 9.81;
 

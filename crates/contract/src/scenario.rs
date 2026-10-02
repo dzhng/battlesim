@@ -175,7 +175,8 @@ pub struct ForestRule {
 }
 
 impl ForestRules {
-    fn check(&self, catalog: &crate::catalog::Catalog) -> Result<(), String> {
+    /// Physical floor bodies must be ordinary catalog props the world can stand.
+    pub fn check(&self, catalog: &crate::catalog::Catalog) -> Result<(), String> {
         for (name, kind, density, half) in [
             (
                 "log",
