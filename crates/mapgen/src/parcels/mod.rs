@@ -23,7 +23,7 @@ pub(crate) struct Pass<'a> {
 
 impl Pass<'_> {
     fn stream(&self, name: &str) -> Stream {
-        self.request.stream(name)
+        crate::layout::stream(self.request, name)
     }
 
     /// A step could not do what the presets ask. Names the feature, where

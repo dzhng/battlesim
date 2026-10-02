@@ -2,19 +2,20 @@
 import type {
   PrepareDiagnostic,
   PreparedBattle,
+  PrepareMessage,
   PrepareReply,
-  PrepareRequest,
   PrepareStage,
+  RefusalStage,
 } from "./protocol";
 
 /** Why preparation ended without a battle: a refusal with its diagnostics
- *  (the generator's when `stage` is `generating`, the encounter planner's
- *  when `placing`), or a failure of the worker itself. */
+ *  and the stage that refused (the request's check, the map, the
+ *  encounter), or a failure of the worker itself (`stage` null). */
 export class PreparationFailed extends Error {
   constructor(
     message: string,
     readonly diagnostics: PrepareDiagnostic[] = [],
-    readonly stage: PrepareStage | null = null,
+    readonly stage: RefusalStage | null = null,
   ) {
     super(message);
   }
@@ -28,12 +29,16 @@ export interface Preparation {
 }
 
 export function prepareBattle(
-  request: PrepareRequest,
+  message: PrepareMessage,
   onStage: (stage: PrepareStage) => void,
 ): Preparation {
   const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
+  // A cancelled request stays silent even if its answer was already on its
+  // way when the worker was closed.
+  let cancelled = false;
   const battle = new Promise<PreparedBattle>((resolve, reject) => {
     worker.onmessage = (event: MessageEvent<PrepareReply>) => {
+      if (cancelled) return;
       const reply = event.data;
       if (reply.type === "stage") return onStage(reply.stage);
       worker.terminate();
@@ -49,10 +54,17 @@ export function prepareBattle(
       else reject(new PreparationFailed(reply.message));
     };
     worker.onerror = (event) => {
+      if (cancelled) return;
       worker.terminate();
       reject(new PreparationFailed(event.message || "The preparation worker failed to start."));
     };
   });
-  worker.postMessage(request);
-  return { battle, cancel: () => worker.terminate() };
+  worker.postMessage(message);
+  return {
+    battle,
+    cancel: () => {
+      cancelled = true;
+      worker.terminate();
+    },
+  };
 }

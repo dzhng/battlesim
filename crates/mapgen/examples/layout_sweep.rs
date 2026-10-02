@@ -169,7 +169,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         if !layout_only {
                             let filled = measure(&plan, &presets);
                             let compiled = mapgen::lower(
-                                &request.clone().compile_request(plan.clone()),
+                                &mapgen::CompileRequest::generated(&request, plan.clone()),
                                 &catalogue,
                             )
                             .map_err(|errors| format!("{cell} seed {seed}: {errors:?}"))?;
