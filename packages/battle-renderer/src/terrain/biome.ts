@@ -129,6 +129,23 @@ export interface Road {
   area?: string;
   /** A town street's walk; left out, the road has none. */
   walk?: Walk;
+  /** The curb along its strokes' edges; left out, the road has none. */
+  curb?: Curb;
+}
+
+/** A curb: a line of kerbstones along a road's edge, and the step up to
+ *  them from the roadbed. Shading only: the ground is never moved, so
+ *  nothing stands behind it and nothing climbs it. */
+export interface Curb {
+  /** A palette of one colour: the kerbstones. */
+  palette: string;
+  /** The stones' width, outward from the road's edge. */
+  width_m: number;
+  /** The step's face: how far inside the road's edge it starts, and the
+   *  tilt it gives the shading normal there, in degrees: at most 40 (steeper
+   *  catches the sky and reads as a sheen). */
+  face_m: number;
+  tilt_deg: number;
 }
 
 /** The paved walk along both sides of a kind's strokes, where a country
@@ -557,6 +574,12 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
       within(`${at}.walk.width_m`, road.walk.width_m, 0, 8);
       within(`${at}.walk.slab_m`, road.walk.slab_m, 0, 100);
       within(`${at}.walk.joint`, road.walk.joint, 0, 0.5);
+    }
+    if (road.curb) {
+      palette(`${at}.curb.palette`, road.curb.palette);
+      within(`${at}.curb.width_m`, road.curb.width_m, 0.05, 2);
+      within(`${at}.curb.face_m`, road.curb.face_m, 0.02, 2);
+      within(`${at}.curb.tilt_deg`, road.curb.tilt_deg, 0, 40);
     }
   }
   if (!biome.shore || typeof biome.shore !== "object") bad("shore", "is missing");

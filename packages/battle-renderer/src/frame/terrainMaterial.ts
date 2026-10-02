@@ -105,8 +105,11 @@ const RoadLook = d.struct({
    *  where the kind is a carriageway (a sidewalk is not). */
   track: d.vec4f,
   /** Its walk's slabs: 1 / a slab's length along the road (0 for none), how
-   *  far a joint darkens the surface; then unused. */
+   *  far a joint darkens the surface; then its curb's face: its width, and
+   *  its slope (rise over run). */
   slabs: d.vec4f,
+  /** Its curb's stones: linear rgb, and their width in metres (0 for none). */
+  curb: d.vec4f,
 });
 
 const TerrainParams = d.struct({
@@ -1066,6 +1069,55 @@ const walkJoint = tgpu
 }`)
   .$uses({ terrainLayout, GroundPaved });
 
+/** A curb's stones and its face are never sharper than this, in metres. */
+const CURB_EDGE_M = 0.03;
+/** A curb fades out as a pixel grows from the first share of its stones'
+ *  width to the second: under a pixel wide it is a line that crawls. */
+const CURB_PIXELS = [0.6, 1.6] as const;
+
+/** The curb at a point: `(slope east, slope north, stones)`. Along the edge
+ *  of a stroke whose kind has one, the kerbstones lie just outside the edge
+ *  (`stones`: how much of the ground is theirs) and the step up to them just
+ *  inside it, as the slope shading reads there (rise per metre; the ground
+ *  itself is never moved). There is none where another road covers the
+ *  edge: across a street's mouth, or where two streets meet. */
+export const groundCurb = tgpu
+  .fn(
+    [d.f32, GroundPaved],
+    d.vec3f,
+  )(/* wgsl */ `(footprint:f32,paved:GroundPaved)->vec3f {
+ if(paved.run.w<0.0||terrainLayout.$.params.view.y==1u){return vec3f(0.0);}
+ let own=u32(paved.run.w);
+ let look=terrainLayout.$.params.roads[own];
+ let width=look.curb.w;
+ if(width<=0.0){return vec3f(0.0);}
+ let inside=paved.drawn[own];
+ if(inside<-2.0*width||inside>2.0*look.slabs.z){return vec3f(0.0);}
+ let shown=1.0-smoothstep(${CURB_PIXELS[0]},${CURB_PIXELS[1]},footprint/width);
+ if(shown<=0.0){return vec3f(0.0);}
+ let soft=max(footprint,${CURB_EDGE_M})*0.5;
+ // Another carriageway's surface over the edge leaves no curb there.
+ var open=1.0;
+ for(var k=0u;k<${ROAD_KINDS}u;k++){
+  if(k!=own&&terrainLayout.$.params.roads[k].track.w>0.0){open*=1.0-smoothstep(-soft,soft,paved.drawn[k]);}
+ }
+ let edge=smoothstep(-soft,soft,inside);
+ let stones=smoothstep(-width-soft,-width+soft,inside)*(1.0-edge);
+ let face=edge*(1.0-smoothstep(look.slabs.z-soft,look.slabs.z+soft,inside));
+ return vec3f(paved.lane.xy*(look.slabs.w*face),stones)*(open*shown);
+}`)
+  .$uses({ terrainLayout, GroundPaved });
+
+/** The slope a road's relief gives the shading normal at `xy` (rise per
+ *  metre east and north): its ruts' sides and its curb's face. */
+export const groundRoadRelief = tgpu.fn(
+  [d.vec2f, d.f32, GroundPaved],
+  d.vec2f,
+)((xy, footprint, paved) => {
+  "use gpu";
+  return std.add(groundRuts(xy, footprint, paved).xy, groundCurb(footprint, paved).xy);
+});
+
 /** The roads at `xy` over the ground `under` (linear albedo, roughness).
  *  First the worn shoulder beside them (`groundShoulder`), in its kind's
  *  colour: lifted to the luminance of the ground it lies on where that is the
@@ -1079,7 +1131,8 @@ const walkJoint = tgpu
  *  second hue at the same brightness, under its grain; along a stroke's
  *  lanes it is shaded by its ruts (`groundRuts`), and a narrow track's
  *  middle goes to the verge's grass (`groundStrip`); a walk is crossed by
- *  its slabs' joints (`walkJoint`). `paved` is the point's `groundPaved`. */
+ *  its slabs' joints (`walkJoint`). Last a street's kerbstones, along its
+ *  edge (`groundCurb`). `paved` is the point's `groundPaved`. */
 const groundRoads = tgpu
   .fn(
     [d.vec2f, d.f32, GroundPaved, d.vec4f],
@@ -1127,6 +1180,12 @@ const groundRoads = tgpu
   // Only a carriageway is carried onto the road it joins.
   if(look.track.w>0.0){laid=max(laid,on);}
  }
+ let stones=groundCurb(footprint,paved).z;
+ if(stones>0.0){
+  let look=terrainLayout.$.params.roads[u32(paved.run.w)];
+  let grain=roadGrain(xy*look.shape.w,footprint*look.shape.w);
+  surface=mix(surface,vec4f(look.curb.xyz*(1.0+look.shape.z*grain),look.core.w),stones);
+ }
  return surface;
 }`)
   .$uses({
@@ -1136,6 +1195,7 @@ const groundRoads = tgpu
     groundShoulder,
     groundRuts,
     groundStrip,
+    groundCurb,
     walkJoint,
     roadLane,
     GroundPaved,
@@ -1932,7 +1992,15 @@ function roadLook(road: Road, tag: number, palettes: Biome["palettes"]) {
       road.centre_strip.max_road_width_m / 2,
       isRoad(tag) ? 1 : 0,
     ),
-    slabs: d.vec4f(road.walk?.slab_m ? 1 / road.walk.slab_m : 0, road.walk?.joint ?? 0, 0, 0),
+    slabs: d.vec4f(
+      road.walk?.slab_m ? 1 / road.walk.slab_m : 0,
+      road.walk?.joint ?? 0,
+      road.curb?.face_m ?? 0,
+      road.curb ? Math.tan((road.curb.tilt_deg * Math.PI) / 180) : 0,
+    ),
+    curb: road.curb
+      ? d.vec4f(...linear(palettes[road.curb.palette][0]), road.curb.width_m)
+      : d.vec4f(0),
   };
 }
 

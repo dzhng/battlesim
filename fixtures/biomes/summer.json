@@ -43,6 +43,7 @@
       [0.56, 0.555, 0.53],
       [0.57, 0.545, 0.5]
     ],
+    "curb": [[0.66, 0.655, 0.63]],
     "shoulder_gravel": [[0.44, 0.41, 0.34]],
     "shoulder_dirt": [[0.42, 0.385, 0.31]],
     "forest_floor": [
@@ -222,7 +223,8 @@
       "ruts": { "offsets_m": [], "width_m": 0, "tilt_deg": 0, "tint": 0 },
       "centre_strip": { "half_width_m": 0, "max_road_width_m": 0 },
       "area": "sidewalk",
-      "walk": { "kind": "sidewalk", "width_m": 2, "slab_m": 2, "joint": 0.25 }
+      "walk": { "kind": "sidewalk", "width_m": 2, "slab_m": 2, "joint": 0.25 },
+      "curb": { "palette": "curb", "width_m": 0.3, "face_m": 0.15, "tilt_deg": 35 }
     },
     "sidewalk": {
       "palette": "paving",

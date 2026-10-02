@@ -494,6 +494,30 @@ test("a street's row says what draws its yards and its walk", () => {
     );
 });
 
+test("a curb is its row's kerbstones and a face shading never tilts past 40 degrees", () => {
+  const palettes = { ...biome.palettes, stone: [[1, 1, 1]] } as Biome["palettes"];
+  const curbed = (curb: unknown) =>
+    validateBiome({
+      ...biome,
+      palettes,
+      roads: { default: biome.roads.default, road: { ...biome.roads.default, curb } },
+    } as Biome);
+  const looks = roadLooks(
+    curbed({ palette: "stone", width_m: 0.25, face_m: 0.125, tilt_deg: 45 / 2 }),
+  );
+  const [road, country] = looks;
+  expect([road.curb.x, road.curb.w, road.slabs.z]).toEqual([1, 0.25, 0.125]);
+  expect(road.slabs.w).toBeCloseTo(Math.SQRT2 - 1, 6);
+  // A road without one has no stones and no face.
+  expect([country.curb.w, country.slabs.z, country.slabs.w]).toEqual([0, 0, 0]);
+  expect(() => curbed({ palette: "stone", width_m: 0.25, face_m: 0.125, tilt_deg: 41 })).toThrow(
+    /roads\.road\.curb\.tilt_deg/,
+  );
+  expect(() => curbed({ palette: "granite", width_m: 0.25, face_m: 0.125, tilt_deg: 30 })).toThrow(
+    /roads\.road\.curb\.palette: names no palette "granite"/,
+  );
+});
+
 test("a map that names no kind but road has its roads drawn as country roads", () => {
   const street = { ...biome.roads.default, roughness: 0.5 };
   const country = { ...biome.roads.default, roughness: 0.75 };
