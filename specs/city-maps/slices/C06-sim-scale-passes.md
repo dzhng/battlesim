@@ -537,3 +537,35 @@ Some combat occurs, but the intended broadly moving contact load is not
 established. Faster execution with identical refusals cannot repair that workload
 gap. Current admission needs a movement-admission resolution or an explicitly
 accepted representative workload; a quiet five-minute run cannot close it.
+
+## Outcome — idle squads need no local steering geometry
+
+A moving vehicle makes the threat list nonempty for every squad, even far from
+its path. A squad with no active corridor, no living soldier needing motion to
+his holding post and no vehicle dodge cannot produce steering. It now skips
+local obstacle gathering and the no-steer member loop. Holding-post eligibility
+is shared with the ordinary steering reader; nearby dodges, cover routes and
+corridor motion keep the same owner. Velocity reset, garrison handling and the
+old empty-threat return remain in their original order. The nonempty-threat
+shortcut retains the ordinary no-corridor centroid settlement.
+
+The paired native control uses source `b5c63565`, the frozen current physical
+Metro Large seed-4 scenario with benchmark fronts at 1,050 m, and 900 ticks.
+Whole Orders falls from 61.047 to 45.356 G instructions (25.704%). All stepping,
+including Orders, falls from 206.305 to 190.810 G; construction costs 16.137 /
+16.185 G. Combined stepping plus construction falls from 222.442 to 206.995 G
+(6.944%), so work was not merely moved outside Orders. Every tick digest and both
+complete side observation hashes match; both arms launch 8,835 rounds. The
+scratch comparator first rejects unchanged old-versus-old against a declared
+5% whole-Orders improvement, then accepts this candidate.
+
+A public battle keeps a far idle squad's exact positions, zero velocities and
+living-member centroid while a nearby squad yields before physical hull contact.
+Settled holding posts isolate this from cover motion; omitting the dodge check
+fails the predictive-yield assertion. Restored code passes all 18 movement tests,
+focused clippy and independent review.
+The proof concerns one coherent steering cost owner, not movement admission:
+scripted move destinations remain refused on this paired input. Full current
+late delivery, real-time throughput and incoming movement-contract findings
+remain separate integration work. No cache, retained state, physical rule or
+validation allowance changes.
