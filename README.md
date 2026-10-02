@@ -84,6 +84,8 @@ A held right-click previews each selected unit’s destination and facing with t
 
 The [projectile review lab](apps/battle-lab/src/projectileReview.ts) keeps the fog-lit street fight running alongside firing lanes and midpoint recon teams. It uses the shared battle view’s unit panels and player controls, with gameplay flight and weapon cycles, private unlimited reserves and nonlethal rounds. Repeated visual review does not change gameplay rules. The [guided-fire contract](specs/battle-foundation/contracts.md#guided-flight) separates shared spotting from the launcher’s physical line of sight.
 
+The [fire cadence rationale](specs/done/fire-cadence/README.md) explains per-soldier bursts, magazine readiness and interruptible idle reloads.
+
 ## Checks
 
 `package.json` names the gates:

@@ -1161,6 +1161,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                     &mount.ammo,
                     spec,
                     kind_for_target,
+                    assessment.is_some_and(|a| a.is_ok()),
                     dt * rate,
                 );
             }
@@ -1184,7 +1185,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                     engaging = true;
                     if lock.aim < ctx.arsenal.weapons[spec.kinds[k]].def.aim_s {
                         ActionReason::Aiming
-                    } else if !mount.cycles.iter().any(|c| c.loaded == Some(k)) {
+                    } else if !mount.cycles.iter().any(|c| c.ready() == Some(k)) {
                         ActionReason::Reloading
                     } else if spec.turret
                         && wrap_angle(bearing_from(unit, r.point) - mount.bearing).abs() > tolerance
@@ -1355,7 +1356,7 @@ fn fire(
             .iter_mut()
             .find(|c| c.owner == owner)
             .expect("physical weapon cycle");
-        if cycle.loaded != Some(k) || cycle.cooldown > 0.0 || mount.ammo[k] == Some(0) {
+        if cycle.ready() != Some(k) || cycle.cooldown > 0.0 || mount.ammo[k] == Some(0) {
             continue;
         }
         let point = match target {
@@ -1764,7 +1765,7 @@ pub fn readiness(
     target_ref: Option<TargetRef>,
 ) -> MountReadiness {
     let spec = &arsenal.specs(unit.kind)[mount.spec];
-    let loaded = mount.cycles.iter().find_map(|c| c.loaded);
+    let loaded = mount.cycles.iter().find_map(Cycle::ready);
     let reloading = if loaded.is_some() {
         None
     } else {

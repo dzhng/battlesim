@@ -1727,7 +1727,7 @@ fn tank_mount(n: usize) -> serde_json::Value {
 }
 
 #[test]
-fn rifles_and_hmgs_fire_bursts_then_reload_only_empty_magazines() {
+fn engaged_rifles_and_hmgs_fire_bursts_then_reload_only_empty_magazines() {
     for (kind, weapon, seed) in [
         ("rifle", "rifle", 1),
         ("rifle", "rifle", 5),
@@ -1969,4 +1969,190 @@ fn zero_reload_rifles_keep_loaded_readiness_across_magazines() {
             "no magazine reload pause"
         );
     }
+}
+
+#[test]
+fn an_idle_gun_tops_up_its_partial_magazine_without_spending_ammunition() {
+    let mut setup = scenario_with(
+        &map(json!([])),
+        json!([{ "side": "blue", "kind": "tank", "position": [100, 300] }]),
+        json!([]),
+        json!([]),
+    );
+    let gun = setup.rules.weapons.get_mut("hmg").unwrap();
+    gun.magazine = Some(contract::weapons::Magazine {
+        rounds: 5,
+        shot_interval_s: 0.1,
+        burst: None,
+    });
+    gun.reload_s = 2.0;
+    gun.aim_s = 0.1;
+    gun.ammo = contract::weapons::AmmoCapacity::Rounds(12);
+    setup.rules.service.round_costs.insert("hmg".into(), 1);
+    let mut b = Battle::new(&setup, 5);
+    let mut commander = Commander::new();
+    let attack = || Order::Attack {
+        units: vec![UnitId(0)],
+        target: TargetRef::Ground {
+            point: [500.0, 300.0, 0.0],
+        },
+    };
+    commander.ok(&mut b, Side::Blue, attack());
+    for _ in 0..ticks(2.0) {
+        b.step();
+        if own(&b, Side::Blue, 0).weapon_poses[1].shots == 3 {
+            break;
+        }
+    }
+    assert_eq!(own(&b, Side::Blue, 0).weapon_poses[1].shots, 3);
+    commander.ok(
+        &mut b,
+        Side::Blue,
+        Order::Stop {
+            units: vec![UnitId(0)],
+        },
+    );
+    run(&mut b, ticks(0.5));
+    let partial = mount(&b, Side::Blue, 0, 1);
+    assert!(
+        partial.reloading.is_some() && partial.reload > 0.0,
+        "a partial magazine starts reloading during the lull: {partial:?}"
+    );
+    assert!(
+        partial.loaded.is_none(),
+        "a top-up publishes reload readiness"
+    );
+    assert_eq!(partial.ammo, vec![Some(9)], "topping up spends no rounds");
+    let (reload_tick, reload_digest) = (b.tick(), b.digest());
+    run(&mut b, ticks(2.0));
+    assert!(mount(&b, Side::Blue, 0, 1).loaded.is_some());
+    commander.ok(&mut b, Side::Blue, attack());
+    let mut shots_before_reload = 0;
+    for _ in 0..ticks(1.0) {
+        b.step();
+        shots_before_reload = own(&b, Side::Blue, 0).weapon_poses[1].shots - 3;
+        if mount(&b, Side::Blue, 0, 1).reloading.is_some() {
+            break;
+        }
+    }
+    assert_eq!(
+        shots_before_reload, 5,
+        "the next engagement starts with a full magazine"
+    );
+    assert_eq!(mount(&b, Side::Blue, 0, 1).ammo, vec![Some(4)]);
+    let mut replay = Battle::from_replay(&setup, &b.replay()).unwrap();
+    for _ in 0..b.tick() {
+        replay.step();
+        if replay.tick() == reload_tick {
+            assert_eq!(
+                replay.digest(),
+                reload_digest,
+                "replay preserves the partial reload"
+            );
+        }
+    }
+    assert_eq!(replay.digest(), b.digest());
+}
+
+#[test]
+fn an_enemy_entering_range_cancels_a_top_up_but_not_an_empty_reload() {
+    let mut setup = scenario_with(
+        &map(json!([])),
+        json!([
+            { "side": "blue", "kind": "tank", "position": [100, 300] },
+            { "side": "red", "kind": "tank", "position": [430, 300], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" }
+        ]),
+        json!([]),
+        json!([]),
+    );
+    for weapon in ["tank_ap", "tank_he"] {
+        setup.rules.weapons.get_mut(weapon).unwrap().ammo =
+            contract::weapons::AmmoCapacity::Rounds(0);
+    }
+    let gun = setup.rules.weapons.get_mut("hmg").unwrap();
+    gun.magazine = Some(contract::weapons::Magazine {
+        rounds: 5,
+        shot_interval_s: 0.1,
+        burst: None,
+    });
+    gun.reload_s = 10.0;
+    gun.aim_s = 0.1;
+    gun.ballistics.range_m = 300.0;
+    gun.ballistics.scatter_mrad = 8.0;
+    gun.near_miss_suppression = 0.0;
+    let mut b = Battle::new(&setup, 5);
+    let mut commander = Commander::new();
+    commander.ok(
+        &mut b,
+        Side::Blue,
+        Order::Attack {
+            units: vec![UnitId(0)],
+            target: TargetRef::Ground {
+                point: [300.0, 300.0, 0.0],
+            },
+        },
+    );
+    for _ in 0..ticks(2.0) {
+        b.step();
+        if own(&b, Side::Blue, 0).weapon_poses[1].shots == 3 {
+            break;
+        }
+    }
+    assert_eq!(own(&b, Side::Blue, 0).weapon_poses[1].shots, 3);
+    commander.ok(
+        &mut b,
+        Side::Blue,
+        Order::Stop {
+            units: vec![UnitId(0)],
+        },
+    );
+    run(&mut b, ticks(0.5));
+    assert!(
+        mount(&b, Side::Blue, 0, 1).reloading.is_some(),
+        "the out-of-range enemy does not stop the top-up"
+    );
+    let began = b.tick();
+    commander.ok(
+        &mut b,
+        Side::Red,
+        Order::Move {
+            units: vec![UnitId(1)],
+            gesture: 1,
+            goal: [350.0, 300.0],
+            route: contract::command::RoutePolicy::Shortest,
+            direction: contract::command::MoveDirection::Forward,
+            facing: None,
+        },
+    );
+    for _ in 0..ticks(8.0) {
+        b.step();
+        if own(&b, Side::Blue, 0).weapon_poses[1].shots > 3 {
+            break;
+        }
+    }
+    assert_eq!(
+        own(&b, Side::Blue, 0).weapon_poses[1].shots,
+        4,
+        "the incoming enemy interrupts the reload before it completes"
+    );
+    let interrupted = mount(&b, Side::Blue, 0, 1);
+    assert!(interrupted.loaded.is_some() && interrupted.reloading.is_none());
+    run(&mut b, ticks(1.0));
+    assert_eq!(
+        own(&b, Side::Blue, 0).weapon_poses[1].shots,
+        5,
+        "canceling leaves just the two rounds from the old magazine"
+    );
+    assert!(mount(&b, Side::Blue, 0, 1).reloading.is_some());
+    assert!(b.tick() - began < ticks(10.0));
+    run(&mut b, ticks(10.0));
+    assert!(
+        own(&b, Side::Blue, 0).weapon_poses[1].shots > 5,
+        "the empty reload completes while the enemy remains in range"
+    );
+    let mut replay = Battle::from_replay(&setup, &b.replay()).unwrap();
+    for _ in 0..b.tick() {
+        replay.step();
+    }
+    assert_eq!(replay.digest(), b.digest());
 }

@@ -7,6 +7,7 @@ use contract::weapons::AmmoCapacity;
 #[derive(Clone, Debug)]
 pub struct Cycle {
     pub owner: Option<u32>,
+    /// Retained magazine, including one being topped up during a lull.
     pub loaded: Option<usize>,
     pub reload: Option<(usize, f64)>,
     pub(super) rounds: u32,
@@ -15,6 +16,10 @@ pub struct Cycle {
 }
 
 impl Cycle {
+    pub(super) fn ready(&self) -> Option<usize> {
+        self.loaded.filter(|_| self.reload.is_none())
+    }
+
     pub fn new(owner: Option<u32>, spec: &MountSpec, weapons: &[Weapon]) -> Self {
         let loaded = spec
             .kinds
@@ -43,15 +48,17 @@ impl Cycle {
             d.u64(k as u64).f64(p);
         }
     }
-    /// Keep a loaded round that suits the target, or set it aside (the total
-    /// still counts it) and load the right kind; a different kind restarts the
-    /// reload from zero (W05).
+    /// Idle guns top up partial magazines without discarding their rounds;
+    /// engagement cancels that top-up, keeping the retained rounds ready.
+    /// A different kind sets the retained magazine aside without spending it
+    /// and restarts the reload from zero (W05).
     pub fn advance(
         &mut self,
         weapons: &[Weapon],
         ammo: &[Option<u32>],
         spec: &MountSpec,
         want: Option<usize>,
+        engaging: bool,
         dt: f64,
     ) {
         self.cooldown = (self.cooldown - dt).max(0.0);
@@ -61,12 +68,22 @@ impl Cycle {
                 self.reload = None;
             }
         }
-        if self.loaded.is_some() {
-            return;
-        }
-        let want = want
-            .or(self.reload.map(|(k, _)| k))
-            .or_else(|| ammo.iter().position(|n| n.is_none_or(|n| n > 0)));
+        let want = if let Some(k) = self.loaded {
+            if engaging {
+                self.reload = None;
+                return;
+            }
+            let magazine = weapons[spec.kinds[k]].def.magazine;
+            if magazine.is_none_or(|m| self.rounds == m.rounds)
+                || ammo[k].is_some_and(|n| n <= self.rounds)
+            {
+                return;
+            }
+            Some(k)
+        } else {
+            want.or(self.reload.map(|(k, _)| k))
+                .or_else(|| ammo.iter().position(|n| n.is_none_or(|n| n > 0)))
+        };
         self.reload = match want {
             Some(k) if ammo[k].is_none_or(|n| n > 0) => {
                 let progress = match self.reload {

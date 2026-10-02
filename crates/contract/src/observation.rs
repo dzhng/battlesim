@@ -211,13 +211,13 @@ pub enum ActionReason {
 pub struct MountReadiness {
     /// Index into the unit type's mount list.
     pub mount: u8,
-    /// Ammunition kind loaded by any surviving physical gun.
+    /// Ammunition kind ready in any surviving physical gun.
     pub loaded: Option<u8>,
     /// Total rounds left per kind (including magazines); `None` is unlimited.
     pub ammo: Vec<Option<u32>>,
     /// Aim progress in [0, 1]; 1 once acquired.
     pub aim: f64,
-    /// Soonest reload progress in [0, 1], only when every gun is empty.
+    /// Soonest reload progress in [0, 1], when no gun is ready (empty or topping up).
     pub reload: f64,
     /// The ammunition kind being reloaded, if any.
     pub reloading: Option<u8>,
