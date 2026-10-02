@@ -96,4 +96,12 @@ The next bounded prototype belongs jointly to this texture owner and [C81's blad
 
 Use the lane's two-station/three-variant/two-round GPU bound. Compare exact paired close/default captures with the reported framing as closely as known, then inspect the final far views and boundaries once. Retain C84 mean-colour, grass exclusion and field/fog checks; measure one short paired cost. Run compare-screenshots, an unprimed complete-set critique and a non-blocking Preview checkpoint before accepting any candidate. Directional hatching, tiled carpet, dissolved tuft depth and motion shimmer are rejection cases. Hills remain deferred.
 
-Research evidence is in root's ignored `throwaway/grass-surface-research/`. Its captures logged unexplained TypeGPU warnings and are diagnostic only; resolve those before claiming a verified render. No new grass look has shipped or been accepted.
+**Preserve the yellow patches.** The user likes the warm dry-grass variation and its character. Ground and blade colours already share the ground material, with additional world-anchored clump dryness. Further continuity work must retain this variation and the approved blade-facing change.
+
+### Rejected finest-grain prototype
+
+Two bounded rounds replaced only the finest grass-plot grain contribution with tapered leaf marks. The final matched close/default pair changes pixels but does not convincingly blend the ground and tufts: both root and an unprimed critic still see smooth olive gaps close up and weak grass identity at gameplay zoom. The additional shader machinery is rejected and production source is restored. This rejects that hypothesis; grass-ground continuity remains open.
+
+Complete native frames, crops, source snapshots, metrics and the fresh review are preserved in main's ignored `throwaway/grass-surface-prototype/`. The final control/candidate match tick 12 and log no shader warnings. The first round reached tick 13, so its wind-confounded comparison remains diagnostic only. Far/boundary/motion/cost gates were not spent on the rejected candidate and are not claimed. The non-blocking Preview comparison includes the reported defect baseline. A next hypothesis must improve visible ground structure at gameplay zoom while preserving yellow variation, rather than adding finer marks that filter away.
+
+Earlier research remains in root's ignored `throwaway/grass-surface-research/`. Its warning-bearing captures are diagnostic; [C81's integrated checkpoint](C81-wild-grass.md#outcome) owns the approved blade-facing change and warning-free verification.
