@@ -15,7 +15,6 @@ import type { GpuAllocationCounts } from "@packages/renderer-core/src/gpuAllocat
 import { apartKinds, buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
 import {
   knownStanding,
-  mapProps,
   PropAppearances,
   structureModels,
   type PropBox,
@@ -29,9 +28,7 @@ import {
   type FogSensorRules,
 } from "@packages/battle-renderer/src/frame/fogInputs";
 import {
-  fallenBuildings,
   FRAME_FLOATS,
-  indexBuildings,
   type SideBuildings,
 } from "@packages/battle-renderer/src/models/buildingReferences";
 import {
@@ -40,7 +37,7 @@ import {
   knownOf,
 } from "@packages/battle-renderer/src/buildingObstacles";
 import { gameBiome } from "./gameBiome";
-import { gameGuttedShells } from "./destroyedBuildings";
+import { knownFallen } from "./destroyedBuildings";
 import { mapAppearances, useMapAppearances } from "./gameAppearances";
 import { gameStandIns } from "./gameModels";
 import { AppearanceCatalog } from "@packages/scene-assets/src/appearanceCatalog";
@@ -77,7 +74,7 @@ import {
   EFFECT_FLOATS,
 } from "@packages/battle-renderer/src/effects/effectFrame";
 import { offeredCastLights } from "@packages/battle-renderer/src/light/castLights";
-import { useStaticWorld } from "./useStaticWorld";
+import { groundUnderRay, useMapBuildings, useStaticWorld } from "./useStaticWorld";
 import { createBattleAudio, soundMotion } from "./soundFeed";
 import { useFeed } from "./feed";
 import { posedSockets } from "./workbench/benchWorld";
@@ -85,7 +82,6 @@ import type { Vec3 } from "math";
 import type { Pose } from "@web/battle/present/interpolate";
 import { circleContains, unitCircle } from "@packages/battle-renderer/src/orderOverlay";
 import { orderView } from "./battleOverlay";
-import { groundUnderRay } from "./useStaticWorld";
 
 export interface BattleSessionOptions {
   /** The scenario JSON the authority runs. */
@@ -185,11 +181,9 @@ export function useBattleSession({
   // Every building is drawn from its template's rows, as instances of kit
   // modules, standing or fallen: no fitted model stands for one or for its
   // remains.
-  const placedProps = useMemo(() => world && mapProps(world.exports, world.layout), [world]);
-  const drawnBuildings = useMemo(
-    () => world && placedProps && indexBuildings(world.exports.buildings, placedProps),
-    [world, placedProps],
-  );
+  const mapBuildings = useMapBuildings(world);
+  const placedProps = mapBuildings?.props ?? null;
+  const drawnBuildings = mapBuildings?.index ?? null;
   // The catalog, and the kits this map's buildings and stand-in boxes draw
   // from, fetched once the map is known: the loading cover stays up for them.
   const appearances = useMapAppearances(drawnBuildings?.placed ?? null, true);
@@ -235,11 +229,7 @@ export function useBattleSession({
       drawnBuildings && knownBuildingsKey
         ? {
             placed: drawnBuildings.placed,
-            fallen: fallenBuildings(
-              drawnBuildings,
-              JSON.parse(knownBuildingsKey) as KnownPropView[],
-              gameGuttedShells,
-            ),
+            fallen: knownFallen(drawnBuildings, JSON.parse(knownBuildingsKey) as KnownPropView[]),
           }
         : null,
     [drawnBuildings, knownBuildingsKey],
@@ -553,7 +543,7 @@ export function useBattleSession({
         fallen: state.has(i),
         state: state.get(i) ?? "intact",
         authored: parts.map(box),
-        parts: knownStanding(parts, known, new Set(parts.map((p) => p.id))).map((s) => box(s.box)),
+        parts: knownStanding(parts, known, new Set(parts.map((p) => p.id))).map(box),
       }));
     },
     /** The boxes the fog is handed as what hides the ground behind them: the

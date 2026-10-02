@@ -428,7 +428,7 @@ test("a fall the side has not seen still blocks the camera; one it has seen does
   };
   const inside = look(0, ROW);
   const drawnKnowing = (known: KnownProp[], asked = inside) => {
-    const standing = knownStanding([tower], known, new Set([7])).map((s) => s.box);
+    const standing = knownStanding([tower], known, new Set([7]));
     return fly([asked], standing).frames[0].drawn;
   };
   // The tower has fallen, unseen: the side still draws it, and the camera

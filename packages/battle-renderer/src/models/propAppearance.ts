@@ -275,35 +275,28 @@ export function mapProps(exports: WorldExports, layout: WorldLayout): MapProp[] 
   return out;
 }
 
-/** A map prop as a side knows it: standing as authored, or the remains the
- *  side has seen take its place. */
-export interface KnownStanding {
-  prop: MapProp;
-  box: PropBox;
-  fallen: boolean;
-}
-
 /**
- * What a side knows stands of the map props `among` holds: each one it has not
- * seen replaced, as authored, and the remains of each it has; nothing for one
- * it saw destroyed with nothing left. A fall the side has not seen leaves the
- * prop standing. Buildings are drawn from these and the camera keeps clear of them, so
- * what is drawn and what blocks the camera cannot part.
+ * The boxes a side knows stand where the map props `among` holds were placed:
+ * each one it has not seen replaced, as authored, and the remains of each it
+ * has; nothing for one it saw destroyed with nothing left. A fall the side has
+ * not seen leaves the prop standing. The camera keeps clear of a building's
+ * parts by these, the same knowledge its drawn state follows
+ * (`fallenBuildings`), so what is drawn and what blocks the camera cannot part.
  */
 export function knownStanding(
   props: readonly MapProp[],
   known: readonly KnownProp[],
   among: { has(prop: number): boolean },
-): KnownStanding[] {
+): PropBox[] {
   const replaced = new Map<number, KnownProp>();
   for (const k of known)
     if (k.authoredProp !== null && among.has(k.authoredProp)) replaced.set(k.authoredProp, k);
-  const out: KnownStanding[] = [];
+  const out: PropBox[] = [];
   for (const prop of props) {
     if (!among.has(prop.id)) continue;
     const remains = replaced.get(prop.id);
-    if (!remains) out.push({ prop, box: prop, fallen: false });
-    else if (!remains.destroyed) out.push({ prop, box: remains, fallen: true });
+    if (!remains) out.push(prop);
+    else if (!remains.destroyed) out.push(remains);
   }
   return out;
 }

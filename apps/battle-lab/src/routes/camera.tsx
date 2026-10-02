@@ -19,12 +19,8 @@ import {
   type Mesh,
   type Rgba,
 } from "@packages/battle-renderer/src/mesh";
-import { knownStanding, mapProps } from "@packages/battle-renderer/src/models/propAppearance";
+import { knownStanding } from "@packages/battle-renderer/src/models/propAppearance";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
-import {
-  fallenBuildings,
-  indexBuildings,
-} from "@packages/battle-renderer/src/models/buildingReferences";
 import { apartKinds, buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
 import { nearEnvelope } from "@packages/renderer-core/src/cameraClearance";
 import { CameraController, type CameraPose } from "@packages/renderer-core/src/cameraController";
@@ -38,11 +34,11 @@ import {
   watchingPose,
   type FlightFrame,
 } from "../cameraLab";
-import { gameGuttedShells, seenDestroyed } from "../destroyedBuildings";
+import { knownFallen, seenDestroyed } from "../destroyedBuildings";
 import { useFeed } from "../feed";
 import { LabViewport, type ViewportPilot } from "../LabViewport";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
-import { useStaticWorld } from "../useStaticWorld";
+import { useMapBuildings, useStaticWorld } from "../useStaticWorld";
 import { useMapAppearances } from "../gameAppearances";
 import { gameBiome } from "../gameBiome";
 import { gameCamera } from "../gameCamera";
@@ -108,11 +104,7 @@ function Arena({ map }: { map: MapDefinition }) {
   const world = useStaticWorld(map);
   // The lab's buildings are the generator's catalogue's, drawn as a
   // generated town's are.
-  const drawn = useMemo(() => {
-    if (!world) return null;
-    const props = mapProps(world.exports, world.layout);
-    return { props, index: indexBuildings(world.exports.buildings, props) };
-  }, [world]);
+  const drawn = useMapBuildings(world);
   const appearances = useMapAppearances(drawn?.index.placed ?? null);
   const [trajectory, setTrajectory] = useState(TRAJECTORIES[0]);
   const [riding, setRiding] = useState(false);
@@ -159,10 +151,10 @@ function Arena({ map }: { map: MapDefinition }) {
       : [];
     const parts = buildingPartProps(world.exports.buildings);
     return {
-      boxes: knownStanding(props, known, parts).map((s) => s.box),
+      boxes: knownStanding(props, known, parts),
       buildings: {
         placed: index.placed,
-        fallen: fallenBuildings(index, known, gameGuttedShells),
+        fallen: knownFallen(index, known),
       },
       obstacles: buildingObstacles(props, known, parts, surfaceZ),
     };
