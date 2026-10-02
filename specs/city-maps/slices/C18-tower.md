@@ -31,3 +31,20 @@ Shared module/library ownership, physical fit and the category's metre scale.
 
 ## Feedback that would change this slice
 Rejected silhouette reshapes its family source without changing the type preset or adding a per-map bake.
+
+## Outcome
+
+**2026-10-01.** The towers are a source set: `packages/scene-assets/blender/city/towers.py` writes `assets/source/city/towers/` (30 modules, four templates) through the houses' authoring helper. `city/tower_sheets.py` photographs them with `assemble.py`'s camera, alone and among the houses and the China apartment blocks.
+
+| Template | Plan, floors, height | Look |
+|---|---|---|
+| `china-tower-slab-10f` | 56 × 14 m, 10, 31 m | bare grey precast, three stairs, paired balcony columns in faded paint, blank gable ends |
+| `china-tower-12f` | 26 × 26 m, 12, 37 m | cream render, loggias, a terracotta stair stripe |
+| `china-tower-16f` | 23 × 32 m, 16, 49 m | white facing tile, aqua balcony columns every third bay |
+| `china-tower-20f` | 29 × 29 m, 20, 61 m | pale precast, corner loggias, slate-blue stair and blank columns |
+
+- **How a tower is drawn:** at tier 0 every bay of every floor is a row placing one shared panel module (40 triangles for a window). From tier 1 the panels stop and the template's shell carries the same grid as a texture. At tiers 2 and 3 a tower is that one row.
+- **Budget, triangles drawn at tiers 0 to 3:** slab 27,022 / 7,510 / 918 / 334 (721 rows at tier 0); 12 floors 23,096 / 1,328 / 464 / 218 (564); 16 floors 37,396 / 11,810 / 726 / 396 (945); 20 floors 41,710 / 2,314 / 704 / 254 (1,044).
+- **Proved:** two runs write the same bytes; the kit validates with no finding; the bake's only finding is that the four templates are not yet in the physical catalogue, which the cutover clears (so the contract admits the descriptors and every row stays inside its part grown by the fit). `homes.py` still writes its committed bytes.
+- **Not done:** the sheets are Blender renders with a stand-in sun, not the battle's renderer, which cannot draw kits yet; the tier distances are `assemble.py`'s reading of the model thresholds. No reference comparison was run. Damage states are C14's.
+- **Decisions:** [choices](../choices.md#c18-our-own-towers).
