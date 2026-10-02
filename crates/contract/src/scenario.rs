@@ -241,6 +241,8 @@ pub struct MovementRules {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct NavigationRules {
+    /// Total route work plus per-unit movement steps allowed to certify one move.
+    pub move_validation_work: u32,
     /// Planning work every side's units share each tick: one unit is about
     /// one grid cell searched.
     pub work_per_tick: u32,
@@ -264,6 +266,9 @@ impl NavigationRules {
     }
 
     fn check(&self) -> Result<(), String> {
+        if self.move_validation_work == 0 {
+            return Err("move validation work must be positive".into());
+        }
         if self.work_per_tick == 0 {
             return Err("work_per_tick must be positive: no route would ever finish".into());
         }

@@ -300,6 +300,38 @@
       },
       "basis_yaw_deg": 0
     },
+    "tree_spruce": {
+      "unit": "scenery",
+      "scenery": "tree",
+      "states": {
+        "summer": "assets/source/trees/tree_spruce.glb"
+      },
+      "basis_yaw_deg": 0
+    },
+    "tree_pine": {
+      "unit": "scenery",
+      "scenery": "tree",
+      "states": {
+        "summer": "assets/source/trees/tree_pine.glb"
+      },
+      "basis_yaw_deg": 0
+    },
+    "tree_birch": {
+      "unit": "scenery",
+      "scenery": "tree",
+      "states": {
+        "summer": "assets/source/trees/tree_birch.glb"
+      },
+      "basis_yaw_deg": 0
+    },
+    "tree_snag": {
+      "unit": "scenery",
+      "scenery": "tree",
+      "states": {
+        "summer": "assets/source/trees/tree_snag.glb"
+      },
+      "basis_yaw_deg": 0
+    },
     "tank": {
       "unit": "vehicle",
       "source": "assets/source/vehicles/tank.glb",

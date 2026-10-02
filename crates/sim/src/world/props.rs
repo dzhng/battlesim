@@ -129,6 +129,7 @@ impl Slot {
 }
 
 /// Uniform XY bucket grid over prop footprints.
+#[derive(Clone)]
 pub struct PropIndex {
     bucket: f64,
     nx: usize,
@@ -137,6 +138,7 @@ pub struct PropIndex {
     changes: Option<BucketChanges>,
 }
 
+#[derive(Clone)]
 struct BucketChanges {
     revision: u64,
     stamps: Vec<u64>,

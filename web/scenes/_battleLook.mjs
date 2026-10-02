@@ -176,7 +176,7 @@ export async function woodsTour(ctx) {
   // The west wood is an axis-aligned ring: its rect is [x, y, w, h].
   const [[x0, y0], , [x1, y1]] = villageMap.forests[0].shape.ring;
   const wood = [x0, y0, x1 - x0, y1 - y0];
-  const goal = [wood[0] + 40, wood[1] + wood[3] - 40];
+  const goal = [wood[0] + 40, wood[1] + wood[3] - 20];
   let o = await obs(page);
   const squads = o.own.filter((u) => u.members.length > 0 && u.kind === "rifle");
   // The squad spawned furthest south walks in along the map's south, out of
@@ -199,7 +199,7 @@ export async function woodsTour(ctx) {
   );
 
   // Round the south, where the wood itself screens the walk from the
-  // village, then queued into the wood from its south-west corner. The
+  // village, then enter the wood from the actual south-west corner. The
   // corner leg keeps the wood between the squad and the village. Since
   // rounds slowed and firing reports shrank, a squad cutting across the
   // open south of the wood is pinned there by the village's fire and falls.
@@ -211,35 +211,97 @@ export async function woodsTour(ctx) {
   // corner.
   const approach = [wood[0] - 300, wood[1] + wood[3] + 40];
   const corner = [wood[0] - 60, wood[1] + wood[3] + 40];
-  await lab(
+  const stagingStarted = o.tick;
+  const stagingDeadline = stagingStarted + 15000;
+  const staged = await lab(
     page,
-    (c) => {
-      window.__lab.route.command({
+    async (c) => {
+      const engagement = await window.__lab.route.command({
         kind: "set_engagement",
         units: [c.id],
         policy: "return_fire_only",
       });
-      window.__lab.route.command({
+      const approach = await window.__lab.route.command({
         kind: "move",
         units: [c.id],
         gesture: 2701,
         goal: c.approach,
         route: "fastest",
       });
-      window.__lab.route.command(
+      const corner = await window.__lab.route.command(
         { kind: "move", units: [c.id], gesture: 2703, goal: c.corner, route: "fastest" },
         true,
       );
-      window.__lab.route.command(
-        { kind: "move", units: [c.id], gesture: 2702, goal: c.goal, route: "fastest" },
-        true,
-      );
+      return { engagement, approach, corner };
     },
-    { id: walker.id, goal, approach, corner },
+    { id: walker.id, approach, corner },
   );
+  ctx.check(
+    "the wood approach and queued corner are admitted",
+    !staged.engagement.error &&
+      !staged.approach.error &&
+      !staged.corner.error &&
+      staged.approach.placement.destinations.every((m) => m.placed) &&
+      staged.corner.placement.destinations.every((m) => m.placed),
+    JSON.stringify(staged),
+  );
+  await advance(page, Math.max(0, staged.corner.applied_tick - (await obs(page)).tick));
+  o = await obs(page);
+  let atCorner = false;
+  let cornerUnit;
+  while (o.tick < stagingDeadline) {
+    await advance(page, Math.min(300, stagingDeadline - o.tick));
+    o = await obs(page);
+    cornerUnit = o.own.find((u) => u.id === walker.id);
+    if (
+      cornerUnit &&
+      !cornerUnit.goal &&
+      cornerUnit.queue.length === 0 &&
+      dist(cornerUnit.position, corner) < 1
+    ) {
+      atCorner = true;
+      break;
+    }
+  }
+  ctx.check(
+    "the squad reaches its queued corner before entering the wood",
+    atCorner,
+    JSON.stringify({
+      elapsed: o.tick - stagingStarted,
+      tick: o.tick,
+      position: cornerUnit?.position,
+      goal: cornerUnit?.goal,
+      state: cornerUnit?.state,
+      queue: cornerUnit?.queue,
+      living: cornerUnit?.members.length,
+    }),
+  );
+  if (!atCorner) return page.close();
+  // This tour judges canopy readability. Ask for the short forest leg from
+  // the actual corner; a long queued journey may exhaust admission's budget.
+  const woodAck = await lab(
+    page,
+    (c) =>
+      window.__lab.route.command({
+        kind: "move",
+        units: [c.id],
+        gesture: 2702,
+        goal: c.goal,
+        route: "fastest",
+      }),
+    { id: walker.id, goal },
+  );
+  ctx.check(
+    "the short move into the wood is admitted",
+    !woodAck.error && woodAck.placement.destinations.every((m) => m.placed),
+    JSON.stringify(woodAck),
+  );
+  if (woodAck.error) return page.close();
+  await advance(page, Math.max(0, woodAck.applied_tick - (await obs(page)).tick));
+  o = await obs(page);
   let inside = [];
-  for (let t = 0; t < 15000 && inside.length < 6; t += 300) {
-    await advance(page, 300);
+  while (o.tick < stagingDeadline && inside.length < 6) {
+    await advance(page, Math.min(300, stagingDeadline - o.tick));
     o = await obs(page);
     const u = o.own.find((u) => u.id === walker.id);
     inside = u ? u.members.filter((m) => inRect(m, wood)) : [];

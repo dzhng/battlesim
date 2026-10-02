@@ -617,6 +617,10 @@ export async function createWorldPass(
     setPaintShown(on: boolean) {
       paint.setShown(on);
     },
+    /** The grass takes its colour from the ground, so it regrows. */
+    setFieldTextureShown(on: boolean) {
+      if (terrain.setFieldTexture(on)) grass.regrow();
+    },
     setTreesShown(on: boolean) {
       scenery.setTreesShown(on);
     },

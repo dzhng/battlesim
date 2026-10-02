@@ -113,8 +113,10 @@ test("every order sent is heard as it goes, a queued (Shift) one too", async () 
   // The order flash starts from this hook: it hears what is sent.
   const observation = { own: [own(1, "rifle")], contacts: [] } as unknown as ObservationView;
   const { client, sent } = recordingClient();
-  const heard: Order[] = [];
-  const hook = renderHook(() => useUnitControl(client, observation, (o) => heard.push(o)));
+  const heard: { order: Order; queued: boolean }[] = [];
+  const hook = renderHook(() =>
+    useUnitControl(client, observation, (order, queued) => heard.push({ order, queued })),
+  );
   act(() => hook.result.current.setSelected([1]));
   const pick = { unit: null, button: "right" as const, ctrl: false, x: 0, y: 0 };
   await act(async () =>
@@ -124,7 +126,7 @@ test("every order sent is heard as it goes, a queued (Shift) one too", async () 
     hook.result.current.onPointer({ ...pick, shift: true, time: 5000, ground: [60, 50] }),
   );
   expect(sent.map((s) => s.queued)).toEqual([false, true]);
-  expect(heard).toEqual(sent.map((s) => s.order));
+  expect(heard).toEqual(sent);
 });
 
 test("losing a selected unit leaves survivors commandable without reselecting", async () => {

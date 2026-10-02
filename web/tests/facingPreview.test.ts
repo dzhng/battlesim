@@ -67,9 +67,7 @@ test("placement queries coalesce cursor updates and a cancelled reply cannot res
   expect(requested).toEqual([move]);
   finish([{ unit: 1, goal: move.goal, placed: true, facing: 0 }]);
   await new Promise((r) => setTimeout(r, 0));
-  expect(paint.resolveMove({ ...move, facing: 2 }, selected, client, 0)).toMatchObject([
-    { unit: 1, c: move.goal, facing: 0 },
-  ]);
+  expect(paint.resolveMove({ ...move, facing: 2 }, selected, client, 0)).toEqual([]);
   expect(requested).toEqual([move, { ...move, facing: 2 }]);
   finish([{ unit: 1, goal: move.goal, placed: true, facing: 2 }]);
   await new Promise((r) => setTimeout(r, 0));
@@ -82,23 +80,13 @@ test("placement queries coalesce cursor updates and a cancelled reply cannot res
   expect(paint.resolveMove(null, selected, client, 0)).toEqual([]);
 });
 
-test("an unplaced intention uses the cannot-place color and the confirmation opacity", () => {
-  const style = {
-    ...gameOrderStyle,
-    color: [1, 0, 0, 1] as const,
-    blocked: [0, 1, 0, 1] as const,
-    glow: { order: 1, selected: 1 },
-  };
-  const mesh = buildDestinationPreview(
-    [{ c: [100, 200], r: 8, facing: 0, placed: false, opacity: 0.5 }],
-    () => 0,
-    style,
-    { stroke: gameStroke(0.05) },
-  );
-  expect(mesh.length).toBeGreaterThan(0);
-  for (let i = 0; i < mesh.length; i += VERTEX_FLOATS) {
-    expect([...mesh.slice(i + 6, i + 10)]).toEqual([0, 1, 0, 0.5]);
-  }
+test("a rejected destination paints no destination marker", () => {
+  const accepted = { c: [100, 200] as const, r: 8, facing: 0, placed: true, opacity: 0.5 };
+  const rejected = { ...accepted, c: [140, 200] as const, placed: false };
+  const draw = (marks: import("@packages/battle-renderer/src/orderOverlay").DestinationMarker[]) =>
+    buildDestinationPreview(marks, () => 0, gameOrderStyle, { stroke: gameStroke(0.05) });
+  expect(draw([rejected])).toEqual(new Float32Array());
+  expect(draw([accepted, rejected])).toEqual(draw([accepted]));
 });
 
 test("a cancelled query cannot paint a new press at the same anchor", async () => {
@@ -121,4 +109,27 @@ test("a cancelled query cannot paint a new press at the same anchor", async () =
   finish([{ unit: 1, goal: move.goal, placed: true, facing: 1 }]);
   await new Promise((r) => setTimeout(r, 0));
   expect(paint.resolveMove({ ...move, facing: 0 }, own, client, 0)).toEqual([]);
+});
+
+test("pointer paint reveals only accepted destinations from a partially blocked group", async () => {
+  const { PointerPaint } = await import("@apps/battle-lab/src/pointerPaint");
+  const paint = new PointerPaint();
+  const own = [1, 2].map((id) => ({
+    id,
+    kind: "tank",
+    position: [0, 0, 0],
+    members: [],
+    area: null,
+    garrison: null,
+  })) as unknown as import("../src/battle/sim/observation").OwnUnitView[];
+  const markers = paint.markers(
+    [
+      { unit: 1, goal: [100, 200], facing: 0, placed: false },
+      { unit: 2, goal: [140, 200], facing: 0, placed: true },
+    ],
+    own,
+  );
+  expect(markers).toMatchObject([{ unit: 2, c: [140, 200], placed: true }]);
+  paint.update(null, markers, () => 0, 0.05);
+  expect(paint.preview).toMatchObject([{ unit: 2, c: [140, 200] }]);
 });

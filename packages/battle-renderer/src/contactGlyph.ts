@@ -15,6 +15,8 @@ import type { WorldMeshes } from "./scene";
 
 /** `presentation.contacts`: how a contact glyph is drawn. */
 export interface ContactGlyphStyle {
+  /** Seconds of fading before expiry or after a report is removed. */
+  fade_s: number;
   /** Distance between hatch lines, metres, anchored to the world. */
   hatch_spacing_m: number;
   hatch_width_m: number;
@@ -44,6 +46,7 @@ export function validateContactGlyphStyle(s: ContactGlyphStyle): ContactGlyphSty
   const unit = (name: string, v: number) => {
     if (!(v >= 0 && v <= 1)) throw new Error(`presentation.contacts.${name} must be in [0, 1]`);
   };
+  positive("fade_s", s.fade_s);
   positive("hatch_spacing_m", s.hatch_spacing_m);
   positive("hatch_width_m", s.hatch_width_m);
   positive("outline_width_m", s.outline_width_m);
@@ -64,20 +67,18 @@ export function validateContactGlyphStyle(s: ContactGlyphStyle): ContactGlyphSty
 export interface ContactShape {
   center: readonly [number, number];
   radius: number;
-  /** Remaining life in (0, 1]; at 0 (expiry) the glyph is gone. */
-  freshness: number;
+  /** Opacity in (0, 1]; at 0 the glyph is gone. */
+  opacity: number;
   source: string;
 }
 
-/** A contact's remaining life at `tick`: 1 when fresh, 0 at expiry. */
-export function contactFreshness(
-  c: { evidenceTick: number; expiresTick: number },
+/** Full opacity until the final `fadeTicks`, then zero at expiry. */
+export function contactOpacity(
+  c: { expiresTick: number },
   tick: number,
+  fadeTicks: number,
 ): number {
-  return Math.max(
-    0,
-    Math.min(1, (c.expiresTick - tick) / Math.max(1, c.expiresTick - c.evidenceTick)),
-  );
+  return Math.max(0, Math.min(1, (c.expiresTick - tick) / fadeTicks));
 }
 
 /** Quads per turn: the glow's soft bands, and the ghost's crisp outline. */
@@ -128,8 +129,8 @@ function hatch(
 }
 
 function glyph(mesh: MeshBuilder, c: ContactShape, s: ContactGlyphStyle, z: SurfaceHeight) {
-  if (!(c.freshness > 0) || !(c.radius > 0)) return;
-  const life = 0.35 + 0.65 * Math.min(1, c.freshness);
+  if (!(c.opacity > 0) || !(c.radius > 0)) return;
+  const life = Math.min(1, c.opacity);
   const glow = s.glow_alpha * life;
   const band = (
     inner: number,

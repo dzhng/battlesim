@@ -9,7 +9,7 @@ import type { SceneInstance } from "@packages/battle-renderer/src/scene";
 import type { MapDefinition } from "@web/maps/resolve";
 import { SavedMap } from "../savedMaps";
 import { LabViewport, type LabPick } from "../LabViewport";
-import { useWorldProbe, type WorldView } from "../useStaticWorld";
+import { useStaticWorld, type WorldView } from "../useStaticWorld";
 import { gameBiome } from "../gameBiome";
 import { useGameAppearances } from "../gameAppearances";
 import { useFeed } from "../feed";
@@ -57,7 +57,7 @@ export default function Geometry() {
 }
 
 function GeometryLab({ map }: { map: MapDefinition }) {
-  const world = useWorldProbe(map);
+  const world = useStaticWorld(map);
   const [overlay, setOverlay] = useState<WorldOverlay>("surface");
   const [showTrees, setShowTrees] = useState(true);
   const appearances = useGameAppearances();

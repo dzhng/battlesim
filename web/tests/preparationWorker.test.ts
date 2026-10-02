@@ -61,7 +61,6 @@ test("a preparation worker becomes the battle authority and replays its commands
           side: "blue",
           transport: "worker",
           connect: prepared.connect,
-          publicWorld: prepared.publicWorld,
         });
         let digest = "";
         client.onPublication((p: { digest: string; release(): void }) => {
@@ -79,12 +78,7 @@ test("a preparation worker becomes the battle authority and replays its commands
           );
           try {
             for (let i = 0; i < tick; i++) replay.step();
-            return {
-              tick,
-              digest,
-              replay: replay.digest(),
-              props: prepared.publicWorld.exports.props.byteLength,
-            };
+            return { tick, digest, replay: replay.digest() };
           } finally {
             replay.free();
           }
@@ -101,7 +95,6 @@ test("a preparation worker becomes the battle authority and replays its commands
     );
     expect(result.tick).toBe(3);
     expect(result.digest).toBe(result.replay);
-    expect(result.props).toBeGreaterThan(0);
   } finally {
     await browser?.close();
     await server.close();

@@ -568,7 +568,8 @@ export function buildDestinationPreview(
   const mesh = new MeshBuilder();
   const pen = orderPen(z, style, stroke);
   for (const mark of marks) {
-    const color = glowing(mark.placed ? style.color : style.blocked, style.glow.order);
+    if (!mark.placed) continue;
+    const color = glowing(style.color, style.glow.order);
     circleMarker(mesh, pen, mark, fadeAlpha(color, mark.opacity));
   }
   return mesh.build();

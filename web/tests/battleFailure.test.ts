@@ -4,8 +4,9 @@ import { chromium, type Browser } from "playwright";
 import { createServer } from "vite";
 import { fileURLToPath } from "node:url";
 
-// A rejected replay has no world to draw; its refusal must still be visible.
-test("a rejected replay shows its refusal before world meshes exist", async () => {
+// A battle that failed to start has nothing to play: its refusal is shown
+// with the menu, and no battlefield is drawn under it.
+test("a rejected replay shows its refusal and draws no battlefield", async () => {
   const server = await createServer({
     configFile: fileURLToPath(new URL("../vite.config.ts", import.meta.url)),
     configLoader: "runner",

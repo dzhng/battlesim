@@ -56,6 +56,8 @@ pub enum CheckKind {
         at: [f64; 2],
         within_m: f64,
     },
+    /// Capture the issued marker at `tick`; end idle within `within_m` of it.
+    ArriveAtMarker { unit: u32, tick: u64, within_m: f64 },
     /// No living soldier's disc ever overlaps a solid body (every prop that
     /// blocks infantry: all but the ground kinds, Q27).
     SoldiersClearOfProps,
@@ -1178,19 +1180,19 @@ fn authored() -> Vec<Scenario> {
                 vehicle("red", "tank", [145.0, 30.0], std::f64::consts::PI),
             ]),
             events: none.clone(),
-            scripts: json!([drive("blue", 0, [145.0, 30.0]), drive("red", 1, [15.0, 30.0])]),
+            scripts: json!([drive("blue", 0, [155.0, 30.0]), drive("red", 1, [5.0, 30.0])]),
             rules: json!({}),
             seconds: 40.0,
             seed: 1,
             checks: vec![
                 check(Arrive {
                     unit: 0,
-                    at: [145.0, 30.0],
+                    at: [155.0, 30.0],
                     within_m: 1.5,
                 }),
                 check(Arrive {
                     unit: 1,
-                    at: [15.0, 30.0],
+                    at: [5.0, 30.0],
                     within_m: 1.5,
                 }),
                 check(VehiclesNeverOverlap),
@@ -1865,8 +1867,8 @@ fn authored() -> Vec<Scenario> {
                 check(VehiclesClearOfProps),
             ],
         },
-        // The river lab: a squad and a tank on the country road are ordered
-        // up it, over the bridge that carries it across 12 m of water.
+        // Opposing vehicle groups share the bridge and keep arriving after
+        // their forward vehicles park at the far ends of the road.
         Scenario {
             name: "sa6-columns-through-bridge",
             caption: "opposing columns pass on the road through a river bridge",
@@ -1876,12 +1878,16 @@ fn authored() -> Vec<Scenario> {
                 [60.0, if i < 4 { 100.0 + i as f64 * 20.0 } else { 380.0 - (i-4) as f64 * 20.0 }],
                 if i < 4 { std::f64::consts::FRAC_PI_2 } else { -std::f64::consts::FRAC_PI_2 })).collect::<Vec<_>>()),
             events: none.clone(),
-            scripts: json!((0..8).map(|i| drive(if i < 4 { "blue" } else { "red" },i,
-                [60.0, if i < 4 { 380.0 - i as f64 * 20.0 } else { 100.0 + (i-4) as f64 * 20.0 }])).collect::<Vec<_>>()),
+            scripts: json!([
+                { "tick": 1, "side": "blue", "order": { "kind": "move", "units": [0,1,2,3],
+                    "gesture": 1, "goal": [60,460], "route": "fastest" } },
+                { "tick": 1, "side": "red", "order": { "kind": "move", "units": [4,5,6,7],
+                    "gesture": 1, "goal": [60,20], "route": "fastest" } }
+            ]),
             rules: json!({}), seconds: 100.0, seed: 1,
-            checks: (0..8).map(|i| check(Arrive { unit: i,
-                at: [60.0, if i < 4 { 380.0 - i as f64 * 20.0 } else { 100.0 + (i-4) as f64 * 20.0 }], within_m: 1.5 }))
-                .chain([check(VehiclesNeverOverlap),check(NeverInWater),check(HullsOverWater { max_m: 0.5 })]).collect(),
+            checks: (0..8).map(|i| check(ArriveAtMarker { unit: i, tick: 1, within_m: 1.5 }))
+                .chain([check(VehiclesNeverOverlap),check(NeverInWater),check(HullsOverWater { max_m: 0.5 }),
+                    check(ArrivesFirst { first: 2, second: 0 }),check(ArrivesFirst { first: 6, second: 4 })]).collect(),
         },
         Scenario {
             name: "sa6-unbridged-river",
@@ -2035,8 +2041,50 @@ pub fn tick_hz(s: &Scenario) -> u32 {
 /// battle before the first step and after every step, and judge its checks.
 pub fn run(s: &Scenario, mut each: impl FnMut(&Battle)) -> Vec<Outcome> {
     let setup = definition(s);
+    for check in &s.checks {
+        if let CheckKind::ArriveAtMarker { unit, tick, .. } = check.kind {
+            assert!(
+                setup.scripts.iter().any(|script| {
+                    script.tick == tick
+                        && matches!(&script.order, contract::command::Order::Move { units, .. }
+                        if units.contains(&UnitId(unit)))
+                }),
+                "a marker arrival check requires a move issued at its capture tick"
+            );
+        }
+        if let CheckKind::Refused { unit, by_s } = check.kind {
+            assert!(
+                setup.scripts.iter().any(|script| {
+                    script.tick > 0
+                        && script.tick as f64 <= by_s * setup.rules.tick_hz as f64
+                        && matches!(&script.order, contract::command::Order::Move { units, .. }
+                        if units.contains(&UnitId(unit)))
+                }),
+                "a refusal check requires a move issued before its deadline"
+            );
+        }
+    }
     let mut b = Battle::new(&setup, s.seed);
-    let mut judges: Vec<Judge> = s.checks.iter().map(|c| Judge::new(&c.kind, &b)).collect();
+    let mut judges: Vec<Judge> = s
+        .checks
+        .iter()
+        .map(|c| {
+            let issued_at = if let CheckKind::Refused { unit, .. } = c.kind {
+                setup
+                    .scripts
+                    .iter()
+                    .filter(|script| {
+                        matches!(&script.order, contract::command::Order::Move { units, .. }
+                    if units.contains(&UnitId(unit)))
+                    })
+                    .map(|script| script.tick)
+                    .min()
+            } else {
+                None
+            };
+            Judge::new(&c.kind, &b, issued_at)
+        })
+        .collect();
     each(&b);
     for _ in 0..(s.seconds * setup.rules.tick_hz as f64).round() as u64 {
         b.step();
@@ -2107,6 +2155,8 @@ struct Judge {
     worst: f64,
     at: String,
     refused_at: Option<u64>,
+    issued_at: Option<u64>,
+    marker: Option<V2>,
     replanned_after_refusal: bool,
     /// Distance to the goal when the unit first halted.
     halted_short: Option<f64>,
@@ -2169,7 +2219,7 @@ fn identifies(b: &Battle, side: Side, unit: u32) -> bool {
 }
 
 impl Judge {
-    fn new(kind: &CheckKind, b: &Battle) -> Self {
+    fn new(kind: &CheckKind, b: &Battle, issued_at: Option<u64>) -> Self {
         let prop = match kind {
             CheckKind::PropMoved { near, .. }
             | CheckKind::PropStays { near }
@@ -2191,6 +2241,8 @@ impl Judge {
             worst: f64::INFINITY,
             at: String::new(),
             refused_at: None,
+            issued_at,
+            marker: None,
             replanned_after_refusal: false,
             halted_short: None,
             prop,
@@ -2230,9 +2282,26 @@ impl Judge {
 
     fn watch(&mut self, kind: &CheckKind, b: &Battle) {
         match kind {
+            CheckKind::ArriveAtMarker { unit, tick, .. } => {
+                if b.tick() == *tick {
+                    self.marker = Some(
+                        b.unit(UnitId(*unit))
+                            .unwrap()
+                            .movement_goal()
+                            .expect(
+                                "every requested group member must receive a marker at issuance",
+                            )
+                            .0,
+                    );
+                }
+            }
             CheckKind::Refused { unit, .. } => {
-                let state = b.unit(UnitId(*unit)).unwrap().state;
-                if state == MoveState::RouteBlocked {
+                let mover = b.unit(UnitId(*unit)).unwrap();
+                let state = mover.state;
+                if self.issued_at.is_some_and(|tick| b.tick() >= tick)
+                    && state == MoveState::Idle
+                    && mover.movement_goal().is_none()
+                {
                     self.refused_at.get_or_insert(b.tick());
                 }
                 if self.refused_at.is_some() && state == MoveState::Planning {
@@ -2519,12 +2588,14 @@ impl Judge {
     fn verdict(self, c: &Check, b: &Battle) -> Outcome {
         let (label, passed, detail) = match &c.kind {
             CheckKind::Refused { unit, by_s } => {
-                let state = b.unit(UnitId(*unit)).unwrap().state;
+                let mover = b.unit(UnitId(*unit)).unwrap();
+                let state = mover.state;
                 (
                     format!("unit {unit} refuses an impossible order by {by_s}s"),
                     self.refused_at
                         .is_some_and(|t| t as f64 <= by_s * b.rules().tick_hz as f64)
-                        && state == MoveState::RouteBlocked
+                        && state == MoveState::Idle
+                        && mover.movement_goal().is_none()
                         && !self.replanned_after_refusal,
                     format!(
                         "refused at tick {:?}, ends {state:?}, planned again: {}",
@@ -2576,6 +2647,17 @@ impl Judge {
                     format!("unit {unit} arrives"),
                     u.state == MoveState::Idle && d <= *within_m,
                     format!("{:?}, {d:.2} m from the goal", u.state),
+                )
+            }
+            CheckKind::ArriveAtMarker { unit, within_m, .. } => {
+                let u = b.unit(UnitId(*unit)).unwrap();
+                let d = self
+                    .marker
+                    .map_or(f64::INFINITY, |goal| (u.position.xy() - goal).length());
+                (
+                    format!("unit {unit} arrives at its marker"),
+                    self.marker.is_some() && u.state == MoveState::Idle && d <= *within_m,
+                    format!("{:?}, {d:.2} m from the issued marker", u.state),
                 )
             }
             CheckKind::Spacing { min_m } => {
