@@ -63,7 +63,7 @@ during measurement in each generated arm lasting 30 seconds or more.
 
 Current pickup, in order:
 
-1. Repair the current late publication miss, then complete both contact arms.
+1. Run complete late admission on the shorter-anchor build, then refresh early.
    The portable evaluator policy is integrated: authoritative trig, bearings
    and 2D norms use the existing pinned library, preserving formulas and draw
    order. These are named native last-bit corrections, not CPU gains. The
@@ -79,12 +79,15 @@ Current pickup, in order:
    all 9,001 digests/raw records match, with a 19,388 B active maximum. Late
    state and wire match through tick 54, but that record is 21,008 B. Captured
    candidates show form selection already chooses the smallest available payload
-   there; changing selection does not repair it. The bounded next experiment
-   indexes three-word variable spans instead of eight-word anchors in the
-   existing copy owner. All 55 captured late records reconstruct exactly and
-   their maximum becomes 19,328 B. Verify the complete captured early corpus,
-   packing instructions and index-memory tradeoff before adopting it. Full
-   current late admission, heap and browser gates remain open.
+   there; changing selection does not repair it. The integrated copy owner now
+   indexes three-word variable spans. All 9,000 captured early transitions
+   reconstruct exactly with a 17,152 B maximum; the 54 captured late transitions
+   reach 19,328 B. Early encoder-only mean rises by 0.705 M instructions, and the
+   conservative requested index bound is 21⅓ MiB. The new engine `1d9d85aa…`
+   matches actual Native/Wasm state and raw wire through late tick 54, including
+   resync, side switch and real-decoder recovery. Focused codec/publication and
+   worker-boundary checks pass. Full current late admission, heap and browser
+   gates remain open.
 2. During the complete paired runs, whole-record maximum remains
    **19,800 B**, with unchanged replay, decoder and delivery contracts. Historical
    captured-codec maxima of 18,652 B early and 15,280 B partial late are controls,
