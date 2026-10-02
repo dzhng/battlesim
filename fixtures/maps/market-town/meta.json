@@ -5,7 +5,7 @@
   "character": "mixed",
   "biome": "summer",
   "size_m": [6000, 6000],
-  "tags": ["road", "forest", "building"],
+  "tags": ["road", "forest", "prop", "building"],
   "source": "generated",
   "seed": "1",
   "encounters": ["assault"],

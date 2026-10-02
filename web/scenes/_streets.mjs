@@ -126,14 +126,23 @@ export async function streetLooks(ctx) {
       country: pixels.filter((_, i) => isCountry(widths[i])),
     };
   }
-  // The street against the country road it meets is read from the town at
-  // 250 m: at one junction a block of flats can shade the whole of either.
-  const town = await frame(page, "generated", "town-250");
-  const cores = sample(town.mask, 23, (c) => c.roadSd < CORE_M);
-  const coreWidths = await wayWidths(
-    page,
-    (await groundUnder(page, cores)).map(({ xy }) => ({ xy, out: 0 })),
-  );
+  // The street against the country road is read from the town at 250 m (at
+  // one junction a block of flats can shade the whole of it) and from the
+  // plain at 250 m, where the country road is gravel: through the town it
+  // is a street itself.
+  const tones = {};
+  for (const [name, station] of [
+    ["town", "town-250"],
+    ["plain", "country-250"],
+  ]) {
+    const seen = await frame(page, "generated", station);
+    const cores = sample(seen.mask, 23, (c) => c.roadSd < CORE_M);
+    const widths = await wayWidths(
+      page,
+      (await groundUnder(page, cores)).map(({ xy }) => ({ xy, out: 0 })),
+    );
+    tones[name] = { seen, cores, widths };
+  }
   await page.close();
   // The town's buildings shade much of every street, and not the same share
   // of each group: a group is read in the sun, as the brighter half of its
@@ -157,17 +166,15 @@ export async function streetLooks(ctx) {
   const roadbed = of(groups.core.street);
   // Between tall blocks a road may be in the sun for a short stretch only:
   // each is read as its brightest tenth.
+  const toneOf = ({ seen, cores, widths }, is) =>
+    of(
+      cores.filter((_, i) => is(widths[i])),
+      seen,
+      0.1,
+    );
   const tone = {
-    roadbed: of(
-      cores.filter((_, i) => isStreet(coreWidths[i])),
-      town,
-      0.1,
-    ),
-    gravel: of(
-      cores.filter((_, i) => isCountry(coreWidths[i])),
-      town,
-      0.1,
-    ),
+    roadbed: toneOf(tones.town, isStreet),
+    gravel: toneOf(tones.plain, isCountry),
   };
   const walk = of(groups.walk.street);
   const lawn = of(groups.lawn.street);
@@ -175,7 +182,7 @@ export async function streetLooks(ctx) {
     (g) => g.count >= GROUP_PIXELS,
   );
   ctx.check(
-    "a town street is pavement: darker and greyer than the country road it meets, and never darker than the ground beside it",
+    "a town street is pavement: darker and greyer than the country road out in the plain, and never darker than the ground beside it",
     counted &&
       tone.roadbed.luminance <= 0.85 * tone.gravel.luminance &&
       tone.roadbed.warmth < tone.gravel.warmth &&
@@ -183,14 +190,18 @@ export async function streetLooks(ctx) {
     JSON.stringify({ roadbed, tone, lawn }),
   );
   // Grass is drawn over the ground it grows on: where none grows, the frame
-  // is the bare ground's.
+  // is the bare ground's. A yard's mown lawn takes its ground's colour and
+  // moves a pixel little; the walk's must move far less still.
   const grown = {
     walk: +changed(shot.shot, shot.bare, groups.walk.street).toFixed(2),
     lawn: +changed(shot.shot, shot.bare, groups.lawn.street).toFixed(2),
   };
   ctx.check(
     "a street has a walk each side: paler than its roadbed, and bare of grass",
-    counted && walk.luminance >= 1.2 * roadbed.luminance && grown.walk < 1 && grown.lawn > 2,
+    counted &&
+      walk.luminance >= 1.2 * roadbed.luminance &&
+      grown.walk < 0.2 &&
+      grown.lawn > 4 * grown.walk + 0.4,
     JSON.stringify({ walk, roadbed, grown }),
   );
   const curb = of(groups.curb.street);

@@ -31,7 +31,9 @@ a door's leaf, a chimney's stack) is folded into the shell (`Farm.place`).
 """
 import math
 import os
+import random
 import sys
+import zlib
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from kit import *  # noqa: E402,F403
@@ -40,9 +42,9 @@ from masonry import *  # noqa: E402,F403
 FAMILY = "china"
 WALL_M = 2.85  # from a house's top floor datum up to its eaves
 BYRE_SILL_M, LOFT_SILL_M = 1.3, 0.6  # a barn's small windows: high over the stalls, low under the loft's eaves
-ROW_TIERS, FOLDED_TIER = TIERS_0_TO_1, 2  # fittings are rows near; the shell keeps their far tier
+ROW_TIERS, FOLDED_TIER, FOLDED = TIERS_0_TO_1, 2, (2, 3)  # fittings are rows near; the shell keeps them at the two far tiers
 
-kit = Kit("farmsteads", "farmsteads.py", fit_side_m=0.6, fit_top_m=0.9)
+kit = Kit("farmsteads", "farmsteads.py", fit_side_m=0.6, fit_top_m=0.9, fit_ruin_top_m=0.6)
 
 
 def linear(c):
@@ -79,11 +81,13 @@ WALLS = {
     "weathered boards": textured("wall_boards_weathered", "joinery", tint=1.0, colour=in_colour("joinery", WEATHERED), dirt=0.6,
                                  chip=0.6, streak=0.35, rise=0.8, seed=4.0),
 }
+# A roof's recipe carries what is smaller than a tile; its moss and stains are its own, in soft patches (`weathered_roof`).
+ROOFING = dict(dirt=0.0, chip=0.0, streak=0.0, grain=0.0)
 ROOFS = {
-    "clay": textured("roof_clay", "roof_tile", dirt=0.0, chip=0.0, streak=0.0, lichen=0.18),
-    "brown": textured("roof_brown", "roof_tile", colour=(0.12, 0.078, 0.058), dirt=0.0, chip=0.0, streak=0.0, lichen=0.2, seed=3.0),
-    "slate": textured("roof_slate", "roof_tile", colour=(0.082, 0.086, 0.092), dirt=0.0, chip=0.0, streak=0.0, lichen=0.12, seed=6.0),
-    "stone": textured("roof_stone", "roof_tile", colour=(0.13, 0.122, 0.105), dirt=0.0, chip=0.0, streak=0.0, lichen=0.35, seed=9.0),
+    "clay": weathered_roof(textured("roof_clay", "roof_tile", **ROOFING), seed=1.0, moss=0.3),
+    "brown": weathered_roof(textured("roof_brown", "roof_tile", colour=(0.12, 0.078, 0.058), seed=3.0, **ROOFING), seed=3.0, moss=0.3),
+    "slate": weathered_roof(textured("roof_slate", "roof_slate", colour=(0.082, 0.086, 0.092), seed=6.0, **ROOFING), seed=6.0, moss=0.2),
+    "stone": weathered_roof(textured("roof_stone", "roof_slate", colour=(0.13, 0.122, 0.105), seed=9.0, **ROOFING), seed=9.0, moss=0.45),
 }
 joinery_m = textured("joinery", "joinery", tint=1.0, dirt=0.3, chip=0.6, streak=0.0)
 timber_m = textured("timber", "pallet_wood", colour=(0.05, 0.036, 0.026), dirt=0.3, chip=0.25, streak=0.2)
@@ -104,6 +108,25 @@ pot_m = flat_paint("chimney_pot", (0.3, 0.13, 0.08), rough=0.8, grime=0.0)
 straw_m = flat_paint("straw", (0.38, 0.29, 0.12), rough=0.95, grime=0.25)
 cut_m = flat_paint("log_end", (0.3, 0.21, 0.11), rough=0.9, grime=0.0)
 water_m = flat_paint("trough_water", (0.02, 0.028, 0.03), rough=0.1, grime=0.0)
+# What a fallen farm building is made of, by its wall: a farm's ruin is one row, so each heap carries its own colour.
+char_m = charred("charred_timber", ember=0.04)
+rubble_m = textured("rubble_masonry", "rubble", tint=1.0, dirt=0.0, chip=0.0, streak=0.0, ash=0.25)  # the shared heaps': a row tints them
+
+
+def rubble_of(name, colour, seed):
+    return textured(f"rubble_{name}", "rubble", colour=colour, dirt=0.0, chip=0.0, streak=0.0, ash=0.25, seed=seed)
+
+
+PLASTER_RUBBLE, ASHES = rubble_of("plaster", (0.17, 0.155, 0.13), 1.0), rubble_of("ashes", (0.045, 0.042, 0.04), 4.0)
+RUBBLE = {"cream plaster": PLASTER_RUBBLE, "straw plaster": PLASTER_RUBBLE, "whitewash": rubble_of("whitewash", (0.2, 0.195, 0.185), 2.0),
+          "brick": rubble_of("brick", (0.13, 0.068, 0.05), 3.0), "stone": rubble_of("stone", (0.15, 0.14, 0.12), 5.0),
+          "tarred boards": ASHES, "weathered boards": ASHES}
+# The shared heaps' tints (sRGB), and which walls are timber: they burn to the foot and leave less standing.
+DUST = {"cream plaster": (214, 200, 176), "straw plaster": (208, 190, 150), "whitewash": (224, 222, 214), "brick": (176, 104, 82),
+        "stone": (190, 178, 156), "tarred boards": (70, 66, 62), "weathered boards": (70, 66, 62)}
+TIMBER = ("tarred boards", "weathered boards")
+# What breaks a wall on the ground floor, for a ruin's stumps: fitting -> its opening's width.
+OPENINGS = {"window_a": 1.1, "window_a_shutters": 1.1, "window_byre": 0.9, "door_panel": 1.15, "barn_door": 2.9, "stable_door": 1.25}
 
 
 def far_paint(tint):
@@ -115,7 +138,7 @@ def far_paint(tint):
 def window_module(name, w, h, shutters=False, lights=2, frame=frame_m, sill=sill_m):
     m = kit.module(name, **FITTING)
     window(m.n("w"), (0, -0.02, h / 2), (0, -1), w, h, frame, glass_m, joinery_m if shutters else None, m.root, sill,
-           bevel=0.0, glass_lods=TIERS, lights=lights)
+           bevel=0.0, glass_lods=TIERS, lights=lights)  # (its far tiers are the shell's: `FAR_PANELS`)
 
 
 window_module("window_a", 1.0, 1.3)
@@ -146,6 +169,8 @@ stable_door(m.n("door"), *STABLE_DOOR_M, joinery_m, timber_m, m.root)
 m = kit.module("loft_door", **FITTING)
 barn_doors(m.n("doors"), *LOFT_DOOR_M, joinery_m, timber_m, m.root, hoist=0.55)
 
+wreckage(kit, rubble_m, char_m)
+
 # What stands about a farm, each against a wall or under a roof.
 BALES = dict(across=3, high=3)
 m = kit.module("cart", ground=True, **FITTING)
@@ -164,8 +189,8 @@ water_butt(m.n("butt"), cart_m, iron_m, water_m, m.root)
 # and boxes as (size, centre, material).
 STABLE_LEAF_M = STABLE_DOOR_M[1] * 0.55
 FAR_PANELS = {
-    "window_a": [(1.0, 1.3, 0.0, glass_m)],
-    "window_a_shutters": [(1.0, 1.3, 0.0, glass_m)],
+    "window_a": window_far(1.0, 1.3, glass_m, sill_m),
+    "window_a_shutters": window_far(1.0, 1.3, glass_m, sill_m, "tint"),
     "window_byre": [(0.8, 0.6, 0.0, glass_m)],
     "door_panel": [(0.95, 2.05, 0.0, "tint")],
     "barn_door": [(*BARN_DOOR_M, 0.0, "tint")],
@@ -174,7 +199,7 @@ FAR_PANELS = {
     "loft_door": [(*LOFT_DOOR_M, 0.0, "tint")],
 }
 FAR_BOXES = {
-    "chimney_brick": [((1.05, 0.6, CHIMNEY_M), (0, 0, CHIMNEY_M / 2), stack_m)],
+    "chimney_brick": [((1.05, 0.6, CHIMNEY_M), (0, 0, CHIMNEY_M / 2), coping_m)],  # from above a chimney is its cap
     "bales": [((2.85, 0.48, 1.0), (0, -0.27, 0.5), straw_m)],
 }
 
@@ -189,7 +214,7 @@ class Farm:
     def __init__(self, id_, tag, recipe):
         self.t = kit.template(id_, "farmstead", FAMILY, recipe)
         self.m = kit.module(f"{tag}_shell", ground=True, paint_scale=4.0)
-        self.panels, self.boxes = {}, 0
+        self.far, self.built, self.framed = [], {}, set()  # (`framed`: parts whose walls are timber-framed)
 
     def __getattr__(self, name):  # the template's own: parts, floors, lattices, bays, entrances
         return getattr(self.t, name)
@@ -201,14 +226,7 @@ class Farm:
         if tiers & ROW_TIERS:
             self.t.place(module, x, y, z, yaw, tiers=tiers & ROW_TIERS, tint=tint, **row)
         if tiers >> FOLDED_TIER & 1:
-            for w, h, foot, paint in FAR_PANELS.get(module, ()):
-                mat = far_paint(tint) if paint == "tint" else paint
-                self.panels.setdefault(mat.name, (mat, []))[1].append((x, y, z + foot, yaw, w, h))
-            c, s = math.cos(yaw), math.sin(yaw)
-            for size, (cx, cy, cz), mat in FAR_BOXES.get(module, ()):
-                box(self.m.n(f"far_{self.boxes}"), size, (x + cx * c - cy * s, y + cx * s + cy * c, z + cz), mat, self.m.root,
-                    rot=(0, 0, yaw), lods=(FOLDED_TIER,))
-                self.boxes += 1
+            self.far.append((module, x, y, z, yaw, *row.get("scale", (1.0, 1.0, 1.0)), tiers, *tint))
 
     def building(self, part, centre, size, eave, rise, along, hips, wall, roof, plinth=(plinth_m, 0.4)):
         """A building under a pitched roof: its part, and its walls, roof and plinth in the shell. Its roof's shape."""
@@ -217,6 +235,7 @@ class Farm:
         house_shell(self.m.n(part), shape, WALLS[wall], ROOFS[roof], trim_m, self.m.root, plinth=(x0, x1, y0, y1) if plinth else None,
                     plinth_mat=plinth and plinth[0], plinth_m=plinth and plinth[1])
         self.t.part(part, x0, x1, y0, y1, shape.ridge)
+        self.built[part] = (wall, roof)
         return shape
 
     def bays_of(self, part, **lattice):
@@ -252,12 +271,37 @@ class Farm:
         self.t.entrance(edge, offset)
         self.hang(edge, 0.0, tint, barn_door=(offset,))
 
-    def done(self):
-        """Fold the far panels into the shell and stand it on the template."""
-        for name in sorted(self.panels):
-            mat, panels = self.panels[name]
-            wall_panels(self.m.n("far_" + name), panels, mat, self.m.root, lods=(FOLDED_TIER,))
+    def done(self, open_sides=None):
+        """Fold the far panels into the shell and stand it on the template; then its ruin: one
+        module holding every building's stumps and heap in its own materials, with the set's
+        wreckage lying on it. `open_sides` names sides that never had a wall (part -> sides)."""
+        fold_far(self.m, self.far, FAR_PANELS, FAR_BOXES, far_paint, FOLDED)
         self.t.place(self.m.name)
+        t = self.t
+        m = kit.module(self.m.name.replace("_shell", "_ruin"), ground=True, **RUIN)
+        high, over, seed = t.ruin_height(), kit.fit["ruin_top_m"], zlib.crc32(t.id.encode()) % 997
+        for k, p in enumerate(t.parts):
+            wall, roof = self.built[p["id"]]
+            timber = wall in TIMBER
+            rect = (p["x0"], p["x1"], p["y0"], p["y1"])
+            sides = {side: v for side, v in ruin_sides(t, p["id"], OPENINGS).items() if side not in (open_sides or {}).get(p["id"], ())}
+            stacks = [(x, y, (1.05, 0.6), stack_m) for module, x, y, *_ in t.rows["intact"]
+                      if module == "chimney_brick" and rect[0] < x < rect[1] and rect[2] < y < rect[3]]
+            # a boarded wall burns to the foot and stands in lengths of board between its posts, not in courses
+            boarded = dict(level=0.8, charred=0.7, thick=0.12, run=(1.2, 2.6), jagged=2.5) if timber else {}
+            ruin = ruin_block(m, p["id"], rect, high, over, sides, WALLS[wall], ROOFS[roof], RUBBLE[wall], seed + 17 * k, stacks=stacks,
+                              coarse=18, **boarded)
+            if timber or p["id"] in self.framed:  # the frame's posts stand charred when the walls between them are gone
+                rng = random.Random(seed + 91 * k)
+                crest = ruin.height + over - 0.06
+                for side in sorted(sides):
+                    a0, a1, fixed, along_x = wall_line(rect, side, 0.1)
+                    for i in range(int((a1 - a0) // 3) + 1):
+                        at, tall = min(max(a0 + 3.0 * i, a0 + 0.1), a1 - 0.1), rng.uniform(0.5, 1.0) * crest
+                        box(m.n(f"{p['id']}_post_{side}_{i}"), (0.2, 0.2, tall), (at, fixed, tall / 2) if along_x else (fixed, at, tall / 2),
+                            char_m, m.root, lods=(0, 1))
+            litter(t, ruin, DUST[wall], beams=8 if timber or p["id"] in self.framed else 4, heaps=4, level=1.0)
+        t.place(m.name, state="ruin")
 
 
 # ---------------------------------------------------------------- the yard farm
@@ -287,6 +331,7 @@ for s in (-1, 1):
 box(m.n("shed_beam"), (9 - 2 * THICK, 0.2, 0.24), (SX, SY - 2.9, HIGH - 0.2), timber_m, m.root, lods=(0, 1, 2))
 pitched_roof(m.n("shed_roof"), shed, ROOFS["slate"], trim_m, m.root)
 farm.part("shed", SX - 4.5, SX + 4.5, SY - 3, SY + 3, shed.top)
+farm.built["shed"] = ("weathered boards", "slate")
 farm.floors(0.0, 3.0)
 
 farm.bays_of("house", south=1.5, north=1.5, east=0.0, west=0.0)
@@ -306,6 +351,7 @@ framing = dict(posts=dict(a0=(6.5, 9.5, 12.5, 15.5), a1=(6.5, 9.5, 12.5, 15.5), 
                openings=dict(a0=[(11 - half_door, 11 + half_door, 3.5)],
                              b0=[(-half_door, half_door, 3.5), (-6.7, -5.3, 2.3), (5.3, 6.7, 2.3)]),
                foot=0.6, rail=2.55)
+farm.framed.add("barn")
 fm = kit.module("farm_yard_barn_frame", ground=True, **FITTING)
 timber_frame(fm.n("frame"), barn, timber_m, fm.root, **framing)
 farm.t.place(fm.name, tiers=ROW_TIERS)
@@ -328,7 +374,7 @@ farm.place("cart", SX - 3.0, SY + 0.3, tiers=ROW_TIERS)
 farm.place("woodpile", SX, back, tiers=ROW_TIERS)
 farm.place("bales", SX + 3.0, back, tiers=TIERS_0_TO_2)
 farm.place("bales", SX + 3.0, back - 0.5, tiers=TIERS_0_TO_2)
-farm.done()
+farm.done(open_sides={"shed": ("south",)})
 
 # ---------------------------------------------------------------- the long farm
 # A low whitewashed longhouse under a half-hipped slate roof, and behind it, across a

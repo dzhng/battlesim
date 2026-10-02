@@ -32,8 +32,12 @@ pub struct PresetDefinitions {
     /// is a mosaic of single-use districts, not a blend on every block.
     pub districts: BTreeMap<String, DistrictPreset>,
     pub parcels: Parcels,
+    /// What stands in the streets, yards and open parcels of a built town.
+    pub street_props: StreetProps,
     pub classes: BTreeMap<String, SettlementClass>,
     pub types: BTreeMap<MapType, TypePreset>,
+    /// What stands between the settlements and the woods (M24).
+    pub open_country: crate::open_country::Rules,
 }
 
 /// The plan header the compiler and the battle read; flat ground has no more.
@@ -359,6 +363,140 @@ pub struct DistrictPreset {
     pub ground_m: [f64; 2],
     pub streets: StreetPattern,
     pub lots: LotRule,
+    /// What stands in its streets and yards; absent is bare streets.
+    #[serde(default)]
+    pub props: DistrictProps,
+}
+
+/// One district kind's street furniture: how much of each body, by the
+/// length of kerb or by the parcel. The bodies themselves, and the room each
+/// keeps, are `street_props`.
+#[derive(Clone, Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DistrictProps {
+    /// The share of a street's kerb, on a side cars park along, that parked
+    /// cars stand beside; 0 is none.
+    #[serde(default)]
+    pub parking: f64,
+    /// Bodies on the verge, placed in this order.
+    #[serde(default)]
+    pub verge: Vec<VergeRow>,
+    /// Bodies beside each building, on its own parcel.
+    #[serde(default)]
+    pub yard: Vec<CountRow>,
+    /// The chance a parcel the parcel pass left open is a construction site.
+    #[serde(default)]
+    pub site_chance: f64,
+}
+
+/// One kind of body along a district's verges.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct VergeRow {
+    /// A row of `street_props.bodies`.
+    pub kind: String,
+    /// One every this many metres of carriageway.
+    pub spacing_m: f64,
+    pub sides: VergeSides,
+    /// Only beside a carriageway at least an avenue wide.
+    #[serde(default)]
+    pub avenue: bool,
+}
+
+/// Which side of the carriageway a verge row's bodies stand on.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum VergeSides {
+    /// Evenly spaced, each on the other side from the one before.
+    Alternate,
+    /// Evenly spaced, one on each side.
+    Both,
+    /// That many to the length, each at a drawn place on a drawn side.
+    Scatter,
+}
+
+/// A body kind and how many of it: an inclusive range a seed draws from.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CountRow {
+    pub kind: String,
+    pub count: [u32; 2],
+}
+
+/// Street furniture (C46): the bodies a built town's streets, yards and
+/// open parcels are dressed with, as prop types of the catalog. Every body
+/// goes through one legality check, so these rows are the whole of a kind.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct StreetProps {
+    /// No body stands nearer a carriageway's middle than the catalog's
+    /// widest hull plus this. A vehicle keeps to the right of the middle,
+    /// and the simulation checks its lane on a 2 m grid: a body that stops
+    /// it, standing nearer than this, can close the road to it.
+    pub lane_margin_m: f64,
+    /// No body stands on a carriageway, nor within this of its edge.
+    pub kerb_gap_m: f64,
+    /// Open ground between a body and a building's wall: a soldier passes.
+    pub wall_gap_m: f64,
+    /// Kept clear either side of a door's line to the street.
+    pub door_clear_m: f64,
+    /// No body beside a carriageway stands within this of another
+    /// carriageway's edge: a junction's corners stay open.
+    pub corner_clear_m: f64,
+    /// How far along its street a body is moved to find legal ground, and
+    /// by what step.
+    pub slide_m: f64,
+    pub slide_step_m: f64,
+    /// Places tried for a body that has no street to slide along.
+    pub attempts: u32,
+    /// Each kind that may be placed: its box, and the ground it keeps.
+    pub bodies: BTreeMap<String, PropBox>,
+    pub parking: Parking,
+    pub site: ConstructionSite,
+}
+
+/// A placed body's box, and the open ground kept round it.
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PropBox {
+    /// Half its length, width and height.
+    pub half_extents_m: [f64; 3],
+    /// No other body stands within this of it.
+    pub clear_m: f64,
+}
+
+/// Cars parked along a street, in runs.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Parking {
+    pub kind: String,
+    /// Cars in one run.
+    pub run: [u32; 2],
+    /// Between two cars of a run: no way through for a soldier.
+    pub bumper_gap_m: f64,
+    /// The least gap between two runs: a squad passes.
+    pub run_gap_m: f64,
+    /// A carriageway at least this wide parks along both sides; a narrower
+    /// one along one side, drawn for the whole street.
+    pub both_sides_min_width_m: f64,
+}
+
+/// A construction site on a parcel left open: a cabin, a fence round the
+/// parcel with a gate on the street, and loose stock inside.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ConstructionSite {
+    /// The most sites one settlement has.
+    pub max_per_settlement: u32,
+    /// The least parcel a site fits: along the street, and deep.
+    pub min_lot_m: [f64; 2],
+    pub cabin: String,
+    pub fence: String,
+    /// From the parcel's edge in to its fence.
+    pub fence_inset_m: f64,
+    /// The opening left in the fence on the street side.
+    pub gate_m: f64,
+    pub stock: Vec<CountRow>,
 }
 
 /// A district's streets are a grid in its own frame: long streets
@@ -773,6 +911,9 @@ impl PresetDefinitions {
             "parcels".into(),
             "parcels need a regional family, a prop type, a street width and positive steps",
         );
+        for (field, message) in self.open_country.errors(self.wood_floor_m2()) {
+            check(false, format!("open_country.{field}"), message);
+        }
         for (id, district) in &self.districts {
             let mix = &district.mix;
             check(
@@ -814,7 +955,71 @@ impl PresetDefinitions {
                 format!("districts.{id}.lots"),
                 "setbacks and aprons are nonnegative metres and coverage a share above 0",
             );
+            let props = &district.props;
+            let known = |kind: &String| self.street_props.bodies.contains_key(kind);
+            check(
+                (0.0..1.0).contains(&props.parking)
+                    && (0.0..=1.0).contains(&props.site_chance)
+                    && props
+                        .verge
+                        .iter()
+                        .all(|row| known(&row.kind) && positive(row.spacing_m))
+                    && props
+                        .yard
+                        .iter()
+                        .all(|row| known(&row.kind) && row.count[0] <= row.count[1]),
+                format!("districts.{id}.props"),
+                "street furniture names bodies of street_props, by a parking share below 1, positive spacings, ordered counts and a site chance",
+            );
         }
+        let s = &self.street_props;
+        check(
+            length(s.lane_margin_m)
+                && length(s.kerb_gap_m)
+                && length(s.wall_gap_m)
+                && length(s.door_clear_m)
+                && length(s.corner_clear_m)
+                && length(s.slide_m)
+                && positive(s.slide_step_m)
+                && s.attempts > 0,
+            "street_props".into(),
+            "street furniture needs nonnegative margins, a positive slide step and at least one attempt",
+        );
+        for (kind, body) in &s.bodies {
+            check(
+                !kind.is_empty()
+                    && body.half_extents_m.iter().all(|v| positive(*v))
+                    && length(body.clear_m),
+                format!("street_props.bodies.{kind}"),
+                "a body is a positive box and a nonnegative clearance",
+            );
+        }
+        let parking = &s.parking;
+        check(
+            s.bodies.contains_key(&parking.kind)
+                && parking.run[0] >= 1
+                && parking.run[0] <= parking.run[1]
+                && length(parking.bumper_gap_m)
+                && parking.run_gap_m.is_finite()
+                && parking.run_gap_m > parking.bumper_gap_m
+                && length(parking.both_sides_min_width_m),
+            "street_props.parking".into(),
+            "parking names a body, an ordered run of one car or more, a gap between runs wider than between bumpers, and a width that parks both sides",
+        );
+        let site = &s.site;
+        check(
+            s.bodies.contains_key(&site.cabin)
+                && s.bodies.contains_key(&site.fence)
+                && site.min_lot_m.iter().all(|v| positive(*v))
+                && length(site.fence_inset_m)
+                && positive(site.gate_m)
+                && site
+                    .stock
+                    .iter()
+                    .all(|row| s.bodies.contains_key(&row.kind) && row.count[0] <= row.count[1]),
+            "street_props.site".into(),
+            "a construction site names bodies for its cabin, fence and stock, a least parcel, a fence inset and a gate",
+        );
         for (id, class) in &self.classes {
             let at = |field: &str| format!("classes.{id}.{field}");
             let size_ok = match (class.area_ha, class.area_share) {
@@ -1018,6 +1223,12 @@ impl PresetDefinitions {
             .max(self.roads.country_road_width_m)
             / 2.0
             + self.parcels.verge_m
+    }
+
+    /// The smallest wood the layout stands: anything smaller is a copse or
+    /// a tree of the open country.
+    pub fn wood_floor_m2(&self) -> f64 {
+        core::f64::consts::PI * self.forests.min_radius_m * self.forests.min_radius_m
     }
 
     pub fn class(&self, id: &str) -> &SettlementClass {

@@ -6,6 +6,7 @@ import type { Vec3 } from "math";
 import type { BakeContext } from "@packages/scene-assets/src/bake.ts";
 import type { Catalog } from "@packages/scene-assets/src/schema.ts";
 import type {
+  TemplateCatalogue,
   TemplateDescriptor,
   TemplatePart,
   TemplateSetSource,
@@ -17,6 +18,8 @@ import { AUTHORITY, GltfBuilder, TOLERANCES, gBox } from "./synthetic";
 export const KIT = "city_kit_test";
 export const KIT_SOURCE = "assets/source/city/test/kit.glb";
 export const SET_SOURCE = "assets/source/city/test/templates.json";
+/** The name the test set gives its physical catalogue. */
+export const CATALOGUE = "towns";
 
 /** A module's geometry in its own frame: boxes, each in one tier or (null) in all. */
 export interface ModuleSpec {
@@ -122,6 +125,15 @@ export const shellRow = (part: TemplatePart, tint: Vec3 = [200, 180, 160]): numb
     tint,
   );
 
+/** The remains of a part: its plan as a shell `height` tall (the test rule's ruin is 2 m). */
+export const ruinRow = (part: TemplatePart, height = 2): number[] =>
+  row(
+    0,
+    [part.center[0], part.center[1], part.base_z],
+    [2 * part.half_extents[0], 2 * part.half_extents[1], height],
+    part.yaw,
+  );
+
 export const HOUSE = descriptor("test-house");
 export const YARD = descriptor("test-yard", [
   { id: "house", center: [-10, 0], half: [5, 4, 3] },
@@ -129,7 +141,8 @@ export const YARD = descriptor("test-yard", [
 ]);
 
 /** A set that dresses HOUSE (its shell, and a sill on its south wall) and
- *  YARD (a shell per part), within a 0.5 m side and 1 m top fit. */
+ *  YARD (a shell per part), within a 0.5 m side and 1 m top fit, each with
+ *  its remains as its ruin. */
 export function testSet(edit: (set: TemplateSetSource) => void = () => {}): TemplateSetSource {
   const set: TemplateSetSource = {
     set: "test",
@@ -141,12 +154,18 @@ export function testSet(edit: (set: TemplateSetSource) => void = () => {}): Temp
       {
         status: "release",
         descriptor: structuredClone(HOUSE),
-        states: { intact: [shellRow(HOUSE.parts[0]), row(1, [2, -4, 1.2])] },
+        states: {
+          intact: [shellRow(HOUSE.parts[0]), row(1, [2, -4, 1.2])],
+          ruin: [ruinRow(HOUSE.parts[0])],
+        },
       },
       {
         status: "prototype",
         descriptor: structuredClone(YARD),
-        states: { intact: YARD.parts.map((part) => shellRow(part)) },
+        states: {
+          intact: YARD.parts.map((part) => shellRow(part)),
+          ruin: YARD.parts.map((part) => ruinRow(part)),
+        },
       },
     ],
   };
@@ -164,7 +183,7 @@ export function cityCatalog(): Catalog {
     sides: { blue: [1, 1, 1], red: [1, 1, 1] },
     skeletons: {},
     appearances: { [KIT]: { unit: "kit", source: KIT_SOURCE, basis_yaw_deg: 0 } },
-    city_sets: { test: { templates: SET_SOURCE, kit: KIT } },
+    city_sets: { test: { templates: SET_SOURCE, kit: KIT, catalogue: CATALOGUE } },
   };
 }
 
@@ -185,8 +204,15 @@ const NO_UNITS = new UnitCatalog({
   units: [],
 });
 
-/** The bake's context for a physical catalogue of `rows` (the set's own by default). */
-export const cityContext = (rows: unknown[] = [HOUSE, YARD]): BakeContext => ({
+/** The bake's context for one physical catalogue of complete buildings, `rows`
+ *  (the set's own by default), and any `others`. */
+export const cityContext = (
+  rows: unknown[] = [HOUSE, YARD],
+  others: TemplateCatalogue[] = [],
+): BakeContext => ({
   authority: { ...AUTHORITY, units: NO_UNITS },
-  templates: { catalogue: rows, physical: physicalTemplates() },
+  templates: {
+    catalogues: [{ name: CATALOGUE, rows, complete: true }, ...others],
+    physical: physicalTemplates(),
+  },
 });

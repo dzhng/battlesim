@@ -1,7 +1,8 @@
 // City template sets, as their sources say them (`blender/city/README.md`):
 // reading a set's `templates.json`, holding it to its kit, to the physical
-// contract and to the catalogue the map generator reads, and packing every
-// set into the one template art library (`templateLibrary.ts`).
+// contract and to the physical catalogue it dresses (the map generator's, or
+// the authored maps'), and packing every set into the one template art
+// library (`templateLibrary.ts`).
 //
 // Isomorphic and Blender-free: the caller supplies bytes, the baked kits and
 // the physical contract. What a legal physical template is, and what the
@@ -14,6 +15,7 @@ import { positionsBounds } from "./pose.ts";
 import {
   TIER_COUNT,
   type Bounds,
+  type BuildingCollapse,
   type CitySetEntry,
   type Finding,
   type StaticBundle,
@@ -56,7 +58,10 @@ export const SOURCE_ROW_NUMBERS = 12;
 export interface TemplateSetSource {
   set: string;
   kit: string;
-  fit: { side_m: number; top_m: number };
+  /** How far art may reach past a part: `side_m` on its four sides and
+   *  `top_m` above it; `ruin_top_m` (0 when absent) above the remains a
+   *  collapsed part leaves, for the jagged tops of broken walls. */
+  fit: { side_m: number; top_m: number; ruin_top_m?: number };
   source?: unknown;
   modules: string[];
   templates: {
@@ -67,11 +72,33 @@ export interface TemplateSetSource {
   }[];
 }
 
-/** The physical template contract, as its own code judges it. */
+/** A canonical physical catalogue: its identity and its rows in id order. */
+export interface AdmittedTemplates {
+  hash: string;
+  templates: TemplateDescriptor[];
+}
+
+/** The physical template contract, as its own code judges it. Each throws
+ *  the contract's refusal. */
 export interface PhysicalTemplates {
-  /** The canonical catalogue of `descriptors`, each a complete building
-   *  (`require_complete`); throws the contract's refusal. */
-  complete(descriptors: readonly unknown[]): { hash: string; templates: TemplateDescriptor[] };
+  /** The canonical catalogue of `descriptors`, each a valid physical template
+   *  (`validate`): its floors, entrances and bays may be unresolved. */
+  valid(descriptors: readonly unknown[]): AdmittedTemplates;
+  /** The same, each a complete building as well (`require_complete`). */
+  complete(descriptors: readonly unknown[]): AdmittedTemplates;
+}
+
+/** A physical catalogue the sets dress: every row of it has art in exactly
+ *  one set that names it, and every descriptor of such a set is a row of it. */
+export interface TemplateCatalogue {
+  /** What a set calls it (`city_sets.<set>.catalogue`). */
+  name: string;
+  /** Its rows: the descriptors a map of it may place. */
+  rows: readonly unknown[];
+  /** Whether every row is a complete building. The map generator's are: it
+   *  places them by their entrances and bays. An authored map's solid boxes
+   *  are not. */
+  complete: boolean;
 }
 
 /** Triangles a template is budgeted to draw at each tier, finest first. The
@@ -125,9 +152,14 @@ export function readTemplateSet(
   const fit = json.fit;
   if (
     !isRecord(fit) ||
-    ![fit.side_m, fit.top_m].every((v) => typeof v === "number" && Number.isFinite(v) && v >= 0)
+    ![fit.side_m, fit.top_m, fit.ruin_top_m ?? 0].every(
+      (v) => typeof v === "number" && Number.isFinite(v) && v >= 0,
+    )
   )
-    add("templates.source", `"fit" must be { side_m, top_m }, each zero or more metres`);
+    add(
+      "templates.source",
+      `"fit" must be { side_m, top_m } and perhaps ruin_top_m, each zero or more metres`,
+    );
   const modules = json.modules as unknown[];
   for (const [i, module] of modules.entries())
     if (typeof module !== "string" || !MODULE_ID.test(module) || modules.indexOf(module) !== i)
@@ -229,7 +261,7 @@ interface Allowed {
 
 const allowedParts = (
   parts: readonly TemplatePart[],
-  fit: TemplateSetSource["fit"],
+  fit: { side_m: number; top_m: number },
   groundM: number,
 ): Allowed[] =>
   parts.map((p) => ({
@@ -271,7 +303,7 @@ export function fitExcess(
   rows: readonly number[][],
   moduleOf: (index: number) => StaticBundle["states"][number] | undefined,
   parts: readonly TemplatePart[],
-  fit: TemplateSetSource["fit"],
+  fit: { side_m: number; top_m: number },
   groundM: number,
 ): FitExcess[] {
   const allowed = allowedParts(parts, fit, groundM);
@@ -330,6 +362,35 @@ export function fitExcess(
   return out.sort((a, b) => b.excess_m - a.excess_m || a.row - b.row);
 }
 
+// ---------------------------------------------------------------- damage states
+
+/** How many floors a template has, as the simulation counts them. */
+const floorCount = (descriptor: TemplateDescriptor): number =>
+  Array.isArray(descriptor.floor_heights_m) ? descriptor.floor_heights_m.length : 1;
+
+/** The state a destroyed template is known in: a building of the rule's
+ *  `max_floors` or fewer collapses to a ruin; a taller one stands gutted. */
+export const damageState = (
+  descriptor: TemplateDescriptor,
+  rule: BuildingCollapse,
+): "ruin" | "gutted" => (floorCount(descriptor) <= rule.max_floors ? "ruin" : "gutted");
+
+/** How tall the remains of a collapsed template's parts are: the rule's
+ *  fraction of the building's height (its highest part's top), between the
+ *  rule's least and most. Every part falls to the one height. */
+export function ruinHeight(parts: readonly TemplatePart[], rule: BuildingCollapse): number {
+  const height = parts.reduce((top, p) => Math.max(top, p.base_z + 2 * p.half_extents[2]), 0);
+  return Math.min(Math.max(height * rule.height_fraction, rule.min_height_m), rule.max_height_m);
+}
+
+/** The remains a collapsed template leaves: each part's plan, from its own
+ *  base to the ruin height. A ruin state is held to these, as the standing
+ *  states are to the parts. */
+export function ruinParts(parts: readonly TemplatePart[], rule: BuildingCollapse): TemplatePart[] {
+  const half = ruinHeight(parts, rule) / 2;
+  return parts.map((p) => ({ ...p, half_extents: [p.half_extents[0], p.half_extents[1], half] }));
+}
+
 // ---------------------------------------------------------------- packing
 
 /** One catalog set, as the bake hands it over. */
@@ -353,6 +414,8 @@ export interface TemplateLibraryStats {
     rows: number;
     /** Triangles its intact rows draw at each tier, finest first. */
     triangles: number[];
+    /** Its damage state, and what that draws; absent while it has none. */
+    damage?: { state: TemplateState; rows: number; triangles: number[] };
   }[];
   rows: number;
   modules: number;
@@ -369,27 +432,33 @@ export interface PackedTemplates {
 const fmt = (n: number) => n.toFixed(3);
 
 /**
- * Hold every set to its kit, the physical contract and the catalogue, and
- * pack them all into one library. `catalogue` is the physical catalogue's
- * rows (the descriptors the map generator reads): every one of them is
- * dressed by exactly one set, and every set's descriptor is a row of it.
+ * Hold every set to its kit, the physical contract and its catalogue, and
+ * pack them all into one library. Every row of every catalogue is dressed by
+ * exactly one set, and every set's descriptor is a row of the catalogue the
+ * set names. A template is known by its id alone, so no two catalogues share
+ * one. `collapse` is the simulation's rule for a destroyed building: it names
+ * the one damage state a template has, and the remains a ruin is held to.
  * Deterministic: sets in name order, templates in id order, rows as written.
  */
 export function packTemplateSets(
   inputs: readonly TemplateSetInput[],
-  catalogue: readonly unknown[],
+  catalogues: readonly TemplateCatalogue[],
   physical: PhysicalTemplates,
   groundM: number,
+  collapse: BuildingCollapse,
 ): PackedTemplates {
   const findings: Finding[] = [];
+  const admit = (catalogue: TemplateCatalogue, rows: readonly unknown[]) =>
+    catalogue.complete ? physical.complete(rows) : physical.valid(rows);
   const kits = [...new Set(inputs.flatMap((i) => (i.kit ? [i.entry.kit] : [])))].sort();
   const kitHash = new Map(inputs.flatMap((i) => (i.kit ? [[i.entry.kit, i.kit.hash]] : [])));
   const modules: TemplateArtLibrary["modules"] = [];
   const moduleSlot = new Map<string, number>();
   const packed: { art: TemplateArt; rows: Partial<Record<TemplateState, number[][]>> }[] = [];
   const stats: TemplateLibraryStats["templates"] = [];
-  /** Canonical descriptors by id, with the sets that dress each. */
-  const dressed = new Map<string, { sets: string[]; canonical: string }>();
+  /** Canonical descriptors by id, with the sets that dress each and the
+   *  catalogue the first of them names. */
+  const dressed = new Map<string, { sets: string[]; canonical: string; catalogue: string }>();
   let unread = false;
 
   for (const input of [...inputs].sort((a, b) => (a.name < b.name ? -1 : 1))) {
@@ -431,26 +500,59 @@ export function packTemplateSets(
       }
       return slot;
     });
-    // A set with a malformed row or template is judged no further.
-    if (read.findings.length) continue;
+    const catalogue = catalogues.find((c) => c.name === input.entry.catalogue);
+    if (!catalogue) {
+      add(
+        "templates.catalogue",
+        `the catalog lists set "${input.name}" on catalogue "${input.entry.catalogue}", which is not one of ${catalogues.map((c) => c.name).join(", ")}`,
+        "name the physical catalogue the set's templates are rows of in its city_sets entry",
+      );
+      unread = true;
+    }
+    // A set with a malformed row or template, or no catalogue, is judged no further.
+    if (read.findings.length || !catalogue) continue;
     for (const template of set.templates) {
       const id = template.descriptor.id;
       let canonical: TemplateDescriptor | null = null;
       try {
-        canonical = physical.complete([template.descriptor]).templates[0];
+        canonical = admit(catalogue, [template.descriptor]).templates[0];
       } catch (e) {
         add(
           "templates.physical",
           `template ${id} is not a physical template a map may place: ${(e as Error).message}`,
-          "fix the descriptor the script writes; contract::templates::require_complete is the rule",
+          `fix the descriptor the script writes; contract::templates::${catalogue.complete ? "require_complete" : "validate"} is the rule`,
         );
       }
       if (canonical) {
-        const entry = dressed.get(id) ?? { sets: [], canonical: JSON.stringify(canonical) };
+        const entry = dressed.get(id) ?? {
+          sets: [],
+          canonical: JSON.stringify(canonical),
+          catalogue: catalogue.name,
+        };
         entry.sets.push(input.name);
         dressed.set(id, entry);
       }
-      const triangles = Array.from({ length: TIER_COUNT }, () => 0);
+      const drawn = new Map<TemplateState, number[]>();
+      if (canonical) {
+        // Destroyed, a template is known in exactly one state: the one its floors call for.
+        const ends = damageState(canonical, collapse);
+        const other = ends === "ruin" ? "gutted" : "ruin";
+        const what = `template ${id} (${floorCount(canonical)} floors) ${ends === "ruin" ? "collapses" : "stands gutted"}`;
+        if (!template.states[ends]?.length)
+          add(
+            "templates.state",
+            `${what}, and has no "${ends}" rows`,
+            ends === "ruin"
+              ? "give it the rows of its remains: the same plan, broken down to the ruin height"
+              : "give it the rows of its burnt shell, standing at full height",
+          );
+        if (template.states[other])
+          add(
+            "templates.state",
+            `${what}, and has "${other}" rows`,
+            `drop its "${other}" state: a building of more than ${collapse.max_floors} floors stands gutted, and any other collapses`,
+          );
+      }
       for (const state of TEMPLATE_STATES) {
         const rows = template.states[state];
         if (!rows) continue;
@@ -468,21 +570,38 @@ export function packTemplateSets(
         if (!input.kit) continue;
         const moduleOf = (index: number) => kitStates.get(set.modules[index]);
         if (canonical) {
-          const [worst, ...more] = fitExcess(rows, moduleOf, canonical.parts, set.fit, groundM);
+          // A ruin is held to the remains the simulation leaves; a standing state to the parts.
+          const fallen = state === "ruin";
+          const top = fallen ? (set.fit.ruin_top_m ?? 0) : set.fit.top_m;
+          const parts = fallen ? ruinParts(canonical.parts, collapse) : canonical.parts;
+          const [worst, ...more] = fitExcess(
+            rows,
+            moduleOf,
+            parts,
+            { side_m: set.fit.side_m, top_m: top },
+            groundM,
+          );
+          const held = fallen
+            ? `part "${worst?.part}" at its ruin height (${fmt(ruinHeight(canonical.parts, collapse))} m), grown by the set's fit (side ${set.fit.side_m} m, ruin top ${top} m)`
+            : `part "${worst?.part}" grown by the set's fit (side ${set.fit.side_m} m, top ${top} m)`;
           if (worst)
             add(
               "templates.fit",
-              `template ${id} ${state}: row ${worst.row} (module "${set.modules[rows[worst.row][0]]}") reaches [${worst.at.map(fmt).join(", ")}], ${fmt(worst.excess_m)} m outside part "${worst.part}" grown by the set's fit (side ${set.fit.side_m} m, top ${set.fit.top_m} m)${more.length ? `; ${more.length} more row(s) reach out` : ""}`,
-              "keep the art on its parts: move the row, or change the descriptor it is made to; widen the set's fit only for what a real building overhangs",
+              `template ${id} ${state}: row ${worst.row} (module "${set.modules[rows[worst.row][0]]}") reaches [${worst.at.map(fmt).join(", ")}], ${fmt(worst.excess_m)} m outside ${held}${more.length ? `; ${more.length} more row(s) reach out` : ""}`,
+              fallen
+                ? "keep a ruin inside the remains the simulation leaves: lower the row, or give the set's fit a ruin_top_m for the jagged tops of broken walls"
+                : "keep the art on its parts: move the row, or change the descriptor it is made to; widen the set's fit only for what a real building overhangs",
             );
         }
-        if (state !== "intact") continue;
+        const triangles = Array.from({ length: TIER_COUNT }, () => 0);
         for (const row of rows) {
           const module = moduleOf(row[0]);
           for (let t = 0; module && t < TIER_COUNT; t++)
             if (row[8] & (1 << t)) triangles[t] += triangleCount(module.tiers[t]);
         }
+        drawn.set(state, triangles);
       }
+      const damaged = TEMPLATE_STATES.find((state) => state !== "intact" && drawn.has(state));
       packed.push({
         art: { id, set: input.name, status: template.status, states: {} },
         rows: Object.fromEntries(
@@ -497,55 +616,88 @@ export function packTemplateSets(
         set: input.name,
         status: template.status,
         rows: template.states.intact?.length ?? 0,
-        triangles,
+        triangles: drawn.get("intact") ?? Array.from({ length: TIER_COUNT }, () => 0),
+        ...(damaged
+          ? {
+              damage: {
+                state: damaged,
+                rows: template.states[damaged]!.length,
+                triangles: drawn.get(damaged)!,
+              },
+            }
+          : {}),
       });
     }
   }
 
-  // The catalogue and the sets, one against the other.
-  let covers: string | null = null;
-  try {
-    const admitted = physical.complete(catalogue);
-    covers = admitted.hash;
+  // Each catalogue and its sets, one against the other.
+  const covers: string[] = [];
+  /** Per template id: the catalogue that has it. */
+  const home = new Map<string, string>();
+  for (const catalogue of [...catalogues].sort((a, b) => (a.name < b.name ? -1 : 1))) {
+    let admitted: AdmittedTemplates;
+    try {
+      admitted = admit(catalogue, catalogue.rows);
+    } catch (e) {
+      findings.push(
+        error(
+          "templates.catalogue",
+          `the physical catalogue "${catalogue.name}" is refused: ${(e as Error).message}`,
+          "fix the catalogue's rows; contract::templates is the rule",
+        ),
+      );
+      continue;
+    }
+    covers.push(admitted.hash);
     const rows = new Map(admitted.templates.map((t) => [t.id, JSON.stringify(t)]));
+    for (const id of rows.keys()) {
+      const other = home.get(id);
+      if (other !== undefined)
+        findings.push(
+          error(
+            "templates.catalogue",
+            `template ${id} is in the physical catalogues "${other}" and "${catalogue.name}"; art is found by a template's id alone`,
+            "give the template of one catalogue another id",
+          ),
+        );
+      home.set(id, catalogue.name);
+    }
     for (const [id, entry] of dressed) {
+      if (entry.catalogue !== catalogue.name) continue;
       const row = rows.get(id);
       if (row !== entry.canonical)
         findings.push(
           error(
             "templates.catalogue",
-            `set ${entry.sets.join(", ")}: template ${id} ${row === undefined ? "is not in the physical catalogue" : "differs from its row in the physical catalogue"}`,
-            "the catalogue's rows are the sets' descriptors: run `bun run --cwd web asset -- catalogue`",
-          ),
-        );
-      if (entry.sets.length > 1)
-        findings.push(
-          error(
-            "templates.coverage",
-            `template ${id} is dressed by ${entry.sets.length} sets (${entry.sets.join(", ")}); exactly one set owns a template`,
-            "drop the template from all but one set",
+            `set ${entry.sets.join(", ")}: template ${id} ${row === undefined ? "is not in the physical catalogue" : "differs from its row in the physical catalogue"} "${catalogue.name}"`,
+            catalogue.complete
+              ? "the catalogue's rows are the sets' descriptors: run `bun run --cwd web asset -- catalogue`"
+              : "write the set's descriptor as the catalogue's row is written",
           ),
         );
     }
     // Which templates lack art is only known once every set has been read.
     for (const id of unread ? [] : rows.keys())
-      if (!dressed.has(id))
+      if (dressed.get(id)?.catalogue !== catalogue.name)
         findings.push(
           error(
             "templates.coverage",
-            `template ${id} is in the physical catalogue, but no set has art for it`,
-            "add it to a set, or give it stand-in rows: run `bun run --cwd web asset -- prototypes`",
+            `template ${id} is in the physical catalogue "${catalogue.name}", but no set of it has art for it`,
+            catalogue.complete
+              ? "add it to a set, or give it stand-in rows: run `bun run --cwd web asset -- prototypes`"
+              : "add it to a set that names this catalogue",
           ),
         );
-  } catch (e) {
-    findings.push(
-      error(
-        "templates.catalogue",
-        `the physical catalogue is refused: ${(e as Error).message}`,
-        "fix the catalogue's rows; contract::templates is the rule",
-      ),
-    );
   }
+  for (const [id, entry] of dressed)
+    if (entry.sets.length > 1)
+      findings.push(
+        error(
+          "templates.coverage",
+          `template ${id} is dressed by ${entry.sets.length} sets (${entry.sets.join(", ")}); exactly one set owns a template`,
+          "drop the template from all but one set",
+        ),
+      );
   if (modules.length > 0xffff)
     findings.push(
       error(
@@ -555,8 +707,7 @@ export function packTemplateSets(
       ),
     );
 
-  if (covers === null || findings.some((f) => f.severity === "error"))
-    return { findings, library: null, stats: null };
+  if (findings.some((f) => f.severity === "error")) return { findings, library: null, stats: null };
   packed.sort((a, b) => (a.art.id < b.art.id ? -1 : 1));
   const count = packed.reduce(
     (n, t) => n + Object.values(t.rows).reduce((m, rows) => m + rows.length, 0),

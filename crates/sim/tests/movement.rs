@@ -60,6 +60,95 @@ fn own(b: &Battle, id: u32) -> OwnUnit {
         .clone()
 }
 
+#[test]
+fn idle_soldiers_yield_to_nearby_traffic_and_far_squads_keep_their_centroid() {
+    let mut setup = common::scenario(
+        r#"{"size":[400,300],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#,
+        serde_json::json!([
+            {"side":"blue","kind":"jeep","position":[30,50]},
+            {"side":"blue","kind":"recon","position":[70,50]},
+            {"side":"blue","kind":"recon","position":[250,250]}
+        ]),
+        serde_json::json!([]),
+    );
+    // Settle initial holding posts, then isolate traffic from new cover claims.
+    setup.rules.cover.reresolve_s = 3600.0;
+    let mut battle = Battle::new(&setup, 1);
+    for _ in 0..240 {
+        battle.step();
+    }
+    assert!(battle
+        .unit(UnitId(1))
+        .unwrap()
+        .members
+        .iter()
+        .filter(|s| s.alive())
+        .all(|s| s.post.is_none_or(|p| (p - s.position.xy()).length() < 0.05)));
+    let near: Vec<_> = battle
+        .unit(UnitId(1))
+        .unwrap()
+        .members
+        .iter()
+        .map(|s| s.position)
+        .collect();
+    let far: Vec<_> = battle
+        .unit(UnitId(2))
+        .unwrap()
+        .members
+        .iter()
+        .map(|s| s.position)
+        .collect();
+    let mut orders = Orders { seq: 0 };
+    orders.go(
+        &mut battle,
+        &[0],
+        [140.0, 50.0],
+        1,
+        RoutePolicy::Shortest,
+        false,
+    );
+    let mut yielded = false;
+    let mut before_contact = true;
+    for _ in 0..240 {
+        battle.step();
+        let hull = battle.unit(UnitId(0)).unwrap().hull_box().unwrap();
+        before_contact &= near
+            .iter()
+            .all(|p| !hull.contains(p.xy(), setup.rules.physics.soldier_radius_m));
+        let close = battle.unit(UnitId(1)).unwrap();
+        yielded |= before_contact
+            && close
+                .members
+                .iter()
+                .zip(&near)
+                .any(|(s, p)| (s.position - *p).length() > 0.3);
+        let distant = battle.unit(UnitId(2)).unwrap();
+        assert_eq!(
+            distant
+                .members
+                .iter()
+                .map(|s| s.position)
+                .collect::<Vec<_>>(),
+            far
+        );
+        assert!(distant
+            .members
+            .iter()
+            .all(|s| s.velocity == sim::math::V2::default()));
+        let sum = distant
+            .members
+            .iter()
+            .filter(|s| s.alive())
+            .fold(sim::math::V3::default(), |sum, s| sum + s.position);
+        let n = distant.members.iter().filter(|s| s.alive()).count() as f64;
+        assert_eq!(distant.position, sum * (1.0 / n));
+    }
+    assert!(
+        yielded,
+        "the nearby squad must yield before the hull reaches it"
+    );
+}
+
 fn xy(u: &OwnUnit) -> [f64; 2] {
     [u.position[0], u.position[1]]
 }
@@ -911,5 +1000,59 @@ fn a_squad_leaves_a_body_containing_only_its_centroid() {
     for digest in digests {
         replay.step();
         assert_eq!(replay.digest(), digest);
+    }
+}
+
+/// A marker is a promise the squad gets there (move validity). A squad sent
+/// past a building walks round it and completes its order: to open ground
+/// beyond, and to a point hard against the far wall, where placement moves
+/// the marker to the nearest standing room and the squad lines up along the
+/// wall (its soldiers file along it past the ones already in place).
+#[test]
+fn a_squad_sent_past_a_building_walks_round_it_and_arrives() {
+    for (goal, what) in [
+        ([60.0, 21.0], "open ground 10 m past it"),
+        ([63.3, 30.55], "hard against its far wall"),
+    ] {
+        let mut setup = one_squad_setup(
+            serde_json::json!([
+                {"kind":"wall","center":[60,40],"yaw":0,"half_extents":[12,9,4]}
+            ]),
+            [60.0, 65.0],
+            goal,
+        );
+        // Ordered by hand, so a refused order fails here and not as a squad
+        // that never set off.
+        setup.scripts.clear();
+        let mut b = Battle::new(&setup, 1);
+        Orders { seq: 0 }.go(&mut b, &[0], goal, 1, RoutePolicy::Shortest, false);
+        let body = b.world().prop(0).unwrap().footprint();
+        let radius = setup.rules.physics.soldier_radius_m;
+        let mut ticks = 0;
+        while ticks < 3000 && (ticks < 2 || b.unit(UnitId(0)).unwrap().state != MoveState::Idle) {
+            b.step();
+            ticks += 1;
+            for p in b.unit(UnitId(0)).unwrap().member_positions() {
+                assert!(
+                    !body.contains(p.xy(), radius - 1e-6),
+                    "{what}: a soldier inside the building at tick {ticks}"
+                );
+            }
+        }
+        let unit = b.unit(UnitId(0)).unwrap();
+        assert!(
+            ticks < 3000 && unit.orders.is_empty(),
+            "{what}: the order never completed ({:?})",
+            unit.state
+        );
+        let left = dist(xy(&own(&b, 0)), goal);
+        assert!(
+            left < 4.0,
+            "{what}: the squad ended {left:.1} m from its goal"
+        );
+        assert!(
+            unit.position.y < 31.0,
+            "{what}: the squad is past the building"
+        );
     }
 }

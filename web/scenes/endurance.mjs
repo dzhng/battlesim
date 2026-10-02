@@ -64,10 +64,25 @@ async function soak(page, seconds) {
   const startTick = (await telemetry(page)).tick;
   const started = Date.now();
   const samples = [];
+  const firingUnitsSeen = new Set();
+  const shotCounters = () =>
+    lab(page, () =>
+      window.__lab.route
+        .observation()
+        .own.map((u) => [u.id, u.weaponPoses.reduce((shots, p) => shots + p.shots, 0)]),
+    );
+  const checkContact = GENERATED && seconds >= 30;
+  let previousShots = new Map(checkContact ? await shotCounters() : []);
   let failed = false;
   while (Date.now() - started < seconds * 1000) {
     await page.waitForTimeout(Math.min(10_000, seconds * 1000 - (Date.now() - started)));
     const t = await telemetry(page);
+    if (checkContact) {
+      const shots = await shotCounters();
+      for (const [id, count] of shots)
+        if (count > (previousShots.get(id) ?? 0)) firingUnitsSeen.add(id);
+      previousShots = new Map(shots);
+    }
     samples.push({ wallS: (Date.now() - started) / 1000, ...t });
     failed ||= t.status === "failed";
     await lab(page, () => window.__lab.route.resetFrames());
@@ -80,6 +95,7 @@ async function soak(page, seconds) {
     ticks: end.tick - startTick,
     wall,
     rate: (end.tick - startTick) / wall,
+    firingUnitsSeen: firingUnitsSeen.size,
   };
 }
 
@@ -412,6 +428,12 @@ export async function run(ctx) {
     ["live", live],
     ["late", late],
   ]) {
+    if (GENERATED && (name === "live" ? SECONDS : LATE_SECONDS) >= 30)
+      ctx.check(
+        `${name} generated contact involves multiple own units firing during measurement`,
+        run.firingUnitsSeen >= 10,
+        `${run.firingUnitsSeen} units with actual shot counters`,
+      );
     const worst = run.samples.reduce(
       (w, s) => ({ p95: Math.max(w.p95, s.frames.p95), p99: Math.max(w.p99, s.frames.p99) }),
       { p95: 0, p99: 0 },

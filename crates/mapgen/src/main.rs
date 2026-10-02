@@ -8,13 +8,15 @@ use std::path::Path;
 const USAGE: &str = "usage:
   mapgen request <type> <size> <seed> <presets.json> <catalogue.json> <game.json>
   mapgen lower <request.json> <catalogue.json> [output-directory]
-  mapgen generate <request.json> <presets.json> <catalogue.json> [plan.json]
-  mapgen generate-map <request.json> <presets.json> <catalogue.json> [output-directory]
+  mapgen generate <request.json> <presets.json> <catalogue.json> <catalog.json> [plan.json]
+  mapgen generate-map <request.json> <presets.json> <catalogue.json> <catalog.json> [output-directory]
   mapgen inspect <plan.json> <presets.json> <catalogue.json> <picture.svg> [crop]
   mapgen catalogue <catalogue.json>
 
 <catalogue.json> is a list of physical template descriptors; `catalogue` prints its
-canonical form, whose hash a request pins. [output-directory] receives a saved map
+canonical form, whose hash a request pins. <catalog.json> is the resolved unit and prop
+catalog (fixtures/catalog.json): street furniture is placed as its prop types, clear of
+the lane its widest hull drives. [output-directory] receives a saved map
 (fixtures/README.md): map.json with each building as its template and frame,
 SOURCES.json naming <catalogue.json>'s file as the map's library, and sites.json.
 `request` prints the generation request for a map type (open, mixed, metro), size
@@ -73,6 +75,16 @@ fn finish(
     Ok(matches!(outcome, CompileOutcome::Ok { .. }))
 }
 
+/// The catalog's documents out of its resolved view (`fixtures/catalog.json`),
+/// as the generator and a battle's rules read them.
+fn catalog_documents(view: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let view: serde_json::Value = serde_json::from_str(view)?;
+    let documents = view
+        .get("documents")
+        .ok_or("the catalog file has no documents: it is not fixtures/catalog.json")?;
+    Ok(documents.to_string())
+}
+
 fn run() -> Result<bool, Box<dyn std::error::Error>> {
     let arguments: Vec<_> = std::env::args_os().skip(1).collect();
     let command = arguments.first().and_then(|command| command.to_str());
@@ -104,25 +116,36 @@ fn run() -> Result<bool, Box<dyn std::error::Error>> {
                 arguments.get(3),
             )
         }
-        (Some("generate"), 4 | 5) => {
-            let outcome = mapgen::generate_plan(&read(1)?, &read(2)?, &read(3)?);
-            if let (GenerateOutcome::Ok { plan }, Some(path)) = (&outcome, arguments.get(4)) {
+        (Some("generate"), 5 | 6) => {
+            let outcome = mapgen::generate_plan(
+                &read(1)?,
+                &read(2)?,
+                &read(3)?,
+                &catalog_documents(&read(4)?)?,
+            );
+            if let (GenerateOutcome::Ok { plan }, Some(path)) = (&outcome, arguments.get(5)) {
                 std::fs::write(path, serde_json::to_vec(plan)?)?;
             }
             println!("{}", serde_json::to_string(&outcome)?);
             Ok(matches!(outcome, GenerateOutcome::Ok { .. }))
         }
-        (Some("generate-map"), 4 | 5) => {
-            let (request, presets, catalogue) = (read(1)?, read(2)?, read(3)?);
+        (Some("generate-map"), 5 | 6) => {
+            let (request, presets, catalogue, catalog) = (read(1)?, read(2)?, read(3)?, read(4)?);
             finish(
-                mapgen::generate_map(&request, &presets, &catalogue),
+                mapgen::generate_map(
+                    &request,
+                    &presets,
+                    &catalogue,
+                    &catalog_documents(&catalog)?,
+                ),
                 &[
                     ("request", &request),
                     ("presets", &presets),
                     ("catalogue", &catalogue),
+                    ("catalog", &catalog),
                 ],
                 &arguments[3],
-                arguments.get(4),
+                arguments.get(5),
             )
         }
         (Some("inspect"), 5 | 6) => {

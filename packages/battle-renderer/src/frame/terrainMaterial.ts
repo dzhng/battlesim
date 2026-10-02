@@ -36,6 +36,7 @@ import {
   SURFACE_RECT,
   SURFACE_STROKE,
   SURFACE_TRIANGLE,
+  type SurfaceField,
   type SurfaceReach,
 } from "../terrain/surfaceField";
 import { CUT_A, CUT_B } from "../terrain/strokes";
@@ -1203,6 +1204,9 @@ export const groundShoulderGrass = tgpu
 
 /** A patch covers the share of a surface where its noise passes this. */
 const PATCH_CUT = [0.52, 0.66] as const;
+/** Where one road is carried onto another (`join_m`), the line the upper
+ *  road's surface starts from wanders in drifts this many metres across. */
+const JOIN_DRIFT_M = 2.5;
 /** The joint between two of a walk's slabs, or two kerbstones, is this
  *  wide, and shows while a pixel is under the first of these shares of it,
  *  gone by the second. */
@@ -1349,9 +1353,12 @@ export const groundMarks = tgpu
   let cuts=u32(seg.detail.z);
   let room=2.0*paved.lane.w;
   // Beside it: not past an end its stroke is cut at, nor within this
-  // road's width of one (round a bend its stretches meet end to end).
+  // road's width of one (round a bend its stretches meet end to end), and
+  // beside the stretch's own length: past its end the distance is to a
+  // point, and a crossing laid by it would be a fan of bars round the end
+  // of a street that only joins this road.
   let ends=((cuts&${CUT_A}u)!=0u&&free<room)||((cuts&${CUT_B}u)!=0u&&len-free<room);
-  if(!ends){cross=max(cross,inside);}
+  if(!ends&&free>=0.0&&free<=len){cross=max(cross,inside);}
  }
  let soft=max(footprint,${MARK_EDGE_M})*0.5;
  let centre=(1.0-smoothstep(line-soft,line+soft,paved.lane.z))
@@ -1406,9 +1413,12 @@ const groundRoads = tgpu
   var feather=max(look.shape.x,footprint)*0.5;
   var inside=paved.drawn[k];
   if(carried>0.0){
-   // The blend starts at this road's edge and runs inward.
+   // The blend starts at this road's edge and runs inward, from a line
+   // that wanders as far either way: gravel spilt over asphalt in drifts,
+   // never a ruled end across a road.
    feather=max(feather,carried*0.5);
    inside-=feather;
+   if(!plain){inside+=(wanderNoise(xy*${1 / JOIN_DRIFT_M}+vec2f(7.9,52.3))-0.5)*2.0*carried;}
   }
   if(inside<=-feather){continue;}
   var core=look.core.xyz;
@@ -2106,7 +2116,7 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
       fields = { plots: tree, biome };
       nodes.set(nodeBuffer(tree.nodes.length / NODE_FLOATS)).write(packNodes(tree));
       plots.set(plotBuffer(tree.plots.length)).write(packPlots(fields, textured));
-      const field = buildSurfaceField(site, terrainReach(surface));
+      const field = terrainField(surface);
       surfaces
         .set(surfaceBuffer(field.records.length / SURFACE_FLOATS))
         .write(field.records.buffer as ArrayBuffer);
@@ -2170,9 +2180,18 @@ function triangleReach(site: TerrainSite): number {
   return site.gridM * Math.SQRT2;
 }
 
+/** `surface`'s field as the material reads it: its site's ground rules, with
+ *  the paved strokes as they are drawn (`TerrainSurface.strokes`). The
+ *  material and any check of its lookups both build this. */
+export function terrainField(surface: TerrainSurface): SurfaceField {
+  return buildSurfaceField(
+    { ...surface.site, surfaceStrokes: surface.strokes },
+    terrainReach(surface),
+  );
+}
+
 /** How far each ground rule of `surface` is read at a pixel `footprint`
- *  metres wide: what its surface field is built with. The material and any
- *  check of its lookups both build from this. */
+ *  metres wide: what its surface field is built with. */
 export function terrainReach({ site, biome }: TerrainSurface) {
   const bankM = longestBank(site.rivers) + triangleReach(site);
   return (footprint: number) => groundReach(biome, footprint, bankM);

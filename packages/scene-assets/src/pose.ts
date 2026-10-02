@@ -142,14 +142,13 @@ export function articulatedPositions(
 
 /**
  * The finest tier's bounds in the pose an impostor shows from afar: a body's
- * `far_pose`, a vehicle at rest, a building's intact state.
+ * `far_pose`, a vehicle at rest, a static appearance's first state.
  */
 export function farPoseBounds(
   bundle: Exclude<Bundle, SkeletonClips>,
   skeleton: SkeletonClips | null,
 ): Bounds {
-  if (bundle.kind === "static")
-    return (bundle.states.find((s) => s.name === "intact") ?? bundle.states[0]).bounds;
+  if (bundle.kind === "static") return bundle.states[0].bounds;
   if (bundle.kind === "articulated")
     return positionsBounds(articulatedPositions(bundle.nodes, articulatedWorlds(bundle.nodes), 0));
   return positionsBounds(

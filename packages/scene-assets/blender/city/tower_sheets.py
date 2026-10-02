@@ -7,12 +7,12 @@ houses and apartment blocks they are judged beside. Sheets (all unless named):
   each    one sheet a tower: 30 m at its door, 80 m and 250 m, with its part box
   row     the four side by side from 250 m
   tiers   a tower at each detail tier, at a distance that tier is drawn at (and
-          enlarged four times under it), then all four tiers from 250 m
+          enlarged under it), then all four tiers from 250 m
   group   the towers among apartment blocks and houses from 250 m, and one tower
           with two houses at its foot from 80 m
 
-A tower is over 150 px tall, so at tier 0, out to 250 to 500 m: the far tiers are
-what a zoomed-out camera sees.
+The game draws a building at the tier its pixels a metre ask for (`assemble.py`): a
+tower is at tier 0 to about 130 m, tier 1 to 320 m and tier 2 to a kilometre.
 """
 import math
 import os
@@ -40,7 +40,7 @@ def sheet_each(camera, sets, out, scratch):
         panels = []
         views = ((30, (door, y0, 5.0), None), (80, (0, 0, height * 0.42), None), (250, (0, 0, height * 0.45), (1920, 540)))
         for distance, target, crop in views:
-            made = A.build(modules, names, template, tier=A.tier_at(height, distance), wires=0.0012 * distance)
+            made = A.build(modules, names, template, tier=A.tier_at(distance), wires=0.0012 * distance)
             panels.append(A.shoot(camera, os.path.join(scratch, "panel.png"), target, distance, VIEW, crop))
             A.clear(made)
         A.save(os.path.join(out, f"{template['descriptor']['id']}.png"), np.concatenate(panels, 0))
@@ -52,7 +52,7 @@ def sheet_row(camera, sets, out, scratch):
     for template in sorted(templates["templates"], key=lambda t: A.extent(t)[4]):
         x0, x1, y0, y1, height = A.extent(template)
         frame = Matrix.Translation((x - x0, -y0, 0))
-        made += A.build(modules, templates["modules"], template, frame, tier=A.tier_at(height, 250))
+        made += A.build(modules, templates["modules"], template, frame, tier=A.tier_at(250))
         x += x1 - x0 + 22.0
     image = A.shoot(camera, os.path.join(scratch, "panel.png"), ((x - 22.0) / 2, 10.0, 22.0), 250, math.radians(-104))
     A.clear(made)
@@ -64,18 +64,19 @@ def sheet_tiers(camera, sets, out, scratch):
     for id_ in ("china-tower-20f", "china-tower-slab-10f"):
         template = by_id(templates)[id_]
         x0, x1, y0, y1, height = A.extent(template)
-        # where each tier is drawn: 250 m, then the projected heights 100, 40 and 18 px
-        far, near = [], []
-        for tier, px in enumerate((None, 100, 40, 18)):
-            distance = 250 if px is None else height * A.FOCAL_PX / px
-            assert A.tier_at(height, distance) == tier, (id_, tier, distance)
+        # each tier at a distance the game draws it at (the finest from 100 m), then enlarged, then all four from 250 m
+        far, zoom, near = [], [], []
+        for tier in range(4):
+            distance = 100.0 if tier == 0 else A.tier_distance(tier)
+            assert A.tier_at(distance) == tier, (id_, tier, distance)
             made = A.build(modules, templates["modules"], template, tier=tier)
-            far.append(A.shoot(camera, os.path.join(scratch, "panel.png"), (0, 0, height * 0.45), distance, VIEW, (480, 540)))
-            A.clear(made)
-            made = A.build(modules, templates["modules"], template, tier=tier)
+            image = A.shoot(camera, os.path.join(scratch, "panel.png"), (0, 0, height * 0.45), distance, VIEW, None if tier == 0 else (480, 540))
+            far.append(A.shrink(image, 2)[:, 240:720] if tier == 0 else image)
+            grow = (1, 2, 4, 8)[tier]
+            mid = far[-1][270 - 270 // grow:270 + 270 // grow, 240 - 240 // grow:240 + 240 // grow]
+            zoom.append(np.repeat(np.repeat(mid, grow, 0), grow, 1))
             near.append(A.shoot(camera, os.path.join(scratch, "panel.png"), (0, 0, height * 0.45), 250, VIEW, (480, 540)))
             A.clear(made)
-        zoom = [np.repeat(np.repeat(p[202:337, 180:300], 4, 0), 4, 1) for p in far]  # the middle, four times the size
         A.save(os.path.join(out, f"tiers-{id_}.png"), np.concatenate([np.concatenate(r, 1) for r in (far, zoom, near)], 0))
 
 
@@ -110,7 +111,7 @@ def sheet_group(camera, sets, out, scratch):
             centre = Vector((x + (x1 - x0) / 2, y, 0.0))
             frame = (Matrix.Translation(centre) @ Matrix.Rotation(0.0 if facing > 0 else math.pi, 4, "Z")
                      @ Matrix.Translation((-(x0 + x1) / 2, -y0, 0)))
-            made += A.build(modules, templates["modules"], template, frame, tier=A.tier_at(height, (centre - eye).length))
+            made += A.build(modules, templates["modules"], template, frame, tier=A.tier_at((centre - eye).length))
         image = A.shoot(camera, os.path.join(scratch, "panel.png"), target, distance, math.radians(azimuth))
         A.clear(made)
         A.save(os.path.join(out, name), image)

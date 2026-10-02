@@ -101,6 +101,11 @@
     "describe": "Every building template of the installed art library on flat ground, in rows by category at its real size, each labelled with its id, drawn through the frame's own buildings path with no battle. ?set= or ?category= narrows it, ?tier=0..3 draws every building at one detail tier, ?state=ruin|gutted draws them as a side that saw them fall knows them, and ?station= with ?at=<template id> opens on a station: all, row, fit, close (30 m), tactical (65 m), wide (250 m), or transition-1..3 (where the template changes to that tier). The scene writes a contact sheet per category at each tier and the pairs across each tier boundary."
   },
   {
+    "id": "facade",
+    "route": "/lab/facade",
+    "describe": "What a facade material can say beyond opaque, on the facade lab's kit with no battle on it: a grille and a perforated sheet as fence panels (cutouts: there or not texel by texel, in colour, depth and shadow); free-standing panes of glass, each half across the next (blended over what is behind them, unsorted); and a block three bays wide and three floors high with a pane and a room behind every window and shopfront (a cell of the interior atlas, unlit, chosen by where the window stands). Stations cut the camera to each from 25 m, the default tactical camera and 250 m; ?blocks= stands a field of blocks behind (a dense view for the paired cost), ?fog=1 ends an eye's sight across each station, ?azimuth= and ?sun= turn and raise the sun, ?order=reversed hands the frame the same modules in the opposite order."
+  },
+  {
     "id": "village",
     "route": "/battle/village",
     "describe": "The village encounter: blue attacks the defended village (red defender policy on its own observation), with the production readouts, command bar, and a pause menu (variant, restart, replay export, sound); ?seed= sets the seed for testing."

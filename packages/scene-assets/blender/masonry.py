@@ -84,11 +84,12 @@ def timber(name, base=(0.13, 0.085, 0.05), seed=9.0):
     return paint(name, 0.85)(fn)
 
 
-def charred(name, seed=11.0):
+def charred(name, seed=11.0, ember=0.3):
+    """Burnt timber. `ember` is how far its edges go to rust-brown: little on a plain beam, which is all edge."""
     def fn(p, n, edge):
         c = lerp3((0.015, 0.014, 0.013), (0.09, 0.08, 0.07), 0.5 + 0.5 * fbm(p, 2.0, 3, seed))
         if edge > 0.3:
-            c = lerp3(c, (0.2, 0.08, 0.03), 0.3 * edge)  # embers' glow gone to rust-brown
+            c = lerp3(c, (0.2, 0.08, 0.03), ember * edge)  # embers' glow gone to rust-brown
         return c
 
     return paint(name, 0.95)(fn)
@@ -270,8 +271,11 @@ def bpy_dark():
     return _DARK[0]
 
 
-def rubble(name, centre, radius, height, count, mat, seed, parent=None, lods=(0, 1, 2, 3)):
-    """A heap of broken masonry: irregular chunks under a low mound."""
+def rubble(name, centre, radius, height, count, mat, seed, parent=None, lods=(0, 1, 2, 3), seg=(28, 14, 7, 5),
+           rings=(8, 4, 2, 1)):
+    """A heap of broken masonry: irregular chunks under a low mound. `seg` and `rings` are
+    the mound's sides and rings at each tier: fewer for a heap drawn by the hundred."""
+    mound_seg, mound_rings = seg, rings
     rng = random.Random(seed)
     chunks = []
     for i in range(count):
@@ -283,8 +287,8 @@ def rubble(name, centre, radius, height, count, mat, seed, parent=None, lods=(0,
                        (rng.random() * 3, rng.random() * 3, rng.random() * 3), rng.random()))
 
     def mound(bm, lod):
-        seg = (28, 14, 7, 5)[lod]
-        rings = (8, 4, 2, 1)[lod]
+        seg = mound_seg[lod]
+        rings = mound_rings[lod]
         rr = random.Random(seed + 1)
         top = bm.verts.new((centre[0], centre[1], height * 0.8))
         prev = None
@@ -331,6 +335,181 @@ def rubble(name, centre, radius, height, count, mat, seed, parent=None, lods=(0,
         return made
 
     mesh_part(name + "_chunks", pieces, mat, parent, lods=(0, 1, 2))
+
+
+# ---------------------------------------------------------------- ruins
+def ragged_wall(name, a0, a1, fixed, along_x, lo, hi, seed, mat, parent=None, thickness=0.45, gaps=(), windows=0.0,
+                openings=(), lods=TIERS, groups=(1, 2, 4, 8), jagged=1.0, run=(0.3, 0.9), buckle=0.0, raked=False):
+    """A broken masonry wall from `a0` to `a1` along x (or y), `thickness` thick about the
+    line `fixed`: runs of irregular width whose tops walk up and down in brick courses
+    between `lo` and `hi`, with sudden breaks, loose top blocks, and holes through it:
+    `gaps` (centre, width) knocked down to the rubble, `windows` a period of openings
+    broken to their sills, `openings` (centre, width, sill) each broken to its own sill,
+    with the wall cut at its jambs. A coarser tier merges `groups[tier]` runs into one;
+    `jagged` scales how far the top walks. `run` is how wide a run is (wider for a wall
+    of panels or sheets than of bricks), and `buckle` how far each stands out of line.
+    `raked` slopes each run's top from its neighbour's height to its own where the step
+    between them is small, so the wall's top is a broken line and not a row of battlements."""
+    wr = random.Random(seed * 7919)
+    course = 0.075
+    cuts = sorted(c for o in openings for c in (o[0] - o[1] / 2, o[0] + o[1] / 2) if a0 + 0.05 < c < a1 - 0.05)
+    runs, a, top = [], a0, (lo + hi) / 2
+    while a < a1 - 0.05:
+        w = min(wr.uniform(*run), a1 - a)
+        ahead = [c - a for c in cuts if c - a > 1e-6]
+        if ahead and ahead[0] < w + 0.15:  # a jamb: the run ends at it
+            w = ahead[0]
+        # a random walk pulled back towards the upper third, with sudden breaks
+        top += wr.gauss(0, 0.28 * jagged) + 0.25 * (lo + 0.8 * (hi - lo) - top)
+        if wr.random() < 0.08:
+            top = lo + wr.uniform(0, 0.4)  # a break down towards the plinth
+        top = max(lo, min(hi, top))
+        mid = a + w / 2
+        t = top
+        for g, gw in gaps:
+            if abs(mid - g) < gw / 2:
+                t = min(t, 0.12 + 0.1 * wr.random())
+        if windows > 0 and 0.3 < ((mid - a0) / windows) % 1.0 < 0.62:
+            t = min(t, 0.95 + 0.08 * wr.random())
+        for at, width, sill in openings:
+            if abs(mid - at) < width / 2:
+                t = min(t, sill + 0.08 * wr.random())
+        t = max(course, round(t / course) * course)
+        chip = (wr.uniform(0.1, 0.25), wr.uniform(0.3, 0.7), wr.choice((-1, 1))) if wr.random() < 0.45 and 0.5 < t < hi - 0.25 else None
+        runs.append((a, a + w, t, chip, wr.uniform(-buckle, buckle) if buckle else 0.0))
+        a += w
+
+    def build(bm, lod):
+        group = groups[lod]
+        before = None  # the run before's height
+        for i in range(0, len(runs), group):
+            part = runs[i:i + group]
+            s0, s1 = part[0][0], part[-1][1]
+            t = sum(r[2] * (r[1] - r[0]) for r in part) / (s1 - s0)
+            spans = [(s0, s1, t, None, part[0][4])] if group > 1 else part
+            for r0, r1, tt, chip, out in spans:
+                c = ((r0 + r1) / 2, fixed + out) if along_x else (fixed + out, (r0 + r1) / 2)
+                size = (r1 - r0 + 0.01, thickness, tt) if along_x else (thickness, r1 - r0 + 0.01, tt)
+                made = bmesh.ops.create_cube(bm, size=1.0, matrix=Matrix.Translation((c[0], c[1], tt / 2)) @ Matrix.Diagonal((*size, 1)))
+                if raked and before is not None and 0.0 < abs(before - tt) <= 0.8:
+                    for v in made["verts"]:  # its top's near end takes the neighbour's height
+                        if v.co.z > tt / 2 and (v.co.x if along_x else v.co.y) < (r0 + r1) / 2:
+                            v.co.z = before
+                before = tt
+                if chip and lod == 0:
+                    ch, cw, side = chip
+                    cs = (cw * (r1 - r0), thickness * 0.55, ch) if along_x else (thickness * 0.55, cw * (r1 - r0), ch)
+                    off = (0, side * thickness * 0.2) if along_x else (side * thickness * 0.2, 0)
+                    bmesh.ops.create_cube(bm, size=1.0, matrix=Matrix.Translation((c[0] + off[0], c[1] + off[1], tt + ch / 2)) @
+                                          Matrix.Diagonal((*cs, 1)))
+
+    mesh_part(name, build, mat, parent, lods)
+
+
+def fill_height(x, y, rect, top, seed, low=0.3):
+    """How high `rubble_fill`'s heap over `rect` stands at (x, y): what lies on it is placed by this.
+    It is a mound: lowest against the walls, where they held the fall off, and lumpy all over."""
+    x0, x1, y0, y1 = rect
+    p = Vector((x, y, 0.0))
+    inward = min(x - x0, x1 - x, y - y0, y1 - y)
+    crown = 0.3 + 0.7 * smoothstep(0.0, min(3.0, 0.45 * min(x1 - x0, y1 - y0)), inward)
+    n = 0.5 + 0.5 * fbm(p, 0.25, 2, 3.7 + seed)
+    lump = 0.5 + 0.5 * fbm(p, 0.8, 2, 11.3 + seed)
+    return top * (low + (1.0 - low) * min(1.0, max(0.0, crown * (0.45 + 0.5 * n + 0.4 * lump))))
+
+
+FILL_RIM_M = 0.7  # the heap's outermost cells: the shade of the walls round it stays in them at every tier
+
+
+def rubble_fill(name, x0, x1, y0, y1, top, mat, seed, parent=None, cells=(1.3, 2.6, 8.0), lods=(0, 1, 2), low=0.3, spill=0.0):
+    """The mass of a collapsed building inside its walls: one lumpy mound over the
+    rectangle, `low` of `top` at its rim and up to `top` in the middle. From its rim it
+    falls to the ground `spill` metres further out (one number, or one for each of its
+    west, east, south and north sides): a talus banked through the walls' gaps and against
+    their feet. `cells` is the longest cell at each tier: the surface
+    is the same heap, sampled coarser, always with a narrow band of cells at its rim.
+    Its UVs are laid from above, so the recipe's fragments keep their size."""
+    tile = textures.tile_of(TEXTURED[mat.name]) if mat.name in TEXTURED else 1.0
+
+    def height(x, y):
+        return fill_height(x, y, (x0, x1, y0, y1), top, seed, low)
+
+    def stations(a, b, cell):
+        """Where the grid's lines stand from `a` to `b`: the two ends, a rim band inside each, and even cells between."""
+        if b - a < 2 * FILL_RIM_M + 0.6:
+            n = max(1, math.ceil((b - a) / cell - 1e-6))
+            return [a + (b - a) * i / n for i in range(n + 1)]
+        n = max(1, math.ceil((b - a - 2 * FILL_RIM_M) / cell - 1e-6))
+        return [a] + [a + FILL_RIM_M + (b - a - 2 * FILL_RIM_M) * i / n for i in range(n + 1)] + [b]
+
+    def build(bm, lod):
+        xs, ys = stations(x0, x1, cells[lod]), stations(y0, y1, cells[lod])
+        nx, ny = len(xs) - 1, len(ys) - 1
+        uv = bm.loops.layers.uv.new("UVMap")
+        grid = [[bm.verts.new((x, y, height(x, y))) for x in xs] for y in ys]
+        faces = [bm.faces.new((grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i])) for j in range(ny) for i in range(nx)]
+        # the rim's talus, down to the ground a little further out
+        rim = ([grid[0][i] for i in range(nx + 1)] + [grid[j][nx] for j in range(1, ny + 1)]
+               + [grid[ny][i] for i in range(nx - 1, -1, -1)] + [grid[j][0] for j in range(ny - 1, 0, -1)])
+        west, east, south, north = spill if isinstance(spill, tuple) else (spill,) * 4
+        foot = [bm.verts.new((v.co.x + east * (v.co.x >= x1 - 1e-6) - west * (v.co.x <= x0 + 1e-6),
+                              v.co.y + north * (v.co.y >= y1 - 1e-6) - south * (v.co.y <= y0 + 1e-6), 0.0)) for v in rim]
+        for k in range(len(rim)):
+            n = (k + 1) % len(rim)
+            faces.append(bm.faces.new((rim[n], rim[k], foot[k], foot[n])))
+        for f in faces:
+            for loop in f.loops:
+                loop[uv].uv = ((loop.vert.co.x + 0.3 * loop.vert.co.z) / tile, (loop.vert.co.y + 0.3 * loop.vert.co.z) / tile)
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+
+    return mesh_part(name, build, mat, parent, lods)
+
+
+def scorched(mat, top, seed=0.0, floor=0.0):
+    """`mat` after the fire, as a material of its own (`<name>_burnt`): its paint with soot
+    over it, rising with the smoke from the building's own colour at the foot to black
+    by `top` metres, where the wall broke, further up some stretches than others.
+    `floor` is the least soot anywhere on it (a fallen roof is sooted all over). A
+    textured material keeps its recipe, its tint mask and its wear."""
+    name = mat.name + "_burnt"
+    if name in bpy.data.materials:
+        return bpy.data.materials[name]
+    base = PAINTS[mat.name]
+    twin = mat.copy()
+    twin.name = name
+
+    def soot(c, p):
+        rise = smoothstep(0.3 * top, 0.95 * top, p.z)
+        patch = 0.5 + 0.5 * fbm(p, 1.4, 2, 23.0 + seed)
+        k = min(0.96, max(floor * (0.6 + 0.8 * patch), rise * (0.45 + 0.75 * patch)))
+        return lerp3(c, (0.012, 0.011, 0.01), k)
+
+    if mat.name in TEXTURED:
+        TEXTURED[name] = TEXTURED[mat.name]
+        PAINTS[name] = lambda p, n, edge: (lambda c, wear: (soot(c, p), wear))(*base(p, n, edge))
+    else:
+        PAINTS[name] = lambda p, n, edge: soot(base(p, n, edge), p)
+    return twin
+
+
+def weathered_roof(mat, seed=0.0, patch=0.16, moss=0.2):
+    """Lay a roof's own weather over its material's paint: tone that drifts in soft patches
+    some metres across, and moss or soot greying the dampest of them. The fields are wider
+    than two of the finest tier's cells, so no tier shows the mesh's grid; the recipe
+    carries what is smaller than a tile, and the roof what is larger."""
+    base = PAINTS[mat.name]
+
+    def fn(p, n, edge):
+        c, wear = base(p, n, edge)
+        if n.z < 0.2:
+            return c, wear
+        drift = fbm(p, 0.16, 2, 71.0 + seed)
+        damp = smoothstep(0.1, 0.6, fbm(p, 0.11, 2, 83.0 + seed))
+        c = tuple(x * (1.0 + patch * drift) for x in c)
+        return lerp3(c, tuple(0.5 * (x + y) for x, y in zip(c, (0.07, 0.075, 0.055))), moss * damp), max(wear, 0.5 * moss * damp)
+
+    PAINTS[mat.name] = fn
+    return mat
 
 
 # ---------------------------------------------------------------- town houses
@@ -419,21 +598,28 @@ class RoofShape:
         return [(self.b1, top), (self.bc + w, cut - drop), (self.bc - w, cut - drop), (self.b0, top)]
 
 
-def house_walls(name, shape, mat, parent=None, sides=("a0", "a1", "b0", "b1"), base=0.0, lods=TIERS):
+def house_walls(name, shape, mat, parent=None, sides=("a0", "a1", "b0", "b1"), base=0.0, lods=TIERS, bands=None):
     """The outer walls under `shape`, one face each, from `base` to the roof's underside:
     `a0` and `a1` are the end walls (gabled as the roof says), `b0` and `b1` the walls
-    under the eaves. Leave out a side that stands against a neighbour."""
+    under the eaves. Leave out a side that stands against a neighbour. `bands` (foot,
+    head) cuts each wall in three up its height: its foot, its body and the head under
+    the eaves. The ground's mud and shade then stay in the foot and the eaves' shade in
+    the head at every tier, so the wall is one colour near and far."""
     drop = 0.03
 
     def build(bm, lod):
         top = shape.eave - drop
+        levels = [base, top] if not bands else [base, base + bands[0], top - bands[1], top]
         for key, b, out in (("b0", shape.b0, -1), ("b1", shape.b1, 1)):
-            if key in sides:
-                _face(bm, [shape.world(shape.a0, b, base), shape.world(shape.a1, b, base), shape.world(shape.a1, b, top),
-                           shape.world(shape.a0, b, top)], shape.world(0, out, 0))
+            for z0, z1 in zip(levels, levels[1:]) if key in sides else ():
+                _face(bm, [shape.world(shape.a0, b, z0), shape.world(shape.a1, b, z0), shape.world(shape.a1, b, z1),
+                           shape.world(shape.a0, b, z1)], shape.world(0, out, 0))
         for k, (key, a, out) in enumerate((("a0", shape.a0, -1), ("a1", shape.a1, 1))):
             if key in sides:
-                outline = [(shape.b0, base), (shape.b1, base)] + shape.end_wall_top(k, drop)
+                for z0, z1 in zip(levels[:-2], levels[1:-1]):
+                    _face(bm, [shape.world(a, b, z) for b, z in ((shape.b0, z0), (shape.b1, z0), (shape.b1, z1), (shape.b0, z1))],
+                          shape.world(out, 0, 0))
+                outline = [(shape.b0, levels[-2]), (shape.b1, levels[-2])] + shape.end_wall_top(k, drop)
                 _face(bm, [shape.world(a, b, z) for b, z in outline], shape.world(out, 0, 0))
 
     return mesh_part(name, build, mat, parent, lods)
@@ -505,12 +691,15 @@ def pitched_roof(name, shape, mat, trim, parent=None, thickness=0.14, fascia_end
         mesh_part(name + "_caps", caps, mat, parent, lods=tuple(t for t in lods if t < 2))
 
 
+WALL_BANDS_M = (1.1, 0.6)  # a house wall's foot and head, cut off its body (`house_walls`)
+
+
 def house_shell(name, shape, wall, roof, trim, parent=None, sides=("a0", "a1", "b0", "b1"), fascia_ends=(True, True),
                 plinth=None, plinth_mat=None, plinth_m=0.4):
     """Walls, roof and plinth of one box of a building: `<name>_walls`, `<name>_roof` and
     `<name>_plinth`. `roof` None leaves the box to a neighbour's roof; `plinth` is the
     plinth's (x0, x1, y0, y1), `plinth_m` high."""
-    house_walls(name + "_walls", shape, wall, parent, sides)
+    house_walls(name + "_walls", shape, wall, parent, sides, bands=WALL_BANDS_M)
     if roof is not None and shape.ends[1] - shape.ends[0] > 1e-6:
         pitched_roof(name + "_roof", shape, roof, trim, parent, fascia_ends=fascia_ends)
     if plinth:
@@ -520,9 +709,10 @@ def house_shell(name, shape, wall, roof, trim, parent=None, sides=("a0", "a1", "
 
 
 def chimney(name, size, height, mat, cap_mat, parent=None, pots=1, pot_mat=None):
-    """A chimney stack standing on the origin: a capped stack with clay pots."""
+    """A chimney stack standing on the origin: a capped stack with clay pots. The cap
+    is in every tier: from above it is the chimney's colour."""
     box(name + "_stack", (size[0], size[1], height), (0, 0, height / 2), mat, parent)
-    box(name + "_cap", (size[0] + 0.12, size[1] + 0.12, 0.07), (0, 0, height + 0.035), cap_mat, parent, lods=(0, 1))
+    box(name + "_cap", (size[0] + 0.12, size[1] + 0.12, 0.07), (0, 0, height + 0.035), cap_mat, parent)
     for k in range(pots):
         x = (k - (pots - 1) / 2) * 0.32
         cyl(f"{name}_pot_{k}", 0.085, 0.2, (x, 0, height + 0.17), "Z", pot_mat or cap_mat, parent, seg=10, r2=0.07, lods=(0, 1))

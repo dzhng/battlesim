@@ -1,7 +1,7 @@
 {
   "seed": 1616,
   "palettes": {
-    "green": [[0.252, 0.324, 0.171], [0.225, 0.297, 0.153], [0.279, 0.342, 0.189]],
+    "yard": [[0.274, 0.316, 0.222], [0.246, 0.29, 0.198], [0.297, 0.335, 0.238]],
     "meadow": [[0.291, 0.313, 0.246], [0.268, 0.29, 0.227], [0.316, 0.336, 0.267]],
     "pasture": [[0.33, 0.35, 0.281], [0.307, 0.326, 0.262]],
     "rough": [[0.331, 0.326, 0.262], [0.305, 0.303, 0.244], [0.358, 0.348, 0.281]],
@@ -20,7 +20,7 @@
     "forest_floor": [[0.34, 0.3, 0.22], [0.27, 0.31, 0.17], [0.2, 0.18, 0.14]],
     "water_bed": [[0.31, 0.31, 0.25]],
     "water": [[0.14, 0.245, 0.28], [0.22, 0.31, 0.3]],
-    "shore": [[0.32, 0.295, 0.24], [0.34, 0.305, 0.235]],
+    "shore": [[0.3, 0.295, 0.285], [0.365, 0.305, 0.235]],
     "distant": [[0.37, 0.369, 0.301]],
     "crater_soil": [[0.3, 0.24, 0.17]],
     "crater_ejecta": [[0.4, 0.33, 0.24]],
@@ -184,8 +184,8 @@
       "roughness": 0.95
     },
     {
-      "name": "green",
-      "palette": "green",
+      "name": "yard",
+      "palette": "yard",
       "weight": 0,
       "furrow_m": 0,
       "furrow_contrast": 0,
@@ -193,7 +193,7 @@
       "grain_m": 0.35,
       "grain": 0.12,
       "grain_stretch": 1,
-      "mottle": 0.22,
+      "mottle": 0.15,
       "patch_m": [14, 8],
       "tram": { "rows": 0, "width_m": 0, "contrast": 0 },
       "roughness": 0.95
@@ -214,8 +214,10 @@
     "edge_warp_scale_m": 40,
     "colour_jitter": 0.1,
     "mottle_m": 4,
+    "settlement_kind": "yard",
+    "yard_m": 40,
     "settlement_m": 110,
-    "settlement_kind": "green"
+    "surround_kind": "meadow"
   },
   "verge": { "palette": "verge", "width_m": 1.8, "feather_m": 0.5 },
   "roads": {
@@ -230,7 +232,8 @@
       "roughness": 0.88,
       "shoulder": { "palette": "shoulder_gravel", "cover": 0.45, "width_m": 3.5, "jitter": 0.85, "jitter_m": 9, "grass": 0.15 },
       "ruts": { "offsets_m": [], "width_m": 0, "tilt_deg": 0, "tint": 0 },
-      "centre_strip": { "half_width_m": 0, "max_road_width_m": 0 }
+      "centre_strip": { "half_width_m": 0, "max_road_width_m": 0 },
+      "town": { "kind": "road", "beside_m": 5, "gap_m": 80 }
     },
     "dirt_track": {
       "palette": "road_dirt",
@@ -252,7 +255,7 @@
       "patch_m": 7,
       "grain": 0.3,
       "grain_m": 0.3,
-      "join_m": 0,
+      "join_m": 3,
       "roughness": 0.9,
       "shoulder": { "palette": "shoulder_gravel", "cover": 0, "width_m": 0, "jitter": 0, "jitter_m": 1, "grass": 0 },
       "ruts": { "offsets_m": [], "width_m": 0, "tilt_deg": 0, "tint": 0 },
@@ -284,7 +287,7 @@
       "centre_strip": { "half_width_m": 0, "max_road_width_m": 0 }
     }
   },
-  "shore": { "palette": "shore", "wet_m": 0.6, "mud_m": 5, "wander": 0.5, "wander_scale_m": 9, "lift": 1.15, "relief": 0.5 },
+  "shore": { "palette": "shore", "wet_m": 0.6, "mud_m": 5, "wander": 0.5, "wander_scale_m": 9, "lift": 1.27, "relief": 0.5 },
   "water": { "opacity": [0.6, 0.9], "shallows_m": 0.35, "streak": 0.6 },
   "forest_floor": {
     "palette": "forest_floor",
@@ -292,13 +295,31 @@
     "moss": 0.7,
     "humus": 0.4,
     "mottle": 0.25,
-    "roots": 0.25,
+    "roots": 0.1,
     "roots_m": 3,
     "verge_m": 3,
     "verge_warp_m": 1.5,
     "verge_warp_scale_m": 14,
     "roughness": 0.97,
-    "dapple": { "size_m": 2.2, "share": 0.35, "sun": 0.6 }
+    "dapple": { "size_m": 2.2, "share": 0.35, "sun": 0.6 },
+    "dressing": {
+      "per_ha": 3200,
+      "kinds": [
+        { "appearance": "floor_fern", "weight": 10, "drift": 0.9, "scale": [0.55, 1], "tint": [0.7, 0.8, 1] },
+        { "appearance": "floor_litter", "weight": 2, "drift": 0.2, "scale": [0.6, 1], "tint": [1, 1, 1] },
+        { "appearance": "floor_sapling", "weight": 0.7, "drift": 0.6, "scale": [0.6, 1], "tint": [0.78, 0.85, 0.95] },
+        { "appearance": "floor_rock", "weight": 1, "drift": 0.7, "scale": [0.5, 1], "tint": [0.85, 0.85, 0.83] },
+        { "appearance": "floor_bush", "weight": 1, "drift": 0.6, "scale": [0.5, 0.85], "tint": [0.68, 0.76, 0.9] }
+      ],
+      "drift_m": 30,
+      "squat": 0.7,
+      "edge_m": 3,
+      "trunk_clear_m": 0.9,
+      "clear_m": 1,
+      "colour_jitter": 0.18,
+      "lod_px": [48, 22, 8],
+      "fade_px": 6
+    }
   },
   "trees": {
     "species": [
@@ -336,12 +357,12 @@
         "mix": [{ "appearance": "grass_meadow", "share": 7, "drift": 0, "dry": 0 }, { "appearance": "grass_rough", "share": 1.5, "drift": 0.8, "dry": 0.15 }, { "appearance": "grass_verge", "share": 1, "drift": 0.6, "dry": 0 }, { "appearance": "grass_prairie", "share": 0.5, "drift": 0.5, "dry": 0.4 }],
         "patches": { "height": [0.7, 1.2], "thin": 0.25, "dry": 0.225 }
       },
-      "green": {
+      "yard": {
         "density": 1,
         "height": 1,
         "rows": 0,
         "mix": [{ "appearance": "grass_meadow", "share": 7, "drift": 0, "dry": 0 }, { "appearance": "grass_rough", "share": 1.5, "drift": 0.8, "dry": 0.15 }, { "appearance": "grass_verge", "share": 1, "drift": 0.6, "dry": 0 }, { "appearance": "grass_prairie", "share": 0.5, "drift": 0.5, "dry": 0.4 }],
-        "patches": { "height": [0.7, 1.2], "thin": 0.25, "dry": 0.45 }
+        "patches": { "height": [0.7, 1.2], "thin": 0.25, "dry": 0.3 }
       },
       "pasture": {
         "density": 0.9,

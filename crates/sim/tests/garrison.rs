@@ -916,7 +916,7 @@ fn a_survivor_squeezes_out_where_a_soldier_fits() {
 
 #[test]
 fn the_ruin_blocks_ground_movement_while_sight_and_fire_pass_over_it() {
-    let Collapse { mut b, .. } = collapse_with_survivors();
+    let Collapse { b, .. } = collapse_with_survivors();
     let ruin = b
         .world()
         .props()
@@ -938,38 +938,87 @@ fn the_ruin_blocks_ground_movement_while_sight_and_fire_pass_over_it() {
     assert!(b
         .world()
         .segment_clear(a.with_z(top + 1.0), far.with_z(top + 1.0)));
-    // A survivor squad sent straight across walks round the ruin.
+}
+
+/// A marker is a promise (move validity): the survivors of a collapse, left
+/// standing hard against the ruin's north wall and still under fire from the
+/// north, can be sent to its far side, walk round it and complete the order.
+#[test]
+fn survivors_sent_past_the_ruin_walk_round_it_and_arrive() {
+    let Collapse { mut b, .. } = collapse_with_survivors();
+    let ruin = b
+        .world()
+        .props()
+        .find(|p| p.kind == common::kind("ruin"))
+        .cloned()
+        .unwrap();
     let squad = 0;
+    let centre = v2(CENTRE[0], CENTRE[1]);
     let from = b.unit(UnitId(squad)).unwrap().position.xy();
-    let goal = v2(2.0 * CENTRE[0] - from.x, 2.0 * CENTRE[1] - from.y);
-    common::order(
-        &mut b,
-        Side::Blue,
-        2,
-        Order::Move {
+    // The mirror of the squad's middle: as hard against the far wall as the
+    // survivors are against the near one.
+    let mirror = centre * 2.0 - from;
+    // Open ground 10 m past the far wall gets its marker too: admission
+    // rehearses the walk to its end. (Live, the fire from the north cuts
+    // this squad down on the longer way round, so only the nearer order is
+    // walked below.)
+    let beyond = mirror + (centre - from).normalized() * 10.0;
+    let shown = b
+        .preview_move(
+            Side::Blue,
+            &contract::command::MovePreviewRequest {
+                units: vec![UnitId(squad)],
+                goal: [beyond.x, beyond.y],
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    assert!(shown[0].placed, "10 m past the far wall: {shown:?}");
+    let ack = b.accept(CommandEnvelope {
+        side: Side::Blue,
+        seq: 2,
+        order: Order::Move {
             units: vec![UnitId(squad)],
             gesture: 1,
-            goal: [goal.x, goal.y],
+            goal: [mirror.x, mirror.y],
             route: RoutePolicy::Shortest,
             direction: contract::command::MoveDirection::Forward,
             facing: None,
         },
-    );
-    for _ in 0..600 {
+        queued: false,
+    });
+    assert_eq!(ack.error, None, "the squad can be sent round the ruin");
+    // The marker goes to the nearest standing room by the wall.
+    let marker = ack.placement.unwrap().destinations[0].goal;
+    let marker = v2(marker[0], marker[1]);
+    assert!((marker - mirror).length() < 3.0, "the marker left the wall");
+    let radius = num("physics", "soldier_radius_m");
+    let mut arrived = false;
+    for _ in 0..ticks(120.0) {
         b.step();
-        let Some(u) = b.unit(UnitId(squad)).filter(|u| u.alive()) else {
-            break;
-        };
+        let u = b.unit(UnitId(squad)).unwrap();
+        assert!(u.alive(), "the squad lives to arrive");
         // No soldier's body enters it (the squad's middle may lie over it
         // while survivors walk round both sides).
-        let radius = num("physics", "soldier_radius_m");
         for p in u.member_positions() {
             assert!(
                 outside_by(&ruin, p.xy()) >= radius - 1e-6,
                 "walked into the ruin"
             );
         }
+        if u.orders.is_empty() && u.state == contract::observation::MoveState::Idle {
+            arrived = true;
+            break;
+        }
     }
+    assert!(arrived, "the squad never completed its order");
+    let u = b.unit(UnitId(squad)).unwrap();
+    let left = (u.position.xy() - marker).length();
+    assert!(left < 4.0, "the squad ended {left:.1} m from its marker");
+    assert!(
+        u.member_positions().all(|p| p.y < CENTRE[1] - HALF[1]),
+        "every survivor is past the ruin"
+    );
 }
 
 #[test]

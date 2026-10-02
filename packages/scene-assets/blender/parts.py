@@ -141,18 +141,20 @@ SCORCH = []
 
 
 def textured(name, recipe, rough=None, metal=None, tint=0.0, colour=None, dirt=0.7, chip=0.8, streak=0.3,
-             rise=1.0, seed=0.0, soot=0.0, ash=0.0, dust=DUST, mottle=0.0, lichen=0.0, coverage=None):
+             rise=1.0, seed=0.0, soot=0.0, ash=0.0, dust=DUST, mottle=0.0, lichen=0.0, coverage=None, grain=0.06):
     """A material that samples `recipe`: `colour` (linear) tints the recipe's mean,
     `chip` scales wear on convex edges, `dirt` the dust (colour `dust`) and mud rising
     from the ground to `rise` metres, `streak` rain streaks on walls, `soot` blackens
     walls and undersides (a fire's smoke), `ash` greys what faces up, `mottle` varies the tone
-    piece to piece and `lichen` greens what faces the sky. `coverage` makes it a cutout
-    or blended, by the recipe's coverage image (`textures.surface`)."""
+    piece to piece and `lichen` greens what faces the sky. `grain` is the tone's own fine
+    variation, vertex to vertex: 0 on a big flat surface seen from far off, where it
+    shows as the mesh's grid. `coverage` makes it a cutout or blended, by the recipe's
+    coverage image (`textures.surface`)."""
     mean = textures.baked(recipe).mean()
     hue = tuple(c / m for c, m in zip(colour, mean)) if colour else (1.0, 1.0, 1.0)
 
     def fn(p, n, edge):
-        k = 1.0 + 0.06 * fbm(p, 3.0, 2, 17.0 + seed)
+        k = 1.0 + grain * fbm(p, 3.0, 2, 17.0 + seed)
         if mottle:  # piece-to-piece tone: blotches about a stone or a board across
             k *= 1.0 + mottle * fbm(p, 3.5, 1, 53.0 + seed)
         wall = 1.0 - smoothstep(0.3, 0.9, abs(n.z))
@@ -409,6 +411,61 @@ def stencil(name, text, height, loc, rot, mat, parent=None, lods=(0, 1), depth=0
         bm = bmesh.new()
         bm.from_mesh(me)
         bmesh.ops.translate(bm, verts=bm.verts, vec=(0, 0, depth / 2))  # the back face on the surface
+        return _obj(n, bm, mat, parent, loc, rot)
+
+    return _each(name, lods, make)
+
+
+def sheet(name, w, h, loc=(0, 0, 0), mat=None, parent=None, lods=TIERS, rot=(0, 0, 0)):
+    """One face `w` wide and `h` tall, standing in its local XZ plane with its foot's middle at
+    `loc`: a pane of glass, a grille, a perforated panel. It is drawn from both sides, so a
+    blended or cutout surface is one face and never a thin box (two layers, and their edges)."""
+
+    def make(lod, n):
+        bm = bmesh.new()
+        bm.faces.new([bm.verts.new(p) for p in ((-w / 2, 0, 0), (w / 2, 0, 0), (w / 2, 0, h), (-w / 2, 0, h))])
+        return _obj(n, bm, mat, parent, loc, rot)
+
+    return _each(name, lods, make)
+
+
+def room(name, sheet_name):
+    """The material of a room behind a window: it shows a cell of the interior atlas sheet
+    `sheet_name` ("rooms", "shops") and has no look of its own (`textures.surface`)."""
+    m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
+    m.use_nodes = True
+    b = m.node_tree.nodes["Principled BSDF"]
+    b.inputs["Base Color"].default_value = (0.03, 0.03, 0.03, 1)
+    b.inputs["Roughness"].default_value = 1.0
+    return textures.surface(m, interior=sheet_name)
+
+
+def room_box(name, w, h, d, mat, parent=None, loc=(0, 0, 0), rot=(0, 0, 0), lods=TIERS):
+    """The open box behind a window, `w` wide, `h` tall and `d` deep: a back wall, a floor, a
+    ceiling and two side walls, running into the building along local +Y from the middle of
+    its open face's foot at `loc`. `mat` is a `room` material.
+
+    Its UVs are the box unfolded round its back wall, which is the unit square (u across,
+    v up); the floor, the ceiling and the side walls hang off the back wall's four edges and
+    reach one unit out at the open face. They are straight in the box's own space, so the
+    shader's pinhole lookup (city/README.md, "Interiors") is exact at every pixel, and a box
+    of any size shows the whole of its cell."""
+
+    def make(lod, n):
+        bm = bmesh.new()
+        uv = bm.loops.layers.uv.new("UVMap")
+        x0, x1 = -w / 2, w / 2
+
+        def face(points):
+            f = bm.faces.new([bm.verts.new(p) for p, _ in points])
+            for loop, (_, at) in zip(f.loops, points):
+                loop[uv].uv = at
+
+        face((((x0, d, 0), (0, 0)), ((x1, d, 0), (1, 0)), ((x1, d, h), (1, 1)), ((x0, d, h), (0, 1))))  # back
+        face((((x0, 0, 0), (0, -1)), ((x1, 0, 0), (1, -1)), ((x1, d, 0), (1, 0)), ((x0, d, 0), (0, 0))))  # floor
+        face((((x0, d, h), (0, 1)), ((x1, d, h), (1, 1)), ((x1, 0, h), (1, 2)), ((x0, 0, h), (0, 2))))  # ceiling
+        face((((x0, 0, 0), (-1, 0)), ((x0, d, 0), (0, 0)), ((x0, d, h), (0, 1)), ((x0, 0, h), (-1, 1))))  # left
+        face((((x1, d, 0), (1, 0)), ((x1, 0, 0), (2, 0)), ((x1, 0, h), (2, 1)), ((x1, d, h), (1, 1))))  # right
         return _obj(n, bm, mat, parent, loc, rot)
 
     return _each(name, lods, make)

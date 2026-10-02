@@ -1,4 +1,4 @@
-// A tree or hedgerow appearance as the scenery draws it: the static bundle's
+// A tree, hedgerow or dressing appearance as the scenery draws it: the static bundle's
 // summer state, from the one loader (`AppearanceLibrary`), turned into the
 // renderer's vertex format per tier. The bundle is the unit; placement and
 // the biome's tint only instance it.
@@ -14,10 +14,11 @@ export const SCENERY_STATE = "summer";
 export const FOLIAGE_MATERIAL = "leaves";
 
 /** The installed scenery appearances `names` needs, by name; throws naming
- *  any that is missing or is not a tree or hedgerow. */
+ *  any that is missing or is not of one of the scenery `kinds`. */
 export function sceneryAppearances(
   installed: InstalledAppearances,
   names: readonly string[],
+  kinds: readonly string[],
 ): Map<string, StaticBundle> {
   const out = new Map<string, StaticBundle>();
   for (const name of names) {
@@ -26,11 +27,11 @@ export function sceneryAppearances(
     if (
       entry.bundle.kind !== "static" ||
       entry.unit !== "scenery" ||
-      (entry.scenery !== "tree" && entry.scenery !== "hedgerow") ||
+      !kinds.includes(entry.scenery ?? "") ||
       !entry.bundle.states.some((s) => s.name === SCENERY_STATE)
     )
       throw new Error(
-        `scenery: appearance "${name}" is not a tree or hedgerow with a summer state`,
+        `scenery: appearance "${name}" is not a ${kinds.join(" or ")} with a summer state`,
       );
     out.set(name, entry.bundle);
   }

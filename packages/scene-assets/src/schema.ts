@@ -59,6 +59,7 @@ export const FINDING_CODES = [
   "fit.muzzle_arc",
   "fit.canopy",
   "fit.tree_size",
+  "fit.dressing",
   "fit.footprint",
   /** A type listing a part must draw that part's hardware nodes. */
   "fit.part_nodes",
@@ -99,13 +100,13 @@ export type BundleKind = "skinned" | "articulated" | "static";
  *  set and a hull type its vehicle appearance (the unit catalog); "scenery"
  *  is every prop, tree, hedgerow and grass kind, which one the entry's
  *  `scenery` (`scenery.ts`); a "kit" is a city set's shared modules, which
- *  the template art library's rows place on buildings (`templateLibrary.ts`). */
-export type AppearanceUnit = "soldier" | "vehicle" | "building" | "scenery" | "kit";
+ *  the template art library's rows place on buildings (`templateLibrary.ts`).
+ *  A building is never an appearance: it is its template's rows. */
+export type AppearanceUnit = "soldier" | "vehicle" | "scenery" | "kit";
 
 export const UNIT_BUNDLE_KIND: Record<AppearanceUnit, BundleKind> = {
   soldier: "skinned",
   vehicle: "articulated",
-  building: "static",
   scenery: "static",
   kit: "static",
 };
@@ -121,8 +122,6 @@ export const INFANTRY_CLIPS = [
 ] as const;
 /** Skinned sockets: nodes under a joint, named exactly. */
 export const INFANTRY_SOCKETS = ["eye", "muzzle"] as const;
-/** Static bundle states every building carries. */
-export const BUILDING_STATES = ["intact", "ruin"] as const;
 
 /** A merged, material-ranged triangle mesh in its owner's space. */
 export interface MeshData {
@@ -162,6 +161,20 @@ export type Coverage =
  *  apartment rooms on any floor, and shops on ground floors. */
 export const INTERIOR_SHEETS = ["rooms", "shops"] as const;
 export type InteriorSheet = (typeof INTERIOR_SHEETS)[number];
+/** A sheet's cells: how many, their edge, how many to a row in the source
+ *  picture, and how many to a row in the square texture a bundle carries
+ *  (`interior.ts`); cell `i` is at column `i mod columns`, row
+ *  `floor(i / columns)`, from the top-left. And what a cell's picture was
+ *  taken of: a room `depth_m` deep, from a pinhole `pinhole_m` before its
+ *  open face. */
+export const INTERIOR_ATLAS = {
+  cells: 10,
+  cell_px: 128,
+  source_columns: 2,
+  columns: 4,
+  depth_m: 4.5,
+  pinhole_m: 16,
+} as const;
 
 export interface Material {
   name: string;
@@ -188,7 +201,8 @@ export interface Material {
   coverage: Coverage;
   /** The surface is a wall of the room box behind a window: it shows a cell
    *  of this interior atlas sheet, at its own UVs, in place of a look of its
-   *  own. glTF extras `interior`. */
+   *  own. glTF extras `interior`. A baked bundle carries the sheet as this
+   *  material's albedo texture (`interior.ts`). */
   interior?: InteriorSheet;
 }
 
@@ -283,8 +297,8 @@ export interface ArticulatedBundle {
   bounds: Bounds; // over every pose the pose driver reaches (`posedBounds`)
 }
 
-/** One mesh per state. A building's states are what a side can know it as; a
- *  kit's states are its modules, named by module id, each in its own frame. */
+/** One mesh per state. A scenery kind's states are its row's (`scenery.ts`);
+ *  a kit's states are its modules, named by module id, each in its own frame. */
 export interface StaticBundle {
   kind: "static";
   states: { name: string; tiers: MeshData[]; bounds: Bounds }[];
@@ -356,8 +370,21 @@ export interface Authority {
    *  `canopy_radius_m`): a tree, unscaled, stands inside it. */
   canopy_height_m: number;
   canopy_radius_m: number;
-  /** A destroyed building becomes a ruin this tall (the fixture's `buildings` block). */
-  ruin_height_m: number;
+  /** How a placed building of a template ends (the building prop types'
+   *  `destroyed.into.building`), or null when no prop type has the rule. */
+  collapse: BuildingCollapse | null;
+}
+
+/** The simulation's rule for a destroyed template building: one of
+ *  `max_floors` floors or fewer collapses, each part to remains on its own
+ *  plan, as tall as `height_fraction` of the building's height held between
+ *  `min_height_m` and `max_height_m`; a taller one stands, gutted, at its
+ *  full height. */
+export interface BuildingCollapse {
+  min_height_m: number;
+  height_fraction: number;
+  max_height_m: number;
+  max_floors: number;
 }
 
 export interface ClipDeclaration {
@@ -393,11 +420,10 @@ export interface AppearanceEntry {
    *  and places muzzles by it. */
   mounts?: MountDraws;
   /**
-   * Static appearances that stand for a simulation prop (buildings, and
-   * scenery kinds with a `prop` footprint): the half extents of the box the
-   * art is authored to, bottom on the ground. It must be a box the simulation
-   * places (a map placement, a wreck's hull); the battle fits each placed box
-   * from it. A building's ruin state is measured at the rule's ruin height.
+   * Static appearances that stand for a simulation prop (scenery kinds with
+   * a `prop` footprint): the half extents of the box the art is authored to,
+   * bottom on the ground. It must be a box the simulation places (a map
+   * placement, a wreck's hull); the battle fits each placed box from it.
    */
   footprint_half_m?: Vec3;
   /** A generated grass kind's spec: `asset grass` writes its one state's
@@ -456,11 +482,14 @@ export interface GrassSpec {
   };
 }
 
-/** One city source set (`blender/city/README.md`): its `templates.json` and
- *  the kit appearance whose modules its rows place. */
+/** One city source set (`blender/city/README.md`): its `templates.json`,
+ *  the kit appearance whose modules its rows place, and the physical
+ *  catalogue its templates are rows of, by the name the bake has it under
+ *  (`TemplateCatalogue`). */
 export interface CitySetEntry {
   templates: string;
   kit: string;
+  catalogue: string;
 }
 
 /** `assets/catalog.json`, authored. The bake writes the runtime projection. */
@@ -469,9 +498,12 @@ export interface Catalog {
   sides: SideTints;
   skeletons: Record<string, SkeletonEntry>;
   appearances: Record<string, AppearanceEntry>;
-  /** The city sets, by set name. The bake packs them all into the one
-   *  template art library. */
+  /** The city sets, by set name. The bake packs them all, whichever
+   *  catalogue each dresses, into the one template art library. */
   city_sets?: Record<string, CitySetEntry>;
+  /** The interior atlas sheets' source pictures (`blender/city/interiors.py`),
+   *  by sheet: what a room material's bundle is given to show. */
+  interiors?: Partial<Record<InteriorSheet, string>>;
 }
 
 /** `assets/runtime/catalog.json`, written by the bake: names to content hashes. */
@@ -491,9 +523,9 @@ export interface RuntimeCatalog {
     }
   >;
   /** The template art library (`templateLibrary.ts`), when the catalog has
-   *  city sets: its file's content hash, its art identity, and the hash of
-   *  the physical catalogue it covers. */
-  templates?: { library: string; art_hash: string; covers: string };
+   *  city sets: its file's content hash, its art identity, and the hashes of
+   *  the physical catalogues it covers. */
+  templates?: { library: string; art_hash: string; covers: string[] };
 }
 
 /** The file a bundle lives in, under its content hash's directory. */

@@ -8,6 +8,7 @@
 // building fall; a probe replaces the map's buildings with every other one,
 // as a new map would; `?tier=0..3` draws every building at one detail tier.
 import { useCallback, useMemo, useRef, useState } from "react";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import config from "@fixtures/generated-battle.json";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
@@ -50,7 +51,8 @@ import { askedTier, tierBoundaries, useBuildingTier } from "../buildingTier";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import { useStaticWorld, type StaticWorld } from "../useStaticWorld";
 
-const GENERATOR = { presets, templates };
+// The catalog a battle's rules carry: street furniture is placed from it.
+const GENERATOR = { presets, templates, catalog: JSON.stringify(UNITS.documents) };
 /** The map the lab opens on: a town with houses and apartment blocks. */
 const DEFAULT: MapChoice = { type: "mixed", size: "small", seed: "1" };
 /** A house this near an apartment building makes the two a block, metres. */
@@ -223,14 +225,12 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
   );
   const worldFeed = useFeed(meshes);
 
-  // The map's buildings, by the art library: every one a template reference.
-  const templateArt = appearances?.templates;
+  // The map's buildings: every one a template reference.
   const drawn = useMemo(() => {
     if (!world) return null;
     const props = mapProps(world.exports, world.layout);
-    const ids = new Set(templateArt?.library.templates.map((t) => t.id));
-    return { props, index: indexBuildings(world.exports.buildings, props, (id) => ids.has(id)) };
-  }, [world, templateArt]);
+    return { props, index: indexBuildings(world.exports.buildings, props) };
+  }, [world]);
   const modelAppearances = useMemo(
     () =>
       world && appearances && drawn
@@ -238,7 +238,7 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
             appearances,
             drawn.props,
             new PropAppearances(appearances, world.layout),
-            drawn.index,
+            drawn.index.placed,
             false,
           )
         : null,
@@ -358,8 +358,8 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
           const s = world.view.surface_at(x, y);
           return s.length ? { kind: world.layout.surfaceKinds[s[5]], forest: s[6] === 1 } : null;
         },
-        /** The buildings drawn from template art: each one's template,
-         *  category, frame and its parts' boxes on the map. */
+        /** The map's buildings: each one's template, category, frame and its
+         *  parts' boxes on the map. */
         buildings: () => {
           const { placed } = drawn.index;
           const category = new Map(
@@ -377,11 +377,8 @@ function Block({ choice, generated }: { choice: MapChoice; generated: GeneratedT
             })),
           }));
         },
-        /** How many buildings the map holds, with and without template art. */
-        counts: () => ({
-          buildings: world.exports.buildings.buildings.length,
-          drawn: drawn.index.placed.template.length,
-        }),
+        /** How many buildings the map holds. */
+        counts: () => ({ buildings: world.exports.buildings.buildings.length }),
         setFallen,
         /** Draw every other building only (another set of references, as a
          *  new map's would be), or all of them again. */

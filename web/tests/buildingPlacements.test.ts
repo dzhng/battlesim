@@ -12,8 +12,10 @@ import {
 } from "@packages/scene-assets/src/templateLibrary";
 import { createDetailView, setDetailView } from "@packages/battle-renderer/src/frame/detailView";
 import {
+  artCovers,
   buildingCasters,
   buildingDraws,
+  buildingKits,
   COARSE,
   createBuildingScene,
   POOL,
@@ -58,7 +60,7 @@ function libraryOf(templates: Record<string, Record<string, Row[]>>): TemplateAr
   let first = 0;
   return {
     art_hash: "art",
-    covers: "physical",
+    covers: ["physical"],
     kits: [
       { appearance: "city_kit_test", bundle: "a" },
       { appearance: PROTOTYPE_KIT, bundle: "b" },
@@ -385,12 +387,11 @@ const part = (id: number, x: number, y: number, half: [number, number, number]):
   baseZ: 0,
 });
 
-test("only buildings whose template has art are references, each with its frame and its parts", () => {
+test("every building of a map is a reference, with its frame and its parts", () => {
   const buildings: PublicBuildings = {
     catalogueHash: "h",
     buildings: [
       ["house", 7, [3, 4]],
-      ["village-house", 9, [5]],
       ["stand_in", 11, [6]],
     ].map(([templateId, owner, props], i) => ({
       owner: owner as number,
@@ -403,20 +404,44 @@ test("only buildings whose template has art are references, each with its frame 
     })),
   };
   const props = [3, 4, 5, 6].map((id) => part(id, id * 10, 50, [4, 3, 3]));
-  const index = indexBuildings(buildings, props, (id) =>
-    LIBRARY.templates.some((t) => t.id === id),
-  );
+  const index = indexBuildings(buildings, props);
   expect(index.placed.templates).toEqual(["house", "stand_in"]);
   expect([...index.placed.template]).toEqual([0, 1]);
   expect([...index.placed.owners]).toEqual([7, 11]);
-  expect([...index.placed.frames]).toEqual([0, 50, 2, 0, 200, 50, 2, 1]);
+  expect([...index.placed.frames]).toEqual([0, 50, 2, 0, 100, 50, 2, 0.5]);
   expect([...index.partBuilding]).toEqual([
     [3, 0],
     [4, 0],
     [6, 1],
   ]);
-  // The village's house is not one of them: its part is no art-drawn part.
+  // A prop that is no building's part is none of theirs.
   expect(index.partBuilding.has(5)).toBe(false);
+});
+
+test("a building whose template the library has no art for is refused by name", () => {
+  const placed = placedOf([
+    ["house", [0, 0, 0, 0]],
+    ["shed", [100, 0, 0, 0]],
+  ]);
+  expect(() => createBuildingScene(placed, ART, STYLE)).toThrow(
+    /template\.missing: template "shed" has no art/,
+  );
+});
+
+test("a map needs only the kits its own buildings draw from", () => {
+  const standIn = placedOf([["stand_in", [0, 0, 0, 0]]]);
+  const house = placedOf([["house", [0, 0, 0, 0]]]);
+  expect([...buildingKits(standIn, LIBRARY)]).toEqual([PROTOTYPE_KIT]);
+  // A fallen part with no art for its state is a box of the prototype kit.
+  expect([...buildingKits(house, LIBRARY)].sort()).toEqual([PROTOTYPE_KIT, "city_kit_test"]);
+  // With the prototype kit alone installed, the stand-in draws and the house waits.
+  const boxOnly: BuildingArt = { library: LIBRARY, bounds: [null, null, null, ART.bounds[BOX]] };
+  expect(artCovers(standIn, boxOnly)).toBe(true);
+  expect(artCovers(house, boxOnly)).toBe(false);
+  expect(artCovers(house, ART)).toBe(true);
+  const scene = createBuildingScene(standIn, boxOnly, STYLE);
+  selectBuildings(scene, view(0, 0, 60), null);
+  expect(tally(drawn(scene))).toEqual([`${BOX}@0`]);
 });
 
 test("a side draws a building intact until it has seen it fall, then each part as it knows it", () => {
@@ -437,7 +462,7 @@ test("a side draws a building intact until it has seen it fall, then each part a
     part(1, 1004, 2004, [2, 2, 3]),
     part(10, 1020, 2000, [5, 4, 3]),
   ];
-  const index = indexBuildings(buildings, props, () => true);
+  const index = indexBuildings(buildings, props);
   expect(fallenBuildings(index, [])).toEqual([]);
   // Blue saw the first building's main part come down: its remains, and the
   // wing as it last knew it. A wreck is no building's.

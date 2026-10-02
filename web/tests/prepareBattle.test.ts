@@ -103,6 +103,7 @@ test("a prepared battle is the requested map with the planned encounter on it, a
       }),
       fixture("map-presets.json"),
       fixture("prototype-building-templates.json"),
+      JSON.stringify(GAME_RULES.catalog),
     ),
   );
   expect(identity).toEqual(direct.result.identity);

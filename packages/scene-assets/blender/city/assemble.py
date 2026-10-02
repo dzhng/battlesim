@@ -8,16 +8,23 @@ row is instanced as the readme says (scale, yaw about +Z, move; drawn at the
 tiers its mask names; tint on tint-masked surfaces), and the descriptor's part
 boxes are drawn over them as wires.
 
-Sheets (all of them unless named):
-  each     one sheet a template: 30 m, 80 m and 250 m, with its part boxes
-  street   every template in a row, seen from 80 m
-  suburb   a made-up block of about twenty houses, seen from 250 m (the houses' set)
-  hamlet   a made-up hamlet of the set's farmsteads along a lane, seen from 250 m
-  tiers    one template at each of its four detail tiers, from 80 m
+Sheets (`each`, `street`, `suburb`, `hamlet` and `tiers` unless named):
+  each       one sheet a template: 30 m, 80 m and 250 m, with its part boxes
+  street     every template in a row, seen from 80 m
+  suburb     a made-up block of about twenty houses, seen from 250 m (the houses' set)
+  hamlet     a made-up hamlet of the set's farmsteads along a lane, seen from 250 m
+  tiers      one template at each of its four detail tiers, from 80 m
+  damage     one sheet a template: intact beside its ruin or its gutted shell at 30 m,
+             80 m and 250 m, each with the boxes the simulation has there (the parts,
+             or the remains a collapse leaves), then both at the two coarse tiers
+  aftermath  a street after the battle: every template twice, standing and destroyed,
+             neighbours mixed
 
 The camera is the battle's: 0.8 rad of vertical view at 1920x1080, pitched 0.34 rad
-down at 30 m and 0.85 rad from 65 m out. A building is drawn at the tier its
-projected height asks for, by the model thresholds in `fixtures/game.json`. The
+down at 30 m and 0.85 rad from 65 m out. A building is drawn at the tier the game
+draws it at: by how many pixels a metre of it covers (`presentation.buildings.lod_px_per_m`
+in `fixtures/game.json`), which at this camera is tier 0 to 128 m, tier 1 to 319 m
+and tier 2 to about a kilometre. The
 materials rebuild the model shader's surface (vertex colour times texture, wear
 past the albedo's alpha, tint through the mask), lit by one sun and a sky: a
 stand-in for the battle's light, not a copy of it.
@@ -35,10 +42,12 @@ from mathutils import Matrix, Vector
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 import textures  # noqa: E402
+sys.path.insert(0, HERE)
+import collapse  # noqa: E402
 
 WIDTH, HEIGHT, VFOV = 1920, 1080, 0.8
 FOCAL_PX = HEIGHT / 2 / math.tan(VFOV / 2)
-LOD_PX = json.load(open(os.path.join(HERE, "../../../../fixtures/game.json")))["presentation"]["models"]["lod_px"]
+LOD_PX_PER_M = json.load(open(os.path.join(HERE, "../../../../fixtures/game.json")))["presentation"]["buildings"]["lod_px_per_m"]
 WEAR_EDGE = 0.04  # the model shader's
 SUN_TOWARD = Vector((0.55, -0.6, 0.62)).normalized()  # from the south-east, mid-morning
 
@@ -47,9 +56,28 @@ def pitch_at(distance):
     return 0.34 + (0.85 - 0.34) * min(1.0, max(0.0, (distance - 30) / 35))
 
 
-def tier_at(height_m, distance):
-    px = height_m * FOCAL_PX / distance
-    return 0 if px > LOD_PX[0] else 1 if px > LOD_PX[1] else 2 if px > LOD_PX[2] else 3
+def tier_at(distance):
+    px = FOCAL_PX / distance  # a metre, in pixels
+    return 0 if px > LOD_PX_PER_M[0] else 1 if px > LOD_PX_PER_M[1] else 2 if px > LOD_PX_PER_M[2] else 3
+
+
+def tier_distance(tier):
+    """A distance the game draws `tier` at: the middle of its range (the coarsest, half as far again as it starts)."""
+    edges = [FOCAL_PX / px for px in LOD_PX_PER_M]
+    return (30.0, (edges[0] + edges[1]) / 2, (edges[1] + edges[2]) / 2, 1.5 * edges[2])[tier]
+
+
+def damage_state(template):
+    """The state a template is destroyed into, by the simulation's rule."""
+    return collapse.damage_state(len(template["descriptor"]["floor_heights_m"]))
+
+
+def boxes(template, state):
+    """The boxes the simulation has for a template in `state`: (centre, half extents, base). A ruin's are its remains."""
+    parts = template["descriptor"]["parts"]
+    remains = collapse.ruin_height(max(p["base_z"] + 2 * p["half_extents"][2] for p in parts))
+    return [(p["center"], (p["half_extents"][0], p["half_extents"][1], remains / 2 if state == "ruin" else p["half_extents"][2]),
+             p["base_z"]) for p in parts]
 
 
 def srgb(c):
@@ -222,10 +250,10 @@ def slab(name, rect, z, colour):
     return o
 
 
-def build(modules, names, template, frame=Matrix.Identity(4), tier=0, wires=0.0, into=None):
-    """Instance a template's rows at one tier under `frame`; `wires` metres thick part boxes over it."""
+def build(modules, names, template, frame=Matrix.Identity(4), tier=0, wires=0.0, into=None, state="intact"):
+    """Instance the rows of a template's `state` at one tier under `frame`; `wires` metres thick, the simulation's boxes over it."""
     made = []
-    for index, x, y, z, yaw, sx, sy, sz, tiers, r, g, b in template["states"]["intact"]:
+    for index, x, y, z, yaw, sx, sy, sz, tiers, r, g, b in template["states"][state]:
         if not tiers >> tier & 1:
             continue
         at = frame @ Matrix.Translation((x, y, z)) @ Matrix.Rotation(yaw, 4, "Z") @ Matrix.Diagonal((sx, sy, sz, 1))
@@ -237,8 +265,7 @@ def build(modules, names, template, frame=Matrix.Identity(4), tier=0, wires=0.0,
                 made.append(o)
     if wires:
         ink = bpy.data.materials.get("wire") or flat("wire", (1.0, 0.1, 0.8), emit=3.0)
-        for part in template["descriptor"]["parts"]:
-            (cx, cy), (hx, hy, hz), base = part["center"], part["half_extents"], part["base_z"]
+        for (cx, cy), (hx, hy, hz), base in boxes(template, state):
             corners = [(cx + sx * hx, cy + sy * hy, base + sz * 2 * hz) for sz in (0, 1) for sy in (-1, 1) for sx in (-1, 1)]
             me = bpy.data.meshes.new("part")
             me.from_pydata(corners, [], [(0, 1, 3, 2), (4, 5, 7, 6), (0, 1, 5, 4), (2, 3, 7, 6), (0, 2, 6, 4), (1, 3, 7, 5)])
@@ -319,7 +346,7 @@ def sheet_each(camera, modules, templates, out, scratch):
         target = ((x0 + x1) / 2, (y0 + y1) / 2, height * 0.4)
         panels = []
         for distance, crop in ((30, None), (80, (960, 540)), (250, (960, 540))):
-            made = build(modules, names, template, tier=tier_at(height, distance), wires=0.0012 * distance)
+            made = build(modules, names, template, tier=tier_at(distance), wires=0.0012 * distance)
             panels.append(shoot(camera, os.path.join(scratch, "panel.png"), target, distance, math.radians(-118), crop))
             clear(made)
         save(os.path.join(out, f"{template['descriptor']['id']}.png"),
@@ -347,7 +374,7 @@ def sheet_street(camera, modules, templates, out, scratch):
         for template, at in run:
             x0, x1, y0, y1, height = extent(template)
             frame = Matrix.Translation((at, -y0, 0))  # every street front on one line
-            made += build(modules, names, template, frame, tier=tier_at(height, 80))
+            made += build(modules, names, template, frame, tier=tier_at(80))
             made.append(label(template["descriptor"]["id"].replace("china-", ""), (at + (x0 + x1) / 2, -6.0)))
         strips.append(shoot(camera, os.path.join(scratch, "panel.png"), (length / 2, 5.0, 3.0), 80, math.radians(-90),
                             (WIDTH, 600, 20)))
@@ -379,7 +406,7 @@ def sheet_suburb(camera, modules, templates, out, scratch):
             turn = 0.0 if side > 0 else math.pi
             centre = Vector((x + (x1 - x0) / 2, street + side * 9.0, 0.0))
             frame = Matrix.Translation(centre) @ Matrix.Rotation(turn, 4, "Z") @ Matrix.Translation((-(x0 + x1) / 2, -y0, 0))
-            made += build(modules, names, by[id_], frame, tier=tier_at(height, (centre - eye).length))
+            made += build(modules, names, by[id_], frame, tier=tier_at((centre - eye).length))
             x += x1 - x0 + 8.0
             count += 1
     image = shoot(camera, os.path.join(scratch, "panel.png"), target, 250, math.radians(-112))
@@ -411,7 +438,7 @@ def sheet_hamlet(camera, modules, templates, out, scratch):
         centre = Vector((x, side * 10.0, 0.0))
         frame = (Matrix.Translation(centre) @ Matrix.Rotation((0.0 if side > 0 else math.pi) + turn, 4, "Z")
                  @ Matrix.Translation((-(x0 + x1) / 2, -y0, 0)))
-        made += build(modules, names, template, frame, tier=tier_at(height, (centre - eye).length))
+        made += build(modules, names, template, frame, tier=tier_at((centre - eye).length))
     image = shoot(camera, os.path.join(scratch, "panel.png"), target, 250, azimuth)
     clear(made)
     save(os.path.join(out, "hamlet-250m.png"), image)
@@ -435,17 +462,94 @@ def sheet_tiers(camera, modules, templates, out, scratch):
     save(os.path.join(out, "tiers-80m.png"), image)
 
 
+def shrink(image, by):
+    """`image` at 1/`by` its size, each pixel the mean of a block."""
+    h, w = image.shape[0] // by * by, image.shape[1] // by * by
+    return np.round(image[:h, :w].reshape(h // by, by, w // by, by, 4).astype(np.float32).mean((1, 3))).astype(np.uint8)
+
+
+def sheet_damage(camera, modules, templates, out, scratch):
+    """Intact beside destroyed, a row a distance: 30 m at the first door, 80 m and 250 m, then the two
+    coarse tiers at distances the game draws them at, enlarged. A panel is 960 px wide: the middle of
+    the frame at its true scale where the building fits it, the whole frame at half scale where not."""
+    names = templates["modules"]
+    for template in templates["templates"]:
+        x0, x1, y0, y1, height = extent(template)
+        wide = math.hypot(x1 - x0, y1 - y0)
+        centre = ((x0 + x1) / 2, (y0 + y1) / 2, height * 0.4)
+        ends = damage_state(template)
+        rows = []
+        views = [(30, ((x0 + x1) / 2, y0, 2.0), 1), (80, centre, 1), (250, centre, 1), (tier_distance(2), centre, 3), (tier_distance(3), centre, 6)]
+        for distance, target, enlarge in views:
+            px = FOCAL_PX / distance
+            tall = min(540, max(180, int((height + 0.75 * wide) * px * 1.25) // 60 * 60 + 60)) if distance > 30 else 540
+            fits = wide * px < 900 and (height + 0.7 * wide) * px < 520 or distance <= 30
+            panels = []
+            for state in ("intact", ends):
+                made = build(modules, names, template, tier=tier_at(distance), wires=0.0012 * distance if enlarge == 1 else 0.0, state=state)
+                crop = (960 // enlarge, tall // enlarge) if fits else None
+                image = shoot(camera, os.path.join(scratch, "panel.png"), target, distance, math.radians(-118), crop)
+                clear(made)
+                image = image if fits else shrink(image, 2)
+                panels.append(np.repeat(np.repeat(image, enlarge, 0), enlarge, 1))
+            rows.append(np.concatenate(panels, 1))
+            print(f"damage {template['descriptor']['id']}: {distance:.0f} m, tier {tier_at(distance)}, "
+                  f"{'true scale' if fits else 'half scale'}{', enlarged x%d' % enlarge if enlarge > 1 else ''}")
+        save(os.path.join(out, f"damage-{template['descriptor']['id']}.png"), np.concatenate(rows, 0))
+
+
+def sheet_aftermath(camera, modules, templates, out, scratch):
+    """A street after the battle, in strips: the set's templates down both sides of it, each standing
+    on one side and destroyed on the other, so every neighbour of a ruin is a building."""
+    names = templates["modules"]
+    order = sorted(templates["templates"], key=lambda t: t["descriptor"]["id"])
+    across = order[len(order) // 2:] + order[:len(order) // 2]
+    gap = 10.0 if extent(order[0])[1] - extent(order[0])[0] < 40 else 22.0
+    strips, strip, x = [], [], 0.0
+    for k, pair in enumerate(zip(order, across)):
+        width = max(extent(t)[1] - extent(t)[0] for t in pair)
+        if strip and x + width > 110:
+            strips.append((strip, x - gap))
+            strip, x = [], 0.0
+        strip.append((k, pair, x + width / 2))
+        x += width + gap
+    strips.append((strip, x - gap))
+    images = []
+    for strip, length in strips:
+        deep = max(extent(t)[3] - extent(t)[2] for _, pair, _ in strip for t in pair)
+        tall = max(extent(t)[4] for _, pair, _ in strip for t in pair)
+        distance = max(70.0, (length + 16) * FOCAL_PX / (0.94 * WIDTH), (2 * deep + 34 + 1.2 * tall) * FOCAL_PX * 0.8 / 760)
+        azimuth, pitch = math.radians(-100), pitch_at(distance)
+        target = Vector((length / 2, 0.0, 0.3 * tall))
+        eye = target + distance * Vector((math.cos(pitch) * math.cos(azimuth), math.cos(pitch) * math.sin(azimuth), math.sin(pitch)))
+        made = [slab("street", (-80, length + 80, -5, 5), 0.0, (0.05, 0.05, 0.052))]
+        for k, pair, at in strip:
+            for side, template in zip((1, -1), pair):
+                x0, x1, y0, y1, height = extent(template)
+                centre = Vector((at, side * 12.0, 0.0))
+                frame = (Matrix.Translation(centre) @ Matrix.Rotation(0.0 if side > 0 else math.pi, 4, "Z")
+                         @ Matrix.Translation((-(x0 + x1) / 2, -y0, 0)))
+                made += build(modules, names, template, frame, tier=tier_at((centre - eye).length),
+                              state=damage_state(template) if (k % 2 == 0) == (side > 0) else "intact")
+        images.append(shoot(camera, os.path.join(scratch, "panel.png"), target, distance, azimuth, (WIDTH, 760)))
+        clear(made)
+        print(f"aftermath: {2 * len(strip)} buildings from {distance:.0f} m")
+    save(os.path.join(out, "aftermath.png"), np.concatenate(images, 0))
+
+
 def main():
     args = [a for a in sys.argv[sys.argv.index("--") + 1:] if a != "--"] if "--" in sys.argv else []
     if len(args) < 2:
-        raise SystemExit("assemble.py <set dir> <out dir> [each|street|suburb|hamlet|tiers ...]")
+        raise SystemExit("assemble.py <set dir> <out dir> [each|street|suburb|hamlet|tiers|damage|aftermath ...]")
     set_dir, out = os.path.abspath(args[0]), os.path.abspath(args[1])
-    sheets = {"each": sheet_each, "street": sheet_street, "suburb": sheet_suburb, "hamlet": sheet_hamlet, "tiers": sheet_tiers}
+    sheets = {"each": sheet_each, "street": sheet_street, "suburb": sheet_suburb, "hamlet": sheet_hamlet, "tiers": sheet_tiers,
+              "damage": sheet_damage, "aftermath": sheet_aftermath}
     scratch = os.path.join(out, "scratch")
     os.makedirs(scratch, exist_ok=True)
     modules, templates = load(set_dir)
     camera = stage()
-    for name in args[2:] or list(sheets):
+    camera.data.clip_end = 12000.0
+    for name in args[2:] or ["each", "street", "suburb", "hamlet", "tiers"]:
         sheets[name](camera, modules, templates, out, scratch)
 
 

@@ -38,6 +38,7 @@ import {
 import { physicalTemplates } from "@web/maps/node";
 import { AUTHORITY, testCatalog, testSources } from "./synthetic";
 import {
+  CATALOGUE,
   HOUSE,
   KIT,
   KIT_SOURCE,
@@ -49,6 +50,8 @@ import {
   descriptor,
   kitGlb,
   row,
+  ruinRow,
+  setBytes,
   shellRow,
   solid,
   testSet,
@@ -132,10 +135,10 @@ test("packing the same sources twice gives the same bytes", async () => {
 
 test("the library holds every template's status and rows, and names what it covers", async () => {
   const lib = await library();
-  expect(lib.covers).toBe(physicalTemplates().complete([HOUSE, YARD]).hash);
+  expect(lib.covers).toEqual([physicalTemplates().complete([HOUSE, YARD]).hash]);
   expect(lib.templates.map((t) => [t.id, t.set, t.status, Object.keys(t.states)])).toEqual([
-    ["test-house", "test", "release", ["intact"]],
-    ["test-yard", "test", "prototype", ["intact"]],
+    ["test-house", "test", "release", ["intact", "ruin"]],
+    ["test-yard", "test", "prototype", ["intact", "ruin"]],
   ]);
   const house = templateRows(lib, "test-house", "intact");
   expect(house.count).toBe(2);
@@ -268,8 +271,8 @@ test("missing art is refused by name, never replaced", async () => {
   expect(refusal(() => resolve("china-slab-35x11", frame, "intact", lib))).toMatch(
     /^template\.missing \| .*template "china-slab-35x11" has no art/,
   );
-  expect(refusal(() => resolve("test-house", frame, "ruin", lib))).toMatch(
-    /^state\.missing \| .*template "test-house" \(set test\) has no "ruin" rows/,
+  expect(refusal(() => resolve("test-house", frame, "gutted", lib))).toMatch(
+    /^state\.missing \| .*template "test-house" \(set test\) has no "gutted" rows/,
   );
 });
 
@@ -343,6 +346,114 @@ test("every template is drawn intact", async () => {
   ]);
 });
 
+// ---------------------------------------------------------------- damage states
+
+/** An apartment block of `floors` floors, 3 m each, as a template of one part. The
+ *  category admits four to eight floors: the rule's six-floor line runs through it. */
+function block(id: string, floors: number) {
+  const d = descriptor(id, [{ id: "body", center: [0, 0], half: [6, 4, 1.5 * floors] }]);
+  d.category = "urban_apartment";
+  d.floor_heights_m = Array.from({ length: floors }, (_, k) => 3 * k);
+  return d;
+}
+
+/** A set of one template, `d`, drawn intact as its parts and destroyed as `damage` says. */
+const blockSet = (d: typeof HOUSE, damage: TemplateSetSource["templates"][number]["states"]) =>
+  testSet((set) => {
+    set.templates = [
+      {
+        status: "release",
+        descriptor: d,
+        states: { intact: d.parts.map((p) => shellRow(p)), ...damage },
+      },
+    ];
+  });
+
+test("a template carries the damage state its floors call for, and no other", async () => {
+  // Six floors or fewer collapse: a ruin, and no burnt shell.
+  const low = block("test-low", 6);
+  const lowRuin = [ruinRow(low.parts[0], 4.5)];
+  const standing = low.parts.map((p) => shellRow(p));
+  await library(blockSet(low, { ruin: lowRuin }), [low]);
+  expect(await refusals(blockSet(low, {}), [low])).toEqual([
+    expect.stringMatching(
+      /^templates\.state: .*template test-low \(6 floors\) collapses, and has no "ruin" rows/,
+    ),
+  ]);
+  expect(await refusals(blockSet(low, { ruin: lowRuin, gutted: standing }), [low])).toEqual([
+    expect.stringMatching(
+      /^templates\.state: .*template test-low \(6 floors\) collapses, and has "gutted" rows/,
+    ),
+  ]);
+  // Taller ones stand, gutted: a burnt shell, and no ruin.
+  const tall = block("test-tall", 7);
+  const shell = tall.parts.map((p) => shellRow(p));
+  await library(blockSet(tall, { gutted: shell }), [tall]);
+  expect(await refusals(blockSet(tall, {}), [tall])).toEqual([
+    expect.stringMatching(
+      /^templates\.state: .*template test-tall \(7 floors\) stands gutted, and has no "gutted" rows/,
+    ),
+  ]);
+  expect(
+    await refusals(blockSet(tall, { gutted: shell, ruin: [ruinRow(tall.parts[0], 5)] }), [tall]),
+  ).toEqual([
+    expect.stringMatching(
+      /^templates\.state: .*template test-tall \(7 floors\) stands gutted, and has "ruin" rows/,
+    ),
+  ]);
+});
+
+test("a ruin stays inside the remains the simulation leaves", async () => {
+  // The remains are a quarter of the building's height, never under 2 m nor over 6 m
+  // (the test rule): a ruin as tall as that fits, and one a little taller does not.
+  for (const [height, remains] of [
+    [6, 2],
+    [20, 5],
+    [30, 6],
+  ]) {
+    const d = descriptor("test-hall", [{ id: "body", center: [0, 0], half: [6, 4, height / 2] }]);
+    await library(blockSet(d, { ruin: [ruinRow(d.parts[0], remains)] }), [d]);
+    expect(
+      await refusals(blockSet(d, { ruin: [ruinRow(d.parts[0], remains + 0.25)] }), [d]),
+    ).toEqual([
+      expect.stringMatching(
+        new RegExp(
+          `^templates\\.fit: .*template test-hall ruin: row 0 \\(module "shell"\\) reaches .*, 0\\.24\\d m outside part "body" at its ruin height \\(${remains}\\.000 m\\)`,
+        ),
+      ),
+    ]);
+  }
+  // Broken walls end raggedly: a set says how far above the remains they may reach.
+  const jagged = (over: number, allowance: number) => {
+    const set = blockSet(HOUSE, { ruin: [ruinRow(HOUSE.parts[0], 2 + over)] });
+    set.fit.ruin_top_m = allowance;
+    return set;
+  };
+  await library(jagged(0.3, 0.3), [HOUSE]);
+  expect((await refusals(jagged(0.5, 0.3), [HOUSE])).join("\n")).toMatch(
+    /templates\.fit: .*test-house ruin: .*ruin top 0\.3 m/,
+  );
+  // The roof's allowance is not the ruin's, and the sides' fit is the standing building's.
+  expect((await refusals(jagged(0.9, 0), [HOUSE])).join("\n")).toMatch(/templates\.fit/);
+  const spilt = blockSet(HOUSE, { ruin: [row(0, [0, 0, 0], [13.2, 8, 2])] });
+  expect((await refusals(spilt, [HOUSE])).join("\n")).toMatch(
+    /templates\.fit: .*test-house ruin: .*reaches \[-?6\.600, /,
+  );
+  await library(blockSet(HOUSE, { ruin: [row(0, [0, 0, 0], [12.8, 8, 2])] }), [HOUSE]);
+});
+
+test("every part of a building falls to the one height, the building's", async () => {
+  // A 20 m hall with an 8 m wing: both leave 5 m of remains, though a quarter of the wing is 2 m.
+  const d = descriptor("test-works", [
+    { id: "hall", center: [-10, 0], half: [5, 4, 10] },
+    { id: "wing", center: [10, 0], half: [4, 4, 4] },
+  ]);
+  await library(blockSet(d, { ruin: d.parts.map((p) => ruinRow(p, 5)) }), [d]);
+  expect(
+    (await refusals(blockSet(d, { ruin: d.parts.map((p) => ruinRow(p, 5.5)) }), [d])).join("\n"),
+  ).toMatch(/templates\.fit: .*test-works ruin: .*ruin height \(5\.000 m\).*; 1 more row/);
+});
+
 test("a state draws something at every tier: a building never vanishes with distance", async () => {
   // Every row of the house stops short of the coarsest tier, which is the
   // tier the whole map draws at.
@@ -362,7 +473,7 @@ test("the catalogue and the sets cover each other exactly", async () => {
   const shed = descriptor("test-shed", [{ id: "body", center: [0, 0], half: [3, 3, 2] }]);
   expect(await refusals(testSet(), [HOUSE, YARD, shed])).toEqual([
     expect.stringMatching(
-      /^templates\.coverage: template test-shed is in the physical catalogue, but no set has art for it/,
+      /^templates\.coverage: template test-shed is in the physical catalogue "towns", but no set of it has art for it/,
     ),
   ]);
   expect(await refusals(testSet(), [HOUSE])).toEqual([
@@ -379,7 +490,7 @@ test("the catalogue and the sets cover each other exactly", async () => {
 
 test("a template is dressed by exactly one set", async () => {
   const catalog = cityCatalog();
-  catalog.city_sets!.second = { templates: "second.json", kit: KIT };
+  catalog.city_sets!.second = { templates: "second.json", kit: KIT, catalogue: CATALOGUE };
   const second = testSet((set) => {
     set.set = "second";
     set.templates.pop();
@@ -390,6 +501,99 @@ test("a template is dressed by exactly one set", async () => {
   expect(result.reports.flatMap((r) => r.findings).map((f) => `${f.code}: ${f.message}`)).toEqual([
     expect.stringMatching(
       /^templates\.coverage: template test-house is dressed by 2 sets \(second, test\)/,
+    ),
+  ]);
+});
+
+// ---------------------------------------------------------------- two catalogues
+
+/** A solid box: a valid physical template with no floor, door or bay of its
+ *  own, as an authored map's building is. */
+const BOX = {
+  ...descriptor("test-box"),
+  floor_heights_m: null,
+  entrances: null,
+  edges: (descriptor("test-box").edges as object[]).map((edge) => ({ ...edge, bays: null })),
+};
+
+/** The test set over its own catalogue, and a `boxes` set that dresses BOX
+ *  and names the catalogue `named`: every finding, and the library if any. */
+async function twoCatalogues(
+  towns: unknown[],
+  boxes: { rows: unknown[]; complete: boolean },
+  named = "boxes",
+) {
+  const catalog = cityCatalog();
+  catalog.city_sets!.boxes = { templates: "boxes.json", kit: KIT, catalogue: named };
+  const set = testSet((s) => {
+    s.set = "boxes";
+    s.templates = [
+      {
+        status: "release",
+        descriptor: structuredClone(BOX),
+        states: { intact: [shellRow(BOX.parts[0])], ruin: [ruinRow(BOX.parts[0])] },
+      },
+    ];
+  });
+  const sources: Record<string, Uint8Array> = { ...citySources(), "boxes.json": setBytes(set) };
+  const result = await bakeCatalog(
+    catalog,
+    async (path) => sources[path],
+    cityContext(towns, [{ name: "boxes", ...boxes }]),
+  );
+  const baked = result.runtime.templates;
+  return {
+    findings: result.reports.flatMap((r) => r.findings).map((f) => `${f.code}: ${f.message}`),
+    library: baked && decodeTemplateLibrary(result.files.get(templateLibraryPath(baked.library))!),
+  };
+}
+
+test("one library covers two catalogues, each held to its own rule", async () => {
+  const physical = physicalTemplates();
+  const { findings, library } = await twoCatalogues([HOUSE, YARD], {
+    rows: [BOX],
+    complete: false,
+  });
+  expect(findings).toEqual([]);
+  expect(library!.covers).toEqual([
+    physical.valid([BOX]).hash,
+    physical.complete([HOUSE, YARD]).hash,
+  ]);
+  expect(library!.templates.map((t) => [t.id, t.set])).toEqual([
+    ["test-box", "boxes"],
+    ["test-house", "test"],
+    ["test-yard", "test"],
+  ]);
+  // The same box in a catalogue of complete buildings has no floor, door or bay to be placed by.
+  const strict = await twoCatalogues([HOUSE, YARD], { rows: [BOX], complete: true });
+  expect(strict.library).toBeUndefined();
+  expect(strict.findings.join("\n")).toMatch(
+    /templates\.physical: .*template test-box is not a physical template a map may place: test-box: floor, entrance or bay geometry is unresolved/,
+  );
+});
+
+test("a catalogue is covered by the sets that name it, and no template is in two", async () => {
+  // The yard's row moved to the boxes' catalogue: its own set no longer finds
+  // it, and no set of the boxes' catalogue dresses it.
+  const moved = await twoCatalogues([HOUSE], { rows: [BOX, YARD], complete: false });
+  expect(moved.findings).toEqual([
+    expect.stringMatching(
+      /^templates\.coverage: template test-yard is in the physical catalogue "boxes", but no set of it has art for it/,
+    ),
+    expect.stringMatching(
+      /^templates\.catalogue: set test: template test-yard is not in the physical catalogue "towns"/,
+    ),
+  ]);
+  const twice = await twoCatalogues([HOUSE, YARD], { rows: [BOX, HOUSE], complete: false });
+  expect(twice.findings).toContainEqual(
+    expect.stringMatching(
+      /^templates\.catalogue: template test-house is in the physical catalogues "boxes" and "towns"/,
+    ),
+  );
+  const unnamed = await twoCatalogues([HOUSE, YARD], { rows: [BOX], complete: false }, "attic");
+  expect(unnamed.findings).toEqual([
+    expect.stringMatching(
+      /^templates\.catalogue: .*set "boxes" on catalogue "attic", which is not one of towns, boxes/,
     ),
   ]);
 });
@@ -421,7 +625,7 @@ test("art identity moves with the art; physical identity only with the geometry"
     )
   ).runtime.templates!;
   const variants = [tinted, moved, coarser, accepted, thicker];
-  for (const variant of variants) expect(variant.covers).toBe(base.covers);
+  for (const variant of variants) expect(variant.covers).toEqual(base.covers);
   expect(new Set([base, ...variants].map((v) => v.art_hash)).size).toBe(variants.length + 1);
 
   // The same rows on a taller house: another catalogue, so other art.
@@ -433,7 +637,7 @@ test("art identity moves with the art; physical identity only with the geometry"
       [taller, YARD],
     )
   ).runtime.templates!;
-  expect(regrown.covers).not.toBe(base.covers);
+  expect(regrown.covers).not.toEqual(base.covers);
   expect(regrown.art_hash).not.toBe(base.art_hash);
 });
 
@@ -452,13 +656,19 @@ test("a catalog without city sets bakes as before, with no library", async () =>
 
 test("the prototype set is each physical part as a tinted box, labelled a stand-in", async () => {
   const tints = { detached_home: [0.5, 1, 0], default: [0.2, 0.2, 0.2] } as const;
-  const set = prototypeTemplates([HOUSE, { ...YARD, category: "industry" }], tints);
+  const set = prototypeTemplates(
+    [HOUSE, { ...YARD, category: "industry" }],
+    tints,
+    AUTHORITY.collapse!,
+  );
   const catalog = {
     ...cityCatalog(),
     appearances: {
       [PROTOTYPE_KIT]: { unit: "kit" as const, source: KIT_SOURCE, basis_yaw_deg: 0 },
     },
-    city_sets: { [PROTOTYPE_SET]: { templates: "set.json", kit: PROTOTYPE_KIT } },
+    city_sets: {
+      [PROTOTYPE_SET]: { templates: "set.json", kit: PROTOTYPE_KIT, catalogue: CATALOGUE },
+    },
   };
   const sources: Record<string, Uint8Array> = {
     [KIT_SOURCE]: prototypeKitGlb(),

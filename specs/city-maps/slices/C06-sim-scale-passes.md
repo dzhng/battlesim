@@ -524,3 +524,156 @@ advance includes collision, cover and soldier movement. Physical advance owns
 70.7% and 81.1% of the two nested totals. Coarse counter reads, about six per
 virtual step, are included; these are attribution measurements, not a measured
 speedup. No demonstrated small allocation cleanup resolves that amplification.
+
+The unchanged control also runs through 900 ticks to test whether the five-second
+probe ended before weapon setup. At ticks 150/300/600/900 it has 1/2/3/3 launched
+rounds, 200/200/199/199 living units, no soldier corpses and 0/0/1/1 wrecks. Blue
+ends with six movement goals and routes, maximum displacement 150.13 m; red has
+no movement goals throughout and moves at most 9.36 m. The final digest is
+`d167f5f4d7bc46ce`. Orders spend 176.662 billion instructions across the arm;
+ordinary phases average 101.437 million per tick. Complete final observations
+and the matching input identities are retained with the 900-tick receipts.
+Some combat occurs, but the intended broadly moving contact load is not
+established. Faster execution with identical refusals cannot repair that workload
+gap. Current admission needs a movement-admission resolution or an explicitly
+accepted representative workload; a quiet five-minute run cannot close it.
+
+## Outcome — idle squads need no local steering geometry
+
+A moving vehicle makes the threat list nonempty for every squad, even far from
+its path. A squad with no active corridor, no living soldier needing motion to
+his holding post and no vehicle dodge cannot produce steering. It now skips
+local obstacle gathering and the no-steer member loop. Holding-post eligibility
+is shared with the ordinary steering reader; nearby dodges, cover routes and
+corridor motion keep the same owner. Velocity reset, garrison handling and the
+old empty-threat return remain in their original order. The nonempty-threat
+shortcut retains the ordinary no-corridor centroid settlement.
+
+The paired native control uses source `b5c63565`, the frozen current physical
+Metro Large seed-4 scenario with benchmark fronts at 1,050 m, and 900 ticks.
+Whole Orders falls from 61.047 to 45.356 G instructions (25.704%). All stepping,
+including Orders, falls from 206.305 to 190.810 G; construction costs 16.137 /
+16.185 G. Combined stepping plus construction falls from 222.442 to 206.995 G
+(6.944%), so work was not merely moved outside Orders. Every tick digest and both
+complete side observation hashes match; both arms launch 8,835 rounds. The
+scratch comparator first rejects unchanged old-versus-old against a declared
+5% whole-Orders improvement, then accepts this candidate.
+
+A public battle keeps a far idle squad's exact positions, zero velocities and
+living-member centroid while a nearby squad yields before physical hull contact.
+Settled holding posts isolate this from cover motion; omitting the dodge check
+fails the predictive-yield assertion. Restored code passes all 18 movement tests,
+focused clippy and independent review.
+The proof concerns one coherent steering cost owner, not movement admission:
+scripted move destinations remain refused on this paired input. Full current
+late delivery, real-time throughput and incoming movement-contract findings
+remain separate integration work. No cache, retained state, physical rule or
+validation allowance changes.
+
+
+## Outcome — omit unread cover exposure rows
+
+Movement's cover field keeps its unit-indexed outer vector, live hulls and
+blockers. Its sole soldier-position reader first requires a side's enemy track.
+The two knowledge references remain immutable during that field's lifetime, so
+an ID tracked by neither side has an empty inner vector. Tracked units keep every
+member in original order, including dead members and grace-retained sightings;
+current visibility and living status are not substitutes for this read contract.
+No retained cache, rule, placement solver or admission allowance changes.
+
+The frozen late Metro Large seed-4 comparison uses the named 1050 m front staging,
+100 living units per side and the original 20,000 fallen soldiers / 2,000 wrecks.
+Both arms load the same serialized scenario, effective identity `df34e7db…`,
+map-with-remains `6c6022f6…` and rules `b7e67721…`. Its factory receipt before JSON
+reload is `41126341…`; those identities are not claimed interchangeable. The
+unmodified engine is `c1fb0f09…`; the measured field candidate is `75aec037…`.
+Final comment cleanup changes no executable rule.
+
+| Counted work over 900 ticks | Control G instructions | Candidate G instructions | Gain |
+|---|---:|---:|---:|
+| Whole Orders | 123.605 | 106.684 | 13.69% |
+| Whole steps | 400.288 | 383.345 | 4.23% |
+| Construction plus whole steps | 418.423 | 401.481 | 4.05% |
+
+The declared 5% whole-Orders gate passes; the whole-step gains remain below 5%.
+Ordinary Movement means fall from 75.519 to 74.825 million instructions, including
+field preparation. The construction and tick counters include report counter
+reads; input parsing, complete-observation hashing and output are outside them.
+The scope is this 30-second native arm, not browser or full scale admission.
+
+Every tick's digest and complete blue/red observation hashes match, and both
+full final observation byte strings match. Both arms end at digest
+`d52cf36268e41eb6`, 19,579 launched rounds, 73 blue and 68 red distinct units with
+observed shot counters, 20,301 corpses and 2,011 wrecks. This is active combat,
+while move refusals and the remaining order spikes still need their own decision.
+The avoided born-fallen rows account for 20,000 two-coordinate values (320,000
+payload bytes) and 2,500 inner allocations per gather; this is a structural
+allocation count, not a measured process peak. The outer slots remain allocated.
+
+The old-versus-itself cost assertion is red at zero gain. Existing public cover,
+last-seen, hidden-enemy and same-build replay proofs pass. Omitting tracked rows
+as well falsifies the public reach/cover test: a soldier stays tucked when the
+enemy is reachable; restoring the tracked rows restores green. These owners
+already cover the behavior, so no private field-layout test or duplicate model
+was added. Raw commands, identities, per-tick proofs and counters stay in ignored
+publication-worktree `throwaway/scale-lane/field-*` artifacts.
+
+## Outcome — restore combat in the generated stress input
+
+The `b5c63565` move-certification control leaves the previous opening with three rounds
+in 900 ticks. The benchmark fronts move 200 m closer to contact through the
+existing placement projection: every living start changes, but unit properties,
+all 632 scripted commands, rules, map, seeds, 100 units a side and the late
+20,000 corpses / 2,000 wrecks remain. This is a named workload correction, not a
+performance improvement or a repair of long-move admission. No validation
+allowance or destination truthfulness changes.
+
+The corrected input on the unmodified `c1fb0f09…` engine launches 8,835 rounds in
+900 ticks early, with at least 28 blue and 29 red surviving units carrying actual
+shot counters. The late paired input launches 19,579 rounds, with 73 blue and 68
+red actual firing units. These counters avoid interpreting ammunition lost with
+a casualty as firing. The factory-only and unmodified core produce identical
+checkpoint rows, digests and complete observations on the same serialized input.
+Scripts still fail to acquire travel goals; combat admission does not establish
+marching admission. Original and corrected workload identities stay distinct.
+
+The real browser harness checks at least ten own units firing during measurement in each generated
+arm lasting 30 seconds or more, sampling the existing public observation beside
+its telemetry. Saved-field and short resource-only runs keep their existing
+coverage. Combined native/Wasm, full 9,000-tick delivery/memory and real-time
+browser admission remain open until their fresh receipts are recorded.
+
+## Outcome — portable seeded placement
+
+The first differing authoritative field is one soldier's Y coordinate, one bit
+apart, followed by its squad centroid. All world-body poses and cold float32
+publication words agree. The mismatch reproduces with one rifle squad on an
+empty map. Tracing its unchanged draw sequence isolates platform sine before
+scaling and mean-centering: the pinned software sine yields the Wasm position.
+Squad draws and nearest-free ring samples now use that existing pinned library,
+with no change to random draws, placement policy or physical rules. Native
+last-bit positions intentionally change; this is a named portability repair,
+not a CPU speedup. No temporary diagnostic export ships.
+
+The existing shared publication-record tests include initial authoritative
+state, with no compatibility branch. The new one-squad record fails on the
+unmodified native/Wasm pair before float32 packing. With pinned math, initial
+state and all six subsequent publication/digest rows agree; existing record rows
+are unchanged and gain initial digest checks. Focused public placement and
+formation/replay checks pass. Full generated-map parity remains the next gate;
+no long performance run is claimed from this small regression.
+
+## Finding — warm-state parity after the placement repair
+
+On current source `1907ec50` plus the pending 1050 m input, build `4e3a8559…`,
+map `003acfac…` and rules `4994f55c…`, actual native/Wasm initial states,
+scenario bytes, replay identities and cold publications agree in both arms.
+The new forest bodies belong to the incoming main policy; control identities
+remain distinct. The early precheck agrees on every digest and raw publication
+through tick 29. Tick 30 differs: native `e253b286ce0e2632`, Wasm
+`10faa6cdfa9b2a39`; the 3,504 B publication words still agree. The first differing
+field is unit 90's cover-facing yaw from platform `atan2(17, 100)`, one bit apart;
+all member positions, world-body poses and projectile fields agree. Temporary
+diagnostics are removed. Long admissions remain held until the facing repair
+passes a public paired regression. No float
+normalization, alternate input or time/budget change counts as a repair.
