@@ -260,8 +260,10 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
     return typeAppearanceFindings(appearances, AUTHORITY.units);
   },
   "fit.canopy": async () => (await scenery("tree", { summer: treeGlb(12.5) })).findings,
+  "fit.tree_size": async () =>
+    (await scenery("tree", { summer: treeGlb(11, 0, { bole: 0.2 }) })).findings,
   "budget.tier_triangles": async () =>
-    (await scenery("tree", { summer: treeGlb(10, 0, { crowns: overBudget(3) }) })).findings,
+    (await scenery("tree", { summer: treeGlb(11, 0, { crowns: overBudget(3) }) })).findings,
   "nodes.missing": () => tank({ omit: "hmg_muzzle" }),
   "nodes.hierarchy": () => tank({ muzzleUnderTurret: true }),
   "nodes.duplicate": () => tank({ duplicateWheel: true }),
@@ -312,16 +314,39 @@ test("a tree must stand inside the simulation's canopy; a hedgerow need not", as
   // The crown top is measured against the lowest canopy the fixture's forests have.
   const codes = async (kind: string, height: number) =>
     (await scenery(kind, { summer: treeGlb(height) })).findings.map((f) => f.code);
-  expect(await codes("tree", 12.5)).toEqual(["fit.canopy"]);
-  expect(await codes("tree", 11.9)).toEqual([]);
+  expect(await codes("tree", 12.5)).toContain("fit.canopy");
+  expect(await codes("tree", 11.9)).not.toContain("fit.canopy");
   expect(await codes("hedgerow", 14)).toEqual([]);
+});
+
+test("every tree is one height and one girth of bole, within the kind's band; a hedgerow is any size", async () => {
+  const { top_m, bole_radius_m, within } = SCENERY_KINDS.tree.size!;
+  const codes = async (kind: string, height: number, bole: number) =>
+    (await scenery(kind, { summer: treeGlb(height, 0, { bole }) })).findings.map((f) => f.code);
+  const [inside, outside] = [1 + within * 0.8, 1 + within * 1.2];
+  expect(await codes("tree", top_m * inside, bole_radius_m / inside)).toEqual([]);
+  expect(await codes("tree", top_m / inside, bole_radius_m * inside)).toEqual([]);
+  expect(await codes("tree", top_m * outside, bole_radius_m)).toEqual(["fit.tree_size"]);
+  expect(await codes("tree", top_m / outside, bole_radius_m)).toEqual(["fit.tree_size"]);
+  expect(await codes("tree", top_m, bole_radius_m * outside)).toEqual(["fit.tree_size"]);
+  expect(await codes("tree", top_m, bole_radius_m / outside)).toEqual(["fit.tree_size"]);
+  expect(await codes("hedgerow", top_m / 3, bole_radius_m * 3)).toEqual([]);
+});
+
+test("a tree's bole is measured where it stands, not about the origin", async () => {
+  // A leaning or off-centre bole has the girth it has.
+  const { top_m, bole_radius_m } = SCENERY_KINDS.tree.size!;
+  const off = await scenery("tree", {
+    summer: treeGlb(top_m, 0, { bole: bole_radius_m, boleAt: [0.6, -0.4] }),
+  });
+  expect(off.findings).toEqual([]);
 });
 
 test("a tree's crown reaches no farther than the simulation's canopy radius, on every tier", async () => {
   // The synthetic crown is a square, so its corner reaches radius × √2.
   const reach = (corner: number) => corner / Math.SQRT2;
   const codes = async (kind: string, corner: number) =>
-    (await scenery(kind, { summer: treeGlb(10, 0, { radius: reach(corner) }) })).findings.map(
+    (await scenery(kind, { summer: treeGlb(11, 0, { radius: reach(corner) }) })).findings.map(
       (f) => f.code,
     );
   expect(await codes("tree", AUTHORITY.canopy_radius_m + 0.1)).toEqual(["fit.canopy"]);
@@ -341,11 +366,11 @@ function overBudget(tier: number, by = 1): number[] {
 
 test("a tree's tiers each stay inside the triangle budget; a hedgerow has none", async () => {
   for (let tier = 0; tier < 4; tier++) {
-    const over = await scenery("tree", { summer: treeGlb(10, 0, { crowns: overBudget(tier) }) });
+    const over = await scenery("tree", { summer: treeGlb(11, 0, { crowns: overBudget(tier) }) });
     expect(over.findings.map((f) => f.code)).toEqual(["budget.tier_triangles"]);
     expect(over.findings[0].message).toContain(`tier ${tier}`);
     const within = await scenery("tree", {
-      summer: treeGlb(10, 0, { crowns: overBudget(tier, 0) }),
+      summer: treeGlb(11, 0, { crowns: overBudget(tier, 0) }),
     });
     expect(within.findings).toEqual([]);
   }

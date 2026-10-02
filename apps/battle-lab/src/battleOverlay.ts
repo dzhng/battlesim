@@ -11,8 +11,9 @@
 // missile's flare and smoke trail, and a garrisoned squad's circle says where
 // it holds. Labs compose the layers their fixture exercises, the rest among
 // them as diagnostics.
+import game from "@fixtures/game.json";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
-import { buildContactGlyphs, contactFreshness } from "@packages/battle-renderer/src/contactGlyph";
+import { buildContactGlyphs, contactOpacity } from "@packages/battle-renderer/src/contactGlyph";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
 import { buildConsequenceOverlay } from "@packages/battle-renderer/src/consequenceOverlay";
 import { buildGarrisonOverlay } from "@packages/battle-renderer/src/garrisonOverlay";
@@ -26,6 +27,7 @@ import {
 import { combineWorldMeshes, type Mesh } from "@packages/battle-renderer/src/mesh";
 import { buildZoneRing } from "@packages/battle-renderer/src/playAreaOverlay";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
+import type { PresentedContact } from "@web/battle/present/contactPresentation";
 import type { ObservationView, OwnUnitView } from "@web/battle/sim/observation";
 import type { RevealedOrders } from "@web/battle/present/orderReveal";
 import { gameContactStyle } from "./gameFog";
@@ -86,13 +88,20 @@ export class BattleMemory {
 
 /** Each approximate contact's glyph, from its area, source and age only,
  *  fading toward expiry. */
-export function contactLayer(o: ObservationView, z: SurfaceHeight): WorldMeshes {
+export function contactLayer(
+  o: ObservationView,
+  z: SurfaceHeight,
+  contacts: readonly PresentedContact[] | null = null,
+): WorldMeshes {
   return buildContactGlyphs(
-    o.contacts.map((c) => ({
+    (contacts ?? o.contacts).map((c) => ({
       center: c.center,
       radius: c.radius,
       source: c.source,
-      freshness: contactFreshness(c, o.tick),
+      opacity:
+        "opacity" in c
+          ? (c.opacity as number)
+          : contactOpacity(c, o.tick, gameContactStyle.fade_s * game.tick_hz),
     })),
     z,
     gameContactStyle,
@@ -215,11 +224,15 @@ export function buildBattleOverlay(
   selected: readonly number[],
   z: SurfaceHeight,
   scenario: BattleOverlayScenario,
-  { showOrders, reveal }: { showOrders: boolean; reveal: RevealedOrders },
+  {
+    showOrders,
+    reveal,
+    contacts,
+  }: { showOrders: boolean; reveal: RevealedOrders; contacts?: readonly PresentedContact[] },
   border: Mesh | null = null,
   metresPerPx = OPENING_METRES_PER_PX,
 ): WorldMeshes {
-  const contacts = contactLayer(o, z);
+  const contactMarks = contactLayer(o, z, contacts);
   const supply = supplyLayer(o, scenario.supplyRadius, z, selected, metresPerPx, showOrders);
   const orders = orderLayer(o, selected, reveal, z, metresPerPx);
   // The hold zone, a line of the orders' weight: dashed while blue is not
@@ -238,7 +251,7 @@ export function buildBattleOverlay(
   return combineWorldMeshes([
     ...(zone ? [{ painted: zone }] : []),
     ...(border ? [{ painted: border }] : []),
-    contacts,
+    contactMarks,
     supply,
     orders,
   ]);

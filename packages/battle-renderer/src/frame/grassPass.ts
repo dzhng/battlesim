@@ -89,6 +89,7 @@ import {
   groundSite,
   groundTint,
   groundVerge,
+  groundWheeling,
   groundWater,
   scarredSurface,
   terrainLayout,
@@ -413,6 +414,8 @@ const buildFn = tgpu
       let room = max(0.0, min(site.y - terrainLayout.$.params.verge.w, margin) - ${ROW_HEADLAND_M});
       p = fell + plot.rows.xy * clamp(toRow, -room, room);
     }
+    // Nothing stands in a wheeling.
+    if (groundWheeling(p, 0.0, i32(site.x)) > 0.5) { continue; }
     let root = vec3f(p, grassGround(p));
     // The side's learned scars: craters, scorch and tracks leave clumps out.
     let scar = groundScars(p, footprint);
@@ -508,6 +511,7 @@ const buildFn = tgpu
     groundShoulder,
     groundShoulderGrass,
     groundVerge,
+    groundWheeling,
     groundColour,
     groundTint,
     forestVergeInside,

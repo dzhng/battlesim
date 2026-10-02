@@ -79,7 +79,6 @@ export function useSimSession({
       replay,
       script: plan?.script,
       connect: generation === 0 ? prepared?.connect : undefined,
-      publicWorld: generation === 0 ? prepared?.publicWorld : undefined,
     });
     let warm = !plan;
     if (plan) {
@@ -147,7 +146,6 @@ export function useSimSession({
   return {
     client,
     error,
-    fail: setError,
     observation,
     status,
     interpolator,

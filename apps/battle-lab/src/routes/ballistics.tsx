@@ -21,7 +21,7 @@ import {
   type EffectSegment,
 } from "@packages/battle-renderer/src/effects/effectFrame";
 import { createEffectFrame, gameEffects } from "../effectFeed";
-import { useStandingBuildings, useWorldProbe, type WorldView } from "../useStaticWorld";
+import { useStandingBuildings, useStaticWorld, type WorldView } from "../useStaticWorld";
 import { GAME_RULES } from "../scenarios";
 import { gameBiome } from "../gameBiome";
 import { useGameAppearances } from "../gameAppearances";
@@ -535,7 +535,7 @@ export default function Ballistics() {
 }
 
 function BallisticsLab({ map }: { map: MapDefinition }) {
-  const world = useWorldProbe(map);
+  const world = useStaticWorld(map);
   const appearances = useGameAppearances();
   const meshes = useMemo(
     () =>

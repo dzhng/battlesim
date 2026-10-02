@@ -1322,7 +1322,7 @@
               "reverse_fraction": 0.35,
               "road_kmh": 76.0,
               "turn_deg_s": 40.0,
-              "turning_radius_m": 9.0
+              "turning_radius_m": 6.0
             }
           },
           "name": "Supply truck",
@@ -2887,7 +2887,7 @@
           "reverse_fraction": 0.35,
           "road_kmh": 76.0,
           "turn_deg_s": 40.0,
-          "turning_radius_m": 9.0
+          "turning_radius_m": 6.0
         }
       },
       "mounts": [],

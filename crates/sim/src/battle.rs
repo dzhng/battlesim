@@ -3,7 +3,8 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use contract::catalog::Destroyed;
 use contract::command::{
-    CommandAck, CommandEnvelope, Engagement, MovePlacement, Order, OrderError, TargetRef,
+    CommandAck, CommandEnvelope, Engagement, MovePlacement, MovePreviewRequest, Order, OrderError,
+    RoutePolicy, TargetRef,
 };
 use contract::ids::{Side, Tick, UnitId};
 use contract::map::{MoverClass, PropDefinition};
@@ -763,8 +764,16 @@ impl Battle {
         if self.replaying.is_some() {
             return ack(Some(OrderError::ReplayInProgress), None);
         }
-        self.admit(command.clone(), applied_tick)
-            .map_or_else(|e| ack(Some(e), None), |placement| ack(None, placement))
+        self.admit(command.clone(), applied_tick).map_or_else(
+            |e| ack(Some(e), None),
+            |placement| {
+                let error = placement
+                    .as_ref()
+                    .filter(|p| p.destinations.iter().all(|d| !d.placed))
+                    .map(|_| OrderError::NoValidDestination);
+                ack(error, placement)
+            },
+        )
     }
 
     fn admit(
@@ -945,7 +954,7 @@ impl Battle {
             soldier_radius_m: self.rules.physics.soldier_radius_m,
             seed: self.seed,
             rules: &self.rules,
-            knowledge: &self.knowledge,
+            knowledge: [&self.knowledge[0], &self.knowledge[1]],
             arsenal: &self.arsenal,
         };
         completed(TickPhase::Other);
@@ -1875,6 +1884,9 @@ impl Battle {
 
     fn prepare(&mut self, command: CommandEnvelope) -> Result<PreparedCommand, OrderError> {
         self.validate(&command)?;
+        if let Order::UpgradeMove { gesture, route } = command.order {
+            self.validate_upgrade(command.side, gesture, route)?;
+        }
         let placement = match &command.order {
             Order::Move {
                 units,
@@ -1882,10 +1894,21 @@ impl Battle {
                 goal,
                 facing,
                 direction,
+                route,
                 ..
             } => Some(MovePlacement {
                 gesture: *gesture,
-                destinations: self.preview_move(command.side, units, *goal, *facing, *direction)?,
+                destinations: self.preview_move(
+                    command.side,
+                    &MovePreviewRequest {
+                        units: units.clone(),
+                        goal: *goal,
+                        facing: *facing,
+                        direction: *direction,
+                        route: *route,
+                        queued: command.queued,
+                    },
+                )?,
             }),
             Order::AttackMove {
                 units,
@@ -1895,10 +1918,12 @@ impl Battle {
                 gesture: *gesture,
                 destinations: self.preview_move(
                     command.side,
-                    units,
-                    *goal,
-                    None,
-                    contract::command::MoveDirection::Forward,
+                    &MovePreviewRequest {
+                        units: units.clone(),
+                        goal: *goal,
+                        queued: command.queued,
+                        ..Default::default()
+                    },
                 )?,
             }),
             _ => None,
@@ -1907,23 +1932,16 @@ impl Battle {
     }
 
     fn apply(&mut self, prepared: PreparedCommand) {
+        let mut units = std::mem::take(&mut self.units);
+        self.apply_units(prepared, &mut units);
+        self.units = units;
+    }
+
+    fn apply_units(&self, prepared: PreparedCommand, movers: &mut [Unit]) {
         let command = prepared.command;
         let side = command.side;
         let queued = command.queued;
-        let push = |unit: &mut Unit, order: UnitOrder| {
-            // A new order ends any explicit Pack: once stationary again, set up.
-            if let Some(d) = unit.deployment.as_mut() {
-                d.stationary = Posture::Deployed;
-            }
-            if !queued {
-                unit.orders.clear();
-                unit.route = None;
-                unit.planned_goal = None;
-                unit.state = MoveState::Idle;
-                unit.turn_to = None;
-            }
-            unit.orders.push_back(order);
-        };
+        let push = |unit: &mut Unit, order: UnitOrder| unit.enqueue(order, queued);
         match command.order {
             Order::Move {
                 units: _,
@@ -1934,7 +1952,7 @@ impl Battle {
                 facing,
             } => {
                 for slot in prepared.placement.unwrap().destinations {
-                    let unit = &mut self.units[slot.unit.0 as usize];
+                    let unit = &mut movers[slot.unit.0 as usize];
                     if !slot.placed {
                         if !queued {
                             Self::hold_position(unit);
@@ -1954,7 +1972,7 @@ impl Battle {
             }
             Order::AttackMove { gesture, .. } => {
                 for slot in prepared.placement.unwrap().destinations {
-                    let unit = &mut self.units[slot.unit.0 as usize];
+                    let unit = &mut movers[slot.unit.0 as usize];
                     if !slot.placed {
                         if !queued {
                             Self::hold_position(unit);
@@ -1979,7 +1997,7 @@ impl Battle {
                     return;
                 };
                 for id in units {
-                    let unit = &mut self.units[id.0 as usize];
+                    let unit = &mut movers[id.0 as usize];
                     unit.engagement = Engagement::FireAtWill; // W14
                     push(
                         unit,
@@ -1993,7 +2011,7 @@ impl Battle {
             Order::Garrison { units, building } => {
                 let building = self.world.remembered_structure_owner(building);
                 for id in units {
-                    let unit = &mut self.units[id.0 as usize];
+                    let unit = &mut movers[id.0 as usize];
                     let from = unit.position.xy();
                     let Some(approach) = garrison::approach(
                         &self.world,
@@ -2010,19 +2028,19 @@ impl Battle {
             }
             Order::ExitBuilding { units } => {
                 for id in units {
-                    push(&mut self.units[id.0 as usize], UnitOrder::Exit);
+                    push(&mut movers[id.0 as usize], UnitOrder::Exit);
                 }
             }
             Order::SetEngagement { units, policy } => {
                 for id in units {
-                    self.units[id.0 as usize].engagement = policy;
+                    movers[id.0 as usize].engagement = policy;
                 }
             }
             Order::Stop { units } => {
                 // W15: clear the queue and cancel movement, aim, reload and
                 // guidance once; policy stays; automatic fire may restart.
                 for id in units {
-                    let unit = &mut self.units[id.0 as usize];
+                    let unit = &mut movers[id.0 as usize];
                     unit.orders.clear();
                     unit.route = None;
                     unit.planned_goal = None;
@@ -2042,7 +2060,7 @@ impl Battle {
             }
             Order::SetDeployment { units, deployed } => {
                 for id in units {
-                    let unit = &mut self.units[id.0 as usize];
+                    let unit = &mut movers[id.0 as usize];
                     let Some(d) = unit.deployment.as_mut() else {
                         continue; // units that never set up ignore it
                     };
@@ -2062,7 +2080,7 @@ impl Battle {
                 }
             }
             Order::UpgradeMove { gesture, route } => {
-                for unit in self.units.iter_mut().filter(|u| u.side == side) {
+                for unit in movers.iter_mut().filter(|u| u.side == side) {
                     for (k, order) in unit.orders.iter_mut().enumerate() {
                         if let Some(m) = order.movement_mut() {
                             if m.gesture == gesture && m.policy != route {
@@ -2091,15 +2109,15 @@ impl Battle {
     }
 
     /// Preview placement on this side's known map without advancing time,
-    /// recording a command, or changing orders. Navigation caches may warm.
+    /// recording a command, changing orders, or warming live navigation caches.
     pub fn preview_move(
         &mut self,
         side: Side,
-        ids: &[UnitId],
-        goal: [f64; 2],
-        facing: Option<f64>,
-        direction: contract::command::MoveDirection,
+        request: &MovePreviewRequest,
     ) -> Result<Vec<contract::command::MoveDestination>, OrderError> {
+        let ids = &request.units;
+        let goal = request.goal;
+        let facing = request.facing;
         self.validate_units(side, ids)?;
         if self.world.height_at(goal[0], goal[1]).is_none()
             || facing.is_some_and(|f| !f.is_finite())
@@ -2121,7 +2139,8 @@ impl Battle {
                 }
             })
             .collect();
-        let grid = self.sides[side.index()].grid(&self.world, self.authored_props);
+        let mut known = self.sides[side.index()].clone();
+        let grid = known.grid(&self.world, self.authored_props);
         let plan = crate::formation::place(
             &members,
             v2(goal[0], goal[1]),
@@ -2130,25 +2149,137 @@ impl Battle {
             self.world.width().hypot(self.world.depth()),
             |id, p| grid.placement_point(p, &self.units[id.0 as usize].mobility),
         );
+        let source = self.move_source(side);
+        let certified = self.certify_move(&source, &known, &plan.slots, Some(request));
         Ok(plan
             .slots
             .into_iter()
-            .map(|slot| {
+            .enumerate()
+            .map(|(i, slot)| {
                 let u = &self.units[slot.id.0 as usize];
                 let goal = slot.point.unwrap_or(u.position.xy());
                 contract::command::MoveDestination {
                     unit: slot.id,
                     goal: [goal.x, goal.y],
-                    placed: slot.point.is_some(),
-                    facing: if slot.point.is_some() {
-                        movement::final_yaw(u, facing, u.position.xy(), goal, direction)
-                            .unwrap_or(u.yaw)
-                    } else {
-                        u.yaw
-                    },
+                    placed: certified[i].is_some(),
+                    facing: certified[i].unwrap_or(u.yaw),
                 }
             })
             .collect())
+    }
+
+    fn move_source(&self, side: Side) -> Vec<Unit> {
+        let mut source = self.units.clone();
+        for unit in &mut source {
+            if unit.side != side {
+                let track = self.knowledge[side.index()].track(unit.id);
+                for (k, soldier) in unit.members.iter_mut().enumerate() {
+                    let seen =
+                        track.is_some_and(|t| t.last_seen == self.tick && t.members.contains(&k));
+                    soldier.hp = if seen { 1.0 } else { 0.0 };
+                    if !seen {
+                        soldier.position = track.map_or(Default::default(), |t| t.position);
+                    }
+                    soldier.path.clear();
+                    soldier.spot = None;
+                    soldier.post = None;
+                    soldier.lean = None;
+                    soldier.cover = None;
+                }
+                unit.cover = Default::default();
+                unit.attackers.clear();
+                unit.suppression = 0.0;
+                for mount in &mut unit.mounts {
+                    mount.stop();
+                }
+                if let Some(track) = track {
+                    unit.position = track.position;
+                    unit.yaw = track.yaw;
+                    unit.hp = 1.0;
+                } else {
+                    unit.hp = 0.0;
+                }
+            }
+        }
+        // Admission sees earlier commands exactly as execution will apply them.
+        for pending in &self.pending {
+            if pending.command.side == side {
+                self.apply_units(pending.clone(), &mut source);
+            }
+        }
+        source
+    }
+
+    fn certify_move(
+        &self,
+        source: &[Unit],
+        known: &SideGeometry,
+        slots: &[crate::formation::Slot],
+        request: Option<&MovePreviewRequest>,
+    ) -> Vec<Option<f64>> {
+        let ctx = MovementContext {
+            world: &self.world,
+            roads: &self.roads,
+            ground: &self.ground,
+            ground_rules: &self.rules.ground,
+            authored: self.authored_props,
+            tick: self.tick,
+            tick_hz: self.rules.tick_hz,
+            infantry: &self.rules.infantry_movement,
+            soldier_radius_m: self.rules.physics.soldier_radius_m,
+            seed: self.seed,
+            rules: &self.rules,
+            knowledge: [&self.knowledge[0], &self.knowledge[1]],
+            arsenal: &self.arsenal,
+        };
+        movement::certify(&ctx, source, known, slots, request)
+    }
+
+    fn validate_upgrade(
+        &self,
+        side: Side,
+        gesture: u64,
+        route: RoutePolicy,
+    ) -> Result<(), OrderError> {
+        let mut source = self.move_source(side);
+        let mut slots = Vec::new();
+        for unit in source.iter_mut().filter(|u| u.side == side && u.alive()) {
+            let mut changed = false;
+            for (k, order) in unit.orders.iter_mut().enumerate() {
+                if let Some(m) = order.movement_mut() {
+                    if m.gesture == gesture && m.policy != route {
+                        m.policy = route;
+                        changed = true;
+                        if k == 0 {
+                            unit.route = None;
+                            unit.planned_goal = None;
+                        }
+                    }
+                }
+            }
+            if changed {
+                slots.push(crate::formation::Slot {
+                    id: unit.id,
+                    point: unit
+                        .orders
+                        .back()
+                        .and_then(|o| o.movement())
+                        .map(|m| m.destination),
+                });
+            }
+        }
+        if slots.is_empty() {
+            return Ok(());
+        }
+        let known = &self.sides[side.index()];
+        if self
+            .certify_move(&source, known, &slots, None)
+            .iter()
+            .any(Option::is_none)
+        {
+            return Err(OrderError::NoValidDestination);
+        }
+        Ok(())
     }
 
     /// A soldier's resolved place and cover (D2+): his spot while moving, his
@@ -2176,25 +2307,6 @@ impl Battle {
             cover_now,
             cover_there: s.cover.filter(|_| !sheltered),
         }
-    }
-
-    /// The yaw a unit ends its current move at (D2): see `movement::final_yaw`.
-    fn final_facing(u: &Unit) -> f64 {
-        let Some((goal, _)) = u.movement_goal() else {
-            return u.turn_to.unwrap_or(u.yaw);
-        };
-        let facing = u
-            .orders
-            .front()
-            .and_then(|o| o.movement())
-            .and_then(|m| m.facing);
-        let route = u.route.as_deref().unwrap_or(&[]);
-        let end = route.last().copied().unwrap_or(goal);
-        let from = match route.len() {
-            0 | 1 => u.position.xy(),
-            n => route[n - 2],
-        };
-        movement::final_yaw(u, facing, from, end, u.direction()).unwrap_or(u.yaw)
     }
 
     fn observe_all(&mut self) {
@@ -2349,7 +2461,7 @@ impl Battle {
                             anchor: [a.at.x, a.at.y],
                             radius: crate::cover::area_radius(&self.rules, u),
                         }),
-                        final_facing: Self::final_facing(u),
+                        final_facing: movement::final_facing(u),
                         sees: knowledge.own_sensor(u.id),
                         engagement: u.engagement,
                         mounts: u
@@ -2532,6 +2644,7 @@ impl Battle {
     }
 }
 
+#[derive(Clone)]
 struct PreparedCommand {
     command: CommandEnvelope,
     placement: Option<MovePlacement>,

@@ -1,5 +1,3 @@
-import { prepareStaticWorld } from "@web/battle/prepare/client";
-import type { PublicWorldData } from "@web/battle/sim/publicWorld";
 import { useEffect, useMemo, useState } from "react";
 import type { WorldRay } from "@packages/renderer-core/src/camera3d";
 import {
@@ -20,15 +18,18 @@ export type WorldView = InstanceType<Wasm["WorldView"]>;
 
 export interface StaticWorld {
   /** Main-thread queries over the public static map (picking, probes). */
-  view: Pick<WorldView, "height_at" | "surface_at" | "raycast" | "foliage_cleared">;
+  view: WorldView;
   layout: WorldLayout;
   exports: WorldExports;
 }
 
-/** The map every side knows from the start, built by the simulation's own
- *  geometry code from the same map JSON the authority uses. */
-export function useWorldProbe(map: unknown): (StaticWorld & { view: WorldView }) | null {
-  const [world, setWorld] = useState<(StaticWorld & { view: WorldView }) | null>(null);
+/** The map every side knows from the start, built on the page by the
+ *  simulation's own geometry code from the same map the authority uses: its
+ *  meshes, and the one implementation of picking, ground height, surface,
+ *  learned foliage and camera clearance. It has no navigation and no battle
+ *  state; the battle's world stays in its worker. */
+export function useStaticWorld(map: unknown): StaticWorld | null {
+  const [world, setWorld] = useState<StaticWorld | null>(null);
   useEffect(() => {
     let live = true;
     let view: WorldView | null = null;
@@ -51,56 +52,9 @@ export function useWorldProbe(map: unknown): (StaticWorld & { view: WorldView })
   return world;
 }
 
-/** The page holds query data, never the simulation's terrain/navigation world. */
-export function useStaticWorld(
-  data: Promise<PublicWorldData> | null,
-  onError?: (message: string) => void,
-): StaticWorld | null {
-  const [built, setBuilt] = useState<{ data: Promise<PublicWorldData>; world: StaticWorld } | null>(
-    null,
-  );
-  useEffect(() => {
-    let live = true;
-    let view: InstanceType<Wasm["PublicWorld"]> | null = null;
-    setBuilt(null);
-    if (data)
-      void Promise.all([loadWasm(), data])
-        .then(([wasm, publicWorld]) => {
-          if (!live) return;
-          view = new wasm.PublicWorld(publicWorld.queries);
-          setBuilt({
-            data,
-            world: { view, layout: publicWorld.layout, exports: publicWorld.exports },
-          });
-        })
-        .catch((error: unknown) => {
-          if (live) {
-            if (onError) onError(error instanceof Error ? error.message : String(error));
-            else console.error("Public world failed to load", error);
-          }
-        });
-    return () => {
-      live = false;
-      view?.free();
-    };
-  }, [data, onError]);
-  return built?.data === data ? built.world : null;
-}
-
-/** A non-battle lab acquires only its public query/export data from a worker. */
-export function useStaticMap(map: string): StaticWorld | null {
-  const [data, setData] = useState<Promise<PublicWorldData> | null>(null);
-  useEffect(() => {
-    const preparation = prepareStaticWorld(map, JSON.stringify(GAME_RULES));
-    setData(preparation.world);
-    return () => preparation.cancel();
-  }, [map]);
-  return useStaticWorld(data);
-}
-
 /** Ground point under a camera ray on the authoritative surface, or null. */
 export function groundUnderRay(
-  view: Pick<WorldView, "raycast">,
+  view: WorldView,
   ray: { origin: readonly number[]; dir: readonly number[] },
 ): [number, number, number] | null {
   const hit = view.raycast(
