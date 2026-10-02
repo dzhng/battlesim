@@ -13,6 +13,6 @@
   ],
   "source": "authored",
   "seed": null,
-  "encounters": [],
+  "encounters": ["shelling"],
   "benchmarks": []
 }
