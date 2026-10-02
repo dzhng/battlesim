@@ -13,11 +13,13 @@ import {
 
 import { labScenario, type LabScript, type LabUnit } from "@apps/battle-lab/src/scenarios";
 import { loadMap } from "@web/maps/node";
+import type { MapDefinition } from "@web/maps/resolve";
 
-/** The publication stream record: a small battle on a saved map, and what the
+/** The publication stream record: a small battle with a map input, and what the
  *  native build made of each tick (`crates/sim/tests/publication.rs`). */
 type PublicationStreamRecord = {
-  map: string;
+  map: string | MapDefinition;
+  initial_digest: string;
   seed: number;
   units: LabUnit[];
   scripts: LabScript[];
@@ -35,7 +37,23 @@ const stream: PublicationStreamRecord = JSON.parse(
 const combatStream: PublicationStreamRecord = JSON.parse(
   readFileSync(new URL("../../fixtures/parity/publication/combat.json", import.meta.url), "utf8"),
 );
-const SCENARIO = labScenario(loadMap(stream.map).definition, stream.units, [], stream.scripts);
+const arrangementStream: PublicationStreamRecord = JSON.parse(
+  readFileSync(
+    new URL("../../fixtures/parity/publication/arrangement.json", import.meta.url),
+    "utf8",
+  ),
+);
+const coverFacingStream: PublicationStreamRecord = JSON.parse(
+  readFileSync(
+    new URL("../../fixtures/parity/publication/cover-facing.json", import.meta.url),
+    "utf8",
+  ),
+);
+function publicationScenario(stream: PublicationStreamRecord) {
+  const map = typeof stream.map === "string" ? loadMap(stream.map).definition : stream.map;
+  return labScenario(map, stream.units, [], stream.scripts);
+}
+const SCENARIO = publicationScenario(stream);
 const sha256 = (words: Float32Array | Uint32Array) =>
   createHash("sha256")
     .update(new Uint8Array(words.buffer, words.byteOffset, words.byteLength))
@@ -55,8 +73,16 @@ test("wasm combat matches the native stream with firing and impacts", () => {
   publicationStream(combatStream, true);
 });
 
+test("wasm large-coordinate arrangement matches native authoritative state before float32 packing", () => {
+  publicationStream(arrangementStream, false);
+});
+
+test("wasm cover facing matches native authoritative state through its scheduled resolve", () => {
+  publicationStream(coverFacingStream, false);
+});
+
 function publicationStream(stream: PublicationStreamRecord, combat: boolean) {
-  const scenario = labScenario(loadMap(stream.map).definition, stream.units, [], stream.scripts);
+  const scenario = publicationScenario(stream);
   const battle = new Battle(scenario, stream.seed);
   const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
   const decoder = new ObservationDecoder(layout);
@@ -64,6 +90,7 @@ function publicationStream(stream: PublicationStreamRecord, combat: boolean) {
   let sawShot = false;
   let sawImpact = false;
   try {
+    expect(battle.digest(), "initial authoritative state").toBe(stream.initial_digest);
     stream.rows.forEach((row, i) => {
       battle.step();
       if (row.resync) battle.resync_observation();

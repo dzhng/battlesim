@@ -5714,6 +5714,51 @@ The models, their boxes and the sheets are in the [C45 outcome](slices/C45-stree
 
 **Verdict:** sound for one model. A street of identical grey cars will read as clones; more bodies or colours are more appearances of the same kind at slightly different boxes, or a per-instance tint the scenery path does not have. **Confidence:** medium.
 
+## C06: restore contact by staging the existing stress fronts within weapon reach
+
+**Choice:** Move the generated stress recipe's living starts 200 m closer to
+contact using its existing legal-placement projection. Keep all commands,
+physical rules, unit counts, full world and late remains. Incoming movement
+certification refuses most scripted journeys; a combat benchmark should still
+make both forces fight without changing that production policy.
+
+**Gap:** The plan names active contact but does not prescribe how to preserve
+that workload when incoming movement admission changes. This correction is a
+new named benchmark input, never an outcome-preserving optimization.
+
+**Reach:** Generated stress starts change; normal battles and saved stress starts
+do not. Rising published shot counters guard contact during measurement in the generated browser
+arms. Refused journeys remain a separate finding and cannot prove the historical
+planning-delay cases resolved.
+
+**Verdict:** sound, medium confidence. This makes combat representative of the
+stated load while preserving production rules; it leaves marching cost dependent
+on future movement admission. Full scale acceptance still requires fresh combined
+receipts.
+
+## C06: use pinned software trig for seeded soldier placement
+
+**Choice:** Squad arrangement and nearest-free ring samples use the existing
+pinned software math library, as combat already does. A shared seed must produce
+the same authoritative positions in native and Wasm, even when the renderer's
+float32 view cannot show their last-bit difference.
+
+**Gap:** The prior arrangement used platform sine/cosine. The fresh full-world
+parity check exposed a one-bit sine difference in one seeded draw, which changed
+a member position and the squad centroid without changing the published words.
+
+**Reach:** This intentionally corrects native placement's last-bit state; it is
+not an outcome-preserving CPU optimization. Shared nearest-free callers include
+cover, garrison and replacement-soldier placement; the correction applies to
+their ring samples too. No rule value, spacing policy, random draw sequence, map
+input, allowance or public ABI changes. The existing
+engine fingerprint refuses older replays as designed. All paired publication
+records now check initial state as well as stepped state; a one-squad case owns
+the regression through the public battle interface.
+
+**Verdict:** sound, high confidence. The observed sine difference reproduces the
+first state mismatch exactly, and the public native/Wasm regression passes with
+pinned math. Full-map parity is rechecked before performance admission resumes.
 ## C24 cutout
 
 **When:** 2026-10-02, with C25 and C26, in the model layer. Evidence is the `facade` scene's (`throwaway/evidence/facade/`).
@@ -6096,3 +6141,194 @@ A second unprimed critic saw the final frames (after the dither and the repainte
 
 **Verdict:** provisional. The village's six quick digests all move and no outcome does. The ground and river scenes pass with it; sensors, consequences and the saved market town were not run, and a generated map loaded no slower. It is one commit and reverts alone. **Confidence:** medium.
 
+## C31 urban and plain ground composition
+
+**When:** 2026-10-02. Evidence and numbers: the Outcome in [C31](slices/C31-city-biome.md).
+
+### Urban ground is where buildings stand, by the plot rule; no region reaches the renderer
+
+**Choice:** The settlement's ground is the plots whose centre lies within `field_rules.yard_m` (40 m) of a building, the rule `terrain/plots.ts` already owned at a wider reach. Nothing was exported from `crates/`.
+
+**Gap:** The slice says composition comes from `MapDefinition.surfaces` and `land_regions`. `land_regions` is not a field of `MapDefinition`; the compiler refuses a plan that names one. What the generator knows of a town (each settlement's outline and blocks) is in its `EncounterSites`, which the preparation worker hands to the encounter planner and drops: it is not in the map, a saved map has none, and it reaches neither the page nor the renderer.
+
+**Why:** Exporting it means a new field of the map contract, its saved form and its identity, not a layout column: the map lane's decision. The buildings are in every map, saved or generated. **Verdict:** sound. Against the generator's own blocks on the rig's map the rule calls 85% of block ground yard and 0.3% of it a drilled crop (a block takes in unbuilt margins). **Confidence:** medium: a yard is a whole plot, so its edge is a plot's straight edge, and a wide lot round a detached house is no yard.
+
+### Two reaches: the yard, and the surround where no crop is drilled
+
+**Choice:** A plot within `yard_m` is `settlement_kind` (`yard`); any other within `settlement_m` (110 m, as before) is `surround_kind` (`meadow`). Neither draws from the plot stream.
+
+**Gap:** "Pavement and urban yards suppress farm plots" names no reach; the one rule made every plot within 110 m the settlement's lawn, a block of one green round every town.
+
+**Why:** The old rule drew no kind for a settlement plot, so keeping its reach for the pair leaves every other plot on every map the kind and colour it was (checked plot by plot against the starting commit on the village and the generated map). **Verdict:** sound. **Confidence:** high.
+
+### The yard is the old green at its own lightness, two thirds of its chroma, growing what it grew
+
+**Choice:** `palettes.yard` is the old settlement green's three colours at their own L\* and hue, chroma 17 (from 27); its grass is the meadow's mix at full height, as it was.
+
+**Gap:** "Urban yard and park appearance; grass density" are delegated, and the look must hold `fog-look`.
+
+**Why:** Three looks were shot once (a lawn, lawn and trodden courts, packed earth); the earth and the courts came out rust orange under the low sun. A mown lawn (half height, a pasture mix) then failed `fog-look` under `grey-veil` at `default-wall`: the wedge of unseen ground there is the yard, and a smooth lawn has no dark blades, so its darkest 1% rose from 39 to 52 against a darkest seen 46. The check holds by luminance only while the yard is as dark, and as rough, as it was; its chroma is free. **Verdict:** provisional: fresh eyes still read "a mown lawn from wall to wall", and the fog styles' margin (SG4) still decides what a yard may be. **Confidence:** medium.
+
+### A country road is a street where yards lie on both sides of it
+
+**Choice:** `roads.<kind>.town` names the kind a road is drawn as where a yard lies within `beside_m` (5 m) of its edge on both sides, on across gaps under `gap_m` (80 m). The summer country road's is `road`. `drawnStrokes` splits the exported stretches where a run starts and ends; the surface field is built from them (`terrainField`).
+
+**Gap:** "Never a second sim rule or a renderer-only guess about roads"; the map names the road through a town `country_road`.
+
+**Why:** The road follows the yards, the one owner of where the town is, so asphalt never runs on past them. Either side was tried first: a street with walks then ran beside a wheat field wherever a yard lay across the road. **What it cannot do:** a hamlet's road between wide lots stays gravel while its side streets, `road` by the map, are asphalt. **Verdict:** provisional until the map says which roads are streets. **Confidence:** medium.
+
+### The village is untouched because its roads are already streets by name
+
+**Choice:** A stretch is retagged only when its row's town kind differs from its own tag. The village's roads are `road` drawn by the country road's row (`drawnKind`), whose town kind is `road`: nothing to do, and `strokes` is the exported array itself.
+
+**Gap:** The brief: the village must not move.
+
+**Verdict:** sound: `bend-65`'s bare ground and class mask are byte-identical. **Confidence:** high.
+
+### The join: the street runs on under the gravel, which starts in drifts
+
+**Choice:** A run of street is cut square `join_m` (the street row's, now 3 m) past each end; the country road stops at the run's end, round. Where one road is carried onto another, the line the upper surface starts from now wanders by the carry (`JOIN_DRIFT_M`, 2.5 m drifts). This is every carried join's: a track's earth onto a road too.
+
+**Gap:** "A join that is not a ruled line."
+
+**Why:** Cut square at the run's end the asphalt was a ruled line with gravel sprayed over its middle (the critique's words). **Verdict:** provisional, and not good enough: the second critique still reads the join as a glitch (a lobed blob of gravel on one side, a ruled cut on the other). The carried blend was made for a road that crosses another; an end across a road wants a term of its own. **Confidence:** low.
+
+### A crossing is laid beside a stretch's own length only
+
+**Choice:** `groundMarks` counts a crossing road only where the point lies beside the stretch, not past its end.
+
+**Gap:** C30 left a street that only joins a road out of its crossings by the stretch's cut flags; a joining street whose first stretch is short escaped it.
+
+**Why:** With the main road a street, a fan of bars was painted on it round the end of each side street. **Verdict:** sound. **Confidence:** medium: a crossing road's bend can leave a bar's width unpainted.
+
+### The rig makes the generated map again in the page
+
+**Choice:** `_groundStations.mjs` rebuilds the terrain surface from the page's own generation request, for stations that stand on the renderer's own ground (`town-edge`, `road-join`) and for `drawnRoads`.
+
+**Gap:** No probe of the lab reaches the terrain surface, and the lab is not this lane's to change.
+
+**Verdict:** sound; it costs under a second a page. **Confidence:** high.
+
+### A road is judged against the field beside it as "lighter, or apart in hue", and its walk as "no dark outline"
+
+**Choice:** The two road checks that stated L-G3 are restated. A road's core may be darker than the ground beside it only when it is within 15% of it and their colours are 6 or more apart in CIELAB's a*b* plane (the river bank's bar). The walk from core to field has one rule: no band is more than 12% darker than the darker of the core and the field. The "only gets darker, band by band" rule is gone.
+
+**Gap:** C66 and C67 wrote "core luminance at or above the adjacent grass band's" and "monotone or flat from core to grass" when every field beside a station was green. After C84's palettes and C31's river recut the river lab's track runs through rapeseed, lighter than any earth.
+
+**Verdict:** provisional. It is the form the spec uses for seen against unseen ground ("lighter than, or apart in hue"), and what L-G3 guards against, a dark band beside the road, is still refused. The measured case: track 0.211 against rapeseed 0.225, 10.2 apart in hue; the bare half metre beside it is the field's own soil at 0.203. The monotone rule could not hold beside a field as light as the road, and its 3 to 4% steps were furrow phase. **Confidence:** medium: the bar is the bank's, not measured for roads by a fresh eye.
+
+## Open country
+
+The open-country pass (M24, M25): `crates/mapgen/src/open_country/`, its rows in `fixtures/map-presets.json`, its tests in `crates/mapgen/tests/open_country.rs` and its measure in `crates/mapgen/examples/sight_report.rs`. Numbers below are from that report and `layout_sweep`.
+
+### "An approach corridor" is the middle of a settlement's widest approach in each half
+
+**Choice:** The layout records an approach as a fan: every bearing from `from_rad` to `to_rad` whose 400 m by 1,800 m corridor is open. The pass keeps, for each settlement and half, the widest fan's middle corridor (the bearings measured either side of the middle, and the middle itself, which is the line the encounter planner posts overwatch on) clear of homes and trees by 25 m. Everything else the layout measured as open is furnished like any other country. After the pass, `approaches` holds the kept approaches only, each as wide as its ground still measures round its middle.
+
+**Gap:** The brief says "each measured approach corridor (400 m wide, 1,800 m deep)" stays a long view. The plan holds fans, not corridors: on the owner's map six of them, up to 43° wide, 1.3 km across at the far end. Keeping whole fans clear leaves ground more than 600 m from anything, which the sight rule forbids. Keeping the middle of every fan (11.6 corridors a map on average) left corridors lying side by side with no room between them for anything to cut a circle.
+
+**Reach:** The encounter planner sees at most two approaches a settlement where it saw several fans; the street-furniture pass's `approach_corridors` reads the narrower list. Run this pass before it.
+
+**Verdict:** sound for the main settlement, which the brief's rule (M19) is checked on and whose corridors never give way. Provisional for the others: see the next entry. **Confidence:** medium.
+
+### A minor settlement's corridor gives way where nothing else can break a circle
+
+**Choice:** Bare ground is filled in three tries: random places near it, then every place within reach in turn, then every place again with only the main settlement's corridors kept. An approach whose corridor took a copse that way drops out of `approaches`.
+
+**Gap:** The brief asks for both rules without saying which wins where they cannot both hold: no unbroken circle anywhere, and nothing that blocks sight in a corridor.
+
+**Verdict:** sound. Over 54 maps 473 of 479 kept approaches survive; five maps lose one. The alternative is a place where a unit sees a perfect circle, which is the thing the owner asked to be rid of. **Confidence:** medium.
+
+### What stands in the open country ends an approach as a disc
+
+**Choice:** `measure::approaches` judges a corridor along five lines 100 m apart, which is enough for a wood or a settlement and misses a yard or a copse between two lines. A yard, a copse, a single tree and each half-width of a tree line are asked as discs against the whole corridor instead. Forests under the layout's smallest wood (π × 60² m²) are the small ones.
+
+**Gap:** Nothing but woods, settlements and water ended an approach before; the pass adds things smaller than the measure's resolution.
+
+**Reach:** The layout's own approaches are unchanged (its tests and records agree). A wood's lobe can still reach between two measuring lines: the test found a tree of a layout wood inside a recorded corridor on Mixed Small seed 1, before the pass runs. Not fixed here.
+
+**Verdict:** sound. **Confidence:** high.
+
+### The sight circle is judged by the simulation's two sight queries
+
+**Choice:** A bearing is open when the line from an infantry eye (the rifle squad's 600 m, eye at 1.6 m) to the fog's ground target (1 m) at full range has no occluding body or ground on it (`sight_clear`) and no foliage at all (`foliage_depth == 0`). Bearings are one fog cell apart at full range, as the fog's sweep casts them: 472. A bearing that leaves the map is judged to the map's edge. Samples are a square grid over open ground: dry, outside every settlement's outline, off forest ground, with no body on the spot. Column positions are the units of each side's column as `plan_encounter` places the shipped assault.
+
+**Gap:** The brief asks for "the simulation's own sight query" and "the standard infantry sight range" without naming them. `sees_point` alone passes a ray that foliage only shortens when the map's edge is nearer than the shortened reach, so a place beside the edge read as unbroken with a copse 100 m away.
+
+**Reach:** A single tree counts: its crown shortens the ray by about 6%. That is a notch at the rim, not a wedge of fog; the wedges come from buildings, which occlude outright.
+
+**Verdict:** sound. **Confidence:** high.
+
+### "Most of the circle stays open" is held against the bare map, not against 80%
+
+**Choice:** The test holds the median place to 80% open, or to within 7 points of the bare map's median where woods and towns had already taken more, and the share of open ground under half open to a rise of 6 points.
+
+**Gap:** The owner's aim is a median around 80 to 90%. Before the pass, medians run from 69% to 98% over 36 maps (the nine cells, seeds 1 to 4), 84% on average: big woods and towns already close a fifth of the typical circle on many maps.
+
+**Verdict:** provisional. After the pass medians run from 66% to 87%, 79% on average: two to eleven points under the bare map, the largest drops where the bare map was most open (Metro Small seed 1: 98% to 87%). Open ground under half open goes from 5.0% to 6.1% on average. A guarantee that every place sees something costs a few points wherever nothing was in view; on those 36 maps it takes the places that see an unbroken circle from 5,245 of 30,122 samples to none of 29,818, and the columns with a unit that starts with one from 10 of 72 to none. **Confidence:** medium.
+
+### Bare ground is filled; densities are small
+
+**Choice:** `sight.reach_m` 480 on 100 m cells: a place is at most 71 m from its cell's middle, so something stands within about 550 m of it, inside the 600 m sight range. A cell is filled by a copse (4 in 5) or a tree line (1 in 5), 300 to 1,200 m² and 60 to 130 m. On top of that: a home group for each 2 km of country road and track, 0.1 tree lines and 0.1 copses a km² of open ground at least, 1.2 single trees and 1.2 clusters of low cover a km².
+
+**Gap:** The brief's first figures were denser (a home every few hundred metres of road, hedged fields); the owner's correction asked for a light touch, tree lines short and occasional, house groups sparse.
+
+**Verdict:** provisional: numbers to tune by looking. Fill does nearly all the work: with the copse and tree-line densities at zero the same maps hold nearly the same copses. A Small map gains 8 to 44 buildings, 270 to 700 trees and 85 to 130 loose bodies; a Large one 26 to 72, 800 to 1,800 and 240 to 330. Open maps gain the most homes, Metro the fewest. The 120 s battle of `city_report` costs 0.4% more instructions on Mixed Small seed 1 (79.1 to 79.4 G) and 1.9% more on Metro Large seed 1 (134.9 to 137.4 G); its memory goes from 222 to 227 MiB and from 629 to 646 MiB. **Confidence:** medium.
+
+### Trees are forests, whatever their size
+
+**Choice:** A tree line is a stroke forest 12 m wide in stretches of 45 to 90 m with 12 m gaps, 8 m back from a road's edge where it follows one. A copse is a ring. A single tree is a 9 m square plot, square to the map, on which the one forest rule stands exactly one trunk; a yard's clump is a 12 to 16 m plot behind it.
+
+**Gap:** The catalog has a `trunk` row, but the simulation gives a crown only to a tree a forest stood.
+
+**Reach:** Forest ground conceals: a soldier under a single tree is concealed as in a wood. `forest_share` and the layout's forest fairness count the rings (under 0.1% of a map).
+
+**Verdict:** sound. **Confidence:** high.
+
+### Fair halves are counted, not weighed by area
+
+**Choice:** `|top − bottom| ≤ max(25% of the total, a least amount)`, for buildings (3), metres of tree line (250), copses (2), trees (3) and loose bodies (6). Each kind is placed in the half that holds less.
+
+**Gap:** The brief asks for "the same measure the generator already uses", which compares areas against the playable area. These things have no area worth comparing.
+
+**Verdict:** sound: all five are even on 899 of the 900 swept maps. Open Small seed 38 holds 13 homes in the top half and 7 in the bottom, whose roads had no more room; Mixed Small seed 15 has no home at all. **Confidence:** high.
+
+### Low cover is placed although nothing draws it here
+
+**Choice:** Field cover uses `boulder`, `log`, `car_wreck` and `pallet_stack`; yards use `parked_car`, `pallet_stack` and `crate`. Their boxes are rows of the presets.
+
+**Gap:** All but `crate` are `systems_only` rows: on this branch nothing draws them, so a boulder is cover and an obstacle the player cannot see. The street-furniture branch draws an artless prop as its own box (`f487502f`), on a renderer this branch's base has since replaced.
+
+**Reach:** Until a drawing lands, `field_cover.per_km2` and `homesteads.body_chance` at zero take them out without touching code. The sight rule does not depend on them: none occludes.
+
+**Verdict:** provisional. **Confidence:** high that it must not ship undrawn.
+
+### The versions are the street-furniture branch's
+
+**Choice:** `layout-8` and `layout-presets-7`, the strings the street-furniture branch also took, so the two merge without a conflict on those lines. The merged generator is a third thing and needs its own bump and re-record.
+
+**Verdict:** sound for the merge; the records in this branch describe this branch alone. **Confidence:** high.
+
+### What the unprimed look at the pictures found
+
+**Choice:** None taken from it in this pass; recorded for the next. One fresh critique of the owner's map after the pass (the opening view, straight down over blue's column with fog on, a house group, a tree line, and the plan's picture) against the Broken Arrow references.
+
+**Found:** The country still reads as empty: at the opening view the jeep is the only upright thing in frame, and the eye has few landmarks. The fog over blue's column is cut on the lower left, the right and the bottom by copses and tree lines, and is one clean arc across the top: broken, and mostly open, which is what the owner asked for, and less than the references' wooded country. Tree lines and copses ignore the field pattern, because the fields are the renderer's and the generator does not know where their edges are. The fog behind a tree line pulls in some way past it with nothing at the tip of the teeth: that is the one forest rule shortening sight, not a missing model. A house group is houses on grass: no yard, track to the door or outbuilding is drawn, two houses of one group are the same model side by side, and no car stands beside them because nothing draws one.
+
+**Verdict:** provisional. The rule (M25) is met and measured; the look is the light touch that was asked for and is sparser than the references. Fitting tree lines to the drawn fields' edges needs the two to share one field geometry. **Confidence:** medium.
+
+## C07: warm cover-facing parity
+
+**Choice:** Use pinned `libm::atan2` in the existing cover-bearing calculation,
+without adding a scalar math wrapper or migrating unrelated trigonometry.
+
+**Evidence:** A generated battle's first divergent tick had only one squad's
+yaw and copied sight bearing differ by one float64 ULP. The two-rifle public
+paired fixture reproduces the same `(17, 100)` bearing and first fails at tick
+30, while float32 publication hides it. The existing math module has no shared
+bearing owner. This deliberately changes Native's last bits to the portable
+result; gameplay rules and the transport contract are unchanged.
+
+**Verdict:** sound; high confidence. Scope follows an observed field and public
+red proof, rather than assuming all standard math needs replacement. Remaining
+generated-battle parity must still be measured after integration.
