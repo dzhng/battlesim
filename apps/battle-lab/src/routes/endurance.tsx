@@ -183,6 +183,7 @@ export default function Endurance() {
       key={`${generated}-${late}-${seed}`}
       fixture="endurance"
       scenario={built.scenario}
+      prepared={"connect" in built ? built : undefined}
       seed={seed}
       camera={
         built.report

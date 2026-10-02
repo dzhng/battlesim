@@ -1,0 +1,62 @@
+// Benchmark selection enters the same map/preparation worker as a battle.
+// The city arena is an explicit synthetic contact workload, never a moved
+// player encounter or a second map generator.
+import config from "@fixtures/generated-battle.json";
+import presets from "@fixtures/map-presets.json?raw";
+import templates from "@fixtures/prototype-building-templates.json?raw";
+import recipes from "@fixtures/encounters.json?raw";
+import { generationRequest, type MapChoice } from "@web/maps/source";
+import { prepareBattle, type PreparedSession } from "@web/battle/prepare/client";
+import type { PrepareMessage } from "@web/battle/prepare/protocol";
+import type { Wasm } from "@web/battle/sim/module";
+import { cityContactTour } from "@web/battle/benchmark/camera";
+import type { BenchmarkPreset, BenchmarkScenario } from "@web/battle/benchmark/presets";
+import { GAME_RULES } from "../scenarios";
+import { villageScenario } from "../savedMaps";
+
+export function benchmarkPreparation(
+  wasm: Wasm,
+  scenario: Extract<BenchmarkPreset, { generated: MapChoice }>,
+): PrepareMessage {
+  return {
+    type: "prepare",
+    request: {
+      map_source: {
+        kind: "generated",
+        request: generationRequest(wasm, scenario.generated, { presets, templates }, config.limits),
+      },
+      recipe_id: config.encounter.recipe,
+      encounter_seed: config.encounter.seed,
+      battle_seed: scenario.seed,
+    },
+    documents: { presets, templates, recipes, rules: JSON.stringify(GAME_RULES) },
+    stress: { kind: "city-arena-1", late: false },
+  };
+}
+
+export interface BenchmarkBattle {
+  scenario: string;
+  workload: BenchmarkScenario;
+  prepared?: PreparedSession;
+}
+
+export async function prepareBenchmark(
+  wasm: Wasm,
+  workload: BenchmarkPreset,
+  signal: AbortSignal,
+): Promise<BenchmarkBattle> {
+  if (!workload.generated)
+    return {
+      scenario: await villageScenario(wasm, "benchmark", workload.variant),
+      workload: { ...workload, tour: workload.tour },
+    };
+  const preparation = prepareBattle(benchmarkPreparation(wasm, workload), () => {});
+  signal.addEventListener("abort", preparation.cancel, { once: true });
+  if (signal.aborted) preparation.cancel();
+  const prepared = await preparation.battle;
+  return {
+    scenario: prepared.scenario,
+    prepared,
+    workload: { ...workload, tour: cityContactTour(prepared.report.size) },
+  };
+}
