@@ -845,8 +845,8 @@ export default function MechanicsEditor() {
                   <h2>Preview authored changes</h2>
                 </div>
                 <span>
-                  {preview.value.files.length} files · {preview.value.affectedUnits.length} affected
-                  units
+                  {preview.value.files.length} files · {preview.value.affectedUnits.length} affected{" "}
+                  {preview.value.affectedUnits.length === 1 ? "unit" : "units"}
                 </span>
               </div>
               <p>These exact formatted replacements will be saved. Running battles continue.</p>

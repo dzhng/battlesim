@@ -27,6 +27,9 @@ below serves that one goal.
 
 ## What to assert
 
+- **Exercise boundary points, not only cell centres.** A valid geometry endpoint
+  can occupy a grid cell whose centre is blocked; centre-only path fixtures miss
+  failures in that conversion.
 - **Observable behavior through the outermost practical entry point** — return
   values, exit codes, persisted rows, HTTP responses, rendered output — never
   which internal functions ran or how a value is computed. A test on the public
