@@ -3303,7 +3303,7 @@ async function captionsTour(ctx) {
     );
   });
   await page.goto(new URL("/", ctx.url).href);
-  await page.getByRole("link", { name: /Play village/ }).waitFor();
+  await page.getByTestId("menu-deploy").waitFor();
   ctx.check(
     "the main menu keeps audio preferences but has no caption opt-out",
     (await page.getByLabel("Subtitles", { exact: true }).count()) === 0 &&
@@ -3352,7 +3352,7 @@ async function menuTour(ctx) {
   await button.click();
   await snapshot(ctx, page, "pause-main-menu-1920x1080.png");
   await page.getByRole("link", { name: "Main menu", exact: true }).click();
-  await page.getByRole("link", { name: "Play village" }).waitFor();
+  await page.getByTestId("menu-deploy").waitFor();
   ctx.check(
     "Main menu returns from the paused battle to the game's home",
     new URL(page.url()).pathname === "/",
