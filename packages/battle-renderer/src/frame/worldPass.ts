@@ -80,7 +80,9 @@ import {
   groundClassView,
   groundColour,
   groundDapple,
+  GroundPaved,
   groundPaved,
+  groundRuts,
   groundScarsSeen,
   groundSite,
   groundBank,
@@ -179,15 +181,14 @@ export async function createWorldPass(
     highlight: d.f32,
   };
   /** The biome's ground, under the vertex tint (its alpha the tint's weight).
-   *  `cell` is the point's `groundCell`. */
+   *  `cell` is the point's `groundCell`, `paved` its `groundPaved`. */
   const groundAlbedo = tgpu.fn(
-    [d.vec3f, d.vec4f, d.vec4u],
+    [d.vec3f, d.vec4f, d.vec4u, GroundPaved],
     d.vec4f,
-  )((world, tint, cell) => {
+  )((world, tint, cell, paved) => {
     "use gpu";
     const footprint = std.length(std.fwidth(world.xy));
     const xy = world.xy;
-    const paved = groundPaved(xy, cell);
     const site = groundSite(xy, cell, paved);
     const surface = groundColour(xy, footprint, site, paved, groundWater(xy, cell));
     const albedo = std.mix(surface.xyz, srgbToLinear(tint.xyz), tint.w);
@@ -207,13 +208,14 @@ export async function createWorldPass(
     const footprint = std.length(std.fwidth(v.world.xy));
     // One lookup of the surface field serves the ground and its dapple.
     const cell = groundCell(v.world.xy, footprint);
+    const paved = groundPaved(v.world.xy, cell);
     if (groundClassView()) {
       const xy = v.world.xy;
-      const site = groundSite(xy, cell, groundPaved(xy, cell));
+      const site = groundSite(xy, cell, paved);
       const classes = groundClasses(xy, footprint, site, groundWater(xy, cell));
       return { color: d.vec4f(classes, 1), fog: d.vec4f(CLASS_GROUND) };
     }
-    const plain = groundAlbedo(v.world, v.color, cell);
+    const plain = groundAlbedo(v.world, v.color, cell, paved);
     // The side's learned scars, on the biome's ground (not under a tint).
     const biome = 1 - v.color.w;
     const scar = groundScarsSeen(v.world, eye, footprint);
@@ -225,6 +227,9 @@ export async function createWorldPass(
     if (bank.z > 0) {
       ground = std.normalize(std.mix(n, std.normalize(d.vec3f(-bank.x, -bank.y, 1)), bank.z));
     }
+    // A road's ruts tilt it too: their sides catch the sun.
+    const ruts = groundRuts(v.world.xy, footprint, paved);
+    ground = std.normalize(std.sub(ground, std.mul(d.vec3f(ruts.xy, 0), ground.z * biome)));
     const shading = std.normalize(std.mix(ground, scarredNormal(ground, scar), biome));
     // The ground paint on it (its layer is painted).
     const paint = groundPaint(v.world);
@@ -257,7 +262,7 @@ export async function createWorldPass(
     if (groundClassView()) {
       return { color: d.vec4f(0, 0, 0, 1), fog: d.vec4f(0, 0, 0, 1) };
     }
-    const surface = groundAlbedo(v.world, v.color, cell);
+    const surface = groundAlbedo(v.world, v.color, cell, groundPaved(v.world.xy, cell));
     const up = std.normalize(v.normal);
     const paint = groundPaint(v.world);
     const albedo = paintedAlbedo(surface.xyz, paint);

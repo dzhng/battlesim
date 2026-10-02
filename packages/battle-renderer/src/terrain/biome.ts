@@ -95,6 +95,33 @@ export interface Road {
   join_m: number;
   roughness: number;
   shoulder: Shoulder;
+  ruts: Ruts;
+  centre_strip: CentreStrip;
+}
+
+/** Wheel ruts along a road drawn as a stroke: shading only, the ground is
+ *  never moved. They fade to the surface's mean as a rut nears a pixel or
+ *  two wide. */
+export interface Ruts {
+  /** Each rut's distance from the stroke's centreline, mirrored either side:
+   *  one or two, or none. A rut the stroke is too narrow to hold is left out. */
+  offsets_m: readonly number[];
+  width_m: number;
+  /** The steepest a rut's side tilts the shading normal, in degrees: at most
+   *  15 (steeper catches the sky and reads as a sheen). */
+  tilt_deg: number;
+  /** How far a rut darkens the surface at its middle. The surface between
+   *  the ruts lightens by their share of the road, so the road's mean is its
+   *  own and a rut is never darker than the grass beside the road. */
+  tint: number;
+}
+
+/** The grass strip down the middle of a narrow track. */
+export interface CentreStrip {
+  /** Half the strip's width; 0 for none. */
+  half_width_m: number;
+  /** A stroke wider than this has no strip. */
+  max_road_width_m: number;
 }
 
 /** The worn ground beside a road, between its surface and the field. */
@@ -406,6 +433,15 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
     within(`${at}.shoulder.jitter`, shoulder.jitter, 0, 1);
     within(`${at}.shoulder.jitter_m`, shoulder.jitter_m, 0.1, 1000);
     within(`${at}.shoulder.grass`, shoulder.grass, 0, 1);
+    const ruts = road.ruts;
+    if (!ruts || !Array.isArray(ruts.offsets_m) || ruts.offsets_m.length > 2)
+      bad(`${at}.ruts.offsets_m`, "must list at most two distances");
+    ruts.offsets_m.forEach((o, i) => within(`${at}.ruts.offsets_m[${i}]`, o, 0.05, 50));
+    within(`${at}.ruts.width_m`, ruts.width_m, 0, 3);
+    within(`${at}.ruts.tilt_deg`, ruts.tilt_deg, 0, 15);
+    within(`${at}.ruts.tint`, ruts.tint, 0, 0.5);
+    within(`${at}.centre_strip.half_width_m`, road.centre_strip?.half_width_m, 0, 5);
+    within(`${at}.centre_strip.max_road_width_m`, road.centre_strip?.max_road_width_m, 0, 100);
   }
   if (!biome.shore || typeof biome.shore !== "object") bad("shore", "is missing");
   palette("shore.palette", biome.shore.palette);

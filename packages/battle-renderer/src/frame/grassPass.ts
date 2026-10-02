@@ -294,6 +294,10 @@ const grassHash = tgpu
 }`)
   .$uses({ pcgHash });
 
+/** No clump grows where the roads have worn the ground more than this
+ *  (`groundShoulder`): a road's own surface, and the foot of its shoulder. */
+const GRASS_BARE_WEAR = 0.9;
+
 const buildFn = tgpu
   .computeFn({
     in: { wg: d.builtin.workgroupId, li: d.builtin.localInvocationIndex },
@@ -353,16 +357,19 @@ const buildFn = tgpu
     let water = groundWater(p, cell);
     // Bare within the margins; thinner and lower for a metre beyond them, so
     // a field meets a road or a wood without a wall of blades. Across a
-    // road's shoulder it thins and lowers as the ground is worn.
+    // road's shoulder it thins and lowers further as the ground is worn.
     // A wood's edge is its rect or its floor's ragged verge, whichever lies
     // farther out.
     let wood = max(site.w, forestVergeInside(p, site.w));
-    let margin = min(-site.z, min(-wood, -water) - P.clear.z);
+    let margin = min(-wood, -water) - P.clear.z;
     if (margin < 0.0) { continue; }
     // Bare on the wet banks round water.
     if (groundShore(water) > 0.35) { continue; }
     let worn = groundShoulder(p, footprint, paved);
-    let edge = smoothstep(0.0, ${GRASS_EDGE_M}, margin) * (1.0 - worn.x);
+    // Bare on a road's own surface and at the foot of its shoulder, but for
+    // a track's centre strip.
+    if (worn.x > ${GRASS_BARE_WEAR}) { continue; }
+    let edge = smoothstep(0.0, ${GRASS_EDGE_M}, min(margin, abs(site.z))) * (1.0 - worn.x);
     let kindOfPlot = u32(terrainLayout.$.plots[i32(site.x)].detail.y);
     var g = P.growth[min(kindOfPlot, ${GRASS_GROWTH_ROWS - 2}u)];
     if (groundVerge(site, footprint) > 0.5) { g = P.growth[${GRASS_GROWTH_ROWS - 1}u]; }

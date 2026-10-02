@@ -1,4 +1,4 @@
-// How the roads read (C66, C67), measured on the ground rig's stations: each
+// How the roads read (C66 to C68), measured on the ground rig's stations: each
 // station's frame beside the terrain's own class mask, so a band is the
 // pixels the material says it is, never a hand-drawn crop.
 import {
@@ -9,8 +9,19 @@ import {
   shoot,
   villageExport,
 } from "./_groundStations.mjs";
+import { readFileSync } from "node:fs";
 import { aim, lab } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
+
+const fixture = (path) =>
+  JSON.parse(readFileSync(new URL(`../../fixtures/${path}`, import.meta.url), "utf8"));
+/** The biome's road row for a map's `n`th surface, and that surface's half
+ *  width. */
+function roadOf(map, n) {
+  const roads = fixture("biomes/summer.json").roads;
+  const surface = fixture(`maps/${map}/map.json`).surfaces[n];
+  return { row: roads[surface.kind] ?? roads.default, half: surface.shape.width_m / 2 };
+}
 
 /** A road's core: this far inside its edge, clear of the feather. */
 const CORE_M = -0.5;
@@ -112,6 +123,39 @@ function walk(shot, mask) {
   };
 }
 
+/** A band of a road's core `m` metres from its centreline (half width
+ *  `half`), `within` metres either way: the mask's distance is from the
+ *  road's edge. */
+const lane = (mask, half, m, within) => [
+  ...groundPixels(mask, (c) => Math.abs(-c.roadSd - (half - m)) <= within),
+];
+
+/** How much darker a road's ruts are than its surface beside them (midway
+ *  from a rut's outer side to the road's edge), as a share of that surface,
+ *  in a bare-ground frame. */
+function rutContrast({ bare, mask }, { row, half }) {
+  const outer = Math.max(...row.ruts.offsets_m) + row.ruts.width_m / 2;
+  const ruts = row.ruts.offsets_m.flatMap((m) => lane(mask, half, m, 0.07));
+  const between = lane(mask, half, (outer + half) / 2, 0.15);
+  return {
+    contrast: 1 - mean(bare, ruts).luminance / mean(bare, between).luminance,
+    pixels: [ruts.length, between.length],
+  };
+}
+
+/** How green over red a track's middle is against its ruts, in a
+ *  bare-ground frame. */
+function stripGreen({ bare, mask }, { row, half }) {
+  const green = (pixels) => {
+    const { rgb, count } = mean(bare, pixels);
+    return { ratio: rgb[1] / rgb[0], count };
+  };
+  return {
+    middle: green(lane(mask, half, 0, row.centre_strip.half_width_m / 2)),
+    ruts: green(lane(mask, half, row.ruts.offsets_m[0], 0.07)),
+  };
+}
+
 /** Clumps per metre-wide band beside the village's straight road east of the
  *  bend, from its edge outward: the band's distance is the export's. */
 async function clumpBands(page) {
@@ -126,7 +170,7 @@ async function clumpBands(page) {
     page,
     roots.map((xy) => ({ xy, footprint: 1e9 })),
   );
-  const bands = new Array(8).fill(0);
+  const bands = Array.from({ length: 8 }, () => 0);
   for (const { paved: inside } of paved) {
     const band = Math.floor(-inside);
     if (inside < 0 && band < bands.length) bands[band]++;
@@ -202,6 +246,16 @@ export async function roadLooks(ctx) {
   bands["river track-65"] = coreAgainstGrass(track);
   walks["river track-65 bare"] = walk(track.bare, track.mask);
   walks["river track-65"] = walk(track.shot, track.mask);
+  // The lab's dirt track, from the ground camera and the tactical one.
+  const dirtTrack = roadOf("river", 1);
+  const close = await frame(river, "river", "track-25");
+  const strip = stripGreen(close, dirtTrack);
+  const far = await frame(river, "river", "track-250");
+  const farStrip = stripGreen(far, dirtTrack);
+  const ruts = {
+    "track-25": rutContrast(close, dirtTrack),
+    "track-250": rutContrast(far, dirtTrack),
+  };
   const junction = await frame(river, "river", "junction-65");
   bands["river junction-65"] = coreAgainstGrass(junction);
   ctx.check(
@@ -219,7 +273,7 @@ export async function roadLooks(ctx) {
   );
   const world = await groundUnder(river, core);
   const on = (keep) => core.filter((_, i) => keep(world[i].xy));
-  const road = mean(
+  const gravel = mean(
     junction.shot,
     on(([x]) => Math.abs(x - 60) < 4),
   );
@@ -229,13 +283,13 @@ export async function roadLooks(ctx) {
   );
   ctx.check(
     "each road kind is drawn as itself: the dirt track warm brown beside the country road's grey",
-    road.count > 100 &&
+    gravel.count > 100 &&
       dirt.count > 100 &&
       dirt.rgb[0] > dirt.rgb[1] &&
       dirt.rgb[1] > dirt.rgb[2] &&
-      warmth(dirt.rgb) > warmth(road.rgb) + 0.08,
+      warmth(dirt.rgb) > warmth(gravel.rgb) + 0.08,
     JSON.stringify({
-      road: { ...road, warmth: warmth(road.rgb) },
+      road: { ...gravel, warmth: warmth(gravel.rgb) },
       track: { ...dirt, warmth: warmth(dirt.rgb) },
     }),
   );
@@ -257,6 +311,22 @@ export async function roadLooks(ctx) {
     JSON.stringify({ clumps, field }),
   );
   ctx.check(
+    "a track's ruts show from the ground camera and are gone at the tactical one",
+    ruts["track-25"].contrast > 0.02 &&
+      Math.abs(ruts["track-250"].contrast) < 0.006 &&
+      Object.values(ruts).every((r) => r.pixels.every((count) => count > 200)),
+    JSON.stringify(ruts),
+  );
+  ctx.check(
+    "a narrow dirt track's middle is a strip of grass between its ruts, and plain track at the tactical camera",
+    strip.middle.count > 300 &&
+      strip.ruts.count > 300 &&
+      strip.middle.ratio > strip.ruts.ratio + 0.05 &&
+      farStrip.middle.count > 300 &&
+      Math.abs(farStrip.middle.ratio - farStrip.ruts.ratio) < 0.02,
+    JSON.stringify({ "track-25": strip, "track-250": farStrip }),
+  );
+  ctx.check(
     "the worn ground beside a road is anchored to the world, not to the screen",
     anchored.points > 100 &&
       anchored.sameWorld < 12 &&
@@ -267,20 +337,20 @@ export async function roadLooks(ctx) {
 
 /** Frames a cost batch draws before its GPU time is read, and the pairs a
  *  station is measured over. */
-const COST_FRAMES = 150;
-const COST_PAIRS = 7;
+const COST_FRAMES = 120;
+const COST_PAIRS = 4;
 const median = (values) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
 
 /** ROAD_COST=1: what the roads' wear (their surface detail, their shoulders,
- *  the grass thinned across them) costs a frame, at stations where roads
+ *  the grass thinned across them) costs a frame, at two stations where roads
  *  fill much of the view: the same frozen frame with the wear on and off in
- *  interleaved batches, the median of the paired differences. Run it alone,
- *  under the GPU lock. */
+ *  a few interleaved batches, the median of the paired differences. Run it
+ *  alone, under the GPU lock. */
 export async function roadCost(ctx) {
   const result = { stations: {} };
   for (const [map, stations] of [
-    ["village", ["bend-25", "bend-65", "bend-250"]],
-    ["generated", ["town-65", "town-250"]],
+    ["village", ["bend-65"]],
+    ["generated", ["town-65"]],
   ]) {
     const page = await openStations(ctx, map);
     for (const station of stations) {

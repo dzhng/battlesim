@@ -2708,3 +2708,105 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 **Gap:** The slice asks for a mask-based check and does not say whether the biome should refuse a dark road.
 
 **Verdict:** provisional. A palette rule would have to pick "the grass": against every plot palette it would forbid any road beside a bright crop (wheat today, rapeseed in C83), which is not what L-G3 is about. **Confidence:** medium.
+
+## C67 road shoulder
+
+### The shoulder is a wash of hue with thinner grass, not a band of its own colour
+
+**Choice:** Where the wear is whole the ground goes 45% of the way to the shoulder's colour (`shoulder.cover`), and the grass thins across the same wear. A shoulder painted fully in a sand colour was built first and withdrawn.
+
+**Gap:** Q-G2 asks for "a worn shoulder 2–4 m wide"; SG3, never run, was to say whether one reads as an outline, and names "shoulder by hue and grass thinning only" as its first fallback.
+
+**Verdict:** sound. The unprimed critique called the sand band an outline in every frame from 25 m to 250 m and round every lawn of the generated town. Painted in the road's own colour instead it read as torn paper. The wash is the fallback SG3 names. **Confidence:** medium: the wash all but vanishes beside a field as bright as itself (stubble, wheat), so one road can show a shoulder on one side only.
+
+### "Never darker than the grass" is arithmetic, not a palette
+
+**Choice:** The shoulder's colour is scaled up to the luminance of the ground it lies on wherever that ground is the brighter.
+
+**Gap:** L-G3 asks that the shoulder stay at or above the grass's luminance; fields range from ploughed earth to wheat.
+
+**Verdict:** sound. No palette row can hold that against every field; the lift holds it against any, and a later field palette (C84) cannot break it. **Confidence:** high.
+
+### The shoulder fades out by the tactical camera
+
+**Choice:** The wash is whole while a pixel is under 3% of the shoulder's width and gone at 8% (about 0.1 m and 0.28 m a pixel for the country road: whole at 65 m, gone by 250 m).
+
+**Gap:** Q-G17 says fine detail fades with distance; the slice says nothing of the shoulder at 250 m.
+
+**Verdict:** provisional. The second critique found no outline close up but called the few-pixel fringe at 120 m and 250 m a halo, and possibly a contact shadow under a raised road. A fringe that thin cannot show its ragged edge. The fade was shot at 120 m and 250 m and looked at by its author; it has not had a critique of its own. **Confidence:** medium.
+
+### One wear for the ground and the grass
+
+**Choice:** `groundShoulder` returns one wear value, and both the ground's colour and the grass build read it; the grass keeps `shoulder.grass` of the field's clumps where the wear is whole, and none where it is over 0.9 (the foot of the shoulder and the road itself).
+
+**Gap:** "Grass density ramps across it from C63's field" does not say whether grass and ground share an edge.
+
+**Verdict:** sound. Thin grass over unworn ground, or worn ground under a wall of blades, is the outline again. **Confidence:** high.
+
+### The paved reach is the shoulder's width, and costs nothing
+
+**Choice:** `groundReach`'s paved reach is the widest shoulder (3.5 m), in place of the verge's half width plus a pixel.
+
+**Gap:** The brief asks what widening the reach cost.
+
+**Verdict:** sound. The field's finest level was already built for a 2 m pixel (2.9 m), and the old reach grew with the pixel at every coarser level where the new one does not: the village's index went from 651 to 648 KiB and the dense synthetic town's from 1,037 to 1,024 KiB; the paved records a lookup visits at a play-camera pixel went from 0.047 to 0.049 (village) and 0.49 to 0.56 (town). **Confidence:** high.
+
+### `setRoadWearShown` is a lab switch, not a frame view
+
+**Choice:** The paired cost measure and paired frames turn the roads' wear off through `BattleFrame.setRoadWearShown` (the lab's `suppressRoadWear`), beside `setTreesShown`.
+
+**Gap:** The slice asks for a frame-cost row and names no switch.
+
+**Verdict:** sound. A frame view replaces the frame's composition; this is the finished frame less one thing, as the trees' switch is. **Confidence:** high.
+
+## SG3 road wear read
+
+### Answered inside C67 and C68, on the real material
+
+**Choice:** No scratch worktree and no `spikes/SG3.md`: the shoulder and the ruts were built in the terrain material, critiqued unprimed, and cut back to what passed. The verdict is in the slice file.
+
+**Gap:** SG3 was written as a throwaway spike to run before C67.
+
+**Verdict:** sound. The per-fragment road loop the spike was to paint through is gone (C63), and C62's rig made each question a station shot. **Confidence:** high.
+
+## C68 ruts and centre strip
+
+### The gravel road has no ruts; the dirt track has them and its strip
+
+**Choice:** `roads.default.ruts` is empty. `roads.dirt_track` has one pair of wheel ruts 0.8 m either side of the centreline and a grass strip 0.7 m wide between them, on tracks up to 5 m wide.
+
+**Gap:** Q-G3 asks for two soft ruts inside the core; SG3's fallbacks allow cutting them.
+
+**Verdict:** sound. On the 9 m and 12 m gravel roads the critique read ruts as "pencil lines" and "pinstripes down the lanes" at 65 m in each of the two shapes tried (four narrow ruts, four broader and shallower). On the track it read "a grass strip growing between two wheel ruts", "the best result in the set". **Confidence:** medium. A wide road therefore still has no structure across it at the tactical camera.
+
+### Ruts change no pixel once they fade
+
+**Choice:** A rut darkens its own line and the rest of the surface lightens by the ruts' share of the road, so the road's mean is unchanged; the fade (whole under 0.2 of a rut's width a pixel, gone at 0.4) therefore fades to exactly the surface without ruts.
+
+**Gap:** "They fade to the core's mean below about 2 px per rut, using the same footprint fade as the plot rows."
+
+**Verdict:** sound. The plot rows' fade keeps a mean term; a rut covers a tenth of a road, so a mean term would darken the whole road. The window is 2.5 to 5 pixels a rut, where the rows' is 1.7 to 4: a rut shimmers sooner than a field of rows. **Confidence:** high.
+
+### The strip is never broken along its length
+
+**Choice:** The centre strip's edge wanders but the strip has no gaps.
+
+**Gap:** The slice says only that grass grows in a centre strip.
+
+**Verdict:** sound. Broken by noise, it read as "olive dashes" at 65 m: a dashed line painted down the track. **Confidence:** medium: the second critique still calls the continuous strip "a firm-edged painted stripe" at 65 m.
+
+### The strip fades out with the ruts
+
+**Choice:** The strip is whole while a pixel is under 0.2 of its width and gone at 0.4, as a rut is: gone by the tactical camera.
+
+**Gap:** The slice gives the ruts a fade and the strip none.
+
+**Verdict:** provisional. At 250 m the second critique read the strip, a few pixels wide, as "a dashed centre line (road marking)". The fade is checked at `track-250` and was looked at by its author; it has had no critique of its own. **Confidence:** medium.
+
+### The lane a point lies in rides with the paved distances
+
+**Choice:** `groundPaved` returns a struct: the distance inside each kind's paving, and for the stroke the point lies deepest in, the direction away from its centreline, the distance from it and its half width. Ruts and the strip are functions of that distance from the centreline.
+
+**Gap:** The slice says "keyed from the field" and names no carrier.
+
+**Verdict:** sound. The loop that finds the paved distance already has the closest point of each stretch; a second lookup for the lane would walk the cell's list twice. A polygon has no centreline, so a town's streets have no lanes. **Confidence:** high.

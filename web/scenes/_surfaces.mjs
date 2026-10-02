@@ -114,12 +114,13 @@ export async function surfaceExportAgreement(ctx) {
       const groundSite = terrain.groundSite;
       const groundCell = terrain.groundCell;
       const groundPaved = terrain.groundPaved;
+      const GroundPaved = terrain.GroundPaved;
       const groundColour = terrain.groundColour;
       const kernel = tgpu
         .computeFn({ in: { gid: d.builtin.globalInvocationId }, workgroupSize: [1] })(`{
-        let query=queryLayout.$.points[gid.x];let xy=query.xy;let cell=groundCell(xy,query.z);let paved=groundPaved(xy,cell);let site=groundSite(xy,cell,paved);let actual=groundColour(xy,0.1,site,paved,-1e9);let interior=groundColour(xy,0.1,site,vec4f(5.0,-1e9,-1e9,-1e9),-1e9);queryLayout.$.output[gid.x]=vec4f(site.z,actual.w,interior.w,site.w);
+        let query=queryLayout.$.points[gid.x];let xy=query.xy;let cell=groundCell(xy,query.z);let paved=groundPaved(xy,cell);let site=groundSite(xy,cell,paved);let actual=groundColour(xy,0.1,site,paved,-1e9);let interior=groundColour(xy,0.1,site,GroundPaved(vec4f(5.0,-1e9,-1e9,-1e9),vec4f(0.0),-1.0),-1e9);queryLayout.$.output[gid.x]=vec4f(site.z,actual.w,interior.w,site.w);
       }`)
-        .$uses({ queryLayout, groundSite, groundCell, groundPaved, groundColour });
+        .$uses({ queryLayout, groundSite, groundCell, groundPaved, GroundPaved, groundColour });
       const pipeline = root.createComputePipeline({ compute: kernel });
       await pipeline.initAsync();
       const input = registry.buffer({

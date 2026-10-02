@@ -58,6 +58,7 @@ export const STATION_MAPS = {
       // The dirt track, and where it leaves the country road.
       "track-25": at([230, 120], 25, LOW),
       "track-65": at([230, 120], 65),
+      "track-250": at([230, 120], 250),
       "junction-65": at([60, 160], 65),
       // The bridge, and the wood over the far bank.
       "bridge-65": at([60, 240], 65),

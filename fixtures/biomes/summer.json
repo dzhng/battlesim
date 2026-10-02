@@ -56,9 +56,13 @@
   },
   "roads": {
     "default": { "palette": "road_gravel", "feather_m": 0.3, "mottle": 0.3, "patch_m": 6, "grain": 0.5, "grain_m": 0.5, "join_m": 2, "roughness": 0.88,
-      "shoulder": { "palette": "shoulder_gravel", "cover": 0.45, "width_m": 3.5, "jitter": 0.85, "jitter_m": 9, "grass": 0.15 } },
+      "shoulder": { "palette": "shoulder_gravel", "cover": 0.45, "width_m": 3.5, "jitter": 0.85, "jitter_m": 9, "grass": 0.15 },
+      "ruts": { "offsets_m": [], "width_m": 0, "tilt_deg": 0, "tint": 0 },
+      "centre_strip": { "half_width_m": 0, "max_road_width_m": 0 } },
     "dirt_track": { "palette": "road_dirt", "feather_m": 0.45, "mottle": 0.35, "patch_m": 4, "grain": 0.5, "grain_m": 0.6, "join_m": 2, "roughness": 0.95,
-      "shoulder": { "palette": "shoulder_dirt", "cover": 0.45, "width_m": 2.2, "jitter": 0.85, "jitter_m": 6, "grass": 0.15 } }
+      "shoulder": { "palette": "shoulder_dirt", "cover": 0.45, "width_m": 2.2, "jitter": 0.85, "jitter_m": 6, "grass": 0.15 },
+      "ruts": { "offsets_m": [0.8], "width_m": 0.65, "tilt_deg": 5, "tint": 0.1 },
+      "centre_strip": { "half_width_m": 0.35, "max_road_width_m": 5 } }
   },
   "shore": { "palette": "shore", "width_m": 2 },
   "forest_floor": {
