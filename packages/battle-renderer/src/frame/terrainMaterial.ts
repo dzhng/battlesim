@@ -141,8 +141,8 @@ const TerrainParams = d.struct({
   shape: d.vec4f,
   /** Linear rgb, verge half width. */
   verge: d.vec4f,
-  /** Verge feather, unused, and the pixel footprints (metres) over which
-   *  plots give way to the distant colour. */
+  /** Verge feather, the pixel footprints (metres) over which plots give way
+   *  to the distant colour, then unused. */
   feathers: d.vec4f,
   /** Each paved kind's look, by its tag (`SURFACE_AREA_KINDS`). */
   roads: d.arrayOf(RoadLook, ROAD_KINDS),
@@ -1498,7 +1498,7 @@ export const groundColour = tgpu.fn(
   const inRegion = rectInside(xy, params.region);
   const distant = std.max(
     1 - std.smoothstep(0, DISTANT_FADE_M, inRegion),
-    std.smoothstep(params.feathers.z, params.feathers.w, footprint),
+    std.smoothstep(params.feathers.y, params.feathers.z, footprint),
   );
   albedo = std.mix(albedo, params.distant.xyz, distant);
 
@@ -2130,9 +2130,9 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
         verge: d.vec4f(...one(biome.verge.palette), biome.verge.width_m / 2),
         feathers: d.vec4f(
           biome.verge.feather_m,
-          0,
           rules.size_m[0] * PLOT_PIXELS_FADE[0],
           rules.size_m[0] * PLOT_PIXELS_FADE[1],
+          0,
         ),
         roads: roadLooks(biome, pavedKinds(site)),
         roadOrder: d.vec4u(...roadOrder(biome, pavedKinds(site))),
