@@ -158,7 +158,7 @@ pub struct Hull {
 pub fn hulls<'a>(units: impl IntoIterator<Item = &'a Unit>, rules: &Rules) -> Vec<Hull> {
     units
         .into_iter()
-        .filter(|u| u.alive())
+        .filter(|u| u.hull.is_some() && u.alive())
         .filter_map(|u| {
             let h = u.hull?;
             Some(Hull {

@@ -5820,6 +5820,16 @@ predeclared whole-Orders gain and exact per-tick battle/observation proofs; the
 smaller whole-step improvement is reported separately. Existing public cover,
 last-seen, hidden and replay tests own the semantic contract, with tracked-row
 omission falsified through the cover behavior rather than private vector shape.
+
+The same unread-work principle applies to hull gathering. In a late battle,
+fallen infantry can require a full member scan to establish liveness, but a unit
+without a hull cannot emit vehicle geometry. Reject that row before checking
+liveness. Vehicles keep the same health check, ordered geometry and pure mapping;
+all consumers inherit the existing query rather than a cached hull projection.
+Battle outcomes and serialized replay content remain exact apart from engine
+identity. The bounded native evidence belongs to the [C06 outcome](slices/C06-sim-scale-passes.md#outcome--reject-non-hull-rows-before-member-liveness);
+browser admission remains separate.
+
 ## C45 street models
 
 The models, their boxes and the sheets are in the [C45 outcome](slices/C45-street-models.md#outcome).
