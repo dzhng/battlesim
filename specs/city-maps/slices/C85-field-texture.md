@@ -87,3 +87,13 @@ The second, on the result:
 - **Wheelings from 250 m** are hair-thin and ruler-straight. `tram.contrast` at 0 removes them per kind.
 - **The warm orange of dry grass** is the grass pass's (`patches.dry`, `dry_lift`), halved here and still read as rust.
 - The village scene and the full `ground` scene were not run; `GRASS_ONLY` was not rerun after the last round.
+
+## Current grass continuity feedback
+
+The user asks whether grass-like ground texture can blend the 3D tufts into a continuous surface. The [reported close-up](../assets/reference/ground/reported-grass-2026-10-02.png) is an unapproved defect baseline. Independent investigation confirms the existing ground already has procedural grain and the blades sample its colour. Paired captures isolate much of the dark directional scratch pattern to blade-facing shading; reducing that term preserves more tuft structure than aggressive early softening. Smooth gaps remain. At 250/1100 m no blades draw, so the ground material must carry grass identity. A fresh image-only critic agrees on these limits.
+
+The next bounded prototype belongs jointly to this texture owner and [C81's blade shading](C81-wild-grass.md): replace or refine grass-only fine grain with nondirectional tuft/leaf structure, retaining coarse variation, mean colour and footprint filtering; compare the existing facing contribution separately. Keep density, height, softening curve, palette, crop rows, roads, forest membership and gameplay rules fixed. Reuse `fieldTexture`/`groundColour`, with no second ground layer or downloaded texture. Implementation may select a simple procedural structure and scale inside existing validated tuning; further schemas/resources require a named new contract.
+
+Use the lane's two-station/three-variant/two-round GPU bound. Compare exact paired close/default captures with the reported framing as closely as known, then inspect the final far views and boundaries once. Retain C84 mean-colour, grass exclusion and field/fog checks; measure one short paired cost. Run compare-screenshots, an unprimed complete-set critique and a non-blocking Preview checkpoint before accepting any candidate. Directional hatching, tiled carpet, dissolved tuft depth and motion shimmer are rejection cases. Hills remain deferred.
+
+Research evidence is in root's ignored `throwaway/grass-surface-research/`. Its captures logged unexplained TypeGPU warnings and are diagnostic only; resolve those before claiming a verified render. No new grass look has shipped or been accepted.
