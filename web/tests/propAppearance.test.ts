@@ -56,6 +56,7 @@ const installed: InstalledAppearances = {
   generation: 1,
   sides: { blue: [1, 1, 1], red: [1, 1, 1] },
   skeletons: new Map(),
+  kits: new Set(),
   appearances: new Map([
     ["tank_wreck", entry("scenery", "wreck", [3.5, 1.8, 1.2], "default")],
     ["truck_wreck", entry("scenery", "wreck", [3, 1.4, 1.8], "default")],

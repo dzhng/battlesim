@@ -15,6 +15,7 @@ import { positionsBounds } from "./pose.ts";
 import {
   TIER_COUNT,
   type Bounds,
+  type BuildingCollapse,
   type CitySetEntry,
   type Finding,
   type StaticBundle,
@@ -57,7 +58,10 @@ export const SOURCE_ROW_NUMBERS = 12;
 export interface TemplateSetSource {
   set: string;
   kit: string;
-  fit: { side_m: number; top_m: number };
+  /** How far art may reach past a part: `side_m` on its four sides and
+   *  `top_m` above it; `ruin_top_m` (0 when absent) above the remains a
+   *  collapsed part leaves, for the jagged tops of broken walls. */
+  fit: { side_m: number; top_m: number; ruin_top_m?: number };
   source?: unknown;
   modules: string[];
   templates: {
@@ -148,9 +152,14 @@ export function readTemplateSet(
   const fit = json.fit;
   if (
     !isRecord(fit) ||
-    ![fit.side_m, fit.top_m].every((v) => typeof v === "number" && Number.isFinite(v) && v >= 0)
+    ![fit.side_m, fit.top_m, fit.ruin_top_m ?? 0].every(
+      (v) => typeof v === "number" && Number.isFinite(v) && v >= 0,
+    )
   )
-    add("templates.source", `"fit" must be { side_m, top_m }, each zero or more metres`);
+    add(
+      "templates.source",
+      `"fit" must be { side_m, top_m } and perhaps ruin_top_m, each zero or more metres`,
+    );
   const modules = json.modules as unknown[];
   for (const [i, module] of modules.entries())
     if (typeof module !== "string" || !MODULE_ID.test(module) || modules.indexOf(module) !== i)
@@ -252,7 +261,7 @@ interface Allowed {
 
 const allowedParts = (
   parts: readonly TemplatePart[],
-  fit: TemplateSetSource["fit"],
+  fit: { side_m: number; top_m: number },
   groundM: number,
 ): Allowed[] =>
   parts.map((p) => ({
@@ -294,7 +303,7 @@ export function fitExcess(
   rows: readonly number[][],
   moduleOf: (index: number) => StaticBundle["states"][number] | undefined,
   parts: readonly TemplatePart[],
-  fit: TemplateSetSource["fit"],
+  fit: { side_m: number; top_m: number },
   groundM: number,
 ): FitExcess[] {
   const allowed = allowedParts(parts, fit, groundM);
@@ -353,6 +362,35 @@ export function fitExcess(
   return out.sort((a, b) => b.excess_m - a.excess_m || a.row - b.row);
 }
 
+// ---------------------------------------------------------------- damage states
+
+/** How many floors a template has, as the simulation counts them. */
+const floorCount = (descriptor: TemplateDescriptor): number =>
+  Array.isArray(descriptor.floor_heights_m) ? descriptor.floor_heights_m.length : 1;
+
+/** The state a destroyed template is known in: a building of the rule's
+ *  `max_floors` or fewer collapses to a ruin; a taller one stands gutted. */
+export const damageState = (
+  descriptor: TemplateDescriptor,
+  rule: BuildingCollapse,
+): "ruin" | "gutted" => (floorCount(descriptor) <= rule.max_floors ? "ruin" : "gutted");
+
+/** How tall the remains of a collapsed template's parts are: the rule's
+ *  fraction of the building's height (its highest part's top), between the
+ *  rule's least and most. Every part falls to the one height. */
+export function ruinHeight(parts: readonly TemplatePart[], rule: BuildingCollapse): number {
+  const height = parts.reduce((top, p) => Math.max(top, p.base_z + 2 * p.half_extents[2]), 0);
+  return Math.min(Math.max(height * rule.height_fraction, rule.min_height_m), rule.max_height_m);
+}
+
+/** The remains a collapsed template leaves: each part's plan, from its own
+ *  base to the ruin height. A ruin state is held to these, as the standing
+ *  states are to the parts. */
+export function ruinParts(parts: readonly TemplatePart[], rule: BuildingCollapse): TemplatePart[] {
+  const half = ruinHeight(parts, rule) / 2;
+  return parts.map((p) => ({ ...p, half_extents: [p.half_extents[0], p.half_extents[1], half] }));
+}
+
 // ---------------------------------------------------------------- packing
 
 /** One catalog set, as the bake hands it over. */
@@ -376,6 +414,8 @@ export interface TemplateLibraryStats {
     rows: number;
     /** Triangles its intact rows draw at each tier, finest first. */
     triangles: number[];
+    /** Its damage state, and what that draws; absent while it has none. */
+    damage?: { state: TemplateState; rows: number; triangles: number[] };
   }[];
   rows: number;
   modules: number;
@@ -396,14 +436,16 @@ const fmt = (n: number) => n.toFixed(3);
  * pack them all into one library. Every row of every catalogue is dressed by
  * exactly one set, and every set's descriptor is a row of the catalogue the
  * set names. A template is known by its id alone, so no two catalogues share
- * one. Deterministic: sets in name order, templates in id order, rows as
- * written.
+ * one. `collapse` is the simulation's rule for a destroyed building: it names
+ * the one damage state a template has, and the remains a ruin is held to.
+ * Deterministic: sets in name order, templates in id order, rows as written.
  */
 export function packTemplateSets(
   inputs: readonly TemplateSetInput[],
   catalogues: readonly TemplateCatalogue[],
   physical: PhysicalTemplates,
   groundM: number,
+  collapse: BuildingCollapse,
 ): PackedTemplates {
   const findings: Finding[] = [];
   const admit = (catalogue: TemplateCatalogue, rows: readonly unknown[]) =>
@@ -490,7 +532,27 @@ export function packTemplateSets(
         entry.sets.push(input.name);
         dressed.set(id, entry);
       }
-      const triangles = Array.from({ length: TIER_COUNT }, () => 0);
+      const drawn = new Map<TemplateState, number[]>();
+      if (canonical) {
+        // Destroyed, a template is known in exactly one state: the one its floors call for.
+        const ends = damageState(canonical, collapse);
+        const other = ends === "ruin" ? "gutted" : "ruin";
+        const what = `template ${id} (${floorCount(canonical)} floors) ${ends === "ruin" ? "collapses" : "stands gutted"}`;
+        if (!template.states[ends]?.length)
+          add(
+            "templates.state",
+            `${what}, and has no "${ends}" rows`,
+            ends === "ruin"
+              ? "give it the rows of its remains: the same plan, broken down to the ruin height"
+              : "give it the rows of its burnt shell, standing at full height",
+          );
+        if (template.states[other])
+          add(
+            "templates.state",
+            `${what}, and has "${other}" rows`,
+            `drop its "${other}" state: a building of more than ${collapse.max_floors} floors stands gutted, and any other collapses`,
+          );
+      }
       for (const state of TEMPLATE_STATES) {
         const rows = template.states[state];
         if (!rows) continue;
@@ -508,21 +570,38 @@ export function packTemplateSets(
         if (!input.kit) continue;
         const moduleOf = (index: number) => kitStates.get(set.modules[index]);
         if (canonical) {
-          const [worst, ...more] = fitExcess(rows, moduleOf, canonical.parts, set.fit, groundM);
+          // A ruin is held to the remains the simulation leaves; a standing state to the parts.
+          const fallen = state === "ruin";
+          const top = fallen ? (set.fit.ruin_top_m ?? 0) : set.fit.top_m;
+          const parts = fallen ? ruinParts(canonical.parts, collapse) : canonical.parts;
+          const [worst, ...more] = fitExcess(
+            rows,
+            moduleOf,
+            parts,
+            { side_m: set.fit.side_m, top_m: top },
+            groundM,
+          );
+          const held = fallen
+            ? `part "${worst?.part}" at its ruin height (${fmt(ruinHeight(canonical.parts, collapse))} m), grown by the set's fit (side ${set.fit.side_m} m, ruin top ${top} m)`
+            : `part "${worst?.part}" grown by the set's fit (side ${set.fit.side_m} m, top ${top} m)`;
           if (worst)
             add(
               "templates.fit",
-              `template ${id} ${state}: row ${worst.row} (module "${set.modules[rows[worst.row][0]]}") reaches [${worst.at.map(fmt).join(", ")}], ${fmt(worst.excess_m)} m outside part "${worst.part}" grown by the set's fit (side ${set.fit.side_m} m, top ${set.fit.top_m} m)${more.length ? `; ${more.length} more row(s) reach out` : ""}`,
-              "keep the art on its parts: move the row, or change the descriptor it is made to; widen the set's fit only for what a real building overhangs",
+              `template ${id} ${state}: row ${worst.row} (module "${set.modules[rows[worst.row][0]]}") reaches [${worst.at.map(fmt).join(", ")}], ${fmt(worst.excess_m)} m outside ${held}${more.length ? `; ${more.length} more row(s) reach out` : ""}`,
+              fallen
+                ? "keep a ruin inside the remains the simulation leaves: lower the row, or give the set's fit a ruin_top_m for the jagged tops of broken walls"
+                : "keep the art on its parts: move the row, or change the descriptor it is made to; widen the set's fit only for what a real building overhangs",
             );
         }
-        if (state !== "intact") continue;
+        const triangles = Array.from({ length: TIER_COUNT }, () => 0);
         for (const row of rows) {
           const module = moduleOf(row[0]);
           for (let t = 0; module && t < TIER_COUNT; t++)
             if (row[8] & (1 << t)) triangles[t] += triangleCount(module.tiers[t]);
         }
+        drawn.set(state, triangles);
       }
+      const damaged = TEMPLATE_STATES.find((state) => state !== "intact" && drawn.has(state));
       packed.push({
         art: { id, set: input.name, status: template.status, states: {} },
         rows: Object.fromEntries(
@@ -537,7 +616,16 @@ export function packTemplateSets(
         set: input.name,
         status: template.status,
         rows: template.states.intact?.length ?? 0,
-        triangles,
+        triangles: drawn.get("intact") ?? Array.from({ length: TIER_COUNT }, () => 0),
+        ...(damaged
+          ? {
+              damage: {
+                state: damaged,
+                rows: template.states[damaged]!.length,
+                triangles: drawn.get(damaged)!,
+              },
+            }
+          : {}),
       });
     }
   }

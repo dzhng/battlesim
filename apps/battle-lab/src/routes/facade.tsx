@@ -28,6 +28,8 @@ import { LabViewport, type ViewportPilot } from "../LabViewport";
 import { benchGround, flatTerrain } from "../workbench/benchWorld";
 
 const KIT = "city_kit_facade_lab";
+/** What this page asks the loader for: no map places this kit. */
+const KITS: ReadonlySet<string> = new Set([KIT]);
 const NONE = new Float32Array(0);
 /** A bay's width and a floor's height, as the kit's script has them. */
 const BAY_M = 3;
@@ -183,7 +185,7 @@ export default function Facade() {
       sun_elevation: number("sun", gameLight.sun_elevation),
     });
   }, [query]);
-  const installed = useGameAppearances();
+  const installed = useGameAppearances(KITS);
   // The kit alone: nothing else is drawn here.
   const appearances = useMemo(
     () =>

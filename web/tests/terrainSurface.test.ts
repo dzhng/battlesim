@@ -991,3 +991,27 @@ test("mixed forest exports retain authored IDs and real concave and square-ended
     );
   }
 });
+
+
+test("a rotated prop ray preserves the portable world normal bits", () => {
+  const view = new WorldView(
+    JSON.stringify({
+      size: [200, 200],
+      fog_cell_m: 8,
+      height_grid_m: 4,
+      slope_cutoff_deg: 35,
+      props: [
+        { kind: "wall", center: [50, 50], yaw: -1.785965, half_extents: [3, 5, 4.225] },
+      ],
+    }),
+    JSON.stringify(GAME_RULES),
+  );
+  try {
+    const hit = view.raycast(50, 30, 1, 0, 1, 0, 100);
+    expect(hit[7]).toBe(0);
+    const normalBits = new BigUint64Array(new Float64Array(hit.slice(4, 7)).buffer);
+    expect(Array.from(normalBits)).toEqual([0xbfcb545e465efc4en, 0xbfef431880772275n, 0n]);
+  } finally {
+    view.free();
+  }
+});

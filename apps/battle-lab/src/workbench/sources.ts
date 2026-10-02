@@ -1,7 +1,8 @@
 // Where the workbench's models come from, both through the one loader
 // (`AppearanceLibrary`):
 // - a catalog appearance: the baked runtime catalog served at the site root,
-//   the page's one load of it (`gameAppearances`);
+//   the page's one load of it (`gameAppearances`), and a kit fetched when it
+//   is the one shown;
 // - a dropped GLB: validated in the page with the CLI's own `validateLoose`,
 //   its preview bundle encoded and served from memory, so it installs exactly
 //   as a baked bundle would, findings and all.
@@ -83,17 +84,27 @@ export async function loadPropClasses(): Promise<PropClasses> {
   return propClasses;
 }
 
-/** Every appearance in the baked runtime catalog, installed at once: the
- *  page's load, or `fresh` after a re-bake. */
+/** The baked runtime catalog as the page loads it, every appearance but the
+ *  kits installed at once: the page's load, or `fresh` after a re-bake. */
 export async function loadCatalog(fresh = false): Promise<InstalledAppearances> {
   await loadPropClasses();
   return fresh ? reloadGameAppearances() : gameAppearances();
 }
 
+/** Every appearance the catalog names: those installed, and the kits. */
+export const catalogNames = (installed: InstalledAppearances): string[] =>
+  [...new Set([...installed.appearances.keys(), ...installed.kits])].sort();
+
 /** The clip roles that loop, for a dropped GLB's clips: every one but the fall. */
 export const INFANTRY_LOOPS: string[] = INFANTRY_CLIPS.filter((clip) => clip !== "death");
 
-export function catalogModel(installed: InstalledAppearances, name: string): LoadedModel | null {
+/** The catalog's appearance `name` as a bench model, or null when it names
+ *  none. A kit is fetched to be shown. */
+export async function catalogModel(
+  catalog: InstalledAppearances,
+  name: string,
+): Promise<LoadedModel | null> {
+  const installed = catalog.kits.has(name) ? await gameAppearances([name]) : catalog;
   const entry = installed.appearances.get(name);
   if (!entry) return null;
   const type = typeDrawing(name);
@@ -140,27 +151,25 @@ export async function loadDropped(
     });
   }
   const preview = result.appearance?.preview;
+  const drawn =
+    preview && preview.kind !== "clips"
+      ? [
+          {
+            name: file,
+            unit: result.unit,
+            scenery: options.scenery,
+            mounts: result.mounts ?? undefined,
+            bundle: preview,
+            clips: result.clips?.preview ?? undefined,
+          },
+        ]
+      : [];
   const library = new AppearanceLibrary(
-    memoryFetch(
-      await previewRuntime(
-        preview && preview.kind !== "clips"
-          ? [
-              {
-                name: file,
-                unit: result.unit,
-                scenery: options.scenery,
-                mounts: result.mounts ?? undefined,
-                bundle: preview,
-                clips: result.clips?.preview ?? undefined,
-              },
-            ]
-          : [],
-        CATALOG.sides,
-      ),
-      MEMORY,
-    ),
+    memoryFetch(await previewRuntime(drawn, CATALOG.sides), MEMORY),
   );
-  const installed = await library.load(MEMORY);
+  await library.load(MEMORY);
+  // A dropped kit is asked for, like any kit that is to be drawn.
+  const installed = await library.withKits(drawn.map((entry) => entry.name));
   const type = options.type ?? (result.entryName ? typeDrawing(result.entryName) : null);
   return {
     name: file,

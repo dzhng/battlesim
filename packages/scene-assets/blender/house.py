@@ -151,62 +151,20 @@ def farmstead(root, HX, HY, HZ, VARIANT=0, RUIN=None, tag=""):
         rubble("woodpile", (X0 + DS + 1.2, Y1 - D - 1.3), 1.0, 0.9, 14, wood_m, 5 + VARIANT, root, lods=(0, 1))
 
 
-    def ragged_wall(name, a0, a1, fixed, along_x, lo, hi, seed, mat, gaps=(), windows=0.0):
-        """A broken masonry wall: runs of irregular width whose tops walk up and down in
-        brick courses, with sudden breaks, loose top blocks, window openings broken to
-        their sills and `gaps` (a, width) knocked through to the rubble."""
-        wr = random.Random(seed * 7919)
-        course = 0.075
-        runs, a, top = [], a0, (lo + hi) / 2
-        while a < a1 - 0.05:
-            w = min(wr.uniform(0.3, 0.9), a1 - a)
-            # a random walk pulled back towards the upper third, with sudden breaks
-            top += wr.gauss(0, 0.28) + 0.25 * (lo + 0.8 * (hi - lo) - top)
-            if wr.random() < 0.08:
-                top = lo + wr.uniform(0, 0.4)  # a break down towards the plinth
-            top = max(lo, min(hi, top))
-            mid = a + w / 2
-            t = top
-            for g, gw in gaps:
-                if abs(mid - g) < gw / 2:
-                    t = min(t, 0.12 + 0.1 * wr.random())
-            if windows > 0 and 0.3 < ((mid - a0) / windows) % 1.0 < 0.62:
-                t = min(t, 0.95 + 0.08 * wr.random())
-            t = max(course, round(t / course) * course)
-            chip = (wr.uniform(0.1, 0.25), wr.uniform(0.3, 0.7), wr.choice((-1, 1))) if wr.random() < 0.45 and 0.5 < t < hi - 0.25 else None
-            runs.append((a, a + w, t, chip))
-            a += w
-
-        def build(bm, lod):
-            group = (1, 2, 4, 8)[lod]
-            for i in range(0, len(runs), group):
-                part = runs[i:i + group]
-                s0, s1 = part[0][0], part[-1][1]
-                t = sum(r[2] * (r[1] - r[0]) for r in part) / (s1 - s0)
-                spans = [(s0, s1, t, None)] if group > 1 else part
-                for r0, r1, tt, chip in spans:
-                    c = ((r0 + r1) / 2, fixed) if along_x else (fixed, (r0 + r1) / 2)
-                    size = (r1 - r0 + 0.01, T, tt) if along_x else (T, r1 - r0 + 0.01, tt)
-                    bmesh.ops.create_cube(bm, size=1.0, matrix=Matrix.Translation((c[0], c[1], tt / 2)) @ Matrix.Diagonal((*size, 1)))
-                    if chip and lod == 0:
-                        ch, cw, side = chip
-                        cs = (cw * (r1 - r0), T * 0.55, ch) if along_x else (T * 0.55, cw * (r1 - r0), ch)
-                        off = (0, side * T * 0.2) if along_x else (side * T * 0.2, 0)
-                        bmesh.ops.create_cube(bm, size=1.0, matrix=Matrix.Translation((c[0] + off[0], c[1] + off[1], tt + ch / 2)) @
-                                              Matrix.Diagonal((*cs, 1)))
-
-        mesh_part(name, build, mat, root)
+    def ragged(name, a0, a1, fixed, along_x, lo, hi, seed, mat, gaps=(), windows=0.0):
+        """One of the farmstead's broken walls (`masonry.ragged_wall`), `T` thick."""
+        ragged_wall(name, a0, a1, fixed, along_x, lo, hi, seed, mat, root, T, gaps, windows)
 
 
     def ruin(height):
         top = height + 0.35
-        ragged_wall("rw_south", X0, X1, Y0 + T / 2, True, 0.5, top, 1.0, wall_m, [(-HX * 0.5, 1.3), (HX * 0.15, 1.2)], 3.1)
-        ragged_wall("rw_north", X0, X1, Y1 - T / 2, True, 0.6, top, 2.0, barn_m, [(HX * 0.3, 3.0)], 4.5)
-        ragged_wall("rw_west", Y0 + T, Y1 - T, X0 + T / 2, False, 0.4, top, 3.0, wall_m, [(0.0, 1.4)], 2.6)
-        ragged_wall("rw_east", Y0 + T, Y1 - T, X1 - T / 2, False, 0.3, top * 0.95, 4.0, wall_m, [((Y0 + Y1) / 2, 3.6)])
-        ragged_wall("rw_dw_inner", X0 + DS, X1 - 1.0, Y0 + D, True, 0.3, height * 0.8, 5.0, wall_m, [(X1 - 5.0, 1.4)])
-        ragged_wall("rw_barn_inner", X0 + DS, X1 - 1.0, Y1 - D, True, 0.2, height * 0.7, 6.0, barn_m, [(-HX * 0.35, 3.4)])
-        ragged_wall("rw_stable_inner", Y0 + D, Y1 - D, X0 + DS, False, 0.2, height * 0.6, 7.0, wall_m)
+        ragged("rw_south", X0, X1, Y0 + T / 2, True, 0.5, top, 1.0, wall_m, [(-HX * 0.5, 1.3), (HX * 0.15, 1.2)], 3.1)
+        ragged("rw_north", X0, X1, Y1 - T / 2, True, 0.6, top, 2.0, barn_m, [(HX * 0.3, 3.0)], 4.5)
+        ragged("rw_west", Y0 + T, Y1 - T, X0 + T / 2, False, 0.4, top, 3.0, wall_m, [(0.0, 1.4)], 2.6)
+        ragged("rw_east", Y0 + T, Y1 - T, X1 - T / 2, False, 0.3, top * 0.95, 4.0, wall_m, [((Y0 + Y1) / 2, 3.6)])
+        ragged("rw_dw_inner", X0 + DS, X1 - 1.0, Y0 + D, True, 0.3, height * 0.8, 5.0, wall_m, [(X1 - 5.0, 1.4)])
+        ragged("rw_barn_inner", X0 + DS, X1 - 1.0, Y1 - D, True, 0.2, height * 0.7, 6.0, barn_m, [(-HX * 0.35, 3.4)])
+        ragged("rw_stable_inner", Y0 + D, Y1 - D, X0 + DS, False, 0.2, height * 0.6, 7.0, wall_m)
         box("rw_plinth_s", (X1 - X0, T + 0.08, 0.5), (0, Y0 + T / 2, 0.25), stone_m, root, lods=(0, 1, 2))
         box("rw_plinth_n", (X1 - X0, T + 0.08, 0.5), (0, Y1 - T / 2, 0.25), stone_m, root, lods=(0, 1, 2))
         # chimney stumps

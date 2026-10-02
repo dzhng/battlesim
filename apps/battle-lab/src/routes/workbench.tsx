@@ -39,6 +39,7 @@ import {
 } from "../workbench/sheet";
 import {
   catalogModel,
+  catalogNames,
   INFANTRY_LOOPS,
   loadCatalog,
   loadDropped,
@@ -345,10 +346,10 @@ export default function Workbench() {
   // The runtime catalog, and `?bundle=` naming one of its appearances.
   useEffect(() => {
     void reloadCatalog()
-      .then((installed) => {
+      .then(async (installed) => {
         const name = params.get("bundle");
         if (!name) return;
-        const found = catalogModel(installed, name);
+        const found = await catalogModel(installed, name);
         if (found) install(found);
         else setError(`no appearance "${name}" in the runtime catalog`);
       })
@@ -365,11 +366,10 @@ export default function Workbench() {
         return;
       }
       const installed = await reloadCatalog(true);
-      setModel((current) =>
-        current?.source === "catalog"
-          ? (catalogModel(installed, current.name) ?? current)
-          : current,
-      );
+      const shown = latest.current.model;
+      if (shown?.source !== "catalog") return;
+      const rebaked = await catalogModel(installed, shown.name);
+      setModel((current) => (current === shown ? (rebaked ?? current) : current));
     };
     hot.on("assets:rebaked", onRebaked);
     return () => hot.off("assets:rebaked", onRebaked);
@@ -440,7 +440,7 @@ export default function Workbench() {
       },
       async select(name) {
         const installed = latest.current.catalog ?? (await reloadCatalog());
-        const found = catalogModel(installed, name);
+        const found = await catalogModel(installed, name);
         if (!found) throw new Error(`no appearance ${name}`);
         install(found);
         await installedOnGpu(name);
@@ -456,7 +456,7 @@ export default function Workbench() {
           ),
           stats: m?.stats ?? null,
           loadMs: m?.loadMs ?? 0,
-          catalog: [...(latest.current.catalog?.appearances.keys() ?? [])],
+          catalog: latest.current.catalog ? catalogNames(latest.current.catalog) : [],
         };
       },
       async setView(v) {
@@ -525,8 +525,7 @@ export default function Workbench() {
         };
       },
       async reloadCatalog() {
-        const installed = await reloadCatalog(true);
-        return [...installed.appearances.keys()];
+        return catalogNames(await reloadCatalog(true));
       },
       models: () => latest.current.models,
     };
@@ -693,12 +692,15 @@ export default function Workbench() {
             <select
               value={model?.source === "catalog" ? model.name : ""}
               onChange={(e) => {
-                const found = catalogModel(catalog, e.target.value);
-                if (found) install(found);
+                void catalogModel(catalog, e.target.value).then(
+                  (found) => found && install(found),
+                  (error: unknown) =>
+                    setError(error instanceof Error ? error.message : String(error)),
+                );
               }}
             >
               <option value="">—</option>
-              {[...catalog.appearances.keys()].map((n) => (
+              {catalogNames(catalog).map((n) => (
                 <option key={n} value={n}>
                   {n}
                 </option>

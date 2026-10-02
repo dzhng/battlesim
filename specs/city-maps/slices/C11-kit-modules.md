@@ -44,7 +44,7 @@ A module silhouette or scale mismatch changes the exported module source before 
 
 ## Outcome (China)
 
-*The numbers below are the first export's. The set now also holds the U and court blocks ([S5](../spikes/S5.md)): 76 modules, 103,307 / 80,198 / 37,918 / 9,838 triangles, a 27.0 MB source.*
+*The numbers below are the first export's. The set now also holds the U and court blocks ([S5](../spikes/S5.md)) and every template's damage state ([C14](C14-damage-placements.md)): 115 modules, 179,575 / 105,566 / 56,220 / 13,545 triangles, a 41.4 MB source and a 38.6 MB bundle.*
 
 `packages/scene-assets/blender/city/china.py` exports the China graph as `assets/source/city/china_apartments/`: 74 modules (69 kit meshes and five template shells) with four tiers each, 75,909 / 51,718 / 24,782 / 6,416 triangles, a 19.3 MB source and a 21.4 MB bundle. Street outputs are off, tint alpha never reaches vertex colour, vertices are split per material. `asset validate --unit kit` has no findings.
 

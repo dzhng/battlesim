@@ -1,7 +1,8 @@
 // The template art library: for every building template, in each state a side
 // can know it in, the rows that place shared kit modules on it. One runtime
-// file, content-addressed like a bundle and named in the runtime catalog; the
-// one loader installs it with the kits it places.
+// file, content-addressed like a bundle and named in the runtime catalog. The
+// one loader installs it whole with the catalog; the kits it places are
+// fetched when something that draws from them asks.
 //
 // The simulation never sees it. A template's physical shape is the contract's
 // descriptor, identified by its physical catalogue's hash; this library says
@@ -144,7 +145,8 @@ export type TemplateArtErrorCode =
   | "template.missing"
   /** The template has no rows for the state. */
   | "state.missing"
-  /** A kit the library places is not installed, or is not the bundle it was packed against. */
+  /** A kit the library places is not in the catalog, is not the bundle it was
+   *  packed against, or is not installed where a map draws from it. */
   | "kit.missing"
   /** A module the library places is not in its kit. */
   | "module.missing";
@@ -282,37 +284,32 @@ export function resolve(
 }
 
 /** A library module where it is drawn from: its kit appearance, and the index
- *  of its state in that kit's bundle. */
+ *  of its state in that kit's bundle. `state` is null while the kit is not
+ *  installed: the module is known, and nothing can draw it yet. */
 export interface BoundModule {
   kit: string;
-  state: number;
+  state: number | null;
 }
 
 /**
- * Bind every module of a library to the installed kits, in the library's
- * module order. `kitOf` answers a kit appearance's bundle and that bundle's
- * content hash (null when the caller has none to compare). A kit that is
- * absent or is not the bundle the library was packed against, or a module its
- * kit lacks, is refused by name.
+ * Bind every module of a library to the kits that are installed, in the
+ * library's module order. `kitOf` answers a kit appearance's bundle, or
+ * nothing for a kit that is not installed: its modules are bound to no state.
+ * A module its installed kit lacks is refused by name.
  */
 export function bindModules(
   library: TemplateArtLibrary,
-  kitOf: (appearance: string) => { bundle: StaticBundle; hash: string | null } | undefined,
+  kitOf: (appearance: string) => StaticBundle | undefined,
 ): BoundModule[] {
   const kits = library.kits.map((kit) => {
-    const installed = kitOf(kit.appearance);
-    if (!installed)
-      throw new TemplateArtError("kit.missing", `kit "${kit.appearance}" is not installed`);
-    if (installed.hash !== null && installed.hash !== kit.bundle)
-      throw new TemplateArtError(
-        "kit.missing",
-        `kit "${kit.appearance}" is bundle ${installed.hash.slice(0, 12)}, but the library was packed against ${kit.bundle.slice(0, 12)}; re-bake`,
-      );
-    return new Map(installed.bundle.states.map((state, i) => [state.name, i]));
+    const bundle = kitOf(kit.appearance);
+    return bundle && new Map(bundle.states.map((state, i) => [state.name, i]));
   });
   return library.modules.map((module) => {
-    const state = kits[module.kit].get(module.module);
     const kit = library.kits[module.kit].appearance;
+    const states = kits[module.kit];
+    if (!states) return { kit, state: null };
+    const state = states.get(module.module);
     if (state === undefined)
       throw new TemplateArtError("module.missing", `kit "${kit}" has no module "${module.module}"`);
     return { kit, state };

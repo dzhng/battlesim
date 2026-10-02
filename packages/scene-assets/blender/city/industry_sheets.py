@@ -50,7 +50,7 @@ def sheet_each(camera, sets, out, scratch):
         panels = []
         for distance, target, crop in ((30, first_door(template) + Vector((0, 0, 2.5)), None), (80, centre, None),
                                        (250, centre, (A.WIDTH, 540))):
-            made = A.build(modules, names, template, tier=A.tier_at(height, distance), wires=0.0012 * distance)
+            made = A.build(modules, names, template, tier=A.tier_at(distance), wires=0.0012 * distance)
             panels.append(A.shoot(camera, os.path.join(scratch, "panel.png"), target, distance, math.radians(-118), crop))
             A.clear(made)
             A.save(os.path.join(scratch, f"{short(template)}-{distance}m.png"), panels[-1])
@@ -64,7 +64,7 @@ def sheet_row(camera, sets, out, scratch):
     for template in sorted(templates["templates"], key=lambda t: A.extent(t)[1] - A.extent(t)[0]):
         x0, x1, y0, y1, height = A.extent(template)
         frame = Matrix.Translation((x - x0, -y0, 0))  # every street front on one line
-        made += A.build(modules, templates["modules"], template, frame, tier=A.tier_at(height, 250))
+        made += A.build(modules, templates["modules"], template, frame, tier=A.tier_at(250))
         made.append(A.label(short(template), (x + (x1 - x0) / 2, -12.0), size=5.0))
         x += x1 - x0 + gap
     image = A.shoot(camera, os.path.join(scratch, "panel.png"), ((x - gap) / 2, 14.0, 3.0), 250, math.radians(-100))
@@ -96,7 +96,7 @@ def sheet_estate(camera, sets, out, scratch):
             centre = Vector((x + (x1 - x0) / 2, side * setback, 0.0))
             frame = (Matrix.Translation(centre) @ Matrix.Rotation(0.0 if side > 0 else math.pi, 4, "Z")
                      @ Matrix.Translation((-(x0 + x1) / 2, -y0, 0)))
-            made += A.build(modules, templates["modules"], template, frame, tier=A.tier_at(height, (centre - eye).length))
+            made += A.build(modules, templates["modules"], template, frame, tier=A.tier_at((centre - eye).length))
             x += x1 - x0 + gap
             count += 1
     image = A.shoot(camera, os.path.join(scratch, "panel.png"), target, 250, azimuth)

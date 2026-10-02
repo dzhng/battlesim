@@ -85,27 +85,27 @@
       "unit": "scenery"
     },
     "city_kit_china_apartments": {
-      "bundle": "db77be9f791276176fe6c254de09a7d9306b19b97fb6bc7a09797505d9d7d5ec",
+      "bundle": "3197df697d288ea99179090dd59818c52b8ad0c08e332c0606dce31c25b96ccf",
       "kind": "static",
       "unit": "kit"
     },
     "city_kit_facade_lab": {
-      "bundle": "e8811c5ec33ece8a957943073bf88a15b078b51b8a8fba712f8e8e4c0fa7e005",
+      "bundle": "1838156f126960320b5ff42b5f9a743f078821085896e15d1b41d606c32924ce",
       "kind": "static",
       "unit": "kit"
     },
     "city_kit_farmsteads": {
-      "bundle": "db06122cf4148e7cf32e686b47413dfefcf806800c6ebd0039f1afc5249dc0cb",
+      "bundle": "e05147293573c372313bddd383628994ae958cea1dc98d0447de6bfd4a0a653b",
       "kind": "static",
       "unit": "kit"
     },
     "city_kit_homes": {
-      "bundle": "9bff8ab951180f75bc9796cf9c52ba7b5a1cfbe592acc3e2cdc7151c6937f1d3",
+      "bundle": "6351965760f95a86590a27359dc63ab02820b423f0d90f499f77e76227fc609e",
       "kind": "static",
       "unit": "kit"
     },
     "city_kit_industry": {
-      "bundle": "e7cb93fb6f8904e582881ff62726cfc5edd9d6de017f8be824a1e543a1674698",
+      "bundle": "8c1936d6bb8ef8f5fd28713bbdfe356e9d89c17d66fddf8b2019e8f65853f65a",
       "kind": "static",
       "unit": "kit"
     },
@@ -115,7 +115,7 @@
       "unit": "kit"
     },
     "city_kit_towers": {
-      "bundle": "93d9f09655cb84a74589c130e3cc9596a9aacd203f8527e3381924a55480f818",
+      "bundle": "d5758f4da57e1ccab9ce0a31d3c8ce42364ff3bdbcafe7b8e47f0fd1466a5450",
       "kind": "static",
       "unit": "kit"
     },
@@ -613,11 +613,11 @@
     "quaternius-ubc-rifle": "19706856fef2f15bd61aae8ef6d4e614c58a028296738bdeab45195880187611"
   },
   "templates": {
-    "art_hash": "ee84e16a0381ab1153a0cecc04511081a414fb01b33fee05455fde71b9d6d218",
+    "art_hash": "8c537946a48d83a7ff7a120975e97e57a0a2f356a8ca37c17e1bec7281073028",
     "covers": [
       "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13",
       "6b0a5e8be69e9309bd16db843fa7ecaad672616874978ecfde0fd9332c3e6316"
     ],
-    "library": "987e3e37e03dec557982d782d2f9b491a1ca0e8198ad8ec4c600c89bf4613a0b"
+    "library": "8ac6ec4d1cbe801e2e8160d378ea4e7d4082b4a279d28e1590736d07e2313454"
   }
 }
