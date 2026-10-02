@@ -75,9 +75,14 @@ export interface FieldRules {
   /** Length scale of the fine value noise over verges, forest floor, shore
    *  and road, in metres. */
   mottle_m: number;
-  /** Plots whose centre lies within this of a building are `settlement_kind`. */
-  settlement_m: number;
+  /** A plot whose centre lies within `yard_m` of a building is
+   *  `settlement_kind`: a town's yards, a farmstead's. Any other whose centre
+   *  lies within `settlement_m` of one is `surround_kind`: the paddocks and
+   *  commons round a settlement, where no crop is drilled. */
   settlement_kind: string;
+  yard_m: number;
+  settlement_m: number;
+  surround_kind: string;
 }
 
 /** The grass strip along every plot edge. */
@@ -139,8 +144,8 @@ export interface Road {
   grain: number;
   grain_m: number;
   /** Where this kind's road runs under a road drawn over it, how far its
-   *  surface is carried onto that road, thinning out; 0 ends it at that
-   *  road's edge. */
+   *  surface is carried onto that road, thinning out in drifts; 0 ends it at
+   *  that road's edge. */
   join_m: number;
   roughness: number;
   shoulder: Shoulder;
@@ -153,6 +158,12 @@ export interface Road {
   /** The paved kind whose row draws this kind where it is laid as an area (a
    *  polygon: a yard, a square) and not along a stroke. Left out, its own. */
   area?: string;
+  /** A road through a town: where a settlement's own ground
+   *  (`field_rules.settlement_kind`) lies within `beside_m` of a stroke's
+   *  edge, on either side, the stroke is drawn by `kind`'s row, and on across
+   *  any gap in that ground shorter than `gap_m`. A country road is a street
+   *  between a town's houses. Left out, the road is itself everywhere. */
+  town?: { kind: string; beside_m: number; gap_m: number };
   /** A town street's walk; left out, the road has none. */
   walk?: Walk;
   /** The curb along its strokes' edges; left out, the road has none. */
@@ -667,8 +678,12 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   within("field_rules.edge_warp_scale_m", r.edge_warp_scale_m, 1, 10000);
   within("field_rules.mottle_m", r.mottle_m, 0.1, 10000);
   within("field_rules.settlement_m", r.settlement_m, 0, 10000);
-  if (!biome.plots.some((p) => p.name === r.settlement_kind))
-    bad("field_rules.settlement_kind", `names no plot kind "${r.settlement_kind}"`);
+  within("field_rules.yard_m", r.yard_m, 0, r.settlement_m);
+  for (const key of ["settlement_kind", "surround_kind"] as const) {
+    const kind = biome.plots.find((p) => p.name === r[key]);
+    if (!kind) bad(`field_rules.${key}`, `names no plot kind "${r[key]}"`);
+    else if (kind.furrow_m > 0) bad(`field_rules.${key}`, `"${r[key]}" is a drilled crop`);
+  }
   palette("verge.palette", biome.verge.palette);
   within("verge.width_m", biome.verge.width_m, 0, 50);
   within("verge.feather_m", biome.verge.feather_m, 0, 50);
@@ -710,6 +725,11 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
     };
     if (road.layer !== undefined) within(`${at}.layer`, road.layer, 0, 100);
     if (road.area !== undefined) paved(`${at}.area`, road.area);
+    if (road.town) {
+      paved(`${at}.town.kind`, road.town.kind);
+      within(`${at}.town.beside_m`, road.town.beside_m, 0, 100);
+      within(`${at}.town.gap_m`, road.town.gap_m, 0, 10000);
+    }
     if (road.walk) {
       paved(`${at}.walk.kind`, road.walk.kind);
       within(`${at}.walk.width_m`, road.walk.width_m, 0, 8);

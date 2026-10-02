@@ -14,9 +14,18 @@ import { triangle3 } from "math/shapes";
 import { VERTEX_FLOATS, type Mesh, type Rgba } from "../mesh";
 import { drawnBy } from "../models/propAppearance";
 import type { WorldExports, WorldLayout, WorldOverlay } from "../worldMesh";
-import { checkSurfaceKinds, type SurfaceGeometry } from "./surfaces";
+import { pick } from "@packages/renderer-core/src/kindTable";
+import {
+  checkSurfaceKinds,
+  drawnKind,
+  drawnStrokes,
+  pavedKinds,
+  SURFACE_AREA_KINDS,
+  type SurfaceAreaKind,
+  type SurfaceGeometry,
+} from "./surfaces";
 import type { Biome } from "./biome";
-import { generatePlots, type PlotTree } from "./plots";
+import { generatePlots, plotAt, type PlotTree } from "./plots";
 import { buildForestShapes, type ForestShape } from "./forestShapes";
 import { RIVER_FIELDS, RIVER_FLOATS } from "./rivers";
 import { checkStrokeLayout } from "./strokes";
@@ -54,6 +63,11 @@ export interface TerrainSurface {
   mesh: Mesh;
   site: TerrainSite;
   plots: PlotTree;
+  /** The site's paved strokes as the ground draws them (`drawnStrokes`): a
+   *  road through a settlement's own ground is tagged as the kind its row
+   *  names for a town (`biome.roads.<kind>.town`). The site's own array
+   *  where no road is. */
+  strokes: Float32Array;
   biome: Biome;
   /** The height grid grass is seated on; null where no grass grows (the
    *  traversal view, render-only patches: where the tint replaces the biome). */
@@ -71,7 +85,24 @@ export function terrainSurface(
   biome: Biome,
   grid: TerrainGrid | null,
 ): TerrainSurface {
-  return { mesh, site, plots: generatePlots(site, biome), biome, grid };
+  const plots = generatePlots(site, biome);
+  const named = pavedKinds(site);
+  const settlement = biome.plots.findIndex((p) => p.name === biome.field_rules.settlement_kind);
+  const through = SURFACE_AREA_KINDS.map((kind) => {
+    const town = pick(biome.roads, drawnKind(kind, named)).town;
+    return town
+      ? {
+          as: SURFACE_AREA_KINDS.indexOf(town.kind as SurfaceAreaKind),
+          besideM: town.beside_m,
+          gapM: town.gap_m,
+        }
+      : null;
+  });
+  const strokes = drawnStrokes(site, through, (x, y) => {
+    const at = plotAt(plots, x, y);
+    return at !== null && plots.plots[at.plot].kind === settlement;
+  });
+  return { mesh, site, plots, strokes, biome, grid };
 }
 
 /** Rects from an area export (`x, y, w, h, z` rows) without their height. */
