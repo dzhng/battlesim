@@ -78,6 +78,8 @@ A new set is listed in `assets/catalog.json`: its kit as an appearance, and the 
 2. `prototypes` regenerates the stand-in set for whatever templates still have no art.
 3. `bake`, then `check`. They refuse a set whose descriptor the simulation's contract refuses, whose art leaves its parts, whose rows name a module its kit lacks, or that leaves a catalogue template undressed. What the bake does with a set is in the [scene-assets readme](../../README.md), "City buildings".
 
+**The picture a set is judged by** is the line-up lab, `/lab/city-lineup`: every template on flat ground, drawn as the game draws a town, at any one tier, state and station (its route file lists the address parameters). `CITY_SET=<set> bun run --cwd web scene -- city-lineup` holds each template to its parts and fit on screen and writes, under `throwaway/evidence/city-lineup/`, a sheet per category at each tier and each template across each tier boundary (the scene file lists what else narrows a run).
+
 ## Rules a set keeps
 
 - **The same inputs write the same bytes.** Seeds are fixed, iteration is in a sorted order, and nothing reads the clock.
