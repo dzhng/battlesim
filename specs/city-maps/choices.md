@@ -3489,3 +3489,27 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 - **The reach:** Future callers may reorder or recreate equivalent records without starting a rebuild storm. All geometry fields participate, including height changes and moved boxes' old and new locations.
 - **Verdict:** Sound. Map validity follows physical occlusion, while the separately rebuilt whole-structure table uses the new row indices.
 - **Confidence:** High.
+
+## Startup lane: combat parity and named native math change
+
+**When:** Startup step 5, 2026-10-01; the owner explicitly authorized the deterministic math correction and its native digest change.
+
+### Combat has its own paired record, with the movement pair preserved
+
+**Choice:** Keep the moving four-unit stream unchanged and add a stationary rifle duel to the same native/WebAssembly publication harness. Each tick compares the whole battle state digest, packed observation bytes and delivered fog, and the duel must actually publish fired shots and physical impacts. Moving and firing in one record would make a first mismatch harder to assign to either mechanism.
+
+**Gap:** Step 5 asks for a short shooting battle but leaves the fixture, roster and comparison shape open.
+
+**Reach:** The existing movement, side switches and resynchronization remain covered; later combat changes get a separate small reproduction on shipped rules, without test-only aim, damage or scatter overrides.
+
+**Verdict:** sound. It adds a real combat path while retaining the prior proof. **Confidence:** high.
+
+### Use the pinned Rust math implementation for state-bearing combat transcendental operations
+
+**Choice:** A shot's direction and weapon elevation, the normal random samples that choose its spread, and conversion of angular spread to displacement now use the same pinned pure Rust math library in both targets. Native system math can round a result differently from WebAssembly by one final binary digit. That tiny difference can enter the battle's Float64 state even when its Float32 observation looks identical. Keeping system math and accepting an approximate digest would make a seed or replay mean different battles across targets.
+
+**Gap:** The lane originally required unchanged battle digests. The new combat check exposed existing cross-target drift, so the owner authorized this exception as a named native math change.
+
+**Reach:** Combat's native digest changes where system math had differed. The original movement record remains byte-for-byte unchanged. In the shooting sample, corrected native digests and publications agree with the pre-correction WebAssembly build at every tick; this preserves sampled browser behavior, not a claim that every unrelated simulation math path has been audited.
+
+**Verdict:** sound. The correction removes platform rounding from the tested authority paths rather than weakening the parity check or finding a lucky fixture. **Confidence:** high.

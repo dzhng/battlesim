@@ -59,6 +59,11 @@ below serves that one goal.
   you must assert a noisy differential, widen the margin and name it
   chaos-marginal in a comment.
 
+For cross-target simulation parity, compare full state digests as well as published
+values. Float32 packing can hide Float64 differences in aiming, random sampling or
+flight. Diagnose the first divergent tick before changing a seed, placement, end
+time or fixture rule to make the pair green.
+
 ## Seams and mocks
 
 - **Don't couple tests to config — mock the seam.** A test keyed to a live

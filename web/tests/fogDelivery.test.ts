@@ -16,7 +16,7 @@ import { loadMap } from "@web/maps/node";
 
 /** The publication stream record: a small battle on a saved map, and what the
  *  native build made of each tick (`crates/sim/tests/publication.rs`). */
-const stream: {
+type PublicationStreamRecord = {
   map: string;
   seed: number;
   units: LabUnit[];
@@ -28,8 +28,12 @@ const stream: {
     publication_sha256: string;
     fog_sha256: string;
   }[];
-} = JSON.parse(
+};
+const stream: PublicationStreamRecord = JSON.parse(
   readFileSync(new URL("../../fixtures/parity/publication/stream.json", import.meta.url), "utf8"),
+);
+const combatStream: PublicationStreamRecord = JSON.parse(
+  readFileSync(new URL("../../fixtures/parity/publication/combat.json", import.meta.url), "utf8"),
 );
 const SCENARIO = labScenario(loadMap(stream.map).definition, stream.units, [], stream.scripts);
 const sha256 = (words: Float32Array | Uint32Array) =>
@@ -44,10 +48,21 @@ beforeAll(() => {
 });
 
 test("wasm steps and publishes the native stream, and the decoder delivers its fog", () => {
-  const battle = new Battle(SCENARIO, stream.seed);
+  publicationStream(stream, false);
+});
+
+test("wasm combat matches the native stream with firing and impacts", () => {
+  publicationStream(combatStream, true);
+});
+
+function publicationStream(stream: PublicationStreamRecord, combat: boolean) {
+  const scenario = labScenario(loadMap(stream.map).definition, stream.units, [], stream.scripts);
+  const battle = new Battle(scenario, stream.seed);
   const layout = JSON.parse(battle.observation_layout()) as ObservationLayout;
   const decoder = new ObservationDecoder(layout);
   const retained: ObservationView[] = [];
+  let sawShot = false;
+  let sawImpact = false;
   try {
     stream.rows.forEach((row, i) => {
       battle.step();
@@ -58,8 +73,14 @@ test("wasm steps and publishes the native stream, and the decoder delivers its f
       expect(sha256(words), `published words, tick ${i + 1}`).toBe(row.publication_sha256);
       const frame = decoder.decode(words)!;
       expect(sha256(frame.fog.bits), `decoded fog, tick ${i + 1}`).toBe(row.fog_sha256);
+      sawShot ||= frame.own.some((unit) => unit.weaponPoses.some((pose) => pose.shots > 0));
+      sawImpact ||= frame.projectiles.some((projectile) => projectile.hit !== "none");
       retained.push(frame);
     });
+    if (combat) {
+      expect(sawShot, "the paired stream must observe combat firing").toBe(true);
+      expect(sawImpact, "the paired stream must observe a projectile impact").toBe(true);
+    }
     // A later record never rewrites a frame already handed out.
     retained.forEach((frame, i) =>
       expect(sha256(frame.fog.bits), `retained tick ${i + 1}`).toBe(stream.rows[i].fog_sha256),
@@ -67,7 +88,7 @@ test("wasm steps and publishes the native stream, and the decoder delivers its f
   } finally {
     battle.free();
   }
-});
+}
 
 /** Empty groups let the decoder's ordered stream contract be exercised with
  * deliberately small fields; each payload still uses the published layout. */

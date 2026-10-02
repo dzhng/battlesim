@@ -485,7 +485,7 @@ fn facade(ctx: &FireContext, unit: &Unit, mount: &Mount, spec: &MountSpec, point
 
 fn bearing_from(unit: &Unit, point: V3) -> f64 {
     let to = point.xy() - unit.position.xy();
-    to.y.atan2(to.x)
+    libm::atan2(to.y, to.x)
 }
 
 /// Where a mount's rounds leave when it points along `bearing`: each mount
@@ -1484,7 +1484,7 @@ fn fire(
         }
     }
     let last = launches.last()?.velocity;
-    mount.elevation = last.z.atan2(last.x.hypot(last.y));
+    mount.elevation = libm::atan2(last.z, libm::hypot(last.x, last.y));
     mount.shots = mount.shots.wrapping_add(launches.len() as u32);
     Some(Shot {
         unit: unit.id,
