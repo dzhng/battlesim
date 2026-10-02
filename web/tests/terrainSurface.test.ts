@@ -495,8 +495,60 @@ test("each point lies in the plot the split walks to, and its edge distance is t
   }
 });
 
+test.each([
+  {
+    kind: "stroke",
+    points: [
+      [100, 0],
+      [100, 200],
+    ],
+    width_m: 6,
+  },
+  {
+    kind: "polygon",
+    ring: [
+      [97, 0],
+      [103, 0],
+      [103, 200],
+      [97, 200],
+    ],
+  },
+])(
+  "a building's yard stops at a $kind road, while nearby unbuilt ground stays undrilled",
+  (shape) => {
+    const { exports } = world({
+      size: [200, 200],
+      fog_cell_m: 8,
+      height_grid_m: 4,
+      slope_cutoff_deg: 35,
+      surfaces: [{ kind: "country_road", shape }],
+    });
+    const site = {
+      ...buildTerrainSurface(exports, layout, biome).site,
+      buildings: [[80, 100]] as [number, number][],
+    };
+    const local = {
+      ...biome,
+      field_rules: {
+        ...biome.field_rules,
+        extent_m: 0,
+        size_m: [200, 200] as [number, number],
+        yard_m: 100,
+        settlement_m: 120,
+      },
+    };
+    const plots = generatePlots(site, local);
+    const kindAt = (x: number, y: number) =>
+      local.plots[plots.plots[plotAt(plots, x, y)!.plot].kind];
+    expect(kindAt(50, 100).name).toBe(local.field_rules.settlement_kind);
+    expect(kindAt(150, 100).name).toBe(local.field_rules.surround_kind);
+    expect(kindAt(150, 100).furrow_m).toBe(0);
+  },
+);
+
 test("the ground round a building is the settlement's yard; the land round that is its surround, never a crop", () => {
-  const { exports } = world(villageMap);
+  // Radial settlement reach, without a road separating house and plot.
+  const { exports } = world({ ...villageMap, surfaces: [] });
   const { plots, site } = buildTerrainSurface(exports, layout, biome);
   const rules = biome.field_rules;
   const yard = biome.plots.findIndex((p) => p.name === rules.settlement_kind);

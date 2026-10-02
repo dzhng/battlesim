@@ -5898,3 +5898,35 @@ The second pass's unprimed review found nearly all its street faults along the s
 **Found, streets:** none of the second pass's secondary-road faults (no five-arm junction, shallow fork, hooked end, slanting meeting or streets bending in unison). Still there: streets either side of a main road meeting it about 30 m apart, at most crossings along it, so a road has many T-junctions and few crossroads (1,719 pairs stand 2 to 45 m apart on the test maps; the test holds only those under 20 m); suburb streets that run 20 to 30 m past their last cross street and stop at the field; dead ends inside blocks where a street stopped short of a road; square street ends showing at some T-junctions; one skewed crossroads where an avenue meets a main road at a bend; small jogs across a main road; a 25 m loop of street at the town's edge; secondary roads that begin at the built edge; country roads with visible corners.
 
 **Verdict:** open. The junction faults this pass set out to close are closed and counted. The commonest street fault left is the staggered pair 20 to 45 m apart: lines move at most 30 m and 0.4 of their spacing to meet, and refusing the rest breaks grids up. The town findings are the block model's (a block is built whole, each district keeps one grid, nothing stands between buildings); air helped the city's plan and not the verdict. **Confidence:** high that these are visible.
+
+## Road-side yards, C31 pickup
+
+### A plot's centre determines which building may claim its yard
+
+**Choice:** For a field plot near a house, draw a line from the plot centre to the house centre. A road crossing that line prevents the house from turning the plot into a yard. This keeps an isolated farmstead from making the country road look like a town street. The entire plot still has one ground kind; its edges are not clipped to the road.
+
+**Gap:** The cross-road bug needed a road-side ownership rule, but the plan did not choose between whole-plot classification and cutting yard polygons.
+
+**Reach:** Future frontage work must distinguish plot membership from the visible boundary of a yard. This check does not promise every part of the polygon remains on one side.
+
+**Verdict:** sound for the present plot contract. **Confidence:** medium.
+
+### Native road geometry separates yards; the surrounding meadow remains radial
+
+**Choice:** A stroked road blocks the ownership line at its centreline. Polygon paving blocks it at any exported triangle edge, including edges hidden inside the combined road surface. Both are the map's native geometry. The broader meadow around buildings remains based on distance alone, so a road does not turn an unbuilt town block or park into crops.
+
+**Gap:** Combined paving boundary edges omit some road/sidewalk joins and cannot alone identify a carriageway crossing. The plan did not specify which presentation export supplies this test.
+
+**Reach:** Tagged road aprons participate; stroke and polygon touching cases have different geometric boundaries. Changing that policy requires explicit frontage evidence.
+
+**Verdict:** sound. **Confidence:** medium for the representation boundary, high for preserving undrilled commons.
+
+### Yard ownership scans static surface records at initialization
+
+**Choice:** When a nearby building might claim a plot, scan the map's surface records and reject distant road edges by their bounding boxes before testing intersections. There is no new spatial index and no per-frame work. An index would add another preparation structure and its memory/lifetime owner.
+
+**Gap:** The plan did not select an indexing strategy for this presentation-only classification.
+
+**Reach:** Full-map preparation cost must remain within the existing startup budget; if this scan is material there, use the existing surface owner rather than create a parallel geometry model.
+
+**Verdict:** sound as the simpler provisional choice, with full-map cost still to be measured at integration. **Confidence:** medium.

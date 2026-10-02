@@ -9,11 +9,11 @@
 // where the verge grows. No texture holds the plots, so an edge is as sharp
 // at ground level as from the strategic height.
 import { vec2, type Vec2 } from "math";
-import { polygon2 } from "math/shapes";
+import { polygon2, segment2 } from "math/shapes";
 import { mulberry32, random, type RandomGenerator } from "math/random";
 import type { Rgb } from "../light/sceneLight";
 import { PLOT_HUE_JITTER, type Biome } from "./biome";
-import { plotGuideEdges, type SurfaceGeometry } from "./surfaces";
+import { isRoad, plotGuideEdges, type SurfaceGeometry } from "./surfaces";
 import { forestStripRuns, type ForestShape } from "./forestShapes";
 
 /** A leaf of the split: one field, meadow or ploughed plot. */
@@ -71,6 +71,8 @@ const ROAD_BOX_PAD_M = 1e-3;
 
 const _cut_normal = vec2.create();
 const _centroid = vec2.create();
+const _yard_road_a = vec2.create();
+const _yard_road_b = vec2.create();
 
 /** Keeps the part of convex `poly` where `n·p >= c` (Sutherland–Hodgman). */
 function clipHalfPlane(poly: number[], n: Vec2, c: number): number[] {
@@ -232,13 +234,59 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
     if (cell) cell.push(b);
     else buildingCells.set(key, [b]);
   }
-  const nearBuilding = (centre: Vec2, withinSq: number) => {
+  // A yard belongs to the building's side of a carriageway. Use native
+  // stroke centrelines and polygon triangle edges, including shared edges.
+  const carriageways = [
+    [site.surfaceStrokes, site.surfaceStrokeStride, 5, 1],
+    [site.surfaceTriangles, site.surfaceTriangleStride, 6, 3],
+  ] as const;
+  const sameRoadSide = (centre: Vec2, building: Vec2) => {
+    const x0 = Math.min(centre[0], building[0]),
+      x1 = Math.max(centre[0], building[0]);
+    const y0 = Math.min(centre[1], building[1]),
+      y1 = Math.max(centre[1], building[1]);
+    for (const [records, stride, kind, edgeCount] of carriageways) {
+      for (let o = 0; o < records.length; o += stride) {
+        if (!isRoad(records[o + kind])) continue;
+        for (let edge = 0; edge < edgeCount; edge++) {
+          const a = o + edge * 2;
+          const b = o + (edgeCount === 1 ? 2 : ((edge + 1) % 3) * 2);
+          const ax = records[a],
+            ay = records[a + 1],
+            bx = records[b],
+            by = records[b + 1];
+          if (
+            Math.max(ax, bx) < x0 ||
+            Math.min(ax, bx) > x1 ||
+            Math.max(ay, by) < y0 ||
+            Math.min(ay, by) > y1
+          )
+            continue;
+          if (
+            segment2.intersects(
+              centre,
+              building,
+              vec2.set(_yard_road_a, ax, ay),
+              vec2.set(_yard_road_b, bx, by),
+            )
+          )
+            return false;
+        }
+      }
+    }
+    return true;
+  };
+  const nearBuilding = (centre: Vec2, withinSq: number, keepRoadSide: boolean) => {
     for (let dy = -reach; dy <= reach; dy += reach)
       for (let dx = -reach; dx <= reach; dx += reach)
         if (
           buildingCells
             .get(cellOf(centre[0] + dx, centre[1] + dy))
-            ?.some((b) => vec2.squaredDistance(b, centre) <= withinSq)
+            ?.some(
+              (b) =>
+                vec2.squaredDistance(b, centre) <= withinSq &&
+                (!keepRoadSide || sameRoadSide(centre, b)),
+            )
         )
           return true;
     return false;
@@ -247,8 +295,8 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
   // that its surround, where no crop is drilled. Neither draws a kind, so
   // the fields beyond are the same whatever the two are called.
   const pickKind = (centre: Vec2) => {
-    if (nearBuilding(centre, yardSq)) return settlement;
-    if (nearBuilding(centre, settlementSq)) return surround;
+    if (nearBuilding(centre, yardSq, true)) return settlement;
+    if (nearBuilding(centre, settlementSq, false)) return surround;
     let roll = rng() * totalWeight;
     for (let k = 0; k < biome.plots.length; k++) {
       roll -= biome.plots[k].weight;
