@@ -30,7 +30,7 @@
       "unit": "scenery"
     },
     "bins": {
-      "bundle": "fd438de6196959f481a68013df43dd47efe83b0310d164ca586f514fc3460e25",
+      "bundle": "6168e87a4a1e63ef0680361a3d22318f2acabbdb8e84321c72d9701b2d7c5a58",
       "footprint_half_m": [
         0.65,
         0.38,
@@ -63,7 +63,7 @@
       "unit": "scenery"
     },
     "bus_shelter": {
-      "bundle": "b2366826640c7039f43c53e326335f278ceff0c43fa2cd365ef93ce9aa058c78",
+      "bundle": "2321bbea2a2c1662f6a549d3e3593d6943bd85ba635dd583d32af99faad711ce",
       "footprint_half_m": [
         2,
         0.75,
@@ -74,7 +74,7 @@
       "unit": "scenery"
     },
     "car_wreck": {
-      "bundle": "acdd8556d266efda56c730ae04200f4dfec5e5f7eb6f1169f0f3c136437ed6bd",
+      "bundle": "bc7a478c37b8dd20f85cc1a65fde4b34b909b53c49153d928f39596f0f58b038",
       "footprint_half_m": [
         2.2,
         0.9,
@@ -225,7 +225,7 @@
       "unit": "scenery"
     },
     "heras_fence": {
-      "bundle": "892ff667448ddafc39d3a24b808d6d5f5cbc1efb58da4e6ee7d0c100b36b5d3e",
+      "bundle": "7cf150b222c53d0c92b6ec90a365b310af09b20d3ace150f051a21e428acded1",
       "footprint_half_m": [
         1.75,
         0.3,
@@ -296,7 +296,7 @@
       "unit": "scenery"
     },
     "jersey_barrier": {
-      "bundle": "f77b3456105fdcb77bec89fb588efb2725df2d68331dc8d2910dff717d3556b5",
+      "bundle": "10fb8d9ccb22491536aa1c8ea321c585f44126af0af630f031a40bca3a0b1066",
       "footprint_half_m": [
         1.5,
         0.3,
@@ -329,7 +329,7 @@
       "unit": "scenery"
     },
     "parked_car": {
-      "bundle": "8feffacdbd7feb74116154a94dcda244b70d1f605f502574100fcf284605d9ab",
+      "bundle": "5ffd42b89fba952fe2004552200577aaa28569db412b829820e8259dd0330a89",
       "footprint_half_m": [
         2.2,
         0.9,
@@ -387,7 +387,7 @@
       "unit": "soldier"
     },
     "road_barrier": {
-      "bundle": "a0ac4bbf132cbd085cce1c55bdd082463cb66b47039173d5ca9f502109aa73c5",
+      "bundle": "90852d1e926c8273888802832388ad335e8cb3e9b11cd01c922113db69a780b0",
       "footprint_half_m": [
         1,
         0.25,
@@ -420,7 +420,7 @@
       "unit": "scenery"
     },
     "scooter": {
-      "bundle": "9255890f208ec80d34aeddcd1208173de64a7a030d9ea9ae23ecd47ac0b36695",
+      "bundle": "f5d6fc6f0689cc33496b2b57f43818625e677170f646a6f05808637a534ff81b",
       "footprint_half_m": [
         0.9,
         0.35,
@@ -431,7 +431,7 @@
       "unit": "scenery"
     },
     "site_cabin": {
-      "bundle": "9be72ff838d97f80c1827ff5ae5b6eb42a0b38eaafb5b0b24b96f286ced6e176",
+      "bundle": "223242961d90423b9e1f815639f35f5dc1647ae73c6bbd6e527cf03bf611b2b9",
       "footprint_half_m": [
         3,
         1.2,
@@ -442,7 +442,7 @@
       "unit": "scenery"
     },
     "skip_bin": {
-      "bundle": "0307e23b20c9c18a1d49f702d70225fe54106d6d81e2ccb2c0d514b5ca5e184d",
+      "bundle": "0f9289a3b99a2dbe96e0a603d643cfca1e5e5f5479b9356f8d41c06b3025fbe4",
       "footprint_half_m": [
         1.8,
         0.85,
@@ -542,7 +542,7 @@
       "unit": "scenery"
     },
     "utility_box": {
-      "bundle": "b8937afaa41e7eafcdfef88d88eb3f53967c0e18b71caf99d9fbf611d0c6885c",
+      "bundle": "43cc6cfd5c9a80698574c5976914715de51f8f565312882c5be4a3f417ae3977",
       "footprint_half_m": [
         0.7,
         0.25,

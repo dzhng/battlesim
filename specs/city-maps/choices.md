@@ -5192,3 +5192,63 @@ exact matched openings pass and a real retained GPU allocation falsifies the che
 
 **Verdict:** sound: it follows the owner's change to the skill and to AGENTS.md. **Confidence:** high.
 
+
+## C45 street models
+
+The models, their boxes and the sheets are in the [C45 outcome](slices/C45-street-models.md#outcome).
+
+### Each street kind's box is the appearance's, since the catalog rows carry none
+
+**Choice:** A street row has no size; a placement gives each body its box. Each model is authored to one real-world box (`footprint_half_m` in `assets/catalog.json`, listed in the outcome) and the renderer fits a placed box from it per axis. C46 should place these sizes, or near them: a car placed at half its length draws a squashed car.
+
+**Gap:** C45 asks whether each model "fits its body", and C44 gave the bodies no dimensions.
+
+**Verdict:** sound. One owner per number: the art's box is in the art catalog, the placed box in the map. **Confidence:** high.
+
+### One scenery kind per street row; the car's wreck is its own row's art
+
+**Choice:** Every row's `drawn_by` already named its own scenery kind, so each kind has one appearance with one `default` state. The parked car's terminal state is the `car_wreck` row (its `destroyed.into`), drawn by its own appearance on the car's plan at the remains' 0.7 m: a burnt shell on its rims, the roof fallen into the cabin. A test holds any remains with art of their own to the destroyed body's plan and height. No other row has remains: the rest are `removed`.
+
+**Gap:** "Each has LODs and its terminal state."
+
+**Verdict:** sound. A 0.7 m car wreck is lower than a real burnt-out car (about 1.2 m); the height is the simulation's and the art follows it, so the shell is crushed. If it reads as too flat in a street, the fix is the row's `height_m`, a mechanics decision. **Confidence:** medium on the look, high on the binding.
+
+### Street trees are the forest's tree, with no new art
+
+**Choice:** A street tree is the existing tree body (C44) drawn by the existing species. No "street size" species was added: the validator holds every tree appearance to one height and one girth (`fit.tree_size`), so a smaller tree model would be refused, and the placement already scales a crown to its room. The narrow kinds (`tree_tall`, `tree_birch`, reach 3.4 to 3.7 m) are the ones that fit a pavement.
+
+**Gap:** The slice lists "street trees from the one tree generator" under appearances to deliver.
+
+**Verdict:** sound until C46 places one. If a street tree needs to be shorter than the forest's, that is a second size on `SCENERY_KINDS.tree`, decided where the sight rule is. **Confidence:** medium.
+
+### Ours for every kind, including the eight the vendored street kit was to supply
+
+**Choice:** Lamp, bench, bollard, bins, hydrant, utility box, planter and scooter are project-owned models here, like the rest. `procedural-buildings.md` (L5) decided those eight would come from the vendored building pack's street kit, exported standalone by the buildings lane; that export has not happened and this pass was asked for one generic model per body.
+
+**Gap:** The slice's "theirs, from C11's standalone street kit" has no owner in this lane.
+
+**Verdict:** provisional. If the buildings lane exports its kit, each is another appearance of the same scenery kind (the renderer picks by nearest box) or replaces ours; nothing else changes. **Confidence:** medium.
+
+### Jersey barrier, Heras panel and scaffold bay repeat along their box
+
+**Choice:** Those three rows' `appearance` gained `modular: true` (as the wall, fence and sandbags have), so a long placed box draws a run of 3 m barriers, 3.5 m panels or 2.5 m bays instead of one stretched module. No body column changed.
+
+**Gap:** The rows had no `modular`; a barrier line is the common placement.
+
+**Verdict:** sound. It is the appearance binding, not the body. **Confidence:** high.
+
+### Glass and mesh are opaque geometry until model surfaces can blend
+
+**Choice:** The bus shelter's panes are pale, glossy, opaque glass (dark panes read as a black box in the critique). The Heras panel's mesh is wires as geometry on the two near tiers, six uprights on the third and the bare frame on the far tier.
+
+**Gap:** C25 (blended model surfaces) has not landed, and a one-pixel wire crawls at distance.
+
+**Verdict:** provisional. The simulation sees and shoots through both; the shelter draws as a pale screen that hides what stands behind it. When C25 lands the panes become a blended material in `street.py` (one argument). **Confidence:** medium.
+
+### One car, one colour
+
+**Choice:** A pale dusty grey hatchback, with no badge, plate or livery. The colour is neither side's tint, and reads as civilian beside olive vehicles.
+
+**Gap:** "Model details within 'generic'."
+
+**Verdict:** sound for one model. A street of identical grey cars will read as clones; more bodies or colours are more appearances of the same kind at slightly different boxes, or a per-instance tint the scenery path does not have. **Confidence:** medium.

@@ -37,7 +37,7 @@ CABIN_Y = 0.83  # the greenhouse's half width at the belt
 LEAN = 0.17  # how much narrower it is at the roof
 
 if WRECK:
-    paint = textured("car_paint", "burnt_metal", chip=0.9, dirt=0.3, soot=0.7, streak=0.5, ash=0.45)
+    paint = textured("car_paint", "burnt_metal", chip=0.9, dirt=0.3, soot=0.3, streak=0.3, ash=0.45)
     trim = textured("trim", "burnt_metal", colour=(0.03, 0.028, 0.026), chip=0.3, dirt=0.2, ash=0.2, seed=7.0)
     under = textured("floor_pan", "burnt_metal", chip=0.5, dirt=0.3, soot=0.6, ash=0.3, seed=9.0)
     wheel_m = textured("wheel", "burnt_metal", chip=0.6, dirt=0.3, ash=0.2, seed=11.0)
@@ -48,7 +48,7 @@ else:
     paint = textured("car_paint", "enamel", colour=(0.34, 0.35, 0.34), chip=0.35, dirt=0.8, rise=0.7, streak=0.15)
     trim = textured("trim", "rubber", chip=0.0, dirt=0.5, streak=0.0, rise=0.6)
     under = textured("floor_pan", "bare_steel", colour=(0.03, 0.03, 0.03), chip=0.2, dirt=1.0)
-    wheel_m = textured("wheel", "galvanised", chip=0.2, dirt=0.8, rise=0.7)
+    wheel_m = textured("wheel", "galvanised", chip=0.2, dirt=0.15)
     rubber = textured("tyre", "rubber", dirt=0.55, chip=0.0, streak=0.0, rise=0.6)
     lamp = flat_paint("lamp", (0.6, 0.6, 0.55), rough=0.2, grime=0.3)
     tail = flat_paint("tail_lamp", (0.22, 0.02, 0.015), rough=0.25, grime=0.3)
@@ -129,9 +129,10 @@ for s, sn in ((1, "L"), (-1, "R")):
 # ------------------------------------------------------------------ trim, lamps, mirrors
 for name, x in (("front", 2.145), ("rear", -2.145)):
     box(f"bumper_{name}", (0.11, 2 * BODY_Y - 0.02, 0.17), (x, 0, 0.38), trim, car, bevel=0.03)
-box("grille", (0.04, 0.9, 0.1), (2.185, 0, 0.6), trim, car, lods=(0, 1, 2))
+# a dark band across the nose carries the grille and sets the lamps off from the paint
+box("grille", (0.04, 2 * BODY_Y - 0.1, 0.15), (2.165, 0, 0.63), trim, car, lods=(0, 1, 2))
 for s, sn in ((1, "L"), (-1, "R")):
-    box(f"headlamp_{sn}", (0.06, 0.36, 0.12), (2.16, s * 0.6, 0.63), lamp, car, bevel=0.015, lods=(0, 1, 2))
+    box(f"headlamp_{sn}", (0.06, 0.34, 0.11), (2.175, s * 0.6, 0.63), lamp, car, bevel=0.015, lods=(0, 1, 2))
     box(f"tail_lamp_{sn}", (0.06, 0.2, 0.3), (-2.17, s * 0.7, 0.74), tail, car, bevel=0.015, lods=(0, 1, 2))
     box(f"mirror_{sn}", (0.1, 0.16, 0.09), (0.86, s * 0.88, 0.98), paint, car, bevel=0.02, lods=(0, 1))
     box(f"rub_strip_{sn}", (2.2, 0.02, 0.05), (0, s * (BODY_Y + 0.002), 0.56), trim, car, lods=(0, 1))

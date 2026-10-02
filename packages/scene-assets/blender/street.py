@@ -21,7 +21,7 @@ kind (box half extents, metres):
   traffic_cone    a cone with one reflective band; [0.2, 0.2, 0.37]
   road_barrier    a plastic barrier board on two feet; [1.0, 0.25, 0.5]
   scaffold        one bay of tube scaffold, a boarded lift at 2 m; a 2.5 m module; [1.25, 0.5, 2.0]
-  scooter         a parked motor scooter on its stand; [0.9, 0.35, 0.55]
+  scooter         a parked motor scooter; [0.9, 0.35, 0.55]
 
 The parked car and its wreck are `street_car.py`. The battle fits each placed box
 from the authored one. Origin at the box's centre on the ground, +X along its first
@@ -81,13 +81,10 @@ def jersey_barrier():
     """A New Jersey profile: a wide foot, a short batter, a steep upper face. The ends are
     square so repeated modules meet."""
     hx, hy, hz = 1.5, 0.3, 0.4
-    conc = textured("barrier_concrete", "concrete", chip=0.8, dirt=0.9, rise=0.5, streak=0.6, mottle=0.2)
+    conc = textured("barrier_concrete", "concrete", chip=0.8, dirt=0.5, rise=0.3, streak=0.3, mottle=0.2)
     side = [(0.3, 0.0), (0.3, 0.08), (0.17, 0.3), (0.085, 2 * hz)]
     profile = side + [(-y, z) for y, z in reversed(side)]
     prism("barrier", profile, 2 * hx, (0, 0, 0), conc, root, bevel=0.015, rot=(0, 0, math.pi / 2))
-    iron = textured("lifting_eye", "bare_steel", chip=0.5, dirt=0.5)
-    for k, x in enumerate((-0.9, 0.9)):
-        box(f"lifting_eye_{k}", (0.14, 0.03, 0.05), (x, 0, 2 * hz + 0.02), iron, root, lods=(0, 1))
     return [hx, hy, hz]
 
 
@@ -145,13 +142,13 @@ def bench():
 @kind
 def bins():
     hx, hy, hz = 0.65, 0.38, 0.55
-    wheel_m = textured("bin_wheel", "rubber", chip=0.0, dirt=0.6, streak=0.0)
+    wheel_m = textured("bin_wheel", "rubber", chip=0.0, dirt=0.2, streak=0.0)
     for k, (x, colour) in enumerate(((-0.33, (0.035, 0.075, 0.045)), (0.33, (0.06, 0.062, 0.066)))):
-        body = plastic(f"bin_{k}", colour, dirt=0.8, rise=0.7)
+        body = plastic(f"bin_{k}", colour, dirt=0.4, rise=0.4)
         yaw = (-0.04, 0.05)[k]
         box(f"bin_{k}_body", (0.5, 0.58, 0.9), (x, 0.02, 0.53), body, root, bevel=0.03, taper=(1.14, 1.14),
             rot=(0, 0, yaw))
-        box(f"bin_{k}_lid", (0.6, 0.72, 0.05), (x, 0.0, 1.065), body, root, bevel=0.015,
+        box(f"bin_{k}_lid", (0.6, 0.72, 0.05), (x, 0.0, 1.02), body, root, bevel=0.015,
             rot=(math.radians(-3), 0, yaw))
         box(f"bin_{k}_rim", (0.6, 0.7, 0.05), (x, 0.0, 0.97), body, root, rot=(0, 0, yaw), lods=(0, 1, 2))
         box(f"bin_{k}_handle", (0.5, 0.04, 0.04), (x, 0.36, 0.99), body, root, rot=(0, 0, yaw), lods=(0, 1))
@@ -183,18 +180,21 @@ def hydrant():
 def utility_box():
     hx, hy, hz = 0.7, 0.25, 0.7
     conc = textured("plinth", "concrete", chip=0.5, dirt=0.9, rise=0.4)
-    skin = enamel("cabinet_paint", (0.13, 0.15, 0.13), chip=0.5, dirt=0.8, rise=0.9, streak=0.6)
+    skin = enamel("cabinet_paint", (0.2, 0.23, 0.2), chip=0.5, dirt=0.6, rise=0.6, streak=0.15)
     dark = textured("cabinet_gap", "rubber", chip=0.0, dirt=0.3, streak=0.0)
     box("plinth", (2 * hx - 0.04, 2 * hy - 0.04, 0.12), (0, 0, 0.06), conc, root, bevel=0.01)
     box("cabinet", (2 * hx, 2 * hy, 1.22), (0, 0, 0.73), skin, root, bevel=0.015)
     box("cap", (2 * hx, 2 * hy, 0.06), (0, 0, 1.37), skin, root, bevel=0.02, taper=(0.96, 0.9))
-    # two doors on the street face: the gap between them, a row of louvres and a handle each
-    box("door_gap", (0.012, 0.01, 1.12), (0, -hy - 0.002, 0.73), dark, root, lods=(0, 1))
-    for k, s in enumerate((-1, 1)):
-        for j in range(4):
-            box(f"louvre_{k}_{j}", (0.4, 0.012, 0.018), (s * 0.34, -hy - 0.004, 1.08 + j * 0.045), dark, root,
-                lods=(0,))
-        box(f"door_handle_{k}", (0.03, 0.03, 0.14), (s * 0.07, -hy - 0.012, 0.75), dark, root, lods=(0, 1))
+    # two doors on each long face: the gap between them, a row of louvres and a handle each
+    for f, face in enumerate((-1, 1)):
+        y = face * (hy + 0.003)
+        box(f"door_gap_{f}", (0.015, 0.012, 1.12), (0, y, 0.73), dark, root, lods=(0, 1, 2))
+        for k, s in enumerate((-1, 1)):
+            for j in range(4):
+                box(f"louvre_{f}_{k}_{j}", (0.44, 0.014, 0.022), (s * 0.34, y, 1.05 + j * 0.055), dark, root,
+                    lods=(0, 1))
+            box(f"door_handle_{f}_{k}", (0.035, 0.03, 0.16), (s * 0.08, face * (hy + 0.012), 0.75), dark, root,
+                lods=(0, 1))
     return [hx, hy, hz]
 
 
@@ -218,11 +218,11 @@ def planter():
 @kind
 def bus_shelter():
     """Open to the street on +Y: a glazed back, a half-depth glazed screen at each end,
-    a flat roof and a bench. The glass is dark and glossy; nothing here is see-through."""
+    a flat roof and a bench. The glass is a pale, glossy, opaque pane: nothing here is see-through."""
     hx, hy, hz = 2.0, 0.75, 1.25
     frame = enamel("shelter_frame", (0.045, 0.05, 0.055), chip=0.4, dirt=0.6, rise=0.5)
-    glass = flat_paint("glass", (0.055, 0.075, 0.085), rough=0.06, grime=0.3)
-    roof_m = enamel("shelter_roof", (0.2, 0.21, 0.21), chip=0.3, dirt=0.4, rise=0.0, streak=0.0)
+    glass = flat_paint("glass", (0.17, 0.21, 0.23), rough=0.06, grime=0.3)
+    roof_m = enamel("shelter_roof", (0.06, 0.065, 0.07), chip=0.3, dirt=0.4, rise=0.0, streak=0.0)
     wood = textured("shelter_seat", "pallet_wood", colour=(0.15, 0.1, 0.06), chip=0.3, dirt=0.4)
     back = -hy + 0.05
     for k, x in enumerate((-1.95, -0.65, 0.65, 1.95)):
@@ -252,7 +252,7 @@ def heras_fence():
     hx, hy, hz = 1.75, 0.3, 1.0
     zinc = steel("fence_frame")
     wire = steel("fence_wire")
-    conc = textured("fence_block", "concrete", chip=0.6, dirt=0.9, rise=0.3)
+    conc = textured("fence_block", "concrete", chip=0.6, dirt=0.35, rise=0.2)
     x0, z0, z1 = hx - 0.02, 0.1, 2 * hz - 0.02
     for k, s in enumerate((-1, 1)):
         tube(f"upright_{k}", (s * x0, 0, 0.02), (s * x0, 0, z1), 0.02, zinc)
@@ -279,11 +279,12 @@ def skip_bin():
     spoil = textured("spoil", "soil", colour=(0.16, 0.15, 0.13), chip=0.0, dirt=0.3, streak=0.0)
     top = 2 * hz
     wide = lambda z: 0.82 + 0.18 * z / top  # the sides lean out to the rim
-    prism("skip", [(-1.15, 0.0), (1.15, 0.0), (hx - 0.03, top - 0.04), (-hx + 0.03, top - 0.04)], 2 * hy - 0.06,
+    fill = top - 0.16  # the body is solid to here; the rim stands above it round the load
+    prism("skip", [(-1.15, 0.0), (1.15, 0.0), (1.71, fill), (-1.71, fill)], 2 * hy - 0.06,
           (0, 0, 0), skin, root, bevel=0.02, taper_y=wide)
     for k, s in enumerate((-1, 1)):
-        box(f"rim_side_{k}", (2 * hx, 0.07, 0.07), (0, s * (hy - 0.035), top - 0.035), skin, root, bevel=0.012)
-        box(f"rim_end_{k}", (0.07, 2 * hy, 0.07), (s * (hx - 0.035), 0, top - 0.035), skin, root, bevel=0.012)
+        box(f"rim_side_{k}", (2 * hx, 0.07, 0.2), (0, s * (hy - 0.035), top - 0.1), skin, root, bevel=0.012)
+        box(f"rim_end_{k}", (0.1, 2 * hy, 0.2), (s * (hx - 0.05), 0, top - 0.1), skin, root, bevel=0.012)
         for j, x in enumerate((-0.75, 0.0, 0.75)):
             box(f"rib_{k}_{j}", (0.07, 0.04, top - 0.16), (x, s * (hy * wide(top / 2) - 0.02), top / 2), skin, root,
                 rot=(s * -math.atan2(0.18 * (hy - 0.03), top), 0, 0), lods=(0, 1))
@@ -291,11 +292,11 @@ def skip_bin():
             cyl(f"lug_{k}_{j}", 0.04, 0.09, (x, s * (hy - 0.01), top - 0.2), "Y", skin, root, seg=8, lods=(0, 1))
 
     def load(bm, lod):
-        for k, (x, y, r) in enumerate(((-0.9, 0.1, 0.5), (-0.2, -0.15, 0.6), (0.5, 0.12, 0.55), (1.05, -0.05, 0.45))):
-            lump(bm, lod, (x, y, top - 0.17), (r, 0.6, 0.2), 0.3, 7.0 + k)
+        for k, (x, y, r) in enumerate(((-1.0, 0.15, 0.42), (-0.3, -0.2, 0.5), (0.45, 0.2, 0.46), (1.1, -0.1, 0.4))):
+            lump(bm, lod, (x, y, fill), (r, 0.55, 0.2), 0.35, 7.0 + k)
 
     mesh_part("load", load, spoil, root, lods=(0, 1, 2))
-    box("load_bed", (2 * hx - 0.14, 2 * hy - 0.14, 0.04), (0, 0, top - 0.045), spoil, root)  # spoil to the rim
+    box("load_bed", (2 * hx - 0.18, 2 * hy - 0.12, 0.04), (0, 0, fill + 0.01), spoil, root)  # spoil wall to wall
     return [hx, hy, hz]
 
 
@@ -330,7 +331,7 @@ def pallet_stack():
 @kind
 def site_cabin():
     """A steel store: profiled walls in a welded frame on four feet, one door and one
-    shuttered opening on the long face at -Y, both closed."""
+    shuttered opening on the long face at +Y, both closed."""
     hx, hy, hz = 3.0, 1.2, 1.3
     wall = textured("cabin_wall", "cladding", colour=(0.07, 0.13, 0.11), chip=0.5, dirt=0.8, rise=0.8, streak=0.5)
     frame = enamel("cabin_frame", (0.055, 0.1, 0.085), chip=0.6, dirt=0.8, rise=0.8)
@@ -344,15 +345,15 @@ def site_cabin():
         box(f"corner_{k}", (0.1, 0.1, top - foot), (sx * (hx - 0.05), sy * (hy - 0.05), (top + foot) / 2), frame, root,
             lods=(0, 1, 2))
         box(f"foot_{k}", (0.16, 0.16, foot), (sx * (hx - 0.2), sy * (hy - 0.15), foot / 2), iron, root, lods=(0, 1, 2))
-    face = -hy + 0.025
+    face = hy - 0.025
     box("door", (0.95, 0.04, 2.0), (-1.9, face, foot + 0.1 + 1.0), door, root, bevel=0.01)
-    box("door_frame", (1.07, 0.03, 2.1), (-1.9, face + 0.012, foot + 0.1 + 1.02), frame, root, lods=(0, 1, 2))
-    box("lock_bar", (0.04, 0.03, 1.7), (-1.55, face - 0.03, foot + 1.1), iron, root, lods=(0, 1))
+    box("door_frame", (1.07, 0.03, 2.1), (-1.9, face - 0.012, foot + 0.1 + 1.02), frame, root, lods=(0, 1, 2))
+    box("lock_bar", (0.04, 0.03, 1.7), (-1.55, face + 0.03, foot + 1.1), iron, root, lods=(0, 1))
     for j, z in enumerate((0.55, 1.75)):
-        box(f"hinge_{j}", (0.05, 0.03, 0.14), (-2.33, face - 0.025, foot + z), iron, root, lods=(0,))
+        box(f"hinge_{j}", (0.05, 0.03, 0.14), (-2.33, face + 0.025, foot + z), iron, root, lods=(0,))
     box("shutter", (1.3, 0.04, 1.0), (0.9, face, 1.55), door, root, bevel=0.01)
-    box("shutter_frame", (1.42, 0.03, 1.12), (0.9, face + 0.012, 1.55), frame, root, lods=(0, 1, 2))
-    box("shutter_bar", (1.36, 0.03, 0.05), (0.9, face - 0.03, 1.55), iron, root, lods=(0, 1))
+    box("shutter_frame", (1.42, 0.03, 1.12), (0.9, face - 0.012, 1.55), frame, root, lods=(0, 1, 2))
+    box("shutter_bar", (1.36, 0.03, 0.05), (0.9, face + 0.03, 1.55), iron, root, lods=(0, 1))
     return [hx, hy, hz]
 
 
@@ -371,20 +372,20 @@ def traffic_cone():
 
 @kind
 def road_barrier():
-    """A plastic works barrier: two posts in flat feet, a banded board at the top and a
-    plain one under it, open between."""
+    """A plastic works barrier: two posts in flat feet, a hollow banded beam at the top and
+    a plain one under it, open between."""
     hx, hy, hz = 1.0, 0.25, 0.5
     red = plastic("barrier_red", (0.5, 0.045, 0.03), dirt=0.6, rise=0.5)
     white = plastic("barrier_white", (0.62, 0.62, 0.58), dirt=0.6, rise=0.5)
-    foot_m = textured("barrier_foot", "rubber", chip=0.0, dirt=0.7, streak=0.0)
+    foot_m = textured("barrier_foot", "rubber", chip=0.0, dirt=0.3, streak=0.0)
     for k, s in enumerate((-1, 1)):
         box(f"foot_{k}", (0.2, 2 * hy, 0.06), (s * 0.82, 0, 0.03), foot_m, root, bevel=0.01)
-        box(f"post_{k}", (0.05, 0.04, 2 * hz - 0.04), (s * 0.82, 0, hz + 0.02), red, root)
+        box(f"post_{k}", (0.08, 0.07, 2 * hz - 0.04), (s * 0.82, 0, hz + 0.02), red, root, bevel=0.015)
     for k in range(5):
-        box(f"band_{k}", (0.4, 0.035, 0.2), (-0.8 + 0.4 * k, 0, 2 * hz - 0.1), (red, white)[k % 2], root,
+        box(f"band_{k}", (0.4, 0.07, 0.2), (-0.8 + 0.4 * k, 0, 2 * hz - 0.1), (red, white)[k % 2], root,
             lods=(0, 1, 2))
-    box("board_far", (2 * hx, 0.035, 0.2), (0, 0, 2 * hz - 0.1), red, root, lods=(3,))
-    box("board_low", (2 * hx, 0.03, 0.12), (0, 0, 0.5), red, root)
+    box("board_far", (2 * hx, 0.07, 0.2), (0, 0, 2 * hz - 0.1), red, root, lods=(3,))
+    box("board_low", (2 * hx, 0.07, 0.12), (0, 0, 0.5), red, root, bevel=0.015)
     return [hx, hy, hz]
 
 
@@ -419,10 +420,10 @@ def scaffold():
 
 @kind
 def scooter():
-    """A step-through motor scooter on its centre stand: leg shield, footboard, a seat
+    """A step-through motor scooter, parked upright: leg shield, footboard, a seat
     over the engine cover, small wheels."""
     hx, hy, hz = 0.9, 0.35, 0.55
-    skin = enamel("scooter_paint", (0.42, 0.39, 0.3), chip=0.4, dirt=0.7, rise=0.5)
+    skin = enamel("scooter_paint", (0.05, 0.2, 0.18), chip=0.4, dirt=0.5, rise=0.4)
     dark = textured("scooter_trim", "rubber", chip=0.0, dirt=0.5, streak=0.0)
     zinc = steel("scooter_steel")
     lamp_m = flat_paint("lamp", (0.6, 0.6, 0.55), rough=0.2, grime=0.3)
@@ -447,7 +448,6 @@ def scooter():
     for k, s in enumerate((-1, 1)):
         tube(f"mirror_stem_{k}", (0.4, s * 0.24, 1.0), (0.38, s * 0.3, 1.08), 0.008, dark, lods=(0,))
         box(f"mirror_{k}", (0.02, 0.09, 0.05), (0.38, s * 0.3, 2 * hz - 0.025), dark, root, lods=(0, 1))
-        tube(f"stand_{k}", (-0.2, s * 0.03, 0.3), (-0.1, s * 0.16, 0.0), 0.014, zinc, lods=(0, 1))
     box("tail_lamp", (0.03, 0.12, 0.05), (-0.9, 0, 0.56), flat_paint("tail_lamp", (0.22, 0.02, 0.015), rough=0.25), root,
         lods=(0, 1))
     return [hx, hy, hz]
