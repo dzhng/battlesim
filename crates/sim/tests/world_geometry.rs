@@ -718,3 +718,19 @@ fn a_rotated_prop_ray_preserves_portable_normal_bits() {
         [0xbfcb_545e_465e_fc4e, 0xbfef_4318_8077_2275, 0]
     );
 }
+
+/// The observed burst-to-prop footprint distance changes retained structural
+/// damage even when the entire float32 publication remains identical.
+#[test]
+fn a_blast_footprint_distance_matches_the_portable_authority_bits() {
+    let footprint = sim::math::Obb2 {
+        center: v2(5106.53, 4771.42),
+        yaw: 1.687738,
+        half: v2(0.8, 0.4),
+    };
+    let burst = v2(
+        f64::from_bits(0x40b3_ea91_b639_cf14),
+        f64::from_bits(0x40b2_a5aa_d1f1_9bea),
+    );
+    assert_eq!(footprint.distance(burst).to_bits(), 0x401e_7a0e_c225_5683);
+}

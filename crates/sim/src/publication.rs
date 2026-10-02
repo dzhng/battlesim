@@ -1202,8 +1202,12 @@ fn encode_delivery(
                 || (old.len().is_multiple_of(stride) && values.len().is_multiple_of(stride)))
         {
             // Fixed rows retain row alignment; variable sections use sparse exact
-            // eight-word anchors. Both share one source-span wire grammar.
-            let anchor = if stride == 0 { 8 } else { stride };
+            // short word anchors. Both share one source-span wire grammar.
+            let anchor = if stride == 0 {
+                VARIABLE_ANCHOR_WORDS
+            } else {
+                stride
+            };
             index
                 .try_reserve_exact(old.len() / anchor)
                 .map_err(|e| format!("publication row index allocation: {e}"))?;
@@ -1459,6 +1463,9 @@ fn write_group_operations(
     (words, operations)
 }
 
+/// Short exact spans remain reusable when variable metadata shifts their addresses.
+const VARIABLE_ANCHOR_WORDS: usize = 3;
+
 /// Variable-section groups cannot address complete rows by one fixed width.
 fn fixed_row_width(group: usize) -> usize {
     [
@@ -1481,7 +1488,7 @@ fn compare_rows(a: &[f32], b: &[f32]) -> std::cmp::Ordering {
 }
 
 /// Assemble canonical order from exact old spans and new literals. Fixed rows
-/// retain their alignment; variable spans use sparse eight-word anchors and
+/// retain their alignment; variable spans use sparse short word anchors and
 /// extend wordwise. Bit comparisons never depend on entity identity or hashes.
 fn source_copies<'a>(
     values: &'a [f32],
@@ -1489,7 +1496,11 @@ fn source_copies<'a>(
     stride: usize,
     index: &'a [u32],
 ) -> impl Iterator<Item = (Option<usize>, usize, usize)> + 'a {
-    let anchor = if stride == 0 { 8 } else { stride };
+    let anchor = if stride == 0 {
+        VARIABLE_ANCHOR_WORDS
+    } else {
+        stride
+    };
     let source = move |at: usize| {
         let row = values.get(at..at + anchor)?;
         if stride == 0
@@ -1566,6 +1577,44 @@ fn changed_ranges<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn short_variable_spans_survive_row_growth_without_literal_resends() {
+        let mut old = vec![0.0; HEADER.len()];
+        let mut logical = old.clone();
+        for i in 0..100u32 {
+            // Growing variable metadata between unchanged three-word positions
+            // leaves no retained eight-word subsequence. Exact NaN and signed
+            // zero payloads also have to survive copying from the old record.
+            let point = [
+                f32::from_bits(0x4500_0000 + i * 7919),
+                f32::from_bits(0x7fc1_0000 + i),
+                -0.0,
+            ];
+            old.extend(point);
+            old.extend(point);
+            logical.push(f32::from_bits(0x4400_0000 + i));
+            logical.extend(point);
+            logical.extend(point);
+        }
+        let ends = vec![logical.len(); 9];
+        let old_ends = vec![old.len(); 9];
+        let mut wire = Vec::new();
+        encode_delivery(&logical, &ends, &old, &old_ends, &mut wire).unwrap();
+        assert!(
+            wire.len() * 4 < 1400,
+            "retained positions were resent: {} B",
+            wire.len() * 4
+        );
+        let actual = codec::group(&wire, HEADER.len(), &old[HEADER.len()..]);
+        assert_eq!(
+            actual.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
+            logical[HEADER.len()..]
+                .iter()
+                .map(|v| v.to_bits())
+                .collect::<Vec<_>>()
+        );
+    }
 
     #[test]
     fn compact_carriers_preserve_subnormals_nan_payloads_and_signed_zero() {

@@ -1363,7 +1363,7 @@ fn fire(
                 let contact = knowledge.contact(c)?;
                 let radius = contact.radius * rng.unit().sqrt();
                 let angle = std::f64::consts::TAU * rng.unit();
-                let p = contact.center + v2(angle.cos(), angle.sin()) * radius;
+                let p = contact.center + v2(libm::cos(angle), libm::sin(angle)) * radius;
                 p.with_z(
                     ctx.world.height_at(p.x, p.y).unwrap_or(0.0) + ctx.rules.physics.infantry_aim_m,
                 )

@@ -38,7 +38,7 @@ impl Body {
 
     /// Radius of the footprint's bounding circle ([`Prop::footprint_radius`]).
     fn radius(&self) -> f64 {
-        self.footprint.half.x.hypot(self.footprint.half.y)
+        libm::hypot(self.footprint.half.x, self.footprint.half.y)
     }
 
     /// The weight rank it adds to the ranks that stop vehicles.

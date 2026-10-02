@@ -133,8 +133,8 @@ fn seat_plan(
                 .find(|part| part.id == edge.part)
                 .unwrap();
             let direction = v2(edge.normal[0], edge.normal[1]).rotated(-geometry.frame.yaw);
-            let group = ((direction.y.atan2(direction.x) / std::f64::consts::FRAC_PI_2).round()
-                as i32)
+            let group = ((libm::atan2(direction.y, direction.x) / std::f64::consts::FRAC_PI_2)
+                .round() as i32)
                 .rem_euclid(4) as usize;
             // Legacy boxes without floor/bay facts retain ground positions;
             // known-floor descriptors cannot invent unresolved source bays.

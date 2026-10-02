@@ -213,7 +213,7 @@ impl Defender {
                     .filter(|e| rules.catalog.get(e.kind).has_role("mbt") && u.sees.contains(&e.id))
                     .filter(|e| {
                         let d = [e.position[0] - u.position[0], e.position[1] - u.position[1]];
-                        d[0].hypot(d[1]) <= op.at_attack_range_m
+                        libm::hypot(d[0], d[1]) <= op.at_attack_range_m
                     })
                     .max_by(|a, b| a.cost.cmp(&b.cost).then(b.id.cmp(&a.id)));
                 if let Some(tank) = best {
@@ -275,7 +275,7 @@ impl Referee {
         let hz = tick_hz as f64;
         let c = rules.success_zone_center;
         let inside = |u: &Unit| {
-            (u.position.x - c[0]).hypot(u.position.y - c[1]) <= rules.success_zone_radius_m
+            libm::hypot(u.position.x - c[0], u.position.y - c[1]) <= rules.success_zone_radius_m
         };
         // A combat unit carries a weapon: its components say so, not its role.
         let combat = |u: &Unit| u.alive() && !catalog.mounts(u.kind).is_empty();

@@ -1,4 +1,6 @@
 //! Minimal f64 vector math for the authority. Presentation receives f32 copies.
+//! Authoritative geometry uses the pinned libm sin/cos/sincos/atan2/hypot
+//! evaluators so Native and Wasm carry the same float64 state.
 use std::ops::{Add, Mul, Neg, Sub};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -30,7 +32,7 @@ impl V2 {
         self.x * o.y - self.y * o.x
     }
     pub fn length(self) -> f64 {
-        self.x.hypot(self.y)
+        libm::hypot(self.x, self.y)
     }
     pub fn normalized(self) -> V2 {
         let l = self.length();
@@ -125,7 +127,7 @@ impl Obb2 {
             (d.x.abs() - self.half.x).max(0.0),
             (d.y.abs() - self.half.y).max(0.0),
         );
-        x.hypot(y)
+        libm::hypot(x, y)
     }
 
     /// Whether `p` lies inside, the rectangle grown by `margin` on each side.
