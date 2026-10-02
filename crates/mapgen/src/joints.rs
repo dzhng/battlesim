@@ -1711,6 +1711,8 @@ mod tests {
         // The avenue is its own width past the side street, and the street
         // its own past the crossing.
         assert!(closed[0].shape.contains([404.9, 470.0], 0.0));
+        // The parcel pass closes the layout's roads again: nothing moves.
+        assert_eq!(lines(&close(closed.clone(), SIZE, &[])), lines(&closed));
         assert!(!closed
             .iter()
             .any(|area| area.shape.contains([404.0, 520.0], 0.0)));
