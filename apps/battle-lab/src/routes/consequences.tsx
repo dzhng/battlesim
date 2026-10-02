@@ -16,8 +16,11 @@ import { TickStatus } from "../TickStatus";
 // Everyone holds fire until a demo orders it, so each consequence is caused
 // by one visible order. Red's squads stand in the open and 45 m inside a
 // forest; blue's squad stands close to the open one; red's tank, already
-// hit once, blocks the walled passage that blue's truck will want. The wear
-// settles the tank duel in blue's favour even if one of its rounds scatters wide.
+// hit twice, blocks the walled passage that blue's truck will want. The wear
+// settles the tank duel in blue's favour: one hit ends it, and blue fires
+// three rounds before red's return fire could land its third. A lighter wear
+// left the duel to the seed: at this range a round sometimes falls short, and
+// two short rounds lost it.
 const SEED = 9;
 
 const CONSEQUENCES_CAMERA: Camera3DParams = {
