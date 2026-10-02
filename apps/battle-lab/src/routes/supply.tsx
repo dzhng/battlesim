@@ -30,7 +30,7 @@ const SUPPLY_CAMERA: Camera3DParams = {
 
 export default function Supply() {
   return (
-    <SavedEncounter map="supply" encounter="supply">
+    <SavedEncounter fixture="supply" encounter="supply">
       {(battle) => <SupplyLab battle={battle} />}
     </SavedEncounter>
   );

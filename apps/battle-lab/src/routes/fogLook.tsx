@@ -109,7 +109,7 @@ function Knob({
 }
 
 export default function FogLook() {
-  const built = useStreetScenario();
+  const built = useStreetScenario("fog-look");
   if (built && typeof built !== "string")
     return <main className="lab-rejected">{built.error}</main>;
   if (!built) return null;

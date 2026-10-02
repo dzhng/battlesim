@@ -92,7 +92,7 @@ function BenchmarkBattle({
   onDone: (report: BenchmarkReport) => void;
 }) {
   const scenario = useBuiltScenario(SCENARIO.variant, (wasm, variant) =>
-    villageScenario(wasm, variant),
+    villageScenario(wasm, "benchmark", variant),
   );
   // One run per mount: the page remounts for another.
   const [run] = useState<BenchmarkRun>(() =>

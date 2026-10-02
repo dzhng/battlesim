@@ -5972,3 +5972,17 @@ The second pass's unprimed review found nearly all its street faults along the s
 **Reach:** Admission reads per-request accounting from the existing route planner. Scheduling and persistent digests stay unchanged; the accounting is discarded each tick. This policy may refuse a member that a larger allowance could prove, as the existing bounded admission contract already permits.
 
 **Verdict:** sound, with the equal-share allocation a provisional cost policy. **Confidence:** medium.
+
+## C61 catalogue listings
+
+### Keep fixed saved sources separate from generated and synthetic worlds
+
+**When:** C61. **Choice:** A fixture declares the catalogue id of its default saved world, or `map: null` when it has no fixed saved world. Opening the movement lab therefore resolves the registry's saved map. Opening a generated battle still asks the existing map source to generate or acquire the selected world; opening a model tool still constructs its synthetic ground. Null does not mean no drawn geometry. **Gap:** C61's original roster assumed every drawn world was a saved map, while M29 preserves generated battles and developer tools. **Reach:** Future fixtures name their source once, without inventing catalogue folders for worlds owned by a generator or a tool. **Verdict:** sound; it preserves existing acquisition and makes saved-route ownership explicit. **Confidence:** high.
+
+### Inspect saved maps through the existing geometry fixture
+
+**When:** C61. **Choice:** A developer opening a newly saved map uses `/lab/geometry?map=<id>`: the existing geometry viewer resolves that map, names it from metadata and frames its extent. It retains the same picking and rendering controls as the default geometry lab. The developer index lists every nonretired map, including drafts; the player menu continues to offer only released playable maps with its configured encounter. **Gap:** C61 requires generic inspection but does not choose whether it shares the existing geometry viewer or introduces a second viewer. **Reach:** Saving another map adds inspection automatically, without a new route, scene identity or duplicate rendering path. **Verdict:** sound; one viewer owns saved-map inspection and preserves existing default scene coverage. **Confidence:** high.
+
+### Keep large resolved maps out of traced component props
+
+**When:** C61. **Choice:** Loading still returns the same resolved map, but the loading/refusal renderer is a plain function and the geometry component receives a reader that captures the map. For a large saved battlefield, React's development profiler therefore sees a function reference instead of copying thousands of terrain and prop entries into each changed-prop record. **Gap:** Reusing the small geometry lab for full-sized saved maps exposes a data boundary that the small fixture could not stress. **Reach:** Saved-map acquisition and diagnostics stay under their existing owners, while the scene runner keeps its profiler-size guard. **Verdict:** sound; it removes the unnecessary data-bearing loading component and avoids a second acquisition or rendering path. **Confidence:** high.

@@ -781,7 +781,7 @@ const villageGround = (page) =>
         import(file("fixtures/biomes/summer.json")),
       ]);
       await wasm.default();
-      const setup = JSON.parse(await villageScenario(wasm, "ordinary"));
+      const setup = JSON.parse(await villageScenario(wasm, "village", "ordinary"));
       const rules = JSON.stringify(setup.rules);
       const view = new wasm.WorldView(JSON.stringify(setup.map), rules);
       try {

@@ -60,7 +60,7 @@ const DEMOS: Record<string, (o: ObservationView, units: number[]) => Order | nul
 
 export default function Weapons() {
   return (
-    <SavedEncounter map="weapons" encounter="weapons">
+    <SavedEncounter fixture="weapons" encounter="weapons">
       {(battle) => <WeaponsLab battle={battle} />}
     </SavedEncounter>
   );

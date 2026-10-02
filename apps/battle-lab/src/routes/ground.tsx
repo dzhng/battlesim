@@ -56,7 +56,7 @@ export default function Ground() {
 
 function LabFieldGround() {
   return (
-    <SavedEncounter map="ground" encounter="ground">
+    <SavedEncounter fixture="ground" encounter="ground">
       {(battle) => <LabField battle={battle} />}
     </SavedEncounter>
   );
@@ -96,7 +96,9 @@ function LabField({ battle }: { battle: SavedBattle }) {
 }
 
 function VillageGround() {
-  const built = useBuiltScenario("ordinary", (wasm, variant) => villageScenario(wasm, variant));
+  const built = useBuiltScenario("ordinary", (wasm, variant) =>
+    villageScenario(wasm, "village", variant),
+  );
   if (!built) return null;
   if (typeof built !== "string")
     return (

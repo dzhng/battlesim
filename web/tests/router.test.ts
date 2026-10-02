@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
+import { LAB_FIXTURES } from "@apps/battle-lab/src/fixtures";
 import { createElement } from "react";
 import { fireEvent, render } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import fixtures from "@apps/battle-lab/src/fixtures.json";
-import { LAB_FIXTURES, LabRouter, ROUTES } from "@apps/battle-lab/src/router";
+import { LabRouter, ROUTES } from "@apps/battle-lab/src/router";
 
 afterEach(() => vi.unstubAllEnvs());
 

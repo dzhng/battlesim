@@ -3,6 +3,7 @@
 // and lays an encounter on it under the shared rules: a saved encounter
 // (`encounters/<name>.json`) for a lab, the simulation's own factory for the
 // village and the endurance battle.
+import { fixtureMap } from "./fixtures";
 import type { ReactNode } from "react";
 import { loadEncounter, loadMap } from "@web/maps/browser";
 import type { MapDefinition } from "@web/maps/resolve";
@@ -25,21 +26,26 @@ export interface SavedBattle {
   scenario: string;
 }
 
-/** The village scenario for `variant`, built by the simulation from the
- *  rules and the village's resolved map. */
+/** The village encounter factory on the fixture's saved map. */
 export async function villageScenario(
-  wasm: Wasm,
+  wasm: Pick<Wasm, "village_scenario">,
+  fixture: string,
   variant: string,
   rules = GAME_RULES,
 ): Promise<string> {
-  const { definition } = await loadMap("village");
+  const { definition } = await loadMap(fixtureMap(fixture));
   return wasm.village_scenario(JSON.stringify({ ...rules, map: definition }), variant);
 }
 
-/** The endurance battle for `seed` on its saved field, with the late state's
+/** The endurance factory on the fixture's saved field, with the late state's
  *  remains when `late`. */
-export async function enduranceScenario(wasm: Wasm, seed: number, late: boolean): Promise<string> {
-  const { definition } = await loadMap("endurance");
+export async function enduranceScenario(
+  wasm: Pick<Wasm, "endurance_scenario">,
+  fixture: string,
+  seed: number,
+  late: boolean,
+): Promise<string> {
+  const { definition } = await loadMap(fixtureMap(fixture));
   return wasm.endurance_scenario(
     JSON.stringify(definition),
     JSON.stringify(GAME_RULES),
@@ -68,17 +74,13 @@ export async function savedBattle(
   };
 }
 
-/** What a route shows while its saved documents load (nothing) or when one is
- *  refused (the resolver's diagnostic); `children` once they have loaded. */
-function Loaded<T>({
-  value,
-  what,
-  children,
-}: {
-  value: T | { error: string } | null;
-  what: string;
-  children: (value: T) => ReactNode;
-}) {
+/** Render loading and refusal without passing the large result through
+ *  component props: React's dev profiler would copy the map's arrays. */
+function loaded<T>(
+  value: T | { error: string } | null,
+  what: string,
+  children: (value: T) => ReactNode,
+): ReactNode {
   if (value === null) return null;
   if (buildFailed(value))
     return (
@@ -99,27 +101,24 @@ export function SavedMap({
   children: (map: MapDefinition) => ReactNode;
 }) {
   const map = useBuiltScenario(id, async (_, id) => (await loadMap(id)).definition);
-  return (
-    <Loaded value={map} what={`the map "${id}"`}>
-      {children}
-    </Loaded>
-  );
+  return loaded(map, `the map "${id}"`, children);
 }
 
-/** The saved map `map` with its saved encounters `encounters`, each as a
+/** The fixture's saved map with its encounters `encounters`, each as a
  *  battle. `rules` are the shared ones unless a lab pins an experiment
  *  control; they are fixed for the route. */
 export function SavedEncounters<Name extends string>({
-  map,
+  fixture,
   encounters,
   rules = GAME_RULES,
   children,
 }: {
-  map: string;
+  fixture: string;
   encounters: readonly Name[];
   rules?: typeof GAME_RULES;
   children: (battles: Record<Name, SavedBattle>) => ReactNode;
 }) {
+  const map = fixtureMap(fixture);
   const battles = useBuiltScenario({ map, encounters }, async (_, o) => {
     const loaded = await Promise.all(o.encounters.map((name) => savedBattle(o.map, name, rules)));
     return Object.fromEntries(o.encounters.map((name, k) => [name, loaded[k]])) as Record<
@@ -127,27 +126,23 @@ export function SavedEncounters<Name extends string>({
       SavedBattle
     >;
   });
-  return (
-    <Loaded value={battles} what={`the map "${map}" and its encounters ${encounters.join(", ")}`}>
-      {children}
-    </Loaded>
-  );
+  return loaded(battles, `the map "${map}" and its encounters ${encounters.join(", ")}`, children);
 }
 
-/** The saved map `map` with its one saved encounter `encounter`, as a battle. */
+/** The fixture's saved map with its one encounter, as a battle. */
 export function SavedEncounter({
-  map,
+  fixture,
   encounter,
   rules,
   children,
 }: {
-  map: string;
+  fixture: string;
   encounter: string;
   rules?: typeof GAME_RULES;
   children: (battle: SavedBattle) => ReactNode;
 }) {
   return (
-    <SavedEncounters map={map} encounters={[encounter]} rules={rules}>
+    <SavedEncounters fixture={fixture} encounters={[encounter]} rules={rules}>
       {(battles) => children(battles[encounter])}
     </SavedEncounters>
   );

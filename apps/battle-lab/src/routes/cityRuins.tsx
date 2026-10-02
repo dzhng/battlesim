@@ -35,7 +35,7 @@ const OPENING: Camera3DParams = {
 
 export default function CityRuins() {
   return (
-    <SavedEncounter map="camera-lab" encounter="shelling">
+    <SavedEncounter fixture="city-ruins" encounter="shelling">
       {(battle) => <Shelling battle={battle} />}
     </SavedEncounter>
   );

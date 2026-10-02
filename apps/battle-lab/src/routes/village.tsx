@@ -54,8 +54,10 @@ function watchedScript(fallback: string): string {
 }
 
 /** The village scenario JSON for `variant`, built by the simulation. */
-function useVillageScenario(variant: Variant): string | { error: string } | null {
-  const built = useBuiltScenario(variant, (wasm, variant) => villageScenario(wasm, variant));
+function useVillageScenario(fixture: string, variant: Variant): string | { error: string } | null {
+  const built = useBuiltScenario({ fixture, variant }, (wasm, o) =>
+    villageScenario(wasm, o.fixture, o.variant),
+  );
   return built && typeof built !== "string"
     ? { error: `the village scenario could not be built: ${built.error}` }
     : built;
@@ -105,14 +107,14 @@ function savedVillageReplay(): ReplayFile | null {
 
 /** /battle/village: play the encounter. */
 export default function VillageBattle() {
-  return <VillageEncounter script={null} />;
+  return <VillageEncounter fixture="village" script={null} />;
 }
 
 /** /battle/village/watch: blue is played by a comparison script (default
  *  `scout-suppress-flank`) and the player watches with a free camera. */
 export function VillageWatch() {
   const [script] = useState(() => watchedScript(WATCH_SCRIPTS[0]));
-  return <VillageEncounter script={script} />;
+  return <VillageEncounter fixture="village-watch" script={script} />;
 }
 
 /** The lean-out firefight on the village's ground, the village map's saved
@@ -125,7 +127,7 @@ const LEAN_RULES = durableSoldiers(GAME_RULES);
 /** /battle/village/lean: the lean-out firefight, watched. */
 export function VillageLean() {
   return (
-    <SavedEncounter map="village" encounter="lean" rules={LEAN_RULES}>
+    <SavedEncounter fixture="village-lean" encounter="lean" rules={LEAN_RULES}>
       {(battle) => (
         <BattleView
           fixture="village-lean"
@@ -139,7 +141,7 @@ export function VillageLean() {
   );
 }
 
-function VillageEncounter({ script }: { script: string | null }) {
+function VillageEncounter({ fixture, script }: { fixture: string; script: string | null }) {
   const [variant, setVariant] = useState<Variant>(() => {
     const requested = new URLSearchParams(window.location.search).get("variant");
     return isVariant(requested) ? requested : "ordinary";
@@ -148,7 +150,7 @@ function VillageEncounter({ script }: { script: string | null }) {
     if (next !== variant) restartBattle(() => setVariant(next), { variant: next });
   };
   const [seed] = useState(urlSeed);
-  const scenario = useVillageScenario(variant);
+  const scenario = useVillageScenario(fixture, variant);
   if (!scenario) return null;
   if (typeof scenario !== "string") return <Failed error={scenario.error} />;
   return (
@@ -175,7 +177,7 @@ export function VillageReplay() {
     restartBattle(() => setLoaded((l) => ({ file, n: l.n + 1 })));
   };
   const { file } = loaded;
-  const scenario = useVillageScenario(file?.variant ?? "ordinary");
+  const scenario = useVillageScenario("village-replay", file?.variant ?? "ordinary");
   if (!file)
     return (
       <main style={{ padding: 24 }}>

@@ -150,7 +150,7 @@ async function shapeOracle(probes: FogProbes) {
 }
 
 export default function Fog() {
-  const built = useStreetScenario();
+  const built = useStreetScenario("fog");
   if (built && typeof built !== "string")
     return <main className="lab-rejected">{built.error}</main>;
   if (!built) return null;

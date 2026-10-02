@@ -60,7 +60,7 @@ const DEMOS: Record<string, (o: ObservationView) => Order | null> = {
 
 export default function Consequences() {
   return (
-    <SavedEncounter map="consequences" encounter="consequences">
+    <SavedEncounter fixture="consequences" encounter="consequences">
       {(battle) => <ConsequencesLab battle={battle} />}
     </SavedEncounter>
   );

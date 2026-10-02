@@ -29,7 +29,7 @@ type ReplayCheck =
 
 export default function Authority() {
   return (
-    <SavedEncounter map="geometry" encounter="authority">
+    <SavedEncounter fixture="authority" encounter="authority">
       {(battle) => <AuthorityLab battle={battle} />}
     </SavedEncounter>
   );

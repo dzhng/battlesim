@@ -51,7 +51,7 @@ const DEMOS: Record<string, { order: (units: number[]) => Order; queued?: boolea
 
 export default function Deployment() {
   return (
-    <SavedEncounter map="deployment" encounter="deployment">
+    <SavedEncounter fixture="deployment" encounter="deployment">
       {(battle) => <DeploymentLab battle={battle} />}
     </SavedEncounter>
   );

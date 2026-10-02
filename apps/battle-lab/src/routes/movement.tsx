@@ -84,7 +84,7 @@ const DEMOS: Record<string, (own: OwnUnitView[]) => { order: Order; queued?: boo
 
 export default function Movement() {
   return (
-    <SavedEncounter map="movement" encounter="movement">
+    <SavedEncounter fixture="movement" encounter="movement">
       {(battle) => <MovementLab battle={battle} />}
     </SavedEncounter>
   );

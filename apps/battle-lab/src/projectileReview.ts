@@ -33,7 +33,7 @@ export function projectileReviewRules() {
 }
 
 export async function buildProjectileReview(wasm: Wasm) {
-  const s = JSON.parse(await buildStreetScenario(wasm, projectileReviewRules())) as {
+  const s = JSON.parse(await buildStreetScenario(wasm, "projectiles", projectileReviewRules())) as {
     units: LabUnit[];
     scripts: LabScript[];
     opponent?: { garrisons: [number, number][] };

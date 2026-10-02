@@ -4,6 +4,7 @@
 // camera sees the eye path asked for and the eye path drawn; riding, the
 // viewport's own camera flies the trajectory, placed and cleared as the
 // benchmark's tour is.
+import { fixtureMap } from "../fixtures";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Vec3 } from "math";
 import { loadMap } from "@web/maps/browser";
@@ -89,7 +90,10 @@ function eyeMesh(frame: FlightFrame, half: number): Mesh {
 }
 
 export default function CameraLab() {
-  const map = useBuiltScenario("camera-lab", async () => (await loadMap("camera-lab")).definition);
+  const map = useBuiltScenario(
+    fixtureMap("camera"),
+    async (_, id) => (await loadMap(id)).definition,
+  );
   if (!map) return null;
   if (buildFailed(map))
     return (

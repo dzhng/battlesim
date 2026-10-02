@@ -1,3 +1,6 @@
+import generated from "@fixtures/generated-battle.json";
+import { listMaps } from "@web/maps/catalogue";
+import { fixtureMap } from "../fixtures";
 import { useMemo, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import {
@@ -33,8 +36,13 @@ const GEOMETRY_CAMERA: Camera3DParams = {
 };
 
 /** Probe the authoritative surface under a camera ray. */
-function probe(view: WorldView, layout: WorldLayout, ray: LabPick["ray"]): Probe | null {
-  const hit = view.raycast(...ray.origin, ...ray.dir, 5000);
+function probe(
+  view: WorldView,
+  layout: WorldLayout,
+  ray: LabPick["ray"],
+  reach: number,
+): Probe | null {
+  const hit = view.raycast(...ray.origin, ...ray.dir, reach);
   if (hit.length === 0) return null;
   const [, x, y, z, , , , prop] = hit;
   const s = view.surface_at(x, y);
@@ -53,10 +61,25 @@ function probe(view: WorldView, layout: WorldLayout, ray: LabPick["ray"]): Probe
 }
 
 export default function Geometry() {
-  return <SavedMap id="geometry">{(map) => <GeometryLab map={map} />}</SavedMap>;
+  const id = new URLSearchParams(window.location.search).get("map") ?? fixtureMap("geometry");
+  return <SavedMap id={id}>{(map) => <GeometryLab id={id} readMap={() => map} />}</SavedMap>;
 }
 
-function GeometryLab({ map }: { map: MapDefinition }) {
+// The reader keeps the map's large arrays out of React's changed-prop details.
+function GeometryLab({ id, readMap }: { id: string; readMap: () => MapDefinition }) {
+  const map = readMap();
+  const generic = id !== fixtureMap("geometry");
+  const label = generic ? (listMaps().find((entry) => entry.id === id)?.label ?? id) : "Geometry";
+  const camera: Camera3DParams = generic
+    ? {
+        ...GEOMETRY_CAMERA,
+        target: [map.size[0] / 2, map.size[1] / 2, 0],
+        distance: Math.max(...map.size) * generated.camera.overview_span,
+        pitch: generated.camera.overview_pitch,
+      }
+    : GEOMETRY_CAMERA;
+  const cameraConfig = gameCamera.forMap(map.size);
+  const probeReach = Math.max(5000, cameraConfig.zoom_max + Math.hypot(...map.size));
   const world = useStaticWorld(map);
   const [overlay, setOverlay] = useState<WorldOverlay>("surface");
   const [showTrees, setShowTrees] = useState(true);
@@ -100,14 +123,16 @@ function GeometryLab({ map }: { map: MapDefinition }) {
   const diagnostics = useMemo(
     () =>
       world && {
+        mapId: id,
+        mapSize: map.size,
         exports: world.exports,
         layout: world.layout,
         heightAt: (x: number, y: number) => world.view.height_at(x, y),
-        probeRay: (ray: LabPick["ray"]) => probe(world.view, world.layout, ray),
+        probeRay: (ray: LabPick["ray"]) => probe(world.view, world.layout, ray, probeReach),
         setOverlay,
         setShowTrees,
       },
-    [world],
+    [world, id, map.size, probeReach],
   );
 
   if (!world || !meshes) return null;
@@ -119,14 +144,15 @@ function GeometryLab({ map }: { map: MapDefinition }) {
         buildings={buildingsFeed}
         appearances={appearances}
         instances={instances}
-        initialCamera={GEOMETRY_CAMERA}
+        initialCamera={camera}
+        cameraConfig={cameraConfig}
         onPick={(pick) =>
-          pick.button === "left" && setProbed(probe(world.view, world.layout, pick.ray))
+          pick.button === "left" && setProbed(probe(world.view, world.layout, pick.ray, probeReach))
         }
         diagnostics={diagnostics ?? undefined}
       />
       <aside className="hud-panel lab-panel" data-testid="geometry-panel">
-        <strong>Geometry</strong>
+        <strong>{label}</strong>
         <div className="lab-hint">
           Click probes the authoritative surface · middle‑drag orbit · arrows pan
         </div>

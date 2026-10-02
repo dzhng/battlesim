@@ -124,4 +124,55 @@ export async function run(ctx) {
     viewport: [1280, 800],
     dpr: 1,
   });
+  // The same viewer inspects another catalogue map; the default fixture
+  // above retains every geometry check and the same scene identity.
+  const saved = await ctx.newPage();
+  await ctx.openLab(saved, `${ctx.url}?map=river`);
+  const selected = await saved.evaluate(() => ({
+    id: window.__lab.route.mapId,
+    size: window.__lab.route.mapSize,
+  }));
+  ctx.check(
+    "the generic viewer loads the selected catalogue map",
+    selected.id === "river" && selected.size.join() === "640,480",
+    JSON.stringify(selected),
+  );
+  ctx.check(
+    "the viewer names the catalogue map",
+    (await saved.getByTestId("geometry-panel").locator("strong").textContent()) === "River lab",
+  );
+  await snapshot(ctx, saved, "catalogue-river-1280x800.png");
+  await saved.setViewportSize({ width: 360, height: 800 });
+  await snapshot(ctx, saved, "catalogue-river-360x800.png");
+  const large = await ctx.newPage();
+  await ctx.openLab(large, `${ctx.url}?map=market-town`);
+  const centre = await large.evaluate(() => {
+    const [w, h] = window.__lab.route.mapSize;
+    return [w / 2, h / 2, window.__lab.route.heightAt(w / 2, h / 2)];
+  });
+  const hit = await probeAt(large, ...centre);
+  ctx.check(
+    "a large map can be probed from its opening overview",
+    hit !== null,
+    JSON.stringify(hit),
+  );
+  const point = await large.evaluate(([x, y, z]) => window.__lab.projectToCss(x, y, z), centre);
+  await large.mouse.click(point[0], point[1]);
+  await large.evaluate(() => window.__lab.frame());
+  ctx.check(
+    "the large-map overview click reports a hit",
+    /Hit/.test(await large.getByTestId("probe").textContent()),
+  );
+  const overview = await snapshot(ctx, large, "catalogue-market-town-1280x800.png");
+  await writeCrop(
+    decode(overview),
+    ctx.evidencePath("catalogue-market-town-panel-2x.png"),
+    204,
+    160,
+    400,
+    300,
+    2,
+  );
+  await large.setViewportSize({ width: 360, height: 800 });
+  await snapshot(ctx, large, "catalogue-market-town-360x800.png");
 }

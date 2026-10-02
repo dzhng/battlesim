@@ -25,7 +25,7 @@ const READOUTS_CAMERA: Camera3DParams = {
 
 export default function Readouts() {
   return (
-    <SavedEncounter map="readouts" encounter="readouts">
+    <SavedEncounter fixture="readouts" encounter="readouts">
       {(battle) => <ReadoutsLab battle={battle} />}
     </SavedEncounter>
   );

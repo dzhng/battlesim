@@ -1,20 +1,9 @@
 import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from "react";
-import fixtures from "./fixtures.json";
+import { LAB_FIXTURES } from "./fixtures";
+import { listMaps } from "@web/maps/catalogue";
 import { MainMenu } from "./MainMenu";
 
 const MechanicsEditor = lazy(() => import("../../mechanics-editor/src/MechanicsEditor"));
-
-// The one lab/scene registry: fixtures.json names every fixture id, route and
-// purpose; scene.mjs verifies each id against a harness scene of the same name.
-export interface LabFixture {
-  id: string;
-  route: string;
-  describe: string;
-  /** "production": a timing verdict, run against a production build. */
-  build?: "production";
-}
-
-export const LAB_FIXTURES = fixtures as readonly LabFixture[];
 
 /** The page for each fixture id. */
 export const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
@@ -67,11 +56,26 @@ export function LabRouter({ path }: { path: string }) {
   if (!Route && path !== "/labs") return <MainMenu />;
   if (!Route) {
     return (
-      <main style={{ padding: 24, height: "100%", overflow: "auto", boxSizing: "border-box" }}>
+      <main
+        className="lab-index"
+        style={{ padding: 24, height: "100%", overflow: "auto", boxSizing: "border-box" }}
+      >
         <p>
           <a href="/">Main menu</a>
         </p>
         <h1>Battle lab</h1>
+        <h2>Saved maps</h2>
+        <ul>
+          {listMaps()
+            .filter((map) => map.status !== "retired")
+            .map((map) => (
+              <li key={map.id}>
+                <a href={`/lab/geometry?map=${map.id}`}>{map.label}</a>
+                {map.status === "draft" && " — draft"}
+              </li>
+            ))}
+        </ul>
+        <h2>Fixtures and tools</h2>
         <ul>
           {LAB_FIXTURES.map((f) => (
             <li key={f.id}>
