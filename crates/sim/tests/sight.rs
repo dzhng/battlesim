@@ -458,3 +458,275 @@ fn overlapping_eyes_mark_exactly_the_union_of_their_separate_fog_sweeps() {
     }
     assert_eq!(joint.bits, union.bits);
 }
+
+/// A distant prop update must not rebuild all cached occlusion around an eye.
+#[cfg(target_os = "macos")]
+#[test]
+fn distant_body_changes_do_not_repeat_active_fog_raster_work() {
+    if !common::isolated_cost_test(
+        "sight::distant_body_changes_do_not_repeat_active_fog_raster_work",
+    ) {
+        return;
+    }
+    use sim::math::{v2, v3};
+    use sim::visibility::{self, OcclusionGrid};
+    let mut world = common::flat([2000.0; 2], "");
+    // Dense small bodies stress the index's candidate sorting, but are too thin
+    // to cover fog-cell centres and alter this eye's ray traversal.
+    for y in 0..30 {
+        for x in 0..30 {
+            world.add_prop(
+                &serde_json::from_value(json!({
+                    "kind":"wall", "center":[200.0+x as f64*8.0,200.0+y as f64*8.0],
+                    "yaw":0.2,"half_extents":[0.1,0.1,2.0]
+                }))
+                .unwrap(),
+            );
+        }
+    }
+    let far = world.add_prop(
+        &serde_json::from_value(json!({
+            "kind":"wall","center":[1600,1600],"yaw":0,"half_extents":[5,5,3]
+        }))
+        .unwrap(),
+    );
+    let rules = common::rules();
+    let mut grid = OcclusionGrid::new(&world, 8.0);
+    let sight = sim::sight::Sight {
+        forward: 0.0,
+        shape: contract::scenario::SightShape {
+            front: 1.0,
+            side: 1.0,
+            rear: 1.0,
+        },
+        range: 240.0,
+    };
+    let sweep = |world: &sim::world::WorldGeometry, grid: &mut OcclusionGrid| {
+        let mut field = grid.field();
+        visibility::sweep(
+            world,
+            grid,
+            &rules.sensors,
+            v3(320.0, 320.0, 1.8),
+            &sight,
+            &mut field,
+        );
+        field
+    };
+    let expected = sweep(&world, &mut grid).bits;
+    let before = common::counters::instructions().unwrap();
+    for _ in 0..8 {
+        assert_eq!(sweep(&world, &mut grid).bits, expected);
+    }
+    let steady = common::counters::instructions().unwrap() - before;
+    let mut changing = 0;
+    for tick in 1..=8 {
+        world.move_prop(far, v2(1600.0 + tick as f64, 1600.0), 0.1, tick);
+        let before = common::counters::instructions().unwrap();
+        assert_eq!(sweep(&world, &mut grid).bits, expected);
+        changing += common::counters::instructions().unwrap() - before;
+    }
+    assert!(steady > 0);
+    assert!(
+        changing < steady * 2,
+        "distant changes: {changing} vs steady {steady}"
+    );
+}
+
+/// Retained fog rasters match fresh sweeps through changed heights, old and
+/// new moved footprints, removed overlapping bodies and partial edge tiles.
+#[test]
+fn locally_invalidated_fog_matches_fresh_sweeps() {
+    use sim::math::{v2, v3};
+    use sim::visibility::{self, OcclusionGrid};
+    let mut world = common::flat(
+        [253.0, 237.0],
+        r#",
+        "props":[{"kind":"wall","center":[64,64],"yaw":0.3,"half_extents":[8,28,4]},
+                 {"kind":"wall","center":[70,68],"yaw":-0.1,"half_extents":[13,18,2]}]"#,
+    );
+    let mut grid = OcclusionGrid::new(&world, 8.0);
+    let rules = common::rules();
+    let sight = sim::sight::Sight {
+        forward: 0.0,
+        shape: contract::scenario::SightShape {
+            front: 1.0,
+            side: 1.0,
+            rear: 1.0,
+        },
+        range: 320.0,
+    };
+    let assert_same = |world: &sim::world::WorldGeometry, grid: &mut OcclusionGrid| {
+        let mut fresh = OcclusionGrid::new(world, 8.0);
+        for eye in [
+            v3(16.0, 64.0, 1.8),
+            v3(128.0, 24.0, 3.0),
+            v3(232.0, 208.0, 1.8),
+            v3(32.0, 144.0, 12.0),
+        ] {
+            let mut retained = grid.field();
+            let mut rebuilt = fresh.field();
+            visibility::sweep(world, grid, &rules.sensors, eye, &sight, &mut retained);
+            visibility::sweep(world, &mut fresh, &rules.sensors, eye, &sight, &mut rebuilt);
+            assert_eq!(retained.bits, rebuilt.bits, "eye {eye:?}");
+        }
+    };
+    // Authored setup is revision zero, before tracking begins.
+    assert_same(&world, &mut grid);
+    world.remove_prop(0);
+    assert_same(&world, &mut grid);
+    let mut prop = None;
+    for case in 0..32 {
+        let at = [
+            24.0 + (case * 61 % 210) as f64,
+            16.0 + (case * 43 % 210) as f64,
+        ];
+        match case % 4 {
+            0 => {
+                prop = Some(
+                    world.add_prop(
+                        &serde_json::from_value(json!({
+                            "kind":"wall","center":at,"yaw":case as f64*0.37,
+                            "half_extents":[8+case%13,13+case%17,2+case%9],"base_z":case%3
+                        }))
+                        .unwrap(),
+                    ),
+                );
+            }
+            1 => world.move_prop(
+                prop.unwrap(),
+                v2(at[0], at[1]),
+                case as f64 * 0.23,
+                case as u64,
+            ),
+            2 => {
+                // A replacement can change height while overlapping the old
+                // footprint. Check the empty interval as well as the new body.
+                let was = world.prop(prop.unwrap()).unwrap().center;
+                world.remove_prop(prop.take().unwrap());
+                assert_same(&world, &mut grid);
+                prop = Some(
+                    world.add_prop(
+                        &serde_json::from_value(json!({
+                            "kind":"wall","center":[was.x,was.y],"yaw":0.2,
+                            "half_extents":[20,25,1+case%7],"base_z":4
+                        }))
+                        .unwrap(),
+                    ),
+                );
+            }
+            _ => {
+                world.remove_prop(prop.take().unwrap());
+            }
+        }
+        assert_same(&world, &mut grid);
+    }
+}
+
+/// Overlapping observers must not repeatedly canonicalize the same dense town.
+#[cfg(target_os = "macos")]
+#[test]
+fn overlapping_observers_share_fog_candidate_collection_work() {
+    if !common::isolated_cost_test(
+        "sight::overlapping_observers_share_fog_candidate_collection_work",
+    ) {
+        return;
+    }
+    let mut props = Vec::new();
+    for y in 0..100 {
+        for x in 0..100 {
+            props.push(
+                json!({"kind":"wall","center":[200.3+x as f64*8.0,200.3+y as f64*8.0],
+                "yaw":0,"half_extents":[0.1,0.1,2.0]}),
+            );
+        }
+    }
+    let map = json!({"size":[1600,1600],"fog_cell_m":32,"height_grid_m":4,
+        "slope_cutoff_deg":35,"props":props});
+    let units: Vec<_> = (0..12)
+        .map(|i| {
+            json!({"side":"blue","kind":"rifle",
+        "position":[560+(i%3)*20,560+(i/3)*20],"engagement":"return_fire_only"})
+        })
+        .collect();
+    let setup = common::scenario(&map.to_string(), json!(units), json!([]));
+    let mut battle = Battle::new(&setup, 1);
+    let mut collection = 0;
+    for _ in 0..6 {
+        let mut previous = common::counters::instructions().unwrap();
+        battle.step_profiled(|phase| {
+            let now = common::counters::instructions().unwrap();
+            if matches!(
+                phase,
+                sim::battle::TickPhase::Fog | sim::battle::TickPhase::Learning
+            ) {
+                collection += now - previous;
+            }
+            previous = now;
+        });
+    }
+    eprintln!("whole Fog+Learning instructions: {collection}");
+    assert!(
+        collection < 60_000_000,
+        "Fog+Learning repeated collection: {collection}"
+    );
+}
+
+/// All observers contribute body knowledge; unseen bodies remain unknown.
+#[test]
+fn separate_observers_learn_bodies_without_leaking_between_views() {
+    let map = r#"{"size":[2200,800],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#;
+    let setup = common::scenario(
+        map,
+        json!([
+            {"side":"blue","kind":"rifle","position":[200,400],"engagement":"return_fire_only"},
+            {"side":"blue","kind":"rifle","position":[1800,400],"engagement":"return_fire_only"}
+        ]),
+        json!([
+            {"tick":1,"add_prop":{"kind":"wall","center":[100,400],"yaw":0,"half_extents":[45,4,2]}},
+            {"tick":1,"add_prop":{"kind":"wall","center":[2000,400],"yaw":0,"half_extents":[45,4,2]}},
+            {"tick":1,"add_prop":{"kind":"wall","center":[1000,400],"yaw":0,"half_extents":[3,3,2]}}
+        ]),
+    );
+    let mut battle = Battle::new(&setup, 1);
+    let mut digests = Vec::new();
+    for _ in 0..12 {
+        battle.step();
+        digests.push(battle.digest());
+    }
+    assert_eq!(
+        battle
+            .observe(Side::Blue)
+            .known_props
+            .iter()
+            .map(|p| p.center)
+            .collect::<Vec<_>>(),
+        vec![[100.0, 400.0], [2000.0, 400.0]]
+    );
+    assert!(battle.observe(Side::Red).known_props.is_empty());
+    let mut grid = sim::visibility::OcclusionGrid::new(battle.world(), 8.0);
+    let mut fresh = grid.field();
+    for id in [UnitId(0), UnitId(1)] {
+        let u = battle.unit(id).unwrap();
+        let sight = sim::sight::of(u, battle.rules());
+        for eye in sim::sensing::eyes(u, battle.rules()) {
+            sim::visibility::sweep(
+                battle.world(),
+                &mut grid,
+                &battle.rules().sensors,
+                eye,
+                &sight,
+                &mut fresh,
+            );
+        }
+    }
+    assert_eq!(
+        battle.observe(Side::Blue).ground_visibility.bits,
+        fresh.bits
+    );
+    let mut replay = Battle::from_replay(&setup, &battle.replay()).unwrap();
+    for expected in digests {
+        replay.step();
+        assert_eq!(replay.digest(), expected);
+    }
+}

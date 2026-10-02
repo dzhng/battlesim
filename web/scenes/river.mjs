@@ -1,9 +1,14 @@
 // C69: the river lab. The water is where the simulation's distance says, a
 // squad and a tank cross it only by the bridge, and the drawn river is
 // measured for SG2's question: does a river carved into the 4 m grid read
-// round, or stepped?
+// round, or stepped? C70's water's edge is measured here too (BANKS_ONLY=1
+// alone): its bands against the grass beside them, the grass thinning across
+// the bare earth, and a waterline that holds still.
+import { readFile, writeFile } from "node:fs/promises";
+import { PNG } from "pngjs";
 import { advance, aim, lab, obs, openBattle, snapshot } from "./_lab.mjs";
 import { decode, pixel, writeCrop } from "./_png.mjs";
+import { classAt, groundUnder, openStations, shoot } from "./_groundStations.mjs";
 
 const VIEWPORT = { width: 1920, height: 1080 };
 /** Looking north, as the lab opens. */
@@ -19,6 +24,19 @@ const FACET_STEP_MAX = 0.08;
 /** The banks are walked this far outside the water's edge, in metres: on
  *  the bank (it runs 4.8 m in the lab) and just past its top. */
 const BANK_LINES_M = [1, 2.5, 4, 6];
+/** A band is apart from the grass in hue when their mean colours differ by
+ *  this much in CIELAB's a*b* plane, whatever their lightness. */
+const HUE_APART_MIN = 6;
+/** The shallows on one bank may be this many times as pale against the
+ *  channel as on the other: the banks are lit from different sides. */
+const SHALLOWS_SIDES_MAX = 1.25;
+/** How far from the water's edge C70's bands are measured (its crop). */
+const BAND_REACH_M = 8;
+/** A waterline pixel flickers when its luminance jumps by this much between
+ *  two frames a centimetre apart (the water and the bank differ by more);
+ *  the share of them that may, for the edges a nudge moves across a pixel. */
+const FLICKER_STEP = 0.04;
+const FLICKER_SHARE_MAX = 0.005;
 
 const surfaceAt = (page, p) => lab(page, (q) => window.__lab.route.surfaceAt(q[0], q[1]), p);
 
@@ -31,12 +49,259 @@ function luminance([r, g, b]) {
   return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
 }
 
-/** The mean luminance of the 3×3 pixels round `p`. */
-function luminanceAt(png, p) {
+/** The mean luminance of the 3×3 pixels round `p` (or the square `reach`
+ *  pixels each way). */
+function luminanceAt(png, p, reach = 1) {
   let sum = 0;
-  for (let dy = -1; dy <= 1; dy++)
-    for (let dx = -1; dx <= 1; dx++) sum += luminance(pixel(png, p[0] + dx, p[1] + dy));
-  return sum / 9;
+  for (let dy = -reach; dy <= reach; dy++)
+    for (let dx = -reach; dx <= reach; dx++) sum += luminance(pixel(png, p[0] + dx, p[1] + dy));
+  return sum / (2 * reach + 1) ** 2;
+}
+
+/** CIELAB a* and b* of the mean colour of the square `reach` pixels each way
+ *  round `p`: its hue and chroma, apart from how light it is. */
+function chromaAt(png, p, reach) {
+  const mean = [0, 0, 0];
+  const linear = (v) => (v / 255 <= 0.04045 ? v / 255 / 12.92 : ((v / 255 + 0.055) / 1.055) ** 2.4);
+  for (let dy = -reach; dy <= reach; dy++)
+    for (let dx = -reach; dx <= reach; dx++)
+      pixel(png, p[0] + dx, p[1] + dy).forEach((v, c) => (mean[c] += linear(v)));
+  const [r, g, b] = mean.map((v) => v / (2 * reach + 1) ** 2);
+  const f = (t) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+  const x = f((0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.9505),
+    y = f(0.2126 * r + 0.7152 * g + 0.0722 * b),
+    z = f((0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.089);
+  return [500 * (x - y), 200 * (y - z)];
+}
+
+const median = (values) => [...values].sort((x, y) => x - y)[values.length >> 1];
+
+/** In the page: `window.__inside(x, y)`, how far a point lies inside the
+ *  water's edge by the simulation's exported stretches (negative outside). */
+const defineInside = (page) =>
+  lab(page, () => {
+    const { rivers } = window.__lab.route.exports();
+    const stride = window.__lab.route.layout().riverStride;
+    window.__inside = (x, y) => {
+      let best = -Infinity;
+      for (let o = 0; o < rivers.length; o += stride) {
+        const ax = rivers[o],
+          ay = rivers[o + 1],
+          dx = rivers[o + 2] - ax,
+          dy = rivers[o + 3] - ay;
+        const t = Math.min(1, Math.max(0, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)));
+        const half = rivers[o + 4] + (rivers[o + 5] - rivers[o + 4]) * t;
+        best = Math.max(best, half - Math.hypot(x - ax - dx * t, y - ay - dy * t));
+      }
+      return best;
+    };
+  });
+
+/** Sections across the banks, every two metres along the stream on each side
+ *  (`side` -1 or 1): the page point `offsets[k]` metres outside the water's
+ *  edge, for every offset, where all of them are in the frame. */
+const bankSections = (page, offsets) =>
+  lab(
+    page,
+    (offsets) => {
+      const { rivers } = window.__lab.route.exports();
+      const stride = window.__lab.route.layout().riverStride;
+      const [width, height] = [window.innerWidth, window.innerHeight];
+      const project = ([x, y]) => {
+        const p = window.__lab.projectToCss(x, y, window.__lab.route.groundHeight(x, y) ?? 0);
+        return p && p[0] > 8 && p[1] > 8 && p[0] < width - 8 && p[1] < height - 8 ? p : null;
+      };
+      const sections = [];
+      for (const side of [-1, 1])
+        for (let o = 0; o < rivers.length; o += stride) {
+          const [ax, ay, bx, by, halfA, halfB] = rivers.subarray(o, o + 6);
+          const length = Math.hypot(bx - ax, by - ay);
+          for (let along = 0; along < length; along += 2) {
+            const t = along / length;
+            const points = offsets.map((offset) => {
+              const reach = (halfA + (halfB - halfA) * t + offset) * side;
+              const x = ax + (bx - ax) * t - ((by - ay) / length) * reach,
+                y = ay + (by - ay) * t + ((bx - ax) / length) * reach;
+              // Clear of the bridge and the wood, and truly `offset` out (the
+              // inside of a bend folds a section back over itself).
+              return x > 100 && x < 420 && Math.abs(window.__inside(x, y) + offset) < 0.05
+                ? project([x, y])
+                : null;
+            });
+            if (points.every(Boolean)) sections.push({ side, points });
+          }
+        }
+      return sections;
+    },
+    offsets,
+  );
+
+/** C70: the water's edge, on the ground rig's frozen page. */
+async function waterEdge(ctx) {
+  const { shore } = JSON.parse(
+    await readFile(new URL("../../fixtures/biomes/summer.json", import.meta.url), "utf8"),
+  );
+  const page = await openStations(ctx, "river");
+  await defineInside(page);
+  // Where each band is whole: the middle of the wet bank, the bare earth
+  // short of where its outer line can wander in to, and the grass past it.
+  const earthEnds = shore.mud_m * (1 - shore.wander);
+  const offsets = {
+    wet: shore.wet_m / 2,
+    earth: shore.wet_m + 0.25 * (earthEnds - shore.wet_m),
+    grass: shore.mud_m + 3,
+    // A metre inside the water, and well out in it.
+    shallows: -1,
+    channel: -5,
+  };
+
+  // --- the bands against the grass beside them --------------------------------
+  const bands = {};
+  for (const station of ["bend-65", "wide-65"]) {
+    const frame = decode(await shoot(page, "river", station));
+    await writeFile(ctx.evidencePath(`shore-${station}.png`), PNG.sync.write(frame));
+    const sections = await bankSections(page, Object.values(offsets));
+    for (const side of [-1, 1]) {
+      const here = sections.filter((s) => s.side === side);
+      const light = (k) => here.map((s) => luminanceAt(frame, s.points[k], 3));
+      const [wet, earth, grass, shallows, channel] = [0, 1, 2, 3, 4].map(light);
+      const apart = (k) =>
+        median(
+          here.map((s) => {
+            const [a, b] = [chromaAt(frame, s.points[k], 3), chromaAt(frame, s.points[2], 3)];
+            return Math.hypot(a[0] - b[0], a[1] - b[1]);
+          }),
+        );
+      bands[`${station}/${side}`] = {
+        sections: here.length,
+        wetOverGrass: +median(wet.map((v, i) => v / grass[i])).toFixed(3),
+        earthOverGrass: +median(earth.map((v, i) => v / grass[i])).toFixed(3),
+        wetHueApart: +apart(0).toFixed(1),
+        earthHueApart: +apart(1).toFixed(1),
+        shallowsOverChannel: +median(shallows.map((v, i) => v / channel[i])).toFixed(3),
+      };
+    }
+  }
+  await ctx.writeEvidence("shore.json", { offsets, bands });
+  const sides = (station) =>
+    bands[`${station}/1`].shallowsOverChannel / bands[`${station}/-1`].shallowsOverChannel;
+  ctx.check(
+    "the shallows are as pale against the channel on one bank as on the other",
+    ["bend-65", "wide-65"].every(
+      (station) => sides(station) < SHALLOWS_SIDES_MAX && sides(station) > 1 / SHALLOWS_SIDES_MAX,
+    ),
+    JSON.stringify({
+      "bend-65": +sides("bend-65").toFixed(3),
+      "wide-65": +sides("wide-65").toFixed(3),
+    }),
+  );
+  ctx.check(
+    "on either bank, the wet bank and the bare earth are no darker than the grass beside them, and apart from it in hue",
+    Object.values(bands).every(
+      (b) =>
+        b.sections > 20 &&
+        b.wetOverGrass >= 1 &&
+        b.earthOverGrass >= 1 &&
+        b.wetHueApart > HUE_APART_MIN &&
+        b.earthHueApart > HUE_APART_MIN,
+    ),
+    JSON.stringify(bands),
+  );
+
+  // --- the bands are where the simulation's distance puts them ----------------
+  // The class mask's water distance, which the bands are painted by, against
+  // the exported stretches' at seeded pixels within the bands' reach.
+  const mask = decode(await shoot(page, "river", "bend-65", { view: "ground-classes" }));
+  let seed = 70;
+  const next = () => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+  const pixels = [];
+  while (pixels.length < 600) {
+    const p = [Math.floor(next() * mask.width), Math.floor(next() * mask.height)];
+    const c = classAt(mask, ...p);
+    if (c && Math.abs(c.riverSd) < BAND_REACH_M) pixels.push(p);
+  }
+  const points = await groundUnder(page, pixels);
+  const exported = await lab(
+    page,
+    (points) => points.map((p) => -window.__inside(...p.xy)),
+    points,
+  );
+  let off = 0;
+  pixels.forEach((p, i) => {
+    // A byte's step, and what the pixel's own width moves the point.
+    const slack = 1 / 8 + points[i].footprint;
+    if (Math.abs(classAt(mask, ...p).riverSd - exported[i]) > slack) off++;
+  });
+  ctx.check(
+    `within ${BAND_REACH_M} m of the water's edge the ground reads the simulation's distance to it`,
+    off === 0,
+    JSON.stringify({ sampled: pixels.length, off }),
+  );
+
+  // --- grass thins across the bare earth ---------------------------------------
+  await shoot(page, "river", "bend-65");
+  const outside = await lab(page, async () =>
+    (await window.__lab.grass().clumps()).map((c) => -window.__inside(c.root[0], c.root[1])),
+  );
+  // Clumps a metre of band width: the wet bank, each half of the bare earth
+  // that is always there, and the field past the earth's farthest line.
+  const within = (start, stop) =>
+    outside.filter((d) => d >= start && d < stop).length / (stop - start);
+  const middle = (shore.wet_m + earthEnds) / 2;
+  const density = {
+    wet: within(0, shore.wet_m),
+    earthNear: within(shore.wet_m, middle),
+    earthFar: within(middle, earthEnds),
+    field: within(shore.mud_m + 1, shore.mud_m + 4),
+  };
+  ctx.check(
+    "no grass stands on the wet bank, and it thickens across the bare earth to the field's own",
+    outside.length > 2000 &&
+      density.wet === 0 &&
+      density.earthNear < 0.35 * density.field &&
+      density.earthFar > density.earthNear &&
+      density.earthFar < 0.9 * density.field,
+    JSON.stringify({ clumps: outside.length, aMetre: density }),
+  );
+
+  // --- the waterline holds still ----------------------------------------------
+  // The water's surface meets the ground exactly on the waterline, where two
+  // surfaces at one depth could flicker. Nudging the camera a centimetre a
+  // frame moves a fighting pixel by the whole difference between water and
+  // bank; a still one barely at all.
+  const still = [];
+  for (let k = 0; k < 6; k++) {
+    await aim(page, [150 + k * 0.01, 262], { distance: 65, pitch: 0.85, yaw: -Math.PI / 2 });
+    await lab(page, async () => {
+      await window.__lab.suppressGrass(true);
+      await window.__lab.frame();
+    });
+    still.push(decode(await page.screenshot()));
+  }
+  let waterline = 0,
+    jumped = 0;
+  for (let y = 2; y < mask.height - 2; y++)
+    for (let x = 2; x < mask.width - 2; x++) {
+      const c = classAt(mask, x, y);
+      if (!c || Math.abs(c.riverSd) > 0.5) continue;
+      waterline++;
+      let most = 0;
+      for (let k = 1; k < still.length; k++)
+        most = Math.max(
+          most,
+          Math.abs(luminance(pixel(still[k], x, y)) - luminance(pixel(still[k - 1], x, y))),
+        );
+      if (most > FLICKER_STEP) jumped++;
+    }
+  ctx.check(
+    "nudging the camera a centimetre a frame, no pixel of the waterline flickers",
+    waterline > 2000 && jumped / waterline < FLICKER_SHARE_MAX,
+    JSON.stringify({ waterline, jumped }),
+  );
+  await page.close();
 }
 
 /** Lines along the river's banks, each a fixed distance outside the water's
@@ -109,6 +374,8 @@ const bankLines = (page, offsets) =>
   );
 
 export async function run(ctx) {
+  await waterEdge(ctx);
+  if (process.env.BANKS_ONLY) return;
   // A pinned tick: the orders below then land on the same tick every run.
   const page = await openBattle(ctx, { viewport: VIEWPORT, grass: true, timeout: 60000, tick: 30 });
   await page.addStyleTag({ content: ".lab-panel { display: none }" });

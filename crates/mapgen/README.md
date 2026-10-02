@@ -5,8 +5,9 @@ into a `MapPlan`. The **parcel pass** fills that plan's districts with streets, 
 and buildings chosen from a physical template catalogue. The **compiler** turns any
 plan, generated or authored, into the contract's final map. The battle and renderer
 consume that compiled geometry; they never reinterpret a plan or look up a template
-catalogue. The crate imports no simulation or appearance library; its tests load one
-generated map into the simulation's world, to hold a bridge to what a battle needs.
+catalogue. The production library imports no simulation or appearance library.
+Verification tools and tests load compiled maps into the simulation to check what
+a battle needs.
 
 ## Layout generation (`layout`)
 
@@ -58,9 +59,12 @@ extents, which are a user decision (M04 in the [map brief](../../specs/city-maps
   main street along its ground, and the road that joins it to the network leaves by
   the street's end unless that would be a sharp turn (`roads.turn_max_deg`).
 - **A road ends on another where the two make a plain junction**: on a point where a
-  road passes, coming in across it and not alongside, or on a road's end that it
-  carries straight on from. Never where three roads already meet, and never at the
-  map's edge. A road whose two ends would lie on one road is not laid.
+  road passes, coming in across it and not alongside, or on the end of a road of its
+  own kind that it carries straight on from. Never where three roads already meet,
+  never at the map's edge, and never on the end of a road of another kind: a track
+  turns off a country road, it does not carry on from where the paving stops. A road
+  whose two ends would lie on one road is not laid, and neither is a link that has
+  nowhere on a settlement's roads to join.
 - **Fields and woods reach in beside a settlement.** The blocks it leaves open are
   fields, and a wood is tried on some of them (`forests.infill_chance`): a wood of
   its own shape that keeps the same distance from the districts as any other.
@@ -73,7 +77,8 @@ extents, which are a user decision (M04 in the [map brief](../../specs/city-maps
   into `buildings`. The encounter planner (`sim::encounter`) reads both as
   `contract::encounter::EncounterSites`, which `MapPlan::sites` makes: generation's
   outcome carries the sites beside the map, and `generate-map` saves them as
-  `sites.json`.
+  `sites.json`, beside the map in its saved form
+  ([`fixtures/README.md`](../../fixtures/README.md#saved-maps)).
 - **A river is a hard feature everything else is placed beside.** A seed-chosen
   share of each type's maps has one river (`rivers`, on a stream of its own, so a
   seed without one is the map it was before rivers existed). It runs from the north
@@ -103,38 +108,59 @@ cut along them. After it, a road's end is one of these, and
 `tests/road_ends.rs` holds the finished plans to that over every type and size:
 
 - **Part of a through road.** Carriageways of one kind and width that meet end to
-  end become one stroke through the point they shared, and the bend there is the
-  centreline's own rounded one. Two that meet alone are one road round whatever
-  corner they make (a country road or a track up to 110°, a street any). At a
-  junction of three or more, only ends that carry nearly straight on are joined.
-  Two ends that stop within each other's width on lines that cross there are
-  first brought to that crossing.
-- **Under the road it joins.** An end that touches another carriageway stops a
-  quarter of a metre past that carriageway's rounded middle, where its face lies
-  inside the other's width.
-- **The outer edge of a corner.** Where unlike roads meet at a corner the wider
-  one runs on until the narrower one leaves through its side, and covers the
-  narrower one's end. A narrower road that carries nearly straight on runs back
-  into the wider one instead, and the wider one's end shows a shoulder either
-  side: the road narrows. A wider road that comes onto a narrower one at a slant
-  crosses it whole. Two roads of one width that fork too sharply to be one road
-  are closed like unlike ones: the first runs on over the second one's end.
+  end become one stroke through the point they shared, round whatever corner
+  they make there short of an exact reversal. The outside of that bend, a
+  switchback included, is the centreline's own round one: a sharp joint is one
+  road round a bend, never two flat ends. At a junction of three or more the
+  straightest pair is the road through it. Two ends that stop within each
+  other's width (or a width or two past each other) on lines that cross there
+  are first brought to that crossing.
+- **Under the road it joins, and square to it.** An end that touches another
+  carriageway stops a quarter of a metre past that carriageway's rounded middle,
+  where its face lies inside the other's width. A branch that comes in more than
+  30° off square leaves its line a width or two before the road and curves round
+  to meet it square, so no acute fork is left and no corner of its end shows
+  past the road's far edge. One within 20° of running alongside is a lane
+  peeling off, and keeps its line. An end that stops a width or two past a road
+  it crossed is cut back to it.
+- **Under a road that crosses it, where it changes width.** A road changes width,
+  and kind, only where another road crosses it: it is one road from junction to
+  junction. Where a wider way and a narrower one meet end to end (an avenue and a
+  street at a block's corner, a country road and the street that carries on from
+  it), one of them is carried through the corner along the other's line, round its
+  own bend, to the first carriageway that crosses that line and covers the wider
+  way's whole flat end. The wider way ends there, just past the crossing road's
+  middle, and the narrower one starts on the same point. A side road that only
+  joins the line covers one shoulder, so the change is not made at it. Of the two
+  stretches (the narrower way's, on from the corner, and the wider way's, back from
+  it) the shorter is the one that changes; where nothing crosses it so, it changes
+  all the way to its far end, which is a junction, the map's edge or a dead end.
+  Where two narrower ways leave a corner, the one that carries on straighter is
+  the one considered, and the other joins the road as it would anywhere along it.
 - **Square on the map's edge.** A road that leaves the map at a slant turns
   square to the edge over its last two widths, so its end lies along the edge.
 - **At the last block it serves.** A road that runs out past the last block on
   its line and stops in open country is cut back to that block, or to the last
   road that joins it.
 
+Before joints are made the pass tidies what would block them: a street drawn
+beside another for a few metres is cut back to the road that crosses it (or the
+two become one), and a turn within a few metres of an end is dropped, so an
+end's last run is long enough to move or to turn along.
+
 The plan's road graph joins two roads where their centrelines cross, so the pass
 never leaves an end touching a line that rounding has moved off it: ends that
-share a point keep it, or all run on past it far enough to cross. It checks
-itself the same way. Whatever two roads' centrelines crossed before, they cross
-after or are one road; where a change would break that, the roads concerned are
-left exactly as they were laid and the rest are closed round them.
+share a point keep it, or run on past the other's middle far enough to cross.
+It checks itself the same way. Whatever two roads' centrelines crossed before,
+they cross after, are one road, or both cross a third road at the same junction;
+where a change would break that, the roads concerned are left exactly as they
+were laid and the rest are closed round them.
 
-Not closed yet, and counted by the test (1.1 in a thousand ends): three or more
-roads of one width that meet at sharp angles or with their ends a few metres
-apart, and two streets laid side by side where one stops.
+Not closed yet, and counted by the test (9 in ten thousand ends are a bite, a
+heel or a wider road's shoulders showing): junctions where three ends stand a few
+metres apart without sharing a point, a wider road that ends at a slant on a
+narrower one with no room to turn, and a corner of unlike roads left as laid
+because mending it would have lost a joint.
 
 ## Parcels and buildings (`parcels`)
 
@@ -229,3 +255,13 @@ form, whose hash a request pins and the map loader resolves against. The
 `layout_sweep` example runs every type and size over a range of seeds and reports
 the layout, what was built on it and what the compiled map costs; it is how a preset
 change is judged.
+
+The [`battle_sweep` example](examples/battle_sweep.rs) follows generation through
+assault placement and a short battle, using the same documents and admission as
+the game. Every requested seed retains its outcome, including refusals; no seed
+stands in for another. Per-unit progress follows the acknowledged destination,
+which can differ from the group's clicked point. Goal proximity and time in each
+movement state are separate observations: a short run without arrival does not
+prove a long route is stuck. Costs exclude progress/report formatting; native tick
+instruction brackets include counter and timing overhead. The usage lives with
+the example.

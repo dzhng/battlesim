@@ -97,7 +97,7 @@ function LabField({ battle }: { battle: SavedBattle }) {
 }
 
 function VillageGround() {
-  const built = useBuiltScenario("ordinary", villageScenario);
+  const built = useBuiltScenario("ordinary", (wasm, variant) => villageScenario(wasm, variant));
   const map = useMemo(
     () => (typeof built === "string" ? (JSON.parse(built) as { map: unknown }).map : null),
     [built],

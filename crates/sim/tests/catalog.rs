@@ -137,12 +137,13 @@ fn a_fallen_carriers_weapon_is_lost_unless_it_is_special() {
         let launcher = json!({ "mounts": [{ "name": "grenade launcher", "special": special }] });
         patch(&mut fixture, "soldiers", "grenadier", launcher);
         patch(&mut fixture, "soldiers", "rifleman", json!({ "hp": 1.0e6 }));
+        let range = fixture["weapons"]["grenade"]["range_m"].as_f64().unwrap();
         let setup = serde_json::from_value(json!({
             "map": { "size": [700, 600], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
             "rules": fixture,
             "units": [
                 { "side": "blue", "kind": "rifle", "position": [200, 300], "condition": { "casualties": 1 } },
-                { "side": "red", "kind": "rifle", "position": [400, 330], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "rifle", "position": [200.0 + range * 0.5, 300], "engagement": "return_fire_only" },
             ],
             "events": [], "scripts": [],
         }))
@@ -162,10 +163,10 @@ fn a_fallen_carriers_weapon_is_lost_unless_it_is_special() {
 
 /// A red rifle squad and tank for the type under test to fire on: both
 /// too tough to fall, and holding fire until fired on.
-fn targets() -> Value {
+fn targets(range: f64) -> Value {
     json!([
-        { "side": "red", "kind": "rifle", "position": [400, 330], "engagement": "return_fire_only" },
-        { "side": "red", "kind": "tank", "position": [500, 300], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
+        { "side": "red", "kind": "rifle", "position": [200.0 + range * 0.5, 300.0 - range * 0.3], "engagement": "return_fire_only" },
+        { "side": "red", "kind": "tank", "position": [200.0 + range * 0.5, 300.0 + range * 0.3], "yaw": std::f64::consts::PI, "engagement": "return_fire_only" },
     ])
 }
 
@@ -199,7 +200,14 @@ fn every_unit_type_sets_up_fires_each_mount_and_moves() {
     let mut failures = Vec::new();
     for t in rules.catalog.indices() {
         let id = rules.catalog.id(t);
-        let mut b = battle(&fixture, id, targets());
+        let range = rules
+            .catalog
+            .mounts(t)
+            .iter()
+            .flat_map(|m| &m.def.weapons)
+            .map(|w| rules.weapons[w].ballistics.range_m)
+            .fold(f64::INFINITY, f64::min);
+        let mut b = battle(&fixture, id, targets(range.min(300.0)));
         for _ in 0..60 * rules.tick_hz {
             b.step();
         }

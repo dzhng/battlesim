@@ -15,14 +15,14 @@ The simulation is the one authority; everything else observes it.
 
 - **`web/src/battle/`** — the browser side of that boundary:
   - the worker that runs the simulation (one authority, ordered commands, bounded publications);
-  - the worker that prepares a battle on a generated map (`prepare/`: the simulation's generator, then its encounter planner, off the page's thread);
+  - the worker that prepares a battle (`prepare/`): one request names where the map comes from (a saved map, or a generation request), which encounter is laid on it and the seeds; the worker resolves the map, has the simulation's planner place the encounter, and answers with the scenario a battle runs, off the page's thread;
   - decoding of the packed observation;
   - player input;
   - player readouts.
 
   Presentation reads only the observation, never simulation state.
 
-- **`web/src/maps/`** — saved maps as JavaScript reaches them: the catalogue's listing, and the browser and Node adapters that fetch a map's documents by id and hand them to the simulation's one resolver.
+- **`web/src/maps/`** — maps as JavaScript reaches them: the catalogue's listing, the browser and Node adapters that fetch a saved map's documents by id and hand them to the simulation's one resolver, and the one way to a map from its source (`source.ts`: a saved map's id, or a request the simulation's generator makes a map from).
 
 - **`packages/`** — the TypeGPU renderer and its assets.
   - `renderer-core` holds device, camera and projection primitives.
@@ -68,7 +68,7 @@ bun run setup   # install web dependencies
 bun run dev     # build the WebAssembly, start the lab app
 ```
 
-`/` is the main menu: play the village or watch a replay; behind its developer link, run the benchmark or open the lab index at `/labs`, which links every route. The benchmark (`/benchmark`) is the one frame-cost measure.
+`/` is the main menu: start a battle on a generated map (its type and its size), play a saved battlefield of the catalogue, or watch a replay; behind its developer link, play the test village, run the benchmark or open the lab index at `/labs`, which links every route. A generated battle's address (`/battle?type=&size=&seed=`) is its share identity: the same address prepares the same battle on the same build. The benchmark (`/benchmark`) is the one frame-cost measure.
 
 During development, the [mechanics editor](apps/mechanics-editor/README.md) opens
 from the developer menu at `/mechanics`, or run `bun run dev:mechanics` to start
@@ -80,7 +80,7 @@ Floating unit panels show name and health. Own-unit panels show a crossed-out ey
 
 A held right-click previews each selected unit’s destination and facing with the same markers shown after release. Dragging rotates about the clicked front center. The [group move placement rationale](specs/done/group-move-preview/README.md) explains its authority, spacing and partial-placement contracts.
 
-The [projectile review lab](apps/battle-lab/src/projectileReview.ts) keeps the fog-lit street fight running alongside firing lanes and midpoint recon teams. It uses gameplay flight and weapon cycles with private unlimited reserves and nonlethal rounds, so repeated visual review does not change gameplay rules. The [guided-fire contract](specs/battle-foundation/contracts.md#guided-flight) separates shared spotting from the launcher’s physical line of sight.
+The [projectile review lab](apps/battle-lab/src/projectileReview.ts) keeps the fog-lit street fight running alongside firing lanes and midpoint recon teams. It uses the shared battle view’s unit panels and player controls, with gameplay flight and weapon cycles, private unlimited reserves and nonlethal rounds. Repeated visual review does not change gameplay rules. The [guided-fire contract](specs/battle-foundation/contracts.md#guided-flight) separates shared spotting from the launcher’s physical line of sight.
 
 ## Checks
 
@@ -89,7 +89,7 @@ The [projectile review lab](apps/battle-lab/src/projectileReview.ts) keeps the f
 - `check` covers format, lint, typecheck and every Rust and web test.
 - `verify` builds the WebAssembly and runs every browser scene.
 
-Both are slow and run only at a plan's named milestones and when a spec closes ([`AGENTS.md`](AGENTS.md)). Everything else is checked with the narrowest thing that covers the change:
+Both are slow and run once, when a spec's implementation is finished ([`AGENTS.md`](AGENTS.md)). Everything else is checked with the narrowest thing that covers the change:
 
 ```bash
 cargo test -p sim --test sim village::a_replay_matches  # one test
@@ -100,7 +100,14 @@ bun run --cwd web scene -- village                      # one browser scene
 bun run --cwd web scene -- --list                       # scene ids
 ```
 
-Web tests and scenes need the WebAssembly built once first (`bun run build:wasm`). Scenes write their evidence into gitignored `throwaway/evidence/<fixture-id>/`.
+Web tests and scenes need the WebAssembly built once first (`bun run build:wasm`).
+
+Every scene, and anything else that renders, shares the machine's one GPU. When more than one session is working, run each through the shared lock so they take turns; two at once slow each other and distort every timing:
+
+```bash
+lockf -k <main checkout>/throwaway/gpu.lock bun run --cwd web scene -- village
+```
+ Scenes write their evidence into gitignored `throwaway/evidence/<fixture-id>/`.
 
 The simulation's reports are examples of the `sim` crate (`crates/sim/examples/`); each prints its own flags when given one it doesn't know. `village_report` plays blue's comparison scripts against the red defender and ends every row in the battle's digest. Its `--quick` mode is the feedback loop for a rule change, and `--compare main` sets a run beside main's. `endurance_report` prints instructions retired over a long battle.
 

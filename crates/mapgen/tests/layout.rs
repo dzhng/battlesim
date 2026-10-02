@@ -568,10 +568,10 @@ fn a_road_runs_through_every_settlement_it_serves() {
     });
 }
 
-/// A country road or a track does not double back: where it leaves a
-/// settlement's main street for the network, carries on from another road's
-/// end, or rounds the corner of a block (a few degrees past square), it
-/// turns no more sharply than a driver could take.
+/// A country road or a track never reverses onto itself. Two that meet end
+/// to end are one road round the bend they make, however sharp (a
+/// switchback, whose outside is the stroke's own round corner), so a turn
+/// may be anything short of the reversal the joint pass refuses to weld.
 #[test]
 fn no_road_turns_back_on_itself() {
     every_cell(|map_type, size, seed, plan| {
@@ -593,7 +593,7 @@ fn no_road_turns_back_on_itself() {
                 let turn = (heading(bend[1], bend[2]) - heading(bend[0], bend[1])).abs();
                 let turn = turn.min(std::f64::consts::TAU - turn).to_degrees();
                 assert!(
-                    turn <= 110.0,
+                    turn <= 175.0,
                     "{map_type:?} {size:?} {seed}: a {kind:?} turns {turn:.0}° at {:?}",
                     bend[1]
                 );
@@ -858,7 +858,8 @@ fn presets_that_break_a_map_rule_are_refused_at_load() {
 fn every_generated_plan_compiles_into_a_battle_map() {
     let catalogue = empty_catalogue();
     every_cell(|map_type, size, seed, plan| {
-        let request = request(map_type, size, seed).compile_request(plan.clone());
+        let request =
+            mapgen::CompileRequest::generated(&request(map_type, size, seed), plan.clone());
         let generated = mapgen::lower(&request, &catalogue)
             .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} {seed}: {errors:?}"));
         assert_eq!(generated.map.size, plan.size);

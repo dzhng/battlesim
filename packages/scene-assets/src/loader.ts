@@ -1,19 +1,26 @@
 // The one appearance loader, for the workbench and the battle alike. It reads
-// the runtime catalog, fetches every bundle by content hash, verifies each
-// hash, decodes, and installs the whole set at once. A failure anywhere leaves
-// the previously installed generation in place.
+// the runtime catalog, fetches every bundle and the template art library by
+// content hash, verifies each hash, decodes, and installs the whole set at
+// once. A failure anywhere leaves the previously installed generation in place.
 
 import type { Vec3 } from "math";
 import { decodeBundle } from "./codec.ts";
 import { lfsPointerOid, lfsPullCommand, sha256Hex } from "./glb.ts";
 import {
   bundlePath,
+  templateLibraryPath,
   type Bundle,
   type RuntimeCatalog,
   type SideTints,
   type SkeletonClips,
   type AppearanceUnit,
 } from "./schema.ts";
+import {
+  bindModules,
+  decodeTemplateLibrary,
+  type BoundModule,
+  type TemplateArtLibrary,
+} from "./templateLibrary.ts";
 import type { MountDraws } from "./units.ts";
 
 /** Where the runtime directory lives in the repo, for LFS pull hints. */
@@ -35,6 +42,17 @@ export interface InstalledAppearances {
       bundle: Exclude<Bundle, SkeletonClips>;
     }
   >;
+  /** The template art library, when the catalog has one: city buildings are
+   *  drawn by resolving their template against it (`templateLibrary.ts`). */
+  templates?: InstalledTemplateArt;
+}
+
+/** The template art library as installed: its rows, and each of its modules
+ *  bound to the installed kit bundle state that draws it (parallel to
+ *  `library.modules`). */
+export interface InstalledTemplateArt {
+  library: TemplateArtLibrary;
+  modules: BoundModule[];
 }
 
 export type Fetch = (url: string) => Promise<{
@@ -115,13 +133,51 @@ export class AppearanceLibrary {
       }),
     );
     if (!catalog.sides) throw new Error("appearance catalog has no side tints; re-bake");
+    const templates = catalog.templates
+      ? await this.templates(baseUrl, catalog.templates, catalog, appearances)
+      : undefined;
     this.current = {
       generation: (this.current?.generation ?? 0) + 1,
       sides: catalog.sides,
       skeletons,
       appearances,
+      ...(templates ? { templates } : {}),
     };
     return this.current;
+  }
+
+  /** The template art library the catalog names, bound to the kits just
+   *  loaded: the library the catalog says it is, placing only modules those
+   *  kits have. Anything else fails the whole load. */
+  private async templates(
+    baseUrl: string,
+    named: NonNullable<RuntimeCatalog["templates"]>,
+    catalog: RuntimeCatalog,
+    appearances: InstalledAppearances["appearances"],
+  ): Promise<InstalledTemplateArt> {
+    const path = templateLibraryPath(named.library);
+    const res = await this.fetcher(`${baseUrl}${path}`);
+    if (!res.ok) throw new Error(`template library ${named.library}: HTTP ${res.status}`);
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    if (lfsPointerOid(bytes) !== null)
+      throw new Error(
+        `template library ${named.library} is a Git LFS pointer; run: ${lfsPullCommand(`${RUNTIME_DIR}/${path}`)}`,
+      );
+    const actual = await sha256Hex(bytes);
+    if (actual !== named.library)
+      throw new Error(`template library ${named.library}: content hash is ${actual}`);
+    const library = decodeTemplateLibrary(bytes);
+    if (library.art_hash !== named.art_hash || library.covers !== named.covers)
+      throw new Error(
+        `template library ${named.library} is art ${library.art_hash} over catalogue ${library.covers}, not what the catalog names; re-bake`,
+      );
+    const modules = bindModules(library, (name) => {
+      const bundle = appearances.get(name)?.bundle;
+      return bundle?.kind === "static"
+        ? { bundle, hash: catalog.appearances[name]?.bundle ?? null }
+        : undefined;
+    });
+    return { library, modules };
   }
 }
 

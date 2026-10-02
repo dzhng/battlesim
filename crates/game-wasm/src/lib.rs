@@ -68,6 +68,15 @@ pub fn plan_encounter(
     )
 }
 
+/// Check a battle preparation request (`contract::preparation::
+/// PrepareBattleRequest`) before anything is resolved: answers `{ status:
+/// "ok", request }` with the request in canonical form, or `{ status:
+/// "error", diagnostics }` naming the field at fault.
+#[wasm_bindgen]
+pub fn check_prepare_request(request_json: &str) -> String {
+    contract::preparation::check_request_json(request_json)
+}
+
 /// The generator version a generation request pins: a request naming another
 /// is refused, so a caller that wants this build's maps asks here.
 #[wasm_bindgen]
@@ -76,9 +85,10 @@ pub fn map_generator_version() -> String {
 }
 
 /// Resolve a saved map from its documents (`fixtures/maps/<id>/map.json` and
-/// `SOURCES.json`, and the physical template library): the browser's and the
-/// tools' side of the one resolver, admitted as the native catalogue reader
-/// (`sim::maps`) admits it. Answers `{ status: "ok", result: { definition,
+/// `SOURCES.json`, and the physical template library those sources name; the
+/// map stores each building as its template and frame, materialized here):
+/// the browser's and the tools' side of the one resolver, admitted as the
+/// native catalogue reader (`sim::maps`) admits it. Answers `{ status: "ok", result: { definition,
 /// identity } }`, or `{ status: "error", error: { code, location, message } }`.
 #[wasm_bindgen]
 pub fn resolve_saved_map(
@@ -105,6 +115,21 @@ pub fn template_catalogue_json(descriptors_json: &str) -> Result<String, JsError
         .map_err(js_error)?
         .canonical_json()
         .map_err(js_error)
+}
+
+/// Admit physical templates as buildings a map may place: each one complete
+/// (`require_complete`), together one canonical catalogue. The asset check
+/// holds every source set's descriptors to this, so no other code decides
+/// what a legal template is. Fails with the contract's own refusal.
+#[wasm_bindgen]
+pub fn complete_template_catalogue_json(descriptors_json: &str) -> Result<String, JsError> {
+    let descriptors: Vec<BuildingTemplateDescriptor> =
+        serde_json::from_str(descriptors_json).map_err(js_error)?;
+    let catalogue = TemplateGeometryCatalog::new(descriptors).map_err(js_error)?;
+    for template in catalogue.templates() {
+        template.require_complete().map_err(js_error)?;
+    }
+    catalogue.canonical_json().map_err(js_error)
 }
 
 /// Materialize one physical descriptor in a translation/rotation frame.
@@ -658,6 +683,38 @@ pub fn endurance_scenario(
     serde_json::to_string(&setup).map_err(js_error)
 }
 
+/// The full generated world with the simulation-owned central contact stress recipe.
+#[wasm_bindgen]
+pub fn city_stress_preparation(
+    map_json: &str,
+    fixture_json: &str,
+    seed: u64,
+    late: bool,
+) -> Result<String, JsError> {
+    let field: MapDefinition = serde_json::from_str(map_json).map_err(js_error)?;
+    let fixture: serde_json::Value = serde_json::from_str(fixture_json).map_err(js_error)?;
+    let setup = sim::endurance::city_scenario(&field, &fixture, seed, late).map_err(js_error)?;
+    let first = setup
+        .units
+        .iter()
+        .find(|u| u.side == Side::Blue)
+        .ok_or_else(|| js_error("the city stress fixture has no blue unit"))?;
+    let report = serde_json::json!({
+        "start": { "at": first.position, "yaw": first.yaw },
+        "livingUnits": {
+            "blue": setup.units.iter().filter(|u| u.side == Side::Blue && u.condition.is_none()).count(),
+            "red": setup.units.iter().filter(|u| u.side == Side::Red && u.condition.is_none()).count(),
+        },
+    });
+    // Carry canonical scenario bytes without materializing the full map again
+    // in JavaScript merely to obtain its small preparation metadata.
+    Ok(format!(
+        "{{\"scenario\":{},\"report\":{}}}",
+        serde_json::to_string(&setup).map_err(js_error)?,
+        serde_json::to_string(&report).map_err(js_error)?
+    ))
+}
+
 fn js_error(e: impl std::fmt::Display) -> JsError {
     JsError::new(&e.to_string())
 }
@@ -709,8 +766,8 @@ impl BattleHandle {
     pub fn from_replay(scenario_json: &str, replay_json: &str) -> Result<BattleHandle, JsError> {
         let setup: ScenarioDefinition = serde_json::from_str(scenario_json).map_err(js_error)?;
         let replay: Replay = serde_json::from_str(replay_json).map_err(js_error)?;
-        let battle = Battle::from_replay(&setup, &replay)
-            .map_err(|e| JsError::new(&format!("replay does not match this scenario: {e:?}")))?;
+        let battle =
+            Battle::from_replay(&setup, &replay).map_err(|e| JsError::new(&e.to_string()))?;
         Ok(BattleHandle {
             battle,
             publisher: Publisher::new(),

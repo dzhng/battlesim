@@ -59,6 +59,16 @@ Do not prioritize by scary-looking counts alone:
   or fixed prefix forever.
 - Bound both sides of a transport and every durable/in-memory queue. State the overflow behavior;
   never silently drop accepted durable data.
+- Judge a cache, an index or a delta protocol by its worst edit, not its quiet average: an insertion
+  into a long retained collection, a change far from the active view, a move, a deletion. Assert the
+  bounded work alongside the exact result.
+- Check that a measured workload does what it claims before trusting its numbers: that the forces
+  meet, the route is travelled, the failure arm runs. Measure the failure arm too.
+- Isolate a cost measurement from everything else running in the process.
+- When batching overlapping queries, measure the final canonical merge and downstream consumer
+  with collection. Fewer sorts can increase duplicate volume and shift cost across a profile
+  boundary. Track temporary capacity separately from retained state, and falsify an omitted later
+  query through the public result before claiming equivalence.
 - Match compatibility work to the product lifecycle. In prelaunch code, prefer direct changes and
   add no legacy branches or migrations unless real persisted data requires them.
 - Every limit introduced or changed must have an observable log or metric with the limit kind,
@@ -70,17 +80,3 @@ The audit is complete only when every finding has a production trigger, quantifi
 priority rationale, acceptance seam, and recorded disposition; every dismissed candidate says which
 bound or healing mechanism makes it acceptable. An implementation is complete only when its
 red/green proof shows bounded work **and** continued recovery.
-
-## Simulation report workloads
-
-A report that accepts an arbitrary map must also locate its fight on that map.
-An arena script with fixed depths from each edge can silently turn into two
-disconnected rear-area moves when the world grows. Name complete-world loading,
-local contact and edge-to-edge transit separately, and verify opposing goals
-overlap before using the result as dense-combat evidence. Attribute fog traversal
-and subsequent knowledge learning separately before selecting a sweep optimization.
-
-When a sampled position clamps at an endpoint, test an all-rejected endpoint
-inside the acceptance radius. A distance predicate then remains true forever.
-Bound exhaustion by the finite source traversal, and fail a regression's injected
-predicate after the legitimate attempts so the broken arm cannot hang the runner.

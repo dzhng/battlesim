@@ -175,7 +175,12 @@ fn projScale() -> vec2f {
     let fixedLine = v.a.w < 0.0;
     // Cover neighboring pixel centers so a one-pixel diagonal does not stipple.
     let px = select(max(truePx, v.b.w), truePx + 2.0, fixedLine);
-    let k = select(min(1.0, truePx / px), 1.0, fixedLine);
+    let coverage = min(1.0, truePx / px);
+    // Zoom-readable rounds get brighter as their world width shrinks below
+    // the pixel floor, so both the halo and post bloom survive strategic zoom.
+    let boost = abs(v.misc.w);
+    let k = select(coverage, mix(boost, 1.0, coverage), boost > 1.0);
+    let energy = select(k, 1.0, fixedLine);
     let ribbon = v.color.a > 0.0;
     // A light streak overhangs its ends by a quarter of its width and fades
     // over the overhang, so stretches laid end to end add up to one line; a
@@ -183,7 +188,7 @@ fn projScale() -> vec2f {
     let overhang = select(0.25, 0.0, ribbon);
     let off = (perp * c.y + dir * c.x * overhang * 2.0) * px * 0.5;
     out.pos = vec4f(end.xy + off / half * end.w, end.zw);
-    out.color = select(vec4f(v.color.rgb * k, 0.0), v.color * k, ribbon);
+    out.color = select(vec4f(v.color.rgb * energy, 0.0), v.color * energy, ribbon);
     out.along = select(alongA, alongB, c.x > 0.0);
     out.viewDepth = end.w;
     // Pixels from the quad's middle to each end, and the overhang; a
@@ -285,13 +290,13 @@ fn cell(tuv: vec2f, frame: f32, cols: f32) -> vec2f {
     let a = clamp(f.along, 0.0, 1.0);
     let fromEnd = (1.0 - abs(f.uv.x)) * f.extra.x;
     let cap = smoothstep(0.0, max(f.extra.y, 1e-3) * 2.0, fromEnd);
-    // A sharp line with a little bloom of its own, or (misc.w) a soft glow
+    // A sharp line with a little bloom of its own, or a soft glow
     // falling off across its whole width.
     let sharp = exp(-across * 9.0) + 0.3 * exp(-across * 2.5);
     let soft = exp(-across * 3.0) * (1.0 - across);
     let distancePx = abs(f.uv.y) * (f.extra.w + 2.0) * 0.5;
     let lineCoverage = clamp((f.extra.w + 1.0) * 0.5 - distancePx, 0.0, 1.0);
-    let profile = select(select(sharp, soft, f.misc.w > 0.5), lineCoverage, f.extra.w > 0.0);
+    let profile = select(select(sharp, soft, f.misc.w == 1.0 || f.misc.w < 0.0), lineCoverage, f.extra.w > 0.0);
     rgb = f.color.rgb * profile * a * a * cap * clamp(gap / 0.1, 0.0, 1.0);
   } else if (shape == 1u && f.color.a > 0.0) {
     // A solid disc: the round seen as an object.

@@ -222,6 +222,9 @@ test("the material's road, forest and water masks are the simulation's surface r
     return inside;
   };
   let wet = 0;
+  // Samples round stroke ends that lie on a map (a road that runs off the
+  // map's edge has none to show).
+  let ends = 0;
   for (const map of [geometry, villageMap, riverLab]) {
     const { view, exports } = world(map);
     const { site } = buildTerrainSurface(exports, layout, biome);
@@ -269,7 +272,6 @@ test("the material's road, forest and water masks are the simulation's surface r
     let roads = 0;
     // Round every end of every stroke, where a round cap would differ from
     // the square end: past the end, beside it, and off its two corners.
-    let ends = 0;
     for (let r = 0; r < strokes.length; r += site.surfaceStrokeStride) {
       const cuts = strokes[r + STROKE_CUTS];
       for (const [bit, from, to] of [
@@ -300,7 +302,6 @@ test("the material's road, forest and water masks are the simulation's surface r
           }
       }
     }
-    expect(ends).toBeGreaterThan(40);
     for (let y = 0.37; y < depth; y += 2.3) {
       for (let x = 0.61; x < width; x += 2.3) {
         const [, , , , , kind, forest] = view.surface_at(x, y);
@@ -325,6 +326,7 @@ test("the material's road, forest and water masks are the simulation's surface r
     expect(roads).toBeGreaterThan(100);
   }
   expect(wet).toBeGreaterThan(2000);
+  expect(ends).toBeGreaterThan(100);
 });
 
 test("rounded strokes are the native samples, bit for bit", () => {
@@ -414,6 +416,24 @@ test("the forest floor names a palette of litter, moss and humus, and its number
   expect(() => validateBiome(short as Biome, "summer")).toThrow(/summer\.forest_floor\.palette/);
   const flecks = { ...biome, forest_floor: { ...floor, dapple: { ...floor.dapple, sun: 2 } } };
   expect(() => validateBiome(flecks, "summer")).toThrow(/summer\.forest_floor\.dapple\.sun/);
+});
+
+test("a shore that could draw dark, over its own wet bank or steeper than its bank is refused", () => {
+  const shore = biome.shore;
+  const refused = (change: Partial<typeof shore>, field: string) =>
+    expect(() => validateBiome({ ...biome, shore: { ...shore, ...change } }, "summer")).toThrow(
+      new RegExp(`summer\\.shore\\.${field}`),
+    );
+  // Darker than the ground it covers: it would read as a shadow on the field.
+  refused({ lift: 0.9 }, "lift");
+  // The earth's line wandering in past the wet bank's end.
+  refused({ wander: 0.5, mud_m: shore.wet_m * 1.5 }, "mud_m");
+  // Shading a bank steeper than it was cut.
+  refused({ relief: 1.2 }, "relief");
+  const silt = { ...biome.palettes, [shore.palette]: biome.palettes[shore.palette].slice(0, 1) };
+  expect(() => validateBiome({ ...biome, palettes: silt }, "summer")).toThrow(
+    /summer\.shore\.palette/,
+  );
 });
 
 test("mixed forest exports retain authored IDs and real concave and square-ended strip membership", () => {

@@ -59,12 +59,29 @@ export const FINDING_CODES = [
   "fit.mount_draw",
   /** A unit type names an appearance the catalog lacks, or of the wrong kind. */
   "fit.type_appearance",
+  // frame cost
+  /** A scenery kind's tier draws more triangles than its row allows. */
+  "budget.tier_triangles",
   // required nodes
   "nodes.missing",
   "nodes.hierarchy",
   "nodes.duplicate",
   "nodes.track_properties",
   "nodes.deploy_motion",
+  // city kits: a kit's modules, and its bundle's byte budget
+  "kit.module",
+  "kit.bytes",
+  // city template sets (`templateSource.ts`): the source file, its rows, the
+  // physical contract, fit to the descriptor, and the catalogue it covers
+  "templates.source",
+  "templates.kit",
+  "templates.row",
+  "templates.module",
+  "templates.state",
+  "templates.physical",
+  "templates.fit",
+  "templates.catalogue",
+  "templates.coverage",
 ] as const;
 export type FindingCode = (typeof FINDING_CODES)[number];
 
@@ -75,14 +92,16 @@ export type BundleKind = "skinned" | "articulated" | "static";
 /** What an appearance draws. A soldier kind names soldier appearances as its
  *  set and a hull type its vehicle appearance (the unit catalog); "scenery"
  *  is every prop, tree, hedgerow and grass kind, which one the entry's
- *  `scenery` (`scenery.ts`). */
-export type AppearanceUnit = "soldier" | "vehicle" | "building" | "scenery";
+ *  `scenery` (`scenery.ts`); a "kit" is a city set's shared modules, which
+ *  the template art library's rows place on buildings (`templateLibrary.ts`). */
+export type AppearanceUnit = "soldier" | "vehicle" | "building" | "scenery" | "kit";
 
 export const UNIT_BUNDLE_KIND: Record<AppearanceUnit, BundleKind> = {
   soldier: "skinned",
   vehicle: "articulated",
   building: "static",
   scenery: "static",
+  kit: "static",
 };
 
 /** Clip roles every infantry skeleton carries (spike 03), plus the fit reference pose. */
@@ -228,6 +247,8 @@ export interface ArticulatedBundle {
   bounds: Bounds; // over every pose the pose driver reaches (`posedBounds`)
 }
 
+/** One mesh per state. A building's states are what a side can know it as; a
+ *  kit's states are its modules, named by module id, each in its own frame. */
 export interface StaticBundle {
   kind: "static";
   states: { name: string; tiers: MeshData[]; bounds: Bounds }[];
@@ -295,9 +316,10 @@ export interface Authority {
   infantry_eye_m: number;
   infantry_muzzle_m: number;
   units: UnitCatalog;
-  /** The forest canopy (`forests.rule.canopy_height_m`): a tree, unscaled,
-   *  stands inside it. */
+  /** The forest canopy (`forests.rule.canopy_height_m` and
+   *  `canopy_radius_m`): a tree, unscaled, stands inside it. */
   canopy_height_m: number;
+  canopy_radius_m: number;
   /** A destroyed building becomes a ruin this tall (the fixture's `buildings` block). */
   ruin_height_m: number;
 }
@@ -321,7 +343,7 @@ export interface AppearanceEntry {
   unit: AppearanceUnit;
   /** For `unit: "scenery"`: the scenery kind, a key of `SCENERY_KINDS`. */
   scenery?: string;
-  /** Skinned and articulated: one GLB. Static: one GLB per state. */
+  /** Skinned, articulated and kit: one GLB. Static: one GLB per state. */
   source?: string;
   states?: Record<string, string>;
   basis_yaw_deg: number;
@@ -351,14 +373,27 @@ export interface AppearanceEntry {
 export interface GrassSpec {
   seed: number;
   blades: number;
-  /** Blade roots scatter within this radius of the clump's origin. */
+  /** The clump's spread: blade roots scatter within this radius of its
+   *  origin, a tight tuft or a loose stand. */
   radius_m: number;
-  /** Each blade's height, drawn from this range. */
+  /** Each blade's height, drawn from this range: no blade stands taller. */
   height_m: [number, number];
   /** Blade width at the root. */
   width_m: number;
   /** How far the tip leans out, as a fraction of the blade's height. */
   lean: [number, number];
+  /** How far the top hangs over: the tip falls this fraction of the blade's
+   *  height below a straight blade's. Absent: none. */
+  droop?: number;
+  /** The blade's outline. Absent: a grass blade, narrowing from the root to
+   *  a point. */
+  shape?: {
+    /** How late the blade narrows: 1.6 is a grass blade; larger holds the
+     *  root's width longer, as a stalk does. */
+    taper: number;
+    /** A leaf's swell: mid-blade is this many root widths wider. */
+    belly: number;
+  };
   /** The blade's colour at its root, middle and tip. */
   colors: {
     root: [number, number, number];
@@ -367,10 +402,13 @@ export interface GrassSpec {
   };
   /** Per-blade brightness jitter, as a fraction. */
   jitter: number;
+  /** How far the blades answer the field's one wind: 1 sways as the biome's
+   *  wind says, 0 stands still. */
+  wind: number;
   /** A seed head (wheat, grasses in flower) on a `chance` of the blades: from
    *  `from` of the height the blade swells to `width` times its root width,
-   *  closing at the tip. */
-  head?: { from: number; width: number; chance: number };
+   *  closing at the tip, and takes `color` when it has one (an ear, a flower). */
+  head?: { from: number; width: number; chance: number; color?: [number, number, number] };
   /** Dry stems among the green: a `chance` of the blades take these colours. */
   dry?: {
     chance: number;
@@ -382,12 +420,22 @@ export interface GrassSpec {
   };
 }
 
+/** One city source set (`blender/city/README.md`): its `templates.json` and
+ *  the kit appearance whose modules its rows place. */
+export interface CitySetEntry {
+  templates: string;
+  kit: string;
+}
+
 /** `assets/catalog.json`, authored. The bake writes the runtime projection. */
 export interface Catalog {
   tolerances: Tolerances;
   sides: SideTints;
   skeletons: Record<string, SkeletonEntry>;
   appearances: Record<string, AppearanceEntry>;
+  /** The city sets, by set name. The bake packs them all into the one
+   *  template art library. */
+  city_sets?: Record<string, CitySetEntry>;
 }
 
 /** `assets/runtime/catalog.json`, written by the bake: names to content hashes. */
@@ -406,8 +454,18 @@ export interface RuntimeCatalog {
       mounts?: MountDraws;
     }
   >;
+  /** The template art library (`templateLibrary.ts`), when the catalog has
+   *  city sets: its file's content hash, its art identity, and the hash of
+   *  the physical catalogue it covers. */
+  templates?: { library: string; art_hash: string; covers: string };
 }
 
 /** The file a bundle lives in, under its content hash's directory. */
 export const BUNDLE_FILE = "bundle.bin";
 export const bundlePath = (hash: string) => `${hash}/${BUNDLE_FILE}`;
+/** The file the template art library lives in, under its content hash's directory. */
+export const TEMPLATE_LIBRARY_FILE = "templates.bin";
+export const templateLibraryPath = (hash: string) => `${hash}/${TEMPLATE_LIBRARY_FILE}`;
+
+/** A kit bundle's byte budget: every module's four tiers and its textures. */
+export const KIT_BUNDLE_MAX_BYTES = 50 * 1024 * 1024;

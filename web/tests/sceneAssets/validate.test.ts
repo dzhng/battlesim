@@ -7,6 +7,7 @@ import { buildClips } from "@packages/scene-assets/src/build.ts";
 import { importScene } from "@packages/scene-assets/src/scene.ts";
 import {
   FINDING_CODES,
+  KIT_BUNDLE_MAX_BYTES,
   type AppearanceEntry,
   type Bundle,
   type SkeletonClips,
@@ -20,7 +21,20 @@ import {
   validateSkeleton,
 } from "@packages/scene-assets/src/validate.ts";
 import { textureFindings } from "@packages/scene-assets/src/texture.ts";
+import { bakeCatalog, kitBytesFindings } from "@packages/scene-assets/src/bake.ts";
+import {
+  HOUSE,
+  MODULES,
+  YARD,
+  cityCatalog,
+  cityContext,
+  citySources,
+  descriptor,
+  kitGlb,
+  testSet,
+} from "./city";
 import { grassClumpGlb } from "@packages/scene-assets/src/grass.ts";
+import { SCENERY_KINDS } from "@packages/scene-assets/src/scenery.ts";
 import {
   AUTHORITY,
   GRASS_SPEC,
@@ -132,6 +146,17 @@ async function scenery(
     ...(footprint ? { footprint_half_m: footprint } : {}),
   };
   return validateAppearance({ name: kind ?? "scenery", entry, files }, context);
+}
+
+/** A city set baked over its kit and the physical catalogue: every finding. */
+async function city(set: unknown = testSet(), catalogue?: unknown[], kit?: Uint8Array) {
+  const sources = citySources(set, kit);
+  const result = await bakeCatalog(
+    cityCatalog(),
+    async (path) => sources[path],
+    cityContext(catalogue),
+  );
+  return result.reports.flatMap((r) => r.findings);
 }
 
 async function skeleton(entry: Partial<SkeletonEntry>, bytes = soldierGlb()) {
@@ -247,11 +272,24 @@ const GOLDEN: Record<FindingCode, () => Promise<Finding[]>> = {
     return typeAppearanceFindings(appearances, AUTHORITY.units);
   },
   "fit.canopy": async () => (await scenery("tree", { summer: treeGlb(12.5) })).findings,
+  "budget.tier_triangles": async () =>
+    (await scenery("tree", { summer: treeGlb(10, 0, { crowns: overBudget(3) }) })).findings,
   "nodes.missing": () => tank({ omit: "hmg_muzzle" }),
   "nodes.hierarchy": () => tank({ muzzleUnderTurret: true }),
   "nodes.duplicate": () => tank({ duplicateWheel: true }),
   "nodes.track_properties": () => tank({ noTrackProperties: true }),
   "nodes.deploy_motion": () => truck({ noDeployMotion: true }),
+  "kit.module": () => city(testSet(), undefined, kitGlb(MODULES, true)),
+  "kit.bytes": async () => kitBytesFindings("kit", KIT_BUNDLE_MAX_BYTES + 1),
+  "templates.source": () => city("not a set at all"),
+  "templates.kit": () => city(testSet((set) => (set.kit = "another_kit"))),
+  "templates.row": () => city(testSet((set) => set.templates[0].states.intact![0].pop())),
+  "templates.module": () => city(testSet((set) => set.modules.push("balcony"))),
+  "templates.state": () => city(testSet((set) => delete set.templates[0].states.intact)),
+  "templates.physical": () => city(testSet((set) => (set.templates[0].descriptor.entrances = []))),
+  "templates.fit": () => city(testSet((set) => (set.fit.side_m = 0))),
+  "templates.catalogue": () => city(testSet(), [HOUSE]),
+  "templates.coverage": () => city(testSet(), [HOUSE, YARD, descriptor("test-shed")]),
 };
 
 test("the valid synthetic assets produce no findings at all", async () => {
@@ -265,6 +303,7 @@ test("the valid synthetic assets produce no findings at all", async () => {
     ...(await scenery("hedgerow", { summer: treeGlb(3) })).findings,
     ...(await scenery("grass", { summer: grassClumpGlb("tuft", GRASS_SPEC) })).findings,
     ...(await skeleton({})),
+    ...(await city()),
   ];
   expect(all).toEqual([]);
 });
@@ -289,6 +328,42 @@ test("a tree must stand inside the simulation's canopy; a hedgerow need not", as
   expect(await codes("tree", 12.5)).toEqual(["fit.canopy"]);
   expect(await codes("tree", 11.9)).toEqual([]);
   expect(await codes("hedgerow", 14)).toEqual([]);
+});
+
+test("a tree's crown reaches no farther than the simulation's canopy radius, on every tier", async () => {
+  // The synthetic crown is a square, so its corner reaches radius × √2.
+  const reach = (corner: number) => corner / Math.SQRT2;
+  const codes = async (kind: string, corner: number) =>
+    (await scenery(kind, { summer: treeGlb(10, 0, { radius: reach(corner) }) })).findings.map(
+      (f) => f.code,
+    );
+  expect(await codes("tree", AUTHORITY.canopy_radius_m + 0.1)).toEqual(["fit.canopy"]);
+  expect(await codes("tree", AUTHORITY.canopy_radius_m - 0.1)).toEqual([]);
+  expect(await codes("hedgerow", AUTHORITY.canopy_radius_m + 3)).toEqual([]);
+});
+
+/** Crown boxes per tier that put tier `tier` one box over the tree budget
+ *  (`by` 0: the most boxes inside it). Finer tiers draw as many, inside
+ *  their own larger budgets, so the tiers stay ordered; coarser ones draw one. */
+function overBudget(tier: number, by = 1): number[] {
+  const budget = SCENERY_KINDS.tree.tier_triangles!;
+  const trunk = 12;
+  const boxes = Math.floor((budget[tier] - trunk) / 12) + by;
+  return budget.map((_, t) => (t <= tier ? boxes : 1));
+}
+
+test("a tree's tiers each stay inside the triangle budget; a hedgerow has none", async () => {
+  for (let tier = 0; tier < 4; tier++) {
+    const over = await scenery("tree", { summer: treeGlb(10, 0, { crowns: overBudget(tier) }) });
+    expect(over.findings.map((f) => f.code)).toEqual(["budget.tier_triangles"]);
+    expect(over.findings[0].message).toContain(`tier ${tier}`);
+    const within = await scenery("tree", {
+      summer: treeGlb(10, 0, { crowns: overBudget(tier, 0) }),
+    });
+    expect(within.findings).toEqual([]);
+  }
+  const hedge = await scenery("hedgerow", { summer: treeGlb(3, 0, { crowns: overBudget(3) }) });
+  expect(hedge.findings).toEqual([]);
 });
 
 test("an LFS pointer's finding prints the exact pull command", async () => {

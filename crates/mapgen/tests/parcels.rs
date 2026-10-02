@@ -102,8 +102,11 @@ fn town(map_type: MapType, size: MapSize, seed: u64) -> Arc<Town> {
     let request = request(map_type, size, seed);
     let plan = fill(&request, &presets(), &catalogue())
         .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} seed {seed}: {errors:?}"));
-    let compiled = mapgen::lower(&request.compile_request(plan.clone()), &catalogue())
-        .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} seed {seed}: {errors:?}"));
+    let compiled = mapgen::lower(
+        &mapgen::CompileRequest::generated(&request, plan.clone()),
+        &catalogue(),
+    )
+    .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} seed {seed}: {errors:?}"));
     let town = Arc::new(Town {
         plan,
         map: compiled.map,
@@ -197,7 +200,11 @@ fn a_fixed_request_gives_the_same_plan_and_map_bytes_every_run() {
         let bytes = |seed: u64| {
             let request = request(map_type, MapSize::Small, seed);
             let plan = fill(&request, &presets, &catalogue).unwrap();
-            let map = mapgen::lower(&request.compile_request(plan.clone()), &catalogue).unwrap();
+            let map = mapgen::lower(
+                &mapgen::CompileRequest::generated(&request, plan.clone()),
+                &catalogue,
+            )
+            .unwrap();
             (
                 serde_json::to_string(&plan).unwrap(),
                 serde_json::to_string(&map.map).unwrap(),
@@ -576,9 +583,12 @@ fn an_open_map_zoned_for_apartments_builds_none_above_six_floors() {
     for seed in 1..=6 {
         let request = request(MapType::Open, MapSize::Small, seed);
         let plan = fill(&request, &presets, &catalogue).unwrap();
-        let map = mapgen::lower(&request.compile_request(plan), &catalogue)
-            .unwrap()
-            .map;
+        let map = mapgen::lower(
+            &mapgen::CompileRequest::generated(&request, plan),
+            &catalogue,
+        )
+        .unwrap()
+        .map;
         for building in &map.buildings {
             assert!(
                 floors(building) <= 6,
@@ -637,26 +647,30 @@ fn a_districts_built_ground_follows_its_category_shares() {
 /// M08: one map, one regional family, whichever the seed draws.
 #[test]
 fn every_building_of_a_map_is_of_one_regional_family() {
-    // A second family beside the prototype: the same shapes under other ids.
+    // A second family beside the catalogue's own: the same shapes under other ids.
     let mut templates: Vec<BuildingTemplateDescriptor> = serde_json::from_str(TEMPLATES).unwrap();
+    let family = templates[0].regional_family.clone();
     let other = templates.clone().into_iter().map(|mut template| {
-        template.id = template.id.replace("prototype", "other");
+        template.id = format!("other-{}", template.id);
         template.regional_family = "other".into();
         template
     });
     templates.extend(other.collect::<Vec<_>>());
     let catalogue = TemplateGeometryCatalog::new(templates).unwrap();
     let mut source: serde_json::Value = serde_json::from_str(PRESETS).unwrap();
-    source["parcels"]["regional_families"] = serde_json::json!(["prototype", "other"]);
+    source["parcels"]["regional_families"] = serde_json::json!([family, "other"]);
     let presets = PresetDefinitions::from_json(&source.to_string()).unwrap();
     let mut drawn = BTreeSet::new();
     for seed in 1..=8 {
         let mut request = request(MapType::Mixed, MapSize::Small, seed);
         request.template_catalog_hash = catalogue.hash().into();
         let plan = fill(&request, &presets, &catalogue).unwrap();
-        let map = mapgen::lower(&request.compile_request(plan), &catalogue)
-            .unwrap()
-            .map;
+        let map = mapgen::lower(
+            &mapgen::CompileRequest::generated(&request, plan),
+            &catalogue,
+        )
+        .unwrap()
+        .map;
         let families: BTreeSet<&str> = map
             .buildings
             .iter()
@@ -830,31 +844,33 @@ fn what_cannot_be_built_ends_in_a_named_diagnostic() {
     assert_eq!(errors[0].location, "$.limits.max_ground_points");
 }
 
-/// The compiled map is what a battle loads: it reads back as the contract's
-/// map, with every building's facts resolved against the catalogue.
+/// The compiled map is what a battle loads: saved, it resolves back to the
+/// same map under the saved catalogue's own allowance, every building
+/// materialized from the catalogue.
 #[test]
 fn every_generated_map_loads_as_the_contracts_map() {
     let library = catalogue().canonical_json().unwrap();
     every_cell(|name, _, town| {
-        let saved = serde_json::to_string(&town.map).unwrap();
-        let loaded: MapDefinition = serde_json::from_str(&saved).unwrap();
-        assert_eq!(loaded.buildings.len(), town.plan.buildings.len(), "{name}");
-        assert_eq!(serde_json::to_string(&loaded).unwrap(), saved, "{name}");
+        let saved = serde_json::to_string(&town.map.saved()).unwrap();
         let sources = serde_json::json!({
             "identity": {
                 "kind": "authored",
-                "map_hash": contract::identity::json_hash(&loaded).unwrap(),
-                "template_catalog_hash": loaded.template_catalog_hash,
+                "map_hash": contract::identity::json_hash(&town.map).unwrap(),
+                "template_catalog_hash": town.map.template_catalog_hash,
             },
-            "catalogue": { "template_ids": null },
+            "catalogue": { "library": "prototype-building-templates.json", "template_ids": null },
             "inputs": [{ "kind": "supplied", "label": "request", "sha256": "0".repeat(64) }],
         });
-        let admission = contract::maps::MapAdmission {
-            max_authored_parts: 60_000,
-            max_bay_positions: 600_000,
-        };
-        contract::maps::resolve(&saved, &sources.to_string(), &library, admission)
-            .unwrap_or_else(|error| panic!("{name}: {error}"));
+        let admission = contract::maps::MapAdmission::CATALOGUE;
+        let loaded = contract::maps::resolve(&saved, &sources.to_string(), &library, admission)
+            .unwrap_or_else(|error| panic!("{name}: {error}"))
+            .definition;
+        assert_eq!(loaded.buildings.len(), town.plan.buildings.len(), "{name}");
+        assert_eq!(
+            serde_json::to_string(&loaded).unwrap(),
+            serde_json::to_string(&town.map).unwrap(),
+            "{name}"
+        );
     });
 }
 

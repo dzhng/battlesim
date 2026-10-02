@@ -1,0 +1,13 @@
+{
+  "category": "playable",
+  "status": "released",
+  "label": "Market Town",
+  "character": "mixed",
+  "biome": "summer",
+  "size_m": [6000, 6000],
+  "tags": ["road", "forest", "building"],
+  "source": "generated",
+  "seed": "1",
+  "encounters": ["assault"],
+  "benchmarks": []
+}

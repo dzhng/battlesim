@@ -19,96 +19,20 @@ pub use measure::{
 };
 pub use presets::*;
 
-use crate::{CompileLimits, CompileRequest, Diagnostic, DiagnosticCode, MapPlan};
-use contract::identity::Seed;
-use serde::{Deserialize, Serialize};
+use crate::{Diagnostic, DiagnosticCode, MapPlan};
 use std::collections::BTreeMap;
 
 /// A request pins this; a change that moves any generated point renames it.
-pub const GENERATOR_VERSION: &str = "layout-5";
+pub const GENERATOR_VERSION: &str = "layout-7";
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum MapType {
-    Open,
-    Mixed,
-    Metro,
-}
+pub use contract::generation::{GenerationRequest, MapSize, MapType};
 
-impl MapType {
-    pub const ALL: [MapType; 3] = [MapType::Open, MapType::Mixed, MapType::Metro];
-    pub fn name(self) -> &'static str {
-        match self {
-            MapType::Open => "open",
-            MapType::Mixed => "mixed",
-            MapType::Metro => "metro",
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum MapSize {
-    Small,
-    Medium,
-    Large,
-}
-
-impl MapSize {
-    pub const ALL: [MapSize; 3] = [MapSize::Small, MapSize::Medium, MapSize::Large];
-    pub fn name(self) -> &'static str {
-        match self {
-            MapSize::Small => "small",
-            MapSize::Medium => "medium",
-            MapSize::Large => "large",
-        }
-    }
-    /// M04: the side of the square playable area. A user decision, not a preset.
-    pub fn extent_m(self) -> f64 {
-        match self {
-            MapSize::Small => 6_000.0,
-            MapSize::Medium => 8_000.0,
-            MapSize::Large => 10_000.0,
-        }
-    }
-}
-
-/// Everything that decides a generated plan. The same request and presets
-/// give the same plan bytes on every target.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct GenerationRequest {
-    pub generator_version: String,
-    pub preset_revision: String,
-    pub seed: Seed,
-    pub template_catalog_hash: String,
-    #[serde(rename = "type")]
-    pub map_type: MapType,
-    pub size: MapSize,
-    /// The compiler's admission for the plan this request yields.
-    pub limits: CompileLimits,
-}
-
-impl GenerationRequest {
-    /// The compiler request for a plan generated from this request.
-    pub fn compile_request(&self, plan: MapPlan) -> CompileRequest {
-        CompileRequest {
-            generator_version: self.generator_version.clone(),
-            preset_revision: self.preset_revision.clone(),
-            seed: self.seed,
-            template_catalog_hash: self.template_catalog_hash.clone(),
-            plan,
-            limits: self.limits,
-        }
-    }
-
-    /// The request's own random stream of that name. The type and size are
-    /// part of the key, so one seed gives each of the nine maps its own
-    /// layout, and each consumer draws without moving another's.
-    pub(crate) fn stream(&self, name: &str) -> rng::Stream {
-        let (map_type, size) = (self.map_type.name(), self.size.name());
-        rng::Stream::new(self.seed.value(), &format!("{map_type}/{size}/{name}"))
-    }
+/// The request's own random stream of that name. The type and size are
+/// part of the key, so one seed gives each of the nine maps its own
+/// layout, and each consumer draws without moving another's.
+pub(crate) fn stream(request: &GenerationRequest, name: &str) -> rng::Stream {
+    let (map_type, size) = (request.map_type.name(), request.size.name());
+    rng::Stream::new(request.seed.value(), &format!("{map_type}/{size}/{name}"))
 }
 
 /// One request's fixed inputs, shared by every generation step.
@@ -122,7 +46,7 @@ struct Context<'a> {
 
 impl Context<'_> {
     fn stream(&self, name: &str) -> rng::Stream {
-        self.request.stream(name)
+        stream(self.request, name)
     }
 
     /// A bounded search ran out. Names the feature, the preset cell and the

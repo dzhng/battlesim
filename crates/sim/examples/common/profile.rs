@@ -68,8 +68,12 @@ impl Profile {
 /// Wire costs read the serializer's published layout, including its headers.
 pub struct Delivery {
     fog_index: usize,
-    prop_stride: usize,
-    corpse_stride: usize,
+    header_len: usize,
+    group_count: usize,
+    delivery_width: usize,
+    payload_index: usize,
+    prop_group: usize,
+    corpse_group: usize,
     sum: [u64; 6],
     max: [u64; 6],
     records: u64,
@@ -80,21 +84,27 @@ impl Delivery {
         let layout: serde_json::Value =
             serde_json::from_str(&sim::publication::layout_json(battle)).unwrap();
         let fields = layout["header"].as_array().unwrap();
-        let stride = |name: &str| {
+        let group = |name: &str| {
             layout["groups"]
                 .as_array()
                 .unwrap()
                 .iter()
-                .find(|g| g["name"] == name)
-                .unwrap()["fields"]
-                .as_array()
+                .position(|g| g["name"] == name)
                 .unwrap()
-                .len()
         };
         Self {
             fog_index: fields.iter().position(|v| v == "fogFloats").unwrap(),
-            prop_stride: stride("knownProps"),
-            corpse_stride: stride("corpses"),
+            header_len: fields.len(),
+            group_count: layout["groups"].as_array().unwrap().len(),
+            delivery_width: layout["groupDelivery"]["fields"].as_array().unwrap().len(),
+            payload_index: layout["groupDelivery"]["fields"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .position(|f| f == "floats")
+                .unwrap(),
+            prop_group: group("knownProps"),
+            corpse_group: group("corpses"),
             sum: [0; 6],
             max: [0; 6],
             records: 0,
@@ -114,9 +124,15 @@ impl Delivery {
         let counted = instructions().zip(before).map_or(0, |(a, b)| a - b);
         let total = record.len() * 4;
         let fog = record[self.fog_index] as usize * 4;
-        let frame = battle.observe(side);
-        let props = frame.known_props.len() * self.prop_stride * 4;
-        let corpses = frame.corpses.len() * self.corpse_stride * 4;
+        let mut at = self.header_len;
+        let mut sizes = Vec::new();
+        for _ in 0..self.group_count {
+            let payload = record[at + self.payload_index] as usize;
+            sizes.push((self.delivery_width + payload) * 4);
+            at += self.delivery_width + payload;
+        }
+        let props = sizes[self.prop_group];
+        let corpses = sizes[self.corpse_group];
         let ground = publisher.ground_patch_bytes();
         let values = [
             fog as u64,

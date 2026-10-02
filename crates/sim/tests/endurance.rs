@@ -171,3 +171,48 @@ fn late_stress_remains_do_not_overwrite_building_parts() {
         LATE_WRECKS
     );
 }
+
+/// Remains are not traffic. Increasing vehicles must not multiply the work
+/// added by thousands of fallen squads; count instructions, not loaded clocks.
+#[cfg(target_os = "macos")]
+#[test]
+fn fallen_squads_do_not_multiply_vehicle_traffic_work() {
+    if !common::isolated_cost_test("endurance::fallen_squads_do_not_multiply_vehicle_traffic_work")
+    {
+        return;
+    }
+    fn movement_cost(vehicles: usize, fallen: usize) -> u64 {
+        let mut units =
+            vec![serde_json::json!({ "side": "blue", "kind": "rifle", "position": [900,900] })];
+        for k in 0..vehicles {
+            units.push(serde_json::json!({ "side": "blue", "kind": "tank", "position": [50 + k * 10, 50] }));
+        }
+        for _ in 0..fallen {
+            units.push(
+                serde_json::json!({ "side": "blue", "kind": "rifle", "position": [500,500],
+                "condition": { "casualties": common::rules().catalog.by_id("rifle").squad_size() } }),
+            );
+        }
+        let setup = common::scenario(
+            r#"{ "size": [1000,1000], "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 }"#,
+            serde_json::Value::Array(units),
+            serde_json::json!([]),
+        );
+        let mut b = Battle::new(&setup, 1);
+        let mut previous = common::counters::instructions().expect("native instruction counter");
+        let mut movement = 0;
+        b.step_profiled(|phase| {
+            let now = common::counters::instructions().unwrap();
+            if phase == sim::battle::TickPhase::Movement {
+                movement += now - previous;
+            }
+            previous = now;
+        });
+        movement
+    }
+    let one = movement_cost(1, 2000).saturating_sub(movement_cost(1, 0));
+    let fifty = movement_cost(50, 2000).saturating_sub(movement_cost(50, 0));
+    assert!(one > 0, "instruction counter must observe the added work");
+    assert!(fifty <= one * 2 + 1_000_000,
+        "fallen-squad traffic amplification: one vehicle adds {one} instructions, fifty add {fifty}");
+}

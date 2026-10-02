@@ -160,16 +160,7 @@ impl MapPlan {
     }
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct CompileLimits {
-    /// Ordinary authored bodies plus materialized template parts only.
-    pub max_authored_parts: u32,
-    pub max_bay_positions: u64,
-    /// Polygon vertices plus rounded stroke samples, over surfaces, forests
-    /// and rivers.
-    pub max_ground_points: u64,
-}
+pub use contract::generation::CompileLimits;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -180,6 +171,20 @@ pub struct CompileRequest {
     pub template_catalog_hash: String,
     pub plan: MapPlan,
     pub limits: CompileLimits,
+}
+
+impl CompileRequest {
+    /// The compiler request for a plan generated from `request`.
+    pub fn generated(request: &GenerationRequest, plan: MapPlan) -> Self {
+        CompileRequest {
+            generator_version: request.generator_version.clone(),
+            preset_revision: request.preset_revision.clone(),
+            seed: request.seed,
+            template_catalog_hash: request.template_catalog_hash.clone(),
+            plan,
+            limits: request.limits,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -324,8 +329,9 @@ pub fn generate_map(
     presets_json: &str,
     descriptors_json: &str,
 ) -> CompileOutcome {
-    let result = generate(request_json, presets_json, descriptors_json)
-        .and_then(|(request, plan, catalogue)| lower(&request.compile_request(plan), &catalogue));
+    let result = generate(request_json, presets_json, descriptors_json).and_then(
+        |(request, plan, catalogue)| lower(&CompileRequest::generated(&request, plan), &catalogue),
+    );
     match result {
         Ok(result) => CompileOutcome::Ok {
             result: Box::new(result),

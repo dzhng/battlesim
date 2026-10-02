@@ -124,6 +124,7 @@ export const AUTHORITY: Authority = {
   infantry_muzzle_m: 1.4,
   units: syntheticUnits(),
   canopy_height_m: 12,
+  canopy_radius_m: 6.5,
   ruin_height_m: 2,
 };
 
@@ -532,7 +533,7 @@ export const SKELETON_ENTRY: SkeletonEntry = {
 
 /** Engine space (Z up, +X forward) → glTF (Y up): (x, y, z) → (x, z, −y). */
 const g3 = ([x, y, z]: Vec3): Vec3 => [x, z, -y];
-const gBox = (b: GltfBuilder, min: Vec3, max: Vec3) => {
+export const gBox = (b: GltfBuilder, min: Vec3, max: Vec3) => {
   const [a, c] = [g3(min), g3(max)];
   return b.box(
     [Math.min(a[0], c[0]), Math.min(a[1], c[1]), Math.min(a[2], c[2])],
@@ -748,12 +749,24 @@ export function buildingGlb(height = 6, lift = 0): Uint8Array {
   return b.glb();
 }
 
-/** A tree: a trunk and a crown whose top stands `height` metres up, four tiers. */
-export function treeGlb(height = 10, lift = 0): Uint8Array {
+/** A tree: a trunk and a crown whose top stands `height` metres up and
+ *  reaches `radius` from the trunk's axis, four tiers. `crowns[t]` draws tier
+ *  t's crown as that many boxes (12 triangles each) instead of one. */
+export function treeGlb(
+  height = 10,
+  lift = 0,
+  o: { radius?: number; crowns?: readonly number[] } = {},
+): Uint8Array {
   const b = new GltfBuilder();
-  const parts = ["_LOD0", "_LOD1", "_LOD2", "_LOD3"].flatMap((suffix) => [
+  const r = o.radius ?? 4;
+  const parts = ["_LOD0", "_LOD1", "_LOD2", "_LOD3"].flatMap((suffix, t) => [
     b.node({ name: `trunk${suffix}`, mesh: gBox(b, [-0.3, -0.3, lift], [0.3, 0.3, 4 + lift]) }),
-    b.node({ name: `crown${suffix}`, mesh: gBox(b, [-4, -4, 3 + lift], [4, 4, height + lift]) }),
+    ...Array.from({ length: o.crowns?.[t] ?? 1 }, (_, i) =>
+      b.node({
+        name: `crown${i}${suffix}`,
+        mesh: gBox(b, [-r, -r, 3 + lift], [r, r, height + lift]),
+      }),
+    ),
   ]);
   b.roots(b.node({ name: "tree", children: parts }));
   return b.glb();
@@ -769,6 +782,7 @@ export const GRASS_SPEC: GrassSpec = {
   lean: [0.1, 0.4],
   colors: { root: [0.1, 0.16, 0.05], mid: [0.25, 0.33, 0.14], tip: [0.45, 0.46, 0.25] },
   jitter: 0.1,
+  wind: 1,
 };
 
 export function testCatalog(): Catalog {

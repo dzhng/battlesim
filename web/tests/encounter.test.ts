@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { initSync, generate_map, plan_encounter } from "@wasm/game_wasm.js";
 import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
-import { mapAndSites } from "../src/battle/prepare/generatedBattle";
+import { mapAndSites } from "../src/maps/source";
 
 const fixture = (path: string) =>
   readFileSync(new URL(`../../fixtures/${path}`, import.meta.url), "utf8");

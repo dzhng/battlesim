@@ -6,6 +6,14 @@ import { SavedEncounter, villageScenario } from "../savedMaps";
 import { BattleView } from "../BattleView";
 import { useBuiltScenario } from "../useBuiltScenario";
 import { gameCamera } from "../gameCamera";
+import { BattleClock, objectiveStatus } from "../battleStatus";
+import {
+  isPreparedReplay,
+  readSavedReplay,
+  ReplayImport,
+  saveReplay,
+  type ReplayFile as SavedFile,
+} from "../replayFile";
 import type { BattleSession } from "../useBattleSession";
 import type { ScriptedSim } from "../useSimSession";
 
@@ -14,26 +22,20 @@ const VARIANT_LABEL: Record<Variant, string> = {
   ordinary: "Ordinary ambush",
   prepared_crossfire: "Prepared crossfire",
 };
-/** A saved battle: the variant it was played on and every accepted command. */
+/** A saved village battle: the variant it was played on and every accepted
+ *  command. */
 interface ReplayFile {
   variant: Variant;
   replay: string;
 }
-const LAST_REPLAY_KEY = "village-last-replay";
 
 const VILLAGE_CAMERA = gameCamera.opening();
 
-const HOLD_S = game.encounter.hold_s;
-const TICK_HZ = game.tick_hz;
-/** The objective's readout once the battle is decided; while it runs, the
- *  hold's count. */
-const RESULT_TEXT: Record<string, string> = {
-  captured: "VILLAGE CAPTURED",
-  defeated: "DEFEATED",
-  inconclusive: "INCONCLUSIVE: PLAY ON",
-};
-
 const isVariant = (v: unknown): v is Variant => typeof v === "string" && v in VARIANT_LABEL;
+/** Whether a saved battle is the village's (a prepared battle's has its own
+ *  viewer). */
+const isVillageReplay = (file: SavedFile): file is ReplayFile =>
+  !isPreparedReplay(file) && isVariant(file.variant);
 
 /** The battle's seed: the scenario's own, or `?seed=` for testing. No
  *  player UI shows or sets it. */
@@ -52,7 +54,7 @@ function watchedScript(fallback: string): string {
 
 /** The village scenario JSON for `variant`, built by the simulation. */
 function useVillageScenario(variant: Variant): string | { error: string } | null {
-  const built = useBuiltScenario(variant, villageScenario);
+  const built = useBuiltScenario(variant, (wasm, variant) => villageScenario(wasm, variant));
   return built && typeof built !== "string"
     ? { error: `the village scenario could not be built: ${built.error}` }
     : built;
@@ -95,24 +97,9 @@ function ScenarioPicker({
   );
 }
 
-/** The battle's clock, from the published tick. */
-function BattleClock({ tick }: { tick: number }) {
-  const s = tick / TICK_HZ;
-  return (
-    <span className="hud-clock" data-testid="clock">
-      {Math.floor(s / 60)}:{String(Math.floor(s % 60)).padStart(2, "0")}
-    </span>
-  );
-}
-
-function readSavedReplay(): ReplayFile | null {
-  try {
-    const raw = localStorage.getItem(LAST_REPLAY_KEY);
-    const file = raw ? (JSON.parse(raw) as ReplayFile) : null;
-    return file && isVariant(file.variant) ? file : null;
-  } catch {
-    return null;
-  }
+function savedVillageReplay(): ReplayFile | null {
+  const file = readSavedReplay();
+  return file && isVillageReplay(file) ? file : null;
 }
 
 /** /battle/village: play the encounter. */
@@ -179,7 +166,7 @@ function VillageEncounter({ script }: { script: string | null }) {
 export function VillageReplay() {
   // Each loaded file gets a fresh view, even one identical to the last.
   const [loaded, setLoaded] = useState<{ file: ReplayFile | null; n: number }>(() => ({
-    file: readSavedReplay(),
+    file: savedVillageReplay(),
     n: 0,
   }));
   const setFile = (file: ReplayFile) => {
@@ -192,7 +179,7 @@ export function VillageReplay() {
     return (
       <main style={{ padding: 24 }}>
         <h1>Village replay</h1>
-        <ReplayImport onLoad={setFile} />
+        <ReplayImport plays={isVillageReplay} onLoad={setFile} />
       </main>
     );
   if (!scenario) return null;
@@ -206,36 +193,6 @@ export function VillageReplay() {
       replay={file}
       onLoadReplay={setFile}
     />
-  );
-}
-
-function ReplayImport({ onLoad }: { onLoad: (file: ReplayFile) => void }) {
-  const [error, setError] = useState<string | null>(null);
-  return (
-    <label className="hud-menu-file">
-      Load a saved battle{" "}
-      <input
-        type="file"
-        accept="application/json"
-        data-testid="replay-file"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (!f) return;
-          void f.text().then((text) => {
-            try {
-              const parsed = JSON.parse(text) as ReplayFile;
-              if (typeof parsed.replay !== "string" || !isVariant(parsed.variant))
-                throw new Error("not a village battle file");
-              setError(null);
-              onLoad(parsed);
-            } catch (err) {
-              setError((err as Error).message);
-            }
-          });
-        }}
-      />
-      {error && <span className="hud-error"> {error}</span>}
-    </label>
   );
 }
 
@@ -263,38 +220,12 @@ function VillageView({
   const exportReplay = async ({ sim }: BattleSession) => {
     if (!sim.client) return null;
     const file: ReplayFile = { variant, replay: await sim.client.replay() };
-    const text = JSON.stringify(file);
-    try {
-      localStorage.setItem(LAST_REPLAY_KEY, text);
-    } catch {
-      // storage unavailable: the download still works
-    }
-    const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `village-${variant}-seed${seed}-tick${sim.latest.current?.tick ?? 0}.json`;
-    a.click();
-    // Revoking at once can cancel the download in some browsers.
-    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    saveReplay(file, `village-${variant}-seed${seed}-tick${sim.latest.current?.tick ?? 0}.json`);
     return file;
   };
 
   // The top bar: the objective and the clock, nothing else.
-  const status = ({ sim }: BattleSession) => {
-    const enc = sim.observation?.encounter;
-    return (
-      <>
-        <span className="hud-objective" data-testid="encounter">
-          {!enc
-            ? "—"
-            : enc.result === "running"
-              ? `HOLD ${enc.heldS.toFixed(0)}/${HOLD_S} s`
-              : RESULT_TEXT[enc.result]}
-        </span>
-        <BattleClock tick={sim.observation?.tick ?? 0} />
-      </>
-    );
-  };
+  const status = objectiveStatus(game.encounter.hold_s, "VILLAGE CAPTURED");
   // The pause menu: the scenario (a replay's is fixed: its name) and the
   // replay files.
   const menu = (session: BattleSession) => (
@@ -317,7 +248,7 @@ function VillageView({
           Watch saved replay
         </a>
       )}
-      {replay && onLoadReplay && <ReplayImport onLoad={onLoadReplay} />}
+      {replay && onLoadReplay && <ReplayImport plays={isVillageReplay} onLoad={onLoadReplay} />}
     </>
   );
 

@@ -1,6 +1,7 @@
 //! One admission boundary for acquired physical maps; no IO or world construction.
+use crate::generation::GenerationRequest;
 use crate::identity::GenerationIdentity;
-use crate::map::MapDefinition;
+use crate::map::{BuildingDefinition, MapDefinition, SavedBuilding, SavedMap};
 use crate::templates::TemplateGeometryCatalog;
 use serde::{de::Error, Deserialize, Deserializer, Serialize};
 
@@ -37,7 +38,11 @@ impl<'de> Deserialize<'de> for MapId {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum MapSource {
+    /// A saved map of the catalogue, `fixtures/maps/<id>/`.
     Catalogue { id: MapId },
+    /// A map the generator makes from `request`. It needs no catalogue
+    /// folder: the request, with the build that reads it, is the map.
+    Generated { request: GenerationRequest },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -85,10 +90,17 @@ pub enum SourceReceipt {
     },
 }
 
-/// Selection from the shared physical library, never a copied template file.
+/// The physical catalogue a map's buildings are materialized from: a library
+/// and a selection of its templates, never a copied template file.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CatalogueSelection {
+    /// The library's file name, beside the catalogue's `maps/` folder
+    /// (`fixtures/<library>`). It is only where an adapter finds the library:
+    /// what admits the library is the catalogue hash the map names.
+    pub library: String,
+    /// The templates of the library that are the map's catalogue; `None` for
+    /// the whole library.
     pub template_ids: Option<Vec<String>>,
 }
 
@@ -108,13 +120,14 @@ pub struct MapAdmission {
 }
 
 impl MapAdmission {
-    /// What the saved catalogue's adapters admit (`fixtures/maps/<id>/`): the
-    /// authored arenas and the village, with room to grow. A larger saved map
-    /// is refused, and raising this is a decision about every catalogue
-    /// reader's startup, native and browser alike.
+    /// What the saved catalogue's adapters admit (`fixtures/maps/<id>/`):
+    /// any map the game's generator may make, so a generated map can be
+    /// saved. These are the generation limits of
+    /// `fixtures/generated-battle.json`, and a test holds the two together.
+    /// A larger saved map is refused.
     pub const CATALOGUE: Self = Self {
-        max_authored_parts: 4096,
-        max_bay_positions: 65_536,
+        max_authored_parts: 60_000,
+        max_bay_positions: 600_000,
     };
 }
 
@@ -177,18 +190,110 @@ impl std::fmt::Display for ResolveError {
 }
 impl std::error::Error for ResolveError {}
 
+impl MapSources {
+    /// `SOURCES.json`, parsed and checked on its own. An adapter reads it
+    /// first, to learn which library to fetch (`catalogue.library`).
+    pub fn from_json(sources_json: &str) -> Result<Self, ResolveError> {
+        let sources: MapSources =
+            serde_json::from_str(sources_json).map_err(|e: serde_json::Error| ResolveError {
+                code: ResolveCode::InvalidSources,
+                location: "SOURCES.json".into(),
+                message: e.to_string(),
+            })?;
+        let library = &sources.catalogue.library;
+        if library
+            .strip_suffix(".json")
+            .is_none_or(|stem| MapId::new(stem).is_err())
+        {
+            return Err(ResolveError {
+                code: ResolveCode::InvalidSources,
+                location: "SOURCES.json.catalogue.library".into(),
+                message: "the physical library is one lowercase ASCII file name ending in .json, never a path".into(),
+            });
+        }
+        if let MapIdentity::Generated { generation } = &sources.identity {
+            generation.validate().map_err(|error| ResolveError {
+                code: ResolveCode::InvalidSources,
+                location: format!("SOURCES.json.identity.generation.{}", error.field),
+                message: error.message.into(),
+            })?;
+        }
+        if sources.inputs.is_empty() {
+            return Err(ResolveError {
+                code: ResolveCode::InvalidSources,
+                location: "SOURCES.json.inputs".into(),
+                message: "map provenance requires input receipts".into(),
+            });
+        }
+        for (i, input) in sources.inputs.iter().enumerate() {
+            let sha256 = match input {
+                SourceReceipt::Repository {
+                    path,
+                    revision,
+                    sha256,
+                } => {
+                    let relative = !path.contains(['\\', ':'])
+                        && !path.chars().any(char::is_control)
+                        && path
+                            .split('/')
+                            .all(|p| !p.is_empty() && p != "." && p != "..");
+                    if !relative {
+                        return Err(receipt_error(
+                            i,
+                            "path",
+                            "input path must be normalized and repository-relative",
+                        ));
+                    }
+                    if revision.trim().is_empty() {
+                        return Err(receipt_error(
+                            i,
+                            "revision",
+                            "input revision must be nonempty",
+                        ));
+                    }
+                    sha256
+                }
+                SourceReceipt::Supplied { label, sha256 } => {
+                    if label.trim().is_empty() {
+                        return Err(receipt_error(
+                            i,
+                            "label",
+                            "supplied input label must be nonempty",
+                        ));
+                    }
+                    sha256
+                }
+            };
+            if !crate::identity::is_sha256(sha256) {
+                return Err(receipt_error(
+                    i,
+                    "sha256",
+                    "input content hash must be canonical SHA256",
+                ));
+            }
+        }
+        Ok(sources)
+    }
+}
+
+/// Admit a saved map: `map.json` (a [`SavedMap`]), the `SOURCES.json` that
+/// pins it, and the physical library those sources name. Each building is
+/// materialized here from its template at its frame, so the definition every
+/// consumer receives holds no geometry a template did not make. The map's
+/// content hash is the hash of that resolved definition.
 pub fn resolve(
     map_json: &str,
     sources_json: &str,
     library_json: &str,
     admission: MapAdmission,
 ) -> Result<ResolvedMap, ResolveError> {
-    let definition: MapDefinition =
+    let saved: SavedMap =
         serde_json::from_str(map_json).map_err(|e: serde_json::Error| ResolveError {
             code: ResolveCode::InvalidMap,
             location: "map.json".into(),
             message: e.to_string(),
         })?;
+    let (mut definition, buildings) = saved.with_buildings(Vec::new());
     if let Some(error) = crate::map::validate_header(
         definition.size,
         definition.fog_cell_m,
@@ -208,106 +313,12 @@ pub fn resolve(
         location: "map.json".into(),
         message,
     })?;
-    let sources: MapSources =
-        serde_json::from_str(sources_json).map_err(|e: serde_json::Error| ResolveError {
-            code: ResolveCode::InvalidSources,
-            location: "SOURCES.json".into(),
-            message: e.to_string(),
-        })?;
-    if let MapIdentity::Generated { generation } = &sources.identity {
-        generation.validate().map_err(|error| ResolveError {
-            code: ResolveCode::InvalidSources,
-            location: format!("SOURCES.json.identity.generation.{}", error.field),
-            message: error.message.into(),
-        })?;
-    }
-    if sources.inputs.is_empty() {
-        return Err(ResolveError {
-            code: ResolveCode::InvalidSources,
-            location: "SOURCES.json.inputs".into(),
-            message: "map provenance requires input receipts".into(),
-        });
-    }
-    for (i, input) in sources.inputs.iter().enumerate() {
-        let sha256 = match input {
-            SourceReceipt::Repository {
-                path,
-                revision,
-                sha256,
-            } => {
-                let relative = !path.contains(['\\', ':'])
-                    && !path.chars().any(char::is_control)
-                    && path
-                        .split('/')
-                        .all(|p| !p.is_empty() && p != "." && p != "..");
-                if !relative {
-                    return Err(receipt_error(
-                        i,
-                        "path",
-                        "input path must be normalized and repository-relative",
-                    ));
-                }
-                if revision.trim().is_empty() {
-                    return Err(receipt_error(
-                        i,
-                        "revision",
-                        "input revision must be nonempty",
-                    ));
-                }
-                sha256
-            }
-            SourceReceipt::Supplied { label, sha256 } => {
-                if label.trim().is_empty() {
-                    return Err(receipt_error(
-                        i,
-                        "label",
-                        "supplied input label must be nonempty",
-                    ));
-                }
-                sha256
-            }
-        };
-        if !crate::identity::is_sha256(sha256) {
-            return Err(receipt_error(
-                i,
-                "sha256",
-                "input content hash must be canonical SHA256",
-            ));
-        }
-    }
-    let parts = definition
-        .buildings
-        .iter()
-        .try_fold(definition.props.len(), |n, b| {
-            n.checked_add(b.parts.len().max(b.geometry.parts.len()))
-        });
-    if parts.is_none_or(|count| count as u64 > u64::from(admission.max_authored_parts)) {
-        return Err(ResolveError {
-            code: ResolveCode::ComplexityLimit,
-            location: "map.json.authored_parts".into(),
-            message: "authored physical parts exceed acquisition admission".into(),
-        });
-    }
-    let map_hash = crate::identity::json_hash(&definition).map_err(|e| ResolveError {
-        code: ResolveCode::InvalidMap,
-        location: "map.json".into(),
-        message: e.to_string(),
+    let sources = MapSources::from_json(sources_json)?;
+    let catalogue = physical_library(library_json).map_err(|message| ResolveError {
+        code: ResolveCode::InvalidCatalogue,
+        location: "physical catalogue".into(),
+        message,
     })?;
-    if map_hash != sources.identity.map_hash() {
-        return Err(ResolveError {
-            code: ResolveCode::IdentityMismatch,
-            location: "SOURCES.json.identity.map_hash".into(),
-            message: format!(
-                "saved content hash does not match the physical map, whose content hash is {map_hash}"
-            ),
-        });
-    }
-    let catalogue =
-        TemplateGeometryCatalog::from_json(library_json).map_err(|message| ResolveError {
-            code: ResolveCode::InvalidCatalogue,
-            location: "physical catalogue".into(),
-            message,
-        })?;
     let catalogue = match &sources.catalogue.template_ids {
         None => catalogue,
         Some(ids) => {
@@ -346,7 +357,7 @@ pub fn resolve(
         .template_catalog_hash
         .as_deref()
         .is_some_and(|hash| hash != catalogue.hash())
-        || (!definition.buildings.is_empty() && definition.template_catalog_hash.is_none())
+        || (!buildings.is_empty() && definition.template_catalog_hash.is_none())
     {
         return Err(ResolveError {
             code: ResolveCode::CatalogueMismatch,
@@ -354,14 +365,37 @@ pub fn resolve(
             message: "physical map does not name the selected catalogue's content hash".into(),
         });
     }
+    // Both allowances are counted from the templates, before any building is
+    // materialized.
+    let mut templates = Vec::with_capacity(buildings.len());
+    let mut parts = definition.props.len() as u64;
     let mut bays = 0u64;
-    for (i, building) in definition.buildings.iter().enumerate() {
-        let template = physical_template(&catalogue, building, i)?;
+    for (i, building) in buildings.iter().enumerate() {
+        let template = catalogue
+            .templates()
+            .iter()
+            .find(|t| t.id == building.template_id)
+            .ok_or_else(|| ResolveError {
+                code: ResolveCode::TemplateMismatch,
+                location: format!("map.json.buildings[{i}].template_id"),
+                message: format!(
+                    "building {i} (owner {}) names template {:?}, which the map's physical catalogue does not hold",
+                    building.owner, building.template_id
+                ),
+            })?;
+        parts += building.parts.len().max(template.parts.len()) as u64;
+        if parts > u64::from(admission.max_authored_parts) {
+            return Err(ResolveError {
+                code: ResolveCode::ComplexityLimit,
+                location: "map.json.authored_parts".into(),
+                message: "authored physical parts exceed acquisition admission".into(),
+            });
+        }
         let count = template
             .bay_position_count()
             .map_err(|message| ResolveError {
                 code: ResolveCode::TemplateMismatch,
-                location: format!("map.json.buildings[{i}].geometry"),
+                location: format!("map.json.buildings[{i}].template_id"),
                 message,
             })?;
         bays = bays
@@ -372,6 +406,33 @@ pub fn resolve(
                 location: "map.json.bay_positions".into(),
                 message: "cumulative bay positions exceed acquisition admission".into(),
             })?;
+        templates.push(template);
+    }
+    if parts > u64::from(admission.max_authored_parts) {
+        return Err(ResolveError {
+            code: ResolveCode::ComplexityLimit,
+            location: "map.json.authored_parts".into(),
+            message: "authored physical parts exceed acquisition admission".into(),
+        });
+    }
+    definition.buildings.reserve_exact(buildings.len());
+    for (i, (building, template)) in buildings.into_iter().zip(templates).enumerate() {
+        let SavedBuilding {
+            owner,
+            kind,
+            frame,
+            parts,
+            ..
+        } = building;
+        definition.buildings.push(
+            BuildingDefinition::materialize(template, frame, kind, owner, parts).map_err(
+                |message| ResolveError {
+                    code: ResolveCode::TemplateMismatch,
+                    location: format!("map.json.buildings[{i}].frame"),
+                    message,
+                },
+            )?,
+        );
     }
     definition
         .authored_props()
@@ -380,26 +441,19 @@ pub fn resolve(
             location: "map.json.authored_parts".into(),
             message,
         })?;
-    for (i, building) in definition.buildings.iter().enumerate() {
-        let location = format!("map.json.buildings[{i}].geometry");
-        let template = physical_template(&catalogue, building, i)?;
-        let expected = template
-            .materialize(building.geometry.frame)
-            .map_err(|message| ResolveError {
-                code: ResolveCode::TemplateMismatch,
-                location: location.clone(),
-                message,
-            })?;
-        if expected != building.geometry
-            || template.category != building.category
-            || template.regional_family != building.regional_family
-        {
-            return Err(ResolveError {
-                code: ResolveCode::TemplateMismatch,
-                location,
-                message: "saved physical facts disagree with their materialized template".into(),
-            });
-        }
+    let map_hash = crate::identity::json_hash(&definition).map_err(|e| ResolveError {
+        code: ResolveCode::InvalidMap,
+        location: "map.json".into(),
+        message: e.to_string(),
+    })?;
+    if map_hash != sources.identity.map_hash() {
+        return Err(ResolveError {
+            code: ResolveCode::IdentityMismatch,
+            location: "SOURCES.json.identity.map_hash".into(),
+            message: format!(
+                "saved content hash does not match the resolved physical map, whose content hash is {map_hash}"
+            ),
+        });
     }
     Ok(ResolvedMap {
         definition,
@@ -407,20 +461,15 @@ pub fn resolve(
     })
 }
 
-fn physical_template<'a>(
-    catalogue: &'a TemplateGeometryCatalog,
-    building: &crate::map::BuildingDefinition,
-    index: usize,
-) -> Result<&'a crate::templates::BuildingTemplateDescriptor, ResolveError> {
-    catalogue
-        .templates()
-        .iter()
-        .find(|t| t.id == building.geometry.template_id)
-        .ok_or_else(|| ResolveError {
-            code: ResolveCode::TemplateMismatch,
-            location: format!("map.json.buildings[{index}].geometry"),
-            message: "building template is absent from its physical catalogue".into(),
-        })
+/// A physical library as its file holds it: a canonical catalogue (`{ hash,
+/// templates }`, the hash checked against the geometry) or the list of
+/// descriptors the map generator reads.
+fn physical_library(library_json: &str) -> Result<TemplateGeometryCatalog, String> {
+    if library_json.trim_start().starts_with('[') {
+        TemplateGeometryCatalog::new(serde_json::from_str(library_json).map_err(|e| e.to_string())?)
+    } else {
+        TemplateGeometryCatalog::from_json(library_json)
+    }
 }
 
 fn receipt_error(index: usize, field: &str, message: &str) -> ResolveError {

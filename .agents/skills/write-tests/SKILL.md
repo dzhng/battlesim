@@ -95,6 +95,13 @@ below serves that one goal.
   showed up against a real environment, the harness skipped an input production
   always sets — fix the harness, don't just fix the bug.
 
+## Incremental delivery
+
+Compare a live delta stream to fresh complete snapshots while collection sizes
+change. A fixed-size replacement or snapshot-only round trip misses shifted
+variable rows, append gaps and stale retained rows. Keep earlier observations and
+reject a malformed generation before accepting its corrected retry.
+
 ## Control variables and probes
 
 - **One variable per comparison.** Pin everything else — same seed, same
@@ -173,6 +180,16 @@ Walk this on any test diff, apply fixes in the same pass, re-run the suite:
 6. Is the function under test still called in production? → if the only
    callers are tests, delete the function and the test together.
 7. Can it fail for the right reason? → falsify once to confirm.
+   For cross-target build identities, also compare freshly emitted native and
+   Wasm identities; synthetic cfg normalization can miss real platform flags.
+   For offset deltas, grow/shrink an early collection with a retained tail;
+   fixed-size edits cannot expose address-shift amplification.
+   For incremental work, assert observable completion before testing downstream
+   effects; accepted input does not imply completed planning or publication.
+   For decoder caches, change header metadata independently of retained payload;
+   reuse must not bypass validation or consume a failed generation.
+   For worker-backed scenario builders, prove leaving a loading view cancels
+   the work; suppressing a late reply alone leaves its allocations running.
 8. Does it take focus, move the pointer, play sound, or write the person's real
    config, library or applications? → drive the model and a scratch location
    instead, and capture windows offscreen.

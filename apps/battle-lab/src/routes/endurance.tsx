@@ -1,13 +1,20 @@
 // /lab/endurance: the synthetic 100-a-side stress battle, played
 // in real time with the production view, and live telemetry for the scale
-// verdict. Stress input, clearly labelled: the village stays the play fixture.
+// verdict. Clearly labelled stress input, on its saved or full generated world.
 import { useEffect, useRef, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import game from "@fixtures/game.json";
 import { restartBattle } from "@web/mechanicsLifecycle";
+import config from "@fixtures/generated-battle.json";
+import presets from "@fixtures/map-presets.json?raw";
+import templates from "@fixtures/prototype-building-templates.json?raw";
+import recipes from "@fixtures/encounters.json?raw";
+import { prepareBattle } from "@web/battle/prepare/client";
+import { generationRequest } from "@web/maps/source";
+import { GAME_RULES } from "../scenarios";
 import { enduranceScenario } from "../savedMaps";
 import { BattleView } from "../BattleView";
-import { useBuiltScenario } from "../useBuiltScenario";
+import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import type { BattleSession } from "../useBattleSession";
 import { gameCamera } from "../gameCamera";
 
@@ -52,12 +59,17 @@ function heapMiB(): number | null {
 }
 
 export default function Endurance() {
+  const generated = new URLSearchParams(window.location.search).get("generated") === "1";
   const [late, setLate] = useState(
     () => new URLSearchParams(window.location.search).get("late") === "1",
   );
   const [seed, setSeed] = useState(() => {
     const requested = new URLSearchParams(window.location.search).get("seed");
-    return requested === null ? 1 : Math.max(0, Math.trunc(Number(requested))) || 0;
+    return requested === null
+      ? generated
+        ? 4
+        : 1
+      : Math.max(0, Math.trunc(Number(requested))) || 0;
   });
   const choose = (nextSeed: number, nextLate: boolean) =>
     restartBattle(
@@ -67,9 +79,34 @@ export default function Endurance() {
       },
       { seed: String(nextSeed), late: nextLate ? "1" : "0" },
     );
-  const built = useBuiltScenario({ late, seed }, (wasm, o) =>
-    enduranceScenario(wasm, o.seed, o.late),
-  );
+  const built = useBuiltScenario({ late, seed, generated }, async (wasm, o, signal) => {
+    if (!o.generated)
+      return { scenario: await enduranceScenario(wasm, o.seed, o.late), report: null };
+    const preparation = prepareBattle(
+      {
+        type: "prepare",
+        request: {
+          map_source: {
+            kind: "generated",
+            request: generationRequest(
+              wasm,
+              { type: "metro", size: "large", seed: "4" },
+              { presets, templates },
+              config.limits,
+            ),
+          },
+          recipe_id: config.encounter.recipe,
+          encounter_seed: config.encounter.seed,
+          battle_seed: o.seed,
+        },
+        documents: { presets, templates, recipes, rules: JSON.stringify(GAME_RULES) },
+        stress: { kind: "city-arena-1", late: o.late },
+      },
+      () => {},
+    );
+    signal.addEventListener("abort", () => preparation.cancel(), { once: true });
+    return preparation.battle;
+  });
   const frames = useFrameIntervals();
   // Repaint the telemetry once a second.
   const [, setBeat] = useState(0);
@@ -77,8 +114,7 @@ export default function Endurance() {
     const id = setInterval(() => setBeat((b) => b + 1), 1000);
     return () => clearInterval(id);
   }, []);
-  if (built && typeof built !== "string")
-    return <main className="lab-rejected">{built.error}</main>;
+  if (buildFailed(built)) return <main className="lab-rejected">{built.error}</main>;
   if (!built) return null;
 
   const telemetry = ({ sim, gpuAllocations }: BattleSession) => {
@@ -144,16 +180,21 @@ export default function Endurance() {
   };
   return (
     <BattleView
-      key={`${late}-${seed}`}
+      key={`${generated}-${late}-${seed}`}
       fixture="endurance"
-      scenario={built}
+      scenario={built.scenario}
       seed={seed}
-      camera={CAMERA}
+      camera={
+        built.report
+          ? { ...CAMERA, target: [built.report.size[0] / 2, built.report.size[1] / 2, 0] }
+          : CAMERA
+      }
       status={status}
       menu={menu}
       diagnostics={(session) => ({
         telemetry: () => telemetry(session),
         late: () => late,
+        preparation: () => built.report,
         resetFrames: () => (frames.current = []),
       })}
     />
