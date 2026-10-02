@@ -105,7 +105,7 @@
     "junction_clear_m": 60
   },
   "street_props": {
-    "lane_margin_m": 3.7,
+    "lane_margin_m": 0.9,
     "kerb_gap_m": 0.3,
     "wall_gap_m": 0.9,
     "door_clear_m": 3,

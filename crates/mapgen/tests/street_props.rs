@@ -654,6 +654,65 @@ fn length(from: Point, points: &[V2]) -> f64 {
         .sum()
 }
 
+/// A street fight between terraces has cover. On generated towns the cars
+/// beside a street park at its kerb, and some of them stand before a row of
+/// house fronts: between the carriageway and a wall a few metres behind.
+#[test]
+fn cars_park_at_the_kerb_and_before_the_terraces() {
+    let presets = presets();
+    let rules = rules();
+    for seed in [1, 2, 3] {
+        let request = request(MapType::Mixed, MapSize::Small, seed);
+        let plan = fill_districts(
+            generate_layout(&request, &presets).unwrap(),
+            &request,
+            &catalogue(),
+            &presets,
+        )
+        .unwrap();
+        let props = place(&plan, &presets, &rules.catalog, seed);
+        let map = compiled(&plan, &[], &request);
+        let roads = Roads::new(&plan);
+        // How far a point is from the nearest wall of any building.
+        let wall = |p: Point| {
+            map.buildings
+                .iter()
+                .flat_map(|building| &building.geometry.parts)
+                .map(|part| {
+                    let (sin, cos) = part.yaw.sin_cos();
+                    let d = [p[0] - part.center[0], p[1] - part.center[1]];
+                    let local = [d[0] * cos + d[1] * sin, d[1] * cos - d[0] * sin];
+                    let out =
+                        [0, 1].map(|axis| (local[axis].abs() - part.half_extents[axis]).max(0.0));
+                    out[0].hypot(out[1])
+                })
+                .fold(f64::INFINITY, f64::min)
+        };
+        // Cars beside a street (the others stand in yards and by farms),
+        // those of them at its kerb, and those of them before a house front.
+        let (mut beside, mut at_kerb, mut fronting) = (0, 0, 0);
+        for car in cars(&props) {
+            let off_kerb = roads.clearance(car.center, 1.0) - car.half_extents[1];
+            if off_kerb > 8.0 {
+                continue;
+            }
+            beside += 1;
+            if off_kerb <= 2.0 {
+                at_kerb += 1;
+                fronting += usize::from(wall(car.center) - car.half_extents[1] <= 3.0);
+            }
+        }
+        assert!(
+            beside >= 100 && 10 * at_kerb >= 9 * beside,
+            "seed {seed}: {at_kerb} of the {beside} cars beside a street stand within 2 m of its kerb"
+        );
+        assert!(
+            fronting >= 20,
+            "seed {seed}: {fronting} cars stand at the kerb before a house front"
+        );
+    }
+}
+
 /// A broken claim, said as it is found: a sweep's run shows every break.
 fn note(claim: String) -> String {
     println!("BROKEN {claim}");

@@ -2,9 +2,13 @@
 //! fastest policy first asks the road graph for the quickest way by road
 //! ([`RoadNet`]). If that beats driving straight across country, the way is
 //! made physical on the side's grid: a search to the road, each run of road
-//! checked for the mover's footprint (and searched round where a known body
-//! stands on it), and a search from the road to the goal. A run nothing
-//! gets past closes its arc and the graph is asked again. With no road
+//! checked for the mover's footprint, and a search from the road to the
+//! goal. A mover's lane is the free width of the road: where a known body
+//! stands in or beside its own side of it, the mover moves over toward the
+//! middle (and past it, while its own middle stays on the road) and comes
+//! back to its side after the body; only a road with no free width is
+//! searched round. A run nothing gets past closes its arc and the graph is
+//! asked again. With no road
 //! worth taking, or by the shortest policy, the leg is one search across
 //! the grid ([`RouteSearch`]). Every step is counted work, so a battle
 //! spends a share of a tick on it.
@@ -32,6 +36,26 @@ const CHECK_M: f64 = 64.0;
 /// A way round a body on the road is looked for from where the run was last
 /// clear to this far along it.
 const ROUND_M: f64 = 2.0 * CHECK_M;
+/// Past a body in or beside its lane a mover moves over to another line of
+/// the road, reached this far along: the longest of these that is clear, so
+/// it moves over early and gently, and sharply only when the body is close.
+const SHIFT_REACH_M: [f64; 3] = [MERGE_M, MERGE_M / 2.0, MERGE_M / 4.0];
+/// The lines tried: its own lane first, then this many evenly spaced ones
+/// leftward, the last with the mover's middle as near the far edge of the
+/// road as its own lane is to the near one.
+const LANE_SHIFTS: usize = 6;
+
+/// Whether `who` drives the straight way from `a` to `b` on what its side
+/// knows: with `shove`, through bodies it can push aside; without, past
+/// every known body.
+fn passes(grid: &NavGrid, a: V2, b: V2, who: Mover, shove: bool) -> bool {
+    let mut probe = super::Probe::new(a, b, who.m);
+    loop {
+        if let Some(cost) = grid.read(&mut probe, who, RoutePolicy::Fastest, shove) {
+            return cost.is_some();
+        }
+    }
+}
 
 /// The final centre slides along its goal arc, then shifts by one lane
 /// width. Source snapping and point coalescing cover every admitted cell.
@@ -584,8 +608,14 @@ struct Driving {
     piece: usize,
     /// Metres of the run in hand found clear.
     checked: f64,
+    /// Where the route stands that far along the run, when it has moved
+    /// over from the run's lane, and how many shifts over that is.
+    off_lane: Option<(V2, usize)>,
     /// The search in hand: to or from the road, or round a body on it.
     search: Option<RouteSearch>,
+    /// Where the search in hand was sent, and how many shifts off the
+    /// run's lane that is.
+    sought: (V2, usize),
 }
 
 impl Driving {
@@ -900,7 +930,9 @@ impl Journey {
                                     out: Vec::new(),
                                     piece: 0,
                                     checked: 0.0,
+                                    off_lane: None,
                                     search: None,
+                                    sought: (joined, 0),
                                 })
                             }
                             None => self.direct(grid),
@@ -928,7 +960,7 @@ impl Journey {
     }
 
     /// One step of making the way by road physical.
-    fn drive(&mut self, grid: &NavGrid, _roads: &RoadNet, mut driving: Driving) -> Stage {
+    fn drive(&mut self, grid: &NavGrid, roads: &RoadNet, mut driving: Driving) -> Stage {
         let pieces = driving.runs.len() + 2;
         // Where the piece in hand starts and ends: a run of road, or the
         // way between the road and one end of the leg.
@@ -943,26 +975,35 @@ impl Journey {
         };
         let on_road = driving.piece > 0 && driving.piece + 1 < pieces;
         let length = (to - from).length();
+        // The lines of a run of road from `a` to `b`: the point `s` metres
+        // along its lane and `k` shifts to the left of it. The last shift
+        // leaves the mover's middle as far inside the road's far edge as
+        // its lane is inside the near one.
+        let half_width = self.m.half_width_m;
+        let lines = |a: V2, b: V2, arc: u32| {
+            let span = (b - a).length();
+            let edge = (roads.arc(arc).half_width - KEEP_RIGHT_M).max(0.0);
+            let room = (half_width + KEEP_RIGHT_M).min(edge) + edge;
+            let left = crate::math::v2(a.y - b.y, b.x - a.x) * (room / span / LANE_SHIFTS as f64);
+            move |s: f64, k: usize| a + (b - a) * (s.min(span) / span) + left * k as f64
+        };
         if let Some(mut search) = driving.search.take() {
             search.advance(grid, 1);
             if search.plan().is_none() {
                 driving.search = Some(search);
                 return Stage::Driving(driving);
             }
-            // Where the search was sent. A search that could not stand
-            // there ends somewhere else, and has not reached the road; only
-            // the leg's own goal may be moved to standing room.
-            let sought = if on_road {
-                from + (to - from) * ((driving.checked + ROUND_M).min(length) / length)
-            } else {
-                to
-            };
+            // A search that could not stand where it was sent ends somewhere
+            // else, and has not reached the road; only the leg's own goal
+            // may be moved to standing room.
+            let (sought, shift) = driving.sought;
             let arrives = |route: &[V2]| {
                 driving.piece + 1 == pieces
                     || route
                         .last()
                         .is_some_and(|end| (*end - sought).length() < JOIN_EPSILON_M)
             };
+            let searched_from = driving.off_lane.map_or(from, |(at, _)| at);
             return match self
                 .finish_search(search)
                 .expect("a finished search has a plan")
@@ -978,6 +1019,7 @@ impl Journey {
                     if driving.piece == pieces {
                         Stage::Done(Plan::Route(driving.out))
                     } else {
+                        driving.off_lane = (shift > 0).then_some((sought, shift));
                         Stage::Driving(driving)
                     }
                 }
@@ -993,7 +1035,7 @@ impl Journey {
                     if side == 1 && !self.goal_probed {
                         self.goal_probed = true;
                         let leg = Leg {
-                            from,
+                            from: searched_from,
                             goal: self.goal,
                             ..self.leg()
                         };
@@ -1008,7 +1050,17 @@ impl Journey {
                 }
             };
         }
+        let who = Mover {
+            m: &self.m,
+            avoid: &self.avoid,
+        };
+        // A detour round stalled traffic keeps to its lane or leaves the
+        // road, as it would for any body: the hulls it goes round are not
+        // bodies its side knows, and more of the knot may stand past them.
+        let shifts = if self.avoid.is_empty() { LANE_SHIFTS } else { 0 };
         if !on_road {
+            // From where the route stands, if it left the road off its lane.
+            let from = driving.off_lane.map_or(from, |(at, _)| at);
             if driving.piece + 1 == pieces
                 && self
                     .goal_component
@@ -1018,29 +1070,86 @@ impl Journey {
                 self.rejected[1].insert(driving.accesses[1]);
                 return Stage::Terrain(super::terrain::Probe::new(self.from, self.goal));
             }
-            driving.search = Some(self.search(grid, from, to));
+            // The road is joined on the first line of its first run the
+            // mover can stand on.
+            driving.sought = match driving.runs.first() {
+                Some(&(next, arc)) if driving.piece == 0 && (next - to).length() > 0.0 => {
+                    let line = lines(to, next, arc);
+                    (0..=shifts)
+                        .map(|k| (line(0.0, k), k))
+                        .find(|(p, _)| grid.stands(*p, who))
+                        .unwrap_or((to, 0))
+                }
+                _ => (to, 0),
+            };
+            driving.search = Some(self.search(grid, from, driving.sought.0));
             return Stage::Driving(driving);
         }
         // A run of road: check the next stretch for the mover's footprint.
-        let along = |m: f64| from + (to - from) * (m.min(length) / length);
-        let who = Mover {
-            m: &self.m,
-            avoid: &self.avoid,
+        let line = lines(from, to, driving.runs[driving.piece - 1].1);
+        let (here, held) = driving
+            .off_lane
+            .unwrap_or_else(|| (line(driving.checked, 0), 0));
+        let ahead = driving.checked + CHECK_M;
+        let back = driving.checked + MERGE_M;
+        // A line is taken to a place the mover can stand: a search that has
+        // to leave the road from there starts where the route stands.
+        let drives = |a: V2, b: V2, shove: bool| grid.stands(b, who) && passes(grid, a, b, who, shove);
+        let on_lane = if shifts == 0 {
+            passes(grid, here, line(ahead, 0), who, true)
+        } else {
+            drives(here, line(ahead, 0), false)
         };
-        let stretch = (along(driving.checked), along(driving.checked + CHECK_M));
-        if grid
-            .segment_cost(stretch.0, stretch.1, who, RoutePolicy::Fastest)
-            .is_none()
+        let (reach, shift) = if held == 0 && on_lane {
+            // Along its own lane: no known body stands in or beside it.
+            (ahead, 0)
+        } else if held > 0
+            && drives(here, line(back, 0), false)
+            && passes(grid, line(back, 0), line(back + CHECK_M, 0), who, false)
         {
-            // A known body stands on this stretch: leave the road where it
-            // was last clear and look for a way back onto it past the body.
-            driving.extend([stretch.0]);
-            driving.search = Some(self.search(grid, stretch.0, along(driving.checked + ROUND_M)));
-            return Stage::Driving(driving);
-        }
-        driving.checked += CHECK_M;
+            // Back to its lane, once that is clear for a whole stretch past
+            // the return: along a row of bodies it holds its line and does
+            // not weave into each gap.
+            driving.extend([here, line(back, 0)]);
+            (back, 0)
+        } else {
+            // The line it holds, or else the nearest line to its lane, that
+            // passes every known body; with none, one it drives by shoving.
+            let order = move || {
+                [held]
+                    .into_iter()
+                    .chain((0..=shifts).filter(move |k| *k != held))
+            };
+            let reaches = SHIFT_REACH_M.map(|reach| driving.checked + reach);
+            let found = [false, true]
+                .into_iter()
+                .filter(|_| shifts > 0)
+                .flat_map(|shove| (0..reaches.len()).map(move |n| (shove, n)))
+                // A run that ends sooner is tried to its end once.
+                .filter(|(_, n)| *n == 0 || reaches[*n] < length)
+                .flat_map(|(shove, n)| order().map(move |k| (shove, reaches[n], k)))
+                .find(|(shove, reach, k)| drives(here, line(*reach, *k), *shove))
+                .map(|(_, reach, k)| (reach, k));
+            let Some(found) = found else {
+                // No line of the road is free: leave it here and look for a
+                // way back onto it past the body, on the first line the
+                // mover can stand on.
+                driving.extend([here]);
+                let rejoin = driving.checked + ROUND_M;
+                driving.sought = (0..=shifts)
+                    .map(|k| (line(rejoin, k), k))
+                    .find(|(p, _)| grid.stands(*p, who))
+                    .unwrap_or((line(rejoin, 0), 0));
+                driving.search = Some(self.search(grid, here, driving.sought.0));
+                return Stage::Driving(driving);
+            };
+            driving.extend([here, line(found.0, found.1)]);
+            found
+        };
+        driving.off_lane = (shift > 0).then(|| (line(reach, shift), shift));
+        driving.checked = reach;
         if driving.checked >= length {
-            driving.extend([to]);
+            driving.extend([driving.off_lane.map_or(to, |(at, _)| at)]);
             driving.piece += 1;
             driving.checked = 0.0;
         }

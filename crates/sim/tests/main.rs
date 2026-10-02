@@ -27,6 +27,7 @@ mod garrison;
 mod ground;
 mod ground_delivery;
 mod guidance;
+mod kerbside;
 mod lean;
 mod maps;
 mod move_admission;
