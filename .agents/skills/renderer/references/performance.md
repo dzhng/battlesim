@@ -14,6 +14,7 @@ The only gate is **30 FPS average at the default camera, 1920×1080**, measured 
   - use the scene's cost switch, e.g. `GRASS_COST=1`, `FOG_COST=1`, `MODEL_COST=1` or `EFFECT_COST=1`;
   - it interleaves on/off in 1.5 s batches and takes the median of the differences;
   - expect about ±0.3–0.5 ms of noise.
+- **A shader change has no switch: pair two source trees.** Serve the base tree (a scratch archive of the base commit's sources, with `web/node_modules`, the Wasm and `assets` linked in) and the working tree from two Vite servers and interleave batches between their pages. Give each tree its own browser: a second page in one browser never became ready. Make each batch longer than the timer's 240-frame window, or a batch's reading is mostly the batches before it. C70's run broke that (17 frames a batch at a load average over 50) and resolved nothing: of two trees one shading normal apart, the one doing more read 0.5 ms cheaper at one framing and 0.7 ms dearer at the other.
 - **Stated tolerance** between runs: frame percentiles within 0.2 ms, GPU mean within 10%. The worst-window p95 is noise, not a comparison number.
 - **GPU time is the `timestamp-query` whole-frame total,** a 240-frame rolling mean and p95 read without stalling. There's no per-pass split on Apple; for one pass, use the paired switch.
 - **Probes must force a redraw every frame.** The lab draws on demand, so an idle frame just reports vsync.
