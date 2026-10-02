@@ -3572,6 +3572,24 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 - **Verdict:** Sound. The existing whole-fog semantics are retained while both dimensions of its sampled work follow nearby structure/eye pairs. It preserves the original roof reach while distant structures do no sampled work; flags must clear when the eyes leave.
 - **Confidence:** High.
 
+### Sound — medium confidence on broader art: accept the preserved corner look
+
+**Choice:** After the non-blocking five-minute Preview checkpoint received no
+feedback, retain the unchanged village corner appearance. Exact horizon and
+whole-building visibility remain the authority; existing roof-trim ambiguity
+and bright seams stay with building-art work rather than prompting an unrelated
+fog redesign.
+
+**Gap:** C20 requires a recorded decision when the human checkpoint is silent.
+
+**Reach:** This accepts only fog edges at building corners. Distant forest and
+unit/effect pixels differ slightly; complete dense-city appearance and the
+missing S4/G0 envelope remain separate acceptance decisions.
+
+**Verdict:** sound within the startup slice. The scoped comparison and unprimed
+critique support preserving the look without claiming all frames identical.
+**Confidence:** high for unchanged corners, medium for broader art.
+
 ## Startup lane: combat parity and named native math change
 
 **When:** Startup step 5, 2026-10-01; the owner explicitly authorized the deterministic math correction and its native digest change.
