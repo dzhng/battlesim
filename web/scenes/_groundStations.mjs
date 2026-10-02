@@ -24,7 +24,7 @@ const LOW = 0.32;
 const TICK = 12;
 const HIDE_HUD = "[data-testid=battle-panel], .ro-layer, .lab-panel { display: none !important; }";
 
-const at = (target, distance, pitch = PLAY) => ({ target, distance, pitch, yaw: YAW });
+const at = (target, distance, pitch = PLAY, yaw = YAW) => ({ target, distance, pitch, yaw });
 
 /** Each map's route (from the site root) and its named poses. A generated
  *  map's stations stand on what its preparation reports (the main town, each
@@ -54,6 +54,8 @@ export const STATION_MAPS = {
       "bend-25": at([150, 262], 25, LOW),
       "bend-65": at([150, 262], 65),
       "wide-65": at([330, 250], 65),
+      // Along the meander from its first bend, low over the near bank.
+      "meander-low-90": at([196, 300], 90, LOW, -0.69),
       // The dirt track, and where it leaves the country road.
       "track-25": at([230, 120], 25, LOW),
       "track-65": at([230, 120], 65),
@@ -72,6 +74,9 @@ export const STATION_MAPS = {
       "country-250": ({ anchors }) => at(anchors.blue, 250),
       "country-65": ({ anchors }) => at(anchors.blue, 65),
       "country-25": ({ anchors }) => at(anchors.blue, 25, LOW),
+      // The river's bank, on a map whose layout has a river (seed 2 has).
+      "river-250": ({ river }) => at(river, 250),
+      "river-65": ({ river }) => at(river, 65),
     },
   },
 };
@@ -84,6 +89,25 @@ const reports = new WeakMap();
  *  page `openStations` opened. */
 let encoding = null;
 
+/** A point on the west edge of a generated map's river (it runs from the
+ *  north edge to the south), where the water first crosses the map's middle
+ *  latitude; undefined on a map with no river. */
+const riverBank = (page, size) =>
+  lab(
+    page,
+    ([width, height]) => {
+      const wet = (x) => window.__lab.route.surfaceAt(x, height / 2)?.kind === "water";
+      for (let x = 0; x < width; x += 4) {
+        if (!wet(x)) continue;
+        let dry = x - 4;
+        for (let step = 2; step > 0.1; step /= 2) if (!wet(dry + step)) dry += step;
+        return [dry, height / 2];
+      }
+      return undefined;
+    },
+    size,
+  );
+
 /** A page on `map`'s route, paused at the stations' tick with the frozen set
  *  on. Shoot it with `shoot`. */
 export async function openStations(ctx, map) {
@@ -94,7 +118,8 @@ export async function openStations(ctx, map) {
     undefined,
     { timeout: 300000 },
   );
-  reports.set(page, await lab(page, () => window.__lab.route.generated?.() ?? null));
+  const report = await lab(page, () => window.__lab.route.generated?.() ?? null);
+  reports.set(page, report && { ...report, river: await riverBank(page, report.size) });
   await lab(page, () => window.__lab.route.pause());
   await advance(page, TICK - (await lab(page, () => window.__lab.route.tick())));
   await presented(page);
@@ -127,6 +152,7 @@ export async function shoot(
   const placed = STATION_MAPS[map].stations[station];
   if (!placed) throw new Error(`no station ${station} on ${map}`);
   const pose = typeof placed === "function" ? placed(reports.get(page)) : placed;
+  if (!pose.target) throw new Error(`${map} has nothing to stand ${station} on`);
   await aim(page, pose.target, pose);
   await lab(
     page,
@@ -235,7 +261,7 @@ export async function stationSheet(ctx, map, page) {
 
 /** The world point on the ground under each of `pixels`, and the footprint
  *  the terrain's fragment has there (`length(fwidth(world.xy))`). */
-const groundUnder = (page, pixels) =>
+export const groundUnder = (page, pixels) =>
   lab(
     page,
     (pixels) => {
