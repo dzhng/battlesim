@@ -275,6 +275,9 @@ interface LabHandle {
   grass?: () => BattleFrame["grassProbes"];
   /** Draw without grass while on (a paired cost measure). */
   suppressGrass?: (on: boolean) => Promise<void>;
+  /** Draw the plots without their own texture while on: their plain rows
+   *  alone (paired frames, and a paired cost measure). */
+  suppressFieldTexture?: (on: boolean) => Promise<void>;
   /** Draw no models or corpses while on (a paired cost measure). */
   suppressModels?: (on: boolean) => Promise<void>;
   /** Draw no trees and none of their shadows while on (they are scenery, not
@@ -815,6 +818,10 @@ export function LabViewport({
           },
           async suppressScars(on: boolean) {
             scarsSuppressed.current = on;
+            await nextFrame();
+          },
+          async suppressFieldTexture(on: boolean) {
+            scene.setFieldTextureShown(!on);
             await nextFrame();
           },
           async suppressModels(on: boolean) {

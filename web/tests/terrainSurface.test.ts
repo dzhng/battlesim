@@ -441,6 +441,22 @@ test("a plot kind whose ground could draw darker than the lightness floor is ref
   ).toThrow(at);
 });
 
+test("wheelings are furrows laid bare: none without rows, none wider than a row", () => {
+  const k = biome.plots.findIndex((p) => p.tram.rows > 0);
+  const kind = biome.plots[k];
+  const refused = (change: Partial<typeof kind>, field: string) =>
+    expect(() =>
+      validateBiome(
+        { ...biome, plots: biome.plots.map((p, i) => (i === k ? { ...p, ...change } : p)) },
+        "summer",
+      ),
+    ).toThrow(new RegExp(`summer\\.plots\\[${k}\\]\\.tram\\.${field}`));
+  refused({ furrow_m: 0, furrow_contrast: 0 }, "rows");
+  refused({ tram: { ...kind.tram, width_m: kind.furrow_m * 1.5 } }, "width_m");
+  // A pair of wheelings needs rows between its tracks and to the next pair.
+  refused({ tram: { ...kind.tram, rows: 2 } }, "rows");
+});
+
 test("the forest floor names a palette of litter, moss and humus, and its numbers are checked", () => {
   // The floor is broken up by litter, moss, humus and roots.
   const floor = biome.forest_floor;

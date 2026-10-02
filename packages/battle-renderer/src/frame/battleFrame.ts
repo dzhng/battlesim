@@ -315,6 +315,9 @@ export async function createBattleFrame(
         setPaintShown(on) {
           if (!disposed) world.setPaintShown(on);
         },
+        setFieldTextureShown(on) {
+          if (!disposed) world.setFieldTextureShown(on);
+        },
         setTreesShown(on) {
           if (!disposed) world.setTreesShown(on);
         },

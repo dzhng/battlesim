@@ -12,7 +12,8 @@
 // The ground evidence rig's own checks run here too (RIG_ONLY=1 alone), and
 // STATIONS=map,... writes those maps' station sheets instead
 // (`_groundStations.mjs`). What grows where is checked at the rig's stations
-// (`_grass.mjs`, GRASS_ONLY=1 alone).
+// (`_grass.mjs`, GRASS_ONLY=1 alone), and the texture inside each field
+// (`_fields.mjs`, FIELDS_ONLY=1 alone; FIELD_COST=1 measures its cost).
 import { writeFile } from "node:fs/promises";
 import { decode, mostChanged, pixel } from "./_png.mjs";
 import { lab, obs, advance, snapshot, openBattle, aim, groundCss } from "./_lab.mjs";
@@ -22,6 +23,7 @@ import { forestExportAgreement } from "./_forests.mjs";
 import { surfaceFieldAgreement } from "./_surfaceField.mjs";
 import { groundRig, stationSheets } from "./_groundStations.mjs";
 import { grassGrowth } from "./_grass.mjs";
+import { fieldCost, fieldTexture } from "./_fields.mjs";
 
 const x = (o, id) => o.own.find((u) => u.id === id)?.position[0] ?? NaN;
 const cells = (page) => lab(page, () => window.__lab.route.refreshGround());
@@ -40,6 +42,8 @@ export async function run(ctx) {
   if (process.env.STATIONS) return stationSheets(ctx, process.env.STATIONS.split(","));
   if (process.env.RIG_ONLY) return groundRig(ctx);
   if (process.env.GRASS_ONLY) return grassGrowth(ctx);
+  if (process.env.FIELDS_ONLY) return fieldTexture(ctx);
+  if (process.env.FIELD_COST) return fieldCost(ctx);
   await surfaceExportAgreement(ctx);
   await forestExportAgreement(ctx);
   await surfaceFieldAgreement(ctx);
@@ -47,6 +51,7 @@ export async function run(ctx) {
   if (process.env.SCAR_FILTER_ONLY) return;
   await groundRig(ctx);
   await grassGrowth(ctx);
+  await fieldTexture(ctx);
   if (process.env.SCARS_ONLY) return scarFramings(ctx).then(() => villageInspector(ctx));
   const page = await openBattle(ctx);
   // Past blue's first fog sweep since the bursts (every 6 ticks).
