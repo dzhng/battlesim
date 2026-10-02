@@ -68,9 +68,10 @@ def sheet(name, colour=None, rust=0.5, soil=0.3, seed=0.0):
     def fn(c, wear, p, n):
         if n.z < 0.3:
             return c, wear
-        patch = smoothstep(-0.2, 0.45, fbm(p, 0.11, 3, 71.0 + seed))
-        drift = 0.5 + 0.5 * fbm(p, 0.3, 2, 83.0 + seed)
-        fade = 1.0 + 0.16 * fbm(p, 0.06, 2, 61.0 + seed)  # whole stretches bleached or dulled
+        # fields wider than two of a roof's cells, so every tier's vertices find the same marks
+        patch = smoothstep(-0.2, 0.45, fbm(p, 0.075, 2, 71.0 + seed))
+        drift = 0.5 + 0.5 * fbm(p, 0.13, 2, 83.0 + seed)
+        fade = 1.0 + 0.16 * fbm(p, 0.05, 2, 61.0 + seed)  # whole stretches bleached or dulled
         c = tuple(x * fade * (1.0 - 0.45 * soil * (0.3 + 0.7 * smoothstep(0.35, 0.8, drift))) for x in c)
         c = lerp3(c, RUST, min(0.5, 0.3 * rust * patch))
         return c, max(wear, min(0.9, rust * patch * (0.55 + 0.45 * drift)))
@@ -85,7 +86,7 @@ def rusting(mat, amount, seed=0.0):
     def fn(c, wear, p, n):
         if abs(n.z) > 0.5:
             return c, wear
-        patch = smoothstep(0.0, 0.6, fbm(p, 0.16, 3, 91.0 + seed))
+        patch = smoothstep(0.0, 0.6, fbm(p, 0.1, 2, 91.0 + seed))
         return c, max(wear, min(0.62, amount * patch))
 
     return weather(mat, fn, lambda c, wear: (c, max(wear, 0.3 * amount)))
@@ -96,11 +97,11 @@ def felt(name, seed=0.0):
     mat = textured(name, "flat_roof", dirt=0.0, chip=0.0, streak=0.0, seed=seed)
 
     def fn(c, wear, p, n):
-        level = fbm(p, 0.085, 3, 97.0 + seed)
+        level = fbm(p, 0.075, 2, 97.0 + seed)
         damp = smoothstep(0.1, 0.4, level)
         silt = math.exp(-((level - 0.08) / 0.07) ** 2)  # the pale tide mark a pool leaves as it dries
         c = lerp3(tuple(x * (1.0 - 0.5 * damp) for x in c), (0.3, 0.29, 0.26), 0.45 * silt)
-        return c, max(wear, 0.6 * damp * smoothstep(0.0, 0.5, fbm(p, 0.35, 2, 99.0 + seed)))
+        return c, max(wear, 0.6 * damp * smoothstep(0.0, 0.5, fbm(p, 0.13, 2, 99.0 + seed)))
 
     return weather(mat, fn, lambda c, wear: (tuple(x * 0.8 for x in c), wear))
 
@@ -112,20 +113,20 @@ block_m = rusting(textured("wall_block", "concrete_block", tint=1.0, dirt=0.7, c
 slab_m = rusting(textured("wall_tilt_slab", "tilt_slab", tint=1.0, dirt=0.6, chip=0.3, streak=0.45, rise=1.0), 0.5, 5.0)
 brick_m = textured("wall_brick", "brick", colour=(0.2, 0.09, 0.066), dirt=0.5, chip=0.12, streak=0.45, rise=0.8, mottle=0.08)
 brick_high_m = textured("gable_brick", "brick", colour=(0.2, 0.09, 0.066), dirt=0.0, chip=0.12, streak=0.45, mottle=0.08)
-render_m = textured("wall_render", "plaster", tint=1.0, dirt=0.55, chip=0.5, streak=0.4, rise=0.8)
+render_m = textured("wall_render", "roughcast", tint=1.0, dirt=0.55, chip=0.3, streak=0.45, rise=0.8)
 dado_m = textured("dado_block", "concrete_block", colour=(0.3, 0.3, 0.29), dirt=0.8, chip=0.3, streak=0.3, rise=0.7)
 plinth_m = textured("plinth_concrete", "concrete", colour=(0.2, 0.2, 0.19), dirt=0.8, chip=0.4, rise=0.5)
 concrete_m = textured("trim_concrete", "concrete", dirt=0.0, chip=0.3, streak=0.3)
-pier_m = textured("pier_concrete", "concrete", colour=(0.27, 0.27, 0.255), dirt=0.7, chip=0.4, streak=0.4, rise=0.9)
+pier_m = textured("pier_concrete", "concrete", colour=(0.27, 0.27, 0.255), dirt=0.35, chip=0.4, streak=0.3, rise=0.6)
 # Roofs take no tint: a row has one, and it is the walls'.
 ROOFS = {
-    "rusty": sheet("roof_rusty", (0.27, 0.25, 0.23), rust=1.35, soil=0.5, seed=1.0),  # galvanised, long unpainted
+    "rusty": sheet("roof_rusty", (0.25, 0.2, 0.16), rust=1.35, soil=0.5, seed=1.0),  # galvanised, long unpainted and browning
     "pale": sheet("roof_pale", (0.6, 0.6, 0.57), rust=0.4, soil=0.7, seed=2.0),
-    "green": sheet("roof_green", (0.1, 0.15, 0.115), rust=0.75, soil=0.6, seed=3.0),  # paint long faded
+    "green": sheet("roof_green", (0.115, 0.135, 0.08), rust=0.75, soil=0.6, seed=3.0),  # paint long faded
     "oxide": sheet("roof_oxide", (0.2, 0.082, 0.058), rust=0.6, soil=0.7, seed=4.0),
     # what a roof is mended with: new galvanised sheets, and sheets tarred over
     "new": sheet("roof_new", (0.36, 0.375, 0.39), rust=0.0, soil=0.15, seed=5.0),
-    "tarred": sheet("roof_tarred", (0.05, 0.05, 0.055), rust=0.0, soil=0.3, seed=6.0),
+    "tarred": sheet("roof_tarred", (0.1, 0.095, 0.09), rust=0.0, soil=0.3, seed=6.0),
 }
 felt_m = felt("roof_felt")
 FELTS = {"new": textured("felt_new", "flat_roof", colour=(0.09, 0.09, 0.09), dirt=0.0, chip=0.0, streak=0.0, seed=2.0),
@@ -145,8 +146,8 @@ rubber_m = flat_paint("dock_rubber", (0.02, 0.02, 0.02), rough=0.9, grime=0.0)
 hazard_m = flat_paint("hazard_yellow", (0.5, 0.36, 0.035), rough=0.6, wear=0.6, grime=0.6)
 dome_m = flat_paint("skylight_dome", (0.55, 0.6, 0.58), rough=0.3, grime=0.0)
 door_m = flat_paint("door_steel", (0.5, 0.5, 0.49), rough=0.5, wear=0.5, grime=0.4)
-band_m = flat_paint("band_paint", (0.55, 0.55, 0.54), rough=0.7, grime=0.0)
-door_m["tint"] = band_m["tint"] = 1.0
+band_m = textured("band_paint", "tilt_slab", tint=1.0, dirt=0.0, chip=0.5, streak=0.5, seed=6.0)  # a stripe painted on the panels
+door_m["tint"] = 1.0
 
 # Tints, sRGB: paints on sheet, concrete and render, and the doors.
 SAGE, IVORY, STONE, CREAM, BUFF = (112, 140, 118), (232, 230, 220), (214, 208, 196), (230, 216, 188), (212, 200, 168)
@@ -284,7 +285,7 @@ m = kit.module("clad_panel", **FITTING)
 surface(m, "sheet", [(front(-1.5, 1.5, 0, 3.0, -0.03), SOUTH)], panel_m)
 
 m = kit.module("paint_band", **FITTING)
-surface(m, "band", [(front(-1.5, 1.5, 0, 1.0, -0.015), SOUTH)], band_m)
+surface(m, "band", [(front(-1.5, 1.5, 0, 1.0, -0.015), SOUTH)], band_m, uv=((-3.0, 0, -0.35), (1, 0, 0), (0, 0, 1)))
 
 DADO_M = 1.2
 m = kit.module("dado_bay", ground=True, **FITTING)
@@ -327,15 +328,14 @@ panel_door(m.n("door"), 1.5, 2.1, door_m, frame_m, m.root, glass_m, light=0.4)
 box(m.n("canopy"), (2.8, 1.0, 0.12), (0, -0.5, 2.9), concrete_m, m.root, lods=(0, 1, 2))
 box(m.n("step"), (2.4, 0.8, 0.14), (0, -0.4, 0.07), plinth_m, m.root, lods=(0, 1))
 
-# A canopy's bay: sheet falling away from the wall, hung on tie rods from above.
+# A canopy's bay: sheet falling away from the wall, hung on a tie rod from above.
 CANOPY_M = 1.15
 m = kit.module("canopy_bay", **FITTING)
 top = [(-1.5, 0, 0.28), (1.5, 0, 0.28), (1.5, -CANOPY_M, 0.08), (-1.5, -CANOPY_M, 0.08)]
 surface(m, "sheet", [(top, UP)], canopy_m, uv="slope")
 surface(m, "soffit", [([(x, y, z - 0.05) for x, y, z in top], -UP)], trim_m, lods=(0, 1))
 box(m.n("fascia"), (3.0, 0.05, 0.2), (0, -CANOPY_M, 0.02), trim_m, m.root, lods=(0, 1))
-for s in (-1, 1):
-    bar(m.n(f"rod_{'ab'[s > 0]}"), (s * 0.75, -CANOPY_M + 0.1, 0.1), (s * 0.75, 0, 1.0), 0.04, 0.04, trim_m, m.root, lods=(0, 1))
+bar(m.n("rod"), (0, -CANOPY_M + 0.1, 0.1), (0, 0, 0.75), 0.04, 0.04, trim_m, m.root, lods=(0, 1))
 
 m = kit.module("louvre", **FITTING)
 surface(m, "blades", [(front(-0.75, 0.75, 0, 0.8, -0.04), SOUTH)], louvre_m)
@@ -605,8 +605,8 @@ def fold(t, shell):
             for o in kit.modules[module].meshes():
                 if tier_of(o) == tier:
                     mat = untinted(o.data.materials[0], tuple(tint))
-                    # glazing gives up its own UVs (the export box-projects it), so a run of it can become one face
-                    own = bool(o.data.uv_layers) and mat is not glazing_m
+                    # a panel on a wall gives up its own UVs (the export box-projects it), so a run of them can become one face
+                    own = bool(o.data.uv_layers) and o.data.materials[0] not in (glazing_m, band_m)
                     groups.setdefault((mat.name, own), []).append((o.data, at @ o.matrix_basis))
         for k, ((name, own), meshes) in enumerate(sorted(groups.items())):
             def build(bm, lod, meshes=meshes, own=own):

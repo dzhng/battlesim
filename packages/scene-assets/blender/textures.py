@@ -773,7 +773,7 @@ def roof_sheet():
     heads, weep = _fixings(xx, yy, ribs, (0.02, 0.27, 0.52, 0.77), 6.0, 0.32, 2710, 0.9)
     silt = (1 - crown) * smoothstep(0.35, 0.8, fbm((48, 3), 2705, 3))
     stain = fbm(3, 2707, 4)
-    k = 0.9 + 0.07 * (tone - 0.5) + 0.2 * (stain - 0.5) + 0.05 * crown - 0.12 * flank - 0.16 * silt + 0.2 * fresh - 0.14 * dull
+    k = 0.9 + 0.07 * (tone - 0.5) + 0.07 * (stain - 0.5) + 0.05 * crown - 0.12 * flank - 0.16 * silt + 0.2 * fresh - 0.14 * dull
     col = np.broadcast_to(np.array((0.5, 0.51, 0.52)), (SIZE, SIZE, 3)) * k[..., None]
     col = mix(col, (0.12, 0.12, 0.12), np.clip(lap + side * 0.5, 0, 1) * 0.6)
     col = mix(col, RUST_STAIN, weep * 0.7)
