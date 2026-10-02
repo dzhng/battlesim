@@ -1,8 +1,8 @@
 {
   "identity": {
     "kind": "authored",
-    "map_hash": "e1c299c29701ba9d3dcda77b362299052618d4a4e3d928f6df5b367ac2df16fc",
-    "template_catalog_hash": "5416684f1dede60a7dc3665fb3bef4a247cb1705ed042cb6a3223b9b5e522ddc"
+    "map_hash": "ed9d79199e907d703a089a6405f2878739929f67b86118f4be5fa0d18176d338",
+    "template_catalog_hash": "6b0a5e8be69e9309bd16db843fa7ecaad672616874978ecfde0fd9332c3e6316"
   },
   "catalogue": {
     "library": "prototype-building-templates.json",
@@ -12,12 +12,12 @@
     {
       "kind": "supplied",
       "label": "request",
-      "sha256": "42b1a3bcc8b0a2ef48bf4aee8986129ccde06b4a2488cbd8c54a1665fc359dc0"
+      "sha256": "47ce19bf49c95f3f6dc8c4264231bb11120d09eb921abbba7e463b4ed8efe92a"
     },
     {
       "kind": "supplied",
       "label": "catalogue",
-      "sha256": "75ff3850a4c61cc951be77e1fcaa394388281b083b61556fda1e6e27291eb1b9"
+      "sha256": "7cff353854621564e95f489a8e4892bee9a2194ee941265ded2c581f5ded1774"
     }
   ]
 }

@@ -2,7 +2,7 @@
   "generator_version": "camera-lab",
   "preset_revision": "camera-lab",
   "seed": "0",
-  "template_catalog_hash": "5416684f1dede60a7dc3665fb3bef4a247cb1705ed042cb6a3223b9b5e522ddc",
+  "template_catalog_hash": "6b0a5e8be69e9309bd16db843fa7ecaad672616874978ecfde0fd9332c3e6316",
   "limits": {
     "max_authored_parts": 64,
     "max_bay_positions": 20000,
@@ -40,7 +40,7 @@
       },
       {
         "id": "tower",
-        "template_id": "prototype-tower-20f",
+        "template_id": "china-tower-20f",
         "kind": "building",
         "owner": 1,
         "parts": [
@@ -60,7 +60,7 @@
       },
       {
         "id": "corner-north",
-        "template_id": "prototype-tower-slab-10f",
+        "template_id": "china-tower-slab-10f",
         "kind": "building",
         "owner": 2,
         "parts": [
@@ -80,7 +80,7 @@
       },
       {
         "id": "corner-east",
-        "template_id": "prototype-tower-slab-10f",
+        "template_id": "china-tower-slab-10f",
         "kind": "building",
         "owner": 3,
         "parts": [
@@ -100,7 +100,7 @@
       },
       {
         "id": "courtyard",
-        "template_id": "prototype-block-court-6f",
+        "template_id": "china-apartment-block-court-6f",
         "kind": "building",
         "owner": 4,
         "parts": [
@@ -132,7 +132,7 @@
       },
       {
         "id": "compound",
-        "template_id": "prototype-block-u-5f",
+        "template_id": "china-apartment-block-u-5f",
         "kind": "building",
         "owner": 8,
         "parts": [

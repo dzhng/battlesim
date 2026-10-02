@@ -42,15 +42,20 @@ export async function run(ctx) {
 
   const setup = await lab(page, () => ({
     boxes: window.__lab.route.boxes(),
-    placed: window.__lab.stats().scenery.massing.placed,
+    counts: window.__lab.route.counts(),
+    placed: window.__lab.stats().buildings.buildings,
     trajectories: window.__lab.route.trajectories(),
     clearance: window.__lab.route.clearance(),
   }));
   const { boxes, clearance, trajectories } = setup;
   ctx.check(
-    "the lab's buildings stand as massing boxes, each one a camera obstacle",
-    boxes.length === 11 && setup.placed === boxes.length && trajectories.length === 8,
-    JSON.stringify({ boxes: boxes.length, placed: setup.placed, clearance }),
+    "every building of the lab is drawn from its template's rows, and each of their parts is a camera obstacle",
+    boxes.length === 11 &&
+      setup.counts.buildings > 0 &&
+      setup.counts.drawn === setup.counts.buildings &&
+      setup.placed === setup.counts.buildings &&
+      trajectories.length === 8,
+    JSON.stringify({ boxes: boxes.length, counts: setup.counts, placed: setup.placed, clearance }),
   );
 
   // Every trajectory, flown frame by frame through the viewport's own rig
@@ -255,7 +260,6 @@ export async function run(ctx) {
   const rest = await lab(page, () => ({
     camera: window.__lab.camera(),
     clearance: window.__lab.clearance(),
-    placed: window.__lab.stats().scenery.massing.placed,
   }));
   await shot(ctx, page, "tower-seen-fallen-1920x1080.png");
   const same = (a, b) =>

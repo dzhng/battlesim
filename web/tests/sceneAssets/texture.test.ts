@@ -1,5 +1,5 @@
 // @vitest-environment node
-// Bundle format 3: baked textures ride the bundle. A textured source bakes to
+// Baked textures ride the bundle. A textured source bakes to
 // content-addressed textures with every mip level, the same source always to
 // the same bytes, and the PNG it embeds decodes to exactly its pixels.
 import { expect, test } from "vitest";

@@ -404,7 +404,7 @@ fn public_geometry_ids_use_one_exact_limb_pair_and_keep_physical_columns() {
     let metadata: Value = serde_json::from_str(&b.world().export_buildings()).unwrap();
     assert_eq!(
         metadata,
-        json!({"catalogueHash":setup.map.template_catalog_hash,"buildings":[{"owner":0,"kind":"building","templateId":setup.map.buildings[0].geometry.template_id,"category":"attached_home","regionalFamily":"api_fixture","parts":[{"part":"main","prop":0},{"part":"wing","prop":1}]}]})
+        json!({"catalogueHash":setup.map.template_catalog_hash,"buildings":[{"owner":0,"kind":"building","templateId":setup.map.buildings[0].geometry.template_id,"category":"attached_home","regionalFamily":"api_fixture","frame":{"translation":[400.0,300.0,0.0],"yaw":0.0},"parts":[{"part":"main","prop":0},{"part":"wing","prop":1}]}]})
     );
 }
 

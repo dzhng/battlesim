@@ -42,6 +42,7 @@ import {
   worldTransforms,
 } from "./pose.ts";
 import { bindTextures, importScene } from "./scene.ts";
+import { materialFindings } from "./material.ts";
 import { textureFindings } from "./texture.ts";
 import { grassStripFindings } from "./grass.ts";
 import {
@@ -105,6 +106,12 @@ const finding = (code: Finding["code"], message: string, fix: string): Finding =
 const tierStats = (tiers: MeshData[]) =>
   tiers.map((m) => ({ triangles: triangleCount(m), vertices: m.positions.length / 3 }));
 const fmt = (n: number) => n.toFixed(3);
+/** What a built bundle's surfaces must be, whatever it draws: its textures
+ *  and its materials. */
+const surfaceFindings = (label: string, bundle: Exclude<Bundle, SkeletonClips>) => [
+  ...textureFindings(label, bundle),
+  ...materialFindings(label, bundle),
+];
 
 // ---------------------------------------------------------------- skeleton clips
 
@@ -241,7 +248,7 @@ export async function validateAppearance(
           bounds,
         }
       : null;
-    if (bundle) findings.push(...textureFindings(input.name, bundle));
+    if (bundle) findings.push(...surfaceFindings(input.name, bundle));
     return {
       findings,
       stats: states.length
@@ -278,7 +285,7 @@ export async function validateAppearance(
     );
     const bounds = posedBounds(nodes);
     const bundle: ArticulatedBundle = { kind: "articulated", nodes, materials, textures, bounds };
-    findings.push(...textureFindings(path, bundle));
+    findings.push(...surfaceFindings(path, bundle));
     return {
       findings,
       stats: {
@@ -338,7 +345,7 @@ export async function validateAppearance(
     corpse_pose: corpsePose,
     sockets,
   };
-  findings.push(...textureFindings(path, bundle));
+  findings.push(...surfaceFindings(path, bundle));
   return {
     findings,
     stats: {
@@ -402,7 +409,7 @@ async function validateKit(input: AppearanceInput): Promise<Validation<Bundle>> 
     textures: materials.textures,
     bounds,
   };
-  findings.push(...textureFindings(name, bundle));
+  findings.push(...surfaceFindings(name, bundle));
   return {
     findings,
     stats: {
