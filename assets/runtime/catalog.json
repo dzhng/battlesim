@@ -596,6 +596,53 @@
       "unit": "scenery"
     }
   },
+  "gzip": {
+    "154515b8038164483011a7097fa9569e76a89232393408fc191c3a77f72eb1c8": {
+      "bytes": 81552,
+      "hash": "9093d8c6ebbc7fe456926db90fce1a09892d8abd3d1423daf5016cb997149774",
+      "raw_bytes": 556080
+    },
+    "1838156f126960320b5ff42b5f9a743f078821085896e15d1b41d606c32924ce": {
+      "bytes": 1630151,
+      "hash": "5c9313a41f8cb9a6e6f604bad98d5ce0573f50fecaab441816beea6c9039ac0b",
+      "raw_bytes": 7188344
+    },
+    "215855440fa6c0faed49812550cafb6c53fe8d789dca55cb8807b2cb51e8480d": {
+      "bytes": 4733588,
+      "hash": "ad328ecf68c3aad3de5d2c76e3b4854ba24e57fce63a5f420e56ef1dd485848e",
+      "raw_bytes": 24666492
+    },
+    "251f9460f653750ed75dcc1b41ba76d36393da96b40ae940c933a31e12e790fc": {
+      "bytes": 5111895,
+      "hash": "bdf50aecb6e54e9f120e9618573af3c9473f5c16b74de9cb8f8f069f69690263",
+      "raw_bytes": 16125144
+    },
+    "40e0d20a895e9d3a9e65f2bdfffc6ef5b5f4daac50d1e17a31231c07a3e6c586": {
+      "bytes": 8885117,
+      "hash": "f73c49105a064a635dc66f14fc155d12f3a072f9240092ff7f5163327f6c2ac3",
+      "raw_bytes": 43480648
+    },
+    "5808e059aa247e1ec61af5e4093e2777786f2cee272e9650bb192165b5d2f20b": {
+      "bytes": 661,
+      "hash": "e9a33a44cb4e9a2aca3b2723101535e154390e31e53f6c46bb85e71a51442390",
+      "raw_bytes": 4688
+    },
+    "5cdbe12e0b47c9526655a5f498aa89636e375c7ed452276b6d5c8e05c1424737": {
+      "bytes": 4563062,
+      "hash": "89c2596a532ddbaa6dea1cf16684fe2843413931ba7877fe478e9ed4835a75ab",
+      "raw_bytes": 15412904
+    },
+    "d853fcb81ce816902fbca98f71da5da02c72df52e5a844514e68bcebbd922545": {
+      "bytes": 5610595,
+      "hash": "67bb76b1d00c8228a86460e4a531e5e7139eeeed62a881173d11c2649f6d1a41",
+      "raw_bytes": 19447976
+    },
+    "ffd54afcbd5a4ff3dd4f7eaceda098698d9870c52b4786c1bc6b147459b3f78c": {
+      "bytes": 7972148,
+      "hash": "bd763749f970c2f80c33fc8c6983abf37d1dc7f53c22724fea08196209b582c3",
+      "raw_bytes": 38755208
+    }
+  },
   "sides": {
     "blue": [
       1,

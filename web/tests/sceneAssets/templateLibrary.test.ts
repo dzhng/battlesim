@@ -5,7 +5,12 @@
 // says; and art that leaves its physical template, or a catalogue the sets do
 // not cover, is refused by name.
 import { expect, test } from "vitest";
-import { bakeCatalog, runtimeCatalogText } from "@packages/scene-assets/src/bake.ts";
+import {
+  bakeCatalog,
+  runtimeCatalogText,
+  type BakeResult,
+} from "@packages/scene-assets/src/bake.ts";
+import { gzipTransport, unpackGzip } from "@packages/scene-assets/src/gzip.ts";
 import { decodeBundle } from "@packages/scene-assets/src/codec.ts";
 import { AppearanceLibrary, memoryFetch } from "@packages/scene-assets/src/loader.ts";
 import {
@@ -73,11 +78,16 @@ async function refusals(set: unknown, catalogue?: unknown[], kit?: Uint8Array) {
   return result.reports.flatMap((r) => r.findings).map((f) => `${f.code}: ${f.message}`);
 }
 
+async function rawContent(result: BakeResult, hash: string, path = bundlePath) {
+  const gzip = gzipTransport(result.runtime, hash);
+  return unpackGzip(result.files.get(path(gzip.hash))!, gzip, hash);
+}
+
 async function library(set?: unknown, catalogue?: unknown[]): Promise<TemplateArtLibrary> {
   const result = await bake(set, catalogue);
   expect(result.reports.flatMap((r) => r.findings)).toEqual([]);
   return decodeTemplateLibrary(
-    result.files.get(templateLibraryPath(result.runtime.templates!.library))!,
+    await rawContent(result, result.runtime.templates!.library, templateLibraryPath),
   );
 }
 
@@ -90,7 +100,7 @@ test("a kit bakes to one static bundle whose states are its modules, each in its
   const result = await bake();
   const entry = result.runtime.appearances[KIT];
   expect(entry).toMatchObject({ unit: "kit", kind: "static" });
-  const kit = decodeBundle(result.files.get(bundlePath(entry.bundle))!) as StaticBundle;
+  const kit = decodeBundle(await rawContent(result, entry.bundle)) as StaticBundle;
   expect(kit.states.map((s) => s.name)).toEqual(["shell", "sill"]);
   for (const state of kit.states) expect(state.tiers).toHaveLength(4);
   // The sill is laid out 40 m along in the file; its geometry is its own frame's.
@@ -102,7 +112,7 @@ test("a kit bakes to one static bundle whose states are its modules, each in its
     { name: "shell", triangles: [12, 12, 12, 12] },
     { name: "sill", triangles: [12, 12, 12, 12] },
   ]);
-  expect(report.bytes).toBe(result.files.get(bundlePath(entry.bundle))!.byteLength);
+  expect(report.bytes).toBe((await rawContent(result, entry.bundle)).byteLength);
 });
 
 test("a module carries all four tiers, finest first", async () => {
@@ -127,7 +137,7 @@ test("the stand-in kit is one module, a metre cube standing on its base, the sam
   const result = await bakeCatalog(catalog, async () => standInKitGlb(), cityContext());
   expect(result.reports.flatMap((r) => r.findings)).toEqual([]);
   const entry = result.runtime.appearances[STAND_IN_KIT];
-  const kit = decodeBundle(result.files.get(bundlePath(entry.bundle))!) as StaticBundle;
+  const kit = decodeBundle(await rawContent(result, entry.bundle)) as StaticBundle;
   expect(kit.states.map((s) => s.name)).toEqual([STAND_IN_MODULE]);
   // A prop's stand-in is this box scaled by the prop's own size.
   close(kit.states[0].bounds.min, [-0.5, -0.5, 0]);
@@ -141,7 +151,7 @@ test("packing the same sources twice gives the same bytes", async () => {
   const [a, b] = [await bake(), await bake()];
   expect(a.ok).toBe(true);
   expect(b.runtime).toEqual(a.runtime);
-  const path = templateLibraryPath(a.runtime.templates!.library);
+  const path = templateLibraryPath(gzipTransport(a.runtime, a.runtime.templates!.library).hash);
   expect(b.files.get(path)).toEqual(a.files.get(path));
   // The order the catalog and the file list things in is not content.
   const reordered = testSet((set) => set.templates.reverse());
@@ -199,7 +209,8 @@ test("a library that does not match its kits fails the whole load", async () => 
     kitGlb([MODULES[0]]),
   );
   const otherKit = other.runtime.appearances[KIT].bundle;
-  files.set(bundlePath(otherKit), other.files.get(bundlePath(otherKit))!);
+  const otherPath = bundlePath(gzipTransport(other.runtime, otherKit).hash);
+  files.set(otherPath, other.files.get(otherPath)!);
   const runtime = structuredClone(result.runtime);
   runtime.appearances[KIT].bundle = otherKit;
   files.set("catalog.json", new TextEncoder().encode(runtimeCatalogText(runtime)));
@@ -208,21 +219,24 @@ test("a library that does not match its kits fails the whole load", async () => 
   );
   expect(loader.installed).toBe(first);
 
-  const corrupt = files.get(templateLibraryPath(result.runtime.templates!.library))!.slice();
+  const libraryPath = templateLibraryPath(
+    gzipTransport(result.runtime, result.runtime.templates!.library).hash,
+  );
+  const corrupt = files.get(libraryPath)!.slice();
   corrupt[corrupt.length - 1] ^= 0xff;
-  files.set(templateLibraryPath(result.runtime.templates!.library), corrupt);
+  files.set(libraryPath, corrupt);
   files.set("catalog.json", new TextEncoder().encode(runtimeCatalogText(result.runtime)));
-  await expect(loader.load("/assets/")).rejects.toThrow(/template library .* content hash/);
+  await expect(loader.load("/assets/")).rejects.toThrow(/gzip content hash/);
   expect(loader.installed).toBe(first);
 });
 
 test("a module its kit lacks is refused by name when the library is bound", async () => {
   const result = await bake();
   const lib = decodeTemplateLibrary(
-    result.files.get(templateLibraryPath(result.runtime.templates!.library))!,
+    await rawContent(result, result.runtime.templates!.library, templateLibraryPath),
   );
   const bundle = decodeBundle(
-    result.files.get(bundlePath(result.runtime.appearances[KIT].bundle))!,
+    await rawContent(result, result.runtime.appearances[KIT].bundle),
   ) as StaticBundle;
   const without = { ...bundle, states: bundle.states.filter((s) => s.name !== "sill") };
   const bind = (kitBundle: StaticBundle | undefined) => () => bindModules(lib, () => kitBundle);
@@ -563,7 +577,8 @@ async function twoCatalogues(
   const baked = result.runtime.templates;
   return {
     findings: result.reports.flatMap((r) => r.findings).map((f) => `${f.code}: ${f.message}`),
-    library: baked && decodeTemplateLibrary(result.files.get(templateLibraryPath(baked.library))!),
+    library:
+      baked && decodeTemplateLibrary(await rawContent(result, baked.library, templateLibraryPath)),
   };
 }
 

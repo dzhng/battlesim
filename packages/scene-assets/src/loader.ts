@@ -25,6 +25,12 @@ import {
   type TemplateArtLibrary,
 } from "./templateLibrary.ts";
 import type { MountDraws } from "./units.ts";
+import { gzipTransport, kitDownloadBytes, unpackGzip } from "./gzip.ts";
+import {
+  KIT_BUNDLE_MAX_BYTES,
+  SHARED_KIT_DOWNLOAD_MAX_BYTES,
+  type GzipTransport,
+} from "./schema.ts";
 
 /** Where the runtime directory lives in the repo, for LFS pull hints. */
 export const RUNTIME_DIR = "assets/runtime";
@@ -97,6 +103,11 @@ export class AppearanceLibrary {
     const response = await this.fetcher(`${baseUrl}catalog.json`);
     if (!response.ok) throw new Error(`appearance catalog: HTTP ${response.status}`);
     const catalog = (await response.json()) as RuntimeCatalog;
+    const bytes = kitDownloadBytes(catalog, []);
+    if (bytes > SHARED_KIT_DOWNLOAD_MAX_BYTES)
+      throw new Error(
+        `shared kit download ${bytes} bytes is over ${SHARED_KIT_DOWNLOAD_MAX_BYTES}`,
+      );
     const source = { baseUrl, catalog };
     const skeletons = new Map<string, SkeletonClips>();
     await Promise.all(
@@ -128,14 +139,23 @@ export class AppearanceLibrary {
     const source = this.source;
     if (!source || !this.current)
       throw new Error("kits were asked for before a catalog was loaded");
+    const requested = [...new Set(names)];
+    const bytes = kitDownloadBytes(
+      source.catalog,
+      requested.filter((name) => source.catalog.appearances[name]?.unit === "kit"),
+    );
+    if (bytes > SHARED_KIT_DOWNLOAD_MAX_BYTES)
+      throw new Error(
+        `shared kit download ${bytes} bytes is over ${SHARED_KIT_DOWNLOAD_MAX_BYTES}`,
+      );
     const held = this.current.appearances;
-    const absent = [...new Set(names)].filter((name) => !held.has(name));
+    const absent = requested.filter((name) => !held.has(name));
     if (absent.length === 0) return this.current;
     const kits = await Promise.all(
       absent.map(async (name) => [name, await this.kit(source, name)] as const),
     );
     // The catalog was loaded again meanwhile: these kits are the new one's to answer for.
-    if (this.source !== source) return this.withKits(absent);
+    if (this.source !== source) return this.withKits(requested);
     // Onto whatever is installed by now: another request may have landed first.
     const { sides, skeletons, appearances, templates } = this.current;
     return this.install(
@@ -182,6 +202,7 @@ export class AppearanceLibrary {
     what: string,
     hash: string,
     path: string,
+    gzip?: GzipTransport,
   ): Promise<Uint8Array> {
     const res = await this.fetcher(`${baseUrl}${path}`);
     if (!res.ok) throw new Error(`${what} ${hash}: HTTP ${res.status}`);
@@ -190,13 +211,17 @@ export class AppearanceLibrary {
       throw new Error(
         `${what} ${hash} is a Git LFS pointer; run: ${lfsPullCommand(`${RUNTIME_DIR}/${path}`)}`,
       );
+    if (gzip) return unpackGzip(bytes, gzip, hash);
     const actual = await sha256Hex(bytes);
     if (actual !== hash) throw new Error(`${what} ${hash}: content hash is ${actual}`);
     return bytes;
   }
 
-  private async bundle(source: Source, hash: string): Promise<Bundle> {
-    return decodeBundle(await this.verified(source, "bundle", hash, bundlePath(hash)));
+  private async bundle(source: Source, hash: string, kit = false): Promise<Bundle> {
+    const gzip = kit ? gzipTransport(source.catalog, hash, KIT_BUNDLE_MAX_BYTES) : undefined;
+    return decodeBundle(
+      await this.verified(source, "bundle", hash, bundlePath(gzip?.hash ?? hash), gzip),
+    );
   }
 
   /** The catalog's appearance `name`: its bundle, held to what its entry says. */
@@ -206,7 +231,7 @@ export class AppearanceLibrary {
     skeletons: ReadonlyMap<string, SkeletonClips>,
   ): Promise<InstalledAppearance> {
     const entry = source.catalog.appearances[name];
-    const bundle = await this.bundle(source, entry.bundle);
+    const bundle = await this.bundle(source, entry.bundle, entry.unit === "kit");
     if (bundle.kind === "clips" || bundle.kind !== entry.kind)
       throw new Error(`appearance ${name}: bundle is ${bundle.kind}, catalog says ${entry.kind}`);
     if (bundle.kind === "skinned") {
@@ -256,9 +281,10 @@ export class AppearanceLibrary {
     source: Source,
     named: NonNullable<RuntimeCatalog["templates"]>,
   ): Promise<TemplateArtLibrary> {
-    const path = templateLibraryPath(named.library);
+    const gzip = gzipTransport(source.catalog, named.library);
+    const path = templateLibraryPath(gzip.hash);
     const library = decodeTemplateLibrary(
-      await this.verified(source, "template library", named.library, path),
+      await this.verified(source, "template library", named.library, path, gzip),
     );
     if (library.art_hash !== named.art_hash || library.covers.join() !== named.covers.join())
       throw new Error(

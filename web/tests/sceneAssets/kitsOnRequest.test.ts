@@ -9,6 +9,7 @@ import type { PlacedBuildings } from "@packages/battle-renderer/src/models/build
 import { PropAppearances } from "@packages/battle-renderer/src/models/propAppearance.ts";
 import { bakeCatalog, runtimeCatalogText } from "@packages/scene-assets/src/bake.ts";
 import { AppearanceLibrary, memoryFetch, type Fetch } from "@packages/scene-assets/src/loader.ts";
+import { gzipTransport } from "@packages/scene-assets/src/gzip.ts";
 import { bundlePath, templateLibraryPath } from "@packages/scene-assets/src/schema.ts";
 import {
   CATALOGUE,
@@ -62,13 +63,16 @@ async function served() {
     fetched.push(url.slice(BASE.length));
     return inner(url);
   };
-  const path = (kit: string) => bundlePath(result.runtime.appearances[kit].bundle);
+  const path = (kit: string) =>
+    bundlePath(gzipTransport(result.runtime, result.runtime.appearances[kit].bundle).hash);
   return {
     files,
     fetched,
     loader: new AppearanceLibrary(fetcher),
     kitFile: { [KIT]: path(KIT), [YARD_KIT]: path(YARD_KIT) },
-    libraryFile: templateLibraryPath(result.runtime.templates!.library),
+    libraryFile: templateLibraryPath(
+      gzipTransport(result.runtime, result.runtime.templates!.library).hash,
+    ),
   };
 }
 
@@ -171,7 +175,7 @@ test("a kit that fails to arrive is named, and the installed generation stays", 
   corrupt[corrupt.length - 1] ^= 0xff;
   files.set(kitFile[YARD_KIT], corrupt);
   await expect(loader.withKits([YARD_KIT])).rejects.toThrow(
-    /kit "city_kit_yard": bundle .* content hash/,
+    /kit "city_kit_yard": .*gzip content hash/,
   );
   expect(loader.installed).toBe(first);
   // Served whole again, the same request succeeds.
@@ -205,4 +209,37 @@ test("a map whose kit is not installed is refused by name, never drawn without i
   );
   // A map with no buildings draws from no kit, so none is missed.
   expect([...mapAppearances(catalog, [], fit, placedOf(), false).appearances.keys()]).toEqual([]);
+});
+
+test("a catalog reload during arrival retries the complete map selection, including previously held kits", async () => {
+  const { files, kitFile } = await served();
+  const fetch = memoryFetch(files, BASE);
+  let delay = false;
+  let release!: () => void;
+  let started!: () => void;
+  const waiting = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const arrived = new Promise<void>((resolve) => {
+    started = resolve;
+  });
+  const loader = new AppearanceLibrary(async (url) => {
+    if (delay && url === BASE + kitFile[YARD_KIT]) {
+      started();
+      await waiting;
+    }
+    return fetch(url);
+  });
+  await loader.load(BASE);
+  const first = await loader.withKits([KIT]);
+  delay = true;
+  const requested = loader.withKits([KIT, YARD_KIT]);
+  await arrived;
+  await loader.load(BASE);
+  delay = false;
+  release();
+  const current = await requested;
+  expect([...current.appearances.keys()].sort()).toEqual([KIT, YARD_KIT]);
+  expect(current.appearances.get(KIT)!.bundle).toEqual(first.appearances.get(KIT)!.bundle);
+  expect(loader.installed).toBe(current);
 });

@@ -3,6 +3,7 @@
 // on their skeleton's joint order and bounded by its clips.
 
 import { bundleHash, encodeBundle } from "./codec.ts";
+import { packGzip } from "./gzip.ts";
 import {
   KIT_BUNDLE_MAX_BYTES,
   UNIT_BUNDLE_KIND,
@@ -80,6 +81,22 @@ export function kitBytesFindings(name: string, bytes: number): Finding[] {
     : [];
 }
 
+/** One publication owner for baked art and in-memory workbench previews. */
+async function publishContent(
+  output: Pick<BakeResult, "runtime" | "files">,
+  bytes: Uint8Array,
+  path: (hash: string) => string,
+  gzip: boolean,
+) {
+  const hash = await bundleHash(bytes);
+  if (gzip) {
+    const packed = await packGzip(bytes);
+    (output.runtime.gzip ??= {})[hash] = packed.transport;
+    output.files.set(path(packed.transport.hash), packed.bytes);
+  } else output.files.set(path(hash), bytes);
+  return { hash, bytes: bytes.byteLength };
+}
+
 /** The template art library's name in a bake report. */
 export const TEMPLATE_LIBRARY_REPORT = "template art";
 
@@ -116,12 +133,9 @@ export async function bakeCatalog(
     }
     return texture;
   };
-  const emit = async (bundle: Parameters<typeof encodeBundle>[0]) => {
-    const bytes = encodeBundle(bundle);
-    const hash = await bundleHash(bytes);
-    files.set(bundlePath(hash), bytes);
-    return { hash, bytes: bytes.byteLength };
-  };
+  const output = { runtime, files };
+  const emit = (bundle: Parameters<typeof encodeBundle>[0], gzip = false) =>
+    publishContent(output, encodeBundle(bundle), bundlePath, gzip);
 
   for (const id of Object.keys(catalog.skeletons).sort()) {
     if (!wanted(id) && !neededSkeletons.has(id)) continue;
@@ -181,7 +195,10 @@ export async function bakeCatalog(
     );
     if (result.bundle && result.bundle.kind !== "clips")
       result.findings.push(...(await bindInteriors(name, result.bundle, sheets)));
-    const out = result.bundle && !hasErrors(result.findings) ? await emit(result.bundle) : null;
+    const out =
+      result.bundle && !hasErrors(result.findings)
+        ? await emit(result.bundle, entry.unit === "kit")
+        : null;
     if (entry.unit === "kit" && out) result.findings.push(...kitBytesFindings(name, out.bytes));
     if (entry.unit === "kit" && result.bundle?.kind === "static" && out)
       kits.set(name, { bundle: result.bundle, hash: out.hash });
@@ -234,10 +251,8 @@ export async function bakeCatalog(
     if (packed.library) {
       const library = await sealTemplateLibrary(packed.library);
       const bytes = encodeTemplateLibrary(library);
-      const hash = await bundleHash(bytes);
-      files.set(templateLibraryPath(hash), bytes);
-      runtime.templates = { library: hash, art_hash: library.art_hash, covers: library.covers };
-      out = { hash, bytes: bytes.byteLength };
+      out = await publishContent(output, bytes, templateLibraryPath, true);
+      runtime.templates = { library: out.hash, art_hash: library.art_hash, covers: library.covers };
     }
     reports.push({
       name: TEMPLATE_LIBRARY_REPORT,
@@ -304,18 +319,16 @@ export async function previewRuntime(
 ): Promise<Map<string, Uint8Array>> {
   const runtime: RuntimeCatalog = { sides, skeletons: {}, appearances: {} };
   const files = new Map<string, Uint8Array>();
-  const emit = async (bundle: Bundle) => {
-    const bytes = encodeBundle(bundle);
-    const hash = await bundleHash(bytes);
-    files.set(bundlePath(hash), bytes);
-    return hash;
-  };
+  const output = { runtime, files };
+  const emit = async (bundle: Bundle, gzip = false) =>
+    (await publishContent(output, encodeBundle(bundle), bundlePath, gzip)).hash;
+
   for (const entry of entries) {
     if (entry.clips) runtime.skeletons[entry.clips.id] = await emit(entry.clips);
     runtime.appearances[entry.name] = {
       unit: entry.unit,
       kind: entry.bundle.kind,
-      bundle: await emit(entry.bundle),
+      bundle: await emit(entry.bundle, entry.unit === "kit"),
       ...(entry.bundle.kind === "skinned" ? { skeleton: entry.bundle.skeleton } : {}),
       ...(entry.scenery ? { scenery: entry.scenery } : {}),
       ...(entry.mounts ? { mounts: entry.mounts } : {}),

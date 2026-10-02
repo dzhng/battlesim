@@ -509,6 +509,9 @@ export interface Catalog {
 /** `assets/runtime/catalog.json`, written by the bake: names to content hashes. */
 export interface RuntimeCatalog {
   sides: SideTints;
+  /** Kits and the template library travel as gzip. Keys remain their raw
+   * content hashes; encoded hashes name the immutable files actually served. */
+  gzip?: Record<string, GzipTransport>;
   skeletons: Record<string, string>;
   appearances: Record<
     string,
@@ -528,6 +531,12 @@ export interface RuntimeCatalog {
   templates?: { library: string; art_hash: string; covers: string[] };
 }
 
+export interface GzipTransport {
+  hash: string;
+  bytes: number;
+  raw_bytes: number;
+}
+
 /** The file a bundle lives in, under its content hash's directory. */
 export const BUNDLE_FILE = "bundle.bin";
 export const bundlePath = (hash: string) => `${hash}/${BUNDLE_FILE}`;
@@ -537,3 +546,6 @@ export const templateLibraryPath = (hash: string) => `${hash}/${TEMPLATE_LIBRARY
 
 /** A kit bundle's byte budget: every module's four tiers and its textures. */
 export const KIT_BUNDLE_MAX_BYTES = 50 * 1024 * 1024;
+/** Aggregate wire bytes for the kits a map selects plus its template library;
+ * separate from decoded per-kit and resident/GPU-memory budgets. */
+export const SHARED_KIT_DOWNLOAD_MAX_BYTES = 50 * 1024 * 1024;
