@@ -1105,8 +1105,9 @@ const walkJoint = tgpu
 /** A curb's stones and its face are never sharper than this, in metres. */
 const CURB_EDGE_M = 0.03;
 /** A curb fades out as a pixel grows from the first share of its stones'
- *  width to the second: under a pixel wide it is a line that crawls. */
-const CURB_PIXELS = [0.6, 1.6] as const;
+ *  width to the second: a pixel or two wide it is a line that crawls, and
+ *  shows on streets that run one way and not the other. */
+const CURB_PIXELS = [0.25, 0.6] as const;
 
 /** The curb at a point: `(slope east, slope north, stones)`. Along the edge
  *  of a stroke whose kind has one, the kerbstones lie just outside the edge
@@ -1153,8 +1154,9 @@ export const groundRoadRelief = tgpu.fn(
 
 /** Painted lines are never sharper than this, in metres. */
 const MARK_EDGE_M = 0.03;
-/** They fade out as a pixel grows from the first share of the centre line's
- *  width to the second: a pixel wide, a dashed line crawls. */
+/** A line fades out as a pixel grows from the first share of its width to
+ *  the second (the centre line by its own width, a crossing's bars by
+ *  theirs): a pixel wide, a dashed line crawls. */
 const MARK_PIXELS = [0.35, 0.85] as const;
 /** A stroke crosses a road where their directions differ by more than this
  *  (the cosine of the angle between them): a stretch round the road's own
@@ -1185,9 +1187,9 @@ export const groundMarks = tgpu
  let look=terrainLayout.$.params.roads[kind];
  let line=look.marks.x;
  if(line<=0.0){return 0.0;}
- let shown=1.0-smoothstep(${MARK_PIXELS[0]},${MARK_PIXELS[1]},footprint/(2.0*line));
- if(shown<=0.0){return 0.0;}
  let bars=look.crossing;
+ let shown=vec2f(1.0)-smoothstep(vec2f(${MARK_PIXELS[0]}),vec2f(${MARK_PIXELS[1]}),footprint/vec2f(2.0*line,bars.x));
+ if(shown.x<=0.0&&shown.y<=0.0){return 0.0;}
  let far=bars.z+bars.y;
  // How far along this stroke the point is from its dash's middle.
  let dash=(fract(paved.run.z/look.marks.z)-0.5)*look.marks.z;
@@ -1211,8 +1213,10 @@ export const groundMarks = tgpu
   near=max(near,inside+nearer*dash+abs(nearer)*look.marks.y*0.5);
   let cuts=u32(seg.detail.z);
   let room=2.0*paved.lane.w;
+  // Beside it: not past an end its stroke is cut at, nor within this
+  // road's width of one (round a bend its stretches meet end to end).
   let ends=((cuts&${CUT_A}u)!=0u&&free<room)||((cuts&${CUT_B}u)!=0u&&len-free<room);
-  if(free>=0.0&&free<=len&&!ends){cross=max(cross,inside);}
+  if(!ends){cross=max(cross,inside);}
  }
  let soft=max(footprint,${MARK_EDGE_M})*0.5;
  let centre=(1.0-smoothstep(line-soft,line+soft,paved.lane.z))
@@ -1222,7 +1226,7 @@ export const groundMarks = tgpu
  let across=abs(fract(paved.lane.z/(2.0*bars.x))-0.5)*2.0*bars.x;
  let bar=1.0-smoothstep(bars.x*0.5-soft,bars.x*0.5+soft,across);
  let kept=1.0-smoothstep(paved.lane.w-bars.w-soft,paved.lane.w-bars.w+soft,paved.lane.z);
- return max(centre,zone*bar*kept)*shown;
+ return max(centre*shown.x,zone*bar*kept*shown.y);
 }`)
   .$uses({ terrainLayout, strokeCutInside, roadLane, GroundPaved });
 
