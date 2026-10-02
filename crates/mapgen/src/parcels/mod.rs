@@ -1,7 +1,7 @@
 //! The parcel pass: each district of a generated layout gets its streets,
 //! then parcels along them, then one template on each parcel. A template is
 //! placed whole, by translation and rotation; a parcel is cut to it.
-mod lots;
+pub(crate) mod lots;
 pub(crate) mod space;
 pub(crate) mod streets;
 
@@ -58,6 +58,14 @@ impl Pass<'_> {
     }
 }
 
+/// The one regional family the request's map is built in (M08): a draw of
+/// its own stream, so every pass that stands buildings agrees on it.
+pub(crate) fn family<'a>(request: &GenerationRequest, presets: &'a PresetDefinitions) -> &'a str {
+    let families = &presets.parcels.regional_families;
+    let pick = crate::layout::stream(request, "family").below(families.len() as u64) as usize;
+    &families[pick]
+}
+
 /// Cut every district of `plan` into streets and parcels and stand templates
 /// of `catalogue` on them. The result is the same plan with its streets and
 /// aprons added to `surfaces`, its parcels in `lots` and one `buildings` row
@@ -76,15 +84,12 @@ pub fn fill_districts(
             message: "requested physical catalogue hash differs from the supplied catalogue".into(),
         }]);
     }
-    let families = &presets.parcels.regional_families;
-    let mut pass = Pass {
+    let pass = Pass {
         request,
         presets,
         fits: catalogue.templates().iter().filter_map(Fit::new).collect(),
-        family: "",
+        family: family(request, presets),
     };
-    let pick = pass.stream("family").below(families.len() as u64) as usize;
-    pass.family = &families[pick];
 
     // A street's whole width stays off a river's bank.
     let clearance = presets.rivers.bank_m() + presets.parcels.street_width_m / 2.0;
