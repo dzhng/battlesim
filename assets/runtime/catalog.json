@@ -59,6 +59,11 @@
       "kind": "static",
       "unit": "kit"
     },
+    "city_kit_village": {
+      "bundle": "ffd54afcbd5a4ff3dd4f7eaceda098698d9870c52b4786c1bc6b147459b3f78c",
+      "kind": "static",
+      "unit": "kit"
+    },
     "crate_stack": {
       "bundle": "44e48209a221ac8b04be72dbff9bf05d42dedbfd7338329f8d399af2634ae142",
       "footprint_half_m": [
@@ -168,36 +173,6 @@
       "kind": "static",
       "scenery": "hedgerow",
       "unit": "scenery"
-    },
-    "house_a": {
-      "bundle": "143da232bb01b04f8788913a976d4d4dc422f3631ad26a9e7cb8a4df6a158ec3",
-      "footprint_half_m": [
-        15,
-        12,
-        4
-      ],
-      "kind": "static",
-      "unit": "building"
-    },
-    "house_b": {
-      "bundle": "46be671804d6e32875b0e2b7baac76d071eaa284df7d0dd909ba63ae0870afe1",
-      "footprint_half_m": [
-        17,
-        14,
-        4
-      ],
-      "kind": "static",
-      "unit": "building"
-    },
-    "house_c": {
-      "bundle": "6f4dc6d5b5a7b9c0ce1ea36e6288bbd59f0977516ddffe4e700aba7d75bb8f4b",
-      "footprint_half_m": [
-        13,
-        11,
-        4
-      ],
-      "kind": "static",
-      "unit": "building"
     },
     "jeep": {
       "bundle": "6dd05fcb19f1229c1603d4b9ee6eebe4fdd5a00efdb5bf3fc39f589eb7c0c481",
@@ -348,8 +323,11 @@
     "quaternius-ubc-rifle": "19706856fef2f15bd61aae8ef6d4e614c58a028296738bdeab45195880187611"
   },
   "templates": {
-    "art_hash": "0b84e7afc40fa9d6946bc80bc048480c6a58a9fada9bd804ba14e0f8887ccbbc",
-    "covers": "6b0a5e8be69e9309bd16db843fa7ecaad672616874978ecfde0fd9332c3e6316",
-    "library": "e2c0ca559212cead2f8a3b683ba4e7309109dedbacae1a3a3c87f4f59a29735b"
+    "art_hash": "ee84e16a0381ab1153a0cecc04511081a414fb01b33fee05455fde71b9d6d218",
+    "covers": [
+      "61fbae9d148e6a24bf589d80da0f572e515c04428e373938f06bae187d895e13",
+      "6b0a5e8be69e9309bd16db843fa7ecaad672616874978ecfde0fd9332c3e6316"
+    ],
+    "library": "987e3e37e03dec557982d782d2f9b491a1ca0e8198ad8ec4c600c89bf4613a0b"
   }
 }
