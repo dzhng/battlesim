@@ -61,7 +61,7 @@ function* groundPixels(mask, keep) {
 }
 
 /** The mean displayed colour and luminance of `shot` over `pixels`. */
-function mean(shot, pixels) {
+export function mean(shot, pixels) {
   const sum = [0, 0, 0];
   let light = 0,
     count = 0;
@@ -78,7 +78,7 @@ function mean(shot, pixels) {
 const warmth = ([r, , b]) => (r - b) / r;
 
 /** A station's frame, its bare ground and its class mask. */
-async function frame(page, map, station) {
+export async function frame(page, map, station) {
   return {
     mask: decode(await shoot(page, map, station, { view: "ground-classes" })),
     bare: decode(await shoot(page, map, station, { grass: false, trees: false })),

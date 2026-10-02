@@ -26,7 +26,7 @@ import {
   STROKE_CUTS,
   strokeInside,
 } from "@packages/battle-renderer/src/terrain/strokes";
-import { SURFACE_AREA_KINDS } from "@packages/battle-renderer/src/terrain/surfaces";
+import { pavedKinds, SURFACE_AREA_KINDS } from "@packages/battle-renderer/src/terrain/surfaces";
 import { plotAt } from "@packages/battle-renderer/src/terrain/plots.ts";
 import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
 import summer from "@fixtures/biomes/summer.json";
@@ -446,8 +446,10 @@ test("every paved kind is drawn by its own road row, or the default's", () => {
     looks[SURFACE_AREA_KINDS.indexOf(kind)];
   expect(look("dirt_track").core.w).toBe(0.5);
   expect(look("dirt_track").core.x).toBeCloseTo(0.5 ** 2.2, 6);
-  for (const kind of ["road", "country_road", "sidewalk"] as const)
-    expect(look(kind), kind).toEqual(look("road"));
+  for (const kind of ["road", "country_road", "sidewalk"] as const) {
+    expect(look(kind).core, kind).toEqual(look("road").core);
+    expect(look(kind).shoulder, kind).toEqual(look("road").shoulder);
+  }
   expect(look("road").core).not.toEqual(look("dirt_track").core);
   // A patch is a change of hue alone: as bright as the surface it lies in,
   // whichever of the two colours is the brighter in the palette.
@@ -462,6 +464,63 @@ test("every paved kind is drawn by its own road row, or the default's", () => {
   expect(() =>
     validateBiome({ ...biome, roads: { ...biome.roads, motorway: roads.default } }),
   ).toThrow(/roads\.motorway: names no paved kind/);
+});
+
+test("a street's row says what draws its yards and its walk", () => {
+  const plain = { ...biome.roads.default, area: undefined, walk: undefined };
+  const street = {
+    ...plain,
+    area: "sidewalk",
+    walk: { kind: "sidewalk", width_m: 2, slab_m: 2.5, joint: 0.2 },
+  };
+  const looks = roadLooks(validateBiome({ ...biome, roads: { default: plain, road: street } }));
+  const tag = (kind: (typeof SURFACE_AREA_KINDS)[number]) => SURFACE_AREA_KINDS.indexOf(kind);
+  // The street: its areas and its walk go to the sidewalk's row.
+  const road = looks[tag("road")];
+  expect([road.join.y, road.join.z, road.join.w]).toEqual([tag("sidewalk"), 2, tag("sidewalk")]);
+  expect(road.slabs.x).toBeCloseTo(1 / 2.5, 6);
+  // Every other kind draws its own areas and has no walk.
+  for (const kind of ["country_road", "dirt_track", "sidewalk"] as const)
+    expect([looks[tag(kind)].join.y, looks[tag(kind)].join.z], kind).toEqual([tag(kind), 0]);
+  // Only a carriageway is carried onto the road it joins.
+  expect(looks.map((look) => look.track.w)).toEqual([1, 1, 1, 0]);
+
+  for (const [row, path] of [
+    [{ ...street, area: "lawn" }, "area"],
+    [{ ...street, walk: { ...street.walk, kind: "lawn" } }, "walk\\.kind"],
+  ] as const)
+    expect(() => validateBiome({ ...biome, roads: { default: plain, road: row } })).toThrow(
+      new RegExp(`roads\\.road\\.${path}: names no paved kind "lawn"`),
+    );
+});
+
+test("a map that names no kind but road has its roads drawn as country roads", () => {
+  const street = { ...biome.roads.default, roughness: 0.5 };
+  const country = { ...biome.roads.default, roughness: 0.75 };
+  const rows = validateBiome({
+    ...biome,
+    roads: { default: biome.roads.default, road: street, country_road: country },
+  });
+  const drawn = (map: unknown) => {
+    const { site } = buildTerrainSurface(world(map).exports, layout, rows);
+    return roadLooks(rows, pavedKinds(site)).map((look) => look.core.w);
+  };
+  // The village's roads are `road` and it names nothing else.
+  expect(drawn(villageMap).slice(0, 2)).toEqual([0.75, 0.75]);
+  // Beside a road of another kind, a `road` is a street.
+  const way = (kind: string, y: number) => ({
+    kind,
+    shape: {
+      kind: "stroke",
+      points: [
+        [40, y],
+        [200, y],
+      ],
+      width_m: 8,
+    },
+  });
+  const town = { ...riverLab, surfaces: [way("road", 40), way("country_road", 80)] };
+  expect(drawn(town).slice(0, 2)).toEqual([0.5, 0.75]);
 });
 
 test("the forest floor names a palette of litter, moss and humus, and its numbers are checked", () => {

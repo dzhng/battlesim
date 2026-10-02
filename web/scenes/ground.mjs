@@ -10,7 +10,8 @@
 // observed side has learned it, at fixed framings of the lab field
 // (SCARS_ONLY=1 runs only those framings and the village inspector).
 // The ground evidence rig's own checks run here too (RIG_ONLY=1 alone), then
-// the road looks' on its stations (ROADS_ONLY=1 alone, `_roads.mjs`), and
+// the road looks' on its stations (ROADS_ONLY=1 alone, `_roads.mjs`), the
+// town streets' (STREETS_ONLY=1 alone, `_streets.mjs`), and
 // STATIONS=map,... writes those maps' station sheets instead
 // (`_groundStations.mjs`). What grows where is checked at the rig's stations
 // (`_grass.mjs`, GRASS_ONLY=1 alone).
@@ -24,6 +25,7 @@ import { surfaceFieldAgreement } from "./_surfaceField.mjs";
 import { groundRig, stationSheets } from "./_groundStations.mjs";
 import { grassGrowth } from "./_grass.mjs";
 import { roadCost, roadLooks } from "./_roads.mjs";
+import { streetLooks } from "./_streets.mjs";
 
 const x = (o, id) => o.own.find((u) => u.id === id)?.position[0] ?? NaN;
 const cells = (page) => lab(page, () => window.__lab.route.refreshGround());
@@ -43,6 +45,7 @@ export async function run(ctx) {
   if (process.env.RIG_ONLY) return groundRig(ctx);
   if (process.env.GRASS_ONLY) return grassGrowth(ctx);
   if (process.env.ROADS_ONLY) return roadLooks(ctx);
+  if (process.env.STREETS_ONLY) return streetLooks(ctx);
   if (process.env.ROAD_COST) return roadCost(ctx);
   await surfaceExportAgreement(ctx);
   await forestExportAgreement(ctx);
@@ -52,6 +55,7 @@ export async function run(ctx) {
   await groundRig(ctx);
   await grassGrowth(ctx);
   await roadLooks(ctx);
+  await streetLooks(ctx);
   if (process.env.SCARS_ONLY) return scarFramings(ctx).then(() => villageInspector(ctx));
   const page = await openBattle(ctx);
   // Past blue's first fog sweep since the bursts (every 6 ticks).

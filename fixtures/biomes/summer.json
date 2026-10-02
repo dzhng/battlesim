@@ -35,6 +35,14 @@
       [0.455, 0.395, 0.33],
       [0.46, 0.41, 0.35]
     ],
+    "road_asphalt": [
+      [0.385, 0.385, 0.385],
+      [0.43, 0.42, 0.4]
+    ],
+    "paving": [
+      [0.56, 0.555, 0.53],
+      [0.57, 0.545, 0.5]
+    ],
     "shoulder_gravel": [[0.44, 0.41, 0.34]],
     "shoulder_dirt": [[0.42, 0.385, 0.31]],
     "forest_floor": [
@@ -190,6 +198,48 @@
         "jitter": 0.85,
         "jitter_m": 9,
         "grass": 0.15
+      },
+      "ruts": { "offsets_m": [], "width_m": 0, "tilt_deg": 0, "tint": 0 },
+      "centre_strip": { "half_width_m": 0, "max_road_width_m": 0 }
+    },
+    "road": {
+      "palette": "road_asphalt",
+      "feather_m": 0.12,
+      "mottle": 0.3,
+      "patch_m": 7,
+      "grain": 0.3,
+      "grain_m": 0.3,
+      "join_m": 1.5,
+      "roughness": 0.8,
+      "shoulder": {
+        "palette": "shoulder_gravel",
+        "cover": 0,
+        "width_m": 0,
+        "jitter": 0,
+        "jitter_m": 1,
+        "grass": 0
+      },
+      "ruts": { "offsets_m": [], "width_m": 0, "tilt_deg": 0, "tint": 0 },
+      "centre_strip": { "half_width_m": 0, "max_road_width_m": 0 },
+      "area": "sidewalk",
+      "walk": { "kind": "sidewalk", "width_m": 2, "slab_m": 2, "joint": 0.25 }
+    },
+    "sidewalk": {
+      "palette": "paving",
+      "feather_m": 0.12,
+      "mottle": 0.25,
+      "patch_m": 3,
+      "grain": 0.2,
+      "grain_m": 0.4,
+      "join_m": 0,
+      "roughness": 0.85,
+      "shoulder": {
+        "palette": "shoulder_gravel",
+        "cover": 0,
+        "width_m": 0,
+        "jitter": 0,
+        "jitter_m": 1,
+        "grass": 0
       },
       "ruts": { "offsets_m": [], "width_m": 0, "tilt_deg": 0, "tint": 0 },
       "centre_strip": { "half_width_m": 0, "max_road_width_m": 0 }

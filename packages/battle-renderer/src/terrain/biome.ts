@@ -100,8 +100,9 @@ export interface Water {
   streak: number;
 }
 
-/** One kind of road's surface, drawn exactly where the simulation's road rule
- *  holds: a country road's gravel, a dirt track's packed earth. */
+/** One kind of paving's surface, drawn exactly where the simulation's rule
+ *  holds: a country road's gravel, a dirt track's packed earth, a town
+ *  street's asphalt, a sidewalk's slabs. */
 export interface Road {
   /** A palette of two colours: the surface, and what patches of it wear
    *  toward. A patch changes the surface's hue, never its brightness. */
@@ -123,6 +124,25 @@ export interface Road {
   shoulder: Shoulder;
   ruts: Ruts;
   centre_strip: CentreStrip;
+  /** The paved kind whose row draws this kind where it is laid as an area (a
+   *  polygon: a yard, a square) and not along a stroke. Left out, its own. */
+  area?: string;
+  /** A town street's walk; left out, the road has none. */
+  walk?: Walk;
+}
+
+/** The paved walk along both sides of a kind's strokes, where a country
+ *  road has its shoulder. It is a look, as the shoulder is: units find
+ *  ground there, as they do on a sidewalk the map names. */
+export interface Walk {
+  /** The paved kind whose row draws it. */
+  kind: string;
+  /** Its width, from the road's edge. */
+  width_m: number;
+  /** Its slabs' length along the road, and how far the joint between two
+   *  darkens the surface; 0 for none. A joint fades out as it nears a pixel. */
+  slab_m: number;
+  joint: number;
 }
 
 /** Wheel ruts along a road drawn as a stroke: shading only, the ground is
@@ -527,6 +547,17 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
     within(`${at}.ruts.tint`, ruts.tint, 0, 0.5);
     within(`${at}.centre_strip.half_width_m`, road.centre_strip?.half_width_m, 0, 5);
     within(`${at}.centre_strip.max_road_width_m`, road.centre_strip?.max_road_width_m, 0, 100);
+    const paved = (path: string, row: string) => {
+      if (!(SURFACE_AREA_KINDS as readonly string[]).includes(row))
+        bad(path, `names no paved kind "${row}"`);
+    };
+    if (road.area !== undefined) paved(`${at}.area`, road.area);
+    if (road.walk) {
+      paved(`${at}.walk.kind`, road.walk.kind);
+      within(`${at}.walk.width_m`, road.walk.width_m, 0, 8);
+      within(`${at}.walk.slab_m`, road.walk.slab_m, 0, 100);
+      within(`${at}.walk.joint`, road.walk.joint, 0, 0.5);
+    }
   }
   if (!biome.shore || typeof biome.shore !== "object") bad("shore", "is missing");
   const shore = biome.shore;
