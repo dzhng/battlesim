@@ -23,7 +23,17 @@ texture: one face a run of bays, sampling a facade recipe two bays by two floors
 to the tile. The shell also holds what is the template's alone: the corner
 piers, the parapet, the roof, and at tier 0 a closed core behind the panels.
 At tiers 2 and 3 a tower is that one row: its balconies fold into the shell as
-one textured stack a column, its roof's huts and tanks and its canopies as boxes.
+one textured stack a column, its roof's huts, plant and tanks and its canopies as
+boxes. The roof is drawn the same at every tier: a field with its stains and
+mended patches, inside a band the parapet shades.
+
+A tower does not fall: it stands gutted. That state is the same tower built a
+second time (`shell(..., burnt=True)`, the `gutted_*` panels): every opening an
+empty dark hole with the soot of its fire fanned up the wall over it, balconies
+burnt, broken or hanging, a few bays blown out to the bare floor slabs, the roof
+and its huts burnt. The soot and the holes are in the burnt facade recipes, so
+they hold at every tier, and each bay of each floor shows the same quarter of
+the recipe near and far.
 """
 import math
 import os
@@ -45,8 +55,12 @@ CORE_M = 1.5  # the tier 0 core stands this far inside the faces: behind every l
 FACADE_M = 6.0  # a facade recipe's tile: two bays by two floors
 # An opening in its panel (x0, x1, z0, z1): x about the bay's centre, z above the floor's datum.
 # The panel modules and the facade recipes are both cut to these.
-OPENING = {"w": (-0.75, 0.75, 0.9, 2.4), "d": (-1.1, 1.1, 0.1, 2.3), "l": (-1.3, 1.3, 0.12, 2.7), "s": (-0.4, 0.4, 0.5, 2.6)}
-KINDS = {"w": "window", "d": "door", "l": "loggia", "s": "stair", "b": "blank", "B": "balconies"}
+OPENING = {"w": (-0.75, 0.75, 0.9, 2.4), "d": (-1.1, 1.1, 0.1, 2.3), "l": (-1.3, 1.3, 0.12, 2.7), "s": (-0.4, 0.4, 0.5, 2.6),
+           "r": (-1.35, 1.35, 0.9, 2.4), "x": (-1.38, 1.38, 0.16, 2.84)}
+KINDS = {"w": "window", "d": "door", "l": "loggia", "s": "stair", "b": "blank", "B": "balconies", "r": "ribbon", "x": "blown"}
+SOOT = (0.02, 0.018, 0.016)
+# How hard each of a burnt recipe's four bays burnt (which = bay + 2 * floor): no two alike, so a wall is not one grey.
+BURNT = (1.0, 0.55, 0.85, 0.3)
 BALCONY = (2.8, 1.2, 1.05)  # a balcony's width, its reach and its front's height
 GLASS = (0.02, 0.025, 0.03)
 STAIR_GLASS = (0.035, 0.045, 0.045)
@@ -60,10 +74,13 @@ kit = Kit("towers", "towers.py", fit_side_m=1.5, fit_top_m=4.0)
 
 
 # ---------------------------------------------------------------- the facade recipes
-def facade(kind, seed):
+def facade(kind, seed, burnt=False):
     """A tower's wall from a distance: two bays by two floors of pale panels the
     building's tint colours, each with `kind`'s opening where the panel module has
-    it, and no two of the four dressed alike."""
+    it, and no two of the four dressed alike. `burnt` is the same wall gutted: each
+    opening an empty dark hole, the soot of its fire fanned up the panels over it (and
+    on up into the floor above), the facing spalled off in patches. `x` is a bay blown
+    out: the bare edges of its floor slabs and the dark of the floor between them."""
     S = textures.SIZE
     ss, mix = textures.smoothstep, textures.mix
     rows, cols = np.mgrid[0:S, 0:S].astype(float)
@@ -90,6 +107,8 @@ def facade(kind, seed):
     hole = rect(x0, x1, z0, z1)
     lintel = 1.0 - 0.5 * ss(z1 - 0.3, z1 - 0.1, bz)  # the head's shadow on what is behind it
     rough = np.full((S, S), 0.5)
+    if burnt:
+        return gutted(kind, seed, wall, tone, joint, hole, which, bx, bz, rect)
     if kind == "B":
         # a column of balconies as one face: each floor its front, the shade over it, the slab above
         h, slab = BALCONY[2], FLOOR_M - 0.14
@@ -124,7 +143,7 @@ def facade(kind, seed):
         inside = mix(FRAME, STAIR_GLASS, pane) * lintel[..., None]
         rough = np.where(pane > 0.5, 0.2, 0.5)
     else:
-        pane = rect(x0 + 0.06, x1 - 0.06, z0 + 0.06, z1 - 0.06) * (1.0 - bars((0.0,) if kind == "w" else (-0.25,), bx))
+        pane = rect(x0 + 0.06, x1 - 0.06, z0 + 0.06, z1 - 0.06) * (1.0 - bars({"w": (0.0,), "r": (-0.45, 0.45)}.get(kind, (-0.25,)), bx))
         inside = mix(FRAME, GLASS, pane)
         mid, wide = (x0 + x1) / 2, x1 - x0
         drawn = np.select([which == 1, which == 2, which == 3],
@@ -139,9 +158,61 @@ def facade(kind, seed):
                           mix(np.full((S, S, 1), 0.9), rough[..., None], hole)[..., 0], tint=1.0 - hole)
 
 
-for kind, seed in (("w", 3101), ("d", 3201), ("l", 3301), ("s", 3401), ("B", 3501)):
+def gutted(kind, seed, wall, tone, joint, hole, which, bx, bz, rect):
+    """`facade`'s wall after the fire (its `burnt`), from the wall, joints and opening it had laid out."""
+    S = textures.SIZE
+    ss, mix = textures.smoothstep, textures.mix
+    x0, x1, z0, z1 = OPENING["d" if kind == "B" else kind]
+    px = FACADE_M / S
+    void = np.array((0.016, 0.015, 0.014)) * (0.6 + 0.8 * textures.fbm(24, seed + 57, 3))[..., None]
+    inside = void
+    if kind == "B":  # a column of balconies: fronts scorched, one in four gone and one half gone
+        h, slab = BALCONY[2], FLOOR_M - 0.14
+        gone = (which == 1) | ((which == 3) & (bx < 0.2))
+        hole = ss(np.where(gone, 0.06, h) - px, np.where(gone, 0.06, h), bz) * ss(slab + px, slab, bz)
+        z1 = slab
+        joint = np.zeros((S, S))
+        wall = mix(np.array(FACADE_WALL) * tone[..., None], np.array(RAIL) * tone[..., None], ss(slab - px, slab, bz))
+    elif kind == "l":  # a loggia: its balustrade standing in two of the four, scorched
+        stands = ((which == 0) | (which == 2)) * rect(x0, x1, z0, z0 + 0.98)
+        inside = mix(void, np.array(RAIL) * 0.3 * tone[..., None], stands)
+    elif kind == "x":  # blown out: the slabs' edges, the dark floor between, rubble along its lip
+        hole = rect(x0, x1, z0, z1)
+        lip = ss(z0 + 0.5, z0, bz) * ss(0.35, 0.6, textures.fbm(20, seed + 61, 3))
+        inside = mix(void, np.array((0.2, 0.19, 0.175)) * tone[..., None], 0.7 * lip)
+        wall = np.array(RAIL) * 0.75 * tone[..., None]  # bare concrete: the slab's edge and the columns either side
+        joint = np.zeros((S, S))
+    # the soot each opening's fire left on the wall over it, and on up the floor above
+    # (a tongue of it: black over the head, narrowing and wavering as it climbs, a floor or more for a hard fire)
+    wobble = textures.fbm(8, seed + 71, 4) - 0.5
+    mid, half = (x0 + x1) / 2, (x1 - x0) / 2
+    soot = np.zeros((S, S))
+    for rise, bay in ((bz - z1, which), (bz + FLOOR_M - z1, (which + 2) % 4)):
+        strength = np.array(BURNT)[bay]
+        reach = 0.45 + 1.7 * strength
+        up = np.clip(rise, 0, None)
+        width = half * (1.0 - 0.45 * np.clip(up / (2.2 * reach), 0, 1)) + 0.08
+        plume = np.minimum(1.0, 1.3 * strength) * np.exp(-np.clip(up - 0.35, 0, None) / reach)
+        plume = plume * ss(width + 0.25, width - 0.1, np.abs(bx - mid) + wobble * (0.35 + 0.5 * up))
+        soot = np.maximum(soot, np.where(rise > 0, plume, 0.0))
+    soot = np.clip(soot, 0, 1) * (0.85 + 0.15 * textures.fbm(32, seed + 73, 3))
+    spall = ss(0.68, 0.75, textures.fbm(7, seed + 79, 4)) * (1.0 - hole)
+    wall = mix(wall, np.array((0.24, 0.235, 0.22)) * tone[..., None], 0.85 * spall)
+    wall = mix(wall, (0.2, 0.2, 0.19), joint * 0.6)
+    wall = mix(wall * 0.88, SOOT, 0.95 * soot)
+    col = mix(wall, inside, hole)
+    height = textures.blur(-2.0 * hole - 0.5 * joint - 0.6 * spall)
+    wear = np.where(hole > 0.5, 1.0, 0.3 + 0.7 * textures.fbm(6, seed + 3, 5))
+    return textures.Baked(col, wear, textures.normals_from_height(height, 1.2), 1.0 - 0.25 * joint, np.full((S, S), 0.95),
+                          tint=(1.0 - hole) * (1.0 - 0.8 * spall) * (1.0 - 0.6 * soot) * (0.0 if kind == "x" else 1.0))
+
+
+for kind, seed in (("w", 3101), ("d", 3201), ("l", 3301), ("s", 3401), ("B", 3501), ("r", 3601)):
     textures.recipe(f"facade_{KINDS[kind]}", tile=FACADE_M, wear=(0.12, 0.11, 0.09, 1.0))(
         lambda kind=kind, seed=seed: facade(kind, seed))
+    textures.recipe(f"facade_{KINDS[kind]}_burnt", tile=FACADE_M, wear=(0.12, 0.11, 0.09, 1.0))(
+        lambda kind=kind, seed=seed: facade(kind, seed, burnt=True))
+textures.recipe("facade_blown_burnt", tile=FACADE_M, wear=(0.12, 0.11, 0.09, 1.0))(lambda: facade("x", 3701, burnt=True))
 
 # ---------------------------------------------------------------- materials
 # Walls are pale and tint-masked: a row's tint is the tower's colour, or a column's.
@@ -164,6 +235,44 @@ cloth_m = flat_paint("tower_cloth", (0.5, 0.5, 0.48), rough=0.9, grime=0.0)
 cloth_m["tint"] = 1.0
 drape_m = flat_paint("tower_drape", (0.3, 0.3, 0.29), rough=0.5, grime=0.0)  # a curtain, dimmed by the glass before it
 drape_m["tint"] = 1.0
+patch_m = textured("tower_roof_patch", "asphalt", colour=(0.2, 0.2, 0.195), dirt=0.0, chip=0.0, streak=0.0, seed=2.0)  # felt laid since
+void_m = flat_paint("tower_void", (0.012, 0.011, 0.01), rough=1.0, grime=0.0)  # a gutted floor, seen through its openings
+
+
+def stained(mat, seed=0.0):
+    """Lay a flat roof's weather over its felt's paint: damp darkening it in pools some
+    metres across, and the pale silt each leaves as it dries. Wider than two of the
+    roof's cells, so every tier's vertices find the same marks."""
+    base = PAINTS[mat.name]
+
+    def fn(p, n, edge):
+        c, wear = base(p, n, edge)
+        if n.z < 0.5:
+            return c, wear
+        level = fbm(p, 0.08, 2, 97.0 + seed)
+        damp = smoothstep(0.05, 0.4, level)
+        silt = math.exp(-((level - 0.02) / 0.08) ** 2)
+        return lerp3(tuple(x * (1.0 - 0.5 * damp) for x in c), (0.3, 0.29, 0.26), 0.5 * silt), wear
+
+    PAINTS[mat.name] = fn
+    return mat
+
+
+stained(roof_m)
+# The same, after the fire. Soot rises with a wall; a roof, a hut and a balcony are sooted all over, in patches.
+ROOF_BURNT, HUT_BURNT = scorched(roof_m, 1e6, floor=0.75), scorched(hut_m, 1e6, 3.0, floor=0.85)
+FRONT_BURNT, CAST_BURNT = scorched(front_m, 1e6, 5.0, floor=0.75), scorched(rail_m, 1e6, 7.0, floor=0.6)
+
+
+def smoked(z):
+    """How much of a gutted tower's wall the smoke took, `z` metres up: more the higher."""
+    return 0.06 + 0.4 * smoothstep(5.0, 50.0, z)
+
+
+def dimmed(tint, z):
+    """A row's tint (sRGB) as the smoke left it at height `z`: what `smoked` does to the shell's walls, for a panel."""
+    k = 1.0 - smoked(z)
+    return tuple(round(255 * (12.92 * c if c <= 0.0031308 else 1.055 * c ** (1 / 2.4) - 0.055)) for c in (v * k for v in linear(tint)))
 
 # Tints, sRGB: bodies, accents, balcony fronts, curtains.
 GREY, CREAM, WHITE, PALE = (172, 168, 158), (226, 210, 178), (228, 230, 224), (214, 210, 200)
@@ -181,16 +290,21 @@ def linear(tint):
 _STRIPS = {}
 
 
-def strip_mat(recipe, tint=None, tone=1.0):
+def strip_mat(recipe, tint=None, tone=1.0, smoke=False):
     """A shell wall's material on `recipe`: tint-masked for the row's tint (the tower's
-    colour), or with `tint` (sRGB) baked in for a column of another colour."""
-    key = (recipe, tint, tone)
+    colour), or with `tint` (sRGB) baked in for a column of another colour. `smoke` is
+    a gutted tower's: the wall darker the higher it stands (`smoked`)."""
+    key = (recipe, tint, tone, smoke)
     if key not in _STRIPS:
         mean = textures.baked(recipe).mean()
-        name = f"tower_shell_{recipe}" + ("" if tint is None else "_%02x%02x%02x" % tint) + ("" if tone == 1.0 else "_base")
+        name = (f"tower_shell_{recipe}" + ("" if tint is None else "_%02x%02x%02x" % tint) + ("" if tone == 1.0 else "_base")
+                + ("_smoked" if smoke else ""))
         colour = None if tint is None and tone == 1.0 else tuple(m * c * tone for m, c in zip(mean, linear(tint or (255, 255, 255))))
         _STRIPS[key] = textured(name, recipe, tint=1.0 if tint is None and tone == 1.0 else 0.0, colour=colour, dirt=0.5,
                                 chip=0.0, streak=0.3, rise=2.5)
+        if smoke:
+            base = PAINTS[name]
+            PAINTS[name] = lambda p, n, edge: (lambda c, wear: (tuple(x * (1.0 - smoked(p.z)) for x in c), wear))(*base(p, n, edge))
     return _STRIPS[key]
 
 
@@ -198,15 +312,15 @@ BASE_TONE = BASE[0] / FACADE_WALL[0]  # the ground floor's panels, from far off:
 
 
 # ---------------------------------------------------------------- faces by hand
-def sheet(name, mat, parent, quads, lods=TIERS, tile=None):
+def sheet(name, mat, parent, quads, lods=TIERS, tile=None, shift=(0.0, 0.0)):
     """A mesh of flat faces: [(points, a direction its normal leans toward, uvs or None)].
     With `tile`, a face without uvs is mapped in metres over it as a panel's is: u from
-    the bay's left edge along the wall, v up from the floor."""
+    the bay's left edge along the wall, v up from the floor, `shift` metres along."""
 
     def panel_uv(p, n):
         if abs(n.y) >= max(abs(n.x), abs(n.z)):
-            return (p.x + BAY_M / 2) / tile, p.z / tile
-        return (p.y / tile, p.z / tile) if abs(n.x) > abs(n.z) else ((p.x + BAY_M / 2) / tile, p.y / tile)
+            return (p.x + BAY_M / 2 + shift[0]) / tile, (p.z + shift[1]) / tile
+        return ((p.y + shift[0]) / tile, (p.z + shift[1]) / tile) if abs(n.x) > abs(n.z) else ((p.x + BAY_M / 2 + shift[0]) / tile, p.y / tile)
 
     def build(bm, lod):
         layer = bm.loops.layers.uv.new("UVMap") if tile or any(q[2] for q in quads) else None
@@ -251,10 +365,11 @@ def glazing(m, x0, x1, z0, z1, y, uprights=(), rails=(), glass=None, bar=0.05):
     sheet(m.n("frame"), frame_m, m.root, quads, lods=(0,))
 
 
-def card(m, mat, tile, lods=(1, 2, 3)):
-    """The whole panel as one face: what the module is past tier 0, where no row draws it."""
-    k = BAY_M / tile
-    sheet(m.n("card"), mat, m.root, [flat(-BAY_M / 2, BAY_M / 2, 0, FLOOR_M, uvs=[(0, 0), (k, 0), (k, k), (0, k)])], lods=lods)
+def card(m, mat, tile, lods=(1, 2, 3), which=0):
+    """The whole panel as one face: what the module is past tier 0, where no row draws it.
+    `which` is the quarter of a facade recipe it shows (bay + 2 * floor)."""
+    k, u, v = BAY_M / tile, (which % 2) * BAY_M / tile, (which // 2) * BAY_M / tile
+    sheet(m.n("card"), mat, m.root, [flat(-BAY_M / 2, BAY_M / 2, 0, FLOOR_M, uvs=[(u, v), (u + k, v), (u + k, v + k), (u, v + k)])], lods=lods)
 
 
 # ---------------------------------------------------------------- panels: one bay wide, one floor high
@@ -285,10 +400,39 @@ def panel(finish, kind):
         if kind == "s":
             glazing(m, x0, x1, z0, z1, REVEAL_M, rails=[z0 + 0.42 * k for k in range(1, 5)], glass=stair_glass_m)
         else:
-            glazing(m, x0, x1, z0, z1, REVEAL_M, uprights=(0.0,) if kind == "w" else (-0.25,))
-        if kind == "w":
+            glazing(m, x0, x1, z0, z1, REVEAL_M, uprights={"w": (0.0,), "r": (-0.45, 0.45)}.get(kind, (-0.25,)))
+        if kind in "wr":
             box(m.n("sill"), (x1 - x0 + 0.16, 0.12, 0.06), (0, -0.01, z0 - 0.03), rail_m, m.root, lods=(0,))
     card(m, strip_mat(f"facade_{KINDS[kind]}"), FACADE_M)
+    return name
+
+
+def gutted_panel(kind, which, ground=False):
+    """The id of the gutted panel of `kind` that shows quarter `which` of its burnt recipe
+    (bay + 2 * floor, as the shell's wall does there): the wall round an empty opening,
+    and the dark of the burnt-out floor behind it. One set serves every finish: the
+    burnt recipe is the wall. `ground` is the ground floor's, in its darker concrete."""
+    name = f"gutted_{'ground' if ground else KINDS[kind]}_{which}"
+    if name in _PANELS:
+        return name
+    m = _PANELS[name] = kit.module(name, ground=ground, **PANEL)
+    mat = strip_mat(f"facade_{KINDS[kind]}_burnt", tone=BASE_TONE if ground else 1.0)
+    shift = ((which % 2) * BAY_M, (which // 2) * FLOOR_M)
+    x0, x1, z0, z1 = OPENING[kind]
+    if kind == "x":  # blown out: the slab's edge under and over, the floor running back into the dark
+        sheet(m.n("edges"), mat, m.root, [flat(-BAY_M / 2, BAY_M / 2, 0, z0), flat(-BAY_M / 2, BAY_M / 2, z1, FLOOR_M),
+                                          flat(-BAY_M / 2, x0, z0, z1), flat(x1, BAY_M / 2, z0, z1)], lods=(0,), tile=FACADE_M, shift=shift)
+        sheet(m.n("floor"), CAST_BURNT, m.root, [([(x0, 0, z0), (x1, 0, z0), (x1, CORE_M - 0.1, z0), (x0, CORE_M - 0.1, z0)], (0, 0, 1), None),
+                                                  ([(x0, 0, z1), (x1, 0, z1), (x1, CORE_M - 0.1, z1), (x0, CORE_M - 0.1, z1)], (0, 0, -1), None)],
+              lods=(0,))
+        depth = CORE_M - 0.1
+    else:
+        depth = LOGGIA_M + 0.4 if kind == "l" else 0.7
+        sheet(m.n("wall"), mat, m.root, opening(x0, x1, z0, z1, 0.2), lods=(0,), tile=FACADE_M, shift=shift)
+        if kind == "l" and which in (0, 2):  # the balustrade the recipe leaves standing in these two
+            box(m.n("balustrade"), (x1 - x0, 0.1, 0.98), (0, 0.05, z0 + 0.49), CAST_BURNT, m.root, lods=(0,))
+    sheet(m.n("void"), void_m, m.root, [flat(-BAY_M / 2, BAY_M / 2, 0, FLOOR_M, depth)], lods=(0,))
+    card(m, mat, FACADE_M, which=which)
     return name
 
 
@@ -313,6 +457,15 @@ box(m.n("canopy"), (2.9, 1.4, 0.14), (0, -0.7, 2.52), rail_m, m.root)
 box(m.n("step"), (2.9, 1.3, 0.15), (0, -0.65, 0.075), base_m, m.root, lods=(0, 1, 2))
 for s in (-1, 1):
     box(m.n(f"post_{'ab'[s > 0]}"), (0.14, 0.14, 2.3), (s * 1.3, -1.25, 1.3), rail_m, m.root, lods=(0, 1))
+
+m = kit.module("gutted_entrance", ground=True, **PANEL)  # the way in, burnt out: the canopy stands over an empty doorway
+sheet(m.n("wall"), base_m, m.root, opening(*DOOR, 0.2), lods=(0,), tile=textures.tile_of("concrete"))
+sheet(m.n("void"), void_m, m.root, [flat(-BAY_M / 2, BAY_M / 2, 0, FLOOR_M, 0.7)], lods=(0,))
+sheet(m.n("doors"), void_m, m.root, [flat(*DOOR, -0.03)], lods=(1, 2))
+box(m.n("canopy"), (2.9, 1.4, 0.14), (0, -0.7, 2.52), CAST_BURNT, m.root)
+box(m.n("step"), (2.9, 1.3, 0.15), (0, -0.65, 0.075), base_m, m.root, lods=(0, 1, 2))
+for s in (-1, 1):
+    box(m.n(f"post_{'ab'[s > 0]}"), (0.14, 0.14, 2.3), (s * 1.3, -1.25, 1.3), CAST_BURNT, m.root, lods=(0, 1))
 
 # ---------------------------------------------------------------- what hangs on a panel
 # A balcony before a door panel: a slab at the floor's datum and a solid front a row tints.
@@ -341,6 +494,23 @@ def balcony(name, glazed):
 
 balcony("balcony", False)
 balcony("balcony_glazed", True)
+
+# The same balcony after the fire: scorched, or its front half gone, or hanging by its inner edge.
+w_, reach_, h_ = BALCONY
+m = kit.module("balcony_burnt", **PANEL)
+box(m.n("slab"), (w_, reach_, 0.14), (0, -reach_ / 2, -0.07), CAST_BURNT, m.root, lods=(0, 1, 2))
+box(m.n("front"), (w_, 0.08, h_), (0, -reach_ + 0.04, h_ / 2), FRONT_BURNT, m.root)
+for s_ in (-1, 1):
+    box(m.n(f"cheek_{'ab'[s_ > 0]}"), (0.08, reach_ - 0.08, h_), (s_ * (w_ / 2 - 0.04), -(reach_ - 0.08) / 2, h_ / 2), FRONT_BURNT, m.root,
+        lods=(0, 1))
+m = kit.module("balcony_broken", **PANEL)
+box(m.n("slab"), (w_, reach_, 0.14), (0, -reach_ / 2, -0.07), CAST_BURNT, m.root)
+box(m.n("front"), (w_ * 0.45, 0.08, h_), (-w_ * 0.275, -reach_ + 0.04, h_ / 2), FRONT_BURNT, m.root, lods=(0, 1, 2))
+box(m.n("cheek"), (0.08, reach_ - 0.08, h_), (-(w_ / 2 - 0.04), -(reach_ - 0.08) / 2, h_ / 2), FRONT_BURNT, m.root, lods=(0, 1))
+box(m.n("fallen"), (w_ * 0.4, 0.08, h_ * 0.8), (w_ * 0.25, -reach_ * 0.6, 0.12), FRONT_BURNT, m.root, rot=(1.35, 0, 0.2), lods=(0,))
+m = kit.module("balcony_hanging", **PANEL)
+box(m.n("slab"), (w_, reach_, 0.14), (0, -0.5 * reach_ * math.cos(0.9), -0.07 - 0.5 * reach_ * math.sin(0.9)), CAST_BURNT, m.root,
+    rot=(-0.9, 0, 0))
 
 # A loggia glazed in: sashes on the wall's face over the balustrade.
 m = kit.module("loggia_sash", **PANEL)
@@ -374,17 +544,28 @@ for k, (x, w, drop, mat) in enumerate(((-0.85, 0.5, 0.75, cloth_m), (-0.2, 0.42,
 ROOFTOP = dict(ao_distance=0.8, paint_scale=10.0)
 
 
-def hut(name, w, d, h):
-    """A room on the roof (a lift's machine room, a stair's head), standing on the origin, its door facing -Y."""
+def hut(name, w, d, h, burnt=False):
+    """A room on the roof (a lift's machine room, a stair's head), standing on the origin, its door
+    facing -Y. `burnt`, it is sooted, and its door and louvre are holes."""
     m = kit.module(name, **ROOFTOP)
-    box(m.n("room"), (w, d, h), (0, 0, h / 2), hut_m, m.root)
-    box(m.n("lid"), (w + 0.3, d + 0.3, 0.14), (0, 0, h + 0.07), rail_m, m.root, lods=(0, 1, 2))
-    box(m.n("door"), (0.9, 0.05, 2.0), (-w / 2 + 1.0, -d / 2 - 0.02, 1.0), metal_m, m.root, lods=(0, 1))
-    box(m.n("louvre"), (0.05, 1.2, 0.6), (w / 2 + 0.02, 0, h - 0.7), metal_m, m.root, lods=(0, 1))
+    box(m.n("room"), (w, d, h), (0, 0, h / 2), HUT_BURNT if burnt else hut_m, m.root)
+    box(m.n("lid"), (w + 0.3, d + 0.3, 0.14), (0, 0, h + 0.07), CAST_BURNT if burnt else rail_m, m.root, lods=(0, 1, 2))
+    box(m.n("door"), (0.9, 0.05, 2.0), (-w / 2 + 1.0, -d / 2 - 0.02, 1.0), void_m if burnt else metal_m, m.root, lods=(0, 1))
+    box(m.n("louvre"), (0.05, 1.2, 0.6), (w / 2 + 0.02, 0, h - 0.7), void_m if burnt else metal_m, m.root, lods=(0, 1))
     return h + 0.14
 
 
 HUTS = {"bulkhead": hut("bulkhead", 6.0, 4.5, 2.7), "stairhead": hut("stairhead", 3.2, 4.2, 2.3)}  # each one's height
+hut("bulkhead_burnt", 6.0, 4.5, 2.7, burnt=True)
+hut("stairhead_burnt", 3.2, 4.2, 2.3, burnt=True)
+
+PLANT = (2.4, 1.4, 1.2)
+m = kit.module("roof_plant", **ROOFTOP)  # a packaged chiller on skids, its fan on top
+box(m.n("case"), (PLANT[0], PLANT[1], PLANT[2] - 0.2), (0, 0, 0.2 + (PLANT[2] - 0.2) / 2), unit_m, m.root)
+cyl(m.n("fan"), 0.45, 0.06, (-0.5, 0, PLANT[2] + 0.03), "Z", metal_m, m.root, seg=12, lods=(0, 1))
+box(m.n("grille"), (1.7, 0.03, 0.55), (0, -PLANT[1] / 2 - 0.015, 0.75), metal_m, m.root, lods=(0, 1))
+for s in (-1, 1):
+    box(m.n(f"skid_{'ab'[s > 0]}"), (0.12, PLANT[1], 0.2), (s * 0.9, 0, 0.1), metal_m, m.root, lods=(0, 1))
 
 m = kit.module("roof_vent", **ROOFTOP)
 box(m.n("stack"), (0.7, 0.7, 0.75), (0, 0, 0.375), rail_m, m.root)
@@ -419,24 +600,35 @@ def runs(keys):
     return out
 
 
-# What a roof's module is from far off, folded into the shell: a box (width, depth, height) or a drum.
-FOLDED = {"bulkhead": (6.0, 4.5, HUTS["bulkhead"]), "stairhead": (3.2, 4.2, HUTS["stairhead"]), "roof_tank": None}
+# What a roof's module is from far off, folded into the shell as a box (width, depth, height; None a
+# drum), and the tiers it is folded at: a vent is too small for the coarsest.
+FOLDED = {"bulkhead": ((6.0, 4.5, HUTS["bulkhead"]), (2, 3)), "stairhead": ((3.2, 4.2, HUTS["stairhead"]), (2, 3)),
+          "roof_tank": (None, (2, 3)), "roof_plant": (PLANT, (2, 3)), "roof_vent": ((0.7, 0.7, 0.83), (2,))}
 WALLED = (1, 2, 3)  # the tiers a tower's walls are its shell's own
 ONE_ROW = (2, 3)  # the tiers a tower is its shell and nothing else
+ROOF_BAND_M = 1.2  # the roof's edge inside the parapet, which the parapet shades
+ROOF_CELL_M = 4.6  # the roof's stains live on vertices: this keeps them down to the third tier
 
 
-def shell(t, tag, finish, columns, accents, doors, fronts, rooftop):
+def shell(t, tag, finish, columns, accents, doors, fronts, rooftop, crown=None, burnt=False, blown=()):
     """The template's own module: corner piers, parapet and roof in every tier; a closed
     core behind the panels at tier 0; from tier 1 the walls themselves, each run of
     like bays one face of its facade recipe; and at tiers 2 and 3 what the other rows
     drew: each balcony column a stack (`fronts`: its colour by side and bay), the
-    canopies and the roof's huts and tanks (`rooftop`) as boxes."""
-    m = kit.module(f"{tag}_shell", ground=True, paint_scale=6.0)
+    canopies and the roof's huts, plant and tanks (`rooftop`) as boxes. `crown` tints
+    the top floor and the parapet another colour, under a slab that stands out round
+    the roof's edge. `burnt` is the tower gutted, in the burnt recipes: `blown` are the
+    stretches of wall blown out, as (side, first bay, bays, first floor, floors)."""
+    m = kit.module(f"{tag}_{'gutted' if burnt else 'shell'}", ground=True, paint_scale=6.0)
     floors = len(t.floor_heights)
     ceiling, top = floors * FLOOR_M, floors * FLOOR_M + PARAPET_M
     recipe = FINISHES[finish]
     tile = textures.tile_of(recipe)
     groups = {}  # (tiers, material) -> faces
+    after = "_burnt" if burnt else ""
+
+    def strip(recipe_, tint=None, tone=1.0):
+        return strip_mat(recipe_, tint, tone, smoke=burnt)
 
     def wall(lods, mat, edge, o0, o1, z0, z1, left, size, inset=0.0):
         a, b = t.at(edge, o0, 0.0, -inset), t.at(edge, o1, 0.0, -inset)
@@ -450,7 +642,7 @@ def shell(t, tag, finish, columns, accents, doors, fronts, rooftop):
         """A column of balconies at bay `o` as one box, each face the balcony recipe a floor to the floor."""
         w, reach, h = BALCONY
         z0, z1 = FLOOR_M - 0.14, (floors - 1) * FLOOR_M + h
-        mat = strip_mat("facade_balconies", tint)
+        mat = strip("facade_balconies" + after, tint)
         wall(ONE_ROW, mat, edge, o - w / 2, o + w / 2, z0, z1, o - BAY_M / 2, FACADE_M, inset=-reach)
         along = SIDES[t.edges()[edge]["side"]][2]
         for s in (-1, 1):
@@ -463,8 +655,19 @@ def shell(t, tag, finish, columns, accents, doors, fronts, rooftop):
         lids.append(([(ax, ay, z1), (bx, by, z1), (cx, cy, z1), (dx, dy, z1)], (0, 0, 1), None))
 
     lids = []
+    cast = CAST_BURNT if burnt else rail_m
+    band = ceiling - FLOOR_M if crown else ceiling  # where the top floor's own colour starts
 
-    body, base = strip_mat(recipe), strip_mat("concrete", tone=BASE[0] / textures.baked("concrete").mean()[0])
+    def storeys(lods, kind, edge, k0, k1, left):
+        """The wall of bays `k0` to `k1` from the first floor up: `kind`'s recipe, the crown's colour on the top floor."""
+        o0, o1 = left + BAY_M * k0, left + BAY_M * k1
+        name, size = (recipe, tile) if kind == "b" else (f"facade_{KINDS[kind]}{after}", FACADE_M)
+        wall(lods, strip(name, accents.get(kind)), edge, o0, o1, FLOOR_M, band, left, size)
+        if crown:
+            wall(lods, strip(name, crown), edge, o0, o1, band, ceiling, left, size)
+
+    body, base = strip(recipe), strip("concrete", tone=BASE[0] / textures.baked("concrete").mean()[0])
+    head = strip(recipe, crown) if crown else body
     for side, cols in sorted(columns.items()):
         edge = f"body-{side}"
         (a, b), bays = t.edges()[edge]["span"], t.bays(edge)
@@ -472,64 +675,106 @@ def shell(t, tag, finish, columns, accents, doors, fronts, rooftop):
         right = left + BAY_M * len(bays)
         for o0, o1 in ((a, left), (right, b)):  # the piers
             wall(TIERS, base, edge, o0, o1, 0.0, FLOOR_M, left, textures.tile_of("concrete"))
-            wall(TIERS, body, edge, o0, o1, FLOOR_M, ceiling, left, tile)
-        wall(TIERS, body, edge, a, b, ceiling, top, left, tile)  # the parapet
-        wall((0,), body, edge, a + CORE_M, b - CORE_M, 0.0, ceiling + ROOF_M, left, tile, inset=CORE_M)
+            wall(TIERS, body, edge, o0, o1, FLOOR_M, band, left, tile)
+            if crown:
+                wall(TIERS, head, edge, o0, o1, band, ceiling, left, tile)
+        wall(TIERS, head, edge, a, b, ceiling, top, left, tile)  # the parapet
+        wall((0,), void_m if burnt else body, edge, a + CORE_M, b - CORE_M, 0.0, ceiling + ROOF_M, left, tile, inset=CORE_M)
         ground = ["e" if side == "south" and k in doors else "b" if kind == "b" else "g" for k, kind in enumerate(cols)]
         for k0, k1, key in runs(ground):
             if key == "g":
-                wall(WALLED, strip_mat("facade_window", tone=BASE_TONE), edge, left + BAY_M * k0, left + BAY_M * k1, 0.0, FLOOR_M, left,
+                wall(WALLED, strip("facade_window" + after, tone=BASE_TONE), edge, left + BAY_M * k0, left + BAY_M * k1, 0.0, FLOOR_M, left,
                      FACADE_M)
             else:
                 wall(WALLED, base, edge, left + BAY_M * k0, left + BAY_M * k1, 0.0, FLOOR_M, left, textures.tile_of("concrete"))
+        holes = [(k, n, f, h) for where, k, n, f, h in blown if where == side]
         for k0, k1, kind in runs(list(cols)):
-            mat = strip_mat(recipe if kind == "b" else f"facade_{KINDS[kind]}", accents.get(kind))
-            wall(WALLED, mat, edge, left + BAY_M * k0, left + BAY_M * k1, FLOOR_M, ceiling, left, tile if kind == "b" else FACADE_M)
+            cut = [(k, n, f, h) for k, n, f, h in holes if k0 <= k and k + n <= k1]
+            if len(cut) != len([hole for hole in holes if k0 <= hole[0] < k1]):
+                raise SystemExit(f"{t.id}: a blown stretch of {side} crosses two kinds of bay")
+            at = k0
+            for k, n, f, h in sorted(cut):  # the run in stretches: whole to the hole, then the hole's own bays under, in and over it
+                if k > at:
+                    storeys(WALLED, kind, edge, at, k, left)
+                o0, o1 = left + BAY_M * k, left + BAY_M * (k + n)
+                mat = strip(recipe if kind == "b" else f"facade_{KINDS[kind]}{after}", accents.get(kind))
+                size = tile if kind == "b" else FACADE_M
+                if f > 1:
+                    wall(WALLED, mat, edge, o0, o1, FLOOR_M, f * FLOOR_M, left, size)
+                wall(WALLED, strip("facade_blown_burnt"), edge, o0, o1, f * FLOOR_M, (f + h) * FLOOR_M, left, FACADE_M)
+                if (f + h) * FLOOR_M < ceiling:
+                    wall(WALLED, mat, edge, o0, o1, (f + h) * FLOOR_M, ceiling, left, size)
+                at = k + n
+            if at < k1:
+                storeys(WALLED, kind, edge, at, k1, left)
         for k, (o, kind) in enumerate(zip(bays, cols)):
             if kind == "d":
                 stack(edge, o, fronts[(side, k)])
             if side == "south" and k in doors:
                 x, y, _, yaw = t.at(edge, o, 0.0, 0.7)
-                box(m.n(f"canopy_{k}"), (2.9, 1.4, 0.14), (x, y, 2.52), rail_m, m.root, rot=(0, 0, yaw), lods=ONE_ROW)
+                box(m.n(f"canopy_{k}"), (2.9, 1.4, 0.14), (x, y, 2.52), cast, m.root, rot=(0, 0, yaw), lods=ONE_ROW)
     for k, ((lods, _), (mat, quads)) in enumerate(sorted(groups.items())):
         sheet(m.n(f"wall_{k}"), mat, m.root, quads, lods=lods)
-    if lids:
+    if lids and not burnt:
         sheet(m.n("balcony_lids"), rail_m, m.root, lids, lods=ONE_ROW)
+    deck = ceiling + ROOF_M
     for k, (module, x, y, yaw) in enumerate(rooftop):
-        if module not in FOLDED:
+        if module not in FOLDED or (burnt and module == "roof_tank"):
             continue
-        z = ceiling + ROOF_M
-        if FOLDED[module]:
-            w, d, h = FOLDED[module]
-            box(m.n(f"hut_{k}"), (w, d, h), (x, y, z + h / 2), hut_m, m.root, rot=(0, 0, yaw), lods=ONE_ROW)
+        size, lods = FOLDED[module]
+        if size:
+            mat = (HUT_BURNT if burnt else hut_m) if module in HUTS else unit_m if module == "roof_plant" else cast
+            box(m.n(f"hut_{k}"), size, (x, y, deck + size[2] / 2), mat, m.root, rot=(0, 0, yaw), lods=lods)
         else:
-            cyl(m.n(f"tank_{k}"), 1.1, 1.8, (x, y, z + 1.45), "Z", tank_m, m.root, seg=20, lods=ONE_ROW)
-    # the roof inside the parapet, the parapet's inner faces and its coping
+            cyl(m.n(f"tank_{k}"), 1.1, 1.8, (x, y, deck + 1.45), "Z", tank_m, m.root, seg=20, lods=lods)
+    # The roof inside the parapet: a field that carries its stains on a grid of vertices down to the
+    # third tier, inside a band the parapet shades (so the field is lit the same at every tier),
+    # with what was mended since laid on it; then the parapet's inner faces and its coping.
     p = t.parts[0]
     x0, x1, y0, y1 = p["x0"], p["x1"], p["y0"], p["y1"]
     i0, i1, j0, j1 = x0 + COPING_M, x1 - COPING_M, y0 + COPING_M, y1 - COPING_M
-    deck = ceiling + ROOF_M
-    sheet(m.n("roof"), roof_m, m.root, [([(i0, j0, deck), (i1, j0, deck), (i1, j1, deck), (i0, j1, deck)], (0, 0, 1), None)])
-    outer, inner = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)], [(i0, j0), (i1, j0), (i1, j1), (i0, j1)]
+    f0, f1, g0, g1 = i0 + ROOF_BAND_M, i1 - ROOF_BAND_M, j0 + ROOF_BAND_M, j1 - ROOF_BAND_M
+    felt = ROOF_BURNT if burnt else roof_m
+    nx, ny = max(1, math.ceil((f1 - f0) / ROOF_CELL_M)), max(1, math.ceil((g1 - g0) / ROOF_CELL_M))
+    cells = [([(f0 + (f1 - f0) * i / nx, g0 + (g1 - g0) * j / ny, deck), (f0 + (f1 - f0) * (i + 1) / nx, g0 + (g1 - g0) * j / ny, deck),
+               (f0 + (f1 - f0) * (i + 1) / nx, g0 + (g1 - g0) * (j + 1) / ny, deck), (f0 + (f1 - f0) * i / nx, g0 + (g1 - g0) * (j + 1) / ny, deck)],
+              (0, 0, 1), None) for j in range(ny) for i in range(nx)]
+    sheet(m.n("roof"), felt, m.root, cells, lods=(0, 1, 2))
+    sheet(m.n("roof_far"), felt, m.root, [([(f0, g0, deck), (f1, g0, deck), (f1, g1, deck), (f0, g1, deck)], (0, 0, 1), None)], lods=(3,))
+    outer, inner, field = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)], [(i0, j0), (i1, j0), (i1, j1), (i0, j1)], [(f0, g0), (f1, g0), (f1, g1), (f0, g1)]
+    sheet(m.n("roof_band"), felt, m.root, [([(*inner[k], deck), (*inner[(k + 1) % 4], deck), (*field[(k + 1) % 4], deck), (*field[k], deck)],
+                                            (0, 0, 1), None) for k in range(4)])
+    patches = []
+    for k in range(3 + round((f1 - f0) * (g1 - g0) / 300)):  # felt laid since, in lengths of a roll or two
+        w, d = (2.0 + 4.0 * roll(t.id, "patch", k, "w"), 1.0 + 2.0 * roll(t.id, "patch", k, "d"))[::1 if k % 2 else -1]
+        x, y = f0 + w / 2 + roll(t.id, "patch", k, "x") * (f1 - f0 - w), g0 + d / 2 + roll(t.id, "patch", k, "y") * (g1 - g0 - d)
+        patches.append(([(x - w / 2, y - d / 2, deck + 0.02), (x + w / 2, y - d / 2, deck + 0.02), (x + w / 2, y + d / 2, deck + 0.02),
+                         (x - w / 2, y + d / 2, deck + 0.02)], (0, 0, 1), None))
+    sheet(m.n("roof_patches"), void_m if burnt else patch_m, m.root, patches)  # burnt, the patches are where it burnt through
     quads = []
     for k in range(4):
         (ax, ay), (bx, by), (cx, cy), (dx, dy) = outer[k], outer[(k + 1) % 4], inner[(k + 1) % 4], inner[k]
         quads.append(([(ax, ay, top), (bx, by, top), (cx, cy, top), (dx, dy, top)], (0, 0, 1), None))
         inward = ((i0 + i1) / 2 - (cx + dx) / 2, (j0 + j1) / 2 - (cy + dy) / 2, 0)
         quads.append(([(dx, dy, deck), (cx, cy, deck), (cx, cy, top), (dx, dy, top)], inward, None))
-    sheet(m.n("coping"), rail_m, m.root, quads)
+    sheet(m.n("coping"), cast, m.root, quads)
+    if crown:  # the roof's slab, standing out round the building over the top floor
+        box(m.n("eave"), (x1 - x0 + 1.1, y1 - y0 + 1.1, 0.24), ((x0 + x1) / 2, (y0 + y1) / 2, ceiling + 0.12), cast, m.root)
     return m.name
 
 
-def tower(id_, tag, w, d, floors, finish, body, columns, doors, rooftop, accents=None, fronts=(WHITE,), glazed=0.25, recipe=None):
-    """A tower that is one box: its template, its shell and a row for every panel.
+def tower(id_, tag, w, d, floors, finish, body, columns, doors, rooftop, accents=None, fronts=(WHITE,), glazed=0.25, recipe=None,
+          crown=None, blown=()):
+    """A tower that is one box: its template, its shell and a row for every panel, and the same gutted.
 
     `columns` gives each side's bays as letters, read from its left as you face it:
-    w a window, d a balcony door (with its balcony), l a loggia, s a stair light,
-    b blank. A column is one kind from the first floor up. `doors` are the street
-    (south) side's bays with a way in. `rooftop` is what stands on the roof: (module,
-    x, y, yaw), and for an aerial the hut it stands on. `accents` tints a kind's columns
-    another colour; `fronts` are the balcony fronts' colours, one a column in turn."""
+    w a window, r a ribbon of glazing the bay's width, d a balcony door (with its
+    balcony), l a loggia, s a stair light, b blank. A column is one kind from the
+    first floor up. `doors` are the street (south) side's bays with a way in.
+    `rooftop` is what stands on the roof: (module, x, y, yaw), and for an aerial the
+    hut it stands on. `accents` tints a kind's columns another colour; `fronts` are the
+    balcony fronts' colours, one a column in turn; `crown` the top floor's. `blown` are
+    the stretches of wall its fire blew out: (side, first bay, bays, first floor, floors)."""
     accents = accents or {}
     hx, hy = w / 2, d / 2
     t = kit.template(id_, "highrise", FAMILY, dict(Width=w, Depth=d, Floors=floors, Finish=finish, **(recipe or {}),
@@ -546,26 +791,35 @@ def tower(id_, tag, w, d, floors, finish, body, columns, doors, rooftop, accents
     doors_of = [(side, k) for side, cols in sorted(columns.items()) for k, kind in enumerate(cols) if kind == "d"]
     column = {key: fronts[n % len(fronts)] for n, key in enumerate(doors_of)}
     huts = [(module, x, y, yaw) for module, x, y, yaw, *_ in rooftop]
-    t.place(shell(t, tag, finish, columns, accents, doors, column, huts), tint=body)
+    t.place(shell(t, tag, finish, columns, accents, doors, column, huts, crown), tint=body)
+    t.place(shell(t, tag, finish, columns, accents, doors, column, huts, crown, burnt=True, blown=blown), tint=body, state="gutted")
+    gone = {(side, k + i, f + j) for side, k, n, f, h in blown for i in range(n) for j in range(h)}
     deck = floors * FLOOR_M + ROOF_M
     for module, x, y, yaw, *on in rooftop:
-        hut = module in ("bulkhead", "stairhead")
-        t.place(module, x, y, deck + (HUTS[on[0]] if on else 0.0), yaw, tiers=TIERS_0_TO_1, tint=body if hut else WHITE)
+        hut = module in HUTS
+        z, tint = deck + (HUTS[on[0]] if on else 0.0), body if hut else WHITE
+        t.place(module, x, y, z, yaw, tiers=TIERS_0_TO_1, tint=tint)
+        if module != "roof_aerial":  # burnt, a hut is its sooted twin and the aerials are down
+            t.place(module + "_burnt" if hut else module, x, y, z, yaw, tiers=TIERS_0_TO_1, tint=tint, state="gutted")
     for side, cols in sorted(columns.items()):
         edge = f"body-{side}"
         for k, (o, kind) in enumerate(zip(t.bays(edge), cols)):
             if side == "south" and k in doors:
                 t.mount("entrance", edge, o, tiers=TIERS_0_TO_1)
+                t.mount("gutted_entrance", edge, o, tiers=TIERS_0_TO_1, state="gutted")
             else:
                 t.mount("ground_blank" if kind == "b" else "ground_window", edge, o, tiers=TIER_0)
+                t.mount("ground_blank" if kind == "b" else gutted_panel("w", k % 2, ground=True), edge, o, tiers=TIER_0,
+                        tint=dimmed(WHITE, FLOOR_M / 2), state="gutted")
             for f in range(1, floors):
                 z, key = f * FLOOR_M, (id_, side, k, f)
-                t.mount(panel(finish, kind), edge, o, z=z, tiers=TIER_0, tint=accents.get(kind, body))
-                if kind == "w":
+                tint = crown if crown and f == floors - 1 else accents.get(kind, body)
+                t.mount(panel(finish, kind), edge, o, z=z, tiers=TIER_0, tint=tint)
+                if kind in "wr":
                     if roll(key, "curtain") < 0.5:
                         t.mount("curtain_pair" if roll(key, "drawn") < 0.6 else "curtain_blind", edge, o, z=z, tiers=TIER_0,
-                                tint=CURTAINS[int(roll(key, "cloth") * len(CURTAINS))])
-                    if roll(key, "ac") < 0.12:
+                                scale=(1.8 if kind == "r" else 1.0, 1.0, 1.0), tint=CURTAINS[int(roll(key, "cloth") * len(CURTAINS))])
+                    if kind == "w" and roll(key, "ac") < 0.12:
                         t.mount("ac_unit", edge, o, z=z, tiers=TIER_0)
                 elif kind == "d":
                     shut = roll(key, "glazed") < glazed
@@ -579,6 +833,17 @@ def tower(id_, tag, w, d, floors, finish, body, columns, doors, rooftop, accents
                         t.mount("loggia_sash", edge, o, z=z, tiers=TIER_0)
                     elif roll(key, "washing") < 0.2:
                         t.mount("washing", edge, o, z=z, out=-1.2, tiers=TIER_0, tint=WASHING[int(roll(key, "wash") * len(WASHING))])
+                # the same bay, gutted: the quarter of the burnt recipe the shell shows there
+                if (side, k, f) in gone:
+                    t.mount(gutted_panel("x", k % 2 + 2 * (f % 2)), edge, o, z=z, tiers=TIER_0, state="gutted")
+                    continue
+                t.mount(panel(finish, kind) if kind == "b" else gutted_panel(kind, k % 2 + 2 * (f % 2)), edge, o, z=z, tiers=TIER_0,
+                        tint=dimmed(tint, z + FLOOR_M / 2), state="gutted")
+                if kind == "d":
+                    fate = roll(key, "burnt")
+                    if fate < 0.9:  # one in ten fell
+                        t.mount("balcony_burnt" if fate < 0.55 else "balcony_broken" if fate < 0.78 else "balcony_hanging", edge, o, z=z,
+                                tiers=TIERS_0_TO_1, tint=column[(side, k)], state="gutted")
     return t
 
 
@@ -589,24 +854,33 @@ tower("china-tower-slab-10f", "slab_10f", 56, 14, 10, "precast", GREY,
       dict(south="dwwswd" * 3, north="wdwwdw" * 3, east="bwwb", west="bwwb"), doors=(3, 9, 15),
       rooftop=[row for x in (-16.5, 1.5, 19.5) for row in (
           ("stairhead", x, -3.6, 0.0), ("roof_aerial", x + 1.0, -3.0, 0.0, "stairhead"), ("roof_vent", x - 6.0, 2.5, 0.0),
-          ("roof_vent", x + 4.5, 3.0, 0.0))],
-      fronts=[FRONTS[k] for k in (1, 1, 2, 2, 0, 0, 0, 0, 2, 2, 1, 1)], recipe=dict(Sections=3))
+          ("roof_vent", x + 4.5, 3.0, 0.0), ("roof_vent", x - 3.0, -3.5, 0.0))]
+      + [("roof_plant", -24.0, 2.0, 0.0), ("roof_plant", 9.5, 2.5, math.pi / 2), ("roof_tank", 25.0, 1.5, 0.0)],
+      fronts=[FRONTS[k] for k in (1, 1, 2, 2, 0, 0, 0, 0, 2, 2, 1, 1)], recipe=dict(Sections=3),
+      blown=[("south", 7, 2, 6, 2), ("south", 13, 1, 3, 2), ("north", 2, 2, 7, 2)])
 
 # A twelve-floor point tower in cream render: loggias at the corners behind white
-# balustrades, the stair and lift lights a terracotta stripe up the street front.
+# balustrades, the stair and lift lights a terracotta stripe up the street front, and
+# the top floor a terracotta band under a roof slab that stands out all round.
 tower("china-tower-12f", "tower_12f", 26, 26, 12, "render", CREAM,
       dict(south="lwwsswwl", north="lwlwwlwl", east="lwwlwwwl", west="lwwwlwwl"), doors=(4,), accents={"s": TERRACOTTA},
       rooftop=[("bulkhead", 0.0, -6.0, 0.0), ("roof_aerial", 1.8, -6.5, 0.0, "bulkhead"), ("roof_tank", 6.5, 5.5, 0.0),
-               ("roof_vent", -7.0, 6.0, 0.0), ("roof_vent", -7.0, -2.0, 0.0), ("roof_vent", 7.5, -3.0, 0.0)])
+               ("roof_vent", -7.0, 6.0, 0.0), ("roof_vent", -7.0, -2.0, 0.0), ("roof_vent", 7.5, -3.0, 0.0),
+               ("roof_plant", -3.0, 5.0, 0.0), ("roof_vent", 1.5, 1.0, 0.0), ("roof_vent", -8.5, -8.0, 0.0)],
+      crown=TERRACOTTA, recipe=dict(Crown="terracotta"),
+      blown=[("south", 1, 2, 8, 2), ("east", 4, 2, 4, 2), ("west", 1, 2, 9, 1)])
 
-# Sixteen floors faced in white tile, its narrow side to the street: columns of
-# balconies with pale aqua fronts, every third bay down the long sides.
+# Sixteen floors faced in white tile, its narrow side to the street: ribbons of
+# glazing from balcony column to balcony column, the balconies' fronts pale aqua,
+# every third bay down the long sides.
 tower("china-tower-16f", "tower_16f", 23, 32, 16, "tile", WHITE,
-      dict(south="dwwswwd", north="dwwwwwd", east="dwwdwwdwwd", west="dwwdwwdwwd"), doors=(3,),
+      dict(south="drrsrrd", north="drrrrrd", east="drrdrrdrrd", west="drrdrrdrrd"), doors=(3,),
       accents={"s": AQUA}, fronts=(AQUA,), glazed=0.35,
       rooftop=[("bulkhead", 0.0, -9.0, 0.0), ("roof_aerial", -1.5, -9.0, 0.0, "bulkhead"), ("stairhead", 0.0, 9.5, math.pi),
                ("roof_aerial", 0.5, 9.5, 0.0, "stairhead"), ("roof_vent", -6.5, 0.0, 0.0), ("roof_vent", 6.5, 3.0, 0.0),
-               ("roof_vent", -6.5, -11.0, 0.0), ("roof_vent", 6.0, -12.0, 0.0)])
+               ("roof_vent", -6.5, -11.0, 0.0), ("roof_vent", 6.0, -12.0, 0.0), ("roof_plant", 5.5, -3.5, math.pi / 2),
+               ("roof_plant", -5.5, 5.0, math.pi / 2), ("roof_tank", -6.0, 11.5, 0.0), ("roof_vent", 2.0, 2.5, 0.0)],
+      blown=[("east", 1, 2, 10, 2), ("south", 1, 2, 5, 2), ("west", 4, 2, 12, 2)])
 
 # Twenty floors of pale precast, the town's landmark: loggias two bays deep at every
 # corner, the stair light and a blank column each side picked out in slate blue.
@@ -615,6 +889,8 @@ tower("china-tower-20f", "tower_20f", 29, 29, 20, "precast", PALE,
       accents={"s": SLATE, "b": SLATE}, glazed=0.3,
       rooftop=[("bulkhead", 0.0, -5.0, 0.0), ("roof_aerial", 0.0, -5.0, 0.0, "bulkhead"), ("roof_aerial", 2.2, -5.8, 0.0, "bulkhead"),
                ("roof_tank", -7.5, 6.5, 0.0), ("roof_tank", 7.5, 6.5, 0.0), ("roof_vent", -8.0, -6.0, 0.0), ("roof_vent", 8.0, -6.0, 0.0),
-               ("roof_vent", 0.0, 7.0, 0.0), ("roof_vent", -3.0, 1.0, 0.0)])
+               ("roof_vent", 0.0, 7.0, 0.0), ("roof_vent", -3.0, 1.0, 0.0), ("roof_plant", 9.0, 0.5, math.pi / 2),
+               ("roof_plant", -9.5, 0.0, math.pi / 2), ("roof_vent", 4.0, 11.0, 0.0), ("roof_vent", -10.5, 10.5, 0.0)],
+      blown=[("south", 2, 2, 13, 2), ("east", 5, 2, 7, 2), ("south", 5, 2, 4, 2), ("north", 2, 2, 16, 2)])
 
 kit.write(next(iter(script_args()), None))  # an argument writes the two files somewhere else
