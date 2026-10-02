@@ -880,6 +880,83 @@ impl<'a> Country<'a> {
         self.tree_line(&line, road_gap, rng)
     }
 
+    // ----- Bare ground -------------------------------------------------
+
+    /// Stand a copse or a tree line by every cell of open ground that has
+    /// nothing to cut its sight within reach.
+    fn fill_bare(&mut self) {
+        let sight = &self.rules.sight;
+        let mut rng = self.stream("sight");
+        let mut cells: Vec<usize> = (0..self.bare.open.len())
+            .filter(|index| self.bare.open[*index])
+            .collect();
+        for index in (1..cells.len()).rev() {
+            cells.swap(index, rng.below(index as u64 + 1) as usize);
+        }
+        let weights: f64 = sight.fill.values().sum();
+        for cell in &cells {
+            if self.bare.seen[*cell] {
+                continue;
+            }
+            let middle = self.bare.middle(*cell);
+            for attempt in 0..sight.attempts {
+                // Near the bare ground first, then as far off as still cuts
+                // its sight: a kept corridor has room only beside it.
+                let wider = f64::from(attempt) / f64::from(sight.attempts);
+                let scatter = sight.scatter + (1.0 - sight.scatter) * wider;
+                let away = sight.reach_m * scatter * libm::sqrt(rng.unit());
+                let p = add(middle, scale(direction(rng.range([0.0, TAU])), away));
+                let mut pick = rng.unit() * weights;
+                let kind = sight
+                    .fill
+                    .iter()
+                    .find(|(_, weight)| {
+                        pick -= **weight;
+                        pick < 0.0
+                    })
+                    .map_or(FillKind::Copse, |(kind, _)| *kind);
+                let stood = match kind {
+                    FillKind::Copse => self.copse(p, &mut rng),
+                    FillKind::TreeLine => self.field_line(p, &mut rng),
+                };
+                if stood && self.bare.seen[*cell] {
+                    break;
+                }
+            }
+        }
+        // Ground still bare had no luck: every place within reach of it is
+        // then tried in turn, nearest first, for a copse. Where kept
+        // corridors lie all round it and none has room, it is tried once
+        // more with only the main settlement's corridors kept.
+        let step = sight.cell_m / 2.0;
+        let span = libm::floor(sight.reach_m / step) as i64;
+        let mut ring: Vec<(f64, Point)> = (-span..=span)
+            .flat_map(|j| (-span..=span).map(move |i| [i as f64 * step, j as f64 * step]))
+            .map(|offset| (libm::hypot(offset[0], offset[1]), offset))
+            .filter(|(away, _)| *away <= sight.reach_m)
+            .collect();
+        ring.sort_by(|a, b| {
+            a.0.total_cmp(&b.0)
+                .then(a.1[0].total_cmp(&b.1[0]))
+                .then(a.1[1].total_cmp(&b.1[1]))
+        });
+        for main_only in [false, true] {
+            self.main_only = main_only;
+            for cell in &cells {
+                if self.bare.seen[*cell] {
+                    continue;
+                }
+                let middle = self.bare.middle(*cell);
+                for (_, offset) in &ring {
+                    if self.copse(add(middle, *offset), &mut rng) {
+                        break;
+                    }
+                }
+            }
+        }
+        self.main_only = false;
+    }
+
     // ----- Bodies ------------------------------------------------------
 
     fn body(&mut self, row: &Body, at: Point, yaw: f64, radius: f64) {
@@ -1033,77 +1110,7 @@ pub fn furnish(
         );
 
         // Bare ground next: what cuts sight goes where nothing does yet.
-        let mut rng = country.stream("sight");
-        let mut cells: Vec<usize> = (0..country.bare.open.len())
-            .filter(|index| country.bare.open[*index])
-            .collect();
-        for index in (1..cells.len()).rev() {
-            cells.swap(index, rng.below(index as u64 + 1) as usize);
-        }
-        let weights: f64 = rules.sight.fill.values().sum();
-        for cell in &cells {
-            if country.bare.seen[*cell] {
-                continue;
-            }
-            let middle = country.bare.middle(*cell);
-            for attempt in 0..rules.sight.attempts {
-                // Near the bare ground first, then as far off as still cuts
-                // its sight: a kept corridor has room only beside it.
-                let wider = f64::from(attempt) / f64::from(rules.sight.attempts);
-                let scatter = rules.sight.scatter + (1.0 - rules.sight.scatter) * wider;
-                let away = rules.sight.reach_m * scatter * libm::sqrt(rng.unit());
-                let p = add(middle, scale(direction(rng.range([0.0, TAU])), away));
-                let mut pick = rng.unit() * weights;
-                let kind = rules
-                    .sight
-                    .fill
-                    .iter()
-                    .find(|(_, weight)| {
-                        pick -= **weight;
-                        pick < 0.0
-                    })
-                    .map_or(FillKind::Copse, |(kind, _)| *kind);
-                let stood = match kind {
-                    FillKind::Copse => country.copse(p, &mut rng),
-                    FillKind::TreeLine => country.field_line(p, &mut rng),
-                };
-                if stood && country.bare.seen[*cell] {
-                    break;
-                }
-            }
-        }
-        // Ground still bare had no luck: every place within reach of it is
-        // then tried in turn, nearest first, for a copse. Where kept
-        // corridors lie all round it and none has room, it is tried once
-        // more with only the main settlement's corridors kept.
-        let reach = rules.sight.reach_m;
-        let step = rules.sight.cell_m / 2.0;
-        let span = libm::floor(reach / step) as i64;
-        let mut ring: Vec<(f64, Point)> = (-span..=span)
-            .flat_map(|j| (-span..=span).map(move |i| [i as f64 * step, j as f64 * step]))
-            .map(|offset| (libm::hypot(offset[0], offset[1]), offset))
-            .filter(|(away, _)| *away <= reach)
-            .collect();
-        ring.sort_by(|a, b| {
-            a.0.total_cmp(&b.0)
-                .then(a.1[0].total_cmp(&b.1[0]))
-                .then(a.1[1].total_cmp(&b.1[1]))
-        });
-        for main_only in [false, true] {
-            country.main_only = main_only;
-            for cell in &cells {
-                if country.bare.seen[*cell] {
-                    continue;
-                }
-                let middle = country.bare.middle(*cell);
-                for (_, offset) in &ring {
-                    if country.copse(add(middle, *offset), &mut rng) {
-                        break;
-                    }
-                }
-            }
-        }
-        country.main_only = false;
+        country.fill_bare();
 
         let t = rules.tree_lines;
         let mut rng = country.stream("tree_lines");
