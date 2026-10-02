@@ -1,4 +1,4 @@
-"""The China apartment blocks: one shared kit and five templates.
+"""The China apartment blocks: one shared kit and its templates.
 
     bun run --cwd web asset -- blender ../packages/scene-assets/blender/city/china.py
 
@@ -8,25 +8,30 @@ tier; with `-- --dry` it only prints. It needs the ambientCG sets in the pack
 cache (`packs.py fetch ambientcg`).
 
 The source is the vendored `CN_ApartmentBuilding.blend`, a geometry-nodes
-building, evaluated once per template with its two closing Realize Instances
-nodes muted in memory so its instances can be read (`graph.py`):
+building, evaluated with its two closing Realize Instances nodes muted in
+memory so its instances can be read (`graph.py`).
 
+- **A template is its parts**, boxes that abut (a slab is one; a U is three).
+  Only the outline of their union is built: each straight run of it is one
+  facade of the graph, evaluated at that run's length, so a face where two
+  parts join has no wall, window, pier or cornice to hide, and a corner of the
+  block is a corner of one building. The bands, the parapet and its coping
+  follow the outline, and each part's roof and roof furniture is the graph's
+  for a building of its size.
 - **Kit modules** are the graph's own kit meshes (a window, a balcony, an air
   conditioner). A row places one: position, yaw, scale per axis, and the tint
   the graph stored on the instance.
-- **A template's shell** is everything the graph generated for that recipe
-  alone: the walls with their window openings, bands, parapet and roof, and the
-  unit cubes it stretches into window surrounds and sign boards. A stretched
-  cube cannot carry a baked texture, so they are folded into the shell with UVs
-  in metres.
+- **A template's shell** is what is made for it alone: the walls with their
+  window openings, the bands, parapet and roof, and the unit cubes the graph
+  stretches into window surrounds and sign boards. A stretched cube cannot
+  carry a baked texture, so they are folded into the shell with UVs in metres.
 - **Tiers.** A tier keeps features larger than its `FEATURE_M` (`detail.py`),
   and each kit family draws down to the tier its `FAMILIES` row names. At the
   two fine tiers a kit mesh is a row; at the two coarse ones it is folded into
   the shell, so a far building is one row.
 
-The graph faces its entrance along its Depth side. A template's frame has its
-origin at the footprint's centre, its long side along X and the entrance on -Y,
-so a recipe's Width is the template's short side.
+A template's frame has its origin at the footprint's centre and its entrance
+on -Y, the street side: the southmost run takes the graph's entrance facade.
 """
 import json
 import math
@@ -54,14 +59,14 @@ OUT = os.path.join(ROOT, "assets/source/city", SET)
 
 # ---------------------------------------------------------------- the recipes
 # Every input the graph has, set each time: the file is saved in a state that is
-# not its defaults. Sides are 3n + 2 m with 3 m bays, and floors 3 m over a 3.2 m
-# ground floor (S2). What is switched off has no place in a building of ours:
-# the street (L5), the rooftop sign (unique text and a cable mesh), lit rooms and
-# anything that glows, the shops' pavement clutter, and the rain-streak decals
-# (alpha-blended; the grime is in the textures instead). The drainpipe input does
-# nothing: in the vendored file the nodes that instance the pipes point at no object.
+# not its defaults. Bays are 3 m, and floors 3 m over a 3.2 m ground floor (S2).
+# What is switched off has no place in a building of ours: the street (L5), the
+# rooftop sign (unique text and a cable mesh), lit rooms and anything that glows,
+# the shops' pavement clutter, and the rain-streak decals (alpha-blended; the
+# grime is in the textures instead). The drainpipe input does nothing: in the
+# vendored file the nodes that instance the pipes point at no object.
 INPUTS = {
-    "Ground Floor Height": 3.2, "Floor Height": 3.0, "Bay Width": 3.0, "Corner Margin": 1.0, "Wall Thickness": 0.3,
+    "Ground Floor Height": 3.2, "Floor Height": 3.0, "Bay Width": 3.0, "Wall Thickness": 0.3,
     "Detail Level": "LOD0", "Facade Finish": "Stucco", "Wall Tint": (1.0, 1.0, 1.0, 1.0), "Stone Ground Floor": True,
     "Floor Bands": True, "Parapet Height": 1.1, "Weathering": 0.0,
     "Window Width": 1.5, "Window Height": 1.5, "Sill Height": 0.9, "Small Window Probability": 0.15,
@@ -76,13 +81,25 @@ INPUTS = {
     "Sidewalk": False, "Sidewalk Width": 4.0, "Curb Height": 0.15, "Corner Radius": 3.0, "Tactile Paving": False,
     "Street Trees": False, "Street Lamps": False, "Street Props": False,
 }
-# (kind, long side, short side, floors, seed, shop seed, roof furniture (solar, props, vents), wall colour sRGB)
+# A template: its id's tail, floors, parts as {id: (centre x, centre y, half x, half y)} in
+# the template's frame, the graph's seed and shop seed, each part's roof furniture (solar
+# heaters, props, vents), the wall colour (sRGB), and inputs of its own. A run of the
+# outline is 3n + 2 m (1 m corner piers) or 3n m (1.5 m piers), so its windows are the
+# whole 3 m lattice of every edge it crosses; a compound's parts are sized for that.
 TEMPLATES = (
-    ("slab", 35, 11, 4, 11, 31, (3, 5, 3), (233, 229, 218)),
-    ("slab", 47, 11, 5, 12, 32, (4, 7, 4), (226, 214, 184)),
-    ("slab", 59, 14, 6, 13, 33, (6, 10, 6), (200, 208, 200)),
-    ("slab", 53, 14, 8, 14, 34, (5, 9, 5), (224, 204, 192)),
-    ("point", 20, 20, 7, 15, 35, (3, 5, 3), (204, 211, 219)),
+    ("slab-35x11-4f", 4, {"body": (0, 0, 17.5, 5.5)}, 11, 31, (3, 5, 3), (233, 229, 218), {}),
+    ("slab-47x11-5f", 5, {"body": (0, 0, 23.5, 5.5)}, 12, 32, (4, 7, 4), (226, 214, 184), {}),
+    ("slab-59x14-6f", 6, {"body": (0, 0, 29.5, 7.0)}, 13, 33, (6, 10, 6), (200, 208, 200), {}),
+    ("slab-53x14-8f", 8, {"body": (0, 0, 26.5, 7.0)}, 14, 34, (5, 9, 5), (224, 204, 192), {}),
+    ("point-20x20-7f", 7, {"body": (0, 0, 10.0, 10.0)}, 15, 35, (3, 5, 3), (204, 211, 219), {}),
+    # a 42 x 12 m front on the street and two 12 x 20 m wings behind it: a U open to the back
+    ("block-u-5f", 5, {"front": (0, -10, 21, 6), "west": (-15, 6, 6, 10), "east": (15, 6, 6, 10)}, 16, 36, (2, 3, 2),
+     (230, 220, 200), {}),
+    # four 12 m wings round a 17 x 14 m court: 408 bays, so plainer than a slab to stay in a template's budget
+    ("block-court-6f", 6, {"south": (0, -13, 20.5, 6), "north": (0, 13, 20.5, 6), "west": (-14.5, 0, 6, 7),
+                           "east": (14.5, 0, 6, 7)}, 17, 37, (2, 3, 2), (214, 206, 196),
+     {"Balcony Probability": 0.18, "Security Grille Probability": 0.25, "AC Unit Probability": 0.22, "Laundry Probability": 0.2,
+      "Lantern Probability": 0.2}),
 )
 FIT = {"side_m": 1.5, "top_m": 3.5}
 BUDGET = (150_000, 50_000, 12_000, 2_000)
@@ -113,6 +130,9 @@ HULL_BAND_M = 1.0
 # drawn only where the front is open: behind `OPEN_FRONTS`.
 BEHIND_GLASS = ("CNK_Int_", "CNK_ShopInt_", "CNK_Curt_")
 OPEN_FRONTS = ("CNK_Shop_04_OpenStall",)
+# A window modelled with a leaf open shows the room behind it. Until rooms are drawn
+# (C26) a dark pane stands in the opening behind the leaf, or the eye goes through the block.
+OPEN_LEAVES = ("CNK_Win_02_Casement",)
 # Inside a glazed-in balcony, hidden for the same reason: its laundry and the door onto it.
 ON_BALCONY = ("CNK_LaundryBalc", "CNK_Win_05_BalcDoor")
 GLAZED_BALCONY = "CNK_Balc_01_Enclosed"
@@ -217,11 +237,6 @@ def family_tiers(name):
     return next((tiers for prefix, tiers in FAMILIES if name.startswith(prefix)), 0)
 
 
-def recipe_inputs(long_m, short_m, floors, seed, shop_seed, roof):
-    return dict(INPUTS, Width=float(short_m), Depth=float(long_m), Floors=floors, Seed=seed,
-                **{"Shop Seed": shop_seed, "Solar Heaters": roof[0], "Roof Props": roof[1], "Roof Vents": roof[2]})
-
-
 def open_graph():
     graph.open_blend(os.path.join(BLENDER, BLEND))
     groups = bpy.data.node_groups
@@ -234,9 +249,170 @@ def open_graph():
     return graph.modifier("CN_CornerApartment", "CN_Building")
 
 
-def template_frame(long_m, short_m):
-    """Graph space (a corner at the origin, the entrance on x = 0) to the template's."""
-    return np.array([[0.0, -1.0, 0.0, long_m / 2], [1.0, 0.0, 0.0, -short_m / 2], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]])
+class Graph:
+    """The building, evaluated on demand and once per set of inputs."""
+
+    def __init__(self):
+        self.ob, self.mod = open_graph()
+        self.taps = {}
+
+    def tap(self, inputs):
+        key = json.dumps(inputs, sort_keys=True)
+        if key not in self.taps:
+            graph.set_inputs(self.mod, inputs)
+            tap = graph.tap(self.ob, tinted=TAKES_COLOUR)
+            self.taps[key] = (tap, drawn(tap.rows))
+        return self.taps[key]
+
+
+def frame(angle, x, y):
+    c, s = math.cos(angle), math.sin(angle)
+    return np.array([[c, -s, 0.0, x], [s, c, 0.0, y], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]])
+
+
+# ---------------------------------------------------------------- the outline
+def outline(rects):
+    """The boundary of a union of abutting rectangles, as loops of straight runs
+    (start, end) walked with the inside on the left, so outside is to the right. The
+    outer loop comes first; a courtyard is a loop of its own."""
+    xs = sorted({v for cx, _, hx, _ in rects for v in (cx - hx, cx + hx)})
+    ys = sorted({v for _, cy, _, hy in rects for v in (cy - hy, cy + hy)})
+    inside = lambda i, j: 0 <= i < len(xs) - 1 and 0 <= j < len(ys) - 1 and any(
+        abs((xs[i] + xs[i + 1]) / 2 - cx) < hx and abs((ys[j] + ys[j + 1]) / 2 - cy) < hy for cx, cy, hx, hy in rects)
+    step = {}
+    for i in range(len(xs) - 1):
+        for j in range(len(ys) - 1):
+            if not inside(i, j):
+                continue
+            x0, x1, y0, y1 = xs[i], xs[i + 1], ys[j], ys[j + 1]
+            for free, a, b in ((inside(i, j - 1), (x0, y0), (x1, y0)), (inside(i + 1, j), (x1, y0), (x1, y1)),
+                               (inside(i, j + 1), (x1, y1), (x0, y1)), (inside(i - 1, j), (x0, y1), (x0, y0))):
+                if not free:
+                    if a in step:
+                        raise SystemExit("parts that touch only at a corner have no outline")
+                    step[a] = b
+    loops = []
+    while step:
+        start = min(step)
+        corners, at = [start], step.pop(start)
+        while at != start:
+            corners.append(at)
+            at = step.pop(at)
+        turns = [c for k, c in enumerate(corners)
+                 if (c[0] - corners[k - 1][0]) * (corners[(k + 1) % len(corners)][1] - c[1])
+                 != (c[1] - corners[k - 1][1]) * (corners[(k + 1) % len(corners)][0] - c[0])]
+        loops.append([(turns[k], turns[(k + 1) % len(turns)]) for k in range(len(turns))])
+    return loops
+
+
+def right_of(a, b):
+    """The unit normal to the right of the way from `a` to `b`: outward, on an outline."""
+    length = math.hypot(b[0] - a[0], b[1] - a[1])
+    return ((b[1] - a[1]) / length, -(b[0] - a[0]) / length)
+
+
+def ring(loop, z0, z1, out_m, in_m, material, inner=False):
+    """A band round a loop of the outline: `out_m` proud of the wall and `in_m` into it,
+    from `z0` to `z1`, mitred at every corner. Its outer face and its top; with `inner`
+    its inner face too (a parapet seen from the roof)."""
+    normals = [right_of(a, b) for a, b in loop]
+    moved = lambda k, d: (loop[k][0][0] + d * (normals[k - 1][0] + normals[k][0]),
+                          loop[k][0][1] + d * (normals[k - 1][1] + normals[k][1]))
+    faces = []
+    for k in range(len(loop)):
+        n = (k + 1) % len(loop)
+        a, b, c, d = moved(k, out_m), moved(n, out_m), moved(n, -in_m), moved(k, -in_m)
+        faces.append([(*a, z0), (*b, z0), (*b, z1), (*a, z1)])
+        faces.append([(*a, z1), (*b, z1), (*c, z1), (*d, z1)])
+        if inner:
+            faces.append([(*c, z0), (*d, z0), (*d, z1), (*c, z1)])
+    return Soup.join([quad(face, material) for face in faces])
+
+
+# ---------------------------------------------------------------- facades and roofs
+# The graph's four facades, each as the corner it starts at and the corner it ends at
+# (in units of its Width along x and its Depth along y), walked with the street on the
+# right. Facade 1 has the entrance and shops, 0 shops, 2 and 3 are backs.
+FACADES = {0: ((0, 0), (1, 0)), 1: ((0, 1), (0, 0)), 2: ((1, 0), (1, 1)), 3: ((1, 1), (0, 1))}
+ACROSS_M = 12.0  # the other side of a building evaluated for one facade; a facade does not depend on it
+ROOF_FAMILIES = ("CNK_RoofBulk_", "CNK_RoofProp_", "CNK_RoofSmall_")
+
+
+def facade_of(run, south, east):
+    """Which of the graph's facades dresses a run of the outline: the entrance facade on
+    the street (the southmost runs), shops on the east end, backs everywhere else."""
+    (ax, ay), (bx, by) = run
+    n = right_of(*run)
+    if n[1] < -0.5:
+        return 1 if ay == south else 2
+    if n[0] > 0.5:
+        return 0 if ax == east else 3
+    return 2 if n[1] > 0.5 else 3
+
+
+def run_inputs(length, side, floors, seed, shop_seed, own):
+    """The inputs that make `side` a facade `length` long. Its corner piers are 1 m when
+    the length is 3n + 2 and 1.5 m when it is 3n; no other length keeps windows off a corner
+    and on every point of the lattice."""
+    bays = math.floor((length - 2.0) / BAY_M + 1e-9)
+    margin = (length - BAY_M * bays) / 2
+    if margin > 1.5 + 1e-9:
+        raise SystemExit(f"a {length} m run needs {margin} m corner piers: make it 3n or 3n + 2 metres")
+    size = {"Width": length, "Depth": ACROSS_M} if side in (0, 3) else {"Width": ACROSS_M, "Depth": length}
+    return dict(INPUTS, **own, **size, **{"Corner Margin": margin, "Floors": floors, "Seed": seed, "Shop Seed": shop_seed,
+                                          "Solar Heaters": 0, "Roof Props": 0, "Roof Vents": 0})
+
+
+def facade(tap, rows, side, run, roof_m):
+    """One facade of an evaluated building, moved onto a run of the outline: its wall
+    (the faces we can see of it), its instances, and its stretched cubes as one mesh."""
+    inputs_w, inputs_d = (math.dist(*run), ACROSS_M) if side in (0, 3) else (ACROSS_M, math.dist(*run))
+    (sx, sy), (ex, ey) = FACADES[side]
+    start, end = np.array([sx * inputs_w, sy * inputs_d]), np.array([ex * inputs_w, ey * inputs_d])
+    length = np.linalg.norm(end - start)
+    along = (end - start) / length
+    out = np.array([along[1], -along[0]])
+    depth = lambda p: -(p[..., :2] - start) @ out
+    turn = math.atan2(run[1][1] - run[0][1], run[1][0] - run[0][0]) - math.atan2(along[1], along[0])
+    c, s = math.cos(turn), math.sin(turn)
+    place = frame(turn, run[0][0] - (c * start[0] - s * start[1]), run[0][1] - (s * start[0] + c * start[1]))
+
+    wall_m = INPUTS["Wall Thickness"]
+    own = tap.own
+    name = np.array(own.material_names())
+    normals, _ = own.normals()
+    centre = own.v[own.t].mean(1)
+    deep, far = depth(centre), (centre[:, :2] - start) @ along
+    facing = normals[:, :2] @ out
+    ours = (deep > -0.01) & (deep < wall_m + 0.01) & (centre[:, 2] < roof_m) & ((name == STUCCO) | (name == "M_CN_Stone"))
+    # a corner's block of wall belongs to both facades that meet there: each takes its own faces
+    ours &= (np.abs(facing) > 0.5) | ((far > wall_m + 0.01) & (far < length - wall_m - 0.01))
+    # the inner face is never seen: every opening is closed by a module
+    ours &= ~((facing < -0.5) & (deep > wall_m - 1e-3))
+    wall = masked(own.keep(ours), True).transformed(place)
+    placed, cubes = [], []
+    for name, m, tint in rows:
+        if name.startswith(ROOF_FAMILIES) or depth(m[:3, 3]) > 0.8:
+            continue
+        if not name.startswith("primitive:"):
+            placed.append((name, place @ m, tint))
+            continue
+        cube = masked(tap.meshes[name], False).transformed(m).coloured(1.0 if tint is None else tint[:3])
+        normals, _ = cube.normals()
+        # the face a cube turns to the wall it sits on is never seen
+        against = (normals[:, :2] @ out < -0.5) & (depth(cube.v[cube.t].mean(1)) > -0.02)
+        cubes.append(cube.keep(~against).transformed(place))
+    return wall, placed, Soup.join(cubes)
+
+
+def roof_rows(graph_, part, floors, seed, roof, own):
+    """A part's roof furniture: the graph's for a building of the part's size."""
+    cx, cy, hx, hy = part
+    inputs = dict(INPUTS, **own, **{"Width": 2.0 * hy, "Depth": 2.0 * hx, "Corner Margin": 1.0, "Floors": floors, "Seed": seed,
+                                    "Shop Seed": 0, "Solar Heaters": roof[0], "Roof Props": roof[1], "Roof Vents": roof[2]})
+    _, rows = graph_.tap(inputs)
+    place = frame(math.pi / 2, cx + hx, cy - hy)
+    return [(name, place @ m, tint) for name, m, tint in rows if name.startswith(ROOF_FAMILIES)]
 
 
 # ---------------------------------------------------------------- modules
@@ -278,6 +454,8 @@ def module_tiers(name, soup):
     """The four meshes of a kit module, finest first; None where nothing is left to draw.
     A tier is never heavier than the one before it: where the rule would make it so, it
     repeats that one."""
+    if name.startswith(OPEN_LEAVES):
+        soup = Soup.join([soup, detail.front_quad(soup, soup.mats.index("M_CN_Glass"), -0.15, soup.mats)])
     out = []
     for tier, g in enumerate(FEATURE_M):
         if tier >= 2 and name.startswith(OPENINGS):
@@ -350,45 +528,34 @@ def quad(corners, material):
     return Soup(np.array(corners, dtype=np.float64), np.ones((4, 3)), [(0, 1, 2), (0, 2, 3)], [0, 0], [False, False], [material])
 
 
-def massing(short_m, long_m, ground_m, top_m, wall_m):
-    """The flat walls of the coarsest tier in graph space: stone to the ground floor's
-    head, stucco above to the parapet's top, and the parapet's inner faces."""
-    w, d = short_m, long_m
-    ring = [(0.0, 0.0), (w, 0.0), (w, d), (0.0, d)]
-    inner = [(wall_m, wall_m), (w - wall_m, wall_m), (w - wall_m, d - wall_m), (wall_m, d - wall_m)]
-    roof = top_m - INPUTS["Parapet Height"]
-    out = []
-    for i in range(4):
-        (ax, ay), (bx, by) = ring[i], ring[(i + 1) % 4]
-        for z0, z1, material in ((0.0, ground_m, "M_CN_Stone"), (ground_m, top_m, STUCCO + MASK)):
-            out.append(quad([(ax, ay, z0), (bx, by, z0), (bx, by, z1), (ax, ay, z1)], material))
-        (ax, ay), (bx, by) = inner[i], inner[(i + 1) % 4]
-        out.append(quad([(bx, by, roof), (ax, ay, roof), (ax, ay, top_m), (bx, by, top_m)], STUCCO + MASK))
-    return Soup.join(out)
-
-
-def shell_tiers(tap, rows, modules, tiers_of, dims, tint_of):
-    """A template's own mesh at each tier, in graph space."""
-    short_m, long_m, ground_m, roof_m, top_m = dims
-    wall_m = INPUTS["Wall Thickness"]
-    # the graph tints the walls and the parapet; the overhead cables are 2 cm tubes, 8,500 triangles
-    own = masked(tap.own, True).without({"M_CN_Rubber"})
-    # The walls' inner faces are never seen: every opening is closed by a module.
-    normals, _ = own.normals()
-    centre = own.v[own.t].mean(1)
-    inset = np.minimum.reduce([centre[:, 0], short_m - centre[:, 0], centre[:, 1], long_m - centre[:, 1]])
-    hidden = (np.abs(inset - wall_m) < 1e-3) & (np.abs(normals[:, 2]) < 0.1) & (centre[:, 2] < roof_m)
-    own = own.keep(~hidden)
-    cubes = Soup.join([masked(tap.meshes[name], False).transformed(m).coloured(1.0 if tint is None else tint[:3])
-                       for name, m, tint in rows if name.startswith("primitive:")])
-    band = own.keep(np.array(own.material_names()) == "M_CN_Band")
-    flat = Soup.join([massing(short_m, long_m, ground_m, top_m, wall_m),
-                      own.keep(np.array(own.material_names()) == "M_CN_RoofTile"), detail.simplify(band, FEATURE_M[3])])
+def shell_tiers(walls, cubes, rows, loops, rects, modules, tiers_of, floors):
+    """A template's own mesh at each tier: the walls of every run, the bands, parapet and
+    coping round the outline, a roof over every part, the cubes, and at the two coarse
+    tiers flat walls with what is left of the kit folded in."""
+    ground_m, storey_m, wall_m = INPUTS["Ground Floor Height"], INPUTS["Floor Height"], INPUTS["Wall Thickness"]
+    roof_m = ground_m + storey_m * (floors - 1)
+    top_m = roof_m + INPUTS["Parapet Height"]
+    band = "M_CN_Band"
+    crown, belts, floor_bands, flat = [], [], [], []
+    for loop in loops:
+        crown += [ring(loop, roof_m, top_m, 0.0, wall_m, STUCCO + MASK, inner=True),
+                  ring(loop, top_m, top_m + 0.1, 0.07, wall_m + 0.07, band, inner=True)]
+        belts += [ring(loop, ground_m - 0.3, ground_m + 0.02, 0.14, 0.06, band), ring(loop, roof_m - 0.3, roof_m + 0.02, 0.1, 0.06, band)]
+        floor_bands += [ring(loop, ground_m + storey_m * k - 0.14, ground_m + storey_m * k, 0.05, 0.06, band)
+                        for k in range(1, floors - 1)]
+        for (ax, ay), (bx, by) in loop:
+            flat += [quad([(ax, ay, z0), (bx, by, z0), (bx, by, z1), (ax, ay, z1)], material)
+                     for z0, z1, material in ((0.0, ground_m, "M_CN_Stone"), (ground_m, roof_m, STUCCO + MASK))]
+    z = roof_m + 0.04
+    roofs = [quad([(cx - hx, cy - hy, z), (cx + hx, cy - hy, z), (cx + hx, cy + hy, z), (cx - hx, cy + hy, z)], "M_CN_RoofTile")
+             for cx, cy, hx, hy in rects]
     out = []
     for tier, g in enumerate(FEATURE_M):
-        folded = [unmasked(modules[name][tier], tint_of(tint)).transformed(m) for name, m, tint in rows
-                  if not name.startswith("primitive:") and tiers_of[name] & ~ROW_TIERS & (1 << tier)]
-        out.append(Soup.join([flat if tier >= 2 else own, cubes if tier == 0 else detail.simplify(cubes, g), *folded]))
+        folded = [unmasked(modules[name][tier], None if tint is None else tint[:3]).transformed(m) for name, m, tint in rows
+                  if tiers_of[name] & ~ROW_TIERS & (1 << tier)]
+        body = [*walls, *floor_bands] if tier < 2 else flat
+        out.append(Soup.join([*body, *crown, *(belts if tier < 3 else belts[::2]), *roofs,
+                              cubes if tier == 0 else detail.simplify(cubes, g), *folded]))
     for tier in range(1, 4):
         if len(clean(out[tier])) > len(clean(out[tier - 1])):
             raise SystemExit(f"a shell's tier {tier} is heavier than its tier {tier - 1}")
@@ -396,41 +563,88 @@ def shell_tiers(tap, rows, modules, tiers_of, dims, tint_of):
 
 
 # ---------------------------------------------------------------- the descriptor
-EDGES = (  # id, facade, the axis its offsets run along (templates.rs `Facade::axes`), which half extent it spans
-    ("body-east", "positive_x", (0.0, 1.0), 1), ("body-north", "positive_y", (-1.0, 0.0), 0),
-    ("body-west", "negative_x", (0.0, -1.0), 1), ("body-south", "negative_y", (1.0, 0.0), 0),
+FACES = (  # name, facade, outward normal, the way its offsets run (templates.rs `Facade::axes`)
+    ("east", "positive_x", (1.0, 0.0), (0.0, 1.0)), ("north", "positive_y", (0.0, 1.0), (-1.0, 0.0)),
+    ("west", "negative_x", (-1.0, 0.0), (0.0, -1.0)), ("south", "negative_y", (0.0, -1.0), (1.0, 0.0)),
 )
 
 
-def descriptor(kind, long_m, short_m, floors, half, openings, doors):
-    """The physical template, with each facade's bay lattice checked against where the
-    graph put its windows. `openings` and `doors` are template-space positions."""
-    edges = []
-    offsets = {edge[0]: set() for edge in EDGES}
-    for x, y in openings:
-        reach = [half[0] - x, half[1] - y, half[0] + x, half[1] + y]  # distance inside each face, in EDGES order
-        i = int(np.argmin(reach))
-        offsets[EDGES[i][0]].add(round(x * EDGES[i][2][0] + y * EDGES[i][2][1], 3))
-    for name, facade, _, axis in EDGES:
-        span = half[axis]
-        count = round((2 * span - 2) / BAY_M)
-        phase = 0.0 if count % 2 else BAY_M / 2
-        lattice = {round(phase + BAY_M * k, 3) for k in range(-count, count + 1) if abs(phase + BAY_M * k) < span}
-        if offsets[name] != lattice:
-            raise SystemExit(f"{name}: windows at {sorted(offsets[name])}, the bay lattice at {sorted(lattice)}")
-        edges.append({"id": name, "part": "body", "facade": facade, "span_m": [-span, span], "exposed": True,
-                      "bays": {"pitch_m": BAY_M, "phase_m": phase}})
-    entrances = []
-    for k, (x, y) in enumerate(doors):
-        if abs(y + half[1]) > 1e-3:
-            raise SystemExit(f"the entrance at {x}, {y} is not on the street side")
-        entrances.append({"id": f"door-{k}", "edge": "body-south", "offset_m": round(x, 3)})
+def descriptor(name, floors, parts_, openings, doors):
+    """The physical template. Every face of every part is cut into spans: joined where
+    another part stands against it (no bays), exposed elsewhere, with the bay lattice
+    checked against where the graph put its windows. `openings` and `doors` are
+    template-space positions."""
     ground, storey = INPUTS["Ground Floor Height"], INPUTS["Floor Height"]
+    half_z = (ground + storey * (floors - 1) + INPUTS["Parapet Height"]) / 2
+    edges, spans = [], []  # spans: (edge, part, face index, start, end, the offsets of its openings)
+    for part, (cx, cy, hx, hy) in parts_.items():
+        for f, (face, facade_, n, along) in enumerate(FACES):
+            reach, half = (hx, hy) if n[0] else (hy, hx)
+            line = cx * n[0] + cy * n[1] + reach
+            joined = []
+            for other, (ox, oy, ohx, ohy) in parts_.items():
+                oreach, ohalf = (ohx, ohy) if n[0] else (ohy, ohx)
+                if other != part and abs(ox * n[0] + oy * n[1] - oreach - line) < 1e-9:
+                    mid = (ox - cx) * along[0] + (oy - cy) * along[1]
+                    lo, hi = max(-half, mid - ohalf), min(half, mid + ohalf)
+                    if hi - lo > 1e-9:
+                        joined.append((lo, hi))
+            cuts = sorted({-half, half, *(v for span in joined for v in span)})
+            pieces = [(a, b, any(lo <= a and b <= hi for lo, hi in joined)) for a, b in zip(cuts, cuts[1:])]
+            # numbered the way the world's axis runs
+            pieces.sort(key=lambda piece: piece[0] * (along[0] + along[1]))
+            for k, (a, b, inner) in enumerate(pieces):
+                edge = {"id": f"{part}-{face}" + (f"-{k}" if len(pieces) > 1 else ""), "part": part, "facade": facade_,
+                        "span_m": [float(a), float(b)], "exposed": not inner, "bays": None}
+                edges.append(edge)
+                spans.append((edge, part, f, a, b, set()))
+
+    def at(part, f, offset):
+        cx, cy, hx, hy = parts_[part]
+        n, along = FACES[f][2], FACES[f][3]
+        reach = hx if n[0] else hy
+        return (round(cx + n[0] * reach + along[0] * offset, 6), round(cy + n[1] * reach + along[1] * offset, 6))
+
+    def on_edge(x, y):
+        for edge, part, f, a, b, found in spans:
+            cx, cy, hx, hy = parts_[part]
+            n, along = FACES[f][2], FACES[f][3]
+            offset = (x - cx) * along[0] + (y - cy) * along[1]
+            if abs((x - cx) * n[0] + (y - cy) * n[1] - (hx if n[0] else hy)) < 1e-3 and a + 1e-6 < offset < b - 1e-6:
+                if not edge["exposed"]:
+                    raise SystemExit(f"{name}: an opening at {x}, {y} is on the joined face {edge['id']}")
+                return edge, round(offset, 3), found
+        raise SystemExit(f"{name}: an opening at {x}, {y} is on no edge")
+
+    for x, y in openings:
+        on_edge(x, y)[2].add(on_edge(x, y)[1])
+    for edge, part, f, a, b, found in spans:
+        if not edge["exposed"]:
+            continue
+        phase = round(min(found) % BAY_M, 3) if found else BAY_M / 2
+        lattice = {round(phase + BAY_M * k, 3) for k in range(-200, 200) if a < phase + BAY_M * k < b}
+        if found != lattice:
+            raise SystemExit(f"{name} {edge['id']}: windows at {sorted(found)}, the bay lattice at {sorted(lattice)}")
+        edge["bays"] = {"pitch_m": BAY_M, "phase_m": phase}
+    joins = []
+    for edge, part, f, a, b, _ in spans:
+        for other, opart, of, oa, ob, _ in spans:
+            if not edge["exposed"] and not other["exposed"] and edge["id"] < other["id"] \
+                    and at(part, f, a) == at(opart, of, ob) and at(part, f, b) == at(opart, of, oa):
+                joins.append({"id": f"join-{len(joins)}", "edges": [edge["id"], other["id"]]})
+    entrances = []
+    street = min(cy - hy for _, cy, _, hy in parts_.values())
+    for k, (x, y) in enumerate(sorted(doors)):
+        edge, offset, _ = on_edge(x, y)
+        if edge["facade"] != "negative_y" or abs(y - street) > 1e-3:
+            raise SystemExit(f"{name}: the entrance at {x}, {y} is not on the street side")
+        entrances.append({"id": f"door-{k}", "edge": edge["id"], "offset_m": offset})
     return {
-        "id": f"china-apartment-{kind}-{long_m}x{short_m}-{floors}f", "category": "urban_apartment", "regional_family": "china",
-        "parts": [{"id": "body", "center": [0.0, 0.0], "yaw": 0.0, "half_extents": [float(h) for h in half], "base_z": 0.0}],
+        "id": f"china-apartment-{name}", "category": "urban_apartment", "regional_family": "china",
+        "parts": [{"id": part, "center": [float(cx), float(cy)], "yaw": 0.0, "half_extents": [float(hx), float(hy), half_z],
+                   "base_z": 0.0} for part, (cx, cy, hx, hy) in parts_.items()],
         "floor_heights_m": [0.0] + [round(ground + storey * k, 3) for k in range(floors - 1)],
-        "entrances": entrances, "edges": edges, "joins": [],
+        "entrances": entrances, "edges": edges, "joins": joins,
     }
 
 
@@ -526,27 +740,48 @@ def write_kit(path, kit):
 
 
 # ---------------------------------------------------------------- main
+def assemble(graph_, template):
+    """A template's outline, the walls and cubes of its runs, its instances in its own
+    frame, and what made them."""
+    name, floors, parts_, seed, shop_seed, roof, wall, own = template
+    rects = list(parts_.values())
+    loops = outline(rects)
+    south, east = min(cy - hy for _, cy, _, hy in rects), max(cx + hx for cx, _, hx, _ in rects)
+    roof_m = INPUTS["Ground Floor Height"] + INPUTS["Floor Height"] * (floors - 1)
+    walls, cubes, rows, recipe, used = [], [], [], [], {}
+    for run in (run for loop in loops for run in loop):
+        side = facade_of(run, south, east)
+        # each run of a compound is its own stretch of wall: another seed for each facade of a kind
+        k = used[side] = used.get(side, -1) + 1
+        inputs = run_inputs(math.dist(*run), side, floors, seed + k, shop_seed + k, own)
+        wall_, placed, cubes_ = facade(*graph_.tap(inputs), side, run, roof_m)
+        walls.append(wall_)
+        cubes.append(cubes_)
+        rows += placed
+        recipe.append({"from": list(run[0]), "to": list(run[1]), "facade": side, "Seed": seed + k, "Shop Seed": shop_seed + k,
+                       "Corner Margin": inputs["Corner Margin"]})
+    for k, part in enumerate(rects):
+        rows += roof_rows(graph_, part, floors, seed + k, roof, own)
+    return loops, walls, Soup.join(cubes), rows, {"inputs": {k: (list(v) if isinstance(v, tuple) else v) for k, v in {**INPUTS, **own}.items()},
+                                "facades": recipe, "roof": list(roof)}
+
+
 def main():
-    ob, mod = open_graph()
+    graph_ = Graph()
     version = ".".join(str(v) for v in bpy.app.version)
-    taps = []
-    for kind, long_m, short_m, floors, seed, shop_seed, roof, wall in TEMPLATES:
-        inputs = recipe_inputs(long_m, short_m, floors, seed, shop_seed, roof)
-        graph.set_inputs(mod, inputs)
-        tap = graph.tap(ob, tinted=TAKES_COLOUR)
-        taps.append((inputs, tap, drawn(tap.rows)))
+    built = [assemble(graph_, template) for template in TEMPLATES]
 
     # the kit: every mesh a template instances, and whether the graph tints its instances
-    sources, tinted = {}, {}
-    for _, tap, rows in taps:
+    sources, tinted, meshes = {}, {}, {}
+    for tap, _ in graph_.taps.values():
+        meshes.update(tap.meshes)
+    for _, _, _, rows, _ in built:
         for name, _, tint in rows:
-            if name.startswith("primitive:"):
-                continue
             if not family_tiers(name):
                 raise SystemExit(f"{name} is in no family of FAMILIES")
             if tinted.setdefault(name, tint is not None) != (tint is not None):
                 raise SystemExit(f"{name} is instanced both with and without a tint")
-            sources[name] = tap.meshes[name]
+            sources[name] = meshes[name]
     modules = {name: module_tiers(name, masked(sources[name], tinted[name])) for name in sorted(sources)}
     # a module is drawn at the tiers its family names, where it has anything left to draw
     tiers_of = {name: sum(1 << t for t in range(4) if family_tiers(name) >> t & 1 and modules[name][t] is not None)
@@ -556,63 +791,47 @@ def main():
     for name, lods in modules.items():
         kit[module_id(name)] = [next(l for l in reversed(lods[:t + 1]) if l is not None) for t in range(4)]
 
-    templates, table = [], []
-    for (kind, long_m, short_m, floors, _, _, _, wall), (inputs, tap, rows) in zip(TEMPLATES, taps):
-        ground_m = inputs["Ground Floor Height"]
-        roof_m = ground_m + inputs["Floor Height"] * (floors - 1)
-        top_m = roof_m + inputs["Parapet Height"]
-        frame = template_frame(long_m, short_m)
-        half = (long_m / 2, short_m / 2, top_m / 2)
-        shell = f"{kind}_{long_m}x{short_m}_{floors}f_shell"
-        tint_of = lambda tint: None if tint is None else tint[:3]
-        kit[shell] = [s.transformed(frame) for s in
-                      shell_tiers(tap, rows, modules, tiers_of, (short_m, long_m, ground_m, roof_m, top_m), tint_of)]
+    templates = []
+    for (name, floors, parts_, _, _, _, wall, _), (loops, walls, cubes, rows, recipe) in zip(TEMPLATES, built):
+        shell = name.replace("-", "_") + "_shell"
+        kit[shell] = shell_tiers(walls, cubes, rows, loops, list(parts_.values()), modules, tiers_of, floors)
         placed = [(shell, [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0], 0b1111, wall)]
         openings, doors = [], []
-        for name, m, tint in rows:
-            if name.startswith("primitive:"):
-                continue
-            m = frame @ m
+        for n, m, tint in rows:
             row = decompose(m)
             if row is None or min(row[4:]) <= 0:
-                raise SystemExit(f"{name}: a row that tilts or mirrors needs a module variant, and the China graph has none")
-            if name.startswith(OPENINGS):
+                raise SystemExit(f"{n}: a row that tilts or mirrors needs a module variant, and the China graph has none")
+            if n.startswith(OPENINGS):
                 openings.append((m[0, 3], m[1, 3]))
-            if name.startswith("CNK_Ent_"):
+            if n.startswith("CNK_Ent_"):
                 doors.append((m[0, 3], m[1, 3]))
-            if tiers_of[name] & ROW_TIERS:
-                placed.append((module_id(name), row, tiers_of[name] & ROW_TIERS, WHITE if tint is None else srgb_bytes(tint[:3])))
-        templates.append((kind, long_m, short_m, floors, half, inputs, placed, openings, doors))
+            if tiers_of[n] & ROW_TIERS:
+                placed.append((module_id(n), row, tiers_of[n] & ROW_TIERS, WHITE if tint is None else srgb_bytes(tint[:3])))
+        templates.append((descriptor(name, floors, parts_, openings, doors), recipe, placed))
 
     kit = {name: [clean(s) for s in lods] for name, lods in kit.items()}
     names = sorted(kit)
     index = {name: i for i, name in enumerate(names)}
     triangles = {name: [len(s) for s in kit[name]] for name in names}
-    doc_templates = []
-    lo, hi = np.full(3, np.inf), np.full(3, -np.inf)
-    for kind, long_m, short_m, floors, half, inputs, placed, openings, doors in templates:
+    doc_templates, table = [], []
+    worst = np.zeros(2)
+    for desc, recipe, placed in templates:
         rows = sorted([index[name], *(round(float(v), 5) for v in row), tiers, *tint] for name, row, tiers, tint in placed)
-        drawn_at = [sum(triangles[names[r[0]]][t] for r in rows if r[8] >> t & 1) for t in range(4)]
-        desc = descriptor(kind, long_m, short_m, floors, half, openings, doors)
-        table.append((desc["id"], len(rows), drawn_at))
-        # the fit: nothing past the part's faces by more than FIT, at any tier
+        table.append((desc["id"], len(rows), [sum(triangles[names[r[0]]][t] for r in rows if r[8] >> t & 1) for t in range(4)]))
+        # the fit: every vertex inside some part grown by FIT, and none below the ground, at every tier a row draws at
+        boxes = np.array([[*p["center"], *p["half_extents"]] for p in desc["parts"]])
         for r in rows:
-            m = row_matrix(r[1:8])
             for t in range(4):
                 if r[8] >> t & 1:
-                    b = np.array(kit[names[r[0]]][t].transformed(m).bounds())
-                    reach = [max(-b[0, 0] - half[0], b[1, 0] - half[0], -b[0, 1] - half[1], b[1, 1] - half[1]),
-                             b[1, 2] - 2 * half[2], -b[0, 2]]
-                    if reach[0] > FIT["side_m"] or reach[1] > FIT["top_m"] or reach[2] > 1e-3:
-                        raise SystemExit(f"{desc['id']}: {names[r[0]]} at tier {t} reaches {reach[0]:.2f} m past the sides, "
-                                         f"{reach[1]:.2f} m past the top and {reach[2]:.3f} m below the ground")
-                    lo, hi = np.minimum(lo, reach), np.maximum(hi, reach)
-        doc_templates.append({
-            "status": "release",
-            "recipe": {k: (list(v) if isinstance(v, tuple) else v) for k, v in inputs.items()},
-            "descriptor": desc,
-            "states": {"intact": rows},
-        })
+                    v = kit[names[r[0]]][t].transformed(row_matrix(r[1:8])).v
+                    side = np.maximum(np.abs(v[:, None, 0] - boxes[:, 0]) - boxes[:, 2],
+                                      np.abs(v[:, None, 1] - boxes[:, 1]) - boxes[:, 3]).min(1).max()
+                    reach = np.array([side, v[:, 2].max() - 2 * boxes[0, 4]])
+                    if side > FIT["side_m"] or reach[1] > FIT["top_m"] or v[:, 2].min() < -1e-3:
+                        raise SystemExit(f"{desc['id']}: {names[r[0]]} at tier {t} reaches {side:.2f} m past the sides, "
+                                         f"{reach[1]:.2f} m past the top and {-v[:, 2].min():.3f} m below the ground")
+                    worst = np.maximum(worst, reach)
+        doc_templates.append({"status": "release", "recipe": recipe, "descriptor": desc, "states": {"intact": rows}})
 
     doc = {"set": SET, "kit": f"city_kit_{SET}", "fit": FIT,
            "source": {"script": "china.py", "blend": BLEND, "blender": version},
@@ -626,7 +845,7 @@ def main():
     print(f"KIT {len(names)} modules, triangles per tier {[sum(t[i] for t in triangles.values()) for i in range(4)]}")
     for name in names:
         print(f"MODULE {name:34s} {triangles[name]}")
-    print(f"REACH past the sides {hi[0]:.2f} m, past the top {hi[1]:.2f} m (fit {FIT})")
+    print(f"REACH past the sides {worst[0]:.2f} m, past the top {worst[1]:.2f} m (fit {FIT})")
     print(f"{'template':40s} {'rows':>6s} " + " ".join(f"{'tier ' + str(t):>9s}" for t in range(4)))
     over = []
     for name, count, drawn_at in table:

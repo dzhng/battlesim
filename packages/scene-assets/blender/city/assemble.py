@@ -409,4 +409,5 @@ def main():
         sheets[name](camera, modules, templates, out, scratch)
 
 
-main()
+if __name__ == "__main__":
+    main()
