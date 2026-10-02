@@ -96,3 +96,39 @@ verification, not a claim that the rendered hedgerow has passed its gate.
 **Nothing was changed.** None of this is an error in trunk placement or in the plot cut; it is the look of a strip one crown wide, and the tree models'.
 
 **Open.** A tree line needs a body below the crowns (an understorey or shrub layer along the strip) before it reads as a view-blocker; the floor under a strip wants to be a verge, not a wood's bare earth, and to taper at its ends; trunks. The hedgerow comparison and the cost of 40 strips are still not done. No station looks along a line or from the ground.
+
+## Outcome — drawn half, a hedge under the trees and a verge under the hedge (2026-10-02)
+
+**What was built.**
+
+- **Understorey.** Every strip of forest carries rows of the hedgerow shrub along its length, under its trees (`placeUnderstorey` in `scenery/placement.ts`, `SceneryPlacement.understorey`): as many rows as fit the strip's width (two in a generated 12 m line), a shrub every `spacing_m`, the next row half a spacing on, a few left out. Each keeps the whole circle of its reach on the strip's own forest ground and under the simulation's foliage as a crown is held (in a fog cell that has it, or beside one), off paving and water, clear of every body but a tree. The rows are `trees.understorey` in the biome: spacing 3.4 m, rows 3 m apart, height 2.8 to 4.1 m. A wood has none.
+- **Drawing.** A second standing population in the scenery layer (`frame/sceneryLayer.ts`), through the static chunk owner: the forest's tiers, fragment stage and shadows, gone with the trees' switch and where the side has seen its ground cleared. `BattleFrame.setUnderstoreyShown` (the lab's `suppressUnderstorey`) is its own switch. No pass was added.
+- **The ground.** A strip has no forest floor. `groundLineBand` in `frame/terrainMaterial.ts` finds whether the forest at a point is a strip and how far inside its band the point lies; `groundFloor` then draws the plots' verge there in place of the floor, and the grass pass grows the verge's grass on it and the field's crop up to it. The band is the strip, its edge wandering by `forest_floor.tree_line.warp_m` (0.8 m), narrowing to a point over `taper_m` (14 m) before each end; the hedge's rows draw together over the same length. Rectangle and polygon woods take the old path: the village's `forest-edge-65` bare ground and class mask are byte-identical.
+- **Checks.** `web/tests/scenery.test.ts`: on an inline map, shrubs along every long stretch of a strip, none outside it or its foliage, none on a road, none in a wood; on the generated map, every tree line carries its shrubs. `web/scenes/_treeLines.mjs` in the `ground` scene (`TREE_LINES_ONLY=1` alone; `TREE_LINE_COST=1`): at `tree-line-65` the line hides 0.6 or more of its own ground and its shrubs add 0.1 or more to what the crowns hide; the ground under it is the verge's green with grass on it.
+
+| Measure | Value |
+|---|---|
+| The strip's ground hidden from the play camera (65 m): crowns alone / with the hedge | 0.61 / **0.74** |
+| Ground under the strip, CIELAB a\* (bare): before / after | brown floor / −8.0 (the verge's green) |
+| Shrubs on the rig's map (11 strips) | 446 (0.5 a metre of strip, about 40 a strip); 358 at the first spacing of 4.2 m |
+| A shrub's triangles per tier | 5,120 / 1,280 / 320 / 20 |
+| GPU, `tree-line-250`, shrubs on against off | **+0.08 ms** (four pairs: −0.01, 0.13, −0.06, 0.08; 42 shrubs at the far tier, 840 triangles; bare frame 1.58 ms) |
+| GPU, `tree-line-65` | **+0.01 ms** (−0.04, −0.14, 0.01, 0.01; 42 shrubs, 13,440 triangles; bare frame 2.48 ms) |
+| 40 strips, by the counts | about 1,600 shrubs (77 KB of records): 32,000 triangles with every one at the far tier, 512,000 with every one at the play camera's; a 250 m frame holds one to three strips |
+
+Apple Metal, 1920×1080, 120 forced frames a batch, measured at the first spacing (a fifth fewer shrubs). The cost is inside the run's noise. No map of 40 strips was built: the rig's has 11, and seeds 1, 3 and 4 have 23, 12 and 19.
+
+**Compare.** Before against after at the same stations: at 65 m the frame's mean luminance is unchanged (96.2 of 255) and its edge energy up a tenth; at 250 m under 1% of the pixels move. Against the WARNO hedgerows (`specs/done/battle-look/assets/reference/warno/gameplay-tutorial-22.jpg`, upper left): theirs are broken lines of small trees and scrub of uneven height on a grass margin; ours now has the scrub and the margin, under trees twice the size and more regular. Less wrong than a row of boles on brown earth; not a match.
+
+**Critique** (unprimed, once, on the first hedge: two tree-line frames and their crops).
+
+- *Would it block a view?* "Mostly yes, as a soft, patchy screen rather than a wall": the hedge "looks dense and taller than a man", but breaks into lozenges at 250 m and is "only about a quarter of tree height". It was "a porous screen, not a sight-blocking barrier". After this the shrubs were set closer (4.2 to 3.4 m) and taller (to 4.1 m); those shots were looked at and not critiqued again.
+- *What is it?* "A hedgerow with standard trees, or a thin shelterbelt; not a wood."
+- *The ground.* "A grass verge with tufts"; "nothing reads as scorch or stain directly under the line".
+- *Its ends* still "stop dead" on a full-size tree: the ground and the hedge taper, the simulation's trunks do not, and the left end runs past its field's corner (the map's).
+- *Shadows.* Every one has a tree to cast it, but the back row's land clear of the line on the stubble and read as "dark stains" at a glance; two large ones at the frame's edges have their casters out of frame.
+- Not this slice's: the line is "the only vegetation in about 30 fields" (the generator's count); a second ragged row of trunks inside the field (a 12 m strip holds two); near-black conifers with no ground contact, cream and maroon trunks, brown crown undersides, blurry crowns (the tree models); an olive veil over the whole frame.
+
+**Open.** A strip under about 5.5 m wide carries no shrubs. The band tapers per exported stretch, so a strip that starts in a bend narrows over one chord. One hedge model, so a long line repeats. No station looks along a line or from the ground. The hedgerow comparison is against one frame at another camera.
+
+**Pictures** (scratch): `throwaway/final2/generated-tree-line-65.png` and `-250.png` against `throwaway/before/`; the first hedge in `throwaway/final/`.

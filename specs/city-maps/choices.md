@@ -5784,13 +5784,21 @@ The models, their boxes and the sheets are in the [C45 outcome](slices/C45-stree
 
 **Verdict:** sound for the binding, provisional for the height. A real burnt-out car is about 1.2 m; the 0.7 m is the simulation's remains height and the art follows it, so the shell is crushed flat. If it reads as too flat in a street, the fix is the row's `height_m`, which changes what the wreck hides and stops: a mechanics decision, the owner's. **Confidence:** medium on the look, high on the binding.
 
-### No street-tree art
+### A street tree is a tree body outside every forest, drawn by the scenery as a tree of its own
 
-**Choice:** This lane built no street-tree model. The street-placement slice made a street tree its own prop type (`street_tree`, a trunk body), still marked `systems_only`, which draws a stand-in box. The validator holds every tree appearance to one height and one girth (`fit.tree_size`), so a smaller "street size" tree model would be refused; the narrow forest kinds (`tree_tall`, `tree_birch`, reach 3.4 to 3.7 m) are the ones that would fit a pavement.
+**Choice:** The `street_tree` row is drawn by `forest`, as the trunk it extends is, and is no longer `systems_only`. The scenery draws every tree body: a forest's trunks by the forest's rule, and a trunk no forest generated as a lone tree (`trees.lone` in the biome): one of the species named there (`tree_tall`, `tree_birch`), 0.85 to 1 of its own body's height, 0.7 to 0.85 of its appearance's width. No new art, no new scenery kind, no body value changed.
 
-**Gap:** The slice lists "street trees from the one tree generator" under appearances to deliver.
+**Gap:** The slice lists "street trees from the one tree generator"; the street-placement slice made the street tree a prop type of its own and left it a stand-in box.
 
-**Verdict:** provisional. Binding `street_tree` to the forest's narrow species needs no new art. If a street tree must be shorter than the forest's, that is a second size on `SCENERY_KINDS.tree`, decided where the sight rule is. **Confidence:** medium.
+**Verdict:** sound. The street tree's box (0.35 m by 10 m) is the forest rule's trunk, so the one-size tree art (11 m, a 0.4 m bole) fits it as it fits a forest's: a smaller build or a kind of its own would have been a second size for the same body. The rule is by the body, not the id: a map's own `trunk` prop outside its forests, which nothing drew before, is a lone tree too. **Confidence:** high on the binding. Medium on the look: the crowns are narrowed by scale, so a bole comes out 0.28 to 0.34 m against the body's 0.35.
+
+### A street tree's crown is drawn where the simulation has no foliage
+
+**Choice:** Accepted. A lone tree's crown hides the ground under it from the camera; the simulation gives a tree outside a forest its trunk (cover, and the trunk row's own concealment) and no canopy.
+
+**Gap:** Every forest crown is held inside the simulation's foliage; a street tree has none to be held in.
+
+**Verdict:** provisional. It is one crown 5 to 6 m across with daylight under it, and a unit beneath is found by the x-ray as under any crown. If a street's trees should fade sight along it, that is a foliage rule for lone trunks, the simulation's. **Confidence:** medium.
 
 ### Ours for every kind, including the eight the vendored street kit was to supply
 
@@ -6503,6 +6511,38 @@ owner while leaving unrelated, unproven numerical hypotheses alone.
 **Gap:** The gate asked for a station on a tree line and named no line, no framing and no way to find one.
 
 **Verdict:** sound. A scan of an 8 km map by the ground alone would cost a million probes a page load; the strokes name eleven candidates and the ground still decides. Across is the framing that asks the slice's question (does it block the view). The inset keeps the map's edge out of the 250 m frame. **Confidence:** medium: the stations move to another line when the generator's layout changes, as the rig's other generated stations do.
+
+### A tree line carries a hedge under its trees; a wood does not
+
+**Choice:** Every strip of forest is drawn with rows of the hedgerow shrub (2.8 to 4.1 m tall) along its length, under its trees: `trees.understorey` in the biome (spacing, rows, sway, gaps, length and height ranges). A wood keeps the forest floor's rule: nothing with no body stands over 0.9 m.
+
+**Gap:** The first picture showed bare ground between the boles of a strip the simulation hides a far squad behind. The dressing's rule (nothing drawn may look like it hides a soldier) is written for a wood's floor, where sight fades with depth and a soldier near the edge is seen.
+
+**Verdict:** sound. The two rules say the same thing: draw what the simulation does. Across a strip the simulation already fades sight to nothing at range, so a hedge there tells the truth and bare boles lie; inside a wood a soldier a few metres in is still seen, so a shrub that hid him would lie. **Confidence:** high on the rule; medium on the look (one hedge model, repeated).
+
+### A shrub keeps its whole reach on the strip's ground and under its foliage
+
+**Choice:** A shrub is placed only where the circle of its reach lies on the strip's own forest ground, every point of it in a fog cell with foliage or beside one, clear of paving and water and of every body but a tree. It is drawn smaller to fit, and not at all where it would be smaller than the biome's range. A strip under about 5.5 m wide therefore carries none.
+
+**Gap:** "Never wider than the canopy the simulation blocks sight with" names no measure. The crowns' test holds a crown's rim within one fog cell of the foliage; the simulation's foliage does not cover every cell of a strip (a cell whose centre no canopy reaches is open).
+
+**Verdict:** sound. The strip's ground is the stricter bound and needs no number from the simulation; the foliage test is the crowns' own, so a stretch of strip with no trunks (and no foliage) gets no hedge either. **Confidence:** high. A generated tree line is 12 m wide, which holds two rows.
+
+### The ground under a tree line is the plots' verge with its grass, drawn in to a point at each end
+
+**Choice:** A strip has no forest floor. Under it lies a band of the plot verge's colour with the verge's grass growing on it: the strip itself, its edge wandering by `forest_floor.tree_line.warp_m`, its half width falling evenly to nothing over the last `taper_m` (14 m) before each end the strip is cut square at. The hedge's rows draw together over the same length. Past the band, inside the strip's square corners, the field's own crop grows. Woods (rectangles and polygons) are untouched.
+
+**Gap:** The floor under a strip read as "a brown smudge or scorch mark" and ended as a blunt blob; the brief left the look between the verge and the floor's moss.
+
+**Verdict:** sound for the look, provisional in two details. A tree line stands on a plot boundary, where the verge already runs, so the band is that verge grown wide: it joins the field margins at both ends without a new colour, and light reaches the ground under one row of crowns, so grass is right there and bare earth was not. The details: grass now grows on ground the simulation calls forest (in the band and in the corners), which no rule reads; and the taper is per exported stretch, so a strip that begins with a bend narrows over its first chord only. **Confidence:** medium.
+
+### The shrubs are a population of the scenery layer, drawn and shadowed as the forest is
+
+**Choice:** `SceneryPlacement.understorey` is laid whole at load (a map holds a few hundred shrubs) and drawn through the static chunk owner beside the forest: same tiers, same fragment stage, casting into the cascades, gone with the trees' switch and where the side has seen its ground cleared. `BattleFrame.setUnderstoreyShown` (the lab's `suppressUnderstorey`) switches it alone for the cost measure.
+
+**Gap:** "Through that same static chunk path" could mean rows appended to the forest's own list. That list is one tree per trunk, which the scenes and tests count.
+
+**Verdict:** sound. No pass, no per-frame CPU work and no second chunk owner; the forest's count stays the trunks'. **Confidence:** high.
 
 ## C87 ground composition gate
 
