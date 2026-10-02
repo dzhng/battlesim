@@ -59,7 +59,7 @@ Whole-frame confusion between vegetation, cover, shadow and fog reopens the resp
 
 **Scenes on the final tree.** Village replay, geometry, sensors, consequences, river, fog-look, workbench and ground pass. Three do not:
 - `movement`: "the rifle group's destinations are admitted and its routes use the 5 m gap" (routes come back empty). Bisected over 8 builds: the first bad commit is `82564693`, "Merge main and retain move admission and bounded routing contracts", and both its parents pass. It is that merge's, not this lane's.
-- `village`: the scripted fight no longer yields a last sighting, a firing report and a suppressed squad; two unit-panel layout checks fail; one wait times out. All pass at the lane's start. The lane changes no rule and no panel; not attributed further.
+- `village`: the scripted fight no longer yields a last sighting, a firing report and a suppressed squad; two unit-panel layout checks fail; one wait times out. The fight check bisects to the same first bad commit as `movement`, `82564693`, with both parents passing: that merge's, not this lane's. The panel checks were not bisected.
 - `generated`: the overview counts 43,533 of 43,534 trees at the far tier. Not explained.
 
 **Village report** (full, ten seeds, once): completes; road push 6 of 10 captured, flank 7 of 10, ambush and crossfire 0 of 10; 13,651 G instructions. With forest floor bodies on, the flank script's order was refused on seed 34 and the report panicked, which the three-seed quick report had not shown.
