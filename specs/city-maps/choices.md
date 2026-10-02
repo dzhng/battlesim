@@ -2615,3 +2615,65 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 **Verdict:** sound. The snapshots proved cutovers whose old implementations no longer exist; since then they only failed on deliberate changes and were re-recorded unread. One snapshot was the sole test of a rule (how cleared ground thins foliage in Wasm) and was replaced by a small behaviour test. **Confidence:** high.
 
 **Open:** the stream record is the only native-against-Wasm check of the simulation itself, and it is a four-unit move with no firing; a short battle with combat would be a stronger pair at the same cost.
+
+## Buildings lane
+
+### China's family ships first
+
+**When:** S2 verdict, 2026-10-01.
+
+**Choice:** A generated map's apartment blocks come from the China graph first. New York and Paris follow later through the same exporter as further families. The alternative was Paris first, whose Haussmann blocks sit more naturally beside a European village.
+
+**Gap:** The spec says one regional family per map and names three sources, but not which is built first or how many are needed to close the lane.
+
+**Reach:** The first maps have Chinese apartment blocks beside our own scripted houses, farms, towers and sheds. Shop signs use our invented names. Adding a family is a new source set, not new code.
+
+**Verdict:** provisional. China is the only source whose blocks are free-standing with four facades at exactly 3 m a floor, which is what the generator places, and its enclosed balconies are the look the user named as the reference. Paris has fixed 3.2 m floors under a mansard and New York always has two blank sides. If the user would rather open with a European town, the order changes and nothing else does. **Confidence:** medium.
+
+### Attached homes are our own source
+
+**Choice:** Terraced and semi-detached houses are scripted by us, in the same source as detached houses (C17). The spec assumed the graphs would cover low attached buildings.
+
+**Gap:** S2 measured that no graph makes a two-storey house or a mid-terrace unit with one street face.
+
+**Verdict:** sound. A graph building squeezed to 7 m wide is a shop block with a water tower, not a house. **Confidence:** high.
+
+### Our own sources serve every family until a family has its own
+
+**Choice:** The scripted houses, farmsteads, towers and industrial buildings are tagged with the shipping family, so a map of that family has all six categories. The alternative, three styled variants of each before anything ships, would triple the art before the first town can be judged.
+
+**Gap:** "Missing variants cannot fall back to unrelated regional art" does not say whether project-made buildings count as unrelated.
+
+**Verdict:** provisional. They are styled plainly (plaster, tile, concrete) so they do not read as another region's. A second family needs its own pass over them, or an explicit decision to share. **Confidence:** medium.
+
+### Stretched primitives are folded into each template's own mesh
+
+**Choice:** New York's walls and trim are unit cubes stretched up to 24 times per instance, textured in the source by world-space projection. The exporter realizes rows of such generated primitives into one mesh per template with UVs in metres; real kit meshes stay shared instances. The alternatives were a world-space projection path in our shader, or one module per distinct stretch.
+
+**Gap:** Q-H′ asked for box-projected baked UVs and L1 for instanced modules; on stretched cubes the two conflict.
+
+**Verdict:** sound. A cube is twelve triangles, so folding costs little storage, and the shader keeps one material path. **Confidence:** high.
+
+### Graph-made templates are 3n + 2 metres a side with 3 m floors
+
+**Choice:** A graph-made template takes its size from a recipe whose sides are 3n + 2 metres, which gives exactly 3 m bays in all three graphs. The prototype sizes they replace (36 × 12 becomes 35 × 11) change, and the catalogue's hash with them.
+
+**Gap:** The spec forbids stretching art to a footprint but left the legal sizes to S2.
+
+**Verdict:** sound. The simulation's seats and eyes already assume 3 m bays and floors. **Confidence:** high.
+
+### The source format: one kit and one template file per set
+
+**Choice:** A building script writes a folder with `kit.glb` (modules as named roots with the usual four tiers) and `templates.json` (each template's physical descriptor and, per state, rows of module, position, yaw, per-axis scale, tier mask and tint). The physical catalogue the generator reads is derived from those descriptors and checked against them. The alternative kept descriptors hand-written in `fixtures/` with art fitted afterwards.
+
+**Gap:** C13 and C32 named the contents (modules, descriptors, placement rows) and delegated grouping and encoding.
+
+**Reach:** A template's shape has one author, the script that models it. A row cannot tilt or mirror a module; the exporter bakes those into module variants.
+
+**Verdict:** sound. It is the one arrangement where art and physics cannot drift, and it matches how the renderer already instances (yaw and per-axis scale). **Confidence:** high.
+
+### Triangle budgets per template are provisional
+
+**Choice:** 150,000, 50,000, 12,000 and 2,000 triangles drawn at tiers 0 to 3. They are starting numbers for the scripts; the placement-chunk pass (C22) measures real frames and amends them.
+
+**Verdict:** provisional. **Confidence:** low.
