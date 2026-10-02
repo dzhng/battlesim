@@ -623,7 +623,7 @@
     gap: 6px;
   }
   .me-file-columns {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .me-change-list li {
     flex-direction: column;

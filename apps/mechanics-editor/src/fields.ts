@@ -346,7 +346,7 @@ export const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       "scatter_mrad",
       "Landing spread at maximum range",
       "Flight & accuracy",
-      "One-axis standard deviation in metres at maximum engagement range: angular scatter × range ÷ 1000. This is not a maximum miss distance or blast radius; rounds can land farther away. Guided missiles steer out their initial spread.",
+      "Baseline one-axis launch spread in metres at maximum engagement range: angular scatter × range ÷ 1000. This is not a maximum miss distance or blast radius; rounds can land farther away. Movement, suppression and cover modify observed spread. Guided missiles steer out their initial spread.",
       { conversion: "spread", unit: "m" },
     ),
     field(

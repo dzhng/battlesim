@@ -66,11 +66,11 @@ pub struct Arsenal {
 /// Admit launch profiles and the weapon table before constructing battle resources.
 pub fn check_rules(rules: &Rules) -> Result<FlightConfig, String> {
     let config = FlightConfig::new(&rules.physics.flight, rules.tick_hz)
-        .map_err(|e| format!("physics: {e:?}"))?;
+        .map_err(|e| format!("physics: {e}"))?;
     for (id, weapon) in &rules.weapons {
         config
             .profile(&weapon.ballistics)
-            .map_err(|e| format!("weapons.{id}: {e:?}"))?;
+            .map_err(|e| format!("weapons.{id}: {e}"))?;
     }
     if rules.weapons.len() > crate::publication::MAX_WEAPON_ROWS {
         return Err(format!(

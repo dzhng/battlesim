@@ -1,6 +1,6 @@
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 export type JsonObject = { [key: string]: Json };
-export type Section = 'units' | 'weapons' | 'soldiers';
+export type Section = "units" | "weapons" | "soldiers";
 
 export interface SourceDocument {
   path: string;
@@ -36,4 +36,4 @@ export interface MechanicsPreview {
   warnings: string[];
 }
 
-export const MECHANICS_API = '/__mechanics';
+export const MECHANICS_API = "/__mechanics";

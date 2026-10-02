@@ -71,6 +71,27 @@ pub enum FlightConfigError {
     },
 }
 
+impl std::fmt::Display for FlightConfigError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NotPositive(field) => write!(f, "{field} is outside its finite physical range"),
+            Self::TooManySubsegments { required, max } => write!(
+                f,
+                "Trajectory needs {required} collision segments per tick; the limit is {max}. Reduce gravity strength"
+            ),
+            Self::LifetimeExceedsBound { lifetime_s, max_s } => write!(
+                f,
+                "Projectile lifetime must be at most {max_s} s; entered {lifetime_s} s"
+            ),
+            Self::Motor(reason) => write!(f, "Invalid missile motor: {reason}"),
+            Self::TighterThanCeiling { spread_m, min_m } => write!(
+                f,
+                "Landing spread must be at least {min_m} m at maximum range; entered {spread_m} m"
+            ),
+        }
+    }
+}
+
 /// Chords per tick keeping each within `chord_error` of an arc under constant
 /// acceleration `accel`: a chord of duration h strays at most accel·h²/8.
 fn subsegments_for(accel: f64, tick_s: f64, chord_error: f64) -> u32 {

@@ -53,7 +53,9 @@ mod tests {
             .err()
             .expect("invalid spread must fail");
         assert!(
-            error.contains("weapons.rifle") && error.contains("TighterThanCeiling"),
+            error.contains("weapons.rifle")
+                && error.contains("Landing spread must be at least")
+                && error.contains("entered 0 m"),
             "{error}"
         );
     }

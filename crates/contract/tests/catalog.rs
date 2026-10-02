@@ -441,10 +441,10 @@ fn hull_armor_and_ricochet_are_admitted_in_their_physical_ranges() {
         } else {
             tank["body"]["hull"]["armor"][field] = json!(value);
         }
-        let error = resolve(&units(json!({"tank": tank})))
-            .err()
-            .expect("invalid hull armor must fail")
-            .to_string();
+        let error = match resolve(&units(json!({"tank": tank}))) {
+            Err(error) => error.to_string(),
+            Ok(_) => panic!("invalid hull armor must fail"),
+        };
         assert!(error.contains("tank") && error.contains("armor"), "{error}");
     }
 }
