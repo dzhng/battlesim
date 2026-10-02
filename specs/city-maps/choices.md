@@ -2616,6 +2616,125 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 
 **Open:** the stream record is the only native-against-Wasm check of the simulation itself, and it is a four-unit move with no firing; a short battle with combat would be a stronger pair at the same cost.
 
+## C05 — scale-lane measurement choices
+
+### Sound — medium confidence: separate contact density from transit
+
+**When:** scale-lane measurement pass. **Choice:** reuse the endurance stress
+recipe inside a central 3 × 2 km arena of the generated map, with the full map
+loaded. On a 10 km world the original recipe would send each side toward its own
+rear, leaving them kilometres apart; the new load brings both into the same city
+area, with the fronts within weapon reach. Starting units move to nearby ground the production navigation permits.
+The existing saved-map endurance recipe keeps its coordinates and identity.
+**Gap:** the lane required generated contact without specifying its fight script.
+**Reach:** this proves local street cost and complete-world allocation; the separate
+crossing load proves long transit, and neither proves encounter placement quality.
+**Verdict:** sound; workload scopes stay explicit rather than using a quiet journey
+as fighting evidence.
+
+### Sound — high confidence: profile the existing tick with external counters
+
+**When:** scale-lane measurement pass. **Choice:** reports receive callbacks when
+each system finishes and read the OS instruction counter there. Ordinary play
+calls that same tick path with a no-op callback, so it never reads clocks or
+counters. If an eye sweeps fog and then learns terrain, those costs are reported
+separately; building the observation and packing it for delivery are separate too.
+**Gap:** existing reports counted complete ticks and could not select the expensive
+owner. **Reach:** future native reports share the production path without a second
+tick implementation. **Verdict:** sound; measurements remain outside battle state
+and replay identity.
+
+## C06 — scale-lane termination pass
+
+### Sound — high confidence: exhaust the corridor, then use the existing fallback
+
+**When:** C06 termination pass. **Choice:** stop a soldier's rejoin search once
+it has sampled the remaining route. If parked bodies block a nearby route end,
+the former sampler kept returning that same blocked place forever; the revised
+search returns no rejoin point and lets the existing personal-spot fallback run.
+The limit comes from route length and sampling distance, with one endpoint
+rounding sample, rather than an arbitrary retry cap. **Gap:** the plan required
+bounded scale work but did not name this infinite iteration. **Reach:** all
+soldiers retain the same successful candidate order and can exhaust an obstructed
+route without freezing a tick. **Verdict:** sound; the search cannot create
+progress after it reaches the end, and no valid candidate is discarded.
+
+The boolean-only walkability call is a local ownership simplification, not a new
+physical rule or a measured performance gain.
+
+## C07: exact observation group delivery
+
+### Sound — medium confidence: retain one canonical non-map baseline
+
+**When:** C07 reconstruction pass.
+
+**Choice:** Compare float words within each existing observation group, rather
+than introducing entity-keyed stores. When a squad loses a soldier, its member
+rows become shorter; that can change the squad group's remaining addresses, but
+cannot move the independently addressed corpse or known-prop group. The page
+receives the new group length and exact replacement ranges, reconstructing the
+same ordered arrays it would receive in a complete record. An entity-keyed
+alternative would add identity/deletion rules for every kind of row; this work
+keeps those decisions with the simulation's existing logical observation.
+
+**Gap:** G0 selected fog/known-prop delivery but did not choose a representation
+for the measured 60 KB own rows and 522 KB late corpse tail. C07 explicitly
+reslices that arm while preserving the original byte target.
+
+**Reach:** A shrinking group can still incur within-group replacement bytes.
+Full-size active measurements decide whether this representation is sufficient;
+this checkpoint makes no budget-success claim.
+
+**Verdict:** Sound: one existing logical owner, exact ordering, no new entity
+identity scheme. **Confidence:** Medium, because the active byte gate remains
+open.
+
+### Sound — high confidence: choose snapshots by encoded size and reserve before commit
+
+**When:** C07 reconstruction pass.
+
+**Choice:** If changes are dense, send the group's full words when that costs no
+more than replacement ranges. For sparse changes, scan once to count the encoded
+bytes and again to emit them, without retaining a list of ranges. Admit and
+reserve the complete wire record and next non-map baseline before replacing the
+published output or advancing its cursor. A rejected record therefore leaves the
+last successful side/generation available for recovery. The baseline uses one
+flat allocation, so a large group on one side followed by another large group on
+the other cannot accumulate separate group-sized allocations.
+
+**Gap:** The representation needed a snapshot threshold and bounded scratch
+lifecycle; a per-range list or per-group high-water cache would make peak storage
+larger than the current logical observation.
+
+**Reach:** Producer staging, current wire, pending wire and the non-map baseline
+each have an exact bounded reservation. Those four capacities and the existing
+fog cursor must still be included in snapshot/peak admission measurements.
+
+**Verdict:** Sound: admission precedes transport commit and scratch space does
+not grow with the number of changed ranges. **Confidence:** High.
+
+### Sound — high confidence: share the existing side/epoch revision boundary
+
+**When:** C07 reconstruction pass.
+
+**Choice:** A side change or resync starts every group with a complete snapshot.
+The existing fog generation also names the group baseline. If a page misses a
+publication, the next generation fails that baseline check before applying any
+group, fog or ground state. A valid resync then reconstructs the side's full
+known state. The alternative would introduce an independent group revision that
+could disagree with fog or ground and permit a mixed observation.
+
+**Gap:** C07 needed recovery rules for the added representation; the existing
+publication cursor already supplied exactly the ordered stream boundary.
+
+**Reach:** Producer/decoder cut over together. The published layout describes
+delivery metadata separately from the canonical logical row schema, and the
+complete serializer is named `pack_logical` so native oracle/report consumers
+cannot mistake it for the transport record.
+
+**Verdict:** Sound: one atomic publication baseline, exact float32 words, and no
+codec dependency or new simulation state. **Confidence:** High.
+
 ## Buildings lane
 
 ### China's family ships first
@@ -2795,6 +2914,117 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 
 **Verdict:** sound. The final view gains one uniform comparison per terrain fragment; the machine's run-to-run noise is hundreds of times that. **Confidence:** high.
 
+## C06 per-tick geometry bounds
+
+### Cache derived bounds only while their authoritative positions are stable
+
+**Choice:** Sensing computes each unit's footprint radius once per immutable
+call. Movement gathers living infantry in unit order and keeps their derived
+radii beside the existing crowd, refreshing them after squad motion or a shove.
+
+**Gap:** The spec delegates measured cost reductions but does not choose a
+cache owner or lifetime.
+
+**Verdict:** sound. Recomputing a squad's radius for every vehicle or observer
+repeats a scan of its soldiers. These short-lived bounds have explicit refresh
+owners and preserve collision and sensing results. Fallen squads remain in the
+battle and observations; they add no traffic work per vehicle. **Confidence:** high.
+
+## C06 engagement-search bounds
+
+### Reject only an engagement search proven empty by physical reach
+
+**Choice:** Cover planning skips a fight search only when every target lies
+beyond weapon range plus the squad-area radius and maximum lean distance.
+Boundary cases retain the ordinary search with a micrometre of rounding slack.
+
+**Gap:** The cost slice delegates reductions without choosing how to bound
+failed cover searches.
+
+**Verdict:** sound. Every candidate starts inside the area, and every lean is
+bounded by the existing physical rule; three-dimensional distance is at least
+its horizontal distance. This saves searching thousands of positions without
+changing chosen cover or planning timing. **Confidence:** high.
+
+### Sound — medium confidence: fixed-row reuse follows exact content, not entity identity
+
+**When:** C07 sparse-row pass.
+
+**Choice:** Index the exact float32 words of each retained fixed row, then
+assemble the new group in its simulation-supplied order using source spans and
+literal spans. For example, learning a new corpse between two hundred known
+corpses sends that new row and instructions to copy the known neighbors. If a
+known corpse changes place, its changed row is sent literally or through the
+cheaper existing word-replacement arm. Identical duplicate rows may reuse the
+same source because their complete words are equal. The alternative would key
+rows by soldier/body ids, adding deletion and identity rules that different
+kinds of observations do not all share.
+
+**Gap:** Measurements showed group-local word replacements still resend sorted
+retained tails. The spec did not prescribe how to find unchanged rows after
+insertion or reordering.
+
+**Reach:** This arm applies to every fixed-row group, preserves spatial corpse
+ordering and needs no new simulation identities. Groups with variable sections
+keep their existing word encoding. The temporary index adds bounded storage and
+sorting work, which must pass the matched active cost gate.
+
+**Verdict:** Sound: exact content comparison avoids hash collisions and hidden
+identity assumptions, while choosing the minimum payload preserves sparse-field
+savings. **Confidence:** Medium, because actual active instruction/byte gates
+remain open.
+
+### Sound — high confidence: copies reconstruct the whole group before commit
+
+**When:** C07 sparse-row pass.
+
+**Choice:** A source-copy operation reads an aligned span from the immutable
+previous group; a literal operation supplies new row words. Operations fill the
+new group sequentially, so reordering and removal require no mutable edit list
+and a missing word is rejected. If a malformed generation copies beyond the
+previous group, the decoder keeps its old baseline and accepts the corrected
+same generation. New sides/epochs still require snapshots. The alternative,
+editing the previous array in place, could both overwrite later copy sources and
+change an observation the page already retained.
+
+**Gap:** The new representation required source validation and failure rules;
+existing generation/epoch checks remain the shared publication boundary.
+
+**Reach:** The published metadata calls the selector an encoding and names its
+three modes explicitly. Source indices, counts and copied words remain exact
+inside the existing record allowance. Publisher index allocation and wire
+admission are fallible before output/cursor commit.
+
+**Verdict:** Sound: complete, immutable reconstruction retains atomic side
+knowledge and the existing recovery contract. **Confidence:** High.
+## C06 spatial fog invalidation
+
+### Mutation stamps belong to the footprint index
+
+**Choice:** When a tree falls far from an observer, the observer's cached solid
+heights remain usable. The footprint index already divides the world into
+32 m buckets to find nearby bodies. World alone enables a private last-change
+number in each bucket. Insertion and deletion stamp affected buckets; movement
+stamps both the old and new footprints. A removed body's bucket retains its
+number even when empty. After any world change, a fog tile compares the largest
+number among the same buckets its body query uses. If unchanged, its raster
+(the solid height at each fog-cell centre) is still exact. The global revision
+remains the first cheap check while no body changes at all.
+
+**Gap:** The slice delegates dirty bookkeeping but does not specify storage or
+a retained-history policy.
+
+**Reach:** The additional arrays depend on physical extent, not battle history:
+one number per world bucket and a second number per existing fog tile. They
+add 6.25 MB at 20 × 20 km with 8 m fog cells; side-known indexes allocate no
+stamp arrays. More precise footprint-shaped invalidation could save some
+boundary rebuilds but would add bookkeeping beyond the index's bucket bounds.
+This uses the existing
+conservative body query without new sampling or changed sight rules.
+
+**Verdict:** sound. Unrelated changes no longer force active eyes to sort and
+raster nearby bodies again, and no changed-prefix scan can miss a later update.
+**Confidence:** high; fresh-sweep and cost regressions remain the acceptance seams.
 ## C13/C32 kits and the template art library
 
 ### A kit is a static bundle whose states are its modules
@@ -2996,6 +3226,97 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 **Reach:** The parcel pass turns the first entrance toward the street, so slabs front the street with their long side and their shops.
 
 **Verdict:** sound. **Confidence:** high.
+## Compact saved maps
+
+The contract these decisions belong to is in the [C58 outcome](slices/C58-offline-encounter.md#outcome).
+
+### A map's content hash is the hash of its resolved definition
+
+**Choice:** `map_hash` stays what it was: the hash of the resolved `MapDefinition`, buildings materialized. The resolver materializes first and hashes after.
+
+**Gap:** The pass said to store a building as its template and frame, and did not say what the identity then covers.
+
+**Verdict:** sound. No authored map's `SOURCES.json` hash changed, which is itself the proof that the conversion moved nothing, and a generated map's saved identity is the generator's own. The hash now also covers the library's geometry: a template edit changes the hash of every map that uses it, which the old form caught as a template mismatch instead. **Confidence:** high.
+
+### One map type, generic over what a building is
+
+**Choice:** `MapDefinition<B = BuildingDefinition>`, with `SavedMap = MapDefinition<SavedBuilding>`. Every existing use of `MapDefinition` is the resolved map, unchanged.
+
+**Gap:** The saved and resolved maps differ only in their buildings.
+
+**Verdict:** sound. A second struct would repeat twelve fields and their number readers, and a new map field would have to be added twice. **Confidence:** high.
+
+### A saved building keeps `kind`, `owner` and `parts`; category and family are the template's
+
+**Choice:** `{ owner, kind, template_id, frame, parts }`. `category` and `regional_family` are no longer stored.
+
+**Gap:** "Plus whatever is genuinely per-building, such as its ids."
+
+**Verdict:** sound. The resolver already refused a building whose category or family differed from its template's, so they were never the building's own. `parts` could be derived when ids are dense and in template order, and was kept explicit: the village's props and buildings share one id space that the map authors. **Confidence:** high.
+
+### `SOURCES.json` names the library by file name
+
+**Choice:** `catalogue.library` is a file name in `fixtures/` (lowercase, `.json`, never a path). Every folder states it; there is no default. The adapters read the sources first and fetch that file.
+
+**Gap:** The pass asked that the library be something the sources name and the adapters honour.
+
+**Verdict:** sound. A name is only an address: the map's catalogue hash still decides whether the library is the right one, so a wrong name cannot admit a wrong library. JavaScript reads the name itself (one regular expression beside the resolver's check) instead of a second Wasm call. **Confidence:** high.
+
+### The resolver reads a library as a catalogue or as a descriptor list
+
+**Choice:** `building-templates.json` is a canonical catalogue (`{ hash, templates }`); `prototype-building-templates.json` is the descriptor list the generator reads. The resolver takes either.
+
+**Gap:** The two library files have different shapes, and other work owns both files.
+
+**Verdict:** provisional. Converting either file was out of this pass's reach. One shape for both is the cleaner end, and it is the template library's decision. **Confidence:** medium.
+
+### The catalogue admits what the generator may make
+
+**Choice:** `MapAdmission::CATALOGUE` is 60,000 parts and 600,000 bay positions, the limits of `fixtures/generated-battle.json`, with a test holding them equal.
+
+**Gap:** "Set the admission from what a full generated map needs."
+
+**Verdict:** sound. One number for "a map the game can make" and "a map the game can save". The constant is in Rust because both adapters must agree without reading a file; the test is what ties it to the fixture. **Confidence:** high.
+
+### Preparation takes the resolver's text
+
+**Choice:** `ResolvedMap` in JavaScript carries `json`, the definition as the resolver printed it, and the catalogue arm of preparation splices that into the scenario.
+
+**Gap:** A saved map's definition used to be printed again by JavaScript, which loses the sign of a zero. The old test for it (print the definition and resolve it again) has no meaning once the saved form differs from the resolved one.
+
+**Verdict:** sound. The generated arm already worked this way. The labs still print the parsed definition; a test now holds every authored map to surviving that. Seed 1's resolved map happens to hold no negative zero, so nothing moved either way. **Confidence:** high.
+
+### The saved map is `market-town`, and the menu lists the catalogue
+
+**Choice:** The folder is `market-town`, labelled "Market Town". The menu shows every released playable map that has the game's default encounter saved on it, as `Play <label>`, under `Play village`.
+
+**Gap:** The pass asked for a menu entry beside the village and left the name and the rule.
+
+**Verdict:** provisional. The listing rule means the next saved map needs no code. The village stays its own entry because its battle is a factory, not a saved encounter. The name is a placeholder a person can change in `meta.json`; the id is in the address. **Confidence:** medium.
+
+### `sites.json` stays in the folder, and the report saves the encounter
+
+**Choice:** The CLI's `sites.json` is committed beside the map, and `encounter_report --save` writes the planned encounter's setup as `encounters/<recipe>.json`.
+
+**Gap:** The pass asked that the saved folder be reproducible, and the planner is the simulation's, not the map generator's.
+
+**Verdict:** provisional. 22 KB buys planning the encounter again without generating the map, and is the input a planned catalogue map would need. Nothing checks it against the map. **Confidence:** medium.
+
+### `mapgen request` prints the game's pinned request
+
+**Choice:** A CLI command makes the request for a type, size and seed, pinned to the generator, the presets' revision and the catalogue's hash, under the game's limits.
+
+**Gap:** Nothing outside the browser could make the request the menu makes.
+
+**Verdict:** sound. Without it the saved map's request was hand-written JSON with a hash in it. **Confidence:** high.
+
+### The camera lab was not moved
+
+**Choice:** `fixtures/camera-lab.json` is still compiled at run time.
+
+**Gap:** "If it falls out cheaply."
+
+**Verdict:** sound for now. Its plan is already template ids and frames, so the move is mechanical, but a saved map pins the prototype library's hash, and the lab would stop loading whenever a prototype template changed. **Confidence:** medium.
 
 ### A far building is one row
 
@@ -3131,3 +3452,54 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 **Gap:** The slice names no corpse scene.
 
 **Verdict:** Provisional as a method: the script lives in the gitignored scratch folder. If corpse drawing changes again, a station for the fallen belongs in a scene. **Confidence:** Medium.
+
+## Surroundings for the existing maps: cut
+
+**Choice:** C56 (reservations) and C34, C35, C36 (surroundings for the village, the labs and the benchmark fields) are removed from the spec, with the lane that was written for them. The old maps stay the small arenas they are.
+
+**Why:** the owner's call (2026-10-01): the village and the lab maps are developer test arenas, nobody plays them, and the game is not finished. The need those slices answered, a full-size map to play, is met by generated battles from the menu and saved generated maps. Where another slice still says C56 or C34–C36, read "cut".
+
+**Verdict:** sound. **Confidence:** high.
+
+## C54 pipeline tooling
+
+### Measure a short advance without turning it into an arrival deadline
+
+**When:** scale-lane pipeline tool checkpoint, 2026-10-01.
+
+**Choice:** Each of the nine map type/size cells runs fixed map seeds 1–10;
+the encounter and battle seeds stay fixed at the game's encounter seed and 1.
+The attacker sends its planned column toward the objective by an ordinary group
+move, while the defender keeps its existing scripts and policy. The default
+sample lasts 30 simulated seconds. A rifle squad starting kilometres away may
+move normally for all 30 s without arriving. Its row retains the remaining
+distance and every movement state; coming within 10 m is reported as proximity,
+not completion. The alternative was to call every unfinished short route a
+failure, which would confuse normal transit with blocked navigation.
+
+**Gap:** C54 delegates fixed seeds and reporting and gives no short-run duration
+or arrival deadline. **Reach:** The tooling reveals refusals, route-blocked and
+pending work across the matrix; a later playability verdict still needs a longer
+battle and its own arrival/engagement contract. **Verdict:** sound — the sample
+reports observed progress without inventing a completion requirement.
+**Confidence:** medium.
+
+### Keep the simulation dependency inside verification tooling
+
+**When:** scale-lane pipeline tool checkpoint, 2026-10-01.
+
+**Choice:** The runner is a `mapgen` example using its existing simulation test
+ dependency. It calls the same generator and compiler that produce a player's
+map, then the simulation's existing assault planner and Battle constructor.
+When a seed is refused, its exact diagnostics stay in its row and the next
+requested seed runs; nothing stands in for it. Costs and input hashes are saved
+in that row before proceeding. The alternative was to add generation to the sim
+runtime or parse several reports' prose, either adding a dependency cycle or a
+second reporting oracle that could silently drift.
+
+**Gap:** The spec names one runner but no crate or output format.
+**Reach:** One streaming JSONL report can be inspected while a long matrix runs;
+command refusals and unwinding panics remain explicit. This does not recover a
+hung process or imply full C54/art acceptance. **Verdict:** sound — production
+ownership stays unchanged and no new dependency is introduced.
+**Confidence:** high.

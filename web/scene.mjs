@@ -174,10 +174,10 @@ export async function run(fixtures) {
           }
           return page;
         },
-        async openLab(page, url = ctx.url) {
+        async openLab(page, url = ctx.url, timeout = 30000) {
           await page.goto(url);
           await page.waitForFunction(() => window.__lab?.ready || window.__lab?.error, undefined, {
-            timeout: 30000,
+            timeout,
           });
           const error = await page.evaluate(() => window.__lab.error);
           if (error) throw new Error(`lab failed: ${error}`);

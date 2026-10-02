@@ -437,3 +437,22 @@ pub fn bless_parity(path: &str, value: &serde_json::Value) -> bool {
     std::fs::write(file, serde_json::to_string(value).unwrap()).unwrap();
     true
 }
+
+#[cfg(target_os = "macos")]
+#[path = "../../examples/common/instructions.rs"]
+pub mod counters;
+
+/// Process counters need an otherwise idle test binary, even in parallel suites.
+#[cfg(target_os = "macos")]
+pub fn isolated_cost_test(name: &str) -> bool {
+    if std::env::var("SIM_COST_TEST_CHILD").as_deref() == Ok(name) {
+        return true;
+    }
+    let status = std::process::Command::new(std::env::current_exe().unwrap())
+        .args(["--exact", name, "--test-threads=1"])
+        .env("SIM_COST_TEST_CHILD", name)
+        .status()
+        .unwrap();
+    assert!(status.success(), "isolated {name} failed");
+    false
+}

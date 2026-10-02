@@ -5,8 +5,9 @@ into a `MapPlan`. The **parcel pass** fills that plan's districts with streets, 
 and buildings chosen from a physical template catalogue. The **compiler** turns any
 plan, generated or authored, into the contract's final map. The battle and renderer
 consume that compiled geometry; they never reinterpret a plan or look up a template
-catalogue. The crate imports no simulation or appearance library; its tests load one
-generated map into the simulation's world, to hold a bridge to what a battle needs.
+catalogue. The production library imports no simulation or appearance library.
+Verification tools and tests load compiled maps into the simulation to check what
+a battle needs.
 
 ## Layout generation (`layout`)
 
@@ -73,7 +74,8 @@ extents, which are a user decision (M04 in the [map brief](../../specs/city-maps
   into `buildings`. The encounter planner (`sim::encounter`) reads both as
   `contract::encounter::EncounterSites`, which `MapPlan::sites` makes: generation's
   outcome carries the sites beside the map, and `generate-map` saves them as
-  `sites.json`.
+  `sites.json`, beside the map in its saved form
+  ([`fixtures/README.md`](../../fixtures/README.md#saved-maps)).
 - **A river is a hard feature everything else is placed beside.** A seed-chosen
   share of each type's maps has one river (`rivers`, on a stream of its own, so a
   seed without one is the map it was before rivers existed). It runs from the north
@@ -240,3 +242,13 @@ form, whose hash a request pins and the map loader resolves against. The
 `layout_sweep` example runs every type and size over a range of seeds and reports
 the layout, what was built on it and what the compiled map costs; it is how a preset
 change is judged.
+
+The [`battle_sweep` example](examples/battle_sweep.rs) follows generation through
+assault placement and a short battle, using the same documents and admission as
+the game. Every requested seed retains its outcome, including refusals; no seed
+stands in for another. Per-unit progress follows the acknowledged destination,
+which can differ from the group's clicked point. Goal proximity and time in each
+movement state are separate observations: a short run without arrival does not
+prove a long route is stuck. Costs exclude progress/report formatting; native tick
+instruction brackets include counter and timing overhead. The usage lives with
+the example.

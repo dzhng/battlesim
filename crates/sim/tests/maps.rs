@@ -58,6 +58,20 @@ fn every_saved_encounter_makes_a_battle_on_its_map() {
     assert!(encounters > 0, "the catalogue has saved encounters");
 }
 
+/// A map the game's generator may make can be saved: the catalogue's
+/// allowance is the generator's.
+#[test]
+fn the_catalogue_admits_any_map_the_game_generates() {
+    let game: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(sim::fixtures::dir().join("generated-battle.json")).unwrap(),
+    )
+    .unwrap();
+    let admission = serde_json::to_value(contract::maps::MapAdmission::CATALOGUE).unwrap();
+    for limit in ["max_authored_parts", "max_bay_positions"] {
+        assert_eq!(admission[limit], game["limits"][limit], "{limit}");
+    }
+}
+
 /// A scratch catalogue holding a copy of the shipped `geometry` folder.
 struct Scratch(PathBuf);
 
@@ -78,7 +92,7 @@ impl Scratch {
     fn catalogue(&self) -> Catalogue {
         Catalogue {
             maps: self.0.join("maps"),
-            library: Catalogue::shipped().library,
+            libraries: Catalogue::shipped().libraries,
         }
     }
 
@@ -118,6 +132,27 @@ fn a_map_that_does_not_resolve_is_refused_naming_the_document_at_fault() {
     assert_eq!(error.code, ResolveCode::IdentityMismatch);
     assert_eq!(error.location, "geometry/SOURCES.json.identity.map_hash");
     std::fs::write(scratch.file("map.json"), map).unwrap();
+
+    // A map names its physical library by file name: a path is refused
+    // before it is read, and a library the catalogue lacks is a missing
+    // document.
+    let sources = std::fs::read_to_string(scratch.file("SOURCES.json")).unwrap();
+    for (library, code) in [
+        (
+            "../fixtures/building-templates.json",
+            ResolveCode::InvalidSources,
+        ),
+        ("absent-templates.json", ResolveCode::MissingDocument),
+    ] {
+        std::fs::write(
+            scratch.file("SOURCES.json"),
+            sources.replacen("building-templates.json", library, 1),
+        )
+        .unwrap();
+        let error = catalogue.load("geometry").unwrap_err();
+        assert_eq!(error.code, code, "{library}");
+        assert_eq!(error.location, "geometry/SOURCES.json.catalogue.library");
+    }
 
     std::fs::remove_file(scratch.file("SOURCES.json")).unwrap();
     let error = catalogue.load("geometry").unwrap_err();

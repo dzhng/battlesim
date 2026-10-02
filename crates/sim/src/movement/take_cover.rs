@@ -141,24 +141,29 @@ struct Fight<'a> {
 }
 
 impl<'a> Fight<'a> {
-    /// `None` against a threat that is no enemy: nobody fights from anywhere.
+    /// No fight search when no enemy can be reached from the holding area,
+    /// even at its edge with the longest permitted lean.
     fn new(
         ctx: &'a MovementContext<'a>,
         unit: &Unit,
         field: &'a Field,
         threat: &Threat,
+        area: Area,
     ) -> Option<Fight<'a>> {
-        threat.hostile.then(|| Fight {
-            ctx,
-            blockers: &field.blockers,
-            threat: threat.at,
-            aims: threat
-                .aims
-                .iter()
-                .map(|&a| a.with_z(ground(ctx, a) + ctx.rules.physics.infantry_aim_m))
-                .collect(),
-            range: crate::weapons::squad_range(ctx.arsenal, unit.kind),
-        })
+        let range = crate::weapons::squad_range(ctx.arsenal, unit.kind);
+        (threat.hostile && area.could_engage(&threat.aims, range, ctx.rules.cover.lean_max_m)).then(
+            || Fight {
+                ctx,
+                blockers: &field.blockers,
+                threat: threat.at,
+                aims: threat
+                    .aims
+                    .iter()
+                    .map(|&a| a.with_z(ground(ctx, a) + ctx.rules.physics.infantry_aim_m))
+                    .collect(),
+                range,
+            },
+        )
     }
 
     /// Whether a soldier's round from `p` reaches an enemy soldier within
@@ -293,6 +298,16 @@ impl Area {
         }
     }
 
+    /// A conservative necessary condition, including a lean beyond the area.
+    fn could_engage(&self, aims: &[V2], range: f64, lean: f64) -> bool {
+        let reach = range + self.radius + lean;
+        // A micrometre of slack keeps floating-point boundary cases in the
+        // ordinary exact search; this only rejects a proven empty result.
+        !aims
+            .iter()
+            .all(|&a| (a - self.centre).length() > reach + 1e-6)
+    }
+
     fn holds(&self, p: V2) -> bool {
         (p - self.centre).length() <= self.radius
     }
@@ -406,7 +421,7 @@ pub(super) fn at_order(
         end,
         area.radius + ctx.rules.cover.search_slack_m,
     );
-    let fight = Fight::new(ctx, unit, field, &threat);
+    let fight = Fight::new(ctx, unit, field, &threat, area);
     // A squad sent into a building gathers at its door: no cover to seek.
     let entering = matches!(
         unit.orders.front(),
@@ -566,7 +581,7 @@ fn resolve(
         .collect();
     let reach = area.radius + ctx.rules.cover.search_slack_m;
     let (known, stands) = known(ctx, unit, side, field, area.centre, reach);
-    let fight = Fight::new(ctx, unit, field, threat);
+    let fight = Fight::new(ctx, unit, field, threat, area);
     let offered = offers(ctx, &known, &stands, threat, fight.as_ref(), area);
     // Where he stands, if inside the area, is a place he may keep.
     let stay: Vec<Option<Place>> = from
@@ -698,5 +713,30 @@ fn step_out(
         if let Some((p, lean)) = cover::step_out(place, fight.threat, known, c, r, far, &fits) {
             places[k] = (p, known.tier(p, fight.threat, c, r), lean, true);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn engagement_bound_keeps_edge_leans_and_rounding_slack() {
+        let area = Area {
+            centre: v2(100.0, 100.0),
+            radius: 14.0,
+        };
+        let (range, lean) = (90.0, 3.0);
+        for distance in [104.0, 105.5, 107.0, 107.0 + 0.5e-6] {
+            assert!(
+                area.could_engage(&[v2(100.0 + distance, 100.0)], range, lean),
+                "ordinary search must retain {distance} m, including edge leans"
+            );
+        }
+        assert!(!area.could_engage(&[v2(207.1, 100.0)], range, lean));
+        assert!(
+            area.could_engage(&[v2(208.0, 100.0), v2(205.5, 100.0)], range, lean),
+            "one reachable aim retains the search"
+        );
     }
 }

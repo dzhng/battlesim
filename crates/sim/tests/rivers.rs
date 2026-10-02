@@ -398,3 +398,29 @@ fn a_world_refuses_a_river_its_terrain_cannot_carry() {
         ),
     );
 }
+
+/// Fine-route walkability asks only the same physical boolean as the full
+/// surface query: bridges, banks, steep ground and the closed map boundary.
+#[test]
+fn walkability_and_surface_queries_agree_at_crossings_and_bounds() {
+    let steep = crate::common::flat(
+        [400.0, 300.0],
+        r#","relief":[{"kind":"mesa","rect":[120,40,40,120],"height_m":30,"side_degrees":50}]"#,
+    );
+    for w in [lab(), ramp_world(), steep] {
+        for y in [
+            -0.001, 0.0, 40.0, 50.0, 145.0, 150.0, 155.0, 160.0, 240.0, 300.0, 300.001, 480.0,
+        ] {
+            for x in [
+                -0.001, 0.0, 60.0, 110.0, 120.0, 130.0, 160.0, 181.999, 182.0, 188.0, 200.0, 212.0,
+                218.0, 218.001, 400.0, 400.001, 640.0,
+            ] {
+                assert_eq!(
+                    w.traversable_at(x, y),
+                    w.surface_at(x, y).is_some_and(|s| s.traversable),
+                    "walkability at ({x},{y})"
+                );
+            }
+        }
+    }
+}

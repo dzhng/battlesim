@@ -290,6 +290,7 @@ impl WorldGeometry {
         }
         // Authored setup is revision 0; only later changes count.
         world.revision = 0;
+        world.index.track_changes();
         world.touched.clear();
         world.authored_props =
             u32::try_from(world.props.len()).expect("authored world exceeds u32 IDs");
@@ -830,6 +831,11 @@ impl WorldGeometry {
     /// Increments whenever a prop is added, moved or removed after authored setup.
     pub fn obstacle_revision(&self) -> u64 {
         self.revision
+    }
+
+    /// Newest prop mutation in the footprint buckets queried by `props_near`.
+    pub(crate) fn obstacle_revision_near(&self, center: V2, radius: f64) -> u64 {
+        self.index.revision_near(center, radius)
     }
 
     pub fn forests(&self) -> &[Forest] {

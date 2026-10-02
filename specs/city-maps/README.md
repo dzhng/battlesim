@@ -27,11 +27,11 @@ Generate seeded battle maps with urban areas and usable surrounding plains on **
 
 **The generator as it stands** (`layout-4`, presets `layout-presets-6`): a road runs from the bottom edge to the top through the main junction on every map, and a side-to-side road on about half ([M22](procedural-maps.md#closed-decisions)); a settlement is blocks cut along its roads and grown outward unevenly, one use to a block ([M23](procedural-maps.md#closed-decisions)). 900 of 900 swept maps generate. The seam and measurements are in the [C52](slices/C52-procedural-generator.md#outcome) and [C53](slices/C53-parcels-and-buildings.md#outcome) outcomes. Open on the look: a city still grows as a rough disc round one crossroads, a large town on a single road is a slab along it, every map puts its main settlement in the middle, and open ground has no fields.
 
-**Current pickup:** **one prepared world, then a battle the player starts from the menu.** Every saved map is now a catalogue folder read by id through the one resolver ([C09](slices/C09-fetched-maps.md#outcome), [C60](slices/C60-map-catalogue-data.md#outcome)), and the simulation's planner places a recipe's forces, objective and garrisons legally on any generated map ([C59](slices/C59-encounter-planner.md#outcome)); `/lab/generated` plays what it plans. Next, in order: public preparation with one world (C33: the page, the planner and the battle each build their own today), a saved fixed-seed Small encounter in the catalogue (C58, which also brings the camera and generated labs' maps under the resolver), then runtime generation from the menu (C55). In parallel: the renderer at full extent (C22 placement chunks, C23 far tier, C20 fog at scale; maps now reach 16,000 buildings).
+**Current pickup (map lane):** a player starts a battle on a generated map from the main menu (type and size; the seed is drawn silently and rides in the address) or on a saved one (`market-town`, listed beside the village), with replay ([C55](slices/C55-runtime-generation.md#outcome), [C58](slices/C58-offline-encounter.md#outcome)). Saved maps store a building as its template and frame and are read by id through one resolver. Roads end square, sharp joints are one road round a bend, and slanted branches meet square. In flight: a road changes width only at a crossing. Next in this lane: street furniture placed in generated towns (C46), the town look's second pass (a city that is not a disc round one crossroads, main settlements off the middle), then integration of the other lanes and closeout.
 
-Open from the planner: the attacker's squads start on foot 3 to 5 km from the objective (there is no transport); a jeep's drive is the only timed route, because infantry route times through towns come back infinite; no battle has yet shown a fight across an 1,800 m approach.
+**Lanes run in parallel**, each with its own file and Status: the map lane (this prompt: roads, the town look, integration and closeout), the [scale lane](scale-lane.md) (simulation cost against the 33 ms tick), the [startup lane](startup-lane.md) (one prepared world), the [buildings lane](buildings-lane.md) and the [ground lane](ground-lane.md). The [sim rules lane](sim-lane.md) is finished. One GPU is shared: every scene and render goes through the lock (the root README's Checks section).
 
-The [sim rules lane](sim-lane.md) is finished and merged: seats and facade eyes, the building lifecycle, movement gaps, sight cost, street and forest bodies, grass heights and tree lines. Its browser stress checks ran at 24 Hz early and 12 Hz late, under the 30 Hz budget, so whole-battle cost on a full generated map is still open.
+Open from the planner: the attacker's squads start on foot 3 to 5 km from the objective (there is no transport); infantry route times through towns come back infinite, so only a jeep's drive is timed; no battle has yet shown a fight across an 1,800 m approach. Open elsewhere: the camera lab still compiles its own map; the village opening is silent since the range tuning (the sides start beyond gun range).
 
 You are implementing `city-maps`. Use [implement-spec](../../.agents/skills/implement-spec/SKILL.md), use the current extents in [M04](procedural-maps.md#closed-decisions) and [startup/transit policy](scale-direction.md), and read the [S0 verdict](spikes/S0.md) before allocating full-size arms. Earlier extent measurements remain evidence at their original sizes, not the current preset definitions.
 
@@ -54,19 +54,20 @@ A slice marked "physical" has its systems half done; its look is in the visual p
 - [x] Map and sim: C00 physical templates · C01 buildings aggregate · C02 fog cell · C03 surfaces · C72 one forest rule · C64 road kinds (physical) · C65 round centerlines (physical) · C63 surface index · [C69 rivers](slices/C69-rivers-contract.md) (physical)
 - [x] Generation: C04 compiler (buildings, roads, forests, land regions) · [C52 layout generator](slices/C52-procedural-generator.md) with rivers, bridges and the M22/M23 town model · [C53 parcels and buildings](slices/C53-parcels-and-buildings.md) over a labelled prototype template catalogue
 - [x] Sim rules ([lane record](sim-lane.md)): C40 seats → C41 facade eyes · C42 low-rise lifecycle → C43 tall gutted · SA6 movement gaps · SA5 sight cost · C44 street bodies · C77 forest bodies · C80 effective-height validator · C86 tree lines (all physical)
-- [x] Delivery: [C09 map resolution](slices/C09-fetched-maps.md) · [C60 catalogue data](slices/C60-map-catalogue-data.md) · [C59 encounter planner](slices/C59-encounter-planner.md)
+- [x] Delivery: [C09 map resolution](slices/C09-fetched-maps.md) · [C60 catalogue data](slices/C60-map-catalogue-data.md) with compact saved maps · [C59 encounter planner](slices/C59-encounter-planner.md) · [C55 runtime generation](slices/C55-runtime-generation.md) from the menu · [C58 saved generated map](slices/C58-offline-encounter.md) (physical)
+- [x] Roads: square ends, sound joints, bends at sharp forks
 - [x] Lab: [C57 camera clearance](slices/C57-camera-clearance.md) · the generated-map lab route
 
 **In flight (one branch each)**
-- Square road ends and sound joints (`city-maps/road-ends`)
+- A road changes width only at a crossing (`city-maps/road-widths`)
 
 **Next, systems**
-- [ ] A battle the player starts on a generated map: [C33 public preparation](slices/C33-battle-preparation.md) → [C58 fixed-seed encounter](slices/C58-offline-encounter.md) → [C55 runtime generation](slices/C55-runtime-generation.md)
+- [ ] **[Startup lane](startup-lane.md)** (a separate session): C33 one prepared world · C20 fog at scale · the camera lab through the catalogue · a native-against-Wasm pair with combat. Its status lives in that file.
+- [ ] [C46 street placement](slices/C46-street-placement.md) in generated towns (map lane: it changes how a street fights)
 - [ ] Town look, second pass: cities that are not a disc round one crossroads, large towns on more than one road, main settlements off the middle, fields on open ground
 - [ ] Scale at full extent: browser startup and memory, rendered surroundings, C20 fog at scale (C06/C07 are in the scale lane; C22/C23 in the buildings lane)
-- [ ] C46 street placement in generated towns
 - [ ] **[Scale lane](scale-lane.md)** (a second session, in parallel): whole-battle cost on a full generated map against the 33 ms tick and 30 Hz budget · C05 measuring · C06 sim scale passes · C07 publication. Its status lives in that file.
-- [ ] Existing maps: [C56 reservations](slices/C56-fixture-surroundings.md) → C34 village · C35 labs · C36 benchmarks → [C54 integrated seed gate](slices/C54-generation-gate.md)
+- [ ] [C54 integrated seed gate](slices/C54-generation-gate.md), after the lanes
 - [ ] C05 measuring tools (`city_report` is its first piece) · C10 third-party sources · C13/C32 template source and library schema · C21 material transport
 - [ ] Completion: C50 durability balance → C51 playable generated encounter (requires C54 and C87)
 
@@ -97,7 +98,7 @@ Rules         C40 seats ─► C41 eyes; C42 collapse ─► C43 gutted
 Delivery      C09 resolver ─► C33 public preparation
               C53 + selected art/rules/scale + C57 ─► C58 full Small authored encounter
               C58 ─► C59 recipe planner ─► C55 runtime
-Cutover       C37 shared house appearance; C56 reservation proof ─► C34 village · C35 labs · C36 benchmarks
+Cutover       C37 shared house appearance (surroundings for the old test maps: cut)
 Closeout      C50 balance + complete appearance/ground/runtime/cutover ─► C54 ─► C51
 ```
 
@@ -134,7 +135,7 @@ These are how the finished code should read, as if designed today, not bolted on
 | Surface-kind speeds | One `surfaces.<kind>.speed_factor` table (C64) | A rural-only table beside C03's kinds |
 | Fog cell size | `MapDefinition.fog_cell_m` (C02) | `sensors.fog_cell_m` (deleted) |
 | Map generation and lowering | `MapPlan` and one compiler in `crates/mapgen` (C04, C52, C53) | Sim or renderer reading generator state; a second map format |
-| Urban/plain mix and approximate coverage fairness | C52 composition; C54 checks compiled maps; C56 preserves focused arenas while adding surroundings | A colour-only plain, decorative-only towns, mirrored shapes as the fairness oracle |
+| Urban/plain mix and approximate coverage fairness | C52 composition; C54 checks compiled maps | A colour-only plain, decorative-only towns, mirrored shapes as the fairness oracle |
 | Building appearance | C32 template appearance library over C13 offline exports, resolved identically for saved/runtime maps | Per-building GLBs, per-map Blender dependency, catalog rows per building, runtime Blender, a TS graph evaluator |
 | Safe camera pose | Existing camera intent owner plus one pure clearance resolver (C57), wired to public/side-known geometry | Separate rigs; hidden live destruction used as a camera obstacle |
 | Static instanced drawing (trees, hedgerows, forest dressing, kit modules, far-tier tiles, corpses) | **One static-chunk owner, promoted from the scenery layer's existing chunk path** (`frame/sceneryLayer.ts`, `scenery/lod.ts`) in C22; corpse chunks move onto it; C23 and C79 only build instances for it | A second chunk path or model layer; per-instance CPU work per frame |
@@ -207,7 +208,7 @@ The 30 FPS floor, fixed sizes and [startup requirement](scale-direction.md#start
 - **Walkable interiors, room clearing, rooftops, floors above 3, underground** (Q3).
 - **Gun elevation limits in the sim** (S-pitch; a later spec).
 - **Civilians, traffic, night, weather, seasons.**
-- **Replacing focused lab/benchmark arenas with full generated battles.** C56 adds real surroundings outside declared arenas; it preserves their test stimuli and names affected whole-map identities and baselines.
+- **Surroundings for the existing maps (C56, C34–C36): cut.** The village, the labs and the benchmark fields are developer test arenas and stay the small maps they are; the player's maps are generated ones and saved generated ones.
 - **Initial hills and ridges,** deferred to `../terrain-relief/`; local riverbeds/banks remain in scope.
 - **Player polygon editing and arbitrary building generation at runtime.** Developer overlays may inspect plans; runtime chooses the pre-baked library.
 - **Raising `TEXTURE_MAX_PX`,** or a kit texture inflating the shared texture array (L8).
@@ -221,6 +222,6 @@ The 30 FPS floor, fixed sizes and [startup requirement](scale-direction.md#start
 4. C27's burnt tier (gutted buildings drawn with the standing art).
 5. Ground: C68 ruts, then C86 tree lines, then C79 dressing density (then all of C79), then C77/C78 forest bodies, then C85 field texture, then C74's species count.
 
-**Never cut:** fixed selected dimensions, C52–C56 generation/runtime/all-map coverage, C57 clearance, compound buildings, garrison bands, fog correctness, body-backed street props, provenance, reusable instanced templates and the 30 FPS floor. Missing category coverage is required; detail within its silhouette/material budgets can be tuned.
+**Never cut:** fixed selected dimensions, C52–C55 generation and runtime, C57 clearance, compound buildings, garrison bands, fog correctness, body-backed street props, reusable instanced templates and the 30 FPS floor. Missing category coverage is required; detail within its silhouette/material budgets can be tuned.
 
 **Never cut, ground:** the map catalogue (C60, C61), the surface distance field (C63), round curves (C65, C71), the rivers cutover (C69), the one forest rule (C72), and the no-false-buff checks (crops ≤0.9 m, dressing only inside forests, sim-real tree lines).
