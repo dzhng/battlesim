@@ -41,28 +41,39 @@ Read [`AGENTS.md`](../../AGENTS.md): narrow checks only, no full gate. A perform
 
 ## Status
 
-**C05 is complete; C06/C07 admission remains open.** The current measurements
-freeze simulation source `13beacf9`, native/Wasm build `6b3eb26d…`, layout-7,
-physical catalogue `6b0a5e8b…` and rules `a59680c1…`. Native/Wasm identities
-match, and focused navigation, planning/replay, publication, authority/decoder
-and type checks pass. Historical measurements are controls, not current admission.
+**C05 is complete; C06/C07 admission remains open.** Integrated fixes are on main
+`17dd1704`. Fresh native/Wasm build `c1fb0f09…` matches, with physical catalogue
+`6b0a5e8b…` and current rules `b7e67721…`. Focused navigation, planning/replay,
+publication, authority/decoder and type checks pass. The complete historical
+measurements freeze `13beacf9` / build `6b3eb26d…` / rules `a59680c1…`; they are
+controls, not current admission.
 
 Current pickup, in order:
 
-1. Rebuild the combined native/Wasm pair, then run both complete 9,000-tick
-   contact arms. The infantry refinement fix uses the existing failure/revision
+1. Resolve current-main move-certification cost and workload validity before a
+   long admission run. The unmodified Metro Large seed-4 probe spends
+   **113,197.618 million instructions in Orders at its worst scripted tick**.
+   At tick 150, only eight of blue's 74 first-wave fighters acquire goals and
+   none of red's do. This is observed execution, not hidden command verdicts;
+   distance alone does not explain the refusals. Keep destination truthfulness,
+   physical rules, the validation allowance and the stress recipe intact while
+   selecting a fix or explicitly separating that incoming movement work.
+2. Run both complete 9,000-tick contact arms after that contract is resolved.
+   The infantry refinement fix uses the existing failure/revision
    replan path when a newly known body closes a shared edge; its public regression
    proves a physically safe route, no pending job and exact serialized replay.
-2. Admit the lossless ground-tail correction on those fresh battles. The original
+   Admit the lossless ground-tail correction on those fresh battles. The original
    early arm reached **33,496 B**, above the unchanged **19,800 B** maximum.
    Exact captured-record reconstruction now reaches **18,652 B** early; late is
    only a partial corpus because the old navigation panic interrupted it.
    Producer/decoder checks pass; no knowledge delay, quantization or allowance
    increase occurs. Snapshots, full active heap and real browser overlap remain
    measurement gates.
-3. Extend the three short-sweep cases containing ten still-planning infantry
-   units. Distinguish bounded search/smoothing progress from a repeated search
-   without progress before choosing any additional optimization.
+3. The three fresh short-sweep extensions now refuse all requested destinations.
+   Their ten infantry remain idle through 120 s with null goals and no pending
+   work. This does **not** resolve the historical planning delays: current
+   certification prevents the routes from entering planning. Revisit that proof
+   after movement admission is resolved; do not count refused orders as progress.
 4. Run the full generated-map browser `endurance` milestone once native contracts
    pass. Admit at least 25 Hz early and late; retain actual distributions. The
    current `benchmark` loads the village: its short run is a regression control,
@@ -70,7 +81,7 @@ Current pickup, in order:
    only. No browser gate precedes each commit or push; parent full gates belong
    to parent closeout.
 
-The current matrix retains all 90 type × size × seed requests: 89 battles play
+The historical matrix retains all 90 type × size × seed requests: 89 battles play
 80,100 ticks and one encounter is refused, with no generation refusal or panic.
 Mixed Medium seed 9 still fails the planner's approach-balance rule; it remains
 a parent-lane finding, with no replacement seed. Ten infantry units remain
