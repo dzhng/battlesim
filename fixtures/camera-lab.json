@@ -9,7 +9,7 @@
     "buildings": [
       {
         "id": "wall",
-        "template_id": "prototype-slab-6f",
+        "template_id": "china-apartment-slab-59x14-6f",
         "kind": "building",
         "owner": 0,
         "parts": [{ "part": "body", "prop": 0 }],

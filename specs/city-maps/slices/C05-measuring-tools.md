@@ -30,3 +30,14 @@ Existing focused benchmark contracts; C56 names its subsequent geometry/cost bas
 
 ## Feedback that would change this slice
 An unmeasured failure expands the narrow report that owns it rather than triggering every battle/scene.
+
+## Scale-lane native outcome
+
+The native cost owner now brackets the production tick, including its two sides'
+fog and observation work. Reports count instructions outside authoritative state
+and separate observation construction from packing; the packed-byte breakdown
+reads the serializer's published layout. Initial subscription, unchanged delivery,
+side switch and resubscription use the production publisher. The [scale lane](../scale-lane.md#status)
+owns matched measurements and its remaining browser proof. Generated contact is
+a named central arena on a complete physical map; transit is a separate crossing
+load. This does not close C05's parent renderer/startup/tour requirements.

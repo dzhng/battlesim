@@ -84,6 +84,13 @@ When a new need shows two passes owning one concept, refactor to the shared prim
    - run an **unprimed `screenshot-critique` last**.
 6. For a change with frame cost: run a paired cost run, then the benchmark row ([performance](references/performance.md)).
 
+## Projectile glow at far zoom
+
+Check HDR attenuation as well as minimum pixel width: a widened halo can still
+lose its brightness below the bloom threshold as its world width shrinks.
+Capture both the projectile and its ground light at strategic zoom; a close
+shot alone cannot prove either is readable.
+
 ## TypeGPU (0.12.5) gotchas
 
 - **`root.destroy()` does not free what the root created.** Every allocation goes through `GpuRegistry`:

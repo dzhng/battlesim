@@ -937,3 +937,56 @@ fn a_holding_squad_rearranges_as_the_same_enemy_walks_into_and_out_of_its_reach(
     }
     assert!(tucked(&b) >= 5, "out of reach again, blue tucks back in");
 }
+
+/// An enemy beyond the whole holding area's weapon and lean reach cannot
+/// offer engagement. It must not trigger exhaustive candidate-ring searches.
+#[cfg(target_os = "macos")]
+#[test]
+fn an_unreachable_enemy_does_not_amplify_holding_work() {
+    if !common::isolated_cost_test("cover::an_unreachable_enemy_does_not_amplify_holding_work") {
+        return;
+    }
+    fn peak(enemy: bool) -> u64 {
+        let mut setup = holding(
+            json!([]),
+            json!([
+                { "side": if enemy { "red" } else { "blue" }, "position": [220,100] }
+            ]),
+            &[],
+        );
+        let rifle = &mut setup.rules.weapons.get_mut("rifle").unwrap().ballistics;
+        (rifle.range_m, rifle.scatter_mrad) = (90.0, 60.0);
+        let mut b = Battle::new(&setup, 1);
+        let mut peak = 0;
+        for _ in 0..60 {
+            let mut previous = common::counters::instructions().expect("native counter");
+            let mut movement = 0;
+            b.step_profiled(|phase| {
+                let now = common::counters::instructions().unwrap();
+                if phase == sim::battle::TickPhase::Movement {
+                    movement += now - previous;
+                }
+                previous = now;
+            });
+            peak = peak.max(movement);
+        }
+        if enemy {
+            assert!(
+                b.observe(Side::Blue).identified.iter().any(|u| u.id.0 == 1),
+                "the holding squad must know the enemy"
+            );
+        }
+        assert_eq!(
+            b.unit(UnitId(0)).unwrap().cover.resolved_at > 0,
+            enemy,
+            "only the enemy arm resolves against a threat"
+        );
+        peak
+    }
+    let quiet = peak(false);
+    let distant = peak(true);
+    assert!(
+        distant <= quiet * 2 + 1_000_000,
+        "impossible engagement amplified holding work: quiet {quiet}, distant {distant}"
+    );
+}

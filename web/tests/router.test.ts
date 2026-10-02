@@ -14,15 +14,14 @@ test("the main menu at / offers a new battle, the village, the saved battlefield
   const links = () => menu.getAllByRole("link").map((a) => a.getAttribute("href"));
   expect(links()).toEqual([
     expect.stringMatching(/^\/battle\?type=mixed&size=small&seed=\d+$/),
-    "/battle/village",
     "/battle?map=market-town&recipe=assault",
     "/replay/village",
   ]);
   fireEvent.click(menu.getByRole("button", { name: "Developer" }));
   const entries = {
-    "Play village": "/battle/village",
     "Play Market Town": "/battle?map=market-town&recipe=assault",
     "Watch replay": "/replay/village",
+    Village: "/battle/village",
     Benchmark: "/benchmark",
     Labs: "/labs",
   };

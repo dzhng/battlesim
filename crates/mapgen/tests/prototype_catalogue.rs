@@ -1,6 +1,6 @@
-//! The prototype physical catalogue the parcel pass builds towns from. It is
-//! placeholder geometry at believable metre scale: real sources replace it
-//! through the same descriptor contract.
+//! The physical catalogue the parcel pass builds towns from. Its rows are the
+//! city source sets' descriptors (`assets/source/city/`); a template with no
+//! art yet is a stand-in box at believable metre scale, under the same contract.
 use contract::templates::{
     BuildingCategory, BuildingTemplateDescriptor, PlacementFrame, TemplateGeometryCatalog,
 };
@@ -26,12 +26,12 @@ fn footprint(template: &BuildingTemplateDescriptor) -> [f64; 2] {
 }
 
 #[test]
-fn every_template_is_complete_and_labelled_a_prototype() {
+fn every_template_is_complete_and_of_the_one_shipping_family() {
     let catalogue = catalogue();
+    let family = &catalogue.templates()[0].regional_family;
     for template in catalogue.templates() {
         template.require_complete().unwrap();
-        assert_eq!(template.regional_family, "prototype", "{}", template.id);
-        assert!(template.id.starts_with("prototype-"), "{}", template.id);
+        assert_eq!(&template.regional_family, family, "{}", template.id);
     }
     // Its identity is its geometry: the list's order and spacing do not move it.
     let mut reordered: Vec<BuildingTemplateDescriptor> = serde_json::from_str(TEMPLATES).unwrap();

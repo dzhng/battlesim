@@ -83,3 +83,20 @@ A new set is listed in `assets/catalog.json`: its kit as an appearance, and the 
 - [`ambientcg.py`](ambientcg.py) bakes a pinned ambientCG set (`../packs.py`) into a texture recipe at the size every texture in the game has.
 - [`kit.py`](kit.py) is the authoring helper of a hand-scripted set (modules, templates, edges, bays, rows, the two files), with [`homes.py`](homes.py), the houses, as its worked example and [`farmsteads.py`](farmsteads.py), the farms, as the one with several buildings to a template.
 - [`assemble.py`](assemble.py) puts a set back together in Blender from its two files and renders it at the game's camera with the part boxes drawn over it: the picture to judge a set by until the renderer draws kits.
+
+## Interiors
+
+A room behind a window is not modelled per building. Every window draws one open **room box**, and the box's walls, floor and ceiling look one picture up in an **interior atlas**: the picture is projected onto the box from a pinhole far in front of the window, so the back wall shrinks with depth and the room shifts as the viewer moves. `interiors.py` makes the atlases; they are ours, rendered from scripted rooms, never photographs.
+
+The contract a shader reads them by (the numbers are the constants at the top of `interiors.py`):
+
+- **Two sheets** under `assets/source/city/interiors/`: `rooms.png` for apartments on any floor, `shops.png` for ground floors. Both are opaque sRGB colour.
+- **Layout.** 2 columns by 5 rows of square 128 px cells, with no gutter. Cell `i` is at column `i mod 2`, row `floor(i / 2)`, counted from the image's top-left. A cell's picture is upright: the ceiling is at its top. A lookup clamps half a texel inside its cell. A cell is a power of two so that every mip down to one texel a cell holds one room only.
+- **The box a cell assumes** is 3 m wide, 3 m tall and 4.5 m deep: one bay and one floor of the lattice. Its open face is the inside face of the window wall.
+- **The camera a cell assumes** is a pinhole 16 m in front of the open face, on the box's axis, framing that face exactly. A point `x` metres across from the box's middle, `y` metres into the room and `z` metres above the floor is at `u = 0.5 + k x / 3`, `v = 0.5 + k (z - 1.5) / 3`, with `k = 16 / (16 + y)` and `v` running up from the cell's bottom edge. A box of another size divides by its own width and height.
+- **A cell is a finished picture, and nothing in it glows.** The only light in a room is the sky through its own window wall, baked in: the brightest pixel is far below a sunlit wall, and there is no lamp, screen or emissive surface. It is shown as it is, dimmed if a building wants, and never added as emission.
+- **Any cell fits any window.** A room is composed round a window in the middle of its bay, reads the same mirrored left to right, and carries no lettering, so a building picks a cell and a mirroring by hashing the window's position.
+
+The steeper the view, the more of a window is the cell's floor: the box's floor is the bottom ninth of the picture, and from the tactical camera it fills most of an opening. Tune how a room reads here, in the scene and its tone curve, not in the shader.
+
+The sheets are not a set: they have no kit and no templates, and a template never names a cell.
