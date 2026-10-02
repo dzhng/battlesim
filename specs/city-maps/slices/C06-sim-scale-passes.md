@@ -396,3 +396,9 @@ and precisely 16 added bytes per reset. The ordinary source has no leak hook.
 This corrects an uncontrolled comparison and adds byte accounting; stress
 durations, rendering and the timing target remain unchanged. The two-second
 arms prove the reset contract only. Full timing admission remains open.
+
+The current-main restart remounts the lab and temporarily removes its probe.
+The reset wait now treats that interval as pending. The original current-layout-7
+run throws while reading the missing probe; the corrected two-second functional
+run completes all three resets with identical counts and bytes. This repairs
+the harness wait, with no simulation, rendering or timeout change.

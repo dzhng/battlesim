@@ -342,8 +342,8 @@ export async function run(ctx) {
     const was = await lab(page, () => window.__lab.route.tick());
     await restart(page);
     // A fresh session starts from tick 0, then runs.
-    await page.waitForFunction((t) => window.__lab.route.tick() < t, was, { timeout: 60000 });
-    await page.waitForFunction(() => window.__lab.route.tick() > 10, undefined, { timeout: 60000 });
+    await page.waitForFunction((t) => window.__lab?.route?.tick() < t, was, { timeout: 60000 });
+    await page.waitForFunction(() => window.__lab?.route?.tick() > 10, undefined, { timeout: 60000 });
     await lab(page, () => window.__lab.route.pause());
     const tick = await lab(page, () => window.__lab.route.tick());
     if (tick > 90) throw new Error(`reset passed the fixed opening tick before pause: ${tick}`);
