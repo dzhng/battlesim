@@ -43,8 +43,8 @@ stress measurements below deliberately retain their frozen `layout-6` inputs.
 Historical prototype-catalogue battles are separate controls, not performance
 parity against today's physical catalogue or rules.
 
-Current pickup: replay the three frozen pipeline failures through the integrated
-fix, then run fresh `layout-7` pipeline and full-world admission. Infantry route
+Current pickup: finish the remaining frozen Mixed Small seed-9 connector failure,
+then run fresh `layout-7` pipeline and full-world admission. Infantry route
 timing, route-start admission, replay build refusal, span copies and immutable
 static decoder/feed reuse are integrated. Fog batching preserves every sampled
 digest and complete side observation; its integrated 13 sight tests pass. Combined
@@ -56,6 +56,11 @@ three fixed-tick resets match counts and bytes, and a real GPU leak falsifies th
 corrected check. The packed carrier's exact frozen-stream maxima are 19,772 B
 early / 18,220 B late, within the unchanged 19,800 B target. These narrow proofs
 do not close current live timing, delivery, snapshots or peak-overlap admission.
+The current-build 120 s rerun terminates Mixed Small seed 3 and Metro Medium
+seed 9 with explicit obstruction; Mixed Small seed 9 remains planning. The
+relaxed component reaches its failed exit across a thin enclosure, so it correctly
+declines the global proof. The next correction must eliminate repeated final
+connector searches without rejecting sampled road links.
 
 The native reports now attribute the production tick without introducing OS
 counters into the ordinary tick. Observation construction and wire packing are
@@ -137,8 +142,9 @@ remain G0's open decision; the 64 MiB codec ceiling is not a performance target.
    89 short battles, one encounter refusal, no generation refusal or panic.
    Three units still plan after 120 s because many failed road-exit connectors
    repeat searches outside an enclosed goal. The rare-failure component proof is
-   integrated and independently reviewed; exact frozen scenarios/commands are
-   retained for the integrated three-case rerun before the new matrix.
+   integrated and independently reviewed. Current-build frozen reruns terminate
+   two cases; Mixed Small seed 9 still repeats failed final connectors. Correct
+   that remaining amplification before the new matrix.
 2. C59: legal local infantry links and their route-start correction are green. A public
    Battle regression exposes a physically clear member that cannot stand in the
    sampled navigation grid being selected as route start; the old search arrives

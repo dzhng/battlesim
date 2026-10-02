@@ -359,6 +359,23 @@ repeated connector failures retain their existing costs. Current generated-case
 follow-up, native/Wasm agreement and full browser admission remain integration
 work; this scoped correction does not close C06 or the whole navigation budget.
 
+### Integrated frozen-case rerun
+
+On current native build `0666de00…`, the original frozen scenarios and commands
+run for 120 simulated seconds without changing their map or rules identities.
+Mixed Small seed 3 first leaves planning at tick 31; Metro Medium seed 9 at tick
+29. Both finish alive with explicit blocked routes, no pending job or planning
+work. Their battle digests are `c7296593532e935c` and `bbf7d86052ff3f05`.
+This proves termination, not reachable encounter placement.
+
+Mixed Small seed 9 remains planning for all 3,600 ticks, using 14.4 M counted
+planning work and ending at `e0901a622c524a92`. Its relaxed reverse graph reaches
+the failed connector outside a thin enclosure, so the global proof correctly
+declines. The next seam is the actual final off-road connector: an exhausted
+strict destination component may reject that connector's exact resolved start,
+while sampled road runs retain their existing links. Resource exhaustion must
+remain inconclusive. Fresh layout-7 pipeline and timing admission stay open.
+
 ## Outcome — controlled reset resource baseline
 
 The full-world reset failure compared a late battle with a fresh opening.
