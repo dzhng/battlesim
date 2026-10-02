@@ -4128,6 +4128,64 @@ pending. **Confidence:** high for fixture identity, medium until the scene runs.
 **Contract:** Source observations are immutable. A new static position/floor view rebuilds the conversion and retains earlier rows unchanged. Side/catalog changes recreate the existing feed/driver owners. The driver's independent death/fade/expiry work and clock-reset lifecycle remain active behind its existing reconciliation gate. Caps, world, camera and frame ownership stay intact; there is no cache shared across pages.
 
 **Verdict:** Sound within the existing immutable-view contract. Public feed identity/floor proofs and existing pose lifecycle suites pass. Broader browser allocation, upload and throughput admission remain separate and open. **Confidence:** High for static construction and value preservation.
+
+## C73
+
+**When:** 2026-10-01. Evidence and numbers: the Outcome in [C73](slices/C73-tree-skeleton.md).
+
+### The far tier is the lobed volume of the tree's own clumps, and clumps run to tier 2
+
+**Choice:** Tiers 0 to 2 draw one set of leaf clumps, each coarser than the last; tier 3 is a lobed volume whose lobes sit just inside those clumps. The old seeded crown now only gives a tree its size and its clumps their places.
+
+**Gap:** The slice kept the old lobed crown as the far tier and the caster tier, and SG1's first fallback put it on tiers 2 and 3.
+
+**Verdict:** sound. A tree's shadow is cast by the tier under the one drawn. A hull of another shape shadows every clump inside it: hard-edged dark shapes across the crowns, and 3.3 times today's shimmer. With one shape down the tiers it measured 1.05 times. **Confidence:** high.
+
+### About 24 clumps a crown, not 50
+
+**Choice:** A broadleaf crown is 20 outer clumps and 4 inner ones, 2.5 to 4 m across.
+
+**Gap:** Clump size was delegated; Q-G7 asks for broken-up crowns.
+
+**Verdict:** provisional. Fifty small clumps gave open crowns with limbs and sky showing, the closest to the reference, and cost +1.6 to +1.9 ms where a wood fills the frame, over the 1.5 ms bar. Twenty-four cost +0.5 to +1.0 ms and read as lumped masses with a broken outline, not as open crowns. Opening them again needs either a cheaper tier 1 or a larger tree budget from GG. **Confidence:** medium.
+
+### Branch generations: trunk, limb, branch
+
+**Choice:** A limb to each of five or six clusters of clumps, and a branch from the limb to each clump. Tier 1 draws them all on three or four sides; tier 2 draws the trunk only.
+
+**Gap:** Branch generations were delegated.
+
+**Verdict:** sound. A third generation only made sense with twice the clumps. **Confidence:** high.
+
+### The budget is 10,000 / 2,500 / 500 / 80 and lives on the scenery kind's row
+
+**Choice:** `SCENERY_KINDS.tree.tier_triangles`, read by the validator (`budget.tier_triangles`). It is what the landed trees were measured at, rounded up.
+
+**Gap:** GG was to set the budget and never ran; the slice did not say where it lives.
+
+**Verdict:** sound for tiers 1 to 3. Tier 0 has room to 25,000 by SG1's bar, but nothing was measured above 19,000, so it stays near what passed. The row already holds what a kind's art must carry, so every tree appearance (C74's species, street trees) meets one budget with no plumbing. **Confidence:** medium.
+
+### A tree must also stand inside the canopy's radius, on every tier
+
+**Choice:** `fit.canopy` now measures every tier's top and its reach from the trunk's axis, against `forests.rule.canopy_height_m` and `canopy_radius_m`.
+
+**Gap:** The slice's verification names the radius; the validator checked only the finest tier's height.
+
+**Verdict:** sound, with a limit. It holds the unscaled art. Placement still scales a crown up to its forest's canopy, so a drawn crown can pass 6.5 m; that is C76's. **Confidence:** high.
+
+### A tree's size is its old top and reach, and clumps past it are brought back
+
+**Choice:** The clumps are set on the old seeded crown; any vertex above its top or past its reach is moved onto that limit, and the build fails if the finest tier does not reach both.
+
+**Gap:** "Unchanged sizes" did not say how a different shape keeps a size.
+
+**Verdict:** sound. Scaling the whole crown until its one widest clump fitted squeezed the tall kind to 0.59 of its width. Placement reads a kind's size from the finest tier, so the three kinds place exactly as before. **Confidence:** high.
+
+### Found, not fixed: blade-thin trees at forest edges
+
+**Gap:** Placement narrows a crown to its room inside the forest's shape with no floor, so a trunk near the edge draws a tree a few centimetres wide. Today's trees show it at the same places; the critique named it first.
+
+**Verdict:** open, for C75 or C76 (`scenery/placement.ts`). **Confidence:** high that it is wrong.
 ## C06: canonicalize visibility candidates at the union owner
 
 **Choice:** Fog collects raw bucket IDs from every eye and sorts/deduplicates
