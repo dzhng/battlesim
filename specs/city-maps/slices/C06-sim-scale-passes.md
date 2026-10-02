@@ -46,8 +46,12 @@ hanging the harness. Successful candidate order is unchanged.
 Fine routes now ask the existing boolean walkability query; bridges, water,
 steep ground and bounds agree with the full surface query. This simplification
 produced no measured speedup and does not substantiate a fine-routing bottleneck.
-Matched city early/late digests and [system costs](../scale-lane.md#c06-termination-checkpoint)
-remain the scale lane's evidence. C06 is still open against the tick budget.
+On the frozen [initial contact workload](C05-measuring-tools.md#generated-contact-baseline),
+the pass retires 369.9 / 499.4 G step instructions early/late versus 369.5 /
+498.2 G before; movement averages 80.343 / 115.399 M instructions per tick,
+effectively unchanged. Digests remain `32ba0e3c667a728b` / `1afb9cf97c2120f3`.
+Movement, bounded rejoin, geometry parity and authority/replay checks pass.
+This is termination proof, not a measured speedup or current timing admission.
 
 ## Outcome — exact per-tick bounds; cover still red
 
@@ -58,10 +62,13 @@ unit slice is immutable. The regression measures fallen-squad amplification in
 an isolated process: remains may add gather work, but more vehicles must not
 multiply that work. Restoring the old traffic scan makes the regression fail.
 
-Matched city early/late digests are unchanged; measured instruction gains and
-the next cover-planning owner live in the scale lane's
-[checkpoint](../scale-lane.md#c06-live-traffic-and-sight-bounds-checkpoint).
-No mechanic or scheduling delay was introduced. C06 remains open.
+The same frozen 60 s contact controls retire 356.5 / 457.5 G step instructions
+early/late, versus 369.5 / 498.4 G before this pass. Movement drops to
+77.863 / 96.912 M instructions per tick and sight to 23.941 / 25.088 M.
+Both exact digests above remain unchanged. Fine diagnostic brackets are removed
+after identifying cover planning; the production report retains its system
+contract. No mechanic or scheduling delay was introduced. Loaded clocks are
+not timing admission.
 
 ## Outcome — impossible engagement searches
 
@@ -71,8 +78,20 @@ retired 18.7 G instructions. A conservative necessary range condition now avoids
 that proven empty search. Ordinary near-target candidates and boundary cases keep
 the original exact search. The negative public-battle cost test and positive
 edge-lean test both have red/green proofs; existing cover/replay tests stay green.
-Matched city costs and unchanged digests live in the
-[checkpoint](../scale-lane.md#c06-impossible-engagement-checkpoint).
+The old public battle raises peak movement cost from 405,912 to 85,232,244
+instructions for a distant visible enemy; the range rejection removes that
+amplification. Dropping the lean allowance fails the positive boundary test.
+
+| Matched frozen 60 s contact cost | Before | After |
+|---|---:|---:|
+| Early step, G instructions | 356.5 | 278.9 |
+| Late step, G instructions | 457.5 | 348.7 |
+| Early movement, mean M/tick | 77.863 | 34.203 |
+| Late movement, mean M/tick | 96.912 | 36.557 |
+
+Digests remain `32ba0e3c667a728b` / `1afb9cf97c2120f3`; rounds remain 149 / 124.
+Cover and authority/replay checks pass. These instruction gains do not establish
+current native or browser timing admission.
 
 ## Measured finding — before local fog invalidation
 

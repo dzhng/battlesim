@@ -62,3 +62,43 @@ ran for 30 s, with every column unit setting off, no refused placement and no
 substituted input. Its distant routes remain pending within the short window.
 The complete matrix, native/Wasm integration, physical/access/gallery and release
 art gates remain open. This is the tooling half delegated to the scale lane.
+
+### Current physical-catalogue matrix
+
+The source `13beacf9` run retains all 90 requests (Open/Mixed/Metro ×
+Small/Medium/Large × seeds 1–10), layout-7, catalogue `6b0a5e8b…`, rules
+`a59680c1…` and engine `6b3eb26d…`. Generation succeeds throughout. The
+planner refuses Mixed Medium seed 9: none of three tried settlements balances
+the two jeep approaches within 15 s after its allowed 1,500 m adjustment.
+The refusal remains a parent planner finding; no seed is substituted.
+
+The other 89 battles play 80,100 ticks. Of 1,335 units, 1,334 survive and 979
+acknowledged goals are not neared within 30 s; most are kilometres away and in
+transit. Ten infantry units remain planning in Open Medium seeds 5/8 and Metro
+Small seed 10, requiring focused extension/diagnosis. The three previously
+frozen vehicle failures terminate with explicit obstruction in their separate
+120 s replay. This closes neither the new infantry finding nor encounter
+playability. Loaded wall peaks (378 ms; 489 ticks over 33 ms) are diagnostics,
+not the 100-a-side throughput admission or instruction-gain proof.
+
+### Historical layout-6 matrix control
+
+The first complete tooling run keeps all 90 type × size × seed requests
+(seeds 1–10), historical `layout-6` / `layout-presets-6`, physical catalogue
+`5416684f…`, rules `a59680c1…` and engine `0f4153f7…`. Generation succeeded on
+every request; Mixed Medium seed 9 had the same approach-balance refusal recorded
+above. No refused seed was replaced.
+
+The other 89 requests each play 900 ticks: 80,100 ticks total, ten loaded-wall
+ticks over 33 ms, peak 72.51 ms. These are small assault rosters, not the
+100-a-side admission arm. Of 1,335 units, 1,334 survive; 979 recorded goals are
+not neared in the short run. Most are kilometres away and still in transit.
+Mixed Small seeds 3/9 leave their supply unit stationary, and Metro Medium
+seed 9 its tank; all three remain planning through a focused 120 s extension.
+Private attribution locates repeated failed final road connectors: the first
+case rejects only 43 of 1,034 goal accesses in 30 s, paying tens of thousands
+of expanded cells for each. Its reverse query exhausts the destination pocket
+in 36 cells. The subsequent strict final-connector correction and frozen-case
+rerun are
+recorded in [C06](C06-sim-scale-passes.md#outcome--shared-final-connector-component).
+This historical sweep does not establish current simulation admission.
