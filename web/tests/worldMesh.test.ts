@@ -13,6 +13,8 @@ const biome = validateBiome(summer as unknown as Biome);
 
 const layout: WorldLayout = {
   surfaceKinds: ["ground", "road", "water", "bridge"],
+  surfaceAreaKinds: ["road", "country_road", "dirt_track", "sidewalk"],
+  roadAreaKinds: ["road", "country_road", "dirt_track"],
   propKinds: ["building", "wall", "crate", "trunk", "bridge_deck", "heavy_wreck", "ruin"],
   blockingPropKinds: {
     infantry: ["building", "wall", "crate", "ruin"],

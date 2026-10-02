@@ -24,6 +24,10 @@ import { placeScenery, scenerySite } from "./scenery/placement";
 /** Parsed `world_layout()` from the WASM boundary. */
 export interface WorldLayout {
   surfaceKinds: string[];
+  /** The kinds a paved stretch, triangle or boundary edge's `kind` names (its
+   *  area's own, as the map says it), and which of them are carriageways. */
+  surfaceAreaKinds: string[];
+  roadAreaKinds: string[];
   propKinds: string[];
   /** Per mover class ("infantry", "vehicle"), the prop kinds that stop it. */
   blockingPropKinds: Record<string, string[]>;

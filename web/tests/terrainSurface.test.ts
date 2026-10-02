@@ -26,6 +26,7 @@ import {
   STROKE_CUTS,
   strokeInside,
 } from "@packages/battle-renderer/src/terrain/strokes";
+import { SURFACE_AREA_KINDS } from "@packages/battle-renderer/src/terrain/surfaces";
 import { plotAt } from "@packages/battle-renderer/src/terrain/plots.ts";
 import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
 import summer from "@fixtures/biomes/summer.json";
@@ -325,6 +326,21 @@ test("the material's road, forest and water masks are the simulation's surface r
     expect(roads).toBeGreaterThan(100);
   }
   expect(wet).toBeGreaterThan(2000);
+});
+
+test("each paved stretch names its own area's kind, so a track is drawn as a track", () => {
+  // The river lab holds a 9 m country road and a 4 m dirt track.
+  const { site } = buildTerrainSurface(world(riverLab).exports, layout, biome);
+  const kindAt = layout.surfaceStrokeFields.indexOf("kind");
+  const widths = new Map<string, Set<number>>();
+  for (let r = 0; r < site.surfaceStrokes.length; r += site.surfaceStrokeStride) {
+    const kind = SURFACE_AREA_KINDS[site.surfaceStrokes[r + kindAt]];
+    widths.set(kind, (widths.get(kind) ?? new Set()).add(site.surfaceStrokes[r + 4] * 2));
+  }
+  expect(Object.fromEntries(widths)).toEqual({
+    country_road: new Set([9]),
+    dirt_track: new Set([4]),
+  });
 });
 
 test("rounded strokes are the native samples, bit for bit", () => {
