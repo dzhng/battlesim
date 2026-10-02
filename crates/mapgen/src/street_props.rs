@@ -4,8 +4,8 @@
 //! in.
 //!
 //! Every body, whatever its kind, goes through one legality check
-//! ([`Field::legal`]): on the map, clear of every carriageway's driven lane
-//! and its kerb, of buildings and the way to their doors, of the bodies
+//! ([`Field::legal`]): on the map, clear of every carriageway and the lane
+//! driven beside its middle, of buildings and the way to their doors, of the bodies
 //! already placed (each with the room its row keeps), of water, bridges and
 //! the measured open approaches. What differs between kinds is data
 //! (`street_props` and each district's `props` in the presets): a new kind
