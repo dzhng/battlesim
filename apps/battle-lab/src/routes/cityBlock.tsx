@@ -7,6 +7,7 @@
 // the side see the block's apartment building fall; a probe replaces the
 // map's buildings with every other one, as a new map would.
 import { useCallback, useMemo, useRef, useState } from "react";
+import { UNITS } from "@packages/scene-assets/src/shippedUnits";
 import config from "@fixtures/generated-battle.json";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
@@ -48,7 +49,8 @@ import { LabViewport, type ViewportPilot } from "../LabViewport";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import { useStaticWorld, type StaticWorld } from "../useStaticWorld";
 
-const GENERATOR = { presets, templates };
+// The catalog a battle's rules carry: street furniture is placed from it.
+const GENERATOR = { presets, templates, catalog: JSON.stringify(UNITS.documents) };
 /** The map the lab opens on: a town with houses and apartment blocks. */
 const DEFAULT: MapChoice = { type: "mixed", size: "small", seed: "1" };
 /** A house this near an apartment building makes the two a block, metres. */
