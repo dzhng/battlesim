@@ -992,7 +992,6 @@ test("mixed forest exports retain authored IDs and real concave and square-ended
   }
 });
 
-
 test("a rotated prop ray preserves the portable world normal bits", () => {
   const view = new WorldView(
     JSON.stringify({
@@ -1000,9 +999,7 @@ test("a rotated prop ray preserves the portable world normal bits", () => {
       fog_cell_m: 8,
       height_grid_m: 4,
       slope_cutoff_deg: 35,
-      props: [
-        { kind: "wall", center: [50, 50], yaw: -1.785965, half_extents: [3, 5, 4.225] },
-      ],
+      props: [{ kind: "wall", center: [50, 50], yaw: -1.785965, half_extents: [3, 5, 4.225] }],
     }),
     JSON.stringify(GAME_RULES),
   );

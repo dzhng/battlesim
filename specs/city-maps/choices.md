@@ -2839,7 +2839,7 @@ These are disclosed defects and unheld checkpoints. None is presented as a decis
 
 **A kit is an ordinary static bundle whose states are its modules.** The alternative was a new bundle kind with its own codec and loader. A module is exactly what a state already is (four tiers, bounds, shared materials), so the existing bake, codec and loader carry kits unchanged.
 
-**The template art library is one runtime file of packed rows, 34 bytes a row.** The alternatives were quantised positions (about half the bytes) or a file per template. Quantising to a centimetre risks cracks between modules that meet on a lattice. The shipped library, 41 templates in three states, is 0.56 MB, so the bytes were never a problem.
+**The template art library is one runtime file of packed rows, 34 bytes a row.** The alternatives were quantised positions (about half the bytes) or a file per template. Quantising to a centimetre risks cracks between modules that meet on a lattice. The shipped library, 41 templates each standing and destroyed, is 0.56 MB, so the bytes were never a problem.
 
 **The library covers two catalogues, and a set names which it dresses.** The generator's catalogue and the hand-authored maps' boxes (`fixtures/building-templates.json`) are both drawn from the one library; a set says `generated` or `authored`. The alternative, one merged catalogue, would have put the authored boxes into the generator's hash and moved every generated map. The authored boxes are held to the contract's plain validity, not to completeness: resolving their floors and doors would change what the simulation seats in a village house.
 
