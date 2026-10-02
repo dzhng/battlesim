@@ -54,33 +54,40 @@ SAMPLES = 96
 # is three times an apartment window's glass, and at the same sky its room
 # would read as lit.
 SKY_W = 117.0
-# The picture's tone: an exposure that lets the back wall read, and a ceiling.
-# Whatever the window lights, no pixel passes `CEILING` (linear), far under a
-# sunlit wall.
-EXPOSURE = 0.22
-CEILING = 0.25
+# The picture's tone. The game shows a cell as a matte surface in sun shadow,
+# so a cell is set against that, not against a display: its values are what a
+# shaded surface of that colour would have. A high exposure under a low
+# ceiling brings the back of a room up toward its front, so a window reads as
+# a room from 30 to 100 m, and nothing passes `CEILING` (linear): the palest
+# room, behind its glass, stays dimmer than the building's own wall in shade.
+# Tune both in the facade scene's room frames, never on the sheet.
+EXPOSURE = 1.0
+CEILING = 0.15
 
 WALL_T = 0.3
 
 # ---------------------------------------------------------------- palette (linear albedo)
-WHITE = (0.55, 0.54, 0.5)
-CREAM = (0.5, 0.45, 0.34)
-GREEN = (0.3, 0.38, 0.27)
-BLUE = (0.27, 0.34, 0.42)
-YELLOW = (0.5, 0.41, 0.2)
-PINK = (0.48, 0.3, 0.28)
-MINT = (0.33, 0.43, 0.37)
-BEIGE = (0.42, 0.35, 0.26)
-GREY = (0.3, 0.3, 0.29)
-CONCRETE = (0.24, 0.235, 0.22)
-BRICK = (0.2, 0.09, 0.06)
-PLASTER = (0.4, 0.38, 0.33)
-PARQUET = (0.2, 0.12, 0.065)
-BOARDS = (0.15, 0.1, 0.06)
-LINO = (0.2, 0.22, 0.17)
-TILE = (0.3, 0.29, 0.27)
-CARPET = (0.22, 0.09, 0.07)
-SCREED = (0.17, 0.165, 0.155)
+# Walls differ strongly in hue: from the game's distances a window is a few
+# pixels, and its wall and floor colour are what tell one room from the next.
+WHITE = (0.6, 0.59, 0.55)
+CREAM = (0.6, 0.5, 0.3)
+GREEN = (0.2, 0.4, 0.2)
+BLUE = (0.17, 0.3, 0.5)
+YELLOW = (0.62, 0.45, 0.12)
+PINK = (0.56, 0.24, 0.24)
+MINT = (0.26, 0.5, 0.4)
+BEIGE = (0.5, 0.36, 0.22)
+GREY = (0.36, 0.36, 0.35)
+CONCRETE = (0.33, 0.325, 0.31)
+BRICK = (0.3, 0.12, 0.08)
+PLASTER = (0.48, 0.45, 0.4)
+# Floors are light: from the steep game camera a window is mostly its floor.
+PARQUET = (0.42, 0.25, 0.12)
+BOARDS = (0.34, 0.23, 0.13)
+LINO = (0.3, 0.38, 0.26)
+TILE = (0.48, 0.47, 0.43)
+CARPET = (0.42, 0.13, 0.1)
+SCREED = (0.34, 0.33, 0.31)
 WOOD = (0.19, 0.11, 0.055)
 DARK_WOOD = (0.07, 0.04, 0.025)
 PALE_WOOD = (0.36, 0.26, 0.15)
@@ -545,7 +552,7 @@ def living_room(s):
     s.picture(-0.35, 1.75, 0.9, 0.6, ((0.1, 0.16, 0.22), (0.3, 0.26, 0.16)))
     s.shelving(1.05, 4.5, 0.8, 2.0, fill="books", col=DARK_WOOD)
     s.table(-0.3, 3.0, 1.0, 0.55, WOOD, h=0.42)
-    s.rug(-1.2, 0.7, 1.6, 3.3, (0.2, 0.07, 0.05), border=(0.08, 0.06, 0.05))
+    s.rug(-1.2, 0.7, 1.6, 3.3, (0.4, 0.14, 0.1), border=(0.2, 0.15, 0.1))
     s.cabinet(-1.22, 1.6, 0.9, 0.7, 0.4, WOOD, yaw=90, cols=2)
     s.curtains((0.11, 0.085, 0.04), left=0.5, right=0.42)
 
@@ -556,7 +563,7 @@ def bedroom(s):
     s.cabinet(0.55, 4.5, 0.42, 0.5, 0.4, WOOD, rows=2)
     s.cabinet(1.1, 4.5, 0.8, 2.1, 0.58, PALE_WOOD, cols=2)
     s.picture(-0.45, 1.7, 0.6, 0.45, ((0.25, 0.25, 0.2), (0.1, 0.12, 0.1)))
-    s.rug(-1.3, 0.3, 1.2, 2.3, (0.25, 0.22, 0.17))
+    s.rug(-1.3, 0.3, 1.2, 2.3, (0.42, 0.38, 0.3))
     s.chair(1.05, 1.9, DARK_WOOD, yaw=-60)
     s.box((0.9, 1.5, 0.47), (1.25, 1.85, 0.56), (0.1, 0.12, 0.2), rot=(0, 0, 20))  # clothes left on the chair
 
@@ -622,7 +629,7 @@ def sitting_room(s):
     s.sofa(-0.85, 2.1, 0.95, (0.1, 0.13, 0.1), yaw=150)
     s.sofa(0.8, 2.2, 0.95, (0.1, 0.13, 0.1), yaw=-150)
     s.round_table(0.0, 3.45, 0.32, WOOD, h=0.5)
-    s.rug(-0.9, 0.9, 2.4, 3.9, (0.1, 0.09, 0.07), border=(0.2, 0.17, 0.1))
+    s.rug(-0.9, 0.9, 2.4, 3.9, (0.3, 0.26, 0.18), border=(0.42, 0.36, 0.22))
     s.curtains((0.08, 0.02, 0.02), left=0, right=0.75, z0=0.75)
 
 
@@ -670,7 +677,7 @@ def childrens_room(s):
     s.picture(0.9, 2.0, 0.55, 0.4, ((0.12, 0.2, 0.3), (0.34, 0.3, 0.12)))
     s.table(0.9, 2.7, 0.8, 0.5, (0.3, 0.12, 0.08), h=0.5)
     s.stool(0.5, 2.1, (0.1, 0.2, 0.3), h=0.3)
-    s.rug(-0.2, 1.3, 1.0, 2.6, (0.1, 0.18, 0.26))
+    s.rug(-0.2, 1.3, 1.0, 2.6, (0.16, 0.3, 0.42))
     for _ in range(7):  # toys left where they fell
         x, y, k = s.rng.uniform(-0.6, 1.2), s.rng.uniform(0.7, 2.4), s.rng.uniform(0.08, 0.16)
         s.box((x, y, 0.012), (x + k, y + k, 0.012 + k), s.pick(GOODS), rot=(0, 0, s.rng.uniform(0, 90)))
@@ -714,7 +721,7 @@ def clothes_shop(s):
     s.dress_form(-0.85, 1.0, (0.25, 0.06, 0.05))
     s.dress_form(0.1, 1.3, (0.06, 0.09, 0.16))
     s.counter(1.0, 2.6, 0.8, DARK_WOOD, top=WOOD)
-    s.rug(-0.6, 0.7, 1.6, 3.4, (0.16, 0.1, 0.07))
+    s.rug(-0.6, 0.7, 1.6, 3.4, (0.36, 0.2, 0.14))
 
 
 @shop(GREY, SCREED, ceiling=GREY, mottle=0.5)
@@ -901,8 +908,8 @@ def render(tmp):
     scn.cycles.use_adaptive_sampling = False
     scn.cycles.use_denoising = False
     scn.cycles.seed = 0
-    scn.cycles.max_bounces = 8
-    scn.cycles.diffuse_bounces = 6
+    scn.cycles.max_bounces = 12
+    scn.cycles.diffuse_bounces = 12
     scn.cycles.caustics_reflective = False
     scn.cycles.caustics_refractive = False
     scn.render.resolution_x = scn.render.resolution_y = size

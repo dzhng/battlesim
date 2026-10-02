@@ -94,7 +94,10 @@ The fence, sandbags and dragon's teeth are worked examples:
 `blender/city/interiors.py` renders rooms lit only through their own window; its contract is in the city readme.
 
 - **Whatever hangs in the window's light is the brightest thing in the picture, however dark its paint.** A pale curtain, pelmet or shutter read as a lit panel or a strip light. Keep window-side things dark and give the tone curve a ceiling.
-- **Don't lift the shadows to avoid black holes.** A lifted curve read as a grey veil over every room. Raise the exposure instead.
+- **Tone the sheet in the game, not on the sheet.** The frame shows a cell as a matte surface in sun shadow, so a sheet that looks rightly dim as a picture (cell means near 0.2 sRGB) is a row of black holes at 80 m. Cell means of 0.3 to 0.4 under a ceiling of 0.15 linear read as rooms and stay under the facade scene's bound; the sheet itself then looks like a lit doll's house, and that is correct.
+- **A room takes no sun, so look at it on a facade in its own shade.** There the wall darkens and the room does not: a ceiling that passes every check in the sun still read as "a dim light left on" in pale shops. The ceiling is set by that frame.
+- **Bring the back of the room up with exposure under a low ceiling, not a shadow lift.** A lifted curve read as a grey veil over every room.
+- **Walls and floors carry the read at distance.** From the steep camera a window is its cell's floor, so floors are light and differ, and wall hues are strong.
 - **Give every room the same light, not the same sky.** A shopfront has three times an apartment's glass and at the same sky reads as lit.
 - **Coplanar wall patches render black.** Give each its own thickness.
 - **Cycles on the CPU with a fixed seed and no denoiser wrote the same bytes twice;** do the tone curve, the downsample and the PNG in numpy.
