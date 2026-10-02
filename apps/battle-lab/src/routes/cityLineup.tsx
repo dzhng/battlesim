@@ -46,7 +46,7 @@ import { gameBiome } from "../gameBiome";
 import { gameCamera } from "../gameCamera";
 import { LabViewport } from "../LabViewport";
 import { askedTier, tierBoundaries, useBuildingTier } from "../buildingTier";
-import { useStaticMap } from "../useStaticWorld";
+import { useStaticWorld } from "../useStaticWorld";
 
 const SPACING = { gap_m: 14, row_gap_m: 24, margin_m: 48, backdrop: 2.5, grid_m: 64 };
 /** The close station's orbit distance, off the foot of the building's front. */
@@ -103,19 +103,18 @@ function asked(search: string): Asked {
 }
 
 /** A flat, empty map `size` metres across. */
-const flatMap = (size: [number, number]) =>
-  JSON.stringify({
-    size,
-    fog_cell_m: 8,
-    height_grid_m: 4,
-    slope_cutoff_deg: 35,
-    relief: [],
-    surfaces: [],
-    bridges: [],
-    forests: [],
-    props: [],
-    buildings: [],
-  });
+const flatMap = (size: [number, number]) => ({
+  size,
+  fog_cell_m: 8,
+  height_grid_m: 4,
+  slope_cutoff_deg: 35,
+  relief: [],
+  surfaces: [],
+  bridges: [],
+  forests: [],
+  props: [],
+  buildings: [],
+});
 
 /** What a template's rows draw in each state the library has: per tier, the
  *  module instances and their triangles. */
@@ -206,7 +205,7 @@ function Rows({
   lineup: Lineup;
   missing: string[];
 }) {
-  const world = useStaticMap(useMemo(() => flatMap(lineup.size), [lineup]));
+  const world = useStaticWorld(useMemo(() => flatMap(lineup.size), [lineup]));
   const surfaceZ = useCallback(
     (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
     [world],
