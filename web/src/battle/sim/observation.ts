@@ -38,7 +38,7 @@ interface Group {
 export interface ObservationLayout {
   header: string[];
   groups: Group[];
-  groupDelivery: { fields: string[]; range: string[] };
+  groupDelivery: { fields: string[]; range: string[]; copy: string[]; encodings: string[] };
   fog: { count: string; maxWords: number };
   ground: GroundLayout;
   /** Bits per limb of an exact integer field pair. */
@@ -497,22 +497,57 @@ function reconstructGroups(
     const metadata = Object.fromEntries(
       layout.groupDelivery.fields.map((name) => [name, encoded[cursor++]]),
     );
-    const { length: size, full, floats: payload } = metadata;
+    const { length: size, encoding, floats: payload } = metadata;
+    const mode = layout.groupDelivery.encodings[encoding];
     if (
       !integer(size) ||
       !integer(payload) ||
-      (full !== 0 && full !== 1) ||
+      !["replacement", "snapshot", "copies"].includes(mode) ||
       length + size > layout.ground.maxRecordBytes / 4 ||
       cursor + payload > encoded.length ||
-      (previous === null && full !== 1)
+      (previous === null && mode !== "snapshot")
     )
       throw new Error("invalid observation group payload");
     const end = cursor + payload;
     let values: Float32Array;
-    if (full === 1) {
+    if (mode === "snapshot") {
       if (payload !== size) throw new Error("observation group snapshot length mismatch");
       values = encoded.slice(cursor, end);
       cursor = end;
+    } else if (mode === "copies") {
+      const old = previous![g];
+      const group = layout.groups[g];
+      const stride = group.fields.length;
+      if (group.sections.length !== 0 || size % stride !== 0)
+        throw new Error("observation copies require fixed rows");
+      values = new Float32Array(size);
+      let at = 0;
+      while (cursor < end) {
+        const operation = Object.fromEntries(
+          layout.groupDelivery.copy.map((name) => [name, encoded[cursor++]]),
+        );
+        const { source, length: count } = operation;
+        if (
+          !integer(count) ||
+          count === 0 ||
+          count % stride !== 0 ||
+          at + count > size ||
+          (source === -1
+            ? cursor + count > end
+            : !integer(source) || source % stride !== 0 || source + count > old.length)
+        )
+          throw new Error("invalid observation row copy");
+        values.set(
+          source === -1
+            ? encoded.subarray(cursor, cursor + count)
+            : old.subarray(source, source + count),
+          at,
+        );
+        if (source === -1) cursor += count;
+        at += count;
+      }
+      if (cursor !== end || at !== size)
+        throw new Error("observation row copies do not fill their group");
     } else {
       const old = previous![g];
       if (size === old.length && payload === 0) values = old;

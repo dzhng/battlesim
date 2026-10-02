@@ -43,7 +43,7 @@ this is an explicit extension of G0's fog/known-prop-only selected arm.
 
 The logical observation is unchanged. Each existing group retains its canonical
 array order and exact float32 words. A transport group carries its logical
-length, snapshot tag and payload length; snapshots carry every word, replacements
+length, encoding tag and payload length; snapshots carry every word, replacements
 carry ordered non-overlapping `(start, length, words)` ranges. Addresses are
 local to the group, so losing a soldier's variable rows cannot move corpse or
 known-prop addresses. A smaller snapshot replaces dense changes. Complete
@@ -82,3 +82,43 @@ reservations bound each record buffer's requested capacity; range enumeration
 uses constant scratch space. This storage bound does not itself ratify G0's peak
 memory budget. Reports attribute encoded group metadata/payload bytes, not the
 logical size of retained corpse and prop arrays.
+
+
+## Outcome: sparse fixed-row copies
+
+The first representation checkpoint still missed the active delivery gate:
+opening mean 15,643 B, p95 45,300 B, max 61,408 B; late mean 53,744 B,
+p95 473,328 B. Late corpses contributed 37,747 B on average and up to 540,300 B.
+The simulation sorts corpses by place; inserting newly learned rows therefore
+moved old group-local word addresses and resent retained tails. Mean bytes alone
+cannot ratify the provisional 19.8 KB gate.
+
+Fixed-row groups now also support an exact source-copy/literal representation.
+The group is assembled in canonical output order from retained source spans and
+new literal spans. It handles scattered insertion, removal and reorder without
+changing simulation identity or ordering. Exact word replacements and snapshots
+remain available; the publisher chooses the smallest payload. Variable-section
+groups retain their word representation. The layout publishes named encodings
+and operation fields; producer and decoder cut over together.
+
+A native red tracer needed 2,992 B for three additions among 100 retained corpse
+rows. The new representation stays below 512 B, including header and all group
+metadata, and reconstructs every float bit. Native removal/reorder and browser
+insertion/removal/reorder tests preserve exact canonical values, NaN payloads,
+signed zero and earlier views. Invalid source bounds/alignment, literal lengths
+and incomplete assembly reject without consuming the generation; a corrected
+retry applies. Existing paired battle/fog/wire hashes remain unchanged, while the
+layout metadata explicitly names the new arm.
+
+Copy-operation enumeration uses constant space. Its temporary exact-reserved
+index holds one 32-bit source address per prior fixed row: at most 12.8 MiB in
+aggregate under the existing 64 MiB logical allowance and smallest fixed-row
+width. Index sorting is bounded O(rows log rows); contiguous retained spans are
+compared directly after their first lookup. Allocation and complete record
+admission still precede transport commit.
+
+This remains a green representation checkpoint, **not budget closure**. Root's
+matched active sample must establish bytes and instruction cost after integration;
+p95/max, cold/side/resync snapshots, genuine newly learned bursts, peak overlap
+and browser throughput remain visible gates. No information is dropped and no
+byte, snapshot or memory allowance is raised.

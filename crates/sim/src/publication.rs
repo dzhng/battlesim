@@ -3,7 +3,7 @@
 //! hardcode offsets, strides or tags.
 //!
 //! Record: a complete header, then independent non-map groups carrying either
-//! their complete f32 words or ordered group-local replacement ranges. Finally
+//! complete f32 words, group-local replacements, or exact fixed-row source copies. Finally
 //! visibility snapshots/indexed replacements carry exact 16-bit limbs, followed
 //! by ground's exact tile-local runs and packed byte marks.
 //!
@@ -55,6 +55,7 @@ const SOUND_BANDS: [SoundBand; 2] = [SoundBand::Near, SoundBand::Far];
 /// A snapshot holds two exact 16-bit limbs per word: at most 20,250,000 bytes.
 pub const MAX_FOG_WORDS: usize = 2_531_250;
 const LIMB_BITS: u32 = 16;
+const GROUP_ENCODINGS: [&str; 3] = ["replacement", "snapshot", "copies"];
 const SEGMENT_HITS: [SegmentHit; 5] = [
     SegmentHit::None,
     SegmentHit::Ground,
@@ -431,7 +432,7 @@ pub fn layout_json(battle: &Battle) -> String {
                 "sections": [],
             },
         ],
-        "groupDelivery": { "fields": ["length", "full", "floats"], "range": ["start", "length"] },
+        "groupDelivery": { "fields": ["length", "encoding", "floats"], "range": ["start", "length"], "copy": ["source", "length"], "encodings": GROUP_ENCODINGS },
         "fog": { "count": "fogFloats", "maxWords": MAX_FOG_WORDS },
         // A run is one 16×16 tile and start + len * 256 within it;
         // craterScorch is crater + scorch * 256; tracksTrampledCleared is tracks + trampled * 256 + cleared * 65536.
@@ -1159,13 +1160,45 @@ fn encode_groups(
         } else {
             changed_ranges(values, old).map(|(a, b)| 2 + b - a).sum()
         };
-        let full = previous.is_empty() || delta >= values.len();
-        let payload = if full { values.len() } else { delta };
+        let mut encoding = u8::from(previous.is_empty() || delta >= values.len());
+        let mut payload = if encoding == 1 { values.len() } else { delta };
+        let stride = fixed_row_width(g);
+        let mut index = Vec::new();
+        if !previous.is_empty()
+            && payload > 2
+            && stride > 0
+            && !old.is_empty()
+            && old.len().is_multiple_of(stride)
+            && values.len().is_multiple_of(stride)
+        {
+            // One exact-reserved 32-bit source address per fixed row; no list of
+            // edit operations and no hash-collision or identity assumptions.
+            index
+                .try_reserve_exact(old.len() / stride)
+                .map_err(|e| format!("publication row index allocation: {e}"))?;
+            index.extend((0..old.len()).step_by(stride).map(|i| i as u32));
+            index.sort_unstable_by(|&a, &b| {
+                compare_rows(
+                    &old[a as usize..a as usize + stride],
+                    &old[b as usize..b as usize + stride],
+                )
+                .then_with(|| a.cmp(&b))
+            });
+            let copies: usize = row_copies(values, old, stride, &index)
+                .map(|(source, from, to)| 2 + if source.is_some() { 0 } else { to - from })
+                .sum();
+            if copies < payload {
+                encoding = 2;
+                payload = copies;
+            } else {
+                index = Vec::new();
+            }
+        }
         length = length
             .checked_add(3 + payload)
             .filter(|n| *n <= MAX_PUBLICATION_BYTES / 4)
             .ok_or("publication exceeds its 64 MiB atomic allocation allowance")?;
-        plans.push((full, payload, old));
+        plans.push((encoding, payload, old, stride, index));
         start = end;
     }
     // Admission and exact reservation precede writing. Geometric growth must
@@ -1175,11 +1208,18 @@ fn encode_groups(
     out.clear();
     out.extend_from_slice(&logical[..HEADER.len()]);
     start = HEADER.len();
-    for (&end, (full, payload, old)) in ends.iter().zip(plans) {
+    for (&end, (encoding, payload, old, stride, index)) in ends.iter().zip(plans) {
         let values = &logical[start..end];
-        out.extend([values.len() as f32, full as u8 as f32, payload as f32]);
-        if full {
+        out.extend([values.len() as f32, encoding as f32, payload as f32]);
+        if encoding == 1 {
             out.extend_from_slice(values);
+        } else if encoding == 2 {
+            for (source, from, to) in row_copies(values, old, stride, &index) {
+                out.extend([source.map_or(-1.0, |s| s as f32), (to - from) as f32]);
+                if source.is_none() {
+                    out.extend_from_slice(&values[from..to]);
+                }
+            }
         } else {
             for (from, to) in changed_ranges(values, old) {
                 out.extend([from as f32, (to - from) as f32]);
@@ -1190,6 +1230,66 @@ fn encode_groups(
     }
     out.extend_from_slice(&logical[start..]);
     Ok(())
+}
+
+/// Variable-section groups cannot address complete rows by one fixed width.
+fn fixed_row_width(group: usize) -> usize {
+    [
+        0,
+        0,
+        CONTACT_FIELDS.len(),
+        AUDIBLE_FIELDS.len(),
+        0,
+        BLAST_FIELDS.len(),
+        GUIDED_FIELDS.len(),
+        CORPSE_FIELDS.len(),
+        KNOWN_PROP_FIELDS.len(),
+    ][group]
+}
+
+fn compare_rows(a: &[f32], b: &[f32]) -> std::cmp::Ordering {
+    a.iter()
+        .map(|v| v.to_bits())
+        .cmp(b.iter().map(|v| v.to_bits()))
+}
+
+/// Assemble canonical order from exact old rows and literal new rows. Adjacent
+/// source rows coalesce, so inserting a row never resends the retained tail.
+fn row_copies<'a>(
+    values: &'a [f32],
+    old: &'a [f32],
+    stride: usize,
+    index: &'a [u32],
+) -> impl Iterator<Item = (Option<usize>, usize, usize)> + 'a {
+    let source = move |at: usize| {
+        let row = &values[at..at + stride];
+        let i = index
+            .partition_point(|&p| compare_rows(&old[p as usize..p as usize + stride], row).is_lt());
+        let p = *index.get(i)? as usize;
+        compare_rows(&old[p..p + stride], row).is_eq().then_some(p)
+    };
+    let mut at = 0;
+    std::iter::from_fn(move || {
+        if at == values.len() {
+            return None;
+        }
+        let start = at;
+        let from = source(at);
+        at += stride;
+        while at < values.len() {
+            let follows = match from {
+                Some(p) => old
+                    .get(p + at - start..p + at - start + stride)
+                    .is_some_and(|row| compare_rows(row, &values[at..at + stride]).is_eq()),
+                None => source(at).is_none(),
+            };
+            if !follows {
+                break;
+            }
+            at += stride;
+        }
+        Some((from, start, at))
+    })
 }
 
 /// Two scans choose a smaller payload without storing a range for every word.
@@ -1225,6 +1325,115 @@ fn changed_ranges<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn scattered_fixed_row_insertions_do_not_resend_the_retained_tail() {
+        let row = |i: usize| {
+            [
+                i as f32,
+                i as f32 + 0.25,
+                -0.0,
+                1.0,
+                i as f32,
+                0.0,
+                0.0,
+                0.0,
+                f32::from_bits(0x7fc0_0001),
+            ]
+        };
+        let old_rows: Vec<_> = (0..100).map(row).collect();
+        let mut rows = old_rows.clone();
+        for (at, id) in [(75, 102), (40, 101), (5, 100)] {
+            rows.insert(at, row(id));
+        }
+        let record = |rows: &[[f32; 9]]| {
+            let mut data = vec![0.0; HEADER.len()];
+            data.extend(rows.iter().flatten());
+            let mut ends = vec![HEADER.len(); 7];
+            ends.extend([data.len(), data.len()]);
+            (data, ends)
+        };
+        let (old, old_ends) = record(&old_rows);
+        let (logical, ends) = record(&rows);
+        let mut encoded = Vec::new();
+        encode_groups(&logical, &ends, &old, &old_ends, &mut encoded).unwrap();
+        assert!(
+            encoded.len() * 4 < 512,
+            "three new rows must not resend 100 retained rows: {} B",
+            encoded.len() * 4
+        );
+        assert_eq!(
+            decode_copies(&encoded, &old),
+            rows.iter()
+                .flatten()
+                .map(|v| v.to_bits())
+                .collect::<Vec<_>>()
+        );
+    }
+
+    fn decode_copies(encoded: &[f32], old: &[f32]) -> Vec<u32> {
+        let mut reconstructed = Vec::new();
+        let mut at = HEADER.len() + 7 * 3;
+        assert_eq!(encoded[at + 1], 2.0);
+        let end = at + 3 + encoded[at + 2] as usize;
+        at += 3;
+        while at < end {
+            let source = encoded[at];
+            let count = encoded[at + 1] as usize;
+            at += 2;
+            if source == -1.0 {
+                reconstructed.extend(encoded[at..at + count].iter().map(|v| v.to_bits()));
+                at += count;
+            } else {
+                let start = HEADER.len() + source as usize;
+                reconstructed.extend(old[start..start + count].iter().map(|v| v.to_bits()));
+            }
+        }
+        reconstructed
+    }
+
+    #[test]
+    fn fixed_row_removals_and_reordering_copy_canonical_bits_without_new_literals() {
+        let mut old = vec![0.0; HEADER.len()];
+        for i in 0..100 {
+            old.extend([
+                i as f32,
+                -0.0,
+                0.0,
+                1.0,
+                i as f32,
+                0.0,
+                0.0,
+                0.0,
+                f32::from_bits(0x7fc0_0001),
+            ]);
+        }
+        let mut old_ends = vec![HEADER.len(); 7];
+        old_ends.extend([old.len(), old.len()]);
+        for reverse in [false, true] {
+            let mut logical = vec![0.0; HEADER.len()];
+            for offset in 0..80 {
+                let i = if reverse { 89 - offset } else { 10 + offset };
+                logical.extend_from_slice(&old[HEADER.len() + i * 9..HEADER.len() + (i + 1) * 9]);
+            }
+            let mut ends = vec![HEADER.len(); 7];
+            ends.extend([logical.len(), logical.len()]);
+            let mut encoded = Vec::new();
+            encode_groups(&logical, &ends, &old, &old_ends, &mut encoded).unwrap();
+            assert!(
+                encoded.len() * 4 < 1024,
+                "retained 80-row reorder should copy source rows: {} B",
+                encoded.len() * 4
+            );
+            assert_eq!(
+                decode_copies(&encoded, &old),
+                logical[HEADER.len()..]
+                    .iter()
+                    .map(|v| v.to_bits())
+                    .collect::<Vec<_>>()
+            );
+        }
+    }
 
     #[test]
     fn group_addresses_survive_earlier_group_shrink_and_keep_float_bits() {

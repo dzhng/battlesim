@@ -34,6 +34,7 @@ function packet(
   snapshot: boolean,
   overrides: Map<number, number[]> = new Map(),
   sizes: Map<number, number> = new Map(),
+  encodings: Map<number, number> = new Map(),
 ) {
   const { header, groups, fog } = logical(phase);
   Object.assign(header, {
@@ -55,7 +56,12 @@ function packet(
   const wire = layout.header.map((name) => header[name]);
   groups.forEach((group, i) => {
     const payload = overrides.get(i) ?? (snapshot ? Array.from(group) : []);
-    wire.push(sizes.get(i) ?? group.length, Number(snapshot), payload.length, ...payload);
+    wire.push(
+      sizes.get(i) ?? group.length,
+      encodings.get(i) ?? Number(snapshot),
+      payload.length,
+      ...payload,
+    );
   });
   if (revision === 1) wire.push(...fog);
   return new Float32Array(wire);
@@ -96,6 +102,75 @@ test("group growth must supply every new word and rejects gaps without consuming
   ).toThrow(/range/);
   const after = decoder.decode(
     packet("base", 2, false, new Map([[group, [words.length, words.length, ...words]]]), sizes),
+  )!;
+  expect(after.corpses).toEqual([before.corpses[0], before.corpses[0]]);
+  expect(before.corpses).toEqual([after.corpses[0]]);
+});
+
+test("fixed-row copies retain exact canonical order through insertion, removal and reorder", () => {
+  const group = layout.groups.findIndex((g) => g.name === "corpses");
+  const a = Array.from(logical("base").groups[group]);
+  const b = [...a];
+  b[0] = 5;
+  b[2] = -0;
+  b[4] += 1;
+  const c = [...a];
+  c[0] = 7;
+  c[4] += 2;
+  const decoder = new ObservationDecoder(layout);
+  const before = decoder.decode(
+    packet("base", 1, true, new Map([[group, [...a, ...b]]]), new Map([[group, 18]])),
+  )!;
+  const after = decoder.decode(
+    packet(
+      "base",
+      2,
+      false,
+      new Map([[group, [9, 9, -1, 9, ...c, 0, 9]]]),
+      new Map([[group, 27]]),
+      new Map([[group, 2]]),
+    ),
+  )!;
+  const oracle = new ObservationDecoder(layout).decode(
+    packet("base", 1, true, new Map([[group, [...b, ...c, ...a]]]), new Map([[group, 27]])),
+  )!;
+  expect(after.corpses).toEqual(oracle.corpses);
+  expect(Object.is(after.corpses[0].position[2], -0)).toBe(true);
+  expect(before.corpses).toEqual([after.corpses[2], after.corpses[0]]);
+  const removed = decoder.decode(
+    packet(
+      "base",
+      3,
+      false,
+      new Map([[group, [18, 9, 0, 9]]]),
+      new Map([[group, 18]]),
+      new Map([[group, 2]]),
+    ),
+  )!;
+  expect(removed.corpses).toEqual(before.corpses);
+});
+
+test("malformed row copies leave the generation available for a corrected complete assembly", () => {
+  const group = layout.groups.findIndex((g) => g.name === "corpses");
+  const words = Array.from(logical("base").groups[group]);
+  const decoder = new ObservationDecoder(layout);
+  const before = decoder.decode(packet("base", 1, true))!;
+  const sizes = new Map([[group, words.length * 2]]);
+  const encodings = new Map([[group, 2]]);
+  for (const invalid of [
+    [1, 9],
+    [9, 9],
+    [0, 10],
+    [-2, 9],
+    [-1, 9, ...words.slice(1)],
+    [0, 9],
+  ]) {
+    expect(() =>
+      decoder.decode(packet("base", 2, false, new Map([[group, invalid]]), sizes, encodings)),
+    ).toThrow(/row cop/);
+  }
+  const after = decoder.decode(
+    packet("base", 2, false, new Map([[group, [0, 9, 0, 9]]]), sizes, encodings),
   )!;
   expect(after.corpses).toEqual([before.corpses[0], before.corpses[0]]);
   expect(before.corpses).toEqual([after.corpses[0]]);

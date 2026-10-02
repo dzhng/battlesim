@@ -730,12 +730,25 @@ fn group_delivery_reconstructs_the_logical_oracle_across_side_and_epoch_changes(
         previous.resize_with(9, Vec::new);
         for group in &mut previous {
             let size = wire[at] as usize;
-            let full = wire[at + 1] == 1.0;
+            let encoding = wire[at + 1];
             let end = at + 3 + wire[at + 2] as usize;
             at += 3;
-            if full {
+            if encoding == 1.0 {
                 *group = wire[at..end].to_vec();
                 at = end;
+            } else if encoding == 2.0 {
+                let old = std::mem::take(group);
+                while at < end {
+                    let source = wire[at];
+                    let count = wire[at + 1] as usize;
+                    at += 2;
+                    if source == -1.0 {
+                        group.extend_from_slice(&wire[at..at + count]);
+                        at += count;
+                    } else {
+                        group.extend_from_slice(&old[source as usize..source as usize + count]);
+                    }
+                }
             } else {
                 group.resize(size, 0.0);
                 while at < end {

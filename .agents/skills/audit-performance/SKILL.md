@@ -59,6 +59,9 @@ Do not prioritize by scary-looking counts alone:
   or fixed prefix forever.
 - Bound both sides of a transport and every durable/in-memory queue. State the overflow behavior;
   never silently drop accepted durable data.
+- Measure sparse insertions and reordering in a long retained collection before accepting a delta
+  protocol. Absolute addresses can turn one new row into a resend of most old rows; quiet-tick
+  averages hide that amplification. Assert bounded edit bytes alongside exact reconstruction.
 - Match compatibility work to the product lifecycle. In prelaunch code, prefer direct changes and
   add no legacy branches or migrations unless real persisted data requires them.
 - Every limit introduced or changed must have an observable log or metric with the limit kind,

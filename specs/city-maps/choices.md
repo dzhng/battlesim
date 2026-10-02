@@ -2945,3 +2945,55 @@ failed cover searches.
 bounded by the existing physical rule; three-dimensional distance is at least
 its horizontal distance. This saves searching thousands of positions without
 changing chosen cover or planning timing. **Confidence:** high.
+
+### Sound — medium confidence: fixed-row reuse follows exact content, not entity identity
+
+**When:** C07 sparse-row pass.
+
+**Choice:** Index the exact float32 words of each retained fixed row, then
+assemble the new group in its simulation-supplied order using source spans and
+literal spans. For example, learning a new corpse between two hundred known
+corpses sends that new row and instructions to copy the known neighbors. If a
+known corpse changes place, its changed row is sent literally or through the
+cheaper existing word-replacement arm. Identical duplicate rows may reuse the
+same source because their complete words are equal. The alternative would key
+rows by soldier/body ids, adding deletion and identity rules that different
+kinds of observations do not all share.
+
+**Gap:** Measurements showed group-local word replacements still resend sorted
+retained tails. The spec did not prescribe how to find unchanged rows after
+insertion or reordering.
+
+**Reach:** This arm applies to every fixed-row group, preserves spatial corpse
+ordering and needs no new simulation identities. Groups with variable sections
+keep their existing word encoding. The temporary index adds bounded storage and
+sorting work, which must pass the matched active cost gate.
+
+**Verdict:** Sound: exact content comparison avoids hash collisions and hidden
+identity assumptions, while choosing the minimum payload preserves sparse-field
+savings. **Confidence:** Medium, because actual active instruction/byte gates
+remain open.
+
+### Sound — high confidence: copies reconstruct the whole group before commit
+
+**When:** C07 sparse-row pass.
+
+**Choice:** A source-copy operation reads an aligned span from the immutable
+previous group; a literal operation supplies new row words. Operations fill the
+new group sequentially, so reordering and removal require no mutable edit list
+and a missing word is rejected. If a malformed generation copies beyond the
+previous group, the decoder keeps its old baseline and accepts the corrected
+same generation. New sides/epochs still require snapshots. The alternative,
+editing the previous array in place, could both overwrite later copy sources and
+change an observation the page already retained.
+
+**Gap:** The new representation required source validation and failure rules;
+existing generation/epoch checks remain the shared publication boundary.
+
+**Reach:** The published metadata calls the selector an encoding and names its
+three modes explicitly. Source indices, counts and copied words remain exact
+inside the existing record allowance. Publisher index allocation and wire
+admission are fallible before output/cursor commit.
+
+**Verdict:** Sound: complete, immutable reconstruction retains atomic side
+knowledge and the existing recovery contract. **Confidence:** High.
