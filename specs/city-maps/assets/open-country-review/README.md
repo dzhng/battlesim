@@ -1,8 +1,8 @@
 # Open-country pickup review
 
-The 2026-10-02 user references reaffirm M24/M25: fields stay useful and largely open, with small physical features interrupting some sight bearings and making the land between towns interesting. The [reference source record](../reference/broken-arrow/SOURCES.md#open-country-reference-target) owns the visual target; [C54](../../slices/C54-generation-gate.md) owns final opening-view acceptance.
+The 2026-10-02 user references and clarification reaffirm M24/M25 at every playable location on every generated map. Fields stay useful and largely open, with small physical features interrupting some circular sight bearings and making the land between towns interesting. The [reference source record](../reference/broken-arrow/SOURCES.md#open-country-reference-target) owns the visual target; [C54](../../slices/C54-generation-gate.md) owns integrated acceptance.
 
-## Current implementation and evidence
+## Historical sampled evidence
 
 `mapgen::open_country` is in the normal generator pipeline. It places rural homes from the same template catalogue as towns, short broken tree lines, copses, single trees and low field cover. It fills otherwise bare areas while protecting the main settlement's long approaches. [The generator README](../../../../crates/mapgen/README.md#open-country-open_country) explains its owners and physical contracts. C86 draws generated tree lines with a shrub layer; its Outcome keeps remaining visual evidence separate.
 
@@ -22,6 +22,18 @@ A focused native `sight_report` at pickup compared the same Mixed Small seed `55
 
 The furnished arm reports no unbroken circle for any unit in either planned starting column. Raw report and log are ignored scratch at `throwaway/open-country-pickup-sight.jsonl` and `.log`; the command and output schema live in `crates/mapgen/examples/sight_report.rs`.
 
+## Actual opening-view checkpoint
+
+Two paused production battles, Mixed Small seed `55012999855851041` and Open Small seed `1`, were captured at tick 2 on layout-12 / presets-11. Normal opening, tactical field, full start overview and oblique overview views retain the actual nine published own eyes and enabled fog. Matching per-case battle digests establish that changing the camera did not change the battle. Full screenshots, fog masks and native crops are retained in ignored `throwaway/c54-opening-candidate/` in the main checkout; its manifest and scripts own exact poses and capture inputs.
+
+An unprimed review of all full frames and crops found genuine forest-aligned fog cuts in both full overviews. Close opening and field masks were entirely revealed within their viewport, so they cannot establish a full-range boundary. The oblique views show short separate tree lines and copses among mostly open fields. Sparse close fields, uncertain rural-house readability and weak overview labels remain open; this is a narrow fog/feature checkpoint, not landscape acceptance.
+
+## Global coverage is still red
+
+On saved layout-12 Market Town seed `1`, a jeep can stand at `[1150, 4450]` and see its entire 450 m circle: all 354 normal bearings and 3,540 finer bearings reach full range. The old 600 m rifle query at that same point has only 88.14% open bearings. Nearby physical bodies and tree crowns are outside the jeep's range, so this is a real coverage gap rather than a coarse angular sample missing a thin obstruction. The exact native probe and red regression are retained with the ongoing global coverage work.
+
+The generator's current coverage owner marks cell centres near building anchors and authored wood edges; failed attempts may leave bare cells without a final refusal. Construction must account for physical blockers, actual circular observer ranges and the entire cell area, including unbuilt town space and edges. Finite samples remain useful counterexample searches, never the continuous/all-seed proof.
+
 ## What remains to judge
 
-This evidence supports the physical sight rule for the sampled map and starts. It does not prove every position or seed, the silhouette of combined published fog, or the visual variety of the final landscape. Final C54 must show actual opening fog, a tactical field view and an overview against both new references. The ground lane already records rare hedgerows and fields that can read as a flat outlined carpet; these are relevant to that visual review. Do not increase density by assumption or treat low cover as a tall sight blocker.
+The historical report supports only its sampled map and standardized starts. The actual openings establish visible forest cuts for two candidate seeds. Neither admits M24/M25 globally or proves final visual variety. After the coverage fix, C54 must judge the new physical geometry and actual published fog against both references, including closer rural landmarks. The ground lane already records rare hedgerows and fields that can read as a flat outlined carpet. Do not increase density by assumption or treat low cover as a tall sight blocker.

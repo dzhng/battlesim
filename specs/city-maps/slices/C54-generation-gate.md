@@ -3,18 +3,20 @@
 **Depends on:** C53, C55, C05, C09, C60, C31, C50, C59, C16–C19 and C32; C57 for playable camera evidence. **Kind:** required integration gate.
 
 ## Question
-Do offline/runtime generation and every catalogued map satisfy the accepted composition, physical access and full-extent budgets beyond one attractive seed?
+Do offline/runtime player maps satisfy the accepted composition, physical access and full-extent budgets beyond one attractive seed, while catalogued developer arenas retain their original contracts under M29?
 
 ## Contract it unlocks
-`mapgen validate <preset-set>` inspects compiled MapDefinition with shared sim geometry queries and reports exact extent, metre scale, town hierarchy/count/area, category/floor distribution, usable plains, roads/bridges, entrance access, forest area/count and top/bottom coverage differences. It includes physical infantry/vehicle routes and range/approach metrics independently of coverage fairness. C59's prepared encounters supply legal deployments, objectives, defender inputs and garrison references across the matrix.
+The existing generation, compiler, simulation queries and report tools supply one retained evidence matrix. `generate_map` and its compile report own normal generation admission, diagnostics and identity; layout measurement owns plan composition; the simulation's prepared map, encounter planner and battle reports own legal deployment, physical access and executed movement. The gate records exact extent, metre scale, hierarchy/count/area, category/floor distribution, usable plains, roads/bridges, entrance access, forest coverage and top/bottom differences, without introducing a second geometry oracle. C59 supplies recipe placement and legal deployments/objectives/defender inputs/garrison references; C51 owns final playable acceptance.
 
-The generation/lowering owners already enforce their construction contracts; this gate verifies their integrated physical outputs and records evidence. It does not introduce another generator, duplicate geometry oracle or a battle format. Catalogue maps and runtime requests resolve through C09. Saved maps pin SOURCES.json; runtime results/replays pin equivalent generator/preset/physical-catalogue/map identity; appearance hash is separate. C56's cutover inventory is part of this gate; pre-existing maps are not exempt.
+Keep each report's scope explicit. Predicted road times and pre-country layout metrics do not prove executed routes or final foliage. Generous compiler limits do not prove admission under game limits. Individual standardized sight probes do not prove the renderer's combined published opening fog. A planner route or an accepted order does not prove live arrival.
+
+The generation/lowering owners already enforce their construction contracts; this gate verifies their integrated physical outputs and records evidence. Catalogue maps and runtime requests resolve through C09. Saved maps pin SOURCES.json; runtime results/replays pin equivalent generator/preset/physical-catalogue/map identity; appearance hash is separate. M29 cuts C56's added surroundings for developer arenas; their resolver, identity and original behavior checks remain required.
 
 ## API seam
-`mapgen::validation/report` over compiled geometry → CLI/workbench gallery and release verdict. C60 describes saved catalogue entries; transient generated seeds need no persistent catalogue folder. C51 owns encounter composition.
+Existing generation/compiler/simulation/report APIs → retained gallery and release verdict. There is no separate `mapgen validate` CLI or `mapgen::validation/report` module. Each measuring tool's code and owning README define its command and output schema. C60 describes saved catalogue entries; transient generated seeds need no persistent catalogue folder. C51 owns encounter composition.
 
 ## What the human can run or see
-A gallery covering all nine type × size combinations, with at least ten fixed seeds per combination, plus an inventory of cut-over village/lab/benchmark/test maps and their preserved arena checks. Show failed seeds with diagnostics; no substituted layouts.
+A gallery covering all nine type × size combinations, with at least ten fixed seeds per combination, plus catalogue identity/loading and preserved developer-arena checks. Show failed seeds with diagnostics; no substituted layouts.
 
 ## Verification
 - Full canonical native/wasm map/encounter/rules/identity/diagnostic parity for matched inputs, including boundary seeds and failure cases.
@@ -23,7 +25,8 @@ A gallery covering all nine type × size combinations, with at least ten fixed s
 - G0's per-type counts/shares/weights and comparable top/bottom town/forest metrics without requiring mirrored geography.
 - Connected physical roads/bridges, usable plain approaches for 1,800 m weapons, entrance access and both infantry/vehicle transitions.
 - Furnished open country against the [user's countryside references](../assets/reference/broken-arrow/SOURCES.md#open-country-reference-target): short tree belts, copses, sparse rural homes and small physical objects between the towns, with most ground remaining open. Retain M25's sampled simulation sight result separately from the visual verdict. Capture the actual starting column's combined published fog at the normal opening camera: individual-eye samples do not prove the union's boundary has visible interruptions. Include a tactical field view and an overview; preserve the main settlement's 1,800 m approaches.
-- Every catalogued map has real urban/plain geometry; C56 arena contracts remain intact and map/digest changes are named.
+- Global coverage under M24/M25: every playable location on every generated map has interesting physical surroundings and some interrupted ground-level circular sight. Include actual circular observer ranges/eye heights, intervening positions between grid centres, edges and unbuilt town areas. Construction must account for failed placements rather than silently accepting uncovered land. A standard 600 m rifle, finite sample grid or successful opening view cannot waive a 450 m jeep's empty circle or prove continuous/all-seed coverage. Report narrower directional observers separately without promising an obstruction for every heading inside required clear approaches.
+- Player maps have the required town/plain geometry and rendered surroundings. Catalogue identity/loading and original developer-arena contracts remain intact; map/digest changes are named.
 - Full-extent generation/startup/peak memory, steady-state and snapshot publication, default/strategic/pan/zoom frame budgets. Benchmarks run serially; no generation inside battle ticks/frames.
 - Compare whole-map and tactical composition against accepted per-variable evidence using compare-screenshots. Run unprimed screenshot-critique last on accepted shots; open the gallery with preview-shots non-blocking and record the verdict.
 
@@ -31,10 +34,14 @@ A gallery covering all nine type × size combinations, with at least ten fixed s
 Fixed seed selection and report/gallery presentation. Numeric thresholds must already be ratified at G0.
 
 ## Must stay green
-All-map scope, fixed dimensions, one generation/compiler/resolver path and replay identity.
+Player-map matrix and developer-arena checks, fixed dimensions, one generation/compiler/resolver path and replay identity.
 
 ## Feedback that would change this slice
 A failed type/size or arena contract reopens its owning slice; one showcase seed cannot waive the gate.
+
+### Candidate opening checkpoint (2026-10-02)
+
+The [open-country review](../assets/open-country-review/README.md#actual-opening-view-checkpoint) records actual production fog for two layout-12 candidate seeds, with full frames, masks and crops reviewed unprimed. Both overviews show genuine forest cuts and the oblique views show scattered tree lines/copses. Close-field variety, rural-house readability and overview label contrast remain open. The same review records a physically legal 450 m jeep circle that the standardized rifle report missed. This checkpoint does not admit global coverage, the final matrix or the landscape look.
 
 ## Outcome: pipeline tool checkpoint
 
@@ -64,7 +71,7 @@ substituted input. Its distant routes remain pending within the short window.
 The complete matrix, native/Wasm integration, physical/access/gallery and release
 art gates remain open. This is the tooling half delegated to the scale lane.
 
-### Current physical-catalogue matrix
+### Historical layout-7 physical-catalogue matrix
 
 The source `13beacf9` run retains all 90 requests (Open/Mixed/Metro ×
 Small/Medium/Large × seeds 1–10), layout-7, catalogue `6b0a5e8b…`, rules
