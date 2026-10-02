@@ -382,7 +382,7 @@ function ExpandedUnit({ id, unit }: { id: string; unit: JsonObject }) {
           <p>{String(unit.description ?? "")}</p>
         </div>
         <p className="me-scope">
-          Unit changes stay on this type.
+          Overrides are authored on this type. Descendants inherit them.
           <br />
           Linked weapon changes are global.
         </p>
@@ -392,8 +392,8 @@ function ExpandedUnit({ id, unit }: { id: string; unit: JsonObject }) {
         <section className="me-linked">
           <h3>Soldiers in this unit</h3>
           <p>
-            Health and carried weapons are defined by soldier kind. Changes here create a variant
-            for this unit’s slots; other units retain their soldiers.
+            Health and carried weapons are defined by soldier kind. Edits create a variant for this
+            type’s slots; descendants inherit those slots.
           </p>
           {soldierKinds.map(
             (kind) =>
@@ -870,7 +870,7 @@ export default function MechanicsEditor() {
                     <span>
                       {change.restore ? "Restore inheritance" : JSON.stringify(change.value)}
                       {change.unit
-                        ? ` · ${change.unit} only`
+                        ? ` · override on ${change.unit}`
                         : change.section === "weapons"
                           ? " · shared globally"
                           : ""}

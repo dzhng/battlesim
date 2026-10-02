@@ -329,7 +329,7 @@ export const GAMEPLAY_FIELDS: Record<Section, GameplayField[]> = {
       "hp",
       "Soldier health",
       "Soldiers",
-      "Damage capacity of each soldier of this kind. Editing here makes a variant and rebinds only this selected unit’s matching slots.",
+      "Damage capacity of each soldier of this kind. Editing here makes a variant and rebinds this type’s matching slots; descendants inherit them.",
       { unit: "HP" },
     ),
     ...mounts(true),
