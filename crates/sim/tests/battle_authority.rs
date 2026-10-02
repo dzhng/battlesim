@@ -271,3 +271,37 @@ fn profiling_preserves_every_tick_and_side_observation() {
     }
     assert_eq!(ordinary.digest(), replay.digest());
 }
+
+#[test]
+fn replay_refuses_changed_engine_code_even_with_matching_scenario_and_rules() {
+    let setup = scenario();
+    let record = Battle::new(&setup, 1).replay();
+    let mut value = serde_json::to_value(&record).unwrap();
+    value["engine_build"] =
+        serde_json::json!("0000000000000000000000000000000000000000000000000000000000000000");
+    let changed = serde_json::from_value(value).unwrap();
+    assert_eq!(
+        Battle::from_replay(&setup, &changed).err(),
+        Some(ReplayError::BuildMismatch)
+    );
+}
+
+#[test]
+fn replay_requires_build_identity_and_checks_it_before_scenario() {
+    let setup = scenario();
+    let mut record = Battle::new(&setup, 1).replay();
+    assert_eq!(record.engine_build, sim::battle::ENGINE_BUILD_ID);
+    assert!(Battle::from_replay(&setup, &record).is_ok());
+    record.engine_build = "another simulation build".into();
+    record.scenario_digest = "another scenario".into();
+    assert_eq!(
+        Battle::from_replay(&setup, &record).err(),
+        Some(ReplayError::BuildMismatch)
+    );
+    let mut json = serde_json::to_value(&record).unwrap();
+    json.as_object_mut().unwrap().remove("engine_build");
+    assert!(
+        serde_json::from_value::<sim::battle::Replay>(json).is_err(),
+        "missing build identity is not a legacy replay mode"
+    );
+}

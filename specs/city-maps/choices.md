@@ -3503,3 +3503,14 @@ command refusals and unwinding panics remain explicit. This does not recover a
 hung process or imply full C54/art acceptance. **Verdict:** sound — production
 ownership stays unchanged and no new dependency is introduced.
 **Confidence:** high.
+## Replay engine build identity
+
+**Choice:** Every simulation replay requires the automatically derived engine build fingerprint. `Battle::from_replay` checks it before scenario/rules identity or battle construction; the Wasm adapter forwards the same explicit refusal. Missing identity is malformed replay data. No manual version bump or legacy fallback is provided.
+
+**Scope:** Hash normalized relative paths and exact bytes of simulation, contract and thin Wasm adapter Rust source, their manifests, workspace manifest, mapgen manifest, Cargo lock, rustc version, and semantic simulation cfg/features through the existing contract SHA256 owner. Dependency manifests/lock are conservative: even an unrelated dependency edit may refuse playback. Mapgen source is excluded because it prepares scenarios rather than executing the stored scenario; the separate generated replay request-versus-compiled-storage debt remains open. Assets, art pipeline, browser source, examples and test files outside runtime source are excluded. Source comments and inline test edits conservatively invalidate the engine.
+
+**Portability:** This identifies the supported deterministic engine, not identical binary bytes. Native/Wasm target, platform, debug, panic, test, lint and overflow-instrumentation cfg differences are normalized; their supported battle outcomes already share the simulation contract. Current source has no other generated/include input, and current crates expose no dependency feature selection outside the hashed manifests. Adding such inputs or target-dependent simulation semantics requires extending this owner rather than silently retaining this scope.
+
+**Cost:** Hashing occurs once at build time; replay recording copies one 64-character identity, and playback compares it once. No new tick work, codec dependency or battle digest input. The contract crate is reused as a build dependency. Native red/green checks expose the formerly accepted mismatched build through `Battle::from_replay`; same-build replay pins every tick digest. Scope tests prove art-only stability and source, dependency, compiler and semantic cfg invalidation. Worker refusal and actual native/Wasm fingerprint parity are checked on the rebuilt module.
+
+**Verdict:** Sound within the current supported build inputs. Compiled scenario storage and broader scale admission gates remain separate unfinished work. **Confidence:** High.
