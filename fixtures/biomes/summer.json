@@ -287,7 +287,7 @@
       "centre_strip": { "half_width_m": 0, "max_road_width_m": 0 }
     }
   },
-  "shore": { "palette": "shore", "wet_m": 0.6, "mud_m": 5, "wander": 0.5, "wander_scale_m": 9, "lift": 1.15, "relief": 0.5 },
+  "shore": { "palette": "shore", "wet_m": 0.6, "mud_m": 5, "wander": 0.5, "wander_scale_m": 9, "lift": 1.27, "relief": 0.5 },
   "water": { "opacity": [0.6, 0.9], "shallows_m": 0.35, "streak": 0.6 },
   "forest_floor": {
     "palette": "forest_floor",
