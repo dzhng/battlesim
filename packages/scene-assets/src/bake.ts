@@ -192,6 +192,11 @@ export async function bakeCatalog(
   if (sets.length && !only?.length) {
     if (!context.templates)
       throw new Error("the catalog has city sets: the bake needs the physical template catalogue");
+    const collapse = context.authority.collapse;
+    if (!collapse)
+      throw new Error(
+        "the catalog has city sets: the bake needs the rule a building collapses by (a prop type's destroyed.into.building)",
+      );
     const inputs: TemplateSetInput[] = [];
     for (const [name, entry] of sets)
       inputs.push({
@@ -205,6 +210,7 @@ export async function bakeCatalog(
       context.templates.catalogue,
       context.templates.physical,
       catalog.tolerances.ground_m,
+      collapse,
     );
     let out: { hash: string; bytes: number } | null = null;
     if (packed.library) {

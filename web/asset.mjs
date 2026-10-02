@@ -222,6 +222,10 @@ function report(result) {
             t.triangles.some((n, tier) => n > TEMPLATE_TIER_TRIANGLES[tier])
               ? ` — over its budget of ${TEMPLATE_TIER_TRIANGLES.join(" / ")}`
               : ""
+          }${
+            t.damage
+              ? `; ${t.damage.state} ${t.damage.rows} row(s), ${t.damage.triangles.join(" / ")}`
+              : ""
           }`,
         );
     }
@@ -561,6 +565,7 @@ function prototypeFiles() {
   const set = prototypeTemplates(
     readJson(join(ROOT, TEMPLATES)).filter((descriptor) => !dressed.has(descriptor.id)),
     readJson(FIXTURE).presentation.buildings.prototype_tints,
+    authority().collapse,
   );
   return new Map([
     [kit, prototypeKitGlb()],

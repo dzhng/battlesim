@@ -126,6 +126,7 @@ export const AUTHORITY: Authority = {
   canopy_height_m: 12,
   canopy_radius_m: 6.5,
   ruin_height_m: 2,
+  collapse: { min_height_m: 2, height_fraction: 0.25, max_height_m: 6, max_floors: 6 },
 };
 
 export const TOLERANCES: Tolerances = {

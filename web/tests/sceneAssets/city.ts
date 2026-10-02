@@ -122,6 +122,15 @@ export const shellRow = (part: TemplatePart, tint: Vec3 = [200, 180, 160]): numb
     tint,
   );
 
+/** The remains of a part: its plan as a shell `height` tall (the test rule's ruin is 2 m). */
+export const ruinRow = (part: TemplatePart, height = 2): number[] =>
+  row(
+    0,
+    [part.center[0], part.center[1], part.base_z],
+    [2 * part.half_extents[0], 2 * part.half_extents[1], height],
+    part.yaw,
+  );
+
 export const HOUSE = descriptor("test-house");
 export const YARD = descriptor("test-yard", [
   { id: "house", center: [-10, 0], half: [5, 4, 3] },
@@ -129,7 +138,8 @@ export const YARD = descriptor("test-yard", [
 ]);
 
 /** A set that dresses HOUSE (its shell, and a sill on its south wall) and
- *  YARD (a shell per part), within a 0.5 m side and 1 m top fit. */
+ *  YARD (a shell per part), within a 0.5 m side and 1 m top fit, each with
+ *  its remains as its ruin. */
 export function testSet(edit: (set: TemplateSetSource) => void = () => {}): TemplateSetSource {
   const set: TemplateSetSource = {
     set: "test",
@@ -141,12 +151,18 @@ export function testSet(edit: (set: TemplateSetSource) => void = () => {}): Temp
       {
         status: "release",
         descriptor: structuredClone(HOUSE),
-        states: { intact: [shellRow(HOUSE.parts[0]), row(1, [2, -4, 1.2])] },
+        states: {
+          intact: [shellRow(HOUSE.parts[0]), row(1, [2, -4, 1.2])],
+          ruin: [ruinRow(HOUSE.parts[0])],
+        },
       },
       {
         status: "prototype",
         descriptor: structuredClone(YARD),
-        states: { intact: YARD.parts.map((part) => shellRow(part)) },
+        states: {
+          intact: YARD.parts.map((part) => shellRow(part)),
+          ruin: YARD.parts.map((part) => ruinRow(part)),
+        },
       },
     ],
   };

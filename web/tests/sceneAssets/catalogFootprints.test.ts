@@ -115,6 +115,22 @@ test("the building appearances' one ruin state refuses remains of differing heig
   expect(() => fixtureAuthority(fixture, both)).toThrow(/keep.*building|building.*keep/);
 });
 
+test("a template building ends by the building row's own rule, and by one rule only", () => {
+  const fixture = { physics: game.physics, forests: game.forests };
+  const into = typeof ruin === "object" ? ruin.into : undefined;
+  expect(fixtureAuthority(fixture, units).collapse).toEqual({
+    min_height_m: into!.height_m,
+    height_fraction: into!.building!.height_fraction,
+    max_height_m: into!.building!.max_height_m,
+    max_floors: into!.building!.collapse_max_floors,
+  });
+  const taller = structuredClone(units.view.props.building);
+  if (typeof taller.destroyed === "object")
+    taller.destroyed.into.building!.collapse_max_floors += 2;
+  const both = new UnitCatalog({ ...units.view, props: { ...units.view.props, taller } });
+  expect(() => fixtureAuthority(fixture, both)).toThrow(/building.*taller|taller.*building/);
+});
+
 test("the shipped view carries every weapon row a mount names, resolved", () => {
   for (const t of units.view.units)
     for (const m of t.mounts)
