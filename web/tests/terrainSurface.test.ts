@@ -20,13 +20,14 @@ import {
   type TerrainSurface,
 } from "@packages/battle-renderer/src/terrain/terrainSurface.ts";
 import { forestInside } from "@packages/battle-renderer/src/terrain/forestShapes";
+import { plotGuideEdges } from "@packages/battle-renderer/src/terrain/surfaces";
 import {
   CUT_A,
   CUT_B,
   STROKE_CUTS,
   strokeInside,
 } from "@packages/battle-renderer/src/terrain/strokes";
-import { plotAt } from "@packages/battle-renderer/src/terrain/plots.ts";
+import { generatePlots, plotAt } from "@packages/battle-renderer/src/terrain/plots.ts";
 import {
   PLOT_HUE_JITTER,
   PLOT_MIN_LSTAR,
@@ -367,6 +368,86 @@ test("roads split the patchwork: fields meet a road edge-on, never across it", (
       expect(left!.plot, `plots either side at (${px}, ${py})`).not.toBe(right!.plot);
     }
   }
+});
+
+/** How far `across` is turned from `heading` (radians), as rows read it: a
+ *  quarter turn is the same grain. */
+function offGrain(across: readonly number[], heading: number): number {
+  const turn = Math.atan2(across[1], across[0]) - heading;
+  return Math.abs(Math.asin(Math.sin(2 * turn))) / 2;
+}
+
+test("open country keeps one grain: no tract turns further than the rules say, however large the land", () => {
+  // 8 km of land with no road: turns must not add up from the region down
+  // to the plots, or the patchwork fans out round the map's middle.
+  const bare = {
+    map: [0, 0, 8000, 8000] as const,
+    buildings: [],
+    surfaceStrokes: new Float32Array(),
+    surfaceStrokeStride: 1,
+    surfaceRuns: new Float32Array(),
+    surfaceRunStride: 4,
+    surfaceTriangles: new Float32Array(),
+    surfaceTriangleStride: 1,
+    surfaceBoundaries: new Float32Array(),
+    surfaceBoundaryStride: 5,
+    riverRuns: new Float32Array(),
+    riverRunStride: 4,
+  };
+  const rules = biome.field_rules;
+  const most = ((rules.orientation_jitter_deg + rules.cut_jitter_deg) * Math.PI) / 180;
+  const heading = (rules.orientation_deg * Math.PI) / 180;
+  const { plots } = generatePlots(bare, biome);
+  expect(plots.length).toBeGreaterThan(5000);
+  const turned = plots.map((p) => offGrain(p.across, heading));
+  expect(Math.max(...turned)).toBeLessThanOrEqual(most + 1e-6);
+  // And tracts do turn: the land is not one ruled grid.
+  expect(turned.filter((t) => t > most / 3).length).toBeGreaterThan(plots.length / 10);
+});
+
+test("a field at a road's edge lies along a road beside it: its rows run with it or square to it", () => {
+  const { exports } = world(villageMap);
+  const { site, plots } = buildTerrainSurface(exports, layout, biome);
+  const roads = plotGuideEdges(site);
+  /** Whether road `r` runs through `outline` or beside it, nearer than a plot is wide. */
+  const borders = (outline: number[], r: number) => {
+    const [ax, ay, bx, by] = roads.subarray(r, r + 4);
+    const steps = Math.ceil(Math.hypot(bx - ax, by - ay) / 5);
+    for (let s = 0; s <= steps; s++) {
+      const p: [number, number] = [ax + ((bx - ax) * s) / steps, ay + ((by - ay) * s) / steps];
+      const n = outline.length / 2;
+      if (polygon2.containsPoint(outline, n, p)) return true;
+      if (Math.abs(polygon2.signedDistance(outline, n, p)) < biome.field_rules.min_width_m)
+        return true;
+    }
+    return false;
+  };
+  let beside = 0;
+  for (let r = 0; r < site.surfaceStrokes.length; r += site.surfaceStrokeStride) {
+    const [ax, ay, bx, by, half] = site.surfaceStrokes.subarray(r, r + 5);
+    const len = Math.hypot(bx - ax, by - ay);
+    const [nx, ny] = [-(by - ay) / len, (bx - ax) / len];
+    // Along the stretch, clear of its ends, a metre off the paving either side.
+    for (let s = 20; s < len - 20; s += 7)
+      for (const side of [-half - 1, half + 1]) {
+        const px = ax + ((bx - ax) * s) / len + nx * side;
+        const py = ay + ((by - ay) * s) / len + ny * side;
+        const plot = plots.plots[plotAt(plots, px, py)!.plot];
+        let least = Infinity;
+        for (let o = 0; o < roads.length; o += 4)
+          if (borders(plot.outline, o))
+            least = Math.min(
+              least,
+              offGrain(
+                plot.across,
+                Math.atan2(roads[o + 3] - roads[o + 1], roads[o + 2] - roads[o]),
+              ),
+            );
+        expect(least, `the plot at (${px}, ${py})`).toBeLessThan(0.1);
+        beside++;
+      }
+  }
+  expect(beside).toBeGreaterThan(100);
 });
 
 test("each point lies in the plot the split walks to, and its edge distance is that plot's", () => {

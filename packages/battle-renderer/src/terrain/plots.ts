@@ -1,6 +1,9 @@
 // The patchwork's plots: a seeded binary split of the land into convex
 // polygons, cut first along the roads (so fields meet them edge-on, as
-// farmland does) and then by the biome's field rules. The split tree is what
+// farmland does) and then by the biome's field rules. The land is cut on one
+// heading down to tracts; each tract then takes a grain of its own (its
+// longest road's, or a turn off the land's), and its plots keep it. The split
+// tree is what
 // the terrain material walks per pixel: each node is a line, each leaf a plot,
 // and the nearest cut on the way down is the distance to the plot's edge,
 // where the verge grows. No texture holds the plots, so an edge is as sharp
@@ -51,8 +54,11 @@ const DEG = Math.PI / 180;
  *  a plot's corner does not carve a sliver. */
 const MIN_PIECE_AREA_M2 = 100;
 /** A road cuts a plot only where it runs along at least this share of the
- *  cut's chord through it; a larger plot is cut by size first. */
-const ROAD_CHORD_SHARE = 0.7;
+ *  cut's chord through it; a larger plot is cut by size first. Land not yet
+ *  a tract asks for more: there the rest of the chord is a cut running on
+ *  for hundreds of metres past the road's end, and a bend's stretches fan
+ *  the land out in wedges. */
+const ROAD_CHORD_SHARE = { tract: 0.7, land: 0.9 } as const;
 /** A split tree deeper than this is a runaway (bad rules), not a patchwork. */
 export const MAX_PLOT_DEPTH = 64;
 /** A road is kept as a plot's candidate while its box comes this near the
@@ -97,8 +103,8 @@ function span(poly: number[], ax: number, ay: number): [number, number] {
 }
 
 /** Whether a road segment cuts `poly` into two real pieces. Its line must
- *  run along the road for most of its chord through the plot, or the plot be
- *  no longer than `shortChord` that way, so a cut never runs far past a
+ *  run along the road for `share` of its chord through the plot, or the plot
+ *  be no longer than `shortChord` that way, so a cut never runs far past a
  *  road's end or bend across open fields. */
 function roadCuts(
   poly: number[],
@@ -107,6 +113,7 @@ function roadCuts(
   bx: number,
   by: number,
   shortChord: number,
+  share: number,
 ): boolean {
   const len = Math.hypot(bx - ax, by - ay);
   if (len === 0) return false;
@@ -135,7 +142,7 @@ function roadCuts(
   if (!(t1 > t0)) return false;
   const along = Math.min(t1, 1) - Math.max(t0, 0);
   if (along * len < 1) return false;
-  if (along < ROAD_CHORD_SHARE * (t1 - t0) && (t1 - t0) * len > shortChord) return false;
+  if (along < share * (t1 - t0) && (t1 - t0) * len > shortChord) return false;
   const front = clipHalfPlane(poly, n, c);
   const back = clipHalfPlane(poly, vec2.negate(_cut_normal, n), -c);
   return (
@@ -144,6 +151,41 @@ function roadCuts(
     polygon2.area(front, front.length / 2) >= MIN_PIECE_AREA_M2 &&
     polygon2.area(back, back.length / 2) >= MIN_PIECE_AREA_M2
   );
+}
+
+/** The length of road segment a→b that lies in convex `poly` or within
+ *  `pad` outside it: a road along a tract's edge counts as the tract's. */
+function roadWithin(
+  poly: number[],
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+  pad: number,
+): number {
+  let t0 = 0,
+    t1 = 1;
+  const count = poly.length / 2;
+  const turn = polygon2.signedArea(poly, count) >= 0 ? 1 : -1;
+  for (let i = 0; i < count && t0 < t1; i++) {
+    const px = poly[i * 2],
+      py = poly[i * 2 + 1];
+    const j = (i + 1) % count;
+    const ex = poly[j * 2] - px,
+      ey = poly[j * 2 + 1] - py;
+    const edge = Math.hypot(ex, ey);
+    if (edge === 0) continue;
+    // Inward unit normal of the edge.
+    const nx = (-ey / edge) * turn,
+      ny = (ex / edge) * turn;
+    const fa = nx * (ax - px) + ny * (ay - py) + pad;
+    const slope = nx * (bx - ax) + ny * (by - ay);
+    if (slope === 0) {
+      if (fa < 0) return 0;
+    } else if (slope > 0) t0 = Math.max(t0, -fa / slope);
+    else t1 = Math.min(t1, -fa / slope);
+  }
+  return Math.max(0, t1 - t0) * Math.hypot(bx - ax, by - ay);
 }
 
 /** Split the map and its surroundings into the biome's plots. Deterministic
@@ -256,30 +298,70 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
     heading: number,
     level: number,
     roads: Int32Array,
+    tract: boolean,
   ): number => {
     const at = nodes.length / NODE_FLOATS;
     nodes.push(nx, ny, c, 0, 0);
     const n = vec2.set(_cut_normal, nx, ny);
     const front = clipHalfPlane(poly, n, c);
     const back = clipHalfPlane(poly, vec2.set(_cut_normal, -nx, -ny), -c);
-    nodes[at * NODE_FLOATS + 3] = split(front, heading, level + 1, roads);
-    nodes[at * NODE_FLOATS + 4] = split(back, heading, level + 1, roads);
+    nodes[at * NODE_FLOATS + 3] = split(front, heading, level + 1, roads, tract);
+    nodes[at * NODE_FLOATS + 4] = split(back, heading, level + 1, roads, tract);
     return at;
   };
 
-  const split = (poly: number[], heading: number, level: number, parents: Int32Array): number => {
-    depth = Math.max(depth, level);
-    if (level >= MAX_PLOT_DEPTH) throw new Error("field_rules: the plot split runs away");
-    // Roads first: the first road segment crossing this plot cuts it.
-    const roads = roadsNear(poly, parents);
+  /** The heading of the longest stretch of road in `poly` or beside it (no
+   *  plot fits between them); null where it has none worth a plot's width. */
+  const roadHeading = (poly: number[], roads: Int32Array): number | null => {
+    let longest = rules.min_width_m;
+    let heading: number | null = null;
     for (const r of roads) {
       const o = r * 4;
       const [ax, ay, bx, by] = [roadEdges[o], roadEdges[o + 1], roadEdges[o + 2], roadEdges[o + 3]];
-      if (!roadCuts(poly, ax, ay, bx, by, rules.size_m[1])) continue;
+      const within = roadWithin(poly, ax, ay, bx, by, rules.min_width_m);
+      if (within > longest) {
+        longest = within;
+        heading = Math.atan2(by - ay, bx - ax);
+      }
+    }
+    return heading;
+  };
+
+  const split = (
+    poly: number[],
+    land: number,
+    level: number,
+    parents: Int32Array,
+    inTract: boolean,
+  ): number => {
+    depth = Math.max(depth, level);
+    if (level >= MAX_PLOT_DEPTH) throw new Error("field_rules: the plot split runs away");
+    const roads = roadsNear(poly, parents);
+    // Land no longer than a tract either way becomes one, and turns to a
+    // grain of its own. In a tract, land with a road in it or beside it lies
+    // along its longest; the rest keeps the grain it was cut from.
+    let heading = land;
+    let tract = inTract;
+    if (!tract) {
+      const [a0, a1] = span(poly, Math.cos(land), Math.sin(land));
+      const [b0, b1] = span(poly, -Math.sin(land), Math.cos(land));
+      if (Math.max(a1 - a0, b1 - b0) <= rules.tract_m) {
+        heading = land + random.float(rng, -1, 1) * rules.orientation_jitter_deg * DEG;
+        tract = true;
+      }
+    }
+    if (tract) heading = roadHeading(poly, roads) ?? heading;
+    // Roads first: the first road segment crossing this plot cuts it, and
+    // both sides are tracts from there, however large.
+    for (const r of roads) {
+      const o = r * 4;
+      const [ax, ay, bx, by] = [roadEdges[o], roadEdges[o + 1], roadEdges[o + 2], roadEdges[o + 3]];
+      const share = tract ? ROAD_CHORD_SHARE.tract : ROAD_CHORD_SHARE.land;
+      if (!roadCuts(poly, ax, ay, bx, by, rules.size_m[1], share)) continue;
       const len = Math.hypot(bx - ax, by - ay);
       const nx = -(by - ay) / len,
         ny = (bx - ax) / len;
-      return cut(poly, nx, ny, nx * ax + ny * ay, heading, level, roads);
+      return cut(poly, nx, ny, nx * ax + ny * ay, heading, level, roads, true);
     }
     const [ux, uy] = [Math.cos(heading), Math.sin(heading)];
     const [u0, u1] = span(poly, ux, uy);
@@ -288,11 +370,6 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
     const [long, short] = lu >= lv ? [lu, lv] : [lv, lu];
     const area = polygon2.area(poly, poly.length / 2);
     const side = random.float(rng, rules.size_m[0], rules.size_m[1]);
-    // A large tract turns its heading; its plots keep it.
-    const turned =
-      long > rules.tract_m
-        ? heading + random.float(rng, -1, 1) * rules.orientation_jitter_deg * DEG
-        : heading;
     if (area <= side * side && long <= rules.max_aspect * short) return leaf(poly, heading);
     if (short < 2 * rules.min_width_m && long < 2 * rules.min_width_m) return leaf(poly, heading);
     // Across the length by default; along it into strips, by chance, while
@@ -305,7 +382,7 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
     if (!acrossU && lv < 2 * rules.min_width_m) return leaf(poly, heading);
     if (acrossU && lu < 2 * rules.min_width_m) return leaf(poly, heading);
     const lean = random.float(rng, -1, 1) * rules.cut_jitter_deg * DEG;
-    const theta = turned + (acrossU ? 0 : Math.PI / 2) + lean;
+    const theta = heading + (acrossU ? 0 : Math.PI / 2) + lean;
     const [nx, ny] = [Math.cos(theta), Math.sin(theta)];
     const [s0, s1] = span(poly, nx, ny);
     const extent = s1 - s0;
@@ -313,7 +390,8 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
     const lo = Math.max(rules.cut_range[0], rules.min_width_m / extent);
     const hi = Math.min(rules.cut_range[1], 1 - rules.min_width_m / extent);
     if (lo > hi) return leaf(poly, heading);
-    return cut(poly, nx, ny, s0 + random.float(rng, lo, hi) * extent, turned, level, roads);
+    const at = s0 + random.float(rng, lo, hi) * extent;
+    return cut(poly, nx, ny, at, heading, level, roads, tract);
   };
 
   const root = [
@@ -331,6 +409,7 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
     rules.orientation_deg * DEG,
     1,
     Int32Array.from({ length: roadCount }, (_, r) => r),
+    false,
   );
   if (top < 0) {
     // A single plot: one node whose both sides are it.

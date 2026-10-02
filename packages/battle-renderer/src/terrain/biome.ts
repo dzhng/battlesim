@@ -55,9 +55,11 @@ export interface FieldRules {
   strip_chance: number;
   /** The longest plot, as length over width. */
   max_aspect: number;
-  /** The patchwork's prevailing heading, degrees from world +X. */
+  /** The land's heading, degrees from world +X: it is cut on it down to
+   *  tracts no longer than `tract_m` either way. */
   orientation_deg: number;
-  /** How far a large tract (over `tract_m` a side) turns from its parent's heading. */
+  /** How far a tract's own grain turns from the land's heading, where no
+   *  road gives it one: its plots and their rows keep the tract's grain. */
   orientation_jitter_deg: number;
   tract_m: number;
   /** How far one cut leans off its tract's heading. */
