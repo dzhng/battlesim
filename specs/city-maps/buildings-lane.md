@@ -50,7 +50,11 @@ The movement scene now waits within its existing planning bound before inspectin
 
 Current field texture checks pass all four original conditions without changed thresholds. Panel layout passes after replacing a stale wait for an unselected card to disappear with the documented visible compact-card contract; leaving hover must close detail and clear hover state. Its original layout/hover/command checks remain. The boundary check now tests neutral stored paint and visible finished-frame contrast: grey paint can lower red over a yellow field, so positive colour rises were an invalid neutrality test. All 13 boundary samples pass; controls with missing paint or unchanged finished frames fail. The renderer is unchanged.
 
-Current ballistics and grenade-area checks still fail, and village-watch still lacks its labelled contact; downstream missing-impact exceptions remain recorded. Scripted village combat has not been rerun. These focused results do not close the landscape look, combat or whole-spec gates.
+The diagnostic ballistics and weapons fixtures now stage the current physical flight: the low arc is blocked by the existing crest, moving bodies meet the solved flight time, and the hidden firing report is within grenade reach while the identified control is within both mounts' reach. The integrated scenes pass all 17 ballistics and nine original weapons checks without gameplay tuning. Their map identity changes intentionally. Retained red/green and guard controls live in `throwaway/integration-triage/lab-staging/`.
+
+The lab panel scrolls within the viewport, including at 800 × 600, and every feed row is reachable without a tolerance. Four added checks pass alongside the original nine weapons checks. Crossing captures use the authoritative near-miss/impact events rather than obsolete frame numbers. Paired captures and a fresh image review confirm this bounded diagnostic improvement; the review still finds tiny actors, weak distant arcs and ambiguous diagnostic marks. These remain visual limitations, not accepted battlefield art. Evidence is in `throwaway/integration-triage/lab-panel/`.
+
+Village-watch contact staging and scripted village combat still need their current verdicts. These focused results do not close the landscape look, combat or whole-spec gates.
 
 ### Buildings checkpoint
 
