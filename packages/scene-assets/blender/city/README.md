@@ -81,4 +81,5 @@ A new set is listed in `assets/catalog.json`: its kit as an appearance, and the 
 - [`graph.py`](graph.py) reads a geometry-nodes building before it is realized: its instances with their transforms and tints, and the mesh it generated for the recipe. Every graph source starts here.
 - [`detail.py`](detail.py) makes a kit mesh's coarser tiers by one rule, the smallest feature a tier keeps. It calls no Blender operator, so its output is the same bytes every run.
 - [`ambientcg.py`](ambientcg.py) bakes a pinned ambientCG set (`../packs.py`) into a texture recipe at the size every texture in the game has.
+- [`towers.py`](towers.py) models our own tower blocks: panel modules one bay wide and one floor high, placed by a row a bay; each template's shell carries the same grid as a texture from tier 1 out, and is the whole tower at tiers 2 and 3. [`tower_sheets.py`](tower_sheets.py) photographs them, alone and among the other sets.
 - [`assemble.py`](assemble.py) puts a set back together in Blender from its two files and renders it at the game's camera with the part boxes drawn over it: the picture to judge a set by until the renderer draws kits.
