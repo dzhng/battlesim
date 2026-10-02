@@ -3,7 +3,8 @@
 // loading screen covers the wait, the battle on it runs in the village's
 // battle view, and its buildings (massing), trees and roads are drawn where
 // the static map says they are, with fog over what blue does not see. The
-// camera flown through its main town never enters a building.
+// camera flown through its main town never enters a building. The menu's
+// saved battlefield (a generated map of the catalogue) starts the same way.
 //
 // `CAMERA_MAP=metro:large:1` flies the camera through that map's main town
 // instead, and reports what clearance costs there. `STARTUP_MAP=mixed:large:1`
@@ -574,4 +575,36 @@ export async function run(ctx) {
     `${message} | ${details}`,
   );
   await writeFile(ctx.evidencePath("refused-1280x800.png"), await refused.screenshot());
+
+  // The saved battlefield, started from the menu beside the village: the
+  // catalogue's generated map under the identity its sources pin, with its
+  // saved encounter, in the same battle view.
+  const town = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
+  await town.goto(new URL("/", ctx.url).href);
+  const entry = town.getByRole("link", { name: "Play Market Town" });
+  await entry.waitFor();
+  await entry.hover();
+  await writeFile(ctx.evidencePath("menu-saved-1920x1080.png"), await town.screenshot());
+  const href = await entry.getAttribute("href");
+  await entry.click();
+  await town.getByTestId("loading").waitFor();
+  const subject = await town.getByTestId("loading-subject").textContent();
+  await playable(town);
+  const report = await lab(town, () => window.__lab.route.prepared());
+  const start = await lab(town, () => window.__lab.route.startup());
+  ctx.check(
+    "the menu's saved battlefield plays the catalogue's map with its saved encounter",
+    href === "/battle?map=market-town&recipe=assault" &&
+      /MARKET TOWN/.test(subject) &&
+      report.request.map_source.kind === "catalogue" &&
+      report.identity.kind === "generated" &&
+      report.planned === null &&
+      report.objective !== null &&
+      report.counts.buildings > 1000,
+    JSON.stringify({ href, subject, identity: report.identity, counts: report.counts }),
+  );
+  console.log(
+    `METRIC saved map market-town: prepared ${start.prepared.toFixed(0)} ms (map ${report.timings.map.toFixed(0)}, encounter ${report.timings.encounter.toFixed(0)}), playable ${start.playable.toFixed(0)} ms after the menu's link; ${report.counts.buildings} buildings (development build)`,
+  );
+  await writeFile(ctx.evidencePath("saved-battle-1920x1080.png"), await town.screenshot());
 }

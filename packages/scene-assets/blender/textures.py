@@ -749,11 +749,14 @@ def macro(rgb, recipe_name):
     return tuple(min(1.0, max(0.0, c / max(m, 1e-4) / COLOUR_SCALE)) for c, m in zip(rgb, mean))
 
 
-def attach(path, materials):
+def attach(path, materials, worn=True):
     """Embed each recipe's images in the GLB at `path` and point the named
     materials' texture slots at them: {material name: recipe name}. The
     material's factors become 1 (the images carry the values); its wear colour
-    goes in extras."""
+    goes in extras. With `worn` false the surface never wears: the material
+    keeps its own factors, so several materials can share one recipe at their
+    own base colour, roughness and metalness, and its vertex colour is a plain
+    multiplier."""
     data = open(path, "rb").read()
     jlen = struct.unpack_from("<I", data, 12)[0]
     doc = json.loads(data[20:20 + jlen])
@@ -789,13 +792,14 @@ def attach(path, materials):
         pbr = m.setdefault("pbrMetallicRoughness", {})
         pbr["baseColorTexture"] = texture(name, "albedo", blobs["albedo"])
         pbr["metallicRoughnessTexture"] = texture(name, "orm", blobs["orm"])
-        pbr["metallicFactor"] = 1.0
-        pbr["roughnessFactor"] = 1.0
         m["occlusionTexture"] = texture(name, "orm", blobs["orm"])
         m["normalTexture"] = texture(name, "normal", blobs["normal"])
-        extras = m.setdefault("extras", {})
-        extras["wear"] = [float(x) for x in RECIPES[name][1]]
-        extras["colour_scale"] = COLOUR_SCALE
+        if worn:
+            pbr["metallicFactor"] = 1.0
+            pbr["roughnessFactor"] = 1.0
+            extras = m.setdefault("extras", {})
+            extras["wear"] = [float(x) for x in RECIPES[name][1]]
+            extras["colour_scale"] = COLOUR_SCALE
     while len(bin_) % 4:
         bin_.append(0)
     doc["buffers"] = [{"byteLength": len(bin_)}]

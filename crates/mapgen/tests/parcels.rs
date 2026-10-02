@@ -843,31 +843,33 @@ fn what_cannot_be_built_ends_in_a_named_diagnostic() {
     assert_eq!(errors[0].location, "$.limits.max_ground_points");
 }
 
-/// The compiled map is what a battle loads: it reads back as the contract's
-/// map, with every building's facts resolved against the catalogue.
+/// The compiled map is what a battle loads: saved, it resolves back to the
+/// same map under the saved catalogue's own allowance, every building
+/// materialized from the catalogue.
 #[test]
 fn every_generated_map_loads_as_the_contracts_map() {
     let library = catalogue().canonical_json().unwrap();
     every_cell(|name, _, town| {
-        let saved = serde_json::to_string(&town.map).unwrap();
-        let loaded: MapDefinition = serde_json::from_str(&saved).unwrap();
-        assert_eq!(loaded.buildings.len(), town.plan.buildings.len(), "{name}");
-        assert_eq!(serde_json::to_string(&loaded).unwrap(), saved, "{name}");
+        let saved = serde_json::to_string(&town.map.saved()).unwrap();
         let sources = serde_json::json!({
             "identity": {
                 "kind": "authored",
-                "map_hash": contract::identity::json_hash(&loaded).unwrap(),
-                "template_catalog_hash": loaded.template_catalog_hash,
+                "map_hash": contract::identity::json_hash(&town.map).unwrap(),
+                "template_catalog_hash": town.map.template_catalog_hash,
             },
-            "catalogue": { "template_ids": null },
+            "catalogue": { "library": "prototype-building-templates.json", "template_ids": null },
             "inputs": [{ "kind": "supplied", "label": "request", "sha256": "0".repeat(64) }],
         });
-        let admission = contract::maps::MapAdmission {
-            max_authored_parts: 60_000,
-            max_bay_positions: 600_000,
-        };
-        contract::maps::resolve(&saved, &sources.to_string(), &library, admission)
-            .unwrap_or_else(|error| panic!("{name}: {error}"));
+        let admission = contract::maps::MapAdmission::CATALOGUE;
+        let loaded = contract::maps::resolve(&saved, &sources.to_string(), &library, admission)
+            .unwrap_or_else(|error| panic!("{name}: {error}"))
+            .definition;
+        assert_eq!(loaded.buildings.len(), town.plan.buildings.len(), "{name}");
+        assert_eq!(
+            serde_json::to_string(&loaded).unwrap(),
+            serde_json::to_string(&town.map).unwrap(),
+            "{name}"
+        );
     });
 }
 

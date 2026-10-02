@@ -359,13 +359,16 @@ fn native_cli_saves_the_same_physical_map_and_lossless_identity() {
         result.result.get(),
         serde_json::to_string(&expected).unwrap()
     );
+    // The saved map holds each building as its template and frame, and its
+    // sources name the catalogue's file: the resolver gives the compiled map
+    // back from them and that file as the CLI was handed it.
     let saved = std::fs::read_to_string(output_path.join("map.json")).unwrap();
-    let map: contract::map::MapDefinition = serde_json::from_str(&saved).unwrap();
+    assert_eq!(saved, serde_json::to_string(&expected.map.saved()).unwrap());
     let sources = std::fs::read_to_string(output_path.join("SOURCES.json")).unwrap();
     let resolved = contract::maps::resolve(
         &saved,
         &sources,
-        &catalogue().canonical_json().unwrap(),
+        &std::fs::read_to_string(&catalogue_path).unwrap(),
         contract::maps::MapAdmission {
             max_authored_parts: input.limits.max_authored_parts,
             max_bay_positions: input.limits.max_bay_positions,
@@ -377,10 +380,11 @@ fn native_cli_saves_the_same_physical_map_and_lossless_identity() {
         json!({"kind":"generated", "generation":expected.identity}),
     );
     assert_eq!(
-        serde_json::to_value(&resolved.definition).unwrap(),
-        serde_json::to_value(&map).unwrap()
+        serde_json::to_string(&resolved.definition).unwrap(),
+        serde_json::to_string(&expected.map).unwrap()
     );
     let sources: Value = serde_json::from_str(&sources).unwrap();
+    assert_eq!(sources["catalogue"]["library"], "catalogue.json");
     assert_eq!(
         sources["inputs"],
         json!([
@@ -388,7 +392,6 @@ fn native_cli_saves_the_same_physical_map_and_lossless_identity() {
             {"kind":"supplied", "label":"catalogue", "sha256":contract::identity::bytes_hash(&std::fs::read(&catalogue_path).unwrap())},
         ])
     );
-    assert_eq!(saved, serde_json::to_string(&expected.map).unwrap());
     std::fs::remove_dir_all(directory).unwrap();
 }
 

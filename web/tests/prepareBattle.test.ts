@@ -265,6 +265,33 @@ test("an encounter the planner cannot place legally is refused by name, never st
   expect(refused.diagnostics[1].feature).toBe("forces.red[0]");
 }, 60_000);
 
+test("the saved generated map plays its saved assault from the catalogue, and it runs", async () => {
+  const { scenario: json, report } = await prepared({
+    map_source: { kind: "catalogue", id: "market-town" },
+    recipe_id: "assault",
+    encounter_seed: "1",
+    battle_seed: 1,
+  });
+  // The map is the catalogue's own generated map, and the scenario carries
+  // the resolver's text of it: its buildings materialized, no number
+  // reprinted by JavaScript.
+  const town = loadMap("market-town");
+  expect(town.identity.kind).toBe("generated");
+  expect(report.identity).toEqual(town.identity);
+  expect(json.startsWith(`{"map":${town.json},"rules":`)).toBe(true);
+  expect(report.counts.buildings).toBe(town.definition.buildings!.length);
+  expect(report.counts.buildings).toBeGreaterThan(1_000);
+  // The saved encounter is a whole battle: both sides, and a town to take.
+  const scenario = JSON.parse(json) as Scenario;
+  expect(scenario.units).toEqual(loadEncounter("market-town", "assault").units);
+  expect(new Set(scenario.units.map((u) => u.side))).toEqual(new Set(["blue", "red"]));
+  expect(report.objective?.center).toEqual(scenario.encounter.success_zone_center);
+  const battle = new wasm.Battle(json, 1);
+  for (let tick = 0; tick < 30; tick++) battle.step();
+  expect(battle.tick()).toBe(30);
+  battle.free();
+}, 60_000);
+
 test("a catalogue map plays its saved encounter through the same preparation, and it runs", async () => {
   const { scenario: json, report } = await prepared({
     map_source: { kind: "catalogue", id: "village" },

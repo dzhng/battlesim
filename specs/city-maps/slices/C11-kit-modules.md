@@ -41,3 +41,9 @@ Bundle grouping; module naming. Anything else you have to decide is a spec gap: 
 
 ## Feedback that would change this slice
 A module silhouette or scale mismatch changes the exported module source before template assembly.
+
+## Outcome (China)
+
+`packages/scene-assets/blender/city/china.py` exports the China graph as `assets/source/city/china_apartments/`: 74 modules (69 kit meshes and five template shells) with four tiers each, 75,909 / 51,718 / 24,782 / 6,416 triangles, a 19.3 MB source and a 21.4 MB bundle. Street outputs are off, tint alpha never reaches vertex colour, vertices are split per material. `asset validate --unit kit` has no findings.
+
+Not done here: New York and Paris; the street kit for C45; an `export-kit` subcommand (the script runs through `asset blender`). The module count is 74, not S2's 90: S2 counted rooms, curtains, decals, plants and street props, which are not exported ([choices](../choices.md#c11c12c13-the-china-apartment-kit)). The workbench cannot draw a kit yet, so the pictures are a Blender reassembly from the two exported files (`city/assemble.py`) beside the source graph, with an unprimed critique; `compare-screenshots` telemetry was not run.

@@ -6,6 +6,7 @@ use mapgen::{CompileOutcome, GenerateOutcome};
 use std::path::Path;
 
 const USAGE: &str = "usage:
+  mapgen request <type> <size> <seed> <presets.json> <catalogue.json> <game.json>
   mapgen lower <request.json> <catalogue.json> [output-directory]
   mapgen generate <request.json> <presets.json> <catalogue.json> [plan.json]
   mapgen generate-map <request.json> <presets.json> <catalogue.json> [output-directory]
@@ -13,20 +14,36 @@ const USAGE: &str = "usage:
   mapgen catalogue <catalogue.json>
 
 <catalogue.json> is a list of physical template descriptors; `catalogue` prints its
-canonical form, whose hash a request pins. [crop] is a settlement or district id of
+canonical form, whose hash a request pins. [output-directory] receives a saved map
+(fixtures/README.md): map.json with each building as its template and frame,
+SOURCES.json naming <catalogue.json>'s file as the map's library, and sites.json.
+`request` prints the generation request for a map type (open, mixed, metro), size
+(small, medium, large) and seed, pinned to this generator, the presets' revision and
+the catalogue's hash, under the limits of <game.json> (fixtures/generated-battle.json):
+the request the game makes for the same choice. [crop] is a settlement or district id of
 the plan, bridge-<n> for its nth bridge from 0, or x,y,width,height in metres.";
 
-/// Print the compiler's outcome and, on success, save the map beside
-/// receipts for exactly the input bytes that made it.
+/// Print the compiler's outcome and, on success, save the map in the saved
+/// form (each building as its template and frame) beside receipts for
+/// exactly the input bytes that made it. `library` is the catalogue's file:
+/// its name is what the saved map's sources tell a loader to fetch.
 fn finish(
     outcome: CompileOutcome,
     inputs: &[(&str, &str)],
+    library: &std::ffi::OsStr,
     directory: Option<&std::ffi::OsString>,
 ) -> Result<bool, Box<dyn std::error::Error>> {
     if let (CompileOutcome::Ok { result }, Some(path)) = (&outcome, directory) {
         let directory = Path::new(path);
+        let library = Path::new(library)
+            .file_name()
+            .and_then(|name| name.to_str())
+            .ok_or("the catalogue's file has no name to save as the map's library")?;
         std::fs::create_dir_all(directory)?;
-        std::fs::write(directory.join("map.json"), serde_json::to_vec(&result.map)?)?;
+        std::fs::write(
+            directory.join("map.json"),
+            serde_json::to_vec(&result.map.saved())?,
+        )?;
         // What the encounter planner reads beside the map.
         std::fs::write(
             directory.join("sites.json"),
@@ -38,7 +55,10 @@ fn finish(
                 identity: MapIdentity::Generated {
                     generation: result.identity.clone(),
                 },
-                catalogue: CatalogueSelection { template_ids: None },
+                catalogue: CatalogueSelection {
+                    library: library.into(),
+                    template_ids: None,
+                },
                 inputs: inputs
                     .iter()
                     .map(|(label, bytes)| SourceReceipt::Supplied {
@@ -58,11 +78,29 @@ fn run() -> Result<bool, Box<dyn std::error::Error>> {
     let command = arguments.first().and_then(|command| command.to_str());
     let read = |index: usize| std::fs::read_to_string(&arguments[index]);
     match (command, arguments.len()) {
+        (Some("request"), 7) => {
+            let text = |index: usize| arguments[index].to_string_lossy().into_owned();
+            let presets: serde_json::Value = serde_json::from_str(&read(4)?)?;
+            let catalogue = TemplateGeometryCatalog::new(serde_json::from_str(&read(5)?)?)?;
+            let game: serde_json::Value = serde_json::from_str(&read(6)?)?;
+            let request: layout::GenerationRequest = serde_json::from_value(serde_json::json!({
+                "generator_version": layout::GENERATOR_VERSION,
+                "preset_revision": presets["revision"],
+                "seed": text(3),
+                "template_catalog_hash": catalogue.hash(),
+                "type": text(1),
+                "size": text(2),
+                "limits": game["limits"],
+            }))?;
+            println!("{}", serde_json::to_string(&request)?);
+            Ok(true)
+        }
         (Some("lower"), 3 | 4) => {
             let (request, catalogue) = (read(1)?, read(2)?);
             finish(
                 mapgen::compile(&request, &catalogue),
                 &[("request", &request), ("catalogue", &catalogue)],
+                &arguments[2],
                 arguments.get(3),
             )
         }
@@ -83,6 +121,7 @@ fn run() -> Result<bool, Box<dyn std::error::Error>> {
                     ("presets", &presets),
                     ("catalogue", &catalogue),
                 ],
+                &arguments[3],
                 arguments.get(4),
             )
         }

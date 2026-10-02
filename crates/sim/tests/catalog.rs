@@ -25,6 +25,19 @@ fn with_m1_family() -> Value {
 }
 
 #[test]
+fn shipped_rules_admit_every_weapon_before_battle_startup() {
+    let rules: Rules = serde_json::from_value(common::game()).unwrap();
+    let config = sim::flight::FlightConfig::new(&rules.physics.flight, rules.tick_hz).unwrap();
+    for (id, weapon) in &rules.weapons {
+        assert!(
+            config.profile(&weapon.ballistics).is_ok(),
+            "weapon {id} cannot start a battle: {:?}",
+            config.profile(&weapon.ballistics).err()
+        );
+    }
+}
+
+#[test]
 fn the_browsers_catalog_view_is_current() {
     let path = sim::fixtures::dir().join("catalog.json");
     let view = sim::fixtures::catalog_view();

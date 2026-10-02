@@ -5,6 +5,7 @@
     "template_catalog_hash": "fd62882f6114c99b42ee939109f7ca17dda1a37a41c6f0a8a50ee95461c297e3"
   },
   "catalogue": {
+    "library": "building-templates.json",
     "template_ids": [
       "api-box-12-10-4"
     ]

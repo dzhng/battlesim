@@ -70,7 +70,15 @@ A new set is listed in `assets/catalog.json`: its kit as an appearance, and the 
 - **The same inputs write the same bytes.** Seeds are fixed, iteration is in a sorted order, and nothing reads the clock.
 - **Sizes are whole bays and whole floors.** A facade's windows sit on the descriptor's bay lattice (3 m pitch) and its floors on `floor_heights_m`. A graph-made side is 3n + 2 metres long ([S2](../../../../specs/city-maps/spikes/S2.md)).
 - **An exposed edge has a facade; an edge that is not exposed has none.** No windows on a party wall or an interior join.
-- **Detail is budgeted per template**, in triangles drawn at each tier: 150,000 at tier 0, 50,000 at tier 1, 12,000 at tier 2 and 2,000 at tier 3. The script prints what each template draws.
+- **Detail is budgeted per template**, in triangles drawn at each tier: 150,000 at tier 0, 50,000 at tier 1, 12,000 at tier 2 and 2,000 at tier 3. The script prints what each template draws. A far building is one row: at the coarse tiers a script folds what is left of its modules into the template's own shell.
 - **Nothing glows.** Emission is zero; interiors are unlit.
-- **No real names.** Sign text comes from the project's own invented-name list; no brand, logo or landmark.
+- **No real names.** Sign text is a generic word for a trade (tea, pharmacy, hotel) or comes from the project's own invented-name list; no brand, logo, place or landmark.
 - **No street.** Sidewalks, street trees, lamps and props are not part of a building.
+
+## What is here
+
+- [`china.py`](china.py) exports the China apartment set from the vendored graph: which of the graph's instances are a building of ours, the materials, the tiers and the five recipes are its tables.
+- [`graph.py`](graph.py) reads a geometry-nodes building before it is realized: its instances with their transforms and tints, and the mesh it generated for the recipe. Every graph source starts here.
+- [`detail.py`](detail.py) makes a kit mesh's coarser tiers by one rule, the smallest feature a tier keeps. It calls no Blender operator, so its output is the same bytes every run.
+- [`ambientcg.py`](ambientcg.py) bakes a pinned ambientCG set (`../packs.py`) into a texture recipe at the size every texture in the game has.
+- [`assemble.py`](assemble.py) puts a set back together in Blender from its two files and renders it at the game's camera with the part boxes drawn over it: the picture to judge a set by until the renderer draws kits.
