@@ -38,7 +38,13 @@ interface Group {
 export interface ObservationLayout {
   header: string[];
   groups: Group[];
-  groupDelivery: { fields: string[]; range: string[]; copy: string[]; encodings: string[] };
+  groupDelivery: {
+    fields: string[];
+    range: string[];
+    copy: string[];
+    copyAlignments: number[];
+    encodings: string[];
+  };
   fog: { count: string; maxWords: number };
   ground: GroundLayout;
   /** Bits per limb of an exact integer field pair. */
@@ -517,9 +523,9 @@ function reconstructGroups(
     } else if (mode === "copies") {
       const old = previous![g];
       const group = layout.groups[g];
-      const stride = group.fields.length;
-      if (group.sections.length !== 0 || size % stride !== 0)
-        throw new Error("observation copies require fixed rows");
+      const stride = layout.groupDelivery.copyAlignments[g];
+      if (stride !== (group.sections.length === 0 ? group.fields.length : 1) || size % stride !== 0)
+        throw new Error("observation copy alignment disagrees with its group");
       values = new Float32Array(size);
       let at = 0;
       while (cursor < end) {

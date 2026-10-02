@@ -432,7 +432,7 @@ pub fn layout_json(battle: &Battle) -> String {
                 "sections": [],
             },
         ],
-        "groupDelivery": { "fields": ["length", "encoding", "floats"], "range": ["start", "length"], "copy": ["source", "length"], "encodings": GROUP_ENCODINGS },
+        "groupDelivery": { "fields": ["length", "encoding", "floats"], "range": ["start", "length"], "copy": ["source", "length"], "copyAlignments": (0..9).map(|g| fixed_row_width(g).max(1)).collect::<Vec<_>>(), "encodings": GROUP_ENCODINGS },
         "fog": { "count": "fogFloats", "maxWords": MAX_FOG_WORDS },
         // A run is one 16×16 tile and start + len * 256 within it;
         // craterScorch is crater + scorch * 256; tracksTrampledCleared is tracks + trampled * 256 + cleared * 65536.
@@ -1166,25 +1166,29 @@ fn encode_groups(
         let mut index = Vec::new();
         if !previous.is_empty()
             && payload > 2
-            && stride > 0
             && !old.is_empty()
-            && old.len().is_multiple_of(stride)
-            && values.len().is_multiple_of(stride)
+            && (stride == 0
+                || (old.len().is_multiple_of(stride) && values.len().is_multiple_of(stride)))
         {
-            // One exact-reserved 32-bit source address per fixed row; no list of
-            // edit operations and no hash-collision or identity assumptions.
+            // Fixed rows retain row alignment; variable sections use sparse exact
+            // eight-word anchors. Both share one source-span wire grammar.
+            let anchor = if stride == 0 { 8 } else { stride };
             index
-                .try_reserve_exact(old.len() / stride)
+                .try_reserve_exact(old.len() / anchor)
                 .map_err(|e| format!("publication row index allocation: {e}"))?;
-            index.extend((0..old.len()).step_by(stride).map(|i| i as u32));
+            index.extend(
+                (0..old.len().saturating_sub(anchor - 1))
+                    .step_by(anchor)
+                    .map(|i| i as u32),
+            );
             index.sort_unstable_by(|&a, &b| {
                 compare_rows(
-                    &old[a as usize..a as usize + stride],
-                    &old[b as usize..b as usize + stride],
+                    &old[a as usize..a as usize + anchor],
+                    &old[b as usize..b as usize + anchor],
                 )
                 .then_with(|| a.cmp(&b))
             });
-            let copies: usize = row_copies(values, old, stride, &index)
+            let copies: usize = source_copies(values, old, stride, &index)
                 .map(|(source, from, to)| 2 + if source.is_some() { 0 } else { to - from })
                 .sum();
             if copies < payload {
@@ -1214,7 +1218,7 @@ fn encode_groups(
         if encoding == 1 {
             out.extend_from_slice(values);
         } else if encoding == 2 {
-            for (source, from, to) in row_copies(values, old, stride, &index) {
+            for (source, from, to) in source_copies(values, old, stride, &index) {
                 out.extend([source.map_or(-1.0, |s| s as f32), (to - from) as f32]);
                 if source.is_none() {
                     out.extend_from_slice(&values[from..to]);
@@ -1253,20 +1257,29 @@ fn compare_rows(a: &[f32], b: &[f32]) -> std::cmp::Ordering {
         .cmp(b.iter().map(|v| v.to_bits()))
 }
 
-/// Assemble canonical order from exact old rows and literal new rows. Adjacent
-/// source rows coalesce, so inserting a row never resends the retained tail.
-fn row_copies<'a>(
+/// Assemble canonical order from exact old spans and new literals. Fixed rows
+/// retain their alignment; variable spans use sparse eight-word anchors and
+/// extend wordwise. Bit comparisons never depend on entity identity or hashes.
+fn source_copies<'a>(
     values: &'a [f32],
     old: &'a [f32],
     stride: usize,
     index: &'a [u32],
 ) -> impl Iterator<Item = (Option<usize>, usize, usize)> + 'a {
+    let anchor = if stride == 0 { 8 } else { stride };
     let source = move |at: usize| {
-        let row = &values[at..at + stride];
+        let row = values.get(at..at + anchor)?;
+        if stride == 0
+            && old
+                .get(at..at + anchor)
+                .is_some_and(|v| compare_rows(v, row).is_eq())
+        {
+            return Some(at);
+        }
         let i = index
-            .partition_point(|&p| compare_rows(&old[p as usize..p as usize + stride], row).is_lt());
+            .partition_point(|&p| compare_rows(&old[p as usize..p as usize + anchor], row).is_lt());
         let p = *index.get(i)? as usize;
-        compare_rows(&old[p..p + stride], row).is_eq().then_some(p)
+        compare_rows(&old[p..p + anchor], row).is_eq().then_some(p)
     };
     let mut at = 0;
     std::iter::from_fn(move || {
@@ -1275,18 +1288,23 @@ fn row_copies<'a>(
         }
         let start = at;
         let from = source(at);
-        at += stride;
+        at += if from.is_some() {
+            anchor
+        } else {
+            stride.max(1)
+        };
         while at < values.len() {
+            let step = stride.max(1);
             let follows = match from {
                 Some(p) => old
-                    .get(p + at - start..p + at - start + stride)
-                    .is_some_and(|row| compare_rows(row, &values[at..at + stride]).is_eq()),
+                    .get(p + at - start..p + at - start + step)
+                    .is_some_and(|row| compare_rows(row, &values[at..at + step]).is_eq()),
                 None => source(at).is_none(),
             };
             if !follows {
                 break;
             }
-            at += stride;
+            at += step;
         }
         Some((from, start, at))
     })
