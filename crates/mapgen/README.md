@@ -58,9 +58,12 @@ extents, which are a user decision (M04 in the [map brief](../../specs/city-maps
   main street along its ground, and the road that joins it to the network leaves by
   the street's end unless that would be a sharp turn (`roads.turn_max_deg`).
 - **A road ends on another where the two make a plain junction**: on a point where a
-  road passes, coming in across it and not alongside, or on a road's end that it
-  carries straight on from. Never where three roads already meet, and never at the
-  map's edge. A road whose two ends would lie on one road is not laid.
+  road passes, coming in across it and not alongside, or on the end of a road of its
+  own kind that it carries straight on from. Never where three roads already meet,
+  never at the map's edge, and never on the end of a road of another kind: a track
+  turns off a country road, it does not carry on from where the paving stops. A road
+  whose two ends would lie on one road is not laid, and neither is a link that has
+  nowhere on a settlement's roads to join.
 - **Fields and woods reach in beside a settlement.** The blocks it leaves open are
   fields, and a wood is tried on some of them (`forests.infill_chance`): a wood of
   its own shape that keeps the same distance from the districts as any other.
@@ -119,11 +122,20 @@ cut along them. After it, a road's end is one of these, and
   past the road's far edge. One within 20° of running alongside is a lane
   peeling off, and keeps its line. An end that stops a width or two past a road
   it crossed is cut back to it.
-- **The wide end of a road that narrows.** Where a wider road and a narrower one
-  meet at a corner, the wider one turns the corner, its own round bend outside,
-  and stops a width and a half down the narrower one, square across it with a
-  shoulder showing either side. Where two narrower ways leave, it follows the
-  straighter and the other joins it.
+- **Under a road that crosses it, where it changes width.** A road changes width,
+  and kind, only where another road crosses it: it is one road from junction to
+  junction. Where a wider way and a narrower one meet end to end (an avenue and a
+  street at a block's corner, a country road and the street that carries on from
+  it), one of them is carried through the corner along the other's line, round its
+  own bend, to the first carriageway that crosses that line and covers the wider
+  way's whole flat end. The wider way ends there, just past the crossing road's
+  middle, and the narrower one starts on the same point. A side road that only
+  joins the line covers one shoulder, so the change is not made at it. Of the two
+  stretches (the narrower way's, on from the corner, and the wider way's, back from
+  it) the shorter is the one that changes; where nothing crosses it so, it changes
+  all the way to its far end, which is a junction, the map's edge or a dead end.
+  Where two narrower ways leave a corner, the one that carries on straighter is
+  the one considered, and the other joins the road as it would anywhere along it.
 - **Square on the map's edge.** A road that leaves the map at a slant turns
   square to the edge over its last two widths, so its end lies along the edge.
 - **At the last block it serves.** A road that runs out past the last block on
@@ -143,10 +155,11 @@ they cross after, are one road, or both cross a third road at the same junction;
 where a change would break that, the roads concerned are left exactly as they
 were laid and the rest are closed round them.
 
-Not closed yet, and counted by the test with heels (9 in ten thousand ends; the
-pass before this one left 140 by the same count): junctions where three ends
-stand a few metres apart without sharing a point, and a wider road that ends at
-a slant on a narrower one with no room to turn.
+Not closed yet, and counted by the test (9 in ten thousand ends are a bite, a
+heel or a wider road's shoulders showing): junctions where three ends stand a few
+metres apart without sharing a point, a wider road that ends at a slant on a
+narrower one with no room to turn, and a corner of unlike roads left as laid
+because mending it would have lost a joint.
 
 ## Parcels and buildings (`parcels`)
 
