@@ -1,3 +1,4 @@
+import { fixtureMap } from "../fixtures";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
@@ -531,7 +532,7 @@ function overlayOf(run: Run, view: WorldView, half: number) {
 }
 
 export default function Ballistics() {
-  return <SavedMap id="geometry">{(map) => <BallisticsLab map={map} />}</SavedMap>;
+  return <SavedMap id={fixtureMap("ballistics")}>{(map) => <BallisticsLab map={map} />}</SavedMap>;
 }
 
 function BallisticsLab({ map }: { map: MapDefinition }) {

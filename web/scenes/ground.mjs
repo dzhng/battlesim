@@ -349,7 +349,7 @@ async function sidesDrawTheirOwnScars(ctx, page, blue, red) {
         import(file("packages/battle-renderer/src/worldMesh.ts")),
       ]);
       await wasm.default();
-      const setup = JSON.parse(await villageScenario(wasm, "ordinary"));
+      const setup = JSON.parse(await villageScenario(wasm, "village", "ordinary"));
       const ruleJson = JSON.stringify(setup.rules);
       const view = new wasm.WorldView(JSON.stringify(setup.map), ruleJson);
       try {

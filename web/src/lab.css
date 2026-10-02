@@ -1,3 +1,12 @@
+/* The developer index uses the same readable links as the battle HUD. */
+.lab-index a {
+  color: rgb(var(--hud-accent));
+}
+.lab-index a:focus-visible {
+  outline: 1px solid rgb(var(--hud-accent));
+  outline-offset: 3px;
+}
+
 .lab-panel {
   position: absolute;
   top: 12px;

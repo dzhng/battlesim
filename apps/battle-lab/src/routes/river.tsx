@@ -69,7 +69,7 @@ const DEMOS: Record<string, (own: OwnUnitView[]) => Order[]> = {
 
 export default function River() {
   return (
-    <SavedEncounter map="river" encounter="river">
+    <SavedEncounter fixture="river" encounter="river">
       {(battle) => <RiverLab battle={battle} />}
     </SavedEncounter>
   );

@@ -88,7 +88,7 @@ function scriptTick(battle: SavedBattle, kind: Order["kind"]): number {
 
 export default function Garrison() {
   return (
-    <SavedEncounter map="garrison" encounter="garrison" rules={RULES}>
+    <SavedEncounter fixture="garrison" encounter="garrison" rules={RULES}>
       {(battle) => <GarrisonLab battle={battle} />}
     </SavedEncounter>
   );

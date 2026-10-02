@@ -2,87 +2,104 @@
   {
     "id": "foundation",
     "route": "/lab/foundation",
-    "describe": "Primitive 3D reproduction: asymmetric tank, facing-marked infantry, raised ground patch and box prop; pan/orbit/zoom, pick and reset."
+    "describe": "Primitive 3D reproduction: asymmetric tank, facing-marked infantry, raised ground patch and box prop; pan/orbit/zoom, pick and reset.",
+    "map": null
   },
   {
     "id": "geometry",
     "route": "/lab/geometry",
-    "describe": "Authoritative terrain and obstacles: ridge, slope threshold, forest volume, road, a river with a bridge, low/tall/thin walls; click probes the exported surface; overlay toggles."
+    "describe": "Authoritative terrain and obstacles: ridge, slope threshold, forest volume, road, a river with a bridge, low/tall/thin walls; click probes the exported surface; overlay toggles.",
+    "map": "geometry"
   },
   {
     "id": "authority",
     "route": "/lab/authority",
-    "describe": "One authority in a worker: real tick commands with an ordered ack log, pause/step/reset, withheld consumer credit and an in-thread replay/parity check."
+    "describe": "One authority in a worker: real tick commands with an ordered ack log, pause/step/reset, withheld consumer credit and an in-thread replay/parity check.",
+    "map": "geometry"
   },
   {
     "id": "movement",
     "route": "/lab/movement",
-    "describe": "Routing and group intent: shortest vs fastest routes, group destinations, friendly traffic, a wall injected at tick 150, route-blocked destinations; select/drag, right-click, double right-click, Shift queue, S stop."
+    "describe": "Routing and group intent: shortest vs fastest routes, group destinations, friendly traffic, a wall injected at tick 150, route-blocked destinations; select/drag, right-click, double right-click, Shift queue, S stop.",
+    "map": "movement"
   },
   {
     "id": "river",
     "route": "/lab/river",
-    "describe": "A river as one distance: a meander that widens from the 12 m minimum to a 30 m stretch, carved into the ground with gentle banks, crossed by a country road's bridge, a dirt track beside it and a wood over one bank. A squad and a tank on the road cross by its bridge; sent into the water, their route is blocked. The traversable-ground toggle shows what blocks and how the banks' facets shade."
+    "describe": "A river as one distance: a meander that widens from the 12 m minimum to a 30 m stretch, carved into the ground with gentle banks, crossed by a country road's bridge, a dirt track beside it and a wood over one bank. A squad and a tank on the road cross by its bridge; sent into the water, their route is blocked. The traversable-ground toggle shows what blocks and how the banks' facets shade.",
+    "map": "river"
   },
   {
     "id": "sensors",
     "route": "/lab/sensors",
-    "describe": "Own sensors and shared identification: a scripted red tank tours thin forest, deep forest, the ridge's far side and a building's shadow; ground fog; per-unit own-sensor lists; labelled side-view switch."
+    "describe": "Own sensors and shared identification: a scripted red tank tours thin forest, deep forest, the ridge's far side and a building's shadow; ground fog; per-unit own-sensor lists; labelled side-view switch.",
+    "map": "sensors"
   },
   {
     "id": "ballistics",
     "route": "/lab/ballistics",
-    "describe": "Physical flight and swept collision: gravity arcs, a fast bullet leading a thin sliding target, dodge after launch, a hill crest blocking direct fire while the indirect high arc clears it, and bodies crossing a round's line between ticks."
+    "describe": "Physical flight and swept collision: gravity arcs, a fast bullet leading a thin sliding target, dodge after launch, a hill crest blocking direct fire while the indirect high arc clears it, and bodies crossing a round's line between ticks.",
+    "map": "geometry"
   },
   {
     "id": "contacts",
     "route": "/lab/contacts",
-    "describe": "Uncertain evidence: a hidden squad fires every 3 s (stable firing area), a tank leaves a fixed last-seen area when it drives behind the hill, synthesized sound cues with captions."
+    "describe": "Uncertain evidence: a hidden squad fires every 3 s (stable firing area), a tank leaves a fixed last-seen area when it drives behind the hill, synthesized sound cues with captions.",
+    "map": "sensors"
   },
   {
     "id": "weapons",
     "route": "/lab/weapons",
-    "describe": "Independent weapons: a rifle squad (rifles + grenade launcher) and a tank (cannon with AP/HE + HMG) against a red tank that ducks behind a wall and a hidden squad firing from behind a building; per-mount aim/reload bars and action reasons; attack identified/contact/ground, attack-move, engagement policy switch."
+    "describe": "Independent weapons: a rifle squad (rifles + grenade launcher) and a tank (cannon with AP/HE + HMG) against a red tank that ducks behind a wall and a hidden squad firing from behind a building; per-mount aim/reload bars and action reasons; attack identified/contact/ground, attack-move, engagement policy switch.",
+    "map": "weapons"
   },
   {
     "id": "consequences",
     "route": "/lab/consequences",
-    "describe": "Consequences of physical fire: HE into an exposed squad and a forest squad side by side, a friendly squad close enough to share the blast, a red tank destroyed in a walled passage whose wreck reroutes a supply truck, fallen soldiers that stay, and each squad's suppression in its info panel."
+    "describe": "Consequences of physical fire: HE into an exposed squad and a forest squad side by side, a friendly squad close enough to share the blast, a red tank destroyed in a walled passage whose wreck reroutes a supply truck, fallen soldiers that stay, and each squad's suppression in its info panel.",
+    "map": "consequences"
   },
   {
     "id": "deployment",
     "route": "/lab/deployment",
-    "describe": "Reversible deployment: a supply truck sets up where it stands; deploy, pack, Stop and (queued) moves reverse one progress value with equal durations both ways; a ground ring and the panel show progress and the end state it heads to, and the folded pose follows progress."
+    "describe": "Reversible deployment: a supply truck sets up where it stands; deploy, pack, Stop and (queued) moves reverse one progress value with equal durations both ways; a ground ring and the panel show progress and the end state it heads to, and the folded pose follows progress.",
+    "map": "deployment"
   },
   {
     "id": "ambush",
     "route": "/lab/ambush",
-    "describe": "Supported AT guidance: an AT team acquires shared identified targets only with its own clear line of sight, guides one missile at a time, and releases it at once on moving, Stop or losing sight; the released missile flies on to its fixed last point. Variants: late escape, prompt escape, prepared crossfire."
+    "describe": "Supported AT guidance: an AT team acquires shared identified targets only with its own clear line of sight, guides one missile at a time, and releases it at once on moving, Stop or losing sight; the released missile flies on to its fixed last point. Variants: late escape, prompt escape, prepared crossfire.",
+    "map": "ambush"
   },
   {
     "id": "garrison",
     "route": "/lab/garrison",
-    "describe": "Buildings as fighting positions: two blue squads share a building by soldier capacity (a third is refused), enter and leave on a timer, and fire outward from perimeter slots while red's rounds hit occupants or the walls; a red squad behind the building is seen only once occupants stand on that facade, and the occupants are HIDDEN until it walks up close enough to see them; red's tank brings the building down into a lower, impassable ruin and survivors escape pinned."
+    "describe": "Buildings as fighting positions: two blue squads share a building by soldier capacity (a third is refused), enter and leave on a timer, and fire outward from perimeter slots while red's rounds hit occupants or the walls; a red squad behind the building is seen only once occupants stand on that facade, and the occupants are HIDDEN until it walks up close enough to see them; red's tank brings the building down into a lower, impassable ruin and survivors escape pinned.",
+    "map": "garrison"
   },
   {
     "id": "supply",
     "route": "/lab/supply",
-    "describe": "Recovery with finite stock: a supply truck sets up (3 s) and serves a damaged tank, an AT team short of missiles and a rifle squad with casualties; moving units wait; stock falls and never regrows; an empty truck leaves its neighbours waiting for stock; relocation."
+    "describe": "Recovery with finite stock: a supply truck sets up (3 s) and serves a damaged tank, an AT team short of missiles and a rifle squad with casualties; moving units wait; stock falls and never regrows; an empty truck leaves its neighbours waiting for stock; relocation.",
+    "map": "supply"
   },
   {
     "id": "ground",
     "route": "/lab/ground",
-    "describe": "The ground layer as each side learns it: two tanks race east, one through an authored crater field (craters slow vehicles slightly, never their plan); two tanks shell a red squad in craters and one in the open; a squad walks the field; a flat cell view of the observed side's learned craters, scorch, tracks and trampling, rebuilt from its ground patches, with a side switch and the patch stream readout. ?village inspects the village, paused after the supported attack's opening."
+    "describe": "The ground layer as each side learns it: two tanks race east, one through an authored crater field (craters slow vehicles slightly, never their plan); two tanks shell a red squad in craters and one in the open; a squad walks the field; a flat cell view of the observed side's learned craters, scorch, tracks and trampling, rebuilt from its ground patches, with a side switch and the patch stream readout. ?village inspects the village, paused after the supported attack's opening.",
+    "map": "ground"
   },
   {
     "id": "panels",
     "route": "/lab/panels",
-    "describe": "Info panel workbench: every info panel the battle can draw (own units of every type, each weapon situation and state row, the busiest panels, identified enemies, last sightings, heard reports, selected and far-zoom), through the battle's own panel component on a plain ground and over grass; ?scale= zooms."
+    "describe": "Info panel workbench: every info panel the battle can draw (own units of every type, each weapon situation and state row, the busiest panels, identified enemies, last sightings, heard reports, selected and far-zoom), through the battle's own panel component on a plain ground and over grass; ?scale= zooms.",
+    "map": null
   },
   {
     "id": "readouts",
     "route": "/lab/readouts",
-    "describe": "Weapon readouts: each unit's info panel with a row per weapon (rounds left, \u221e unlimited; aim and reload rings round the weapon's icon while they run; the guidance mark) and its states; the unit card (the selection's info panels) stays when zoomed out; the command bar exposes the selection's actions (X attack-move, G attack ground, Backspace stop, F fire policy)."
+    "describe": "Weapon readouts: each unit's info panel with a row per weapon (rounds left, ∞ unlimited; aim and reload rings round the weapon's icon while they run; the guidance mark) and its states; the unit card (the selection's info panels) stays when zoomed out; the command bar exposes the selection's actions (X attack-move, G attack ground, Backspace stop, F fire policy).",
+    "map": "readouts"
   },
   {
     "id": "camera",
@@ -93,83 +110,99 @@
   {
     "id": "city-block",
     "route": "/lab/city-block",
-    "describe": "A block of a generated town drawn from the template art library, with no battle on it: the apartment building nearest the main town's centre that has a house beside it (mixed, small, seed 1; ?type=, ?size= and ?seed= choose another map). Stations cut the camera to the street, the default tactical camera, 250 m out, low over the town from 2 km and the strategic overview; a switch makes the side see the apartment building fall, which draws its remains; ?tier=0..3 draws every building at one detail tier."
+    "describe": "A block of a generated town drawn from the template art library, with no battle on it: the apartment building nearest the main town's centre that has a house beside it (mixed, small, seed 1; ?type=, ?size= and ?seed= choose another map). Stations cut the camera to the street, the default tactical camera, 250 m out, low over the town from 2 km and the strategic overview; a switch makes the side see the apartment building fall, which draws its remains; ?tier=0..3 draws every building at one detail tier.",
+    "map": null
   },
   {
     "id": "city-lineup",
     "route": "/lab/city-lineup",
-    "describe": "Every building template of the installed art library on flat ground, in rows by category at its real size, each labelled with its id, drawn through the frame's own buildings path with no battle. ?set= or ?category= narrows it, ?tier=0..3 draws every building at one detail tier, ?state=ruin|gutted draws the templates that end in that state as a side that saw them destroyed knows them (a low template collapses to a ruin, a tall one stands gutted; the others are left out), and ?station= with ?at=<template id> opens on a station: all, row, fit, close (30 m), tactical (65 m), wide (250 m), or transition-1..3 (where the template changes to that tier). The scene writes a contact sheet per category at each tier and the pairs across each tier boundary."
+    "describe": "Every building template of the installed art library on flat ground, in rows by category at its real size, each labelled with its id, drawn through the frame's own buildings path with no battle. ?set= or ?category= narrows it, ?tier=0..3 draws every building at one detail tier, ?state=ruin|gutted draws the templates that end in that state as a side that saw them destroyed knows them (a low template collapses to a ruin, a tall one stands gutted; the others are left out), and ?station= with ?at=<template id> opens on a station: all, row, fit, close (30 m), tactical (65 m), wide (250 m), or transition-1..3 (where the template changes to that tier). The scene writes a contact sheet per category at each tier and the pairs across each tier boundary.",
+    "map": null
   },
   {
     "id": "city-ruins",
     "route": "/lab/city-ruins",
-    "describe": "Buildings destroyed in a battle, drawn as each side knows them: on the camera lab's map, HE bursts bring a five-floor U block down to remains and gut a twenty-floor tower, which stands. Blue's squad watches both and draws the block's ruin and the tower's burnt shell; red's stands behind two slabs and draws both intact until its scripted walk takes it round them; a labelled side-view switch. The camera's obstacles, the fog's occluders and the smoke over a destroyed building follow the same knowledge."
+    "describe": "Buildings destroyed in a battle, drawn as each side knows them: on the camera lab's map, HE bursts bring a five-floor U block down to remains and gut a twenty-floor tower, which stands. Blue's squad watches both and draws the block's ruin and the tower's burnt shell; red's stands behind two slabs and draws both intact until its scripted walk takes it round them; a labelled side-view switch. The camera's obstacles, the fog's occluders and the smoke over a destroyed building follow the same knowledge.",
+    "map": "camera-lab"
   },
   {
     "id": "facade",
     "route": "/lab/facade",
-    "describe": "What a facade material can say beyond opaque, on the facade lab's kit with no battle on it: a grille and a perforated sheet as fence panels (cutouts: there or not texel by texel, in colour, depth and shadow); free-standing panes of glass, each half across the next (blended over what is behind them, unsorted); and a block three bays wide and three floors high with a pane and a room behind every window and shopfront (a cell of the interior atlas, unlit, chosen by where the window stands). Stations cut the camera to each from 25 m, the default tactical camera and 250 m; ?blocks= stands a field of blocks behind (a dense view for the paired cost), ?fog=1 ends an eye's sight across each station, ?azimuth= and ?sun= turn and raise the sun, ?order=reversed hands the frame the same modules in the opposite order."
+    "describe": "What a facade material can say beyond opaque, on the facade lab's kit with no battle on it: a grille and a perforated sheet as fence panels (cutouts: there or not texel by texel, in colour, depth and shadow); free-standing panes of glass, each half across the next (blended over what is behind them, unsorted); and a block three bays wide and three floors high with a pane and a room behind every window and shopfront (a cell of the interior atlas, unlit, chosen by where the window stands). Stations cut the camera to each from 25 m, the default tactical camera and 250 m; ?blocks= stands a field of blocks behind (a dense view for the paired cost), ?fog=1 ends an eye's sight across each station, ?azimuth= and ?sun= turn and raise the sun, ?order=reversed hands the frame the same modules in the opposite order.",
+    "map": null
   },
   {
     "id": "village",
     "route": "/battle/village",
-    "describe": "The village encounter: blue attacks the defended village (red defender policy on its own observation), with the production readouts, command bar, and a pause menu (variant, restart, replay export, sound); ?seed= sets the seed for testing."
+    "describe": "The village encounter: blue attacks the defended village (red defender policy on its own observation), with the production readouts, command bar, and a pause menu (variant, restart, replay export, sound); ?seed= sets the seed for testing.",
+    "map": "village"
   },
   {
     "id": "generated",
     "route": "/battle",
-    "describe": "A prepared battle, in the village's battle view: what the main menu's New battle starts. ?type=open|mixed|metro, ?size=small|medium|large and ?seed= choose a generated map (mixed, small, 1 by default); ?recipe= the encounter recipe, ?encounter= its seed and ?battle= the battle's. ?map=<id>&recipe=<name> plays a saved map's saved encounter instead, and ?replay=saved watches the saved replay of either. A preparation worker resolves the map and has the simulation's planner place the assault recipe on a generated one (blue's column on the road in from the bottom edge, red's from the top, red's garrison round the main town's crossroads); a loading screen covers the wait and a refusal names its stage. Its buildings are drawn from the template art library: kit modules where a template has art, a stand-in box where it has none yet."
+    "describe": "A prepared battle, in the village's battle view: what the main menu's New battle starts. ?type=open|mixed|metro, ?size=small|medium|large and ?seed= choose a generated map (mixed, small, 1 by default); ?recipe= the encounter recipe, ?encounter= its seed and ?battle= the battle's. ?map=<id>&recipe=<name> plays a saved map's saved encounter instead, and ?replay=saved watches the saved replay of either. A preparation worker resolves the map and has the simulation's planner place the assault recipe on a generated one (blue's column on the road in from the bottom edge, red's from the top, red's garrison round the main town's crossroads); a loading screen covers the wait and a refusal names its stage. Its buildings are drawn from the template art library: kit modules where a template has art, a stand-in box where it has none yet.",
+    "map": null
   },
   {
     "id": "benchmark",
     "route": "/benchmark",
     "describe": "The scripted benchmark (the one frame-cost measure): the village warm-started to heavy contact with blue on the supported script, a keyframed camera tour through strategic, pan, zoom, ground, combined and return, then the results screen and JSON report. The scene runs the 60 s short run and writes the frame-cost row.",
-    "build": "production"
+    "build": "production",
+    "map": "village"
   },
   {
     "id": "village-replay",
     "route": "/replay/village",
-    "describe": "Village replay: load a saved battle; the defender and input are off, the accepted commands of both sides replay, and a mismatched fixture is refused with a clear error."
+    "describe": "Village replay: load a saved battle; the defender and input are off, the accepted commands of both sides replay, and a mismatched fixture is refused with a clear error.",
+    "map": "village"
   },
   {
     "id": "endurance",
     "route": "/lab/endurance",
     "describe": "Synthetic stress battle for the scale verdict: 100 units a side, waves, reserves, a speculative-fire burst, an optional late state of 20,000 fallen and 2,000 wrecks, with live frame, heap, GPU and load telemetry. Set ENDURANCE_S for a longer real-time run.",
-    "build": "production"
+    "build": "production",
+    "map": "endurance"
   },
   {
     "id": "fog",
     "route": "/lab/fog",
-    "describe": "Sight-light fog over the village street: blue's eyes cut by the terrain and the buildings it knows, per pixel; the live frame or a seen/unseen mask; agreement with the simulation's 8 m sweep, the GPU lookup against its oracle vectors, a turned turret and a garrison's eyes."
+    "describe": "Sight-light fog over the village street: blue's eyes cut by the terrain and the buildings it knows, per pixel; the live frame or a seen/unseen mask; agreement with the simulation's 8 m sweep, the GPU lookup against its oracle vectors, a turned turret and a garrison's eyes.",
+    "map": "village"
   },
   {
     "id": "projectiles",
     "route": "/lab/projectiles",
-    "describe": "Projectile review with the fog-lit village close fight and range-limit rifle, HMG, AP, HE and ATGM lanes; gameplay flight, unlimited reserves and nonlethal rounds."
+    "describe": "Projectile review with the fog-lit village close fight and range-limit rifle, HMG, AP, HE and ATGM lanes; gameplay flight, unlimited reserves and nonlethal rounds.",
+    "map": "village"
   },
   {
     "id": "workbench",
     "route": "/workbench",
-    "describe": "Model workbench: drop a GLB (or /workbench?bundle=name) to see validator findings and the production render — named views, a 1.8 m figure, the simulation hit box, socket gizmos, clip and phase scrubber, pose inputs, a feed replay through the pose driver, stats, sheets and the impostor bake."
+    "describe": "Model workbench: drop a GLB (or /workbench?bundle=name) to see validator findings and the production render — named views, a 1.8 m figure, the simulation hit box, socket gizmos, clip and phase scrubber, pose inputs, a feed replay through the pose driver, stats, sheets and the impostor bake.",
+    "map": null
   },
   {
     "id": "fog-look",
     "route": "/lab/fog-look",
-    "describe": "How unseen looks: the fixture's named fog styles over the village street under a 16:00 sun, every number live on sliders with a copyable presentation.fog block; roofs and canopy tops above the eyes; contact glyphs (red through the middle, hatched, a last sighting ringed pale)."
+    "describe": "How unseen looks: the fixture's named fog styles over the village street under a 16:00 sun, every number live on sliders with a copyable presentation.fog block; roofs and canopy tops above the eyes; contact glyphs (red through the middle, hatched, a last sighting ringed pale).",
+    "map": "village"
   },
   {
     "id": "village-watch",
     "route": "/battle/village/watch",
-    "describe": "The village battle watched: blue played by village_report's scout-suppress-flank (?script= picks another), the camera free. The scene takes the whole-battle frames at a fixed tick (BATTLE_TICK), and checks fog running on past the map edge and the red border that marks the playable area."
+    "describe": "The village battle watched: blue played by village_report's scout-suppress-flank (?script= picks another), the camera free. The scene takes the whole-battle frames at a fixed tick (BATTLE_TICK), and checks fog running on past the map edge and the red border that marks the playable area.",
+    "map": "village"
   },
   {
     "id": "village-lean",
     "route": "/battle/village/lean",
-    "describe": "Soldiers lean out round tall cover: on the village's ground, a squad at rest just inside the west wood trades fire with a squad in the open. Men slide out past their trees to fire and tuck back in. The scene finds a soldier out on his lean and shoots him at the ground camera."
+    "describe": "Soldiers lean out round tall cover: on the village's ground, a squad at rest just inside the west wood trades fire with a squad in the open. Men slide out past their trees to fire and tuck back in. The scene finds a soldier out on his lean and shoots him at the ground camera.",
+    "map": "village"
   },
   {
     "id": "sound",
     "route": "/lab/sound",
-    "describe": "The battle's sound: a scripted eight-second firefight rendered offline through the battle's audio graph (rifles, a tank driving and traversing, AP, HE, HMG, a ricochet, a guided missile, a burning wreck, the countryside, and unseen enemies heard only as cues); play it here, and the scene measures levels per bus, clipping and onsets against the visual events."
+    "describe": "The battle's sound: a scripted eight-second firefight rendered offline through the battle's audio graph (rifles, a tank driving and traversing, AP, HE, HMG, a ricochet, a guided missile, a burning wreck, the countryside, and unseen enemies heard only as cues); play it here, and the scene measures levels per bus, clipping and onsets against the visual events.",
+    "map": null
   }
 ]

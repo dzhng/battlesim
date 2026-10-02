@@ -35,12 +35,14 @@ export const STREET_CAMERA: Camera3DParams = {
 type UnitSetup = { side: string; kind: string; position: [number, number]; yaw: number };
 
 /** The street's scenario JSON, as `useBuiltScenario` reports it. */
-export function useStreetScenario() {
-  return useBuiltScenario({}, (wasm) => buildStreetScenario(wasm));
+export function useStreetScenario(fixture: string) {
+  return useBuiltScenario(fixture, (wasm, fixture) => buildStreetScenario(wasm, fixture));
 }
 
-export async function buildStreetScenario(wasm: Wasm, rules = GAME_RULES) {
-  const s = JSON.parse(await villageScenario(wasm, "ordinary", rules)) as { units: UnitSetup[] };
+export async function buildStreetScenario(wasm: Wasm, fixture: string, rules = GAME_RULES) {
+  const s = JSON.parse(await villageScenario(wasm, fixture, "ordinary", rules)) as {
+    units: UnitSetup[];
+  };
   const blue = s.units.filter((u) => u.side === "blue");
   if (blue.length !== STREET.length) throw new Error("the street places the village's blue units");
   let b = 0;

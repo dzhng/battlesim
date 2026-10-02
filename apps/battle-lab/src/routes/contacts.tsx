@@ -25,7 +25,7 @@ const CONTACTS_CAMERA: Camera3DParams = {
 
 export default function Contacts() {
   return (
-    <SavedEncounter map="sensors" encounter="contacts">
+    <SavedEncounter fixture="contacts" encounter="contacts">
       {(battle) => <ContactsLab battle={battle} />}
     </SavedEncounter>
   );

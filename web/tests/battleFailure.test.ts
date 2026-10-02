@@ -28,7 +28,7 @@ test("a rejected replay shows its refusal and draws no battlefield", async () =>
         const { loadWasm } = await importModule(`${root}/web/src/battle/sim/module.ts`);
         const { villageScenario } = await importModule(`${root}/apps/battle-lab/src/savedMaps.tsx`);
         const wasm = await loadWasm();
-        const battle = new wasm.Battle(await villageScenario(wasm, "ordinary"), 1);
+        const battle = new wasm.Battle(await villageScenario(wasm, "village", "ordinary"), 1);
         try {
           localStorage.setItem(
             "village-last-replay",

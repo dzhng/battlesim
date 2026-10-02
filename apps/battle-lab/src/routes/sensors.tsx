@@ -29,7 +29,7 @@ const SENSORS_CAMERA: Camera3DParams = {
 
 export default function Sensors() {
   return (
-    <SavedEncounter map="sensors" encounter="sensors">
+    <SavedEncounter fixture="sensors" encounter="sensors">
       {(battle) => <SensorsLab battle={battle} />}
     </SavedEncounter>
   );

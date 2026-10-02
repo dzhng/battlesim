@@ -81,7 +81,7 @@ export default function Endurance() {
     );
   const built = useBuiltScenario({ late, seed, generated }, async (wasm, o, signal) => {
     if (!o.generated)
-      return { scenario: await enduranceScenario(wasm, o.seed, o.late), report: null };
+      return { scenario: await enduranceScenario(wasm, "endurance", o.seed, o.late), report: null };
     const preparation = prepareBattle(
       {
         type: "prepare",

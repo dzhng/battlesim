@@ -63,7 +63,7 @@ const SCOUT_MARK = [0.55, 0.75, 1.0, 1] as const;
 
 export default function Ambush() {
   return (
-    <SavedEncounters map="ambush" encounters={VARIANT_NAMES} rules={AMBUSH_RULES}>
+    <SavedEncounters fixture="ambush" encounters={VARIANT_NAMES} rules={AMBUSH_RULES}>
       {(battles) => <AmbushLab battles={battles} />}
     </SavedEncounters>
   );
