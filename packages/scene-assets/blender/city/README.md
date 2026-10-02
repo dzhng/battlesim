@@ -18,7 +18,7 @@ A set is one source's work: the China graph's apartment blocks, our own houses, 
 - A **module** is a root-level empty named by the module's id (`[a-z0-9_]+`). The meshes under it are its geometry, with the usual `_LOD0`..`_LOD3` name suffix for the four detail tiers, finest first; a mesh with no suffix is in every tier. Every module has geometry in all four tiers, never more triangles in a coarser one.
 - Every root-level object is a module's empty. A mesh at the root is refused.
 - Geometry is in the module's own frame: metres, Z up, the origin wherever its rows expect it (a window's sill centre on the wall plane, a shell's footprint centre on the ground). The frame is the empty's, so a script may lay its modules out side by side in the file; where an empty stands is not content.
-- Materials, textures, UVs, tangents and vertex colour follow the conventions every static source follows ([scene-assets readme](../../README.md), "Textures"): three texture channels at most 1024 px, UVs in metres, vertex-colour alpha is wear and nothing else. A surface that takes a building's own tint (a wall colour) is tint-masked (`tint` in the material's extras, or the ORM texture's alpha).
+- Materials, textures, UVs, tangents and vertex colour follow the conventions every static source follows ([scene-assets readme](../../README.md), "Textures"): three texture channels at most 1024 px, UVs in metres, vertex-colour alpha is wear and nothing else, and a surface that is not opaque says so as its material's coverage. A surface that takes a building's own tint (a wall colour) is tint-masked (`tint` in the material's extras, or the ORM texture's alpha).
 - A mesh made for one template only (its wall shell, its roof) is a module like any other, named for its template.
 
 ### `templates.json`
@@ -100,4 +100,4 @@ The contract a shader reads them by (the numbers are the constants at the top of
 
 The steeper the view, the more of a window is the cell's floor: the box's floor is the bottom ninth of the picture, and from the tactical camera it fills most of an opening. Tune how a room reads here, in the scene and its tone curve, not in the shader.
 
-The sheets are not a set: they have no kit and no templates, and a template never names a cell.
+The sheets are not a set: they have no kit and no templates, and a template never names a cell. A room box's material names its sheet (`interior` on the material helpers; [scene-assets readme](../../README.md), "Coverage and rooms"), and its UVs are the cell's `u` and `v` above.

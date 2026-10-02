@@ -43,11 +43,12 @@ def reset(fps=30):
 TEXTURED = {}  # material name -> recipe (textures.py)
 
 
-def mat(name, base=(0.5, 0.5, 0.5), rough=0.6, metal=0.0, tint=0.0, texture=None):
+def mat(name, base=(0.5, 0.5, 0.5), rough=0.6, metal=0.0, tint=0.0, texture=None, coverage=None, interior=None):
     """A flat material. `tint` > 0 marks it as the side-tint mask, with that weight.
     `texture` names a recipe the material samples (textures.py): its images carry
     colour, roughness and metalness, and the painted vertex colour becomes a
-    multiplier relative to the recipe's mean (`paint`)."""
+    multiplier relative to the recipe's mean (`paint`). `coverage` makes it a
+    cutout or blended and `interior` a room behind a window (`textures.surface`)."""
     m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
     m.use_nodes = True
     b = m.node_tree.nodes["Principled BSDF"]
@@ -58,7 +59,7 @@ def mat(name, base=(0.5, 0.5, 0.5), rough=0.6, metal=0.0, tint=0.0, texture=None
         m["tint"] = float(tint)
     if texture:
         TEXTURED[name] = texture
-    return m
+    return textures.surface(m, coverage, interior)
 
 
 def texture_mean(material):
@@ -269,6 +270,5 @@ def export_glb(path, objects, animations=False):
         export_morph=False,
         export_def_bones=False,
     )
-    if TEXTURED:
-        textures.attach(path, TEXTURED)
+    textures.attach(path, TEXTURED)
     return path

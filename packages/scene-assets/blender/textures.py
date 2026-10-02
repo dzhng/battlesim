@@ -9,6 +9,8 @@ texture channels (`scene-assets` `TEXTURE_CHANNELS`):
   surface breaks first (low) as the vertex colour's alpha (how worn: chips on
   edges, mud rising from the ground) climbs past it;
 - normal (tangent space, +Y toward +v in the image, OpenGL convention as glTF);
+  alpha is the coverage a cutout or blended material reads (`surface`), 1
+  for every other;
 - ORM: occlusion, roughness, metalness; alpha is the side-tint mask.
 
 A textured material samples its recipe through UVs in metres over the
@@ -20,8 +22,9 @@ per-part hue), as a multiplier relative to the recipe's mean albedo
 
 `attach(glb, materials)` writes the images into an exported GLB and points
 each named material's glTF texture slots at them, with the wear colour in
-the material's extras. Everything here is numpy on fixed seeds and zlib at a
-fixed level: the same recipe writes the same bytes.
+the material's extras, and gives a cutout or blended material its glTF alpha
+mode. Everything here is numpy on fixed seeds and zlib at a fixed level: the
+same recipe writes the same bytes.
 """
 import json
 import math
@@ -171,14 +174,17 @@ def png(rgba):
 
 class Baked:
     """One recipe's images: linear albedo (H, W, 3) and wear threshold, unit
-    normals (H, W, 3), occlusion, roughness, metalness and tint mask."""
+    normals (H, W, 3), occlusion, roughness, metalness and tint mask, and the
+    coverage (how much of the surface is there, 0..1) a cutout or blended
+    material reads: it rides the normal image's alpha, apart from wear."""
 
-    def __init__(self, albedo, wear, normal, occlusion, roughness, metal=0.0, tint=1.0):
+    def __init__(self, albedo, wear, normal, occlusion, roughness, metal=0.0, tint=1.0, coverage=1.0):
         s = (SIZE, SIZE)
         self.albedo = albedo
         self.wear = np.broadcast_to(wear, s)
         self.normal = normal
         self.orm = [np.broadcast_to(x, s) for x in (occlusion, roughness, metal, tint)]
+        self.coverage = np.broadcast_to(coverage, s)
 
     def mean(self):
         """The linear mean albedo: what the vertex colour's multiplier is relative to."""
@@ -186,7 +192,7 @@ class Baked:
 
     def images(self):
         albedo = np.concatenate([_u8(_srgb(self.albedo)), _u8(self.wear)[..., None]], -1)
-        normal = np.concatenate([_u8(self.normal * 0.5 + 0.5), np.full((SIZE, SIZE, 1), 255, np.uint8)], -1)
+        normal = np.concatenate([_u8(self.normal * 0.5 + 0.5), _u8(self.coverage)[..., None]], -1)
         orm = np.stack([_u8(x) for x in self.orm], -1)
         return {"albedo": png(albedo), "normal": png(normal), "orm": png(orm)}
 
@@ -786,6 +792,36 @@ def macro(rgb, recipe_name):
     return tuple(min(1.0, max(0.0, c / max(m, 1e-4) / COLOUR_SCALE)) for c, m in zip(rgb, mean))
 
 
+# Materials that are not opaque, by name: ("cutout", cutoff) or ("blended",
+# opacity). `surface` fills it and `attach` writes it into the export.
+COVERAGE = {}
+INTERIOR_SHEETS = ("rooms", "shops")
+
+
+def surface(material, coverage=None, interior=None):
+    """Say what a Blender material is beyond an opaque surface with a look of
+    its own. Every material helper takes these two and passes them here.
+
+    `coverage` is ("cutout", cutoff): the surface is drawn only where its
+    coverage value reaches the cutoff; or ("blended", opacity): it is partly
+    there and shows what is behind it. The coverage value is the opacity times
+    the recipe's `coverage` image, and never the wear in either alpha.
+
+    `interior` names the interior atlas sheet ("rooms", "shops") the surface
+    shows a cell of: a wall of the room box behind a window, opaque and
+    untextured, its UVs the cell's (city/README.md, "Interiors")."""
+    if coverage is not None:
+        kind, value = coverage
+        if kind not in ("cutout", "blended") or not 0.0 <= value <= 1.0:
+            raise ValueError(f"{material.name}: coverage is ('cutout', cutoff) or ('blended', opacity), 0..1")
+        COVERAGE[material.name] = (kind, float(value))
+    if interior is not None:
+        if interior not in INTERIOR_SHEETS:
+            raise ValueError(f"{material.name}: interior sheet is one of {', '.join(INTERIOR_SHEETS)}")
+        material["interior"] = interior  # exported as the glTF material's extras
+    return material
+
+
 def attach(path, materials, worn=True):
     """Embed each recipe's images in the GLB at `path` and point the named
     materials' texture slots at them: {material name: recipe name}. The
@@ -793,12 +829,13 @@ def attach(path, materials, worn=True):
     goes in extras. With `worn` false the surface never wears: the material
     keeps its own factors, so several materials can share one recipe at their
     own base colour, roughness and metalness, and its vertex colour is a plain
-    multiplier."""
+    multiplier. A material `surface` marked as a cutout or blended gets its
+    glTF alpha mode, with its cutoff or its opacity (the base colour's alpha)."""
     data = open(path, "rb").read()
     jlen = struct.unpack_from("<I", data, 12)[0]
     doc = json.loads(data[20:20 + jlen])
-    if not any(m.get("name") in materials for m in doc.get("materials", [])):
-        return []  # an untextured export keeps its bytes
+    if not any(m.get("name") in materials or m.get("name") in COVERAGE for m in doc.get("materials", [])):
+        return []  # an export of plain opaque, untextured materials keeps its bytes
     rest = data[20 + jlen:]
     bin_ = bytearray(rest[8:8 + struct.unpack_from("<I", rest, 0)[0]]) if rest else bytearray()
     views = doc.setdefault("bufferViews", [])
@@ -821,6 +858,14 @@ def attach(path, materials, worn=True):
 
     used = set()
     for m in doc.get("materials", []):
+        kind, value = COVERAGE.get(m.get("name"), ("opaque", 1.0))
+        if kind == "cutout":
+            m["alphaMode"] = "MASK"
+            m["alphaCutoff"] = value
+        elif kind == "blended":
+            m["alphaMode"] = "BLEND"
+            pbr = m.setdefault("pbrMetallicRoughness", {})
+            pbr["baseColorFactor"] = [*pbr.get("baseColorFactor", [1.0, 1.0, 1.0, 1.0])[:3], value]
         name = materials.get(m.get("name"))
         if not name:
             continue

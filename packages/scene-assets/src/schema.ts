@@ -41,6 +41,11 @@ export const FINDING_CODES = [
   "texture.size",
   "texture.mips",
   "texture.tangents",
+  // materials (`material.ts`): coverage and interior metadata
+  "material.coverage",
+  "material.coverage_source",
+  "material.wear",
+  "material.interior",
   // basis
   "basis.ground",
   "basis.forward",
@@ -132,8 +137,31 @@ export interface MeshData {
   draws: { material: number; first: number; count: number }[];
 }
 
+/**
+ * How much of a surface is there. `opaque` is all of it. A `cutout` is there
+ * or not, texel by texel: nothing is drawn where its coverage value is under
+ * `cutoff`. A `blended` surface is partly there, and what is behind it shows
+ * through.
+ *
+ * The coverage value is the base colour's alpha times the normal texture's
+ * alpha (1 without one), and nothing else. The albedo texture's alpha stays
+ * the wear threshold, the ORM texture's the tint mask and the vertex colour's
+ * how worn the surface is, whatever the coverage. An opaque material has no
+ * coverage value: both alphas are ignored.
+ */
+export type Coverage =
+  | { kind: "opaque" }
+  | { kind: "cutout"; cutoff: number }
+  | { kind: "blended" };
+
+/** The interior atlas sheets (`blender/city/README.md`, "Interiors"):
+ *  apartment rooms on any floor, and shops on ground floors. */
+export const INTERIOR_SHEETS = ["rooms", "shops"] as const;
+export type InteriorSheet = (typeof INTERIOR_SHEETS)[number];
+
 export interface Material {
   name: string;
+  /** Linear rgb, and the coverage value's factor in alpha (`Coverage`). */
   base_color: [number, number, number, number];
   metallic: number;
   roughness: number;
@@ -152,13 +180,20 @@ export interface Material {
    *  colour's alpha (how worn: chips on edges, mud low down) rises past the
    *  albedo texture's alpha (where it breaks first). glTF extras `wear`. */
   wear?: [number, number, number, number];
+  /** glTF `alphaMode` and `alphaCutoff`; opaque when the source names none. */
+  coverage: Coverage;
+  /** The surface is a wall of the room box behind a window: it shows a cell
+   *  of this interior atlas sheet, at its own UVs, in place of a look of its
+   *  own. glTF extras `interior`. */
+  interior?: InteriorSheet;
 }
 
 /**
  * A material's texture channels. Every one samples the mesh's UVs and is
  * shared by every tier.
  * - `albedo`: sRGB colour; alpha is the wear threshold (low wears first).
- * - `normal`: tangent-space normal, xyz in 0..1 (glTF `normalTexture`).
+ * - `normal`: tangent-space normal, xyz in 0..1 (glTF `normalTexture`); alpha
+ *   scales the coverage value of a cutout or blended material (`Coverage`).
  * - `orm`: occlusion, roughness, metalness (glTF's packed occlusion and
  *   metallic-roughness image); alpha multiplies the material's tint mask.
  */

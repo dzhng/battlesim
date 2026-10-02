@@ -1,25 +1,25 @@
 {
   "appearances": {
     "at": {
-      "bundle": "cf128e6962638639f41915c85c35d156c2b2123743d25c78cef02df7eea34634",
+      "bundle": "0cfb10f022c39c12c6c0cf9f657e627045f10681cfe4bde283280701ec1de0d3",
       "kind": "skinned",
       "skeleton": "quaternius-ubc-launcher",
       "unit": "soldier"
     },
     "at_b": {
-      "bundle": "63f03597ffb97296a1549fca088cdac1abdc789a64cf498a04344edd875c1bd6",
+      "bundle": "1f5e73ac0f7687f6e49f4219a3c0c3cbb4610bfa43bfeb4c0496fd4cd1503b68",
       "kind": "skinned",
       "skeleton": "quaternius-ubc-launcher",
       "unit": "soldier"
     },
     "at_c": {
-      "bundle": "a69856d17abaf50c35e901d8e4bedfbb3eecc5079f8738d836da2cb9aa5d167a",
+      "bundle": "529083eb4788dbd9932747ee01a2d00044a3ae84b30b5dd3e6ab16e38e3a6423",
       "kind": "skinned",
       "skeleton": "quaternius-ubc-launcher",
       "unit": "soldier"
     },
     "bridge_deck": {
-      "bundle": "55f0d16816882e7bc7d690a5f8f5934867b3d5e3e9e8e40bddbab76bb1a2209a",
+      "bundle": "29206c1ed911dee5d3a7e1511dce1446c6b39ef83fe685724c9e667015aabf56",
       "footprint_half_m": [
         18,
         5,
@@ -30,22 +30,22 @@
       "unit": "scenery"
     },
     "city_kit_china_apartments": {
-      "bundle": "a55c6a8d063550c1b33a130e77ff14258b290337968c12400686c6b48081c962",
+      "bundle": "093863b80f2c9f10220f99dd9839cd2eafd573bc62f2b400a389d7fd4c087977",
       "kind": "static",
       "unit": "kit"
     },
     "city_kit_homes": {
-      "bundle": "c2bee1c7445c1af21a1d240080f2b53ee9b522f570aa42d1a554301f71725fd3",
+      "bundle": "9bff8ab951180f75bc9796cf9c52ba7b5a1cfbe592acc3e2cdc7151c6937f1d3",
       "kind": "static",
       "unit": "kit"
     },
     "city_kit_prototype": {
-      "bundle": "5af1771daa664ff8a36625980715ef4d9d43d33e70468529c4564a867383fc0f",
+      "bundle": "5808e059aa247e1ec61af5e4093e2777786f2cee272e9650bb192165b5d2f20b",
       "kind": "static",
       "unit": "kit"
     },
     "crate_stack": {
-      "bundle": "1f9c0ac60873e67dd7edfbe47de591342ec8a6e8a747964e46ed9a6803f4b61d",
+      "bundle": "44e48209a221ac8b04be72dbff9bf05d42dedbfd7338329f8d399af2634ae142",
       "footprint_half_m": [
         1,
         1,
@@ -56,7 +56,7 @@
       "unit": "scenery"
     },
     "dragon_tooth": {
-      "bundle": "4a8d36b39abfdb0fceaed86d92f453efadf4da32066f5c694900f4399ec31d8b",
+      "bundle": "464b82ee192f517635c3572a2a1287c7954fd5a86d528ffbc3e92694d69d6838",
       "footprint_half_m": [
         0.6,
         0.6,
@@ -67,7 +67,7 @@
       "unit": "scenery"
     },
     "fence": {
-      "bundle": "85275717179cb7990f777a9241a47eb5e7a2931c1ac6789152f828c4c4f20099",
+      "bundle": "54bb6277a2b555a382822105ea46546eb7608fe484edbdcac902a08475c3aae0",
       "footprint_half_m": [
         1.5,
         0.1,
@@ -78,7 +78,7 @@
       "unit": "scenery"
     },
     "field_wall": {
-      "bundle": "299af279f442cead9ff7c4f2fe74dff6a7f1e6fedcdab0c573a616cfb981f9ec",
+      "bundle": "9c2e9415240f025bb832f557971c83d9c8e3d666d7401f70592e7ce1891aae93",
       "footprint_half_m": [
         2,
         0.3,
@@ -89,43 +89,43 @@
       "unit": "scenery"
     },
     "grass_crop": {
-      "bundle": "fac40fad259e881c68b462309601c355f4582887816391d7e8a886f75a397977",
+      "bundle": "03b041b4e0c23023469ffb58c431ab8aa3301dd396722758583b490d9ed7beba",
       "kind": "static",
       "scenery": "grass",
       "unit": "scenery"
     },
     "grass_meadow": {
-      "bundle": "8423dc2d0a4f029e1bbc0b36a64a8f895a942300c13c6e21c4aeb65dc7220918",
+      "bundle": "1fd7573fed4bfc8788c16d3a79957c01e7182fba0a372e548ad1c7044128297d",
       "kind": "static",
       "scenery": "grass",
       "unit": "scenery"
     },
     "grass_pasture": {
-      "bundle": "c22818055b79a8970bddcd8b7cfdc7bb3bcfd433b4fde4b354977494063af089",
+      "bundle": "23f1badf1187a40726f80641b63d4615fdabe9ca98e3ad317cf2e754f1542d40",
       "kind": "static",
       "scenery": "grass",
       "unit": "scenery"
     },
     "grass_stubble": {
-      "bundle": "a40512986405731903d3dc65da3b71cb726955565931a080d827e105b3a68f0a",
+      "bundle": "8a5bc656bb24bcf93df4cf71047584d36534b3364799187553dd91b8f5b11629",
       "kind": "static",
       "scenery": "grass",
       "unit": "scenery"
     },
     "grass_wheat": {
-      "bundle": "f9dd42797ea97aa3796e00ada7565589ee5bd4d321f5d964a0107687460289ae",
+      "bundle": "1db285b347aa34fda63d9450139a734ed61457274bce7576afe9cde7d34052d1",
       "kind": "static",
       "scenery": "grass",
       "unit": "scenery"
     },
     "hedge_shrub": {
-      "bundle": "d2374edbcf72e287ca64eed3693c051755cdb816671c511dab4a7b15c35f1f49",
+      "bundle": "8ae224d24cb7f8cfe61857e9366a25c5504523fb18c3cef6f8398e2d613cf20c",
       "kind": "static",
       "scenery": "hedgerow",
       "unit": "scenery"
     },
     "house_a": {
-      "bundle": "7ee3ba6187a95c2653592b177f83c6dc37ddc3b87c14faa684bf8ad8f92b38d9",
+      "bundle": "143da232bb01b04f8788913a976d4d4dc422f3631ad26a9e7cb8a4df6a158ec3",
       "footprint_half_m": [
         15,
         12,
@@ -135,7 +135,7 @@
       "unit": "building"
     },
     "house_b": {
-      "bundle": "f8048caaa6dc3c7b1495ce536cf8eaf21ef46dbf123b0b88d34a694cb3e12df7",
+      "bundle": "46be671804d6e32875b0e2b7baac76d071eaa284df7d0dd909ba63ae0870afe1",
       "footprint_half_m": [
         17,
         14,
@@ -145,7 +145,7 @@
       "unit": "building"
     },
     "house_c": {
-      "bundle": "8cf19c7d91749718967d19a7b1f9e5bef2a9e58ae20720ad222e2a6a4dac7c08",
+      "bundle": "6f4dc6d5b5a7b9c0ce1ea36e6288bbd59f0977516ddffe4e700aba7d75bb8f4b",
       "footprint_half_m": [
         13,
         11,
@@ -155,7 +155,7 @@
       "unit": "building"
     },
     "jeep": {
-      "bundle": "903f7ead3b15e57d296c587f0c8533522db93a4a3110c645c58b6e63e644210e",
+      "bundle": "6dd05fcb19f1229c1603d4b9ee6eebe4fdd5a00efdb5bf3fc39f589eb7c0c481",
       "kind": "articulated",
       "mounts": {
         "HMG": "hmg"
@@ -163,7 +163,7 @@
       "unit": "vehicle"
     },
     "jeep_wreck": {
-      "bundle": "c8896fe545170b0f52efb60fe9ab0527e0e2361d1ab573e55f33e47c8bd3b49b",
+      "bundle": "6309232aceca60e03edd6f06cb0216a5133db8d7614fbc6e40648054272429fe",
       "footprint_half_m": [
         2.2,
         1,
@@ -174,43 +174,43 @@
       "unit": "scenery"
     },
     "recon": {
-      "bundle": "06243ed1c9581b7a3b41b18874084947c30e4296980dc9f1f8fbe8de9878a666",
+      "bundle": "247ccde9afb81daa8ed4748ad2e93f223dd78c81c2c0809e5016b907d20781df",
       "kind": "skinned",
       "skeleton": "quaternius-ubc-rifle",
       "unit": "soldier"
     },
     "recon_b": {
-      "bundle": "750cdda9b74b1c49396e9b505bbfb36abbb49dc272ea53a316e5babb8406572a",
+      "bundle": "4e01df5782455750fc4edcc7734d02ca05f159b6752d86d982d080f442eb8809",
       "kind": "skinned",
       "skeleton": "quaternius-ubc-rifle",
       "unit": "soldier"
     },
     "recon_c": {
-      "bundle": "15851ac7b085cb22e546a5fc8fe916852358d62e65eac041a0ae501bdbfb29d1",
+      "bundle": "b052a1f28428ff0d62ac99b1c9d7263dbddcd6193169b7c72942f04f7ae04f6c",
       "kind": "skinned",
       "skeleton": "quaternius-ubc-rifle",
       "unit": "soldier"
     },
     "rifle": {
-      "bundle": "256ba110b6c8e76c06e9e9eb716efbd4c1352924a9de14a6496801c836f20386",
+      "bundle": "24049d0fb54af7d533fa6b142ebef1c9064432916f3df04203e6d7a94c3fd0a0",
       "kind": "skinned",
       "skeleton": "quaternius-ubc-rifle",
       "unit": "soldier"
     },
     "rifle_b": {
-      "bundle": "307e91586a851f79cdf5b3090cd54d746dac0e28c9f5d05b379e7537b8901677",
+      "bundle": "85566a71818c75dab3afb2cdad80f368b73204c9aa5cc419c7931500c6aa4838",
       "kind": "skinned",
       "skeleton": "quaternius-ubc-rifle",
       "unit": "soldier"
     },
     "rifle_c": {
-      "bundle": "aab6fef6f26c4ca43e907486e5da89d8577aba65ac6168c17ca6f4145e43ffa2",
+      "bundle": "7be9b1c78921ccdf33566974a362a6076416a4869bbe19ad87cfd839671699ac",
       "kind": "skinned",
       "skeleton": "quaternius-ubc-rifle",
       "unit": "soldier"
     },
     "sandbags": {
-      "bundle": "01472482163b35824ab10058a089b076bb4cb204622af4fea8721fc23d388458",
+      "bundle": "423d3b4b1cfb92ddcb7f816196fffd9f07e377aedd84a16889702c68db228ea2",
       "footprint_half_m": [
         1,
         0.4,
@@ -221,12 +221,12 @@
       "unit": "scenery"
     },
     "supply_truck": {
-      "bundle": "1e906b3ff122d5673c1672634352b2917d04227c5fb86ffff14e4d57855f764c",
+      "bundle": "88f1d64f1cbde4affc669d29650d7cc1d539735c7697e34f149c74f3a642d1de",
       "kind": "articulated",
       "unit": "vehicle"
     },
     "supply_truck_wreck": {
-      "bundle": "0bb838e2da38e1d8adb7c4b8abc1cba025104d7e843eba934aa7087eddb63a54",
+      "bundle": "ba6ddcb590ad99b22c36ea3810b52023bf1fc3d17223e97b19f6ca07c34d3593",
       "footprint_half_m": [
         3,
         1.4,
@@ -237,7 +237,7 @@
       "unit": "scenery"
     },
     "tank": {
-      "bundle": "c9a914c0f456f154e1ee42b7c8046899a94e494930939d3cd36f09b0194c658c",
+      "bundle": "3003cc71d39561d2cf65b4b745f2ffd5d86d940f777fe19df1e4c98e75f1be7a",
       "kind": "articulated",
       "mounts": {
         "HMG": "hmg",
@@ -246,7 +246,7 @@
       "unit": "vehicle"
     },
     "tank_wreck": {
-      "bundle": "883c444441076bfe09ece790f6072eeb5882a5e5db8f1a5f9caaf6a1c9be2162",
+      "bundle": "3ebfd20fd546bb2fecf009f24bd43f37f01ea88fde2a888e61236e6425ebc8d9",
       "footprint_half_m": [
         3.5,
         1.8,
@@ -257,25 +257,25 @@
       "unit": "scenery"
     },
     "tree_broadleaf": {
-      "bundle": "13c9fe716c3082e49a85965bf6cec4d32984758436e61c4496f3c9fa72be6024",
+      "bundle": "89a494192858b4e9fee6ed64827bde68ceb3400cef157000ec5be302565f1e10",
       "kind": "static",
       "scenery": "tree",
       "unit": "scenery"
     },
     "tree_spreading": {
-      "bundle": "274e499d474655b1deecdd68e53b28214e7a75f5a840e747ebf74102cead1475",
+      "bundle": "589f8b6b87a927a4b1660df582fd5d7ff98536591cc39c14c3387f4f6197fc0b",
       "kind": "static",
       "scenery": "tree",
       "unit": "scenery"
     },
     "tree_tall": {
-      "bundle": "bf5a92862613a65fe1a83f652ab054bdfcf28882f8a4156faee7b87cb7de04d7",
+      "bundle": "577ddbe48a5b2d178247b44c3d6b190385fe66675fbe57aca5c2333173463edb",
       "kind": "static",
       "scenery": "tree",
       "unit": "scenery"
     },
     "village_ruin": {
-      "bundle": "bed75b74a9370fb14d8064cccb1f96e8441d83ef6c2052fa84c85772227bfd87",
+      "bundle": "4911cfddce01856f985b6a6d7077c87bd2390a45c81b22f2213c2b15785c108c",
       "footprint_half_m": [
         15,
         12,
@@ -299,12 +299,12 @@
     ]
   },
   "skeletons": {
-    "quaternius-ubc-launcher": "b84f2a37727d5cc8ea87c307cfa704ab4a8b6ddd2594134b6f8d486f6d373bdc",
-    "quaternius-ubc-rifle": "c6f5ccedf4fe807db7efdc2558d8408d9abf7d29389a1d5781cae4b9b60a0616"
+    "quaternius-ubc-launcher": "731d01151a7ec2f2b176c52a2b9c6bf76112a06763a7a52fd0eb4a61e168bad7",
+    "quaternius-ubc-rifle": "19706856fef2f15bd61aae8ef6d4e614c58a028296738bdeab45195880187611"
   },
   "templates": {
-    "art_hash": "6df7cf3fed590ef2d7740e4a13a0d001c88a7f12be62b70bdfe09469cfeab37a",
+    "art_hash": "2761c8a75ccc67df52c7b8d0636b9e24c687f274d76e8ddf8b72e162eb32fcbd",
     "covers": "5416684f1dede60a7dc3665fb3bef4a247cb1705ed042cb6a3223b9b5e522ddc",
-    "library": "1a1b3e5542d1570ce247a5ad124cb220956acd0f63c43305025af22d92567eb3"
+    "library": "1e268c34f2c926a01fe0558b060787e1c6aa9be3c4f19d24993232b64f6a0caa"
   }
 }

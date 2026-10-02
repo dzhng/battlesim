@@ -3956,3 +3956,91 @@ timing; nearest-fit selection is not permission to publish an invalid segment.
 **Contract:** Returned observations are immutable; the static arrays are now readonly in TypeScript. The current consumers read these rows; pose reconciliation copies positions into its own state, and effects read aliased prop extents. Cache reuse still checks current counts. Malformed cached counts and failures later in fog/ground cannot advance either baseline; corrected same-generation retry works. Changed-group views and prior observations remain distinct, and stale side/epoch records do not populate the cache.
 
 **Verdict:** Sound; identity and rollback proofs pass. Allocation claims describe skipped construction, not measured heap bytes or wall time. Producer layout/digests and all whole-record, peak and throughput gates remain unchanged. **Confidence:** High for reuse and reconstruction; runtime admission remains open.
+
+## C21 material transport
+
+### The coverage value is the base colour's alpha times the normal texture's alpha
+
+**Choice:** A cutout or blended material's coverage is `base_color` alpha (one number for the surface: a pane's opacity) times the normal texture's alpha (texel by texel: a grille's holes), 1 where the material has no normal texture. An opaque material ignores both.
+
+**Gap:** The slice says coverage must not ride albedo alpha or ORM alpha, and leaves where it does ride open: the factor's alpha, a dedicated texture channel, or the vertex colour.
+
+**Alternatives:** The vertex colour's alpha is how worn the surface is (L9), so it collides. Albedo alpha is the wear threshold: reading it as coverage "when the material does not wear" is the overload the slice exists to end. A fourth texture breaks the three-slot limit. Of the twelve channels in three RGBA textures, the normal map's alpha was the only one unused (255 in every shipped texture), and the base colour's alpha was carried to the renderer and never read.
+
+**Reach:** A cutout needs a normal texture, flat if it has no relief. In the source this is not glTF's convention (there, coverage is the base colour texture's alpha), exactly as our albedo alpha already is not. A cutout authored the glTF way is caught by name, not drawn solid (next choice). Mips average the alpha as stored; whether a cutout needs coverage-preserving mips is C24's.
+
+**Verdict:** sound. **Confidence:** high.
+
+### A coverage that never crosses its threshold is refused
+
+**Choice:** `material.coverage_source`: a cutout whose coverage value is everywhere under its cutoff or everywhere at or over it, and a blended material whose value is 1 everywhere, do not bake. The check reads the finest level of the normal texture.
+
+**Gap:** The brief asks to refuse "a cutout with no source of coverage". A missing normal texture is one way to have none; a normal texture whose alpha is 255 throughout, because the coverage was painted into the albedo, is the likelier one, and it would draw solid with no error.
+
+**Verdict:** sound. It is the slice's own feedback line as a check: lost coverage reopens transport. **Confidence:** high.
+
+### Blended cannot wear; a cutout can
+
+**Choice:** `material.wear` refuses a blended material with a wear colour. A cutout with wear and a tint mask bakes.
+
+**Gap:** The brief names "blended with wear" as unsupported and says nothing of cutout with wear.
+
+**Verdict:** sound. Wear replaces the surface with an opaque worn one where the vertex alpha passes the albedo's threshold; on glass that patch has no opacity anyone chose. On a cutout the four channels are independent: a rusty grille is a legitimate surface.
+
+**Reach:** `parts.export(worn=…)` is per file, so a blended material that samples a recipe has to be in an unworn export. A flat blended material (`flat_paint`) carries no wear. **Confidence:** high.
+
+### Interior metadata is the sheet's name, on the room's own surfaces
+
+**Choice:** `Material.interior` is `"rooms"` or `"shops"`, from the glTF material's extras, and nothing else. It marks the walls, floor and ceiling of the open box behind a window, not the pane in front. The box's UVs are the cell-local `u`, `v` of the atlas projection, written by whoever models the box, so the drawer needs no box size or pinhole per material.
+
+**Gap:** "Enough for the later interior pass to know this surface is a window onto a room box and which atlas sheet it looks up."
+
+**Alternatives:** Carrying the box's size and the pinhole per material repeats the atlas's constants in every bundle. Marking the pane as the interior needs a ray-marched box in the shader, which is more than the upstream mechanism (Q-E: room meshes plus a flat lookup). Which cell and which mirroring is per window, by position hash, so it cannot be material data.
+
+**Reach:** A UV interpolated across a side wall is off the true projection by at most 0.7 % of a cell (under one texel of 128) for the 3 × 3 × 4.5 m box and the 16 m pinhole; a wall cut once in depth quarters it. If C26 would rather project in the shader from a box frame, the frame needs a home (a vertex attribute or per-module data) and this field stays as it is.
+
+**Verdict:** provisional until C26 draws one. **Confidence:** medium.
+
+### A room is opaque, has no look of its own, and stands still
+
+**Choice:** `material.interior` refuses an interior material that is a cutout or blended, has textures or a wear colour, or is on a skinned or articulated bundle. A tint mask is allowed: a building's row tint is how it dims its rooms.
+
+**Gap:** The brief names only the skinned and articulated case.
+
+**Verdict:** provisional. The atlas contract says a cell is a finished picture shown as it is, so the material's own textures and wear would be silently ignored, which is the loss this slice refuses elsewhere. If C26 finds a use for one (a normal map on a back wall), it deletes that branch. **Confidence:** medium.
+
+### An opaque material's alphas are ignored, not refused
+
+**Choice:** `alphaMode` absent or `OPAQUE` is opaque whatever the base colour's alpha, the normal map's alpha or a stray `alphaCutoff` say, as glTF defines it. `MASK` with no `alphaCutoff` cuts at glTF's default, 0.5. An alpha mode or cutoff that cannot be read is `material.coverage`.
+
+**Gap:** Unstated.
+
+**Verdict:** sound. All 310 materials in the 41 shipped sources name no alpha mode and have a base alpha of 1, so neither rule moved anything. **Confidence:** high.
+
+### The packed representation is the material's JSON
+
+**Choice:** `coverage` is `{"kind":"opaque"}`, `{"kind":"cutout","cutoff":0.5}` or `{"kind":"blended"}` in the bundle header's material, on every material; `interior` is the sheet's name, present only on a room. Format 4. The decoder refuses a material with no well-formed coverage or an unknown sheet; the combination rules are the validator's alone, so the workbench can still show a preview that has findings.
+
+**Gap:** Delegated.
+
+**Alternatives:** An optional field meaning opaque when absent would have let a format 3 material read as a valid format 4 one; required, an old or truncated material cannot pass for opaque. Flags in a typed array buy nothing: a bundle has tens of materials and megabytes of mesh.
+
+**Verdict:** sound. **Confidence:** high.
+
+### The Blender helpers write the alpha mode after export, not through Blender's material graph
+
+**Choice:** `coverage=("cutout", cutoff)` or `("blended", opacity)` and `interior="rooms"` on `common.mat`, `parts.paint`, `parts.flat_paint` and `parts.textured` (coverage only: a room has no recipe). They record into one registry in `textures.py`, and `textures.attach`, which already rewrites the exported GLB's materials for textures, writes `alphaMode`, `alphaCutoff` and the base colour's alpha. `interior` is a custom property, exported as extras like `tint`. A recipe's coverage image is `Baked(coverage=…)`, in the normal PNG's alpha.
+
+**Gap:** "The Blender export helpers can write both."
+
+**Alternatives:** Blender's exporter derives `alphaMode` from the node graph feeding the Principled alpha (a Math node pattern for a mask). That ties the source bytes to exporter heuristics across Blender versions, for a value we already know.
+
+**Reach:** Checked on Blender 5.2.1 with a scratch script through each helper family: the exported materials read back as cutout 0.5 with a 0-to-1 coverage image, blended 0.35, and rooms of both sheets. Existing exports are untouched: the crate, wall, fence and sandbags re-exported byte-identical to the committed sources. No infantry source was re-exported (Cycles bake); `common.mat` was exercised by the scratch script only.
+
+**Verdict:** sound. **Confidence:** high.
+
+### Found on the way: the dragon's tooth does not export the same bytes twice
+
+**Choice:** None; a finding. `props.py tooth` writes a different index order for `tooth_LOD0` on each run (28 to 70 bytes of one buffer view; the JSON and every other view are identical), with and without this slice's changes, and none of four runs matched the committed file. Left alone: it is a model script, outside this slice, and the committed GLB is what bakes.
+
+**Verdict:** a defect against "the same scripts write the same bytes". **Confidence:** high that it happens; the cause was not looked for.

@@ -13,10 +13,14 @@
 // deterministic, so the same content always has the same hash.
 
 import { sha256Hex } from "./glb.ts";
+import { assertMaterial } from "./material.ts";
 import { TIER_COUNT, type Bundle, type MeshData, type SkeletonClips } from "./schema.ts";
 
 const MAGIC = 0x42414742; // "BGAB" little-endian
-export const FORMAT_VERSION = 3; // 2: materials carry `tint`; 3: baked textures and tangents
+// 2: materials carry `tint`; 3: baked textures and tangents; 4: materials
+// carry their coverage, and room surfaces their interior sheet. Only the
+// current format is read.
+export const FORMAT_VERSION = 4;
 
 type Typed = Float32Array | Int16Array | Uint8Array | Uint16Array | Uint32Array;
 const TYPES = {
@@ -194,7 +198,10 @@ function assertTextures(bundle: Exclude<Bundle, SkeletonClips>) {
 }
 
 function assertShape(bundle: Bundle) {
-  if (bundle.kind !== "clips") assertTextures(bundle);
+  if (bundle.kind !== "clips") {
+    assertTextures(bundle);
+    bundle.materials.forEach(assertMaterial);
+  }
   const tiers = (list: MeshData[], skinned: boolean, where: string) => {
     if (!Array.isArray(list) || list.length !== TIER_COUNT)
       throw new Error(`${where}: expected ${TIER_COUNT} tiers`);
