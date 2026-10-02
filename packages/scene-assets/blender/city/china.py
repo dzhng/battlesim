@@ -29,6 +29,13 @@ memory so its instances can be read (`graph.py`).
   and each kit family draws down to the tier its `FAMILIES` row names. At the
   two fine tiers a kit mesh is a row; at the two coarse ones it is folded into
   the shell, so a far building is one row.
+- **Damage states.** The graph has no damage inputs, so a destroyed building is
+  made here from the intact one (`damage.py`). Six floors or fewer collapse to a
+  `ruin` inside the simulation's remains box: the same walls cut to ragged
+  stumps, a heap of their rubble over the plan, fallen floors, fittings thrown
+  down. Taller ones stand `gutted`: every opening empty and sooted, a few bays
+  blown out to the floor slabs, the fittings charred or gone. Each state has a
+  shell of its own and is one row from far off, like the intact building.
 
 A template's frame has its origin at the footprint's centre and its entrance
 on -Y, the street side: the southmost run takes the graph's entrance facade.
@@ -36,7 +43,9 @@ on -Y, the street side: the southmost run takes the graph's entrance facade.
 import json
 import math
 import os
+import random
 import sys
+from types import SimpleNamespace
 
 import bpy
 import numpy as np
@@ -47,6 +56,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(BLENDER)))
 sys.path.insert(0, HERE)
 sys.path.insert(0, BLENDER)
 import ambientcg  # noqa: E402
+import damage  # noqa: E402
 import detail  # noqa: E402
 import graph  # noqa: E402
 import parts  # noqa: E402
@@ -95,11 +105,9 @@ TEMPLATES = (
     # a 42 x 12 m front on the street and two 12 x 20 m wings behind it: a U open to the back
     ("block-u-5f", 5, {"front": (0, -10, 21, 6), "west": (-15, 6, 6, 10), "east": (15, 6, 6, 10)}, 16, 36, (2, 3, 2),
      (230, 220, 200), {}),
-    # four 12 m wings round a 17 x 14 m court: 408 bays, so plainer than a slab to stay in a template's budget
+    # four 12 m wings round a 17 x 14 m court
     ("block-court-6f", 6, {"south": (0, -13, 20.5, 6), "north": (0, 13, 20.5, 6), "west": (-14.5, 0, 6, 7),
-                           "east": (14.5, 0, 6, 7)}, 17, 37, (2, 3, 2), (214, 206, 196),
-     {"Balcony Probability": 0.18, "Security Grille Probability": 0.25, "AC Unit Probability": 0.22, "Laundry Probability": 0.2,
-      "Lantern Probability": 0.2}),
+                           "east": (14.5, 0, 6, 7)}, 17, 37, (2, 3, 2), (214, 206, 196), {}),
 )
 FIT = {"side_m": 1.5, "top_m": 3.5}
 BUDGET = (150_000, 50_000, 12_000, 2_000)
@@ -107,8 +115,10 @@ BAY_M = 3.0
 WHITE = (255, 255, 255)
 
 # ---------------------------------------------------------------- tiers
-# The smallest feature each tier keeps, in metres.
-FEATURE_M = (0.05, 0.2, 0.6, 1.5)
+# The smallest feature each tier keeps, in metres, and the thinnest a bar is drawn at it. The
+# tactical camera draws tier 0 at about 20 pixels a metre: a bar under 5 cm is under a pixel.
+FEATURE_M = (0.05, 0.25, 0.6, 1.5)
+BAR_M = (0.05, 0.125, 0.3, 0.75)
 # Kit family (a prefix of the source object's name) -> the tiers it draws at, as
 # the row's bits. A family not named here is not part of a building.
 FAMILIES = (
@@ -117,23 +127,22 @@ FAMILIES = (
     ("CNK_AC_", 0b0111), ("CNK_Awn_", 0b0111), ("CNK_RoofProp_", 0b0111), ("CNK_Laundry", 0b0111),
     ("CNK_Grille_", 0b0011), ("CNK_RoofSmall_", 0b0011),
     ("CNK_Text", 0b0001), ("CNK_Lant_", 0b0001),
-    ("CNK_Int_", 0b0001), ("CNK_ShopInt_", 0b0001),
 )
 ROW_TIERS = 0b0011  # drawn as rows; the coarser tiers are folded into the shell
 # What fills a wall opening: at the two coarse tiers the wall is flat and each is one quad on it.
 OPENINGS = ("CNK_Win_", "CNK_Shop_", "CNK_Ent_")
 # A box hung on the wall: at the two coarse tiers a hull of its bounds (`detail.hull`),
-# banded by height, then only its front and sides.
+# banded by height, then only its front.
 HULLS = ("CNK_Balc_",)
-HULL_BAND_M = 1.0
-# Behind glass. Glass is opaque until the renderer has a glass path (C25), so these are
-# drawn only where the front is open: behind `OPEN_FRONTS`.
-BEHIND_GLASS = ("CNK_Int_", "CNK_ShopInt_", "CNK_Curt_")
-OPEN_FRONTS = ("CNK_Shop_04_OpenStall",)
-# A window modelled with a leaf open shows the room behind it. Until rooms are drawn
-# (C26) a dark pane stands in the opening behind the leaf, or the eye goes through the block.
-OPEN_LEAVES = ("CNK_Win_02_Casement",)
-# Inside a glazed-in balcony, hidden for the same reason: its laundry and the door onto it.
+HULL_BAND_M = (1.0, 1.3)  # at tiers 2 and 3: a glazed balcony keeps its pale parapet under its dark glass
+# Every opening in a wall is lined: a dark, matte pane stands in it just inside the wall's
+# thickness, whatever fills it. Not every module closes its opening (a window modelled with
+# a leaf open, an open stall, a glazed-in balcony whose door is left out below), and a block
+# is hollow: without the lining the eye goes in at one and out at the far side.
+LINING_M = 0.28
+# Behind the lining: the rooms, shop interiors and curtains, until interiors are drawn (C26).
+INSIDE = ("CNK_Int_", "CNK_ShopInt_", "CNK_Curt_")
+# Inside a glazed-in balcony, behind glass that is opaque until C25: its laundry and the door onto it.
 ON_BALCONY = ("CNK_LaundryBalc", "CNK_Win_05_BalcDoor")
 GLAZED_BALCONY = "CNK_Balc_01_Enclosed"
 # No path in the renderer until cutout (C24): the rain-streak decals, and the pot plants,
@@ -151,8 +160,8 @@ STUCCO = "M_CN_WallStucco"
 SURFACES = {
     STUCCO: ("cn_wall_stucco", "cn_stucco", (1.0, 1.0, 1.0), 1.0, 0.0),
     "M_CN_Band": ("cn_band", "cn_concrete", (0.7, 0.72, 0.75), 1.0, 0.0),
-    "M_CN_Stone": ("cn_stone", "cn_stone", (0.95, 0.95, 0.96), 1.0, 0.0),
-    "M_CN_RoofTile": ("cn_roof_tile", "cn_roof_tile", (0.8, 0.7, 0.66), 1.0, 0.0),
+    "M_CN_Stone": ("cn_stone", "cn_stone", (1.0, 1.0, 1.0), 1.0, 0.0),
+    "M_CN_RoofTile": ("cn_roof_tile", "cn_roof_tile", (1.0, 1.0, 1.0), 1.0, 0.0),
     "M_CN_Concrete": ("cn_concrete", "cn_concrete", (0.9, 0.9, 0.9), 1.0, 0.0),
     "M_CN_Brick": ("cn_brick", "cn_concrete", (0.62, 0.3, 0.24), 1.0, 0.0),
     "M_CN_Aluminum": ("cn_aluminium", "cn_metal", (1.0, 1.0, 1.0), 0.8, 1.0),
@@ -183,6 +192,11 @@ SURFACES = {
     "M_CN_SignText": ("cn_sign_text", None, (1.0, 1.0, 1.0), 0.4, 0.0),
     # a lamp, unlit: nothing glows
     "M_CN_Emissive": ("cn_lamp", None, (0.8, 0.78, 0.72), 0.3, 0.0),
+    # ours: the dark behind an opening, and what a fire and a collapse leave
+    "X_Void": ("cn_void", None, (0.005, 0.005, 0.006), 1.0, 0.0),
+    "X_Burnt": ("cn_wall_burnt", "cn_burnt", (1.0, 1.0, 1.0), 1.0, 0.0),
+    "X_Rubble": ("cn_rubble", "cn_concrete", (0.66, 0.63, 0.58), 1.0, 0.0),
+    "X_Soot": ("cn_soot", "cn_concrete", (0.5, 0.48, 0.46), 1.0, 0.0),
 }
 # The source shader multiplies these by the kit's colour attribute (`col=True` in its material script).
 TAKES_COLOUR = frozenset((
@@ -211,15 +225,56 @@ def grime(streak, blotch, colour=(0.2, 0.18, 0.15)):
     return burn
 
 
+def toned(mean, keep, level_cycles=0):
+    """A set brought to a colour of our own: its hue kept by `keep` (0 is grey) and its
+    mean albedo set to `mean` (linear). `level_cycles` levels its brightness over
+    anything longer than that many cycles to the tile: a set lighter at one corner
+    than another, repeated, is a chequer from the air. Nothing is added that would
+    repeat: a surface this recipe covers by the hundred square metres gets its dirt
+    from its mesh."""
+
+    def burn(albedo, roughness):
+        grey = (albedo @ np.array([0.2126, 0.7152, 0.0722]))[..., None]
+        if level_cycles:
+            spectrum = np.fft.fft2(grey[..., 0])
+            fy, fx = np.meshgrid(np.fft.fftfreq(grey.shape[0]) * grey.shape[0], np.fft.fftfreq(grey.shape[1]) * grey.shape[1], indexing="ij")
+            slow = np.hypot(fx, fy) <= level_cycles
+            slow[0, 0] = False
+            level = np.fft.ifft2(np.where(slow, spectrum, 0)).real[..., None]
+            albedo = albedo * np.clip((grey - level) / np.maximum(grey, 1e-6), 0.0, 4.0)
+            grey = (albedo @ np.array([0.2126, 0.7152, 0.0722]))[..., None]
+        out = grey + (albedo - grey) * keep
+        return np.clip(out * (np.asarray(mean) / out.mean((0, 1))), 0.0, 1.0), roughness
+
+    return burn
+
+
+def scorched(albedo, roughness):
+    """Painted plaster after a fire: smoked grey all over, a little uneven, with a few
+    patches where the plaster has spalled to the render under it. The marks that say
+    fire are the fans above the openings, which are geometry: clouds of soot in a
+    texture repeat as camouflage, and runs down a brown wall are the grain of a plank.
+    Only the colour changes, so the burnt wall shares the intact wall's normal and
+    roughness images."""
+    soot = textures.smoothstep(0.25, 0.8, textures.fbm(1, 931, 3))
+    spall = textures.smoothstep(0.86, 0.9, textures.fbm(5, 941, 4))
+    out = textures.mix(albedo, (0.03, 0.028, 0.026), np.clip(0.52 + 0.18 * soot, 0.0, 0.94))
+    render = np.array((0.085, 0.08, 0.075)) * (0.7 + 0.5 * textures.fbm(40, 943, 2))[..., None]
+    return textures.mix(out, render, spall * 0.8), roughness
+
+
 def recipes():
     # the stucco covers 4.8 m (the set twice each way) so its streaks do not repeat bay to bay
     ambientcg.bake("cn_stucco", "PaintedPlaster017", 2.4, repeat=2, tint=(1.0, 0.985, 0.955), rough=(0.9, 0.08),
                    normal=0.55, grime=grime(0.35, 0.3))
+    ambientcg.bake("cn_burnt", "PaintedPlaster017", 2.4, repeat=2, tint=(1.0, 0.985, 0.955), rough=(0.9, 0.08),
+                   normal=0.55, grime=scorched)
     ambientcg.bake("cn_concrete", "Concrete034", 2.0, rough=(1.0, 0.05), normal=0.6, grime=grime(0.35, 0.3))
-    ambientcg.bake("cn_stone", "Tiles138", 1.2, normal=0.8, grime=grime(0.0, 0.25))
-    # the roof is the largest surface from above: four repeats, so its dirt does not chequer
+    # the ground floor is a plinth of mid-grey stone under the shop fronts; the set's own is near black
+    ambientcg.bake("cn_stone", "Tiles138", 1.2, normal=0.8, grime=toned((0.2, 0.19, 0.175), 0.6))
+    # the roof is the largest surface in every view of a town: a dull, weathered clay, its dirt in the mesh
     ambientcg.bake("cn_roof_tile", "Tiles047", 1.2, repeat=4, rough=(1.0, 0.05), normal=0.8,
-                   grime=grime(0.0, 0.6, (0.12, 0.12, 0.1)))
+                   grime=toned((0.2, 0.115, 0.085), 0.5, level_cycles=10))
     ambientcg.bake("cn_metal", "Metal009", 1.0, rough=(1.0, 0.05), normal=0.4)
     ambientcg.bake("cn_corrugated", "CorrugatedSteel005", 1.0)
     ambientcg.bake("cn_plastic", "Plastic010", 1.0, rough=(0.8, 0.12), normal=0.3)
@@ -311,10 +366,11 @@ def right_of(a, b):
     return ((b[1] - a[1]) / length, -(b[0] - a[0]) / length)
 
 
-def ring(loop, z0, z1, out_m, in_m, material, inner=False):
+def ring(loop, z0, z1, out_m, in_m, material, inner=False, outer=True):
     """A band round a loop of the outline: `out_m` proud of the wall and `in_m` into it,
     from `z0` to `z1`, mitred at every corner. Its outer face and its top; with `inner`
-    its inner face too (a parapet seen from the roof)."""
+    its inner face too (a parapet seen from the roof), and without `outer` that alone
+    (a wall seen from inside)."""
     normals = [right_of(a, b) for a, b in loop]
     moved = lambda k, d: (loop[k][0][0] + d * (normals[k - 1][0] + normals[k][0]),
                           loop[k][0][1] + d * (normals[k - 1][1] + normals[k][1]))
@@ -322,8 +378,9 @@ def ring(loop, z0, z1, out_m, in_m, material, inner=False):
     for k in range(len(loop)):
         n = (k + 1) % len(loop)
         a, b, c, d = moved(k, out_m), moved(n, out_m), moved(n, -in_m), moved(k, -in_m)
-        faces.append([(*a, z0), (*b, z0), (*b, z1), (*a, z1)])
-        faces.append([(*a, z1), (*b, z1), (*c, z1), (*d, z1)])
+        if outer:
+            faces.append([(*a, z0), (*b, z0), (*b, z1), (*a, z1)])
+            faces.append([(*a, z1), (*b, z1), (*c, z1), (*d, z1)])
         if inner:
             faces.append([(*c, z0), (*d, z0), (*d, z1), (*c, z1)])
     return Soup.join([quad(face, material) for face in faces])
@@ -364,8 +421,9 @@ def run_inputs(length, side, floors, seed, shop_seed, own):
 
 
 def facade(tap, rows, side, run, roof_m):
-    """One facade of an evaluated building, moved onto a run of the outline: its wall
-    (the faces we can see of it), its instances, and its stretched cubes as one mesh."""
+    """One facade of an evaluated building, moved onto a run of the outline: where it
+    stands, its wall (the faces we can see of it, and apart from them its inner face),
+    its instances, its stretched cubes as one mesh, and every opening in it."""
     inputs_w, inputs_d = (math.dist(*run), ACROSS_M) if side in (0, 3) else (ACROSS_M, math.dist(*run))
     (sx, sy), (ex, ey) = FACADES[side]
     start, end = np.array([sx * inputs_w, sy * inputs_d]), np.array([ex * inputs_w, ey * inputs_d])
@@ -387,9 +445,8 @@ def facade(tap, rows, side, run, roof_m):
     ours = (deep > -0.01) & (deep < wall_m + 0.01) & (centre[:, 2] < roof_m) & ((name == STUCCO) | (name == "M_CN_Stone"))
     # a corner's block of wall belongs to both facades that meet there: each takes its own faces
     ours &= (np.abs(facing) > 0.5) | ((far > wall_m + 0.01) & (far < length - wall_m - 0.01))
-    # the inner face is never seen: every opening is closed by a module
-    ours &= ~((facing < -0.5) & (deep > wall_m - 1e-3))
-    wall = masked(own.keep(ours), True).transformed(place)
+    # the inner face is never seen while the building stands: every opening is lined
+    inner = ours & (facing < -0.5) & (deep > wall_m - 1e-3)
     placed, cubes = [], []
     for name, m, tint in rows:
         if name.startswith(ROOF_FAMILIES) or depth(m[:3, 3]) > 0.8:
@@ -402,7 +459,12 @@ def facade(tap, rows, side, run, roof_m):
         # the face a cube turns to the wall it sits on is never seen
         against = (normals[:, :2] @ out < -0.5) & (depth(cube.v[cube.t].mean(1)) > -0.02)
         cubes.append(cube.keep(~against).transformed(place))
-    return wall, placed, Soup.join(cubes)
+    openings = [(name, place @ m) for name, m, _ in tap.rows if name.startswith(OPENINGS) and depth(m[:3, 3]) < 0.8]
+    direction = np.array([run[1][0] - run[0][0], run[1][1] - run[0][1]]) / length
+    return SimpleNamespace(
+        start=np.array(run[0], dtype=np.float64), along=direction, out=np.array([direction[1], -direction[0]]), length=length,
+        wall=masked(own.keep(ours & ~inner), True).transformed(place), inner=masked(own.keep(inner), True).transformed(place),
+        rows=placed, cubes=Soup.join(cubes), openings=openings)
 
 
 def roof_rows(graph_, part, floors, seed, roof, own):
@@ -413,6 +475,17 @@ def roof_rows(graph_, part, floors, seed, roof, own):
     _, rows = graph_.tap(inputs)
     place = frame(math.pi / 2, cx + hx, cy - hy)
     return [(name, place @ m, tint) for name, m, tint in rows if name.startswith(ROOF_FAMILIES)]
+
+
+def lining(meshes, name, m, depth_m, material, grow=0.05):
+    """The pane that stands in an opening: the bounds of what fills it, across the wall,
+    `depth_m` inside the wall's face (negative: in front of it)."""
+    lo, hi = meshes[name].bounds()
+    corners = np.array([(lo[0] - grow, depth_m, lo[2] - grow), (hi[0] + grow, depth_m, lo[2] - grow),
+                        (hi[0] + grow, depth_m, hi[2] + grow), (lo[0] - grow, depth_m, hi[2] + grow)])
+    corners = corners @ m[:3, :3].T + m[:3, 3]
+    corners[:, 2] = np.maximum(corners[:, 2], 0.0)
+    return quad(corners, material)
 
 
 # ---------------------------------------------------------------- modules
@@ -454,17 +527,21 @@ def module_tiers(name, soup):
     """The four meshes of a kit module, finest first; None where nothing is left to draw.
     A tier is never heavier than the one before it: where the rule would make it so, it
     repeats that one."""
-    if name.startswith(OPEN_LEAVES):
-        soup = Soup.join([soup, detail.front_quad(soup, soup.mats.index("M_CN_Glass"), -0.15, soup.mats)])
     out = []
     for tier, g in enumerate(FEATURE_M):
-        if tier >= 2 and name.startswith(OPENINGS):
+        if name.endswith("+wreck"):  # thrown down, it is neither an opening nor a balcony: a heap of bars and panels
+            lod = detail.simplify(soup, g, BAR_M[tier])
+        elif tier >= 2 and name.startswith(OPENINGS):
             front = front_material(soup)  # the pane, not its frame: a far window is no bigger than a near one
             lod = detail.front_quad(soup.keep(soup.m == front), front, 0.03, soup.mats)
         elif tier >= 2 and name.startswith(HULLS):
-            lod = detail.hull(soup, HULL_BAND_M if tier == 2 else 100.0, caps=tier == 2)
+            lod = detail.hull(soup, HULL_BAND_M[tier - 2], caps=tier == 2, sides=tier == 2)
+            if tier == 3 and len(lod):  # its front alone, laid on the wall: standing off it, it floats when seen from the side
+                flat = lod.v.copy()
+                flat[:, 1] = soup.bounds()[1][1] - 0.2
+                lod = Soup(flat, lod.c, lod.t, lod.m, lod.s, lod.mats)
         else:
-            lod = detail.simplify(soup, g)
+            lod = detail.simplify(soup, g, BAR_M[tier])
         finer = next((l for l in reversed(out) if l is not None), None)
         if finer is not None and len(clean(lod)) > len(clean(finer)):
             lod = finer
@@ -473,7 +550,33 @@ def module_tiers(name, soup):
 
 
 def module_id(name):
-    return name.removeprefix("CNK_").lower()
+    return name.removeprefix("CNK_").lower().replace("+", "_")
+
+
+# What a fire burns away, and how a fitting is left: `name+burnt` charred where it was,
+# `name+hanging` charred and torn half off the wall, `name+wreck` charred and thrown down.
+BURNS = frozenset(("M_CN_Glass", "M_CN_GlassFrosted", "M_CN_PVC", "M_CN_Fabric", "M_CN_Lantern", "M_CN_RedPaper"))
+
+
+def variant(soup, kind, seed):
+    soup = damage.charred(soup, BURNS, seed)
+    # burnt metal is sooted and dull: left a metal, it would mirror the sky
+    soup = Soup(soup.v, soup.c, soup.t, soup.m, soup.s, ["X_Soot" if name in SURFACES and SURFACES[name][4] > 0 else name for name in soup.mats])
+    if not len(soup) or kind == "burnt":
+        return soup
+    lo, hi = soup.bounds()
+    if kind == "hanging":  # swung out from its top edge on the wall, one end dropped
+        pivot = np.eye(4)
+        pivot[:3, 3] = (0.0, 0.0, hi[2])
+        back = np.eye(4)
+        back[:3, 3] = (0.0, 0.0, -hi[2])
+        return soup.transformed(pivot @ damage.tilted(0.0, 0.18, -0.42, 0.0, 0.0, -0.25) @ back)
+    rng = random.Random(seed)
+    lying = soup.transformed(damage.tilted(0.0, rng.uniform(-0.35, 0.35), rng.choice((-1, 1)) * rng.uniform(1.0, 1.45), 0, 0, 0))
+    lo, hi = lying.bounds()
+    rest = np.eye(4)
+    rest[:3, 3] = (-(lo[0] + hi[0]) / 2, -(lo[1] + hi[1]) / 2, -lo[2])
+    return lying.transformed(rest)
 
 
 # ---------------------------------------------------------------- rows
@@ -509,13 +612,10 @@ def near(a, b, reach):
 
 def drawn(rows):
     """The instances a building of ours draws, from all the graph makes."""
-    fronts = [m for name, m, _ in rows if name.startswith(OPEN_FRONTS)]
     glazed = [m for name, m, _ in rows if name == GLAZED_BALCONY]
     out = []
     for name, m, tint in rows:
-        if name.startswith(NO_PATH):
-            continue
-        if name.startswith(BEHIND_GLASS) and not any(near(m, f, 0.5) for f in fronts):
+        if name.startswith(NO_PATH) or name.startswith(INSIDE):
             continue
         if name.startswith(ON_BALCONY) and any(near(m, b, 1.0) for b in glazed):
             continue
@@ -524,42 +624,343 @@ def drawn(rows):
 
 
 # ---------------------------------------------------------------- the shell
-def quad(corners, material):
-    return Soup(np.array(corners, dtype=np.float64), np.ones((4, 3)), [(0, 1, 2), (0, 2, 3)], [0, 0], [False, False], [material])
+def quad(corners, material, colour=1.0):
+    return damage.quad(corners, material, colour)
 
 
-def shell_tiers(walls, cubes, rows, loops, rects, modules, tiers_of, floors):
-    """A template's own mesh at each tier: the walls of every run, the bands, parapet and
-    coping round the outline, a roof over every part, the cubes, and at the two coarse
-    tiers flat walls with what is left of the kit folded in."""
-    ground_m, storey_m, wall_m = INPUTS["Ground Floor Height"], INPUTS["Floor Height"], INPUTS["Wall Thickness"]
-    roof_m = ground_m + storey_m * (floors - 1)
+ROOF_CELL_M = (3.0, 3.0, 6.0, 12.0)
+BURNT_ROOF_CELL_M = (1.0, 1.0, 2.0, 5.0)  # a burn has a ragged edge; a soft one is a cloud's shadow
+SMOKED_ROOF = (0.46, 0.66, 0.8)  # what multiplies the clay of a roof the fire has smoked
+BURNT_THROUGH = (0.55, 0.6)  # how hot (0 to 1) the fire was where the tiles are gone, and where the slab is
+
+
+def fire_at(x, y, seed):
+    """How hot (0 to 1) the fire was under a burnt roof at a point."""
+    return 0.72 * damage.noise(x, y, 7.0, seed + 9) + 0.28 * damage.noise(x, y, 1.7, seed + 10)
+
+
+def roof(rects, z, cell_m, seed, burnt=0.0, slab=True):
+    """A tiled roof over every part, as a grid whose vertices carry its weathering: a few
+    large dark stains and a faint mottle, different on every template. `burnt` (what is
+    left of its brightness) makes it the roof of a burnt block: smoked, and where the
+    fire came up a hole through it, with the tiles off the slab round the hole unless
+    `slab` is false (the farthest tier, whose cells are larger than that rim)."""
+    out = []
+    for cx, cy, hx, hy in rects:
+        nx, ny = max(1, round(2 * hx / cell_m)), max(1, round(2 * hy / cell_m))
+        x, y = np.meshgrid(np.linspace(cx - hx, cx + hx, nx + 1), np.linspace(cy - hy, cy + hy, ny + 1))
+        x, y = x.ravel(), y.ravel()
+        if burnt:  # off the grid, inside the roof's edge: a burn's edge follows no cell
+            inside = (np.abs(x - cx) < hx - 1e-6) & (np.abs(y - cy) < hy - 1e-6)
+            x = x + inside * 0.5 * cell_m * (damage.noise(x, y, 0.4 * cell_m, seed + 11) - 0.5)
+            y = y + inside * 0.5 * cell_m * (damage.noise(x, y, 0.4 * cell_m, seed + 12) - 0.5)
+        stain = textures.smoothstep(0.6, 0.85, damage.noise(x, y, 11.0, seed)) * (0.5 + 0.5 * damage.noise(x, y, 4.0, seed + 1))
+        shade = (1.0 - 0.38 * stain) * (0.86 + 0.14 * damage.noise(x, y, 5.0, seed + 2))
+        colour = np.repeat(shade[:, None], 3, 1)
+        a = (np.arange(ny)[:, None] * (nx + 1) + np.arange(nx)[None, :]).ravel()
+        tris = np.concatenate([np.stack([a, a + 1, a + nx + 2], 1), np.stack([a, a + nx + 2, a + nx + 1], 1)])
+        v = np.stack([x, y, np.full(len(x), z)], 1)
+        if not burnt:
+            out.append(Soup(v, colour, tris, np.zeros(len(tris), int), np.zeros(len(tris), bool), ["M_CN_RoofTile"]))
+            continue
+        # Smoked all over, its clay gone to a brown grey. Where the fire came through, a hole (the storey under it
+        # shows, `burnt_storey`), and round the hole the bare slab the tiles have fallen from, grey with ash. A cell
+        # is one surface, and the edges between them are hard: a dark patch with a soft edge is a tree's shadow.
+        middle = (v[a] + v[a + nx + 2]) / 2
+        surface = np.digitize(fire_at(middle[:, 0], middle[:, 1], seed), BURNT_THROUGH)
+        surface = np.tile(surface if slab else np.where(surface == 1, 0, surface), 2)
+        ash = (0.16 + 0.22 * damage.noise(x, y, 1.1, seed + 13))[:, None] * np.ones(3)
+        corner = np.where((surface == 0)[:, None, None], (colour * np.asarray(SMOKED_ROOF) * burnt)[tris], ash[tris])
+        out.append(Soup(v[tris].reshape(-1, 3), corner.reshape(-1, 3), np.arange(3 * len(tris)).reshape(-1, 3),
+                        np.minimum(surface, 1), np.zeros(len(tris), bool), ["M_CN_RoofTile", "X_Rubble"]).keep(surface != 2))
+    return Soup.join(out)
+
+
+BURNT_STOREY_M = 2.9
+
+
+def burnt_storey(rects, loops, roof_m, material):
+    """What shows through a hole in a burnt roof: the top storey's floor, black with what fell on it, and the
+    inside of its walls."""
+    z = roof_m - BURNT_STOREY_M
+    floors = [quad([(cx - hx, cy - hy, z), (cx + hx, cy - hy, z), (cx + hx, cy + hy, z), (cx - hx, cy + hy, z)], "X_Rubble", 0.07)
+              for cx, cy, hx, hy in rects]
+    return Soup.join([*floors, *(ring(loop, z, roof_m, 0.0, 0.32, material, inner=True, outer=False).coloured(0.2) for loop in loops)])
+
+
+def heights(floors):
+    """A block's levels: its ground floor's head, its roof, its parapet's top, and what
+    the simulation leaves of it when it collapses (a quarter, between 2 and 6 m)."""
+    ground_m = INPUTS["Ground Floor Height"]
+    roof_m = ground_m + INPUTS["Floor Height"] * (floors - 1)
     top_m = roof_m + INPUTS["Parapet Height"]
-    band = "M_CN_Band"
-    crown, belts, floor_bands, flat = [], [], [], []
+    return ground_m, roof_m, top_m, min(6.0, max(2.0, 0.25 * top_m))
+
+
+def crown(loops, floors, tier, stucco, shade=1.0, trim=1.0):
+    """What follows the outline: the parapet and its coping, the belt over the shops and
+    the band under the parapet, and at the fine tiers a band at every floor. `shade`
+    darkens the parapet and `trim` the bands."""
+    ground_m, roof_m, top_m, _ = heights(floors)
+    wall_m, storey_m, band = INPUTS["Wall Thickness"], INPUTS["Floor Height"], "M_CN_Band"
+    walls, bands = [], []
     for loop in loops:
-        crown += [ring(loop, roof_m, top_m, 0.0, wall_m, STUCCO + MASK, inner=True),
-                  ring(loop, top_m, top_m + 0.1, 0.07, wall_m + 0.07, band, inner=True)]
-        belts += [ring(loop, ground_m - 0.3, ground_m + 0.02, 0.14, 0.06, band), ring(loop, roof_m - 0.3, roof_m + 0.02, 0.1, 0.06, band)]
-        floor_bands += [ring(loop, ground_m + storey_m * k - 0.14, ground_m + storey_m * k, 0.05, 0.06, band)
-                        for k in range(1, floors - 1)]
-        for (ax, ay), (bx, by) in loop:
-            flat += [quad([(ax, ay, z0), (bx, by, z0), (bx, by, z1), (ax, ay, z1)], material)
-                     for z0, z1, material in ((0.0, ground_m, "M_CN_Stone"), (ground_m, roof_m, STUCCO + MASK))]
-    z = roof_m + 0.04
-    roofs = [quad([(cx - hx, cy - hy, z), (cx + hx, cy - hy, z), (cx + hx, cy + hy, z), (cx - hx, cy + hy, z)], "M_CN_RoofTile")
-             for cx, cy, hx, hy in rects]
+        walls.append(ring(loop, roof_m, top_m, 0.0, wall_m, stucco, inner=True))
+        bands.append(ring(loop, ground_m - 0.3, ground_m + 0.02, 0.14, 0.06, band))
+        if tier < 3:
+            bands += [ring(loop, top_m, top_m + 0.1, 0.07, wall_m + 0.07, band, inner=True),
+                      ring(loop, roof_m - 0.3, roof_m + 0.02, 0.1, 0.06, band)]
+        if tier < 2:
+            bands += [ring(loop, ground_m + storey_m * k - 0.14, ground_m + storey_m * k, 0.05, 0.06, band)
+                      for k in range(1, floors - 1)]
+    walls, bands = Soup.join(walls), Soup.join(bands)
+    return Soup.join([walls.coloured(shade) if shade != 1.0 else walls, bands.coloured(trim) if trim != 1.0 else bands])
+
+
+def flat_walls(loops, floors, stucco, shade=1.0, trim=1.0):
+    """The walls of the two coarse tiers: one quad of stone and one of stucco to a run."""
+    ground_m, roof_m, _, _ = heights(floors)
+    return Soup.join([quad([(ax, ay, z0), (bx, by, z0), (bx, by, z1), (ax, ay, z1)], material, colour)
+                      for loop in loops for (ax, ay), (bx, by) in loop
+                      for z0, z1, material, colour in ((0.0, ground_m, "M_CN_Stone", trim), (ground_m, roof_m, stucco, shade))])
+
+
+def folded(rows, modules, tiers_of, tier, skip=()):
+    """What is left of the rows' modules at a coarse tier, as meshes in the template's frame."""
+    return [unmasked(modules[name][tier], None if tint is None else tint[:3]).transformed(m) for name, m, tint in rows
+            if tiers_of[name] & ~ROW_TIERS & (1 << tier) and not name.startswith(skip)]
+
+
+def monotone(name, tiers):
+    for tier in range(1, 4):
+        if len(clean(tiers[tier])) > len(clean(tiers[tier - 1])):
+            raise SystemExit(f"{name}: tier {tier} is heavier than tier {tier - 1}")
+    return tiers
+
+
+def intact_shell(b, modules, tiers_of, meshes):
+    """A template's own mesh at each tier: the walls of every run with every opening
+    lined, the bands, parapet and coping round the outline, a roof over every part, the
+    cubes, and at the two coarse tiers flat walls with what is left of the kit folded in."""
+    _, roof_m, _, _ = heights(b.floors)
+    walls = [run.wall for run in b.runs]
+    linings = [lining(meshes, name, m, LINING_M, "X_Void") for run in b.runs for name, m in run.openings]
+    cubes = Soup.join([run.cubes for run in b.runs])
     out = []
     for tier, g in enumerate(FEATURE_M):
-        folded = [unmasked(modules[name][tier], None if tint is None else tint[:3]).transformed(m) for name, m, tint in rows
-                  if tiers_of[name] & ~ROW_TIERS & (1 << tier)]
-        body = [*walls, *floor_bands] if tier < 2 else flat
-        out.append(Soup.join([*body, *crown, *(belts if tier < 3 else belts[::2]), *roofs,
-                              cubes if tier == 0 else detail.simplify(cubes, g), *folded]))
-    for tier in range(1, 4):
-        if len(clean(out[tier])) > len(clean(out[tier - 1])):
-            raise SystemExit(f"a shell's tier {tier} is heavier than its tier {tier - 1}")
-    return out
+        body = [*walls, *linings] if tier < 2 else [flat_walls(b.loops, b.floors, STUCCO + MASK)]
+        out.append(Soup.join([*body, crown(b.loops, b.floors, tier, STUCCO + MASK), roof(b.rects, roof_m + 0.04, ROOF_CELL_M[tier], b.seed),
+                              cubes if tier == 0 else detail.simplify(cubes, g), *folded(b.rows, modules, tiers_of, tier)]))
+    return monotone(b.name, out)
+
+
+# ---------------------------------------------------------------- gutted
+BURNT_WALL = 0.55  # how far the fire darkens a wall all over; the soot fans fade up to it
+BURNT_TRIM = 0.2  # and its bands, sills and plinth, which are pale and would stay clean
+BURNT_GREY = 0.9  # how far the wall's paint loses its colour
+# How much of each family a fire leaves on the building, and as which variant. What is not named is gone.
+SURVIVES = (
+    ("CNK_Balc_", 1.0, ("burnt",)), ("CNK_Win_", 0.25, ("burnt",)), ("CNK_Grille_", 0.5, ("hanging", "burnt")),
+    ("CNK_AC_", 0.45, ("burnt",)), ("CNK_Shop_02_", 1.0, ("burnt",)), ("CNK_Shop_03_", 1.0, ("burnt",)),
+    ("CNK_Ent_", 1.0, ("burnt",)), ("CNK_RoofBulk_", 1.0, ("burnt",)), ("CNK_RoofProp_", 0.6, ("burnt",)),
+    ("CNK_RoofSmall_", 0.5, ("burnt",)),
+)
+BLOWN = 0.035  # the share of a facade's bays above the shops blown out to the floor slabs
+
+
+def smoked(wall):
+    """A wall's paint after the fire: most of its colour gone to grey."""
+    grey = 0.2126 * wall[0] + 0.7152 * wall[1] + 0.0722 * wall[2]
+    return tuple(int(round(c + (grey - c) * BURNT_GREY)) for c in wall)
+
+
+def survivor(rng, name):
+    for prefix, share, kinds in SURVIVES:
+        if name.startswith(prefix):
+            return name + "+" + rng.choice(kinds) if rng.random() < share else None
+    return None
+
+
+def gutted(b, meshes):
+    """The block burnt out and standing: its rows, and a function that makes its shell
+    from the kit's modules. Every opening is an empty dark hole with soot above most, a
+    few bays are blown out to the floor slabs, the walls and roof are scorched."""
+    rng = random.Random(b.seed * 1000 + 7)
+    ground_m, roof_m, _, _ = heights(b.floors)
+    storey_m = INPUTS["Floor Height"]
+    burnt, char, concrete = "X_Burnt" + MASK, "X_Void", "X_Rubble"
+    rows, walls, cubes = [], [], []
+    holes, far_holes, soot, flat_soot, far_soot = [], [], [], [], []  # for walls with openings, for flat walls, and the few fans the farthest tier keeps
+    for run in b.runs:
+        point = lambda s, deep, z, run=run: (*(run.start + run.along * s - run.out * deep), z)
+        s_of = lambda xy, run=run: float((np.asarray(xy)[:2] - run.start) @ run.along)
+        bays = math.floor((run.length - 2.0) / BAY_M + 1e-9)
+        margin = (run.length - BAY_M * bays) / 2
+        blown = set()
+        for _ in range(int(bays * (b.floors - 1) * BLOWN + rng.random())):
+            k, f = rng.randrange(bays), rng.randrange(1, b.floors)
+            blown |= {(k + dk, f + df) for dk in range(rng.choice((1, 1, 2))) for df in range(rng.choice((1, 1, 2)))
+                      if k + dk < bays and f + df < b.floors}
+        gone = lambda s, z: (math.floor((s - margin) / BAY_M), 0 if z < ground_m else 1 + math.floor((z - ground_m) / storey_m)) in blown
+
+        centre = run.wall.v[run.wall.t].mean(1)
+        wall = run.wall.keep(np.array([not gone(s_of(c), float(c[2])) for c in centre], dtype=bool))
+        trim = np.zeros(len(wall.v), bool)
+        trim[np.unique(wall.t[np.array(wall.mats)[wall.m] != STUCCO + MASK])] = True
+        clear = np.median(wall.c[~trim], axis=0) * BURNT_WALL  # the burnt wall's own colour, which a fan fades to
+        walls.append(Soup(wall.v, wall.c * np.where(trim, BURNT_TRIM, BURNT_WALL)[:, None], wall.t, wall.m, wall.s,
+                          [burnt if name == STUCCO + MASK else name for name in wall.mats]))
+        for k, f in sorted(blown):
+            s0, z0 = margin + BAY_M * k, ground_m + storey_m * (f - 1)
+            s1, z1, deep = s0 + BAY_M, z0 + storey_m, 3.2
+            edge = quad([point(s0, -0.05, z0 - 0.22), point(s1, -0.05, z0 - 0.22), point(s1, -0.05, z0), point(s0, -0.05, z0)], concrete, 0.22)
+            holes += [edge,
+                      quad([point(s0, 0, z0), point(s1, 0, z0), point(s1, deep, z0), point(s0, deep, z0)], concrete, 0.13),
+                      quad([point(s0, deep, z0), point(s1, deep, z0), point(s1, deep, z1), point(s0, deep, z1)], char),
+                      quad([point(s0, 0, z0), point(s0, deep, z0), point(s0, deep, z1), point(s0, 0, z1)], char),
+                      quad([point(s1, deep, z0), point(s1, 0, z0), point(s1, 0, z1), point(s1, deep, z1)], char)]
+            far_holes += [edge, quad([point(s0, -0.03, z0), point(s1, -0.03, z0), point(s1, -0.03, z1), point(s0, -0.03, z1)], char)]
+        # where each opening is on the run (along it, and up): soot rises to the next one above and no further
+        spans = []
+        for name, m in run.openings:
+            lo, hi = meshes[name].bounds()
+            wide = math.hypot(m[0, 0], m[1, 0])
+            s = s_of(m[:2, 3])
+            spans.append((s + lo[0] * wide, s + hi[0] * wide, m[2, 3] + lo[2] * m[2, 2], m[2, 3] + hi[2] * m[2, 2]))
+        spans += [(margin + BAY_M * k, margin + BAY_M * (k + 1), ground_m + storey_m * (f - 1), ground_m + storey_m * f) for k, f in blown]
+        for name, m in run.openings:
+            if gone(s_of(m[:2, 3]), m[2, 3] + 0.3):
+                continue
+            holes.append(lining(meshes, name, m, LINING_M, char))
+            if not name.startswith(ON_BALCONY):  # from far off a balcony covers the door onto it
+                far_holes.append(lining(meshes, name, m, -0.03, char, grow=0.0))
+            if rng.random() < 0.85:
+                lo, hi = meshes[name].bounds()
+                wide = math.hypot(m[0, 0], m[1, 0])
+                s, half = s_of(m[:2, 3]) + (lo[0] + hi[0]) / 2 * wide, (hi[0] - lo[0]) / 2 * wide
+                z = m[2, 3] + hi[2] * m[2, 2] + 0.14
+                tall, spread = rng.uniform(1.4, 2.8), rng.uniform(0.25, 0.6)
+                above = [z0 for s0, s1, z0, _ in spans if z0 > z - 0.3 and s0 < s + half + spread and s1 > s - half - spread]
+                reach = min(roof_m - z, min(above, default=math.inf) - z - 0.08)
+                if reach < 0.25:
+                    continue
+                dark = rng.uniform(0.03, 0.1) * BURNT_WALL
+                fan = ((point(s - half, -0.04, z), point(s + half, -0.04, z)), min(tall, reach), spread, burnt, dark)
+                # stopped under the opening above, it is still half as black there: the soot goes on up past that
+                # opening, and a column of windows is one black streak, not a shadow under each sill
+                held = lambda wall: dark + (wall - dark) * 0.45 if reach < tall else None
+                soot.append(damage.soot_fan(*fan, clear, top=held(clear)))
+                flat_soot.append(damage.soot_fan(*fan, BURNT_WALL, top=held(BURNT_WALL)))
+                if rng.random() < 0.25:
+                    far_soot.append(damage.soot_fan(*fan, BURNT_WALL, sides=False, top=held(BURNT_WALL)))
+        if len(run.cubes):
+            sooted = damage.charred(run.cubes, frozenset(), b.seed + 3, light=(0.03, 0.1))
+            grey = sooted.c.mean(1, keepdims=True)  # a sign board's paint is gone with the rest
+            sooted = Soup(sooted.v, grey + (sooted.c - grey) * 0.2, sooted.t, sooted.m, sooted.s, sooted.mats)
+            centre = sooted.v[sooted.t].mean(1)
+            cubes.append(sooted.keep(np.array([not gone(s_of(c), float(c[2])) for c in centre], dtype=bool)))
+        for name, m, _ in run.rows:
+            left = None if gone(s_of(m[:2, 3]), m[2, 3] + 0.3) else survivor(rng, name)
+            if left:
+                rows.append((left, m, None))
+    for name, m, _ in b.roof_rows:
+        left = survivor(rng, name)
+        # what stood where the roof is burnt through has gone down with it
+        if left and fire_at(np.array([m[0, 3]]), np.array([m[1, 3]]), b.seed)[0] < BURNT_THROUGH[0] - 0.04:
+            rows.append((left, m, None))
+
+    def shell(modules, tiers_of):
+        out, sooted = [], Soup.join(cubes)
+        for tier, g in enumerate(FEATURE_M):
+            body = [*walls, *holes, *soot] if tier < 2 else \
+                [flat_walls(b.loops, b.floors, burnt, BURNT_WALL, BURNT_TRIM), *far_holes, *(flat_soot if tier == 2 else far_soot)]
+            out.append(Soup.join([*body, crown(b.loops, b.floors, tier, burnt, BURNT_WALL, BURNT_TRIM),
+                                  roof(b.rects, roof_m + 0.04, BURNT_ROOF_CELL_M[tier], b.seed, burnt=0.85, slab=tier < 3),
+                                  burnt_storey(b.rects, b.loops, roof_m, burnt),
+                                  sooted if tier == 0 else detail.simplify(sooted, g),
+                                  # at the coarse tiers an opening is its dark lining, whatever hangs in it
+                                  *folded(rows, modules, tiers_of, tier, skip=OPENINGS)]))
+        return monotone(b.name + " gutted", out)
+
+    return rows, shell
+
+
+# ---------------------------------------------------------------- ruin
+STUMP_STEP_M = 1.5  # a wall breaks off in columns this wide
+SPILL_M = 1.1  # how far the rubble runs out past the walls
+HEAP_CELL_M = (0.9, 1.8, 3.6, 7.2)
+# What lies in the heap, thrown down and charred: one to every 20 square metres of plan.
+WRECKS = ("CNK_AC_00_Std", "CNK_AC_02_Old", "CNK_Grille_00_CageSS", "CNK_Grille_01_CageBlack", "CNK_Balc_00_OpenRail",
+          "CNK_Win_00_Slide2", "CNK_Shop_02_ShutterDown", "CNK_Laundry_01_Bamboo")
+WRECK_M2 = 20.0
+
+
+def ruin(b, meshes, source):
+    """The block collapsed, inside the simulation's remains box (the parts' plan, at the
+    ruin height): its rows, and a function that makes its shell. The walls stand as ragged
+    stumps, the rubble of the same stucco, tile and concrete is heaped over the plan and
+    spills a little, each part to a height of its own, with the floors lying in it."""
+    rng = random.Random(b.seed * 1000 + 13)
+    ground_m, _, _, ruin_m = heights(b.floors)
+    wall_m = INPUTS["Wall Thickness"]
+    burnt, concrete, tile = "X_Burnt" + MASK, "X_Rubble", "M_CN_RoofTile"
+    high = [ruin_m * rng.uniform(0.5, 0.85) for _ in b.rects]
+    height_at = lambda x, y: np.minimum(damage.heap_height(x, y, b.rects, high, SPILL_M, b.seed), ruin_m)
+    stumps, cubes, coarse = [], [], {2: [], 3: []}
+    for run in b.runs:
+        tops = damage.profile(rng, run.length, STUMP_STEP_M, 0.5, ruin_m)
+        standing = Soup.join([run.wall.coloured(0.72), run.inner.coloured(0.35)])
+        standing = Soup(standing.v, standing.c, standing.t, standing.m, standing.s,
+                        [burnt if name == STUCCO + MASK else name for name in standing.mats])
+        stumps += [damage.break_off(standing, run.start, run.along, STUMP_STEP_M, tops),
+                   damage.broken_edge(run.start, run.along, -run.out, wall_m, run.length, STUMP_STEP_M, tops, concrete, 0.6)]
+        if len(run.cubes):  # half the sign boards and surrounds are down in the heap; what hangs on is scorched
+            piece = detail.islands(run.cubes)
+            hangs = np.array([rng.random() < 0.5 for _ in range(piece.max() + 1)], dtype=bool)[piece]
+            cubes.append(damage.break_off(damage.charred(run.cubes.keep(hangs), frozenset(), b.seed + 3, light=(0.12, 0.34)),
+                                          run.start, run.along, STUMP_STEP_M, tops))
+        for tier, merge in ((2, 2), (3, 4)):  # the same stumps as flat faces, two and four columns to a face
+            wide = STUMP_STEP_M * merge
+            flat_tops = [sum(tops[k:k + merge]) / len(tops[k:k + merge]) for k in range(0, len(tops), merge)]
+            for k, top in enumerate(flat_tops):
+                s0, s1 = k * wide, min((k + 1) * wide, run.length)
+                at = lambda s, z, deep=0.0: (*(run.start + run.along * s - run.out * deep), z)
+                bands = [(0.0, min(top, ground_m), "M_CN_Stone", 0.72)] + ([(ground_m, top, burnt, 0.72)] if top > ground_m else [])
+                coarse[tier] += [quad([at(s0, z0), at(s1, z0), at(s1, z1), at(s0, z1)], material, shade) for z0, z1, material, shade in bands]
+                coarse[tier].append(quad([at(s1, 0.0, wall_m), at(s0, 0.0, wall_m), at(s0, top, wall_m), at(s1, top, wall_m)], burnt, 0.6))
+            coarse[tier].append(damage.broken_edge(run.start, run.along, -run.out, wall_m, run.length, wide, flat_tops, concrete, 0.6, sides=tier == 2))
+
+    names = [concrete, burnt, tile]
+    # broken concrete, with plaster dust and smashed tile in it here and there
+    mix = lambda x, y: np.digitize(damage.noise(x, y, 3.2, b.seed + 11), (0.68, 0.82))
+    shade = lambda x, y, z: np.repeat((0.36 + 0.5 * damage.noise(x, y, 1.3, b.seed + 12) * (0.5 + 0.5 * damage.noise(x, y, 6.0, b.seed + 14)))[:, None], 3, 1)
+    heap = lambda tier: damage.under(damage.heap(b.rects, high, SPILL_M, HEAP_CELL_M[tier], b.seed, (names, mix), shade), ruin_m)
+    area = sum(4 * hx * hy for _, _, hx, hy in b.rects)
+    fallen = damage.slabs(rng, b.rects, high, height_at, ruin_m, concrete, tile, (0.5, 0.8))
+    chunks = [damage.scatter(random.Random(b.seed * 1000 + 17 + tier), b.rects, round(area / per), size, height_at, ruin_m,
+                             (concrete, burnt, concrete, concrete, tile), (0.4, 0.85))
+              for tier, (per, size) in enumerate(((3.0, 0.6), (9.0, 0.9), (30.0, 1.3)))]
+
+    rows = []
+    wrecks = [name for name in WRECKS if name in meshes]
+    for _ in range(round(area / WRECK_M2)):
+        name = wrecks[rng.randrange(len(wrecks))] + "+wreck"
+        cx, cy, hx, hy = b.rects[rng.randrange(len(b.rects))]
+        x, y = cx + rng.uniform(-hx + 0.8, hx - 0.8), cy + rng.uniform(-hy + 0.8, hy - 0.8)
+        z = max(0.0, min(float(height_at(np.array([x]), np.array([y]))[0]) - 0.12, ruin_m - source(name).bounds()[1][2]))
+        rows.append((name, frame(rng.uniform(0.0, math.tau), x, y) @ damage.tilted(0, 0, 0, 0, 0, z), None))
+
+    def shell(modules, tiers_of):
+        charred = Soup.join(cubes)
+        out = [Soup.join([*stumps, charred, heap(0), chunks[0], fallen]),
+               Soup.join([*stumps, detail.simplify(charred, FEATURE_M[1]), heap(1), chunks[1], fallen]),
+               # what is thrown down is folded in at tier 2 and gone at tier 3
+               Soup.join([*coarse[2], detail.simplify(charred, FEATURE_M[2]), heap(2), chunks[2], fallen,
+                          *folded([r for r in rows if modules[r[0]][2] is not None], modules, {name: 0b0100 for name in tiers_of}, 2)]),
+               Soup.join([*coarse[3], heap(3), fallen])]
+        return monotone(b.name + " ruin", out)
+
+    return rows, shell
 
 
 # ---------------------------------------------------------------- the descriptor
@@ -741,97 +1142,128 @@ def write_kit(path, kit):
 
 # ---------------------------------------------------------------- main
 def assemble(graph_, template):
-    """A template's outline, the walls and cubes of its runs, its instances in its own
-    frame, and what made them."""
-    name, floors, parts_, seed, shop_seed, roof, wall, own = template
+    """A template built: its outline, each run of it dressed (`facade`), its instances in
+    its own frame, and what made them."""
+    name, floors, parts_, seed, shop_seed, roof_, wall, own = template
     rects = list(parts_.values())
     loops = outline(rects)
     south, east = min(cy - hy for _, cy, _, hy in rects), max(cx + hx for cx, _, hx, _ in rects)
-    roof_m = INPUTS["Ground Floor Height"] + INPUTS["Floor Height"] * (floors - 1)
-    walls, cubes, rows, recipe, used = [], [], [], [], {}
+    _, roof_m, _, _ = heights(floors)
+    runs, recipe, used = [], [], {}
     for run in (run for loop in loops for run in loop):
         side = facade_of(run, south, east)
         # each run of a compound is its own stretch of wall: another seed for each facade of a kind
         k = used[side] = used.get(side, -1) + 1
         inputs = run_inputs(math.dist(*run), side, floors, seed + k, shop_seed + k, own)
-        wall_, placed, cubes_ = facade(*graph_.tap(inputs), side, run, roof_m)
-        walls.append(wall_)
-        cubes.append(cubes_)
-        rows += placed
+        runs.append(facade(*graph_.tap(inputs), side, run, roof_m))
         recipe.append({"from": list(run[0]), "to": list(run[1]), "facade": side, "Seed": seed + k, "Shop Seed": shop_seed + k,
                        "Corner Margin": inputs["Corner Margin"]})
-    for k, part in enumerate(rects):
-        rows += roof_rows(graph_, part, floors, seed + k, roof, own)
-    return loops, walls, Soup.join(cubes), rows, {"inputs": {k: (list(v) if isinstance(v, tuple) else v) for k, v in {**INPUTS, **own}.items()},
-                                "facades": recipe, "roof": list(roof)}
+    on_roof = [row for k, part in enumerate(rects) for row in roof_rows(graph_, part, floors, seed + k, roof_, own)]
+    return SimpleNamespace(
+        name=name, floors=floors, parts=parts_, rects=rects, loops=loops, runs=runs, seed=seed, wall=wall, roof_rows=on_roof,
+        rows=[row for run in runs for row in run.rows] + on_roof,
+        recipe={"inputs": {k: (list(v) if isinstance(v, tuple) else v) for k, v in {**INPUTS, **own}.items()},
+                "facades": recipe, "roof": list(roof_)})
 
 
 def main():
     graph_ = Graph()
     version = ".".join(str(v) for v in bpy.app.version)
     built = [assemble(graph_, template) for template in TEMPLATES]
-
-    # the kit: every mesh a template instances, and whether the graph tints its instances
-    sources, tinted, meshes = {}, {}, {}
+    meshes = {}
     for tap, _ in graph_.taps.values():
         meshes.update(tap.meshes)
-    for _, _, _, rows, _ in built:
-        for name, _, tint in rows:
-            if not family_tiers(name):
-                raise SystemExit(f"{name} is in no family of FAMILIES")
+
+    # whether the graph tints a mesh's instances, and every mesh a state places: a kit mesh, or a variant of one
+    tinted, cache = {}, {}
+    for b in built:
+        for name, _, tint in b.rows:
             if tinted.setdefault(name, tint is not None) != (tint is not None):
                 raise SystemExit(f"{name} is instanced both with and without a tint")
-            sources[name] = meshes[name]
-    modules = {name: module_tiers(name, masked(sources[name], tinted[name])) for name in sorted(sources)}
+
+    def source(name):
+        if name not in cache:
+            base, _, kind = name.partition("+")
+            cache[name] = variant(masked(meshes[base], False), kind, sum(name.encode())) if kind else masked(meshes[base], tinted[base])
+        return cache[name]
+
+    # the states: a block of six floors or fewer collapses, a taller one burns out and stands
+    states = []
+    for b in built:
+        state = {"intact": (b.rows, lambda modules, tiers_of, b=b: intact_shell(b, modules, tiers_of, meshes))}
+        if b.floors <= 6:
+            state["ruin"] = ruin(b, meshes, source)
+        else:
+            state["gutted"] = gutted(b, meshes)
+        states.append(state)
+
+    used = sorted({name for state in states for rows, _ in state.values() for name, _, _ in rows})
+    for name in used:
+        if not family_tiers(name):
+            raise SystemExit(f"{name} is in no family of FAMILIES")
+    modules = {name: module_tiers(name, source(name)) for name in used}
     # a module is drawn at the tiers its family names, where it has anything left to draw
     tiers_of = {name: sum(1 << t for t in range(4) if family_tiers(name) >> t & 1 and modules[name][t] is not None)
                 for name in modules}
-    # every module has four meshes: a tier it is not drawn at repeats the last one it is
+    # every module has four meshes: a tier it is not drawn at repeats the last one it is.
+    # A fitting the fire leaves nothing of (a rack of cloth) is no module, and its rows are not drawn.
     kit = {}
     for name, lods in modules.items():
-        kit[module_id(name)] = [next(l for l in reversed(lods[:t + 1]) if l is not None) for t in range(4)]
+        if tiers_of[name] & 1:
+            kit[module_id(name)] = [next(l for l in reversed(lods[:t + 1]) if l is not None) for t in range(4)]
+        else:
+            tiers_of[name] = 0
 
     templates = []
-    for (name, floors, parts_, _, _, _, wall, _), (loops, walls, cubes, rows, recipe) in zip(TEMPLATES, built):
-        shell = name.replace("-", "_") + "_shell"
-        kit[shell] = shell_tiers(walls, cubes, rows, loops, list(parts_.values()), modules, tiers_of, floors)
-        placed = [(shell, [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0], 0b1111, wall)]
-        openings, doors = [], []
-        for n, m, tint in rows:
-            row = decompose(m)
-            if row is None or min(row[4:]) <= 0:
-                raise SystemExit(f"{n}: a row that tilts or mirrors needs a module variant, and the China graph has none")
-            if n.startswith(OPENINGS):
-                openings.append((m[0, 3], m[1, 3]))
-            if n.startswith("CNK_Ent_"):
-                doors.append((m[0, 3], m[1, 3]))
-            if tiers_of[n] & ROW_TIERS:
-                placed.append((module_id(n), row, tiers_of[n] & ROW_TIERS, WHITE if tint is None else srgb_bytes(tint[:3])))
-        templates.append((descriptor(name, floors, parts_, openings, doors), recipe, placed))
+    for b, state in zip(built, states):
+        placed = {}
+        for which, (rows, shell) in state.items():
+            module = b.name.replace("-", "_") + ("_shell" if which == "intact" else "_" + which)
+            kit[module] = shell(modules, tiers_of)
+            placed[which] = [(module, [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0], 0b1111, smoked(b.wall) if which == "gutted" else b.wall)]
+            for n, m, tint in rows:
+                row = decompose(m)
+                if row is None or min(row[4:]) <= 0:
+                    raise SystemExit(f"{n}: a row that tilts or mirrors needs a module variant")
+                if tiers_of[n] & ROW_TIERS:
+                    placed[which].append((module_id(n), row, tiers_of[n] & ROW_TIERS, WHITE if tint is None else srgb_bytes(tint[:3])))
+        openings = [(m[0, 3], m[1, 3]) for run in b.runs for _, m in run.openings]
+        doors = [(m[0, 3], m[1, 3]) for n, m, _ in b.rows if n.startswith("CNK_Ent_")]
+        templates.append((descriptor(b.name, b.floors, b.parts, openings, doors), b, placed))
 
     kit = {name: [clean(s) for s in lods] for name, lods in kit.items()}
     names = sorted(kit)
     index = {name: i for i, name in enumerate(names)}
     triangles = {name: [len(s) for s in kit[name]] for name in names}
-    doc_templates, table = [], []
+    doc_templates, table, over = [], [], []
     worst = np.zeros(2)
-    for desc, recipe, placed in templates:
-        rows = sorted([index[name], *(round(float(v), 5) for v in row), tiers, *tint] for name, row, tiers, tint in placed)
-        table.append((desc["id"], len(rows), [sum(triangles[names[r[0]]][t] for r in rows if r[8] >> t & 1) for t in range(4)]))
-        # the fit: every vertex inside some part grown by FIT, and none below the ground, at every tier a row draws at
+    for desc, b, placed in templates:
         boxes = np.array([[*p["center"], *p["half_extents"]] for p in desc["parts"]])
-        for r in rows:
-            for t in range(4):
-                if r[8] >> t & 1:
-                    v = kit[names[r[0]]][t].transformed(row_matrix(r[1:8])).v
-                    side = np.maximum(np.abs(v[:, None, 0] - boxes[:, 0]) - boxes[:, 2],
-                                      np.abs(v[:, None, 1] - boxes[:, 1]) - boxes[:, 3]).min(1).max()
-                    reach = np.array([side, v[:, 2].max() - 2 * boxes[0, 4]])
-                    if side > FIT["side_m"] or reach[1] > FIT["top_m"] or v[:, 2].min() < -1e-3:
-                        raise SystemExit(f"{desc['id']}: {names[r[0]]} at tier {t} reaches {side:.2f} m past the sides, "
-                                         f"{reach[1]:.2f} m past the top and {-v[:, 2].min():.3f} m below the ground")
-                    worst = np.maximum(worst, reach)
-        doc_templates.append({"status": "release", "recipe": recipe, "descriptor": desc, "states": {"intact": rows}})
+        _, _, top_m, ruin_m = heights(b.floors)
+        packed, drawn_at = {}, {}
+        for which, rows in placed.items():
+            rows = packed[which] = sorted([index[name], *(round(float(v), 5) for v in row), tiers, *tint] for name, row, tiers, tint in rows)
+            drawn_at[which] = [sum(triangles[names[r[0]]][t] for r in rows if r[8] >> t & 1) for t in range(4)]
+            table.append((desc["id"], which, len(rows), drawn_at[which]))
+            over += [f"{desc['id']} {which} draws {n} triangles at tier {t}, over {BUDGET[t]}"
+                     for t, n in enumerate(drawn_at[which]) if n > BUDGET[t]]
+            over += [f"{desc['id']} {which} draws {n} triangles at tier {t}, more than intact's {drawn_at['intact'][t]}"
+                     for t, n in enumerate(drawn_at[which]) if n > drawn_at["intact"][t]]
+            # the fit: every vertex inside some part grown by FIT's side, none below the ground, and none above what
+            # the simulation leaves standing: the parts and FIT's top, or for a ruin its remains box
+            ceiling = ruin_m if which == "ruin" else top_m + FIT["top_m"]
+            for r in rows:
+                for t in range(4):
+                    if r[8] >> t & 1:
+                        v = kit[names[r[0]]][t].transformed(row_matrix(r[1:8])).v
+                        side = np.maximum(np.abs(v[:, None, 0] - boxes[:, 0]) - boxes[:, 2],
+                                          np.abs(v[:, None, 1] - boxes[:, 1]) - boxes[:, 3]).min(1).max()
+                        if side > FIT["side_m"] or v[:, 2].max() > ceiling + 1e-3 or v[:, 2].min() < -1e-3:
+                            raise SystemExit(f"{desc['id']} {which}: {names[r[0]]} at tier {t} reaches {side:.2f} m past the sides, "
+                                             f"up to {v[:, 2].max():.2f} m (the limit is {ceiling:.2f}) and {-v[:, 2].min():.3f} m below the ground")
+                        if which != "ruin":
+                            worst = np.maximum(worst, (side, v[:, 2].max() - top_m))
+        doc_templates.append({"status": "release", "recipe": b.recipe, "descriptor": desc, "states": packed})
 
     doc = {"set": SET, "kit": f"city_kit_{SET}", "fit": FIT,
            "source": {"script": "china.py", "blend": BLEND, "blender": version},
@@ -844,14 +1276,12 @@ def main():
 
     print(f"KIT {len(names)} modules, triangles per tier {[sum(t[i] for t in triangles.values()) for i in range(4)]}")
     for name in names:
-        print(f"MODULE {name:34s} {triangles[name]}")
+        print(f"MODULE {name:38s} {triangles[name]}")
     print(f"REACH past the sides {worst[0]:.2f} m, past the top {worst[1]:.2f} m (fit {FIT})")
-    print(f"{'template':40s} {'rows':>6s} " + " ".join(f"{'tier ' + str(t):>9s}" for t in range(4)))
-    over = []
-    for name, count, drawn_at in table:
-        print(f"{name:40s} {count:6d} " + " ".join(f"{n:9d}" for n in drawn_at))
-        over += [f"{name} draws {n} triangles at tier {t}, over {BUDGET[t]}" for t, n in enumerate(drawn_at) if n > BUDGET[t]]
-    print(f"{'budget':40s} {'':6s} " + " ".join(f"{n:9d}" for n in BUDGET))
+    print(f"{'template':34s} {'state':7s} {'rows':>5s} " + " ".join(f"{'tier ' + str(t):>8s}" for t in range(4)))
+    for name, which, count, drawn_at in table:
+        print(f"{name:34s} {which:7s} {count:5d} " + " ".join(f"{n:8d}" for n in drawn_at))
+    print(f"{'budget':34s} {'':7s} {'':5s} " + " ".join(f"{n:8d}" for n in BUDGET))
     if over:
         raise SystemExit("\n".join(over))
 
