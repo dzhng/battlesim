@@ -1,6 +1,6 @@
 # Systems implementation and visual handoff
 
-The current user instruction implements the simulation, generation, loading and tooling contracts now; 3D visual design/model production is deferred to a specialist. Necessary renderer capability/bug fixes are allowed. This scope changes execution order, not the final feature requirements.
+The spec was built systems first: simulation, generation, loading and tooling contracts before 3D design and model production. **There is no separate specialist: the same owner builds the look after the systems half** (decided 2026-10-01). Where this file says "specialist", read "the visual pass". The order of work changed, not the final feature requirements.
 
 [Current scale direction](scale-direction.md) governs startup and navigation choices.
 Evaluate named behavior alternatives rather than treating exact old route/tick parity

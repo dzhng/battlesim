@@ -23,7 +23,7 @@ Generate seeded battle maps with urban areas and usable surrounding plains on **
 
 ## Next Agent Prompt
 
-**Status (2026-10-01):** systems (non-3D) implementation is under way on main's line; art and visual gates wait for the specialist ([systems handoff](systems-handoff.md)). In production: sparse terrain, navigation and ground storage; counted route planning; incremental fog delivery; physical templates and aggregate buildings; shared surfaces with road kinds, round centerlines and rivers; the one forest rule; the building compiler; the layout generator with parcels, rivers and bridges; camera clearance; and a lab route that plays a generated map (`/lab/generated?type=&size=&seed=`). Raw evidence left the spec: each `assets/` note keeps its conclusions, test oracles live in `fixtures/parity/`, and the raw files are at tag `city-maps-evidence-2026-09-30`.
+**Status (2026-10-01):** the systems half is about two-thirds built on main; the art half (models, materials, ground and road look, every visual gate) has not started and is **this spec's own work, not a later specialist's**. Order: first a battle the player starts on a generated map, then the look. In production: sparse terrain, navigation and ground storage; counted route planning; incremental fog delivery; physical templates and aggregate buildings; shared surfaces with road kinds, round centerlines and rivers; the one forest rule; the building compiler; the layout generator with parcels, rivers and bridges; camera clearance; and a lab route that plays a generated map (`/lab/generated?type=&size=&seed=`). Raw evidence left the spec: each `assets/` note keeps its conclusions, test oracles live in `fixtures/parity/`, and the raw files are at tag `city-maps-evidence-2026-09-30`.
 
 **The generator as it stands** (`layout-4`, presets `layout-presets-6`): a road runs from the bottom edge to the top through the main junction on every map, and a side-to-side road on about half ([M22](procedural-maps.md#closed-decisions)); a settlement is blocks cut along its roads and grown outward unevenly, one use to a block ([M23](procedural-maps.md#closed-decisions)). 900 of 900 swept maps generate. The seam and measurements are in the [C52](slices/C52-procedural-generator.md#outcome) and [C53](slices/C53-parcels-and-buildings.md#outcome) outcomes. Open on the look: a city still grows as a rough disc round one crossroads, a large town on a single road is a slab along it, every map puts its main settlement in the middle, and open ground has no fields.
 
@@ -36,7 +36,8 @@ The [sim rules lane](sim-lane.md) is finished and merged: seats and facade eyes,
 You are implementing `city-maps`. Use [implement-spec](../../.agents/skills/implement-spec/SKILL.md), use the current extents in [M04](procedural-maps.md#closed-decisions) and [startup/transit policy](scale-direction.md), and read the [S0 verdict](spikes/S0.md) before allocating full-size arms. Earlier extent measurements remain evidence at their original sizes, not the current preset definitions.
 
 1. Work the pickup above in order, delegating independent lanes to worktrees. There is one lane now: the sim rules lane has closed, and its ownership table no longer applies.
-2. Finish every nonvisual contract and leave a precise visual seam for the specialist ([systems handoff](systems-handoff.md)). Prototype art never stands in for accepted art.
+2. One owner builds the whole spec, look included. [The systems handoff](systems-handoff.md) lists, lane by lane, what each systems slice left for its look. Prototype art never stands in for accepted art. Art stays programmatic (Blender scripts and code in the repo).
+5. Test in proportion: an agent runs the narrow checks for what it changed; the full gate runs once per integration batch, and the browser gate only when rendering, scenes or sim rules changed. No frozen-record tests; state a rule in a small behaviour test.
 3. Full-size arms rejected by [S0](spikes/S0.md) stay rejected until their owner changes. Measure cost in instructions retired, on generated maps, with `city_report` ([S1](spikes/S1.md)).
 4. Before ending each committed pass, update this handoff, the owning slice's Outcome and `choices.md`. Keep one next pickup.
 
@@ -46,7 +47,7 @@ You are implementing `city-maps`. Use [implement-spec](../../.agents/skills/impl
 
 ### TODO
 
-A slice marked "physical" has its systems half done; its look waits for the visual pass ([systems handoff](systems-handoff.md)).
+A slice marked "physical" has its systems half done; its look is in the visual pass below ([what each left open](systems-handoff.md)).
 
 **Done**
 - [x] Scale: [S0](spikes/S0.md) · SA1 terrain/export · SA4 fog delivery · SA3 sparse ground (storage) · [S7 composition](spikes/S7.md) · [S1 first pass](spikes/S1.md) · [SA2 route planning and grid updates](slices/SA2-counted-route-integration.md)
@@ -69,7 +70,7 @@ A slice marked "physical" has its systems half done; its look waits for the visu
 - [ ] C05 measuring tools (`city_report` is its first piece) · C10 provenance · C13/C32 template source and library schema · C21 material transport
 - [ ] Completion: C50 durability balance → C51 playable generated encounter (requires C54 and C87)
 
-**Waiting for the visual pass**
+**The visual pass (after a generated battle is playable)**
 - [ ] Gates G0 and GG; spikes S2–S6 and SG1–SG6 where they judge art
 - [ ] Assets: C11/C12 · C14 · C15 · C16 farmstead · C17 detached home · C18 tower · C19 industry · C37 shared houses
 - [ ] Renderer look: C24 cutout → C25 glass → C26 interiors · C27 ruin and gutted art · C28 pavement → C29 curbs · C30 markings · C31 urban/plain composition · C45 street models
