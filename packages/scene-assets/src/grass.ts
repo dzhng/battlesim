@@ -34,9 +34,8 @@ export const GRASS_MAX_HEIGHT_M = 0.9;
 /** A blade's outline when its spec gives none. */
 const BLADE_SHAPE = { taper: 1.6, belly: 0 } as const;
 
-/** Independent clump and patch height variation, shared with the field shader. */
+/** Each clump's own height variation, shared with the field shader. */
 export const GRASS_HEIGHT_VARIATION = [0.8, 1.2] as const;
-export const GRASS_PATCH_HEIGHT_VARIATION = [0.7, 1.2] as const;
 
 /** Highest vertex in any tier the field can draw, including imported clumps. */
 export function grassMeshHeight(tiers: readonly MeshData[]): number {
@@ -47,11 +46,17 @@ export function grassMeshHeight(tiers: readonly MeshData[]): number {
   return maximum;
 }
 
-/** Maximum drawn height, using the shader's f32 inputs and multiplication. */
-export function maxFieldGrassHeight(sourceHeight: number, biomeScale: number): number {
+/** Maximum drawn height, using the shader's f32 inputs and multiplication:
+ *  the source under the biome's scale, the tallest clump, and the tallest
+ *  patch of its field (`patchScale`, the biome's too). */
+export function maxFieldGrassHeight(
+  sourceHeight: number,
+  biomeScale: number,
+  patchScale: number,
+): number {
   let height = Math.fround(Math.fround(sourceHeight) * Math.fround(biomeScale));
   height = Math.fround(height * Math.fround(GRASS_HEIGHT_VARIATION[1]));
-  return Math.fround(height * Math.fround(GRASS_PATCH_HEIGHT_VARIATION[1]));
+  return Math.fround(height * Math.fround(patchScale));
 }
 
 /** Vertices of one blade of `segments` segments. */

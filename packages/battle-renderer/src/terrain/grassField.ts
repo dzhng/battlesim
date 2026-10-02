@@ -20,7 +20,7 @@ import {
   maxFieldGrassHeight,
   grassMeshHeight,
 } from "@packages/scene-assets/src/grass.ts";
-import { VERGE_GROWTH, type Biome, type GrassRules } from "./biome";
+import { GRASS_MIX_MAX, VERGE_GROWTH, type Biome, type GrassRules } from "./biome";
 
 /** World tiles the field is grown over, metres a side. */
 export const GRASS_TILE_M = 4;
@@ -130,10 +130,19 @@ export function grassAppearancesOf(installed: InstalledAppearances | null): Gras
 /** The biome's growth resolved against the installed appearances. */
 export interface GrassKinds {
   /** Per growth row (plot kind index, the verge last): density, height
-   *  scale, appearance index, 0. A plot kind that grows none has density 0. */
+   *  scale, how many grasses it mixes, 0. A plot kind that grows none has
+   *  density 0. */
   growth: Float32Array;
+  /** Per growth row, its patches: lowest and tallest height scale, how far
+   *  sparse patches thin, how far dry patches dry. */
+  patches: Float32Array;
+  /** Per growth row, `GRASS_MIX_MAX` grasses: appearance index, share of the
+   *  row's clumps (the row's shares sum to one), drift, dryness. */
+  mixes: Float32Array;
   /** The appearances the growth names, in index order. */
   appearances: { name: string; bundle: StaticBundle }[];
+  /** The tallest any clump is drawn, over every row and grass. */
+  tallest: number;
 }
 
 /** Resolve `biome.grass.growth` against `appearances`: null (no grass) until
@@ -142,27 +151,48 @@ export function grassKinds(biome: Biome, appearances: GrassAppearances): GrassKi
   const rules = biome.grass;
   if (biome.plots.length > GRASS_GROWTH_ROWS - 1)
     throw new Error(`grass: at most ${GRASS_GROWTH_ROWS - 1} plot kinds grow grass`);
-  const names = [...new Set(Object.values(rules.growth).map((g) => g.appearance))].sort();
+  const names = [
+    ...new Set(Object.values(rules.growth).flatMap((g) => g.mix.map((s) => s.appearance))),
+  ].sort();
   if (names.length > GRASS_MAX_KINDS)
     throw new Error(`grass: at most ${GRASS_MAX_KINDS} grass appearances`);
   if (!names.every((name) => appearances.has(name))) return null;
   const growth = new Float32Array(GRASS_GROWTH_ROWS * 4);
+  const patches = new Float32Array(GRASS_GROWTH_ROWS * 4);
+  const mixes = new Float32Array(GRASS_GROWTH_ROWS * GRASS_MIX_MAX * 4);
+  let tallest = 0;
   const row = (at: number, key: string) => {
     const g = rules.growth[key];
     if (!g) return;
-    const maximum = maxFieldGrassHeight(
-      grassMeshHeight(appearances.get(g.appearance)!.states[0].tiers),
-      g.height,
-    );
-    if (!Number.isFinite(maximum) || maximum <= 0 || maximum > GRASS_MAX_HEIGHT_M)
-      throw new Error(
-        `grass.growth.${key}: effective field height ${maximum} m exceeds the ${GRASS_MAX_HEIGHT_M} m cap`,
+    const shares = g.mix.reduce((sum, s) => sum + s.share, 0);
+    g.mix.forEach((species, i) => {
+      const maximum = maxFieldGrassHeight(
+        grassMeshHeight(appearances.get(species.appearance)!.states[0].tiers),
+        g.height,
+        g.patches.height[1],
       );
-    growth.set([g.density, g.height, names.indexOf(g.appearance), 0], at * 4);
+      if (!Number.isFinite(maximum) || maximum <= 0 || maximum > GRASS_MAX_HEIGHT_M)
+        throw new Error(
+          `grass.growth.${key}: ${species.appearance}'s effective field height ${maximum} m exceeds the ${GRASS_MAX_HEIGHT_M} m cap`,
+        );
+      tallest = Math.max(tallest, maximum);
+      mixes.set(
+        [names.indexOf(species.appearance), species.share / shares, species.drift, species.dry],
+        (at * GRASS_MIX_MAX + i) * 4,
+      );
+    });
+    growth.set([g.density, g.height, g.mix.length, 0], at * 4);
+    patches.set([g.patches.height[0], g.patches.height[1], g.patches.thin, g.patches.dry], at * 4);
   };
   biome.plots.forEach((plot, k) => row(k, plot.name));
   row(GRASS_GROWTH_ROWS - 1, VERGE_GROWTH);
-  return { growth, appearances: names.map((name) => ({ name, bundle: appearances.get(name)! })) };
+  return {
+    growth,
+    patches,
+    mixes,
+    appearances: names.map((name) => ({ name, bundle: appearances.get(name)! })),
+    tallest,
+  };
 }
 
 /** Floats per clump vertex on the GPU: spine (xyz, height fraction), side

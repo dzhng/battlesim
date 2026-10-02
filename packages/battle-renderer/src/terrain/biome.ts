@@ -167,14 +167,44 @@ export interface BiomeTrees {
   lod_px: readonly [number, number, number];
 }
 
-/** Which grass kind grows on a plot kind (or the verge), and how thick. */
-export interface GrassGrowth {
+/** The most grasses one growth row mixes. */
+export const GRASS_MIX_MAX = 4;
+
+/** One of the grasses a kind of ground grows. */
+export interface GrassSpecies {
   /** A grass appearance in the catalog (`assets/catalog.json`, scenery "grass"). */
   appearance: string;
+  /** Its relative share of the row's clumps. */
+  share: number;
+  /** How far it gathers in drifts of its own instead of spreading evenly:
+   *  0 even, 1 found only in its drifts. */
+  drift: number;
+  /** How far its clumps stand toward dry straw from the ground's colour, at
+   *  the ground's own luminance; 0 for none. */
+  dry: number;
+}
+
+/** How a stand varies across a field, in world-anchored patches a few
+ *  metres across (`GrassRules.patch_m`). Every term is one-sided and none
+ *  darkens: a broad darker patch reads as a cloud's shadow. */
+export interface GrassPatches {
+  /** The stand's height from its lowest patches to its tallest, as scales. */
+  height: readonly [number, number];
+  /** How far its sparse patches thin: 0 none, 1 bare. */
+  thin: number;
+  /** How far its dry patches stand toward straw, at the ground's own luminance. */
+  dry: number;
+}
+
+/** What grows on a plot kind (or the verge), how thick, and how it varies. */
+export interface GrassGrowth {
   /** Clumps as a fraction of the densest grass; 0 for none. */
   density: number;
-  /** Scales the appearance's own height. */
+  /** Scales every appearance's own height. */
   height: number;
+  /** The grasses, one to `GRASS_MIX_MAX`: each clump is one of them, by share. */
+  mix: readonly GrassSpecies[];
+  patches: GrassPatches;
 }
 
 /** The travelling wind every blade sways in: a steady lean, gust fronts
@@ -199,6 +229,9 @@ export interface Wind {
 export interface GrassRules {
   /** Per plot kind name, and "verge". A plot kind not listed grows none. */
   growth: Record<string, GrassGrowth>;
+  /** The length scales of the patches a stand varies in (`GrassPatches`),
+   *  and of the drifts a kind gathers in. */
+  patch_m: { height: number; thin: number; dry: number; drift: number };
   /** About one clump per this many pixels of ground on screen, so a frame
    *  draws a similar number of clumps at any zoom. */
   pixels_per_clump: number;
@@ -212,6 +245,16 @@ export interface GrassRules {
    *  second footprint: seen from far a tuft shows its tops, and drawn with
    *  its roots it reads as dark flecks. */
   soften_m_per_px: readonly [number, number];
+  /** How far it gives way: 1 leaves a far clump its one colour, lit as the
+   *  ground; less keeps that share of its own shading at any distance. */
+  soften: number;
+  /** How far a blade's own facing lights it, against the ground's under it:
+   *  0 lights every blade as the ground, 1 by its own normal (which
+   *  glitters). */
+  blade_facing: number;
+  /** Each clump's brightness varies by up to this fraction either way: the
+   *  grain a field keeps when it is too far to show blades. */
+  clump_value: number;
   /** A clump taller than this many pixels draws its near tier. */
   near_tier_px: number;
   /** A blade is drawn at least this many pixels wide, so far blades hold. */
@@ -414,14 +457,29 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
     const at = `grass.growth.${key}`;
     if (key !== VERGE_GROWTH && !biome.plots.some((p) => p.name === key))
       bad(at, `names no plot kind (or "${VERGE_GROWTH}")`);
-    if (!growth.appearance) bad(`${at}.appearance`, "is empty");
     within(`${at}.density`, growth.density, 0, 1);
     within(`${at}.height`, growth.height, 0.1, 4);
+    if (!Array.isArray(growth.mix) || growth.mix.length < 1 || growth.mix.length > GRASS_MIX_MAX)
+      bad(`${at}.mix`, `must name one to ${GRASS_MIX_MAX} grasses`);
+    growth.mix.forEach((species, i) => {
+      if (!species.appearance) bad(`${at}.mix[${i}].appearance`, "is empty");
+      within(`${at}.mix[${i}].share`, species.share, 1e-3, 1000);
+      within(`${at}.mix[${i}].drift`, species.drift, 0, 1);
+      within(`${at}.mix[${i}].dry`, species.dry, 0, 1);
+    });
+    range(`${at}.patches.height`, growth.patches?.height, 0.1, 2);
+    within(`${at}.patches.thin`, growth.patches.thin, 0, 1);
+    within(`${at}.patches.dry`, growth.patches.dry, 0, 1);
   }
+  for (const key of ["height", "thin", "dry", "drift"] as const)
+    within(`grass.patch_m.${key}`, g.patch_m?.[key], 0.5, 1000);
   within("grass.pixels_per_clump", g.pixels_per_clump, 1, 10000);
   within("grass.max_clumps_m2", g.max_clumps_m2, 0.01, 400);
   range("grass.fade_m_per_px", g.fade_m_per_px, 0.001, 10);
   range("grass.soften_m_per_px", g.soften_m_per_px, 0.001, 10);
+  within("grass.soften", g.soften, 0, 1);
+  within("grass.blade_facing", g.blade_facing, 0, 1);
+  within("grass.clump_value", g.clump_value, 0, 0.3);
   within("grass.near_tier_px", g.near_tier_px, 0, 10000);
   within("grass.min_blade_px", g.min_blade_px, 0, 8);
   within("grass.clear_m.road", g.clear_m?.road, 0, 20);

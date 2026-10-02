@@ -260,7 +260,7 @@ const mottle = tgpu.fn(
 
 /** `albedo` shifted toward ochre by `dry` (0 or more) at its own Rec. 709
  *  luminance. */
-const groundTint = tgpu.fn(
+export const groundTint = tgpu.fn(
   [d.vec3f, d.f32],
   d.vec3f,
 )((albedo, dry) => {
