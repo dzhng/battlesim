@@ -4,6 +4,7 @@
 import { expect, test } from "vitest";
 import { color } from "math/color";
 import {
+  artlessProps,
   massingInstances,
   massingParts,
   validateMassingStyle,
@@ -134,6 +135,59 @@ test("a part the side has seen fall is drawn as its remains, or not at all", () 
   expect(placed.map((b) => b.height)).toEqual([2, 12]);
   placed[0].tint.forEach((c, k) => expect(c).toBeCloseTo(linear([0.3, 0.3, 0.3])[k], 6));
   expect(placed[1].at).toEqual([130, 50, 2]);
+});
+
+// Street furniture the simulation holds with no art fitted yet: a car and a
+// lamp, beside a crate that has an appearance and a tree its forest draws.
+const street: MapProp[] = [
+  { id: 20, kind: "parked_car", center: [10, 10], yaw: 1, half: [2.1, 0.9, 0.75], baseZ: 0 },
+  { id: 21, kind: "lamp", center: [20, 10], yaw: 0, half: [0.15, 0.15, 3], baseZ: 0 },
+  { id: 22, kind: "crate", center: [30, 10], yaw: 0, half: [1, 1, 1], baseZ: 0 },
+  { id: 23, kind: "trunk", center: [40, 10], yaw: 0, half: [0.4, 0.4, 5], baseZ: 0 },
+];
+const drawn = (prop: MapProp) => prop.kind === "crate" || prop.kind === "trunk";
+const streetStyle: MassingStyle = validateMassingStyle({
+  ...style,
+  tints: { ...style.tints, parked_car: [0.6, 0.1, 0.1] },
+});
+
+test("a map prop nothing else draws is a box of its own, by its kind", () => {
+  expect([...artlessProps(street, drawn)]).toEqual([
+    [20, "parked_car"],
+    [21, "lamp"],
+  ]);
+  const placed = boxes(massingInstances(street, [], artlessProps(street, drawn), streetStyle));
+  expect(placed.length).toBe(2);
+  const [car, lamp] = placed;
+  expect(car.at).toEqual([10, 10, 0]);
+  expect(car.yaw).toBeCloseTo(1);
+  car.half.forEach((h, k) => expect(h).toBeCloseTo([2.1, 0.9, 0.75][k], 6));
+  car.tint.forEach((c, k) => expect(c).toBeCloseTo(linear([0.6, 0.1, 0.1])[k], 6));
+  // A kind the style does not list takes the default tint.
+  lamp.tint.forEach((c, k) => expect(c).toBeCloseTo(linear([0.5, 0.5, 0.5])[k], 6));
+});
+
+test("a shoved body keeps its tint where the side last saw it, and a wreck is remains", () => {
+  const parts = artlessProps(street, drawn);
+  const car = street[0];
+  const shoved: KnownProp = {
+    ...car,
+    center: [14, 12],
+    yaw: 1.4,
+    authoredProp: car.id,
+    replaces: car.id,
+  };
+  const moved = boxes(massingInstances(street, [shoved], parts, streetStyle));
+  expect(moved.length).toBe(2);
+  expect(moved[0].at).toEqual([14, 12, 0]);
+  moved[0].tint.forEach((c, k) => expect(c).toBeCloseTo(linear([0.6, 0.1, 0.1])[k], 6));
+  // Burnt out, it is the wreck's box in the remains' colour; gone, nothing.
+  const wreck: KnownProp = { ...shoved, kind: "car_wreck", half: [2.1, 0.9, 0.35] };
+  const burnt = boxes(massingInstances(street, [wreck], parts, streetStyle));
+  expect(burnt[0].height).toBeCloseTo(0.7);
+  burnt[0].tint.forEach((c, k) => expect(c).toBeCloseTo(linear([0.3, 0.3, 0.3])[k], 6));
+  const gone = boxes(massingInstances(street, [{ ...wreck, destroyed: true }], parts, streetStyle));
+  expect(gone.length).toBe(1);
 });
 
 test("every massing box draws from the static buffer, from any camera", () => {

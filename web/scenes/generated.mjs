@@ -144,7 +144,9 @@ const project = (page, p) => lab(page, (q) => window.__lab.projectToCss(q[0], q[
  *  check that no eye drawn, by the viewport's camera or by its rig over the
  *  whole of each move, comes inside a building. */
 async function cameraKeepsOut(ctx, page, town, options) {
-  const boxes = await lab(page, () => window.__lab.route.massing());
+  // The buildings' boxes: street furniture is drawn as boxes too, and the
+  // camera flies over it.
+  const boxes = (await lab(page, () => window.__lab.route.massing())).filter((b) => b.building);
   const flown = await flyTown(ctx, page, town, boxes, options);
   const view = await lab(page, () => window.__lab.route.cameraObstacles());
   const moves = Object.entries(flown.moves);
@@ -246,26 +248,39 @@ export async function run(ctx) {
   ctx.check("the battle ticks", after === before + 30, `${before} → ${after}`);
 
   // Everything on the map is in the frame's static chunks: a box a building
-  // part, a tree a trunk.
-  const counts = await lab(page, () => {
-    const s = window.__lab.stats().scenery;
-    return {
-      boxes: s.massing.placed,
-      trees: s.forest.placed,
-      trunks: window.__lab.route.propsNear("trunk", 0, 0, Infinity).length,
-      drawnBoxes: window.__lab.route.massing().length,
-      structures: window.__lab.stats().structures,
-    };
-  });
+  // part, a box each body of street furniture (none has art yet), a tree a
+  // forest's trunk. The map's own bodies take the first ids, so a trunk past
+  // them is a forest's.
+  const authored = generated.counts.parts + generated.counts.props;
+  const counts = await lab(
+    page,
+    (authored) => {
+      const s = window.__lab.stats().scenery;
+      const drawn = window.__lab.route.massing();
+      return {
+        boxes: s.massing.placed,
+        trees: s.forest.placed,
+        trunks: window.__lab.route
+          .propsNear("trunk", 0, 0, Infinity)
+          .filter((trunk) => trunk.id >= authored).length,
+        drawnBoxes: drawn.length,
+        buildingBoxes: drawn.filter((box) => box.building).length,
+        structures: window.__lab.stats().structures,
+      };
+    },
+    authored,
+  );
   ctx.check(
-    "every building part is a massing box and every trunk a tree, and no building is a model",
-    counts.boxes === generated.counts.parts &&
-      counts.drawnBoxes === generated.counts.parts &&
-      counts.boxes > 1000 &&
+    "every building part and every body of street furniture is a massing box and every forest trunk a tree, and no building is a model",
+    counts.boxes === authored &&
+      counts.drawnBoxes === authored &&
+      counts.buildingBoxes === generated.counts.parts &&
+      counts.buildingBoxes > 1000 &&
+      generated.counts.props > 100 &&
       counts.trees === counts.trunks &&
       counts.trees > 1000 &&
       counts.structures === 0,
-    JSON.stringify({ ...counts, parts: generated.counts.parts }),
+    JSON.stringify({ ...counts, parts: generated.counts.parts, props: generated.counts.props }),
   );
 
   await page.addStyleTag({ content: HIDE_HUD });
@@ -274,7 +289,7 @@ export async function run(ctx) {
   const building = await lab(
     page,
     (town) => {
-      const boxes = window.__lab.route.massing();
+      const boxes = window.__lab.route.massing().filter((b) => b.building);
       const inside = (b, x, y) => {
         const [dx, dy] = [x - b.center[0], y - b.center[1]];
         const [c, s] = [Math.cos(b.yaw), Math.sin(b.yaw)];
@@ -475,7 +490,7 @@ export async function run(ctx) {
   warmth /= samples;
   ctx.check(
     "the whole-map overview draws every box and tree, and its far ground keeps its colour through the haze",
-    overviewStats.massing.tiers[3] === generated.counts.parts &&
+    overviewStats.massing.tiers[3] === authored &&
       overviewStats.forest.tiers[3] === counts.trees &&
       warmth > OVERVIEW_WARMTH_MIN,
     JSON.stringify({

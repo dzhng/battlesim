@@ -12,6 +12,7 @@ import type { SoundMotion } from "@packages/battle-audio/src/soundFrame";
 import type { GpuAllocationCounts } from "@packages/renderer-core/src/gpuAllocations";
 import { apartKinds, buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
 import {
+  knownStanding,
   mapProps,
   PropAppearances,
   structureModels,
@@ -24,7 +25,11 @@ import {
   type FogInput,
   type FogSensorRules,
 } from "@packages/battle-renderer/src/frame/fogInputs";
-import { massingInstances, massingParts } from "@packages/battle-renderer/src/scenery/massing";
+import {
+  artlessProps,
+  massingInstances,
+  massingParts,
+} from "@packages/battle-renderer/src/scenery/massing";
 import {
   buildingObstacles,
   buildingPartProps,
@@ -205,11 +210,27 @@ export function useBattleSession({
   );
   // Buildings with no art are massing: their parts, and the remains of those
   // the side has seen fall, are boxes in the scenery's static chunks, and no
-  // model stands for either.
-  const massingOf = useMemo(
-    () => world && massingParts(world.exports.buildings, gameMassing),
-    [world],
-  );
+  // model stands for either. So is every other map prop nothing draws: one
+  // no appearance fits, and a tree outside the forests' own trunks.
+  const massingOf = useMemo(() => {
+    if (!world || !props) return null;
+    const parts = massingParts(world.exports.buildings, gameMassing);
+    const ranges = world.exports.forestTrunkRanges;
+    const inForest = (id: number) => {
+      for (let r = 0; r + 1 < ranges.length; r += 2)
+        if (id >= ranges[r] && id < ranges[r + 1]) return true;
+      return false;
+    };
+    const artless = artlessProps(
+      props.map.filter((prop) => !parts.has(prop.id)),
+      (prop) =>
+        props.fit.drawsTree(prop.kind)
+          ? inForest(prop.id)
+          : props.fit.choose(prop.kind, prop.half) !== null,
+    );
+    for (const [id, kind] of artless) parts.set(id, kind);
+    return parts;
+  }, [world, props]);
   const structures = useMemo(() => {
     if (!props || !massingOf) return [];
     const known = (JSON.parse(knownKey) as KnownPropView[]).filter(
@@ -527,21 +548,26 @@ export function useBattleSession({
         .map((p) => ({ ...p, distance: Math.hypot(p.center[0] - x, p.center[1] - y) }))
         .sort((a, b) => a.distance - b.distance)
         .slice(0, count),
-    /** The massing boxes drawn now, as their records' fields. */
     /** The camera's obstacles: how many boxes, and what indexing them took. */
     cameraObstacles: () =>
       cameraObstacles && { boxes: cameraObstacles.view.count, buildMs: cameraObstacles.buildMs },
-    massing: () =>
-      Array.from(massing?.kinds ?? [], (_, i) => {
-        const r = massing!.records.subarray(i * INSTANCE_FLOATS, (i + 1) * INSTANCE_FLOATS);
+    /** The massing boxes drawn now, as their records' fields, and whether
+     *  each is a building's part (the rest are artless props). */
+    massing: () => {
+      if (!massing || !props || !massingOf) return [];
+      const standing = knownStanding(props.map, JSON.parse(knownKey) as KnownPropView[], massingOf);
+      return Array.from(massing.kinds, (_, i) => {
+        const r = massing.records.subarray(i * INSTANCE_FLOATS, (i + 1) * INSTANCE_FLOATS);
         return {
           center: [r[0], r[1]],
           baseZ: r[2],
           yaw: r[3],
           half: [r[4], r[5], r[6] / 2],
           tint: [r[8], r[9], r[10]],
+          building: buildingParts?.has(standing[i].prop.id) ?? false,
         };
-      }),
+      });
+    },
     /** The side's known craters: marked cells, and the centre of the
      *  `binM`-square block holding the most (framing a shelled field). */
     craters: (binM = 16) => {

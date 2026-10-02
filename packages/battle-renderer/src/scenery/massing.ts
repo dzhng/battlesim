@@ -5,6 +5,10 @@
 // a developer's stand-in for template art, and reads as one: no windows, no
 // roofs, one flat colour a category.
 //
+// A map prop that nothing else draws (street furniture whose art is not
+// fitted yet, a tree no forest stood) is a box the same way, tinted by its
+// kind: a body the simulation holds is never invisible.
+//
 // What a side draws is what it knows, as for every structure: a part it has
 // seen fall is drawn as its remains' box, or not at all when nothing was left.
 import { color } from "math/color";
@@ -20,7 +24,8 @@ type Rgb = readonly [number, number, number];
 export interface MassingStyle {
   /** The regional families drawn as massing. */
   families: readonly string[];
-  /** A building category's wall colour (sRGB), with a `default`. */
+  /** A building category's wall colour, or an artless prop kind's (sRGB),
+   *  with a `default`. */
   tints: Record<string, Rgb>;
   /** Each box's value strays this far from its tint, either way, so
    *  neighbours of one category part at their shared walls. */
@@ -52,12 +57,24 @@ export function massingParts(buildings: PublicBuildings, style: MassingStyle): M
   return out;
 }
 
+/** Each map prop no appearance or forest draws (`drawn` says which are),
+ *  and its kind: what its box is tinted by. */
+export function artlessProps(
+  props: readonly MapProp[],
+  drawn: (prop: MapProp) => boolean,
+): Map<number, string> {
+  const out = new Map<number, string>();
+  for (const prop of props) if (!drawn(prop)) out.set(prop.id, prop.kind);
+  return out;
+}
+
 const _massing_tint = color.create();
 
 /** The boxes a side draws for the massing `parts`: every map part it has not
- *  seen replaced, and the remains of those it has. Each scales the layer's
- *  unit box (±1 across, 0 to 1 up), so a part's half extents and height are
- *  its scale; all are the one kind. */
+ *  seen replaced, and the remains of those it has. A part the side has only
+ *  seen moved is still itself, where it was last seen. Each scales the
+ *  layer's unit box (±1 across, 0 to 1 up), so a part's half extents and
+ *  height are its scale; all are the one kind. */
 export function massingInstances(
   props: readonly MapProp[],
   known: readonly KnownProp[],
@@ -67,7 +84,8 @@ export function massingInstances(
   const boxes = knownStanding(props, known, parts);
   const out = createPlacedInstances(boxes.length);
   boxes.forEach(({ prop, box, fallen }, i) => {
-    const tint: Rgb = fallen ? style.ruin : pick(style.tints, parts.get(prop.id)!);
+    const remains = fallen && box.kind !== prop.kind;
+    const tint: Rgb = remains ? style.ruin : pick(style.tints, parts.get(prop.id)!);
     const [hx, hy, hz] = box.half;
     // The part's own value, from its id: the same standing, fallen and next battle.
     const seeded = mulberry32.create(prop.id);
