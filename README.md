@@ -83,7 +83,7 @@ The [projectile review lab](apps/battle-lab/src/projectileReview.ts) keeps the f
 - `check` covers format, lint, typecheck and every Rust and web test.
 - `verify` builds the WebAssembly and runs every browser scene.
 
-Both are slow closeout gates. While iterating, run the narrowest thing that covers the change:
+Both are slow and run only at a plan's named milestones and when a spec closes ([`AGENTS.md`](AGENTS.md)). Everything else is checked with the narrowest thing that covers the change:
 
 ```bash
 cargo test -p sim --test sim village::a_replay_matches  # one test

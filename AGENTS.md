@@ -18,7 +18,11 @@ Third-party art needs a known source and a licence that allows shipping, recorde
 
 Write the test first. Before changing behaviour or fixing a bug, invoke [`write-tests`](.agents/skills/write-tests/SKILL.md) and follow its red/green workflow.
 
-Run the narrowest check that answers your question: one test, then one file, then one crate or scene. The full gates are a closeout, run once at the end of a pass and before a merge, not a feedback loop.
+Run the narrowest check that answers your question: one test, then one file, then one crate or scene. That is the proof for everyday work, including a commit, a merge and a push.
+
+**The full gates are for milestones only.** Running every test and every browser scene is slow and saturates the machine, so it happens at a milestone the plan names in advance (a spec's stated checkpoint, a release) and once when a spec is closed. It is not a step before each commit, merge or push, and never a feedback loop. An agent working on one piece of a plan does not run it; whoever integrates the plan does, at the milestone.
+
+Between milestones, a change is checked by what it can move: its own tests, and the one or two scenes it touches. Docs and data that no code reads need no run at all. A failure found later at a milestone is fixed then; that is cheaper than gating every step.
 
 The simulation is deterministic, and the battle digest is the proof. Two runs are the same battle exactly when their digests match. A change that shouldn't alter outcomes (a refactor, a performance change) must leave digests and replays unchanged, or be a named decision.
 
