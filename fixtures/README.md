@@ -116,8 +116,7 @@ Stops, collisions and gear changes discard momentum. Infantry retain their own
 pace; their yield horizon follows a vehicle's accepted velocity, including reverse
 movement. Once clear of that path, a soldier waits rather than stepping back
 into it. Accepted vehicle speed participates in replay digests but adds no
-observation or command fields. Frozen parity inputs without these timing settings
-use the contract's defaults. Focused mechanic labs may pin unrelated timing to
+observation or command fields. Focused mechanic labs may pin unrelated timing to
 isolate their experiment; playable battles use the shared gameplay settings.
 
 ## Rivers
@@ -132,9 +131,13 @@ A map's water is its `rivers`: each a line of points with the water's `width_m` 
 
 The `river` map (`maps/river/`) is the worked example: a meander from the 12 m minimum to a 30 m stretch, a bridge, a road, a track and a wood over one bank.
 
-## Parity oracles
+## Paired records
 
-`parity/` holds frozen inputs and expected outputs that the native tests and the web tests both read, so the Rust simulation and its WebAssembly build are held to the same answer: building aggregates, fog delivery, ground learning and transport, the map compiler, physical templates (including the rejected descriptors that must keep failing), terrain queries and the rounded samples of roads and rivers. A file changes only with a named behaviour change, and every test that reads it changes in the same commit.
+`parity/` holds paired records: an input, and what the native build made of it, which a Rust test and a web test both read. The simulation, the map generator and the encounter planner run natively and as WebAssembly, and the same request must give the same bytes in both, or a shared seed, a saved map or a replay means different things in different places; the TypeScript decoder must also read exactly what the Rust encoder wrote. The shared record is how the two test suites agree without one invoking the other. `templates/` also holds the labelled descriptors those tests are given, including the ones that must keep failing.
+
+`BLESS_PARITY=1` on the Rust test that reads a record re-records its native half, for a named behaviour change; the web test then holds Wasm to it.
+
+A record belongs here only if both sides read it, and it stores a hash of the output unless a reader needs the bytes. A snapshot of one implementation's own output, read by that implementation alone, is not a paired record: state the rule in a test instead.
 
 
 ## Forest floor cover

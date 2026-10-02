@@ -4,103 +4,40 @@ use contract::scenario::ScenarioDefinition;
 use serde_json::{json, Value};
 use sim::battle::Battle;
 
-fn original_setup(input: Value) -> ScenarioDefinition {
-    serde_json::from_value(input).unwrap()
-}
-fn original_observation(frame: &contract::observation::ObservationFrame) -> String {
-    let mut json = serde_json::to_string(frame).unwrap();
-    // This frozen oracle predates the derived own-unit concealment readout.
-    json = json
-        .replace(",\"concealed\":true", "")
-        .replace(",\"concealed\":false", "");
-    for p in &frame.known_props {
-        let optional = |id: Option<u32>| id.map_or_else(|| "null".into(), |id| id.to_string());
-        let added = format!(
-            ",\"id\":{},\"building\":{},\"structure_owner\":{},\"authored_prop\":{}",
-            p.id,
-            optional(p.building),
-            optional(p.structure_owner),
-            optional(p.authored_prop)
-        );
-        assert!(json.contains(&added));
-        json = json.replace(&added, "");
-    }
-    json
-}
-fn original_props(world: &sim::world::WorldGeometry) -> String {
-    let columns: Vec<_> = world
-        .export_props()
-        .chunks_exact(10)
-        .flat_map(|r| std::iter::once(r[0] + r[1] * 65536.0).chain(r[2..].iter().copied()))
-        .collect();
-    serde_json::to_string(&columns).unwrap()
+/// The shipped rules with round numbers: a building of 1000 integrity, and
+/// a shell that takes 95 from it bursting a metre away.
+fn compound_rules() -> Value {
+    let mut rules = crate::common::game();
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "props",
+        "building",
+        json!({"body":{"hp":1000,"hp_scale":"fixed"}}),
+    );
+    rules["weapons"]["tank_he"]["structural_damage"] = json!(100);
+    rules["weapons"]["tank_he"]["blast_radius_m"] = json!(20);
+    rules
 }
 
-#[test]
-fn buildings_match_the_parity_oracle_observations_digests_queries_and_seats() {
-    // Frozen balance inputs still run the current acquisition/guidance rule:
-    // shared identification plus physical LOS, independent of sensor reach.
-    let oracle: Value = serde_json::from_str(include_str!(
-        "../../../fixtures/parity/buildings/oracle.json"
-    ))
-    .unwrap();
-    let mut blessed = oracle.clone();
-    for arm in blessed["arms"].as_array_mut().unwrap() {
-        let mut setup: ScenarioDefinition = original_setup(arm["scenario"].clone());
-        setup.map = crate::common::physical_map(setup.map, &setup.rules);
-        let mut b = Battle::new(&setup, arm["seed"].as_u64().unwrap());
-        let slots: Vec<_> = b.world().props().filter(|p|p.body.garrison).map(|p| json!({"id":p.id,"slots":sim::garrison::building_seats(b.world().building(p.id).unwrap(),&setup.rules).iter().map(|s|json!({"position":[s.position.x,s.position.y,s.position.z],"normal":[s.slot.normal.x,s.slot.normal.y],"facade":s.slot.facade})).collect::<Vec<_>>()})).collect();
-        let queries: Vec<_>=b.world().props().filter(|p|p.body.garrison).map(|p|json!({"id":p.id,"surface":sim::world::export::surface_record(b.world().surface_at(p.center.x,p.center.y)),"hit":sim::world::export::hit_record(b.world().raycast(sim::math::v3(p.center.x-60.0,p.center.y,p.base_z+2.0),sim::math::v3(1.0,0.0,0.0),100.0))})).collect();
-        let actual = [
-            ("props", original_props(b.world())),
-            ("slots", serde_json::to_string(&slots).unwrap()),
-            ("queries", serde_json::to_string(&queries).unwrap()),
-        ];
-        for (key, value) in actual {
-            arm[key] = json!(value);
-        }
-        for row in arm["rows"].as_array_mut().unwrap() {
-            while b.tick() < row["tick"].as_u64().unwrap() {
-                b.step();
-            }
-            row["digest"] = json!(format!("{:016x}", b.digest()));
-            for (side, name) in [(Side::Blue, "blue"), (Side::Red, "red")] {
-                row[name] = json!(original_observation(b.observe(side)));
-            }
-        }
-        let mut replay = Battle::from_replay(&setup, &b.replay()).unwrap();
-        while replay.tick() < b.tick() {
-            replay.step();
-        }
-        assert_eq!(replay.digest(), b.digest());
-    }
-    if crate::common::bless_parity("buildings/oracle.json", &blessed) {
-        return;
-    }
-    for (arm, expected) in blessed["arms"]
-        .as_array()
+/// `rules` with remains that can be destroyed in their turn. The shipped
+/// ruin has no integrity, so `kind` falls to a 200-integrity shell first.
+fn with_damageable_remains(mut rules: Value, kind: &str) -> Value {
+    rules["catalog"]
+        .as_array_mut()
         .unwrap()
-        .iter()
-        .zip(oracle["arms"].as_array().unwrap())
-    {
-        for key in ["props", "slots", "queries"] {
-            assert_eq!(arm[key], expected[key], "{} {key}", arm["name"]);
-        }
-        for (row, frozen) in arm["rows"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .zip(expected["rows"].as_array().unwrap())
-        {
-            for key in ["digest", "blue", "red"] {
-                assert_eq!(
-                    row[key], frozen[key],
-                    "{} tick {} {key}",
-                    arm["name"], row["tick"]
-                );
-            }
-        }
-    }
+        .push(json!({"props":{"damaged_shell":{
+            "extends":"wall",
+            "body":{"hp":200},
+            "destroyed":{"into":{"prop":"ruin","height_m":1}},
+            "appearance":{"drawn_by":"ruin","remains_state":"ruin"}
+        }}}));
+    sim::fixtures::patch_catalog(
+        &mut rules,
+        "props",
+        kind,
+        json!({"body":{"hp":1000},"destroyed":{"into":{"prop":"damaged_shell","height_m":2}}}),
+    );
+    rules
 }
 
 fn compound_setup(events: Value) -> ScenarioDefinition {
@@ -123,15 +60,7 @@ fn compound_with_descriptor(
             yaw: 0.0,
         })
         .unwrap();
-    let mut rules = crate::common::game();
-    sim::fixtures::patch_catalog(
-        &mut rules,
-        "props",
-        "building",
-        json!({"body":{"hp":1000,"hp_scale":"fixed"}}),
-    );
-    rules["weapons"]["tank_he"]["structural_damage"] = json!(100);
-    rules["weapons"]["tank_he"]["blast_radius_m"] = json!(20);
+    let rules = compound_rules();
     serde_json::from_value(json!({
         "map":{"size":[800,600],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35,
             "template_catalog_hash":catalogue.hash(),
@@ -201,58 +130,12 @@ fn owner_collapse_replaces_every_part_atomically() {
 }
 
 #[test]
-fn singleton_destroyable_remains_keep_the_original_digest_trace() {
-    let oracle: Value = serde_json::from_str(include_str!(
-        "../../../fixtures/parity/buildings/singleton-chain.json"
-    ))
-    .unwrap();
-    let mut setup: ScenarioDefinition = original_setup(oracle["scenario"].clone());
-    setup.map = crate::common::physical_map(setup.map, &setup.rules);
-    let mut b = Battle::new(&setup, 11);
-    for row in oracle["rows"].as_array().unwrap() {
-        while b.tick() < row["tick"].as_u64().unwrap() {
-            b.step();
-        }
-        assert_eq!(
-            format!("{:016x}", b.digest()),
-            row["digest"].as_str().unwrap(),
-            "tick {}",
-            b.tick()
-        );
-        for (side, name) in [(Side::Blue, "blue"), (Side::Red, "red")] {
-            assert_eq!(
-                original_observation(b.observe(side)),
-                row[name].as_str().unwrap(),
-                "tick {} {name}",
-                b.tick()
-            );
-        }
-        if b.tick() >= 11 {
-            assert_eq!(b.structures().hp(b.world(), 0), None);
-        }
-        if (11..=13).contains(&b.tick()) {
-            assert_eq!(
-                b.structures().hp(b.world(), 1),
-                Some(200.0 - (b.tick() - 11) as f64 * 95.0)
-            );
-        }
-        if b.tick() >= 14 {
-            assert_eq!(b.structures().hp(b.world(), 1), None);
-            assert!(b.world().prop(2).is_some());
-        }
-    }
-}
-
-#[test]
 fn compound_damageable_remains_have_one_fresh_integrity_per_state() {
-    let oracle: Value = serde_json::from_str(include_str!(
-        "../../../fixtures/parity/buildings/singleton-chain.json"
-    ))
-    .unwrap();
     let mut setup = compound_setup(json!((1..=14)
         .map(|tick| json!({"tick":tick,"burst":{"point":[409,301],"weapon":"tank_he"}}))
         .collect::<Vec<_>>()));
-    setup.rules = serde_json::from_value(oracle["scenario"]["rules"].clone()).unwrap();
+    setup.rules =
+        serde_json::from_value(with_damageable_remains(compound_rules(), "building")).unwrap();
     let mut b = Battle::new(&setup, 11);
     for _ in 0..11 {
         b.step();
@@ -604,17 +487,7 @@ fn aggregate_motion_is_rejected_while_ordinary_movable_bodies_keep_working() {
 
 #[test]
 fn ordinary_authored_remains_keep_their_source_while_dynamic_remains_have_none() {
-    let original: Value = serde_json::from_str(include_str!(
-        "../../../fixtures/parity/buildings/singleton-chain.json"
-    ))
-    .unwrap();
-    let mut rules = original["scenario"]["rules"].clone();
-    sim::fixtures::patch_catalog(
-        &mut rules,
-        "props",
-        "wall",
-        json!({"body":{"hp":1000},"destroyed":{"into":{"height_m":2,"prop":"damaged_shell"}}}),
-    );
+    let rules = with_damageable_remains(compound_rules(), "wall");
     let mut events = vec![
         json!({"tick":1,"add_prop":{"kind":"wall","center":[500,300],"yaw":0,"half_extents":[2,2,4]}}),
     ];
@@ -693,15 +566,11 @@ fn authored_parts_share_one_bounded_dense_namespace_with_ordinary_props() {
 
 #[test]
 fn a_holdable_replacement_uses_current_parts_and_its_fresh_owner() {
-    let original: Value = serde_json::from_str(include_str!(
-        "../../../fixtures/parity/buildings/singleton-chain.json"
-    ))
-    .unwrap();
     let mut setup = compound_setup(json!((1..=11)
         .chain(400..=402)
         .map(|tick| json!({"tick":tick,"burst":{"point":[409,301],"weapon":"tank_he"}}))
         .collect::<Vec<_>>()));
-    let mut rules = original["scenario"]["rules"].clone();
+    let mut rules = with_damageable_remains(compound_rules(), "building");
     sim::fixtures::patch_catalog(
         &mut rules,
         "props",

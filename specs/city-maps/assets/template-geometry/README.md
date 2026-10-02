@@ -2,7 +2,7 @@
 
 The labelled asymmetric descriptors in [`fixtures/parity/templates/`](../../../../fixtures/parity/templates/) are API stimuli, not release sources or appearance. The [C00 proof](../../spikes/C00.md) owns their conclusions and limits. The village preservation test reads existing dimensions directly; floors, entrance data and bay phase absent from that source remain unresolved.
 
-The reports freeze native catalogue identity and complete materialization for the equal-height compound, rotated (yaw −0.62) and precise-f64 (identity frame) cases. The Wasm test consumes the same inputs and compares every emitted value. These proofs do not replace real-source geometry and appearance fit or full-extent resource admission.
+The report for the equal-height compound freezes native catalogue identity and complete materialization; the native compiler test and the Wasm test both read it. The rotated and precise-f64 reports, which only the Wasm test read, are at tag `data-files-before-prune-2026-10-01`. These proofs do not replace real-source geometry and appearance fit or full-extent resource admission.
 
 ```sh
 cargo run -p contract --example template_report -- fixtures/parity/templates/asymmetric.json '{"translation":[10,20,5],"yaw":0.37}'

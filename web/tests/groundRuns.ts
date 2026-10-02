@@ -1,5 +1,5 @@
-/** Test-only canonical expansion/packing for frozen pre-run ground oracles. */
-import type { ObservationLayout, ObservationView } from "../src/battle/sim/observation";
+/** Test helpers for ground patches: write one as a list of cells, and count
+ *  the cells a run patch covers. */
 import type { GroundRunsPatch } from "../src/battle/sim/ground";
 export interface CellPatch {
   epoch: number;
@@ -46,75 +46,8 @@ export function cellPatchRuns(cols: number, p: CellPatch): GroundRunsPatch {
     runs: Float32Array.from(runs),
   };
 }
-export function canonicalGround(p: GroundRunsPatch, cols: number) {
-  const tilesX = Math.ceil(cols / 16),
-    cells: number[] = [],
-    marks: number[] = [],
-    cleared: number[] = [];
-  for (let k = 0; k < p.runs.length; k += 4) {
-    const tile = p.runs[k],
-      span = p.runs[k + 1],
-      a = p.runs[k + 2],
-      b = p.runs[k + 3],
-      start = span % 256,
-      len = Math.floor(span / 256),
-      clear = b >>> 16;
-    for (let c = start; c < start + len; c++) {
-      cells.push(
-        (Math.floor(tile / tilesX) * 16 + Math.floor(c / 16)) * cols +
-          (tile % tilesX) * 16 +
-          (c % 16),
-      );
-      marks.push(a & 255, a >>> 8, Math.max(b & 255, clear), (b >>> 8) & 255);
-      cleared.push(clear);
-    }
-  }
-  return {
-    side: p.side,
-    epoch: p.epoch,
-    base: p.baseRevision,
-    revision: p.revision,
-    full: p.full,
-    cells,
-    marks,
-    cleared,
-  };
-}
 export function groundRunCells(p: GroundRunsPatch): number {
   let count = 0;
   for (let k = 1; k < p.runs.length; k += 4) count += Math.floor(p.runs[k] / 256);
   return count;
-}
-
-/** Only the ground representation changes when comparing frozen complete frames. */
-export function canonicalObservation(observation: ObservationView, layout: ObservationLayout) {
-  const { cells, marks, cleared } = canonicalGround(observation.groundPatch, layout.ground.cols);
-  const { runs: _, ...cursor } = observation.groundPatch;
-  return JSON.parse(
-    JSON.stringify({
-      ...observation,
-      groundPatch: {
-        ...cursor,
-        cells: Uint32Array.from(cells),
-        marks: Uint8Array.from(marks),
-        cleared: Uint8Array.from(cleared),
-      },
-    }),
-  );
-}
-
-/** Old receipts predate prop identity and the derived concealment readout. */
-export function originalObservation(observation: ObservationView, layout: ObservationLayout) {
-  const canonical = canonicalObservation(observation, layout);
-  for (const unit of canonical.own) delete unit.concealed;
-  canonical.knownProps = canonical.knownProps.map(
-    ({
-      id: _id,
-      building: _building,
-      structureOwner: _owner,
-      authoredProp: _source,
-      ...physical
-    }: ObservationView["knownProps"][number]) => physical,
-  );
-  return canonical;
 }

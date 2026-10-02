@@ -289,10 +289,8 @@ impl NavigationRules {
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DriveRules {
     /// Seconds to accelerate from rest to the vehicle's full road speed.
-    #[serde(default = "default_acceleration_s")]
     pub acceleration_s: f64,
     /// Seconds to brake from full road speed to rest.
-    #[serde(default = "default_braking_s")]
     pub braking_s: f64,
     /// Tracks turn in place beyond this heading error.
     pub turn_in_place_deg: f64,
@@ -310,14 +308,6 @@ pub struct DriveRules {
     /// Maximum speed fraction during a manoeuvre; the turning radius and
     /// yaw rate can impose a lower limit.
     pub turn_slow: f64,
-}
-
-// Frozen parity inputs predate these optional tuning fields.
-fn default_acceleration_s() -> f64 {
-    4.5
-}
-fn default_braking_s() -> f64 {
-    1.5
 }
 
 /// How a squad's soldiers spread out where a move ends (D1, Q7): each move

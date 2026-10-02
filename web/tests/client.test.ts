@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import { initSync, Battle } from "@wasm/game_wasm.js";
 import { createSimClient, type Publication } from "../src/battle/sim/client";
 import type { SimReply, SimRequest } from "../src/battle/sim/protocol";
+import { labScenario } from "@apps/battle-lab/src/scenarios";
+import { loadMap } from "@web/maps/node";
 
 test("a direct authority's terminal error rejects ready before its transport closes", async () => {
   const client = createSimClient({ scenario: "{", seed: 1, side: "blue", transport: "direct" });
@@ -86,16 +88,12 @@ test("an authority failure returns held records once and rejects requests after 
   const memory = initSync({
     module: readFileSync(new URL("../src/wasm/game_wasm_bg.wasm", import.meta.url)),
   }).memory;
-  const oracle = JSON.parse(
-    readFileSync(new URL("../../fixtures/parity/fog/oracle.json", import.meta.url), "utf8"),
+  const battle = new Battle(
+    labScenario(loadMap("geometry").definition, [
+      { side: "blue", kind: "tank", position: [40, 150] },
+    ]),
+    9,
   );
-  oracle.scenario.map = JSON.parse(
-    readFileSync(
-      new URL("../../fixtures/parity/buildings/cutover-inputs.json", import.meta.url),
-      "utf8",
-    ),
-  ).fogDelivery;
-  const battle = new Battle(JSON.stringify(oracle.scenario), oracle.seed);
   const { requests, deliver } = workerSeam();
   const client = createSimClient({ scenario: "{}", seed: 1, side: "blue", transport: "worker" });
   const held: Publication[] = [];

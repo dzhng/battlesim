@@ -48,20 +48,7 @@ fn red_orders(battle: &Battle) -> Vec<(u64, Order)> {
 
 #[test]
 fn the_supported_attack_shells_the_first_public_building_owner() {
-    // Freeze the map and roster whose first public building owner is the contract.
-    let oracle: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../fixtures/parity/buildings/oracle.json"
-    ))
-    .unwrap();
-    let input = oracle["arms"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|arm| arm["name"] == "village")
-        .unwrap()["scenario"]
-        .clone();
-    let mut setup: ScenarioDefinition = serde_json::from_value(input).unwrap();
-    setup.map = common::physical_map(setup.map, &setup.rules);
+    let setup = setup("ordinary");
     let battle = Battle::new(&setup, 20260925);
     let mut frame = battle.observe(Side::Blue).clone();
     frame.identified.clear();

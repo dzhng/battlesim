@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
-import { initSync, Battle } from "@wasm/game_wasm.js";
+import { initSync, Battle, WorldView } from "@wasm/game_wasm.js";
 import { cellPatchRuns, groundRunCells } from "./groundRuns";
 import { GroundView, type GroundRunsPatch } from "../src/battle/sim/ground";
 import {
@@ -9,7 +9,7 @@ import {
   type GroundLayout,
   type ObservationLayout,
 } from "../src/battle/sim/observation";
-import { labScenario, type LabEvent } from "@apps/battle-lab/src/scenarios";
+import { GAME_RULES, labScenario, type LabEvent } from "@apps/battle-lab/src/scenarios";
 import { loadMap } from "@web/maps/node";
 
 const groundMap = loadMap("ground").definition;
@@ -394,4 +394,81 @@ test("GPU run source carries exact projected values and reports the complete var
     runs: Float32Array.of(1, 256, 19, 255 * 65536),
   });
   expect(view.scarDefault().poolWords).toBe(0);
+});
+
+test("foliage thins exactly where the side's cleared ground runs say", () => {
+  const size = 160;
+  const world = new WorldView(
+    JSON.stringify({
+      size: [size, size],
+      fog_cell_m: 8,
+      height_grid_m: 4,
+      slope_cutoff_deg: 35,
+      forests: [
+        {
+          shape: {
+            kind: "polygon",
+            ring: [
+              [8, 8],
+              [152, 8],
+              [152, 152],
+              [8, 152],
+            ],
+          },
+        },
+      ],
+    }),
+    JSON.stringify(GAME_RULES),
+  );
+  try {
+    const cells = (f: Float32Array) =>
+      new Map(
+        Array.from({ length: (f.length - 3) / 4 }, (_, k) => [
+          `${f[3 + k * 4]},${f[4 + k * 4]}`,
+          [f[5 + k * 4], f[6 + k * 4]],
+        ]),
+      );
+    const standing = cells(world.foliage());
+    const cellM = world.foliage()[2];
+    const ground = new GroundView({ cellM: 1, cols: size, rows: size });
+    expect(cells(world.foliage_cleared(ground.clearedRuns(), size, 1))).toEqual(standing);
+
+    // A cleared block that starts mid-tile and crosses 16-cell tile edges both ways.
+    const [lo, hi] = [36, 92];
+    const cleared: number[] = [];
+    for (let j = lo; j < hi; j++) for (let i = lo; i < hi; i++) cleared.push(j * size + i);
+    ground.applyRuns(
+      cellPatchRuns(size, {
+        epoch: 1,
+        side: "blue",
+        baseRevision: 0,
+        revision: 1,
+        full: true,
+        cells: Uint32Array.from(cleared),
+        marks: new Uint8Array(cleared.length * 4),
+        cleared: new Uint8Array(cleared.length).fill(255),
+      }),
+    );
+    const known = cells(world.foliage_cleared(ground.clearedRuns(), size, 1));
+    // A fallen crown reaches no further than this past the block's edge.
+    const reach = GAME_RULES.forests.rule.canopy_radius_m + 2 * cellM;
+    let opened = 0;
+    let untouched = 0;
+    for (const [key, cell] of standing) {
+      const [x, y] = key.split(",").map((index) => (Number(index) + 0.5) * cellM);
+      const inside = (v: number) => v >= lo && v < hi;
+      const beyond = (v: number) => v < lo - reach || v >= hi + reach;
+      if (inside(x) && inside(y)) {
+        expect(known.has(key), `cleared cell ${key}`).toBe(false);
+        opened++;
+      } else if (beyond(x) || beyond(y)) {
+        expect(known.get(key), `distant cell ${key}`).toEqual(cell);
+        untouched++;
+      }
+    }
+    expect(opened).toBeGreaterThan(20);
+    expect(untouched).toBeGreaterThan(20);
+  } finally {
+    world.free();
+  }
 });

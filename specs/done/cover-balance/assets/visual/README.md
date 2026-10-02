@@ -4,7 +4,7 @@ These project-owned captures judge whether weaker scatter introduces an obvious
 new flight or impact-placement regression. Percentages come from the native
 paired-fire report, never from these pictures.
 
-[Baseline village rules](frozen-village.json), production `/battle/village/lean`
+Baseline village rules, production `/battle/village/lean`
 renderer, village seed, 1920×1080 DPR1. Camera target `[874,962,0]`, distance 28 m,
 pitch 0.25 radians, yaw 0. Rifle at tick 331; HMG at tick 341. Both arms hide
 panels to expose the ground. Rifle slots exclude grenade launchers; HMG replaces
@@ -14,8 +14,9 @@ change between arms; building spread, weapon rules, renderer and geometry stay
 frozen. The full paired set checked six instants for each weapon.
 
 The source checkpoint is `af2d1f8`, including the authored/resolved catalog and
-production route; the frozen JSON contains village rules, not a standalone
-scenario/catalog bundle. The capture changes the rifle catalog's squad slots to
+production route; the frozen rules (`frozen-village.json` beside this file at
+the tag `data-files-before-prune-2026-10-01`) were village rules, not a
+standalone scenario/catalog bundle. The capture changes the rifle catalog's squad slots to
 eight `rifleman` entries in both arms. The HMG capture additionally replaces the
 route's first red rifle unit with the existing jeep. This recipe identifies the
 controlled source/catalog; the screenshots themselves are the retained visual

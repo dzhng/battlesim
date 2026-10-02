@@ -778,7 +778,7 @@ keeps storage addresses independent of physical identity and encounter naming.
 
 **Choice:** Frozen oracle inputs in `fixtures/parity/` were rewritten to the current map format (roads as surfaces, forests as shapes, one forest rule, `fog_cell_m` on the map), and the test-only converters that did this on every run (`migrate_original_ground`, `originalGroundInput`) were deleted. Outputs that the forest rule changes were regenerated with `BLESS_PARITY=1`: the village arm of the building oracle, the fog-delivery oracle (digests and visibility from native, decoded frames from Wasm), the foliage exports and the terrain queries.
 
-**Gap:** These oracles froze outputs of implementations that no longer exist (dense terrain, pre-aggregate buildings), so the named C72 change could not be re-derived from them. Their historical-equivalence proofs stand at `9a88280` (tag `city-maps-evidence-2026-09-30`); from here they pin the current build, and the fog oracle still holds native and Wasm to the same digests.
+**Gap:** These oracles froze outputs of implementations that no longer exist (dense terrain, pre-aggregate buildings), so the named C72 change could not be re-derived from them. Their historical-equivalence proofs stand at `9a88280` (tag `city-maps-evidence-2026-09-30`); from here they pin the current build, and the fog oracle still holds native and Wasm to the same digests. **Superseded 2026-10-01:** those one-sided oracles are deleted; `fixtures/parity/` now holds only records a native and a Wasm test both read (see "Data files pruned" below).
 
 **Verdict:** sound. **Confidence:** high; only the arms with light or dense woods moved, and the garrison-collapse arm, garrison seats and line-of-fire queries came out byte-identical.
 
@@ -2606,6 +2606,15 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 **Gap:** Both lived in the manifest's test file.
 
 **Verdict:** provisional. An import by a path outside the repo already fails in every worktree and any other checkout, and the atlases are excluded by Q-E and the README's firewalls. Either can come back as a small test of its own if the owner wants the guard. **Confidence:** medium.
+
+
+## Data files pruned
+
+**Choice:** Every frozen record that only one side read (terrain queries, the buildings oracle, the foliage and patch snapshots, the rotation corpus: 2.7 MB) is deleted with its test. A record stays only when a native test and a Wasm test both compare against it, and it stores hashes unless a reader needs the bytes. The fog oracle became `publication/stream.json` over a saved map and the live rules. Raw data dumps in two finished specs are deleted. Everything removed is at tag `data-files-before-prune-2026-10-01`.
+
+**Verdict:** sound. The snapshots proved cutovers whose old implementations no longer exist; since then they only failed on deliberate changes and were re-recorded unread. One snapshot was the sole test of a rule (how cleared ground thins foliage in Wasm) and was replaced by a small behaviour test. **Confidence:** high.
+
+**Open:** the stream record is the only native-against-Wasm check of the simulation itself, and it is a four-unit move with no firing; a short battle with combat would be a stronger pair at the same cost.
 
 ## C05 — scale-lane measurement choices
 

@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { beforeAll, expect, test } from "vitest";
 import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
@@ -107,7 +108,7 @@ test("implicit ground height cannot turn a finite input into an infinite physica
 });
 
 test("native CLI and WASM emit the same complete compiler records and refusals", () => {
-  const cases: { name: string; request_json: string; native_outcome: string }[] = JSON.parse(
+  const cases: { name: string; request_json: string; native_sha256: string }[] = JSON.parse(
     readFileSync(
       new URL("../../fixtures/parity/map-compiler/paired-records.json", import.meta.url),
       "utf8",
@@ -118,8 +119,9 @@ test("native CLI and WASM emit the same complete compiler records and refusals",
     "utf8",
   );
   for (const record of cases) {
-    expect(compile_map(record.request_json, `[${descriptor}]`), record.name).toBe(
-      record.native_outcome,
+    const outcome = compile_map(record.request_json, `[${descriptor}]`);
+    expect(createHash("sha256").update(outcome).digest("hex"), record.name).toBe(
+      record.native_sha256,
     );
   }
 });
