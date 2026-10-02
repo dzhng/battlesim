@@ -28,7 +28,7 @@ Routes and saved maps have different identities. The [fixture registry](../apps/
 
 ```bash
 cargo run -p mapgen --release -- request mixed small 1 fixtures/map-presets.json fixtures/prototype-building-templates.json fixtures/generated-battle.json > throwaway/request.json
-cargo run -p mapgen --release -- generate-map throwaway/request.json fixtures/map-presets.json fixtures/prototype-building-templates.json fixtures/catalog.json fixtures/maps/market-town
+cargo run -p mapgen --release -- generate-map throwaway/request.json fixtures/map-presets.json fixtures/prototype-building-templates.json fixtures/game.json fixtures/catalog.json fixtures/maps/market-town
 cargo run -p sim --release --example encounter_report -- --save fixtures/maps/market-town
 ``` There is no index to regenerate: the browser lists the folders with a Vite glob, and the tests read the directory. The catalogue tests (`cargo test -p sim --test sim maps::`, `bun run --cwd web test -- tests/mapCatalogue.test.ts`) hold every folder to all of the above.
 
@@ -62,6 +62,8 @@ A unit type is **one catalog entry**, addressed by its string id (`"tank"`, late
 - **The browser reads the resolved view,** `catalog.json`, which also carries `game.json`'s weapon rows resolved (`weapons`); presentation reads rows there, never the raw ones. After editing the catalog, regenerate it: `BLESS_CATALOG=1 cargo test -p sim --test sim catalog::` (the test fails while it is stale). Then regenerate the icons (each type's silhouette is rendered from its baked model): `bun run --cwd web asset -- icons`.
 
 ## Weapon cycles
+
+Engagement distances belong to each weapon row. Minimum range is a crew's firing restriction measured from the actual muzzle to the aim point, not a delayed arming fuse: already-fired rounds still collide and explode normally. A too-close weapon holds its rounds rather than requesting an advance, while other mounts remain independent. Target selection and each physical shot enforce the same minimum, including sampled contacts and individual soldiers.
 
 A weapon row's `ammo` is total carried rounds, including loaded magazines; `"unlimited"` means unlimited reserves. `magazine` adds a physical gun's capacity and interval between shots, while `reload_s` is the pause to replace its magazine or belt. An optional `burst` groups rapid shots. The [fire cadence rationale](../specs/done/fire-cadence/README.md) explains their readiness and interruptible idle reload contract.
 

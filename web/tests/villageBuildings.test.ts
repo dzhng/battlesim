@@ -34,12 +34,15 @@ import {
   type TemplateState,
 } from "@packages/scene-assets/src/templateLibrary";
 import { loadMap } from "@web/maps/node";
+import { gzipTransport, unpackGzip } from "@packages/scene-assets/src/gzip";
 
 const runtime = (path: string) =>
   readFileSync(new URL(`../../assets/runtime/${path}`, import.meta.url));
 const catalog = JSON.parse(runtime("catalog.json").toString("utf8")) as RuntimeCatalog;
+const hash = catalog.templates!.library;
+const gzip = gzipTransport(catalog, hash);
 const library = decodeTemplateLibrary(
-  new Uint8Array(runtime(templateLibraryPath(catalog.templates!.library))),
+  await unpackGzip(new Uint8Array(runtime(templateLibraryPath(gzip.hash))), gzip, hash),
 );
 // Which module is drawn is the question, not where its edges are: a box
 // stands for every kit mesh's bounds.

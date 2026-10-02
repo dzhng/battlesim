@@ -146,3 +146,19 @@ test("the atlas filter weights colour by coverage, so edges never darken", () =>
   const source = Uint8Array.from([255, 0, 0, 255, 0, 0, 0, 0, 255, 0, 0, 255, 0, 0, 0, 0]);
   expect(Array.from(boxFilter(source, 2, 2, 2))).toEqual([255, 0, 0, 128]);
 });
+
+test("a dropped kit preview uses the same gzip transport and installs its actual module geometry", async () => {
+  const { kitGlb, cityCatalog, KIT_SOURCE } = await import("./city");
+  const { encodeBundle } = await import("@packages/scene-assets/src/codec.ts");
+  const result = await validateLoose(KIT_SOURCE, kitGlb(), cityCatalog(), context, { unit: "kit" });
+  const preview = result.appearance!.preview!;
+  if (preview.kind !== "static") throw new Error(preview.kind);
+  const files = await previewRuntime(
+    [{ name: "kit.glb", unit: "kit", bundle: preview }],
+    testCatalog().sides,
+  );
+  const loader = new AppearanceLibrary(memoryFetch(files, "mem:/"));
+  await loader.load("mem:/");
+  const installed = await loader.withKits(["kit.glb"]);
+  expect(encodeBundle(installed.appearances.get("kit.glb")!.bundle)).toEqual(encodeBundle(preview));
+});

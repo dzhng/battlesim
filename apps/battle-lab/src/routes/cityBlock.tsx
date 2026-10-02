@@ -9,7 +9,7 @@
 // it is tall); a probe replaces the map's buildings with every other one,
 // as a new map would; `?tier=0..3` draws every building at one detail tier.
 import { useCallback, useMemo, useRef, useState } from "react";
-import { UNITS } from "@packages/scene-assets/src/shippedUnits";
+import { GAME_RULES } from "../scenarios";
 import config from "@fixtures/generated-battle.json";
 import presets from "@fixtures/map-presets.json?raw";
 import templates from "@fixtures/prototype-building-templates.json?raw";
@@ -47,8 +47,8 @@ import { askedTier, tierBoundaries, useBuildingTier } from "../buildingTier";
 import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
 import { useMapBuildings, useStaticWorld, type StaticWorld } from "../useStaticWorld";
 
-// The catalog a battle's rules carry: street furniture is placed from it.
-const GENERATOR = { presets, templates, catalog: JSON.stringify(UNITS.documents) };
+// The same explicit rule record a battle carries, including forest geometry.
+const GENERATOR = { presets, templates, rules: JSON.stringify(GAME_RULES) };
 /** The map the lab opens on: a town with houses and apartment blocks. */
 const DEFAULT: MapChoice = { type: "mixed", size: "small", seed: "1" };
 /** A house this near an apartment building makes the two a block, metres. */

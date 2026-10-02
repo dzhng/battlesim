@@ -7,6 +7,7 @@ use contract::catalog::{PropCatalog, PropKind};
 use contract::command::{CommandEnvelope, Order, OrderError};
 use contract::ids::{Side, UnitId};
 use contract::map::MapDefinition;
+use contract::random::Rng;
 use contract::scenario::{Armor, RicochetRules};
 use contract::scenario::{ForestRules, ScenarioDefinition};
 use serde_json::Value;
@@ -17,7 +18,6 @@ use sim::flight::{
     ImpactResolver, LaunchProfile, Pose, ProjectileId, Projectiles, Shape, Struck,
 };
 use sim::math::{v3, V3};
-use sim::rng::Rng;
 use sim::world::WorldGeometry;
 use std::collections::{BTreeMap, BTreeSet};
 

@@ -3467,7 +3467,15 @@ async function panelLayoutTour(ctx) {
   ctx.check("hovering an unselected unit reveals its full card even at far zoom", true);
   await shot(ctx, page, "panels-hover-unit");
   await page.mouse.move(1885, 25);
-  await page.waitForFunction((s) => document.querySelector(s)?.style.display === "none", selector);
+  await page.waitForFunction((s) => {
+    const n = document.querySelector(s);
+    return (
+      n?.style.display !== "none" &&
+      n?.dataset.zoom === "compressed" &&
+      !n.parentElement.dataset.hovered
+    );
+  }, selector);
+  ctx.check("leaving unit hover restores its visible compact card", true);
   await aim(page, tank.position, { distance: 450, pitch: 0.85, yaw: CAMERA.default.yaw });
   await lab(page, () => window.__lab.frame());
   await page.locator(selector).locator(".ro-name").hover();

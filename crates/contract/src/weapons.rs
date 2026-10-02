@@ -32,6 +32,10 @@ pub struct WeaponDefinition {
     pub icon: String,
     #[serde(flatten)]
     pub ballistics: WeaponBallistics,
+    /// Closest muzzle-to-aim-point distance at which the crew fires.
+    /// Zero leaves close fire unrestricted; this is not an arming fuse.
+    #[serde(default)]
+    pub min_range_m: f64,
     /// The unit's always-available gun (W09).
     #[serde(default)]
     pub default: bool,
@@ -139,10 +143,14 @@ pub fn resolve_weapons<'de, D: serde::Deserializer<'de>>(d: D) -> Result<WeaponR
                         ("structural_damage", def.structural_damage),
                         ("near_miss_suppression", def.near_miss_suppression),
                         ("suppression_radius_m", def.ballistics.suppression_radius_m),
+                        ("min_range_m", def.min_range_m),
                     ] {
                         if !value.is_finite() || value < 0.0 {
                             return Err(serde::de::Error::custom(format!("{field} must be finite and nonnegative")));
                         }
+                    }
+                    if def.min_range_m > def.ballistics.range_m {
+                        return Err(serde::de::Error::custom("min_range_m must not exceed range_m"));
                     }
                     if !(0.0..=1.0).contains(&def.armor_fraction) {
                         return Err(serde::de::Error::custom("armor_fraction must lie in [0, 1]"));

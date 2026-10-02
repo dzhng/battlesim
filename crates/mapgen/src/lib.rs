@@ -195,8 +195,8 @@ pub enum DiagnosticCode {
     UnsupportedPlanField,
     InvalidRequest,
     InvalidCatalogue,
-    /// The unit and prop catalog's documents do not resolve.
-    InvalidCatalog,
+    /// Missing or unsound explicit physical generation rules.
+    InvalidPhysicalRules,
     MissingTemplate,
     InvalidBounds,
     InvalidPlacement,
@@ -294,14 +294,14 @@ pub enum GenerateOutcome {
 /// A request's whole plan: the layout, then its districts' streets, parcels
 /// and buildings, then what stands in the open country between them, then
 /// the street furniture that stands among the buildings.
-/// `catalog_json` is the unit and prop catalog as a battle's rules carry it:
-/// the list of its documents (`contract::catalog::Catalog`).
+/// `rules_json` is the explicit battle rules record. The contract extracts
+/// only its catalog, forest rules and ground eye/target heights.
 fn generate(
     request_json: &str,
     presets_json: &str,
     descriptors_json: &str,
-    catalog_json: &str,
-) -> Result<(GenerationRequest, MapPlan, TemplateGeometryCatalog), Vec<Diagnostic>> {
+    rules_json: &str,
+) -> Result<(GenerationRequest, MapPlan, TemplateGeometryCatalog, String), Vec<Diagnostic>> {
     let request: GenerationRequest = serde_json::from_str(request_json).map_err(|error| {
         vec![Diagnostic {
             code: DiagnosticCode::InvalidRequest,
@@ -312,13 +312,13 @@ fn generate(
     })?;
     let presets = PresetDefinitions::from_json(presets_json)?;
     let catalogue = catalogue(descriptors_json)?;
-    let units: contract::catalog::Catalog =
-        serde_json::from_str(catalog_json).map_err(|error| {
+    let physics = contract::generation_physics::GenerationPhysics::from_rules_json(rules_json)
+        .map_err(|message| {
             vec![Diagnostic {
-                code: DiagnosticCode::InvalidCatalog,
+                code: DiagnosticCode::InvalidPhysicalRules,
                 feature: None,
-                location: "$.catalog".into(),
-                message: error.to_string(),
+                location: "$.rules".into(),
+                message,
             }]
         })?;
     let layout = layout::generate_layout(&request, &presets)?;
@@ -326,20 +326,29 @@ fn generate(
     // The open country first: it settles the plan's approach corridors, which
     // street furniture keeps clear.
     let mut plan = open_country::furnish(plan, &request, &catalogue, &presets)?;
-    let props = street_props::place_street_props(&plan, &request, &catalogue, &units, &presets)?;
+    let props =
+        street_props::place_street_props(&plan, &request, &catalogue, &physics.catalog, &presets)?;
     plan.props.extend(props);
-    Ok((request, plan, catalogue))
+    let hash = physics.hash().map_err(|error| {
+        vec![Diagnostic {
+            code: DiagnosticCode::InvalidPhysicalRules,
+            feature: None,
+            location: "$.rules".into(),
+            message: error.to_string(),
+        }]
+    })?;
+    Ok((request, plan, catalogue, hash))
 }
 
-/// Generate a plan from request, preset, template and catalog JSON.
+/// Generate a plan from request, preset, template and resolved battle rules JSON.
 pub fn generate_plan(
     request_json: &str,
     presets_json: &str,
     descriptors_json: &str,
-    catalog_json: &str,
+    rules_json: &str,
 ) -> GenerateOutcome {
-    match generate(request_json, presets_json, descriptors_json, catalog_json) {
-        Ok((_, plan, _)) => GenerateOutcome::Ok {
+    match generate(request_json, presets_json, descriptors_json, rules_json) {
+        Ok((_, plan, _, _)) => GenerateOutcome::Ok {
             plan: Box::new(plan),
         },
         Err(diagnostics) => GenerateOutcome::Error { diagnostics },
@@ -351,10 +360,33 @@ pub fn generate_map(
     request_json: &str,
     presets_json: &str,
     descriptors_json: &str,
-    catalog_json: &str,
+    rules_json: &str,
 ) -> CompileOutcome {
-    let result = generate(request_json, presets_json, descriptors_json, catalog_json).and_then(
-        |(request, plan, catalogue)| lower(&CompileRequest::generated(&request, plan), &catalogue),
+    let result = generate(request_json, presets_json, descriptors_json, rules_json).and_then(
+        |(request, plan, catalogue, physical_inputs_hash)| {
+            let request = CompileRequest::generated(&request, plan);
+            let mut compiled = lower(&request, &catalogue)?;
+            // Borrow the large plan rather than materializing a second JSON tree.
+            #[derive(Serialize)]
+            struct GeneratedConfiguration<'a> {
+                physical_inputs_hash: &'a str,
+                plan: &'a MapPlan,
+            }
+            compiled.identity.config_hash =
+                contract::identity::json_hash(&GeneratedConfiguration {
+                    physical_inputs_hash: &physical_inputs_hash,
+                    plan: &request.plan,
+                })
+                .map_err(|error| {
+                    vec![Diagnostic {
+                        code: DiagnosticCode::InvalidPhysicalRules,
+                        feature: None,
+                        location: "$.rules".into(),
+                        message: error.to_string(),
+                    }]
+                })?;
+            Ok(compiled)
+        },
     );
     match result {
         Ok(result) => CompileOutcome::Ok {
@@ -368,13 +400,13 @@ pub fn generate_plan_json(
     request_json: &str,
     presets_json: &str,
     descriptors_json: &str,
-    catalog_json: &str,
+    rules_json: &str,
 ) -> Result<String, serde_json::Error> {
     serde_json::to_string(&generate_plan(
         request_json,
         presets_json,
         descriptors_json,
-        catalog_json,
+        rules_json,
     ))
 }
 
@@ -382,13 +414,13 @@ pub fn generate_map_json(
     request_json: &str,
     presets_json: &str,
     descriptors_json: &str,
-    catalog_json: &str,
+    rules_json: &str,
 ) -> Result<String, serde_json::Error> {
     serde_json::to_string(&generate_map(
         request_json,
         presets_json,
         descriptors_json,
-        catalog_json,
+        rules_json,
     ))
 }
 

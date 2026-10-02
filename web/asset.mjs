@@ -20,6 +20,7 @@
 //   stand-in               write the stand-in kit's GLB: the unit box a prop with no art of its own
 //                          is drawn as (then bake)
 //   catalogue              rewrite the map generator's template catalogue from its city sets' descriptors
+//   download <map.json>    verify the selected kits/library and their aggregate wire-byte budget
 //
 // bake and check pack the city sets into the template art library, which is
 // judged by the simulation's own contract: build the WebAssembly first.
@@ -57,7 +58,13 @@ registerHooks({
 const { bakeCatalog, runtimeCatalogText } = await import("../packages/scene-assets/src/bake.ts");
 const { contentSha256, lfsPointerOid, lfsPullCommand } =
   await import("../packages/scene-assets/src/glb.ts");
-const { bundlePath, templateLibraryPath } = await import("../packages/scene-assets/src/schema.ts");
+const { bundlePath, templateLibraryPath, SHARED_KIT_DOWNLOAD_MAX_BYTES, KIT_BUNDLE_MAX_BYTES } =
+  await import("../packages/scene-assets/src/schema.ts");
+const { gzipTransport, kitDownloadBytes, unpackGzip } =
+  await import("../packages/scene-assets/src/gzip.ts");
+const { decodeBundle } = await import("../packages/scene-assets/src/codec.ts");
+const { decodeTemplateLibrary, templateKits } =
+  await import("../packages/scene-assets/src/templateLibrary.ts");
 const { TEMPLATE_TIER_TRIANGLES, catalogueRows, catalogueText, readTemplateSet } =
   await import("../packages/scene-assets/src/templateSource.ts");
 const { STAND_IN_KIT, standInKitGlb } = await import("../packages/scene-assets/src/standInKit.ts");
@@ -232,6 +239,11 @@ function report(result) {
     console.log(
       `${r.what} ${r.name}: ${r.hash ? `${r.hash} (${(r.bytes / 1024).toFixed(1)} KiB)` : "not baked"}`,
     );
+    const gzip = r.hash && result.runtime.gzip?.[r.hash];
+    if (gzip)
+      console.log(
+        `  gzip transport ${gzip.hash} (${(gzip.bytes / 1024).toFixed(1)} KiB; raw art identity unchanged)`,
+      );
     printStats(r.stats);
     if (r.templates) {
       const { templates, rows, modules } = r.templates;
@@ -340,6 +352,39 @@ async function check() {
   return problems.length ? 1 : 0;
 }
 
+async function download(args) {
+  if (args.length !== 1) throw new Error("usage: asset download <map.json>");
+  const runtime = readJson(join(RUNTIME, "catalog.json"));
+  const hash = runtime.templates?.library;
+  if (!hash) throw new Error("runtime catalog has no template library");
+  const libraryBytes = kitDownloadBytes(runtime, []);
+  if (libraryBytes > SHARED_KIT_DOWNLOAD_MAX_BYTES)
+    throw new Error(
+      `shared kit download ${libraryBytes} bytes is over ${SHARED_KIT_DOWNLOAD_MAX_BYTES}`,
+    );
+  const raw = async (hash, path, maxRaw = Infinity) => {
+    const gzip = gzipTransport(runtime, hash, maxRaw);
+    return unpackGzip(new Uint8Array(readFileSync(join(RUNTIME, path(gzip.hash)))), gzip, hash);
+  };
+  const library = decodeTemplateLibrary(await raw(hash, templateLibraryPath));
+  const map = readJson(resolve(args[0]));
+  const ids = map.buildings.map((building) => building.template_id);
+  const kits = templateKits(library, ids);
+  const bytes = kitDownloadBytes(runtime, kits);
+  if (bytes <= SHARED_KIT_DOWNLOAD_MAX_BYTES)
+    for (const kit of kits)
+      decodeBundle(await raw(runtime.appearances[kit].bundle, bundlePath, KIT_BUNDLE_MAX_BYTES));
+  console.log(
+    JSON.stringify({
+      kits: [...kits].sort(),
+      bytes,
+      max_bytes: SHARED_KIT_DOWNLOAD_MAX_BYTES,
+      ok: bytes <= SHARED_KIT_DOWNLOAD_MAX_BYTES,
+    }),
+  );
+  return bytes <= SHARED_KIT_DOWNLOAD_MAX_BYTES ? 0 : 1;
+}
+
 function pull(args) {
   const { values, positionals } = parseArgs({
     args,
@@ -364,7 +409,9 @@ function pull(args) {
   if (values.sources) for (const sheet of Object.values(cat.interiors ?? {})) include.add(sheet);
   for (const [, entry] of sets) {
     if (runtime.templates)
-      include.add(`assets/runtime/${templateLibraryPath(runtime.templates.library)}`);
+      include.add(
+        `assets/runtime/${templateLibraryPath(gzipTransport(runtime, runtime.templates.library).hash)}`,
+      );
     if (values.sources) include.add(entry.templates);
   }
   for (const name of names) {
@@ -375,7 +422,10 @@ function pull(args) {
       runtime.appearances[name]?.bundle,
       skeleton && runtime.skeletons[skeleton],
     ].filter(Boolean);
-    for (const hash of hashes) include.add(`assets/runtime/${bundlePath(hash)}`);
+    for (const hash of hashes) {
+      const wireHash = entry?.unit === "kit" ? gzipTransport(runtime, hash).hash : hash;
+      include.add(`assets/runtime/${bundlePath(wireHash)}`);
+    }
     if (values.sources) {
       for (const path of [
         entry?.source,
@@ -664,6 +714,7 @@ const commands = {
   grass,
   "stand-in": standIn,
   catalogue,
+  download,
 };
 if (!commands[command]) {
   console.log(`usage: asset ${Object.keys(commands).join(" | ")}`);

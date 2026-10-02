@@ -34,7 +34,6 @@ use crate::knowledge::SideKnowledge;
 use crate::math::{v2, v3, Obb2, V2, V3};
 use crate::movement::{self, MovementContext, SideGeometry};
 use crate::navigation::RoadNet;
-use crate::rng::Rng;
 use crate::route_planner::RoutePlanner;
 use crate::sensing::{self, Sighting};
 use crate::sight;
@@ -45,6 +44,7 @@ use crate::village::{Defender, Referee};
 use crate::visibility::{self, OcclusionGrid};
 use crate::weapons::{self, Arsenal, FireContext, Support, Target, VEHICLE_BODY_BASE};
 use crate::world::{PropId, WorldGeometry};
+use contract::random::Rng;
 
 /// Ticks between ground-visibility sweeps for each side (sides alternate).
 /// Identification runs every [`sensing::SENSE_EVERY`] ticks per observer;

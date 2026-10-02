@@ -13,6 +13,7 @@ use std::collections::BTreeMap;
 use contract::ballistics::{FlightRules, WeaponBallistics};
 use contract::ids::UnitId;
 use contract::map::MapDefinition;
+use contract::random::Rng;
 use contract::scenario::{RicochetRules, Rules};
 use sim::damage::{decide, struck_face, RoundPower, StruckHull};
 use sim::flight::{
@@ -20,7 +21,6 @@ use sim::flight::{
     ImpactContext, ImpactDecision, Pose, Projectiles, Struck,
 };
 use sim::math::{v3, V3};
-use sim::rng::Rng;
 use sim::world::WorldGeometry;
 
 fn main() {

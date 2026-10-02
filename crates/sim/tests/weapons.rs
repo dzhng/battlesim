@@ -102,6 +102,173 @@ fn weapon(name: &str) -> Value {
     rules()["weapons"][name].clone()
 }
 
+/// A single launcher with a level aim point: only engagement distance varies.
+fn minimum_range_setup(
+    id: &str,
+    distance: f64,
+    muzzle_forward: f64,
+    infantry: bool,
+) -> contract::scenario::ScenarioDefinition {
+    let mut game = rules();
+    game["weapons"][id]["min_range_m"] = json!(5.0);
+    game["weapons"][id]["aim_s"] = json!(0.0);
+    game["weapons"][id]["ammo"] = json!(10);
+    game["weapons"][id]["penetration"] = json!(1000.0);
+    game["weapons"][id]["damage"] = json!(0.0);
+    let base = common::rules();
+    let target_height = 2.0
+        * base.catalog.by_id("jeep").hull().unwrap().half_extents_m[2]
+        * base.physics.vehicle_aim_height_fraction;
+    // A small hull avoids squad spacing and collision at the boundary.
+    let launcher = if infantry {
+        json!({ "extends": "rifle", "body": { "squad": { "slots": ["grenadier"] } } })
+    } else {
+        json!({
+            "extends": "jeep",
+            "body": { "hull": { "half_extents_m": [0.25, 0.25, 0.25] } },
+            "mounts": [{ "name": "HMG", "weapons": [id],
+                "pivot_m": [0, 0, 0], "muzzle_m": [muzzle_forward, 0, target_height] }]
+        })
+    };
+    game["catalog"].as_array_mut().unwrap().push(json!({
+        "units": { "close_launcher": launcher }
+    }));
+    serde_json::from_value(json!({
+        "map": serde_json::from_str::<Value>(&map(json!([]))).unwrap(),
+        "rules": game,
+        "units": [
+            { "side": "blue", "kind": "close_launcher", "position": [100, 300] },
+            { "side": "red", "kind": "jeep", "position": [100.0 + distance, 300], "engagement": "return_fire_only" }
+        ], "events": [], "scripts": []
+    })).unwrap()
+}
+
+#[test]
+fn minimum_range_holds_close_shots_for_automatic_and_ordered_fire() {
+    for id in ["grenade", "atgm"] {
+        for ordered in [false, true] {
+            let mut b = Battle::new(&minimum_range_setup(id, 4.0, 0.0, false), 5);
+            run(&mut b, 3);
+            let target = b
+                .observe(Side::Blue)
+                .identified
+                .first()
+                .expect("the nearby enemy is identified")
+                .id;
+            if ordered {
+                Commander::new().ok(
+                    &mut b,
+                    Side::Blue,
+                    Order::Attack {
+                        units: vec![UnitId(0)],
+                        target: TargetRef::Identified { id: target },
+                    },
+                );
+            }
+            let before = own(&b, Side::Blue, 0).position;
+            run(&mut b, 60);
+            assert_eq!(
+                mount(&b, Side::Blue, 0, 0).ammo,
+                vec![Some(10)],
+                "{id}, ordered={ordered}: a too-close target must not consume rounds"
+            );
+            assert_eq!(
+                mount(&b, Side::Blue, 0, 0).reason,
+                ActionReason::HoldingFire
+            );
+            assert_eq!(
+                own(&b, Side::Blue, 0).position,
+                before,
+                "a too-close attack must not advance farther into the target"
+            );
+            Commander::new().ok(
+                &mut b,
+                Side::Red,
+                Order::Move {
+                    units: vec![UnitId(1)],
+                    gesture: 1,
+                    goal: [120.0, 300.0],
+                    route: contract::command::RoutePolicy::Shortest,
+                    direction: contract::command::MoveDirection::Forward,
+                    facing: None,
+                },
+            );
+            run(&mut b, 120);
+            assert!(own(&b, Side::Red, 1).position[0] > 105.0);
+            assert!(
+                own(&b, Side::Blue, 0).weapon_poses[0].shots > 0,
+                "{id}, ordered={ordered}: fire resumes when the target leaves the minimum range"
+            );
+        }
+    }
+}
+
+#[test]
+fn minimum_range_includes_the_boundary_and_is_measured_from_the_muzzle() {
+    for id in ["grenade", "atgm"] {
+        for (distance, muzzle_forward, fires) in [
+            (4.99, 0.0, false),
+            (5.0, 0.0, true),
+            (5.01, 0.0, true),
+            (6.0, 2.0, false),
+            (4.0, -2.0, true),
+        ] {
+            let mut b = Battle::new(&minimum_range_setup(id, distance, muzzle_forward, false), 5);
+            run(&mut b, 30);
+            assert_eq!(
+                own(&b, Side::Blue, 0).weapon_poses[0].shots > 0,
+                fires,
+                "{id}: target distance {distance}, muzzle offset {muzzle_forward}"
+            );
+        }
+    }
+}
+
+#[test]
+fn minimum_range_tries_a_farther_visible_soldier_when_the_nearest_is_too_close() {
+    for infantry in [false, true] {
+        let mut setup = minimum_range_setup("grenade", 6.0, 0.0, infantry);
+        setup.units[1].kind = "rifle".into();
+        setup.rules.weapons.get_mut("rifle").unwrap().damage = 0.0;
+        let mut b = Battle::new(&setup, 5);
+        run(&mut b, 3);
+        let view = b.observe(Side::Blue);
+        let target = &view.identified[0];
+        let from = if infantry {
+            b.unit(UnitId(0)).unwrap().members[0].position
+                + sim::math::v3(0.0, 0.0, setup.rules.physics.infantry_muzzle_m)
+        } else {
+            sim::math::v3(
+                100.0,
+                300.0,
+                2.0 * setup
+                    .rules
+                    .catalog
+                    .by_id("jeep")
+                    .hull()
+                    .unwrap()
+                    .half_extents_m[2]
+                    * setup.rules.physics.vehicle_aim_height_fraction,
+            )
+        };
+        let distance = |p: &[f64; 3]| {
+            (sim::math::v3(p[0], p[1], p[2] + setup.rules.physics.infantry_aim_m) - from).length()
+        };
+        assert!(
+            distance(&target.members[0]) < 5.0,
+            "first aim point is too close"
+        );
+        assert!(
+            target.members.iter().any(|p| distance(p) >= 5.0),
+            "another aim point is valid"
+        );
+        run(&mut b, 60);
+        let launcher = if infantry { 1 } else { 0 };
+        assert!(own(&b, Side::Blue, 0).weapon_poses[launcher].shots > 0,
+            "infantry={infantry}: a soldier inside minimum range must not mask farther valid aim points");
+    }
+}
+
 #[test]
 fn every_mount_aims_and_reloads_independently_and_aims_once_per_target() {
     // A rifle squad against an enemy rifle squad that only answers, close

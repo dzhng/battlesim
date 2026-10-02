@@ -140,29 +140,58 @@ export async function run(ctx) {
   await lab(page, () => window.__lab.route.demo("Infantry through the gap"));
   await lab(page, () => window.__lab.route.advance(3));
   const gapAck = await lab(page, () => window.__lab.route.acks()[0].ack);
-  const rifles = await lab(page, () =>
-    window.__lab.route.observation().own.filter((u) => u.kind === "rifle"),
-  );
+  const gapDestinations = gapAck.placement.destinations;
+  const matchesGapDestinations = (actors, pointOf) =>
+    gapDestinations.length > 0 &&
+    actors.length === gapDestinations.length &&
+    gapDestinations.every((mark) => {
+      const actor = actors.find((u) => u.id === mark.unit);
+      const point = actor && pointOf(actor);
+      return point && mark.goal.every((v, k) => point[k] === Math.fround(v));
+    });
+  const gapBefore = await lab(page, () => window.__lab.route.observation());
+  const rifles = [];
+  const gapStages = [];
+  // Admission may precede a route. Keep each completed route before advancing
+  // for its squadmate, so travel cannot consume the checkpoint we judge.
+  for (const rifle of gapBefore.own.filter((u) => u.kind === "rifle")) {
+    const tick = await lab(page, () => window.__lab.route.tick());
+    rifles.push(await planned(page, rifle.id));
+    gapStages.push({
+      unit: rifle.id,
+      ticks: (await lab(page, () => window.__lab.route.tick())) - tick,
+    });
+  }
+  await ctx.writeEvidence("gap-planning.json", {
+    ack: gapAck,
+    before: gapBefore,
+    stages: gapStages,
+    completedRoutes: rifles,
+    after: await lab(page, () => window.__lab.route.observation()),
+  });
   ctx.check(
     "the rifle group's destinations are admitted and its routes use the 5 m gap",
     !gapAck.error &&
-      gapAck.placement.destinations.every((mark) => mark.placed) &&
+      gapBefore.tick >= gapAck.applied_tick &&
+      gapDestinations.every((mark) => mark.placed) &&
+      matchesGapDestinations(rifles, (r) => r.goal) &&
       rifles.every(
         (r) => r.goal && r.route.some(([x, y]) => Math.abs(x - 200) < 8 && Math.abs(y - 325) < 8),
       ),
-    JSON.stringify({ gapAck, routes: rifles.map((r) => r.route) }),
+    JSON.stringify({ gapAck, stages: gapStages, routes: rifles.map((r) => r.route) }),
   );
   for (let i = 0; i < 100; i++) {
     await lab(page, () => window.__lab.route.advance(60));
     const own = await lab(page, () => window.__lab.route.observation().own);
     if (own.filter((u) => u.kind === "rifle").every((u) => !u.goal)) break;
   }
-  const arrivedRifles = await lab(page, () =>
-    window.__lab.route.observation().own.filter((u) => u.kind === "rifle"),
-  );
+  const gapArrival = await lab(page, () => window.__lab.route.observation());
+  const arrivedRifles = gapArrival.own.filter((u) => u.kind === "rifle");
+  await ctx.writeEvidence("gap-arrival.json", { ack: gapAck, publication: gapArrival });
   ctx.check(
     "both rifle squads finish their admitted moves beyond the wall",
-    arrivedRifles.every((r) => !r.goal && r.position[0] > 220),
+    matchesGapDestinations(arrivedRifles, (r) => r.position) &&
+      arrivedRifles.every((r) => !r.goal && r.position[0] > 220),
     JSON.stringify(
       arrivedRifles.map((r) => ({ position: r.position, goal: r.goal, state: r.state })),
     ),

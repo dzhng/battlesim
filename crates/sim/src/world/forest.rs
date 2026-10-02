@@ -165,31 +165,6 @@ impl ForestState {
     }
 }
 
-/// A forest's jitter seed, from its index and its own geometry, so the same
-/// forest always stands the same trunks. A rectangle hashes its extent, which
-/// keeps the trunks of the maps authored as rectangles; polygons and strokes
-/// hash their vertices under their own salt.
-fn forest_seed(index: usize, forest: &Forest) -> u64 {
-    let initial = 0x9e37_79b9_7f4a_7c15 ^ index as u64;
-    let hash = |h: u64, v: &f64| (h ^ v.to_bits()).wrapping_mul(0x100_0000_01b3);
-    if let Some(rect) = forest.shape.exact_rectangle() {
-        return rect.iter().fold(initial, hash);
-    }
-    match &forest.shape {
-        contract::ground::GroundShape::Polygon { ring } => {
-            ring.iter().flatten().fold(initial ^ 1, hash)
-        }
-        contract::ground::GroundShape::Stroke {
-            centerline,
-            width_m,
-        } => centerline
-            .control_points()
-            .iter()
-            .flatten()
-            .fold(hash(initial ^ 2, width_m), hash),
-    }
-}
-
 pub(super) struct FloorBody<'a> {
     pub kind: &'a str,
     pub density: f64,
@@ -202,47 +177,10 @@ impl WorldGeometry {
     /// each trunk jittered off its cell's centre, none near a road or
     /// another body, none off the map.
     pub(super) fn trunk_positions(&self, index: usize, forest: &Forest) -> Vec<V2> {
-        let d = &self.forest.rule;
-        let [x0, y0, max_x, max_y] = forest.shape.limits();
-        let step = d.trunk_spacing_m;
-        assert!(
-            step.is_finite() && step > 0.0,
-            "forest spacing must be finite and positive"
-        );
-        assert!(
-            [x0, y0, max_x, max_y]
-                .iter()
-                .all(|v| v.is_finite() && (v + step).is_finite() && v + step > *v),
-            "forest lattice spacing must advance at every coordinate bound"
-        );
-        let mut rng = crate::rng::Rng::new(forest_seed(index, forest));
-        let mut out = Vec::new();
-        let mut y = y0 + step / 2.0;
-        while y <= max_y {
-            let mut x = x0 + step / 2.0;
-            while x <= max_x {
-                let jx = (rng.unit() * 2.0 - 1.0) * d.trunk_jitter * step;
-                let jy = (rng.unit() * 2.0 - 1.0) * d.trunk_jitter * step;
-                let p = v2(x + jx, y + jy);
-                let near_open = self.surfaces.road_near(p, d.trunk_clearance_m)
-                    || self.surfaces.water_near(p, d.trunk_clearance_m);
-                // The prop index, not every prop: a full-size map stands tens
-                // of thousands of trunks, each already a prop.
-                let near_prop = self.props_near(p, d.trunk_clearance_m).iter().any(|prop| {
-                    !prop.forest_tree && prop.footprint().contains(p, d.trunk_clearance_m)
-                });
-                if forest.shape.contains([p.x, p.y], 0.0)
-                    && !near_open
-                    && !near_prop
-                    && self.field.contains(p.x, p.y)
-                {
-                    out.push(p);
-                }
-                x += step;
-            }
-            y += step;
-        }
-        out
+        contract::forest::trunk_positions(index, forest, &self.forest.rule, self)
+            .into_iter()
+            .map(|[x, y]| v2(x, y))
+            .collect()
     }
 
     /// Independent jittered lattices place sparse floor bodies in gaps. A
@@ -271,7 +209,8 @@ impl WorldGeometry {
         );
         let radius = libm::hypot(half[0], half[1]);
         let clearance = self.forest.rule.trunk_clearance_m;
-        let mut rng = crate::rng::Rng::new(forest_seed(index, forest) ^ salt);
+        let mut rng =
+            contract::random::Rng::new(contract::forest::forest_seed(index, forest) ^ salt);
         let mut y = y0 + step / 2.0;
         while y <= max_y {
             let mut x = x0 + step / 2.0;
@@ -734,5 +673,23 @@ impl WorldGeometry {
             }
         }
         out
+    }
+}
+
+impl contract::forest::TrunkQueries for WorldGeometry {
+    fn road_near(&self, p: [f64; 2], margin: f64) -> bool {
+        self.surfaces.road_near(v2(p[0], p[1]), margin)
+    }
+    fn water_near(&self, p: [f64; 2], margin: f64) -> bool {
+        self.surfaces.water_near(v2(p[0], p[1]), margin)
+    }
+    fn body_near(&self, p: [f64; 2], margin: f64) -> bool {
+        let p = v2(p[0], p[1]);
+        self.props_near(p, margin)
+            .iter()
+            .any(|prop| !prop.forest_tree && prop.footprint().contains(p, margin))
+    }
+    fn contains_ground(&self, p: [f64; 2]) -> bool {
+        self.field.contains(p[0], p[1])
     }
 }
