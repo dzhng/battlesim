@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { afterAll, expect, test } from "vitest";
 import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
 import { gameBuildingStyle } from "@apps/battle-lab/src/gameModels";
+import { gameGuttedShells } from "@apps/battle-lab/src/destroyedBuildings";
 import { WorldView, world_layout } from "@wasm/game_wasm.js";
 import { createDetailView, setDetailView } from "@packages/battle-renderer/src/frame/detailView";
 import {
@@ -96,7 +97,7 @@ test("a village house stands as its farm until the side has seen it fall, then l
     replaces: null,
     authoredProp: null,
   };
-  expect(fallenBuildings(index, [wreck])).toEqual([]);
+  expect(fallenBuildings(index, [wreck], gameGuttedShells)).toEqual([]);
   expect(drawn(scene)).toEqual(standing);
 
   // It has seen the north house come down: that house's ruin, on its plan.
@@ -108,11 +109,11 @@ test("a village house stands as its farm until the side has seen it fall, then l
     replaces: house.id,
     authoredProp: house.id,
   };
-  setFallenBuildings(scene, fallenBuildings(index, [ruin]));
+  setFallenBuildings(scene, fallenBuildings(index, [ruin], gameGuttedShells));
   expect(drawn(scene)).toEqual([["farm_15x12x4_ruin", 975], ...standing.slice(1)]);
 
   // And forgetting is not a thing a side does, but a new battle is: none known, all stand.
-  setFallenBuildings(scene, fallenBuildings(index, []));
+  setFallenBuildings(scene, fallenBuildings(index, [], gameGuttedShells));
   expect(drawn(scene)).toEqual(standing);
 });
 

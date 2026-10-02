@@ -12,8 +12,6 @@ import {
 } from "@packages/renderer-core/src/cameraClearance";
 import type { CameraController, CameraPose } from "@packages/renderer-core/src/cameraController";
 import type { CameraObstacles } from "@packages/renderer-core/src/cameraObstacles";
-import type { KnownProp, MapProp } from "@packages/battle-renderer/src/models/propAppearance";
-import type { PublicBuildings } from "@packages/battle-renderer/src/worldMesh";
 import { sampleTour, type BenchmarkTour, type TourKeyframe } from "@web/battle/benchmark/camera";
 
 export interface Trajectory {
@@ -59,20 +57,9 @@ export function trajectoryPose(trajectory: Trajectory, seconds: number): CameraP
   return sampleTour(trajectory.tour, seconds * 1000, trajectory.seconds * 1000).pose;
 }
 
-/** What blue knows once it has seen the lab's falling building come down:
- *  each of its parts replaced by low remains on the same plan. */
-export function seenFallen(buildings: PublicBuildings, props: readonly MapProp[]): KnownProp[] {
-  const parts = buildings.buildings.find((b) => b.owner === lab.fallen.owner)!.parts;
-  return parts.map(({ prop }) => {
-    const standing = props.find((p) => p.id === prop)!;
-    return {
-      ...standing,
-      half: [standing.half[0], standing.half[1], lab.fallen.remains_height_m / 2],
-      authoredProp: prop,
-      replaces: prop,
-    };
-  });
-}
+/** The owner of the building blue can be made to see collapse: one low
+ *  enough that the simulation brings it down to remains. */
+export const COLLAPSING_OWNER = lab.collapses.owner;
 
 /** One frame of a flight. */
 export interface FlightFrame {
