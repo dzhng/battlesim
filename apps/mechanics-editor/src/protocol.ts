@@ -23,6 +23,9 @@ export interface MechanicsChange {
   unit?: string;
 }
 
+export const targetKey = (target: Pick<MechanicsChange, "section" | "id" | "unit">) =>
+  JSON.stringify([target.section, target.id, target.unit ?? null]);
+
 export interface MechanicsDraft {
   revision: string;
   changes: MechanicsChange[];
@@ -30,6 +33,8 @@ export interface MechanicsDraft {
 
 export interface MechanicsPreview {
   revision: string;
+  /** Scoped soldier target keys map to their accepted identity after rebinding or cleanup. */
+  soldierIds: Record<string, string>;
   catalog: JsonObject;
   files: { path: string; before: string; after: string }[];
   affectedUnits: string[];

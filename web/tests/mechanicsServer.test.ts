@@ -382,3 +382,83 @@ test("restoring multiple soldier overrides removes the local variant and restore
     "veteran__rifleman",
   );
 }, 30000);
+
+test("accepted soldier identities follow clone creation and cleanup across reordered slots", async () => {
+  const { editor } = await nativeStore();
+  const initial = await editor.snapshot();
+  const creation = await editor.preview({
+    revision: initial.revision,
+    changes: [{ section: "soldiers", id: "rifleman", unit: "rifle", path: ["hp"], value: 120 }],
+  });
+  expect(creation.soldierIds).toEqual({ '["soldiers","rifleman","rifle"]': "rifle__rifleman" });
+  const saved = await editor.save({
+    revision: initial.revision,
+    changes: [
+      {
+        section: "soldiers",
+        id: "rifleman",
+        unit: "rifle",
+        path: ["mounts", "rifles", "squad"],
+        value: false,
+      },
+      {
+        section: "soldiers",
+        id: "rifleman",
+        unit: "rifle",
+        path: ["mounts", "rifles", "special"],
+        value: true,
+      },
+      {
+        section: "soldiers",
+        id: "grenadier",
+        unit: "rifle",
+        path: ["mounts", "grenade launcher", "special"],
+        value: false,
+      },
+    ],
+  });
+  const before = (saved.catalog.documents as JsonObject[])[0];
+  expect((before.soldiers as JsonObject).rifleman).toMatchObject({ mounts: [{ special: false }] });
+  const reordered = ["rifle__rifleman", "rifle__grenadier"];
+  const reorderedSnapshot = await editor.save({
+    revision: saved.revision,
+    changes: [
+      { section: "units", id: "rifle", path: ["body", "squad", "slots"], value: reordered },
+    ],
+  });
+  const preview = await editor.preview({
+    revision: reorderedSnapshot.revision,
+    changes: [
+      {
+        section: "soldiers",
+        id: "rifle__rifleman",
+        unit: "rifle",
+        path: ["mounts"],
+        restore: true,
+      },
+      {
+        section: "soldiers",
+        id: "rifle__grenadier",
+        unit: "rifle",
+        path: ["mounts"],
+        restore: true,
+      },
+    ],
+  });
+  expect(preview.soldierIds).toEqual({
+    '["soldiers","rifle__rifleman","rifle"]': "rifleman",
+    '["soldiers","rifle__grenadier","rifle"]': "grenadier",
+  });
+  const document = (preview.catalog.documents as JsonObject[])[0];
+  expect((document.units as JsonObject).rifle).toMatchObject({
+    body: { squad: { slots: ["rifleman", "grenadier"] } },
+  });
+  expect((document.soldiers as JsonObject).rifle__rifleman).toBeUndefined();
+  expect((document.soldiers as JsonObject).rifle__grenadier).toBeUndefined();
+  expect((document.soldiers as JsonObject).grenadier).toMatchObject({
+    mounts: [
+      { name: "rifles", weapons: ["rifle"], squad: true, special: false },
+      { name: "grenade launcher", weapons: ["grenade"], special: true },
+    ],
+  });
+}, 30000);

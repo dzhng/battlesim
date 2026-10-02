@@ -85,7 +85,7 @@ it("reads source provenance and restores only the named mount override", async (
   expect(weaponUsers(snapshot, "he", draft)).toEqual([]);
 });
 
-it("offers restore only when inheritance or an optional default supplies a value", async () => {
+it("offers restore for optional absence without inventing defaults for abstract parents", async () => {
   const { fieldOrigin } = await import("../../apps/mechanics-editor/src/draft");
   const snapshot = {
     revision: "one",
@@ -106,6 +106,6 @@ it("offers restore only when inheritance or an optional default supplies a value
   expect(fieldOrigin(snapshot, target, ["cost"]).canRestore).toBe(false);
   expect(fieldOrigin(snapshot, target, ["capabilities", "deploy"])).toMatchObject({
     canRestore: true,
-    parentValue: null,
+    parentValue: undefined,
   });
 });

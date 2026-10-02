@@ -6,6 +6,7 @@ import type { Plugin } from "vite";
 import { gameplayField, validateGameplayValue, valueAt } from "./src/fields";
 import {
   MECHANICS_API,
+  targetKey,
   type Json,
   type JsonObject,
   type MechanicsChange,
@@ -316,7 +317,7 @@ export class MechanicsStore {
       return { doc, row: object(object(doc.value[section])[id]) };
     };
     const seen = new Set<string>();
-    const soldierTargets = new Map<MechanicsChange, string>();
+    const soldierIds: Record<string, string> = {};
     for (const change of draft.changes) {
       if (
         !change ||
@@ -361,7 +362,7 @@ export class MechanicsStore {
         const localId = change.id.startsWith(`${change.unit}__`)
           ? change.id
           : `${change.unit}__${change.id}`;
-        soldierTargets.set(change, localId);
+        soldierIds[targetKey(change)] = localId;
         if (localId !== change.id) {
           const localRows = (ownUnit.doc.value.soldiers ??= {}) as JsonObject;
           if (Object.hasOwn(localRows, localId)) {
@@ -400,6 +401,8 @@ export class MechanicsStore {
         valueAt(effective, ["body", "squad", "slots"]);
       const squad = object((object((unit.row.body ??= {})).squad ??= {}));
       squad.slots = (slots as Json[]).map((id) => (id === change.id ? own.row.extends! : id));
+      for (const [key, id] of Object.entries(soldierIds))
+        if (id === change.id) soldierIds[key] = String(own.row.extends);
       delete object(own.doc.value.soldiers)[change.id];
       if (!Object.keys(object(own.doc.value.soldiers)).length) delete own.doc.value.soldiers;
       restoredUnits.add(change.unit);
@@ -442,7 +445,7 @@ export class MechanicsStore {
     }
     for (const change of draft.changes) {
       if (change.restore) continue;
-      const id = soldierTargets.get(change) ?? change.id;
+      const id = soldierIds[targetKey(change)] ?? change.id;
       if (
         change.section === "soldiers" &&
         !(
@@ -493,6 +496,7 @@ export class MechanicsStore {
     );
     return {
       revision: state.revision,
+      soldierIds,
       catalog,
       files,
       affectedUnits,

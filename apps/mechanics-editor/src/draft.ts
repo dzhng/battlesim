@@ -1,11 +1,12 @@
 import { gameplayField, isObject, valueAt } from "./fields";
-import type {
-  Json,
-  JsonObject,
-  MechanicsChange,
-  MechanicsDraft,
-  MechanicsSnapshot,
-  Section,
+import {
+  targetKey,
+  type Json,
+  type JsonObject,
+  type MechanicsChange,
+  type MechanicsDraft,
+  type MechanicsSnapshot,
+  type Section,
 } from "./protocol";
 
 export interface EditTarget {
@@ -13,8 +14,6 @@ export interface EditTarget {
   id: string;
   unit?: string;
 }
-export const targetKey = (target: EditTarget) =>
-  JSON.stringify([target.section, target.id, target.unit ?? null]);
 export const changeKey = (target: EditTarget, path: readonly string[]) =>
   JSON.stringify([target.section, target.id, target.unit ?? null, path]);
 const sameTarget = (a: EditTarget, b: EditTarget) => targetKey(a) === targetKey(b);
@@ -204,15 +203,26 @@ export function fieldOrigin(
     }
   }
   const descriptor = gameplayField(target.section, path);
-  const restoresDefault = parentValue === undefined && Boolean(descriptor?.optional);
-  if (restoresDefault) parentValue = descriptor?.kind === "strings" ? [] : null;
+  const authoredParent = parentValue;
+  const parentId = first?.row.extends;
+  const resolvedParent =
+    typeof parentId === "string"
+      ? resolvedEntries(snapshot.catalog, target.section)[parentId]
+      : undefined;
+  if (resolvedParent) parentValue = valueAt(resolvedParent, path);
+  // Native rows include parser defaults and inherited named mounts. Abstract
+  // parents may be absent; optional leaves can still be removed for admission.
+  const restoresDefault =
+    authoredParent === undefined && (parentValue !== undefined || Boolean(descriptor?.optional));
   return {
     id: ownerId,
     path: owner?.file ?? "Resolved default",
     inherited: !local && ownerId !== target.id,
     local,
     canRestore:
-      local && parentValue !== undefined && Boolean(first && typeof first.row.extends === "string"),
+      local &&
+      (parentValue !== undefined || Boolean(descriptor?.optional)) &&
+      Boolean(first && typeof first.row.extends === "string"),
     restoresDefault,
     parentValue,
   };

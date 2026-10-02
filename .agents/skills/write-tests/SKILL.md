@@ -44,6 +44,11 @@ below serves that one goal.
 - **Exercise structural edits with invalid child input.** Disable, replace or
   restore a parent after a child contains unfinished text; verify discarded fields
   no longer block submission and unrelated hidden edits still survive.
+- **Exercise previews across identity changes and native defaults.** A draft can
+  name a row that publication replaces or deletes, and authored parents can omit
+  fields that the resolver supplies. Assert the accepted row's displayed values
+  through creation, inherited restore and cleanup; draft projections are not the
+  acceptance oracle.
 - **Test generated artifacts against their owning generator.** Compare exact
   bytes when the existing contract is canonical text; cross-language JSON
   reserialization can preserve values while breaking the catalog freshness gate.

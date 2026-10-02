@@ -9,6 +9,7 @@ import {
 } from "react";
 import {
   MECHANICS_API,
+  targetKey,
   type Json,
   type JsonObject,
   type MechanicsChange,
@@ -80,12 +81,18 @@ const rawText = (value: Json | undefined) =>
         ? JSON.stringify(value, null, 2)
         : String(value);
 
-function ChangeSummary({ change, catalog }: { change: MechanicsChange; catalog: JsonObject }) {
+function ChangeSummary({
+  change,
+  preview,
+}: {
+  change: MechanicsChange;
+  preview: MechanicsPreview;
+}) {
   const editor = useEditor();
   const before = resolvedEntries(editor.snapshot.catalog, change.section)[change.id];
   const field = gameplayField(change.section, change.path);
-  const projected = draftEntry(before, editor.draft, change, editor.snapshot);
-  const after = change.unit ? projected : resolvedEntries(catalog, change.section)[change.id];
+  const id = change.unit ? preview.soldierIds[targetKey(change)] : change.id;
+  const after = resolvedEntries(preview.catalog, change.section)[id];
   const beforeValue = valueAt(before, change.path);
   const afterValue = valueAt(after, change.path);
   const formatted = (value: Json | undefined, entry: JsonObject) => {
@@ -957,7 +964,7 @@ export default function MechanicsEditor() {
                   <ChangeSummary
                     key={changeKey(change, change.path)}
                     change={change}
-                    catalog={preview.value.catalog}
+                    preview={preview.value}
                   />
                 ))}
               </ul>
