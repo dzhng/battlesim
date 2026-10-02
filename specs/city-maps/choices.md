@@ -4736,39 +4736,40 @@ than height inlining and also shrinks linked text. It needs no second visibility
 implementation or invalidation owner. C06 records the exact observations/digests,
 measured code-size tradeoff and narrower scope of the evidence.
 
-## C06: prove an enclosed destination once after a failed road exit
+## C06: share a failed final connector's strict goal component
 
-**Choice:** When a vehicle reaches the final planning step from a road and that
-connector fails, try one counted search outward from the destination's resolved
-cell. A search frontier is the queue of cells still to inspect. If that queue
-empties, the search has found every cell this footprint can reach from the goal.
-When the original start's resolved cell is absent, no road exit can complete the
-journey, so report `NoRoute` immediately. A search limit leaves an unfinished
-queue and proves nothing; ordinary alternative roads remain available.
+**Choice:** After one final road connector fails, exhaust a search from its
+resolved goal over the existing mover graph. Retain that component only when the
+frontier empties. Use exact forward-source admission to omit disconnected final
+connectors. Before building an approach, omit a goal access only when its whole
+arc, expanded for lane offset, source snapping and point coalescing, is outside
+the component's bounds. Excluded arcs also leave the fallback's nearest-access
+selection, preserving legitimate farther approaches. Sampled roads remain free
+to enter the strict component;
+being disconnected from the original start is not a whole-journey refusal.
 
-**Gap:** The existing road planner rejects one failed exit at a time. The plan
-required bounded work but did not select how to share those failures. A tank
-sent into a closed courtyard can repeatedly search the large outside region
-from different roads, even though a small search inside the courtyard proves
-all approaches impossible. Reusing the search's completed component provides
-a general geometry proof without recognizing a map, unit type or seed.
+**Gap:** Rejecting one road exit at a time repeatedly certifies the large outside
+region. The earlier relaxed whole-journey proof was safe but too conservative for
+one frozen failure. Retaining strict membership only at the final leg then moved
+the cost into repeated graph and approach work. Shared goal-access admission
+eliminates both without recognizing a map, unit or seed, and without lowering a
+search limit. Resource exhaustion remains inconclusive.
 
-**Reach:** Run this extra proof after failure, not on every healthy road journey.
-It reuses the existing sparse scratch and footprint checks, preserves the original
-start/goal snapping and grants no passage through bodies. The proof may step
-round corners and farther than an actual route, covering the road reader's
-sampling and its next connector's existing snapped start. This errs toward
-declining a blockage proof; its path is never returned as a route. A reachable or large
-goal region may remain inconclusive and keep the existing repeated work; a
-general shared goal-access tree is outside this measured correction. Earlier
-proven refusal changes planning ticks and affected digests, while same-build
-replay remains exact.
+**Reach:** The proof runs after failure, preserving healthy road-search latency.
+It uses fresh sparse scratch so a small retained pocket does not pin an earlier
+large outside bank twice. Bounds and membership are fingerprinted incrementally;
+knowledge revision changes still use the planner's existing restart/recheck owner.
+This adds one bounded sparse bank during the affected job, not a world grid or
+persistent cross-order cache. Earlier blocked verdicts change planning ticks and
+affected digests; replay remains exact on the same build.
 
-**Verdict:** sound for the demonstrated enclosed-component amplification.
-Public work, sampled-corner and alternate-road tests distinguish a completed
-proof from resource exhaustion, and the counted Battle exercises replay. **Confidence:** high for
-the proof and unchanged physical authority; medium for coverage beyond the
-frozen layout-6 failure family, which remains explicitly unclaimed.
+**Verdict:** sound for the demonstrated repeated final-access amplification.
+Public work, sampled-corner, search-limit and counted Battle/replay tests preserve
+the refusal and recovery contracts. A river/bridge fallback falsifies letting
+excluded near accesses hide a legal farther sampled road. The exact three frozen
+Battle inputs terminate their affected jobs at both observation checkpoints.
+**Confidence:** high for graph/envelope safety and this failure family; current
+generator and whole navigation admission remain open.
 
 ### C06 — compare reset resources at a fixed presented opening
 

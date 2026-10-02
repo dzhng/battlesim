@@ -58,6 +58,10 @@ Do not prioritize by scary-looking counts alone:
 - A reachability refusal needs an exhaustive graph that includes every legal link of the actual
   reader, including sampled transitions and snapped intermediate anchors. A smaller component
   proof may terminate repeated searches from many anchors; a search ceiling remains inconclusive.
+- Scope a shared reachability proof to the actual reader it certifies. A strict final-link
+  component cannot reject permissive intermediate links. Filter approaches with a conservative
+  envelope, retaining exact admission for overlaps; quantify remaining retry work after caching.
+  Hash retained membership incrementally, and count inactive scratch pages in its memory lifetime.
 - Separate retryable failures from terminal ones. A permanent rejection must not sit at a queue head
   or fixed prefix forever.
 - Bound both sides of a transport and every durable/in-memory queue. State the overflow behavior;
@@ -68,6 +72,8 @@ Do not prioritize by scary-looking counts alone:
 - Check that a measured workload does what it claims before trusting its numbers: that the forces
   meet, the route is travelled, the failure arm runs. Measure the failure arm too.
 - Isolate a cost measurement from everything else running in the process.
+  Pin scratch harness dependencies to the product lock; matching source identities alone
+  do not establish a matching runtime.
 - When batching overlapping queries, measure the final canonical merge and downstream consumer
   with collection. Fewer sorts can increase duplicate volume and shift cost across a profile
   boundary. Track temporary capacity separately from retained state, and falsify an omitted later

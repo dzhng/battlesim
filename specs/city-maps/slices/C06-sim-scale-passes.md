@@ -317,47 +317,58 @@ clearing checks pass, as do library clippy and independent read-only review.
 These are bounded initial-view measurements; contact peaks and browser admission
 remain with the scale lane.
 
-## Outcome — enclosed destination component proof
+## Outcome — shared final-connector component
 
-A failed final road connector can now prove the whole destination inaccessible,
-rather than recertifying it from every nearby road. Navigation searches backward
-from the same effective destination cell, using the weakest existing mover fit,
-push and avoidance checks. Its certificate-only graph deliberately admits more
-links than a real route: sampled roads may cross cell corners and their next
-search may snap from an unchecked endpoint. A fixed local stencil covers both;
-it emits no route and never weakens the ordinary validator. Exhausting that
-entire relaxed component
-and finding the original start's resolved cell outside it proves `NoRoute`.
-The original goal having no admitted endpoint is the same terminal refusal every
-mandatory final connector already makes. Other start refusals, terrain shortcuts
-and `SearchLimit` do not prove component exhaustion.
-Reaching the attempted exit or failing to finish the proof retains the ordinary
-alternate-road and direct-search behavior. The proof runs once, only after a
-final connector fails; healthy road journeys incur no added search.
+After a failed final road connector, navigation searches outward from the same
+resolved destination with the ordinary symmetric mover graph. Only an exhausted
+frontier is retained. Its membership rejects later final connectors using their
+actual constructed source and the original 4 m source admission; it also answers
+the direct fallback. It never rejects a whole road journey merely because the
+original start is outside that strict component: a sampled-clear road may enter
+it across a corner. A missing canonical goal endpoint remains the refusal shared
+by every mandatory final connector. Search limits, start refusal and terrain
+shortcuts leave the proof inconclusive and preserve ordinary alternatives.
 
-The frozen layout-6, physical-catalogue-541668 Mixed Small seed-3 failure confirms
-the cause: its reverse destination query exhausts 36 cells, while forward
-connectors repeatedly search tens of thousands. This is historical input evidence,
-not admission of the incoming layout-7 generator. The complete corrected journey
-finishes with proven obstruction at 52,687 counted work, after the first failed
-connector. A small public twelve-exit
-courtyard regression fails at 192,136 expansions without the correction and now
-fits one search of its 20,000-cell map plus local proof work. A low-limit reverse
-query remains `SearchLimit`, and the complete journey still takes a distant legal
-road opening. Treating that limit as component exhaustion falsifies the positive
-test. A sampled diagonal crossing falsifies using the ordinary no-corner graph
-as a global road proof; the relaxed certificate retains its legal road route.
-An actual Battle holds while planning, finishes blocked within the same
-derived allowance, clears its pending job and matches every serialized-replay tick.
+Road access admission uses a conservative envelope before constructing physical
+approaches. Every final centre slides along its goal arc, then takes one lane
+offset. The whole arc's bounds expanded by that offset, source-snap reach and
+point-coalescing tolerance must be disjoint from the exhausted component's
+bounds before an access is omitted. Overlap retains the ordinary reader and
+exact source test. Excluded arcs cannot set the fallback's nearest-access radius;
+otherwise they could hide a valid farther approach. Bounds and a first-visit
+membership fingerprint are updated
+in the already-counted rare search; pending and retained state enter the digest,
+without a visited-map scan on each tick. Healthy journeys perform no extra search.
 
-This intentionally changes affected planning completion ticks and may replace a
-later inconclusive verdict with an earlier proven obstruction. Its pending stage
-and the flag preventing repeated proofs enter the digest only when used. The
-existing sparse search scratch is reused; no world-sized storage, limit tuning or
-physical exemption is added. Large connected destination components and other
-repeated connector failures retain their existing costs. Current generated-case
-follow-up, native/Wasm agreement and full browser admission remain integration
-work; this scoped correction does not close C06 or the whole navigation budget.
+The initial twelve-exit thin-courtyard probe fails at 198,554 expansions without
+shared connector reachability. With only a late membership check, the 128-exit
+public regression still spends 304,034 counted work rebuilding approaches and graphs. Early access
+admission satisfies one map search plus flat access passes, keeping the same
+20,000-cell and 300,000-work allowances. Sampled corner crossings and a distant
+legal exit after `SearchLimit` remain successful. The small actual Battle clears
+its planning job, holds behind the walls and reproduces every replay tick.
+
+Frozen layout-6/catalogue-541668 inputs remain historical controls. The previous
+relaxed whole-journey proof resolved Mixed Small seed 3 and Metro Medium seed 9,
+but Mixed Small seed 9 was still planning after 120 seconds. Its relaxed probe
+correctly reached an exterior connector; repeated graph and approach work also
+survived late strict membership alone. The final public Journey now proves that
+case blocked in 51,293 counted work, including a five-cell goal component.
+The dependency-matched native Battle rerun plays all three exact frozen scenarios
+and commands for 120 seconds. Each affected unit remains alive and blocked with
+no pending work at both 30 and 120 seconds. Seed 9 records 82 planning ticks rather
+than all 3,600, and 390,885 total force planning work rather than 14,400,000. Its
+final digest is `bbde4d96aef7eeb3`; same-build replay is covered by the small Battle
+regression. Current-generator and native/Wasm admission remain integration checks;
+this scoped correction does not close C06 or the navigation budget.
+
+The rare component has fresh sparse scratch, while ordinary searches reuse their
+existing bank. In that seed-9 query the retained component uses one 20,480-byte
+tile beside 67 ordinary tiles (1,372,160 bytes): 1,392,640 bytes of tile payload,
+plus containers. A large inconclusive probe can briefly coexist with the normal
+bank; both retain the existing search bound. No world-sized grid, limit tuning,
+physical exemption or snapshot-memory admission is introduced. Affected planning
+ticks and digests change intentionally; same-build replay remains exact.
 
 ### Integrated frozen-case rerun
 
