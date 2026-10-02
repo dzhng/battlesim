@@ -364,7 +364,7 @@ export async function roadCost(ctx) {
   const result = { stations: {} };
   for (const [map, stations] of [
     ["village", ["bend-65"]],
-    ["generated", ["town-65", "junction-65"]],
+    ["generated", ["town-65", "junction-65", "road-join-65"]],
   ]) {
     const page = await openStations(ctx, map);
     for (const station of stations) {
