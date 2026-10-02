@@ -50,7 +50,7 @@ Three falsified regressions cover combined multipliers, tilted strips and a
 higher far LOD. All nine grass checks pass.
 
 Existing wheat and verge field scales were reduced to meet the 0.9 m contract;
-source meshes, wind and provenance are unchanged. This does not certify grass
+source meshes and wind are unchanged. This does not certify grass
 look or the other C80 presets. Matched production village frames (1280×800, DPR 1, tick 90, fixed camera)
 show 59,492 changed pixels after lowering the verge scale; mean RGB channel
 difference is 0.384. Full shots and 3× grass crops are under

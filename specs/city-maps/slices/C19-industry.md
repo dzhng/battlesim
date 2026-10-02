@@ -11,7 +11,7 @@ A project-owned authored family source using dedicated industrial geometry, rath
 Reuse compatible masonry/roof/window primitives and module export ownership. Keep physical envelope, floor heights, entrances and facade bay patterns aligned with the descriptor. Regional variants belong to one coherent family per map; missing variants cannot fall back to unrelated regional art. C14 owns damage states after the intact library exists.
 
 ## API seam
-Authored family recipe → existing scene-assets module export + contract-typed geometry input → C13. Provenance records project-owned source/output hashes in reuse-manifest.json.
+Authored family recipe → existing scene-assets module export + contract-typed geometry input → C13.
 
 ## What the human can run or see
 Neutral-material silhouette/contact sheets at ground, 80 m, 250 m and the far transition, plus physical fit overlays. Compare several legal variants at the same camera/scale.
@@ -27,7 +27,7 @@ Neutral-material silhouette/contact sheets at ground, 80 m, 250 m and the far tr
 Roof/facade detail and bounded cosmetic variants within the approved dimensions/family. New class semantics, region mixing and physical scaling are not delegated.
 
 ## Must stay green
-Shared module/library ownership, physical fit, provenance and the category's metre scale.
+Shared module/library ownership, physical fit and the category's metre scale.
 
 ## Feedback that would change this slice
 Rejected silhouette reshapes its family source without changing the type preset or adding a per-map bake.

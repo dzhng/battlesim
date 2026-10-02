@@ -11,7 +11,7 @@ Do new species vary in shape while sharing one size (Q-G8, Q-G8b)?
 - **Saplings are dressing (C79), and fallen trunks are log bodies (C77)**, not tree kinds.
 
 ## API seam
-`trees.py`, reuse-manifest technique entries.
+`trees.py`.
 
 ## What the human can run or see
 A workbench sheet, one column per species.

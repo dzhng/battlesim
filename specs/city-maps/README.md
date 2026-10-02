@@ -66,7 +66,7 @@ A slice marked "physical" has its systems half done; its look waits for the visu
 - [ ] C46 street placement in generated towns
 - [ ] Whole-battle cost on a full generated map against the 30 Hz budget (the sim lane's stress checks ran under it)
 - [ ] Existing maps: [C56 reservations](slices/C56-fixture-surroundings.md) → C34 village · C35 labs · C36 benchmarks → [C54 integrated seed gate](slices/C54-generation-gate.md)
-- [ ] C05 measuring tools (`city_report` is its first piece) · C10 provenance · C13/C32 template source and library schema · C21 material transport
+- [ ] C05 measuring tools (`city_report` is its first piece) · C10 third-party sources · C13/C32 template source and library schema · C21 material transport
 - [ ] Completion: C50 durability balance → C51 playable generated encounter (requires C54 and C87)
 
 **Waiting for the visual pass**
@@ -149,7 +149,7 @@ These are how the finished code should read, as if designed today, not bolted on
 | Forest density, canopy and floor bodies | One `forests.rule` row (C72, C77) | Per-species or per-forest sizes; hand-placed forest bodies |
 | Trees (forest, street, hedgerow) | One tree generator in `trees.py` (C73, C74) | A second tree technique for street trees |
 | Grass and crop height | The effective-height validator (C80), including every multiplier | A cap on source assets only |
-| Provenance | `reuse-manifest.json` (art); `SOURCES.json` for saved maps and equivalent runtime/replay identity (generator/preset/physical-catalogue versions, canonical config, lossless seed, map hash); appearance identity recorded separately | Seed-only replay identity; art hashes inside simulation identity |
+| Provenance | Third-party art's source and licence recorded beside the asset; `SOURCES.json` for saved maps and equivalent runtime/replay identity (generator/preset/physical-catalogue versions, canonical config, lossless seed, map hash); appearance identity recorded separately | Seed-only replay identity; art hashes inside simulation identity |
 | Simulation world and public queries | Worker preparation/Battle reuse (C33); main thread receives public exports and a bounded query index | Main-thread WorldView building a second terrain/nav world; hidden live destruction in camera/picking |
 | Replay compatibility | Same-build compiled scenario/rules plus engine build and digest checks (C55) | Cross-build compatibility or historical art retention inferred from immutable map hashes |
 

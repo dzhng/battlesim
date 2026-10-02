@@ -10,7 +10,7 @@ Pinned headless Blender runs offline on `TemplateRecipe` and exports shared modu
 
 Start with one accepted regional source. C16–C19 add missing-category recipes independently; their complete coverage is C54's release gate. For developer workbench checkpoints, generate clearly labelled asymmetric massing rows from frozen descriptors through this same source format. These are marked `prototype`; they neither prove source quality nor satisfy release or friend-playtest art acceptance. Remove the temporary massing source when C54 proves all selectable cells have release art.
 
-Descriptor geometry and facade bays follow C00. A recipe that changes dimensions publishes a new physical catalogue identity; a material/LOD/placement change only changes appearance inputs. Exported source files use the existing provenance/LFS rules. Blender is an explicit source-generation stage and never runs inside deterministic asset bake/check.
+Descriptor geometry and facade bays follow C00. A recipe that changes dimensions publishes a new physical catalogue identity; a material/LOD/placement change only changes appearance inputs. Exported source files are Git LFS, like every appearance source. Blender is an explicit source-generation stage and never runs inside deterministic asset bake/check.
 
 ## API seam
 Offline source recipe → shared modules + physical descriptor + local placement rows. C32 owns deterministic packing, fit validation and runtime appearance resolution. These exports feed the existing asset-source lifecycle; no historical hash-directory retention subsystem is added.
@@ -28,7 +28,7 @@ One recipe's export log, local-frame fit overlay and cold/warm recipe-cache repo
 Export taps and cache grouping within G0's byte/fit limits. Source eligibility, catalogue dimensions and runtime graph evaluation are not delegated.
 
 ## Must stay green
-Instancing, provenance, physical/art fit and no per-map Blender dependency.
+Instancing, physical/art fit and no per-map Blender dependency.
 
 ## Feedback that would change this slice
 An unsupported legal join or bay pattern changes the source recipe before selection consumes it.

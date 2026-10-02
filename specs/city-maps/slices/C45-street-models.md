@@ -20,7 +20,7 @@ Each has LODs and its terminal state.
 A contact sheet per kind.
 
 ## Verification
-- `asset check`; provenance; fit validation.
+- `asset check`; fit validation.
 
 **Visual verification.** Do these in order; each is required:
 1. Freeze the camera, light, seed and every variable except this slice's own.

@@ -1,31 +1,32 @@
-# C10: provenance
+# C10: third-party sources
 
 **Depends on:** G0. **Kind:** slice.
 
 ## Question
-Can the manifest record the vendored sources honestly?
+Is every vendored source recorded beside it, with its URL and a licence that allows shipping?
 
 ## Contract it unlocks
-- `reuse-manifest.json` `files[]` entries name their `source_repo`, revision, licence and kept notice (L10). The existing `../game` records are rewritten in place (hard cutover).
-- The three `.blend` files go in Git LFS under `packages/scene-assets/blender/vendor/procedural-buildings/`, as source of truth (Q-F′).
-- ambientCG sets at ≤1K go under `packs/` with `source_url`.
-- A test **refuses** the two unknown-source atlases by hash.
+- A third-party source is recorded beside the asset: its source URL and its licence, in the readme of the folder that holds it. There is no manifest, no hash allow-list and no validator.
+- The three `.blend` files go in Git LFS under `packages/scene-assets/blender/vendor/procedural-buildings/`, as source of truth (Q-F′), with their MIT notice kept beside them.
+- ambientCG sets at ≤1K are read from the local pack cache and never committed. `packages/scene-assets/blender/packs.json` pins each by hash, with its URL and licence, as it does the soldier packs.
+- The two unknown-source atlases are never committed (Q-E).
 
 ## API seam
-`reuse-manifest.json`, `web/tests/reuseManifest.test.ts`, `packages/scene-assets/src/schema.ts`.
+The readme beside each vendored source; `packages/scene-assets/blender/packs.json`, read only by `packs.py`.
 
 ## What the human can run or see
-`asset check` and the manifest test pass.
+The readme entries, and `packs.py fetch` verifying the cached packs.
 
 ## Verification
-- Red/green: a file with no licence fails, and either atlas hash fails.
-- Art and map-data allow-lists stay separate.
+- `packs.py` stops on a cached pack whose hash differs from its pin.
+- Review at the slice's commit: every third-party file it adds has its URL and licence beside it, and neither atlas is in the tree.
+- Art records and map-data records (`SOURCES.json`) stay separate.
 
 ## Delegated to the implementer
-Manifest field names; pack cache layout. Anything else you have to decide is a spec gap: record it in `../choices.md` under this slice.
+Pack cache layout. Anything else you have to decide is a spec gap: record it in `../choices.md` under this slice.
 
 ## Must stay green
-Every existing manifest entry.
+`asset check`; the existing pack pins.
 
 ## Feedback that would change this slice
 An unacceptable licence or untraceable source changes the source choice before its art is baked.
