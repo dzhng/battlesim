@@ -131,6 +131,37 @@ export interface Road {
   walk?: Walk;
   /** The curb along its strokes' edges; left out, the road has none. */
   curb?: Curb;
+  /** The lines painted on its strokes; left out, the road has none. */
+  markings?: Markings;
+}
+
+/** A road's painted lines: a dashed line down the middle of each stroke,
+ *  and a crossing's bars on it wherever another road crosses it. They are
+ *  laid out by the strokes alone, the same on every machine, and fade out
+ *  as a line nears a pixel. */
+export interface Markings {
+  /** A palette of one colour: the paint. */
+  palette: string;
+  /** How much of the surface the paint hides where it is whole, and the
+   *  share of that it loses where it is worn. */
+  cover: number;
+  wear: number;
+  /** The centre line's width, a dash's length and the gap after it. */
+  line_m: number;
+  dash_m: readonly [number, number];
+  crossing: Crossing;
+}
+
+/** A crossing's bars, lying along the road they are painted on. */
+export interface Crossing {
+  /** A bar's width, which is also the gap between two. */
+  bar_m: number;
+  /** A bar's length along the road. */
+  length_m: number;
+  /** How far the bars start from the edge of the road that crosses. */
+  gap_m: number;
+  /** How far they keep from their own road's edge. */
+  inset_m: number;
 }
 
 /** A curb: a line of kerbstones along a road's edge, and the step up to
@@ -580,6 +611,23 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
       within(`${at}.curb.width_m`, road.curb.width_m, 0.05, 2);
       within(`${at}.curb.face_m`, road.curb.face_m, 0.02, 2);
       within(`${at}.curb.tilt_deg`, road.curb.tilt_deg, 0, 40);
+    }
+    if (road.markings) {
+      const marks = road.markings;
+      palette(`${at}.markings.palette`, marks.palette);
+      within(`${at}.markings.cover`, marks.cover, 0, 1);
+      within(`${at}.markings.wear`, marks.wear, 0, 1);
+      within(`${at}.markings.line_m`, marks.line_m, 0.05, 1);
+      if (!Array.isArray(marks.dash_m) || marks.dash_m.length !== 2)
+        bad(`${at}.markings.dash_m`, "must be [dash, gap]");
+      within(`${at}.markings.dash_m[0]`, marks.dash_m[0], 0.5, 50);
+      within(`${at}.markings.dash_m[1]`, marks.dash_m[1], 0, 50);
+      const crossing = marks.crossing;
+      if (!crossing || typeof crossing !== "object") bad(`${at}.markings.crossing`, "is missing");
+      within(`${at}.markings.crossing.bar_m`, crossing.bar_m, 0.1, 3);
+      within(`${at}.markings.crossing.length_m`, crossing.length_m, 0, 8);
+      within(`${at}.markings.crossing.gap_m`, crossing.gap_m, 0, 8);
+      within(`${at}.markings.crossing.inset_m`, crossing.inset_m, 0, 5);
     }
   }
   if (!biome.shore || typeof biome.shore !== "object") bad("shore", "is missing");

@@ -48,7 +48,8 @@ const linear = (v) => {
   return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
 };
 /** A displayed pixel's relative luminance. */
-const luminance = ([r, g, b]) => 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+export const luminance = ([r, g, b]) =>
+  0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
 
 /** The pixels of `mask` that are open ground (no wood, no bank) and pass
  *  `keep(class)`. */

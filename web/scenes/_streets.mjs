@@ -3,7 +3,7 @@
 // on a street or on the country road by how wide the way under it is.
 import { readFileSync } from "node:fs";
 import { classAt, groundUnder, openStations } from "./_groundStations.mjs";
-import { frame, mean } from "./_roads.mjs";
+import { frame, luminance, mean } from "./_roads.mjs";
 import { lab } from "./_lab.mjs";
 import { pixel } from "./_png.mjs";
 
@@ -23,6 +23,15 @@ const CORE_M = -1;
 /** A street's walk, clear of its edges, and the ground past it. */
 const WALK_M = [0.4, street.walk.width_m - 0.4];
 const LAWN_M = [street.walk.width_m + 1, street.walk.width_m + 4];
+/** A street's kerbstones, from its edge outward (the mask's distance moves
+ *  in steps of an eighth of a metre). */
+const CURB_M = [0.1, street.curb.width_m - 0.03];
+/** A street's middle, where its centre line is painted, and the lanes
+ *  either side of it, clear of the line and of the curb. */
+const MIDDLE_M = -(STREET_M / 2 - street.markings.line_m);
+const LANE_M = [-(STREET_M / 2 - 0.9), -0.9];
+/** A pixel is paint where it is this many times the roadbed's luminance. */
+const PAINT = 1.5;
 /** A group is judged on at least this many pixels. */
 const GROUP_PIXELS = 150;
 
@@ -92,15 +101,18 @@ export async function streetLooks(ctx) {
     ([lo, hi]) =>
     (c) =>
       c.roadSd >= lo && c.roadSd <= hi;
+  // Each group's pixels, and how far outside the paving its farthest are.
   const picked = {
-    core: sample(shot.mask, 41, (c) => c.roadSd < CORE_M),
-    walk: sample(shot.mask, 13, within(WALK_M)),
-    lawn: sample(shot.mask, 29, within(LAWN_M)),
+    core: [sample(shot.mask, 41, (c) => c.roadSd < CORE_M), 0],
+    walk: [sample(shot.mask, 13, within(WALK_M)), WALK_M[1]],
+    lawn: [sample(shot.mask, 29, within(LAWN_M)), LAWN_M[1]],
+    curb: [sample(shot.mask, 3, within(CURB_M)), CURB_M[1]],
+    middle: [sample(shot.mask, 2, (c) => c.roadSd <= MIDDLE_M), 0],
+    lane: [sample(shot.mask, 41, within(LANE_M)), 0],
   };
   const groups = {};
-  for (const [name, pixels] of Object.entries(picked)) {
+  for (const [name, [pixels, out]] of Object.entries(picked)) {
     const world = await groundUnder(page, pixels);
-    const out = name === "core" ? 0 : name === "walk" ? WALK_M[1] : LAWN_M[1];
     const widths = await wayWidths(
       page,
       world.map(({ xy }) => ({ xy, out })),
@@ -139,5 +151,56 @@ export async function streetLooks(ctx) {
     counted && walk.luminance >= 1.2 * roadbed.luminance && grown.walk < 3 && grown.lawn > 10,
     JSON.stringify({ walk, roadbed, grown }),
   );
-  await ctx.writeEvidence("street-looks.json", { roadbed, gravel, walk, lawn, grown });
+  const curb = of(groups.curb.street);
+  ctx.check(
+    "a street's edge is a line of kerbstones, paler than the walk behind them",
+    curb.count >= GROUP_PIXELS && curb.luminance >= 1.1 * walk.luminance,
+    JSON.stringify({ curb, walk }),
+  );
+  // Paint: the share of a group's pixels far brighter than the roadbed, and
+  // how bright those are.
+  const painted = (pixels) => {
+    const light = pixels.map(([x, y]) => luminance(pixel(shot.shot, x, y)));
+    const paint = light.filter((v) => v > PAINT * roadbed.luminance);
+    return {
+      count: pixels.length,
+      share: +(paint.length / Math.max(1, pixels.length)).toFixed(3),
+      luminance: +(paint.reduce((s, v) => s + v, 0) / Math.max(1, paint.length)).toFixed(4),
+    };
+  };
+  const marks = {
+    middle: painted(groups.middle.street),
+    lane: painted(groups.lane.street),
+    walk: painted(groups.walk.street),
+  };
+  ctx.check(
+    "a street's centre line is dashes of paint that stand out from its roadbed, and its lanes are bare but for a crossing's bars",
+    marks.middle.count >= GROUP_PIXELS &&
+      marks.lane.count >= GROUP_PIXELS &&
+      marks.middle.share > 0.05 &&
+      marks.middle.share < 0.45 &&
+      marks.middle.luminance >= 1.8 * roadbed.luminance &&
+      marks.lane.share < 0.15,
+    JSON.stringify({ marks, roadbed }),
+  );
+  // A walk is paler than the roadbed all over: paint on it would be paler
+  // still, as far over the walk as the paint is over the roadbed.
+  const walkLight = groups.walk.street
+    .map(([x, y]) => luminance(pixel(shot.shot, x, y)))
+    .sort((a, b) => a - b);
+  const brightest = walkLight[Math.floor(walkLight.length * 0.99)] ?? 0;
+  ctx.check(
+    "no painted line lies on a walk",
+    walkLight.length >= GROUP_PIXELS && brightest < (walk.luminance + marks.middle.luminance) / 2,
+    JSON.stringify({ brightest, walk: walk.luminance, paint: marks.middle.luminance }),
+  );
+  await ctx.writeEvidence("street-looks.json", {
+    roadbed,
+    gravel,
+    walk,
+    lawn,
+    grown,
+    curb,
+    marks,
+  });
 }

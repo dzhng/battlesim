@@ -33,7 +33,7 @@ import summer from "@fixtures/biomes/summer.json";
 import { loadMap } from "@web/maps/node";
 import { groundHeight } from "@packages/battle-renderer/src/terrain/terrainGrid";
 import { packTerrainHeights } from "@packages/battle-renderer/src/frame/terrainHeights";
-import { roadLooks } from "@packages/battle-renderer/src/frame/terrainMaterial";
+import { groundReach, roadLooks } from "@packages/battle-renderer/src/frame/terrainMaterial";
 
 const geometry = loadMap("geometry").definition;
 const riverLab = loadMap("river").definition;
@@ -516,6 +516,42 @@ test("a curb is its row's kerbstones and a face shading never tilts past 40 degr
   expect(() => curbed({ palette: "granite", width_m: 0.25, face_m: 0.125, tilt_deg: 30 })).toThrow(
     /roads\.road\.curb\.palette: names no palette "granite"/,
   );
+});
+
+test("a road's markings are its row's, and the field is read as far as a crossing's bars lie", () => {
+  const palettes = { ...biome.palettes, white: [[1, 1, 1]] } as Biome["palettes"];
+  const markings = {
+    palette: "white",
+    cover: 0.75,
+    wear: 0.25,
+    line_m: 0.25,
+    dash_m: [2, 4],
+    crossing: { bar_m: 0.5, length_m: 4, gap_m: 1.5, inset_m: 0.25 },
+  };
+  const plain = { ...biome.roads.default, markings: undefined };
+  const marked = (over: object = {}) =>
+    validateBiome({
+      ...biome,
+      palettes,
+      roads: { default: plain, road: { ...plain, markings: { ...markings, ...over } } },
+    } as unknown as Biome);
+  const [road, country] = roadLooks(marked());
+  expect([...road.paint]).toEqual([1, 1, 1, 0.75]);
+  // Half the line's width, a dash, a dash and its gap, the wear.
+  expect([...road.marks]).toEqual([0.125, 2, 6, 0.25]);
+  expect([...road.crossing]).toEqual([0.5, 4, 1.5, 0.25]);
+  // A road without markings has no line to draw.
+  expect(country.marks.x).toBe(0);
+  // The bars end 5.5 m from the road that crosses: farther than any shoulder.
+  const reach = (b: Biome) => groundReach(b, 0.1).paved;
+  expect(reach(marked())).toBeGreaterThan(5.5);
+  expect(reach(marked())).toBeGreaterThan(
+    reach(marked({ crossing: { ...markings.crossing, length_m: 1 } })),
+  );
+  expect(() => marked({ dash_m: [2] })).toThrow(
+    /roads\.road\.markings\.dash_m: must be \[dash, gap\]/,
+  );
+  expect(() => marked({ line_m: 3 })).toThrow(/roads\.road\.markings\.line_m/);
 });
 
 test("a map that names no kind but road has its roads drawn as country roads", () => {
