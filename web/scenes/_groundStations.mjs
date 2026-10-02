@@ -8,7 +8,8 @@
 //   STATIONS=village,river bun run --cwd web scene -- ground
 //
 // writes every station's shot and mask into throwaway/evidence/ground/ and a
-// sheet per map; a later slice imports `openStations` and `shoot`.
+// sheet per map (`river:bend-65+wide-65`: those stations alone, the ones a
+// change can move); a later slice imports `openStations` and `shoot`.
 import { writeFile } from "node:fs/promises";
 import { PNG } from "pngjs";
 import { advance, aim, lab, presented } from "./_lab.mjs";
@@ -24,7 +25,22 @@ const LOW = 0.32;
 const TICK = 12;
 const HIDE_HUD = "[data-testid=battle-panel], .ro-layer, .lab-panel { display: none !important; }";
 
-const at = (target, distance, pitch = PLAY) => ({ target, distance, pitch, yaw: YAW });
+const at = (target, distance, pitch = PLAY, yaw = YAW) => ({ target, distance, pitch, yaw });
+
+/** A station over the middle of the village's roomiest plot of one kind
+ *  (`villagePlots`), so it follows the patchwork when the biome's kinds or
+ *  weights change. */
+const onPlot =
+  (kind, distance, pitch) =>
+  ({ plots }) => {
+    if (!plots[kind]) throw new Error(`the village has no open ${kind} plot`);
+    return at(plots[kind].at, distance, pitch);
+  };
+
+/** The kinds of ground that have a station of their own: the wild ones at
+ *  the play camera and low, each crop low. */
+const WILD = ["meadow", "rough", "prairie"];
+const CROPS = ["pasture", "wheat", "barley", "rapeseed", "hay", "stubble", "ploughed"];
 
 /** Each map's route (from the site root) and its named poses. A generated
  *  map's stations stand on what its preparation reports (the objective town,
@@ -33,6 +49,15 @@ export const STATION_MAPS = {
   village: {
     route: "/battle/village",
     stations: {
+      ...Object.fromEntries(
+        WILD.flatMap((kind) => [
+          [`${kind}-65`, onPlot(kind, 65)],
+          [`${kind}-25`, onPlot(kind, 25, LOW)],
+        ]),
+      ),
+      ...Object.fromEntries(CROPS.map((kind) => [`${kind}-25`, onPlot(kind, 25, LOW)])),
+      // A drilled crop's rows, from the play camera.
+      "wheat-65": onPlot("wheat", 65),
       // The (420, 420) corner of the north road.
       "bend-25": at([420, 420], 25, LOW),
       "bend-65": at([420, 420], 65),
@@ -54,6 +79,8 @@ export const STATION_MAPS = {
       "bend-25": at([150, 262], 25, LOW),
       "bend-65": at([150, 262], 65),
       "wide-65": at([330, 250], 65),
+      // Along the meander from its first bend, low over the near bank.
+      "meander-low-90": at([196, 300], 90, LOW, -0.69),
       // The dirt track, and where it leaves the country road.
       "track-25": at([230, 120], 25, LOW),
       "track-65": at([230, 120], 65),
@@ -72,6 +99,9 @@ export const STATION_MAPS = {
       "country-250": ({ start }) => at(start.at, 250),
       "country-65": ({ start }) => at(start.at, 65),
       "country-25": ({ start }) => at(start.at, 25, LOW),
+      // The river's bank, on a map whose layout has a river (seed 2 has).
+      "river-250": ({ river }) => at(river, 250),
+      "river-65": ({ river }) => at(river, 65),
     },
   },
 };
@@ -83,6 +113,25 @@ const reports = new WeakMap();
 /** The class view's encoding (`terrain/groundClasses.ts`), read from the
  *  page `openStations` opened. */
 let encoding = null;
+
+/** A point on the west edge of a generated map's river (it runs from the
+ *  north edge to the south), where the water first crosses the map's middle
+ *  latitude; undefined on a map with no river. */
+const riverBank = (page, size) =>
+  lab(
+    page,
+    ([width, height]) => {
+      const wet = (x) => window.__lab.route.surfaceAt(x, height / 2)?.kind === "water";
+      for (let x = 0; x < width; x += 4) {
+        if (!wet(x)) continue;
+        let dry = x - 4;
+        for (let step = 2; step > 0.1; step /= 2) if (!wet(dry + step)) dry += step;
+        return [dry, height / 2];
+      }
+      return undefined;
+    },
+    size,
+  );
 
 /** A page on `map`'s route, paused at the stations' tick with the frozen set
  *  on. Shoot it with `shoot`. */
@@ -105,7 +154,13 @@ export async function openStations(ctx, map) {
     () => document.querySelector("[data-testid=error]")?.textContent ?? window.__lab?.error,
   );
   if (error) throw new Error(`lab failed: ${error}`);
-  reports.set(page, await lab(page, () => window.__lab.route.prepared?.() ?? null));
+  const report = await lab(page, () => window.__lab.route.prepared?.() ?? null);
+  reports.set(
+    page,
+    map === "village"
+      ? { plots: await villagePlots(page) }
+      : report && { ...report, river: await riverBank(page, report.size) },
+  );
   await lab(page, () => window.__lab.route.pause());
   await advance(page, TICK - (await lab(page, () => window.__lab.route.tick())));
   await presented(page);
@@ -127,6 +182,18 @@ export async function openStations(ctx, map) {
   return page;
 }
 
+/** What `openStations` learned of `page`'s map: a generated map's
+ *  preparation report, the village's plots by kind (`villagePlots`). */
+export const stationReport = (page) => reports.get(page);
+
+/** Where `station` of `map` puts the camera on `page`: the target on the
+ *  ground, the distance, pitch and yaw. */
+export function stationPose(page, map, station) {
+  const placed = STATION_MAPS[map].stations[station];
+  if (!placed) throw new Error(`no station ${station} on ${map}`);
+  return typeof placed === "function" ? placed(reports.get(page)) : placed;
+}
+
 /** One station's frame as a PNG buffer: the final view, or `view`; with
  *  `grass` or `trees` false, without them. */
 export async function shoot(
@@ -135,9 +202,8 @@ export async function shoot(
   station,
   { view = "final", grass = true, trees = true } = {},
 ) {
-  const placed = STATION_MAPS[map].stations[station];
-  if (!placed) throw new Error(`no station ${station} on ${map}`);
-  const pose = typeof placed === "function" ? placed(reports.get(page)) : placed;
+  const pose = stationPose(page, map, station);
+  if (!pose.target) throw new Error(`${map} has nothing to stand ${station} on`);
   await aim(page, pose.target, pose);
   await lab(
     page,
@@ -224,13 +290,18 @@ function sheet(rows, shrink) {
   return out;
 }
 
-/** Every station of `map`: its shot, its shot without grass or trees, and its
- *  class mask, saved as `<map>-<station>[-bare|-classes].png`, and one sheet
- *  `<map>-stations.png` with a row a station: the shot, the bare ground, the
- *  mask made legible. */
-export async function stationSheet(ctx, map, page) {
+/** Every station of `map` (or `stations` alone): its shot, its shot without
+ *  grass or trees, and its class mask, saved as
+ *  `<map>-<station>[-bare|-classes].png`, and one sheet `<map>-stations.png`
+ *  with a row a station: the shot, the bare ground, the mask made legible. */
+export async function stationSheet(
+  ctx,
+  map,
+  page,
+  stations = Object.keys(STATION_MAPS[map].stations),
+) {
   const rows = [];
-  for (const station of Object.keys(STATION_MAPS[map].stations)) {
+  for (const station of stations) {
     const save = async (suffix, options) => {
       const shot = await shoot(page, map, station, options);
       await writeFile(ctx.evidencePath(`${map}-${station}${suffix}.png`), shot);
@@ -246,7 +317,7 @@ export async function stationSheet(ctx, map, page) {
 
 /** The world point on the ground under each of `pixels`, and the footprint
  *  the terrain's fragment has there (`length(fwidth(world.xy))`). */
-const groundUnder = (page, pixels) =>
+export const groundUnder = (page, pixels) =>
   lab(
     page,
     (pixels) => {
@@ -273,12 +344,14 @@ const groundUnder = (page, pixels) =>
     pixels,
   );
 
-/** The village's ground as the simulation exports it, read on the CPU by the
- *  surface field the terrain material reads: at each point `{ xy, footprint }`,
- *  how far inside the paving and the forest it lies. */
-const villageExport = (page, points) =>
+/** The village's ground as the simulation exports it, built once in the page
+ *  as `window.__villageGround`: its terrain surface (the plots among it), and
+ *  `paved` and `forest`, how far inside the paving and the forest a point
+ *  lies by the surface field the terrain material reads. */
+const villageGround = (page) =>
   page.evaluate(
-    async ({ repo, points }) => {
+    async (repo) => {
+      if (window.__villageGround) return;
       const file = (p) => `/@fs/${repo}${p}`;
       const [wasm, { villageScenario }, mesh, fields, terrain, biome] = await Promise.all([
         import("/src/wasm/game_wasm.js"),
@@ -300,16 +373,88 @@ const villageExport = (page, points) =>
           "surface",
         ).terrain;
         const field = fields.buildSurfaceField(surface.site, terrain.terrainReach(surface));
-        return points.map(({ xy: [x, y], footprint }) => ({
-          paved: fields.pavedDistance(field, x, y, footprint),
-          forest: fields.forestDistance(field, x, y, footprint),
-        }));
+        window.__villageGround = {
+          surface,
+          paved: (x, y, footprint) => fields.pavedDistance(field, x, y, footprint),
+          forest: (x, y, footprint) => fields.forestDistance(field, x, y, footprint),
+        };
       } finally {
         view.free();
       }
     },
-    { repo: new URL("../../", import.meta.url).pathname, points },
+    new URL("../../", import.meta.url).pathname,
   );
+
+/** At each point `{ xy, footprint }`, how far inside the paving and the
+ *  forest the simulation's export puts it. */
+async function villageExport(page, points) {
+  await villageGround(page);
+  return page.evaluate(
+    (points) =>
+      points.map(({ xy: [x, y], footprint }) => ({
+        paved: window.__villageGround.paved(x, y, footprint),
+        forest: window.__villageGround.forest(x, y, footprint),
+      })),
+    points,
+  );
+}
+
+/** A plot must keep this far inside the map and from any building to stand
+ *  for its kind, and its middle this far from its own edge. */
+const PLOT_INSET_M = 60;
+const PLOT_ROOM_M = 12;
+
+/** Per plot kind's name, the village's roomiest open plot of that kind
+ *  (inside the map, clear of buildings and woods): its middle `at`, and the
+ *  unit vector `across` its rows. */
+async function villagePlots(page) {
+  await villageGround(page);
+  return page.evaluate(
+    ({ inset, room }) => {
+      const { surface, forest } = window.__villageGround;
+      const [x0, y0, x1, y1] = surface.site.map;
+      const best = {};
+      for (const plot of surface.plots.plots) {
+        const o = plot.outline;
+        const n = o.length / 2;
+        let [cx, cy] = [0, 0];
+        for (let k = 0; k < n; k++) {
+          cx += o[k * 2] / n;
+          cy += o[k * 2 + 1] / n;
+        }
+        // The plot is convex: its middle's distance to the nearest edge.
+        let clear = Infinity;
+        for (let k = 0; k < n; k++) {
+          const [ax, ay] = [o[k * 2], o[k * 2 + 1]];
+          const [bx, by] = [o[((k + 1) % n) * 2], o[((k + 1) % n) * 2 + 1]];
+          const len = Math.hypot(bx - ax, by - ay);
+          clear = Math.min(clear, Math.abs((bx - ax) * (cy - ay) - (by - ay) * (cx - ax)) / len);
+        }
+        const open =
+          cx > x0 + inset &&
+          cx < x1 - inset &&
+          cy > y0 + inset &&
+          cy < y1 - inset &&
+          clear > room &&
+          surface.site.buildings.every((b) => Math.hypot(b[0] - cx, b[1] - cy) > inset) &&
+          [
+            [0, 0],
+            [room, 0],
+            [-room, 0],
+            [0, room],
+            [0, -room],
+          ].every(([dx, dy]) => forest(cx + dx, cy + dy, 1) < 0);
+        const name = surface.biome.plots[plot.kind].name;
+        if (open && clear > (best[name]?.clear ?? 0))
+          best[name] = { clear, at: [cx, cy], across: [...plot.across] };
+      }
+      return Object.fromEntries(
+        Object.entries(best).map(([name, { at, across }]) => [name, { at, across }]),
+      );
+    },
+    { inset: PLOT_INSET_M, room: PLOT_ROOM_M },
+  );
+}
 
 /** How many pixels the agreement check samples, and how far a mask's
  *  distance may sit from the export's: a byte's step, and what the pixel's
@@ -404,11 +549,13 @@ export async function groundRig(ctx) {
   await page.close();
 }
 
-/** `STATIONS=map,...`: every station of those maps, as shots, masks and a sheet. */
+/** `STATIONS=map,...`: every station of those maps, as shots, masks and a
+ *  sheet; `map:station+station` shoots only those. */
 export async function stationSheets(ctx, maps) {
-  for (const map of maps) {
+  for (const named of maps) {
+    const [map, only] = named.split(":");
     const page = await openStations(ctx, map);
-    await stationSheet(ctx, map, page);
+    await stationSheet(ctx, map, page, only?.split("+"));
     await page.close();
   }
 }

@@ -147,11 +147,11 @@ def tier_of(name):
     return int(name[i + 4:]) if i >= 0 and name[i + 4:].isdigit() else None
 
 
-def load(set_dir, beside=False):
+def load(set_dir, fresh=True):
     """The set's modules ({name: [(tier or None, mesh object, its frame in the module)]}) and its templates.
-    `beside` loads it next to the sets already in the scene, whose objects, materials and images
-    must have been renamed out of its way first: Blender keeps one namespace."""
-    if not beside:
+    `fresh` false loads it beside the sets already loaded (a sheet of several sets; their names must not clash:
+    a caller renames the earlier sets' objects, materials and images out of the way first)."""
+    if fresh:
         bpy.ops.wm.read_factory_settings(use_empty=True)
     earlier = set(bpy.data.objects)
     path = os.path.join(set_dir, "kit.glb")
@@ -449,5 +449,5 @@ def main():
         sheets[name](camera, modules, templates, out, scratch)
 
 
-if __name__ == "__main__":  # a set with sheets of its own imports this file
+if __name__ == "__main__":
     main()

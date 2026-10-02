@@ -168,6 +168,10 @@ Walk this on any test diff, apply fixes in the same pass, re-run the suite:
    fixed-size edits cannot expose address-shift amplification.
    For incremental work, assert observable completion before testing downstream
    effects; accepted input does not imply completed planning or publication.
+   For decoder caches, change header metadata independently of retained payload;
+   reuse must not bypass validation or consume a failed generation.
+   For worker-backed scenario builders, prove leaving a loading view cancels
+   the work; suppressing a late reply alone leaves its allocations running.
 8. Does it take focus, move the pointer, play sound, or write the person's real
    config, library or applications? → drive the model and a scratch location
    instead, and capture windows offscreen.

@@ -131,7 +131,7 @@ def main():
     for block in (bpy.data.objects, bpy.data.meshes, bpy.data.materials, bpy.data.images):
         for item in block:  # out of the next kit's way: both have a `gutter`, a `wall_brick`, a `concrete_albedo`
             item.name = "homes:" + item.name
-    sets["industry"] = A.load(industry, beside=True)
+    sets["industry"] = A.load(industry, fresh=False)
     camera = A.stage()
     for name in args[3:] or list(sheets):
         sheets[name](camera, sets, out, scratch)

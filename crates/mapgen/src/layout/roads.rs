@@ -518,20 +518,26 @@ impl<'a> Network<'a> {
         Ok((points, planned))
     }
 
-    /// Whether a road from `from` may end on the road point `p`, and then
-    /// how awkwardly (0 or 1). It may not where roads already meet (no more
-    /// than a crossroads forms anywhere) or where a road leaves the map. It
-    /// joins easily where a road passes and it does not come in alongside,
-    /// or on a road's end that it carries on from without a sharp turn.
-    fn joins(&self, from: Point, p: Point) -> Option<u8> {
+    /// Whether a road of `kind` from `from` may end on the road point `p`,
+    /// and then how awkwardly (0 or 1). It may not where roads already meet
+    /// (no more than a crossroads forms anywhere), where a road leaves the
+    /// map, or on the end of a road of another kind: a road changes kind
+    /// and width where it meets a road that passes, never end to end in the
+    /// open. It joins easily where a road passes and it does not come in
+    /// alongside, or on a road's end that it carries on from without a
+    /// sharp turn.
+    fn joins(&self, kind: SurfaceKind, from: Point, p: Point) -> Option<u8> {
         let sharpest = self.context.presets.roads.turn_max_deg.to_radians();
         let arriving = bearing(from, p);
         let mut legs = 0;
         let mut easy = true;
-        for (_, points) in &self.roads {
+        for (other, points) in &self.roads {
             let last = points.len() - 1;
             for (index, _) in points.iter().enumerate().filter(|(_, q)| **q == p) {
                 let end = index == 0 || index == last;
+                if end && *other != kind {
+                    return None;
+                }
                 legs += if end { 1 } else { 2 };
                 let before = index.checked_sub(1).map(|at| points[at]);
                 for onward in before.into_iter().chain(points.get(index + 1).copied()) {
@@ -545,27 +551,32 @@ impl<'a> Network<'a> {
         (legs <= 2 && inside).then_some(u8::from(!easy))
     }
 
-    /// The point a road to settlement `index` from `from` ends on: the
-    /// nearest point of the roads already on its ground that serve it and
-    /// that it may join, one it joins easily before any other, or its
-    /// centre when none is.
-    fn approach(&self, index: usize, from: Point) -> Point {
+    /// The point a road of `kind` to settlement `index` from `from` ends
+    /// on: the nearest point of the roads already on its ground that serve
+    /// it and that it may join, one it joins easily before any other, or
+    /// its centre when none is. None where it may not join the centre
+    /// either: the road is not laid.
+    fn approach(&self, kind: SurfaceKind, index: usize, from: Point) -> Option<Point> {
         let site = &self.sites[index];
-        let kind = self.context.presets.class(&site.class_id).road;
+        let serving = self.context.presets.class(&site.class_id).road;
         let margin = self.context.presets.roads.gate_margin_m + SAME_PLACE_M;
         self.vertices
             .iter()
             .filter(|vertex| {
-                vertex.kind <= kind
+                vertex.kind <= serving
                     && distance(vertex.at, site.outline.center) <= site.outline.reach + margin
                     && ring_distance(&site.outline.ring, vertex.at) <= margin
             })
             .filter_map(|vertex| {
-                let awkward = self.joins(from, vertex.at)?;
+                let awkward = self.joins(kind, from, vertex.at)?;
                 Some((awkward, distance(from, vertex.at), vertex.at))
             })
             .min_by(|a, b| a.0.cmp(&b.0).then(a.1.total_cmp(&b.1)))
-            .map_or(site.outline.center, |(_, _, at)| at)
+            .map(|(_, _, at)| at)
+            .or_else(|| {
+                let centre = site.outline.center;
+                self.joins(kind, from, centre).map(|_| centre)
+            })
     }
 
     /// The authored line through `stops`: a settlement's centre between the
@@ -879,7 +890,7 @@ pub fn build(
             .iter()
             .filter(|vertex| serves(vertex) && vertex.at != from)
             .filter_map(|vertex| {
-                let awkward = network.joins(from, vertex.at)?;
+                let awkward = network.joins(kind, from, vertex.at)?;
                 // A road on its own bank is nearer than one a bridge away.
                 let crossing = if vertex.bank == bank {
                     0.0
@@ -956,8 +967,12 @@ pub fn build(
             // The rougher of the two settlements' roads, between the points
             // of their own roads that lie nearest each other.
             let kind = class_of(a).road.max(class_of(b).road);
-            let from = network.approach(a, pb);
-            let to = network.approach(b, from);
+            let Some(from) = network.approach(kind, a, pb) else {
+                continue;
+            };
+            let Some(to) = network.approach(kind, b, from) else {
+                continue;
+            };
             // Two settlements that already share a road's point are linked.
             if distance(from, to) < SAME_PLACE_M {
                 continue;
@@ -1009,7 +1024,9 @@ pub fn build(
             .filter(ahead)
             .min_by(|a, b| distance(exit, centre_of(*a)).total_cmp(&distance(exit, centre_of(*b))));
         if let Some(target) = target {
-            let to = network.approach(target, exit);
+            let Some(to) = network.approach(SurfaceKind::CountryRoad, target, exit) else {
+                continue;
+            };
             if distance(exit, to) < SAME_PLACE_M {
                 continue;
             }

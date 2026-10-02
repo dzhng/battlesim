@@ -53,7 +53,7 @@ function watchedScript(fallback: string): string {
 
 /** The village scenario JSON for `variant`, built by the simulation. */
 function useVillageScenario(variant: Variant): string | { error: string } | null {
-  const built = useBuiltScenario(variant, villageScenario);
+  const built = useBuiltScenario(variant, (wasm, variant) => villageScenario(wasm, variant));
   return built && typeof built !== "string"
     ? { error: `the village scenario could not be built: ${built.error}` }
     : built;
