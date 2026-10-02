@@ -924,7 +924,7 @@ impl PreparedWorld {
         let setup = self.scenario(scenario_json)?;
         let replay: Replay = serde_json::from_str(replay_json).map_err(js_error)?;
         let battle = Battle::from_prepared_replay(&setup, &replay, self.prepared)
-            .map_err(|e| JsError::new(&format!("replay does not match this scenario: {e:?}")))?;
+            .map_err(|e| JsError::new(&e.to_string()))?;
         Ok(BattleHandle {
             battle,
             publisher: Publisher::new(),

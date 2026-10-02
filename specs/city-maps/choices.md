@@ -3513,6 +3513,18 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 **Reach:** Combat's native digest changes where system math had differed. The original movement record remains byte-for-byte unchanged. In the shooting sample, corrected native digests and publications agree with the pre-correction WebAssembly build at every tick; this preserves sampled browser behavior, not a claim that every unrelated simulation math path has been audited.
 
 **Verdict:** sound. The correction removes platform rounding from the tested authority paths rather than weakening the parity check or finding a lucky fixture. **Confidence:** high.
+### Re-record the combat pair when upstream changes shipped grenade gravity
+
+**When:** Startup integration onto `origin/main` at `e6758e0a`.
+
+**Choice:** Keep the combat scenario, seed and all exact comparisons unchanged, and regenerate only its native expected record after the shipped rifle-grenade gravity changed from 0.09 to 5.35103. A grenade now follows the upstream arc in both builds; retaining expectations from the previous arc would compare different rules rather than different implementations. WebAssembly remains the reader of the native record, never its recording source.
+
+**Gap:** The combat pair was recorded before the upstream rule change; the lane did not specify how its saved native expectations should follow that integration.
+
+**Reach:** The original movement record stays untouched. The old native-versus-original-WebAssembly math proof remains evidence for the old rules; the refreshed pair separately proves agreement on current shipped rules.
+
+**Verdict:** sound. The input rule change is explicit and the native build owns the new expectations. **Confidence:** high.
+
 ### Preserve whole-fog roof reach while making structure work local
 
 - **When:** C20 whole-surface followup.
@@ -3564,6 +3576,16 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 
 **Verdict:** sound. It applies the existing prohibition on sharing build output between different sources. **Confidence:** high.
 
+### Sound — high confidence: show an authority refusal without waiting for drawing
+
+**Choice:** A replay refused by the simulation keeps the existing error HUD and menu available even when no world exports arrive. The viewport still requires meshes, and a failure hides the loading cover. For example, importing commands recorded on the ordinary village into the crossfire variant explains the scenario mismatch and lets the player open the menu to load another file or return home.
+
+**Gap:** Independent review found that making world delivery part of authority startup also made the error HUD depend on successful initialization.
+
+**Reach:** The normal battle and refusal share the same HUD, menu and error component. The prepared replay adapter forwards the simulation's existing error text, including main's new engine-build refusal.
+
+**Verdict:** sound. The real browser regression fails with the original mesh gate and passes with visible refusal, working navigation and no canvas. The before/after captures show a blank page becoming the existing HUD. Normal status/clock is hidden on refusal to avoid implying playback is waiting. Two unprimed critiques found the final text and menu legible without clipping or overlap; the existing compact HUD is retained rather than adding another failure layout. **Confidence:** high on the failure contract, medium on first-glance prominence.
+
 ## Camera catalogue — startup lane
 
 ### Sound — high confidence: separate authored geometry from camera trajectories
@@ -3572,7 +3594,7 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 
 **Gap:** The lane requests catalogue resolution but does not specify where the lab's source plan or fall reference should live.
 
-**Reach:** Changing a camera path does not rebuild geography. Changing the arena goes through the compiler and saved-map provenance, as other catalogue maps do. Existing framing and physical map hashes are preserved.
+**Reach:** Changing a camera path does not rebuild geography. Changing the arena goes through the compiler and saved-map provenance, as other catalogue maps do. The catalogue cutover preserves framing and compiled geometry. Integration later adopts main's named China slab template for the wall and repins this authored map and its source receipts to that same input.
 
 **Verdict:** sound. The resolver result exactly matches the former compiler output and the catalogue validation covers the new folder. **Confidence:** high.
 ## C54 pipeline tooling
