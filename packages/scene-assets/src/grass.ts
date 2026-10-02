@@ -15,7 +15,8 @@
 // gives. Per vertex, TEXCOORD_0 holds the blade's phase (u) and the fraction
 // of its height (v: 0 at the root, 1 at the tip), the wind's weight; COLOR_0
 // is the blade's colour, whose mean over the clump stands for the ground it
-// grows on (the field tints each clump by its own ground, relative to it).
+// grows on (the field tints each clump by its own ground, relative to it),
+// and in its alpha how far the kind answers the wind (1 fully, 0 not at all).
 
 import { vec3, type Vec3 } from "math";
 import { mulberry32, random } from "math/random";
@@ -27,9 +28,14 @@ export const GRASS_SEGMENTS = [4, 3, 2, 1] as const;
 /** Blades a clump may hold: the field pads every kind to the most. */
 export const GRASS_MAX_BLADES = 8;
 
-/** Independent clump and patch height variation, shared with the field shader. */
+/** No grass or crop the field draws stands taller: half a soldier, so nothing
+ *  drawn looks like cover the simulation does not give. */
+export const GRASS_MAX_HEIGHT_M = 0.9;
+/** A blade's outline when its spec gives none. */
+const BLADE_SHAPE = { taper: 1.6, belly: 0 } as const;
+
+/** Each clump's own height variation, shared with the field shader. */
 export const GRASS_HEIGHT_VARIATION = [0.8, 1.2] as const;
-export const GRASS_PATCH_HEIGHT_VARIATION = [0.7, 1.2] as const;
 
 /** Highest vertex in any tier the field can draw, including imported clumps. */
 export function grassMeshHeight(tiers: readonly MeshData[]): number {
@@ -40,11 +46,17 @@ export function grassMeshHeight(tiers: readonly MeshData[]): number {
   return maximum;
 }
 
-/** Maximum drawn height, using the shader's f32 inputs and multiplication. */
-export function maxFieldGrassHeight(sourceHeight: number, biomeScale: number): number {
+/** Maximum drawn height, using the shader's f32 inputs and multiplication:
+ *  the source under the biome's scale, the tallest clump, and the tallest
+ *  patch of its field (`patchScale`, the biome's too). */
+export function maxFieldGrassHeight(
+  sourceHeight: number,
+  biomeScale: number,
+  patchScale: number,
+): number {
   let height = Math.fround(Math.fround(sourceHeight) * Math.fround(biomeScale));
   height = Math.fround(height * Math.fround(GRASS_HEIGHT_VARIATION[1]));
-  return Math.fround(height * Math.fround(GRASS_PATCH_HEIGHT_VARIATION[1]));
+  return Math.fround(height * Math.fround(patchScale));
 }
 
 /** Vertices of one blade of `segments` segments. */
@@ -142,6 +154,13 @@ export function grassSpecErrors(spec: GrassSpec): string[] {
   if (!(spec.radius_m >= 0 && spec.radius_m <= 1)) out.push("radius_m must be within [0, 1]");
   if (!(spec.width_m > 0 && spec.width_m <= 0.2)) out.push("width_m must be within (0, 0.2]");
   if (!(spec.jitter >= 0 && spec.jitter <= 0.5)) out.push("jitter must be within [0, 0.5]");
+  if (!(spec.wind >= 0 && spec.wind <= 1)) out.push("wind must be within [0, 1]");
+  if (spec.droop !== undefined && !(spec.droop >= 0 && spec.droop <= 0.6))
+    out.push("droop must be within [0, 0.6]");
+  if (spec.shape && !(spec.shape.taper >= 0.5 && spec.shape.taper <= 8))
+    out.push("shape.taper must be within [0.5, 8]");
+  if (spec.shape && !(spec.shape.belly >= 0 && spec.shape.belly <= 4))
+    out.push("shape.belly must be within [0, 4]");
   if (spec.head && !(spec.head.from > 0 && spec.head.from < 1 && spec.head.width >= 1))
     out.push("head.from must be within (0, 1) and head.width at least 1");
   if (spec.head && !(spec.head.chance >= 0 && spec.head.chance <= 1))
@@ -150,8 +169,11 @@ export function grassSpecErrors(spec: GrassSpec): string[] {
     out.push("dry.chance must be within [0, 1]");
   const colours = [spec.colors?.root, spec.colors?.mid, spec.colors?.tip];
   if (spec.dry) colours.push(spec.dry.colors?.root, spec.dry.colors?.mid, spec.dry.colors?.tip);
+  if (spec.head?.color) colours.push(spec.head.color);
   if (!colours.every((c) => Array.isArray(c) && c.length === 3 && c.every((v) => v >= 0 && v <= 1)))
-    out.push("colors (and dry.colors) .root, .mid and .tip must be sRGB [r, g, b] in [0, 1]");
+    out.push(
+      "colors (and dry.colors) .root, .mid and .tip, and head.color, must be sRGB [r, g, b] in [0, 1]",
+    );
   return out;
 }
 
@@ -199,12 +221,21 @@ function colourAt(spec: GrassSpec, blade: Blade, t: number): number[] {
   const { root, mid, tip } = blade.dry && spec.dry ? spec.dry.colors : spec.colors;
   const shade = blade.shade;
   const [a, b, u] = t < 0.5 ? [root, mid, t / 0.5] : [mid, tip, (t - 0.5) / 0.5];
-  return [0, 1, 2].map((c) => Math.max(0, Math.min(1, (a[c] + (b[c] - a[c]) * u) * shade)));
+  // A coloured head takes over from the stem across its lower third.
+  const head = blade.head ? spec.head?.color : undefined;
+  const headed = head
+    ? Math.min(1, Math.max(0, (t - spec.head!.from) / (1 - spec.head!.from)) * 3)
+    : 0;
+  return [0, 1, 2].map((c) => {
+    const stem = (a[c] + (b[c] - a[c]) * u) * shade;
+    return Math.max(0, Math.min(1, head ? stem + (head[c] - stem) * headed : stem));
+  });
 }
 
-/** Width at `t` of the height: tapering to the tip, swelling at a head. */
+/** Width at `t` of the height: the blade's outline, swelling at a head. */
 function widthAt(spec: GrassSpec, blade: Blade, t: number): number {
-  let w = spec.width_m * (1 - 0.8 * t ** 1.6);
+  const { taper, belly } = spec.shape ?? BLADE_SHAPE;
+  let w = spec.width_m * (1 - 0.8 * t ** taper) * (1 + belly * Math.sin(Math.PI * t));
   if (spec.head && blade.head && t > spec.head.from) {
     const u = (t - spec.head.from) / (1 - spec.head.from);
     w *= 1 + (spec.head.width - 1) * Math.sin(Math.PI * Math.min(1, u * 1.15));
@@ -213,12 +244,26 @@ function widthAt(spec: GrassSpec, blade: Blade, t: number): number {
 }
 
 /** A quadratic lean: the tip goes out by `leanFraction` of the height, and
- *  the spine keeps roughly the blade's length. */
-function spineAt(out: Vec3, blade: Blade, t: number): Vec3 {
+ *  the spine keeps roughly the blade's length; `droop` hangs its top over. */
+function spineAt(out: Vec3, blade: Blade, t: number, droop: number): Vec3 {
   const out2 = blade.leanFraction * t * t;
   vec3.scaleAndAdd(out, blade.root, blade.lean, blade.height * out2);
-  out[2] += blade.height * t * Math.sqrt(Math.max(0.2, 1 - out2 * out2));
+  out[2] += blade.height * (t * Math.sqrt(Math.max(0.2, 1 - out2 * out2)) - droop * t ** 3);
   return out;
+}
+
+/** Where along a headed blade its head is widest, as a share of the head. */
+const HEAD_WIDEST = 0.5 / 1.15;
+
+/** How far up the blade pair `k` of a `segments`-segment strip sits (the tip
+ *  at `k = segments`): evenly spaced, but a headed blade's last pair sits
+ *  where its head is widest, so an ear or a flower shows in every tier that
+ *  has a second pair. The field draws its far clumps from such a tier. */
+function stationAt(spec: GrassSpec, blade: Blade, k: number, segments: number): number {
+  if (k === segments) return 1;
+  if (!(spec.head && blade.head) || segments < 2) return k / segments;
+  const widest = spec.head.from + HEAD_WIDEST * (1 - spec.head.from);
+  return (k / (segments - 1)) * widest;
 }
 
 /** One tier's strips, in engine space: positions, normals, uvs, colours. */
@@ -230,13 +275,14 @@ function strips(spec: GrassSpec, list: readonly Blade[], segments: number) {
   const uvs = new Float32Array(count * 2);
   const colors = new Float32Array(count * 4);
   const [spine, ahead, tangent, normal, point] = [0, 0, 0, 0, 0].map(() => vec3.create());
+  const droop = spec.droop ?? 0;
   list.forEach((blade, b) => {
     for (let k = 0; k <= segments; k++) {
       const tip = k === segments;
-      const t = k / segments;
-      spineAt(spine, blade, t);
-      if (tip) vec3.subtract(tangent, spine, spineAt(ahead, blade, 0.99));
-      else vec3.subtract(tangent, spineAt(ahead, blade, t + 0.01), spine);
+      const t = stationAt(spec, blade, k, segments);
+      spineAt(spine, blade, t, droop);
+      if (tip) vec3.subtract(tangent, spine, spineAt(ahead, blade, 0.99, droop));
+      else vec3.subtract(tangent, spineAt(ahead, blade, t + 0.01, droop), spine);
       vec3.normalize(tangent, tangent);
       vec3.normalize(normal, vec3.cross(normal, blade.across, tangent));
       const colour = colourAt(spec, blade, t);
@@ -246,7 +292,7 @@ function strips(spec: GrassSpec, list: readonly Blade[], segments: number) {
         positions.set(point, v * 3);
         normals.set(normal, v * 3);
         uvs.set([blade.phase, t], v * 2);
-        colors.set([...colour, 1], v * 4);
+        colors.set([...colour, spec.wind], v * 4);
       });
     }
   });
