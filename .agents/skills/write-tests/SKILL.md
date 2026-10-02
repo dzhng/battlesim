@@ -180,6 +180,10 @@ Never tune constants to make one test pass without rerunning the neighbors:
 coupled systems reshuffle. If two consecutive tweaks each break different
 tests, stop poking — the control surface is wrong; find the mechanism.
 
+Await asynchronous browser actions explicitly, then poll synchronous state. A
+polling API can treat a returned Promise as truthy before its false result is
+inspected; settlement must verify the actual completed state.
+
 ## Simulation-backed visual staging
 
 Assert command admission, advance through its acknowledged application tick, and observe actual arrival before judging pixels. A refused move with an empty route must never satisfy a permissive route-length alternative. Stage an admitted journey rather than raising a production budget to reach a screenshot.

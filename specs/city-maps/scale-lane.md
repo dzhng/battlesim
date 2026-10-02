@@ -45,91 +45,60 @@ Read [`AGENTS.md`](../../AGENTS.md): narrow checks only, no full gate. A perform
 
 ## Status
 
-**Implementation checkpoints are on main; final browser admission remains red.**
-The `b5c63565` control of move certification leaves the former stress opening mostly inactive: three
-rounds in 900 ticks. The named workload correction starts the same 200 living
-units 200 m closer to contact, using the existing placement projection. It keeps
-the full Metro Large seed-4 world, all scripts, unit types, rules and late remains.
-The unmodified core on that corrected input launches 8,835 early / 19,579 late
-rounds in 900 ticks. This validates combat cost; it does not repair refused moves.
+**Acceptance components pass; final review and scoped archive are next.**
+All simulation and delivery passes are on main. The reset harness correction is the final
+named cross-boundary pass; it preserves the existing reset-allocation report and
+adds exact presentation-state evidence. No further optimization is selected.
 
-Two exact movement cost passes are integrated: avoid local steering geometry
-when no member can steer, and omit cover-position rows neither immutable side
-knowledge can read. Their paired whole-Orders gains are 25.7% early and 13.69%
-late respectively, with identical every-tick digests and complete observations.
-Focused movement, cover, sensing, delivery and city-placement checks pass.
-The browser harness requires rising shot counters from at least ten own units
-during measurement in each generated arm lasting 30 seconds or more.
+- **Browser floor passes on the identified full reference.** Frozen layout 9 /
+  presets 8, Metro Large seed 4, 100 living units a side, engine `d58fb441…`,
+  production source `9211c627` on presentation lineage `d805a1ea`. The complete
+  five-minute arms measure **28.377 Hz early / 26.067 Hz late**, with 61 / 68 own
+  units firing. The short village benchmark passes. The late page-plus-worker
+  snapshot is 1,865,250,762 B; sampled dedicated process-tree RSS peaks at
+  6,212,878,336 B, with shared-page and sampling caveats. These are separate
+  measures, not a requested-heap ceiling.
+- **Exact reset admission passes.** Three complete generated controls have the
+  same tick, settled clock, digest, 49 corpse IDs, camera, buffers, textures and
+  bytes. The actual retained 16-byte-buffer mutant fails the exact check.
+  The tracked saved-field scene also passes; the tracked full generated mutant
+  fails only resource equality while presentation remains exact. The original
+  five-minute fixture's red reset comparison remains recorded as historical
+  evidence, not relabelled green.
+- **Full functional and delivery admission remains identified.** Source
+  `82372fe7`, engine `1d9d85aa…`, rules `b00f7d5e…`, the same frozen reference:
+  both 9,000-tick arms match all 9,001 Native/Wasm digests and raw publications.
+  Maximum complete active records are 17,152 B early / 19,328 B late, under the
+  unchanged **19,800 B** limit. Complete production decoding, raw ground values,
+  retained snapshots, malformed retry, resync and side switching pass.
+  The subsequent pure hull-filter ordering returns identical hull geometry and
+  order, with unchanged allocations and state. Its separate 901-state and
+  complete two-side-observation pairs justify narrow reuse; no new 9,000-tick
+  run or heap measurement is claimed. Matched late whole-Weapons work falls
+  35.418%; construction plus stepping falls 7.813%, with early nonregression.
+- **Requested-memory admission passes on that full proof.** Active requested
+  peaks are 418,616,216 B early / 457,699,995 B late, below the **4 GiB** guard;
+  conservative late reallocation overlap is 458,088,603 B. Actual Wasm linear
+  capacities reach 489,029,632 / 499,974,144 B. These component scopes exclude
+  additional browser/page/worker JavaScript heaps and GPU allocations. Portable numerical corrections and
+  shorter anchors remain named trade-offs, not CPU gains.
 
-Current pickup: diagnose late throughput and reset-state equivalence, then rerun
-the affected browser gate before closing the lane.
-
-1. **Current Native/Wasm admission passes.** Frozen source `82372fe7`, engine
-   `1d9d85aa…`, rules `b00f7d5e…`, layout 9 / presets 8, Metro Large seed 4.
-   The base generated/early map is `bdadf296…`; late runtime map `553e6e05…`
-   includes the synthetic wrecks. Both 9,000-tick arms match all 9,001 authoritative
-   digests and raw publications. Maximum complete active records are 17,152 B
-   early and 19,328 B late, below the unchanged **19,800 B** limit. Complete
-   production decoding, raw ground values, retained snapshots, malformed-record
-   retry, resync and side switching pass. Portable evaluation is a named native
-   last-bit correction, not a CPU gain. Shorter exact anchors retain the wire
-   grammar at a measured encoding/index-memory cost.
-2. **Native component memory proofs pass.** Separate requested-layout diagnostics
-   have active peaks of 418,616,216 B early and 457,699,995 B late, with conservative late
-   reallocation overlap 458,088,603 B. Both are below the **4 GiB** guard and
-   finish with the System-counter run's digest. Actual Wasm linear capacities
-   reach 489,029,632 B and 499,974,144 B respectively. These component measures
-   exclude page, worker and GPU allocations. Whole-browser memory and reset
-   resources remain part of the pending browser milestone. Snapshot sizes and
-   decoder/copy overlap are reported separately; the codec's 64 MiB ceiling is
-   not a snapshot performance budget.
-3. **Browser admission is red on merged presentation source `d805a1ea`.**
-   The complete five-minute arms reach **27.120 Hz early / 22.004 Hz late**;
-   late misses the unchanged **25 Hz** floor. Actual rising shot counters cover
-   61 / 68 own units. The short village benchmark passes at 44.4 FPS; it does
-   not prove Large-city throughput. Late page-plus-worker measurement is
-   1,873,889,998 B; sampled dedicated process-tree RSS peaks at 5,888,409,600 B
-   (may double-count shared pages, not a requested-heap ceiling).
-   Three paused tick-90 resets retain 591 buffers / 41 textures, but buffer bytes
-   differ by up to 832 B. Static corpse buffers are a concrete 64 B-per-body
-   candidate: equal final tick need not imply equal presentation death history.
-   Allocation attribution confirms that all non-corpse buffer bytes are exact;
-   the old staging also sometimes stops at tick 91. A candidate pauses the new
-   session at zero and presents every opening tick before comparing exact
-   resources and corpse IDs. It is queued for browser confirmation; the retained
-   16-byte allocation mutant must still fail.
-
-   Pure hull eligibility ordering now has a matched 900-tick Native proof:
-   late whole-Weapons work falls 35.418%, total tick work falls 8.18%, and
-   construction plus stepping falls 7.813%. Early construction plus stepping
-   falls 0.236%. All 901 state digests and complete observations from both sides
-   match in each arm, as does serialized replay content except engine identity.
-   This is not a 9,000-tick rerun or a browser throughput result. Keep the floor,
-   rules, timestep, complete delivery and memory scopes. Parent full gates remain
-   parent-owned.
-4. Complete the whole-owned review and consolidate the scale choices ledger.
-   The original timing, town-corner and living-member-start regressions pass
-   through current move certification with actual arrival and every-tick replay
-   assertions. The three fresh 120 s historical infantry extensions are refused
-   before planning; those idle results do not resolve the separate generated
-   journey finding. Preserve that parent follow-up when archiving this lane.
+Current pickup: commit the reviewed reset correction, consolidate the 23 scale
+choices and close only this lane. Preserve incoming parent work and historical
+control identities. The parent generator/presentation lane remains active.
 
 The historical matrix retains all 90 type × size × seed requests: 89 battles play
 80,100 ticks and one encounter is refused, with no generation refusal or panic.
-Mixed Medium seed 9 still fails the planner's approach-balance rule; it remains
-a parent-lane finding, with no replacement seed. Ten infantry units remain
-planning after 30 s. The three earlier frozen vehicle failures terminate in
-120 s with explicit obstruction, living units and no pending work.
+Mixed Medium seed 9 fails the planner's approach-balance rule, with no replacement
+seed. Ten historical infantry units remain planning after 30 s. The earlier frozen
+vehicle failures terminate in 120 s with explicit obstruction. The repaired
+public infantry timing, town-corner and living-member-start regressions pass with
+actual arrival and replay equality. Fresh historical extensions refused before
+planning do not resolve the separate generated-journey finding; that remains a
+parent follow-up. The parent's compiled-scenario replay storage debt is separate.
 
 [C05](slices/C05-measuring-tools.md#frozen-pre-optimization-measurements) owns
 initial measurements; [C06](slices/C06-sim-scale-passes.md) owns simulation and
-reset evidence; [C07](slices/C07-publication-at-scale.md) owns delivery evidence.
+reset history; [C07](slices/C07-publication-at-scale.md) owns delivery history.
 The matrix implements the tooling half of [C54](slices/C54-generation-gate.md).
-Infantry timing and replay build refusal are integrated; the parent's compiled
-scenario replay-storage debt remains separate.
-
-Named cross-boundary additions are the mapgen battle-sweep runner, native/Wasm
-build identity, publication decoder/feed and generated endurance preparation/reset
-harness. The configured Codex CLI review was unavailable for this account;
-independent read-only agent reviews supplied the second opinion. No additional
-optimization is selected unless a measured accepted contract fails.
+New parent layout/presentation inputs do not relabel the frozen reference.

@@ -4949,25 +4949,26 @@ generator and whole navigation admission remain open.
 
 **When:** full generated browser integration.
 
-**Choice:** after warming the renderer with the live battle, restart three times,
-pause each authority, advance to tick 90 and wait until that tick is drawn. Compare
-both the number of buffers/textures and the bytes they hold across these openings.
-A late battle can draw a translucent overlay that an opening lacks; its mesh
-buffer is correctly destroyed when the opening is installed. Comparing those
-different states incorrectly treated that disposal as a failure.
+**Choice:** after warming the renderer, restart three times and acknowledge the
+fresh authority's first paused step. Present every opening tick at its settled
+clock before comparing battle identity, corpse IDs, camera and exact GPU counts
+and bytes. The scene controls RAF delivery during reset staging; page and worker
+clocks, production poses and simulation rules stay unchanged.
 
-**Gap:** the reset gate required stable resource ownership but did not fix the
-battle state or presentation clock at which allocations were counted.
+**Gap:** equal paused simulation ticks can retain different first-drawn death
+histories. A cleared observation can also precede the new client closure;
+inherited pause status cannot certify that client's acknowledgement.
 
-**Reach:** future resource checks must compare equivalent drawn states and trace
-allocation ownership before changing lifetime policy. One-time lazy allocations
-are warmed before the repeated-reset baseline; accumulating leaks still fail.
-The scene retains three resets and now checks bytes as well as counts. It adds no
-renderer state, capacity change or product API.
+**Reach:** resource checks compare equivalent presentation histories and trace
+allocation ownership before changing lifetime policy. Lazy resources are warmed
+before the baseline. A real retained allocation still fails without tolerances,
+resource exclusions, rounded sizes or extra product state. Await asynchronous
+work before polling completion; a truthy Promise is not evidence of settlement.
 
-**Verdict:** sound. Actual creation/destruction traces explain the old difference;
-exact matched openings pass and a real retained GPU allocation falsifies the check.
-**Confidence:** high for repeated-reset stability; full timing admission stays open.
+**Verdict:** sound. The harness controls its timing seam instead of changing the
+production death model or hiding retained resources.
+**Confidence:** high for the controlled presentation and exact resource contract.
+
 ## C66 road core
 
 ### The export's `kind` column names the area's kind; no column was added
