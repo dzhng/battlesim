@@ -39,7 +39,11 @@ fn main() {
     let path = args
         .next()
         .expect("usage: city_report <map.json> [sim-seconds]");
-    let seconds: u64 = args.next().and_then(|s| s.parse().ok()).unwrap_or(240);
+    let seconds: u64 = args
+        .next()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(240)
+        .max(1);
     let reach = args.next().unwrap_or("0.92".into());
     let per_side: usize = args.next().and_then(|s| s.parse().ok()).unwrap_or(6).max(1);
     let probe_trees: usize = args.next().and_then(|s| s.parse().ok()).unwrap_or(0);
@@ -186,6 +190,10 @@ fn main() {
     });
     let mut battle = stage("battle build", || (Battle::new(&setup, 1), String::new()));
 
+    profile::subscriptions(&battle);
+    let mut publisher = sim::publication::Publisher::new();
+    publisher.publish(&battle, Side::Blue).unwrap();
+    let mut delivery = profile::Delivery::new(&battle);
     let mut ticks = Vec::with_capacity((seconds * hz) as usize);
     let mut arrived: Vec<Option<f64>> = vec![None; rows.len()];
     // Ticks each unit spent holding for a route, and when it first set off.
@@ -213,9 +221,15 @@ fn main() {
     let (mut relaid, mut most_relaid) = (0u64, 0u64);
     // The slowest ticks: (ms, tick, instructions, planning work).
     let mut slowest: Vec<(f64, u64, u64, u64, f64)> = Vec::new();
+    let mut early = profile::Profile::default();
+    let mut late = profile::Profile::default();
     for t in 1..=seconds * hz {
         let (tick, counted) = (Instant::now(), resources());
-        battle.step();
+        if t <= 30 * hz {
+            early.step(&mut battle);
+        } else {
+            late.step(&mut battle);
+        }
         let ms = tick.elapsed().as_secs_f64() * 1000.0;
         let after = resources();
         let cost = after.zip(counted).map_or(0, |(a, b)| a.0 - b.0);
@@ -225,6 +239,7 @@ fn main() {
         if cpu_ms > worst_cpu.0 {
             worst_cpu = (cpu_ms, t);
         }
+        delivery.publish(&mut publisher, &battle, Side::Blue);
         slowest.push((ms, t, cost, battle.load().planning_work, cpu_ms));
         slowest.sort_by(|a, b| b.0.total_cmp(&a.0));
         slowest.truncate(5);
@@ -265,6 +280,7 @@ fn main() {
         }
     }
     let spent = instructions().zip(before).map_or(0, |(a, b)| a - b);
+    println!("Crossing aggregate includes step, packing and report bookkeeping; tick timings are profiled steps only.");
     ticks.sort_by(|a, b| a.total_cmp(b));
     let at = |q: f64| ticks[((ticks.len() - 1) as f64 * q).round() as usize];
     println!(
@@ -321,6 +337,10 @@ fn main() {
             at.map(|p| (p.x.round(), p.y.round())),
         );
     }
+    delivery.print("Crossing delivery");
+    profile::subscriptions(&battle);
+    early.print("Opening (first 30 s)");
+    late.print("After opening");
     println!("digest {:016x}", battle.digest());
 }
 
@@ -352,3 +372,6 @@ fn rss_mib() -> u64 {
 #[path = "common/instructions.rs"]
 mod instructions;
 use instructions::{instructions, resources};
+
+#[path = "common/profile.rs"]
+mod profile;

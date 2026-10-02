@@ -385,17 +385,19 @@ pub struct MovementContext<'a> {
 
 /// Move every living unit one tick. Returns the bodies vehicles shoved,
 /// for the caller to move in the world (movement reads it, never writes it).
-pub fn advance(
+pub(crate) fn advance(
     ctx: &MovementContext,
     units: &mut [Unit],
     sides: &mut [SideGeometry; 2],
     planner: &mut RoutePlanner,
+    completed: &mut impl FnMut(crate::battle::TickPhase),
 ) -> Vec<Shove> {
     let mut footprints: Vec<Option<Obb2>> = units
         .iter()
         .map(|u| u.hull_box().filter(|_| u.alive()))
         .collect();
     let field = take_cover::Field::gather(ctx, units);
+    completed(crate::battle::TickPhase::Movement);
     for unit in units.iter_mut() {
         // The destroyed stay put; a wreck is an obstacle prop, not traffic.
         if !unit.alive() {
@@ -406,6 +408,7 @@ pub fn advance(
         request_route(ctx, unit, &mut sides[s], &footprints, planner);
     }
     plan_routes(ctx, units, sides, &field, planner);
+    completed(crate::battle::TickPhase::Navigation);
     let hulls: Vec<Obb2> = footprints.iter().flatten().copied().collect();
     // Every live vehicle on the move, either side, as soldiers see it coming.
     let threats: Vec<Threat> = units

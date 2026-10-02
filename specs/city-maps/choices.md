@@ -2606,3 +2606,31 @@ The user sent a close-up of a road that stopped in open ground in a perfect half
 **Gap:** Both lived in the manifest's test file.
 
 **Verdict:** provisional. An import by a path outside the repo already fails in every worktree and any other checkout, and the atlases are excluded by Q-E and the README's firewalls. Either can come back as a small test of its own if the owner wants the guard. **Confidence:** medium.
+
+## C05 — scale-lane measurement choices
+
+### Sound — medium confidence: separate contact density from transit
+
+**When:** scale-lane measurement pass. **Choice:** reuse the endurance stress
+recipe inside a central 3 × 2 km arena of the generated map, with the full map
+loaded. On a 10 km world the original recipe would send each side toward its own
+rear, leaving them kilometres apart; the new load brings both into the same city
+area, with the fronts within weapon reach. Starting units move to nearby ground the production navigation permits.
+The existing saved-map endurance recipe keeps its coordinates and identity.
+**Gap:** the lane required generated contact without specifying its fight script.
+**Reach:** this proves local street cost and complete-world allocation; the separate
+crossing load proves long transit, and neither proves encounter placement quality.
+**Verdict:** sound; workload scopes stay explicit rather than using a quiet journey
+as fighting evidence.
+
+### Sound — high confidence: profile the existing tick with external counters
+
+**When:** scale-lane measurement pass. **Choice:** reports receive callbacks when
+each system finishes and read the OS instruction counter there. Ordinary play
+calls that same tick path with a no-op callback, so it never reads clocks or
+counters. If an eye sweeps fog and then learns terrain, those costs are reported
+separately; building the observation and packing it for delivery are separate too.
+**Gap:** existing reports counted complete ticks and could not select the expensive
+owner. **Reach:** future native reports share the production path without a second
+tick implementation. **Verdict:** sound; measurements remain outside battle state
+and replay identity.

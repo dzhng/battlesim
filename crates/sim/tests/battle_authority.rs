@@ -238,3 +238,36 @@ fn a_zero_ground_cell_is_refused_by_name() {
     setup.rules.ground.cell_m = 0.0;
     Battle::new(&setup, 1);
 }
+
+/// Reports measure the production tick, including replay and side observations.
+#[test]
+fn profiling_preserves_every_tick_and_side_observation() {
+    let setup = scenario();
+    let mut ordinary = Battle::new(&setup, 42);
+    let mut measured = Battle::new(&setup, 42);
+    for battle in [&mut ordinary, &mut measured] {
+        battle.accept(mv(Side::Blue, 1, 0, [200.0, 60.0], false));
+        battle.accept(mv(Side::Red, 1, 2, [250.0, 250.0], false));
+    }
+    for _ in 0..120 {
+        ordinary.step();
+        let mut phases = Vec::new();
+        measured.step_profiled(|phase| phases.push(phase));
+        assert!(
+            !phases.is_empty(),
+            "the report must receive phase boundaries"
+        );
+        assert_eq!(ordinary.digest(), measured.digest());
+        for side in Side::ALL {
+            assert_eq!(
+                serde_json::to_value(ordinary.observe(side)).unwrap(),
+                serde_json::to_value(measured.observe(side)).unwrap()
+            );
+        }
+    }
+    let mut replay = Battle::from_replay(&setup, &measured.replay()).unwrap();
+    for _ in 0..120 {
+        replay.step_profiled(|_| {});
+    }
+    assert_eq!(ordinary.digest(), replay.digest());
+}

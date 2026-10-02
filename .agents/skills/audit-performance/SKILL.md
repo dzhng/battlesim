@@ -70,3 +70,12 @@ The audit is complete only when every finding has a production trigger, quantifi
 priority rationale, acceptance seam, and recorded disposition; every dismissed candidate says which
 bound or healing mechanism makes it acceptable. An implementation is complete only when its
 red/green proof shows bounded work **and** continued recovery.
+
+## Simulation report workloads
+
+A report that accepts an arbitrary map must also locate its fight on that map.
+An arena script with fixed depths from each edge can silently turn into two
+disconnected rear-area moves when the world grows. Name complete-world loading,
+local contact and edge-to-edge transit separately, and verify opposing goals
+overlap before using the result as dense-combat evidence. Attribute fog traversal
+and subsequent knowledge learning separately before selecting a sweep optimization.

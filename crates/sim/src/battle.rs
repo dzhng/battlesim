@@ -145,6 +145,22 @@ struct Piece {
     ricochets: Vec<(usize, V3)>,
 }
 
+/// Completed work brackets for native cost reports. The ordinary tick uses
+/// the same path with a no-op callback; measurement never enters battle state.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TickPhase {
+    Orders,
+    Navigation,
+    Movement,
+    Flight,
+    Sight,
+    Fog,
+    Learning,
+    Weapons,
+    Observation,
+    Other,
+}
+
 /// A snapshot of the battle's size (see [`Battle::load`]).
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Load {
@@ -802,6 +818,12 @@ impl Battle {
 
     /// Advance one fixed tick: authored events, scheduled commands, movement, observation.
     pub fn step(&mut self) -> Tick {
+        self.step_profiled(|_| {})
+    }
+
+    /// Advance the production tick, notifying the report after each work
+    /// bracket. Repeated phases (movement and each side's fog) add together.
+    pub fn step_profiled(&mut self, mut completed: impl FnMut(TickPhase)) -> Tick {
         self.tick += 1;
         if let Some(recorded) = self.replaying.as_mut() {
             let mut due = Vec::new();
@@ -841,6 +863,7 @@ impl Battle {
         for command in std::mem::take(&mut self.pending) {
             self.apply(command);
         }
+        completed(TickPhase::Orders);
         garrison::advance(
             &self.world,
             &self.sides,
@@ -877,7 +900,14 @@ impl Battle {
             knowledge: &self.knowledge,
             arsenal: &self.arsenal,
         };
-        let shoves = movement::advance(&ctx, &mut self.units, &mut self.sides, &mut self.planner);
+        completed(TickPhase::Other);
+        let shoves = movement::advance(
+            &ctx,
+            &mut self.units,
+            &mut self.sides,
+            &mut self.planner,
+            &mut completed,
+        );
         self.shove_props(shoves);
         self.clear_lanes(&before);
         for ((from, channel), (to, _)) in treads.into_iter().zip(self.treads()) {
@@ -890,14 +920,18 @@ impl Battle {
             .zip(&after.units)
             .map(|(a, b)| (a.base - b.base).length() > 1e-9)
             .collect();
+        completed(TickPhase::Movement);
         self.guide(&moved);
         self.fly(&before, &after);
         // Where each unit looks, before this tick's fire turns any turret.
+        completed(TickPhase::Flight);
         sight::snapshot(&mut self.units, &self.arsenal);
         for side in Side::ALL {
             self.sense(side, false);
+            completed(TickPhase::Sight);
             if self.tick % FOG_INTERVAL_TICKS == side.index() as u64 * FOG_INTERVAL_TICKS / 2 {
-                self.sweep_fog(side);
+                self.sweep_fog_profiled(side, &mut completed);
+                completed(TickPhase::Learning);
             }
         }
         self.prune_attackers();
@@ -911,6 +945,7 @@ impl Battle {
             &fired,
             &mut self.last_soldier,
         );
+        completed(TickPhase::Weapons);
         let bucket = (self.rules.sensors.sound_bucket_s * self.rules.tick_hz as f64).round() as u64;
         for side in Side::ALL {
             self.audible[side.index()] = if self.tick.is_multiple_of(bucket) {
@@ -944,8 +979,11 @@ impl Battle {
             unit.settle();
         }
         self.ground.seal();
+        completed(TickPhase::Other);
         self.observe_all();
+        completed(TickPhase::Observation);
         self.opponent_turn();
+        completed(TickPhase::Other);
         self.tick
     }
 
@@ -1682,6 +1720,10 @@ impl Battle {
 
     /// Recompute what ground this side sees, and learn any new obstacle in view.
     fn sweep_fog(&mut self, side: Side) {
+        self.sweep_fog_profiled(side, &mut |_| {});
+    }
+
+    fn sweep_fog_profiled(&mut self, side: Side, completed: &mut impl FnMut(TickPhase)) {
         let mut field = self.occlusion.field();
         let mut candidates = Vec::new();
         let mut remembered = Vec::new();
@@ -1711,6 +1753,7 @@ impl Battle {
                 );
             }
         }
+        completed(TickPhase::Fog);
         candidates.sort_unstable();
         candidates.dedup();
         // Enemy fallen in view are remembered, and the ground in view learned.
