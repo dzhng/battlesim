@@ -73,7 +73,10 @@ to about 0.9.
 
 - Parked cars stand parallel to the street in runs of 2 to 5, bumper to bumper, a
   squad's width or more (3 m) between runs, along one side of a street and both of an
-  avenue (10 m), back 8 m from every other carriageway's edge, on paved streets only.
+  avenue (10 m), on paved streets only.
+- Nothing beside a street, car or lamp or tree, stands within 8 m of another
+  carriageway's edge: a junction's corners are open. This was the cars' rule; the
+  critique found a lamp and two trees crowding one corner, so it is every body's.
 - No body stands within 3 m either side of a door's line to the street. The first
   trial at 0.75 m left 89 doors in the sweep where a squad could no longer stand.
 - Lamps stand at an even spacing on alternate sides and street trees (the forests'
@@ -83,7 +86,8 @@ to about 0.9.
 - Industrial parcels get skips and pallet stacks against a wall with no door in it.
 - A parcel left open in a centre, apartment or core district is a construction site
   now and then, three to a settlement at most: a cabin, a Heras fence round the parcel
-  with a gate on the street, a skip and pallets.
+  with a gate on the street, a skip and pallets. The gate's way to the street is kept
+  open like a door's (the first picture of a site had a tree in the gateway).
 - Every body goes through one check: on the map, off every carriageway and the lane
   beside its middle, a soldier's width from a wall, out of every door's way, apart
   from other bodies by the room each keeps, off the water, off bridges and the run onto
@@ -102,17 +106,17 @@ longer, the widest hull (443 drives) without shoving a body.
 
 | map | bodies gained | world build G | battle build G | 120 s of ticks and packing G | resident MiB |
 |---|---|---|---|---|---|
-| Mixed Small | 3 871 | 1.06 → 1.08 | 6.16 → 6.22 | 47.2 → 47.3 (+0.2%) | 222 → 229 |
-| Metro Large | 18 019 | 2.54 → 2.60 | 15.85 → 16.12 | 70.7 → 75.9 (+7.4%) | 653 → 682 |
+| Mixed Small | 3 642 | 1.06 → 1.08 | 6.16 → 6.22 | 47.2 → 47.4 (+0.4%) | 222 → 227 |
+| Metro Large | 16 937 | 2.54 → 2.61 | 15.85 → 16.14 | 70.7 → 75.9 (+7.4%) | 653 → 679 |
 
-The report's own "crossing" aggregate rises more (81.2 → 84.1 G and 139.6 → 157.5 G):
+The report's own "crossing" aggregate rises more (81.2 → 84.1 G and 139.6 → 156.7 G):
 between ticks the report calls `Battle::load`, which counts wrecks by walking every
 prop, so that figure grows with the map's bodies whatever the battle does. The first
 densities (30 440 bodies on Metro Large) cost +8.8% of ticks. They were lowered twice,
-to two fifths fewer bodies: once for cost, lamps and small furniture most, and once
+to under three fifths of the bodies: once for cost, lamps and small furniture most, and once
 for admission. Over 100 seeds of each cell every map still generates
-(`layout_sweep --seeds 100`), and the largest Metro Large holds 53 731 authored bodies
-(26 841 of them furniture) against the game's allowance of 60 000; at the middle
+(`layout_sweep --seeds 100`), and the largest Metro Large holds 51 975 authored bodies
+(25 085 of them furniture) against the game's allowance of 60 000; at the middle
 densities it held 57 484.
 
 **Every placed body is drawn.** These kinds have no art (`systems_only`), and a map

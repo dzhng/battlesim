@@ -103,7 +103,7 @@ fn cars_only(source: &mut Value) {
     let rule = &mut source["street_props"];
     rule["lane_margin_m"] = LANE_MARGIN_M.into();
     rule["door_clear_m"] = DOOR_CLEAR_M.into();
-    rule["parking"]["corner_clear_m"] = CORNER_CLEAR_M.into();
+    rule["corner_clear_m"] = CORNER_CLEAR_M.into();
     rule["parking"]["both_sides_min_width_m"] = 10.into();
 }
 
@@ -313,33 +313,41 @@ fn no_car_stands_in_front_of_a_door() {
     }
 }
 
-/// Two streets that cross: no car stands within the corner clearance of the
-/// other street's kerb, and cars stand along both streets.
+/// Two streets that cross, with cars and a lamp every 10 m beside both: no
+/// body stands within the corner clearance of the other street's kerb, so
+/// the junction's four corners are open, and bodies stand along both streets.
 #[test]
-fn no_car_stands_at_a_junctions_corner() {
-    let presets = presets_with(cars_only);
+fn nothing_stands_at_a_junctions_corner() {
+    let presets = presets_with(|source| {
+        cars_only(source);
+        source["districts"]["centre"]["props"]["verge"] =
+            json!([{ "kind": "lamp", "spacing_m": 10, "sides": "both" }]);
+    });
     let cross = (7.0, [1000.0, 850.0], [1000.0, 1150.0]);
     let plan = town(&[street(7.0), cross], &[]);
     let props = place(&plan, &presets, &rules().catalog, 1);
-    let cars = cars(&props);
     let (mut along_x, mut along_y) = (0, 0);
-    for car in &cars {
-        // A car lies along the street it is parked beside.
-        let (beside_x, far) = if car.yaw.cos().abs() > 0.5 {
-            (true, (car.center[0] - 1000.0).abs() - car.half_extents[0])
+    for prop in &props {
+        // The street it stands beside is the nearer; the other is the one
+        // whose corner it keeps back from.
+        let off = [0, 1].map(|axis| (prop.center[axis] - 1000.0).abs());
+        *if off[1] < off[0] {
+            &mut along_x
         } else {
-            (false, (car.center[1] - 1000.0).abs() - car.half_extents[0])
-        };
-        *if beside_x { &mut along_x } else { &mut along_y } += 1;
+            &mut along_y
+        } += 1;
+        let far = off[0].max(off[1]) - prop.half_extents[0].max(prop.half_extents[1]);
         assert!(
             far >= 3.5 + CORNER_CLEAR_M - 0.011,
-            "a car at {:?} stands {far:.2} m from the crossing street's middle",
-            car.center
+            "a {} at {:?} stands {far:.2} m from the crossing street's middle",
+            prop.kind,
+            prop.center
         );
     }
+    assert!(cars(&props).len() >= 15, "{} cars", cars(&props).len());
     assert!(
-        along_x >= 10 && along_y >= 5,
-        "{along_x} and {along_y} cars"
+        along_x >= 60 && along_y >= 25,
+        "{along_x} and {along_y} bodies"
     );
 }
 
@@ -1067,6 +1075,37 @@ fn yard_stock_and_sites_keep_to_their_parcels() {
         !cabins.is_empty() && cabins.values().all(|sites| *sites <= most),
         "{cabins:?}"
     );
+    // Each site's gate is open to the street: nothing but the fence's own
+    // panels stands in the opening or before it.
+    let gate = presets.street_props.site.gate_m;
+    let sites: Vec<&mapgen::LotPlan> = props
+        .iter()
+        .filter(|prop| prop.kind == "site_cabin")
+        .map(|cabin| parcel(cabin).unwrap())
+        .collect();
+    for lot in sites {
+        let (from, to, back) = (lot.ring[0], lot.ring[1], lot.ring[3]);
+        let middle = [(from[0] + to[0]) / 2.0, (from[1] + to[1]) / 2.0];
+        let unit = |a: Point, b: Point| {
+            let length = (b[0] - a[0]).hypot(b[1] - a[1]);
+            [(b[0] - a[0]) / length, (b[1] - a[1]) / length]
+        };
+        let (along, inward) = (unit(from, to), unit(from, back));
+        for prop in props.iter().filter(|prop| prop.kind != "heras_fence") {
+            let d = [prop.center[0] - middle[0], prop.center[1] - middle[1]];
+            let (x, y) = (
+                d[0] * along[0] + d[1] * along[1],
+                d[0] * inward[0] + d[1] * inward[1],
+            );
+            assert!(
+                x.abs() >= gate / 2.0 || !(-5.0..2.0).contains(&y),
+                "a {} at {:?} stands in the gate of the site on {}",
+                prop.kind,
+                prop.center,
+                lot.id
+            );
+        }
+    }
     assert!(
         panels >= 8 * cabins.values().sum::<u32>(),
         "{panels} fence panels for {cabins:?}"

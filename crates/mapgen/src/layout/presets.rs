@@ -438,6 +438,9 @@ pub struct StreetProps {
     pub wall_gap_m: f64,
     /// Kept clear either side of a door's line to the street.
     pub door_clear_m: f64,
+    /// No body beside a carriageway stands within this of another
+    /// carriageway's edge: a junction's corners stay open.
+    pub corner_clear_m: f64,
     /// How far along its street a body is moved to find legal ground, and
     /// by what step.
     pub slide_m: f64,
@@ -474,9 +477,6 @@ pub struct Parking {
     /// A carriageway at least this wide parks along both sides; a narrower
     /// one along one side, drawn for the whole street.
     pub both_sides_min_width_m: f64,
-    /// No car stands within this of another carriageway's edge: a
-    /// junction's corner stays open.
-    pub corner_clear_m: f64,
 }
 
 /// A construction site on a parcel left open: a cabin, a fence round the
@@ -973,6 +973,7 @@ impl PresetDefinitions {
                 && length(s.kerb_gap_m)
                 && length(s.wall_gap_m)
                 && length(s.door_clear_m)
+                && length(s.corner_clear_m)
                 && length(s.slide_m)
                 && positive(s.slide_step_m)
                 && s.attempts > 0,
@@ -996,10 +997,9 @@ impl PresetDefinitions {
                 && length(parking.bumper_gap_m)
                 && parking.run_gap_m.is_finite()
                 && parking.run_gap_m > parking.bumper_gap_m
-                && length(parking.both_sides_min_width_m)
-                && length(parking.corner_clear_m),
+                && length(parking.both_sides_min_width_m),
             "street_props.parking".into(),
-            "parking names a body, an ordered run of one car or more, a gap between runs wider than between bumpers, a width that parks both sides and a corner clearance",
+            "parking names a body, an ordered run of one car or more, a gap between runs wider than between bumpers, and a width that parks both sides",
         );
         let site = &s.site;
         check(

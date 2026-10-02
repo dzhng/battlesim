@@ -234,12 +234,14 @@ placed kind must be one of its prop types, and its widest hull sizes the lane.
   the assault still plans, a squad still stands at every door and walks to it, and every
   hull still drives every street by the same way, the widest without shoving a body.
 - **Cars park in runs,** bumper to bumper with no way through, a squad's width or more
-  between runs, along one side of a street and both of an avenue, back from every
-  junction's corner. Lamps and street trees are evenly spaced and placed first, so a
-  run ends at one; the scattered rows fill what the cars left.
+  between runs, along one side of a street and both of an avenue. Lamps and street
+  trees are evenly spaced and placed first, so a run ends at one; the scattered rows
+  fill what the cars left. Nothing beside a street stands within `corner_clear_m` of
+  another carriageway's edge, so a junction's corners are open.
 - **Yard stock stands on its building's own parcel,** against a wall with no door in it.
   **A construction site** takes a parcel the parcel pass left open: a cabin, a fence
-  round it with a gate on the street, a skip and pallets.
+  round it with a gate on the street, a skip and pallets. The gate's way to the street
+  is kept open like a door's.
 - **Bounded and stable.** A body that has no legal ground where its row puts it slides
   along its street by `slide_m` at most, or tries `attempts` places in a yard, and is
   otherwise left out. Ways, sides and districts are walked in the plan's order, and

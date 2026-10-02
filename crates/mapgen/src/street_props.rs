@@ -693,6 +693,17 @@ impl<'a> Pass<'a> {
             }
         }
 
+        // The gate's way to the street is kept open, like a door's.
+        let way = Rect {
+            center: at(0.0, (inset - DOOR_REACH_M) / 2.0),
+            axis: inward,
+            half: [(inset + DOOR_REACH_M) / 2.0, rule.gate_m / 2.0],
+        };
+        self.field
+            .door_grid
+            .insert(way.bounds(), self.field.doors.len() as u32);
+        self.field.doors.push(way);
+
         for row in &rule.stock {
             let body = self.body(&row.kind);
             let reach = body.half_extents_m[0].max(body.half_extents_m[1]);
@@ -821,6 +832,7 @@ impl<'a> Pass<'a> {
         let off = self.kerb_line(line) + body.half_extents_m[1];
         Candidate {
             beside: Some((way as u32, s)),
+            corner: self.rule.corner_clear_m,
             ..Candidate::new(body, add(p, scale([-run[1], run[0]], side * off)), run)
         }
     }
@@ -959,7 +971,6 @@ impl<'a> Pass<'a> {
                                 .find_map(|start| {
                                     let mut c = self.beside(way, side, start + length / 2.0, &car);
                                     c.group = group;
-                                    c.corner = rule.corner_clear_m;
                                     self.field.legal(&c).then_some((start, c))
                                 });
                             let Some((start, c)) = spot else {

@@ -4181,11 +4181,11 @@ pending. **Confidence:** high for fixture identity, medium until the scene runs.
 
 ### Densities were set by Metro Large's tick cost and its admission
 
-**Choice:** Parking shares of 0.33 to 0.38 in centre, apartment and core districts, lamps every 60 to 70 m, trees every 24 to 26 m, small furniture one to a few hundred metres: 18 019 bodies on Metro Large seed 1, +7.4% of a 120 s battle's ticks.
+**Choice:** Parking shares of 0.33 to 0.38 in centre, apartment and core districts, lamps every 60 to 70 m, trees every 24 to 26 m, small furniture one to a few hundred metres: 16 937 bodies on Metro Large seed 1, +7.4% of a 120 s battle's ticks.
 
 **Gap:** Densities were delegated.
 
-**Verdict:** provisional. The first set (30 440 bodies) cost +8.8%; a middle set left the largest Metro Large of 100 seeds at 57 484 authored bodies of the 60 000 the game admits, and this one leaves it at 53 731. Furniture now counts against that allowance, which was sized for buildings. `city_report`'s crossing aggregate overstates the cost, because the report's own `Battle::load` walks every prop between ticks. **Confidence:** medium.
+**Verdict:** provisional. The first set (30 440 bodies) cost +8.8%; a middle set left the largest Metro Large of 100 seeds at 57 484 authored bodies of the 60 000 the game admits, and this one leaves it at 51 975. Furniture now counts against that allowance, which was sized for buildings. `city_report`'s crossing aggregate overstates the cost, because the report's own `Battle::load` walks every prop between ticks. **Confidence:** medium.
 
 ### A prop with no art is drawn as a box
 
