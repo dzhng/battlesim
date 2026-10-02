@@ -819,9 +819,22 @@ fn one_variable_route_change_does_not_resend_other_own_units() {
         })
         .error
         .is_none());
-    battle.step();
+    for _ in 0..240 {
+        battle.step();
+        if !battle.observe(Side::Blue).own[0].route.is_empty() {
+            break;
+        }
+    }
+    assert!(
+        !battle.observe(Side::Blue).own[0].route.is_empty(),
+        "the route must finish planning within eight simulated seconds"
+    );
     let wire = publisher.publish(&battle, Side::Blue).unwrap();
     eprintln!("own route payload {} B", (3 + wire[29] as usize) * 4);
+    assert!(
+        wire[27] > initial[27],
+        "the own variable section must actually grow"
+    );
     let own_bytes = (3 + wire[29] as usize) * 4;
     assert!(
         own_bytes < 2000,

@@ -166,6 +166,8 @@ Walk this on any test diff, apply fixes in the same pass, re-run the suite:
    Wasm identities; synthetic cfg normalization can miss real platform flags.
    For offset deltas, grow/shrink an early collection with a retained tail;
    fixed-size edits cannot expose address-shift amplification.
+   For incremental work, assert observable completion before testing downstream
+   effects; accepted input does not imply completed planning or publication.
 8. Does it take focus, move the pointer, play sound, or write the person's real
    config, library or applications? → drive the model and a scratch location
    instead, and capture windows offscreen.

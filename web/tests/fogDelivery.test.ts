@@ -256,7 +256,8 @@ test("a live variable route copy matches a fresh producer snapshot and retains p
   try {
     battle.step();
     snapshot.step();
-    const before = decoder.decode(record(battle))!;
+    const initial = record(battle);
+    const before = decoder.decode(initial)!;
     const command = JSON.stringify({
       side: "blue",
       seq: 1,
@@ -273,13 +274,23 @@ test("a live variable route copy matches a fresh producer snapshot and retains p
     });
     expect(JSON.parse(battle.accept(command)).error).toBeNull();
     expect(JSON.parse(snapshot.accept(command)).error).toBeNull();
-    battle.step();
-    snapshot.step();
+    let oracle = before;
+    for (let tick = 0; tick < 240; tick++) {
+      battle.step();
+      snapshot.step();
+      snapshot.resync_observation();
+      oracle = new ObservationDecoder(layout).decode(record(snapshot))!;
+      if (oracle.own[0].route.length > 0) break;
+    }
+    expect(
+      oracle.own[0].route.length,
+      "planning must finish within eight simulated seconds",
+    ).toBeGreaterThan(0);
     const wire = record(battle);
+    expect(wire[layout.header.length]).toBeGreaterThan(initial[layout.header.length]);
     expect(wire[layout.header.length + 1]).toBe(2);
     expect((3 + wire[layout.header.length + 2]) * 4).toBeLessThan(2000);
     const after = decoder.decode(wire)!;
-    const oracle = new ObservationDecoder(layout).decode(record(snapshot))!;
     expect(after.own).toEqual(oracle.own);
     expect(before.own[0].route).toEqual([]);
     expect(after.own[0].route.length).toBeGreaterThan(0);
