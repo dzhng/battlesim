@@ -35,26 +35,22 @@ Read [`AGENTS.md`](../../AGENTS.md): narrow checks only, no full gate. A perform
 
 ## Status
 
-**C05 is complete; C06/C07 timing and delivery admission remain open.** The
-integrated representation and fog-cache checkpoints are on `main` (`4efec25b`);
-this branch also includes main through `9810912b`. Historical tables below use
-original rules, map and catalogue. Current projectile tuning and `layout-6` need
-fresh measurements; new results are not performance-only parity against those
-historical battles.
+**C05 is complete; C06/C07 timing and delivery admission remain open.** Green
+checkpoints are pushed to `main` through `53a43a07`, including the fog candidate
+union. Current main generates `layout-7`; the completed sweep and full-world
+stress measurements below deliberately retain their frozen `layout-6` inputs.
+Historical prototype-catalogue battles are separate controls, not performance
+parity against today's physical catalogue or rules.
 
-Current pickup: eliminate the pipeline's repeated enclosed-goal connector searches,
-then continue the measured fog/publication costs. The pipeline
-tool is on main (`07a6f792`). Replay build identity is integrated and checked.
-The route-start correction and variable-span publication checkpoint are integrated;
-merged publication tests (13), the body-clear squad arrival/replay regression (1),
-and browser authority/observation/codec tests (39) pass. Native and Wasm share the
-new engine identity (`0f4153f7…`). The saved endurance scene reached startup but failed on a missing
-effect flipbook's LFS content; the required runtime/effect assets are now fetched.
-The saved stress arm now measures 29.9 Hz early / 21.4 Hz late; the late budget is
-red. Its movement/endurance/benchmark contracts pass. The current full generated
-stress fixture and immutable static decoder/feed reuse are integrated, with 47
-focused preparation/pose checks passing; the generated browser arm is queued.
-No generator, menu, renderer or parent handoff implementation changed here.
+Current pickup: terminate repeated enclosed-goal connector searches with a sound
+reachability proof, then reduce the measured publication bursts. Infantry route
+timing, route-start admission, replay build refusal, span copies and immutable
+static decoder/feed reuse are integrated. Fog batching preserves every sampled
+digest and complete side observation; its integrated 13 sight tests pass. Full
+generated browser stress now runs, but its 29.8 Hz early / 27.7 Hz late rates
+miss the target and its reset resource check fails. The latest full-world wire
+p95/max also remain above the 19.8 KB steady-record target. Fresh `layout-7`
+admission follows the navigation fix and measured passes.
 
 The native reports now attribute the production tick without introducing OS
 counters into the ordinary tick. Observation construction and wire packing are
@@ -132,7 +128,7 @@ remain G0's open decision; the 64 MiB codec ceiling is not a performance target.
    cross-ownership addition. It uses existing generation/compiler and assault
    planner APIs, current game admission, and the real Battle. A first Open Small
    seed-1 30 s sample advances every column unit; distant goals remain pending.
-   The complete nine-cell, ten-seed matrix finished against the current catalogue:
+   The complete nine-cell, ten-seed matrix finished against the physical catalogue on `layout-6`:
    89 short battles, one encounter refusal, no generation refusal or panic.
    Three units still plan after 120 s because many failed road-exit connectors
    repeat searches outside an enclosed goal. This simulation finding is being fixed.
@@ -149,9 +145,11 @@ remain G0's open decision; the 64 MiB codec ceiling is not a performance target.
    selecting the next owner. Fog candidate batching and the enclosed-goal proof
    proceed independently. Static views now retain identity through decoding and
    the pose feed. Historical mean reductions do not close admission.
-4. Browser: run `endurance` and `benchmark` serially, then establish the full
-   generated-map stress arm. The existing saved stress arena alone does not prove
-   full-extent loading. Snapshot/copy/decoder overlap remains a separate gate.
+4. Browser: attribute the full-world reset resource mismatch before changing its
+   assertion. After integrating the measured passes, rebuild current `layout-7`
+   and run the full generated early/late arms and benchmark serially. The saved
+   arena alone does not prove full-extent loading. Snapshot/copy/decoder overlap
+   and the final 300 s arms remain separate gates.
 
 Map-lane coordination: no generator, renderer or parent README changes. The
 C07 producer/decoder checkpoint is the named cross-ownership commit: it updates
