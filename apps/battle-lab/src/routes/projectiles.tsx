@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { vec2, type Vec2, type Vec3 } from "math";
 import { WEAPONS } from "@packages/scene-assets/src/shippedUnits";
-import { LabViewport } from "../LabViewport";
-import { useBattleSession } from "../useBattleSession";
+import { BattleView } from "../BattleView";
+import type { BattleSession } from "../useBattleSession";
 import { useBuiltScenario } from "../useBuiltScenario";
-import { useFeed } from "../feed";
 import { STREET_CAMERA, STREET_SEED } from "../streetScenario";
 import { REVIEW_LANES, buildProjectileReview, reviewLanePositions } from "../projectileReview";
 import { TickStatus } from "../TickStatus";
@@ -23,14 +22,46 @@ export default function Projectiles() {
 }
 
 function Review({ scenario }: { scenario: string }) {
-  const map = useMemo(() => JSON.parse(scenario).map as unknown, [scenario]);
-  const session = useBattleSession({
-    map,
-    scenario,
-    seed: STREET_SEED,
-    destroyable: "apart",
-    sound: true,
-  });
+  return (
+    <BattleView
+      fixture="projectiles"
+      scenario={scenario}
+      seed={STREET_SEED}
+      camera={STREET_CAMERA}
+      status={(session) => <ReviewControls session={session} />}
+      diagnostics={(session) => ({
+        show: showLane,
+        lanes: () =>
+          REVIEW_LANES.map((lane, index) => {
+            const glow = gameEffects.tracers[lane.weapon].glow;
+            return {
+              ...lane,
+              ...reviewLanePositions(index),
+              ...WEAPONS[lane.weapon],
+              tick_hz: session.rules.tick_hz,
+              tracerRGB: glow.color.map((c) => c * glow.intensity),
+            };
+          }),
+      })}
+    />
+  );
+}
+
+function showLane(index: number) {
+  if (index < 0) window.__lab?.setCamera?.(STREET_CAMERA);
+  else {
+    const { from, to } = reviewLanePositions(index);
+    window.__lab?.setCamera?.({
+      ...STREET_CAMERA,
+      target: [(from[0] + to[0]) / 2, from[1], 0],
+      distance: (to[0] - from[0]) * 1.05,
+      pitch: 0.95,
+      yaw: -Math.PI / 2,
+    });
+  }
+}
+
+function ReviewControls({ session }: { session: BattleSession }) {
   const { observation } = session.sim;
   const ordered = useRef(new Set<number>());
   const [view, setView] = useState(-1);
@@ -55,85 +86,38 @@ function Review({ scenario }: { scenario: string }) {
         });
     }
   }, [observation, session.control]);
-  const bare = useMemo(
-    () => session.meshes && { ...session.meshes, grass: null },
-    [session.meshes],
-  );
-  const world = useFeed(bare);
   const show = (index: number) => {
     setView(index);
-    if (index < 0) window.__lab?.setCamera?.(STREET_CAMERA);
-    else {
-      const { from, to } = reviewLanePositions(index);
-      window.__lab?.setCamera?.({
-        ...STREET_CAMERA,
-        target: [(from[0] + to[0]) / 2, from[1], 0],
-        distance: (to[0] - from[0]) * 1.05,
-        pitch: 0.95,
-        yaw: -Math.PI / 2,
-      });
-    }
+    showLane(index);
   };
-  if (!bare) return null;
   return (
-    <>
-      <LabViewport
-        fixture="projectiles"
-        world={world}
-        structures={session.structures}
-        obstacles={session.cameraObstaclesFeed}
-        buildings={session.buildingsFeed}
-        fog={session.fogFeed}
-        frame={session.frame}
-        appearances={session.appearances}
-        initialCamera={STREET_CAMERA}
-        groundAt={session.surfaceZ}
-        onReady={session.onReady}
-        onFrame={(_, camera) => session.hear(camera)}
-        diagnostics={{
-          ...session.probes,
-          show,
-          lanes: () =>
-            REVIEW_LANES.map((lane, index) => {
-              const glow = gameEffects.tracers[lane.weapon].glow;
-              return {
-                ...lane,
-                ...reviewLanePositions(index),
-                ...WEAPONS[lane.weapon],
-                tick_hz: session.rules.tick_hz,
-                tracerRGB: glow.color.map((c) => c * glow.intensity),
-              };
-            }),
-        }}
-      />
-      <aside className="hud-panel lab-panel" data-testid="projectiles-panel">
-        <strong>Projectile review</strong>
+    <div data-testid="projectiles-panel">
+      <strong>Projectile review</strong>
+      <div className="lab-hint">
+        Unlimited ammo · units and scenery take no damage · normal aim and reload cycles
+      </div>
+      {weapon && (
         <div className="lab-hint">
-          Unlimited ammo · units and scenery take no damage · normal aim and reload cycles
+          {weapon.speed_mps}
+          {typeof weapon.top_speed_mps === "number" ? ` → ${weapon.top_speed_mps}` : ""} m/s
         </div>
-        {weapon && (
-          <div className="lab-hint">
-            {weapon.speed_mps}
-            {typeof weapon.top_speed_mps === "number" ? ` → ${weapon.top_speed_mps}` : ""} m/s
-          </div>
-        )}
-        <div className="lab-row">
-          <button type="button" aria-pressed={view === -1} onClick={() => show(-1)}>
-            Close fight
+      )}
+      <div className="lab-row">
+        <button type="button" aria-pressed={view === -1} onClick={() => show(-1)}>
+          Close fight
+        </button>
+        {REVIEW_LANES.map((lane, index) => (
+          <button
+            type="button"
+            key={lane.weapon}
+            aria-pressed={view === index}
+            onClick={() => show(index)}
+          >
+            {lane.name} · {reviewLanePositions(index).to[0] - 100} m
           </button>
-          {REVIEW_LANES.map((lane, index) => (
-            <button
-              type="button"
-              key={lane.weapon}
-              aria-pressed={view === index}
-              onClick={() => show(index)}
-            >
-              {lane.name} · {reviewLanePositions(index).to[0] - 100} m
-            </button>
-          ))}
-        </div>
-        <TickStatus tick={observation?.tick} status={session.sim.status.status} />
-      </aside>
-    </>
+        ))}
+      </div>
+      <TickStatus tick={observation?.tick} status={session.sim.status.status} />
+    </div>
   );
 }

@@ -159,7 +159,7 @@ fn main() {
     };
     let mut out = Vec::new();
     let snapshot_bytes = stage("pack_blue_snapshot", || {
-        publication::pack(
+        publication::pack_logical(
             &frame,
             &full,
             &FogPatch {
@@ -177,7 +177,7 @@ fn main() {
     let credit_a = stage("retain_credit_a", || out.clone());
     let credit_b = stage("retain_credit_b", || out.clone());
     stage("pack_blue_resync", || {
-        publication::pack(
+        publication::pack_logical(
             &frame,
             &GroundHeader { epoch: 2, ..full },
             &FogPatch {
@@ -244,7 +244,7 @@ fn main() {
     assert_eq!(delta_count, 1);
     frame.ground_visibility = partial;
     stage("pack_corner_delta", || {
-        publication::pack(
+        publication::pack_logical(
             &frame,
             &GroundHeader {
                 epoch: 2,

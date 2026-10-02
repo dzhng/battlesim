@@ -219,22 +219,28 @@ fn generate_map_saves_a_map_the_battle_loader_resolves() {
     let outcome: serde_json::Value = serde_json::from_slice(&process.stdout).unwrap();
     let map = std::fs::read_to_string(saved.join("map.json")).unwrap();
     let sources = std::fs::read_to_string(saved.join("SOURCES.json")).unwrap();
-    // The battle loader resolves it against the catalogue the CLI's
-    // `catalogue` command prints for the same descriptor list.
+    // The CLI's `catalogue` command prints the canonical catalogue of the
+    // same descriptor list.
     let library = mapgen(&["catalogue".as_ref(), CATALOGUE.as_ref()]);
     assert!(library.status.success());
     let library = String::from_utf8(library.stdout).unwrap();
     assert_eq!(library.trim_end(), catalogue().canonical_json().unwrap());
+    // The battle loader resolves the saved map against the library its
+    // sources name: the descriptor file the CLI was handed, as it is.
+    let named: serde_json::Value = serde_json::from_str(&sources).unwrap();
+    assert_eq!(
+        named["catalogue"]["library"],
+        "prototype-building-templates.json"
+    );
     let resolved = contract::maps::resolve(
         &map,
         &sources,
-        &library,
-        contract::maps::MapAdmission {
-            max_authored_parts: 20_000,
-            max_bay_positions: 200_000,
-        },
+        &std::fs::read_to_string(CATALOGUE).unwrap(),
+        contract::maps::MapAdmission::CATALOGUE,
     )
     .unwrap();
+    // A saved building is its template and frame, not its geometry.
+    assert!(!map.contains("\"geometry\""));
     assert_eq!(resolved.definition.size, [6_000.0, 6_000.0]);
     assert!(!resolved.definition.surfaces.is_empty() && !resolved.definition.forests.is_empty());
     // A generated map has its town: streets, and buildings on them.

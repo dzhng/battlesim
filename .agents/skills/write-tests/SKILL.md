@@ -77,6 +77,13 @@ below serves that one goal.
   showed up against a real environment, the harness skipped an input production
   always sets — fix the harness, don't just fix the bug.
 
+## Incremental delivery
+
+Compare a live delta stream to fresh complete snapshots while collection sizes
+change. A fixed-size replacement or snapshot-only round trip misses shifted
+variable rows, append gaps and stale retained rows. Keep earlier observations and
+reject a malformed generation before accepting its corrected retry.
+
 ## Control variables and probes
 
 - **One variable per comparison.** Pin everything else — same seed, same

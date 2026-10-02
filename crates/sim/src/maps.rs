@@ -2,19 +2,24 @@
 //! (`contract::maps::resolve`). A saved map is a folder of the catalogue,
 //! `fixtures/maps/<id>/`: its physical `map.json`, the `SOURCES.json` that
 //! pins what it is and where it came from, and its `encounters/<name>.json`.
+//! `map.json` stores each building as its template and frame; the resolver
+//! materializes it from the physical library `SOURCES.json` names.
 //! The browser's adapter fetches the same documents and calls the same
 //! resolver through WebAssembly, so both admit a map or refuse it alike.
 use std::path::{Path, PathBuf};
 
-use contract::maps::{resolve, MapAdmission, MapId, ResolveCode, ResolveError, ResolvedMap};
+use contract::maps::{
+    resolve, MapAdmission, MapId, MapSources, ResolveCode, ResolveError, ResolvedMap,
+};
 use contract::scenario::EncounterDefinition;
 
-/// A catalogue of saved maps and the physical template library they pin.
+/// A catalogue of saved maps and the physical template libraries they pin.
 pub struct Catalogue {
     /// The directory of map folders.
     pub maps: PathBuf,
-    /// The shared physical template library (`building-templates.json`).
-    pub library: PathBuf,
+    /// The directory of physical template libraries: a map's `SOURCES.json`
+    /// names its library's file there (`catalogue.library`).
+    pub libraries: PathBuf,
 }
 
 impl Catalogue {
@@ -23,7 +28,7 @@ impl Catalogue {
         let fixtures = crate::fixtures::dir();
         Catalogue {
             maps: fixtures.join("maps"),
-            library: fixtures.join("building-templates.json"),
+            libraries: fixtures,
         }
     }
 
@@ -36,19 +41,27 @@ impl Catalogue {
     /// refusal naming the document and field at fault. Nothing stands in for
     /// a map that does not resolve.
     pub fn load(&self, id: &str) -> Result<ResolvedMap, ResolveError> {
-        let folder = self.folder(id)?;
+        self.resolve(&self.folder(id)?, id)
+    }
+
+    /// The saved map in `folder`, its refusals located under `id`.
+    fn resolve(&self, folder: &Path, id: &str) -> Result<ResolvedMap, ResolveError> {
         let read = |name: &str| document(&folder.join(name), &format!("{id}/{name}"));
-        let library = document(&self.library, "physical catalogue")?;
-        resolve(
-            &read("map.json")?,
-            &read("SOURCES.json")?,
-            &library,
-            MapAdmission::CATALOGUE,
-        )
-        .map_err(|error| ResolveError {
+        let located = |error: ResolveError| ResolveError {
             location: format!("{id}/{}", error.location),
             ..error
-        })
+        };
+        let map = read("map.json")?;
+        let sources = read("SOURCES.json")?;
+        let library = MapSources::from_json(&sources)
+            .map_err(located)?
+            .catalogue
+            .library;
+        let library = document(
+            &self.libraries.join(&library),
+            &format!("{id}/SOURCES.json.catalogue.library"),
+        )?;
+        resolve(&map, &sources, &library, MapAdmission::CATALOGUE).map_err(located)
     }
 
     /// The names of the map's saved encounters, in order.
@@ -86,6 +99,12 @@ impl Catalogue {
 /// The shipped catalogue's map `id`, resolved.
 pub fn load(id: &str) -> Result<ResolvedMap, ResolveError> {
     Catalogue::shipped().load(id)
+}
+
+/// A saved map's folder anywhere on disk, such as the one the `mapgen` CLI
+/// writes, resolved against the shipped libraries.
+pub fn load_folder(folder: &Path) -> Result<ResolvedMap, ResolveError> {
+    Catalogue::shipped().resolve(folder, &folder.display().to_string())
 }
 
 /// The shipped catalogue's encounter `name` of map `id`.

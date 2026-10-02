@@ -99,7 +99,11 @@ function packets() {
       groundSide: 0,
       groundFull: Number(full && base === 0),
     };
-    return new Float32Array([...layout.header.map((name) => header[name] ?? 0), ...payload]);
+    return new Float32Array([
+      ...layout.header.map((name) => header[name] ?? 0),
+      ...layout.groups.flatMap(() => [0, 1, 0]),
+      ...payload,
+    ]);
   };
   return { layout, record };
 }

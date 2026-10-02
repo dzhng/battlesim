@@ -17,7 +17,13 @@ pub struct OcclusionGrid {
     ny: usize,
     top: Vec<f64>,
     /// Four-by-four fog cells per tile; entries are rebuilt only on demand.
-    tile_revisions: Vec<u64>,
+    tile_revisions: Vec<TileRevision>,
+}
+
+#[derive(Clone, Copy)]
+struct TileRevision {
+    world: u64,
+    buckets: u64,
 }
 
 impl OcclusionGrid {
@@ -29,23 +35,34 @@ impl OcclusionGrid {
             nx,
             ny,
             top: vec![f64::NEG_INFINITY; nx * ny],
-            tile_revisions: vec![u64::MAX; nx.div_ceil(4) * ny.div_ceil(4)],
+            tile_revisions: vec![
+                TileRevision {
+                    world: u64::MAX,
+                    buckets: u64::MAX
+                };
+                nx.div_ceil(4) * ny.div_ceil(4)
+            ],
         }
     }
 
     fn top(&mut self, world: &WorldGeometry, i: usize, j: usize) -> f64 {
         let tile = (j / 4) * self.nx.div_ceil(4) + i / 4;
-        if self.tile_revisions[tile] != world.obstacle_revision() {
+        if self.tile_revisions[tile].world != world.obstacle_revision() {
             let (i0, j0) = (i / 4 * 4, j / 4 * 4);
             let (i1, j1) = ((i0 + 4).min(self.nx), (j0 + 4).min(self.ny));
-            for y in j0..j1 {
-                self.top[y * self.nx + i0..y * self.nx + i1].fill(f64::NEG_INFINITY);
-            }
             let center = v2(
                 (i0 + i1) as f64 * 0.5 * self.cell,
                 (j0 + j1) as f64 * 0.5 * self.cell,
             );
             let radius = ((i1 - i0) as f64).hypot((j1 - j0) as f64) * 0.5 * self.cell;
+            let revision = world.obstacle_revision_near(center, radius);
+            self.tile_revisions[tile].world = world.obstacle_revision();
+            if self.tile_revisions[tile].buckets == revision {
+                return self.top[j * self.nx + i];
+            }
+            for y in j0..j1 {
+                self.top[y * self.nx + i0..y * self.nx + i1].fill(f64::NEG_INFINITY);
+            }
             // The world's footprint index already contains every body touching
             // this tile. Test the same fog-cell centres as the solid raster.
             for prop in world
@@ -68,7 +85,7 @@ impl OcclusionGrid {
                     }
                 }
             }
-            self.tile_revisions[tile] = world.obstacle_revision();
+            self.tile_revisions[tile].buckets = revision;
         }
         self.top[j * self.nx + i]
     }

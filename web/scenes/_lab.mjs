@@ -129,7 +129,7 @@ export async function openBattle(
   { viewport, url, tick, timeout = 30000, grass = false, allowErrors } = {},
 ) {
   const page = await ctx.newPage({ viewport, allowErrors });
-  await ctx.openLab(page, url);
+  await ctx.openLab(page, url, timeout);
   await page.waitForFunction(() => window.__lab.route?.tick() > 3, undefined, { timeout });
   if (grass)
     await page.waitForFunction(() => window.__lab.stats?.().grass.enabled, undefined, {
