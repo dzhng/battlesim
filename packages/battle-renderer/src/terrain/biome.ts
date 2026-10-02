@@ -205,6 +205,10 @@ export interface GrassGrowth {
   /** The grasses, one to `GRASS_MIX_MAX`: each clump is one of them, by share. */
   mix: readonly GrassSpecies[];
   patches: GrassPatches;
+  /** How closely the clumps keep to the plot kind's drill rows (its
+   *  `furrow_m`, the rows the ground itself is painted with): 0 scattered,
+   *  1 on the row. A drilled crop reads as rows, a meadow never. */
+  rows: number;
 }
 
 /** The travelling wind every blade sways in: a steady lean, gust fronts
@@ -467,6 +471,7 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
       within(`${at}.mix[${i}].drift`, species.drift, 0, 1);
       within(`${at}.mix[${i}].dry`, species.dry, 0, 1);
     });
+    within(`${at}.rows`, growth.rows, 0, 1);
     range(`${at}.patches.height`, growth.patches?.height, 0.1, 2);
     within(`${at}.patches.thin`, growth.patches.thin, 0, 1);
     within(`${at}.patches.dry`, growth.patches.dry, 0, 1);

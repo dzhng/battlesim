@@ -621,51 +621,6 @@
         }
       }
     },
-    "grass_crop": {
-      "unit": "scenery",
-      "scenery": "grass",
-      "states": {
-        "summer": "assets/source/grass/grass_crop.glb"
-      },
-      "basis_yaw_deg": 0,
-      "grass": {
-        "seed": 1803,
-        "blades": 6,
-        "radius_m": 0.06,
-        "height_m": [
-          0.24,
-          0.42
-        ],
-        "width_m": 0.022,
-        "lean": [
-          0.05,
-          0.3
-        ],
-        "shape": {
-          "taper": 1.8,
-          "belly": 0
-        },
-        "colors": {
-          "root": [
-            0.17,
-            0.24,
-            0.1
-          ],
-          "mid": [
-            0.23,
-            0.31,
-            0.14
-          ],
-          "tip": [
-            0.3,
-            0.38,
-            0.17
-          ]
-        },
-        "jitter": 0.08,
-        "wind": 0.8
-      }
-    },
     "grass_wheat": {
       "unit": "scenery",
       "scenery": "grass",
@@ -675,17 +630,18 @@
       "basis_yaw_deg": 0,
       "grass": {
         "seed": 1804,
-        "blades": 6,
-        "radius_m": 0.07,
+        "blades": 7,
+        "radius_m": 0.1,
         "height_m": [
-          0.7,
-          0.95
+          0.55,
+          0.7
         ],
-        "width_m": 0.014,
+        "width_m": 0.016,
         "lean": [
           0.03,
           0.2
         ],
+        "droop": 0.04,
         "shape": {
           "taper": 4,
           "belly": 0
@@ -966,6 +922,193 @@
             0.78,
             0.6
           ]
+        }
+      }
+    },
+    "grass_barley": {
+      "unit": "scenery",
+      "scenery": "grass",
+      "states": {
+        "summer": "assets/source/grass/grass_barley.glb"
+      },
+      "basis_yaw_deg": 0,
+      "grass": {
+        "seed": 1809,
+        "blades": 7,
+        "radius_m": 0.1,
+        "height_m": [
+          0.45,
+          0.6
+        ],
+        "width_m": 0.014,
+        "lean": [
+          0.12,
+          0.42
+        ],
+        "droop": 0.3,
+        "shape": {
+          "taper": 4,
+          "belly": 0
+        },
+        "colors": {
+          "root": [
+            0.33,
+            0.33,
+            0.18
+          ],
+          "mid": [
+            0.46,
+            0.44,
+            0.25
+          ],
+          "tip": [
+            0.56,
+            0.52,
+            0.31
+          ]
+        },
+        "jitter": 0.08,
+        "wind": 1,
+        "head": {
+          "from": 0.62,
+          "width": 3.6,
+          "chance": 0.95,
+          "color": [
+            0.7,
+            0.66,
+            0.42
+          ]
+        }
+      }
+    },
+    "grass_rapeseed": {
+      "unit": "scenery",
+      "scenery": "grass",
+      "states": {
+        "summer": "assets/source/grass/grass_rapeseed.glb"
+      },
+      "basis_yaw_deg": 0,
+      "grass": {
+        "seed": 1810,
+        "blades": 6,
+        "radius_m": 0.13,
+        "height_m": [
+          0.5,
+          0.68
+        ],
+        "width_m": 0.022,
+        "lean": [
+          0.05,
+          0.35
+        ],
+        "shape": {
+          "taper": 3,
+          "belly": 0.5
+        },
+        "colors": {
+          "root": [
+            0.17,
+            0.25,
+            0.1
+          ],
+          "mid": [
+            0.24,
+            0.33,
+            0.14
+          ],
+          "tip": [
+            0.33,
+            0.41,
+            0.17
+          ]
+        },
+        "jitter": 0.1,
+        "wind": 0.5,
+        "head": {
+          "from": 0.6,
+          "width": 3.2,
+          "chance": 0.85,
+          "color": [
+            0.9,
+            0.8,
+            0.12
+          ]
+        }
+      }
+    },
+    "grass_hay": {
+      "unit": "scenery",
+      "scenery": "grass",
+      "states": {
+        "summer": "assets/source/grass/grass_hay.glb"
+      },
+      "basis_yaw_deg": 0,
+      "grass": {
+        "seed": 1811,
+        "blades": 8,
+        "radius_m": 0.15,
+        "height_m": [
+          0.4,
+          0.62
+        ],
+        "width_m": 0.024,
+        "lean": [
+          0.15,
+          0.6
+        ],
+        "droop": 0.2,
+        "shape": {
+          "taper": 1.6,
+          "belly": 0
+        },
+        "colors": {
+          "root": [
+            0.26,
+            0.28,
+            0.14
+          ],
+          "mid": [
+            0.36,
+            0.38,
+            0.2
+          ],
+          "tip": [
+            0.47,
+            0.46,
+            0.27
+          ]
+        },
+        "jitter": 0.1,
+        "wind": 1,
+        "head": {
+          "from": 0.76,
+          "width": 2.2,
+          "chance": 0.5,
+          "color": [
+            0.6,
+            0.54,
+            0.34
+          ]
+        },
+        "dry": {
+          "chance": 0.35,
+          "colors": {
+            "root": [
+              0.3,
+              0.26,
+              0.15
+            ],
+            "mid": [
+              0.44,
+              0.38,
+              0.23
+            ],
+            "tip": [
+              0.55,
+              0.48,
+              0.31
+            ]
+          }
         }
       }
     }

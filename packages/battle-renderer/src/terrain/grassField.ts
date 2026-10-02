@@ -130,8 +130,8 @@ export function grassAppearancesOf(installed: InstalledAppearances | null): Gras
 /** The biome's growth resolved against the installed appearances. */
 export interface GrassKinds {
   /** Per growth row (plot kind index, the verge last): density, height
-   *  scale, how many grasses it mixes, 0. A plot kind that grows none has
-   *  density 0. */
+   *  scale, how many grasses it mixes, how closely it keeps to the plot's
+   *  rows. A plot kind that grows none has density 0. */
   growth: Float32Array;
   /** Per growth row, its patches: lowest and tallest height scale, how far
    *  sparse patches thin, how far dry patches dry. */
@@ -143,6 +143,8 @@ export interface GrassKinds {
   appearances: { name: string; bundle: StaticBundle }[];
   /** The tallest any clump is drawn, over every row and grass. */
   tallest: number;
+  /** The farthest keeping to its rows moves a clump from where it fell. */
+  rowReach: number;
 }
 
 /** Resolve `biome.grass.growth` against `appearances`: null (no grass) until
@@ -161,9 +163,11 @@ export function grassKinds(biome: Biome, appearances: GrassAppearances): GrassKi
   const patches = new Float32Array(GRASS_GROWTH_ROWS * 4);
   const mixes = new Float32Array(GRASS_GROWTH_ROWS * GRASS_MIX_MAX * 4);
   let tallest = 0;
-  const row = (at: number, key: string) => {
+  let rowReach = 0;
+  const row = (at: number, key: string, furrow = 0) => {
     const g = rules.growth[key];
     if (!g) return;
+    rowReach = Math.max(rowReach, (furrow / 2) * g.rows);
     const shares = g.mix.reduce((sum, s) => sum + s.share, 0);
     g.mix.forEach((species, i) => {
       const maximum = maxFieldGrassHeight(
@@ -181,10 +185,10 @@ export function grassKinds(biome: Biome, appearances: GrassAppearances): GrassKi
         (at * GRASS_MIX_MAX + i) * 4,
       );
     });
-    growth.set([g.density, g.height, g.mix.length, 0], at * 4);
+    growth.set([g.density, g.height, g.mix.length, g.rows], at * 4);
     patches.set([g.patches.height[0], g.patches.height[1], g.patches.thin, g.patches.dry], at * 4);
   };
-  biome.plots.forEach((plot, k) => row(k, plot.name));
+  biome.plots.forEach((plot, k) => row(k, plot.name, plot.furrow_m));
   row(GRASS_GROWTH_ROWS - 1, VERGE_GROWTH);
   return {
     growth,
@@ -192,6 +196,7 @@ export function grassKinds(biome: Biome, appearances: GrassAppearances): GrassKi
     mixes,
     appearances: names.map((name) => ({ name, bundle: appearances.get(name)! })),
     tallest,
+    rowReach,
   };
 }
 

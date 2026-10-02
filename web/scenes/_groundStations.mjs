@@ -33,8 +33,13 @@ const onPlot =
   (kind, distance, pitch) =>
   ({ plots }) => {
     if (!plots[kind]) throw new Error(`the village has no open ${kind} plot`);
-    return at(plots[kind], distance, pitch);
+    return at(plots[kind].at, distance, pitch);
   };
+
+/** The kinds of ground that have a station of their own: the wild ones at
+ *  the play camera and low, each crop low. */
+const WILD = ["meadow", "rough", "prairie"];
+const CROPS = ["pasture", "wheat", "barley", "rapeseed", "hay", "stubble", "ploughed"];
 
 /** Each map's route (from the site root) and its named poses. A generated
  *  map's stations stand on what its preparation reports (the main town, each
@@ -43,13 +48,15 @@ export const STATION_MAPS = {
   village: {
     route: "/battle/village",
     stations: {
-      // One kind of wild ground each, at the play camera and low.
-      "meadow-65": onPlot("meadow", 65),
-      "meadow-25": onPlot("meadow", 25, LOW),
-      "rough-65": onPlot("rough", 65),
-      "rough-25": onPlot("rough", 25, LOW),
-      "prairie-65": onPlot("prairie", 65),
-      "prairie-25": onPlot("prairie", 25, LOW),
+      ...Object.fromEntries(
+        WILD.flatMap((kind) => [
+          [`${kind}-65`, onPlot(kind, 65)],
+          [`${kind}-25`, onPlot(kind, 25, LOW)],
+        ]),
+      ),
+      ...Object.fromEntries(CROPS.map((kind) => [`${kind}-25`, onPlot(kind, 25, LOW)])),
+      // A drilled crop's rows, from the play camera.
+      "wheat-65": onPlot("wheat", 65),
       // The (420, 420) corner of the north road.
       "bend-25": at([420, 420], 25, LOW),
       "bend-65": at([420, 420], 65),
@@ -137,6 +144,10 @@ export async function openStations(ctx, map) {
   });
   return page;
 }
+
+/** What `openStations` learned of `page`'s map: a generated map's
+ *  preparation report, the village's plots by kind (`villagePlots`). */
+export const stationReport = (page) => reports.get(page);
 
 /** Where `station` of `map` puts the camera on `page`: the target on the
  *  ground, the distance, pitch and yaw. */
@@ -350,8 +361,9 @@ async function villageExport(page, points) {
 const PLOT_INSET_M = 60;
 const PLOT_ROOM_M = 12;
 
-/** Per plot kind's name, the middle of the village's roomiest open plot of
- *  that kind: inside the map, clear of buildings and woods. */
+/** Per plot kind's name, the village's roomiest open plot of that kind
+ *  (inside the map, clear of buildings and woods): its middle `at`, and the
+ *  unit vector `across` its rows. */
 async function villagePlots(page) {
   await villageGround(page);
   return page.evaluate(
@@ -390,9 +402,12 @@ async function villagePlots(page) {
             [0, -room],
           ].every(([dx, dy]) => forest(cx + dx, cy + dy, 1) < 0);
         const name = surface.biome.plots[plot.kind].name;
-        if (open && clear > (best[name]?.clear ?? 0)) best[name] = { clear, xy: [cx, cy] };
+        if (open && clear > (best[name]?.clear ?? 0))
+          best[name] = { clear, at: [cx, cy], across: [...plot.across] };
       }
-      return Object.fromEntries(Object.entries(best).map(([name, b]) => [name, b.xy]));
+      return Object.fromEntries(
+        Object.entries(best).map(([name, { at, across }]) => [name, { at, across }]),
+      );
     },
     { inset: PLOT_INSET_M, room: PLOT_ROOM_M },
   );

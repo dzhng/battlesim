@@ -16,6 +16,8 @@
 //   verge) or that nothing does (road, forest, water, props), seats it on
 //   the simulation's triangle, and gives its colour (the ground's own albedo
 //   there, so near grass and the painted ground beyond agree);
+// - a drilled crop keeps to its plot's rows, the ones the ground under it is
+//   painted with, so a wheat field reads as rows and a meadow never does;
 // - a kind of ground grows a mix of grasses: the clump is one of them by its
 //   own hash against their shares, a drifting grass gathered into patches.
 //   The stand varies across a field in world-anchored patches: taller and
@@ -117,7 +119,8 @@ const GrassParams = d
     /** How far that shading softens, how far a blade's own facing lights it,
      *  each clump's brightness variation, 0. */
     shading: d.vec4f,
-    /** Bare margins: road, prop, forest and water; 0. */
+    /** Bare margins: road, prop, forest and water; then the farthest a
+     *  clump moves to its row. */
     clear: d.vec4f,
     /** The height grid's size, 0, 0. */
     counts: d.vec4u,
@@ -127,7 +130,8 @@ const GrassParams = d
     wind: d.vec4f,
     /** 1 / gust spacing, gust speed, flutter, flutter radians a second. */
     gusts: d.vec4f,
-    /** Per plot kind (the verge last): density, height scale, grasses mixed, 0. */
+    /** Per plot kind (the verge last): density, height scale, grasses mixed,
+     *  how closely it keeps to the plot's rows. */
     growth: d.arrayOf(d.vec4f, GRASS_GROWTH_ROWS),
     /** Per plot kind, its patches: lowest and tallest height scale, how far
      *  the sparse ones thin, how far the dry ones dry. */
@@ -208,6 +212,9 @@ export const grassDrawLayout = tgpu.bindGroupLayout({
 });
 
 const BUILD_WORKGROUP = 64;
+/** A crop leaves its rows this near its plot's verge and any bare margin:
+ *  the headland, where the drill turned. */
+const ROW_HEADLAND_M = 0.3;
 /** A grass that keeps wholly to its drifts is this many times its share
  *  inside one, and absent outside. */
 const DRIFT_GATHER = 3;
@@ -330,8 +337,8 @@ const buildFn = tgpu
   }
   zlo -= 1.0;
   zhi += 1.0 + P.window.w;
-  let lo2 = lo - vec2f(${GRASS_JITTER_M});
-  let hi2 = hi + vec2f(${GRASS_JITTER_M});
+  let lo2 = lo - vec2f(${GRASS_JITTER_M} + P.clear.w);
+  let hi2 = hi + vec2f(${GRASS_JITTER_M} + P.clear.w);
   for (var i = 0u; i < 4u; i++) {
     let pl = P.planes[i];
     let pv = vec3f(select(lo2.x, hi2.x, pl.x >= 0.0), select(lo2.y, hi2.y, pl.y >= 0.0), select(zlo, zhi, pl.z >= 0.0));
@@ -350,34 +357,44 @@ const buildFn = tgpu
     // shows no lattice; both depend on the tile and j alone.
     let h = grassHash(bitcast<u32>(cell.x) ^ (j * 2654435761u), bitcast<u32>(cell.y) + j);
     let jitter = (vec2f(fract(h.z * 7.13), fract(h.x * 5.31)) - 0.5) * ${2 * GRASS_JITTER_M};
-    let p = lo + T * fract(offset + f32(j + 1u) * vec2f(${R2[0]}, ${R2[1]})) + jitter;
-    let z = grassGround(p);
-    let root = vec3f(p, z);
-    let dist = max(distance(eye, root), 0.5);
+    let fell = lo + T * fract(offset + f32(j + 1u) * vec2f(${R2[0]}, ${R2[1]})) + jitter;
+    let fellZ = grassGround(fell);
+    let dist = max(distance(eye, vec3f(fell, fellZ)), 0.5);
     let footprint = P.eye.w * dist;
     if (footprint >= P.density.w) { continue; }
     // Clump j stands once the density passes (j + 1/2) per tile.
     let rank = (f32(j) + 0.5) / (T * T);
-    let rho = grassDensity(dist, max(eye.z - z, 0.0));
+    let rho = grassDensity(dist, max(eye.z - fellZ, 0.0));
     if (rank >= rho) { continue; }
-    let cell = groundCell(p, footprint);
-    let site = groundSite(p, cell);
-    let water = groundWater(p, cell);
+    let cell = groundCell(fell, footprint);
+    let site = groundSite(fell, cell);
+    let water = groundWater(fell, cell);
     // Bare within the margins; thinner and lower for a metre beyond them, so
     // a field meets a road or a wood without a wall of blades.
     // A wood's edge is its rect or its floor's ragged verge, whichever lies
     // farther out.
-    let wood = max(site.w, forestVergeInside(p, site.w));
+    let wood = max(site.w, forestVergeInside(fell, site.w));
     let margin = min(-site.z - P.clear.x, min(-wood, -water) - P.clear.z);
     if (margin < 0.0) { continue; }
     // Bare on the wet banks round water.
     if (groundShore(water) > 0.35) { continue; }
     let edge = smoothstep(0.0, ${GRASS_EDGE_M}, margin);
-    let kindOfPlot = u32(terrainLayout.$.plots[i32(site.x)].detail.y);
-    var grows = min(kindOfPlot, ${GRASS_GROWTH_ROWS - 2}u);
+    var grows = min(u32(terrainLayout.$.plots[i32(site.x)].detail.y), ${GRASS_GROWTH_ROWS - 2}u);
     if (groundVerge(site, footprint) > 0.5) { grows = ${GRASS_GROWTH_ROWS - 1}u; }
     let g = P.growth[grows];
     let stand = P.patches[grows];
+    // A drilled crop keeps to its plot's rows, the bright bands between the
+    // furrows the ground is painted with: the clump moves across them toward
+    // the nearest, but never out of its plot or into a bare margin.
+    let plot = terrainLayout.$.plots[i32(site.x)];
+    var p = fell;
+    if (g.w > 0.0 && plot.rows.z > 0.0) {
+      let across = dot(fell, plot.rows.xy) / plot.rows.z;
+      let toRow = (floor(across) + 0.5 - across) * plot.rows.z * g.w;
+      let room = max(0.0, min(site.y - terrainLayout.$.params.verge.w, margin) - ${ROW_HEADLAND_M});
+      p = fell + plot.rows.xy * clamp(toRow, -room, room);
+    }
+    let root = vec3f(p, grassGround(p));
     // The side's learned scars: craters, scorch and tracks leave clumps out.
     let scar = groundScars(p, footprint);
     let S = terrainLayout.$.scarParams.grass;
@@ -815,7 +832,7 @@ export async function createGrassPass(
         rules.soften_m_per_px[1],
       ),
       shading: d.vec4f(rules.soften, rules.blade_facing, rules.clump_value, 0),
-      clear: d.vec4f(rules.clear_m.road, rules.clear_m.prop, rules.clear_m.area, 0),
+      clear: d.vec4f(rules.clear_m.road, rules.clear_m.prop, rules.clear_m.area, kinds.rowReach),
       counts: d.vec4u(grid.nx, grid.ny, 0, 0),
       ground: d.vec4f(grid.spacing, 0, 0, 0),
       wind: d.vec4f(Math.cos(heading), Math.sin(heading), wind.lean, wind.gust),
