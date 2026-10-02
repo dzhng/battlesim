@@ -1,8 +1,9 @@
 """Tree and hedgerow appearance sources: one GLB per kind, four tiers each.
 
-    bun run --cwd web asset -- blender ../packages/scene-assets/blender/trees.py [out_dir]
+    bun run --cwd web asset -- blender ../packages/scene-assets/blender/trees.py [out_dir] [kind...]
 
-writes assets/source/trees/<kind>.glb (then `asset bake`).
+writes assets/source/trees/<kind>.glb (then `asset bake`): every kind, or
+those named.
 
 A tree is a branch skeleton carrying solid leaf clumps, so a crown is
 separate masses on its limbs with crevices between them, not one smooth
@@ -33,6 +34,16 @@ is the lobed volume of its own clumps, each a lobe just inside its clump, so
 it casts for the clumps without shadowing them and a tree keeps its outline
 when it changes tier. A hedgerow shrub is a seeded lobed volume on every
 tier, the finer two with a leaf relief (a Voronoi bulge).
+
+Species differ in shape, never in size: every tree is one height and one
+girth of bole (the validator's `fit.tree_size`), so the art cannot lie about
+sight. A broadleaf's clumps stand on a seeded lobed crown. A conifer's are
+boughs in whorls up one straight leader, under a spire, inside a tapering
+profile (the profile of ~/dev/game treeCrown.ts's conifer, as technique);
+its far tier is that outline turned round the leader. A pine is a broadleaf
+crown of few flat pads high on a bare bole; a birch a narrow one of small
+hanging clumps on a white bole (the proportions of ~/dev/game's aspen). A
+snag is a tree's skeleton with no clumps, its branches ending in points.
 
 Normals lean toward the crown's ellipsoid, so a crown shades as one rounded
 mass rather than a heap of rocks, and vertex colour carries the crown's own
@@ -69,10 +80,21 @@ TIERS = [
     dict(subdiv=3, relief=0.0, clump=1, sides=5),
     dict(subdiv=2, relief=0.0, clump=0, sides=0),
 ]
+# A bare tree's tiers (a snag): bark alone, so every tier draws the skeleton,
+# the far one as the trunk and each limb from end to end.
+BARE_TIERS = [
+    dict(sides=16, twig=0.0),
+    dict(sides=8, twig=0.07),
+    dict(sides=5, twig=0.12),
+    dict(sides=4, twig=0.12, ends=True),
+]
 
 # Linear albedo (glTF base colour factors). The biome tints these per species.
 LEAVES = (0.066, 0.112, 0.021, 1.0)
 BARK = (0.070, 0.052, 0.036, 1.0)
+# A leaf clump's height above and below its middle, in its radii: a pad,
+# flatter beneath.
+PAD = (0.7, 0.5)
 
 # A parent's radius^PIPE is the sum of its children's: 2 conserves area
 # (Leonardo's rule); a little more keeps twigs visible at the game's camera.
@@ -102,13 +124,39 @@ KINDS = {
     ),
     # A lower, wider-spreading tree with a lumpier outline.
     "tree_spreading": dict(
-        seed=23, height=10.0, crown_base=2.8, radius=4.8, half_height=3.4,
-        lobes=11, trunk=0.32, clump_m=1.4, clumps=20, inner=4, limbs=6, droop=1.6,
+        seed=23, height=10.5, crown_base=2.8, radius=4.7, half_height=3.4,
+        lobes=11, trunk=0.3, clump_m=1.4, clumps=20, inner=4, limbs=6, droop=1.6,
     ),
     # A tall, narrow crown (ash, poplar): breaks a tree line's skyline.
     "tree_tall": dict(
-        seed=37, height=11.8, crown_base=2.6, radius=2.6, half_height=4.8,
-        lobes=8, trunk=0.24, clump_m=1.0, clumps=18, inner=3, limbs=5, droop=0.5,
+        seed=37, height=11.5, crown_base=2.6, radius=2.6, half_height=4.8,
+        lobes=8, trunk=0.31, clump_m=1.0, clumps=18, inner=3, limbs=5, droop=0.5,
+    ),
+    # A spruce: whorls of boughs sloping down from one leader, under a spire.
+    # `whorls` counts the boughs of each, lowest first.
+    "tree_spruce": dict(
+        seed=41, height=11.2, crown_base=2.0, radius=4.6, whorls=(6, 5, 5, 4, 3),
+        trunk=0.4, droop=1.2, lean=0.3,
+    ),
+    # A pine: a few flat pads of needles high on a long bare bole, its upper
+    # bark orange.
+    "tree_pine": dict(
+        seed=53, height=11.0, crown_base=6.0, radius=4.2, half_height=2.5,
+        lobes=7, trunk=0.32, clump_m=1.35, clumps=10, inner=0, limbs=5, droop=0.6, proud=0.25,
+        pad=(0.5, 0.32), bark=(0.16, 0.085, 0.045, 1.0), bark_low=(0.45, 0.62, 0.8),
+    ),
+    # A birch: a narrow crown of small hanging clumps on a white bole, dark
+    # where the bark has split.
+    "tree_birch": dict(
+        seed=67, height=11.3, crown_base=3.4, radius=2.7, half_height=4.3,
+        lobes=8, trunk=0.33, clump_m=0.85, clumps=20, inner=4, limbs=6, droop=3.0,
+        bark=(0.52, 0.5, 0.45, 1.0), marks=0.75,
+    ),
+    # A standing snag: a dead tree's grey skeleton.
+    "tree_snag": dict(
+        seed=79, height=10.7, crown_base=3.2, radius=3.4, half_height=3.8,
+        lobes=7, trunk=0.26, clump_m=1.1, clumps=8, inner=0, limbs=7, droop=0.3,
+        bare=True, bark=(0.13, 0.115, 0.1, 1.0),
     ),
     # A hedgerow shrub: a 6 m run of hedge, 2.4 m wide and 2.8 m tall, set end
     # to end along field edges. No trunk; its ends round off so rows overlap.
@@ -248,6 +296,8 @@ def clump_sites(kind, lobes):
     """Where a crown's leaf clumps sit, crown-centred metres: a shell of them
     standing `PROUD` of the lobed crown, thinner underneath, and a few deeper
     ones that close the view through the crown."""
+    if "whorls" in kind:
+        return whorl_sites(kind)
     rng = random.Random(kind["seed"] * 13 + 1)
     out = []
     shell, inner = kind["clumps"], kind["inner"]
@@ -264,7 +314,7 @@ def clump_sites(kind, lobes):
             centre = surface * rng.uniform(0.3, 0.5)
         else:
             radius = kind["clump_m"] * rng.uniform(1.0, 1.5)
-            centre = surface - n * radius * (1.0 - PROUD)
+            centre = surface - n * radius * (1.0 - kind.get("proud", PROUD))
         out.append(
             dict(
                 centre=centre,
@@ -274,9 +324,79 @@ def clump_sites(kind, lobes):
                 # A pad is longer one way across than the other.
                 turn=rng.uniform(0.0, math.pi),
                 stretch=rng.uniform(1.0, 1.35),
+                pad=kind.get("pad", PAD),
             )
         )
     return out
+
+
+def profile(t):
+    """A conifer crown's radius `t` of the way up it, as a share of its
+    widest: a spire that closes in quickly underneath."""
+    return (1.0 - t) ** 0.85 * min(1.0, t * 7.0)
+
+
+# A bough's length along its branch against its width.
+BOUGH = 1.25
+# Where the lowest and highest whorls hang, as shares of the crown's height.
+WHORLS = (0.15, 0.85)
+
+
+def whorl_sites(kind):
+    """A conifer's clumps, in metres about the crown's base on the trunk's
+    axis: boughs in whorls up the leader, each a pad running out from it and
+    sloping down, and a spire at the tip (the last site)."""
+    rng = random.Random(kind["seed"] * 13 + 1)
+    crown = kind["height"] - kind["crown_base"]
+    whorls = kind["whorls"]
+    out = []
+    for k, count in enumerate(whorls):
+        t = WHORLS[0] + (WHORLS[1] - WHORLS[0]) * k / (len(whorls) - 1)
+        reach = kind["radius"] * profile(t)
+        for i in range(count):
+            a = kind["seed"] * 0.37 + k * 2.39996 + 2.0 * math.pi * (i + rng.uniform(-0.15, 0.15)) / count
+            along = Vector((math.cos(a), math.sin(a), 0.0))
+            # Wide enough to close its whorl and hide the one above.
+            radius = max(0.7, 0.56 * reach) * rng.uniform(0.9, 1.1)
+            height = crown * (t + rng.uniform(-0.12, 0.12) / len(whorls))
+            out.append(
+                dict(
+                    centre=along * (reach - (1.0 - PROUD * 0.5) * radius * BOUGH) + UP * height,
+                    normal=(along + UP * 0.6).normalized(),
+                    radius=radius,
+                    seed=rng.uniform(0.0, 97.0),
+                    turn=a,
+                    stretch=BOUGH,
+                    pad=(0.62, 0.42),
+                )
+            )
+    # The spire: a clump taller than it is wide, on the leader's tip.
+    out.append(
+        dict(
+            centre=UP * (crown - 1.1),
+            normal=UP,
+            radius=0.6,
+            seed=rng.uniform(0.0, 97.0),
+            turn=0.0,
+            stretch=1.0,
+            pad=(2.0, 0.9),
+        )
+    )
+    return out
+
+
+def crown_frame(kind, lobes, q):
+    """At `q` (metres about the crown's centre): the normal of the crown's
+    one rounded mass there, and how near its surface `q` lies, 0 to 1."""
+    if "whorls" in kind:
+        across = math.hypot(q.x, q.y)
+        t = min(1.0, max(WHORLS[0], q.z / (kind["height"] - kind["crown_base"])))
+        edge = kind["radius"] * max(profile(t), 0.12)
+        # A cone's side faces out and up; its axis faces up.
+        n = Vector((q.x, q.y, 0.0)).normalized() * 0.75 + UP * 0.65 if across > 1e-6 else UP
+        return n.normalized(), min(1.0, across / edge)
+    surface, _, _ = crown_point(kind, lobes, q.normalized(), 0.0)
+    return ellipsoid_normal(q, crown_axes(kind)), q.length / max(surface.length, 1e-6)
 
 
 _ICOSPHERES = {}
@@ -310,7 +430,7 @@ def clump_points(site, subdiv, relief):
         knob = noise.noise(u * 2.7 + at * 1.3)
         fine = noise.noise(u * 5.1 + at * 1.7)
         r = site["radius"] * (1.0 + 0.3 * lump + 0.16 * knob + 0.08 * relief * fine)
-        flat = 0.7 if u.z > 0.0 else 0.5
+        flat = site["pad"][0] if u.z > 0.0 else site["pad"][1]
         pad = Vector((u.x * r * site["stretch"], u.y * r / site["stretch"], u.z * r * flat))
         out.append((tip @ (turn @ pad), 0.5 + 0.5 * u.z))
     return out
@@ -378,13 +498,26 @@ def limb_clusters(directions, limbs, turn):
 def grow(kind, tips, lift):
     """The skeleton reaching `tips` (one per leaf clump, foot-centred metres)."""
     rng = random.Random(kind["seed"] * 7)
-    lean = Vector((rng.uniform(-0.25, 0.25), rng.uniform(-0.25, 0.25), 0.0))
+    lean = Vector((rng.uniform(-0.25, 0.25), rng.uniform(-0.25, 0.25), 0.0)) * kind.get("lean", 1.0)
     base = Vector((0.0, 0.0, kind["crown_base"])) + lean * 0.5
-    top = Vector((0.0, 0.0, lift + 0.3 * kind["half_height"])) + lean
+    whorled = "whorls" in kind
+    # A conifer's leader runs to its spire; a broadleaf's ends inside its crown.
+    top = Vector((0.0, 0.0, tips[-1].z if whorled else lift + 0.3 * kind["half_height"])) + lean
     # The bole, straight to the crown's base, then the leader through the crown.
     points = bezier(Vector(), Vector((0.0, 0.0, base.z * 0.4)), base - UP * base.z * 0.3, base, BOLE)
     points += bezier(base, base + UP * (top.z - base.z) * 0.4, top - UP * (top.z - base.z) * 0.3, top, LEADER)[1:]
     trunk = Branch(points)
+    if whorled:
+        # The leader carries the spire, and each bough leaves it from just
+        # above where its pad hangs.
+        trunk.clump = len(tips) - 1
+        for i, tip in enumerate(tips[:-1]):
+            index = min(range(BOLE - 1, len(points)), key=lambda k: abs(points[k].z - tip.z - 0.3))
+            knot = points[index]
+            to = tip - knot
+            trunk.fork(index, Branch(bezier(knot, knot + to * 0.35 + UP * 0.1, tip - to * 0.3 + UP * 0.25, tip, 4), i))
+        trunk.count()
+        return trunk
 
     heart = Vector((lean.x, lean.y, lift))
     clusters = limb_clusters([(p - heart).normalized() for p in tips], kind["limbs"], kind["seed"] * 0.61)
@@ -445,7 +578,7 @@ def droop(kind, trunk, branch, carried=Vector()):
         droop(kind, trunk, child, drops[index])
 
 
-def build_skeleton(kind, lobes, lift, top):
+def build_skeleton(kind, lobes, lift, top, reach):
     """The tree's skeleton with its clumps hung on it: (trunk, sites, clump
     centres, foot-centred metres). Drooped clumps hang short of the tree's
     `top`, so the crown is stretched up from its base until they pass it."""
@@ -468,6 +601,22 @@ def build_skeleton(kind, lobes, lift, top):
         rise = 1.02 * (top - base) / (high - base)
         for branch in trunk.walk():
             branch.points = [Vector((p.x, p.y, base + max(0.0, p.z - base) * rise)) if p.z > base else p for p in branch.points]
+    for _ in range(4 if "whorls" in kind else 0):
+        # A conifer's boughs are spread until the widest passes the tree's
+        # reach, as its crown was stretched to its top.
+        wide = max(
+            math.hypot((centre + offset).x, (centre + offset).y)
+            for site, centre in zip(sites, centres)
+            for offset, _ in clump_points(site, TIERS[0]["clump"], TIERS[0]["relief"])
+        )
+        if wide > reach:
+            break
+        spread = 1.02 * reach / wide
+        for branch in trunk.walk():
+            if branch is not trunk:
+                foot = branch.points[0]
+                branch.points = [Vector((foot.x + (p.x - foot.x) * spread, foot.y + (p.y - foot.y) * spread, p.z)) for p in branch.points]
+                centres[branch.clump] = branch.points[-1]
     return trunk, sites, centres
 
 
@@ -482,7 +631,6 @@ def within(p, top, reach):
 def build_clumps(kind, lobes, tier, lift, sites, centres, top, reach):
     """One tier's leaf clumps as a mesh, with normals and colours."""
     _, faces = icosphere(tier["clump"])
-    axes = crown_axes(kind)
     bm = bmesh.new()
     shade = []
     lows = [c.z - s["radius"] for s, c in zip(sites, centres)]
@@ -493,14 +641,13 @@ def build_clumps(kind, lobes, tier, lift, sites, centres, top, reach):
         for offset, up in clump_points(site, tier["clump"], tier["relief"]):
             p = within(centre + offset, top, reach)
             verts.append(bm.verts.new(p))
-            # About the crown's centre: how near the seeded crown's surface,
-            # and its ellipsoid's normal there.
-            q = p - UP * lift
-            surface, _, _ = crown_point(kind, lobes, q.normalized(), 0.0)
-            exposed = smoothstep(0.55, 1.0, q.length / max(surface.length, 1e-6))
+            # About the crown's centre: the crown's own normal there, and
+            # how near its surface.
+            normal, near = crown_frame(kind, lobes, p - UP * lift)
+            exposed = smoothstep(0.55, 1.0, near)
             # Leaves mottle a pad, where the tier has the vertices to carry it.
             mottle = 0.85 + 0.3 * tier["relief"] * noise.noise(p * 1.9 + Vector((site["seed"], 0.0, 0.0)))
-            shade.append((ellipsoid_normal(q, axes), exposed * mottle, up, (p.z - lo) / (hi - lo)))
+            shade.append((normal, exposed * mottle, up, (p.z - lo) / (hi - lo)))
         for a, b, c in faces:
             bm.faces.new((verts[a], verts[b], verts[c]))
     bm.normal_update()
@@ -544,8 +691,8 @@ def tube(bm, colours, points, radii, sides, furrowed, shade):
                 strength = 0.55 + 0.45 * noise.noise(Vector((k * 1.7, run * 0.9, 0.0)))
                 rib = (1.0 if k % 2 == 0 else -1.0) * strength
             ring.append(bm.verts.new(p + (side * math.cos(a) + other * math.sin(a)) * r * (1.0 + 0.1 * rib)))
-            dark = shade(p.z) * (1.0 - 0.2 * max(0.0, -rib) + 0.08 * max(0.0, rib))
-            colours.append((dark, dark, dark, 1.0))
+            groove = 1.0 - 0.2 * max(0.0, -rib) + 0.08 * max(0.0, rib)
+            colours.append((*(c * groove for c in shade(p, ring[-1].co)), 1.0))
         rings.append(ring)
     for lower, upper in zip(rings, rings[1:]):
         for k in range(sides):
@@ -553,23 +700,50 @@ def tube(bm, colours, points, radii, sides, furrowed, shade):
             bm.faces.new((lower[k], lower[j], upper[j], upper[k]))
 
 
+def bark_shade(kind, tier, lift):
+    """Bark's vertex colour at a vertex `v` of the ring about `p`, over the
+    kind's bark colour: darker as it climbs into the crown's shade; the old
+    dark bark low on a bole whose upper bark is brighter (`bark_low`, a
+    pine's); dark splits in a marked bole (a birch's), where the tier has the
+    rings to carry them."""
+    low = kind.get("bark_low")
+    marks = kind.get("marks", 0.0) if "twig" in tier else 0.0
+    at = Vector((kind["seed"], 0.0, 0.0))
+
+    def shade(p, v):
+        dark = 1.0 if kind.get("bare") else 1.0 - 0.45 * smoothstep(kind["crown_base"] * 0.8, lift, p.z)
+        rgb = (dark, dark, dark)
+        if low:
+            old = 1.0 - smoothstep(0.3, 0.7, p.z / kind["crown_base"])
+            rgb = tuple(dark * (1.0 + old * (c - 1.0)) for c in low)
+        if marks:
+            split = smoothstep(0.15, 0.4, noise.noise(Vector((v.x * 4.0, v.y * 4.0, v.z * 1.3)) + at))
+            rgb = tuple(c * (1.0 - marks * split) for c in rgb)
+        return rgb
+
+    return shade
+
+
 def build_branches(kind, tier, lift, trunk):
     """One tier's bark as a mesh: the trunk, and where the tier draws
-    branches every one no thinner than its `twig`."""
+    branches every one no thinner than its `twig`. A bare tree's branches
+    end in points; its far tier draws each from end to end."""
     bm = bmesh.new()
     colours = []
-    # Bark darkens as it climbs into the crown's shade.
-    shade = lambda z: 1.0 - 0.45 * smoothstep(kind["crown_base"] * 0.8, lift, z)
+    shade = bark_shade(kind, tier, lift)
     skeleton = "twig" in tier
+    bare = kind.get("bare", False)
     # The finest tier's bole is furrowed.
     furrowed = tier["sides"] >= 12
     for branch in trunk.walk() if skeleton else [trunk]:
         radii = [pipe_radius(kind, trunk, load) for load in branch.load]
+        if bare:
+            radii[-1] *= 0.15
         if branch is trunk:
             # The bole flares into its roots, which stand on the ground.
             radii = [r * (1.0 + 0.3 * math.exp(-p.z / 0.45)) for r, p in zip(radii, branch.points)]
             sides, points = tier["sides"], branch.points
-            if not skeleton:
+            if not skeleton or tier.get("ends"):
                 # A far trunk is its foot, the crown's base and its top.
                 keep = [0, BOLE - 1, len(points) - 1]
                 points, radii = [points[i] for i in keep], [radii[i] for i in keep]
@@ -578,7 +752,9 @@ def build_branches(kind, tier, lift, trunk):
                 continue
             points = branch.points
             sides = max(3, round(tier["sides"] * (0.15 + 0.75 * radii[0] / kind["trunk"])))
-        if skeleton and not furrowed:
+            if tier.get("ends"):
+                points, radii = [points[0], points[-1]], [radii[0], radii[-1]]
+        if skeleton and not furrowed and not tier.get("ends"):
             # A coarser tier's tubes take every other ring.
             keep = sorted({*range(0, len(points), 2), len(points) - 1})
             points, radii = [points[i] for i in keep], [radii[i] for i in keep]
@@ -625,6 +801,56 @@ def build_far_crown(kind, tier, sites, centres, top, reach):
     return finish(mesh, normals, colours)
 
 
+# A conifer's far crown: rings up the leader, of this many sides.
+SPIRE_RINGS, SPIRE_SIDES = 5, 8
+
+
+def build_far_spire(kind, tier, lift, sites, centres, top, reach):
+    """A conifer's far crown: the outline of its own boughs turned round the
+    leader, each ring just inside the boughs at its height, closing to a
+    point at the tree's top. It stands in for the lobed volume, which cannot
+    follow a spire from one centre."""
+    cloud = [
+        within(centre + offset * FAR_LOBE, top, reach)
+        for site, centre in zip(sites, centres)
+        for offset, _ in clump_points(site, tier["subdiv"], 0.0)
+    ]
+    lo = min(p.z for p in cloud)
+    step = (top - lo) / SPIRE_RINGS
+    bm = bmesh.new()
+    rings = []
+    for j in range(SPIRE_RINGS):
+        z = lo + step * j
+        wide = max(math.hypot(p.x, p.y) for p in cloud if -0.2 * step <= p.z - z <= 0.6 * step)
+        rings.append(
+            [
+                bm.verts.new((wide * math.cos(a), wide * math.sin(a), z))
+                for a in (2.0 * math.pi * (k + 0.5 * j) / SPIRE_SIDES for k in range(SPIRE_SIDES))
+            ]
+        )
+    tip = bm.verts.new((0.0, 0.0, top))
+    bm.faces.new(reversed(rings[0]))
+    for lower, upper in zip(rings, rings[1:]):
+        for k in range(SPIRE_SIDES):
+            j = (k + 1) % SPIRE_SIDES
+            bm.faces.new((lower[k], lower[j], upper[k]))
+            bm.faces.new((lower[j], upper[j], upper[k]))
+    for k in range(SPIRE_SIDES):
+        bm.faces.new((rings[-1][k], rings[-1][(k + 1) % SPIRE_SIDES], tip))
+    bm.normal_update()
+    mesh = bpy.data.meshes.new("crown")
+    bm.to_mesh(mesh)
+    bm.free()
+    normals = []
+    colours = []
+    for v in mesh.vertices:
+        n, _ = crown_frame(kind, [], v.co - UP * lift)
+        normals.append((v.normal * 0.45 + n * 0.55).normalized())
+        h = (v.co.z - lo) / (top - lo)
+        colours.append(leaf_colour((0.5 + 0.5 * smoothstep(0.0, 0.85, h)) * FAR_LIGHT, h))
+    return finish(mesh, normals, colours)
+
+
 # ------------------------------------------------------------------- the export
 
 
@@ -653,9 +879,11 @@ def build_kind(name, kind):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
     leaves = material("leaves", LEAVES)
-    bark = material("bark", BARK)
-    lobes = lobes_of(kind)
+    bark = material("bark", kind.get("bark", BARK))
     hedge = "length" in kind
+    whorled = "whorls" in kind
+    bare = kind.get("bare", False)
+    lobes = [] if whorled else lobes_of(kind)
 
     def probe_extents():
         """The finest lobed crown about its centre: its half-extents along x
@@ -672,28 +900,40 @@ def build_kind(name, kind):
         bpy.data.meshes.remove(probe)
         return out
 
-    x, y, low, high, reach = probe_extents()
     if hedge:
         # A hedge is sized per axis: its run, its width and its height.
+        x, y, low, high, reach = probe_extents()
         kind = dict(kind, fit=Vector((kind["length"] / 2 / x, kind["radius"] / y, kind["height"] / (high - low))))
         x, y, low, high, reach = probe_extents()
         lift, scale = -low, 1.0
     else:
-        # A tree scales whole (trunk too) so its top is exactly `height`, with
-        # the seeded crown's lowest point (finest tier) at crown_base before
-        # scaling. That crown's top and reach are the tree's size.
-        lift = kind["crown_base"] - low
-        scale = kind["height"] / (high + lift)
-        top = high + lift
-        trunk, sites, centres = build_skeleton(kind, lobes, lift, top)
+        if whorled:
+            # A conifer's crown is measured from its base on the trunk's
+            # axis, and its size is as given.
+            lift, scale = kind["crown_base"], 1.0
+            top, reach = kind["height"], kind["radius"]
+        else:
+            # A tree scales whole (trunk too) so its top is exactly `height`,
+            # with the seeded crown's lowest point (finest tier) at crown_base
+            # before scaling. That crown's top and reach are the tree's size.
+            x, y, low, high, reach = probe_extents()
+            lift = kind["crown_base"] - low
+            scale = kind["height"] / (high + lift)
+            top = high + lift
+        trunk, sites, centres = build_skeleton(kind, lobes, lift, top, reach)
+        if bare:
+            # A bare tree's size is its skeleton's: its highest branch end.
+            scale = kind["height"] / max(p.z for branch in trunk.walk() for p in branch.points)
     root = bpy.data.objects.new(name, None)
     scene.collection.objects.link(root)
-    for t, tier in enumerate(TIERS):
+    for t, tier in enumerate(BARE_TIERS if bare else TIERS):
         if hedge and t == len(TIERS) - 1:
             # A far hedge is a low mound in a long row: 20 triangles do.
             tier = dict(tier, subdiv=1)
         if hedge:
             parts = [("crown", build_crown(kind, lobes, tier, lift), leaves)]
+        elif bare:
+            parts = []
         elif tier["clump"] > 0:
             crown = build_clumps(kind, lobes, tier, lift, sites, centres, top, reach)
             if t == 0:
@@ -704,6 +944,8 @@ def build_kind(name, kind):
                 if top - size[0] > 1e-4 or reach - size[1] > 1e-4:
                     raise RuntimeError(f"{name}: clumps reach {size}, short of the tree's size {(top, reach)}")
             parts = [("crown", crown, leaves)]
+        elif whorled:
+            parts = [("crown", build_far_spire(kind, tier, lift, sites, centres, top, reach), leaves)]
         else:
             parts = [("crown", build_far_crown(kind, tier, sites, centres, top, reach), leaves)]
         if not hedge and tier["sides"] > 0:
@@ -736,4 +978,5 @@ def build_kind(name, kind):
 
 
 for kind_name, spec in KINDS.items():
-    build_kind(kind_name, spec)
+    if not ARGS[1:] or kind_name in ARGS[1:]:
+        build_kind(kind_name, spec)
