@@ -4186,3 +4186,20 @@ pending. **Confidence:** high for fixture identity, medium until the scene runs.
 **Gap:** Placement narrows a crown to its room inside the forest's shape with no floor, so a trunk near the edge draws a tree a few centimetres wide. Today's trees show it at the same places; the critique named it first.
 
 **Verdict:** open, for C75 or C76 (`scenery/placement.ts`). **Confidence:** high that it is wrong.
+## C06: canonicalize visibility candidates at the union owner
+
+**Choice:** Fog collects raw bucket IDs from every eye and sorts/deduplicates
+the world and remembered unions before learning. Ordinary spatial queries keep
+their sorted, unique contract; no candidate cache is retained.
+
+**Why:** Per-eye sorting repeats work over overlapping views, and remembered
+queries also sorted the growing prefix. The existing bucket membership and
+query reach are unchanged. Canonicalization remains before stateful consumers,
+so an overlapping body is learned once in the same ID order. The unchanged
+visibility kernel consumes neither vector.
+
+**Tradeoff:** Raw ID vectors contain more duplicate entries during collection;
+this exchanges temporary allocation for fewer sorts, without permanent map
+storage. Measure the final merge and Learning with Fog so moving work across
+profile brackets cannot masquerade as a gain. C06 records matched bounded
+Battle observations/digests and the remaining whole-city admission limits.
