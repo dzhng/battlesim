@@ -505,6 +505,20 @@ def pitched_roof(name, shape, mat, trim, parent=None, thickness=0.14, fascia_end
         mesh_part(name + "_caps", caps, mat, parent, lods=tuple(t for t in lods if t < 2))
 
 
+def house_shell(name, shape, wall, roof, trim, parent=None, sides=("a0", "a1", "b0", "b1"), fascia_ends=(True, True),
+                plinth=None, plinth_mat=None, plinth_m=0.4):
+    """Walls, roof and plinth of one box of a building: `<name>_walls`, `<name>_roof` and
+    `<name>_plinth`. `roof` None leaves the box to a neighbour's roof; `plinth` is the
+    plinth's (x0, x1, y0, y1), `plinth_m` high."""
+    house_walls(name + "_walls", shape, wall, parent, sides)
+    if roof is not None and shape.ends[1] - shape.ends[0] > 1e-6:
+        pitched_roof(name + "_roof", shape, roof, trim, parent, fascia_ends=fascia_ends)
+    if plinth:
+        x0, x1, y0, y1 = plinth
+        box(name + "_plinth", (x1 - x0 + 0.08, y1 - y0 + 0.08, plinth_m), ((x0 + x1) / 2, (y0 + y1) / 2, plinth_m / 2), plinth_mat,
+            parent, lods=(0, 1, 2))
+
+
 def chimney(name, size, height, mat, cap_mat, parent=None, pots=1, pot_mat=None):
     """A chimney stack standing on the origin: a capped stack with clay pots."""
     box(name + "_stack", (size[0], size[1], height), (0, 0, height / 2), mat, parent)
@@ -528,3 +542,197 @@ def panel_door(name, w, h, leaf_mat, frame_mat, parent=None, glass_mat=None, lig
     if light:
         box(name + "_bar", (w, 0.08, 0.06), (0, -0.04, h + 0.03), frame_mat, parent, lods=(0, 1))
         box(name + "_light", (w, 0.04, light), (0, -0.02, h + 0.06 + light / 2), glass_mat, parent, lods=(0, 1, 2))
+
+
+# ---------------------------------------------------------------- farm buildings
+class LeanToShape:
+    """One slope over a rectangle, for `pitched_roof`: the wall on the side named by
+    `rises` (north, south, east or west) reaches `high`, the wall across from it `low`.
+    The slope overhangs the low wall by `over`, the high wall by `over_top` and each
+    end by `verge`; `top` is its highest point."""
+
+    def __init__(self, x0, x1, y0, y1, low, high, rises="north", over=0.3, over_top=0.2, verge=(0.2, 0.2)):
+        self.swap = rises in ("east", "west")
+        self.a0, self.a1, self.b0, self.b1 = (y0, y1, x0, x1) if self.swap else (x0, x1, y0, y1)
+        up = 1 if rises in ("north", "east") else -1
+        self.bc, self.eave = (self.b0 + self.b1) / 2, low
+        self.tan = (high - low) / (self.b1 - self.b0)
+        self.ends = [self.a0 - verge[0], self.a1 + verge[1]]
+        low_b, high_b = (self.b0, self.b1) if up > 0 else (self.b1, self.b0)
+        self.foot = (low_b - up * over, low - over * self.tan)
+        self.head = (high_b + up * over_top, high + over_top * self.tan)
+        self.edge_z, self.top = self.foot[1], self.head[1]
+
+    def world(self, a, b, z):
+        return (b, a, z) if self.swap else (a, b, z)
+
+    def planes(self):
+        return [[self.world(self.ends[0], *self.foot), self.world(self.ends[1], *self.foot),
+                 self.world(self.ends[1], *self.head), self.world(self.ends[0], *self.head)]]
+
+    def crests(self):
+        return []
+
+
+def timber_frame(name, shape, mat, parent=None, posts=None, openings=None, foot=0.6, rail=2.5, width=0.2, proud=0.04,
+                 lods=TIERS):
+    """Exposed framing over the walls under `shape` (a `RoofShape`): a sill at `foot`, a
+    rail at `rail`, a plate under the eaves, corner posts and `posts`, braced at each
+    corner; a gable's posts run up to the roof under a collar. `posts` and `openings`
+    are per wall (`a0`, `a1`, `b0`, `b1`): where the posts stand along it, and each
+    opening as (from, to, head) along it: the sill stops at one, and so does the rail
+    when the head is over it. A timber is a board `proud` of the wall, with edges on
+    the finest tier."""
+    posts, openings = posts or {}, openings or {}
+    plate = shape.eave - 0.03 - width / 2
+
+    def members(key):
+        gable = key[0] == "a"
+        s0, s1 = (shape.b0, shape.b1) if gable else (shape.a0, shape.a1)
+        outline = sorted(shape.end_wall_top(int(key[1]), 0.0)) if gable else []
+
+        def roof(s):  # the roof's underside over a gable's post
+            for (sa, za), (sb, zb) in zip(outline, outline[1:]):
+                if sa <= s <= sb and sb > sa:
+                    return za + (zb - za) * (s - sa) / (sb - sa) - 0.2
+            return plate
+
+        holes = sorted(openings.get(key, ()))
+        stand = sorted({s0 + width / 2, s1 - width / 2, *posts.get(key, ())})
+        out = [((s, foot), (s, max(plate, roof(s)))) for s in stand]
+        at = s0
+        for lo, hi, _ in holes + [(s1, s1, 0.0)]:  # the sill, between the openings
+            if lo - at > 1e-6:
+                out.append(((at, foot), (lo, foot)))
+            at = hi
+        out.append(((s0, plate), (s1, plate)))
+        for k, (a, b) in enumerate(zip(stand, stand[1:])):
+            mid = (a + b) / 2
+            opening = [head for lo, hi, head in holes if lo < mid < hi]
+            if not any(head > rail for head in opening):
+                out.append(((a, rail), (b, rail)))
+            end = -1 if k == 0 else 1 if k == len(stand) - 2 else 0
+            if end and not opening:
+                corner, reach = (a, min(b - a, 1.5)) if end < 0 else (b, -min(b - a, 1.5))
+                out += [((corner + reach, foot), (corner, rail)), ((corner, rail), (corner + reach, plate))]
+        if gable and shape.ridge - shape.eave > 1.5:
+            z = shape.eave + 0.55 * (shape.ridge - shape.eave)
+            reach = (roof(shape.bc) + 0.2 - z) / shape.tan - 0.25
+            if reach > 0.3:
+                out.append(((shape.bc - reach, z), (shape.bc + reach, z)))
+        return out
+
+    walls = {"b0": (shape.b0, -1), "b1": (shape.b1, 1), "a0": (shape.a0, -1), "a1": (shape.a1, 1)}
+
+    def build(bm, lod):
+        for key, (at, out) in sorted(walls.items()):
+            def point(s, z, lift):
+                return Vector(shape.world(at + out * lift, s, z) if key[0] == "a" else shape.world(s, at + out * lift, z))
+
+            normal = Vector(shape.world(out, 0, 0) if key[0] == "a" else shape.world(0, out, 0))
+            for (ps, pz), (qs, qz) in members(key):
+                run = Vector((qs - ps, qz - pz)).normalized()
+                ds, dz = -run.y * width / 2, run.x * width / 2
+                ring = [(ps - ds, pz - dz), (qs - ds, qz - dz), (qs + ds, qz + dz), (ps + ds, pz + dz)]
+                _face(bm, [point(s, z, proud) for s, z in ring], normal)
+                if lod == 0:
+                    for (sa, za), (sb, zb) in zip(ring, ring[1:] + ring[:1]):
+                        away = point((sa + sb) / 2, (za + zb) / 2, 0) - point((ps + qs) / 2, (pz + qz) / 2, 0)
+                        _face(bm, [point(sa, za, 0), point(sb, zb, 0), point(sb, zb, proud), point(sa, za, proud)], away)
+
+    return mesh_part(name, build, mat, parent, lods)
+
+
+def barn_doors(name, w, h, leaf_mat, frame_mat, parent=None, hoist=0.0):
+    """A barn's double doors facing -Y, the threshold's centre on the wall plane at the
+    origin: two ledged and braced plank leaves between posts under a heavy lintel.
+    `hoist` metres of beam stand out over a loft's doors."""
+    half = w / 2
+    ledges = (0.12 * h, 0.5 * h, 0.88 * h)
+    for s in (-1, 1):
+        tag = "ab"[s > 0]
+        box(f"{name}_leaf_{tag}", (half - 0.02, 0.06, h), (s * half / 2, -0.03, h / 2), leaf_mat, parent)
+        box(f"{name}_post_{tag}", (0.18, 0.12, h), (s * (half + 0.09), -0.06, h / 2), frame_mat, parent, lods=(0, 1))
+        for k, z in enumerate(ledges):
+            box(f"{name}_ledge_{tag}_{k}", (half - 0.12, 0.03, 0.14), (s * half / 2, -0.075, z), leaf_mat, parent, lods=(0, 1))
+        for k, (z0, z1) in enumerate(zip(ledges, ledges[1:])):
+            run, rise = half - 0.2, z1 - z0 - 0.14
+            box(f"{name}_brace_{tag}_{k}", (math.hypot(run, rise), 0.03, 0.12), (s * half / 2, -0.075, (z0 + z1) / 2), leaf_mat,
+                parent, rot=(0, s * math.atan2(rise, run), 0), lods=(0,))
+    box(name + "_lintel", (w + 0.6, 0.16, 0.26), (0, -0.08, h + 0.13), frame_mat, parent, lods=(0, 1, 2))
+    box(name + "_gap", (0.04, 0.02, h), (0, -0.07, h / 2), bpy_dark(), parent, lods=(0, 1))
+    if hoist:
+        box(name + "_hoist", (0.16, hoist, 0.18), (0, -hoist / 2, h + 0.5), frame_mat, parent, lods=(0, 1, 2))
+
+
+def stable_door(name, w, h, leaf_mat, frame_mat, parent=None):
+    """A split stable door facing -Y, the threshold's centre on the wall plane at the
+    origin: the lower leaf shut, the upper swung in and the stall dark behind it."""
+    low = h * 0.55
+    box(name + "_leaf", (w, 0.05, low), (0, -0.025, low / 2), leaf_mat, parent)
+    box(name + "_dark", (w, 0.03, h - low), (0, -0.015, (h + low) / 2), bpy_dark(), parent)
+    box(name + "_head", (w + 0.36, 0.12, 0.16), (0, -0.06, h + 0.08), frame_mat, parent, lods=(0, 1, 2))
+    for s in (-1, 1):
+        box(f"{name}_jamb_{'ab'[s > 0]}", (0.12, 0.1, h), (s * (w / 2 + 0.06), -0.05, h / 2), frame_mat, parent, lods=(0, 1))
+    for k, z in enumerate((0.25, low - 0.2)):
+        box(f"{name}_ledge_{k}", (w - 0.08, 0.03, 0.12), (0, -0.065, z), leaf_mat, parent, lods=(0,))
+
+
+def farm_cart(name, wood, iron, parent=None):
+    """A two-wheeled farm cart standing on the origin, its shafts resting on the ground toward -Y."""
+    box(name + "_bed", (1.3, 2.6, 0.1), (0, 0.3, 0.9), wood, parent)
+    for s in (-1, 1):
+        tag = "ab"[s > 0]
+        box(f"{name}_side_{tag}", (0.05, 2.6, 0.42), (s * 0.65, 0.3, 1.16), wood, parent, lods=(0, 1, 2))
+        box(f"{name}_end_{tag}", (1.3, 0.05, 0.42), (0, 0.3 + s * 1.3, 1.16), wood, parent, lods=(0, 1))
+        cyl(f"{name}_wheel_{tag}", 0.6, 0.09, (s * 0.8, 0.4, 0.63), "X", wood, parent, seg=16, lods=(0, 1, 2))
+        cyl(f"{name}_tyre_{tag}", 0.62, 0.05, (s * 0.8, 0.4, 0.63), "X", iron, parent, seg=16, lods=(0,), caps=False)
+        cyl(f"{name}_hub_{tag}", 0.12, 0.2, (s * 0.8, 0.4, 0.63), "X", iron, parent, seg=8, lods=(0,))
+        box(f"{name}_shaft_{tag}", (0.08, 2.1, 0.08), (s * 0.5, -1.95, 0.47), wood, parent, rot=(0.4, 0, 0), lods=(0, 1))
+    cyl(name + "_axle", 0.05, 1.6, (0, 0.4, 0.63), "X", iron, parent, seg=6, lods=(0,))
+
+
+def bale_stack(name, mat, parent=None, across=3, high=3, seed=3):
+    """Straw bales stacked one deep against a wall facing -Y (the wall plane at y = 0),
+    centred on the origin: `high` courses, the top one a bale short."""
+    rng = random.Random(seed)
+    w, d, h = 0.95, 0.48, 0.4
+    for k in range(high):
+        count = across - (k == high - 1 and high > 1)
+        for i in range(count):
+            x = (i - (count - 1) / 2) * w + rng.uniform(-0.04, 0.04)
+            box(f"{name}_{k}_{i}", (w - 0.04, d - 0.03, h - 0.02), (x, -d / 2 - 0.03, (k + 0.5) * h), mat, parent,
+                rot=(0, 0, rng.uniform(-0.05, 0.05)), lods=(0, 1))
+    box(name + "_mass", (across * w, d, (high - 0.5) * h), (0, -d / 2 - 0.03, (high - 0.5) * h / 2), mat, parent, lods=(2, 3))
+
+
+def woodpile(name, w, h, bark, cut, parent=None, seed=5):
+    """Split logs stacked against a wall facing -Y (the wall plane at y = 0), their cut ends outward."""
+    rng = random.Random(seed)
+    box(name + "_stack", (w, 0.42, h), (0, -0.23, h / 2), bark, parent)
+    pitch = 0.26
+    for k in range(int(h / pitch)):
+        for i in range(int(w / pitch)):
+            x = -w / 2 + (i + 0.5) * (w / int(w / pitch)) + rng.uniform(-0.03, 0.03)
+            cyl(f"{name}_log_{k}_{i}", rng.uniform(0.09, 0.125), 0.06, (x, -0.455, 0.15 + k * pitch + rng.uniform(-0.02, 0.02)), "Y",
+                cut, parent, seg=6, lods=(0,))
+    for s in (-1, 1):
+        box(f"{name}_stake_{'ab'[s > 0]}", (0.08, 0.08, h + 0.25), (s * (w / 2 + 0.05), -0.3, (h + 0.25) / 2), bark, parent, lods=(0, 1))
+
+
+def stone_trough(name, stone_mat, water_mat, parent=None, w=1.7, d=0.5, h=0.5):
+    """A stone water trough against a wall facing -Y (the wall plane at y = 0)."""
+    box(name + "_block", (w, d, h - 0.08), (0, -d / 2 - 0.03, (h - 0.08) / 2), stone_mat, parent)
+    box(name + "_water", (w - 0.16, d - 0.16, 0.02), (0, -d / 2 - 0.03, h - 0.07), water_mat, parent, lods=(0, 1))
+    for s in (-1, 1):
+        box(f"{name}_rim_x{'ab'[s > 0]}", (0.09, d, 0.08), (s * (w / 2 - 0.045), -d / 2 - 0.03, h - 0.04), stone_mat, parent, lods=(0, 1))
+        box(f"{name}_rim_y{'ab'[s > 0]}", (w - 0.18, 0.09, 0.08), (0, -d / 2 - 0.03 + s * (d / 2 - 0.045), h - 0.04), stone_mat, parent,
+            lods=(0, 1))
+
+
+def water_butt(name, wood, iron, water_mat, parent=None, r=0.27, h=0.95):
+    """A rain barrel standing on the origin."""
+    cyl(name + "_staves", r, h, (0, 0, h / 2), "Z", wood, parent, seg=14)
+    cyl(name + "_water", r - 0.03, 0.02, (0, 0, h + 0.005), "Z", water_mat, parent, seg=14, lods=(0, 1))
+    for k, z in enumerate((0.2, h - 0.2)):
+        cyl(f"{name}_hoop_{k}", r + 0.012, 0.05, (0, 0, z), "Z", iron, parent, seg=14, lods=(0,), caps=False)
