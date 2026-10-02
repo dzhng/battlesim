@@ -164,12 +164,14 @@ export class PropAppearances {
   }
 
   /** Whether `kind` is drawn as the stand-in box: it has a binding, no
-   *  appearance is fitted to it, and it is no forest's tree. */
+   *  appearance is fitted to it, and something else does not draw it (a
+   *  forest its trees, a building its parts, from its template's art). */
   private standsIn(kind: string): boolean {
     return (
       this.standIns !== null &&
       kind in this.bindings &&
       !this.drawsTree(kind) &&
+      this.bindings[kind].drawn_by !== "building" &&
       !this.byKind.has(kind)
     );
   }

@@ -299,6 +299,12 @@ test("a prop kind with no art is drawn as a box of its own size, tinted by its k
   expect(artless.drawnFor([car]).has(PROTOTYPE_KIT)).toBe(true);
 });
 
+test("a building's part is never a stand-in box: its building draws it from its template's art", () => {
+  const part: MapProp = { ...car, id: 42, kind: "building", half: [6, 5, 4] };
+  expect(structureModels([part], [], artless)).toEqual([]);
+  expect(structureModels([part, car], [], artless).map((m) => m.x)).toEqual([car.center[0]]);
+});
+
 test("a stand-in follows what the side knows: shoved, burnt out, gone", () => {
   const known = (over: Partial<KnownProp>): KnownProp => ({
     ...car,
