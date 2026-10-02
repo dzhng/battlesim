@@ -41,7 +41,7 @@ Whole-frame confusion between vegetation, cover, shadow and fog reopens the resp
 
 ## Outcome
 
-**The ground contracts compose and the lane is inside its GPU budget. The gate is not clean: forest floor bodies went back off, two scenes fail for reasons this lane did not cause or could not attribute, and a fresh eye still reads open country as a map.** The farmland lab the slice names does not exist (no map has a tree line), so the tour is the village, the river lab and a generated map (mixed, medium, seed 2) with its town edge.
+**The ground contracts compose and the lane is inside its GPU budget. The gate is not clean: forest floor bodies went back off, two scenes fail for reasons this lane did not cause or could not attribute, and a fresh eye still reads open country as a map.** The farmland lab the slice names does not exist, so the tour is the village, the river lab and a generated map (mixed, medium, seed 2) with its town edge. Generated maps do carry tree lines; no station stands on one, so C86's drawn half is held by tests alone and has had no picture or critique.
 
 **Frame budget.** The short village benchmark, alternated four times between the lane's starting commit (`ca7bb972`) and the final tree (Apple Metal, 1920 × 1080, production build, load average 5 to 20):
 
@@ -58,7 +58,7 @@ Whole-frame confusion between vegetation, cover, shadow and fog reopens the resp
 - The passes' own paired rows (each in its slice): trees +0.50 ms, grass inside +0.4 ms, undergrowth +0.25 ms, field texture +0.15 to +0.45 ms, road wear and streets under +0.2 ms. Most were taken under load and did not resolve finer than about half a millisecond.
 
 **Scenes on the final tree.** Village replay, geometry, sensors, consequences, river, fog-look, workbench and ground pass. Three do not:
-- `movement`: "the rifle group's destinations are admitted and its routes use the 5 m gap" (routes come back empty). It passes at the lane's start and at `b40504bf`, after the lane's one export change; the check itself was renamed on main since. Not this lane's.
+- `movement`: "the rifle group's destinations are admitted and its routes use the 5 m gap" (routes come back empty). Bisected over 8 builds: the first bad commit is `82564693`, "Merge main and retain move admission and bounded routing contracts", and both its parents pass. It is that merge's, not this lane's.
 - `village`: the scripted fight no longer yields a last sighting, a firing report and a suppressed squad; two unit-panel layout checks fail; one wait times out. All pass at the lane's start. The lane changes no rule and no panel; not attributed further.
 - `generated`: the overview counts 43,533 of 43,534 trees at the far tier. Not explained.
 
@@ -73,4 +73,4 @@ Whole-frame confusion between vegetation, cover, shadow and fog reopens the resp
 - *Fixed from it:* the bank read as an orange outline round the river; its earth is a pale grey-brown now.
 - *Returned to their owners, not patched here:* everything else. The lane's Status lists them by slice; the hedgerows, wood shapes, street stubs and "where a town is" need the map.
 
-**Checks restated at the gate**, each recorded in `choices.md` ("Ground lane integration"): a road against its neighbour is "lighter, or within 15% and apart in hue"; the walk beside a road has one rule, no dark trough; the generated scene counts boulders with the static world; the town's edge needs some drilled field in frame, not 15%.
+**Checks restated at the gate**, each recorded in `choices.md` ("Ground lane integration" and "C87 ground composition gate"): a road against its neighbour is "lighter, or within 15% and apart in hue"; the walk beside a road has one rule, no dark trough; the generated scene counts boulders with the static world; the town's edge needs some drilled field in frame, not 15%.

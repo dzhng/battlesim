@@ -6606,3 +6606,52 @@ separately. No measured performance win is claimed.
 
 **Verdict:** sound; high confidence. This generalizes within an observed math
 owner while leaving unrelated, unproven numerical hypotheses alone.
+
+## C87 ground composition gate
+
+### Forest floor bodies go back off by default
+
+**Choice:** `b0d5b19a` reverts the one rule that turned on 5 log and 3 boulder candidates a hectare. C78's models, C79's undergrowth and the rig's floor stations stay.
+
+**Gap:** C77 and C78 plan the activation once models exist; the quick village report (three seeds) moved every digest and no outcome.
+
+**Verdict:** sound. The full report (ten seeds) panics with them on: the flank script's order is refused on seed 34. With them off it completes. Generated battles' own rules place floor bodies and draw them. The village needs its scripts and labs to stand cover appearing in their woods first. **Confidence:** high.
+
+### The bank is lifted 1.27 over its field, and its earth is grey-brown
+
+**Choice:** `shore.lift` 1.15 → 1.27; `palettes.shore` earth `[0.325, 0.305, 0.28]`.
+
+**Gap:** C70 says "at or above grass luminance, differing by hue". After C31's river recut a bank lay beside rapeseed, whose flowers are lighter than the ground the lift is measured from, and read 4 to 6% darker than the crop. Then the gate's fresh eye read the browner earth as "an orange outline round the river".
+
+**Verdict:** provisional. The river scene's check passes on all four banks (no darker; 8 to 18 apart in hue). It is the bank's third colour in one day and none had a critique of its own; it reads as a pale sandy shore. **Confidence:** medium.
+
+### The generated scene counts boulders with the static world
+
+**Choice:** "every body on the map is drawn" is structures plus boulders equals the map's props.
+
+**Gap:** The buildings lane's check counted one stand-in per prop. A boulder never changes, so it draws with the static world, not among the structures the side's knowledge redraws.
+
+**Verdict:** sound: 3,763 structures and 37 boulders are the map's 3,800 props. **Confidence:** high.
+
+### The town's edge needs some drilled field in frame, not 15%
+
+**Choice:** `_town.mjs` asks for over 3% of the town-edge frame drilled, of at least one crop.
+
+**Gap:** C31's check was written when the frame held 20%; main's generator moved the fields, and the meadow that surrounds a town fills most of the frame.
+
+**Verdict:** provisional. The rule it holds (yards on one side, crops on the other, in one frame) still fails if either is missing. **Confidence:** medium.
+
+### The gate ran the lane's scenes and the full report once, and bisected what failed
+
+**Choice:** Eleven scenes and the full village report ran once on the final tree; failures that pass at the lane's start were bisected in a spare checkout at the start commit, not argued.
+
+**Gap:** C87 asks for "native/wasm replay; memory and reset" and names no way to tell this lane's failures from another's on a shared main.
+
+**Verdict:** sound for `movement` (first bad commit `82564693`, another lane's merge). The village replay scene passes; no separate memory-and-reset run was made beyond what the village and ground scenes hold. **Confidence:** medium.
+
+### The whole-lane review moved no pixel
+
+**Choice:** The closeout review's refactors (two unread uniform slots reclaimed, one owner for a road's row, the luminance weights and the scenes' colour measures) were merged after a byte comparison: bare ground and class mask at seven stations on three maps, identical before and after.
+
+**Verdict:** sound. What it could not prove without a scene it left and listed: two noise helpers written out twice and three ways to turn a lattice in the terrain material, the shoulder's lift duplicating `atLeast`, and the rig building the same world twice. **Confidence:** high.
+
