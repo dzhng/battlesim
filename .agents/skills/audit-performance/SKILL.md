@@ -55,6 +55,9 @@ Do not prioritize by scary-looking counts alone:
   large project. For a legitimately huge namespace, persist a cursor and resume after it. Finding the
   target updates identity; an exhaustive miss or abnormal ceiling produces the domain's terminal
   verdict. Never restart the same partial prefix forever.
+- A reachability refusal needs an exhaustive graph that includes every legal link of the actual
+  reader, including sampled transitions and snapped intermediate anchors. A smaller component
+  proof may terminate repeated searches from many anchors; a search ceiling remains inconclusive.
 - Separate retryable failures from terminal ones. A permanent rejection must not sit at a queue head
   or fixed prefix forever.
 - Bound both sides of a transport and every durable/in-memory queue. State the overflow behavior;

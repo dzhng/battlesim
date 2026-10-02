@@ -40,11 +40,15 @@ const INFANTRY: Mobility = Mobility {
 };
 
 fn world(extra: &str) -> WorldGeometry {
+    world_with_rules(extra, &crate::common::rules())
+}
+
+fn world_with_rules(extra: &str, rules: &contract::scenario::Rules) -> WorldGeometry {
     let map: MapDefinition = serde_json::from_str(&format!(
         r#"{{"size":[400,200],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35{extra}}}"#
     ))
     .unwrap();
-    WorldGeometry::new(&map, &crate::common::rules())
+    WorldGeometry::new(&map, rules)
 }
 /// What a side plans a leg with: its grid of the bodies it knows, and the
 /// map's roads.
@@ -91,6 +95,26 @@ impl Known {
 /// A side that knows every body on the map.
 fn grid(w: &WorldGeometry) -> Known {
     Known::of(NavGrid::new(Arc::new(NavBase::build(w, w.props(), 0.3))), w)
+}
+
+/// Fixed road admission and costs make failure/recovery tracers independent
+/// of later game-data tuning; the map has only 20,000 cells to exhaust.
+fn road_fixture(extra: &str) -> (Known, contract::scenario::NavigationRules) {
+    let mut rules = crate::common::rules();
+    rules
+        .surfaces
+        .get_mut(&contract::map::SurfaceKind::Road)
+        .unwrap()
+        .speed_factor = 1.0;
+    rules
+        .surfaces
+        .get_mut(&contract::map::SurfaceKind::DirtTrack)
+        .unwrap()
+        .speed_factor = 0.75;
+    rules.navigation.search_cells_base = 20_000;
+    rules.navigation.search_cells_per_m = 200;
+    rules.navigation.road_access_m = 256.0;
+    (grid(&world_with_rules(extra, &rules)), rules.navigation)
 }
 
 fn route(plan: Plan) -> Vec<V2> {
@@ -141,6 +165,165 @@ fn the_fastest_route_takes_the_road_and_the_shortest_does_not() {
     // Infantry gains only ×1.3 on roads, so the detour is not worth it.
     let foot = route(g.plan(from, to, &INFANTRY, RoutePolicy::Fastest));
     assert!(route_length(from, &foot) < 365.0);
+}
+
+#[test]
+fn road_exits_do_not_multiply_an_enclosed_destinations_search() {
+    // The tank can stand in this courtyard, but cannot cross its walls.
+    // Every road ends outside it; adding exits cannot make the goal reachable.
+    let roads: Vec<_> = (0..12)
+        .map(|k| format!(r#"{{"kind":"road","shape":{{"kind":"stroke","points":[[20,{}],[280,{}]],"width_m":6}}}}"#, 10 + k * 15, 10 + k * 15))
+        .collect();
+    let (g, rules) = road_fixture(&format!(
+        r#", "surfaces":[{}], "props":[
+            {{"kind":"wall","center":[290,100],"half_extents":[1,12,2],"yaw":0}},
+            {{"kind":"wall","center":[310,100],"half_extents":[1,12,2],"yaw":0}},
+            {{"kind":"wall","center":[300,89],"half_extents":[11,1,2],"yaw":0}},
+            {{"kind":"wall","center":[300,111],"half_extents":[11,1,2],"yaw":0}}
+        ]"#,
+        roads.join(",")
+    ));
+    let (from, goal) = (v2(20.0, 100.0), v2(300.0, 100.0));
+    assert!(g.fits_at(from, &TANK) && g.fits_at(goal, &TANK));
+    let (plan, work) = sim::navigation::plan(
+        &g.grid,
+        &g.roads,
+        Leg {
+            from,
+            goal,
+            m: &TANK,
+            policy: RoutePolicy::Fastest,
+            avoid: &[],
+        },
+        &rules,
+    );
+    assert_eq!(plan, Plan::Blocked(BlockReason::NoRoute));
+    // At most one search of the 200×100 grid, plus local road access and
+    // the courtyard's fewer than 100 cells, before proving the obstruction.
+    assert!(
+        work.expanded < 21_000,
+        "one failed connector and courtyard proof, not a map search per exit: {work:?}"
+    );
+}
+
+#[test]
+fn an_inconclusive_goal_probe_keeps_a_legal_alternate_road_exit() {
+    let (g, mut rules) = road_fixture(
+        r#", "surfaces":[
+        {"kind":"road","shape":{"kind":"stroke","points":[[20,100],[280,100]],"width_m":10}},
+        {"kind":"road","shape":{"kind":"stroke","points":[[20,100],[20,190],[310,190],[310,100]],"width_m":10}}
+        ], "props":[{"kind":"wall","center":[290,100],"half_extents":[1,80,2],"yaw":0}]"#,
+    );
+    rules.search_cells_base = 30;
+    rules.search_cells_per_m = 0;
+    let (from, goal) = (v2(20.0, 100.0), v2(310.0, 100.0));
+    // The destination is connected through the distant opening. A short
+    // reverse search toward the cheap exit cannot prove its component closed.
+    assert_eq!(
+        sim::navigation::plan(
+            &g.grid,
+            &g.roads,
+            Leg {
+                from: goal,
+                goal: v2(218.0, 100.0),
+                m: &TANK,
+                policy: RoutePolicy::Shortest,
+                avoid: &[]
+            },
+            &rules
+        )
+        .0,
+        Plan::Blocked(BlockReason::SearchLimit),
+    );
+    let planned = route(
+        sim::navigation::plan(
+            &g.grid,
+            &g.roads,
+            Leg {
+                from,
+                goal,
+                m: &TANK,
+                policy: RoutePolicy::Fastest,
+                avoid: &[],
+            },
+            &rules,
+        )
+        .0,
+    );
+    assert!(
+        planned.iter().any(|p| p.y > 180.0),
+        "takes the distant legal road exit: {planned:?}"
+    );
+    assert!(g.route_fits(from, &planned, &TANK));
+    assert!(g.route_time(from, &planned, &TANK).is_finite());
+    assert_eq!(planned.last(), Some(&goal));
+}
+
+#[test]
+fn goal_component_proofs_include_sampled_corner_crossings() {
+    let walls: Vec<_> = (0..50)
+        .map(|k| {
+            format!(
+                r#"{{"kind":"wall","center":[{},{}],"half_extents":[0.05,0.05,2],"yaw":0}}"#,
+                1 + k * 2,
+                99 - k * 2
+            )
+        })
+        .collect();
+    let (g, rules) = road_fixture(&format!(
+        r#", "props":[{}], "surfaces":[
+        {{"kind":"dirt_track","shape":{{"kind":"stroke","points":[[21,21],[81,81]],"width_m":1}}}},
+        {{"kind":"road","shape":{{"kind":"stroke","points":[[21,21],[49,45]],"width_m":10}}}}
+        ]"#,
+        walls.join(",")
+    ));
+    let narrow = Mobility {
+        half_width_m: 0.3,
+        off_road_mps: 8.0,
+        ..TANK
+    };
+    let (from, goal) = (v2(21.0, 21.0), v2(81.0, 81.0));
+    assert!(g.fits_at(from, &narrow) && g.fits_at(goal, &narrow));
+    assert!(
+        g.route_fits(from, &[goal], &narrow),
+        "the diagonal crossing is sampled-clear"
+    );
+    // The ordinary no-corner cell graph rejects this crossing. Roads use
+    // the sampled reader, so exhausting that stricter graph is not a proof.
+    assert_eq!(
+        sim::navigation::plan(
+            &g.grid,
+            &RoadNet::default(),
+            Leg {
+                from,
+                goal,
+                m: &narrow,
+                policy: RoutePolicy::Fastest,
+                avoid: &[]
+            },
+            &rules
+        )
+        .0,
+        Plan::Blocked(BlockReason::NoRoute)
+    );
+    let planned = route(
+        sim::navigation::plan(
+            &g.grid,
+            &g.roads,
+            Leg {
+                from,
+                goal,
+                m: &narrow,
+                policy: RoutePolicy::Fastest,
+                avoid: &[],
+            },
+            &rules,
+        )
+        .0,
+    );
+    assert!(g.route_fits(from, &planned, &narrow));
+    assert!(g.route_time(from, &planned, &narrow).is_finite());
+    assert_eq!(planned.last(), Some(&goal));
 }
 
 #[test]

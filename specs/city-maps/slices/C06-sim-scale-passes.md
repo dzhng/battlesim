@@ -316,3 +316,45 @@ All sight tests and focused clearing, canopy/bucket-edge depth and side-known
 clearing checks pass, as do library clippy and independent read-only review.
 These are bounded initial-view measurements; contact peaks and browser admission
 remain with the scale lane.
+
+## Outcome — enclosed destination component proof
+
+A failed final road connector can now prove the whole destination inaccessible,
+rather than recertifying it from every nearby road. Navigation searches backward
+from the same effective destination cell, using the weakest existing mover fit,
+push and avoidance checks. Its certificate-only graph deliberately admits more
+links than a real route: sampled roads may cross cell corners and their next
+search may snap from an unchecked endpoint. A fixed local stencil covers both;
+it emits no route and never weakens the ordinary validator. Exhausting that
+entire relaxed component
+and finding the original start's resolved cell outside it proves `NoRoute`.
+The original goal having no admitted endpoint is the same terminal refusal every
+mandatory final connector already makes. Other start refusals, terrain shortcuts
+and `SearchLimit` do not prove component exhaustion.
+Reaching the attempted exit or failing to finish the proof retains the ordinary
+alternate-road and direct-search behavior. The proof runs once, only after a
+final connector fails; healthy road journeys incur no added search.
+
+The frozen layout-6, physical-catalogue-541668 Mixed Small seed-3 failure confirms
+the cause: its reverse destination query exhausts 36 cells, while forward
+connectors repeatedly search tens of thousands. This is historical input evidence,
+not admission of the incoming layout-7 generator. The complete corrected journey
+finishes with proven obstruction at 52,687 counted work, after the first failed
+connector. A small public twelve-exit
+courtyard regression fails at 192,136 expansions without the correction and now
+fits one search of its 20,000-cell map plus local proof work. A low-limit reverse
+query remains `SearchLimit`, and the complete journey still takes a distant legal
+road opening. Treating that limit as component exhaustion falsifies the positive
+test. A sampled diagonal crossing falsifies using the ordinary no-corner graph
+as a global road proof; the relaxed certificate retains its legal road route.
+An actual Battle holds while planning, finishes blocked within the same
+derived allowance, clears its pending job and matches every serialized-replay tick.
+
+This intentionally changes affected planning completion ticks and may replace a
+later inconclusive verdict with an earlier proven obstruction. Its pending stage
+and the flag preventing repeated proofs enter the digest only when used. The
+existing sparse search scratch is reused; no world-sized storage, limit tuning or
+physical exemption is added. Large connected destination components and other
+repeated connector failures retain their existing costs. Current generated-case
+follow-up, native/Wasm agreement and full browser admission remain integration
+work; this scoped correction does not close C06 or the whole navigation budget.

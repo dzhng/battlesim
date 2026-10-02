@@ -4245,3 +4245,37 @@ native six-tick control, foliage inlining reduces whole Fog plus Learning more
 than height inlining and also shrinks linked text. It needs no second visibility
 implementation or invalidation owner. C06 records the exact observations/digests,
 measured code-size tradeoff and narrower scope of the evidence.
+
+## C06: prove an enclosed destination once after a failed road exit
+
+**Choice:** When a vehicle reaches the final planning step from a road and that
+connector fails, try one counted search outward from the destination's resolved
+cell. A search frontier is the queue of cells still to inspect. If that queue
+empties, the search has found every cell this footprint can reach from the goal.
+When the original start's resolved cell is absent, no road exit can complete the
+journey, so report `NoRoute` immediately. A search limit leaves an unfinished
+queue and proves nothing; ordinary alternative roads remain available.
+
+**Gap:** The existing road planner rejects one failed exit at a time. The plan
+required bounded work but did not select how to share those failures. A tank
+sent into a closed courtyard can repeatedly search the large outside region
+from different roads, even though a small search inside the courtyard proves
+all approaches impossible. Reusing the search's completed component provides
+a general geometry proof without recognizing a map, unit type or seed.
+
+**Reach:** Run this extra proof after failure, not on every healthy road journey.
+It reuses the existing sparse scratch and footprint checks, preserves the original
+start/goal snapping and grants no passage through bodies. The proof may step
+round corners and farther than an actual route, covering the road reader's
+sampling and its next connector's existing snapped start. This errs toward
+declining a blockage proof; its path is never returned as a route. A reachable or large
+goal region may remain inconclusive and keep the existing repeated work; a
+general shared goal-access tree is outside this measured correction. Earlier
+proven refusal changes planning ticks and affected digests, while same-build
+replay remains exact.
+
+**Verdict:** sound for the demonstrated enclosed-component amplification.
+Public work, sampled-corner and alternate-road tests distinguish a completed
+proof from resource exhaustion, and the counted Battle exercises replay. **Confidence:** high for
+the proof and unchanged physical authority; medium for coverage beyond the
+frozen layout-6 failure family, which remains explicitly unclaimed.
