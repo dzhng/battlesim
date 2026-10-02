@@ -7,7 +7,12 @@
 // Plain TypeScript with no bundler features, so Node scripts import it too.
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { initSync, resolve_saved_map } from "../wasm/game_wasm.js";
+import {
+  complete_template_catalogue_json,
+  initSync,
+  resolve_saved_map,
+} from "../wasm/game_wasm.js";
+import type { PhysicalTemplates } from "../../../packages/scene-assets/src/templateSource.ts";
 import {
   checkAddress,
   MapResolveError,
@@ -21,15 +26,32 @@ const FIXTURES = join(import.meta.dirname, "../../../fixtures");
 const WASM = join(import.meta.dirname, "../wasm/game_wasm_bg.wasm");
 
 let ready = false;
-/** The resolver, its module initialised once per process. */
+/** Initialise the WebAssembly module, once per process. */
+function wasm(): void {
+  if (ready) return;
+  if (!existsSync(WASM))
+    throw new Error(
+      `the simulation's WebAssembly is not built (${WASM}): run \`bun run build:wasm\``,
+    );
+  initSync({ module: readFileSync(WASM) });
+  ready = true;
+}
+
+/** The resolver. */
 function resolver(): typeof resolve_saved_map {
-  if (!ready) {
-    if (!existsSync(WASM))
-      throw new Error(`the map resolver is not built (${WASM}): run \`bun run build:wasm\``);
-    initSync({ module: readFileSync(WASM) });
-    ready = true;
-  }
+  wasm();
   return resolve_saved_map;
+}
+
+/** The physical template contract as its own code judges it
+ *  (`contract::templates`): the asset check holds every city set's
+ *  descriptors and the catalogue's hash to it, never to a copy in TypeScript. */
+export function physicalTemplates(): PhysicalTemplates {
+  wasm();
+  return {
+    complete: (descriptors) =>
+      JSON.parse(complete_template_catalogue_json(JSON.stringify(descriptors))),
+  };
 }
 
 function document(path: string, location: string): string {

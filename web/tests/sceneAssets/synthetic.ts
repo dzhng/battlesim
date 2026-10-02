@@ -532,7 +532,7 @@ export const SKELETON_ENTRY: SkeletonEntry = {
 
 /** Engine space (Z up, +X forward) → glTF (Y up): (x, y, z) → (x, z, −y). */
 const g3 = ([x, y, z]: Vec3): Vec3 => [x, z, -y];
-const gBox = (b: GltfBuilder, min: Vec3, max: Vec3) => {
+export const gBox = (b: GltfBuilder, min: Vec3, max: Vec3) => {
   const [a, c] = [g3(min), g3(max)];
   return b.box(
     [Math.min(a[0], c[0]), Math.min(a[1], c[1]), Math.min(a[2], c[2])],
