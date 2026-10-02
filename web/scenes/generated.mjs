@@ -115,7 +115,7 @@ async function startupOf(ctx, spec) {
         const moduleURL = performance
           .getEntriesByType("resource")
           .find((entry) => entry.name.split("?")[0].endsWith("/src/battle/sim/module.ts"))?.name;
-        if (!moduleURL) throw new Error("The page's query module was not observed");
+        if (!moduleURL) throw new Error("The page's simulation module was not observed");
         const { loadSimModule } = await import(moduleURL);
         return (await loadSimModule()).memory.buffer.byteLength;
       });
@@ -124,8 +124,6 @@ async function startupOf(ctx, spec) {
           startup,
           timings: report.timings,
           worldBuildMs: report.worldBuildMs,
-          publicExportMs: report.publicExportMs,
-          publicBytes: report.publicBytes,
           wasmBytes: report.wasmBytes,
           mainWasmBytes,
           buildings: report.counts.buildings,

@@ -350,7 +350,6 @@ test("worker publication copying and transfer preserve every raw NaN carrier bit
   };
   const h = harness(async () => ({
     memory,
-    takePublicWorld: () => null,
     createBattle: () => battle,
     replayBattle: () => battle,
   }));

@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Vec3 } from "math";
 import { loadMap } from "@web/maps/browser";
+import type { MapDefinition } from "@web/maps/resolve";
 import {
   buildingObstacles,
   buildingPartProps,
@@ -36,8 +37,8 @@ import {
 } from "../cameraLab";
 import { useFeed } from "../feed";
 import { LabViewport, type ViewportPilot } from "../LabViewport";
-import { useBuiltScenario } from "../useBuiltScenario";
-import { useStaticMap } from "../useStaticWorld";
+import { buildFailed, useBuiltScenario } from "../useBuiltScenario";
+import { useStaticWorld } from "../useStaticWorld";
 import { useGameAppearances } from "../gameAppearances";
 import { gameBiome } from "../gameBiome";
 import { gameCamera } from "../gameCamera";
@@ -89,9 +90,9 @@ function eyeMesh(frame: FlightFrame, half: number): Mesh {
 }
 
 export default function CameraLab() {
-  const map = useBuiltScenario("camera-lab", async () => (await loadMap("camera-lab")).json);
+  const map = useBuiltScenario("camera-lab", async () => (await loadMap("camera-lab")).definition);
   if (!map) return null;
-  if (typeof map !== "string")
+  if (buildFailed(map))
     return (
       <main style={{ padding: 24 }} className="lab-rejected" data-testid="error">
         the camera lab's map could not be loaded: {map.error}
@@ -100,8 +101,8 @@ export default function CameraLab() {
   return <Arena map={map} />;
 }
 
-function Arena({ map }: { map: string }) {
-  const world = useStaticMap(map);
+function Arena({ map }: { map: MapDefinition }) {
+  const world = useStaticWorld(map);
   const appearances = useGameAppearances();
   const [trajectory, setTrajectory] = useState(TRAJECTORIES[0]);
   const [riding, setRiding] = useState(false);
