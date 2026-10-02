@@ -1,21 +1,22 @@
-// A battle on a generated map: the map the URL asks for is the one the
-// preparation worker made, a loading screen covers the wait, the battle on it
-// runs, and its buildings (massing), trees and roads are drawn where the
-// static map says they are, with fog over what blue does not see. The camera
-// flown through its main town never enters a building.
+// A battle the player starts from the main menu on a generated map: the
+// menu's type, size and seed are the map the preparation worker makes, a
+// loading screen covers the wait, the battle on it runs in the village's
+// battle view, and its buildings (massing), trees and roads are drawn where
+// the static map says they are, with fog over what blue does not see. The
+// camera flown through its main town never enters a building.
 //
 // `CAMERA_MAP=metro:large:1` flies the camera through that map's main town
-// instead, and reports what clearance costs there.
+// instead, and reports what clearance costs there. `STARTUP_MAP=mixed:large:1`
+// only starts that map from the menu and reports how long it took.
 import { writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
-import { advance, lab, obs, presented } from "./_lab.mjs";
+import { advance, lab, obs, openMenu, presented } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
 import { flyTown } from "./_cameraClearance.mjs";
 
 const game = JSON.parse(readFileSync(new URL("../../fixtures/game.json", import.meta.url)));
 const TICK_HZ = game.tick_hz;
 const MAP = { type: "mixed", size: "small", seed: "1" };
-const QUERY = `?type=${MAP.type}&size=${MAP.size}&seed=${MAP.seed}`;
 const HIDE_HUD = "[data-testid=battle-panel], .ro-layer { display: none !important; }";
 /** The ground mask's two values: a pixel that is mostly ground, and one that is not. */
 const isGround = ([r]) => r > 200;
@@ -43,6 +44,68 @@ export async function playable(page, timeout = 120000) {
     () => document.querySelector("[data-testid=error]")?.textContent ?? window.__lab?.error,
   );
   if (error) throw new Error(`lab failed: ${error}`);
+}
+
+/** What the preparation worker made, as the scene reads it: the report, with
+ *  the generated map's request and identity and the objective's centre. */
+async function preparedBattle(page) {
+  const report = await lab(page, () => window.__lab.route.prepared());
+  return {
+    ...report,
+    map: report.request.map_source.request,
+    generation: report.identity.generation,
+    town: report.objective.center,
+  };
+}
+
+/** Start a battle as a player does: open the main menu, choose the map's
+ *  type and size, and deploy. The menu shows no seed; the scene pins one by
+ *  the menu's address so the map is the same every run. Returns what the
+ *  menu and the loading screen showed. */
+async function deployFromMenu(ctx, page, map, shots = false) {
+  await page.goto(new URL("/", ctx.url).href);
+  await page.getByTestId("menu-deploy").waitFor();
+  const drawn = await page.getByTestId("menu-deploy").getAttribute("href");
+  await page.goto(new URL(`/?seed=${map.seed}`, ctx.url).href);
+  await page.getByTestId("menu-deploy").waitFor();
+  if (shots) await writeFile(ctx.evidencePath("menu-1920x1080.png"), await page.screenshot());
+  await page.getByTestId(`menu-map-${map.type}`).click();
+  await page.getByTestId(`menu-size-${map.size}`).click();
+  const menu = {
+    drawn,
+    seedShown: await page
+      .locator(".menu")
+      .innerText()
+      .then((t) => /seed/i.test(t)),
+    href: await page.getByTestId("menu-deploy").getAttribute("href"),
+    checked: await page.locator('.menu [role="radio"][aria-checked="true"]').allTextContents(),
+  };
+  if (shots)
+    await writeFile(ctx.evidencePath("menu-chosen-1920x1080.png"), await page.screenshot());
+  await page.getByTestId("menu-deploy").click();
+  await page.getByTestId("loading").waitFor();
+  const loading = await page.evaluate(() => ({
+    subject: document.querySelector("[data-testid=loading-subject]")?.textContent,
+    stage: document.querySelector("[data-testid=loading-stage]")?.textContent,
+    cancel: document.querySelector("[data-testid=loading-cancel]")?.getAttribute("href"),
+  }));
+  if (shots) await writeFile(ctx.evidencePath("loading-1920x1080.png"), await page.screenshot());
+  return { menu, loading };
+}
+
+/** `STARTUP_MAP`: one start from the menu, timed from the press of Deploy
+ *  (the battle page's navigation) to each loading stage. */
+async function startupOf(ctx, spec) {
+  const [type, size, seed] = spec.split(":");
+  const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
+  await deployFromMenu(ctx, page, { type, size, seed });
+  await playable(page, 600000);
+  const startup = await lab(page, () => window.__lab.route.startup());
+  const report = await preparedBattle(page);
+  console.log(
+    `METRIC startup ${type} ${size} seed ${seed}: prepared ${startup.prepared.toFixed(0)} ms (map ${report.timings.map.toFixed(0)}, encounter ${report.timings.encounter.toFixed(0)}), world ${startup.world.toFixed(0)} ms, first frame ${startup.renderer.toFixed(0)} ms, playable ${startup.playable.toFixed(0)} ms after Deploy; ${report.counts.buildings} buildings (development build)`,
+  );
+  await writeFile(ctx.evidencePath(`startup-${type}-${size}-${seed}.png`), await page.screenshot());
 }
 
 /** The frame in `view` ("final", "ground-mask", "fog-mask"), as a decoded
@@ -119,8 +182,8 @@ async function cameraOnMap(ctx, spec) {
   await lab(page, () => window.__lab.route.pause());
   await page.waitForFunction(() => window.__lab.route.status().status === "paused");
   await page.addStyleTag({ content: HIDE_HUD });
-  const generated = await lab(page, () => window.__lab.route.generated());
-  const flown = await cameraKeepsOut(ctx, page, generated.anchors.town, { reps: 200 });
+  const generated = await preparedBattle(page);
+  const flown = await cameraKeepsOut(ctx, page, generated.town, { reps: 200 });
   await ctx.writeEvidence(`camera-${type}-${size}-${seed}.json`, {
     map: generated.map,
     counts: generated.counts,
@@ -130,6 +193,7 @@ async function cameraOnMap(ctx, spec) {
 
 export async function run(ctx) {
   if (process.env.CAMERA_MAP) return cameraOnMap(ctx, process.env.CAMERA_MAP);
+  if (process.env.STARTUP_MAP) return startupOf(ctx, process.env.STARTUP_MAP);
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
   const warnings = [];
   page.on("console", (m) => {
@@ -137,34 +201,38 @@ export async function run(ctx) {
       warnings.push(m.text().slice(0, 200));
   });
 
-  // The loading screen names the map and its stage while the worker prepares it.
-  await page.goto(`${ctx.url}${QUERY}`);
-  await page.getByTestId("loading").waitFor();
-  const loading = await page.evaluate(() => ({
-    subject: document.querySelector("[data-testid=loading-subject]")?.textContent,
-    stage: document.querySelector("[data-testid=loading-stage]")?.textContent,
-  }));
-  await writeFile(ctx.evidencePath("loading-1920x1080.png"), await page.screenshot());
+  // The player's way in: the main menu's type and size, then Deploy.
+  const { menu, loading } = await deployFromMenu(ctx, page, MAP, true);
   ctx.check(
-    "a loading screen names the map and the stage while it is prepared",
-    loading.subject === "MIXED · SMALL · SEED 1" && !!loading.stage,
+    "the menu shows no seed, draws one for each visit, and deploys the chosen type and size",
+    /[?&]seed=\d+$/.test(menu.drawn) &&
+      !menu.seedShown &&
+      menu.href === `/battle?type=${MAP.type}&size=${MAP.size}&seed=${MAP.seed}` &&
+      menu.checked.join() === `${MAP.type},${MAP.size}`,
+    JSON.stringify(menu),
+  );
+  ctx.check(
+    "a loading screen names the map and the stage while it is prepared, and can be cancelled back to the menu's choice",
+    loading.subject === "MIXED · SMALL" &&
+      !!loading.stage &&
+      loading.cancel === `/?type=${MAP.type}&size=${MAP.size}&seed=${MAP.seed}`,
     JSON.stringify(loading),
   );
 
   await playable(page);
-  const generated = await lab(page, () => window.__lab.route.generated());
+  const generated = await preparedBattle(page);
   const startup = await lab(page, () => window.__lab.route.startup());
   ctx.check(
-    "the battle runs on the map the URL asked for",
+    "the battle runs on the map the menu asked for",
     generated.map.type === MAP.type &&
       generated.map.size === MAP.size &&
       generated.map.seed === MAP.seed &&
-      generated.identity.seed === MAP.seed &&
+      generated.generation.seed === MAP.seed &&
       generated.size.join() === "6000,6000",
-    JSON.stringify({ map: generated.map, identity: generated.identity, size: generated.size }),
+    JSON.stringify({ map: generated.map, identity: generated.generation, size: generated.size }),
   );
   console.log(
-    `METRIC generated ${MAP.type} ${MAP.size}: prepared ${startup.prepared.toFixed(0)} ms, world ${startup.world.toFixed(0)} ms, renderer ${startup.renderer.toFixed(0)} ms, playable ${startup.playable.toFixed(0)} ms after navigation (development build)`,
+    `METRIC generated ${MAP.type} ${MAP.size}: prepared ${startup.prepared.toFixed(0)} ms, world ${startup.world.toFixed(0)} ms, renderer ${startup.renderer.toFixed(0)} ms, playable ${startup.playable.toFixed(0)} ms after Deploy (development build)`,
   );
   await writeFile(ctx.evidencePath("opening-1920x1080.png"), await page.screenshot());
 
@@ -234,7 +302,7 @@ export async function run(ctx) {
       }
       return { box, ground };
     },
-    generated.anchors.town,
+    generated.town,
   );
   await look(page, building.box.center, 90, TOP_DOWN);
   const roofAt = [...building.box.center, building.box.baseZ + 2 * building.box.half[2]];
@@ -264,13 +332,13 @@ export async function run(ctx) {
   );
 
   // The camera, flown through the town.
-  const camera = await cameraKeepsOut(ctx, page, generated.anchors.town);
+  const camera = await cameraKeepsOut(ctx, page, generated.town);
 
   // A tree: the trunk nearest the town, its crown over the trunk.
   const [trunk] = await lab(
     page,
     (town) => window.__lab.route.propsNear("trunk", town[0], town[1], 1),
-    generated.anchors.town,
+    generated.town,
   );
   await look(page, trunk.center, 45, TOP_DOWN);
   const crownAt = [...trunk.center, trunk.baseZ + 2 * trunk.half[2] * 0.6];
@@ -316,7 +384,7 @@ export async function run(ctx) {
   // Fog: red stands in the town, unseen, and is neither drawn nor known;
   // blue's own ground is seen.
   const o = await obs(page);
-  await look(page, generated.anchors.town, 400);
+  await look(page, generated.town, 400);
   const townMask = await frame(ctx, page, "fog-mask", "town-fog-mask.png");
   await writeFile(ctx.evidencePath("town-fogged-1920x1080.png"), await page.screenshot());
   const townPx = await project(page, [...building.ground, 0]);
@@ -343,7 +411,7 @@ export async function run(ctx) {
     page,
     ({ id, goal }) =>
       window.__lab.route.command({ kind: "move", units: [id], gesture: 1, goal, route: "fastest" }),
-    { id: jeep.id, goal: generated.anchors.town },
+    { id: jeep.id, goal: generated.town },
   );
   const path = [];
   for (let s = 0; s < 12; s++) {
@@ -354,8 +422,7 @@ export async function run(ctx) {
       kind: await lab(page, (p) => window.__lab.route.surfaceAt(p[0], p[1])?.kind, at),
     });
   }
-  const toTown = (p) =>
-    Math.hypot(p[0] - generated.anchors.town[0], p[1] - generated.anchors.town[1]);
+  const toTown = (p) => Math.hypot(p[0] - generated.town[0], p[1] - generated.town[1]);
   const driven = Math.hypot(
     path.at(-1).at[0] - jeep.position[0],
     path.at(-1).at[1] - jeep.position[1],
@@ -420,7 +487,7 @@ export async function run(ctx) {
 
   // Rebuilding the frame returns every allocation, the massing's included
   // (after one rebuild, so the per-tier buffers have this view's capacity).
-  await look(page, generated.anchors.town, 400);
+  await look(page, generated.town, 400);
   await lab(page, () => window.__lab.rebuild());
   const baseline = await lab(page, () => window.__lab.allocations());
   for (let i = 0; i < 2; i++) await lab(page, () => window.__lab.rebuild());
@@ -448,15 +515,63 @@ export async function run(ctx) {
     camera,
   });
 
-  // A request the generator cannot serve says so, and starts no battle.
+  // The battle saved and watched: the file holds the request that made the
+  // battle, and the viewer prepares it again and reaches the same digest.
+  const saved = await lab(page, () => ({
+    tick: window.__lab.route.tick(),
+    digest: window.__lab.route.digest(),
+  }));
+  const file = await lab(page, () => window.__lab.route.exportReplay());
+  await page.goto(`${ctx.url}?replay=saved`);
+  await playable(page);
+  await lab(page, () => window.__lab.route.pause());
+  await page.waitForFunction(() => window.__lab.route.status().status === "paused");
+  await advance(page, saved.tick - (await lab(page, () => window.__lab.route.tick())));
+  const replayed = await lab(page, () => ({
+    tick: window.__lab.route.tick(),
+    digest: window.__lab.route.digest(),
+  }));
+  const watched = await preparedBattle(page);
+  ctx.check(
+    "a saved battle holds its preparation request, and its replay prepares the same map and reaches the same digest",
+    JSON.stringify(file.request) === JSON.stringify(generated.request) &&
+      watched.generation.map_hash === generated.generation.map_hash &&
+      !!saved.digest &&
+      replayed.tick === saved.tick &&
+      replayed.digest === saved.digest,
+    JSON.stringify({ saved, replayed }),
+  );
+  // The same commands pinned to another build's generator: refused, never
+  // replayed on whatever this build would make of the seed.
+  const stale = structuredClone(file);
+  stale.request.map_source.request.generator_version = "layout-0";
+  await openMenu(page);
+  await page.getByTestId("replay-file").setInputFiles({
+    name: "stale.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(stale)),
+  });
+  await page.getByTestId("loading").getByTestId("error").waitFor();
+  const staleMessage = await page.getByTestId("loading").getByTestId("error").textContent();
+  ctx.check(
+    "a replay saved by another build's generator is refused, saying so",
+    /saved by another version of the game/.test(staleMessage),
+    staleMessage,
+  );
+
+  // A request for no such map says so, and starts no battle.
   const refused = await ctx.newPage({ allowErrors: true });
   await refused.goto(`${ctx.url}?type=metro&size=tiny`);
   await refused.getByTestId("error").waitFor();
   const message = await refused.getByTestId("error").textContent();
+  await refused.getByRole("button", { name: "Details" }).click();
+  const details = await refused.getByTestId("error-details").textContent();
   ctx.check(
-    "a request for no such map is refused by name, with no battle",
-    /size must be one of small, medium, large/.test(message) &&
+    "a request for no such map is refused, with the parameter at fault in its details and no battle",
+    /This link does not name a battle/.test(message) &&
+      /size must be one of small, medium, large/.test(details) &&
       !(await refused.evaluate(() => window.__lab?.ready ?? false)),
-    message,
+    `${message} | ${details}`,
   );
+  await writeFile(ctx.evidencePath("refused-1280x800.png"), await refused.screenshot());
 }

@@ -2734,3 +2734,182 @@ cannot mistake it for the transport record.
 
 **Verdict:** Sound: one atomic publication baseline, exact float32 words, and no
 codec dependency or new simulation state. **Confidence:** High.
+
+## Buildings lane
+
+### China's family ships first
+
+**When:** S2 verdict, 2026-10-01.
+
+**Choice:** A generated map's apartment blocks come from the China graph first. New York and Paris follow later through the same exporter as further families. The alternative was Paris first, whose Haussmann blocks sit more naturally beside a European village.
+
+**Gap:** The spec says one regional family per map and names three sources, but not which is built first or how many are needed to close the lane.
+
+**Reach:** The first maps have Chinese apartment blocks beside our own scripted houses, farms, towers and sheds. Shop signs use our invented names. Adding a family is a new source set, not new code.
+
+**Verdict:** provisional. China is the only source whose blocks are free-standing with four facades at exactly 3 m a floor, which is what the generator places, and its enclosed balconies are the look the user named as the reference. Paris has fixed 3.2 m floors under a mansard and New York always has two blank sides. If the user would rather open with a European town, the order changes and nothing else does. **Confidence:** medium.
+
+### Attached homes are our own source
+
+**Choice:** Terraced and semi-detached houses are scripted by us, in the same source as detached houses (C17). The spec assumed the graphs would cover low attached buildings.
+
+**Gap:** S2 measured that no graph makes a two-storey house or a mid-terrace unit with one street face.
+
+**Verdict:** sound. A graph building squeezed to 7 m wide is a shop block with a water tower, not a house. **Confidence:** high.
+
+### Our own sources serve every family until a family has its own
+
+**Choice:** The scripted houses, farmsteads, towers and industrial buildings are tagged with the shipping family, so a map of that family has all six categories. The alternative, three styled variants of each before anything ships, would triple the art before the first town can be judged.
+
+**Gap:** "Missing variants cannot fall back to unrelated regional art" does not say whether project-made buildings count as unrelated.
+
+**Verdict:** provisional. They are styled plainly (plaster, tile, concrete) so they do not read as another region's. A second family needs its own pass over them, or an explicit decision to share. **Confidence:** medium.
+
+### Stretched primitives are folded into each template's own mesh
+
+**Choice:** New York's walls and trim are unit cubes stretched up to 24 times per instance, textured in the source by world-space projection. The exporter realizes rows of such generated primitives into one mesh per template with UVs in metres; real kit meshes stay shared instances. The alternatives were a world-space projection path in our shader, or one module per distinct stretch.
+
+**Gap:** Q-H′ asked for box-projected baked UVs and L1 for instanced modules; on stretched cubes the two conflict.
+
+**Verdict:** sound. A cube is twelve triangles, so folding costs little storage, and the shader keeps one material path. **Confidence:** high.
+
+### Graph-made templates are 3n + 2 metres a side with 3 m floors
+
+**Choice:** A graph-made template takes its size from a recipe whose sides are 3n + 2 metres, which gives exactly 3 m bays in all three graphs. The prototype sizes they replace (36 × 12 becomes 35 × 11) change, and the catalogue's hash with them.
+
+**Gap:** The spec forbids stretching art to a footprint but left the legal sizes to S2.
+
+**Verdict:** sound. The simulation's seats and eyes already assume 3 m bays and floors. **Confidence:** high.
+
+### The source format: one kit and one template file per set
+
+**Choice:** A building script writes a folder with `kit.glb` (modules as named roots with the usual four tiers) and `templates.json` (each template's physical descriptor and, per state, rows of module, position, yaw, per-axis scale, tier mask and tint). The physical catalogue the generator reads is derived from those descriptors and checked against them. The alternative kept descriptors hand-written in `fixtures/` with art fitted afterwards.
+
+**Gap:** C13 and C32 named the contents (modules, descriptors, placement rows) and delegated grouping and encoding.
+
+**Reach:** A template's shape has one author, the script that models it. A row cannot tilt or mirror a module; the exporter bakes those into module variants.
+
+**Verdict:** sound. It is the one arrangement where art and physics cannot drift, and it matches how the renderer already instances (yaw and per-axis scale). **Confidence:** high.
+
+### Triangle budgets per template are provisional
+
+**Choice:** 150,000, 50,000, 12,000 and 2,000 triangles drawn at tiers 0 to 3. They are starting numbers for the scripts; the placement-chunk pass (C22) measures real frames and amends them.
+
+**Verdict:** provisional. **Confidence:** low.
+
+## C55/C58 play a generated battle
+
+### The battle's address is its request, and a page per battle
+
+**Choice:** The menu's `Deploy` is a link to `/battle?type=&size=&seed=`, a full navigation like every other menu entry. The battle page prepares what its address says. Cancel and a refusal's way out are links back to `/?type=&size=&seed=`, which reopens the menu on the same choice.
+
+**Gap:** The slice asks that replacing or cancelling a pending request never start a stale battle, and that the menu show the share identity, without saying whether the menu and the battle are one page.
+
+**Verdict:** sound. One request per page makes a stale battle impossible across requests (leaving the page closes the worker), the address is the share identity for free, and reload replays the same request. Inside the page the client still silences a cancelled request, which a test holds. An in-page flow would need client-side routing the app does not have. **Confidence:** high.
+
+### The player's request is pinned on the page; the worker is handed the documents
+
+**Choice:** `map_source.request` is the whole `GenerationRequest` (generator version, preset revision, catalogue hash, limits), pinned on the page by `generationRequest` from the build's own generator before the worker starts. The build's documents (rules, presets, templates, recipes) travel beside the request in the worker's message and are not part of it.
+
+**Gap:** The slice names the request's fields but not who fills the pins, or whether the rules are part of a request.
+
+**Verdict:** sound. A pinned request is what a replay must store to be refused by another build, and the generator already refuses a stale pin. The rules stay outside because a lab may pin its own; their digest is in the replay. Pinning costs the page one parse of the 47 KB template list. **Confidence:** high.
+
+### `recipe_id` names a saved encounter on a catalogue map
+
+**Choice:** On a generated map `recipe_id` is a recipe the planner places with `encounter_seed`. On a catalogue map it is the map's saved encounter of that name, and `encounter_seed` is not read.
+
+**Gap:** The request has one `recipe_id` for both sources, and saved maps have no sites for the planner to read.
+
+**Verdict:** provisional. It is what C58's saved `encounters/assault.json` needs, and it lets a lab map play through the same path today. The unread seed is a wart: when a saved generated map carries its `sites.json`, a catalogue map could be planned too, and the saved encounter would become a cache of that plan. **Confidence:** medium.
+
+### The village and the labs keep their own scenario builders
+
+**Choice:** The village's variants (`village_scenario`, the simulation's factory) and the labs' `savedBattle` were not moved onto `prepare`. They already reach their maps through the one resolver (`loadMap`).
+
+**Gap:** The pass asked for one preparation contract with the village and labs working through the same path.
+
+**Verdict:** provisional. The village's encounter is built by a factory from rules, not a file or a recipe, so it has no `recipe_id` without a special case on the map's id; the labs pin their own rules and compose scenario text whose bytes every lab scene was proved against. Moving either is a change to prove with every scene, which this pass was told not to run. What is shared: the map owner, the battle view, the objective readout and the replay file module. **Confidence:** medium.
+
+### A replay stores the request, not the compiled battle
+
+**Choice:** `{ request, replay }`. Playback prepares the request again; a mismatch is refused by the generator's pins and by the replay's scenario and rules digests.
+
+**Gap:** The slice says runtime replay data stores the exact compiled map, encounter and rules.
+
+**Verdict:** provisional, and a named departure. The stored-scenario form is a 10 to 15 MB file per replay and overflows the browser's storage for "the last saved battle"; the request form is a few hundred bytes and is refused, never replayed wrong, when the map would differ. What it does not give: playback after the generator changes (the slice wanted no older generator to be needed), and a build identity for simulation-code changes. **Confidence:** medium.
+
+### The menu shows names, not extents, and one seed
+
+**Choice:** Type and size are shown by name with one line on the type; the size's kilometres are not shown. The seed field is the map's; the encounter seed and battle seed are address parameters with fixture defaults.
+
+**Gap:** The slice asks for the two composition controls and the seed, and leaves wording to the implementer.
+
+**Verdict:** provisional. The extents are a constant in Rust (M04) and are not exported; printing them in the menu would be a second copy. One seed is what a player shares; three would be a form. **Confidence:** medium.
+
+### `/lab/generated` is deleted
+
+**Choice:** The developer route is gone. Fixture `generated` is now the production route `/battle`, and its scene starts from the main menu.
+
+**Gap:** The pass allowed deleting it or keeping a thin entry.
+
+**Verdict:** sound. The address takes the same parameters the lab did, so nothing a developer could do there is lost. `fixtures/generated-lab.json` became `fixtures/generated-battle.json`. **Confidence:** high.
+
+### No generated map was saved
+
+**Choice:** C58's map was not committed: 9 to 15 MB for a Mixed Small map against a 2 MB limit for this pass. Seed 1 is named as the one to save.
+
+**Gap:** The pass set the limit and said to stop and report.
+
+**Verdict:** open. The owner decides between a larger budget (the spec's is 25 MB per saved map), a compact saved form (a building as its template id and frame, materialized by the resolver, which already checks exactly that), or saving the request and generating at load. The second also needs the catalogue's admission raised and the prototype library reachable by the adapters. **Confidence:** high on the sizes.
+
+
+## C62 ground evidence rig
+
+### The mask is a frame view the terrain writes, not a readback or a CPU picture
+
+**Choice:** `ground-classes` is a `FrameView`: the terrain's own fragment writes three class bytes, the fog mask pass keeps only pixels that are wholly ground, and post passes them through untouched.
+
+**Gap:** The slice says the mask is "written by the terrain material's own shading function" and delegates the encoding.
+
+**Verdict:** sound. A mask computed anywhere else could drift from what is drawn; this one is the same site lookup the colour uses, lined up with the shot pixel for pixel. It cost a third post mode, because the two existing mask views survive the tone map only by being black or white. **Confidence:** high.
+
+### Distances in the mask are exact only within the look's own reach
+
+**Choice:** The mask holds the distance the material reads. Past `groundReach` (about 1 to 2 m from a road edge at a play-camera pixel, 4.5 m from a forest, 3 m from water) it keeps its side and may read farther than the truth.
+
+**Gap:** The slice asks for "road signed-distance bands, river bands"; later slices name bands out to 6 and 8 m.
+
+**Verdict:** provisional. Widening the reach for the mask alone would cost the final view (more records a lookup), against "the mask view adds 0 ms". A slice that draws a wider band must widen the reach to draw it, and the mask is then exact over that band. Until C67 lands, "the grass beside the road" is "outside, within a few pixels", not "SD in 1 to 3 m". **Confidence:** medium.
+
+### Black means "not wholly ground", and grass and water are left out of the view
+
+**Choice:** A mask pixel is black where any sample is a building, tree, unit or the backdrop; the view skips the grass and the water surface so the ground under them is read.
+
+**Gap:** The slice does not say what a non-ground pixel holds.
+
+**Verdict:** sound. A mixed pixel would decode to a wrong class; the river's bed has to show to carry its distance. To read the floor under a wood, shoot the mask with `trees: false`. **Confidence:** high.
+
+### Generated-map stations follow the map's own report
+
+**Choice:** The generated map's stations are functions of the preparation report's anchors (the objective town, blue's start, the map's size), not coordinates.
+
+**Gap:** "Lab maps add theirs"; the lane asks for a generated map at the tactical camera and close.
+
+**Verdict:** sound. The layout generator's version moves often; fixed coordinates would land in a different field each time. **Confidence:** high. They show a town street and a country road between fields; a station on a generated forest edge or river waits until a slice needs one.
+
+### `forest-deep-25` looks down at 0.6 rad
+
+**Choice:** The deep-forest station is 25 m away at 0.6 rad, above the canopy, not at the ground view's 0.32 rad.
+
+**Gap:** The slice names the station, not its pitch.
+
+**Verdict:** provisional. At 0.32 rad the eye is 8 m up, inside a crown, and the frame is one leaf. C76 (see the floor through the canopy) may want a second pose under the crowns once trunks are bare below them. **Confidence:** medium.
+
+### The final view's cost is argued, not measured
+
+**Choice:** No paired frame-cost run for the view's switch.
+
+**Gap:** "The mask view adds 0 ms to the final view."
+
+**Verdict:** sound. The final view gains one uniform comparison per terrain fragment; the machine's run-to-run noise is hundreds of times that. **Confidence:** high.

@@ -37,7 +37,7 @@ You are implementing `city-maps`. Use [implement-spec](../../.agents/skills/impl
 
 1. Work the pickup above in order, delegating independent lanes to worktrees. There is one lane now: the sim rules lane has closed, and its ownership table no longer applies.
 2. One owner builds the whole spec, look included. [The systems handoff](systems-handoff.md) lists, lane by lane, what each systems slice left for its look. Prototype art never stands in for accepted art. Art stays programmatic (Blender scripts and code in the repo).
-5. Test in proportion: every lane and every merge runs only the narrow checks for what changed. The full gate (`check` and `verify`) runs at this spec's milestones and nowhere else: (a) a generated battle is playable from the menu; (b) the scale proof at full extent; (c) the visual pass is complete; (d) spec close. No frozen-record tests; state a rule in a small behaviour test.
+5. Test in proportion: every lane and every merge runs only the narrow checks for what changed. The full gate (`check` and `verify`) runs once, when this spec's implementation is finished. Everything before that, including finishing a lane, is proved by the tests, scenes, measurements and pictures that change can move. No frozen-record tests; state a rule in a small behaviour test.
 3. Full-size arms rejected by [S0](spikes/S0.md) stay rejected until their owner changes. Measure cost in instructions retired, on generated maps, with `city_report` ([S1](spikes/S1.md)).
 4. Before ending each committed pass, update this handoff, the owning slice's Outcome and `choices.md`. Keep one next pickup.
 
@@ -63,19 +63,17 @@ A slice marked "physical" has its systems half done; its look is in the visual p
 **Next, systems**
 - [ ] A battle the player starts on a generated map: [C33 public preparation](slices/C33-battle-preparation.md) → [C58 fixed-seed encounter](slices/C58-offline-encounter.md) → [C55 runtime generation](slices/C55-runtime-generation.md)
 - [ ] Town look, second pass: cities that are not a disc round one crossroads, large towns on more than one road, main settlements off the middle, fields on open ground
-- [ ] Scale at full extent with buildings: S1 on generated towns (tens of thousands of buildings), browser startup and memory, rendered surroundings, C06 scale passes* · C07 publication* · C20 fog at scale · C22 placement chunks → C23 far tier
+- [ ] Scale at full extent: browser startup and memory, rendered surroundings, C20 fog at scale (C06/C07 are in the scale lane; C22/C23 in the buildings lane)
 - [ ] C46 street placement in generated towns
 - [ ] **[Scale lane](scale-lane.md)** (a second session, in parallel): whole-battle cost on a full generated map against the 33 ms tick and 30 Hz budget · C05 measuring · C06 sim scale passes · C07 publication. Its status lives in that file.
 - [ ] Existing maps: [C56 reservations](slices/C56-fixture-surroundings.md) → C34 village · C35 labs · C36 benchmarks → [C54 integrated seed gate](slices/C54-generation-gate.md)
 - [ ] C05 measuring tools (`city_report` is its first piece) · C10 third-party sources · C13/C32 template source and library schema · C21 material transport
 - [ ] Completion: C50 durability balance → C51 playable generated encounter (requires C54 and C87)
 
-**The visual pass (after a generated battle is playable)**
-- [ ] Gates G0 and GG; spikes S2–S6 and SG1–SG6 where they judge art
-- [ ] Assets: C11/C12 · C14 · C15 · C16 farmstead · C17 detached home · C18 tower · C19 industry · C37 shared houses
-- [ ] Renderer look: C24 cutout → C25 glass → C26 interiors · C27 ruin and gutted art · C28 pavement → C29 curbs · C30 markings · C31 urban/plain composition · C45 street models
-- [ ] Ground look: C66 road core → C67 shoulder → C68 ruts · C70 bank bands → C71 bank roundness · C73–C76 trees · C78 body models → C79 dressing · C81–C85 fields · C87 ground composition gate · C61 listings · C62 evidence rig
-- [ ] The looks of C64 (per-kind road rows) and C65 (the bend)
+**The visual pass (two separate sessions, in parallel with the map lane)**
+- [ ] **[Buildings lane](buildings-lane.md):** C10 sources → C11 kit → C12 materials → C13 placement bake → C32 template library · C22 placement chunks → C23 far tier · C16–C19 categories · C37 village houses · C21 → C24 cutout → C25 glass → C15 → C26 interiors · C14 → C27 ruin and gutted art. Its status lives in that file.
+- [ ] **[Ground lane](ground-lane.md):** C62 rig · C66 → C67 → C68 country roads (with the looks of C64 and C65) · C28 → C29 · C30 town streets · C70 → C71 banks · C73–C76 trees · C78 → C79 forest bodies · C86 drawn tree lines · C81–C85 grass and fields · C45 street models · C31 → C87 composition. Its status lives in that file.
+- [ ] Map lane, after both: C61 listings; gates G0 and GG closed from the lanes' verdicts
 
 `*` = conditional on measured full-extent results. It closes without code if its spike or measuring-tool numbers are under budget; resolution alone cannot exempt C07.
 

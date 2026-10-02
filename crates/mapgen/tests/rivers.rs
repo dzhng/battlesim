@@ -136,7 +136,10 @@ fn a_river_runs_from_the_north_edge_to_the_south_and_the_terrain_carries_it() {
             "{name}: {top} m of river in the top half, {bottom} m in the bottom"
         );
         let compiled = mapgen::lower(
-            &request(MapType::Open, MapSize::Small, 1).compile_request(plan.clone()),
+            &mapgen::CompileRequest::generated(
+                &request(MapType::Open, MapSize::Small, 1),
+                plan.clone(),
+            ),
             &empty_catalogue(),
         )
         .unwrap_or_else(|errors| panic!("{name}: {errors:?}"));
@@ -404,7 +407,10 @@ fn every_road_crosses_the_water_on_a_bridge_and_every_bridge_carries_a_road() {
         }
         bridges += plan.bridges.len();
         mapgen::lower(
-            &request(MapType::Open, MapSize::Small, 1).compile_request(plan.clone()),
+            &mapgen::CompileRequest::generated(
+                &request(MapType::Open, MapSize::Small, 1),
+                plan.clone(),
+            ),
             &empty_catalogue(),
         )
         .unwrap_or_else(|errors| panic!("{name}: {errors:?}"));
@@ -540,7 +546,11 @@ fn built(
     };
     let layout = generate_layout(&request, presets)?;
     let plan = mapgen::parcels::fill_districts(layout, &request, &catalogue, presets)?;
-    let map = mapgen::lower(&request.compile_request(plan.clone()), &catalogue)?.map;
+    let map = mapgen::lower(
+        &mapgen::CompileRequest::generated(&request, plan.clone()),
+        &catalogue,
+    )?
+    .map;
     Ok((plan, map))
 }
 

@@ -76,6 +76,8 @@ import { createFogVisibility, type FogTiles } from "./fogVisibility";
 import {
   createTerrainSource,
   groundCell,
+  groundClasses,
+  groundClassView,
   groundColour,
   groundDapple,
   groundScarsSeen,
@@ -188,6 +190,10 @@ export async function createWorldPass(
     const albedo = std.mix(surface.xyz, srgbToLinear(tint.xyz), tint.w);
     return d.vec4f(albedo, std.mix(surface.w, ROUGHNESS, tint.w));
   });
+  /** What the class view's ground writes beside its bytes: seen ground,
+   *  whether or not the frame has fog (the fog mask pass keeps only pixels
+   *  that are wholly this). */
+  const CLASS_GROUND = d.vec4f(0, 1, 1, 1);
   /** The terrain: FogTerm's ground. */
   const terrainFragment = tgpu.fragmentFn({ in: varyings, out: WORLD_OUT })((v) => {
     "use gpu";
@@ -198,6 +204,11 @@ export async function createWorldPass(
     const footprint = std.length(std.fwidth(v.world.xy));
     // One lookup of the surface field serves the ground and its dapple.
     const cell = groundCell(v.world.xy, footprint);
+    if (groundClassView()) {
+      const xy = v.world.xy;
+      const classes = groundClasses(xy, footprint, groundSite(xy, cell), groundWater(xy, cell));
+      return { color: d.vec4f(classes, 1), fog: d.vec4f(CLASS_GROUND) };
+    }
     const plain = groundAlbedo(v.world, v.color, cell);
     // The side's learned scars, on the biome's ground (not under a tint).
     const biome = 1 - v.color.w;
@@ -238,6 +249,10 @@ export async function createWorldPass(
     "use gpu";
     const eye = typegpuCameraLayout.$.cam.eye;
     const cell = groundCell(v.world.xy, std.length(std.fwidth(v.world.xy)));
+    // Past the map's edge there is no class to read: not ground, to that view.
+    if (groundClassView()) {
+      return { color: d.vec4f(0, 0, 0, 1), fog: d.vec4f(0, 0, 0, 1) };
+    }
     const surface = groundAlbedo(v.world, v.color, cell);
     const up = std.normalize(v.normal);
     const paint = groundPaint(v.world);
@@ -486,6 +501,8 @@ export async function createWorldPass(
     return right > x && bottom > y ? [x, y, right - x, bottom - y] : null;
   };
 
+  let classView = false;
+
   return {
     setXrayCoverageEnabled(on: boolean) {
       xrayCoverageEnabled = on;
@@ -530,6 +547,15 @@ export async function createWorldPass(
     },
     setPaintShown(on: boolean) {
       paint.setShown(on);
+    },
+    setTreesShown(on: boolean) {
+      scenery.setTreesShown(on);
+    },
+    /** Draw the ground's classes in place of the lit world (the
+     *  "ground-classes" frame view), or not. */
+    setClassView(on: boolean) {
+      classView = on;
+      terrain.setClassView(on);
     },
     setInstances(next: readonly SceneInstance[]) {
       proxies.set(next);
@@ -807,7 +833,9 @@ export async function createWorldPass(
         drawCards(cardsLit.with(fogGroups[fog]), fog);
       }
       scenery.encode(pass, cameraGroup, fogGroups.faces);
-      grass.draw(pass, cameraGroup, fogGroups.paintedGround);
+      // The class view reads the ground itself: nothing that grows on it or
+      // lies blended over it.
+      if (!classView) grass.draw(pass, cameraGroup, fogGroups.paintedGround);
       backdrop.draw(
         backdropPipeline
           .with(pass)
@@ -816,14 +844,15 @@ export async function createWorldPass(
           .with(fogGroups.paintedGround)
           .with(terrain.group),
       );
-      world.water.draw(
-        water
-          .with(pass)
-          .with(cameraGroup)
-          .with(environment.group)
-          .with(fogGroups.paintedFaces)
-          .with(terrain.group),
-      );
+      if (!classView)
+        world.water.draw(
+          water
+            .with(pass)
+            .with(cameraGroup)
+            .with(environment.group)
+            .with(fogGroups.paintedFaces)
+            .with(terrain.group),
+        );
       pass.end();
       return { encoder, raw };
     },

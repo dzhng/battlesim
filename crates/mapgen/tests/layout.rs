@@ -858,7 +858,8 @@ fn presets_that_break_a_map_rule_are_refused_at_load() {
 fn every_generated_plan_compiles_into_a_battle_map() {
     let catalogue = empty_catalogue();
     every_cell(|map_type, size, seed, plan| {
-        let request = request(map_type, size, seed).compile_request(plan.clone());
+        let request =
+            mapgen::CompileRequest::generated(&request(map_type, size, seed), plan.clone());
         let generated = mapgen::lower(&request, &catalogue)
             .unwrap_or_else(|errors| panic!("{map_type:?} {size:?} {seed}: {errors:?}"));
         assert_eq!(generated.map.size, plan.size);
