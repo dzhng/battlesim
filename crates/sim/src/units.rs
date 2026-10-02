@@ -404,7 +404,7 @@ impl Unit {
     pub fn contact_radius(&self, rules: &Rules) -> f64 {
         let t = self.unit_type(rules);
         let footprint = match t.hull() {
-            Some(h) => h.half_extents_m[0].hypot(h.half_extents_m[1]),
+            Some(h) => libm::hypot(h.half_extents_m[0], h.half_extents_m[1]),
             None => {
                 crate::arrangement::spread(&rules.infantry_movement, t.squad_size()) / 2.0
                     + rules.physics.soldier_radius_m
@@ -586,7 +586,7 @@ impl Unit {
     /// its outermost soldier's body, of `soldier_radius_m`.
     pub fn footprint_radius(&self, soldier_radius_m: f64) -> f64 {
         match self.hull {
-            Some(h) => h.x.hypot(h.y),
+            Some(h) => libm::hypot(h.x, h.y),
             None => {
                 self.member_positions()
                     .map(|p| (p.xy() - self.position.xy()).length())

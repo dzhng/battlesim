@@ -6606,3 +6606,26 @@ separately. No measured performance win is claimed.
 
 **Verdict:** sound; high confidence. This generalizes within an observed math
 owner while leaving unrelated, unproven numerical hypotheses alone.
+
+
+## C07: one portable evaluator policy
+
+**Choice:** Use the existing pinned `libm` directly for authoritative sine,
+cosine, paired trig, `atan2` and now causally proven `hypot`, including shared
+terrain and ground-query consumers. Keep arguments and formula order; introduce
+no wrappers, dependencies, rounding or target-specific branches. Preserve paired
+rotation evaluation. Leave unrelated numeric families and test/render arithmetic
+outside this change.
+
+**Evidence:** Four earlier public parity failures crossed separate owners in the
+same trig family. The next failure traced equal blast inputs to the first
+`hypot` distance difference and then retained structural damage. Patching only
+one caller per tick would preserve inconsistent evaluator islands. The public
+rectangle-distance regression fails on the old Native owner and earns its
+portable bits without a battle-seed search or live-rule threshold. Current
+publication golden updates change only digest leaves, not packed observations.
+The parent's forest-density reversal is a separate input decision; frozen old
+input evidence is not promoted to current workload admission.
+
+**Verdict:** sound; high confidence in the named evaluator scope. No cost gain or
+whole-battle parity claim follows from these bounded proofs.

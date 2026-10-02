@@ -12,7 +12,7 @@ impl NavGrid {
         prop: Prop,
         movers: &[Mobility],
     ) -> bool {
-        let radius = prop.half.x.hypot(prop.half.y)
+        let radius = libm::hypot(prop.half.x, prop.half.y)
             + MAX_CLEARANCE_M.max(self.base.soldier_radius)
             + 4.0 * NAV_CELL_M;
         let lo = |v: f64| ((v - radius) / NAV_CELL_M).floor().max(0.0) as usize;

@@ -434,7 +434,7 @@ fn wander(ctx: &MovementContext, unit: u32, soldier: u32) -> f64 {
     let (phase, stretch) = (rng.unit(), rng.unit());
     let period = ctx.infantry.wander_period_s * (0.75 + 0.5 * stretch);
     let t = ctx.tick as f64 / ctx.tick_hz as f64;
-    ctx.infantry.wander_m * (std::f64::consts::TAU * (phase + t / period)).sin()
+    ctx.infantry.wander_m * libm::sin(std::f64::consts::TAU * (phase + t / period))
 }
 
 /// A soldier's share of the squad's speed this tick: it swings between
@@ -444,7 +444,8 @@ fn wander(ctx: &MovementContext, unit: u32, soldier: u32) -> f64 {
 fn stride(ctx: &MovementContext, s: &Soldier) -> f64 {
     let rules = ctx.infantry;
     let t = ctx.tick as f64 / ctx.tick_hz as f64;
-    let swing = (std::f64::consts::TAU * (s.pace + t / (rules.wander_period_s * 2.0 / 3.0))).sin();
+    let swing =
+        libm::sin(std::f64::consts::TAU * (s.pace + t / (rules.wander_period_s * 2.0 / 3.0)));
     1.0 - rules.pace_variation * 0.5 * (1.0 + swing)
 }
 
@@ -860,7 +861,7 @@ pub(super) fn step_squad(
     // The squad faces its next waypoint while it is still some way off.
     let ahead = route[0] - unit.position.xy();
     if ahead.length() > 1.0 {
-        unit.yaw = ahead.y.atan2(ahead.x);
+        unit.yaw = libm::atan2(ahead.y, ahead.x);
     }
     if arrived {
         let end = *route.last().expect("a route ends somewhere");

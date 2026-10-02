@@ -69,7 +69,7 @@ fn travel(yaw: f64, gear: f64) -> f64 {
 }
 
 fn dir(angle: f64) -> V2 {
-    v2(angle.cos(), angle.sin())
+    v2(libm::cos(angle), libm::sin(angle))
 }
 
 fn speed_in(drive: &Drive, gear: f64, speed: f64) -> f64 {
@@ -99,12 +99,12 @@ fn turn_speed(drive: &Drive, full: f64, angle: f64) -> f64 {
         if angle > drive.feel.turn_in_place_deg.to_radians() {
             0.0
         } else {
-            full * angle.cos()
+            full * libm::cos(angle)
         }
     } else {
         let corner = (full * drive.feel.turn_slow).min(drive.radius_m * drive.turn_rad_s);
         let lock = (angle / drive.feel.turning_deg.to_radians()).min(1.0);
-        corner + (full - corner) * (lock * std::f64::consts::FRAC_PI_2).cos()
+        corner + (full - corner) * libm::cos(lock * std::f64::consts::FRAC_PI_2)
     }
 }
 
@@ -127,7 +127,9 @@ fn approach_speed(unit: &Unit, surface_speed: f64, gear: f64) -> f64 {
         }
         let corner = route.get(i + 1).map_or(0.0, |next| {
             let outgoing = *next - point;
-            let angle = wrap_angle(outgoing.y.atan2(outgoing.x) - incoming.y.atan2(incoming.x));
+            let angle = wrap_angle(
+                libm::atan2(outgoing.y, outgoing.x) - libm::atan2(incoming.y, incoming.x),
+            );
             turn_speed(&drive, full, angle)
         });
         limit = limit.min((corner * corner + 2.0 * braking * distance).sqrt());
@@ -225,7 +227,7 @@ pub fn steer(
     let here = unit.position.xy();
     let to = target - here;
     let distance = to.length();
-    let bearing = to.y.atan2(to.x);
+    let bearing = libm::atan2(to.y, to.x);
     let error = wrap_angle(bearing - travel(unit.yaw, gear));
     if drive.tracked {
         unit.manoeuvre = None;
@@ -386,7 +388,7 @@ pub fn final_yaw(
         return Some(f);
     }
     let leg = end - from;
-    (leg.length() > 1e-6).then(|| travel(leg.y.atan2(leg.x), gear_sign(direction)))
+    (leg.length() > 1e-6).then(|| travel(libm::atan2(leg.y, leg.x), gear_sign(direction)))
 }
 
 /// A tracked vehicle at rest pivots toward its ordered facing (Q9), at its
@@ -422,12 +424,12 @@ pub fn prune(unit: &mut Unit) -> bool {
     while let Some(&wp) = route.first() {
         let to = wp - here;
         let distance = to.length();
-        let error = wrap_angle(to.y.atan2(to.x) - heading).abs();
+        let error = wrap_angle(libm::atan2(to.y, to.x) - heading).abs();
         let reached = distance < super::PROGRESS_EPSILON_M
             || (distance < drive.feel.abeam_m && error > drive.feel.abeam_deg.to_radians());
         let early = route.get(1).is_some_and(|&next| {
             let out = next - wp;
-            let corner = wrap_angle(out.y.atan2(out.x) - to.y.atan2(to.x)).abs();
+            let corner = wrap_angle(libm::atan2(out.y, out.x) - libm::atan2(to.y, to.x)).abs();
             distance <= (drive.radius_m * (corner / 2.0).tan()).min(drive.radius_m / 2.0)
         });
         if !(reached || early) {

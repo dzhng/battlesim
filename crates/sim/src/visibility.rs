@@ -54,7 +54,7 @@ impl OcclusionGrid {
                 (i0 + i1) as f64 * 0.5 * self.cell,
                 (j0 + j1) as f64 * 0.5 * self.cell,
             );
-            let radius = ((i1 - i0) as f64).hypot((j1 - j0) as f64) * 0.5 * self.cell;
+            let radius = libm::hypot((i1 - i0) as f64, (j1 - j0) as f64) * 0.5 * self.cell;
             let revision = world.obstacle_revision_near(center, radius);
             self.tile_revisions[tile].world = world.obstacle_revision();
             if self.tile_revisions[tile].buckets == revision {
@@ -123,7 +123,7 @@ pub fn sweep(
     let rise = world.max_height() + 1.0 + s.fog_target_height_m - eye.z;
     for r in 0..rays {
         let angle = r as f64 / rays as f64 * std::f64::consts::TAU;
-        let dir = v2(angle.cos(), angle.sin());
+        let dir = v2(libm::cos(angle), libm::sin(angle));
         let range = sight.range_at(angle);
         let steps = (range / cell).ceil() as usize;
         // A side's field is the union of every eye. When earlier eyes marked

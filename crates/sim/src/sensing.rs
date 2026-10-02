@@ -114,7 +114,7 @@ pub fn sees_point(
     s: &SensorRules,
 ) -> bool {
     let to = target - eye;
-    let range = sight.range_at(to.y.atan2(to.x));
+    let range = sight.range_at(libm::atan2(to.y, to.x));
     let distance = to.length();
     if distance > range * concealment {
         return false; // cheap reject before any ray
@@ -217,7 +217,7 @@ pub fn evaluate(
             } else {
                 std::f64::consts::PI
             };
-            if to.length() > sight.reach_within(to.y.atan2(to.x), arc) + spread {
+            if to.length() > sight.reach_within(libm::atan2(to.y, to.x), arc) + spread {
                 continue;
             }
             let mut seen = Vec::new();

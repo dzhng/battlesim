@@ -102,7 +102,7 @@ pub fn points(
     // extremes either side of its view of the centre.
     let bearing = |c: V2| {
         let d = c - threat;
-        u.cross(d).atan2(u.dot(d))
+        libm::atan2(u.cross(d), u.dot(d))
     };
     let pick = |better: fn(f64, f64) -> bool| {
         corners

@@ -517,3 +517,38 @@ Wasm, with prior state/wire identities unchanged. Native geometry, collision and
 publication checks and actual Wasm world-query/publication boundary checks pass.
 This is a bounded causal proof; full early/late state, delivery, memory and
 throughput admission still require the per-tick-gated five-minute runs.
+
+
+### Portable authoritative evaluators
+
+The next gated run agreed through tick 212, then diverged only in retained
+structural damage at tick 213 while publication bits still matched. Captured
+blast point, footprint pose, local coordinates and outside-distance components
+were identical. `Obb2::distance` evaluated the same `hypot` inputs as Native
+`401e7a0ec2255684` versus actual Wasm `401e7a0ec2255683`; pinned `libm` matched
+Wasm. That changed blast damage to prop 37790 and its retained integrity. A small
+public rectangle-distance regression is old-red/new-green on those inputs.
+
+After repeated measured failures across construction, aiming, ricochet and
+geometry, authoritative sine, cosine, paired sine/cosine, bearing and 2D norm
+evaluations now consistently use the already pinned software library. This is a
+named Native precision decision across simulation and shared physical contracts,
+not a performance optimization. Arguments, formulas, arithmetic order, RNG
+consumption and rules are unchanged. Existing combined rotation pairs remain
+combined. Generation already used the selected library; its remaining standard
+trig calls are test-only. Other numeric families are outside this decision.
+
+The parent's separate forest-density reversal changes the current rules input.
+The original tick-213 evidence remains a frozen causal control. Current paired
+publication records were refreshed for that input; only authoritative digest
+leaves changed, with float32 publications and fog identities unchanged. Temporary
+diagnostic state exports and event instrumentation were removed. The full
+five-minute state, bandwidth, memory and browser gates remain open.
+
+Fresh optimized Native/Wasm builds agree on every digest and raw publication bit
+from construction through tick 213 on the original frozen input. Corrected
+Native tick 213 is `de32e92713f65f6c`, matching the prior Wasm result; all earlier
+state and publication identities are unchanged. Current-input Native publication,
+geometry, collision and the three admitted town-journey proofs pass, alongside
+actual Wasm world-query/publication boundary checks. This closes the captured
+numerical fault, not current-input five-minute workload or cost admission.
