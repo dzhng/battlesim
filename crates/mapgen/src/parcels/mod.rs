@@ -2,8 +2,8 @@
 //! then parcels along them, then one template on each parcel. A template is
 //! placed whole, by translation and rotation; a parcel is cut to it.
 mod lots;
-mod space;
-mod streets;
+pub(crate) mod space;
+pub(crate) mod streets;
 
 use crate::layout::rng::Stream;
 use crate::layout::{measure, DistrictPreset, GenerationRequest, PresetDefinitions};

@@ -9,6 +9,7 @@ pub mod inspect;
 mod joints;
 pub mod layout;
 pub mod parcels;
+pub mod street_props;
 
 use layout::{GenerationRequest, PresetDefinitions};
 
@@ -193,6 +194,8 @@ pub enum DiagnosticCode {
     UnsupportedPlanField,
     InvalidRequest,
     InvalidCatalogue,
+    /// The unit and prop catalog's documents do not resolve.
+    InvalidCatalog,
     MissingTemplate,
     InvalidBounds,
     InvalidPlacement,
@@ -288,11 +291,14 @@ pub enum GenerateOutcome {
 }
 
 /// A request's whole plan: the layout, then its districts' streets, parcels
-/// and buildings.
+/// and buildings, then the street furniture that stands among them.
+/// `catalog_json` is the unit and prop catalog as a battle's rules carry it:
+/// the list of its documents (`contract::catalog::Catalog`).
 fn generate(
     request_json: &str,
     presets_json: &str,
     descriptors_json: &str,
+    catalog_json: &str,
 ) -> Result<(GenerationRequest, MapPlan, TemplateGeometryCatalog), Vec<Diagnostic>> {
     let request: GenerationRequest = serde_json::from_str(request_json).map_err(|error| {
         vec![Diagnostic {
@@ -304,18 +310,30 @@ fn generate(
     })?;
     let presets = PresetDefinitions::from_json(presets_json)?;
     let catalogue = catalogue(descriptors_json)?;
+    let units: contract::catalog::Catalog =
+        serde_json::from_str(catalog_json).map_err(|error| {
+            vec![Diagnostic {
+                code: DiagnosticCode::InvalidCatalog,
+                feature: None,
+                location: "$.catalog".into(),
+                message: error.to_string(),
+            }]
+        })?;
     let layout = layout::generate_layout(&request, &presets)?;
-    let plan = parcels::fill_districts(layout, &request, &catalogue, &presets)?;
+    let mut plan = parcels::fill_districts(layout, &request, &catalogue, &presets)?;
+    let props = street_props::place_street_props(&plan, &request, &catalogue, &units, &presets)?;
+    plan.props.extend(props);
     Ok((request, plan, catalogue))
 }
 
-/// Generate a plan from request, preset and template JSON.
+/// Generate a plan from request, preset, template and catalog JSON.
 pub fn generate_plan(
     request_json: &str,
     presets_json: &str,
     descriptors_json: &str,
+    catalog_json: &str,
 ) -> GenerateOutcome {
-    match generate(request_json, presets_json, descriptors_json) {
+    match generate(request_json, presets_json, descriptors_json, catalog_json) {
         Ok((_, plan, _)) => GenerateOutcome::Ok {
             plan: Box::new(plan),
         },
@@ -328,8 +346,9 @@ pub fn generate_map(
     request_json: &str,
     presets_json: &str,
     descriptors_json: &str,
+    catalog_json: &str,
 ) -> CompileOutcome {
-    let result = generate(request_json, presets_json, descriptors_json).and_then(
+    let result = generate(request_json, presets_json, descriptors_json, catalog_json).and_then(
         |(request, plan, catalogue)| lower(&CompileRequest::generated(&request, plan), &catalogue),
     );
     match result {
@@ -344,16 +363,28 @@ pub fn generate_plan_json(
     request_json: &str,
     presets_json: &str,
     descriptors_json: &str,
+    catalog_json: &str,
 ) -> Result<String, serde_json::Error> {
-    serde_json::to_string(&generate_plan(request_json, presets_json, descriptors_json))
+    serde_json::to_string(&generate_plan(
+        request_json,
+        presets_json,
+        descriptors_json,
+        catalog_json,
+    ))
 }
 
 pub fn generate_map_json(
     request_json: &str,
     presets_json: &str,
     descriptors_json: &str,
+    catalog_json: &str,
 ) -> Result<String, serde_json::Error> {
-    serde_json::to_string(&generate_map(request_json, presets_json, descriptors_json))
+    serde_json::to_string(&generate_map(
+        request_json,
+        presets_json,
+        descriptors_json,
+        catalog_json,
+    ))
 }
 
 pub fn validate_plan(plan: &MapPlan) -> Result<(), Vec<Diagnostic>> {

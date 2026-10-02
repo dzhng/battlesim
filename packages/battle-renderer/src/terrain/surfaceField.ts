@@ -42,11 +42,16 @@ import { STROKE_FLOATS, strokeInside } from "./strokes";
 import { RECT_FLOATS, type TerrainSite } from "./terrainSurface";
 
 /** Floats per record: a stroke's stretch `a, b, half width`, its kind or
- *  forest, and its cut ends (`strokes.ts`); a triangle `a, b, c`; an exposed
+ *  forest, and its cut ends (`strokes.ts`), then for a paved stretch how far
+ *  along its stroke it starts; a triangle `a, b, c`; an exposed
  *  boundary edge `a, b`; a rect `min, max`. A river's stretch is two
  *  records: `a, b`, the half width at `a` and at `b`, the bank's grade at
  *  each; then the bank's height at each, which no cell lists. */
 export const SURFACE_FLOATS = 8;
+/** Where a paved stretch's record holds the length of its stroke up to its
+ *  end `a`: what runs along a road (its markings, a walk's slabs) is laid out
+ *  by it, unbroken from stretch to stretch round a bend. */
+export const SURFACE_STROKE_ALONG = 7;
 
 /** An index entry: the record's kind in the top two bits, then whether it
  *  opens a new forest shape in its cell's list, then the record. */
@@ -221,8 +226,18 @@ export function buildSurfaceField(
     rules[next] = rule;
     return next++;
   };
-  for (let o = 0; o < site.surfaceStrokes.length; o += site.surfaceStrokeStride)
-    put(site.surfaceStrokes, o, STROKE_FLOATS, SURFACE_STROKE, PAVED, 2);
+  // A stroke's stretches are exported in order, each starting where the
+  // last ended.
+  let along = 0;
+  for (let o = 0; o < site.surfaceStrokes.length; o += site.surfaceStrokeStride) {
+    const at =
+      put(site.surfaceStrokes, o, STROKE_FLOATS, SURFACE_STROKE, PAVED, 2) * SURFACE_FLOATS;
+    const follows =
+      at > 0 && records[at] === records[at - 6] && records[at + 1] === records[at - 5];
+    if (!follows) along = 0;
+    records[at + SURFACE_STROKE_ALONG] = along;
+    along += Math.hypot(records[at + 2] - records[at], records[at + 3] - records[at + 1]);
+  }
   // Triangles only say which side of the exposed boundary a point is on:
   // with no boundary there is nothing for them to sign.
   for (let o = 0; o < site.surfaceTriangles.length; o += site.surfaceTriangleStride)

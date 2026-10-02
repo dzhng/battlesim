@@ -27,7 +27,7 @@ import {
   STROKE_CUTS,
   strokeInside,
 } from "@packages/battle-renderer/src/terrain/strokes";
-import { SURFACE_AREA_KINDS } from "@packages/battle-renderer/src/terrain/surfaces";
+import { pavedKinds, SURFACE_AREA_KINDS } from "@packages/battle-renderer/src/terrain/surfaces";
 import { generatePlots, plotAt } from "@packages/battle-renderer/src/terrain/plots.ts";
 import {
   PLOT_HUE_JITTER,
@@ -39,7 +39,11 @@ import summer from "@fixtures/biomes/summer.json";
 import { loadMap } from "@web/maps/node";
 import { groundHeight } from "@packages/battle-renderer/src/terrain/terrainGrid";
 import { packTerrainHeights } from "@packages/battle-renderer/src/frame/terrainHeights";
-import { roadLooks } from "@packages/battle-renderer/src/frame/terrainMaterial";
+import {
+  groundReach,
+  roadLooks,
+  roadOrder,
+} from "@packages/battle-renderer/src/frame/terrainMaterial";
 
 const geometry = loadMap("geometry").definition;
 const riverLab = loadMap("river").definition;
@@ -532,8 +536,10 @@ test("every paved kind is drawn by its own road row, or the default's", () => {
     looks[SURFACE_AREA_KINDS.indexOf(kind)];
   expect(look("dirt_track").core.w).toBe(0.5);
   expect(look("dirt_track").core.x).toBeCloseTo(0.5 ** 2.2, 6);
-  for (const kind of ["road", "country_road", "sidewalk"] as const)
-    expect(look(kind), kind).toEqual(look("road"));
+  for (const kind of ["road", "country_road", "sidewalk"] as const) {
+    expect(look(kind).core, kind).toEqual(look("road").core);
+    expect(look(kind).shoulder, kind).toEqual(look("road").shoulder);
+  }
   expect(look("road").core).not.toEqual(look("dirt_track").core);
   // A patch is a change of hue alone: as bright as the surface it lies in,
   // whichever of the two colours is the brighter in the palette.
@@ -592,6 +598,146 @@ test("wheelings are furrows laid bare: none without rows, none wider than a row"
   refused({ tram: { ...kind.tram, width_m: kind.furrow_m * 1.5 } }, "width_m");
   // A pair of wheelings needs rows between its tracks and to the next pair.
   refused({ tram: { ...kind.tram, rows: 2 } }, "rows");
+});
+
+test("a street's row says what draws its yards and its walk", () => {
+  const plain = { ...biome.roads.default, area: undefined, walk: undefined };
+  const street = {
+    ...plain,
+    area: "sidewalk",
+    walk: { kind: "sidewalk", width_m: 2, slab_m: 2.5, joint: 0.2 },
+  };
+  const looks = roadLooks(validateBiome({ ...biome, roads: { default: plain, road: street } }));
+  const tag = (kind: (typeof SURFACE_AREA_KINDS)[number]) => SURFACE_AREA_KINDS.indexOf(kind);
+  // The street: its areas and its walk go to the sidewalk's row.
+  const road = looks[tag("road")];
+  expect([road.join.y, road.join.z, road.join.w]).toEqual([tag("sidewalk"), 2, tag("sidewalk")]);
+  expect(road.slabs.x).toBeCloseTo(1 / 2.5, 6);
+  // Every other kind draws its own areas and has no walk.
+  for (const kind of ["country_road", "dirt_track", "sidewalk"] as const)
+    expect([looks[tag(kind)].join.y, looks[tag(kind)].join.z], kind).toEqual([tag(kind), 0]);
+  // Only a carriageway is carried onto the road it joins.
+  expect(looks.map((look) => look.track.w)).toEqual([1, 1, 1, 0]);
+
+  for (const [row, path] of [
+    [{ ...street, area: "lawn" }, "area"],
+    [{ ...street, walk: { ...street.walk, kind: "lawn" } }, "walk\\.kind"],
+  ] as const)
+    expect(() => validateBiome({ ...biome, roads: { default: plain, road: row } })).toThrow(
+      new RegExp(`roads\\.road\\.${path}: names no paved kind "lawn"`),
+    );
+});
+
+test("a curb is its row's kerbstones and a face shading never tilts past 40 degrees", () => {
+  const palettes = { ...biome.palettes, stone: [[1, 1, 1]] } as Biome["palettes"];
+  const curbed = (curb: unknown) =>
+    validateBiome({
+      ...biome,
+      palettes,
+      roads: { default: biome.roads.default, road: { ...biome.roads.default, curb } },
+    } as Biome);
+  const stones = { palette: "stone", width_m: 0.25, stone_m: 0.5, joint: 0.25, face_m: 0.125 };
+  const [road, country] = roadLooks(curbed({ ...stones, tilt_deg: 45 / 2 }));
+  expect([road.curb.x, road.curb.w, road.slabs.z]).toEqual([1, 0.25, 0.125]);
+  expect([road.stones.x, road.stones.y]).toEqual([2, 0.25]);
+  expect(road.slabs.w).toBeCloseTo(Math.SQRT2 - 1, 6);
+  // A road without one has no stones and no face.
+  expect([country.curb.w, country.stones.x, country.slabs.z, country.slabs.w]).toEqual([
+    0, 0, 0, 0,
+  ]);
+  expect(() => curbed({ ...stones, tilt_deg: 41 })).toThrow(/roads\.road\.curb\.tilt_deg/);
+  expect(() => curbed({ ...stones, palette: "granite", tilt_deg: 30 })).toThrow(
+    /roads\.road\.curb\.palette: names no palette "granite"/,
+  );
+});
+
+test("a road's markings are its row's, and the field is read as far as a crossing's bars lie", () => {
+  const palettes = { ...biome.palettes, white: [[1, 1, 1]] } as Biome["palettes"];
+  const markings = {
+    palette: "white",
+    cover: 0.75,
+    wear: 0.25,
+    line_m: 0.25,
+    dash_m: [2, 4],
+    crossing: { bar_m: 0.5, length_m: 4, gap_m: 1.5, inset_m: 0.25 },
+  };
+  const plain = { ...biome.roads.default, markings: undefined };
+  const marked = (over: object = {}) =>
+    validateBiome({
+      ...biome,
+      palettes,
+      roads: { default: plain, road: { ...plain, markings: { ...markings, ...over } } },
+    } as unknown as Biome);
+  const [road, country] = roadLooks(marked());
+  expect([...road.paint]).toEqual([1, 1, 1, 0.75]);
+  // Half the line's width, a dash, a dash and its gap, the wear.
+  expect([...road.marks]).toEqual([0.125, 2, 6, 0.25]);
+  expect([...road.crossing]).toEqual([0.5, 4, 1.5, 0.25]);
+  // A road without markings has no line to draw.
+  expect(country.marks.x).toBe(0);
+  // The bars end 5.5 m from the road that crosses, and a dash that stops
+  // short of them is 2 m long: farther than any shoulder.
+  const reach = (b: Biome) => groundReach(b, 0.1).paved;
+  expect(reach(marked())).toBeGreaterThan(7.5);
+  expect(reach(marked())).toBeGreaterThan(
+    reach(marked({ crossing: { ...markings.crossing, length_m: 1 } })),
+  );
+  expect(() => marked({ dash_m: [2] })).toThrow(
+    /roads\.road\.markings\.dash_m: must be \[dash, gap\]/,
+  );
+  expect(() => marked({ line_m: 3 })).toThrow(/roads\.road\.markings\.line_m/);
+});
+
+test("paving is painted in the simulation's order unless a row names its layer", () => {
+  const plain = { ...biome.roads.default, layer: undefined };
+  const rows = (road: object) =>
+    validateBiome({ ...biome, roads: { default: plain, road: { ...plain, ...road } } } as Biome);
+  const names = (order: number[]) => order.map((tag) => SURFACE_AREA_KINDS[tag]);
+  // Lowest first: the earlier kind is on top.
+  expect(names(roadOrder(rows({})))).toEqual(["sidewalk", "dirt_track", "country_road", "road"]);
+  // A street under the country road it meets, still over a track.
+  expect(names(roadOrder(rows({ layer: 2.5 })))).toEqual([
+    "sidewalk",
+    "dirt_track",
+    "road",
+    "country_road",
+  ]);
+  // On a map whose roads are all `road`, they are country roads: on top.
+  expect(names(roadOrder(rows({ layer: 2.5 }), new Set(["road"] as const)))).toEqual([
+    "sidewalk",
+    "dirt_track",
+    "country_road",
+    "road",
+  ]);
+});
+
+test("a map that names no kind but road has its roads drawn as country roads", () => {
+  const street = { ...biome.roads.default, roughness: 0.5 };
+  const country = { ...biome.roads.default, roughness: 0.75 };
+  const rows = validateBiome({
+    ...biome,
+    roads: { default: biome.roads.default, road: street, country_road: country },
+  });
+  const drawn = (map: unknown) => {
+    const { site } = buildTerrainSurface(world(map).exports, layout, rows);
+    return roadLooks(rows, pavedKinds(site)).map((look) => look.core.w);
+  };
+  // The village's roads are `road` and it names nothing else.
+  expect(drawn(villageMap).slice(0, 2)).toEqual([0.75, 0.75]);
+  // Beside a road of another kind, a `road` is a street.
+  const way = (kind: string, y: number) => ({
+    kind,
+    shape: {
+      kind: "stroke",
+      points: [
+        [40, y],
+        [200, y],
+      ],
+      width_m: 8,
+    },
+  });
+  const town = { ...riverLab, surfaces: [way("road", 40), way("country_road", 80)] };
+  expect(drawn(town).slice(0, 2)).toEqual([0.5, 0.75]);
 });
 
 test("the forest floor names a palette of litter, moss and humus, and its numbers are checked", () => {

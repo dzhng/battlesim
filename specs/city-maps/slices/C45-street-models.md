@@ -39,3 +39,51 @@ C44's body values.
 
 ## Feedback that would change this slice
 Street models that disagree with their body bounds change appearance fit while keeping physical rules fixed.
+
+
+## Outcome (2026-10-02)
+
+**Contract as landed.** Every street row of `fixtures/props/city/street.json` is drawn by its own scenery kind (`SCENERY_KINDS`, one `default` state) with one project-owned appearance under `assets/source/street/`, built by `packages/scene-assets/blender/street.py` (seventeen kinds) and `street_car.py` (the car, and its wreck with `--wreck`). No row is `systems_only` any more; no body column changed, and the resolved `fixtures/catalog.json` is current (`catalog::the_browsers_catalog_view_is_current`). `asset check` passes and every appearance fits its box at the catalog's default 0.1 m tolerance, with no per-entry allowance.
+
+**What differs from the slice as written.**
+- The rows carry no size, so the box each model fits is the appearance's own `footprint_half_m` (below); C46 should place these sizes.
+- "Theirs, from C11's standalone street kit" was not done: this lane made its own model for all nineteen kinds.
+- Street trees got no new art: they are the existing tree body and species ([choices](../choices.md#c45-street-models)).
+- The only terminal state is the car's, the `car_wreck` row's own appearance; every other row is `removed`.
+- Jersey barrier, Heras panel and scaffold are `modular` (they repeat along a long box).
+
+| Kind | Box (full, m) | Triangles per tier |
+|---|---|---|
+| parked_car | 4.4 × 1.8 × 1.44 | 6,008 / 2,024 / 572 / 300 |
+| car_wreck | 4.4 × 1.8 × 0.7 | 4,804 / 1,384 / 380 / 92 |
+| jersey_barrier | 3.0 × 0.6 × 0.8 | 468 / 168 / 44 / 28 |
+| bollard | 0.2 × 0.2 × 0.9 | 400 / 184 / 80 / 40 |
+| lamp | 0.4 × 0.4 × 5.0 | 696 / 266 / 112 / 80 |
+| bench | 1.8 × 0.6 × 0.84 | 1,372 / 516 / 96 / 72 |
+| bins | 1.3 × 0.76 × 1.1 | 816 / 320 / 152 / 48 |
+| hydrant | 0.4 × 0.4 × 0.76 | 688 / 352 / 120 / 100 |
+| utility_box | 1.4 × 0.5 × 1.4 | 928 / 464 / 60 / 36 |
+| planter | 2.0 × 0.9 × 1.0 | 672 / 180 / 124 / 112 |
+| bus_shelter | 4.0 × 1.5 × 2.5 | 2,412 / 908 / 312 / 156 |
+| heras_fence | 3.5 × 0.6 × 2.0 | 2,176 / 662 / 160 / 72 |
+| skip_bin | 3.6 × 1.7 × 1.2 | 2,080 / 712 / 180 / 72 |
+| pallet_stack | 1.2 × 1.0 × 1.2 | 2,080 / 640 / 108 / 12 |
+| site_cabin | 6.0 × 2.4 × 2.6 | 4,352 / 1,288 / 284 / 60 |
+| traffic_cone | 0.4 × 0.4 × 0.74 | 216 / 88 / 44 / 32 |
+| road_barrier | 2.0 × 0.5 × 1.0 | 720 / 296 / 120 / 72 |
+| scaffold | 2.5 × 1.0 × 4.0 | 2,472 / 922 / 372 / 156 |
+| scooter | 1.8 × 0.7 × 1.1 | 1,564 / 644 / 200 / 108 |
+
+**Compare.** Fit was judged on the workbench sheet's own box overlay: every model fills its box and none passes it. Against the Construction Site Kit thumbnails (looked at after modelling, for the Heras panel, the skip and the scaffold): the same class of silhouette, in our own proportions and detail (a yellow skip heaped with spoil against their open orange one; a two-lift bay against their outrigged tower). Less wrong than a box; not a match, on purpose.
+
+**Critique** (one unprimed reader per group, on the first sheets). No shadow read as fog. Dark faces that could read as shadow were the wreck's sooted sides, the barrier's streaked long face, the cabinet's wide faces and the shelter's dark panes: all four were lightened. Other findings and what was done:
+
+- Fixed in one round: the car's lamps did not show (a dark band now carries them) and its rims were rust-orange; the barrier's foot dirt read as a lumpy flare and its lifting eyes as stray blocks (removed); the bins' lids hovered over a gap; the cabinet was a featureless slab (doors, louvres and handles on both long faces, a lighter paint); the skip's load was a flat paved lid (the walls now stand above a heaped load); the road barrier read as planks (thicker beams and posts); the scooter was the ground's khaki (now teal) and stood on a stand with both wheels down; the cabin's door faced away from every close view.
+- Left: the car wreck reads as a rusty slab or tray rather than a car. It is a consequence of the 0.7 m remains height ([choices](../choices.md#c45-street-models)). The planter's shrub is smooth lumps; wires and tubes (fence, scaffold) and the cone vanish by the mid battle distance, as their size makes them.
+- Not ours: the workbench's dark axis bands and its soft shadows; the tree's crown and its ring.
+
+A second critique was not run on the changed sheets; they were looked at.
+
+**Not done.** No battle or scene was run: nothing places these props yet (C46). The wasm was not rebuilt; the appearance bindings in the fixture changed (status removed, three `modular`), so it must be rebuilt before a map places a street prop. A traffic cone blocks no mover, so the renderer treats it as a walked-on surface and ground paint lands on it.
+
+**Pictures** (scratch): `throwaway/c45/final-group-a.png`, `final-group-b.png`, `final-group-c.png` (one sheet per kind, eight views each with the 1.8 m figure and the body's box); the first round is `group-a.png` to `group-c.png`; single sheets in `throwaway/c45/sheets2/`.

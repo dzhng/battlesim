@@ -12,6 +12,10 @@ import {
   type GlassStyle,
 } from "@packages/battle-renderer/src/models/surfaceFragments";
 import {
+  validateStandIns,
+  type StandInStyle,
+} from "@packages/battle-renderer/src/models/propAppearance";
+import {
   validateBuildingStyle,
   type BuildingStyle,
 } from "@packages/battle-renderer/src/models/buildingReferences";
@@ -21,6 +25,11 @@ export const gameModelDetail: ModelDetailPresentation = validateModelDetail(
 );
 
 export const gameGlass: GlassStyle = validateGlass(game.presentation.glass);
+
+/** What a prop kind with no art fitted is drawn as: a box in its kind's tint. */
+export const gameStandIns: StandInStyle = validateStandIns(
+  game.presentation.stand_ins as unknown as StandInStyle,
+);
 
 export const gameBuildingStyle: BuildingStyle = validateBuildingStyle(
   game.presentation.buildings as unknown as BuildingStyle,

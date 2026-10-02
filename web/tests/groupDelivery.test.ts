@@ -292,7 +292,7 @@ test("cached static views still validate counts and commit only after the comple
     ]),
   );
   rejected[layout.header.indexOf("groundRunCount")] = 1;
-  expect(() => decoder.decode(rejected)).toThrow(/length/);
+  expect(() => decoder.decode(rejected)).toThrow(/ground.*count/);
   const corrected = decoder.decode(packet("base", 2, false))!;
   expect(corrected.corpses).toBe(before.corpses);
   expect(corrected.knownProps).toBe(before.knownProps);
@@ -476,4 +476,110 @@ test("malformed packed groups roll back atomically and allow the corrected same 
     put(5, 4);
   });
   expect(() => new ObservationDecoder(layout).decode(compactPacket(1, g, coldXor))).toThrow(/tag/);
+});
+
+function groundPacket(revision: number, rows: number, body: Float32Array) {
+  const base = packet("base", revision, revision === 1);
+  base[layout.header.indexOf("groundRunCount")] = rows;
+  base[layout.header.indexOf("groundBase")] = revision - 1;
+  base[layout.header.indexOf("groundRevision")] = revision;
+  const result = new Float32Array(base.length + body.length);
+  result.set(base);
+  result.set(body, base.length);
+  return result;
+}
+
+test("packed ground preserves marks and retained rows, rejects invalid tails before retry", () => {
+  const decoder = new ObservationDecoder(layout);
+  const full = compactBits((put) => {
+    put(0, 8);
+    put(0, 8);
+    put(255, 8);
+    put(31, 5);
+    for (const mark of [17, 29, 31, 43, 255]) put(mark, 8);
+    put(1, 8);
+    put(7, 8);
+    put(0, 8);
+    put(0, 5);
+  });
+  const before = decoder.decode(groundPacket(1, 2, full))!;
+  expect([...before.groundPatch.runs]).toEqual([
+    0,
+    65536,
+    17 + 29 * 256,
+    31 + 43 * 256 + 255 * 65536,
+    1,
+    263,
+    0,
+    0,
+  ]);
+  const valid = compactBits((put) => {
+    put(1, 8);
+    put(7, 8);
+    put(0, 8);
+    put(16, 5);
+    put(255, 8);
+  });
+  for (const invalid of [
+    valid.subarray(0, 1),
+    compactBits((put) => {
+      put(128, 8);
+      put(0, 8);
+      put(0, 8);
+      put(0, 8);
+      put(0, 5);
+    }),
+    compactBits((put) => {
+      put(1, 8);
+      put(255, 8);
+      put(1, 8);
+      put(0, 5);
+    }),
+    compactBits((put) => {
+      put(1, 8);
+      put(0, 8);
+      put(0, 8);
+      put(1, 5);
+      put(0, 8);
+    }),
+    compactBits((put) => {
+      put(1, 8);
+      put(7, 8);
+      put(0, 8);
+      put(16, 5);
+      put(255, 8);
+      put(1, 1);
+    }),
+  ])
+    expect(() => decoder.decode(groundPacket(2, 1, invalid))).toThrow();
+  for (const count of [NaN, Infinity, -1, 0.5, 2 ** 24])
+    expect(() => decoder.decode(groundPacket(2, count, valid))).toThrow();
+  const after = decoder.decode(groundPacket(2, 1, valid))!;
+  expect([...after.groundPatch.runs]).toEqual([1, 263, 0, 255 * 65536]);
+  expect([...before.groundPatch.runs]).toEqual([
+    0,
+    65536,
+    17 + 29 * 256,
+    31 + 43 * 256 + 255 * 65536,
+    1,
+    263,
+    0,
+    0,
+  ]);
+});
+
+test("a packed ground NaN carrier reconstructs finite canonical rows bit-exactly", () => {
+  const body = compactBits((put) => {
+    put(69, 8);
+    put(35, 8);
+    put(193, 8);
+    put(31, 5);
+    for (const mark of [3, 255, 255, 255, 255]) put(mark, 8);
+  });
+  expect(new Uint32Array(body.buffer)[0]).toBe(0x7fc12345);
+  const copied = body.slice();
+  const wider = { ...layout, ground: { ...layout.ground, cols: 160, rows: 160 } };
+  const frame = new ObservationDecoder(wider).decode(groundPacket(1, 1, copied))!;
+  const expected = Float32Array.of(69, 35 + 194 * 256, 3 + 255 * 256, 16777215);
+  expect(new Uint32Array(frame.groundPatch.runs.buffer)).toEqual(new Uint32Array(expected.buffer));
 });

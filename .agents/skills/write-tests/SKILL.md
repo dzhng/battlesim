@@ -10,6 +10,9 @@ refactor or config change that preserves it. Most bad tests fail the opposite
 way: red on harmless changes, green while the real path is broken. Every rule
 below serves that one goal.
 
+For deciding whether coverage adds independent proof, where it belongs, or
+which existing tests can go, use [audit-tests](../audit-tests/SKILL.md).
+
 ## Workflow: tracer bullets, not a batch
 
 1. **Write ONE test at a time.** Assert first, watch it go red on the un-fixed
@@ -198,6 +201,8 @@ Walk this on any test diff, apply fixes in the same pass, re-run the suite:
    fixed-size edits cannot expose address-shift amplification.
    For incremental work, assert observable completion before testing downstream
    effects; accepted input does not imply completed planning or publication.
+   For mutable geometry across incremental steps, change it through a public
+   event and validate completed output against the fresh authoritative world.
    For startup refusals, exercise the consumer before dependent resources arrive:
    a correct error from the producer can still disappear behind a readiness gate.
    For decoder caches, change header metadata independently of retained payload;

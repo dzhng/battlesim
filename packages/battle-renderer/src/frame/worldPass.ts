@@ -86,7 +86,7 @@ import {
   groundDapple,
   GroundPaved,
   groundPaved,
-  groundRuts,
+  groundRoadRelief,
   groundScarsSeen,
   groundSite,
   groundBank,
@@ -246,9 +246,9 @@ export async function createWorldPass(
     if (bank.z > 0) {
       ground = std.normalize(std.mix(n, std.normalize(d.vec3f(-bank.x, -bank.y, 1)), bank.z));
     }
-    // A road's ruts tilt it too: their sides catch the sun.
-    const ruts = groundRuts(v.world.xy, footprint, paved);
-    ground = std.normalize(std.sub(ground, std.mul(d.vec3f(ruts.xy, 0), ground.z * biome)));
+    // A road's ruts and its curb tilt it too: their sides catch the sun.
+    const relief = groundRoadRelief(v.world.xy, footprint, paved);
+    ground = std.normalize(std.sub(ground, std.mul(d.vec3f(relief, 0), ground.z * biome)));
     const shading = std.normalize(std.mix(ground, scarredNormal(ground, scar), biome));
     // The ground paint on it (its layer is painted).
     const paint = groundPaint(v.world);

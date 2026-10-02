@@ -6,9 +6,12 @@ import { expect, test } from "vitest";
 import type { Vec3 } from "math";
 import type { InstalledAppearances } from "@packages/scene-assets/src/loader.ts";
 import type { AppearanceUnit, StaticBundle } from "@packages/scene-assets/src/schema.ts";
+import { color } from "math/color";
+import { PROTOTYPE_KIT, PROTOTYPE_MODULE } from "@packages/scene-assets/src/prototypeSet.ts";
 import {
   PropAppearances,
   structureModels,
+  validateStandIns,
   type KnownProp,
   type MapProp,
 } from "@packages/battle-renderer/src/models/propAppearance.ts";
@@ -239,4 +242,71 @@ test("a second replacement keeps its authored appearance and never resurrects th
       scale: [1, 1, 1],
     },
   ]);
+});
+
+// Street furniture has no art fitted yet. Its stand-in is the prototype
+// kit's unit box (a metre cube on its base), as artless buildings' parts are.
+const withKit: InstalledAppearances = {
+  ...installed,
+  appearances: new Map([
+    ...installed.appearances,
+    [PROTOTYPE_KIT, { ...entry("kit", null, [0, 0, 0], PROTOTYPE_MODULE), footprint: null }],
+  ]),
+};
+const standIns = validateStandIns({
+  tints: { parked_car: [1, 0.5, 0], default: [0.5, 0.5, 0.5] },
+});
+const artless = new PropAppearances(withKit, layout, standIns);
+const car: MapProp = {
+  id: 40,
+  kind: "parked_car",
+  center: [10, 20],
+  yaw: 0.7,
+  half: [2.1, 0.9, 0.75],
+  baseZ: 3,
+};
+const linear = (srgb: [number, number, number]) => [...color.fromSRGB(srgb)];
+
+test("a prop kind with no art is drawn as a box of its own size, tinted by its kind", () => {
+  const lamp: MapProp = { ...car, id: 41, kind: "lamp", half: [0.15, 0.15, 3] };
+  const [box, post] = structureModels([car, lamp], [], artless);
+  expect([box.appearance, state(box)]).toEqual([PROTOTYPE_KIT, PROTOTYPE_MODULE]);
+  expect([box.x, box.y, box.z, box.yaw]).toEqual([10, 20, 3, 0.7]);
+  // The unit box is a metre on a side: its scale is the prop's whole size.
+  expect(box.scale).toEqual([4.2, 1.8, 1.5]);
+  box.tint!.forEach((c, k) => expect(c).toBeCloseTo(linear([1, 0.5, 0])[k], 6));
+  // A kind the style does not list takes the default tint.
+  expect(post.scale).toEqual([0.3, 0.3, 6]);
+  post.tint!.forEach((c, k) => expect(c).toBeCloseTo(linear([0.5, 0.5, 0.5])[k], 6));
+  // The models layer installs the kit for it.
+  expect(artless.drawnFor([car]).has(PROTOTYPE_KIT)).toBe(true);
+});
+
+test("a stand-in follows what the side knows: shoved, burnt out, gone", () => {
+  const known = (over: Partial<KnownProp>): KnownProp => ({
+    ...car,
+    replaces: car.id,
+    authoredProp: car.id,
+    ...over,
+  });
+  const [shoved] = structureModels([car], [known({ center: [14, 22], yaw: 1.2 })], artless);
+  expect([shoved.x, shoved.y, shoved.yaw]).toEqual([14, 22, 1.2]);
+  shoved.tint!.forEach((c, k) => expect(c).toBeCloseTo(linear([1, 0.5, 0])[k], 6));
+  const [wreck] = structureModels(
+    [car],
+    [known({ kind: "car_wreck", half: [2.1, 0.9, 0.35] })],
+    artless,
+  );
+  expect(wreck.scale).toEqual([4.2, 1.8, 0.7]);
+  wreck.tint!.forEach((c, k) => expect(c).toBeCloseTo(linear([0.5, 0.5, 0.5])[k], 6));
+  expect(structureModels([car], [known({ destroyed: true })], artless)).toEqual([]);
+});
+
+test("a forest's tree is never a stand-in, a street tree is, and nothing is without the kit", () => {
+  const tree = (kind: string): MapProp => ({ ...car, kind, half: [0.35, 0.35, 5] });
+  expect(structureModels([tree("trunk")], [], artless)).toEqual([]);
+  expect(structureModels([tree("street_tree")], [], artless)).toHaveLength(1);
+  // The prototype kit not installed, or no stand-in style: as before, nothing.
+  expect(structureModels([car], [], new PropAppearances(installed, layout, standIns))).toEqual([]);
+  expect(structureModels([car], [], appearances)).toEqual([]);
 });

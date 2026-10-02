@@ -24,6 +24,18 @@ export async function writeCrop(png, path, cx, cy, halfW, halfH, scale = 3) {
   await writeFile(path, PNG.sync.write(out));
 }
 
+/** The PNG of the `w` by `h` pixels of `png` from (x0, y0), clamped to the image. */
+export function crop(png, x0, y0, w, h) {
+  const left = Math.min(png.width - 1, Math.max(0, Math.round(x0)));
+  const top = Math.min(png.height - 1, Math.max(0, Math.round(y0)));
+  const out = new PNG({
+    width: Math.max(1, Math.min(png.width - left, Math.round(w))),
+    height: Math.max(1, Math.min(png.height - top, Math.round(h))),
+  });
+  PNG.bitblt(png, out, left, top, out.width, out.height, 0, 0);
+  return PNG.sync.write(out);
+}
+
 /** The in-image pixel coordinates within `r` px (a square) of `p`. */
 export function* around(png, p, r) {
   const [cx, cy] = [Math.round(p[0]), Math.round(p[1])];

@@ -75,6 +75,63 @@ fn one_tank() -> serde_json::Value {
 }
 
 #[test]
+fn a_new_body_during_infantry_refinement_replans_without_panicking() {
+    let mut setup = scenario(
+        r#"{"size":[120,120],"fog_cell_m":4,"height_grid_m":4,"slope_cutoff_deg":35}"#,
+        json!([{"side":"blue","kind":"recon","position":[20,20]}]),
+        1,
+    );
+    setup.events = serde_json::from_value(json!([{
+        "tick": 60,
+        "add_prop": {
+            "kind": "wall", "center": [62, 60],
+            "half_extents": [0.5, 8, 2], "yaw": 0
+        }
+    }]))
+    .unwrap();
+    let mut battle = Battle::new(&setup, 1);
+    send(&mut battle, 1, go(&[0], [100.0, 100.0]));
+    let mut digests = Vec::new();
+    let mut planned = false;
+    // One work item per tick deliberately stretches refinement across the event.
+    // This watchdog checks completion, not the shipped planning latency.
+    for _ in 0..9000 {
+        battle.step();
+        digests.push(battle.digest());
+        let unit = battle.unit(UnitId(0)).unwrap();
+        if battle.tick() > 60 && unit.route.is_some() {
+            planned = true;
+            break;
+        }
+    }
+    assert!(
+        planned,
+        "the changed edge must finish a safe replan: state={:?} pending={} position={:?}",
+        battle.unit(UnitId(0)).unwrap().state,
+        battle.load().routes_pending,
+        battle.unit(UnitId(0)).unwrap().position
+    );
+    assert_eq!(battle.load().routes_pending, 0);
+    let grid = sim::navigation::NavGrid::new(std::sync::Arc::new(sim::navigation::NavBase::build(
+        battle.world(),
+        battle.world().props(),
+        setup.rules.physics.soldier_radius_m,
+    )));
+    let unit = battle.unit(UnitId(0)).unwrap();
+    assert!(grid.route_fits(
+        unit.route_from,
+        unit.route.as_ref().unwrap(),
+        &unit.mobility
+    ));
+    let replay = serde_json::from_str(&serde_json::to_string(&battle.replay()).unwrap()).unwrap();
+    let mut copy = Battle::from_replay(&setup, &replay).unwrap();
+    for expected in digests {
+        copy.step();
+        assert_eq!(copy.digest(), expected);
+    }
+}
+
+#[test]
 fn a_unit_holds_where_it_is_while_its_route_is_planned_then_drives_it() {
     let mut b = Battle::new(&scenario(WALLED, one_tank(), 100), 1);
     send(&mut b, 1, go(&[0], [300.0, 100.0]));

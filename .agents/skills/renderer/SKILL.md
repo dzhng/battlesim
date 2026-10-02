@@ -95,6 +95,8 @@ Read before changing anything:
 - **Work spread over frames says when it is done.** A capture after a camera cut waits for the layer's pending flag, not for a frame count.
 - **Judge a change by a paired frame:** the same tick and camera with only that switch flipped.
 - **Stats aren't pixels.** Pair every count with a crop that proves the subject was drawn and framed, and derive the camera from live anchors, not hand-picked coordinates.
+- **Judge a detail tier at its boundary:** one pose at the distance the tier changes, drawn at the tier before and the tier after. Force the tier through the layer's own thresholds, never a second switch, so the forced picture is what the game draws.
+- **A mask view's "not this" is also the sky and the map's edge.** Keep ground behind whatever a mask check judges, or limit the check to where ground is.
 - **Checks derive from contracts** (compositing algebra, the simulation's own vectors, CPU equal to GPU), not from a copied constant.
 - **A claim about repeating motion needs whole cycles,** including the longest pause, across several seeds.
 - **Hold the inputs still.** Don't rebuild, merge or rewrite built files while a browser check runs.
