@@ -102,8 +102,9 @@ export async function checkOverlayIsolation(ctx, page, name) {
 /** The painted ground marks alone (they are drawn in the lit world, not
  *  the overlay): the frame with them less the frame without,
  *  each channel's rise kept (a mark lightens what it is painted on), so a
- *  pixel reads the mark's hue over black; `under` is the frame without
- *  them. Saves both frames as evidence. */
+ *  pixel reads the mark's rise over black. Neutral paint can also darken
+ *  bright channels: `painted` and `under` retain the finished frames for
+ *  signed contrast checks. Saves both frames as evidence. */
 export async function paintOnly(ctx, page, name) {
   const shot = async (suffix) => {
     await page.evaluate(() => window.__lab.frame());
@@ -121,7 +122,7 @@ export async function paintOnly(ctx, page, name) {
     data[i + 3] = 255;
   }
   // The frame without them rides along: what the marks are painted on.
-  return { width: on.width, height: on.height, data, under: off };
+  return { width: on.width, height: on.height, data, painted: on, under: off };
 }
 
 /** The ground marks' paint as stored, over black (the frame's `paint`
