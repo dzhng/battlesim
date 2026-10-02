@@ -5903,3 +5903,12 @@ The models, their boxes and the sheets are in the [C45 outcome](slices/C45-stree
 **Gap:** No probe of the lab reaches the terrain surface, and the lab is not this lane's to change.
 
 **Verdict:** sound; it costs under a second a page. **Confidence:** high.
+
+### A road is judged against the field beside it as "lighter, or apart in hue", and its walk as "no dark outline"
+
+**Choice:** The two road checks that stated L-G3 are restated. A road's core may be darker than the ground beside it only when it is within 15% of it and their colours are 6 or more apart in CIELAB's a*b* plane (the river bank's bar). The walk from core to field has one rule: no band is more than 12% darker than the darker of the core and the field. The "only gets darker, band by band" rule is gone.
+
+**Gap:** C66 and C67 wrote "core luminance at or above the adjacent grass band's" and "monotone or flat from core to grass" when every field beside a station was green. After C84's palettes and C31's river recut the river lab's track runs through rapeseed, lighter than any earth.
+
+**Verdict:** provisional. It is the form the spec uses for seen against unseen ground ("lighter than, or apart in hue"), and what L-G3 guards against, a dark band beside the road, is still refused. The measured case: track 0.211 against rapeseed 0.225, 10.2 apart in hue; the bare half metre beside it is the field's own soil at 0.203. The monotone rule could not hold beside a field as light as the road, and its 3 to 4% steps were furrow phase. **Confidence:** medium: the bar is the bank's, not measured for roads by a fresh eye.
+

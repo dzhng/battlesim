@@ -35,14 +35,12 @@ const SHOULDER_BANDS = 4;
  *  the core out to the grass. */
 const STEP_M = 0.5;
 const WALK_M = [-1, GRASS_M[0]];
-/** A band may be this much brighter than the one inside it and still count
- *  as level: the grain, blades over the ground, and which part of a furrow a
- *  half-metre band along a drilled field's edge happens to hold. */
-const LEVEL = 0.04;
-/** A band may be this much darker than the grass band and not count as under
- *  it: open field differs that much from band to band by which plots and
- *  which furrows lie in each. */
-const FIELD_LEVEL = 0.1;
+/** A band may be this much darker than the darker of the core and the field
+ *  and not count as a trough: open field differs from band to band by which
+ *  plots and furrows lie in each, and the bare half metre beside a track
+ *  through a flowering crop is the field's own soil, a tenth darker than its
+ *  flowers. */
+const FIELD_LEVEL = 0.12;
 
 const linear = (v) => {
   const c = v / 255;
@@ -79,6 +77,25 @@ export function mean(shot, pixels) {
 /** How far a colour leans from blue toward red, as a share of its red. */
 const warmth = ([r, , b]) => (r - b) / r;
 
+/** CIELAB a* and b* of an sRGB colour (0 to 255): its hue and chroma, apart
+ *  from how light it is. */
+function hue(rgb) {
+  const [r, g, b] = rgb.map((v) =>
+    v / 255 <= 0.04045 ? v / 255 / 12.92 : ((v / 255 + 0.055) / 1.055) ** 2.4,
+  );
+  const f = (t) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+  const x = f((0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.9505),
+    y = f(0.2126 * r + 0.7152 * g + 0.0722 * b),
+    z = f((0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.089);
+  return [500 * (x - y), 200 * (y - z)];
+}
+/** Two grounds are apart in hue when their mean colours differ by this much
+ *  in the a*b* plane (the river bank's bar), and a road may then be this
+ *  share of its neighbour's luminance: a brown track through rapeseed is not
+ *  a shadow on it. */
+const HUE_APART = 6;
+const DARKER_APART = 0.85;
+
 /** A station's frame, its bare ground and its class mask. */
 export async function frame(page, map, station) {
   return {
@@ -98,12 +115,18 @@ function coreAgainstGrass({ shot, mask }) {
     shot,
     groundPixels(mask, (c) => c.roadSd >= GRASS_M[0] && c.roadSd <= GRASS_M[1]),
   );
-  return { core: core.luminance, grass: grass.luminance, pixels: [core.count, grass.count] };
+  const [a, b] = [hue(core.rgb), hue(grass.rgb)];
+  return {
+    core: core.luminance,
+    grass: grass.luminance,
+    apart: +Math.hypot(a[0] - b[0], a[1] - b[1]).toFixed(1),
+    pixels: [core.count, grass.count],
+  };
 }
 
 /** The walk from a road's core out to the grass in `shot`: each band's mean
- *  luminance, the grass band's, and whether the walk only ever falls (or
- *  holds level) and never dips under the grass. */
+ *  luminance, the grass band's, and whether no band dips under both the core
+ *  and the grass. */
 function walk(shot, mask) {
   const bands = [];
   for (let from = WALK_M[0]; from < WALK_M[1]; from += STEP_M)
@@ -121,8 +144,7 @@ function walk(shot, mask) {
   return {
     light: light.map((v) => +v.toFixed(4)),
     grass: +grass.toFixed(4),
-    falls: light.every((v, i) => i === 0 || v <= light[i - 1] * (1 + LEVEL)),
-    aboveGrass: light.every((v) => v >= grass * (1 - FIELD_LEVEL)),
+    noTrough: light.every((v) => v >= Math.min(light[0], grass) * (1 - FIELD_LEVEL)),
     counted: bands.every((b) => b.count >= BAND_PIXELS / 4),
   };
 }
@@ -270,9 +292,11 @@ export async function roadLooks(ctx) {
   const junction = await frame(river, "river", "junction-65");
   bands["river junction-65"] = coreAgainstGrass(junction);
   ctx.check(
-    "no road's core is darker than the grass beside it (nothing on the ground reads as shadow)",
+    "no road's core is darker than the ground beside it, unless it is clearly apart from it in hue (nothing on the ground reads as shadow)",
     Object.values(bands).every(
-      (b) => b.core >= b.grass && b.pixels.every((count) => count >= BAND_PIXELS),
+      (b) =>
+        (b.core >= b.grass || (b.core >= DARKER_APART * b.grass && b.apart > HUE_APART)) &&
+        b.pixels.every((count) => count >= BAND_PIXELS),
     ),
     JSON.stringify(bands),
   );
@@ -307,8 +331,8 @@ export async function roadLooks(ctx) {
   await river.close();
 
   ctx.check(
-    "from a road's core out to the grass the ground only gets darker, band by band, and never darker than the grass",
-    Object.values(walks).every((w) => w.falls && w.aboveGrass && w.counted),
+    "from a road's core out to the field no band is darker than both the core and the field: a road has no dark outline",
+    Object.values(walks).every((w) => w.noTrough && w.counted),
     JSON.stringify(walks),
   );
   // The field's own density, from the two bands farthest out.
