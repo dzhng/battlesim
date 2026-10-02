@@ -622,3 +622,111 @@ fn locally_invalidated_fog_matches_fresh_sweeps() {
         assert_same(&world, &mut grid);
     }
 }
+
+/// Overlapping observers must not repeatedly canonicalize the same dense town.
+#[cfg(target_os = "macos")]
+#[test]
+fn overlapping_observers_share_fog_candidate_collection_work() {
+    if !common::isolated_cost_test(
+        "sight::overlapping_observers_share_fog_candidate_collection_work",
+    ) {
+        return;
+    }
+    let mut props = Vec::new();
+    for y in 0..100 {
+        for x in 0..100 {
+            props.push(
+                json!({"kind":"wall","center":[200.3+x as f64*8.0,200.3+y as f64*8.0],
+                "yaw":0,"half_extents":[0.1,0.1,2.0]}),
+            );
+        }
+    }
+    let map = json!({"size":[1600,1600],"fog_cell_m":32,"height_grid_m":4,
+        "slope_cutoff_deg":35,"props":props});
+    let units: Vec<_> = (0..12)
+        .map(|i| {
+            json!({"side":"blue","kind":"rifle",
+        "position":[560+(i%3)*20,560+(i/3)*20],"engagement":"return_fire_only"})
+        })
+        .collect();
+    let setup = common::scenario(&map.to_string(), json!(units), json!([]));
+    let mut battle = Battle::new(&setup, 1);
+    let mut collection = 0;
+    for _ in 0..6 {
+        let mut previous = common::counters::instructions().unwrap();
+        battle.step_profiled(|phase| {
+            let now = common::counters::instructions().unwrap();
+            if matches!(
+                phase,
+                sim::battle::TickPhase::Fog | sim::battle::TickPhase::Learning
+            ) {
+                collection += now - previous;
+            }
+            previous = now;
+        });
+    }
+    eprintln!("whole Fog+Learning instructions: {collection}");
+    assert!(
+        collection < 60_000_000,
+        "Fog+Learning repeated collection: {collection}"
+    );
+}
+
+/// All observers contribute body knowledge; unseen bodies remain unknown.
+#[test]
+fn separate_observers_learn_bodies_without_leaking_between_views() {
+    let map = r#"{"size":[2200,800],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35}"#;
+    let setup = common::scenario(
+        map,
+        json!([
+            {"side":"blue","kind":"rifle","position":[200,400],"engagement":"return_fire_only"},
+            {"side":"blue","kind":"rifle","position":[1800,400],"engagement":"return_fire_only"}
+        ]),
+        json!([
+            {"tick":1,"add_prop":{"kind":"wall","center":[100,400],"yaw":0,"half_extents":[45,4,2]}},
+            {"tick":1,"add_prop":{"kind":"wall","center":[2000,400],"yaw":0,"half_extents":[45,4,2]}},
+            {"tick":1,"add_prop":{"kind":"wall","center":[1000,400],"yaw":0,"half_extents":[3,3,2]}}
+        ]),
+    );
+    let mut battle = Battle::new(&setup, 1);
+    let mut digests = Vec::new();
+    for _ in 0..12 {
+        battle.step();
+        digests.push(battle.digest());
+    }
+    assert_eq!(
+        battle
+            .observe(Side::Blue)
+            .known_props
+            .iter()
+            .map(|p| p.center)
+            .collect::<Vec<_>>(),
+        vec![[100.0, 400.0], [2000.0, 400.0]]
+    );
+    assert!(battle.observe(Side::Red).known_props.is_empty());
+    let mut grid = sim::visibility::OcclusionGrid::new(battle.world(), 8.0);
+    let mut fresh = grid.field();
+    for id in [UnitId(0), UnitId(1)] {
+        let u = battle.unit(id).unwrap();
+        let sight = sim::sight::of(u, battle.rules());
+        for eye in sim::sensing::eyes(u, battle.rules()) {
+            sim::visibility::sweep(
+                battle.world(),
+                &mut grid,
+                &battle.rules().sensors,
+                eye,
+                &sight,
+                &mut fresh,
+            );
+        }
+    }
+    assert_eq!(
+        battle.observe(Side::Blue).ground_visibility.bits,
+        fresh.bits
+    );
+    let mut replay = Battle::from_replay(&setup, &battle.replay()).unwrap();
+    for expected in digests {
+        replay.step();
+        assert_eq!(replay.digest(), expected);
+    }
+}

@@ -119,3 +119,10 @@ prove incremental refinement still finishes under the smallest work budget.
 Physical standing room may differ from a conservative navigation mask near a
 body. Exercise the real movement representative through that mask, including a
 legal group whose centroid lies inside a body, before claiming endpoint parity.
+
+
+When batching overlapping spatial queries, count the final canonical merge and
+its downstream consumer with collection. Sorting fewer times can increase raw
+duplicate volume and move cost across a profile boundary. Measure temporary
+vector capacity separately from retained state, and falsify a later-query
+omission through public knowledge before claiming union equivalence.

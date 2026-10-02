@@ -3982,3 +3982,20 @@ pending. **Confidence:** high for fixture identity, medium until the scene runs.
 **Contract:** Source observations are immutable. A new static position/floor view rebuilds the conversion and retains earlier rows unchanged. Side/catalog changes recreate the existing feed/driver owners. The driver's independent death/fade/expiry work and clock-reset lifecycle remain active behind its existing reconciliation gate. Caps, world, camera and frame ownership stay intact; there is no cache shared across pages.
 
 **Verdict:** Sound within the existing immutable-view contract. Public feed identity/floor proofs and existing pose lifecycle suites pass. Broader browser allocation, upload and throughput admission remain separate and open. **Confidence:** High for static construction and value preservation.
+## C06: canonicalize visibility candidates at the union owner
+
+**Choice:** Fog collects raw bucket IDs from every eye and sorts/deduplicates
+the world and remembered unions before learning. Ordinary spatial queries keep
+their sorted, unique contract; no candidate cache is retained.
+
+**Why:** Per-eye sorting repeats work over overlapping views, and remembered
+queries also sorted the growing prefix. The existing bucket membership and
+query reach are unchanged. Canonicalization remains before stateful consumers,
+so an overlapping body is learned once in the same ID order. The unchanged
+visibility kernel consumes neither vector.
+
+**Tradeoff:** Raw ID vectors contain more duplicate entries during collection;
+this exchanges temporary allocation for fewer sorts, without permanent map
+storage. Measure the final merge and Learning with Fog so moving work across
+profile brackets cannot masquerade as a gain. C06 records matched bounded
+Battle observations/digests and the remaining whole-city admission limits.
