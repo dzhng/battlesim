@@ -31,6 +31,8 @@ const NEAR_M: f64 = 1.5;
 /// A road that stops on a settlement's block, or this near one, serves it.
 const SERVED_M: f64 = 30.0;
 const CELL_M: f64 = 64.0;
+/// How many ends of each failing kind a report lists.
+const LISTED: usize = 12;
 
 fn plan(map_type: MapType, size: MapSize, seed: u64) -> MapPlan {
     let presets = PresetDefinitions::from_json(PRESETS).unwrap();
@@ -98,17 +100,16 @@ impl<'a> Paving<'a> {
 enum End {
     /// Its whole face is off the map or under another carriageway.
     Hidden,
-    /// It stops on narrower carriageways only, which cannot cover it: the
-    /// road narrows or forks there, and its shoulders show. (Where unlike
-    /// roads meet at a corner the wider one is run over the narrower one's
-    /// end, which the joint pass's own tests hold.)
+    /// It stops across a narrower carriageway that carries on from it: the
+    /// road narrows there, and its shoulders show either side.
     Narrows,
-    /// Nothing covers its face and nothing lies ahead of it, and another
-    /// carriageway joins it within two of its widths: its flat end is the
-    /// outer edge of that corner.
-    Corner,
     /// It stops by nothing, on or beside a settlement's block.
     Serves,
+    /// Its flat end stands out past the edge of a road it meets: nothing as
+    /// wide as it covers any of its face, and either a carriageway joins it
+    /// within two of its widths, or narrower ones cover part of the face and
+    /// none carries on from it. The cut heel of a fork or a corner.
+    Heel,
     /// A carriageway as wide as it covers part of its face and leaves the
     /// rest: a bite out of the joint, or a step in the road's edge.
     Notch,
@@ -122,17 +123,14 @@ enum End {
 
 impl End {
     fn sound(self) -> bool {
-        matches!(self, End::Hidden | End::Narrows | End::Corner | End::Serves)
+        matches!(self, End::Hidden | End::Narrows | End::Serves)
     }
 }
 
-/// Of every thousand road ends, at most this many may be a bite or a step
-/// in a joint: the joints the joint pass does not close yet (three or more
-/// roads of one width meeting at sharp angles or with their ends a few
-/// metres apart, and two streets laid side by side where one stops).
-/// Measured at 1.1 over this sweep; lower it as those are closed, never
-/// raise it.
-const BITES_PER_THOUSAND: usize = 2;
+/// Of every ten thousand road ends, at most this many may be a bite, a step
+/// or a heel in a joint: the joints the joint pass does not close yet.
+/// Lower it as those are closed, never raise it.
+const FLAWS_PER_TEN_THOUSAND: usize = 10;
 
 /// Every carriageway stroke end of `plan`: what it is, where, and whose.
 fn ends(plan: &MapPlan) -> Vec<(End, Point, usize)> {
@@ -176,9 +174,10 @@ fn ends(plan: &MapPlan) -> Vec<(End, Point, usize)> {
             // cannot hide it, however they leave.
             let narrows = {
                 let wide = |p: Point| {
+                    // (A yard that laps over a corner of it is no road.)
                     paving.others(index, p).any(|area| match &area.shape {
                         GroundShape::Stroke { width_m: other, .. } => other >= width_m,
-                        GroundShape::Polygon { .. } => true,
+                        GroundShape::Polygon { .. } => false,
                     })
                 };
                 hidden > 0 && !face.iter().any(|p| wide(*p))
@@ -190,10 +189,18 @@ fn ends(plan: &MapPlan) -> Vec<(End, Point, usize)> {
                     paving.other(index, p)
                 })
             });
-            // Paving on its own last two widths.
+            // A carriageway carries on from the middle of the face, half a
+            // width past it: farther than one that only crosses it reaches,
+            // unless it crosses at less than 30°.
+            let carries_on = paving.other(index, point(half, 0.0));
+            // A carriageway on its own last two widths. (The yard in front
+            // of a building is paving too, and no road.)
             let joined = (1..=8).any(|step| {
                 [-1.0, 0.0, 1.0].into_iter().any(|share| {
-                    paving.other(index, point(-width_m * f64::from(step) / 4.0, half * share))
+                    let p = point(-width_m * f64::from(step) / 4.0, half * share);
+                    paving
+                        .others(index, p)
+                        .any(|area| matches!(area.shape, GroundShape::Stroke { .. }))
                 })
             });
             let served = plan
@@ -210,14 +217,16 @@ fn ends(plan: &MapPlan) -> Vec<(End, Point, usize)> {
                 End::Hidden
             } else if off_map > 0 {
                 End::ShowsAtEdge
-            } else if narrows {
+            } else if narrows && carries_on {
                 End::Narrows
+            } else if narrows {
+                End::Heel
             } else if hidden > 0 {
                 End::Notch
             } else if ahead {
                 End::Gap
             } else if joined {
-                End::Corner
+                End::Heel
             } else if served {
                 End::Serves
             } else {
@@ -231,10 +240,10 @@ fn ends(plan: &MapPlan) -> Vec<(End, Point, usize)> {
 
 /// No road end shows where it should not, over every type and size and
 /// several seeds: each is hidden (off the map's edge, or under the road it
-/// joins), is the wide end of a road that narrows, is the outer edge of a
-/// corner, or stops at a settlement it serves. None is a gap before a road,
-/// a face showing at the map's edge, or a road stopping in open ground; and
-/// no joint is bitten, but for the few `BITES_PER_THOUSAND` allows.
+/// joins), is the wide end of a road that narrows, or stops at a
+/// settlement it serves. None is a gap before a road, a face showing at the
+/// map's edge, or a road stopping in open ground; and no joint is bitten or
+/// shows a heel, but for the few `FLAWS_PER_TEN_THOUSAND` allows.
 #[test]
 fn every_road_end_is_hidden_or_serves_something() {
     let mut wrong: BTreeMap<End, Vec<String>> = BTreeMap::new();
@@ -297,7 +306,7 @@ fn every_road_end_is_hidden_or_serves_something() {
                 "{} {kind:?}:\n  {}",
                 ends.len(),
                 ends.iter()
-                    .take(8)
+                    .take(LISTED)
                     .cloned()
                     .collect::<Vec<_>>()
                     .join("\n  ")
@@ -306,11 +315,15 @@ fn every_road_end_is_hidden_or_serves_something() {
         .collect();
     let report = report.join("\n");
     let total: usize = counts.values().sum();
-    let steps = wrong.remove(&End::Notch).map_or(0, |ends| ends.len());
+    let flaws: usize = [End::Notch, End::Heel]
+        .into_iter()
+        .map(|kind| wrong.remove(&kind).map_or(0, |ends| ends.len()))
+        .sum();
+    println!("{flaws} of {total} road ends are a bite, a step or a heel\n{report}");
     assert!(wrong.is_empty(), "road ends show:\n{report}");
     assert!(
-        steps * 1000 <= total * BITES_PER_THOUSAND,
-        "{steps} of {total} road ends are a bite or a step in a joint:\n{report}"
+        flaws * 10_000 <= total * FLAWS_PER_TEN_THOUSAND,
+        "{flaws} of {total} road ends are a bite, a step or a heel in a joint:\n{report}"
     );
     // The sweep held what it claims to judge.
     assert!(counts[&End::Hidden] > 1000 && counts[&End::Serves] > 100);

@@ -4,31 +4,40 @@
 //! [`close`], which leaves every end one of these:
 //!
 //! - **part of a through road.** Carriageways of one kind and width that meet
-//!   end to end become one stroke through the point they shared, so the bend
-//!   there is the centreline's own rounded one;
-//! - **under the road it joins.** An end that touches another carriageway
-//!   stops just past that carriageway's middle, where its face lies inside
-//!   the other's width;
-//! - **the outer edge of a corner.** Where unlike roads meet at a corner, the
-//!   wider one runs on over the narrower one's end, and its own end is the
-//!   corner's outer edge;
+//!   end to end become one stroke through the point they shared, round
+//!   whatever corner they make there: the outside of a bend, a switchback
+//!   included, is the centreline's own round one, never a cut heel. At a
+//!   junction the straightest pair is the road through it;
+//! - **under the road it joins, and square to it.** An end that touches
+//!   another carriageway stops just past that carriageway's middle, where
+//!   its face lies inside the other's width. One that comes in at more of a
+//!   slant than 30° off square leaves its line a little before the road and
+//!   curves round to meet it square, so no acute fork is left and no corner
+//!   of its face shows past the road's far edge;
+//! - **the wide end of a road that narrows.** Where a wider road and a
+//!   narrower one meet at a corner, the wider turns the corner (its own
+//!   round bend outside) and stops a little way down the narrower, square
+//!   across it, a shoulder showing either side;
 //! - **square on the map's edge**, where a road leaves the map;
 //! - **at the last block it serves.** A road that ran on past it into open
 //!   country is cut back to it.
 //!
-//! A wider road that ends on a narrower one shows its shoulders, which is
-//! what a road that narrows looks like.
+//! The steps, in order: `trim` (roads that run out past their settlement),
+//! `undouble` (a street drawn beside another), `weld`, `tidy` (turns a few
+//! metres from an end), `meet` (corners whose ends fell short or ran past),
+//! `weld` again, `corner` (unlike roads at a corner), `gate` (the map's
+//! edge) and `snap` (ends that join a road).
 //!
-//! Not closed yet, and counted by `tests/road_ends.rs`: three or more roads
-//! of one width that meet at a point at sharp angles, or whose ends stand a
-//! few metres apart round one junction, which leave a bite between their
-//! ends; and two streets of one width laid side by side, which leave a step
-//! where one stops.
+//! Not closed yet, and counted by `tests/road_ends.rs`: a few junctions
+//! where three ends stand a few metres apart without sharing a point, and a
+//! wider road that ends at a slant on a narrower one with no room to turn.
 //!
 //! The plan's road graph joins two roads where their centrelines cross
 //! (`layout::measure`), so no step here may leave an end touching a line
 //! that a centimetre's rounding has moved off it: ends that share a point
-//! keep it, or all run on past it far enough to cross.
+//! keep it, or run on past the other's middle far enough to cross, and a
+//! wider road's last run along a narrower one ends a few centimetres to
+//! the far side of that one's line.
 //!
 //! Arithmetic is `+ − × ÷` and `libm`, and every point written is a whole
 //! centimetre, as everywhere in a plan.
@@ -47,16 +56,42 @@ const MEET_M: f64 = 0.5;
 const OVERSHOOT_M: f64 = 0.25;
 /// An end joins a carriageway whose edge is this near it.
 const NEAR_M: f64 = 2.5;
-/// Two street ends that turn back on each other this exactly (about 5°)
-/// are not welded: the shared centreline has no bend to give them.
+/// Two ends that turn back on each other this exactly (about 5°) are not
+/// welded: the shared centreline has no bend to give them.
 const REVERSE_COS: f64 = -0.996;
-/// At a junction, two ends within this of straight (30°) are one road
-/// through it.
+/// At a junction a wider road also ends on, two narrower ends within this
+/// of straight (30°) are one road through it; otherwise the wider road
+/// carries on down one of them ([`corner`]).
 const THROUGH_COS: f64 = 0.866;
-/// A country road or a track is one road through a turn no sharper than
-/// this (110°): a lane round the corner of a block, a few degrees past
-/// square. Sharper, the two stay two roads that meet.
-const ROAD_TURN_COS: f64 = -0.342;
+/// A wider road's last run along a narrower one is at least this much
+/// longer than its own half width: the cut of a square end reaches half a
+/// width back, and the corner behind it is to stay round. An end's own
+/// first run is kept as long, by dropping a turn nearer the end than that.
+const TAIL_SPARE_M: f64 = 1.0;
+/// That last run ends this far to the outside of the narrower way's line,
+/// for each metre of its length and at most `TAIL_ASIDE_M`: enough that the
+/// two middles cross, whatever a centimetre's rounding does.
+const TAIL_ASIDE: f64 = 0.01;
+const TAIL_ASIDE_M: f64 = 0.05;
+/// Two alike streets laid side by side whose ends run past each other by
+/// no more than this many widths are one street.
+const BESIDE_WIDTHS: f64 = 10.0;
+/// Two ways that each cross a third within this of where they crossed each
+/// other are still joined there.
+const JUNCTION_M: f64 = 25.0;
+/// An end whose last run is no longer than this many of its widths may be
+/// swung to meet a road square, when it has no room to turn before it.
+const SWING_WIDTHS: f64 = 4.0;
+/// A branch within this of square to the road it joins (30°) is left as it
+/// comes; one that comes in at more of a slant is bent to meet it square.
+const SLANT_COS: f64 = 0.5;
+/// A branch bent to meet a road square runs square for this many of its own
+/// widths before the road's edge, and a wider road that turns a corner with
+/// a narrower one runs this many of its own widths along it.
+const SQUARE_WIDTHS: f64 = 1.5;
+/// A road that stops within this many of its own widths past a road it
+/// crossed is cut back to that road: a stub, not a road of its own.
+const STUB_WIDTHS: f64 = 2.0;
 /// A face along another carriageway's edge is covered by it.
 const FLUSH_M: f64 = 0.02;
 /// An end is moved no less than this.
@@ -158,9 +193,10 @@ impl Way {
 /// past the last of them is cut back to it.
 ///
 /// No joint is lost to it. Whatever two ways' centrelines crossed before,
-/// they cross after or are one way; where a change would break that (a
-/// street that touched a bend at a tangent, say), the ways concerned are
-/// left exactly as they were laid and the rest are closed round them.
+/// they cross after, are one way, or both cross a third way at the same
+/// junction; where a change would break that (a street that touched a bend
+/// at a tangent, say), the ways concerned are left exactly as they were
+/// laid and the rest are closed round them.
 pub fn close(surfaces: Vec<SurfaceArea>, size: [f64; 2], grounds: &[&[Point]]) -> Vec<SurfaceArea> {
     let mut laid: Vec<Way> = Vec::new();
     let mut kept: Vec<Option<SurfaceArea>> = Vec::with_capacity(surfaces.len());
@@ -219,29 +255,43 @@ pub fn close(surfaces: Vec<SurfaceArea>, size: [f64; 2], grounds: &[&[Point]]) -
 fn closed(laid: &[Way], size: [f64; 2], grounds: &[&[Point]]) -> Vec<Way> {
     let mut ways = laid.to_vec();
     trim(&mut ways, size, grounds);
-    meet(&mut ways, size);
+    undouble(&mut ways, size);
+    // Welded first, so a corner's two ends are not taken for ends that
+    // join the pieces they are made of; and again once ends have met.
     let mut ways = weld(ways);
-    let settled = corner(&mut ways);
+    tidy(&mut ways);
+    meet(&mut ways, size);
+    tidy(&mut ways);
+    let mut ways = weld(ways);
+    corner(&mut ways, size);
     gate(&mut ways, size);
-    snap(&mut ways, size, &settled);
+    snap(&mut ways, size);
     ways
 }
 
 /// The pairs of laid ways whose centrelines cross, each by its slot, lower
-/// first: what the plan's road graph joins (`layout::measure`), by the same
-/// crossing test. Pieces of one welded way are joined by being one way.
-fn joined(ways: &[Way], size: [f64; 2]) -> BTreeSet<(usize, usize)> {
+/// first, with where: what the plan's road graph joins (`layout::measure`),
+/// by the same crossing test. Pieces of one welded way are joined by being
+/// one way.
+fn joined(ways: &[Way], size: [f64; 2]) -> BTreeMap<(usize, usize), Vec<Point>> {
     let paving = Paving::new(ways, size);
-    let mut pairs = BTreeSet::new();
+    let mut pairs: BTreeMap<(usize, usize), Vec<Point>> = BTreeMap::new();
     for (index, (way, a, b)) in paving.stretches.iter().enumerate() {
         paving.grid.any(segment_bounds(*a, *b, 0.0), |item| {
             let (other, c, d) = paving.stretches[item as usize];
-            if item as usize > index && other != *way && segment_crossing(*a, *b, c, d).is_some() {
+            if item as usize <= index || other == *way {
+                return false;
+            }
+            if let Some((share, _)) = segment_crossing(*a, *b, c, d) {
                 let (low, high) = (
                     ways[*way].slot.min(ways[other].slot),
                     ways[*way].slot.max(ways[other].slot),
                 );
-                pairs.insert((low, high));
+                let at = add(*a, scale(sub(*b, *a), share));
+                let places = pairs.entry((low, high)).or_default();
+                if places.last() != Some(&at) {
+                    places.push(at);
+                }
             }
             false
         });
@@ -250,33 +300,60 @@ fn joined(ways: &[Way], size: [f64; 2]) -> BTreeSet<(usize, usize)> {
 }
 
 /// The slots of every laid way that is part of a joint `before` has and
-/// `closed` has lost, with the slots of the ways welded to them.
+/// `closed` has lost, with the slots of the ways welded to them. A joint is
+/// kept if its two ways still cross, are one way, or both cross one third
+/// way within `JUNCTION_M` of where they crossed each other: three roads
+/// that shared a point are still one junction when two of them end on the
+/// third.
 fn lost(
-    before: &BTreeSet<(usize, usize)>,
+    before: &BTreeMap<(usize, usize), Vec<Point>>,
     closed: &[Way],
     size: [f64; 2],
     slots: usize,
 ) -> BTreeSet<usize> {
-    // The closed way each laid slot is now part of.
+    // The closed way each laid slot is now part of, by that way's slot.
     let mut owner = vec![usize::MAX; slots];
-    for (index, way) in closed.iter().enumerate() {
+    for way in closed {
         for piece in &way.pieces {
-            owner[*piece] = index;
+            owner[*piece] = way.slot;
         }
     }
     let after = joined(closed, size);
-    let mut out = BTreeSet::new();
-    for &(a, b) in before {
-        let (i, j) = (owner[a], owner[b]);
-        let (low, high) = (
-            closed[i].slot.min(closed[j].slot),
-            closed[i].slot.max(closed[j].slot),
-        );
-        if i != j && !after.contains(&(low, high)) {
-            out.extend(closed[i].pieces.iter().chain(&closed[j].pieces).copied());
+    // What each closed way crosses, and where.
+    let mut crossings: BTreeMap<usize, Vec<(usize, Point)>> = BTreeMap::new();
+    for (&(low, high), places) in &after {
+        for at in places {
+            crossings.entry(low).or_default().push((high, *at));
+            crossings.entry(high).or_default().push((low, *at));
         }
     }
-    out
+    let near = |way: usize, at: Point| -> BTreeSet<usize> {
+        crossings
+            .get(&way)
+            .into_iter()
+            .flatten()
+            .filter(|(_, place)| distance(*place, at) <= JUNCTION_M)
+            .map(|(other, _)| *other)
+            .collect()
+    };
+    let mut broken = BTreeSet::new();
+    for (&(a, b), places) in before {
+        let (i, j) = (owner[a].min(owner[b]), owner[a].max(owner[b]));
+        if i == j || after.contains_key(&(i, j)) {
+            continue;
+        }
+        let kept = places
+            .iter()
+            .all(|at| near(i, *at).intersection(&near(j, *at)).next().is_some());
+        if !kept {
+            broken.extend([i, j]);
+        }
+    }
+    closed
+        .iter()
+        .filter(|way| broken.contains(&way.slot))
+        .flat_map(|way| way.pieces.iter().copied())
+        .collect()
 }
 
 /// Every end of every way, grouped where they meet.
@@ -372,6 +449,15 @@ impl<'a> Paving<'a> {
         })
     }
 
+    /// Whether a way that is none of `ends`' has its edge within `NEAR_M`
+    /// of `p`.
+    fn passed(&self, p: Point, ends: &[End]) -> bool {
+        self.grid.any([p[0], p[1], p[0], p[1]], |item| {
+            let way = self.stretches[item as usize].0;
+            ends.iter().all(|end| end.0 != way) && self.shapes[way].contains(p, NEAR_M)
+        })
+    }
+
     /// Whether the square end of way `own` would be covered by other ways
     /// if it stood at `at`, facing along `out_of`.
     fn hides(&self, at: Point, out_of: Point, own: usize) -> bool {
@@ -385,51 +471,33 @@ impl<'a> Paving<'a> {
         })
     }
 
-    /// How far on from `at`, along `out_of`, a way `half` wide either side
-    /// must run for its square end to stand past every narrower carriageway
-    /// that touches `at`: past each of their stretches, as far as it lies
-    /// within this way's width. `None` when no narrower one touches it.
-    fn narrower_past(&self, at: Point, out_of: Point, half: f64, own: usize) -> Option<f64> {
-        let normal = [-out_of[1], out_of[0]];
-        let reach = 3.0 * half;
-        let mut past: Option<f64> = None;
-        self.grid.any(
-            [at[0] - reach, at[1] - reach, at[0] + reach, at[1] + reach],
-            |item| {
-                let (way, c, d) = self.stretches[item as usize];
-                let narrow = self.halves[way];
-                if way == own || narrow >= half || !self.shapes[way].contains(at, NEAR_M) {
-                    return false;
-                }
-                // The stretch's two edges, clipped to this way's width, and
-                // the round joint at each of its ends.
-                let run = scale(sub(d, c), 1.0 / distance(c, d));
-                let aside = scale([-run[1], run[0]], narrow);
-                let mut reach_of = |p: Point, grown: f64| {
-                    if dot(sub(p, at), normal).abs() <= half {
-                        let along = dot(sub(p, at), out_of) + grown;
-                        past = Some(past.map_or(along, |known: f64| known.max(along)));
-                    }
-                };
-                for side in [-1.0, 1.0] {
-                    let (a, b) = (add(c, scale(aside, side)), add(d, scale(aside, side)));
-                    let (from, to) = (dot(sub(a, at), normal), dot(sub(b, at), normal));
-                    reach_of(a, 0.0);
-                    reach_of(b, 0.0);
-                    // Where the edge crosses this way's two sides.
-                    for edge in [-half, half] {
-                        let share = (edge - from) / (to - from);
-                        if from != to && (0.0..=1.0).contains(&share) {
-                            reach_of(add(a, scale(sub(b, a), share)), 0.0);
-                        }
-                    }
-                }
-                reach_of(c, narrow);
-                reach_of(d, narrow);
-                false
-            },
-        );
-        past.map(|past| past.min(reach))
+    /// The point of way `other`'s rounded middle nearest `p`, and whether it
+    /// lies within the way's length rather than at one of its two ends.
+    fn nearest_on(&self, other: usize, p: Point) -> Option<(Point, bool)> {
+        let reach = 4.0 * self.widest + 64.0;
+        let mut best: Option<(f64, Point)> = None;
+        let mut ends: Option<(Point, Point)> = None;
+        for &(way, c, d) in &self.stretches {
+            if way != other {
+                continue;
+            }
+            ends = Some((ends.map_or(c, |(first, _)| first), d));
+            if c == d || (c[0] - p[0]).abs().min((d[0] - p[0]).abs()) > reach + distance(c, d) {
+                continue;
+            }
+            let run = sub(d, c);
+            let share = (dot(sub(p, c), run) / dot(run, run)).clamp(0.0, 1.0);
+            let foot = add(c, scale(run, share));
+            let apart = distance(foot, p);
+            if best.is_none_or(|(known, _)| apart < known) {
+                best = Some((apart, foot));
+            }
+        }
+        let ((_, foot), (first, end)) = (best?, ends?);
+        Some((
+            foot,
+            distance(foot, first) > MEET_M && distance(foot, end) > MEET_M,
+        ))
     }
 
     /// Whether the middle of a way other than `own` and `mate` crosses the
@@ -517,11 +585,173 @@ fn trim(ways: &mut [Way], size: [f64; 2], grounds: &[&[Point]]) {
     }
 }
 
-/// Two ends that stop within each other's width, on lines that cross there,
-/// are a corner whose ways each fell short of the other or ran past it. Both
+/// A way laid beside another, less than their two half widths off and
+/// running the same way, is the same road drawn twice for as long as the
+/// two overlap, and its end is a step in that road's edge. It is cut back
+/// to the last carriageway that crosses it or ends on it, if one does
+/// within `BESIDE_WIDTHS` of its end: there the two meet across that road.
+fn undouble(ways: &mut [Way], size: [f64; 2]) {
+    // (the end, how many of its points go, where it then ends)
+    let mut cuts: Vec<(End, usize, Option<Point>)> = Vec::new();
+    {
+        let paving = Paving::new(ways, size);
+        let on_map = |p: Point| (0..2).all(|k| p[k] > 0.0 && p[k] < size[k]);
+        let lone = nodes(ways)
+            .into_iter()
+            .filter(|node| node.len() == 1)
+            .flatten();
+        for (way, last) in lone {
+            let (at, out_of) = ways[way].end(last);
+            if ways[way].pinned || !on_map(at) || paving.hides(at, out_of, way) {
+                continue;
+            }
+            // The way it lies beside.
+            let mut beside: Option<usize> = None;
+            paving.grid.any([at[0], at[1], at[0], at[1]], |item| {
+                let (other, c, d) = paving.stretches[item as usize];
+                if other == way || c == d {
+                    return false;
+                }
+                let run = scale(sub(d, c), 1.0 / distance(c, d));
+                let along = dot(sub(at, c), run);
+                let off = cross(sub(at, c), run).abs();
+                if dot(out_of, run).abs() >= ALONGSIDE_COS
+                    && (0.0..=distance(c, d)).contains(&along)
+                    && off < paving.halves[way] + paving.halves[other]
+                {
+                    beside = Some(other);
+                }
+                beside.is_some()
+            });
+            let Some(beside) = beside else { continue };
+            // Back along its own line, run by run, to the first carriageway
+            // that crosses it or ends on it.
+            let limit = BESIDE_WIDTHS * ways[way].width;
+            let points: Vec<Point> = if last {
+                ways[way].points.iter().rev().copied().collect()
+            } else {
+                ways[way].points.clone()
+            };
+            let mut walked = 0.0;
+            'runs: for (step, run) in points.windows(2).enumerate() {
+                let (from, to) = (run[0], run[1]);
+                let length = distance(from, to);
+                let heading = scale(sub(to, from), 1.0 / length);
+                // The nearest to `from` of what crosses this run.
+                let mut first: Option<f64> = None;
+                paving.grid.any(segment_bounds(from, to, 0.0), |item| {
+                    let (other, c, d) = paving.stretches[item as usize];
+                    if other == way || other == beside || c == d {
+                        return false;
+                    }
+                    let run = scale(sub(d, c), 1.0 / distance(c, d));
+                    if dot(heading, run).abs() > ALONGSIDE_COS {
+                        return false;
+                    }
+                    let mut note = |along: f64| {
+                        if first.is_none_or(|known| along < known) {
+                            first = Some(along);
+                        }
+                    };
+                    if let Some((share, _)) = segment_crossing(from, to, c, d) {
+                        note(share * length);
+                    }
+                    for end in [c, d] {
+                        if segment_distance(from, to, end) <= MEET_M {
+                            note(dot(sub(end, from), heading).clamp(0.0, length));
+                        }
+                    }
+                    false
+                });
+                if let Some(along) = first {
+                    if walked + along > limit || (step == 0 && along < SHORTEST_RUN_M) {
+                        break 'runs;
+                    }
+                    // On the next point of its own line, it ends there;
+                    // otherwise just short of the crossing road's middle,
+                    // from this side.
+                    if length - along <= MEET_M {
+                        cuts.push(((way, last), step + 1, None));
+                    } else {
+                        let stop = add(from, scale(heading, along - OVERSHOOT_M));
+                        cuts.push(((way, last), step, Some(round_cm(stop))));
+                    }
+                    break 'runs;
+                }
+                walked += length;
+                if walked > limit {
+                    break;
+                }
+            }
+        }
+    }
+    for ((way, last), step, to) in cuts {
+        let mut points = ways[way].points.clone();
+        if !last {
+            points.reverse();
+        }
+        points.truncate(points.len() - step);
+        if let Some(to) = to {
+            *points.last_mut().expect("a way has points") = to;
+        }
+        if !last {
+            points.reverse();
+        }
+        points.dedup();
+        if points.len() >= 2 {
+            ways[way].relay(points);
+        }
+    }
+}
+
+/// A way that turns within half a road's width or so of an end loses that turn:
+/// the end's last run is then long enough to be moved, met or turned along.
+/// (A street's link to the road it joins is a metre or two long.) A turn
+/// another way ends on is kept.
+fn tidy(ways: &mut [Way]) {
+    // Long enough for the widest road there is to turn along.
+    let widest = ways.iter().map(Way::half).fold(0.0, f64::max);
+    let cell = |p: Point| [libm::floor(p[0]) as i64, libm::floor(p[1]) as i64];
+    let mut ends: BTreeMap<[i64; 2], Vec<Point>> = BTreeMap::new();
+    for way in ways.iter() {
+        for last in [false, true] {
+            let at = way.end(last).0;
+            ends.entry(cell(at)).or_default().push(at);
+        }
+    }
+    let joined = |p: Point| {
+        let [cx, cy] = cell(p);
+        (-1..=1).any(|dy| {
+            (-1..=1).any(|dx| {
+                ends.get(&[cx + dx, cy + dy])
+                    .is_some_and(|ends| ends.iter().any(|end| distance(*end, p) <= MEET_M))
+            })
+        })
+    };
+    for way in ways.iter_mut() {
+        for last in [false, true] {
+            let (at, before) = (way.end(last).0, way.before(last));
+            let short = distance(at, before) < widest + TAIL_SPARE_M;
+            if way.pinned || way.points.len() < 3 || !short || joined(before) {
+                continue;
+            }
+            let mut points = way.points.clone();
+            points.remove(if last { points.len() - 2 } else { 1 });
+            way.relay(points);
+        }
+    }
+}
+
+/// Two ends that stop within each other's width, or a width or two past
+/// each other, on lines that cross there, are a corner whose ways each fell
+/// short of the other or ran past it. Both
 /// are moved to where their lines cross, and so meet end to end. An end
 /// that touches a third carriageway as wide as either is joining that one,
 /// and is left; a narrower one they both end on is one they cross.
+///
+/// Two alike ways laid side by side, less than a width apart, whose ends
+/// run past each other or face each other, are one road drawn twice: both
+/// ends are moved to the point half way between them.
 fn meet(ways: &mut [Way], size: [f64; 2]) {
     if ways.is_empty() {
         return;
@@ -535,7 +765,9 @@ fn meet(ways: &mut [Way], size: [f64; 2]) {
         .filter(|(way, last)| !ways[*way].pinned && on_map(ways[*way].end(*last).0))
         .collect();
     let mut cells: BTreeMap<[i64; 2], Vec<End>> = BTreeMap::new();
-    let cell = |p: Point| [0, 1].map(|k| libm::floor(p[k] / (2.0 * paving.widest)) as i64);
+    // Two ends that may be a corner are no farther apart than one cell.
+    let span = (2.0 + 4.0 * STUB_WIDTHS).max(2.0 * BESIDE_WIDTHS) * paving.widest;
+    let cell = |p: Point| [0, 1].map(|k| libm::floor(p[k] / span) as i64);
     for &(way, last) in &lone {
         cells
             .entry(cell(ways[way].end(last).0))
@@ -548,20 +780,52 @@ fn meet(ways: &mut [Way], size: [f64; 2]) {
         let ((p, along), (q, other)) = (a.end(from.1), b.end(to.1));
         let reach = a.half() + b.half();
         let sin = cross(along, other);
-        if from.0 == to.0 || distance(p, q) > reach || sin.abs() < SQUARE_SIN {
+        if from.0 == to.0 || sin.abs() < SQUARE_SIN {
             return None;
         }
         let at = add(p, scale(along, cross(sub(q, p), other) / sin));
         let fits = |way: &Way, last: bool, out_of: Point| {
             dot(sub(at, way.before(last)), out_of) >= SHORTEST_RUN_M
         };
+        // An end may have fallen short by the two half widths, or run past
+        // by a stub's length more.
+        let near = |way: &Way, end: Point, out_of: Point| {
+            let past = dot(sub(end, at), out_of);
+            (-reach..=reach + STUB_WIDTHS * way.width).contains(&past)
+        };
         // Nothing a third carriageway joins is cut off or moved away.
-        (distance(at, p) <= reach
-            && distance(at, q) <= reach
+        (near(a, p, along)
+            && near(b, q, other)
             && fits(a, from.1, along)
             && fits(b, to.1, other)
             && !paving.touched(p, from.0, to.0, a.half().min(b.half()))
             && !paving.touched(q, to.0, from.0, a.half().min(b.half()))
+            && !paving.crossed(at, p, from.0, to.0)
+            && !paving.crossed(at, q, to.0, from.0))
+        .then_some(round_cm(at))
+    };
+    // Where two alike ways laid side by side, running past each other or
+    // stopping short, become one: half way between their ends.
+    let beside = |from: End, to: End| {
+        let (a, b) = (&ways[from.0], &ways[to.0]);
+        let ((p, along), (q, other)) = (a.end(from.1), b.end(to.1));
+        let alike = a.kind == b.kind && a.width == b.width;
+        if from.0 == to.0 || !alike || dot(along, other) > -ALONGSIDE_COS {
+            return None;
+        }
+        let aside = cross(sub(q, p), along).abs();
+        let past = -dot(sub(q, p), along);
+        let at = scale(add(p, q), 0.5);
+        // Each keeps a last run long enough that the step aside is slight.
+        let fits = |way: &Way, last: bool, out_of: Point| {
+            dot(sub(at, way.before(last)), out_of) >= (2.0 * aside).max(SHORTEST_RUN_M)
+        };
+        (aside <= a.width
+            && (-a.width..=BESIDE_WIDTHS * a.width).contains(&past)
+            && fits(a, from.1, along)
+            && fits(b, to.1, other)
+            && !paving.touched(p, from.0, to.0, 0.0)
+            && !paving.touched(q, to.0, from.0, 0.0)
             && !paving.crossed(at, p, from.0, to.0)
             && !paving.crossed(at, q, to.0, from.0))
         .then_some(round_cm(at))
@@ -576,7 +840,7 @@ fn meet(ways: &mut [Way], size: [f64; 2]) {
                 for &to in cells.get(&[cx + dx, cy + dy]).into_iter().flatten() {
                     let apart = distance(p, ways[to.0].end(to.1).0);
                     if best.is_none_or(|(known, ..)| apart < known) {
-                        if let Some(at) = corner(from, to) {
+                        if let Some(at) = corner(from, to).or_else(|| beside(from, to)) {
                             best = Some((apart, to, at));
                         }
                     }
@@ -597,16 +861,21 @@ fn meet(ways: &mut [Way], size: [f64; 2]) {
 }
 
 /// Ways of one kind and width that meet end to end, made one way through
-/// the point they shared. Two that meet alone are one road round whatever
-/// corner they make. Where more meet, only those that carry nearly straight
-/// on are joined, the straightest pair first: a road through a junction.
-/// A bend welded there would leave the others touching its rounded corner
-/// from outside, which is no crossing; they are left to [`corner`].
+/// the point they shared, round whatever corner they make there, a
+/// switchback included: its outside is the centreline's own round bend.
+/// Where more than two meet, the straightest pair is joined first: the road
+/// through the junction. The others then end on that road, and [`snap`]
+/// brings them to it square. Where a wider road ends at the junction too,
+/// narrower ends are joined only if they carry nearly straight on.
 fn weld(ways: Vec<Way>) -> Vec<Way> {
     // The end each end is joined to.
     let mut link: BTreeMap<End, End> = BTreeMap::new();
     for node in nodes(&ways) {
-        let junction = node.len() > 2;
+        let widest = node
+            .iter()
+            .filter(|end| !ways[end.0].pinned)
+            .map(|end| ways[end.0].width)
+            .fold(0.0, f64::max);
         let mut free = node;
         loop {
             // (how straight, the two ends' places in `free`)
@@ -620,12 +889,10 @@ fn weld(ways: Vec<Way>) -> Vec<Way> {
                     }
                     // Straight on is out of one end and into the other.
                     let straight = -dot(a.end(free[i].1).1, b.end(free[j].1).1);
-                    let sharpest = if junction {
+                    let sharpest = if a.width < widest {
                         THROUGH_COS
-                    } else if a.kind == SurfaceKind::Road {
-                        REVERSE_COS
                     } else {
-                        ROAD_TURN_COS
+                        REVERSE_COS
                     };
                     if straight >= sharpest && best.is_none_or(|(known, ..)| straight > known) {
                         best = Some((straight, i, j));
@@ -715,131 +982,124 @@ fn weld(ways: Vec<Way>) -> Vec<Way> {
     out
 }
 
-/// Ends the weld left that meet at a corner: unlike ways, which cannot be
-/// one stroke, and ways that meet at a junction without carrying straight
-/// on. Each runs on past the point they shared far enough that the two
-/// centrelines cross. Two of one width that turn no more than a right angle
-/// each run on to the point their outer edges meet at, where each covers
-/// the other's end. Between a narrower way and a wider one:
+/// Ends the weld left at one point are unlike ways, which cannot be one
+/// stroke. The widest of them turns the corner with the narrower one that
+/// carries on straightest from it: it gains a short last run from the point
+/// they share along that way's line, so the outside of the corner is the
+/// wider road's own round bend, the narrower way starts under it, and the
+/// wider road's square end lies across the narrower one with a shoulder
+/// either side: the road narrows just past the bend. Neither moves off the
+/// point they share. Any other end there joins the wider road as it would
+/// anywhere along it ([`snap`]).
 ///
-/// - where the narrower one's square end fits inside the wider one's width
-///   (it carries on within about 45° of straight), it runs back into the
-///   wider road until its end is covered, and the wider road's end shows a
-///   shoulder either side of it: the road narrows;
-/// - otherwise the wider way runs on until the narrower one leaves through
-///   its side: the corner is the wider road's, its own end is the corner's
-///   outer edge, and the narrower one's end lies under it. Two of one width
-///   that meet alone and fork too sharply to be one road are closed the
-///   same way: the first runs on over the second one's end.
-///
-/// Returns the ends it moved. Every end at such a place moves, or none
-/// does: an end left on the point the others ran on from would touch lines
-/// that rounding has moved off it. Ends that only carry straight on from
-/// each other keep their point.
-fn corner(ways: &mut [Way]) -> Vec<End> {
-    let mut moves: Vec<(End, Point)> = Vec::new();
-    for node in nodes(ways) {
-        // A pinned way keeps its point, and so do the ends that share it.
-        if node.iter().any(|(way, _)| ways[*way].pinned) {
-            continue;
-        }
-        // Where the lines of two ends cross, as a distance on from the first.
-        let crossing = |from: End, to: End| {
-            let ((at, out_of), (q, heading)) = (ways[from.0].end(from.1), ways[to.0].end(to.1));
-            let sin = cross(out_of, heading);
-            (to.0 != from.0 && sin.abs() >= SQUARE_SIN)
-                .then(|| (cross(sub(q, at), heading) / sin, sin.abs()))
-        };
-        // Whether the narrower end `from` fits inside the wider end `to`,
-        // and then how far past their crossing it runs to be covered.
-        let inside = |from: End, to: End| {
-            let (a, b) = (ways[from.0].half(), ways[to.0].half());
-            // Straight on is out of the wider end and into the narrower.
-            let cos = -dot(ways[from.0].end(from.1).1, ways[to.0].end(to.1).1);
-            let sin = cross(ways[from.0].end(from.1).1, ways[to.0].end(to.1).1).abs();
-            (a < b && cos > 0.0 && a / cos + OVERSHOOT_M <= b).then(|| a * sin / cos)
-        };
-        // How far on from where it stands an end runs, before any wider
-        // road is run over it: measured from where the lines cross, so an
-        // end already run on is not run on again.
-        let own = |from: End| {
-            let mut run_on: Option<f64> = None;
-            for &to in &node {
-                let Some((crossing, sin)) = crossing(from, to) else {
-                    continue;
-                };
-                let longest = 2.0 * ways[from.0].half().max(ways[to.0].half());
-                // Far enough that the two lines cross inside both run-ons,
-                // however shallow the angle between them.
-                let least = OVERSHOOT_M.max(3.0 * ROUNDING_M / sin).min(longest);
-                let (a, b) = (ways[from.0].half(), ways[to.0].half());
-                let cos = -dot(ways[from.0].end(from.1).1, ways[to.0].end(to.1).1);
-                let past = if let Some(depth) = inside(from, to) {
-                    depth + OVERSHOOT_M
-                } else if a == b && cos >= 0.0 {
-                    // To where the two outer edges meet.
-                    least.max(a * (1.0 - cos) / sin)
-                } else {
-                    least
-                };
-                run_on = Some(run_on.unwrap_or(f64::MIN).max(crossing + past));
+/// An end that carries exactly straight on into the narrower way is left,
+/// and so is a place a carriageway passes through, or where two ends are
+/// the widest.
+fn corner(ways: &mut [Way], size: [f64; 2]) {
+    // (the wider end, the point it turns at, where its new last run ends)
+    let mut tails: Vec<(End, Point, Point)> = Vec::new();
+    {
+        let paving = Paving::new(ways, size);
+        for node in nodes(ways) {
+            if node.len() < 2 || node.iter().any(|end| ways[end.0].pinned) {
+                continue;
             }
-            run_on
-        };
-        for &from in &node {
-            let Some(mut run_on) = own(from) else {
+            let widest = node.iter().map(|end| ways[end.0].width).fold(0.0, f64::max);
+            let mut wide = node.iter().filter(|end| ways[end.0].width == widest);
+            let (Some(&wide), None) = (wide.next(), wide.next()) else {
                 continue;
             };
-            let (at, out_of) = ways[from.0].end(from.1);
-            let b = ways[from.0].half();
-            let normal = [-out_of[1], out_of[0]];
-            // Over every narrower end here that does not fit inside this one;
-            // and, of two of one width that meet alone and fork (each turns
-            // back past a right angle into the other), the first over the
-            // second.
-            for &to in &node {
-                let a = ways[to.0].half();
-                let forks = a == b
-                    && dot(out_of, ways[to.0].end(to.1).1) > 0.0
-                    && from < to
-                    && node.len() == 2;
-                if to.0 == from.0 || !(a < b || forks) || inside(to, from).is_some() {
-                    continue;
-                }
-                let Some(theirs) = own(to) else { continue };
-                let (q, heading) = ways[to.0].end(to.1);
-                let face = add(q, scale(heading, theirs.max(0.0)));
-                let body = scale(heading, -1.0);
-                // Each edge of the narrower way, from its end back along its
-                // body: the farthest on it comes while within this width.
-                for side in [-1.0, 1.0] {
-                    let start = add(face, scale([-heading[1], heading[0]], a * side));
-                    let (aside, along) = (dot(sub(start, at), normal), dot(sub(start, at), out_of));
-                    let (drift, gain) = (dot(body, normal), dot(body, out_of));
-                    // Where the edge leaves this way's width, if it does.
-                    let leaves = [-b, b]
-                        .into_iter()
-                        .filter(|_| drift != 0.0)
-                        .map(|edge| (edge - aside) / drift)
-                        .filter(|run| *run > 0.0)
-                        .fold(f64::INFINITY, f64::min);
-                    if aside.abs() <= b {
-                        run_on = run_on.max(along + OVERSHOOT_M);
-                        if leaves.is_finite() {
-                            run_on = run_on.max(along + gain * leaves + OVERSHOOT_M);
-                        }
-                    }
-                }
+            let (at, out_of) = ways[wide.0].end(wide.1);
+            if paving.passed(at, &node) {
+                continue;
             }
-            let longest = 3.0 * b;
-            if run_on > REACHED_M {
-                moves.push((from, round_cm(add(at, scale(out_of, run_on.min(longest))))));
+            // The other end that leaves most nearly straight on, its point
+            // and its heading away from it.
+            let onward = node
+                .iter()
+                .filter(|end| end.0 != wide.0)
+                .map(|end| {
+                    let (start, back) = ways[end.0].end(end.1);
+                    (*end, start, scale(back, -1.0))
+                })
+                .max_by(|a, b| dot(out_of, a.2).total_cmp(&dot(out_of, b.2)));
+            let Some((narrow, start, leaving)) = onward else {
+                continue;
+            };
+            // Which side of the narrower way's line the wider road comes
+            // in from: its last run ends a little to the other side.
+            let across = [-leaving[1], leaving[0]];
+            let inside = dot(sub(ways[wide.0].before(wide.1), start), across);
+            if cross(out_of, leaving).abs() < SQUARE_SIN || inside == 0.0 {
+                continue;
+            }
+            // It stops the narrower way's width short of that way's first
+            // turn if it can, and never runs past it.
+            let run = distance(start, ways[narrow.0].before(narrow.1));
+            let least = widest / 2.0 + TAIL_SPARE_M;
+            let length = (SQUARE_WIDTHS * widest)
+                .min(run - ways[narrow.0].width)
+                .max(least);
+            if length > run {
+                continue;
+            }
+            let aside = (TAIL_ASIDE * length).min(TAIL_ASIDE_M) * -inside.signum();
+            let to = add(add(start, scale(leaving, length)), scale(across, aside));
+            tails.push((wide, start, round_cm(to)));
+        }
+    }
+    for ((way, last), turn, to) in tails {
+        let mut points = ways[way].points.clone();
+        if last {
+            *points.last_mut().expect("a way has points") = turn;
+            points.push(to);
+        } else {
+            points[0] = turn;
+            points.insert(0, to);
+        }
+        ways[way].relay(points);
+    }
+}
+
+/// The ends of every corner [`corner`] has made: a wider way's end whose
+/// last run starts on a narrower way's end and lies along it, and that
+/// narrower end.
+fn turned(ways: &[Way]) -> BTreeSet<End> {
+    let key = |p: Point| {
+        [
+            libm::round(p[0] * 100.0) as i64,
+            libm::round(p[1] * 100.0) as i64,
+        ]
+    };
+    let mut ends: BTreeMap<[i64; 2], Vec<End>> = BTreeMap::new();
+    for (way, line) in ways.iter().enumerate() {
+        for last in [false, true] {
+            ends.entry(key(line.end(last).0))
+                .or_default()
+                .push((way, last));
+        }
+    }
+    let mut out = BTreeSet::new();
+    for (way, line) in ways.iter().enumerate() {
+        if line.points.len() < 3 {
+            continue;
+        }
+        for last in [false, true] {
+            let out_of = line.end(last).1;
+            for &(other, end) in ends.get(&key(line.before(last))).into_iter().flatten() {
+                let leaving = scale(ways[other].end(end).1, -1.0);
+                if other != way
+                    && ways[other].width < line.width
+                    && cross(out_of, leaving).abs() < SQUARE_SIN
+                    && dot(out_of, leaving) > 0.0
+                {
+                    out.insert((way, last));
+                    out.insert((other, end));
+                }
             }
         }
     }
-    let settled = moves.iter().map(|(end, _)| *end).collect();
-    apply(ways, moves);
-    settled
+    out
 }
 
 /// A way that ends on the map's edge at a slant turns square to the edge
@@ -876,80 +1136,194 @@ fn gate(ways: &mut [Way], size: [f64; 2]) {
     }
 }
 
-/// An end that touches another carriageway and has not clearly passed its
-/// middle runs on to just past it. A rounded bend carries the middle off the
-/// authored run an end was laid to; and an end laid exactly on a middle
-/// would touch a line that any later change to that road moves off it.
-/// A way wider than the one it meets, whose end the narrower one would not
-/// cover there (it comes in at a slant), runs on past that one's far edge
-/// instead: it crosses the narrower road whole and its end is its own.
-/// Nothing is cut back. Ends that share their point with another end, and
-/// the ends in `settled`, are left where their corner put them.
-fn snap(ways: &mut [Way], size: [f64; 2], settled: &[End]) {
+/// What a lone end does about the carriageway it meets.
+enum Join {
+    /// Run on, or back, to this point.
+    To(Point),
+    /// Leave its line at the first point, straighten at the second and end
+    /// on the third.
+    Square(Point, Point, Point),
+}
+
+/// An end that touches another carriageway ends just past that
+/// carriageway's rounded middle, square to it:
+///
+/// - one that stops short runs on to it (a rounded bend carries the middle
+///   off the authored run an end was laid to, and an end laid exactly on a
+///   middle would touch a line that any later change to that road moves);
+/// - one that comes in at a slant (but not nearly alongside: within 20° it
+///   is a lane peeling off the road, and is left), or whose square end the
+///   road would not cover as it comes, leaves its line a little before the
+///   road and meets
+///   it square, or swings its whole last run square if that run is short:
+///   no fork is left sharper than `SLANT_COS` allows, and no corner of its
+///   end shows past the road's edge;
+/// - one that crossed the road and stops a width or two past it is cut back
+///   to it: a stub, which serves nothing and shows its end.
+///
+/// Ends that share their point with other ends only are left, and so are
+/// the two ends of a corner [`corner`] made.
+fn snap(ways: &mut [Way], size: [f64; 2]) {
     let paving = Paving::new(ways, size);
+    let settled = turned(ways);
     let on_map = |p: Point| (0..2).all(|k| p[k] > 0.0 && p[k] < size[k]);
-    let lone: Vec<End> = nodes(ways)
-        .into_iter()
-        .filter(|node| node.len() == 1)
-        .flatten()
-        .collect();
-    let mut moves: Vec<(End, Point)> = Vec::new();
-    for (way, last) in lone {
-        {
-            let (at, out_of) = ways[way].end(last);
-            if !on_map(at) || ways[way].pinned || settled.contains(&(way, last)) {
-                continue;
-            }
-            // The nearest crossing of its own line with a carriageway whose
-            // width it touches: how far along from the end, signed, and how
-            // far past the crossing the end belongs.
-            let half = ways[way].half();
-            let mut nearest: Option<(f64, f64)> = None;
-            let reach = paving.widest + ways[way].half() + NEAR_M;
-            let (from, to) = (sub(at, scale(out_of, reach)), add(at, scale(out_of, reach)));
-            paving.grid.any(segment_bounds(from, to, 0.0), |item| {
-                let (other, c, d) = paving.stretches[item as usize];
-                if other == way || segment_distance(c, d, at) > ways[other].half() + NEAR_M {
-                    return false;
-                }
-                let Some((t, _)) = segment_crossing(from, to, c, d) else {
-                    return false;
-                };
-                let along = (2.0 * t - 1.0) * reach;
-                // A road nearly alongside is one it already stands in, or
-                // none of its own.
-                let run = scale(sub(d, c), 1.0 / distance(c, d));
-                let (cos, sin) = (dot(out_of, run).abs(), cross(out_of, run).abs());
-                let meets = if segment_distance(c, d, at) <= ways[other].half() {
-                    sin >= SQUARE_SIN
-                } else {
-                    cos <= ALONGSIDE_COS
-                };
-                if meets && nearest.is_none_or(|(known, _)| along.abs() < known.abs()) {
-                    nearest = Some((along, ways[other].half()));
-                }
-                false
-            });
-            let Some((along, other_half)) = nearest else {
-                continue;
-            };
-            // Just past the middle, unless it is already.
-            let to_middle = (along > -ON_MIDDLE_M).then_some(along + OVERSHOOT_M);
-            let stands = add(at, scale(out_of, to_middle.unwrap_or(0.0)));
-            let run_on = if other_half < half && !paving.hides(stands, out_of, way) {
-                // Past everything narrower that it stands on.
-                paving
-                    .narrower_past(at, out_of, half, way)
-                    .map(|past| past + OVERSHOOT_M)
-            } else {
-                to_middle
-            };
-            if let Some(run_on) = run_on.filter(|run_on| *run_on > REACHED_M) {
-                moves.push(((way, last), round_cm(add(at, scale(out_of, run_on)))));
-            }
+    // The points ways turn at, by whole-metre cell.
+    let cell = |p: Point| [libm::floor(p[0]) as i64, libm::floor(p[1]) as i64];
+    let mut turns: BTreeMap<[i64; 2], Vec<Point>> = BTreeMap::new();
+    for way in ways.iter() {
+        for p in &way.points[1..way.points.len() - 1] {
+            turns.entry(cell(*p)).or_default().push(*p);
         }
     }
-    apply(ways, moves);
+    let on_a_way = |p: Point| {
+        let [cx, cy] = cell(p);
+        (-1..=1).any(|dy| {
+            (-1..=1).any(|dx| {
+                turns
+                    .get(&[cx + dx, cy + dy])
+                    .is_some_and(|turns| turns.iter().any(|turn| distance(*turn, p) <= MEET_M))
+            })
+        })
+    };
+    // An end alone, or one of several at a point a way runs through: each
+    // of those joins that way.
+    let lone: Vec<End> = nodes(ways)
+        .into_iter()
+        .filter(|node| node.len() == 1 || on_a_way(ways[node[0].0].end(node[0].1).0))
+        .flatten()
+        .collect();
+    let mut joins: Vec<(End, Join)> = Vec::new();
+    for (way, last) in lone {
+        let (at, out_of) = ways[way].end(last);
+        if !on_map(at) || ways[way].pinned || settled.contains(&(way, last)) {
+            continue;
+        }
+        let width = ways[way].width;
+        // The nearest crossing of its own line with a carriageway it
+        // touches, or crossed within a stub's length: how far along from the
+        // end (signed), that carriageway, and its heading there.
+        let mut nearest: Option<(f64, usize, Point)> = None;
+        let reach = paving.widest + STUB_WIDTHS * width + NEAR_M;
+        let (from, to) = (sub(at, scale(out_of, reach)), add(at, scale(out_of, reach)));
+        paving.grid.any(segment_bounds(from, to, 0.0), |item| {
+            let (other, c, d) = paving.stretches[item as usize];
+            if other == way || c == d {
+                return false;
+            }
+            let Some((t, _)) = segment_crossing(from, to, c, d) else {
+                return false;
+            };
+            let along = (2.0 * t - 1.0) * reach;
+            let apart = segment_distance(c, d, at);
+            let run = scale(sub(d, c), 1.0 / distance(c, d));
+            let (cos, sin) = (dot(out_of, run).abs(), cross(out_of, run).abs());
+            // A road it stands in, however it lies; one ahead that it is
+            // near and not alongside; or one behind that it crossed.
+            let half = paving.halves[other];
+            let meets = if apart <= half {
+                sin >= SQUARE_SIN
+            } else if along > 0.0 {
+                apart <= half + NEAR_M && cos <= ALONGSIDE_COS
+            } else {
+                -along <= half + STUB_WIDTHS * width && cos <= ALONGSIDE_COS
+            };
+            if meets && nearest.is_none_or(|(known, ..)| along.abs() < known.abs()) {
+                nearest = Some((along, other, run));
+            }
+            false
+        });
+        let Some((along, other, run)) = nearest else {
+            continue;
+        };
+        let meeting = add(at, scale(out_of, along));
+        let before = ways[way].before(last);
+        // Where it would stand if it only ran on or was cut back.
+        let stands = add(meeting, scale(out_of, OVERSHOOT_M));
+        // One that runs nearly alongside the road is a lane that peels off
+        // it, not a branch: squaring it would move the join far down the
+        // road and take the lane away from what stands along it.
+        let cos = dot(out_of, run).abs();
+        let slant = cos > SLANT_COS && cos <= ALONGSIDE_COS;
+        if slant || (cos <= SLANT_COS && !paving.hides(stands, out_of, way)) {
+            // It leaves its line where the road's middle is still a good
+            // way off to the side, and goes straight to the nearest point
+            // of that middle.
+            let sin = cross(out_of, run).abs();
+            let squared = [SQUARE_WIDTHS, SQUARE_WIDTHS / 2.0]
+                .into_iter()
+                .find_map(|widths| {
+                    let depth = paving.halves[other] + widths * width;
+                    let back = depth / sin;
+                    // The turn is taken in two halves, each this far from where
+                    // the two lines meet: a curve, not a corner.
+                    let ease = widths * width / SQUARE_WIDTHS;
+                    if distance(before, meeting) < back + ease + SHORTEST_RUN_M {
+                        return None;
+                    }
+                    let turn = sub(meeting, scale(out_of, back));
+                    let (foot, inner) = paving.nearest_on(other, turn)?;
+                    let gap = distance(turn, foot);
+                    if !inner || gap < paving.halves[other] + widths * width / 2.0 {
+                        return None;
+                    }
+                    let square = scale(sub(foot, turn), 1.0 / gap);
+                    let landing = round_cm(add(foot, scale(square, OVERSHOOT_M)));
+                    let clear = !paving.crossed(turn, at, way, other)
+                        && !paving.crossed(turn, landing, way, other);
+                    clear.then_some(Join::Square(
+                        round_cm(sub(turn, scale(out_of, ease))),
+                        round_cm(add(turn, scale(square, ease.min(gap / 2.0)))),
+                        landing,
+                    ))
+                });
+            // With no room for that and a short last run, the whole run
+            // swings to go straight to the road's middle.
+            let swung = || {
+                let (foot, inner) = paving.nearest_on(other, before)?;
+                let gap = distance(before, foot);
+                let short = distance(before, at) <= SWING_WIDTHS * width;
+                if !inner || !short || gap < paving.halves[other] + width / 2.0 + SHORTEST_RUN_M {
+                    return None;
+                }
+                let landing = round_cm(add(foot, scale(sub(foot, before), OVERSHOOT_M / gap)));
+                let clear = !paving.crossed(before, at, way, other)
+                    && !paving.crossed(before, landing, way, other);
+                (clear && distance(landing, at) > REACHED_M).then_some(Join::To(landing))
+            };
+            if let Some(join) = squared.or_else(swung) {
+                joins.push(((way, last), join));
+                continue;
+            }
+        }
+        if along > -ON_MIDDLE_M {
+            if along + OVERSHOOT_M > REACHED_M {
+                joins.push(((way, last), Join::To(round_cm(stands))));
+            }
+        } else if !paving.hides(at, out_of, way)
+            && paving.hides(stands, out_of, way)
+            && !paving.crossed(stands, at, way, other)
+        {
+            // A stub past the road it crossed.
+            joins.push(((way, last), Join::To(round_cm(stands))));
+        }
+    }
+    for ((way, last), join) in joins {
+        let mut points = ways[way].points.clone();
+        let at = ways[way].at(last);
+        match join {
+            Join::To(to) => points[at] = to,
+            Join::Square(leave, straighten, landing) => {
+                points[at] = landing;
+                if last {
+                    points.splice(at..at, [leave, straighten]);
+                } else {
+                    points.splice(1..1, [straighten, leave]);
+                }
+            }
+        }
+        points.dedup();
+        ways[way].relay(points);
+    }
 }
 
 /// Move each end, unless the shared centreline refuses the way it makes.
@@ -1079,8 +1453,8 @@ mod tests {
     }
 
     #[test]
-    fn where_unlike_roads_meet_at_a_corner_the_wider_runs_over_the_narrower() {
-        for (turn, name) in [(60.0_f64, "shallow"), (90.0, "square"), (125.0, "sharp")] {
+    fn where_unlike_roads_meet_alone_the_wider_turns_the_corner_and_then_narrows() {
+        for (turn, name) in [(60.0_f64, "shallow"), (90.0, "square"), (140.0, "sharp")] {
             // A road comes east to (400, 400); a track leaves it there,
             // turning `turn` degrees to the left.
             let leaving = [turn.to_radians().cos(), turn.to_radians().sin()];
@@ -1098,32 +1472,60 @@ mod tests {
                 &[],
             );
             let (road, track) = (&lines(&closed)[0], &lines(&closed)[1]);
-            // The track's end is under the road, wherever it now stands.
-            let back = scale(leaving, -1.0);
+            // The road bends at the point they share and runs a little way
+            // along the track; the track still starts on that point.
+            assert_eq!(track[0], [400.0, 400.0], "{name}");
+            assert_eq!(road.len(), 3, "{name}: {road:?}");
+            assert_eq!(road[1], [400.0, 400.0], "{name}");
+            let tail = sub(road[2], road[1]);
             assert!(
-                covered(&closed, 1, track[0], back, 2.0),
-                "{name}: {track:?}"
-            );
-            // The road's own end stands clear past the track: none of its
-            // face is under the track, so the corner has no bite in it.
-            assert!(
-                road[1][0] > 400.0 && road[1][1] == 400.0,
+                cross(tail, leaving).abs() <= TAIL_ASIDE_M + 0.01 && dot(tail, leaving) >= 4.0,
                 "{name}: {road:?}"
             );
-            for share in [-1.0, -0.5, 0.0, 0.5, 1.0] {
-                let p = [road[1][0], 400.0 + 4.0 * share];
-                assert!(
-                    !closed[1].shape.contains(p, 0.0),
-                    "{name}: {road:?} at {p:?}"
+            // The track's end is under the road, and the road's own end lies
+            // square across the track with a shoulder either side of it.
+            assert!(
+                covered(&closed, 1, track[0], scale(leaving, -1.0), 2.0),
+                "{name}"
+            );
+            let across = [-leaving[1], leaving[0]];
+            for (aside, paved) in [
+                (0.0, true),
+                (1.9, true),
+                (-1.9, true),
+                (3.0, false),
+                (-3.0, false),
+            ] {
+                let p = add(road[2], scale(across, aside));
+                assert_eq!(
+                    closed[1].shape.contains(p, FLUSH_M),
+                    paved,
+                    "{name}: {aside} m aside"
                 );
             }
+            // The outside of the corner is round, a road's half width from
+            // the point; no flat end stands out past it.
+            let outward = {
+                let sum = sub([1.0, 0.0], leaving);
+                scale(sum, 1.0 / distance(sum, [0.0, 0.0]))
+            };
+            let outside = |reach: f64| add([400.0, 400.0], scale(outward, reach));
+            assert!(
+                closed[0].shape.contains(outside(3.9), 0.0),
+                "{name}: the corner is cut"
+            );
+            assert!(
+                !closed
+                    .iter()
+                    .any(|area| area.shape.contains(outside(4.6), 0.0)),
+                "{name}: something stands out past the corner"
+            );
         }
     }
 
     #[test]
-    fn two_tracks_that_fork_sharply_leave_no_bite_between_their_ends() {
-        // Both leave (400, 400), 30° apart: too sharp a turn from one into
-        // the other to be one track.
+    fn two_tracks_that_meet_alone_are_one_track_round_the_bend_however_sharp() {
+        // Both leave (400, 400), 30° apart: a switchback.
         let closed = close(
             vec![
                 way(
@@ -1140,27 +1542,23 @@ mod tests {
             SIZE,
             &[],
         );
-        assert_eq!(closed.len(), 2);
-        // Each end's face is wholly under the other track or wholly clear of
-        // it: a face half covered is a bite between the two.
-        for (own, line) in lines(&closed).iter().enumerate() {
-            let out_of = scale(sub(line[0], line[1]), 1.0 / distance(line[0], line[1]));
-            let under = [-1.0, -0.5, 0.0, 0.5, 1.0]
-                .into_iter()
-                .filter(|share| {
-                    let p = add(line[0], scale([-out_of[1], out_of[0]], 2.0 * share));
-                    closed[1 - own].shape.contains(p, FLUSH_M)
-                })
-                .count();
-            assert!(
-                under == 0 || under == 5,
-                "way {own}: {under} of 5: {line:?}"
-            );
-        }
+        assert_eq!(
+            lines(&closed),
+            [vec![[600.0, 400.0], [400.0, 400.0], [573.21, 500.0]]]
+        );
+        // The outside of the bend is round: track for its half width out
+        // from the point, away from both arms, and nothing a metre farther.
+        let outward = [
+            -(15.0_f64.to_radians().cos()),
+            -(15.0_f64.to_radians().sin()),
+        ];
+        let outside = |reach: f64| add([400.0, 400.0], scale(outward, reach));
+        assert!(closed[0].shape.contains(outside(1.9), 0.0));
+        assert!(!closed[0].shape.contains(outside(4.5), 0.0));
     }
 
     #[test]
-    fn a_narrower_road_that_carries_nearly_straight_on_ends_inside_the_wider() {
+    fn a_narrower_road_that_carries_nearly_straight_on_starts_under_the_wider() {
         let closed = close(
             vec![
                 way(
@@ -1180,8 +1578,101 @@ mod tests {
         let track = &lines(&closed)[1];
         let run = sub(track[0], track[1]);
         let back = scale(run, 1.0 / distance(track[0], track[1]));
-        assert!(track[0][0] < 400.0, "{track:?}");
         assert!(covered(&closed, 1, track[0], back, 2.0), "{track:?}");
+    }
+
+    #[test]
+    fn a_branch_that_comes_in_at_a_slant_bends_to_meet_the_road_square() {
+        // A track meets a road 34° off its line.
+        let closed = close(
+            vec![
+                way(
+                    SurfaceKind::CountryRoad,
+                    8.0,
+                    &[[100.0, 300.0], [500.0, 300.0]],
+                ),
+                way(
+                    SurfaceKind::DirtTrack,
+                    4.0,
+                    &[[150.0, 200.0], [300.0, 300.0]],
+                ),
+            ],
+            SIZE,
+            &[],
+        );
+        let track = &lines(&closed)[1];
+        assert_eq!(track.len(), 4, "{track:?}");
+        // Its last run crosses the road's middle square, from its own side.
+        // It keeps its line until the road's edge is about two of its
+        // widths off, turns in two halves, and goes straight across to the
+        // road's middle.
+        let on_its_line = cross(sub(track[1], track[0]), [150.0, 100.0]).abs();
+        assert!(on_its_line < 2.0 && track[1][1] < 290.0, "{track:?}");
+        assert_eq!(track[2], [285.0, 294.0]);
+        assert_eq!(track[3], [285.0, 300.0 + OVERSHOOT_M]);
+        assert!(covered(&closed, 1, track[3], [0.0, 1.0], 2.0));
+        assert_eq!(lines(&closed)[0], [[100.0, 300.0], [500.0, 300.0]]);
+    }
+
+    #[test]
+    fn a_lane_that_peels_off_nearly_alongside_a_road_keeps_its_line() {
+        // 3° off the track it leaves, as a farm's lane is laid.
+        let laid = vec![
+            way(
+                SurfaceKind::DirtTrack,
+                4.0,
+                &[[100.0, 300.0], [300.0, 300.0], [600.0, 300.0]],
+            ),
+            way(
+                SurfaceKind::DirtTrack,
+                4.0,
+                &[[300.0, 300.0], [500.0, 289.5]],
+            ),
+        ];
+        let closed = close(laid, SIZE, &[]);
+        let lane = &lines(&closed)[1];
+        assert_eq!(lane.len(), 2, "{lane:?}");
+        assert!(distance(lane[0], [300.0, 300.0]) < 0.5, "{lane:?}");
+        assert_eq!(lane[1], [500.0, 289.5]);
+    }
+
+    #[test]
+    fn a_stub_just_past_a_crossing_is_cut_back_to_it() {
+        // The track crosses the road and stops 2 m past its far edge.
+        let closed = close(
+            vec![
+                way(
+                    SurfaceKind::CountryRoad,
+                    8.0,
+                    &[[100.0, 300.0], [500.0, 300.0]],
+                ),
+                way(
+                    SurfaceKind::DirtTrack,
+                    4.0,
+                    &[[300.0, 100.0], [300.0, 306.0]],
+                ),
+            ],
+            SIZE,
+            &[],
+        );
+        assert_eq!(
+            lines(&closed)[1],
+            [[300.0, 100.0], [300.0, 300.0 + OVERSHOOT_M]]
+        );
+        // One that runs on well past the road is a road of its own.
+        let long = vec![
+            way(
+                SurfaceKind::CountryRoad,
+                8.0,
+                &[[100.0, 300.0], [500.0, 300.0]],
+            ),
+            way(
+                SurfaceKind::DirtTrack,
+                4.0,
+                &[[300.0, 100.0], [300.0, 340.0]],
+            ),
+        ];
+        assert_eq!(lines(&close(long.clone(), SIZE, &[])), lines(&long));
     }
 
     #[test]
@@ -1281,7 +1772,9 @@ mod tests {
             [6000.0, 6000.0],
             &[],
         );
-        assert_eq!(closed.len(), 3);
+        // The two roads are one road round the corner, and the track bends
+        // to cross it.
+        assert_eq!(closed.len(), 2);
         let samples: Vec<&[Point]> = closed
             .iter()
             .map(|area| match &area.shape {
@@ -1289,18 +1782,107 @@ mod tests {
                 GroundShape::Polygon { .. } => unreachable!(),
             })
             .collect();
-        for (a, b) in [(0, 1), (0, 2), (1, 2)] {
-            let crosses = samples[a].windows(2).any(|run| {
-                samples[b]
-                    .windows(2)
-                    .any(|other| segment_crossing(run[0], run[1], other[0], other[1]).is_some())
-            });
-            assert!(
-                crosses,
-                "ways {a} and {b} no longer cross: {:?}",
-                lines(&closed)
-            );
-        }
+        let crosses = samples[0].windows(2).any(|run| {
+            samples[1]
+                .windows(2)
+                .any(|other| segment_crossing(run[0], run[1], other[0], other[1]).is_some())
+        });
+        assert!(crosses, "they no longer cross: {:?}", lines(&closed));
+    }
+
+    #[test]
+    fn a_road_that_ends_on_two_tracks_carries_on_down_the_straighter_one() {
+        let closed = close(
+            vec![
+                way(
+                    SurfaceKind::CountryRoad,
+                    8.0,
+                    &[[200.0, 400.0], [400.0, 400.0]],
+                ),
+                way(
+                    SurfaceKind::DirtTrack,
+                    4.0,
+                    &[[400.0, 400.0], [550.0, 430.0]],
+                ),
+                way(
+                    SurfaceKind::DirtTrack,
+                    4.0,
+                    &[[400.0, 250.0], [400.0, 400.0]],
+                ),
+            ],
+            SIZE,
+            &[],
+        );
+        let (road, onward, side) = (&lines(&closed)[0], &lines(&closed)[1], &lines(&closed)[2]);
+        // The road turns a little way down the track that leaves 11° off
+        // its line; that track still starts on the point they shared.
+        assert_eq!(road.len(), 3, "{road:?}");
+        assert_eq!(road[1], [400.0, 400.0]);
+        assert!(distance(road[2], [411.77, 402.35]) < 0.1, "{road:?}");
+        assert_eq!(onward[0], [400.0, 400.0]);
+        // The other track joins the road as it would anywhere along it:
+        // just past the road's middle, under its width.
+        assert_eq!(side[0], [400.0, 250.0]);
+        assert!(
+            side[1][0] == 400.0 && (400.0..=401.0).contains(&side[1][1]),
+            "{side:?}"
+        );
+        assert!(covered(&closed, 2, side[1], [0.0, 1.0], 2.0));
+    }
+
+    #[test]
+    fn a_street_drawn_beside_another_is_cut_back_to_the_road_that_crosses_it() {
+        // One street ends on a cross street from the west; the next starts
+        // 40 m short of that cross street, 4 m to one side: a step in the
+        // road's edge where it starts.
+        let closed = close(
+            vec![
+                way(SurfaceKind::Road, 7.0, &[[300.0, 100.0], [300.0, 500.0]]),
+                way(SurfaceKind::Road, 7.0, &[[100.0, 300.0], [300.25, 300.0]]),
+                way(SurfaceKind::Road, 7.0, &[[260.0, 304.0], [600.0, 304.0]]),
+            ],
+            SIZE,
+            &[],
+        );
+        assert_eq!(lines(&closed)[1], [[100.0, 300.0], [300.25, 300.0]]);
+        assert_eq!(lines(&closed)[2], [[299.75, 304.0], [600.0, 304.0]]);
+    }
+
+    #[test]
+    fn two_streets_drawn_side_by_side_with_nothing_between_become_one() {
+        let closed = close(
+            vec![
+                way(SurfaceKind::Road, 7.0, &[[100.0, 300.0], [400.0, 300.0]]),
+                way(SurfaceKind::Road, 7.0, &[[380.0, 303.0], [700.0, 303.0]]),
+            ],
+            SIZE,
+            &[],
+        );
+        assert_eq!(
+            lines(&closed),
+            [vec![[100.0, 300.0], [390.0, 301.5], [700.0, 303.0]]]
+        );
+    }
+
+    #[test]
+    fn a_turn_a_few_metres_from_an_end_is_dropped_so_the_corner_can_be_made() {
+        // The street's first 3 m are a link to the avenue's end.
+        let closed = close(
+            vec![
+                way(SurfaceKind::Road, 10.0, &[[200.0, 400.0], [400.0, 400.0]]),
+                way(
+                    SurfaceKind::Road,
+                    7.0,
+                    &[[400.0, 400.0], [401.0, 403.0], [400.0, 550.0]],
+                ),
+            ],
+            SIZE,
+            &[],
+        );
+        let (avenue, street) = (&lines(&closed)[0], &lines(&closed)[1]);
+        assert_eq!(street, &[[400.0, 400.0], [400.0, 550.0]]);
+        assert_eq!(avenue.len(), 3, "{avenue:?}");
+        assert!(distance(avenue[2], [400.0, 415.0]) < 0.1, "{avenue:?}");
     }
 
     #[test]
