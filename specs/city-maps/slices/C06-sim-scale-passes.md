@@ -130,8 +130,8 @@ still means a rejected segment, and walls and disconnected terrain stay blocked.
 Smoothing addresses infantry points through an implicit range, so entering that
 phase performs no eager scan or turn-index allocation over the expanded route.
 Legal infantry endpoints start in their containing cells rather than a nearby
-cell across an obstacle. Existing bounded fallback for an inside-map squad
-centroid remains; an outside-map start is explicitly enclosed.
+cell across an obstacle. Bounded nearest-fit selection remains, but a returned
+route still needs a certified first link; an outside-map start is enclosed.
 
 The old public timing regression failed at a building corner. Six corner
 placements/rotations now return legal, finite routes. A one-man passage admits
@@ -150,3 +150,23 @@ on the stack. The sampled NavGrid guarantee is distinct from movement's exact
 body checks. The focused Battle proves that concrete corner, not all continuous
 geometry. Generated town timings, matched native city cost and visual admission
 remain with the integrating scale lane; C06 stays open.
+
+### Follow-up — squad representative starts
+
+The movement owner already starts a squad corridor at its closest living
+soldier, because a legal squad's centroid can lie inside a body. The conservative
+grid can nevertheless reject that physically clear soldier. A narrow-wall Battle
+arrives on the pre-correction build but becomes blocked after connector
+certification; another existing soldier is grid-standing. Planning now selects
+the nearest living member accepted by its side-known grid before falling back
+to the original nearest member. It grants no escape through a blocked mask and
+uses no hidden world geometry. The distance used for road preference is unchanged.
+Non-standing goals still project to a legal, finitely timed endpoint.
+
+The exact failing Battle now arrives with all soldier bodies clear at every
+tick and identical same-build replay digests. The pre-correction comparison
+used the same frozen rules, not the integrating branch's new art catalogue.
+All 23 navigation, 15 route-planning and 15 movement tests and library clippy
+pass. This admission correction changes affected squad starts and digests; it
+adds no state, storage, public API or relaxed segment rule. Independent review
+found no remaining issue.

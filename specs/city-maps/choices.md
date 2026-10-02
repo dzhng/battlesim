@@ -3532,8 +3532,8 @@ storage and work unrelated to the local defect.
 
 **Reach:** Infantry waypoints, costs, planning completion ticks and affected
 battle digests intentionally change. Legal endpoints use their actual containing
-cells; inside-map non-standing squad centroids retain bounded nearest-fit
-selection. Local connection is an incremental planning phase, with no retained
+cells; bounded nearest-fit selection remains, but returned first links must pass
+the sampled reader. Local connection is an incremental planning phase, with no retained
 full-extent fine data. Certified infantry links remain available to smoothing
 until a longer link passes its reader, because even collinear merging changes
 sample positions. This supersedes C59's historical infinity limitation; changing
@@ -3621,3 +3621,21 @@ high for the regression and replay, medium across generated towns.
 **Gap:** The slice judges the sheet, not the read behind glass.
 
 **Verdict:** the mechanism's own behaviour, the same for upstream's photographs. The mock-up shows dark, coloured, slightly streaked panes: not holes, not rooms. If the user wants furniture from above, the lookup has to change, which Q-E forbids, or the pinhole has to move, which is this recipe. **Confidence:** high that it happens, low on whether it matters.
+### A squad corridor starts at a member the known grid admits
+
+**Choice:** Select the closest living soldier whose position is standing room
+in the side's navigation grid before falling back to the physically nearest
+member. A squad's centroid is still never its corridor start. Road preference
+measures the same physical nearest member as before.
+
+**Why:** The old grid reconstruction tolerated an invalid first link, so a
+physically clear soldier near a wall could seed a usable corridor despite being
+rejected by the conservative sampled mask. Certifying links exposed that mismatch:
+a small Battle that arrived before became blocked. Choosing another existing
+standing member restores the corridor contract without weakening the mask or
+granting a body-exit exemption. This intentionally changes corridor starts and
+affected digests; movement's exact body checks still decide each soldier's steps.
+
+**Verdict:** supported by the old/new Battle comparison; follow-up verification
+is recorded in C06. A direct non-standing virtual anchor has no guaranteed legal
+timing; nearest-fit selection is not permission to publish an invalid segment.

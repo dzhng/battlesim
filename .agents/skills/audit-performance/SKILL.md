@@ -116,3 +116,6 @@ the public legality and timing consumer before optimizing the search; an
 accepted plan with infinite traversal cost exposes a seam defect. Distinguish
 sampled-grid certification from the movement owner's exact body checks, and
 prove incremental refinement still finishes under the smallest work budget.
+Physical standing room may differ from a conservative navigation mask near a
+body. Exercise the real movement representative through that mask, including a
+legal group whose centroid lies inside a body, before claiming endpoint parity.

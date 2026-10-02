@@ -736,3 +736,51 @@ fn a_squad_follows_a_town_corner_corridor_and_replays() {
         serde_json::to_string(&record).unwrap()
     );
 }
+
+#[test]
+fn a_squad_leaves_a_body_containing_only_its_centroid() {
+    let props = serde_json::json!([
+        {"kind":"wall","center":[20,40],"yaw":0,"half_extents":[0.5,4,4]}
+    ]);
+    let setup = one_squad_setup(props, [20.0, 40.0], [100.0, 40.0]);
+    let mut b = Battle::new(&setup, 1);
+    let wall = b.world().prop(0).unwrap().footprint();
+    assert!(wall.contains(b.unit(UnitId(0)).unwrap().position.xy(), 0.0));
+    assert!(b
+        .unit(UnitId(0))
+        .unwrap()
+        .members
+        .iter()
+        .all(|s| !wall.contains(s.position.xy(), setup.rules.physics.soldier_radius_m)));
+    let u = b.unit(UnitId(0)).unwrap();
+    let middle = u
+        .members
+        .iter()
+        .map(|s| s.position.xy())
+        .fold(sim::math::v2(0.0, 0.0), |sum, p| sum + p)
+        * (1.0 / u.members.len() as f64);
+    assert!(wall.contains(middle, 0.0));
+    let mut digests = Vec::new();
+    for _ in 0..1500 {
+        b.step();
+        assert!(b
+            .unit(UnitId(0))
+            .unwrap()
+            .members
+            .iter()
+            .all(|s| !wall.contains(s.position.xy(), setup.rules.physics.soldier_radius_m - 1e-6)));
+        digests.push(b.digest());
+    }
+    let unit = own(&b, 0);
+    assert_eq!(unit.state, MoveState::Idle);
+    assert!(
+        dist(xy(&unit), [100.0, 40.0]) < 2.0,
+        "legal soldiers failed to leave centroid body"
+    );
+    let record = b.replay();
+    let mut replay = Battle::from_replay(&setup, &record).unwrap();
+    for digest in digests {
+        replay.step();
+        assert_eq!(replay.digest(), digest);
+    }
+}

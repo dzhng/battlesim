@@ -654,3 +654,17 @@ fn a_one_man_town_passage_has_a_finite_time_without_opening_a_wall() {
         Plan::Blocked(BlockReason::NoRoute)
     );
 }
+
+#[test]
+fn a_nonstanding_infantry_goal_projects_to_a_legal_timed_endpoint() {
+    let w =
+        world(r#", "props":[{"kind":"wall","center":[200,100],"yaw":0,"half_extents":[0.5,4,4]}]"#);
+    let g = grid(&w);
+    let from = v2(150.0, 100.0);
+    let goal = v2(200.0, 100.0);
+    assert!(!g.fits_at(goal, &INFANTRY));
+    let path = route(g.plan(from, goal, &INFANTRY, RoutePolicy::Shortest));
+    assert_ne!(path.last(), Some(&goal));
+    assert!(g.route_fits(from, &path, &INFANTRY));
+    assert!(g.route_time(from, &path, &INFANTRY).is_finite());
+}
