@@ -143,7 +143,7 @@ louvre_m = textured("louvre_blades", "roller_slats", colour=(0.13, 0.135, 0.14),
 trim_m = flat_paint("trim_steel", (0.1, 0.105, 0.11), rough=0.7, grime=0.0)
 galv_m = flat_paint("galvanised", (0.36, 0.37, 0.38), rough=0.5, metal=0.25, grime=0.0)
 frame_m = flat_paint("window_frame", (0.3, 0.3, 0.29), rough=0.6, grime=0.0)
-glass_m = flat_paint("window_glass", (0.02, 0.025, 0.03), rough=0.08, grime=0.0)
+glass_m, pane_m = window_glass(), window_pane()  # an office's window near, and the dark pane it is from far off
 rubber_m = flat_paint("dock_rubber", (0.02, 0.02, 0.02), rough=0.9, grime=0.0)
 hazard_m = flat_paint("hazard_yellow", (0.5, 0.36, 0.035), rough=0.6, wear=0.6, grime=0.6)
 dome_m = flat_paint("skylight_dome", (0.55, 0.6, 0.58), rough=0.3, grime=0.0)
@@ -307,13 +307,9 @@ glazed("clerestory", 3.0, 0.75, jambs=False)  # these two fill their bay: side b
 glazed("window_band", 3.0, 1.5, jambs=False)
 glazed("factory_window", 2.0, 4.5, stone=True)
 
-m = kit.module("office_window", **FITTING)  # plain glass in a painted frame, three lights
-surface(m, "glass", [(front(-0.8, 0.8, 0, 1.4, -0.02), SOUTH)], glass_m)
-box(m.n("sill"), (1.84, 0.16, 0.07), (0, -0.08, -0.035), concrete_m, m.root, lods=(0, 1))
-box(m.n("head"), (1.8, 0.1, 0.1), (0, -0.05, 1.45), frame_m, m.root, lods=(0, 1))
-box(m.n("transom"), (1.6, 0.05, 0.05), (0, -0.045, 1.0), frame_m, m.root, lods=(0,))
-for k, x in enumerate((-0.84, -0.27, 0.27, 0.84)):
-    box(m.n(f"post_{k}"), (0.08 if abs(x) > 0.5 else 0.05, 0.1 if abs(x) > 0.5 else 0.05, 1.4), (x, -0.05, 0.7), frame_m, m.root, lods=(0,))
+# An office's window: plain glass in a painted frame, three lights, with the office behind it (`furnish`).
+# The sheds' own glazing above is wired and dirty, and stays what it was: nobody looks through it.
+casement(kit, "office_window", 1.6, 1.4, frame_m, glass_m, pane_m, concrete_m, lights=3)
 
 # A sheet of cladding over the wall's own: a band of colour, or a bay re-sheeted in another paint.
 m = kit.module("clad_panel", **FITTING)
@@ -362,7 +358,7 @@ box(m.n("canopy"), (1.5, 0.6, 0.06), (0, -0.3, 2.42), trim_m, m.root, lods=(0, 1
 box(m.n("step"), (1.4, 0.5, 0.1), (0, -0.25, 0.05), plinth_m, m.root, lods=(0, 1))
 
 m = kit.module("office_door", ground=True, **FITTING)
-panel_door(m.n("door"), 1.5, 2.1, door_m, frame_m, m.root, glass_m, light=0.4)
+panel_door(m.n("door"), 1.5, 2.1, door_m, frame_m, m.root, pane_m, light=0.4)
 box(m.n("canopy"), (2.8, 1.0, 0.12), (0, -0.5, 2.9), concrete_m, m.root, lods=(0, 1, 2))
 box(m.n("step"), (2.4, 0.8, 0.14), (0, -0.4, 0.07), plinth_m, m.root, lods=(0, 1))
 
@@ -663,6 +659,8 @@ def fold(t, shell):
 
             mesh_part(shell.n(f"fold_{k}"), build, bpy.data.materials[name], shell.root, lods=(tier,))
     t.rows["intact"] = [r if r[0] == shell.name else (*r[:8], r[8] & TIERS_0_TO_1, *r[9:]) for r in t.rows["intact"]]
+    open_walls(shell, t.rows["intact"], kit.openings)  # near, an office's window is an opening with its room behind
+    furnish(t, kit)
 
 
 # ---------------------------------------------------------------- ruins

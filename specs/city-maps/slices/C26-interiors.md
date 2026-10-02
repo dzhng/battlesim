@@ -75,4 +75,27 @@ Yes. Rooms behind windows are drawn by the repo's mechanism (a room box a window
 
 A second unprimed critic, on the final frames, again found nothing glowing (the nearest case, the shaded facade, fell from medium to medium-low confidence) and the shopfronts reading as rooms from the street. Its strongest finding is the other side of that fix: **at 80 m every window is a flat, near-black rectangle, and the plain upper windows at 30 m are close to it: holes more than rooms.** The first critic said the same of the four darkest at 80 m before the fix. Two levers, neither pulled here: the atlas's floors and depths (C15: from above a window is its cell's floor), and the reference `unlit` shows a picture at (sun shadow now; the open sun made a shaded facade's rooms read as lit).
 
-**Not done:** the `preview-shots` checkpoint; rooms on a real kit, and through the building layer's draws.
+**On the real kits** (`homes`, `farmsteads`, `towers`, `industry`, through the building layer's draws; the decisions are in [choices](../choices.md#facades-in-the-scripted-sets)): rooms and glass draw in a town with nothing changed in the renderer. Every house, farmhouse, shop, office and tower flat has a room behind its glass at tier 0, and all but the towers at tier 1.
+
+- **What it took in the kits:** a wall there is one face, so each window is an opening cut in the shell at the two near tiers; and two walls' rooms meet at a corner, so one window keeps the room and the other draws a blind. A squeezed room (under 1.5 m deep, or as narrow as its window) is a flat pale panel from above and is not drawn.
+- **How a window reads:** from the street an upper window is dark glass over a room; from the tactical camera it is a dark pane whose tint differs window to window; at 128 m and beyond it is a pane, as on the fixture. Nothing reads as lit. A shopfront is the weak case: a large pane with no bars over a pale room read as an open hole, and what the street sees of a shop's room is its bare side wall. The shops have a stall of boxes in the window for that.
+- **Tiers:** a far pane in the glass's own colour made a window go black at 319 m, and a tower's at 128 m. The far pane and the towers' far recipes now take the tone a room behind glass has there.
+- **Cost:** 20,598 pool records at the town block's street station against 15,107 (of 131,072), 217 draws against 211; a house's rows at the near tiers rise by a half to four fifths, a tower's not at all; each kit's bundle grows by its sheet, 1.3 to 1.4 MiB (2.8 MiB for `homes`, which has both).
+- **Frames** (`throwaway/facade/before/` and `throwaway/facade/after/`): `block/street-1920x1080.png`, `block/tactical-1920x1080.png`, and each set's line-up sheets and tier pairs.
+
+**The unprimed critique of the kits** (one critic, on the street, tactical, close and tier-pair frames):
+
+| Finding | Disposition |
+|---|---|
+| Shopfronts read as open, empty holes; the door a frame standing free in its opening | Partly fixed: the shop's glass is in its frame on the wall's face, and a stall of goods stands in the window. No reflection says "glass": the lever is the pane's own recipe (C25) |
+| One facade mixed dark windows with flat pale grey ones | Fixed: those were rooms squeezed at a corner. A window with no space for a room has a blind in a deep cloth |
+| Seen along a wall, windows were white slabs: pale frames and reveals | Fixed for the reveal, which is now the wall's thickness in shade. The surrounds' weight is older art |
+| At 128 m a house's pale barred panes became dark slabs | Fixed: the sash's bars are drawn at tier 1 too |
+| At 128 m a tower's curtains change colour, its frames thicken, its stair lights invert, air conditioners and washing vanish | The panes' tone is matched. The rest is older than this pass (C23) |
+| At 319 m doors change colour, surrounds vanish, shuttered windows merge | Older than this pass (C23's fold of fittings into the shell); the panes' tone is matched |
+| A front is told from a back by its door, step and shopfront, not by its windows | As built: the rooms do not differ by side |
+| Stray bright pixels on roofs and at shopfront posts; roof-tile moire | In the frames from before the change; not the windows' |
+
+No depth fight, no gap into a building and no room outside its box was found.
+
+**Not done:** the `preview-shots` checkpoint; a second critique after the fixes; a recipe for the pane.

@@ -101,7 +101,7 @@ coping_m = textured("coping_concrete", "concrete", colour=(0.13, 0.13, 0.125), d
 stack_m = textured("stack_brick", "brick", dirt=0.0, chip=0.2, streak=0.3, soot=0.6)
 trim_m = flat_paint("roof_trim", (0.2, 0.18, 0.15), rough=0.8, grime=0.0)
 frame_m = flat_paint("window_frame", (0.46, 0.45, 0.42), rough=0.6, grime=0.0)
-glass_m = flat_paint("window_glass", (0.02, 0.025, 0.03), rough=0.08, grime=0.0)
+glass_m, pane_m = window_glass(), window_pane()  # a window near, and the dark pane it is from far off
 metal_m = flat_paint("gutter_metal", (0.07, 0.07, 0.07), rough=0.5, metal=0.6, grime=0.0)
 iron_m = flat_paint("cart_iron", (0.05, 0.045, 0.04), rough=0.6, metal=0.7, grime=0.3)
 pot_m = flat_paint("chimney_pot", (0.3, 0.13, 0.08), rough=0.8, grime=0.0)
@@ -126,7 +126,7 @@ DUST = {"cream plaster": (214, 200, 176), "straw plaster": (208, 190, 150), "whi
         "stone": (190, 178, 156), "tarred boards": (70, 66, 62), "weathered boards": (70, 66, 62)}
 TIMBER = ("tarred boards", "weathered boards")
 # What breaks a wall on the ground floor, for a ruin's stumps: fitting -> its opening's width.
-OPENINGS = {"window_a": 1.1, "window_a_shutters": 1.1, "window_byre": 0.9, "door_panel": 1.15, "barn_door": 2.9, "stable_door": 1.25}
+OPENINGS = {"window_a": 1.1, "window_a_shutters": 1.1, "window_byre": 0.9, "window_shed": 0.9, "door_panel": 1.15, "barn_door": 2.9, "stable_door": 1.25}
 
 
 def far_paint(tint):
@@ -135,15 +135,16 @@ def far_paint(tint):
 
 
 # ---------------------------------------------------------------- fittings
-def window_module(name, w, h, shutters=False, lights=2, frame=frame_m, sill=sill_m):
-    m = kit.module(name, **FITTING)
-    window(m.n("w"), (0, -0.02, h / 2), (0, -1), w, h, frame, glass_m, joinery_m if shutters else None, m.root, sill,
-           bevel=0.0, glass_lods=TIERS, lights=lights)  # (its far tiers are the shell's: `FAR_PANELS`)
+def window_module(name, w, h, shutters=False, lights=2, frame=frame_m, sill=sill_m, **behind):
+    casement(kit, name, w, h, frame, glass_m, pane_m, sill, joinery_m if shutters else None, lights, **behind)  # (far off it is the shell's: `FAR_PANELS`)
 
 
+# A house's windows have its rooms behind them. A barn's is one pane in a dark timber frame, over the dark of
+# the barn: nobody lives behind it. The cart shed's stands in boards seen from both sides, and stays a dark pane.
 window_module("window_a", 1.0, 1.3)
 window_module("window_a_shutters", 1.0, 1.3, shutters=True)
-window_module("window_byre", 0.8, 0.6, lights=1, frame=timber_m, sill=timber_m)  # a barn's: one pane in a dark timber frame
+window_module("window_byre", 0.8, 0.6, lights=1, frame=timber_m, sill=timber_m, behind=None, dark=bpy_dark())
+window_module("window_shed", 0.8, 0.6, lights=1, frame=timber_m, sill=timber_m, cut=False)
 
 m = kit.module("door_panel", ground=True, **FITTING)
 panel_door(m.n("door"), 0.95, 2.05, joinery_m, frame_m, m.root)
@@ -189,9 +190,10 @@ water_butt(m.n("butt"), cart_m, iron_m, water_m, m.root)
 # and boxes as (size, centre, material).
 STABLE_LEAF_M = STABLE_DOOR_M[1] * 0.55
 FAR_PANELS = {
-    "window_a": window_far(1.0, 1.3, glass_m, sill_m),
-    "window_a_shutters": window_far(1.0, 1.3, glass_m, sill_m, "tint"),
-    "window_byre": [(0.8, 0.6, 0.0, glass_m)],
+    "window_a": window_far(1.0, 1.3, pane_m, sill_m),
+    "window_a_shutters": window_far(1.0, 1.3, pane_m, sill_m, "tint"),
+    "window_byre": [(0.8, 0.6, 0.0, pane_m)],
+    "window_shed": [(0.8, 0.6, 0.0, pane_m)],
     "door_panel": [(0.95, 2.05, 0.0, "tint")],
     "barn_door": [(*BARN_DOOR_M, 0.0, "tint")],
     "stable_door": [(STABLE_DOOR_M[0], STABLE_LEAF_M, 0.0, "tint"),
@@ -277,6 +279,8 @@ class Farm:
         wreckage lying on it. `open_sides` names sides that never had a wall (part -> sides)."""
         fold_far(self.m, self.far, FAR_PANELS, FAR_BOXES, far_paint, FOLDED)
         self.t.place(self.m.name)
+        open_walls(self.m, self.t.rows["intact"], kit.openings)  # near, a window is an opening, a house's with its room behind
+        furnish(self.t, kit)
         t = self.t
         m = kit.module(self.m.name.replace("_shell", "_ruin"), ground=True, **RUIN)
         high, over, seed = t.ruin_height(), kit.fit["ruin_top_m"], zlib.crc32(t.id.encode()) % 997
@@ -368,7 +372,7 @@ farm.hang("barn-north", 3.0, window_byre=(0.0,))
 farm.mount("trough", "barn-west", 4.4, tiers=ROW_TIERS)
 
 farm.bays_of("shed", south=0.0, north=0.0, east=1.5, west=1.5)
-farm.hang("shed-north", 0.0, sill=1.05, window_byre=(-3.0, 0.0, 3.0))
+farm.hang("shed-north", 0.0, sill=1.05, window_shed=(-3.0, 0.0, 3.0))
 back = SY + 3 - THICK  # the inside of the back wall: straw and logs are stacked against it
 farm.place("cart", SX - 3.0, SY + 0.3, tiers=ROW_TIERS)
 farm.place("woodpile", SX, back, tiers=ROW_TIERS)

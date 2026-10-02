@@ -17,11 +17,16 @@ sits in its bay on its floor's datum, where a garrison's soldiers stand.
 A tower is drawn by instancing. Near (tier 0), every bay of every floor is a row
 placing one shared panel module (a window, a balcony door, a loggia, a stair
 light, a blank), with balconies, curtains, washing and air conditioners as rows
-of their own, so a row's tint colours one thing. From further off (tiers 1 to 3)
+of their own, so a row's tint colours one thing. A flat's glass is glass: its
+panel carries the room behind it as a room box, so every bay of every floor
+shows its own room, and curtains hang between the two. Where two walls' rooms
+would run into each other at a corner, the panel is a variant with a narrower
+or shallower room, or with its blind drawn (`flats`). A stair's light and the
+way in keep dark panes: nobody lives behind them. From further off (tiers 1 to 3)
 the panels' rows stop and the template's own shell carries the same grid as a
 texture: one face a run of bays, sampling a facade recipe two bays by two floors
 to the tile. The shell also holds what is the template's alone: the corner
-piers, the parapet, the roof, and at tier 0 a closed core behind the panels.
+piers, the parapet, the roof, and at tier 0 a closed core behind the rooms.
 At tiers 2 and 3 a tower is that one row: its balconies fold into the shell as
 one textured stack a column, its roof's huts, plant and tanks and its canopies as
 boxes. The roof is drawn the same at every tier: a field with its stains and
@@ -50,19 +55,26 @@ PARAPET_M = 1.0  # the part's top above the top floor's ceiling
 ROOF_M = 0.35  # the roof's surface above that ceiling, inside the parapet
 COPING_M = 0.3  # the parapet's thickness
 REVEAL_M = 0.14  # how far glass sits behind the wall's face
+ROOM_AT_M = 0.06  # how far behind its glass a flat's room begins: the frame's depth, where curtains hang
+ROOM_FOOT_M, ROOM_HIGH_M = 0.04, 2.7  # a room box's floor above its floor's datum, and its height
+STANDARD = (ROOM_M / 2, ROOM_M / 2, ROOM_DEPTH_M)  # the room behind a bay nothing crowds: its reach left and right of the bay's middle, its depth
 LOGGIA_M = 1.3  # a loggia's depth
-CORE_M = 1.5  # the tier 0 core stands this far inside the faces: behind every loggia
+CORE_M = 1.5  # a gutted tower's tier 0 core stands this far inside the faces: behind every loggia
+DEEP_CORE_M = 6.0  # and an intact one's this far: behind every room
 FACADE_M = 6.0  # a facade recipe's tile: two bays by two floors
 # An opening in its panel (x0, x1, z0, z1): x about the bay's centre, z above the floor's datum.
 # The panel modules and the facade recipes are both cut to these.
 OPENING = {"w": (-0.75, 0.75, 0.9, 2.4), "d": (-1.1, 1.1, 0.1, 2.3), "l": (-1.3, 1.3, 0.12, 2.7), "s": (-0.4, 0.4, 0.5, 2.6),
            "r": (-1.35, 1.35, 0.9, 2.4), "x": (-1.38, 1.38, 0.16, 2.84)}
 KINDS = {"w": "window", "d": "door", "l": "loggia", "s": "stair", "b": "blank", "B": "balconies", "r": "ribbon", "x": "blown"}
+# Glass as a facade recipe paints it, for each of its four bays (bay + 2 * floor): the tone a room behind glass has
+# from the first tier's boundary (measured there in the line-up), no two bays quite alike, as no two rooms are.
+FAR_GLASS = np.array((0.06, 0.058, 0.052))[None, :] * np.array((1.0, 0.75, 1.25, 0.9))[:, None]
 SOOT = (0.02, 0.018, 0.016)
 # How hard each of a burnt recipe's four bays burnt (which = bay + 2 * floor): no two alike, so a wall is not one grey.
 BURNT = (1.0, 0.55, 0.85, 0.3)
 BALCONY = (2.8, 1.2, 1.05)  # a balcony's width, its reach and its front's height
-GLASS = (0.02, 0.025, 0.03)
+DARK_PANE = (0.02, 0.025, 0.03)  # glass nobody looks through: the way in's doors
 STAIR_GLASS = (0.035, 0.045, 0.045)
 FRAME = (0.46, 0.45, 0.42)
 RAIL = (0.5, 0.5, 0.48)  # a loggia's balustrade, the sills, the coping: pale cast concrete
@@ -116,6 +128,7 @@ def facade(kind, seed, burnt=False, front=None):
     wall = mix(wall, (0.2, 0.2, 0.19), joint * 0.6)
     x0, x1, z0, z1 = OPENING["d" if kind == "B" else kind]
     hole = rect(x0, x1, z0, z1)
+    glass = FAR_GLASS[which]
     lintel = 1.0 - 0.5 * ss(z1 - 0.3, z1 - 0.1, bz)  # the head's shadow on what is behind it
     rough = np.full((S, S), 0.5)
     if burnt:
@@ -125,7 +138,7 @@ def facade(kind, seed, burnt=False, front=None):
         h, slab = BALCONY[2], FLOOR_M - 0.14
         hole = ss(h - px, h, bz) * ss(slab + px, slab, bz)
         inside = wall * 0.22
-        inside = mix(inside, GLASS, rect(x0, x1, h, z1))
+        inside = mix(inside, glass, rect(x0, x1, h, z1))
         sash = (which == 1) * (1.0 - bars((-1.37, -0.47, 0.47, 1.37), bx, 0.06)) * ss(slab - 0.08, slab - 0.08 - px, bz)
         inside = mix(inside, (0.035, 0.042, 0.05), sash)  # one in four glazed in
         inside = mix(inside, FRAME, (which == 1) * (1.0 - sash) * 0.9)
@@ -139,7 +152,7 @@ def facade(kind, seed, burnt=False, front=None):
         # a recess in shade with a glazed door at its back, behind a pale balustrade
         inside = wall * 0.22
         door = rect(-0.9, 0.9, z0, 2.3) * (1.0 - bars((-0.9, 0.0, 0.9), bx, 0.07))
-        inside = mix(inside, GLASS, door)
+        inside = mix(inside, glass, door)
         glazed = (which == 1) * (1.0 - bars((x0 + 0.03, -0.43, 0.43, x1 - 0.03), bx, 0.06)) * (1.0 - bars((z1 - 0.03,), bz, 0.06))
         inside = mix(inside, (0.035, 0.042, 0.05), glazed)  # one in four glazed in
         inside = mix(inside, FRAME, (which == 1) * (1.0 - glazed) * 0.9)
@@ -156,7 +169,7 @@ def facade(kind, seed, burnt=False, front=None):
         rough = np.where(pane > 0.5, 0.2, 0.5)
     else:
         pane = rect(x0 + 0.06, x1 - 0.06, z0 + 0.06, z1 - 0.06) * (1.0 - bars({"w": (0.0,), "r": (-0.45, 0.45)}.get(kind, (-0.25,)), bx))
-        inside = mix(FRAME, GLASS, pane)
+        inside = mix(FRAME, glass, pane)
         mid, half = (x0 + x1) / 2, (x1 - x0) / 2
         scale = half / 0.75  # the curtain modules are cut to a window's opening, and stretched to a wider one
         drawn = np.select([which == 1, which == 3], [np.abs(bx - mid) > half - 0.42 * scale, bz > z0 + 0.7], False)
@@ -245,7 +258,8 @@ rail_m = textured("tower_cast", "concrete", colour=RAIL, dirt=0.0, chip=0.0, str
 roof_m = textured("tower_roof_felt", "asphalt", colour=(0.1, 0.1, 0.096), dirt=0.0, chip=0.0, streak=0.0)
 front_m = textured("tower_balcony_front", "concrete", tint=1.0, colour=FACADE_WALL, dirt=0.0, chip=0.0, streak=0.3)  # painted: no cracks
 hut_m = textured("tower_roof_hut", "plaster", tint=1.0, dirt=0.4, chip=0.0, streak=0.4, rise=0.6, dust=(0.1, 0.1, 0.096))
-glass_m = flat_paint("tower_glass", GLASS, rough=0.08, grime=0.0)
+glass_m, pane_m = window_glass("tower_glass"), window_pane("tower_pane", DARK_PANE)  # a flat's glass; a pane nobody looks through
+rooms_m = room("room_rooms", "rooms")
 stair_glass_m = flat_paint("tower_stair_glass", STAIR_GLASS, rough=0.2, grime=0.0)
 frame_m = flat_paint("tower_frame", FRAME, rough=0.6, grime=0.0)
 metal_m = flat_paint("tower_metal", (0.07, 0.075, 0.08), rough=0.5, metal=0.6, grime=0.0)
@@ -254,8 +268,9 @@ unit_m = flat_paint("tower_ac", (0.5, 0.5, 0.48), rough=0.6, grime=0.0)
 linen_m = flat_paint("tower_linen", (0.55, 0.55, 0.53), rough=0.9, grime=0.0)
 cloth_m = flat_paint("tower_cloth", (0.5, 0.5, 0.48), rough=0.9, grime=0.0)
 cloth_m["tint"] = 1.0
-drape_m = flat_paint("tower_drape", (0.3, 0.3, 0.29), rough=0.5, grime=0.0)  # a curtain, dimmed by the glass before it
+drape_m = flat_paint("tower_drape", (0.6, 0.6, 0.58), rough=0.5, grime=0.0)  # a curtain: the glass before it dims it
 drape_m["tint"] = 1.0
+blind_m = flat_paint("tower_blind", (0.3, 0.28, 0.22), rough=0.9, grime=0.0)  # a blind drawn where a corner leaves a flat's window no room to show
 patch_m = textured("tower_roof_patch", "asphalt", colour=(0.2, 0.2, 0.195), dirt=0.0, chip=0.0, streak=0.0, seed=2.0)  # felt laid since
 void_m = flat_paint("tower_void", (0.012, 0.011, 0.01), rough=1.0, grime=0.0)  # a gutted floor, seen through its openings
 ash_m = flat_paint("tower_ash", (0.21, 0.205, 0.195), rough=1.0, grime=0.0)  # where a roof's felt burnt away: pale, so not a shadow
@@ -363,7 +378,7 @@ def flat(x0, x1, z0, z1, y=0.0, uvs=None):
 
 
 def opening(x0, x1, z0, z1, depth=REVEAL_M):
-    """A 3 m panel's face round an opening, and the opening's reveal back to `depth`."""
+    """A 3 m panel's face round an opening (four faces), and the opening's reveal back to `depth` (four more)."""
     half = BAY_M / 2
     out = [flat(-half, x0, 0, FLOOR_M), flat(x1, half, 0, FLOOR_M), flat(x0, x1, 0, z0), flat(x0, x1, z1, FLOOR_M)]
     out += [([(x0, 0, z0), (x1, 0, z0), (x1, depth, z0), (x0, depth, z0)], (0, 0, 1), None),
@@ -373,15 +388,30 @@ def opening(x0, x1, z0, z1, depth=REVEAL_M):
     return out
 
 
-def glazing(m, x0, x1, z0, z1, y, uprights=(), rails=(), glass=None, bar=0.05):
-    """Glass in an opening at `y`, with a frame round it and bars across it, a little before it."""
-    sheet(m.n("glass"), glass or glass_m, m.root, [flat(x0, x1, z0, z1, y)], lods=(0,))
+def fit_tag(fit):
+    """What a panel's name adds for the room behind its glass: nothing for the standard one."""
+    return "" if fit == STANDARD else "_shut" if not fit else "_%d_%d_%d" % tuple(round(100 * v) for v in fit)
+
+
+def glazing(m, x0, x1, z0, z1, y, uprights=(), rails=(), glass=None, bar=0.05, fit=None):
+    """Glass in an opening at `y`, with a frame round it and bars across it, a little before it.
+    `fit` is the room behind the glass, which is then clear: (its reach left and right of the
+    bay's middle, its depth), with the frame's depth lining the way back to it; or False, a
+    blind drawn across where a room has no space. With no `fit` the glass is a dark pane."""
+    sheet(m.n("glass"), glass or (pane_m if fit is None else glass_m), m.root, [flat(x0, x1, z0, z1, y)], lods=(0,))
     at = y - 0.03
     quads = [flat(x0, x0 + bar, z0, z1, at), flat(x1 - bar, x1, z0, z1, at), flat(x0 + bar, x1 - bar, z0, z0 + bar, at),
              flat(x0 + bar, x1 - bar, z1 - bar, z1, at)]
     quads += [flat(x - bar / 2, x + bar / 2, z0 + bar, z1 - bar, at) for x in uprights]
     quads += [flat(x0 + bar, x1 - bar, z - bar / 2, z + bar / 2, at) for z in rails]
+    if fit is not None:
+        quads += opening(x0, x1, z0, z1, y + ROOM_AT_M)[4:]
     sheet(m.n("frame"), frame_m, m.root, quads, lods=(0,))
+    if fit:
+        room_box(m.n("room"), fit[0] + fit[1], ROOM_HIGH_M, fit[2], rooms_m, m.root, ((fit[1] - fit[0]) / 2, y + ROOM_AT_M, ROOM_FOOT_M),
+                 lods=(0,))
+    elif fit is False:
+        sheet(m.n("blind"), blind_m, m.root, [flat(x0, x1, z0, z1, y + ROOM_AT_M)], lods=(0,))
 
 
 def card(m, mat, tile, lods=(1, 2, 3), which=0):
@@ -397,9 +427,11 @@ PANEL = dict(ao_distance=0.5, paint_scale=10.0)  # no face needs splitting for p
 _PANELS = {}
 
 
-def panel(finish, kind):
-    """The id of `finish`'s panel module of `kind`, made the first time it is asked for."""
-    name = f"{finish}_{KINDS[kind]}"
+def panel(finish, kind, fit=STANDARD):
+    """The id of `finish`'s panel module of `kind` with room `fit` behind its glass (`glazing`), made
+    the first time it is asked for. A stair's light and a blank have no room."""
+    fit = None if kind == "s" else fit
+    name = f"{finish}_{KINDS[kind]}" + ("" if kind in "sb" else fit_tag(fit))
     if name in _PANELS:
         return name
     wall, tile = WALLS[finish], textures.tile_of(FINISHES[finish])
@@ -409,9 +441,10 @@ def panel(finish, kind):
         return name
     x0, x1, z0, z1 = OPENING[kind]
     if kind == "l":
-        d = LOGGIA_M
-        sheet(m.n("wall"), wall, m.root, opening(x0, x1, z0, z1, d) + [flat(x0, x1, z0, z1, d)], lods=(0,), tile=tile)
-        glazing(m, -0.9, 0.9, z0, 2.3, d - 0.03, uprights=(0.0,), bar=0.07)
+        d = LOGGIA_M  # the recess, and its back wall round the glazed door
+        back = [flat(x0, -0.9, z0, z1, d), flat(0.9, x1, z0, z1, d), flat(-0.9, 0.9, 2.3, z1, d)]
+        sheet(m.n("wall"), wall, m.root, opening(x0, x1, z0, z1, d) + back, lods=(0,), tile=tile)
+        glazing(m, -0.9, 0.9, z0, 2.3, d, uprights=(0.0,), bar=0.07, fit=fit)
         box(m.n("balustrade"), (x1 - x0, 0.1, 0.98), (0, 0.05, z0 + 0.49), rail_m, m.root, lods=(0,))
         box(m.n("handrail"), (x1 - x0, 0.06, 0.05), (0, 0.05, z0 + 1.01), metal_m, m.root, lods=(0,))
     else:
@@ -419,7 +452,7 @@ def panel(finish, kind):
         if kind == "s":
             glazing(m, x0, x1, z0, z1, REVEAL_M, rails=[z0 + 0.42 * k for k in range(1, 5)], glass=stair_glass_m)
         else:
-            glazing(m, x0, x1, z0, z1, REVEAL_M, uprights={"w": (0.0,), "r": (-0.45, 0.45)}.get(kind, (-0.25,)))
+            glazing(m, x0, x1, z0, z1, REVEAL_M, uprights={"w": (0.0,), "r": (-0.45, 0.45)}.get(kind, (-0.25,)), fit=fit)
         if kind in "wr":
             box(m.n("sill"), (x1 - x0 + 0.16, 0.12, 0.06), (0, -0.01, z0 - 0.03), rail_m, m.root, lods=(0,))
     card(m, strip_mat(f"facade_{KINDS[kind]}"), FACADE_M)
@@ -456,11 +489,17 @@ def gutted_panel(kind, which, ground=False):
 
 
 # The ground floor is the same on every tower: darker cast concrete, a window a bay.
-m = kit.module("ground_window", ground=True, **PANEL)
-sheet(m.n("wall"), base_m, m.root, opening(*OPENING["w"]), lods=(0,), tile=textures.tile_of("concrete"))
-glazing(m, *OPENING["w"], REVEAL_M, uprights=(0.0,))
-box(m.n("sill"), (1.66, 0.12, 0.06), (0, -0.01, 0.87), rail_m, m.root, lods=(0,))
-card(m, strip_mat("facade_window", tone=BASE_TONE), FACADE_M)
+def ground_window(fit=STANDARD):
+    """The id of the ground floor's window panel with room `fit` behind its glass."""
+    name = "ground_window" + fit_tag(fit)
+    if name not in _PANELS:
+        m = _PANELS[name] = kit.module(name, ground=True, **PANEL)
+        sheet(m.n("wall"), base_m, m.root, opening(*OPENING["w"]), lods=(0,), tile=textures.tile_of("concrete"))
+        glazing(m, *OPENING["w"], REVEAL_M, uprights=(0.0,), fit=fit)
+        box(m.n("sill"), (1.66, 0.12, 0.06), (0, -0.01, 0.87), rail_m, m.root, lods=(0,))
+        card(m, strip_mat("facade_window", tone=BASE_TONE), FACADE_M)
+    return name
+
 
 m = kit.module("ground_blank", ground=True, **PANEL)
 card(m, base_m, textures.tile_of("concrete"), lods=TIERS)
@@ -471,7 +510,7 @@ DOOR = (-0.9, 0.9, 0.15, 2.3)
 m = kit.module("entrance", ground=True, **PANEL)
 sheet(m.n("wall"), base_m, m.root, opening(*DOOR), lods=(0,), tile=textures.tile_of("concrete"))
 glazing(m, *DOOR, REVEAL_M, uprights=(0.0,), rails=(0.5,), bar=0.08)
-sheet(m.n("doors"), glass_m, m.root, [flat(*DOOR, -0.03)], lods=(1, 2))
+sheet(m.n("doors"), pane_m, m.root, [flat(*DOOR, -0.03)], lods=(1, 2))
 box(m.n("canopy"), (2.9, 1.4, 0.14), (0, -0.7, 2.52), rail_m, m.root)
 box(m.n("step"), (2.9, 1.3, 0.15), (0, -0.65, 0.075), base_m, m.root, lods=(0, 1, 2))
 for s in (-1, 1):
@@ -500,7 +539,8 @@ def balcony(name, glazed):
         return
     # glazed in by its owner: sashes on the front and cheeks up to a lid under the slab above
     top, y = 2.72, -reach + 0.02
-    sheet(m.n("sash"), glass_m, m.root, [flat(-w / 2, w / 2, h, top, y)], lods=(0, 1, 2))
+    sheet(m.n("sash"), glass_m, m.root, [flat(-w / 2, w / 2, h, top, y)], lods=(0, 1))  # glass: the door behind shows through it
+    sheet(m.n("sash_far"), pane_m, m.root, [flat(-w / 2, w / 2, h, top, y)], lods=(2,))
     sheet(m.n("sash_bars"), frame_m, m.root,
           [flat(x - 0.03, x + 0.03, h, top, y - 0.02) for x in (-w / 2 + 0.03, -0.47, 0.47, w / 2 - 0.03)]
           + [flat(-w / 2, w / 2, top - 0.06, top, y - 0.02)], lods=(0,))
@@ -534,17 +574,18 @@ box(m.n("slab"), (w_, reach_, 0.14), (0, -0.5 * reach_ * math.cos(0.9), -0.07 - 
 # A loggia glazed in: sashes on the wall's face over the balustrade.
 m = kit.module("loggia_sash", **PANEL)
 x0, x1, z0, z1 = OPENING["l"]
-sheet(m.n("glass"), glass_m, m.root, [flat(x0, x1, z0 + 1.04, z1, 0.03)])
+sheet(m.n("glass"), glass_m, m.root, [flat(x0, x1, z0 + 1.04, z1, 0.03)], lods=(0,))
+sheet(m.n("pane"), pane_m, m.root, [flat(x0, x1, z0 + 1.04, z1, 0.03)], lods=(1, 2, 3))
 sheet(m.n("bars"), frame_m, m.root, [flat(x - 0.03, x + 0.03, z0 + 1.04, z1, 0.01) for x in (x0 + 0.03, -0.43, 0.43, x1 - 0.03)]
       + [flat(x0, x1, z1 - 0.06, z1, 0.01)], lods=(0,))
 
-# Curtains behind a window's glass, in the window panel's frame: a row's tint is their colour.
+# Curtains behind a window's glass, between it and the room, in the window panel's frame: a row's tint is their colour.
 x0, x1, z0, z1 = OPENING["w"]
+CURTAIN_AT_M = REVEAL_M + ROOM_AT_M / 2
 m = kit.module("curtain_pair", **PANEL)
-sheet(m.n("drapes"), drape_m, m.root, [flat(x0 + 0.05, x0 + 0.42, z0 + 0.05, z1 - 0.05, REVEAL_M - 0.015),
-                                       flat(x1 - 0.42, x1 - 0.05, z0 + 0.05, z1 - 0.05, REVEAL_M - 0.015)])
+sheet(m.n("drapes"), drape_m, m.root, [flat(x0, x0 + 0.42, z0, z1, CURTAIN_AT_M), flat(x1 - 0.42, x1, z0, z1, CURTAIN_AT_M)])
 m = kit.module("curtain_blind", **PANEL)
-sheet(m.n("blind"), drape_m, m.root, [flat(x0 + 0.05, x1 - 0.05, z0 + 0.7, z1 - 0.05, REVEAL_M - 0.015)])
+sheet(m.n("blind"), drape_m, m.root, [flat(x0, x1, z0 + 0.7, z1, CURTAIN_AT_M)])
 
 # An air conditioner's outdoor unit on brackets beside a window.
 m = kit.module("ac_unit", **PANEL)
@@ -633,9 +674,10 @@ ROOF_CELL_M = 4.6  # the roof's stains live on vertices: this keeps them down to
 
 
 def shell(t, tag, finish, columns, accents, doors, fronts, rooftop, crown=None, burnt=False, blown=()):
-    """The template's own module: corner piers, parapet and roof in every tier; a closed
-    core behind the panels at tier 0; from tier 1 the walls themselves, each run of
-    like bays one face of its facade recipe; and at tiers 2 and 3 what the other rows
+    """The template's own module: corner piers, parapet and roof in every tier; from tier 1
+    the walls themselves, each run of like bays one face of its facade recipe (at tier 0 the
+    panels are the walls, and a closed core stands behind them: past every room, or, gutted,
+    dark and close behind the empty openings); and at tiers 2 and 3 what the other rows
     drew: each balcony column a stack (`fronts`: its colour by side and bay), the
     canopies and the roof's huts, plant and tanks (`rooftop`) as boxes. `crown` tints
     the top floor and the parapet another colour, under a slab that stands out round
@@ -701,7 +743,8 @@ def shell(t, tag, finish, columns, accents, doors, fronts, rooftop, crown=None, 
             if crown:
                 wall(TIERS, head, edge, o0, o1, band, ceiling, left, tile)
         wall(TIERS, head, edge, a, b, ceiling, top, left, tile)  # the parapet
-        wall((0,), void_m if burnt else body, edge, a + CORE_M, b - CORE_M, 0.0, ceiling + ROOF_M, left, tile, inset=CORE_M)
+        core = CORE_M if burnt else DEEP_CORE_M
+        wall((0,), void_m if burnt else body, edge, a + core, b - core, 0.0, ceiling + ROOF_M, left, tile, inset=core)
         ground = ["e" if side == "south" and k in doors else "b" if kind == "b" else "g" for k, kind in enumerate(cols)]
         for k0, k1, key in runs(ground):
             if key == "g":
@@ -794,6 +837,35 @@ def shell(t, tag, finish, columns, accents, doors, fronts, rooftop, crown=None, 
     return m.name
 
 
+def flats(t, columns, doors, floor):
+    """The room behind each glazed bay of one floor, as (side, bay) -> a panel's `fit`: the rooms of two
+    walls that would meet at a corner are fitted to each other (`plan_rooms`), and each keeps clear
+    of a loggia's recess."""
+    rooms = []
+    for side, cols in sorted(columns.items()):
+        edge = f"body-{side}"
+        for k, (o, kind) in enumerate(zip(t.bays(edge), cols)):
+            if floor == 0:
+                kind = "b" if kind == "b" or (side == "south" and k in doors) else "w"
+            if kind not in "wdrl":
+                continue
+            x, y, z, yaw = t.at(edge, o, floor * FLOOR_M)
+            x0, x1, z0, z1 = OPENING[kind]
+            width, back, head = x1 - x0, REVEAL_M + ROOM_AT_M, z1
+            if kind == "l":
+                recess = room_behind(t, x, y, z, yaw, width, z0, 2.3, 0.0, fixed=True)
+                rooms.append(recess | dict(lo=recess["at"] + x0, hi=recess["at"] + x1, need=(recess["at"] + x0, recess["at"] + x1),
+                                           depth=LOGGIA_M))
+                width, back, head = 1.8, LOGGIA_M + ROOM_AT_M, 2.3
+            rooms.append(room_behind(t, x, y, z, yaw, width, z0, head, back) | dict(key=(side, k), turn=sum(SIDES[side][2])))
+    out = {}
+    for r in plan_rooms(rooms):
+        if "key" in r:
+            a, b = sorted(((r["lo"] - r["at"]) * r["turn"], (r["hi"] - r["at"]) * r["turn"]))
+            out[r["key"]] = (round(-a, 2), round(b, 2), round(r["depth"], 2)) if r["depth"] > 0 else False
+    return out
+
+
 def tower(id_, tag, w, d, floors, finish, body, columns, doors, rooftop, accents=None, fronts=(WHITE,), glazed=0.25, recipe=None,
           crown=None, blown=()):
     """A tower that is one box: its template, its shell and a row for every panel, and the same gutted.
@@ -825,6 +897,7 @@ def tower(id_, tag, w, d, floors, finish, body, columns, doors, rooftop, accents
     t.place(shell(t, tag, finish, columns, accents, doors, column, huts, crown), tint=body)
     t.place(shell(t, tag, finish, columns, accents, doors, column, huts, crown, burnt=True, blown=blown), tint=body, state="gutted")
     gone = {(side, k + i, f + j) for side, k, n, f, h in blown for i in range(n) for j in range(h)}
+    ground, upper = flats(t, columns, doors, 0), flats(t, columns, doors, 1)  # (every floor over the ground is laid out alike)
     deck = floors * FLOOR_M + ROOF_M
     for module, x, y, yaw, *on in rooftop:
         hut = module in HUTS
@@ -839,13 +912,13 @@ def tower(id_, tag, w, d, floors, finish, body, columns, doors, rooftop, accents
                 t.mount("entrance", edge, o, tiers=TIERS_0_TO_1)
                 t.mount("gutted_entrance", edge, o, tiers=TIERS_0_TO_1, state="gutted")
             else:
-                t.mount("ground_blank" if kind == "b" else "ground_window", edge, o, tiers=TIER_0)
+                t.mount("ground_blank" if kind == "b" else ground_window(ground[(side, k)]), edge, o, tiers=TIER_0)
                 t.mount("ground_blank" if kind == "b" else gutted_panel("w", k % 2, ground=True), edge, o, tiers=TIER_0,
                         tint=dimmed(WHITE, FLOOR_M / 2), state="gutted")
             for f in range(1, floors):
                 z, key = f * FLOOR_M, (id_, side, k, f)
                 tint = crown if crown and f == floors - 1 else accents.get(kind, body)
-                t.mount(panel(finish, kind), edge, o, z=z, tiers=TIER_0, tint=tint)
+                t.mount(panel(finish, kind, upper.get((side, k), STANDARD)), edge, o, z=z, tiers=TIER_0, tint=tint)
                 if kind in "wr":
                     if k % 2 + 2 * (f % 2) in CURTAINED:  # the bays the shell's recipe draws curtains in
                         t.mount(CURTAINED[k % 2 + 2 * (f % 2)], edge, o, z=z, tiers=TIER_0,

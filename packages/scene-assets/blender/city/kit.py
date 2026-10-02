@@ -47,6 +47,7 @@ import os
 import random
 import re
 import sys
+import zlib
 
 import bpy
 import numpy as np
@@ -260,6 +261,7 @@ class Kit:
         if fit_ruin_top_m is not None:
             self.fit["ruin_top_m"] = fit_ruin_top_m
         self.modules, self.templates, self.heaps = {}, [], {}
+        self.openings = {}  # module -> the opening it stands in (`opening`)
 
     def module(self, name, ground=False, **bake):
         """A new module. `bake` overrides what `parts.finish` is given (occlusion reach, paint edge)."""
@@ -471,6 +473,285 @@ def window_far(w, h, glass, surround, shutters=None):
     frame and sill under the pane, and its shutters ("tint", or None) either side."""
     out = [(w + 0.2, h + 0.19, -0.07, surround, 0.012), (w, h, 0.0, glass)]
     return ([(2 * w + 0.32, h + 0.04, -0.02, shutters, 0.02)] if shutters else []) + out
+
+
+# ---------------------------------------------------------------- windows, and the rooms behind them
+# (This folder's readme, "Interiors" and "Surfaces that are not opaque".) A window near the camera is
+# an opening cut in its wall: a reveal, glass a little back in it, and behind that a room box or a
+# dark recess. From far off it is the dark pane its building's shell carries, on the uncut wall.
+REVEAL_M = 0.18  # a wall's thickness at an opening: its reveal's depth, and where the room behind begins
+GLASS_AT_M = 0.09  # the glass, that far back in the reveal
+ROOM_M, ROOM_DEPTH_M = 2.9, 4.5  # a room box: narrower than its 3 m bay, so neighbours never share a wall's plane
+ROOM_GAP_M = 0.05  # the clear space kept between two room boxes
+# The shallowest and the narrowest room drawn (a squeezed one shows its pale walls close behind the glass: a flat
+# grey panel from above), and the depth a room keeps when it gives way to another.
+ROOM_MIN_M, ROOM_NARROW_M, ROOM_KEEP_M = 1.5, 2.0, 2.5
+OPEN_TIERS = (0, 1)  # the tiers a wall is cut open at, and a room is drawn at
+# Glass is dark, a little of the sky's colour, and half clear. A far pane is the tone a window with a room behind
+# its glass and bars has from far off (matched at the second tier's boundary in the line-up): with the glass's own
+# colour a window went black where its tier changed.
+GLASS, PANE = (0.045, 0.06, 0.075), (0.1, 0.097, 0.088)
+# A drawn blind's cloth (sRGB): deep colours, so behind glass it is as dark as its neighbours' rooms.
+BLINDS = ((150, 62, 50), (62, 92, 124), (190, 160, 84), (70, 108, 82), (120, 112, 100), (170, 160, 140))
+
+
+def window_glass(name="window_glass", colour=GLASS):
+    """A window's glass near the camera: blended, so what stands behind it shows. One face, never a box."""
+    return flat_paint(name, colour, rough=0.08, grime=0.0, coverage=("blended", 0.5))
+
+
+def window_reveal(name="window_reveal", colour=(0.2, 0.19, 0.17)):
+    """The lining of an opening's reveal: the wall's thickness, in its own shade. (Pale, a row of windows seen
+    along its wall was a row of white slabs.)"""
+    return flat_paint(name, colour, rough=0.9, grime=0.0)
+
+
+def window_pane(name="window_pane", colour=PANE):
+    """A window from far off, and a pane nobody looks through: opaque and dark."""
+    return flat_paint(name, colour, rough=0.08, grime=0.0)
+
+
+def opening(kit, module, w, h, foot=0.0, behind=None, back=REVEAL_M):
+    """Say that `module` stands in an opening `w` by `h`, its foot `foot` above the module's origin:
+    `open_walls` cuts it, and `furnish` puts a room of sheet `behind` ("rooms", "shops") `back`
+    metres inside the wall's face. With `behind` None the module closes its own opening."""
+    kit.openings[module] = dict(w=w, h=h, foot=foot, behind=behind, back=back)
+    if behind and f"room_{behind}" not in kit.modules:
+        m = kit.module(f"room_{behind}", **FITTING)  # a metre each way: a row's scale is the room's size
+        room_box(m.n("box"), 1.0, 1.0, 1.0, room(f"room_{behind}", behind), m.root)
+
+
+def flat_faces(name, quads, mat, parent, lods=TIERS):
+    """One mesh of flat faces, each (points, a direction its normal leans toward)."""
+    def build(bm, lod):
+        for points, toward in quads:
+            f = bm.faces.new([bm.verts.new(p) for p in points])
+            f.normal_update()
+            if f.normal.dot(Vector(toward)) < 0:
+                f.normal_flip()
+
+    return mesh_part(name, build, mat, parent, lods)
+
+
+def reveal(m, w, h, mat, foot=0.0, depth=REVEAL_M, start=0.0, back=False, lods=OPEN_TIERS, tag="reveal"):
+    """The four faces lining an opening `w` by `h` in a module that faces -Y, from `start` behind
+    the wall's face to `depth`; with `back`, closed there: a recess."""
+    x0, x1, z0, z1, y0, y1 = -w / 2, w / 2, foot, foot + h, start, depth
+    quads = [([(x0, y0, z0), (x1, y0, z0), (x1, y1, z0), (x0, y1, z0)], (0, 0, 1)),
+             ([(x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1)], (0, 0, -1)),
+             ([(x0, y0, z0), (x0, y1, z0), (x0, y1, z1), (x0, y0, z1)], (1, 0, 0)),
+             ([(x1, y0, z0), (x1, y1, z0), (x1, y1, z1), (x1, y0, z1)], (-1, 0, 0))]
+    if back:
+        quads.append(([(x0, y1, z0), (x1, y1, z0), (x1, y1, z1), (x0, y1, z1)], (0, -1, 0)))
+    return flat_faces(m.n(tag), quads, mat, m.root, lods)
+
+
+def glazing_bars(m, w, h, mat, uprights=(), rails=(), foot=0.0, at=GLASS_AT_M - 0.02, bar=0.05, lods=(0,), tag="bars"):
+    """A sash round the glass of an opening and the bars across it, as flat faces just before the glass."""
+    x0, x1, z0, z1 = -w / 2, w / 2, foot, foot + h
+    spans = [(x0, x0 + bar, z0, z1), (x1 - bar, x1, z0, z1), (x0 + bar, x1 - bar, z0, z0 + bar), (x0 + bar, x1 - bar, z1 - bar, z1)]
+    spans += [(x - bar / 2, x + bar / 2, z0 + bar, z1 - bar) for x in uprights]
+    spans += [(x0 + bar, x1 - bar, z - bar / 2, z + bar / 2) for z in rails]
+    return flat_faces(m.n(tag), [([(a, at, c), (b, at, c), (b, at, d), (a, at, d)], (0, -1, 0)) for a, b, c, d in spans], mat, m.root, lods)
+
+
+def casement(kit, name, w, h, frame, glass, pane, sill, shutter=None, lights=2, behind="rooms", dark=None, cut=True):
+    """A house's window as a module facing -Y, the middle of its sill on the wall plane at the origin:
+    a head, a sill and jambs proud of the wall, the reveal of its opening, and glass in a sash a
+    little back in it, `lights` panes side by side under a transom. `behind` is the room `furnish`
+    gives it; None is a window nobody lives behind, closed by a recess lined in `dark`. Past the
+    second tier it is one dark pane on the wall. `cut` false is a window in a wall too thin to
+    open (boards on a frame, seen from both sides): the dark pane on the wall at every tier."""
+    m = kit.module(name, **FITTING)
+    box(m.n("head"), (w + 0.2, 0.12, 0.12), (0, -0.06, h + 0.06), frame, m.root, lods=OPEN_TIERS)
+    box(m.n("sill"), (w + 0.24, 0.16, 0.07), (0, -0.08, -0.035), sill, m.root, lods=OPEN_TIERS)
+    for s in (-1, 1):
+        box(m.n(f"jamb_{'ab'[s > 0]}"), (0.1, 0.08, h), (s * (w / 2 + 0.05), -0.05, h / 2), frame, m.root, lods=(0,))
+        if shutter is not None:
+            box(m.n(f"shutter_{'ab'[s > 0]}"), (w / 2 + 0.02, 0.05, h + 0.04), (s * (w * 0.75 + 0.14), -0.07, h / 2), shutter, m.root,
+                lods=OPEN_TIERS)
+    bars = dict(uprights=[-w / 2 + k * w / lights for k in range(1, lights)], rails=(0.68 * h,))
+    if not cut:
+        sheet(m.n("pane"), w, h, (0, -0.02, 0), pane, m.root)
+        glazing_bars(m, w, h, frame, at=-0.03, **bars)
+        return m
+    reveal(m, w, h, window_reveal())
+    sheet(m.n("glass"), w, h, (0, GLASS_AT_M, 0), glass, m.root, lods=OPEN_TIERS)
+    glazing_bars(m, w, h, frame, lods=OPEN_TIERS, **bars)  # at both tiers: without its bars a window is darker, and the tiers differ
+    sheet(m.n("pane"), w, h, (0, -0.02, 0), pane, m.root, lods=(2, 3))
+    if behind is None:
+        reveal(m, w, h, dark, depth=REVEAL_M + 0.6, start=REVEAL_M, back=True, tag="recess")
+    opening(kit, name, w, h, 0.0, behind)
+    return m
+
+
+def open_walls(m, rows, openings, origin=(0.0, 0.0), lods=OPEN_TIERS):
+    """Cut module `m`'s walls open, at tiers `lods`, where each of `rows` (a template's rows, in its
+    frame; `origin` is the module's place in it) stands a module that `openings` gives an opening.
+    A wall is every face on the opening's plane that looks out of it. The cuts run on across the
+    wall, and the level ones round every wall of the mesh, so no face meets another's edge part way."""
+    cuts = []
+    for module, x, y, z, yaw, sx, sy, sz, *_ in rows:
+        o = openings.get(module)
+        if o is not None:
+            c, s = math.cos(yaw), math.sin(yaw)
+            cuts.append(dict(module=module, at=Vector((x - origin[0], y - origin[1], 0.0)), out=Vector((s, -c, 0.0)),
+                             along=Vector((c, s, 0.0)), half=o["w"] * sx / 2, z0=z + o["foot"] * sz, z1=z + (o["foot"] + o["h"]) * sz))
+    if not cuts:
+        return
+    bpy.context.view_layer.update()
+    opened = {(k, lod): False for k in range(len(cuts)) for lod in lods}
+    for o in m.meshes():
+        if tier_of(o) not in lods:
+            continue
+        bm = bmesh.new()
+        bm.from_mesh(o.data)
+        bm.transform(o.matrix_world)
+        bm.normal_update()
+
+        def wall(cut):
+            return [f for f in bm.faces if f.normal.dot(cut["out"]) > 0.999 and abs((f.calc_center_median() - cut["at"]).dot(cut["out"])) < 0.003]
+
+        def bisect(faces, at, normal):
+            geom = list({v for f in faces for v in f.verts}) + list({e for f in faces for e in f.edges}) + faces
+            bmesh.ops.bisect_plane(bm, geom=geom, dist=1e-6, plane_co=at, plane_no=normal)
+            for v in bm.verts:  # onto the plane exactly: two faces cut at one edge then share its new point
+                d = (v.co - at).dot(normal)
+                if abs(d) < 1e-5:
+                    v.co -= normal * d
+
+        def holds(f, cut):  # the face's own extent, along the wall and up it, holds the opening's middle
+            a = [(v.co - cut["at"]).dot(cut["along"]) for v in f.verts]
+            z = [v.co.z for v in f.verts]
+            return min(a) < 0 < max(a) and min(z) < (cut["z0"] + cut["z1"]) / 2 < max(z)
+
+        hits = [k for k, cut in enumerate(cuts) if any(holds(f, cut) for f in wall(cut))]
+        for z in sorted({round(cuts[k][key], 6) for k in hits for key in ("z0", "z1")}):
+            bisect([f for f in bm.faces if abs(f.normal.z) < 1e-3], Vector((0, 0, z)), Vector((0, 0, 1)))
+        for k in hits:
+            for s in (-1, 1):
+                bisect(wall(cuts[k]), cuts[k]["at"] + cuts[k]["along"] * (s * cuts[k]["half"]), cuts[k]["along"])
+        for k in hits:
+            cut = cuts[k]
+            inside = [f for f in wall(cut) if abs((f.calc_center_median() - cut["at"]).dot(cut["along"])) < cut["half"] - 1e-4
+                      and cut["z0"] + 1e-4 < f.calc_center_median().z < cut["z1"] - 1e-4]
+            if inside:
+                opened[(k, tier_of(o))] = True
+                bmesh.ops.delete(bm, geom=inside, context="FACES")
+        if hits:
+            bm.transform(o.matrix_world.inverted())
+            bm.to_mesh(o.data)
+        bm.free()
+    closed = sorted({cuts[k]["module"] for (k, lod), done in opened.items() if not done})
+    if closed:
+        _fail(f"module {m.name}: no wall to open behind {closed}")
+
+
+def plan_rooms(rooms):
+    """Fit the boxes of rooms that would run into each other where two walls meet. A room is a
+    dict: `axis` its wall runs along (0 x, 1 y), `face` the wall's plane and `sign` which way is in,
+    `back` how far inside the face its box begins, `lo` and `hi` the box's ends along the wall
+    (`need`: the least they may be, its opening's), `depth`, `z` (its foot and head) and `rank`
+    (a lower one is fitted first and gives way last). A `fixed` one is not a room: something
+    built that a room must keep clear of. A room left less than a room's space has its depth
+    set to 0: where two walls' windows stand at one corner, the corner is one window's."""
+    def taken(r):
+        a = r["face"] + r["sign"] * r["back"]
+        return min(a, a + r["sign"] * r["depth"]), max(a, a + r["sign"] * r["depth"])
+
+    def plan(r):  # its box on the ground: (x0, x1, y0, y1)
+        return (r["lo"], r["hi"], *taken(r)) if r["axis"] == 0 else (*taken(r), r["lo"], r["hi"])
+
+    g, done = ROOM_GAP_M, []
+    for r in sorted(rooms, key=lambda r: (not r.get("fixed"), r["rank"])):  # what is built stands first: every room keeps clear of it
+        for q in () if r.get("fixed") else done:
+            if q["axis"] == r["axis"] or q["depth"] <= 0 or r["depth"] <= 0 or q["z"][0] >= r["z"][1] or r["z"][0] >= q["z"][1]:
+                continue
+            (ra, rb), (qa, qb) = taken(r), taken(q)
+            if rb <= q["lo"] - g or ra >= q["hi"] + g or qb <= r["lo"] - g or qa >= r["hi"] + g:
+                continue
+            # the room moves along its wall, clear of the other's far end, if that leaves it a room's width
+            lo, hi = (max(r["lo"], qb + g), r["hi"]) if q["sign"] > 0 else (r["lo"], min(r["hi"], qa - g))
+            if lo <= r["need"][0] and hi >= r["need"][1] and hi - lo >= min(ROOM_NARROW_M, r["hi"] - r["lo"]):
+                r["lo"], r["hi"] = lo, hi
+                continue
+            # or the other stops short of it, if that leaves it a room's depth
+            if not q.get("fixed"):
+                keep = (r["lo"] - g) - (q["face"] + q["back"]) if q["sign"] > 0 else (q["face"] - q["back"]) - (r["hi"] + g)
+                if keep >= ROOM_KEEP_M:
+                    q["depth"] = min(q["depth"], keep)
+                    continue
+            # or it stops short of the other, if that leaves it a room's depth; or it is not drawn
+            start = r["face"] + r["sign"] * r["back"]
+            short = (q["lo"] - g) - start if r["sign"] > 0 else start - (q["hi"] + g)
+            r["depth"] = min(r["depth"], short) if short >= ROOM_MIN_M else 0.0
+        done.append(r)
+    # The rule this exists for, held on what it made: no two boxes share space, and each still spans its opening.
+    for i, r in enumerate(rooms):
+        if r["depth"] > 0 and (r["lo"] > r["need"][0] + 1e-9 or r["hi"] < r["need"][1] - 1e-9):
+            _fail(f"a room at {r['at']:.2f} along the wall at {r['face']:.2f} is narrower than its opening")
+        for q in rooms[:i]:
+            if q["depth"] <= 0 or r["depth"] <= 0 or (q.get("fixed") and r.get("fixed")) or q["z"][0] >= r["z"][1] or r["z"][0] >= q["z"][1]:
+                continue
+            a, b = plan(r), plan(q)
+            if a[0] < b[1] - 1e-9 and b[0] < a[1] - 1e-9 and a[2] < b[3] - 1e-9 and b[2] < a[3] - 1e-9:
+                _fail(f"two rooms share space: at {r['at']:.2f} along the wall at {r['face']:.2f} and at {q['at']:.2f} along {q['face']:.2f}")
+    return rooms
+
+
+def room_behind(t, x, y, z, yaw, w, foot, head, back, fixed=False):
+    """The room an opening `w` wide, from `foot` to `head` above `z`, would have behind it, for
+    `plan_rooms`: as wide as its bay inside its part's walls, as deep as a room up to half its
+    part, standing on its floor's datum. The street side's rooms are fitted first, then the
+    back's, then the ends'."""
+    g = ROOM_GAP_M
+    out = (round(math.sin(yaw)), round(-math.cos(yaw)))
+    side = next(k for k, v in SIDES.items() if v[1] == out)
+    axis = 0 if out[1] else 1
+    face, at = (y, x) if axis == 0 else (x, y)
+    lo_key, hi_key, across = (("x0", "x1", ("y0", "y1")), ("y0", "y1", ("x0", "x1")))[axis]
+    part = next((p for p in t.parts if abs(p[across[sum(out) > 0]] - face) < 1e-6 and p[lo_key] - 1e-6 <= at <= p[hi_key] + 1e-6
+                 and p["base"] - 1e-6 <= z < p["top"]), None)
+    if part is None:
+        _fail(f"{t.id}: the opening at ({x:.2f}, {y:.2f}, {z:.2f}) stands on no part's face")
+    floors = [part["base"] + f for f in t.floor_heights]
+    floor = max((f for f in floors if f <= z + foot + 1e-6), default=floors[0])
+    pitch = min((f - floor for f in floors if f > floor + 1e-6), default=BAY_PITCH_M)
+    z0, z1 = floor + 0.04, floor + min(ROOM_M, pitch - 0.3)
+    if z + head > z1 - 0.02 or z + foot < z0:
+        _fail(f"{t.id}: the opening at ({x:.2f}, {y:.2f}, {z:.2f}) does not fit its floor's room ({z0:.2f} to {z1:.2f})")
+    street = t.edges()[t.entrances[0]["edge"]]["side"]
+    return dict(axis=axis, face=face, sign=-sum(out), back=back, at=at, yaw=yaw, z=(z0, z1), fixed=fixed,
+                lo=max(at - ROOM_M / 2, part[lo_key] + REVEAL_M + g), hi=min(at + ROOM_M / 2, part[hi_key] - REVEAL_M - g),
+                need=(at - w / 2 - 0.01, at + w / 2 + 0.01), width=w, depth=min(ROOM_DEPTH_M, (part[across[1]] - part[across[0]]) / 2 - back - g / 2),
+                rank=0 if fixed or side == street else 1 if side == OPPOSITE[street] else 2)
+
+
+def furnish(t, kit):
+    """A room behind every window of `t` that has one (`opening`): a row of its sheet's room module,
+    scaled to the box `plan_rooms` leaves it, at the tiers its window is a row at."""
+    rooms = []
+    for module, x, y, z, yaw, sx, sy, sz, tiers, *_ in t.rows["intact"]:
+        o = kit.openings.get(module)
+        if o is not None and o["behind"] and tiers & TIERS_0_TO_1:
+            r = room_behind(t, x, y, z, yaw, o["w"] * sx, o["foot"] * sz, (o["foot"] + o["h"]) * sz, o["back"])
+            rooms.append(r | dict(module=f"room_{o['behind']}", tiers=tiers & TIERS_0_TO_1,
+                                  opening=(z + o["foot"] * sz, z + (o["foot"] + o["h"]) * sz)))
+    for r in plan_rooms(rooms):
+        mid, inside = (r["lo"] + r["hi"]) / 2, r["face"] + r["sign"] * r["back"]
+        if r["depth"] <= 0:  # two openings at one corner: the second has its blind drawn, close behind the glass
+            if "window_blind" not in kit.modules:
+                m = kit.module("window_blind", **FITTING)  # a metre each way, its foot's middle at the origin
+                blind = flat_paint("window_blind", (0.4, 0.4, 0.38), rough=0.9, grime=0.0)
+                blind["tint"] = 1.0
+                sheet(m.n("cloth"), 1.0, 1.0, (0, 0, 0), blind, m.root)
+            w, (foot, head) = r["width"], r["opening"]
+            x, y = (r["at"], inside - r["sign"] * 0.01) if r["axis"] == 0 else (inside - r["sign"] * 0.01, r["at"])
+            t.place("window_blind", x, y, foot, r["yaw"], scale=(w, 1.0, head - foot), tiers=r["tiers"],
+                    tint=BLINDS[zlib.crc32(repr((t.id, round(x, 2), round(y, 2), round(foot, 2))).encode()) % len(BLINDS)])
+            continue
+        x, y = (mid, inside) if r["axis"] == 0 else (inside, mid)
+        t.place(r["module"], x, y, r["z"][0], r["yaw"], scale=(r["hi"] - r["lo"], r["depth"], r["z"][1] - r["z"][0]), tiers=r["tiers"])
 
 
 # ---------------------------------------------------------------- ruins masonry buildings share

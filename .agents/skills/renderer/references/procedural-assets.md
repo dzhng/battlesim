@@ -111,6 +111,17 @@ The fence, sandbags and dragon's teeth are worked examples:
 - **Cycles on the CPU with a fixed seed and no denoiser wrote the same bytes twice;** do the tone curve, the downsample and the PNG in numpy.
 - **Judge it through the lookup, not on the sheet.** A small numpy ray-cast of the room box behind window-sized openings shows what the game will: looking down from the tactical camera, a window is mostly the cell's floor strip.
 
+## Windows with rooms on a scripted kit
+
+The helpers and their contract are in the city readme ("Interiors"); these are what the first four kits taught.
+
+- **A room needs a hole.** A wall that is one face hides the room box behind it. Cut the opening after the rows are known (`kit.open_walls`), and run every cut across the whole wall and round the corner, snapped onto its plane: a cut that stops part way leaves a vertex on a neighbour's edge.
+- **Never squeeze a room.** A box under 1.5 m deep, or as narrow as its window, shows its cell's pale walls just behind the glass and reads from above as a blank grey panel. Give the corner to one window and draw the other's blind, in a deep cloth so it is as dark as its neighbours.
+- **Check the plan, not the picture, for overlap.** Two boxes sharing space fight for depth only from some cameras. `plan_rooms` fails the build on any shared space; that check found two faults the frames had not shown.
+- **Match the far pane to the near window, by measure.** Glass over a room is three times brighter than the glass's own colour. Sample the pane's pixels either side of a tier boundary in the line-up's crops and set the far pane (or the far recipe's glass) to the near tone.
+- **What is pale and thin near the glass decides the window's tone at distance:** bars drawn at tier 0 only made tier 1 darker; a pale reveal made a row of windows seen along its wall a row of white slabs.
+- **A big pane with no bars reads as a hole.** Bars, a reveal and something standing just inside the glass are the cues the kit has; the frame gives no reflection.
+
 ## Impostors are baked by our own renderer
 
 Soldier cards are baked at install by the frame's own model path:

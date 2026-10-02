@@ -5797,6 +5797,100 @@ loaded throughput or full-world process/GPU peak.
 **Gap:** The budget was set for the four sets of this pass; the village set arrived by merge with a ruin made before it.
 
 **Verdict:** provisional. The opt-out is one named flag on one set. Rebuilding the farm's ruin with the shared `ruin_block` would remove it and is the better end. **Confidence:** medium.
+## Facades in the scripted sets
+
+What `homes`, `farmsteads`, `towers` and `industry` did with the glass, rooms and cutouts of C24 to C26. The authoring rule is in the [city readme](../../packages/scene-assets/blender/city/README.md#interiors); what the kits showed is in [C26's outcome](slices/C26-interiors.md#outcome).
+
+### A window is an opening cut in the shell's wall at the two near tiers
+
+**Choice:** These sets' walls are one face with no thickness, so a room behind a window was behind the wall. `kit.open_walls` cuts the shell's walls at tiers 0 and 1 where a row stands a module that says it has an opening; the window module carries the reveal, the glass and its bars; the two coarse tiers keep the uncut wall and the pane folded onto it. The cuts run across the whole wall, and the level ones round every wall of the mesh, with the cut points snapped onto the plane, so no face meets another's edge part way. The alternatives were to build each wall with its holes (the shell is built before its rows are known) and a boolean modifier.
+
+**Gap:** The brief names `glaze` and the window modules as the place; it does not say the walls are solid.
+
+**Reach:** A house's tier 1 rises by 16% to 48% (1,132 to 1,354 triangles on the bungalow, 1,720 to 2,538 on the villa): the reveal and the bars are drawn at both near tiers. Tier 0 moves by under 8% either way. Tiers 2 and 3 are unchanged in count.
+
+**Verdict:** sound. No gap, depth fight or stray pixel showed at a window in the line-ups or the town, to the critic or to me; the specks the critic found on roofs and shopfront posts are in the frames from before the change. **Confidence:** high.
+
+### A house's room is a row of its own; a tower's is in its panel
+
+**Choice:** Behind a house's, a farmhouse's, a shop's or an office's window, `kit.furnish` places a row of `room_rooms` or `room_shops`: a box a metre each way that the row's scale makes the room. A tower's room is inside its panel module, with a variant of the panel where a corner crowds the room. The alternative for houses was a variant of each window module for each room size.
+
+**Gap:** "A row per room adds up; if rooms belong inside the panel module rather than a row of their own, do that."
+
+**Reach:** A house's rows at tiers 0 and 1 rise by a half to four fifths (the villa 36 to 59, the five-house terrace 118 to 191); a tower's do not move (1,050 on the 20-floor tower), and its kit has 15 more modules. In the town block the pool holds 20,598 records at the street station where it held 15,107, of 131,072, and the frame's draws go from 211 to 217.
+
+**Verdict:** sound. A house's rooms differ in width and depth window by window, so variants would have been a module a window; a tower's thousand bays share a handful. **Confidence:** high.
+
+### Room boxes never share space; at a corner one window keeps the room and the other draws its blind
+
+**Choice:** `kit.plan_rooms` fits the rooms of two walls that meet: the street side's first, then the back's, then the ends'. A later room moves along its wall if that leaves it 2 m wide, or the earlier one stops short if that leaves it 2.5 m deep, or the later one stops short if that leaves it 1.5 m. Otherwise it is not drawn and its window has a blind close behind the glass, in one of six deep cloths. The build fails if two boxes still share space, or a box is narrower than its opening.
+
+**Gap:** The readme said a box is narrower than its bay. It did not say what two bays at one corner do: both windows stand 1.5 m from it, and each room wants the corner's 3 m.
+
+**Reach:** A quarter of the houses' windows have a blind (83 of 342), four of the bungalow's nine. One in eight of a point tower's glazed panels is `_shut` (48 of 361 on the 12-floor tower); none of the slab's, whose ends are blank at the corners.
+
+**Verdict:** sound. The first rule squeezed the later room into what was left (as little as 0.6 m deep, or as narrow as its opening): the critic saw those from above as "flat pale grey" panes among dark ones, "an error rather than variety", because a squeezed box shows its cell's pale walls just behind the glass. The check found two faults in the rule on its first run (a room fitted before the loggia it had to clear; an opening's margin counted as its width). **Confidence:** medium-high: a drawn blind is one flat colour, and a street of small houses shows many.
+
+### A tower's rooms are at tier 0 only, and its far recipes take the tone of a room behind glass
+
+**Choice:** A tower's panels, and so its rooms, stay rows at tier 0. From tier 1 its wall is still one face a run of bays, and the facade recipes now paint each pane the tone a room behind glass has at the tier's boundary, a different tone in each of the recipe's four bays.
+
+**Gap:** "Glass and rooms ... at tiers 0 and 1"; "check the tier 0 and tier 1 totals against the budgets and the pool".
+
+**Reach:** Tier 0 rises by a quarter (41,854 to 51,902 triangles on the 20-floor tower, of 150,000); tier 1 is unchanged. Rooms at tier 1 would have made each bay a row there: about 700 to 1,000 rows a tower from 128 m to 319 m where there are 11 to 194, for a window 6 to 15 pixels wide that C26 found shows no room content from 80 m.
+
+**Verdict:** sound for the windows' tone: the mean pane at the boundary was 0.02 linear at tier 1 against 0.058 at tier 0, and is now matched. What still changes there is older than this pass and is C23's: the curtains' colours (six cloths by the bay near, two in the recipe), the recipe's wider frames, and the rows that stop (air conditioners, washing). **Confidence:** medium.
+
+### The far pane is the tone of a window with a room behind it, not the glass's colour
+
+**Choice:** The opaque pane the coarse tiers fold onto a wall (`window_pane`) is 0.10 linear, warm grey: matched by eye and by measure to a window with its room, glass and bars at the second tier's boundary. The sash's bars are drawn at tier 1 as well as tier 0.
+
+**Gap:** "At tiers 2 and 3 the window stays the dark quad the shell already carries."
+
+**Reach:** Every far window of `homes`, `farmsteads` and the offices of `industry` is paler than it was.
+
+**Verdict:** sound. With the old colour a window went from mid grey to near black at 319 m (0.07 against 0.02 linear); without bars at tier 1 it darkened at 128 m, which the critic named as the clearest change on a house. **Confidence:** medium-high: the pane takes the sun and the room does not, so the match holds for the line-up's light.
+
+### Glass is a little of the sky's colour; the frame's glass numbers are untouched
+
+**Choice:** The sets' glass is `(0.045, 0.06, 0.075)` at half opacity, where the facade fixture's is `(0.02, 0.025, 0.03)`. `presentation.glass` in `fixtures/game.json` is not changed. A reveal's lining is the wall's thickness in shade (`window_reveal`, 0.2), not the sill's pale concrete; a shopfront's glass is on the wall's face, in its frame.
+
+**Gap:** C25's open finding: a pane reads as smoked film, a window as an open hole.
+
+**Verdict:** partly answered. On real art an upper window reads as dark glass over a room, because it sits in a reveal behind a sash with bars. A shopfront's large pane, with no bars and a pale room behind, was "open, empty holes, not glazing" to the critic, and the tint alone does not change that: nothing reflects. The lever left is the one C25 names, a recipe for the pane (a dust film in its coverage, waviness in its normal), at about 1.3 MiB a bundle. **Confidence:** medium.
+
+### A shop window has a stall of goods behind its glass
+
+**Choice:** `shop_window` carries a stall board and five dull boxes inside the glass, at tier 0 only.
+
+**Gap:** None in the brief; the critic's strongest finding was that the shops looked "unfinished or gutted".
+
+**Verdict:** provisional. From the street a shop's room is mostly its bare side wall and floor (the atlas's cell is composed for a viewer in front of it), so something has to stand in the window. Boxes are a placeholder for goods; the street models' pass (C45) is the place for better. **Confidence:** medium.
+
+### What keeps a dark pane, a dark recess, or nothing
+
+**Choice:** A barn's and a byre's window is glass over a recess lined dark (`casement(..., behind=None)`). The cart shed's stands in boards seen from both sides and stays a pane on the wall. A dormer is glass over a dark recess: its attic is too small for a room box. A factory's wired glazing, a warehouse's strip windows and clerestories, a stair's light, the way in to a tower and a door's fanlight stay opaque. A tower's glazed-in balcony and loggia sashes are glass. Curtains hang between a flat's glass and its room, on a brighter cloth that the glass dims.
+
+**Gap:** "Decided by looking."
+
+**Verdict:** sound. A room behind a barn's window would be a bedroom in a barn; the factory glazing's recipe already reads as dirty glass. **Confidence:** high.
+
+### No cutouts
+
+**Choice:** Nothing in the four sets became a cutout.
+
+**Gap:** "Only where they earn it."
+
+**Verdict:** sound for now. A tower's balconies have solid fronts, which carry the columns' colours near and in the far recipes; the industry louvre is one textured face already; a farm has no fence, and one in the yard would be drawn where units walk through. A grille over the towers' ground-floor windows was the candidate, and C26's critic found the fixture's guard aliasing at 30 m, in front of the one floor whose rooms the street camera sees. **Confidence:** medium.
+
+### The intact tower keeps a core, 6 m in
+
+**Choice:** The tier 0 core that stood 1.5 m behind the panels would have stood inside every room. It is 6 m in for an intact tower, past every room, and where it was for a gutted one.
+
+**Gap:** None; the validator's rule that a module draws no more at a coarser tier would not let the shell lose it (1,252 triangles at tier 0 against 1,330 at tier 1 without it).
+
+**Verdict:** sound. It is also what stops the sun and the eye if a panel ever leaves a gap. **Confidence:** high.
+
 ## C06: avoid geometry for a squad with no steering decision
 
 **Choice:** A vehicle moves far from an idle squad. Each living soldier is already

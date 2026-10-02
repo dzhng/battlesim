@@ -53,7 +53,7 @@ stack_m = textured("stack_brick", "brick", dirt=0.0, chip=0.2, streak=0.3, soot=
 render_stack_m = textured("stack_render", "plaster", colour=(0.4, 0.38, 0.35), dirt=0.0, chip=0.4, streak=0.3, soot=0.5)
 trim_m = flat_paint("roof_trim", (0.2, 0.18, 0.15), rough=0.8, grime=0.0)
 frame_m = flat_paint("window_frame", (0.46, 0.45, 0.42), rough=0.6, grime=0.0)
-glass_m = flat_paint("window_glass", (0.02, 0.025, 0.03), rough=0.08, grime=0.0)
+glass_m, pane_m = window_glass(), window_pane()  # a window near, and the dark pane it is from far off
 metal_m = flat_paint("gutter_metal", (0.07, 0.07, 0.07), rough=0.5, metal=0.6, grime=0.0)
 pot_m = flat_paint("chimney_pot", (0.3, 0.13, 0.08), rough=0.8, grime=0.0)
 sign_m = flat_paint("shop_sign", (0.45, 0.45, 0.45), rough=0.6, grime=0.0)
@@ -80,9 +80,7 @@ SIGNS = ((150, 62, 50), (62, 92, 124), (190, 160, 84), (70, 108, 82))
 # ---------------------------------------------------------------- shared modules
 # (`FITTING`, the sill and overhang conventions and the rows that hang fittings are `kit.py`'s.)
 def window_module(name, w, h, shutters=False, lights=2):
-    m = kit.module(name, **FITTING)
-    window(m.n("w"), (0, -0.02, h / 2), (0, -1), w, h, frame_m, glass_m, joinery_m if shutters else None, m.root, stone_m,
-           bevel=0.0, glass_lods=TIERS, lights=lights)
+    casement(kit, name, w, h, frame_m, glass_m, pane_m, stone_m, joinery_m if shutters else None, lights)
 
 
 window_module("window_a", 1.0, 1.3)
@@ -94,7 +92,7 @@ m = kit.module("door_panel", ground=True, **FITTING)
 panel_door(m.n("door"), 0.95, 2.05, joinery_m, frame_m, m.root)
 
 m = kit.module("door_canopy", ground=True, **FITTING)
-panel_door(m.n("door"), 0.95, 2.05, joinery_m, frame_m, m.root, glass_m, light=0.32)
+panel_door(m.n("door"), 0.95, 2.05, joinery_m, frame_m, m.root, pane_m, light=0.32)
 box(m.n("canopy"), (1.8, 0.45, 0.09), (0, -0.225, 2.66), stone_m, m.root, lods=(0, 1, 2))
 for s in (-1, 1):
     box(m.n(f"bracket_{'ab'[s > 0]}"), (0.07, 0.34, 0.07), (s * 0.75, -0.16, 2.48), stone_m, m.root, rot=(0.6, 0, 0), lods=(0,))
@@ -114,10 +112,29 @@ m = kit.module("downpipe", **FITTING)
 cyl(m.n("pipe"), 0.045, 1.0, (0, 0, 0.5), "Z", metal_m, m.root, seg=6, caps=False)
 
 # A shopfront, a bay each: a display window, a glazed door between sidelights, and a
-# metre of sign board that a row stretches across the front and tints.
+# metre of sign board that a row stretches across the front and tints. Each is an opening
+# with the shop behind its glass.
 SHOP_HEAD_M = 2.5
+SHOP_WINDOW, SHOP_DOOR = (2.5, SHOP_HEAD_M - 0.55, 0.5), (1.7, SHOP_HEAD_M - 0.47, 0.42)  # each opening: its width, height and foot
+
+
+def shop_glass(m, w, h, foot):
+    reveal(m, w, h, window_reveal(), foot)
+    sheet(m.n("glass"), w, h, (0, 0.01, foot), glass_m, m.root, lods=OPEN_TIERS)  # in its frame, on the wall's face: a shopfront has no reveal outside
+    sheet(m.n("pane"), w, h, (0, -0.025, foot), pane_m, m.root, lods=(2, 3))
+    opening(kit, m.name, w, h, foot, "shops")
+
+
 m = kit.module("shop_window", ground=True, **FITTING)
-box(m.n("glass"), (2.5, 0.05, SHOP_HEAD_M - 0.55), (0, -0.025, 0.5 + (SHOP_HEAD_M - 0.55) / 2), glass_m, m.root)
+shop_glass(m, *SHOP_WINDOW)
+# What stands in the window: a stall board inside the glass with a few things on it. From the street a shop's
+# room is mostly its bare side wall; the display is what says the shop is in use. Near only.
+GOODS = [flat_paint(f"shop_goods_{k}", colour, rough=0.8, grime=0.0)
+         for k, colour in enumerate(((0.15, 0.06, 0.045), (0.06, 0.09, 0.12), (0.17, 0.14, 0.08), (0.2, 0.195, 0.18)))]  # dull: tins, cartons, sacks
+box(m.n("stall"), (2.3, 0.55, 0.5), (0, 0.5, 0.33), joinery_m, m.root, lods=(0,))
+for k_, (x_, w_, d_, h_) in enumerate(((-0.85, 0.4, 0.3, 0.35), (-0.3, 0.3, 0.3, 0.55), (0.2, 0.45, 0.35, 0.25), (0.8, 0.35, 0.3, 0.45),
+                                       (0.45, 0.2, 0.2, 0.6))):
+    box(m.n(f"goods_{k_}"), (w_, d_, h_), (x_, 0.5 + 0.08 * (k_ % 2), 0.58 + h_ / 2), GOODS[k_ % len(GOODS)], m.root, lods=(0,))
 box(m.n("riser"), (2.6, 0.1, 0.5), (0, -0.05, 0.25), joinery_m, m.root, lods=(0, 1, 2))
 box(m.n("head"), (2.6, 0.1, 0.1), (0, -0.05, SHOP_HEAD_M), frame_m, m.root, lods=(0, 1))
 for s in (-1, 0, 1):
@@ -125,8 +142,8 @@ for s in (-1, 0, 1):
         lods=(0, 1) if s else (0,))
 
 m = kit.module("shop_door", ground=True, **FITTING)
-box(m.n("glass"), (1.7, 0.04, SHOP_HEAD_M - 0.1), (0, -0.02, 0.1 + (SHOP_HEAD_M - 0.1) / 2), glass_m, m.root)
-box(m.n("kick"), (0.95, 0.06, 0.35), (0, -0.03, 0.175), joinery_m, m.root, lods=(0, 1, 2))
+shop_glass(m, *SHOP_DOOR)
+box(m.n("kick"), (0.95, 0.06, 0.5), (0, -0.03, 0.25), joinery_m, m.root, lods=(0, 1, 2))
 for s in (-1, 1):
     box(m.n(f"riser_{'ab'[s > 0]}"), (0.36, 0.1, 0.5), (s * 0.69, -0.05, 0.25), joinery_m, m.root, lods=(0, 1, 2))
     box(m.n(f"stile_{'ab'[s > 0]}"), (0.07, 0.08, 2.1), (s * 0.475, -0.04, 1.05), frame_m, m.root, lods=(0, 1))
@@ -137,10 +154,22 @@ box(m.n("head"), (1.8, 0.1, 0.1), (0, -0.05, SHOP_HEAD_M), frame_m, m.root, lods
 # A dormer, one to each roof covering: a small gabled window standing on a slope, its foot's
 # middle at the origin and its back run into the roof behind it. It faces -Y; a row tints its cheeks
 # the house's colour. One, off to a side, is what tells a house from its mirror image from above.
+DORMER_WINDOW = (0.8, 0.7, 0.25)  # its opening: width, height and foot
+
+
 def dormer_module(tiles):
     m = kit.module(f"dormer_{tiles}", **FITTING)
-    box(m.n("cheeks"), (1.3, 2.3, 1.05), (0, 1.15, 0.525), plaster_m, m.root, lods=(0, 1, 2))
-    box(m.n("glass"), (0.8, 0.04, 0.7), (0, -0.02, 0.6), glass_m, m.root, lods=(0, 1, 2))
+    # near, its face is open round the window, with glass in the opening over the dark of the attic
+    x, d, top, (w, h, foot) = 0.65, 2.3, 1.05, DORMER_WINDOW
+    face = [(-x, -w / 2, 0, top), (w / 2, x, 0, top), (-w / 2, w / 2, 0, foot), (-w / 2, w / 2, foot + h, top)]
+    quads = [([(a, 0, c), (b, 0, c), (b, 0, e), (a, 0, e)], (0, -1, 0)) for a, b, c, e in face]
+    quads += [([(s * x, 0, 0), (s * x, d, 0), (s * x, d, top), (s * x, 0, top)], (s, 0, 0)) for s in (-1, 1)]
+    flat_faces(m.n("cheeks"), quads, plaster_m, m.root, OPEN_TIERS)
+    box(m.n("cheeks_far"), (2 * x, d, top), (0, d / 2, top / 2), plaster_m, m.root, lods=(2,))
+    reveal(m, w, h, window_reveal(), foot, depth=0.1)
+    sheet(m.n("glass"), w, h, (0, 0.06, foot), glass_m, m.root, lods=OPEN_TIERS)
+    reveal(m, w, h, bpy_dark(), foot, depth=0.9, start=0.1, back=True, tag="recess")  # (too small for a room box: a squeezed room is a pale panel)
+    box(m.n("pane"), (0.8, 0.04, 0.7), (0, -0.02, 0.6), pane_m, m.root, lods=(2,))
     box(m.n("frame"), (0.96, 0.05, 0.08), (0, -0.025, 0.2), frame_m, m.root, lods=(0,))
     prism(m.n("roof"), [(-0.85, 0.98), (0.85, 0.98), (0.0, 1.45)], 2.5, (0, 1.1, 0), ROOFS[tiles], m.root)
 
@@ -185,6 +214,8 @@ def fallen(t, tag, wall, roof, tint):
     fittings (`far_fittings`). Fallen, it is one module holding every part's stumps and
     heap, placed in the house's own tint, with the set's wreckage lying on it."""
     far_fittings(t, kit.modules[f"{tag}_shell"])
+    open_walls(kit.modules[f"{tag}_shell"], t.rows["intact"], kit.openings)
+    furnish(t, kit)
     m = kit.module(f"{tag}_ruin", ground=True, **RUIN)
     high, over = t.ruin_height(), kit.fit["ruin_top_m"]
     for k, p in enumerate(t.parts):
@@ -201,12 +232,12 @@ wreckage(kit, rubble_m, char_m)
 # its pane in its pale surround between its shutters, each door its own paint, each chimney a block
 # the colour of its cap. A fitting named here is a row at the two fine tiers only.
 FAR_PANELS = {
-    "window_a": window_far(1.0, 1.3, glass_m, stone_m), "window_a_shutters": window_far(1.0, 1.3, glass_m, stone_m, "tint"),
-    "window_wide": window_far(1.6, 1.3, glass_m, stone_m), "window_tall": window_far(0.9, 1.5, glass_m, stone_m),
+    "window_a": window_far(1.0, 1.3, pane_m, stone_m), "window_a_shutters": window_far(1.0, 1.3, pane_m, stone_m, "tint"),
+    "window_wide": window_far(1.6, 1.3, pane_m, stone_m), "window_tall": window_far(0.9, 1.5, pane_m, stone_m),
     "door_panel": [(1.15, 2.15, 0.0, frame_m, 0.012), (0.95, 2.05, 0.0, "tint")],
-    "door_canopy": [(1.15, 2.55, 0.0, frame_m, 0.012), (0.95, 2.05, 0.0, "tint"), (0.95, 0.32, 2.11, glass_m)],
-    "shop_window": [(2.6, 0.5, 0.0, "tint", 0.012), (2.5, SHOP_HEAD_M - 0.5, 0.5, glass_m)],
-    "shop_door": [(1.7, SHOP_HEAD_M - 0.1, 0.1, glass_m), (0.95, 0.35, 0.0, "tint", 0.04)],
+    "door_canopy": [(1.15, 2.55, 0.0, frame_m, 0.012), (0.95, 2.05, 0.0, "tint"), (0.95, 0.32, 2.11, pane_m)],
+    "shop_window": [(2.6, 0.5, 0.0, "tint", 0.012), (2.5, SHOP_HEAD_M - 0.5, 0.5, pane_m)],
+    "shop_door": [(1.7, SHOP_HEAD_M - 0.1, 0.1, pane_m), (0.95, 0.5, 0.0, "tint", 0.04)],
 }
 FAR_BOXES = {"chimney_brick": [((1.05, 0.6, CHIMNEY_M), (0, 0, CHIMNEY_M / 2), coping_m)],
              "chimney_render": [((0.7, 0.7, CHIMNEY_M), (0, 0, CHIMNEY_M / 2), coping_m)]}
@@ -229,6 +260,8 @@ def far_fittings(t, m, origin=(0.0, 0.0), within=None):
     rows = [r for r in t.rows["intact"] if within is None or within[0] <= r[1] < within[1]]
     boxes = FAR_BOXES if within is None else {}
     fold_far(m, rows, FAR_PANELS, boxes, far_paint, (2, 3), origin)
+    if within is not None:  # a house of a row: near, its walls are open where the same rows stand
+        open_walls(m, rows, kit.openings, origin)
     t.rows["intact"] = [(*r[:8], r[8] & TIERS_0_TO_1, *r[9:]) if r[0] in FAR_PANELS or r[0] in boxes
                         else (*r[:8], EVERY_TIER, *r[9:]) if r[0] in FAR_BOXES else r for r in t.rows["intact"]]
 
@@ -408,6 +441,7 @@ def terrace(id_, tag, units, unit_w, d, floors, rise, wall, roof, tints, window,
     # From far off each house's module keeps the fittings of the row's second house, and the end wall its windows.
     far_fittings(t, um, origin=(centres[1], 0.0), within=(centres[1] - unit_w / 2 - 0.01, centres[1] + unit_w / 2 - 0.01))
     far_fittings(t, em, origin=(length / 2, 0.0), within=(length / 2 - 0.01, length / 2 + 0.01))
+    furnish(t, kit)
     # Fallen, the row is not one flat line: each house is one of two ruins, in its own tint
     # and down to its own level, its party wall and chimney breast standing on its west
     # side; the row's east end wall is a module of its own.
