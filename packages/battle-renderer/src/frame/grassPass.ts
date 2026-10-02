@@ -459,12 +459,15 @@ const buildFn = tgpu
     // Dry patches, and a grass drier than its neighbours: toward straw at
     // the ground's own luminance, so no patch is darker than its field.
     let parched = smoothstep(0.55, 0.8, valueNoise(p * (*P).patchScales.z + vec2f(9.3, 77.1)));
-    let dryness = min(1.0, stand.w * parched + grass.w);
+    // What sets a clump apart from the ground under it (how dry it is, its
+    // grain) goes with the clump as the fade takes it, so the field's far
+    // edge meets the painted ground in the ground's own colour.
+    let dryness = min(1.0, stand.w * parched + grass.w) * fade;
     // Each clump a little lighter or darker than the next, half on its own
     // and half with the tussock it stands in: the grain a field keeps when
     // it is too far to show blades. Dry grass is paler, never darker.
     let tussock = valueNoise(p * (*P).grain.x + vec2f(63.9, 27.4));
-    let value = 1.0 + (*P).shading.z * (fract(h.y * 57.31) + tussock - 1.0);
+    let value = 1.0 + (*P).shading.z * fade * (fract(h.y * 57.31) + tussock - 1.0);
     let colour = value * (1.0 + (*P).grain.y * dryness) * groundTint(scarredSurface(groundColour(p, footprint, site, water), scar).xyz, dryness);
     // Tracks and trampling lay the clump over (carried in the colour's alpha).
     let flat = max(scar.weights.z, scar.weights.w) * S.z;

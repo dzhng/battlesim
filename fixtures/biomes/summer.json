@@ -24,8 +24,8 @@
     { "name": "meadow", "palette": "meadow", "weight": 2.5, "furrow_m": 0, "furrow_contrast": 0, "mottle": 0.22, "roughness": 0.95 },
     { "name": "pasture", "palette": "pasture", "weight": 2, "furrow_m": 0, "furrow_contrast": 0, "mottle": 0.16, "roughness": 0.95 },
     { "name": "wheat", "palette": "wheat", "weight": 2, "furrow_m": 1.2, "furrow_contrast": 0.14, "mottle": 0.1, "roughness": 0.9 },
-    { "name": "barley", "palette": "young_crop", "weight": 1.5, "furrow_m": 1.2, "furrow_contrast": 0.14, "mottle": 0.1, "roughness": 0.9 },
-    { "name": "rapeseed", "palette": "hay", "weight": 1.2, "furrow_m": 1.6, "furrow_contrast": 0.18, "mottle": 0.12, "roughness": 0.92 },
+    { "name": "barley", "palette": "hay", "weight": 1.5, "furrow_m": 1.2, "furrow_contrast": 0.14, "mottle": 0.1, "roughness": 0.9 },
+    { "name": "rapeseed", "palette": "young_crop", "weight": 1.2, "furrow_m": 1.6, "furrow_contrast": 0.18, "mottle": 0.12, "roughness": 0.92 },
     { "name": "hay", "palette": "pasture", "weight": 1.2, "furrow_m": 3, "furrow_contrast": 0.1, "mottle": 0.12, "roughness": 0.93 },
     { "name": "stubble", "palette": "wheat", "weight": 1, "furrow_m": 1.2, "furrow_contrast": 0.16, "mottle": 0.12, "roughness": 0.93 },
     { "name": "ploughed", "palette": "ploughed", "weight": 1.2, "furrow_m": 0.9, "furrow_contrast": 0.22, "mottle": 0.14, "roughness": 0.97 },
@@ -111,7 +111,7 @@
           { "appearance": "grass_verge", "share": 1, "drift": 0.6, "dry": 0 },
           { "appearance": "grass_prairie", "share": 0.5, "drift": 0.5, "dry": 0.4 }
         ],
-        "patches": { "height": [0.7, 1.2], "thin": 0.35, "dry": 0.45 }
+        "patches": { "height": [0.7, 1.2], "thin": 0.25, "dry": 0.45 }
       },
       "pasture": {
         "density": 0.9,
@@ -127,21 +127,21 @@
       "wheat": {
         "density": 1,
         "height": 1,
-        "rows": 0.4,
+        "rows": 0.25,
         "mix": [{ "appearance": "grass_wheat", "share": 1, "drift": 0, "dry": 0 }],
         "patches": { "height": [0.92, 1.04], "thin": 0.08, "dry": 0.2 }
       },
       "barley": {
         "density": 1,
         "height": 1,
-        "rows": 0.4,
+        "rows": 0.25,
         "mix": [{ "appearance": "grass_barley", "share": 1, "drift": 0, "dry": 0 }],
         "patches": { "height": [0.9, 1.04], "thin": 0.08, "dry": 0.2 }
       },
       "rapeseed": {
         "density": 0.9,
         "height": 1,
-        "rows": 0.35,
+        "rows": 0.2,
         "mix": [{ "appearance": "grass_rapeseed", "share": 1, "drift": 0, "dry": 0 }],
         "patches": { "height": [0.9, 1.04], "thin": 0.1, "dry": 0.1 }
       },
@@ -158,7 +158,7 @@
       "stubble": {
         "density": 0.85,
         "height": 1,
-        "rows": 0.7,
+        "rows": 0.5,
         "mix": [{ "appearance": "grass_stubble", "share": 1, "drift": 0, "dry": 0 }],
         "patches": { "height": [0.85, 1.1], "thin": 0.15, "dry": 0.2 }
       },
@@ -171,7 +171,7 @@
           { "appearance": "grass_prairie", "share": 2, "drift": 0.7, "dry": 0.35 },
           { "appearance": "grass_verge", "share": 2, "drift": 0.7, "dry": 0 }
         ],
-        "patches": { "height": [0.65, 1.2], "thin": 0.4, "dry": 0.5 }
+        "patches": { "height": [0.6, 1.2], "thin": 0.3, "dry": 0.5 }
       },
       "prairie": {
         "density": 0.8,
@@ -182,7 +182,7 @@
           { "appearance": "grass_meadow", "share": 2, "drift": 0.6, "dry": 0 },
           { "appearance": "grass_verge", "share": 1, "drift": 0.8, "dry": 0 }
         ],
-        "patches": { "height": [0.7, 1.2], "thin": 0.5, "dry": 0.5 }
+        "patches": { "height": [0.7, 1.2], "thin": 0.35, "dry": 0.5 }
       },
       "verge": {
         "density": 1,
@@ -196,17 +196,17 @@
         "patches": { "height": [0.75, 1.2], "thin": 0.2, "dry": 0.25 }
       }
     },
-    "patch_m": { "height": 7, "thin": 11, "dry": 17, "drift": 9, "grain": 1.1 },
+    "patch_m": { "height": 4, "thin": 3.5, "dry": 6, "drift": 5, "grain": 1.1 },
     "pixels_per_clump": 28,
     "max_clumps_m2": 40,
     "fade_m_per_px": [0.08, 0.14],
-    "soften_m_per_px": [0.02, 0.07],
-    "soften": 0.7,
+    "soften_m_per_px": [0.02, 0.08],
+    "soften": 1,
     "blade_facing": 0.45,
     "clump_value": 0.16,
-    "dry_lift": 0.2,
+    "dry_lift": 0.08,
     "near_tier_px": 40,
-    "min_blade_px": 1.8,
+    "min_blade_px": 1.4,
     "clear_m": { "road": 0.2, "prop": 0.3, "area": 0.5 },
     "wind": {
       "heading_deg": 35,
