@@ -27,3 +27,5 @@ blender props.py bridge_deck "$b/bridge_deck.glb"
 for kind in fence sandbags tooth; do blender props.py "$kind" "$b/$kind.glb"; done
 # the trees and hedgerows, one GLB per kind into assets/source/trees/
 blender trees.py
+# the forest floor's bodies and dressing, one GLB per kind into assets/source/forest/
+blender forest_floor.py

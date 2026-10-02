@@ -5192,3 +5192,47 @@ exact matched openings pass and a real retained GPU allocation falsifies the che
 
 **Verdict:** sound: it follows the owner's change to the skill and to AGENTS.md. **Confidence:** high.
 
+
+## C78
+
+**When:** 2026-10-02. Evidence and numbers: the Outcome in [C78](slices/C78-forest-body-models.md).
+
+### One script builds the floor's bodies and its dressing, from the tree generator's parts
+
+**Choice:** `forest_floor.py` imports `trees.py` (its tube with carried frames and furrows, its leaf clumps, its export) and writes `assets/source/forest/`. `trees.py` runs its own kinds only when it is the script; its `tube` returns its end rings so a bole can be capped.
+
+**Gap:** The slice says the log reuses C73's bark and names no script.
+
+**Verdict:** sound. The bark has one owner, and the trees' GLBs are byte-identical after the change. **Confidence:** high.
+
+### A rock is a ball cut by seeded planes, with their arrises rounded by a power mean
+
+**Choice:** Along every direction the surface's distance is the power mean (power 9) of the distances to twelve seeded planes and the unit ball, so a face is flat and the edge between two is a curve. Its underside is squashed to 0.3 of its depth, so it sits on its widest section. The boulder is fitted to its box through the finest tier's extents; small rocks use the same generator.
+
+**Gap:** "A new small rock generator (rounded, not pyramids)".
+
+**Verdict:** provisional. Fresh eyes still read the boulder as artificial after the first build (an egg); the second build is flatter-faced and sits lower, and was not judged a third time. **Confidence:** medium.
+
+### The bodies are vertex-coloured like the trees, not textured like the village's props
+
+**Choice:** Bark, wood and rock are plain materials with vertex colour.
+
+**Gap:** The props pipeline (`props.py`) bakes textured recipes; the slice asks for the trees' bark.
+
+**Verdict:** provisional. The dressing's rocks and branches go through the scenery layer, which draws vertex colour only, and a boulder should match the stones beside it. Up close both bodies have less surface detail than a textured prop. **Confidence:** medium.
+
+### The bodies run a little below the ground
+
+**Choice:** The log's underside is 5 cm under its origin and the boulder's 12 cm, each with its own `ground_m` tolerance in the asset catalog.
+
+**Gap:** Fit is to the box above the ground; a box on sloping ground would float at one end.
+
+**Verdict:** sound. **Confidence:** high.
+
+### The systems-only marker is removed; the bodies are placed by default at C77's test densities
+
+**Choice:** `fixtures/props/forest/{log,boulder}.json` lose `status: "systems_only"`, and `forests.rule` places 5 log and 3 boulder candidates a hectare.
+
+**Gap:** C77 left default activation to "accepted drawing"; the brief made it conditional on C77's release regression.
+
+**Verdict:** provisional. The regression passes, and removing the marker alone changes no digest. Placing them is a named digest change: all six `--quick` rows change digest and none changes its outcome, capture time, losses or rejoined count. `village::` and `forest::` simulation tests pass. Every other forest in the game gets bodies too (the river lab, the saved generated map, every generated battle), and their scenes were not run. The fresh critique found the log too small to read as cover a vehicle cannot cross: its size is the simulation's box. **Confidence:** medium; it is its own commit so it can be reverted alone.
