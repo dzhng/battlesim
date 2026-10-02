@@ -42,15 +42,18 @@ original rules, map and catalogue. Current projectile tuning and `layout-6` need
 fresh measurements; new results are not performance-only parity against those
 historical battles.
 
-Current pickup: finish the running complete pipeline matrix and continue the
-measured fog/publication costs. The pipeline
+Current pickup: eliminate the pipeline's repeated enclosed-goal connector searches,
+then continue the measured fog/publication costs. The pipeline
 tool is on main (`07a6f792`). Replay build identity is integrated and checked.
 The route-start correction and variable-span publication checkpoint are integrated;
 merged publication tests (13), the body-clear squad arrival/replay regression (1),
 and browser authority/observation/codec tests (39) pass. Native and Wasm share the
 new engine identity (`0f4153f7…`). The saved endurance scene reached startup but failed on a missing
 effect flipbook's LFS content; the required runtime/effect assets are now fetched.
-No browser throughput verdict is claimed.
+The saved stress arm now measures 29.9 Hz early / 21.4 Hz late; the late budget is
+red. Its movement/endurance/benchmark contracts pass. The current full generated
+stress fixture and immutable static decoder/feed reuse are integrated, with 47
+focused preparation/pose checks passing; the generated browser arm is queued.
 No generator, menu, renderer or parent handoff implementation changed here.
 
 The native reports now attribute the production tick without introducing OS
@@ -129,8 +132,10 @@ remain G0's open decision; the 64 MiB codec ceiling is not a performance target.
    cross-ownership addition. It uses existing generation/compiler and assault
    planner APIs, current game admission, and the real Battle. A first Open Small
    seed-1 30 s sample advances every column unit; distant goals remain pending.
-   The complete nine-cell, ten-seed matrix is now running against the current
-   catalogue; every request retains its seed and outcome.
+   The complete nine-cell, ten-seed matrix finished against the current catalogue:
+   89 short battles, one encounter refusal, no generation refusal or panic.
+   Three units still plan after 120 s because many failed road-exit connectors
+   repeat searches outside an enclosed goal. This simulation finding is being fixed.
 2. C59: legal local infantry links and their route-start correction are green. A public
    Battle regression exposes a physically clear member that cannot stand in the
    sampled navigation grid being selected as route start; the old search arrives
@@ -141,8 +146,9 @@ remain G0's open decision; the 64 MiB codec ceiling is not a performance target.
    remains the parent lane's separate debt.
 3. C06/C07: local fog invalidation and exact fixed/variable span copies are integrated.
    Measure early/late active Large bytes, p95/max and instructions afresh before
-   selecting the next owner. Fog candidate/kernel attribution and immutable static
-   decoder-view reuse proceed independently. Historical mean reductions do not close admission.
+   selecting the next owner. Fog candidate batching and the enclosed-goal proof
+   proceed independently. Static views now retain identity through decoding and
+   the pose feed. Historical mean reductions do not close admission.
 4. Browser: run `endurance` and `benchmark` serially, then establish the full
    generated-map stress arm. The existing saved stress arena alone does not prove
    full-extent loading. Snapshot/copy/decoder overlap remains a separate gate.
@@ -251,6 +257,51 @@ but other rows still miss the provisional 19.8 KB/tick limit. Means do not close
 C07. Complete snapshots include exact fog and ground state; their packing at
 60 s reaches 71–76 M instructions. Browser copy/decoder cost and peak overlap
 still need their own proof. Raw current reports remain in `throwaway/scale-lane/`.
+
+### Integrated seed sweep and current delivery
+
+The first complete tooling run keeps all 90 type × size × seed requests
+(seeds 1–10), current `layout-6` / `layout-presets-6`, physical catalogue
+`5416684f…`, rules `a59680c1…` and engine `0f4153f7…`. Generation succeeds on
+every request. Mixed Medium seed 9 is refused by the encounter planner: none
+of its three tried settlements balances the two jeep approach times within
+15 s, even after the allowed 1,500 m deployment adjustment. This is a planner
+finding for the parent lane; no refused seed is replaced.
+
+The other 89 requests each play 900 ticks: 80,100 ticks total, ten loaded-wall
+ticks over 33 ms, peak 72.51 ms. These are small assault rosters, not the
+100-a-side admission arm. Of 1,335 units, 1,334 survive; 979 recorded goals are
+not neared in the short run. Most are kilometres away and still in transit.
+Mixed Small seeds 3/9 leave their supply unit stationary, and Metro Medium
+seed 9 its tank; all three remain planning through a focused 120 s extension.
+Private attribution locates repeated failed final road connectors: the first
+case rejects only 43 of 1,034 goal accesses in 30 s, paying tens of thousands
+of expanded cells for each. Its reverse query exhausts the destination pocket
+in 36 cells. The rare enclosed-goal proof is the next simulation correction;
+the sweep is evidence, not a completed simulation gate.
+
+Fresh full-world delivery uses current Metro Large seed 4 (`33bbd0d9…`),
+13,006 buildings and 22,577 parts, with the central `city-arena-1` stress
+recipe, 100 living units per side and battle seed 4. Each arm runs 60 s;
+late adds 20,000 corpses and 2,000 wrecks. A scratch requested-allocation
+counter measures native heap separately from clocks and instruction cost.
+
+| Current full-world delivery | Early | Late |
+|---|---:|---:|
+| Mean / p95 / max B per tick | 8,830 / 20,284 / 26,260 | 9,307 / 20,344 / 25,356 |
+| Cold blue snapshot B | 452,692 | 946,972 |
+| Blue resync at 60 s B | 1,044,468 | 1,579,216 |
+| Red switch at 60 s B | 990,320 | 1,500,996 |
+| Active peak requested heap B | 399,905,882 | 420,671,630 |
+| Peak with retained blue/red publishers B | 401,825,004 | 423,182,142 |
+| Rounds / final digest | 67 / `f7397266251bd45b` | 438 / `ce9463bc51b5b494` |
+
+Native requested heap stays below the 4 GiB ceiling on this workload. It excludes
+allocator-internal reallocation overlap, browser transfer/decoding and GPU
+resources. Profiling allocation hooks and loaded clocks are not throughput
+admission. The provisional 19.8 KB whole-record gate remains red at p95/max;
+no budget is raised. Browser startup/peak overlap and full generated early/late
+throughput remain open.
 
 ### Replay engine identity checkpoint
 

@@ -147,9 +147,11 @@ def tier_of(name):
     return int(name[i + 4:]) if i >= 0 and name[i + 4:].isdigit() else None
 
 
-def load(set_dir):
-    """The set's modules ({name: [(tier or None, mesh object, its frame in the module)]}) and its templates."""
-    bpy.ops.wm.read_factory_settings(use_empty=True)
+def load(set_dir, fresh=True):
+    """The set's modules ({name: [(tier or None, mesh object, its frame in the module)]}) and its templates.
+    `fresh` false loads it beside the sets already loaded (a sheet of several sets; their names must not clash)."""
+    if fresh:
+        bpy.ops.wm.read_factory_settings(use_empty=True)
     path = os.path.join(set_dir, "kit.glb")
     doc = glb_json(path)
     bpy.ops.import_scene.gltf(filepath=path)
@@ -445,4 +447,5 @@ def main():
         sheets[name](camera, modules, templates, out, scratch)
 
 
-main()
+if __name__ == "__main__":
+    main()

@@ -379,3 +379,29 @@ test("a death seen plays out then lies static; a death unseen is only ever a cor
   expect(lying.corpses.map((c) => c.soldier).sort()).toEqual([1, 50]);
   expect(lying.corpsesVersion).toBe(version + 1);
 });
+
+test("immutable corpse input keeps its converted list across active observation changes", () => {
+  const feed = new ObservationFeed("blue", UNITS);
+  const corpse: CorpseView = {
+    soldier: 12,
+    position: [2, 3, 4],
+    yaw: 0,
+    kind: "rifle",
+    slot: 0,
+    own: true,
+  };
+  Object.freeze(corpse.position);
+  Object.freeze(corpse);
+  const corpses = Object.freeze([corpse]);
+  const first = { ...observation(1, []), corpses };
+  const before = feed.frame(first, [], [], 1).fallen;
+  const after = feed.frame({ ...first, tick: 2 }, [], [], 2).fallen;
+  expect(after).toBe(before);
+  expect(after[0]).toBe(before[0]);
+  expect(after[0].position).toEqual([2, 3, 4]);
+  const shifted: CorpseView = { ...corpse, position: [2, 3, 1] };
+  const changed = feed.frame({ ...first, tick: 3, corpses: [shifted] }, [], [], 3).fallen;
+  expect(changed).not.toBe(before);
+  expect(changed[0].position).toEqual([2, 3, 1]);
+  expect(before[0].position).toEqual([2, 3, 4]);
+});

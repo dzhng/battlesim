@@ -170,3 +170,31 @@ All 23 navigation, 15 route-planning and 15 movement tests and library clippy
 pass. This admission correction changes affected squad starts and digests; it
 adds no state, storage, public API or relaxed segment rule. Independent review
 found no remaining issue.
+
+## Outcome — full generated browser stress fixture
+
+The existing endurance route has a bounded generated arm: the current Metro
+Large seed-4 map, under game admission, with the simulation's `city-arena-1`
+contact workload. The full world remains loaded around the central arena. Map
+resolution and stress placement run in the existing preparation worker; its
+optional lab selector leaves ordinary preparation and assault planning intact.
+The Wasm response carries canonical scenario bytes and a small authoritative
+start/roster report; preparation does not parse the full scenario again merely
+to recover metadata. Changing the fixture or leaving it cancels that worker.
+The saved endurance
+battle remains the route and scene default.
+
+The prepared report carries the admitted map identity, physical counts, extent
+and living rosters. The scene selects this arm and checks its early/late world
+identity while retaining its soak and reset contracts. Usage lives with the
+route and scene. Narrow red/green tracers cover the authoritative stress branch,
+malformed selector refusal and cancellation. Rebuilt Wasm verifies full-map
+retention and the early/late roster and remains. Normal preparation checks stay
+green. A Node/Wasm preparation on the current physical catalogue admits the
+10 × 10 km Metro Large seed-4 map with 100 living units per side. Its Node
+process peaks at about 789 MiB RSS with 354 MB of Wasm memory; this excludes
+browser transfer, the battle authority and rendering.
+
+This is tooling readiness, not browser admission. The real browser worker,
+rendered picture, startup overlap, reset allocations and throughput still need
+the integrating agent's coordinated GPU run. No rendering or game rule changed.

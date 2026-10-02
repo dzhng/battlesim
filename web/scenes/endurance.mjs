@@ -2,6 +2,8 @@
 // default), reset cycles, then the late state for ENDURANCE_LATE_S seconds
 // (60 by default); the verdict's run sets both to 300. Budgets (validation.md) are measured and written as evidence, not
 // asserted: the scene fails on broken contracts, not on slow hardware.
+// ENDURANCE_GENERATED=1 uses the current Metro Large seed-4 world and
+// city-arena-1 contact recipe; the default remains the saved 3 × 2 km field.
 // MODEL_COST=1 instead measures the models layer's GPU cost at 100 a side
 // and with the late state's 20,000 fallen (run it alone,
 // under the GPU lock). EFFECT_COST=1 measures the effect pass's the same way,
@@ -15,7 +17,38 @@ const CORPSE_CAP = game.presentation.pose.corpses.max;
 
 const SECONDS = Number(process.env.ENDURANCE_S ?? 60);
 const LATE_SECONDS = Number(process.env.ENDURANCE_LATE_S ?? 60);
+const GENERATED = process.env.ENDURANCE_GENERATED === "1";
+const PREPARE_TIMEOUT = GENERATED ? 300000 : 60000;
+const CROP = GENERATED ? [5000, 5000, 0] : [1500, 1000, 0];
 const telemetry = (page) => lab(page, () => window.__lab.route.telemetry());
+
+/** Choose the bounded full-world arm without changing the saved default. */
+async function openStressLab(ctx, page) {
+  if (!GENERATED) {
+    await ctx.openLab(page);
+    return null;
+  }
+  await ctx.openLab(page, `${ctx.url}?generated=1`, PREPARE_TIMEOUT);
+  await page.waitForFunction(() => window.__lab.route?.tick() > 30, undefined, {
+    timeout: PREPARE_TIMEOUT,
+  });
+  const preparation = await lab(page, () => window.__lab.route.preparation?.() ?? null);
+  ctx.check(
+    "the full generated Metro Large seed4 world is loaded with the contact recipe",
+    preparation?.identity.kind === "generated" &&
+      preparation.identity.generation.seed === "4" &&
+      preparation.request.map_source.request.type === "metro" &&
+      preparation.request.map_source.request.size === "large" &&
+      preparation.size[0] === 10000 &&
+      preparation.size[1] === 10000 &&
+      preparation.stress?.kind === "city-arena-1" &&
+      preparation.stress.livingUnits.blue === 100 &&
+      preparation.stress.livingUnits.red === 100,
+    JSON.stringify(preparation),
+  );
+  await ctx.writeEvidence("preparation.json", preparation);
+  return preparation;
+}
 
 async function shot(ctx, page, name, crop) {
   const png = await snapshot(ctx, page, `frame-${name}.png`);
@@ -140,7 +173,7 @@ async function effectCostAt(page, label, target) {
 
 async function measureEffectCost(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await ctx.openLab(page);
+  await openStressLab(ctx, page);
   await page.evaluate(() => setInterval(() => performance.clearMeasures(), 500));
   await page.waitForFunction(() => window.__lab.route?.tick() > 900, undefined, {
     timeout: 300000,
@@ -253,7 +286,7 @@ async function modelCostAt(page, label) {
 
 async function measureModelCost(ctx) {
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
-  await ctx.openLab(page);
+  await openStressLab(ctx, page);
   // React's development build records a measure per render; a battle running
   // in real time for minutes would exhaust that buffer.
   await page.evaluate(() => setInterval(() => performance.clearMeasures(), 500));
@@ -289,11 +322,13 @@ export async function run(ctx) {
   if (process.env.MODEL_COST === "1") return measureModelCost(ctx);
   if (process.env.EFFECT_COST === "1") return measureEffectCost(ctx);
   const page = await ctx.newPage();
-  await ctx.openLab(page);
-  await page.waitForFunction(() => window.__lab.route?.tick() > 30, undefined, { timeout: 60000 });
-  await shot(ctx, page, "early-1280x800", [1500, 1000, 0]);
+  const preparation = await openStressLab(ctx, page);
+  await page.waitForFunction(() => window.__lab.route?.tick() > 30, undefined, {
+    timeout: PREPARE_TIMEOUT,
+  });
+  await shot(ctx, page, "early-1280x800", CROP);
   const live = await soak(page, SECONDS);
-  await shot(ctx, page, "late-run-1280x800", [1500, 1000, 0]);
+  await shot(ctx, page, "late-run-1280x800", CROP);
   ctx.check(
     `the stress battle runs ${SECONDS} s in real time without failing`,
     !live.failed && live.ticks > 0,
@@ -324,12 +359,20 @@ export async function run(ctx) {
     () => window.__lab?.route?.late?.() && window.__lab.route.tick() > 30,
     undefined,
     {
-      timeout: 120000,
+      timeout: GENERATED ? PREPARE_TIMEOUT : 120000,
     },
   );
-  await shot(ctx, page, "late-state-1280x800", [1500, 1000, 0]);
+  const latePreparation = await lab(page, () => window.__lab.route.preparation?.() ?? null);
+  if (GENERATED)
+    ctx.check(
+      "late stress retains the same full generated map",
+      latePreparation?.stress.late === true &&
+        JSON.stringify(latePreparation.identity) === JSON.stringify(preparation.identity),
+      JSON.stringify(latePreparation),
+    );
+  await shot(ctx, page, "late-state-1280x800", CROP);
   const late = await soak(page, LATE_SECONDS);
-  await shot(ctx, page, "late-state-after-1280x800", [1500, 1000, 0]);
+  await shot(ctx, page, "late-state-after-1280x800", CROP);
   ctx.check(
     "the late state runs without failing",
     !late.failed && late.ticks > 0,
@@ -346,6 +389,8 @@ export async function run(ctx) {
     browser: ctx.browser,
     adapter: await lab(page, () => window.__lab.adapter),
     seconds: SECONDS,
+    preparation,
+    latePreparation,
     live,
     late,
   });

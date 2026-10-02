@@ -3528,6 +3528,88 @@ The contract these decisions belong to is in the [C58 outcome](slices/C58-offlin
 **Choice:** The China graph only yaws and scales its instances, so the exporter refuses a row that tilts or mirrors instead of carrying an untested variant path. New York mirrors a few; its exporter adds the path.
 
 **Verdict:** sound. **Confidence:** high.
+
+## C18: our own towers
+
+### Sides are whole bays between two 1 m corner piers, and the box tops out at the parapet
+
+**Choice:** The four towers are 56 × 14 m (10 floors), 26 × 26 m (12), 23 × 32 m (16) and 29 × 29 m (20): every side 3n + 2 m, as the graph-made blocks are. The prototypes were 56 × 16, 24 × 24, 22 × 30 and 28 × 28. Every floor is 3 m, the ground floor too, and the part's top is 1 m above the top floor's ceiling (the prototypes had 0.5 m). Each tower is one part. The alternative for the tallest, a tower on a low podium, needs two touching parts of unequal height, which a supported join refuses.
+
+**Gap:** "Adjust sizes where the art needs it", within 9 floors or more, 3 m floors and a longest side of 24 to 64 m.
+
+**Reach:** Four footprints and heights change when these replace the prototypes, and the catalogue's hash with them. A 26 m side has eight bays, so the twelve-floor tower's door is at 1.5 m, not on the centre line.
+
+**Verdict:** sound. A panel building is whole panels; a 14 m slab reads as a slab where 16 m read as a block. **Confidence:** high.
+
+### Panels are rows at tier 0 only; from tier 1 the shell's texture is the wall
+
+**Choice:** A panel module (window, balcony door, loggia, stair light, blank) is one bay by one floor and is drawn at tier 0. From tier 1 the template's shell draws each run of like bays as one face sampling a facade recipe, two bays by two floors to the tile, cut to the same openings as the modules. At tiers 2 and 3 the shell is the only row: balcony columns become one textured stack each, roof huts, tanks and door canopies boxes. The brief's alternative was a flat card per panel at tier 2.
+
+**Gap:** The brief asked for aggressive thinning and a tower that still reads as windowed at its coarsest tier; the readme (since the China kit) says a far building is one row.
+
+**Reach:** By the model thresholds a tower is over 150 px tall, so at tier 0, out to 260 m (the slab) to 520 m (twenty floors): tier 0 is what a battle sees, and it is 23,000 to 42,000 triangles and 560 to 1,040 rows a tower. Tier 1 is 1,300 to 11,800 triangles (the balconies are still rows there), tiers 2 and 3 under 1,000 and 400. A curtain's colour, washing and air conditioners stop at tier 0; at tier 1 the texture has its own four dressings, the same on every tower.
+
+**Verdict:** sound for the arrangement. Provisional on the look of the step from tier 1 to tier 2, which an unprimed critique saw (a darker roof, the vents gone, no curtain colour), and on tier 0's row count until the renderer draws kits: if 1,000 instances a tower is too many, the next step is the panel card at tier 0's far end, which the modules already carry. **Confidence:** medium.
+
+### A wall's face is the part's face; glass and loggias go into the box
+
+**Choice:** A panel's face lies on the part's face, its glass 14 cm behind it and a loggia's recess 1.3 m behind it. The shell at tier 0 is therefore not the wall but the corner piers, the parapet, the roof and a closed core 1.5 m inside, which only shows through a crack between two panels. The alternative, panels proud of a wall on the face, puts every wall 14 cm outside the box.
+
+**Gap:** "Walls stand on the part's faces" and "the shell is the closed box behind them" pull apart once an opening has depth.
+
+**Verdict:** sound. What hides a unit in the simulation is the plane the eye reads as the wall. **Confidence:** high.
+
+### The facade recipes live in the towers' script; the two wall finishes in `textures.py`
+
+**Choice:** `precast` (a 3 m panel with its joint) and `mosaic` (facing tile) are general wall recipes and sit with the others. The five facade recipes are registered by `towers.py`, from the table of openings the panel modules are cut to, so the far wall and the near wall cannot drift apart.
+
+**Gap:** `textures.py` owns the recipes; nothing says where a recipe goes that is one script's geometry as a picture.
+
+**Reach:** Seven new 256 px recipes in the kit (3.4 MB source, 11.5 MB baked).
+
+**Verdict:** sound. **Confidence:** medium.
+
+### A column's colour is a row's tint near and a baked material far
+
+**Choice:** Walls are pale and tint-masked. The shell's row carries the tower's colour; a column picked out in another colour (a stair stripe, balcony fronts) is its panels' row tint at tier 0 and, on the shell, a material with that colour baked into its vertex colour.
+
+**Gap:** A row has one tint, and a far tower is one row.
+
+**Reach:** The library can recolour a tower's body without a new export, but not its accents: those need the script run again.
+
+**Verdict:** sound. **Confidence:** high.
+
+### Some bays are blank
+
+**Choice:** The slab's gable ends have a blank panel at each corner, and the twenty-floor tower one blank column on three sides. The houses gave every bay an opening.
+
+**Gap:** The brief lists a blank panel among the modules; the houses' rule was that a garrison's seat is always at an opening.
+
+**Reach:** 100 of 2,090 bay positions are a seat behind a wall with no window drawn.
+
+**Verdict:** provisional. Blank gable ends are what makes a panel slab read as one; if a seat without an opening looks wrong in play, they become stair-light panels. **Confidence:** medium.
+
+### Curtains hang before the glass until glass is see-through
+
+**Choice:** Half the windows have curtains or a blind as a card 1.5 cm in front of the opaque glass, tinted by its row. The China kit left out what opaque glass hides.
+
+**Gap:** "Vary rows a little (a different curtain colour by tint)" with no transparency yet.
+
+**Reach:** When C25 lands these cards move behind the glass. They sit 1.5 cm from the glass and from the frame: the reassembly shows no depth fighting, the battle's renderer has not drawn them.
+
+**Verdict:** provisional. **Confidence:** medium.
+
+### Art may reach 1.5 m past a side and 4 m above the top
+
+**Choice:** `fit.side_m` 1.5 (a balcony reaches 1.2 m, a door's canopy and step 1.4 m) and `fit.top_m` 4.0 (a lift's machine room stands 2.2 m above the parapet, an aerial on it 3.8 m).
+
+**Verdict:** sound; the China kit's are 1.5 and 3.5. **Confidence:** high.
+
+### The towers have their own sheet script
+
+**Choice:** `tower_sheets.py` imports `assemble.py` for the camera, the loader and the row builder and adds the towers' own layouts (30 m at the door, a tier at the distance it is drawn at, a district of three sets). `assemble.py` changed only to load a set beside another and to be importable. The alternative was more house-shaped sheets in `assemble.py`, which three sets were editing at once.
+
+**Verdict:** provisional: once every set is in, the sheets want one owner. **Confidence:** medium.
 ## C22 static chunk owner
 
 **When:** C22's first half (the owner, and corpses on it), 2026-10-01.
@@ -3874,3 +3956,29 @@ timing; nearest-fit selection is not permission to publish an invalid segment.
 **Contract:** Returned observations are immutable; the static arrays are now readonly in TypeScript. The current consumers read these rows; pose reconciliation copies positions into its own state, and effects read aliased prop extents. Cache reuse still checks current counts. Malformed cached counts and failures later in fog/ground cannot advance either baseline; corrected same-generation retry works. Changed-group views and prior observations remain distinct, and stale side/epoch records do not populate the cache.
 
 **Verdict:** Sound; identity and rollback proofs pass. Allocation claims describe skipped construction, not measured heap bytes or wall time. Producer layout/digests and all whole-record, peak and throughput gates remain unchanged. **Confidence:** High for reuse and reconstruction; runtime admission remains open.
+
+
+## C06/C07: full generated browser stress ownership
+
+**Choice:** Keep the saved endurance scene as the default and add a fixed current
+Metro Large seed-4 arm. The existing preparation worker resolves its generated
+MapSource and calls a thin Wasm forwarder to the simulation's city stress factory.
+The selector belongs to the worker message, alongside the unchanged normal
+preparation request. No second generator, placement rule or persistent large
+fixture enters the browser. The prepared report identifies the full compiled
+world separately from the synthetic contact and late-state inputs.
+
+**Reach:** This adds a repeatable full-extent browser admission input, including
+worker cancellation when the view changes. It does not prove startup memory,
+GPU cost, image quality or real-time throughput. Those gates remain coordinated
+integration work. **Verdict:** sound for the preparation seam; browser evidence
+pending. **Confidence:** high for fixture identity, medium until the scene runs.
+## C07: consume stable static identities at the existing owners
+
+**Choice:** `ObservationFeed` retains one corpse input identity and its converted fallen list, rebuilding on a new corpse view. Reuse `PoseDriver`'s existing fallen-list reconciliation gate; do not create another driver cache. Memoize the existing known-prop JSON key in `useBattleSession` against the decoded known-prop array, so other observation updates do not serialize unchanged knowledge.
+
+**Why:** Decoder reuse alone left the feed rebuilding 20,000 fallen records per publication and thus triggering the driver's complete reconciliation. A bounded 50-observation, 20,000-corpse synthetic probe counts 50→1 converted lists and 1,000,000→20,000 constructed rows/source-position reads, preserving capped poses. This is construction evidence, not a heap/time/GPU claim.
+
+**Contract:** Source observations are immutable. A new static position/floor view rebuilds the conversion and retains earlier rows unchanged. Side/catalog changes recreate the existing feed/driver owners. The driver's independent death/fade/expiry work and clock-reset lifecycle remain active behind its existing reconciliation gate. Caps, world, camera and frame ownership stay intact; there is no cache shared across pages.
+
+**Verdict:** Sound within the existing immutable-view contract. Public feed identity/floor proofs and existing pose lifecycle suites pass. Broader browser allocation, upload and throughput admission remain separate and open. **Confidence:** High for static construction and value preservation.

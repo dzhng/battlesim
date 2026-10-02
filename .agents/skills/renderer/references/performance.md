@@ -37,6 +37,8 @@ The only gate is **30 FPS average at the default camera, 1920×1080**, measured 
 
 - **Casters one tier coarser than the view** (trees): −0.5 ms.
 - **Recompute only on change.**
+  - Trace identity through adapters before adding a cache: rebuilding an equal
+    list upstream reopens downstream reconciliation. Pin identity at that seam.
   - Models' and scenery's `prepare` return early on an unchanged detail key.
   - Grass regrows only when the view or the scars change.
   - Fog maps rebuild only for eyes that moved.
