@@ -582,7 +582,7 @@ def timber_frame(name, shape, mat, parent=None, posts=None, openings=None, foot=
     are per wall (`a0`, `a1`, `b0`, `b1`): where the posts stand along it, and each
     opening as (from, to, head) along it: the sill stops at one, and so does the rail
     when the head is over it. A timber is a board `proud` of the wall, with edges on
-    the finest tier."""
+    the finest tier; the two coarse tiers drop the braces, which are a pixel wide there and crawl."""
     posts, openings = posts or {}, openings or {}
     plate = shape.eave - 0.03 - width / 2
 
@@ -631,6 +631,8 @@ def timber_frame(name, shape, mat, parent=None, posts=None, openings=None, foot=
 
             normal = Vector(shape.world(out, 0, 0) if key[0] == "a" else shape.world(0, out, 0))
             for (ps, pz), (qs, qz) in members(key):
+                if lod >= 2 and abs(qs - ps) > 1e-6 and abs(qz - pz) > 1e-6:
+                    continue
                 run = Vector((qs - ps, qz - pz)).normalized()
                 ds, dz = -run.y * width / 2, run.x * width / 2
                 ring = [(ps - ds, pz - dz), (qs - ds, qz - dz), (qs + ds, qz + dz), (ps + ds, pz + dz)]
@@ -639,6 +641,20 @@ def timber_frame(name, shape, mat, parent=None, posts=None, openings=None, foot=
                     for (sa, za), (sb, zb) in zip(ring, ring[1:] + ring[:1]):
                         away = point((sa + sb) / 2, (za + zb) / 2, 0) - point((ps + qs) / 2, (pz + qz) / 2, 0)
                         _face(bm, [point(sa, za, 0), point(sb, zb, 0), point(sb, zb, proud), point(sa, za, proud)], away)
+
+    return mesh_part(name, build, mat, parent, lods)
+
+
+def wall_panels(name, panels, mat, parent=None, proud=0.03, lods=TIERS):
+    """Flat panels on walls, one quad each: what a far tier keeps of a window or a door.
+    A panel is (x, y, z, yaw, w, h): the centre of its foot on the wall plane, turned
+    about +Z as a wall fitting is (it faces -Y before the turn)."""
+
+    def build(bm, lod):
+        for x, y, z, yaw, w, h in panels:
+            c, s = math.cos(yaw), math.sin(yaw)
+            _face(bm, [(x + dx * c + proud * s, y + dx * s - proud * c, z + dz)
+                       for dx, dz in ((-w / 2, 0), (w / 2, 0), (w / 2, h), (-w / 2, h))], (s, -c, 0))
 
     return mesh_part(name, build, mat, parent, lods)
 
