@@ -19,7 +19,7 @@ import type { Biome } from "./terrain/biome";
 import { BLOCKED, buildTerrainSurface, OPEN, type TerrainSurface } from "./terrain/terrainSurface";
 import { waterSurfaceMesh } from "./terrain/rivers";
 import { kindSize, sceneryAppearances } from "./scenery/appearance";
-import { placeScenery, scenerySite } from "./scenery/placement";
+import { placeScenery, sceneryKinds, scenerySite } from "./scenery/placement";
 
 /** Parsed `world_layout()` from the WASM boundary. */
 export interface WorldLayout {
@@ -277,7 +277,8 @@ export function buildWorldLayers(
   };
 }
 
-/** The trees and hedgerows of `biome.trees`, instancing installed appearances. */
+/** The trees and hedgerows of `biome.trees` and the forest floor's dressing,
+ *  instancing installed appearances. */
 function worldScenery(
   exports: WorldExports,
   layout: WorldLayout,
@@ -286,15 +287,22 @@ function worldScenery(
   installed: InstalledAppearances,
 ): WorldScenery {
   const trees = biome.trees;
-  const names = [
-    ...new Set([...trees.species.map((s) => s.appearance), trees.hedgerows.appearance]),
-  ];
-  const appearances = sceneryAppearances(installed, names);
+  const dressing = biome.forest_floor.dressing;
+  const dressed = dressing.kinds.map((k) => k.appearance);
+  const appearances = new Map([
+    ...sceneryAppearances(
+      installed,
+      sceneryKinds(biome).filter((name) => !dressed.includes(name)),
+      ["tree", "hedgerow"],
+    ),
+    ...sceneryAppearances(installed, dressed, ["dressing"]),
+  ]);
   const sizes = new Map([...appearances].map(([name, bundle]) => [name, kindSize(bundle)]));
   return {
     placement: placeScenery(scenerySite(exports, layout, terrain), biome, sizes),
     appearances,
     lodPx: trees.lod_px,
+    dressing: { lodPx: dressing.lod_px, fadePx: dressing.fade_px },
   };
 }
 

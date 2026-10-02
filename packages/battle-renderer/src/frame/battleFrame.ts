@@ -335,6 +335,9 @@ export async function createBattleFrame(
         setTreesShown(on) {
           if (!disposed) world.setTreesShown(on);
         },
+        setDressingShown(on) {
+          if (!disposed) world.setDressingShown(on);
+        },
         setBuildingsShown(on) {
           if (!disposed) models.setBuildingsShown(on);
         },

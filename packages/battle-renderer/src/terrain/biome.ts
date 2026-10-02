@@ -216,6 +216,58 @@ export interface ForestFloor {
   /** Sun flecks under the crowns: their size, the share of the floor they
    *  cover, and the share of the sun they let through. */
   dapple: { size_m: number; share: number; sun: number };
+  dressing: ForestDressing;
+}
+
+/** One kind of forest-floor dressing: a `dressing` appearance, how often it
+ *  is scattered, its size and its colour. */
+export interface DressingKind {
+  /** A catalog appearance whose scenery kind is `dressing`. */
+  appearance: string;
+  /** Its share of the scattered pieces, against the other kinds' weights. */
+  weight: number;
+  /** How far it gathers in drifts: 0 stands evenly, 1 only where its own
+   *  drift lies. */
+  drift: number;
+  /** A piece's size as a share of its appearance's own. At most 1: the
+   *  appearance is what the asset validator holds under a man's waist
+   *  (`fit.dressing`), and nothing may be drawn taller. */
+  scale: readonly [number, number];
+  /** Linear multiplier over the appearance's own albedo. */
+  tint: Rgb;
+}
+
+/** What grows and lies on a forest's floor with no body of its own, drawn by
+ *  the scenery layer under the trees. Lengths in metres. */
+export interface ForestDressing {
+  /** Pieces scattered per hectare of forest, before a kind's drifts thin it
+   *  and trunks, bodies, paving and water refuse theirs: the knob that cuts
+   *  the dressing's cost. */
+  per_ha: number;
+  kinds: readonly DressingKind[];
+  /** The size of a kind's drifts. */
+  drift_m: number;
+  /** The lowest a piece stands, as a share of its own scaled height: pieces
+   *  of one kind differ in build as well as in size. At most 1. */
+  squat: number;
+  /** A piece's foot keeps this far inside its forest's edge: the floor is
+   *  drawn out to a verge that wanders about that edge
+   *  (`verge_m`, `verge_warp_m`), and a piece stands on the floor. */
+  edge_m: number;
+  /** A piece's foot keeps this far from a trunk's axis. */
+  trunk_clear_m: number;
+  /** A piece's foot keeps this far from a body's footprint, paving and water. */
+  clear_m: number;
+  /** Per-piece colour variation, as a fraction. */
+  colour_jitter: number;
+  /** Detail tiers by the projected height, in pixels, of the tallest piece
+   *  of a chunk: tier 0 above `lod_px[0]`, tier 1 above `lod_px[1]`, tier 2
+   *  above `lod_px[2]`, tier 3 below. */
+  lod_px: readonly [number, number, number];
+  /** A piece is drawn whole while its projected height is over this many
+   *  pixels, and shrinks to nothing as that halves; a chunk whose tallest
+   *  piece has gone is left out. */
+  fade_px: number;
 }
 
 /** One tree species: a `tree` appearance, how often it is drawn, and its colour. */
@@ -665,12 +717,39 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   within("forest_floor.dapple.size_m", f.dapple?.size_m, 0.1, 100);
   within("forest_floor.dapple.share", f.dapple?.share, 0, 1);
   within("forest_floor.dapple.sun", f.dapple?.sun, 0, 1);
-  const t = biome.trees;
-  if (!t || !Array.isArray(t.species) || t.species.length === 0) bad("trees.species", "is empty");
   const tint = (path: string, c: readonly number[]) => {
     if (!Array.isArray(c) || c.length !== 3) bad(path, "must be [r, g, b]");
     c.forEach((v, ch) => within(`${path}[${ch}]`, v, 0, 4));
   };
+  const dressing = f.dressing;
+  if (!dressing || !Array.isArray(dressing.kinds))
+    bad("forest_floor.dressing", "is missing its kinds");
+  within("forest_floor.dressing.per_ha", dressing.per_ha, 0, 20000);
+  if (dressing.per_ha > 0 && !dressing.kinds.some((k) => k.weight > 0))
+    bad("forest_floor.dressing.kinds", "no kind has a weight");
+  dressing.kinds.forEach((k, i) => {
+    const row = `forest_floor.dressing.kinds[${i}]`;
+    if (!k.appearance) bad(`${row}.appearance`, "is empty");
+    within(`${row}.weight`, k.weight, 0, 1000);
+    within(`${row}.drift`, k.drift, 0, 1);
+    range(`${row}.scale`, k.scale, 0.1, 1);
+    tint(`${row}.tint`, k.tint);
+  });
+  within("forest_floor.dressing.drift_m", dressing.drift_m, 1, 10000);
+  within("forest_floor.dressing.squat", dressing.squat, 0.1, 1);
+  within("forest_floor.dressing.edge_m", dressing.edge_m, 0, 100);
+  within("forest_floor.dressing.trunk_clear_m", dressing.trunk_clear_m, 0, 100);
+  within("forest_floor.dressing.clear_m", dressing.clear_m, 0, 100);
+  within("forest_floor.dressing.colour_jitter", dressing.colour_jitter, 0, 0.5);
+  within("forest_floor.dressing.fade_px", dressing.fade_px, 0.1, 10000);
+  const dpx = dressing.lod_px;
+  if (!Array.isArray(dpx) || dpx.length !== 3)
+    bad("forest_floor.dressing.lod_px", "must be three thresholds");
+  within("forest_floor.dressing.lod_px[2]", dpx[2], dressing.fade_px / 2, 10000);
+  within("forest_floor.dressing.lod_px[1]", dpx[1], dpx[2], 10000);
+  within("forest_floor.dressing.lod_px[0]", dpx[0], dpx[1], 10000);
+  const t = biome.trees;
+  if (!t || !Array.isArray(t.species) || t.species.length === 0) bad("trees.species", "is empty");
   t.species.forEach((s, i) => {
     if (!s.appearance) bad(`trees.species[${i}].appearance`, "is empty");
     within(`trees.species[${i}].weight`, s.weight, 0, 1000);
