@@ -33,3 +33,18 @@ All digests.
 
 ## Feedback that would change this slice
 A measured rebuild bottleneck selects a focused incremental owner; changed outcomes invalidate this performance-only pass.
+
+## Outcome — termination pass; scale still open
+
+A soldier's rejoin search sampled farther along a corridor until the candidate
+left local reach. The sampler clamps at the endpoint, so a blocked endpoint
+inside local reach could be tested forever. The search now stops after exhausting
+the remaining corridor; the existing fallback can then run. The red/green
+regression is bounded by its predicate and proves search exhaustion without
+hanging the harness. Successful candidate order is unchanged.
+
+Fine routes now ask the existing boolean walkability query; bridges, water,
+steep ground and bounds agree with the full surface query. This simplification
+produced no measured speedup and does not substantiate a fine-routing bottleneck.
+Matched city early/late digests and [system costs](../scale-lane.md#c06-termination-checkpoint)
+remain the scale lane's evidence. C06 is still open against the tick budget.

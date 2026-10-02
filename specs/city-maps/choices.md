@@ -2643,3 +2643,21 @@ separately; building the observation and packing it for delivery are separate to
 owner. **Reach:** future native reports share the production path without a second
 tick implementation. **Verdict:** sound; measurements remain outside battle state
 and replay identity.
+
+## C06 — scale-lane termination pass
+
+### Sound — high confidence: exhaust the corridor, then use the existing fallback
+
+**When:** C06 termination pass. **Choice:** stop a soldier's rejoin search once
+it has sampled the remaining route. If parked bodies block a nearby route end,
+the former sampler kept returning that same blocked place forever; the revised
+search returns no rejoin point and lets the existing personal-spot fallback run.
+The limit comes from route length and sampling distance, with one endpoint
+rounding sample, rather than an arbitrary retry cap. **Gap:** the plan required
+bounded scale work but did not name this infinite iteration. **Reach:** all
+soldiers retain the same successful candidate order and can exhaust an obstructed
+route without freezing a tick. **Verdict:** sound; the search cannot create
+progress after it reaches the end, and no valid candidate is discarded.
+
+The boolean-only walkability call is a local ownership simplification, not a new
+physical rule or a measured performance gain.

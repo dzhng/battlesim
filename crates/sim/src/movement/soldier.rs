@@ -91,6 +91,25 @@ impl Corridor<'_> {
         lane[lane.len() - 1]
     }
 
+    /// First standing point ahead within a soldier's local rejoin reach.
+    fn rejoin(
+        &self,
+        leg: usize,
+        t: f64,
+        step: f64,
+        here: V2,
+        reach: f64,
+        mut stands: impl FnMut(V2) -> bool,
+    ) -> Option<V2> {
+        // Once the remaining arc is exhausted, ahead keeps returning the
+        // endpoint. One extra sample covers rounding at an exact step boundary.
+        let samples = (self.remaining(leg, t) / step).ceil() as usize + 1;
+        (1..=samples)
+            .map(|k| self.ahead(leg, t, step * k as f64))
+            .take_while(|p| (*p - here).length() <= reach)
+            .find(|p| stands(*p))
+    }
+
     /// His lane point `ahead` metres on from share `t` of leg `leg`, never
     /// past that leg's end: the leg shifted `offset` to its left. Held to his
     /// own leg, the point never swings round a waypoint onto the next leg's
@@ -507,10 +526,10 @@ pub fn soldier_steer(
     let every = (REJOIN_EVERY_S * ctx.tick_hz as f64) as u64;
     if ctx.tick >= s.planned_at + every || s.planned_at == 0 {
         let r = ctx.soldier_radius_m;
-        let rejoin = (1..)
-            .map(|k| corridor.ahead(s.leg, t, rules.steer_ahead_m * k as f64))
-            .take_while(|p| (*p - here).length() <= reach)
-            .find(|p| around.stands(*p, r))
+        let rejoin = corridor
+            .rejoin(s.leg, t, rules.steer_ahead_m, here, reach, |p| {
+                around.stands(p, r)
+            })
             .or(Some(spot).filter(|_| near));
         if let Some(to) = rejoin {
             own_route(s, side, to);
@@ -548,11 +567,7 @@ fn plan_own(
         standing,
         ctx.soldier_radius_m,
         rules.window_m,
-        |p| {
-            ctx.world
-                .surface_at(p.x, p.y)
-                .is_some_and(|g| g.traversable)
-        },
+        |p| ctx.world.traversable_at(p.x, p.y),
     )
     .unwrap_or_else(|| vec![to]);
 }
@@ -1009,5 +1024,44 @@ pub(super) fn join(unit: &mut Unit, from: V2, route: &[V2]) {
         if s.spot.is_none_or(|spot| s.path.last() != Some(&spot)) {
             s.path.clear();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_blocked_nearby_corridor_end_exhausts_the_rejoin_search() {
+        let corridor = Corridor {
+            from: v2(50.0, 50.0),
+            route: &[v2(65.0, 50.0)],
+        };
+        let mut attempts = 0;
+        let point = corridor.rejoin(0, 0.0, 3.0, corridor.from, 18.0, |_| {
+            attempts += 1;
+            // Fail the old infinite endpoint loop without hanging the test runner.
+            assert!(attempts <= 6, "rejoin keeps retrying the blocked endpoint");
+            false
+        });
+        assert_eq!(point, None);
+    }
+    #[test]
+    fn rejoin_still_accepts_the_first_open_point_including_the_end() {
+        let end = v2(65.0, 50.0);
+        let corridor = Corridor {
+            from: v2(50.0, 50.0),
+            route: &[end],
+        };
+        for t in [0.0, 0.2, 0.8, 1.0] {
+            assert_eq!(
+                corridor.rejoin(0, t, 3.0, corridor.from, 18.0, |p| p == end),
+                Some(end)
+            );
+        }
+        assert_eq!(
+            corridor.rejoin(0, 0.0, 3.0, corridor.from, 18.0, |p| p.x >= 56.0),
+            Some(v2(56.0, 50.0))
+        );
     }
 }

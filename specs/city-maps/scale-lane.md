@@ -31,7 +31,7 @@ Read [`AGENTS.md`](../../AGENTS.md): narrow checks only, no full gate. A perform
 
 ## Status
 
-**C05 native measurement pass complete; C06 next.** Branch `codex/city-maps-scale` starts at
+**C05 native measurement complete; C06 termination pass complete; cost work active.** Branch `codex/city-maps-scale` starts at
 `732f3db0` (the supplied checkout), which contains the supplied map/simulation integration. Local `main` advanced
 while measuring; its incoming changes are evidence/docs pruning and removal of
 obsolete serde defaults, so merge those at the green checkpoint. Keep the exact
@@ -109,9 +109,12 @@ remain G0's open decision; the 64 MiB codec ceiling is not a performance target.
 
 ### Priority and next pickup
 
-1. C06: movement is largest in actual contact. Soldier fine-route work still
-   uses full surface classification for boolean walkability; inspect its cost
-   and the blocked rejoin search's potential no-progress loop before fog caches.
+1. C06: movement is largest in actual contact. The rejoin search now exhausts
+   its finite corridor instead of repeating a blocked nearby endpoint forever.
+   Its regression proves pure search termination, not outer-battle arrival.
+   The walkability query simplification produced **no measured speedup**.
+   Stack sampling is now locating the expensive movement/visibility owners;
+   do not build a fine-route cache from the rejected cost hypothesis.
 2. Retain all matched city/saved digests and replay. Run only affected tests,
    then compare reports with exactly the same map and stress inputs.
 3. C07: bound delivery growth without changing complete logical observations.
@@ -128,3 +131,16 @@ subagent review found and corrected generated-workload, attribution and unavaila
 counter reporting issues. Focused authority/replay, city stress/placement and late
 aggregate-ID regressions pass; focused clippy passes. The late stress fix allocates
 wreck IDs after all authored physical parts, preserving existing saved-map IDs.
+
+### C06 termination checkpoint
+
+The blocked-end search fails safely on the previous infinite sampler and passes
+with a bound derived from the remaining corridor. First-open and endpoint
+selection remain unchanged. Movement-file tests (13), two rejoin tests, crossing/
+slope/bounds query parity, authority/replay and focused clippy pass.
+
+Matched final contact digests remain `32ba0e3c667a728b` / `1afb9cf97c2120f3`.
+The first pass retires 369.9 / 499.4 G step instructions versus 369.5 / 498.2 G
+before; movement averages 80.343 / 115.329 M instructions per tick, effectively
+unchanged. Loaded-clock results are not throughput acceptance; **budget remains
+red**. C07 proceeds in its own worktree against the completed C05 seam.

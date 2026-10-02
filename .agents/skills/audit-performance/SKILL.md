@@ -79,3 +79,8 @@ disconnected rear-area moves when the world grows. Name complete-world loading,
 local contact and edge-to-edge transit separately, and verify opposing goals
 overlap before using the result as dense-combat evidence. Attribute fog traversal
 and subsequent knowledge learning separately before selecting a sweep optimization.
+
+When a sampled position clamps at an endpoint, test an all-rejected endpoint
+inside the acceptance radius. A distance predicate then remains true forever.
+Bound exhaustion by the finite source traversal, and fail a regression's injected
+predicate after the legitimate attempts so the broken arm cannot hang the runner.
