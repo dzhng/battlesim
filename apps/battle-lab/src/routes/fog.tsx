@@ -218,7 +218,7 @@ function FogLab({ scenario }: { scenario: string }) {
         world={worldFeed}
         structures={session.structures}
         obstacles={session.cameraObstaclesFeed}
-        massing={session.massingFeed}
+        buildings={session.buildingsFeed}
         fog={fogFeed}
         frame={session.frame}
         appearances={session.appearances}

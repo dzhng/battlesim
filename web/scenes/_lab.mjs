@@ -53,6 +53,20 @@ export async function until(page, test, limit, step = 15, each = () => {}) {
   return null;
 }
 
+/** Draw frames until every building near the camera is expanded into the
+ *  pool: a view change expands a budget of rows a frame, and a chunk waiting
+ *  its turn draws at the coarsest tier meanwhile. */
+export async function buildingsSettled(page, timeout = 30000) {
+  await page.waitForFunction(
+    async () => {
+      await window.__lab.frame();
+      return !window.__lab.stats().buildings.pending;
+    },
+    undefined,
+    { timeout, polling: 50 },
+  );
+}
+
 /** Open a battle's pause menu by its HUD button. */
 export async function openMenu(page) {
   await page.getByRole("button", { name: "Menu", exact: true }).click();

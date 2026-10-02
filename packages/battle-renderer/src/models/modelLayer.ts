@@ -27,6 +27,10 @@
 // (`frame/staticChunks.ts`), chunked when their list changes: a far chunk
 // draws whole as a range of cards from a static buffer, and a near chunk's
 // corpses are chosen one by one and packed with the frame's other models.
+//
+// A town's buildings are drawn here too, as instances of their kits' modules
+// (`buildingLayer.ts`): the same meshes, records, material and pipelines as
+// any static model, with their own record buffers and draw ranges.
 
 import { tgpu, d, std } from "typegpu";
 import { mat4, type Mat4 } from "math";
@@ -67,7 +71,12 @@ import { FOG_CLASSES, FOG_INDEX, UNITS, modelFog, modelSeen, type ModelFog } fro
 import type { GpuRegistry, GpuSlot } from "../frame/registry";
 import { buildClipTable, clipFrames, type ClipFrames, type ClipTable } from "./clipTable";
 import { CONTROL_WORDS, poseKernelWgsl, writeControl } from "./poseKernel";
-import type { CorpseInstance, ModelInstance, ModelPose } from "./modelInstances";
+import {
+  MODEL_RECORD_FLOATS,
+  type CorpseInstance,
+  type ModelInstance,
+  type ModelPose,
+} from "./modelInstances";
 import {
   selectChunks,
   selectEveryChunk,
@@ -84,6 +93,9 @@ import {
 } from "./modelDetail";
 import { uploadCardAtlases, type CardGroup } from "./impostorCards";
 import type { ImpostorAtlas } from "./impostor";
+import { createBuildingLayer, type BuildingStats } from "./buildingLayer";
+import type { BuildingStyle, SideBuildings } from "./buildingReferences";
+import type { SunShadow } from "../frame/staticChunks";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
@@ -112,7 +124,7 @@ export const ModelRecord = d.unstruct({
   tint: d.float32x4,
   scale: d.float32x4,
 });
-const RECORD_FLOATS = 16;
+const RECORD_FLOATS = MODEL_RECORD_FLOATS;
 export const modelVertexLayout = tgpu.vertexLayout(d.disarrayOf(ModelVertex));
 export const modelRecordLayout = tgpu.vertexLayout(d.disarrayOf(ModelRecord), "instance");
 export const modelAttribs = { ...modelVertexLayout.attrib, ...modelRecordLayout.attrib };
@@ -654,8 +666,10 @@ export async function createModelLayer(
   root: Root,
   registry: GpuRegistry,
   detail: ModelDetailPresentation,
+  buildingStyle: BuildingStyle,
 ) {
   const device = root.device;
+  const buildings = createBuildingLayer(device, registry, buildingStyle);
   const buffer = (label: string, size: number, usage: number) =>
     device.createBuffer({ label, size: Math.max(16, Math.ceil(size / 16) * 16), usage });
   const upload = (
@@ -1095,6 +1109,20 @@ export async function createModelLayer(
     setCards([]);
     rebind();
     rechunk();
+    // The kits a template art library places are appearances like any other:
+    // its modules are their states, and the buildings draw those meshes.
+    buildings.setArt(installed?.templates, {
+      mesh(kit, state, tier) {
+        const gpu = appearances.get(kit);
+        if (gpu?.bundle.kind !== "static") return null;
+        const drawable = gpu.states.get(gpu.bundle.states[state]?.name)?.[tier];
+        return drawable ? { ...drawable.mesh, first: drawable.first, count: drawable.count } : null;
+      },
+      bounds(kit, state) {
+        const bundle = appearances.get(kit)?.bundle;
+        return bundle?.kind === "static" ? (bundle.states[state]?.bounds ?? null) : null;
+      },
+    });
     dirty = true;
     old?.release();
   }
@@ -1601,8 +1629,21 @@ export async function createModelLayer(
     get models(): readonly ModelInstance[] {
       return units;
     },
-    /** Choose this frame's draws for the camera (`view`), when anything changed. */
-    prepare(view: DetailView, key: string) {
+    /** The buildings a side draws from template art (`buildingLayer.ts`). */
+    setBuildings(next: SideBuildings | null) {
+      buildings.set(next);
+    },
+    setBuildingsShown(on: boolean) {
+      buildings.setShown(on);
+    },
+    /** Whether buildings still wait to be expanded: draw another frame. */
+    get buildingsPending(): boolean {
+      return buildings.pending;
+    },
+    /** Choose this frame's draws for the camera (`view`, with where the sun's
+     *  shadows fall for it), when anything changed. */
+    prepare(view: DetailView, key: string, shadow: SunShadow) {
+      buildings.prepare(view, key, shadow);
       if (!dirty && key === viewKey) return;
       viewKey = key;
       lastView = view;
@@ -1686,6 +1727,33 @@ export async function createModelLayer(
           .withIndexBuffer(run.drawable.mesh.indices, "uint32")
           .drawIndexed(run.drawable.count, run.instances, run.drawable.first, 0, run.firstInstance);
       }
+    },
+    /** Every building's modules into the view: the world's faces. `raw` is
+     *  the pass `bound` draws into. */
+    drawBuildings(bound: Drawable3, raw: GPURenderPassEncoder) {
+      if (!renderGroup) return;
+      const b = bound.with(modelLayout, renderGroup);
+      buildings.draw(
+        (vertices, instances, indices) =>
+          b
+            .with(modelVertexLayout, vertices)
+            .with(modelRecordLayout, instances)
+            .withIndexBuffer(indices, "uint32"),
+        raw,
+      );
+    },
+    /** The buildings that cast, into one of the sun's cascades. */
+    drawBuildingCasters(bound: Drawable3, raw: GPURenderPassEncoder) {
+      if (!renderGroup) return;
+      const b = bound.with(modelLayout, renderGroup);
+      buildings.drawCasters(
+        (vertices, instances, indices) =>
+          b
+            .with(modelVertexLayout, vertices)
+            .with(modelRecordLayout, instances)
+            .withIndexBuffer(indices, "uint32"),
+        raw,
+      );
     },
     /** Draw one fog class's impostor cards. */
     drawCards(bound: CardDrawable, fog: ModelFog) {
@@ -1799,6 +1867,7 @@ export async function createModelLayer(
       Object.assign(channels, next);
       writeMaterials();
     },
+    buildingStats: (): BuildingStats => buildings.stats(),
     stats: (): ModelStats => ({
       ...stats,
       appearanceTextureBytes: { ...stats.appearanceTextureBytes },
@@ -1807,6 +1876,7 @@ export async function createModelLayer(
       bodyTiers: [...stats.bodyTiers],
     }),
     dispose() {
+      buildings.dispose();
       cardScope?.release();
       scope?.release();
     },

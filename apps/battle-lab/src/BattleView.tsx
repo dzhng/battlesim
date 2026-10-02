@@ -183,7 +183,7 @@ export function BattleView({
         fixture={fixture}
         world={worldFeed}
         structures={session.structures}
-        massing={session.massingFeed}
+        buildings={session.buildingsFeed}
         obstacles={session.cameraObstaclesFeed}
         overlay={overlayFeed}
         pointerMarks={pointerPaint.feed}

@@ -1,5 +1,5 @@
 // The static chunk owner: instances placed once and drawn many times (trees
-// and hedgerow shrubs, a town's massing boxes, the fallen), bucketed in
+// and hedgerow shrubs, a town's buildings, the fallen), bucketed in
 // square chunks, with the detail level each draws at chosen on the CPU when
 // the view changes. It owns the bookkeeping only: storage in chunk order,
 // per-chunk culling, the level a chunk or an instance draws at, the merged
@@ -35,6 +35,11 @@ export interface ChunkSource {
   /** Per instance: the size its detail is chosen by, metres (a tree's
    *  height, a corpse's length). */
   sizes: Float32Array;
+  /** Per instance, where it is bucketed (x, y), when that is not its
+   *  record's position: an instance that is one piece of a larger thing (a
+   *  building's module) is bucketed with the whole, so no chunk holds half
+   *  of one. */
+  anchors?: Float32Array;
   /** Grow `box` to hold instance `i`: all of it that is drawn, and any
    *  margin that must keep it drawn (a shadow reaching into view). */
   bound(i: number, box: Box3): void;
@@ -81,13 +86,13 @@ export function createStaticChunks(
   chunkM: number,
   levels: number,
 ): StaticChunks {
-  const { records, stride } = placed;
+  const { records, stride, anchors } = placed;
   const count = placed.sizes.length;
   const cells = new Map<number, number[]>();
   for (let i = 0; i < count; i++) {
     const o = i * stride;
-    const cx = Math.floor(records[o] / chunkM);
-    const cy = Math.floor(records[o + 1] / chunkM);
+    const cx = Math.floor((anchors ? anchors[i * 2] : records[o]) / chunkM);
+    const cy = Math.floor((anchors ? anchors[i * 2 + 1] : records[o + 1]) / chunkM);
     // Row-major ids, so neighbours in a row are neighbours in memory.
     const id = (cy + 4096) * 8192 + (cx + 4096);
     let list = cells.get(id);
@@ -149,6 +154,23 @@ export type ChunkLevel<V extends DetailView> = (
 export interface SunShadow {
   fall: readonly [number, number];
   reach: number;
+}
+
+/** Where the sun's shadows fall for a camera: away from the sun, a metre of
+ *  height throwing `1 / tan(elevation)` metres of shadow, received as far as
+ *  the cascades reach (`maxFarM`, in view depth: at the view's corners that
+ *  is farther from the eye). */
+export function sunShadow(
+  out: SunShadow & { fall: [number, number] },
+  sun: { azimuth: number; elevation: number; maxFarM: number },
+  camera: { fovY: number; aspect: number },
+): SunShadow {
+  const throwM = 1 / Math.tan(sun.elevation);
+  out.fall[0] = -Math.cos(sun.azimuth) * throwM;
+  out.fall[1] = -Math.sin(sun.azimuth) * throwM;
+  const tanV = Math.tan(camera.fovY / 2);
+  out.reach = sun.maxFarM * Math.hypot(1, tanV, tanV * camera.aspect);
+  return out;
 }
 
 const _chunk_centre = vec3.create();
@@ -227,6 +249,40 @@ export function selectChunks<V extends DetailView>(
       if (casts) appendRange(pop.cast[k], chunk.start[k], chunk.end[k]);
     }
   }
+}
+
+/** A layer's answer for a near chunk (`settleNear`) whose instances it draws
+ *  itself but whose shadow it leaves to the chunk's own records. */
+export const NEAR_CAST_WHOLE = -2;
+
+/**
+ * Settle the near chunks with their layer, after `selectChunks` and for the
+ * same view and shadow. For each, `settle` answers `NEAR` (the layer draws and
+ * casts its instances), `NEAR_CAST_WHOLE` (the layer draws them; the chunk's
+ * own records cast, as a chunk drawn whole does), or a level: the layer
+ * cannot draw the chunk's instances (its pool has no room for them, or has
+ * not expanded them yet), so the chunk leaves the near list and draws whole
+ * at that level after all.
+ */
+export function settleNear(
+  pop: StaticChunks,
+  view: DetailView,
+  settle: (index: number) => number,
+  shadow: SunShadow | null,
+): void {
+  let kept = 0;
+  for (const c of pop.near) {
+    const level = settle(c);
+    if (level < 0) pop.near[kept++] = c;
+    if (level === NEAR) continue;
+    const chunk = pop.chunks[c];
+    const casts = shadow !== null && distanceTo(chunk.box, view.eye) <= shadow.reach;
+    for (let k = 0; k < pop.kinds; k++) {
+      if (level >= 0) appendRange(pop.ranges[k][level], chunk.start[k], chunk.end[k]);
+      if (casts) appendRange(pop.cast[k], chunk.start[k], chunk.end[k]);
+    }
+  }
+  pop.near.length = kept;
 }
 
 /** Draw `pop` with no view (an offline draw): every chunk is near. */

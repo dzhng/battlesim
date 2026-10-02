@@ -82,7 +82,7 @@ function Review({ scenario }: { scenario: string }) {
         world={world}
         structures={session.structures}
         obstacles={session.cameraObstaclesFeed}
-        massing={session.massingFeed}
+        buildings={session.buildingsFeed}
         fog={session.fogFeed}
         frame={session.frame}
         appearances={session.appearances}

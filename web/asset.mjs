@@ -544,7 +544,7 @@ function readSet(name, entry) {
 
 /** The prototype set's two files by repo path, generated: stand-in rows for
  *  every template of the physical catalogue that no other set dresses, tinted
- *  by the fixture's massing tints. Null when the catalog has no such set. */
+ *  by the fixture's prototype tints. Null when the catalog has no such set. */
 function prototypeFiles() {
   const cat = catalog();
   const entry = cat.city_sets?.[PROTOTYPE_SET];
@@ -557,7 +557,7 @@ function prototypeFiles() {
   );
   const set = prototypeTemplates(
     readJson(join(ROOT, TEMPLATES)).filter((descriptor) => !dressed.has(descriptor.id)),
-    readJson(FIXTURE).presentation.massing.tints,
+    readJson(FIXTURE).presentation.buildings.prototype_tints,
   );
   return new Map([
     [kit, prototypeKitGlb()],

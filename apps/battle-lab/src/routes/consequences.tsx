@@ -114,7 +114,7 @@ function ConsequencesLab({ battle }: { battle: SavedBattle }) {
         world={worldFeed}
         structures={session.structures}
         obstacles={session.cameraObstaclesFeed}
-        massing={session.massingFeed}
+        buildings={session.buildingsFeed}
         overlay={overlayFeed}
         fog={session.fogFeed}
         frame={session.frame}

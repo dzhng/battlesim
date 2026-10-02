@@ -20,7 +20,10 @@ import {
 } from "@packages/battle-renderer/src/mesh";
 import { knownStanding, mapProps } from "@packages/battle-renderer/src/models/propAppearance";
 import type { WorldMeshes } from "@packages/battle-renderer/src/scene";
-import { massingInstances, massingParts } from "@packages/battle-renderer/src/scenery/massing";
+import {
+  fallenBuildings,
+  indexBuildings,
+} from "@packages/battle-renderer/src/models/buildingReferences";
 import { apartKinds, buildWorldLayers } from "@packages/battle-renderer/src/worldMesh";
 import { nearEnvelope } from "@packages/renderer-core/src/cameraClearance";
 import { CameraController, type CameraPose } from "@packages/renderer-core/src/cameraController";
@@ -42,7 +45,6 @@ import { useStaticWorld } from "../useStaticWorld";
 import { useGameAppearances } from "../gameAppearances";
 import { gameBiome } from "../gameBiome";
 import { gameCamera } from "../gameCamera";
-import { gameMassing } from "../gameMassing";
 
 /** The eye path asked for: amber, red where it runs inside the clearance. */
 const ASKED: Rgba = [1, 0.66, 0.2, 1];
@@ -138,24 +140,28 @@ function Arena({ map }: { map: string }) {
     (x: number, y: number) => world?.view.surface_at(x, y)[0] ?? 0,
     [world],
   );
-  // What blue knows: nothing but the map, or that it has seen the tower fall.
-  const standing = useMemo(() => {
+  // The lab's buildings are the prototype catalogue's: drawn from the art
+  // library's stand-in rows, as a generated town's are.
+  const templateArt = appearances?.templates;
+  const drawn = useMemo(() => {
     if (!world) return null;
     const props = mapProps(world.exports, world.layout);
+    const ids = new Set(templateArt?.library.templates.map((t) => t.id));
+    return { props, index: indexBuildings(world.exports.buildings, props, (id) => ids.has(id)) };
+  }, [world, templateArt]);
+  // What blue knows: nothing but the map, or that it has seen the tower fall.
+  const standing = useMemo(() => {
+    if (!world || !drawn) return null;
+    const { props, index } = drawn;
     const known = fallen ? seenFallen(world.exports.buildings, props) : [];
     const parts = buildingPartProps(world.exports.buildings);
     return {
       boxes: knownStanding(props, known, parts).map((s) => s.box),
-      massing: massingInstances(
-        props,
-        known,
-        massingParts(world.exports.buildings, gameMassing),
-        gameMassing,
-      ),
+      buildings: { placed: index.placed, fallen: fallenBuildings(index, known) },
       obstacles: buildingObstacles(props, known, parts, surfaceZ),
     };
-  }, [world, fallen, surfaceZ]);
-  const massingFeed = useFeed(standing?.massing ?? null);
+  }, [world, drawn, fallen, surfaceZ]);
+  const buildingsFeed = useFeed(standing?.buildings ?? null);
   const obstaclesFeed = useFeed(standing?.obstacles ?? null);
 
   // The flight: the trajectory through the same rig numbers, obstacles and
@@ -284,7 +290,7 @@ function Arena({ map }: { map: string }) {
       <LabViewport
         fixture="camera"
         world={worldFeed}
-        massing={massingFeed}
+        buildings={buildingsFeed}
         obstacles={obstaclesFeed}
         overlay={overlayFeed}
         appearances={appearances}
