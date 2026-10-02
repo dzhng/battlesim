@@ -683,9 +683,10 @@ fn hidden_enemy_spotting_cannot_move_visible_blockers_during_admission() {
 fn a_member_whose_journey_outlasts_the_allowance_does_not_unplace_the_group() {
     // A jeep and a rifle squad ordered to one place: the jeep stands beside
     // it, the squad is 280 m off on foot. The allowance covers the jeep's
-    // move and runs out during the squad's walk.
+    // move and runs out before the squad has walked the two ends of its own
+    // (they take about twice this allowance).
     let mut rules = crate::common::scenario_rules();
-    rules["navigation"]["move_validation_work"] = json!(10000);
+    rules["navigation"]["move_validation_work"] = json!(1500);
     let setup: ScenarioDefinition = serde_json::from_value(json!({
         "map": {"size": [2000, 200], "fog_cell_m": 8, "height_grid_m": 4,
             "slope_cutoff_deg": 35, "props": []},
@@ -713,4 +714,259 @@ fn a_member_whose_journey_outlasts_the_allowance_does_not_unplace_the_group() {
         .collect();
     assert_eq!(ack.error, None, "the jeep's marker stands: {placed:?}");
     assert_eq!(placed, [(0, true), (1, false)]);
+}
+
+/// Market Town (6 km, generated) with the attacker's column of its saved
+/// `assault` at the south edge and no defender: nothing fights, so a move
+/// is refused or fails only for the ground's reasons.
+fn market_town_column() -> ScenarioDefinition {
+    let map = sim::maps::load("market-town").unwrap().definition;
+    let mut assault = sim::maps::encounter("market-town", "assault").unwrap();
+    assault.units.retain(|u| u.side == Side::Blue);
+    ScenarioDefinition {
+        scripts: Vec::new(),
+        opponent: None,
+        encounter: None,
+        ..assault.on(map, crate::common::rules())
+    }
+}
+
+/// Step until every unit in `destinations` stands idle at its marker, or
+/// `seconds` pass; then hold each to it.
+fn arrive(battle: &mut Battle, destinations: &[contract::command::MoveDestination], seconds: u64) {
+    use contract::observation::MoveState;
+    let at_marker = |battle: &Battle, d: &contract::command::MoveDestination| {
+        let unit = battle.unit(d.unit).unwrap();
+        // A squad stands round its marker; a hull stands on it.
+        let reach = if unit.is_vehicle() { 1.5 } else { 12.0 };
+        let gap = (unit.position.xy() - sim::math::v2(d.goal[0], d.goal[1])).length();
+        (unit.state == MoveState::Idle && gap < reach, gap)
+    };
+    for _ in 0..seconds * battle.rules().tick_hz as u64 {
+        battle.step();
+        if destinations.iter().all(|d| at_marker(battle, d).0) {
+            break;
+        }
+    }
+    for d in destinations {
+        let (there, gap) = at_marker(battle, d);
+        assert!(
+            there,
+            "unit {:?} is {gap:.0} m from its accepted marker, {:?}, at tick {}",
+            d.unit,
+            battle.unit(d.unit).unwrap().state,
+            battle.tick()
+        );
+    }
+}
+
+#[test]
+fn cross_map_moves_on_a_generated_map_are_placed_and_then_arrive() {
+    let mut battle = Battle::new(&market_town_column(), 1);
+    // A jeep alone, a rifle squad alone, and a tank, a squad, an AT team and
+    // a supply truck together: from the south edge to the north one, 5.5 km.
+    let mut accepted = Vec::new();
+    for (seq, units, goal) in [
+        (1, vec![0], [2511.0, 5706.0]),
+        (2, vec![4], [2811.0, 5706.0]),
+        (3, vec![2, 5, 7, 8], [2661.0, 5706.0]),
+    ] {
+        let mut order = move_to(&units, goal);
+        if let Order::Move { gesture, .. } = &mut order {
+            *gesture = seq;
+        }
+        let ack = battle.accept(CommandEnvelope {
+            side: Side::Blue,
+            seq,
+            order,
+            queued: false,
+        });
+        let destinations = ack.placement.clone().unwrap().destinations;
+        assert_eq!(ack.error, None, "units {units:?}: {destinations:?}");
+        assert!(
+            destinations.iter().all(|d| d.placed),
+            "units {units:?}: {destinations:?}"
+        );
+        accepted.extend(destinations);
+    }
+    // On foot at under 3 m/s the squads need over half an hour.
+    arrive(&mut battle, &accepted, 45 * 60);
+}
+
+/// A strip of open country 3 km long with a jeep and a rifle squad at its
+/// west end, and `extra` map sections (`,"key":...`) laid on it.
+fn strip(extra: &str, more_units: serde_json::Value) -> Battle {
+    let mut units = vec![
+        json!({"side": "blue", "kind": "jeep", "position": [100, 120], "yaw": 0}),
+        json!({"side": "blue", "kind": "rifle", "position": [100, 90], "yaw": 0}),
+    ];
+    units.extend(more_units.as_array().unwrap().iter().cloned());
+    let map = format!(
+        r#"{{"size":[3000,240],"fog_cell_m":8,"height_grid_m":4,"slope_cutoff_deg":35{extra}}}"#
+    );
+    Battle::new(&crate::common::scenario(&map, json!(units), json!([])), 1)
+}
+
+fn placed(battle: &mut Battle, units: &[u32], goal: [f64; 2]) -> Vec<bool> {
+    let request = contract::command::MovePreviewRequest {
+        units: units.iter().copied().map(UnitId).collect(),
+        goal,
+        ..Default::default()
+    };
+    let preview = battle.preview_move(Side::Blue, &request).unwrap();
+    preview.iter().map(|d| d.placed).collect()
+}
+
+#[test]
+fn a_far_destination_across_an_unbridged_river_is_refused() {
+    // The river cuts the strip from edge to edge half way along it.
+    let river = r#""rivers":[{"points":[{"xy":[1500,0],"width_m":24,"depth_m":2},
+        {"xy":[1500,240],"width_m":24,"depth_m":2}],"surface_z":-1.5}]"#;
+    let bridge = r#""bridges":[{"deck":"bridge_deck","center":[1500,120],
+        "half_extents":[18,5],"yaw":0,"deck_z":0.1,"thickness_m":0.8}]"#;
+    let mut bridged = strip(&format!(",{river},{bridge}"), json!([]));
+    assert_eq!(
+        placed(&mut bridged, &[0, 1], [2800.0, 120.0]),
+        [true, true],
+        "over the bridge both can go there"
+    );
+    let mut unbridged = strip(&format!(",{river}"), json!([]));
+    assert_eq!(
+        placed(&mut unbridged, &[0, 1], [2800.0, 120.0]),
+        [false, false]
+    );
+    let ack = unbridged.accept(CommandEnvelope {
+        side: Side::Blue,
+        seq: 1,
+        order: move_to(&[0, 1], [2800.0, 120.0]),
+        queued: false,
+    });
+    assert_eq!(ack.error, Some(OrderError::NoValidDestination));
+}
+
+#[test]
+fn a_far_destination_walled_in_on_every_side_is_refused() {
+    let wall = |center: [f64; 2], half: [f64; 2]| {
+        format!(
+            r#"{{"kind":"wall","center":[{},{}],"yaw":0,"half_extents":[{},{},2]}}"#,
+            center[0], center[1], half[0], half[1]
+        )
+    };
+    let three = [
+        wall([2816.0, 120.0], [1.0, 17.0]),
+        wall([2800.0, 103.0], [17.0, 1.0]),
+        wall([2800.0, 137.0], [17.0, 1.0]),
+    ]
+    .join(",");
+    let west = wall([2784.0, 120.0], [1.0, 17.0]);
+    let mut open = strip(&format!(r#","props":[{three}]"#), json!([]));
+    let mut closed = strip(&format!(r#","props":[{three},{west}]"#), json!([]));
+    for unit in [0, 1] {
+        assert_eq!(
+            placed(&mut open, &[unit], [2800.0, 120.0]),
+            [true],
+            "unit {unit} can go into the yard through its open side"
+        );
+        assert_eq!(
+            placed(&mut closed, &[unit], [2800.0, 120.0]),
+            [false],
+            "unit {unit} has no way into the closed yard"
+        );
+    }
+}
+
+#[test]
+fn a_vehicle_standing_in_the_way_refuses_only_the_member_it_stops() {
+    // 2.5 km from the group, a walled lane 7 m wide and 200 m long, closed
+    // at its far end. The order puts the jeep's place deep in the lane and
+    // the squad's in the field beside it. A supply truck with no orders
+    // stands in the lane: in the last stretch before the jeep's place, or
+    // well short of it. The jeep cannot pass it either way.
+    let lane = r#","props":[
+        {"kind":"wall","center":[2700,137],"yaw":0,"half_extents":[100,0.5,2]},
+        {"kind":"wall","center":[2700,145],"yaw":0,"half_extents":[100,0.5,2]},
+        {"kind":"wall","center":[2800.5,141],"yaw":0,"half_extents":[0.5,4.5,2]}]"#;
+    let truck =
+        |at: [f64; 2]| json!([{"side": "blue", "kind": "supply", "position": at, "yaw": 0}]);
+    let order = |battle: &mut Battle| {
+        let ack = battle.accept(CommandEnvelope {
+            side: Side::Blue,
+            seq: 1,
+            order: move_to(&[0, 1], [2780.0, 120.0]),
+            queued: false,
+        });
+        let destinations = ack.placement.clone().unwrap().destinations;
+        let [jeep, squad] = destinations.as_slice() else {
+            panic!("two destinations: {ack:?}");
+        };
+        assert!(
+            (jeep.goal[1] - 141.0).abs() < 2.0 && jeep.goal[0] > 2750.0,
+            "the jeep's place is deep in the lane: {ack:?}"
+        );
+        assert!(squad.goal[1] < 125.0, "the squad's is outside it: {ack:?}");
+        (ack.error, destinations)
+    };
+    let (error, destinations) = order(&mut strip(lane, truck([2650.0, 60.0])));
+    assert_eq!(error, None);
+    assert!(
+        destinations.iter().all(|d| d.placed),
+        "with the truck out of the lane both can go there: {destinations:?}"
+    );
+    for truck_x in [2730.0, 2650.0] {
+        let mut battle = strip(lane, truck([truck_x, 141.0]));
+        let (error, destinations) = order(&mut battle);
+        let placed: Vec<_> = destinations.iter().map(|d| (d.unit.0, d.placed)).collect();
+        assert_eq!(placed, [(0, false), (1, true)], "truck at x = {truck_x}");
+        assert_eq!(error, None, "the squad's marker stands");
+        arrive(&mut battle, &destinations[1..], 20 * 60);
+        assert_eq!(
+            battle.unit(UnitId(0)).unwrap().position.xy(),
+            sim::math::v2(100.0, 120.0),
+            "the refused jeep never set off"
+        );
+    }
+}
+
+#[test]
+fn admitting_a_five_kilometre_move_costs_a_small_multiple_of_a_short_one() {
+    // The allowance is the admission's work. The least allowance that
+    // places a jeep, a tank and a rifle squad 500 m away, three times
+    // over, must place them 5 km away: the longer route takes longer to
+    // find, and no longer to prove.
+    let battle = |work: u32| {
+        let mut rules = crate::common::scenario_rules();
+        rules["navigation"]["move_validation_work"] = json!(work);
+        let setup: ScenarioDefinition = serde_json::from_value(json!({
+            "map": {"size": [6000, 240], "fog_cell_m": 8, "height_grid_m": 4,
+                "slope_cutoff_deg": 35, "props": []},
+            "rules": rules,
+            "units": [
+                {"side": "blue", "kind": "jeep", "position": [100, 120], "yaw": 0},
+                {"side": "blue", "kind": "tank", "position": [100, 100], "yaw": 0},
+                {"side": "blue", "kind": "rifle", "position": [100, 140], "yaw": 0}
+            ], "events": [], "scripts": []
+        }))
+        .unwrap();
+        Battle::new(&setup, 1)
+    };
+    let admits = |work: u32, x: f64| {
+        placed(&mut battle(work), &[0, 1, 2], [x, 120.0])
+            .iter()
+            .all(|p| *p)
+    };
+    let shipped = crate::common::rules().navigation.move_validation_work;
+    assert!(admits(shipped, 600.0), "the short move is placed at all");
+    let (mut refused, mut enough) = (0, shipped);
+    while enough - refused > enough / 16 {
+        let middle = refused + (enough - refused) / 2;
+        if admits(middle, 600.0) {
+            enough = middle;
+        } else {
+            refused = middle;
+        }
+    }
+    assert!(
+        admits(3 * enough, 5100.0),
+        "the 500 m move needs an allowance of about {enough}; the 5 km one is refused at three times that"
+    );
 }
