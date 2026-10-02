@@ -1,6 +1,6 @@
 // The fit authority, read from a scenario fixture and the catalog: the one
 // soldier frame every squad shares (`physics`), every unit type's own
-// resolved numbers (`UnitCatalog`), the lowest canopy of the fixture's
+// resolved numbers (`UnitCatalog`), the canopy of the fixture's
 // forests and a ruin's height (the catalog's prop types). The CLI, the bake and the workbench all read
 // it here, so they judge art against the same numbers.
 
@@ -14,7 +14,7 @@ export interface AuthorityFixture {
     infantry_eye_m: number;
     infantry_muzzle_m: number;
   };
-  forests: { rule: { canopy_height_m: number } };
+  forests: { rule: { canopy_height_m: number; canopy_radius_m: number } };
 }
 
 export function fixtureAuthority(fixture: AuthorityFixture, units: UnitCatalog): Authority {
@@ -25,6 +25,7 @@ export function fixtureAuthority(fixture: AuthorityFixture, units: UnitCatalog):
     infantry_muzzle_m: p.infantry_muzzle_m,
     units,
     canopy_height_m: fixture.forests.rule.canopy_height_m,
+    canopy_radius_m: fixture.forests.rule.canopy_radius_m,
     ruin_height_m: ruinHeight(units),
   };
 }

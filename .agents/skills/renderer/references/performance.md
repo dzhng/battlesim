@@ -26,7 +26,7 @@ The only gate is **30 FPS average at the default camera, 1920×1080**, measured 
 - **The foundation** (sky, terrain, cascades, post): about 1.2–1.5 ms GPU.
 - **Fog:** 0.4–0.7 ms typical and about 1.5 ms worst at 100 units a side. Memory is its real cost, about 1.1 MiB per eye.
 - **Grass:** about 0.7 ms mean and 1–1.7 ms at ground zoom, against a 4 ms kill bar. GPU-built clumps per 4 m tile, with no CPU residency, no shadow and no prepass: Apple's hidden-surface removal covers overdraw.
-- **Forest:** about 0.9 ms. The 44k backdrop instances beyond the map cost about 0.17 ms.
+- **Forest:** about 0.9 ms. The 44k backdrop instances beyond the map cost about 0.17 ms. Tree triangles are budgeted per tier by the validator (`SCENERY_KINDS.tree.tier_triangles`); tier 1 is what the default camera draws, and about 4,000 triangles there is where a wood filling the frame passes +1.5 ms (C73).
 - **Models:** not measurable at battle scale, thanks to projected-pixel tiers, impostor cards and view culling. All-LOD0 would cost about 1.9 ms more.
 - **Effects:** one instanced pass, not measurable.
 - **Cast lights:** a loop step per light in every lit fragment (terrain, grass overdraw, models). Unculled, 24–39 lights cost 0.4–0.6 ms; keeping only those whose reach enters the view's sides brought the village's busy moment to 12 lights and +0.11 ms, a missile in flight to +0.17 ms (paired, `LIGHT_COST=1`). Cull before you cap.
