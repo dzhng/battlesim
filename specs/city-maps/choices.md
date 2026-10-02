@@ -4605,3 +4605,127 @@ Battle observations/digests and the remaining whole-city admission limits.
 **Gap:** That fixture pins field rules "so seeded cuts do not obscure the guide contract"; a strip between two road edges now lies along them, is five times as long as wide, and was cut across.
 
 **Verdict:** sound. **Confidence:** high.
+
+## C74
+
+**When:** 2026-10-02. Evidence and numbers: the Outcome in [C74](slices/C74-tree-species.md).
+
+### The one size is 11 m tall with a 0.40 m bole, held by the validator
+
+**Choice:** `SCENERY_KINDS.tree.size` names a top of 11 m and a bole 0.40 m in radius at 1.3 m up, each within 5%; the validator refuses a tree outside either (`fit.tree_size`). The bole is the radius of a round trunk with the cross-section the bark encloses there.
+
+**Gap:** The slice asked for "±5% of one height and girth" and "the validator's size envelope" without naming the size, where it lives or how girth is measured.
+
+**Verdict:** sound. The size is the common broadleaf's, so the kind that fills most woods did not change. Placement scales every tree to the forest rule's canopy and draws it 0.9 to 1 wide, which puts the drawn bole at 0.36 to 0.40 m beside the simulation's 0.35 m trunk. **Confidence:** medium: the simulation's trunk radius is not the number checked, only near it.
+
+### The spreading and tall broadleaves were rebuilt into the band
+
+**Choice:** Spreading 10.0 → 10.5 m; tall 11.8 → 11.5 m with its bole 0.32 → 0.40 m.
+
+**Gap:** C73 kept the three kinds "at unchanged sizes"; Q-G8b says all trees are about one height and trunk thickness.
+
+**Verdict:** sound. Placement already drew every kind to one height, so only the tall kind's trunk visibly changed. **Confidence:** high.
+
+### A conifer is the same clumps in another arrangement, with its own far tier
+
+**Choice:** A spruce's clumps are boughs in whorls up one leader under a spire; its far tier is the boughs' outline turned round the leader (a five-ring lathe of 78 triangles), not the lobed volume.
+
+**Gap:** Branch and clump arrangements were delegated; C73 said the far tier is the lobed volume of the tree's own clumps.
+
+**Verdict:** sound. A lobed volume is measured from one centre and misses a spire's tip. The lathe stands inside the boughs like the lobed volume inside its clumps, so the caster is still the tree's own shape, coarser. **Confidence:** high.
+
+### The pine is a broadleaf-form crown, not a second conifer form
+
+**Choice:** Ten flat pads on a seeded lobed crown, 6 m up a bare bole.
+
+**Gap:** Q-G8 names spruce and pine as the conifers and gives one conifer profile to port.
+
+**Verdict:** sound. A Scots pine's crown is an irregular lump on a pole; the whorled spire is the spruce's. It reads as a mushroom on the sheet and as a pine in a stand. **Confidence:** medium.
+
+### A snag is a skeleton, drawn on every tier
+
+**Choice:** A bare kind draws bark alone: the whole skeleton on the two near tiers, the trunk and limbs on the third, the trunk and each limb as one segment on the far tier. Its height is its highest branch end.
+
+**Gap:** The slice named a standing snag; the tiers and the far tier's crown assumed leaves.
+
+**Verdict:** sound. It is 22 triangles at the far tier and nearly vanishes there, which is right for a bare pole. **Confidence:** high.
+
+## C75
+
+**When:** 2026-10-02. Evidence and numbers: the Outcome in [C75](slices/C75-forest-mix-and-colour.md).
+
+### A stand is the cell nearest a seeded point, and its family is drawn by weight
+
+**Choice:** The land is cut into cells about `trees.stands.size_m` (140 m) across, each one family's; a tree is its stand's family `purity` (0.88) of the time and any family's otherwise. A species' weight is its share of all trees, whichever way it is chosen.
+
+**Gap:** "Mostly one family per stand" did not say what a stand is.
+
+**Verdict:** sound. A forest shape is not a stand: one big wood should hold several, and a small one is one. The cells follow the ground, so a wood and the copses past the map share them. Their edges are straight where two cells meet; at 0.88 the mixing hides it. **Confidence:** medium on the two numbers.
+
+### Birch and snag have no family
+
+**Choice:** A species with no `family` is the odd tree in any stand, at its weight's share: birch 6.6%, snag 2%.
+
+**Gap:** "Plus the odd birch and snag" against "weights over all kinds".
+
+**Verdict:** sound. One list of weights still says how often every kind is drawn. **Confidence:** high.
+
+### "Not in the outer ring or in strips" is a row's `interior_m`
+
+**Choice:** The snag's row carries `interior_m: 12`: it stands only that far inside its forest's edge, never in a stroke-shaped forest and never past the map. A tree refused there is drawn as one of its stand's family.
+
+**Gap:** The slice named the rule for snags; the renderer has no notion of a snag.
+
+**Verdict:** sound. The rule is data on the row, not a named kind in the code. 12 m is past one trunk spacing (9 m) and its jitter. **Confidence:** high.
+
+### Conifers differ from broadleaves in hue, not in brightness
+
+**Choice:** Spruce `[0.74, 0.88, 1.25]` and pine `[0.86, 0.9, 1.1]` over the shared leaf colour; birch `[1.1, 1.08, 0.85]`.
+
+**Gap:** Tints were delegated; the slice's own critique question is whether a darker crown reads as cloud shadow.
+
+**Verdict:** provisional. The first tints (spruce `[0.7, 0.86, 1.5]`, birch `[1.25, 1.15, 0.8]`) left the frames' mean luminance within 3 of 255 of today's, but fresh eyes saw conifers' shaded sides go blue-black and birches read as autumn. Both were pulled toward the broadleaf green; the softened tints landed with C76 and were not critiqued again on their own. **Confidence:** medium.
+
+## C76
+
+**When:** 2026-10-02. Evidence and numbers: the Outcome in [C76](slices/C76-canopy-closure.md).
+
+### "Never past the simulation's canopy radius" is held by never drawing a tree wider than its appearance
+
+**Choice:** `trees.forest.girth` is a tree's drawn width as a share of its appearance's own, and the biome refuses a value over 1. The asset validator already holds every appearance inside `forests.rule.canopy_radius_m` (`fit.canopy`), so no drawn crown passes it.
+
+**Gap:** The slice bounds the crown by the simulation's canopy radius, but that number does not reach the renderer: the world layout exports a forest's canopy height only, and this lane may not change `crates/`.
+
+**Verdict:** sound. The simulation's number keeps one owner and placement needs no copy of it. A test places the village's woods and checks every crown against the fixture's radius. Before this, crowns reached 6.95 m against a 6.5 m canopy. The cost: closure is tuned in two places, the art's reach per species and the one `girth` range. **Confidence:** high.
+
+### Crowns no longer fit inside the forest's shape
+
+**Choice:** The clamp to a crown's room inside the shape is deleted. A tree at a wood's edge is as wide as one inside, and its crown overhangs the field.
+
+**Gap:** C73 found blade-thin edge trees and left them here; C86's simulation half says foliage reaches a canopy radius past a strip's edge.
+
+**Verdict:** sound. The drawn crown now follows the simulation's foliage, not the forest floor's outline. The placement comment and the test that said "inside the shape" were rewritten. **Confidence:** high.
+
+### Closure: girth 0.9 to 1, wider conifers
+
+**Choice:** `girth: [0.9, 1]`; the spruce built 5.3 m in reach (from 4.6) and the pine 5.5 m (from 4.9).
+
+**Gap:** Crown scale within the radius was delegated.
+
+**Verdict:** provisional. At one girth for every species the broadleaf stands closed and the conifer stands stayed an orchard (a third of the floor seen); widening the conifers' art closed them to under a quarter. Narrow kinds (birch, the tall broadleaf) stay narrow: they are the gaps. **Confidence:** medium.
+
+### What "mostly closes, floor still seen" means as a check
+
+**Choice:** In the terrain's own class mask, the share of the wood's floor pixels still seen with the trees drawn must lie between 0.12 and 0.40, at 65 m and 120 m over the village's west wood (`web/scenes/_canopy.mjs`).
+
+**Gap:** The slice names "the visible floor share from a models on/off pair" and no number.
+
+**Verdict:** provisional. Below about a tenth the wood is a lid; above four tenths it read as an orchard in the pictures (it measured 0.32 before). The band is wide on purpose: it is a guard, and the pictures decide inside it. **Confidence:** medium.
+
+### The forest floor's drifts are turned noise, with their strengths in the biome
+
+**Choice:** `forestFloor` mixes moss and humus from two octaves each on lattices turned against each other and the map's axes, eased over a wide band; `forest_floor.moss` and `.humus` say how far each takes the litter over, and the patches grew from 4 m to 6 m.
+
+**Gap:** The brief asked for the floor's blockiness to be fixed inside that one function if the floor is to be seen.
+
+**Verdict:** sound. The bare floor's edge density fell from 0.12 to under 0.02 and its darkest twentieth rose from 69 to 83 of 255: no square patches, and no dark blob to read as shadow. Humus at 0.4 is a guess on the safe side. **Confidence:** medium.

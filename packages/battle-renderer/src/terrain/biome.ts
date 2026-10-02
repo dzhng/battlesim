@@ -190,14 +190,18 @@ export interface Shoulder {
   grass: number;
 }
 
-/** The ground under the simulation's forests: leaf litter with patches of moss
- *  and dark humus, crossed by roots, meeting the field across a ragged verge,
+/** The ground under the simulation's forests: leaf litter drifting into moss
+ *  and darker humus, crossed by roots, meeting the field across a ragged verge,
  *  and lit through the canopy in sun flecks. Lengths in metres. */
 export interface ForestFloor {
   /** A palette of at least three colours: litter, moss, humus. */
   palette: string;
-  /** Size of the moss and humus patches. */
+  /** Size of the moss and humus drifts. */
   patch_m: number;
+  /** How far the moss, and the humus, takes the litter over where it lies
+   *  thickest. The humus is the darker: a strong one reads as shadow. */
+  moss: number;
+  humus: number;
   /** Strength of the ground's value noise over the floor. */
   mottle: number;
   /** How far a root darkens the floor, and the spacing of the roots. */
@@ -218,17 +222,36 @@ export interface ForestFloor {
 export interface TreeSpecies {
   /** A catalog appearance whose unit is `tree` (`assets/catalog.json`). */
   appearance: string;
+  /** Its share of all trees, against the other species' weights. */
   weight: number;
   /** Linear multiplier over the appearance's own albedo: the season's green. */
   tint: Rgb;
+  /** The family whose stands it grows in, with the family's other species
+   *  (`stands`). A species of no family is the odd tree among any stand's. */
+  family?: string;
+  /** It stands only this far inside its forest's edge, metres, and never in
+   *  a forest strip or past the map: a bare tree there would draw a gap in
+   *  foliage the simulation has. Only a species of no family may have one. */
+  interior_m?: number;
 }
 
-/** How the simulation's trunks are drawn as trees: each crown stays in its
- *  forest's rect and under its canopy height. */
+/** A wood is stands: patches about `size_m` across, each one family's.
+ *  `purity` of a stand's family trees are of its own family; the rest are of
+ *  any, by weight. */
+export interface StandRules {
+  size_m: number;
+  purity: number;
+}
+
+/** How the simulation's trunks are drawn as trees: each crown under its
+ *  forest's canopy height and within the canopy's radius of its trunk. */
 export interface ForestRules {
   /** Where a crown's top falls, as fractions of the forest's canopy height. */
   top: readonly [number, number];
-  /** Horizontal scale over vertical, per tree (a crown's girth varies more than its height). */
+  /** A tree's width, as a share of its appearance's own: how far the canopy
+   *  closes. At most 1: an appearance is built inside the simulation's canopy
+   *  radius (`fit.canopy`), and no drawn crown may pass it. Past the map,
+   *  where nothing is simulated, it is a tree's width over its height. */
   girth: readonly [number, number];
 }
 
@@ -262,6 +285,7 @@ export interface CopseRules {
 /** `biome.trees`: species and detail for forests and scenery. */
 export interface BiomeTrees {
   species: readonly TreeSpecies[];
+  stands: StandRules;
   /** Per-tree colour variation, as a fraction. */
   colour_jitter: number;
   forest: ForestRules;
@@ -629,6 +653,8 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   if (biome.palettes[f.palette].length < 3)
     bad("forest_floor.palette", "needs three colours: litter, moss, humus");
   within("forest_floor.patch_m", f.patch_m, 0.1, 1000);
+  within("forest_floor.moss", f.moss, 0, 1);
+  within("forest_floor.humus", f.humus, 0, 1);
   within("forest_floor.mottle", f.mottle, 0, 1);
   within("forest_floor.roots", f.roots, 0, 1);
   within("forest_floor.roots_m", f.roots_m, 0.1, 100);
@@ -649,11 +675,24 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
     if (!s.appearance) bad(`trees.species[${i}].appearance`, "is empty");
     within(`trees.species[${i}].weight`, s.weight, 0, 1000);
     tint(`trees.species[${i}].tint`, s.tint);
+    if (s.family !== undefined && !s.family) bad(`trees.species[${i}].family`, "is empty");
+    if (s.interior_m !== undefined) {
+      within(`trees.species[${i}].interior_m`, s.interior_m, 0, 1000);
+      if (s.family !== undefined)
+        bad(
+          `trees.species[${i}].interior_m`,
+          "is for a species of no family: a stand grows to its forest's edge",
+        );
+    }
   });
-  if (!t.species.some((s) => s.weight > 0)) bad("trees.species", "every weight is 0");
+  // Every tree a forest's edge, a strip or the backdrop draws is of a family.
+  if (!t.species.some((s) => s.weight > 0 && s.family !== undefined))
+    bad("trees.species", "no species of a family has a weight");
+  within("trees.stands.size_m", t.stands?.size_m, 1, 100000);
+  within("trees.stands.purity", t.stands?.purity, 0, 1);
   within("trees.colour_jitter", t.colour_jitter, 0, 0.5);
   range("trees.forest.top", t.forest.top, 0.1, 1);
-  range("trees.forest.girth", t.forest.girth, 0.5, 2);
+  range("trees.forest.girth", t.forest.girth, 0.3, 1);
   const h = t.hedgerows;
   if (!h.appearance) bad("trees.hedgerows.appearance", "is empty");
   tint("trees.hedgerows.tint", h.tint);

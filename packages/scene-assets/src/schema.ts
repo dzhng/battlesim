@@ -53,6 +53,7 @@ export const FINDING_CODES = [
   "fit.vehicle_muzzle",
   "fit.muzzle_arc",
   "fit.canopy",
+  "fit.tree_size",
   "fit.footprint",
   /** A type listing a part must draw that part's hardware nodes. */
   "fit.part_nodes",
