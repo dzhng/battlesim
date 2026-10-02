@@ -31,6 +31,9 @@ const NEAR_M: f64 = 1.5;
 /// A road that stops on a settlement's block, or this near one, serves it.
 const SERVED_M: f64 = 30.0;
 const CELL_M: f64 = 64.0;
+/// A road's own paving hides its end only this many widths or more along
+/// it from that end: nearer is the end's own last run.
+const OWN_WIDTHS: f64 = 6.0;
 /// How many ends of each failing kind a report lists.
 const LISTED: usize = 12;
 
@@ -132,7 +135,7 @@ impl End {
 /// a heel or a pair of shoulders in a joint: the joints the joint pass does
 /// not close yet.
 /// Lower it as those are closed, never raise it.
-const FLAWS_PER_TEN_THOUSAND: usize = 10;
+const FLAWS_PER_TEN_THOUSAND: usize = 3;
 
 /// Every carriageway stroke end of `plan`: what it is, where, and whose.
 fn ends(plan: &MapPlan) -> Vec<(End, Point, usize)> {
@@ -167,10 +170,26 @@ fn ends(plan: &MapPlan) -> Vec<(End, Point, usize)> {
                 .into_iter()
                 .map(|share| point(0.0, half * share))
                 .collect();
+            // The road's own paving farther along: a road that comes back
+            // round to itself ends under itself, as under any other.
+            let own = |p: Point| {
+                let mut run = 0.0;
+                let ordered: Vec<Point> = if at == samples[0] {
+                    samples.to_vec()
+                } else {
+                    samples.iter().rev().copied().collect()
+                };
+                ordered.windows(2).any(|pair| {
+                    let before = run;
+                    run += (pair[1][0] - pair[0][0]).hypot(pair[1][1] - pair[0][1]);
+                    before > OWN_WIDTHS * width_m
+                        && contract::ground::segment_distance(pair[0], pair[1], p) <= half + FLUSH_M
+                })
+            };
             let off_map = face.iter().filter(|p| !on_map(**p)).count();
             let hidden = face
                 .iter()
-                .filter(|p| !on_map(**p) || paving.other(index, **p))
+                .filter(|p| !on_map(**p) || paving.other(index, **p) || own(**p))
                 .count();
             // Nothing as wide as it covers any of its face: narrower roads
             // cannot hide it, however they leave.

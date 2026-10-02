@@ -48,15 +48,41 @@ pub(super) fn avenues(
     // block when no other is built across the piece.
     type Piece = ([f64; 2], [Point; 2], Option<usize>, Vec<usize>);
     let mut along: BTreeMap<usize, Vec<Piece>> = BTreeMap::new();
+    // A block's edge along a cut that another block shares any of, off a
+    // road, is a street for its whole length: the street between two blocks
+    // runs on to the corner of the longer one, not to where the shorter one
+    // stops.
+    let backed = |from: usize, to: usize| {
+        mesh.owner
+            .get(&(to, from))
+            .is_some_and(|other| built.contains(other))
+    };
+    let shared: BTreeSet<(usize, usize)> = built
+        .iter()
+        .flat_map(|leaf| {
+            mesh.pieces[*leaf]
+                .iter()
+                .filter(move |(from, to, _)| backed(*from, *to))
+                .filter_map(move |(from, to, edge)| {
+                    let Bound::Cut(id) = ground.leaves[*leaf].bounds[*edge] else {
+                        return None;
+                    };
+                    let cut = &ground.cuts[id];
+                    let middle = cut.at(scale(add(mesh.corners[*from], mesh.corners[*to]), 0.5));
+                    let paved = cut
+                        .paved
+                        .iter()
+                        .any(|(span, _)| span[0] <= middle && middle <= span[1]);
+                    (!paved).then_some((*leaf, id))
+                })
+        })
+        .collect();
     for leaf in built {
         for (from, to, edge) in &mesh.pieces[*leaf] {
             let Bound::Cut(id) = ground.leaves[*leaf].bounds[*edge] else {
                 continue;
             };
-            let backed = mesh
-                .owner
-                .get(&(*to, *from))
-                .is_some_and(|other| built.contains(other));
+            let backed = backed(*from, *to) || shared.contains(&(*leaf, id));
             let cut = &ground.cuts[id];
             let (a, b) = (mesh.corners[*from], mesh.corners[*to]);
             let (s, t) = (cut.at(a), cut.at(b));
@@ -229,7 +255,7 @@ pub(super) fn avenues(
             })
         };
         let dead_end = (0..count).filter(|at| reached[*at]).find(|at| {
-            if !open_end(*at) {
+            if stretches[*at].edge_of.is_none() || !open_end(*at) {
                 return false;
             }
             let mut without = kept.clone();
