@@ -39,6 +39,8 @@ A camera station that hides the judged variable changes the evidence rig, preser
 
 ## Outcome
 
+**Changed since.** [C67](C67-road-shoulder.md), [C70](C70-river-bank-bands.md) and [C30](C30-markings.md) widened the reach the Open item names: the mask's distances are now exact to 4.3 m from a road and 5 m from water. The rig's module also owns what the later slices' checks share (a station's three frames, the mask's pixels, a lab switch's paired frame cost), with the colour measures in `web/scenes/_colour.mjs`.
+
 **Built.** `web/scenes/_groundStations.mjs` is the rig: named poses per map, one frozen page (`openStations`), one way to take a frame (`shoot`), and the mask's decoder (`classAt`). `STATIONS=village,river,generated bun run --cwd web scene -- ground` writes every station's shot, its bare ground (no grass, no trees), its class mask and a sheet per map into `throwaway/evidence/ground/`.
 
 **The seam.**

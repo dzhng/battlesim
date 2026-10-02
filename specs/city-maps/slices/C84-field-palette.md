@@ -38,6 +38,8 @@ Fields that merge into shadow or fog change field palette while retaining accept
 
 ## Outcome
 
+**Changed since.** [C31](C31-city-biome.md): the settlement's kind is `yard`, not `green`. It reaches 40 m from a building (`field_rules.yard_m`), with meadow round it out to `settlement_m`, and is drawn at two thirds of the old green's chroma; `fog-look` still holds its lightness and roughness.
+
 **Built.** Every plot kind has a palette of its own in `fixtures/biomes/summer.json`: olive meadow, pasture and rough, khaki prairie, gold wheat, green-straw barley, yellow rapeseed, hay, pale stubble, brown ploughed earth. The borrowed palettes and `young_crop` are gone; the verge and the distant land moved with them. Colours were drafted in CIELAB (lightness, chroma, hue) and stored as sRGB.
 
 The ground round the houses is a plot kind of its own, `green` (`field_rules.settlement_kind`), on the meadow's former colours and growing what the meadow grows: [SG4](SG4-palette-vs-shadow-floor.md#outcome) found the fog check held there by a hair, and a desaturated meadow under it fails.

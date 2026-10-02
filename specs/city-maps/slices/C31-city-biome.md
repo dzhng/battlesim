@@ -39,6 +39,8 @@ Urban/plain transitions that confuse movement or scale reopen composition, with 
 
 ## Outcome
 
+**Changed since.** The two road checks that failed at `track-65` were restated when the lane was integrated (`22524fa4`; [`choices.md`](../choices.md) under this slice, "A road is judged against the field beside it") and pass.
+
 **Built.** A generated town's ground is its yards, with meadow commons round them; the country road through it is a street as far as the yards go; the plain beyond is the fields it was. Nothing in `crates/` changed.
 
 **What the renderer can know.** `MapDefinition` has no `land_regions`: the compiler refuses a plan that names one. The generator's settlement outlines and blocks leave it only as encounter sites, for the planner; no map holds them, saved or generated, and they reach neither the page nor the renderer. What every map does hold is its buildings, so the urban ground is the plot rule's, which already read them ([`choices.md`](../choices.md)).

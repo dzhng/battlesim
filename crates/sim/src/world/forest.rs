@@ -269,7 +269,7 @@ impl WorldGeometry {
                 .all(|v| (v + step).is_finite() && v + step > *v),
             "forest floor lattice spacing must advance at every bound"
         );
-        let radius = half[0].hypot(half[1]);
+        let radius = libm::hypot(half[0], half[1]);
         let clearance = self.forest.rule.trunk_clearance_m;
         let mut rng = crate::rng::Rng::new(forest_seed(index, forest) ^ salt);
         let mut y = y0 + step / 2.0;
@@ -329,7 +329,7 @@ impl WorldGeometry {
         self.forest
             .bounds
             .push([x - r, y - r, w + 2.0 * r, h + 2.0 * r]);
-        self.refresh_foliage(v2(x + w / 2.0, y + h / 2.0), w.hypot(h) / 2.0 + r);
+        self.refresh_foliage(v2(x + w / 2.0, y + h / 2.0), libm::hypot(w, h) / 2.0 + r);
     }
 
     /// Recompute every foliage cell whose centre lies within `radius` of `center`.

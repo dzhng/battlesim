@@ -43,6 +43,8 @@ Street models that disagree with their body bounds change appearance fit while k
 
 ## Outcome (2026-10-02)
 
+**Changed since.** [C46](C46-street-placement.md), merged alongside: generated maps place these props, at the preset's boxes and not yet at the models'; and a street tree is its own prop type, `street_tree`, still `systems_only` and drawn as a stand-in box.
+
 **Contract as landed.** Every street row of `fixtures/props/city/street.json` is drawn by its own scenery kind (`SCENERY_KINDS`, one `default` state) with one project-owned appearance under `assets/source/street/`, built by `packages/scene-assets/blender/street.py` (seventeen kinds) and `street_car.py` (the car, and its wreck with `--wreck`). No row is `systems_only` any more; no body column changed, and the resolved `fixtures/catalog.json` is current (`catalog::the_browsers_catalog_view_is_current`). `asset check` passes and every appearance fits its box at the catalog's default 0.1 m tolerance, with no per-entry allowance.
 
 **What differs from the slice as written.**

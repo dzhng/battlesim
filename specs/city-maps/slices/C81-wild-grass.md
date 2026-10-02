@@ -39,6 +39,8 @@ Grass silhouette that appears taller than accepted cover changes species/placeme
 
 ## Outcome
 
+**Changed since.** [C84](C84-field-palette.md) and [C31](C31-city-biome.md) added an eleventh plot kind, the settlement's `yard`, with a growth row of its own.
+
 **Built.** Four wild kinds from the generator (`grass_meadow` short meadow, `grass_rough` tall rough, `grass_prairie` dry prairie, `grass_verge` weedy verge) and two new plot kinds, `rough` and `prairie`, beside meadow and pasture. The biome's growth rows point meadow, rough, prairie and the verge at them (as mixes since C82). Nine growth rows and ten kinds: inside the caps of 16.
 
 How a clump is shaded became the biome's, because the old look failed at the play camera: `soften_m_per_px` and `soften` (a clump's dark roots, pale tips and blade facing give way to the ground's as it shrinks on screen), `blade_facing`, `min_blade_px`.

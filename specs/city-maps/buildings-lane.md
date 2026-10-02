@@ -69,9 +69,13 @@ Update this section, not the README, at the end of each pass: what landed, what 
 
 **Decided:** China's family ships first, and New York and Paris are later families through the same exporter, not part of closing this lane; every category the graphs do not cover is our own scripted source; a join between parts is never built, the outline of the abutting boxes is ([choices](choices.md#buildings-lane)).
 
-**In flight:** ruin and gutted art drawn by what a side knows, in a battle (C27); the kits adopting glass, rooms and cutouts.
+**Pickup (the session stopped here on a usage limit, 2026-10-02).** Three passes are not on main; each is a local branch of this repository:
 
-**Then:** the whole-lane review, the choices ledger consolidated, and the one full gate run.
+1. **`worktree-agent-a3d1720ab8272114d`: the China kit with glass, rooms and cutouts. Finished and reported, not merged.** It passed `asset validate`, `bake` and `check` on its own branch; the enclosed balcony reads as the reference look (`throwaway/china/facade/final/` in that worktree). To integrate: merge it, rebake (`asset prototypes`, `bake`, `check`), run `city-lineup`, `city-block` and `facade` through the GPU lock, push. It also found that a smooth vertex's tangent can differ by 1e-4 between exports and now rewrites tangents after export; the scripted sets may need the same.
+2. **`worktree-agent-a0d4f269fc90b238e`: the scripted sets (homes, farmsteads, towers, industry) adopting glass and rooms. Was running when the session stopped**; look at its last commits and its worktree before trusting it.
+3. **`worktree-agent-add980bfd43084047`: ruin and gutted art drawn by what a side knows, in a battle (C27). Was running when the session stopped**; same caution.
+
+**Then:** the whole-lane review, the choices ledger consolidated (`choices.md` is still the per-pass append), the one full gate run, and the lane closed. Open look questions recorded in the slices: glass adds almost no cue that a pane is there (C25), and identical neighbours and unreadable facing in a town (the critic's table below).
 
 **What an unprimed critic saw in the first real town** (eight frames of `/lab/city-block`, 2026-10-02), and where each finding went:
 

@@ -374,7 +374,7 @@ impl WorldGeometry {
         regions.extend_from_slice(self.forest.bounds());
         regions.extend(self.surfaces.navigation_regions());
         for bridge in &self.bridges {
-            let (s, c) = bridge.yaw.sin_cos();
+            let (s, c) = libm::sincos(bridge.yaw);
             let [hx, hy] = bridge.half_extents;
             let x = c.abs() * hx + s.abs() * hy;
             let y = s.abs() * hx + c.abs() * hy;
@@ -453,7 +453,7 @@ impl WorldGeometry {
         for id in self.structure_parts(owner) {
             let prop = self.prop(id)?;
             let center = (prop.center - pivot.center).rotated(-yaw);
-            let (s, c) = (prop.yaw - yaw).sin_cos();
+            let (s, c) = libm::sincos(prop.yaw - yaw);
             let half = v2(
                 c.abs() * prop.half.x + s.abs() * prop.half.y,
                 s.abs() * prop.half.x + c.abs() * prop.half.y,

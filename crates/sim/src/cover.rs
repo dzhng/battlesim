@@ -692,7 +692,7 @@ pub fn step_out<T>(
         let n = ((std::f64::consts::TAU * r / STEP_RING_M).ceil() as usize).max(6);
         for k in 0..n {
             let a = std::f64::consts::TAU * k as f64 / n as f64;
-            let p = from + v2(a.cos(), a.sin()) * r;
+            let p = from + v2(libm::cos(a), libm::sin(a)) * r;
             let tier = known.tier(p, target, rules, radius);
             if best.as_ref().is_some_and(|(t, _, _)| *t >= tier) {
                 continue;

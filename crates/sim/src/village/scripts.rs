@@ -202,7 +202,7 @@ impl Script {
         let near = |c: [f64; 2]| {
             frame.own.iter().any(|u| {
                 is(rules, u.kind, "mbt")
-                    && (u.position[0] - c[0]).hypot(u.position[1] - c[1]) <= CUE_RANGE_M
+                    && libm::hypot(u.position[0] - c[0], u.position[1] - c[1]) <= CUE_RANGE_M
             })
         };
         let fired = frame.contacts.iter().any(|c| {
@@ -291,7 +291,7 @@ impl Script {
         // flush whoever hides in the ruins.
         let arrived = frame.own.iter().any(|u| {
             !is(rules, u.kind, "logistics")
-                && (u.position[0] - village[0]).hypot(u.position[1] - village[1]) <= zone_m
+                && libm::hypot(u.position[0] - village[0], u.position[1] - village[1]) <= zone_m
         });
         let contested = arrived && frame.encounter.is_some_and(|e| e.held_s == 0.0);
         if self.pushed && contested && tick >= self.reshelled + s(RESHELL_S) {
@@ -303,7 +303,8 @@ impl Script {
                 .copied()
                 .filter(|b| {
                     !frame.known_props.iter().any(|p| {
-                        p.replaces.is_some() && (p.center[0] - b[0]).hypot(p.center[1] - b[1]) < 5.0
+                        p.replaces.is_some()
+                            && libm::hypot(p.center[0] - b[0], p.center[1] - b[1]) < 5.0
                     })
                 })
                 .collect();
@@ -313,8 +314,8 @@ impl Script {
             } else {
                 let a = turn as f64 * std::f64::consts::FRAC_PI_2;
                 let goal = [
-                    village[0] + SWEEP_M * a.cos(),
-                    village[1] + SWEEP_M * a.sin(),
+                    village[0] + SWEEP_M * libm::cos(a),
+                    village[1] + SWEEP_M * libm::sin(a),
                 ];
                 let all = self.fighters(frame, rules);
                 out.extend(self.attack_move(all, goal));
@@ -383,5 +384,5 @@ fn hurt(u: &OwnUnit, rules: &Rules) -> bool {
 /// A resting spot within the supply's reach, spread by unit.
 fn near(p: [f64; 2], id: u32) -> [f64; 2] {
     let a = id as f64 * 1.3;
-    [p[0] + 25.0 * a.cos(), p[1] + 25.0 * a.sin()]
+    [p[0] + 25.0 * libm::cos(a), p[1] + 25.0 * libm::sin(a)]
 }

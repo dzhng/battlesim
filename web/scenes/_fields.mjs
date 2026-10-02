@@ -5,10 +5,10 @@
 // plot, and from the strategic height it has faded to its mean.
 // FIELD_COST=1 measures what it costs a frame instead (alone, under the GPU
 // lock).
-import { readFile } from "node:fs/promises";
+import { median, rec709 } from "./_colour.mjs";
 import { lab } from "./_lab.mjs";
-import { decode } from "./_png.mjs";
-import { classAt, openStations, shoot } from "./_groundStations.mjs";
+import { decode, pixel } from "./_png.mjs";
+import { BIOME, classAt, openStations, pairedCost, shoot } from "./_groundStations.mjs";
 
 const MAP = "village";
 /** A plot's interior is judged in blocks this many pixels a side: about a
@@ -31,16 +31,9 @@ const BROAD_DARKEST = 0.97;
 /** From the strategic height a pixel moves less than this many levels. */
 const FAR_LEVELS = 1;
 const COST_PAIRS = 6;
-const COST_FRAMES = 120;
 
-const biome = JSON.parse(
-  await readFile(new URL("../../fixtures/biomes/summer.json", import.meta.url), "utf8"),
-);
-
-const luma = (png, x, y) => {
-  const i = (y * png.width + x) * 4;
-  return 0.2126 * png.data[i] + 0.7152 * png.data[i + 1] + 0.0722 * png.data[i + 2];
-};
+/** A displayed pixel's luma, 0 to 255. */
+const luma = (png, x, y) => rec709(pixel(png, x, y));
 
 /** The bare ground of `station` with the plots' texture on and off, and its
  *  class mask. */
@@ -89,12 +82,11 @@ function blocks({ mask, on, off }, size) {
         const mean = sum / (size * size);
         return { mean, spread: Math.sqrt(Math.max(0, squares / (size * size) - mean * mean)) };
       };
-      out.push({ kind: biome.plots[first.plotKind].name, on: stats(on), off: stats(off) });
+      out.push({ kind: BIOME.plots[first.plotKind].name, on: stats(on), off: stats(off) });
     }
   return out;
 }
 
-const median = (values) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
 const mean = (values) => values.reduce((s, v) => s + v, 0) / values.length;
 const round = (v) => Math.round(v * 1000) / 1000;
 
@@ -160,36 +152,17 @@ export async function fieldTexture(ctx) {
 }
 
 /** FIELD_COST=1: what the plots' texture costs a frame at two stations where
- *  fields fill the view, grass and all: the same frozen frame with it on and
- *  off in a few interleaved batches, the median of the paired differences. */
+ *  fields fill the view, grass and all (`pairedCost`). */
 export async function fieldCost(ctx) {
   const page = await openStations(ctx, MAP);
   const result = { stations: {} };
   for (const station of ["field-65", "field-250"]) {
     await shoot(page, MAP, station);
-    // The page draws on demand, and the timer's mean runs over the frames
-    // drawn: a view change resets it, then every frame is forced.
-    const batch = (off) =>
-      lab(
-        page,
-        async ({ off, frames }) => {
-          await window.__lab.suppressFieldTexture(off);
-          await window.__lab.setFrameView("final");
-          for (let i = 0; i < frames; i++) await window.__lab.frame();
-          return window.__lab.stats().gpu.meanMs;
-        },
-        { off, frames: COST_FRAMES },
-      );
-    const rows = { on: [], off: [] };
-    for (let k = 0; k < COST_PAIRS; k++) {
-      rows.off.push(await batch(true));
-      rows.on.push(await batch(false));
-    }
-    const differences = rows.on.map((v, i) => v - rows.off[i]);
+    const cost = await pairedCost(page, "suppressFieldTexture", COST_PAIRS);
     result.stations[station] = {
-      plainMs: round(median(rows.off)),
-      textureMs: round(median(differences)),
-      differences: differences.map(round),
+      plainMs: round(cost.plainMs),
+      textureMs: round(cost.costMs),
+      differences: cost.differences.map(round),
     };
   }
   result.adapter = await page.evaluate(() => window.__lab.adapter);

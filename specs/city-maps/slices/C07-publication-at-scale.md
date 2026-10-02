@@ -121,7 +121,7 @@ Fixed-row groups now also support an exact source-copy/literal representation.
 The group is assembled in canonical output order from retained source spans and
 new literal spans. It handles scattered insertion, removal and reorder without
 changing simulation identity or ordering. Exact word replacements and snapshots
-remain available; the publisher chooses the smallest payload. Variable-section
+remain available; the publisher chooses the smallest ordinary word payload. Variable-section
 groups retain their word representation. The layout publishes named encodings
 and operation fields; producer and decoder cut over together.
 
@@ -162,7 +162,7 @@ spans. One span enumerator uses exact eight-word old anchors sampled every eight
 words, extends matching spans wordwise, and emits literals between them. There
 is no unit identity, hash collision assumption, second baseline or compression
 dependency. Snapshot and replacement remain alternatives; complete preflight
-selects the smallest payload before writing or advancing any cursor.
+selects the smallest ordinary word payload before writing or advancing any cursor.
 
 Matched standalone codec replay of 450 captured Metro Large/layout-6/seed-4
 contact transitions (ticks 0–450, same frozen simulation/rules) measures the arm
@@ -292,7 +292,10 @@ admission, and adds no allocation beyond the already reserved output. Bit counti
 is bounded by the logical record and operations; no extra sparse-index search
 pass is introduced. Packed carriers may have NaN bit patterns: browser decoding
 reads a u32 alias, never float numbers, and writes reconstructed u32 bits. Existing
-unchanged zero-payload groups still retain their original word/view identities.
+unchanged nonempty zero-payload replacements retain their original word/view
+identities. Empty snapshots recreate empty views. Compact packing applies to the
+selected ordinary form; it does not guarantee the smallest compressed form
+across all alternatives.
 
 Public cold delivery is strictly smaller and matches its complete logical oracle.
 Special float proofs include subnormals, infinities, signed zero and distinct NaN
@@ -490,3 +493,118 @@ identities are unchanged. Native ricochet, flight-collision and publication
 checks, the actual Wasm publication/decoder boundary file, clippy and formatting
 pass. Independent read-only review is clean. This is a sixty-tick causal proof,
 not whole-battle or throughput admission.
+
+### Shared rotation parity correction
+
+The per-tick admission gate next stopped at tick 175: only a squad's suppression
+first differed in persistent state, with unchanged float32 publication. Paired
+transient event capture showed impact-normal and hit-time differences already
+at tick 174, despite matching state digests. Identical prop poses at yaw
+`-1.785965` produced different sine components; a shifted impact endpoint then
+changed a near miss's distance and suppression. Neither suppression nor distance
+is rounded or given an exception.
+
+The existing cached `Rotation` owner now uses pinned `libm::sincos`, preserving
+one argument reduction and the same application arithmetic for cached transforms
+and `V2::rotated`. Public Native `WorldGeometry::raycast` is old-red/new-green
+on one rotated wall; actual Wasm `WorldView` checks the same finite float64 normal
+bits directly, so float32 exports cannot hide the fault. The wall exercises the
+query's existing requirement that a body stops rounds.
+No new API, wrapper or codec is added, and unproven hypot differences remain
+outside this correction. Full five-minute admission remains open.
+
+Fresh optimized Native/Wasm builds match every authoritative digest and raw
+publication bit from construction through tick 175 on the frozen layout-9
+input. Corrected Native tick 175 is `cfa643113f4b1b86`, matching old and fresh
+Wasm, with prior state/wire identities unchanged. Native geometry, collision and
+publication checks and actual Wasm world-query/publication boundary checks pass.
+This is a bounded causal proof; full early/late state, delivery, memory and
+throughput admission still require the per-tick-gated five-minute runs.
+
+
+### Portable authoritative evaluators
+
+The next gated run agreed through tick 212, then diverged only in retained
+structural damage at tick 213 while publication bits still matched. Captured
+blast point, footprint pose, local coordinates and outside-distance components
+were identical. `Obb2::distance` evaluated the same `hypot` inputs as Native
+`401e7a0ec2255684` versus actual Wasm `401e7a0ec2255683`; pinned `libm` matched
+Wasm. That changed blast damage to prop 37790 and its retained integrity. A small
+public rectangle-distance regression is old-red/new-green on those inputs.
+
+After repeated measured failures across construction, aiming, ricochet and
+geometry, authoritative sine, cosine, paired sine/cosine, bearing and 2D norm
+evaluations now consistently use the already pinned software library. This is a
+named Native precision decision across simulation and shared physical contracts,
+not a performance optimization. Arguments, formulas, arithmetic order, RNG
+consumption and rules are unchanged. Existing combined rotation pairs remain
+combined. Generation already used the selected library; its remaining standard
+trig calls are test-only. Other numeric families are outside this decision.
+
+The parent's separate forest-density reversal changes the current rules input.
+The original tick-213 evidence remains a frozen causal control. Current paired
+publication records were refreshed for that input; only authoritative digest
+leaves changed, with float32 publications and fog identities unchanged. Temporary
+diagnostic state exports and event instrumentation were removed. The full
+five-minute state, bandwidth, memory and browser gates remain open.
+
+Fresh optimized Native/Wasm builds agree on every digest and raw publication bit
+from construction through tick 213 on the original frozen input. Corrected
+Native tick 213 is `de32e92713f65f6c`, matching the prior Wasm result; all earlier
+state and publication identities are unchanged. Current-input Native publication,
+geometry, collision and the three admitted town-journey proofs pass, alongside
+actual Wasm world-query/publication boundary checks. This closes the captured
+numerical fault, not current-input five-minute workload or cost admission.
+
+
+## Outcome: shorter variable anchors
+
+Current early admission records match Native/Wasm state and transport for all
+9,000 transitions, but the late gate stops at tick 54 with 21,008 B against the
+unchanged 19,800 B limit. Replay of that immutable corpus shows that every group
+already selects its smallest existing measured candidate at this tick. Correcting
+the ordinary-before-compact selection policy would not resolve this failure.
+
+The existing variable-span owner now uses one shared three-word anchor width for
+index construction and lookup. Short unchanged spans remain reusable after
+variable metadata shifts; matching spans still extend wordwise. Fixed-row
+alignment, grammar, literals, predictors, canonical order and transactional
+admission are unchanged. No second index, selector, baseline, codec or dependency
+is added. One pure-codec regression grows metadata around retained positions,
+including duplicate anchors, NaN payloads and signed zero; it fails at 3,016 B
+with the old width and passes below 1,400 B with exact reconstructed words.
+
+Captured-corpus replay includes every group, fog and ground. Early's 9,000 deltas
+change mean/p95/max from 1,105/3,428/19,388 B to 1,055/3,240/17,152 B. Greedy
+matching worsens 1,014 individual records; all remain under the limit. The 54
+captured late deltas also remain under it, with tick-54/max falling to 19,328 B:
+own saves 968 B, identified 520 B and projectiles 192 B. These are complete
+record sizes, not group-only estimates, and the late window remains partial.
+
+The matched encoder bracket includes index allocation/sorting, measurement,
+admission and emission; decoding, corpus staging and oracles are excluded.
+Early mean/p95/max retired instructions rise from 1.064/1.932/7.584 M to
+1.769/3.009/8.889 M: +0.705 M mean, +66.3%. The captured late mean rises from
+7.515 to 8.923 M (+18.7%). These are encoder costs, not observation packing,
+whole-step or browser throughput measurements.
+
+Under the existing 64 MiB logical ceiling, exact-reserved u32 indices now need
+at most 22,369,620 requested bytes (21⅓ MiB), replacing the earlier 12.8 MiB
+aggregate bound. Every index partitions the same prior baseline; fixed rows
+have wider anchors. Sorting stays bounded O(oldWords log oldWords), candidate
+lookups examine three words, and planning/emission retain their existing bounded
+scans. Requested index capacity is not allocator/RSS or process peak memory;
+cold snapshots construct no source index. Wire, snapshot and 4 GiB peak admission
+budgets are not raised. Full current late delivery/state, peak overlap and
+browser admission remain open after this captured-window proof.
+
+Fresh optimized actual Native/Wasm playback agrees on all 55 state digests and
+raw publications from construction through tick 54, then on blue resync and red
+side switch. Every Native state digest also matches the immutable prior control;
+tick 54 now delivers 19,328 B. The real production decoder reconstructs all 55
+records, matches complete fresh observations and raw ground at ticks 0/54,
+preserves retained views and accepts a corrected malformed-generation retry.
+Native codec/publication and actual Wasm publication, group-decoder and worker
+carrier-copy checks, formatting and clippy pass. The paired combat fixture changes
+only transport hashes. This is the measured partial late repair; the complete
+late window remains the next admission gate.

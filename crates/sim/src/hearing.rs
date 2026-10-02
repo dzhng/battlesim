@@ -47,7 +47,7 @@ pub fn hear(
                 continue;
             };
             let to = source.position.xy() - listener.position.xy();
-            let angle = to.y.atan2(to.x).rem_euclid(std::f64::consts::TAU);
+            let angle = libm::atan2(to.y, to.x).rem_euclid(std::f64::consts::TAU);
             cues.push(SoundCue {
                 listener: listener.id,
                 category,

@@ -1,22 +1,27 @@
-// The biome's ground material on the GPU: per pixel, the plot under the
-// point (walking the plot split), its own texture (rows, grain, wheelings,
-// dry patches: `fieldTexture`), the verge along every plot edge, then the
-// forest floor, the roads and the water
-// bed exactly where the simulation's rules put them. It returns linear albedo
-// and roughness; lighting, shadow and FogTerm stay with the world pass.
+// The biome's ground material on the GPU. `groundColour` paints a point in
+// layers, each a term of its own below, the lowest first:
+// - the plot under the point (walking the plot split), with its own texture
+//   (rows, grain, wheelings: `fieldTexture`; dry patches: `mottle`), and the
+//   verge along every plot edge;
+// - the forest floor (`forestFloor`: leaf litter, moss, humus, roots) over
+//   the simulation's forest shapes;
+// - the shore's bands along the water (`groundShore`);
+// - the roads (`groundRoads`), each kind its own surface (`biome.roads`);
+// - the water bed.
+// It returns linear albedo and roughness; lighting, shadow and FogTerm stay
+// with the world pass, which also reads the terms that only shade: a bank's
+// slope (`groundBank`), a road's ruts and curb (`groundRoadRelief`), the sun
+// flecks under the crowns (`groundDapple`), the water's surface
+// (`waterSurface`) and the side's learned scars (`groundScars`).
 //
-// The plot edges wander (a small warp gives them a hand-cut line); the road
-// and water masks are the simulation's own shapes, so a road's 50% blend is
-// on the road rule's edge. Each kind of road is its own surface (`biome.roads`),
-// and the ground beside it is worn across a shoulder the grass thins over:
-// the rule is the surface, the shoulder is only its look. A town street has
-// a paved walk there instead, a curb along its edge and painted lines. The forest floor
-// (leaf litter, moss, humus, roots)
-// covers the simulation's forest shapes and meets the field across a ragged
-// verge on each shape's edge: the shape stays the rule, only its
-// look is softened. Under the crowns, `groundDapple` lets sun flecks through.
-// Detail finer than a pixel fades to its mean, so the patchwork neither
-// shimmers nor changes value with zoom.
+// Every edge is the simulation's own shape, and only its look is softened.
+// A road's 50% blend is on the road rule's edge; the ground beside it is
+// worn across a shoulder the grass thins over, and a town street has a paved
+// walk there instead, a curb along its edge and painted lines. The forest
+// floor meets the field across a ragged verge on each shape's edge. The plot
+// edges wander (a small warp gives them a hand-cut line). Detail finer than
+// a pixel fades to its mean, so the patchwork neither shimmers nor changes
+// value with zoom.
 //
 // Rewritten from reading ~/dev/game
 // battle-renderer/src/shaders/terrainMaterial.ts: the mottle, drift and
@@ -40,13 +45,7 @@ import {
   type SurfaceReach,
 } from "../terrain/surfaceField";
 import { CUT_A, CUT_B } from "../terrain/strokes";
-import {
-  drawnKind,
-  isRoad,
-  pavedKinds,
-  SURFACE_AREA_KINDS,
-  type SurfaceAreaKind,
-} from "../terrain/surfaces";
+import { isRoad, pavedKinds, SURFACE_AREA_KINDS, type SurfaceAreaKind } from "../terrain/surfaces";
 import {
   CLASS_EDGE,
   CLASS_FOREST_SHIFT,
@@ -59,13 +58,13 @@ import { GRASS_EDGE_M } from "../terrain/grassField";
 import { longestBank } from "../terrain/rivers";
 import {
   linearRgb,
+  roadRow,
   SCAR_CHANNELS,
   type Biome,
   type ForestFloor,
   type Road,
   type ScarMark,
 } from "../terrain/biome";
-import { pick } from "@packages/renderer-core/src/kindTable";
 import type { Rgb } from "../light/sceneLight";
 import type { GpuRegistry, GpuSlot } from "./registry";
 import { groundFilterReady, scarFilterQuanta, scarFilterPosition } from "./scarFilter";
@@ -142,8 +141,8 @@ const TerrainParams = d.struct({
   shape: d.vec4f,
   /** Linear rgb, verge half width. */
   verge: d.vec4f,
-  /** Verge feather, unused, and the pixel footprints (metres) over which
-   *  plots give way to the distant colour. */
+  /** Verge feather, the pixel footprints (metres) over which plots give way
+   *  to the distant colour, then unused. */
   feathers: d.vec4f,
   /** Each paved kind's look, by its tag (`SURFACE_AREA_KINDS`). */
   roads: d.arrayOf(RoadLook, ROAD_KINDS),
@@ -311,6 +310,9 @@ const WHEEL_GAUGE_ROWS = 2;
  *  ochre, as drier grass or crop. Never toward blue, as a shadow under the
  *  sky is. */
 const MOTTLE_DRY = d.vec3f(0.7, 0, -0.9);
+/** Rec. 709's weights: a linear colour's luminance is its dot with them. */
+const LUMA_WEIGHTS = [0.2126, 0.7152, 0.0722] as const;
+const LUMA = d.vec3f(...LUMA_WEIGHTS);
 /** The steepest the ground's shading normal is ever tilted (tan of 40°):
  *  past it the ground takes a grey sheen off the sky that reads as fog. */
 const MAX_SLOPE = 0.84;
@@ -470,9 +472,8 @@ export const groundTint = tgpu.fn(
   d.vec3f,
 )((albedo, dry) => {
   "use gpu";
-  const luma = d.vec3f(0.2126, 0.7152, 0.0722);
   const tinted = std.mul(albedo, std.add(d.vec3f(1), std.mul(MOTTLE_DRY, dry)));
-  return std.mul(tinted, std.dot(albedo, luma) / std.max(std.dot(tinted, luma), 1e-5));
+  return std.mul(tinted, std.dot(albedo, LUMA) / std.max(std.dot(tinted, LUMA), 1e-5));
 });
 
 /** How far `xy` lies inside rect `r` (negative outside). */
@@ -584,8 +585,8 @@ export const groundForest = tgpu
  *  (negative outside), `forest` metres inside the simulation's forest. The
  *  drawn edge is a verge `verge_m` wide lying mostly outside the shape, its
  *  line wandering and broken into patches, so the wood meets the field
- *  without a ruled edge. The native shape stays the rule; this is only its look, and
- *  the grass stops at whichever edge lies farther out. */
+ *  without a ruled edge. The native shape stays the rule; this is only its
+ *  look, and the grass stops at whichever edge lies farther out. */
 export const forestVergeInside = tgpu.fn(
   [d.vec2f, d.f32],
   d.f32,
@@ -967,7 +968,7 @@ const atLeast = tgpu.fn(
   d.vec3f,
 )((colour, least) => {
   "use gpu";
-  const luminance = std.dot(colour, d.vec3f(0.2126, 0.7152, 0.0722));
+  const luminance = std.dot(colour, LUMA);
   return std.mul(colour, std.max(1, least / std.max(luminance, 1e-5)));
 });
 
@@ -1125,7 +1126,7 @@ const RUT_STEEPEST = 1.5396;
  *  in a rut and lighter between by the ruts' share of the road, so the
  *  road's mean never changes. Ruts run at their kind's distances either side
  *  of a stroke's centreline, where the stroke is wide enough to hold them. */
-export const groundRuts = tgpu
+const groundRuts = tgpu
   .fn(
     [d.vec2f, d.f32, GroundPaved],
     d.vec3f,
@@ -1157,12 +1158,11 @@ export const groundRuts = tgpu
  *  `(wear, kind's tag)`. On a road's own surface the wear is 1, less on a
  *  track's grass centre strip (`groundStrip`); beside a road it is 1 at the
  *  edge and 0 past its shoulder. A shoulder is its kind's `width_m` at the
- *  widest; its outer edge
- *  wanders inward from there by noise fixed to the ground (never outward, so
- *  nothing is read past the width), and the wear fades to that edge, broken
- *  toward it by tufts of the field. The
- *  ground's colour and the grass both read it: grass thins exactly where the
- *  ground shows worn. `paved` is the point's `groundPaved`. */
+ *  widest; its outer edge wanders inward from there by noise fixed to the
+ *  ground (never outward, so nothing is read past the width), and the wear
+ *  fades to that edge, broken toward it by tufts of the field. The ground's
+ *  colour and the grass both read it: grass thins exactly where the ground
+ *  shows worn. `paved` is the point's `groundPaved`. */
 export const groundShoulder = tgpu
   .fn(
     [d.vec2f, d.f32, GroundPaved],
@@ -1254,7 +1254,7 @@ const CURB_PIXELS = [0.25, 0.6] as const;
  *  inside it, as the slope shading reads there (rise per metre; the ground
  *  itself is never moved). There is none where another road covers the
  *  edge: across a street's mouth, or where two streets meet. */
-export const groundCurb = tgpu
+const groundCurb = tgpu
   .fn(
     [d.f32, GroundPaved],
     d.vec3f,
@@ -1311,12 +1311,12 @@ const MARK_WEAR_M = 1.3;
  *  runs down the stroke's middle, laid out by the distance along it; a dash
  *  that would reach a road that crosses, or its crossing, is left out whole
  *  (it is judged at the end of it nearer that road, as far as the road runs
- *  straight). Where a road does cross (a carriageway's
- *  stroke that runs on across this road's whole width, not one that ends in
- *  it), a crossing's bars lie on this road before it: along the road, side
- *  by side across it, clear of its edges. Every line is on its own road's
- *  surface, inside its edge: none reaches a walk. */
-export const groundMarks = tgpu
+ *  straight). Where a road does cross (a carriageway's stroke that runs on
+ *  across this road's whole width, not one that ends in it), a crossing's
+ *  bars lie on this road before it: along the road, side by side across it,
+ *  clear of its edges. Every line is on its own road's surface, inside its
+ *  edge: none reaches a walk. */
+const groundMarks = tgpu
   .fn(
     [d.vec2f, d.f32, GroundPaved],
     d.f32,
@@ -1376,17 +1376,16 @@ export const groundMarks = tgpu
  *  First the worn shoulder beside them (`groundShoulder`), in its kind's
  *  colour: lifted to the luminance of the ground it lies on where that is the
  *  brighter, so worn ground differs from the field by hue and is never a
- *  darker band along the road. Then
- *  each row's paving as its own surface (`biome.roads`), feathered across its
- *  edge over a pixel at least, the lower layers under the higher, so a track
- *  ends at the edge of the road it joins, and a street's walk lies under
- *  every road; there the track's earth is carried
- *  a way onto the road (its own `join_m`), thinning out. A surface is its colour, in patches a
- *  second hue at the same brightness, under its grain; along a stroke's
- *  lanes it is shaded by its ruts (`groundRuts`), and a narrow track's
- *  middle goes to the verge's grass (`groundStrip`); a walk is crossed by
- *  its slabs' joints (`walkJoint`). Last a street's painted lines
- *  (`groundMarks`), worn in patches, and its kerbstones along its edge
+ *  darker band along the road. Then each row's paving as its own surface
+ *  (`biome.roads`), feathered across its edge over a pixel at least, the
+ *  lower layers under the higher, so a track ends at the edge of the road it
+ *  joins, and a street's walk lies under every road; there the track's earth
+ *  is carried a way onto the road (its own `join_m`), thinning out. A surface
+ *  is its colour, in patches a second hue at the same brightness, under its
+ *  grain; along a stroke's lanes it is shaded by its ruts (`groundRuts`), and
+ *  a narrow track's middle goes to the verge's grass (`groundStrip`); a walk
+ *  is crossed by its slabs' joints (`walkJoint`). Last a street's painted
+ *  lines (`groundMarks`), worn in patches, and its kerbstones along its edge
  *  (`groundCurb`). `paved` is the point's `groundPaved`. */
 const groundRoads = tgpu
   .fn(
@@ -1499,7 +1498,7 @@ export const groundColour = tgpu.fn(
   const inRegion = rectInside(xy, params.region);
   const distant = std.max(
     1 - std.smoothstep(0, DISTANT_FADE_M, inRegion),
-    std.smoothstep(params.feathers.z, params.feathers.w, footprint),
+    std.smoothstep(params.feathers.y, params.feathers.z, footprint),
   );
   albedo = std.mix(albedo, params.distant.xyz, distant);
 
@@ -1517,10 +1516,9 @@ export const groundColour = tgpu.fn(
   // verge's toward the plot's edge.
   const shore = groundShore(xy, footprint, water);
   if (shore.y > 0) {
-    const luma = d.vec3f(0.2126, 0.7152, 0.0722);
     const field = std.mix(
-      std.dot(params.verge.xyz, luma),
-      std.dot(plot.colour.xyz, luma) * (1 - 0.5 * plot.rows.w),
+      std.dot(params.verge.xyz, LUMA),
+      std.dot(plot.colour.xyz, LUMA) * (1 - 0.5 * plot.rows.w),
       std.smoothstep(0, SHORE_FIELD_EASE_M, site.y),
     );
     const least = field * params.shoreEdge.z;
@@ -1822,9 +1820,9 @@ const crossing = tgpu.fn(
  *  The cells are reconstructed by a cubic B-spline and cut by hard,
  *  noise-wandered iso-lines, anti-aliased over one pixel whatever the zoom:
  *  the bowl's lip, the outer edge of its ring of thrown soil, each rut's
- *  edge, and flecks of ash near a burst. Shadows here are soft-edged and even; scars are
- *  hard-edged and ragged. The bowl and rim add a slope. Zero off the grid
- *  and where nothing is marked. */
+ *  edge, and flecks of ash near a burst. Shadows here are soft-edged and
+ *  even; scars are hard-edged and ragged. The bowl and rim add a slope. Zero
+ *  off the grid and where nothing is marked. */
 export const groundScars = tgpu
   .fn(
     [d.vec2f, d.f32],
@@ -2132,9 +2130,9 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
         verge: d.vec4f(...one(biome.verge.palette), biome.verge.width_m / 2),
         feathers: d.vec4f(
           biome.verge.feather_m,
-          0,
           rules.size_m[0] * PLOT_PIXELS_FADE[0],
           rules.size_m[0] * PLOT_PIXELS_FADE[1],
+          0,
         ),
         roads: roadLooks(biome, pavedKinds(site)),
         roadOrder: d.vec4u(...roadOrder(biome, pavedKinds(site))),
@@ -2243,8 +2241,8 @@ export function groundReach(biome: Biome, footprint: number, bankM = 0): Surface
   };
 }
 
-const LUMA = [0.2126, 0.7152, 0.0722] as const;
-const luminance = (c: readonly number[]) => c[0] * LUMA[0] + c[1] * LUMA[1] + c[2] * LUMA[2];
+const luminance = (c: readonly number[]) =>
+  c[0] * LUMA_WEIGHTS[0] + c[1] * LUMA_WEIGHTS[1] + c[2] * LUMA_WEIGHTS[2];
 
 /** The row of the look table for the paved kind tagged `tag`, drawn as
  *  `road`. The patches' colour is scaled to the surface's own luminance: a
@@ -2306,13 +2304,13 @@ function roadLook(road: Road, tag: number, palettes: Biome["palettes"]) {
 
 /** The look table, in the order of the kinds' tags: for each paved kind the
  *  row of `biome.roads` it is drawn by on a map whose areas name `named`
- *  (`drawnKind`), or the default. */
+ *  (`roadRow`). */
 export function roadLooks(
   biome: Biome,
   named: ReadonlySet<SurfaceAreaKind> = new Set(SURFACE_AREA_KINDS),
 ) {
   return SURFACE_AREA_KINDS.map((kind, tag) =>
-    roadLook(pick(biome.roads, drawnKind(kind, named)), tag, biome.palettes),
+    roadLook(roadRow(biome, kind, named), tag, biome.palettes),
   );
 }
 
@@ -2324,7 +2322,7 @@ export function roadOrder(
   named: ReadonlySet<SurfaceAreaKind> = new Set(SURFACE_AREA_KINDS),
 ): [number, number, number, number] {
   const layer = (tag: number) =>
-    pick(biome.roads, drawnKind(SURFACE_AREA_KINDS[tag], named)).layer ?? ROAD_KINDS - tag;
+    roadRow(biome, SURFACE_AREA_KINDS[tag], named).layer ?? ROAD_KINDS - tag;
   const [a, b, c, e] = SURFACE_AREA_KINDS.map((_, tag) => tag).sort(
     (x, y) => layer(x) - layer(y) || y - x,
   );

@@ -205,7 +205,7 @@ impl SideKnowledge {
             }
             let r = radius(shooter) * self.rng.unit().sqrt();
             let a = std::f64::consts::TAU * self.rng.unit();
-            let center = at + v2(a.cos(), a.sin()) * r;
+            let center = at + v2(libm::cos(a), libm::sin(a)) * r;
             self.new_contact(area(ContactSource::Firing, center, shooter, None, heard));
         }
         self.contacts.retain(|c| c.expires_tick >= tick);
