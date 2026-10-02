@@ -44,20 +44,29 @@ Test in proportion: the narrow tests for what changed and the one or two scenes 
 
 ## Status
 
-**2026-10-01.** The rig, the water's edge, grass and crops, and the tree skeleton are in; roads, fields and the forest are in flight.
+**2026-10-02.** Steps 1 to 6 of the work order and the town streets are on main; the forest floor, the street models and the composition slice are in flight; the composition gate is last.
 
-- **Landed:**
-  - [C62](slices/C62-ground-evidence-rig.md#outcome): named stations on the village, the river lab and a generated map; the `ground-classes` frame view (the terrain's own class mask); `suppressTrees`. `STATIONS=village,river,generated bun run --cwd web scene -- ground` writes each station's shot, bare ground, mask and a sheet into `throwaway/evidence/ground/`; `STATIONS=map:station+station` shoots only those.
-  - [C70](slices/C70-river-bank-bands.md#outcome), [C71](slices/C71-river-bank-roundness.md#outcome): a wet band and bare earth at or above the grass's luminance, water with its own colour and light lanes, the bank's tilt capped at 40°.
-  - [C80](slices/C80-grass-presets.md), [C81](slices/C81-wild-grass.md#outcome), [C82](slices/C82-within-field-variation.md#outcome), [C83](slices/C83-crops.md#outcome): ten generated grass kinds, a field as a weighted mix that varies in patches, crops drilled on the plot's rows, all under 0.9 m. Two new plot kinds (`rough`, `prairie`) reshuffle which plot is which on every map.
-  - [C73](slices/C73-tree-skeleton.md#outcome) with SG1's tree verdict: skeleton trees with solid clumps on three tiers, a per-tier triangle budget in the validator (10,000 / 2,500 / 500 / 80).
-- **The ground now:** shoot `STATIONS=village:bend-25+wheat-25+meadow-65+forest-edge-65` for the current look. Close up, crops and grass read as planted fields; at 65 m a field is flat colour with speckle; crowns are clumped masses; the river reads as water with a tan bank. Roads are still one flat pale band on main; the forest floor is blocky.
-- **Open, for the passes in flight or C87:**
-  - Water's edge: the bank is a flat tan stripe with no slope cue; its outer line is a chain of lobes at 250 m; the light lanes read as lane markings from high up. Both frame-cost rows are owed.
-  - Grass: several ground kinds are not told apart and rapeseed has no yellow (C84's palettes); the field at 65 m needs C85's ground texture; teal streaks between rapeseed rows and one-sided tuft shading at 25 m are unfixed.
-  - Trees: crowns are less open than Q-G7 asks (cost); blade-thin crowns at forest edges (C75/C76).
-- **In flight:** C66 → C68 country roads; SG4, C84 → C85 fields and fields on generated maps; C74 → C76 forest.
-- **Next:** town streets C28 → C30 after roads; C78, C79 and the drawn half of C86 after the forest; then C45, C31, C87.
-- **For the other lanes:** `BattleFrame` gained `setTreesShown` and the `ground-classes` view; `post.encode` takes a mode (`look`, `ungraded`, `raw`). The biome's `shore`, `water` and `grass` rows changed shape. No pass was added to the frame. Generated maps do carry rivers (mixed, medium, seed 2 has one).
-- **Checkpoints:** the baseline, the banks, the grass and the trees were each shown in Preview for five minutes without comment and kept as merged.
+- **Landed** (each slice's Outcome has its seam, numbers and open items):
+  - Rig: [C62](slices/C62-ground-evidence-rig.md#outcome). `STATIONS=village,river,generated bun run --cwd web scene -- ground` writes each station's shot, bare ground, class mask and a sheet into `throwaway/evidence/ground/`; `STATIONS=map:station+station` shoots only those.
+  - Country roads: [C66](slices/C66-road-core.md#outcome), [C67](slices/C67-road-shoulder.md#outcome), [C68](slices/C68-ruts-and-centre-strip.md#outcome), with [SG3](slices/SG3-road-wear-read.md)'s verdict: each kind's own surface; the shoulder is a wash of hue with thinned grass, not a band; ruts and a centre strip on the dirt track only.
+  - Town streets: [C28](slices/C28-pavement.md#outcome), [C29](slices/C29-curbs.md#outcome), [C30](slices/C30-markings.md#outcome): asphalt, a drawn walk, a shaded curb, centre dashes and crossings.
+  - Water's edge: [C70](slices/C70-river-bank-bands.md#outcome), [C71](slices/C71-river-bank-roundness.md#outcome).
+  - Trees and forest: [C73](slices/C73-tree-skeleton.md#outcome) with [SG1](slices/SG1-tree-and-dressing-cost.md)'s tree verdict, [C74](slices/C74-tree-species.md#outcome), [C75](slices/C75-forest-mix-and-colour.md#outcome), [C76](slices/C76-canopy-closure.md#outcome): seven kinds from one generator inside a per-tier triangle budget, stands of one family, closure at 0.23 of the floor seen (accepted by the user; a unit under a closed crown is found by its x-ray).
+  - Grass and fields: [C80](slices/C80-grass-presets.md), [C81](slices/C81-wild-grass.md#outcome), [C82](slices/C82-within-field-variation.md#outcome), [C83](slices/C83-crops.md#outcome), [SG4](slices/SG4-palette-vs-shadow-floor.md), [C84](slices/C84-field-palette.md#outcome), [C85](slices/C85-field-texture.md#outcome), and fields that lie along their roads on generated maps.
+- **The ground now:** shoot `STATIONS=village:bend-65+field-65+forest-edge-65+patchwork-1100,generated:overview-2500+junction-65+country-250`. The village reads as muted farmland with a mixed wood and gravel roads; the generated town has asphalt streets with walks and crossings between the buildings lane's buildings.
+- **Open, for C31, C87 or a later pass:**
+  - A gravel country road runs through the generated town and reads as asphalt in shadow; the ground between town buildings is a saturated lawn green (SG4: no palette can desaturate it without failing `fog-look` under `grey-veil`). Both are C31's.
+  - Meadow reads as felt and ploughed earth as rippled sand; crop fields from 250 m read as corduroy. Wedge plots where a curving road cuts the land need field polygons from the map.
+  - A wide road at 250 m is a plain ribbon; the track's bend and the village's road elbow are too tight (C65's rounding).
+  - The bank is a flat tan stripe; its outer line is lobed at 250 m; the water's light lanes read as lane markings from high up.
+  - Crowns are lumped, not open (cost); trunks stand in rows (the forest rule's grid).
+  - Bare ground within 5 m of the village's gravel road reads about 6% darker than the field beyond, cause not found (`choices.md`, "Ground lane integration").
+  - Frame cost: every pass measured paired on/off under a loaded machine and most rows did not resolve; C87 owns the lane's budget on a quiet run.
+- **In flight:** C78, C79 and the drawn half of C86 (forest floor); C45 (street models); C31 (urban and plain composition).
+- **Next:** C87, the composition gate.
+- **For the other lanes:**
+  - Map lane: the village map should name its roads `country_road` (then `drawnKind` in `terrain/surfaces.ts` goes); generated towns export no `sidewalk` and nothing says "urban"; `land_regions` reaches no consumer; C69's "no layout writes a river" is stale; the trunk grid reads as rows.
+  - Fog styles' owner: `grey-veil` separates seen from unseen by about 1 unit at `default-wall`; no palette widens it.
+  - Interfaces that changed: `BattleFrame` gained `setTreesShown`, `setRoadWearShown`, `setFieldTextureShown` and the `ground-classes` view; `post.encode` takes a mode; the world export's paved `kind` column indexes `surfaceAreaKinds`; the biome's `roads`, `shore`, `water`, `grass`, `plots`, `trees` and `forest_floor` rows changed shape. No pass was added to the frame.
+- **Checkpoints:** every pass's shots were opened in Preview for five minutes. The user answered one: canopy closure at 0.23 is fine. The rest were kept as merged.
 - **GPU budget for every pass** (the user's): tune on two stations with at most three variants a round and two rounds a slice; shoot the full station set once per slice; one short paired cost run per slice.
