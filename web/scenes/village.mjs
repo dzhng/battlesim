@@ -3643,8 +3643,9 @@ async function playTour(ctx) {
     JSON.stringify(tags),
   );
 
-  // Zoomed out, where the two tanks' callouts would pile up, none sits under
-  // the bars and none overprints another.
+  // Far views keep compact cards and allow depth-ordered overlap, while
+  // keeping the HUD clear.
+  await pointerOffCanvas(page);
   await lab(page, () =>
     window.__lab.setCamera({ ...window.__lab.camera(), target: [300, 800, 0], distance: 1150 }),
   );
@@ -3654,21 +3655,19 @@ async function playTour(ctx) {
       const r = e.getBoundingClientRect();
       return { x0: r.left, x1: r.right, y0: r.top, y1: r.bottom };
     };
-    const shown = (sel) =>
-      [...document.querySelectorAll(sel)].filter((e) => e.style.display !== "none").map(box);
     return {
       panels: [...document.querySelectorAll("[data-occludes-readouts]")].map(box),
-      readouts: shown(".ro-unit"),
+      readouts: [...document.querySelectorAll(".ro-unit")]
+        .filter((e) => e.style.display !== "none")
+        .map((e) => ({ ...box(e), zoom: e.dataset.zoom })),
     };
   });
   const overlap = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
   ctx.check(
-    "no readout sits under the HUD's bars or overprints another",
+    "far readouts remain compact and clear of the HUD's bars",
     placed.readouts.length > 0 &&
       placed.readouts.every(
-        (b, k, all) =>
-          placed.panels.every((p) => !overlap(b, p)) &&
-          all.every((c, j) => j === k || !overlap(b, c)),
+        (b) => b.zoom === "compressed" && placed.panels.every((p) => !overlap(b, p)),
       ),
     JSON.stringify(placed),
   );
@@ -3681,9 +3680,23 @@ async function playTour(ctx) {
       kind: "attack_move",
       units: window.__lab.route.observation().own.map((u) => u.id),
       gesture: 9,
-      goal: [1000, 800],
+      goal: [700, 800],
     }),
   );
+  await advance(page, 1);
+  await page.waitForFunction(
+    () => window.__lab.route.acks().some((entry) => entry.order.gesture === 9),
+    undefined,
+    { timeout: 5000 },
+  );
+  const approach = (await lab(page, () => window.__lab.route.acks())).find(
+    (entry) => entry.order.gesture === 9,
+  ).ack;
+  const admitted =
+    approach && !approach.error && approach.placement?.destinations.some((d) => d.placed);
+  ctx.check("the sound approach admits observers", !!admitted, JSON.stringify(approach));
+  await ctx.writeEvidence("play-contact-approach.json", approach ?? null);
+  if (!admitted) return page.close();
   const heard = await until(page, (o) => o.audible.length > 0, 30 * 240, 1);
   const cue = heard?.audible.at(-1);
   const listener = cue && heard.own.find((u) => u.id === cue.listener);
@@ -3730,7 +3743,10 @@ async function playTour(ctx) {
   // Restart starts again from the seed with an empty log.
   await restart(page);
   await page.waitForFunction(
-    () => window.__lab.route.acks().length === 0 && window.__lab.route.tick() < 60,
+    () => {
+      const route = window.__lab?.route;
+      return !!route && route.acks().length === 0 && route.tick() < 60;
+    },
   );
   ctx.check("restart rebuilds from the seed", true);
 
