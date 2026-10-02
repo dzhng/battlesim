@@ -40,6 +40,8 @@ Ruts that dominate the road read change rut coverage/depth; road width and mater
 
 ## Outcome
 
+**Changed since.** [C28](C28-pavement.md): a generated town's streets are strokes and do have lanes ([C30](C30-markings.md) lays their dashes along them), and the stroke's kind is in `GroundPaved.run`, not `lane`.
+
 **Built for the dirt track; cut on the country road** ([SG3](SG3-road-wear-read.md#outcome)). A dirt track up to 5 m wide has a pair of wheel ruts and a strip of grass between them. The gravel road's `ruts` row is empty: every shape of rut tried on it read as pinstripes.
 
 **The seam.**

@@ -66,6 +66,8 @@ verification, not a claim that the rendered hedgerow has passed its gate.
 
 ## Outcome — drawn half (2026-10-02)
 
+**Changed since.** The open-country pass ([`choices.md`](../choices.md), "Open country") writes tree lines as stroke forests on generated maps, so the picture, the hedgerow comparison and the cost row this Outcome waits for can now be taken on one. There is still no `farmland` lab.
+
 **No map has a tree line.** No saved map holds a stroke forest and the generator makes none, and the `farmland` lab is the map lane's. So the drawn half is held by tests on an inline map (a strip 10 m wide, bent once) and has no picture: no hedgerow comparison, no critique, no 40-strip frame-cost row. Those wait for the first map with a strip.
 
 **What is true of a drawn tree line, and where it is held** (`web/tests/scenery.test.ts`, `web/tests/surfaces.test.ts`):
