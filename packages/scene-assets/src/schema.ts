@@ -65,6 +65,20 @@ export const FINDING_CODES = [
   "nodes.duplicate",
   "nodes.track_properties",
   "nodes.deploy_motion",
+  // city kits: a kit's modules, and its bundle's byte budget
+  "kit.module",
+  "kit.bytes",
+  // city template sets (`templateSource.ts`): the source file, its rows, the
+  // physical contract, fit to the descriptor, and the catalogue it covers
+  "templates.source",
+  "templates.kit",
+  "templates.row",
+  "templates.module",
+  "templates.state",
+  "templates.physical",
+  "templates.fit",
+  "templates.catalogue",
+  "templates.coverage",
 ] as const;
 export type FindingCode = (typeof FINDING_CODES)[number];
 
@@ -75,14 +89,16 @@ export type BundleKind = "skinned" | "articulated" | "static";
 /** What an appearance draws. A soldier kind names soldier appearances as its
  *  set and a hull type its vehicle appearance (the unit catalog); "scenery"
  *  is every prop, tree, hedgerow and grass kind, which one the entry's
- *  `scenery` (`scenery.ts`). */
-export type AppearanceUnit = "soldier" | "vehicle" | "building" | "scenery";
+ *  `scenery` (`scenery.ts`); a "kit" is a city set's shared modules, which
+ *  the template art library's rows place on buildings (`templateLibrary.ts`). */
+export type AppearanceUnit = "soldier" | "vehicle" | "building" | "scenery" | "kit";
 
 export const UNIT_BUNDLE_KIND: Record<AppearanceUnit, BundleKind> = {
   soldier: "skinned",
   vehicle: "articulated",
   building: "static",
   scenery: "static",
+  kit: "static",
 };
 
 /** Clip roles every infantry skeleton carries (spike 03), plus the fit reference pose. */
@@ -228,6 +244,8 @@ export interface ArticulatedBundle {
   bounds: Bounds; // over every pose the pose driver reaches (`posedBounds`)
 }
 
+/** One mesh per state. A building's states are what a side can know it as; a
+ *  kit's states are its modules, named by module id, each in its own frame. */
 export interface StaticBundle {
   kind: "static";
   states: { name: string; tiers: MeshData[]; bounds: Bounds }[];
@@ -321,7 +339,7 @@ export interface AppearanceEntry {
   unit: AppearanceUnit;
   /** For `unit: "scenery"`: the scenery kind, a key of `SCENERY_KINDS`. */
   scenery?: string;
-  /** Skinned and articulated: one GLB. Static: one GLB per state. */
+  /** Skinned, articulated and kit: one GLB. Static: one GLB per state. */
   source?: string;
   states?: Record<string, string>;
   basis_yaw_deg: number;
@@ -382,12 +400,22 @@ export interface GrassSpec {
   };
 }
 
+/** One city source set (`blender/city/README.md`): its `templates.json` and
+ *  the kit appearance whose modules its rows place. */
+export interface CitySetEntry {
+  templates: string;
+  kit: string;
+}
+
 /** `assets/catalog.json`, authored. The bake writes the runtime projection. */
 export interface Catalog {
   tolerances: Tolerances;
   sides: SideTints;
   skeletons: Record<string, SkeletonEntry>;
   appearances: Record<string, AppearanceEntry>;
+  /** The city sets, by set name. The bake packs them all into the one
+   *  template art library. */
+  city_sets?: Record<string, CitySetEntry>;
 }
 
 /** `assets/runtime/catalog.json`, written by the bake: names to content hashes. */
@@ -406,8 +434,18 @@ export interface RuntimeCatalog {
       mounts?: MountDraws;
     }
   >;
+  /** The template art library (`templateLibrary.ts`), when the catalog has
+   *  city sets: its file's content hash, its art identity, and the hash of
+   *  the physical catalogue it covers. */
+  templates?: { library: string; art_hash: string; covers: string };
 }
 
 /** The file a bundle lives in, under its content hash's directory. */
 export const BUNDLE_FILE = "bundle.bin";
 export const bundlePath = (hash: string) => `${hash}/${BUNDLE_FILE}`;
+/** The file the template art library lives in, under its content hash's directory. */
+export const TEMPLATE_LIBRARY_FILE = "templates.bin";
+export const templateLibraryPath = (hash: string) => `${hash}/${TEMPLATE_LIBRARY_FILE}`;
+
+/** A kit bundle's byte budget: every module's four tiers and its textures. */
+export const KIT_BUNDLE_MAX_BYTES = 50 * 1024 * 1024;

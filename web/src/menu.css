@@ -128,32 +128,6 @@
   border-color: rgb(var(--hud-accent) / 0.85);
   box-shadow: 0 0 var(--hud-glow) rgb(var(--hud-accent) / 0.35);
 }
-.menu-seed {
-  display: grid;
-  grid-template-columns: 1fr max-content;
-  gap: 6px;
-}
-.menu-seed input {
-  min-width: 0;
-  padding: 7px 9px;
-  font: 400 12.5px var(--hud-font);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.08em;
-  color: rgb(var(--hud-text));
-  caret-color: rgb(var(--hud-accent));
-  background: rgb(var(--hud-glass) / 0.6);
-  border: 1px solid rgb(var(--hud-accent) / 0.32);
-  border-radius: 0;
-  outline: none;
-}
-/* Focus is a caret and a slightly firmer edge: never the lit border that
-   means chosen. */
-.menu-seed input:focus {
-  border-color: rgb(var(--hud-accent) / 0.55);
-}
-.menu-seed input[aria-invalid="true"] {
-  border-color: rgb(var(--hud-bad) / 0.85);
-}
 .menu-battle-note {
   margin: 0;
   min-height: 1.45em;

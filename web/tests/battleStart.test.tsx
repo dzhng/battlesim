@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// Starting a battle from the menu: the seed stays exact text from the field
+// Starting a battle from the menu: the seed stays exact text from the address
 // to the address and back, the address says what it gets wrong, and a
 // preparation that is cancelled or replaced never delivers its battle.
 import { createElement } from "react";
@@ -66,33 +66,21 @@ test("a battle address round-trips the menu's choice, and names a parameter it g
   }
 });
 
-test("the menu deploys the chosen type, size and seed, and nothing while the seed is not one", () => {
+test("the menu deploys the chosen type and size on a seed it draws and never shows", () => {
   const menu = render(createElement(MainMenu));
-  const deploy = () => menu.getByTestId("menu-deploy").getAttribute("href");
-  const seed = menu.getByTestId("menu-seed") as HTMLInputElement;
+  const deploy = () => menu.getByTestId("menu-deploy").getAttribute("href")!;
   // It opens on a fresh seed, already a battle.
-  expect(canonicalSeed(seed.value)).toBe(seed.value);
-  expect(deploy()).toBe(`/battle?type=mixed&size=small&seed=${seed.value}`);
+  const seed = new URLSearchParams(deploy().split("?")[1]).get("seed")!;
+  expect(canonicalSeed(seed)).toBe(seed);
+  expect(deploy()).toBe(`/battle?type=mixed&size=small&seed=${seed}`);
+  expect(menu.container.textContent).not.toMatch(/seed/i);
 
+  // Choosing a type and size keeps the visit's seed.
   fireEvent.click(menu.getByRole("radio", { name: "metro" }));
   fireEvent.click(menu.getByRole("radio", { name: "large" }));
-  fireEvent.change(seed, { target: { value: ABOVE_NUMBER } });
-  expect(deploy()).toBe(`/battle?type=metro&size=large&seed=${ABOVE_NUMBER}`);
+  expect(deploy()).toBe(`/battle?type=metro&size=large&seed=${seed}`);
   expect(menu.getByRole("radio", { name: "metro" }).getAttribute("aria-checked")).toBe("true");
   expect(menu.getByRole("radio", { name: "mixed" }).getAttribute("aria-checked")).toBe("false");
-
-  // A seed that is not one deploys nothing and says why; no other seed is
-  // put in its place.
-  fireEvent.change(seed, { target: { value: "18446744073709551616" } });
-  expect(deploy()).toBeNull();
-  expect(seed.getAttribute("aria-invalid")).toBe("true");
-  expect(menu.getByTestId("menu-note").textContent).toMatch(/whole number/);
-  expect(seed.value).toBe("18446744073709551616");
-
-  // A new seed replaces it only when asked for.
-  fireEvent.click(menu.getByTestId("menu-new-seed"));
-  expect(canonicalSeed(seed.value)).toBe(seed.value);
-  expect(deploy()).toBe(`/battle?type=metro&size=large&seed=${seed.value}`);
 });
 
 test("the menu opens on the battle a cancelled or refused request asked for", () => {

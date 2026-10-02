@@ -27,8 +27,8 @@ const HIDE_HUD = "[data-testid=battle-panel], .ro-layer, .lab-panel { display: n
 const at = (target, distance, pitch = PLAY) => ({ target, distance, pitch, yaw: YAW });
 
 /** Each map's route (from the site root) and its named poses. A generated
- *  map's stations stand on what its preparation reports (the main town, each
- *  side's start), so they follow the generator when its layouts change. */
+ *  map's stations stand on what its preparation reports (the objective town,
+ *  blue's start), so they follow the generator when its layouts change. */
 export const STATION_MAPS = {
   village: {
     route: "/battle/village",
@@ -64,14 +64,14 @@ export const STATION_MAPS = {
     },
   },
   generated: {
-    route: "/lab/generated?type=mixed&size=medium&seed=2",
+    route: "/battle?type=mixed&size=medium&seed=2",
     stations: {
       "overview-2500": ({ size }) => at([size[0] / 2, size[1] / 2], 2500, 1.1),
-      "town-250": ({ anchors }) => at(anchors.town, 250),
-      "town-65": ({ anchors }) => at(anchors.town, 65),
-      "country-250": ({ anchors }) => at(anchors.blue, 250),
-      "country-65": ({ anchors }) => at(anchors.blue, 65),
-      "country-25": ({ anchors }) => at(anchors.blue, 25, LOW),
+      "town-250": ({ objective }) => at(objective.center, 250),
+      "town-65": ({ objective }) => at(objective.center, 65),
+      "country-250": ({ start }) => at(start.at, 250),
+      "country-65": ({ start }) => at(start.at, 65),
+      "country-25": ({ start }) => at(start.at, 25, LOW),
     },
   },
 };
@@ -88,13 +88,24 @@ let encoding = null;
  *  on. Shoot it with `shoot`. */
 export async function openStations(ctx, map) {
   const page = await ctx.newPage({ viewport: VIEWPORT });
-  await ctx.openLab(page, new URL(STATION_MAPS[map].route, ctx.url).href);
+  // A generated map is prepared behind a loading screen first: wait it out.
+  await page.goto(new URL(STATION_MAPS[map].route, ctx.url).href);
   await page.waitForFunction(
-    () => window.__lab?.route?.tick() > 3 && window.__lab.stats?.().grass.enabled,
+    () =>
+      window.__lab?.error ||
+      document.querySelector("[data-testid=error]") ||
+      (window.__lab?.ready &&
+        window.__lab.route?.tick?.() > 3 &&
+        window.__lab.stats().grass.enabled &&
+        !document.querySelector("[data-testid=loading]")),
     undefined,
     { timeout: 300000 },
   );
-  reports.set(page, await lab(page, () => window.__lab.route.generated?.() ?? null));
+  const error = await page.evaluate(
+    () => document.querySelector("[data-testid=error]")?.textContent ?? window.__lab?.error,
+  );
+  if (error) throw new Error(`lab failed: ${error}`);
+  reports.set(page, await lab(page, () => window.__lab.route.prepared?.() ?? null));
   await lab(page, () => window.__lab.route.pause());
   await advance(page, TICK - (await lab(page, () => window.__lab.route.tick())));
   await presented(page);
