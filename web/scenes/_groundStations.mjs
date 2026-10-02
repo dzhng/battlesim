@@ -270,7 +270,7 @@ export const groundUnder = (page, pixels) =>
 /** The village's ground as the simulation exports it, read on the CPU by the
  *  surface field the terrain material reads: at each point `{ xy, footprint }`,
  *  how far inside the paving and the forest it lies. */
-const villageExport = (page, points) =>
+export const villageExport = (page, points) =>
   page.evaluate(
     async ({ repo, points }) => {
       const file = (p) => `/@fs/${repo}${p}`;

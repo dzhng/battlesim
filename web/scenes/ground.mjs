@@ -21,7 +21,7 @@ import { surfaceExportAgreement } from "./_surfaces.mjs";
 import { forestExportAgreement } from "./_forests.mjs";
 import { surfaceFieldAgreement } from "./_surfaceField.mjs";
 import { groundRig, stationSheets } from "./_groundStations.mjs";
-import { roadLooks } from "./_roads.mjs";
+import { roadCost, roadLooks } from "./_roads.mjs";
 
 const x = (o, id) => o.own.find((u) => u.id === id)?.position[0] ?? NaN;
 const cells = (page) => lab(page, () => window.__lab.route.refreshGround());
@@ -40,6 +40,7 @@ export async function run(ctx) {
   if (process.env.STATIONS) return stationSheets(ctx, process.env.STATIONS.split(","));
   if (process.env.RIG_ONLY) return groundRig(ctx);
   if (process.env.ROADS_ONLY) return roadLooks(ctx);
+  if (process.env.ROAD_COST) return roadCost(ctx);
   await surfaceExportAgreement(ctx);
   await forestExportAgreement(ctx);
   await surfaceFieldAgreement(ctx);

@@ -561,6 +561,10 @@ export async function createWorldPass(
       classView = on;
       terrain.setClassView(on);
     },
+    /** Draw the roads worn or plain; the grass on their shoulders regrows. */
+    setRoadWearShown(on: boolean) {
+      if (terrain.setRoadWear(on)) grass.regrow();
+    },
     setInstances(next: readonly SceneInstance[]) {
       proxies.set(next);
     },

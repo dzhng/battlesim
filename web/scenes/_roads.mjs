@@ -1,7 +1,15 @@
-// How the roads read (C66), measured on the ground rig's stations: each
+// How the roads read (C66, C67), measured on the ground rig's stations: each
 // station's frame beside the terrain's own class mask, so a band is the
 // pixels the material says it is, never a hand-drawn crop.
-import { classAt, groundUnder, openStations, shoot } from "./_groundStations.mjs";
+import {
+  STATION_MAPS,
+  classAt,
+  groundUnder,
+  openStations,
+  shoot,
+  villageExport,
+} from "./_groundStations.mjs";
+import { aim, lab } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
 
 /** A road's core: this far inside its edge, clear of the feather. */
@@ -10,6 +18,17 @@ const CORE_M = -0.5;
 const GRASS_M = [5, 9];
 /** A band is judged on at least this many pixels. */
 const BAND_PIXELS = 2000;
+/** The road-to-field transition is walked in bands this wide, from inside
+ *  the core out to the grass. */
+const STEP_M = 0.5;
+const WALK_M = [-1, GRASS_M[0]];
+/** A band may be this much brighter than the one inside it and still count
+ *  as level: the grain, and blades over the ground. */
+const LEVEL = 0.03;
+/** A band may be this much darker than the grass band and not count as under
+ *  it: open field differs that much from band to band by which plots lie in
+ *  each. */
+const FIELD_LEVEL = 0.08;
 
 const linear = (v) => {
   const c = v / 255;
@@ -45,10 +64,11 @@ function mean(shot, pixels) {
 /** How far a colour leans from blue toward red, as a share of its red. */
 const warmth = ([r, , b]) => (r - b) / r;
 
-/** A station's frame and its class mask. */
+/** A station's frame, its bare ground and its class mask. */
 async function frame(page, map, station) {
   return {
     mask: decode(await shoot(page, map, station, { view: "ground-classes" })),
+    bare: decode(await shoot(page, map, station, { grass: false, trees: false })),
     shot: decode(await shoot(page, map, station)),
   };
 }
@@ -66,12 +86,122 @@ function coreAgainstGrass({ shot, mask }) {
   return { core: core.luminance, grass: grass.luminance, pixels: [core.count, grass.count] };
 }
 
+/** The walk from a road's core out to the grass in `shot`: each band's mean
+ *  luminance, the grass band's, and whether the walk only ever falls (or
+ *  holds level) and never dips under the grass. */
+function walk(shot, mask) {
+  const bands = [];
+  for (let from = WALK_M[0]; from < WALK_M[1]; from += STEP_M)
+    bands.push(
+      mean(
+        shot,
+        groundPixels(mask, (c) => c.roadSd >= from && c.roadSd < from + STEP_M),
+      ),
+    );
+  const grass = mean(
+    shot,
+    groundPixels(mask, (c) => c.roadSd >= GRASS_M[0] && c.roadSd <= GRASS_M[1]),
+  ).luminance;
+  const light = bands.map((b) => b.luminance);
+  return {
+    light: light.map((v) => +v.toFixed(4)),
+    grass: +grass.toFixed(4),
+    falls: light.every((v, i) => i === 0 || v <= light[i - 1] * (1 + LEVEL)),
+    aboveGrass: light.every((v) => v >= grass * (1 - FIELD_LEVEL)),
+    counted: bands.every((b) => b.count >= BAND_PIXELS / 4),
+  };
+}
+
+/** Clumps per metre-wide band beside the village's straight road east of the
+ *  bend, from its edge outward: the band's distance is the export's. */
+async function clumpBands(page) {
+  await shoot(page, "village", "bend-65");
+  const roots = await lab(page, async () =>
+    (await window.__lab.grass().clumps())
+      .map((c) => [c.root[0], c.root[1]])
+      .filter(([x, y]) => x > 445 && x < 480 && Math.abs(y - 420) < 16),
+  );
+  // A pixel as wide as the map reads every distance exactly.
+  const paved = await villageExport(
+    page,
+    roots.map((xy) => ({ xy, footprint: 1e9 })),
+  );
+  const bands = new Array(8).fill(0);
+  for (const { paved: inside } of paved) {
+    const band = Math.floor(-inside);
+    if (inside < 0 && band < bands.length) bands[band]++;
+  }
+  return bands;
+}
+
+/** The mean colour difference (summed over channels) between two shots at
+ *  pairs of pixels. */
+function difference(a, b, pairs) {
+  let sum = 0;
+  for (const [p, q] of pairs)
+    sum += pixel(a, ...p).reduce((s, v, k) => s + Math.abs(v - pixel(b, ...q)[k]), 0);
+  return sum / pairs.length;
+}
+
+/** Whether the worn ground beside the road is painted on the world: the same
+ *  ground from a camera moved a few metres shows the same wear at the same
+ *  world points, and not at the same pixels. */
+async function wornGroundStaysPut(page, first) {
+  const pixels = [...groundPixels(first.mask, (c) => c.roadSd > 0.25 && c.roadSd < 3)].filter(
+    ([x, y], i) => i % 211 === 0 && x > 200 && x < 1720 && y > 150 && y < 930,
+  );
+  const world = await groundUnder(page, pixels);
+  const pose = STATION_MAPS.village.stations["bend-65"];
+  await aim(page, [pose.target[0] + 3.7, pose.target[1] - 2.3], pose);
+  await lab(page, () => window.__lab.frame());
+  const moved = decode(await page.screenshot());
+  const canvas = await page.evaluate(() => {
+    const box = document.querySelector("canvas").getBoundingClientRect();
+    return [box.left, box.top];
+  });
+  const projected = await lab(
+    page,
+    (points) =>
+      points.map(([x, y]) => window.__lab.projectToCss(x, y, window.__lab.route.surfaceZ(x, y))),
+    world.map((w) => w.xy),
+  );
+  const pairs = [];
+  pixels.forEach((p, i) => {
+    const q = [
+      Math.round(projected[i][0] - canvas[0] - 0.5),
+      Math.round(projected[i][1] - canvas[1] - 0.5),
+    ];
+    if (q[0] >= 0 && q[1] >= 0 && q[0] < moved.width && q[1] < moved.height) pairs.push([p, q]);
+  });
+  return {
+    points: pairs.length,
+    sameWorld: difference(first.bare, moved, pairs),
+    samePixel: difference(
+      first.bare,
+      moved,
+      pairs.map(([p]) => [p, p]),
+    ),
+  };
+}
+
 export async function roadLooks(ctx) {
   const village = await openStations(ctx, "village");
-  const bands = { "village bend-65": coreAgainstGrass(await frame(village, "village", "bend-65")) };
+  const bend = await frame(village, "village", "bend-65");
+  const bands = { "village bend-65": coreAgainstGrass(bend) };
+  const walks = {
+    "village bend-65 bare": walk(bend.bare, bend.mask),
+    "village bend-65": walk(bend.shot, bend.mask),
+  };
+  const clumps = await clumpBands(village);
+  // Grass off again, as `bend.bare` was shot.
+  await shoot(village, "village", "bend-65", { grass: false, trees: false });
+  const anchored = await wornGroundStaysPut(village, bend);
   await village.close();
   const river = await openStations(ctx, "river");
-  bands["river track-65"] = coreAgainstGrass(await frame(river, "river", "track-65"));
+  const track = await frame(river, "river", "track-65");
+  bands["river track-65"] = coreAgainstGrass(track);
+  walks["river track-65 bare"] = walk(track.bare, track.mask);
+  walks["river track-65"] = walk(track.shot, track.mask);
   const junction = await frame(river, "river", "junction-65");
   bands["river junction-65"] = coreAgainstGrass(junction);
   ctx.check(
@@ -93,21 +223,99 @@ export async function roadLooks(ctx) {
     junction.shot,
     on(([x]) => Math.abs(x - 60) < 4),
   );
-  const track = mean(
+  const dirt = mean(
     junction.shot,
     on(([x]) => x > 67),
   );
   ctx.check(
     "each road kind is drawn as itself: the dirt track warm brown beside the country road's grey",
     road.count > 100 &&
-      track.count > 100 &&
-      track.rgb[0] > track.rgb[1] &&
-      track.rgb[1] > track.rgb[2] &&
-      warmth(track.rgb) > warmth(road.rgb) + 0.08,
+      dirt.count > 100 &&
+      dirt.rgb[0] > dirt.rgb[1] &&
+      dirt.rgb[1] > dirt.rgb[2] &&
+      warmth(dirt.rgb) > warmth(road.rgb) + 0.08,
     JSON.stringify({
       road: { ...road, warmth: warmth(road.rgb) },
-      track: { ...track, warmth: warmth(track.rgb) },
+      track: { ...dirt, warmth: warmth(dirt.rgb) },
     }),
   );
   await river.close();
+
+  ctx.check(
+    "from a road's core out to the grass the ground only gets darker, band by band, and never darker than the grass",
+    Object.values(walks).every((w) => w.falls && w.aboveGrass && w.counted),
+    JSON.stringify(walks),
+  );
+  // The field's own density, from the two bands farthest out.
+  const field = (clumps[6] + clumps[7]) / 2;
+  ctx.check(
+    "grass thins across the shoulder: more clumps band by band from the road's edge, few at the edge",
+    field > 200 &&
+      clumps.every((count, i) => i === 0 || count >= clumps[i - 1] * 0.9) &&
+      clumps[0] < 0.35 * field &&
+      clumps[1] < 0.85 * field,
+    JSON.stringify({ clumps, field }),
+  );
+  ctx.check(
+    "the worn ground beside a road is anchored to the world, not to the screen",
+    anchored.points > 100 &&
+      anchored.sameWorld < 12 &&
+      anchored.sameWorld < 0.6 * anchored.samePixel,
+    JSON.stringify(anchored),
+  );
+}
+
+/** Frames a cost batch draws before its GPU time is read, and the pairs a
+ *  station is measured over. */
+const COST_FRAMES = 150;
+const COST_PAIRS = 7;
+const median = (values) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
+
+/** ROAD_COST=1: what the roads' wear (their surface detail, their shoulders,
+ *  the grass thinned across them) costs a frame, at stations where roads
+ *  fill much of the view: the same frozen frame with the wear on and off in
+ *  interleaved batches, the median of the paired differences. Run it alone,
+ *  under the GPU lock. */
+export async function roadCost(ctx) {
+  const result = { stations: {} };
+  for (const [map, stations] of [
+    ["village", ["bend-25", "bend-65", "bend-250"]],
+    ["generated", ["town-65", "town-250"]],
+  ]) {
+    const page = await openStations(ctx, map);
+    for (const station of stations) {
+      await shoot(page, map, station);
+      // The page draws on demand, and the timer's mean runs over the frames
+      // drawn: a view change resets it, then every frame is forced.
+      const batch = (off) =>
+        lab(
+          page,
+          async ({ off, frames }) => {
+            await window.__lab.suppressRoadWear(off);
+            await window.__lab.setFrameView("final");
+            for (let i = 0; i < frames; i++) await window.__lab.frame();
+            return window.__lab.stats().gpu.meanMs;
+          },
+          { off, frames: COST_FRAMES },
+        );
+      const rows = { on: [], off: [] };
+      for (let pair = 0; pair < COST_PAIRS; pair++) {
+        rows.off.push(await batch(true));
+        rows.on.push(await batch(false));
+      }
+      result.stations[`${map} ${station}`] = {
+        plainMs: +median(rows.off).toFixed(3),
+        wearMs: +median(rows.on.map((v, i) => v - rows.off[i])).toFixed(3),
+        differences: rows.on.map((v, i) => +(v - rows.off[i]).toFixed(3)),
+      };
+    }
+    result.adapter = await page.evaluate(() => window.__lab.adapter);
+    await page.close();
+  }
+  await ctx.writeEvidence("road-cost.json", result);
+  ctx.check(
+    "the roads' wear costs under half a millisecond a frame wherever a road fills the view",
+    Object.values(result.stations).every((s) => s.wearMs < 0.5),
+    JSON.stringify(result.stations),
+  );
 }

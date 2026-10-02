@@ -94,6 +94,24 @@ export interface Road {
    *  surface is carried onto it, thinning out. */
   join_m: number;
   roughness: number;
+  shoulder: Shoulder;
+}
+
+/** The worn ground beside a road, between its surface and the field. */
+export interface Shoulder {
+  /** Its colour: drawn at the luminance of the ground it lies on where that
+   *  is the brighter, so it differs from the field by hue alone. */
+  palette: string;
+  /** Its width at the widest, from the road's edge; 0 for none. */
+  width_m: number;
+  /** The share of that width its outer edge wanders inward by, and the size
+   *  of the wander. */
+  jitter: number;
+  jitter_m: number;
+  /** The share of the field's grass that still grows where the ground is
+   *  most worn, at the road's edge; the grass thins toward it across the
+   *  shoulder. */
+  grass: number;
 }
 
 /** The ground under the simulation's forests: leaf litter with patches of moss
@@ -225,9 +243,10 @@ export interface GrassRules {
   near_tier_px: number;
   /** A blade is drawn at least this many pixels wide, so far blades hold. */
   min_blade_px: number;
-  /** Bare margins: none within this of a road's edge, a prop's footprint,
-   *  or a forest or water edge. */
-  clear_m: { road: number; prop: number; area: number };
+  /** Bare margins: none within this of a prop's footprint, or of a forest
+   *  or water edge. (Beside a road the grass thins across its shoulder:
+   *  `roads.<kind>.shoulder`.) */
+  clear_m: { prop: number; area: number };
   wind: Wind;
   /** Clumps the near and far tiers hold at most in one frame. */
   capacity: readonly [number, number];
@@ -377,6 +396,13 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
     within(`${at}.grain_m`, road.grain_m, 0.01, 100);
     within(`${at}.join_m`, road.join_m, 0, 20);
     within(`${at}.roughness`, road.roughness, 0, 1);
+    const shoulder = road.shoulder;
+    if (!shoulder || typeof shoulder !== "object") bad(`${at}.shoulder`, "is missing");
+    palette(`${at}.shoulder.palette`, shoulder.palette);
+    within(`${at}.shoulder.width_m`, shoulder.width_m, 0, 8);
+    within(`${at}.shoulder.jitter`, shoulder.jitter, 0, 1);
+    within(`${at}.shoulder.jitter_m`, shoulder.jitter_m, 0.1, 1000);
+    within(`${at}.shoulder.grass`, shoulder.grass, 0, 1);
   }
   if (!biome.shore || typeof biome.shore !== "object") bad("shore", "is missing");
   palette("shore.palette", biome.shore.palette);
@@ -446,7 +472,6 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   range("grass.fade_m_per_px", g.fade_m_per_px, 0.001, 10);
   within("grass.near_tier_px", g.near_tier_px, 0, 10000);
   within("grass.min_blade_px", g.min_blade_px, 0, 8);
-  within("grass.clear_m.road", g.clear_m?.road, 0, 20);
   within("grass.clear_m.prop", g.clear_m?.prop, 0, 20);
   within("grass.clear_m.area", g.clear_m?.area, 0, 20);
   const w = g.wind;

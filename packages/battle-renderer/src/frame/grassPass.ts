@@ -79,6 +79,8 @@ import {
   groundCell,
   groundPaved,
   groundShore,
+  groundShoulder,
+  groundShoulderGrass,
   groundSite,
   groundVerge,
   groundWater,
@@ -110,7 +112,7 @@ const GrassParams = d
     density: d.vec4f,
     /** Near tier's height in pixels, a blade's least width in pixels, 0, 0. */
     tiers: d.vec4f,
-    /** Bare margins: road, prop, forest and water; 0. */
+    /** Bare margins: unused, prop, forest and water; 0. */
     clear: d.vec4f,
     /** The height grid's size, 0, 0. */
     counts: d.vec4u,
@@ -350,15 +352,17 @@ const buildFn = tgpu
     let site = groundSite(p, cell, paved);
     let water = groundWater(p, cell);
     // Bare within the margins; thinner and lower for a metre beyond them, so
-    // a field meets a road or a wood without a wall of blades.
+    // a field meets a road or a wood without a wall of blades. Across a
+    // road's shoulder it thins and lowers as the ground is worn.
     // A wood's edge is its rect or its floor's ragged verge, whichever lies
     // farther out.
     let wood = max(site.w, forestVergeInside(p, site.w));
-    let margin = min(-site.z - P.clear.x, min(-wood, -water) - P.clear.z);
+    let margin = min(-site.z, min(-wood, -water) - P.clear.z);
     if (margin < 0.0) { continue; }
     // Bare on the wet banks round water.
     if (groundShore(water) > 0.35) { continue; }
-    let edge = smoothstep(0.0, ${GRASS_EDGE_M}, margin);
+    let worn = groundShoulder(p, footprint, paved);
+    let edge = smoothstep(0.0, ${GRASS_EDGE_M}, margin) * (1.0 - worn.x);
     let kindOfPlot = u32(terrainLayout.$.plots[i32(site.x)].detail.y);
     var g = P.growth[min(kindOfPlot, ${GRASS_GROWTH_ROWS - 2}u)];
     if (groundVerge(site, footprint) > 0.5) { g = P.growth[${GRASS_GROWTH_ROWS - 1}u]; }
@@ -366,7 +370,7 @@ const buildFn = tgpu
     let scar = groundScars(p, footprint);
     let S = terrainLayout.$.scarParams.grass;
     let bare = max(max(scar.weights.x, scar.weights.y), scar.weights.z * S.y) * S.x;
-    let keep = rho * g.x * mix(0.5, 1.0, edge) * (1.0 - bare);
+    let keep = rho * g.x * mix(0.5, 1.0, edge) * (1.0 - bare) * groundShoulderGrass(worn);
     if (rank >= keep) { continue; }
     if (grassUnderProp(p)) { continue; }
     // A clump nearing its rank's threshold is small: it grows in as the
@@ -413,6 +417,8 @@ const buildFn = tgpu
     groundSite,
     groundWater,
     groundShore,
+    groundShoulder,
+    groundShoulderGrass,
     groundVerge,
     groundColour,
     forestVergeInside,
@@ -755,7 +761,7 @@ export async function createGrassPass(
         rules.fade_m_per_px[1],
       ),
       tiers: d.vec4f(rules.near_tier_px, rules.min_blade_px, 0, 0),
-      clear: d.vec4f(rules.clear_m.road, rules.clear_m.prop, rules.clear_m.area, 0),
+      clear: d.vec4f(0, rules.clear_m.prop, rules.clear_m.area, 0),
       counts: d.vec4u(grid.nx, grid.ny, 0, 0),
       ground: d.vec4f(grid.spacing, 0, 0, 0),
       wind: d.vec4f(Math.cos(heading), Math.sin(heading), wind.lean, wind.gust),

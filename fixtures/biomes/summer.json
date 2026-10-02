@@ -10,6 +10,8 @@
     "verge": [[0.29, 0.34, 0.17]],
     "road_gravel": [[0.47, 0.46, 0.44], [0.5, 0.465, 0.415]],
     "road_dirt": [[0.455, 0.395, 0.33], [0.46, 0.41, 0.35]],
+    "shoulder_gravel": [[0.44, 0.41, 0.34]],
+    "shoulder_dirt": [[0.42, 0.385, 0.31]],
     "forest_floor": [[0.34, 0.3, 0.22], [0.27, 0.31, 0.17], [0.2, 0.18, 0.14]],
     "water_bed": [[0.27, 0.297, 0.252]],
     "water": [[0.16, 0.2, 0.17]],
@@ -53,8 +55,10 @@
     "feather_m": 0.5
   },
   "roads": {
-    "default": { "palette": "road_gravel", "feather_m": 0.3, "mottle": 0.3, "patch_m": 6, "grain": 0.5, "grain_m": 0.5, "join_m": 2, "roughness": 0.88 },
-    "dirt_track": { "palette": "road_dirt", "feather_m": 0.7, "mottle": 0.35, "patch_m": 4, "grain": 0.5, "grain_m": 0.6, "join_m": 2, "roughness": 0.95 }
+    "default": { "palette": "road_gravel", "feather_m": 0.3, "mottle": 0.3, "patch_m": 6, "grain": 0.5, "grain_m": 0.5, "join_m": 2, "roughness": 0.88,
+      "shoulder": { "palette": "shoulder_gravel", "width_m": 3.5, "jitter": 0.7, "jitter_m": 9, "grass": 0.15 } },
+    "dirt_track": { "palette": "road_dirt", "feather_m": 0.7, "mottle": 0.35, "patch_m": 4, "grain": 0.5, "grain_m": 0.6, "join_m": 2, "roughness": 0.95,
+      "shoulder": { "palette": "shoulder_dirt", "width_m": 2.2, "jitter": 0.7, "jitter_m": 6, "grass": 0.15 } }
   },
   "shore": { "palette": "shore", "width_m": 2 },
   "forest_floor": {
@@ -109,7 +113,7 @@
     "fade_m_per_px": [0.08, 0.14],
     "near_tier_px": 40,
     "min_blade_px": 0.8,
-    "clear_m": { "road": 0.2, "prop": 0.3, "area": 0.5 },
+    "clear_m": { "prop": 0.3, "area": 0.5 },
     "wind": {
       "heading_deg": 35,
       "lean": 0.08,
