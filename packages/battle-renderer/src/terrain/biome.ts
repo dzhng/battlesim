@@ -371,6 +371,39 @@ export const VERGE_GROWTH = "verge";
 
 export const REQUIRED_PALETTES = ["water_bed", "water", "distant"] as const;
 
+/** A palette colour as the terrain packs it for the GPU: linear rgb. */
+export const linearRgb = (c: Rgb): [number, number, number] => [
+  c[0] ** 2.2,
+  c[1] ** 2.2,
+  c[2] ** 2.2,
+];
+
+/** A plot's colour channels vary by this share of `colour_jitter`, each on
+ *  its own, under the jitter of its value. */
+export const PLOT_HUE_JITTER = 0.4;
+
+/** No plot's ground is drawn darker than this, as CIELAB L* of its albedo:
+ *  its palette's darkest colour at the low end of the per-plot jitter, its
+ *  rows at their mean. It is how dark the ground the fog styles were tuned
+ *  on gets: a style dims unseen ground to about half, so a sunlit field
+ *  darker than this comes as dark as ordinary ground under fog and reads as
+ *  unseen. A palette answers to the floor, never `light.shadow_floor` to a
+ *  palette (SG4). */
+export const PLOT_MIN_LSTAR = 24;
+
+/** The CIELAB L* of the darkest ground a plot of `kind` is drawn with. */
+export function darkestPlot(biome: Biome, kind: PlotKind): number {
+  const jitter = biome.field_rules.colour_jitter;
+  const low = (1 - jitter) * (1 - PLOT_HUE_JITTER * jitter);
+  const rows = 1 - kind.furrow_contrast / 2;
+  return Math.min(
+    ...biome.palettes[kind.palette].map((colour) => {
+      const [r, g, b] = linearRgb(colour.map((ch) => ch * low) as unknown as Rgb);
+      return 116 * Math.cbrt((0.2126 * r + 0.7152 * g + 0.0722 * b) * rows) - 16;
+    }),
+  );
+}
+
 /** Checks every field the terrain reads; throws naming the first bad one. */
 export function validateBiome(biome: Biome, name = "biome"): Biome {
   const bad = (path: string, why: string): never => {
@@ -409,6 +442,15 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
     within(`${at}.mottle`, p.mottle, 0, 1);
     within(`${at}.roughness`, p.roughness, 0, 1);
   });
+  within("field_rules.colour_jitter", biome.field_rules.colour_jitter, 0, 0.5);
+  biome.plots.forEach((p, i) => {
+    const lstar = darkestPlot(biome, p);
+    if (!(lstar >= PLOT_MIN_LSTAR))
+      bad(
+        `plots[${i}].palette`,
+        `draws "${p.name}" as dark as L* ${lstar.toFixed(1)}, under the floor of ${PLOT_MIN_LSTAR}`,
+      );
+  });
   if (!biome.plots.some((p) => p.weight > 0)) bad("plots", "every weight is 0");
   const r = biome.field_rules;
   within("field_rules.extent_m", r.extent_m, 0, 20000);
@@ -423,7 +465,6 @@ export function validateBiome(biome: Biome, name = "biome"): Biome {
   range("field_rules.cut_range", r.cut_range, 0.05, 0.95);
   within("field_rules.edge_warp_m", r.edge_warp_m, 0, r.min_width_m / 2);
   within("field_rules.edge_warp_scale_m", r.edge_warp_scale_m, 1, 10000);
-  within("field_rules.colour_jitter", r.colour_jitter, 0, 0.5);
   range("field_rules.mottle_scale_m", r.mottle_scale_m, 0.1, 10000);
   within("field_rules.settlement_m", r.settlement_m, 0, 10000);
   if (!biome.plots.some((p) => p.name === r.settlement_kind))

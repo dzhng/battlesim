@@ -41,6 +41,8 @@ const onPlot =
  *  the play camera and low, each crop low. */
 const WILD = ["meadow", "rough", "prairie"];
 const CROPS = ["pasture", "wheat", "barley", "rapeseed", "hay", "stubble", "ploughed"];
+/** The ground round the houses, a kind of its own. */
+const SETTLEMENT = "green";
 
 /** Each map's route (from the site root) and its named poses. A generated
  *  map's stations stand on what its preparation reports (the objective town,
@@ -55,7 +57,9 @@ export const STATION_MAPS = {
           [`${kind}-25`, onPlot(kind, 25, LOW)],
         ]),
       ),
-      ...Object.fromEntries(CROPS.map((kind) => [`${kind}-25`, onPlot(kind, 25, LOW)])),
+      ...Object.fromEntries(
+        [...CROPS, SETTLEMENT].map((kind) => [`${kind}-25`, onPlot(kind, 25, LOW)]),
+      ),
       // A drilled crop's rows, from the play camera.
       "wheat-65": onPlot("wheat", 65),
       // The (420, 420) corner of the north road.

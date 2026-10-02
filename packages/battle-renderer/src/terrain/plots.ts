@@ -9,7 +9,7 @@ import { vec2, type Vec2 } from "math";
 import { polygon2 } from "math/shapes";
 import { mulberry32, random, type RandomGenerator } from "math/random";
 import type { Rgb } from "../light/sceneLight";
-import type { Biome } from "./biome";
+import { PLOT_HUE_JITTER, type Biome } from "./biome";
 import { plotGuideEdges, type SurfaceGeometry } from "./surfaces";
 
 /** A leaf of the split: one field, meadow or ploughed plot. */
@@ -208,7 +208,10 @@ export function generatePlots(site: PlotSite, biome: Biome): PlotTree {
     const base = palette[Math.floor(rng() * palette.length)];
     const value = 1 + (rng() * 2 - 1) * rules.colour_jitter;
     const colour = base.map((ch) =>
-      Math.min(1, Math.max(0, ch * value * (1 + (rng() * 2 - 1) * rules.colour_jitter * 0.4))),
+      Math.min(
+        1,
+        Math.max(0, ch * value * (1 + (rng() * 2 - 1) * rules.colour_jitter * PLOT_HUE_JITTER)),
+      ),
     ) as unknown as Rgb;
     // Rows run along the plot's longer side.
     const [ux, uy] = [Math.cos(heading), Math.sin(heading)];

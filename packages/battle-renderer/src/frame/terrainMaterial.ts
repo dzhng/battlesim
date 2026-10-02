@@ -44,7 +44,13 @@ import {
 } from "../terrain/groundClasses";
 import { GRASS_EDGE_M } from "../terrain/grassField";
 import { longestBank } from "../terrain/rivers";
-import { SCAR_CHANNELS, type Biome, type ForestFloor, type ScarMark } from "../terrain/biome";
+import {
+  linearRgb,
+  SCAR_CHANNELS,
+  type Biome,
+  type ForestFloor,
+  type ScarMark,
+} from "../terrain/biome";
 import type { Rgb } from "../light/sceneLight";
 import type { GpuRegistry, GpuSlot } from "./registry";
 import { groundFilterReady, scarFilterQuanta, scarFilterPosition } from "./scarFilter";
@@ -1224,8 +1230,6 @@ export const scarredNormal = tgpu.fn(
   return normalize(n - vec3f(capped, 0.0) * n.z);
 }`);
 
-const linear = (c: Rgb): [number, number, number] => [c[0] ** 2.2, c[1] ** 2.2, c[2] ** 2.2];
-
 type Root = ReturnType<typeof tgpu.initFromDevice>;
 
 /** Every terrain fragment belongs to exactly one cache region. */
@@ -1364,7 +1368,7 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
         .write(field.records.buffer as ArrayBuffer);
       surfaceIndex.set(indexBuffer(field.index.length)).write(field.index.buffer as ArrayBuffer);
       const rules = biome.field_rules;
-      const one = (key: string) => linear(biome.palettes[key][0]);
+      const one = (key: string) => linearRgb(biome.palettes[key][0]);
       const bank = biome.palettes[biome.shore.palette];
       look = {
         region: d.vec4f(...tree.region),
@@ -1388,10 +1392,10 @@ export function createTerrainSource(root: Root, registry: GpuRegistry) {
         ...forestParams(biome.forest_floor, biome.palettes[biome.forest_floor.palette]),
         waterBed: d.vec4f(...one("water_bed"), triangleReach(site)),
         water: d.vec4f(...one("water"), biome.water.opacity[1]),
-        waterEdge: d.vec4f(...linear(biome.palettes.water[1]), biome.water.opacity[0]),
+        waterEdge: d.vec4f(...linearRgb(biome.palettes.water[1]), biome.water.opacity[0]),
         waterLook: d.vec4f(1 / biome.water.shallows_m, biome.water.streak, 0, 0),
-        shore: d.vec4f(...linear(bank[0]), biome.shore.wet_m),
-        shoreEarth: d.vec4f(...linear(bank[1]), biome.shore.mud_m),
+        shore: d.vec4f(...linearRgb(bank[0]), biome.shore.wet_m),
+        shoreEarth: d.vec4f(...linearRgb(bank[1]), biome.shore.mud_m),
         shoreEdge: d.vec4f(
           biome.shore.wander,
           1 / biome.shore.wander_scale_m,
@@ -1476,9 +1480,9 @@ export function groundReach(biome: Biome, footprint: number, bankM = 0): Surface
 /** The forest floor's uniform fields: its palette's litter, moss and humus. */
 function forestParams(floor: ForestFloor, [litter, moss, humus]: readonly Rgb[]) {
   return {
-    forestLitter: d.vec4f(...linear(litter), 0),
-    forestMoss: d.vec4f(...linear(moss), 0),
-    forestHumus: d.vec4f(...linear(humus), 0),
+    forestLitter: d.vec4f(...linearRgb(litter), 0),
+    forestMoss: d.vec4f(...linearRgb(moss), 0),
+    forestHumus: d.vec4f(...linearRgb(humus), 0),
     forestDetail: d.vec4f(1 / floor.patch_m, floor.mottle, floor.roughness, floor.roots),
     forestVerge: d.vec4f(
       floor.verge_m,
@@ -1512,7 +1516,7 @@ function packPlots({ plots: tree, biome }: TerrainSurface): ArrayBuffer {
     const kind = biome.plots[plot.kind];
     f.set(
       [
-        ...linear(plot.colour),
+        ...linearRgb(plot.colour),
         kind.roughness,
         plot.across[0],
         plot.across[1],

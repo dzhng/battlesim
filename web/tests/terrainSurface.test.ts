@@ -27,7 +27,12 @@ import {
   strokeInside,
 } from "@packages/battle-renderer/src/terrain/strokes";
 import { plotAt } from "@packages/battle-renderer/src/terrain/plots.ts";
-import { validateBiome, type Biome } from "@packages/battle-renderer/src/terrain/biome.ts";
+import {
+  PLOT_HUE_JITTER,
+  PLOT_MIN_LSTAR,
+  validateBiome,
+  type Biome,
+} from "@packages/battle-renderer/src/terrain/biome.ts";
 import summer from "@fixtures/biomes/summer.json";
 import { loadMap } from "@web/maps/node";
 import { groundHeight } from "@packages/battle-renderer/src/terrain/terrainGrid";
@@ -406,6 +411,34 @@ test("the patchwork is the same for the same seed and moves with it", () => {
 test("a biome that names a missing palette is refused by name", () => {
   const broken = { ...biome, plots: [{ ...biome.plots[0], palette: "nowhere" }] };
   expect(() => validateBiome(broken, "summer")).toThrow(/summer\.plots\[0\]\.palette/);
+});
+
+test("a plot kind whose ground could draw darker than the lightness floor is refused", () => {
+  // Seen ground that dark, in a sun shadow, reads as unseen ground.
+  const k = biome.plots.findIndex((p) => p.furrow_contrast > 0);
+  const kind = biome.plots[k];
+  const at = new RegExp(`summer\\.plots\\[${k}\\]\\.palette.*L\\*`);
+  const withPlot = (plot: typeof kind, colours: readonly (readonly number[])[]) =>
+    ({
+      ...biome,
+      palettes: { ...biome.palettes, [plot.palette]: colours },
+      plots: biome.plots.map((p, i) => (i === k ? plot : p)),
+    }) as Biome;
+  // A colour whose darkest plot (the per-plot jitter at its lowest) sits on
+  // the floor, and the same colour a tenth darker.
+  const jitter =
+    (1 - biome.field_rules.colour_jitter) * (1 - PLOT_HUE_JITTER * biome.field_rules.colour_jitter);
+  const grey = (lstar: number) => {
+    const v = (((lstar + 16) / 116) ** 3) ** (1 / 2.2) / jitter;
+    return [[v, v, v]];
+  };
+  const bare = { ...kind, furrow_contrast: 0 };
+  expect(() => validateBiome(withPlot(bare, grey(PLOT_MIN_LSTAR + 1)), "summer")).not.toThrow();
+  expect(() => validateBiome(withPlot(bare, grey(PLOT_MIN_LSTAR - 1)), "summer")).toThrow(at);
+  // Rows darken a plot too: the same passing colour under deep furrows.
+  expect(() =>
+    validateBiome(withPlot({ ...kind, furrow_contrast: 0.5 }, grey(PLOT_MIN_LSTAR + 1)), "summer"),
+  ).toThrow(at);
 });
 
 test("the forest floor names a palette of litter, moss and humus, and its numbers are checked", () => {
