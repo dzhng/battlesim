@@ -130,6 +130,6 @@ export function tierFor(h: number, distance: number, view: TierView): number {
 
 /** The last tier for a chunk whose tallest instance would take it from the
  *  chunk's nearest point; any nearer chunk's instances choose their own. */
-export function chunkTier(chunk: Chunk, _index: number, distance: number, view: TierView): number {
+export function chunkTier(chunk: Chunk, distance: number, view: TierView): number {
   return tierFor(chunk.size, distance, view) === TIER_COUNT - 1 ? TIER_COUNT - 1 : NEAR;
 }

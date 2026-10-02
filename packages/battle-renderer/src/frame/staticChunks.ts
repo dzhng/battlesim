@@ -24,8 +24,8 @@ import { vec3, type Vec3 } from "math";
 import { box3, frustum, type Box3 } from "math/shapes";
 import type { DetailView } from "./detailView";
 
-/** Placed instances as the owner takes them. */
-export interface PlacedRecords {
+/** A population's placed instances, as the owner takes them. */
+export interface ChunkSource {
   /** `stride` floats per instance, its position in the first three. */
   records: Float32Array;
   stride: number;
@@ -76,7 +76,7 @@ export interface StaticChunks {
 /** Bucket `placed` instances of `kinds` kinds in `chunkM` chunks, to draw at
  *  one of `levels` levels. */
 export function createStaticChunks(
-  placed: PlacedRecords,
+  placed: ChunkSource,
   kinds: number,
   chunkM: number,
   levels: number,
@@ -134,13 +134,13 @@ export function createStaticChunks(
 /** What `ChunkLevel` answers for a chunk whose instances choose their own. */
 export const NEAR = -1;
 
-/** A population's rule for a chunk in view, `distance` metres from the eye
- *  at its nearest: the level it draws whole at, or `NEAR`. */
+/** A population's rule for a chunk in view (the `index`-th), `distance`
+ *  metres from the eye at its nearest: the level it draws whole at, or `NEAR`. */
 export type ChunkLevel<V extends DetailView> = (
   chunk: Chunk,
-  index: number,
   distance: number,
   view: V,
+  index: number,
 ) => number;
 
 /** The sun's shadows: how far a shadow's tip falls from its caster's foot,
@@ -216,7 +216,7 @@ export function selectChunks<V extends DetailView>(
       continue;
     }
     const distance = distanceTo(chunk.box, view.eye);
-    const level = levelOf(chunk, c, distance, view);
+    const level = levelOf(chunk, distance, view, c);
     if (level === NEAR) {
       pop.near.push(c);
       continue;

@@ -115,7 +115,7 @@ export function corpseChunkLevel(
   detail: ModelDetailPresentation,
   carded: readonly boolean[],
 ): ChunkLevel<DetailView> {
-  return (chunk, index, distance, view) =>
+  return (chunk, distance, view, index) =>
     carded[index] && detailAt(detail, view, chunk.size, distance, true) === IMPOSTOR
       ? IMPOSTOR
       : NEAR;

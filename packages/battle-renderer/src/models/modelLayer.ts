@@ -22,6 +22,11 @@
 // bodies drawn as meshes run the pose kernel. Draws carry a fog class: units
 // (posed soldiers and vehicles) are drawn by identification and never fogged;
 // the world's models (buildings, corpses) take fog like any face.
+//
+// The fallen are a population of the static chunk owner
+// (`frame/staticChunks.ts`), chunked when their list changes: a far chunk
+// draws whole as a range of cards from a static buffer, and a near chunk's
+// corpses are chosen one by one and packed with the frame's other models.
 
 import { tgpu, d, std } from "typegpu";
 import { mat4, type Mat4 } from "math";
@@ -1242,7 +1247,7 @@ export async function createModelLayer(
         pushCardRun(true, fog, whole[r], whole[r + 1]);
         fixedCards += whole[r + 1];
       }
-      const placed = chunks.sorted[0];
+      const fallen = chunks.sorted[0];
       let near = 0;
       for (const k of chunks.near) {
         const chunk = chunks.chunks[k];
@@ -1256,9 +1261,9 @@ export async function createModelLayer(
             ? modelDetail(
                 detail,
                 view,
-                placed[r],
-                placed[r + 1],
-                placed[r + 2],
+                fallen[r],
+                fallen[r + 1],
+                fallen[r + 2],
                 gpu.corpseSize,
                 gpu.corpseRadius,
                 gpu.corpseCard >= 0,
@@ -1384,7 +1389,7 @@ export async function createModelLayer(
     }
     if (corpses) {
       const { chunks } = corpses;
-      const placed = chunks.sorted[0];
+      const fallen = chunks.sorted[0];
       for (const k of chunks.near) {
         const chunk = chunks.chunks[k];
         for (let i = chunk.start[0]; i < chunk.end[0]; i++) {
@@ -1392,7 +1397,7 @@ export async function createModelLayer(
           if (choice === CULLED) continue;
           const at = choice === -2 ? card++ : bucketCursor[choice]++;
           (choice === -2 ? cardStaging : recordStaging).set(
-            placed.subarray(i * RECORD_FLOATS, (i + 1) * RECORD_FLOATS),
+            fallen.subarray(i * RECORD_FLOATS, (i + 1) * RECORD_FLOATS),
             at * RECORD_FLOATS,
           );
         }

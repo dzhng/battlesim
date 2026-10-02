@@ -11,7 +11,7 @@ import {
   selectChunks,
   selectEveryChunk,
   stageNear,
-  type PlacedRecords,
+  type ChunkSource,
   type StaticChunks,
 } from "@packages/battle-renderer/src/frame/staticChunks";
 import {
@@ -25,7 +25,7 @@ const SIZE_M = 2;
 
 /** Instances `SIZE_M` across at `at`, `stride` floats each: its position,
  *  then its own index repeated, so a record is recognisable wherever it lands. */
-function placed(at: [number, number][], stride: number, kinds?: number[]): PlacedRecords {
+function placed(at: [number, number][], stride: number, kinds?: number[]): ChunkSource {
   const records = new Float32Array(at.length * stride);
   at.forEach(([x, y], i) => {
     records.fill(i, i * stride, (i + 1) * stride);
@@ -123,7 +123,7 @@ test("a chunk draws whole at the level its population gives it, a fifth one incl
   const pop = createStaticChunks(placed(at, 16), 1, CHUNK_M, CARD + 1);
   // The two western chunks as cards, the next at the coarsest mesh, the last near.
   const levels = [CARD, CARD, 3, NEAR];
-  selectChunks(pop, view(1000, 600), (_chunk, index) => levels[index], null);
+  selectChunks(pop, view(1000, 600), (_chunk, _distance, _view, index) => levels[index], null);
   expect(pop.ranges[0][CARD]).toEqual([0, 2]);
   expect(instancesIn(pop, 0, pop.ranges[0][CARD])).toEqual([0, 1]);
   expect(instancesIn(pop, 0, pop.ranges[0][3])).toEqual([2]);
@@ -144,7 +144,7 @@ test("a chunk's level is asked with its nearest distance and its largest instanc
   selectChunks(
     pop,
     v,
-    (chunk, index, distance) => {
+    (chunk, distance, _view, index) => {
       asked.push([index, chunk.size, distance]);
       return 4;
     },
