@@ -38,6 +38,8 @@ A forest floor body that reads as impassable despite its physical properties reo
 
 ## Outcome (2026-10-02)
 
+**Changed since.** [C87](C87-ground-composition-gate.md) reverted the default activation (`b0d5b19a`): the forest rule lays no log or boulder, so the village's `floor-log-25` and `floor-boulder-25` stations have nothing to stand on. The models draw wherever a map's own rules lay the bodies, as generated battles do.
+
 **Contract as landed.**
 
 - **Two appearances.** `forest_log` (scenery kind `log`, box 4.4 × 0.7 × 0.7 m) and `forest_boulder` (kind `boulder`, box 2 × 1.6 × 1.5 m), built by `packages/scene-assets/blender/forest_floor.py` into `assets/source/forest/`. `asset check` passes with both; each fills its box inside the 0.1 m footprint tolerance and runs a little below the ground (5 cm and 12 cm, its own `ground_m`) so it does not float on a slope.

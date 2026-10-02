@@ -33,6 +33,8 @@ A palette indistinguishable from shadow or fog changes the measured colour propo
 
 ## Outcome
 
+**Changed since.** [C31](C31-city-biome.md): the settlement's kind is `yard`, and its chroma was cut by a third. The fog check binds that ground's lightness and roughness, not its chroma.
+
 Run on the way to C84, as `fog-look` on the starting commit and on two drafts of the palette. Nothing of the spike merged but its verdict.
 
 **Verdict: kill fired.** A desaturated meadow under the houses fails the darkest-seen check, by hue under one style at one framing. The rule is not threatened where the spike expected (a darker field) but where it did not look: main already holds it there by a hair.

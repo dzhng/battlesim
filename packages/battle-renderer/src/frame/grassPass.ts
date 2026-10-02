@@ -126,8 +126,9 @@ const GrassParams = d
     /** How far that shading softens, how far a blade's own facing lights it,
      *  each clump's brightness variation, 0. */
     shading: d.vec4f,
-    /** Bare margins: unused, prop, forest and water; then the farthest a
-     *  clump moves to its row. */
+    /** The bare margin round a forest or water, the farthest a clump moves
+     *  to its row; 0, 0. (A prop's margin widens its footprint in the prop
+     *  table: `packGrassProps`.) */
     clear: d.vec4f,
     /** The height grid's size, 0, 0. */
     counts: d.vec4u,
@@ -350,8 +351,8 @@ const buildFn = tgpu
   }
   zlo -= 1.0;
   zhi += 1.0 + (*P).window.w;
-  let lo2 = lo - vec2f(${GRASS_JITTER_M} + (*P).clear.w);
-  let hi2 = hi + vec2f(${GRASS_JITTER_M} + (*P).clear.w);
+  let lo2 = lo - vec2f(${GRASS_JITTER_M} + (*P).clear.y);
+  let hi2 = hi + vec2f(${GRASS_JITTER_M} + (*P).clear.y);
   for (var i = 0u; i < 4u; i++) {
     let pl = (*P).planes[i];
     let pv = vec3f(select(lo2.x, hi2.x, pl.x >= 0.0), select(lo2.y, hi2.y, pl.y >= 0.0), select(zlo, zhi, pl.z >= 0.0));
@@ -389,7 +390,7 @@ const buildFn = tgpu
     // A wood's edge is its rect or its floor's ragged verge, whichever lies
     // farther out.
     let wood = max(site.w, forestVergeInside(fell, site.w));
-    let margin = min(-wood, -water) - (*P).clear.z;
+    let margin = min(-wood, -water) - (*P).clear.x;
     if (margin < 0.0) { continue; }
     // Bare on the wet bank round water, thickening across the earth behind it.
     let shore = groundShore(fell, footprint, water).z;
@@ -864,7 +865,7 @@ export async function createGrassPass(
         rules.soften_m_per_px[1],
       ),
       shading: d.vec4f(rules.soften, rules.blade_facing, rules.clump_value, 0),
-      clear: d.vec4f(0, rules.clear_m.prop, rules.clear_m.area, kinds.rowReach),
+      clear: d.vec4f(rules.clear_m.area, kinds.rowReach, 0, 0),
       counts: d.vec4u(grid.nx, grid.ny, 0, 0),
       ground: d.vec4f(grid.spacing, 0, 0, 0),
       wind: d.vec4f(Math.cos(heading), Math.sin(heading), wind.lean, wind.gust),

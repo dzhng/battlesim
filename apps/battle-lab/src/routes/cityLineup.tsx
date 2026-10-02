@@ -8,7 +8,9 @@
 // town draws. The address chooses what stands and how it is drawn:
 // - `?set=` or `?category=`: one source set or category;
 // - `?tier=0..3`: every building at that detail tier (by distance without it);
-// - `?state=ruin|gutted`: every building as a side that saw it fall knows it;
+// - `?state=ruin|gutted`: the templates that end in that state, as a side
+//   that saw them destroyed knows them; the others are left out (a template
+//   ends in one state only: a ruin if it is low, gutted if it is tall);
 // - `?station=` and `?at=<template id>`: where the camera opens. `all` and
 //   `row` frame the line-up and the template's row; `fit` frames the
 //   template; `close`, `tactical` and `wide` orbit it at 30 m, the game's
@@ -35,6 +37,7 @@ import {
   lineUp,
   lineupBuildings,
   lineupFallen,
+  lineupIn,
   poseAtRange,
   type Lineup,
   type LineupEntry,
@@ -242,13 +245,22 @@ function Rows({
     [appearances],
   );
 
-  // What stands: the whole line-up or one template alone, in one state.
+  // What stands: the whole line-up or one template alone, in one state, less
+  // the templates that have no rows for that state.
   const [solo, setSolo] = useState<string | null>(null);
   const [state, setState] = useState<TemplateState>(query.state);
-  const buildings = useMemo<SideBuildings>(() => {
-    const shown = lineup.entries.filter((e) => solo === null || e.id === solo);
-    return { placed: lineupBuildings(shown), fallen: lineupFallen(shown, state) };
-  }, [lineup, solo, state]);
+  const library = appearances.templates?.library;
+  const shown = useMemo(
+    () =>
+      (library ? lineupIn(lineup.entries, state, library) : []).filter(
+        (e) => solo === null || e.id === solo,
+      ),
+    [lineup, solo, state, library],
+  );
+  const buildings = useMemo<SideBuildings>(
+    () => ({ placed: lineupBuildings(shown), fallen: lineupFallen(shown, state) }),
+    [shown, state],
+  );
   const buildingsFeed = useFeed<SideBuildings | null>(buildings);
 
   // The tier every building is drawn at (null: by distance).
@@ -392,19 +404,17 @@ function Rows({
       />
       {labels && (
         <div className="lineup-labels" data-testid="city-lineup-labels">
-          {lineup.entries
-            .filter((e) => solo === null || e.id === solo)
-            .map((e) => (
-              <span
-                key={e.id}
-                ref={(node) => {
-                  if (node) labelNodes.current.set(e.id, node);
-                  else labelNodes.current.delete(e.id);
-                }}
-              >
-                {e.id}
-              </span>
-            ))}
+          {shown.map((e) => (
+            <span
+              key={e.id}
+              ref={(node) => {
+                if (node) labelNodes.current.set(e.id, node);
+                else labelNodes.current.delete(e.id);
+              }}
+            >
+              {e.id}
+            </span>
+          ))}
         </div>
       )}
       <aside className="hud-panel lab-panel" data-testid="city-lineup-panel">

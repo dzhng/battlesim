@@ -1,16 +1,22 @@
 // How a town's streets read (C28 to C30), measured on the ground rig's
 // generated town: a frame beside the terrain's own class mask, each pixel put
 // on a street or on the country road by how wide the way under it is.
-import { readFileSync } from "node:fs";
-import { classAt, groundUnder, openStations } from "./_groundStations.mjs";
-import { frame, luminance, mean } from "./_roads.mjs";
+import {
+  BIOME,
+  classPixels,
+  fixture,
+  groundUnder,
+  isOpen,
+  oneIn,
+  openStations,
+  stationFrame,
+} from "./_groundStations.mjs";
+import { luminance, meanColour, warmth } from "./_colour.mjs";
 import { lab } from "./_lab.mjs";
 import { pixel } from "./_png.mjs";
 
-const fixture = (path) =>
-  JSON.parse(readFileSync(new URL(`../../fixtures/${path}`, import.meta.url), "utf8"));
 const presets = fixture("map-presets.json");
-const street = fixture("biomes/summer.json").roads.road;
+const street = BIOME.roads.road;
 /** A way narrower than this is a town street; wider, up to the second, the
  *  country road: the generator's own widths, and the middle between them. */
 const STREET_M = presets.parcels.street_width_m;
@@ -73,18 +79,13 @@ const wayWidths = (page, points) =>
     points,
   );
 
-/** The pixels of `mask` whose class passes `keep`, one in `every`. */
-function sample(mask, every, keep) {
-  const out = [];
-  let n = 0;
-  for (let y = 0; y < mask.height; y++)
-    for (let x = 0; x < mask.width; x++) {
-      const c = classAt(mask, x, y);
-      if (c && c.forest === "none" && c.riverSd > 3 && keep(c) && n++ % every === 0)
-        out.push([x, y]);
-    }
-  return out;
-}
+/** The pixels of `mask` that are open ground and whose class passes
+ *  `keep`, one in `every`. */
+const sample = (mask, every, keep) =>
+  oneIn(
+    every,
+    classPixels(mask, (c) => isOpen(c) && keep(c)),
+  );
 
 /** The mean summed colour difference between two shots over `pixels`. */
 const changed = (a, b, pixels) =>
@@ -94,12 +95,9 @@ const changed = (a, b, pixels) =>
     0,
   ) / Math.max(1, pixels.length);
 
-/** How far a colour leans from blue toward red, as a share of its red. */
-const warmth = ([r, , b]) => (r - b) / r;
-
 export async function streetLooks(ctx) {
   const page = await openStations(ctx, "generated");
-  const shot = await frame(page, "generated", "junction-65");
+  const shot = await stationFrame(page, "generated", "junction-65");
   const within =
     ([lo, hi]) =>
     (c) =>
@@ -135,7 +133,7 @@ export async function streetLooks(ctx) {
     ["town", "town-250"],
     ["plain", "country-250"],
   ]) {
-    const seen = await frame(page, "generated", station);
+    const seen = await stationFrame(page, "generated", station);
     const cores = sample(seen.mask, 23, (c) => c.roadSd < CORE_M);
     const widths = await wayWidths(
       page,
@@ -156,7 +154,7 @@ export async function streetLooks(ctx) {
       count: pixels.length,
       luminance: +(lit[Math.floor(lit.length / 2)]?.[0] ?? 0).toFixed(4),
       warmth: +warmth(
-        mean(
+        meanColour(
           from.shot,
           lit.map(([, p]) => p),
         ).rgb,

@@ -2,7 +2,7 @@
 // the eye and its near plane out of them, by the policy's own order (a lift,
 // a slide, then pushback), without jarring moves; the viewport's own camera
 // does the same when it rides them; and an idle camera recovers when the side
-// sees a building fall. Evidence: the two eye paths from outside, and matched
+// sees a building collapse. Evidence: the two eye paths from outside, and matched
 // frames of the pose asked for (raw) beside the pose drawn.
 import { writeFile } from "node:fs/promises";
 import { lab } from "./_lab.mjs";
@@ -27,6 +27,9 @@ const HOLDS = {
 /** The trajectories whose drawn eye path is counted in pixels. */
 const PATHS_WATCHED = ["wall", "courtyard", "compound"];
 const HIDE_PANEL = "[data-testid=camera-panel] { display: none !important; }";
+/** When the placement trajectory holds its framing inside the courtyard
+ *  block, seconds in: the middle of that keyframe pair. */
+const COURTYARD_PLACED_S = 3.75;
 
 const shot = async (ctx, page, name) => {
   await lab(page, () => window.__lab.frame());
@@ -230,10 +233,11 @@ export async function run(ctx) {
     JSON.stringify(paired),
   );
 
-  // Idle recovery: the player's camera placed inside the tower is drawn
-  // clear of it; blue sees the tower fall; with no input the camera comes to
-  // rest on the pose asked for.
-  const inside = flights.placement[Math.round(2 * 60)].asked;
+  // Idle recovery: the player's camera placed inside the courtyard block is
+  // drawn clear of it; blue sees the block collapse (it is low enough to,
+  // where a tower would stand gutted); with no input the camera comes to rest
+  // on the pose asked for, over the remains.
+  const inside = flights.placement[Math.round(COURTYARD_PLACED_S * 60)].asked;
   await lab(page, async () => {
     window.__lab.route.watch("placement", 0);
     // The lab cuts the free camera to its watching place first.
@@ -248,7 +252,7 @@ export async function run(ctx) {
     },
     { target: [inside.target[0], inside.target[1]], ...inside },
   );
-  await shot(ctx, page, "tower-standing-1920x1080.png");
+  await shot(ctx, page, "block-standing-1920x1080.png");
   await lab(page, () => window.__lab.route.setFallen(true));
   const recovering = [];
   for (let k = 0; k < 8; k++) {
@@ -260,12 +264,12 @@ export async function run(ctx) {
     camera: window.__lab.camera(),
     clearance: window.__lab.clearance(),
   }));
-  await shot(ctx, page, "tower-seen-fallen-1920x1080.png");
+  await shot(ctx, page, "block-seen-collapsed-1920x1080.png");
   const same = (a, b) =>
     ["distance", "pitch", "yaw"].every((k) => Math.abs(a[k] - b[k]) < 1e-9) &&
     a.target.every((v, i) => Math.abs(v - b.target[i]) < 1e-9);
   ctx.check(
-    "an idle camera held off a tower recovers by itself, in steps, once the side has seen the tower fall",
+    "an idle camera held off a building recovers by itself, in steps, once the side has seen the building collapse",
     held.clearance.hold !== "none" &&
       !same(held.camera, held.clearance.asked) &&
       gap(eyeOf(held.camera), boxes) >= clearance.envelope &&

@@ -43,6 +43,8 @@ A river bank that reads as a cliff changes the bank-band profile; shoreline roun
 
 ## Outcome
 
+**Changed since.** The bank was recoloured three times, at integration and at the gate (`955f5eaa`, `a51341d6`, `fb4a241f`; [C87](C87-ground-composition-gate.md)): `shore.lift` is 1.27, and the palette is a grey silt and a pale grey-brown earth, not tan.
+
 **The river meets the ground through a thin clear rim, wet silt, bare earth and thinning grass, none of it darker than the field beside it, and the water no longer reads as a road. Fresh eyes still call the bank a flat stripe and are convinced by the water only close and low.** The geometry, the rule and C69's agreement are untouched.
 
 **The seam.**

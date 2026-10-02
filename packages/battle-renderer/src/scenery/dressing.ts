@@ -22,7 +22,7 @@
 import { box3, frustum, type Box3 } from "math/shapes";
 import { distanceTo } from "../frame/staticChunks";
 import { INSTANCE_FLOATS, TIER_COUNT, tierFor, treeInstances, type TierView } from "./lod";
-import { TREE_FIELD, TREE_FLOATS, type DressingField, type KindSize } from "./placement";
+import { cellKey, TREE_FIELD, TREE_FLOATS, type DressingField, type KindSize } from "./placement";
 
 /** A piece of dressing is gone at this share of the projected height it
  *  starts to shrink at (`forest_floor.dressing.fade_px`). */
@@ -66,8 +66,6 @@ export interface DressingCache {
   cleared: ((x: number, y: number) => boolean) | null;
   wanted: DressedCell[];
 }
-
-const cellKey = (i: number, j: number) => (j + 0x8000) * 0x10000 + (i + 0x8000);
 
 /** A cache of `slots` cells over `field`, none laid. */
 export function createDressingCache(

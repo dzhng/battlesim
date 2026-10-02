@@ -2,23 +2,26 @@
 // station's frame beside the terrain's own class mask, so a band is the
 // pixels the material says it is, never a hand-drawn crop.
 import {
+  BIOME,
   STATION_MAPS,
-  classAt,
+  classPixels,
+  fixture,
   groundUnder,
+  isOpen,
   openStations,
+  pairedCost,
   shoot,
+  stationFrame,
   villageExport,
 } from "./_groundStations.mjs";
-import { readFileSync } from "node:fs";
+import { chroma, linear, meanColour, warmth } from "./_colour.mjs";
 import { aim, lab } from "./_lab.mjs";
 import { decode, pixel } from "./_png.mjs";
 
-const fixture = (path) =>
-  JSON.parse(readFileSync(new URL(`../../fixtures/${path}`, import.meta.url), "utf8"));
 /** The biome's road row for a map's `n`th surface, and that surface's half
  *  width. */
 function roadOf(map, n) {
-  const roads = fixture("biomes/summer.json").roads;
+  const roads = BIOME.roads;
   const surface = fixture(`maps/${map}/map.json`).surfaces[n];
   return { row: roads[surface.kind] ?? roads.default, half: surface.shape.width_m / 2 };
 }
@@ -42,53 +45,10 @@ const WALK_M = [-1, GRASS_M[0]];
  *  flowers. */
 const FIELD_LEVEL = 0.12;
 
-const linear = (v) => {
-  const c = v / 255;
-  return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-};
-/** A displayed pixel's relative luminance. */
-export const luminance = ([r, g, b]) =>
-  0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
-
 /** The pixels of `mask` that are open ground (no wood, no bank) and pass
  *  `keep(class)`. */
-function* groundPixels(mask, keep) {
-  for (let y = 0; y < mask.height; y++)
-    for (let x = 0; x < mask.width; x++) {
-      const c = classAt(mask, x, y);
-      if (c && c.forest === "none" && c.riverSd > 3 && keep(c)) yield [x, y];
-    }
-}
+const groundPixels = (mask, keep) => classPixels(mask, (c) => isOpen(c) && keep(c));
 
-/** The mean displayed colour and luminance of `shot` over `pixels`. */
-export function mean(shot, pixels) {
-  const sum = [0, 0, 0];
-  let light = 0,
-    count = 0;
-  for (const [x, y] of pixels) {
-    const rgb = pixel(shot, x, y);
-    rgb.forEach((v, k) => (sum[k] += v));
-    light += luminance(rgb);
-    count++;
-  }
-  return { count, rgb: sum.map((v) => v / count), luminance: light / count };
-}
-
-/** How far a colour leans from blue toward red, as a share of its red. */
-const warmth = ([r, , b]) => (r - b) / r;
-
-/** CIELAB a* and b* of an sRGB colour (0 to 255): its hue and chroma, apart
- *  from how light it is. */
-function hue(rgb) {
-  const [r, g, b] = rgb.map((v) =>
-    v / 255 <= 0.04045 ? v / 255 / 12.92 : ((v / 255 + 0.055) / 1.055) ** 2.4,
-  );
-  const f = (t) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
-  const x = f((0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.9505),
-    y = f(0.2126 * r + 0.7152 * g + 0.0722 * b),
-    z = f((0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.089);
-  return [500 * (x - y), 200 * (y - z)];
-}
 /** Two grounds are apart in hue when their mean colours differ by this much
  *  in the a*b* plane (the river bank's bar), and a road may then be this
  *  share of its neighbour's luminance: a brown track through rapeseed is not
@@ -96,26 +56,17 @@ function hue(rgb) {
 const HUE_APART = 6;
 const DARKER_APART = 0.85;
 
-/** A station's frame, its bare ground and its class mask. */
-export async function frame(page, map, station) {
-  return {
-    mask: decode(await shoot(page, map, station, { view: "ground-classes" })),
-    bare: decode(await shoot(page, map, station, { grass: false, trees: false })),
-    shot: decode(await shoot(page, map, station)),
-  };
-}
-
 /** L-G3 at one station: the road's core against the grass beside it. */
 function coreAgainstGrass({ shot, mask }) {
-  const core = mean(
+  const core = meanColour(
     shot,
     groundPixels(mask, (c) => c.roadSd < CORE_M),
   );
-  const grass = mean(
+  const grass = meanColour(
     shot,
     groundPixels(mask, (c) => c.roadSd >= GRASS_M[0] && c.roadSd <= GRASS_M[1]),
   );
-  const [a, b] = [hue(core.rgb), hue(grass.rgb)];
+  const [a, b] = [core.rgb, grass.rgb].map((rgb) => chroma(rgb.map(linear)));
   return {
     core: core.luminance,
     grass: grass.luminance,
@@ -131,12 +82,12 @@ function walk(shot, mask) {
   const bands = [];
   for (let from = WALK_M[0]; from < WALK_M[1]; from += STEP_M)
     bands.push(
-      mean(
+      meanColour(
         shot,
         groundPixels(mask, (c) => c.roadSd >= from && c.roadSd < from + STEP_M),
       ),
     );
-  const grass = mean(
+  const grass = meanColour(
     shot,
     groundPixels(mask, (c) => c.roadSd >= GRASS_M[0] && c.roadSd <= GRASS_M[1]),
   ).luminance;
@@ -164,7 +115,7 @@ function rutContrast({ bare, mask }, { row, half }) {
   const ruts = row.ruts.offsets_m.flatMap((m) => lane(mask, half, m, 0.07));
   const between = lane(mask, half, (outer + half) / 2, 0.15);
   return {
-    contrast: 1 - mean(bare, ruts).luminance / mean(bare, between).luminance,
+    contrast: 1 - meanColour(bare, ruts).luminance / meanColour(bare, between).luminance,
     pixels: [ruts.length, between.length],
   };
 }
@@ -173,7 +124,7 @@ function rutContrast({ bare, mask }, { row, half }) {
  *  bare-ground frame. */
 function stripGreen({ bare, mask }, { row, half }) {
   const green = (pixels) => {
-    const { rgb, count } = mean(bare, pixels);
+    const { rgb, count } = meanColour(bare, pixels);
     return { ratio: rgb[1] / rgb[0], count };
   };
   return {
@@ -262,7 +213,7 @@ const plainFields = (page) => lab(page, () => window.__lab.suppressFieldTexture(
 export async function roadLooks(ctx) {
   const village = await openStations(ctx, "village");
   await plainFields(village);
-  const bend = await frame(village, "village", "bend-65");
+  const bend = await stationFrame(village, "village", "bend-65");
   const bands = { "village bend-65": coreAgainstGrass(bend) };
   const walks = {
     "village bend-65 bare": walk(bend.bare, bend.mask),
@@ -275,21 +226,21 @@ export async function roadLooks(ctx) {
   await village.close();
   const river = await openStations(ctx, "river");
   await plainFields(river);
-  const track = await frame(river, "river", "track-65");
+  const track = await stationFrame(river, "river", "track-65");
   bands["river track-65"] = coreAgainstGrass(track);
   walks["river track-65 bare"] = walk(track.bare, track.mask);
   walks["river track-65"] = walk(track.shot, track.mask);
   // The lab's dirt track, from the ground camera and the tactical one.
   const dirtTrack = roadOf("river", 1);
-  const close = await frame(river, "river", "track-25");
+  const close = await stationFrame(river, "river", "track-25");
   const strip = stripGreen(close, dirtTrack);
-  const far = await frame(river, "river", "track-250");
+  const far = await stationFrame(river, "river", "track-250");
   const farStrip = stripGreen(far, dirtTrack);
   const ruts = {
     "track-25": rutContrast(close, dirtTrack),
     "track-250": rutContrast(far, dirtTrack),
   };
-  const junction = await frame(river, "river", "junction-65");
+  const junction = await stationFrame(river, "river", "junction-65");
   bands["river junction-65"] = coreAgainstGrass(junction);
   ctx.check(
     "no road's core is darker than the ground beside it, unless it is clearly apart from it in hue (nothing on the ground reads as shadow)",
@@ -308,11 +259,11 @@ export async function roadLooks(ctx) {
   );
   const world = await groundUnder(river, core);
   const on = (keep) => core.filter((_, i) => keep(world[i].xy));
-  const gravel = mean(
+  const gravel = meanColour(
     junction.shot,
     on(([x]) => Math.abs(x - 60) < 4),
   );
-  const dirt = mean(
+  const dirt = meanColour(
     junction.shot,
     on(([x]) => x > 67),
   );
@@ -373,17 +324,13 @@ export async function roadLooks(ctx) {
   );
 }
 
-/** Frames a cost batch draws before its GPU time is read, and the pairs a
- *  station is measured over. */
-const COST_FRAMES = 120;
+/** The pairs a station's cost is measured over. */
 const COST_PAIRS = 4;
-const median = (values) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
 
 /** ROAD_COST=1: what the roads' wear (their surface detail, their shoulders,
  *  the grass thinned across them, a street's curb, lines and slab joints)
- *  costs a frame, at stations where roads fill much of the view: the same frozen frame with the wear on and off in
- *  a few interleaved batches, the median of the paired differences. Run it
- *  alone, under the GPU lock. */
+ *  costs a frame, at stations where roads fill much of the view
+ *  (`pairedCost`). */
 export async function roadCost(ctx) {
   const result = { stations: {} };
   for (const [map, stations] of [
@@ -393,28 +340,11 @@ export async function roadCost(ctx) {
     const page = await openStations(ctx, map);
     for (const station of stations) {
       await shoot(page, map, station);
-      // The page draws on demand, and the timer's mean runs over the frames
-      // drawn: a view change resets it, then every frame is forced.
-      const batch = (off) =>
-        lab(
-          page,
-          async ({ off, frames }) => {
-            await window.__lab.suppressRoadWear(off);
-            await window.__lab.setFrameView("final");
-            for (let i = 0; i < frames; i++) await window.__lab.frame();
-            return window.__lab.stats().gpu.meanMs;
-          },
-          { off, frames: COST_FRAMES },
-        );
-      const rows = { on: [], off: [] };
-      for (let pair = 0; pair < COST_PAIRS; pair++) {
-        rows.off.push(await batch(true));
-        rows.on.push(await batch(false));
-      }
+      const cost = await pairedCost(page, "suppressRoadWear", COST_PAIRS);
       result.stations[`${map} ${station}`] = {
-        plainMs: +median(rows.off).toFixed(3),
-        wearMs: +median(rows.on.map((v, i) => v - rows.off[i])).toFixed(3),
-        differences: rows.on.map((v, i) => +(v - rows.off[i]).toFixed(3)),
+        plainMs: +cost.plainMs.toFixed(3),
+        wearMs: +cost.costMs.toFixed(3),
+        differences: cost.differences.map((v) => +v.toFixed(3)),
       };
     }
     result.adapter = await page.evaluate(() => window.__lab.adapter);

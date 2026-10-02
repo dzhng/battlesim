@@ -6,8 +6,9 @@
 // Ground colours are sRGB display values like every vertex colour, linearised
 // once when the terrain surface packs them for the GPU. Tree tints are linear
 // multipliers over the tree appearances' own albedo.
+import { pick } from "@packages/renderer-core/src/kindTable";
 import type { Rgb } from "../light/sceneLight";
-import { SURFACE_AREA_KINDS } from "./surfaces";
+import { drawnKind, SURFACE_AREA_KINDS, type SurfaceAreaKind } from "./surfaces";
 
 /** One kind of plot in the patchwork: a meadow, a crop, ploughed earth. */
 export interface PlotKind {
@@ -614,6 +615,15 @@ export interface Biome {
   grass: GrassRules;
   scars: BiomeScars;
 }
+
+/** The row of `biome.roads` that draws paved `kind` on a map whose areas
+ *  name `named` (`drawnKind`): the kind's own, or the default. Which kind a
+ *  stretch of it is drawn as through a town is that row's `town`. */
+export const roadRow = (
+  biome: Pick<Biome, "roads">,
+  kind: SurfaceAreaKind,
+  named: ReadonlySet<SurfaceAreaKind>,
+): Road => pick(biome.roads, drawnKind(kind, named));
 
 /** The verge's key in `grass.growth`, beside the plot kinds. */
 export const VERGE_GROWTH = "verge";

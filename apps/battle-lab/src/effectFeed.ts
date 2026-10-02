@@ -1,9 +1,10 @@
 // The observation, as combat effects read it: one side's decoded
 // publication, under the battle's rules, becomes an `EffectPublication`
 // (visible flight, blasts, the shot counters and hulls of every unit the
-// side sees, and the wrecks it knows, which smoke), and an `EffectFrame`
-// for a battle's tick rate, from the fixture's `presentation.effects`. The
-// unit catalog gives each type's hull, mounts and wreck.
+// side sees, and the wrecks and destroyed buildings it knows, which smoke),
+// and an `EffectFrame` for a battle's tick rate, from the fixture's
+// `presentation.effects`. The unit catalog gives each type's hull, mounts
+// and wreck, and what a destroyed building's parts become.
 import game from "@fixtures/game.json";
 import {
   EffectFrame,
@@ -15,6 +16,7 @@ import {
 } from "@packages/battle-renderer/src/effects/effectFrame";
 import type { DrawnMuzzles } from "@packages/battle-renderer/src/models/drawnMuzzles";
 import { fromSideKey, sideKey } from "@packages/battle-renderer/src/sideKey";
+import { buildingRemains } from "@packages/scene-assets/src/authority";
 import { mountMuzzles, type MountMuzzle } from "@packages/scene-assets/src/mountMuzzle";
 import type { UnitCatalog, UnitType } from "@packages/scene-assets/src/units";
 import type { SideName } from "@web/battle/sim/protocol";
@@ -24,13 +26,25 @@ export const gameEffects: EffectPresentation = validateEffects(
   game.presentation.effects as unknown as EffectPresentation,
 );
 
-/** The prop kinds that are wrecks (some hull's `wreck`), per catalog, read once. */
-const wreckCache = new WeakMap<UnitCatalog, ReadonlySet<string>>();
-function wrecksOf(units: UnitCatalog): ReadonlySet<string> {
-  let w = wreckCache.get(units);
-  if (!w)
-    wreckCache.set(units, (w = new Set(units.ids.flatMap((id) => units.hull(id)?.wreck ?? []))));
-  return w;
+/** The prop kinds that smoke once a side knows of them, each with its look (a
+ *  `presentation.effects.smoke` row), per catalog, read once: what a
+ *  destroyed building's parts become, its remains (`ruin`) or its gutted
+ *  shell (`gutted`), and every hull's wreck (`wreck`). */
+const smokeLookCache = new WeakMap<UnitCatalog, ReadonlyMap<string, string>>();
+function smokeLooksOf(units: UnitCatalog): ReadonlyMap<string, string> {
+  let looks = smokeLookCache.get(units);
+  if (!looks) {
+    const byKind = new Map<string, string>();
+    const { remains, shells } = buildingRemains(units);
+    for (const kind of remains) byKind.set(kind, "ruin");
+    for (const kind of shells) byKind.set(kind, "gutted");
+    for (const id of units.ids) {
+      const wreck = units.hull(id)?.wreck;
+      if (wreck) byKind.set(wreck, "wreck");
+    }
+    smokeLookCache.set(units, (looks = byKind));
+  }
+  return looks;
 }
 
 /** Each type's mount muzzle models, read once. */
@@ -94,7 +108,7 @@ export function effectPublication(
   units: UnitCatalog,
 ): EffectPublication {
   const enemy: SideName = side === "blue" ? "red" : "blue";
-  const wrecks = wrecksOf(units);
+  const smokeLooks = smokeLooksOf(units);
   return {
     tick: o.tick,
     segments: o.projectiles.map((p) => ({
@@ -130,16 +144,22 @@ export function effectPublication(
         ),
       ),
     ],
-    // Every wreck the side knows smokes, where the side last saw it, with
-    // the one `wreck` look (`presentation.effects.smoke.wreck`).
-    smokes: o.knownProps
-      .filter((p) => wrecks.has(p.kind))
-      .map((p) => ({
-        key: `${p.kind}:${p.center[0]},${p.center[1]}`,
-        kind: "wreck",
-        center: [p.center[0], p.center[1], p.baseZ],
-        yaw: p.yaw,
-        half: p.half,
-      })),
+    // Every wreck the side knows smokes where the side last saw it, and so
+    // does every part of a building it knows destroyed, each with its kind's
+    // look (`presentation.effects.smoke`).
+    smokes: o.knownProps.flatMap((p) => {
+      const kind = p.destroyed ? undefined : smokeLooks.get(p.kind);
+      return kind === undefined
+        ? []
+        : [
+            {
+              key: `${p.kind}:${p.center[0]},${p.center[1]}`,
+              kind,
+              center: [p.center[0], p.center[1], p.baseZ] as [number, number, number],
+              yaw: p.yaw,
+              half: p.half,
+            },
+          ];
+    }),
   };
 }

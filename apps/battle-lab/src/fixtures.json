@@ -87,7 +87,7 @@
   {
     "id": "camera",
     "route": "/lab/camera",
-    "describe": "Camera clearance: scripted camera trajectories round a wall, a tower, a corner of two tall slabs, a courtyard block and a concave compound (prototype buildings as massing). Watch from outside, with the eye path asked for (amber, red inside a building's clearance) beside the eye path drawn (cyan), or ride the camera as the viewport flies it; a switch makes blue see the tower fall.",
+    "describe": "Camera clearance: scripted camera trajectories round a wall, a tower, a corner of two tall slabs, a courtyard block and a concave compound (the generator's templates). Watch from outside, with the eye path asked for (amber, red inside a building's clearance) beside the eye path drawn (cyan), or ride the camera as the viewport flies it; a switch makes blue see the courtyard block collapse.",
     "map": "camera-lab"
   },
   {
@@ -98,7 +98,12 @@
   {
     "id": "city-lineup",
     "route": "/lab/city-lineup",
-    "describe": "Every building template of the installed art library on flat ground, in rows by category at its real size, each labelled with its id, drawn through the frame's own buildings path with no battle. ?set= or ?category= narrows it, ?tier=0..3 draws every building at one detail tier, ?state=ruin|gutted draws them as a side that saw them fall knows them, and ?station= with ?at=<template id> opens on a station: all, row, fit, close (30 m), tactical (65 m), wide (250 m), or transition-1..3 (where the template changes to that tier). The scene writes a contact sheet per category at each tier and the pairs across each tier boundary."
+    "describe": "Every building template of the installed art library on flat ground, in rows by category at its real size, each labelled with its id, drawn through the frame's own buildings path with no battle. ?set= or ?category= narrows it, ?tier=0..3 draws every building at one detail tier, ?state=ruin|gutted draws the templates that end in that state as a side that saw them destroyed knows them (a low template collapses to a ruin, a tall one stands gutted; the others are left out), and ?station= with ?at=<template id> opens on a station: all, row, fit, close (30 m), tactical (65 m), wide (250 m), or transition-1..3 (where the template changes to that tier). The scene writes a contact sheet per category at each tier and the pairs across each tier boundary."
+  },
+  {
+    "id": "city-ruins",
+    "route": "/lab/city-ruins",
+    "describe": "Buildings destroyed in a battle, drawn as each side knows them: on the camera lab's map, HE bursts bring a five-floor U block down to remains and gut a twenty-floor tower, which stands. Blue's squad watches both and draws the block's ruin and the tower's burnt shell; red's stands behind two slabs and draws both intact until its scripted walk takes it round them; a labelled side-view switch. The camera's obstacles, the fog's occluders and the smoke over a destroyed building follow the same knowledge."
   },
   {
     "id": "facade",

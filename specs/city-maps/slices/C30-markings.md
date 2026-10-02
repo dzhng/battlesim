@@ -37,6 +37,8 @@ Markings that dominate tactical reading change their width/contrast; street geom
 
 ## Outcome
 
+**Changed since.** [C31](C31-city-biome.md): the road through a town is a street, and a crossing is laid only beside a crossing stretch's own length, not round the end of a street that joins.
+
 **Built.** Every town street has a dashed centre line, and a crossing's bars wherever another road crosses it. Nothing is placed by a list: the lines are a function of the strokes, so they are the same on every machine and need no data in the map.
 
 **The seam.**
