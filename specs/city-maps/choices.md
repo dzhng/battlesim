@@ -5195,6 +5195,47 @@ exact matched openings pass and a real retained GPU allocation falsifies the che
 **Verdict:** sound: it follows the owner's change to the skill and to AGENTS.md. **Confidence:** high.
 
 
+## C06: reject stale infantry refinement edges
+
+**Choice:** A missing shared edge during refinement returns the existing route
+failure. The route planner already restarts a failed candidate when its knowledge
+revision changed; refinement adds no retry, geometry exception or new state.
+
+**Reason:** Coarse admission does not freeze the grid. A public body-add event
+reproduces the observed late-battle panic, so the shared-edge assertion is not a
+valid invariant across incremental steps. Static successful routes keep their
+sampling order; the affected battle now recovers instead of aborting. This is a
+named failure-path change, not a performance or unchanged-crash-digest claim.
+
+**Reach:** No runtime planning budget or latency contract changes. Completion
+and replay proof, and the remaining integration gate, live in the
+[C06 outcome](slices/C06-sim-scale-passes.md#outcome--changed-edges-during-infantry-refinement).
+
+**Verdict:** sound; high confidence. Geometry ownership stays with the current
+grid, and revision recovery stays with the existing planner.
+
+
+## C07: encode the final learned-ground tail through the existing carrier
+
+**Gap:** The captured real-catalogue five-minute early run violates the unchanged
+19,800 B maximum through a 1,313-run knowledge burst. Earlier non-map packing does
+not own these rows; simple absolute/delta varints still miss the gate.
+
+**Choice:** Extend the one publication serializer/decoder across the named ground
+tail seam. Declare one compact grammar in the producer's layout, reuse its raw
+u32 carrier/LEB/count/write and the browser's shared reader, and reconstruct the
+existing canonical four-word runs before existing physical/order validation.
+There is no legacy format fallback, per-side ground predictor, retained codec
+cache, second producer staging buffer, dependency, cap increase or delayed mark.
+
+**Verdict:** Sound, high confidence. All captured raw words reconstruct; the
+public burst is red before/green after; malformed tails preserve atomic retry.
+Count+encode costs about 0.012 M mean instructions against 3.582 M full packing.
+The decoder allocates the same owned canonical runs it already exposed, with
+minimum-wire and complete-logical-record admission before allocation. Byte and
+memory proofs remain scoped: the late battle panics, frozen replay is not final
+whole-battle admission, and browser clocks/cold allocator components do not prove
+loaded throughput or full-world process/GPU peak.
 ## C33 simplified
 
 ### The page builds its own world; the public query export is deleted

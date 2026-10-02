@@ -450,3 +450,20 @@ initial-view experiment, not a whole-battle or browser timing claim. The source
 change is discarded; existing public cost requirements stay unchanged. Remaining
 Fog plus Learning work remains the next attribution target, with current full
 report means of 54.941 and 59.969 million instructions per tick early and late.
+
+## Outcome — changed edges during infantry refinement
+
+Incremental infantry refinement can outlive the knowledge revision on which its
+coarse path was admitted. A new body can close a diagonal's shared edge before
+refinement reads it. Missing edges now reject that candidate through the existing
+bounded route-failure path; the planner's revision check owns the fresh search.
+No stale crossing is emitted, and unchanged geometry keeps the same path.
+
+The public Battle regression adds a body during planning. It reproduces the
+first-edge panic on the original source, then proves eventual publication of a
+route fitting the actual changed world, no pending job, and every serialized
+replay tick digest. Its deliberately tiny planning allowance stretches the
+revision transition; the watchdog is a completion check, not latency admission.
+A private phase probe confirms finite smoothing progress. The preserved current
+catalogue late admission crash selects this fix, but the full late run and scale
+budgets remain integration gates.
