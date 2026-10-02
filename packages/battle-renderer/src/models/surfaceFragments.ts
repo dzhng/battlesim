@@ -157,11 +157,11 @@ export function createGlassFragment(environment: EnvironmentFrame, style: GlassS
       eye,
     );
     const ceiling = std.mul(environment.unlit(d.vec3f(1), v.world, eye).xyz, glint);
-    const cover = coverageValue(v.material, v.uv);
-    const seen = modelSeen(v.world, n, v.anchor, v.clip.xy);
+    // Its pipeline leaves the fog mask as it is: what is seen is what
+    // stands behind the pane.
     return {
-      color: d.vec4f(std.min(shaded.xyz, ceiling), cover),
-      fog: fogCoverage(seen, cover),
+      color: d.vec4f(std.min(shaded.xyz, ceiling), coverageValue(v.material, v.uv)),
+      fog: d.vec4f(0),
     };
   });
 }

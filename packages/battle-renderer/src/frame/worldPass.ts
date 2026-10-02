@@ -129,7 +129,15 @@ import {
   validateXrayFraction,
 } from "../models/modelXray";
 import { cardVertex, createCardFragment } from "../models/impostorCards";
-import { FRAME_MSAA, OVERLAY_FORMAT, WORLD_OUT, worldTargets, type FrameTargets } from "./targets";
+import {
+  FOG_MASK_FORMAT,
+  FRAME_MSAA,
+  HDR_FORMAT,
+  OVERLAY_FORMAT,
+  WORLD_OUT,
+  worldTargets,
+  type FrameTargets,
+} from "./targets";
 import type { GpuRegistry } from "./registry";
 
 type Root = ReturnType<typeof tgpu.initFromDevice>;
@@ -421,14 +429,21 @@ export async function createWorldPass(
   });
   // A blended surface (glass) is drawn after everything opaque, over it by
   // its coverage, as the water is: it reads depth and writes none, is in no
-  // prepass and casts no shadow.
+  // prepass and casts no shadow. Unlike the water it leaves the fog mask
+  // alone: a pane is not the thing seen or unseen, what stands behind it is.
   const modelBlended = root.createRenderPipeline({
     ...modelBase,
     fragment: createGlassFragment(environment, glass),
-    targets: worldTargets({
-      color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
-      alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
-    }),
+    targets: {
+      color: {
+        format: HDR_FORMAT,
+        blend: {
+          color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha" },
+          alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha" },
+        },
+      },
+      fog: { format: FOG_MASK_FORMAT, writeMask: 0 },
+    },
     depthStencil: battleWorldDepth("read"),
     multisample: { count: FRAME_MSAA },
   });
