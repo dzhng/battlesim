@@ -34,6 +34,14 @@ On saved layout-12 Market Town seed `1`, a jeep can stand at `[1150, 4450]` and 
 
 The generator's current coverage owner marks cell centres near building anchors and authored wood edges; failed attempts may leave bare cells without a final refusal. Construction must account for physical blockers, actual circular observer ranges and the entire cell area, including unbuilt town space and edges. Finite samples remain useful counterexample searches, never the continuous/all-seed proof.
 
+### Unintegrated coverage checkpoint
+
+The working branch `codex/city-ground-fix` replaces proximity heuristics with a continuous whole-cell certificate using shared physical forest placement and the native fog sampling geometry. The exact jeep counterexample and between-cell/town-space probes have passed in earlier candidate checkpoints. Those results do not admit the final candidate.
+
+Independent source review found that a witness near an edge could cast its isolated far fog cell outside the map, leaving all in-bounds fog clear. The candidate now reserves an in-bounds target over every position in a clipped cell, using the same predicate for lookup and new placement. A tiny edited tree-line width also exposed a potentially enormous allocation before charging; its forecast/refusal is added before allocation. These corrections retain their red controls. The latest candidate still refuses Mixed Small seed 1 at `[5050, 550]`; resolve that construction failure without weakening coverage, main approaches, fairness or the work envelope before refreshing versions and saved artifacts.
+
+The computer restart preserved source and ignored evidence in the existing worktree; old processes did not survive. The generator's README owns the proof's current assumptions and limits. No candidate geometry is integrated or accepted yet.
+
 ## What remains to judge
 
 The historical report supports only its sampled map and standardized starts. The actual openings establish visible forest cuts for two candidate seeds. Neither admits M24/M25 globally or proves final visual variety. After the coverage fix, C54 must judge the new physical geometry and actual published fog against both references, including closer rural landmarks. The ground lane already records rare hedgerows and fields that can read as a flat outlined carpet. Do not increase density by assumption or treat low cover as a tall sight blocker.
