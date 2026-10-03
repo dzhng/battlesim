@@ -83,9 +83,8 @@ pub struct Script {
     shelling: Option<(u64, usize)>,
     pushed: bool,
     reshelled: u64,
-    /// Units sent back to the supply, waiting to rejoin, since when.
+    /// Units waiting at supply, with their last retreat or return-admission tick.
     resting: BTreeMap<u32, u64>,
-    rejoined: u32,
 }
 
 impl Script {
@@ -126,13 +125,7 @@ impl Script {
             pushed: false,
             reshelled: 0,
             resting: BTreeMap::new(),
-            rejoined: 0,
         }
-    }
-
-    /// How many hurt units were served and sent back into the fight.
-    pub fn rejoined(&self) -> u32 {
-        self.rejoined
     }
 
     fn token(&mut self) -> u64 {
@@ -152,7 +145,7 @@ impl Script {
         })
     }
 
-    fn attack_move(&mut self, units: Vec<UnitId>, goal: [f64; 2]) -> Option<Order> {
+    pub(super) fn attack_move(&mut self, units: Vec<UnitId>, goal: [f64; 2]) -> Option<Order> {
         (!units.is_empty()).then(|| Order::AttackMove {
             units,
             gesture: self.token(),
@@ -164,7 +157,7 @@ impl Script {
         (!units.is_empty()).then_some(Order::Attack { units, target })
     }
 
-    /// This tick's orders (none queued).
+    /// This tick's tactical orders; supply returns await controller admission.
     pub fn orders(&mut self, frame: &ObservationFrame, rules: &Rules) -> Vec<Order> {
         match self.plan {
             Plan::UnsupportedPush => self.unsupported(frame, rules),
@@ -331,15 +324,35 @@ impl Script {
                     self.resting.insert(u.id.0, tick);
                     out.extend(self.mv(vec![u.id], near(SUPPLY_POST, u.id.0)));
                 }
-                Some(&since) if u.service == ServiceStatus::Full && tick > since + s(10) => {
-                    self.resting.remove(&u.id.0);
-                    self.rejoined += 1;
-                    out.extend(self.attack_move(vec![u.id], near(village, u.id.0)));
-                }
                 _ => {}
             }
         }
         out
+    }
+
+    /// Replenished units wait for the controller to admit a return destination.
+    pub(super) fn rejoins(
+        &self,
+        frame: &ObservationFrame,
+        rules: &Rules,
+    ) -> Vec<(UnitId, [[f64; 2]; 2])> {
+        frame
+            .own
+            .iter()
+            .filter_map(|u| {
+                let since = self.resting.get(&u.id.0)?;
+                (u.service == ServiceStatus::Full && frame.tick > since + 10 * rules.tick_hz as u64)
+                    .then(|| (u.id, [near(self.zone.0, u.id.0), self.zone.0]))
+            })
+            .collect()
+    }
+
+    pub(super) fn rejoin_checked(&mut self, unit: UnitId, tick: u64, accepted: bool) {
+        if accepted {
+            self.resting.remove(&unit.0);
+        } else if let Some(since) = self.resting.get_mut(&unit.0) {
+            *since = tick;
+        }
     }
 
     /// Every combat unit not resting at the supply.

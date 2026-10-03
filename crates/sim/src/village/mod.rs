@@ -320,6 +320,8 @@ pub struct ScriptedBlue {
     seq: u64,
     /// Orders the battle refused (a script bug when not zero).
     pub rejected: u32,
+    /// Replenished units whose return to the fight the battle admitted.
+    pub rejoined: u32,
 }
 
 impl ScriptedBlue {
@@ -329,23 +331,51 @@ impl ScriptedBlue {
             rules: setup.rules.clone(),
             seq: 0,
             rejected: 0,
+            rejoined: 0,
         }
     }
 
     /// Issue this tick's orders; call it before `Battle::step`.
     pub fn command(&mut self, battle: &mut crate::battle::Battle) {
-        use contract::command::CommandEnvelope;
         let orders = self.script.orders(battle.observe(Side::Blue), &self.rules);
         for order in orders {
-            self.seq += 1;
-            let ack = battle.accept(CommandEnvelope {
-                side: Side::Blue,
-                seq: self.seq,
-                order,
-                queued: false,
-            });
-            self.rejected += ack.error.is_some() as u32;
+            self.accept(battle, order);
         }
+        for (unit, goals) in self.script.rejoins(battle.observe(Side::Blue), &self.rules) {
+            let goal = goals.into_iter().find(|&goal| {
+                battle
+                    .preview_move(
+                        Side::Blue,
+                        &contract::command::MovePreviewRequest {
+                            units: vec![unit],
+                            goal,
+                            ..Default::default()
+                        },
+                    )
+                    .is_ok_and(|places| places.iter().any(|p| p.placed))
+            });
+            let accepted = goal
+                .and_then(|g| self.script.attack_move(vec![unit], g))
+                .is_some_and(|order| self.accept(battle, order).error.is_none());
+            self.script.rejoin_checked(unit, battle.tick(), accepted);
+            self.rejoined += u32::from(accepted);
+        }
+    }
+
+    fn accept(
+        &mut self,
+        battle: &mut crate::battle::Battle,
+        order: Order,
+    ) -> contract::command::CommandAck {
+        self.seq += 1;
+        let ack = battle.accept(contract::command::CommandEnvelope {
+            side: Side::Blue,
+            seq: self.seq,
+            order,
+            queued: false,
+        });
+        self.rejected += ack.error.is_some() as u32;
+        ack
     }
 }
 
@@ -359,7 +389,7 @@ pub struct Trial {
     /// fallen soldier's share of its squad's cost.
     pub blue_cost_lost: f64,
     pub tanks_lost: u32,
-    /// Hurt units that went back to the supply and re-entered the fight.
+    /// Replenished units whose return order the battle admitted.
     pub rejoined: u32,
     /// Script orders the battle refused (a script bug when not zero).
     pub rejected: u32,
@@ -424,7 +454,7 @@ pub fn trial(
         captured_s,
         blue_cost_lost,
         tanks_lost,
-        rejoined: blue.script.rejoined(),
+        rejoined: blue.rejoined,
         rejected: blue.rejected,
         tanks: setup
             .units
