@@ -16,7 +16,7 @@ import { readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { PNG } from "pngjs";
 import { median } from "./_colour.mjs";
-import { advance, aim, lab, presented } from "./_lab.mjs";
+import { advance, aim, lab, presented, snapshot } from "./_lab.mjs";
 import { decode } from "./_png.mjs";
 
 /** A fixture, parsed: `path` under `fixtures/`. */
@@ -548,10 +548,7 @@ export async function openStations(ctx, map) {
   await advance(page, TICK - (await lab(page, () => window.__lab.route.tick())));
   await presented(page);
   await page.addStyleTag({ content: HIDE_HUD });
-  encoding = await page.evaluate(
-    async (path) => ({ ...(await import(path)) }),
-    `/@fs/${new URL("../../packages/battle-renderer/src/terrain/groundClasses.ts", import.meta.url).pathname}`,
-  );
+  await loadClassEncoding(page);
   await lab(page, async () => {
     const l = window.__lab;
     await l.suppressModels(true);
@@ -569,6 +566,37 @@ export async function openStations(ctx, map) {
  *  preparation report, the village's plots by kind (`villagePlots`) and the
  *  bodies on its forest floors (`villageFloor`). */
 export const stationReport = (page) => reports.get(page);
+
+async function loadClassEncoding(page) {
+  encoding = await page.evaluate(
+    async (path) => ({ ...(await import(path)) }),
+    `/@fs/${new URL("../../packages/battle-renderer/src/terrain/groundClasses.ts", import.meta.url).pathname}`,
+  );
+}
+
+/** The current camera's bare class mask, independent of grass lighting and
+ *  foreground models. Call on a scene with these populations normally shown. */
+export async function bareClassMask(ctx, page, file) {
+  await loadClassEncoding(page);
+  const suppress = (off) =>
+    lab(
+      page,
+      async (off) => {
+        await window.__lab.suppressModels(off);
+        await window.__lab.suppressGrass(off);
+        await window.__lab.suppressTrees(off);
+      },
+      off,
+    );
+  await suppress(true);
+  try {
+    await lab(page, () => window.__lab.setFrameView("ground-classes"));
+    return decode(await snapshot(ctx, page, file));
+  } finally {
+    await lab(page, () => window.__lab.setFrameView("final"));
+    await suppress(false);
+  }
+}
 
 /** Where `station` of `map` puts the camera on `page`: the target on the
  *  ground, the distance, pitch and yaw. */
