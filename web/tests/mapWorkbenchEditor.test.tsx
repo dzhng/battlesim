@@ -226,3 +226,78 @@ test("reapply preserves a visible way to undo unfinished input whose source fiel
   await waitFor(() => expect(generate).toHaveBeenCalledTimes(2));
   expect(screen.getByRole("button", { name: "Review save" }).hasAttribute("disabled")).toBe(false);
 });
+
+test("regenerating after a refused saved comparison retains only admitted geometry", async () => {
+  const { api, generate } = fixture();
+  render(<MapWorkbench api={api} />);
+  await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
+  fireEvent.change(screen.getByLabelText("Block depth"), { target: { value: "140" } });
+  await waitFor(() => expect(generate).toHaveBeenCalledTimes(2));
+  generate.mockImplementation(async (request) => ({
+    artifactId: "refused-baseline",
+    fingerprint: "refused",
+    choice: request.choice,
+    status: "refused",
+    stage: "generation",
+    diagnostics: [],
+  }));
+  fireEvent.click(screen.getByRole("button", { name: "Saved baseline · same seed" }));
+  await waitFor(() => expect(screen.getByText(/Saved baseline refused:/)).toBeTruthy());
+  expect(screen.getByText(/Choose Draft plan to inspect the last admitted map/)).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Whole map" }).hasAttribute("disabled")).toBe(true);
+  expect(screen.getByRole("button", { name: "Zoom in" }).hasAttribute("disabled")).toBe(true);
+  expect(screen.getByRole("button", { name: "Zoom out" }).hasAttribute("disabled")).toBe(true);
+  expect(screen.getByRole("button", { name: "Measure openness" }).hasAttribute("disabled")).toBe(
+    true,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Regenerate" }));
+  await waitFor(() => expect(generate).toHaveBeenCalledTimes(4));
+  expect(generate.mock.calls.at(-1)?.[0].retainedArtifactIds).toEqual(["artifact"]);
+});
+
+test("feature selection belongs to its artifact when generation reuses district IDs", async () => {
+  const { api, generate } = fixture();
+  const first = await generate({
+    purpose: "preview",
+    retainedArtifactIds: [],
+    draft: await api.snapshot(),
+    choice: { type: "mixed", size: "small", seed: "1" },
+  });
+  first.features![0].crop = "district-1";
+  generate
+    .mockReset()
+    .mockResolvedValueOnce(first)
+    .mockResolvedValue({
+      ...first,
+      artifactId: "next-artifact",
+      svg: '<svg viewBox="0 0 100 100"><path data-rule-group="districts.detached" data-feature-id="district-1" d="M10 10H90V90H10Z"/></svg>',
+      features: [
+        {
+          id: "district-1",
+          group: "districts.detached",
+          label: "Detached district",
+          crop: "district-1",
+        },
+      ],
+    });
+  render(<MapWorkbench api={api} />);
+  await waitFor(() => expect(screen.getByTestId("map-plan").querySelector("path")).not.toBeNull());
+  fireEvent.click(screen.getByTestId("map-plan").querySelector("path")!);
+  expect(screen.getByRole("button", { name: "Inspect selection" }).hasAttribute("disabled")).toBe(
+    false,
+  );
+  fireEvent.change(screen.getByLabelText("Block depth"), { target: { value: "140" } });
+  await waitFor(() =>
+    expect(
+      screen.getByTestId("map-plan").querySelector("path")?.getAttribute("data-rule-group"),
+    ).toBe("districts.detached"),
+  );
+  expect(screen.getByTestId("map-plan").querySelector("path")?.getAttribute("data-selected")).toBe(
+    "false",
+  );
+  expect((screen.getByLabelText("Inspect feature") as HTMLSelectElement).value).toBe("");
+  expect(screen.getByRole("button", { name: "Inspect selection" }).hasAttribute("disabled")).toBe(
+    true,
+  );
+  expect((screen.getByLabelText("Block depth") as HTMLInputElement).value).toBe("140");
+});

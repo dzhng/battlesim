@@ -65,3 +65,26 @@ test("cancellation during receipt capture explicitly marks a completed outcome a
   expect(result.sources).toEqual([]);
   expect(result.receiptErrors).toEqual(["mixed small 1: Error: Receipt capture cancelled"]);
 });
+
+test("an execution failure keeps the requested outcome and explicitly lacks an input receipt", async () => {
+  const input: Draft = { revision: "saved-source", documents: { presets: {}, defaults: {} } };
+  const choice = { type: "mixed" as const, size: "small" as const, seed: "1" };
+  const api = {
+    generate: async () => {
+      throw new Error("Native job exceeded its deadline");
+    },
+  } as unknown as WorkbenchAPI;
+  const result = await collectSample(api, input, [choice], new AbortController().signal, () => {});
+  expect(result.rows[0]).toMatchObject({
+    choice,
+    status: "refused",
+    stage: "execution",
+    fingerprint: "unavailable",
+  });
+  expect(result.rows[0].source).toBeUndefined();
+  expect(result.sources).toEqual([]);
+  expect(result.receiptErrors).toEqual([
+    "mixed small 1: Execution failed before an exact-input receipt was available",
+  ]);
+  expect(result.complete).toBe(true);
+});

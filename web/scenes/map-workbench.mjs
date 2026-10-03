@@ -90,6 +90,12 @@ export async function run(ctx) {
     "each requested seed retains an outcome",
     (await page.locator(".mw-sample tbody tr").count()) === 2,
   );
+  // District IDs are local to each artifact, so reselect after regeneration.
+  const currentDistrict = await page
+    .locator('.mw-plan [data-rule-group="districts.apartments"]')
+    .first()
+    .getAttribute("data-feature-id");
+  await page.getByLabel("Inspect feature").selectOption(currentDistrict);
   await page.getByRole("button", { name: "Inspect selection" }).click();
   await page.waitForFunction(() => {
     const box = document
@@ -112,19 +118,72 @@ export async function run(ctx) {
   await page.locator(".mw-measurements > details").evaluateAll((nodes) => {
     for (const node of nodes) node.open = true;
   });
-  const geometry = page
-    .locator(".mw-measurements > details")
-    .filter({ has: page.locator("summary", { hasText: /^Geometry$/ }) });
-  await geometry.locator("details").evaluateAll((nodes) => {
+  await page.locator(".mw-measurements details").evaluateAll((nodes) => {
     for (const node of nodes) node.open = true;
   });
   await page
     .locator(".mw-measurements")
     .evaluate((node) => node.scrollIntoView({ block: "start" }));
   await shot("geometry-expanded");
+  await page
+    .locator(".mw-measurements > details")
+    .filter({ has: page.locator("summary", { hasText: /^Encounter$/ }) })
+    .evaluate((node) => node.scrollIntoView({ block: "start" }));
+  await shot("encounter-expanded");
   await page.locator(".mw-analysis").evaluate((node) => node.scrollIntoView({ block: "end" }));
   await shot("geometry-expanded-bottom");
   await ctx.writeEvidence("openness-small.txt", await page.locator(".mw-sight").textContent());
+  // Control only the baseline response; the displayed draft and regeneration stay native.
+  await page.route("**/__map-workbench/generate", async (route) => {
+    const request = route.request().postDataJSON();
+    const depth = request.draft.documents.presets.districts.apartments.streets.block_depth_m;
+    if (request.purpose === "preview" && depth === Number(saved))
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          status: "refused",
+          stage: "generation",
+          choice: request.choice,
+          fingerprint: "controlled-baseline-refusal",
+          artifactId: "00000000-0000-4000-8000-000000000001",
+          diagnostics: [
+            {
+              code: "generation_failed",
+              feature: "baseline",
+              location: "$",
+              message: "Controlled saved-seed refusal",
+            },
+          ],
+        }),
+      });
+    else await route.continue();
+  });
+  await page.getByRole("button", { name: "Saved baseline · same seed" }).click();
+  await page.getByText(/Saved baseline refused:/).waitFor();
+  ctx.check(
+    "a refused comparison offers no geometry-only actions",
+    (await page.getByRole("button", { name: "Whole map" }).isDisabled()) &&
+      (await page.getByRole("button", { name: "Measure openness" }).isDisabled()),
+  );
+  await page.locator(".mw-inspection").evaluate((node) => node.scrollIntoView({ block: "start" }));
+  await shot("baseline-refused");
+  await page.getByRole("button", { name: "Regenerate", exact: true }).click();
+  await page.waitForFunction(
+    () => document.querySelector('[role="status"]')?.textContent === "Current draft admitted",
+  );
+  await page.getByRole("button", { name: "Draft plan", exact: true }).click();
+  await Promise.all([
+    page.waitForResponse(
+      (response) => response.url().endsWith("/__map-workbench/inspect") && response.ok(),
+    ),
+    page.getByRole("button", { name: "Whole map" }).click(),
+  ]);
+  ctx.check(
+    "regeneration after a refused comparison preserves the admitted native artifact",
+    (await page.locator(".mw-plan svg").count()) === 1,
+  );
+  await page.unroute("**/__map-workbench/generate");
   await page.getByLabel("Search rules").fill("");
   await page.getByLabel("Rule group").selectOption("limits");
   const limit = snapshot.fields.find(
@@ -163,10 +222,18 @@ export async function run(ctx) {
   await shot("narrow-controls");
   await page.locator(".mw-inspection").scrollIntoViewIfNeeded();
   await shot("narrow-plan");
+  await page.locator(".mw-measurements details").evaluateAll((nodes) => {
+    for (const node of nodes) node.open = true;
+  });
   await page
     .locator(".mw-measurements")
     .evaluate((node) => node.scrollIntoView({ block: "start" }));
   await shot("narrow-geometry");
+  await page
+    .locator(".mw-measurements > details")
+    .filter({ has: page.locator("summary", { hasText: /^Encounter$/ }) })
+    .evaluate((node) => node.scrollIntoView({ block: "start" }));
+  await shot("narrow-encounter");
   await page.locator(".mw-analysis").evaluate((node) => node.scrollIntoView({ block: "end" }));
   await shot("narrow-geometry-bottom");
   await page.getByRole("button", { name: "Review save" }).click();

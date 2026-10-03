@@ -11,7 +11,7 @@ export interface SeedSample {
   cancelled: boolean;
 }
 
-/** Each artifact is exported before the next replaces it. Geometry is not
+/** Each artifact attempts source export before the next replaces it. Geometry is not
  * retained by a sample; each row names its exact source bundle by index. */
 export async function collectSample(
   api: WorkbenchAPI,
@@ -60,8 +60,11 @@ export async function collectSample(
       }
     } catch (error) {
       if (signal.aborted) break;
+      receiptErrors.push(
+        `${choice.type} ${choice.size} ${choice.seed}: Execution failed before an exact-input receipt was available`,
+      );
       rows.push({
-        fingerprint: input.revision,
+        fingerprint: "unavailable",
         choice,
         status: "refused",
         stage: "execution",

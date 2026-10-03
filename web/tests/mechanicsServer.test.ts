@@ -462,3 +462,23 @@ test("accepted soldier identities follow clone creation and cleanup across reord
     ],
   });
 }, 30000);
+
+test("a save response resolves its catalog from the same captured sources after an outside edit", async () => {
+  const { root, editor } = await store();
+  const initial = await editor.snapshot();
+  const real = await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
+  vi.spyOn(filesystem, "rm").mockImplementation(async (path, options) => {
+    await real.rm(path, options);
+    if (String(path) === join(root, "throwaway/mechanics-editor-transaction.json"))
+      await writeFile(join(root, "fixtures/game.json"), '{"weapons":{"rifle":{"damage":60}}}');
+  });
+  const saved = await editor.save({
+    revision: initial.revision,
+    changes: [{ section: "weapons", id: "rifle", path: ["damage"], value: 40 }],
+  });
+  expect(saved.documents.find((file) => file.path === "fixtures/game.json")?.value).toMatchObject({
+    weapons: { rifle: { damage: 60 } },
+  });
+  expect(saved.catalog.weapons).toMatchObject({ rifle: { damage: 60 } });
+  expect(saved).toEqual(await editor.snapshot());
+});

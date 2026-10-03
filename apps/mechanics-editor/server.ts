@@ -456,7 +456,7 @@ export class MechanicsStore {
   save(draft: MechanicsDraft): Promise<MechanicsSnapshot> {
     return this.serial(async () => {
       const proposal = await this.candidate(draft);
-      let state = await this.publication.capture(() => this.read());
+      const state = await this.publication.capture(() => this.read());
       if (state.revision !== draft.revision)
         throw new MechanicsError("Fixtures changed while validating. Reload before saving.", 409);
       const replacements = new Map(proposal.files.map((file) => [file.path, file.after]));
@@ -475,11 +475,11 @@ export class MechanicsStore {
             409,
           );
       });
-      state = await this.publication.capture(() => this.read());
+      const saved = await this.loaded();
       return {
-        revision: state.revision,
-        documents: state.files.map(({ path, value }) => ({ path, value })),
-        catalog: proposal.catalog,
+        revision: saved.revision,
+        documents: saved.files.map(({ path, value }) => ({ path, value })),
+        catalog: saved.catalog,
       };
     });
   }

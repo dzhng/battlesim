@@ -5,6 +5,7 @@ import { FixturePublication } from "../fixture-publication/publication";
 import { changedPaths } from "../fixture-publication/changes";
 import { nativeReporter, type NativeReporter } from "./native";
 import { WorkbenchError } from "./error";
+import { workbenchMiddleware } from "./httpServer";
 import { canonicalSeed, MAP_TYPES, MAP_SIZES } from "../../web/src/maps/source";
 import type {
   Draft,
@@ -421,9 +422,8 @@ export function mapWorkbenchPlugin(
   return {
     name: "map-workbench",
     apply: "serve",
-    async configureServer(server) {
+    configureServer(server) {
       store = new WorkbenchStore(root, reporter);
-      const { workbenchMiddleware } = await import("./httpServer");
       server.middlewares.use(workbenchMiddleware(store));
       server.httpServer?.once("close", () => {
         void store.close();

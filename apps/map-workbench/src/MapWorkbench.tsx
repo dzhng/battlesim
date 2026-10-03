@@ -49,7 +49,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
   const [baseline, setBaseline] = useState<Report | null>(null);
   const [view, setView] = useState<"draft" | "saved">("draft");
   const [inspection, setInspection] = useState<(Inspection & { artifactId: string }) | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<{ artifactId: string; id: string } | null>(null);
   const [zoom, setZoom] = useState(1);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [status, setStatus] = useState("Loading saved sources…");
@@ -72,7 +72,10 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
   const artifactPins = useRef<string[]>([]);
   artifactPins.current = [
     ...new Set(
-      [accepted?.report.artifactId, baseline?.artifactId].filter((id): id is string => !!id),
+      [
+        accepted?.report.artifactId,
+        baseline?.status === "ok" ? baseline.artifactId : undefined,
+      ].filter((id): id is string => !!id),
     ),
   ];
   const runner = useMemo(
@@ -152,9 +155,10 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
     latest.request.draft.documents === draft.documents &&
     same(latest.report.choice, choice);
   const shown = view === "saved" ? baseline : accepted?.report;
+  const selectedId = selected?.artifactId === shown?.artifactId ? selected?.id : null;
   const picture = shown && inspection?.artifactId === shown.artifactId ? inspection : shown;
   const svg = picture?.svg;
-  const selectedCrop = shown?.features?.find((feature) => feature.id === selected)?.crop;
+  const selectedCrop = shown?.features?.find((feature) => feature.id === selectedId)?.crop;
   const layers = useMemo(() => {
     if (!svg) return [];
     const dom = new DOMParser().parseFromString(svg, "image/svg+xml");
@@ -170,8 +174,8 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
     for (const node of diagram.current?.querySelectorAll<SVGElement>("[data-layer]") ?? [])
       node.style.display = hidden.has(node.dataset.layer!) ? "none" : "";
     for (const node of diagram.current?.querySelectorAll<SVGElement>("[data-feature-id]") ?? [])
-      node.dataset.selected = String(node.dataset.featureId === selected);
-  }, [svg, selected, hidden]);
+      node.dataset.selected = String(node.dataset.featureId === selectedId);
+  }, [svg, selectedId, hidden]);
 
   const fields = useMemo(
     () =>
@@ -635,9 +639,22 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
             >
               Saved baseline · same seed
             </button>
-            <button onClick={() => setZoom((value) => Math.min(8, value * 1.5))}>Zoom in</button>
-            <button onClick={() => setZoom((value) => Math.max(1, value / 1.5))}>Zoom out</button>
-            <button disabled={!shown?.artifactId || sampleRunning} onClick={() => void inspect()}>
+            <button
+              disabled={!svg || zoom >= 8}
+              onClick={() => setZoom((value) => Math.min(8, value * 1.5))}
+            >
+              Zoom in
+            </button>
+            <button
+              disabled={!svg || zoom <= 1}
+              onClick={() => setZoom((value) => Math.max(1, value / 1.5))}
+            >
+              Zoom out
+            </button>
+            <button
+              disabled={shown?.status !== "ok" || !shown.artifactId || sampleRunning}
+              onClick={() => void inspect()}
+            >
               Whole map
             </button>
             <button
@@ -694,16 +711,19 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
                   event.target instanceof Element
                     ? event.target.closest("[data-rule-group]")
                     : null;
-                if (node) {
+                if (node && shown?.artifactId) {
                   setGroup(node.getAttribute("data-rule-group")!);
                   setQuery("");
-                  setSelected(node.getAttribute("data-feature-id"));
+                  const id = node.getAttribute("data-feature-id");
+                  setSelected(id ? { artifactId: shown.artifactId, id } : null);
                 }
               }}
               dangerouslySetInnerHTML={{
                 __html:
                   svg ||
-                  '<div class="mw-empty">The plan will appear after generation. Draft edits do not save automatically.</div>',
+                  (shown?.status === "refused"
+                    ? '<div class="mw-empty">Saved baseline refused. Choose Draft plan to inspect the last admitted map.</div>'
+                    : '<div class="mw-empty">The plan will appear after generation. Draft edits do not save automatically.</div>'),
               }}
             />
           </div>
@@ -722,10 +742,14 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
               Inspect a feature
               <select
                 aria-label="Inspect feature"
-                value={selected ?? ""}
+                value={selectedId ?? ""}
                 onChange={(event) => {
                   const feature = shown.features!.find((item) => item.id === event.target.value);
-                  setSelected(feature?.id ?? null);
+                  setSelected(
+                    feature && shown.artifactId
+                      ? { artifactId: shown.artifactId, id: feature.id }
+                      : null,
+                  );
                   if (feature) {
                     setGroup(feature.group);
                     setQuery("");
@@ -790,7 +814,7 @@ export function MapWorkbench({ api = defaultAPI }: { api?: WorkbenchAPI }) {
           )}
           <div className="mw-analysis">
             <button
-              disabled={!shown?.artifactId || sampleRunning}
+              disabled={shown?.status !== "ok" || !shown.artifactId || sampleRunning}
               onClick={() => void measureSight()}
             >
               Measure openness

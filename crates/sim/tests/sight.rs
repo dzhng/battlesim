@@ -276,9 +276,13 @@ fn a_garrison_sees_from_one_eye_per_facade_it_holds() {
     );
     for eye_point in &squad.sight.eyes {
         assert!(
-            squad.members.iter().any(|m| eye_point[0] == m[0]
-                && eye_point[1] == m[1]
-                && eye_point[2] == m[2] + eye("infantry_eye_m")),
+            // Published bodies stand indoors; sight starts at the occupied window exposure.
+            b.unit(UnitId(0))
+                .unwrap()
+                .member_positions()
+                .any(|m| eye_point[0] == m.x
+                    && eye_point[1] == m.y
+                    && eye_point[2] == m.z + eye("infantry_eye_m")),
             "each eye is at a living occupied seat"
         );
     }
