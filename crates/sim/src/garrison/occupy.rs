@@ -17,13 +17,25 @@ struct EntryPoint {
     outward: V2,
 }
 
+#[derive(Clone, Copy)]
+pub(crate) enum EntryAction {
+    Keep,
+    Reassert,
+    Route,
+}
+
+pub(crate) struct BuildingPlan {
+    pub placement: BuildingPlacement,
+    pub entry_action: EntryAction,
+}
+
 struct Candidate {
     unit: UnitId,
     entry: EntryPoint,
     route: Vec<V2>,
     distance: f64,
     ordinal: usize,
-    preserved: bool,
+    action: EntryAction,
     held: bool,
 }
 struct RouteJob {
@@ -101,14 +113,18 @@ fn member(ctx: &MovementContext, u: &Unit) -> Member {
     }
 }
 
-fn distance_to_segment(p: V2, a: V2, b: V2) -> f64 {
-    let ab = b - a;
-    let t = if ab.dot(ab) > 0.0 {
-        ((p - a).dot(ab) / ab.dot(ab)).clamp(0.0, 1.0)
-    } else {
-        0.0
-    };
-    (p - (a + ab * t)).length()
+/// Whether the finite work before an indefinite attack keeps this building.
+fn entry_holds_after_prefix(unit: &Unit, owner: u32) -> bool {
+    for order in &unit.orders {
+        match order {
+            UnitOrder::Attack { .. } => return true,
+            UnitOrder::Exit => return false,
+            UnitOrder::Garrison { building, .. } if *building != owner => return false,
+            order if order.movement().is_some() => return false,
+            _ => {}
+        }
+    }
+    true
 }
 
 pub(crate) fn occupy(
@@ -116,7 +132,7 @@ pub(crate) fn occupy(
     known: &SideGeometry,
     source: &[Unit],
     request: &BuildingPreviewRequest,
-) -> Result<BuildingPlacement, OrderError> {
+) -> Result<BuildingPlan, OrderError> {
     let mut ids = request.units.clone();
     ids.sort();
     ids.dedup();
@@ -201,13 +217,92 @@ pub(crate) fn occupy(
             }
         }
     }
+    // A finite predecessor with no proven origin may still supply the
+    // shortest entrant. Indefinite attacks are known noncandidates instead.
+    let unresolved_competitor = prefix_unproven
+        && ids.iter().enumerate().any(|(i, &id)| {
+            !eligible[i]
+                && source[id.0 as usize]
+                    .orders
+                    .iter()
+                    .all(|o| !matches!(o, UnitOrder::Attack { .. }))
+                && super::validate(
+                    ctx.world,
+                    source,
+                    side,
+                    &[id],
+                    Some(target.clone()),
+                    false,
+                    ctx.rules,
+                )
+                .is_ok()
+        });
     let centre = ids.iter().fold(v2(0.0, 0.0), |p, id| {
         p + origins[id.0 as usize].position.xy()
     }) * (1.0 / ids.len() as f64);
     let selected_holder = ids.iter().find_map(|&id| {
-        let u = &source[id.0 as usize];
-        super::ordered_entry(u, owner).map(|entry| (id, entry))
+        let actual = &source[id.0 as usize];
+        let i = ids.iter().position(|&u| u == id).unwrap();
+        let u = if request.queued && eligible[i] {
+            &origins[id.0 as usize]
+        } else {
+            actual
+        };
+        let g = u.garrison.as_ref().filter(|g| g.building == owner)?;
+        let held = matches!(g.phase, super::Phase::Inside);
+        let entering = matches!(g.phase, super::Phase::Entering(_));
+        if request.queued {
+            if !eligible[i] && !entry_holds_after_prefix(actual, owner) {
+                return None;
+            }
+            super::current_entry(u, owner).map(|at| {
+                (
+                    id,
+                    at,
+                    EntryAction::Keep,
+                    held && super::held_entry(actual, owner).is_some(),
+                )
+            })
+        } else if held || entering {
+            let action = if super::current_entry(actual, owner).is_some()
+                && entry_holds_after_prefix(actual, owner)
+            {
+                EntryAction::Keep
+            } else {
+                EntryAction::Reassert
+            };
+            Some((id, g.entry, action, held))
+        } else {
+            None
+        }
     });
+    // Replacement supersedes selected deferred claims. Actual occupants still
+    // reserve their building; queued intents keep every original claim.
+    let mut validation_source = source.to_vec();
+    if !request.queued {
+        for &id in &ids {
+            validation_source[id.0 as usize].orders.clear();
+        }
+    }
+    let mut proof_source = source.to_vec();
+    if let Some((id, at, EntryAction::Reassert, _)) = selected_holder {
+        proof_source[id.0 as usize].enqueue(
+            UnitOrder::Garrison {
+                building: owner,
+                approach: at,
+            },
+            false,
+        );
+    }
+    if let Some((id, _, EntryAction::Keep, false)) = selected_holder {
+        let i = ids.iter().position(|&u| u == id).unwrap();
+        if request.queued && !eligible[i] {
+            // Certify the current entry, whose later indefinite attack does
+            // not move its holder. Application keeps the original suffix.
+            proof_source[id.0 as usize].orders.truncate(1);
+        }
+    }
+    let source = proof_source.as_slice();
     let mut nav = known.planning_snapshot();
     let grid = nav.grid(ctx.world, ctx.authored);
     let mut candidates = Vec::new();
@@ -216,13 +311,13 @@ pub(crate) fn occupy(
     let mut route_work = allowance / 3;
     let route_before = route_work;
     let mut jobs = Vec::new();
-    if selected_holder.is_none() && target.body.garrison {
+    if selected_holder.is_none() && !unresolved_competitor && target.body.garrison {
         for (i, &id) in ids.iter().enumerate() {
             if !eligible[i]
                 || source[id.0 as usize].is_vehicle()
                 || super::validate(
                     ctx.world,
-                    source,
+                    &validation_source,
                     side,
                     &[id],
                     Some(target.clone()),
@@ -264,7 +359,7 @@ pub(crate) fn occupy(
                         route: vec![from],
                         distance: (entry.at - from).length(),
                         ordinal,
-                        preserved: false,
+                        action: EntryAction::Route,
                         held: false,
                     },
                     journey,
@@ -311,7 +406,7 @@ pub(crate) fn occupy(
             .then(a.unit.cmp(&b.unit))
             .then(a.ordinal.cmp(&b.ordinal))
     });
-    if let Some((unit, at)) = selected_holder {
+    if let Some((unit, at, action, held)) = selected_holder {
         candidates.insert(
             0,
             Candidate {
@@ -323,15 +418,30 @@ pub(crate) fn occupy(
                 route: Vec::new(),
                 distance: 0.0,
                 ordinal: 0,
-                preserved: true,
-                held: super::held_entry(&source[unit.0 as usize], owner).is_some(),
+                action,
+                held,
             },
         );
     }
     // Failed entrants remain at their source positions during the next proof.
     let fallback_work = allowance / 3;
     allowance -= fallback_work;
+    let mut entry_unproven = false;
     for candidate in &candidates {
+        // An unfinished route may still beat a completed path. Its straight
+        // distance is a lower bound; ties use the same stable unit/edge order.
+        if matches!(candidate.action, EntryAction::Route)
+            && jobs.iter().any(|job| {
+                job.candidate
+                    .distance
+                    .total_cmp(&candidate.distance)
+                    .then(job.candidate.unit.cmp(&candidate.unit))
+                    .then(job.candidate.ordinal.cmp(&candidate.ordinal))
+                    .is_lt()
+            })
+        {
+            break;
+        }
         let mut outcome = gather(
             ctx,
             known,
@@ -345,11 +455,16 @@ pub(crate) fn occupy(
             Some(candidate),
             &mut allowance,
         );
+        let undecided = outcome.unproven;
+        entry_unproven |= undecided;
         outcome.unproven |= route_unproven || prefix_unproven;
         if outcome.entrant.is_some() {
-            return Ok(outcome);
+            return Ok(BuildingPlan {
+                placement: outcome,
+                entry_action: candidate.action,
+            });
         }
-        if allowance == 0 {
+        if undecided || allowance == 0 {
             break;
         }
     }
@@ -367,8 +482,11 @@ pub(crate) fn occupy(
         None,
         &mut allowance,
     );
-    outcome.unproven |= route_unproven || prefix_unproven;
-    Ok(outcome)
+    outcome.unproven |= route_unproven || prefix_unproven || entry_unproven;
+    Ok(BuildingPlan {
+        placement: outcome,
+        entry_action: EntryAction::Route,
+    })
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -441,7 +559,12 @@ fn gather(
                     + ctx.rules.formation.spacing_m;
                 let mut left = 0.0;
                 for w in c.route.windows(2).rev() {
-                    if distance_to_segment(point, w[0], w[1]) < radius {
+                    if contract::ground::segment_distance(
+                        [w[0].x, w[0].y],
+                        [w[1].x, w[1].y],
+                        [point.x, point.y],
+                    ) < radius
+                    {
                         return None;
                     }
                     left += (w[1] - w[0]).length();
@@ -471,7 +594,7 @@ fn gather(
             id: c.unit,
             point: Some(c.entry.at),
         });
-        orders.push(if c.preserved {
+        orders.push(if !matches!(c.action, EntryAction::Route) {
             Vec::new()
         } else {
             vec![

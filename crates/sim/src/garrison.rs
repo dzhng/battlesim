@@ -32,7 +32,7 @@ use crate::world::{Prop, PropId, Slot, WorldGeometry};
 use contract::random::Rng;
 
 mod occupy;
-pub(crate) use occupy::occupy;
+pub(crate) use occupy::{occupy, BuildingPlan, EntryAction};
 
 /// Escaping soldiers keep at least this far apart.
 const ESCAPE_SPACING_M: f64 = 1.0;
@@ -329,9 +329,9 @@ pub fn validate(
     Ok(())
 }
 
-/// An existing hold or finite entry path this intent can retain. An entry
-/// behind an indefinite attack is a reservation, not an executable promise.
-pub(crate) fn ordered_entry(unit: &Unit, building: PropId) -> Option<V2> {
+/// An actual hold or entry phase this intent can retain. Future queued
+/// reservations are considered only after their physical prefix is proven.
+pub(crate) fn current_entry(unit: &Unit, building: PropId) -> Option<V2> {
     if let Some(entry) = held_entry(unit, building) {
         return Some(entry);
     }
@@ -340,16 +340,6 @@ pub(crate) fn ordered_entry(unit: &Unit, building: PropId) -> Option<V2> {
             && matches!(want(unit), Want::Enter(b) if b == building)
         {
             return Some(g.entry);
-        }
-    }
-    for order in &unit.orders {
-        match order {
-            UnitOrder::Attack { .. } => return None,
-            UnitOrder::Garrison {
-                building: b,
-                approach,
-            } if *b == building => return Some(*approach),
-            _ => {}
         }
     }
     None
@@ -361,7 +351,11 @@ pub(crate) fn held_entry(unit: &Unit, building: PropId) -> Option<V2> {
         .filter(|g| {
             g.building == building
                 && matches!(g.phase, Phase::Inside)
-                && !matches!(want(unit), Want::Leave)
+                && match want(unit) {
+                    Want::Stay => true,
+                    Want::Enter(b) => b == building,
+                    Want::Leave => false,
+                }
         })
         .map(|g| g.entry)
 }

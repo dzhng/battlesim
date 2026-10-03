@@ -791,7 +791,7 @@ impl Battle {
         }
         self.next_seq[side] += 1;
         self.accepted.push((applied_tick, command.clone()));
-        let prepared = self.prepare(command)?;
+        let prepared = self.prepare(command, applied_tick.saturating_sub(1))?;
         let placement = prepared.placement.clone();
         let building = prepared.building.clone();
         self.pending.push(prepared);
@@ -955,7 +955,7 @@ impl Battle {
                 order: script.order,
                 queued: script.queued,
             };
-            if let Ok(prepared) = self.prepare(command) {
+            if let Ok(prepared) = self.prepare(command, self.tick.saturating_sub(1)) {
                 self.pending.push(prepared);
             }
         }
@@ -1923,7 +1923,11 @@ impl Battle {
         self.fog[side.index()] = field;
     }
 
-    fn prepare(&mut self, command: CommandEnvelope) -> Result<PreparedCommand, OrderError> {
+    fn prepare(
+        &mut self,
+        command: CommandEnvelope,
+        planning_tick: Tick,
+    ) -> Result<PreparedCommand, OrderError> {
         self.validate(&command)?;
         if let Order::UpgradeMove { gesture, route } = command.order {
             self.validate_upgrade(command.side, gesture, route)?;
@@ -1935,7 +1939,7 @@ impl Battle {
             ..
         } = &command.order
         {
-            Some(self.preview_building(
+            Some(self.plan_building(
                 command.side,
                 &BuildingPreviewRequest {
                     units: units.clone(),
@@ -1943,6 +1947,7 @@ impl Battle {
                     facing: *facing,
                     queued: command.queued,
                 },
+                planning_tick,
             )?)
         } else {
             None
@@ -1950,7 +1955,7 @@ impl Battle {
         let placement = match &command.order {
             Order::OccupyBuilding { gesture, .. } => Some(MovePlacement {
                 gesture: *gesture,
-                destinations: building.as_ref().unwrap().destinations.clone(),
+                destinations: building.as_ref().unwrap().placement.destinations.clone(),
             }),
             Order::Move {
                 units,
@@ -1992,10 +1997,14 @@ impl Battle {
             }),
             _ => None,
         };
+        let entry_action = building
+            .as_ref()
+            .map_or(garrison::EntryAction::Route, |p| p.entry_action);
         Ok(PreparedCommand {
             command,
             placement,
-            building,
+            building: building.map(|p| p.placement),
+            entry_action,
         })
     }
 
@@ -2017,10 +2026,16 @@ impl Battle {
                 let plan = prepared.building.unwrap();
                 if let Some(entry) = plan.entrant {
                     let unit = &mut movers[entry.unit.0 as usize];
-                    // Repeating entry must not erase the selected holder's other queued work.
-                    let already = garrison::ordered_entry(unit, plan.building).is_some();
-                    if !already {
-                        let approach = v2(entry.approach[0], entry.approach[1]);
+                    let approach = v2(entry.approach[0], entry.approach[1]);
+                    if matches!(prepared.entry_action, garrison::EntryAction::Reassert) {
+                        unit.enqueue(
+                            UnitOrder::Garrison {
+                                building: plan.building,
+                                approach,
+                            },
+                            false,
+                        );
+                    } else if matches!(prepared.entry_action, garrison::EntryAction::Route) {
                         push(
                             unit,
                             UnitOrder::Move(MoveOrder {
@@ -2289,17 +2304,27 @@ impl Battle {
         side: Side,
         request: &BuildingPreviewRequest,
     ) -> Result<BuildingPlacement, OrderError> {
+        self.plan_building(side, request, self.tick)
+            .map(|p| p.placement)
+    }
+
+    fn plan_building(
+        &self,
+        side: Side,
+        request: &BuildingPreviewRequest,
+        planning_tick: Tick,
+    ) -> Result<garrison::BuildingPlan, OrderError> {
         self.validate_units(side, &request.units)?;
         if request.facing.is_some_and(|f| !f.is_finite()) {
             return Err(OrderError::OutOfBounds);
         }
         let source = self.move_source(side);
-        garrison::occupy(
-            &self.movement_context(),
-            &self.sides[side.index()],
-            &source,
-            request,
-        )
+        // Live admission precedes its application tick; replay and scripts
+        // already entered that tick. Timed prefix prediction must start from
+        // the same prior-state tick in all three paths.
+        let mut ctx = self.movement_context();
+        ctx.tick = planning_tick;
+        garrison::occupy(&ctx, &self.sides[side.index()], &source, request)
     }
 
     fn move_source(&self, side: Side) -> Vec<Unit> {
@@ -2801,6 +2826,7 @@ struct PreparedCommand {
     command: CommandEnvelope,
     placement: Option<MovePlacement>,
     building: Option<BuildingPlacement>,
+    entry_action: garrison::EntryAction,
 }
 
 #[cfg(test)]
