@@ -71,8 +71,8 @@ export const SURFACE_LEVEL_WORDS = 2;
 
 /** The finest cells' side in metres, and the widest pixel the finest level
  *  serves: the play camera looking down sees at most about 2.5 m a pixel (the
- *  next level), so only ground seen edge-on climbs far. Measured in
- *  `specs/city-maps/slices/C63-surface-distance-field.md`. */
+ *  next level), so only ground seen edge-on climbs far. Surface ownership is
+ *  documented in `specs/done/city-maps/README.md`. */
 export const SURFACE_CELL_M = 8;
 export const SURFACE_FOOTPRINT_M = 2;
 /** A level's cells are at least this many of its footprints a side: finer

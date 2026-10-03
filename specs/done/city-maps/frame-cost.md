@@ -1,0 +1,43 @@
+# City renderer frame cost
+
+These historical component measurements admit only their named workload. Current player startup, normal combat and final-art synthetic measurements live in [completion evidence](evidence.md#actual-play-and-load-scopes). The user deferred further synthetic staging/optimization, retaining its failed late-firing diagnostic, wave stalls and missed inherited GPU target. The rows below are historical evidence, not a second release verdict.
+
+| Owner and workload | Before | After | Evidence and scope |
+|---|---:|---:|---|
+| C20 fog rebuild: 16,000 synthetic boxes, 48 separated eyes, 600 m reach | 37.831 ms | 1.182 ms | ≤2 ms local gate passes. Existing horizon intersections retained; 2,310,144 ray/box visits versus 3,145,728,000 global. |
+| C20 frozen village fog rebuild: 3 boxes, 9 eyes | 1.346 ms | 0.999 ms | No observed regression; GPU telemetry varies with this adapter's load and clocks. |
+| C20 stable synthetic-city fog cull | 0.0040 ms | 0.0032 ms | Maps and whole flags already built; this is not the rebuild cost. |
+| C20 synthetic-city GPU allocations | 57,203,152 buffer bytes; 1,927,196 texture bytes | 57,506,980 buffer bytes; 1,927,196 texture bytes | +303,828 buffer bytes for the local candidate tables; 20 →21 buffers, four textures unchanged. |
+
+Apple metal-3, Chromium 148.0.7778.96. Frozen baseline `4efec25b`; candidate `f8251824`. Compute-pass timestamp spans cover terrain, merge, whole-surface and cull, with paired off/on/rebuild rounds after three warmups; each value is the median of twelve rounds. Render-only markers were found not to enclose Metal's compute work and are excluded. The grid-only intermediate measured 2.611 ms and was rejected against the 2 ms gate.
+
+These rows preserve the historical build-note transcription. The original scratch
+receipts were named `throwaway/fog-paired-cost.json`, `fog-grid-cost.json`,
+`fog-sector-cost.mjs`, `fog-sector-cost.log`, `fog-candidates.json`,
+`fogCandidateProbe.test.ts` and `fog-comparison/`; they are not retained in the
+current root or main checkout. The numbers therefore cannot be independently
+recomputed from available raw samples. They concern separated synthetic regions,
+not actual dense Metro's complete frame cost. Current admission is supported by
+the separate [completion evidence](evidence.md), not these missing receipts.
+
+## Facade surfaces (C24 to C26)
+
+| Owner and workload | Off | On | Evidence and scope |
+|---|---:|---:|---|
+| C24 cutouts: 1,728 window guards and two fence panels, default camera over a field of 288 lab blocks (1,280 models in view) | 2.07 ms | 2.32 ms | Median paired difference +0.25 ms (six rounds: −0.06 to +0.35). |
+| C24 cutouts: the whole field from 420 m (4,626 models) | 2.72 ms | 2.78 ms | +0.06 ms (−0.53 to +0.32). |
+| C25 glass: a pane in each of 2,592 bays, default camera | 2.13 ms | 2.29 ms | +0.16 ms (−0.17 to +0.44). |
+| C25 glass: the whole field | 2.75 ms | 2.73 ms | −0.02 ms (−0.13 to +0.18). |
+| C26 rooms: a room box behind each of 2,592 windows, every tier, default camera | 2.08 ms | 2.26 ms | +0.18 ms (−0.10 to +0.41). |
+| C26 rooms: the whole field | 2.68 ms | 2.82 ms | +0.14 ms (−0.30 to +0.28). |
+| C87 ground lane, village benchmark short run, four alternated pairs | 5.53 to 6.35 ms GPU mean; 48 to 56 FPS; 277 to 297 MiB heap | 5.66 to 6.32 ms GPU mean; 45 to 49 FPS; 426 to 454 MiB heap | Start `ca7bb972`, final `ad50cdec`. GPU pair differences +0.37, +0.13, −0.37, +0.05 ms (median +0.09) against a +3 ms lane budget. The FPS and heap changes are every lane's since the start and are not attributed; current workloads have separate [completion evidence](evidence.md). |
+
+Apple metal-3, 1920 × 1080, development build, `FACADE_COST=1 scene -- facade`: each kind of surface drawn against not drawn (its depth, its shadow and its colour together), interleaved in batches of 120 forced frames, whole-frame GPU time. "Off" is "on" less the median difference. Other sessions were rendering on the same machine, so a difference under about 0.3 ms is not distinguishable from none; no kind costs more than that here. The lab's field is flat ground and one small block repeated, not a town: it bounds what the three stages cost a pixel and a draw, not a Metro map's frame. At the time of this measurement the real kits did not yet have these surfaces; subsequent kit/source acceptance has its separate scope.
+
+## Approved grass blade-facing setting
+
+| Workload | Paired whole-frame difference | Evidence and scope |
+|---|---:|---|
+| C81 village meadow, fixed65m camera, blade facing0.45 →0, three interleaved pairs | median −0.008ms; pairs −0.008,+0.169,−0.153ms | Apple metal-3,1920×1080;120 forced frames per batch, existing rolling GPU window. No measurable cost change or improvement. Clump storage4,480,000bytes and near/default populations unchanged. |
+
+The user approved the reduced dark streaks; the existing fixture changes one number, with no terrain/grass shader math or new resources. Paired source/control and all raw samples are in main's ignored `throwaway/grass-facing-approved/`. This is a short isolated grass comparison on its identified pre-equipment-update engine, not current whole-battle/frame admission; concurrent equipment changes require separate functional proof. Six raw WGSL comments were rephrased after a TypeGPU comment-token warning was independently red/green; the actual candidate captures have zero browser errors/warnings.

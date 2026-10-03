@@ -1,0 +1,57 @@
+# Procedural battle maps
+
+City-maps is closed for playtesting. Players choose Open, Mixed or Metro and a separate Small, Medium or Large size, then fight on a seeded generated battlefield or a saved generated map. Towns and countryside share the game's physical movement, fire, cover and side-owned knowledge. The developer village and focused lab arenas retain their original extents.
+
+The purpose is a place to fight through: open stretches with landmarks, connected settlements, drivable streets and buildings that offer real fighting positions. The user chose working generation business rules before numerical perfection. The [generation report](generation-report.md) explains their logic, numbers and checks; its [parameter inventory](generation-parameters.md) supplies the starting point for the later live map workbench. The [consolidated choices](choices.md) disclose the decisions the plan left to the implementer. [Completion evidence](evidence.md) records the actual measured scopes and retained failures.
+
+## Scope and release decision
+
+Playable areas are 6, 8 and 10 km square. Size adds settlements rather than enlarging houses or streets. Open favors small settlements and forbids buildings above six floors; Mixed has a dominant town; Metro has a dominant central city and smaller surrounding settlements. The release building family is China, with project-made sources filling its missing categories. New York and Paris remain later families through the same source/export contract.
+
+The main settlement retains an open approach at least 1,800 m deep across a 400 m front in each map half. Weapon ranges keep their own metre-scale rules; an approach's length does not authorize longer-ranged weapons. Top and bottom have broadly comparable town/forest coverage without mirrored geography. Fairness is a cheap geometry sanity policy, not tactical balancing.
+
+Broad terrain remains flat apart from riverbeds and banks. [Hills and ridges](deferred-terrain-relief.md), the 20 km architecture envelope and numerical refinement are deferred. A separate live workbench is the user's chosen follow-up for personally tuning generation business-rule values and seeing results, like the unit editor. It consumes the existing generator rather than introducing another map authority.
+
+On 2026-10-02 the user explicitly deferred further synthetic 200-unit benchmark staging and optimization so city-maps could close for playtesting. Its minimum-ten-unit late-firing assertion, slow scripted-wave steps and missed inherited GPU target remain recorded failures or limits. They are not relabelled as passing, and normal-player results do not prove that larger load is smooth. The measured 30 FPS floor and under-30-second player startup requirements remain intact; their named current-art results are in [evidence](evidence.md).
+
+## Physical truth and deterministic identity
+
+A generated map is physical geometry, not a picture whose colours invent gameplay. Roads, water, buildings, forest bodies and street props are lowered through one compiler and queried through the simulation's owners. Drawing receives that geometry and the side's observation. A tree that exists only as a decorative crown cannot earn a sight certificate or concealment.
+
+The [generator](../../../crates/mapgen/README.md) owns construction, retries, constraints and explicit refusal. The [map contract](../../../crates/contract/src/map.rs) owns what a battle consumes; the [physical generation inputs](../../../crates/contract/src/generation_physics.rs) bind generation to the actual resolved forest and observer rules. Presets are data in [map-presets.json](../../../fixtures/map-presets.json). A failed named seed remains a failure with diagnostics; another seed, silently smaller settlement or uncovered cell cannot replace it.
+
+Saved and runtime maps enter through the [same map source](../../../web/src/maps/source.ts) and the [preparation worker](../../../web/src/battle/prepare). That worker keeps the world used by encounter planning and becomes the battle authority. The page builds its own query world from the same map with the simulation's code for picking, ground height and clearance. The discarded page-only query implementation would have created a second physical answer for no necessary startup gain.
+
+A replay identifies the compiled scenario, rules and compatible engine build. Full map/encounter seeds cross JavaScript losslessly as decimal text. Generator, preset, physical catalogue, resolved configuration and map identities stay distinct from appearance identity. Cross-build replay compatibility is not promised. [Identity contracts](../../../crates/contract/src/identity.rs), [saved-map ownership](../../../fixtures/README.md#saved-maps) and [preparation](../../../web/src/battle/prepare) own the details.
+
+## Interesting countryside and usable roads
+
+Every admitted playable location must have physical surroundings that interrupt some ground-level circular sight, including intervening positions, clipped edges and unbuilt town ground. Construction earns a conservative whole-cell certificate from actual placed foliage and bodies; finite samples, a forest outline or two interesting deployment views are insufficient. A refused certificate can reject a map that a stronger proof might admit. That conservative refusal is preferable to silently weakening the global rule. [Coverage](../../../crates/mapgen/src/open_country/coverage.rs) and the [generation report](generation-report.md#global-interrupted-sight-continuous-physical-certificate) own the proof and its flat-ground assumptions.
+
+Most country stays open. The user-selected median sampled openness floor is 50%, with enclosure distribution retained as a diagnostic. It is not a promise that every point sees half its bearings. Narrow directional sight may remain clear inside a required approach; the global certificate concerns supported circular ground observers. Published fog is the union of actual side-owned eyes and is reviewed separately from the standardized sight report.
+
+Short broken tree belts, copses, rural homes and low field cover share existing physical owners. Mandatory main approaches survive furnishing; optional lesser corridors may be relinquished explicitly. Connected roads, dry or bridged crossings, frontage, entrances and drivable kerbside placement remain construction contracts. A completed encounter plan proves legal placement and planned reach; actual travel and combat need executed evidence. Partial formation placement is allowed and must stay visible rather than becoming a universal-arrival claim. [Encounter planning](../../../crates/sim/src/encounter) and the [move-validity rationale](../move-validity/README.md) explain those separate responsibilities.
+
+## Buildings, drawing and player information
+
+Runtime chooses reusable legal templates built from shared offline-baked modules; it never runs Blender or stretches art to invent a footprint. Physical bays and floor bands constrain source openings. The lowest three garrison bands, one integrity owner, collapse through six floors and standing gutting above that keep their accepted physical rules. A category name cannot override them. The [city source/export guide](../../../packages/scene-assets/blender/city/README.md), [asset contract](../../../packages/scene-assets/README.md) and [integrity](../../../crates/sim/src/structures.rs), [garrison](../../../crates/sim/src/garrison.rs) and [damage](../../../crates/sim/src/damage.rs) owners hold those mechanics.
+
+Buildings, scenery and resting corpses share the static-chunk renderer. Terrain, grass, plots and water read the common exported surface geometry; colour does not move a road or grant cover. The [renderer contract](../../../packages/battle-renderer/src/scene.ts) and [ground geometry](../../../packages/battle-renderer/src/terrain/surfaceField.ts) are the drawing owners. Approved reduced blade facing and yellow dry grass patches are retained. Local geometry/source fit is accepted within the captured views; coarse damage simplification, strategic card congestion and prominent angular fog edges remain visual limits.
+
+Each hidden enemy has at most one live uncertain contact report. Renewed evidence updates its existing slot; the common white outline and truthful info label share the existing three-second removal fade. A retiring report is remembered evidence, not an active command target. [Contact presentation](../../../web/src/battle/present/contactPresentation.ts) consumes the simulation's knowledge rather than reconstructing identities by nearby positions.
+
+## Rejected directions worth remembering
+
+- Rings and sectors made towns read as dartboards. Road-led blocks, arms and internal open space keep the place legible without copying real geography.
+- Centre samples and a standard rifle range missed empty circles for shorter-range observers and between samples. The continuous physical certificate replaces that evidence gap.
+- Decorative-only vegetation and independent forest sampling could promise cover the battle did not provide. Shared physical sampling prevents that split.
+- Per-map building art, runtime Blender and resized apartment art could not supply stable scale, category identity or shared residency. Legal reusable templates carry those obligations.
+- Road RGB differences and a fixed extra shrub-coverage percentage confused appearance with physical classification and causal screening. The corrected scene checks use their existing geometry owners; appearance retains separate review.
+
+The [choices ledger](choices.md) preserves the alternatives and reach of each final decision. Frozen [physical/compiler evidence](assets/map-compiler/README.md), [surface evidence](assets/surface-contract/README.md), [navigation evidence](assets/navigation-proof/README.md), [scale rationale](../city-maps-scale/README.md) and [historical frame measurements](frame-cost.md) retain their original identities and narrower claims.
+
+## Visual provenance
+
+The user's [Broken Arrow screenshots](assets/reference/broken-arrow/SOURCES.md) drove the road-led district mosaic and open countryside with tree belts, copses and sparse compounds. The two full Desktop screenshots from 2026-10-02 are preserved as [gameplay countryside](assets/reference/broken-arrow/country-overview-gameplay.png) and [deployment countryside](assets/reference/broken-arrow/country-overview-deployment.png); the [town views](assets/reference/broken-arrow/town-districts.jpg) and [overview](assets/reference/broken-arrow/town-overview.jpg) preserve the earlier district standard. They are composition references, not copied geography or proof of this game's visibility.
+
+The [ground reference record](assets/reference/ground/SOURCES.md), [comparison board](assets/reference/ground/ours-vs-refs-board.jpg) and [reported grass capture](assets/reference/ground/reported-grass-2026-10-02.png) preserve the material/grass references and reported defect baseline. [Construction references](assets/reference/threejsassets-construction/README.md) record the reference thumbnails that guided project-made street furniture. The [early map-character diagram](visualizations/map-character.html) is historical composition exploration at the superseded 15 km size, not release geometry or a generated-map proof. Reference images are for review only and do not enter runtime art. The [open-country review](assets/open-country-review/README.md) keeps rejected and accepted visual scopes distinct.

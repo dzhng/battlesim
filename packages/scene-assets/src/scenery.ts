@@ -84,7 +84,7 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   // (`fit.canopy`); hedgerows stand past the map, and under the trees of a
   // tree line, a strip of forest sight does not cross. A tree's tiers are
   // the forest's frame cost: the budget is what a paired run measured to fit
-  // (specs/city-maps/slices/C73-tree-skeleton.md). Its size is the common
+  // (specs/done/city-maps/choices.md). Its size is the common
   // broadleaf's: placement scales it to the forest rule's canopy, where its
   // bole comes out near the simulation's trunk.
   tree: {
@@ -98,7 +98,7 @@ export const SCENERY_KINDS: Record<string, SceneryRule> = {
   // (ferns, bushes, saplings, small rocks, fallen branches), scattered by the
   // thousand: under a man's waist, so nothing drawn hides what the forest
   // does not, and a few hundred triangles at most
-  // (specs/city-maps/slices/C79-forest-dressing.md).
+  // (specs/done/city-maps/choices.md).
   dressing: {
     states: ["summer"],
     footprint: { kind: "none" },

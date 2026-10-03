@@ -164,8 +164,7 @@ No independent maxima are added into a fabricated simultaneous peak.
 
 Hull gathering now rejects a non-hull unit before member liveness, through the
 existing pure query. It adds no cache, retained state, geometry policy or wire
-change. The [C06 outcome](../../../specs/city-maps/slices/C06-sim-scale-passes.md#outcome--reject-non-hull-rows-before-member-liveness)
-owns the matched instruction table and controls: source `9211c627`, candidate
+change. The matched controls use source `9211c627`, candidate
 engine `d58fb441…`, the same frozen layout-9 factory bytes and rules above, and
 900 ticks per arm. Late whole Weapons improves 35.418%, exceeding the declared
 5% hypothesis; construction plus stepping improves 7.813%. Early does not
@@ -175,6 +174,26 @@ matches after excluding engine identity. This does not claim a new from-replay
 execution or old-engine playback admission. The focused hull/leaning/weapon
 checks remain separate from this cost proof. No complete latest-engine 9,000-tick
 Native/Wasm, memory or browser result is inferred from the bounded comparison.
+
+The frozen control engine is `1d9d85aa…`; both arms use rules `b00f7d5e…`.
+Early factory/scenario bytes are `e2522234…`; late factory bytes are
+`2289f7a2…`, with reloaded scenario `70bc7b75…`. Early/late physical map
+identities are `bdadf296…` / `553e6e05…`.
+
+| Counted work over 900 ticks | Early control / candidate G instructions | Late control / candidate G instructions |
+| --- | ---: | ---: |
+| Whole Weapons | 56.111 / 55.344 | 120.526 / 77.838 |
+| All stepping phases | 356.067 / 355.192 | 560.004 / 514.219 |
+| Construction | 23.230 / 23.208 | 26.229 / 26.212 |
+| Construction plus stepping | 379.297 / 378.400 | 586.233 / 540.431 |
+
+Counter reads are included; input parsing, complete-observation hashing and
+output are outside those brackets. The unchanged control rejects at zero gain.
+The public hull test covers interleaved live/dead vehicles, fallen/mixed infantry,
+ordered IDs and geometry; removing vehicle liveness retains a dead jeep and
+fails that control. Original raw receipts were recorded in the original scale
+worktree's ignored `throwaway/hull-cost/`; this is retained historical evidence,
+not a new current-build or browser cost claim.
 
 ## Reuse of the frozen full functional and requested-memory proof
 
