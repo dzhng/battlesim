@@ -2436,6 +2436,12 @@ impl Battle {
                             .filter(|s| s.alive())
                             .map(|s| s.slot as u8)
                             .collect(),
+                        member_active_mounts: u
+                            .members
+                            .iter()
+                            .filter(|s| s.alive())
+                            .map(|s| s.active_mount.map(|m| m as u8))
+                            .collect(),
                         member_orders: u
                             .members
                             .iter()

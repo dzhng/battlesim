@@ -24,10 +24,14 @@ Visual checks compare matched native-size captures and feature crops against the
 
 ## Next Agent Prompt
 
-Implement the whole spec with implement-spec, continuing through every slice. Begin with slice 1's red exclusivity test. Asset generation in slice 3 is independent and may be delegated concurrently. Review and commit coherent passes, maintain this handoff, and audit implementation decisions in choices.md. Run narrow tests during iteration; run full checks, browser scenes, and the full paired battle report once at closeout, then review and close-spec. Preserve the baseline reports captured before behavior changes; do not retune outcomes.
+Finish closeout. Core weapon/publication/pose/art work is reviewed and focused gates pass. Keep production inputs frozen until the active full browser verification finishes. Full web tests pass except the generated-town test timing out under machine load; rerun that alone after competing work ends, without changing its limit. Native full tests exposed the cover test's all-rifle assumption and two unchanged movement contracts; diagnose before editing. The 50-trial balance result is saved, but flank seed 55 refuses one script order and must be explained/fixed before acceptance.
 
-- [ ] Exclusive use, switching, guidance, reload, casualty, garrison, vehicle regressions.
-- [ ] Publication/decoder privacy and digest parity.
-- [ ] Held/carried model, clip, facing and muzzle selection.
-- [ ] Generated carried variants, bounded bake, visual comparison and fresh critique.
-- [ ] Full closeout checks, paired balance evidence, final review/choices consolidation and archive.
+Apply the proven lab-staging patch and the ground material oracle repair after browser verification exits, then rerun only failed scenes. Native generated-map parity was refreshed because identity pins the catalog's appearance schema; Wasm publication/map parity already passes. Evidence, red probes, proposed patches and paired balance outputs live in ignored `throwaway/infantry-weapon-use/`. Do not retune outcomes or weaken checks. Finish integrated commits and archive only after every gate is resolved. Gameplay uses ordinary deaths; the unused carried-model death endpoint remains excluded.
+
+- [x] Close mixed-target garrison regression and simulation review.
+- [x] Publication schema, native privacy and packed identity codec tests.
+- [x] Fresh Wasm/native publication and generated-map parity after the final native change.
+- [x] Held/carried model, clip, facing and mount-aware muzzle selection.
+- [x] Generated carried variants and bounded bake; unrelated runtime identities preserved.
+- [x] Matched visual comparison, fresh critique and Preview checkpoint.
+- [ ] Full closeout checks, paired balance evidence, integrated review/choices consolidation and archive.

@@ -1170,7 +1170,10 @@ export function typeAppearanceFindings(
       for (const name of units.soldier(kind).appearance)
         need(id, name, "soldier", `soldier kind ${kind}`);
     for (const mount of type.mounts)
-      for (const name of mount.operator_appearance ?? [])
+      for (const name of [
+        ...(mount.operator_appearance?.active ?? []),
+        ...(mount.operator_appearance?.carried ?? []),
+      ])
         need(id, name, "soldier", `operator of ${mount.name}`);
   }
   return out;

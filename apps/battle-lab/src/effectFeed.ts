@@ -95,7 +95,9 @@ export function drawnMuzzleSource(drawn: DrawnMuzzles, side: SideName): MuzzleSo
   return {
     muzzle(shooter, mount, soldier, at) {
       const { id, side: of } = fromSideKey(shooter, side);
-      return soldier === null ? drawn.vehicle(of, id, mount, at) : drawn.soldier(of, soldier, at);
+      return soldier === null
+        ? drawn.vehicle(of, id, mount, at)
+        : drawn.soldier(of, soldier, mount, at);
     },
   };
 }

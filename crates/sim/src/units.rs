@@ -24,6 +24,8 @@ pub struct Soldier {
     /// His place in his squad type's slots: which soldier kind he is and
     /// what he carries. Fixed when he joins.
     pub slot: usize,
+    /// The carried weapon he is working on; independent of special-gun ownership.
+    pub active_mount: Option<usize>,
     pub position: V3,
     /// Ground velocity over the last tick.
     pub velocity: V2,
@@ -68,6 +70,7 @@ impl Soldier {
         Soldier {
             id,
             slot,
+            active_mount: None,
             position,
             velocity: V2::default(),
             hp,
@@ -134,6 +137,7 @@ impl Soldier {
             yaw,
             support_building,
         });
+        self.active_mount = None;
     }
 }
 
@@ -498,6 +502,7 @@ impl Unit {
         for s in &self.members {
             d.u64(s.id as u64)
                 .u64(s.slot as u64)
+                .u64(s.active_mount.map_or(u64::MAX, |m| m as u64))
                 .f64(s.hp)
                 .f64(s.position.x)
                 .f64(s.position.y)

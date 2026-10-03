@@ -55,6 +55,7 @@ const squad = (
   soldiers: soldiers.map((s) => ({
     id: s.id,
     slot: 0,
+    activeMount: 0,
     position: [s.x, s.y, 0],
     posture: s.posture,
   })),
@@ -247,7 +248,7 @@ test("a soldier slides out to his lean point while he fires, then eases back in,
   const d = driver();
   const at = (lean: [number, number] | null) =>
     squad([{ id: 1, x: 0, y: 0 }], {
-      soldiers: [{ id: 1, slot: 0, position: [0, 0, 0], lean }],
+      soldiers: [{ id: 1, slot: 0, activeMount: 0, position: [0, 0, 0], lean }],
     });
   const x = (time: number, lean: [number, number] | null) => {
     const s = d.update(frame(time, [at(lean)])).soldiers[0];
@@ -272,7 +273,7 @@ test("a pinned soldier lies behind his cover, and kneels to fire out on his lean
   const d = driver();
   const pinned = (lean: [number, number] | null) =>
     squad([{ id: 1, x: 0, y: 0 }], {
-      soldiers: [{ id: 1, slot: 0, position: [0, 0, 0], lean }],
+      soldiers: [{ id: 1, slot: 0, activeMount: 0, position: [0, 0, 0], lean }],
       pinned: true,
     });
   d.update(frame(0, [pinned(null)]));
@@ -381,7 +382,9 @@ test("a soldier's shot is timed once per rise of his shot count, not every frame
   const hold = game.cover.lean_hold_s;
   const at = (time: number, shots: number) =>
     d.update(
-      frame(time, [squad([], { soldiers: [{ id: 1, slot: 0, position: [0, 0, 0], shots }] })]),
+      frame(time, [
+        squad([], { soldiers: [{ id: 1, slot: 0, activeMount: 0, position: [0, 0, 0], shots }] }),
+      ]),
     ).soldiers[0].clip;
   at(0, 0);
   expect(at(0.1, 1)).toBe("kneel_fire");
@@ -520,4 +523,67 @@ test("support changes preserve an already fading corpse's age and disappearance"
   expect(mid.fading[0].sink).toBeGreaterThan(0);
   expect(d.update(frame(3, [], dropped)).fading).toEqual([]);
   expect(lying(d.update(frame(4, [], dropped)))).toEqual([2]);
+});
+
+test("each soldier follows his selected weapon's aim rather than another mount's old shots", () => {
+  const d = new PoseDriver({
+    units: UNITS,
+    mounts: shippedMounts,
+    clip: (_kind, name) => CLIPS[name] ?? null,
+    feel: { ...FEEL, rest: { ...FEEL.rest, turn_rad: 0 } },
+    leanHold: 0.1,
+  });
+  const team = squad([], {
+    kind: "at",
+    soldiers: [
+      { id: 10, slot: 0, activeMount: 1, position: [0, 0, 0] },
+      { id: 11, slot: 1, activeMount: 0, position: [3, 0, 0] },
+    ],
+    mounts: [
+      { bearing: 0, elevation: 0, shots: 5 },
+      { operator: 10, bearing: Math.PI / 2, elevation: 0, shots: 0 },
+    ],
+  });
+  d.update(frame(0, [team]));
+  const poses = d.update(frame(0.5, [team])).soldiers;
+  expect(poses[0].facing).toBeCloseTo(Math.PI / 2, 5);
+  expect(poses[1].facing).toBeCloseTo(0, 5);
+});
+
+test("changing equipment clears the old hold even when posture changes on the same frame", () => {
+  const d = driver();
+  const unit = squad([{ id: 1, x: 0, y: 0 }], {
+    kind: "at",
+    mounts: [
+      { bearing: 0, elevation: 0, shots: 0 },
+      { operator: 1, bearing: 1, elevation: 0, shots: 0 },
+    ],
+  });
+  unit.soldiers[0].activeMount = 1;
+  d.update(frame(0, [unit]));
+  unit.soldiers[0].activeMount = 0;
+  unit.soldiers[0].posture = "prone";
+  const pose = d.update(frame(0.01, [unit])).soldiers[0];
+  expect(pose.clip).toBe("prone_pinned");
+  expect(pose.blend).toBeNull();
+});
+
+test("a fallen launcher carrier starts his ordinary death pose without the former hold", () => {
+  const d = driver();
+  const unit = squad([{ id: 1, x: 0, y: 0 }], {
+    kind: "at",
+    mounts: [
+      { bearing: 0, elevation: 0, shots: 0 },
+      { operator: 1, bearing: 1, elevation: 0, shots: 0 },
+    ],
+  });
+  unit.soldiers[0].activeMount = 1;
+  d.update(frame(0, [unit]));
+  const fallen: FeedFrame["fallen"] = [
+    { soldier: 1, kind: "at", slot: 0, side: "blue", position: [0, 0, 0], yaw: 0 },
+  ];
+  const pose = d.update(frame(0.01, [], fallen)).soldiers[0];
+  expect(pose.operatorMount).toBeNull();
+  expect(pose.clip).toBe("death");
+  expect(pose.blend).toBeNull();
 });

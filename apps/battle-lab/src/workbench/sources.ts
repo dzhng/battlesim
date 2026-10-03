@@ -37,12 +37,19 @@ export function sideTint(model: LoadedModel, side: Side): Vec3 | undefined {
 }
 
 /** The unit type a catalog appearance shows on the bench: the first hull
- *  type it draws, or the first squad type one of whose soldier kinds wears it. */
+ *  type it draws, or the first squad type whose soldier or equipment set wears it. */
 function typeDrawing(name: string): string | null {
   return (
     UNITS.ids.find((id) => UNITS.type(id).appearance === name) ??
-    UNITS.ids.find((id) =>
-      UNITS.slots(id).some((kind) => UNITS.soldier(kind).appearance.includes(name)),
+    UNITS.ids.find(
+      (id) =>
+        UNITS.slots(id).some((kind) => UNITS.soldier(kind).appearance.includes(name)) ||
+        UNITS.type(id).mounts.some((mount) =>
+          [
+            ...(mount.operator_appearance?.active ?? []),
+            ...(mount.operator_appearance?.carried ?? []),
+          ].includes(name),
+        ),
     ) ??
     null
   );

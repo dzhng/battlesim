@@ -962,11 +962,18 @@
               "muzzle_m": null,
               "name": "ATGM launcher",
               "on": null,
-              "operator_appearance": [
-                "at",
-                "at_b",
-                "at_c"
-              ],
+              "operator_appearance": {
+                "active": [
+                  "at",
+                  "at_b",
+                  "at_c"
+                ],
+                "carried": [
+                  "at_carried",
+                  "at_carried_b",
+                  "at_carried_c"
+                ]
+              },
               "pivot_m": [
                 0.0,
                 0.0,
@@ -2418,11 +2425,18 @@
           "muzzle_m": null,
           "name": "ATGM launcher",
           "on": null,
-          "operator_appearance": [
-            "at",
-            "at_b",
-            "at_c"
-          ],
+          "operator_appearance": {
+            "active": [
+              "at",
+              "at_b",
+              "at_c"
+            ],
+            "carried": [
+              "at_carried",
+              "at_carried_b",
+              "at_carried_c"
+            ]
+          },
           "pivot_m": [
             0.0,
             0.0,
@@ -2591,11 +2605,18 @@
           "muzzle_m": null,
           "name": "ATGM launcher",
           "on": null,
-          "operator_appearance": [
-            "at",
-            "at_b",
-            "at_c"
-          ],
+          "operator_appearance": {
+            "active": [
+              "at",
+              "at_b",
+              "at_c"
+            ],
+            "carried": [
+              "at_carried",
+              "at_carried_b",
+              "at_carried_c"
+            ]
+          },
           "pivot_m": [
             0.0,
             0.0,

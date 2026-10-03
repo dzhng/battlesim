@@ -46,11 +46,16 @@ export class AppearanceCatalog {
     for (const [kind, soldier] of Object.entries(units.view.soldiers))
       refuse(`soldier kind ${kind}'s appearances`, skeletonOf(soldier.appearance));
     for (const id of units.ids)
-      for (const mount of units.type(id).mounts)
+      for (const mount of units.type(id).mounts) {
         refuse(
           `unit type ${id}'s ${mount.name} operator appearances`,
-          skeletonOf(mount.operator_appearance ?? []),
+          skeletonOf(mount.operator_appearance?.active ?? []),
         );
+        refuse(
+          `unit type ${id}'s ${mount.name} carried appearances`,
+          skeletonOf(mount.operator_appearance?.carried ?? []),
+        );
+      }
   }
 
   /** How type `kind`'s model draws each of its mounts, in mount order: the
@@ -77,13 +82,19 @@ export class AppearanceCatalog {
     id = 0,
     slot = 0,
     operatorMount: number | null = null,
+    activeMount: number | null = null,
   ): ResolvedAppearance | null {
     if (!this.units.has(kind)) return null;
     const soldier = this.units.slots(kind)[slot];
-    const operated =
+    const equipment =
       operatorMount === null
-        ? []
-        : (this.units.type(kind).mounts[operatorMount]?.operator_appearance ?? []);
+        ? undefined
+        : this.units.type(kind).mounts[operatorMount]?.operator_appearance;
+    const operated = equipment
+      ? activeMount === operatorMount
+        ? equipment.active
+        : equipment.carried
+      : [];
     const set = this.units.hull(kind)
       ? [this.units.type(kind).appearance ?? ""]
       : operated.length

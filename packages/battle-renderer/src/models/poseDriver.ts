@@ -39,10 +39,12 @@ export interface FeedSoldier {
   id: number;
   /** His slot in his squad type: which soldier kind he is (his appearance). */
   slot: number;
+  /** Selected physical weapon, as published; null while no weapon is in use. */
+  activeMount: number | null;
   position: Vec3;
   /** The soldier's own posture, when the simulation publishes one. */
   posture?: Posture;
-  /** The rounds he has launched so far (the lab's feed counts them from the
+  /** The rounds he has launched with his selected weapon (the lab counts them from the
    *  launches the flashes and sounds read); a rise is his shot. The count
    *  holds across every frame of a publication, so a shot is timed once. A
    *  feed that names shooters sets it on every soldier; one that leaves it
@@ -116,6 +118,7 @@ export interface SoldierPose {
   slot: number;
   /** Operated weapon's appearance override, or null for his ordinary kit. */
   operatorMount: number | null;
+  activeMount: number | null;
   side: Side;
   position: Vec3;
   /** Heading of the body's +X, radians. */
@@ -272,7 +275,7 @@ export interface PoseDriverOptions {
   clip: (
     kind: string,
     name: string,
-    soldier?: Pick<SoldierPose, "soldier" | "slot" | "operatorMount">,
+    soldier?: Pick<SoldierPose, "soldier" | "slot" | "operatorMount" | "activeMount">,
   ) => ClipFacts | null;
   /** `presentation.pose`, validated (`validatePoseFeel`). */
   feel: PoseFeel;
@@ -443,28 +446,27 @@ export class PoseDriver {
   }
 
   private squad(unit: FeedUnit, time: number, dt: number, generation: number) {
-    const roles = this.options.mounts(unit.kind);
     const { gait, rest, lean: slide } = this.options.feel;
-    let shots = 0;
-    let aim = unit.yaw;
-    let aimed = false;
-    for (let i = 0; i < unit.mounts.length; i++) {
-      if (roles[i] !== "hand") continue;
-      const mount = unit.mounts[i];
-      shots += mount.shots;
-      if (!aimed && mount.shots > 0) {
-        // A hand weapon's bearing is its last aim, meaningful once it has fired.
-        aim = mount.bearing;
-        aimed = true;
-      }
-    }
     for (const soldier of unit.soldiers) {
+      const selected = soldier.activeMount === null ? undefined : unit.mounts[soldier.activeMount];
+      const shots = selected?.shots ?? 0;
+      const aim = selected?.bearing ?? unit.yaw;
       const state =
         this.soldiers.get(soldier.id) ?? this.newSoldier(soldier, unit, shots, generation);
       state.seen = generation;
       const pose = state.pose;
       const operatorMount = unit.mounts.findIndex((m) => m.operator === soldier.id);
-      pose.operatorMount = operatorMount < 0 ? null : operatorMount;
+      const carried = operatorMount < 0 ? null : operatorMount;
+      const equipmentChanged =
+        pose.operatorMount !== carried ||
+        (carried !== null && (pose.activeMount === carried) !== (soldier.activeMount === carried));
+      if (pose.activeMount !== soldier.activeMount) {
+        state.firedAt = -Infinity;
+        state.lastShots = shots;
+        state.ownShots = soldier.shots ?? 0;
+      }
+      pose.operatorMount = carried;
+      pose.activeMount = soldier.activeMount;
       const dx = soldier.position[0] - state.at[0];
       const dy = soldier.position[1] - state.at[1];
       const moved = Math.hypot(dx, dy);
@@ -504,6 +506,11 @@ export class PoseDriver {
                 : state.watch
                   ? "stand_aim"
                   : "idle";
+      if (equipmentChanged) {
+        // Install the new hold directly: even a simultaneous posture change
+        // must not blend a pose sampled from the former equipment family.
+        this.resetClip(state, clip);
+      }
       this.advance(state, clip, moved, dt);
       vec3.copy(state.at, soldier.position);
       // Out on his lean: slide to the lean point; tucked in: ease back.
@@ -532,6 +539,7 @@ export class PoseDriver {
         kind: unit.kind,
         slot: soldier.slot,
         operatorMount: null,
+        activeMount: null,
         side: unit.side,
         position: vec3.clone(soldier.position),
         facing: unit.yaw + turn,
@@ -586,8 +594,11 @@ export class PoseDriver {
         state.fellAt = time;
         vec3.copy(state.pose.position, f.position);
         state.pose.unit = -1;
+        const changedHold = state.pose.operatorMount !== null;
         state.pose.operatorMount = null;
-        this.switchTo(state, "death");
+        state.pose.activeMount = null;
+        if (changedHold) this.resetClip(state, "death");
+        else this.switchTo(state, "death");
         this.dying.add(f.soldier);
       } else if (state) {
         // Authority can remove a floor while the same death is still playing.
@@ -629,6 +640,7 @@ export class PoseDriver {
       state.seen = generation;
       const pose = state.pose;
       pose.operatorMount = null;
+      pose.activeMount = null;
       const facts = this.options.clip(pose.kind, "death", pose);
       pose.phase = facts ? Math.min(1, (time - state.fellAt!) / facts.duration) : 1;
       this.fade(state, dt);
@@ -704,6 +716,14 @@ export class PoseDriver {
       pose.phase = facts.loop ? (pose.phase + step) % 1 : Math.min(1, pose.phase + step);
     }
     this.fade(state, dt);
+  }
+
+  private resetClip(state: SoldierState, clip: string) {
+    const pose = state.pose;
+    pose.clip = clip;
+    pose.phase = this.options.clip(pose.kind, clip, pose)?.loop ? loopStart(pose.soldier) : 0;
+    pose.blend = null;
+    state.fadeLeft = 0;
   }
 
   private switchTo(state: SoldierState, clip: string) {

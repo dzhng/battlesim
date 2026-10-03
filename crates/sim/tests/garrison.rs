@@ -416,7 +416,7 @@ fn outgoing_fire_clears_its_own_walls_toward_every_facade_and_corner() {
 #[test]
 fn only_soldiers_at_facing_windows_fire_and_free_facing_slots_fill() {
     // Every window held, firing north: the two at the north windows fire
-    // their rifles, the rest wait. (Who trades into a facing window is
+    // their active guns, the rest wait. (Who trades into a facing window is
     // `an_atgm_gunner_trades_windows_with_a_rifleman_to_face_armour`'s.)
     let (mut b, mut c) = full_building(5);
     let north = [CENTRE[0], CENTRE[1] + 150.0];
@@ -427,7 +427,7 @@ fn only_soldiers_at_facing_windows_fire_and_free_facing_slots_fill() {
         b.step();
         remember_rounds(&b, &mut owners);
         for (p, r) in b.rounds() {
-            if r.unit == UnitId(0) && b.arsenal().weapons[r.weapon].id == "rifle" {
+            if r.unit == UnitId(0) {
                 shooters.insert(p.shooter.unwrap().body.0);
             }
         }
@@ -445,7 +445,7 @@ fn only_soldiers_at_facing_windows_fire_and_free_facing_slots_fill() {
         b.step();
         remember_rounds(&b, &mut owners);
         for (p, r) in b.rounds() {
-            if r.unit == UnitId(0) && b.arsenal().weapons[r.weapon].id == "rifle" {
+            if r.unit == UnitId(0) {
                 shooters.insert(p.shooter.unwrap().body.0);
             }
         }
@@ -941,8 +941,8 @@ fn the_ruin_blocks_ground_movement_while_sight_and_fire_pass_over_it() {
 }
 
 /// A marker is a promise (move validity): the survivors of a collapse, left
-/// standing hard against the ruin's north wall and still under fire from the
-/// north, can be sent to its far side, walk round it and complete the order.
+/// standing around the ruin and still under fire from the north, can be
+/// sent south of it, walk round it and complete the order.
 #[test]
 fn survivors_sent_past_the_ruin_walk_round_it_and_arrive() {
     let Collapse { mut b, .. } = collapse_with_survivors();
@@ -955,14 +955,16 @@ fn survivors_sent_past_the_ruin_walk_round_it_and_arrive() {
     let squad = 0;
     let centre = v2(CENTRE[0], CENTRE[1]);
     let from = b.unit(UnitId(squad)).unwrap().position.xy();
-    // The mirror of the squad's middle: as hard against the far wall as the
-    // survivors are against the near one.
-    let mirror = centre * 2.0 - from;
+    // Survivors can escape on several facades, placing their centroid inside
+    // the ruin. Request the actual south wall, rather than goaling that
+    // centroid into another point inside the blocked footprint.
+    let radius = num("physics", "soldier_radius_m");
+    let goal = v2(from.x, centre.y - HALF[1] - radius - 1.0);
     // Open ground 10 m past the far wall gets its marker too: admission
     // rehearses the walk to its end. (Live, the fire from the north cuts
     // this squad down on the longer way round, so only the nearer order is
     // walked below.)
-    let beyond = mirror + (centre - from).normalized() * 10.0;
+    let beyond = goal - v2(0.0, 10.0);
     let shown = b
         .preview_move(
             Side::Blue,
@@ -980,7 +982,7 @@ fn survivors_sent_past_the_ruin_walk_round_it_and_arrive() {
         order: Order::Move {
             units: vec![UnitId(squad)],
             gesture: 1,
-            goal: [mirror.x, mirror.y],
+            goal: [goal.x, goal.y],
             route: RoutePolicy::Shortest,
             direction: contract::command::MoveDirection::Forward,
             facing: None,
@@ -991,8 +993,7 @@ fn survivors_sent_past_the_ruin_walk_round_it_and_arrive() {
     // The marker goes to the nearest standing room by the wall.
     let marker = ack.placement.unwrap().destinations[0].goal;
     let marker = v2(marker[0], marker[1]);
-    assert!((marker - mirror).length() < 3.0, "the marker left the wall");
-    let radius = num("physics", "soldier_radius_m");
+    assert!((marker - goal).length() < 3.0, "the marker left the wall");
     let mut arrived = false;
     for _ in 0..ticks(120.0) {
         b.step();
@@ -1300,23 +1301,179 @@ fn an_atgm_gunner_trades_windows_with_a_rifleman_to_face_armour() {
 
 #[test]
 fn a_squad_faces_armour_with_its_launcher_and_infantry_with_its_rifles() {
-    // Two windows a facade; a tank north and a rifle squad south, everyone
-    // holding fire: the gunner watches the tank, the riflemen the infantry.
-    let mut b = battle_with_capacity(
+    // Leave an extra free rifle-facing window: it must not pull the gunner
+    // away from the tank once his assigned launcher has its north window.
+    for capacity in [8, 12] {
+        let mut b = battle_with_capacity(
+            json!([
+                { "side": "blue", "kind": "at", "position": [350.0, 300.0], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "tank", "position": [CENTRE[0], CENTRE[1] + 250.0], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "rifle", "position": [CENTRE[0], CENTRE[1] - 150.0], "engagement": "return_fire_only" },
+            ]),
+            1,
+            capacity,
+        );
+        let mut c = Commander::new();
+        c.ok(&mut b, Side::Blue, garrison(&[0]));
+        until(&mut b, 1200, "inside", |b| inside(b, 0));
+        until(&mut b, 300, "gunner north, riflemen south", |b| {
+            facade_of(b, 0, 0) == Some(1) && [1, 2].iter().all(|&k| facade_of(b, 0, k) == Some(3))
+        });
+        for _ in 0..garrison_ticks("window_hold_s") * 3 {
+            b.step();
+            assert_eq!(facade_of(&b, 0, 0), Some(1), "capacity {capacity}: a spare rifle-facing window must not steal the launcher operator");
+        }
+    }
+}
+
+#[test]
+fn a_surviving_rifleman_yields_the_launchers_only_facing_window() {
+    // One guard has fallen before arrival. The remaining rifleman watches
+    // the tank from the north window, but the launcher must still outrank him.
+    let mut setup = common::scenario_with(
+        &map(json!([])),
         json!([
-            { "side": "blue", "kind": "at", "position": [350.0, 300.0], "engagement": "return_fire_only" },
+            { "side": "blue", "kind": "at", "position": [350.0, 300.0], "engagement": "return_fire_only", "condition": { "casualties": 1 } },
             { "side": "red", "kind": "tank", "position": [CENTRE[0], CENTRE[1] + 250.0], "engagement": "return_fire_only" },
-            { "side": "red", "kind": "rifle", "position": [CENTRE[0], CENTRE[1] - 150.0], "engagement": "return_fire_only" },
         ]),
-        1,
-        8,
+        json!([]),
+        json!([]),
     );
+    setup.rules.buildings.capacity_soldiers = 4;
+    for weapon in setup.rules.weapons.values_mut() {
+        weapon.damage = 0.0;
+        weapon.near_miss_suppression = 0.0;
+    }
+    let mut b = Battle::new(&setup, 1);
+    assert_eq!(living(&b, 0), 2);
+    let operator = b.unit(UnitId(0)).unwrap().mounts[1].operator.unwrap();
+    let gunner = b
+        .unit(UnitId(0))
+        .unwrap()
+        .members
+        .iter()
+        .position(|s| s.id == operator)
+        .unwrap();
     let mut c = Commander::new();
     c.ok(&mut b, Side::Blue, garrison(&[0]));
-    until(&mut b, 1200, "inside", |b| inside(b, 0));
-    until(&mut b, 300, "gunner north, riflemen south", |b| {
-        facade_of(b, 0, 0) == Some(1) && [1, 2].iter().all(|&k| facade_of(b, 0, k) == Some(3))
+    until(&mut b, 1200, "the two survivors arrive inside", |b| {
+        inside(b, 0)
     });
+    until(
+        &mut b,
+        garrison_ticks("window_hold_s") * 3,
+        "the rifleman yields the tank-facing window to the launcher",
+        |b| facade_of(b, 0, gunner) == Some(1),
+    );
+    c.ok(
+        &mut b,
+        Side::Blue,
+        Order::SetEngagement {
+            units: vec![UnitId(0)],
+            policy: Engagement::FireAtWill,
+        },
+    );
+    until(&mut b, 600, "the surviving gunner launches", |b| {
+        b.rounds().any(|(p, r)| {
+            r.unit == UnitId(0)
+                && b.arsenal().weapons[r.weapon].id == "atgm"
+                && p.shooter.unwrap().body.0 == operator
+        })
+    });
+}
+
+#[test]
+fn an_unusable_launcher_does_not_keep_its_operator_at_a_useless_window() {
+    for return_fire in [false, true] {
+        let mut setup = common::scenario_with(
+            &map(json!([])),
+            json!([
+                { "side": "blue", "kind": "at", "position": [350, 300], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "tank", "position": [400, 550], "engagement": "return_fire_only" },
+                { "side": "red", "kind": "rifle", "position": [400, if return_fire { 250 } else { 150 }], "engagement": "return_fire_only" }
+            ]),
+            json!([]),
+            json!([]),
+        );
+        setup.rules.buildings.capacity_soldiers = 12;
+        setup
+            .rules
+            .weapons
+            .get_mut("atgm")
+            .unwrap()
+            .ballistics
+            .range_m = if return_fire { 900.0 } else { 120.0 };
+        let rifle_suppression = setup.rules.weapons["rifle"].near_miss_suppression;
+        for weapon in setup.rules.weapons.values_mut() {
+            weapon.damage = 0.0;
+            weapon.near_miss_suppression = 0.0;
+        }
+        // Keep baseline rifle suppression in the return-fire arm; damage
+        // stays disabled so this experiment keeps every operator alive.
+        if return_fire {
+            setup
+                .rules
+                .weapons
+                .get_mut("rifle")
+                .unwrap()
+                .near_miss_suppression = rifle_suppression;
+        }
+        let mut b = Battle::new(&setup, 1);
+        let mut c = Commander::new();
+        if return_fire {
+            c.ok(
+                &mut b,
+                Side::Red,
+                Order::SetEngagement {
+                    units: vec![UnitId(2)],
+                    policy: Engagement::FireAtWill,
+                },
+            );
+            // Establish real hostility while the squad is still outside;
+            // entry otherwise puts every initial soldier on the north face,
+            // hidden from the southern attacker.
+            until(
+                &mut b,
+                300,
+                "the infantry actually attacks the squad",
+                |b| b.unit(UnitId(0)).unwrap().attackers.contains(&UnitId(2)),
+            );
+        }
+        c.ok(&mut b, Side::Blue, garrison(&[0]));
+        until(&mut b, 1200, "inside", |b| inside(b, 0));
+        if !return_fire {
+            c.ok(
+                &mut b,
+                Side::Blue,
+                Order::SetEngagement {
+                    units: vec![UnitId(0)],
+                    policy: Engagement::FireAtWill,
+                },
+            );
+        }
+        let operator = b.unit(UnitId(0)).unwrap().members[0].id;
+        until(
+            &mut b,
+            300,
+            "the launcher operator fires his rifle south",
+            |b| {
+                b.rounds().any(|(p, r)| {
+                    r.unit == UnitId(0)
+                        && b.arsenal().weapons[r.weapon].id == "rifle"
+                        && p.shooter.unwrap().body.0 == operator
+                })
+            },
+        );
+        for _ in 0..garrison_ticks("window_hold_s") * 3 {
+            b.step();
+            assert_eq!(
+            facade_of(&b, 0, 0),
+            Some(3),
+            "return fire {return_fire}: an unusable launcher cannot steal a useful rifle window"
+        );
+            assert_eq!(b.unit(UnitId(0)).unwrap().members[0].active_mount, Some(0));
+        }
+    }
 }
 
 #[test]

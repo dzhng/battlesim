@@ -383,6 +383,19 @@ fn firefight(cover: bool, blue: &str) -> Battle {
         json!([]),
         json!([]),
     );
+    // Only rifles take part: launcher selection and its delayed first shot
+    // must not let impacts enter the comparison before the full volley.
+    let mut documents = sim::fixtures::catalog_documents();
+    for document in &mut documents {
+        if let Some(grenadier) = document
+            .get_mut("soldiers")
+            .and_then(|soldiers| soldiers.get_mut("grenadier"))
+        {
+            grenadier["mounts"] =
+                json!([{ "name": "rifles", "weapons": ["rifle"], "squad": true }]);
+        }
+    }
+    setup.rules.catalog = contract::catalog::resolve(&documents).unwrap();
     if !cover {
         let t = &mut setup.rules.cover.tiers;
         (t.light, t.medium, t.heavy) = (1.0, 1.0, 1.0);

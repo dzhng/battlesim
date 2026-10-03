@@ -103,6 +103,8 @@ export interface OwnUnitView {
   memberIds: number[];
   /** Each living soldier's slot in his squad type (which soldier kind he is). */
   memberSlots: number[];
+  /** Each published soldier's selected mount, or null, in member order. */
+  memberActiveMounts: (number | null)[];
   /** Each living soldier's resolved place and cover (D2+), in `members` order. */
   memberOrders: MemberOrderView[];
   /** Each living soldier's lean, in `members` order: null while tucked in. */
@@ -321,6 +323,8 @@ export interface IdentifiedView {
   memberIds: number[];
   /** Each seen soldier's slot in his squad type. */
   memberSlots: number[];
+  /** Each published soldier's selected mount, or null, in member order. */
+  memberActiveMounts: (number | null)[];
   /** Each seen soldier's lean, in `members` order: null while tucked in. */
   memberLeans: (MemberLeanView | null)[];
   /** Every mount's pose while identified. */
@@ -929,6 +933,10 @@ function decodeFrame(
       members: sections.members as Point3[],
       memberIds: ids(sections.memberIds, ownIds),
       memberSlots: slots(sections.memberIds, ownIds),
+      memberActiveMounts: sections.memberIds.map((p) => {
+        const mount = ownIds(p)("activeMount");
+        return mount < 0 ? null : mount;
+      }),
       memberOrders: sections.memberOrders.map((p) => {
         const m = ownOrder(p);
         return {
@@ -988,6 +996,10 @@ function decodeFrame(
       members: sections.members as Point3[],
       memberIds: ids(sections.memberIds, seenIds),
       memberSlots: slots(sections.memberIds, seenIds),
+      memberActiveMounts: sections.memberIds.map((p) => {
+        const mount = seenIds(p)("activeMount");
+        return mount < 0 ? null : mount;
+      }),
       memberLeans: leans(sections.memberLeans, seenLeans),
       weaponPoses: poses(sections.weaponPoses, seenPoses),
       reversing: f("reversing") === 1,

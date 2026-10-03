@@ -370,6 +370,11 @@ impl SideKnowledge {
                         .iter()
                         .map(|&k| unit.members[k].slot as u8)
                         .collect(),
+                    member_active_mounts: t
+                        .members
+                        .iter()
+                        .map(|&k| unit.members[k].active_mount.map(|m| m as u8))
+                        .collect(),
                     member_leans: t
                         .members
                         .iter()

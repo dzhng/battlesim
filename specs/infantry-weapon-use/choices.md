@@ -1,19 +1,41 @@
 # Implementation choices
 
-## Sound — planning decisions
+## Sound — medium confidence
 
-### Physical aim rather than shared rifle aim (high confidence)
+### Useful threats determine window requests
 
-When one AT operator puts away his rifle, only his aiming work is abandoned; his guards keep their progress. Aim therefore belongs to each physical Cycle, while the shared Lock remains the targeting owner. The alternative would reset all riflemen or retain stale aim for the switcher. This constrains all future infantry weapon use, and gives vehicles the same physical timing owner without infantry exclusivity.
+Window planning shares normal target selection, including range and return-fire permission, while evaluating prospective windows. Idle troops with no known attackers can watch legal threats while holding fire; after an attack, normal return-fire restrictions apply. With no retained lock or guidance, an enemy outside weapon range no longer creates a window request solely because it is expensive. This removes a second ranking policy and makes window orientation follow weapon usefulness. It changes idle orientation, not sight from unoccupied windows.
 
-### Stable useful-weapon priority (high confidence)
+### Torso-bound diagonal carry
 
-A launcher aimed at a legal effective target remains useful while reloading. Selecting the currently ready rifle instead would pause the launcher every tick and prevent completion. Guidance takes priority, then the assigned special's valid engagement, then the rifle; idle time permits reload work. This is a game policy, not a rate-of-fire optimization. Existing spare assignment is retained because target-aware switching among recovered spares was explicitly outside the accepted scope.
+The stowed launcher reuses the existing tube and sight, attached diagonally outside the backpack with two retention straps. It follows the body through rifle animations. Its silhouette reads as carried equipment in close views; straps are not readable at tactical distance. This is a cosmetic placement choice rather than a new equipment simulation.
 
-### Whole-body equipment sets (high confidence)
+## Sound — high confidence
 
-The existing assets combine body, weapon and sockets. A carrier gets launcher-held or rifle-held/launcher-on-back variants, indexed consistently so his identity stays recognizable. A modular weapon attachment system would add a new asset/runtime concept just for this change. The active/carried object is a hard cutover because both authoring and consumers are owned here.
+### Physical aim belongs to each gun
 
-### Active mount alongside visible identity (high confidence)
+Putting away one operator’s rifle abandons only his aim. Guards keep theirs. Each physical cycle therefore owns aim, magazine and reload; the shared lock owns targeting. Switching keeps ownership and ammunition, pauses inactive reload work and allows cooldown to elapse. Ordinary aim applies when the gun comes back into use.
 
-Each soldier's selected weapon is published with his stable member ID and slot. Rendering does not reconstruct selection from squad shots, timers, or weapon names. The same filtering that publishes visible identities filters their activity. This exposes one new authoritative fact, including it in replay state, instead of creating a parallel renderer decision.
+### Useful weapons keep priority through reload
+
+Guidance reserves the operator first. Otherwise an assigned single weapon with a legal effective target remains selected while aiming or reloading; the rifle is the fallback. Choosing whichever gun is ready would put away the launcher repeatedly and starve its reload. With no useful target, idle selection permits reload work. Stable mount order breaks ties; existing recovered-spare assignment remains unchanged.
+
+### Whole-body active and carried sets
+
+The existing art combines soldier, equipment, clips and sockets. Paired whole-body sets extend that system without introducing modular runtime attachments. The same variant index keeps a carrier recognizable across holds. The authored active/carried object is a hard cutover; both sets must be nonempty, equal-sized and internally share a skeleton, while the two holds may use different clip families.
+
+### Visible identity carries authoritative activity
+
+Each visible member publishes his active mount alongside ID and slot. The mount’s operator separately identifies who owns the physical weapon. Presentation does not infer use from timers or old squad shot counts, and enemy filtering applies to activity exactly as it does to member identity. Selection and physical aim enter deterministic state digests.
+
+### Each soldier requests one weapon’s window
+
+Window requests reuse weapon priority and physical assessment. A soldier cannot request opposite windows for rifle and launcher simultaneously. Prospective assessment lets him request a window he does not yet occupy; it grants no shooting permission. Authored squad/single ownership determines displacement priority even when only one rifleman survives. Allocation continues to choose a facing facade, without a new search for alternate trajectories on the same facade.
+
+### Launch evidence remains attached to its weapon
+
+Flight first shows a shot on the following tick. Per-soldier launch counters retain mount identity so an old rifle launch cannot animate the newly held launcher. An unchanged rifle’s valid shot survives carrier assignment changes. A lingering flash whose weapon is no longer held uses its published launch point rather than another barrel’s socket.
+
+### Equipment changes reset blending; fallen kit stays ordinary
+
+Model, animation family and muzzle resolve the same active/carried fact. Equipment changes install the new pose directly, including on death; posture changes within one hold still blend. Fallen carriers use ordinary kit because the recovered launcher already belongs to a survivor. The carried bundle’s standalone death endpoint intersects the ground and is not a gameplay pose; living clips and ordinary gameplay deaths are the accepted contract.

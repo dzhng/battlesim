@@ -31,6 +31,9 @@ pub struct IdentifiedUnit {
     /// Each seen soldier's slot in his squad type, in `members` order: which
     /// soldier kind he is, so he is drawn as one.
     pub member_slots: Vec<u8>,
+    /// Each published soldier's selected mount, in `members` order; absent
+    /// when he is using no weapon. Visibility follows the member identity.
+    pub member_active_mounts: Vec<Option<u8>>,
     /// Every mount's pose, in the unit type's mount order.
     pub weapon_poses: Vec<WeaponPose>,
     /// Driving backwards this tick, seen as plainly as its position (the
@@ -403,6 +406,9 @@ pub struct OwnUnit {
     pub member_ids: Vec<u32>,
     /// Each living soldier's slot in his squad type, in `members` order.
     pub member_slots: Vec<u8>,
+    /// Each published soldier's selected mount, in `members` order; absent
+    /// when he is using no weapon. Visibility follows the member identity.
+    pub member_active_mounts: Vec<Option<u8>>,
     /// Each living soldier's place in the order (D2+), in `members` order.
     pub member_orders: Vec<MemberOrder>,
     /// Each living soldier's lean, in `members` order.

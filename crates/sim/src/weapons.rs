@@ -1,5 +1,5 @@
-//! Mounts choose targets from their side's knowledge (W06, W10) and share aim.
-//! Physical guns own their cycles (W01–W02); rounds leave only through flight.
+//! Mounts choose targets from their side's knowledge (W06, W10).
+//! Physical guns own aim and cycles (W01–W02); rounds leave only through flight.
 use contract::catalog::TypeIndex;
 use contract::command::{Engagement, TargetRef};
 use contract::ids::{Side, Tick, UnitId};
@@ -33,7 +33,7 @@ pub struct Weapon {
     pub profile: LaunchProfile,
 }
 
-/// An authored mount: ammunition kinds (weapon indices) sharing aim/reload.
+/// An authored mount: ammunition kinds (weapon indices) sharing targeting.
 #[derive(Clone)]
 pub struct MountSpec {
     pub kinds: Vec<usize>,
@@ -254,8 +254,6 @@ impl Target {
 #[derive(Clone, Debug)]
 pub struct Lock {
     pub target: Target,
-    /// Seconds of aim accumulated on this target.
-    pub aim: f64,
     /// From an explicit attack order: kept against automatic reconsideration.
     pub explicit: bool,
     /// This tick's assessment cleared the target and the mount is working the
@@ -319,7 +317,7 @@ impl Mount {
         d.u64(self.lock.is_some() as u64);
         if let Some(l) = &self.lock {
             l.target.digest(d);
-            d.f64(l.aim).u64(l.explicit as u64).u64(l.engaging as u64);
+            d.u64(l.explicit as u64).u64(l.engaging as u64);
         }
     }
 
@@ -329,6 +327,7 @@ impl Mount {
         self.lock = None;
         for c in &mut self.cycles {
             c.started = false;
+            c.aim = 0.0;
             c.reload = None;
         }
         self.support = None;
@@ -508,6 +507,16 @@ fn bearing_from(unit: &Unit, point: V3) -> f64 {
     libm::atan2(to.y, to.x)
 }
 
+fn point_mount(unit: &Unit, mount: &mut Mount, spec: &MountSpec, point: V3, turret_step: f64) {
+    let desired = bearing_from(unit, point);
+    mount.bearing = if spec.turret {
+        let err = wrap_angle(desired - mount.bearing);
+        mount.bearing + err.clamp(-turret_step, turret_step)
+    } else {
+        desired
+    };
+}
+
 /// Where a mount's rounds leave when it points along `bearing`: each mount
 /// fires from its own muzzle. Its pivot turns with its carrier (the turret
 /// it sits on, at that mount's bearing, or the hull), and its muzzle turns
@@ -671,7 +680,7 @@ fn engage(
     if let Some(garrison) = unit.garrison.as_ref().filter(|_| unit.garrisoned()) {
         let facing = ctx.rules.garrison.slot_facing_min_deg.to_radians();
         let mut result = Err(ActionReason::NoFacingSlot);
-        for k in participants(unit, mount, spec) {
+        for k in candidates(unit, mount, spec) {
             let Some(seat) = garrison
                 .seat(k)
                 .filter(|s| s.slot.faces(r.point.xy(), facing))
@@ -704,7 +713,7 @@ fn engage(
         return at_unit;
     }
     let blockers = lean::hulls(units, ctx.rules);
-    participants(unit, mount, spec)
+    candidates(unit, mount, spec)
         .map(|k| {
             let f = fire_from(ctx, &blockers, &unit.members[k], r.point)?;
             from(f.origin, f.past, f.hull).ok()
@@ -731,19 +740,43 @@ fn permitted(ctx: &FireContext, unit: &Unit, target: Target) -> bool {
 /// firing ask of the same target with the same world, so each target is
 /// assessed once (its line tests and firing solutions are the costly part).
 #[derive(Default)]
-struct Assessed(Vec<(Target, Result<usize, ActionReason>)>);
+struct Assessed {
+    values: Vec<(Target, Result<usize, ActionReason>)>,
+    prospective_windows: bool,
+}
 
 impl Assessed {
+    #[allow(clippy::too_many_arguments)]
+    fn target(
+        &mut self,
+        ctx: &FireContext,
+        unit: &Unit,
+        units: &[Unit],
+        mount: &Mount,
+        spec: &MountSpec,
+        target: Target,
+        resolved: &Resolved,
+    ) -> Result<usize, ActionReason> {
+        let windows = self.prospective_windows;
+        self.of(target, || {
+            if windows {
+                assess_windows(ctx, unit, units, mount, spec, target, resolved)
+            } else {
+                assess(ctx, unit, units, mount, spec, target, resolved)
+            }
+        })
+    }
+
     fn of(
         &mut self,
         target: Target,
         assess: impl FnOnce() -> Result<usize, ActionReason>,
     ) -> Result<usize, ActionReason> {
-        if let Some(&(_, a)) = self.0.iter().find(|(t, _)| *t == target) {
+        if let Some(&(_, a)) = self.values.iter().find(|(t, _)| *t == target) {
             return a;
         }
         let a = assess();
-        self.0.push((target, a));
+        self.values.push((target, a));
         a
     }
 }
@@ -885,7 +918,7 @@ fn select(
         let Some(r) = resolve(ctx, unit.side, target, units) else {
             continue;
         };
-        match assessed.of(target, || assess(ctx, unit, units, mount, spec, target, &r)) {
+        match assessed.target(ctx, unit, units, mount, spec, target, &r) {
             Ok(k) => {
                 // The middle stage is only the unlimited default gun against
                 // what it cannot hurt.
@@ -937,7 +970,6 @@ fn choose_lock(
             _ => {
                 mount.lock = Some(Lock {
                     target: t,
-                    aim: 0.0,
                     explicit: true,
                     engaging: false,
                 })
@@ -970,7 +1002,7 @@ fn choose_lock(
         None => true,
         // Identification lapsing within the grace never makes it replaceable.
         Some((_, r)) if !r.current => false,
-        Some((t, r)) => match assessed.of(*t, || assess(ctx, unit, units, mount, spec, *t, r)) {
+        Some((t, r)) => match assessed.target(ctx, unit, units, mount, spec, *t, r) {
             // An invalid target can be replaced early.
             Err(_) => true,
             // Independent rifles need not all be empty to reconsider a target.
@@ -988,7 +1020,6 @@ fn choose_lock(
         Some(t) if current.is_none_or(|(c, _)| c != t) => {
             mount.lock = Some(Lock {
                 target: t,
-                aim: 0.0,
                 explicit: false,
                 engaging: false,
             });
@@ -1009,6 +1040,103 @@ pub struct Reach {
     /// The attack order's target is out of reach of every mount that can hurt
     /// it (the attack pursues, W17).
     pub needs_closer: bool,
+}
+
+/// Candidate targeting, assessed before any soldier works a gun this tick.
+struct MountPlan {
+    stationary: bool,
+    idle_reason: ActionReason,
+    resolved: Option<Resolved>,
+    assessment: Option<Result<usize, ActionReason>>,
+    kind: Option<usize>,
+}
+
+fn preferred_mount(
+    unit: &Unit,
+    member: usize,
+    specs: &[MountSpec],
+    weapons: &[Weapon],
+    plans: &[Option<MountPlan>],
+    moving: bool,
+) -> Option<usize> {
+    let eligible = |m: usize| {
+        candidates(unit, &unit.mounts[m], &specs[unit.mounts[m].spec]).any(|k| k == member)
+    };
+    let available =
+        |m: usize| plans[m].as_ref().is_some_and(|p| !(moving && p.stationary)) && eligible(m);
+    let useful = |m: usize| {
+        plans[m].as_ref().is_some_and(|p| {
+            p.assessment.is_some_and(|a| {
+                a.is_ok_and(|k| {
+                    p.resolved.is_some_and(|r| {
+                        effective(&weapons[specs[unit.mounts[m].spec].kinds[k]].def, r.armor)
+                    })
+                })
+            })
+        })
+    };
+    let assigned = |m: usize| !specs[unit.mounts[m].spec].squad && available(m);
+    let default = |m: usize| {
+        available(m)
+            && specs[unit.mounts[m].spec]
+                .kinds
+                .iter()
+                .any(|&k| weapons[k].def.default)
+    };
+    let mounts = || 0..unit.mounts.len();
+    mounts()
+        .find(|&m| assigned(m) && unit.mounts[m].support.is_some())
+        .or_else(|| mounts().find(|&m| assigned(m) && useful(m)))
+        .or_else(|| {
+            mounts().find(|&m| {
+                default(m)
+                    && plans[m]
+                        .as_ref()
+                        .is_some_and(|p| p.assessment.is_some_and(|a| a.is_ok()))
+            })
+        })
+        .or_else(|| {
+            mounts().find(|&m| {
+                assigned(m)
+                    && unit.mounts[m].cycles.iter().any(|c| {
+                        c.needs_reload(weapons, &unit.mounts[m].ammo, &specs[unit.mounts[m].spec])
+                    })
+            })
+        })
+        .or_else(|| mounts().find(|&m| default(m)))
+}
+
+fn select_active(
+    unit: &mut Unit,
+    specs: &[MountSpec],
+    weapons: &[Weapon],
+    plans: &[Option<MountPlan>],
+    moving: bool,
+) {
+    if unit.hull.is_some() {
+        return;
+    }
+    for member in 0..unit.members.len() {
+        if !unit.members[member].alive() {
+            unit.members[member].active_mount = None;
+            continue;
+        }
+        let choice = preferred_mount(unit, member, specs, weapons, plans, moving);
+        let next = choice.map(|m| unit.mounts[m].spec);
+        if unit.members[member].active_mount != next {
+            if let Some(m) = choice {
+                let id = unit.members[member].id;
+                let squad = specs[unit.mounts[m].spec].squad;
+                for c in &mut unit.mounts[m].cycles {
+                    if !squad || c.owner == Some(id) {
+                        c.aim = 0.0;
+                        c.started = false;
+                    }
+                }
+            }
+            unit.members[member].active_mount = next;
+        }
+    }
 }
 
 /// Advance every mount one tick; returns the shots fired.
@@ -1042,6 +1170,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
         let mut leaned: Vec<u32> = Vec::new();
         // Ordered target: some compatible mount can shoot it / none can reach it.
         let (mut ordered_ok, mut ordered_far) = (false, false);
+        let mut plans = Vec::with_capacity(units[i].mounts.len());
         for m in 0..units[i].mounts.len() {
             let unit = &units[i];
             let spec = &specs[unit.mounts[m].spec];
@@ -1057,7 +1186,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                         .enumerate()
                         .any(|(k, s)| carries(unit, spec, k) && c.owner == Some(s.id))
                 });
-                for k in participants(unit, &mount, spec) {
+                for k in candidates(unit, &mount, spec) {
                     let owner = Some(unit.members[k].id);
                     if !mount.cycles.iter().any(|c| c.owner == owner) {
                         mount
@@ -1067,14 +1196,14 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                 }
             }
             // Without an operator a transferable gun remains a spare.
-            if unit.hull.is_none() && participants(unit, &mount, spec).next().is_none() {
+            if unit.hull.is_none() && candidates(unit, &mount, spec).next().is_none() {
                 // A recoverable spare keeps its magazine and reload progress.
                 // Moving a stationary gun still interrupts its reload.
                 if spec.special && !(stationary && moved[i]) {
                     mount.lock = None;
                     mount.support = None;
                     for c in &mut mount.cycles {
-                        c.started = false;
+                        c.pause(dt);
                     }
                 } else {
                     mount.stop();
@@ -1085,9 +1214,11 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                     ActionReason::NoCompatibleTarget
                 };
                 units[i].mounts[m] = mount;
+                plans.push(None);
                 continue;
             }
             let explicit = ordered.filter(|&t| compatible(ctx, &mount, spec, t, units));
+            let previous = mount.lock.as_ref().map(|l| l.target);
             let mut assessed = Assessed::default();
             let idle_reason =
                 choose_lock(ctx, unit, units, &mut mount, spec, explicit, &mut assessed);
@@ -1110,9 +1241,7 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                 // A ground point's resolved point was moved to its facade
                 // since the lock was chosen: assessed afresh.
                 let a = if r.current && !matches!(l.target, Target::Ground(_)) {
-                    assessed.of(l.target, || {
-                        assess(ctx, unit, units, &mount, spec, l.target, r)
-                    })
+                    assessed.target(ctx, unit, units, &mount, spec, l.target, r)
                 } else if r.current {
                     assess(ctx, unit, units, &mount, spec, l.target, r)
                 } else {
@@ -1131,13 +1260,53 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                 a
             });
 
+            if previous != mount.lock.as_ref().map(|l| l.target) {
+                for c in &mut mount.cycles {
+                    c.aim = 0.0;
+                }
+            }
+            let kind = resolved
+                .as_ref()
+                .and_then(|r| preferred_kind(ctx, &mount, spec, r));
+            // A child mount's muzzle is assessed on its parent's current
+            // bearing, as vehicle mounts act independently in mount order.
+            if unit.hull.is_some() && !(stationary && moved[i]) {
+                if let Some(r) = &resolved {
+                    point_mount(unit, &mut mount, spec, r.point, turret_rate);
+                }
+            }
+            plans.push(Some(MountPlan {
+                stationary,
+                idle_reason,
+                resolved,
+                assessment,
+                kind,
+            }));
+            units[i].mounts[m] = mount;
+        }
+        select_active(&mut units[i], specs, &ctx.arsenal.weapons, &plans, moved[i]);
+        for (m, plan) in plans.into_iter().enumerate() {
+            let Some(MountPlan {
+                stationary,
+                idle_reason,
+                resolved,
+                assessment,
+                kind: kind_for_target,
+            }) = plan
+            else {
+                continue;
+            };
+            let unit = &units[i];
+            let spec = &specs[unit.mounts[m].spec];
+            let mut mount = unit.mounts[m].clone();
+
             // Movement clears a stationary weapon's aim and unfinished reload (W03).
             if stationary && moved[i] {
                 if let Some(lock) = mount.lock.as_mut() {
-                    lock.aim = 0.0;
                     lock.engaging = false;
                 }
                 for c in &mut mount.cycles {
+                    c.pause(if unit.hull.is_none() { dt } else { 0.0 });
                     c.reload = None;
                 }
                 mount.reason = ActionReason::MovingStationaryWeapon;
@@ -1145,14 +1314,6 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                 continue;
             }
 
-            // Aim advances on the lock, even toward a last sighting in the grace.
-            let kind_for_target = resolved
-                .as_ref()
-                .and_then(|r| preferred_kind(ctx, &mount, spec, r));
-            if let (Some(lock), Some(k)) = (mount.lock.as_mut(), kind_for_target) {
-                let aim_s = ctx.arsenal.weapons[spec.kinds[k]].def.aim_s;
-                lock.aim = (lock.aim + dt).min(aim_s);
-            }
             // Suppression's tier slows the cycle without resetting its progress (P14).
             let rate = 1.0
                 - ctx
@@ -1161,6 +1322,15 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                     .penalties(unit.suppression)
                     .map_or(0.0, |t| t.reload_cycle_penalty);
             for cycle in &mut mount.cycles {
+                if !cycle_active(unit, &unit.mounts[m], cycle) {
+                    cycle.pause(dt * rate);
+                    continue;
+                }
+                // Physical aim continues toward a retained last sighting.
+                if let Some(k) = kind_for_target {
+                    let aim_s = ctx.arsenal.weapons[spec.kinds[k]].def.aim_s;
+                    cycle.aim = (cycle.aim + dt).min(aim_s);
+                }
                 cycle.advance(
                     &ctx.arsenal.weapons,
                     &mount.ammo,
@@ -1170,16 +1340,12 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
                     dt * rate,
                 );
             }
+            let active = |c: &Cycle| cycle_active(unit, &unit.mounts[m], c);
 
-            // Turrets traverse; hand weapons point at once.
-            if let Some(r) = &resolved {
-                let desired = bearing_from(unit, r.point);
-                mount.bearing = if spec.turret {
-                    let err = wrap_angle(desired - mount.bearing);
-                    mount.bearing + err.clamp(-turret_rate, turret_rate)
-                } else {
-                    desired
-                };
+            if unit.hull.is_none() {
+                if let Some(r) = &resolved {
+                    point_mount(unit, &mut mount, spec, r.point, turret_rate);
+                }
             }
 
             // Fire when everything lines up.
@@ -1187,10 +1353,20 @@ pub fn advance(ctx: &FireContext, units: &mut [Unit], moved: &[bool], rng: &mut 
             mount.reason = match (&mount.lock, &resolved, assessment) {
                 (Some(lock), Some(r), Some(Ok(k))) => {
                     let target = lock.target;
-                    engaging = true;
-                    if lock.aim < ctx.arsenal.weapons[spec.kinds[k]].def.aim_s {
+                    engaging = mount.cycles.iter().any(active);
+                    if !engaging {
+                        ActionReason::HoldingFire
+                    } else if !mount
+                        .cycles
+                        .iter()
+                        .any(|c| active(c) && c.aim >= ctx.arsenal.weapons[spec.kinds[k]].def.aim_s)
+                    {
                         ActionReason::Aiming
-                    } else if !mount.cycles.iter().any(|c| c.ready() == Some(k)) {
+                    } else if !mount
+                        .cycles
+                        .iter()
+                        .any(|c| active(c) && c.ready() == Some(k))
+                    {
                         ActionReason::Reloading
                     } else if spec.turret
                         && wrap_angle(bearing_from(unit, r.point) - mount.bearing).abs() > tolerance
@@ -1361,7 +1537,11 @@ fn fire(
             .iter_mut()
             .find(|c| c.owner == owner)
             .expect("physical weapon cycle");
-        if cycle.ready() != Some(k) || cycle.cooldown > 0.0 || mount.ammo[k] == Some(0) {
+        if cycle.aim < weapon.def.aim_s
+            || cycle.ready() != Some(k)
+            || cycle.cooldown > 0.0
+            || mount.ammo[k] == Some(0)
+        {
             continue;
         }
         let point = match target {
@@ -1617,9 +1797,9 @@ fn hides_behind(ctx: &FireContext, soldier: &crate::units::Soldier, origin: V3, 
     crate::cover::covers(&prop.footprint(), at, point.xy(), reach, radius)
 }
 
-/// Members taking part in a mount's shot: every living soldier carrying a
-/// squad weapon; otherwise its [`operator`].
-fn participants<'a>(
+/// Eligible carriers, independent of active choice: every living soldier
+/// carrying a squad weapon; otherwise its [`operator`].
+fn candidates<'a>(
     unit: &'a Unit,
     mount: &Mount,
     spec: &'a MountSpec,
@@ -1629,6 +1809,24 @@ fn participants<'a>(
         Some(o) => k == o,
         None => spec.squad && carries(unit, spec, k),
     })
+}
+
+/// Soldiers actually working this mount; candidate discovery never reads activity.
+fn participants<'a>(
+    unit: &'a Unit,
+    mount: &'a Mount,
+    spec: &'a MountSpec,
+) -> impl Iterator<Item = usize> + 'a {
+    candidates(unit, mount, spec).filter(move |&k| unit.members[k].active_mount == Some(mount.spec))
+}
+
+fn cycle_active(unit: &Unit, mount: &Mount, cycle: &Cycle) -> bool {
+    unit.hull.is_some()
+        || unit.members.iter().any(|s| {
+            s.alive()
+                && s.active_mount == Some(mount.spec)
+                && Some(s.id) == cycle.owner.or(mount.operator)
+        })
 }
 
 /// The living soldier currently operating this physical gun.
@@ -1711,14 +1909,61 @@ fn participant_of(unit: &Unit, body: BodyId) -> usize {
 
 /// A garrisoned squad's mounts that have something to face: each one's
 /// participants and the point it faces.
-pub type MountAims = Vec<(Vec<usize>, V3)>;
+pub struct MountAim {
+    pub members: Vec<usize>,
+    pub point: V3,
+    /// Authored physical ownership, independent of how many riflemen survive.
+    pub single_operator: bool,
+}
+pub type MountAims = Vec<MountAim>;
 
-/// For each garrisoned squad (by index), its [`MountAims`]: what garrison
-/// slot allocation turns toward. A mount faces its lock; without one, the
-/// threat it would take on: the costliest enemy the side identifies that one
-/// of its loaded kinds can damage (then nearest, then observed id), in range
-/// or not, fire held or not. So the ATGM gunner watches the tank and the
-/// riflemen the infantry before either is in reach.
+/// Whether a carried gun could engage after taking a suitable window. The
+/// normal assessment owns range, trajectory and guidance LOS here too; only
+/// position and idle watching permission are projected. Known attackers still
+/// constrain return fire; a missing current window cannot prevent requesting one.
+fn assess_windows(
+    ctx: &FireContext,
+    unit: &Unit,
+    units: &[Unit],
+    mount: &Mount,
+    spec: &MountSpec,
+    target: Target,
+    resolved: &Resolved,
+) -> Result<usize, ActionReason> {
+    let mut prospective = unit.clone();
+    if unit.attackers.is_empty() {
+        prospective.engagement = Engagement::FireAtWill;
+    }
+    let current = assess(ctx, &prospective, units, mount, spec, target, resolved);
+    if current.is_ok() || !permitted(ctx, &prospective, target) {
+        return current;
+    }
+    let g = unit.garrison.as_ref().expect("a garrison requests windows");
+    let facing = ctx.rules.garrison.slot_facing_min_deg.to_radians();
+    for member in candidates(unit, mount, spec) {
+        for (seat, window) in g
+            .slots
+            .iter()
+            .enumerate()
+            .filter(|(_, w)| w.slot.faces(resolved.point.xy(), facing))
+        {
+            prospective.members[member].position = window.position;
+            prospective.garrison.as_mut().unwrap().seats[member] = Some(seat);
+            let assessment = assess(ctx, &prospective, units, mount, spec, target, resolved);
+            if assessment.is_ok() {
+                return assessment;
+            }
+        }
+        prospective.members[member].position = unit.members[member].position;
+        prospective.garrison.as_mut().unwrap().seats[member] = g.seats[member];
+    }
+    current
+}
+
+/// Each soldier requests a window for one weapon, using the same priority as
+/// active selection but assessing prospective windows. This breaks the circular
+/// dependency between a useful weapon and the window it needs, without letting
+/// an inactive rifle pull a launcher operator away from his target.
 pub fn garrison_aims(ctx: &FireContext, units: &[Unit]) -> Vec<(usize, MountAims)> {
     units
         .iter()
@@ -1726,29 +1971,54 @@ pub fn garrison_aims(ctx: &FireContext, units: &[Unit]) -> Vec<(usize, MountAims
         .filter(|(_, u)| u.alive() && u.garrisoned())
         .map(|(i, u)| {
             let specs = ctx.arsenal.specs(u.kind);
-            let here = u.position.xy();
-            let knowledge = &ctx.knowledge[u.side.index()];
-            let aims = u
+            let plans: Vec<_> = u
                 .mounts
                 .iter()
-                .filter_map(|m| {
+                .map(|m| {
                     let spec = &specs[m.spec];
-                    let target = match m.lock.as_ref() {
-                        Some(lock) => lock.target,
-                        None => knowledge
-                            .identified_now(ctx.tick)
-                            .filter(|(e, _)| compatible(ctx, m, spec, Target::Unit(*e), units))
-                            .map(|(e, t)| {
-                                let cost = units[e.0 as usize].unit_type(ctx.rules).cost;
-                                (cost, (t.position.xy() - here).length(), t.id.0, e)
-                            })
-                            .min_by(|a, b| {
-                                b.0.cmp(&a.0).then(a.1.total_cmp(&b.1)).then(a.2.cmp(&b.2))
-                            })
-                            .map(|(.., e)| Target::Unit(e))?,
+                    let mut candidate = m.clone();
+                    let mut assessed = Assessed {
+                        prospective_windows: true,
+                        ..Default::default()
                     };
+                    let explicit = u
+                        .attack_target()
+                        .filter(|&t| compatible(ctx, m, spec, t, units));
+                    let idle_reason =
+                        choose_lock(ctx, u, units, &mut candidate, spec, explicit, &mut assessed);
+                    let target = m
+                        .support
+                        .map(|s| s.target)
+                        .or_else(|| candidate.lock.as_ref().map(|l| l.target))?;
                     let r = resolve(ctx, u.side, target, units)?;
-                    Some((participants(u, m, spec).collect(), r.point))
+                    let assessment = assessed.target(ctx, u, units, m, spec, target, &r);
+                    Some(MountPlan {
+                        stationary: false,
+                        idle_reason,
+                        resolved: Some(r),
+                        assessment: Some(assessment),
+                        kind: preferred_kind(ctx, m, spec, &r),
+                    })
+                })
+                .collect();
+            let choices: Vec<_> = (0..u.members.len())
+                .map(|member| {
+                    preferred_mount(u, member, specs, &ctx.arsenal.weapons, &plans, false)
+                })
+                .collect();
+            let aims = plans
+                .iter()
+                .enumerate()
+                .filter_map(|(m, plan)| {
+                    let r = plan.as_ref()?.resolved?;
+                    let members: Vec<_> = candidates(u, &u.mounts[m], &specs[u.mounts[m].spec])
+                        .filter(|&member| choices[member] == Some(m))
+                        .collect();
+                    (!members.is_empty()).then_some(MountAim {
+                        members,
+                        point: r.point,
+                        single_operator: !specs[u.mounts[m].spec].squad,
+                    })
                 })
                 .collect();
             (i, aims)
@@ -1795,10 +2065,15 @@ pub fn readiness(
             remaining(*a).total_cmp(&remaining(*b))
         })
     };
-    let aim = mount.lock.as_ref().map_or(0.0, |l| {
-        let k = loaded.or(reloading.map(|(k, _)| k)).unwrap_or(0);
-        (l.aim / arsenal.weapons[spec.kinds[k]].def.aim_s).min(1.0)
-    });
+    let aim = mount
+        .cycles
+        .iter()
+        .filter(|c| cycle_active(unit, mount, c))
+        .map(|c| {
+            let k = c.loaded.or(c.reload.map(|(k, _)| k)).unwrap_or(0);
+            (c.aim / arsenal.weapons[spec.kinds[k]].def.aim_s).min(1.0)
+        })
+        .fold(0.0, f64::max);
     let reload = reloading.map_or(0.0, |(k, p)| {
         (p / arsenal.weapons[spec.kinds[k]].def.reload_s).min(1.0)
     });
