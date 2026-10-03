@@ -4,7 +4,9 @@ A local developer tool for tuning generation and numerical map-validation policy
 
 ## Next Agent Prompt
 
-Status: planned, 2026-10-03. Implement the entire ladder below, not just its first pass. Start with slice 01 and the source-policy inventory; implement independent player recovery concurrently. The next dependency is the native report/publication contract, then the plan editor and sampled analysis. Read each slice before work. Use write-tests red/green at behavioral seams, review and audit-choices before each focused commit, and update this prompt at every checkpoint. Do not declare automatic sight enabled until its additional browser-visible cost is measured below 500 ms. Full check and verify run once after all slices finish. No backwards-compatibility or migration machinery is requested; exact existing seed links and captured replay are live contracts, not scaffolding.
+Status: implementing, 2026-10-03. The typed report contract and analysis/admission defaults are committed. Ordinary Play recovery is integrated; its focused preparation/menu tests pass, while real worker fallback, exact-path parity and startup headroom remain unverified. Native policy/report and local publication passes are concurrent in isolated checkouts. The editor is drafted and its coalescing/cancel/selection/unfinished-input tests pass.
+
+Next pickup: integrate native report and local store, then connect and verify the real `/map-workbench` journey. Prioritize source-policy default parity, retained-artifact lifetime during refusal/sample, exact publication/export, and real player fallback. Follow with screenshots and measured sight cost. Automatic sight stays off until additional browser-visible cost is proven below 500 ms. Full check and verify run once after all slices finish. Exact seeded links and captured replay remain live contracts. Keep this handoff compact; evidence belongs in slice files and ignored `throwaway`.
 
 - [ ] [01: inputs, source-policy ownership and capacity](slices/01-policy.md)
 - [ ] [02: native report and source publication](slices/02-report.md)
@@ -31,7 +33,7 @@ The added player requirement is ordinary Play → admitted battle. Keep exact pr
 - `sim::map_analysis` owns the sampled sight calculation extracted from the shared example. Reports/tests/tool call it; no JavaScript ray casts.
 - The local Vite API owns source snapshots, native process/artifact lifetime and publication. Browser requests never name file paths. Reuse/extract fixture-publication primitives from mechanics without inheriting its unit store.
 - Source revision, tested-input fingerprint, preset revision and map/config hashes are distinct. Preserve exact tested documents with exported reports. Manage revision labels in the tool; the user does not edit them.
-- Native generation returns/retains plan and compiled map from one invocation. Inspecting a crop, selecting a feature or panning never regenerates unchanged settings. Retain at most the saved baseline, latest draft and current job; clean artifacts when their session ends.
+- Native generation returns/retains plan and compiled map from one invocation. Inspecting a crop, selecting a feature or panning never regenerates unchanged settings. Retain at most the admitted saved baseline, admitted edited draft, current job and latest refusal receipt; clean artifacts when their session ends. Samples export each tested receipt before replacing its geometry, then regenerate the selected draft to restore inspection.
 - One active generation and one replaceable latest pending draft. Background sample work yields to an edit through cancellation, keeping completed outcomes and marking unfinished requests. Leaving terminates owned processes/workers, not merely their callbacks.
 
 ## Review and verification

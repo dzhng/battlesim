@@ -23,3 +23,21 @@ When: planning. If A is running while the user types B then C, only the latest p
 ## Open measured choices
 
 Concrete player retry/deadline headroom and optional automatic-sight envelope are owned by their slices. Do not promote provisional numbers to passing claims until measured.
+
+## Sound — implementation decisions
+
+### A runtime fault goes straight to the released fallback — medium confidence
+
+If a candidate fails because of an unknown worker/runtime error, ordinary Play tries the independently resolved saved battlefield once. A known placement/generation exhaustion can try a fresh seed first. Repeating a seed-independent runtime fault would spend the allowance without improving the outcome. Each attempt retains its message, stage and diagnostics for developer evidence.
+
+### Seed collision advances within the same u64 domain — high confidence
+
+If random selection returns an already tried seed, selection increments it modulo the unsigned 64-bit domain. Sample sequences use the same domain, wrapping from its maximum to zero. This keeps requests valid at the boundary and avoids an unbounded random redraw loop; each actual seed is recorded.
+
+### Cancellation returns the unadmitted preference — high confidence
+
+Before ordinary Play admits a battlefield, Cancel returns type/size preferences without a seed. After admission, the page and replay use the winner's exact request. This prevents the placeholder used to construct a candidate request from accidentally becoming a promised map identity. Cancelled preparation keeps its existing silent-promise contract and closes its worker.
+
+### Refusal receipts do not evict an inspectable accepted map — high confidence
+
+When the newest draft refuses, the tool retains the prior accepted geometry and marks it older. It keeps the newest refusal's exact tested inputs separately as a small receipt. A sample exports each receipt immediately because only its latest admitted geometry is retained; returning to the editor regenerates its selected map. This bounds stored geometry while preserving truthful diagnostics and reproducible samples.
