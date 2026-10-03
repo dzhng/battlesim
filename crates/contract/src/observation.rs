@@ -23,7 +23,8 @@ pub struct IdentifiedUnit {
     pub yaw: f64,
     /// Observed ground velocity (from successive sightings; zero when first seen).
     pub velocity: [f64; 2],
-    /// Positions of the squad members actually seen this tick (infantry only).
+    /// Body poses of the squad members actually seen this tick (infantry only).
+    /// Garrison bodies stand indoors behind their abstract window exposure points.
     pub members: Vec<[f64; 3]>,
     /// The seen soldiers' ids, in `members` order: the raw `Soldier.id`, so
     /// they reveal roster size (accepted, F2) and survive reacquisition.
@@ -398,7 +399,8 @@ pub struct OwnUnit {
     pub route: Vec<[f64; 2]>,
     /// Destinations of the orders queued behind the current one.
     pub queue: Vec<[f64; 2]>,
-    /// Living squad members' positions (infantry only).
+    /// Living squad members' body poses (infantry only).
+    /// Garrison bodies stand indoors behind their abstract window exposure points.
     pub members: Vec<[f64; 3]>,
     /// Living squad members' ids (`Soldier.id`), in `members` order.
     pub member_ids: Vec<u32>,

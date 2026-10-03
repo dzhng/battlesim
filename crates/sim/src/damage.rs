@@ -431,7 +431,8 @@ pub fn resolve(
                             && at.z > ctx.world.surface_at(at.x, at.y).map_or(0.0, |s| s.z)
                     })
                     .map(|g| g.building);
-                unit.members[k].fall(at, unit.yaw, support);
+                let body = crate::garrison::body_position(unit, k, ctx.rules);
+                unit.members[k].fall(body, unit.yaw, support);
             }
         }
     }

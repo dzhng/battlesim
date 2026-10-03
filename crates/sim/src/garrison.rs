@@ -1,7 +1,8 @@
 //! Buildings as abstract fighting positions (L08–L10, P12). A building takes
 //! one squad, whole and within the soldier capacity, after a stationary
-//! timer; inside, each soldier stands at a perimeter slot just outside a
-//! facade, where its hit capsule and muzzle are; the squad sees from one eye
+//! timer; inside, each soldier fights from an exposed window slot just outside
+//! a facade, where its abstract hit capsule and muzzle are. Published body
+//! poses stand indoors behind those windows; the squad sees from one eye
 //! per building-frame direction it holds, at a real seat on the highest occupied
 //! band ([`facade_eyes`]). Rounds that miss a slot meet the building's
 //! own shell, and any round toward something beyond it meets the shell too:
@@ -80,6 +81,19 @@ impl Garrison {
             Phase::Entering(_) => None,
         }
     }
+}
+
+/// Published body pose: indoors behind the occupied window. Combat keeps
+/// the abstract exposed capsule and muzzle outside the shell, so a missed
+/// occupant still meets the wall without making it target-transparent.
+pub fn body_position(unit: &Unit, member: usize, rules: &Rules) -> V3 {
+    let at = unit.members[member].position;
+    unit.garrison
+        .as_ref()
+        .and_then(|g| g.seat(member))
+        .map_or(at, |seat| {
+            at - (seat.slot.normal * (2.0 * rules.garrison.slot_standoff_m)).with_z(0.0)
+        })
 }
 
 fn ticks(seconds: f64, rules: &Rules) -> u32 {

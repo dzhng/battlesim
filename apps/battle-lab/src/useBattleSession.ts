@@ -316,13 +316,27 @@ export function useBattleSession({
   const readouts = useRef<ReadoutLayerHandle>(null);
   // The last frame's clock and drawn motion, which sound hears at the camera.
   const heard = useRef<{ clock: number; motion: SoundMotion } | null>(null);
-  // The observing side's units are x-rayed where the world hides them: the
+  const indoorUnits = useMemo(
+    () =>
+      new Set(
+        (observation?.own ?? [])
+          .filter((u) => u.garrison && u.garrison.phase !== "entering")
+          .map((u) => u.id),
+      ),
+    [observation?.own],
+  );
+  // Occupants stay occluded indoors; their panel identifies the building.
+  // The observing side's outdoor units are x-rayed where the world hides them: the
   // selection in its colour, so a selected unit behind a house still reads
   // as selected, the rest in the side's. Their visible parts are never tinted:
   // the selection's marker is on the ground.
   const xrayOf = useRef<XrayOf>(() => null);
   xrayOf.current = (unitSide, unit) =>
-    unitSide !== side ? null : control.selected.includes(unit) ? gameXray.selected : gameXray.own;
+    unitSide !== side || indoorUnits.has(unit)
+      ? null
+      : control.selected.includes(unit)
+        ? gameXray.selected
+        : gameXray.own;
 
   // The models layer installs only what the battle draws as models.
   const modelAppearances = useMemo<InstalledAppearances | null>(

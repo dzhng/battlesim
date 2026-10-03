@@ -1012,6 +1012,12 @@ export function LabViewport({
           setBox(null);
         };
         const onWheel = (e: WheelEvent) => {
+          const target = e.target;
+          if (
+            target !== canvas &&
+            !(target instanceof Element && target.closest(".ro-layer .ro-unit, .hud-card"))
+          )
+            return;
           e.preventDefault();
           steer({ wheel: e.deltaY }, 0);
           see(0);
@@ -1040,7 +1046,7 @@ export function LabViewport({
           },
           { signal },
         );
-        canvas.addEventListener("wheel", onWheel, { passive: false, signal });
+        window.addEventListener("wheel", onWheel, { passive: false, signal });
         canvas.addEventListener("contextmenu", (e) => e.preventDefault(), { signal });
         window.addEventListener("resize", onResize, { signal });
         handle.ready = true;

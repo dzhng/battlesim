@@ -1,7 +1,7 @@
 // Slice 11: buildings as abstract fighting positions, through real orders.
 // The building is prop 0: centre (360, 250), 24 × 24 m, 8 m tall.
 import { writeFile } from "node:fs/promises";
-import { decode, writeCrop } from "./_png.mjs";
+import { decode, writeCrop, mostChanged } from "./_png.mjs";
 import { lab, obs, advance, until, openBattle } from "./_lab.mjs";
 import { propType, game } from "./_units.mjs";
 
@@ -246,13 +246,116 @@ export async function run(ctx) {
       (await card.locator('[data-state="in_building"]').isVisible()),
   );
   await frame(ctx, page, "hidden-status");
+  // A model behind an occupied wall stays depth-occluded; the squad's
+  // panel identifies it without painting soldiers across walls and roofs.
+  await page.locator(".ro-layer").evaluate((node) => (node.style.visibility = "hidden"));
+  await lab(page, () => window.__lab.setFrameView("overlays-on-black"));
+  const withBodies = decode(await page.screenshot());
+  await lab(page, () => window.__lab.suppressModels(true));
+  const withoutBodies = decode(await page.screenshot());
+  const heads = await lab(
+    page,
+    (members) => members.map((p) => window.__lab.projectToCss(p[0], p[1], p[2] + 1.6)),
+    squad(o, 2).members,
+  );
+  ctx.check(
+    "garrisoned bodies never paint through walls or roofs",
+    heads.every((head) => head && mostChanged(withBodies, withoutBodies, head, 4) === 0),
+  );
+  await lab(page, () => window.__lab.suppressModels(false));
+  await lab(page, () => window.__lab.setFrameView("final"));
+  await page.locator(".ro-layer").evaluate((node) => (node.style.visibility = ""));
+
+  const nameBox = await card.locator(".ro-name-word").boundingBox();
+  await page.evaluate(() => window.getSelection()?.removeAllRanges());
+  await page.mouse.move(nameBox.x + 1, nameBox.y + nameBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(nameBox.x + nameBox.width - 1, nameBox.y + nameBox.height / 2, {
+    steps: 6,
+  });
+  await page.mouse.up();
+  ctx.check(
+    "dragging on a floating info panel never selects browser text",
+    (await page.evaluate(() => window.getSelection()?.toString() ?? "")) === "",
+  );
+  await page.evaluate(() => window.getSelection()?.removeAllRanges());
+  const originalCamera = await lab(page, () => window.__lab.camera());
+  await card.locator(".ro-name-word").hover();
+  await page.mouse.wheel(0, 120);
+  await page.waitForTimeout(150);
+  ctx.check(
+    "wheel zoom works while hovering a floating info panel",
+    (await lab(page, () => window.__lab.camera())).distance > originalCamera.distance,
+  );
+  await lab(page, (camera) => window.__lab.setCamera(camera), originalCamera);
+  await settle(page);
+  await page.locator(".hud-card .ro-name-word").first().hover();
+  await page.mouse.wheel(0, 120);
+  await page.waitForTimeout(150);
+  ctx.check(
+    "wheel zoom works over the selection info panel too",
+    (await lab(page, () => window.__lab.camera())).distance > originalCamera.distance,
+  );
+  await lab(page, (camera) => window.__lab.setCamera(camera), originalCamera);
+  await settle(page);
+
+  await page.mouse.move(1100, 60);
+  await page.waitForFunction(
+    () => document.querySelector('.ro-unit[data-unit="2"]')?.dataset.zoom === "compressed",
+  );
+  const compact = await card.boundingBox();
+  const backingEdge = { x: compact.x + compact.width / 2, y: compact.y - 6 };
+  await page.mouse.move(backingEdge.x, backingEdge.y);
+  await page.waitForTimeout(100);
+  const backingHit = await page.evaluate(({ x, y }) => {
+    const node = document.elementFromPoint(x, y);
+    return {
+      cursor: node && getComputedStyle(node).cursor,
+      panel: !!node?.closest(".ro-layer .ro-unit"),
+    };
+  }, backingEdge);
+  ctx.check(
+    "decorative panel backing never advertises an inactive clickable edge",
+    !backingHit.panel && backingHit.cursor !== "pointer",
+    JSON.stringify(backingHit),
+  );
+  await frame(ctx, page, "panel-backing-edge");
+  const panelEdges = [
+    [0.5, 0, "top"],
+    [0, 0.5, "left"],
+    [1, 0.5, "right"],
+    [0.5, 1, "bottom"],
+  ];
+  for (const [fx, fy, edge] of panelEdges) {
+    await page.mouse.move(1100, 60);
+    await lab(page, () => window.__lab.route.select([]));
+    await page.waitForFunction(
+      () => document.querySelector('.ro-unit[data-unit="2"]')?.dataset.zoom === "compressed",
+    );
+    const box = await card.boundingBox();
+    const x = box.x + 0.75 + fx * (box.width - 1.5);
+    const y = box.y + 0.75 + fy * (box.height - 1.5);
+    await page.mouse.move(x, y);
+    await page.waitForTimeout(100);
+    ctx.check(
+      `the ${edge} edge of a compressed panel expands on hover`,
+      (await card.getAttribute("data-zoom")) === "default",
+    );
+    await page.mouse.click(x, y);
+    ctx.check(
+      `the ${edge} edge selects the panel's unit`,
+      (await lab(page, () => window.__lab.route.selected())).join() === "2",
+    );
+    if (edge === "top") await frame(ctx, page, "panel-top-edge-hover");
+  }
+
   const occupants = squad(o, 2).members;
   const distinct = new Set(occupants.map((p) => `${p[0].toFixed(2)},${p[1].toFixed(2)}`));
   ctx.check(
-    "every occupant stands at its own perimeter slot just outside the walls",
+    "every occupant body stands inside its own window",
     occupants.length > 0 &&
       distinct.size === occupants.length &&
-      occupants.every((p) => Math.abs(ring(p) - HALF - STANDOFF) < 0.01),
+      occupants.every((p) => Math.abs(ring(p) - HALF + STANDOFF) < 0.01),
     `${occupants.length} occupants, ${distinct.size} places`,
   );
   const refused = await demo(page, "Rifle squad #0 garrisons");

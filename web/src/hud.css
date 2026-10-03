@@ -390,6 +390,7 @@
 /* The backing fades across the underline's ends rather than extending its
    dark core past them. The whole callout shares one selection priority. */
 .ro-unit::before {
+  pointer-events: none;
   content: "";
   position: absolute;
   inset: -12px -4px 2px;
@@ -430,6 +431,7 @@
   --ink: var(--hud-pinned);
 }
 .ro-body {
+  user-select: none;
   display: flex;
   flex-direction: column;
 }

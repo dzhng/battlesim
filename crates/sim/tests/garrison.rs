@@ -326,7 +326,7 @@ fn a_squad_enters_after_arriving_and_a_stationary_timer() {
 }
 
 #[test]
-fn occupants_stand_once_each_at_distinct_perimeter_slots() {
+fn occupants_publish_interior_bodies_at_distinct_window_slots() {
     let (b, _) = full_building(3);
     let p = building(&b);
     let standoff = num("garrison", "slot_standoff_m");
@@ -345,15 +345,87 @@ fn occupants_stand_once_each_at_distinct_perimeter_slots() {
             // Just outside the facade, never inside the shell.
             assert!((outside_by(&p, q.xy()) - standoff).abs() < 1e-9, "{q:?}");
         }
-        // The owner sees the same places.
+        // The owner sees bodies indoors, behind those exposed window slots.
         let o = own(&b, Side::Blue, id).unwrap();
         for (a, q) in o.members.iter().zip(&positions) {
-            assert_eq!(*a, [q.x, q.y, q.z]);
+            assert!(
+                (outside_by(&p, v2(a[0], a[1])) + standoff).abs() < 1e-9,
+                "body outside: {a:?}"
+            );
+            assert_eq!(a[2], q.z);
         }
     }
     assert_eq!(seen.len(), 8);
     // Capacity is reserved and filled evenly around the facades.
     assert!(per_facade.values().all(|&n| n == 2), "{per_facade:?}");
+}
+
+#[test]
+fn identified_occupants_publish_interior_bodies_while_exit_waits_inside() {
+    let mut b = battle(
+        json!([
+            {"side":"blue","kind":"rifle","position":[350,300],"engagement":"return_fire_only"},
+            {"side":"red","kind":"recon","position":[400,345],"engagement":"return_fire_only"}
+        ]),
+        7,
+    );
+    let mut c = Commander::new();
+    c.ok(&mut b, Side::Blue, garrison(&[0]));
+    until(&mut b, 1200, "occupants seen by red", |b| {
+        inside(b, 0) && !b.observe(Side::Red).identified.is_empty()
+    });
+    let p = building(&b);
+    let standoff = num("garrison", "slot_standoff_m");
+    let observed = b.observe(Side::Red);
+    let enemy = &observed.identified[0];
+    assert!(!enemy.members.is_empty());
+    for at in &enemy.members {
+        assert!(
+            (outside_by(&p, v2(at[0], at[1])) + standoff).abs() < 1e-9,
+            "enemy body outside: {at:?}"
+        );
+    }
+    c.ok(&mut b, Side::Blue, exit(&[0]));
+    run(&mut b, 2);
+    let own = own(&b, Side::Blue, 0).unwrap();
+    assert_eq!(own.garrison.unwrap().phase, GarrisonPhase::Exiting);
+    for at in &own.members {
+        assert!(
+            (outside_by(&p, v2(at[0], at[1])) + standoff).abs() < 1e-9,
+            "leaving body outside: {at:?}"
+        );
+    }
+}
+
+#[test]
+fn garrison_casualties_keep_their_bodies_indoors() {
+    let mut casualties = 0;
+    for seed in 1..=4 {
+        let (mut b, _) = under_fire(json!([]), json!([]), seed);
+        let p = building(&b);
+        for _ in 0..900 {
+            b.step();
+            if b.world().prop(BUILDING).is_none() {
+                break;
+            }
+            let observed = b.observe(Side::Blue);
+            for corpse in observed.corpses.iter().filter(|c| c.own) {
+                casualties += 1;
+                assert!(
+                    outside_by(&p, v2(corpse.position[0], corpse.position[1])) < 0.0,
+                    "seed {seed}: a garrison casualty appeared outside at {:?}",
+                    corpse.position
+                );
+            }
+            if !b.unit(UnitId(0)).unwrap().alive() {
+                break;
+            }
+        }
+    }
+    assert!(
+        casualties > 0,
+        "the shelling must produce garrison casualties"
+    );
 }
 
 /// Rounds each unit has in the air, remembered across ticks.

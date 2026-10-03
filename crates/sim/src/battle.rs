@@ -2458,7 +2458,16 @@ impl Battle {
                                 o.movement().map(|m| [m.destination.x, m.destination.y])
                             })
                             .collect(),
-                        members: u.member_positions().map(|p| [p.x, p.y, p.z]).collect(),
+                        members: u
+                            .members
+                            .iter()
+                            .enumerate()
+                            .filter(|(_, s)| s.alive())
+                            .map(|(k, _)| {
+                                let p = garrison::body_position(u, k, &self.rules);
+                                [p.x, p.y, p.z]
+                            })
+                            .collect(),
                         member_ids: u
                             .members
                             .iter()
@@ -3021,7 +3030,7 @@ mod tests {
                 member.position = member.position + delta;
             }
             battle.sweep_fog(Side::Blue);
-            assert!(!battle.fog[0].visible(upper.position.x, upper.position.y));
+            assert!(!battle.fog[0].visible(remembered.position[0], remembered.position[1]));
             battle.destroy_prop(0);
             battle.observe_all();
             let physical = battle
@@ -3032,10 +3041,13 @@ mod tests {
                 .unwrap();
             let z = battle
                 .world
-                .surface_at(upper.position.x, upper.position.y)
+                .surface_at(remembered.position[0], remembered.position[1])
                 .unwrap()
                 .z;
-            assert_eq!(physical.position, [upper.position.x, upper.position.y, z]);
+            assert_eq!(
+                physical.position,
+                [remembered.position[0], remembered.position[1], z]
+            );
             assert_eq!(
                 battle
                     .observe(Side::Blue)
@@ -3059,7 +3071,7 @@ mod tests {
                 member.position = member.position - delta;
             }
             battle.sweep_fog(Side::Blue);
-            assert!(battle.fog[0].visible(upper.position.x, upper.position.y));
+            assert!(battle.fog[0].visible(remembered.position[0], remembered.position[1]));
             battle.observe_all();
             assert_eq!(
                 battle
@@ -3069,7 +3081,7 @@ mod tests {
                     .find(|f| f.soldier == upper.id)
                     .unwrap()
                     .position,
-                [upper.position.x, upper.position.y, z]
+                [remembered.position[0], remembered.position[1], z]
             );
         }
     }

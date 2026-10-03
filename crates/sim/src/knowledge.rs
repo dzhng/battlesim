@@ -383,7 +383,7 @@ impl SideKnowledge {
                         .members
                         .iter()
                         .map(|&k| {
-                            let p = unit.members[k].position;
+                            let p = crate::garrison::body_position(unit, k, rules);
                             [p.x, p.y, p.z]
                         })
                         .collect(),
