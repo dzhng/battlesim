@@ -172,7 +172,7 @@ struct Artifact {
 }
 fn inspection(artifact: &Artifact, checked: &Checked, crop: Option<&str>) -> Result<Value, String> {
     let metrics = mapgen::layout::measure(&artifact.plan, &checked.presets);
-    let svg = mapgen::inspect::svg(
+    let picture = mapgen::inspect::picture(
         &artifact.plan,
         &checked.catalogue,
         &format!(
@@ -194,15 +194,17 @@ fn inspection(artifact: &Artifact, checked: &Checked, crop: Option<&str>) -> Res
         json!({"id":"street_props","group":"street_props","label":"Street furniture"}),
     ];
     for (index, _) in artifact.plan.bridges.iter().enumerate() {
-        features.push(json!({"id":format!("bridge-{index}"),"group":"crossings","label":"Bridge crossing rules"}));
+        features.push(json!({"id":format!("bridge-{index}"),"group":"crossings","label":"Bridge crossing rules","crop":format!("bridge-{index}")}));
     }
     for settlement in &artifact.plan.settlements {
-        features.push(json!({"id":settlement.id,"group":format!("classes.{}",settlement.class),"label":format!("{} settlement rules",settlement.class)}));
+        features.push(json!({"id":settlement.id,"group":format!("classes.{}",settlement.class),"label":format!("{} settlement rules",settlement.class),"crop":settlement.id}));
         for district in &settlement.districts {
-            features.push(json!({"id":district.id,"group":format!("districts.{}",district.kind),"label":format!("{} district rules",district.kind)}));
+            features.push(json!({"id":district.id,"group":format!("districts.{}",district.kind),"label":format!("{} district rules",district.kind),"crop":district.id}));
         }
     }
-    Ok(json!({"svg":svg,"features":features}))
+    Ok(
+        json!({"svg":picture.svg,"features":features,"summary":picture.summary,"legend":picture.legend}),
+    )
 }
 fn generated(inputs: Inputs, choice: Choice, directory: PathBuf) -> Result<Value, String> {
     let started = Instant::now();
@@ -281,7 +283,7 @@ fn generated(inputs: Inputs, choice: Choice, directory: PathBuf) -> Result<Value
     )
     .map_err(|e| e.to_string())?;
     finish(
-        json!({"status":"ok","choice":choice,"diagnostics":[],"svg":picture["svg"],"features":picture["features"],"identity":result.identity,"metrics":metrics,"counts":counts,"encounter":encounter,"timings":{"generation_ms":generation_ms,"encounter_ms":encounter_ms,"total_ms":started.elapsed().as_secs_f64()*1000.0}}),
+        json!({"status":"ok","choice":choice,"diagnostics":[],"svg":picture["svg"],"features":picture["features"],"summary":picture["summary"],"legend":picture["legend"],"identity":result.identity,"metrics":metrics,"counts":counts,"encounter":encounter,"timings":{"generation_ms":generation_ms,"encounter_ms":encounter_ms,"total_ms":started.elapsed().as_secs_f64()*1000.0}}),
     )
 }
 fn artifact(directory: &Path) -> Result<Artifact, String> {

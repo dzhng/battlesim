@@ -21,6 +21,90 @@ mod tests {
         json!({"presets":include_str!("../../../fixtures/map-presets.json"),"defaults":include_str!("../../../fixtures/generated-battle.json"),"templates":include_str!("../../../fixtures/prototype-building-templates.json"),"rules":include_str!("../../../fixtures/game.json"),"catalog":include_str!("../../../fixtures/catalog.json"),"recipes":include_str!("../../../fixtures/encounters.json")})
     }
     #[test]
+    fn workbench_plan_geometry_matches_standalone_and_notes_follow_the_crop() {
+        let directory =
+            std::env::temp_dir().join(format!("map-workbench-picture-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&directory);
+        let captured = inputs();
+        let report = run(
+            json!({"operation":"generate","inputs":captured,"choice":{"type":"open","size":"small","seed":"1"},"artifactDir":directory}),
+        );
+        assert_eq!(report["status"], "ok", "{}", report["diagnostics"]);
+        assert!(
+            !report["svg"].as_str().unwrap().contains("<text"),
+            "Workbench notes belong to responsive HTML"
+        );
+        let artifact: Value =
+            serde_json::from_slice(&std::fs::read(directory.join("artifact.json")).unwrap())
+                .unwrap();
+        let plan: mapgen::MapPlan = serde_json::from_value(artifact["plan"].clone()).unwrap();
+        let presets =
+            mapgen::layout::PresetDefinitions::from_json(captured["presets"].as_str().unwrap())
+                .unwrap();
+        let catalogue = contract::templates::TemplateGeometryCatalog::new(
+            serde_json::from_str(captured["templates"].as_str().unwrap()).unwrap(),
+        )
+        .unwrap();
+        let standalone = mapgen::inspect::svg(
+            &plan,
+            &catalogue,
+            "open small seed 1",
+            &mapgen::layout::measure(&plan, &presets),
+            None,
+        )
+        .unwrap();
+        fn geometry(svg: &str) -> &str {
+            svg.split("<g clip-path=\"url(#view)\">")
+                .nth(1)
+                .unwrap()
+                .split("</g>")
+                .next()
+                .unwrap()
+        }
+        assert_eq!(
+            geometry(report["svg"].as_str().unwrap()),
+            geometry(&standalone)
+        );
+        assert!(standalone.contains("<text"));
+        assert_eq!(report["summary"][0], "open small seed 1");
+        let district = &plan.settlements[0].districts[0].id;
+        let features = report["features"].as_array().unwrap();
+        assert_eq!(
+            features.iter().find(|f| f["id"] == *district).unwrap()["crop"],
+            *district
+        );
+        assert!(features
+            .iter()
+            .find(|f| f["id"] == "roads")
+            .unwrap()
+            .get("crop")
+            .is_none());
+        let cropped = run(json!({"operation":"inspect","artifactDir":directory,"crop":district}));
+        assert!(cropped["summary"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|s| s.as_str().unwrap().contains(district)));
+        assert!(cropped["summary"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|s| s.as_str().unwrap().starts_with("whole map:")));
+        let standalone_crop = mapgen::inspect::svg(
+            &plan,
+            &catalogue,
+            "open small seed 1",
+            &mapgen::layout::measure(&plan, &presets),
+            Some(district),
+        )
+        .unwrap();
+        assert_eq!(
+            geometry(cropped["svg"].as_str().unwrap()),
+            geometry(&standalone_crop)
+        );
+        let _ = std::fs::remove_dir_all(directory);
+    }
+    #[test]
     fn sampled_sight_reports_empty_and_clipped_edge_samples_truthfully() {
         let directory =
             std::env::temp_dir().join(format!("map-workbench-sight-{}", std::process::id()));

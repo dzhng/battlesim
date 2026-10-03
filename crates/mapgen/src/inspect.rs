@@ -121,6 +121,19 @@ fn xml(text: &str) -> String {
         .replace('\'', "&apos;")
 }
 
+#[derive(Clone, Debug, serde::Serialize)]
+pub struct LegendEntry {
+    pub label: String,
+    pub color: String,
+}
+/// Geometry and its explanations have one formatting and palette owner.
+#[derive(Debug, serde::Serialize)]
+pub struct Picture {
+    pub svg: String,
+    pub summary: Vec<String>,
+    pub legend: Vec<LegendEntry>,
+}
+
 pub fn svg(
     plan: &MapPlan,
     catalogue: &TemplateGeometryCatalog,
@@ -128,14 +141,37 @@ pub fn svg(
     metrics: &LayoutMetrics,
     crop: Option<&str>,
 ) -> Result<String, String> {
+    Ok(render(plan, catalogue, title, metrics, crop, true)?.svg)
+}
+
+/// The workbench places these notes in responsive HTML beside a geometry-only picture.
+pub fn picture(
+    plan: &MapPlan,
+    catalogue: &TemplateGeometryCatalog,
+    title: &str,
+    metrics: &LayoutMetrics,
+    crop: Option<&str>,
+) -> Result<Picture, String> {
+    render(plan, catalogue, title, metrics, crop, false)
+}
+
+fn render(
+    plan: &MapPlan,
+    catalogue: &TemplateGeometryCatalog,
+    title: &str,
+    metrics: &LayoutMetrics,
+    crop: Option<&str>,
+    standalone: bool,
+) -> Result<Picture, String> {
     let [left, bottom, width, height] = view(plan, crop)?;
     // North is up: the picture's Y runs down from the view's top edge.
     let top = bottom + height;
     let detail = width <= DETAIL_VIEW_M;
     // Text and line weights follow the view's size so every picture reads alike.
     let unit = width / 100.0;
-    let header = 13.0 * unit;
-    let footer = 11.0 * unit;
+    let header = if standalone { 13.0 * unit } else { unit };
+    let footer = if standalone { 11.0 * unit } else { unit };
+    let mut legend = Vec::new();
     let mut out = String::new();
     let path = |points: &[Point], close: bool| {
         let mut d = String::new();
@@ -467,50 +503,62 @@ pub fn svg(
         .into_iter()
         .rfind(|metres| *metres <= width / 6.0)
         .unwrap_or(50.0);
-    let _ = write!(
-        out,
-        r##"<path d="M0 {y}h{bar}" stroke="#111111" stroke-width="{}"/><text x="{}" y="{}" font-size="{}">{}</text>"##,
-        unit * 0.4,
-        bar + unit,
-        row(1.0) + 0.6 * unit,
-        unit * 1.8,
-        if bar >= 1000.0 {
-            "1 km".to_string()
-        } else {
-            format!("{bar} m")
-        },
-        y = row(1.0)
-    );
-    let label = |out: &mut String, x: &mut f64, line: f64, text: &str| {
+    if standalone {
         let _ = write!(
             out,
-            r##"<text x="{}" y="{}" font-size="{}">{text}</text>"##,
-            *x + unit * 2.4,
-            row(line) + 0.55 * unit,
-            unit * 1.5
+            r##"<path d="M0 {y}h{bar}" stroke="#111111" stroke-width="{}"/><text x="{}" y="{}" font-size="{}">{}</text>"##,
+            unit * 0.4,
+            bar + unit,
+            row(1.0) + 0.6 * unit,
+            unit * 1.8,
+            if bar >= 1000.0 {
+                "1 km".to_string()
+            } else {
+                format!("{bar} m")
+            },
+            y = row(1.0)
         );
+    }
+    let mut label = |out: &mut String, x: &mut f64, line: f64, text: &str, color: &str| {
+        legend.push(LegendEntry {
+            label: text.into(),
+            color: color.into(),
+        });
+        if standalone {
+            let _ = write!(
+                out,
+                r##"<text x="{}" y="{}" font-size="{}">{text}</text>"##,
+                *x + unit * 2.4,
+                row(line) + 0.55 * unit,
+                unit * 1.5
+            );
+        }
         *x += unit * (4.2 + 0.8 * text.len() as f64);
     };
     let block = |out: &mut String, x: f64, line: f64, fill: &str, opacity: f64| {
-        let _ = write!(
-            out,
-            r##"<rect x="{x}" y="{}" width="{}" height="{}" fill="{fill}" fill-opacity="{opacity}" stroke="#3a2f2a" stroke-width="{}"/>"##,
-            row(line) - 0.8 * unit,
-            unit * 1.8,
-            unit * 1.6,
-            unit * 0.05
-        );
+        if standalone {
+            let _ = write!(
+                out,
+                r##"<rect x="{x}" y="{}" width="{}" height="{}" fill="{fill}" fill-opacity="{opacity}" stroke="#3a2f2a" stroke-width="{}"/>"##,
+                row(line) - 0.8 * unit,
+                unit * 1.8,
+                unit * 1.6,
+                unit * 0.05
+            );
+        }
     };
     let mut x = 0.0;
     for (_, stroke, weight, dash, text) in marks.iter().rev() {
-        let _ = write!(
-            out,
-            r##"<path d="M{x} {}h{}" stroke="{stroke}" stroke-width="{}"{dash}/>"##,
-            row(0.0),
-            unit * 1.8,
-            unit * weight.max(0.2)
-        );
-        label(&mut out, &mut x, 0.0, text);
+        if standalone {
+            let _ = write!(
+                out,
+                r##"<path d="M{x} {}h{}" stroke="{stroke}" stroke-width="{}"{dash}/>"##,
+                row(0.0),
+                unit * 1.8,
+                unit * weight.max(0.2)
+            );
+        }
+        label(&mut out, &mut x, 0.0, text, stroke);
     }
     let water = [(WATER, 1.0, "river"), (DECK, 1.0, "bridge")];
     for (fill, opacity, text) in [(FOREST, 1.0, "forest"), (APPROACH, 0.22, "open approach")]
@@ -519,17 +567,19 @@ pub fn svg(
         .chain(water.into_iter().filter(|_| !plan.rivers.is_empty()))
     {
         block(&mut out, x, 0.0, fill, opacity);
-        label(&mut out, &mut x, 0.0, text);
+        label(&mut out, &mut x, 0.0, text, fill);
     }
     if detail {
-        let _ = write!(
-            out,
-            r##"<path d="M{x} {}h{}" stroke="{ENTRANCE}" stroke-width="{}"/>"##,
-            row(0.0),
-            unit * 1.8,
-            unit * 0.3
-        );
-        label(&mut out, &mut x, 0.0, "entrance");
+        if standalone {
+            let _ = write!(
+                out,
+                r##"<path d="M{x} {}h{}" stroke="{ENTRANCE}" stroke-width="{}"/>"##,
+                row(0.0),
+                unit * 1.8,
+                unit * 0.3
+            );
+        }
+        label(&mut out, &mut x, 0.0, "entrance", ENTRANCE);
     }
     let mut x = bar + 9.0 * unit;
     for (kind, fill) in DISTRICTS {
@@ -542,21 +592,21 @@ pub fn svg(
             // The tint as it is drawn: over a settlement's field.
             block(&mut out, x, 1.0, FIELD, 1.0);
             block(&mut out, x, 1.0, fill, tint);
-            label(&mut out, &mut x, 1.0, &kind.replace('_', " "));
+            label(&mut out, &mut x, 1.0, &kind.replace('_', " "), fill);
         }
     }
     let mut x = 0.0;
     for (_, name, fill) in CATEGORIES {
         if let Some(count) = built.get(name) {
             block(&mut out, x, 2.0, fill, 1.0);
-            label(&mut out, &mut x, 2.0, &format!("{count} {name}"));
+            label(&mut out, &mut x, 2.0, &format!("{count} {name}"), fill);
         }
     }
     if detail {
         for ((name, fill, _), count) in FURNITURE.iter().zip(placed) {
             if count > 0 {
                 block(&mut out, x, 2.0, fill, 1.0);
-                label(&mut out, &mut x, 2.0, &format!("{count} {name}"));
+                label(&mut out, &mut x, 2.0, &format!("{count} {name}"), fill);
             }
         }
     }
@@ -617,20 +667,30 @@ pub fn svg(
             width
         ),
     ];
-    for (index, line) in lines.iter().enumerate() {
-        let _ = write!(
-            out,
-            r##"<text x="0" y="{}" font-size="{}"{}>{}</text>"##,
-            -header + unit * (3.2 + 2.1 * index as f64),
-            unit * if index == 0 { 3.2 } else { 1.4 },
-            if index == 0 {
-                r#" font-weight="bold""#
-            } else {
-                ""
-            },
-            line.replace('&', "&amp;").replace('<', "&lt;")
-        );
+    if standalone {
+        for (index, line) in lines.iter().enumerate() {
+            let _ = write!(
+                out,
+                r##"<text x="0" y="{}" font-size="{}"{}>{}</text>"##,
+                -header + unit * (3.2 + 2.1 * index as f64),
+                unit * if index == 0 { 3.2 } else { 1.4 },
+                if index == 0 {
+                    r#" font-weight="bold""#
+                } else {
+                    ""
+                },
+                line.replace('&', "&amp;").replace('<', "&lt;")
+            );
+        }
     }
     out.push_str("</svg>\n");
-    Ok(out)
+    let mut summary = lines.to_vec();
+    if let Some(crop) = crop {
+        summary.push(format!("Inspection view: {crop}"));
+    }
+    Ok(Picture {
+        svg: out,
+        summary,
+        legend,
+    })
 }
