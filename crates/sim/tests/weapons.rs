@@ -1057,8 +1057,8 @@ fn attack_orders_switch_to_fire_at_will_and_moves_keep_policy() {
 #[test]
 fn automatic_targets_never_move_a_unit_but_explicit_attacks_pursue() {
     // A red squad 850 m away: the scout sees it, the blue rifles (600 m) cannot reach it.
-    let mut b = battle(
-        json!([]),
+    let mut setup = scenario_with(
+        &map(json!([])),
         json!([
             { "side": "blue", "kind": "recon", "position": [100, 300] },
             { "side": "blue", "kind": "rifle", "position": [100, 250] },
@@ -1067,13 +1067,29 @@ fn automatic_targets_never_move_a_unit_but_explicit_attacks_pursue() {
         json!([]),
         json!([]),
     );
+    let mut optics = common::game();
+    sim::fixtures::patch_catalog(
+        &mut optics,
+        "units",
+        "recon",
+        json!({"sensors":{"ground_m":1000}}),
+    );
+    setup.rules.catalog = serde_json::from_value::<contract::scenario::Rules>(optics)
+        .unwrap()
+        .catalog;
+    let mut b = Battle::new(&setup, 5);
     run(&mut b, 60);
     assert_eq!(
         own(&b, Side::Blue, 1).position[0],
         100.0,
         "no automatic pursuit (W18)"
     );
-    let id = b.observe(Side::Blue).identified[0].id;
+    let observation = b.observe(Side::Blue);
+    assert!(
+        !observation.identified.is_empty(),
+        "the scout identifies the distant target"
+    );
+    let id = observation.identified[0].id;
     let mut c = Commander::new();
     c.ok(
         &mut b,
