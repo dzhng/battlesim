@@ -492,9 +492,10 @@ overhang the edge by its width). A river the terrain cannot carry, and a bridge 
 water or too near it for a ramp, is refused as `invalid_river`, by the one rule the
 world loads maps with (`contract::river::validate`); a deck that is not a finite box
 inside the playable rectangle is `invalid_bounds`. A river's rounded samples count
-toward `max_ground_points` with the strokes'. Land
-regions and source/art fit remain prerequisites for their compiler arms; a requested
-unsupported feature produces a named error rather than disappearing from output.
+toward `max_ground_points` with the strokes'. A requested unsupported feature, including a land-region plan field, produces a
+named error rather than disappearing from output. Visual yard/field composition
+belongs to the renderer’s plot owner, using compiled buildings and roads; source/art
+fit belongs to the asset release gate.
 
 `MapPlan.size` is the playable rectangle. Admission follows the architecture envelope
 in the city-map scale policy. `render_margin_m` extends presentation around that

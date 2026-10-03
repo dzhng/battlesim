@@ -6,7 +6,7 @@
 Does one generated map read as town and open country without a city-wide biome suppressing its plains?
 
 ## Contract it unlocks
-One spatial composition from `MapDefinition.surfaces` and `MapDefinition.land_regions` (C04): pavement and urban yards suppress farm plots; the reserved plain retains fields, meadow, grass and optional forest from the ground lane. Grass grows only on unpaved surfaces. The grass build's per-clump loop over props is indexed (`grassPass.ts:243, 685-693`). The urban/plain boundary is visible in the full frame but is never a second sim rule or a renderer-only guess about roads.
+The renderer’s existing plot owner derives yards and settlement surroundings from exported buildings and physical roads. Pavement and yards suppress farm plots, while country plots retain fields, meadow and grass. Grass grows only on unpaved surfaces. Classification is visual composition, not a second simulation rule; the renderer never reads `MapPlan` or infers physical road geometry from colour. No urban-region field crosses the map contract.
 
 ## API seam
 `packages/battle-renderer/src/terrain/{biome.ts,plots.ts}`, `grassPass.ts`, `fixtures/biomes/`.

@@ -2,7 +2,7 @@
 
 **Depends on:** C01, C03, C69, C72; C65 through C69; G0's architecture/identity verdicts. **Kind:** slice.
 
-## Pass 1: physical building and identity seam
+## Historical pass 1: physical building and identity seam
 
 The independently owned building/compiler core is implemented in
 [`crates/mapgen`](../../../crates/mapgen/README.md). It resolves catalogue placements
@@ -12,33 +12,30 @@ Caller limits bound authored parts and cumulative bay coordinates before geometr
 materialization; these limits are not an all-world capacity proof.
 
 The [focused evidence](../assets/map-compiler/README.md) retains complete CLI/WASM
-records and original physical oracles. Shared surface admission, rivers, forests,
-land regions, overlap/composition validation and the inspect overlay remain later
-compiler arms. C09/C13/C32 own source provenance, selection readiness and appearance
+records and original physical oracles. At this checkpoint, shared surface admission, rivers, forests,
+overlap/composition validation and inspection were later compiler arms. C09/C13/C32 own source provenance, selection readiness and appearance
 fit. This pass does not close the whole C04 or G0 source/art gate.
 
-## Pass 2: roads and forests
+## Historical pass 2: roads and forests
 
 `MapPlan.surfaces` and `MapPlan.forests` lower into the map in the contract's own
 shapes (C03, C64, C65, C72). Authored points must lie inside the playable bounds, and
 `limits.max_ground_points` bounds polygon vertices plus rounded stroke samples;
 `report.ground_points` states what was used. Native and Wasm agree on the complete
 records, including one accepted and two refused ground plans
-(`fixtures/parity/map-compiler/paired-records.json`). Rivers (C69), land regions,
-overlap/composition validation and the inspect overlay remain.
+(`fixtures/parity/map-compiler/paired-records.json`). At this checkpoint, rivers (C69), overlap/composition validation and inspection remained.
 
 ## Question
 Can one typed plan become authoritative compiled geometry and identity without a second interpretation by the battle or renderer?
 
 ## Contract it unlocks
-`crates/mapgen` is a Rust library/CLI depending on `contract`, not scene-assets. `MapPlan` has metre bounds, plot polygons, road/river control runs, forests, plain polygons, blocks/parcels and selected building-template placements. Template geometry has the contract-owned descriptor shape from C00/C13. Only C04 materializes transformed building parts, floors/heights, entrances and exposed edges into `MapDefinition`; no arbitrary per-map building bake follows.
+The [Rust library/CLI](../../../crates/mapgen/README.md) depends on `contract`, not scene assets. `MapPlan` carries bounded physical placements, surfaces, rivers, forests and props, plus generation-only settlement, district, parcel and approach data. The compiler materializes selected template geometry into the contract’s building parts, floors, heights and entrances. Lowering emits the shared physical `MapDefinition`, including playable bounds and the separate visual margin, together with generation identity and diagnostics. Settlement metadata grants no gameplay properties and never reaches the renderer.
 
-`validate_plan(&MapPlan) -> Result<(), Vec<Diagnostic>>` reports invalid rings/bounds, overlap, missing templates, unsupported joins and bounded-complexity failures with stable feature/location identities. `lower(&MapPlan, &TemplateGeometryCatalog) -> Result<GeneratedMap, Vec<Diagnostic>>` writes the contract's buildings, surfaces, rivers, forests and props. `MapDefinition.land_regions` holds `Urban | Plain` polygon rings: C31 reads them for composition, and C54 measures them. Region labels do not grant gameplay buffs.
-
+Urban yards and agricultural surroundings use [C31’s accepted renderer plot owner](C31-city-biome.md#outcome), derived from exported buildings and physical roads. No `MapDefinition.land_regions` schema was admitted; requesting that unsupported plan field is explicitly refused. C54 checks physical construction and playability separately from visual crop/yard composition.
 `GeneratedMap` contains the compiled definition, generation identity and diagnostics/report. Identity pins generator version, preset revision, canonical config, lossless seed, physical template catalogue hash and map hash; appearance identity is separate presentation metadata. The CLI writes saved `fixtures/maps/<id>/{map.json,SOURCES.json}`; runtime returns equivalent identity in memory/replay. C09 owns acquisition and C60 owns saved-map catalogue metadata.
 
 ## API seam
-`crates/mapgen::{MapPlan, validate_plan, lower, GeneratedMap}` → `contract::map::MapDefinition` and shared identity types. Generator plan/debug overlays never cross into the sim or renderer. C65 owns shared curve densification; C69/C72 establish river/forest schema before this compiler.
+The compiler library’s typed plan and result → `contract::map::MapDefinition` and shared identity types. Generator plan/debug overlays never cross into the sim or renderer. C65 owns shared curve densification; C69/C72 establish river/forest schema before this compiler.
 
 ## What the human can run or see
 `mapgen inspect <plan>` renders plots, roads, parcels, legal template footprints, entrances and plains with labelled diagnostics. A small hand-authored plan using a prototype descriptor is sufficient; production art is not required here.
@@ -58,3 +55,7 @@ One compiled map contract and one geometry owner; no runtime generated-map behav
 
 ## Feedback that would change this slice
 A frozen spike parity failure reslices the affected seam before generator consumers land.
+
+## Current outcome
+
+Buildings and the shared road, forest, river, bridge and prop shapes compile through one physical owner. The [generator README](../../../crates/mapgen/README.md) owns current admission, limits, canonical identity and CLI tooling. Plan-only metadata supports layout measurement, inspection and encounter sites; C31 owns the visual plot interpretation. Historical pass reports above establish their original scopes and are not the current pending implementation list. Source/art fit and full-world release admission remain separate gates.
