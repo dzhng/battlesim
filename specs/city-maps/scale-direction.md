@@ -34,8 +34,9 @@ is separate from selectable release presets.
 
 The selected size is the **playable area**, not the outer edge of the rendered
 world. Render surrounding terrain/scenery beyond the playable perimeter so the
-battlefield sits inside a larger landscape. The margin's exact extent and detail
-are measured design choices; no numerical margin has been selected.
+battlefield sits inside a larger landscape. The initial player margin is 1,500 m through the common map extent contract;
+its preset rollout and final identity checks are owned by C54. This is a reasonable
+starting value for the later map workbench, not a parameter optimization target.
 
 Keep playable bounds and outer rendered/world bounds explicit in the common map
 preparation contract; implementation chooses the schema once with the compiler,
