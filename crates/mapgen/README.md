@@ -36,8 +36,10 @@ movement obstacle.
 a river, roads with their bridges, and forests go. Its numbers are data: [`fixtures/map-presets.json`](../../fixtures/map-presets.json),
 validated at load, whose `revision` a request pins beside `GENERATOR_VERSION`. A
 request that names another revision or generator is refused, so an old request
-cannot quietly yield a new map. The only constants in code are the three playable
-extents, which are a user decision (M04 in the [map brief](../../specs/city-maps/procedural-maps.md)).
+cannot quietly yield a new map. Most construction numbers belong to those presets.
+Source constants define numeric geometry cadence and bounded proof work; their owners document the
+contracts they protect. The three playable extents are a user decision
+(M04 in the [map brief](../../specs/city-maps/procedural-maps.md)).
 
 - **The same request gives the same plan bytes on every target.** Each consumer draws
   from its own named stream of the seed (`rng`), so a change to one (forests, a
@@ -322,56 +324,99 @@ outcome and the open questions are in the
 
 ## Open country (`open_country`)
 
-`furnish(plan, &request, &catalogue, &presets)` takes a built plan and returns it with
-the country between its settlements and woods furnished: a few homes along the
-country roads and tracks, short tree lines, copses and single trees, and low cover in
-the fields. The rule it serves is that **no unit on open ground sees an unbroken
-circle, and most of the circle stays open** (M24 and M25 in the
-[map brief](../../specs/city-maps/procedural-maps.md)). Every density, size and
-clearance is a row of `open_country` in the presets.
+Complete generation furnishes the country with homes along roads, short tree lines,
+copses, single trees and low cover, then admits physical ground-sight coverage after
+street furniture and every authored building part are final. The density pass is an
+internal construction stage; callers use `generate_plan` or `generate_map` so they
+cannot mistake that stage for the finished map.
 
-- **It only adds.** Lanes go to `surfaces`, yards to `lots`, homes to `buildings`, low
-  cover to `props`, and every tree to `forests`, in the contract's own shapes: a tree
-  line is a stroke, a copse a small ring, a single tree a plot the one forest rule
-  stands one trunk on. What the parcel pass built is unchanged, in place and in order.
-- **One question admits everything it places.** Whether this much ground is clear of
-  the map's edge, the settlements, the woods, every carriageway, water, bridges, the
-  yards and trees already placed and, for what blocks sight, the kept approach
-  corridors. What differs between a home, a copse and a boulder is the room each asks
-  for.
-- **Homes are real buildings.** A group is one farmstead or two to four houses, drawn
-  from the same catalogue, family and floor limit as the map's towns. Its yards front
-  a country road or track, or a short lane the pass lays off one, so each street door
-  opens onto a carriageway. A yard may have a clump of trees behind it and a car or a
-  stack beside the house, clear of the doors.
-- **A tree line is stretches with gaps.** It follows a road or track at a distance, or
-  runs across a field along or square to a road near enough to set the fields' lie.
-  No stretch is longer than the preset allows before a gap a vehicle drives through.
-- **Bare ground is filled, and little else.** Open ground is walked as cells. A cell
-  with no building, wood or tree line within `sight.reach_m` gets a copse or a tree
-  line near it: random places near it first, then every place within reach in turn.
-  This is a construction heuristic: cell centres and authored outlines do not yet
-  certify physical sight at every playable location. The densities on top are small.
-- **A settlement keeps its widest approach in each half as a corridor.** The front's
-  width of ground along the approach's middle bearing, where the encounter planner
-  posts its overwatch, holds nothing that blocks sight; low cover may stand in it. The
-  rest of what the layout measured as open is country like any other. Afterwards the
-  plan's `approaches` are the kept ones, each as wide as its ground still measures:
-  `measure` asks a yard, a copse, a tree and each piece of a tree line as a disc,
-  because they are smaller than the gap between a corridor's measuring lines. Where
-  the kept corridors of several settlements leave ground no place beside them can
-  cover, a minor settlement's corridor gives way; the main settlement's never does.
-- **The halves are even by construction.** Each kind is placed in the half that holds
-  less of it until the map holds its share, by `fairness`: buildings, metres of tree
-  line, copses, trees and loose bodies. `open_country::measure` reads those amounts
-  back from the plan's geometry alone.
-- **Finite sight samples are diagnostics.** The `sight_report`
-  example loads each map into the battle's world and, from samples of open ground
-  and from where the encounter planner stands each column, counts the bearings on
-  which an infantry eye sees to full range by the simulation's own sight queries.
-  `tests/open_country.rs` holds a few maps to it; the report is how a preset change
-  is judged. Those standard infantry samples do not certify the smaller circular
-  observer, between-sample points, or every playable location.
+Physical range has one owner: resolved generation physics. Coverage selects actual
+circular ground observers from the unit catalog, excluding aircraft and directional
+lobes, and uses their ground-standing eye heights and the fog target height. The
+smallest current circle is the jeep's 450 m. Elevated garrison observers, aircraft,
+future destruction and a side's combined multi-eye opening field are separate
+contracts. Hills remain deferred within city-maps; this certificate supports flat
+land, carved rivers and bridge heights, and refuses unsupported height profiles.
+
+Construction densities, sizes and clearances belong to the presets. The coverage
+policy supplies a cell size and an ordered list of allowed copse/tree-line proposals;
+it has no independently tuned sight range. The existing density estimate remains a
+construction heuristic and supplies no witness.
+
+The certificate reads the contract's **same seeded trunk candidates and exclusion
+predicates** as the world, using indexed complete authored bodies, roads, water and
+closed sampled-ground bounds. An authored forest outline does not count as a tree.
+All bodies are final before witnesses are collected; later furnishing adds only
+forests. World placement ignores earlier trunks when excluding new trunks, so forest
+order and index still supply the same seed without a second placement algorithm.
+
+A witness is a fully occupied 3×3 native fog-cell patch. Occupancy comes from accepted
+trunks' actual canopy coverage or tall opaque authored bodies on dry supporting
+ground. Its centre also earns a physical interior margin against the shared foliage
+integration step or body footprint. Each clipped coverage rectangle, including town
+interiors, water and map edges, must have a witness whose distance from **every
+rectangle corner** fits the earned reach. Distance is convex, so its maximum over
+the whole rectangle lies at a corner: this admits every continuous position without
+inventing an extra margin around the cell centre. Testing water too is deliberately
+stronger than the playable-ground requirement.
+
+For an in-bounds circular reveal, the 3×3 patch's inscribed disk catches the nearest
+native ray and both neighbours, including radial sampling error. The earned reach
+also stops these rays before any sample can enter the chosen far cell. Every other
+ray stays more than a cell diagonal from that far sample, so it cannot refill the
+same published bit. Ray count, floored far range and post-foliage reach are checked
+for **each** circular ground observer, since flooring is not monotonic across range
+multiples. Unsupported sampling, attenuation, height or angular margins refuse the
+request.
+
+The witness bearing over the complete clipped rectangle also earns an in-bounds
+far-cell margin for every circular ground observer. Its coordinate intervals include
+every observer position, and reserve the native ray's angular error and a whole fog
+cell diagonal. An outward-only obstruction at an edge cannot satisfy this rule.
+Together these margins prove nearby physical sight-interrupting surroundings and
+an in-bounds missing published far bit at every covered ground location. House variety, visual interest, normal-camera readability,
+most bearings remaining open and combined opening fog still require their own
+reports and rendered review. No per-cell scene or ray queries are hidden in admission.
+
+A missing cell searches near-first at the native fog cadence, using the existing
+copse and tree-line geometry and a named random stream. A failed proposal rolls back
+its authored forest, exclusions, tally and raster contribution. Unbuilt settlement
+outline ground may supply a feature only where actual bodies and roads leave room;
+the ordinary home/density pass keeps its settlement separation policy. The main
+settlement's measured 1,800×400 m firing corridors remain protected, including both
+sampled middle bearings, the actual middle and existing placement clearance. The
+wider layout reservation is construction headroom. Minor corridors may give way;
+all advertised approaches are remeasured afterwards. Extra features restore the
+existing per-kind half fairness. A balancing feature must contain accepted physical
+trunks, but need not earn another dense fog patch: the complete map already has its
+coverage certificate, and a thin tree line remains real scenery. Both uses share the
+same staging and rollback owner; fairness and mandatory-lane failures also refuse.
+
+**Proof work has one operation envelope**, independent of authored compile limits.
+It forecasts raster/index and fallback-list dimensions before allocation and candidate
+lattice work before sampling; edited pathological spacing or resolution receives a
+named `ground_sight` refusal. The shared sampler can stop an exhausted proof prefix;
+the world always finishes its original sequence. The 512-million operation envelope
+charges source-edge tests, bucket references and reads, actual geometry predicates,
+foliage/raster reads and placement exclusions, and stops exhausted work. These are
+charged structural proof units, not every CPU operation or retired instructions.
+Grid-directory initialization and fallback-list/sort dimensions are separately
+forecast by admission and are not in the running charged count. This is not a bound
+on the full battle's memory, simulation, renderer or runtime forest floor.
+
+The coverage owner's synthetic fully forested architecture-extent test stresses the
+raster and the shared trunk sampler without allocating runtime tree bodies. It
+asserts that the certificate finishes within its proof envelope. This is a proof
+stress case; it does not admit the full architecture's physical world, startup,
+renderer or memory. Actual generated-map costs remain measured by their own
+harnesses.
+
+The density pass still uses real catalogue homes and their doors, yard lanes that
+join existing carriageways, and broken tree-line stretches with vehicle gaps. The
+`sight_report` furnished arm and the default `layout_sweep` run complete production
+generation; the bare sight arm is explicitly before country/furniture/coverage.
+Finite infantry samples and directional lobes remain diagnostics, not the whole-map
+certificate. A seed refusal is retained rather than replaced by another seed.
 
 ## Street furniture (`street_props`)
 
@@ -452,7 +497,8 @@ regions and source/art fit remain prerequisites for their compiler arms; a reque
 unsupported feature produces a named error rather than disappearing from output.
 
 `MapPlan.size` is the playable rectangle. Admission follows the architecture envelope
-in the city-map scale policy; it defines no rendered surroundings.
+in the city-map scale policy. `render_margin_m` extends presentation around that
+rectangle through the shared extents contract; it adds no physical ground.
 Physical box bounds use the template contract's numeric evaluator for admission.
 Simulation collision arithmetic and its remaining cross-runtime proof are independent.
 

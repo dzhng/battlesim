@@ -1,6 +1,6 @@
 {
-  "revision": "layout-presets-11",
-  "terrain": { "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
+  "revision": "layout-presets-12",
+  "terrain": { "render_margin_m": 1500, "fog_cell_m": 8, "height_grid_m": 4, "slope_cutoff_deg": 35 },
   "approach": {
     "depth_m": 1800,
     "front_m": 400,
@@ -443,7 +443,7 @@
     }
   },
   "open_country": {
-    "sight": { "cell_m": 100, "reach_m": 480, "scatter": 0.5, "attempts": 30, "fill": { "copse": 4, "tree_line": 1 } },
+    "sight": { "cell_m": 100, "fill": ["copse", "tree_line"] },
     "clear": { "edge_m": 12, "settlement_m": 60, "forest_m": 40, "road_m": 3, "water_m": 12, "yard_m": 6, "approach_m": 25 },
     "fairness": { "rel": 0.25, "homes": 3, "tree_line_m": 250, "copses": 2, "trees": 3, "cover": 6 },
     "homesteads": {

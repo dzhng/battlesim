@@ -23,15 +23,16 @@
 //!   Where the kept corridors of several settlements lie side by side and
 //!   leave ground nothing can be seen from, a minor settlement's corridor
 //!   gives way; the main settlement's never does.
-//! - **Bare ground is furnished by proximity**: open ground is
-//!   walked as cells, and a cell with no building, wood or tree line within
-//!   `sight.reach_m` gets a copse or a tree line near it. The rule is judged
-//!   by the simulation's own sight (`examples/sight_report`), not here.
+//! - **Whole cells earn physical witnesses after authored bodies are final**:
+//!   the coverage owner uses the contract's actual shared trunk candidates,
+//!   canopy and fog-cell geometry, including town interiors and edges. Failed
+//!   copse/tree-line proposals roll back; unsupported work or unfilled cells
+//!   refuse the requested seed rather than silently preserving holes.
 //! - **The halves are even by construction**: each kind is placed in the
 //!   half that holds less of it, until the map holds its share.
 //!
-//! Every number is a row of `open_country` in the presets, and each step
-//! draws from its own named stream.
+//! Construction sizes, densities and clearances come from `open_country`;
+//! physical sight comes from resolved rules. Each step has its own named stream.
 use crate::layout::geometry::{
     add, direction, distance, dot, ring_distance, round_cm, scale, sub, thinned, Outline, Point,
     PI, TAU,
@@ -59,6 +60,7 @@ const WALK_M: f64 = 50.0;
 /// The most things of one kind a map is given, whatever its rows ask.
 const PLACED_MAX: u32 = 4096;
 
+mod coverage;
 mod rules;
 use rules::category_of;
 pub use rules::*;
@@ -198,12 +200,18 @@ impl<'a> Ground<'a> {
 
     /// Whether `p` is at least `gap` from the filled ring.
     fn clear(&self, p: Point, gap: f64) -> bool {
+        self.clear_charged(p, gap, |_| true)
+    }
+    fn clear_charged(&self, p: Point, gap: f64, mut charge: impl FnMut(u64) -> bool) -> bool {
+        if !charge(1) {
+            return false;
+        }
         let [x0, y0, x1, y1] = self.limits;
         p[0] < x0 - gap
             || p[0] > x1 + gap
             || p[1] < y0 - gap
             || p[1] > y1 + gap
-            || ring_distance(self.ring, p) >= gap
+            || (charge(2 * self.ring.len() as u64) && ring_distance(self.ring, p) >= gap)
     }
 }
 
@@ -220,45 +228,8 @@ fn beyond(gap: f64, least: f64) -> bool {
     gap >= least && gap > 0.0
 }
 
-/// Which cells of open ground have something that cuts sight within reach.
-struct Bare {
-    cell: f64,
-    columns: usize,
-    rows: usize,
-    reach: f64,
-    /// Open ground: outside settlements, woods and water.
-    open: Vec<bool>,
-    seen: Vec<bool>,
-}
-
-impl Bare {
-    fn middle(&self, index: usize) -> Point {
-        [
-            ((index % self.columns) as f64 + 0.5) * self.cell,
-            ((index / self.columns) as f64 + 0.5) * self.cell,
-        ]
-    }
-
-    /// Something that cuts sight stands at `p`.
-    fn mark(&mut self, p: Point) {
-        let span = |v: f64, count: usize| {
-            let low = libm::floor((v - self.reach) / self.cell).max(0.0) as usize;
-            let high = (libm::floor((v + self.reach) / self.cell).max(0.0) as usize).min(count - 1);
-            low..=high
-        };
-        for row in span(p[1], self.rows) {
-            for column in span(p[0], self.columns) {
-                let index = row * self.columns + column;
-                if !self.seen[index] && distance(self.middle(index), p) <= self.reach {
-                    self.seen[index] = true;
-                }
-            }
-        }
-    }
-}
-
 /// The amounts placed so far, by half: `[top, bottom]`.
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 struct Tally {
     homes: [f64; 2],
     tree_line_m: [f64; 2],
@@ -296,7 +267,8 @@ struct Country<'a> {
     main_only: bool,
     roads: Vec<Road>,
     road_m: f64,
-    bare: Bare,
+    proof_fill: bool,
+    work: Option<std::rc::Rc<coverage::Work>>,
     yards: Vec<Rect>,
     /// Copses, trees and tree lines placed, as discs.
     groves: Vec<(Point, f64)>,
@@ -332,12 +304,48 @@ impl<'a> Country<'a> {
         crate::layout::stream(self.request, &format!("country/{name}"))
     }
 
+    fn charge(&self, n: u64) -> bool {
+        self.work.as_ref().is_none_or(|w| w.spend(n))
+    }
+    /// Construction density estimate; physical admission belongs to Coverage.
+    fn estimated_open_km2(&self) -> f64 {
+        let cell = self.rules.sight.cell_m;
+        let size = self.size;
+        let count = |extent: f64| (libm::ceil(extent / cell) as usize).max(1);
+        let (columns, rows) = (count(size[0]), count(size[1]));
+        // A density estimate only. Physical coverage is certified after
+        // every authored body is placed, including street furniture.
+        let open_count = (0..columns * rows)
+            .filter(|index| {
+                let p = [
+                    ((*index % columns) as f64 + 0.5) * cell,
+                    ((*index / columns) as f64 + 0.5) * cell,
+                ];
+                p[0] <= size[0]
+                    && p[1] <= size[1]
+                    && self
+                        .towns
+                        .iter()
+                        .all(|town| town.clear(p, f64::MIN_POSITIVE))
+                    && self
+                        .woods
+                        .iter()
+                        .all(|wood| wood.clear(p, f64::MIN_POSITIVE))
+                    && !self.water.near(p, 0.)
+            })
+            .count();
+        open_count as f64 * cell * cell / 1e6
+    }
+
     fn half(&self, p: Point) -> usize {
         usize::from(p[1] < self.size[1] / 2.0)
     }
 
     /// The one question: may something of `ask` stand at `p`.
     fn open(&self, p: Point, ask: Ask) -> bool {
+        if !self.charge(1) {
+            return false;
+        }
         let c = &self.rules.clear;
         let r = ask.radius;
         let edge = r + c.edge_m;
@@ -346,34 +354,42 @@ impl<'a> Country<'a> {
         }
         let road = r + ask.road_gap;
         let water = r + c.water_m;
-        self.towns
-            .iter()
-            .all(|town| town.clear(p, r + c.settlement_m))
-            && self.woods.iter().all(|wood| wood.clear(p, r + c.forest_m))
-            && self.network.edge_gap(p, road) >= road
-            && self.water.gap(p, water) >= water
+        (self.proof_fill
+            || self
+                .towns
+                .iter()
+                .all(|town| town.clear_charged(p, r + c.settlement_m, |n| self.charge(n))))
+            && self
+                .woods
+                .iter()
+                .all(|wood| wood.clear_charged(p, r + c.forest_m, |n| self.charge(n)))
+            && self.network.edge_gap(p, road, || self.charge(1)) >= road
+            && self.water.gap_charged(p, water, || self.charge(1)) >= water
             && self
                 .decks
                 .iter()
-                .all(|deck| beyond(rect_gap(deck, p), road))
+                .all(|deck| self.charge(1) && beyond(rect_gap(deck, p), road))
             && self.yards.iter().enumerate().all(|(index, yard)| {
-                ask.own_yard == Some(index) || beyond(rect_gap(yard, p), r + c.yard_m)
+                self.charge(1)
+                    && (ask.own_yard == Some(index) || beyond(rect_gap(yard, p), r + c.yard_m))
             })
             && self
                 .bodies
                 .iter()
-                .all(|(at, reach)| distance(*at, p) >= r + reach)
+                .all(|(at, reach)| self.charge(1) && distance(*at, p) >= r + reach)
             && (!ask.blocks_sight
                 || self.corridors.iter().all(|(corridor, main)| {
-                    (self.main_only && !main) || beyond(rect_gap(corridor, p), r + c.approach_m)
+                    self.charge(1)
+                        && ((self.main_only && !main)
+                            || beyond(rect_gap(corridor, p), r + c.approach_m))
                 }))
     }
 
     /// Trees of `radius` at `p` keep their distance from those placed.
     fn apart(&self, p: Point, radius: f64) -> bool {
-        self.groves
-            .iter()
-            .all(|(at, reach)| distance(*at, p) >= radius + reach + self.rules.clear.yard_m)
+        self.groves.iter().all(|(at, reach)| {
+            self.charge(1) && distance(*at, p) >= radius + reach + self.rules.clear.yard_m
+        })
     }
 
     fn trees(&self, radius: f64) -> Ask {
@@ -540,7 +556,7 @@ impl<'a> Country<'a> {
             apron_m: 0.0,
         };
         let stead = self.steads.len();
-        let (lots_before, yards_before) = (self.lots.len(), self.yards.len());
+        let lots_before = self.lots.len();
         // Each side of the line is walked on its own.
         let mut cursor = [0.0_f64; 2];
         for _ in 0..homes {
@@ -611,10 +627,6 @@ impl<'a> Country<'a> {
             });
         }
         self.steads.push(at);
-        for index in yards_before..self.yards.len() {
-            let middle = self.yards[index].center;
-            self.bare.mark(middle);
-        }
         true
     }
 
@@ -729,7 +741,7 @@ impl<'a> Country<'a> {
         true
     }
 
-    fn copse(&mut self, p: Point, rng: &mut Stream) -> bool {
+    fn copse(&mut self, p: Point, rng: &mut Stream, clear: impl Fn(Point, f64) -> bool) -> bool {
         let k = self.rules.copses;
         let shape = OutlineShape {
             exponent: 2.0,
@@ -744,14 +756,19 @@ impl<'a> Country<'a> {
             rng,
         )
         .at(p);
-        if !(self.open(outline.center, self.trees(outline.reach))
+        // Centimetre rounding must still leave a copse, rather than a
+        // single-tree plot in the finished geometry's measurement.
+        let center = crate::layout::geometry::centroid(&outline.ring);
+        if !(crate::layout::geometry::area(&outline.ring) >= k.area_m2[0]
+            && clear(outline.center, outline.reach)
+            && self.open(outline.center, self.trees(outline.reach))
             && self.apart(outline.center, outline.reach)
             && self.plant(outline.ring, outline.center, outline.reach))
         {
             return false;
         }
-        self.tally.copses[self.half(outline.center)] += 1.0;
-        self.bare.mark(outline.center);
+        self.tally.copses[self.half(center)] += 1.0;
+
         true
     }
 
@@ -775,8 +792,21 @@ impl<'a> Country<'a> {
 
     /// A tree line along `line`, broken into stretches by gaps. Every
     /// stretch must find room, or none is planted.
-    fn tree_line(&mut self, line: &Run, road_gap: f64, rng: &mut Stream) -> bool {
+    fn tree_line(
+        &mut self,
+        line: &Run,
+        road_gap: f64,
+        rng: &mut Stream,
+        clear: impl Fn(Point, f64) -> bool,
+    ) -> bool {
         let t = self.rules.tree_lines;
+        let Ok(work) = coverage::tree_line_work(line.length(), t) else {
+            self.charge(u64::MAX);
+            return false;
+        };
+        if !self.charge(work) {
+            return false;
+        }
         let half = t.width_m / 2.0;
         let ask = Ask {
             road_gap,
@@ -798,7 +828,7 @@ impl<'a> Country<'a> {
                 .collect();
             if !points
                 .iter()
-                .all(|p| self.open(*p, ask) && self.apart(*p, half))
+                .all(|p| clear(*p, half) && self.open(*p, ask) && self.apart(*p, half))
             {
                 return false;
             }
@@ -826,7 +856,6 @@ impl<'a> Country<'a> {
                 }
                 let middle = scale(add(pair[0], pair[1]), 0.5);
                 self.tally.tree_line_m[self.half(middle)] += length;
-                self.bare.mark(middle);
             }
         }
         true
@@ -861,100 +890,56 @@ impl<'a> Country<'a> {
             let along = scale(sub(b, a), 1.0 / distance(a, b));
             points.push(add(run.at(at), scale([-along[1], along[0]], side * offset)));
         }
-        self.tree_line(&Run::new(points), t.road_gap_m, rng)
+        self.tree_line(&Run::new(points), t.road_gap_m, rng, |_, _| true)
     }
 
     /// A tree line across open ground about `p`: along or square to a road
     /// near enough to set the fields' lie, on any bearing otherwise.
-    fn field_line(&mut self, p: Point, rng: &mut Stream) -> bool {
+    fn field_line(
+        &mut self,
+        p: Point,
+        rng: &mut Stream,
+        clear: impl Fn(Point, f64) -> bool,
+    ) -> bool {
         let t = self.rules.tree_lines;
         let road_gap = self.rules.clear.road_m;
         let length = rng.range(t.length_m);
         let lie = self
             .network
-            .heading_near(p, t.align_m)
+            .heading_near(p, t.align_m, || self.charge(1))
             .map(|heading| heading + if rng.chance(0.5) { 0.0 } else { TAU / 4.0 })
             .unwrap_or_else(|| rng.range([0.0, PI]));
         let reach = scale(direction(lie), length / 2.0);
         let line = Run::new(vec![sub(p, reach), add(p, reach)]);
-        self.tree_line(&line, road_gap, rng)
+        self.tree_line(&line, road_gap, rng, clear)
     }
 
-    // ----- Bare ground -------------------------------------------------
-
-    /// Stand a copse or a tree line by every cell of open ground that has
-    /// nothing to cut its sight within reach.
-    fn fill_bare(&mut self) {
-        let sight = &self.rules.sight;
-        let mut rng = self.stream("sight");
-        let mut cells: Vec<usize> = (0..self.bare.open.len())
-            .filter(|index| self.bare.open[*index])
-            .collect();
-        for index in (1..cells.len()).rev() {
-            cells.swap(index, rng.below(index as u64 + 1) as usize);
+    /// One transaction owns physical proposal admission for coverage and
+    /// per-kind balance. Rejected geometry never becomes a later exclusion.
+    fn try_feature(
+        &mut self,
+        kind: FillKind,
+        p: Point,
+        rng: &mut Stream,
+        coverage: &mut coverage::Coverage<'_>,
+        start: usize,
+        target: Option<(Point, Point)>,
+    ) -> Result<bool, String> {
+        let before = self.forests.len();
+        let groves = self.groves.len();
+        let tally = self.tally;
+        let placed = match kind {
+            FillKind::Copse => self.copse(p, rng, |p, r| coverage.body_clear(p, r)),
+            FillKind::TreeLine => self.field_line(p, rng, |p, r| coverage.body_clear(p, r)),
+        };
+        if placed && coverage.try_forests(start + before, &self.forests[before..], target)? {
+            return Ok(true);
         }
-        let weights: f64 = sight.fill.values().sum();
-        for cell in &cells {
-            if self.bare.seen[*cell] {
-                continue;
-            }
-            let middle = self.bare.middle(*cell);
-            for attempt in 0..sight.attempts {
-                // Near the bare ground first, then as far off as still cuts
-                // its sight: a kept corridor has room only beside it.
-                let wider = f64::from(attempt) / f64::from(sight.attempts);
-                let scatter = sight.scatter + (1.0 - sight.scatter) * wider;
-                let away = sight.reach_m * scatter * libm::sqrt(rng.unit());
-                let p = add(middle, scale(direction(rng.range([0.0, TAU])), away));
-                let mut pick = rng.unit() * weights;
-                let kind = sight
-                    .fill
-                    .iter()
-                    .find(|(_, weight)| {
-                        pick -= **weight;
-                        pick < 0.0
-                    })
-                    .map_or(FillKind::Copse, |(kind, _)| *kind);
-                let stood = match kind {
-                    FillKind::Copse => self.copse(p, &mut rng),
-                    FillKind::TreeLine => self.field_line(p, &mut rng),
-                };
-                if stood && self.bare.seen[*cell] {
-                    break;
-                }
-            }
-        }
-        // Ground still bare had no luck: every place within reach of it is
-        // then tried in turn, nearest first, for a copse. Where kept
-        // corridors lie all round it and none has room, it is tried once
-        // more with only the main settlement's corridors kept.
-        let step = sight.cell_m / 2.0;
-        let span = libm::floor(sight.reach_m / step) as i64;
-        let mut ring: Vec<(f64, Point)> = (-span..=span)
-            .flat_map(|j| (-span..=span).map(move |i| [i as f64 * step, j as f64 * step]))
-            .map(|offset| (libm::hypot(offset[0], offset[1]), offset))
-            .filter(|(away, _)| *away <= sight.reach_m)
-            .collect();
-        ring.sort_by(|a, b| {
-            a.0.total_cmp(&b.0)
-                .then(a.1[0].total_cmp(&b.1[0]))
-                .then(a.1[1].total_cmp(&b.1[1]))
-        });
-        for main_only in [false, true] {
-            self.main_only = main_only;
-            for cell in &cells {
-                if self.bare.seen[*cell] {
-                    continue;
-                }
-                let middle = self.bare.middle(*cell);
-                for (_, offset) in &ring {
-                    if self.copse(add(middle, *offset), &mut rng) {
-                        break;
-                    }
-                }
-            }
-        }
-        self.main_only = false;
+        self.forests.truncate(before);
+        self.groves.truncate(groves);
+        self.tally = tally;
+        coverage.check()?;
+        Ok(false)
     }
 
     // ----- Bodies ------------------------------------------------------
@@ -1040,7 +1025,7 @@ impl<'a> Country<'a> {
 /// (`parcels::fill_districts`). The result is the same plan with its lanes,
 /// yards, homes, trees and low cover added, and its open approaches
 /// measured again.
-pub fn furnish(
+pub(crate) fn furnish(
     mut plan: MapPlan,
     request: &GenerationRequest,
     catalogue: &TemplateGeometryCatalog,
@@ -1081,10 +1066,7 @@ pub fn furnish(
                     .collect()
             })
             .collect();
-        let open_km2 = country.bare.open.iter().filter(|open| **open).count() as f64
-            * rules.sight.cell_m
-            * rules.sight.cell_m
-            / 1e6;
+        let open_km2 = country.estimated_open_km2();
         let e = rules.fairness;
 
         // A row's count, on average over its weights.
@@ -1109,9 +1091,6 @@ pub fn furnish(
             |country, half, rng| country.stead(half, &eligible, rng),
         );
 
-        // Bare ground next: what cuts sight goes where nothing does yet.
-        country.fill_bare();
-
         let t = rules.tree_lines;
         let mut rng = country.stream("tree_lines");
         let length = (t.length_m[0] + t.length_m[1]) / 2.0;
@@ -1126,7 +1105,7 @@ pub fn furnish(
                     country.roadside_line(half, rng)
                 } else {
                     let p = country.anywhere(half, rng);
-                    country.field_line(p, rng)
+                    country.field_line(p, rng, |_, _| true)
                 }
             },
         );
@@ -1141,7 +1120,7 @@ pub fn furnish(
             |country| country.tally.copses,
             |country, half, rng| {
                 let p = country.anywhere(half, rng);
-                country.copse(p, rng)
+                country.copse(p, rng, |_, _| true)
             },
         );
 
@@ -1192,42 +1171,8 @@ pub fn furnish(
     plan.forests.extend(forests);
     plan.props.extend(props);
 
-    // A home or a tree ends an open approach. The plan records the kept
-    // ones, each as wide as its finished ground measures round its middle.
     let main = plan.approaches.iter().any(|a| a.settlement == 0);
-    let mut measured: Vec<Option<crate::ApproachPlan>> = crate::layout::approaches(&plan, presets)
-        .into_iter()
-        .map(Some)
-        .collect();
-    let mut approaches = Vec::new();
-    for (settlement, middle) in kept {
-        let step =
-            crate::layout::bearing_step(&plan.settlements[settlement], presets.approach.depth_m);
-        let holds = |approach: &crate::ApproachPlan| {
-            let to = if approach.to_rad < approach.from_rad {
-                approach.to_rad + TAU
-            } else {
-                approach.to_rad
-            };
-            // The middle of a run of bearings may lie between two of them.
-            approach.settlement == settlement
-                && [middle, middle + TAU, middle - TAU]
-                    .iter()
-                    .any(|at| *at >= approach.from_rad - 0.51 * step && *at <= to + 0.51 * step)
-        };
-        if let Some(found) = measured
-            .iter_mut()
-            .find(|approach| approach.as_ref().is_some_and(holds))
-        {
-            approaches.extend(found.take());
-        }
-    }
-    approaches.sort_by(|a, b| {
-        a.settlement
-            .cmp(&b.settlement)
-            .then(a.from_rad.total_cmp(&b.from_rad))
-    });
-    plan.approaches = approaches;
+    retain_approaches(&mut plan, presets, kept);
     let metrics = crate::layout::measure(&plan, presets);
     let fail = |feature: &str, location: &str, message: String| {
         vec![Diagnostic {
@@ -1268,6 +1213,44 @@ pub fn furnish(
         }]);
     }
     Ok(plan)
+}
+
+fn retain_approaches(plan: &mut MapPlan, presets: &PresetDefinitions, kept: Vec<(usize, f64)>) {
+    // A home or a tree ends an open approach. The plan records the kept
+    // ones, each as wide as its finished ground measures round its middle.
+    let mut measured: Vec<Option<crate::ApproachPlan>> = crate::layout::approaches(plan, presets)
+        .into_iter()
+        .map(Some)
+        .collect();
+    let mut approaches = Vec::new();
+    for (settlement, middle) in kept {
+        let step =
+            crate::layout::bearing_step(&plan.settlements[settlement], presets.approach.depth_m);
+        let holds = |approach: &crate::ApproachPlan| {
+            let to = if approach.to_rad < approach.from_rad {
+                approach.to_rad + TAU
+            } else {
+                approach.to_rad
+            };
+            // The middle of a run of bearings may lie between two of them.
+            approach.settlement == settlement
+                && [middle, middle + TAU, middle - TAU]
+                    .iter()
+                    .any(|at| *at >= approach.from_rad - 0.51 * step && *at <= to + 0.51 * step)
+        };
+        if let Some(found) = measured
+            .iter_mut()
+            .find(|approach| approach.as_ref().is_some_and(holds))
+        {
+            approaches.extend(found.take());
+        }
+    }
+    approaches.sort_by(|a, b| {
+        a.settlement
+            .cmp(&b.settlement)
+            .then(a.from_rad.total_cmp(&b.from_rad))
+    });
+    plan.approaches = approaches;
 }
 
 impl<'a> Country<'a> {
@@ -1399,38 +1382,6 @@ impl<'a> Country<'a> {
             }
         }
         let road_m = roads.iter().map(|road| road.run.length()).sum();
-        let cell = rules.sight.cell_m;
-        let count = |extent: f64| (libm::ceil(extent / cell) as usize).max(1);
-        let (columns, rows) = (count(size[0]), count(size[1]));
-        let mut bare = Bare {
-            cell,
-            columns,
-            rows,
-            reach: rules.sight.reach_m,
-            open: vec![false; columns * rows],
-            seen: vec![false; columns * rows],
-        };
-        for index in 0..columns * rows {
-            let p = bare.middle(index);
-            bare.open[index] = p[0] <= size[0]
-                && p[1] <= size[1]
-                && towns.iter().all(|town| town.clear(p, f64::MIN_POSITIVE))
-                && woods.iter().all(|wood| wood.clear(p, f64::MIN_POSITIVE))
-                && water.gap(p, 0.0) >= 0.0;
-        }
-        // What already cuts sight: every building, and the woods' edges.
-        for building in &plan.buildings {
-            let [x, y, _] = building.frame.translation;
-            bare.mark([x, y]);
-        }
-        for wood in &woods {
-            for (a, b) in contract::ground::edges(wood.ring) {
-                let steps = libm::ceil(distance(*a, *b) / WALK_M).max(1.0) as usize;
-                for step in 0..steps {
-                    bare.mark(add(*a, scale(sub(*b, *a), step as f64 / steps as f64)));
-                }
-            }
-        }
         let clearance = presets.rivers.bank_m() + presets.roads.dirt_track_width_m / 2.0;
         Self {
             request,
@@ -1447,7 +1398,8 @@ impl<'a> Country<'a> {
             main_only: false,
             roads,
             road_m,
-            bare,
+            proof_fill: false,
+            work: None,
             yards: Vec::new(),
             groves: Vec::new(),
             bodies: Vec::new(),
@@ -1465,4 +1417,222 @@ impl<'a> Country<'a> {
             props: Vec::new(),
         }
     }
+}
+
+pub(crate) fn admit_coverage(
+    request: &GenerationRequest,
+    presets: &PresetDefinitions,
+    physics: &contract::generation_physics::GenerationPhysics,
+) -> Result<(), Vec<Diagnostic>> {
+    let range = physics.circular_range_m().map_err(|message| {
+        vec![Diagnostic {
+            code: DiagnosticCode::InvalidPhysicalRules,
+            feature: None,
+            location: "$.rules".into(),
+            message,
+        }]
+    })?;
+    coverage::preflight(
+        [request.size.extent_m(); 2],
+        presets.terrain.fog_cell_m,
+        presets.open_country.sight.cell_m,
+        range,
+    )
+    .and_then(|()| {
+        coverage::tree_line_work(
+            presets.open_country.tree_lines.length_m[1],
+            presets.open_country.tree_lines,
+        )
+        .map(|_| ())
+    })
+    .map_err(|message| {
+        vec![Diagnostic {
+            code: DiagnosticCode::GenerationFailed,
+            feature: Some("ground_sight".into()),
+            location: "$.presets.open_country.sight.cell_m".into(),
+            message,
+        }]
+    })
+}
+
+/// Complete-map certificate and bounded furnishing of any remaining cells.
+/// Bodies are final before this runs; only forests can be appended here.
+pub(crate) fn cover(
+    mut plan: MapPlan,
+    request: &GenerationRequest,
+    catalogue: &TemplateGeometryCatalog,
+    presets: &PresetDefinitions,
+    physics: &contract::generation_physics::GenerationPhysics,
+) -> Result<MapPlan, Vec<Diagnostic>> {
+    let fail = |message: String| {
+        vec![Diagnostic {
+            code: DiagnosticCode::GenerationFailed,
+            feature: Some("ground_sight".into()),
+            location: "$.presets.open_country".into(),
+            message: format!(
+                "{message} ({} {}, seed {})",
+                request.map_type.name(),
+                request.size.name(),
+                request.seed.value()
+            ),
+        }]
+    };
+    let map = crate::lower(
+        &crate::CompileRequest::generated(request, plan.clone()),
+        catalogue,
+    )?
+    .map;
+    let cell = presets.open_country.sight.cell_m;
+    let mut coverage = coverage::Coverage::new(&map, physics, cell).map_err(&fail)?;
+    let (added, kept) = {
+        let mut country = Country::new(&plan, request, presets);
+        country.proof_fill = true;
+        country.work = Some(coverage.work());
+        let initial = measure(&plan, presets);
+        country.tally.copses = [initial.copses.top, initial.copses.bottom];
+        country.tally.tree_line_m = [initial.tree_line_m.top, initial.tree_line_m.bottom];
+        let mut rng = country.stream("ground_sight");
+        let step = (cell / 2.).min(map.fog_cell_m);
+        let span = libm::floor(coverage.reach / step) as i64;
+        let mut offsets: Vec<_> = (-span..=span)
+            .flat_map(|j| (-span..=span).map(move |i| [i as f64 * step, j as f64 * step]))
+            .filter(|p| libm::hypot(p[0], p[1]) <= coverage.reach)
+            .collect();
+        offsets.sort_by(|a, b| {
+            libm::hypot(a[0], a[1])
+                .total_cmp(&libm::hypot(b[0], b[1]))
+                .then(a[0].total_cmp(&b[0]))
+                .then(a[1].total_cmp(&b[1]))
+        });
+        let nx = libm::ceil(plan.size[0] / cell) as usize;
+        let ny = libm::ceil(plan.size[1] / cell) as usize;
+        for y in 0..ny {
+            for x in 0..nx {
+                let low = [x as f64 * cell, y as f64 * cell];
+                let high = [
+                    (low[0] + cell).min(plan.size[0]),
+                    (low[1] + cell).min(plan.size[1]),
+                ];
+                let at = scale(add(low, high), 0.5);
+                let covered = coverage.covered(low, high);
+                coverage.check().map_err(&fail)?;
+                if covered {
+                    continue;
+                }
+                // Every fallback location is finite, and successful placement
+                // still has to earn coverage through actual shared tree geometry.
+                let mut found = false;
+                for main_only in [false, true] {
+                    country.main_only = main_only;
+                    for offset in &offsets {
+                        let p = add(at, *offset);
+                        // Search feature centres in the same inward cone as
+                        // the witness. This is a conservative proposal filter;
+                        // actual patches must still earn the full certificate.
+                        if !coverage.admits(p, low, high) {
+                            coverage.check().map_err(&fail)?;
+                            continue;
+                        }
+                        for kind in &presets.open_country.sight.fill {
+                            if country
+                                .try_feature(
+                                    *kind,
+                                    p,
+                                    &mut rng,
+                                    &mut coverage,
+                                    map.forests.len(),
+                                    Some((low, high)),
+                                )
+                                .map_err(|message| {
+                                    fail(format!(
+                                        "{message} while covering clipped cell [{x},{y}] at {at:?}"
+                                    ))
+                                })?
+                            {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if found {
+                            break;
+                        }
+                        coverage.check().map_err(&fail)?;
+                    }
+                    if found {
+                        break;
+                    }
+                }
+                if !found {
+                    return Err(fail(format!("no physically certified sight feature covers clipped cell [{x},{y}] at {at:?}")));
+                }
+            }
+        }
+        // Whole-cell furnishing can need more features in one half. Earn
+        // the existing per-kind fairness again by adding only real features
+        // in the lesser half, using the same placement and proof owners.
+        for kind in &presets.open_country.sight.fill {
+            let (least, attempts) = match kind {
+                FillKind::Copse => (
+                    presets.open_country.fairness.copses,
+                    presets.open_country.copses.attempts,
+                ),
+                FillKind::TreeLine => (
+                    presets.open_country.fairness.tree_line_m,
+                    presets.open_country.tree_lines.attempts,
+                ),
+            };
+            let mut rng = country.stream(match kind {
+                FillKind::Copse => "coverage_balance/copses",
+                FillKind::TreeLine => "coverage_balance/tree_lines",
+            });
+            for _ in 0..PLACED_MAX {
+                let held = match kind {
+                    FillKind::Copse => country.tally.copses,
+                    FillKind::TreeLine => country.tally.tree_line_m,
+                };
+                if even(presets.open_country.fairness.rel, least, held[0], held[1]) {
+                    break;
+                }
+                let half = usize::from(held[1] < held[0]);
+                let mut stood = false;
+                for _ in 0..attempts {
+                    let p = country.anywhere(half, &mut rng);
+                    if country
+                        .try_feature(*kind, p, &mut rng, &mut coverage, map.forests.len(), None)
+                        .map_err(&fail)?
+                    {
+                        stood = true;
+                        break;
+                    }
+                }
+                if !stood {
+                    return Err(fail(format!(
+                        "no physical {kind:?} can restore country fairness"
+                    )));
+                }
+            }
+        }
+        coverage.check().map_err(&fail)?;
+        (country.forests, country.kept)
+    };
+    plan.forests.extend(added);
+    retain_approaches(&mut plan, presets, kept);
+    let country = measure(&plan, presets);
+    if !(country.homes.fair
+        && country.tree_line_m.fair
+        && country.copses.fair
+        && country.trees.fair
+        && country.cover.fair)
+    {
+        return Err(fail(
+            "physical furnishing leaves uneven country halves".into(),
+        ));
+    }
+    let metrics = crate::layout::measure(&plan, presets);
+    if !(metrics.main_approach_top && metrics.main_approach_bottom) {
+        return Err(fail(
+            "physical furnishing closed a mandatory main firing lane".into(),
+        ));
+    }
+    Ok(plan)
 }

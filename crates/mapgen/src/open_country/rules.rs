@@ -19,20 +19,13 @@ pub struct Rules {
     pub field_cover: FieldCover,
 }
 
-/// No open ground is farther than `reach_m` from something that cuts sight:
-/// a building, a wood, a copse or a tree line.
+/// Construction sampling and the ordered physical features tried for a
+/// missing whole-cell witness. Sight range belongs to resolved physics.
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SightRule {
-    /// Open ground is walked in cells this wide.
     pub cell_m: f64,
-    pub reach_m: f64,
-    /// How far from a bare cell's middle its copse or tree line may stand,
-    /// as a share of the reach, and how many places are tried.
-    pub scatter: f64,
-    pub attempts: u32,
-    /// What fills a bare cell, by weight: `copse` and `tree_line`.
-    pub fill: BTreeMap<FillKind, f64>,
+    pub fill: Vec<FillKind>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
@@ -222,14 +215,13 @@ impl Rules {
         let s = &self.sight;
         check(
             positive(s.cell_m)
-                && s.reach_m.is_finite()
-                && s.reach_m > s.cell_m
-                && chance(s.scatter)
-                && s.attempts > 0
                 && !s.fill.is_empty()
-                && s.fill.values().all(|w| positive(*w)),
+                && s.fill
+                    .iter()
+                    .enumerate()
+                    .all(|(i, k)| !s.fill[..i].contains(k)),
             "sight",
-            "sight needs a cell, a reach beyond it, a scatter share, attempts and positive fill weights",
+            "sight needs a positive cell and distinct ordered fill kinds",
         );
         let c = &self.clear;
         check(

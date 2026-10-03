@@ -16,23 +16,34 @@ pub struct Water<'a> {
 
 impl<'a> Water<'a> {
     pub fn new(rivers: &'a [River], size: [f64; 2]) -> Self {
-        let mut grid = Grid::new(size, 64.0);
+        Self::new_charged(rivers, size, || true).expect("unmetered water construction")
+    }
+
+    pub fn new_charged(
+        rivers: &'a [River],
+        size: [f64; 2],
+        mut charge: impl FnMut() -> bool,
+    ) -> Option<Self> {
+        let mut grid = Grid::new(size, 64.);
         let mut stretches = Vec::new();
         for (river, line) in rivers.iter().enumerate() {
             for (sample, pair) in line.samples().windows(2).enumerate() {
                 let half = pair[0].half_width_m.max(pair[1].half_width_m);
-                grid.insert(
+                if !grid.insert_charged(
                     segment_bounds(pair[0].xy, pair[1].xy, half),
                     stretches.len() as u32,
-                );
+                    &mut charge,
+                ) {
+                    return None;
+                }
                 stretches.push((river, sample));
             }
         }
-        Self {
+        Some(Self {
             rivers,
             stretches,
             grid,
-        }
+        })
     }
 
     pub fn is_empty(&self) -> bool {
@@ -49,16 +60,41 @@ impl<'a> Water<'a> {
         [&samples[sample], &samples[sample + 1]]
     }
 
+    /// Closed water membership grown by a margin, without a distance
+    /// query's truncated sentinel when no stretch is nearby.
+    pub fn near(&self, p: Point, margin: f64) -> bool {
+        self.near_charged(p, margin, || true)
+    }
+
+    pub fn near_charged(&self, p: Point, margin: f64, charge: impl FnMut() -> bool) -> bool {
+        self.grid.any_charged(
+            [p[0] - margin, p[1] - margin, p[0] + margin, p[1] + margin],
+            |id| {
+                let [a, b] = self.stretch(id);
+                section(a, b, p).inside_m >= -margin
+            },
+            charge,
+        )
+    }
+
     /// Open ground between `p` and the nearest water's edge, negative in the
     /// water; `within` when there is at least that much.
     pub fn gap(&self, p: Point, within: f64) -> f64 {
+        self.gap_charged(p, within, || true)
+    }
+
+    pub fn gap_charged(&self, p: Point, within: f64, charge: impl FnMut() -> bool) -> f64 {
         let mut gap = within;
         let bounds = [p[0] - within, p[1] - within, p[0] + within, p[1] + within];
-        self.grid.any(bounds, |id| {
-            let [a, b] = self.stretch(id);
-            gap = gap.min(-section(a, b, p).inside_m);
-            false
-        });
+        self.grid.any_charged(
+            bounds,
+            |id| {
+                let [a, b] = self.stretch(id);
+                gap = gap.min(-section(a, b, p).inside_m);
+                false
+            },
+            charge,
+        );
         gap
     }
 

@@ -19,8 +19,6 @@ use mapgen::layout::{
     generate_layout, measure, GenerationRequest, LayoutMetrics, MapSize, MapType,
     PresetDefinitions, GENERATOR_VERSION,
 };
-use mapgen::parcels::fill_districts;
-use mapgen::street_props::place_street_props;
 use mapgen::CompileLimits;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
@@ -104,14 +102,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let presets =
         PresetDefinitions::from_json(&source.to_string()).map_err(|e| format!("{e:?}"))?;
-    let catalogue = TemplateGeometryCatalog::new(serde_json::from_str(&std::fs::read_to_string(
-        format!("{fixtures}/prototype-building-templates.json"),
-    )?)?)?;
-    // The unit and prop catalog, out of the resolved view the browser reads.
-    let view: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(format!(
-        "{fixtures}/catalog.json"
-    ))?)?;
-    let catalog: contract::catalog::Catalog = serde_json::from_value(view["documents"].clone())?;
+    let templates_json =
+        std::fs::read_to_string(format!("{fixtures}/prototype-building-templates.json"))?;
+    let catalogue = TemplateGeometryCatalog::new(serde_json::from_str(&templates_json)?)?;
+    let rules_json = sim::fixtures::game().to_string();
+    let presets_json = source.to_string();
     if let Some(out) = &out {
         std::fs::create_dir_all(out)?;
     }
@@ -167,13 +162,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let plan = if layout_only {
                         layout
                     } else {
-                        let built = fill_districts(layout, &request, &catalogue, &presets)?;
-                        let mut plan =
-                            mapgen::open_country::furnish(built, &request, &catalogue, &presets)?;
-                        let props =
-                            place_street_props(&plan, &request, &catalogue, &catalog, &presets)?;
-                        plan.props.extend(props);
-                        plan
+                        // The same complete pipeline as the game, including
+                        // final street bodies and whole-cell sight admission.
+                        match mapgen::generate_plan(
+                            &serde_json::to_string(&request).unwrap(),
+                            &presets_json,
+                            &templates_json,
+                            &rules_json,
+                        ) {
+                            mapgen::GenerateOutcome::Ok { plan } => *plan,
+                            mapgen::GenerateOutcome::Error { diagnostics } => {
+                                return Err(diagnostics)
+                            }
+                        }
                     };
                     Ok((plan, metrics))
                 });
@@ -195,7 +196,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 &catalogue,
                             )
                             .map_err(|errors| format!("{cell} seed {seed}: {errors:?}"))?;
-                            let spent = instructions().zip(before).map_or(0, |(a, b)| a - b);
+                            // Exclude the separate layout snapshot above: the
+                            // complete pipeline already generated its layout.
+                            let spent = instructions()
+                                .zip(before)
+                                .map_or(0, |(a, b)| a - b)
+                                .saturating_sub(layout_spent);
                             let scale = Scale {
                                 buildings: plan.buildings.len() as f64,
                                 parts: f64::from(compiled.report.authored_parts),

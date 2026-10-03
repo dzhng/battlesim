@@ -4,6 +4,9 @@ use crate::map::Forest;
 use crate::random::Rng;
 use crate::scenario::ForestRule;
 
+/// Maximum physical foliage-depth integration step, shared by proofs.
+pub const FOLIAGE_SAMPLE_M: f64 = 1.0;
+
 pub fn forest_seed(index: usize, forest: &Forest) -> u64 {
     let initial = 0x9e37_79b9_7f4a_7c15 ^ index as u64;
     let hash = |h: u64, v: &f64| (h ^ v.to_bits()).wrapping_mul(0x100_0000_01b3);
@@ -27,6 +30,11 @@ pub fn forest_seed(index: usize, forest: &Forest) -> u64 {
 
 /// Authoritative physical queries; indices are an implementation choice.
 pub trait TrunkQueries {
+    /// A bounded proof may stop a candidate prefix. It must then refuse its
+    /// incomplete result; the physical world's default always finishes.
+    fn keep_sampling(&self) -> bool {
+        true
+    }
     fn road_near(&self, p: [f64; 2], margin: f64) -> bool;
     fn water_near(&self, p: [f64; 2], margin: f64) -> bool;
     fn body_near(&self, p: [f64; 2], margin: f64) -> bool;
@@ -58,6 +66,9 @@ pub fn trunk_positions(
     while y <= max_y {
         let mut x = x0 + step / 2.;
         while x <= max_x {
+            if !queries.keep_sampling() {
+                return out;
+            }
             let jx = (rng.unit() * 2. - 1.) * rule.trunk_jitter * step;
             let jy = (rng.unit() * 2. - 1.) * rule.trunk_jitter * step;
             let p = [x + jx, y + jy];
@@ -76,4 +87,12 @@ pub fn trunk_positions(
         y += step;
     }
     out
+}
+
+/// Closed physical box membership for trunk exclusion. Margin grows both
+/// local half extents; a circumscribed circle is only a broad-phase bound.
+pub fn body_contains(center: [f64; 2], half: [f64; 2], yaw: f64, p: [f64; 2], margin: f64) -> bool {
+    let [x, y] = [p[0] - center[0], p[1] - center[1]];
+    let (s, c) = libm::sincos(-yaw);
+    (x * c - y * s).abs() <= half[0] + margin && (x * s + y * c).abs() <= half[1] + margin
 }
