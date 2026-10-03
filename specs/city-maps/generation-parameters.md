@@ -1,10 +1,10 @@
 # Complete generation parameter reference
 
-Working snapshot, 2026-10-02. Read [the generation report](generation-report.md) for the algorithms and acceptance roles. This appendix is the requested exhaustive data reference, not another settings owner. It will be refreshed at final identity integration.
+Frozen generation snapshot, 2026-10-02. Read [the generation report](generation-report.md) for the algorithms and acceptance roles. This appendix is the requested exhaustive data reference, not another settings owner. The snapshot matches integrated layout-13 / layout-presets-12; regenerate it when the owning parameters change.
 
-The preset data below comes from the **unintegrated continuous-coverage candidate** at `city-ground-fix` (merged main, dirty source). Its version labels remain `layout-12` / `layout-presets-11` pending the final coordinated bump. The current selected 50% median visibility gate lives in the test/report contract, not this preset file.
+The preset data below comes from the integrated **continuous-coverage generator**, `layout-13` / `layout-presets-12`, including the initial 1,500 m visual margin. The current selected 50% median visibility gate lives in the test/report contract, not this preset file.
 
-Preset input SHA-256: `77a3ba1d715463c03a3879b4bd122f6273a0be8ab0a61ad0e8cadf29e16a91a2`.
+Preset input SHA-256: `e89b1c2f04065263af7fc79de6237783e77eb54813edf407e184040bc588fb1a`.
 
 Production’s former `open_country.sight` used reach 480 m, scatter 0.5, 30 attempts and copse/tree-line weights 4/1. The replacement below retains 100 m location cells, tries copse then tree line, and derives its reach from actual physical observers; those deleted controls are not future workbench knobs.
 
@@ -20,12 +20,13 @@ Production’s former `open_country.sight` used reach 480 m, scatter 0.5, 30 att
 
 | Setting | Value |
 | --- | --- |
-| `revision` | `"layout-presets-11"` |
+| `revision` | `"layout-presets-12"` |
 
 ## Presets: terrain
 
 | Setting | Value |
 | --- | --- |
+| `render_margin_m` | `1500` |
 | `fog_cell_m` | `8` |
 | `height_grid_m` | `4` |
 | `slope_cutoff_deg` | `35` |
@@ -967,7 +968,7 @@ The following values are fixed implementation geometry/proof settings, not curre
 | `SLANT_SIN` | `0.375` | An avenue meets a road no farther off square than this (the sine of 22 degrees): at more of a slant it stops at its last corner before it. |
 | `ALONG_SIN` | `0.02` | A street within this of a road's line (a sine) runs along it. |
 
-### `crates/mapgen/src/open_country/coverage.rs` (pending integration)
+### [crates/mapgen/src/open_country/coverage.rs](../../crates/mapgen/src/open_country/coverage.rs)
 
 | Name | Value/expression | Purpose from source |
 | --- | --- | --- |
@@ -1043,4 +1044,4 @@ The building catalogue supplies each template’s dimensions, parts, facade bays
 
 ## Snapshot completeness
 
-This appendix transcribes every leaf of the current preset JSON (698 rows), the complete forest rule and assault recipe, and 76 source numeric constants. Final integration must regenerate the snapshot and audit the owning logic; matching these values alone does not prove generation or gameplay.
+This appendix transcribes every leaf of the current preset JSON (699 rows), the complete forest rule and assault recipe, and 76 source numeric constants. A later parameter change must regenerate the snapshot and audit the owning logic; matching these values alone does not prove generation or gameplay.
