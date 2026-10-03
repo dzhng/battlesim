@@ -20,6 +20,7 @@ pub mod knowledge;
 pub mod lean;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod map_analysis;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod maps;
 pub mod math;
 pub mod movement;
