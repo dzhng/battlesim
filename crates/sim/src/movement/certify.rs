@@ -80,7 +80,7 @@ fn carry(
                 0.0
             };
             let p = w[0] + ab * t;
-            ((p - c).length() < near).then(|| left[k + 1] + (w[1] - p).length())
+            ((p - c).inside_radius(near)).then(|| left[k + 1] + (w[1] - p).length())
         });
         if let Some(met) = met {
             stop = stop.max(met + reach);
@@ -168,7 +168,9 @@ fn carry(
         for _ in unit.members.iter().filter(|s| s.alive()) {
             places.extend(tries.find_map(|e| {
                 let (p, _, next) = at(e)?;
-                let free = soldiers.iter().all(|q| (*q - p.xy()).length() >= apart)
+                let free = soldiers
+                    .iter()
+                    .all(|q| (*q - p.xy()).at_least_radius(apart))
                     && hulls
                         .iter()
                         .all(|h| !h.contains(p.xy(), ctx.soldier_radius_m));
@@ -396,7 +398,8 @@ pub(crate) fn certify_orders(
                     legs[i] = unit.movement_goal().map(|(goal, _)| {
                         (
                             orders,
-                            (goal - unit.position.xy()).length() > ctx.rules.navigation.road_leg_m,
+                            (goal - unit.position.xy())
+                                .outside_radius(ctx.rules.navigation.road_leg_m),
                             unit.position.xy(),
                         )
                     });
@@ -526,7 +529,7 @@ pub(crate) fn certify_orders(
                     continue;
                 }
                 if *long
-                    && (unit.position.xy() - *from).length() >= reach
+                    && (unit.position.xy() - *from).at_least_radius(reach)
                     && left > reach
                     && carry(ctx, &world, &mut units, index, tick)
                 {
@@ -557,7 +560,7 @@ pub(crate) fn certify_orders(
                 if moved[index] {
                     still[i] = 0;
                 } else if (0..units.len())
-                    .all(|k| !busy[k] || (units[k].position.xy() - here).length() > KNOT_M)
+                    .all(|k| !busy[k] || (units[k].position.xy() - here).outside_radius(KNOT_M))
                 {
                     still[i] += 1;
                 }

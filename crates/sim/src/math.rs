@@ -34,6 +34,45 @@ impl V2 {
     pub fn length(self) -> f64 {
         libm::hypot(self.x, self.y)
     }
+    /// The same inclusive radius test as `length() <= radius`, without a
+    /// square root when the squared values are safely separated.
+    pub fn within_radius(self, radius: f64) -> bool {
+        matches!(
+            self.radius_order(radius),
+            Some(std::cmp::Ordering::Less | std::cmp::Ordering::Equal)
+        )
+    }
+    /// The same strict radius test as `length() > radius`.
+    pub fn outside_radius(self, radius: f64) -> bool {
+        self.radius_order(radius) == Some(std::cmp::Ordering::Greater)
+    }
+    /// The same strict radius test as `length() < radius`.
+    pub fn inside_radius(self, radius: f64) -> bool {
+        self.radius_order(radius) == Some(std::cmp::Ordering::Less)
+    }
+    /// The same inclusive radius test as `length() >= radius`.
+    pub fn at_least_radius(self, radius: f64) -> bool {
+        matches!(
+            self.radius_order(radius),
+            Some(std::cmp::Ordering::Greater | std::cmp::Ordering::Equal)
+        )
+    }
+    fn radius_order(self, radius: f64) -> Option<std::cmp::Ordering> {
+        let squared = self.dot(self);
+        let limit = radius * radius;
+        // Normal finite squares keep multiplication/addition rounding bounded.
+        // Leave a generous band around equality for the compensated hypot's
+        // rounding too. Underflow, overflow, nonfinite and signed radii retain
+        // the original evaluator, including its NaN comparison behavior.
+        if radius > 0.0
+            && squared.is_normal()
+            && limit.is_normal()
+            && (squared - limit).abs() > limit * (16.0 * f64::EPSILON)
+        {
+            return squared.partial_cmp(&limit);
+        }
+        self.length().partial_cmp(&radius)
+    }
     pub fn normalized(self) -> V2 {
         let l = self.length();
         if l > 0.0 {
@@ -239,3 +278,73 @@ macro_rules! impl_ops {
 }
 impl_ops!(V2, x, y);
 impl_ops!(V3, x, y, z);
+
+#[cfg(test)]
+mod radius_tests {
+    use super::*;
+
+    #[test]
+    fn radius_comparisons_match_portable_lengths_at_boundaries_and_extremes() {
+        let cases = [
+            v2(0.0, -0.0),
+            v2(3.0, 4.0),
+            v2(1e-160, 2e-160),
+            v2(f64::MIN_POSITIVE, 1e-300),
+            v2(1e150, 2e150),
+            v2(f64::MAX, f64::MAX),
+            v2(f64::INFINITY, 0.0),
+            v2(f64::NAN, 2.0),
+            v2(f64::INFINITY, f64::NAN),
+        ];
+        for v in cases {
+            let length = v.length();
+            for radius in [
+                -1.0,
+                -0.0,
+                0.0,
+                1e-160,
+                1.0,
+                5.0,
+                1e151,
+                length,
+                length.next_down(),
+                length.next_up(),
+                f64::MAX,
+                f64::INFINITY,
+                f64::NEG_INFINITY,
+                f64::NAN,
+            ] {
+                assert_eq!(
+                    v.within_radius(radius),
+                    length <= radius,
+                    "{v:?} <= {radius}"
+                );
+                assert_eq!(v.inside_radius(radius), length < radius, "{v:?} < {radius}");
+                assert_eq!(
+                    v.at_least_radius(radius),
+                    length >= radius,
+                    "{v:?} >= {radius}"
+                );
+                assert_eq!(
+                    v.outside_radius(radius),
+                    length > radius,
+                    "{v:?} > {radius}"
+                );
+            }
+        }
+        // Deterministic coverage of ordinary query distances and their rounding ties.
+        for i in 1..=10000 {
+            let v = v2(
+                (i * 7919 % 10007) as f64 * 0.13,
+                (i * 3571 % 99991) as f64 * -0.037,
+            );
+            let l = v.length();
+            for radius in [l * 0.3, l * 1.3, l.next_down(), l, l.next_up()] {
+                assert_eq!(v.within_radius(radius), l <= radius, "{v:?} <= {radius}");
+                assert_eq!(v.outside_radius(radius), l > radius, "{v:?} > {radius}");
+                assert_eq!(v.inside_radius(radius), l < radius, "{v:?} < {radius}");
+                assert_eq!(v.at_least_radius(radius), l >= radius, "{v:?} >= {radius}");
+            }
+        }
+    }
+}

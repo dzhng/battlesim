@@ -72,6 +72,8 @@ bun run dev     # build the WebAssembly, start the lab app
 
 The [map-generation rationale](specs/done/city-maps/README.md) explains physical countryside coverage, road/settlement ownership and accepted scope. Its [generation report](specs/done/city-maps/generation-report.md) and [parameter inventory](specs/done/city-maps/generation-parameters.md) retain the detailed logic and numbers for play feedback and the later live map workbench.
 
+The [simulation performance rationale](specs/done/city-stress-performance/README.md) explains outcome-preserving reuse and links to the measured CPU, FPS and memory results.
+
 During development, the [mechanics editor](apps/mechanics-editor/README.md) opens
 from the developer menu at `/mechanics`, or run `bun run dev:mechanics` to start
 the server and open the editor directly. See its README for the editing workflow.
