@@ -34,6 +34,7 @@ Generate seeded player battlefields with urban areas and usable surrounding plai
 | --- | --- |
 | Listings, roads, yards and kerbside placement | [C61](slices/C61-map-catalogue-listings.md), [C64](slices/C64-road-kinds.md#outcome), [C31](slices/C31-city-biome.md), [C46](slices/C46-street-placement.md#outcome--kerbside-placement-2026-10-02) and [C53](slices/C53-parcels-and-buildings.md) are integrated. |
 | Actual movement | Combined arrival and 901 Native/Wasm recovery digests pass on the identified refreshed map; [move validity](../done/move-validity/README.md) owns the mechanism. Later geometry needs its own arrival proof. |
+| Rendered surroundings | Common map-owned playable, rounded physical and rendered extents are integrated. The existing scenery owners honor positive margins; zero-margin authored readouts are pixel-identical. Player preset rollout and current release-wide loading/frame proof remain open. |
 | Shared forest physics | Contract-owned placement/random draws and explicit generation inputs preserve four saved maps' bodies and six quick battle digests. [The generator README](../../crates/mapgen/README.md) owns the input and identity contract. This prerequisite does not admit global coverage. |
 | Focused integration and appearance | [Current triage](buildings-lane.md#current-integration-triage) owns passing functional checks and historical failures. Bare frontage, terrain cutouts, weak labels and diagram-like composition remain open. |
 

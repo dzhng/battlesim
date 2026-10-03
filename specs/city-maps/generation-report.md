@@ -2,7 +2,7 @@
 
 This report explains the business rules, their numbers, the measurements and the failure checks. It is intentionally more detailed than the code README: the user requested an inventory that can inform a later map workbench. The implementation and fixture files remain authoritative; this is a dated account, not another configuration source.
 
-**Working report, 2026-10-02.** Integrated production is `main` at `73ff29dd`, generator `layout-12`, presets `layout-presets-11`. Continuous countryside coverage and explicit rendered surroundings are still being integrated. Sections below label those pending rules; neither their old version labels nor a successful narrow check establish final release admission. This report and its [complete parameter appendix](generation-parameters.md) must be refreshed when the final generation identity is frozen.
+**Working report, 2026-10-02.** Integrated production is `main` at `82662d3f`, generator `layout-12`, presets `layout-presets-11`. The common rendered-extent contract is integrated; continuous countryside coverage and the player margin preset are still being integrated. Sections below label those pending rules; neither their old version labels nor a successful narrow check establish final release admission. This report and its [complete parameter appendix](generation-parameters.md) must be refreshed when the final generation identity is frozen.
 
 The current user direction is to finish the specific generation rules, get a playable game, then tune the numbers personally. The typical open-ground visibility floor is **50%**. Perfect parameter tuning, a live map workbench, hills/ridges and the 20 km architecture are outside current completion work. Riverbeds and banks remain part of this generator.
 
@@ -237,13 +237,19 @@ Blue currently deploys a jeep, recon, two tanks, three rifle squads, AT and supp
 
 A prepared encounter proves legal placement and planned reach. It does not prove attacking infantry has walked kilometres to the fight, the widest tank has actually traversed the street, or a battle can sustain an actual **1,800 m** engagement. Those are executed movement/combat checks in C50/C51/C54. Geometry changes invalidate the relevant saved-map access and arrival evidence.
 
-## Rendered surroundings: pending common extent seam
+## Rendered surroundings: integrated contract, pending preset rollout
 
-Playable/physical bounds stay fixed. Existing backdrop terrain and visual tree/plot placement already supply environmental drawing outside map geometry; the pending seam will describe player-map rendering explicitly instead of inferring gameplay bounds from mesh vertices.
+The map owns one optional `render_margin_m`, defaulting to zero and admitted only when finite and between **0 and 5,000 m**. The same map owner derives and publishes three rectangles through preparation and world exports:
 
-The initial candidate player margin is **1,500 m**, reusing the existing backdrop-tree reach rather than seeking an optimal number. It is visual-only: no new deployment space, navigation obstacles, cover or forest sensing. A single map margin derives explicit playable, physical and rendered rectangles. Existing developer arenas retain their existing display environment without gaining new map surroundings. Flat display background is distinguished from physical terrain.
+- **Playable:** the selected nominal width and height, used for encounter placement and gameplay bounds.
+- **Physical:** the existing height field’s actual query domain. Each axis has `round(size / height_grid_m) + 1` samples; its last sample is `(samples − 1) × height_grid_m`. Generated 6/8/10 km maps align to their 4 m grid, so physical and playable bounds coincide. Authored sizes that do not align retain their existing rounded physical extent.
+- **Rendered:** the union of playable and physical rectangles expanded by the map margin, used by the existing plot/scenery placement and overview framing.
 
-This seam must be judged in a real production view and included in loading/resource/frame accounting. It uses existing terrain/scenery owners; it does not require another terrain/tree generator, a physical outer ring or 20 km allocations. Its exact schema/selected margin remains pending until the pass is integrated.
+The initial player margin is **1,500 m**, reusing the existing backdrop-tree reach rather than seeking an optimal number. Its preset rollout and identity refresh are pending. The margin is visual-only: it adds no deployment space, navigation obstacles, cover or forest sensing. Authored developer arenas retain zero margin and their existing display environment. The existing generic **40,000 m** flat horizon backdrop remains separate from map-owned bounds and remains included in resource accounting; its cutout follows the actual drawn terrain mesh to avoid coplanar overlap.
+
+The existing plot splitter and backdrop-tree owner supply the wider landscape; no additional terrain ring, shader pass, tree generator or physical grid is introduced. A changed plot starting rectangle can change decorative fields inside the playable map too, so the rollout receives a new map identity.
+
+Matched production views on Mixed Small seed 1 retain the same tick-4 digest and physical object counts while opening, edge and overview pixels change. The authored readouts route is byte/pixel identical. An independent complete-image/crop review found no new holes, crown clipping, raised plates or depth errors. A finite detailed-field rectangle remains visible at far overview, and inherited distant callout overlap remains; these observations do not trigger further parameter tuning in this pass. The narrow paired trial proves this contract and authored-arena preservation, not full release loading, sustained frames or every map’s visual quality.
 
 ## Which checks run when
 
