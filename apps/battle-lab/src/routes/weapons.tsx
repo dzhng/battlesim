@@ -1,3 +1,4 @@
+import { ReadoutLayer } from "@web/battle/present/readouts";
 import { useCallback, useMemo } from "react";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
@@ -74,14 +75,14 @@ function WeaponsLab({ battle }: { battle: SavedBattle }) {
 
   const overlay = useMemo(() => {
     if (!world || !observation) return undefined;
-    const contacts = contactLayer(observation, surfaceZ);
+    const contacts = contactLayer(session.contacts, surfaceZ);
     // This tick's visible flight: own rounds whole, enemy rounds only over seen ground.
     const tracers = tracerLayer(observation, { sideColors: false });
     return {
       opaque: concatMeshes([contacts.opaque, tracers.opaque]),
       translucent: concatMeshes([contacts.translucent, tracers.translucent]),
     };
-  }, [world, observation, surfaceZ]);
+  }, [world, observation, surfaceZ, session.contacts]);
   const overlayFeed = useFeed(overlay);
 
   const runDemo = useCallback(
@@ -117,10 +118,19 @@ function WeaponsLab({ battle }: { battle: SavedBattle }) {
         initialCamera={WEAPONS_CAMERA}
         onPick={session.onPick}
         onBox={session.onBox}
+        onFrame={session.placePanels}
         onReady={session.onReady}
         diagnostics={diagnostics}
       />
-      <aside className="hud-panel lab-panel" data-testid="weapons-panel">
+      <ReadoutLayer
+        own={[]}
+        contacts={session.contacts}
+        tick={observation?.tick}
+        rules={session.rules}
+        selected={[]}
+        handle={session.readouts}
+      />
+      <aside className="hud-panel lab-panel" data-testid="weapons-panel" data-occludes-readouts>
         <strong>Weapons</strong>
         <div className="lab-hint">
           Click: select · Right‑click: move · S: stop · buttons act on the selection
