@@ -11,7 +11,7 @@ export interface BenchmarkScenario {
   id: string;
   version: number;
   /** The authoritative scenario builder's variant. */
-  variant: "ordinary" | "prepared_crossfire" | "city-arena-1";
+  variant: "ordinary" | "prepared_crossfire" | "city-arena-2";
   /** Generated local-contact stress; the production preparation owner
    * resolves this choice on the complete map. */
   generated?: MapChoice;
@@ -36,7 +36,7 @@ export type BenchmarkPreset = Omit<BenchmarkScenario, "tour" | "generated" | "va
         tour: BenchmarkTour;
       }
     | {
-        variant: "city-arena-1";
+        variant: "city-arena-2";
         generated: MapChoice;
         blue: "scenario-orders";
         tour: typeof CITY_CONTACT_TOUR;
@@ -58,8 +58,8 @@ export const VILLAGE_CONTACT = {
 
 export const CITY_CONTACT = {
   id: "city-contact",
-  version: 3,
-  variant: "city-arena-1",
+  version: 4,
+  variant: "city-arena-2",
   generated: { type: "metro", size: "large", seed: "4" },
   seed: 4,
   blue: "scenario-orders",

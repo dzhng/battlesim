@@ -41,7 +41,15 @@ const scenario = JSON.stringify({
 // stress setup; preparation owns carrying these bytes and metadata off-page.
 const fromScenario = vi.fn((json: string) => {
   expect(json).toBe(scenario);
-  return { free: vi.fn() };
+  return {
+    free: vi.fn(),
+    extents: () =>
+      JSON.stringify({
+        playable: [0, 0, 3000, 2000],
+        physical: [0, 0, 3000, 2000],
+        rendered: [0, 0, 3000, 2000],
+      }),
+  };
 });
 const module = {
   PreparedWorld: class {
@@ -86,7 +94,7 @@ test("generated stress preparation retains the resolved full map and authoritati
     saved,
     (s) => stages.push(s),
     () => 0,
-    { kind: "city-arena-1", late: true },
+    { kind: "city-arena-2", late: true },
   );
   expect(result.scenario).toBe(scenario);
   expect(fromScenario).toHaveBeenCalledOnce();
@@ -94,7 +102,7 @@ test("generated stress preparation retains the resolved full map and authoritati
   expect(result.report.size).toEqual([3000, 2000]);
   expect(result.report.planned).toBeNull();
   expect(result.report.stress).toEqual({
-    kind: "city-arena-1",
+    kind: "city-arena-2",
     late: true,
     livingUnits: { blue: 1, red: 1 },
   });

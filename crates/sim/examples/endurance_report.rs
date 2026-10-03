@@ -39,7 +39,7 @@ fn main() {
         field.buildings.len()
     );
     let setup = if city {
-        println!("workload city-arena-1: full physical world; central 3 × 2 km stress arena");
+        println!("workload city-arena-2: full physical world; central 3 × 2 km stress arena");
         sim::endurance::city_scenario(&field, &fixture, 1, late)
     } else {
         sim::endurance::scenario(&field, &fixture, 1, late)

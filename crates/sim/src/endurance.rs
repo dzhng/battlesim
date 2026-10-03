@@ -43,7 +43,7 @@ pub fn scenario(
     seed: u64,
     late: bool,
 ) -> Result<ScenarioDefinition, String> {
-    scenario_in_arena(field, fixture, seed, late, [0.0, 0.0, field.size[0]])
+    scenario_in_arena(field, fixture, seed, late, [0.0, 0.0, field.size[0]], 0.0)
 }
 
 /// The same stress recipe concentrated in a central 3 × 2 km arena, with
@@ -68,6 +68,7 @@ pub fn city_scenario(
             (field.size[1] - 2000.0) / 2.0,
             3000.0,
         ],
+        1050.0,
     )?;
     // The synthetic arena may cross generated buildings or water. Resolve
     // living starts with the production placement predicate, within 200 m.
@@ -80,13 +81,6 @@ pub fn city_scenario(
         )));
     let mut placed: Vec<crate::math::V2> = Vec::new();
     for unit in setup.units.iter_mut().filter(|u| u.condition.is_none()) {
-        // Start within infantry weapon reach so contact does not depend on
-        // future long moves being admitted before the opening can fight.
-        unit.position[0] += if unit.side == Side::Blue {
-            1050.0
-        } else {
-            -1050.0
-        };
         let wanted = crate::math::v2(unit.position[0], unit.position[1]);
         let mobility = crate::units::mobility(setup.rules.catalog.by_id(&unit.kind), &setup.rules);
         let mut found = None;
@@ -125,6 +119,7 @@ fn scenario_in_arena(
     seed: u64,
     late: bool,
     arena: [f64; 3],
+    front_shift_m: f64,
 ) -> Result<ScenarioDefinition, String> {
     let [left, bottom, width] = arena;
     let rules: Rules = serde_json::from_value(fixture.clone()).map_err(|e| e.to_string())?;
@@ -161,6 +156,14 @@ fn scenario_in_arena(
                     60.0
                 } else {
                     250.0 + (n % 4) as f64 * 60.0
+                };
+                // Concentrate only the opening fighting line. Reserves
+                // and logistics stay at the rear, where their later wave
+                // and supply orders expect them to start.
+                let depth = if !reserve && !rules.catalog.by_id(kind).has_role("logistics") {
+                    depth + front_shift_m
+                } else {
+                    depth
                 };
                 let y = bottom + 150.0 + (n as f64 * 17.0) % 1700.0;
                 units.push(UnitSetup {

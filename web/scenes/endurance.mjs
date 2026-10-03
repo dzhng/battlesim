@@ -3,7 +3,7 @@
 // (60 by default); the verdict's run sets both to 300. Budgets (validation.md) are measured and written as evidence, not
 // asserted: the scene fails on broken contracts, not on slow hardware.
 // ENDURANCE_GENERATED=1 uses the current Metro Large seed-4 world and
-// city-arena-1 contact recipe; the default remains the saved 3 × 2 km field.
+// city-arena-2 contact recipe; the default remains the saved 3 × 2 km field.
 // MODEL_COST=1 instead measures the models layer's GPU cost at 100 a side
 // and with the late state's 20,000 fallen (run it alone,
 // under the GPU lock). EFFECT_COST=1 measures the effect pass's the same way,
@@ -42,7 +42,7 @@ async function openStressLab(ctx, page) {
       preparation.request.map_source.request.size === "large" &&
       preparation.size[0] === 10000 &&
       preparation.size[1] === 10000 &&
-      preparation.stress?.kind === "city-arena-1" &&
+      preparation.stress?.kind === "city-arena-2" &&
       preparation.stress.livingUnits.blue === 100 &&
       preparation.stress.livingUnits.red === 100,
     JSON.stringify(preparation),

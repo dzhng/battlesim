@@ -153,7 +153,7 @@
   {
     "id": "city-contact",
     "route": "/benchmark?preset=city-contact",
-    "describe": "Full-world Metro Large seed 4 benchmark with the simulation's named central city-arena-1 contact stress, 100 units a side and seeded scenario orders; a city-centred ground, tactical and whole-map tour. This is local-contact stress, separate from player transit. The scene records the same short/full timed window as the village control.",
+    "describe": "Full-world Metro Large seed 4 benchmark with the simulation's named central city-arena-2 contact stress, 100 units a side and seeded scenario orders; a city-centred ground, tactical and whole-map tour. This is local-contact stress, separate from player transit. The scene records the same short/full timed window as the village control.",
     "build": "production",
     "map": null
   },

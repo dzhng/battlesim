@@ -92,6 +92,37 @@ fn city_stress_brings_both_forces_and_remains_to_the_same_arena() {
 }
 
 #[test]
+fn city_stress_keeps_reserves_and_logistics_behind_the_contact_line() {
+    let original = scenario(&field(), &common::game(), 1, false).unwrap();
+    let mut map = field();
+    map.size = [10_000.0, 10_000.0];
+    let city = sim::endurance::city_scenario(&map, &common::game(), 1, false).unwrap();
+    let first_wave = city
+        .scripts
+        .iter()
+        .filter(|s| s.tick == 5 * city.rules.tick_hz as u64)
+        .flat_map(|s| match &s.order {
+            contract::command::Order::AttackMove { units, .. } => units.clone(),
+            _ => Vec::new(),
+        })
+        .collect::<std::collections::BTreeSet<_>>();
+    for (id, (before, after)) in original.units.iter().zip(&city.units).enumerate() {
+        let translated = [before.position[0] + 3500.0, before.position[1] + 4000.0];
+        if first_wave.contains(&contract::ids::UnitId(id as u32)) {
+            assert_ne!(
+                after.position, translated,
+                "the initial fighting line is concentrated"
+            );
+        } else {
+            assert_eq!(
+                after.position, translated,
+                "reserve/logistics unit {id} must remain behind the initial fighting line"
+            );
+        }
+    }
+}
+
+#[test]
 fn city_stress_places_living_units_on_usable_ground() {
     let mut map = field();
     map.size = [10_000.0, 10_000.0];
