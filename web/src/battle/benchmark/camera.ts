@@ -75,7 +75,7 @@ export const BENCHMARK_TOUR: BenchmarkTour = {
 
 /** The contact arena stays 3 × 2 km; its full-world overview uses the map
  * preparation actually returned, rather than an old documented extent. */
-export const CITY_CONTACT_TOUR = "city-arena-1-tour-v2";
+export const CITY_CONTACT_TOUR = "city-arena-1-tour-v3";
 
 export function cityContactTour(
   size: readonly [number, number],
@@ -94,13 +94,15 @@ export function cityContactTour(
       [0.1, x - 250, y - 600, 260, OPENING_YAW, 0.85],
       [0.2, x, y, 260, OPENING_YAW - 0.2, 0.85],
       [0.3, x + 250, y + 600, 260, OPENING_YAW - 0.4, 0.85],
-      [0.35, x + 250, y, 40, OPENING_YAW - 0.6, 0.55],
+      // Near shots stay above the city's roofs, including clearance's
+      // lookahead. A low eye inside a tower makes the rig fly another tour.
+      [0.35, x + 250, y, 150, OPENING_YAW - 0.6, 0.55],
       [0.42, x, y, overview, OPENING_YAW - 0.9, generated.camera.overview_pitch],
       [0.5, x - 250, y, 250, OPENING_YAW - 1.3, 0.85],
-      [0.55, x - 250, y, 40, -Math.PI, 0.25],
-      [0.65, x + 250, y, 45, -5.9, 0.25],
-      [0.7, x + 250, y, 60, -6.3, 0.3],
-      [0.78, x - 250, y + 400, 70, -7, 0.5],
+      [0.55, x - 250, y, 300, -Math.PI, 0.25],
+      [0.65, x + 250, y, 300, -5.9, 0.25],
+      [0.7, x + 250, y, 300, -6.3, 0.3],
+      [0.78, x - 250, y + 400, 180, -7, 0.5],
       [0.82, x, y, overview, -6.8, generated.camera.overview_pitch],
       [0.9, x, y, 400, -7.6, 0.85],
       [1, x, y, 1400, OPENING_YAW - TURN, 0.85],
