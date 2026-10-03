@@ -5,8 +5,8 @@ import { MainMenu } from "./MainMenu";
 
 const MechanicsEditor = lazy(() => import("../../mechanics-editor/src/MechanicsEditor"));
 
-/** The page for each fixture id. */
-export const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
+/** The pages: the benchmark page also owns its named workload URLs. */
+const ROUTES: Record<string, LazyExoticComponent<ComponentType>> = {
   foundation: lazy(() => import("./routes/foundation")),
   geometry: lazy(() => import("./routes/geometry")),
   authority: lazy(() => import("./routes/authority")),
