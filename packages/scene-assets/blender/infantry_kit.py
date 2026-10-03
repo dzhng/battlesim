@@ -1,7 +1,7 @@
 """Build one infantry kind's body and kit on the rig, and export it as its
 appearance source.
 
-    bun run --cwd web asset -- blender ../packages/scene-assets/blender/infantry_kit.py rifle|recon|at [a|b|c]
+    bun run --cwd web asset -- blender ../packages/scene-assets/blender/infantry_kit.py rifle|recon|at|at_carried [a|b|c]
 
 Writes assets/source/infantry/<kind>.glb (variant a) or <kind>_<variant>.glb:
 the rig (scaled to the simulation's soldier height, not turned) and one skinned
@@ -757,6 +757,40 @@ class Kit:
         self.painters[self.body.name] = face
 
     # ---------------------------------------------------------------- weapon, sockets
+    def carried_launcher(self):
+        """Strap the same launcher across the back, with its CLU facing out.
+        The tube and its retention straps ride the torso, never the rifle hand."""
+        root = weapons.launcher(self.m, "carried_launcher")
+        for c in list(root.children_recursive):
+            if c.type == "EMPTY":
+                bpy.data.objects.remove(c, do_unlink=True)
+        # Clear the pack's outer face in every LOOK, with the tube's high end
+        # beside the head and its low end outside the opposite hip.
+        bpy.context.view_layer.update()
+        back = max((o.matrix_world @ Vector(c)).y
+                   for o in self.parts if bone_of(o) == "spine_03"
+                   for c in o.bound_box)
+        tube_y = back + 0.095
+        angle = math.radians(30)
+        forward = Vector((-math.sin(angle), 0, math.cos(angle)))
+        side = Vector((0, 1, 0))
+        up = side.cross(-forward)
+        rotation = Matrix((side, -forward, up)).transposed().to_4x4()
+        centre = Vector((0, tube_y, 1.15))
+        root.matrix_world = Matrix.Translation(centre - up * 0.1) @ rotation
+        self.rig.bone_parent(root, "spine_03")
+        for c in root.children_recursive:
+            if c.type == "MESH":
+                self.parts.append(c)
+        for k, (along, x, z) in enumerate(((-0.4, -0.10, 1.42), (0.4, 0.10, 1.02))):
+            lug = root.matrix_world @ Vector((-0.075, along, 0.1))
+            anchor = Vector((x, back, z))
+            reach = lug - anchor
+            strap = box(f"launcher_retention_{k}", (0.035, 0.008, reach.length),
+                        (anchor + lug) * 0.5, self.m["webbing"],
+                        rot=reach.to_track_quat("Z", "Y").to_euler())
+            self.rigid(strap, "spine_03")
+
     def weapon(self, spec):
         """Place the weapon where its low-ready hold puts it and ride it on hand_r:
         in the clips, hand_r's armature-space matrix equals its IK target."""
@@ -976,6 +1010,8 @@ def build(kind, variant):
     if kit.look["scarf"]:
         kit.scarf()
     kit.skin()
+    if kind == "at_carried":
+        kit.carried_launcher()
     kit.weapon(weapons.KINDS[kind])
     kit.eye()
     kit.paint_all()
@@ -1003,6 +1039,7 @@ def main():
     sockets = [bpy.data.objects["eye"], bpy.data.objects["muzzle"]]
     rel = f"assets/source/infantry/{kind if variant == 'a' else f'{kind}_{variant}'}.glb"
     export_glb(os.path.join(REPO, rel), [rig.arm, *tiers, *sockets])
+    print(f"wrote {rel}")
 
 
 if __name__ == "__main__":
