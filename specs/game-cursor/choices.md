@@ -4,9 +4,9 @@ Planning delegation: the user authorized applying useful intent, actual reachabi
 
 ## Sound — medium confidence
 
-### A finite path into the selected house keeps its place
+### Physical entry and deferred entry are different promises
 
-If a selected squad is already walking through a finite queue that ends in entry to this house, another click keeps that path while companions gather. A reservation behind an indefinite attack does not qualify: a replacement click must make a fresh plan. The plan specified already-held and entering squads but left the boundary of “entering” open. This choice preserves an existing achievable entry and its later queued work. Future orders inherit one shared definition of a held or ordered entry. Sound: the finite path is physically certified before it counts; medium confidence because preserving its earlier path can take longer than replacing it.
+If a selected squad is inside or physically entering the clicked house, it keeps that position while companions gather. A replacement click cancels an old departure, even when that departure sits behind a same-house garrison order. A squad still outside with a future entry reservation competes in a fresh replacement plan; Shift can retain that future entry only after its earlier work is proved. The plan left the boundary of “entering” open. Future commands inherit one private prepared decision: keep compatible holding work, reassert entry to supersede departure, or route a fresh entrant. Sound: an old queue cannot defeat the new requested state. Medium confidence because retaining compatible armed work deliberately differs from clearing every prior order.
 
 ### Entry search and fallback each receive work
 

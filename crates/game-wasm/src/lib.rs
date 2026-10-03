@@ -804,7 +804,7 @@ impl BattleHandle {
     }
 
     /// Resolve a combined building action without accepting an order or advancing time.
-    pub fn preview_building(&mut self, side: &str, request_json: &str) -> Result<String, JsError> {
+    pub fn preview_building(&self, side: &str, request_json: &str) -> Result<String, JsError> {
         let side = parse_side(side)?;
         let request: contract::command::BuildingPreviewRequest =
             serde_json::from_str(request_json).map_err(js_error)?;

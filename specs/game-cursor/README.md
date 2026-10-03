@@ -4,16 +4,16 @@ The cursor describes the action a right-click can carry out using the ordering s
 
 ## Next Agent Prompt
 
-Status: implementing; updated 2026-10-03. Finish the native follow-up and played pointer integration, integrate their reviewed commits, then run whole-feature review and the final gates. The native follow-up proves queued origins, hidden-state independence and per-tick replay, and replaces deferred-entry preservation with fresh replacement planning. The browser follow-up proves mixed selections, partial refusal, pending acknowledgement and reset/captured-target behavior. Cursor presentation and actual WASM/authority/client preview purity are complete. Use implement-spec through close-spec; this checkpoint is not a stopping point.
+Status: implementing; updated 2026-10-03. Native building authority is complete and integrated, including queue compatibility, shortest-entry certainty, hidden-state independence and per-tick replay. Finish played pointer integration and its reviewed commit, then run whole-feature review and final gates. Cursor presentation and actual WASM/authority/client preview purity are complete. The browser follow-up proves mixed selections, partial refusal, pending acknowledgement, reset/captured-target behavior and unchanged canvas-only edge panning. Its final GPU checks are queued behind another worktree's verification; keep using the shared lock. Use implement-spec through close-spec; this checkpoint is not a stopping point.
 
-- [ ] Authoritative combined building order, preview and native proof.
+- [x] Authoritative combined building order, preview and native proof.
 - [x] Approved cursor presentation and isolated browser proof.
 - [ ] Shared hover/held/release intent, wire integration and played browser proof.
 - [ ] Whole-feature review, one full check/verify closeout, consolidated choices and close-spec.
 
 The graph is `01 || 02 → 03 → closeout`. The simulation's bounded route search and joint certification are the first risk to resolve. Scratch evidence belongs in ignored `throwaway/`; the approved concept below is a lasting requirement.
 
-Evidence: 37 native garrison tests and focused contract/sim/WASM lint passed at the checkpoint; multipart nomination is invariant, bounded search is fair, failed-held reproof is stable, and forest clearing no longer invalidates scratch navigation. Browser authority/client tests pass (19), including mixed preview-to-admission digest and replay equality, query-local failure recovery, and no command/publication side effects. Input/gesture tests (30) and isolated cursor/component/fixture proofs passed earlier with fresh visual critique. The CLI second-opinion tool cannot run with its configured model/account; independent collaborator reviews supply the code opinion without overriding user model settings. Use the scene runner's regular Chromium channel for GPU captures, not Playwright's default headless-shell variant.
+Evidence: native garrison (50), buildings (31), move-admission (19) and formation (8) tests plus all-target contract/sim/WASM lint pass, with independent final source review. Browser authority/client tests pass (19), including mixed preview-to-admission digest and replay equality, query-local failure recovery, and no command/publication side effects. Actual ungarrisonable aggregate nomination, native preparation eligibility and world-mesh neighbors pass; the dead browser capability export is removed. Input/gesture tests and isolated cursor/component/fixture proofs passed earlier with fresh visual critique. The CLI second-opinion tool cannot run with its configured model/account; independent collaborator reviews supply the code opinion without overriding user model settings. Use the scene runner's regular Chromium channel for GPU captures, not Playwright's default headless-shell variant.
 
 ## Known knowns — grounded territory
 
