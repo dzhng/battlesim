@@ -8,7 +8,8 @@
 import { useCallback, useImperativeHandle, useRef, type ReactNode, type Ref } from "react";
 import type { PresentedContact } from "./contactPresentation";
 import type { ContactView, IdentifiedView, OwnUnitView } from "../sim/observation";
-import type { CommandMode, PointerPick, useUnitControl } from "../input/useUnitControl";
+import type { useUnitControl } from "../input/useUnitControl";
+import type { CommandMode, PointerPick } from "../input/pointerIntent";
 import { CommandBindings, FacingBinding } from "../input/commandBindings";
 import { reach, type ReachCommand } from "../input/commandReach";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";

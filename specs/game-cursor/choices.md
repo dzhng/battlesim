@@ -4,6 +4,10 @@ Planning delegation: the user authorized applying useful intent, actual reachabi
 
 ## Sound — medium confidence
 
+### Context badges reuse the player's existing symbols
+
+Hovering an enemy adds the existing aiming mark, and a blocked action adds the existing rejection cross. The approved concept used illustrative Lucide symbols; introducing another icon family would teach two shapes for the same action. The visual prompt allowed production symbols and fixed their position/scale. Future actions extend the generated icon owner rather than a cursor-specific glyph set. Sound: the player already meets these shapes in the command bar and readouts, and actual-size captures passed independent review.
+
 ### One group intent is admitted as a whole
 
 When two squads and a tank click a house, the worker chooses the entrant and gathering positions together. Sending a separate entry command followed by a move would let the first command change what the second can do, so preview and execution could disagree. The prompt specified the result but not the command boundary. One `OccupyBuilding` intent records that result and lowers to the existing unit queues. Future callers inherit one admission/acknowledgement contract. Sound: the simulation remains the one authority.
@@ -13,6 +17,18 @@ When two squads and a tank click a house, the worker chooses the entrant and gat
 Moving over a house places the arrow tip exactly at the input pointer and adds the building symbol below/right. A native CSS image cursor would also work, but ordinary headless screenshots omit the system pointer. The overlay uses the current viewport pointer, renders once and changes its position directly; no GPU pass or dependency is introduced. The prompt fixed appearance, not rendering mechanism. Sound: the existing viewport already reports pointer position every frame, and actual gameplay captures can prove this same component. Medium confidence: pointer responsiveness must be judged in the real route. Native CSS hotspot/fallback alternative is documented by [MDN](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/cursor).
 
 ## Sound — high confidence
+
+### Hover resolves intent without consuming the command
+
+While an attack-ground command is armed, hovering over a target can describe the next click without disarming it or issuing anything. Dispatch alone consumes the mode and gesture token. A blocked enemy click still resets the mode where the existing controls did so; the pure result carries that dispatch decision. The original code embedded precedence and mode mutation together. This split gives hover, held preview and actual commands one policy without letting mouse motion change orders. Sound: the new input tests prove actual sent orders and preserved mode behavior.
+
+### Badges are mounted once
+
+Changing from a garrison action to attack switches visibility among seven existing icon nodes; it does not rerender the component or construct new SVG for every mouse movement. The prompt did not choose the update mechanism. The small fixed set fits comfortably, uses the existing Icon renderer and has one owner. Sound: bounded simple work follows the viewport pointer and preserves a stable arrow node/hotspot.
+
+### A stale preview error does not fail the battle
+
+A unit can die while a building query is in flight. Validation then rejects that query, while the worker remains usable for surviving units' orders. Treating that routine input race as a terminal worker failure would stop the entire battle. The prompt did not specify preview error transport. The building reply contains its own result/error and the client settles that request only; terminal transport errors still reject all pending work. Sound: query lifetime and simulation lifetime are separate contracts.
 
 ### Queue and route ties preserve predictable intent
 

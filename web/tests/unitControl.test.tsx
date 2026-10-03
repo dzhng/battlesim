@@ -3,7 +3,8 @@
 import { act, renderHook } from "@testing-library/react";
 import { expect, test, vi } from "vitest";
 import { contactUnder } from "../src/battle/input/contactPick";
-import { useUnitControl, type PointerPick } from "../src/battle/input/useUnitControl";
+import { useUnitControl } from "../src/battle/input/useUnitControl";
+import type { PointerPick } from "../src/battle/input/pointerIntent";
 import type { SimClient } from "../src/battle/sim/client";
 import type { ContactView, ObservationView, OwnUnitView } from "../src/battle/sim/observation";
 import type { Order } from "../src/battle/sim/protocol";
@@ -97,6 +98,57 @@ test("an unarmed selection right-clicking a contact moves there instead", async 
   act(() => hook.result.current.setSelected([2]));
   await click({ contact: 7 });
   expect(sent.map((s) => s.order.kind)).toEqual(["move"]);
+});
+
+test("a building click sends the mixed selection as one queued building intent", async () => {
+  const { sent, click } = await control();
+  await click({ building: 9, shift: true });
+  expect(sent).toEqual([
+    {
+      order: { kind: "occupy_building", units: [1, 2], building: 9, gesture: 1 },
+      queued: true,
+    },
+  ]);
+});
+
+test("hover and dispatch share modifier precedence without hover consuming an armed mode", async () => {
+  const { hook, sent, click } = await control();
+  act(() => hook.result.current.setMode("attack_ground"));
+  const pick: PointerPick = {
+    unit: null,
+    button: "right",
+    shift: true,
+    ctrl: true,
+    x: 0,
+    y: 0,
+    time: 0,
+    ground: [50, 50],
+    building: 9,
+    enemy: 3,
+  };
+  expect(hook.result.current.intentAt(pick)).toEqual({
+    kind: "attack_move",
+    units: [1],
+    goal: [50, 50],
+    queued: true,
+  });
+  expect(hook.result.current.mode).toBe("attack_ground");
+  expect(sent).toEqual([]);
+  await click(pick);
+  expect(sent).toEqual([
+    { order: { kind: "attack_move", units: [1], goal: [50, 50], gesture: 1 }, queued: true },
+  ]);
+});
+
+test("an unarmed enemy click disarms the command but sends no attack", async () => {
+  const { hook, sent, click } = await control();
+  act(() => {
+    hook.result.current.setSelected([2]);
+    hook.result.current.setMode("garrison");
+  });
+  await click({ enemy: 3 });
+  expect(hook.result.current.mode).toBe("move");
+  expect(sent).toEqual([]);
 });
 
 test("the contact under a ground point is the one whose area holds it, the nearest centre first", () => {

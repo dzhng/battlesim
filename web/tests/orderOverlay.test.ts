@@ -19,7 +19,7 @@ import {
   type MapBorderStyle,
 } from "../../packages/battle-renderer/src/playAreaOverlay";
 import { strokeWidth, validateStrokeRule } from "../../packages/battle-renderer/src/strokeWidth";
-import { dragFacing } from "../src/battle/input/useUnitControl";
+import { dragFacing } from "../src/battle/input/pointerIntent";
 import { gameOrderStyle } from "@apps/battle-lab/src/gameOverlay";
 import game from "../../fixtures/game.json";
 

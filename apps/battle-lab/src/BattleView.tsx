@@ -238,8 +238,8 @@ export function BattleView({
               )?.ack;
             const awaiting = pending && !accepted;
             const move = heldMove ?? (awaiting ? pending : null);
-            let preview = pointerPaint.resolveMove(
-              move,
+            let preview = pointerPaint.resolvePreview(
+              move ? { kind: "move", request: move } : null,
               control.selectedUnits,
               session.sim.client,
               observation?.tick ?? 0,

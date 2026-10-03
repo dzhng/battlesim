@@ -53,6 +53,9 @@ test("placement queries coalesce cursor updates and a cancelled reply cannot res
   const requested: import("../src/battle/sim/protocol").MovePreviewRequest[] = [];
   let finish!: (marks: import("../src/battle/sim/protocol").MoveDestination[]) => void;
   const client = {
+    previewBuilding: async () => {
+      throw new Error("unexpected building preview");
+    },
     previewMove: (move: import("../src/battle/sim/protocol").MovePreviewRequest) => {
       requested.push(move);
       return new Promise<import("../src/battle/sim/protocol").MoveDestination[]>((resolve) => {
@@ -61,23 +64,30 @@ test("placement queries coalesce cursor updates and a cancelled reply cannot res
     },
   };
   const move = { units: [1], goal: [100, 200] as [number, number], facing: 0 };
-  paint.resolveMove(move, selected, client, 0);
-  paint.resolveMove({ ...move, facing: 1 }, selected, client, 0);
-  paint.resolveMove({ ...move, facing: 2 }, selected, client, 0);
+  paint.resolvePreview({ kind: "move", request: move }, selected, client, 0);
+  paint.resolvePreview({ kind: "move", request: { ...move, facing: 1 } }, selected, client, 0);
+  paint.resolvePreview({ kind: "move", request: { ...move, facing: 2 } }, selected, client, 0);
   expect(requested).toEqual([move]);
   finish([{ unit: 1, goal: move.goal, placed: true, facing: 0 }]);
   await new Promise((r) => setTimeout(r, 0));
-  expect(paint.resolveMove({ ...move, facing: 2 }, selected, client, 0)).toEqual([]);
+  expect(
+    paint.resolvePreview({ kind: "move", request: { ...move, facing: 2 } }, selected, client, 0),
+  ).toEqual([]);
   expect(requested).toEqual([move, { ...move, facing: 2 }]);
   finish([{ unit: 1, goal: move.goal, placed: true, facing: 2 }]);
   await new Promise((r) => setTimeout(r, 0));
-  const markers = paint.resolveMove({ ...move, facing: 2 }, selected, client, 0);
+  const markers = paint.resolvePreview(
+    { kind: "move", request: { ...move, facing: 2 } },
+    selected,
+    client,
+    0,
+  );
   expect(markers).toMatchObject([{ unit: 1, placed: true, opacity: 1, c: [100, 200], facing: 2 }]);
-  paint.resolveMove({ ...move, facing: 3 }, selected, client, 0);
-  expect(paint.resolveMove(null, selected, client, 0)).toEqual([]);
+  paint.resolvePreview({ kind: "move", request: { ...move, facing: 3 } }, selected, client, 0);
+  expect(paint.resolvePreview(null, selected, client, 0)).toEqual([]);
   finish([{ unit: 1, goal: move.goal, placed: true, facing: 3 }]);
   await new Promise((r) => setTimeout(r, 0));
-  expect(paint.resolveMove(null, selected, client, 0)).toEqual([]);
+  expect(paint.resolvePreview(null, selected, client, 0)).toEqual([]);
 });
 
 test("a rejected destination paints no destination marker", () => {
@@ -97,18 +107,23 @@ test("a cancelled query cannot paint a new press at the same anchor", async () =
   ] as unknown as import("../src/battle/sim/observation").OwnUnitView[];
   let finish!: (marks: import("../src/battle/sim/protocol").MoveDestination[]) => void;
   const client = {
+    previewBuilding: async () => {
+      throw new Error("unexpected building preview");
+    },
     previewMove: () =>
       new Promise<import("../src/battle/sim/protocol").MoveDestination[]>((resolve) => {
         finish = resolve;
       }),
   };
   const move = { units: [1], goal: [100, 200] as [number, number], facing: 1 };
-  paint.resolveMove(move, own, client, 0);
-  paint.resolveMove(null, own, client, 0);
-  paint.resolveMove({ ...move, facing: 0 }, own, client, 0);
+  paint.resolvePreview({ kind: "move", request: move }, own, client, 0);
+  paint.resolvePreview(null, own, client, 0);
+  paint.resolvePreview({ kind: "move", request: { ...move, facing: 0 } }, own, client, 0);
   finish([{ unit: 1, goal: move.goal, placed: true, facing: 1 }]);
   await new Promise((r) => setTimeout(r, 0));
-  expect(paint.resolveMove({ ...move, facing: 0 }, own, client, 0)).toEqual([]);
+  expect(
+    paint.resolvePreview({ kind: "move", request: { ...move, facing: 0 } }, own, client, 0),
+  ).toEqual([]);
 });
 
 test("pointer paint reveals only accepted destinations from a partially blocked group", async () => {
@@ -132,4 +147,51 @@ test("pointer paint reveals only accepted destinations from a partially blocked 
   expect(markers).toMatchObject([{ unit: 2, c: [140, 200], placed: true }]);
   paint.update(null, markers, () => 0, 0.05);
   expect(paint.preview).toMatchObject([{ unit: 2, c: [140, 200] }]);
+});
+
+test("a changed building cannot inherit a late entry result, and fallback displays its accepted moves", async () => {
+  const { PointerPaint } = await import("@apps/battle-lab/src/pointerPaint");
+  const paint = new PointerPaint();
+  const own = [
+    { id: 1, kind: "tank", position: [0, 0, 0], members: [], area: null, garrison: null },
+    { id: 2, kind: "rifle", position: [0, 0, 0], members: [], area: null, garrison: null },
+  ] as unknown as import("../src/battle/sim/observation").OwnUnitView[];
+  let finish!: (placement: import("../src/battle/sim/protocol").BuildingPlacement) => void;
+  const client = {
+    previewMove: async () => [],
+    previewBuilding: () =>
+      new Promise<import("../src/battle/sim/protocol").BuildingPlacement>((resolve) => {
+        finish = resolve;
+      }),
+  };
+  const intent = { kind: "building" as const, request: { units: [1, 2], building: 8 } };
+  paint.resolvePreview(intent, own, client, 0);
+  paint.resolvePreview({ ...intent, request: { ...intent.request, building: 9 } }, own, client, 0);
+  finish({ building: 8, entrant: { unit: 2, approach: [100, 200] }, destinations: [] });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(paint.building).toBe(null);
+  expect(
+    paint.resolvePreview(
+      { ...intent, request: { ...intent.request, building: 9 } },
+      own,
+      client,
+      0,
+    ),
+  ).toEqual([]);
+  finish({
+    building: 9,
+    entrant: null,
+    destinations: [{ unit: 1, goal: [140, 200], placed: true, facing: 0 }],
+  });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(
+    paint.resolvePreview(
+      { ...intent, request: { ...intent.request, building: 9 } },
+      own,
+      client,
+      0,
+    ),
+  ).toMatchObject([{ unit: 1, c: [140, 200], placed: true }]);
+  expect(paint.building?.entrant).toBe(null);
+  expect(paint.state).toBe("ready");
 });

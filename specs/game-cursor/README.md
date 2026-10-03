@@ -4,7 +4,7 @@ The cursor describes the action a right-click can carry out using the ordering s
 
 ## Next Agent Prompt
 
-Status: planned, implementation authorized; updated 2026-10-03. Start [building authority](slices/01-building-authority.md) and [cursor presentation](slices/02-cursor-presentation.md) in parallel, in separate managed worktrees with shared dependencies and separate build output. Then integrate [pointer intent](slices/03-pointer-integration.md). Use implement-spec: committed passes, review and choices audit, then continue until every decision and gate below is fulfilled. Update this prompt before ending each pass.
+Status: implementing; updated 2026-10-03. Building authority is in focused native verification and independent review. Cursor presentation is complete and ready to integrate. The shared input resolver and worker building-preview transport are implemented with focused proof; next complete [pointer integration](slices/03-pointer-integration.md) across viewport/session, held/accepted preview and gameplay scenes. Use implement-spec: committed passes, review and choices audit, then continue until every decision and gate below is fulfilled. Update this prompt before ending each pass.
 
 - [ ] Authoritative combined building order, preview and native proof.
 - [ ] Approved cursor presentation and isolated browser proof.
@@ -12,6 +12,8 @@ Status: planned, implementation authorized; updated 2026-10-03. Start [building 
 - [ ] Whole-feature review, one full check/verify closeout, consolidated choices and close-spec.
 
 The graph is `01 || 02 → 03 → closeout`. The simulation's bounded route search and joint certification are the first risk to resolve. Scratch evidence belongs in ignored `throwaway/`; the approved concept below is a lasting requirement.
+
+Evidence: browser input/preview/transport and preserved gesture tests pass (30 focused tests). Independent input review's stale comment, authority mock and armed-mode-reset findings are resolved. The CLI second-opinion tool cannot run with its configured model/account; independent collaborator reviews supply the code opinion, without overriding user model settings. Full typecheck awaits the native WASM contract merge; remaining errors name only that missing generated declaration. Cursor component, registry and browser fixture gates passed with fresh visual critique. Use the scene runner's regular Chromium channel for GPU captures, not Playwright's default headless-shell variant.
 
 ## Known knowns — grounded territory
 

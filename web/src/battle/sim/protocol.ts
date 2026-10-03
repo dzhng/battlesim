@@ -38,6 +38,7 @@ export type Order =
   | { kind: "set_deployment"; units: number[]; deployed: boolean }
   /** Walk to the building and enter it as whole squads (refused if they do not all fit). */
   | { kind: "garrison"; units: number[]; building: number }
+  | { kind: "occupy_building"; units: number[]; building: number; gesture: number; facing?: number }
   /** Leave the building after a stationary timer. */
   | { kind: "exit_building"; units: number[] }
   | { kind: "upgrade_move"; gesture: number; route: RoutePolicy };
@@ -59,6 +60,24 @@ export interface MovePreviewRequest {
   direction?: MoveDirection;
 }
 
+export interface BuildingPreviewRequest {
+  units: number[];
+  building: number;
+  facing?: number;
+  queued?: boolean;
+}
+
+export interface BuildingEntry {
+  unit: number;
+  approach: [number, number];
+}
+
+export interface BuildingPlacement {
+  building: number;
+  entrant: BuildingEntry | null;
+  destinations: MoveDestination[];
+}
+
 /** The same per-unit destinations used when the move is committed. */
 export interface MoveDestination {
   unit: number;
@@ -77,6 +96,7 @@ export interface CommandAck {
   applied_tick: number;
   error: OrderError | null;
   placement?: { gesture: number; destinations: MoveDestination[] };
+  building?: BuildingPlacement;
 }
 
 export type AuthorityStatus =
@@ -105,6 +125,7 @@ export type SimRequest =
   | { type: "start" }
   | { type: "command"; command: CommandEnvelope }
   | { type: "move_preview"; id: number; side: SideName; move: MovePreviewRequest }
+  | { type: "building_preview"; id: number; side: SideName; building: BuildingPreviewRequest }
   /** A consumed publication buffer returned to the producer. */
   | { type: "credit"; buffer: ArrayBuffer }
   | { type: "pause" }
@@ -122,6 +143,7 @@ export type SimReply =
   | { type: "ready"; layout: string; tickHz: number; tick: number }
   | { type: "ack"; ack: CommandAck }
   | { type: "move_preview"; id: number; destinations: MoveDestination[] }
+  | { type: "building_preview"; id: number; placement: BuildingPlacement | null; error?: string }
   | {
       type: "publication";
       tick: number;

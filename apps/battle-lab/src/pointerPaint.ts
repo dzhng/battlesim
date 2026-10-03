@@ -20,10 +20,15 @@ import {
   type RulerRules,
 } from "@web/battle/present/rangeRuler";
 import { inReverseZone } from "@web/battle/input/reverseZone";
-import { dragFacing } from "@web/battle/input/useUnitControl";
+import { dragFacing } from "@web/battle/input/pointerIntent";
 import type { OwnUnitView } from "@web/battle/sim/observation";
 import type { SimClient } from "@web/battle/sim/client";
-import type { MovePreviewRequest, MoveDestination } from "@web/battle/sim/protocol";
+import type {
+  MovePreviewRequest,
+  MoveDestination,
+  BuildingPreviewRequest,
+  BuildingPlacement,
+} from "@web/battle/sim/protocol";
 import type { Vec3 } from "math";
 import { orderView } from "./battleOverlay";
 import { Feed } from "./feed";
@@ -36,6 +41,10 @@ interface ShownRuler {
   ruler: RangeRuler;
   circle: UnitCircle | null;
 }
+
+export type PointerPreview =
+  | { kind: "move"; request: MovePreviewRequest }
+  | { kind: "building"; request: BuildingPreviewRequest };
 
 /** The ruler from the selected unit nearest the ground under `ray`, or null
  *  with no selection or no ground there. The cursor's point is the walkable
@@ -91,45 +100,64 @@ export class PointerPaint {
   shown: RangeRuler | null = null;
 
   preview: readonly (DestinationMarker & { unit: number })[] = [];
-  private previewClient: Pick<SimClient, "previewMove"> | null = null;
+  private previewClient: Pick<SimClient, "previewMove" | "previewBuilding"> | null = null;
   private resolved = "";
   private gesture = "";
   private generation = 0;
   private busy = false;
   private destinations: MoveDestination[] = [];
+  building: BuildingPlacement | null = null;
+  state: "idle" | "pending" | "ready" | "blocked" = "idle";
 
   /** At most one placement query is in flight; intermediate pointer updates
    *  are coalesced, and a reply cannot restore a cancelled gesture. */
-  resolveMove(
-    move: MovePreviewRequest | null,
+  resolvePreview(
+    intent: PointerPreview | null,
     selected: readonly OwnUnitView[],
-    client: Pick<SimClient, "previewMove"> | null,
+    client: Pick<SimClient, "previewMove" | "previewBuilding"> | null,
     tick: number,
+    identity = "",
   ) {
-    const gesture = move && client ? JSON.stringify(move) : "";
+    const gesture = intent && client ? JSON.stringify([intent, identity]) : "";
     if (gesture !== this.gesture || client !== this.previewClient) {
       this.generation += 1;
       this.gesture = gesture;
       this.previewClient = client;
       this.destinations = [];
+      this.building = null;
+      this.state = intent && client ? "pending" : "idle";
       this.resolved = "";
     }
-    const key = gesture && JSON.stringify([move, tick]);
+    const key = gesture && JSON.stringify([intent, tick]);
     const generation = this.generation;
-    if (move && client && key && !this.busy && key !== this.resolved) {
+    if (intent && client && key && !this.busy && key !== this.resolved) {
       this.busy = true;
-      void client
-        .previewMove(move)
+      const query =
+        intent.kind === "move"
+          ? client
+              .previewMove(intent.request)
+              .then((destinations) => ({ destinations, building: null }))
+          : client
+              .previewBuilding(intent.request)
+              .then((building) => ({ destinations: building.destinations, building }));
+      void query
         .then(
-          (marks) => {
+          (result) => {
             if (this.generation === generation && this.previewClient === client) {
-              this.destinations = marks;
+              this.destinations = result.destinations;
+              this.building = result.building;
+              this.state =
+                result.building?.entrant || result.destinations.some((mark) => mark.placed)
+                  ? "ready"
+                  : "blocked";
               this.resolved = key;
             }
           },
           () => {
             if (this.generation === generation && this.previewClient === client) {
               this.destinations = [];
+              this.building = null;
+              this.state = "blocked";
               this.resolved = key;
             }
           },

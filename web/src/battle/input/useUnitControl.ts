@@ -5,66 +5,21 @@
  * (Ctrl+right-click attack-moves at once; a right-click behind a single
  * selected vehicle reverses), right-click on a building to garrison it (Shift
  * queues), leaving buildings, stop, the fire-policy toggle, deploy/pack, and
- * the acknowledgement log. Keys come from `CommandBindings`. In a mixed
- * selection, deploy, garrison and leaving a building go to the units that can
- * (`commandReach.ts`). Labs and the
+ * the acknowledgement log. Keys come from `CommandBindings`. Building clicks
+ * send the complete selection for authoritative entry and outside gathering;
+ * deploy and leaving a building reach only capable units (`commandReach.ts`). Labs and the
  * battle route share it; it sends only real commands. */
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
 import type { SimClient } from "../sim/client";
 import type { ObservationView, OwnUnitView } from "../sim/observation";
 import type { CommandAck, Order } from "../sim/protocol";
-import { commandForKey, isAttackMoveClick, ShowOrdersBinding } from "./commandBindings";
+import { commandForKey, ShowOrdersBinding } from "./commandBindings";
 import { useHeldKey } from "./heldKeys";
 import { MoveGestures } from "./moveGestures";
-import { inReverseZone } from "./reverseZone";
+import { pointerIntent, type PointerPick, type CommandMode } from "./pointerIntent";
 import { reach } from "./commandReach";
 import { SelectClicks, similarUnits } from "./selectSimilar";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
-
-export interface PointerPick {
-  /** The own unit under the pointer, if any. */
-  unit: number | null;
-  button: "left" | "right";
-  shift: boolean;
-  ctrl: boolean;
-  x: number;
-  y: number;
-  time: number;
-  /** Ground point under the pointer on the known surface, if any. */
-  ground: [number, number] | null;
-  /** The building (static prop id) under the pointer, if any. */
-  building?: number | null;
-  /** The identified enemy (observed handle) under the pointer, if any. */
-  enemy?: number | null;
-  /** The contact (side-scoped id) whose area holds the ground point, if any
-   *  (`contactPick.ts`). An identified enemy under the pointer wins. */
-  contact?: number | null;
-  /** A right-drag's release point on the ground (Q9): the units face from
-   *  `ground` toward it. Absent for a plain right-click. */
-  facingTo?: [number, number] | null;
-}
-
-/** Shorter drags than this on the ground set no facing. */
-const MIN_FACING_DRAG_M = 1;
-
-/** The world bearing a right-drag sets (Q9), or undefined without one. */
-export function dragFacing(pick: Pick<PointerPick, "ground" | "facingTo">): number | undefined {
-  if (!pick.ground || !pick.facingTo) return undefined;
-  const dx = pick.facingTo[0] - pick.ground[0],
-    dy = pick.facingTo[1] - pick.ground[1];
-  return Math.hypot(dx, dy) < MIN_FACING_DRAG_M ? undefined : Math.atan2(dy, dx);
-}
-
-/** What the next right-click does: move, or an armed command from the bar or
- *  keys (attack-move, reverse move, attack ground; fast move and garrison
- *  from the bar). */
-export type CommandMode =
-  | "move"
-  | "attack_move"
-  | "reverse_move"
-  | "attack_ground"
-  | "fast_move"
-  | "garrison";
 
 export interface AckEntry {
   seq: number;
@@ -158,6 +113,8 @@ export function useUnitControl(
           return `${order.deployed ? "deploy" : "pack"} ${order.units.map(unitName).join(", ")}`;
         case "garrison":
           return `garrison building ${order.building} with ${order.units.map(unitName).join(", ")}${queued ? " (queued)" : ""}`;
+        case "occupy_building":
+          return `occupy building ${order.building} with ${order.units.map(unitName).join(", ")}${queued ? " (queued)" : ""}`;
         case "exit_building":
           return `leave building: ${order.units.map(unitName).join(", ")}`;
         case "upgrade_move":
@@ -206,104 +163,38 @@ export function useUnitControl(
         );
         return;
       }
-      if (selected.length === 0) return;
-      // Every attack goes only to the armed units (`reach("attack")`); an
-      // unarmed unit keeps its orders.
-      const armed = () => reach("attack", selectedUnitsRef.current, UNITS).map((u) => u.id);
-      // Ctrl+right-click: attack-move to the ground there, whatever is armed.
-      if (isAttackMoveClick(pick)) {
-        if (!pick.ground) return;
-        setMode("move");
-        const units = armed();
-        if (!units.length) return;
-        void issue(
-          {
-            kind: "attack_move",
-            units,
-            gesture: gestures.current.token(),
-            goal: pick.ground,
-          },
-          pick.shift,
-        );
+      const intent = pointerIntent(pick, selectedUnitsRef.current, modeRef.current, UNITS);
+      if (intent.kind === "none") return;
+      if (intent.kind === "blocked") {
+        if (intent.disarm) setMode("move");
         return;
       }
-      // Right-click an identified enemy: attack it (Shift queues).
-      if (pick.enemy != null) {
-        setMode("move");
-        const units = armed();
-        if (units.length)
-          void issue(
-            { kind: "attack", units, target: { kind: "identified", id: pick.enemy } },
-            pick.shift,
-          );
-        return;
+      setMode("move");
+      const { queued, ...command } = intent;
+      if (command.kind === "move") {
+        const order =
+          command.route === "fastest"
+            ? { ...command, gesture: gestures.current.token() }
+            : gestures.current.rightClick(
+                pick,
+                command.units,
+                command.goal,
+                command.direction,
+                command.facing,
+              );
+        void issue(order, order.kind === "move" && queued);
+      } else if (command.kind === "attack") {
+        void issue(command, queued);
+      } else {
+        void issue({ ...command, gesture: gestures.current.token() }, queued);
       }
-      // Right-click a contact's area: the armed units fire into it, as at an
-      // identified enemy (Shift queues). An unarmed selection moves there.
-      if (pick.contact != null) {
-        const units = armed();
-        if (units.length) {
-          setMode("move");
-          void issue(
-            { kind: "attack", units, target: { kind: "contact", id: pick.contact } },
-            pick.shift,
-          );
-          return;
-        }
-      }
-      // Right-click a building: the selection's squads garrison it (Shift
-      // queues). A selection without squads moves there instead.
-      const squads = reach("garrison", selectedUnitsRef.current, UNITS).map((u) => u.id);
-      if (pick.building != null && (mode === "garrison" || (mode === "move" && squads.length))) {
-        setMode("move");
-        if (squads.length)
-          void issue({ kind: "garrison", units: squads, building: pick.building }, pick.shift);
-        return;
-      }
-      if (!pick.ground || mode === "garrison") return;
-      const facing = dragFacing(pick);
-      if (mode === "reverse_move") {
-        setMode("move");
-        const order = gestures.current.rightClick(pick, selected, pick.ground, "reverse", facing);
-        void issue(order, order.kind === "move" && pick.shift);
-        return;
-      }
-      if (mode === "fast_move") {
-        setMode("move");
-        void issue(
-          {
-            kind: "move",
-            units: selected,
-            gesture: gestures.current.token(),
-            goal: pick.ground,
-            route: "fastest",
-            ...(facing === undefined ? {} : { facing }),
-          },
-          pick.shift,
-        );
-        return;
-      }
-      if (mode !== "move") {
-        // An armed attack-move or attack-ground applies to one click, then movement is the default again.
-        const [x, y] = pick.ground;
-        const units = armed();
-        setMode("move");
-        if (!units.length) return;
-        const order: Order =
-          mode === "attack_move"
-            ? { kind: "attack_move", units, gesture: gestures.current.token(), goal: [x, y] }
-            : { kind: "attack", units, target: { kind: "ground", point: [x, y, 0] } };
-        void issue(order, pick.shift);
-        return;
-      }
-      // Behind a single selected vehicle, a plain right-click reverses (Q31).
-      const direction = inReverseZone(selectedUnitsRef.current, pick.ground)
-        ? "reverse"
-        : "forward";
-      const order = gestures.current.rightClick(pick, selected, pick.ground, direction, facing);
-      void issue(order, order.kind === "move" && pick.shift);
     },
-    [selected, issue, mode, setMode],
+    [issue, setMode],
+  );
+
+  const intentAt = useCallback(
+    (pick: PointerPick) => pointerIntent(pick, selectedUnitsRef.current, modeRef.current, UNITS),
+    [],
   );
 
   /** Return fire only for the selection, or Fire at will if all hold. */
@@ -386,6 +277,7 @@ export function useUnitControl(
     acks,
     issue,
     onPointer,
+    intentAt,
     selectInRect,
     stop,
     setDeployment,

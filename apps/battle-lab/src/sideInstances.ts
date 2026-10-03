@@ -1,6 +1,6 @@
 import { bodyBox, type PickBox, type SoldierBody } from "@packages/battle-renderer/src/picking";
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
-import type { PointerPick } from "@web/battle/input/useUnitControl";
+import type { PointerPick } from "@web/battle/input/pointerIntent";
 import type { Pose } from "@web/battle/present/interpolate";
 import { contactUnder } from "@web/battle/input/contactPick";
 import type { ContactView, ObservationView } from "@web/battle/sim/observation";

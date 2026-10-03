@@ -341,6 +341,7 @@ test("worker publication copying and transfer preserve every raw NaN carrier bit
     observation_layout: () => "{}",
     accept: () => "{}",
     preview_move: () => "[]",
+    preview_building: () => "null",
     step: () => ++tick,
     tick: () => tick,
     digest: () => "carrier",
