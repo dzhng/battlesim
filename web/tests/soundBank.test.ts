@@ -40,6 +40,23 @@ function recordingCatalog(): SoundCatalog {
   };
 }
 
+test("recording fetch keeps the browser function's invocation context", async () => {
+  const context = {
+    sampleRate: 48000,
+    createBuffer: buffer,
+    async decodeAudioData() {
+      return buffer(1, 2, 48000);
+    },
+  } as unknown as BaseAudioContext;
+  const hostFetch = async function (this: unknown) {
+    if (this !== undefined && this !== globalThis) throw new TypeError("Illegal invocation");
+    return new Response(Uint8Array.of(1));
+  };
+  const bank = new SoundBank(context, recordingCatalog(), hostFetch);
+  await bank.prepare(["report"]);
+  expect(bank.get("report").length).toBe(2);
+});
+
 test("recorded variations prepare once and preserve the raw unused clip for audition", async () => {
   const decoded = new Map<string, AudioBuffer>();
   const context = {

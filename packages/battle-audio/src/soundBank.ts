@@ -52,7 +52,8 @@ export class SoundBank {
     let loaded = this.clips.get(id);
     if (!loaded) {
       loaded = (async () => {
-        const response = await this.fetcher(entry.url, { signal: admitted });
+        const fetcher = this.fetcher;
+        const response = await fetcher(entry.url, { signal: admitted });
         if (!response.ok) throw new Error(`Sound clip ${id}: HTTP ${response.status}`);
         const decoded = await this.context.decodeAudioData(await response.arrayBuffer());
         admitted.throwIfAborted();
