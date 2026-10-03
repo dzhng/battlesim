@@ -11,9 +11,8 @@
 // missile's flare and smoke trail, and a garrisoned squad's circle says where
 // it holds. Labs compose the layers their fixture exercises, the rest among
 // them as diagnostics.
-import game from "@fixtures/game.json";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
-import { buildContactGlyphs, contactOpacity } from "@packages/battle-renderer/src/contactGlyph";
+import { buildContactGlyphs } from "@packages/battle-renderer/src/contactGlyph";
 import { buildFlightOverlay } from "@packages/battle-renderer/src/flightMesh";
 import { buildConsequenceOverlay } from "@packages/battle-renderer/src/consequenceOverlay";
 import { buildGarrisonOverlay } from "@packages/battle-renderer/src/garrisonOverlay";
@@ -86,8 +85,7 @@ export class BattleMemory {
   }
 }
 
-/** Each approximate contact's glyph, from its area, source and age only,
- *  fading toward expiry. */
+/** Each report's area and shared presented opacity; raw live reports are full. */
 export function contactLayer(
   o: ObservationView,
   z: SurfaceHeight,
@@ -97,11 +95,7 @@ export function contactLayer(
     (contacts ?? o.contacts).map((c) => ({
       center: c.center,
       radius: c.radius,
-      source: c.source,
-      opacity:
-        "opacity" in c
-          ? (c.opacity as number)
-          : contactOpacity(c, o.tick, gameContactStyle.fade_s * game.tick_hz),
+      opacity: "opacity" in c ? c.opacity : 1,
     })),
     z,
     gameContactStyle,

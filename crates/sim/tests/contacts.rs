@@ -93,7 +93,7 @@ fn repeated_shots_refresh_one_report_without_new_samples() {
 }
 
 #[test]
-fn an_area_never_follows_hidden_movement_and_only_a_shot_outside_it_starts_another() {
+fn hidden_movement_stays_private_and_an_outside_shot_refreshes_one_contact() {
     // A hidden tank fires, drives 170 m inside the ridge's shadow, fires again.
     let units = json!([
         { "side": "blue", "kind": "recon", "position": [560, 480] },
@@ -138,13 +138,25 @@ fn an_area_never_follows_hidden_movement_and_only_a_shot_outside_it_starts_anoth
     assert!(outside, "the second location is outside the first report");
     assert_eq!(
         firing.len(),
-        2,
-        "the old report remains beside the new evidence"
+        1,
+        "fresh evidence replaces the previous area for this hidden emitter"
     );
     assert_eq!(
-        firing.last().unwrap().id != first.id,
-        outside,
-        "new report exactly when fired from outside the old area"
+        firing[0].id, first.id,
+        "the opaque handle stays stable while the emitter remains hidden"
+    );
+    let c = firing[0];
+    assert_ne!(
+        c.center, first.center,
+        "the outside shot supplies a new area"
+    );
+    assert!(
+        (shooter[0] - c.center[0]).hypot(shooter[1] - c.center[1]) <= c.radius,
+        "the new shot lies within its uncertain area"
+    );
+    assert_eq!(
+        c.kind, None,
+        "never-identified firing does not reveal a type"
     );
 }
 
@@ -170,8 +182,8 @@ fn an_identified_shooter_adds_no_area() {
 }
 
 #[test]
-fn losing_sight_leaves_a_fixed_last_seen_area_that_reidentification_retires() {
-    // Red's tank drives behind the ridge and, much later, back out.
+fn losing_and_regaining_sight_reuses_one_fixed_last_seen_slot() {
+    // Red crosses into shadow, returns to sight, and crosses into shadow again.
     let units = json!([
         { "side": "blue", "kind": "recon", "position": [560, 400], "engagement": "return_fire_only" },
         { "side": "red", "kind": "tank", "position": [820, 330], "engagement": "return_fire_only" },
@@ -179,11 +191,13 @@ fn losing_sight_leaves_a_fixed_last_seen_area_that_reidentification_retires() {
     let scripts = json!([
         { "tick": 1, "side": "red", "order": { "kind": "move", "units": [1], "gesture": 1, "goal": [820, 460], "route": "shortest" } },
         { "tick": 1, "side": "red", "queued": true, "order": { "kind": "move", "units": [1], "gesture": 1, "goal": [820, 330], "route": "shortest" } },
+        { "tick": 1, "side": "red", "queued": true, "order": { "kind": "move", "units": [1], "gesture": 1, "goal": [820, 460], "route": "shortest" } },
     ]);
     let mut b = battle(units, json!([]), scripts);
     let mut last = None;
     let mut lost = None;
-    for _ in 0..2000 {
+    let mut reseen = false;
+    for _ in 0..3000 {
         b.step();
         let f = blue(&b);
         if let Some(e) = f.identified.first() {
@@ -192,7 +206,7 @@ fn losing_sight_leaves_a_fixed_last_seen_area_that_reidentification_retires() {
                     f.contacts.is_empty(),
                     "identification retires the last-seen area"
                 );
-                return;
+                reseen = true;
             }
             last = Some(e.position);
         } else if let Some(c) = f
@@ -211,10 +225,15 @@ fn losing_sight_leaves_a_fixed_last_seen_area_that_reidentification_retires() {
                 (common::rules().catalog.index("tank"), 0),
                 "it names the type the side identified, and heard nothing"
             );
-            lost.get_or_insert(b.tick());
+            assert_eq!(f.contacts.len(), 1, "one area for the hidden tank");
+            if reseen {
+                assert_eq!(c.id, lost.unwrap(), "renew the existing visual slot");
+                return;
+            }
+            lost.get_or_insert(c.id);
         }
     }
-    panic!("the tank never came back into view");
+    panic!("the tank never completed its seen/lost/reseen/lost journey");
 }
 
 /// Each weapon row's bit in a firing report's `heard`: the rules' rows in
@@ -340,39 +359,56 @@ fn obstacles_become_known_by_sight() {
 }
 
 #[test]
-fn one_contact_label_prefers_last_seen_then_falls_back_to_heard() {
-    let units = json!([
-        { "side": "blue", "kind": "recon", "position": [560, 400] },
-        { "side": "red", "kind": "tank", "position": [820, 330] },
-    ]);
-    let scripts = json!([
-        { "tick": 1, "side": "red", "order": { "kind": "move", "units": [1], "gesture": 1, "goal": [820, 460], "route": "shortest" } }
-    ]);
-    let events = fires(1, &(5..4000).step_by(20).collect::<Vec<_>>());
-    let mut b = battle(units, events, scripts);
-    let mut both = false;
-    let mut fallback = false;
-    for _ in 0..4000 {
-        b.step();
-        let contacts = &blue(&b).contacts;
-        let labels: Vec<_> = contacts.iter().filter(|c| c.primary_label).collect();
-        if !contacts.is_empty() {
-            assert_eq!(
-                labels.len(),
-                1,
-                "one label for this enemy despite multiple reports"
+fn hidden_firing_refreshes_the_last_sighting_and_retains_only_known_type() {
+    for side in Side::ALL {
+        let enemy = if side == Side::Blue {
+            Side::Red
+        } else {
+            Side::Blue
+        };
+        let units = json!([
+            { "side": side, "kind": "recon", "position": [560, 400], "engagement": "return_fire_only" },
+            { "side": enemy, "kind": "tank", "position": [820, 330], "engagement": "return_fire_only" },
+        ]);
+        let scripts = json!([
+            { "tick": 1, "side": enemy, "order": { "kind": "move", "units": [1], "gesture": 1, "goal": [820, 460], "route": "shortest" } }
+        ]);
+        let mut b = battle(
+            units,
+            fires(1, &(5..1000).step_by(20).collect::<Vec<_>>()),
+            scripts,
+        );
+        let mut last_seen = None;
+        let mut refreshed = false;
+        for _ in 0..1000 {
+            b.step();
+            let f = b.observe(side);
+            assert!(
+                f.contacts.len() <= 1,
+                "one report for this enemy: {:?}",
+                f.contacts
             );
+            if let Some(c) = f.contacts.first() {
+                assert_eq!(
+                    c.kind,
+                    common::rules().catalog.index("tank"),
+                    "retain the identified type"
+                );
+                if c.source == ContactSource::LastSeen {
+                    last_seen = Some(c.id);
+                } else if let Some(id) = last_seen {
+                    assert_eq!(c.id, id, "firing refreshes the same opaque report");
+                    assert_eq!(
+                        c.heard, 0,
+                        "the synthetic shot supplies no heard weapon bits"
+                    );
+                    refreshed = true;
+                }
+            }
         }
-        let last = contacts
-            .iter()
-            .find(|c| c.source == ContactSource::LastSeen);
-        if let Some(last) = last {
-            assert!(last.primary_label, "visual memory takes priority");
-            both |= contacts.iter().any(|c| c.source == ContactSource::Firing);
-        } else if both && !labels.is_empty() {
-            assert_eq!(labels[0].source, ContactSource::Firing);
-            fallback = true;
-        }
+        assert!(
+            refreshed,
+            "both sides exercise seen, lost and hidden firing"
+        );
     }
-    assert!(both && fallback, "exercise coexistence and expiry fallback");
 }

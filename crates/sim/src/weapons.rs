@@ -861,7 +861,6 @@ fn select(
     } else {
         knowledge
             .all_contacts()
-            .iter()
             .map(|c| ((c.center - here).length(), c.id))
             .collect()
     };

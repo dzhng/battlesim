@@ -25,7 +25,6 @@ test("contact leaders stay on the reported ground center as radius and camera ch
     center: [200, 300],
     radius: 80,
     source: "firing",
-    primaryLabel: true,
     evidenceTick: 0,
     expiresTick: 300,
     kind: null,
@@ -46,7 +45,7 @@ test("contact leaders stay on the reported ground center as radius and camera ch
   }
 });
 
-test("only the preferred contact report gets a label", () => {
+test("every live report gets a truthful label, including never-identified firing", () => {
   const base: ContactView = {
     id: 1,
     center: [200, 300],
@@ -56,7 +55,6 @@ test("only the preferred contact report gets a label", () => {
     heard: [],
     evidenceTick: 0,
     expiresTick: 300,
-    primaryLabel: true,
   };
   const handle = createRef<ReadoutLayerHandle>();
   const view = render(
@@ -65,14 +63,15 @@ test("only the preferred contact report gets a label", () => {
       selected={[]}
       handle={handle}
       rules={game as unknown as PanelRules}
-      contacts={[base, { ...base, id: 2, source: "firing", kind: null, primaryLabel: false }]}
+      contacts={[base, { ...base, id: 2, source: "firing", kind: null }]}
     />,
   );
   expect(
     [...view.container.querySelectorAll("[data-contact]")].map((n) =>
       n.getAttribute("data-contact"),
     ),
-  ).toEqual(["1"]);
+  ).toEqual(["1", "2"]);
+  expect(view.container.querySelector('[data-contact="2"]')?.textContent).toContain("UNKNOWN");
 });
 
 test("own callout bounds are selectable, including rectangle overlap, but hidden panels are not", () => {
@@ -244,7 +243,6 @@ test("retiring contact panels fade together with their leader and cannot be pick
     radius: 20,
     evidenceTick: 0,
     expiresTick: 300,
-    primaryLabel: true,
     kind: "tank",
     heard: [],
     opacity: 0.4,

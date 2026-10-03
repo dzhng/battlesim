@@ -63,13 +63,11 @@ const SPECIMENS: ContactShape[] = [
     center: [1120, 930],
     radius: contactRadius("rifle"),
     opacity: 1,
-    source: "last_seen",
   },
   {
     center: [1260, 700],
     radius: contactRadius("tank"),
     opacity: 0.6,
-    source: "firing",
   },
 ];
 

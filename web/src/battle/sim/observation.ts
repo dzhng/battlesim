@@ -333,15 +333,12 @@ export interface IdentifiedView {
  *  count; only what the side learned when the evidence came. */
 export interface ContactView {
   id: number;
-  /** One preferred report label per enemy; other evidence remains targetable. */
-  primaryLabel: boolean;
   source: string;
   center: Point2;
   radius: number;
   evidenceTick: number;
   expiresTick: number;
-  /** A last sighting's unit type, as the side identified it; null for a
-   *  firing report (heard, never identified). */
+  /** The type this side previously identified; null when never identified. */
   kind: string | null;
   /** A firing report's weapon rows as heard (round kinds, each mount's
    *  every row: a report doesn't say which round); empty for a last sighting. */
@@ -997,7 +994,6 @@ function decodeFrame(
     ({ field: f }): ContactView => ({
       id: f("id"),
       source: layout.contactSources[f("source")],
-      primaryLabel: f("primaryLabel") === 1,
       center: [f("x"), f("y")],
       radius: f("radius"),
       evidenceTick: f("evidenceTick"),

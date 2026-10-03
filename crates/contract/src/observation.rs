@@ -87,15 +87,13 @@ pub enum ContactSource {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ApproximateContact {
     pub id: ContactId,
-    /// The single label for this emitter: last sighting before a firing report.
-    pub primary_label: bool,
     pub source: ContactSource,
     pub center: [f64; 2],
     pub radius: f64,
     pub evidence_tick: Tick,
     pub expires_tick: Tick,
-    /// A last sighting's unit type, as the side identified it before it was
-    /// lost; `None` for a firing report (heard, never identified).
+    /// The unit type previously identified by this side, retained through
+    /// later firing evidence; `None` when the cause has never been identified.
     pub kind: Option<TypeIndex>,
     /// A firing report's weapons as heard, over the report's whole episode:
     /// a bit per weapon row (the arsenal's rows in name order, the layout's
