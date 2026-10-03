@@ -39,7 +39,7 @@ request that names another revision or generator is refused, so an old request
 cannot quietly yield a new map. Most construction numbers belong to those presets.
 Source constants define numeric geometry cadence and bounded proof work; their owners document the
 contracts they protect. The three playable extents are a user decision
-(M04 in the [map brief](../../specs/city-maps/procedural-maps.md)).
+(recorded in the [map rationale](../../specs/done/city-maps/README.md)).
 
 - **The same request gives the same plan bytes on every target.** Each consumer draws
   from its own named stream of the seed (`rng`), so a change to one (forests, a
@@ -159,8 +159,8 @@ contracts they protect. The three playable extents are a user decision
   stepped onto from dry land (`water` asks the contract's river distance).
 
 What the presets mean, and why they hold the values they do, is in the
-[C52 slice](../../specs/city-maps/slices/C52-procedural-generator.md) and its
-entries in the [choices ledger](../../specs/city-maps/choices.md).
+[generation report](../../specs/done/city-maps/generation-report.md) and
+[choices ledger](../../specs/done/city-maps/choices.md).
 
 ## Road ends (`joints`)
 
@@ -319,8 +319,8 @@ categories, each row the descriptor of the city art set that dresses it
 ([scene-assets](../../packages/scene-assets/README.md), "City buildings"), so it
 is derived and never edited by hand. Another regional family arrives through the
 same descriptor contract and a new catalogue hash. The measured
-outcome and the open questions are in the
-[C53 slice](../../specs/city-maps/slices/C53-parcels-and-buildings.md).
+outcome and retained limits are in the
+[completion evidence](../../specs/done/city-maps/evidence.md).
 
 ## Open country (`open_country`)
 

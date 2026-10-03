@@ -1,6 +1,6 @@
 # battlegame
 
-A browser real-time tactics game, built around reconnaissance, physical fire and positioning. Every round is a flown projectile, and every side sees only what its own units can see. The first playable checkpoint is a replayable assault on a defended village. The full design lives in [`specs/`](specs/).
+A browser real-time tactics game, built around reconnaissance, physical fire and positioning. Every round is a flown projectile, and every side sees only what its own units can see. Players fight on seeded generated maps or a saved generated battlefield; the village remains a developer test arena. The full design lives in [`specs/`](specs/).
 
 ## How it fits together
 
@@ -29,7 +29,7 @@ The simulation is the one authority; everything else observes it.
   - `battle-renderer` holds scene resources, meshes and overlays.
   - `scene-assets` owns appearance bundles: schema, validation, baking and the one loader. The art itself lives in [`assets/`](assets/README.md).
   - `battle-audio` owns the battle's sound: what is heard and when, from the same feed the effects and poses read, synthesised in code, and heard from the camera.
-- **`apps/battle-lab/`** — the lab app. Each lab route is a focused, deterministic fixture for one mechanic, and the village routes are the playable game. `src/fixtures.json` is the registry of lab routes.
+- **`apps/battle-lab/`** — the lab app. Each lab route is a focused, deterministic fixture for one mechanic, and the village routes remain developer test arenas. `src/fixtures.json` is the registry of lab routes.
 - **`fixtures/`** — authored maps, units and rule numbers. `game.json` is the one owner of the game's rules; labs reuse it. `fixtures/maps/<id>/` is the saved-map catalogue: every map is one folder (its physical map, its provenance, its listing metadata and its encounters), resolved by id and never imported into a script. `fixtures/units/` and `fixtures/props/` are the catalog: every unit type and every prop type is one entry, a variant an `extends` of another, and behaviour comes from a type's components, never its id. Adding a unit or prop type starts there ([`fixtures/README.md`](fixtures/README.md)).
 - **`web/scenes/`** — one headless browser scene per registered fixture. These scenes are the visual and behavioural checks, run by `web/scene.mjs`.
 
@@ -69,6 +69,8 @@ bun run dev     # build the WebAssembly, start the lab app
 ```
 
 `/` is the main menu: start a battle on a generated map (its type and its size), play a saved battlefield of the catalogue, or watch a replay; behind its developer link, play the test village, run the benchmark or open the lab index at `/labs`, which links every route. A generated battle's address (`/battle?type=&size=&seed=`) is its share identity: the same address prepares the same battle on the same build. The [benchmark](web/src/battle/benchmark/README.md) is the one frame-cost measure: `/benchmark` retains the village control; `/benchmark?preset=city-contact` selects explicitly synthetic local contact on a complete generated world.
+
+The [map-generation rationale](specs/done/city-maps/README.md) explains physical countryside coverage, road/settlement ownership and accepted scope. Its [generation report](specs/done/city-maps/generation-report.md) and [parameter inventory](specs/done/city-maps/generation-parameters.md) retain the detailed logic and numbers for play feedback and the later live map workbench.
 
 During development, the [mechanics editor](apps/mechanics-editor/README.md) opens
 from the developer menu at `/mechanics`, or run `bun run dev:mechanics` to start
