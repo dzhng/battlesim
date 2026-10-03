@@ -117,6 +117,23 @@ async function infoCardCursor(ctx, page) {
     );
     await page.screenshot({ path: ctx.evidencePath("cursor-info-card-hover.png") });
     await ctx.writeEvidence("cursor-info-card-hover.json", samples);
+    await page.mouse.down({ button: "middle" });
+    try {
+      await page.waitForFunction(
+        () => document.querySelector('[data-testid="game-cursor"]').hidden,
+      );
+      const fallback = await page
+        .locator('.ro-unit[data-unit="2"] .ro-name-word')
+        .evaluate((card) => getComputedStyle(card).cursor);
+      ctx.check(
+        "info cards do not request a native hand during camera control",
+        fallback !== "pointer",
+        fallback,
+      );
+    } finally {
+      await page.mouse.up({ button: "middle" });
+    }
+
     await page.getByRole("button", { name: "Reset", exact: true }).hover();
     await page.waitForFunction(() => document.querySelector('[data-testid="game-cursor"]').hidden);
     ctx.check(

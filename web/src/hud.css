@@ -937,7 +937,6 @@
 
 .ro-layer .ro-unit {
   pointer-events: auto;
-  cursor: pointer;
 }
 
 .ro-callout[data-retiring] .ro-unit {
