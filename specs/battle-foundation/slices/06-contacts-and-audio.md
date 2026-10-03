@@ -1,6 +1,6 @@
 # 06 — Player observations and uncertain evidence
 
-**Status:** original checkpoint complete 2026-09-25; current one-report/presentation amendment in progress (2026-10-02). Tracer clipping moved to 08. **Dependencies:** 03, 05. **Milestone:** Village checkpoint.
+**Status:** original checkpoint complete 2026-09-25; one-report authority and player presentation are integrated (2026-10-02), with shared presentation for the remaining actual diagnostic report callers in progress. Tracer clipping moved to 08. **Dependencies:** 03, 05. **Milestone:** Village checkpoint.
 
 ## Contract and question
 
@@ -71,3 +71,17 @@ Visual gate (identified, contact or unknown). The unprimed critique found the fi
 - **Left as is.** Friendly units are specks at this overview zoom, and unit labels belong to slice 14. The radius is shown because it is a property of the area, not hidden information.
 
 Moved to slice 08: clipping tracers and muzzle effects to each side's observable flight segments. There are no in-battle projectiles until weapons fire.
+
+## One-report authority and player presentation checkpoint — 2026-10-02
+
+The simulation keeps one private slot for each side's uncertain cause, with an opaque handle and live state. Fresh evidence overwrites that slot; re-identification, seen destruction and expiry remove its live report. The private emitter link never crosses the observation boundary. The primary-label field/ranking is deleted, reducing contact wire records from ten fields to nine. Previously identified type is retained through later heard firing; never-identified types remain unknown, and remembered type does not authorize precision ammunition against an uncertain area.
+
+The player's existing presentation owns the single removal clock. Live reports have full opacity; removal fades the area, border, leader and label together over three seconds, with no picking or targeting. Renewal replaces its retiring owner. The contacts lab consumes the same BattleView, replacing its separate overlay, legend, list and session. The base pass removes 57 nonblank production logic lines and eight CSS lines, excluding comments, tests, scenes, docs and data.
+
+Expiry cleanup precedes new evidence and commands on that tick. It ends queued area attacks and accumulated aim before a reused visual handle can return. The existing attacker-pruning rule retains legitimate identification grace independently. Actual hostile-fire, positive prior aim, short edited lifetimes, pending attacks and seeing/loss/reseeing regressions cover those consumers. Native/Wasm complete state and publications agree over the both-side lifecycle stream; same-build replay also passes. Focused evidence includes 10 contact, 47 weapon, 19 native publication, 25 publication/decoder and 42 presentation/control checks, plus typecheck, formatting and lint. The restored source, native identity, Wasm identity and saved visual captures agree on `d21abe125d…`; restart recovery restored an interrupted armour falsification before acceptance.
+
+Matched village captures at the reported close framing remove the second offset patch and hatch spill. The complete known/unknown, full/half/end removal and renewal set passes fresh image review, as do the supplementary report-anchor frames. The lab's new thin world line is its normal playable-border paint: a paused paint-off pair changes only that boundary's two pixel rows. Contact shots were shown in Preview. Complete evidence and scoped reviews are retained in ignored `throwaway/contact-canonicalization/`.
+
+The six quick comparison trials show a real neighbour shift: flank captures change from one of three to zero, aggregate blue cost lost from 1692.5 to 1842, and tank losses from two to three; ambush trials retain zero loss. All digests change with the report state. No coefficients were retuned. This small comparison is not final balance acceptance.
+
+**Still in progress:** actual report consumers in weapons and fog-look diagnostics must use the same session-owned presentation and existing label component. Their raw observation fallback is being removed. Static fog-look material specimens are geometry probes with no report lifecycle. The base checkpoint does not claim whole-concept or city-maps completion.
