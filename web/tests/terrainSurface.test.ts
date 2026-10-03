@@ -705,49 +705,103 @@ test("a generated town's blocks are yards and commons, and the plain beyond keep
   expect(plain.drilled / plain.ground).toBeGreaterThan(0.4);
 });
 
-test("a country road is drawn as a street between a town's blocks, and as itself out in the plain", () => {
-  const { surface, inTown, inBlock } = generatedTown();
-  const [country, street] = ["country_road", "road"].map((kind) =>
-    SURFACE_AREA_KINDS.indexOf(kind as (typeof SURFACE_AREA_KINDS)[number]),
+test("a country road draws a street between actual houses and keeps its paving in unbuilt country", () => {
+  const descriptor = JSON.parse(
+    readFileSync(
+      new URL("../../fixtures/parity/templates/asymmetric.json", import.meta.url),
+      "utf8",
+    ),
   );
-  /** The tag the stroke under a point of a country road is drawn with. */
-  const drawnAt = (x: number, y: number) => {
-    let [deepest, tag] = [-Infinity, -1];
-    for (let o = 0; o < surface.strokes.length; o += surface.site.surfaceStrokeStride) {
-      const kind = surface.strokes[o + 5];
-      if (kind !== country && kind !== street) continue;
-      const inside = strokeInside(surface.strokes, o, x, y);
-      if (inside > deepest) [deepest, tag] = [inside, kind];
-    }
-    return tag;
+  const template_catalog_hash = JSON.parse(
+    generator.template_catalogue_json(JSON.stringify([descriptor])),
+  ).hash;
+  // Fixed authored inputs isolate this presentation contract from release tuning.
+  const local: Biome = {
+    ...biome,
+    seed: 1616,
+    field_rules: {
+      ...biome.field_rules,
+      extent_m: 0,
+      size_m: [20, 20],
+      tract_m: 600,
+      yard_m: 40,
+      settlement_m: 110,
+    },
+    roads: {
+      ...biome.roads,
+      country_road: {
+        ...biome.roads.country_road,
+        town: { kind: "road", beside_m: 5, gap_m: 80 },
+      },
+    },
   };
-  const { surfaceStrokes: exported, surfaceStrokeStride: stride } = surface.site;
-  const seen = { town: 0, streets: 0, plain: 0 };
-  for (let o = 0; o < exported.length; o += stride) {
-    if (exported[o + 5] !== country) continue;
-    const [ax, ay, bx, by, half] = exported.subarray(o, o + 5);
-    const length = Math.hypot(bx - ax, by - ay);
-    const [nx, ny] = [(-(by - ay) / length) * (half + 15), ((bx - ax) / length) * (half + 15)];
-    const steps = Math.ceil(length / 10);
-    for (let s = 0; s <= steps; s++) {
-      const [x, y] = [ax + ((bx - ax) * s) / steps, ay + ((by - ay) * s) / steps];
-      // Clear of the town's edge either way: a block's depth inside it with
-      // one of the generator's blocks on each side of the road, and beyond
-      // the last yards outside.
-      if (inTown(x, y) > 80 && inBlock(x + nx, y + ny) > 0 && inBlock(x - nx, y - ny) > 0) {
-        seen.town++;
-        if (drawnAt(x, y) === street) seen.streets++;
-      } else if (inTown(x, y) < -200) {
-        expect(drawnAt(x, y), `in the plain at (${x}, ${y})`).toBe(country);
-        seen.plain++;
-      }
-    }
+  const authoredRoad = (houses: readonly (readonly [number, number])[]) => {
+    const buildings = houses.map(([x, y], i) => ({
+      owner: i * 2,
+      kind: "building",
+      category: descriptor.category,
+      regional_family: descriptor.regional_family,
+      parts: [
+        { part: "main", prop: i * 2 },
+        { part: "wing", prop: i * 2 + 1 },
+      ],
+      geometry: JSON.parse(
+        generator.materialize_template(
+          JSON.stringify(descriptor),
+          JSON.stringify({ translation: [x, y, 0], yaw: 0 }),
+        ),
+      ),
+    }));
+    const { exports } = world({
+      size: [600, 200],
+      fog_cell_m: 8,
+      height_grid_m: 4,
+      slope_cutoff_deg: 35,
+      template_catalog_hash,
+      buildings,
+      surfaces: [
+        {
+          kind: "country_road",
+          shape: {
+            kind: "stroke",
+            points: [
+              [0, 100],
+              [600, 100],
+            ],
+            width_m: 8,
+          },
+        },
+      ],
+    });
+    return buildTerrainSurface(exports, layout, local);
+  };
+  const pavingAt = (surface: TerrainSurface, x: number, y: number) => {
+    const kinds = new Set<string>();
+    for (let o = 0; o < surface.strokes.length; o += surface.site.surfaceStrokeStride)
+      if (strokeInside(surface.strokes, o, x, y) >= 0)
+        kinds.add(SURFACE_AREA_KINDS[surface.strokes[o + 5]]);
+    return [...kinds].sort();
+  };
+  // Two small houses face each other across an 8 m road. No settlement outline
+  // labels this fixture; actual exported buildings supply the composition input.
+  const built = authoredRoad([
+    [200, 75],
+    [200, 125],
+  ]);
+  const bare = authoredRoad([]);
+  const oneSided = authoredRoad([[200, 75]]);
+  for (const y of [97, 100, 103]) {
+    expect(pavingAt(built, 200, y), `between houses at y=${y}`).toEqual(["road"]);
+    expect(pavingAt(built, 500, y), `unbuilt country at y=${y}`).toEqual(["country_road"]);
+    expect(pavingAt(bare, 200, y), `same road without houses at y=${y}`).toEqual(["country_road"]);
+    expect(pavingAt(oneSided, 200, y), `houses on only one side at y=${y}`).toEqual([
+      "country_road",
+    ]);
   }
-  // A block of the generator's is not all yards: a hamlet's houses stand on
-  // lots so wide that the road through them stays a country road.
-  expect(seen.town).toBeGreaterThan(500);
-  expect(seen.streets / seen.town).toBeGreaterThan(0.9);
-  expect(seen.plain).toBeGreaterThan(500);
+  // Promotion changes presentation only; the authoritative road and its width
+  // remain identical to the road without houses.
+  expect(built.site.surfaceStrokes).toEqual(bare.site.surfaceStrokes);
+  for (const x of [200, 500]) for (const y of [95, 105]) expect(pavingAt(built, x, y)).toEqual([]);
 });
 
 test("the village's roads, streets by name and country roads by look, are drawn as exported", () => {

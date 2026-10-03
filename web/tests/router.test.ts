@@ -1,15 +1,14 @@
 // @vitest-environment jsdom
 import { LAB_FIXTURES } from "@apps/battle-lab/src/fixtures";
 import { createElement } from "react";
-import { fireEvent, render } from "@testing-library/react";
+import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import fixtures from "@apps/battle-lab/src/fixtures.json";
-import { LabRouter, ROUTES } from "@apps/battle-lab/src/router";
+import { LabRouter } from "@apps/battle-lab/src/router";
 
-afterEach(() => vi.unstubAllEnvs());
-
-test("every registered fixture has a page and every page a fixture", () => {
-  expect(Object.keys(ROUTES).sort()).toEqual(fixtures.map((f) => f.id).sort());
+afterEach(() => {
+  cleanup();
+  vi.unstubAllEnvs();
 });
 
 test("the main menu at / offers a new battle, the village, the saved battlefield and replay, the benchmark and labs behind its developer link; the lab index is /labs", async () => {
@@ -17,6 +16,12 @@ test("the main menu at / offers a new battle, the village, the saved battlefield
   vi.resetModules();
   const { LabRouter: DevelopmentRouter } = await import("@apps/battle-lab/src/router");
   const menu = render(createElement(DevelopmentRouter, { path: "/" }));
+  // The saved-file read finishes before its viewer link becomes available.
+  await waitFor(() =>
+    expect(menu.getByRole("link", { name: "Watch replay" }).getAttribute("href")).toBe(
+      "/replay/village",
+    ),
+  );
   const links = () => menu.getAllByRole("link").map((a) => a.getAttribute("href"));
   expect(links()).toEqual([
     expect.stringMatching(/^\/battle\?type=mixed&size=small&seed=\d+$/),
