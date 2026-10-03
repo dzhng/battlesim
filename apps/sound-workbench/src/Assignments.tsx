@@ -136,7 +136,10 @@ export function GlobalAssignments({ snapshot, draft, edit, play }: EditorProps) 
           <h3>{kind}</h3>
           <Choices
             name={kind}
-            choice={draft.defaults[kind] ?? { near: base.near, far: base.far, gain: 1 }}
+            choice={
+              draft.defaults[kind] ??
+              draft.defaults.default ?? { near: base.near, far: base.far, gain: 1 }
+            }
             catalog={draft}
             onChange={(value) =>
               edit((c) => {

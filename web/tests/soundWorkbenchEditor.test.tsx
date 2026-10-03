@@ -113,6 +113,31 @@ test("the complete library auditions an unused reload and clones synthesis witho
   ).toBe(true);
 });
 
+test("unused clips include stored recipes that no battle assignment selects", async () => {
+  const f = fixture();
+  f.snapshot.catalog.sounds.handling = {
+    label: "Stored handling recipe",
+    clips: ["reload"],
+    synth: null,
+    synth_gain: 0,
+    gain: 1,
+    loop: false,
+  };
+  render(<SoundWorkbench api={f.api} audition={f.audition} />);
+  await screen.findByRole("button", { name: "Unused reload" });
+  fireEvent.change(screen.getByLabelText("Library filter"), { target: { value: "unused" } });
+  expect(screen.getByRole("button", { name: "Unused reload" })).toBeTruthy();
+});
+
+test("the global editor displays the effective shared fallback for an unassigned firing kind", async () => {
+  const f = fixture();
+  f.snapshot.catalog.defaults.default = { near: "hmg", far: "hmg", gain: 0.8 };
+  render(<SoundWorkbench api={f.api} audition={f.audition} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Defaults & effects" }));
+  expect((screen.getByLabelText("rifle near") as HTMLSelectElement).value).toBe("hmg");
+  expect((screen.getByLabelText("rifle gain") as HTMLInputElement).value).toBe("0.8");
+});
+
 test("exact type assignments can be edited independently, restored, reviewed and saved", async () => {
   const f = fixture();
   render(<SoundWorkbench api={f.api} audition={f.audition} />);

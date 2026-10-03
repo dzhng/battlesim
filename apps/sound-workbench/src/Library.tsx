@@ -21,6 +21,16 @@ export function Library({
 }) {
   const [filter, setFilter] = useState("all");
   const matches = (text: string) => text.toLowerCase().includes(search.toLowerCase());
+  const firing = [
+    ...Object.values(draft.defaults),
+    ...Object.values(draft.units).flatMap((mounts) => Object.values(mounts)),
+  ];
+  const assigned = new Set([
+    ...firing.flatMap((choice) => [choice.near, choice.far]),
+    ...Object.values(draft.impacts).flatMap((rounds) => Object.values(rounds)),
+    ...Object.values(draft.effects),
+  ]);
+  const usedClips = new Set([...assigned].flatMap((name) => draft.sounds[name].clips));
   return (
     <div className="sw-layout">
       <aside className="sw-browser">
@@ -57,8 +67,7 @@ export function Library({
             ([id, clip]) =>
               !["sounds", "baselines"].includes(filter) &&
               (filter !== "reload" || ["reload", "mechanical"].includes(clip.role)) &&
-              (filter !== "unused" ||
-                !Object.values(draft.sounds).some((sound) => sound.clips.includes(id))) &&
+              (filter !== "unused" || !usedClips.has(id)) &&
               matches(`${id} ${clip.label} ${clip.category} ${clip.role}`),
           )
           .map(([id, clip]) => (

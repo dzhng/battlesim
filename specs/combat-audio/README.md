@@ -85,15 +85,17 @@ Measurements verify onset, extra attacks, clipping and bandwidth, not timbre.
 
 ## Next Agent Prompt
 
-Build all three slices without waiting for sound-selection approval. The catalog
-contract is now tested and ready for consumers. Root owns the source library and final integration;
-parallel agents own playback and workbench in isolated checkouts. Preserve every
-synthetic baseline, one voice per cause, hidden cues and existing sound scene gates.
+All three slices are integrated. Finish the browser workbench review, silent
+save/reload proof, whole-feature review and full end gates. The recorded sound
+scene passes without weakening the baseline checks. A fetch-binding defect and
+an unused-library filter defect were corrected with failing regressions first.
+Keep current media and synthesis parity; do not revisit delegated sound choices
+as an approval blocker.
 
 - [x] Durable clean source library and explicit exclusions; reproducible asset check passed.
 - [x] ATGM, cannon, ricochet, small/heavy impacts and explosions assigned in catalog.
-- [ ] Async live/offline preparation and exact unit/mount firing overrides.
-- [ ] Complete catalogue audition, editable recipes and all concrete unit rows.
-- [ ] Preview/save/reload with shared publication and stale/outside-edit protection.
+- [x] Async live/offline preparation and exact unit/mount firing overrides.
+- [x] Complete catalogue audition, editable recipes and all concrete unit rows.
+- [x] Preview/save/reload with shared publication and stale/outside-edit protection.
 - [ ] Focused tests, browser sound proof, desktop/narrow visual review.
 - [ ] Full closeout checks, decision audit, docs and archived rationale.
