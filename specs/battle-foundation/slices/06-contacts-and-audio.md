@@ -1,6 +1,6 @@
 # 06 — Player observations and uncertain evidence
 
-**Status:** original checkpoint complete 2026-09-25; one-report authority and player presentation are integrated (2026-10-02), with shared presentation for the remaining actual diagnostic report callers in progress. Tracer clipping moved to 08. **Dependencies:** 03, 05. **Milestone:** Village checkpoint.
+**Status:** original checkpoint complete 2026-09-25; one-report authority and player presentation are integrated (2026-10-02), with shared presentation for every actual diagnostic report caller integrated. Tracer clipping moved to 08. **Dependencies:** 03, 05. **Milestone:** Village checkpoint.
 
 ## Contract and question
 
@@ -84,4 +84,4 @@ Matched village captures at the reported close framing remove the second offset 
 
 The six quick comparison trials show a real neighbour shift: flank captures change from one of three to zero, aggregate blue cost lost from 1692.5 to 1842, and tank losses from two to three; ambush trials retain zero loss. All digests change with the report state. No coefficients were retuned. This small comparison is not final balance acceptance.
 
-**Still in progress:** actual report consumers in weapons and fog-look diagnostics must use the same session-owned presentation and existing label component. Their raw observation fallback is being removed. Static fog-look material specimens are geometry probes with no report lifecycle. The base checkpoint does not claim whole-concept or city-maps completion.
+**Actual diagnostic consumers integrated:** weapons and fog-look now consume the session-owned presentation and existing info-label component; the raw observation fallback is deleted. The same live/removed/half/ended reports are exercised through both actual worker routes. White outline opacity follows the shared report life independently of hatch ink, and labels use the existing black text halo. Nineteen focused consumer/glyph/fade/readout checks pass on the integrated tree. Eight actual-route frame checks and all complete images/native crops pass fresh review; both ended frames match the report-free baseline exactly. Static fog-look material specimens remain geometry probes with no report lifecycle. This closes contact consolidation, without claiming city-maps completion.
