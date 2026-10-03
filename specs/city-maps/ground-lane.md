@@ -42,21 +42,25 @@ Test in proportion: the narrow tests for what changed and the one or two scenes 
 
 **One GPU, shared.** Several sessions are working at once. Run every scene, render and asset sheet through the GPU lock in the main checkout (the README's Checks section has the command), never two at a time, and keep heavy jobs (a full Rust test run, a long sweep) to one at a time.
 
-## Status
+## Current disposition
 
-**2026-10-02. Every slice of the lane is built and on main; the composition gate has run.** What is left is listed under "Open" by who owns it. Each slice's Outcome holds its seam and numbers; `choices.md` holds the lane's consolidated ledger (120 entries from `## C62 ground evidence rig` on).
+The lane is integrated. [C87's current verdict](slices/C87-ground-composition-gate.md#current-integrated-disposition) links the final composition and focused repairs; [C54](slices/C54-generation-gate.md#current-functional-integration) owns current full-plus-focused browser evidence. The dated status below preserves earlier findings, not today's gate list. Approved grass blade facing and yellow patches remain; further aesthetic and numerical refinement is deferred under M33 to play feedback and the later workbench. The separate synthetic frame admission remains open in C05.
+
+## Historical lane status
+
+**2026-10-02. Every slice of the lane is built and on main; the composition gate has run.** The historical findings below are grouped by owner. Each slice's Outcome holds its seam and numbers; `choices.md` now holds the parent's consolidated decisions.
 
 - **Landed, in the lane's order:**
   - Rig: [C62](slices/C62-ground-evidence-rig.md#outcome). `STATIONS=village,river,generated bun run --cwd web scene -- ground` writes each station's shot, bare ground, class mask and a sheet into `throwaway/evidence/ground/`; `STATIONS=map:station+station` shoots only those.
   - Country roads: [C66](slices/C66-road-core.md#outcome), [C67](slices/C67-road-shoulder.md#outcome), [C68](slices/C68-ruts-and-centre-strip.md#outcome), [SG3](slices/SG3-road-wear-read.md).
   - Town streets: [C28](slices/C28-pavement.md#outcome), [C29](slices/C29-curbs.md#outcome), [C30](slices/C30-markings.md#outcome).
   - Water's edge: [C70](slices/C70-river-bank-bands.md#outcome), [C71](slices/C71-river-bank-roundness.md#outcome).
-  - Trees and forest: [C73](slices/C73-tree-skeleton.md#outcome), [SG1](slices/SG1-tree-and-dressing-cost.md), [C74](slices/C74-tree-species.md#outcome), [C75](slices/C75-forest-mix-and-colour.md#outcome), [C76](slices/C76-canopy-closure.md#outcome), [C78](slices/C78-forest-body-models.md#outcome), [C79](slices/C79-forest-dressing.md#outcome), [C86](slices/C86-tree-lines.md) (a hedge under every tree line, on a verge of its own).
+  - Trees and forest: [C73](slices/C73-tree-skeleton.md#outcome-2026-10-01), [SG1](slices/SG1-tree-and-dressing-cost.md), [C74](slices/C74-tree-species.md#outcome-2026-10-01), [C75](slices/C75-forest-mix-and-colour.md#outcome-2026-10-02), [C76](slices/C76-canopy-closure.md#outcome-2026-10-02), [C78](slices/C78-forest-body-models.md#outcome-2026-10-02), [C79](slices/C79-forest-dressing.md#outcome-2026-10-02), [C86](slices/C86-tree-lines.md) (a hedge under every tree line, on a verge of its own).
   - Grass and fields: [C80](slices/C80-grass-presets.md), [C81](slices/C81-wild-grass.md#outcome), [C82](slices/C82-within-field-variation.md#outcome), [C83](slices/C83-crops.md#outcome), [SG4](slices/SG4-palette-vs-shadow-floor.md), [C84](slices/C84-field-palette.md#outcome), [C85](slices/C85-field-texture.md#outcome).
-  - Street furniture: [C45](slices/C45-street-models.md#outcome): a model for every street body; a street tree is drawn by the forest's own species.
-  - Whole frame: [C31](slices/C31-city-biome.md#outcome), [C87](slices/C87-ground-composition-gate.md#outcome).
+  - Street furniture: [C45](slices/C45-street-models.md#outcome-2026-10-02): a model for every street body; a street tree is drawn by the forest's own species.
+  - Whole frame: [C31](slices/C31-city-biome.md#outcome), [C87](slices/C87-ground-composition-gate.md#historical-lane-outcome).
 - **The ground now:** shoot `STATIONS=village:bend-65+field-65+forest-edge-65+patchwork-1100,generated:overview-2500+junction-65+town-edge-250+country-250+tree-line-65`. The village is muted farmland with a mixed wood and gravel roads; a generated map is a town of asphalt streets in fields, woods and tree lines, with a river.
-- **The gate's verdict** ([C87](slices/C87-ground-composition-gate.md#outcome)): GPU +0.09 ms median against the lane's +3 ms. One fresh eye over fifteen frames: town streets, the farm track and crop close-ups, and the read from high up work; open country still reads as "a flat, outlined carpet", roads and the river as "lines laid on top".
+- **The historical gate's verdict** ([C87](slices/C87-ground-composition-gate.md#historical-lane-outcome)): GPU +0.09 ms median against the lane's +3 ms. One fresh eye over fifteen frames: town streets, the farm track and crop close-ups, and the read from high up work; open country still reads as "a flat, outlined carpet", roads and the river as "lines laid on top".
 - **Open, this lane's** (a later ground pass):
   - Current user grass feedback: [C81's approved blade-facing checkpoint](slices/C81-wild-grass.md#outcome) reduces dark streaks; the user likes the yellow dry patches. [C85's continuity work](slices/C85-field-texture.md#current-grass-continuity-feedback) remains open after a finest-grain prototype failed to improve visible ground structure. Its source is restored; yellow variation must be preserved.
   - The gravel-to-asphalt join where a country road enters a town reads as a smudge; it needs a term of its own.

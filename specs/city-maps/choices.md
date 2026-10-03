@@ -1,6 +1,6 @@
 # City-maps implementation choices
 
-This is the consolidated decision ledger for the final city-maps implementation, audited against frozen root `437f631d` / equivalent main `3ccb1a36`. The explicit `partial_cmp` lint refactor adds no decision. Results, failed targets and release admission live in their owning Outcomes/evidence rather than this ledger.
+This is the consolidated decision ledger for city-maps product behavior, audited against frozen root `437f631d` / equivalent main `3ccb1a36`. The explicit `partial_cmp` lint refactor adds no decision. Later scene-only verification policies are audited against root `fa390016` / main `7ebea484`; product generation/rule behavior is unchanged. Results, failed targets and release admission live in their owning Outcomes/evidence rather than this ledger.
 
 The user selected 6/8/10 km playable sizes, the 50% median openness floor, main 1,800 × 400 m approaches, unchanged weapon ranges, bottom-three-floor fighting and accepted collapse/gutting rules. Sharp per-side knowledge, one truthful uncertain report per enemy with a common white outline/info label and three-second fade, China-first art, delayed planning, long-move road preference, business rules before numerical perfection, and deferral of hills/ridges, 20 km architecture and the later live map workbench are inherited direction. They are not agent choices below. The separate infantry-weapon-use implementation is a dependency, not part of this ledger.
 
@@ -456,7 +456,31 @@ Read the low-confidence checkpoint-preview and sampled-lane tradeoffs first, the
 
 #### Ground proof thresholds distinguish paint from physical classification
 
-**When:** C62/C70/C31. **Gap:** “Not a dark road/bank” and “read the ground class” lacked a measurement policy. **Choice:** Road and bank guards inspect rendered bands against the adjoining field, allowing either lighter ground or enough hue separation; banks are checked individually so a sunny bank cannot mask a dark far bank. The class-mask view instead records the simulation's paving, water and plot/forest class at the terrain shader's own lookup. **Reach:** The mask's distances are exact only within the drawing lookup's reach; beyond that it identifies the correct side, not an exact metric distance. Initial contrast/hue bounds are guards, not perfect aesthetic judgments. **Verdict:** Sound, medium confidence — physical classification and finished appearance answer different questions without inventing a second surface model.
+**When:** C62/C70/C31 and integrated scene closeout. **Gap:** “Not a dark road/bank” and “read the ground class” lacked a measurement policy. **Choice:** Road and bank appearance guards inspect rendered bands against the adjoining field, allowing either lighter ground or enough hue separation; banks are checked individually so a sunny bank cannot mask a dark far bank. Physical road alignment instead compares the native surface with the existing class-mask view at inside/outside positions. That view records paving, water and plot/forest class at the terrain shader's own lookup; a colour change does not move the physical road. The old point-colour misses remain diagnostic rather than another alignment oracle. **Reach:** The mask's distances are exact only within the drawing lookup's reach; beyond that it identifies the correct side, not an exact metric distance. This does not independently prove every paving-shader branch, and appearance keeps its separate owner. Initial contrast/hue bounds are guards, not perfect aesthetic judgments. **Verdict:** Sound, medium confidence — physical classification and finished appearance answer different questions without inventing a second surface model.
+
+#### Tree-line checks require actual added screening rather than a fixed extra share
+
+**When:** integrated scene closeout. **Choice and scenario:** A tree line's crowns may already hide almost all ground. Requiring its shrubs to hide ten more percentage points would then fail even if they closed every remaining gap. The check keeps the selected total-coverage guard, pairs the same camera/tick with shrubs off and on, and requires actually drawn shrubs to hide previously visible ground. The former ten-point result remains diagnostic. Its region is called framed forest ground because the class mask cannot identify one particular strip.
+
+**Gap and reach:** The visual rule required screening but did not select the extra-ten-point proxy. This is a local causal drawing check, not global coverage or a reason to reduce physical obstruction. Exact foliage placement and the generator's certificate remain independent owners. Requiring more than zero added pixels guards absence; it is not a minimum shrub-density policy.
+
+**Verdict:** sound, medium confidence — the measurement follows the required visual contribution without tuning vegetation to a non-monotonic proxy. A more specific strip mask can strengthen its scope later without another physical forest rule.
+
+#### Rendering lifecycle checks cause real events instead of waiting for a particular assault outcome
+
+**When:** integrated scene closeout. **Choice and scenario:** A balance or route change can leave a scripted attack with no blast or own casualty during a renderer test. The effect, cleanup and corpse checks issue ordinary ground attacks to existing tanks and observe real published damage. The corpse sequence lives in the existing consequences scene: a previously drawn own soldier must play death, then enter and remain in static drawing. The village keeps its ordinary movement and combat checks. No private damage, ammunition or actor relocation supplies the event.
+
+**Gap and reach:** The required renderer transitions did not prescribe their staging or owning fixture. These checks now isolate drawing/lifetime from victory timing, while the battle report and normal-player frame probe retain actual combat obligations. The pure pose test owns animation-state transitions, and the browser owns real publications/drawing; a broad model count alone does not prove a particular soldier's pose.
+
+**Verdict:** sound, medium confidence — finite real commands exercise the intended lifecycle without retuning game rules to manufacture incidental events.
+
+#### Scene scripts reject undefined bindings with their actual browser and Node globals
+
+**When:** integrated scene closeout. **Choice and scenario:** Extracting a scene helper can leave a later check referring to a variable it no longer owns. A scene-only undefined-name lint rule catches that before the expensive browser run. Both browser and Node globals are allowed because these scripts orchestrate the browser from Node; the rule does not weaken application typing or require a second scene API.
+
+**Gap and reach:** Existing lint did not check undeclared names in the untyped scene scripts. The small configuration override applies to the existing scene folder, introduces no dependency or runtime behavior, and avoids converting the whole harness just to catch this failure class.
+
+**Verdict:** sound, medium confidence — a cheap language check catches a concrete integration mistake without another test mechanism.
 
 #### The camera may wait at a tall building, then cut past it
 
