@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live map workbench — exploration map</title>
+<style>
+  :root { color-scheme: light; font: 16px/1.55 system-ui, sans-serif; color: #242b2a; background: #f5f3ed; }
+  body { max-width: 1100px; margin: auto; padding: 36px 24px 72px; }
+  h1 { font-size: 2.2rem; line-height: 1.15; margin-bottom: 10px; }
+  h2 { margin-top: 42px; border-bottom: 1px solid #c4cac3; padding-bottom: 8px; }
+  h3 { font-size: 1.08rem; margin-bottom: 5px; }
+  p { max-width: 90ch; }
+  a { color: #235f56; }
+  table { border-collapse: collapse; width: 100%; background: #fffdfa; margin: 16px 0; }
+  th, td { text-align: left; vertical-align: top; padding: 12px; border-bottom: 1px solid #dce0d8; }
+  th { font-size: .9rem; background: #e9ede5; }
+  small, .muted { color: #55615c; }
+  code { overflow-wrap: anywhere; font-size: .9em; }
+  .lead, .finding { background: #fffdfa; padding: 16px 20px; border-left: 3px solid #456d5c; margin: 16px 0; }
+  .open { border-left-color: #a57730; }
+  .tag { font-size: .78rem; font-weight: 650; color: #52634f; letter-spacing: .035em; }
+  nav { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 24px; }
+  li { margin: 7px 0; }
+  details { margin: 14px 0; }
+  summary { cursor: pointer; font-weight: 600; }
+  textarea { width: 100%; min-height: 250px; padding: 14px; box-sizing: border-box; font: 14px/1.5 ui-monospace, monospace; }
+  button { padding: 9px 14px; cursor: pointer; font: inherit; margin-top: 10px; }
+  @media (max-width: 700px) { body { padding: 22px 14px; } table { font-size: .86rem; } th, td { padding: 8px; } }
+</style>
+<h1>Live map workbench</h1>
+<p class="muted">Explore-unknowns decision map · 2026-10-03 · Exploration record. Its kickoff prompt and OPEN plan items are superseded by ../README.md; see the live handoff there.</p>
+<div class="lead">
+  <strong>Contract:</strong> draft generation and validation policies → the existing Rust generator and validators → an inspectable plan, authoritative measurements and explicit refusals → an explicit save into the existing fixture owners.
+  <p><strong>Player contract added during the walk:</strong> ordinary Play must recover from generation or encounter-placement refusal and deliver an admitted battle. Developer inspection retains the exact failed request. The actual battle identity must describe the admitted result.</p>
+</div>
+<nav><a href="#settled">Known knowns</a><a href="#decisions">Known unknowns</a><a href="#context">Unknown knowns</a><a href="#findings">Unknown unknowns</a><a href="#open-items">Remaining verification</a><a href="#next">Next prompt</a></nav>
+
+<h2 id="settled">1. Known knowns</h2>
+<ul>
+  <li>The city-maps follow-up is personal tuning of generation business rules with regenerated maps and measurements, using the existing generator. UI, saving and hot reload were expressly deferred. <a href="../../../specs/done/city-maps/generation-report.md">Generation report, lines 272–276</a>.</li>
+  <li>The same generator accepts supplied preset, template and resolved physical-rule documents per call. An unsaved draft can be previewed without changing production sources. It already exports both complete plans and compiled maps to Wasm. <a href="../../../crates/game-wasm/src/lib.rs">Wasm boundary, lines 29–51</a>.</li>
+  <li>Rust validates presets. Its plan measurement owner calculates land coverage, fairness, roads, transit and approaches; its SVG inspector draws plan layers and detailed crops. These are reusable owners, not a reason to recreate generation or geometry checks in TypeScript. <a href="../../../crates/mapgen/src/layout/presets.rs">Preset validator, line 732</a>; <a href="../../../crates/mapgen/src/layout/measure.rs">Measurements, line 99</a>; <a href="../../../crates/mapgen/src/inspect.rs">Inspector, line 116</a>.</li>
+  <li>Open, Mixed and Metro remain separate from Small, Medium and Large (6/8/10 km). This walk does not add hills, new art families, arbitrary map dimensions, hand-painted map geometry or combat tuning. <a href="../../../specs/done/city-maps/README.md">City-maps rationale, lines 9–13</a>.</li>
+  <li>A seed is canonical u64 decimal text, never a JavaScript number. Requests pin generator/preset versions and physical templates. Config and map hashes have their existing meanings; appearance identity stays separate. <a href="../../../crates/contract/src/generation.rs">Request, line 72</a>; <a href="../../../crates/contract/src/identity.rs">Identity owner</a>.</li>
+  <li>The continuous physical sight certificate is generation admission. Sampled infantry openness is a separate diagnostic/report policy. Neither a plan image nor that sampled percentage proves all-position coverage, actual travel or battle outcomes. <a href="../../../specs/done/city-maps/generation-report.md">Coverage and sight meanings, lines 149–180</a>.</li>
+  <li>The mechanics editor supplies a local draft → authoritative validation → exact save diff → stale-source rejection precedent. Its unit-inheritance store is specific to mechanics and should not become the map editor's store. <a href="../../../apps/mechanics-editor/README.md">Mechanics workflow</a>; <a href="../../../apps/mechanics-editor/server.ts">Preview and save, lines 295 and 513</a>.</li>
+</ul>
+
+<h2 id="decisions">2. Known unknowns — decision ledger</h2>
+<p><strong>Confirmed preferences:</strong> explicit saves to checkout defaults; focused generation editing; automatic regeneration; plan inspection; extra automatic analysis only when fast. The user explicitly opted into delegated answers that clearly follow from those preferences. New tradeoffs still require a user answer; the delegation authorizes this walk, not implementation.</p>
+<table>
+  <thead><tr><th>Question</th><th>Decision and why</th><th>Closed by</th></tr></thead>
+  <tbody>
+    <tr><td>What does saving change?</td><td>Draft edits are explicitly saved to their existing fixture owners. Saved values become defaults for new generated battles. No named-experiment library is selected.</td><td>User · A</td></tr>
+    <tr><td>What can be edited?</td><td>Generation business rules. Shared forest physics, observer rules, encounter recipes and weapon settings remain outside this editor's editing scope.</td><td>User · A</td></tr>
+    <tr><td>When does generation run?</td><td>Automatically after input settles. Rapid edits coalesce to the latest valid draft; superseded output cannot be presented as current.</td><td>User · A</td></tr>
+    <tr><td>What is the primary preview?</td><td>A top-down plan emphasizing settlements, districts, roads and placement geometry. A full production-renderer preview is not selected.</td><td>User · B</td></tr>
+    <tr><td>Which measurements are automatic?</td><td>Geometry measurements and object counts. Add automatic sampled sight only if the additional analysis cost is below 500 ms; otherwise provide Measure openness on demand. Cost must include required world preparation and result publication, not just a timed inner loop.</td><td>User · conditional A/B; timing OPEN</td></tr>
+    <tr><td>May a refused preview be saved?</td><td>Yes, if settings pass authoritative input validation. Show the refusal in save review. Admission of one seed is not structural validity of the settings, and saving does not imply all-seed acceptance.</td><td>User · A</td></tr>
+    <tr><td>How are fields reached?</td><td>Searchable controls and selection on the plan lead to the same field descriptions and editors.</td><td>User · C</td></tr>
+    <tr><td>How are defaults assessed across seeds?</td><td>Add an on-demand seed sample showing successes, refusals and measurements. It stays outside the automatic edit loop.</td><td>User · B</td></tr>
+    <tr><td>What about validator knobs?</td><td>Include tunable validation policies and work limits, not merely construction proposals. This expands the earlier treatment of fixed numerical quality requirements. Preserve current values as initial defaults; do not disable physical/structural correctness checks.</td><td>User requested scope; agent disclosed interpretation</td></tr>
+    <tr><td>What should ordinary Play do after refusal?</td><td>Recover automatically to a playable battle rather than presenting raw generation failure as the player's problem. Preserve developer evidence of failures.</td><td>User · explicit requirement</td></tr>
+    <tr><td>What does comparison hold fixed?</td><td>Compare the saved baseline with the current draft at the same type, size and explicit seed. Reason: geometric inspection should isolate the effect of edits.</td><td>Agent on user's behalf</td></tr>
+    <tr><td>What remains on screen during a run?</td><td>Keep the previous successful plan visibly labelled as an older result, with the pending draft identified. Reason: automatic editing should preserve inspection continuity without stale-result claims.</td><td>Agent on user's behalf</td></tr>
+    <tr><td>How do errors behave?</td><td>Retain input and show errors/refusal diagnostics. Developer requests never switch seeds or weaken checks. Reason: the user is tuning the failed settings and needs that evidence.</td><td>Agent on user's behalf + territory</td></tr>
+    <tr><td>How are controls organized?</td><td>Searchable business-rule groups with units, effects, saved values and draft values. Show proposal ranges as min/max, probabilities as percentages and mixes as relative weights. Reason: a flat list of every numeric leaf obscures what is being changed.</td><td>Agent on user's behalf</td></tr>
+    <tr><td>Does clicking a district edit that one instance?</td><td>No. Selection identifies the responsible rule group; edits affect the generated district kind wherever the preset applies. Reason: generation-rule editing was chosen, not hand-editing placed map geometry.</td><td>Agent on user's behalf; shown with concrete example</td></tr>
+    <tr><td>What if sources change outside the editor?</td><td>Keep the draft, reject a stale save and explicitly reconcile/reload current sources. Reason: explicit saving must preserve outside edits; mechanics already establishes this contract.</td><td>Agent on user's behalf + territory</td></tr>
+    <tr><td>Which Rust code owns validity?</td><td>Use existing preset validation, generator admission, compiler and physical owners. UI metadata explains values; it does not become another validator or generator.</td><td>Territory + inherited one-owner principle</td></tr>
+    <tr><td>How does a sample handle refusal?</td><td>Each requested seed retains its outcome. Never replace failed rows; report the requested denominator. Generation admission and encounter readiness are distinct results.</td><td>Territory + user Play requirement</td></tr>
+    <tr><td>How is asynchronous work bounded?</td><td>One active generation job and at most one pending latest draft; do not accumulate a job per keystroke. Reports stay tied to their tested snapshot. Cancel owned work when leaving the tool.</td><td>Agent on user's behalf · fast loop and truthful output</td></tr>
+    <tr><td>What is Play's recovery strategy?</td><td>For ordinary unpinned Play, try fresh candidate seeds through map generation and encounter placement, within a bounded preparation budget, then use a released saved battle if needed. Preserve preferred type/size during candidate attempts. Final identity/URL describes the admitted map and encounter. Exact named seed inspection and replay stay exact.</td><td>Agent on user's behalf · user prioritized playing; budget/fallback proof OPEN</td></tr>
+    <tr><td>What about manually editing revision strings?</td><td>Versions and snapshot identity are tool-managed, not business-rule knobs. Preserve the exact tested input documents and existing output identities. Refresh preset revision/input receipts consistently when publishing changed defaults; exact publication protocol is a builder verification item.</td><td>Agent on user's behalf · reproducible tuning and existing identity contract</td></tr>
+  </tbody>
+</table>
+
+<h3>Validation controls to include</h3>
+<table>
+<thead><tr><th>Role</th><th>Surface</th><th>Owning contract</th></tr></thead>
+<tbody>
+  <tr><td>Admission policy</td><td>Town/forest/river fairness tolerances; approach depth/front and construction reserves; maximum transit time and centre reach; type/size urban ceiling; forest share target and tolerance.</td><td><a href="../../../crates/mapgen/src/layout/mod.rs">Finished-plan verification, line 173</a>; <code>fixtures/map-presets.json</code>.</td></tr>
+  <tr><td>Analysis policy</td><td>Sampled-openness target (current 50%) and clearly labelled sampling settings. Its pass/fail applies to that measured report; do not quietly introduce a new runtime generation rejection gate.</td><td><a href="../../../crates/mapgen/tests/open_country.rs">Current target, line 822</a>; <a href="../../../crates/mapgen/examples/common/sight.rs">Shared calculation</a>. Editable policy needs extraction to a data owner shared by consumers.</td></tr>
+  <tr><td>Advanced work policy</td><td>Existing bounded retry/placement settings and compiler maxima for authored parts, bay positions and ground points. Expose units and current outcome. Resolve saved-map admission coupling before enabling mutable caps.</td><td><a href="../../../crates/contract/src/generation.rs">CompileLimits, line 56</a>; <code>fixtures/generated-battle.json</code>; preset retry owners.</td></tr>
+  <tr><td>Mandatory correctness</td><td>Finite positive geometry, bounds, unique identifiers, valid template/materialization references, physically valid river/bridge geometry and sound certification. Show failed evidence; no disable checkbox.</td><td><a href="../../../crates/mapgen/src/lib.rs">Plan/compiler validation, line 435</a>; contract physical owners.</td></tr>
+  <tr><td>Source constants</td><td>Inventory and classify all 76 recorded constants. Genuine business/validation/work-policy values must move into the existing data owners to become editable; mathematical and numerical correctness safeguards remain implementation-owned. Examples needing classification include bowed-street shaping and bounded side-road search.</td><td><a href="../../../specs/done/city-maps/generation-parameters.md">Source appendix, line 903</a>. Complete mapping remains OPEN before controls are implemented.</td></tr>
+</tbody>
+</table>
+
+<h2 id="context">3. Unknown knowns — context extracted</h2>
+<ul>
+  <li><strong>Inspection preference:</strong> the user selected the plan instead of a rendered game view. Prioritize causal geometry: where districts, roads, parcels and furnishings come from.</li>
+  <li><strong>Navigation preference:</strong> the user reacted to an apartment-district example and selected both control search and map-driven navigation. Both routes must identify the same rule, with its scope clear.</li>
+  <li><strong>Definition of useful tuning:</strong> one appealing seed is insufficient. The user selected an on-demand multi-seed sample as well as individual inspection.</li>
+  <li><strong>Different audiences:</strong> a developer can use a refused seed and its diagnostics to tune policies. A player pressing Play needs a battle and cannot repair generator settings. The user explicitly rejected the existing failure screen as the normal outcome.</li>
+  <li><strong>Environment/consumer:</strong> the inherited purpose is personal local tuning, and saving to checkout fixture defaults was explicitly chosen. Solo localhost usage remains the stated assumption; remote collaborative editing has not been requested.</li>
+  <li><strong>Scope amendment:</strong> the user asked for validator tunables too. Numerical quality policies are therefore not permanently frozen just because city-maps shipped initial requirements. Physical correctness retains its own authority.</li>
+</ul>
+<p>The concrete example used actual apartment defaults: 130 m block depth, 230 m length, 20% cross-street omission and an 85:15 apartment/attached-home mix. Trial changes were explicitly illustrative, not generated results.</p>
+
+<h2 id="findings">4. Unknown unknowns — landmine sweep</h2>
+<p>Reviewed targeted source excerpts from 29 existing boundary files, plus fixtures, the frozen parameter inventory and city-maps evidence. Coverage is the generation/validation/inspection, publication, preparation and player-recovery seams listed below; this is not an exhaustive audit of every internal placement algorithm. A broad validator semantic search was stopped without results; validator conclusions below are backed by direct source reads.</p>
+
+<div class="finding">
+  <span class="tag">DECIDED · PLAYER RECOVERY</span>
+  <h3>Returning to the menu can request the same failed seed</h3>
+  <p><strong>Evidence:</strong> the battle route advises deploying again for another map, but passes the original choice into its menu return link; the menu reuses a supplied seed. The preparation worker reports refusal and closes, with no recovery selection.</p>
+  <p><strong>Why it bites:</strong> the player's suggested recovery can reproduce exactly the same failure.</p>
+  <p><strong>Task change:</strong> ordinary Play gains automatic admitted-battle selection and bounded fallback. This is a user-added requirement, not a bug fix already performed.</p>
+  <small><a href="../../../apps/battle-lab/src/routes/battle.tsx">battle.tsx, lines 68–98 and 244</a> · <a href="../../../apps/battle-lab/src/MainMenu.tsx">MainMenu.tsx, line 146</a> · <a href="../../../web/src/battle/prepare/worker.ts">worker.ts, line 46</a></small>
+</div>
+<div class="finding open">
+  <span class="tag">OPEN · MUTABLE CAPACITY</span>
+  <h3>Generation and saved-map admission have matching limits in two places</h3>
+  <p><strong>Evidence:</strong> generation reads limits from <code>fixtures/generated-battle.json</code>, while <code>MapAdmission::CATALOGUE</code> compiles matching 60,000-part and 600,000-bay limits into Rust; both native and Wasm catalogue readers use that constant.</p>
+  <p><strong>Why it bites:</strong> a fixture-only edit can drift from catalogue admission and its equality check. Lowering a budget must also not accidentally destroy the promised Play fallback.</p>
+  <p><strong>Task change:</strong> define the relationship between editable generation work policy, released-map admission and fallback before enabling these controls. One publication must keep the intended shared constraints coherent.</p>
+  <small><a href="../../../crates/contract/src/maps.rs">maps.rs, lines 117–132</a> · <a href="../../../crates/game-wasm/src/lib.rs">Wasm resolver, line 108</a> · <a href="../../../crates/sim/src/maps.rs">Native reader, line 64</a></small>
+</div>
+<div class="finding open">
+  <span class="tag">OPEN · 500 MS PERFORMANCE CONDITION</span>
+  <h3>The sight report is not yet a production browser API</h3>
+  <p><strong>Evidence:</strong> the shared calculation lives under mapgen examples and uses simulation queries; <code>sim</code> is a mapgen dev-dependency. Browser generation output has compile counts and sites, rather than the detailed sight report.</p>
+  <p><strong>Why it bites:</strong> native source availability does not prove a browser result or a sub-500 ms cost. Moving simulation work into the production mapgen crate would violate its current boundary.</p>
+  <p><strong>Task change:</strong> expose one simulation-owned analysis calculation, reuse it in reports/tests and workbench, then measure the full additional work in the actual execution path. Until that gate is proven, sight remains on demand.</p>
+  <small><a href="../../../crates/mapgen/examples/common/sight.rs">Shared sight calculation</a> · <a href="../../../crates/mapgen/Cargo.toml">Crate boundary</a> · <a href="../../../crates/mapgen/src/lib.rs">GeneratedMap, line 233</a></small>
+</div>
+<div class="finding">
+  <span class="tag">SHARP EDGE · LIVE DOES NOT MEAN INSTANT</span>
+  <h3>Large generation already takes seconds</h3>
+  <p><strong>Evidence:</strong> the retained current-art Metro Large seed 4 browser record measured roughly 4.1–4.2 seconds for map generation and 2.3 seconds for encounter preparation; first playable view was roughly 15 seconds. This is historical evidence for one identified map, not a new workbench timing result.</p>
+  <p><strong>Why it bites:</strong> starting a job per keystroke, restarting indefinitely or repeatedly trying the same failed request can waste substantial work without progress.</p>
+  <p><strong>Task change:</strong> keep bounded latest-draft scheduling, visible pending state and cancellation. Retry selection changes the candidate seed and preserves the existing under-30-second startup requirement; its budget needs measured fallback headroom.</p>
+  <small><a href="../../../specs/done/city-maps/evidence.md">Startup scope, line 22</a> · retained <code>/Users/david/dev/battlegame/throwaway/city-maps-final-integrated/current-art-large-startup.log</code></small>
+</div>
+<div class="finding">
+  <span class="tag">DECIDED · IDENTITY AND SNAPSHOTS</span>
+  <h3>A seed and revision label alone do not reproduce an edited draft</h3>
+  <p><strong>Evidence:</strong> the request contains no draft ID or editable-value payload; current config identity hashes physical input identity and the final plan. Version labels alone are not verified source provenance.</p>
+  <p><strong>Why it bites:</strong> an old preview, a batch report and newly saved defaults can otherwise appear to describe the same settings.</p>
+  <p><strong>Task change:</strong> bind every result to the exact input snapshot, source revision, type/size/seed and existing output identity. Preserve tested inputs with a report. Do not call a source-content fingerprint the current map/config hash.</p>
+  <small><a href="../../../crates/contract/src/generation.rs">Request, line 72</a> · <a href="../../../crates/mapgen/src/lib.rs">Config identity, line 378</a></small>
+</div>
+<div class="finding">
+  <span class="tag">DECIDED · INSPECTOR REUSE</span>
+  <h3>The inspector exists, but interactive inspection needs an exposure seam</h3>
+  <p><strong>Evidence:</strong> the Rust SVG inspector supports whole-map and settlement/district/bridge crops, with detail selected from view width. Existing Wasm exports plans and compiled maps, not this interactive inspection contract.</p>
+  <p><strong>Why it bites:</strong> a separate TypeScript geometry implementation or a second generator would make the diagram disagree with the game. Browser zooming a static overview does not itself add detail that Rust omitted.</p>
+  <p><strong>Task change:</strong> extend/expose the existing inspection owner with layers, selection metadata and detailed views from the same generated result. Keep pan/zoom and selection separate from regeneration of unchanged inputs.</p>
+  <small><a href="../../../crates/mapgen/src/inspect.rs">Inspector crop/detail, lines 74–126</a> · <a href="../../../crates/game-wasm/src/lib.rs">Plan API, line 32</a></small>
+</div>
+<div class="finding open">
+  <span class="tag">OPEN · SOURCE POLICY INVENTORY</span>
+  <h3>The frozen list mixes policies with numerical safeguards</h3>
+  <p><strong>Evidence:</strong> the appendix records 699 preset leaves and 76 source constants, explicitly including different roles. Bowed-street shaping uses source constants; the physical certificate separately has a 512,000,000-operation envelope. Deleted proximity-sight knobs are not future controls.</p>
+  <p><strong>Why it bites:</strong> exposing every constant alike can turn a proof assumption into an apparent quality slider, or miss a genuine business-rule control.</p>
+  <p><strong>Task change:</strong> classify the complete inventory before field implementation, identify every promoted field's owner, and preserve initial numerical behaviour during extraction. The historical city-maps appendix stays a frozen reference, not live configuration.</p>
+  <small><a href="../../../specs/done/city-maps/generation-parameters.md">Appendix, lines 9 and 903</a> · <a href="../../../crates/mapgen/src/parcels/streets.rs">Bowed-street constants, lines 58–61</a> · <a href="../../../crates/mapgen/src/open_country/coverage.rs">Proof envelope, line 24</a></small>
+</div>
+
+<details><summary>Reviewed boundary files — 29</summary>
+<ol>
+<li><code>crates/contract/src/generation.rs</code></li><li><code>crates/contract/src/identity.rs</code></li><li><code>crates/contract/src/maps.rs</code></li>
+<li><code>crates/mapgen/src/lib.rs</code></li><li><code>crates/mapgen/src/layout/mod.rs</code></li><li><code>crates/mapgen/src/layout/presets.rs</code></li><li><code>crates/mapgen/src/layout/measure.rs</code></li><li><code>crates/mapgen/src/inspect.rs</code></li><li><code>crates/mapgen/src/open_country/mod.rs</code></li><li><code>crates/mapgen/src/open_country/coverage.rs</code></li>
+<li><code>crates/mapgen/examples/common/sight.rs</code></li><li><code>crates/mapgen/examples/sight_report.rs</code></li><li><code>crates/mapgen/Cargo.toml</code></li><li><code>crates/game-wasm/src/lib.rs</code></li><li><code>crates/sim/src/maps.rs</code></li>
+<li><code>web/src/maps/source.ts</code></li><li><code>web/src/maps/catalogue.ts</code></li><li><code>web/src/maps/browser.ts</code></li><li><code>web/src/maps/resolve.ts</code></li>
+<li><code>web/src/battle/prepare/prepare.ts</code></li><li><code>web/src/battle/prepare/client.ts</code></li><li><code>web/src/battle/prepare/worker.ts</code></li><li><code>web/src/battle/prepare/protocol.ts</code></li>
+<li><code>apps/mechanics-editor/server.ts</code></li><li><code>apps/battle-lab/src/battleLinks.ts</code></li><li><code>apps/battle-lab/src/MainMenu.tsx</code></li><li><code>apps/battle-lab/src/routes/battle.tsx</code></li><li><code>apps/battle-lab/src/LoadingScreen.tsx</code></li><li><code>apps/battle-lab/src/router.tsx</code></li>
+</ol>
+<p class="muted">Additional evidence: root/fixture/mapgen/mechanics READMEs, city-maps rationale/report/choices/evidence/parameter inventory, presets, preparation defaults, Market Town metadata, selected source-constant definitions and the retained startup log. Searches found existing model and panel workbenches, not an implemented live map-tuning editor.</p>
+</details>
+
+<h2 id="open-items">Remaining verification — explicitly OPEN</h2>
+<table>
+<thead><tr><th>Item</th><th>What closes it</th><th>Consequence until closed</th></tr></thead>
+<tbody>
+<tr><td>Complete control inventory and source-policy extraction</td><td>A field-by-field role/owner matrix covering current presets, tunable validation policy, preparation caps and all recorded source constants. Document promotions and immutable correctness checks. Move source-backed tunables into their existing data owners, keeping initial values unchanged.</td><td>Do not declare complete parameter coverage from a handful of sliders. Input validation and report policy need distinct semantics.</td></tr>
+<tr><td>Additional sight analysis under 500 ms</td><td>Measure required world preparation, analysis and publication in the intended browser/workbench execution path, on representative types/sizes and edited high-work inputs. Keep sample semantics unchanged. Native-only or generation-inclusive totals do not establish this condition.</td><td>Geometry updates automatically; sight is on demand. No fast-path claim is made.</td></tr>
+<tr><td>Play retry bound and fallback admission</td><td>Specify a finite attempt/time budget with changing candidates; measure refusal and fallback paths against the existing startup requirement. Verify the released fallback and its encounter through the actual resolver and preparation path. Resolve mutable compiler caps versus fixed catalogue admission. Market Town/assault is the existing candidate, not a newly verified guarantee.</td><td>Recovery is a required follow-up, not implemented or claimed tested. Do not add an unbounded reroll loop or retry permanent input faults unchanged.</td></tr>
+<tr><td>Preset revision/publication protocol</td><td>Define the authoritative revision update and exact input receipt handling for draft preview and saved defaults, with stale-source rejection and default extraction parity.</td><td>Labels alone cannot reproduce a draft; preserve actual inputs.</td></tr>
+</tbody>
+</table>
+
+<h2 id="next">Next message, ready to copy</h2>
+<p>The quadrant walk is complete. Implementation is a separate task. The next spec should carry these decisions and verification items rather than reopening choices already answered.</p>
+<p><strong>Superseded kickoff:</strong> use the live spec README instead of the historical prompt below.</p><textarea id="prompt" readonly aria-label="Next task prompt">Use write-spec to turn the live map workbench exploration map at throwaway/live-map-workbench/decision-map.html into an implementation spec. Carry forward the attributed decisions and explicit OPEN items.
+
+Build a local developer workbench for generation and tunable validation policies, saving validated drafts explicitly into existing fixture owners. Use automatic regeneration after edits settle, a top-down plan preview, and both searchable fields and map-driven navigation to the same controls. Keep saved-versus-draft comparisons on the same seed/type/size. Show authoritative geometry measurements automatically; include automatic sampled sight only after proving additional analysis below 500 ms, otherwise make it on demand. Add an on-demand seed sample retaining every success and refusal. Valid presets may be saved despite a refused selected seed.
+
+Expose tunable map-admission policies and work limits alongside construction controls. Complete the role/owner inventory, including source-backed policy constants, before building controls. Preserve mandatory structural/physical correctness and the distinction between runtime admission and sampled report targets. Reuse Rust generation, validation and inspection owners; do not duplicate their answers in JavaScript.
+
+Include the user-added player requirement: ordinary Play must recover automatically from generation or encounter-placement refusal into an admitted battle. Use fresh candidates within a bounded budget and an admitted released fallback. Publish the actual admitted battle identity; exact developer seed inspection and replay remain exact. Resolve capacity-policy/catalogue-admission coupling and measure the fallback path before claiming reliable recovery.
+
+Keep shared forest physics, observer rules, encounter editing, weapon tuning, terrain relief and full rendered preview outside this workbench's editing scope. Keep unknown performance and publication facts explicit rather than choosing invisible defaults. Implementation has not begun.</textarea>
+<button id="copy" type="button">Copy next message</button><span id="copied" role="status" aria-live="polite"></span>
+<script>
+document.getElementById('copy').addEventListener('click', async function () {
+  var field = document.getElementById('prompt');
+  try { await navigator.clipboard.writeText(field.value); document.getElementById('copied').textContent = ' Copied'; }
+  catch (_) { field.focus(); field.select(); document.getElementById('copied').textContent = ' Selected — copy with your keyboard'; }
+});
+</script>
+</html>
