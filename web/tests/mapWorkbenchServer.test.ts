@@ -215,8 +215,8 @@ test("the HTTP plugin serves only local same-origin operations and rejects brows
 
 test("aborting native work terminates its actual process before resolving cancellation", async () => {
   const { root } = await fixture();
-  const binary = join(root, "throwaway/target/debug/examples/map_workbench_report");
-  await mkdir(join(root, "throwaway/target/debug/examples"), { recursive: true });
+  const binary = join(root, "throwaway/target/release/examples/map_workbench_report");
+  await mkdir(join(root, "throwaway/target/release/examples"), { recursive: true });
   await writeFile(
     binary,
     `#!/usr/bin/env node
@@ -373,8 +373,8 @@ test("the next reader recovers an interrupted source publication before exposing
 test("disconnecting an HTTP generation terminates the process and removes its unpublished artifact", async () => {
   const { root, store } = await fixture();
   const draft = await store.snapshot();
-  const binary = join(root, "throwaway/target/debug/examples/map_workbench_report");
-  await mkdir(join(root, "throwaway/target/debug/examples"), { recursive: true });
+  const binary = join(root, "throwaway/target/release/examples/map_workbench_report");
+  await mkdir(join(root, "throwaway/target/release/examples"), { recursive: true });
   await writeFile(
     binary,
     `#!/usr/bin/env node\nlet input = ""; process.stdin.on("data", data => input += data); process.stdin.on("end", () => { const request = JSON.parse(input); if (request.operation === "validate") { process.stdout.write(${JSON.stringify(JSON.stringify(validation))}); } else { require("node:fs").writeFileSync(${JSON.stringify(join(root, "http-pid"))}, String(process.pid)); setInterval(() => {}, 1000); } });\n`,
@@ -523,4 +523,75 @@ test("sample export and cancellation preserve pinned preview geometry for crop a
   });
   expect(await store.sight(preview.artifactId!)).toMatchObject({ status: "measured", samples: 4 });
   expect(await store.inspect(baseline.artifactId!)).toMatchObject({ svg: "<svg>4</svg>" });
+});
+
+test("invalid policy previews retain native diagnostic locations without writes and cannot be saved", async () => {
+  const diagnostics = [
+    {
+      code: "invalid_presets",
+      feature: "fairness",
+      location: "$.presets.density",
+      message: "Density is outside the admitted policy range",
+    },
+  ];
+  const run: NativeReporter = async (request) =>
+    request.operation === "validate" && JSON.parse(request.inputs.presets).density === 0.8
+      ? { status: "invalid", diagnostics, fields: validation.fields }
+      : validation;
+  const { root, store } = await fixture(run);
+  const draft = structuredClone(await store.snapshot());
+  draft.documents.presets.density = 0.8;
+  const preview = await store.preview(draft);
+  expect(preview.diagnostics).toEqual(diagnostics);
+  expect(preview.files[0].after).toContain('"density": 0.8');
+  expect(await readFile(join(root, preview.files[0].path), "utf8")).toBe(preview.files[0].before);
+  await expect(store.save(preview)).rejects.toMatchObject({ status: 400, diagnostics });
+  expect(await readFile(join(root, preview.files[0].path), "utf8")).toBe(preview.files[0].before);
+});
+
+test("native inspection refusal becomes an HTTP error with its structured diagnostic location", async () => {
+  const { root, store } = await fixture();
+  const draft = await store.snapshot();
+  const diagnostics = [
+    {
+      code: "invalid_request",
+      feature: null,
+      location: "$.crop",
+      message: "Unknown inspection crop",
+    },
+  ];
+  const binary = join(root, "throwaway/target/release/examples/map_workbench_report");
+  await mkdir(join(root, "throwaway/target/release/examples"), { recursive: true });
+  await writeFile(
+    binary,
+    `#!/usr/bin/env node\nlet input = ""; process.stdin.on("data", data => input += data); process.stdin.on("end", () => { const request = JSON.parse(input); const output = request.operation === "validate" ? ${JSON.stringify(validation)} : request.operation === "generate" ? {status:"ok",choice:request.choice,diagnostics:[],svg:"<svg/>"} : {status:"invalid",fields:[],diagnostics:${JSON.stringify(diagnostics)}}; process.stdout.write(JSON.stringify(output)); });\n`,
+  );
+  await chmod(binary, 0o755);
+  const server = await createViteServer({
+    configFile: false,
+    plugins: [mapWorkbenchPlugin(root)],
+    server: { host: "127.0.0.1", port: 0 },
+  });
+  servers.push(server);
+  await server.listen();
+  const address = server.httpServer!.address();
+  if (!address || typeof address === "string") throw new Error("No server port");
+  const origin = `http://127.0.0.1:${address.port}`;
+  const post = (operation: string, body: unknown) =>
+    fetch(`${origin}/__map-workbench/${operation}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Origin: origin },
+      body: JSON.stringify(body),
+    });
+  const generated = await post("generate", {
+    purpose: "preview",
+    draft,
+    choice: { type: "mixed", size: "small", seed: "4" },
+  }).then((response) => response.json());
+  const response = await post("inspect", {
+    artifactId: generated.artifactId,
+    crop: "nonexistent-district",
+  });
+  expect(response.status).toBe(400);
+  expect(await response.json()).toMatchObject({ error: "Unknown inspection crop", diagnostics });
 });

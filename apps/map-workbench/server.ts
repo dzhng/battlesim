@@ -148,12 +148,19 @@ export class WorkbenchStore {
       { operation: "validate", inputs },
       signal,
     )) as NativeValidation;
+    return result;
+  }
+  private requireValid(result: NativeValidation) {
     if (result.status !== "valid")
-      throw new WorkbenchError(result.diagnostics.map((item) => item.message).join("; "));
+      throw new WorkbenchError(
+        result.diagnostics.map((item) => item.message).join("; "),
+        400,
+        result.diagnostics,
+      );
     return result;
   }
   private async snapshotFrom(state: State, signal?: AbortSignal): Promise<Snapshot> {
-    const validated = await this.validate(state.inputs, signal);
+    const validated = this.requireValid(await this.validate(state.inputs, signal));
     return {
       revision: state.revision,
       documents: {
@@ -213,7 +220,7 @@ export class WorkbenchStore {
   preview(draft: Draft, signal?: AbortSignal): Promise<SaveReview> {
     return this.serial(async (owned) => {
       const state = await this.state();
-      const current = await this.validate(state.inputs, owned);
+      const current = this.requireValid(await this.validate(state.inputs, owned));
       const inputs = this.inputsFor(draft, state, current.fields);
       const validation = await this.validate(inputs, owned);
       const files = (["presets", "defaults"] as const).flatMap((name) =>
@@ -251,7 +258,7 @@ export class WorkbenchStore {
       if (state.revision === candidate.expectedRevision) return this.snapshotFrom(state, owned);
       if (state.revision !== candidate.review.revision)
         throw new WorkbenchError("Sources changed. Reload sources before saving.", 409);
-      await this.validate(candidate.inputs, owned);
+      this.requireValid(await this.validate(candidate.inputs, owned));
       owned.throwIfAborted();
       await this.publication.publish(candidate.review.files, async (phase) => {
         const current = await this.read();
@@ -279,9 +286,9 @@ export class WorkbenchStore {
       )
         throw new WorkbenchError("Expected a map type, size and canonical u64 seed");
       const state = await this.state();
-      const current = await this.validate(state.inputs, owned);
+      const current = this.requireValid(await this.validate(state.inputs, owned));
       const inputs = this.inputsFor(request.draft, state, current.fields);
-      await this.validate(inputs, owned);
+      this.requireValid(await this.validate(inputs, owned));
       if (request.purpose === "sample") {
         for (const [id, artifact] of this.artifacts) {
           if (artifact.purpose === "sample") {

@@ -92,7 +92,10 @@ export function workbenchMiddleware(store: WorkbenchStore) {
       if (!response.destroyed) {
         response.statusCode = error instanceof WorkbenchError ? error.status : 500;
         response.end(
-          JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
+          JSON.stringify({
+            error: error instanceof Error ? error.message : String(error),
+            ...(error instanceof WorkbenchError && { diagnostics: error.diagnostics }),
+          }),
         );
       }
     } finally {

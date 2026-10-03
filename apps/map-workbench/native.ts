@@ -22,7 +22,7 @@ export function nativeReporter(root: string): NativeReporter {
         resolve(
           root,
           process.env.CARGO_TARGET_DIR ?? "throwaway/target",
-          "debug/examples/map_workbench_report",
+          "release/examples/map_workbench_report",
         ),
         [],
         { cwd: root, stdio: ["pipe", "pipe", "pipe"] },
@@ -65,7 +65,20 @@ export function nativeReporter(root: string): NativeReporter {
         if (code !== 0)
           return reject(new WorkbenchError(stderr.trim() || "Native map report failed", 502));
         try {
-          complete(JSON.parse(Buffer.concat(stdout).toString("utf8")));
+          const result = JSON.parse(Buffer.concat(stdout).toString("utf8")) as
+            | NativeValidation
+            | NativeReport
+            | Inspection
+            | SightReport;
+          if (request.operation !== "validate" && "status" in result && result.status === "invalid")
+            return reject(
+              new WorkbenchError(
+                result.diagnostics.map((item) => item.message).join("; "),
+                400,
+                result.diagnostics,
+              ),
+            );
+          complete(result);
         } catch {
           reject(new WorkbenchError("Native map report returned invalid JSON", 502));
         }
