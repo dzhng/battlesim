@@ -1,0 +1,242 @@
+{
+  "sources": {},
+  "clips": {},
+  "sounds": {
+    "rifle": {
+      "label": "Synth \u00b7 rifle",
+      "clips": [],
+      "synth": "rifle",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": false
+    },
+    "rifle_far": {
+      "label": "Synth \u00b7 rifle far",
+      "clips": [],
+      "synth": "rifle_far",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": false
+    },
+    "hmg": {
+      "label": "Synth \u00b7 hmg",
+      "clips": [],
+      "synth": "hmg",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": false
+    },
+    "hmg_far": {
+      "label": "Synth \u00b7 hmg far",
+      "clips": [],
+      "synth": "hmg_far",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": false
+    },
+    "cannon": {
+      "label": "Synth \u00b7 cannon",
+      "clips": [],
+      "synth": "cannon",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": false
+    },
+    "cannon_far": {
+      "label": "Synth \u00b7 cannon far",
+      "clips": [],
+      "synth": "cannon_far",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": false
+    },
+    "thump": {
+      "label": "Synth \u00b7 thump",
+      "clips": [],
+      "synth": "thump",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": false
+    },
+    "launch": {
+      "label": "Synth \u00b7 launch",
+      "clips": [],
+      "synth": "launch",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": false
+    },
+    "impact_ground": {
+      "label": "Synth \u00b7 impact ground",
+      "clips": [],
+      "synth": "impact_ground",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": false
+    },
+    "impact_hull": {
+      "label": "Synth \u00b7 impact hull",
+      "clips": [],
+      "synth": "impact_hull",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": false
+    },
+    "impact_prop": {
+      "label": "Synth \u00b7 impact prop",
+      "clips": [],
+      "synth": "impact_prop",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": false
+    },
+    "impact_soldier": {
+      "label": "Synth \u00b7 impact soldier",
+      "clips": [],
+      "synth": "impact_soldier",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": false
+    },
+    "ricochet": {
+      "label": "Synth \u00b7 ricochet",
+      "clips": [],
+      "synth": "ricochet",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": false
+    },
+    "explosion": {
+      "label": "Synth \u00b7 explosion",
+      "clips": [],
+      "synth": "explosion",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": false
+    },
+    "explosion_far": {
+      "label": "Synth \u00b7 explosion far",
+      "clips": [],
+      "synth": "explosion_far",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": false
+    },
+    "footstep": {
+      "label": "Synth \u00b7 footstep",
+      "clips": [],
+      "synth": "footstep",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": false
+    },
+    "motor": {
+      "label": "Synth \u00b7 motor",
+      "clips": [],
+      "synth": "motor",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": true
+    },
+    "engine_diesel": {
+      "label": "Synth \u00b7 engine diesel",
+      "clips": [],
+      "synth": "engine_diesel",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": true
+    },
+    "engine_small": {
+      "label": "Synth \u00b7 engine small",
+      "clips": [],
+      "synth": "engine_small",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": true
+    },
+    "tracks": {
+      "label": "Synth \u00b7 tracks",
+      "clips": [],
+      "synth": "tracks",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": true
+    },
+    "wheels": {
+      "label": "Synth \u00b7 wheels",
+      "clips": [],
+      "synth": "wheels",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": true
+    },
+    "turret": {
+      "label": "Synth \u00b7 turret",
+      "clips": [],
+      "synth": "turret",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": true
+    },
+    "reverse_whine": {
+      "label": "Synth \u00b7 reverse whine",
+      "clips": [],
+      "synth": "reverse_whine",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": true
+    },
+    "fire": {
+      "label": "Synth \u00b7 fire",
+      "clips": [],
+      "synth": "fire",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": true
+    },
+    "countryside": {
+      "label": "Synth \u00b7 countryside",
+      "clips": [],
+      "synth": "countryside",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": true
+    },
+    "cue_gunfire": {
+      "label": "Synth \u00b7 cue gunfire",
+      "clips": [],
+      "synth": "cue_gunfire",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": false
+    },
+    "cue_engine": {
+      "label": "Synth \u00b7 cue engine",
+      "clips": [],
+      "synth": "cue_engine",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": false
+    },
+    "cue_footsteps": {
+      "label": "Synth \u00b7 cue footsteps",
+      "clips": [],
+      "synth": "cue_footsteps",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": false
+    },
+    "cue_voices": {
+      "label": "Synth \u00b7 cue voices",
+      "clips": [],
+      "synth": "cue_voices",
+      "synth_gain": 1,
+      "gain": 1,
+      "loop": false
+    }
+  },
+  "defaults": {},
+  "units": {},
+  "impacts": {},
+  "effects": {}
+}

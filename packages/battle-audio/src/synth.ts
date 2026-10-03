@@ -241,19 +241,23 @@ function engine(sr: number, rng: Rng, hz: number, len: number, bright: number) {
   return toPeak(out);
 }
 
-type Maker = (sr: number, rng: Rng) => SynthSound;
-const once =
-  (f: (sr: number, rng: Rng) => Float32Array): Maker =>
-  (sr, rng) => ({
-    channels: [f(sr, rng)],
-    loop: false,
-  });
-const looped =
-  (f: (sr: number, rng: Rng) => Float32Array): Maker =>
-  (sr, rng) => ({
-    channels: [f(sr, rng)],
-    loop: true,
-  });
+type Maker = ((sr: number, rng: Rng) => SynthSound) & { loop: boolean };
+const once = (f: (sr: number, rng: Rng) => Float32Array): Maker =>
+  Object.assign(
+    (sr: number, rng: Rng) => ({
+      channels: [f(sr, rng)],
+      loop: false,
+    }),
+    { loop: false },
+  );
+const looped = (f: (sr: number, rng: Rng) => Float32Array): Maker =>
+  Object.assign(
+    (sr: number, rng: Rng) => ({
+      channels: [f(sr, rng)],
+      loop: true,
+    }),
+    { loop: true },
+  );
 
 /** Every sound the bank makes, by name. */
 export const SOUNDS: Record<string, Maker> = {
@@ -473,7 +477,10 @@ export const SOUNDS: Record<string, Maker> = {
     }
     return toPeak(out);
   }),
-  countryside: (sr, rng) => ({ channels: countryside(sr, rng), loop: true }),
+  countryside: Object.assign(
+    (sr: number, rng: Rng) => ({ channels: countryside(sr, rng), loop: true }),
+    { loop: true },
+  ),
   cue_gunfire: once((sr, rng) => {
     const n = Math.round(1.3 * sr);
     const out = new Float32Array(n);
