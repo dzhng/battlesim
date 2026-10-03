@@ -89,7 +89,6 @@ pub fn layout_json(types: &PropCatalog) -> String {
         "flags": { "forest": FLAG_FOREST, "blocked": FLAG_BLOCKED },
         "propStride": PROP_STRIDE,
         "limbBits":16,
-        "garrisonPropKinds":kinds(&|b|b.garrison),
         "areaStride": AREA_STRIDE,
         "propFields": ["idLo", "idHi", "kind", "x", "y", "yaw", "hx", "hy", "hz", "baseZ"],
         "areaFields": ["x", "y", "w", "h", "z"],

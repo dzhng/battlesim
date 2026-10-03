@@ -219,11 +219,7 @@ test("a prepared battle is the requested map with the planned encounter on it, a
 
   // Every garrison row names a red squad and a building of its own that a
   // squad can hold, with a seat for each soldier.
-  const garrisonable = new Set(
-    scenario.map.buildings
-      .filter((b) => layout.garrisonPropKinds.includes(b.kind))
-      .map((b) => b.owner),
-  );
+  const buildings = new Set(scenario.map.buildings.map((b) => b.owner));
   expect(scenario.opponent.side).toBe("red");
   expect(scenario.opponent.garrisons.length).toBe(
     assault.forces.red.filter((r) => r.post === "garrison").length,
@@ -233,7 +229,7 @@ test("a prepared battle is the requested map with the planned encounter on it, a
   );
   for (const [unit, building] of scenario.opponent.garrisons) {
     expect(scenario.units[unit].side).toBe("red");
-    expect(garrisonable.has(building)).toBe(true);
+    expect(buildings.has(building)).toBe(true);
   }
   expect(scenario.opponent.garrisons).toEqual(placement.garrisons.map((g) => [g.unit, g.building]));
   for (const g of placement.garrisons) expect(g.seats).toBeGreaterThanOrEqual(g.soldiers);
@@ -245,6 +241,13 @@ test("a prepared battle is the requested map with the planned encounter on it, a
   const battle = new wasm.Battle(json, 1);
   for (let tick = 0; tick < 300; tick++) battle.step();
   expect(battle.tick()).toBe(300);
+  for (const [unit, building] of scenario.opponent.garrisons) {
+    const placement = JSON.parse(
+      battle.preview_building("red", JSON.stringify({ units: [unit], building })),
+    );
+    expect(placement.building).toBe(building);
+    expect(placement.entrant?.unit).toBe(unit);
+  }
   battle.free();
 }, 60_000);
 

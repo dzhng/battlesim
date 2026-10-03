@@ -45,7 +45,6 @@ export interface WorldLayout {
   flags: { forest: number; blocked: number };
   propStride: number;
   limbBits: number;
-  garrisonPropKinds: string[];
   areaStride: number;
   propFields: string[];
   areaFields: string[];
