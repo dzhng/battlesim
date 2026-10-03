@@ -14,6 +14,8 @@ import {
   type NativeReporter,
 } from "../../apps/map-workbench/server";
 import type { NativeValidation } from "../../apps/map-workbench/src/protocol";
+import type { HmrContext } from "vite";
+import { MechanicsStore } from "../../apps/mechanics-editor/server";
 
 vi.mock("node:fs/promises", async (original) => ({
   ...(await original<typeof import("node:fs/promises")>()),
@@ -59,6 +61,33 @@ const validation: NativeValidation = {
     },
   ],
 };
+
+test("publishing map inputs keeps loaded battle imports captured while new navigations receive fresh modules", async () => {
+  const { root } = await fixture();
+  const plugin = mapWorkbenchPlugin(root, reporter);
+  const update = plugin.handleHotUpdate;
+  expect(typeof update).toBe("function");
+  if (typeof update !== "function") throw new Error("Missing captured-input publication boundary");
+  const module = { id: "preset", transformResult: "old inputs" };
+  const context = (file: string) =>
+    ({
+      file: join(root, file),
+      modules: [module],
+      server: {
+        moduleGraph: {
+          invalidateModule: (changed: typeof module) => {
+            changed.transformResult = "fresh navigation required";
+          },
+        },
+      },
+    }) as unknown as HmrContext;
+  expect(await update.call({} as never, context("fixtures/map-presets.json"))).toEqual([]);
+  expect(module.transformResult).toBe("fresh navigation required");
+  expect(await update.call({} as never, context("fixtures/generated-battle.json"))).toEqual([]);
+  expect(
+    await update.call({} as never, context("apps/battle-lab/src/routes/battle.tsx")),
+  ).toBeUndefined();
+});
 const reporter: NativeReporter = async (request) => {
   if (request.operation === "validate") return validation;
   throw new Error("Unexpected operation");
@@ -386,6 +415,95 @@ test("the next reader recovers an interrupted source publication before exposing
   const recovered = new WorkbenchStore(root, reporter);
   stores.push(recovered);
   expect(await recovered.snapshot()).toEqual(initial);
+});
+
+test("a workbench snapshot recovers an interrupted mechanics publication", async () => {
+  const { root, store } = await fixture();
+  const initial = await store.snapshot();
+  await mkdir(join(root, "throwaway"), { recursive: true });
+  await mkdir(join(root, "fixtures/units"));
+  await mkdir(join(root, "fixtures/props"));
+  const files = [
+    { path: "fixtures/game.json", before: '{"seed":1}', after: '{"seed":2}' },
+    {
+      path: "fixtures/catalog.json",
+      before: '{"units":[],"props":[]}',
+      after: '{"units":[{"id":"edited"}],"props":[]}',
+    },
+  ];
+  const departed = spawnSync(process.execPath, ["-e", ""]);
+  expect(departed.status).toBe(0);
+  await writeFile(
+    join(root, "throwaway/mechanics-editor-transaction.json"),
+    JSON.stringify({ pid: departed.pid, files }),
+  );
+  await writeFile(join(root, files[0].path), files[0].after);
+  expect(await store.snapshot()).toEqual(initial);
+  expect(await readFile(join(root, files[0].path), "utf8")).toBe(files[0].before);
+  expect(await readFile(join(root, files[1].path), "utf8")).toBe(files[1].before);
+});
+
+test("a workbench snapshot refuses an active mechanics publication", async () => {
+  const { root, store } = await fixture();
+  await store.snapshot();
+  await mkdir(join(root, "throwaway"), { recursive: true });
+  await writeFile(
+    join(root, "throwaway/mechanics-editor-transaction.json"),
+    JSON.stringify({ pid: process.pid, files: [] }),
+  );
+  await expect(store.snapshot()).rejects.toMatchObject({ status: 409 });
+  expect(await readFile(join(root, "fixtures/game.json"), "utf8")).toBe('{"seed":1}');
+});
+
+test("a workbench snapshot waits for the complete mechanics source and catalog publication", async () => {
+  const { root, store } = await fixture();
+  await mkdir(join(root, "fixtures/units"));
+  await mkdir(join(root, "fixtures/props"));
+  const catalog = (damage: number) =>
+    JSON.stringify({ weapons: { rifle: { damage } }, documents: [{ soldiers: {} }], units: [] });
+  await writeFile(join(root, "fixtures/game.json"), '{"weapons":{"rifle":{"damage":35}}}');
+  await writeFile(join(root, "fixtures/catalog.json"), catalog(35));
+  const mechanics = new MechanicsStore(root, async (game) =>
+    catalog((game.weapons as { rifle: { damage: number } }).rifle.damage),
+  );
+  const initial = await mechanics.snapshot();
+  const rename = (await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises"))
+    .rename;
+  let replaced!: () => void;
+  const firstReplacement = new Promise<void>((resolve) => {
+    replaced = resolve;
+  });
+  let release!: () => void;
+  const paused = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  vi.mocked(filesystem.rename).mockImplementation(async (from, to) => {
+    await rename(from, to);
+    if (String(to) === join(root, "fixtures/game.json")) {
+      replaced();
+      await paused;
+    }
+  });
+  const saving = mechanics.save({
+    revision: initial.revision,
+    changes: [{ section: "weapons", id: "rifle", path: ["damage"], value: 40 }],
+  });
+  let captured;
+  try {
+    await firstReplacement;
+    captured = store.snapshot();
+    // Give the reader a turn while publication is deliberately incomplete.
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  } finally {
+    release();
+  }
+  await saving;
+  expect((await captured!).receipts).toMatchObject({
+    rules: createHash("sha256")
+      .update(await readFile(join(root, "fixtures/game.json"), "utf8"))
+      .digest("hex"),
+    catalog: createHash("sha256").update(catalog(40)).digest("hex"),
+  });
 });
 
 test("disconnecting an HTTP generation terminates the process and removes its unpublished artifact", async () => {

@@ -37,8 +37,7 @@ a river, roads with their bridges, and forests go. Its numbers are data: [`fixtu
 validated at load, whose `revision` a request pins beside `GENERATOR_VERSION`. A
 request that names another revision or generator is refused, so an old request
 cannot quietly yield a new map. Most construction numbers belong to those presets.
-Source constants define numeric geometry cadence and bounded proof work; their owners document the
-contracts they protect. The three playable extents are a user decision
+Construction, numerical validation and finite generation work policy belong to the presets. Source constants preserve numerical and physical correctness; their owners document the contracts they protect. The local [map workbench](../../apps/map-workbench/README.md) uses the native developer report and the simulation's shared sampled analysis, without introducing a production dependency on the simulation. The three playable extents are a user decision
 (recorded in the [map rationale](../../specs/done/city-maps/README.md)).
 
 - **The same request gives the same plan bytes on every target.** Each consumer draws

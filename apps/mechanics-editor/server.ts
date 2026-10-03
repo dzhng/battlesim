@@ -2,7 +2,7 @@ import * as fs from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import { join, relative, resolve as resolvePath } from "node:path";
-import { FixturePublication } from "../fixture-publication/publication";
+import { FixturePublication, mechanicsSourcePaths } from "../fixture-publication/publication";
 import type { Plugin } from "vite";
 import { gameplayField, validateGameplayValue, valueAt } from "./src/fields";
 import {
@@ -131,20 +131,6 @@ const revision = (files: { path: string; text: string }[]) =>
     .update(JSON.stringify(files.map((file) => [file.path, file.text])))
     .digest("hex");
 
-async function paths(root: string): Promise<string[]> {
-  const out = ["fixtures/game.json"];
-  async function walk(path: string) {
-    for (const item of await fs.readdir(join(root, path), { withFileTypes: true })) {
-      const child = `${path}/${item.name}`;
-      if (item.isDirectory()) await walk(child);
-      else if (item.isFile() && child.endsWith(".json")) out.push(child);
-    }
-  }
-  await walk("fixtures/units");
-  await walk("fixtures/props");
-  return out.sort();
-}
-
 export function nativeValidator(root: string): Validator {
   return (game, catalog, texts) =>
     new Promise((resolve, reject) => {
@@ -200,8 +186,7 @@ export class MechanicsStore {
   ) {
     this.publication = new FixturePublication(
       root,
-      "mechanics-editor-transaction.json",
-      async () => new Set([...(await paths(root)), "fixtures/catalog.json"]),
+      "mechanics",
       (message, status) => new MechanicsError(message, status),
     );
   }
@@ -214,7 +199,7 @@ export class MechanicsStore {
 
   private async read(): Promise<{ files: FileState[]; generated: string; revision: string }> {
     const files = await Promise.all(
-      (await paths(this.root)).map(async (path) => {
+      (await mechanicsSourcePaths(this.root)).map(async (path) => {
         const text = await fs.readFile(join(this.root, path), "utf8");
         return { path, text, value: object(JSON.parse(text)) };
       }),
@@ -228,8 +213,7 @@ export class MechanicsStore {
   }
 
   private async loaded() {
-    await this.publication.recover();
-    const state = await this.read();
+    const state = await this.publication.capture(() => this.read());
     const game = state.files.find((file) => file.path === "fixtures/game.json")!;
     const documents = state.files.filter((file) => file !== game);
     const text = await this.validate(
@@ -472,7 +456,7 @@ export class MechanicsStore {
   save(draft: MechanicsDraft): Promise<MechanicsSnapshot> {
     return this.serial(async () => {
       const proposal = await this.candidate(draft);
-      let state = await this.read();
+      let state = await this.publication.capture(() => this.read());
       if (state.revision !== draft.revision)
         throw new MechanicsError("Fixtures changed while validating. Reload before saving.", 409);
       const replacements = new Map(proposal.files.map((file) => [file.path, file.after]));
@@ -491,7 +475,7 @@ export class MechanicsStore {
             409,
           );
       });
-      state = await this.read();
+      state = await this.publication.capture(() => this.read());
       return {
         revision: state.revision,
         documents: state.files.map(({ path, value }) => ({ path, value })),

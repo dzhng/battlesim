@@ -1,0 +1,190 @@
+import { readFile, writeFile } from "node:fs/promises";
+
+export async function run(ctx) {
+  const source = new URL("../../fixtures/map-presets.json", import.meta.url);
+  const before = await readFile(source, "utf8");
+  const page = await ctx.newPage({ viewport: { width: 1440, height: 1000 } });
+  await page.goto(ctx.url);
+  await page.locator(".mw-plan svg").waitFor({ timeout: 120000 });
+  const shot = async (name) => writeFile(ctx.evidencePath(`${name}.png`), await page.screenshot());
+  await shot("overview");
+  const snapshot = await page.evaluate(async () =>
+    (await fetch("/__map-workbench/snapshot")).json(),
+  );
+  const field = snapshot.fields.find(
+    (field) =>
+      field.document === "presets" &&
+      field.path.join(".") === "districts.apartments.streets.block_depth_m",
+  );
+  if (!field) throw new Error("The apartment construction field is missing");
+  const district = page.locator('.mw-plan [data-rule-group="districts.apartments"]').first();
+  const point = await district.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    for (let y = 0.1; y < 1; y += 0.1)
+      for (let x = 0.1; x < 1; x += 0.1) {
+        const point = { x: bounds.x + x * bounds.width, y: bounds.y + y * bounds.height };
+        if (document.elementFromPoint(point.x, point.y) === element) return point;
+      }
+    throw new Error("The district has no exposed clickable ground");
+  });
+  await page.mouse.click(point.x, point.y);
+  const control = page.locator(`[id=${JSON.stringify(`field-${field.id}`)}]`);
+  await control.waitFor();
+  ctx.check(
+    "map selection opens the shared district-kind controls",
+    await page.getByText(/wherever this preset is used/).isVisible(),
+  );
+  const saved = await control.inputValue();
+  await control.fill(String(Number(saved) + 10));
+  await page.getByLabel("Search rules").fill(field.label);
+  ctx.check(
+    "search retains the map-selected edit",
+    (await control.inputValue()) === String(Number(saved) + 10),
+  );
+  await page.waitForFunction(
+    () =>
+      /Current draft (admitted|refused)/.test(
+        document.querySelector('[role="status"]')?.textContent ?? "",
+      ),
+    undefined,
+    { timeout: 120000 },
+  );
+  await shot("selected-edited");
+  await control.fill("-");
+  ctx.check(
+    "unfinished input suspends generation and save",
+    (await control.getAttribute("aria-invalid")) === "true" &&
+      (await page.getByRole("button", { name: "Review save" }).isDisabled()),
+  );
+  await shot("unfinished-input");
+  await page.getByRole("button", { name: "Undo edit" }).click();
+  ctx.check(
+    "Undo clears unfinished input and restores the saved value",
+    (await control.inputValue()) === saved &&
+      (await control.getAttribute("aria-invalid")) === "false",
+  );
+  await control.fill(String(Number(saved) + 10));
+  await page.getByRole("button", { name: "Review save" }).click();
+  await page.locator(".mw-review summary").first().waitFor({ timeout: 120000 });
+  await page.locator(".mw-review summary").first().click();
+  await page.locator(".mw-review").scrollIntoViewIfNeeded();
+  await shot("save-review");
+  ctx.check(
+    "save preview names exact fixture replacements",
+    (await page.locator(".mw-review").textContent()).includes("fixtures/map-presets.json"),
+  );
+  await page.getByRole("button", { name: "Close review" }).click();
+  await page.getByLabel("Sample seed count").fill("2");
+  await page.getByRole("button", { name: "Run seed sample" }).click();
+  await page.waitForFunction(
+    () =>
+      document
+        .querySelector(".mw-sample")
+        ?.textContent.includes("2 / 2 requested outcomes · complete"),
+    undefined,
+    { timeout: 180000 },
+  );
+  await page.locator(".mw-sample").scrollIntoViewIfNeeded();
+  await shot("sample-complete");
+  ctx.check(
+    "each requested seed retains an outcome",
+    (await page.locator(".mw-sample tbody tr").count()) === 2,
+  );
+  await page.getByRole("button", { name: "Inspect selection" }).click();
+  await page.waitForFunction(() => {
+    const box = document
+      .querySelector(".mw-plan svg")
+      ?.getAttribute("viewBox")
+      ?.split(" ")
+      .map(Number);
+    return box && box[2] < 6000;
+  });
+  await page.locator(".mw-inspection").scrollIntoViewIfNeeded();
+  await shot("district-detail");
+  ctx.check(
+    "a retained sampled preview remains inspectable",
+    (await page.locator(".mw-plan svg").count()) === 1,
+  );
+  await page.getByRole("button", { name: "Measure openness" }).click();
+  await page.locator(".mw-sight").waitFor({ timeout: 120000 });
+  await page.locator(".mw-sight").scrollIntoViewIfNeeded();
+  await shot("openness");
+  await page.locator(".mw-measurements > details").evaluateAll((nodes) => {
+    for (const node of nodes) node.open = true;
+  });
+  const geometry = page
+    .locator(".mw-measurements > details")
+    .filter({ has: page.locator("summary", { hasText: /^Geometry$/ }) });
+  await geometry.locator("details").evaluateAll((nodes) => {
+    for (const node of nodes) node.open = true;
+  });
+  await page
+    .locator(".mw-measurements")
+    .evaluate((node) => node.scrollIntoView({ block: "start" }));
+  await shot("geometry-expanded");
+  await page.locator(".mw-analysis").evaluate((node) => node.scrollIntoView({ block: "end" }));
+  await shot("geometry-expanded-bottom");
+  await ctx.writeEvidence("openness-small.txt", await page.locator(".mw-sight").textContent());
+  await page.getByLabel("Search rules").fill("");
+  await page.getByLabel("Rule group").selectOption("limits");
+  const limit = snapshot.fields.find(
+    (field) =>
+      field.document === "defaults" && field.path.join(".") === "limits.max_authored_parts",
+  );
+  const limitControl = page.locator(`[id=${JSON.stringify(`field-${limit.id}`)}]`);
+  await limitControl.fill("0");
+  await page.locator(".mw-refusal").waitFor({ timeout: 30000 });
+  await page.locator(".mw-header").scrollIntoViewIfNeeded();
+  await shot("validation-error");
+  ctx.check(
+    "invalid numeric policy identifies its source field",
+    (await page.locator(".mw-refusal").textContent()).includes(
+      "$.defaults.limits.max_authored_parts",
+    ),
+  );
+  await limitControl.fill("1");
+  await page.waitForFunction(
+    () =>
+      !document.querySelector(".mw-refusal")?.textContent.includes("Allowance must be positive") &&
+      document.querySelector('[role="status"]')?.textContent === "Current draft refused",
+    undefined,
+    { timeout: 30000 },
+  );
+  await page.locator(".mw-refusal").scrollIntoViewIfNeeded();
+  await shot("refused-draft");
+  ctx.check(
+    "refusal preserves the older admitted plan and its exact inputs",
+    (await page.getByText(/OLDER RESULT/).count()) === 1 &&
+      (await page.getByRole("button", { name: "Export refused inputs" }).count()) === 1,
+  );
+  await page.setViewportSize({ width: 600, height: 900 });
+  await page.locator(".mw-review").count();
+  await page.locator(".mw-controls").scrollIntoViewIfNeeded();
+  await shot("narrow-controls");
+  await page.locator(".mw-inspection").scrollIntoViewIfNeeded();
+  await shot("narrow-plan");
+  await page
+    .locator(".mw-measurements")
+    .evaluate((node) => node.scrollIntoView({ block: "start" }));
+  await shot("narrow-geometry");
+  await page.locator(".mw-analysis").evaluate((node) => node.scrollIntoView({ block: "end" }));
+  await shot("narrow-geometry-bottom");
+  await page.getByRole("button", { name: "Review save" }).click();
+  await page.locator(".mw-review summary").first().waitFor();
+  await page.locator(".mw-review summary").first().click();
+  await page.locator(".mw-review").evaluate((node) => node.scrollIntoView({ block: "start" }));
+  await shot("narrow-review");
+  await page
+    .getByRole("button", { name: "Save reviewed defaults" })
+    .evaluate((node) => node.scrollIntoView({ block: "end" }));
+  await shot("narrow-review-bottom");
+  const overflow = await page.evaluate(
+    () => document.querySelector(".map-workbench").scrollWidth > innerWidth,
+  );
+  ctx.check("narrow tool remains within the viewport", !overflow);
+  ctx.check(
+    "drafts, samples and review do not publish fixtures",
+    (await readFile(source, "utf8")) === before,
+  );
+  await page.close();
+}

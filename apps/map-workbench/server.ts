@@ -1,7 +1,8 @@
 import * as fs from "node:fs/promises";
 import { createHash, randomUUID } from "node:crypto";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { FixturePublication } from "../fixture-publication/publication";
+import { changedPaths } from "../fixture-publication/changes";
 import { nativeReporter, type NativeReporter } from "./native";
 import { WorkbenchError } from "./error";
 import { canonicalSeed, MAP_TYPES, MAP_SIZES } from "../../web/src/maps/source";
@@ -48,27 +49,6 @@ function object(value: unknown): JsonObject {
     throw new WorkbenchError("Expected a JSON object");
   return value as JsonObject;
 }
-function changedPaths(
-  before: Json | undefined,
-  after: Json | undefined,
-  path: string[] = [],
-): string[][] {
-  if (JSON.stringify(before) === JSON.stringify(after)) return [];
-  if (
-    before &&
-    after &&
-    typeof before === "object" &&
-    typeof after === "object" &&
-    Array.isArray(before) === Array.isArray(after)
-  ) {
-    const oldValues = before as JsonObject;
-    const newValues = after as JsonObject;
-    return [...new Set([...Object.keys(before), ...Object.keys(after)])].flatMap((key) =>
-      changedPaths(oldValues[key], newValues[key], [...path, key]),
-    );
-  }
-  return [path];
-}
 interface State {
   revision: string;
   receipts: Record<string, string>;
@@ -100,8 +80,7 @@ export class WorkbenchStore {
   ) {
     this.publication = new FixturePublication(
       root,
-      "map-workbench-transaction.json",
-      async () => new Set([paths.presets, paths.defaults]),
+      "maps",
       (message, status) => new WorkbenchError(message, status),
     );
   }
@@ -139,8 +118,7 @@ export class WorkbenchStore {
     return { inputs, receipts, revision: hash(JSON.stringify(entries)) };
   }
   private async state() {
-    await this.publication.recover();
-    return this.read();
+    return this.publication.capture(() => this.read());
   }
   private async validate(inputs: NativeInputs, signal?: AbortSignal) {
     const result = (await this.report(
@@ -269,7 +247,7 @@ export class WorkbenchStore {
             409,
           );
       });
-      return this.snapshotFrom(await this.read(), owned);
+      return this.snapshotFrom(await this.state(), owned);
     }, signal);
   }
   generate(request: RunRequest, signal?: AbortSignal): Promise<Report> {
@@ -453,6 +431,13 @@ export function mapWorkbenchPlugin(
     },
     async closeBundle() {
       await store?.close();
+    },
+    handleHotUpdate(context) {
+      const path = relative(root, context.file).replaceAll("\\", "/");
+      if (path === paths.presets || path === paths.defaults) {
+        for (const module of context.modules) context.server.moduleGraph.invalidateModule(module);
+        return [];
+      }
     },
   };
 }

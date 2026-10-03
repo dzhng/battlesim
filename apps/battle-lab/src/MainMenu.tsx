@@ -25,6 +25,11 @@ const DEVELOPER: Entry[] = [
           href: "/mechanics",
           note: "Tune unit and weapon values with validated JSON saves.",
         },
+        {
+          label: "Map workbench",
+          href: "/map-workbench",
+          note: "Tune generation and validation rules on a live plan.",
+        },
       ]
     : []),
   {

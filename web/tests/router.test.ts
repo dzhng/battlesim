@@ -24,7 +24,7 @@ test("the main menu at / offers a new battle, the village, the saved battlefield
   );
   const links = () => menu.getAllByRole("link").map((a) => a.getAttribute("href"));
   expect(links()).toEqual([
-    expect.stringMatching(/^\/battle\?type=mixed&size=small&seed=\d+$/),
+    "/battle?play=1&type=mixed&size=small",
     "/battle?map=market-town&recipe=assault",
     "/replay/village",
   ]);
@@ -34,6 +34,7 @@ test("the main menu at / offers a new battle, the village, the saved battlefield
     "Watch replay": "/replay/village",
     Village: "/battle/village",
     "Mechanics editor": "/mechanics",
+    "Map workbench": "/map-workbench",
     Benchmark: "/benchmark",
     Labs: "/labs",
   };
@@ -68,6 +69,7 @@ test("the production menu does not offer source editing", async () => {
   const menu = render(createElement(MainMenu));
   fireEvent.click(menu.getByRole("button", { name: "Developer" }));
   expect(menu.queryByRole("link", { name: "Mechanics editor" })).toBeNull();
+  expect(menu.queryByRole("link", { name: "Map workbench" })).toBeNull();
   expect(menu.getByRole("link", { name: "Benchmark" }).getAttribute("href")).toBe("/benchmark");
   menu.unmount();
 });

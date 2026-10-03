@@ -290,6 +290,10 @@ async function cameraOnMap(ctx, spec) {
 export async function run(ctx) {
   if (process.env.CAMERA_MAP) return cameraOnMap(ctx, process.env.CAMERA_MAP);
   if (process.env.STARTUP_MAP) return startupOf(ctx, process.env.STARTUP_MAP);
+  if (process.env.PLAY_RECOVERY) return playRecovery(ctx);
+  if (process.env.PLAY_DEADLINE) return playRecovery(ctx, true);
+  await playRecovery(ctx);
+  await playRecovery(ctx, true);
   const page = await ctx.newPage({ viewport: { width: 1920, height: 1080 } });
   const warnings = [];
   page.on("console", (m) => {
@@ -707,4 +711,72 @@ export async function run(ctx) {
     `METRIC saved map market-town: prepared ${start.prepared.toFixed(0)} ms (map ${report.timings.map.toFixed(0)}, encounter ${report.timings.encounter.toFixed(0)}), playable ${start.playable.toFixed(0)} ms after the menu's link; ${report.counts.buildings} buildings (development build)`,
   );
   await writeFile(ctx.evidencePath("saved-battle-1920x1080.png"), await town.screenshot());
+}
+
+/** Exercise the real menu and workers with deliberately tiny generation
+ * allowances; the released map must remain admissible independently. */
+async function playRecovery(ctx, deadline = false) {
+  const page = await ctx.newPage();
+  const defaults = JSON.parse(
+    readFileSync(new URL("../../fixtures/generated-battle.json", import.meta.url)),
+  );
+  let workers = 0;
+  if (deadline)
+    await page.route(/\/prepare\/worker\.ts(?:\?|$)/, (route) => {
+      ++workers;
+      return workers === 1
+        ? route.fulfill({
+            contentType: "text/javascript",
+            headers: {
+              "Cross-Origin-Embedder-Policy": "require-corp",
+              "Cross-Origin-Opener-Policy": "same-origin",
+            },
+            body: "self.onmessage = () => {}; setInterval(() => {}, 1000);",
+          })
+        : route.continue();
+    });
+  else {
+    defaults.limits.max_authored_parts = 1;
+    defaults.limits.max_bay_positions = 1;
+    await page.route(/\/fixtures\/generated-battle\.json(?:\?|$)/, (route) =>
+      route.fulfill({
+        contentType: "text/javascript",
+        body: `export default ${JSON.stringify(defaults)};`,
+      }),
+    );
+  }
+  await page.goto(new URL("/", ctx.url).href);
+  const deploy = page.getByRole("link", { name: "Deploy" });
+  ctx.check(
+    "ordinary menu Play carries preferences without a promised seed",
+    (await deploy.getAttribute("href")) === "/battle?play=1&type=mixed&size=small",
+  );
+  await deploy.click();
+  await playable(page, 30000);
+  const report = await lab(page, () => window.__lab.route.prepared());
+  const startup = await lab(page, () => window.__lab.route.startup());
+  const actual = new URL(page.url());
+  if (deadline)
+    ctx.check(
+      "the stalled candidate consumes the allowance then its worker is replaced",
+      workers === 2 && startup.prepared >= defaults.admission.generated_deadline_ms,
+      `${workers} workers, ${startup.prepared.toFixed(0)} ms to preparation`,
+    );
+  ctx.check(
+    "refused generated candidates automatically admit the released battlefield",
+    report.request.map_source.kind === "catalogue" &&
+      report.request.map_source.id === defaults.admission.fallback.map &&
+      actual.searchParams.get("map") === defaults.admission.fallback.map &&
+      !actual.searchParams.has("play"),
+    JSON.stringify(report.request),
+  );
+  ctx.check(
+    "automatic fallback remains playable within the startup budget",
+    startup.playable < 30000,
+    `${startup.playable.toFixed(0)} ms`,
+  );
+  const name = deadline ? "play-deadline" : "play-recovery";
+  await ctx.writeEvidence(`${name}.json`, { request: report.request, startup });
+  await writeFile(ctx.evidencePath(`${name}.png`), await page.screenshot());
+  await page.close();
 }

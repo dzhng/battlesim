@@ -1,6 +1,6 @@
 import * as fs from "node:fs/promises";
 import { randomUUID } from "node:crypto";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 export interface Replacement {
   path: string;
@@ -12,20 +12,66 @@ interface Journal {
   pid: number;
   files: Replacement[];
 }
+type Editor = "maps" | "mechanics";
+const journals: Record<Editor, string> = {
+  maps: "map-workbench-transaction.json",
+  mechanics: "mechanics-editor-transaction.json",
+};
+const queues = new Map<string, Promise<unknown>>();
+
+/** Authored mechanics sources, also used to validate interrupted destinations. */
+export async function mechanicsSourcePaths(root: string): Promise<string[]> {
+  const out = ["fixtures/game.json"];
+  async function walk(path: string) {
+    let entries;
+    try {
+      entries = await fs.readdir(join(root, path), { withFileTypes: true });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+      throw error;
+    }
+    for (const item of entries) {
+      const child = `${path}/${item.name}`;
+      if (item.isDirectory()) await walk(child);
+      else if (item.isFile() && child.endsWith(".json")) out.push(child);
+    }
+  }
+  await walk("fixtures/units");
+  await walk("fixtures/props");
+  return out.sort();
+}
 
 /** Atomic files and a recoverable multi-file transaction for local fixture editors. */
 export class FixturePublication {
-  readonly journal: string;
+  private readonly journal: string;
   constructor(
     private root: string,
-    journalName: string,
-    private allowed: () => Promise<Set<string>>,
+    private editor: Editor,
     private failure: Failure,
   ) {
-    this.journal = join(root, "throwaway", journalName);
+    this.root = resolve(root);
+    this.journal = join(this.root, "throwaway", journals[editor]);
   }
 
-  async replace(path: string, text: string, exclusive = false): Promise<void> {
+  private serial<T>(run: () => Promise<T>): Promise<T> {
+    const job = (queues.get(this.root) ?? Promise.resolve()).then(run);
+    const settled = job.catch(() => {});
+    queues.set(this.root, settled);
+    void settled.then(() => {
+      if (queues.get(this.root) === settled) queues.delete(this.root);
+    });
+    return job;
+  }
+
+  /** Captures cannot overlap either editor's publication or recovery. */
+  capture<T>(read: () => Promise<T>): Promise<T> {
+    return this.serial(async () => {
+      await this.recover();
+      return read();
+    });
+  }
+
+  private async replace(path: string, text: string, exclusive = false): Promise<void> {
     await fs.mkdir(dirname(this.journal), { recursive: true });
     const staged = join(this.root, "throwaway", `fixture-${randomUUID()}.json`);
     try {
@@ -37,8 +83,12 @@ export class FixturePublication {
     }
   }
 
-  private async checkFiles(files: Replacement[]) {
-    const allowed = await this.allowed();
+  private async checkFiles(files: Replacement[], editor: Editor = this.editor) {
+    const allowed = new Set(
+      editor === "maps"
+        ? ["fixtures/map-presets.json", "fixtures/generated-battle.json"]
+        : [...(await mechanicsSourcePaths(this.root)), "fixtures/catalog.json"],
+    );
     if (
       !Array.isArray(files) ||
       files.some(
@@ -53,11 +103,16 @@ export class FixturePublication {
       throw this.failure("Interrupted save has an unknown destination");
   }
 
-  async recover(): Promise<void> {
+  private async recover(): Promise<void> {
+    for (const editor of Object.keys(journals) as Editor[]) await this.recoverJournal(editor);
+  }
+
+  private async recoverJournal(editor: Editor): Promise<void> {
+    const path = join(this.root, "throwaway", journals[editor]);
     await fs.mkdir(dirname(this.journal), { recursive: true });
     let journal: Journal;
     try {
-      journal = JSON.parse(await fs.readFile(this.journal, "utf8"));
+      journal = JSON.parse(await fs.readFile(path, "utf8"));
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
       throw error;
@@ -70,7 +125,7 @@ export class FixturePublication {
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
     }
-    await this.checkFiles(journal.files);
+    await this.checkFiles(journal.files, editor);
     for (const file of journal.files) {
       const current = await fs.readFile(join(this.root, file.path), "utf8");
       if (current !== file.before && current !== file.after)
@@ -80,10 +135,20 @@ export class FixturePublication {
         );
     }
     for (const file of journal.files) await this.replace(join(this.root, file.path), file.before);
-    await fs.rm(this.journal);
+    await fs.rm(path);
   }
 
-  async publish(
+  publish(
+    files: Replacement[],
+    verify: (phase: "before" | "after") => Promise<void>,
+  ): Promise<void> {
+    return this.serial(async () => {
+      await this.recover();
+      await this.publishFiles(files, verify);
+    });
+  }
+
+  private async publishFiles(
     files: Replacement[],
     verify: (phase: "before" | "after") => Promise<void>,
   ): Promise<void> {

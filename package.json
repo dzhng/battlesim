@@ -4,9 +4,11 @@
   "description": "Repo task runner. Thin aliases over cargo (Rust) and the web app's own bun scripts; no dependencies of its own. A bare script runs the whole job; a :suffix runs one part.",
   "scripts": {
     "setup": "bun install --cwd web",
-    "dev": "bun run build:wasm && bun run build:mechanics && bun run --cwd web dev",
+    "dev": "bun run build:wasm && bun run build:mechanics && bun run build:map-workbench && bun run --cwd web dev",
     "dev:mechanics": "bun run dev --open /mechanics",
+    "dev:maps": "bun run dev --open /map-workbench",
     "build:mechanics": "CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-throwaway/target} cargo build -p sim --example mechanics_validate",
+    "build:map-workbench": "CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-throwaway/target} cargo build --release -p mapgen --example map_workbench_report",
     "build": "bun run build:wasm && bun run build:web",
     "build:wasm": "bun run --cwd web build:wasm",
     "build:web": "bun run --cwd web build",
@@ -16,8 +18,8 @@
     "fmt:check": "cargo fmt --all -- --check && web/node_modules/.bin/oxfmt --check packages apps web/src web/tests web/scenes web/scene.mjs web/scene.test.mjs web/asset.mjs web/vite.config.ts web/vitest.config.ts",
     "test": "bun run test:rust && bun run test:web",
     "test:rust": "cargo test --workspace",
-    "test:web": "bun run build:wasm && bun run build:mechanics && bun run --cwd web test",
-    "verify": "bun run build:wasm && bun run --cwd web verify",
-    "check": "bun run fmt:check && bun run lint && bun run build:wasm && bun run build:mechanics && bun run typecheck && bun run test:rust && bun run --cwd web test"
+    "test:web": "bun run build:wasm && bun run build:mechanics && bun run build:map-workbench && bun run --cwd web test",
+    "verify": "bun run build:wasm && bun run build:mechanics && bun run build:map-workbench && bun run --cwd web verify",
+    "check": "bun run fmt:check && bun run lint && bun run build:wasm && bun run build:mechanics && bun run build:map-workbench && bun run typecheck && bun run test:rust && bun run --cwd web test"
   }
 }

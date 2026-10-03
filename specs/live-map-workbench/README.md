@@ -4,15 +4,17 @@ A local developer tool for tuning generation and numerical map-validation policy
 
 ## Next Agent Prompt
 
-Status: final integration, 2026-10-03. Native generation/validation policy, report, publication and ordinary Play are integrated. Existing paired native/Wasm and exact preparation gates pass without re-blessing records. Real ordinary refusal→fallback is playable in about 6.2 seconds; exhausting the eight-second allowance→real fallback is playable in about 12.8 seconds. The optimized real workbench journey and isolated real-native save/publication proof pass.
+Status: final review, 2026-10-03. Native report, source policy, publication, live editor, sampling and ordinary Play are integrated. Independent visual review accepts the desktop/narrow captures, expanded measurements, exact review, refusal provenance and playable recovery shots. Independent code review found cross-editor source capture and removed unfinished fields; both corrections pass falsified red/green regressions.
 
-Next pickup: finish the independent reviews' artifact-retention, crop-capability and readable native-caption fixes, recapture every desktop/narrow state, then run complete check/verify once and close. Displayed accepted/baseline IDs must be explicit retained inputs to generation; a superseded successful job must not evict a displayed plan. Samples are separate temporary artifacts and missing receipts are explicit. Sight remains on demand: actual publication cost was about 310/475/865 ms on representative Small/Medium/Large, and 1.74 seconds for denser Large sampling. Use a fresh visual review after fixes. Exact seeded links and captured replay remain live contracts. Evidence and logs remain in ignored `throwaway`.
+Next pickup: run complete check and verify once in background. Apply any gate failures without weakening checks, consolidate final choices, close and audit the rationale. CLI review remains unavailable because its configured model is unsupported; fresh independent app reviewers supplied code and visual reviews. Evidence stays in ignored `throwaway`.
 
-- [ ] [01: inputs, source-policy ownership and capacity](slices/01-policy.md)
-- [ ] [02: native report and source publication](slices/02-report.md)
-- [ ] [03: live plan editor](slices/03-editor.md)
-- [ ] [04: sampled analysis and seed sample](slices/04-analysis.md)
-- [ ] [05: ordinary Play recovery](slices/05-play.md)
+Evidence: unchanged paired native/Wasm records and exact preparation/replay gates pass; real ordinary refusal→saved fallback is playable in about 6.2 seconds, eight-second candidate deadline→fallback in about 12.8 seconds; real workbench journey passes in about ten seconds. Sight stays on demand: additional browser publication was 310/475/865 ms for representative Small/Medium/Large, and 1.74 s for denser Large sampling.
+
+- [x] [01: inputs, source-policy ownership and capacity](slices/01-policy.md)
+- [x] [02: native report and source publication](slices/02-report.md)
+- [x] [03: live plan editor](slices/03-editor.md)
+- [x] [04: sampled analysis and seed sample](slices/04-analysis.md)
+- [x] [05: ordinary Play recovery](slices/05-play.md)
 - [ ] [06: composed verification and closeout](slices/06-closeout.md)
 
 ## Contracts and scope

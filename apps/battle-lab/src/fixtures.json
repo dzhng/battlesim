@@ -98,7 +98,7 @@
   {
     "id": "readouts",
     "route": "/lab/readouts",
-    "describe": "Weapon readouts: each unit's info panel with a row per weapon (rounds left, ∞ unlimited; aim and reload rings round the weapon's icon while they run; the guidance mark) and its states; the unit card (the selection's info panels) stays when zoomed out; the command bar exposes the selection's actions (X attack-move, G attack ground, Backspace stop, F fire policy).",
+    "describe": "Weapon readouts: each unit's info panel with a row per weapon (rounds left, \u221e unlimited; aim and reload rings round the weapon's icon while they run; the guidance mark) and its states; the unit card (the selection's info panels) stays when zoomed out; the command bar exposes the selection's actions (X attack-move, G attack ground, Backspace stop, F fire policy).",
     "map": "readouts"
   },
   {
@@ -185,7 +185,7 @@
   {
     "id": "workbench",
     "route": "/workbench",
-    "describe": "Model workbench: drop a GLB (or /workbench?bundle=name) to see validator findings and the production render — named views, a 1.8 m figure, the simulation hit box, socket gizmos, clip and phase scrubber, pose inputs, a feed replay through the pose driver, stats, sheets and the impostor bake.",
+    "describe": "Model workbench: drop a GLB (or /workbench?bundle=name) to see validator findings and the production render \u2014 named views, a 1.8 m figure, the simulation hit box, socket gizmos, clip and phase scrubber, pose inputs, a feed replay through the pose driver, stats, sheets and the impostor bake.",
     "map": null
   },
   {
@@ -210,6 +210,12 @@
     "id": "sound",
     "route": "/lab/sound",
     "describe": "The battle's sound: a scripted eight-second firefight rendered offline through the battle's audio graph (rifles, a tank driving and traversing, AP, HE, HMG, a ricochet, a guided missile, a burning wreck, the countryside, and unseen enemies heard only as cues); play it here, and the scene measures levels per bus, clipping and onsets against the visual events.",
+    "map": null
+  },
+  {
+    "id": "map-workbench",
+    "route": "/map-workbench",
+    "describe": "Local generation and numerical validation tuning: searchable controls, authoritative plan, exact save review, retained inputs and seed samples.",
     "map": null
   }
 ]

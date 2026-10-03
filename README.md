@@ -70,7 +70,9 @@ bun run dev     # build the WebAssembly, start the lab app
 
 `/` is the main menu: start a battle on a generated map (its type and its size), play a saved battlefield of the catalogue, or watch a replay; behind its developer link, play the test village, run the benchmark or open the lab index at `/labs`, which links every route. A generated battle's address (`/battle?type=&size=&seed=`) is its share identity: the same address prepares the same battle on the same build. The [benchmark](web/src/battle/benchmark/README.md) is the one frame-cost measure: `/benchmark` retains the village control; `/benchmark?preset=city-contact` selects explicitly synthetic local contact on a complete generated world.
 
-The [map-generation rationale](specs/done/city-maps/README.md) explains physical countryside coverage, road/settlement ownership and accepted scope. Its [generation report](specs/done/city-maps/generation-report.md) and [parameter inventory](specs/done/city-maps/generation-parameters.md) retain the detailed logic and numbers for play feedback and the later live map workbench.
+Ordinary Play chooses an admitted battlefield from the selected type and size, with bounded fresh candidates and a released saved fallback. Once admitted, its address names the actual battlefield. Explicit seed addresses and saved replays remain exact.
+
+The [map-generation rationale](specs/done/city-maps/README.md) explains physical countryside coverage, road/settlement ownership and accepted scope. Its [generation report](specs/done/city-maps/generation-report.md) and [parameter inventory](specs/done/city-maps/generation-parameters.md) retain the detailed logic and numbers for play feedback. The local [map workbench](apps/map-workbench/README.md) tunes generation and numerical validation policy on a live top-down plan, with explicit reviewed saves.
 
 During development, the [mechanics editor](apps/mechanics-editor/README.md) opens
 from the developer menu at `/mechanics`, or run `bun run dev:mechanics` to start

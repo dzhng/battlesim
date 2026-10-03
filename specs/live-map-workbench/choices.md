@@ -20,10 +20,6 @@ When: planning. Editing a target for median sampled openness changes the diagnos
 
 When: planning. If A is running while the user types B then C, only the latest pending C survives. A's response remains identified as A and cannot be labelled current. This preserves forward progress and limits work to one child plus one pending request. Samples can yield/cancel to a foreground edit while retaining completed rows.
 
-## Open measured choices
-
-Concrete player retry/deadline headroom and optional automatic-sight envelope are owned by their slices. Do not promote provisional numbers to passing claims until measured.
-
 ## Sound — implementation decisions
 
 ### A runtime fault goes straight to the released fallback — medium confidence
@@ -40,4 +36,20 @@ Before ordinary Play admits a battlefield, Cancel returns type/size preferences 
 
 ### Refusal receipts do not evict an inspectable accepted map — high confidence
 
-When the newest draft refuses, the tool retains the prior accepted geometry and marks it older. It keeps the newest refusal's exact tested inputs separately as a small receipt. A sample exports each receipt immediately because only its latest admitted geometry is retained; returning to the editor regenerates its selected map. This bounds stored geometry while preserving truthful diagnostics and reproducible samples.
+When the newest draft refuses, the tool retains the prior accepted geometry and marks it older. It keeps the newest refusal's exact tested inputs separately as a small receipt. Each preview explicitly names the admitted draft and baseline the browser still displays. A discarded successful job cannot replace them. A sample owns separate temporary geometry and exports its receipt before the next row replaces it. This bounds stored geometry while preserving truthful diagnostics and reproducible samples.
+
+### Native notes remain one formatting owner — high confidence
+
+The standalone inspector draws both the map and its small captions. The browser needs larger captions that wrap on narrow screens, so the same Rust inspection call returns geometry plus formatted notes and legend entries. The browser lays those out as text. Duplicating Rust metric formatting in JavaScript would make the two reports drift. Native exact-geometry comparisons protect the shared drawing contract.
+
+### Saving refreshes future imports without restarting a live battle — high confidence
+
+A Vite fixture change would normally refresh React consumers, which could restart a running battle. The workbench invalidates the edited preset/default modules for the next page load and suppresses that refresh. Explicit developer Restart already reloads the page, so it captures fresh imports. The current page and saved replay retain their tested inputs.
+
+### Samples publish outcomes before their receipts finish — medium confidence
+
+After a seed finishes, its result is useful even if the user cancels while its exact-input export is still running. The sample keeps that outcome and marks the missing receipt explicitly. A source-bundle index deduplicates identical six-document receipts across rows, avoiding repeated large fixture text; complete outcomes and complete source export are separate claims.
+
+### Both fixture editors share coherent source capture — high confidence
+
+A mechanics save can replace rules before it replaces the derived unit catalog. The workbench reads both, so it must wait until that save completes. A shared per-checkout queue coordinates byte captures, publication and interrupted-save recovery for both editors in the local server; native computation happens after capture and holds no storage queue. Separate private editor queues would allow a mixed source bundle. The shared owner keeps the existing journal names and destination restrictions, including outside-edit conflicts.
