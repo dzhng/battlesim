@@ -88,7 +88,6 @@ export function useUnitControl(
     };
   }, [client, setMode]);
 
-  // An armed command applies to the selection it was armed for.
   useEffect(() => {
     if (selected.length === 0) setMode("move");
   }, [selected, setMode]);
