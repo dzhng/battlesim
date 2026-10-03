@@ -324,15 +324,6 @@ export class WorkbenchStore {
           fingerprint: hash(JSON.stringify({ inputs, choice })),
           artifactId,
         };
-        if (request.crop && result.status === "ok")
-          Object.assign(
-            result,
-            await this.report(
-              { operation: "inspect", artifactDir: dir, crop: request.crop },
-              owned,
-            ),
-          );
-        owned.throwIfAborted();
         for (const [id, old] of this.artifacts) {
           if (
             request.purpose === "preview" &&
