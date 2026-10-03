@@ -13,6 +13,7 @@ const RELEASED: Record<string, string> = {
   "city-contact@1": "968aad93",
   "city-contact@2": "2da54b2a",
   "city-contact@3": "c166ad91",
+  "city-contact@4": "5d4eaef8",
 };
 
 test("a scenario's workload is pinned to its version", () => {
