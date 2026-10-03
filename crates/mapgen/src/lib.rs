@@ -327,6 +327,7 @@ fn generate(
                 message,
             }]
         })?;
+    open_country::admit_coverage(&request, &presets, &physics)?;
     let layout = layout::generate_layout(&request, &presets)?;
     let plan = parcels::fill_districts(layout, &request, &catalogue, &presets)?;
     // The open country first: it settles the plan's approach corridors, which
@@ -335,6 +336,7 @@ fn generate(
     let props =
         street_props::place_street_props(&plan, &request, &catalogue, &physics.catalog, &presets)?;
     plan.props.extend(props);
+    let plan = open_country::cover(plan, &request, &catalogue, &presets, &physics)?;
     let hash = physics.hash().map_err(|error| {
         vec![Diagnostic {
             code: DiagnosticCode::InvalidPhysicalRules,

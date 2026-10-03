@@ -439,32 +439,40 @@ impl<'a> Network<'a> {
 
     /// Open ground between `p` and the nearest carriageway's edge, negative
     /// on one; `within` when there is at least that much.
-    pub fn edge_gap(&self, p: Point, within: f64) -> f64 {
+    pub fn edge_gap(&self, p: Point, within: f64, charge: impl FnMut() -> bool) -> f64 {
         let mut gap = within;
         // A carriageway is found by its own width's box, so only the gap
         // asked for is searched.
         let bounds = [p[0] - within, p[1] - within, p[0] + within, p[1] + within];
-        self.grid.any(bounds, |item| {
-            let (a, b, half_width, _) = self.segments[item as usize];
-            gap = gap.min(segment_distance(a, b, p) - half_width);
-            false
-        });
+        self.grid.any_charged(
+            bounds,
+            |item| {
+                let (a, b, half_width, _) = self.segments[item as usize];
+                gap = gap.min(segment_distance(a, b, p) - half_width);
+                false
+            },
+            charge,
+        );
         gap
     }
 
     /// The bearing of the carriageway nearest `p`, when one's middle lies
     /// within `within`.
-    pub fn heading_near(&self, p: Point, within: f64) -> Option<f64> {
+    pub fn heading_near(&self, p: Point, within: f64, charge: impl FnMut() -> bool) -> Option<f64> {
         let mut best: Option<(f64, f64)> = None;
         let bounds = [p[0] - within, p[1] - within, p[0] + within, p[1] + within];
-        self.grid.any(bounds, |item| {
-            let (a, b, ..) = self.segments[item as usize];
-            let away = segment_distance(a, b, p);
-            if away <= within && best.is_none_or(|(known, _)| away < known) {
-                best = Some((away, bearing(a, b)));
-            }
-            false
-        });
+        self.grid.any_charged(
+            bounds,
+            |item| {
+                let (a, b, ..) = self.segments[item as usize];
+                let away = segment_distance(a, b, p);
+                if away <= within && best.is_none_or(|(known, _)| away < known) {
+                    best = Some((away, bearing(a, b)));
+                }
+                false
+            },
+            charge,
+        );
         best.map(|(_, heading)| heading)
     }
 

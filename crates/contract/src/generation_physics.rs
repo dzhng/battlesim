@@ -73,19 +73,8 @@ impl GenerationPhysics {
     /// The smallest circular ground observer. Narrow directional lobes are
     /// diagnostics, not an invented every-heading circle requirement.
     pub fn circular_range_m(&self) -> Result<f64, String> {
-        self.catalog
-            .indices()
-            .filter_map(|i| {
-                let unit = self.catalog.get(i);
-                let ground = matches!(
-                    unit.mobility,
-                    Mobility::Foot { .. } | Mobility::Tracked { .. } | Mobility::Wheeled { .. }
-                );
-                let sensors = &unit.sensors;
-                let shape = sensors.sight_shape;
-                (ground && shape.front == shape.side && shape.side == shape.rear)
-                    .then_some(sensors.ground_m * shape.front)
-            })
+        self.circular_ground_observers()
+            .map(|unit| unit.sensors.ground_m * unit.sensors.sight_shape.front)
             .reduce(f64::min)
             .ok_or_else(|| "no circular ground observer in the physical catalog".into())
             .and_then(|range| {
@@ -94,6 +83,22 @@ impl GenerationPhysics {
                 } else {
                     Err("circular ground observer range must be finite and positive".into())
                 }
+            })
+    }
+
+    /// Ground observers with an actual circular sight shape. Future aerial
+    /// mobility never participates in ground furnishing coverage.
+    pub fn circular_ground_observers(&self) -> impl Iterator<Item = &crate::catalog::UnitType> {
+        self.catalog
+            .indices()
+            .map(|i| self.catalog.get(i))
+            .filter(|unit| {
+                let ground = matches!(
+                    unit.mobility,
+                    Mobility::Foot { .. } | Mobility::Tracked { .. } | Mobility::Wheeled { .. }
+                );
+                let shape = unit.sensors.sight_shape;
+                ground && shape.front == shape.side && shape.side == shape.rear
             })
     }
 
