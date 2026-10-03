@@ -5,8 +5,6 @@
 // pause menu items (the scenario, replays, a lab's switches).
 import type { PreparedSession } from "@web/battle/prepare/client";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ContactPresentation } from "@web/battle/present/contactPresentation";
-import { gameContactStyle } from "./gameFog";
 import { RejectedOrder } from "@web/battle/present/rejectedOrder";
 import type { Camera3DParams } from "@packages/renderer-core/src/camera3d";
 import type { CameraPresentation } from "@packages/renderer-core/src/cameraController";
@@ -115,15 +113,7 @@ export function BattleView({
   const { world, meshes, sim, control, surfaceZ } = session;
   const worldFeed = useFeed(meshes);
   const { observation } = sim;
-  const contactPresentation = useMemo(
-    () =>
-      sim.client ? new ContactPresentation(session.rules.tick_hz, gameContactStyle.fade_s) : null,
-    [sim.client, session.rules.tick_hz],
-  );
-  const contacts = useMemo(
-    () => contactPresentation?.update(observation?.contacts ?? [], observation?.tick ?? 0) ?? [],
-    [contactPresentation, observation],
-  );
+  const { contacts } = session;
   // Cursor paint updates independently of observations, including while paused.
   const [pointerPaint] = useState(() => new PointerPaint());
   const rulerLabels = useRef<RangeRulerLabelsHandle>(null);

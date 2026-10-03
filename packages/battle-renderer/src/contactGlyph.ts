@@ -134,7 +134,7 @@ function glyph(mesh: MeshBuilder, c: ContactShape, s: ContactGlyphStyle, z: Surf
   band(c.radius, c.radius * GLOW_SPILL, s.color, glow, 0);
   const ink = s.hatch_alpha * life;
   hatch(mesh, c, inner, s, rgbA(s.color, ink), z);
-  band(inner, c.radius, s.outline_color, ink, ink, OUTLINE_SEGMENTS);
+  band(inner, c.radius, s.outline_color, life, life, OUTLINE_SEGMENTS);
 }
 
 export function buildContactGlyphs(

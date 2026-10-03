@@ -85,21 +85,9 @@ export class BattleMemory {
   }
 }
 
-/** Each report's area and shared presented opacity; raw live reports are full. */
-export function contactLayer(
-  o: ObservationView,
-  z: SurfaceHeight,
-  contacts: readonly PresentedContact[] | null = null,
-): WorldMeshes {
-  return buildContactGlyphs(
-    (contacts ?? o.contacts).map((c) => ({
-      center: c.center,
-      radius: c.radius,
-      opacity: "opacity" in c ? c.opacity : 1,
-    })),
-    z,
-    gameContactStyle,
-  );
+/** Glyphs consume the same presented reports as their labels. */
+export function contactLayer(contacts: readonly PresentedContact[], z: SurfaceHeight): WorldMeshes {
+  return buildContactGlyphs(contacts, z, gameContactStyle);
 }
 
 /** This tick's visible flight, own and enemy rounds tinted apart (or all in
@@ -222,11 +210,11 @@ export function buildBattleOverlay(
     showOrders,
     reveal,
     contacts,
-  }: { showOrders: boolean; reveal: RevealedOrders; contacts?: readonly PresentedContact[] },
+  }: { showOrders: boolean; reveal: RevealedOrders; contacts: readonly PresentedContact[] },
   border: Mesh | null = null,
   metresPerPx = OPENING_METRES_PER_PX,
 ): WorldMeshes {
-  const contactMarks = contactLayer(o, z, contacts);
+  const contactMarks = contactLayer(contacts, z);
   const supply = supplyLayer(o, scenario.supplyRadius, z, selected, metresPerPx, showOrders);
   const orders = orderLayer(o, selected, reveal, z, metresPerPx);
   // The hold zone, a line of the orders' weight: dashed while blue is not

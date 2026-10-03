@@ -365,7 +365,7 @@
   stroke: rgb(var(--hud-enemy) / 0.95);
 }
 .ro-leader.ro-contact {
-  opacity: 0.88;
+  opacity: 1;
 }
 /* ---- An info panel (infoPanel.tsx): NAME, WEAPONS, STATES --------------
    One markup for every panel, in a callout here and in the unit card.
@@ -413,9 +413,13 @@
   --ink: var(--hud-enemy);
   color: rgb(var(--hud-enemy));
 }
-/* A contact's is fainter, as its evidence is. */
+/* Contact life fades the whole callout, including its leader. */
 .ro-unit.ro-contact {
-  opacity: 0.88;
+  opacity: 1;
+  text-shadow: var(--hud-text-halo);
+}
+.ro-contact .ro-name {
+  text-shadow: inherit;
 }
 .ro-row[data-tone="warn"] {
   --tone: var(--hud-warn);

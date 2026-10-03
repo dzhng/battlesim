@@ -4,9 +4,10 @@
 // picks one of the fixture's named styles, tunes every number of it live, and
 // writes the `presentation.fog` block to copy back into the fixture. A 16:00
 // sun lays long shadows beside the sight shadows, the case fog must never be
-// mistaken for; two specimen glyphs (a last sighting and a firing report)
-// stand beside whatever contacts the battle makes.
+// mistaken for; two material glyph specimens, at infantry and vehicle
+// uncertainty scales, stand beside the battle's published reports.
 import { useMemo, useState } from "react";
+import { ReadoutLayer } from "@web/battle/present/readouts";
 import { buildContactGlyphs, type ContactShape } from "@packages/battle-renderer/src/contactGlyph";
 import type { FogEye, FogInput } from "@packages/battle-renderer/src/frame/fogInputs";
 import type { FogProbeInput } from "@packages/battle-renderer/src/frame/fogVisibility";
@@ -17,7 +18,7 @@ import {
   type FogStyle,
 } from "@packages/battle-renderer/src/frame/fogStyle";
 import { concatMeshes } from "@packages/battle-renderer/src/mesh";
-import type { FrameView, WorldMeshes } from "@packages/battle-renderer/src/scene";
+import type { FrameView } from "@packages/battle-renderer/src/scene";
 import type { LightPresentation } from "@packages/battle-renderer/src/light/sceneLight";
 import game from "@fixtures/game.json";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
@@ -56,8 +57,7 @@ function contactRadius(kind: string): number {
   return game.sensors.contact_radius_factor * footprint;
 }
 
-/** Specimens beside the street, at the simulation's contact radius: a
- *  squad's last sighting and a tank's firing report. */
+/** Material specimens at infantry and vehicle uncertainty scales. */
 const SPECIMENS: ContactShape[] = [
   {
     center: [1120, 930],
@@ -150,9 +150,8 @@ function FogLookLab({ scenario }: { scenario: string }) {
     return { ...session.fog, sight: { ...session.fog.sight, eyes: reconEyes } };
   }, [fogOn, reconOnly, eyes, session.fog, observation]);
   const fogFeed = useFeed(fog);
-  const overlay = useMemo<WorldMeshes | undefined>(() => {
-    if (!observation) return undefined;
-    const battle = contactLayer(observation, surfaceZ);
+  const overlay = useMemo(() => {
+    const battle = contactLayer(session.contacts, surfaceZ);
     const shown = specimens ? buildContactGlyphs(SPECIMENS, surfaceZ, gameContactStyle) : null;
     return {
       opaque: battle.opaque,
@@ -160,7 +159,7 @@ function FogLookLab({ scenario }: { scenario: string }) {
         shown ? [battle.translucent, shown.translucent] : [battle.translucent],
       ),
     };
-  }, [observation, surfaceZ, specimens]);
+  }, [surfaceZ, specimens, session.contacts]);
   const overlayFeed = useFeed(overlay);
 
   const show = (next: FrameView) => {
@@ -240,12 +239,22 @@ function FogLookLab({ scenario }: { scenario: string }) {
         appearances={session.appearances}
         initialCamera={STREET_CAMERA}
         groundAt={surfaceZ}
+        onFrame={session.placePanels}
         onReady={session.onReady}
         diagnostics={diagnostics}
+      />
+      <ReadoutLayer
+        own={[]}
+        contacts={session.contacts}
+        tick={observation?.tick}
+        rules={session.rules}
+        selected={[]}
+        handle={session.readouts}
       />
       <aside
         className="hud-panel lab-panel"
         data-testid="fog-look-panel"
+        data-occludes-readouts
         style={{ maxHeight: "96vh", overflow: "auto" }}
       >
         <strong>Unseen look</strong>
