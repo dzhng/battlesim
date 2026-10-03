@@ -4,7 +4,7 @@ The cursor describes the action a right-click can carry out using the ordering s
 
 ## Next Agent Prompt
 
-Status: implementing; updated 2026-10-03. Building authority's reviewed checkpoint is integrated; follow-up native privacy, finite-queue and replay proofs remain. Cursor presentation is complete. Real WASM/authority/client preview purity and error recovery pass, and typecheck is green. Next complete [pointer integration](slices/03-pointer-integration.md) across viewport/session, held/accepted preview and gameplay scenes while the native follow-up runs. Use implement-spec: committed passes, review and choices audit, then continue until every decision and gate below is fulfilled. Update this prompt before ending each pass.
+Status: implementing; updated 2026-10-03. Finish the native follow-up and played pointer integration, integrate their reviewed commits, then run whole-feature review and the final gates. The native follow-up proves queued origins, hidden-state independence and per-tick replay, and replaces deferred-entry preservation with fresh replacement planning. The browser follow-up proves mixed selections, partial refusal, pending acknowledgement and reset/captured-target behavior. Cursor presentation and actual WASM/authority/client preview purity are complete. Use implement-spec through close-spec; this checkpoint is not a stopping point.
 
 - [ ] Authoritative combined building order, preview and native proof.
 - [x] Approved cursor presentation and isolated browser proof.
