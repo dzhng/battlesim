@@ -1,6 +1,6 @@
 # Parameter policy
 
-This is the complete source-constant partition from the frozen 76-row inventory, verified against named owners during slice 01 before extraction. P = construction/admission policy; W = finite advanced work policy; I = implementation correctness/discretization/physical contract. P/W values move into their current preset rule groups with exact initial values. Never infer safe ranges from a symbol's name; inspect readers, validate source semantics and record corrections here before changing controls. All current preset leaves separately receive editable/managed/excluded/correctness roles in the native field inventory. The historical count is not a live slider count.
+This records the extraction decisions for the frozen city-maps source-constant inventory. P means construction or numerical admission policy; W means finite work policy; I means implementation correctness, discretization or a physical contract. P/W values moved into their existing preset groups with exact initial values. The tables retain historical symbols and initial values so the classification is auditable; current fields and legality live with the Rust schemas and the native field inventory. The historical count is not a live slider count.
 
 Topology-adjacent morphology policies remain subject to final physical/topology checks. Numerical rounding, overshoot, degeneracy, mathematical/proof and contract sampling settings have no disable control. Similar symbols from different owners are not aliases by name; keep distinct concepts distinct and merge only an actually shared concept.
 
@@ -139,4 +139,4 @@ Initial values are copied exactly; stored trigonometric values are never recompu
 | `crates/mapgen/src/street_props.rs:OWNER_STEP_M` | `presets.street_props.owner_step_m` |
 | `crates/mapgen/src/street_props.rs:SITE_ROOM_M` | `presets.street_props.site_room_m` |
 
-Finite advanced iteration/placement counts are bounded at 4096 (the existing maximum country placement count), and sampling steps remain finite positive. These are native-job work safeguards; physical coverage retains its independent proof envelope. Released compile part/bay envelopes remain fixed; editable ground-point allowances are positive u64 work limits.
+Newly extracted advanced iteration/placement counts are bounded at 4096 (the existing maximum country placement count), and sampling steps remain finite positive. These are native-job work safeguards; physical coverage retains its independent proof envelope. Released compile part/bay envelopes remain fixed; editable ground-point allowances are positive u64 work limits.

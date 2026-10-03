@@ -38,4 +38,4 @@ accidental work; they do not weaken generation correctness.
 The [protocol](src/protocol.ts) defines the browser and native boundaries. The
 repository task runner owns native build and development startup. Sampled sight
 remains on demand until its complete additional browser-visible cost is proven
-below the budget recorded in the [feature spec](../../specs/live-map-workbench/README.md).
+below the budget recorded in the [feature spec](../../specs/done/live-map-workbench/README.md).

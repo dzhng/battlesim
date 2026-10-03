@@ -56,7 +56,7 @@ Gap: the requested validator controls included policies with different meanings.
 
 ### Source receipts, preset revisions and physical identities have separate jobs
 
-When: publication pass. Exporting a preview preserves all six exact input documents and their content receipts. A managed preset revision changes when preset contents change; analysis-only edits preserve it. Existing map/config hashes continue to identify physical generation. A seed or revision label alone would lose an unsaved draft’s actual settings.
+When: publication pass. Exporting a preview preserves all six exact input documents and their content receipts—hashes that identify the exact bytes. A managed preset revision changes when preset contents change; analysis-only edits preserve it. Existing map/config hashes continue to identify physical generation. A seed or revision label alone would lose an unsaved draft’s actual settings.
 
 Gap: drafts needed reproducibility without inventing another map identity. Reach: reports remain attributable after fixtures change, and no-op saves preserve bytes. Verdict: sound; each identity answers one question. Confidence: high.
 

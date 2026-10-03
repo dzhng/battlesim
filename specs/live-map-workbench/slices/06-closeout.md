@@ -1,9 +1,0 @@
-# Composed proof and closeout
-
-Reconcile every decision in the exploration map and ledger against implemented behavior, including validator tunables and player recovery; no forgotten orthogonal row counts as done merely because other slices shipped.
-
-Prove saved change → restarted/new battle uses current inputs; a running/captured replay remains exact; external edit blocks publication without erasing draft; lowered generation allowance still yields playable fallback; exact seeded refusal stays inspectable. Run extraction/default map and replay/digest parity where inputs are unchanged. Record actual native/report cost, sight automatic/on-demand disposition and finite recovery budget/fallback startup headroom. No balance report is needed without battle-rule changes.
-
-Run complete check and verify once when all implementation is finished, in background with visible progress and stop bounds. Use the shared GPU lock for browser scenes. Fix failures honestly; retain inherited unverified/failed claims with their scope. Full run failures trigger only affected reruns after fixes, not repeated whole runs unchanged.
-
-Review whole feature using refactor-clean, code-review and write-docs; get independent codex review; audit and consolidate choices against final code. Exclude scratch and formatter-only churn unrelated to touched files from feature commits. Commit clean passes. After every gate and decision has a current owning proof, close-spec archives to specs/done, collapses slices into durable rationale, preserves decision/reference artifacts and fixes links. Have fresh agents audit the final document claims before declaring complete. Final answer links the consolidated choices and reports implementation/tests, then ends with required added/deleted code/comment/test/doc size table and structural surfaces.
