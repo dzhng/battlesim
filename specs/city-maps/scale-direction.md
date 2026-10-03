@@ -4,7 +4,21 @@
 long-term extent and proposed performance-driven behavior changes. It supersedes
 older requirements to preserve every original route winner or immediate planning
 tick when evaluating a named behavior alternative. Historical proof results and
-their frozen oracles remain unchanged.
+their frozen oracles remain unchanged. The 2026-10-02 closeout direction below
+defers the 20 km architecture work and prioritizes playable release maps.
+
+## Current closeout direction
+
+**User amendment, 2026-10-02:** finish a playable city-maps release before further
+optimization. The 20 × 20 km architecture requirement is deferred, outside this
+spec's current implementation and completion gates. Ship the selected 6/8/10 km
+maps with correct coverage, readable scenery, usable movement and actual combat.
+Retain checks that detect failed loading, crashes, stalled gameplay or an unusable
+frame rate; broader architecture and optimization experiments wait until later.
+
+Fairness work is a cheap sanity check: fix low-hanging or obviously wrong layouts,
+without building a larger balancing system or making it the critical path.
+This does not waive global coverage or the main settlement's clear approaches.
 
 ## Release presets and transit target
 
@@ -13,8 +27,8 @@ This user-authorized size revision supersedes older fixed-extent instructions in
 slices and spike verdicts. Preserve the original sizes/hashes of measured evidence;
 update generator presets, bounds-dependent consumers and new admission arms to M04
 through a named preset/map identity change. This changes playable battlefield extent, not
-building/street scale or weapon ranges. The architecture envelope below is a
-separate capability requirement from selectable release presets.
+building/street scale or weapon ranges. The deferred architecture envelope below
+is separate from selectable release presets.
 
 ## Playable area and rendered surroundings
 
@@ -79,7 +93,11 @@ startup proof and player flow; the existing game-ui/visual gates still apply.
 
 ## Architecture envelope: 20 × 20 km
 
-The architecture must support a playable area up to **20 × 20 km**, plus its
+**Deferred by the 2026-10-02 user amendment.** The future requirement and safety
+notes below are retained for later work; no 20 km implementation, measurement or
+admission proof is required to finish this spec.
+
+The future architecture must support a playable area up to **20 × 20 km**, plus its
 bounded rendered surroundings. This replaces the earlier 100 km aspiration;
 larger playable extents are outside the required design envelope. Inventory the
 complete world/render margin rather than treating the playable size as its limit.
