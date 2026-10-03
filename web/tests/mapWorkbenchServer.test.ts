@@ -595,3 +595,38 @@ test("native inspection refusal becomes an HTTP error with its structured diagno
   expect(response.status).toBe(400);
   expect(await response.json()).toMatchObject({ error: "Unknown inspection crop", diagnostics });
 });
+
+test("an invalid numeric draft generates an exportable typed input refusal without a physical map", async () => {
+  const diagnostics = [
+    {
+      code: "invalid_presets",
+      feature: "fairness",
+      location: "$.presets.density",
+      message: "Density is outside the admitted policy range",
+    },
+  ];
+  const run: NativeReporter = async (request) => {
+    if (request.operation === "validate")
+      return JSON.parse(request.inputs.presets).density === 0.8
+        ? { status: "invalid", diagnostics, fields: validation.fields }
+        : validation;
+    if (request.operation === "generate")
+      return { status: "refused", stage: "input", diagnostics, choice: request.choice };
+    throw new Error("A refused draft cannot have physical artifacts");
+  };
+  const { root, store } = await fixture(run);
+  const draft = structuredClone(await store.snapshot());
+  draft.documents.presets.density = 0.8;
+  const choice = { type: "mixed" as const, size: "small" as const, seed: "4" };
+  const report = await store.generate({ purpose: "preview", draft, choice });
+  expect(report).toMatchObject({ status: "refused", stage: "input", diagnostics, choice });
+  expect(await readdir(join(root, "throwaway/map-workbench"))).toEqual([]);
+  const exported = await store.export(report.artifactId!);
+  expect(exported.report).toEqual(report);
+  expect(JSON.parse((exported.inputs as Record<string, string>).presets)).toMatchObject({
+    density: 0.8,
+  });
+  const review = await store.preview(draft);
+  expect(review.diagnostics).toEqual(diagnostics);
+  await expect(store.save(review)).rejects.toMatchObject({ status: 400, diagnostics });
+});

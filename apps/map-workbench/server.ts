@@ -288,7 +288,7 @@ export class WorkbenchStore {
       const state = await this.state();
       const current = this.requireValid(await this.validate(state.inputs, owned));
       const inputs = this.inputsFor(request.draft, state, current.fields);
-      this.requireValid(await this.validate(inputs, owned));
+      // Native generation reports invalid draft policy with its exact tested inputs.
       if (request.purpose === "sample") {
         for (const [id, artifact] of this.artifacts) {
           if (artifact.purpose === "sample") {
