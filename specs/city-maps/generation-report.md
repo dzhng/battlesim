@@ -2,7 +2,7 @@
 
 This report explains the business rules, their numbers, the measurements and the failure checks. It is intentionally more detailed than the code README: the user requested an inventory that can inform a later map workbench. The implementation and fixture files remain authoritative; this is a dated account, not another configuration source.
 
-**Working report, 2026-10-02.** Integrated production is `main` at `82662d3f`, generator `layout-12`, presets `layout-presets-11`. The common rendered-extent contract is integrated; continuous countryside coverage and the player margin preset are still being integrated. Sections below label those pending rules; neither their old version labels nor a successful narrow check establish final release admission. This report and its [complete parameter appendix](generation-parameters.md) must be refreshed when the final generation identity is frozen.
+**Frozen generation report, 2026-10-02.** Integrated production is `main` at `46cc6eba`, generator `layout-13`, presets `layout-presets-12`. Continuous countryside coverage and the 1,500 m visual margin are integrated, with refreshed Market Town and canonical Native/Wasm records. The [complete parameter appendix](generation-parameters.md) matches this snapshot. Generation rules are frozen; final playability and visual gates remain separate from this report.
 
 The current user direction is to finish the specific generation rules, get a playable game, then tune the numbers personally. The typical open-ground visibility floor is **50%**. Perfect parameter tuning, a live map workbench, hills/ridges and the 20 km architecture are outside current completion work. Riverbeds and banks remain part of this generator.
 
@@ -146,9 +146,9 @@ Country features keep **12 m** from map edges, **60 m** from settlements, **40 m
 
 Low cover does not automatically count as a tall sight obstruction. A 0.7 m wreck or small log may help infantry in combat without shortening a vehicle eye’s circular ground view. Coverage must earn its result from actual height, foliage and body queries rather than feature names.
 
-## Global interrupted sight: pending physical certificate
+## Global interrupted sight: continuous physical certificate
 
-The shipped proximity method could mark a cell as covered from a nearby building anchor or wood outline without proving every intervening point. A real 450 m jeep counterexample exposed that gap even when a 600 m rifle sample saw a tree. The pending cutover replaces that admission rule; an old `reach_m=480` knob is removed, not retained as a second rule.
+The former proximity method could mark a cell as covered from a nearby building anchor or wood outline without proving every intervening point. A real 450 m jeep counterexample exposed that gap even when a 600 m rifle sample saw a tree. The integrated certificate replaces that admission rule; an old `reach_m=480` knob is removed, not retained as a second rule.
 
 Construction uses **100 m location cells**, clipped at the map edges, and the actual **8 m native fog cells**. A valid witness contains a fully occupied **3 × 3 fog-cell patch** plus physical height/interior margins. Accepted body/trunk geometry constructs the patch. A rasterized tree outline with no accepted trunks earns nothing.
 
@@ -179,7 +179,7 @@ The report also counts samples with a completely unbroken circle, and reports th
 | Starting-column queries | The planner’s actual unit positions on that map | Other positions or the combined screen-space fog boundary |
 | Production fog screenshot | The actual published union at the frozen pose/state | All locations, all seeds or hidden simulation state |
 
-The prior `min(80%, bare_median − 7 percentage points)` target is superseded. The separate `enclosed_fraction ≤ bare_fraction + 6 percentage points` tuning gate is removed under the user's playability-first direction; its measurement remains visible. Current focused pending-candidate medians are approximately **59.75% Open Small seed 1, 54.24% Mixed Small seed 1, 60.17% Metro Small seed 1 and 57.84% the recorded Mixed Small seed 55012999855851041**. Open Small seed 1’s below-half-open fraction is about **21.86%**, versus **3.83%** bare. These are narrow working-candidate measurements, not release-wide acceptance, and must stay attached to their exact geometry/source receipt.
+The prior `min(80%, bare_median − 7 percentage points)` target is superseded. The separate `enclosed_fraction ≤ bare_fraction + 6 percentage points` tuning gate is removed under the user's playability-first direction; its measurement remains visible. Frozen focused-source medians are approximately **59.75% Open Small seed 1, 54.24% Mixed Small seed 1, 60.17% Metro Small seed 1 and 57.84% the recorded Mixed Small seed 55012999855851041**. Open Small seed 1’s below-half-open fraction is about **21.86%**, versus **3.83%** bare. These are narrow measurements of the frozen source, not release-wide acceptance, and must stay attached to their exact geometry/source receipt.
 
 ## Fairness: geometry sanity, not tactical equality
 
@@ -237,7 +237,7 @@ Blue currently deploys a jeep, recon, two tanks, three rifle squads, AT and supp
 
 A prepared encounter proves legal placement and planned reach. It does not prove attacking infantry has walked kilometres to the fight, the widest tank has actually traversed the street, or a battle can sustain an actual **1,800 m** engagement. Those are executed movement/combat checks in C50/C51/C54. Geometry changes invalidate the relevant saved-map access and arrival evidence.
 
-## Rendered surroundings: integrated contract, pending preset rollout
+## Rendered surroundings: common extent contract
 
 The map owns one optional `render_margin_m`, defaulting to zero and admitted only when finite and between **0 and 5,000 m**. The same map owner derives and publishes three rectangles through preparation and world exports:
 
@@ -245,7 +245,7 @@ The map owns one optional `render_margin_m`, defaulting to zero and admitted onl
 - **Physical:** the existing height field’s actual query domain. Each axis has `round(size / height_grid_m) + 1` samples; its last sample is `(samples − 1) × height_grid_m`. Generated 6/8/10 km maps align to their 4 m grid, so physical and playable bounds coincide. Authored sizes that do not align retain their existing rounded physical extent.
 - **Rendered:** the union of playable and physical rectangles expanded by the map margin, used by the existing plot/scenery placement and overview framing.
 
-The initial player margin is **1,500 m**, reusing the existing backdrop-tree reach rather than seeking an optimal number. Its preset rollout and identity refresh are pending. The margin is visual-only: it adds no deployment space, navigation obstacles, cover or forest sensing. Authored developer arenas retain zero margin and their existing display environment. The existing generic **40,000 m** flat horizon backdrop remains separate from map-owned bounds and remains included in resource accounting; its cutout follows the actual drawn terrain mesh to avoid coplanar overlap.
+The initial player margin is **1,500 m**, reusing the existing backdrop-tree reach rather than seeking an optimal number. The selected preset and saved-map identities carry this margin. The margin is visual-only: it adds no deployment space, navigation obstacles, cover or forest sensing. Authored developer arenas retain zero margin and their existing display environment. The existing generic **40,000 m** flat horizon backdrop remains separate from map-owned bounds and remains included in resource accounting; its cutout follows the actual drawn terrain mesh to avoid coplanar overlap.
 
 The existing plot splitter and backdrop-tree owner supply the wider landscape; no additional terrain ring, shader pass, tree generator or physical grid is introduced. A changed plot starting rectangle can change decorative fields inside the playable map too, so the rollout receives a new map identity.
 
@@ -260,6 +260,14 @@ The [mapgen tests](../../crates/mapgen/tests) exercise deterministic generation,
 The browser separately verifies responsive preparation/cancellation, current Native/Wasm publication/replay identity, readable frozen pictures, correct public fog, camera movement, reset/resource lifetime and usable actual contact/combat. The current release criteria include **under 30 seconds from Deploy to playable** (M31) and **≥30 FPS**, with the final complete-world startup/benchmark/tour using the same identified geometry. Perfect performance tuning is deferred; loading failure, crash, unusable frame rate and stalled gameplay remain defects.
 
 Each pass gets the narrow check it can affect. Run full `check` and `verify` once at whole-spec closeout. Balanced map counts and passing unit tests do not prove a pleasant or playable battlefield; final play review remains a separate requirement.
+
+## Frozen-generation verification and honest refusals
+
+The final source’s open-country file passes **20** behavior tests, including the actual short-range observer, intervening/edge positions, bounded pathological inputs, useful-open-ground checks and the recorded Metro Small seed 3 regression. Canonical parity retains **14** generation cases and **6** encounter cases, including exact failure outputs. The fixed gallery contains **90** requested maps: all nine type/size combinations across seeds 1–10. **89** are admitted; Metro Small seed 10 is refused with `ground_sight` because the clipped cell at `[450,350]` cannot earn a physical patch within bounded placement. Its seed and diagnostic remain visible; no replacement map or weakened proof is substituted.
+
+Copse classification uses the same preset minimum area in construction and finished measurement. Centimetre rounding can bring a nominal minimum-size proposal below that threshold. The generator therefore checks the committed rounded ring before planting and assigns its half from that ring’s actual area centroid. This corrects counting without changing the proposal numbers or adding random draws.
+
+Saved Market Town is Mixed Small seed 1 with **3,050 buildings**, map hash `9b8ed8356f7d812f729f2b7d0ad5355c76fd3ee3156814b2e4e8251a248a1318` and config hash `550aa4ed16e4e93245c9896a8f64f2030bb9f8be796491520d24e85c6916dd33`. The receipt pins the exact preset, physical catalogue, rules and catalog inputs. Source/data review confirms those receipts and every stored building match regenerated geometry. A successful generation certificate does not claim that every requested seed is admissible, every group destination is placed, or units have physically arrived; those remain distinct contracts and outputs.
 
 ## Reading and later tuning
 
