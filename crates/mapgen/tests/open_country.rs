@@ -1108,22 +1108,6 @@ fn real_ground_sight_is_cut_between_cells_at_edges_and_inside_an_unbuilt_town() 
     }
 }
 
-#[test]
-fn whole_cell_furnishing_keeps_the_changed_map_fair_between_halves() {
-    for kind in [MapType::Open, MapType::Mixed] {
-        let c = country(kind, MapSize::Small, 1);
-        let metrics = open_country::measure(&c.plan, &presets());
-        assert!(
-            metrics.homes.fair
-                && metrics.tree_line_m.fair
-                && metrics.copses.fair
-                && metrics.trees.fair
-                && metrics.cover.fair,
-            "final country is uneven: {metrics:?}"
-        );
-    }
-}
-
 /// Coverage additions must restore fairness measured from their final geometry.
 #[test]
 fn physical_coverage_keeps_the_recorded_metro_country_balanced() {

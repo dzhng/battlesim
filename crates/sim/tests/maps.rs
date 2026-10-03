@@ -58,10 +58,9 @@ fn every_saved_encounter_makes_a_battle_on_its_map() {
     assert!(encounters > 0, "the catalogue has saved encounters");
 }
 
-/// A map the game's generator may make can be saved: the catalogue's
-/// allowance is the generator's.
+/// The catalogue and generator agree on their physical-part and bay limits.
 #[test]
-fn the_catalogue_admits_any_map_the_game_generates() {
+fn catalogue_geometry_limits_match_the_generator_allowance() {
     let game: serde_json::Value = serde_json::from_str(
         &std::fs::read_to_string(sim::fixtures::dir().join("generated-battle.json")).unwrap(),
     )

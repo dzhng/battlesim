@@ -601,8 +601,10 @@ fn head_on_vehicles_pass_without_overlapping() {
     o.go(&mut b, &[1], [20.0, 25.0], 2, RoutePolicy::Shortest, false);
     let end = run(&mut b, &[0, 1], 3000, |b| {
         let (a, c) = (own(b, 0), own(b, 1));
+        let first = b.unit(UnitId(0)).unwrap().hull_box().unwrap();
+        let second = b.unit(UnitId(1)).unwrap().hull_box().unwrap();
         assert!(
-            dist(xy(&a), xy(&c)) > 3.5,
+            !first.overlaps(&second),
             "hulls overlapping at tick {}",
             b.tick()
         );

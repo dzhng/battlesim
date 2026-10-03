@@ -168,8 +168,16 @@ fn a_destroyed_tank_leaves_a_wreck_that_reroutes_the_side_that_sees_it() {
             facing: None,
         },
     );
-    run(&mut b, 2);
-    let truck = own(&b, Side::Blue, 1).unwrap();
+    let mut routed = None;
+    for _ in 0..2 * b.rules().tick_hz {
+        b.step();
+        let truck = own(&b, Side::Blue, 1).unwrap();
+        if !truck.route.is_empty() {
+            routed = Some(truck);
+            break;
+        }
+    }
+    let truck = routed.expect("the admitted truck move publishes a nonempty route");
     let mut from = [truck.position[0], truck.position[1]];
     for p in truck.route {
         for k in 0..=20 {

@@ -223,10 +223,10 @@ export async function run(ctx) {
     JSON.stringify(check),
   );
 
-  // Reset starts again from the seed with an empty log.
+  // Reset restarts the clock with an empty command log.
   await route(page, () => window.__lab.route.reset());
   await page.waitForFunction(
     () => window.__lab.route.acks().length === 0 && window.__lab.route.tick() < 20,
   );
-  ctx.check("reset rebuilds from the seed", true);
+  ctx.check("reset empties the command log and restarts the clock", true);
 }

@@ -901,11 +901,17 @@ fn low_rise_collapse_height_scales_and_clamps_from_the_destroyed_row() {
             b.step();
         }
         assert!(b.world().prop(0).is_none());
-        for prop in b
+        let remains: Vec<_> = b
             .world()
             .props()
             .filter(|p| b.structures().replaced_by(p.id).is_some())
-        {
+            .collect();
+        assert_eq!(
+            remains.len(),
+            2,
+            "height {height}: both parts leave remains"
+        );
+        for prop in remains {
             assert_eq!(2.0 * prop.half.z, expected);
         }
     }

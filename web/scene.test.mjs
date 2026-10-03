@@ -11,6 +11,7 @@ test("scene args: fixture ids, the bun `--` separator and --list", () => {
 test("every registered fixture has exactly one scene", async () => {
   const fixtures = await loadRegistry();
   expect(fixtures.length).toBeGreaterThan(0);
+  expect(new Set(fixtures.map((fixture) => fixture.id)).size).toBe(fixtures.length);
   expect(selectFixtures(fixtures, []).length).toBe(fixtures.length);
   expect(() => selectFixtures(fixtures, ["nope"])).toThrow("unknown fixture");
 });

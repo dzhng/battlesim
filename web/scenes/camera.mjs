@@ -92,7 +92,7 @@ export async function run(ctx) {
       moved: frames.filter(
         (f) =>
           Math.hypot(...f.drawn.target.map((v, i) => v - f.asked.target[i])) > 1e-9 ||
-          Math.min(...eyeOf(f.drawn).map((v, i) => Math.abs(v - f.eye[i]))) > 1e-6,
+          Math.max(...eyeOf(f.drawn).map((v, i) => Math.abs(v - f.eye[i]))) > 1e-6,
       ).length,
     });
   }

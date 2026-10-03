@@ -12,3 +12,7 @@ libm = { version = "=0.2.16", default-features = false }
 [dev-dependencies]
 # Verification loads generated maps into the simulation, including the battle sweep.
 sim = { path = "../sim" }
+
+[[example]]
+name = "battle_sweep"
+test = true

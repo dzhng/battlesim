@@ -314,11 +314,13 @@ impl SideGeometry {
         self.belief(world.prop(id).or_else(|| self.standing.get(&id))?, authored)
     }
 
-    /// The side's planning grid. It takes in what the side has learned
-    /// only when its revision has changed, and then only the bodies and the
-    /// cleared ground that changed.
+    /// The side's planning grid. It refreshes changed body beliefs and
+    /// newly cleared ground, which advance independently.
     pub fn grid(&mut self, world: &WorldGeometry, authored: PropId) -> &NavGrid {
-        if self.grid_revision != self.revision {
+        // Body beliefs and cleared ground advance independently.
+        if self.grid_revision != self.revision
+            || self.cleared_taken != world.cleared_cells() as usize
+        {
             self.stale.extend(world.touched());
             let beliefs: Vec<(PropId, Option<Prop>)> = std::mem::take(&mut self.stale)
                 .into_iter()
@@ -347,8 +349,6 @@ impl SideGeometry {
             .filter_map(|p| self.belief(p, authored))
             .collect();
         let whole = NavBase::build(world, believed.iter(), soldier_radius);
-        // A revision the side never reaches, so the grid looks again.
-        self.grid_revision = u64::MAX;
         (self.grid(world, authored), NavGrid::new(Arc::new(whole)))
     }
 

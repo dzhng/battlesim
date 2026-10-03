@@ -26,11 +26,14 @@ test("the page's physical world uses its scenario's captured rules", async () =>
     slope_cutoff_deg: 35,
     relief: [],
     bridges: [],
-    props: [],
+    props: [
+      { id: 0, kind: "replay-only-body", center: [50, 50], yaw: 0, half_extents: [0.6, 0.6, 0.6] },
+    ],
     surfaces: [],
     forests: [],
     buildings: [],
   };
   const { result } = renderHook(() => useStaticWorld(map, rules));
   await waitFor(() => expect(result.current?.layout.propKinds).toContain("replay-only-body"));
+  expect(result.current!.view.raycast(50, 50, 20, 0, 0, -1, 30)[7]).toBe(0);
 });

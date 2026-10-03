@@ -1,5 +1,8 @@
 //! The parcel pass, judged on the compiled map: what a battle would load.
 //! Geometry here is checked with its own arithmetic, not the generator's.
+mod common;
+use common::overlap_depth;
+
 use contract::ground::{polygon_contains, GroundShape};
 use contract::map::{BuildingDefinition, MapDefinition, SurfaceKind};
 use contract::templates::{
@@ -166,27 +169,6 @@ fn ring_segment_gap(ring: &[Point], a: Point, b: Point) -> f64 {
             .min(segment_gap(*p, *q, b));
     }
     gap
-}
-
-/// How deep two convex rings overlap: the least depth over their edge
-/// normals, negative when an edge separates them.
-fn overlap_depth(a: &[Point], b: &[Point]) -> f64 {
-    let mut depth = f64::INFINITY;
-    for (ring, other) in [(a, b), (b, a)] {
-        for (p, q) in contract::ground::edges(ring) {
-            let length = segment_gap(*p, *p, *q);
-            let normal = [(q[1] - p[1]) / length, (p[0] - q[0]) / length];
-            let span = |points: &[Point]| {
-                let along = points.iter().map(|v| v[0] * normal[0] + v[1] * normal[1]);
-                along.fold((f64::INFINITY, f64::NEG_INFINITY), |(low, high), v| {
-                    (low.min(v), high.max(v))
-                })
-            };
-            let ((a0, a1), (b0, b1)) = (span(ring), span(other));
-            depth = depth.min(a1.min(b1) - a0.max(b0));
-        }
-    }
-    depth
 }
 
 fn floors(building: &BuildingDefinition) -> usize {

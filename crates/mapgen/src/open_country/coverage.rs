@@ -698,6 +698,8 @@ mod tests {
         let map = map(2_000., [999.5, 999.5, 1008.5, 1008.5]);
         let c = Coverage::new(&map, &physics, 100.).unwrap();
         assert!(c.covered([954., 604.], [1054., 704.]));
+        // Its centre is within reach, but its far corner is not.
+        assert!(!c.covered([954., 584.], [1054., 704.]));
     }
 
     #[test]

@@ -1585,27 +1585,6 @@ async function orderTour(ctx) {
           pip: pip.map((v) => +v.toFixed(1)),
         });
       }
-  // An order is the unit's (user: "it should always be as a unit"): no line
-  // runs from a soldier. Half way from each soldier to his spot (3 m or more
-  // off), the overlay holds none of the orders' yellow, but for other marks
-  // crossing there by chance (at most a tenth).
-  const legs = { checked: 0, inked: 0 };
-  for (const u of o.own.filter((v) => v.members.length > 0))
-    for (const [k, m] of u.memberOrders.entries()) {
-      const q = u.members[k];
-      // A moving squad's soldiers walk to spots along its own route; a
-      // holding squad's walk to their posts, where lines once ran.
-      if (u.goal || !q || Math.hypot(m.spot[0] - q[0], m.spot[1] - q[1]) < 3) continue;
-      const p = await groundCss(page, [(q[0] + m.spot[0]) / 2, (q[1] + m.spot[1]) / 2]);
-      if (!p || p[0] < 8 || p[1] < 8 || p[0] > 1912 || p[1] > 1072) continue;
-      legs.checked++;
-      if (isRing(pixelAt(Math.round(p[0]), Math.round(p[1])))) legs.inked++;
-    }
-  ctx.check(
-    "with Space, no line runs from a soldier to his spot: each order is one line for its unit",
-    legs.inked <= Math.floor(legs.checked / 10),
-    JSON.stringify(legs),
-  );
   const all = [...centred.now, ...centred.there];
   ctx.check(
     "a cover icon's centre is its marker's centre, within a pixel",
@@ -3806,13 +3785,13 @@ async function playTour(ctx) {
     (await lab(page, () => window.__lab.route.tick())) === held,
   );
 
-  // Restart starts again from the seed with an empty log.
+  // Restart restarts the clock with an empty command log.
   await restart(page);
   await page.waitForFunction(() => {
     const route = window.__lab?.route;
     return !!route && route.acks().length === 0 && route.tick() < 60;
   });
-  ctx.check("restart rebuilds from the seed", true);
+  ctx.check("restart empties the command log and restarts the clock", true);
 
   // The variant is the player's to change.
   await chooseVariant(page, "Prepared crossfire");

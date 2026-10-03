@@ -81,7 +81,7 @@ fn an_asymmetric_rotated_part_keeps_its_own_box_frame() {
 }
 
 #[test]
-fn physical_identity_is_canonical_and_does_not_include_appearance_or_readiness() {
+fn physical_identity_is_canonical_and_changes_with_geometry() {
     let first = village_house(0);
     let mut second = first.clone();
     second.id = "another-shell-probe".into();
@@ -93,26 +93,10 @@ fn physical_identity_is_canonical_and_does_not_include_appearance_or_readiness()
         catalogue.canonical_json().unwrap(),
         reordered.canonical_json().unwrap()
     );
-    let mut source = json!({"physical":first,"appearance":{"materials":"a","lods":[1,2]},"readiness":"prototype"});
-    let original =
-        TemplateGeometryCatalog::new(vec![
-            serde_json::from_value(source["physical"].clone()).unwrap()
-        ])
-        .unwrap();
-    source["appearance"] = json!({"materials":"replacement","lods":[0]});
-    source["readiness"] = json!("fit_approved");
-    let replaced =
-        TemplateGeometryCatalog::new(vec![
-            serde_json::from_value(source["physical"].clone()).unwrap()
-        ])
-        .unwrap();
-    assert_eq!(original.hash(), replaced.hash());
-    source["physical"]["parts"][0]["half_extents"][0] = json!(15.5);
-    let changed =
-        TemplateGeometryCatalog::new(vec![
-            serde_json::from_value(source["physical"].clone()).unwrap()
-        ])
-        .unwrap();
+    let original = TemplateGeometryCatalog::new(vec![first.clone()]).unwrap();
+    let mut geometry = first;
+    geometry.parts[0].half_extents[0] = 15.5;
+    let changed = TemplateGeometryCatalog::new(vec![geometry]).unwrap();
     assert_ne!(original.hash(), changed.hash());
     let loaded = TemplateGeometryCatalog::from_json(&catalogue.canonical_json().unwrap()).unwrap();
     assert_eq!(loaded.hash(), catalogue.hash());
