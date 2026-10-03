@@ -9,8 +9,7 @@ import { gameCamera } from "../gameCamera";
 import { BattleClock, objectiveStatus } from "../battleStatus";
 import {
   isPreparedReplay,
-  readSavedReplay,
-  rememberReplay,
+  useSavedReplay,
   ReplayImport,
   saveReplay,
   type ReplayFile as SavedFile,
@@ -100,11 +99,6 @@ function ScenarioPicker({
   );
 }
 
-function savedVillageReplay(): ReplayFile | null {
-  const file = readSavedReplay();
-  return file && isVillageReplay(file) ? file : null;
-}
-
 /** /battle/village: play the encounter. */
 export default function VillageBattle() {
   return <VillageEncounter fixture="village" script={null} />;
@@ -167,16 +161,9 @@ function VillageEncounter({ fixture, script }: { fixture: string; script: string
 
 /** /replay/village: watch a saved battle; input is off, the defender is off. */
 export function VillageReplay() {
-  // Each loaded file gets a fresh view, even one identical to the last.
-  const [loaded, setLoaded] = useState<{ file: ReplayFile | null; n: number }>(() => ({
-    file: savedVillageReplay(),
-    n: 0,
-  }));
-  const setFile = (file: ReplayFile) => {
-    if (import.meta.env.DEV) rememberReplay(JSON.stringify(file));
-    restartBattle(() => setLoaded((l) => ({ file, n: l.n + 1 })));
-  };
-  const { file } = loaded;
+  const [loaded, loadFile] = useSavedReplay();
+  const setFile = (file: ReplayFile) => restartBattle(() => loadFile(file));
+  const file = loaded.file && isVillageReplay(loaded.file) ? loaded.file : null;
   const scenario = useVillageScenario("village-replay", file?.variant ?? "ordinary");
   if (!file)
     return (
@@ -223,7 +210,10 @@ function VillageView({
   const exportReplay = async ({ sim }: BattleSession) => {
     if (!sim.client) return null;
     const file: ReplayFile = { variant, replay: await sim.client.replay() };
-    saveReplay(file, `village-${variant}-seed${seed}-tick${sim.latest.current?.tick ?? 0}.json`);
+    await saveReplay(
+      file,
+      `village-${variant}-seed${seed}-tick${sim.latest.current?.tick ?? 0}.json`,
+    );
     return file;
   };
 

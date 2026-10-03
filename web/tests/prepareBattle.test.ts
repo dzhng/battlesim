@@ -5,7 +5,8 @@ import * as wasm from "@wasm/game_wasm.js";
 import config from "@fixtures/generated-battle.json";
 import encounters from "@fixtures/encounters.json";
 import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
-import { PreparationRefused, prepare } from "../src/battle/prepare/prepare";
+import { PreparationRefused, prepare, prepareReplay } from "../src/battle/prepare/prepare";
+import { parseReplayFile, isPreparedReplay } from "@apps/battle-lab/src/replayFile";
 import type { PrepareBattleRequest, PrepareDocuments } from "../src/battle/prepare/protocol";
 import { loadEncounter, loadMap } from "../src/maps/node";
 import { generationRequest, type MapChoice } from "../src/maps/source";
@@ -55,6 +56,46 @@ const prepared = (r = request(), d = documents, onStage?: (stage: string) => voi
     world.free();
     return battle;
   });
+
+test("a saved prepared battle replays its captured map, encounter and rules after fixture edits", async () => {
+  const captured = await prepared({
+    map_source: { kind: "catalogue", id: "village" },
+    recipe_id: "lean",
+    encounter_seed: "1",
+    battle_seed: 7,
+  });
+  const live = new wasm.Battle(captured.scenario, 7);
+  try {
+    for (let tick = 0; tick < 30; tick++) live.step();
+    const file = parseReplayFile(JSON.stringify({ battle: captured, replay: live.replay_json() }));
+    if (!isPreparedReplay(file)) throw new Error("not a prepared replay");
+    const changed = JSON.parse(documents.rules);
+    changed.tick_hz *= 2;
+    const edited = await prepared(captured.report.request, {
+      ...documents,
+      rules: JSON.stringify(changed),
+    });
+    expect(edited.scenario).not.toBe(captured.scenario);
+    const regenerated = wasm.PreparedWorld.from_scenario(edited.scenario);
+    // into_replay consumes the prepared world even when identity checks refuse it.
+    expect(() => regenerated.into_replay(edited.scenario, file.replay)).toThrow();
+    const playback = prepareReplay(wasm, file.battle);
+    expect(playback.scenario).toBe(captured.scenario);
+    const replay = playback.world.into_replay(playback.scenario, file.replay);
+    try {
+      for (let tick = 0; tick < 30; tick++) replay.step();
+      expect(replay.digest()).toBe(live.digest());
+      const stale = JSON.parse(file.replay);
+      stale.engine_build = "another-build";
+      const other = wasm.PreparedWorld.from_scenario(playback.scenario);
+      expect(() => other.into_replay(playback.scenario, JSON.stringify(stale))).toThrow();
+    } finally {
+      replay.free();
+    }
+  } finally {
+    live.free();
+  }
+});
 
 test("preparation publishes the compiled map's derived bounds without widening encounter space", async () => {
   const presets = JSON.parse(documents.presets);

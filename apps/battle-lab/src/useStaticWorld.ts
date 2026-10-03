@@ -12,7 +12,6 @@ import {
   type WorldLayout,
 } from "@packages/battle-renderer/src/worldMesh";
 import { loadWasm, type Wasm } from "@web/battle/sim/module";
-import { GAME_RULES } from "./scenarios";
 
 export type WorldView = InstanceType<Wasm["WorldView"]>;
 
@@ -28,7 +27,7 @@ export interface StaticWorld {
  *  meshes, and the one implementation of picking, ground height, surface,
  *  learned foliage and camera clearance. It has no navigation and no battle
  *  state; the battle's world stays in its worker. */
-export function useStaticWorld(map: unknown): StaticWorld | null {
+export function useStaticWorld(map: unknown, rules: unknown): StaticWorld | null {
   const [world, setWorld] = useState<StaticWorld | null>(null);
   useEffect(() => {
     let live = true;
@@ -36,11 +35,11 @@ export function useStaticWorld(map: unknown): StaticWorld | null {
     void loadWasm().then((wasm) => {
       if (!live) return;
       // The world as the simulation builds it under the one rules owner.
-      const rules = JSON.stringify(GAME_RULES);
-      view = new wasm.WorldView(JSON.stringify(map), rules);
+      const ruleText = JSON.stringify(rules);
+      view = new wasm.WorldView(JSON.stringify(map), ruleText);
       setWorld({
         view,
-        layout: JSON.parse(wasm.world_layout(rules)) as WorldLayout,
+        layout: JSON.parse(wasm.world_layout(ruleText)) as WorldLayout,
         exports: readWorldExports(view),
       });
     });
@@ -48,7 +47,7 @@ export function useStaticWorld(map: unknown): StaticWorld | null {
       live = false;
       view?.free();
     };
-  }, [map]);
+  }, [map, rules]);
   return world;
 }
 

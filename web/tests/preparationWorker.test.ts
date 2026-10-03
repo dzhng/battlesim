@@ -40,7 +40,9 @@ test("a preparation worker becomes the battle authority and replays its commands
         const importModule = new Function("url", "return import(url)");
         const { prepareBattle } = await importModule(`${root}/battle/prepare/client.ts`);
         const { createSimClient } = await importModule(`${root}/battle/sim/client.ts`);
-        const { loadWasm } = await importModule(`${root}/battle/sim/module.ts`);
+        const { rememberReplay, readSavedReplay, ReplayImport } = await importModule(
+          `${root}/../../apps/battle-lab/src/replayFile.tsx`,
+        );
         const preparation = prepareBattle(
           {
             type: "prepare",
@@ -71,16 +73,105 @@ test("a preparation worker becomes the battle authority and replays its commands
           await client.ready;
           client.pause();
           client.start();
+          const command = client.command({ kind: "stop", units: [0] });
           const tick = await client.advance(3);
-          const replay = (await loadWasm()).Battle.from_replay(
-            prepared.scenario,
-            await client.replay(),
+          if ((await command).error !== null) throw new Error("the recorded command was refused");
+          const captured = {
+            battle: {
+              scenario: prepared.scenario + " ".repeat(48 * 1024 * 1024),
+              report: prepared.report,
+            },
+            replay: await client.replay(),
+          };
+          await rememberReplay(JSON.stringify(captured));
+          const stored = await readSavedReplay();
+          if (stored.battle.scenario !== captured.battle.scenario)
+            throw new Error("large captured scenario was not retained exactly");
+          const playback = prepareBattle(
+            {
+              type: "prepare-replay",
+              battle: stored.battle,
+            },
+            () => {},
           );
+          const restored = await playback.battle;
+          const replay = createSimClient({
+            scenario: restored.scenario,
+            seed: 1,
+            side: "blue",
+            transport: "worker",
+            connect: restored.connect,
+            replay: stored.replay,
+          });
+          let replayDigest = "";
+          replay.onPublication((p: { digest: string; release(): void }) => {
+            replayDigest = p.digest;
+            p.release();
+          });
           try {
-            for (let i = 0; i < tick; i++) replay.step();
-            return { tick, digest, replay: replay.digest() };
+            await replay.ready;
+            replay.pause();
+            replay.start();
+            await replay.advance(tick);
+            // Exercise the importer at the real browser storage edge. A failed
+            // write must not hand the new file to its viewer or navigate away.
+            const { createElement } = (
+              await importModule(`${root}/../../throwaway/vite-cache/deps/react.js`)
+            ).default;
+            const { createRoot } = (
+              await importModule(`${root}/../../throwaway/vite-cache/deps/react-dom_client.js`)
+            ).default;
+            const host = document.createElement("div");
+            document.body.append(host);
+            const uiRoot = createRoot(host);
+            let imported: unknown = null;
+            uiRoot.render(
+              createElement(ReplayImport, {
+                plays: (file: { variant?: string }) => file.variant === "ordinary",
+                onLoad: (file: unknown) => {
+                  imported = file;
+                },
+              }),
+            );
+            const deadline = performance.now() + 5000;
+            const wait = async () => {
+              if (performance.now() > deadline)
+                throw new Error(`import did not settle: ${host.innerHTML}`);
+              await new Promise((r) => setTimeout(r, 0));
+            };
+            try {
+              while (!host.querySelector("input")) await wait();
+              const open = indexedDB.open.bind(indexedDB);
+              indexedDB.open = () => {
+                throw new Error("Storage unavailable");
+              };
+              const village = { variant: "ordinary", replay: "{}" };
+              const input = host.querySelector("input")!;
+              const transfer = new DataTransfer();
+              transfer.items.add(new File([JSON.stringify(village)], "village.json"));
+              input.files = transfer.files;
+              input.dispatchEvent(new Event("change", { bubbles: true }));
+              try {
+                while (!host.textContent?.includes("Storage unavailable")) await wait();
+                if (imported !== null) throw new Error("failed storage started another replay");
+              } finally {
+                indexedDB.open = open;
+              }
+              if ((await readSavedReplay()).battle.scenario !== captured.battle.scenario)
+                throw new Error("failed storage replaced the previous replay");
+              input.dispatchEvent(new Event("change", { bubbles: true }));
+              while (imported === null) await wait();
+              const remembered = await readSavedReplay();
+              if (JSON.stringify(remembered) !== JSON.stringify(village))
+                throw new Error("import started before its file was persisted");
+            } finally {
+              uiRoot.unmount();
+              host.remove();
+            }
+            return { tick, digest, replay: replayDigest };
           } finally {
-            replay.free();
+            replay.dispose();
+            playback.cancel();
           }
         } finally {
           client.dispose();

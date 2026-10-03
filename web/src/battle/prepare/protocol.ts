@@ -10,7 +10,7 @@ import type { MapDiagnostic, MapSource } from "../../maps/source.ts";
 import type { MapExtents } from "@packages/battle-renderer/src/worldMesh";
 
 /** Mirrors `contract::preparation::PrepareBattleRequest`, which checks it.
- *  Everything that decides the battle: a saved replay stores this. */
+ *  Everything preparation needs to create a new battle. */
 export interface PrepareBattleRequest {
   map_source: MapSource;
   /** Which encounter. On a generated map, a recipe of
@@ -47,6 +47,13 @@ export interface PrepareMessage {
   /** Lab-only synthetic contact workload; normal battles omit it. */
   stress?: StressPreparation;
 }
+
+/** Replay preparation reads only the saved scenario, never today's fixtures. */
+export interface PrepareReplayMessage {
+  type: "prepare-replay";
+  battle: PreparedBattle;
+}
+export type PreparationMessage = PrepareMessage | PrepareReplayMessage;
 
 export interface StressPreparation {
   kind: "city-arena-2";
@@ -134,7 +141,7 @@ export interface PreparationReport {
   worldBuildMs: number;
 }
 
-export type PrepareWorkerRequest = PrepareMessage | SimRequest;
+export type PrepareWorkerRequest = PreparationMessage | SimRequest;
 
 export type PrepareReply =
   | { type: "stage"; stage: PrepareStage }

@@ -24,7 +24,7 @@ import { BattleView, type BattleLoadStage } from "../BattleView";
 import { LoadingScreen, type LoadingFailure, type LoadingStage } from "../LoadingScreen";
 import {
   isPreparedReplay,
-  readSavedReplay,
+  useSavedReplay,
   PREPARED_REPLAY_ROUTE,
   ReplayImport,
   saveReplay,
@@ -158,13 +158,9 @@ function AskedBattleView({ asked }: { asked: Exclude<AskedBattle, { kind: "repla
 
 /** /battle?replay=saved: watch the saved battle; input is off. */
 function SavedReplay() {
-  // Each loaded file gets a fresh view, even one identical to the last.
-  const [loaded, setLoaded] = useState<{ file: PreparedReplayFile | null; n: number }>(() => {
-    const file = readSavedReplay();
-    return { file: file && isPreparedReplay(file) ? file : null, n: 0 };
-  });
-  const setFile = (file: PreparedReplayFile) => setLoaded((l) => ({ file, n: l.n + 1 }));
-  if (!loaded.file)
+  const [loaded, setFile] = useSavedReplay();
+  const file = loaded.file && isPreparedReplay(loaded.file) ? loaded.file : null;
+  if (!file)
     return (
       <main className="menu">
         <div className="hud-panel menu-body">
@@ -179,8 +175,8 @@ function SavedReplay() {
   return (
     <PreparedBattleView
       key={loaded.n}
-      request={loaded.file.request}
-      replay={loaded.file}
+      request={file.battle.report.request}
+      replay={file}
       onLoadReplay={setFile}
     />
   );
@@ -209,11 +205,13 @@ function PreparedBattleView({
     setStage("map");
     marks.current = {};
     const preparation = prepareBattle(
-      {
-        type: "prepare",
-        request,
-        documents: { rules: JSON.stringify(GAME_RULES), presets, templates, recipes },
-      },
+      replay
+        ? { type: "prepare-replay", battle: replay.battle }
+        : {
+            type: "prepare",
+            request,
+            documents: { rules: JSON.stringify(GAME_RULES), presets, templates, recipes },
+          },
       setStage,
     );
     preparation.battle.then(
@@ -257,9 +255,12 @@ function PreparedBattleView({
 
   const exportReplay = async ({ sim }: BattleSession) => {
     if (!sim.client) return null;
-    const file: PreparedReplayFile = { request, replay: await sim.client.replay() };
+    const file: PreparedReplayFile = {
+      battle: { scenario: prepared.scenario, report: prepared.report },
+      replay: await sim.client.replay(),
+    };
     const name = subject.toLowerCase().replaceAll(" · ", "-").replaceAll(" ", "");
-    saveReplay(file, `battle-${name}-tick${sim.latest.current?.tick ?? 0}.json`);
+    await saveReplay(file, `battle-${name}-tick${sim.latest.current?.tick ?? 0}.json`);
     return file;
   };
   const objective = prepared.report.objective;

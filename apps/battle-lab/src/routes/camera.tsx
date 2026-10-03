@@ -4,6 +4,7 @@
 // camera sees the eye path asked for and the eye path drawn; riding, the
 // viewport's own camera flies the trajectory, placed and cleared as the
 // benchmark's tour is.
+import { GAME_RULES } from "../scenarios";
 import { fixtureMap } from "../fixtures";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Vec3 } from "math";
@@ -105,7 +106,7 @@ export default function CameraLab() {
 }
 
 function Arena({ map }: { map: MapDefinition }) {
-  const world = useStaticWorld(map);
+  const world = useStaticWorld(map, GAME_RULES);
   // The lab's buildings are the generator's catalogue's, drawn as a
   // generated town's are.
   const drawn = useMapBuildings(world);

@@ -595,8 +595,8 @@ export async function run(ctx) {
     camera,
   });
 
-  // The battle saved and watched: the file holds the request that made the
-  // battle, and the viewer prepares it again and reaches the same digest.
+  // The battle saved and watched: exact compiled scenario bytes restore the
+  // map, encounter and rules without regenerating from the request.
   const saved = await lab(page, () => ({
     tick: window.__lab.route.tick(),
     digest: window.__lab.route.digest(),
@@ -613,29 +613,31 @@ export async function run(ctx) {
   }));
   const watched = await preparedBattle(page);
   ctx.check(
-    "a saved battle holds its preparation request, and its replay prepares the same map and reaches the same digest",
-    JSON.stringify(file.request) === JSON.stringify(generated.request) &&
+    "a saved battle retains its compiled scenario and reaches the same replay digest",
+    JSON.stringify(file.battle.report.request) === JSON.stringify(generated.request) &&
+      typeof file.battle.scenario === "string" &&
       watched.generation.map_hash === generated.generation.map_hash &&
       !!saved.digest &&
       replayed.tick === saved.tick &&
       replayed.digest === saved.digest,
     JSON.stringify({ saved, replayed }),
   );
-  // The same commands pinned to another build's generator: refused, never
-  // replayed on whatever this build would make of the seed.
+  // The same captured scenario and commands on another engine build are refused.
   const stale = structuredClone(file);
-  stale.request.map_source.request.generator_version = "layout-0";
+  const commands = JSON.parse(stale.replay);
+  commands.engine_build = "another-build";
+  stale.replay = JSON.stringify(commands);
   await openMenu(page);
   await page.getByTestId("replay-file").setInputFiles({
     name: "stale.json",
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify(stale)),
   });
-  await page.getByTestId("loading").getByTestId("error").waitFor();
-  const staleMessage = await page.getByTestId("loading").getByTestId("error").textContent();
+  await page.getByTestId("error").waitFor();
+  const staleMessage = await page.getByTestId("error").textContent();
   ctx.check(
-    "a replay saved by another build's generator is refused, saying so",
-    /saved by another version of the game/.test(staleMessage),
+    "a replay saved by another engine build is refused, saying so",
+    /build/.test(staleMessage),
     staleMessage,
   );
 
