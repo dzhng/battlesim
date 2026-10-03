@@ -1,5 +1,27 @@
 {
-  "limits": { "max_authored_parts": 60000, "max_bay_positions": 600000, "max_ground_points": 200000 },
-  "encounter": { "recipe": "assault", "seed": "1" },
-  "camera": { "overview_span": 1.5, "overview_pitch": 1.3 }
+  "limits": {
+    "max_authored_parts": 60000,
+    "max_bay_positions": 600000,
+    "max_ground_points": 200000
+  },
+  "encounter": {
+    "recipe": "assault",
+    "seed": "1"
+  },
+  "camera": {
+    "overview_span": 1.5,
+    "overview_pitch": 1.3
+  },
+  "analysis": {
+    "step_m": 300,
+    "min_median_open": 0.5
+  },
+  "admission": {
+    "max_generated_attempts": 2,
+    "generated_deadline_ms": 8000,
+    "fallback": {
+      "map": "market-town",
+      "recipe": "assault"
+    }
+  }
 }
