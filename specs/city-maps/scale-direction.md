@@ -77,7 +77,7 @@ scale simulation time or multiply all units' combat movement by the same factor.
 
 ## Startup and loading
 
-First battle-map startup must take **less than one minute**. A loading screen is
+The current release criterion is **under 30 seconds from Deploy to a playable battle**, as selected in [M31](procedural-maps.md#closed-decisions). This supersedes the earlier one-minute allowance. A loading screen is
 allowed. Measure the complete interval from starting map preparation to a usable,
 interactive battle view, including generation/acquisition, encounter preparation,
 Battle construction and required renderer resources. Record cold and warm starts,
