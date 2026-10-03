@@ -2,6 +2,8 @@
 
 **Depends on:** C53, C55, C05, C09, C60, C31, C50, C59, C16–C19 and C32; C57 for playable camera evidence. **Kind:** required integration gate.
 
+**Current scope:** [the 2026-10-02 user direction](../scale-direction.md#current-closeout-direction) prioritizes playable 6/8/10 km maps, defers the 20 km architecture proof and further optimization, and bounds fairness work to cheap sanity corrections. Correctness, actual access/combat and usable release-map loading/rendering remain gates; maximum-extent optimization does not.
+
 ## Question
 Do offline/runtime player maps satisfy the accepted composition, physical access and full-extent budgets beyond one attractive seed, while catalogued developer arenas retain their original contracts under M29?
 
