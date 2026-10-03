@@ -145,7 +145,11 @@ test("retained refused reports export the exact inputs and remain saveable when 
   const initial = await store.snapshot();
   const draft = structuredClone(initial);
   draft.documents.presets.density = 0.7;
-  const run = await store.generate({ draft, choice: { type: "mixed", size: "small", seed: "4" } });
+  const run = await store.generate({
+    purpose: "preview",
+    draft,
+    choice: { type: "mixed", size: "small", seed: "4" },
+  });
   expect(run.status).toBe("refused");
   expect(run.diagnostics[0].message).toBe("No layout fits this seed");
   const exported = await store.export(run.artifactId!);
@@ -270,19 +274,20 @@ test("retained artifact receipts describe tested draft bytes, and superseded dra
   const { root, store } = await fixture(run);
   const initial = await store.snapshot();
   const baseline = await store.generate({
+    purpose: "preview",
     draft: initial,
     choice: { type: "mixed", size: "small", seed: "4" },
   });
   const draft = structuredClone(initial);
   draft.documents.presets.density = 0.6;
-  const first = await store.generate({ draft, choice: baseline.choice });
+  const first = await store.generate({ purpose: "preview", draft, choice: baseline.choice });
   const exported = await store.export(first.artifactId!);
   const input = (exported.inputs as Record<string, string>).presets;
   expect((exported.receipts as Record<string, string>).presets).toBe(
     createHash("sha256").update(input).digest("hex"),
   );
   draft.documents.presets.density = 0.7;
-  const latest = await store.generate({ draft, choice: baseline.choice });
+  const latest = await store.generate({ purpose: "preview", draft, choice: baseline.choice });
   await expect(store.export(first.artifactId!)).rejects.toMatchObject({ status: 410 });
   expect((await store.export(baseline.artifactId!)).report).toEqual(baseline);
   expect((await store.export(latest.artifactId!)).report).toEqual(latest);
@@ -332,11 +337,12 @@ test("a refused latest draft keeps the last admitted plan available for inspecti
   const draft = structuredClone(await store.snapshot());
   draft.documents.presets.density = 0.6;
   const accepted = await store.generate({
+    purpose: "preview",
     draft,
     choice: { type: "mixed", size: "small", seed: "4" },
   });
   draft.documents.presets.density = 0.9;
-  const refused = await store.generate({ draft, choice: accepted.choice });
+  const refused = await store.generate({ purpose: "preview", draft, choice: accepted.choice });
   expect(refused.status).toBe("refused");
   expect(await store.inspect(accepted.artifactId!)).toMatchObject({
     svg: "<svg>older admitted</svg>",
@@ -389,7 +395,11 @@ test("disconnecting an HTTP generation terminates the process and removes its un
     method: "POST",
     signal: controller.signal,
     headers: { "Content-Type": "application/json", Origin: origin },
-    body: JSON.stringify({ draft, choice: { type: "mixed", size: "small", seed: "4" } }),
+    body: JSON.stringify({
+      purpose: "preview",
+      draft,
+      choice: { type: "mixed", size: "small", seed: "4" },
+    }),
   });
   let pid: number | null = null;
   try {
@@ -445,4 +455,72 @@ test("save revalidates the reviewed settings before publishing any replacement",
   refuse = true;
   await expect(store.save(review)).rejects.toThrow("Native settings admission failed");
   expect(await readFile(join(root, review.files[0].path), "utf8")).toBe(review.files[0].before);
+});
+
+test("sample export and cancellation preserve pinned preview geometry for crop and sight", async () => {
+  const run: NativeReporter = async (request, signal) => {
+    if (request.operation === "validate") return validation;
+    if (request.operation === "generate") {
+      if (request.choice.seed === "99")
+        return new Promise<never>((finish) => {
+          if (signal!.aborted) return finish(Promise.reject(new Error("Sample cancelled")));
+          signal!.addEventListener(
+            "abort",
+            () => finish(Promise.reject(new Error("Sample cancelled"))),
+            { once: true },
+          );
+        });
+      await writeFile(join(request.artifactDir, "seed"), request.choice.seed);
+      return {
+        status: "ok",
+        choice: request.choice,
+        diagnostics: [],
+        svg: `<svg>${request.choice.seed}</svg>`,
+      };
+    }
+    const seed = await readFile(join(request.artifactDir, "seed"), "utf8");
+    if (request.operation === "inspect") return { svg: `<svg>${seed}</svg>`, features: [] };
+    return {
+      status: "measured",
+      samples: Number(seed),
+      target: 0.5,
+      step_m: 300,
+      bearings: 64,
+      elapsed_ms: 1,
+    };
+  };
+  const { root, store } = await fixture(run);
+  const initial = await store.snapshot();
+  const baseline = await store.generate({
+    purpose: "preview",
+    draft: initial,
+    choice: { type: "mixed", size: "small", seed: "4" },
+  });
+  const draft = structuredClone(initial);
+  draft.documents.presets.density = 0.6;
+  const preview = await store.generate({ purpose: "preview", draft, choice: baseline.choice });
+  const sample = await store.generate({
+    purpose: "sample",
+    draft,
+    choice: { ...baseline.choice, seed: "5" },
+  });
+  expect((await store.export(sample.artifactId!)).report).toEqual(sample);
+  expect((await readdir(join(root, "throwaway/map-workbench"))).sort()).toEqual(
+    [baseline.artifactId, preview.artifactId].sort(),
+  );
+  const controller = new AbortController();
+  const cancelled = store.generate(
+    { purpose: "sample", draft, choice: { ...baseline.choice, seed: "99" } },
+    controller.signal,
+  );
+  await expect
+    .poll(async () => (await readdir(join(root, "throwaway/map-workbench"))).length)
+    .toBe(3);
+  controller.abort();
+  await expect(cancelled).rejects.toThrow();
+  expect(await store.inspect(preview.artifactId!, "district-1")).toMatchObject({
+    svg: "<svg>4</svg>",
+  });
+  expect(await store.sight(preview.artifactId!)).toMatchObject({ status: "measured", samples: 4 });
+  expect(await store.inspect(baseline.artifactId!)).toMatchObject({ svg: "<svg>4</svg>" });
 });

@@ -80,11 +80,12 @@ interface Candidate {
   expectedRevision: string;
 }
 interface Artifact {
-  dir: string;
+  dir: string | null;
   inputs: NativeInputs;
   report: Report;
   receipts: Record<string, string>;
   baseline: boolean;
+  purpose: RunRequest["purpose"];
 }
 
 export class WorkbenchStore {
@@ -270,6 +271,7 @@ export class WorkbenchStore {
       const choice = request?.choice;
       if (
         !choice ||
+        (request.purpose !== "preview" && request.purpose !== "sample") ||
         !MAP_TYPES.includes(choice.type) ||
         !MAP_SIZES.includes(choice.size) ||
         typeof choice.seed !== "string" ||
@@ -280,6 +282,14 @@ export class WorkbenchStore {
       const current = await this.validate(state.inputs, owned);
       const inputs = this.inputsFor(request.draft, state, current.fields);
       await this.validate(inputs, owned);
+      if (request.purpose === "sample") {
+        for (const [id, artifact] of this.artifacts) {
+          if (artifact.purpose === "sample") {
+            await this.release(artifact);
+            this.artifacts.delete(id);
+          }
+        }
+      }
       const artifactId = randomUUID();
       const dir = join(this.root, "throwaway", "map-workbench", artifactId);
       await fs.mkdir(dir, { recursive: true });
@@ -308,10 +318,12 @@ export class WorkbenchStore {
           inputs.presets === state.inputs.presets && inputs.defaults === state.inputs.defaults;
         for (const [id, old] of this.artifacts) {
           if (
-            old.report.status === "refused" ||
-            (result.status === "ok" && old.baseline === baseline)
+            request.purpose === "preview" &&
+            old.purpose === "preview" &&
+            (old.report.status === "refused" ||
+              (result.status === "ok" && old.baseline === baseline))
           ) {
-            await fs.rm(old.dir, { recursive: true, force: true });
+            await this.release(old);
             this.artifacts.delete(id);
           }
         }
@@ -319,7 +331,14 @@ export class WorkbenchStore {
         const receipts = Object.fromEntries(
           Object.entries(inputs).map(([name, text]) => [name, hash(text)]),
         );
-        this.artifacts.set(artifactId, { dir, inputs, report: result, receipts, baseline });
+        this.artifacts.set(artifactId, {
+          dir: result.status === "ok" ? dir : null,
+          inputs,
+          report: result,
+          receipts,
+          baseline,
+          purpose: request.purpose,
+        });
         return structuredClone(result);
       } catch (error) {
         await fs.rm(dir, { recursive: true, force: true });
@@ -333,6 +352,17 @@ export class WorkbenchStore {
     if (!result) throw new WorkbenchError("This result expired. Generate it again.", 410);
     return result;
   }
+  private async release(artifact: Artifact) {
+    if (artifact.dir !== null) {
+      await fs.rm(artifact.dir, { recursive: true, force: true });
+      artifact.dir = null;
+    }
+  }
+  private admittedDir(artifact: Artifact): string {
+    if (artifact.dir === null)
+      throw new WorkbenchError("This sample was exported. Generate a preview to inspect it.", 410);
+    return artifact.dir;
+  }
   inspect(id: string, crop?: string, signal?: AbortSignal): Promise<Inspection> {
     return this.serial(async (owned) => {
       const artifact = this.artifact(id);
@@ -343,7 +373,7 @@ export class WorkbenchStore {
       return this.report(
         {
           operation: "inspect",
-          artifactDir: artifact.dir,
+          artifactDir: this.admittedDir(artifact),
           ...(crop === undefined ? {} : { crop }),
         },
         owned,
@@ -356,7 +386,7 @@ export class WorkbenchStore {
       if (artifact.report.status !== "ok")
         throw new WorkbenchError("A refused map has no admitted sight report");
       return this.report(
-        { operation: "sight", artifactDir: artifact.dir },
+        { operation: "sight", artifactDir: this.admittedDir(artifact) },
         owned,
       ) as Promise<SightReport>;
     }, signal);
@@ -364,6 +394,7 @@ export class WorkbenchStore {
   export(id: string, signal?: AbortSignal): Promise<JsonObject> {
     return this.serial(async () => {
       const artifact = this.artifact(id);
+      if (artifact.purpose === "sample") await this.release(artifact);
       return structuredClone({
         inputs: artifact.inputs,
         report: artifact.report,
@@ -375,11 +406,7 @@ export class WorkbenchStore {
     this.closed = true;
     for (const controller of this.controllers) controller.abort();
     await this.queue;
-    await Promise.all(
-      [...this.artifacts.values()].map((artifact) =>
-        fs.rm(artifact.dir, { recursive: true, force: true }),
-      ),
-    );
+    await Promise.all([...this.artifacts.values()].map((artifact) => this.release(artifact)));
     this.artifacts.clear();
     this.candidate = null;
   }

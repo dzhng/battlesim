@@ -14,8 +14,9 @@ separate from the generator's physical map and configuration hashes.
 Plan inspection and sight analysis use retained native artifacts. Changing a crop
 never regenerates the map. The store keeps the admitted saved baseline and admitted
 draft, plus the latest refusal's input receipt; a refusal leaves the older admitted
-plan inspectable. A successful sample replaces the draft artifact, so callers must
-export completed sample results and regenerate their selected map after sampling.
+plan inspectable. Sample runs own a separate temporary artifact and never replace either preview.
+Export releases sample geometry while preserving its input receipt; the next sample
+expires that receipt. Cancelling a sample leaves the displayed preview inspectable.
 Leaving or disconnecting cancels owned native work; server disposal removes its
 retained artifacts.
 
