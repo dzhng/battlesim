@@ -86,6 +86,8 @@ The [projectile review lab](apps/battle-lab/src/projectileReview.ts) keeps the f
 
 The [fire cadence rationale](specs/done/fire-cadence/README.md) explains per-soldier bursts, magazine readiness and interruptible idle reloads.
 
+The [infantry weapon-use rationale](specs/done/infantry-weapon-use/README.md) explains one active weapon per soldier, carrier handoffs, and rifle-held/back-carried launcher presentation.
+
 ## Checks
 
 `package.json` names the gates:
