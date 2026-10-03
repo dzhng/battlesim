@@ -141,3 +141,10 @@ Early retires 283.6 G step instructions, launches 180 rounds and ends at digest
 `e4f0273adade82cf`. The profiled process-CPU maxima are 45.29 / 88.54 ms;
 loaded wall maxima are 479 / 896 ms. This missed the then-current 33 ms target. Fog was the
 largest recurring owner; movement peaks at 46.821 / 49.695 M instructions.
+
+
+## Current full-window failure (2026-10-02)
+
+The frozen layout-13 / presets-12 Metro Large seed 4 production run completes all 300 seconds with actual opening and final-minute fire, but fails admission: 18.7 average FPS, simulation 0.55 times real time, and some requested tour poses differ from the drawn camera. It uses 100 units per side; this synthetic workload is separate from the player assault. Its report and complete phase frames remain in the main checkout’s ignored `throwaway/evidence/city-contact/`.
+
+A bounded native cost pass found foliage integration running even for wall-blocked sensing rays. Evaluating the existing solid predicate first preserves the exact 1,800-tick stress digest, while reducing total simulation instructions by 25.6% and sight instructions by 69%. No number, geometry, cache or extra owner changes. This is a measured cost correction, not browser FPS acceptance. The raw tour also requests close poses outside the existing camera policy; repair its applied framing rather than relaxing the comparison. Later infantry integration changes the mechanics/build identity and needs current scoped validation. Full browser admission remains open.
