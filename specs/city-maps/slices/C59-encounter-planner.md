@@ -44,7 +44,7 @@ Poor encounter play changes its recipe or bounded selection policy; it cannot in
 
 ## Outcome
 
-The planner is `sim::encounter::plan_encounter` ([module](../../../crates/sim/src/encounter/mod.rs)), and `/lab/generated` plays what it plans. The TypeScript stand-in is deleted. Its data shapes are [`contract::encounter`](../../../crates/contract/src/encounter.rs); the recipes are [`fixtures/encounters.json`](../../../fixtures/encounters.json), revision `encounters-1`, validated at load. The decisions the spec left open are in the [choices ledger](../choices.md#c59-encounter-planner).
+The planner is `sim::encounter::plan_encounter` ([module](../../../crates/sim/src/encounter/mod.rs)), and `/lab/generated` plays what it plans. The TypeScript stand-in is deleted. Its data shapes are [`contract::encounter`](../../../crates/contract/src/encounter.rs); the recipes are [`fixtures/encounters.json`](../../../fixtures/encounters.json), revision `encounters-1`, validated at load. The decisions the spec left open are in the [choices ledger](../choices.md#the-planner-checks-physical-placement-and-planned-reach-without-claiming-arrival-or-combat).
 
 **The seam.**
 

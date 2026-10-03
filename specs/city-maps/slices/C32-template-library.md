@@ -36,11 +36,11 @@ Packing or resolver failures reopen this codec; missing art reopens its source s
 
 ## Outcome
 
-The library, its loader path, the resolver and the fit and coverage checks are in `packages/scene-assets` ([its readme](../../../packages/scene-assets/README.md), "City buildings"), and the bake produces a real library today from the generated prototype set: the 29 prototype templates, 49 rows of one module. The contract's own code judges every descriptor and the catalogue's hash, through one new WebAssembly export. The decisions are in [choices](../choices.md#buildings-lane).
+The library, its loader path, the resolver and the fit and coverage checks are in `packages/scene-assets` ([its readme](../../../packages/scene-assets/README.md), "City buildings"), and the bake produces a real library today from the generated prototype set: the 29 prototype templates, 49 rows of one module. The contract's own code judges every descriptor and the catalogue's hash, through one new WebAssembly export. The decisions are in [choices](../choices.md).
 
 **Not done here.** Nothing draws the library yet: placement chunks (C22) call the resolver, and the massing boxes go then. The contact sheet this slice names waits for that, since a kit in the workbench is its modules, not a building. `ruin` and `gutted` rows pack and resolve but have no fit rule of their own yet (C14): they are held to the intact parts. The per-template triangle budgets are reported by the bake and gate nothing.
 
-**Kits on request (2026-10-02).** The library is still installed whole with the catalog, but its kits no longer are: a kit is fetched when a map that draws from it asks, and the library is held to the catalog's kit hashes at load without fetching one. A module whose kit is absent is bound to no state, and a map whose kit is not installed is refused by name. The village battle fetches 38.8 MB of kits where every page fetched 116.3 MB; the decisions and the measurements are in [choices](../choices.md#buildings-lane).
+**Kits on request (2026-10-02).** The library is still installed whole with the catalog, but its kits no longer are: a kit is fetched when a map that draws from it asks, and the library is held to the catalog's kit hashes at load without fetching one. A module whose kit is absent is bound to no state, and a map whose kit is not installed is refused by name. The village battle fetches 38.8 MB of kits where every page fetched 116.3 MB; the decisions and the measurements are in [choices](../choices.md).
 
 ## Lossless transport checkpoint
 

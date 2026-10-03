@@ -2,7 +2,7 @@
 
 **Depends on:** S0–S7 and SG1 for a passing production verdict; any failed prerequisite may trigger an early reslicing verdict. **Kind:** gate.
 
-**Current parent closeout:** the tables below retain their historical systems-unlock scope. The completed scale rationale owns final transport/sim contracts; current [C54](C54-generation-gate.md#frozen-rules-checkpoint-2026-10-02) owns integrated generation, appearance, asset identity and under-30-second current-art startup. [C05](C05-measuring-tools.md#normal-player-encounter-frame-proof) records the passing normal-player frame proof alongside the failed five-minute synthetic stress gate. Complete G0/C51 release admission remains open for that named workload; no numerical generation tuning or new 20 km architecture is authorized to resolve it.
+**Current parent closeout:** the tables below retain their historical systems-unlock scope. The completed scale rationale owns final transport/sim contracts; current [C54](C54-generation-gate.md#frozen-rules-checkpoint-2026-10-02) owns integrated generation, appearance, asset identity and under-30-second current-art startup. [C05](C05-measuring-tools.md#current-art-full-stress-verdict) records passing normal-player and final-art full synthetic FPS windows, with the synthetic late-participation assertion, slow wave steps and missed inherited GPU target still explicit. Complete G0/C51 release admission remains open for that workload's disposition; no numerical generation tuning or new 20 km architecture is authorized to resolve it.
 
 [Current scale direction](../scale-direction.md) governs startup, the engine scaling
 goal and named behavior alternatives. Frozen prototype parity below remains evidence

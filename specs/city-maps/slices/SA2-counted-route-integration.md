@@ -209,7 +209,7 @@ general portals remain separate proof owners; no old synchronous A* fallback qua
 
 ## Outcome
 
-**Landed 2026-10-01** on `city-maps/sa2-navigation`: the counted planner is in `Battle`, long legs go by road, and planning no longer stalls a tick at either probe size. The ledger of decisions is [choices.md](../choices.md#sa2-navigation-at-full-extent). What follows replaces the proposal above where they differ.
+**Landed 2026-10-01** on `city-maps/sa2-navigation`: the counted planner is in `Battle`, long legs go by road, and planning no longer stalls a tick at either probe size. The ledger of decisions is [choices.md](../choices.md). What follows replaces the proposal above where they differ.
 
 ### The seams as built
 
@@ -250,7 +250,7 @@ general portals remain separate proof owners; no old synchronous A* fallback qua
 
 ### Grid updates
 
-**Landed 2026-10-01** on `city-maps/nav-grid-updates`, closing item 1 below as it stood. The decisions are in [choices.md](../choices.md#navigation-grid-updates). No battle digest moved: the village quick report's six and all four probe runs below end on the digests they ended on before.
+**Landed 2026-10-01** on `city-maps/nav-grid-updates`, closing item 1 below as it stood. The decisions are in [choices.md](../choices.md). No battle digest moved: the village quick report's six and all four probe runs below end on the digests they ended on before.
 
 **The seam.**
 

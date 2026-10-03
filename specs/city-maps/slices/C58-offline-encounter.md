@@ -35,7 +35,7 @@ Playtest feedback changes encounter configuration or reopens the relevant layout
 
 ## Outcome
 
-**Saved: `fixtures/maps/market-town/`, Mixed Small seed 1 with its planned `assault`, playable from the main menu beside the village** (`/battle?map=market-town&recipe=assault`). What made it possible is a compact saved form for every map; the decisions are in the [choices ledger](../choices.md#compact-saved-maps).
+**Saved: `fixtures/maps/market-town/`, Mixed Small seed 1 with its planned `assault`, playable from the main menu beside the village** (`/battle?map=market-town&recipe=assault`). What made it possible is a compact saved form for every map; the decisions are in the [choices ledger](../choices.md).
 
 **The saved-map contract** (one rule for all fifteen folders; the folder guide is [`fixtures/README.md`](../../../fixtures/README.md#saved-maps)).
 

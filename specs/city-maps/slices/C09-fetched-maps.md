@@ -126,7 +126,7 @@ A source consumer still bypassing the resolver blocks the cutover until it is mo
 
 ## Outcome
 
-Every saved map is a folder of [`fixtures/maps/`](../../../fixtures/README.md#saved-maps), read by id through one resolver. The decisions the spec left open are in the [choices ledger](../choices.md#c09c60-saved-map-cutover).
+Every saved map is a folder of [`fixtures/maps/`](../../../fixtures/README.md#saved-maps), read by id through one resolver. The decisions the spec left open are in the [choices ledger](../choices.md).
 
 **The seam.**
 

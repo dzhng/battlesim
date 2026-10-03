@@ -40,7 +40,7 @@ One battle builds the simulation's world twice, where it built it three times:
 once in the preparation worker, for the encounter planner and the battle, and
 once on the page, for drawing and map queries. The page-side half of the
 contract above (a transferred query export in place of a page world) was built
-and then removed; [C33 simplified](../choices.md#c33-simplified) has the reason.
+and then removed; [C33 simplified](../choices.md#preparations-worker-keeps-its-world-and-becomes-the-battle-authority-the-page-builds-a-plain-query-world) has the reason.
 
 **The worker.** Preparation builds one `PreparedMap` (the world, its road net
 and its navigation base). The planner borrows it to place the encounter, and

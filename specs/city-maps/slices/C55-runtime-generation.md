@@ -44,7 +44,7 @@ Rejected startup latency or workflow reopens preparation/residency or menu compo
 
 ## Outcome
 
-A player starts a battle on a generated map from the main menu, and it plays in the village's battle view. The developer route `/lab/generated` is gone: `/battle` is the one route, and the `generated` scene drives it from the menu. The decisions the spec left open are in the [choices ledger](../choices.md#c55c58-play-a-generated-battle).
+A player starts a battle on a generated map from the main menu, and it plays in the village's battle view. The developer route `/lab/generated` is gone: `/battle` is the one route, and the `generated` scene drives it from the menu. The decisions the spec left open are in the [choices ledger](../choices.md).
 
 **The seam.**
 

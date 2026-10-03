@@ -2,7 +2,7 @@
 
 These measurements admit their named workload only. Full Metro and G0 admission still require the frozen extent, density and material inputs selected by the wider city gates.
 
-Current active-battle measurements live in [C05](slices/C05-measuring-tools.md#normal-player-encounter-frame-proof): the normal Mixed Small player encounter passes its measured frame/realtime window, while the corrected synthetic city-contact workload remains failed and its proposed scope change is unanswered. [C54](slices/C54-generation-gate.md#current-art-player-startup) owns current-art player startup. Neither a startup pass nor the normal-player result admits the separate Metro stress workload. The rows below retain their historical component and lane scopes; they are not a second current release verdict.
+Current active-battle measurements live in [C05](slices/C05-measuring-tools.md#normal-player-encounter-frame-proof): the normal Mixed Small player encounter passes its measured frame/realtime window. The [final-art synthetic full run](slices/C05-measuring-tools.md#current-art-full-stress-verdict) also passes the 30 FPS floor; its late-participation assertion remains failed and its proposed scope change is unanswered. [C54](slices/C54-generation-gate.md#current-art-player-startup) owns current-art player startup. Neither startup nor a narrower workload admits a separate stress contract. The rows below retain their historical component and lane scopes; they are not a second current release verdict.
 
 | Owner and workload | Before | After | Evidence and scope |
 |---|---:|---:|---|

@@ -94,7 +94,7 @@ Every template of `homes`, `farmsteads`, `towers` and `industry` (22 of the cata
 - The critique was not rerun after its fixes; the final sheets were looked at by their author.
 - The committed runtime is not rebaked: the library cannot be sealed until the apartments have their states.
 
-Decisions: [choices](../choices.md#buildings-lane).
+Decisions: [choices](../choices.md).
 
 ## Outcome: the China apartment set
 
@@ -116,7 +116,7 @@ All seven templates of `china_apartments` carry their damage state: `ruin` on th
 | slab-53x14-8f | gutted | 271 | 56,879 | 23,268 | 5,304 | 1,266 |
 | point-20x20-7f | gutted | 128 | 29,690 | 11,496 | 2,716 | 710 |
 
-The ruin height and the six-floor threshold are the simulation's, read through `city/collapse.py`. The exporter holds a ruin to the parts' plan grown by `fit.side_m`, the ground, and the ruin height; the set names no `ruin_top_m`, so nothing stands above the remains, and the bake's rule passes it with no findings. A gutted block is held to the intact rule. Two runs write the same bytes. Pictures: the game's own line-up lab (`scene -- city-lineup`, every template at every tier in each state, held inside its parts) and a Blender reassembly of the two set files, intact beside damaged at 30, 80 and 250 m, with an unprimed critique ([choices](../choices.md#buildings-lane)).
+The ruin height and the six-floor threshold are the simulation's, read through `city/collapse.py`. The exporter holds a ruin to the parts' plan grown by `fit.side_m`, the ground, and the ruin height; the set names no `ruin_top_m`, so nothing stands above the remains, and the bake's rule passes it with no findings. A gutted block is held to the intact rule. Two runs write the same bytes. Pictures: the game's own line-up lab (`scene -- city-lineup`, every template at every tier in each state, held inside its parts) and a Blender reassembly of the two set files, intact beside damaged at 30, 80 and 250 m, with an unprimed critique ([choices](../choices.md)).
 
 Two unprimed critiques of the game's line-up were run, the second after fixing the first.
 
