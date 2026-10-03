@@ -5,7 +5,7 @@ use crate::layout::geometry::{segment_bounds, Grid};
 use contract::forest::{body_contains, TrunkQueries, FOLIAGE_SAMPLE_M};
 use contract::generation_physics::GenerationPhysics;
 use contract::map::MapDefinition;
-use std::{cell::Cell, rc::Rc};
+use std::{cell::Cell, cmp::Ordering, rc::Rc};
 
 /// Road primitives use the contract's exact stroke cuts and polygon membership.
 enum Road<'a> {
@@ -301,11 +301,11 @@ impl<'a> Coverage<'a> {
             // Three neighbouring rays must stop before any sample could enter
             // the central ray's far cell. Every other ray stays more than that
             // cell's diagonal from its chosen sample, even at another radius.
-            if !(far * libm::sin(2. * delta) > diagonal) {
+            if (far * libm::sin(2. * delta)).partial_cmp(&diagonal) != Some(Ordering::Greater) {
                 return Err("ground circle rays cannot isolate a far fog cell".into());
             }
             let depth = rule.attenuation_per_m * tree.conceals * fog;
-            if !(range * libm::exp(-depth) < far - diagonal) {
+            if (range * libm::exp(-depth)).partial_cmp(&(far - diagonal)) != Some(Ordering::Less) {
                 return Err("one occupied foliage step cannot isolate a far fog cell".into());
             }
             // A fully occupied 3x3 block contains a 1.5-cell disk. The nearest
@@ -477,13 +477,12 @@ impl<'a> Coverage<'a> {
                             && mid[0] < bounds[2] + r - FOLIAGE_SAMPLE_M
                             && mid[1] > bounds[1] - r + FOLIAGE_SAMPLE_M
                             && mid[1] < bounds[3] + r - FOLIAGE_SAMPLE_M
+                            && !self.physical[k]
                         {
-                            if !self.physical[k] {
-                                if let Some(changes) = changed.as_mut() {
-                                    changes.push((k, true));
-                                }
-                                self.physical[k] = true;
+                            if let Some(changes) = changed.as_mut() {
+                                changes.push((k, true));
                             }
+                            self.physical[k] = true;
                         }
                     }
                 }
@@ -645,14 +644,14 @@ impl<'a> Coverage<'a> {
 
     pub fn body_clear(&self, p: Point, r: f64) -> bool {
         // Placement is conservatively clear of every actual authored body.
-        self.queries.body_index.any_charged(
+        !self.queries.body_index.any_charged(
             [p[0] - r, p[1] - r, p[0] + r, p[1] + r],
             |i| {
                 let b = &self.queries.bodies[i as usize];
                 distance(p, b.center) < r + libm::hypot(b.half_extents[0], b.half_extents[1])
             },
             || self.queries.work.spend(1),
-        ) == false
+        )
     }
 }
 

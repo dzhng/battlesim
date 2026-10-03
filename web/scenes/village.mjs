@@ -3837,12 +3837,10 @@ async function playTour(ctx) {
 
   // Restart starts again from the seed with an empty log.
   await restart(page);
-  await page.waitForFunction(
-    () => {
-      const route = window.__lab?.route;
-      return !!route && route.acks().length === 0 && route.tick() < 60;
-    },
-  );
+  await page.waitForFunction(() => {
+    const route = window.__lab?.route;
+    return !!route && route.acks().length === 0 && route.tick() < 60;
+  });
   ctx.check("restart rebuilds from the seed", true);
 
   // The variant is the player's to change.
