@@ -4,6 +4,8 @@ import { chromium, type Browser } from "playwright";
 import { createServer } from "vite";
 import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
+import { mkdir } from "node:fs/promises";
+import { join } from "node:path";
 import { GAME_RULES } from "@apps/battle-lab/src/scenarios";
 
 // No GPU device or drawing: this tests the real worker ownership boundary.
@@ -22,6 +24,11 @@ test("a preparation worker becomes the battle authority and replays its commands
     });
     const page = await browser.newPage();
     await page.goto(server.resolvedUrls!.local[0]);
+    const shots = join(process.cwd(), "../throwaway/replay-closeout/loading-shots");
+    await mkdir(shots, { recursive: true });
+    await page.exposeFunction("replayShot", async (name: string) => {
+      await page.screenshot({ path: join(shots, `${name}.png`) });
+    });
     const documents = Object.fromEntries(
       ["presets", "templates", "recipes"].map((name, i) => [
         name,
@@ -38,10 +45,19 @@ test("a preparation worker becomes the battle authority and replays its commands
       async ({ documents, rules, root }) => {
         // Keep browser imports outside Vitest's server-side import rewriting.
         const importModule = new Function("url", "return import(url)");
+        const { applyHudTheme } = await importModule(`${root}/battle/present/hudTheme.ts`);
+        applyHudTheme();
         const { prepareBattle } = await importModule(`${root}/battle/prepare/client.ts`);
         const { createSimClient } = await importModule(`${root}/battle/sim/client.ts`);
         const { rememberReplay, readSavedReplay, ReplayImport } = await importModule(
           `${root}/../../apps/battle-lab/src/replayFile.tsx`,
+        );
+        const { MainMenu } = await importModule(`${root}/../../apps/battle-lab/src/MainMenu.tsx`);
+        const { default: Battle } = await importModule(
+          `${root}/../../apps/battle-lab/src/routes/battle.tsx`,
+        );
+        const { VillageReplay } = await importModule(
+          `${root}/../../apps/battle-lab/src/routes/village.tsx`,
         );
         const preparation = prepareBattle(
           {
@@ -122,6 +138,7 @@ test("a preparation worker becomes the battle authority and replays its commands
               await importModule(`${root}/../../throwaway/vite-cache/deps/react-dom_client.js`)
             ).default;
             const host = document.createElement("div");
+            document.body.replaceChildren();
             document.body.append(host);
             const uiRoot = createRoot(host);
             let imported: unknown = null;
@@ -140,13 +157,81 @@ test("a preparation worker becomes the battle authority and replays its commands
               await new Promise((r) => setTimeout(r, 0));
             };
             try {
-              while (!host.querySelector("input")) await wait();
+              // Hold an actual IndexedDB transaction open so the menu's read
+              // remains pending. It must not offer a guessed replay viewer.
+              const db = await new Promise<IDBDatabase>((resolve, reject) => {
+                const open = indexedDB.open("battle-replay", 1);
+                open.onsuccess = () => resolve(open.result);
+                open.onerror = () => reject(open.error);
+              });
+              const lock = db.transaction("replay", "readwrite");
+              lock.oncomplete = () => db.close();
+              const store = lock.objectStore("replay");
+              let held = true;
+              const keep = () => {
+                store.get("pending-read-lock").onsuccess = () => {
+                  if (held) keep();
+                };
+              };
+              keep();
+              uiRoot.render(createElement(MainMenu));
+              const shot = async (name: string) => {
+                await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+                await (window as unknown as { replayShot(name: string): Promise<void> }).replayShot(
+                  name,
+                );
+              };
+              try {
+                while (!host.textContent?.includes("Watch replay")) await wait();
+                const watch = [...host.querySelectorAll("a")].find((a) =>
+                  a.textContent?.includes("Watch replay"),
+                )!;
+                await shot("menu-pending");
+                if (watch.hasAttribute("href"))
+                  throw new Error("pending storage guessed a replay viewer");
+                window.history.replaceState(null, "", "/battle?replay=saved");
+                uiRoot.render(createElement(Battle));
+                while (!host.querySelector('[data-testid="loading"]')) await wait();
+                if (host.querySelector('input[type="file"]'))
+                  throw new Error("pending replay looked absent");
+                await shot("prepared-pending");
+                const pulse = host.querySelector(".loading-stages li")!.getAnimations()[0];
+                pulse.pause();
+                pulse.currentTime = 0;
+                await shot("prepared-pulse-high");
+                pulse.currentTime = Number(pulse.effect!.getComputedTiming().duration) / 2;
+                await shot("prepared-pulse-low");
+                uiRoot.render(createElement(VillageReplay));
+                await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+                if (
+                  !host.querySelector('[data-testid="loading"]') ||
+                  host.querySelector('input[type="file"]')
+                )
+                  throw new Error("pending village replay looked absent or started a scenario");
+                await shot("village-pending");
+                uiRoot.render(createElement(MainMenu));
+                while (!host.textContent?.includes("Watch replay")) await wait();
+              } finally {
+                held = false;
+              }
+              while (!host.querySelector('a[href="/battle?replay=saved"]')) await wait();
+              await shot("menu-ready");
+              db.close();
+              uiRoot.render(
+                createElement(ReplayImport, {
+                  plays: (file: { variant?: string }) => file.variant === "ordinary",
+                  onLoad: (file: unknown) => {
+                    imported = file;
+                  },
+                }),
+              );
+              while (!host.querySelector('input[type="file"]')) await wait();
               const open = indexedDB.open.bind(indexedDB);
               indexedDB.open = () => {
                 throw new Error("Storage unavailable");
               };
               const village = { variant: "ordinary", replay: "{}" };
-              const input = host.querySelector("input")!;
+              const input = host.querySelector<HTMLInputElement>('input[type="file"]')!;
               const transfer = new DataTransfer();
               transfer.items.add(new File([JSON.stringify(village)], "village.json"));
               input.files = transfer.files;

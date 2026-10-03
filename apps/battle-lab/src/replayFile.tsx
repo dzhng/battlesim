@@ -4,6 +4,7 @@
 // scenario and rules digests; replay retention across builds is unsupported.
 import { useEffect, useState } from "react";
 import type { PreparedBattle } from "@web/battle/prepare/protocol";
+import { LoadingScreen } from "./LoadingScreen";
 
 export interface VillageReplayFile {
   variant: string;
@@ -77,8 +78,8 @@ export async function rememberReplay(text: string): Promise<void> {
 
 /** Reading storage never overwrites a file imported while that read was pending. */
 export function useSavedReplay() {
-  const [loaded, setLoaded] = useState<{ file: ReplayFile | null; n: number }>({
-    file: null,
+  const [loaded, setLoaded] = useState<{ file: ReplayFile | null | undefined; n: number }>({
+    file: undefined,
     n: 0,
   });
   useEffect(() => {
@@ -92,6 +93,18 @@ export function useSavedReplay() {
   }, []);
   const setFile = (file: ReplayFile) => setLoaded((l) => ({ file, n: l.n + 1 }));
   return [loaded, setFile] as const;
+}
+
+/** A pending storage read is neither a missing replay nor a battle to start. */
+export function ReplayLoading() {
+  return (
+    <LoadingScreen
+      title="Loading replay"
+      subject="SAVED BATTLE"
+      stages={[{ id: "read", label: "Reading saved battle" }]}
+      current="read"
+    />
+  );
 }
 
 /** Keep `file` as the last saved battle and download it as `name`. */

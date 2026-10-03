@@ -27,6 +27,7 @@ import {
   useSavedReplay,
   PREPARED_REPLAY_ROUTE,
   ReplayImport,
+  ReplayLoading,
   saveReplay,
   type PreparedReplayFile,
 } from "../replayFile";
@@ -159,6 +160,7 @@ function AskedBattleView({ asked }: { asked: Exclude<AskedBattle, { kind: "repla
 /** /battle?replay=saved: watch the saved battle; input is off. */
 function SavedReplay() {
   const [loaded, setFile] = useSavedReplay();
+  if (loaded.file === undefined) return <ReplayLoading />;
   const file = loaded.file && isPreparedReplay(loaded.file) ? loaded.file : null;
   if (!file)
     return (

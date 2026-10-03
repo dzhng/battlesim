@@ -153,9 +153,11 @@
 .hud-panel a.menu-card.menu-deploy:focus-visible {
   background: rgb(var(--hud-accent) / 0.3);
 }
-.hud-panel a.menu-card.menu-deploy[aria-disabled="true"] {
-  opacity: 0.32;
+.hud-panel a.menu-card[aria-disabled="true"] {
   pointer-events: none;
+}
+.hud-panel a.menu-card[aria-disabled="true"] .menu-card-label {
+  opacity: 0.32;
 }
 .menu .sound-controls {
   display: flex;
