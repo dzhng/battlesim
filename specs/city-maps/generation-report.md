@@ -38,7 +38,7 @@ Extra settlements are inclusive random count ranges, in addition to the main set
 
 The production entry point is [mapgen generation](../../crates/mapgen/src/lib.rs), shared by native tooling and Wasm preparation. Its order matters:
 
-1. Validate the request, preset data, physical template catalogue and resolved game rules. **Pending coverage cutover:** preflight the proof resolution/placement forecast before expensive generation or unsafe allocations.
+1. Validate the request, preset data, physical template catalogue and resolved game rules. Preflight the proof resolution/placement forecast before expensive generation or unsafe allocations.
 2. Draw a broad road skeleton and site the main settlement, possible river and other settlements, reserving long approaches.
 3. Complete roads and physical bridge crossings.
 4. Grow town blocks from those roads; select district uses and parks.
@@ -47,7 +47,7 @@ The production entry point is [mapgen generation](../../crates/mapgen/src/lib.rs
 7. Lay local streets, cut parcels and place complete building templates.
 8. Furnish the countryside with rural buildings, trees, copses, broken tree lines and loose physical cover.
 9. Place street furniture after countryside approach corridors are settled.
-10. **Pending coverage cutover:** temporarily lower the completed plan into shared physical map geometry, then certify it using actual trees and bodies; add legal forest features where an entire location cell has no certificate; reject any cell that cannot be covered. Final compilation below publishes the returned plan, including those additions.
+10. Temporarily lower the completed plan into shared physical map geometry, then certify it using actual trees and bodies; add legal forest features where an entire location cell has no certificate; reject any cell that cannot be covered. Final compilation below publishes the returned plan, including those additions.
 11. Compile the plan to the common physical map and provenance record.
 12. Resolve the assault recipe on that map using simulation queries, then start the battle and renderer.
 
