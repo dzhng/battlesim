@@ -112,3 +112,10 @@ in 36 cells. The subsequent strict final-connector correction and frozen-case
 rerun are
 recorded in [C06](C06-sim-scale-passes.md#outcome--shared-final-connector-component).
 This historical sweep does not establish current simulation admission.
+
+
+## Frozen rules checkpoint (2026-10-02)
+
+Integrated `layout-13` / `layout-presets-12` add continuous native-ground-observer coverage and the initial 1,500 m visual margin. The [generation report](../generation-report.md) owns the rules, complete parameter snapshot and refusal meanings. Twenty focused country behavior tests pass. Canonical parity retains fourteen generation and six encounter cases, including the named clipped-cell Metro Small seed 10 refusal. The ninety-request gallery admits eighty-nine maps, with nine or ten in each type/size cell; no seed is substituted.
+
+The final Market Town’s 5.5 km live individual/group arrival test passes, alongside four kerbside checks. Metro Large seed 4 starts through the player menu in 20.235 s cold and 17.297 s warm, including current scenery and first usable view. These are scoped proofs; the final timed city-contact, actual opening-fog/tactical/overview review, generated encounter and complete integrated gate remain pending. The thirty-second battle sweep cannot prove kilometre-scale infantry arrival, and its partial group placements are not whole-command refusals.
