@@ -16,7 +16,13 @@ import type { CommandAck, Order } from "../sim/protocol";
 import { commandForKey, ShowOrdersBinding } from "./commandBindings";
 import { useHeldKey } from "./heldKeys";
 import { MoveGestures } from "./moveGestures";
-import { pointerIntent, type PointerPick, type CommandMode } from "./pointerIntent";
+import {
+  pointerIntent,
+  reconcilePointerIntent,
+  type PointerPick,
+  type CommandMode,
+  type PointerIntent,
+} from "./pointerIntent";
 import { reach } from "./commandReach";
 import { SelectClicks, similarUnits } from "./selectSimilar";
 import { UNITS } from "@packages/scene-assets/src/shippedUnits";
@@ -64,16 +70,22 @@ export function useUnitControl(
   }, []);
   const observationRef = useRef(observation);
   observationRef.current = observation;
+  const clientRef = useRef(client);
+  clientRef.current = client;
   /** Space held (D2+): the order overlay shows every own unit. */
   const showOrders = useHeldKey(ShowOrdersBinding.code);
 
   // A new client (reset) starts with no selection and an empty log.
   useEffect(() => {
+    clientRef.current = client;
     setSelection([]);
     setAcks([]);
     setMode("move");
     gestures.current = new MoveGestures();
     clicks.current = new SelectClicks();
+    return () => {
+      clientRef.current = null;
+    };
   }, [client, setMode]);
 
   // An armed command applies to the selection it was armed for.
@@ -130,14 +142,15 @@ export function useUnitControl(
       onIssueRef.current?.(order, queued);
       const label = describe(order, queued);
       const ack = await client.command(order, queued);
-      setAcks((log) => [{ seq: ack.seq, label, order, ack }, ...log].slice(0, LOG_LENGTH));
+      if (clientRef.current === client)
+        setAcks((log) => [{ seq: ack.seq, label, order, ack }, ...log].slice(0, LOG_LENGTH));
       return ack;
     },
     [client, describe],
   );
 
   const onPointer = useCallback(
-    (pick: PointerPick) => {
+    (pick: PointerPick, captured?: PointerIntent) => {
       if (pick.button === "left") {
         const unit = pick.unit;
         const own = observationRef.current?.own ?? [];
@@ -163,7 +176,9 @@ export function useUnitControl(
         );
         return;
       }
-      const intent = pointerIntent(pick, selectedUnitsRef.current, modeRef.current, UNITS);
+      const intent = captured
+        ? reconcilePointerIntent(captured, observationRef.current)
+        : pointerIntent(pick, selectedUnitsRef.current, modeRef.current, UNITS);
       if (intent.kind === "none") return;
       if (intent.kind === "blocked") {
         if (intent.disarm) setMode("move");

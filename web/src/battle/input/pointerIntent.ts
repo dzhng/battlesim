@@ -1,5 +1,5 @@
 import type { UnitCatalog } from "@packages/scene-assets/src/units";
-import type { OwnUnitView } from "../sim/observation";
+import type { ObservationView, OwnUnitView } from "../sim/observation";
 import type { Order } from "../sim/protocol";
 import { isAttackMoveClick } from "./commandBindings";
 import { reach } from "./commandReach";
@@ -34,6 +34,22 @@ export type PointerIntent =
   | WithoutGesture<PointerOrder>
   | { kind: "none" }
   | { kind: "blocked"; disarm: boolean };
+
+/** A held intent keeps its target and selection, while observed losses still apply. */
+export function reconcilePointerIntent(
+  intent: PointerIntent,
+  observation: ObservationView | null,
+): PointerIntent {
+  if (!("units" in intent)) return intent;
+  const units = intent.units.filter((id) => observation?.own.some((unit) => unit.id === id));
+  if (!units.length) return { kind: "none" };
+  if (intent.kind === "attack" && intent.target.kind === "contact") {
+    const target = intent.target.id;
+    if (!observation?.contacts.some((contact) => contact.id === target))
+      return { kind: "blocked", disarm: true };
+  }
+  return { ...intent, units };
+}
 
 /** A short tremor is a click, rather than an arrival-facing instruction. */
 const MIN_FACING_DRAG_M = 1;

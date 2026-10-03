@@ -138,6 +138,9 @@ function RiverLab({ battle }: { battle: SavedBattle }) {
         appearances={session.appearances}
         initialCamera={RIVER_CAMERA}
         onPick={session.onPick}
+        onRightPress={session.onRightPress}
+        onCursor={session.onCursor}
+        pointerMarks={session.pointerPaint.feed}
         onBox={session.onBox}
         onReady={session.onReady}
         diagnostics={diagnostics}

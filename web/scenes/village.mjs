@@ -18,6 +18,7 @@
 // Combat effects in the firefight, a burst read at its
 // moment and after, from the effects' own frame and the pass inspector's
 // world view.
+import { battleCursor } from "./_cursorOrders.mjs";
 import {
   lab,
   obs,
@@ -3555,6 +3556,7 @@ async function panelLayoutTour(ctx) {
 }
 
 const TOURS = {
+  cursor: battleCursor,
   menu: menuTour,
   captions: captionsTour,
   panels: panelTour,

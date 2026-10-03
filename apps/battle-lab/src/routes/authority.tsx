@@ -115,6 +115,9 @@ function AuthorityLab({ battle }: { battle: SavedBattle }) {
         appearances={session.appearances}
         initialCamera={AUTHORITY_CAMERA}
         onPick={session.onPick}
+        onRightPress={session.onRightPress}
+        onCursor={session.onCursor}
+        pointerMarks={session.pointerPaint.feed}
         onBox={session.onBox}
         onReady={session.onReady}
         diagnostics={diagnostics}

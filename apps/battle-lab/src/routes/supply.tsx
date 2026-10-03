@@ -98,6 +98,9 @@ function SupplyLab({ battle }: { battle: SavedBattle }) {
         appearances={session.appearances}
         initialCamera={SUPPLY_CAMERA}
         onPick={session.onPick}
+        onRightPress={session.onRightPress}
+        onCursor={session.onCursor}
+        pointerMarks={session.pointerPaint.feed}
         onBox={session.onBox}
         onReady={session.onReady}
         onFrame={session.placePanels}

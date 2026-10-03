@@ -271,6 +271,9 @@ function GroundInspector({ scenario, seed, camera, legend, script, extra }: Insp
         appearances={session.appearances}
         initialCamera={camera}
         onPick={session.onPick}
+        onRightPress={session.onRightPress}
+        onCursor={session.onCursor}
+        pointerMarks={session.pointerPaint.feed}
         onBox={session.onBox}
         onReady={session.onReady}
         diagnostics={diagnostics}

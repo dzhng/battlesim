@@ -195,3 +195,154 @@ test("a changed building cannot inherit a late entry result, and fallback displa
   expect(paint.building?.entrant).toBe(null);
   expect(paint.state).toBe("ready");
 });
+
+test("a building cursor keeps a current certificate during tick refresh, clears changed intent immediately, and shows plain fallback", async () => {
+  const { PointerPaint, cursorForIntent, previewForIntent } =
+    await import("@apps/battle-lab/src/pointerPaint");
+  const paint = new PointerPaint();
+  const own = [1, 2].map((id) => ({
+    id,
+    kind: "rifle",
+    position: [0, 0, 0],
+    members: [],
+    area: null,
+    garrison: null,
+  })) as unknown as import("../src/battle/sim/observation").OwnUnitView[];
+  const replies: ((p: import("../src/battle/sim/protocol").BuildingPlacement) => void)[] = [];
+  const client = {
+    previewMove: async () => [],
+    previewBuilding: () =>
+      new Promise<import("../src/battle/sim/protocol").BuildingPlacement>((finish) =>
+        replies.push(finish),
+      ),
+  };
+  const intent: import("../src/battle/input/pointerIntent").PointerIntent = {
+    kind: "occupy_building",
+    units: [1, 2],
+    building: 7,
+    queued: false,
+  };
+  const update = (tick: number, target = intent) => {
+    paint.resolvePreview(previewForIntent(target), own, client, tick);
+    return cursorForIntent(target, paint);
+  };
+  expect(update(0)).toBe("default");
+  replies[0]({ building: 7, entrant: { unit: 1, approach: [10, 20] }, destinations: [] });
+  await new Promise((r) => setTimeout(r, 0));
+  expect(update(1)).toBe("garrison");
+  const changed = { ...intent, building: 9 };
+  expect(update(1, changed)).toBe("default");
+  replies[1]({ building: 7, entrant: { unit: 1, approach: [10, 20] }, destinations: [] });
+  await new Promise((r) => setTimeout(r, 0));
+  expect(update(1, changed)).toBe("default");
+  replies[2]({
+    building: 9,
+    entrant: null,
+    destinations: [{ unit: 2, goal: [50, 60], placed: true, facing: 0 }],
+  });
+  await new Promise((r) => setTimeout(r, 0));
+  expect(update(1, changed)).toBe("default");
+  expect(paint.state).toBe("ready");
+  expect(paint.building!.building).toBe(9);
+});
+
+test("unproven movement and building searches keep the cursor plain, while a known complete refusal is blocked", async () => {
+  const { PointerPaint, cursorForIntent, previewForIntent } =
+    await import("@apps/battle-lab/src/pointerPaint");
+  const own = [
+    { id: 1, kind: "rifle", position: [0, 0, 0], members: [], area: null, garrison: null },
+  ] as unknown as import("../src/battle/sim/observation").OwnUnitView[];
+  const move: import("../src/battle/input/pointerIntent").PointerIntent = {
+    kind: "move",
+    units: [1],
+    goal: [10, 20],
+    route: "shortest",
+    direction: "forward",
+    queued: false,
+  };
+  const building: import("../src/battle/input/pointerIntent").PointerIntent = {
+    kind: "occupy_building",
+    units: [1],
+    building: 7,
+    queued: false,
+  };
+  for (const [intent, unproven, expected] of [
+    [move, false, "default"],
+    [building, true, "default"],
+    [building, false, "blocked"],
+  ] as const) {
+    const paint = new PointerPaint();
+    const client = {
+      previewMove: async () => [],
+      previewBuilding: async () => ({ building: 7, entrant: null, destinations: [], unproven }),
+    };
+    paint.resolvePreview(previewForIntent(intent), own, client, 0);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(cursorForIntent(intent, paint)).toBe(expected);
+  }
+});
+
+test("release feedback distinguishes unproven admission from a known lost attack target", async () => {
+  const { cursorForAcknowledgement } = await import("@apps/battle-lab/src/pointerPaint");
+  const building: import("../src/battle/input/pointerIntent").PointerIntent = {
+    kind: "occupy_building",
+    units: [1],
+    building: 7,
+    queued: false,
+  };
+  expect(
+    cursorForAcknowledgement(building, {
+      seq: 1,
+      applied_tick: 10,
+      error: { reason: "no_valid_destination" },
+      building: { building: 7, entrant: null, destinations: [], unproven: true },
+    }),
+  ).toBe("default");
+  const attack: import("../src/battle/input/pointerIntent").PointerIntent = {
+    kind: "attack",
+    units: [1],
+    target: { kind: "identified", id: 2 },
+    queued: false,
+  };
+  expect(
+    cursorForAcknowledgement(attack, {
+      seq: 2,
+      applied_tick: 10,
+      error: { reason: "unknown_target" },
+    }),
+  ).toBe("blocked");
+});
+
+test("a drag acknowledgement corrects the same building hover when admission falls back to movement", async () => {
+  const { cursorForRelease } = await import("@apps/battle-lab/src/pointerPaint");
+  const hover = { kind: "occupy_building" as const, units: [1, 2], building: 7, queued: false };
+  const released = { ...hover, facing: Math.PI / 2 };
+  const ack = {
+    seq: 1,
+    applied_tick: 11,
+    error: null,
+    building: {
+      building: 7,
+      entrant: null,
+      destinations: [
+        { unit: 1, placed: true, goal: [40, 50] as [number, number], facing: Math.PI / 2 },
+      ],
+    },
+  };
+  expect(cursorForRelease(hover, released, ack)).toBe("default");
+  expect(cursorForRelease({ ...hover, building: 8 }, released, ack)).toBeNull();
+  expect(cursorForRelease({ ...hover, queued: true }, released, ack)).toBeNull();
+  expect(cursorForRelease({ ...hover, facing: 0 }, released, ack)).toBeNull();
+  expect(
+    cursorForRelease(
+      {
+        kind: "attack",
+        units: [1, 2],
+        target: { kind: "ground", point: [40, 50, 0] },
+        queued: false,
+      },
+      released,
+      ack,
+    ),
+  ).toBeNull();
+});

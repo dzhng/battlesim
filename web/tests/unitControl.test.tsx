@@ -251,3 +251,117 @@ test("successive double-clicks widen type to role; external selection and timeou
   expect(pair(61_400, false, 3)).toEqual([3]);
   hook.unmount();
 });
+
+test("a captured building intent keeps its selection, target and modifiers when release follows a mode change", async () => {
+  const { hook, sent } = await control();
+  const pick: PointerPick = {
+    unit: null,
+    button: "right",
+    shift: true,
+    ctrl: false,
+    x: 100,
+    y: 100,
+    time: 20,
+    ground: [50, 50],
+    building: 7,
+  };
+  const held = hook.result.current.intentAt(pick);
+  act(() => {
+    hook.result.current.setSelected([2]);
+    hook.result.current.setMode("fast_move");
+  });
+  await act(async () =>
+    hook.result.current.onPointer({ ...pick, shift: false, building: 9 }, held),
+  );
+  expect(sent).toEqual([
+    { order: { kind: "occupy_building", units: [1, 2], building: 7, gesture: 1 }, queued: true },
+  ]);
+});
+
+test("a casualty during a captured press leaves the surviving original selection commandable", async () => {
+  const { client, sent } = recordingClient();
+  const observation = (ids: number[]) =>
+    ({ own: ids.map((id) => own(id, "rifle")), contacts: [] }) as unknown as ObservationView;
+  const hook = renderHook(({ ids }) => useUnitControl(client, observation(ids)), {
+    initialProps: { ids: [1, 2, 3] },
+  });
+  act(() => hook.result.current.setSelected([1, 2]));
+  const pick: PointerPick = {
+    unit: null,
+    button: "right",
+    shift: false,
+    ctrl: false,
+    x: 0,
+    y: 0,
+    time: 0,
+    ground: [50, 50],
+    building: 7,
+  };
+  const held = hook.result.current.intentAt(pick);
+  hook.rerender({ ids: [1, 3] });
+  act(() => hook.result.current.setSelected([3]));
+  await act(async () => hook.result.current.onPointer(pick, held));
+  expect(sent).toEqual([
+    { order: { kind: "occupy_building", units: [1], building: 7, gesture: 1 }, queued: false },
+  ]);
+  hook.unmount();
+});
+
+test("a captured contact that expires is refused locally instead of repicking the ground", async () => {
+  const { client, sent } = recordingClient();
+  const observation = (contact: boolean) =>
+    ({
+      own: [own(1, "rifle")],
+      contacts: contact ? [{ id: 7 }] : [],
+    }) as unknown as ObservationView;
+  const hook = renderHook(({ contact }) => useUnitControl(client, observation(contact)), {
+    initialProps: { contact: true },
+  });
+  act(() => hook.result.current.setSelected([1]));
+  const pick: PointerPick = {
+    unit: null,
+    button: "right",
+    shift: false,
+    ctrl: false,
+    x: 0,
+    y: 0,
+    time: 0,
+    ground: [50, 50],
+    contact: 7,
+  };
+  const held = hook.result.current.intentAt(pick);
+  expect(held.kind).toBe("attack");
+  hook.rerender({ contact: false });
+  await act(async () => hook.result.current.onPointer({ ...pick, contact: null }, held));
+  expect(sent).toEqual([]);
+  hook.unmount();
+});
+
+test("an old client's delayed acknowledgement cannot repopulate a reset log", async () => {
+  let reply!: (ack: { seq: number; applied_tick: number; error: null }) => void;
+  const old = {
+    command: () =>
+      new Promise((resolve) => {
+        reply = resolve;
+      }),
+  } as unknown as SimClient;
+  const fresh = recordingClient().client;
+  const observation = { own: [own(1, "rifle")], contacts: [] } as unknown as ObservationView;
+  const hook = renderHook(({ client }) => useUnitControl(client, observation), {
+    initialProps: { client: old },
+  });
+  let pending!: Promise<unknown>;
+  act(() => {
+    pending = hook.result.current.issue({ kind: "stop", units: [1] });
+  });
+  hook.rerender({ client: fresh });
+  await act(async () =>
+    hook.result.current.issue({ kind: "set_engagement", units: [1], policy: "return_fire_only" }),
+  );
+  await act(async () => {
+    reply({ seq: 99, applied_tick: 1, error: null });
+    await pending;
+  });
+  expect(hook.result.current.acks.map((entry) => entry.order.kind)).toEqual(["set_engagement"]);
+  hook.unmount();
+});

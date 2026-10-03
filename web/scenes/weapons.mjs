@@ -1,5 +1,6 @@
 // Slice 08: independent mounts, action reasons, the acquisition grace and
 // every attack order, driven through the real command path.
+import { attackCursor } from "./_cursorOrders.mjs";
 import { writeFile } from "node:fs/promises";
 import { decode, writeCrop } from "./_png.mjs";
 import { lab, obs, advance, openBattle } from "./_lab.mjs";
@@ -81,6 +82,7 @@ async function feedReachable(ctx, page, name) {
 }
 
 export async function run(ctx) {
+  await attackCursor(ctx);
   const page = await openBattle(ctx);
   await lab(page, () => window.__lab.route.select([0, 1]));
 

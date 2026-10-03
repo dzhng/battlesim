@@ -163,6 +163,9 @@ function AmbushLab({ battles }: { battles: Record<Variant, SavedBattle> }) {
         appearances={session.appearances}
         initialCamera={AMBUSH_CAMERA}
         onPick={session.onPick}
+        onRightPress={session.onRightPress}
+        onCursor={session.onCursor}
+        pointerMarks={session.pointerPaint.feed}
         onBox={session.onBox}
         onReady={session.onReady}
         diagnostics={diagnostics}

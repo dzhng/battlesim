@@ -1,0 +1,57 @@
+{
+  "units": [
+    {
+      "side": "blue",
+      "kind": "tank",
+      "position": [160, 160]
+    },
+    {
+      "side": "blue",
+      "kind": "recon",
+      "position": [325, 250]
+    },
+    {
+      "side": "blue",
+      "kind": "rifle",
+      "position": [270, 210]
+    }
+  ],
+  "events": [
+    {
+      "tick": 1,
+      "add_prop": {
+        "kind": "wall",
+        "center": [150, 160],
+        "yaw": 0,
+        "half_extents": [0.5, 10, 2]
+      }
+    },
+    {
+      "tick": 1,
+      "add_prop": {
+        "kind": "wall",
+        "center": [170, 160],
+        "yaw": 0,
+        "half_extents": [0.5, 10, 2]
+      }
+    },
+    {
+      "tick": 1,
+      "add_prop": {
+        "kind": "wall",
+        "center": [160, 150],
+        "yaw": 1.5707963267948966,
+        "half_extents": [0.5, 10, 2]
+      }
+    },
+    {
+      "tick": 1,
+      "add_prop": {
+        "kind": "wall",
+        "center": [160, 170],
+        "yaw": 1.5707963267948966,
+        "half_extents": [0.5, 10, 2]
+      }
+    }
+  ]
+}

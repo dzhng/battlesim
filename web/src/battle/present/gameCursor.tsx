@@ -14,6 +14,8 @@ const ACTION_ICONS = {
 } as const;
 
 export type CursorAction = "default" | keyof typeof ACTION_ICONS;
+/** Complete arrow and badge bounds, also used to keep callouts clear. */
+export const GAME_CURSOR_SIZE = { width: 41, height: 38 } as const;
 
 export interface GameCursorHandle {
   /** Viewport client coordinates; null hides the complete cursor. */
@@ -47,6 +49,7 @@ export function GameCursor({ handle }: { handle: Ref<GameCursorHandle> }) {
       className="game-cursor"
       data-testid="game-cursor"
       data-action="default"
+      style={GAME_CURSOR_SIZE}
       hidden
       aria-hidden="true"
     >

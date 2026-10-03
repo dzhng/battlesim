@@ -73,6 +73,7 @@ export interface BuildingEntry {
 }
 
 export interface BuildingPlacement {
+  unproven?: boolean;
   building: number;
   entrant: BuildingEntry | null;
   destinations: MoveDestination[];
