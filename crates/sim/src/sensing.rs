@@ -116,12 +116,11 @@ pub fn sees_point(
     let to = target - eye;
     let range = sight.range_at(libm::atan2(to.y, to.x));
     let distance = to.length();
-    if distance > range * concealment {
-        return false; // cheap reject before any ray
+    if distance > range * concealment || !world.sight_clear(eye, target) {
+        return false; // solid cover makes foliage integration irrelevant
     }
     let foliage = world.foliage_depth(eye, target);
-    foliage_reach(range * concealment, foliage, s)
-        .is_some_and(|reach| distance <= reach && world.sight_clear(eye, target))
+    foliage_reach(range * concealment, foliage, s).is_some_and(|reach| distance <= reach)
 }
 
 /// Visibility samples of a unit, with the member index they belong to.
