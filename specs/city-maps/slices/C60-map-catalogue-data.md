@@ -45,7 +45,7 @@ A route/map identity that cannot be represented without a duplicate list reopens
 
 ## Outcome
 
-Every saved map's folder holds `map.json`, `SOURCES.json`, `meta.json` and its encounters, and two tests hold every folder to the schema. `map.json` is the compact saved form since [C58](C58-offline-encounter.md#outcome): a building is its template id, frame and ids, and `SOURCES.json` names the library it is materialized from. The folder layout and how to add a map are in the [fixtures guide](../../../fixtures/README.md#saved-maps); the loaders are in the [C09 outcome](C09-fetched-maps.md#outcome); the decisions the spec left open are in the [choices ledger](../choices.md#c09c60-saved-map-cutover).
+Every saved map's folder holds `map.json`, `SOURCES.json`, `meta.json` and its encounters, and two tests hold every folder to the schema. `map.json` is the compact saved form since [C58](C58-offline-encounter.md#outcome): a building is its template id, frame and ids, and `SOURCES.json` names the library it is materialized from. The folder layout and how to add a map are in the [fixtures guide](../../../fixtures/README.md#saved-maps); the loaders are in the [C09 outcome](C09-fetched-maps.md#outcome); the decisions the spec left open are in the [choices ledger](../choices.md).
 
 **`meta.json`** (`web/src/maps/catalogue.ts`: `MapMeta`, `validateMapMeta`, `checkMapFolder`, `listMaps(filter)`). The folder's name is the id; the file has exactly these fields:
 

@@ -40,7 +40,7 @@ seeded placement are implemented. Floor bodies are appended after **all** trunks
 so trunk IDs, source ranges, positions and foliage exports remain bit-identical
 when floor density changes. Logs are medium destructible cover a tank can shove;
 boulders are immovable heavy cover. Neither creates foliage or clears a lane.
-The existing dynamic tree-fall rule is retained. [Choices](../choices.md#simulation-lane-decisions)
+The existing dynamic tree-fall rule is retained. [Choices](../choices.md)
 records values and candidate-density semantics.
 
 Focused native tests pass: movement/round/cover properties; trunk and foliage

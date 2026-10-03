@@ -39,7 +39,7 @@ A material that loses wear/tint or scale changes its source bake while retaining
 
 ## Outcome (China)
 
-Nine ambientCG sets at 1K, pinned in `packs.json`, are baked to 256 px (the edge of every texture shipped today) as nine recipes shared by the kit's 38 materials: 27 images, 1.8 MB. Grime is in the stucco, concrete and roof recipes. No material names a wear colour and vertex-colour alpha is zero. Glass, frosted glass and PVC are opaque; decals and leaf cards are left out ([choices](../choices.md#buildings-lane)). The facade keeps its character at 30 m and 80 m in the reassembly; what it loses is the curtains behind the glass.
+Nine ambientCG sets at 1K, pinned in `packs.json`, are baked to 256 px (the edge of every texture shipped today) as nine recipes shared by the kit's 38 materials: 27 images, 1.8 MB. Grime is in the stucco, concrete and roof recipes. No material names a wear colour and vertex-colour alpha is zero. Glass, frosted glass and PVC are opaque; decals and leaf cards are left out ([choices](../choices.md)). The facade keeps its character at 30 m and 80 m in the reassembly; what it loses is the curtains behind the glass.
 
 ## Outcome: surfaces that are not opaque (China)
 

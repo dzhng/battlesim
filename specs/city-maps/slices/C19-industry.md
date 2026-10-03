@@ -40,4 +40,4 @@ Rejected silhouette reshapes its family source without changing the type preset 
 - **Budget:** a template draws 5,170 to 20,580 triangles at tier 0, 2,260 to 8,640 at tier 1, 440 to 1,920 at tier 2 and 56 to 224 at tier 3, in 68 to 276 rows at the fine tiers and one row at the coarse ones.
 - **Seen:** an unprimed critique named all five correctly from the pictures (workshop shed, loading-dock warehouse, brick factory with a north-light roof, steel storage shed, vehicle depot) and found the five roofs distinct at 250 m. What it faulted and is still true: the depot and the big warehouse share a wall vocabulary (a high window band, vehicle doors under canopies); the depot's red-brown roof is close to the houses' tiles; rooftop plant is plain boxes; a far building (tier 3) loses its windows.
 - **Not done:** the sheets are Blender renders with a stand-in sun, not the battle's renderer. No comparison against the reference was scored. Damage states are C14's. Whether garrison seats in blank bays and at loading docks play well is untested.
-- **Decisions:** [choices](../choices.md#buildings-lane).
+- **Decisions:** [choices](../choices.md).

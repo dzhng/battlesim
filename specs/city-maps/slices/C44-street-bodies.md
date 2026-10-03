@@ -31,7 +31,7 @@ A street body with an implausible blocking/destruction effect reopens fixture-ow
 ## Outcome — physical catalog pass (2026-10-01)
 
 The physical catalog rows are implemented. The per-kind war-film audit and
-appearance boundary are recorded in [choices](../choices.md#simulation-lane-decisions).
+appearance boundary are recorded in [choices](../choices.md).
 Native checks exercise every row through world sight, projectile passage,
 blocking and cover queries; the shove battle matrix now includes every blocking
 street row. The paired village test removes the unused city document and proves

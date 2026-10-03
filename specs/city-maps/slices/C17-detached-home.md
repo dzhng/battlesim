@@ -39,4 +39,4 @@ Rejected silhouette reshapes its family source without changing the type preset 
 - **Proved:** two runs write the same bytes; the contract admits all ten descriptors as complete, with every door on the street side and a clear way out; the kit validates and bakes with no finding, and the library's fit and module checks pass. The one finding left is that the templates are not yet in the physical catalogue, which the cutover clears.
 - **Budget:** a detached house draws 2,750 to 6,040 triangles at tier 0, 1,120 to 2,250 at tier 1, 230 to 590 at tier 2 and 12 to 25 at tier 3.
 - **Not done:** the sheets are Blender renders with a stand-in sun, not the battle's renderer, which cannot draw kits yet. No unprimed critique or reference comparison was run on them. Damage states are C14's.
-- **Decisions:** [choices](../choices.md#buildings-lane).
+- **Decisions:** [choices](../choices.md).

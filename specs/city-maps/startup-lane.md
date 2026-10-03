@@ -11,7 +11,7 @@ Before this lane one battle built the simulation's world three times from the sa
 - a side still learns damage and destruction only through its own observations: the page's world is the static map, which is public;
 - replacing or cancelling a pending battle releases everything the abandoned one held.
 
-The lane first went further and replaced the page's world with a query export transferred from the worker. That was removed: startup has a wide margin, and the margin is spent on one code path for map queries ([C33 simplified](choices.md#c33-simplified)).
+The lane first went further and replaced the page's world with a query export transferred from the worker. That was removed: startup has a wide margin, and the margin is spent on one code path for map queries ([C33 simplified](choices.md#preparations-worker-keeps-its-world-and-becomes-the-battle-authority-the-page-builds-a-plain-query-world)).
 
 Measured on Metro Large on this machine, before and after: instructions and time from Deploy to first playable frame, and peak memory of the tab. [C33](slices/C33-battle-preparation.md) is the slice; the budgets are in [scale direction](scale-direction.md#startup-and-loading).
 
@@ -54,7 +54,7 @@ remain with their owning lanes.
   implementation. Cancellation and replacement release the abandoned worker.
   The real browser generated battle/replay, refusal and native prepared/direct
   regressions pass. A public query export to the page was built and removed
-  ([C33 simplified](choices.md#c33-simplified)).
+  ([C33 simplified](choices.md#preparations-worker-keeps-its-world-and-becomes-the-battle-authority-the-page-builds-a-plain-query-world)).
 - C20 preserves the horizon and whole-building visibility contracts while
   indexing nearby eyes and angular candidates. The 16,000-box synthetic rebuild
   falls from 37.831 to 1.182 ms, passing the unchanged 2 ms gate. Village cost,

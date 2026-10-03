@@ -30,7 +30,7 @@ Lost tint/wear/coverage channels reopen material transport parity; source textur
 
 ## Outcome
 
-Yes. A material now states its coverage (`opaque`, `cutout` with a cutoff, `blended`) and, optionally, the interior atlas sheet a room surface shows. The principle is in the [scene-assets readme](../../../packages/scene-assets/README.md) ("Coverage and rooms"), the types in `schema.ts`, the rules in `material.ts`, and the decisions in [choices](../choices.md#buildings-lane).
+Yes. A material now states its coverage (`opaque`, `cutout` with a cutoff, `blended`) and, optionally, the interior atlas sheet a room surface shows. The principle is in the [scene-assets readme](../../../packages/scene-assets/README.md) ("Coverage and rooms"), the types in `schema.ts`, the rules in `material.ts`, and the decisions in [choices](../choices.md).
 
 - **No alpha is overloaded.** The coverage value is the base colour's alpha times the normal texture's alpha, the two alphas nothing used. Albedo alpha is still the wear threshold, ORM alpha the tint mask, vertex-colour alpha how worn.
 - **The source says it in standard glTF** (`alphaMode`, `alphaCutoff`, and `interior` in the material's extras), and the Blender material helpers write all three from two arguments, `coverage` and `interior`. No model uses them yet.
