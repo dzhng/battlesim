@@ -32,23 +32,21 @@ export interface Feature {
   id: string;
   group: string;
   label: string;
+  crop?: string;
 }
 export interface RunRequest {
   purpose: "preview" | "sample";
   retainedArtifactIds: string[];
   draft: Draft;
   choice: MapChoice;
-  crop?: string;
 }
-export interface Report {
+export interface Report extends Partial<Inspection> {
   fingerprint: string;
   choice: MapChoice;
   status: "ok" | "refused";
   diagnostics: MapDiagnostic[];
   stage?: string;
   artifactId?: string;
-  svg?: string;
-  features?: Feature[];
   identity?: Extract<MapIdentity, { kind: "generated" }>["generation"];
   metrics?: JsonObject;
   counts?: JsonObject;
@@ -101,6 +99,8 @@ export type NativeReport = Omit<Report, "fingerprint" | "artifactId">;
 export interface Inspection {
   svg: string;
   features: Feature[];
+  summary?: string[];
+  legend?: { label: string; color: string }[];
 }
 export interface WorkbenchAPI {
   snapshot(signal?: AbortSignal): Promise<Snapshot>;
