@@ -20,7 +20,7 @@ import { SoundControls } from "./SoundControls";
 
 interface Entry {
   label: string;
-  href: string;
+  href: string | null;
   note: string;
 }
 
@@ -57,7 +57,7 @@ const TYPE_NOTE: Record<MapType, string> = {
 /** The catalogue's battlefields a player can start: every released playable
  *  map that has the game's encounter saved on it. Each is the same map and
  *  the same deployment every time. */
-export function savedBattles(): Entry[] {
+export function savedBattles() {
   const recipe = config.encounter.recipe;
   return listMaps({ category: "playable", status: "released" })
     .filter((map) => map.encounters.includes(recipe))
@@ -77,17 +77,18 @@ function Entries({ label, entries }: { label: string; entries: Entry[] }) {
     <nav aria-label={label}>
       <ul>
         {entries.map((e) => (
-          <li key={e.href}>
+          <li key={e.href ?? e.label}>
             <a
               className="menu-card"
-              href={e.href}
-              aria-labelledby={`${id(e.href)}-label`}
-              aria-describedby={`${id(e.href)}-note`}
+              href={e.href ?? undefined}
+              aria-disabled={e.href === null || undefined}
+              aria-labelledby={`${id(e.href ?? e.label)}-label`}
+              aria-describedby={`${id(e.href ?? e.label)}-note`}
             >
-              <span className="menu-card-label" id={`${id(e.href)}-label`}>
+              <span className="menu-card-label" id={`${id(e.href ?? e.label)}-label`}>
                 {e.label}
               </span>
-              <span className="menu-card-note" id={`${id(e.href)}-note`}>
+              <span className="menu-card-note" id={`${id(e.href ?? e.label)}-note`}>
                 {e.note}
               </span>
             </a>
@@ -170,7 +171,11 @@ export function MainMenu() {
   const [savedReplay] = useSavedReplay();
   const entries: Entry[] = [
     ...savedBattles(),
-    { label: "Watch replay", href: replayRoute(savedReplay.file), note: "Load a saved battle." },
+    {
+      label: "Watch replay",
+      href: savedReplay.file === undefined ? null : replayRoute(savedReplay.file),
+      note: savedReplay.file === undefined ? "Reading saved battle…" : "Load a saved battle.",
+    },
   ];
   return (
     <main className="menu">

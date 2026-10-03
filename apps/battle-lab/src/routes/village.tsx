@@ -11,6 +11,7 @@ import {
   isPreparedReplay,
   useSavedReplay,
   ReplayImport,
+  ReplayLoading,
   saveReplay,
   type ReplayFile as SavedFile,
 } from "../replayFile";
@@ -163,8 +164,8 @@ function VillageEncounter({ fixture, script }: { fixture: string; script: string
 export function VillageReplay() {
   const [loaded, loadFile] = useSavedReplay();
   const setFile = (file: ReplayFile) => restartBattle(() => loadFile(file));
+  if (loaded.file === undefined) return <ReplayLoading />;
   const file = loaded.file && isVillageReplay(loaded.file) ? loaded.file : null;
-  const scenario = useVillageScenario("village-replay", file?.variant ?? "ordinary");
   if (!file)
     return (
       <main style={{ padding: 24 }}>
@@ -172,16 +173,26 @@ export function VillageReplay() {
         <ReplayImport plays={isVillageReplay} onLoad={setFile} />
       </main>
     );
+  return <LoadedVillageReplay key={loaded.n} file={file} onLoad={setFile} />;
+}
+
+function LoadedVillageReplay({
+  file,
+  onLoad,
+}: {
+  file: ReplayFile;
+  onLoad: (file: ReplayFile) => void;
+}) {
+  const scenario = useVillageScenario("village-replay", file.variant);
   if (!scenario) return null;
   if (typeof scenario !== "string") return <Failed error={scenario.error} />;
   return (
     <VillageView
-      key={loaded.n}
       scenario={scenario}
       seed={0}
       variant={file.variant}
       replay={file}
-      onLoadReplay={setFile}
+      onLoadReplay={onLoad}
     />
   );
 }
