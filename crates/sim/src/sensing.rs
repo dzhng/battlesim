@@ -204,6 +204,8 @@ pub fn evaluate(
     {
         let from = eyes(observer, rules);
         let sight = crate::sight::of(observer, rules);
+        let concealed_range_multiplier =
+            observer.unit_type(rules).sensors.concealed_range_multiplier;
         let observer_radius = observer.footprint_radius(body);
         for &(target, target_radius) in &targets {
             // Every eye and sample lies within `spread` of the two centres, so
@@ -222,7 +224,9 @@ pub fn evaluate(
             let mut seen = Vec::new();
             let mut any = false;
             for (member, at) in samples(target) {
-                let concealment = target_concealment(world, target, at, rules);
+                let concealment = (target_concealment(world, target, at, rules)
+                    * concealed_range_multiplier)
+                    .min(1.0);
                 if from
                     .iter()
                     .any(|&eye| sees_point(world, eye, at, &sight, concealment, s))

@@ -44,7 +44,7 @@ A unit type is **one catalog entry**, addressed by its string id (`"tank"`, late
 - **A type is its components.** Behaviour comes from them, never from the id:
   - `body`: `{ "squad": { "slots": [soldier kinds] } }` or `{ "hull": { half_extents_m, eye_m, hp, armor, weight_class, push_class, wreck } }`, where `wreck` names a prop type;
   - `mobility`: `foot`, `tracked` or `wheeled`, each with its own speeds and turning;
-  - `sensors`: the one sight (`ground_m`, `sight_shape`, and `on`, the turret mount the optics turn with);
+  - `sensors`: the one sight (`ground_m`, `sight_shape`, and `on`, the turret mount the optics turn with). A sensor's concealed-target spotting bonus offsets forest and garrison concealment, capped at its ordinary directional reach; it never bypasses physical occlusion or foliage attenuation;
   - `mounts`: a hull's weapons, each row with its carrier (`on`), `pivot_m` and `muzzle_m`. A squad's come from its soldiers;
   - `capabilities`: optional abilities such as `deploy` and `supply`;
   - `roles` (what scripts and the AI select by), `cost`, `sound`, `name`, `description`, `faction`, `family`, and a hull's `appearance`.

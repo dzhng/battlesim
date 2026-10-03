@@ -162,9 +162,23 @@ pub struct Sensors {
     pub ground_m: f64,
     /// Reach by direction as multipliers of `ground_m`; 1/1/1 sees evenly.
     pub sight_shape: SightShape,
+    /// Bonus to concealed-target detection reach (at least 1), capped at ordinary sight reach.
+    #[serde(
+        default = "ordinary_concealed_detection",
+        skip_serializing_if = "is_ordinary_concealed_detection"
+    )]
+    pub concealed_range_multiplier: f64,
     /// The turret mount the optics turn with; absent, they look along the hull.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub on: Option<String>,
+}
+
+fn ordinary_concealed_detection() -> f64 {
+    1.0
+}
+
+fn is_ordinary_concealed_detection(value: &f64) -> bool {
+    *value == 1.0
 }
 
 /// Optional abilities, present only on the types that have them.
@@ -1222,6 +1236,11 @@ fn ranges(t: &UnitType) -> Option<&'static str> {
         (!at_least_zero(t.sound.loudness_m)).then_some("sound.loudness_m must not be negative")
     })
     .or_else(|| (!positive(t.sensors.ground_m)).then_some("sensors.ground_m must be positive"))
+    .or_else(|| {
+        (!(t.sensors.concealed_range_multiplier.is_finite()
+            && t.sensors.concealed_range_multiplier >= 1.0))
+            .then_some("sensors.concealed_range_multiplier must be finite and at least 1")
+    })
     .or_else(|| {
         (!(positive(s.rear) && s.rear <= s.side && s.side <= s.front && s.front.is_finite()))
             .then_some("sensors.sight_shape must have 0 < rear <= side <= front")

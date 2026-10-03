@@ -61,6 +61,70 @@ fn ground_range_bounds_identification_by_observer_class() {
 }
 
 #[test]
+fn recon_spots_concealed_infantry_at_twice_the_range_without_extending_open_sight() {
+    let identifies_at = |kind: &str, distance: f64, forest: bool| {
+        let mut fixture = common::game();
+        // Equal optics isolate the concealment advantage from ordinary range tuning.
+        sim::fixtures::patch_catalog(
+            &mut fixture,
+            "units",
+            "recon",
+            json!({ "sensors": { "ground_m": 600 } }),
+        );
+        fixture["forests"]["rule"]["concealment_infantry"] = json!(0.25);
+        fixture["forests"]["rule"]["attenuation_per_m"] = json!(0);
+        let scenario = serde_json::from_value(json!({
+            "map": { "size": [1200, 120], "fog_cell_m": 8, "height_grid_m": 4,
+                "slope_cutoff_deg": 35,
+                "forests": if forest { json!([{ "shape": { "kind": "polygon",
+                    "ring": [[790,0],[810,0],[810,120],[790,120]] } }]) } else { json!([]) } },
+            "rules": fixture,
+            "units": [
+                { "side": "blue", "kind": kind, "position": [800.0 - distance, 60] },
+                { "side": "red", "kind": "rifle", "position": [800, 60] }
+            ], "events": [], "scripts": []
+        }))
+        .unwrap();
+        !Battle::new(&scenario, 1)
+            .observe(Side::Blue)
+            .identified
+            .is_empty()
+    };
+    assert!(identifies_at("rifle", 140.0, true));
+    assert!(!identifies_at("rifle", 160.0, true));
+    assert!(
+        identifies_at("recon", 290.0, true),
+        "scouts spot through concealment at twice the ordinary reach"
+    );
+    assert!(!identifies_at("recon", 310.0, true));
+    assert!(identifies_at("recon", 590.0, false));
+    assert!(
+        !identifies_at("recon", 610.0, false),
+        "the concealment bonus cannot extend open-ground sight"
+    );
+}
+
+#[test]
+fn recon_open_sight_ends_at_650_metres() {
+    for (kind, distance, seen) in [
+        ("rifle", 590, true),
+        ("rifle", 630, false),
+        ("recon", 630, true),
+        ("recon", 670, false),
+    ] {
+        let b = battle(json!([
+            { "side": "blue", "kind": kind, "position": [20, 580] },
+            { "side": "red", "kind": "tank", "position": [20 + distance, 580] }
+        ]));
+        assert_eq!(
+            !blue(&b).identified.is_empty(),
+            seen,
+            "{kind} at {distance} m"
+        );
+    }
+}
+
+#[test]
 fn thin_forest_lets_vehicles_be_seen_beyond_it_and_thick_forest_blocks() {
     let b = battle(json!([
         { "side": "blue", "kind": "rifle", "position": [240, 100] },
@@ -163,8 +227,8 @@ fn foliage_behind_a_wall_does_not_amplify_blocked_sight_work() {
 #[test]
 fn shared_identification_extends_a_tank_but_not_its_own_sensor() {
     let b = battle(json!([
-        { "side": "blue", "kind": "recon", "position": [20, 560] },
-        { "side": "blue", "kind": "tank", "position": [200, 560] },
+        { "side": "blue", "kind": "recon", "position": [200, 560] },
+        { "side": "blue", "kind": "tank", "position": [250, 560] },
         { "side": "red", "kind": "tank", "position": [820, 560] },
     ]));
     let frame = blue(&b);
@@ -187,7 +251,7 @@ fn shared_identification_extends_a_tank_but_not_its_own_sensor() {
     assert_eq!(scout.sees, vec![id]);
     assert!(
         tank.sees.is_empty(),
-        "620 m is beyond the tank's own optics"
+        "570 m is beyond the tank's own optics"
     );
 }
 
