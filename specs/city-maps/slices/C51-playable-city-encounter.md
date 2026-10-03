@@ -29,3 +29,9 @@ Every accepted owner/gate and immutable replay inputs.
 
 ## Feedback that would change this slice
 Failed playability/appearance/resources reopen the responsible slice; update the handoff before continuing.
+
+## Current completion disposition
+
+Generation business rules, saved/runtime delivery, camera clearance, current-art startup and the frozen gallery/appearance checks are integrated. [C50](C50-durability-balance.md#integrated-player-combat-scope) supplies the assembled comparison and actual generated travel/combat evidence, preserving partial placement and the defeated unsupported assault. [C54](C54-generation-gate.md#current-functional-integration) supplies the full-plus-focused functional/browser evidence. No further parameter perfection or unchanged full rerun is required by those proofs.
+
+Whole-spec closure remains pending [C05's named synthetic stress admission](C05-measuring-tools.md#corrected-stress-workload-v4). The normal player battle passes its narrower frame window; it does not prove the larger artificial workload passes. Retain the failed verdict until that requirement passes or the user explicitly changes its release scope. Do not archive this spec as completed while that disposition is unanswered.

@@ -132,3 +132,9 @@ Apple Metal, 1920×1080, 120 forced frames a batch, measured at the first spacin
 **Open.** A strip under about 5.5 m wide carries no shrubs. The band tapers per exported stretch, so a strip that starts in a bend narrows over one chord. One hedge model, so a long line repeats. No station looks along a line or from the ground. The hedgerow comparison is against one frame at another camera.
 
 **Pictures** (scratch): `throwaway/final2/generated-tree-line-65.png` and `-250.png` against `throwaway/before/`; the first hedge in `throwaway/final/`.
+
+## Current causal screening proof
+
+The integrated scene keeps its 60% framed-forest coverage guard and now requires drawn shrubs to hide ground that the crowns alone left visible, at the same camera and tick. The former additional-ten-percentage-points guard is an agent-selected proxy, not the business rule: crowns hiding more than 90% would make it impossible even if shrubs hid every remaining gap. Its miss remains in the receipt. Neither vegetation nor generation parameters are changed to pass the check; the mask is honestly scoped to framed forest ground, not a uniquely identified strip.
+
+On the frozen current map the complete line hides 72.03% against 62.75% with crowns alone, including 31,223 newly hidden pixels. The normal helper passes; suppressing actual understorey makes its additional coverage zero and fails the same check. Both retain all six mask/final/verge captures, the exact identity, tick and camera. The matched controls and original red are in the main checkout's ignored `throwaway/city-ground-gate-repair/`. Fresh full-image and crop review confirms a visible low leafy screen through the gaps, and distinguishes its shadows from hatched fog. This proves the captured local screening contract, not whole-map coverage; the generator's continuous certificate owns that rule.

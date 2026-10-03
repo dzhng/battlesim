@@ -39,7 +39,7 @@ Every accepted slice.
 ## Feedback that would change this slice
 Whole-frame confusion between vegetation, cover, shadow and fog reopens the responsible per-variable ground slice.
 
-## Outcome
+## Historical lane outcome
 
 **The ground contracts compose and the lane is inside its GPU budget. The gate is not clean: forest floor bodies went back off, two scenes fail for reasons this lane did not cause or could not attribute, and a fresh eye still reads open country as a map.** The farmland lab the slice names does not exist, so the tour is the village, the river lab and a generated map (mixed, medium, seed 2) with its town edge. Generated maps do carry tree lines; no station stands on one, so C86's drawn half is held by tests alone and has had no picture or critique.
 
@@ -74,3 +74,7 @@ Whole-frame confusion between vegetation, cover, shadow and fog reopens the resp
 - *Returned to their owners, not patched here:* everything else. The lane's Status lists them by slice; the hedgerows, wood shapes, street stubs and "where a town is" need the map.
 
 **Checks restated at the gate**, each recorded in `choices.md` ("Ground lane integration" and "C87 ground composition gate"): a road against its neighbour is "lighter, or within 15% and apart in hue"; the walk beside a road has one rule, no dark trough; the generated scene counts boulders with the static world; the town's edge needs some drilled field in frame, not 15%.
+
+## Current integrated disposition
+
+[C54](C54-generation-gate.md#current-functional-integration) now owns the complete browser run and focused repaired contracts; the historical movement/village/generated failures above are not today's release verdict. [C86](C86-tree-lines.md#current-causal-screening-proof) includes current matched pictures and fresh critique, closing the earlier missing tree-line picture. C54's frozen landscape review accepts captured tactical/overview composition while preserving its style and distant-detail limits. Local near-black crown undersides read as shade attached to the trees, distinct from the game's hatched fog. Later aesthetic parameter refinement is deferred under M33. This local appearance acceptance does not waive the separate failed C05 synthetic frame gate.

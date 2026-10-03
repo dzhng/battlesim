@@ -2,6 +2,8 @@
 
 These measurements admit their named workload only. Full Metro and G0 admission still require the frozen extent, density and material inputs selected by the wider city gates.
 
+Current active-battle measurements live in [C05](slices/C05-measuring-tools.md#normal-player-encounter-frame-proof): the normal Mixed Small player encounter passes its measured frame/realtime window, while the corrected synthetic city-contact workload remains failed and its proposed scope change is unanswered. [C54](slices/C54-generation-gate.md#current-art-player-startup) owns current-art player startup. Neither a startup pass nor the normal-player result admits the separate Metro stress workload. The rows below retain their historical component and lane scopes; they are not a second current release verdict.
+
 | Owner and workload | Before | After | Evidence and scope |
 |---|---:|---:|---|
 | C20 fog rebuild: 16,000 synthetic boxes, 48 separated eyes, 600 m reach | 37.831 ms | 1.182 ms | ≤2 ms local gate passes. Existing horizon intersections retained; 2,310,144 ray/box visits versus 3,145,728,000 global. |
@@ -25,7 +27,7 @@ C20's matched browser look and limitations are recorded in [its outcome](slices/
 | C25 glass: the whole field | 2.75 ms | 2.73 ms | −0.02 ms (−0.13 to +0.18). |
 | C26 rooms: a room box behind each of 2,592 windows, every tier, default camera | 2.08 ms | 2.26 ms | +0.18 ms (−0.10 to +0.41). |
 | C26 rooms: the whole field | 2.68 ms | 2.82 ms | +0.14 ms (−0.30 to +0.28). |
-| C87 ground lane, village benchmark short run, four alternated pairs | 5.53 to 6.35 ms GPU mean; 48 to 56 FPS; 277 to 297 MiB heap | 5.66 to 6.32 ms GPU mean; 45 to 49 FPS; 426 to 454 MiB heap | Start `ca7bb972`, final `ad50cdec`. GPU pair differences +0.37, +0.13, −0.37, +0.05 ms (median +0.09) against a +3 ms lane budget. The FPS and heap changes are every lane's since the start and are not attributed; see [C87](slices/C87-ground-composition-gate.md#outcome). |
+| C87 ground lane, village benchmark short run, four alternated pairs | 5.53 to 6.35 ms GPU mean; 48 to 56 FPS; 277 to 297 MiB heap | 5.66 to 6.32 ms GPU mean; 45 to 49 FPS; 426 to 454 MiB heap | Start `ca7bb972`, final `ad50cdec`. GPU pair differences +0.37, +0.13, −0.37, +0.05 ms (median +0.09) against a +3 ms lane budget. The FPS and heap changes are every lane's since the start and are not attributed; see [C87](slices/C87-ground-composition-gate.md#historical-lane-outcome). |
 
 Apple metal-3, 1920 × 1080, development build, `FACADE_COST=1 scene -- facade`: each kind of surface drawn against not drawn (its depth, its shadow and its colour together), interleaved in batches of 120 forced frames, whole-frame GPU time. "Off" is "on" less the median difference. Other sessions were rendering on the same machine, so a difference under about 0.3 ms is not distinguishable from none; no kind costs more than that here. The lab's field is flat ground and one small block repeated, not a town: it bounds what the three stages cost a pixel and a draw, not a Metro map's frame. No real kit has these surfaces yet.
 

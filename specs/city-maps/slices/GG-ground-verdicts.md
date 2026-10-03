@@ -2,6 +2,8 @@
 
 **Depends on:** SG1–SG6. **Kind:** gate.
 
+**Current parent verdict:** the ground mechanisms and their component cost evidence are integrated. [C87](C87-ground-composition-gate.md#current-integrated-disposition) links the current composition, corrected browser contracts and tree-line picture verdicts, superseding its historical lane findings only within their measured scope. The parent still retains the separate C05 synthetic stress failure. Broader appearance/performance refinement and personal parameter tuning wait for the later workbench; this gate does not invent another generator or new balancing requirements.
+
 ## Question
 Do the ground lane's assumptions survive, and what does it build to?
 
