@@ -52,3 +52,10 @@ The final layout-13 Mixed Small seed 1 uses map `9b8ed835…`, configuration `39
 Exact inputs, per-unit movement, acknowledgements and tick-cost data are in the main checkout's ignored `throwaway/city-maps-final-integrated/generated-assault-current-mechanics.jsonl` and matching log.
 
 The final current-mechanics village report completes all fifty trials in 413.6 s wall time on two threads, retiring 17,200 G instructions. Unsupported road push captures five of ten; scout/suppress/flank captures seven of ten with two tanks lost across the ten trials. Ambush and prepared crossfire capture none. The report exits 101 because flank seed 5 has one refused scripted order despite capturing at 552 s; other trials have zero refusals. Preserve this failed verdict and diagnose that one order through the existing controller. No coefficient tuning or unchanged full rerun is justified. Raw rows/log are `throwaway/city-maps-final-balance/village-current-mechanics.jsonl` and `.log` in the main checkout.
+
+
+### Comparison-controller correction
+
+The final village report retained one controller refusal: a replenished rifle's fixed return offset failed physical move admission, although the objective was admitted at the same state. The controller now asks the existing movement authority before choosing either intent, counts only an accepted return, and retains resting units after failure. Failed checks reuse the existing ten-second wait rather than rehearse unchanged destinations every tick. No durability coefficient, movement rule or generation number changes.
+
+Focused real-service tests cover an inaccessible offset with a reachable objective, and two blocked destinations whose access later opens through actual destruction. The ten-flank comparison preserves nine previous digests; seed 5 has no refusal and retains its capture time and losses. This closes the controller fault, not the parent’s final assembled balance or generated-encounter verdict.
