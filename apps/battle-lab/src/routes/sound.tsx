@@ -4,6 +4,7 @@
 // drives `window.__sound`.
 import { useEffect, useState } from "react";
 import type { Bus } from "@packages/battle-audio/src/audioPresentation";
+import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 import {
   battleScaleCost,
   firefightScript,
@@ -49,7 +50,10 @@ declare global {
   interface Window {
     __sound?: {
       ready: boolean;
-      render: (solo?: Bus) => Promise<Omit<FirefightRender, "samples"> & { wav: string }>;
+      render: (
+        solo?: Bus,
+        catalog?: SoundCatalog,
+      ) => Promise<Omit<FirefightRender, "samples"> & { wav: string }>;
       events: () => { t: number; what: string }[];
       cost: () => ReturnType<typeof battleScaleCost>;
       distance: () => Promise<
@@ -68,8 +72,8 @@ export default function Sound() {
   useEffect(() => {
     window.__sound = {
       ready: true,
-      async render(solo) {
-        const r = await renderFirefight(solo);
+      async render(solo, catalog) {
+        const r = await renderFirefight(solo, catalog);
         const { samples, ...rest } = r;
         return { ...rest, wav: base64(encodeWav(samples, r.sampleRate)) };
       },

@@ -39,3 +39,11 @@ Family labels describe perceived character rather than an unverified weapon
 model. Measurements prove onset, clipping and reproducibility; timbre choices
 remain reviewable in the workbench. Source quality and designed reuses are explicit
 in each clip's provenance.
+
+The [sound frame](src/soundFrame.ts) owns timing, distance and voice allocation.
+Only implicit presentation slots follow shared effect replacements; an explicit
+recipe selection keeps its identity. The [bank](src/soundBank.ts) prepares live
+and offline buffers through the same asynchronous path. Disposal aborts loading
+and prevents late admission. The [browser lifecycle](src/battleAudio.ts) drops
+publications received while loading, reports failures, and starts from fresh
+observed evidence once ready.

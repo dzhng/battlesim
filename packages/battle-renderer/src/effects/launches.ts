@@ -20,6 +20,9 @@ type P3 = readonly [number, number, number] | readonly number[];
 
 /** One shot the publication shows, at the start of its tick. */
 export interface Launch {
+  /** Exact observed unit type and authored physical mount name. */
+  unitKind: string;
+  mountName: string;
   /** The shooter's key (`EffectShooter.key`). */
   shooter: number;
   /** The mount that fired: its index in the shooter's mounts. */
@@ -107,6 +110,8 @@ export class LaunchTracker {
             const [a, b] = [s.path[0], s.path[1]];
             const len = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]) || 1;
             out.push({
+              unitKind: u.kind,
+              mountName: mount.name,
               shooter: u.key,
               mount: m,
               soldier: id,
@@ -167,6 +172,8 @@ export class LaunchTracker {
     const s = Math.sin(mount.bearing);
     const ce = Math.cos(mount.elevation);
     return {
+      unitKind: u.kind,
+      mountName: mount.name,
       shooter: u.key,
       mount: m,
       soldier: null,

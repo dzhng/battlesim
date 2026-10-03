@@ -32,6 +32,8 @@ import { sideKey } from "@packages/battle-renderer/src/sideKey";
 import { mountMuzzles } from "@packages/scene-assets/src/mountMuzzle";
 import { gameEffects } from "./effectFeed";
 import { gameAudio } from "./soundFeed";
+import { gameSounds } from "@packages/battle-audio/src/shippedSounds";
+import type { SoundCatalog } from "@packages/battle-audio/src/catalog";
 
 export const FIREFIGHT_S = 8;
 const HZ = game.tick_hz;
@@ -180,20 +182,32 @@ export function firefightScript(): Script {
     const shooters: EffectShooter[] = [
       {
         key: BLUE_SQUAD.key,
+        kind: "rifle",
         position: squadAt[0],
         half: null,
         yaw: 0,
         members: BLUE_SQUAD.members,
-        mounts: [{ bearing: 0.5, elevation: 0, shots: rifleShots[0], kind: "rifle", muzzle: null }],
+        mounts: [
+          {
+            name: "rifles",
+            bearing: 0.5,
+            elevation: 0,
+            shots: rifleShots[0],
+            kind: "rifle",
+            muzzle: null,
+          },
+        ],
       },
       {
         key: RED_TANK.key,
+        kind: "tank",
         position: RED_TANK.at,
         half: [3.5, 1.8, 1.2],
         yaw: Math.PI,
         members: [],
         mounts: [
           {
+            name: "cannon",
             bearing: Math.PI + 0.55,
             elevation: 0,
             shots: tankShots[0],
@@ -201,6 +215,7 @@ export function firefightScript(): Script {
             muzzle: CANNON,
           },
           {
+            name: "HMG",
             bearing: Math.PI + 0.6,
             elevation: 0,
             shots: tankShots[1],
@@ -211,12 +226,14 @@ export function firefightScript(): Script {
       },
       {
         key: BLUE_TANK.key,
+        kind: "tank",
         position: blueTankAt(s),
         half: [3.5, 1.8, 1.2],
         yaw: 0,
         members: [],
         mounts: [
           {
+            name: "guided",
             bearing: 0.55,
             elevation: 0.05,
             shots: blueTankShots[0],
@@ -314,7 +331,7 @@ export interface FirefightRender {
 /** The game's sound rendered offline for `seconds` at 48 kHz stereo:
  *  the context, its sink with the bank loaded, and the frame that plays
  *  into it. `solo` keeps one bus and mutes the others. */
-function offlineSound(seconds: number, solo?: Bus) {
+async function offlineSound(seconds: number, solo?: Bus, catalog: SoundCatalog = gameSounds) {
   const sampleRate = 48000;
   const ctx = new OfflineAudioContext(2, Math.round(seconds * sampleRate), sampleRate);
   const { buses } = gameAudio;
@@ -329,15 +346,21 @@ function offlineSound(seconds: number, solo?: Bus) {
         },
       }
     : gameAudio;
-  const sink = new OfflineSink(ctx, presentation);
-  sink.bank.preload();
-  const frame = new SoundFrame({ tickHz: HZ, presentation, smokeTimes: gameEffects.smoke }, sink);
+  const sink = new OfflineSink(ctx, presentation, catalog);
+  await sink.bank.prepare();
+  const frame = new SoundFrame(
+    { tickHz: HZ, presentation, catalog, smokeTimes: gameEffects.smoke },
+    sink,
+  );
   return { sampleRate, ctx, sink, frame };
 }
 
 /** Render the firefight offline; `solo` keeps one bus and mutes the others. */
-export async function renderFirefight(solo?: Bus): Promise<FirefightRender> {
-  const { sampleRate, ctx, sink, frame } = offlineSound(FIREFIGHT_S, solo);
+export async function renderFirefight(
+  solo?: Bus,
+  catalog: SoundCatalog = gameSounds,
+): Promise<FirefightRender> {
+  const { sampleRate, ctx, sink, frame } = await offlineSound(FIREFIGHT_S, solo, catalog);
   const script = firefightScript();
   const t0 = performance.now();
   let next = 0;
@@ -379,8 +402,10 @@ export async function renderFirefight(solo?: Bus): Promise<FirefightRender> {
  *  builds real nodes on an offline context): 200 soldiers walking, 40
  *  vehicles driving, every rifleman firing twice a second. Milliseconds per
  *  frame, p50 and p95. */
-export function battleScaleCost(): { p50: number; p95: number; notes: number } {
-  const { sink, frame } = offlineSound(4);
+export async function battleScaleCost(
+  catalog: SoundCatalog = gameSounds,
+): Promise<{ p50: number; p95: number; notes: number }> {
+  const { sink, frame } = await offlineSound(4, undefined, catalog);
   const soldiers = Array.from({ length: 200 }, (_, i) => ({
     id: i + 1,
     position: [(i % 20) * 10 - 100, Math.floor(i / 20) * 12 - 60, 1],
@@ -411,12 +436,14 @@ export function battleScaleCost(): { p50: number; p95: number; notes: number } {
         smokes: [],
         shooters: soldiers.map((x) => ({
           key: sideKey(x.id, "blue", "blue"),
+          kind: "rifle",
           position: x.position,
           half: null,
           yaw: 0,
           members: [x.id],
           mounts: [
             {
+              name: "rifles",
               bearing: 0,
               elevation: 0,
               shots: Math.floor((tick + x.id) / 15),
@@ -449,17 +476,22 @@ export function battleScaleCost(): { p50: number; p95: number; notes: number } {
 
 /** One blue rifleman's single shot, heard offline through the real graph
  *  (effects bus alone) from `listener`: mono, 2.5 s at 48 kHz. */
-async function renderShot(listener: Listener, at: number[]): Promise<Float32Array> {
+async function renderShot(
+  listener: Listener,
+  at: number[],
+  catalog: SoundCatalog,
+): Promise<Float32Array> {
   const seconds = 2.5;
-  const { ctx, sink, frame } = offlineSound(seconds, "effects");
+  const { ctx, sink, frame } = await offlineSound(seconds, "effects", catalog);
   const key = sideKey(1, "blue", "blue");
   const shooter = (shots: number): EffectShooter => ({
     key,
+    kind: "rifle",
     position: at,
     half: null,
     yaw: 0,
     members: [20],
-    mounts: [{ bearing: 0, elevation: 0, shots, kind: "rifle", muzzle: null }],
+    mounts: [{ name: "rifles", bearing: 0, elevation: 0, shots, kind: "rifle", muzzle: null }],
   });
   const fireTick = tickAt(0.2);
   for (let tick = 1; tick <= tickAt(seconds); tick++) {
@@ -489,7 +521,7 @@ async function renderShot(listener: Listener, at: number[]): Promise<Float32Arra
 /** The same single shot heard up close (inside `distance.ref_m`) and from
  *  the camera at its farthest zoom looking at it, with the fixture's floor
  *  and far cutoff the sound scene measures them against. */
-export async function renderDistanceProbe() {
+export async function renderDistanceProbe(catalog: SoundCatalog = gameSounds) {
   const at = [0, 0, 1];
   const cam = game.presentation.camera;
   const far = cameraListener(
@@ -504,8 +536,8 @@ export async function renderDistanceProbe() {
   const close: Listener = { position: [0, -4, 3], forward: [0, 1, 0] };
   return {
     sampleRate: 48000,
-    near: await renderShot(close, at),
-    far: await renderShot(far, at),
+    near: await renderShot(close, at, catalog),
+    far: await renderShot(far, at, catalog),
     farDistanceM: Math.hypot(far.position[0], far.position[1], far.position[2] - at[2]),
     floor: gameAudio.distance.floor,
     farHz: gameAudio.air.far_hz,

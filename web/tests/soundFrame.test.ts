@@ -70,6 +70,15 @@ function setup() {
     {
       tickHz: HZ,
       presentation: AUDIO,
+      catalog: {
+        sources: {},
+        clips: {},
+        sounds: {},
+        defaults: {},
+        units: {},
+        impacts: {},
+        effects: {},
+      },
       smokeTimes: SMOKE,
     },
     sink,
@@ -79,11 +88,12 @@ function setup() {
 
 const squad = (key: number, member: number, at: number[], shots: number): EffectShooter => ({
   key,
+  kind: "rifle",
   position: at,
   half: null,
   yaw: 0,
   members: [member],
-  mounts: [{ bearing: 0, elevation: 0, shots, kind: "rifle", muzzle: null }],
+  mounts: [{ name: "rifle", bearing: 0, elevation: 0, shots, kind: "rifle", muzzle: null }],
 });
 
 /** A publication where each shooter's one soldier fires a new round at tick `tick`. */
@@ -351,4 +361,137 @@ test("distance never takes a heard sound below the floor, and falls steadily to 
     last = g;
   }
   expect(distanceGain(AUDIO, 0)).toBe(1);
+});
+
+test("unit and named mount choices change reports without changing observed cadence or hidden cues", () => {
+  const catalog = {
+    sources: {},
+    clips: {},
+    sounds: {},
+    defaults: {},
+    impacts: {},
+    effects: {},
+    units: {
+      scout: { rifle: { near: "crisp", far: "crisp_far", gain: 0.8 } },
+      assault: { rifle: { near: "heavy", far: "heavy_far", gain: 1 } },
+    },
+  };
+  const sink = new FakeSink();
+  const frame = new SoundFrame(
+    { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, catalog },
+    sink,
+  );
+  const shooters = [
+    { key: 2, at: [0, 0, 1] },
+    { key: 4, at: [5, 0, 1] },
+  ];
+  run(
+    frame,
+    sink,
+    1,
+    4,
+    (tick) => {
+      const pub = firefight(tick, shooters);
+      return {
+        ...pub,
+        segments: pub.segments.map((s) => ({ ...s, hit: "none" })),
+        shooters: pub.shooters.map((s, i) => ({
+          ...s,
+          kind: i ? "assault" : "scout",
+          mounts: s.mounts.map((m) => ({ ...m, name: "rifle" })),
+        })),
+      };
+    },
+    () => [{ category: "shot", sector: 1, band: "near", moving: false }],
+  );
+  const reports = sink.started.filter((v) => v.position !== null && !v.loop);
+  expect(reports.map((v) => v.sound)).toEqual(["heavy", "crisp", "heavy", "crisp"]);
+  expect(reports.filter((v) => v.sound === "heavy").map((v) => v.at)).toEqual(
+    reports.filter((v) => v.sound === "crisp").map((v) => v.at),
+  );
+  expect(sink.started.find((v) => !v.loop && v.position === null)?.sound).toBe(
+    AUDIO.cues.sounds.shot,
+  );
+});
+
+test("separate named mounts preserve explicit recipes while implicit impacts follow shared replacements", () => {
+  const catalog = {
+    sources: {},
+    clips: {},
+    sounds: {},
+    defaults: {},
+    units: {
+      tank: {
+        cannon: { near: "cannon", far: "cannon_far", gain: 1 },
+        HMG: { near: "roof_report", far: "roof_far", gain: 1 },
+      },
+    },
+    impacts: { ground: { hmg: "dirt_hit" } },
+    effects: { cannon: "recorded_cannon", rifle: "recorded_rifle", impact_hull: "hard_hit" },
+  };
+  const sink = new FakeSink();
+  const frame = new SoundFrame(
+    { tickHz: HZ, presentation: AUDIO, smokeTimes: SMOKE, catalog },
+    sink,
+  );
+  const pub = (tick: number): EffectPublication => ({
+    tick,
+    shooters: [
+      {
+        key: 2,
+        kind: "tank",
+        half: [3, 1, 1],
+        position: [0, 0, 1],
+        yaw: 0,
+        members: [],
+        mounts: [
+          {
+            name: "cannon",
+            bearing: 0,
+            elevation: 0,
+            shots: tick - 1,
+            kind: "tank_ap",
+            muzzle: null,
+          },
+          { name: "HMG", bearing: 0, elevation: 0, shots: tick - 1, kind: "hmg", muzzle: null },
+        ],
+      },
+    ],
+    segments:
+      tick === 2
+        ? [
+            {
+              path: [
+                [0, 0, 1],
+                [1, 0, 0],
+              ],
+              ricochets: [],
+              kind: "hmg",
+              shooter: null,
+              hit: "ground",
+              normal: null,
+            },
+            {
+              path: [
+                [0, 0, 1],
+                [2, 0, 0],
+              ],
+              ricochets: [],
+              kind: "rifle",
+              shooter: null,
+              hit: "hull",
+              normal: null,
+            },
+          ]
+        : [],
+    blasts: [],
+    smokes: [],
+  });
+  run(frame, sink, 1, 2, pub);
+  expect(
+    sink.started
+      .filter((v) => !v.loop)
+      .map((v) => v.sound)
+      .sort(),
+  ).toEqual(["cannon", "dirt_hit", "hard_hit", "roof_report"]);
 });

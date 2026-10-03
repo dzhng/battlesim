@@ -2,8 +2,7 @@
 // `AudioContext`, heard from the camera. Audio starts on the first user
 // gesture (the browser's rule), or at once when the page has already had
 // one (the click that opened the battle, such as the benchmark's Short
-// run), unless muted, once the bank is synthesised
-// (one sound a task, about a quarter of a second in all); muting suspends the context
+// run), unless muted, once the bank is prepared; muting suspends the context
 // and the frame, and unmuting starts afresh (loops restart, nothing stale
 // plays). The mute and volume are `soundSettings`', shared with the menu.
 import { eyePosition, type Camera3DParams } from "@packages/renderer-core/src/camera3d";
@@ -40,16 +39,19 @@ export interface BattleAudioStats extends SoundStats {
   running: boolean;
   /** Voices the graph holds. */
   graph: number;
-  /** Main-thread milliseconds the bank took to synthesise, once, over many tasks. */
+  /** Main-thread milliseconds spent synthesizing and composing prepared buffers. */
   bankMs: number;
+  loading: boolean;
+  error: string | null;
 }
 
 export class BattleAudio {
   private context: AudioContext | null = null;
   private sink: WebAudioSink | null = null;
   private frame: SoundFrame | null = null;
-  /** The bank is synthesised: the frame may run. */
+  /** Recorded and synthetic buffers are prepared: the frame may run. */
   private ready = false;
+  private error: string | null = null;
   private readonly unsubscribe: () => void;
   private readonly onGesture = () => this.start();
 
@@ -67,12 +69,21 @@ export class BattleAudio {
     if (soundSettings.get().muted) return;
     if (!this.context) {
       this.context = new AudioContext({ latencyHint: "interactive" });
-      this.sink = new WebAudioSink(this.context, this.options.presentation);
+      this.sink = new WebAudioSink(this.context, this.options.presentation, this.options.catalog);
       this.frame = new SoundFrame(this.options, this.sink);
-      this.sink.bank.preloadSoon(() => {
-        this.ready = true;
-        this.frame?.reset();
-      });
+      const sink = this.sink;
+      void sink.bank
+        .prepare()
+        .then(() => {
+          if (this.sink !== sink) return;
+          this.ready = true;
+          this.frame?.reset();
+        })
+        .catch((error: unknown) => {
+          if (this.sink !== sink) return;
+          this.error = error instanceof Error ? error.message : String(error);
+          console.error("Battle sound could not be prepared:", this.error);
+        });
       this.applySettings();
     }
     if (this.context.state !== "running") {
@@ -126,6 +137,8 @@ export class BattleAudio {
       running: this.context?.state === "running",
       graph: this.sink?.live ?? 0,
       bankMs: this.sink?.bank.ms ?? 0,
+      loading: !this.ready && this.error === null,
+      error: this.error,
     };
   }
 
@@ -133,6 +146,8 @@ export class BattleAudio {
     this.unsubscribe();
     for (const type of ["pointerdown", "keydown"] as const)
       window.removeEventListener(type, this.onGesture, { capture: true });
+    this.sink?.bank.dispose();
+    this.ready = false;
     void this.context?.close();
     this.context = null;
     this.frame = null;

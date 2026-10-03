@@ -9,54 +9,13 @@
 // `OfflineAudioContext` alike: every change is scheduled at a sink time.
 import { BUSES, type AudioPresentation, type Bus } from "./audioPresentation";
 import type { Listener, VoiceParams, VoiceSink, VoiceSpec } from "./soundFrame";
-import { reverbImpulse, SOUNDS, synthesize } from "./synth";
+import { reverbImpulse } from "./synth";
+import { SoundBank } from "./soundBank";
+import type { SoundCatalog } from "./catalog";
+export { SoundBank } from "./soundBank";
 
 /** Seconds a live loop's parameters glide to a new value over (time constant). */
 const GLIDE_S = 0.06;
-
-/** The bank of synthesised sounds as buffers for one context. */
-export class SoundBank {
-  private readonly buffers = new Map<string, AudioBuffer>();
-
-  constructor(private readonly context: BaseAudioContext) {}
-
-  /** Main-thread milliseconds spent synthesising so far. */
-  ms = 0;
-
-  /** Synthesise every sound now (a one-off cost at start). */
-  preload() {
-    for (const name of Object.keys(SOUNDS)) this.get(name);
-  }
-
-  /** Synthesise every sound, one a task, so no one task is long; then `done`. */
-  preloadSoon(done: () => void) {
-    const names = Object.keys(SOUNDS);
-    const next = () => {
-      const name = names.shift();
-      if (!name) return done();
-      this.get(name);
-      setTimeout(next, 0);
-    };
-    setTimeout(next, 0);
-  }
-
-  get(name: string): AudioBuffer {
-    let b = this.buffers.get(name);
-    if (!b) {
-      const t = performance.now();
-      const s = synthesize(name, this.context.sampleRate);
-      b = this.context.createBuffer(
-        s.channels.length,
-        s.channels[0].length,
-        this.context.sampleRate,
-      );
-      s.channels.forEach((c, i) => b!.copyToChannel(c as Float32Array<ArrayBuffer>, i));
-      this.buffers.set(name, b);
-      this.ms += performance.now() - t;
-    }
-    return b;
-  }
-}
 
 interface LiveVoice {
   source: AudioBufferSourceNode;
@@ -77,8 +36,9 @@ export class WebAudioSink implements VoiceSink {
   constructor(
     readonly context: BaseAudioContext,
     presentation: AudioPresentation,
+    catalog?: SoundCatalog,
   ) {
-    this.bank = new SoundBank(context);
+    this.bank = new SoundBank(context, catalog);
     const limiter = new DynamicsCompressorNode(context, {
       threshold: -6,
       knee: 3,
@@ -114,14 +74,14 @@ export class WebAudioSink implements VoiceSink {
     return this.context.currentTime;
   }
 
-  duration(sound: string) {
-    return this.bank.get(sound).duration;
+  duration(sound: string, variant = 0) {
+    return this.bank.get(sound, variant).duration;
   }
 
   start(id: number, v: VoiceSpec) {
     const ctx = this.context;
     const source = new AudioBufferSourceNode(ctx, {
-      buffer: this.bank.get(v.sound),
+      buffer: this.bank.get(v.sound, v.variant),
       loop: v.loop,
       playbackRate: v.rate,
     });

@@ -63,6 +63,8 @@ export interface EffectBlast {
 
 /** One weapon mount as published: a rise in `shots` is a shot. */
 export interface EffectMount {
+  /** Authored physical mount name, independent of ammunition choice. */
+  name: string;
   bearing: number;
   elevation: number;
   shots: number;
@@ -75,6 +77,8 @@ export interface EffectMount {
 
 /** A unit whose shots the side sees: an own unit or an identified enemy. */
 export interface EffectShooter {
+  /** Exact unit type already identified in this side's observation. */
+  kind: string;
   /** Unique across both sides for the life of the battle. */
   key: number;
   position: P3;

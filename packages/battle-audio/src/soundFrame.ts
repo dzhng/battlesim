@@ -38,6 +38,8 @@ import { hashString } from "@packages/renderer-core/src/math";
 import { LaunchTracker } from "@packages/battle-renderer/src/effects/launches";
 import { pick } from "@packages/renderer-core/src/kindTable";
 import { validateAudio, type AudioPresentation, type Bus } from "./audioPresentation";
+import { resolveEffect, resolveShot, type SoundCatalog } from "./catalog";
+import { gameSounds } from "./shippedSounds";
 
 type P3 = readonly [number, number, number] | readonly number[];
 
@@ -93,6 +95,8 @@ export interface Listener {
  *  (a cue's direction), or it plays centred (the ambience bed). */
 export interface VoiceSpec {
   sound: string;
+  /** Stable event-derived variation, interpreted by the prepared bank. */
+  variant: number;
   bus: Bus;
   /** Sink time to start at, seconds. */
   at: number;
@@ -123,7 +127,7 @@ export interface VoiceSink {
   /** The sink's clock, seconds. */
   now(): number;
   /** A sound's length at rate 1, seconds. */
-  duration(sound: string): number;
+  duration(sound: string, variant?: number): number;
   start(id: number, voice: VoiceSpec): void;
   set(id: number, params: VoiceParams, at: number): void;
   /** Fade out over `fade` seconds from `at`, then free. */
@@ -153,6 +157,7 @@ export interface SoundStats {
 export interface SoundFrameOptions {
   tickHz: number;
   presentation: AudioPresentation;
+  catalog?: SoundCatalog;
   /** How long each smoke kind burns and smoulders (`presentation.effects.smoke`). */
   smokeTimes: Record<string, { burn_s: number; smoulder_s: number }>;
 }
@@ -161,6 +166,7 @@ export interface SoundFrameOptions {
 interface Pending {
   t: number;
   sound: string;
+  variant: number;
   /** The far sound, and the distance it takes over at (gunfire, blasts). */
   far: string | null;
   far_m: number;
@@ -236,6 +242,7 @@ const FADE_S = { hold: 0.03, steal: 0.02, loop: 0.15 };
 
 export class SoundFrame {
   private readonly p: AudioPresentation;
+  private readonly catalog: SoundCatalog;
   private readonly dt: number;
   private readonly launches: LaunchTracker;
   private readonly smokeTimes: SoundFrameOptions["smokeTimes"];
@@ -260,6 +267,7 @@ export class SoundFrame {
     private readonly sink: VoiceSink,
   ) {
     this.p = validateAudio(options.presentation);
+    this.catalog = options.catalog ?? gameSounds;
     this.dt = 1 / options.tickHz;
     this.launches = new LaunchTracker();
     this.smokeTimes = options.smokeTimes;
@@ -299,7 +307,14 @@ export class SoundFrame {
     const p = this.p;
 
     for (const l of this.launches.note(fx, gap)) {
-      const s = pick(p.shots, l.kind);
+      const base = pick(p.shots, l.kind);
+      const s = resolveShot(
+        this.catalog,
+        { ...base, near: this.effect(base.near), far: this.effect(base.far) },
+        l.unitKind,
+        l.mountName,
+        l.kind,
+      );
       this.queue(
         t0,
         s.near,
@@ -309,6 +324,7 @@ export class SoundFrame {
         s.gain,
         [l.x, l.y, l.z],
         l.shooter + l.kind,
+        `${fx.tick}:${l.shooter}:${l.mount}:${l.soldier}:${l.kind}`,
       );
     }
     const motors = new Map<string, Motor>();
@@ -327,14 +343,34 @@ export class SoundFrame {
         for (const r of s.ricochets) {
           const at = t0 + (this.dt * cum[r.point]) / Math.max(total, 1e-6);
           const pt = s.path[r.point];
-          this.queue(at, p.ricochet.sound, null, 0, "effects", p.ricochet.gain, pt, endKey(pt));
+          this.queue(
+            at,
+            this.effect(p.ricochet.sound),
+            null,
+            0,
+            "effects",
+            p.ricochet.gain,
+            pt,
+            endKey(pt),
+          );
         }
       }
       const end = s.path[s.path.length - 1];
       if (s.hit !== "none") {
         const hit = pick(p.impacts, s.hit);
         const scale = pick(p.impact_scale, s.kind);
-        this.queue(t1, hit.sound, null, 0, "effects", hit.gain * scale, end, endKey(end));
+        this.queue(
+          t1,
+          this.catalog.impacts[s.hit]?.[s.kind] ??
+            this.catalog.impacts[s.hit]?.default ??
+            this.effect(hit.sound),
+          null,
+          0,
+          "effects",
+          hit.gain * scale,
+          end,
+          endKey(end),
+        );
       } else if (p.motors[s.kind]) {
         // A flying round with a motor: one loop along its chain of stretches.
         // Chains are keyed by where their latest stretch ends; a stretch
@@ -350,7 +386,16 @@ export class SoundFrame {
     this.motors = motors;
     for (const b of fx.blasts) {
       const s = pick(p.blasts, b.kind);
-      this.queue(t1, s.near, s.far, s.far_m, "effects", s.gain, b.point, endKey(b.point));
+      this.queue(
+        t1,
+        this.effect(s.near),
+        this.effect(s.far),
+        s.far_m,
+        "effects",
+        s.gain,
+        b.point,
+        endKey(b.point),
+      );
     }
     // Fires: every smoke source the side knows, from when it was first known.
     const known = new Set<string>();
@@ -380,7 +425,8 @@ export class SoundFrame {
       const near = c.band === "near";
       this.pending.push({
         t: t0,
-        sound,
+        sound: this.effect(sound),
+        variant: 0,
         far: null,
         far_m: 0,
         bus: "effects",
@@ -396,6 +442,10 @@ export class SoundFrame {
       this.pending.splice(0, this.pending.length - PENDING_CAP);
   }
 
+  private effect(sound: string): string {
+    return resolveEffect(this.catalog, sound);
+  }
+
   private queue(
     t: number,
     sound: string,
@@ -405,10 +455,12 @@ export class SoundFrame {
     gain: number,
     position: P3,
     variety: string,
+    variantKey = variety,
   ) {
     this.pending.push({
       t,
       sound,
+      variant: hashString(`${t}:${variantKey}:${endKey(position)}`) >>> 0,
       far,
       far_m,
       bus,
@@ -481,7 +533,16 @@ export class SoundFrame {
       if (st.carry < f.stride_m) continue;
       st.carry %= f.stride_m;
       if (this.level(f.gain, s.position) < this.p.distance.cull) continue;
-      this.queue(clock, f.sound, null, 0, "units", f.gain, s.position, `${s.id}:${clock}`);
+      this.queue(
+        clock,
+        this.effect(f.sound),
+        null,
+        0,
+        "units",
+        f.gain,
+        s.position,
+        `${s.id}:${clock}`,
+      );
     }
     for (const id of this.strides.keys()) if (!seen.has(id)) this.strides.delete(id);
   }
@@ -522,6 +583,7 @@ export class SoundFrame {
       const u = e.position ? this.farShare(e.position) : e.far_share;
       this.sink.start(id, {
         sound,
+        variant: e.variant,
         bus: e.bus,
         at,
         gain: e.position ? priority : e.gain,
@@ -533,7 +595,11 @@ export class SoundFrame {
         pan: e.position ? null : sectorPan(e.sector, this.listener.forward),
         loop: false,
       });
-      this.transients.push({ id, priority, end: at + this.sink.duration(sound) / e.rate });
+      this.transients.push({
+        id,
+        priority,
+        end: at + this.sink.duration(sound, e.variant) / e.rate,
+      });
       this.counts.started++;
       if (e.position) this.counts.positional++;
       else this.counts.cues++;
@@ -679,7 +745,8 @@ export class SoundFrame {
       }
       const id = this.nextId++;
       this.sink.start(id, {
-        sound: w.sound,
+        sound: this.effect(w.sound),
+        variant: 0,
         bus: w.bus,
         at: now,
         ...params,
